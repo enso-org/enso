@@ -2,7 +2,7 @@
 import { injectGraphNavigator } from '@/providers/graphNavigator.ts'
 import { injectGraphSelection } from '@/providers/graphSelection.ts'
 import type { Edge } from '@/stores/graph'
-import type { Rect } from '@/util/rect'
+import { Rect } from '@/util/rect'
 import { Vec2 } from '@/util/vec2'
 import { clamp } from '@vueuse/core'
 import type { ExprId } from 'shared/yjsModel'
@@ -16,6 +16,7 @@ const props = defineProps<{
   nodeRects: Map<ExprId, Rect>
   exprRects: Map<ExprId, Rect>
   lookupExprNode: (exprId: ExprId) => ExprId | undefined
+  lookupNodeColor: (nodeId: ExprId) => string | undefined
 }>()
 
 const emit = defineEmits<{
@@ -25,39 +26,50 @@ const emit = defineEmits<{
 
 const base = ref<SVGPathElement>()
 
-type PosMaybeSized = { pos: Vec2; size?: Vec2 }
+const sourceNode = computed(
+  () =>
+    props.edge.source ??
+    (selection?.hoveredNode != (props.edge.target && props.lookupExprNode(props.edge.target))
+      ? selection?.hoveredNode
+      : undefined),
+)
 
-const targetPos = computed<PosMaybeSized | null>(() => {
-  const targetExpr =
+const targetExpr = computed(
+  () =>
     props.edge.target ??
-    (selection?.hoveredNode != props.edge.source ? selection?.hoveredExpr : undefined)
-  if (targetExpr != null) {
-    const targetNodeId = props.lookupExprNode(targetExpr)
-    if (targetNodeId == null) return null
-    const targetNodeRect = props.nodeRects.get(targetNodeId)
-    const targetRect = props.exprRects.get(targetExpr)
-    if (targetRect == null || targetNodeRect == null) return null
-    return { pos: targetRect.center().add(targetNodeRect.pos), size: targetRect.size }
+    (selection?.hoveredNode != props.edge.source ? selection?.hoveredExpr : undefined),
+)
+const targetNode = computed(() => targetExpr.value && props.lookupExprNode(targetExpr.value))
+const targetNodeRect = computed(() => targetNode.value && props.nodeRects.get(targetNode.value))
+
+const targetRect = computed<Rect | null>(() => {
+  const expr = targetExpr.value
+  if (expr != null) {
+    if (targetNode.value == null) return null
+    const targetRectRelative = props.exprRects.get(expr)
+    if (targetRectRelative == null || targetNodeRect.value == null) return null
+    return targetRectRelative.offsetBy(targetNodeRect.value.pos)
   } else if (navigator?.sceneMousePos != null) {
-    return { pos: navigator?.sceneMousePos }
+    return new Rect(navigator.sceneMousePos, Vec2.Zero)
   } else {
     return null
   }
 })
-const sourcePos = computed<PosMaybeSized | null>(() => {
-  const targetNode = props.edge.target != null ? props.lookupExprNode(props.edge.target) : undefined
-  const sourceNode =
-    props.edge.source ?? (selection?.hoveredNode != targetNode ? selection?.hoveredNode : undefined)
-  if (sourceNode != null) {
-    const sourceNodeRect = props.nodeRects.get(sourceNode)
-    if (sourceNodeRect == null) return null
-    const pos = sourceNodeRect.center()
-    return { pos, size: sourceNodeRect.size }
+const sourceRect = computed<Rect | null>(() => {
+  if (sourceNode.value != null) {
+    return props.nodeRects.get(sourceNode.value) ?? null
   } else if (navigator?.sceneMousePos != null) {
-    return { pos: navigator?.sceneMousePos }
+    return new Rect(navigator.sceneMousePos, Vec2.Zero)
   } else {
     return null
   }
+})
+
+const edgeColor = computed(() => {
+  return (
+    (targetNode.value && props.lookupNodeColor(targetNode.value)) ??
+    (sourceNode.value && props.lookupNodeColor(sourceNode.value))
+  )
 })
 
 /** The inputs to the edge state computation. */
@@ -70,6 +82,8 @@ type Inputs = {
   /** The coordinates of the node input port that is the edge's destination, relative to the source position.
    *  The edge enters the port from above. */
   targetOffset: Vec2
+  /** The distance between the target port top edge and the target node top edge. */
+  targetPortDistance: number | undefined
 }
 
 type JunctionPoints = {
@@ -79,7 +93,7 @@ type JunctionPoints = {
 }
 
 /** Minimum height above the target the edge must approach it from. */
-const MIN_APPROACH_HEIGHT = 32.25
+const MIN_APPROACH_HEIGHT = 32
 const NODE_HEIGHT = 32 // TODO (crate::component::node::HEIGHT)
 const NODE_CORNER_RADIUS = 16 // TODO (crate::component::node::CORNER_RADIUS)
 /** The preferred arc radius. */
@@ -160,20 +174,16 @@ function junctionPoints(inputs: Inputs): JunctionPoints | null {
   // The maximum x-distance from the source (our local coordinate origin) for the point where the
   // edge will begin.
   const sourceMaxXOffset = Math.max(halfSourceSize.x - NODE_CORNER_RADIUS, 0)
-  // The maximum y-length of the target-attachment segment. If the layout allows, the
-  // target-attachment segment will fully exit the node before the first corner begins.
-  const targetMaxAttachmentHeight =
-    inputs.targetSize != null ? (NODE_HEIGHT - inputs.targetSize.y) / 2.0 : undefined
   const attachment =
-    targetMaxAttachmentHeight != null
+    inputs.targetPortDistance != null
       ? {
           target: inputs.targetOffset.addScaled(new Vec2(0.0, NODE_HEIGHT), 0.5),
-          length: targetMaxAttachmentHeight,
+          length: inputs.targetPortDistance,
         }
       : undefined
 
   const targetWellBelowSource =
-    inputs.targetOffset.y - (targetMaxAttachmentHeight ?? 0) >= MIN_APPROACH_HEIGHT
+    inputs.targetOffset.y - (inputs.targetPortDistance ?? 0) >= MIN_APPROACH_HEIGHT
   const targetBelowSource = inputs.targetOffset.y > NODE_HEIGHT / 2.0
   const targetBeyondSource = Math.abs(inputs.targetOffset.x) > sourceMaxXOffset
   const horizontalRoomFor3Corners =
@@ -223,8 +233,8 @@ function junctionPoints(inputs: Inputs): JunctionPoints | null {
     // The target attachment will extend as far toward the edge of the node as it can without
     // rising above the source.
     let attachmentHeight =
-      targetMaxAttachmentHeight != null
-        ? Math.min(targetMaxAttachmentHeight, Math.abs(inputs.targetOffset.y))
+      inputs.targetPortDistance != null
+        ? Math.min(inputs.targetPortDistance, Math.abs(inputs.targetOffset.y))
         : 0
     let attachmentY = inputs.targetOffset.y - attachmentHeight - (inputs.targetSize?.y ?? 0) / 2.0
     let targetAttachment = new Vec2(inputs.targetOffset.x, attachmentY)
@@ -270,7 +280,7 @@ function junctionPoints(inputs: Inputs): JunctionPoints | null {
       heightAdjustment = 0
     }
     if (j0x == null || j1x == null || heightAdjustment == null) return null
-    const attachmentHeight = targetMaxAttachmentHeight ?? 0
+    const attachmentHeight = inputs.targetPortDistance ?? 0
     const top = Math.min(
       inputs.targetOffset.y - MIN_APPROACH_HEIGHT - attachmentHeight + heightAdjustment,
       0,
@@ -351,13 +361,15 @@ function render(sourcePos: Vec2, elements: Element[]): string {
 }
 
 const currentJunctionPoints = computed(() => {
-  const target_ = targetPos.value
-  const source_ = sourcePos.value
-  if (target_ == null || source_ == null) return null
-  const inputs = {
-    targetOffset: target_.pos.sub(source_.pos),
-    sourceSize: source_.size,
-    targetSize: target_.size,
+  const target = targetRect.value
+  const targetNode = targetNodeRect.value
+  const source = sourceRect.value
+  if (target == null || source == null) return null
+  const inputs: Inputs = {
+    targetOffset: target.center().sub(source.center()),
+    sourceSize: source.size,
+    targetSize: target.size,
+    targetPortDistance: targetNode != null ? target.top - targetNode.top : undefined,
   }
   return junctionPoints(inputs)
 })
@@ -367,13 +379,13 @@ const basePath = computed(() => {
   const jp = currentJunctionPoints.value
   if (jp == null) return undefined
   const { start, elements } = pathElements(jp)
-  const source_ = sourcePos.value
+  const source_ = sourceRect.value
   if (source_ == null) return undefined
-  return render(source_.pos.add(start), elements)
+  return render(source_.center().add(start), elements)
 })
 
 const activePath = computed(() => {
-  if (hovered.value) return basePath.value
+  if (hovered.value && props.edge.source != null && props.edge.target != null) return basePath.value
   else return undefined
 })
 
@@ -429,6 +441,8 @@ const activeStyle = computed(() => {
   }
 })
 
+const baseStyle = computed(() => ({ '--node-base-color': edgeColor.value ?? 'tan' }))
+
 function click(_e: PointerEvent) {
   if (base.value == null) return {}
   if (navigator?.sceneMousePos == null) return {}
@@ -443,12 +457,12 @@ function arrowPosition(): Vec2 | undefined {
   if (props.edge.source == null || props.edge.target == null) return
   const points = currentJunctionPoints.value?.points
   if (points == null || points.length < 3) return
-  const target = targetPos.value
-  const source = sourcePos.value
+  const target = targetRect.value
+  const source = sourceRect.value
   if (target == null || source == null) return
   if (target.pos.y > source.pos.y - ThreeCorner.BACKWARD_EDGE_ARROW_THRESHOLD) return
   if (points[1] == null) return
-  return source.pos.add(points[1])
+  return source.center().add(points[1])
 }
 
 const arrowTransform = computed(() => {
@@ -467,12 +481,13 @@ const arrowTransform = computed(() => {
       @pointerenter="hovered = true"
       @pointerleave="hovered = false"
     />
-    <path ref="base" :d="basePath" class="edge visible base" />
+    <path ref="base" :d="basePath" class="edge visible" :style="baseStyle" />
     <polygon
       v-if="arrowTransform"
       :transform="arrowTransform"
       points="0,-9.375 -9.375,9.375 9.375,9.375"
       class="arrow visible"
+      :style="baseStyle"
     />
     <path v-if="activePath" :d="activePath" class="edge visible active" :style="activeStyle" />
   </template>
@@ -481,26 +496,30 @@ const arrowTransform = computed(() => {
 <style scoped>
 .visible {
   pointer-events: none;
+  --edge-color: color-mix(in oklab, var(--node-base-color) 85%, white 15%);
 }
-.arrow {
-  fill: tan;
-}
+
 .edge {
   fill: none;
-  stroke-linecap: round;
+  stroke: var(--edge-color);
+  transition: stroke 0.2s ease;
 }
+
+.arrow {
+  fill: var(--edge-color);
+  transition: fill 0.2s ease;
+}
+
 .edge.io {
   stroke-width: 14;
   stroke: transparent;
 }
 .edge.visible {
   stroke-width: 4;
-}
-.edge.visible.base {
-  stroke: tan;
-}
-.edge.visible.active {
-  stroke: red;
   stroke-linecap: round;
+}
+
+.edge.visible.active {
+  stroke: rgba(255, 255, 255, 0.4);
 }
 </style>

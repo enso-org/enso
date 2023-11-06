@@ -1,5 +1,6 @@
 import type { Group, SuggestionDb } from '@/stores/suggestionDatabase'
 import { Ast, AstExtended } from '@/util/ast'
+import { colorFromString } from '@/util/colors'
 import type { ComputedValueRegistry } from '@/util/computedValueRegistry'
 import { ReactiveDb, ReactiveIndex, ReactiveMapping } from '@/util/database/reactiveDb'
 import type { Opt } from '@/util/opt'
@@ -34,44 +35,39 @@ export class GraphDb {
     return Array.from(exprs, (expr) => [id, expr])
   })
   connections = new ReactiveIndex(this.nodes, (id, entry) => {
-    const allConnections: [ExprId, ExprId][] = []
+    const usageEntries: [ExprId, ExprId][] = []
     const usages = this.idents.reverseLookup(entry.binding)
-    console.log('entry.binding', entry.binding)
-    console.log('usages', usages)
     for (const usage of usages) {
-      allConnections.push([id, usage])
+      usageEntries.push([id, usage])
     }
-    return allConnections
+    return usageEntries
   })
+  nodeExpressionInfo = new ReactiveMapping(this.nodes, (id, _entry) =>
+    this.valuesRegistry.getExpressionInfo(id),
+  )
   nodeMainSuggestion = new ReactiveMapping(this.nodes, (id, _entry) => {
-    const expressionInfo = this.valuesRegistry.getExpressionInfo(id)
+    const expressionInfo = this.nodeExpressionInfo.lookup(id)
     const method = expressionInfo?.methodCall?.methodPointer
     if (method == null) return
-    const moduleName = tryQualifiedName(method.module)
+    const moduleName = tryQualifiedName(method.definedOnType)
     const methodName = tryQualifiedName(method.name)
     if (!moduleName.ok || !methodName.ok) return
     const qualifiedName = qnJoin(moduleName.value, methodName.value)
+    console.log('db', qualifiedName, this.suggestionDb.nameToId.lookup(qualifiedName))
     const [suggestionId] = this.suggestionDb.nameToId.lookup(qualifiedName)
     if (suggestionId == null) return
     return this.suggestionDb.get(suggestionId)
   })
-  nodeColor = new ReactiveMapping(this.nodes, (id, _entry) => {
+  nodeVisuals = new ReactiveMapping(this.nodes, (id, _entry) => {
     const index = this.nodeMainSuggestion.lookup(id)?.groupIndex
-    return index ? this.groups.value[index] : undefined
+    return index
+      ? `var(--group-color-${this.groups.value[index]?.name})`
+      : colorFromString(this.nodeExpressionInfo.lookup(id)?.typename ?? 'Unknown')
   })
 
   getNode(id: ExprId): Node | undefined {
     return this.nodes.get(id)
   }
-
-  // edges() {
-  //   return mapIterator(this.connections.allReverse(), ([target, sources]) => {
-  //     return {
-  //       target,
-  //       source: set.first(sources),
-  //     }
-  //   })
-  // }
 
   allNodes(): IterableIterator<[ExprId, Node]> {
     return this.nodes.entries()
@@ -82,7 +78,7 @@ export class GraphDb {
   }
 
   getNodeColor(id: ExprId): string | undefined {
-    return this.nodeColor.lookup(id)?.color
+    return this.nodeVisuals.lookup(id)
   }
 
   moveNodeToTop(id: ExprId) {

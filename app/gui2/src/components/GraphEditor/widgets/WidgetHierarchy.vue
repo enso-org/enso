@@ -1,51 +1,17 @@
 <script setup lang="ts">
-import { injectGraphSelection } from '@/providers/graphSelection'
+import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { Ast, type AstExtended } from '@/util/ast'
-import { computed, ref, watchEffect } from 'vue'
-import ChildWidget from '../ChildWidget.vue'
+import { computed } from 'vue'
 
-const props = defineProps<{ nodeSpanStart: number; ast: AstExtended<Ast.Tree> }>()
-
-const nodeSelection = injectGraphSelection(true)
+const props = defineProps<{ ast: AstExtended<Ast.Tree> }>()
 
 const spanClass = computed(() => Ast.Tree.typeNames[props.ast.inner.type])
 const children = computed(() => [...props.ast.children()])
-
-// Return whether this node should interact with the mouse, e.g. when seeking an edge target.
-function isHoverable(): boolean {
-  switch (props.ast.inner.type) {
-    case Ast.Tree.Type.Invalid:
-    case Ast.Tree.Type.BodyBlock:
-    case Ast.Tree.Type.Ident:
-    case Ast.Tree.Type.Number:
-    case Ast.Tree.Type.Wildcard:
-    case Ast.Tree.Type.TextLiteral:
-      return true
-    default:
-      return false
-  }
-}
-
-const isHovered = ref(false)
-const reactToHover = computed(() => isHovered.value && isHoverable())
-
-watchEffect((onCleanup) => {
-  if (nodeSelection != null && reactToHover.value === true) {
-    nodeSelection.hoveredExpr = props.ast.astId
-    onCleanup(() => {
-      nodeSelection.hoveredExpr = undefined
-    })
-  }
-})
 </script>
 
 <template>
-  <span
-    :class="['Tree', spanClass]"
-    :data-span-start="props.ast.span()[0] - nodeSpanStart"
-    @pointerenter="isHovered = true"
-    @pointerleave="isHovered = false"
-    ><ChildWidget v-for="child in children" :key="child.astId" :ast="child" />
+  <span :class="['Tree', spanClass]"
+    ><NodeWidget v-for="child in children" :key="child.astId" :ast="child" />
   </span>
 </template>
 

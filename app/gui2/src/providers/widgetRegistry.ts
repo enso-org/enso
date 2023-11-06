@@ -6,10 +6,7 @@ import type { AstExtended } from '@/util/ast'
 import type { Component } from 'vue'
 import { createContextStore } from '.'
 
-export type WidgetComponent<Ast> = Component<{
-  nodeSpanStart: number
-  ast: Ast
-}>
+export type WidgetComponent<Ast> = Component<{ ast: Ast }>
 
 interface SelectedWidget<GivenAst extends AcceptedAst, AcceptedAst> {
   component: WidgetComponent<AcceptedAst>

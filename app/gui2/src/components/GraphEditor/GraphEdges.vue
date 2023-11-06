@@ -73,6 +73,10 @@ watch(
 function lookupExprNode(exprId: ExprId): ExprId | undefined {
   return set.first(graphStore.db.nodeExpressions.reverseLookup(exprId))
 }
+
+function lookupNodeColor(nodeId: ExprId): string | undefined {
+  return graphStore.db.getNodeColor(nodeId)
+}
 </script>
 
 <template>
@@ -83,6 +87,7 @@ function lookupExprNode(exprId: ExprId): ExprId | undefined {
     :nodeRects="graphStore.nodeRects"
     :exprRects="graphStore.exprRects"
     :lookupExprNode="lookupExprNode"
+    :lookupNodeColor="lookupNodeColor"
     @disconnectSource="graphStore.disconnectSource(edge)"
     @disconnectTarget="graphStore.disconnectTarget(edge)"
   />

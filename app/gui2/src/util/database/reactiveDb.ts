@@ -13,7 +13,7 @@ import { LazySyncEffectSet } from '@/util/reactivity'
 import * as map from 'lib0/map'
 import { ObservableV2 } from 'lib0/observable'
 import * as set from 'lib0/set'
-import { computed, reactive, type ComputedRef } from 'vue'
+import { computed, reactive, type ComputedRef, type DebuggerOptions } from 'vue'
 
 export type OnDelete = (cleanupFn: () => void) => void
 
@@ -49,11 +49,12 @@ export class ReactiveDb<K, V> extends ObservableV2<{
     this.delete(key)
 
     this._internal.set(key, value)
+    const reactiveValue = this._internal.get(key) as V
     const onDelete: OnDelete = (callback) => {
       const callbacks = map.setIfUndefined(this.onDelete, key, set.create)
       callbacks.add(callback)
     }
-    this.emit('entryAdded', [key, value, onDelete])
+    this.emit('entryAdded', [key, reactiveValue, onDelete])
   }
 
   /**
@@ -289,12 +290,12 @@ export class ReactiveMapping<K, V, M> {
    * @param db - The ReactiveDb to map over.
    * @param indexer - The indexer function defining how db keys and values are mapped.
    */
-  constructor(db: ReactiveDb<K, V>, indexer: Mapper<K, V, M>) {
+  constructor(db: ReactiveDb<K, V>, indexer: Mapper<K, V, M>, debugOptions?: DebuggerOptions) {
     this.computed = reactive(map.create())
     db.on('entryAdded', (key, value, onDelete) => {
       this.computed.set(
         key,
-        computed(() => indexer(key, value)),
+        computed(() => indexer(key, value), debugOptions),
       )
       onDelete(() => this.computed.delete(key))
     })

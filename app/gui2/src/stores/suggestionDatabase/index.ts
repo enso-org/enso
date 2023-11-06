@@ -7,7 +7,7 @@ import { type Opt } from '@/util/opt'
 import { qnParent, type QualifiedName } from '@/util/qualifiedName'
 import { defineStore } from 'pinia'
 import { LanguageServer } from 'shared/languageServer'
-import { markRaw, reactive, ref, type Ref } from 'vue'
+import { markRaw, ref, type Ref } from 'vue'
 
 export class SuggestionDb {
   _internal = new ReactiveDb<SuggestionId, SuggestionEntry>()
@@ -25,8 +25,12 @@ export class SuggestionDb {
     }
     return []
   })
+  constructor() {
+    console.log('SuggestionDb', this)
+  }
+
   set(id: SuggestionId, entry: SuggestionEntry): void {
-    this._internal.set(id, reactive(entry))
+    this._internal.set(id, entry)
   }
   get(id: SuggestionId): SuggestionEntry | undefined {
     return this._internal.get(id)

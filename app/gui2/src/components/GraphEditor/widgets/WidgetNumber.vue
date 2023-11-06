@@ -4,10 +4,7 @@ import { useGraphStore } from '@/stores/graph'
 import { type AstExtended } from '@/util/ast'
 import { computed } from 'vue'
 
-const props = defineProps<{
-  nodeSpanStart: number
-  ast: AstExtended
-}>()
+const props = defineProps<{ ast: AstExtended }>()
 const graph = useGraphStore()
 const value = computed({
   get() {

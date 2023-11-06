@@ -18,7 +18,7 @@ import {
   type VisualizationIdentifier,
   type VisualizationMetadata,
 } from 'shared/yjsModel'
-import { computed, reactive, ref, toRef, watch, watchEffect } from 'vue'
+import { computed, reactive, ref, toRef, watch } from 'vue'
 import * as Y from 'yjs'
 
 export { type Node } from '@/stores/graph/graphDatabase'

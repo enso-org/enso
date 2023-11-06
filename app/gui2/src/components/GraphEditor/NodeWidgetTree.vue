@@ -20,5 +20,5 @@ tree.on('rect', (id, rect) => emit('updateExprRect', id, rect))
 </script>
 
 <template>
-  <NodeWidget :ast="ast" :nodeSpanStart="spanStart" />
+  <NodeWidget :ast="ast" />
 </template>

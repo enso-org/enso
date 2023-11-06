@@ -15,7 +15,6 @@ import { methodNameToIcon, typeNameToIcon } from '@/util/getIconName'
 import type { Opt } from '@/util/opt'
 import { qnJoin, tryQualifiedName } from '@/util/qualifiedName'
 import { Rect } from '@/util/rect'
-import { unwrap } from '@/util/result'
 import { Vec2 } from '@/util/vec2'
 import type { ContentRange, ExprId, VisualizationIdentifier } from 'shared/yjsModel'
 import { computed, onUpdated, reactive, ref, watch, watchEffect } from 'vue'
@@ -346,24 +345,11 @@ const dragPointer = usePointer((pos, event, type) => {
   }
 })
 
-const suggestionDbStore = useSuggestionDbStore()
-
-const expressionInfo = computed(() =>
-  projectStore.computedValueRegistry.getExpressionInfo(props.node.rootSpan.astId),
-)
+const expressionInfo = computed(() => graph.db.nodeExpressionInfo.lookup(nodeId.value))
 const outputTypeName = computed(() => expressionInfo.value?.typename ?? 'Unknown')
 const executionState = computed(() => expressionInfo.value?.payload.type ?? 'Unknown')
-const suggestionEntry = computed(() => {
-  const method = expressionInfo.value?.methodCall?.methodPointer
-  if (method == null) return undefined
-  const typeName = tryQualifiedName(method.definedOnType)
-  const methodName = tryQualifiedName(method.name)
-  if (!typeName.ok || !methodName.ok) return undefined
-  const qualifiedName = qnJoin(unwrap(typeName), unwrap(methodName))
-  const [id] = suggestionDbStore.entries.nameToId.lookup(qualifiedName)
-  if (id == null) return undefined
-  return suggestionDbStore.entries.get(id)
-})
+const suggestionEntry = computed(() => graph.db.nodeMainSuggestion.lookup(nodeId.value))
+const color = computed(() => graph.db.getNodeColor(nodeId.value))
 const icon = computed(() => {
   if (suggestionEntry.value?.iconName) {
     return suggestionEntry.value.iconName
@@ -377,11 +363,6 @@ const icon = computed(() => {
     return 'in_out'
   }
 })
-const color = computed(() =>
-  suggestionEntry.value?.groupIndex != null
-    ? `var(--group-color-${suggestionDbStore.groups[suggestionEntry.value.groupIndex]?.name})`
-    : colorFromString(expressionInfo.value?.typename ?? 'Unknown'),
-)
 const updateExprRect = (expr: ExprId, rect: Rect) => {
   emit('updateExprRect', expr, rect)
 }
