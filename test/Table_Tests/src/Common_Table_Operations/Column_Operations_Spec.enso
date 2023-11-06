@@ -779,6 +779,14 @@ spec setup =
                 x.round . to_vector . should_equal [1, -2, 4]
                 x.truncate . to_vector . should_equal [1, -2, 3]
 
+    Test.group prefix+"Date truncationasdfasdf" <|
+        Test.specify "should be able to truncate a column of Date_Times" <|
+            table = table_builder [["foo", [Date_Time.new 2020 10 24 1 2 3, Date_Time.new 2020 10 24 1 2 3]]]
+            truncated = table.at "foo" . truncate
+            truncated . to_vector . should_equal [Date.new 2020 10 24, Date.new 2020 10 24]
+            truncated . value_type . should_equal Value_Type.Date
+            truncated.name . should_equal "truncate([foo])"
+
     Test.group prefix+"Text Column Operations" <|
         Test.specify "should handle operations like starts_with, ends_with, contains" <|
             with_mixed_columns_if_supported [["s1", ["foobar", "bar", "baz", "BAB", Nothing]], ["s2", ["foo", "ar", "a", "b", Nothing]]] t3->
