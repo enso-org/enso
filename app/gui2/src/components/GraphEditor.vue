@@ -182,10 +182,10 @@ watch(componentBrowserVisible, (visible) => {
   }
 })
 
-// A vertical gap between created nodes when multiple files were dropped together.
-const MULTIPLE_FILES_GAP = 50
-
 async function handleFileDrop(event: DragEvent) {
+  // A vertical gap between created nodes when multiple files were dropped together.
+  const MULTIPLE_FILES_GAP = 50
+
   try {
     if (event.dataTransfer && event.dataTransfer.items) {
       ;[...event.dataTransfer.items].forEach(async (item, index) => {

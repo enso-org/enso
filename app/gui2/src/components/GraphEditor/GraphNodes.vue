@@ -40,10 +40,9 @@ function hoverNode(id: ExprId | undefined) {
 
 const uploadingFiles = computed<[FileName, File][]>(() => {
   const currentStackItem = projectStore.executionContext.getStackTop()
-  return [...projectStore.awareness.allUploads()].filter((value) => {
-    const upload: File = value[1]
-    return upload.stackItem && upload.stackItem == currentStackItem
-  })
+  return [...projectStore.awareness.allUploads()].filter(
+    (value) => value[1].stackItem == currentStackItem,
+  )
 })
 </script>
 
@@ -66,7 +65,7 @@ const uploadingFiles = computed<[FileName, File][]>(() => {
   <UploadingFile
     v-for="(nameAndFile, index) in uploadingFiles"
     :key="index"
-    :file="nameAndFile[1]"
     :name="nameAndFile[0]"
+    :file="nameAndFile[1]"
   />
 </template>

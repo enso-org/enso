@@ -82,14 +82,14 @@ export class Uploader {
     this.awareness.addOrUpdateUpload(name, file)
     const remotePath: Path = { rootId: this.projectRootId, segments: [DATA_DIR_NAME, name] }
     const uploader = this
+    const cleanup = this.cleanup.bind(this, name)
     const writableStream = new WritableStream<Uint8Array>({
       async write(chunk: Uint8Array) {
         await uploader.binary.writeBytes(remotePath, uploader.uploadedBytes, false, chunk)
         uploader.checksum.update(chunk)
         uploader.uploadedBytes += BigInt(chunk.length)
-        const sizePercentage = Math.round(
-          (Number(uploader.uploadedBytes) / uploader.file.size) * 100,
-        )
+        const bytes = Number(uploader.uploadedBytes)
+        const sizePercentage = Math.round((bytes / uploader.file.size) * 100)
         const file: UploadingFile = {
           sizePercentage,
           position: uploader.position,
@@ -98,12 +98,12 @@ export class Uploader {
         uploader.awareness.addOrUpdateUpload(name, file)
       },
       async close() {
-        uploader.cleanup(name)
+        cleanup()
         // Disabled until https://github.com/enso-org/enso/issues/6691 is fixed.
         // uploader.assertChecksum(remotePath)
       },
       async abort(reason: string) {
-        uploader.cleanup(name)
+        cleanup()
         await uploader.rpc.deleteFile(remotePath)
         throw new Error(`Uploading process aborted. ${reason}`)
       },

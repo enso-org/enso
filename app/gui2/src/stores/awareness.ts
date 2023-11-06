@@ -4,13 +4,21 @@ import { reactive } from 'vue'
 import { Awareness as YjsAwareness } from 'y-protocols/awareness'
 import * as Y from 'yjs'
 
-interface State {
-  uploads: Uploads
-}
-type ClientId = number
-export type FileName = string
-const initialState: () => State = () => ({ uploads: {} })
+// === Public types ===
 
+export type FileName = string
+
+export interface UploadingFile {
+  sizePercentage: number
+  stackItem: StackItem
+  position: Vec2
+}
+
+// === Awareness wrapper ===
+
+/**
+ * A thin wrapper around `Awareness` from `yjs`, providing helper methods for Enso IDE-specific state.
+ */
 export class Awareness {
   public internal: YjsAwareness
   uploadingFiles: Map<ClientId, Uploads>
@@ -54,16 +62,20 @@ export class Awareness {
   }
 }
 
+// === Private types ===
+
+type ClientId = number
+
+interface State {
+  uploads: Uploads
+}
+
+type Uploads = Record<FileName, UploadingFile>
+
+const initialState: () => State = () => ({ uploads: {} })
+
 interface AwarenessUpdates {
   added: ClientId[]
   removed: ClientId[]
   updated: ClientId[]
 }
-
-export interface UploadingFile {
-  sizePercentage: number
-  stackItem: StackItem
-  position: Vec2
-}
-
-type Uploads = Record<FileName, UploadingFile>

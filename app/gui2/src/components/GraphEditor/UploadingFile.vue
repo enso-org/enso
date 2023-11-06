@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { UploadingFile } from '@/stores/awareness'
 import { computed } from 'vue'
+
 const props = defineProps<{
   name: string
   file: UploadingFile
@@ -10,12 +11,14 @@ const transform = computed(() => {
   let pos = props.file.position
   return `translate(${pos.x}px, ${pos.y}px)`
 })
+
+const backgroundOffset = computed(() => 200 - props.file.sizePercentage)
 </script>
 
 <template>
   <div
     class="UploadingFile"
-    :style="{ transform, 'background-position': `${200 - props.file.sizePercentage}% 0` }"
+    :style="{ transform, 'background-position': `${backgroundOffset}% 0` }"
   >
     <span>{{ `Uploading ${props.name} (${props.file.sizePercentage}%)` }}</span>
   </div>
