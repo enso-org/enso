@@ -25,6 +25,7 @@ main = run_default_backend spec
 spec setup =
     prefix = setup.prefix
     table_builder = setup.table_builder
+    pending_datetime = if setup.test_selection.date_time.not then "Date/Time operations are not supported by this backend."
 
     do_op n op =
         table = table_builder [["x", [n]]]
@@ -680,7 +681,7 @@ spec setup =
             (x * Nothing).to_vector . should_equal nulls
             (x / Nothing).to_vector . should_equal nulls
 
-    Test.group prefix+"Rounding-like operationsasdfasdf" <|
+    Test.group prefix+"Rounding-like operations" <|
         Test.specify "should name a rounding column correctly" <|
             table = table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]]
             table.at "x" . round . name . should_equal "round([x])"
@@ -789,8 +790,8 @@ spec setup =
                 x.round . to_vector . should_equal [1, -2, 4]
                 x.truncate . to_vector . should_equal [1, -2, 3]
 
-    Test.group prefix+"Date truncationasdfasdf" <|
-        Test.specify "should be able to truncate a column of Date_Times" <|
+    Test.group prefix+"Date truncation" <|
+        Test.specify "should be able to truncate a column of Date_Times" pending=pending_datetime <|
             tz = Time_Zone.parse "Europe/Warsaw"
             dates_without_zone = [Date_Time.new 2020 10 24 1 2 3, Date_Time.new 2020 10 24 1 2 3]
             dates_with_zone = dates_without_zone . map (d-> d.at_zone tz)
