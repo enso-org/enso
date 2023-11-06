@@ -245,7 +245,7 @@ resolve_body_to_publisher_and_boundary body:Request_Body =
 build_form_body_publisher : Map Text (Text | File) -> Boolean -> Pair BodyPublisher Text
 build_form_body_publisher (form_data:(Map Text (Text | File))) (url_encoded:Boolean=False) = case url_encoded of
     True ->
-        body_builder = UrlencodedBodyBuilder.newq
+        body_builder = UrlencodedBodyBuilder.new
         form_data.map_with_key key-> value->
             case value of
                 _ : Text -> body_builder.add_part_text key value

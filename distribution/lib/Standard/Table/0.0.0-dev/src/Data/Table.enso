@@ -79,9 +79,6 @@ polyglot java import org.enso.table.error.UnmatchedRow
 polyglot java import org.enso.table.operations.OrderBuilder
 polyglot java import org.enso.table.parsing.problems.ParseProblemAggregator
 
-## rom project.Extensions.Table_Conversions import all
-
-
 ## Represents a column-oriented table data structure.
 type Table
     ## GROUP Standard.Base.Constants
