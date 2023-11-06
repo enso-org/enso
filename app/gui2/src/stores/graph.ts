@@ -371,7 +371,7 @@ export interface Node {
   position: Vec2
   // The position where node is currently displayed, if differs from metadata's position.
   // It is used when node is being dragged.
-  visiblePosition?: Vec2
+  visiblePosition: Vec2 | undefined
   vis: Opt<VisualizationMetadata>
 }
 
@@ -382,6 +382,7 @@ function nodeFromAst(ast: AstExtended<Ast.Tree>): Node {
       binding: ast.map((t) => t.pattern).repr(),
       rootSpan: ast.map((t) => t.expr),
       position: Vec2.Zero,
+      visiblePosition: undefined,
       vis: undefined,
     }
   } else {
@@ -390,6 +391,7 @@ function nodeFromAst(ast: AstExtended<Ast.Tree>): Node {
       binding: '',
       rootSpan: ast,
       position: Vec2.Zero,
+      visiblePosition: undefined,
       vis: undefined,
     }
   }
