@@ -6,7 +6,10 @@ import java.util.Comparator;
 import java.util.List;
 
 public class SortedListIndex<T> {
+  /** Defines the <= ordering for the index. */
   private final Comparator<T> comparator;
+
+  /* forall 0 <= i <= j < n, sortedList[i] <= sortedList[j] */
   private final ArrayList<T> sortedList;
 
   protected SortedListIndex(ArrayList<T> sortedList, Comparator<T> comparator) {
@@ -42,7 +45,17 @@ public class SortedListIndex<T> {
   private int findLowerIndex(T element) {
     int start = 0;
     int end = sortedList.size();
+
+    /*
+     * Loop invariants:
+     * 1) start <= end
+     * 2) forall 0 <= i < start: sortedList[i] < element
+     * 3) forall end <= i < N: sortedList[i] >= element
+     *
+     * end - start is strictly decreasing, so the loop will always terminate.
+     */
     while (start < end) {
+      // start <= mid < mid + 1 <= end
       int mid = Math.addExact(start, end) / 2;
       T midElement = sortedList.get(mid);
       int cmp = comparator.compare(midElement, element);
@@ -53,6 +66,16 @@ public class SortedListIndex<T> {
       }
     }
 
+    /*
+     * After the loop, start >= end, but also start <= end, so start == end.
+     *
+     * Thus, from invariants:
+     * forall 0 <= i < start: sortedList[i] < element
+     * forall start <= i < N: sortedList[i] >= element
+     *
+     * start is the first element that is >= element;
+     * if there is no such element, it will be N.
+     */
     return start;
   }
 
@@ -65,18 +88,38 @@ public class SortedListIndex<T> {
   private int findUpperIndex(T element) {
     int start = 0;
     int end = sortedList.size();
+
+    /*
+     * Loop invariants:
+     * 1) start <= end
+     * 2) forall 0 <= i < start: sortedList[i] <= element
+     * 3) forall end <= i < N: sortedList[i] > element
+     *
+     * end - start is strictly decreasing.
+     */
     while (start < end) {
+      // start <= mid < end
       int mid = Math.addExact(start, end) / 2;
       T midElement = sortedList.get(mid);
       int cmp = comparator.compare(midElement, element);
-      if (cmp > 0) {
-        end = mid;
-      } else {
+      if (cmp <= 0) {
         start = mid + 1;
+      } else {
+        end = mid;
       }
     }
 
-    return end - 1;
+    /*
+     * After the loop, start >= end, but also start <= end, so start == end.
+     *
+     * Thus, from invariants:
+     * forall 0 <= i < start: sortedList[i] <= element
+     * forall start <= i < N: sortedList[i] > element
+     *
+     * So start-1 is the last element that is <= element (if it exists);
+     * if there is no such element, it will be -1.
+     */
+    return start - 1;
   }
 
   private boolean keysEqual(T k1, T k2) {
