@@ -1,3 +1,5 @@
+import { Awareness, type UploadingFile } from '@/stores/awareness'
+import { Vec2 } from '@/util/vec2'
 import { Keccak, sha3_224 as SHA3 } from '@noble/hashes/sha3'
 import type { Hash } from '@noble/hashes/utils'
 import { bytesToHex } from '@noble/hashes/utils'
@@ -5,12 +7,13 @@ import type { DataServer } from 'shared/dataServer'
 import type { LanguageServer } from 'shared/languageServer'
 import { ErrorCode, RemoteRpcError } from 'shared/languageServer'
 import type { ContentRoot, Path, StackItem, Uuid } from 'shared/languageServerTypes'
-import { Awareness } from 'y-protocols/awareness'
-import type { UploadingFile } from '@/stores/graph'
-import { Vec2 } from '@/util/vec2'
+
+// === Constants ===
 
 export const uploadedExpression = (name: string) => `enso_project.data/"${name}" . read`
 const DATA_DIR_NAME = 'data'
+
+// === Uploader ===
 
 export class Uploader {
   private rpc: LanguageServer
@@ -23,7 +26,15 @@ export class Uploader {
   private position: Vec2
   private stackItem: StackItem
 
-  private constructor(rpc: LanguageServer, binary: DataServer, awareness: Awareness, file: File, projectRootId: Uuid, position: Vec2, stackItem: StackItem) {
+  private constructor(
+    rpc: LanguageServer,
+    binary: DataServer,
+    awareness: Awareness,
+    file: File,
+    projectRootId: Uuid,
+    position: Vec2,
+    stackItem: StackItem,
+  ) {
     this.rpc = rpc
     this.binary = binary
     this.awareness = awareness
@@ -48,17 +59,27 @@ export class Uploader {
       roots.find((root) => root.type == 'Project'),
     )
     if (!projectRootId) throw new Error('Unable to find project root, uploading not possible.')
-    const instance = new Uploader(await rpc, await binary, awareness, file, projectRootId.id, position, stackItem)
+    const instance = new Uploader(
+      await rpc,
+      await binary,
+      awareness,
+      file,
+      projectRootId.id,
+      position,
+      stackItem,
+    )
     return instance
   }
 
   async upload(): Promise<string> {
     await this.ensureDataDirExists()
     const name = await this.pickUniqueName(this.file.name)
-    const uploads: Record<string, UploadingFile> = this.awareness.getLocalState()?.uploading ?? {}
-    const uploadingFile: UploadingFile = { percentage: 0, position: this.position, stackItem: this.stackItem }
-    uploads[name] = uploadingFile
-    this.awareness.setLocalStateField('uploading', uploads)
+    const file: UploadingFile = {
+      sizePercentage: 0,
+      position: this.position,
+      stackItem: this.stackItem,
+    }
+    this.awareness.addOrUpdateUpload(name, file)
     const remotePath: Path = { rootId: this.projectRootId, segments: [DATA_DIR_NAME, name] }
     const uploader = this
     const writableStream = new WritableStream<Uint8Array>({
@@ -66,12 +87,15 @@ export class Uploader {
         await uploader.binary.writeBytes(remotePath, uploader.uploadedBytes, false, chunk)
         uploader.checksum.update(chunk)
         uploader.uploadedBytes += BigInt(chunk.length)
-        const uploads: Record<string, UploadingFile> = uploader.awareness.getLocalState()?.uploading ?? {}
-        const currentUpload = uploads[name]
-        if (currentUpload) {
-          currentUpload.percentage = Math.round((Number(uploader.uploadedBytes) / uploader.file.size) * 100)
+        const sizePercentage = Math.round(
+          (Number(uploader.uploadedBytes) / uploader.file.size) * 100,
+        )
+        const file: UploadingFile = {
+          sizePercentage,
+          position: uploader.position,
+          stackItem: uploader.stackItem,
         }
-        uploader.awareness.setLocalStateField('uploading', uploads)
+        uploader.awareness.addOrUpdateUpload(name, file)
       },
       async close() {
         uploader.cleanup(name)
@@ -89,9 +113,7 @@ export class Uploader {
   }
 
   private cleanup(name: string) {
-    const uploads: Record<string, UploadingFile> = this.awareness.getLocalState()?.uploading ?? {}
-    delete uploads[name]
-    this.awareness.setLocalStateField('uploading', uploads)
+    this.awareness.removeUpload(name)
   }
 
   private async assertChecksum(path: Path) {

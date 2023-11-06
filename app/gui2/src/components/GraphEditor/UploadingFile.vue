@@ -1,10 +1,10 @@
 <script setup lang="ts">
-  import { computed } from 'vue'
-  import type { UploadingFile } from '@/stores/graph'
-  const props = defineProps<{
-    name: string,
-    file: UploadingFile,
-  }>()
+import type { UploadingFile } from '@/stores/awareness'
+import { computed } from 'vue'
+const props = defineProps<{
+  name: string
+  file: UploadingFile
+}>()
 
 const transform = computed(() => {
   let pos = props.file.position
@@ -13,8 +13,11 @@ const transform = computed(() => {
 </script>
 
 <template>
-  <div class="UploadingFile" :style="{ transform, 'background-position': `${200 - props.file.percentage}% 0`, }">
-    <span>{{ `Uploading ${props.name} (${props.file.percentage}%)` }}</span>
+  <div
+    class="UploadingFile"
+    :style="{ transform, 'background-position': `${200 - props.file.sizePercentage}% 0` }"
+  >
+    <span>{{ `Uploading ${props.name} (${props.file.sizePercentage}%)` }}</span>
   </div>
 </template>
 

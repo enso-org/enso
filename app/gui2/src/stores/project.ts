@@ -1,4 +1,5 @@
 import { injectGuiConfig, type GuiConfig } from '@/providers/guiConfig'
+import { Awareness } from '@/stores/awareness'
 import { bail } from '@/util/assert'
 import { ComputedValueRegistry } from '@/util/computedValueRegistry'
 import { attachProvider, useObserveYjs } from '@/util/crdt'
@@ -44,7 +45,6 @@ import {
   type WatchSource,
   type WritableComputedRef,
 } from 'vue'
-import { Awareness } from 'y-protocols/awareness'
 import * as Y from 'yjs'
 
 interface LsUrls {
@@ -423,9 +423,6 @@ export const useProjectStore = defineStore('project', () => {
 
   const doc = new Y.Doc()
   const awareness = new Awareness(doc)
-  awareness.setLocalState({
-    uploading: {},
-  })
 
   const config = injectGuiConfig()
   const projectName = config.value.startup?.project
@@ -476,7 +473,13 @@ export const useProjectStore = defineStore('project', () => {
     const socketUrl = new URL(location.origin)
     socketUrl.protocol = location.protocol.replace(/^http/, 'ws')
     socketUrl.pathname = '/project'
-    const provider = attachProvider(socketUrl.href, 'index', { ls: lsUrls.rpcUrl }, doc, awareness)
+    const provider = attachProvider(
+      socketUrl.href,
+      'index',
+      { ls: lsUrls.rpcUrl },
+      doc,
+      awareness.internal,
+    )
     onCleanup(() => {
       provider.dispose()
     })
