@@ -28,11 +28,13 @@ export interface AwarenessUpdates {
 }
 
 export interface UploadingFile {
-  name: string,
   percentage: number,
   stackItem: StackItem,
   position: Vec2,
 }
+
+export type Uploads = Record<string, UploadingFile>
+
 export type ClientId = number
 
 export const useGraphStore = defineStore('graph', () => {
@@ -341,11 +343,14 @@ export const useGraphStore = defineStore('graph', () => {
     exprRects.set(id, rect)
   }
 
-  const uploadingFiles = reactive(new Map<ClientId, UploadingFile[]>())
-  proj.awareness.on('change', (updates: AwarenessUpdates) => {
+  const uploadingFiles = reactive(new Map<ClientId, Uploads>())
+  proj.awareness.on('update', (updates: AwarenessUpdates) => {
     updates.removed.forEach((id) => uploadingFiles.delete(id))
     for (const id of [...updates.added, ...updates.updated]) {
-      uploadingFiles.set(id, proj.awareness.getStates().get(id)?.uploading ?? [])
+      const uploads = proj.awareness.getStates().get(id)?.uploading
+      if (uploads) {
+        uploadingFiles.set(id, uploads)
+      }
     }
   })
 

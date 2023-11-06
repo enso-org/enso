@@ -2,6 +2,7 @@
   import { computed } from 'vue'
   import type { UploadingFile } from '@/stores/graph'
   const props = defineProps<{
+    name: string,
     file: UploadingFile,
   }>()
 
@@ -13,7 +14,7 @@ const transform = computed(() => {
 
 <template>
   <div class="UploadingFile" :style="{ transform, 'background-position': `${200 - props.file.percentage}% 0`, }">
-    <span>{{ `Uploading ${props.file.name} (${props.file.percentage}%)` }}</span>
+    <span>{{ `Uploading ${props.name} (${props.file.percentage}%)` }}</span>
   </div>
 </template>
 

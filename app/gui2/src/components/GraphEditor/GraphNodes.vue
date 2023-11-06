@@ -2,7 +2,7 @@
 import GraphNode from '@/components/GraphEditor/GraphNode.vue'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
-import { useGraphStore } from '@/stores/graph'
+import { useGraphStore, type UploadingFile as File} from '@/stores/graph'
 import type { Vec2 } from '@/util/vec2'
 import type { ContentRange, ExprId } from 'shared/yjsModel'
 import UploadingFile from '@/components/GraphEditor/UploadingFile.vue'
@@ -37,9 +37,12 @@ function hoverNode(id: ExprId | undefined) {
   if (selection != null) selection.hoveredNode = id
 }
 
-const uploadingFiles = computed(() => {
+const uploadingFiles = computed<[string, File][]>(() => {
   const currentStackItem = projectStore.executionContext.getStackTop()
-  return [...graphStore.uploadingFiles.values()].flat().filter((file) => file.stackItem == currentStackItem)
+  return [...graphStore.uploadingFiles.values()].flatMap((uploads) => [...Object.entries(uploads)]).filter((value) => {
+    const upload: File = value[1]
+    return upload.stackItem && upload.stackItem == currentStackItem
+  })
 })
 
 </script>
@@ -60,5 +63,5 @@ const uploadingFiles = computed(() => {
     @movePosition="moveNode(id, $event)"
     @outputPortAction="graphStore.createEdgeFromOutput(id)"
   />
-  <UploadingFile v-for="(file, index) in uploadingFiles" :key="index" :file="file" />
+  <UploadingFile v-for="(nameAndFile, index) in uploadingFiles" :key="index" :file="nameAndFile[1]" :name="nameAndFile[0]" />
 </template>

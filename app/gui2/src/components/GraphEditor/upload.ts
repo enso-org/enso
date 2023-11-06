@@ -55,9 +55,10 @@ export class Uploader {
   async upload(): Promise<string> {
     await this.ensureDataDirExists()
     const name = await this.pickUniqueName(this.file.name)
-    const existingUploads = this.awareness.getLocalState()?.uploading ?? []
-    const uploadingFile: UploadingFile = { name, percentage: 0, position: this.position, stackItem: this.stackItem }
-    this.awareness.setLocalStateField('uploading', [...existingUploads, uploadingFile])
+    const uploads: Record<string, UploadingFile> = this.awareness.getLocalState()?.uploading ?? {}
+    const uploadingFile: UploadingFile = { percentage: 0, position: this.position, stackItem: this.stackItem }
+    uploads[name] = uploadingFile
+    this.awareness.setLocalStateField('uploading', uploads)
     const remotePath: Path = { rootId: this.projectRootId, segments: [DATA_DIR_NAME, name] }
     const uploader = this
     const writableStream = new WritableStream<Uint8Array>({
@@ -65,17 +66,17 @@ export class Uploader {
         await uploader.binary.writeBytes(remotePath, uploader.uploadedBytes, false, chunk)
         uploader.checksum.update(chunk)
         uploader.uploadedBytes += BigInt(chunk.length)
-        const uploads: UploadingFile[] = uploader.awareness.getLocalState()?.uploading ?? []
-        const currentUpload = uploads.find((file) => file.name === name)
+        const uploads: Record<string, UploadingFile> = uploader.awareness.getLocalState()?.uploading ?? {}
+        const currentUpload = uploads[name]
         if (currentUpload) {
           currentUpload.percentage = Math.round((Number(uploader.uploadedBytes) / uploader.file.size) * 100)
         }
         uploader.awareness.setLocalStateField('uploading', uploads)
       },
       async close() {
+        uploader.cleanup(name)
         // Disabled until https://github.com/enso-org/enso/issues/6691 is fixed.
         // uploader.assertChecksum(remotePath)
-        uploader.cleanup(name)
       },
       async abort(reason: string) {
         uploader.cleanup(name)
@@ -88,11 +89,8 @@ export class Uploader {
   }
 
   private cleanup(name: string) {
-    const uploads: UploadingFile[] = this.awareness.getLocalState()?.uploading ?? []
-    const toRemove = uploads.findIndex((file) => file.name === name)
-    if (toRemove != -1) {
-      uploads.splice(toRemove, 1)
-    }
+    const uploads: Record<string, UploadingFile> = this.awareness.getLocalState()?.uploading ?? {}
+    delete uploads[name]
     this.awareness.setLocalStateField('uploading', uploads)
   }
 
