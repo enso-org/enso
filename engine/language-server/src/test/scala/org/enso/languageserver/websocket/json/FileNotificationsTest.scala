@@ -1,7 +1,6 @@
 package org.enso.languageserver.websocket.json
 
 import java.io.File
-
 import io.circe.literal._
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.testkit.FlakySpec
@@ -69,16 +68,7 @@ class FileNotificationsTest extends BaseServerTest with FlakySpec {
           }
           """)
       // 3
-      runtimeConnectorProbe.receiveN(1).head match {
-        case Api.Request(requestId, Api.OpenFileNotification(file, _))
-            if file.getName == "foo.txt" =>
-          runtimeConnectorProbe.lastSender ! Api.Response(
-            requestId,
-            Api.OpenedFileNotification
-          )
-        case msg =>
-          fail("expected OpenFile notification got " + msg)
-      }
+      receiveAndReplyToOpenFile("foo.txt")
 
       // 4
       client1.expectJson(json"""

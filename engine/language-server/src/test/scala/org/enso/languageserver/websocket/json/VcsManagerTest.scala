@@ -10,7 +10,6 @@ import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 import org.enso.languageserver.boot.{ProfilingConfig, StartupConfig}
 import org.enso.languageserver.data._
 import org.enso.languageserver.vcsmanager.VcsApi
-import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.testkit.{FlakySpec, RetrySpec}
 
 import java.io.File
@@ -331,16 +330,7 @@ class VcsManagerTest extends BaseServerTest with RetrySpec with FlakySpec {
           }
           """)
 
-      runtimeConnectorProbe.receiveN(1).head match {
-        case Api.Request(requestId, Api.OpenFileNotification(file, _))
-            if file.getName == "foo_pending_save.txt" =>
-          runtimeConnectorProbe.lastSender ! Api.Response(
-            requestId,
-            Api.OpenedFileNotification
-          )
-        case msg =>
-          fail("expected OpenFile notification got " + msg)
-      }
+      receiveAndReplyToOpenFile("foo_pending_save.txt")
 
       client.expectJson(json"""
           {
@@ -1186,16 +1176,7 @@ class VcsManagerTest extends BaseServerTest with RetrySpec with FlakySpec {
           }
       """)
 
-        runtimeConnectorProbe.receiveN(1).head match {
-          case Api.Request(requestId, Api.OpenFileNotification(file, _))
-              if file.getName == testFooFileName =>
-            runtimeConnectorProbe.lastSender ! Api.Response(
-              requestId,
-              Api.OpenedFileNotification
-            )
-          case msg =>
-            fail("expected OpenFile notification got " + msg)
-        }
+        receiveAndReplyToOpenFile(testFooFileName)
 
         client.expectJson(json"""
           { "jsonrpc": "2.0",
@@ -1229,16 +1210,7 @@ class VcsManagerTest extends BaseServerTest with RetrySpec with FlakySpec {
           }
       """)
 
-        runtimeConnectorProbe.receiveN(1).head match {
-          case Api.Request(requestId, Api.OpenFileNotification(file, _))
-              if file.getName == testBarFileName =>
-            runtimeConnectorProbe.lastSender ! Api.Response(
-              requestId,
-              Api.OpenedFileNotification
-            )
-          case msg =>
-            fail("expected OpenFile notification got " + msg)
-        }
+        receiveAndReplyToOpenFile(testBarFileName)
 
         client.expectJson(json"""
           { "jsonrpc": "2.0",
