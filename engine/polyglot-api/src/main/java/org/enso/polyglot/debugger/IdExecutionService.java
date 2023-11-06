@@ -42,7 +42,6 @@ public interface IdExecutionService {
     Object onFunctionReturn(UUID nodeId, TruffleObject result);
   }
 
-
   /**
    * Attach a new event node factory to observe identified nodes within given function.
    *

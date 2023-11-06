@@ -133,9 +133,11 @@ object ProgramExecutionSupport {
         val onExecutedVisualizationCallback: Consumer[ExecutedVisualization] = {
           executedVisualization =>
             val visualizationResult =
-              if (executedVisualization.error() eq null)
-                Right(executedVisualization.result())
-              else Left(executedVisualization.error())
+              Either.cond(
+                executedVisualization.error() eq null,
+                executedVisualization.result(),
+                executedVisualization.error()
+              )
             sendVisualizationUpdate(
               visualizationResult,
               contextId,
