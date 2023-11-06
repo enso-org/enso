@@ -889,19 +889,19 @@ type Column
             col.truncate == dates
     truncate : Column ! Invalid_Value_Type
     truncate self =
+        new_name = naming_helper.function_name "truncate" [self]
         precise_value_type = self.inferred_precise_value_type
         case precise_value_type.is_numeric of
             True ->
                 case precise_value_type.is_integer of
                     True ->
-                        new_name = naming_helper.function_name "truncate" [self]
                         self.rename new_name
                     False ->
                         simple_unary_op self Java_Storage.Maps.TRUNCATE
             False -> case precise_value_type == Value_Type.Date_Time of
                 True ->
                     fun = _.date
-                    Column_Ops.map_over_storage self fun make_date_builder_adapter skip_nothing=True
+                    Column_Ops.map_over_storage self fun make_date_builder_adapter skip_nothing=True . rename new_name
                 False -> Error.throw <| Invalid_Value_Type.Column "Numeric or Date_Time" self.value_type self.name
 
     ## GROUP Standard.Base.Rounding

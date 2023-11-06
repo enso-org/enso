@@ -365,3 +365,4 @@ spec =
             truncated = c.truncate
             truncated . should_equal <| Column.from_vector "foo" [Date.new 2020 10 24, Date.new 2020 10 24]
             truncated . value_type . should_equal Value_Type.Date
+            truncated . name . should_equal "round([x])"
