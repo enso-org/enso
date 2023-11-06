@@ -170,22 +170,18 @@ public class Column {
   public static Column fromRepeatedItem(String name, Value item, int repeat, ProblemAggregator problemAggregator) {
     if (repeat < 0) {
       throw new IllegalArgumentException("Repeat count must be non-negative.");
-    } else if (repeat == 1) {
-      return fromItems(name, List.of(item), null, problemAggregator);
     }
 
-    var builder = new InferredBuilder(repeat, problemAggregator);
     Object converted = item instanceof Value v ? Polyglot_Utils.convertPolyglotValue(v) : item;
+    StorageType storageType = StorageType.forBoxedItem(converted);
+
+    var builder = Builder.getForType(storageType, repeat, problemAggregator);
 
     Context context = Context.getCurrent();
 
-    if (repeat != 0) {
-      for (int i = 0; i < repeat; i++) {
-        builder.appendNoGrow(converted);
-        context.safepoint();
-      }
-    } else {
-      builder.initBuilderFor(converted);
+    for (int i = 0; i < repeat; i++) {
+      builder.appendNoGrow(converted);
+      context.safepoint();
     }
 
     return new Column(name, builder.seal());
