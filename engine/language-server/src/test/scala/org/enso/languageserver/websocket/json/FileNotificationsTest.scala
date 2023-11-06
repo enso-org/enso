@@ -17,8 +17,8 @@ class FileNotificationsTest extends BaseServerTest with FlakySpec {
       // Interaction:
       // 1.  Client 1 creates a file.
       // 2.  Client 1 opens the file.
-      // 3.  Client 1 receives confirmation.
-      // 4.  Runtime receives open notification.
+      // 3.  Runtime receives open notification.
+      // 4.  Client 1 receives confirmation.
       // 5.  Client 2 opens the same file.
       // 6.  Client 2 receives confirmation
       // 7.  Runtime receives no notifications.
@@ -69,6 +69,18 @@ class FileNotificationsTest extends BaseServerTest with FlakySpec {
           }
           """)
       // 3
+      runtimeConnectorProbe.receiveN(1).head match {
+        case Api.Request(requestId, Api.OpenFileNotification(file, _))
+            if file.getName == "foo.txt" =>
+          runtimeConnectorProbe.lastSender ! Api.Response(
+            requestId,
+            Api.OpenedFileNotification
+          )
+        case msg =>
+          fail("expected OpenFile notification got " + msg)
+      }
+
+      // 4
       client1.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 1,
@@ -85,12 +97,6 @@ class FileNotificationsTest extends BaseServerTest with FlakySpec {
             }
           }
           """)
-      // 4
-      runtimeConnectorProbe.expectMsg(
-        Api.Request(
-          Api.OpenFileNotification(file("foo.txt"), "123456789")
-        )
-      )
 
       // 5
       client2.send(json"""

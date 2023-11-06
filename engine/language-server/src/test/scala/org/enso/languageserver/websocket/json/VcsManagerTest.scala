@@ -10,6 +10,7 @@ import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 import org.enso.languageserver.boot.{ProfilingConfig, StartupConfig}
 import org.enso.languageserver.data._
 import org.enso.languageserver.vcsmanager.VcsApi
+import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.testkit.{FlakySpec, RetrySpec}
 
 import java.io.File
@@ -305,7 +306,7 @@ class VcsManagerTest extends BaseServerTest with RetrySpec with FlakySpec {
       allCommits(1).getShortMessage should be(saveName1)
     }
 
-    "force all pending saves" taggedAs Retry in withCleanRoot { client =>
+    "force all pending saves" in withCleanRoot { client =>
       this.timingsConfig.withAutoSave(10.seconds)
 
       testContentRoot.file.toPath.resolve("src").toFile.mkdir()
@@ -329,12 +330,32 @@ class VcsManagerTest extends BaseServerTest with RetrySpec with FlakySpec {
             }
           }
           """)
+
+      runtimeConnectorProbe.receiveN(1).head match {
+        case Api.Request(requestId, Api.OpenFileNotification(file, _))
+            if file.getName == "foo_pending_save.txt" =>
+          runtimeConnectorProbe.lastSender ! Api.Response(
+            requestId,
+            Api.OpenedFileNotification
+          )
+        case msg =>
+          fail("expected OpenFile notification got " + msg)
+      }
+
       client.expectJson(json"""
           {
             "jsonrpc" : "2.0",
             "id" : 1,
             "result" : {
-              "writeCapability" : null,
+              "writeCapability" : {
+                "method" : "text/canEdit",
+                "registerOptions": {
+                  "path": {
+                    "rootId": $testContentRootId,
+                    "segments": [ "src/foo_pending_save.txt"]
+                  }
+                }
+              },
               "content" : "123456789",
               "currentVersion" : "5795c3d628fd638c9835a4c79a55809f265068c88729a1a3fcdf8522"
             }
@@ -1165,11 +1186,30 @@ class VcsManagerTest extends BaseServerTest with RetrySpec with FlakySpec {
           }
       """)
 
+        runtimeConnectorProbe.receiveN(1).head match {
+          case Api.Request(requestId, Api.OpenFileNotification(file, _))
+              if file.getName == testFooFileName =>
+            runtimeConnectorProbe.lastSender ! Api.Response(
+              requestId,
+              Api.OpenedFileNotification
+            )
+          case msg =>
+            fail("expected OpenFile notification got " + msg)
+        }
+
         client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 2,
             "result": {
-              "writeCapability": null,
+              "writeCapability" : {
+                "method" : "text/canEdit",
+                "registerOptions": {
+                  "path": {
+                    "rootId": $testContentRootId,
+                    "segments": [ "src", $testFooFileName]
+                  }
+                }
+              },
               "content": "file contents",
               "currentVersion": "4d23065da489de360890285072c209b2b39d45d12283dbb5d1fa4389"
             }
@@ -1188,6 +1228,17 @@ class VcsManagerTest extends BaseServerTest with RetrySpec with FlakySpec {
             }
           }
       """)
+
+        runtimeConnectorProbe.receiveN(1).head match {
+          case Api.Request(requestId, Api.OpenFileNotification(file, _))
+              if file.getName == testBarFileName =>
+            runtimeConnectorProbe.lastSender ! Api.Response(
+              requestId,
+              Api.OpenedFileNotification
+            )
+          case msg =>
+            fail("expected OpenFile notification got " + msg)
+        }
 
         client.expectJson(json"""
           { "jsonrpc": "2.0",
@@ -1209,7 +1260,8 @@ class VcsManagerTest extends BaseServerTest with RetrySpec with FlakySpec {
               "currentVersion": "4b6a8df62627ea7fbd1f4d9296d16c166b17b037c01d7298454cee99"
             }
           }
-          """)
+        """)
+
         client2.send(json"""
           { "jsonrpc": "2.0",
             "method": "text/openFile",
@@ -1221,7 +1273,8 @@ class VcsManagerTest extends BaseServerTest with RetrySpec with FlakySpec {
               }
             }
           }
-      """)
+        """)
+
         client2.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 4,

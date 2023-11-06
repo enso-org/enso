@@ -69,6 +69,17 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
           }
           """)
 
+      runtimeConnectorProbe.receiveN(1).head match {
+        case Api.Request(requestId, Api.OpenFileNotification(file, _))
+            if file.getName == "grant_can_edit.txt" =>
+          runtimeConnectorProbe.lastSender ! Api.Response(
+            requestId,
+            Api.OpenedFileNotification
+          )
+        case msg =>
+          fail("expected OpenFile notification got " + msg)
+      }
+
       // 4
       client1.expectJson(json"""
           { "jsonrpc": "2.0",
@@ -180,6 +191,17 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
             }
           }
           """)
+
+      runtimeConnectorProbe.receiveN(1).head match {
+        case Api.Request(requestId, Api.OpenFileNotification(file, _))
+            if file.getName == "take_can_edit.txt" =>
+          runtimeConnectorProbe.lastSender ! Api.Response(
+            requestId,
+            Api.OpenedFileNotification
+          )
+        case msg =>
+          fail("expected OpenFile notification got " + msg)
+      }
 
       client1.expectJson(json"""
           { "jsonrpc": "2.0",
@@ -310,6 +332,18 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
             }
           }
           """)
+
+      runtimeConnectorProbe.receiveN(1).head match {
+        case Api.Request(requestId, Api.OpenFileNotification(file, _))
+            if file.getName == "to_refactor.txt" =>
+          runtimeConnectorProbe.lastSender ! Api.Response(
+            requestId,
+            Api.OpenedFileNotification
+          )
+        case msg =>
+          fail("expected OpenFile notification got " + msg)
+      }
+
       client.expectJson(json"""
           {
             "jsonrpc" : "2.0",
@@ -473,6 +507,17 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
           }
           """)
 
+      runtimeConnectorProbe.receiveN(1).head match {
+        case Api.Request(requestId, Api.OpenFileNotification(file, _))
+            if file.getName == "foo.txt" =>
+          runtimeConnectorProbe.lastSender ! Api.Response(
+            requestId,
+            Api.OpenedFileNotification
+          )
+        case msg =>
+          fail("expected OpenFile notification got " + msg)
+      }
+
       // 4
       client.expectJson(json"""
           { "jsonrpc": "2.0",
@@ -539,6 +584,17 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
           }
           """)
 
+      runtimeConnectorProbe.receiveN(1).head match {
+        case Api.Request(requestId, Api.OpenFileNotification(file, _))
+            if file.getName == "foo.txt" =>
+          runtimeConnectorProbe.lastSender ! Api.Response(
+            requestId,
+            Api.OpenedFileNotification
+          )
+        case msg =>
+          fail("expected OpenFile notification got " + msg)
+      }
+
       // 4
       client1.expectJson(json"""
           { "jsonrpc": "2.0",
@@ -604,6 +660,16 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
             }
           }
           """)
+
+      runtimeConnectorProbe.receiveN(1).head match {
+        case Api.Request(requestId, Api.OpenFileNotification(_, _)) =>
+          runtimeConnectorProbe.lastSender ! Api.Response(
+            requestId,
+            Api.OpenedFileNotification
+          )
+        case msg =>
+          fail("expected OpenFile notification got " + msg)
+      }
 
       // 2
       client.expectJson(json"""
@@ -715,6 +781,18 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
             }
           }
           """)
+
+      runtimeConnectorProbe.receiveN(1).head match {
+        case Api.Request(requestId, Api.OpenFileNotification(file, _))
+            if file.getName == "foo.txt" =>
+          runtimeConnectorProbe.lastSender ! Api.Response(
+            requestId,
+            Api.OpenedFileNotification
+          )
+        case msg =>
+          fail("expected OpenFile notification got " + msg)
+      }
+
       client1.expectJson(json"""
           {
             "jsonrpc" : "2.0",
@@ -833,6 +911,18 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
             }
           }
           """)
+
+      runtimeConnectorProbe.receiveN(1).head match {
+        case Api.Request(requestId, Api.OpenFileNotification(file, _))
+            if file.getName == "foo.txt" =>
+          runtimeConnectorProbe.lastSender ! Api.Response(
+            requestId,
+            Api.OpenedFileNotification
+          )
+        case msg =>
+          fail("expected OpenFile notification got " + msg)
+      }
+
       client1.expectJson(json"""
           {
             "jsonrpc" : "2.0",
@@ -912,6 +1002,18 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
             }
           }
           """)
+
+      runtimeConnectorProbe.receiveN(2)(1) match {
+        case Api.Request(requestId, Api.OpenFileNotification(file, _))
+            if file.getName == "foo.txt" =>
+          runtimeConnectorProbe.lastSender ! Api.Response(
+            requestId,
+            Api.OpenedFileNotification
+          )
+        case msg =>
+          fail("expected OpenFile notification got " + msg)
+      }
+
       client1.expectJson(json"""
           {
             "jsonrpc" : "2.0",
@@ -1090,6 +1192,16 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
             }
           }
           """)
+      runtimeConnectorProbe.receiveN(2)(1) match {
+        case Api.Request(requestId, Api.OpenFileNotification(file, _))
+            if file.getName == "foo.txt" =>
+          runtimeConnectorProbe.lastSender ! Api.Response(
+            requestId,
+            Api.OpenedFileNotification
+          )
+        case msg =>
+          fail("expected OpenFile notification got " + msg)
+      }
       client.expectJson(json"""
           {
             "jsonrpc" : "2.0",
@@ -1181,6 +1293,16 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
             }
           }
           """)
+      runtimeConnectorProbe.receiveN(1).head match {
+        case Api.Request(requestId, Api.OpenFileNotification(file, _))
+            if file.getName == "foo.txt" =>
+          runtimeConnectorProbe.lastSender ! Api.Response(
+            requestId,
+            Api.OpenedFileNotification
+          )
+        case msg =>
+          fail("expected OpenFile notification got " + msg)
+      }
       client.expectJson(json"""
           {
             "jsonrpc" : "2.0",
@@ -1272,6 +1394,16 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
             }
           }
           """)
+      runtimeConnectorProbe.receiveN(1).head match {
+        case Api.Request(requestId, Api.OpenFileNotification(file, _))
+            if file.getName == "foo.txt" =>
+          runtimeConnectorProbe.lastSender ! Api.Response(
+            requestId,
+            Api.OpenedFileNotification
+          )
+        case msg =>
+          fail("expected OpenFile notification got " + msg)
+      }
       client.expectJson(json"""
           {
             "jsonrpc" : "2.0",
@@ -1364,6 +1496,16 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
             }
           }
           """)
+      runtimeConnectorProbe.receiveN(1).head match {
+        case Api.Request(requestId, Api.OpenFileNotification(file, _))
+            if file.getName == "foo.txt" =>
+          runtimeConnectorProbe.lastSender ! Api.Response(
+            requestId,
+            Api.OpenedFileNotification
+          )
+        case msg =>
+          fail("expected OpenFile notification got " + msg)
+      }
       client1.expectJson(json"""
           {
             "jsonrpc" : "2.0",
@@ -1478,6 +1620,16 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
             }
           }
           """)
+      runtimeConnectorProbe.receiveN(1).head match {
+        case Api.Request(requestId, Api.OpenFileNotification(file, _))
+            if file.getName == "foo.txt" =>
+          runtimeConnectorProbe.lastSender ! Api.Response(
+            requestId,
+            Api.OpenedFileNotification
+          )
+        case msg =>
+          fail("expected OpenFile notification got " + msg)
+      }
       client.expectJson(json"""
           {
             "jsonrpc" : "2.0",
@@ -1574,6 +1726,16 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
             }
           }
           """)
+      runtimeConnectorProbe.receiveN(2)(1) match {
+        case Api.Request(requestId, Api.OpenFileNotification(file, _))
+            if file.getName == "foo.txt" =>
+          runtimeConnectorProbe.lastSender ! Api.Response(
+            requestId,
+            Api.OpenedFileNotification
+          )
+        case msg =>
+          fail("expected OpenFile notification got " + msg)
+      }
       client1.expectJson(json"""
           {
             "jsonrpc" : "2.0",
@@ -1711,6 +1873,15 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
             }
           }
           """)
+      runtimeConnectorProbe.receiveN(2)(1) match {
+        case Api.Request(requestId, Api.OpenFileNotification(_, _)) =>
+          runtimeConnectorProbe.lastSender ! Api.Response(
+            requestId,
+            Api.OpenedFileNotification
+          )
+        case msg =>
+          fail("expected OpenFile notification got " + msg)
+      }
       client.expectJson(json"""
           {
             "jsonrpc" : "2.0",
@@ -1800,6 +1971,16 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
             }
           }
           """)
+      runtimeConnectorProbe.receiveN(2)(1) match {
+        case Api.Request(requestId, Api.OpenFileNotification(file, _))
+            if file.getName == "foo.txt" =>
+          runtimeConnectorProbe.lastSender ! Api.Response(
+            requestId,
+            Api.OpenedFileNotification
+          )
+        case msg =>
+          fail("expected OpenFile notification got " + msg)
+      }
       client.expectJson(json"""
           {
             "jsonrpc" : "2.0",
@@ -1853,6 +2034,16 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
             }
           }
           """)
+      runtimeConnectorProbe.receiveN(2)(1) match {
+        case Api.Request(requestId, Api.OpenFileNotification(file, _))
+            if file.getName == "foo.txt" =>
+          runtimeConnectorProbe.lastSender ! Api.Response(
+            requestId,
+            Api.OpenedFileNotification
+          )
+        case msg =>
+          fail("expected OpenFile notification got " + msg)
+      }
       client.expectJson(json"""
           {
             "jsonrpc" : "2.0",
@@ -1952,6 +2143,16 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
             }
           }
           """)
+      runtimeConnectorProbe.receiveN(2)(1) match {
+        case Api.Request(requestId, Api.OpenFileNotification(file, _))
+            if file.getName == "foo.txt" =>
+          runtimeConnectorProbe.lastSender ! Api.Response(
+            requestId,
+            Api.OpenedFileNotification
+          )
+        case msg =>
+          fail("expected OpenFile notification got " + msg)
+      }
       client.expectJson(json"""
           {
             "jsonrpc" : "2.0",
@@ -2101,6 +2302,16 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
             }
           }
           """)
+      runtimeConnectorProbe.receiveN(2)(1) match {
+        case Api.Request(requestId, Api.OpenFileNotification(file, _))
+            if file.getName == "foo.txt" =>
+          runtimeConnectorProbe.lastSender ! Api.Response(
+            requestId,
+            Api.OpenedFileNotification
+          )
+        case msg =>
+          fail("expected OpenFile notification got " + msg)
+      }
       client.expectJson(json"""
           {
             "jsonrpc" : "2.0",
@@ -2180,6 +2391,16 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
             }
           }
           """)
+      runtimeConnectorProbe.receiveN(1).head match {
+        case Api.Request(requestId, Api.OpenFileNotification(file, _))
+            if file.getName == "foo.txt" =>
+          runtimeConnectorProbe.lastSender ! Api.Response(
+            requestId,
+            Api.OpenedFileNotification
+          )
+        case msg =>
+          fail("expected OpenFile notification got " + msg)
+      }
       client1.expectJson(json"""
           {
             "jsonrpc" : "2.0",
@@ -2281,6 +2502,16 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
             }
           }
           """)
+      runtimeConnectorProbe.receiveN(1).head match {
+        case Api.Request(requestId, Api.OpenFileNotification(file, _))
+            if file.getName == "foo.txt" =>
+          runtimeConnectorProbe.lastSender ! Api.Response(
+            requestId,
+            Api.OpenedFileNotification
+          )
+        case msg =>
+          fail("expected OpenFile notification got " + msg)
+      }
       client.expectJson(json"""
           {
             "jsonrpc" : "2.0",
@@ -2395,6 +2626,15 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
             }
           }
           """)
+      runtimeConnectorProbe.receiveN(2)(1) match {
+        case Api.Request(requestId, Api.OpenFileNotification(_, _)) =>
+          runtimeConnectorProbe.lastSender ! Api.Response(
+            requestId,
+            Api.OpenedFileNotification
+          )
+        case msg =>
+          fail("expected OpenFile notification got " + msg)
+      }
       client.expectJson(json"""
           {
             "jsonrpc" : "2.0",
