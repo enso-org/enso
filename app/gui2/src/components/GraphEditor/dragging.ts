@@ -10,8 +10,6 @@ import { abs } from 'lib0/math'
 import type { ExprId } from 'shared/yjsModel'
 import { markRaw, ref, watchEffect, type WatchStopHandle } from 'vue'
 
-const graphStore = useGraphStore()
-
 export class SnapGrid {
   leftAxes: number[]
   rightAxes: number[]
@@ -46,7 +44,7 @@ export class SnapGrid {
     const rightSnap = SnapGrid.boundSnap(rect.right, this.rightAxes, threshold)
     const topSnap = SnapGrid.boundSnap(rect.top, this.topAxes, threshold)
     const bottomSnap = SnapGrid.boundSnap(rect.bottom, this.bottomAxes, threshold)
-    return [SnapGrid.minSnap(leftSnap, rightSnap), SnapGrid.minSnap(topSnap, bottomSnap) ?? 0.0]
+    return [SnapGrid.minSnap(leftSnap, rightSnap), SnapGrid.minSnap(topSnap, bottomSnap)]
   }
 
   private static boundSnap(value: number, axes: number[], threshold: number): number | null {
@@ -74,6 +72,7 @@ export class SnapGrid {
 export class Drag {
   static THRESHOLD = 15
 
+  graphStore = useGraphStore()
   draggedNodes: ExprId[]
   grid: SnapGrid
   offset = ref(Vec2.Zero)
@@ -89,7 +88,7 @@ export class Drag {
 
     this.stopPositionUpdate = watchEffect(() => {
       for (const id of this.draggedNodes) {
-        const node = graphStore.nodes.get(id)
+        const node = this.graphStore.nodes.get(id)
         if (node == null) continue
         node.visiblePosition = node.position
           .add(this.offset.value)
@@ -103,8 +102,8 @@ export class Drag {
     this.offset.value = offset
     const rects: Rect[] = []
     for (const id of this.draggedNodes) {
-      const rect = graphStore.nodeRects.get(id)
-      const node = graphStore.nodes.get(id)
+      const rect = this.graphStore.nodeRects.get(id)
+      const node = this.graphStore.nodes.get(id)
       if (rect != null && node != null) rects.push(new Rect(node.position.add(offset), rect.size))
     }
     const snap = this.grid.snappedMany(rects, Drag.THRESHOLD)
@@ -122,13 +121,13 @@ export class Drag {
   finishDragging(): void {
     this.stopPositionUpdate()
     for (const id of this.draggedNodes) {
-      const node = graphStore.nodes.get(id)
+      const node = this.graphStore.nodes.get(id)
       if (node == null || node.visiblePosition == null) continue
       const newPosition = node.position
         .add(this.offset.value)
         .add(new Vec2(this.snapXTarget.value, this.snapYTarget.value))
       console.log('New Position', newPosition)
-      graphStore.setNodePosition(id, newPosition)
+      this.graphStore.setNodePosition(id, newPosition)
       node.visiblePosition = undefined
     }
   }

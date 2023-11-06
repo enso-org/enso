@@ -52,6 +52,14 @@ test.each([
     ],
     expected: [0.2, -0.2],
   },
+  {
+    name: 'one node snapped and other not',
+    snappedRects: [
+      [-4.5, -4.8, 0.5, 0.2],
+      [1000.0, 1000.0, 1010.0, 1010.0],
+    ],
+    expected: [-0.5, -0.2],
+  },
 ])('Snapping to single rect: $name', ({ snappedRects, expected }) => {
   const rects = [Rect.fromBounds(-5.0, -5.0, 15.0, 5.0)]
   const grid = new SnapGrid(rects)
