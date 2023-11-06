@@ -272,6 +272,7 @@ impl Length {
             if c == '\r' || (c == '\n' && prev != Some('\r')) {
                 newlines += 1;
             }
+            prev = Some(c);
         }
         Self { utf8: u32::try_from(s.len()).unwrap(), utf16, newlines, line_chars16 }
     }

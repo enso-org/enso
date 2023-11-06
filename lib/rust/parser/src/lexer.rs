@@ -1886,8 +1886,8 @@ mod tests {
 
     #[test]
     fn test_line_endings() {
-        //lex_and_validate_spans("Windows\r\n...");
-        //lex_and_validate_spans("Linux\n...");
+        lex_and_validate_spans("Windows\r\n...");
+        lex_and_validate_spans("Linux\n...");
         lex_and_validate_spans("Classic Mac OS\r...");
     }
 }
