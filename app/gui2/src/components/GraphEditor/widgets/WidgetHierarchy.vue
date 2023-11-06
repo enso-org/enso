@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
+import { Score, defineWidget } from '@/providers/widgetRegistry'
 import { Ast, type AstExtended } from '@/util/ast'
 import { computed } from 'vue'
 
@@ -7,6 +8,14 @@ const props = defineProps<{ ast: AstExtended<Ast.Tree> }>()
 
 const spanClass = computed(() => Ast.Tree.typeNames[props.ast.inner.type])
 const children = computed(() => [...props.ast.children()])
+</script>
+
+<script lang="ts">
+export const widgetConfig = defineWidget({
+  beforeOverride: false,
+  priority: 2,
+  match: (info) => (info.ast.isTree() ? Score.Good : Score.Mismatch),
+})
 </script>
 
 <template>

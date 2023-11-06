@@ -3,6 +3,7 @@ import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { injectWidgetRegistry } from '@/providers/widgetRegistry'
 import { injectWidgetTree } from '@/providers/widgetTree'
+import { injectWidgetUsageInfo, provideWidgetUsageInfo } from '@/providers/widgetUsageInfo'
 import { Ast, type AstExtended } from '@/util/ast'
 import { useResizeObserver } from '@/util/events'
 import { Rect } from '@/util/rect'
@@ -11,6 +12,7 @@ import {
   onUpdated,
   ref,
   shallowRef,
+  toRef,
   watch,
   watchEffect,
   type ComponentPublicInstance,
@@ -72,19 +74,26 @@ watchEffect((onCleanup) => {
   }
 })
 
-const whitespace = computed(() => ' '.repeat(props.ast.whitespaceLength()))
-const selectedWidget = computed(() => registry.select(props.ast))
+const parentUsageInfo = injectWidgetUsageInfo(true)
+const whitespace = computed(() =>
+  parentUsageInfo?.ast !== props.ast ? ' '.repeat(props.ast.whitespaceLength()) : '',
+)
+const selectedWidget = computed(() => {
+  const alreadyUsed = parentUsageInfo?.ast === props.ast ? parentUsageInfo.set : undefined
+  return registry.select(props.ast, alreadyUsed)
+})
+provideWidgetUsageInfo(parentUsageInfo, toRef(props, 'ast'), selectedWidget)
 const spanStart = computed(
-  () => props.ast.span()[0] - tree.nodeSpanStart.value - props.ast.whitespaceLength(),
+  () => props.ast.span()[0] - tree.nodeSpanStart.value - whitespace.value.length,
 )
 </script>
 
 <template>
-  <span v-if="whitespace.length > 0" class="whitespace">{{ whitespace }}</span>
-  <component
-    :is="selectedWidget.component"
+  <span v-if="whitespace.length > 0">{{ whitespace }}</span
+  ><component
+    :is="selectedWidget"
     ref="rootNode"
-    :ast="selectedWidget.ast"
+    :ast="props.ast"
     :data-span-start="spanStart"
     @pointerenter="isHovered = true"
     @pointerleave="isHovered = false"

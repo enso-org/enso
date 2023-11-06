@@ -24,8 +24,8 @@ const EXECUTION_MODES = ['design', 'live']
 
 const viewportNode = ref<HTMLElement>()
 const navigator = provideGraphNavigator(viewportNode)
-const _ = provideWidgetRegistry()
 const graphStore = useGraphStore()
+const _ = provideWidgetRegistry(graphStore.db)
 const projectStore = useProjectStore()
 const componentBrowserVisible = ref(false)
 const componentBrowserPosition = ref(Vec2.Zero)

@@ -18,7 +18,7 @@ import {
   type VisualizationIdentifier,
   type VisualizationMetadata,
 } from 'shared/yjsModel'
-import { computed, reactive, ref, toRef, watch } from 'vue'
+import { computed, markRaw, reactive, ref, toRef, watch } from 'vue'
 import * as Y from 'yjs'
 
 export { type Node } from '@/stores/graph/graphDatabase'
@@ -243,7 +243,7 @@ export const useGraphStore = defineStore('graph', () => {
 
   return {
     transact,
-    db,
+    db: markRaw(db),
     unconnectedEdge,
     edges,
     nodeRects,

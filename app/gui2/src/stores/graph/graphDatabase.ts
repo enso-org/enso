@@ -53,7 +53,6 @@ export class GraphDb {
     const methodName = tryQualifiedName(method.name)
     if (!moduleName.ok || !methodName.ok) return
     const qualifiedName = qnJoin(moduleName.value, methodName.value)
-    console.log('db', qualifiedName, this.suggestionDb.nameToId.lookup(qualifiedName))
     const [suggestionId] = this.suggestionDb.nameToId.lookup(qualifiedName)
     if (suggestionId == null) return
     return this.suggestionDb.get(suggestionId)

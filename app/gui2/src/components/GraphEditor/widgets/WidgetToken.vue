@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Score, defineWidget } from '@/providers/widgetRegistry'
 import { Ast, type AstExtended } from '@/util/ast'
 import { computed, ref } from 'vue'
 
@@ -7,6 +8,14 @@ const props = defineProps<{ ast: AstExtended<Ast.Token> }>()
 const rootNode = ref<HTMLElement>()
 
 const spanClass = computed(() => Ast.Token.typeNames[props.ast.inner.type])
+</script>
+
+<script lang="ts">
+export const widgetConfig = defineWidget({
+  beforeOverride: false,
+  priority: 0,
+  match: (info) => (info.ast.isToken() ? Score.Good : Score.Mismatch),
+})
 </script>
 
 <template>
