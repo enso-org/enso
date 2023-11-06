@@ -82,20 +82,14 @@ declare var deck: typeof import('deck.gl')
 
 <script setup lang="ts">
 /// <reference types="@danmarshall/deckgl-typings" />
-import { computed, onMounted, onUnmounted, ref, watchPostEffect } from 'vue'
-
+import SvgIcon from '@/components/SvgIcon.vue'
+import { VisualizationContainer } from '@/util/visualizationBuiltins'
 import type { Deck } from 'deck.gl'
-
-import FindIcon from './icons/find.svg'
-import GeoMapDistanceIcon from './icons/geo_map_distance.svg'
-import GeoMapPinIcon from './icons/geo_map_pin.svg'
-import Path2Icon from './icons/path2.svg'
-
-import { VisualizationContainer } from 'builtins'
+import { computed, onMounted, onUnmounted, ref, watchPostEffect } from 'vue'
 
 const props = defineProps<{ data: Data }>()
 const emit = defineEmits<{
-  'update:processor': [module: string, method: string]
+  'update:preprocessor': [module: string, method: string, ...args: string[]]
 }>()
 
 /** GeoMap Visualization. */
@@ -149,7 +143,7 @@ watchPostEffect(() => {
 
 onMounted(() => {
   dataPoints.value = []
-  emit('update:processor', 'Standard.Visualization.Geo_Map', 'process_to_json_text')
+  emit('update:preprocessor', 'Standard.Visualization.Geo_Map', 'process_to_json_text')
 })
 
 onUnmounted(() => deckgl.value?.finalize())
@@ -405,10 +399,10 @@ function pushPoints(newPoints: Location[]) {
 <template>
   <VisualizationContainer :overflow="true">
     <template #toolbar>
-      <button class="image-button"><img :src="FindIcon" /></button>
-      <button class="image-button"><img :src="Path2Icon" /></button>
-      <button class="image-button"><img :src="GeoMapDistanceIcon" /></button>
-      <button class="image-button"><img :src="GeoMapPinIcon" /></button>
+      <button class="image-button"><SvgIcon name="find" /></button>
+      <button class="image-button"><SvgIcon name="path2" /></button>
+      <button class="image-button"><SvgIcon name="geo_map_distance" /></button>
+      <button class="image-button"><SvgIcon name="geo_map_pin" /></button>
     </template>
     <div ref="mapNode" class="GeoMapVisualization" @wheel.stop></div>
   </VisualizationContainer>

@@ -1,10 +1,6 @@
 <script setup lang="ts">
-import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
-import { Vec2 } from '@/util/vec2'
-import type { VisualizationIdentifier } from 'shared/yjsModel'
+import GeoMapVisualization from '@/components/visualizations/GeoMapVisualization.vue'
 import { ref } from 'vue'
-
-const isCircularMenuVisible = ref(false)
 
 const data = ref<any>({
   latitude: 37.8,
@@ -27,12 +23,6 @@ const data = ref<any>({
     },
   ],
 })
-
-const nodeSize = ref(new Vec2(400, 32))
-const currentType: VisualizationIdentifier = {
-  module: { kind: 'Builtin' },
-  name: 'Geo Map',
-}
 </script>
 
 <template>
@@ -42,15 +32,11 @@ const currentType: VisualizationIdentifier = {
     :layout="{ type: 'grid', width: 400 }"
     autoPropsDisabled
   >
-    <GraphVisualization
-      :currentType="currentType"
-      :data="data"
-      :nodeSize="nodeSize"
-      :isCircularMenuVisible="isCircularMenuVisible"
-    />
+    <div style="height: 322px">
+      <GeoMapVisualization :data="data" />
+    </div>
 
     <template #controls>
-      <HstCheckbox v-model="isCircularMenuVisible" title="circular menu visible" />
       <HstJson v-model="data" title="data" />
     </template>
   </Story>

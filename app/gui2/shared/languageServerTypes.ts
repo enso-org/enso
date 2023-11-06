@@ -335,6 +335,8 @@ export type Notifications = {
   'refactoring/projectRenamed': (param: {}) => void
 }
 
+export type Event<T extends keyof Notifications> = Parameters<Notifications[T]>[0]
+
 export type ExecutionEnvironment = 'Design' | 'Live'
 
 export type StackItem = ExplicitCall | LocalCall

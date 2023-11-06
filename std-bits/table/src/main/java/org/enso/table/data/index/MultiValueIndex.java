@@ -140,26 +140,6 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
             .toArray(Column[]::new));
   }
 
-  public int[] makeOrderMap(int rowCount) {
-    if (this.locs.size() == 0) {
-      return new int[0];
-    }
-
-    int[] output = new int[rowCount];
-
-    int idx = 0;
-    Context context = Context.getCurrent();
-    for (List<Integer> rowIndexes : this.locs.values()) {
-      for (Integer rowIndex : rowIndexes) {
-        assert idx < rowCount;
-        output[idx++] = rowIndex;
-        context.safepoint();
-      }
-    }
-
-    return output;
-  }
-
   public Set<KeyType> keys() {
     return locs.keySet();
   }
