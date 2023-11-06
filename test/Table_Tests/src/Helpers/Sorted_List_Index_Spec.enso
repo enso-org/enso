@@ -40,16 +40,16 @@ spec = Test.group "SortedListIndex (used for SortJoin)" <|
         Vector.from_polyglot_array (index1.findSubRange 4 6) . should_equal [4, 5, 6]
         Vector.from_polyglot_array (index1.findSubRange 3 5) . should_equal [3, 3, 4, 5]
 
-    Test.specify "should correctly handle big all-equal ranges" <|
-        Vector.from_polyglot_array (index1.findSubRange 1 1) . should_equal [1, 1, 1, 1]
-        Vector.from_polyglot_array (index1.findSubRange 7 7) . should_equal [7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7]
-
         Vector.from_polyglot_array (index1.findSubRange 0 3) . should_equal [0, 0, 1, 1, 1, 1, 2, 2, 2, 3, 3]
         Vector.from_polyglot_array (index1.findSubRange 2 4) . should_equal [2, 2, 2, 3, 3, 4]
         Vector.from_polyglot_array (index1.findSubRange 8 10) . should_equal [8, 10, 10, 10, 10]
         Vector.from_polyglot_array (index1.findSubRange 8 11) . should_equal [8, 10, 10, 10, 10, 11]
         Vector.from_polyglot_array (index1.findSubRange 8 12) . should_equal [8, 10, 10, 10, 10, 11]
         Vector.from_polyglot_array (index1.findSubRange 9 12) . should_equal [10, 10, 10, 10, 11]
+
+    Test.specify "should correctly handle big all-equal ranges" <|
+        Vector.from_polyglot_array (index1.findSubRange 1 1) . should_equal [1, 1, 1, 1]
+        Vector.from_polyglot_array (index1.findSubRange 7 7) . should_equal [7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7]
 
     Test.specify "other cases: empty index" <|
         index2 = make_index []
