@@ -64,7 +64,6 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
 
     private final CallTarget entryCallTarget;
     private final Callbacks callbacks;
-    private final ExecutionSupport executionSupport;
     private final Timer timer;
 
     /**
@@ -74,10 +73,9 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
      * @param callbacks communication with users
      * @param timer the timer for timing execution
      */
-    IdEventNodeFactory(CallTarget entryCallTarget, Callbacks callbacks, ExecutionSupport executionSupport, Timer timer) {
+    IdEventNodeFactory(CallTarget entryCallTarget, Callbacks callbacks, Timer timer) {
       this.entryCallTarget = entryCallTarget;
       this.callbacks = callbacks;
-      this.executionSupport = executionSupport;
       this.timer = timer;
     }
 
@@ -115,8 +113,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
         Node node = context.getInstrumentedNode();
         UUID nodeId = getNodeId(node);
 
-        callbacks.onEnter(nodeId);
-        Object result = executionSupport.findCachedResult(frame.materialize(), node, nodeId);
+        Object result = callbacks.findCachedResult(frame.materialize(), node, nodeId);
         if (result != null) {
           throw context.createUnwind(result);
         }
@@ -163,10 +160,9 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
 
       private void onExpressionReturn(
           Object result, UUID nodeId, EventContext context, long elapsedTime) {
-        callbacks.onExpressionReturn(nodeId, result, elapsedTime);
         boolean isPanic =
             result instanceof AbstractTruffleException && !(result instanceof DataflowError);
-        executionSupport.updateCachedResult(nodeId, result, isPanic, elapsedTime);
+        callbacks.updateCachedResult(nodeId, result, isPanic, elapsedTime);
 
         if (isPanic) {
           throw context.createUnwind(result);
@@ -248,7 +244,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
    */
   @Override
   public EventBinding<ExecutionEventNodeFactory> bind(
-      TruffleObject mod, CallTarget entryCallTarget, Callbacks callbacks, ExecutionSupport executionSupport, Object timer) {
+      TruffleObject mod, CallTarget entryCallTarget, Callbacks callbacks, Object timer) {
     var module = (Module) mod;
     var builder =
         SourceSectionFilter.newBuilder()
@@ -266,7 +262,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
       builder.lineIn(SourceSectionFilter.IndexRange.between(firstFunctionLine, afterFunctionLine));
     }
     var filter = builder.build();
-    var factory = new IdEventNodeFactory(entryCallTarget, callbacks, executionSupport, (Timer) timer);
+    var factory = new IdEventNodeFactory(entryCallTarget, callbacks, (Timer) timer);
     return env.getInstrumenter().attachExecutionEventFactory(filter, factory);
   }
 }

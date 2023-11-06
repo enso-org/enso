@@ -11,23 +11,6 @@ public interface IdExecutionService {
 
   public interface Callbacks {
 
-    void onEnter(UUID nodeId);
-
-    void onExpressionReturn(UUID nodeId, Object result, long nanoElapsedTime);
-
-    /**
-     * Notification when a returned value is a function.
-     *
-     * @param nodeId identification of the node to be computed
-     * @param result info about function call
-     * @return {@code null} should the execution of the node be performed; any other value to skip
-     *     the execution and return the value as a result.
-     */
-    Object onFunctionReturn(UUID nodeId, TruffleObject result);
-  }
-
-  public interface ExecutionSupport {
-
     /**
      * Finds out previously computed result for given id. If a result is returned, then the
      * execution of given node is skipped and the value is returned back.
@@ -47,7 +30,18 @@ public interface IdExecutionService {
      * @param nanoElapsedTime how long it took to compute the result?
      */
     void updateCachedResult(UUID nodeId, Object result, boolean isPanic, long nanoElapsedTime);
+
+    /**
+     * Notification when a returned value is a function.
+     *
+     * @param nodeId identification of the node to be computed
+     * @param result info about function call
+     * @return {@code null} should the execution of the node be performed; any other value to skip
+     *     the execution and return the value as a result.
+     */
+    Object onFunctionReturn(UUID nodeId, TruffleObject result);
   }
+
 
   /**
    * Attach a new event node factory to observe identified nodes within given function.
@@ -59,5 +53,5 @@ public interface IdExecutionService {
    * @return a reference to the attached event node factory.
    */
   EventBinding<ExecutionEventNodeFactory> bind(
-      TruffleObject module, CallTarget entryCallTarget, Callbacks callbacks, ExecutionSupport executionSupport, Object timer);
+      TruffleObject module, CallTarget entryCallTarget, Callbacks callbacks, Object timer);
 }

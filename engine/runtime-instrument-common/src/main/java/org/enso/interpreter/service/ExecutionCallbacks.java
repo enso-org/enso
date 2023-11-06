@@ -33,8 +33,7 @@ import org.enso.polyglot.debugger.ExecutedVisualization;
 import org.enso.polyglot.debugger.IdExecutionService;
 import scala.collection.Iterator;
 
-final class ExecutionCallbacks
-    implements IdExecutionService.Callbacks, IdExecutionService.ExecutionSupport {
+final class ExecutionCallbacks implements IdExecutionService.Callbacks {
 
   private final VisualizationHolder visualizationHolder;
   private final UUID nextExecutionItem;
@@ -81,25 +80,6 @@ final class ExecutionCallbacks
   }
 
   @Override
-  public void onEnter(UUID nodeId) {}
-
-  @Override
-  public void onExpressionReturn(UUID nodeId, Object result, long nanoElapsedTime) {}
-
-  @CompilerDirectives.TruffleBoundary
-  public Object onFunctionReturn(UUID nodeId, TruffleObject result) {
-    var fnCall = (FunctionCallInstrumentationNode.FunctionCall) result;
-    calls.put(nodeId, FunctionCallInfo.fromFunctionCall(fnCall));
-    functionCallCallback.accept(new ExpressionCall(nodeId, fnCall));
-    // Return cached value after capturing the enterable function call in `functionCallCallback`
-    Object cachedResult = cache.get(nodeId);
-    if (cachedResult != null) {
-      return cachedResult;
-    }
-    methodCallsCache.setExecuted(nodeId);
-    return null;
-  }
-
   public Object findCachedResult(Object materializedFrame, Object node, UUID nodeId) {
     Object result = getCachedResult(nodeId);
 
@@ -175,6 +155,20 @@ final class ExecutionCallbacks
       // up the `typeChanged` field of the expression update.
       methodCallsCache.setExecuted(nodeId);
     }
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  public Object onFunctionReturn(UUID nodeId, TruffleObject result) {
+    var fnCall = (FunctionCallInstrumentationNode.FunctionCall) result;
+    calls.put(nodeId, FunctionCallInfo.fromFunctionCall(fnCall));
+    functionCallCallback.accept(new ExpressionCall(nodeId, fnCall));
+    // Return cached value after capturing the enterable function call in `functionCallCallback`
+    Object cachedResult = cache.get(nodeId);
+    if (cachedResult != null) {
+      return cachedResult;
+    }
+    methodCallsCache.setExecuted(nodeId);
+    return null;
   }
 
   @CompilerDirectives.TruffleBoundary

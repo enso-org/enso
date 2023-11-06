@@ -192,7 +192,7 @@ public final class ExecutionService {
         idExecutionInstrument.map(
             service ->
                 service.bind(
-                    module, call.getFunction().getCallTarget(), callbacks, callbacks, this.timer));
+                    module, call.getFunction().getCallTarget(), callbacks, this.timer));
     Object p = context.getThreadManager().enter();
     try {
       execute.getCallTarget().call(call);
@@ -342,7 +342,7 @@ public final class ExecutionService {
             onExecutedVisualizationCallback);
     Optional<EventBinding<ExecutionEventNodeFactory>> eventNodeFactory =
         idExecutionInstrument.map(
-            service -> service.bind(module, entryCallTarget, callbacks, callbacks, this.timer));
+            service -> service.bind(module, entryCallTarget, callbacks, this.timer));
     Object p = context.getThreadManager().enter();
     try {
       return call.getCallTarget().call(function, arguments);
