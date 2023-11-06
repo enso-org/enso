@@ -39,17 +39,21 @@ public class SortedListIndex<T> {
    * If all elements are greater than the argument, returns 0.
    * If all elements are less than the argument, returns N.
    */
-  private int findLowerIndex(T lowerBound) {
-    int i = Collections.binarySearch(sortedList, lowerBound, comparator);
-    if (i < 0) {
-      return -i - 1;
+  private int findLowerIndex(T element) {
+    int start = 0;
+    int end = sortedList.size();
+    while (start < end) {
+      int mid = Math.addExact(start, end) / 2;
+      T midElement = sortedList.get(mid);
+      int cmp = comparator.compare(midElement, element);
+      if (cmp < 0) {
+        start = mid + 1;
+      } else {
+        end = mid;
+      }
     }
 
-    while (i > 0 && keysEqual(sortedList.get(i - 1), lowerBound)) {
-      i--;
-    }
-
-    return i;
+    return start;
   }
 
   /**
@@ -58,20 +62,21 @@ public class SortedListIndex<T> {
    * If all elements are greater than the argument, returns -1.
    * If all elements are less than the argument, returns N-1 (index of the last element).
    */
-  private int findUpperIndex(T upperBound) {
-    int i = Collections.binarySearch(sortedList, upperBound, comparator);
-    if (i < 0) {
-      // insertion point is the _first element > than the key_
-      // we want the last element <= - so we need to move back by one
-      // if the first element (index 0) is > than the key, the 'last' <= element is a 'virtual' element at -1
-      return -i - 2;
+  private int findUpperIndex(T element) {
+    int start = 0;
+    int end = sortedList.size();
+    while (start < end) {
+      int mid = Math.addExact(start, end) / 2;
+      T midElement = sortedList.get(mid);
+      int cmp = comparator.compare(midElement, element);
+      if (cmp > 0) {
+        end = mid;
+      } else {
+        start = mid + 1;
+      }
     }
 
-    while (i < sortedList.size() - 1 && keysEqual(sortedList.get(i + 1), upperBound)) {
-      i++;
-    }
-
-    return i;
+    return end - 1;
   }
 
   private boolean keysEqual(T k1, T k2) {
