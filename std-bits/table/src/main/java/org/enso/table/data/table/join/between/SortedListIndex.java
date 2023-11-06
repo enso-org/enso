@@ -24,7 +24,8 @@ public class SortedListIndex<T> {
   }
 
   /**
-   * Finds a sub-range of the index containing all elements between the lower and upper bounds (both-ends inclusive).
+   * Finds a sub-range of the index containing all elements between the lower and upper bounds
+   * (both-ends inclusive).
    */
   public List<T> findSubRange(T lowerBound, T upperBound) {
     int start = findLowerIndex(lowerBound);
@@ -38,9 +39,9 @@ public class SortedListIndex<T> {
 
   /**
    * Finds the index of the first element that is greater than or equal to the argument.
-   * <p>
-   * If all elements are greater than the argument, returns 0.
-   * If all elements are less than the argument, returns N.
+   *
+   * <p>If all elements are greater than the argument, returns 0. If all elements are less than the
+   * argument, returns N.
    */
   private int findLowerIndex(T element) {
     int start = 0;
@@ -81,9 +82,9 @@ public class SortedListIndex<T> {
 
   /**
    * Finds the index of the last element that is less than or equal to the argument.
-   * <p>
-   * If all elements are greater than the argument, returns -1.
-   * If all elements are less than the argument, returns N-1 (index of the last element).
+   *
+   * <p>If all elements are greater than the argument, returns -1. If all elements are less than the
+   * argument, returns N-1 (index of the last element).
    */
   private int findUpperIndex(T element) {
     int start = 0;

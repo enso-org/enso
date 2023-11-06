@@ -1,5 +1,8 @@
 package org.enso.table.data.table.join.between;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import org.enso.base.ObjectComparator;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.index.OrderedMultiValueKey;
@@ -9,10 +12,6 @@ import org.enso.table.data.table.join.PluggableJoinStrategy;
 import org.enso.table.data.table.join.conditions.Between;
 import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
-
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
 
 public class SortJoin implements JoinStrategy, PluggableJoinStrategy {
 
@@ -77,7 +76,9 @@ public class SortJoin implements JoinStrategy, PluggableJoinStrategy {
     Context context = Context.getCurrent();
 
     List<OrderedMultiValueKey> leftKeys =
-        leftGroup.stream().map(i -> new OrderedMultiValueKey(leftStorages, i, directions, objectComparator)).toList();
+        leftGroup.stream()
+            .map(i -> new OrderedMultiValueKey(leftStorages, i, directions, objectComparator))
+            .toList();
     if (leftKeys.isEmpty()) {
       // left group is completely empty - there will be no matches at all
       return;
@@ -91,7 +92,8 @@ public class SortJoin implements JoinStrategy, PluggableJoinStrategy {
     }
   }
 
-  private SortedListIndex<OrderedMultiValueKey> buildSortedLeftIndex(List<OrderedMultiValueKey> keys) {
+  private SortedListIndex<OrderedMultiValueKey> buildSortedLeftIndex(
+      List<OrderedMultiValueKey> keys) {
     return SortedListIndex.build(keys, firstCoordinateComparator);
   }
 
@@ -129,11 +131,13 @@ public class SortJoin implements JoinStrategy, PluggableJoinStrategy {
     }
   }
 
-  private boolean isInRange(OrderedMultiValueKey key, OrderedMultiValueKey lowerBound, OrderedMultiValueKey upperBound) {
+  private boolean isInRange(
+      OrderedMultiValueKey key, OrderedMultiValueKey lowerBound, OrderedMultiValueKey upperBound) {
     assert key.getNumberOfColumns() == lowerBound.getNumberOfColumns();
     assert key.getNumberOfColumns() == upperBound.getNumberOfColumns();
 
-    // Note: we cannot just use `compareTo`, because we are now not checking that the key is between the bounds in lexicographic order.
+    // Note: we cannot just use `compareTo`, because we are now not checking that the key is between
+    // the bounds in lexicographic order.
     // Instead, we are checking if the key is between the bounds for all dimensions.
 
     int n = key.getNumberOfColumns();
@@ -141,7 +145,9 @@ public class SortJoin implements JoinStrategy, PluggableJoinStrategy {
       var keyValue = key.get(i);
       var lowerBoundValue = lowerBound.get(i);
       var upperBoundValue = upperBound.get(i);
-      boolean fitsInThisDimension = objectComparator.compare(keyValue, lowerBoundValue) >= 0 && objectComparator.compare(keyValue, upperBoundValue) <= 0;
+      boolean fitsInThisDimension =
+          objectComparator.compare(keyValue, lowerBoundValue) >= 0
+              && objectComparator.compare(keyValue, upperBoundValue) <= 0;
       if (!fitsInThisDimension) {
         return false;
       }
