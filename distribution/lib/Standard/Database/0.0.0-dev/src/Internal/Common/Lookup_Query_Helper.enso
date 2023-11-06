@@ -72,7 +72,7 @@ check_initial_invariants base_table lookup_table lookup_columns allow_unmatched_
     check_for_null_keys lookup_table key_column_names <|
         if allow_unmatched_rows then continuation else
             unmatched_rows = base_table.join lookup_table on=key_column_names join_kind=Join_Kind.Left_Exclusive . select_columns key_column_names
-            unmatched_example = unmatched_rows.read max_rows=1
+            unmatched_example = unmatched_rows.read max_rows=1 warn_if_more_rows=False
             if unmatched_example.row_count == 0 then continuation else
                 first_row = unmatched_example.rows.first
                 Error.throw (Unmatched_Rows_In_Lookup.Error first_row.to_vector)
@@ -193,7 +193,7 @@ precheck_for_duplicate_matches lookup_columns subquery_setup connection new_ctx 
         Lookup_Column.Key_Column _ _ -> [subquery_setup.get_self_column ix]
         _ -> []
     table_for_duplicate_check = Table.Value subquery_setup.new_table_name connection [subquery_setup.lookup_counter]+key_columns_for_duplicate_check new_ctx
-    duplicate_lookup_matches = table_for_duplicate_check.filter 0 (Filter_Condition.Greater than=1) . read max_rows=1
+    duplicate_lookup_matches = table_for_duplicate_check.filter 0 (Filter_Condition.Greater than=1) . read max_rows=1 warn_if_more_rows=False
     case duplicate_lookup_matches.row_count > 0 of
         True ->
             first_example_row = duplicate_lookup_matches.read.rows.first.to_vector

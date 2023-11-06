@@ -1676,15 +1676,13 @@ type Table
        In the database backend, it first materializes the table to in-memory.
 
        Arguments:
-       - max_rows: The maximum amount of rows to return. It is mainly meant for
-         the Database backend, to limit how many rows are downloaded. In the
-         in-memory backend it is only kept for API compatibility.
-    rows : Integer -> Vector Row
-    rows self max_rows=Nothing =
-        table = case max_rows of
-            Nothing -> self
-            _ : Integer -> self.slice 0 max_rows
-        proxy = Rows_View.Value table
+       - max_rows: specifies the maximum number of rows to read.
+         If `Nothing`, all available rows are returned.
+       - warn_if_more_rows: if set to `True`, a warning is attached to the
+         result if the number of rows returned by the query exceeds `max_rows`.
+    rows : Integer | Nothing -> Boolean -> Vector Row
+    rows self (max_rows : Integer | Nothing = Nothing) (warn_if_more_rows : Boolean = True) =
+        proxy = Rows_View.Value (self.read max_rows warn_if_more_rows)
         Vector.from_polyglot_array (Array_Proxy.from_proxy_object proxy)
 
     ## GROUP Standard.Base.Selections
@@ -2144,12 +2142,19 @@ type Table
        table is now in-memory, regardless of its origin.
 
        Arguments:
-       - max_rows: specifies a maximum amount of rows to fetch; if not set, all
-         available rows are fetched.
-    read : (Integer | Nothing) -> Table
-    read self max_rows=Nothing = case max_rows of
+       - max_rows: specifies the maximum number of rows to read.
+         If `Nothing`, all available rows are returned.
+       - warn_if_more_rows: if set to `True`, a warning is attached to the
+         result if the number of rows returned by the query exceeds `max_rows`.
+    read : (Integer | Nothing) -> Boolean -> Table
+    read self (max_rows : Integer | Nothing = Nothing) (warn_if_more_rows:Boolean = True) = case max_rows of
         Nothing -> self
-        _ : Integer -> self.take (First max_rows)
+        _ : Integer ->
+            truncated = self.take (First max_rows)
+            needs_warning = warn_if_more_rows && self.row_count > max_rows
+            if needs_warning.not then truncated else
+                Problem_Behavior.Report_Warning.attach_problem_after truncated <|
+                    Not_All_Rows_Downloaded.Warning max_rows
 
     ## GROUP Standard.Base.Metadata
        Returns a Table describing this table's contents.
