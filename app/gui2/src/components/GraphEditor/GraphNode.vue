@@ -313,7 +313,6 @@ let startEvent: PointerEvent | null = null
 let startPos = Vec2.Zero
 
 const dragPointer = usePointer((pos, event, type) => {
-  console.log('EVENT', type)
   if (type !== 'start') {
     const fullOffset = pos.absolute.sub(startPos)
     emit('dragging', fullOffset)

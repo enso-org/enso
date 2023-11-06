@@ -118,7 +118,6 @@ export const useGraphStore = defineStore('graph', () => {
       if (op.action === 'update' || op.action === 'add') {
         const data = meta.get(id)
         const node = nodes.get(id as ExprId)
-        console.log(data, node)
         if (data != null && node != null) {
           assignUpdatedMetadata(node, data)
         }
@@ -155,7 +154,6 @@ export const useGraphStore = defineStore('graph', () => {
 
   function assignUpdatedMetadata(node: Node, meta: NodeMetadata) {
     const newPosition = new Vec2(meta.x, -meta.y)
-    console.log('assignUpdatedMetadata', newPosition, node.position, node.visiblePosition)
     if (!node.position.equals(newPosition)) {
       node.position = newPosition
     }

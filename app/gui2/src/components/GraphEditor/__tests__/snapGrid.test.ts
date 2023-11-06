@@ -1,7 +1,7 @@
+import { SnapGrid } from '@/components/GraphEditor/snapGrid'
 import { Rect } from '@/util/rect'
 import { Vec2 } from '@/util/vec2'
 import { expect, test } from 'vitest'
-import { SnapGrid } from '../dragging'
 
 test.each([
   {

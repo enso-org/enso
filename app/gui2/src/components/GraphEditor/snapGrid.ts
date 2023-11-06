@@ -1,14 +1,9 @@
-import { useGraphStore } from '@/stores/graph'
-import { useApproach } from '@/util/animation'
 import { partitionPoint } from '@/util/array'
 import type { Opt } from '@/util/opt'
 import { Rect } from '@/util/rect'
-import type { SelectionComposable } from '@/util/selection'
 import { Vec2 } from '@/util/vec2'
-import { iteratorFilter } from 'lib0/iterator'
 import { abs } from 'lib0/math'
-import type { ExprId } from 'shared/yjsModel'
-import { markRaw, ref, watchEffect, type WatchStopHandle } from 'vue'
+import { markRaw } from 'vue'
 
 export class SnapGrid {
   leftAxes: number[]
@@ -22,10 +17,6 @@ export class SnapGrid {
     this.rightAxes = Array.from(rects, (rect) => rect.right).sort((a, b) => a - b)
     this.topAxes = Array.from(rects, (rect) => rect.top).sort((a, b) => a - b)
     this.bottomAxes = Array.from(rects, (rect) => rect.bottom).sort((a, b) => a - b)
-    console.log(this.leftAxes)
-    console.log(this.rightAxes)
-    console.log(this.topAxes)
-    console.log(this.bottomAxes)
   }
 
   snappedMany(rects: Rect[], threshold: number): Vec2 {

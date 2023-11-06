@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import GraphNode from '@/components/GraphEditor/GraphNode.vue'
+import { SnapGrid } from '@/components/GraphEditor/snapGrid'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { useGraphStore } from '@/stores/graph'
@@ -11,7 +12,6 @@ import { iteratorFilter } from 'lib0/iterator'
 import { abs } from 'lib0/math'
 import type { ContentRange, ExprId } from 'shared/yjsModel'
 import { ref, watchEffect, type WatchStopHandle } from 'vue'
-import { SnapGrid } from './dragging'
 
 const graphStore = useGraphStore()
 const selection = injectGraphSelection(true)
@@ -79,7 +79,6 @@ class Drag {
       const newPosition = node.position
         .add(this.offset.value)
         .add(new Vec2(this.snapXTarget.value, this.snapYTarget.value))
-      console.log('New Position', newPosition)
       graphStore.setNodePosition(id, newPosition)
       node.visiblePosition = undefined
     }
@@ -112,7 +111,6 @@ function dragging(movedId: ExprId, offset: Vec2) {
 }
 
 function draggingCommited() {
-  console.log('Dragging commited')
   drag?.finishDragging()
   drag = undefined
 }

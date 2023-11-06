@@ -318,7 +318,6 @@ export const useVisualizationStore = defineStore('visualization', () => {
     const builtinDynamicPath = paths[type]
     if (builtinDynamicPath != null) {
       const module = await compile(builtinDynamicPath)
-      console.log(module)
       await loadScripts(module)
       return module
     }
