@@ -6,7 +6,6 @@ import type {
 } from '@open-rpc/client-js/build/Request'
 import { Transport } from '@open-rpc/client-js/build/transports/Transport'
 import type { ArgumentsType } from '@vueuse/core'
-import { ObservableV2 } from 'lib0/observable'
 import { wait } from 'lib0/promise'
 import { LsRpcError } from 'shared/languageServer'
 import type { Notifications } from 'shared/languageServerTypes'
@@ -92,7 +91,9 @@ export function createWebsocketClient(
   options?: { binaryType?: 'arraybuffer' | 'blob' | null; sendPings?: boolean },
 ): WebsocketClient {
   if (url.startsWith('mock://')) {
-    return new ObservableV2() as WebsocketClient
+    const mockWs = new MockWebSocketClient(url)
+    if (options?.binaryType) mockWs.binaryType = options.binaryType
+    return mockWs
   } else {
     const client = new WebsocketClient(url, options)
     client.connect()
@@ -105,11 +106,9 @@ interface MockTransportData {
 }
 
 export class MockTransport extends Transport {
-  name: string
   static mocks: Map<string, MockTransportData> = new Map()
-  constructor(name: string) {
+  constructor(public name: string) {
     super()
-    this.name = name
   }
 
   static addMock(name: string, data: MockTransportData) {
@@ -132,6 +131,62 @@ export class MockTransport extends Transport {
       method,
       params,
     } as IJSONRPCNotificationResponse)
+  }
+}
+
+export interface WebSocketHandler {
+  (
+    data: string | ArrayBufferLike | Blob | ArrayBufferView,
+    send: (data: string | ArrayBufferLike | Blob | ArrayBufferView) => void,
+  ): void
+}
+
+export class MockWebSocket extends EventTarget implements WebSocket {
+  static mocks: Map<string, WebSocketHandler> = new Map()
+  readonly CONNECTING = WebSocket.CONNECTING
+  readonly OPEN = WebSocket.OPEN
+  readonly CLOSING = WebSocket.CLOSING
+  readonly CLOSED = WebSocket.CLOSED
+  readyState: number = WebSocket.OPEN
+  binaryType: BinaryType = 'blob'
+  readonly bufferedAmount = 0
+  readonly extensions = ''
+  readonly protocol = ''
+  onopen: ((this: WebSocket, ev: Event) => any) | null = null
+  onclose: ((this: WebSocket, ev: CloseEvent) => any) | null = null
+  onmessage: ((this: WebSocket, ev: MessageEvent<any>) => any) | null = null
+  onerror: ((this: WebSocket, ev: Event) => any) | null = null
+
+  static addMock(name: string, data: WebSocketHandler) {
+    MockWebSocket.mocks.set(name, data)
+  }
+
+  constructor(
+    public url: string,
+    public name: string,
+  ) {
+    super()
+    this.addEventListener('open', (ev) => this.onopen?.(ev))
+    this.addEventListener('close', (ev) => this.onclose?.(ev as CloseEvent))
+    this.addEventListener('message', (ev) => this.onmessage?.(ev as MessageEvent<any>))
+    this.addEventListener('error', (ev) => this.onerror?.(ev))
+    setTimeout(() => this.dispatchEvent(new Event('open')), 0)
+  }
+
+  send(data: string | ArrayBufferLike | Blob | ArrayBufferView): void {
+    MockWebSocket.mocks.get(this.name)?.(data, (data) =>
+      this.dispatchEvent(new MessageEvent('message', { data })),
+    )
+  }
+  close() {
+    this.readyState = WebSocket.CLOSED
+  }
+}
+
+export class MockWebSocketClient extends WebsocketClient {
+  constructor(url: string) {
+    super(url)
+    super.connect(new MockWebSocket(url, url.slice('mock://'.length)))
   }
 }
 

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import LoadingErrorVisualization from '@/components/visualizations/LoadingErrorVisualization.vue'
+import LoadingVisualization from '@/components/visualizations/LoadingVisualization.vue'
 import { provideVisualizationConfig } from '@/providers/visualizationConfig'
 import { useProjectStore } from '@/stores/project'
 import {
@@ -7,13 +9,14 @@ import {
   useVisualizationStore,
   type Visualization,
 } from '@/stores/visualization'
+import { toError } from '@/util/error'
 import type { Opt } from '@/util/opt'
 import type { Vec2 } from '@/util/vec2'
 import type { ExprId, VisualizationIdentifier } from 'shared/yjsModel'
-import { computed, ref, shallowRef, watchEffect } from 'vue'
-import LoadingVisualization from '../visualizations/LoadingVisualization.vue'
+import { computed, onErrorCaptured, ref, shallowRef, watch, watchEffect } from 'vue'
 
 const visPreprocessor = ref(DEFAULT_VISUALIZATION_CONFIGURATION)
+const error = ref<Error>()
 
 const projectStore = useProjectStore()
 const visualizationStore = useVisualizationStore()
@@ -33,6 +36,11 @@ const emit = defineEmits<{
 
 const visualization = shallowRef<Visualization>()
 
+onErrorCaptured((vueError) => {
+  error.value = vueError
+  return false
+})
+
 const visualizationData = projectStore.useVisualizationData(() => {
   return props.data == null && props.expressionId != null
     ? {
@@ -42,7 +50,11 @@ const visualizationData = projectStore.useVisualizationData(() => {
     : null
 })
 
-const effectiveVisualizationData = computed(() => props.data ?? visualizationData.value)
+const effectiveVisualizationData = computed(() =>
+  error.value
+    ? { name: props.currentType?.name, error: error.value }
+    : props.data ?? visualizationData.value,
+)
 
 function updatePreprocessor(
   visualizationModule: string,
@@ -56,20 +68,47 @@ function switchToDefaultPreprocessor() {
   visPreprocessor.value = DEFAULT_VISUALIZATION_CONFIGURATION
 }
 
-watchEffect(async () => {
-  if (props.currentType == null) {
-    return
-  }
+watch(
+  () => [props.currentType, visualization.value],
+  () => (error.value = undefined),
+)
 
+watchEffect(async () => {
+  if (props.currentType == null) return
   visualization.value = undefined
-  const module = await visualizationStore.get(props.currentType)
-  if (module) {
-    if (module.defaultPreprocessor != null) {
-      updatePreprocessor(...module.defaultPreprocessor)
+  try {
+    const module = await visualizationStore.get(props.currentType).value
+    if (module) {
+      if (module.defaultPreprocessor != null) {
+        updatePreprocessor(...module.defaultPreprocessor)
+      } else {
+        switchToDefaultPreprocessor()
+      }
+      visualization.value = module.default
     } else {
-      switchToDefaultPreprocessor()
+      switch (props.currentType.module.kind) {
+        case 'Builtin': {
+          error.value = new Error(
+            `The builtin visualization '${props.currentType.name}' was not found.`,
+          )
+          break
+        }
+        case 'CurrentProject': {
+          error.value = new Error(
+            `The visualization '${props.currentType.name}' was not found in the current project.`,
+          )
+          break
+        }
+        case 'Library': {
+          error.value = new Error(
+            `The visualization '${props.currentType.name}' was not found in the library '${props.currentType.module.name}'.`,
+          )
+          break
+        }
+      }
     }
-    visualization.value = module.default
+  } catch (caughtError) {
+    error.value = toError(caughtError)
   }
 })
 
@@ -94,6 +133,9 @@ provideVisualizationConfig({
 })
 
 const effectiveVisualization = computed(() => {
+  if (error.value) {
+    return LoadingErrorVisualization
+  }
   if (!visualization.value || effectiveVisualizationData.value == null) {
     return LoadingVisualization
   }
@@ -103,10 +145,13 @@ const effectiveVisualization = computed(() => {
 
 <template>
   <div class="GraphVisualization">
-    <component
-      :is="effectiveVisualization"
-      :data="effectiveVisualizationData"
-      @update:preprocessor="updatePreprocessor"
-    />
+    <Suspense>
+      <template #fallback><LoadingVisualization :data="{}" /></template>
+      <component
+        :is="effectiveVisualization"
+        :data="effectiveVisualizationData"
+        @update:preprocessor="updatePreprocessor"
+      />
+    </Suspense>
   </div>
 </template>

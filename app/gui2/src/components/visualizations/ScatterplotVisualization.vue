@@ -1,7 +1,12 @@
 <script lang="ts">
-import { defineKeybinds } from 'builtins'
+import SvgIcon from '@/components/SvgIcon.vue'
+import { useVisualizationConfig } from '@/providers/visualizationConfig'
+import { useEvent, useEventConditional } from '@/util/events'
+import { getTextWidth } from '@/util/measurement'
+import { VisualizationContainer, defineKeybinds } from '@/util/visualizationBuiltins'
+import { computed, ref, watch, watchEffect, watchPostEffect } from 'vue'
 
-export const name = 'Scatterplot'
+export const name = 'Scatter Plot'
 export const inputType = 'Standard.Table.Data.Table.Table | Standard.Base.Data.Vector.Vector'
 const DEFAULT_LIMIT = 1024
 export const defaultPreprocessor = [
@@ -9,7 +14,7 @@ export const defaultPreprocessor = [
   'process_to_json_text',
   'Nothing',
   DEFAULT_LIMIT.toString(),
-]
+] as const
 
 const bindings = defineKeybinds('scatterplot-visualization', {
   zoomIn: ['Mod+Z'],
@@ -91,17 +96,7 @@ interface Color {
 </script>
 
 <script setup lang="ts">
-import { computed, ref, watch, watchEffect, watchPostEffect } from 'vue'
-
-import * as d3 from 'd3'
-
-import FindIcon from './icons/find.svg'
-import ShowAllIcon from './icons/show_all.svg'
-
-import { useEvent, useEventConditional } from './events.ts'
-import { getTextWidth } from './measurement.ts'
-
-import { VisualizationContainer, useVisualizationConfig } from 'builtins'
+const d3 = await import('d3')
 
 const props = defineProps<{ data: Partial<Data> | number[] }>()
 const emit = defineEmits<{
@@ -544,10 +539,10 @@ useEvent(document, 'scroll', endBrushing)
   <VisualizationContainer :belowToolbar="true">
     <template #toolbar>
       <button class="image-button active">
-        <img :src="ShowAllIcon" alt="Fit all" @pointerdown="showAll" />
+        <SvgIcon name="show_all" alt="Fit all" @pointerdown="showAll" />
       </button>
       <button class="image-button" :class="{ active: brushExtent != null }">
-        <img :src="FindIcon" alt="Zoom to selected" @pointerdown="zoomToSelected" />
+        <SvgIcon name="find" alt="Zoom to selected" @pointerdown="zoomToSelected" />
       </button>
     </template>
     <div ref="containerNode" class="ScatterplotVisualization" @pointerdown.stop>

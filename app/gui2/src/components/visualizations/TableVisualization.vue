@@ -51,7 +51,7 @@ interface UnknownTable {
   type: undefined
   json: unknown
   all_rows_count?: number
-  header: string[]
+  header: string[] | undefined
   indices_header?: string[]
   data: unknown[][] | undefined
   indices: unknown[][] | undefined
@@ -61,20 +61,22 @@ interface UnknownTable {
 <script setup lang="ts">
 import VisualizationContainer from '@/components/VisualizationContainer.vue'
 import { useVisualizationConfig } from '@/providers/visualizationConfig'
-import { ClientSideRowModelModule } from '@ag-grid-community/client-side-row-model'
-import {
-  Grid,
-  ModuleRegistry,
-  type ColDef,
-  type ColumnResizedEvent,
-  type GridOptions,
-  type HeaderValueGetterParams,
+import type {
+  ColDef,
+  ColumnResizedEvent,
+  GridOptions,
+  HeaderValueGetterParams,
 } from '@ag-grid-community/core'
 import '@ag-grid-community/styles/ag-grid.css'
 import '@ag-grid-community/styles/ag-theme-alpine.css'
-import { LicenseManager } from '@ag-grid-enterprise/core'
 import { useDebounceFn } from '@vueuse/core'
 import { computed, onMounted, ref, watch, watchEffect, type Ref } from 'vue'
+const [{ ClientSideRowModelModule }, { Grid, ModuleRegistry }, { LicenseManager }] =
+  await Promise.all([
+    import('@ag-grid-community/client-side-row-model'),
+    import('@ag-grid-community/core'),
+    import('@ag-grid-enterprise/core'),
+  ])
 
 ModuleRegistry.registerModules([ClientSideRowModelModule])
 
@@ -291,7 +293,7 @@ watchEffect(() => {
     rowData = [{ Value: toRender(data_.json) }]
   } else {
     const indicesHeader = ('indices_header' in data_ ? data_.indices_header : []).map(toField)
-    const dataHeader = ('header' in data_ ? data_.header : []).map(toField)
+    const dataHeader = ('header' in data_ ? data_.header : [])?.map(toField) ?? []
     columnDefs = [...indicesHeader, ...dataHeader]
 
     const rows =
