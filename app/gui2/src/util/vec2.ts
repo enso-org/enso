@@ -14,6 +14,10 @@ export class Vec2 {
     return new Vec2(arr[0], arr[1])
   }
 
+  static FromDomPoint(point: DOMPoint): Vec2 {
+    return new Vec2(point.x, point.y)
+  }
+
   equals(other: Vec2): boolean {
     return this.x === other.x && this.y === other.y
   }

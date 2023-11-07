@@ -3,7 +3,6 @@ import { codeEditorBindings, graphBindings, interactionBindings } from '@/bindin
 import CodeEditor from '@/components/CodeEditor.vue'
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
 import { Uploader, uploadedExpression } from '@/components/GraphEditor/upload'
-import SelectionBrush from '@/components/SelectionBrush.vue'
 import TopBar from '@/components/TopBar.vue'
 import { provideGraphNavigator } from '@/providers/graphNavigator'
 import { provideGraphSelection } from '@/providers/graphSelection'
@@ -20,6 +19,7 @@ import type { ExprId } from 'shared/yjsModel.ts'
 import { computed, onMounted, ref, watch } from 'vue'
 import GraphEdges from './GraphEditor/GraphEdges.vue'
 import GraphNodes from './GraphEditor/GraphNodes.vue'
+import GraphMouse from './GraphMouse.vue'
 
 const EXECUTION_MODES = ['design', 'live']
 
@@ -118,9 +118,6 @@ const interactionBindingsHandler = interactionBindings.handler({
 })
 useEvent(window, 'pointerdown', interactionBindingsHandler, { capture: true })
 
-const scaledMousePos = computed(() => navigator.sceneMousePos?.scale(navigator.scale))
-const scaledSelectionAnchor = computed(() => nodeSelection.anchor?.scale(navigator.scale))
-
 /// Track play button presses.
 function onPlayButtonPress() {
   projectStore.lsRpcConnection.then(async () => {
@@ -216,7 +213,7 @@ function onComponentBrowserFinished(content: string) {
 }
 
 function getNodeContent(id: ExprId): string {
-  const node = graphStore.nodes.get(id)
+  const node = graphStore.db.nodes.get(id)
   if (node == null) return ''
   return node.rootSpan.repr()
 }
@@ -226,7 +223,7 @@ watch(
   () => graphStore.editedNodeInfo,
   (editedInfo) => {
     if (editedInfo != null) {
-      const targetNode = graphStore.nodes.get(editedInfo.id)
+      const targetNode = graphStore.db.nodes.get(editedInfo.id)
       const targetPos = targetNode?.position ?? Vec2.Zero
       const offset = new Vec2(20, 35)
       componentBrowserPosition.value = targetPos.add(offset)
@@ -237,6 +234,17 @@ watch(
     }
   },
 )
+
+const breadcrumbs = computed(() => {
+  return projectStore.executionContext.desiredStack.map((frame) => {
+    switch (frame.type) {
+      case 'ExplicitCall':
+        return frame.methodPointer.name
+      case 'LocalCall':
+        return frame.expressionId
+    }
+  })
+})
 </script>
 
 <template>
@@ -270,7 +278,7 @@ watch(
       v-model:mode="projectStore.executionMode"
       :title="projectStore.name"
       :modes="EXECUTION_MODES"
-      :breadcrumbs="['main', 'ad_analytics']"
+      :breadcrumbs="breadcrumbs"
       @breadcrumbClick="console.log(`breadcrumb #${$event + 1} clicked.`)"
       @back="console.log('breadcrumbs \'back\' button clicked.')"
       @forward="console.log('breadcrumbs \'forward\' button clicked.')"
@@ -281,12 +289,7 @@ watch(
         <CodeEditor v-if="showCodeEditor" />
       </Suspense>
     </Transition>
-    <SelectionBrush
-      v-if="scaledMousePos"
-      :position="scaledMousePos"
-      :anchor="scaledSelectionAnchor"
-      :style="{ transform: navigator.prescaledTransform }"
-    />
+    <GraphMouse />
   </div>
 </template>
 

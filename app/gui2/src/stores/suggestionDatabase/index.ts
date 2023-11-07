@@ -25,9 +25,6 @@ export class SuggestionDb {
     }
     return []
   })
-  constructor() {
-    console.log('SuggestionDb', this)
-  }
 
   set(id: SuggestionId, entry: SuggestionEntry): void {
     this._internal.set(id, entry)

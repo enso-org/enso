@@ -6,10 +6,14 @@ import { computed, ref } from 'vue'
 const props = defineProps<{ modelValue: number; min: number; max: number }>()
 const emit = defineEmits<{ 'update:modelValue': [modelValue: number] }>()
 
-const dragPointer = usePointer((position, event) => {
+const dragPointer = usePointer((position, event, eventType) => {
   const slider = event.target
   if (!(slider instanceof HTMLElement)) {
     return
+  }
+
+  if (eventType === 'start') {
+    event.stopImmediatePropagation()
   }
 
   const rect = slider.getBoundingClientRect()

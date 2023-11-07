@@ -13,8 +13,8 @@ import { methodNameToIcon, typeNameToIcon } from '@/util/getIconName'
 import type { Opt } from '@/util/opt'
 import { Rect } from '@/util/rect'
 import { Vec2 } from '@/util/vec2'
-import type { ContentRange, ExprId, VisualizationIdentifier } from 'shared/yjsModel'
-import { computed, onUpdated, reactive, ref, watch, watchEffect } from 'vue'
+import type { ContentRange, VisualizationIdentifier } from 'shared/yjsModel'
+import { computed, ref, watch, watchEffect } from 'vue'
 
 const MAXIMUM_CLICK_LENGTH_MS = 300
 const MAXIMUM_CLICK_DISTANCE_SQ = 50
@@ -26,7 +26,6 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   updateRect: [rect: Rect]
-  updateExprRect: [id: ExprId, rect: Rect]
   updateContent: [updates: [range: ContentRange, content: string][]]
   dragging: [offset: Vec2]
   draggingCommited: []
@@ -48,7 +47,6 @@ const isSourceOfDraggedEdge = computed(
 const nodeId = computed(() => props.node.rootSpan.astId)
 const rootNode = ref<HTMLElement>()
 const nodeSize = useResizeObserver(rootNode)
-const editableRootNode = ref<HTMLElement>()
 const menuVisible = ref(false)
 
 const isSelected = computed(() => nodeSelection?.isSelected(nodeId.value) ?? false)
@@ -108,248 +106,41 @@ function getRelatedSpanOffset(domNode: globalThis.Node, domOffset: number): numb
   return 0
 }
 
-function updateRange(range: ContentRange, threhsold: number, adjust: number) {
-  range[0] = updateOffset(range[0], threhsold, adjust)
-  range[1] = updateOffset(range[1], threhsold, adjust)
-}
-
-function updateOffset(offset: number, threhsold: number, adjust: number) {
-  return offset >= threhsold ? offset + adjust : offset
-}
-
-interface TextEdit {
-  range: ContentRange
-  content: string
-}
-
-const editsToApply = reactive<TextEdit[]>([])
-
-function editContent(e: Event) {
-  e.preventDefault()
-  if (!(e instanceof InputEvent)) return
-
-  const domRanges = e.getTargetRanges()
-  const ranges = domRanges.map<ContentRange>((r) => {
-    return [
-      getRelatedSpanOffset(r.startContainer, r.startOffset),
-      getRelatedSpanOffset(r.endContainer, r.endOffset),
-    ]
-  })
-
-  switch (e.inputType) {
-    case 'insertText': {
-      const content = e.data ?? ''
-      for (let range of ranges) {
-        if (range[0] != range[1]) {
-          editsToApply.push({ range, content: '' })
-        }
-        editsToApply.push({ range: [range[1], range[1]], content })
-      }
-      break
-    }
-    case 'insertFromDrop':
-    case 'insertFromPaste': {
-      const content = e.dataTransfer?.getData('text/plain')
-      if (content != null) {
-        for (let range of ranges) {
-          editsToApply.push({ range, content })
-        }
-      }
-      break
-    }
-    case 'deleteByCut':
-    case 'deleteWordBackward':
-    case 'deleteWordForward':
-    case 'deleteContentBackward':
-    case 'deleteContentForward':
-    case 'deleteByDrag': {
-      for (let range of ranges) {
-        editsToApply.push({ range, content: '' })
-      }
-      break
-    }
-  }
-}
-
-watch(editsToApply, () => {
-  if (editsToApply.length === 0) return
-  saveSelections()
-  let edit: TextEdit | undefined
-  const updates: [ContentRange, string][] = []
-  while ((edit = editsToApply.shift())) {
-    const range = edit.range
-    const content = edit.content
-    const adjust = content.length - (range[1] - range[0])
-    editsToApply.forEach((e) => updateRange(e.range, range[1], adjust))
-    if (selectionToRecover) {
-      selectionToRecover.ranges.forEach((r) => updateRange(r, range[1], adjust))
-      if (selectionToRecover.anchor != null) {
-        selectionToRecover.anchor = updateOffset(selectionToRecover.anchor, range[1], adjust)
-      }
-      if (selectionToRecover.focus != null) {
-        selectionToRecover.focus = updateOffset(selectionToRecover.focus, range[1], adjust)
-      }
-    }
-    updates.push([range, content])
-  }
-  emit('updateContent', updates)
-})
-
-interface SavedSelections {
-  anchor: number | null
-  focus: number | null
-  ranges: ContentRange[]
-}
-
-let selectionToRecover: SavedSelections | null = null
-
-function saveSelections() {
-  const root = editableRootNode.value
-  const selection = window.getSelection()
-  if (root == null || selection == null || !selection.containsNode(root, true)) return
-  const ranges: ContentRange[] = Array.from({ length: selection.rangeCount }, (_, i) =>
-    selection.getRangeAt(i),
-  )
-    .filter((r) => r.intersectsNode(root))
-    .map((r) => [
-      getRelatedSpanOffset(r.startContainer, r.startOffset),
-      getRelatedSpanOffset(r.endContainer, r.endOffset),
-    ])
-
-  let anchor =
-    selection.anchorNode && root.contains(selection.anchorNode)
-      ? getRelatedSpanOffset(selection.anchorNode, selection.anchorOffset)
-      : null
-  let focus =
-    selection.focusNode && root.contains(selection.focusNode)
-      ? getRelatedSpanOffset(selection.focusNode, selection.focusOffset)
-      : null
-
-  selectionToRecover = {
-    anchor,
-    focus,
-    ranges,
-  }
-}
-
-onUpdated(() => {
-  const root = editableRootNode.value
-
-  function findTextNodeAtOffset(offset: number | null): { node: Text; offset: number } | null {
-    if (offset == null) return null
-    for (let textSpan of root?.querySelectorAll<HTMLSpanElement>('span[data-span-start]') ?? []) {
-      if (textSpan.children.length > 0) continue
-      const start = parseInt(textSpan.dataset.spanStart ?? '0')
-      const text = textSpan.textContent ?? ''
-      const end = start + text.length
-      if (start <= offset && offset <= end) {
-        let remainingOffset = offset - start
-        for (let node of textSpan.childNodes) {
-          if (node instanceof Text) {
-            let length = node.data.length
-            if (remainingOffset > length) {
-              remainingOffset -= length
-            } else {
-              return {
-                node,
-                offset: remainingOffset,
-              }
-            }
-          }
-        }
-      }
-    }
-    return null
-  }
-
-  if (selectionToRecover != null && editableRootNode.value != null) {
-    const saved = selectionToRecover
-    selectionToRecover = null
-    const selection = window.getSelection()
-    if (selection == null) return
-
-    for (let range of saved.ranges) {
-      const start = findTextNodeAtOffset(range[0])
-      const end = findTextNodeAtOffset(range[1])
-      if (start == null || end == null) continue
-      let newRange = document.createRange()
-      newRange.setStart(start.node, start.offset)
-      newRange.setEnd(end.node, end.offset)
-      selection.addRange(newRange)
-    }
-    if (saved.anchor != null || saved.focus != null) {
-      const anchor = findTextNodeAtOffset(saved.anchor) ?? {
-        node: selection.anchorNode,
-        offset: selection.anchorOffset,
-      }
-      const focus = findTextNodeAtOffset(saved.focus) ?? {
-        node: selection.focusNode,
-        offset: selection.focusOffset,
-      }
-      if (anchor.node == null || focus.node == null) return
-      selection.setBaseAndExtent(anchor.node, anchor.offset, focus.node, focus.offset)
-    }
-  }
-})
-
-watch(
-  () => [isAutoEvaluationDisabled.value, isDocsVisible.value, isVisualizationVisible.value],
-  () => {
-    rootNode.value?.focus()
-  },
-)
-
-const editableKeydownHandler = nodeEditBindings.handler({
-  selectAll() {
-    const element = editableRootNode.value
-    const selection = window.getSelection()
-    if (element == null || selection == null) return
-    const range = document.createRange()
-    range.selectNodeContents(element)
-    selection.removeAllRanges()
-    selection.addRange(range)
-  },
+const nodeEditHandler = nodeEditBindings.handler({
   cancel(e) {
     if (e.target instanceof HTMLElement) {
       e.target.blur()
     }
   },
+  edit(e) {
+    const pos = 'clientX' in e ? new Vec2(e.clientX, e.clientY) : undefined
+    startEditingNode(pos)
+  },
 })
 
-function startEditingHandler(event: PointerEvent) {
-  let range, textNode, offset
-  offset = 0
-
-  if ((document as any).caretPositionFromPoint) {
-    range = (document as any).caretPositionFromPoint(event.clientX, event.clientY)
-    textNode = range.offsetNode
-    offset = range.offset
-  } else if (document.caretRangeFromPoint) {
-    range = document.caretRangeFromPoint(event.clientX, event.clientY)
-    if (range == null) {
-      console.error('Could not find caret position when editing node.')
+function startEditingNode(position: Vec2 | undefined) {
+  let sourceOffset = 0
+  if (position != null) {
+    let domNode, domOffset
+    if ((document as any).caretPositionFromPoint) {
+      const range = document.caretPositionFromPoint(position.x, position.y)
+      domNode = range?.offsetNode
+      domOffset = range?.offset
+    } else if (document.caretRangeFromPoint) {
+      const range = document.caretRangeFromPoint(position.x, position.y)
+      domNode = range?.startContainer
+      domOffset = range?.startOffset
     } else {
-      textNode = range.startContainer
-      offset = range.startOffset
+      console.error(
+        'Neither caretPositionFromPoint nor caretRangeFromPoint are supported by this browser',
+      )
     }
-  } else {
-    console.error(
-      'Neither caretPositionFromPoint nor caretRangeFromPoint are supported by this browser',
-    )
+    if (domNode != null && domOffset != null) {
+      sourceOffset = getRelatedSpanOffset(domNode, domOffset)
+    }
   }
 
-  let newRange = document.createRange()
-  newRange.setStart(textNode, offset)
-
-  let selection = window.getSelection()
-  if (selection != null) {
-    selection.removeAllRanges()
-    selection.addRange(newRange)
-  } else {
-    console.error('Could not set selection when editing node.')
-  }
-
-  emit('update:edited', offset)
+  emit('update:edited', sourceOffset)
 }
 
 const startEpochMs = ref(0)
@@ -403,9 +194,6 @@ const icon = computed(() => {
     return 'in_out'
   }
 })
-const updateExprRect = (expr: ExprId, rect: Rect) => {
-  emit('updateExprRect', expr, rect)
-}
 </script>
 
 <template>
@@ -417,6 +205,7 @@ const updateExprRect = (expr: ExprId, rect: Rect) => {
       '--node-group-color': color,
     }"
     :class="{
+      edited,
       dragging: dragPointer.dragging,
       selected: nodeSelection?.isSelected(nodeId),
       visualizationVisible: isVisualizationVisible,
@@ -447,15 +236,10 @@ const updateExprRect = (expr: ExprId, rect: Rect) => {
     <div class="node" v-on="dragPointer.events">
       <SvgIcon class="icon grab-handle" :name="icon"></SvgIcon
       ><span
-        ref="editableRootNode"
-        class="editable"
         spellcheck="false"
-        contenteditable="true"
-        @beforeinput="editContent"
-        @keydown="editableKeydownHandler"
-        @pointerdown.stop.prevent="startEditingHandler"
+        @pointerdown.capture="nodeEditHandler"
         @blur="projectStore.stopCapturingUndo()"
-        ><NodeWidgetTree :ast="node.rootSpan" @updateExprRect="updateExprRect"
+        ><NodeWidgetTree :ast="node.rootSpan"
       /></span>
     </div>
     <svg class="bgPaths" :style="bgStyleVariables">
@@ -464,7 +248,7 @@ const updateExprRect = (expr: ExprId, rect: Rect) => {
         class="outputPortHoverArea"
         @pointerenter="outputHovered = true"
         @pointerleave="outputHovered = false"
-        @pointerdown="emit('outputPortAction')"
+        @pointerdown.stop.prevent="emit('outputPortAction')"
       />
       <rect class="outputPort" />
       <text class="outputTypeName">{{ outputTypeName }}</text>
@@ -566,6 +350,10 @@ const updateExprRect = (expr: ExprId, rect: Rect) => {
   ::selection {
     background-color: rgba(255, 255, 255, 20%);
   }
+}
+
+.GraphNode.edited {
+  display: none;
 }
 
 .node {

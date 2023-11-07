@@ -240,10 +240,13 @@ export const useGraphStore = defineStore('graph', () => {
     nodeRects.set(id, rect)
   }
 
-  function updateExprRect(id: ExprId, rect: Rect) {
+  function updateExprRect(id: ExprId, rect: Rect | undefined) {
     const current = exprRects.get(id)
-    if (current != null && current.equals(rect)) return
-    exprRects.set(id, rect)
+    if (rect) {
+      if (current == null || !current.equals(rect)) exprRects.set(id, rect)
+    } else {
+      if (current != null) exprRects.delete(id)
+    }
   }
 
   function setEditedNode(id: ExprId | null, cursorPosition: number | null) {

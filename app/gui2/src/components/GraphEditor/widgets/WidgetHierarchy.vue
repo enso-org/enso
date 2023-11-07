@@ -30,6 +30,8 @@ export const widgetConfig = defineWidget({
   white-space: pre;
   align-items: center;
   transition: background 0.2s ease;
+  min-height: 24px;
+  display: inline-block;
 
   &.Root {
     color: rgb(255 255 255 / 0.33);

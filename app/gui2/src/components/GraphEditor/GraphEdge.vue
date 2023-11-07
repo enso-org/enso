@@ -2,6 +2,7 @@
 import { injectGraphNavigator } from '@/providers/graphNavigator.ts'
 import { injectGraphSelection } from '@/providers/graphSelection.ts'
 import type { Edge } from '@/stores/graph'
+import { assert } from '@/util/assert'
 import { Rect } from '@/util/rect'
 import { Vec2 } from '@/util/vec2'
 import { clamp } from '@vueuse/core'
@@ -76,9 +77,9 @@ const edgeColor = computed(() => {
 type Inputs = {
   /** The width and height of the node that originates the edge, if any.
    *  The edge may begin anywhere around the bottom half of the node. */
-  sourceSize: Vec2 | undefined
+  sourceSize: Vec2
   /** The width and height of the port that the edge is attached to, if any. */
-  targetSize: Vec2 | undefined
+  targetSize: Vec2
   /** The coordinates of the node input port that is the edge's destination, relative to the source position.
    *  The edge enters the port from above. */
   targetOffset: Vec2
@@ -177,7 +178,7 @@ function junctionPoints(inputs: Inputs): JunctionPoints | null {
   const attachment =
     inputs.targetPortDistance != null
       ? {
-          target: inputs.targetOffset.addScaled(new Vec2(0.0, NODE_HEIGHT), 0.5),
+          target: inputs.targetOffset.add(new Vec2(0, inputs.targetSize.y * -0.5)),
           length: inputs.targetPortDistance,
         }
       : undefined
@@ -236,7 +237,7 @@ function junctionPoints(inputs: Inputs): JunctionPoints | null {
       inputs.targetPortDistance != null
         ? Math.min(inputs.targetPortDistance, Math.abs(inputs.targetOffset.y))
         : 0
-    let attachmentY = inputs.targetOffset.y - attachmentHeight - (inputs.targetSize?.y ?? 0) / 2.0
+    let attachmentY = inputs.targetOffset.y - attachmentHeight - inputs.targetSize.y / 2.0
     let targetAttachment = new Vec2(inputs.targetOffset.x, attachmentY)
     return {
       points: [source, targetAttachment],
@@ -393,22 +394,10 @@ function lengthTo(pos: Vec2): number | undefined {
   const path = base.value
   if (path == null) return undefined
   const totalLength = path.getTotalLength()
-  let precision = 16
   let best: number | undefined
-  let bestDist: number | undefined = undefined
-  for (let i = 0; i < totalLength + precision; i += precision) {
-    const len = Math.min(i, totalLength)
-    const p = path.getPointAtLength(len)
-    const dist = pos.distanceSquared(new Vec2(p.x, p.y))
-    if (bestDist == null || dist < bestDist) {
-      best = len
-      bestDist = dist
-    }
-  }
-  if (best == null || bestDist == null) return undefined
+  let bestDist: number | undefined
   const tryPos = (len: number) => {
-    const point = path.getPointAtLength(len)
-    const dist: number = pos.distanceSquared(new Vec2(point.x, point.y))
+    const dist = pos.distanceSquared(Vec2.FromDomPoint(path.getPointAtLength(len)))
     if (bestDist == null || dist < bestDist) {
       best = len
       bestDist = dist
@@ -416,7 +405,11 @@ function lengthTo(pos: Vec2): number | undefined {
     }
     return false
   }
-  for (; precision >= 0.5; precision /= 2) {
+
+  tryPos(0), tryPos(totalLength)
+  assert(best != null && bestDist != null)
+  const precisionTarget = 0.5 / (navigator?.scale ?? 1)
+  for (let precision = totalLength / 2; precision >= precisionTarget; precision /= 2) {
     tryPos(best + precision) || tryPos(best - precision)
   }
   return best

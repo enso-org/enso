@@ -4,7 +4,6 @@ import { useDragging } from '@/components/GraphEditor/dragging'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { useGraphStore } from '@/stores/graph'
-import type { Rect } from '@/util/rect'
 import type { Vec2 } from '@/util/vec2'
 import type { ContentRange, ExprId } from 'shared/yjsModel'
 
@@ -29,26 +28,17 @@ function nodeIsDragged(movedId: ExprId, offset: Vec2) {
 function hoverNode(id: ExprId | undefined) {
   if (selection != null) selection.hoveredNode = id
 }
-
-function updateExprRect(nodeId: ExprId, expr: ExprId, rect: Rect) {
-  const nodeRect = graphStore.nodeRects.get(nodeId)
-  if (nodeRect == null) return
-  const localRect = rect.offsetBy(nodeRect.pos.inverse())
-  graphStore.updateExprRect(expr, localRect)
-}
 </script>
 
 <template>
   <GraphNode
     v-for="[id, node] in graphStore.db.allNodes()"
-    v-show="id != graphStore.editedNodeInfo?.id"
     :key="id"
     :node="node"
-    :edited="false"
+    :edited="id === graphStore.editedNodeInfo?.id"
     @update:edited="graphStore.setEditedNode(id, $event)"
     @updateRect="graphStore.updateNodeRect(id, $event)"
     @delete="graphStore.deleteNode(id)"
-    @updateExprRect="(expr, rect) => updateExprRect(id, expr, rect)"
     @pointerenter="hoverNode(id)"
     @pointerleave="hoverNode(undefined)"
     @updateContent="updateNodeContent(id, $event)"
