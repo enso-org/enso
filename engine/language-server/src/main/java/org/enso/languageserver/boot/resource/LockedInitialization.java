@@ -33,8 +33,10 @@ public abstract class LockedInitialization implements InitializationComponent {
               return;
             }
             try {
-              initComponent();
-              isInitialized = true;
+              if (!isInitialized) {
+                initComponent();
+                isInitialized = true;
+              }
             } finally {
               lock.release();
             }
