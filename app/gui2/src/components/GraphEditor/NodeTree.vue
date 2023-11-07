@@ -65,8 +65,8 @@ function isHoverable(): boolean | 'tokensOnly' {
     case 'MultiSegmentApp':
     case 'App':
     case 'NamedApp':
-      return false
     // Other composite expressions.
+    // fallthrough
     case 'Group':
     case 'TypeAnnotated':
     case 'CaseOf':
@@ -76,8 +76,8 @@ function isHoverable(): boolean | 'tokensOnly' {
     case 'Documented':
     case 'OprSectionBoundary':
     case 'TemplateFunction':
-      return false
     // Declarations; we won't generally display these within a node anyway.
+    // fallthrough
     case 'Private':
     case 'TypeDef':
     case 'Assignment':
@@ -89,8 +89,8 @@ function isHoverable(): boolean | 'tokensOnly' {
     case 'Annotated':
     case 'AnnotatedBuiltin':
     case 'ConstructorDefinition':
-      return false
     // Misc.
+    // fallthrough
     case 'AutoScope':
       return false
   }

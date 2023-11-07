@@ -2,6 +2,8 @@
 import { codeEditorBindings, graphBindings, interactionBindings } from '@/bindings'
 import CodeEditor from '@/components/CodeEditor.vue'
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
+import GraphEdges from '@/components/GraphEditor/GraphEdges.vue'
+import GraphNodes from '@/components/GraphEditor/GraphNodes.vue'
 import { Uploader, uploadedExpression } from '@/components/GraphEditor/upload'
 import SelectionBrush from '@/components/SelectionBrush.vue'
 import TopBar from '@/components/TopBar.vue'
@@ -16,8 +18,6 @@ import { Interaction } from '@/util/interaction'
 import { Vec2 } from '@/util/vec2'
 import * as set from 'lib0/set'
 import { computed, onMounted, ref, watch } from 'vue'
-import GraphEdges from './GraphEditor/GraphEdges.vue'
-import GraphNodes from './GraphEditor/GraphNodes.vue'
 
 const EXECUTION_MODES = ['design', 'live']
 
@@ -122,18 +122,17 @@ useEvent(window, 'pointerdown', interactionBindingsHandler, { capture: true })
 const scaledMousePos = computed(() => navigator.sceneMousePos?.scale(navigator.scale))
 const scaledSelectionAnchor = computed(() => nodeSelection.anchor?.scale(navigator.scale))
 
-/// Track play button presses.
-function onPlayButtonPress() {
-  projectStore.lsRpcConnection.then(async () => {
-    const modeValue = projectStore.executionMode
-    if (modeValue == undefined) {
-      return
-    }
-    projectStore.executionContext.recompute('all', modeValue === 'live' ? 'Live' : 'Design')
-  })
+/** Track play button presses. */
+async function onPlayButtonPress() {
+  await projectStore.lsRpcConnection
+  const modeValue = projectStore.executionMode
+  if (modeValue == undefined) {
+    return
+  }
+  projectStore.executionContext.recompute('all', modeValue === 'live' ? 'Live' : 'Design')
 }
 
-/// Watch for changes in the execution mode.
+/** Watch for changes in the execution mode. */
 watch(
   () => projectStore.executionMode,
   (modeValue) => {
@@ -213,7 +212,7 @@ async function handleFileDrop(event: DragEvent) {
   <!-- eslint-disable vue/attributes-order -->
   <div
     ref="viewportNode"
-    class="viewport"
+    class="GraphEditor viewport"
     :style="groupColors"
     @click="graphBindingsHandler"
     v-on.="navigator.events"

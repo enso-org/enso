@@ -23,7 +23,7 @@ export class GeneralOprApp {
       const rhs = ast.rhs ?? null
       this.apps = [{ opr: ast.opr, expr: rhs }]
     } else {
-      function* nonEmptyLines(ast: Tree.OperatorBlockApplication) {
+      const nonEmptyLines = function* nonEmptyLines(ast: Tree.OperatorBlockApplication) {
         for (const line of ast.expressions) {
           if (line.expression == null) continue
           yield { opr: line.expression.operator, expr: line.expression.expression }

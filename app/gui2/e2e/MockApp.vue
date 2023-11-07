@@ -1,15 +1,22 @@
 <script setup lang="ts">
-import { useProjectStore } from '@/stores/project'
-import { useObserveYjs } from '@/util/crdt'
 import diff from 'fast-diff'
 import { computed, watchEffect } from 'vue'
-
-const props = defineProps<{ modelValue: string }>()
-const emit = defineEmits<{ 'update:modelValue': [modelValue: string] }>()
+import GraphEditor from '../src/components/GraphEditor.vue'
+import { useProjectStore } from '../src/stores/project'
+import { getMainFile, setMainFile } from './mockEngine'
 
 const projectStore = useProjectStore()
 const mod = projectStore.projectModel.createNewModule('Main.enso')
 mod.doc.ydoc.emit('load', [])
+
+const mainFile = computed({
+  get() {
+    return getMainFile()
+  },
+  set(value) {
+    setMainFile(value)
+  },
+})
 
 function applyEdits(module: NonNullable<typeof projectStore.module>, newText: string) {
   const contents = projectStore.module?.doc.contents
@@ -38,20 +45,23 @@ function applyEdits(module: NonNullable<typeof projectStore.module>, newText: st
   })
 }
 
-watchEffect(() => projectStore.module && applyEdits(projectStore.module, props.modelValue))
-
-const text = computed(() => projectStore.module?.doc.contents)
-
-useObserveYjs(text, () => {
-  if (text.value) {
-    const newValue = text.value?.toString()
-    if (newValue !== props.modelValue) {
-      emit('update:modelValue', newValue)
-    }
-  }
-})
+watchEffect(() => projectStore.module && applyEdits(projectStore.module, mainFile.value))
 </script>
 
 <template>
-  <slot></slot>
+  <GraphEditor />
 </template>
+
+<style scoped>
+:is(.viewport) {
+  color: var(--color-text);
+  font-family: 'M PLUS 1', sans-serif;
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 20px;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  height: 100vh;
+}
+</style>

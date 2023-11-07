@@ -97,6 +97,7 @@ export const useGraphStore = defineStore('graph', () => {
           const node = nodes.get(nodeId)
           nodeIds.add(nodeId)
           if (node == null) {
+            console.log('oke')
             nodeInserted(newNode, meta.get(nodeId))
           } else {
             nodeUpdated(node, newNode, meta.get(nodeId))

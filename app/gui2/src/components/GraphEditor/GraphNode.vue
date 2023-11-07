@@ -461,6 +461,7 @@ function hoverExpr(id: ExprId | undefined) {
   --output-port-overlap: 0.1px;
   --output-port-hover-width: 8px;
 }
+
 .outputPort,
 .outputPortHoverArea {
   x: calc(0px - var(--output-port-width) / 2);
@@ -555,6 +556,7 @@ function hoverExpr(id: ExprId | undefined) {
   transition: outline 0.2s ease;
   outline: 0px solid transparent;
 }
+
 .GraphNode .selection {
   position: absolute;
   inset: calc(0px - var(--selected-node-border-width));
@@ -590,6 +592,7 @@ function hoverExpr(id: ExprId | undefined) {
 .GraphNode.selected .selection:hover:before {
   opacity: 0.3;
 }
+
 .binding {
   user-select: none;
   margin-right: 10px;

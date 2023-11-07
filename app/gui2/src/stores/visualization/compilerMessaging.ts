@@ -94,6 +94,7 @@ export async function compile(path: string, projectRoot: Opt<Uuid>, data: DataSe
     worker.addEventListener(
       'message',
       async (
+        // deepcode ignore InsufficientPostmessageValidation: This event is from a Worker, not another page.
         event: MessageEvent<
           // === Responses ===
           | CompilationResultResponse
@@ -143,6 +144,7 @@ export async function compile(path: string, projectRoot: Opt<Uuid>, data: DataSe
               switch (url.protocol) {
                 case 'http:':
                 case 'https:': {
+                  // deepcode ignore Ssrf: This is a frontend.
                   const response = await fetch(url)
                   if (response.ok) {
                     postMessage<FetchResultWorkerResponse>(worker_, {

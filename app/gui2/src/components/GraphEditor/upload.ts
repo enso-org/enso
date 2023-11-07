@@ -32,9 +32,8 @@ export class Uploader {
     contentRoots: Promise<ContentRoot[]>,
     file: File,
   ): Promise<Uploader> {
-    const projectRootId = await contentRoots.then((roots) =>
-      roots.find((root) => root.type == 'Project'),
-    )
+    const roots = await contentRoots
+    const projectRootId = roots.find((root) => root.type == 'Project')
     if (!projectRootId) throw new Error('Unable to find project root, uploading not possible.')
     const instance = new Uploader(await rpc, await binary, file, projectRootId.id)
     return instance

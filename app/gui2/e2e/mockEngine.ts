@@ -1,17 +1,11 @@
-import '@/assets/base.css'
-import { provideGuiConfig } from '@/providers/guiConfig'
-import { provideVisualizationConfig } from '@/providers/visualizationConfig'
-import { MockTransport } from '@/util/net'
-import type { QualifiedName } from '@/util/qualifiedName'
-import { Vec2 } from '@/util/vec2'
-import { defineSetupVue3 } from '@histoire/plugin-vue'
 import * as random from 'lib0/random'
-import { createPinia } from 'pinia'
+import { mockDataWSHandler as originalMockDataWSHandler } from 'shared/dataServer/mock'
 import type { LibraryComponentGroup, Uuid, response } from 'shared/languageServerTypes'
 import type { SuggestionEntry } from 'shared/languageServerTypes/suggestions'
-import { ref } from 'vue'
-import mockDb from './mockSuggestions.json' assert { type: 'json' }
-import './story.css'
+import type { MockTransportData } from 'src/util/net'
+import type { QualifiedName } from 'src/util/qualifiedName'
+import { mockFsDirectoryHandle } from '../src/util/convert/fsAccess'
+import mockDb from '../stories/mockSuggestions.json' assert { type: 'json' }
 
 const mockProjectId = random.uuidv4() as Uuid
 const standardBase = 'Standard.Base' as QualifiedName
@@ -28,7 +22,7 @@ export function placeholderGroups(): LibraryComponentGroup[] {
   ]
 }
 
-MockTransport.addMock('engine', async (method, data, transport) => {
+export const mockLSHandler: MockTransportData = async (method, data, transport) => {
   switch (method) {
     case 'session/initProtocolConnection':
       return {
@@ -52,8 +46,6 @@ MockTransport.addMock('engine', async (method, data, transport) => {
       } satisfies response.GetSuggestionsDatabase
     case 'runtime/getComponentGroups':
       return { componentGroups: placeholderGroups() } satisfies response.GetComponentGroups
-    case 'file/list':
-      return { paths: [] } satisfies response.FileList
     case 'executionContext/push':
     case 'executionContext/pop':
     case 'executionContext/recompute':
@@ -62,49 +54,64 @@ MockTransport.addMock('engine', async (method, data, transport) => {
     default:
       return Promise.reject(`Method not mocked: ${method}`)
   }
-})
+}
 
-export const setupVue3 = defineSetupVue3(({ app }) => {
-  app.use(createPinia())
-  provideGuiConfig._mock(
-    ref({
-      startup: {
-        project: 'Mock Project',
-        displayedProjectName: 'Mock Project',
+let mainFile = `\
+from Standard.Base import all
+from Standard.Base.Runtime.Ref import Ref
+
+from Standard.Test import Bench
+
+options = Bench.options . set_warmup (Bench.phase_conf 1 2) . set_measure (Bench.phase_conf 3 2)
+
+collect_benches = Bench.build builder->
+    range_size = 100000000
+    data = 0.up_to range_size
+
+    builder.group "Range" options group_builder->
+        group_builder.specify "iterate" <|
+            cell = Ref.new 0
+            data . each _->
+                x = cell.get
+                cell.put x+1
+
+            cell.get . should_equal range_size
+
+main =
+    benches = collect_benches
+    result = run_main benches`
+
+export function getMainFile() {
+  return mainFile
+}
+
+export function setMainFile(newMainFile: string) {
+  return (mainFile = newMainFile)
+}
+
+const directory = mockFsDirectoryHandle(
+  {
+    src: {
+      get 'Main.enso'() {
+        return mainFile
       },
-      engine: { rpcUrl: 'mock://engine', dataUrl: 'mock://data' },
-    }),
-    app,
-  )
-  // Required for visualization stories.
-  provideVisualizationConfig._mock(
-    {
-      fullscreen: false,
-      width: 200,
-      height: 150,
-      hide() {},
-      isCircularMenuVisible: false,
-      nodeSize: new Vec2(200, 150),
-      currentType: {
-        module: { kind: 'Builtin' },
-        name: 'Current Type',
-      },
-      types: [
-        {
-          module: { kind: 'Builtin' },
-          name: 'Example',
-        },
-        {
-          module: { kind: 'Builtin' },
-          name: 'Types',
-        },
-        {
-          module: { kind: 'Builtin' },
-          name: 'Here',
-        },
-      ],
-      updateType() {},
     },
-    app,
-  )
+  },
+  '(root)',
+)
+
+export const mockDataHandler = originalMockDataWSHandler(async (segments) => {
+  if (!segments.length) return
+  let file
+  try {
+    let dir = directory
+    for (const segment of segments.slice(0, -1)) {
+      dir = await dir.getDirectoryHandle(segment)
+    }
+    const fileHandle = await dir.getFileHandle(segments.at(-1)!)
+    file = await fileHandle.getFile()
+  } catch {
+    return
+  }
+  return await file?.arrayBuffer()
 })

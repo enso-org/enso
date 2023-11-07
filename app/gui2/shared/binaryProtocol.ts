@@ -251,7 +251,7 @@ export class Builder {
     this.bb.position = 0
     this.space = this.bb.view.byteLength
     this.minAlignment = 1
-    this.vtable = null
+    this.vtable = []
     this.vtableInUse = 0
     this.isNested = false
     this.objectStart = 0

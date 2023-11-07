@@ -1,11 +1,6 @@
-function error(message: string): never {
-  throw new Error(message)
-}
-
 let _measureContext: CanvasRenderingContext2D | undefined
 function getMeasureContext() {
-  return (_measureContext ??=
-    document.createElement('canvas').getContext('2d') ?? error('Could not get canvas 2D context.'))
+  return (_measureContext ??= document.createElement('canvas').getContext('2d')!)
 }
 
 /** Helper function to get text width to make sure that labels on the x axis do not overlap,

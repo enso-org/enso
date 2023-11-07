@@ -1,4 +1,3 @@
-import { Err, Ok, ResultError, rejectionToResult, type Result } from '@/util/result'
 import { WebSocketTransport } from '@open-rpc/client-js'
 import type {
   IJSONRPCNotificationResponse,
@@ -10,6 +9,7 @@ import { wait } from 'lib0/promise'
 import { LsRpcError } from 'shared/languageServer'
 import type { Notifications } from 'shared/languageServerTypes'
 import { WebsocketClient } from 'shared/websocket'
+import { Err, Ok, ResultError, rejectionToResult, type Result } from './result'
 
 export interface BackoffOptions<E> {
   maxRetries?: number
@@ -101,8 +101,8 @@ export function createWebsocketClient(
   }
 }
 
-interface MockTransportData {
-  (method: string, params: any, transport: MockTransport): Promise<any>
+export interface MockTransportData<Methods extends string = string> {
+  (method: Methods, params: any, transport: MockTransport): Promise<any>
 }
 
 export class MockTransport extends Transport {
@@ -111,8 +111,8 @@ export class MockTransport extends Transport {
     super()
   }
 
-  static addMock(name: string, data: MockTransportData) {
-    MockTransport.mocks.set(name, data)
+  static addMock<Methods extends string>(name: string, data: MockTransportData<Methods>) {
+    MockTransport.mocks.set(name, data as any)
   }
   connect(): Promise<any> {
     return Promise.resolve()
@@ -168,6 +168,7 @@ export class MockWebSocket extends EventTarget implements WebSocket {
     super()
     this.addEventListener('open', (ev) => this.onopen?.(ev))
     this.addEventListener('close', (ev) => this.onclose?.(ev as CloseEvent))
+    // deepcode ignore InsufficientPostmessageValidation: This is not a `postMessage`.
     this.addEventListener('message', (ev) => this.onmessage?.(ev as MessageEvent<any>))
     this.addEventListener('error', (ev) => this.onerror?.(ev))
     setTimeout(() => this.dispatchEvent(new Event('open')), 0)
