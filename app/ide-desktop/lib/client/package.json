@@ -27,6 +27,7 @@
     "string-length": "^5.0.1",
     "@types/tar": "^6.1.4",
     "tar": "^6.1.13",
+    "@types/yargs": "^17.0.30",
     "yargs": "17.6.2"
   },
   "comments": {
