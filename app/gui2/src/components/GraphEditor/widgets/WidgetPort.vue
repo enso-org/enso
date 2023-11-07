@@ -9,7 +9,7 @@ const props = defineProps<{ ast: AstExtended }>()
 <script lang="ts">
 export const widgetConfig = defineWidget({
   beforeOverride: true,
-  priority: 1000,
+  priority: 1,
   match: (info) => {
     const isConnected = info.db.connections.reverseLookup(info.ast.astId).size > 0
     if (isConnected) {
@@ -30,7 +30,6 @@ export const widgetConfig = defineWidget({
   border-radius: var(--radius-full);
   min-height: 24px;
   background-color: var(--node-color-port);
-  padding: 0 2px;
-  transition: background-color 0.2s ease;
+  padding: 0 4px;
 }
 </style>

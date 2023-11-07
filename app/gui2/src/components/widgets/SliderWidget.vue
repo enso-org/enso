@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { PointerButtonMask, usePointer, useResizeObserver } from '@/util/events'
 import { getTextWidth } from '@/util/measurement'
-import { f } from 'vitest/dist/reporters-cb94c88b'
 import { computed, ref } from 'vue'
 
 const props = defineProps<{ modelValue: number; min: number; max: number }>()

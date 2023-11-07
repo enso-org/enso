@@ -601,6 +601,10 @@ const updateExprRect = (expr: ExprId, rect: Rect) => {
   height: 24px;
   display: inline-flex;
   align-items: center;
+
+  & :deep(span) {
+    vertical-align: middle;
+  }
 }
 
 .container {
