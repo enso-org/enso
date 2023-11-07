@@ -95,7 +95,8 @@ expect.extend({
     try {
       // TODO: This can potentially be replaced with `expect.toBeVisible()` to provide better error messages.
       // Ideally this should be renamed `toHaveSomeVisible` and the logic changed appropriately.
-      expect(await locator.count()).toBeGreaterThan(0)
+      if (this.isNot) expect(await locator.count()).toBe(0)
+      else expect(await locator.count()).toBeGreaterThan(0)
       pass = true
     } catch {
       pass = false
@@ -105,7 +106,9 @@ expect.extend({
           this.utils.matcherHint('toHaveAmount', undefined, undefined, { isNot: this.isNot }) +
           '\n\n' +
           `Locator: ${locator}\n` +
-          `Expected at least one element to${this.isNot ? ' not' : ''} be visible\n`
+          (this.isNot
+            ? 'Expected no elements to be visible\n'
+            : 'Expected at least one element to be visible\n')
       : () =>
           this.utils.matcherHint('toHaveAmount', undefined, undefined) +
           '\n\n' +

@@ -130,6 +130,14 @@ export const graphEditor = componentLocator('GraphEditor')
 export const graphNode = componentLocator('GraphNode')
 export const graphVisualization = componentLocator('GraphVisualization')
 export const circularMenu = componentLocator('CircularMenu')
+export const componentBrowser = componentLocator('ComponentBrowser')
+
+export function componentBrowserEntry(
+  page: Locator | Page,
+  filter?: (f: Filter) => { selector: string },
+) {
+  return page.locator(`.ComponentBrowser .component${filter?.(new Filter()) ?? ''}`)
+}
 
 export const jsonVisualization = componentLocator('JSONVisualization')
 export const tableVisualization = componentLocator('TableVisualization')
