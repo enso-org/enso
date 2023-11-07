@@ -1261,7 +1261,7 @@ spec setup =
         Test.specify "Should create a column of the correct type on a table with no rows" <|
             t = table_builder [["x", ["1", "2", "3"]]]
             empty = t.take 0
-            [[False, Value_Type.Boolean], [42,  Value_Type.Integer], ["42",  Value_Type.Char], ["foo", Value_Type.Char], [1.0, Value_Type.Float]].map pair->
+            [[False, Value_Type.Boolean], [42,  Value_Type.Integer], ["42",  Value_Type.Char], ["foo", Value_Type.Char], [1.1, Value_Type.Float]].map pair->
                 value = pair.at 0
                 typ = pair.at 1
                 c = empty.make_constant_column value
