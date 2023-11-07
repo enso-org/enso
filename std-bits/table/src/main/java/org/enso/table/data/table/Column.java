@@ -3,6 +3,7 @@ package org.enso.table.data.table;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.InferredBuilder;
+import org.enso.table.data.column.builder.MixedBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.StorageType;
@@ -173,9 +174,14 @@ public class Column {
     }
 
     Object converted = Polyglot_Utils.convertPolyglotValue(item);
-    StorageType storageType = StorageType.forBoxedItem(converted);
 
-    var builder = Builder.getForType(storageType, repeat, problemAggregator);
+    Builder builder;
+    if (converted == null) {
+      builder = new MixedBuilder(repeat);
+    } else {
+      StorageType storageType = StorageType.forBoxedItem(converted);
+      builder = Builder.getForType(storageType, repeat, problemAggregator);
+    }
 
     Context context = Context.getCurrent();
 
