@@ -441,13 +441,11 @@ class BaseServerTest
           requestId,
           Api.OpenedFileNotification
         )
-      case Api.Request(_, _: Api.GetTypeGraphRequest) =>
-        // ignore
-        receiveAndReplyToOpenFile(fileName)
-      case Api.Request(_, _: Api.EditFileNotification) =>
-        // ignore
-        receiveAndReplyToOpenFile(fileName)
-      case Api.Request(_, _: Api.CloseFileNotification) =>
+      case Api.Request(
+            _,
+            _: Api.GetTypeGraphRequest | _: Api.EditFileNotification |
+            _: Api.CloseFileNotification
+          ) =>
         // ignore
         receiveAndReplyToOpenFile(fileName)
       case msg =>

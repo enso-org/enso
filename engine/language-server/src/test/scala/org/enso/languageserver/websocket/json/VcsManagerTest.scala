@@ -90,7 +90,7 @@ class VcsManagerTest extends BaseServerTest with RetrySpec with FlakySpec {
         .toFile should exist
     }
 
-    "fail to create a repository for an already existing project" taggedAs Retry in withCleanRoot {
+    "fail to create a repository for an already existing project" in withCleanRoot {
       client =>
         client.send(json"""
           { "jsonrpc": "2.0",
@@ -117,9 +117,8 @@ class VcsManagerTest extends BaseServerTest with RetrySpec with FlakySpec {
   }
 
   "Save project" must {
-    "create a commit with a timestamp" taggedAs Retry in withCleanRoot {
-      client =>
-        client.send(json"""
+    "create a commit with a timestamp" in withCleanRoot { client =>
+      client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/write",
             "id": 1,
@@ -132,14 +131,14 @@ class VcsManagerTest extends BaseServerTest with RetrySpec with FlakySpec {
             }
           }
           """)
-        client.expectJson(json"""
+      client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 1,
             "result": null
           }
           """)
 
-        client.send(json"""
+      client.send(json"""
           { "jsonrpc": "2.0",
             "method": "vcs/save",
             "id": 2,
@@ -151,7 +150,7 @@ class VcsManagerTest extends BaseServerTest with RetrySpec with FlakySpec {
             }
           }
           """)
-        client.fuzzyExpectJson(json"""
+      client.fuzzyExpectJson(json"""
           { "jsonrpc": "2.0",
             "id": 2,
             "result": {
@@ -160,9 +159,9 @@ class VcsManagerTest extends BaseServerTest with RetrySpec with FlakySpec {
             }
           }
           """)
-        commits(testContentRoot.file) should have length 2
+      commits(testContentRoot.file) should have length 2
 
-        client.send(json"""
+      client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/write",
             "id": 3,
@@ -175,14 +174,14 @@ class VcsManagerTest extends BaseServerTest with RetrySpec with FlakySpec {
             }
           }
           """)
-        client.expectJson(json"""
+      client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 3,
             "result": null
           }
           """)
 
-        client.send(json"""
+      client.send(json"""
           { "jsonrpc": "2.0",
             "method": "vcs/save",
             "id": 4,
@@ -194,7 +193,7 @@ class VcsManagerTest extends BaseServerTest with RetrySpec with FlakySpec {
             }
           }
           """)
-        client.fuzzyExpectJson(json"""
+      client.fuzzyExpectJson(json"""
           { "jsonrpc": "2.0",
             "id": 4,
             "result": {
@@ -203,14 +202,14 @@ class VcsManagerTest extends BaseServerTest with RetrySpec with FlakySpec {
             }
           }
           """)
-        val allCommits = commits(testContentRoot.file)
-        allCommits should have length 3
-        val today = LocalDate.now(Clock.systemUTC())
+      val allCommits = commits(testContentRoot.file)
+      allCommits should have length 3
+      val today = LocalDate.now(Clock.systemUTC())
 
-        allCommits.head.getShortMessage should startWith(today.toString)
+      allCommits.head.getShortMessage should startWith(today.toString)
     }
 
-    "create a commit with a name" taggedAs Retry in withCleanRoot { client =>
+    "create a commit with a name" in withCleanRoot { client =>
       val saveName1 = "wip: my save"
       client.send(json"""
           { "jsonrpc": "2.0",
@@ -380,9 +379,8 @@ class VcsManagerTest extends BaseServerTest with RetrySpec with FlakySpec {
   }
 
   "Status project" must {
-    "report changed files since last commit" taggedAs Retry in withCleanRoot {
-      client =>
-        client.send(json"""
+    "report changed files since last commit" in withCleanRoot { client =>
+      client.send(json"""
           { "jsonrpc": "2.0",
             "method": "vcs/status",
             "id": 1,
@@ -394,7 +392,7 @@ class VcsManagerTest extends BaseServerTest with RetrySpec with FlakySpec {
             }
           }
           """)
-        client.fuzzyExpectJson(json"""
+      client.fuzzyExpectJson(json"""
           { "jsonrpc": "2.0",
             "id": 1,
             "result": {
@@ -408,22 +406,22 @@ class VcsManagerTest extends BaseServerTest with RetrySpec with FlakySpec {
           }
           """)
 
-        val srcDir = testContentRoot.file.toPath.resolve("src")
-        Files.createDirectory(srcDir)
-        val fooPath = srcDir.resolve("Foo.enso")
-        fooPath.toFile.createNewFile()
-        Files.write(
-          fooPath,
-          "file contents".getBytes(StandardCharsets.UTF_8)
-        )
-        val barPath = srcDir.resolve("Bar.enso")
-        barPath.toFile.createNewFile()
-        Files.write(
-          barPath,
-          "file contents b".getBytes(StandardCharsets.UTF_8)
-        )
+      val srcDir = testContentRoot.file.toPath.resolve("src")
+      Files.createDirectory(srcDir)
+      val fooPath = srcDir.resolve("Foo.enso")
+      fooPath.toFile.createNewFile()
+      Files.write(
+        fooPath,
+        "file contents".getBytes(StandardCharsets.UTF_8)
+      )
+      val barPath = srcDir.resolve("Bar.enso")
+      barPath.toFile.createNewFile()
+      Files.write(
+        barPath,
+        "file contents b".getBytes(StandardCharsets.UTF_8)
+      )
 
-        client.send(json"""
+      client.send(json"""
           { "jsonrpc": "2.0",
             "method": "vcs/status",
             "id": 2,
@@ -435,7 +433,7 @@ class VcsManagerTest extends BaseServerTest with RetrySpec with FlakySpec {
             }
           }
           """)
-        client.fuzzyExpectJson(json"""
+      client.fuzzyExpectJson(json"""
           { "jsonrpc": "2.0",
             "id": 2,
             "result": {
@@ -463,9 +461,9 @@ class VcsManagerTest extends BaseServerTest with RetrySpec with FlakySpec {
             }
           }
           """)
-        add(testContentRoot.file, srcDir)
-        commit(testContentRoot.file, "Add missing files")
-        client.send(json"""
+      add(testContentRoot.file, srcDir)
+      commit(testContentRoot.file, "Add missing files")
+      client.send(json"""
           { "jsonrpc": "2.0",
             "method": "vcs/status",
             "id": 3,
@@ -477,7 +475,7 @@ class VcsManagerTest extends BaseServerTest with RetrySpec with FlakySpec {
             }
           }
           """)
-        client.fuzzyExpectJson(json"""
+      client.fuzzyExpectJson(json"""
           { "jsonrpc": "2.0",
             "id": 3,
             "result": {
@@ -494,7 +492,7 @@ class VcsManagerTest extends BaseServerTest with RetrySpec with FlakySpec {
   }
 
   "Restore project" must {
-    "reset to the last state with committed changes" taggedAs Retry in withCleanRoot {
+    "reset to the last state with committed changes" in withCleanRoot {
       client =>
         client.send(json"""
           { "jsonrpc": "2.0",
@@ -1109,7 +1107,7 @@ class VcsManagerTest extends BaseServerTest with RetrySpec with FlakySpec {
           """)
     }
 
-    "reset to a named save and notify about removed files" taggedAs Retry in withCleanRoot {
+    "reset to a named save and notify about removed files" in withCleanRoot {
       client =>
         timingsConfig = timingsConfig.withAutoSave(0.5.seconds)
         val client2         = getInitialisedWsClient()
@@ -1360,7 +1358,7 @@ class VcsManagerTest extends BaseServerTest with RetrySpec with FlakySpec {
   }
 
   "List project saves" must {
-    "return all explicit commits" taggedAs Retry in withCleanRoot { client =>
+    "return all explicit commits" in withCleanRoot { client =>
       val srcDir = testContentRoot.file.toPath.resolve("src")
       Files.createDirectory(srcDir)
       val fooPath = srcDir.resolve("Foo.enso")
