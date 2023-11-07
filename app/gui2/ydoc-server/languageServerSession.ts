@@ -128,7 +128,6 @@ export class LanguageServerSession extends ObservableV2<Events> {
   async scanSrcFiles() {
     this.assertProjectRoot()
     const srcModules = await this.ls.listFiles({ rootId: this.projectRootId, segments: ['src'] })
-    console.log('what', srcModules)
     return srcModules.paths.filter((file) => file.type === 'File' && file.name.endsWith('.enso'))
   }
 
