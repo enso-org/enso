@@ -1180,9 +1180,11 @@ class Compiler(
       endCol: Int
     ): String = {
       val line = source.createSection(lineNum).getCharacters.toString
+      // FIXME: this is rather a temporary workaround; we should figure out why endCol is too big
+      val effectiveEnd: Int = Math.min(endCol, line.length)
       linePrefix(lineNum) + fansi
         .Str(line)
-        .overlay(textAttrs, startCol - 1, endCol)
+        .overlay(textAttrs, startCol - 1, effectiveEnd)
     }
 
     private def linePrefix(lineNum: Int): String = {

@@ -59,5 +59,29 @@ class OverloadsResolutionErrorTest extends InterpreterTest {
       )
     }
 
+    "result in an error at runtime for clashing from conversions" in {
+      val code =
+        """type Foo
+          |    Mk_Foo data
+          |type Bar
+          |    Mk_Bar x
+          |
+          |Foo.from (that : Bar) = Foo.Mk_Foo that.x+100
+          |Foo.from (that : Bar) = Foo.Mk_Foo that.x+200
+          |
+          |foo = 123
+          |""".stripMargin.linesIterator.mkString("\n")
+
+      the[InterpreterException] thrownBy eval(code) should have message
+      "Compilation aborted due to errors."
+
+      val diagnostics = consumeOut
+      diagnostics
+        .filterNot(isDiagnosticLine)
+        .toSet shouldEqual Set(
+        "Test:7:1: error: Ambiguous conversion: Foo.from Bar is defined multiple times in this module."
+      )
+    }
+
   }
 }

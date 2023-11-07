@@ -195,7 +195,7 @@ object Redefined {
 
     /** @inheritdoc */
     override def message(source: Source): String =
-      s"Method overloads are not supported: ${targetType.map(_.name + ".").getOrElse("")}from " +
+      s"Ambiguous conversion: ${targetType.map(_.name + ".").getOrElse("")}from " +
       s"${sourceType.showCode()} is defined multiple times in this module."
 
     override def diagnosticKeys(): Array[Any] = targetType
