@@ -84,15 +84,21 @@ export function useDragging() {
     offset.value.add(new Vec2(snapXTarget.value, snapYTarget.value)),
   )
   class CurrentDrag {
-    draggedNodes: ExprId[]
+    /** Keys are dragged nodes, values are their initial positions. */
+    draggedNodes: Map<ExprId, Vec2>
     grid: SnapGrid
     stopPositionUpdate: WatchStopHandle
 
     constructor(movedId: ExprId) {
       markRaw(this)
-      this.draggedNodes = selection?.isSelected(movedId)
-        ? Array.from(selection.selected)
-        : [movedId]
+      function* draggedNodes(): Generator<[ExprId, Vec2]> {
+        const ids = selection?.isSelected(movedId) ? selection.selected : [movedId]
+        for (const id of ids) {
+          const node = graphStore.nodes.get(id)
+          if (node != null) yield [id, node.position]
+        }
+      }
+      this.draggedNodes = new Map(draggedNodes())
       this.grid = this.createSnapGrid()
       offset.value = Vec2.Zero
       snapXTarget.value = 0
@@ -101,10 +107,10 @@ export function useDragging() {
       snapY.skip()
 
       this.stopPositionUpdate = watchEffect(() => {
-        for (const id of this.draggedNodes) {
+        for (const [id, initialPos] of this.draggedNodes) {
           const node = graphStore.nodes.get(id)
           if (node == null) continue
-          node.visiblePosition = node.position.add(snappedOffset.value)
+          graphStore.setNodePosition(id, initialPos.add(snappedOffset.value))
         }
       })
     }
@@ -112,11 +118,10 @@ export function useDragging() {
     updateOffset(newOffset: Vec2): void {
       const oldSnappedOffset = snappedOffset.value
       const rects: Rect[] = []
-      for (const id of this.draggedNodes) {
+      for (const [id, initialPos] of this.draggedNodes) {
         const rect = graphStore.nodeRects.get(id)
         const node = graphStore.nodes.get(id)
-        if (rect != null && node != null)
-          rects.push(new Rect(node.position.add(newOffset), rect.size))
+        if (rect != null && node != null) rects.push(new Rect(initialPos.add(newOffset), rect.size))
       }
       const snap = this.grid.snappedMany(rects, DRAG_SNAP_THRESHOLD)
       offset.value = newOffset
@@ -135,20 +140,17 @@ export function useDragging() {
 
     finishDragging(): void {
       this.stopPositionUpdate()
-      for (const id of this.draggedNodes) {
+      for (const [id, initialPos] of this.draggedNodes) {
         const node = graphStore.nodes.get(id)
-        if (node == null || node.visiblePosition == null) continue
-        const newPosition = node.position.add(snappedOffsetTarget.value)
-        graphStore.setNodePosition(id, newPosition)
-        node.visiblePosition = undefined
+        if (node == null) continue
+        graphStore.setNodePosition(id, initialPos.add(snappedOffsetTarget.value))
       }
     }
 
     createSnapGrid() {
-      const excludeSet = new Set<ExprId>(this.draggedNodes)
       const withoutExcluded = iteratorFilter(
         graphStore.nodeRects.entries(),
-        ([id]) => !excludeSet.has(id),
+        ([id]) => !this.draggedNodes.has(id),
       )
       return new SnapGrid(Array.from(withoutExcluded, ([, rect]) => rect))
     }
