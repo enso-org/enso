@@ -372,18 +372,6 @@ impl IdeDesktop {
         let icons_build = self.build_icons(&icons_dist);
         let (icons, _content) = try_join(icons_build, client_build).await?;
 
-        let python_path = if TARGET_OS == OS::MacOS && !env::PYTHON_PATH.is_set() {
-            // On macOS electron-builder will fail during DMG creation if there is no python2
-            // installed. It is looked for in `/usr/bin/python` which is not valid place on newer
-            // MacOS versions.
-            // We can work around this by setting the `PYTHON_PATH` env variable. We attempt to
-            // locate `python2` in PATH which is enough to work on GitHub-hosted macOS
-            // runners.
-            Some(ide_ci::program::lookup("python2")?)
-        } else {
-            None
-        };
-
         let target_args = match target {
             Some(target) => vec!["--target".to_string(), target],
             None => vec![],
