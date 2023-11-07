@@ -144,7 +144,7 @@ export class AliasAnalyzer {
     const scope = this.scopes.top
     const identifier = readTokenSpan(token, this.code)
     const range = parsedTreeOrTokenRange(token)
-    log(`Binding ${identifier}@[${range}]`)
+    log(() => `Binding ${identifier}@[${range}]`)
     scope.bindings.set(identifier, token)
     assert(!this.aliases.has(range), `Token at ${range} is already bound.`)
     this.aliases.set(range, new MappedSet<ContentRange>(IdMap.keyForRange))
@@ -156,10 +156,11 @@ export class AliasAnalyzer {
     const targets = this.aliases.get(sourceRange)
     if (targets != null) {
       log(
-        `Usage of ${readTokenSpan(
-          source,
-          this.code,
-        )}@[${targetRange}] resolved to [${sourceRange}]`,
+        () =>
+          `Usage of ${readTokenSpan(
+            source,
+            this.code,
+          )}@[${targetRange}] resolved to [${sourceRange}]`,
       )
       targets.add(targetRange)
     } else {
@@ -175,7 +176,7 @@ export class AliasAnalyzer {
     if (binding != null) {
       this.addConnection(binding, token)
     } else {
-      log(`Usage of ${identifier}@[${range}] is unresolved.`)
+      log(() => `Usage of ${identifier}@[${range}] is unresolved.`)
       this.unresolvedSymbols.add(range)
     }
   }
@@ -241,16 +242,10 @@ export class AliasAnalyzer {
       return
     }
 
-    const range = parsedTreeOrTokenRange(node)
-    const repr = readAstOrTokenSpan(node, this.code)
+    const range = () => parsedTreeOrTokenRange(node)
+    const repr = () => readAstOrTokenSpan(node, this.code)
 
-    log(
-      '\nprocessNode',
-      astPrettyPrintType(node),
-      '\n====\n',
-      readAstOrTokenSpan(node, this.code),
-      '\n====\n',
-    )
+    log(() => `\nprocessNode ${astPrettyPrintType(node)}\n====\n${repr()}\n====\n`)
 
     switch (node.type) {
       case Tree.Type.BodyBlock:
@@ -346,7 +341,7 @@ export class AliasAnalyzer {
         this.processTree(node.expression)
         break
       default:
-        log(`Catch-all for ${astPrettyPrintType(node)} at ${range}:\n${repr}\n`)
+        log(() => `Catch-all for ${astPrettyPrintType(node)} at ${range()}:\n${repr()}\n`)
         this.processNodeChildren(node)
         break
     }
@@ -357,8 +352,12 @@ export class AliasAnalyzer {
 // === LOG ===
 // ===========
 
-function log(...args: any[]) {
+/** Provisional logging function. Delegates to `console.log` if {@link LOGGING_ENABLED} is `true`.
+ *
+ * @param messages The messages to log. They are functions, so that they are only evaluated if logging is enabled.
+ **/
+function log(...messages: Array<() => any>) {
   if (LOGGING_ENABLED ?? false) {
-    console.log(...args)
+    console.log(...messages.map((message) => message()))
   }
 }
