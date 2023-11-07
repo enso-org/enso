@@ -156,7 +156,7 @@ make_join_condition_selector table display=Display.Always =
 make_order_by_selector : Table -> Display -> Widget
 make_order_by_selector table display=Display.Always =
     col_names = table.column_names
-    names = col_names.fold [] c-> n-> c + [Option n+" (Asc)" n.pretty, Option n+" (Desc)" "(Sort_Column.Name "+n.pretty+" Sort_Direction.Descending)"]
+    names = col_names.fold [] c-> n-> c + [Option n "(Sort_Column.Name "+n.pretty+")"]
     item_editor = Single_Choice display=display values=names
     Vector_Editor item_editor=item_editor item_default=names.first.value display=display
 

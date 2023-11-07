@@ -26,12 +26,12 @@ export type OnDelete = (cleanupFn: () => void) => void
 export class ReactiveDb<K, V> extends ObservableV2<{
   entryAdded(key: K, value: V, onDelete: OnDelete): void
 }> {
-  internal: Map<K, V>
+  _internal: Map<K, V>
   onDelete: Map<K, Set<() => void>>
 
   constructor() {
     super()
-    this.internal = new Map()
+    this._internal = new Map()
     this.onDelete = new Map()
   }
 
@@ -46,7 +46,7 @@ export class ReactiveDb<K, V> extends ObservableV2<{
     // Trigger a reactive update when replacing one entry with another.
     this.delete(key)
 
-    this.internal.set(key, value)
+    this._internal.set(key, value)
     const onDelete: OnDelete = (callback) => {
       const callbacks = setIfUndefined(this.onDelete, key, () => new Set())
       callbacks.add(callback)
@@ -62,7 +62,7 @@ export class ReactiveDb<K, V> extends ObservableV2<{
    */
   /** Same as `Map.get` */
   get(key: K): V | undefined {
-    return this.internal.get(key)
+    return this._internal.get(key)
   }
 
   /**
@@ -74,7 +74,7 @@ export class ReactiveDb<K, V> extends ObservableV2<{
   delete(key: K): boolean {
     this.onDelete.get(key)?.forEach((callback) => callback())
     this.onDelete.delete(key)
-    return this.internal.delete(key)
+    return this._internal.delete(key)
   }
 
   /**
@@ -83,7 +83,7 @@ export class ReactiveDb<K, V> extends ObservableV2<{
    * @returns The number of key-value pairs in the database.
    */
   get size(): number {
-    return this.internal.size
+    return this._internal.size
   }
 
   /**
@@ -92,7 +92,25 @@ export class ReactiveDb<K, V> extends ObservableV2<{
    * @returns An iterator that yields key-value pairs in the database.
    */
   entries(): IterableIterator<[K, V]> {
-    return this.internal.entries()
+    return this._internal.entries()
+  }
+
+  /**
+   * Retrieves an iterator over keys in the database, equivalent to `Map.keys`.
+   *
+   * @returns An iterator that yields keys in the database.
+   */
+  keys(): IterableIterator<K> {
+    return this._internal.keys()
+  }
+
+  /**
+   * Retrieves an iterator over values in the database, equivalent to `Map.values`.
+   *
+   * @returns An iterator that yields values in the database.
+   */
+  values(): IterableIterator<V> {
+    return this._internal.values()
   }
 }
 

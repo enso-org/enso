@@ -125,12 +125,7 @@ const resizeBottomRight = usePointer((pos, _, type) => {
               :types="config.types"
               :modelValue="config.currentType"
               @hide="isSelectorVisible = false"
-              @update:modelValue="
-                (type) => {
-                  isSelectorVisible = false
-                  config.updateType(type)
-                }
-              "
+              @update:modelValue="(isSelectorVisible = false), config.updateType($event)"
             />
           </div>
         </div>
@@ -161,6 +156,7 @@ const resizeBottomRight = usePointer((pos, _, type) => {
 }
 
 .VisualizationContainer.fullscreen {
+  cursor: auto;
   z-index: var(--z-fullscreen);
   position: fixed;
   padding-top: 0;
@@ -172,11 +168,11 @@ const resizeBottomRight = usePointer((pos, _, type) => {
 }
 
 .VisualizationContainer.fullscreen.below-node {
-  padding-top: 0;
+  padding-top: 40px;
 }
 
 .VisualizationContainer.fullscreen.below-toolbar {
-  padding-top: 38px;
+  padding-top: 78px;
 }
 
 .toolbars {
@@ -205,7 +201,7 @@ const resizeBottomRight = usePointer((pos, _, type) => {
 }
 
 .VisualizationContainer.fullscreen .toolbars {
-  top: 4px;
+  top: 40px;
 }
 
 .toolbar {

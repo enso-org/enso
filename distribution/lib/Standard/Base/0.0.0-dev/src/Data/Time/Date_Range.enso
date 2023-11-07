@@ -17,6 +17,7 @@ import project.Nothing.Nothing
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Filter_Condition import unify_condition_or_predicate, unify_condition_predicate_or_element
 from project.Data.Range.Extensions import all
+from project.Runtime import assert
 
 polyglot java import org.enso.base.Time_Utils
 
@@ -519,7 +520,7 @@ compute_length_step_days start end step increasing =
     diff = case increasing of
         True  -> Time_Utils.days_between start end
         False -> Time_Utils.days_between end start
-    # assert (diff >= 0)
+    assert (diff >= 0)
     steps = diff . div step
     exact_fit = diff % step == 0
     if exact_fit then steps else steps+1
@@ -530,7 +531,7 @@ compute_length_step_months start end step increasing =
     diff = case increasing of
         True  -> Time_Utils.months_between start end
         False -> Time_Utils.months_between end start
-    # assert (diff >= 0)
+    assert (diff >= 0)
     steps = diff . div step
     exact_fit = case increasing of
         True  -> start + Period.new months=steps*step == end

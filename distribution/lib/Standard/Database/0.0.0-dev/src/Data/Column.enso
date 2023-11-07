@@ -95,17 +95,18 @@ type Column
        Returns a materialized column containing rows of this column.
 
        Arguments:
-       - max_rows: specifies a maximum amount of rows to fetch; if not set, all
-         available rows are fetched.
-    read : (Nothing | Integer) -> Materialized_Column
-    read self max_rows=Nothing =
-        self.to_table.read max_rows . at self.name
+       - max_rows: specifies the maximum number of rows to read.
+         If `Nothing`, all available rows are returned.
+       - warn_if_more_rows: if set to `True`, a warning is attached to the
+         result if the number of rows returned by the query exceeds `max_rows`.
+    read : (Nothing | Integer) -> Boolean -> Materialized_Column
+    read self (max_rows : Integer | Nothing = 1000) (warn_if_more_rows:Boolean = True) =
+        self.to_table.read max_rows warn_if_more_rows . at 0
 
     ## GROUP Standard.Base.Conversions
        Returns a vector containing all the elements in this column.
     to_vector : Vector Any
-    to_vector self =
-        self.to_table.read . at 0 . to_vector
+    to_vector self = self.read max_rows=Nothing . to_vector
 
     ## GROUP Standard.Base.Metadata
        Returns the `Value_Type` associated with that column.

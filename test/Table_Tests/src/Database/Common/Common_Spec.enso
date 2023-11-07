@@ -52,7 +52,7 @@ run_tests prefix connection upload =
             t2 = upload "T2" (Table.new [["d", [100, 200]]])
             t1.set (t2.at "d") . should_fail_with Integrity_Error
 
-    Test.group prefix+"Table.query" <|
+    Test.group prefix+"Connection.query" <|
         name = t1.name
         Test.specify "should allow to access a Table by name" <|
             t2 = connection.query (SQL_Query.Table_Name name)
