@@ -111,9 +111,11 @@ public class ConversionMethodTests extends TestBase {
     String src = """      
        type Foo
           Mk_Foo data
+       type Bar
+          Mk_Bar x
        
-       Foo.from (that:Integer) = Foo.Mk_Foo that+100
-       Foo.from (that:Integer) = Foo.Mk_Foo that+1000
+       Foo.from (that:Bar) = Foo.Mk_Foo that.x+100
+       Foo.from (that:Bar) = Foo.Mk_Foo that.x+1000
        
        main = 42
        """;
@@ -127,17 +129,62 @@ public class ConversionMethodTests extends TestBase {
     String src = """      
        type Foo
           Mk_Foo data
+       type Bar
+          Mk_Bar x
        
-       Foo.from (that:Integer) = Foo.Mk_Foo that+100
-       Foo.from (that:Integer) = Foo.Mk_Foo that+1000
+       Foo.from (that:Bar) = Foo.Mk_Foo that.x+100
+       Foo.from (that:Bar) = Foo.Mk_Foo that.x+1000
        
-       main = Foo.from 42
+       main = Foo.from (Bar.Mk_Bar 42)
        """;
     try {
       Value res = evalModule(nonStrictCtx, src);
       fail("Expected an exception, but got " + res);
     } catch (Exception e) {
       assertEquals("No_Such_Conversion.Error", e.getMessage());
+    }
+  }
+
+  @Test
+  public void testAmbiguousConversionStrict() {
+    String src = """      
+       type Foo
+          Mk_Foo data
+       type Bar
+          Mk_Bar x
+       
+       Foo.from (that:Bar) = Foo.Mk_Foo that.x+100
+       Foo.from (that:Bar) = Foo.Mk_Foo that.x+1000
+       
+       main = Foo.from (Bar.Mk_Bar 42)
+       """;
+    try {
+      Value res = evalModule(ctx, src);
+      fail("Expected an exception, but got " + res);
+    } catch (Exception e) {
+      assertEquals("??", e.getMessage());
+    }
+  }
+
+
+  @Test
+  public void testAmbiguousConversionStrictUnused() {
+    String src = """      
+       type Foo
+          Mk_Foo data
+       type Bar
+          Mk_Bar x
+       
+       Foo.from (that:Bar) = Foo.Mk_Foo that.x+100
+       Foo.from (that:Bar) = Foo.Mk_Foo that.x+1000
+       
+       main = 42
+       """;
+    try {
+      Value res = evalModule(ctx, src);
+      fail("Expected an exception, but got " + res);
+    } catch (Exception e) {
+      assertEquals("??", e.getMessage());
     }
   }
 }
