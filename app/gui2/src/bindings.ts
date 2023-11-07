@@ -11,7 +11,7 @@ export const interactionBindings = defineKeybinds('current-interaction', {
 
 export const componentBrowserBindings = defineKeybinds('component-browser', {
   applySuggestion: ['Tab'],
-  acceptSuggestion: ['Enter'],
+  acceptInput: ['Enter'],
   cancelEditing: ['Escape'],
   moveUp: ['ArrowUp'],
   moveDown: ['ArrowDown'],
