@@ -35,11 +35,14 @@ type Enso_File
     ## PRIVATE
        Target URI for the api
     internal_uri : Text
-    internal_uri self = case self.asset_type of
-        Enso_Asset_Type.Folder -> if self.id == "" then Utils.directory_api else (Utils.directory_api + "?parent_id=" + self.id)
-        Enso_Asset_Type.File -> if self.id == "" then Error.throw (Illegal_Argument.Error "Invalid ID for a file.") else (Utils.files_api + "?parent_id=" + self.id)
-        Enso_Asset_Type.Project -> if self.id == "" then Error.throw (Illegal_Argument.Error "Invalid ID for a project.") else (Utils.projects_api + "/" + self.id)
-        Enso_Asset_Type.Connection -> if self.id == "" then Error.throw (Illegal_Argument.Error "Invalid ID for a connection.") else (Utils.secrets_api + "/" + self.id)
+    internal_uri self = case self.id of
+        "" -> if self.asset_type == Enso_Asset_Type.Folder then Utils.directory_api else
+            Error.throw (Illegal_Argument.Error "Invalid ID for a "+self.asset_type.to_text+".")
+        _ -> case self.asset_type of
+            Enso_Asset_Type.Folder -> Utils.directory_api + "?parent_id=" + self.id
+            Enso_Asset_Type.File -> Utils.files_api + "/" + self.id
+            Enso_Asset_Type.Project -> Utils.projects_api + "/" + self.id
+            Enso_Asset_Type.Connection -> Utils.secrets_api + "/" + self.id
 
     ## Checks if the folder or file exists
     exists : Boolean
@@ -160,7 +163,7 @@ type Enso_File
         response.if_not_error <|
             js_object = response.decode_as_json
             assets = js_object.get "assets" []
-            files = assets.map t-> t:Enso_File
+            files = assets.map t-> t.into Enso_File
             files.filter f-> f.asset_type != Enso_Asset_Type.Connection || f.name.starts_with "connection-"
 
 ## PRIVATE

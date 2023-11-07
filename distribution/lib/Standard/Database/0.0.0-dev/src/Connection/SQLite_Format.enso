@@ -17,7 +17,7 @@ type SQLite_Format
         expected_header = magic_header_string
         got_header = file.read_first_bytes expected_header.length
         if got_header == expected_header then SQLite_Format.For_File else
-            ## To allow for reading a SQLite fi
+            ## To allow for reading a SQLite file by extension if we cannot read the file header.
             if got_header.is_nothing.not then Nothing else case file.extension of
                 ".db" -> SQLite_Format.For_File
                 ".sqlite" -> SQLite_Format.For_File

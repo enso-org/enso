@@ -1,14 +1,14 @@
 import project.Any.Any
 import project.Data.Array.Array
+import project.Data.Map.Map
 import project.Data.Range.Range
+import project.Data.Set.Set
 import project.Data.Text.Text
 import project.Data.Time.Date.Date
 import project.Data.Time.Date_Range.Date_Range
 import project.Data.Time.Period.Period
 import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Data.Time.Time_Period.Time_Period
-import project.Data.Map.Map
-import project.Data.Set.Set
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
@@ -44,8 +44,8 @@ type Random
     new_generator : Integer -> Random_Generator
     new_generator (seed:Integer|Nothing=Nothing) = Random_Generator.new seed
 
-    ## TEXT_ONLY
-       GROUP Random
+    ## GROUP Random
+       TEXT_ONLY
 
        Set the seed of the default `Random_Generator` instance.
 
@@ -245,7 +245,7 @@ type Random
     permute : Vector Any -> Vector Any
     permute (v:Vector) = Random_Generator.global_random_generator.permute v
 
-# PRIVATE
+## PRIVATE
 type Random_Generator
     ## PRIVATE
        Create a new rng with the given seed.

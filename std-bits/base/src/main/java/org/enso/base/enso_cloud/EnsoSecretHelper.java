@@ -19,26 +19,29 @@ import java.util.stream.Collectors;
 /***
  * Makes HTTP requests with secrets in either header or query string.
  */
-public class HTTPBuilder {
-  private static String makeQueryAry(EnsoKeyValuePair pair) {
-    String resolvedValue = (pair.secretId() != null && !pair.secretId().isBlank())
-        ? EnsoSecretReader.readSecret(pair.secretId())
-        : pair.value();
+public class EnsoSecretHelper {
+  private static String resolveValue(EnsoKeyValuePair pair) {
+    return switch (pair) {
+      case EnsoKeyStringPair stringPair -> stringPair.value();
+      case EnsoKeySecretPair secretPair ->
+          EnsoSecretReader.readSecret(secretPair.secretId());
+      case null ->
+          throw new IllegalArgumentException("EnsoKeyValuePair should not be NULL.");
+    };
+  }
 
+  private static String makeQueryAry(EnsoKeyValuePair pair) {
     String resolvedKey = pair.key() != null && !pair.key().isBlank() ? URLEncoder.encode(pair.key(), StandardCharsets.UTF_8) + "=" : "";
+    String resolvedValue = resolveValue(pair);
     return resolvedKey + URLEncoder.encode(resolvedValue, StandardCharsets.UTF_8);
   }
 
+  //** Gets a JDBC connection resolving EnsoKeyValuePair into the properties. **//
   public static Connection getJDBCConnection(String url, EnsoKeyValuePair[] properties)
     throws SQLException {
     var javaProperties = new Properties();
-    for (EnsoKeyValuePair(
-        String key, String value, String secretId
-    ) : properties) {
-      var resolvedValue = (secretId != null && !secretId.isBlank())
-          ? EnsoSecretReader.readSecret(secretId)
-          : value;
-      javaProperties.setProperty(key, resolvedValue);
+    for (EnsoKeyValuePair pair : properties) {
+      javaProperties.setProperty(pair.key(), resolveValue(pair));
     }
 
     return DriverManager.getConnection(url, javaProperties);
@@ -50,7 +53,7 @@ public class HTTPBuilder {
     // Build a new URI with the query arguments.
     if (queryArguments != null && !queryArguments.isEmpty()) {
       var baseQuery = uri.getQuery();
-      var query = queryArguments.stream().map(HTTPBuilder::makeQueryAry).collect(Collectors.joining("&"));
+      var query = queryArguments.stream().map(EnsoSecretHelper::makeQueryAry).collect(Collectors.joining("&"));
       var newQuery = baseQuery != null && !baseQuery.isBlank() ? baseQuery + "&" + query : query;
       try {
         uri = new URI(uri.getScheme(), uri.getAuthority(), uri.getPath(), newQuery, uri.getFragment());
@@ -62,13 +65,8 @@ public class HTTPBuilder {
 
     // Resolve the header arguments.
     if (headerArguments != null && !headerArguments.isEmpty()) {
-      for (EnsoKeyValuePair(
-          String key, String value, String secretId
-      ) : headerArguments) {
-        var resolvedValue = (secretId != null && !secretId.isBlank())
-            ? EnsoSecretReader.readSecret(secretId)
-            : value;
-        builder.header(key, resolvedValue);
+      for (EnsoKeyValuePair header : headerArguments) {
+        builder.header(header.key(), resolveValue(header));
       }
     }
 
@@ -78,15 +76,5 @@ public class HTTPBuilder {
     var httpRequest = builder.build();
     var bodyHandler = HttpResponse.BodyHandlers.ofInputStream();
     return client.send(httpRequest, bodyHandler);
-  }
-
-  public static Object resolveEnsoConnection()
-  {
-    // Resolve the JSON of an ENSO to what it should be
-    // - web and database as above
-    // - S3 ==> S3 has a credential
-    // Function<Credential, Object> => Object
-    // Type for a secret... e.g. web, s3, database, insecure
-    return null;
   }
 }

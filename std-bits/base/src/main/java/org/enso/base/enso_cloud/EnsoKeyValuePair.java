@@ -1,15 +1,21 @@
 package org.enso.base.enso_cloud;
 
-public record EnsoKeyValuePair(String key, String value, String secretId) {
-  public static EnsoKeyValuePair ofNothing(String key) {
-    return new EnsoKeyValuePair(key, null, null);
+record EnsoKeySecretPair(String key, String secretId) implements EnsoKeyValuePair {}
+
+record EnsoKeyStringPair(String key, String value) implements EnsoKeyValuePair {}
+
+public sealed interface EnsoKeyValuePair permits EnsoKeySecretPair, EnsoKeyStringPair {
+  String key();
+
+  static EnsoKeyValuePair ofNothing(String key) {
+    return new EnsoKeyStringPair(key, null);
   }
 
-  public static EnsoKeyValuePair ofText(String key, String value) {
-    return new EnsoKeyValuePair(key, value, null);
+  static EnsoKeyValuePair ofText(String key, String value) {
+    return new EnsoKeyStringPair(key, value);
   }
 
-  public static EnsoKeyValuePair ofSecret(String key, String secretId) {
-    return new EnsoKeyValuePair(key, null, secretId);
+  static EnsoKeyValuePair ofSecret(String key, String secretId) {
+    return new EnsoKeySecretPair(key, secretId);
   }
 }

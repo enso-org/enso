@@ -1,12 +1,12 @@
 package org.enso.database;
 
-import org.enso.base.enso_cloud.EnsoKeyValuePair;
-import org.enso.base.enso_cloud.HTTPBuilder;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.ServiceLoader;
+import org.enso.base.enso_cloud.EnsoKeyValuePair;
+import org.enso.base.enso_cloud.EnsoSecretHelper;
 
 /**
  * A helper class for accessing the JDBC components.
@@ -47,6 +47,6 @@ public class JDBCProxy {
       DriverManager.registerDriver(driver);
     }
 
-    return HTTPBuilder.getJDBCConnection(url, properties);
+    return EnsoSecretHelper.getJDBCConnection(url, properties);
   }
 }
