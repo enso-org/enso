@@ -2,6 +2,7 @@
 import { codeEditorBindings, graphBindings, interactionBindings } from '@/bindings'
 import CodeEditor from '@/components/CodeEditor.vue'
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
+import { mouseDictatedPlacement } from '@/components/ComponentBrowser/placement.ts'
 import { Uploader, uploadedExpression } from '@/components/GraphEditor/upload'
 import SelectionBrush from '@/components/SelectionBrush.vue'
 import TopBar from '@/components/TopBar.vue'
@@ -60,8 +61,7 @@ const graphBindingsHandler = graphBindings.handler({
     if (keyboardBusy()) return false
     if (navigator.sceneMousePos != null && !componentBrowserVisible.value) {
       componentBrowserPosition.value = navigator.sceneMousePos
-      componentBrowserVisible.value = true
-      componentBrowserInputContent.value = ''
+      startNodeCreation()
     }
   },
   newNode() {
@@ -155,12 +155,50 @@ const groupColors = computed(() => {
 })
 
 const currentInteraction = ref<Interaction>()
-class EditingNode extends Interaction {
+class EdgeDragging extends Interaction {
+  nodeId: ExprId
+
+  constructor(nodeId: ExprId) {
+    super()
+    this.nodeId = nodeId
+  }
+
   cancel() {
     componentBrowserVisible.value = false
   }
+
+  success(): void {
+    componentBrowserVisible.value = true
+  }
 }
-const editingNode = new EditingNode()
+/// Interaction to create a new node. This will create a temporary node and open the component browser.
+/// If the interaction is cancelled, the temporary node will be deleted, otherwise it will be kept.
+class CreatingNode extends Interaction {
+  nodeId: ExprId
+  constructor() {
+    super()
+    // We create a temporary node to show the component browser on. This node will be deleted if
+    // the interaction is cancelled. It can later on be used to have a preview of the node as it is being created.
+    const mousePosition = navigator.sceneMousePos ?? Vec2.Zero
+    const nodeHeight = 32
+    const targetPosition = mouseDictatedPlacement(Vec2.FromArr([0, nodeHeight]), { mousePosition })
+    const nodeId = graphStore.createNode(targetPosition.position, '')
+    if (nodeId == null) {
+      throw new Error('CreatingNode: Failed to create node.')
+    }
+    this.nodeId = nodeId
+    // From here on we just edit the temporary node.
+    graphStore.editedNodeInfo = { id: nodeId, range: [0, 0] }
+  }
+
+  success(): void {
+    // Nothing to do, we just leave the temporary node in the graph.
+  }
+  cancel() {
+    // Aborting node creation means we no longer need the temporary node.
+    graphStore.deleteNode(this.nodeId)
+  }
+}
 
 function setCurrentInteraction(interaction: Interaction | undefined) {
   if (currentInteraction.value?.id === interaction?.id) return
@@ -169,21 +207,9 @@ function setCurrentInteraction(interaction: Interaction | undefined) {
 }
 
 function cancelCurrentInteraction() {
+  currentInteraction.value?.cancel()
   setCurrentInteraction(undefined)
 }
-
-/** Unset the current interaction, if it is the specified instance. */
-function interactionEnded(interaction: Interaction) {
-  if (currentInteraction.value?.id === interaction?.id) currentInteraction.value = undefined
-}
-
-watch(componentBrowserVisible, (visible) => {
-  if (visible) {
-    setCurrentInteraction(editingNode)
-  } else {
-    interactionEnded(editingNode)
-  }
-})
 
 async function handleFileDrop(event: DragEvent) {
   try {
@@ -211,7 +237,15 @@ async function handleFileDrop(event: DragEvent) {
   }
 }
 
-function onComponentBrowserFinished(content: string) {
+// Start a node creation interaction. This will create a new node and open the component browser.
+// For more information about the flow of the interaction, see `CreatingNode`.
+function startNodeCreation() {
+  setCurrentInteraction(new CreatingNode())
+}
+
+function onComponentBrowserCommit(content: string) {
+  currentInteraction.value?.success()
+
   if (content != null && graphStore.editedNodeInfo != null) {
     graphStore.setNodeContent(graphStore.editedNodeInfo.id, content)
   }
@@ -256,7 +290,10 @@ watch(
     @drop.prevent="handleFileDrop($event)"
   >
     <svg :viewBox="navigator.viewBox">
-      <GraphEdges @startInteraction="setCurrentInteraction" @endInteraction="interactionEnded" />
+      <GraphEdges
+        @startInteraction="setCurrentInteraction"
+        @endInteraction="cancelCurrentInteraction"
+      />
     </svg>
     <div :style="{ transform: navigator.transform }" class="htmlLayer">
       <GraphNodes />
@@ -266,7 +303,7 @@ watch(
       ref="componentBrowser"
       :navigator="navigator"
       :position="componentBrowserPosition"
-      @finished="onComponentBrowserFinished"
+      @finished="onComponentBrowserCommit"
       :initialContent="componentBrowserInputContent"
       :initialCaretPosition="graphStore.editedNodeInfo?.range ?? [0, 0]"
     />
