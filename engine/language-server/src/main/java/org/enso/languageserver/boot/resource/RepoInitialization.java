@@ -5,10 +5,7 @@ import java.io.IOException;
 import java.nio.file.FileSystemException;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.CompletionStage;
-import java.util.concurrent.Executor;
+import java.util.concurrent.*;
 import org.apache.commons.io.FileUtils;
 import org.enso.languageserver.data.ProjectDirectoriesConfig;
 import org.enso.languageserver.event.InitializedEvent;
@@ -33,6 +30,8 @@ public class RepoInitialization implements InitializationComponent {
   private final SqlSuggestionsRepo sqlSuggestionsRepo;
 
   private final Logger logger = LoggerFactory.getLogger(this.getClass());
+
+  private final Semaphore lock = new Semaphore(1);
 
   private volatile boolean isInitialized = false;
 
@@ -67,15 +66,29 @@ public class RepoInitialization implements InitializationComponent {
   public CompletableFuture<Void> init() {
     return initSqlDatabase()
         .thenComposeAsync(v -> initSuggestionsRepo(), executor)
-        .thenRunAsync(() -> isInitialized = true, executor);
+        .whenCompleteAsync(
+            (res, err) -> {
+              if (err == null && res != null) {
+                isInitialized = true;
+              }
+              lock.release();
+            },
+            executor);
   }
 
   private CompletableFuture<Void> initSqlDatabase() {
     return CompletableFuture.runAsync(
             () -> {
-              logger.info("Initializing sql database [{}]...", sqlDatabase);
-              sqlDatabase.open();
-              logger.info("Initialized sql database [{}].", sqlDatabase);
+              try {
+                lock.acquire();
+              } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+              }
+              if (!isInitialized) {
+                logger.info("Initializing sql database [{}]...", sqlDatabase);
+                sqlDatabase.open();
+                logger.info("Initialized sql database [{}].", sqlDatabase);
+              }
             },
             executor)
         .whenCompleteAsync(
@@ -91,9 +104,12 @@ public class RepoInitialization implements InitializationComponent {
     return CompletableFuture.runAsync(
             () -> logger.info("Initializing suggestions repo [{}]...", sqlDatabase), executor)
         .thenComposeAsync(
-            v ->
-                doInitSuggestionsRepo()
-                    .exceptionallyComposeAsync(this::recoverInitializationError, executor),
+            v -> {
+              if (!isInitialized)
+                return doInitSuggestionsRepo()
+                    .exceptionallyComposeAsync(this::recoverInitializationError, executor);
+              else return CompletableFuture.completedFuture(v);
+            },
             executor)
         .thenRunAsync(
             () -> logger.info("Initialized Suggestions repo [{}].", sqlDatabase), executor)
@@ -123,11 +139,13 @@ public class RepoInitialization implements InitializationComponent {
   private CompletableFuture<Void> clearDatabaseFile(int retries) {
     return CompletableFuture.runAsync(
             () -> {
-              logger.info("Clear database file. Attempt #{}.", retries + 1);
-              try {
-                Files.delete(projectDirectoriesConfig.suggestionsDatabaseFile().toPath());
-              } catch (IOException e) {
-                throw new CompletionException(e);
+              if (!isInitialized) {
+                logger.info("Clear database file. Attempt #{}.", retries + 1);
+                try {
+                  Files.delete(projectDirectoriesConfig.suggestionsDatabaseFile().toPath());
+                } catch (IOException e) {
+                  throw new CompletionException(e);
+                }
               }
             },
             executor)
