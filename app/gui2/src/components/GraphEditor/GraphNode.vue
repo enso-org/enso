@@ -65,7 +65,7 @@ const projectStore = useProjectStore()
 watchEffect(() => {
   const size = nodeSize.value
   if (!size.isZero()) {
-    emit('updateRect', new Rect(props.node.visiblePosition ?? props.node.position, nodeSize.value))
+    emit('updateRect', new Rect(props.node.position, nodeSize.value))
   }
 })
 
@@ -81,7 +81,7 @@ const bgStyleVariables = computed(() => {
 })
 
 const transform = computed(() => {
-  let pos = props.node.visiblePosition ?? props.node.position
+  let pos = props.node.position
   return `translate(${pos.x}px, ${pos.y}px)`
 })
 

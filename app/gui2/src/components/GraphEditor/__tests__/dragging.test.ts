@@ -61,10 +61,10 @@ test.each([
     expected: [-0.5, -0.2],
   },
 ])('Snapping to single rect: $name', ({ snappedRects, expected }) => {
-  const rects = [Rect.fromBounds(-5.0, -5.0, 15.0, 5.0)]
+  const rects = [Rect.FromBounds(-5.0, -5.0, 15.0, 5.0)]
   const grid = new SnapGrid(rects)
 
-  const converted = Array.from(snappedRects, ([l, t, r, b]) => Rect.fromBounds(l!, t!, r!, b!))
+  const converted = Array.from(snappedRects, ([l, t, r, b]) => Rect.FromBounds(l!, t!, r!, b!))
   const snap = grid.snappedMany(converted, 1.0)
   expect(snap.x).toBeCloseTo(expected[0]!)
   expect(snap.y).toBeCloseTo(expected[1]!)
@@ -90,8 +90,8 @@ test.each`
   ({ snappedRectPosition, expectedSnap }) => {
     const rects = []
     for (let xy = -10.0; xy <= 10.1; xy += 1.0) {
-      rects.push(Rect.fromBounds(xy, 0.0, 100.0, 10.0))
-      rects.push(Rect.fromBounds(0.0, xy, 100.0, 10.0))
+      rects.push(Rect.FromBounds(xy, 0.0, 100.0, 10.0))
+      rects.push(Rect.FromBounds(0.0, xy, 100.0, 10.0))
     }
     const grid = new SnapGrid(rects)
     const xSnapped = new Rect(new Vec2(snappedRectPosition, 0.0), new Vec2(10.0, 10.0))
