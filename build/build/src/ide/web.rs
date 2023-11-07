@@ -91,9 +91,6 @@ pub mod env {
         /// `true` or `false`. Defaults to `true` — on a macOS development machine valid and
         /// appropriate identity from your keychain will be automatically used.
         CSC_IDENTITY_AUTO_DISCOVERY, bool;
-
-        /// Path to the python2 executable, used by electron-builder on macOS to package DMG.
-        PYTHON_PATH, PathBuf;
     }
 }
 
@@ -383,7 +380,6 @@ impl IdeDesktop {
             .set_env(env::ENSO_BUILD_GUI, gui.as_ref())?
             .set_env(env::ENSO_BUILD_IDE, output_path.as_ref())?
             .set_env(env::ENSO_BUILD_PROJECT_MANAGER, project_manager.as_ref())?
-            .set_env_opt(env::PYTHON_PATH, python_path.as_ref())?
             .workspace(Workspaces::Enso)
             // .args(["--loglevel", "verbose"])
             .run("dist")
