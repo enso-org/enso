@@ -1266,7 +1266,7 @@ spec setup =
                 typ = pair.at 1
                 c = empty.make_constant_column value
                 c . value_type . should_equal typ
-                (empty.set c).at value.to_text . value_type . should_equal typ
+                (empty.set c).at value.pretty . value_type . should_equal typ
 
 # A dummy value used to force the in-memory backend to trigger a infer a mixed type for the given column.
 type Mixed_Type_Object
