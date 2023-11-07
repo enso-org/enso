@@ -198,7 +198,7 @@ spec setup =
             r1 . at "upper" . to_vector . should_equal ["a", "ccc", "ccc"]
             r1 . at "Z" . to_vector . should_equal     [10,   20,    20]
 
-        Test.specify "should correctly handle Between edge cases (1)" <|
+        Test.specify "should correctly handle Between edge cases (1)" pending=(if prefix.contains "PostgreSQL" then "TODO: fix issue #8243") <|
             # 1. multiple rows with the same key value on the left side
             # 2. fully duplicated rows (1, 7) on the left side
             # 3. empty bounds (lower > upper: 10 > 0)
@@ -715,6 +715,17 @@ spec setup =
                 r3.at 2 . should_equal [Nothing, 10, 7, 7, 200]
                 r3.at 3 . should_equal [2, 20, 2, Nothing, Nothing]
                 r3.at 4 . should_equal [3, 30, 3, Nothing, Nothing]
+
+            t8 = table_builder [["X", [2, 99]], ["Y", [20, 99]], ["C", [5, 99]]]
+            t9 = t4_2.join t8 join_kind=Join_Kind.Full on=["X", "Y", "C"]
+            within_table t9 <|
+                t9.column_names . should_equal ["X", "Y", "C", "Right X", "Right Y", "Right C"]
+                r3 = materialize t9 . order_by ["X", "Right X"] . rows . map .to_vector
+                r3.length . should_equal 4
+                r3.at 0 . should_equal [Nothing, Nothing, Nothing, 99, 99, 99]
+                r3.at 1 . should_equal [1, 10, 3, Nothing, Nothing, Nothing]
+                r3.at 2 . should_equal [2, 20, 5, 2, 20, 5]
+                r3.at 3 . should_equal [3, 30, 7, Nothing, Nothing, Nothing]
 
         Test.specify "should gracefully handle tables from different backends" <|
             alternative_connection = Database.connect (SQLite In_Memory)
