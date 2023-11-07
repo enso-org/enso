@@ -172,7 +172,7 @@ public class Column {
       throw new IllegalArgumentException("Repeat count must be non-negative.");
     }
 
-    Object converted = item instanceof Value v ? Polyglot_Utils.convertPolyglotValue(v) : item;
+    Object converted = Polyglot_Utils.convertPolyglotValue(item);
     StorageType storageType = StorageType.forBoxedItem(converted);
 
     var builder = Builder.getForType(storageType, repeat, problemAggregator);
