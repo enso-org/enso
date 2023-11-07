@@ -86,7 +86,18 @@ class Synchronizer {
   private setupUpdateHandler(lsRpc: LanguageServer) {
     lsRpc.on('search/suggestionsDatabaseUpdates', (param) => {
       this.queue.pushTask(async ({ currentVersion }) => {
-        if (param.currentVersion <= currentVersion) {
+        // There are rare cases where the database is updated twice in quick succession, with the
+        // second update containing the same version as the first. In this case, we still need to
+        // apply the second set of updates. Skipping it would result in the database then containing
+        // references to entries that don't exist. This might be an engine issue, but accepting the
+        // second updates seems to be harmless, so we do that.
+        if (param.currentVersion == currentVersion) {
+          console.log(
+            `Received multiple consecutive suggestion database updates with version ${param.currentVersion}`,
+          )
+        }
+
+        if (param.currentVersion < currentVersion) {
           console.log(
             `Skipping suggestion database update ${param.currentVersion}, because it's already applied`,
           )

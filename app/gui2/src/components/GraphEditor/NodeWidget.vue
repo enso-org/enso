@@ -50,15 +50,15 @@ const exprRect = shallowRef<Rect>()
 const nodeSize = useResizeObserver(filteredRootNode, false)
 function updateRect() {
   if (!isHoverable()) return
-  let domNode = filteredRootNode.value
-  if (domNode == null) return
-  const [nodeId] = graph.db.nodeExpressions.reverseLookup(props.ast.astId)
-  const nodePos = nodeId && graph.db.nodes.get(nodeId)?.position
-  if (nodePos == null) return
+  let exprDomNode = filteredRootNode.value
+  const rootDomNode = exprDomNode?.closest('.node')
+  if (exprDomNode == null || rootDomNode == null) return
 
-  const clientRect = Rect.FromDomRect(domNode.getBoundingClientRect())
-  const sceneRect = navigator.clientToSceneRect(clientRect)
-  const localRect = sceneRect.offsetBy(nodePos.inverse())
+  const exprClientRect = Rect.FromDomRect(exprDomNode.getBoundingClientRect())
+  const nodeClientRect = Rect.FromDomRect(rootDomNode.getBoundingClientRect())
+  const exprSceneRect = navigator.clientToSceneRect(exprClientRect)
+  const exprNodeRect = navigator.clientToSceneRect(nodeClientRect)
+  const localRect = exprSceneRect.offsetBy(exprNodeRect.pos.inverse())
   if (exprRect.value != null && localRect.equals(exprRect.value)) return
   exprRect.value = localRect
 }
@@ -66,15 +66,15 @@ function updateRect() {
 watch(nodeSize, updateRect)
 onUpdated(updateRect)
 
-const rectWanted = computed(() => {
+const rectUpdateIsUseful = computed(() => {
   const id = props.ast.astId
   return isHoverable() && (isHovered.value || graph.db.connections.reverseLookup(id).size > 0)
 })
 
 watch(
-  () => [props.ast.astId, exprRect.value, rectWanted.value] as const,
-  ([id, rect, wanted], _, onCleanup) => {
-    if (rect != null && wanted) {
+  () => [props.ast.astId, exprRect.value, rectUpdateIsUseful.value] as const,
+  ([id, rect, updateUseful], _, onCleanup) => {
+    if (rect != null && updateUseful) {
       graph.updateExprRect(id, rect)
       onCleanup(() => {
         if (props.ast.astId === id && rect === exprRect.value) graph.updateExprRect(id, undefined)
