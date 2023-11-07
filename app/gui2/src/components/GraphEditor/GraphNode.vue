@@ -7,13 +7,10 @@ import SvgIcon from '@/components/SvgIcon.vue'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { useGraphStore, type Node } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
-import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { useApproach } from '@/util/animation'
-import { colorFromString } from '@/util/colors'
 import { usePointer, useResizeObserver } from '@/util/events'
 import { methodNameToIcon, typeNameToIcon } from '@/util/getIconName'
 import type { Opt } from '@/util/opt'
-import { qnJoin, tryQualifiedName } from '@/util/qualifiedName'
 import { Rect } from '@/util/rect'
 import { Vec2 } from '@/util/vec2'
 import type { ContentRange, ExprId, VisualizationIdentifier } from 'shared/yjsModel'
@@ -24,19 +21,22 @@ const MAXIMUM_CLICK_DISTANCE_SQ = 50
 
 const props = defineProps<{
   node: Node
+  edited: boolean
 }>()
 
 const emit = defineEmits<{
   updateRect: [rect: Rect]
   updateExprRect: [id: ExprId, rect: Rect]
   updateContent: [updates: [range: ContentRange, content: string][]]
-  movePosition: [delta: Vec2]
+  dragging: [offset: Vec2]
+  draggingCommited: []
   setVisualizationId: [id: Opt<VisualizationIdentifier>]
   setVisualizationVisible: [visible: boolean]
   delete: []
   replaceSelection: []
   'update:selected': [selected: boolean]
   outputPortAction: []
+  'update:edited': [cursorPosition: number]
 }>()
 
 const nodeSelection = injectGraphSelection(true)
@@ -300,15 +300,15 @@ watch(
 )
 
 const editableKeydownHandler = nodeEditBindings.handler({
-  // selectAll() {
-  //   const element = editableRootNode.value
-  //   const selection = window.getSelection()
-  //   if (element == null || selection == null) return
-  //   const range = document.createRange()
-  //   range.selectNodeContents(element)
-  //   selection.removeAllRanges()
-  //   selection.addRange(range)
-  // },
+  selectAll() {
+    const element = editableRootNode.value
+    const selection = window.getSelection()
+    if (element == null || selection == null) return
+    const range = document.createRange()
+    range.selectNodeContents(element)
+    selection.removeAllRanges()
+    selection.addRange(range)
+  },
   cancel(e) {
     if (e.target instanceof HTMLElement) {
       e.target.blur()
@@ -316,12 +316,51 @@ const editableKeydownHandler = nodeEditBindings.handler({
   },
 })
 
+function startEditingHandler(event: PointerEvent) {
+  let range, textNode, offset
+  offset = 0
+
+  if ((document as any).caretPositionFromPoint) {
+    range = (document as any).caretPositionFromPoint(event.clientX, event.clientY)
+    textNode = range.offsetNode
+    offset = range.offset
+  } else if (document.caretRangeFromPoint) {
+    range = document.caretRangeFromPoint(event.clientX, event.clientY)
+    if (range == null) {
+      console.error('Could not find caret position when editing node.')
+    } else {
+      textNode = range.startContainer
+      offset = range.startOffset
+    }
+  } else {
+    console.error(
+      'Neither caretPositionFromPoint nor caretRangeFromPoint are supported by this browser',
+    )
+  }
+
+  let newRange = document.createRange()
+  newRange.setStart(textNode, offset)
+
+  let selection = window.getSelection()
+  if (selection != null) {
+    selection.removeAllRanges()
+    selection.addRange(newRange)
+  } else {
+    console.error('Could not set selection when editing node.')
+  }
+
+  emit('update:edited', offset)
+}
+
 const startEpochMs = ref(0)
 let startEvent: PointerEvent | null = null
 let startPos = Vec2.Zero
 
 const dragPointer = usePointer((pos, event, type) => {
-  emit('movePosition', pos.delta)
+  if (type !== 'start') {
+    const fullOffset = pos.absolute.sub(startPos)
+    emit('dragging', fullOffset)
+  }
   switch (type) {
     case 'start': {
       startEpochMs.value = Number(new Date())
@@ -341,6 +380,7 @@ const dragPointer = usePointer((pos, event, type) => {
       }
       startEvent = null
       startEpochMs.value = 0
+      emit('draggingCommited')
     }
   }
 })
@@ -413,7 +453,7 @@ const updateExprRect = (expr: ExprId, rect: Rect) => {
         contenteditable="true"
         @beforeinput="editContent"
         @keydown="editableKeydownHandler"
-        @pointerdown.stop
+        @pointerdown.stop.prevent="startEditingHandler"
         @blur="projectStore.stopCapturingUndo()"
         ><NodeWidgetTree :ast="node.rootSpan" @updateExprRect="updateExprRect"
       /></span>

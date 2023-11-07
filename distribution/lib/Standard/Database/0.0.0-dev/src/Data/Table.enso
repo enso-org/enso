@@ -10,6 +10,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Errors.Unimplemented.Unimplemented
 from Standard.Base.Metadata import make_single_choice
+from Standard.Base.Runtime import assert
 from Standard.Base.Widget_Helpers import make_delimiter_selector
 
 import Standard.Table.Data.Calculations.Column_Operation.Column_Operation
@@ -90,7 +91,7 @@ type Table
          - format_terminal: whether ANSI-terminal formatting should be used
     display : Integer -> Boolean -> Text
     display self show_rows=10 format_terminal=False =
-        df = self.read max_rows=show_rows
+        df = self.read max_rows=show_rows warn_if_more_rows=False
         all_rows_count = self.row_count
         display_dataframe df indices_count=0 all_rows_count format_terminal
 
@@ -965,24 +966,25 @@ type Table
        In the database backend, it first materializes the table to in-memory.
 
        Arguments:
-       - max_rows: The maximum amount of rows to return. It is mainly meant for
-         the Database backend, to limit how many rows are downloaded. In the
-         in-memory backend it is only kept for API compatibility.
-    rows : Integer -> Vector Row
-    rows self max_rows=1000 =
-        self.read max_rows=max_rows . rows
+       - max_rows: specifies the maximum number of rows to read.
+         If `Nothing`, all available rows are returned.
+       - warn_if_more_rows: if set to `True`, a warning is attached to the
+         result if the number of rows returned by the query exceeds `max_rows`.
+    rows : Integer | Nothing -> Boolean -> Vector Row
+    rows self (max_rows : Integer | Nothing = 1000) (warn_if_more_rows : Boolean = True) =
+        self.read max_rows=max_rows warn_if_more_rows=warn_if_more_rows . rows
 
     ## GROUP Standard.Base.Selections
        Returns the first row of the table.
     first_row : Row ! Index_Out_Of_Bounds
     first_row self =
-        self.read max_rows=1 . rows . first
+        self.read max_rows=1 warn_if_more_rows=False . rows . first
 
     ## GROUP Standard.Base.Selections
        Returns the second row of the table.
     second_row : Row ! Index_Out_Of_Bounds
     second_row self =
-        self.read max_rows=2 . rows . second
+        self.read max_rows=2 warn_if_more_rows=False . rows . second
 
     ## GROUP Standard.Base.Selections
        Returns the last row of the table.
@@ -2238,11 +2240,14 @@ type Table
        Returns a materialized dataframe containing rows of this table.
 
        Arguments:
-       - max_rows: specifies a maximum amount of rows to fetch; if not set, all
-         available rows are fetched.
-    read : (Integer | Nothing) -> Materialized_Table
-    read self max_rows=Nothing =
-        preprocessed = self.limit max_rows
+       - max_rows: specifies the maximum number of rows to read.
+         If `Nothing`, all available rows are returned.
+       - warn_if_more_rows: if set to `True`, a warning is attached to the
+         result if the number of rows returned by the query exceeds `max_rows`.
+    read : (Integer | Nothing) -> Boolean -> Materialized_Table
+    read self (max_rows : Integer | Nothing = 1000) (warn_if_more_rows:Boolean = True) =
+        preprocessed = if max_rows.is_nothing then self else
+            if warn_if_more_rows then self.limit max_rows+1 else self.limit max_rows
         case preprocessed.internal_columns.is_empty of
             True ->
                 Error.throw (Illegal_Argument.Error "Cannot create a table with no columns.")
@@ -2252,9 +2257,9 @@ type Table
                 materialized_table = self.connection.read_statement sql column_type_suggestions . catch SQL_Error sql_error->
                     Error.throw (self.connection.dialect.get_error_mapper.transform_custom_errors sql_error)
 
+                warnings_builder = Vector.new_builder
                 expected_types = self.columns.map .value_type
                 actual_types = materialized_table.columns.map .value_type
-                warnings_builder = Vector.new_builder
                 expected_types.zip actual_types expected_type-> actual_type->
                     if expected_type == actual_type then Nothing else
                         expected_type_kind = Meta.meta expected_type . constructor
@@ -2265,14 +2270,18 @@ type Table
                            However, bigger changes, like a Binary type column getting coerced to Mixed - _will_ still be reported.
                         if expected_type_kind == actual_type_kind then Nothing else
                             warnings_builder.append (Inexact_Type_Coercion.Warning expected_type actual_type)
-                Problem_Behavior.Report_Warning.attach_problems_before warnings_builder.to_vector materialized_table
+                result = if max_rows.is_nothing || materialized_table.row_count <= max_rows then materialized_table else
+                    assert warn_if_more_rows "We may get more rows than we asked for _only_ if warn_if_more_rows=True"
+                    warnings_builder.append (Not_All_Rows_Downloaded.Warning max_rows)
+                    materialized_table.take max_rows
+                Problem_Behavior.Report_Warning.attach_problems_before warnings_builder.to_vector result
 
     ## PRIVATE
        Creates a query corresponding to this table.
     to_select_query : Query
     to_select_query self =
         cols = self.internal_columns.map (c -> [c.name, c.expression])
-        # assert cols.not_empty
+        assert cols.not_empty
         Query.Select cols self.context
 
     ## Returns an SQL statement that will be used for materializing this table.

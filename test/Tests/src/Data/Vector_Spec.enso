@@ -458,8 +458,6 @@ type_spec name alter = Test.group name <|
         vec.take . should_equal [1]
         vec.drop . should_equal [2, 3, 4, 5, 6]
 
-        IO.println 'AAA'
-        IO.println (Meta.get_simple_type_name vec)
         vec.take (2.up_to 4) . should_equal [3, 4]
         vec.take (0.up_to 0) . should_equal []
         vec.take (100.up_to 100) . should_fail_with Index_Out_Of_Bounds

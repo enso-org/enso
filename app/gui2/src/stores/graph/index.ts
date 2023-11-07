@@ -23,6 +23,10 @@ import * as Y from 'yjs'
 
 export { type Node } from '@/stores/graph/graphDatabase'
 
+export interface NodeEditInfo {
+  id: ExprId
+  range: ContentRange
+}
 export const useGraphStore = defineStore('graph', () => {
   const proj = useProjectStore()
   const suggestionDb = useSuggestionDbStore()
@@ -41,6 +45,7 @@ export const useGraphStore = defineStore('graph', () => {
   )
   const nodeRects = reactive(new Map<ExprId, Rect>())
   const exprRects = reactive(new Map<ExprId, Rect>())
+  const editedNodeInfo = ref<NodeEditInfo>()
 
   const unconnectedEdge = ref<UnconnectedEdge>()
 
@@ -102,7 +107,7 @@ export const useGraphStore = defineStore('graph', () => {
   useObserveYjs(metadata, (event) => {
     const meta = event.target
     for (const [id, op] of event.changes.keys) {
-      if (op.action === 'update') {
+      if (op.action === 'update' || op.action === 'add') {
         const data = meta.get(id)
         const node = db.getNode(id as ExprId)
         if (data != null && node != null) {
@@ -241,9 +246,23 @@ export const useGraphStore = defineStore('graph', () => {
     exprRects.set(id, rect)
   }
 
+  function setEditedNode(id: ExprId | null, cursorPosition: number | null) {
+    if (id == null) {
+      editedNodeInfo.value = undefined
+      return
+    }
+    if (cursorPosition == null) {
+      console.warn('setEditedNode: cursorPosition is null')
+      return
+    }
+    const range = [cursorPosition, cursorPosition] as ContentRange
+    editedNodeInfo.value = { id, range }
+  }
+
   return {
     transact,
     db: markRaw(db),
+    editedNodeInfo,
     unconnectedEdge,
     edges,
     nodeRects,
@@ -263,6 +282,7 @@ export const useGraphStore = defineStore('graph', () => {
     stopCapturingUndo,
     updateNodeRect,
     updateExprRect,
+    setEditedNode,
   }
 })
 
