@@ -4,9 +4,9 @@
  * (see below).
  * - System validation dialogs are not reliable between computers, as they may have different
  * default fonts. */
-import { defineConfig, devices } from '@playwright/test'
+import { defineConfig, expect, type Locator } from '@playwright/test'
 
-/* eslint-disable @typescript-eslint/no-magic-numbers, @typescript-eslint/strict-boolean-expressions */
+const DEBUG = process.env.DEBUG_E2E === 'true'
 
 export default defineConfig({
   globalSetup: './e2e/setup.ts',
@@ -20,29 +20,34 @@ export default defineConfig({
     toHaveScreenshot: { threshold: 0 },
   },
   use: {
+    headless: !DEBUG,
     baseURL: 'http://localhost:5173',
     trace: 'on-first-retry',
-    launchOptions: {
-      ignoreDefaultArgs: ['--headless'],
-      args: [
-        // Much closer to headful Chromium than classic headless.
-        '--headless=new',
-        // Required for `backdrop-filter: blur` to work.
-        '--use-angle=swiftshader',
-        // FIXME: `--disable-gpu` disables `backdrop-filter: blur`, which is not handled by
-        // the software (CPU) compositor. This SHOULD be fixed eventually, but this flag
-        // MUST stay as CI does not have a GPU.
-        '--disable-gpu',
-        // Fully disable GPU process.
-        '--disable-software-rasterizer',
-        // Disable text subpixel antialiasing.
-        '--font-render-hinting=none',
-        '--disable-skia-runtime-opts',
-        '--disable-system-font-check',
-        '--disable-font-subpixel-positioning',
-        '--disable-lcd-text',
-      ],
-    },
+    ...(DEBUG
+      ? {}
+      : {
+          launchOptions: {
+            ignoreDefaultArgs: ['--headless'],
+            args: [
+              // Much closer to headful Chromium than classic headless.
+              '--headless=new',
+              // Required for `backdrop-filter: blur` to work.
+              '--use-angle=swiftshader',
+              // FIXME: `--disable-gpu` disables `backdrop-filter: blur`, which is not handled by
+              // the software (CPU) compositor. This SHOULD be fixed eventually, but this flag
+              // MUST stay as CI does not have a GPU.
+              '--disable-gpu',
+              // Fully disable GPU process.
+              '--disable-software-rasterizer',
+              // Disable text subpixel antialiasing.
+              '--font-render-hinting=none',
+              '--disable-skia-runtime-opts',
+              '--disable-system-font-check',
+              '--disable-font-subpixel-positioning',
+              '--disable-lcd-text',
+            ],
+          },
+        }),
   },
   // projects: [
   // {
@@ -77,8 +82,39 @@ export default defineConfig({
   // },
   // ],
   webServer: {
+    // The command-line flag is required
     command: process.env.CI ? 'E2E=true vite preview --port 5173' : 'E2E=true vite dev',
     port: 5173,
     reuseExistingServer: !process.env.CI,
+  },
+})
+
+expect.extend({
+  async toExist(locator: Locator) {
+    let pass: boolean
+    try {
+      // TODO: This can potentially be replaced with `expect.toBeVisible()` to provide better error messages.
+      // Ideally this should be renamed `toHaveSomeVisible` and the logic changed appropriately.
+      expect(await locator.count()).toBeGreaterThan(0)
+      pass = true
+    } catch {
+      pass = false
+    }
+    const message = pass
+      ? () =>
+          this.utils.matcherHint('toHaveAmount', undefined, undefined, { isNot: this.isNot }) +
+          '\n\n' +
+          `Locator: ${locator}\n` +
+          `Expected at least one element to${this.isNot ? ' not' : ''} be visible\n`
+      : () =>
+          this.utils.matcherHint('toHaveAmount', undefined, undefined) +
+          '\n\n' +
+          `Locator: ${locator}\n` +
+          `Expected at least one element to be visible\n`
+    return {
+      message,
+      pass,
+      name: 'toHaveAmount',
+    }
   },
 })

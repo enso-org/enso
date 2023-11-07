@@ -18,18 +18,21 @@ const emit = defineEmits<{
     <ToggleIcon
       icon="no_auto_replay"
       class="icon-container button no-auto-evaluate-button"
+      :alt="`${props.isAutoEvaluationDisabled ? 'Enable' : 'Disable'} auto-evaluation`"
       :modelValue="props.isAutoEvaluationDisabled"
       @update:modelValue="emit('update:isAutoEvaluationDisabled', $event)"
     />
     <ToggleIcon
       icon="docs"
       class="icon-container button docs-button"
+      :alt="`${props.isDocsVisible ? 'Hide' : 'Show'} documentation`"
       :modelValue="props.isDocsVisible"
       @update:modelValue="emit('update:isDocsVisible', $event)"
     />
     <ToggleIcon
       icon="eye"
       class="icon-container button visualization-button"
+      :alt="`${props.isVisualizationVisible ? 'Hide' : 'Show'} visualization`"
       :modelValue="props.isVisualizationVisible"
       @update:modelValue="emit('update:isVisualizationVisible', $event)"
     />

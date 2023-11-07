@@ -14,6 +14,7 @@ import {
   InboundPayload,
   InitSessionCommand,
   None,
+  Null,
   OutboundMessage,
   OutboundPayload,
   Path,
@@ -23,6 +24,8 @@ import {
   Success,
   WriteBytesCommand,
   WriteFileCommand,
+  type AnyOutboundPayload,
+  type Offset,
   type Table,
 } from '../binaryProtocol'
 import { LanguageServerErrorCode } from '../languageServerTypes'
@@ -38,7 +41,7 @@ function createError(builder: Builder, code: LanguageServerErrorCode, message: s
   const messageOffset = builder.createString(message)
   return {
     type: OutboundPayload.ERROR,
-    offset: ErrorResponse.createError(builder, code, messageOffset, ErrorPayload.NONE, 0),
+    offset: ErrorResponse.createError(builder, code, messageOffset, ErrorPayload.NONE, Null),
   }
 }
 
@@ -65,23 +68,27 @@ const PAYLOAD_CONSTRUCTOR = {
 
 export function mockDataWSHandler(
   readFile: (segments: string[]) => Promise<ArrayBuffer | null | undefined>,
+  cb?: (send: (data: string | Blob | ArrayBufferLike | ArrayBufferView) => void) => void,
 ) {
+  let sentSend = false
   return async (
     message: string | Blob | ArrayBufferLike | ArrayBufferView,
     send: (data: string | Blob | ArrayBufferLike | ArrayBufferView) => void,
   ) => {
+    if (!sentSend) cb?.(send)
+    sentSend = true
     if (!(message instanceof ArrayBuffer)) return
     const binaryMessage = InboundMessage.getRootAsInboundMessage(new ByteBuffer(message))
     const payloadType = binaryMessage.payloadType()
     const payload = binaryMessage.payload(new PAYLOAD_CONSTRUCTOR[payloadType]())
     if (!payload) return
     const builder = new Builder()
-    let response: { type: OutboundPayload; offset: number } | undefined
+    let response: { type: OutboundPayload; offset: Offset<AnyOutboundPayload> } | undefined
     switch (payloadType) {
       case InboundPayload.NONE: {
         response = {
           type: OutboundPayload.NONE,
-          offset: 0,
+          offset: Null,
         }
         break
       }

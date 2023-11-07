@@ -25,6 +25,8 @@ import {
   WriteBytesCommand,
   WriteBytesReply,
   WriteFileCommand,
+  type AnyInboundPayload,
+  type Offset,
   type Table,
 } from './binaryProtocol'
 import { uuidFromBits, uuidToBits } from './uuid'
@@ -104,7 +106,7 @@ export class DataServer extends ObservableV2<DataServerEvents> {
   protected send<T = void>(
     builder: Builder,
     payloadType: InboundPayload,
-    payloadOffset: number,
+    payloadOffset: Offset<AnyInboundPayload>,
   ): Promise<T> {
     const messageUuid = random.uuidv4()
     const rootTable = InboundMessage.createInboundMessage(
