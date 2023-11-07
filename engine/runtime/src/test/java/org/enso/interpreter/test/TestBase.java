@@ -32,6 +32,13 @@ public abstract class TestBase {
     return context;
   }
 
+  protected static Context createNonStrictContext() {
+    var context = defaultContextBuilder().option(RuntimeOptions.STRICT_ERRORS, "false").build();
+    final Map<String, Language> langs = context.getEngine().getLanguages();
+    assertNotNull("Enso found: " + langs, langs.get("enso"));
+    return context;
+  }
+
   protected static Context createDefaultContext(OutputStream out) {
     var context = defaultContextBuilder().out(out).build();
     final Map<String, Language> langs = context.getEngine().getLanguages();

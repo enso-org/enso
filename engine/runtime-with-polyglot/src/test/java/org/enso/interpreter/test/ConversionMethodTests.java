@@ -1,6 +1,7 @@
 package org.enso.interpreter.test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
@@ -10,15 +11,18 @@ import org.junit.Test;
 
 public class ConversionMethodTests extends TestBase {
   private static Context ctx;
+  private static Context nonStrictCtx;
 
   @BeforeClass
   public static void initCtx() {
     ctx = createDefaultContext();
+    nonStrictCtx = createNonStrictContext();
   }
 
   @AfterClass
   public static void disposeCtx() {
     ctx.close();
+    nonStrictCtx.close();
   }
 
   @Test
@@ -102,7 +106,6 @@ public class ConversionMethodTests extends TestBase {
     assertEquals(7, res.asInt());
   }
 
-  // TODO test what happens with the conversion in non-strict error mode
   @Test
   public void testAmbiguousConversion() {
     String src = """      
@@ -112,9 +115,29 @@ public class ConversionMethodTests extends TestBase {
        Foo.from (that:Integer) = Foo.Mk_Foo that+100
        Foo.from (that:Integer) = Foo.Mk_Foo that+1000
        
+       main = 42
+       """;
+    Value res = evalModule(nonStrictCtx, src);
+    assertEquals(42, res.asInt());
+  }
+
+  @Test
+  public void testAmbiguousConversionUsage() {
+    // In non-strict mode, the conversion declarations will have errors attached to the IR, but the overall operation will simply not see the conversion.
+    String src = """      
+       type Foo
+          Mk_Foo data
+       
+       Foo.from (that:Integer) = Foo.Mk_Foo that+100
+       Foo.from (that:Integer) = Foo.Mk_Foo that+1000
+       
        main = Foo.from 42
        """;
-    Value res = evalModule(ctx, src);
-    assertEquals(42, res.asInt());
+    try {
+      Value res = evalModule(nonStrictCtx, src);
+      fail("Expected an exception, but got " + res);
+    } catch (Exception e) {
+      assertEquals("No_Such_Conversion.Error", e.getMessage());
+    }
   }
 }
