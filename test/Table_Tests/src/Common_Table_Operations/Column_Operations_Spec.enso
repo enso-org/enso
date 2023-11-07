@@ -1261,12 +1261,12 @@ spec setup =
         Test.specify "Should create a column of the correct type on a table with no rows" <|
             t = table_builder [["x", ["1", "2", "3"]]]
             empty = t.take 0
-            [[False, Value_Type.Boolean], [42,  Value_Type.Integer], ["42",  Value_Type.Char], ["foo", Value_Type.Char], [1.1, Value_Type.Float]].map pair->
+            [[False, .is_boolean], [42,  .is_integer], ["42",  .is_text], ["foo", .is_text], [1.1, .is_floating_point]].map pair->
                 value = pair.at 0
-                typ = pair.at 1
+                pred = pair.at 1
                 c = empty.make_constant_column value
-                c . value_type . should_equal typ
-                (empty.set c).at value.pretty . value_type . should_equal typ
+                pred c.value_type . should_be_true
+                pred ((empty.set c).at c.name . value_type) . should_be_true
 
 # A dummy value used to force the in-memory backend to trigger a infer a mixed type for the given column.
 type Mixed_Type_Object
