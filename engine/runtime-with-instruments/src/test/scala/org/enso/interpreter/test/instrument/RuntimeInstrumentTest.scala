@@ -125,10 +125,10 @@ class RuntimeInstrumentTest
 
     // Open the new file
     context.send(
-      Api.Request(requestId, Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
 
     // push main
@@ -174,10 +174,10 @@ class RuntimeInstrumentTest
 
     // Open the new file
     context.send(
-      Api.Request(requestId, Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
 
     // push main
@@ -229,10 +229,10 @@ class RuntimeInstrumentTest
 
     // Open the new file
     context.send(
-      Api.Request(requestId, Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
 
     // push main
@@ -293,10 +293,10 @@ class RuntimeInstrumentTest
 
     // Open the new file
     context.send(
-      Api.Request(requestId, Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
 
     // push main
@@ -355,10 +355,10 @@ class RuntimeInstrumentTest
 
     // Open the new file
     context.send(
-      Api.Request(requestId, Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
 
     // push main
@@ -417,10 +417,10 @@ class RuntimeInstrumentTest
 
     // Open the new file
     context.send(
-      Api.Request(requestId, Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
 
     // push main
@@ -478,10 +478,10 @@ class RuntimeInstrumentTest
 
     // Open the new file
     context.send(
-      Api.Request(requestId, Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
 
     // push main
@@ -537,10 +537,10 @@ class RuntimeInstrumentTest
 
     // Open the new file
     context.send(
-      Api.Request(requestId, Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
 
     // push main
@@ -597,10 +597,10 @@ class RuntimeInstrumentTest
 
     // Open the new file
     context.send(
-      Api.Request(requestId, Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
 
     // push main
@@ -668,10 +668,10 @@ class RuntimeInstrumentTest
 
     // Open the new file
     context.send(
-      Api.Request(requestId, Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
 
     // push main
@@ -732,10 +732,10 @@ class RuntimeInstrumentTest
 
     // Open the new file
     context.send(
-      Api.Request(requestId, Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
 
     // push main
@@ -793,10 +793,10 @@ class RuntimeInstrumentTest
 
     // Open the new file
     context.send(
-      Api.Request(requestId, Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
 
     // push main
@@ -857,10 +857,10 @@ class RuntimeInstrumentTest
 
     // Open the new file
     context.send(
-      Api.Request(requestId, Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
 
     // push main
@@ -919,10 +919,10 @@ class RuntimeInstrumentTest
 
     // Open the new file
     context.send(
-      Api.Request(requestId, Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
 
     // push main
@@ -979,10 +979,10 @@ class RuntimeInstrumentTest
 
     // Open the new file
     context.send(
-      Api.Request(requestId, Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
 
     // push main
@@ -1052,10 +1052,10 @@ class RuntimeInstrumentTest
 
     // Open the new file
     context.send(
-      Api.Request(requestId, Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
 
     // push main

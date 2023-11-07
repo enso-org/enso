@@ -13,7 +13,7 @@ import scala.concurrent.ExecutionContext
   */
 class OpenFileCmd(
   maybeRequestId: Option[Api.RequestId],
-  request: Api.OpenFileNotification
+  request: Api.OpenFileRequest
 ) extends SynchronousCommand(None) {
 
   /** @inheritdoc */
@@ -30,7 +30,7 @@ class OpenFileCmd(
         request.contents
       )
       ctx.endpoint.sendToClient(
-        Api.Response(maybeRequestId, Api.OpenedFileNotification)
+        Api.Response(maybeRequestId, Api.OpenFileResponse)
       )
     } finally {
       ctx.locking.releaseFileLock(request.path)

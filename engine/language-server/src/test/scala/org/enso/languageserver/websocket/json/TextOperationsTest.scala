@@ -617,10 +617,10 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
           """)
 
       runtimeConnectorProbe.receiveN(1).head match {
-        case Api.Request(requestId, Api.OpenFileNotification(_, _)) =>
+        case Api.Request(requestId, Api.OpenFileRequest(_, _)) =>
           runtimeConnectorProbe.lastSender ! Api.Response(
             requestId,
-            Api.OpenedFileNotification
+            Api.OpenFileResponse
           )
         case msg =>
           fail("expected OpenFile notification got " + msg)

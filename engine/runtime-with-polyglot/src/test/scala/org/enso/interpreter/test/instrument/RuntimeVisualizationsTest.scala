@@ -330,14 +330,14 @@ class RuntimeVisualizationsTest
     context.send(
       Api.Request(
         requestId,
-        Api.OpenFileNotification(
+        Api.OpenFileRequest(
           visualizationFile,
           context.Visualization.code
         )
       )
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
 
     // create context
@@ -348,10 +348,10 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(requestId, Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
 
     // push main
@@ -455,14 +455,14 @@ class RuntimeVisualizationsTest
     context.send(
       Api.Request(
         requestId,
-        Api.OpenFileNotification(
+        Api.OpenFileRequest(
           visualizationFile,
           context.Visualization.code
         )
       )
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
 
     // create context
@@ -473,10 +473,10 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(requestId, Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
 
     // push main
@@ -596,20 +596,20 @@ class RuntimeVisualizationsTest
     context.send(
       Api.Request(
         requestId,
-        Api.OpenFileNotification(
+        Api.OpenFileRequest(
           visualizationFile,
           context.Visualization.code
         )
       )
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
     context.send(
-      Api.Request(requestId, Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
 
     // create context
@@ -729,20 +729,20 @@ class RuntimeVisualizationsTest
     context.send(
       Api.Request(
         requestId,
-        Api.OpenFileNotification(
+        Api.OpenFileRequest(
           visualizationFile,
           context.Visualization.code
         )
       )
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
     context.send(
-      Api.Request(requestId, Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
 
     // create context
@@ -862,20 +862,20 @@ class RuntimeVisualizationsTest
     context.send(
       Api.Request(
         requestId,
-        Api.OpenFileNotification(
+        Api.OpenFileRequest(
           visualizationFile,
           context.Visualization.code
         )
       )
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
     context.send(
-      Api.Request(requestId, Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
 
     // create context
@@ -1103,23 +1103,23 @@ class RuntimeVisualizationsTest
 
     // open files
     context.send(
-      Api.Request(requestId, Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
 
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
     context.send(
       Api.Request(
         requestId,
-        Api.OpenFileNotification(
+        Api.OpenFileRequest(
           visualizationFile,
           context.Visualization.code
         )
       )
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
 
     // create context
@@ -1238,22 +1238,22 @@ class RuntimeVisualizationsTest
 
     // open files
     context.send(
-      Api.Request(requestId, Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
     context.send(
       Api.Request(
         requestId,
-        Api.OpenFileNotification(
+        Api.OpenFileRequest(
           visualizationFile,
           context.Visualization.code
         )
       )
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
 
     // create context
@@ -1387,20 +1387,20 @@ class RuntimeVisualizationsTest
     context.send(
       Api.Request(
         requestId,
-        Api.OpenFileNotification(
+        Api.OpenFileRequest(
           visualizationFile,
           context.Visualization.code
         )
       )
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
     context.send(
-      Api.Request(requestId, Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
 
     // create context
@@ -1503,23 +1503,23 @@ class RuntimeVisualizationsTest
 
     // open files
     context.send(
-      Api.Request(requestId, Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
 
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
     context.send(
       Api.Request(
         requestId,
-        Api.OpenFileNotification(
+        Api.OpenFileRequest(
           visualizationFile,
           context.Visualization.code
         )
       )
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
 
     // create context
@@ -1656,10 +1656,10 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(requestId, Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
 
     // push main
@@ -1724,10 +1724,10 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(requestId, Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
 
     // push main
@@ -1822,10 +1822,10 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(requestId, Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
 
     // push main
@@ -1905,10 +1905,10 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(requestId, Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
 
     // push main
@@ -2005,14 +2005,14 @@ class RuntimeVisualizationsTest
     context.send(
       Api.Request(
         requestId,
-        Api.OpenFileNotification(
+        Api.OpenFileRequest(
           visualizationFile,
           visualizationCode
         )
       )
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
 
     // create context
@@ -2023,10 +2023,10 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(requestId, Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
 
     // push main
@@ -2135,10 +2135,10 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(requestId, Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
 
     // push main
@@ -2233,10 +2233,10 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(requestId, Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
 
     // push main
@@ -2366,10 +2366,10 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(requestId, Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
 
     // push main
@@ -2474,10 +2474,10 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(requestId, Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
 
     // push main
@@ -2560,14 +2560,14 @@ class RuntimeVisualizationsTest
     context.send(
       Api.Request(
         requestId,
-        Api.OpenFileNotification(
+        Api.OpenFileRequest(
           visualizationFile,
           context.Visualization.code
         )
       )
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
 
     // create context
@@ -2578,10 +2578,10 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(requestId, Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
 
     // push main
@@ -2693,14 +2693,14 @@ class RuntimeVisualizationsTest
     context.send(
       Api.Request(
         requestId,
-        Api.OpenFileNotification(
+        Api.OpenFileRequest(
           visualizationFile,
           context.AnnotatedVisualization.code
         )
       )
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
 
     // create context
@@ -2711,10 +2711,10 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(requestId, Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
 
     // push main
@@ -2873,14 +2873,14 @@ class RuntimeVisualizationsTest
     context.send(
       Api.Request(
         requestId,
-        Api.OpenFileNotification(
+        Api.OpenFileRequest(
           visualizationFile,
           context.AnnotatedVisualization.code
         )
       )
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
 
     // create context
@@ -2891,10 +2891,10 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(requestId, Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
 
     // push main
@@ -3054,10 +3054,10 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(requestId, Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
 
     // push main
@@ -3156,10 +3156,10 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(requestId, Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
 
     // push main
@@ -3262,10 +3262,10 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(requestId, Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
 
     // push main
@@ -3399,10 +3399,10 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(requestId, Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
 
     // push main

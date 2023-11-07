@@ -34,10 +34,6 @@ import org.enso.languageserver.text.CollaborativeBuffer.{
 import org.enso.languageserver.text.TextProtocol._
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.polyglot.runtime.Runtime.Api.{
-  ExpressionId,
-  OpenedFileNotification
-}
 import org.enso.text.{ContentBasedVersioning, ContentVersion}
 import org.enso.text.editing._
 import org.enso.text.editing.model.TextEdit
@@ -161,7 +157,7 @@ class CollaborativeBuffer(
     case ServerConfirmationTimeout =>
       replyTo ! OpenFileResponse(Left(OperationTimeout))
       stop(Map.empty)
-    case Api.Response(Some(id), OpenedFileNotification) if id == requestId =>
+    case Api.Response(Some(id), Api.OpenFileResponse) if id == requestId =>
       timeout.cancel()
       val cap = CapabilityRegistration(CanEdit(bufferPath))
       replyTo ! OpenFileResponse(Right(OpenFileResult(buffer, Some(cap))))
@@ -703,7 +699,7 @@ class CollaborativeBuffer(
     lockHolder: Option[JsonSession],
     clientId: ClientId,
     change: FileEdit,
-    expressionId: ExpressionId,
+    expressionId: Api.ExpressionId,
     expressionValue: String,
     autoSave: Map[ClientId, (ContentVersion, Cancellable)]
   ): Unit = {
@@ -886,7 +882,7 @@ class CollaborativeBuffer(
     val requestId = UUID.randomUUID()
     runtimeConnector ! Api.Request(
       requestId,
-      Api.OpenFileNotification(file.path, file.content)
+      Api.OpenFileRequest(file.path, file.content)
     )
     val timeoutCancellable = context.system.scheduler
       .scheduleOnce(

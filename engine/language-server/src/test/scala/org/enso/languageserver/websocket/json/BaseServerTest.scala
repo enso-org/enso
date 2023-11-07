@@ -429,7 +429,7 @@ class BaseServerTest
     fileName: Option[String]
   )(implicit pos: source.Position): Unit = {
     runtimeConnectorProbe.receiveN(1).head match {
-      case Api.Request(requestId, Api.OpenFileNotification(file, _)) =>
+      case Api.Request(requestId, Api.OpenFileRequest(file, _)) =>
         fileName match {
           case Some(f) if f != file.getName =>
             fail(
@@ -439,7 +439,7 @@ class BaseServerTest
         }
         runtimeConnectorProbe.lastSender ! Api.Response(
           requestId,
-          Api.OpenedFileNotification
+          Api.OpenFileResponse
         )
       case Api.Request(
             _,

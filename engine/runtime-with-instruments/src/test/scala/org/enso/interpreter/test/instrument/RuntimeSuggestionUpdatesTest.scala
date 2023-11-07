@@ -128,10 +128,10 @@ class RuntimeSuggestionUpdatesTest
 
     // open file
     context.send(
-      Api.Request(requestId, Api.OpenFileNotification(mainFile, code))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, code))
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
 
     // push main
@@ -667,10 +667,10 @@ class RuntimeSuggestionUpdatesTest
 
     // open file
     context.send(
-      Api.Request(requestId, Api.OpenFileNotification(mainFile, code))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, code))
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
 
     // push main
@@ -824,10 +824,10 @@ class RuntimeSuggestionUpdatesTest
 
     // open file
     context.send(
-      Api.Request(requestId, Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
 
     // push main
@@ -999,16 +999,16 @@ class RuntimeSuggestionUpdatesTest
 
     // open files
     context.send(
-      Api.Request(requestId, Api.OpenFileNotification(mainFile, mainCode))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, mainCode))
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
     context.send(
-      Api.Request(requestId, Api.OpenFileNotification(aFile, aCode))
+      Api.Request(requestId, Api.OpenFileRequest(aFile, aCode))
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
 
     // push main
@@ -1303,10 +1303,10 @@ class RuntimeSuggestionUpdatesTest
 
     // open file
     context.send(
-      Api.Request(requestId, Api.OpenFileNotification(mainFile, code))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, code))
     )
     context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenedFileNotification)
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
 
     // push main
