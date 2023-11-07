@@ -14,7 +14,6 @@ import org.enso.languageserver.runtime.RuntimeKiller.{
   RuntimeShutdownResult,
   ShutDownRuntime
 }
-import org.enso.profiling.{FileSampler, MethodsSampler, NoopSampler}
 import org.slf4j.event.Level
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContextExecutor, Future}
@@ -37,8 +36,6 @@ class LanguageServerComponent(config: LanguageServerConfig, logLevel: Level)
   /** @inheritdoc */
   override def start(): Future[ComponentStarted.type] = {
     logger.info("Starting Language Server...")
-    val sampler = startSampling(config)
-    logger.debug("Started [{}].", sampler.getClass.getName)
     val module = new MainModule(config, logLevel)
     val bindJsonServer =
       for {
@@ -79,7 +76,6 @@ class LanguageServerComponent(config: LanguageServerConfig, logLevel: Level)
       _ <- Future {
         maybeServerCtx = Some(
           ServerContext(
-            sampler,
             module,
             jsonBinding,
             secureJsonBinding,
@@ -101,20 +97,6 @@ class LanguageServerComponent(config: LanguageServerConfig, logLevel: Level)
     } yield ComponentStarted
   }
 
-  /** Start the application sampling. */
-  private def startSampling(config: LanguageServerConfig): MethodsSampler = {
-    val sampler = config.profilingConfig.profilingPath match {
-      case Some(path) =>
-        new FileSampler(path.toFile)
-      case None =>
-        NoopSampler()
-    }
-    sampler.start()
-    config.profilingConfig.profilingTime.foreach(sampler.stop(_))
-
-    sampler
-  }
-
   /** @inheritdoc */
   override def stop(): Future[ComponentStopped.type] =
     maybeServerCtx match {
@@ -123,16 +105,12 @@ class LanguageServerComponent(config: LanguageServerConfig, logLevel: Level)
 
       case Some(serverContext) =>
         for {
-          _ <- stopSampling(serverContext)
           _ <- terminateTruffle(serverContext)
           _ <- terminateAkka(serverContext)
           _ <- releaseResources(serverContext)
           _ <- Future { maybeServerCtx = None }
         } yield ComponentStopped
     }
-
-  private def stopSampling(serverContext: ServerContext): Future[Unit] =
-    Future(serverContext.sampler.stop()).recover(logError)
 
   private def releaseResources(serverContext: ServerContext): Future[Unit] =
     for {
@@ -188,7 +166,6 @@ object LanguageServerComponent {
 
   /** A running server context.
     *
-    * @param sampler a sampler gathering the application performance statistics
     * @param mainModule a main module containing all components of the server
     * @param jsonBinding a http binding for rpc protocol
     * @param secureJsonBinding an optional https binding for rpc protocol
@@ -196,7 +173,6 @@ object LanguageServerComponent {
     * @param secureBinaryBinding an optional https binding for data protocol
     */
   case class ServerContext(
-    sampler: MethodsSampler,
     mainModule: MainModule,
     jsonBinding: Http.ServerBinding,
     secureJsonBinding: Option[Http.ServerBinding],
