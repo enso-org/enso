@@ -515,7 +515,7 @@ type Array
     map_with_index : (Integer -> Any -> Any) -> Vector Any
     map_with_index self function = Vector.map_with_index self function
 
-    ## GROUP Selections
+    ## PRIVATE
        Creates a new array with the skipping elements until `start` and then
        continuing until `end` index.
 
