@@ -101,4 +101,20 @@ public class ConversionMethodTests extends TestBase {
     Value res = evalModule(ctx, src);
     assertEquals(7, res.asInt());
   }
+
+  // TODO test what happens with the conversion in non-strict error mode
+  @Test
+  public void testAmbiguousConversion() {
+    String src = """      
+       type Foo
+          Mk_Foo data
+       
+       Foo.from (that:Integer) = Foo.Mk_Foo that+100
+       Foo.from (that:Integer) = Foo.Mk_Foo that+1000
+       
+       main = Foo.from 42
+       """;
+    Value res = evalModule(ctx, src);
+    assertEquals(42, res.asInt());
+  }
 }
