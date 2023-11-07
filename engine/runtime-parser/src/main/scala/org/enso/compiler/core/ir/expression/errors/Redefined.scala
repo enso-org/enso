@@ -109,7 +109,7 @@ object Redefined {
   }
 
   /** An error representing the redefinition of a conversion in a given
-    * module. This is also known as a method overload.
+    * module
     *
     * @param targetType  the name of the atom the conversion was being
     *                    redefined on
