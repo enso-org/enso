@@ -10,7 +10,7 @@ import java.util.Map;
 
 /** * Internal class to read secrets from the Enso Cloud. */
 class EnsoSecretReader {
-  private static Map<String, String> secrets = new HashMap<>();
+  private static final Map<String, String> secrets = new HashMap<>();
 
   static void flushCache() {
     secrets.clear();
@@ -55,13 +55,6 @@ class EnsoSecretReader {
   }
 
   private static String readValueFromString(String json) {
-    return json.substring(1, json.length() - 1)
-        .replace("\\\"", "\"")
-        .replace("\\n", "\n")
-        .replace("\\t", "\t")
-        .replace("\\r", "\r")
-        .replace("\\b", "\b")
-        .replace("\\f", "\f")
-        .replace("\\\\", "\\");
+    return json.substring(1, json.length() - 1).translateEscapes();
   }
 }

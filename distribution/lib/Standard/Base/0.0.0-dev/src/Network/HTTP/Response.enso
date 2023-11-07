@@ -56,7 +56,7 @@ type Response
     headers : Vector
     headers self =
         header_map = self.internal_http_response.headers.map
-        header_map.keys.map k-> Header.new k (header_map.get k)
+        header_map.to_vector.map p-> Header.new p.first p.second
 
     ## Get the response content type.
     content_type : Text | Nothing
