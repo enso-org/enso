@@ -8,21 +8,28 @@ import { Vec2 } from '@/util/vec2'
 import { iteratorFilter } from 'lib0/iterator'
 import { abs } from 'lib0/math'
 import type { ExprId } from 'shared/yjsModel'
-import { computed, markRaw, ref, watchEffect, type WatchStopHandle } from 'vue'
+import { computed, markRaw, ref, watchEffect, type ComputedRef, type WatchStopHandle } from 'vue'
 
 const DRAG_SNAP_THRESHOLD = 15
 
 export class SnapGrid {
-  leftAxes: number[]
-  rightAxes: number[]
-  topAxes: number[]
-  bottomAxes: number[]
+  leftAxes: ComputedRef<number[]>
+  rightAxes: ComputedRef<number[]>
+  topAxes: ComputedRef<number[]>
+  bottomAxes: ComputedRef<number[]>
 
-  constructor(rects: Rect[]) {
-    this.leftAxes = Array.from(rects, (rect) => rect.left).sort((a, b) => a - b)
-    this.rightAxes = Array.from(rects, (rect) => rect.right).sort((a, b) => a - b)
-    this.topAxes = Array.from(rects, (rect) => rect.top).sort((a, b) => a - b)
-    this.bottomAxes = Array.from(rects, (rect) => rect.bottom).sort((a, b) => a - b)
+  constructor(rects: ComputedRef<Rect[]>) {
+    markRaw(this)
+    this.leftAxes = computed(() =>
+      Array.from(rects.value, (rect) => rect.left).sort((a, b) => a - b),
+    )
+    this.rightAxes = computed(() =>
+      Array.from(rects.value, (rect) => rect.right).sort((a, b) => a - b),
+    )
+    this.topAxes = computed(() => Array.from(rects.value, (rect) => rect.top).sort((a, b) => a - b))
+    this.bottomAxes = computed(() =>
+      Array.from(rects.value, (rect) => rect.bottom).sort((a, b) => a - b),
+    )
   }
 
   snappedMany(rects: Rect[], threshold: number): Vec2 {
@@ -37,10 +44,10 @@ export class SnapGrid {
   }
 
   snap(rect: Rect, threshold: number): [x: number | null, y: number | null] {
-    const leftSnap = SnapGrid.boundSnap(rect.left, this.leftAxes, threshold)
-    const rightSnap = SnapGrid.boundSnap(rect.right, this.rightAxes, threshold)
-    const topSnap = SnapGrid.boundSnap(rect.top, this.topAxes, threshold)
-    const bottomSnap = SnapGrid.boundSnap(rect.bottom, this.bottomAxes, threshold)
+    const leftSnap = SnapGrid.boundSnap(rect.left, this.leftAxes.value, threshold)
+    const rightSnap = SnapGrid.boundSnap(rect.right, this.rightAxes.value, threshold)
+    const topSnap = SnapGrid.boundSnap(rect.top, this.topAxes.value, threshold)
+    const bottomSnap = SnapGrid.boundSnap(rect.bottom, this.bottomAxes.value, threshold)
     return [SnapGrid.minSnap(leftSnap, rightSnap), SnapGrid.minSnap(topSnap, bottomSnap)]
   }
 
@@ -83,19 +90,23 @@ export function useDragging() {
   const snappedOffsetTarget = computed(() =>
     offset.value.add(new Vec2(snapXTarget.value, snapYTarget.value)),
   )
+
+  interface DraggedNode {
+    initialPos: Vec2
+    currentPos: Vec2
+  }
   class CurrentDrag {
-    /** Keys are dragged nodes, values are their initial positions. */
-    draggedNodes: Map<ExprId, Vec2>
+    draggedNodes: Map<ExprId, DraggedNode>
     grid: SnapGrid
     stopPositionUpdate: WatchStopHandle
 
     constructor(movedId: ExprId) {
       markRaw(this)
-      function* draggedNodes(): Generator<[ExprId, Vec2]> {
+      function* draggedNodes(): Generator<[ExprId, DraggedNode]> {
         const ids = selection?.isSelected(movedId) ? selection.selected : [movedId]
         for (const id of ids) {
           const node = graphStore.nodes.get(id)
-          if (node != null) yield [id, node.position]
+          if (node != null) yield [id, { initialPos: node.position, currentPos: node.position }]
         }
       }
       this.draggedNodes = new Map(draggedNodes())
@@ -106,19 +117,13 @@ export function useDragging() {
       snapX.skip()
       snapY.skip()
 
-      this.stopPositionUpdate = watchEffect(() => {
-        for (const [id, initialPos] of this.draggedNodes) {
-          const node = graphStore.nodes.get(id)
-          if (node == null) continue
-          graphStore.setNodePosition(id, initialPos.add(snappedOffset.value))
-        }
-      })
+      this.stopPositionUpdate = watchEffect(() => this.updateNodesPosition())
     }
 
     updateOffset(newOffset: Vec2): void {
       const oldSnappedOffset = snappedOffset.value
       const rects: Rect[] = []
-      for (const [id, initialPos] of this.draggedNodes) {
+      for (const [id, { initialPos }] of this.draggedNodes) {
         const rect = graphStore.nodeRects.get(id)
         const node = graphStore.nodes.get(id)
         if (rect != null && node != null) rects.push(new Rect(initialPos.add(newOffset), rect.size))
@@ -140,21 +145,35 @@ export function useDragging() {
 
     finishDragging(): void {
       this.stopPositionUpdate()
-      for (const [id, initialPos] of this.draggedNodes) {
-        const node = graphStore.nodes.get(id)
-        if (node == null) continue
-        graphStore.setNodePosition(id, initialPos.add(snappedOffsetTarget.value))
-      }
+      this.updateNodesPosition()
     }
 
     createSnapGrid() {
-      const withoutExcluded = iteratorFilter(
-        graphStore.nodeRects.entries(),
-        ([id]) => !this.draggedNodes.has(id),
-      )
-      return new SnapGrid(Array.from(withoutExcluded, ([, rect]) => rect))
+      const nonDraggedRects = computed(() => {
+        const nonDraggedNodes = iteratorFilter(
+          graphStore.nodeRects.entries(),
+          ([id]) => !this.draggedNodes.has(id),
+        )
+        return Array.from(nonDraggedNodes, ([, rect]) => rect)
+      })
+      return new SnapGrid(nonDraggedRects)
+    }
+
+    updateNodesPosition() {
+      for (const [id, dragged] of this.draggedNodes) {
+        const node = graphStore.nodes.get(id)
+        if (node == null) continue
+        // If node was moved in other way than current dragging, we want to stop dragging it.
+        if (node.position.distanceSquared(dragged.currentPos) > 1.0) {
+          this.draggedNodes.delete(id)
+        } else {
+          dragged.currentPos = dragged.initialPos.add(snappedOffset.value)
+          graphStore.setNodePosition(id, dragged.currentPos)
+        }
+      }
     }
   }
+
   let currentDrag: CurrentDrag | undefined
 
   return {

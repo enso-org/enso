@@ -2,6 +2,7 @@ import { SnapGrid } from '@/components/GraphEditor/dragging'
 import { Rect } from '@/util/rect'
 import { Vec2 } from '@/util/vec2'
 import { expect, test } from 'vitest'
+import { computed } from 'vue'
 
 test.each([
   {
@@ -61,7 +62,7 @@ test.each([
     expected: [-0.5, -0.2],
   },
 ])('Snapping to single rect: $name', ({ snappedRects, expected }) => {
-  const rects = [Rect.FromBounds(-5.0, -5.0, 15.0, 5.0)]
+  const rects = computed(() => [Rect.FromBounds(-5.0, -5.0, 15.0, 5.0)])
   const grid = new SnapGrid(rects)
 
   const converted = Array.from(snappedRects, ([l, t, r, b]) => Rect.FromBounds(l!, t!, r!, b!))
@@ -88,12 +89,12 @@ test.each`
 `(
   'Snapping rect with left/top $snappedRectX to the nearest boundary',
   ({ snappedRectPosition, expectedSnap }) => {
-    const rects = []
+    const rects: Rect[] = []
     for (let xy = -10.0; xy <= 10.1; xy += 1.0) {
       rects.push(Rect.FromBounds(xy, 0.0, 100.0, 10.0))
       rects.push(Rect.FromBounds(0.0, xy, 100.0, 10.0))
     }
-    const grid = new SnapGrid(rects)
+    const grid = new SnapGrid(computed(() => rects))
     const xSnapped = new Rect(new Vec2(snappedRectPosition, 0.0), new Vec2(10.0, 10.0))
     expect(grid.snap(xSnapped, 15.0)[0]).toBeCloseTo(expectedSnap)
     const ySnapped = new Rect(new Vec2(0.0, snappedRectPosition), new Vec2(10.0, 10.0))
