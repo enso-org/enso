@@ -13,6 +13,10 @@ import type { LazyObject } from '@/util/parserSupport.ts'
 import type { ContentRange } from '../../../shared/yjsModel'
 import { IdMap, rangeIsBefore } from '../../../shared/yjsModel'
 
+const ACCESSOR_OPERATOR = '.'
+
+const LAMBDA_OPERATOR = '->'
+
 /** Whether the debug logs of the alias analyzer should be enabled.
  *
  * It is recommended to keep them disabled (unless debugging this module), as they are very noisy and can.
@@ -55,10 +59,6 @@ class Scope {
     }
   }
 }
-
-const ACCESSOR_OPERATOR = '.'
-
-const LAMBDA_OPERATOR = '->'
 
 /** Context tells how the variables are to be treated. */
 enum Context {

@@ -26,14 +26,7 @@
  */
 
 import type { ContentRange } from '@/../../../../shared/yjsModel'
-import {
-  assert,
-  assertDefined,
-  assertEmpty,
-  assertEqual,
-  assertLength,
-  assertNotEqual,
-} from '@/util/assert'
+import { assertDefined } from '@/util/assert'
 import { MappedKeyMap, MappedSet } from '@/util/containers'
 import { expect, test } from 'vitest'
 import { IdMap } from '../../../../shared/yjsModel'
@@ -81,11 +74,9 @@ function parseAnnotations(annotatedCode: string): {
 
       // Sanity check: either both binding prefix and name are present, or both usage prefix and name are present.
       // Otherwise, we have an internal error in the regex.
-
       expect(bindingPrefix != null).toBe(bindingName != null)
-
-      assertEqual(usagePrefix != null, usageName != null)
-      assertNotEqual(bindingPrefix != null, usagePrefix != null)
+      expect(usagePrefix != null).toBe(usageName != null)
+      expect(bindingPrefix != null).not.toBe(usagePrefix != null)
 
       const id = parseInt(bindingPrefix ?? usagePrefix, 10)
       const name = bindingName ?? usageName
@@ -102,8 +93,14 @@ function parseAnnotations(annotatedCode: string): {
     },
   )
   // Make sure that all annotations were removed. i.e. make sure that there are no unmatched `«` or `»` characters.
-  assert(!unannotatedCode.includes('«'), `Unmatched « character. Full code: ${unannotatedCode}`)
-  assert(!unannotatedCode.includes('»'), `Unmatched » character. Full code: ${unannotatedCode}`)
+  expect(
+    unannotatedCode.includes('«'),
+    `Unmatched « character. Full code: ${unannotatedCode}`,
+  ).toBe(false)
+  expect(
+    unannotatedCode.includes('»'),
+    `Unmatched » character. Full code: ${unannotatedCode}`,
+  ).toBe(false)
   return { unannotatedCode, annotations }
 }
 
@@ -129,10 +126,10 @@ class TestCase {
 
     for (const [range, annotation] of annotations) {
       if (annotation.kind === AnnotationType.Binding) {
-        assert(
-          !prefixBindings.has(annotation.id),
+        expect(
+          prefixBindings.has(annotation.id),
           `Duplicate binding with id ${annotation.id} at [${range}].`,
-        )
+        ).toBe(false)
         prefixBindings.set(annotation.id, range)
         console.debug(`Binding ${annotation.id}@[${range}]`)
         testCase.expectedAliases.set(range, [])
@@ -174,27 +171,27 @@ class TestCase {
 
       for (const target of targets) {
         const foundConnection = foundTargets.has(target)
-        assert(foundConnection, `Expected connection [${source}] -> [${target}] not found.`)
+        // assert(foundConnection, `Expected connection [${source}] -> [${target}] not found.`)
+        expect(foundConnection, `Expected connection [${source}] -> [${target}] not found.`).toBe(
+          true,
+        )
         console.log(`Found expected connection [${source}] -> [${target}]`)
       }
     }
 
     for (const unresolvedSymbol of this.expectedUnresolvedSymbols) {
-      assert(
+      expect(
         analyzer.unresolvedSymbols.has(unresolvedSymbol),
         `Expected unresolved symbol usage ${this.prettyPrint(unresolvedSymbol)} not observed.`,
-      )
+      ).toBe(true)
       console.log(
         `Found expected unresolved symbol usage at ${this.prettyPrint(unresolvedSymbol)}.`,
       )
     }
 
-    assertEqual(
-      this.expectedUnresolvedSymbols.size,
+    expect(this.expectedUnresolvedSymbols.size, 'Unresolved symbols count mismatch.').toBe(
       analyzer.unresolvedSymbols.size,
-      'Unresolved symbols count mismatch.',
     )
-
     return analyzer
   }
 
@@ -218,8 +215,8 @@ test('Annotations parsing', () => {
     u = x + y`
 
   const { unannotatedCode, annotations } = parseAnnotations(annotatedCode)
-  assert(unannotatedCode === expectedUnannotatedCode)
-  assert(annotations.size === 7)
+  expect(unannotatedCode).toBe(expectedUnannotatedCode)
+  expect(annotations.size).toBe(7)
   const validateAnnotation = (
     range: ContentRange,
     kind: AnnotationType,
@@ -228,13 +225,11 @@ test('Annotations parsing', () => {
   ) => {
     try {
       const a = annotations.get(range)
-      assertDefined(a, `Annotation is not defined.`)
-      assertEqual(a.kind, kind, 'Invalid annotation kind.')
-      assertEqual(a.id, prefix, 'Invalid annotation prefix.')
-      assertEqual(
-        unannotatedCode.substring(range[0], range[1]),
+      assertDefined(a, `No annotation found at [${range}].`)
+      expect(a.kind, 'Invalid annotation kind.').toBe(kind)
+      expect(a.id, 'Invalid annotation prefix.').toBe(prefix)
+      expect(unannotatedCode.substring(range[0], range[1]), 'Invalid annotation identifier.').toBe(
         identifier,
-        'Invalid annotation identifier.',
       )
     } catch (e) {
       const message = `Invalid annotation at [${range}]: ${e}`
@@ -330,4 +325,12 @@ test(
   'Text literals',
   runTestCase(`«1,main» =
     «2,fmt_string» = 'Hello, my age is \`»3,time«.now.year - »4,birthday«\`'`),
+)
+
+test(
+  'Before and after binding',
+  runTestCase(`«1,main» =
+    »2,x«
+    «3,x» = 1
+    »3,x«`),
 )
