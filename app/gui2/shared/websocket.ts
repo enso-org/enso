@@ -1,4 +1,8 @@
+/// <reference lib="DOM" />
 /* eslint-env browser */
+
+// The refernce to DOM types is requiredto use `WebSocket` as a type.
+// This is preferable over using `any`, for additional type safety.
 
 /* The MIT License (MIT)
  *
@@ -40,10 +44,9 @@ const maxReconnectTimeout = 2500
 // @todo - this should depend on awareness.outdatedTime
 const messageReconnectTimeout = 30000
 
-const setupWS = (wsclient: WebsocketClient) => {
-  if (wsclient.shouldConnect && wsclient.ws === null) {
-    // @ts-ignore I don't know why `lib` is misconfigured.
-    const websocket = new WebSocket(wsclient.url)
+const setupWS = (wsclient: WebsocketClient, ws?: WebSocket | null | undefined) => {
+  if (wsclient.shouldConnect && (wsclient.ws === null || ws)) {
+    const websocket = ws ?? new WebSocket(wsclient.url)
     const binaryType = wsclient.binaryType
     let pingTimeout: any = null
     if (binaryType) {
@@ -115,7 +118,7 @@ type WebsocketEvents = {
 }
 
 export class WebsocketClient extends ObservableV2<WebsocketEvents> {
-  ws: any
+  ws: WebSocket | null
   binaryType
   sendPings
   connected
@@ -149,7 +152,7 @@ export class WebsocketClient extends ObservableV2<WebsocketEvents> {
           ) {
             // no message received in a long time - not even your own awareness
             // updates (which are updated every 15 seconds)
-            this.ws.close()
+            this.ws?.close()
           }
         }, messageReconnectTimeout / 2)
       : 0
@@ -157,13 +160,10 @@ export class WebsocketClient extends ObservableV2<WebsocketEvents> {
   }
 
   send(message: {} | ArrayBuffer | Blob) {
-    if (this.ws) {
-      const encoded =
-        message instanceof ArrayBuffer || message instanceof Blob
-          ? message
-          : JSON.stringify(message)
-      this.ws.send(encoded)
-    }
+    if (!this.ws) return
+    const encoded =
+      message instanceof ArrayBuffer || message instanceof Blob ? message : JSON.stringify(message)
+    this.ws.send(encoded)
   }
 
   destroy() {
@@ -174,15 +174,14 @@ export class WebsocketClient extends ObservableV2<WebsocketEvents> {
 
   disconnect() {
     this.shouldConnect = false
-    if (this.ws !== null) {
-      this.ws.close()
-    }
+    this.ws?.close()
   }
 
-  connect() {
+  connect(ws?: WebSocket | null | undefined) {
     this.shouldConnect = true
-    if (!this.connected && this.ws === null) {
-      setupWS(this)
+    if (ws) this.ws = ws
+    if ((!this.connected && !this.ws) || ws) {
+      setupWS(this, ws)
     }
   }
 }

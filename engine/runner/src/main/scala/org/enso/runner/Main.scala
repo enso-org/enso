@@ -67,6 +67,7 @@ object Main {
   private val IR_CACHES_OPTION               = "ir-caches"
   private val NO_IR_CACHES_OPTION            = "no-ir-caches"
   private val NO_READ_IR_CACHES_OPTION       = "no-read-ir-caches"
+  private val DISABLE_PRIVATE_CHECK_OPTION   = "disable-private-check"
   private val COMPILE_OPTION                 = "compile"
   private val NO_COMPILE_DEPENDENCIES_OPTION = "no-compile-dependencies"
   private val NO_GLOBAL_CACHE_OPTION         = "no-global-cache"
@@ -586,6 +587,7 @@ object Main {
     * @param logLevel       log level to set for the engine runtime
     * @param logMasking     is the log masking enabled
     * @param enableIrCaches are IR caches enabled
+    * @param disablePrivateCheck Is private modules check disabled. If yes, `private` keyword is ignored.
     * @param inspect        shall inspect option be enabled
     * @param dump           shall graphs be sent to the IGV
     * @param executionEnvironment optional name of the execution environment to use during execution
@@ -597,6 +599,7 @@ object Main {
     logLevel: Level,
     logMasking: Boolean,
     enableIrCaches: Boolean,
+    disablePrivateCheck: Boolean,
     enableAutoParallelism: Boolean,
     inspect: Boolean,
     dump: Boolean,
@@ -639,6 +642,7 @@ object Main {
       logLevel,
       logMasking,
       enableIrCaches,
+      disablePrivateCheck,
       strictErrors          = true,
       enableAutoParallelism = enableAutoParallelism,
       executionEnvironment  = executionEnvironment,
@@ -1171,6 +1175,7 @@ object Main {
         logLevel,
         logMasking,
         shouldEnableIrCaches(line),
+        line.hasOption(DISABLE_PRIVATE_CHECK_OPTION),
         line.hasOption(AUTO_PARALLELISM_OPTION),
         line.hasOption(INSPECT_OPTION),
         line.hasOption(DUMP_GRAPHS_OPTION),

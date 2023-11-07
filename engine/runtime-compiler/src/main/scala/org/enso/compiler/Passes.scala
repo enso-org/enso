@@ -47,8 +47,13 @@ class Passes(
       OperatorToFunction,
       LambdaShorthandToLambda,
       ImportSymbolAnalysis,
-      AmbiguousImportsAnalysis,
-      PrivateModuleAnalysis.INSTANCE,
+      AmbiguousImportsAnalysis
+    ) ++ (if (config.privateCheckEnabled) {
+            List(
+              PrivateModuleAnalysis.INSTANCE
+            )
+          } else List())
+    ++ List(
       ExportSymbolAnalysis.INSTANCE,
       ShadowedPatternFields,
       UnreachableMatchBranches,

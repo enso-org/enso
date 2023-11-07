@@ -1,11 +1,14 @@
+import { sha3_224 as SHA3 } from '@noble/hashes/sha3'
+import { bytesToHex } from '@noble/hashes/utils'
 import { Client } from '@open-rpc/client-js'
 import { ObservableV2 } from 'lib0/observable'
 import { uuidv4 } from 'lib0/random'
-import { SHA3 } from 'sha3'
 import { z } from 'zod'
+import { walkFs } from './languageServer/files'
 import type {
   Checksum,
   ContextId,
+  Event,
   ExecutionEnvironment,
   ExpressionId,
   FileEdit,
@@ -377,11 +380,45 @@ export class LanguageServer extends ObservableV2<Notifications> {
     return this.request('runtime/getComponentGroups', {})
   }
 
+  /** A helper function to subscribe to file updates.
+   * Please use `ls.on('file/event')` directly if the initial `'Added'` notifications are not
+   * needed. */
+  watchFiles(
+    rootId: Uuid,
+    segments: string[],
+    callback: (event: Event<'file/event'>) => void,
+    retry: <T>(cb: () => Promise<T>) => Promise<T> = (f) => f(),
+  ) {
+    let running = true
+    ;(async () => {
+      this.on('file/event', callback)
+      walkFs(this, { rootId, segments }, (type, path) => {
+        if (
+          !running ||
+          type !== 'File' ||
+          path.segments.length < segments.length ||
+          segments.some((seg, i) => seg !== path.segments[i])
+        )
+          return
+        callback({
+          path: { rootId: path.rootId, segments: path.segments.slice(segments.length) },
+          kind: 'Added',
+        })
+      })
+      await retry(() => this.acquireReceivesTreeUpdates({ rootId, segments }))
+      if (!running) return
+    })()
+    return () => {
+      running = false
+      this.off('file/event', callback)
+    }
+  }
+
   dispose() {
     this.client.close()
   }
 }
 
 export function computeTextChecksum(text: string): Checksum {
-  return new SHA3(224).update(text).digest('hex') as Checksum
+  return bytesToHex(SHA3.create().update(text).digest()) as Checksum
 }
