@@ -21,6 +21,10 @@ import {
 import { computed, reactive, ref, watch } from 'vue'
 import * as Y from 'yjs'
 
+export interface NodeEditInfo {
+  id: ExprId
+  range: ContentRange
+}
 export const useGraphStore = defineStore('graph', () => {
   const proj = useProjectStore()
 
@@ -30,11 +34,11 @@ export const useGraphStore = defineStore('graph', () => {
   const metadata = computed(() => proj.module?.doc.metadata)
 
   const textContent = ref('')
-
   const nodes = reactive(new Map<ExprId, Node>())
   const exprNodes = reactive(new Map<ExprId, ExprId>())
   const nodeRects = reactive(new Map<ExprId, Rect>())
   const exprRects = reactive(new Map<ExprId, Rect>())
+  const editedNodeInfo = ref<NodeEditInfo>()
 
   const unconnectedEdge = ref<UnconnectedEdge>()
 
@@ -327,10 +331,24 @@ export const useGraphStore = defineStore('graph', () => {
     exprRects.set(id, rect)
   }
 
+  function setEditedNode(id: ExprId | null, cursorPosition: number | null) {
+    if (id == null) {
+      editedNodeInfo.value = undefined
+      return
+    }
+    if (cursorPosition == null) {
+      console.warn('setEditedNode: cursorPosition is null')
+      return
+    }
+    const range = [cursorPosition, cursorPosition] as ContentRange
+    editedNodeInfo.value = { id, range }
+  }
+
   return {
     _ast,
     transact,
     nodes,
+    editedNodeInfo,
     exprNodes,
     unconnectedEdge,
     edges,
@@ -353,6 +371,7 @@ export const useGraphStore = defineStore('graph', () => {
     stopCapturingUndo,
     updateNodeRect,
     updateExprRect,
+    setEditedNode,
   }
 })
 

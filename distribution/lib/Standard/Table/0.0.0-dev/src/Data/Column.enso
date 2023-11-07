@@ -1984,11 +1984,14 @@ type Column
     ## Returns a column containing rows of this column.
 
        Arguments:
-       - max_rows: specifies a maximum amount of rows to fetch; if not set, all
-         available rows are fetched.
-    read : (Nothing | Integer) -> Column
-    read self max_rows=Nothing =
-        if max_rows.is_nothing then self else self.slice 0 max_rows
+       - max_rows: specifies the maximum number of rows to read.
+         If `Nothing`, all available rows are returned.
+       - warn_if_more_rows: if set to `True`, a warning is attached to the
+         result if the number of rows returned by the query exceeds `max_rows`.
+    read : (Nothing | Integer) -> Boolean -> Column
+    read self (max_rows : Integer | Nothing = Nothing) (warn_if_more_rows:Boolean = True) =
+        if max_rows.is_nothing then self else
+            self.to_table.read max_rows warn_if_more_rows . at 0
 
     ## GROUP Standard.Base.Conversions
        Returns a vector containing all the elements in this column.
