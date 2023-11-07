@@ -14,7 +14,7 @@ import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.pass.PassManager
 import org.enso.compiler.test.CompilerTest
-import org.enso.interpreter.runtime.scope.LocalScope
+import org.enso.compiler.context.LocalScope
 import org.enso.text.buffer.Rope
 import org.enso.text.editing.JavaEditorAdapter
 import org.enso.text.editing.model.{Position, Range, TextEdit}

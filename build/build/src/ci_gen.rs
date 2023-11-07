@@ -94,6 +94,7 @@ pub mod secret {
     pub const APPLE_CODE_SIGNING_CERT_PASSWORD: &str = "APPLE_CODE_SIGNING_CERT_PASSWORD";
     pub const APPLE_NOTARIZATION_USERNAME: &str = "APPLE_NOTARIZATION_USERNAME";
     pub const APPLE_NOTARIZATION_PASSWORD: &str = "APPLE_NOTARIZATION_PASSWORD";
+    pub const APPLE_NOTARIZATION_TEAM_ID: &str = "APPLE_NOTARIZATION_TEAM_ID";
 
     // === Windows Code Signing ===
     /// Name of the GitHub Actions secret that stores path to the Windows code signing certificate

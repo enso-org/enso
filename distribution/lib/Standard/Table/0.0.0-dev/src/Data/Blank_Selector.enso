@@ -1,0 +1,6 @@
+## TODO Documents
+type Blank_Selector
+    ## Blank_Selector is used as a constructor for other functions.
+    Any_Cell_Blank
+
+    All_Cells_Blank

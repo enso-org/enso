@@ -2,6 +2,7 @@
 import { codeEditorBindings, graphBindings, interactionBindings } from '@/bindings'
 import CodeEditor from '@/components/CodeEditor.vue'
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
+import { Uploader, uploadedExpression } from '@/components/GraphEditor/upload'
 import SelectionBrush from '@/components/SelectionBrush.vue'
 import TopBar from '@/components/TopBar.vue'
 import { provideGraphNavigator } from '@/providers/graphNavigator'
@@ -14,6 +15,7 @@ import { keyboardBusy, keyboardBusyExceptIn, useEvent } from '@/util/events'
 import { Interaction } from '@/util/interaction'
 import { Vec2 } from '@/util/vec2'
 import * as set from 'lib0/set'
+import type { ExprId } from 'shared/yjsModel.ts'
 import { computed, onMounted, ref, watch } from 'vue'
 import GraphEdges from './GraphEditor/GraphEdges.vue'
 import GraphNodes from './GraphEditor/GraphNodes.vue'
@@ -25,6 +27,7 @@ const navigator = provideGraphNavigator(viewportNode)
 const graphStore = useGraphStore()
 const projectStore = useProjectStore()
 const componentBrowserVisible = ref(false)
+const componentBrowserInputContent = ref('')
 const componentBrowserPosition = ref(Vec2.Zero)
 const suggestionDb = useSuggestionDbStore()
 
@@ -58,6 +61,7 @@ const graphBindingsHandler = graphBindings.handler({
     if (navigator.sceneMousePos != null && !componentBrowserVisible.value) {
       componentBrowserPosition.value = navigator.sceneMousePos
       componentBrowserVisible.value = true
+      componentBrowserInputContent.value = ''
     }
   },
   newNode() {
@@ -180,6 +184,63 @@ watch(componentBrowserVisible, (visible) => {
     interactionEnded(editingNode)
   }
 })
+
+async function handleFileDrop(event: DragEvent) {
+  try {
+    if (event.dataTransfer && event.dataTransfer.items) {
+      ;[...event.dataTransfer.items].forEach(async (item) => {
+        if (item.kind === 'file') {
+          const file = item.getAsFile()
+          if (file) {
+            const clientPos = new Vec2(event.clientX, event.clientY)
+            const pos = navigator.clientToScenePos(clientPos)
+            const uploader = await Uploader.create(
+              projectStore.lsRpcConnection,
+              projectStore.dataConnection,
+              projectStore.contentRoots,
+              file,
+            )
+            const name = await uploader.upload()
+            graphStore.createNode(pos, uploadedExpression(name))
+          }
+        }
+      })
+    }
+  } catch (err) {
+    console.error(`Uploading file failed. ${err}`)
+  }
+}
+
+function onComponentBrowserFinished(content: string) {
+  if (content != null && graphStore.editedNodeInfo != null) {
+    graphStore.setNodeContent(graphStore.editedNodeInfo.id, content)
+  }
+  componentBrowserVisible.value = false
+  graphStore.editedNodeInfo = undefined
+}
+
+function getNodeContent(id: ExprId): string {
+  const node = graphStore.nodes.get(id)
+  if (node == null) return ''
+  return node.rootSpan.repr()
+}
+
+// Watch the editedNode in the graph store
+watch(
+  () => graphStore.editedNodeInfo,
+  (editedInfo) => {
+    if (editedInfo != null) {
+      const targetNode = graphStore.nodes.get(editedInfo.id)
+      const targetPos = targetNode?.position ?? Vec2.Zero
+      const offset = new Vec2(20, 35)
+      componentBrowserPosition.value = targetPos.add(offset)
+      componentBrowserInputContent.value = getNodeContent(editedInfo.id)
+      componentBrowserVisible.value = true
+    } else {
+      componentBrowserVisible.value = false
+    }
+  },
+)
 </script>
 
 <template>
@@ -191,6 +252,8 @@ watch(componentBrowserVisible, (visible) => {
     @click="graphBindingsHandler"
     v-on.="navigator.events"
     v-on..="nodeSelection.events"
+    @dragover.prevent
+    @drop.prevent="handleFileDrop($event)"
   >
     <svg :viewBox="navigator.viewBox">
       <GraphEdges @startInteraction="setCurrentInteraction" @endInteraction="interactionEnded" />
@@ -200,9 +263,12 @@ watch(componentBrowserVisible, (visible) => {
     </div>
     <ComponentBrowser
       v-if="componentBrowserVisible"
+      ref="componentBrowser"
       :navigator="navigator"
       :position="componentBrowserPosition"
-      @finished="componentBrowserVisible = false"
+      @finished="onComponentBrowserFinished"
+      :initialContent="componentBrowserInputContent"
+      :initialCaretPosition="graphStore.editedNodeInfo?.range ?? [0, 0]"
     />
     <TopBar
       v-model:mode="projectStore.executionMode"

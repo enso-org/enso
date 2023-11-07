@@ -217,7 +217,7 @@ spec =
             ([Child.Value 1].to_array == [Child.Value 101].to_array).should_be_true
 
         Test.specify "should handle recursive atoms without custom `==`" <|
-            rnd = (Random.new seed=42).java_random
+            rnd = (Random.new_generator seed=42).java_random
             trees = (0.up_to 5).map _->
                 create_random_tree 5 rnd
             trees.each tree->

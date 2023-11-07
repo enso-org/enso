@@ -36,6 +36,10 @@ public abstract class MultiValueKeyBase {
     return result;
   }
 
+  public int getRowIndex() {
+    return rowIndex;
+  }
+
   @Override
   public abstract boolean equals(Object o);
 

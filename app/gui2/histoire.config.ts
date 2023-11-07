@@ -16,6 +16,7 @@ const order = [
   'All SVG Icons',
   // Visualizations
   'Selector',
+  'User Defined',
   'JSON',
   'Table',
   'Scatterplot',
