@@ -1,28 +1,45 @@
 package org.enso.interpreter.test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
-
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
+import org.hamcrest.MatcherAssert;
+import org.hamcrest.Matchers;
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 public class ConversionMethodTests extends TestBase {
   private static Context ctx;
   private static Context nonStrictCtx;
 
+  private static final ByteArrayOutputStream out = new ByteArrayOutputStream();
+
   @BeforeClass
   public static void initCtx() {
-    ctx = createDefaultContext();
-    nonStrictCtx = createNonStrictContext();
+    ctx = createDefaultContext(out);
+    nonStrictCtx = createNonStrictContext(out);
   }
 
   @AfterClass
   public static void disposeCtx() {
     ctx.close();
     nonStrictCtx.close();
+  }
+
+  @Before
+  public void resetOutput() {
+    out.reset();
+  }
+
+  private String getStdOut() {
+    return out.toString(StandardCharsets.UTF_8);
   }
 
   @Test
@@ -125,7 +142,8 @@ public class ConversionMethodTests extends TestBase {
 
   @Test
   public void testAmbiguousConversionUsage() {
-    // In non-strict mode, the conversion declarations will have errors attached to the IR, but the overall operation will simply not see the conversion.
+    // In non-strict mode, the conversion declarations will have errors attached to the IR, but the overall operation
+    // will simply not see the second conversion and succeed with the first one.
     String src = """      
        type Foo
           Mk_Foo data
@@ -135,37 +153,12 @@ public class ConversionMethodTests extends TestBase {
        Foo.from (that:Bar) = Foo.Mk_Foo that.x+100
        Foo.from (that:Bar) = Foo.Mk_Foo that.x+1000
        
-       main = Foo.from (Bar.Mk_Bar 42)
+       main = (Foo.from (Bar.Mk_Bar 42)) . data
        """;
-    try {
-      Value res = evalModule(nonStrictCtx, src);
-      fail("Expected an exception, but got " + res);
-    } catch (Exception e) {
-      assertEquals("No_Such_Conversion.Error", e.getMessage());
-    }
-  }
 
-  @Test
-  public void testAmbiguousConversionStrict() {
-    String src = """      
-       type Foo
-          Mk_Foo data
-       type Bar
-          Mk_Bar x
-       
-       Foo.from (that:Bar) = Foo.Mk_Foo that.x+100
-       Foo.from (that:Bar) = Foo.Mk_Foo that.x+1000
-       
-       main = Foo.from (Bar.Mk_Bar 42)
-       """;
-    try {
-      Value res = evalModule(ctx, src);
-      fail("Expected an exception, but got " + res);
-    } catch (Exception e) {
-      assertEquals("??", e.getMessage());
-    }
+    Value res = evalModule(nonStrictCtx, src);
+    assertEquals(142, res.asInt());
   }
-
 
   @Test
   public void testAmbiguousConversionStrictUnused() {
@@ -184,7 +177,8 @@ public class ConversionMethodTests extends TestBase {
       Value res = evalModule(ctx, src);
       fail("Expected an exception, but got " + res);
     } catch (Exception e) {
-      assertEquals("??", e.getMessage());
+      assertEquals("Compilation aborted due to errors.", e.getMessage());
+      MatcherAssert.assertThat(getStdOut(), Matchers.containsString("Unnamed:7:1: error: Ambiguous conversion: Foo.from Bar is defined multiple times in this module."));
     }
   }
 }
