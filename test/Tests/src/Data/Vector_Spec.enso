@@ -683,11 +683,6 @@ type_spec name alter = Test.group name <|
         small_expected = alter [T.Value 4 0, T.Value 1 3, T.Value 1 8, T.Value -1 10, T.Value -1 1, T.Value -20 0]
         small_vec.sort Sort_Direction.Descending . should_equal small_expected
 
-    Test.specify "should correctly propagate error through map" <|
-        alter [1, 2, 3] . map Error.throw . catch . should_equal 1
-        fun a = if a == 3 then Error.throw (My_Error.Value a) else a
-        alter [1, 2, 3, 4] . map fun . catch My_Error . should_equal (My_Error.Value 3)
-
     Test.specify "should correctly propagate state through each" <|
         v = State.run Number 77 <|
             b = Vector.new_builder
@@ -803,6 +798,41 @@ type_spec name alter = Test.group name <|
         sorted = input.sort on_incomparable=Problem_Behavior.Report_Warning
         Warning.get_all sorted . length . should_equal 10
         Warning.limit_reached sorted . should_equal True
+
+    Test.group "error within map (on_problems=Report_Error)" <|
+        fun a = if a == 30 then Error.throw (My_Error.Value a) else a+1
+
+        Test.specify "an error thrown inside map should be wrapped in Map_Error" <|
+            alter [10, 20, 30, 40] . map fun . should_equal (Map_Error.Value 2 (My_Error.Value 30))
+
+        Test.specify "an error thrown inside map and caught (without error parameter) should be wrapped in Map_Error" <|
+            alter [10, 20, 30, 40] . map fun . catch . should_equal (Map_Error.Value 2 (My_Error.Value 30))
+
+        Test.specify "an error thrown inside map and caught (with error parameter) should not be wrapped in Map_Error" <|
+            alter [10, 20, 30, 40] . map fun . catch My_Error . should_equal (My_Error.Value 30)
+            alter [10, 20, 30, 40] . map fun . should_fail_with My_Error
+
+    Test.group "error within map (on_problems=Ignore)" <|
+        Test.specify "an error thrown inside map should be ignored" <|
+            alter [10, 20, 30, 40] . map fun on_problems=Problem_Behavior.Ignore . should_equal [11, 21, Nothing, 41]
+
+    Test.group "error within map (on_problems=Report_Warning)" <|
+        Test.specify "an error thrown inside map should be attached as a warning" <|
+            result = alter [10, 20, 30, 40] . map fun on_problems=Problem_Behavior.Report_Warning
+            result . should_equal [11, 21, Nothing, 41]
+            Warning.get_all result . should_equal [(Map_Error.Value 2 (My_Error.Value 30))]
+
+        Test.specify "multiple errors thrown inside map should be attached as warnings" <|
+            result = alter [10, 30, 20, 30, 40, 30] . map fun on_problems=Problem_Behavior.Report_Warning
+            result . should_equal [11, Nothing, 21, Nothing, 41, Nothing]
+            Warning.get_all result . should_equal (Vector.fill 3 (Map_Error.Value 2 (My_Error.Value 30)))
+
+        Test.specify "many errors thrown inside map should be attached as warnings and an Additional_Warnings" <|
+            result = alter ([10, 20] + (Vector.fill 12 30) + [40]) . map fun on_problems=Problem_Behavior.Report_Warning
+            result . should_equal ([11, 21] + (Vector.fill 12 Nothing) + [41])
+            expected_warnings_regular = 2.up_to 14 . map i-> Map_Error.Value i (My_Error.Value 30)
+            expected_warnings = expected_warnings_regular + [(Additional_Warnings.Error 2)]
+            Warning.get_all result . should_equal expected_warnings
 
 spec =
     Test.group "Vector builder" <|
