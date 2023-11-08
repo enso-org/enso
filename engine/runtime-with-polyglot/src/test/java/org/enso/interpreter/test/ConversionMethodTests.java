@@ -158,6 +158,8 @@ public class ConversionMethodTests extends TestBase {
 
     Value res = evalModule(nonStrictCtx, src);
     assertEquals(142, res.asInt());
+    // But we should still get the diagnostic!
+    MatcherAssert.assertThat(getStdOut(), Matchers.containsString("Unnamed:7:1: error: Ambiguous conversion: Foo.from Bar is defined multiple times in this module."));
   }
 
   @Test
