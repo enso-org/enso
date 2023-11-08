@@ -68,14 +68,13 @@ class OverloadsResolutionErrorTest extends InterpreterTest {
           |
           |Foo.from (that : Bar) = Foo.Mk_Foo that.x+100
           |Foo.from (that : Bar) = Foo.Mk_Foo that.x+200
-          |
-          |foo = 123
           |""".stripMargin.linesIterator.mkString("\n")
 
       the[InterpreterException] thrownBy eval(code) should have message
       "Compilation aborted due to errors."
 
       val diagnostics = consumeOut
+      println(diagnostics.mkString("\n"))
       diagnostics
         .filterNot(isDiagnosticLine)
         .toSet shouldEqual Set(

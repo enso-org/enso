@@ -106,6 +106,11 @@ class OverloadsResolutionTest extends CompilerTest {
       ir.bindings.head shouldBe a[definition.Method.Conversion]
       ir.bindings(1) shouldBe a[definition.Method.Conversion]
       ir.bindings(2) shouldBe an[errors.Redefined.Conversion]
+
+      val m = ir.bindings(1).location().get
+      val e = ir.bindings(2).location().get
+      println(s"Method: $m; ${m.length}")
+      println(s"Error:  $e; ${e.length}")
     }
   }
 

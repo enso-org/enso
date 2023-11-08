@@ -1050,6 +1050,9 @@ class Compiler(
     private val sourceSection: Option[SourceSection] =
       diagnostic.location match {
         case Some(location) =>
+          println(
+            s"Creating section (${location.start}-${location.end}) within source of length ${source.getLength}"
+          )
           Some(source.createSection(location.start, location.length))
         case None => None
       }
