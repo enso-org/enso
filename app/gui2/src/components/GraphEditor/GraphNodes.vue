@@ -41,7 +41,7 @@ function hoverNode(id: ExprId | undefined) {
 const uploadingFiles = computed<[FileName, File][]>(() => {
   const currentStackItem = projectStore.executionContext.getStackTop()
   return [...projectStore.awareness.allUploads()].filter(
-    (value) => value[1].stackItem == currentStackItem,
+    ([_name, file]) => file.stackItem == currentStackItem,
   )
 })
 </script>
