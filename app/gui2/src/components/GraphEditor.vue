@@ -154,7 +154,33 @@ const groupColors = computed(() => {
   return styles
 })
 
+/// === Interaction Handling ===
+/// The following code handles some ongoing user interactions within the graph editor. Interactions are used to create
+/// new nodes, connect nodes with edges, etc. They are implemented as classes that inherit from
+/// `Interaction`. The interaction classes are instantiated when the interaction starts and
+/// destroyed when the interaction ends. The interaction classes are also responsible for
+/// cancelling the interaction when needed. This is done by calling `cancelCurrentInteraction`.
+
 const currentInteraction = ref<Interaction>()
+
+/// Set the current interaction. This will cancel the previous interaction.
+function setCurrentInteraction(interaction: Interaction) {
+  if (currentInteraction.value?.id === interaction?.id) return
+  cancelCurrentInteraction()
+  currentInteraction.value = interaction
+}
+
+/// End the current interaction and run its cancel handler.
+function cancelCurrentInteraction() {
+  currentInteraction.value?.cancel()
+  currentInteraction.value = undefined
+}
+
+/// End the current interaction without running its cancel handler.
+function abortCurrentInteraction() {
+  currentInteraction.value = undefined
+}
+
 class EdgeDragging extends Interaction {
   nodeId: ExprId
 
@@ -166,11 +192,8 @@ class EdgeDragging extends Interaction {
   cancel() {
     componentBrowserVisible.value = false
   }
-
-  success(): void {
-    componentBrowserVisible.value = true
-  }
 }
+
 /// Interaction to create a new node. This will create a temporary node and open the component browser.
 /// If the interaction is cancelled, the temporary node will be deleted, otherwise it will be kept.
 class CreatingNode extends Interaction {
@@ -190,25 +213,16 @@ class CreatingNode extends Interaction {
     // From here on we just edit the temporary node.
     graphStore.editedNodeInfo = { id: nodeId, range: [0, 0] }
   }
-
-  success(): void {
-    // Nothing to do, we just leave the temporary node in the graph.
-  }
   cancel() {
     // Aborting node creation means we no longer need the temporary node.
     graphStore.deleteNode(this.nodeId)
   }
 }
 
-function setCurrentInteraction(interaction: Interaction | undefined) {
-  if (currentInteraction.value?.id === interaction?.id) return
-  currentInteraction.value?.cancel()
-  currentInteraction.value = interaction
-}
-
-function cancelCurrentInteraction() {
-  currentInteraction.value?.cancel()
-  setCurrentInteraction(undefined)
+// Start a node creation interaction. This will create a new node and open the component browser.
+// For more information about the flow of the interaction, see `CreatingNode`.
+function startNodeCreation() {
+  setCurrentInteraction(new CreatingNode())
 }
 
 async function handleFileDrop(event: DragEvent) {
@@ -237,12 +251,6 @@ async function handleFileDrop(event: DragEvent) {
   }
 }
 
-// Start a node creation interaction. This will create a new node and open the component browser.
-// For more information about the flow of the interaction, see `CreatingNode`.
-function startNodeCreation() {
-  setCurrentInteraction(new CreatingNode())
-}
-
 function onComponentBrowserCommit(content: string) {
   currentInteraction.value?.success()
 
@@ -253,6 +261,9 @@ function onComponentBrowserCommit(content: string) {
   graphStore.editedNodeInfo = undefined
 }
 
+/**
+ *
+ */
 function getNodeContent(id: ExprId): string {
   const node = graphStore.nodes.get(id)
   if (node == null) return ''
@@ -292,7 +303,7 @@ watch(
     <svg :viewBox="navigator.viewBox">
       <GraphEdges
         @startInteraction="setCurrentInteraction"
-        @endInteraction="cancelCurrentInteraction"
+        @endInteraction="abortCurrentInteraction"
       />
     </svg>
     <div :style="{ transform: navigator.transform }" class="htmlLayer">

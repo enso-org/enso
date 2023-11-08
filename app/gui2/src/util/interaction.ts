@@ -7,7 +7,6 @@ export abstract class Interaction {
   }
 
   abstract cancel(): void
-  abstract success(): void
   click(_e: MouseEvent): boolean {
     return false
   }
