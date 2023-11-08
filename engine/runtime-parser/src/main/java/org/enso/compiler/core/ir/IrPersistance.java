@@ -1,6 +1,8 @@
 package org.enso.compiler.core.ir;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import org.enso.compiler.core.Persistance;
 import org.enso.compiler.core.ir.expression.Application;
@@ -30,6 +32,7 @@ import scala.collection.immutable.Seq;
 @Persistable(clazz = Definition.Type.class, id = 709)
 @Persistable(clazz = Definition.Data.class, id = 710)
 @Persistable(clazz = Name.Blank.class, id = 711)
+@Persistable(clazz = Name.GenericAnnotation.class, id = 712)
 @Persistable(clazz = Expression.Block.class, id = 751)
 @Persistable(clazz = Expression.Binding.class, id = 752)
 @Persistable(clazz = Application.Prefix.class, id = 753)
@@ -128,6 +131,38 @@ public final class IrPersistance {
         list = scala.collection.immutable.$colon$colon$.MODULE$.apply(elem, list);
       }
       return list;
+    }
+  }
+
+  @ServiceProvider(service = Persistance.class)
+  public static final class PersistMap extends Persistance<HashMap> {
+    public PersistMap() {
+      super(HashMap.class, true, 4439);
+    }
+
+    @Override
+    protected void writeObject(HashMap m, Output out) throws IOException {
+      var size = m.size();
+      out.writeInt(size);
+      var it = m.entrySet().iterator();
+      while (it.hasNext()) {
+        var entry = (Map.Entry) it.next();
+        out.writeObject(entry.getKey());
+        out.writeObject(entry.getValue());
+      }
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected HashMap readObject(Input in) throws IOException, ClassNotFoundException {
+      var size = in.readInt();
+      var map = new HashMap<Object, Object>();
+      for (var i = 0; i < size; i++) {
+        var key = in.readObject();
+        var value = in.readObject();
+        map.put(key, value);
+      }
+      return map;
     }
   }
 

@@ -3,6 +3,7 @@ package org.enso.compiler.core;
 import static org.junit.Assert.*;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Objects;
 import java.util.UUID;
 import org.enso.compiler.core.ir.DiagnosticStorage;
@@ -97,6 +98,18 @@ public class PersistanceTest {
     var out = serde(Module.class, m, -1);
 
     assertEquals("Same", m, out);
+  }
+
+  @Test
+  public void hashMap() throws Exception {
+    var map = new HashMap<String, String>();
+    map.put("one", "uno");
+    map.put("two", "duo");
+    map.put("ten", "tre");
+
+    var out = serde(HashMap.class, map, -1);
+
+    assertEquals("Same", map, out);
   }
 
   private static <T> T serde(Class<T> clazz, T l, int expectedSize) throws IOException {

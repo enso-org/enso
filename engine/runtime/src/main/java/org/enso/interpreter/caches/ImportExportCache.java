@@ -1,21 +1,19 @@
 package org.enso.interpreter.caches;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.Serializable;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
 
 import org.apache.commons.lang3.StringUtils;
+import org.enso.compiler.core.Persistance;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.editions.LibraryName;
+import org.enso.interpreter.dsl.Persistable;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.pkg.QualifiedName;
 import org.enso.pkg.SourceFile;
+import org.openide.util.lookup.ServiceProvider;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -24,8 +22,10 @@ import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLogger;
 
 import buildinfo.Info;
+import scala.Tuple2;
 import scala.collection.immutable.Map;
 
+@Persistable(clazz = QualifiedName.class, id = 30300)
 public final class ImportExportCache extends Cache<ImportExportCache.CachedBindings, ImportExportCache.Metadata> {
 
     private final LibraryName libraryName;
@@ -49,13 +49,9 @@ public final class ImportExportCache extends Cache<ImportExportCache.CachedBindi
 
     @Override
     protected CachedBindings deserialize(EnsoContext context, byte[] data, Metadata meta, TruffleLogger logger) throws ClassNotFoundException, IOException, ClassNotFoundException {
-      try (var stream = new ObjectInputStream(new ByteArrayInputStream(data))) {
-        if (stream.readObject() instanceof MapToBindings bindings) {
-          return new CachedBindings(libraryName, bindings, Optional.empty());
-        } else {
-          throw new ClassNotFoundException("Expected ImportExportCache.FileToBindings, got " + data.getClass());
-        }
-      }
+      var ref = Persistance.readObject(data);
+      var bindings = ref.get(MapToBindings.class);
+      return new CachedBindings(libraryName, bindings, Optional.empty());
     }
 
     @Override
@@ -107,14 +103,11 @@ public final class ImportExportCache extends Cache<ImportExportCache.CachedBindi
 
     @Override
     protected byte[] serialize(EnsoContext context, CachedBindings entry) throws IOException {
-      var byteStream = new ByteArrayOutputStream();
-      try (ObjectOutputStream stream = new ObjectOutputStream(byteStream)) {
-        stream.writeObject(entry.bindings());
-      }
-      return byteStream.toByteArray();
+      var arr = Persistance.writeObject(entry.bindings());
+      return arr;
     }
 
-    public static final class MapToBindings implements Serializable {
+    public static final class MapToBindings  {
         private final Map<QualifiedName, BindingsMap> _entries;
 
         public MapToBindings(Map<QualifiedName, BindingsMap> entries) {
@@ -124,6 +117,38 @@ public final class ImportExportCache extends Cache<ImportExportCache.CachedBindi
         public Map<QualifiedName, BindingsMap> entries() {
             return _entries;
         }
+    }
+
+    @ServiceProvider(service = Persistance.class)
+    public static final class PersistMapToBindings extends Persistance<MapToBindings> {
+      public PersistMapToBindings() {
+        super(MapToBindings.class, false, 364);
+      }
+
+      @Override
+      protected void writeObject(MapToBindings obj, Output out) throws IOException {
+        out.writeInt(obj.entries().size());
+        var it = obj.entries().iterator();
+        while (it.hasNext()) {
+          var e = it.next();
+          out.writeInline(QualifiedName.class, e._1());
+          out.writeObject(e._2());
+        }
+      }
+
+      @Override
+      @SuppressWarnings("unchecked")
+      protected MapToBindings readObject(Input in) throws IOException, ClassNotFoundException {
+        var size = in.readInt();
+        var b = Map.newBuilder();
+        b.sizeHint(size);
+        while (size-- > 0) {
+          var name = in.readInline(QualifiedName.class);
+          var value = in.readObject();
+          b.addOne(Tuple2.apply(name, value));
+        }
+        return new MapToBindings((Map) b.result());
+      }
     }
 
     public static record CachedBindings(LibraryName libraryName, MapToBindings bindings, Optional<List<SourceFile<TruffleFile>>> sources) {
