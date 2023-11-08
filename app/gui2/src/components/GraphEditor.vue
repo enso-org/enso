@@ -195,7 +195,7 @@ async function handleFileDrop(event: DragEvent) {
             const clientPos = new Vec2(event.clientX, event.clientY)
             const offset = new Vec2(0, index * -MULTIPLE_FILES_GAP)
             const pos = navigator.clientToScenePos(clientPos).add(offset)
-            const uploader = await Uploader.create(
+            const uploader = await Uploader.Create(
               projectStore.lsRpcConnection,
               projectStore.dataConnection,
               projectStore.contentRoots,

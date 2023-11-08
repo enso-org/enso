@@ -46,7 +46,7 @@ export class Uploader {
     this.stackItem = stackItem
   }
 
-  static async create(
+  static async Create(
     rpc: Promise<LanguageServer>,
     binary: Promise<DataServer>,
     contentRoots: Promise<ContentRoot[]>,
