@@ -82,5 +82,33 @@ class OverloadsResolutionErrorTest extends InterpreterTest {
       diagnostics shouldEqual List(line0, line1, line2)
     }
 
+    "render the compiler error correctly for clashing multiline from conversions" in {
+      val code =
+        """type Foo
+          |    Mk_Foo data
+          |type Bar
+          |    Mk_Bar x
+          |
+          |Foo.from (that : Bar) =
+          |    y = that.x+100
+          |    Foo.Mk_Foo y
+          |Foo.from (that : Bar) =
+          |    y = that.x+200
+          |    Foo.Mk_Foo y
+          |""".stripMargin.linesIterator.mkString("\n")
+
+      the[InterpreterException] thrownBy eval(code) should have message
+      "Compilation aborted due to errors."
+
+      val diagnostics = consumeOut
+      diagnostics should have length 4
+      val line0 =
+        "Test:[9:1-11:16]: error: Ambiguous conversion: Foo.from Bar is defined multiple times in this module."
+      val line1 = "    9 | Foo.from (that : Bar) ="
+      val line2 = "   10 |     y = that.x+200"
+      val line3 = "   11 |     Foo.Mk_Foo y"
+      diagnostics shouldEqual List(line0, line1, line2, line3)
+    }
+
   }
 }
