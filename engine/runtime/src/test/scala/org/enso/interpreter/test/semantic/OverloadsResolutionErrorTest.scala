@@ -74,12 +74,12 @@ class OverloadsResolutionErrorTest extends InterpreterTest {
       "Compilation aborted due to errors."
 
       val diagnostics = consumeOut
-      println(diagnostics.mkString("\n"))
-      diagnostics
-        .filterNot(isDiagnosticLine)
-        .toSet shouldEqual Set(
+      diagnostics should have length 3
+      val line0 =
         "Test:7:1: error: Ambiguous conversion: Foo.from Bar is defined multiple times in this module."
-      )
+      val line1 = "    7 | Foo.from (that : Bar) = Foo.Mk_Foo that.x+200"
+      val line2 = "      | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+      diagnostics shouldEqual List(line0, line1, line2)
     }
 
   }
