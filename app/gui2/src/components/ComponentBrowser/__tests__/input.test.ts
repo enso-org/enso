@@ -54,6 +54,19 @@ test.each([
     // No self type, as there is no operator2 node in current graph
     { qualifiedNamePattern: 'operator2' },
   ],
+  [
+    'operator1 -> operator1.',
+    23,
+    { type: 'insert', position: 23, oprApp: ['operator1', '.', null] },
+    // No self type, as operator1 is overshadowed
+    {},
+  ],
+  [
+    'operator2 -> operator1.',
+    23,
+    { type: 'insert', position: 23, oprApp: ['operator1', '.', null] },
+    { selfType: 'Standard.Base.Number' },
+  ],
 ])(
   "Input context and filtering, when content is '%s' and cursor at %i",
   (
@@ -185,6 +198,11 @@ const baseCases: ApplySuggestionCase[] = [
     code: 'Project.Mod',
     suggestion: makeModule('local.Project.Module'),
     expected: 'Project.Module.',
+  },
+  {
+    code: 'a -> a.',
+    suggestion: makeMethod('Standard.Base.Data.Vector.get'),
+    expected: 'a -> a.get ',
   },
 ]
 

@@ -14,6 +14,7 @@ import {
   readAstSpan,
   readTokenSpan,
 } from '@/util/ast'
+import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
 import { GeneralOprApp } from '@/util/ast/opr'
 import type { ExpressionInfo } from '@/util/computedValueRegistry'
 import {
@@ -59,13 +60,14 @@ export function useComponentBrowserInput(
 ) {
   const code = ref('')
   const selection = ref({ start: 0, end: 0 })
+  const ast = computed(() => parseEnso(code.value))
 
   const context: ComputedRef<EditingContext> = computed(() => {
     const input = code.value
     const cursorPosition = selection.value.start
     if (cursorPosition === 0) return { type: 'insert', position: 0 }
     const editedPart = cursorPosition - 1
-    const inputAst = parseEnso(input)
+    const inputAst = ast.value
     const editedAst = astContainingChar(editedPart, inputAst).values()
     const leaf = editedAst.next()
     if (leaf.done) return { type: 'insert', position: cursorPosition }
@@ -86,6 +88,17 @@ export function useComponentBrowserInput(
           ...readOprApp(leaf),
         }
     }
+  })
+
+  const internalUsages = computed(() => {
+    const analyzer = new AliasAnalyzer(code.value, ast.value)
+    analyzer.process()
+    function* internalUsages() {
+      for (const [_definition, usages] of analyzer.aliases) {
+        yield* usages
+      }
+    }
+    return Array.from(internalUsages())
   })
 
   // Filter deduced from the access (`.` operator) chain written by user.

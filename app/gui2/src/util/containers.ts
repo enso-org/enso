@@ -1,5 +1,6 @@
 import type { NonEmptyArray } from '@/util/array.ts'
 import { assertDefined, assertEqual } from '@/util/assert'
+import { mapIterator } from 'lib0/iterator'
 import { expect, test } from 'vitest'
 
 /**
@@ -80,7 +81,14 @@ export class MappedSet<T extends Object> {
    * The function should return values that are `===`-equal for values that should be considered equal.
    *
    */
-  constructor(private readonly valueMapper: (key: T) => any) {}
+  constructor(
+    private readonly valueMapper: (key: T) => any,
+    elements: Iterable<T> = [],
+  ) {
+    this.set = new Map(
+      mapIterator(elements[Symbol.iterator](), (elem) => [valueMapper(elem), elem]),
+    )
+  }
 
   /** Add the given value to the set. */
   add(value: T): this {
