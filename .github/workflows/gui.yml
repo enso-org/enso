@@ -822,6 +822,7 @@ jobs:
           APPLEID: ${{ secrets.APPLE_NOTARIZATION_USERNAME }}
           APPLEIDPASS: ${{ secrets.APPLE_NOTARIZATION_PASSWORD }}
           APPLETEAMID: ${{ secrets.APPLE_NOTARIZATION_TEAM_ID }}
+          CSC_FOR_PULL_REQUEST: "true"
           CSC_IDENTITY_AUTO_DISCOVERY: "true"
           CSC_KEY_PASSWORD: ${{ secrets.APPLE_CODE_SIGNING_CERT_PASSWORD }}
           CSC_LINK: ${{ secrets.APPLE_CODE_SIGNING_CERT }}
@@ -1010,6 +1011,7 @@ jobs:
           APPLEID: ${{ secrets.APPLE_NOTARIZATION_USERNAME }}
           APPLEIDPASS: ${{ secrets.APPLE_NOTARIZATION_PASSWORD }}
           APPLETEAMID: ${{ secrets.APPLE_NOTARIZATION_TEAM_ID }}
+          CSC_FOR_PULL_REQUEST: "true"
           CSC_IDENTITY_AUTO_DISCOVERY: "true"
           CSC_KEY_PASSWORD: ${{ secrets.APPLE_CODE_SIGNING_CERT_PASSWORD }}
           CSC_LINK: ${{ secrets.APPLE_CODE_SIGNING_CERT }}

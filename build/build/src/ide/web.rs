@@ -91,6 +91,16 @@ pub mod env {
         /// `true` or `false`. Defaults to `true` — on a macOS development machine valid and
         /// appropriate identity from your keychain will be automatically used.
         CSC_IDENTITY_AUTO_DISCOVERY, bool;
+
+        /// Note that enabling CSC_FOR_PULL_REQUEST can pose serious security risks. Refer to the
+        /// [CircleCI documentation](https://circleci.com/docs/1.0/fork-pr-builds/) for more
+        /// information. If the project settings contain SSH keys, sensitive environment variables,
+        /// or AWS credentials, and untrusted forks can submit pull requests to your repository, it
+        /// is not recommended to enable this option.
+        ///
+        /// In our case we are careful to not expose any sensitive information to third-party forks,
+        /// so we can safely enable this option.
+        CSC_FOR_PULL_REQUEST, bool;
     }
 }
 
