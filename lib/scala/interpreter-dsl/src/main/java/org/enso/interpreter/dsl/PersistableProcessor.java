@@ -51,6 +51,12 @@ public class PersistableProcessor extends AbstractProcessor {
     return ok;
   }
 
+  private String findFqn(Element e) {
+    var inPackage = findNameInPackage(e);
+    var pkg = processingEnv.getElementUtils().getPackageOf(e);
+    return pkg.getQualifiedName() + "." + inPackage;
+  }
+
   private static String findNameInPackage(Element e) {
     var sb = new StringBuilder();
     while (e != null && !(e instanceof PackageElement)) {
@@ -121,7 +127,7 @@ public class PersistableProcessor extends AbstractProcessor {
         } else if (!v.asType().getKind().isPrimitive()) {
           var type = tu.erasure(v.asType());
           var elem = (TypeElement) tu.asElement(type);
-          var name = eu.getBinaryName(elem);
+          var name = findFqn(elem);
           if (elem.getKind().isInterface()) {
             w.append("    var ").append(v.getSimpleName()).append(" = (").append(name).append(") in.readObject();\n");
           } else {
@@ -160,7 +166,7 @@ public class PersistableProcessor extends AbstractProcessor {
         } else if (!v.asType().getKind().isPrimitive()) {
           var type = tu.erasure(v.asType());
           var elem = (TypeElement) tu.asElement(type);
-          var name = eu.getBinaryName(elem);
+          var name = findFqn(elem);
           if (elem.getKind().isInterface()) {
             w.append("    out.writeObject(obj.").append(v.getSimpleName()).append("());\n");
           } else {

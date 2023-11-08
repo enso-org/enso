@@ -2,9 +2,7 @@ package org.enso.compiler.core;
 
 import static org.junit.Assert.*;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.Objects;
 import java.util.UUID;
 import org.enso.compiler.core.ir.DiagnosticStorage;
@@ -102,15 +100,11 @@ public class PersistanceTest {
   }
 
   private static <T> T serde(Class<T> clazz, T l, int expectedSize) throws IOException {
-    var out = new ByteArrayOutputStream();
-    var gen = Persistance.newGenerator(out);
-    var at = gen.writeObject(l);
-    var arr = out.toByteArray();
-    var buf = ByteBuffer.wrap(arr);
+    var arr = Persistance.writeObject(l);
     if (expectedSize >= 0) {
-      assertEquals(expectedSize, arr.length);
+      assertEquals(expectedSize, arr.length - 8);
     }
-    var ref = Persistance.Reference.from(null, buf, at);
+    var ref = Persistance.readObject(arr);
     return ref.get(clazz);
   }
 

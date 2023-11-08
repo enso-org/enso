@@ -52,19 +52,43 @@ public abstract class Persistance<T> {
       }
   }
 
-  public static Generator newGenerator(OutputStream out) {
-    return new Generator(out);
+  public static <T> Reference<T> readObject(byte[] arr) throws IOException {
+    for (var i = 0; i < Generator.HEADER.length; i++) {
+      if (arr[i] != Generator.HEADER[i]) {
+        throw new IOException("Wrong header");
+      }
+    }
+    var buf = ByteBuffer.wrap(arr);
+    var at = buf.getInt(4);
+
+    return Reference.from(buf, at);
+  }
+
+  public static byte[] writeObject(Object obj) throws IOException {
+    var out = new ByteArrayOutputStream();
+    var g = new Generator(out, 8);
+    out.write(Generator.HEADER);
+    out.write(new byte[4]); // space
+    var at = g.writeObject(obj);
+    var arr = out.toByteArray();
+    arr[4] = (byte) ((at >> 24) & 0xff);
+    arr[5] = (byte) ((at >> 16) & 0xff);
+    arr[6] = (byte) ((at >> 8) & 0xff);
+    arr[7] = (byte) (at & 0xff);
+    return arr;
   }
 
   public static final class Generator {
+    static final byte[] HEADER = new byte[] { 0x0a, 0x0d, 0x00, 0x0f };
+
     private final PersistanceMap map = new PersistanceMap();
     private final OutputStream main;
     private final Map<Object,Integer> knownObjects = new IdentityHashMap<>();
     private int position;
 
-    private Generator(OutputStream out) {
+    private Generator(OutputStream out, int position) {
       this.main = out;
-      this.position = 0;
+      this.position = position;
     }
 
     public <T> int writeObject(T obj) throws IOException {
@@ -152,11 +176,11 @@ public abstract class Persistance<T> {
       return expectedType.cast(value);
     }
 
-    public static <V> Reference<V> of(V obj) {
+    static <V> Reference<V> of(V obj) {
       return new MemoryReference<>(obj);
     }
 
-    public static <V> Reference<V> from(ByteBuffer buffer, int offset) {
+    static <V> Reference<V> from(ByteBuffer buffer, int offset) {
       return from(null, buffer, offset);
     }
 
@@ -406,7 +430,7 @@ public abstract class Persistance<T> {
         }
         return (Persistance<T>) p;
       }
-      throw new IllegalStateException("No persistance for " + name);
+      throw raise(RuntimeException.class, new IOException("No persistance for " + name));
     }
 
     @SuppressWarnings("unchecked")
@@ -421,7 +445,7 @@ public abstract class Persistance<T> {
     final Persistance<?> forId(int id) {
       var p = ids.get(id);
       if (p == null) {
-        throw new IllegalStateException("No persistance for " + id);
+        throw raise(RuntimeException.class, new IOException("No persistance for " + id));
       }
       return p;
     }

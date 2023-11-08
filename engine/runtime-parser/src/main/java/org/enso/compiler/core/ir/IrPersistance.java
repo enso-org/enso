@@ -5,11 +5,13 @@ import java.util.NoSuchElementException;
 import org.enso.compiler.core.Persistance;
 import org.enso.compiler.core.ir.expression.Application;
 import org.enso.compiler.core.ir.expression.Case;
+import org.enso.compiler.core.ir.expression.Foreign;
 import org.enso.compiler.core.ir.module.scope.Definition;
 import org.enso.compiler.core.ir.module.scope.Export;
 import org.enso.compiler.core.ir.module.scope.Import;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.compiler.core.ir.module.scope.imports.Polyglot;
+import org.enso.compiler.core.ir.type.Set;
 import org.enso.interpreter.dsl.Persistable;
 import org.openide.util.lookup.ServiceProvider;
 import scala.Option;
@@ -37,7 +39,11 @@ import scala.collection.immutable.Seq;
 @Persistable(clazz = Case.Branch.class, id = 762)
 @Persistable(clazz = Pattern.Constructor.class, id = 763)
 @Persistable(clazz = Pattern.Name.class, id = 764)
-@Persistable(clazz = Pattern.Type.class, id = 765)
+@Persistable(clazz = Pattern.Literal.class, id = 765)
+@Persistable(clazz = Pattern.Type.class, id = 766)
+@Persistable(clazz = Method.Conversion.class, id = 771)
+@Persistable(clazz = Set.Union.class, id = 772)
+@Persistable(clazz = Foreign.Definition.class, id = 781)
 public final class IrPersistance {
   private IrPersistance() {}
 
@@ -74,6 +80,24 @@ public final class IrPersistance {
     protected Option readObject(Input in) throws IOException, ClassNotFoundException {
       var obj = in.readObject();
       return Option.apply(obj);
+    }
+  }
+
+  @ServiceProvider(service = Persistance.class)
+  public static final class PersistString extends Persistance<String> {
+    public PersistString() {
+      super(String.class, true, 4437);
+    }
+
+    @Override
+    protected void writeObject(String obj, Output out) throws IOException {
+      out.writeUTF(obj);
+    }
+
+    @Override
+    protected String readObject(Input in) throws IOException, ClassNotFoundException {
+      var obj = in.readUTF();
+      return obj;
     }
   }
 

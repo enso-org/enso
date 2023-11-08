@@ -22,12 +22,9 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.logging.Level;
 
 import org.enso.compiler.core.Persistance;
-
-import akka.http.impl.engine.http2.client.PersistentConnection;
 
 public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCache.Metadata> {
 
@@ -52,9 +49,7 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
 
     @Override
     protected CachedModule deserialize(EnsoContext context, byte[] data, Metadata meta, TruffleLogger logger) throws ClassNotFoundException, IOException, ClassNotFoundException {
-      var buf = ByteBuffer.wrap(data);
-      var at = buf.getInt(0);
-      var ref = Persistance.Reference.from(buf, at);
+      var ref = Persistance.readObject(data);
       var mod = ref.get(Module.class);
       return new CachedModule(mod, CompilationStage.valueOf(meta.compilationStage()), module.getSource());
     }
@@ -142,7 +137,6 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
 
     @Override
     protected byte[] serialize(EnsoContext context, CachedModule entry) throws IOException {
-      var byteStream = new ByteArrayOutputStream();
       boolean noUUIDs = false;
       for (var p : context.getPackageRepository().getLoadedPackagesJava()) {
         if ("Standard".equals(p.namespace())) {
@@ -154,15 +148,8 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
           }
         }
       }
-      var prelude = new byte[4];
-      byteStream.write(prelude);
-      var gen = Persistance.newGenerator(byteStream);
-      var at = gen.writeObject(entry.moduleIR()) + prelude.length;
-      var arr = byteStream.toByteArray();
-      arr[0] = (byte) ((at >> 24) & 0xff);
-      arr[1] = (byte) ((at >> 16) & 0xff);
-      arr[2] = (byte) ((at >> 8) & 0xff);
-      arr[3] = (byte) (at & 0xff);
+
+      var arr = Persistance.writeObject(entry.moduleIR());
       return arr;
     }
 
