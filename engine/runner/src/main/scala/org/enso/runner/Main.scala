@@ -1090,29 +1090,6 @@ object Main {
           printHelp(options)
           exitFail()
         }
-    parseProfilingConfig(line).fold(
-      error => {
-        System.err.println(error)
-        exitFail()
-      },
-      withProfiling(_)(runMain(options, line))
-    )
-  }
-
-  /** Main entry point for the CLI program.
-    *
-    * @param options the command line options
-    * @param line the provided command line arguments
-    */
-  private def runMain(options: Options, line: CommandLine): Unit = {
-    if (line.hasOption(HELP_OPTION)) {
-      printHelp(options)
-      exitSuccess()
-    }
-    if (line.hasOption(VERSION_OPTION)) {
-      displayVersion(useJson = line.hasOption(JSON_OPTION))
-      exitSuccess()
-    }
 
     val logLevel = Option(line.getOptionValue(LOG_LEVEL))
       .map(parseLogLevel)
@@ -1121,6 +1098,41 @@ object Main {
       Option(line.getOptionValue(LOGGER_CONNECT)).map(parseUri)
     val logMasking = !line.hasOption(NO_LOG_MASKING)
     RunnerLogging.setup(connectionUri, logLevel, logMasking)
+
+    if (line.hasOption(LANGUAGE_SERVER_OPTION)) {
+      runLanguageServer(line, logLevel)
+    }
+
+    parseProfilingConfig(line).fold(
+      error => {
+        System.err.println(error)
+        exitFail()
+      },
+      withProfiling(_)(runMain(options, line, logLevel, logMasking))
+    )
+  }
+
+  /** Main entry point for the CLI program.
+    *
+    * @param options the command line options
+    * @param line the provided command line arguments
+    * @param logLevel the provided log level
+    * @param logMasking the flag indicating if the log masking is enabled
+    */
+  private def runMain(
+    options: Options,
+    line: CommandLine,
+    logLevel: Level,
+    logMasking: Boolean
+  ): Unit = {
+    if (line.hasOption(HELP_OPTION)) {
+      printHelp(options)
+      exitSuccess()
+    }
+    if (line.hasOption(VERSION_OPTION)) {
+      displayVersion(useJson = line.hasOption(JSON_OPTION))
+      exitSuccess()
+    }
 
     if (line.hasOption(NEW_OPTION)) {
       createNew(
@@ -1239,9 +1251,6 @@ object Main {
         Option(line.getOptionValue(IN_PROJECT_OPTION)),
         logLevel
       )
-    }
-    if (line.hasOption(LANGUAGE_SERVER_OPTION)) {
-      runLanguageServer(line, logLevel)
     }
     if (line.getOptions.isEmpty) {
       printHelp(options)
