@@ -230,7 +230,7 @@ object Redefined {
 
     /** @inheritdoc */
     override def showCode(indent: Int): String =
-      s"(Redefined (Conversion ${targetType.map(_.showCode() + ".").getOrElse("")}from $sourceType))"
+      s"(Redefined (Conversion ${targetType.map(_.showCode() + ".").getOrElse("")}from ${sourceType.showCode()}))"
   }
 
   /** An error representing the redefinition of a method in a given module.
