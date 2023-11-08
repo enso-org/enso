@@ -25,7 +25,8 @@ import org.enso.polyglot.runtime.Runtime$Api$PushContextResponse;
 import org.enso.polyglot.runtime.Runtime$Api$Request;
 import org.enso.polyglot.runtime.Runtime$Api$Response;
 import org.enso.polyglot.runtime.Runtime$Api$SetExpressionValueNotification;
-import org.enso.polyglot.runtime.Runtime$Api$OpenFileNotification;
+import org.enso.polyglot.runtime.Runtime$Api$OpenFileRequest;
+import org.enso.polyglot.runtime.Runtime$Api$OpenFileResponse$;
 import org.enso.polyglot.runtime.Runtime$Api$StackItem$ExplicitCall;
 import org.enso.polyglot.runtime.Runtime$Api$StackItem$LocalCall;
 import org.enso.text.editing.model;
@@ -199,9 +200,12 @@ public class IncrementalUpdatesTest {
     );
     // Open the new file
     context.send(
-      Request(new Runtime$Api$OpenFileNotification(mainFile, contents))
+      Request(requestId, new Runtime$Api$OpenFileRequest(mainFile, contents))
     );
-    assertTrue("No reply", context.receiveNone().isEmpty());
+    response = context.receive().get();
+    assertEquals(response,
+            Response(requestId, Runtime$Api$OpenFileResponse$.MODULE$)
+    );
 
     nodeCountingInstrument.assertNewNodes("No execution, no nodes yet", 0, 0);
 

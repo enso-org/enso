@@ -83,6 +83,7 @@
     "@types/ws": "^8.5.5",
     "@vitejs/plugin-react": "^4.0.4",
     "@vitejs/plugin-vue": "^4.3.1",
+    "@vitest/coverage-v8": "^0.34.6",
     "@volar/vue-typescript": "^1.6.5",
     "@vue/eslint-config-prettier": "^8.0.0",
     "@vue/eslint-config-typescript": "^12.0.0",

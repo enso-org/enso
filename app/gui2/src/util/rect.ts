@@ -9,6 +9,10 @@ export class Rect {
     readonly size: Vec2,
   ) {}
 
+  static FromBounds(left: number, top: number, right: number, bottom: number): Rect {
+    return new Rect(new Vec2(left, top), new Vec2(right - left, bottom - top))
+  }
+
   static Zero = new Rect(Vec2.Zero, Vec2.Zero)
 
   get left(): number {

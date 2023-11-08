@@ -2,7 +2,6 @@
 import { componentBrowserBindings } from '@/bindings'
 import { makeComponentList, type Component } from '@/components/ComponentBrowser/component'
 import { Filtering } from '@/components/ComponentBrowser/filtering'
-import { Input } from '@/components/ComponentBrowser/input'
 import { default as DocumentationPanel } from '@/components/DocumentationPanel.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
@@ -18,6 +17,7 @@ import { Vec2 } from '@/util/vec2'
 import type { SuggestionId } from 'shared/languageServerTypes/suggestions'
 import type { ContentRange } from 'shared/yjsModel.ts'
 import { computed, nextTick, onMounted, ref, watch, type Ref } from 'vue'
+import { useComponentBrowserInput } from './ComponentBrowser/input'
 
 const ITEM_SIZE = 32
 const TOP_BAR_HEIGHT = 32
@@ -46,6 +46,7 @@ onMounted(() => {
 })
 
 const projectStore = useProjectStore()
+const suggestionDbStore = useSuggestionDbStore()
 
 // === Position ===
 
@@ -63,7 +64,7 @@ const transform = computed(() => {
 
 const cbRoot = ref<HTMLElement>()
 const inputField = ref<HTMLInputElement>()
-const input = new Input()
+const input = useComponentBrowserInput()
 const filterFlags = ref({ showUnstable: false, showLocal: false })
 
 const currentFiltering = computed(() => {
@@ -127,8 +128,6 @@ function handleDefocus(e: FocusEvent) {
 }
 
 // === Components List and Positions ===
-
-const suggestionDbStore = useSuggestionDbStore()
 
 const components = computed(() => {
   return makeComponentList(suggestionDbStore.entries, currentFiltering.value)

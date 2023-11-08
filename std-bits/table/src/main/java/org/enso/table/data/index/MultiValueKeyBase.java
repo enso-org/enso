@@ -40,6 +40,10 @@ public abstract class MultiValueKeyBase {
     return rowIndex;
   }
 
+  public int getNumberOfColumns() {
+    return storages.length;
+  }
+
   @Override
   public abstract boolean equals(Object o);
 

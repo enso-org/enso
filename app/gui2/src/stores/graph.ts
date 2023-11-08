@@ -119,7 +119,7 @@ export const useGraphStore = defineStore('graph', () => {
   useObserveYjs(metadata, (event) => {
     const meta = event.target
     for (const [id, op] of event.changes.keys) {
-      if (op.action === 'update') {
+      if (op.action === 'update' || op.action === 'add') {
         const data = meta.get(id)
         const node = nodes.get(id as ExprId)
         if (data != null && node != null) {
