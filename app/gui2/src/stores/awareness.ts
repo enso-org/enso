@@ -21,7 +21,7 @@ export interface UploadingFile {
  */
 export class Awareness {
   public internal: YjsAwareness
-  private uploadingFiles: Map<ClientId, Uploads>
+  uploadingFiles: Map<ClientId, Uploads>
 
   constructor(doc: Y.Doc) {
     this.internal = new YjsAwareness(doc)
@@ -55,7 +55,7 @@ export class Awareness {
     return [...this.uploadingFiles.values()].flatMap((uploads) => [...Object.entries(uploads)])
   }
 
-  private withUploads(f: (uploads: Uploads) => void) {
+  withUploads(f: (uploads: Uploads) => void) {
     const state = this.internal.getLocalState() as State
     f(state.uploads)
     this.internal.setLocalState(state)

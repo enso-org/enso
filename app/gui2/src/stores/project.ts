@@ -566,7 +566,7 @@ export const useProjectStore = defineStore('project', () => {
     modulePath,
     projectModel,
     contentRoots,
-    awareness: markRaw(awareness),
+    awareness,
     computedValueRegistry,
     lsRpcConnection: markRaw(lsRpcConnection),
     dataConnection: markRaw(dataConnection),
