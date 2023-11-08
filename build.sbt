@@ -1146,14 +1146,14 @@ lazy val `polyglot-api` = project
     Test / fork := true,
     commands += WithDebugCommand.withDebug,
     Test / envVars ++= distributionEnvironmentOverrides,
-    Test / javaOptions ++= {
-      // Note [Classpath Separation]
-      val runtimeClasspath =
-        (LocalProject("runtime") / Compile / fullClasspath).value
-          .map(_.data)
-          .mkString(File.pathSeparator)
-      Seq(s"-Dtruffle.class.path.append=$runtimeClasspath")
-    },
+    Test / javaOptions ++=
+      Seq(
+        "-Dpolyglot.engine.WarnInterpreterOnly=false",
+        "-Dpolyglotimpl.DisableClassPathIsolation=true"
+      ),
+    // Append enso language on the class-path
+    Test / unmanagedClasspath :=
+      (LocalProject("runtime-with-instruments") / Compile / fullClasspath).value,
     libraryDependencies ++= Seq(
       "org.graalvm.sdk"        % "polyglot-tck"     % graalMavenPackagesVersion % "provided",
       "org.graalvm.truffle"    % "truffle-api"      % graalMavenPackagesVersion % "provided",
@@ -1209,18 +1209,14 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .settings(
     // These settings are needed by language-server tests that create a runtime context.
     Test / fork := true,
-    Test / javaOptions ++= {
-      // Note [Classpath Separation]
-      val runtimeClasspath =
-        (LocalProject("runtime") / Runtime / fullClasspath).value
-          .map(_.data)
-          .mkString(File.pathSeparator)
+    Test / javaOptions ++=
       Seq(
-        s"-Dconfig.file=${sourceDirectory.value}/test/resources/application.conf",
-        s"-Dtruffle.class.path.append=$runtimeClasspath",
-        s"-Duser.dir=${file(".").getCanonicalPath}"
-      )
-    },
+        "-Dpolyglot.engine.WarnInterpreterOnly=false",
+        "-Dpolyglotimpl.DisableClassPathIsolation=true"
+      ),
+    // Append enso language on the class-path
+    Test / unmanagedClasspath :=
+      (LocalProject("runtime-with-instruments") / Compile / fullClasspath).value,
     Test / compile := (Test / compile)
       .dependsOn(LocalProject("enso") / updateLibraryManifests)
       .value,
