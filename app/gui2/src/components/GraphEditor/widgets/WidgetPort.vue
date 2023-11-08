@@ -20,7 +20,7 @@ export const widgetConfig = defineWidget({
 })
 </script>
 <template>
-  <span class="WidgetPort"><NodeWidget :ast="props.ast" /></span>
+  <span class="WidgetPort r-24"><NodeWidget :ast="props.ast" /></span>
 </template>
 
 <style scoped>
@@ -31,5 +31,7 @@ export const widgetConfig = defineWidget({
   min-height: 24px;
   background-color: var(--node-color-port);
   padding: 0 4px;
+  min-width: 16px;
+  text-align: center;
 }
 </style>

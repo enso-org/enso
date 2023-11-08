@@ -39,7 +39,7 @@ export const widgetConfig = defineWidget({
 <template>
   <SliderWidget
     v-model="value"
-    class="WidgetNumber"
+    class="WidgetNumber r-24"
     :min="-1000"
     :max="1000"
     contenteditable="false"

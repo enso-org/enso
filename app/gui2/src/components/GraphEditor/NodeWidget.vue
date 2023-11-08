@@ -115,8 +115,8 @@ const spanStart = computed(
 </script>
 
 <template>
-  <span v-if="whitespace.length > 0">{{ whitespace }}</span
-  ><component
+  {{ whitespace
+  }}<component
     :is="selectedWidget"
     ref="rootNode"
     :ast="props.ast"

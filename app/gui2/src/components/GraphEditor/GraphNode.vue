@@ -237,6 +237,7 @@ const icon = computed(() => {
       <SvgIcon class="icon grab-handle" :name="icon"></SvgIcon
       ><span
         spellcheck="false"
+        class="treeRoot"
         @pointerdown.capture="nodeEditHandler"
         @blur="projectStore.stopCapturingUndo()"
         ><NodeWidgetTree :ast="node.rootSpan"
@@ -367,11 +368,12 @@ const icon = computed(() => {
   flex-direction: row;
   align-items: center;
   white-space: nowrap;
-  padding: 4px 8px;
+  padding: 4px;
   z-index: 2;
   transition: outline 0.2s ease;
   outline: 0px solid transparent;
 }
+
 .GraphNode .selection {
   position: absolute;
   inset: calc(0px - var(--selected-node-border-width));
@@ -443,7 +445,40 @@ const icon = computed(() => {
 
 .grab-handle {
   color: white;
-  margin-right: 10px;
+  margin: 0 4px;
+}
+
+.treeRoot {
+  margin: 0 4px;
+
+  /*
+   * NOTE(PG): The following monstrosity selectors attempt to detect a recursively first of last
+   * node element that declares a certain circle radius it naturally follows. That way we can adjust
+   * the node margins to make sure that the node and element radius circles are nicely concentric.
+   * Unfortunately is a depth limit to this detection due to how this selector is written. There is
+   * probably a better way to do this, but I'm out of ideas for now.
+   * 
+   * So far only "radius 24px" is implemented, but more can be added as needed.
+   */
+  &:has(
+      > :first-child.r-24,
+      > :first-child > :first-child.r-24,
+      > :first-child > :first-child > :first-child.r-24,
+      > :first-child > :first-child > :first-child > :first-child.r-24,
+      > :first-child > :first-child > :first-child > :first-child > :first-child.r-24
+    ) {
+    margin-left: 0px;
+  }
+
+  &:has(
+      > :last-child.r-24,
+      > :last-child > :last-child.r-24,
+      > :last-child > :last-child > :last-child.r-24,
+      > :last-child > :last-child > :last-child > :last-child.r-24,
+      > :last-child > :last-child > :last-child > :last-child > :last-child.r-24
+    ) {
+    margin-right: 0px;
+  }
 }
 
 .CircularMenu {
