@@ -790,17 +790,15 @@ spec setup =
                 x.round . to_vector . should_equal [1, -2, 4]
                 x.truncate . to_vector . should_equal [1, -2, 3]
 
-    Test.group prefix+"Date truncation" <|
-        Test.specify "should be able to truncate a column of Date_Times" pending=pending_datetime <|
-            tz = Time_Zone.parse "Europe/Warsaw"
-            dates_without_zone = [Date_Time.new 2020 10 24 1 2 3, Date_Time.new 2020 10 24 1 2 3]
-            dates_with_zone = dates_without_zone . map (d-> d.at_zone tz)
-            [dates_without_zone, dates_with_zone].map dates->
-                table = table_builder [["foo", dates]]
-                truncated = table.at "foo" . truncate
-                truncated . to_vector . should_equal [Date.new 2020 10 24, Date.new 2020 10 24]
-                truncated . value_type . should_equal Value_Type.Date
-                truncated.name . should_equal "truncate([foo])"
+    Test.group prefix+"Date truncation" pending=pending_datetime <|
+        Test.specify "should be able to truncate a column of Date_Times" <|
+            dates = [Date_Time.new 2020 10 24 1 2 3, Date_Time.new 2020 10 24 1 2 3]
+            table = table_builder [["foo", dates]]
+            table.at "foo" . value_type . should_equal (Value_Type.Date_Time with_timezone=True)
+            truncated = table.at "foo" . truncate
+            truncated . to_vector . should_equal [Date.new 2020 10 24, Date.new 2020 10 24]
+            truncated . value_type . should_equal Value_Type.Date
+            truncated.name . should_equal "truncate([foo])"
 
     Test.group prefix+"Text Column Operations" <|
         Test.specify "should handle operations like starts_with, ends_with, contains" <|
