@@ -28,9 +28,11 @@ public final class ConsoleAppender extends Appender {
   @Override
   public boolean setupForPath(
       Level logLevel, Path logRoot, String logPrefix, LoggerSetup loggerSetup) {
-    if (loggerSetup.getConfig().logToFile().enabled()) {
-      loggerSetup.setupFileAppender(
-          loggerSetup.getConfig().logToFile().logLevel(), logRoot, logPrefix);
+    LogToFile logToFileOpt = loggerSetup.getConfig().logToFile();
+    if (logToFileOpt.enabled()) {
+      Level minLevel =
+          Level.intToLevel(Math.min(logToFileOpt.logLevel().toInt(), logLevel.toInt()));
+      loggerSetup.setupFileAppender(minLevel, logRoot, logPrefix);
     }
     return loggerSetup.setupConsoleAppender(logLevel);
   }
