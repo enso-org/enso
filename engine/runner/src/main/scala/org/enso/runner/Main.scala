@@ -1,6 +1,6 @@
 package org.enso.runner
 
-import akka.http.scaladsl.model.{IllegalUriException}
+import akka.http.scaladsl.model.IllegalUriException
 import buildinfo.Info
 import cats.implicits._
 import com.typesafe.scalalogging.Logger
@@ -17,6 +17,7 @@ import org.enso.libraryupload.LibraryUploader.UploadFailedError
 import org.slf4j.event.Level
 import org.enso.pkg.{Contact, PackageManager, Template}
 import org.enso.polyglot.{HostEnsoUtils, LanguageInfo, Module, PolyglotContext}
+import org.enso.profiling.{FileSampler, NoopSampler}
 import org.enso.version.VersionDescription
 import org.graalvm.polyglot.PolyglotException
 
@@ -24,9 +25,11 @@ import java.io.File
 import java.net.URI
 import java.nio.file.{Path, Paths}
 import java.util.{HashMap, UUID}
+
 import scala.Console.err
 import scala.Console.out
 import scala.collection.compat.immutable.ArraySeq
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
 import scala.util.control.NonFatal
@@ -48,9 +51,9 @@ object Main {
   private val REPL_OPTION                    = "repl"
   private val DOCS_OPTION                    = "docs"
   private val PREINSTALL_OPTION              = "preinstall-dependencies"
+  private val PROFILING_PATH                 = "profiling-path"
+  private val PROFILING_TIME                 = "profiling-time"
   private val LANGUAGE_SERVER_OPTION         = "server"
-  private val LANGUAGE_SERVER_PROFILING_PATH = "server-profiling-path"
-  private val LANGUAGE_SERVER_PROFILING_TIME = "server-profiling-time"
   private val LANGUAGE_SERVER_PROFILING_EVENTS_LOG_PATH =
     "server-profiling-events-log-path"
   private val DAEMONIZE_OPTION               = "daemon"
@@ -188,14 +191,14 @@ object Main {
       .hasArg(true)
       .numberOfArgs(1)
       .argName("file")
-      .longOpt(LANGUAGE_SERVER_PROFILING_PATH)
+      .longOpt(PROFILING_PATH)
       .desc("The path to the Language Server profiling file.")
       .build()
     val lsProfilingTimeOption = CliOption.builder
       .hasArg(true)
       .numberOfArgs(1)
       .argName("seconds")
-      .longOpt(LANGUAGE_SERVER_PROFILING_TIME)
+      .longOpt(PROFILING_TIME)
       .desc("The duration in seconds limiting the profiling time.")
       .build()
     val lsProfilingEventsLogPathOption = CliOption.builder
@@ -872,7 +875,7 @@ object Main {
               }
             )
           val res = main.execute(parsedArgs: _*)
-          if (!res.isNull()) {
+          if (!res.isNull) {
             out.println(res);
           }
         case None =>
@@ -992,22 +995,7 @@ object Main {
       secureDataPort <- Either
         .catchNonFatal(secureDataPortStr.map(_.toInt))
         .leftMap(_ => "Port must be integer")
-      profilingPathStr =
-        Option(line.getOptionValue(LANGUAGE_SERVER_PROFILING_PATH))
-      profilingPath <- Either
-        .catchNonFatal(profilingPathStr.map(Paths.get(_)))
-        .leftMap(_ => "Profiling path is invalid")
-      profilingTimeStr = Option(
-        line.getOptionValue(LANGUAGE_SERVER_PROFILING_TIME)
-      )
-      profilingTime <- Either
-        .catchNonFatal(profilingTimeStr.map(_.toInt.seconds))
-        .leftMap(_ => "Profiling time should be an integer")
-      profilingEventsLogPathStr =
-        Option(line.getOptionValue(LANGUAGE_SERVER_PROFILING_EVENTS_LOG_PATH))
-      profilingEventsLogPath <- Either
-        .catchNonFatal(profilingEventsLogPathStr.map(Paths.get(_)))
-        .leftMap(_ => "Profiling events log path is invalid")
+      profilingConfig <- parseProfilingConfig(line)
       graalVMUpdater = Option(line.hasOption(SKIP_GRAALVM_UPDATER))
         .getOrElse(false)
     } yield boot.LanguageServerConfig(
@@ -1018,15 +1006,42 @@ object Main {
       secureDataPort,
       rootId,
       rootPath,
-      ProfilingConfig(profilingEventsLogPath, profilingPath, profilingTime),
+      profilingConfig,
       StartupConfig(graalVMUpdater)
     )
+
+  private def parseProfilingConfig(
+    line: CommandLine
+  ): Either[String, ProfilingConfig] = {
+    val profilingPathStr =
+      Option(line.getOptionValue(PROFILING_PATH))
+    for {
+      profilingPath <- Either
+        .catchNonFatal(profilingPathStr.map(Paths.get(_)))
+        .leftMap(_ => "Profiling path is invalid")
+      profilingTimeStr = Option(
+        line.getOptionValue(PROFILING_TIME)
+      )
+      profilingTime <- Either
+        .catchNonFatal(profilingTimeStr.map(_.toInt.seconds))
+        .leftMap(_ => "Profiling time should be an integer")
+      profilingEventsLogPathStr =
+        Option(line.getOptionValue(LANGUAGE_SERVER_PROFILING_EVENTS_LOG_PATH))
+      profilingEventsLogPath <- Either
+        .catchNonFatal(profilingEventsLogPathStr.map(Paths.get(_)))
+        .leftMap(_ => "Profiling events log path is invalid")
+    } yield ProfilingConfig(
+      profilingEventsLogPath,
+      profilingPath,
+      profilingTime
+    )
+  }
 
   /** Prints the version of the Enso executable.
     *
     * @param useJson whether the output should be JSON or human-readable.
     */
-  def displayVersion(useJson: Boolean): Unit = {
+  private def displayVersion(useJson: Boolean): Unit = {
     val versionDescription = VersionDescription.make(
       "Enso Compiler and Runtime",
       includeRuntimeJVMInfo = true,
@@ -1037,7 +1052,7 @@ object Main {
 
   /** Parses the log level option.
     */
-  def parseLogLevel(levelOption: String): Level = {
+  private def parseLogLevel(levelOption: String): Level = {
     val name = levelOption.toLowerCase
     Level.values().find(_.name().toLowerCase() == name).getOrElse {
       val possible =
@@ -1049,7 +1064,7 @@ object Main {
 
   /** Parses an URI that specifies the logging service connection.
     */
-  def parseUri(string: String): URI =
+  private def parseUri(string: String): URI =
     try {
       URI.create(string)
     } catch {
@@ -1060,7 +1075,7 @@ object Main {
 
   /** Default log level to use if the LOG_LEVEL option is not provided.
     */
-  val defaultLogLevel: Level = Level.WARN
+  private val defaultLogLevel: Level = Level.WARN
 
   /** Main entry point for the CLI program.
     *
@@ -1069,18 +1084,12 @@ object Main {
   def main(args: Array[String]): Unit = {
     val options = buildOptions
     val parser  = new DefaultParser
-    val line: CommandLine = Try(parser.parse(options, args)).getOrElse {
-      printHelp(options)
-      exitFail()
-    }
-    if (line.hasOption(HELP_OPTION)) {
-      printHelp(options)
-      exitSuccess()
-    }
-    if (line.hasOption(VERSION_OPTION)) {
-      displayVersion(useJson = line.hasOption(JSON_OPTION))
-      exitSuccess()
-    }
+    val line: CommandLine =
+      Try(parser.parse(options, args))
+        .getOrElse {
+          printHelp(options)
+          exitFail()
+        }
 
     val logLevel = Option(line.getOptionValue(LOG_LEVEL))
       .map(parseLogLevel)
@@ -1089,6 +1098,41 @@ object Main {
       Option(line.getOptionValue(LOGGER_CONNECT)).map(parseUri)
     val logMasking = !line.hasOption(NO_LOG_MASKING)
     RunnerLogging.setup(connectionUri, logLevel, logMasking)
+
+    if (line.hasOption(LANGUAGE_SERVER_OPTION)) {
+      runLanguageServer(line, logLevel)
+    }
+
+    parseProfilingConfig(line).fold(
+      error => {
+        System.err.println(error)
+        exitFail()
+      },
+      withProfiling(_)(runMain(options, line, logLevel, logMasking))
+    )
+  }
+
+  /** Main entry point for the CLI program.
+    *
+    * @param options the command line options
+    * @param line the provided command line arguments
+    * @param logLevel the provided log level
+    * @param logMasking the flag indicating if the log masking is enabled
+    */
+  private def runMain(
+    options: Options,
+    line: CommandLine,
+    logLevel: Level,
+    logMasking: Boolean
+  ): Unit = {
+    if (line.hasOption(HELP_OPTION)) {
+      printHelp(options)
+      exitSuccess()
+    }
+    if (line.hasOption(VERSION_OPTION)) {
+      displayVersion(useJson = line.hasOption(JSON_OPTION))
+      exitSuccess()
+    }
 
     if (line.hasOption(NEW_OPTION)) {
       createNew(
@@ -1182,7 +1226,7 @@ object Main {
         Option(line.getOptionValue(EXECUTION_ENVIRONMENT_OPTION))
           .orElse(Some("live")),
         Option(line.getOptionValue(WARNINGS_LIMIT))
-          .map(Integer.parseInt(_))
+          .map(Integer.parseInt)
           .getOrElse(100)
       )
     }
@@ -1207,9 +1251,6 @@ object Main {
         Option(line.getOptionValue(IN_PROJECT_OPTION)),
         logLevel
       )
-    }
-    if (line.hasOption(LANGUAGE_SERVER_OPTION)) {
-      runLanguageServer(line, logLevel)
     }
     if (line.getOptions.isEmpty) {
       printHelp(options)
@@ -1244,5 +1285,25 @@ object Main {
       distributionManager.LocallyInstalledDirectories.cacheDirectory
         .resolve(historyFileName)
     TerminalIO(historyFilePath)
+  }
+
+  private def withProfiling[A](
+    profilingConfig: ProfilingConfig,
+    executor: ExecutionContextExecutor = ExecutionContext.global
+  )(main: => A): A = {
+    val sampler = profilingConfig.profilingPath match {
+      case Some(path) =>
+        new FileSampler(path.toFile)
+      case None =>
+        NoopSampler()
+    }
+    sampler.start()
+    profilingConfig.profilingTime.foreach(sampler.stop(_)(executor))
+
+    try {
+      main
+    } finally {
+      sampler.stop()
+    }
   }
 }
