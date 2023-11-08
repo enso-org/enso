@@ -1268,6 +1268,14 @@ spec setup =
                 pred c.value_type . should_be_true
                 pred ((empty.set c).at c.name . value_type) . should_be_true
 
+        nulls_db_pending = if setup.is_database then "Empty NULL columns are unsupported in the database backends"
+        Test.specify "Should create a column of the correct type on a table with no rows" pending=nulls_db_pending <|
+            t = table_builder [["x", ["1", "2", "3"]]]
+            empty = t.take 0
+            c = empty.make_constant_column Nothing
+            c.value_type . should_equal Value_Type.Mixed
+            (empty.set c).at c.name . value_type . should_equal Value_Type.Mixed
+
 # A dummy value used to force the in-memory backend to trigger a infer a mixed type for the given column.
 type Mixed_Type_Object
     Value
