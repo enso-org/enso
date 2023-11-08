@@ -121,7 +121,7 @@ type HTTP
                         _ : Text -> req.uri.to_uri
                         _ : URI -> req.uri
 
-                    response = Response.Value (HTTPBuilder.makeRequest self.internal_http_client builder uri.internal_uri [] mapped_headers)
+                    response = Response.Value (EnsoSecretHelper.makeRequest self.internal_http_client builder uri.internal_uri [] mapped_headers)
                     if error_on_failure_code.not || response.code.is_success then response else
                         Error.throw (Request_Error.Error "Status Code" ("Request failed with status code: " + response.code.to_text + ". " + response.body.decode_as_text))
 
