@@ -2596,7 +2596,7 @@ lazy val `simple-httpbin` = project
   .in(file("tools") / "simple-httpbin")
   .settings(
     frgaalJavaCompilerSetting,
-    Compile / javacOptions ++= Seq("-XDignore.symbol.file", "-Xlint:all"),
+    Compile / javacOptions ++= Seq("-Xlint:all"),
     libraryDependencies ++= Seq(
       "org.apache.commons" % "commons-text" % commonsTextVersion
     )
