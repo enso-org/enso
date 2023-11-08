@@ -9,7 +9,7 @@ import {
 } from '@/stores/suggestionDatabase/entry'
 import { readAstSpan } from '@/util/ast'
 import { expect, test } from 'vitest'
-import { Input } from '../input'
+import { useComponentBrowserInput } from '../input'
 
 test.each([
   ['', 0, { type: 'insert', position: 0 }, {}],
@@ -40,6 +40,20 @@ test.each([
   ],
   ['2 +', 3, { type: 'insert', position: 3, oprApp: ['2', '+', null] }, {}],
   ['2 + 3', 5, { type: 'changeLiteral', literal: '3' }, { pattern: '3' }],
+  // TODO[ao] test cases for #7926
+  // [
+  //   'operator1.',
+  //   10,
+  //   { type: 'insert', position: 10, oprApp: ['operator1', '.', null] },
+  //   { selfType: 'Standard.Base.Number' },
+  // ],
+  // [
+  //   'operator2.',
+  //   10,
+  //   { type: 'insert', position: 10, oprApp: ['operator2', '.', null] },
+  //   // No self type, as the operator2 local is from another module
+  //   { qualifiedNamePattern: 'operator2' },
+  // ],
 ])(
   "Input context and filtering, when content is '%s' and cursor at %i",
   (
@@ -52,9 +66,16 @@ test.each([
       identifier?: string
       literal?: string
     },
-    expFiltering: { pattern?: string; qualifiedNamePattern?: string },
+    expFiltering: { pattern?: string; qualifiedNamePattern?: string; selfType?: string },
   ) => {
-    const input = new Input()
+    // TODO[ao] See above commented cases for #7926
+    // const db = SuggestionDb.mock([
+    //   makeLocal('local.Project', 'operator1', 'Standard.Base.Number'),
+    //   makeLocal('local.Project.Another_Module', 'operator2', 'Standard.Base.Text'),
+    //   makeType('local.Project.operator1'),
+    //   makeLocal('local.Project', 'operator3', 'Standard.Base.Text'),
+    // ])
+    const input = useComponentBrowserInput()
     input.code.value = code
     input.selection.value = { start: cursorPos, end: cursorPos }
     const context = input.context.value
@@ -78,6 +99,7 @@ test.each([
     }
     expect(filter.pattern).toStrictEqual(expFiltering.pattern)
     expect(filter.qualifiedNamePattern).toStrictEqual(expFiltering.qualifiedNamePattern)
+    expect(filter.selfType).toStrictEqual(expFiltering.selfType)
   },
 )
 
@@ -195,7 +217,7 @@ test.each([
   ({ code, cursorPos, suggestion, expected, expectedCursorPos }) => {
     cursorPos = cursorPos ?? code.length
     expectedCursorPos = expectedCursorPos ?? expected.length
-    const input = new Input()
+    const input = useComponentBrowserInput()
     input.code.value = code
     input.selection.value = { start: cursorPos, end: cursorPos }
     input.applySuggestion(suggestion)

@@ -103,6 +103,15 @@ spec setup =
             r = t3.join t4 join_kind=Join_Kind.Inner on=["X", "Y"] |> materialize |> _.order_by ["X", "Y", "Z", "Right Z"]
             check_xy_joined r
 
+        Test.specify "should correctly handle duplicated rows in Equals" <|
+            t1 = table_builder [["X", [1, 2, 2, 3]]]
+            t2 = table_builder [["X", [1, 2, 2, 4]]]
+            r1 = t1.join t2 join_kind=Join_Kind.Full on="X" . order_by "X"
+            within_table r1 <|
+                # Both 2's from t1 match with _both_ ones from t2 _each_, so in total we get 4 `2` pairs:
+                r1.at "X" . to_vector . should_equal [Nothing, 1, 2, 2, 2, 2, 3]
+                r1.at "Right X" . to_vector . should_equal [4, 1, 2, 2, 2, 2, Nothing]
+
         Test.specify "should allow to join on text equality ignoring case" <|
             t1 = table_builder [["X", ["a", "B"]], ["Y", [1, 2]]]
             t2 = table_builder [["X", ["A", "a", "b"]], ["Z", [1, 2, 3]]]
@@ -170,7 +179,7 @@ spec setup =
             t2 = table_builder [["lower", [1, 10, 8, 12]], ["upper", [1, 12, 30, 0]], ["Z", [1, 2, 3, 4]]]
 
             r1 = t1.join join_kind=Join_Kind.Inner t2 on=(Join_Condition.Between "X" "lower" "upper") |> materialize |> _.order_by ["X", "Z"]
-            expect_column_names ["X", "Y", "lower", "upper", "Z"] r1
+            r1.column_names . should_equal ["X", "Y", "lower", "upper", "Z"]
             r1 . at "X" . to_vector . should_equal     [1, 10, 10, 12, 12]
             r1 . at "Y" . to_vector . should_equal     [1, 2,  2,  3,  3]
             r1 . at "lower" . to_vector . should_equal [1, 10, 8,  10, 8]
@@ -182,12 +191,70 @@ spec setup =
             t2 = table_builder [["lower", ["a", "b"]], ["upper", ["a", "ccc"]], ["Z", [10, 20]]]
 
             r1 = t1.join t2 join_kind=Join_Kind.Inner on=(Join_Condition.Between "X" "lower" "upper") |> materialize |> _.order_by ["X", "Z"]
-            expect_column_names ["X", "Y", "lower", "upper", "Z"] r1
+            r1.column_names . should_equal ["X", "Y", "lower", "upper", "Z"]
             r1 . at "X" . to_vector . should_equal     ["a", "b",   "c"]
             r1 . at "Y" . to_vector . should_equal     [1,    2,     3]
             r1 . at "lower" . to_vector . should_equal ["a", "b",   "b"]
             r1 . at "upper" . to_vector . should_equal ["a", "ccc", "ccc"]
             r1 . at "Z" . to_vector . should_equal     [10,   20,    20]
+
+        Test.specify "should correctly handle Between edge cases (1)" pending=(if prefix.contains "PostgreSQL" then "TODO: fix issue #8243") <|
+            # 1. multiple rows with the same key value on the left side
+            # 2. fully duplicated rows (1, 7) on the left side
+            # 3. empty bounds (lower > upper: 10 > 0)
+            # 4. equal bounds (10 = 10)
+            # 5. unmatched rows on both sides - Full join
+            t1 = table_builder [["X", [1, 10, 20, 1, 2, 1, 1]], ["id", [1, 2, 3, 4, 5, 7, 7]]]
+            t2 = table_builder [["lower", [0, 10, 10]], ["upper", [3, 10, 0]], ["Z", ['a', 'b', 'c']]]
+            r1 = t1.join t2 join_kind=Join_Kind.Full on=(Join_Condition.Between "X" "lower" "upper") |> materialize |> _.order_by ["Z", "id"]
+            within_table r1 <|
+                r1.column_names . should_equal ["X", "id", "lower", "upper", "Z"]
+                rows = r1.rows.map .to_vector
+                rows.length . should_equal 8
+
+                rows.at 0 . should_equal [20, 3, Nothing, Nothing, Nothing]
+                rows.at 1 . should_equal [ 1, 1,  0,  3, 'a']
+                rows.at 2 . should_equal [ 1, 4,  0,  3, 'a']
+                rows.at 3 . should_equal [ 2, 5,  0,  3, 'a']
+                rows.at 4 . should_equal [ 1, 7,  0,  3, 'a']
+                rows.at 5 . should_equal [ 1, 7,  0,  3, 'a']
+                rows.at 6 . should_equal [10, 2, 10, 10, 'b']
+                rows.at 7 . should_equal [Nothing, Nothing, 10, 0, 'c']
+
+        Test.specify "should correctly handle Between edge cases (2)" <|
+            # 6. multiple Between conditions
+            xs = [0, 0, 1, 1, 1, 1, 2, 2, 3, 3, 3, 4, 4, 4]
+            ys = [1, 2, 3, 1, 9, 2, 3, 2, 4, 2, 1, 1, 1, 2]
+            pts = xs.zip ys . take (Index_Sub_Range.Sample xs.length seed=42)
+            t1 = table_builder [["X", pts.map .first], ["Y", pts.map .second]]
+
+            t2 = table_builder [["lx", [1]], ["ux", [3]], ["ly", [1]], ["uy", [2]]]
+            r2 = t1.join t2 join_kind=Join_Kind.Inner on=[Join_Condition.Between "X" "lx" "ux", Join_Condition.Between "Y" "ly" "uy"] |> materialize |> _.order_by ["X", "Y"]
+            within_table r2 <|
+                r2.at "X" . to_vector . should_equal [1, 1, 2, 3, 3]
+                r2.at "Y" . to_vector . should_equal [1, 2, 2, 1, 2]
+
+            t3 = table_builder [["lx", [1.9]], ["ux", [3]], ["ly", [1]], ["uy", [2]]]
+            r3 = t1.join t3 join_kind=Join_Kind.Inner on=[Join_Condition.Between "X" "lx" "ux", Join_Condition.Between "Y" "ly" "uy"] |> materialize |> _.order_by ["X", "Y"]
+            within_table r3 <|
+                r3.at "X" . to_vector . should_equal [2, 3, 3]
+                r3.at "Y" . to_vector . should_equal [2, 1, 2]
+
+        Test.specify "should correctly handle Between edge cases (3)" <|
+            # 7. duplicated rows on both sides
+            t1 = table_builder [["X", [10, 20, 20]]]
+            t2 = table_builder [["low", [15, 15]], ["high", [30, 30]]]
+            r1 = t1.join t2 join_kind=Join_Kind.Right_Outer on=(Join_Condition.Between "X" "low" "high")
+            within_table r1 <|
+                r1.at "X" . to_vector . should_equal [20, 20, 20, 20]
+                r1.at "low" . to_vector . should_equal [15, 15, 15, 15]
+                r1.at "high" . to_vector . should_equal [30, 30, 30, 30]
+
+            # 8. keep only unmatched rows
+            r2 = t1.join t2 join_kind=Join_Kind.Left_Exclusive on=(Join_Condition.Between "X" "low" "high")
+            within_table r2 <|
+                r2.column_names . should_equal ["X"]
+                r2.at "X" . to_vector . should_equal [10]
 
         if setup.test_selection.supports_unicode_normalization then
             Test.specify "should allow range-based joins (using Between) for text with Unicode normalization" <|
@@ -368,16 +435,15 @@ spec setup =
             if setup.supports_custom_objects then
                 t1 = table_builder [["X", [My_Type.Value 1 2, 2.0, 2]], ["Y", [10, 20, 30]]]
                 t2 = table_builder [["Z", [2.0, 1.5, 2.0]], ["W", [1, 2, 3]]]
-                action3 = t1.join t2 join_kind=Join_Kind.Inner on=(Join_Condition.Equals "X" "Z") on_problems=_
-                tester3 table =
-                    expect_column_names ["X", "Y", "Z", "W"] table
-                    t1 = table.order_by ["Y", "W"]
-                    t1.at "X" . to_vector . should_equal [2.0, 2.0, 2, 2]
-                    t1.at "Y" . to_vector . should_equal [20, 20, 30, 30]
-                    t1.at "Z" . to_vector . should_equal [2.0, 2.0, 2.0, 2.0]
-                    t1.at "W" . to_vector . should_equal [1, 3, 1, 3]
-                problems3 = [Floating_Point_Equality.Error "Z", Floating_Point_Equality.Error "X"]
-                Problems.test_problem_handling action3 problems3 tester3
+                r3 = t1.join t2 join_kind=Join_Kind.Inner on=(Join_Condition.Equals "X" "Z") on_problems=Problem_Behavior.Report_Warning
+                r3.column_names.should_equal ["X", "Y", "Z", "W"]
+                r4 = r3.order_by ["Y", "W"]
+                r4.at "X" . to_vector . should_equal [2.0, 2.0, 2, 2]
+                r4.at "Y" . to_vector . should_equal [20, 20, 30, 30]
+                r4.at "Z" . to_vector . should_equal [2.0, 2.0, 2.0, 2.0]
+                r4.at "W" . to_vector . should_equal [1, 3, 1, 3]
+                expected_problems = [Floating_Point_Equality.Error "Z", Floating_Point_Equality.Error "X"]
+                Problems.get_attached_warnings r3 . should_contain_the_same_elements_as expected_problems
 
         Test.specify "should correctly handle nulls in equality conditions" pending=db_todo <|
             t1 = table_builder [["X", ["A", Nothing, "a", Nothing, "ą"]], ["Y", [0, 1, 2, 3, 4]]]
@@ -649,6 +715,17 @@ spec setup =
                 r3.at 2 . should_equal [Nothing, 10, 7, 7, 200]
                 r3.at 3 . should_equal [2, 20, 2, Nothing, Nothing]
                 r3.at 4 . should_equal [3, 30, 3, Nothing, Nothing]
+
+            t8 = table_builder [["X", [2, 99]], ["Y", [20, 99]], ["C", [5, 99]]]
+            t9 = t4_2.join t8 join_kind=Join_Kind.Full on=["X", "Y", "C"]
+            within_table t9 <|
+                t9.column_names . should_equal ["X", "Y", "C", "Right X", "Right Y", "Right C"]
+                r3 = materialize t9 . order_by ["X", "Right X"] . rows . map .to_vector
+                r3.length . should_equal 4
+                r3.at 0 . should_equal [Nothing, Nothing, Nothing, 99, 99, 99]
+                r3.at 1 . should_equal [1, 10, 3, Nothing, Nothing, Nothing]
+                r3.at 2 . should_equal [2, 20, 5, 2, 20, 5]
+                r3.at 3 . should_equal [3, 30, 7, Nothing, Nothing, Nothing]
 
         Test.specify "should gracefully handle tables from different backends" <|
             alternative_connection = Database.connect (SQLite In_Memory)
