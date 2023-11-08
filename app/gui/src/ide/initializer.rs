@@ -30,8 +30,14 @@ const PROJECT_MANAGER_TIMEOUT_SEC: u64 = 2 * 60 * 60;
 ///
 /// The IDE initialization is prone to connectivity problems, therefore we retry it several times.
 /// The number of retries is equal to this slice length.
-const INITIALIZATION_RETRY_TIMES: &[Duration] =
-    &[Duration::from_secs(1), Duration::from_secs(2), Duration::from_secs(4)];
+const INITIALIZATION_RETRY_TIMES: &[Duration] = &[
+    Duration::from_secs(1),
+    Duration::from_secs(2),
+    Duration::from_secs(4),
+    Duration::from_secs(8),
+    Duration::from_secs(16),
+    Duration::from_secs(32),
+];
 
 
 
