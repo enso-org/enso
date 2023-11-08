@@ -1,5 +1,11 @@
 import type { Filter } from '@/components/ComponentBrowser/filtering'
-import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
+import { useGraphStore } from '@/stores/graph'
+import { useProjectStore } from '@/stores/project'
+import {
+  SuggestionKind,
+  type SuggestionEntry,
+  type Typename,
+} from '@/stores/suggestionDatabase/entry'
 import {
   Ast,
   astContainingChar,
@@ -9,14 +15,15 @@ import {
   readTokenSpan,
 } from '@/util/ast'
 import { GeneralOprApp } from '@/util/ast/opr'
+import type { ExpressionInfo } from '@/util/computedValueRegistry'
 import {
   qnLastSegment,
   qnParent,
   qnSplit,
-  tryIdentifier,
   tryQualifiedName,
   type QualifiedName,
 } from '@/util/qualifiedName'
+import type { ExprId } from 'shared/yjsModel'
 import { computed, ref, type ComputedRef } from 'vue'
 
 /** Input's editing context.
@@ -44,7 +51,12 @@ export type EditingContext =
   | { type: 'changeLiteral'; literal: Ast.Tree.TextLiteral | Ast.Tree.Number }
 
 /** Component Browser Input Data */
-export function useComponentBrowserInput() {
+export function useComponentBrowserInput(
+  graphStore: { identDefinitions: Map<string, ExprId> } = useGraphStore(),
+  computedValueRegistry: {
+    getExpressionInfo(id: ExprId): ExpressionInfo | undefined
+  } = useProjectStore().computedValueRegistry,
+) {
   const code = ref('')
   const selection = ref({ start: 0, end: 0 })
 
@@ -132,13 +144,15 @@ export function useComponentBrowserInput() {
     }
   }
 
-  function pathAsSelfType(accessOpr: GeneralOprApp, inputCode: string): QualifiedName | null {
+  function pathAsSelfType(accessOpr: GeneralOprApp, inputCode: string): Typename | null {
     if (accessOpr.lhs == null) return null
     if (accessOpr.lhs.type !== Ast.Tree.Type.Ident) return null
     if (accessOpr.apps.length > 1) return null
-    const _ident = tryIdentifier(readAstSpan(accessOpr.lhs, inputCode))
-    // TODO[ao]: #7926 add implementation here
-    return null
+    const ident = readAstSpan(accessOpr.lhs, inputCode)
+    const definition = graphStore.identDefinitions.get(ident)
+    if (definition == null) return null
+    const typename = computedValueRegistry.getExpressionInfo(definition)?.typename
+    return typename ?? null
   }
 
   function pathAsQualifiedName(accessOpr: GeneralOprApp, inputCode: string): QualifiedName | null {

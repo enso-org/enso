@@ -1,11 +1,15 @@
-import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
+import {
+  SuggestionKind,
+  type SuggestionEntry,
+  type Typename,
+} from '@/stores/suggestionDatabase/entry'
 import type { Opt } from '@/util/opt'
 import { qnIsTopElement, qnParent, type QualifiedName } from '@/util/qualifiedName'
 import { Range } from '@/util/range'
 
 export interface Filter {
   pattern?: string
-  selfType?: QualifiedName
+  selfType?: Typename
   qualifiedNamePattern?: string
   showUnstable?: boolean
   showLocal?: boolean
@@ -259,7 +263,7 @@ class FilteringQualifiedName {
  */
 export class Filtering {
   pattern?: FilteringWithPattern
-  selfType?: QualifiedName | undefined
+  selfType?: Typename | undefined
   qualifiedName?: FilteringQualifiedName
   fullPattern: string | undefined
   /** The first and last match are the parts of the string that are outside of the match.
