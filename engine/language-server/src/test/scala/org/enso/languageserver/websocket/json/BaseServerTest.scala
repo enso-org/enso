@@ -354,7 +354,7 @@ class BaseServerTest
     * was more suited towards testing the launcher.
     */
   override def fakeExecutablePath(portable: Boolean): Path =
-    Path.of("distribution/component/runner.jar")
+    Path.of("distribution/component/runner/runner.jar")
 
   /** Specifies if the `package.yaml` at project root should be auto-created. */
   protected def initializeProjectPackage: Boolean = true

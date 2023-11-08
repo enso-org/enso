@@ -7,30 +7,23 @@ import nl.gn0s1s.bump.SemVer
 import org.enso.distribution.FileSystem
 import org.enso.editions.{Editions, LibraryName}
 import org.enso.languageserver.libraries.LibraryEntry.PublishedLibraryVersion
-import org.enso.languageserver.libraries.{
-  LibraryComponentGroup,
-  LibraryComponentGroups,
-  LibraryEntry
-}
+import org.enso.languageserver.libraries.{LibraryComponentGroup, LibraryComponentGroups, LibraryEntry}
 import org.enso.languageserver.runtime.TestComponentGroups
 import org.enso.librarymanager.published.bundles.LocalReadOnlyRepository
-import org.enso.librarymanager.published.repository.{
-  EmptyRepository,
-  ExampleRepository,
-  LibraryManifest
-}
+import org.enso.librarymanager.published.repository.{EmptyRepository, ExampleRepository, LibraryManifest}
 import org.enso.pkg.{Config, Contact, Package, PackageManager}
 import org.enso.yaml.YamlHelper
 
+import java.io.File
+import java.net.URISyntaxException
 import java.nio.file.Files
 import java.nio.file.Path
-
 import scala.concurrent.duration._
 
 class LibrariesTest extends BaseServerTest {
   private val libraryRepositoryPort: Int = 47308
 
-  private val exampleRepo = new ExampleRepository(Path.of(".")) {
+  private val exampleRepo = new ExampleRepository(locateRootDirectory().toPath) {
     override def libraries: Seq[DummyLibrary] = Seq(
       DummyLibrary(
         LibraryName("Foo", "Bar"),
@@ -51,6 +44,29 @@ class LibrariesTest extends BaseServerTest {
   override protected def customEdition: Option[Editions.RawEdition] = Some(
     exampleRepo.createEdition(repositoryUrl)
   )
+
+  /**
+   * Locates the root of the Enso repository. Heuristic: we just keep going up the directory tree
+   * until we are in a directory containing ".git" subdirectory. Note that we cannot use the "enso"
+   * name, as users are free to name their cloned directories however they like.
+   */
+  private def locateRootDirectory(): File = {
+    var rootDir: File = null
+    try {
+      rootDir = new File(
+        classOf[LibrariesTest].getProtectionDomain.getCodeSource.getLocation.toURI
+      )
+    } catch { case e: URISyntaxException =>
+      fail("repository root directory not found: " + e.getMessage)
+    }
+    while (rootDir != null && !Files.exists(rootDir.toPath.resolve(".git"))) {
+      rootDir = rootDir.getParentFile
+    }
+    if (rootDir == null) {
+      fail("repository root directory not found")
+    }
+    rootDir
+  }
 
   "LocalLibraryManager" should {
     "create a library project and include it on the list of local projects" in {
@@ -424,7 +440,8 @@ class LibrariesTest extends BaseServerTest {
           """)
 
       val repoRoot        = getTestDirectory.resolve("libraries_repo_root")
-      val emptyRepository = new EmptyRepository(Path.of("."))
+      val rootDir = locateRootDirectory()
+      val emptyRepository = new EmptyRepository(rootDir.toPath)
       emptyRepository.withServer(
         libraryRepositoryPort,
         repoRoot,
