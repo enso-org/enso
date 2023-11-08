@@ -32,12 +32,8 @@ export class ComputedValueRegistry {
 
   processUpdates(updates: ExpressionUpdate[]) {
     for (const update of updates) {
-      this.db.set(update.expressionId, {
-        typename: update.type,
-        methodCall: update.methodCall,
-        payload: update.payload,
-        profilingInfo: update.profilingInfo,
-      })
+      const info = this.db.get(update.expressionId)
+      this.db.set(update.expressionId, combineInfo(info, update))
     }
   }
 
@@ -47,5 +43,15 @@ export class ComputedValueRegistry {
 
   destroy() {
     this.executionContext.off('expressionUpdates', this._updateHandler)
+  }
+}
+
+function combineInfo(info: ExpressionInfo | undefined, update: ExpressionUpdate): ExpressionInfo {
+  const isPending = update.payload.type === 'Pending'
+  return {
+    typename: update.type ?? (isPending ? info?.typename : undefined),
+    methodCall: update.methodCall ?? (isPending ? info?.methodCall : undefined),
+    payload: update.payload,
+    profilingInfo: update.profilingInfo,
   }
 }

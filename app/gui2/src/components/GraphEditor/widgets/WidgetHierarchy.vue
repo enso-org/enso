@@ -26,21 +26,11 @@ export const widgetConfig = defineWidget({
 
 <style scoped>
 .Tree {
-  color: white;
   white-space: pre;
   align-items: center;
   transition: background 0.2s ease;
   min-height: 24px;
   display: inline-block;
-
-  &.Root {
-    color: rgb(255 255 255 / 0.33);
-  }
-
-  &.Ident,
-  &.Literal {
-    color: white;
-  }
 
   &.Literal {
     font-weight: bold;

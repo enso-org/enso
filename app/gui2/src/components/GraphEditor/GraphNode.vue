@@ -450,6 +450,7 @@ const icon = computed(() => {
 
 .treeRoot {
   margin: 0 4px;
+  color: white;
 
   /*
    * NOTE(PG): The following monstrosity selectors attempt to detect a recursively first of last
