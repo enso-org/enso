@@ -77,12 +77,29 @@ public class PersistableProcessor extends AbstractProcessor {
       processingEnv.getMessager().printMessage(Kind.ERROR, "Cannot find type for " + typeElemName);
       return false;
     }
-    var constructors = typeElem.getEnclosedElements().stream().filter(e -> e.getModifiers().contains(Modifier.PUBLIC) && e.getKind() == ElementKind.CONSTRUCTOR).toList();
-    if (constructors.size() != 1) {
+    var constructors = typeElem.getEnclosedElements().stream()
+      .filter(
+        e -> e.getModifiers().contains(Modifier.PUBLIC) && e.getKind() == ElementKind.CONSTRUCTOR
+      )
+      .sorted((a, b) -> {
+        var ea = (ExecutableElement)a;
+        var eb = (ExecutableElement)b;
+
+        return ea.getParameters().size() - eb.getParameters().size();
+      })
+      .toList();
+    if (constructors.size() == 0) {
       processingEnv.getMessager().printMessage(Kind.ERROR, "There should be exactly one constructor in " + typeElem);
       return false;
     }
     var cons = (ExecutableElement) constructors.get(0);
+    if (constructors.size() > 1) {
+      var snd = (ExecutableElement) constructors.get(1);
+      if (cons.getParameters().size() == snd.getParameters().size()) {
+        processingEnv.getMessager().printMessage(Kind.ERROR, "There should be exactly one 'richest' constructor in " + typeElem);
+        return false;
+      }
+    }
     var pkgName = eu.getPackageOf(orig).getQualifiedName().toString();
     var className = "Persist" + findNameInPackage(typeElem).replace(".", "_");
     var fo = processingEnv.getFiler().createSourceFile(pkgName + "." + className, orig);

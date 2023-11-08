@@ -3,6 +3,8 @@ package org.enso.compiler.core.ir;
 import java.io.IOException;
 import java.util.NoSuchElementException;
 import org.enso.compiler.core.Persistance;
+import org.enso.compiler.core.ir.expression.Application;
+import org.enso.compiler.core.ir.expression.Case;
 import org.enso.compiler.core.ir.module.scope.Definition;
 import org.enso.compiler.core.ir.module.scope.Export;
 import org.enso.compiler.core.ir.module.scope.Import;
@@ -21,6 +23,21 @@ import scala.collection.immutable.Seq;
 @Persistable(clazz = DefinitionArgument.Specified.class, id = 704)
 @Persistable(clazz = Name.Self.class, id = 705)
 @Persistable(clazz = Literal.Number.class, id = 706)
+@Persistable(clazz = Literal.Text.class, id = 707)
+@Persistable(clazz = CallArgument.Specified.class, id = 708)
+@Persistable(clazz = Definition.Type.class, id = 709)
+@Persistable(clazz = Definition.Data.class, id = 710)
+@Persistable(clazz = Name.Blank.class, id = 711)
+@Persistable(clazz = Expression.Block.class, id = 751)
+@Persistable(clazz = Expression.Binding.class, id = 752)
+@Persistable(clazz = Application.Prefix.class, id = 753)
+@Persistable(clazz = Application.Force.class, id = 754)
+@Persistable(clazz = Application.Sequence.class, id = 755)
+@Persistable(clazz = Case.Expr.class, id = 761)
+@Persistable(clazz = Case.Branch.class, id = 762)
+@Persistable(clazz = Pattern.Constructor.class, id = 763)
+@Persistable(clazz = Pattern.Name.class, id = 764)
+@Persistable(clazz = Pattern.Type.class, id = 765)
 public final class IrPersistance {
   private IrPersistance() {}
 
