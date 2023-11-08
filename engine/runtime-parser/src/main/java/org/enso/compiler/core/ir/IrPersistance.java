@@ -18,6 +18,9 @@ import scala.collection.immutable.List;
 import scala.collection.immutable.Seq;
 
 @Persistable(clazz = Polyglot.Java.class, id = 703)
+@Persistable(clazz = DefinitionArgument.Specified.class, id = 704)
+@Persistable(clazz = Name.Self.class, id = 705)
+@Persistable(clazz = Literal.Number.class, id = 706)
 public final class IrPersistance {
   private IrPersistance() {}
 

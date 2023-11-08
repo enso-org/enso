@@ -95,13 +95,21 @@ public class PersistableProcessor extends AbstractProcessor {
       w.append("  public ").append(className).append("() {\n");
       w.append("    super(").append(typeElemName).append(".class, false, ").append(Integer.toString(anno.id())).append(");\n");
       w.append("  }\n");
+      w.append("  @SuppressWarnings(\"unchecked\")\n");
       w.append("  protected ").append(typeElemName).append(" readObject(Input in) throws IOException {\n");
       w.append("    /* found: ").append(cons.getParameters().toString()).append("*/\n");
       for (var v : cons.getParameters()) {
         if (tu.isSameType(eu.getTypeElement("java.lang.String").asType(), v.asType())) {
           w.append("    var ").append(v.getSimpleName()).append(" = in.readUTF();\n");
         } else if (!v.asType().getKind().isPrimitive()) {
-          w.append("    var ").append(v.getSimpleName()).append(" = in.readInline(").append(typeElemName).append(".class);\n");
+          var type = tu.erasure(v.asType());
+          var elem = (TypeElement) tu.asElement(type);
+          var name = eu.getBinaryName(elem);
+          if (elem.getKind().isInterface()) {
+            w.append("    var ").append(v.getSimpleName()).append(" = (").append(name).append(") in.readObject();\n");
+          } else {
+            w.append("    var ").append(v.getSimpleName()).append(" = in.readInline(").append(name).append(".class);\n");
+          }
         } else switch (v.asType().getKind()) {
           case BOOLEAN ->
             w.append("    var ").append(v.getSimpleName()).append(" = in.readBoolean();\n");
@@ -124,6 +132,7 @@ public class PersistableProcessor extends AbstractProcessor {
       w.append("\n");
       w.append("    );\n");
       w.append("  }\n");
+      w.append("  @SuppressWarnings(\"unchecked\")\n");
       w.append("  protected void writeObject(").append(typeElemName).append(" obj, Output out) throws IOException {\n");
 
       w.append("  /* found: ").append(cons.getParameters().toString()).append("*/\n");
@@ -132,7 +141,14 @@ public class PersistableProcessor extends AbstractProcessor {
         if (tu.isSameType(eu.getTypeElement("java.lang.String").asType(), v.asType())) {
           w.append("    out.writeUTF(obj.").append(v.getSimpleName()).append("());\n");
         } else if (!v.asType().getKind().isPrimitive()) {
-          w.append("    out.writeInline(obj.").append(v.getSimpleName()).append("());\n");
+          var type = tu.erasure(v.asType());
+          var elem = (TypeElement) tu.asElement(type);
+          var name = eu.getBinaryName(elem);
+          if (elem.getKind().isInterface()) {
+            w.append("    out.writeObject(obj.").append(v.getSimpleName()).append("());\n");
+          } else {
+            w.append("    out.writeInline(").append(name).append(".class, obj.").append(v.getSimpleName()).append("());\n");
+          }
         } else switch (v.asType().getKind()) {
           case BOOLEAN ->
             w.append("    out.writeBoolean(obj.").append(v.getSimpleName()).append("());\n");
