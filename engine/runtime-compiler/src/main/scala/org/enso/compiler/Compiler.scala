@@ -1050,9 +1050,6 @@ class Compiler(
     private val sourceSection: Option[SourceSection] =
       diagnostic.location match {
         case Some(location) =>
-          println(
-            s"Creating section (${location.start}-${location.end}) within source of length ${source.getLength}"
-          )
           Some(source.createSection(location.start, location.length))
         case None => None
       }
@@ -1183,11 +1180,9 @@ class Compiler(
       endCol: Int
     ): String = {
       val line = source.createSection(lineNum).getCharacters.toString
-      // FIXME: this is rather a temporary workaround; we should figure out why endCol is too big
-      val effectiveEnd: Int = Math.min(endCol, line.length)
       linePrefix(lineNum) + fansi
         .Str(line)
-        .overlay(textAttrs, startCol - 1, effectiveEnd)
+        .overlay(textAttrs, startCol - 1, endCol)
     }
 
     private def linePrefix(lineNum: Int): String = {
