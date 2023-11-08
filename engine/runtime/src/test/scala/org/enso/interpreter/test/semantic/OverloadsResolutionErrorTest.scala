@@ -59,7 +59,7 @@ class OverloadsResolutionErrorTest extends InterpreterTest {
       )
     }
 
-    "result in an error at runtime for clashing from conversions" in {
+    "result in a compiler error for clashing from conversions" in {
       val code =
         """type Foo
           |    Mk_Foo data
