@@ -1146,11 +1146,10 @@ lazy val `polyglot-api` = project
     Test / fork := true,
     commands += WithDebugCommand.withDebug,
     Test / envVars ++= distributionEnvironmentOverrides,
-    Test / javaOptions ++=
-      Seq(
+    Test / javaOptions ++= testLogProviderOptions ++ Seq(
         "-Dpolyglot.engine.WarnInterpreterOnly=false",
         "-Dpolyglotimpl.DisableClassPathIsolation=true"
-      ),
+    ),
     // Append enso language on the class-path
     Test / unmanagedClasspath :=
       (LocalProject("runtime-with-instruments") / Compile / fullClasspath).value,
@@ -1209,11 +1208,10 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .settings(
     // These settings are needed by language-server tests that create a runtime context.
     Test / fork := true,
-    Test / javaOptions ++=
-      Seq(
+    Test / javaOptions ++= testLogProviderOptions ++ Seq(
         "-Dpolyglot.engine.WarnInterpreterOnly=false",
         "-Dpolyglotimpl.DisableClassPathIsolation=true"
-      ),
+    ),
     // Append enso language on the class-path
     Test / unmanagedClasspath :=
       (LocalProject("runtime-with-instruments") / Compile / fullClasspath).value,
