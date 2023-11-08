@@ -1747,6 +1747,7 @@ lazy val `engine-runner` = project
           ),
           initializeAtRuntime = Seq(
             "org.jline.nativ.JLineLibrary",
+            "org.jline.terminal.impl.jna",
             "io.methvin.watchservice.jna.CarbonAPI",
             "org.enso.syntax2.Parser",
             "zio.internal.ZScheduler$$anon$4",
@@ -1756,6 +1757,8 @@ lazy val `engine-runner` = project
             "sun.font",
             "java.awt",
             "com.sun.imageio",
+            "com.sun.jna.internal.Cleaner",
+            "com.sun.jna.Structure$FFIType",
             "akka.http"
           )
         )
