@@ -35,9 +35,10 @@ final class RefactoringRenameJob(
 
   /** @inheritdoc */
   override def run(implicit ctx: RuntimeContext): Seq[File] = {
-    val logger                   = ctx.executionService.getLogger
-    val compilationLockTimestamp = ctx.locking.acquireReadCompilationLock()
+    val logger                         = ctx.executionService.getLogger
+    var compilationLockTimestamp: Long = 0
     try {
+      compilationLockTimestamp = ctx.locking.acquireReadCompilationLock()
       logger.log(
         Level.FINE,
         s"Renaming symbol [{0}]...",
@@ -46,6 +47,14 @@ final class RefactoringRenameJob(
       val refactoredFile = applyRefactoringEdits()
       Seq(refactoredFile)
     } catch {
+      case ie: InterruptedException =>
+        logger.log(Level.WARNING, "Failed to acquire lock: interrupted", ie)
+        reply(
+          Api.SymbolRenameFailed(
+            Api.SymbolRenameFailed.OperationNotSupported(expressionId)
+          )
+        )
+        Seq()
       case _: ModuleNotFoundException =>
         reply(Api.ModuleNotFound(moduleName))
         Seq()
@@ -71,15 +80,17 @@ final class RefactoringRenameJob(
         )
         Seq()
     } finally {
-      ctx.locking.releaseReadCompilationLock()
-      logger.log(
-        Level.FINEST,
-        s"Kept read compilation lock [{0}] for {1} milliseconds.",
-        Array(
-          getClass.getSimpleName,
-          System.currentTimeMillis() - compilationLockTimestamp
+      if (compilationLockTimestamp != 0) {
+        ctx.locking.releaseReadCompilationLock()
+        logger.log(
+          Level.FINEST,
+          s"Kept read compilation lock [{0}] for {1} milliseconds.",
+          Array(
+            getClass.getSimpleName,
+            System.currentTimeMillis() - compilationLockTimestamp
+          )
         )
-      )
+      }
     }
   }
 

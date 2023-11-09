@@ -29,13 +29,16 @@ class ExecuteJob(
 
   /** @inheritdoc */
   override def run(implicit ctx: RuntimeContext): Unit = {
-    val logger            = ctx.executionService.getLogger
-    val acquiredLock      = ctx.locking.acquireContextLock(contextId)
-    val readLockTimestamp = ctx.locking.acquireReadCompilationLock()
-    val context           = ctx.executionService.getContext
-    val originalExecutionEnvironment =
-      executionEnvironment.map(_ => context.getExecutionEnvironment)
+    val logger                     = ctx.executionService.getLogger
+    var contextLockTimestamp: Long = 0
+    var readLockTimestamp: Long    = 0
     try {
+      contextLockTimestamp = ctx.locking.acquireContextLock(contextId)
+      readLockTimestamp    = ctx.locking.acquireReadCompilationLock()
+      val context = ctx.executionService.getContext
+      val originalExecutionEnvironment =
+        executionEnvironment.map(_ => context.getExecutionEnvironment)
+
       executionEnvironment.foreach(env =>
         context.setExecutionEnvironment(ExecutionEnvironment.forName(env.name))
       )
@@ -68,6 +71,16 @@ class ExecuteJob(
           )
       }
     } catch {
+      case ie: InterruptedException =>
+        logger.log(Level.WARNING, "Failed to acquire lock: interrupted", ie)
+        ctx.endpoint.sendToClient(
+          Api.Response(
+            Api.ExecutionFailed(
+              contextId,
+              ExecutionResult.Failure("interrupted", None)
+            )
+          )
+        )
       case t: Throwable =>
         ctx.endpoint.sendToClient(
           Api.Response(
@@ -78,16 +91,29 @@ class ExecuteJob(
           )
         )
     } finally {
-      ctx.locking.releaseReadCompilationLock()
-      logger.log(
-        Level.FINEST,
-        s"Kept read compilation lock [ExecuteJob] for ${System.currentTimeMillis() - readLockTimestamp} milliseconds"
-      )
-      ctx.locking.releaseContextLock(contextId)
-      logger.log(
-        Level.FINEST,
-        s"Kept context lock [ExecuteJob] for ${contextId} for ${System.currentTimeMillis() - acquiredLock} milliseconds"
-      )
+      if (readLockTimestamp != 0) {
+        ctx.locking.releaseReadCompilationLock()
+        logger.log(
+          Level.FINEST,
+          s"Kept read compilation lock [{0}] for {1} milliseconds",
+          Array(
+            getClass.getSimpleName,
+            System.currentTimeMillis() - readLockTimestamp
+          )
+        )
+      }
+      if (contextLockTimestamp != 0) {
+        ctx.locking.releaseContextLock(contextId)
+        logger.log(
+          Level.FINEST,
+          s"Kept context lock [{0}] for {1} for {2} milliseconds",
+          Array(
+            getClass.getSimpleName,
+            contextId,
+            System.currentTimeMillis() - contextLockTimestamp
+          )
+        )
+      }
     }
   }
 

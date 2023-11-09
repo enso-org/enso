@@ -51,19 +51,29 @@ final class EnsureCompiledJob(
 
   /** @inheritdoc */
   override def run(implicit ctx: RuntimeContext): CompilationStatus = {
-    val writeLockTimestamp             = ctx.locking.acquireWriteCompilationLock()
     implicit val logger: TruffleLogger = ctx.executionService.getLogger
-
+    var writeLockTimestamp: Long       = 0
     try {
+      writeLockTimestamp = ctx.locking.acquireWriteCompilationLock()
       val compilationResult = ensureCompiledFiles(files)
       setCacheWeights()
       compilationResult
+    } catch {
+      case ie: InterruptedException =>
+        logger.log(Level.WARNING, "Failed to acquire lock: interrupted", ie)
+        CompilationStatus.Failure
     } finally {
-      ctx.locking.releaseWriteCompilationLock()
-      logger.log(
-        Level.FINEST,
-        s"Kept write compilation lock [EnsureCompiledJob] for ${System.currentTimeMillis() - writeLockTimestamp} milliseconds"
-      )
+      if (writeLockTimestamp != 0) {
+        ctx.locking.releaseWriteCompilationLock()
+        logger.log(
+          Level.FINEST,
+          s"Kept write compilation lock [{0}] for {1} milliseconds",
+          Array(
+            getClass.getSimpleName,
+            System.currentTimeMillis() - writeLockTimestamp
+          )
+        )
+      }
     }
   }
 

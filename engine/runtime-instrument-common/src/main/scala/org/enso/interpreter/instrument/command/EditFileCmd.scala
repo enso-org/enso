@@ -23,10 +23,12 @@ class EditFileCmd(request: Api.EditFileNotification)
     ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] = {
-    val logger                    = ctx.executionService.getLogger
-    val fileLockTimestamp         = ctx.locking.acquireFileLock(request.path)
-    val pendingEditsLockTimestamp = ctx.locking.acquirePendingEditsLock()
+    val logger                          = ctx.executionService.getLogger
+    var fileLockTimestamp: Long         = 0
+    var pendingEditsLockTimestamp: Long = 0
     try {
+      fileLockTimestamp         = ctx.locking.acquireFileLock(request.path)
+      pendingEditsLockTimestamp = ctx.locking.acquirePendingEditsLock()
       logger.log(
         Level.FINE,
         "Adding pending file edits: {}",
@@ -41,17 +43,33 @@ class EditFileCmd(request: Api.EditFileNotification)
         executeJobs.foreach(ctx.jobProcessor.run)
       }
       Future.successful(())
+    } catch {
+      case ie: InterruptedException =>
+        logger.log(Level.WARNING, "Failed to acquire lock: interrupted", ie)
+        Future.failed(ie)
     } finally {
-      ctx.locking.releasePendingEditsLock()
-      logger.log(
-        Level.FINEST,
-        "Kept pending edits lock [EditFileCmd] for " + (System.currentTimeMillis - pendingEditsLockTimestamp) + " milliseconds"
-      )
-      ctx.locking.releaseFileLock(request.path)
-      logger.log(
-        Level.FINEST,
-        "Kept file lock [EditFileCmd] for " + (System.currentTimeMillis - fileLockTimestamp) + " milliseconds"
-      )
+      if (pendingEditsLockTimestamp != 0) {
+        ctx.locking.releasePendingEditsLock()
+        logger.log(
+          Level.FINEST,
+          "Kept pending edits lock [{0}] for {1} milliseconds",
+          Array(
+            getClass.getSimpleName,
+            System.currentTimeMillis() - pendingEditsLockTimestamp
+          )
+        )
+      }
+      if (fileLockTimestamp != 0) {
+        ctx.locking.releaseFileLock(request.path)
+        logger.log(
+          Level.FINEST,
+          "Kept file lock [{0}] for {1} milliseconds",
+          Array(
+            getClass.getSimpleName,
+            System.currentTimeMillis() - fileLockTimestamp
+          )
+        )
+      }
     }
   }
 

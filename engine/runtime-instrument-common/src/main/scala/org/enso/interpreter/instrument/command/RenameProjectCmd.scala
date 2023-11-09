@@ -33,9 +33,10 @@ class RenameProjectCmd(
     } yield ()
 
   private def doRename(implicit ctx: RuntimeContext): Unit = {
-    val logger             = ctx.executionService.getLogger
-    val writeLockTimestamp = ctx.locking.acquireWriteCompilationLock()
+    val logger                   = ctx.executionService.getLogger
+    var writeLockTimestamp: Long = 0
     try {
+      writeLockTimestamp = ctx.locking.acquireWriteCompilationLock()
       logger.log(
         Level.FINE,
         s"Renaming project [old:${request.namespace}.${request.oldName},new:${request.namespace}.${request.newName}]..."
@@ -95,6 +96,9 @@ class RenameProjectCmd(
         s"Project renamed to ${request.namespace}.${request.newName}"
       )
     } catch {
+      case ie: InterruptedException =>
+        logger.log(Level.WARNING, "Failed to acquire lock: interrupted", ie)
+        reply(Api.ProjectRenameFailed(request.oldName, request.newName))
       case ex: RenameProjectCmd.MainProjectPackageNotFound =>
         logger.log(
           Level.SEVERE,
@@ -110,12 +114,17 @@ class RenameProjectCmd(
         )
         reply(Api.ProjectRenameFailed(request.oldName, request.newName))
     } finally {
-      ctx.locking.releaseWriteCompilationLock()
-      logger.log(
-        Level.FINEST,
-        "Kept write compilation lock [RenameProjectCmd] for " + (System.currentTimeMillis - writeLockTimestamp) + " milliseconds"
-      )
-
+      if (writeLockTimestamp != 0) {
+        ctx.locking.releaseWriteCompilationLock()
+        logger.log(
+          Level.FINEST,
+          "Kept write compilation lock [{0}] for {1} milliseconds",
+          Array(
+            getClass.getSimpleName,
+            System.currentTimeMillis() - writeLockTimestamp
+          )
+        )
+      }
     }
   }
 

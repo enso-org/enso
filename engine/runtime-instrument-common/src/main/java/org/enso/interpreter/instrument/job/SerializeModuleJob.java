@@ -24,8 +24,9 @@ public final class SerializeModuleJob extends BackgroundJob<Void> {
     var compiler = ensoContext.getCompiler();
     SerializationManager serializationManager = SerializationManager.apply(compiler.context());
     boolean useGlobalCacheLocations = ensoContext.isUseGlobalCache();
-    var writeLockTimestamp = ctx.locking().acquireWriteCompilationLock();
+    long writeLockTimestamp = 0;
     try {
+      writeLockTimestamp = ctx.locking().acquireWriteCompilationLock();
       ctx.executionService()
           .getContext()
           .findModule(moduleName.toString())
@@ -44,15 +45,22 @@ public final class SerializeModuleJob extends BackgroundJob<Void> {
                 serializationManager.serializeModule(
                     compiler, module.asCompilerModule(), useGlobalCacheLocations, false);
               });
-    } finally {
-      ctx.locking().releaseWriteCompilationLock();
+    } catch (InterruptedException ie) {
       ctx.executionService()
           .getLogger()
-          .log(
-              Level.FINEST,
-              "Kept write compilation lock [SetExecutionEnvironmentCommand] for "
-                  + (System.currentTimeMillis() - writeLockTimestamp)
-                  + " milliseconds");
+          .log(Level.WARNING, "Failed to acquire lock: interrupted", ie);
+    } finally {
+      if (writeLockTimestamp != 0) {
+        ctx.locking().releaseWriteCompilationLock();
+        ctx.executionService()
+            .getLogger()
+            .log(
+                Level.FINEST,
+                "Kept write compilation lock [{0}] for {1} milliseconds",
+                new Object[] {
+                  this.getClass().getSimpleName(), System.currentTimeMillis() - writeLockTimestamp
+                });
+      }
     }
     return null;
   }

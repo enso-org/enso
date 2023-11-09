@@ -41,10 +41,12 @@ public class SetExecutionEnvironmentCommand extends AsynchronousCommand {
   private void setExecutionEnvironment(
       Runtime$Api$ExecutionEnvironment executionEnvironment, UUID contextId, RuntimeContext ctx) {
     var logger = ctx.executionService().getLogger();
-    var contextLockTimestamp = ctx.locking().acquireContextLock(contextId);
-    var writeLockTimestamp = ctx.locking().acquireWriteCompilationLock();
+    long contextLockTimestamp = 0;
+    long writeLockTimestamp = 0;
 
     try {
+      contextLockTimestamp = ctx.locking().acquireContextLock(contextId);
+      writeLockTimestamp = ctx.locking().acquireWriteCompilationLock();
       Stack<InstrumentFrame> stack = ctx.contextManager().getStack(contextId);
       ctx.jobControlPlane().abortJobs(contextId);
       ctx.executionService()
@@ -53,19 +55,27 @@ public class SetExecutionEnvironmentCommand extends AsynchronousCommand {
       CacheInvalidation.invalidateAll(stack);
       ctx.jobProcessor().run(ExecuteJob.apply(contextId, stack.toList()));
       reply(new Runtime$Api$SetExecutionEnvironmentResponse(contextId), ctx);
+    } catch (InterruptedException ie) {
+      logger.log(Level.WARNING, "Failed to acquire lock: interrupted", ie);
     } finally {
-      ctx.locking().releaseWriteCompilationLock();
-      logger.log(
-          Level.FINEST,
-          "Kept write compilation lock [SetExecutionEnvironmentCommand] for "
-              + (System.currentTimeMillis() - writeLockTimestamp)
-              + " milliseconds");
-      ctx.locking().releaseContextLock(contextId);
-      logger.log(
-          Level.FINEST,
-          "Kept context lock [SetExecutionEnvironmentCommand] for "
-              + (System.currentTimeMillis() - contextLockTimestamp)
-              + " milliseconds");
+      if (writeLockTimestamp != 0) {
+        ctx.locking().releaseWriteCompilationLock();
+        logger.log(
+            Level.FINEST,
+            "Kept write compilation lock [{0}] for {1} milliseconds",
+            new Object[] {
+              this.getClass().getSimpleName(), System.currentTimeMillis() - writeLockTimestamp
+            });
+      }
+      if (contextLockTimestamp != 0) {
+        ctx.locking().releaseContextLock(contextId);
+        logger.log(
+            Level.FINEST,
+            "Kept context lock [{0}] for {1} milliseconds",
+            new Object[] {
+              this.getClass().getSimpleName(), System.currentTimeMillis() - contextLockTimestamp
+            });
+      }
     }
   }
 }
