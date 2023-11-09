@@ -4,6 +4,8 @@ import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Value;
+import org.hamcrest.MatcherAssert;
+import org.hamcrest.Matchers;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -64,6 +66,9 @@ public class NonStrictModeTests extends TestBase {
         """;
     Value res = evalModule(nonStrictCtx, src);
     assertEquals(42, res.asInt());
+
+    // Even if the conversion is unused and non-strict mode, we still get a diagnostic report:
+    MatcherAssert.assertThat(getStdOut(), Matchers.containsString("Unnamed:7:1: error: Ambiguous conversion: Foo.from Bar is defined multiple times in this module."));
   }
 
   @Test
@@ -84,6 +89,8 @@ public class NonStrictModeTests extends TestBase {
 
     Value res = evalModule(nonStrictCtx, src);
     assertEquals(142, res.asInt());
+
+    MatcherAssert.assertThat(getStdOut(), Matchers.containsString("Unnamed:7:1: error: Ambiguous conversion: Foo.from Bar is defined multiple times in this module."));
   }
 
 
