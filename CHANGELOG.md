@@ -994,7 +994,7 @@
 - [Modules can be `private`][7840]
 - [HTTPS and WSS support in Language Server][7937]
 - [Export of non-existing symbols results in error][7960]
-- [Upgrade GraamVM to 23.1.0 JDK21][7991]
+- [Upgrade GraalVM to 23.1.0 JDK21][7991]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248

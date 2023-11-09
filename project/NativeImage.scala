@@ -181,7 +181,7 @@ object NativeImage {
 
       val fullCp = componentModules ++ additionalCp
       val cpStr  = fullCp.mkString(File.pathSeparator)
-      log.info("Class-path: " + cpStr)
+      log.debug("Class-path: " + cpStr)
 
       val verboseOpt = if (verbose) Seq("--verbose") else Seq()
 
