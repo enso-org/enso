@@ -66,9 +66,12 @@ public abstract class Persistance<T> {
 
   public static byte[] writeObject(Object obj) throws IOException {
     var out = new ByteArrayOutputStream();
-    var g = new Generator(out, 8);
-    out.write(Generator.HEADER);
-    out.write(new byte[4]); // space
+    var data = new DataOutputStream(out);
+    data.write(Generator.HEADER);
+    data.writeInt(PersistanceMap.DEFAULT.versionStamp);
+    data.write(new byte[4]); // space
+    data.flush();
+    var g = new Generator(out, 12);
     var at = g.writeObject(obj);
     var arr = out.toByteArray();
     arr[4] = (byte) ((at >> 24) & 0xff);
@@ -79,7 +82,7 @@ public abstract class Persistance<T> {
   }
 
   public static final class Generator {
-    static final byte[] HEADER = new byte[] { 0x0a, 0x0d, 0x00, 0x0f };
+    static final byte[] HEADER = new byte[] { 0x0a, 0x0d, 0x01, 0x0f };
 
     private final OutputStream main;
     private final Map<Object,Integer> knownObjects = new IdentityHashMap<>();

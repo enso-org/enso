@@ -5,8 +5,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.UUID;
-import java.util.jar.Attributes;
-
 import org.enso.compiler.core.Persistance;
 import org.enso.compiler.core.ir.expression.Application;
 import org.enso.compiler.core.ir.expression.Case;
@@ -19,7 +17,6 @@ import org.enso.compiler.core.ir.module.scope.imports.Polyglot;
 import org.enso.compiler.core.ir.type.Set;
 import org.enso.interpreter.dsl.Persistable;
 import org.openide.util.lookup.ServiceProvider;
-
 import scala.Option;
 import scala.Tuple2;
 import scala.collection.Iterator;
@@ -79,18 +76,20 @@ public final class IrPersistance {
   @ServiceProvider(service = Persistance.class)
   public static final class PersistUUID extends Persistance<UUID> {
     public PersistUUID() {
-      super(UUID.class, false, 27);
+      super(UUID.class, false, 73);
     }
 
     @Override
     protected void writeObject(UUID obj, Output out) throws IOException {
-      out.writeUTF(obj.toString());
+      out.writeLong(obj.getLeastSignificantBits());
+      out.writeLong(obj.getMostSignificantBits());
     }
 
     @Override
     protected UUID readObject(Input in) throws IOException, ClassNotFoundException {
-      var str = in.readUTF();
-      return UUID.fromString(str);
+      var least = in.readLong();
+      var most = in.readLong();
+      return new UUID(most, least);
     }
   }
 
