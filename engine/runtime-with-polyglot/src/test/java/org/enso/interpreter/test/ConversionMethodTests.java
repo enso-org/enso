@@ -17,20 +17,17 @@ import static org.junit.Assert.fail;
 
 public class ConversionMethodTests extends TestBase {
   private static Context ctx;
-  private static Context nonStrictCtx;
 
   private static final ByteArrayOutputStream out = new ByteArrayOutputStream();
 
   @BeforeClass
   public static void initCtx() {
     ctx = createDefaultContext(out);
-    nonStrictCtx = createNonStrictContext(out);
   }
 
   @AfterClass
   public static void disposeCtx() {
     ctx.close();
-    nonStrictCtx.close();
   }
 
   @Before
@@ -121,45 +118,6 @@ public class ConversionMethodTests extends TestBase {
        """;
     Value res = evalModule(ctx, src);
     assertEquals(7, res.asInt());
-  }
-
-  @Test
-  public void testAmbiguousConversion() {
-    String src = """      
-       type Foo
-          Mk_Foo data
-       type Bar
-          Mk_Bar x
-       
-       Foo.from (that:Bar) = Foo.Mk_Foo that.x+100
-       Foo.from (that:Bar) = Foo.Mk_Foo that.x+1000
-       
-       main = 42
-       """;
-    Value res = evalModule(nonStrictCtx, src);
-    assertEquals(42, res.asInt());
-  }
-
-  @Test
-  public void testAmbiguousConversionUsage() {
-    // In non-strict mode, the conversion declarations will have errors attached to the IR, but the overall operation
-    // will simply not see the second conversion and succeed with the first one.
-    String src = """      
-       type Foo
-          Mk_Foo data
-       type Bar
-          Mk_Bar x
-       
-       Foo.from (that:Bar) = Foo.Mk_Foo that.x+100
-       Foo.from (that:Bar) = Foo.Mk_Foo that.x+1000
-       
-       main = (Foo.from (Bar.Mk_Bar 42)) . data
-       """;
-
-    Value res = evalModule(nonStrictCtx, src);
-    assertEquals(142, res.asInt());
-    // But we should still get the diagnostic!
-    MatcherAssert.assertThat(getStdOut(), Matchers.containsString("Unnamed:7:1: error: Ambiguous conversion: Foo.from Bar is defined multiple times in this module."));
   }
 
   @Test
