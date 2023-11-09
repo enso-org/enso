@@ -3,11 +3,6 @@ package org.enso.table.data.table.join;
 import org.enso.base.arrays.IntArrayBuilder;
 import org.enso.table.data.mask.OrderMask;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 public record JoinResult(int[] matchedRowsLeftIndices, int[] matchedRowsRightIndices) {
 
   public OrderMask getLeftOrderMask() {
@@ -18,29 +13,36 @@ public record JoinResult(int[] matchedRowsLeftIndices, int[] matchedRowsRightInd
     return new OrderMask(matchedRowsRightIndices);
   }
 
-  public Set<Integer> leftMatchedRows() {
-    return new HashSet<>(Arrays.stream(matchedRowsLeftIndices).boxed().collect(Collectors.toList()));
-  }
-
-  public Set<Integer> rightMatchedRows() {
-    return new HashSet<>(Arrays.stream(matchedRowsRightIndices).boxed().collect(Collectors.toList()));
-  }
+  public record BuilderSettings(boolean wantsCommon, boolean wantsLeftUnmatched, boolean wantsRightUnmatched) {}
 
   public static class Builder {
     IntArrayBuilder leftIndices;
     IntArrayBuilder rightIndices;
 
-    public Builder(int initialCapacity) {
+    final BuilderSettings settings;
+
+    public Builder(int initialCapacity, BuilderSettings settings) {
       leftIndices = new IntArrayBuilder(initialCapacity);
       rightIndices = new IntArrayBuilder(initialCapacity);
+      this.settings = settings;
     }
 
-    public Builder() {
-      this(128);
+    public Builder(BuilderSettings settings) {
+      this(128, settings);
     }
 
-    public void addRow(int leftIndex, int rightIndex) {
+    public void addMatchedRowsPair(int leftIndex, int rightIndex) {
       leftIndices.add(leftIndex);
+      rightIndices.add(rightIndex);
+    }
+
+    public void addUnmatchedLeftRow(int leftIndex) {
+      leftIndices.add(leftIndex);
+      rightIndices.add(-1);
+    }
+
+    public void addUnmatchedRightRow(int rightIndex) {
+      leftIndices.add(-1);
       rightIndices.add(rightIndex);
     }
 

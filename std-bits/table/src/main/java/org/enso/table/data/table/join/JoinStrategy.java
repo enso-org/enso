@@ -17,10 +17,12 @@ import java.util.List;
 public interface JoinStrategy {
   JoinResult join(ProblemAggregator problemAggregator);
 
-  static JoinStrategy createStrategy(List<JoinCondition> conditions) {
+  static JoinStrategy createStrategy(List<JoinCondition> conditions, JoinKind joinKind) {
     if (conditions.isEmpty()) {
       throw new IllegalArgumentException("At least one join condition must be provided.");
     }
+
+    JoinResult.BuilderSettings builderSettings = JoinKind.makeSettings(joinKind);
 
     List<HashableCondition> hashableConditions = conditions.stream()
         .filter(c -> c instanceof HashableCondition)
@@ -37,11 +39,11 @@ public interface JoinStrategy {
 
     if (hashableConditions.isEmpty()) {
       assert !betweenConditions.isEmpty();
-      return new SortJoin(betweenConditions);
+      return new SortJoin(betweenConditions, builderSettings);
     } else if (betweenConditions.isEmpty()) {
-      return new HashJoin(hashableConditions, new MatchAllStrategy());
+      return new HashJoin(hashableConditions, new MatchAllStrategy(), builderSettings);
     } else {
-      return new HashJoin(hashableConditions, new SortJoin(betweenConditions));
+      return new HashJoin(hashableConditions, new SortJoin(betweenConditions, builderSettings), builderSettings);
     }
   }
 

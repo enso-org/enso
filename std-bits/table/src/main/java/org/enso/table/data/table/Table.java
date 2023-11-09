@@ -280,6 +280,8 @@ public class Table {
     }
 
     JoinStrategy strategy = JoinStrategy.createStrategy(conditions);
+    JoinResult.Builder builder =
+        new JoinResult.Builder(keepMatched, keepLeftUnmatched, keepRightUnmatched);
     JoinResult joinResult = strategy.join(problemAggregator);
 
     List<JoinResult> resultsToKeep = new ArrayList<>();
@@ -293,7 +295,7 @@ public class Table {
       JoinResult.Builder leftUnmatchedBuilder = new JoinResult.Builder();
       for (int i = 0; i < this.rowCount(); i++) {
         if (!matchedLeftRows.contains(i)) {
-          leftUnmatchedBuilder.addRow(i, Index.NOT_FOUND);
+          leftUnmatchedBuilder.addMatchedRowsPair(i, Index.NOT_FOUND);
         }
 
         context.safepoint();
@@ -307,7 +309,7 @@ public class Table {
       JoinResult.Builder rightUnmatchedBuilder = new JoinResult.Builder();
       for (int i = 0; i < right.rowCount(); i++) {
         if (!matchedRightRows.contains(i)) {
-          rightUnmatchedBuilder.addRow(Index.NOT_FOUND, i);
+          rightUnmatchedBuilder.addMatchedRowsPair(Index.NOT_FOUND, i);
         }
 
         context.safepoint();

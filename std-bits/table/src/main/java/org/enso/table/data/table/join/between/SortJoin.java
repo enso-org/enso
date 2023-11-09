@@ -15,8 +15,9 @@ import org.graalvm.polyglot.Context;
 
 public class SortJoin implements JoinStrategy, PluggableJoinStrategy {
 
-  public SortJoin(List<Between> conditions) {
+  public SortJoin(List<Between> conditions, JoinResult.BuilderSettings resultBuilderSettings) {
     conditionsHelper = new JoinStrategy.ConditionsHelper(conditions);
+    this.resultBuilderSettings = resultBuilderSettings;
 
     Context context = Context.getCurrent();
     int nConditions = conditions.size();
@@ -34,6 +35,7 @@ public class SortJoin implements JoinStrategy, PluggableJoinStrategy {
   }
 
   private final JoinStrategy.ConditionsHelper conditionsHelper;
+  private final JoinResult.BuilderSettings resultBuilderSettings;
 
   private final int[] directions;
   private final Storage<?>[] leftStorages;
@@ -43,7 +45,7 @@ public class SortJoin implements JoinStrategy, PluggableJoinStrategy {
   @Override
   public JoinResult join(ProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
-    JoinResult.Builder resultBuilder = new JoinResult.Builder();
+    JoinResult.Builder resultBuilder = new JoinResult.Builder(resultBuilderSettings);
 
     int leftRowCount = conditionsHelper.getLeftTableRowCount();
     int rightRowCount = conditionsHelper.getRightTableRowCount();
@@ -124,7 +126,7 @@ public class SortJoin implements JoinStrategy, PluggableJoinStrategy {
     Context context = Context.getCurrent();
     for (OrderedMultiValueKey key : firstCoordinateMatches) {
       if (isInRange(key, lowerBound, upperBound)) {
-        resultBuilder.addRow(key.getRowIndex(), rightRowIx);
+        resultBuilder.addMatchedRowsPair(key.getRowIndex(), rightRowIx);
       }
 
       context.safepoint();

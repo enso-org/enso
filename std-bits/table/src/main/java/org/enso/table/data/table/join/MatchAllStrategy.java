@@ -18,7 +18,7 @@ public class MatchAllStrategy implements PluggableJoinStrategy {
     Context context = Context.getCurrent();
     for (var leftRow : leftGroup) {
       for (var rightRow : rightGroup) {
-        resultBuilder.addRow(leftRow, rightRow);
+        resultBuilder.addMatchedRowsPair(leftRow, rightRow);
         context.safepoint();
       }
 
