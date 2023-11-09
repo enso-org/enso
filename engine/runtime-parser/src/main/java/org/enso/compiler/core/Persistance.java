@@ -81,7 +81,6 @@ public abstract class Persistance<T> {
   public static final class Generator {
     static final byte[] HEADER = new byte[] { 0x0a, 0x0d, 0x00, 0x0f };
 
-    private final PersistanceMap map = new PersistanceMap();
     private final OutputStream main;
     private final Map<Object,Integer> knownObjects = new IdentityHashMap<>();
     private int position;
@@ -97,7 +96,7 @@ public abstract class Persistance<T> {
       }
       var found = knownObjects.get(obj);
       if (found == null) {
-        var p = map.forType(obj.getClass());
+        var p = PersistanceMap.DEFAULT.forType(obj.getClass());
         var os = new ByteArrayOutputStream();
         p.writeInline(obj, new ReferenceOutput(this, os));
         found = this.position;
@@ -114,7 +113,7 @@ public abstract class Persistance<T> {
         out.writeInt(-1);
         return;
       }
-      var p = map.forType(obj.getClass());
+      var p = PersistanceMap.DEFAULT.forType(obj.getClass());
       var found = knownObjects.get(obj);
       if (found == null) {
         var os = new ByteArrayOutputStream();
@@ -234,7 +233,7 @@ public abstract class Persistance<T> {
 
     @Override
     public <T> void writeInline(Class<T> clazz, T obj) throws IOException {
-      var p = generator.map.forType(clazz);
+      var p = PersistanceMap.DEFAULT.forType(clazz);
       p.writeInline(obj, this);
     }
 
@@ -245,7 +244,6 @@ public abstract class Persistance<T> {
   }
 
   private static final class InputImpl implements Input {
-    private final PersistanceMap map = new PersistanceMap();
     private final ByteBuffer buf;
     private int at;
 
@@ -256,19 +254,19 @@ public abstract class Persistance<T> {
 
     @Override
     public <T> T readInline(Class<T> clazz) {
-      var p = map.forType(clazz);
+      var p = PersistanceMap.DEFAULT.forType(clazz);
       return p.readWith(this);
     }
 
     @Override
     public Object readObject() throws IOException {
-      var obj = readIndirect(buf, map, this);
+      var obj = readIndirect(buf, PersistanceMap.DEFAULT, this);
       return obj;
     }
 
     @Override
     public <T> Reference<T> readReference(Class<T> clazz) throws IOException {
-      var obj = readIndirectAsReference(buf, map, this, clazz);
+      var obj = readIndirectAsReference(buf, PersistanceMap.DEFAULT, this, clazz);
       return obj;
     }
 
@@ -391,6 +389,7 @@ public abstract class Persistance<T> {
   }
 
   private static final class PersistanceMap {
+    private final static PersistanceMap DEFAULT = new PersistanceMap();
     private final Map<Integer, Persistance<?>> ids = new HashMap<>();
     private final Map<Class<?>, Persistance<?>> types = new HashMap<>();
     private final int versionStamp;
