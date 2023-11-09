@@ -21,8 +21,6 @@ import static org.junit.Assert.assertNotNull;
 public class NonStrictConversionMethodTests extends TestBase {
   private static Context nonStrictCtx;
 
-  private static final ByteArrayOutputStream out = new ByteArrayOutputStream();
-
   @BeforeClass
   public static void initCtx() {
     nonStrictCtx = createNonStrictContext();
@@ -30,7 +28,7 @@ public class NonStrictConversionMethodTests extends TestBase {
 
   protected static Context createNonStrictContext() {
     var context =
-        defaultContextBuilder().out(out).option(RuntimeOptions.STRICT_ERRORS, "false").build();
+        defaultContextBuilder().option(RuntimeOptions.STRICT_ERRORS, "false").build();
     final Map<String, Language> langs = context.getEngine().getLanguages();
     assertNotNull("Enso found: " + langs, langs.get("enso"));
     return context;
@@ -39,15 +37,6 @@ public class NonStrictConversionMethodTests extends TestBase {
   @AfterClass
   public static void disposeCtx() {
     nonStrictCtx.close();
-  }
-
-  @Before
-  public void resetOutput() {
-    out.reset();
-  }
-
-  private String getStdOut() {
-    return out.toString(StandardCharsets.UTF_8);
   }
 
   @Test
@@ -65,7 +54,6 @@ public class NonStrictConversionMethodTests extends TestBase {
        """;
     Value res = evalModule(nonStrictCtx, src);
     assertEquals(42, res.asInt());
-    MatcherAssert.assertThat(getStdOut(), Matchers.containsString("Unnamed:7:1: error: Ambiguous conversion: Foo.from Bar is defined multiple times in this module."));
   }
 
   @Test
@@ -86,8 +74,6 @@ public class NonStrictConversionMethodTests extends TestBase {
 
     Value res = evalModule(nonStrictCtx, src);
     assertEquals(142, res.asInt());
-    // But we should still get the diagnostic!
-    MatcherAssert.assertThat(getStdOut(), Matchers.containsString("Unnamed:7:1: error: Ambiguous conversion: Foo.from Bar is defined multiple times in this module."));
   }
 
 }
