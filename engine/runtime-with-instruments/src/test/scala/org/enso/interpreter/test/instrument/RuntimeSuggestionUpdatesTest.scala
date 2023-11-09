@@ -128,9 +128,11 @@ class RuntimeSuggestionUpdatesTest
 
     // open file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, code))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, code))
     )
-    context.receiveNone shouldEqual None
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // push main
     context.send(
@@ -665,9 +667,11 @@ class RuntimeSuggestionUpdatesTest
 
     // open file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, code))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, code))
     )
-    context.receiveNone shouldEqual None
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // push main
     context.send(
@@ -820,9 +824,11 @@ class RuntimeSuggestionUpdatesTest
 
     // open file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
-    context.receiveNone shouldEqual None
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // push main
     context.send(
@@ -993,13 +999,17 @@ class RuntimeSuggestionUpdatesTest
 
     // open files
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, mainCode))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, mainCode))
     )
-    context.receiveNone shouldEqual None
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
     context.send(
-      Api.Request(Api.OpenFileNotification(aFile, aCode))
+      Api.Request(requestId, Api.OpenFileRequest(aFile, aCode))
     )
-    context.receiveNone shouldEqual None
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // push main
     context.send(
@@ -1293,9 +1303,11 @@ class RuntimeSuggestionUpdatesTest
 
     // open file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, code))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, code))
     )
-    context.receiveNone shouldEqual None
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // push main
     context.send(

@@ -68,10 +68,10 @@ polyglot java import org.enso.base.ObjectComparator
 polyglot java import org.enso.table.data.index.MultiValueIndex
 polyglot java import org.enso.table.data.mask.OrderMask
 polyglot java import org.enso.table.data.table.Column as Java_Column
-polyglot java import org.enso.table.data.table.join.Between as Java_Join_Between
-polyglot java import org.enso.table.data.table.join.Equals as Java_Join_Equals
-polyglot java import org.enso.table.data.table.join.EqualsIgnoreCase as Java_Join_Equals_Ignore_Case
-polyglot java import org.enso.table.data.table.join.LookupJoin
+polyglot java import org.enso.table.data.table.join.conditions.Between as Java_Join_Between
+polyglot java import org.enso.table.data.table.join.conditions.Equals as Java_Join_Equals
+polyglot java import org.enso.table.data.table.join.conditions.EqualsIgnoreCase as Java_Join_Equals_Ignore_Case
+polyglot java import org.enso.table.data.table.join.lookup.LookupJoin
 polyglot java import org.enso.table.data.table.Table as Java_Table
 polyglot java import org.enso.table.error.TooManyColumnsException
 polyglot java import org.enso.table.error.NullValuesInKeyColumns
@@ -1570,7 +1570,7 @@ type Table
                  table.set "2 * [total_stock]" new_name="total_stock_expr"
     @column Column_Operation.default_widget
     set : Text | Column -> Text -> Set_Mode -> Problem_Behavior -> Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error
-    set self column:(Text | Column | Constant_Column | Column_Operation) new_name="" set_mode=Set_Mode.Add_Or_Update on_problems=Report_Warning =
+    set self column:(Text | Column | Constant_Column | Column_Operation) (new_name : Text = "") (set_mode : Set_Mode = Set_Mode.Add_Or_Update) (on_problems : Problem_Behavior = Report_Warning) =
         problem_builder = Problem_Builder.new
         unique = self.column_naming_helper.create_unique_name_strategy
         unique.mark_used self.column_names

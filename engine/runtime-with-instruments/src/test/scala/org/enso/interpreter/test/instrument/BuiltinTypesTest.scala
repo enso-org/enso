@@ -115,9 +115,11 @@ class BuiltinTypesTest
 
     // open file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
-    context.receiveNone shouldEqual None
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // push main
     context.send(
