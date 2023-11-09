@@ -6,7 +6,7 @@ use crate::source::*;
 use crate::syntax::*;
 
 use crate::lexer;
-
+use crate::source::code::Location;
 
 
 /// Common traits.
@@ -107,7 +107,7 @@ impl<'s> Offset<'s> {
     /// Return this value with its start position removed (set to 0). This can be used to compare
     /// spans ignoring offsets.
     pub fn without_offset(&self) -> Self {
-        Self { visible: self.visible, code: self.code.without_offset() }
+        Self { visible: self.visible, code: self.code.without_location() }
     }
 }
 
@@ -161,7 +161,7 @@ pub struct Span<'s> {
 impl<'s> Span<'s> {
     /// Constructor.
     pub fn empty_without_offset() -> Self {
-        Self { left_offset: Code::empty_without_offset().into(), code_length: default() }
+        Self { left_offset: Code::empty_without_location().into(), code_length: default() }
     }
 
     /// Check whether the span is empty.
@@ -185,10 +185,10 @@ impl<'s> Span<'s> {
         Builder::add_to_span(elem, self)
     }
 
-    /// Return the start and end of the UTF-16 source code for this element.
-    pub fn range_utf16(&self) -> Range<u32> {
-        let start = self.left_offset.position_after().code.range_utf16().start;
-        let end = start + self.code_length.utf16_len();
+    /// Return the start and end of the source code for this element.
+    pub fn range(&self) -> Range<Location> {
+        let start = self.left_offset.position_after().code.range().start;
+        let end = start + self.code_length;
         start..end
     }
 
@@ -217,11 +217,11 @@ where
             self.code_length = other.code_length;
         } else {
             debug_assert_eq!(
-                self.left_offset.code.position_after().range_utf16().end
-                    + self.code_length.utf16_len(),
-                other.left_offset.code.position_before().range_utf16().start
+                self.left_offset.code.position_after().range().end + self.code_length,
+                other.left_offset.code.position_before().range().start
             );
-            self.code_length += other.left_offset.code.length() + other.code_length;
+            self.code_length += other.left_offset.code.length();
+            self.code_length += other.code_length;
         }
     }
 }
@@ -399,7 +399,7 @@ where T: Builder<'s>
 {
     #[inline(always)]
     fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
-        self.iter_mut().fold(span, |sum, new_span| Builder::add_to_span(new_span, sum))
+        self.as_mut_slice().add_to_span(span)
     }
 }
 
