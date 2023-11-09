@@ -930,8 +930,18 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
       case "reference.conf"   => MergeStrategy.concat
       case _                  => MergeStrategy.first
     },
+    Test / javaOptions ++=
+      Seq(
+        "-Dpolyglot.engine.WarnInterpreterOnly=false",
+        "-Dpolyglotimpl.DisableClassPathIsolation=true"
+      ),
+    // Append enso language on the class-path
+    Test / unmanagedClasspath :=
+      (LocalProject("runtime-with-instruments") / Compile / fullClasspath).value,
     (Test / test) := (Test / test).dependsOn(`engine-runner` / assembly).value,
-    Test / javaOptions += s"-Dconfig.file=${sourceDirectory.value}/test/resources/application.conf",
+    Test / javaOptions ++= testLogProviderOptions ++ Seq(
+      s"-Dconfig.file=${sourceDirectory.value}/test/resources/application.conf"
+    ),
     rebuildNativeImage := NativeImage
       .buildNativeImage(
         "project-manager",
