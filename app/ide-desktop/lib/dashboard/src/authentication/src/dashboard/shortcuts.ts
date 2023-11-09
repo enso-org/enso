@@ -4,6 +4,7 @@ import type * as React from 'react'
 import AddConnectorIcon from 'enso-assets/add_connector.svg'
 import AddFolderIcon from 'enso-assets/add_folder.svg'
 import AddNetworkIcon from 'enso-assets/add_network.svg'
+import AppDownloadIcon from 'enso-assets/app_download.svg'
 import BlankIcon from 'enso-assets/blank_16.svg'
 import CameraIcon from 'enso-assets/camera.svg'
 import ChangePasswordIcon from 'enso-assets/change_password.svg'
@@ -83,6 +84,7 @@ export enum KeyboardAction {
     changeYourPassword = 'change-your-password',
     signIn = 'sign-in',
     signOut = 'sign-out',
+    downloadApp = 'download-app',
 }
 
 /** Valid mouse buttons. The values of each enum member is its corresponding value of
@@ -159,39 +161,11 @@ export function isTextInputEvent(event: KeyboardEvent | React.KeyboardEvent) {
 
 /** Create a mapping from {@link KeyboardAction} to `T`. */
 function makeKeyboardActionMap<T>(make: (action: KeyboardAction) => T): Record<KeyboardAction, T> {
-    return {
-        [KeyboardAction.open]: make(KeyboardAction.open),
-        [KeyboardAction.run]: make(KeyboardAction.run),
-        [KeyboardAction.close]: make(KeyboardAction.close),
-        [KeyboardAction.uploadToCloud]: make(KeyboardAction.uploadToCloud),
-        [KeyboardAction.rename]: make(KeyboardAction.rename),
-        [KeyboardAction.snapshot]: make(KeyboardAction.snapshot),
-        [KeyboardAction.moveToTrash]: make(KeyboardAction.moveToTrash),
-        [KeyboardAction.moveAllToTrash]: make(KeyboardAction.moveAllToTrash),
-        [KeyboardAction.delete]: make(KeyboardAction.delete),
-        [KeyboardAction.deleteAll]: make(KeyboardAction.deleteAll),
-        [KeyboardAction.restoreFromTrash]: make(KeyboardAction.restoreFromTrash),
-        [KeyboardAction.restoreAllFromTrash]: make(KeyboardAction.restoreAllFromTrash),
-        [KeyboardAction.share]: make(KeyboardAction.share),
-        [KeyboardAction.label]: make(KeyboardAction.label),
-        [KeyboardAction.duplicate]: make(KeyboardAction.duplicate),
-        [KeyboardAction.copy]: make(KeyboardAction.copy),
-        [KeyboardAction.cut]: make(KeyboardAction.cut),
-        [KeyboardAction.cutAll]: make(KeyboardAction.cutAll),
-        [KeyboardAction.cancelCut]: make(KeyboardAction.cancelCut),
-        [KeyboardAction.paste]: make(KeyboardAction.paste),
-        [KeyboardAction.download]: make(KeyboardAction.download),
-        [KeyboardAction.uploadFiles]: make(KeyboardAction.uploadFiles),
-        [KeyboardAction.uploadProjects]: make(KeyboardAction.uploadProjects),
-        [KeyboardAction.newProject]: make(KeyboardAction.newProject),
-        [KeyboardAction.newFolder]: make(KeyboardAction.newFolder),
-        [KeyboardAction.newDataConnector]: make(KeyboardAction.newDataConnector),
-        [KeyboardAction.closeModal]: make(KeyboardAction.closeModal),
-        [KeyboardAction.cancelEditName]: make(KeyboardAction.cancelEditName),
-        [KeyboardAction.changeYourPassword]: make(KeyboardAction.changeYourPassword),
-        [KeyboardAction.signIn]: make(KeyboardAction.signIn),
-        [KeyboardAction.signOut]: make(KeyboardAction.signOut),
-    }
+    // This is SAFE, as the types of the keys are statically known.
+    // eslint-disable-next-line no-restricted-syntax
+    return Object.fromEntries(
+        Object.entries(KeyboardAction).map(kv => [kv[1], make(kv[1])])
+    ) as Record<KeyboardAction, T>
 }
 
 // ====================
@@ -482,6 +456,7 @@ const DEFAULT_KEYBOARD_SHORTCUTS: Record<KeyboardAction, KeyboardShortcut[]> = {
     [KeyboardAction.changeYourPassword]: [],
     [KeyboardAction.signIn]: [],
     [KeyboardAction.signOut]: [],
+    [KeyboardAction.downloadApp]: [],
 }
 
 /** The default UI data for every keyboard shortcut. */
@@ -525,6 +500,7 @@ const DEFAULT_KEYBOARD_SHORTCUT_INFO: Record<KeyboardAction, ShortcutInfo> = {
     [KeyboardAction.changeYourPassword]: { name: 'Change Your Password', icon: ChangePasswordIcon },
     [KeyboardAction.signIn]: { name: 'Sign In', icon: SignInIcon },
     [KeyboardAction.signOut]: { name: 'Sign Out', icon: SignOutIcon, colorClass: 'text-delete' },
+    [KeyboardAction.downloadApp]: { name: 'Download App', icon: AppDownloadIcon },
     [KeyboardAction.cancelCut]: { name: 'Cancel Cut', icon: BlankIcon },
 }
 
