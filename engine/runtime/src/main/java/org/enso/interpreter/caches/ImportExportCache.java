@@ -8,6 +8,8 @@ import java.util.logging.Level;
 import org.apache.commons.lang3.StringUtils;
 import org.enso.compiler.core.Persistance;
 import org.enso.compiler.data.BindingsMap;
+import org.enso.compiler.data.BindingsMap.DefinedEntity;
+import org.enso.compiler.data.BindingsMap.ModuleReference;
 import org.enso.editions.LibraryName;
 import org.enso.interpreter.dsl.Persistable;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -163,5 +165,52 @@ public final class ImportExportCache extends Cache<ImportExportCache.CachedBindi
     private static final String bindingsCacheMetadataExtension =".bindings.meta";
 
     private final static ObjectMapper objectMapper = new ObjectMapper();
+
+
+  @Persistable(clazz=BindingsMap.PolyglotSymbol.class, id=33006)
+  @Persistable(clazz=org.enso.compiler.data.BindingsMap$ModuleReference$Abstract.class, id=33007)
+  @Persistable(clazz=BindingsMap.ModuleMethod.class, id=33008)
+  @Persistable(clazz=BindingsMap.Type.class, id=33009)
+  @Persistable(clazz=BindingsMap.ResolvedImport.class, id=33010)
+  @Persistable(clazz=BindingsMap.Cons.class, id=33011)
+  @Persistable(clazz=BindingsMap.ResolvedModule.class, id=33012)
+  @Persistable(clazz=BindingsMap.ResolvedType.class, id=33013)
+  @Persistable(clazz=BindingsMap.ResolvedMethod.class, id=33014)
+  @Persistable(clazz=BindingsMap.ExportedModule.class, id=33015)
+  @Persistable(clazz=org.enso.compiler.data.BindingsMap$SymbolRestriction$Only.class, id=33016)
+  @Persistable(clazz=org.enso.compiler.data.BindingsMap$SymbolRestriction$Union.class, id=33017)
+  @Persistable(clazz=org.enso.compiler.data.BindingsMap$SymbolRestriction$Intersect.class, id=33018)
+  @Persistable(clazz=org.enso.compiler.data.BindingsMap$SymbolRestriction$AllowedResolution.class, id=33019)
+  @ServiceProvider(service = Persistance.class)
+  public static final class PersistBindingsMap extends Persistance<BindingsMap> {
+    public PersistBindingsMap() {
+      super(BindingsMap.class, false, 33005);
+    }
+
+    @Override
+    protected void writeObject(BindingsMap obj, Output out) throws IOException {
+      out.writeObject(obj.definedEntities());
+      out.writeObject(obj.currentModule());
+      out.writeInline(scala.collection.immutable.List.class, obj.resolvedImports());
+      out.writeInline(scala.collection.immutable.List.class, obj.resolvedExports());
+      out.writeInline(scala.collection.immutable.Map.class, obj.exportedSymbols());
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected BindingsMap readObject(Input in) throws IOException, ClassNotFoundException {
+      var de = (scala.collection.immutable.List<DefinedEntity>) in.readObject();
+      var cm = (ModuleReference) in.readObject();
+      var imp = in.readInline(scala.collection.immutable.List.class);
+      var exp = in.readInline(scala.collection.immutable.List.class);
+      var sym = in.readInline(scala.collection.immutable.Map.class);
+      var map = new BindingsMap(de, cm);
+      map.resolvedImports_$eq(imp);
+      map.resolvedExports_$eq(exp);
+      map.exportedSymbols_$eq(sym);
+      return map;
+    }
+  }
+
 
 }

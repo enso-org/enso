@@ -17,6 +17,7 @@ import org.enso.compiler.core.ir.type.Set;
 import org.enso.interpreter.dsl.Persistable;
 import org.openide.util.lookup.ServiceProvider;
 import scala.Option;
+import scala.Tuple2;
 import scala.collection.Iterator;
 import scala.collection.SeqFactory;
 import scala.collection.immutable.AbstractSeq;
@@ -131,6 +132,72 @@ public final class IrPersistance {
         list = scala.collection.immutable.$colon$colon$.MODULE$.apply(elem, list);
       }
       return list;
+    }
+  }
+
+  @ServiceProvider(service = Persistance.class)
+  public static final class PersistScalaMap extends Persistance<scala.collection.immutable.Map> {
+    public PersistScalaMap() {
+      super(scala.collection.immutable.Map.class, true, 4444);
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected void writeObject(scala.collection.immutable.Map map, Output out) throws IOException {
+      var size = map.size();
+      out.writeInt(size);
+      var it = map.iterator();
+      while (it.hasNext()) {
+        var tuple = (Tuple2) it.next();
+        out.writeObject(tuple._1());
+        out.writeObject(tuple._2());
+      }
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected scala.collection.immutable.Map readObject(Input in)
+        throws IOException, ClassNotFoundException {
+      var size = in.readInt();
+      var map = scala.collection.immutable.Map$.MODULE$.empty();
+      for (var i = 0; i < size; i++) {
+        var key = in.readObject();
+        var value = in.readObject();
+        map = map.$plus(new Tuple2(key, value));
+      }
+      return map;
+    }
+  }
+
+  @ServiceProvider(service = Persistance.class)
+  public static final class PersistScalaSet extends Persistance<scala.collection.immutable.Set> {
+    public PersistScalaSet() {
+      super(scala.collection.immutable.Set.class, true, 4445);
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected void writeObject(scala.collection.immutable.Set set, Output out) throws IOException {
+      var size = set.size();
+      out.writeInt(size);
+      var it = set.iterator();
+      while (it.hasNext()) {
+        var obj = it.next();
+        out.writeObject(obj);
+      }
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected scala.collection.immutable.Set readObject(Input in)
+        throws IOException, ClassNotFoundException {
+      var size = in.readInt();
+      var map = scala.collection.immutable.Set$.MODULE$.empty();
+      for (var i = 0; i < size; i++) {
+        var elem = in.readObject();
+        map = map.$plus(elem);
+      }
+      return map;
     }
   }
 

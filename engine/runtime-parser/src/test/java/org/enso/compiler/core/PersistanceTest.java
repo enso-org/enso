@@ -14,6 +14,7 @@ import org.enso.compiler.core.ir.Module;
 import org.junit.Test;
 import org.openide.util.lookup.ServiceProvider;
 import scala.Option;
+import scala.Tuple2;
 import scala.collection.immutable.List;
 import scala.collection.immutable.Seq;
 
@@ -41,6 +42,30 @@ public class PersistanceTest {
     var in = serde(IdentifiedLocation.class, il, 8);
     assertEquals(
         "UUIDs aren't serialized", new IdentifiedLocation(il.location(), Option.empty()), in);
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void scalaMap() throws Exception {
+    var idLoc1 = new IdentifiedLocation(new Location(1, 5));
+    var in = scala.collection.immutable.Map$.MODULE$.empty().$plus(new Tuple2("Hi", idLoc1));
+
+    var out = serde(scala.collection.immutable.Map.class, in, 32);
+
+    assertEquals("One element", 1, out.size());
+    assertEquals(in, out);
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void scalaSet() throws Exception {
+    var idLoc1 = new IdentifiedLocation(new Location(1, 5));
+    var in = scala.collection.immutable.Set$.MODULE$.empty().$plus(idLoc1);
+
+    var out = serde(scala.collection.immutable.Set.class, in, 20);
+
+    assertEquals("One element", 1, out.size());
+    assertEquals(in, out);
   }
 
   @Test

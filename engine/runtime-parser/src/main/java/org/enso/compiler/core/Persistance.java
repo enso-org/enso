@@ -425,12 +425,24 @@ public abstract class Persistance<T> {
             break NOT_FOUND;
           }
         } else {
-          p = searchSupertype(name, type.getSuperclass());
+          for (var in : type.getInterfaces()) {
+            p = searchSupertype(name, in);
+            if (p != null) {
+              break;
+            }
+          }
+          if (p == null && !type.isInterface()) {
+            p = searchSupertype(name, type.getSuperclass());
+          }
           types.put(type, p);
         }
         return (Persistance<T>) p;
       }
-      throw raise(RuntimeException.class, new IOException("No persistance for " + name));
+      if (type == null) {
+        throw raise(RuntimeException.class, new IOException("No persistance for " + name));
+      } else {
+        return null;
+      }
     }
 
     @SuppressWarnings("unchecked")
