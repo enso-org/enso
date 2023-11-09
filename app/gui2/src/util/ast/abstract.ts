@@ -92,24 +92,28 @@ type AbstractNode = {
 
 type NodeMap = Map<AbstractNodeId, AbstractNode>
 
+type CodeMaybePrinted = {
+  info?: InfoMap,
+  code: string,
+}
+
 function abstract(
   tree: Tree,
-  info: InfoMap | undefined,
   nodesOut: NodeMap,
-  source: string,
+  source: CodeMaybePrinted,
 ): [AbstractNodeId, string | undefined] {
   const children: NodeChild[] = []
   const visitor = (child: LazyObject) => {
     if (Tree.isInstance(child)) {
-      const [childId, whitespace] = abstract(child, info, nodesOut, source)
+      const [childId, whitespace] = abstract(child, nodesOut, source)
       children.push({ whitespace, node: childId })
     } else if (Token.isInstance(child)) {
       const whitespaceStart = child.whitespaceStartInCodeBuffer
-      const whitespaceEnd = whitespaceStart + child.whitespaceStartInCodeBuffer
-      const whitespace = source.substring(whitespaceStart, whitespaceEnd)
+      const whitespaceEnd = whitespaceStart + child.whitespaceLengthInCodeBuffer
+      const whitespace = source.code.substring(whitespaceStart, whitespaceEnd)
       const codeStart = child.startInCodeBuffer
       const codeEnd = codeStart + child.lengthInCodeBuffer
-      const node = source.substring(codeStart, codeEnd)
+      const node = source.code.substring(codeStart, codeEnd)
       children.push({ whitespace, node })
     } else {
       child.visitChildren(visitor)
@@ -118,11 +122,11 @@ function abstract(
   tree.visitChildren(visitor)
   const whitespaceStart = tree.whitespaceStartInCodeParsed
   const whitespaceEnd = whitespaceStart + tree.whitespaceLengthInCodeParsed
-  const whitespace = source.substring(whitespaceStart, whitespaceEnd)
+  const whitespace = source.code.substring(whitespaceStart, whitespaceEnd)
   const codeStart = whitespaceEnd
   const codeEnd = codeStart + tree.childrenLengthInCodeParsed
-  const span = [codeStart, codeEnd]
-  const id = info?.get(span) ?? newNodeId()
+  const span: Span = [codeStart, codeEnd]
+  const id = source.info?.get(span) ?? newNodeId()
   const node = { children }
   // XXX: We could skip adding a node to the overlay if it is unchanged.
   // - Use a smart map type that COWs its values and elides unnecessary changes.
@@ -136,51 +140,77 @@ type Span = [number, number]
 
 type InfoMap = Map<Span, AbstractNodeId>
 
-function print(root: AbstractNodeId, nodes: NodeMap, info: InfoMap, offset?: number): string {
+type PrintedSource = {
+  info: InfoMap,
+  code: string,
+}
+
+/** `infoIn` and `offset` are used for recursion. If `infoIn` is passed, the same `info` object will be returned. */
+function print(root: AbstractNodeId, nodes: NodeMap, infoIn?: InfoMap, offset?: number): PrintedSource {
   let node = nodes.get(root)
   if (node == null) throw new Error('missing node?')
-  let result = ''
+  const info: InfoMap = infoIn ?? new Map()
+  let code = ''
   for (const child of node.children) {
     if (child.whitespace != null) {
       // TODO: Ensure indentation is appropriate for block.
-      result += child.whitespace
-    } else if (result.length != 0) {
-      result += ' '
+      code += child.whitespace
+    } else if (code.length != 0) {
+      code += ' '
     }
     if (typeof child.node == 'string') {
-      result += child.node
+      code += child.node
     } else {
-      result += print(child.node, nodes, info, result.length)
+      code += print(child.node, nodes, info, code.length).code
     }
   }
-  info.set([offset ?? 0, result.length], root)
-  return result
+  info.set([offset ?? 0, code.length], root)
+  return { info, code }
+}
+
+// Translates to a representation where nodes are arrays and leaves are tokens.
+function debug(id: AbstractNodeId, nodes: NodeMap): any[] {
+  let node = nodes.get(id)
+  if (node == null) throw new Error('missing node?')
+  return node.children.map((child) => {
+    if (typeof child.node == 'string') {
+      return child.node
+    } else {
+      return debug(child.node, nodes)
+    }
+  })
+}
+
+function normalize(root: AbstractNodeId, nodes: NodeMap): AbstractNodeId {
+  const info = new Map<Span, AbstractNodeId>()
+  const printed = print(root, nodes, info)
+  const tree = parseEnso(printed.code)
+  const [root1, _ws1] = abstract(tree, nodes, printed)
+  return root1
 }
 
 if (import.meta.vitest) {
   const { test, expect } = import.meta.vitest
 
   test('parse/print round trip', () => {
-    const source = 'foo bar+baz'
+    const code = 'foo bar+baz'
 
     // Get an AST.
-    const tree = parseEnso(source)
+    const tree = parseEnso(code)
     const nodes = new Map<AbstractNodeId, AbstractNode>()
-    const [root, _ws] = abstract(tree, undefined, nodes, source)
+    const [root, _ws] = abstract(tree, nodes, { code })
+    expect(debug(root, nodes)).toEqual(["",[["foo"],[["bar"],"+",["baz"]]]])
 
     // Print AST back to source.
-    const info1 = new Map<Span, AbstractNodeId>()
-    const printed = print(root, nodes, info1)
-    expect(printed).toEqual(source)
-
-    //throw new Error(JSON.stringify(Object.fromEntries(nodes)))
+    const printed = print(root, nodes)
+    const info1 = printed.info
+    expect(printed.code).toEqual(code)
 
     // Re-parse.
-    const tree1 = parseEnso(source)
-    const [root1, _ws1] = abstract(tree1, info1, nodes, source)
+    const tree1 = parseEnso(printed.code)
+    const [root1, _ws1] = abstract(tree1, nodes, printed)
     // Check that Identities match original AST.
-    const info2 = new Map<Span, AbstractNodeId>()
-    print(root, nodes, info2)
-    expect(info2).toEqual(info1)
+    const reprinted = print(root1, nodes)
+    expect(reprinted.info).toEqual(info1)
   })
 }
