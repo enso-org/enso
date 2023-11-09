@@ -6,14 +6,14 @@
   "scripts": {
     "typecheck": "tsc",
     "build": "tsx bundle.ts",
-    "watch": "tsx watch.ts",
+    "dev": "tsx watch.ts",
     "start": "tsx start.ts",
-    "test": "npm run test-unit",
-    "test-unit": "playwright test",
-    "test-browsers": "npx --yes playwright install && npm run test-component && npm run test-e2e-and-log",
-    "test-component": "playwright test -c playwright-component.config.ts",
-    "test-e2e": "npx playwright test -c playwright-e2e.config.ts",
-    "test-e2e-and-log": "npm run test-e2e || npx tsx log-screenshot-diffs.ts"
+    "test": "npm run test:unit",
+    "test:unit": "playwright test",
+    "test:browsers": "npx --yes playwright install && npm run test:component && npm run test:e2e-and-log",
+    "test:component": "playwright test -c playwright-component.config.ts",
+    "test:e2e": "npx playwright test -c playwright-e2e.config.ts",
+    "test:e2e-and-log": "npm run test:e2e || npx tsx log-screenshot-diffs.ts"
   },
   "dependencies": {
     "@heroicons/react": "^2.0.15",
