@@ -64,7 +64,6 @@ export function useComponentBrowserInput(
   const ast = computed(() => parseEnso(code.value))
 
   const context: ComputedRef<EditingContext> = computed(() => {
-    const input = code.value
     const cursorPosition = selection.value.start
     if (cursorPosition === 0) return { type: 'insert', position: 0 }
     const editedPart = cursorPosition - 1

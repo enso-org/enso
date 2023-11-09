@@ -1,7 +1,6 @@
 import type { NonEmptyArray } from '@/util/array.ts'
 import { assertDefined, assertEqual } from '@/util/assert'
 import { mapIterator } from 'lib0/iterator'
-import { expect, test } from 'vitest'
 
 /**
  * Map that supports Object-based keys.
@@ -175,6 +174,8 @@ export class NonEmptyStack<T> {
 }
 
 if (import.meta.vitest) {
+  const { test, expect } = import.meta.vitest
+
   test('MyMap with number[] keys', () => {
     const map = new MappedKeyMap((key: number[]) => key.join(','))
 
