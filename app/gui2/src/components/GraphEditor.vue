@@ -2,7 +2,10 @@
 import { codeEditorBindings, graphBindings, interactionBindings } from '@/bindings'
 import CodeEditor from '@/components/CodeEditor.vue'
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
-import { mouseDictatedPlacement } from '@/components/ComponentBrowser/placement.ts'
+import {
+  mouseDictatedPlacement,
+  type Environment,
+} from '@/components/ComponentBrowser/placement.ts'
 import { Uploader, uploadedExpression } from '@/components/GraphEditor/upload'
 import SelectionBrush from '@/components/SelectionBrush.vue'
 import TopBar from '@/components/TopBar.vue'
@@ -14,6 +17,7 @@ import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { colorFromString } from '@/util/colors'
 import { keyboardBusy, keyboardBusyExceptIn, useEvent } from '@/util/events'
 import { Interaction } from '@/util/interaction'
+import type { Rect } from '@/util/rect.ts'
 import { Vec2 } from '@/util/vec2'
 import * as set from 'lib0/set'
 import type { ExprId } from 'shared/yjsModel.ts'
@@ -194,6 +198,18 @@ class EdgeDragging extends Interaction {
   }
 }
 
+const placementEnvironment = computed(() => {
+  const mousePosition = navigator.sceneMousePos ?? Vec2.Zero
+  const nodeRects = [...graphStore.nodeRects.values()]
+  const selectedNodesIter = nodeSelection.selected.values()
+  const selectedNodeRects: Iterable<Rect> = [...selectedNodesIter]
+    .map((id) => graphStore.nodeRects.get(id))
+    .filter((item): item is Rect => item !== undefined)
+  const screenBounds = navigator.viewport
+  const environment: Environment = { mousePosition, nodeRects, selectedNodeRects, screenBounds }
+  return environment
+})
+
 /// Interaction to create a new node. This will create a temporary node and open the component browser.
 /// If the interaction is cancelled, the temporary node will be deleted, otherwise it will be kept.
 class CreatingNode extends Interaction {
@@ -202,9 +218,11 @@ class CreatingNode extends Interaction {
     super()
     // We create a temporary node to show the component browser on. This node will be deleted if
     // the interaction is cancelled. It can later on be used to have a preview of the node as it is being created.
-    const mousePosition = navigator.sceneMousePos ?? Vec2.Zero
     const nodeHeight = 32
-    const targetPosition = mouseDictatedPlacement(Vec2.FromArr([0, nodeHeight]), { mousePosition })
+    const targetPosition = mouseDictatedPlacement(
+      Vec2.FromArr([0, nodeHeight]),
+      placementEnvironment.value,
+    )
     const nodeId = graphStore.createNode(targetPosition.position, '')
     if (nodeId == null) {
       throw new Error('CreatingNode: Failed to create node.')
@@ -252,8 +270,6 @@ async function handleFileDrop(event: DragEvent) {
 }
 
 function onComponentBrowserCommit(content: string) {
-  currentInteraction.value?.success()
-
   if (content != null && graphStore.editedNodeInfo != null) {
     graphStore.setNodeContent(graphStore.editedNodeInfo.id, content)
   }

@@ -131,5 +131,6 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
     prescaledTransform,
     sceneMousePos,
     clientToScenePos,
+    viewport,
   })
 }
