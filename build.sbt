@@ -939,8 +939,9 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
     Test / unmanagedClasspath :=
       (LocalProject("runtime-with-instruments") / Compile / fullClasspath).value,
     (Test / test) := (Test / test).dependsOn(`engine-runner` / assembly).value,
-    Test / javaOptions ++= testLogProviderOptions ++ Seq(
-      s"-Dconfig.file=${sourceDirectory.value}/test/resources/application.conf"
+    Test / javaOptions ++= Seq(
+      s"-Dconfig.file=${sourceDirectory.value}/test/resources/application.conf",
+      "-Dslf4j.provider=ch.qos.logback.classic.spi.LogbackServiceProvider"
     ),
     rebuildNativeImage := NativeImage
       .buildNativeImage(
@@ -980,6 +981,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
   .dependsOn(`json-rpc-server-test` % Test)
   .dependsOn(testkit % Test)
   .dependsOn(`runtime-version-manager-test` % Test)
+  .dependsOn(`logging-service-logback` % Test)
 
 /* Note [Classpath Separation]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~
