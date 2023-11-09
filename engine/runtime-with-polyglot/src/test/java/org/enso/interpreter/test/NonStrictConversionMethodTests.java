@@ -4,15 +4,10 @@ import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Value;
-import org.hamcrest.MatcherAssert;
-import org.hamcrest.Matchers;
 import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.io.ByteArrayOutputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
