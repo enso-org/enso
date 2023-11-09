@@ -11,6 +11,7 @@ import org.junit.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
@@ -28,7 +29,7 @@ public class NonStrictModeTests extends TestBase {
 
   protected static Context createNonStrictContext() {
     var context =
-        defaultContextBuilder().option(RuntimeOptions.STRICT_ERRORS, "false").build();
+        defaultContextBuilder().out(out).option(RuntimeOptions.STRICT_ERRORS, "false").build();
     final Map<String, Language> langs = context.getEngine().getLanguages();
     assertNotNull("Enso found: " + langs, langs.get("enso"));
     return context;
@@ -51,16 +52,16 @@ public class NonStrictModeTests extends TestBase {
   @Test
   public void testAmbiguousConversion() {
     String src = """      
-       type Foo
-          Mk_Foo data
-       type Bar
-          Mk_Bar x
-       
-       Foo.from (that:Bar) = Foo.Mk_Foo that.x+100
-       Foo.from (that:Bar) = Foo.Mk_Foo that.x+1000
-       
-       main = 42
-       """;
+        type Foo
+           Mk_Foo data
+        type Bar
+           Mk_Bar x
+               
+        Foo.from (that:Bar) = Foo.Mk_Foo that.x+100
+        Foo.from (that:Bar) = Foo.Mk_Foo that.x+1000
+               
+        main = 42
+        """;
     Value res = evalModule(nonStrictCtx, src);
     assertEquals(42, res.asInt());
   }
@@ -70,16 +71,16 @@ public class NonStrictModeTests extends TestBase {
     // In non-strict mode, the conversion declarations will have errors attached to the IR, but the overall operation
     // will simply not see the second conversion and succeed with the first one.
     String src = """      
-       type Foo
-          Mk_Foo data
-       type Bar
-          Mk_Bar x
-       
-       Foo.from (that:Bar) = Foo.Mk_Foo that.x+100
-       Foo.from (that:Bar) = Foo.Mk_Foo that.x+1000
-       
-       main = (Foo.from (Bar.Mk_Bar 42)) . data
-       """;
+        type Foo
+           Mk_Foo data
+        type Bar
+           Mk_Bar x
+               
+        Foo.from (that:Bar) = Foo.Mk_Foo that.x+100
+        Foo.from (that:Bar) = Foo.Mk_Foo that.x+1000
+               
+        main = (Foo.from (Bar.Mk_Bar 42)) . data
+        """;
 
     Value res = evalModule(nonStrictCtx, src);
     assertEquals(142, res.asInt());
@@ -89,15 +90,17 @@ public class NonStrictModeTests extends TestBase {
   @Test
   public void testBadImport() {
     String src = """
-       import That.Does.Not.Exist
-       
-       main = 2+2
-       """;
+        import That.Does.Not.Exist
+               
+        main = 2+2
+        """;
     Value res = evalModule(nonStrictCtx, src);
-    System.out.println(res);
-    String output = getStdOut();
-    System.out.println("Stdout: |"+output+"|");
     assertEquals(4, res.asInt());
-    assertEquals(output, "");
+
+    String line1 = "Unnamed:1:1: error: Package containing the module That.Does.Not.Exist could not be loaded: The " +
+        "package could not be resolved: The library `That.Does` is not defined within the edition.";
+    String line2 = "    1 | import That.Does.Not.Exist";
+    String line3 = "      | ^~~~~~~~~~~~~~~~~~~~~~~~~~";
+    assertEquals(List.of(line1, line2, line3), getStdOut().lines().toList());
   }
 }
