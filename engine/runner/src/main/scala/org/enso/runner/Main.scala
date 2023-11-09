@@ -1299,6 +1299,7 @@ object Main {
     }
     sampler.start()
     profilingConfig.profilingTime.foreach(sampler.stop(_)(executor))
+    sys.addShutdownHook(sampler.stop())
 
     try {
       main
