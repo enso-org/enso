@@ -43,6 +43,10 @@ const nodeSelection = provideGraphSelection(navigator, graphStore.nodeRects, {
   },
 })
 
+const graphEditorSourceNode = computed(() => {
+  return nodeSelection.selected.values().next().value
+})
+
 useEvent(window, 'keydown', (event) => {
   interactionBindingsHandler(event) || graphBindingsHandler(event) || codeEditorHandler(event)
 })
@@ -269,6 +273,7 @@ watch(
       @finished="onComponentBrowserFinished"
       :initialContent="componentBrowserInputContent"
       :initialCaretPosition="graphStore.editedNodeInfo?.range ?? [0, 0]"
+      :sourceNode="graphEditorSourceNode"
     />
     <TopBar
       v-model:mode="projectStore.executionMode"

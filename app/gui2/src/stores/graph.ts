@@ -344,6 +344,12 @@ export const useGraphStore = defineStore('graph', () => {
     editedNodeInfo.value = { id, range }
   }
 
+  function getNodeBinding(id: ExprId): string {
+    const node = nodes.get(id)
+    if (node == null) return ''
+    return node.binding
+  }
+
   return {
     _ast,
     transact,
@@ -372,6 +378,7 @@ export const useGraphStore = defineStore('graph', () => {
     updateNodeRect,
     updateExprRect,
     setEditedNode,
+    getNodeBinding,
   }
 })
 

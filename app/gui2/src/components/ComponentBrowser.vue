@@ -5,6 +5,7 @@ import { Filtering } from '@/components/ComponentBrowser/filtering'
 import { default as DocumentationPanel } from '@/components/DocumentationPanel.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
+import { useGraphStore } from '@/stores/graph.ts'
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
@@ -15,7 +16,7 @@ import type { Opt } from '@/util/opt'
 import { allRanges } from '@/util/range'
 import { Vec2 } from '@/util/vec2'
 import type { SuggestionId } from 'shared/languageServerTypes/suggestions'
-import type { ContentRange } from 'shared/yjsModel.ts'
+import type { ContentRange, ExprId } from 'shared/yjsModel.ts'
 import { computed, nextTick, onMounted, ref, watch, type Ref } from 'vue'
 import { useComponentBrowserInput } from './ComponentBrowser/input'
 
@@ -27,18 +28,38 @@ const props = defineProps<{
   navigator: ReturnType<typeof useNavigator>
   initialContent: string
   initialCaretPosition: ContentRange
+  sourceNode: Opt<ExprId>
 }>()
 
 const emit = defineEmits<{
   finished: [selectedExpression: string]
 }>()
 
+const initialContent = computed(() => {
+  if (props.sourceNode == null) return props.initialContent
+  const sourceNode = props.sourceNode
+  const sourceNodeName = useGraphStore().getNodeBinding(sourceNode)
+  const sourceNodeNameWithDot = sourceNodeName ? sourceNodeName + '.' : ''
+  return sourceNodeNameWithDot + props.initialContent
+})
+
+const initialCaret = computed((): ContentRange => {
+  if (props.sourceNode == null) return props.initialCaretPosition
+  const sourceNode = props.sourceNode
+  const sourceNodeName = useGraphStore().getNodeBinding(sourceNode)
+  const sourceNodeNameWithDot = sourceNodeName ? sourceNodeName + '.' : ''
+  return [
+    props.initialCaretPosition[0] + sourceNodeNameWithDot.length,
+    props.initialCaretPosition[1] + sourceNodeNameWithDot.length,
+  ]
+})
+
 onMounted(() => {
-  input.code.value = props.initialContent
+  input.code.value = initialContent.value
   nextTick(() => {
     if (inputField.value != null) {
-      inputField.value.selectionStart = props.initialCaretPosition[0]
-      inputField.value.selectionEnd = props.initialCaretPosition[1]
+      inputField.value.selectionStart = initialCaret.value[0]
+      inputField.value.selectionEnd = initialCaret.value[1]
       inputField.value.focus({ preventScroll: true })
       selectLastAfterRefresh()
     }
