@@ -9,6 +9,7 @@ import project.Data.Range.Range
 import project.Data.Sort_Direction.Sort_Direction
 import project.Data.Text.Text
 import project.Error.Error
+import project.Errors.Common.Additional_Warnings
 import project.Errors.Common.Incomparable_Values
 import project.Errors.Common.Index_Out_Of_Bounds
 import project.Errors.Common.No_Such_Method
@@ -581,29 +582,37 @@ type Vector a
              [1, 2, 3] . map +1
     map : (Any -> Any) -> Problem_Behavior -> Vector Any
     map self function on_problems=Problem_Behavior.Report_Error =
+        max_warnings = 10
         #Vector.new self.length i-> function (self.at i)
         builder = Vector.new_builder self.length
-        go i sofar =
-            if i == self.length then sofar else
+
+        attach_additional_warnings results count =
+            if count <= max_warnings then results else
+                warning = Additional_Warnings.Error count-max_warnings
+                Warning.attach warning results
+
+        go i sofar warnings_sofar =
+            if i == self.length then attach_additional_warnings sofar warnings_sofar else
                 value = self.at i
                 result = function value
                 case result.is_error of
                     False ->
                         builder.append result
-                        go i+1 sofar+[result]
+                        go i+1 sofar+[result] warnings_sofar
                     True ->
                         case on_problems of
                             Problem_Behavior.Ignore ->
                                 builder.append Nothing
-                                go i+1 sofar+[Nothing]
+                                go i+1 sofar+[Nothing] warnings_sofar
                             Problem_Behavior.Report_Error ->
                                 wrapped = Map_Error.Error i result.catch
                                 Error.throw wrapped
                             Problem_Behavior.Report_Warning ->
-                                with_warning = Warning.attach result.catch Nothing
-                                builder.append with_warning
-                                go i+1 sofar+[with_warning]
-        go 0 []
+                                with_warning_maybe = if warnings_sofar >= max_warnings then Nothing else
+                                    Warning.attach result.catch Nothing
+                                builder.append with_warning_maybe
+                                go i+1 sofar+[with_warning_maybe] warnings_sofar+1
+        go 0 [] 0
 
     ## Applies a function to each element of the vector, returning the `Vector`
        that contains all results concatenated.

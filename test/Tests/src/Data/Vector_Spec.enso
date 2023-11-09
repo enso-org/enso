@@ -845,8 +845,8 @@ map_tests =
         Test.specify "many errors thrown inside map should be attached as warnings and an Additional_Warnings" <|
             result = alter ([10, 20] + (Vector.fill 12 30) + [40]) . map fun on_problems=Problem_Behavior.Report_Warning
             result . should_equal ([11, 21] + (Vector.fill 12 Nothing) + [41])
-            expected_warnings_regular = 2.up_to 14 . map _-> My_Error.Value 30
-            expected_warnings = expected_warnings_regular + [(Additional_Warnings.Error 2)]
+            expected_warnings_regular = 0.up_to 10 . map _-> My_Error.Value 30
+            expected_warnings = [(Additional_Warnings.Error 2)] + expected_warnings_regular
             Warning.get_all result . map .value . should_equal expected_warnings
 
 spec =
