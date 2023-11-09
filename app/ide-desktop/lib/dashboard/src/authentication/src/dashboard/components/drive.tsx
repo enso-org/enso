@@ -301,8 +301,14 @@ export default function Drive(props: DriveProps) {
         </div>
     ) : isListingRemoteDirectoryAndWillFail ? (
         <div className={`grow grid place-items-center mx-2 ${hidden ? 'hidden' : ''}`}>
-            <div className="text-base text-center">
-                We will review your user details and enable the cloud experience for you shortly.
+            <div className="flex flex-col gap-4 text-base text-center">
+                Upgrade your plan to use {common.PRODUCT_NAME} Cloud.
+                <a
+                    className="block self-center whitespace-nowrap text-base text-white bg-help rounded-full self-center leading-170 h-8 py-px px-2 w-min"
+                    href="https://enso.org/pricing"
+                >
+                    Upgrade
+                </a>
             </div>
         </div>
     ) : (
