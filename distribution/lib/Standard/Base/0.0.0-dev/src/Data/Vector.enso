@@ -583,9 +583,6 @@ type Vector a
     map : (Any -> Any) -> Problem_Behavior -> Vector Any
     map self function on_problems=Problem_Behavior.Report_Error =
         max_warnings = 10
-        #Vector.new self.length i-> function (self.at i)
-        builder = Vector.new_builder self.length
-
         attach_additional_warnings results count =
             if count <= max_warnings then results else
                 warning = Additional_Warnings.Error count-max_warnings
@@ -597,12 +594,10 @@ type Vector a
                 result = function value
                 case result.is_error of
                     False ->
-                        builder.append result
                         go i+1 sofar+[result] warnings_sofar
                     True ->
                         case on_problems of
                             Problem_Behavior.Ignore ->
-                                builder.append Nothing
                                 go i+1 sofar+[Nothing] warnings_sofar
                             Problem_Behavior.Report_Error ->
                                 wrapped = Map_Error.Error i result.catch
@@ -610,7 +605,6 @@ type Vector a
                             Problem_Behavior.Report_Warning ->
                                 with_warning_maybe = if warnings_sofar >= max_warnings then Nothing else
                                     Warning.attach result.catch Nothing
-                                builder.append with_warning_maybe
                                 go i+1 sofar+[with_warning_maybe] warnings_sofar+1
         go 0 [] 0
 
