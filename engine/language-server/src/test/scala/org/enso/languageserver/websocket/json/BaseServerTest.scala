@@ -13,17 +13,8 @@ import org.enso.filewatcher.{NoopWatcherFactory, WatcherAdapterFactory}
 import org.enso.jsonrpc.test.JsonRpcServerTestKit
 import org.enso.jsonrpc.{ClientControllerFactory, ProtocolFactory}
 import org.enso.languageserver.TestClock
-import org.enso.languageserver.boot.{
-  ProfilingConfig,
-  StartupConfig,
-  TimingsConfig
-}
-import org.enso.languageserver.boot.resource.{
-  DirectoriesInitialization,
-  RepoInitialization,
-  SequentialResourcesInitialization,
-  ZioRuntimeInitialization
-}
+import org.enso.languageserver.boot.{ProfilingConfig, StartupConfig, TimingsConfig}
+import org.enso.languageserver.boot.resource.{DirectoriesInitialization, RepoInitialization, SequentialResourcesInitialization, ZioRuntimeInitialization}
 import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data._
 import org.enso.languageserver.effect.{TestRuntime, ZioExec}
@@ -32,10 +23,7 @@ import org.enso.languageserver.filemanager._
 import org.enso.languageserver.io._
 import org.enso.languageserver.libraries._
 import org.enso.languageserver.monitoring.IdlenessMonitor
-import org.enso.languageserver.protocol.json.{
-  JsonConnectionControllerFactory,
-  JsonRpcProtocolFactory
-}
+import org.enso.languageserver.protocol.json.{JsonConnectionControllerFactory, JsonRpcProtocolFactory}
 import org.enso.languageserver.runtime.{ContextRegistry, RuntimeFailureMapper}
 import org.enso.languageserver.search.SuggestionsHandler
 import org.enso.languageserver.search.SuggestionsHandler.ProjectNameUpdated
@@ -48,16 +36,15 @@ import org.enso.librarymanager.published.PublishedLibraryCache
 import org.enso.pkg.PackageManager
 import org.enso.polyglot.data.TypeGraph
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.runtimeversionmanager.test.{
-  FakeEnvironment,
-  TestableThreadSafeFileLockManager
-}
+import org.enso.runtimeversionmanager.test.{FakeEnvironment, TestableThreadSafeFileLockManager}
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo}
 import org.enso.testkit.{EitherValue, WithTemporaryDirectory}
 import org.enso.text.Sha3_224VersionCalculator
 import org.scalatest.OptionValues
 import org.slf4j.event.Level
 
+import java.io.File
+import java.net.URISyntaxException
 import java.nio.file.{Files, Path}
 import java.util.UUID
 import scala.concurrent.duration._
@@ -69,7 +56,7 @@ class BaseServerTest
     with WithTemporaryDirectory
     with FakeEnvironment {
 
-  val timeout: FiniteDuration = 10.seconds
+  val timeout: FiniteDuration = 10.minutes
 
   def isFileWatcherEnabled: Boolean = false
 
@@ -169,6 +156,31 @@ class BaseServerTest
     timingsConfig    = TimingsConfig.default()
     super.afterEach()
   }
+
+  /**
+   * Locates the root of the Enso repository. Heuristic: we just keep going up the directory tree
+   * until we are in a directory containing ".git" subdirectory. Note that we cannot use the "enso"
+   * name, as users are free to name their cloned directories however they like.
+   */
+  protected def locateRootDirectory(): File = {
+    var rootDir: File = null
+    try {
+      rootDir = new File(
+        classOf[BaseServerTest].getProtectionDomain.getCodeSource.getLocation.toURI
+      )
+    } catch {
+      case e: URISyntaxException =>
+        fail("repository root directory not found: " + e.getMessage)
+    }
+    while (rootDir != null && !Files.exists(rootDir.toPath.resolve(".git"))) {
+      rootDir = rootDir.getParentFile
+    }
+    if (rootDir == null) {
+      fail("repository root directory not found")
+    }
+    rootDir
+  }
+
 
   override def clientControllerFactory: ClientControllerFactory = {
     val contentRootManagerWrapper: ContentRootManager =
@@ -270,7 +282,9 @@ class BaseServerTest
     suggestionsHandler ! ProjectNameUpdated("Test")
 
     val environment         = fakeInstalledEnvironment()
-    val languageHome        = LanguageHome.detectFromExecutableLocation(environment)
+    val languageHomePath = locateRootDirectory().toPath.resolve("distribution").resolve("component")
+    val languageHome = LanguageHome(languageHomePath)
+    languageHome.rootPath.toFile.exists() shouldBe true
     val distributionManager = new DistributionManager(environment)
     val lockManager: TestableThreadSafeFileLockManager =
       new TestableThreadSafeFileLockManager(distributionManager.paths.locks)

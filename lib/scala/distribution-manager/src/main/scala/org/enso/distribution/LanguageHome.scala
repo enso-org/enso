@@ -10,7 +10,8 @@ import java.nio.file.Path
   *                     The path does not have to exist.
   */
 case class LanguageHome(languageHome: Path) {
-  private val rootPath = languageHome.getParent.toAbsolutePath.normalize
+  val rootPath = languageHome.getParent.toAbsolutePath.normalize
+  require(rootPath.toFile.exists())
 
   /** The path to editions bundled with the engine. */
   def editions: Path =
@@ -33,7 +34,7 @@ object LanguageHome {
     * the `engine-runner`.
     */
   def detectFromExecutableLocation(environment: Environment): LanguageHome = {
-    val homePath = environment.getPathToRunningExecutable.getParent
+    val homePath = environment.getPathToRunningExecutable.getParent.getParent
     LanguageHome(homePath)
   }
 }
