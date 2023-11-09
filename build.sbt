@@ -1461,6 +1461,7 @@ lazy val `runtime-compiler` =
     .dependsOn(pkg)
     .dependsOn(`polyglot-api`)
     .dependsOn(editions)
+    .dependsOn(`interpreter-dsl` % "provided")
 
 lazy val `runtime-instrument-common` =
   (project in file("engine/runtime-instrument-common"))

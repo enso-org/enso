@@ -58,6 +58,21 @@ public class PersistanceTest {
 
   @Test
   @SuppressWarnings("unchecked")
+  public void scalaHashMap() throws Exception {
+    var idLoc1 = new IdentifiedLocation(new Location(1, 5));
+    var immutable = join(new Tuple2("Hi", idLoc1), nil());
+    var in =
+        (scala.collection.mutable.HashMap)
+            scala.collection.mutable.HashMap$.MODULE$.apply(immutable);
+
+    var out = serde(scala.collection.mutable.Map.class, in, 32);
+
+    assertEquals("One element", 1, out.size());
+    assertEquals(in, out);
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
   public void scalaSet() throws Exception {
     var idLoc1 = new IdentifiedLocation(new Location(1, 5));
     var in = scala.collection.immutable.Set$.MODULE$.empty().$plus(idLoc1);

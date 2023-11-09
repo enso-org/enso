@@ -48,6 +48,7 @@ import scala.collection.immutable.Seq;
 @Persistable(clazz = Method.Conversion.class, id = 771)
 @Persistable(clazz = Set.Union.class, id = 772)
 @Persistable(clazz = Foreign.Definition.class, id = 781)
+@Persistable(clazz = Type.Function.class, id = 782)
 public final class IrPersistance {
   private IrPersistance() {}
 
@@ -164,6 +165,41 @@ public final class IrPersistance {
         var key = in.readObject();
         var value = in.readObject();
         map = map.$plus(new Tuple2(key, value));
+      }
+      return map;
+    }
+  }
+
+  @ServiceProvider(service = Persistance.class)
+  public static final class PersistScalaMutableMap
+      extends Persistance<scala.collection.mutable.Map> {
+    public PersistScalaMutableMap() {
+      super(scala.collection.mutable.Map.class, true, 4949);
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected void writeObject(scala.collection.mutable.Map map, Output out) throws IOException {
+      var size = map.size();
+      out.writeInt(size);
+      var it = map.iterator();
+      while (it.hasNext()) {
+        var tuple = (Tuple2) it.next();
+        out.writeObject(tuple._1());
+        out.writeObject(tuple._2());
+      }
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected scala.collection.mutable.Map readObject(Input in)
+        throws IOException, ClassNotFoundException {
+      var size = in.readInt();
+      var map = scala.collection.mutable.Map$.MODULE$.empty();
+      for (var i = 0; i < size; i++) {
+        var key = in.readObject();
+        var value = in.readObject();
+        map.put(key, value);
       }
       return map;
     }
@@ -348,13 +384,33 @@ public final class IrPersistance {
     }
 
     @Override
-    protected void writeObject(MetadataStorage obj, Output out) throws IOException {}
+    @SuppressWarnings("unchecked")
+    protected void writeObject(MetadataStorage obj, Output out) throws IOException {
+      var map =
+          obj.map(
+              (processingPass, metadata) -> {
+                var t = new Tuple2<>(processingPass.getClass().getName(), metadata);
+                return t;
+              });
+      out.writeInline(scala.collection.immutable.Map.class, map);
+    }
 
     @Override
     @SuppressWarnings("unchecked")
     protected MetadataStorage readObject(Input in) throws IOException, ClassNotFoundException {
-      return new MetadataStorage(
-          (scala.collection.immutable.List) scala.collection.immutable.Nil$.MODULE$);
+      var storage = new MetadataStorage(nil());
+      var map = in.readInline(scala.collection.immutable.Map.class);
+      var it = map.iterator();
+      while (it.hasNext()) {
+        var obj = (Tuple2<String, ProcessingPass.Metadata>) it.next();
+        try {
+          var pass = (ProcessingPass) Class.forName(obj._1()).getField("MODULE$").get(null);
+          storage.update(pass, obj._2());
+        } catch (ReflectiveOperationException ex) {
+          throw new IOException(ex);
+        }
+      }
+      return storage;
     }
   }
 
