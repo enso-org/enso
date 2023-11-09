@@ -48,28 +48,18 @@ class EditFileCmd(request: Api.EditFileNotification)
         logger.log(Level.WARNING, "Failed to acquire lock: interrupted", ie)
         Future.failed(ie)
     } finally {
-      if (pendingEditsLockTimestamp != 0) {
+      logLockRelease(
+        logger,
+        "pending edits",
+        pendingEditsLockTimestamp,
         ctx.locking.releasePendingEditsLock()
-        logger.log(
-          Level.FINEST,
-          "Kept pending edits lock [{0}] for {1} milliseconds",
-          Array(
-            getClass.getSimpleName,
-            System.currentTimeMillis() - pendingEditsLockTimestamp
-          )
-        )
-      }
-      if (fileLockTimestamp != 0) {
+      )
+      logLockRelease(
+        logger,
+        "file",
+        fileLockTimestamp,
         ctx.locking.releaseFileLock(request.path)
-        logger.log(
-          Level.FINEST,
-          "Kept file lock [{0}] for {1} milliseconds",
-          Array(
-            getClass.getSimpleName,
-            System.currentTimeMillis() - fileLockTimestamp
-          )
-        )
-      }
+      )
     }
   }
 

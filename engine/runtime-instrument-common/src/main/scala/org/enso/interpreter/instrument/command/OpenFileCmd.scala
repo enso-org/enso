@@ -38,28 +38,18 @@ class OpenFileCmd(
       case ie: InterruptedException =>
         logger.log(Level.WARNING, "Failed to acquire lock: interrupted", ie)
     } finally {
-      if (fileLockTimestamp != 0) {
+      logLockRelease(
+        logger,
+        "file",
+        fileLockTimestamp,
         ctx.locking.releaseFileLock(request.path)
-        logger.log(
-          Level.FINEST,
-          "Kept file lock [{0}] for {1} milliseconds",
-          Array(
-            getClass.getSimpleName,
-            System.currentTimeMillis() - fileLockTimestamp
-          )
-        )
-      }
-      if (readLockTimestamp != 0) {
+      )
+      logLockRelease(
+        logger,
+        "read compilation",
+        readLockTimestamp,
         ctx.locking.releaseReadCompilationLock()
-        logger.log(
-          Level.FINEST,
-          "Kept read compilation lock [{0}] for {1} milliseconds",
-          Array(
-            getClass.getSimpleName,
-            System.currentTimeMillis() - readLockTimestamp
-          )
-        )
-      }
+      )
     }
   }
 }

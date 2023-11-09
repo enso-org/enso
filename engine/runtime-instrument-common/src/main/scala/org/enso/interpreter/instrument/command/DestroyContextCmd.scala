@@ -46,17 +46,12 @@ class DestroyContextCmd(
       case ie: InterruptedException =>
         logger.log(Level.WARNING, "Failed to acquire lock: interrupted", ie)
     } finally {
-      if (lockTimestamp != 0) {
+      logLockRelease(
+        logger,
+        "context",
+        lockTimestamp,
         ctx.locking.removeContextLock(request.contextId)
-        logger.log(
-          Level.FINEST,
-          s"Kept context lock [{0}] for {1} milliseconds",
-          Array(
-            getClass.getSimpleName,
-            System.currentTimeMillis() - lockTimestamp
-          )
-        )
-      }
+      )
     }
   }
 

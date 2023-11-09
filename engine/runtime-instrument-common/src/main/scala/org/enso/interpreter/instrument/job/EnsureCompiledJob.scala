@@ -63,17 +63,12 @@ final class EnsureCompiledJob(
         logger.log(Level.WARNING, "Failed to acquire lock: interrupted", ie)
         CompilationStatus.Failure
     } finally {
-      if (writeLockTimestamp != 0) {
+      logLockRelease(
+        logger,
+        "write compilation",
+        writeLockTimestamp,
         ctx.locking.releaseWriteCompilationLock()
-        logger.log(
-          Level.FINEST,
-          s"Kept write compilation lock [{0}] for {1} milliseconds",
-          Array(
-            getClass.getSimpleName,
-            System.currentTimeMillis() - writeLockTimestamp
-          )
-        )
-      }
+      )
     }
   }
 
@@ -280,9 +275,11 @@ final class EnsureCompiledJob(
     ctx: RuntimeContext,
     logger: TruffleLogger
   ): Option[Changeset[Rope]] = {
-    val fileLockTimestamp         = ctx.locking.acquireFileLock(file)
-    val pendingEditsLockTimestamp = ctx.locking.acquirePendingEditsLock()
+    var fileLockTimestamp: Long         = 0
+    var pendingEditsLockTimestamp: Long = 0
     try {
+      fileLockTimestamp         = ctx.locking.acquireFileLock(file)
+      pendingEditsLockTimestamp = ctx.locking.acquirePendingEditsLock()
       val pendingEdits = ctx.state.pendingEdits.dequeue(file)
       val edits        = pendingEdits.map(_.edit)
       val shouldExecute =
@@ -303,17 +300,18 @@ final class EnsureCompiledJob(
       )
       Option.when(shouldExecute)(changeset)
     } finally {
-      ctx.locking.releasePendingEditsLock()
-      logger.log(
-        Level.FINEST,
-        s"Kept pending edits lock [EnsureCompiledJob] for ${System.currentTimeMillis() - pendingEditsLockTimestamp} milliseconds"
+      logLockRelease(
+        logger,
+        "pending edits",
+        pendingEditsLockTimestamp,
+        ctx.locking.releasePendingEditsLock()
       )
-      ctx.locking.releaseFileLock(file)
-      logger.log(
-        Level.FINEST,
-        s"Kept file lock [EnsureCompiledJob] for ${System.currentTimeMillis() - fileLockTimestamp} milliseconds"
+      logLockRelease(
+        logger,
+        "file",
+        fileLockTimestamp,
+        ctx.locking.releaseFileLock(file)
       )
-
     }
   }
 

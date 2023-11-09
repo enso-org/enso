@@ -54,16 +54,14 @@ public final class InvalidateModulesIndexCommand extends AsynchronousCommand {
           } catch (InterruptedException ie) {
             logger.log(Level.WARNING, "Failed to acquire lock: interrupted", ie);
           } finally {
-            if (writeCompilationLockTimestamp != 0) {
-              ctx.locking().releaseWriteCompilationLock();
-              logger.log(
-                  Level.FINEST,
-                  "Kept write compilation lock [{0}] for {1} milliseconds.",
-                  new Object[] {
-                    this.getClass().getSimpleName(),
-                    System.currentTimeMillis() - writeCompilationLockTimestamp
-                  });
-            }
+            logLockRelease(
+                logger,
+                "write compilation",
+                writeCompilationLockTimestamp,
+                () -> {
+                  ctx.locking().releaseWriteCompilationLock();
+                  return BoxedUnit.UNIT;
+                });
           }
 
           return BoxedUnit.UNIT;

@@ -91,29 +91,18 @@ class ExecuteJob(
           )
         )
     } finally {
-      if (readLockTimestamp != 0) {
+      logLockRelease(
+        logger,
+        "read compilation",
+        readLockTimestamp,
         ctx.locking.releaseReadCompilationLock()
-        logger.log(
-          Level.FINEST,
-          s"Kept read compilation lock [{0}] for {1} milliseconds",
-          Array(
-            getClass.getSimpleName,
-            System.currentTimeMillis() - readLockTimestamp
-          )
-        )
-      }
-      if (contextLockTimestamp != 0) {
+      )
+      logLockRelease(
+        logger,
+        "context",
+        contextLockTimestamp,
         ctx.locking.releaseContextLock(contextId)
-        logger.log(
-          Level.FINEST,
-          s"Kept context lock [{0}] for {1} for {2} milliseconds",
-          Array(
-            getClass.getSimpleName,
-            contextId,
-            System.currentTimeMillis() - contextLockTimestamp
-          )
-        )
-      }
+      )
     }
   }
 

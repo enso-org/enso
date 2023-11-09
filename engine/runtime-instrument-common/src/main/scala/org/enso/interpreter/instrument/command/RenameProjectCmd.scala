@@ -114,17 +114,12 @@ class RenameProjectCmd(
         )
         reply(Api.ProjectRenameFailed(request.oldName, request.newName))
     } finally {
-      if (writeLockTimestamp != 0) {
+      logLockRelease(
+        logger,
+        "write compilation",
+        writeLockTimestamp,
         ctx.locking.releaseWriteCompilationLock()
-        logger.log(
-          Level.FINEST,
-          "Kept write compilation lock [{0}] for {1} milliseconds",
-          Array(
-            getClass.getSimpleName,
-            System.currentTimeMillis() - writeLockTimestamp
-          )
-        )
-      }
+      )
     }
   }
 

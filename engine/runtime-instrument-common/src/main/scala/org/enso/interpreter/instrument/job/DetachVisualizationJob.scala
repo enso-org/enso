@@ -45,17 +45,12 @@ class DetachVisualizationJob(
       case ie: InterruptedException =>
         logger.log(Level.WARNING, "Failed to acquire lock: interrupted", ie)
     } finally {
-      if (contextId != 0) {
+      logLockRelease(
+        logger,
+        "context",
+        lockTimestamp,
         ctx.locking.releaseContextLock(contextId)
-        logger.log(
-          Level.FINEST,
-          s"Kept context lock [{0}] for {1} milliseconds",
-          Array(
-            getClass.getSimpleName,
-            System.currentTimeMillis() - lockTimestamp
-          )
-        )
-      }
+      )
     }
   }
 }

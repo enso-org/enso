@@ -80,17 +80,12 @@ final class RefactoringRenameJob(
         )
         Seq()
     } finally {
-      if (compilationLockTimestamp != 0) {
+      logLockRelease(
+        logger,
+        "read compilation",
+        compilationLockTimestamp,
         ctx.locking.releaseReadCompilationLock()
-        logger.log(
-          Level.FINEST,
-          s"Kept read compilation lock [{0}] for {1} milliseconds.",
-          Array(
-            getClass.getSimpleName,
-            System.currentTimeMillis() - compilationLockTimestamp
-          )
-        )
-      }
+      )
     }
   }
 
@@ -154,20 +149,18 @@ final class RefactoringRenameJob(
   private def enqueuePendingEdits(fileEdit: Api.FileEdit)(implicit
     ctx: RuntimeContext
   ): Unit = {
-    val pendingEditsLockTimestamp = ctx.locking.acquirePendingEditsLock()
+    var pendingEditsLockTimestamp: Long = 0
     try {
+      pendingEditsLockTimestamp = ctx.locking.acquirePendingEditsLock()
       val pendingEdits =
         fileEdit.edits.map(PendingEdit.ApplyEdit(_, execute = true))
       ctx.state.pendingEdits.enqueue(fileEdit.path, pendingEdits)
     } finally {
-      ctx.locking.releasePendingEditsLock()
-      ctx.executionService.getLogger.log(
-        Level.FINEST,
-        s"Kept pending edits lock [{0}] for {1} milliseconds.",
-        Array(
-          getClass.getSimpleName,
-          System.currentTimeMillis() - pendingEditsLockTimestamp
-        )
+      logLockRelease(
+        ctx.executionService.getLogger,
+        "pending edits",
+        pendingEditsLockTimestamp,
+        ctx.locking.releaseReadCompilationLock()
       )
     }
   }

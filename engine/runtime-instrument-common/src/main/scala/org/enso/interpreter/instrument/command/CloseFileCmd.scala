@@ -32,39 +32,24 @@ class CloseFileCmd(request: Api.CloseFileNotification)
       case ie: InterruptedException =>
         logger.log(Level.WARNING, "Failed to acquire lock: interrupted", ie)
     } finally {
-      if (pendingEditsLockTimestamp != 0) {
+      logLockRelease(
+        logger,
+        "pending edits",
+        pendingEditsLockTimestamp,
         ctx.locking.releasePendingEditsLock()
-        logger.log(
-          Level.FINEST,
-          "Kept pending edits lock [{0}] for {1} milliseconds",
-          Array(
-            getClass.getSimpleName,
-            System.currentTimeMillis - pendingEditsLockTimestamp
-          )
-        )
-      }
-      if (fileLockTimestamp != 0) {
+      )
+      logLockRelease(
+        logger,
+        "file",
+        fileLockTimestamp,
         ctx.locking.releaseFileLock(request.path)
-        logger.log(
-          Level.FINEST,
-          "Kept file lock [{0}] for {1} milliseconds",
-          Array(
-            getClass.getSimpleName,
-            System.currentTimeMillis - fileLockTimestamp
-          )
-        )
-      }
-      if (readLockTimestamp != 0) {
+      )
+      logLockRelease(
+        logger,
+        "read compilation",
+        readLockTimestamp,
         ctx.locking.releaseReadCompilationLock()
-        logger.log(
-          Level.FINEST,
-          "Kept read compilation lock [{0}] for {1} milliseconds",
-          Array(
-            getClass.getSimpleName,
-            System.currentTimeMillis - readLockTimestamp
-          )
-        )
-      }
+      )
     }
   }
 

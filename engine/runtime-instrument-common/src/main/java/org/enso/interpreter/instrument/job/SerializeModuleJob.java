@@ -5,6 +5,7 @@ import org.enso.interpreter.instrument.execution.RuntimeContext;
 import org.enso.interpreter.runtime.SerializationManager;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.CompilationStage;
+import scala.runtime.BoxedUnit;
 
 /** The job that serializes module. */
 public final class SerializeModuleJob extends BackgroundJob<Void> {
@@ -50,17 +51,14 @@ public final class SerializeModuleJob extends BackgroundJob<Void> {
           .getLogger()
           .log(Level.WARNING, "Failed to acquire lock: interrupted", ie);
     } finally {
-      if (writeLockTimestamp != 0) {
-        ctx.locking().releaseWriteCompilationLock();
-        ctx.executionService()
-            .getLogger()
-            .log(
-                Level.FINEST,
-                "Kept write compilation lock [{0}] for {1} milliseconds",
-                new Object[] {
-                  this.getClass().getSimpleName(), System.currentTimeMillis() - writeLockTimestamp
-                });
-      }
+      logLockRelease(
+          ctx.executionService().getLogger(),
+          "write compilation",
+          writeLockTimestamp,
+          () -> {
+            ctx.locking().releaseWriteCompilationLock();
+            return BoxedUnit.UNIT;
+          });
     }
     return null;
   }

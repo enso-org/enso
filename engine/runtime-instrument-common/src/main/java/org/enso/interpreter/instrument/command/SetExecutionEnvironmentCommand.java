@@ -58,24 +58,22 @@ public class SetExecutionEnvironmentCommand extends AsynchronousCommand {
     } catch (InterruptedException ie) {
       logger.log(Level.WARNING, "Failed to acquire lock: interrupted", ie);
     } finally {
-      if (writeLockTimestamp != 0) {
-        ctx.locking().releaseWriteCompilationLock();
-        logger.log(
-            Level.FINEST,
-            "Kept write compilation lock [{0}] for {1} milliseconds",
-            new Object[] {
-              this.getClass().getSimpleName(), System.currentTimeMillis() - writeLockTimestamp
-            });
-      }
-      if (contextLockTimestamp != 0) {
-        ctx.locking().releaseContextLock(contextId);
-        logger.log(
-            Level.FINEST,
-            "Kept context lock [{0}] for {1} milliseconds",
-            new Object[] {
-              this.getClass().getSimpleName(), System.currentTimeMillis() - contextLockTimestamp
-            });
-      }
+      logLockRelease(
+          logger,
+          "write compilation",
+          writeLockTimestamp,
+          () -> {
+            ctx.locking().releaseWriteCompilationLock();
+            return BoxedUnit.UNIT;
+          });
+      logLockRelease(
+          logger,
+          "context",
+          contextLockTimestamp,
+          () -> {
+            ctx.locking().releaseContextLock(contextId);
+            return BoxedUnit.UNIT;
+          });
     }
   }
 }
