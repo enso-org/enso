@@ -898,19 +898,19 @@ class Compiler(
     }
 
   private def reportCycle(exception: ExportCycleException): Nothing = {
-    output.println("Compiler encountered errors:")
-    output.println("Export statements form a cycle:")
+    printDiagnostic("Compiler encountered errors:")
+    printDiagnostic("Export statements form a cycle:")
     exception.modules match {
       case List(mod) =>
-        output.println(s"    ${mod.getName} exports itself.")
+        printDiagnostic(s"    ${mod.getName} exports itself.")
       case first :: second :: rest =>
-        output.println(
+        printDiagnostic(
           s"    ${first.getName} exports ${second.getName}"
         )
         rest.foreach { mod =>
-          output.println(s"    which exports ${mod.getName}")
+          printDiagnostic(s"    which exports ${mod.getName}")
         }
-        output.println(
+        printDiagnostic(
           s"    which exports ${first.getName}, forming a cycle."
         )
       case _ =>
@@ -924,8 +924,8 @@ class Compiler(
   }
 
   private def reportExportConflicts(exception: Throwable): Nothing = {
-    output.println("Compiler encountered errors:")
-    output.println(exception.getMessage)
+    printDiagnostic("Compiler encountered errors:")
+    printDiagnostic(exception.getMessage)
 
     if (config.isStrictErrors) {
       throw new CompilationAbortedException
@@ -939,11 +939,11 @@ class Compiler(
     * @param err the package repository error
     */
   private def reportPackageError(err: PackageRepository.Error): Unit = {
-    output.println(
+    printDiagnostic(
       s"In package description ${org.enso.pkg.Package.configFileName}:"
     )
-    output.println("Compiler encountered warnings:")
-    output.println(err.toString)
+    printDiagnostic("Compiler encountered warnings:")
+    printDiagnostic(err.toString)
   }
 
   /** Reports diagnostics from multiple modules.
@@ -979,7 +979,7 @@ class Compiler(
     source: Source
   ): Boolean = {
     diagnostics.foreach(diag =>
-      output.println(new DiagnosticFormatter(diag, source).format())
+      printDiagnostic(new DiagnosticFormatter(diag, source).format())
     )
     diagnostics.exists(_.isInstanceOf[Error])
   }
@@ -1230,6 +1230,10 @@ class Compiler(
   def updateMetadata(sourceIr: IRModule, copyOfIr: IRModule): IRModule = {
     passManager.runMetadataUpdate(sourceIr, copyOfIr)
   }
+
+  private def printDiagnostic(message: String): Unit =
+    if (config.isStrictErrors) output.println(message)
+    else context.log(Level.WARNING, message)
 }
 object Compiler {
 
