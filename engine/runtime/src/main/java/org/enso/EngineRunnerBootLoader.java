@@ -62,16 +62,9 @@ public final class EngineRunnerBootLoader {
 
   private static final class IsolatedClassLoader extends URLClassLoader {
     private final ClassLoader systemClassLoader;
-    private static final List<String> resourceDelegationPatterns = List.of(
-        "org.slf4j",
-        "ch.qos"
-    );
-    private static final List<String> classDelegationPatterns = List.of(
-        "org.graalvm",
-        "java",
-        "org.slf4j",
-        "ch.qos"
-    );
+    private static final List<String> resourceDelegationPatterns = List.of("org.slf4j", "ch.qos");
+    private static final List<String> classDelegationPatterns =
+        List.of("org.graalvm", "java", "org.slf4j", "ch.qos");
 
     public IsolatedClassLoader(URL runnerJarUrl) {
       super("org.enso.IsolatedClassLoader", new URL[] {runnerJarUrl}, null);

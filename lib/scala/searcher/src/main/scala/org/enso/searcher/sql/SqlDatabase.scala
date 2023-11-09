@@ -28,7 +28,11 @@ final class SqlDatabase(config: Option[Config] = None)
     this.synchronized {
       if (db eq null) {
         db = SQLiteProfile.backend.Database
-          .forConfig(SqlDatabase.configPath, config.orNull, classLoader = getClass.getClassLoader)
+          .forConfig(
+            SqlDatabase.configPath,
+            config.orNull,
+            classLoader = getClass.getClassLoader
+          )
       }
     }
 

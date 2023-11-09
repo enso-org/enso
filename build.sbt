@@ -665,7 +665,7 @@ lazy val pkg = (project in file("lib/scala/pkg"))
     version := "0.1",
     libraryDependencies ++= circe ++ Seq(
       "org.graalvm.truffle" % "truffle-api"      % graalMavenPackagesVersion,
-      "org.scalatest"      %% "scalatest"        % scalatestVersion          % Test,
+      "org.scalatest"      %% "scalatest"        % scalatestVersion % Test,
       "io.circe"           %% "circe-yaml"       % circeYamlVersion,
       "org.apache.commons"  % "commons-compress" % commonsCompressVersion,
       "commons-io"          % "commons-io"       % commonsIoVersion
@@ -909,7 +909,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
     // Exclude all the Truffle/Graal related artifacts from the fat jar
     assembly / assemblyExcludedJars := {
       val pkgsToExclude = GraalVM.modules
-      val ourFullCp = (Runtime / fullClasspath).value
+      val ourFullCp     = (Runtime / fullClasspath).value
       JPMSUtils.filterModulesFromClasspath(
         ourFullCp,
         pkgsToExclude,
@@ -924,7 +924,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
       case PathList("META-INF", "MANIFEST.MF", xs @ _*) =>
         MergeStrategy.discard
       // This fat Jar must not be an explicit module, so discard all the module-info classes
-      case PathList(xs@_*) if xs.last.contains("module-info") =>
+      case PathList(xs @ _*) if xs.last.contains("module-info") =>
         MergeStrategy.discard
       case "application.conf" => MergeStrategy.concat
       case "reference.conf"   => MergeStrategy.concat
@@ -1147,12 +1147,14 @@ lazy val `polyglot-api` = project
     commands += WithDebugCommand.withDebug,
     Test / envVars ++= distributionEnvironmentOverrides,
     Test / javaOptions ++= testLogProviderOptions ++ Seq(
-        "-Dpolyglot.engine.WarnInterpreterOnly=false",
-        "-Dpolyglotimpl.DisableClassPathIsolation=true"
+      "-Dpolyglot.engine.WarnInterpreterOnly=false",
+      "-Dpolyglotimpl.DisableClassPathIsolation=true"
     ),
     // Append enso language on the class-path
     Test / unmanagedClasspath :=
-      (LocalProject("runtime-with-instruments") / Compile / fullClasspath).value,
+      (LocalProject(
+        "runtime-with-instruments"
+      ) / Compile / fullClasspath).value,
     libraryDependencies ++= Seq(
       "org.graalvm.sdk"        % "polyglot-tck"     % graalMavenPackagesVersion % "provided",
       "org.graalvm.truffle"    % "truffle-api"      % graalMavenPackagesVersion % "provided",
@@ -1209,12 +1211,14 @@ lazy val `language-server` = (project in file("engine/language-server"))
     // These settings are needed by language-server tests that create a runtime context.
     Test / fork := true,
     Test / javaOptions ++= testLogProviderOptions ++ Seq(
-        "-Dpolyglot.engine.WarnInterpreterOnly=false",
-        "-Dpolyglotimpl.DisableClassPathIsolation=true"
+      "-Dpolyglot.engine.WarnInterpreterOnly=false",
+      "-Dpolyglotimpl.DisableClassPathIsolation=true"
     ),
     // Append enso language on the class-path
     Test / unmanagedClasspath :=
-      (LocalProject("runtime-with-instruments") / Compile / fullClasspath).value,
+      (LocalProject(
+        "runtime-with-instruments"
+      ) / Compile / fullClasspath).value,
     Test / compile := (Test / compile)
       .dependsOn(LocalProject("enso") / updateLibraryManifests)
       .value,
@@ -1582,7 +1586,7 @@ lazy val `runtime-with-instruments` =
       // Exclude all the Truffle/Graal related artifacts from the Uber jar
       assembly / assemblyExcludedJars := {
         val pkgsToExclude = JPMSUtils.componentModules
-        val ourFullCp = (Runtime / fullClasspath).value
+        val ourFullCp     = (Runtime / fullClasspath).value
         JPMSUtils.filterModulesFromClasspath(
           ourFullCp,
           pkgsToExclude,
@@ -2184,7 +2188,7 @@ lazy val `std-base` = project
       `base-polyglot-root` / "std-base.jar",
     libraryDependencies ++= Seq(
       "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion,
-      "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion        % "provided"
+      "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion % "provided"
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value

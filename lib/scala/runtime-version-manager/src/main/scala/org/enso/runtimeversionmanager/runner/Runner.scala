@@ -182,7 +182,7 @@ class Runner(
         engine.defaultJVMOptions.filter(_.isRelevant).map(_.substitute(context))
       val environmentOptions =
         jvmOptsFromEnvironment.map(_.split(' ').toIndexedSeq).getOrElse(Seq())
-      val commandLineOptions = jvmSettings.jvmOptions.map(translateJVMOption)
+      val commandLineOptions        = jvmSettings.jvmOptions.map(translateJVMOption)
       val shouldInvokeViaModulePath = engine.graalRuntimeVersion.isUnchained
 
       var jvmArguments =
@@ -242,16 +242,15 @@ class Runner(
           }
         } else {
           runtimeVersionManager.withEngine(engineVersion) { engine =>
-              prepareAndRunCommand(engine, JavaCommand.systemJavaCommand)
+            prepareAndRunCommand(engine, JavaCommand.systemJavaCommand)
           }
         }
     }
   }
 
-  /**
-   * Returns true if for the provided engine version, we also need to load or install
-   * GraalVM runtime.
-   */
+  /** Returns true if for the provided engine version, we also need to load or install
+    * GraalVM runtime.
+    */
   private def needsRuntime(engineVersion: SemVer): Boolean = {
     val engine = runtimeVersionManager.findOrInstallEngine(engineVersion)
     engine.needsGraalDistribution

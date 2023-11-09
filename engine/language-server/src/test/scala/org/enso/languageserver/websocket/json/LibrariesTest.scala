@@ -7,10 +7,18 @@ import nl.gn0s1s.bump.SemVer
 import org.enso.distribution.FileSystem
 import org.enso.editions.{Editions, LibraryName}
 import org.enso.languageserver.libraries.LibraryEntry.PublishedLibraryVersion
-import org.enso.languageserver.libraries.{LibraryComponentGroup, LibraryComponentGroups, LibraryEntry}
+import org.enso.languageserver.libraries.{
+  LibraryComponentGroup,
+  LibraryComponentGroups,
+  LibraryEntry
+}
 import org.enso.languageserver.runtime.TestComponentGroups
 import org.enso.librarymanager.published.bundles.LocalReadOnlyRepository
-import org.enso.librarymanager.published.repository.{EmptyRepository, ExampleRepository, LibraryManifest}
+import org.enso.librarymanager.published.repository.{
+  EmptyRepository,
+  ExampleRepository,
+  LibraryManifest
+}
 import org.enso.pkg.{Config, Contact, Package, PackageManager}
 import org.enso.yaml.YamlHelper
 
@@ -21,7 +29,9 @@ import scala.concurrent.duration._
 class LibrariesTest extends BaseServerTest {
   private val libraryRepositoryPort: Int = 47308
 
-  private val exampleRepo = new ExampleRepository(locateRootDirectory().toPath) {
+  private val exampleRepo = new ExampleRepository(
+    locateRootDirectory().toPath
+  ) {
     override def libraries: Seq[DummyLibrary] = Seq(
       DummyLibrary(
         LibraryName("Foo", "Bar"),
@@ -415,7 +425,7 @@ class LibrariesTest extends BaseServerTest {
           """)
 
       val repoRoot        = getTestDirectory.resolve("libraries_repo_root")
-      val rootDir = locateRootDirectory()
+      val rootDir         = locateRootDirectory()
       val emptyRepository = new EmptyRepository(rootDir.toPath)
       emptyRepository.withServer(
         libraryRepositoryPort,

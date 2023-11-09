@@ -29,14 +29,13 @@ case class Engine(version: SemVer, path: Path, manifest: Manifest) {
     */
   def graalRuntimeVersion: GraalVMVersion = manifest.runtimeVersion
 
-  /**
-   * The GraalVM distribution policy changed a lot since GraalVM 23.0.0 for JDK 21.
-   * The newest GraalVM is now distributed as artifacts from the Maven central, and therefore,
-   * does not need to be downloaded at runtime.
-   *
-   * @see https://medium.com/graalvm/truffle-unchained-13887b77b62c
-   * @return true if a separate GraalVM distribution download is needed.
-   */
+  /** The GraalVM distribution policy changed a lot since GraalVM 23.0.0 for JDK 21.
+    * The newest GraalVM is now distributed as artifacts from the Maven central, and therefore,
+    * does not need to be downloaded at runtime.
+    *
+    * @see https://medium.com/graalvm/truffle-unchained-13887b77b62c
+    * @return true if a separate GraalVM distribution download is needed.
+    */
   def needsGraalDistribution: Boolean = {
     !graalRuntimeVersion.isUnchained
   }
@@ -45,10 +44,9 @@ case class Engine(version: SemVer, path: Path, manifest: Manifest) {
     */
   def defaultJVMOptions: Seq[JVMOption] = manifest.jvmOptions
 
-  /**
-   * Path to the directory containing all the explicit JPMS modules as Jar archives.
-   * @return
-   */
+  /** Path to the directory containing all the explicit JPMS modules as Jar archives.
+    * @return
+    */
   def componentDirPath: Path = path / "component"
 
   /** Path to the runner JAR.
