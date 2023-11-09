@@ -1264,6 +1264,39 @@ spec setup =
             t = table_builder [["x", ["1", "2", "3"]]]
             t.at "x" . const (t.at "x") . should_fail_with Illegal_Argument
 
+    Test.group prefix+"Table.make_constant_column" <|
+        Test.specify "Should allow the creation of constant columns" <|
+            t = table_builder [["x", ["1", "2", "3"]]]
+            t.make_constant_column True . to_vector . should_equal [True, True, True]
+            t.make_constant_column 12 . to_vector . should_equal [12, 12, 12]
+            t.make_constant_column 12.3 . to_vector . should_equal [12.3, 12.3, 12.3]
+            t.make_constant_column "asdf" . to_vector . should_equal ["asdf", "asdf", "asdf"]
+
+        Test.specify "Should allow the creation of constant columns on a table with no rows" <|
+            t = table_builder [["x", ["1", "2", "3"]]]
+            empty = t.take 0
+            constant = empty.make_constant_column 42
+            empty2 = empty.set constant
+            empty2.column_names.should_equal ['x', '42']
+
+        Test.specify "Should create a column of the correct type on a table with no rows" <|
+            t = table_builder [["x", ["1", "2", "3"]]]
+            empty = t.take 0
+            [[False, .is_boolean], [42,  .is_integer], ["42",  .is_text], ["foo", .is_text], [1.1, .is_floating_point]].map pair->
+                value = pair.at 0
+                pred = pair.at 1
+                c = empty.make_constant_column value
+                pred c.value_type . should_be_true
+                pred ((empty.set c).at c.name . value_type) . should_be_true
+
+        nulls_db_pending = if setup.is_database then "Empty NULL columns are unsupported in the database backends"
+        Test.specify "Should create a column of the correct type on a table with no rows" pending=nulls_db_pending <|
+            t = table_builder [["x", ["1", "2", "3"]]]
+            empty = t.take 0
+            c = empty.make_constant_column Nothing
+            c.value_type . should_equal Value_Type.Mixed
+            (empty.set c).at c.name . value_type . should_equal Value_Type.Mixed
+
 # A dummy value used to force the in-memory backend to trigger a infer a mixed type for the given column.
 type Mixed_Type_Object
     Value
