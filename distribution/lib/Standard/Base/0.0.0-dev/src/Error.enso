@@ -105,6 +105,14 @@ type Error
                         if inner_error.is_a error_type then handler inner_error else self
                     Panic.catch No_Such_Conversion check_wrapped _->self
 
+    wraps_error : Any -> Boolean
+    wraps_error self error_type =
+        self.catch_primitive error_value->
+            check_wrapped =
+                inner_error = Wrapped_Error.from error_value . inner_error
+                inner_error.is_a error_type
+            Panic.catch No_Such_Conversion check_wrapped _->False
+
     ## Transforms an error.
 
        Arguments:
