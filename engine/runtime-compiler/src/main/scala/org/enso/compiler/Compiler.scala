@@ -898,24 +898,25 @@ class Compiler(
     }
 
   private def reportCycle(exception: ExportCycleException): Nothing = {
+    output.println("Compiler encountered errors:")
+    output.println("Export statements form a cycle:")
+    exception.modules match {
+      case List(mod) =>
+        output.println(s"    ${mod.getName} exports itself.")
+      case first :: second :: rest =>
+        output.println(
+          s"    ${first.getName} exports ${second.getName}"
+        )
+        rest.foreach { mod =>
+          output.println(s"    which exports ${mod.getName}")
+        }
+        output.println(
+          s"    which exports ${first.getName}, forming a cycle."
+        )
+      case _ =>
+    }
+
     if (config.isStrictErrors) {
-      output.println("Compiler encountered errors:")
-      output.println("Export statements form a cycle:")
-      exception.modules match {
-        case List(mod) =>
-          output.println(s"    ${mod.getName} exports itself.")
-        case first :: second :: rest =>
-          output.println(
-            s"    ${first.getName} exports ${second.getName}"
-          )
-          rest.foreach { mod =>
-            output.println(s"    which exports ${mod.getName}")
-          }
-          output.println(
-            s"    which exports ${first.getName}, forming a cycle."
-          )
-        case _ =>
-      }
       throw new CompilationAbortedException
     } else {
       throw exception
@@ -923,9 +924,10 @@ class Compiler(
   }
 
   private def reportExportConflicts(exception: Throwable): Nothing = {
+    output.println("Compiler encountered errors:")
+    output.println(exception.getMessage)
+
     if (config.isStrictErrors) {
-      output.println("Compiler encountered errors:")
-      output.println(exception.getMessage)
       throw new CompilationAbortedException
     } else {
       throw exception
