@@ -1,6 +1,8 @@
 import project.Any.Any
 import project.Data.Text.Text
 import project.Data.Vector.Vector
+import project.Errors.Common.No_Such_Conversion
+import project.Errors.Wrapped_Error.Wrapped_Error
 import project.Meta
 import project.Panic.Panic
 import project.Runtime.Stack_Trace_Element
@@ -97,7 +99,11 @@ type Error
         self.catch_primitive error_value->
             case error_value.is_a error_type of
                 True -> handler error_value
-                False -> self
+                False ->
+                    check_wrapped =
+                        inner_error = Wrapped_Error.from error_value . inner_error
+                        if inner_error.is_a error_type then handler inner_error else self
+                    Panic.catch No_Such_Conversion check_wrapped _->self
 
     ## Transforms an error.
 

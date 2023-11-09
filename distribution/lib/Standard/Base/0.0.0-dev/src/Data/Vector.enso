@@ -16,8 +16,10 @@ import project.Errors.Common.Not_Found
 import project.Errors.Common.Type_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
+import project.Errors.Wrapped_Error.Wrapped_Error
 import project.Function.Function
 import project.Internal.Array_Like_Helpers
+import project.IO
 import project.Math
 import project.Meta
 import project.Nothing.Nothing
@@ -577,9 +579,31 @@ type Vector a
          Add 1 to each element of the vector.
 
              [1, 2, 3] . map +1
-    map : (Any -> Any) -> Vector Any
-    map self function =
-        Vector.new self.length i-> function (self.at i)
+    map : (Any -> Any) -> Problem_Behavior -> Vector Any
+    map self function on_problems=Problem_Behavior.Report_Error =
+        #Vector.new self.length i-> function (self.at i)
+        builder = Vector.new_builder self.length
+        go i sofar =
+            if i == self.length then sofar else
+                value = self.at i
+                result = function value
+                case result.is_error of
+                    False ->
+                        builder.append result
+                        go i+1 sofar+[result]
+                    True ->
+                        case on_problems of
+                            Problem_Behavior.Ignore ->
+                                builder.append Nothing
+                                go i+1 sofar+[Nothing]
+                            Problem_Behavior.Report_Error ->
+                                wrapped = Map_Error.Error i result.catch
+                                Error.throw wrapped
+                            Problem_Behavior.Report_Warning ->
+                                with_warning = Warning.attach result.catch Nothing
+                                builder.append with_warning
+                                go i+1 sofar+[with_warning]
+        go 0 []
 
     ## Applies a function to each element of the vector, returning the `Vector`
        that contains all results concatenated.
@@ -1244,6 +1268,18 @@ type Builder
         ## This creates a fresh copy of the builders storage, so any future
            changes to the builder will not affect the returned vector.
         Vector.from_polyglot_array self.java_builder.toArray
+
+## PRIVATE
+   Describes an error produced by a function mapped over a Vector. Includes the
+   funtion argument's position in the vector.
+type Map_Error
+    Error (index:Integer) inner_error
+
+    ## PRIVATE
+    to_display_text : Text
+    to_display_text self = "Error at index " + self.index.to_text + ": " + self.inner_error.to_display_text
+
+Wrapped_Error.from (that : Map_Error) = Wrapped_Error.Value that that.inner_error
 
 ## PRIVATE
    An error that indicates that the vector is empty.
