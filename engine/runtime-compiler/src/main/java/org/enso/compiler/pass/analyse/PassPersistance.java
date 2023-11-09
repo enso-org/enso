@@ -19,6 +19,12 @@ import org.openide.util.lookup.ServiceProvider;
 @Persistable(clazz = ModuleAnnotations.Annotations.class, id = 1118)
 @Persistable(clazz = AliasAnalysis.Graph.class, id = 1119)
 @Persistable(clazz = AliasAnalysis$Info$Scope$Root.class, id = 1120)
+@Persistable(clazz = DataflowAnalysis$DependencyInfo$Type$Static.class, id = 1121)
+@Persistable(clazz = DataflowAnalysis$DependencyInfo$Type$Dynamic.class, id = 1122)
+@Persistable(clazz = AliasAnalysis$Info$Scope$Child.class, id = 1123)
+@Persistable(clazz = AliasAnalysis$Graph$Scope.class, id = 1124)
+@Persistable(clazz = AliasAnalysis$Graph$Occurrence$Use.class, id = 1125)
+@Persistable(clazz = AliasAnalysis$Graph$Occurrence$Def.class, id = 1126)
 public final class PassPersistance {
   private PassPersistance() {}
 

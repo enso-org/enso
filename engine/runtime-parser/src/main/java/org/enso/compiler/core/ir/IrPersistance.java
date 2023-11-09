@@ -4,6 +4,9 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.UUID;
+import java.util.jar.Attributes;
+
 import org.enso.compiler.core.Persistance;
 import org.enso.compiler.core.ir.expression.Application;
 import org.enso.compiler.core.ir.expression.Case;
@@ -16,6 +19,7 @@ import org.enso.compiler.core.ir.module.scope.imports.Polyglot;
 import org.enso.compiler.core.ir.type.Set;
 import org.enso.interpreter.dsl.Persistable;
 import org.openide.util.lookup.ServiceProvider;
+
 import scala.Option;
 import scala.Tuple2;
 import scala.collection.Iterator;
@@ -49,6 +53,8 @@ import scala.collection.immutable.Seq;
 @Persistable(clazz = Set.Union.class, id = 772)
 @Persistable(clazz = Foreign.Definition.class, id = 781)
 @Persistable(clazz = Type.Function.class, id = 782)
+@Persistable(clazz = Name.BuiltinAnnotation.class, id = 783)
+@Persistable(clazz = Type.Error.class, id = 784)
 public final class IrPersistance {
   private IrPersistance() {}
 
@@ -67,6 +73,24 @@ public final class IrPersistance {
     protected IdentifiedLocation readObject(Input in) throws IOException, ClassNotFoundException {
       var obj = in.readInline(Location.class);
       return new IdentifiedLocation((Location) obj, Option.empty());
+    }
+  }
+
+  @ServiceProvider(service = Persistance.class)
+  public static final class PersistUUID extends Persistance<UUID> {
+    public PersistUUID() {
+      super(UUID.class, false, 27);
+    }
+
+    @Override
+    protected void writeObject(UUID obj, Output out) throws IOException {
+      out.writeUTF(obj.toString());
+    }
+
+    @Override
+    protected UUID readObject(Input in) throws IOException, ClassNotFoundException {
+      var str = in.readUTF();
+      return UUID.fromString(str);
     }
   }
 

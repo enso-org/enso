@@ -182,7 +182,11 @@ public final class ImportExportCache extends Cache<ImportExportCache.CachedBindi
   @Persistable(clazz=org.enso.compiler.data.BindingsMap$SymbolRestriction$Intersect.class, id=33018)
   @Persistable(clazz=org.enso.compiler.data.BindingsMap$SymbolRestriction$AllowedResolution.class, id=33019)
   @Persistable(clazz=org.enso.compiler.data.BindingsMap$SymbolRestriction$All$.class, id=33020)
-  @Persistable(clazz=BindingsMap.Resolution.class, id=33021)
+  @Persistable(clazz=org.enso.compiler.data.BindingsMap$SymbolRestriction$Hiding.class, id=33021)
+  @Persistable(clazz=BindingsMap.Resolution.class, id=33029)
+  @Persistable(clazz=BindingsMap.ResolvedConstructor.class, id=33030)
+  @Persistable(clazz=BindingsMap.ResolvedPolyglotSymbol.class, id=33031)
+  @Persistable(clazz=BindingsMap.ResolvedPolyglotField.class, id=33032)
   @ServiceProvider(service = Persistance.class)
   public static final class PersistBindingsMap extends Persistance<BindingsMap> {
     public PersistBindingsMap() {
