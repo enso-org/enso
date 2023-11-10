@@ -36,6 +36,7 @@ public final class Ref implements EnsoObject {
    * Stores a new value in the reference.
    *
    * @param value the value to store.
+   * @returns the original value
    */
   @Builtin.Method(name = "put", description = "Stores a new value in the reference")
   public Object setValue(Object value) {

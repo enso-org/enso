@@ -800,15 +800,11 @@ type_spec name alter = Test.group name <|
         Warning.get_all sorted . length . should_equal 10
         Warning.limit_reached sorted . should_equal True
 
-map_tests =
-    alter x = x
-
     Test.group "error within map (on_problems=Report_Error)asdfasdf" <|
         fun a = if a == 30 then Error.throw (My_Error.Value a) else a+1
 
         Test.specify "an error thrown inside map should fail a test as a My_Error" <|
             alter [10, 20, 30, 40] . map fun . should_fail_with My_Error
-            #True . should_be_false
 
         Test.specify "an error thrown inside map and caught (without error parameter) should be wrapped in Map_Error" <|
             alter [10, 20, 30, 40] . map fun . catch . should_equal (Map_Error.Error 2 (My_Error.Value 30))
@@ -835,17 +831,17 @@ map_tests =
         Test.specify "an error thrown inside map should be attached as a warning" <|
             result = alter [10, 20, 30, 40] . map fun on_problems=Problem_Behavior.Report_Warning
             result . should_equal [11, 21, Nothing, 41]
-            Warning.get_all result . map .value . should_equal [My_Error.Value 30]
+            Warning.get_all result . map .value . should_equal [Map_Error.Error 2 (My_Error.Value 30)]
 
         Test.specify "multiple errors thrown inside map should be attached as warnings" <|
             result = alter [10, 30, 20, 30, 40, 30] . map fun on_problems=Problem_Behavior.Report_Warning
             result . should_equal [11, Nothing, 21, Nothing, 41, Nothing]
-            Warning.get_all result . map .value . should_equal (Vector.fill 3 (My_Error.Value 30))
+            Warning.get_all result . map .value . should_equal ([5, 3, 1].map i-> Map_Error.Error i (My_Error.Value 30))
 
         Test.specify "many errors thrown inside map should be attached as warnings and an Additional_Warnings" <|
             result = alter ([10, 20] + (Vector.fill 12 30) + [40]) . map fun on_problems=Problem_Behavior.Report_Warning
             result . should_equal ([11, 21] + (Vector.fill 12 Nothing) + [41])
-            expected_warnings_regular = 0.up_to 10 . map _-> My_Error.Value 30
+            expected_warnings_regular = 11.down_to 1 . map i-> Map_Error.Error i (My_Error.Value 30)
             expected_warnings = [(Additional_Warnings.Error 2)] + expected_warnings_regular
             Warning.get_all result . map .value . should_equal expected_warnings
 
@@ -920,8 +916,6 @@ spec =
             [Nothing].pretty.should_equal "[Nothing]"
             [True, False, 'a'].pretty . should_equal "[True, False, 'a']"
             [Foo.Value True].pretty . should_equal "[(Foo.Value True)]"
-
-    map_tests
 
     type_spec "Use Vector as vectors" identity
     type_spec "Use Array as vectors" (v -> v.to_array)
