@@ -1817,7 +1817,10 @@ lazy val launcher = project
         additionalOptions = Seq(
           "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
           "-H:IncludeResources=.*Main.enso$"
-        )
+        ),
+        includeRuntime = false,
+        mainClass = Some("org.enso.launcher.cli.Main"),
+        verbose = true
       )
       .dependsOn(assembly)
       .dependsOn(VerifyReflectionSetup.run)
@@ -1839,6 +1842,9 @@ lazy val launcher = project
         MergeStrategy.discard
       case "application.conf" => MergeStrategy.concat
       case "reference.conf"   => MergeStrategy.concat
+      // launcher.jar must not be an explicit Jar module
+      case PathList(xs@_*) if xs.last.contains("module-info") =>
+        MergeStrategy.discard
       case x =>
         MergeStrategy.first
     }

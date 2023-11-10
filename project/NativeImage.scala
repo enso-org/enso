@@ -70,6 +70,9 @@ object NativeImage {
     *                              build time.
     * @param additionalCp additional class-path entries to be added to the
     *                     native image.
+   * @param includeRuntime Whether `org.enso.runtime` should is included. If yes, then
+   *                       it will be passed as a module to the native-image along with other
+   *                       Graal and Truffle related modules.
     * @param verbose whether to print verbose output from the native image.
     */
   def buildNativeImage(
@@ -82,7 +85,8 @@ object NativeImage {
     initializeAtBuildtime: Seq[String]       = defaultBuildTimeInitClasses,
     mainClass: Option[String]                = None,
     additionalCp: Seq[String]                = Seq(),
-    verbose: Boolean                         = false
+    verbose: Boolean                         = false,
+    includeRuntime: Boolean                  = true
   ): Def.Initialize[Task[Unit]] = Def
     .task {
       val log            = state.value.log
@@ -169,7 +173,6 @@ object NativeImage {
         (LocalProject("engine-runner") / Runtime / fullClasspath).value
       val ourCp      = (Runtime / fullClasspath).value
       val cpToSearch = (ourCp ++ runtimeCp ++ runnerCp).distinct
-      // componentModules must be on class-path at all times
       val componentModules: Seq[String] = JPMSUtils
         .filterModulesFromClasspath(
           cpToSearch,
@@ -179,7 +182,12 @@ object NativeImage {
         )
         .map(_.data.getAbsolutePath)
 
-      val fullCp = componentModules ++ additionalCp
+      val fullCp =
+        if (includeRuntime) {
+          componentModules ++ additionalCp
+        } else {
+          ourCp.map(_.data.getAbsolutePath) ++ additionalCp
+        }
       val cpStr  = fullCp.mkString(File.pathSeparator)
       log.debug("Class-path: " + cpStr)
 
