@@ -573,7 +573,9 @@ class RuntimeVersionManager(
             FileSystem.removeDirectory(enginePath)
             runtimeOpt match {
               case Some(runtime) =>
-                if (wasJustInstalled && findEnginesUsingRuntime(runtime).isEmpty) {
+                if (
+                  wasJustInstalled && findEnginesUsingRuntime(runtime).isEmpty
+                ) {
                   safelyRemoveComponent(runtime.path)
                 }
               case None =>
@@ -618,7 +620,10 @@ class RuntimeVersionManager(
               .map((_, false))
               .getOrElse((installGraalRuntime(runtimeVersion), true))
 
-            finishInstallation(Some(runtime), wasJustInstalled = wasJustInstalled)
+            finishInstallation(
+              Some(runtime),
+              wasJustInstalled = wasJustInstalled
+            )
           }
 
         if (runtimeVersion.isUnchained) {

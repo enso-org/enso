@@ -23,13 +23,24 @@ import org.enso.projectmanager.boot.configuration._
 import org.enso.projectmanager.control.effect.ZioEnvExec
 import org.enso.projectmanager.data.MissingComponentAction
 import org.enso.projectmanager.infrastructure.file.BlockingFileSystem
-import org.enso.projectmanager.infrastructure.languageserver.{ExecutorWithUnlimitedPool, LanguageServerGatewayImpl, LanguageServerRegistry, ShutdownHookActivator}
+import org.enso.projectmanager.infrastructure.languageserver.{
+  ExecutorWithUnlimitedPool,
+  LanguageServerGatewayImpl,
+  LanguageServerRegistry,
+  ShutdownHookActivator
+}
 import org.enso.projectmanager.infrastructure.log.Slf4jLogging
 import org.enso.projectmanager.infrastructure.repository.ProjectFileRepository
-import org.enso.projectmanager.protocol.{JsonRpcProtocolFactory, ManagerClientControllerFactory}
+import org.enso.projectmanager.protocol.{
+  JsonRpcProtocolFactory,
+  ManagerClientControllerFactory
+}
 import org.enso.projectmanager.service.config.GlobalConfigService
 import org.enso.projectmanager.service.validation.ProjectNameValidator
-import org.enso.projectmanager.service.versionmanagement.{RuntimeVersionManagementService, RuntimeVersionManagerFactory}
+import org.enso.projectmanager.service.versionmanagement.{
+  RuntimeVersionManagementService,
+  RuntimeVersionManagerFactory
+}
 import org.enso.projectmanager.service.{ProjectCreationService, ProjectService}
 import org.enso.projectmanager.test.{ObservableGenerator, ProgrammableClock}
 import org.enso.runtimeversionmanager.CurrentVersion
@@ -249,11 +260,10 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
     FileSystem.writeTextFile(editionsDir / editionName, editionConfig)
   }
 
-
   /** Locates the root of the Enso repository. Heuristic: we just keep going up the directory tree
-   * until we are in a directory containing ".git" subdirectory. Note that we cannot use the "enso"
-   * name, as users are free to name their cloned directories however they like.
-   */
+    * until we are in a directory containing ".git" subdirectory. Note that we cannot use the "enso"
+    * name, as users are free to name their cloned directories however they like.
+    */
   private def locateRootDirectory(): File = {
     var rootDir: File = null
     try {
@@ -293,10 +303,14 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
       .resolve("component")
     val root = locateRootDirectory().toPath.normalize()
     // Copy all the components from build engine distribution.
-    val builtDistributionDir = root.resolve("built-distribution/enso-engine-0.0.0-dev-linux-amd64/enso-0.0.0-dev")
+    val builtDistributionDir = root.resolve(
+      "built-distribution/enso-engine-0.0.0-dev-linux-amd64/enso-0.0.0-dev"
+    )
     if (!builtDistributionDir.toFile.exists()) {
-      throw new AssertionError(s"Expecting that engine distribution has already been built " +
-      s"for project-manager tests: There is no directory $builtDistributionDir. We need to copy all the components from there.")
+      throw new AssertionError(
+        s"Expecting that engine distribution has already been built " +
+        s"for project-manager tests: There is no directory $builtDistributionDir. We need to copy all the components from there."
+      )
     }
     val componentsSourceDir = builtDistributionDir.resolve("component")
     FileUtils.copyDirectory(componentsSourceDir.toFile, componentDestDir.toFile)

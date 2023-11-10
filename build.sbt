@@ -935,11 +935,13 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
         "-Dpolyglot.engine.WarnInterpreterOnly=false",
         "-Dpolyglotimpl.DisableClassPathIsolation=true",
         s"-Dconfig.file=${sourceDirectory.value}/test/resources/application.conf",
-        "-Dslf4j.provider=ch.qos.logback.classic.spi.LogbackServiceProvider",
+        "-Dslf4j.provider=ch.qos.logback.classic.spi.LogbackServiceProvider"
       ),
     // Append enso language on the class-path
     Test / unmanagedClasspath :=
-      (LocalProject("runtime-with-instruments") / Compile / fullClasspath).value,
+      (LocalProject(
+        "runtime-with-instruments"
+      ) / Compile / fullClasspath).value,
     // In project-manager tests, we test installing projects and for that, we need
     // to launch engine-runner properly. For that, we need all the JARs that we
     // normally use in engine distribution. That is why there is dependency on
@@ -1819,8 +1821,8 @@ lazy val launcher = project
           "-H:IncludeResources=.*Main.enso$"
         ),
         includeRuntime = false,
-        mainClass = Some("org.enso.launcher.cli.Main"),
-        verbose = true
+        mainClass      = Some("org.enso.launcher.cli.Main"),
+        verbose        = true
       )
       .dependsOn(assembly)
       .dependsOn(VerifyReflectionSetup.run)
@@ -1843,7 +1845,7 @@ lazy val launcher = project
       case "application.conf" => MergeStrategy.concat
       case "reference.conf"   => MergeStrategy.concat
       // launcher.jar must not be an explicit Jar module
-      case PathList(xs@_*) if xs.last.contains("module-info") =>
+      case PathList(xs @ _*) if xs.last.contains("module-info") =>
         MergeStrategy.discard
       case x =>
         MergeStrategy.first
@@ -1918,11 +1920,11 @@ lazy val `bench-processor` = (project in file("lib/scala/bench-processor"))
     (Test / javaOptions) ++=
       Seq(
         "-Dpolyglot.engine.WarnInterpreterOnly=false",
-        "-Dpolyglotimpl.DisableClassPathIsolation=true",
+        "-Dpolyglotimpl.DisableClassPathIsolation=true"
       ),
     // Append enso language on the class-path
     (Test / unmanagedClasspath) :=
-      (LocalProject("runtime-with-instruments") / Compile / fullClasspath).value,
+      (LocalProject("runtime-with-instruments") / Compile / fullClasspath).value
   )
   .dependsOn(`polyglot-api`)
   .dependsOn(runtime)

@@ -70,9 +70,9 @@ object NativeImage {
     *                              build time.
     * @param additionalCp additional class-path entries to be added to the
     *                     native image.
-   * @param includeRuntime Whether `org.enso.runtime` should is included. If yes, then
-   *                       it will be passed as a module to the native-image along with other
-   *                       Graal and Truffle related modules.
+    * @param includeRuntime Whether `org.enso.runtime` should is included. If yes, then
+    *                       it will be passed as a module to the native-image along with other
+    *                       Graal and Truffle related modules.
     * @param verbose whether to print verbose output from the native image.
     */
   def buildNativeImage(
@@ -188,7 +188,7 @@ object NativeImage {
         } else {
           ourCp.map(_.data.getAbsolutePath) ++ additionalCp
         }
-      val cpStr  = fullCp.mkString(File.pathSeparator)
+      val cpStr = fullCp.mkString(File.pathSeparator)
       log.debug("Class-path: " + cpStr)
 
       val verboseOpt = if (verbose) Seq("--verbose") else Seq()

@@ -56,11 +56,10 @@ class EngineManagementApiSpec extends BaseServerSpec with FlakySpec {
           """)
     }
 
-    /**
-     * Make sure that engines that are installed via engine/install does not
-     * have runtimes with truffle unchained. That is, their runtime version must
-     * be lesser than 23.1.0.
-     */
+    /** Make sure that engines that are installed via engine/install does not
+      * have runtimes with truffle unchained. That is, their runtime version must
+      * be lesser than 23.1.0.
+      */
     "install and uninstall the engine and reflect changes in list" in {
       implicit val client = new WsTestClient(address)
       client.send(json"""
