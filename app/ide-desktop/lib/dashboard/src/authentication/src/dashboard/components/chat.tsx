@@ -263,8 +263,18 @@ function ChatHeader(props: InternalChatHeaderProps) {
             setIsThreadListVisible(false)
         }
         document.addEventListener('click', onClick)
+        try {
+            gtag('event', 'cloud_open_chat')
+        } catch {
+            // Ignored.
+        }
         return () => {
             document.removeEventListener('click', onClick)
+            try {
+                gtag('event', 'cloud_close_chat')
+            } catch {
+                // Ignored.
+            }
         }
     }, [])
 

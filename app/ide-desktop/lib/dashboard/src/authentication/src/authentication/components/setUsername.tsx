@@ -30,6 +30,11 @@ export default function SetUsername() {
                 className="flex flex-col gap-6 bg-frame-selected rounded-4xl shadow-md p-8 w-full max-w-md"
                 onSubmit={async event => {
                     event.preventDefault()
+                    try {
+                        gtag('event', 'user_created')
+                    } catch {
+                        // Ignored.
+                    }
                     await authSetUsername(backend, username, email)
                 }}
             >

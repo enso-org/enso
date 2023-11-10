@@ -45,6 +45,11 @@ export default function Registration() {
                 onSubmit={async event => {
                     event.preventDefault()
                     setIsSubmitting(true)
+                    try {
+                        gtag('event', 'registered')
+                    } catch {
+                        // Ignored.
+                    }
                     await auth.signUp(email, password, organizationId)
                     setIsSubmitting(false)
                 }}

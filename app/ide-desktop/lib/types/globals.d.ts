@@ -102,4 +102,5 @@ declare global {
     // This is a function.
     // eslint-disable-next-line no-restricted-syntax
     const assert: (invariant: boolean, message: string) => void
+    function gtag(action: 'event', eventName: string, eventParams?: object): void
 }
