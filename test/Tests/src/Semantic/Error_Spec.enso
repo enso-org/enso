@@ -3,6 +3,7 @@ import Standard.Base.Errors.Common.Unsupported_Argument_Types
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
+import Standard.Base.Errors.Wrapped_Error.Wrapped_Error
 
 import Standard.Base.Runtime.Ref.Ref
 
@@ -19,6 +20,14 @@ type My_Type
     Value foo
     Multi_Value foo bar
     Default_Value foo=2 bar
+
+type My_Error
+    Error i:Integer
+
+type My_Error_Wrapper
+    Error error
+
+Wrapped_Error.from (that : My_Error_Wrapper) = Wrapped_Error.Value that that.error
 
 throw_a_bar = Error.throw "bar"
 throw_a_bar_panicking = Panic.throw "bar"
@@ -413,7 +422,32 @@ spec =
             r . should_fail_with Type_Error
             r.to_display_text . should_contain "Try to apply a, b arguments"
 
+    Test.group "Wrapped errorsasdfasdf" <|
+        Test.specify ".catch unwraps an error when it is explicitly specified" <|
+            Error.throw (My_Error_Wrapper.Error (My_Error.Error 12)) . catch My_Error x->
+                x . should_equal (My_Error.Error 12)
 
+        Test.specify ".catch does not unwrap an error when the wrapper is explicitly specified" <|
+            Error.throw (My_Error_Wrapper.Error (My_Error.Error 12)) . catch My_Error_Wrapper x->
+                x . should_equal (My_Error_Wrapper.Error (My_Error.Error 12))
+
+        Test.specify ".catch does not unwrap an error when the wrapper is not specified" <|
+            Error.throw (My_Error_Wrapper.Error (My_Error.Error 12)) . catch handler=x->
+                x . should_equal (My_Error_Wrapper.Error (My_Error.Error 12))
+
+        Test.specify ".catch unwraps an error fully when it is wrapped multiple times" <|
+            wrap = My_Error_Wrapper.Error
+            error = My_Error.Error 12
+            IO.println 'AAA'
+            IO.println ([error, wrap error, wrap (wrap error), wrap (wrap (wrap error))].map x->x)
+            #[error, wrap error, wrap (wrap error), wrap (wrap (wrap error))].map e->
+            e = My_Error_Wrapper.Error (My_Error_Wrapper.Error error)
+            Error.throw e . catch My_Error x->
+                x . should_equal (My_Error.Error 12)
+
+        Test.specify "works with Nothing as an error" <|
+            Error.throw (My_Error_Wrapper.Error Nothing) . catch Nothing x->
+                x . should_equal Nothing
 
 type C
     Baz x

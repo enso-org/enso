@@ -1,4 +1,5 @@
 import project.Any.Any
+import project.Data.Maybe.Maybe
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Errors.Common.No_Such_Conversion
@@ -100,10 +101,9 @@ type Error
             case error_value.is_a error_type of
                 True -> handler error_value
                 False ->
-                    check_wrapped =
-                        inner_error = Wrapped_Error.from error_value . inner_error
-                        if inner_error.is_a error_type then handler inner_error else self
-                    Panic.catch No_Such_Conversion check_wrapped _->self
+                    case look_for_wrapped_error error_type error_value of
+                        Maybe.None -> self
+                        Maybe.Some inner_error -> handler inner_error
 
     wraps_error : Any -> Boolean
     wraps_error self error_type =
@@ -175,3 +175,15 @@ type Error
     if_not_error : Any -> Any
     if_not_error self ~other =
         const self other
+
+## PRIVATE
+   Unwrap a wrapped error 0 or more times until the specified type is found.
+   Returns None if it is not found.
+look_for_wrapped_error : Any -> Any -> Maybe Any
+look_for_wrapped_error error_type=Any error_value =
+    if error_value.is_a error_type then Maybe.Some error_value else
+        try_unwrap =
+            inner_error = Wrapped_Error.from error_value . inner_error
+            if inner_error.is_a error_type then Maybe.Some inner_error else
+                look_for_wrapped_error error_type inner_error
+        Panic.catch No_Such_Conversion try_unwrap _->Maybe.None

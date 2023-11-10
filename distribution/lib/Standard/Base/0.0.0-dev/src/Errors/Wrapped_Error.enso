@@ -4,12 +4,12 @@ import project.Data.Text.Text
    A conversion target used by `Error.catch` to determine if the inner error
    should be matched.
 type Wrapped_Error
-    Value original_error inner_error
+    Value wrapping_error inner_error
 
     ## PRIVATE
 
        Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self =
-        "Wrapped_Errror: " + self.original_error.to_display_text + " wrapping " + self.inner_error.to_display_text
+        "Wrapped_Errror: " + self.wrapping_error .to_display_text + " wrapping " + self.inner_error.to_display_text
 
