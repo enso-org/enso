@@ -17,6 +17,7 @@ import * as cognitoModule from '../cognito'
 import * as errorModule from '../../error'
 import * as http from '../../http'
 import * as localBackend from '../../dashboard/localBackend'
+import * as localStorageModule from '../../dashboard/localStorage'
 import * as localStorageProvider from '../../providers/localStorage'
 import * as loggerProvider from '../../providers/logger'
 import * as remoteBackend from '../../dashboard/remoteBackend'
@@ -462,7 +463,15 @@ export function AuthProvider(props: AuthProviderProps) {
                         pending: MESSAGES.setUsernameLoading,
                     }
                 )
-                navigate(app.DASHBOARD_PATH)
+                const redirectTo = localStorage.get(
+                    localStorageModule.LocalStorageKey.loginRedirect
+                )
+                if (redirectTo != null) {
+                    localStorage.delete(localStorageModule.LocalStorageKey.loginRedirect)
+                    location.href = redirectTo
+                } else {
+                    navigate(app.DASHBOARD_PATH)
+                }
                 return true
             } catch {
                 return false
@@ -611,10 +620,18 @@ export function ProtectedLayout() {
  * in the process of registering. */
 export function SemiProtectedLayout() {
     const { session } = useAuth()
+    const { localStorage } = localStorageProvider.useLocalStorage()
     const shouldPreventNavigation = getShouldPreventNavigation()
 
     if (!shouldPreventNavigation && session?.type === UserSessionType.full) {
-        return <router.Navigate to={app.DASHBOARD_PATH} />
+        const redirectTo = localStorage.get(localStorageModule.LocalStorageKey.loginRedirect)
+        if (redirectTo != null) {
+            localStorage.delete(localStorageModule.LocalStorageKey.loginRedirect)
+            location.href = redirectTo
+            return
+        } else {
+            return <router.Navigate to={app.DASHBOARD_PATH} />
+        }
     } else {
         return <router.Outlet context={session} />
     }
@@ -628,12 +645,20 @@ export function SemiProtectedLayout() {
  * not logged in. */
 export function GuestLayout() {
     const { session } = useAuth()
+    const { localStorage } = localStorageProvider.useLocalStorage()
     const shouldPreventNavigation = getShouldPreventNavigation()
 
     if (!shouldPreventNavigation && session?.type === UserSessionType.partial) {
         return <router.Navigate to={app.SET_USERNAME_PATH} />
     } else if (!shouldPreventNavigation && session?.type === UserSessionType.full) {
-        return <router.Navigate to={app.DASHBOARD_PATH} />
+        const redirectTo = localStorage.get(localStorageModule.LocalStorageKey.loginRedirect)
+        if (redirectTo != null) {
+            localStorage.delete(localStorageModule.LocalStorageKey.loginRedirect)
+            location.href = redirectTo
+            return
+        } else {
+            return <router.Navigate to={app.DASHBOARD_PATH} />
+        }
     } else {
         return <router.Outlet />
     }

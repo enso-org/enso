@@ -10,6 +10,8 @@ import LockIcon from 'enso-assets/lock.svg'
 import * as gtag from 'enso-common/src/gtag'
 
 import * as authModule from '../providers/auth'
+import * as localStorageModule from '../../dashboard/localStorage'
+import * as localStorageProvider from '../../providers/localStorage'
 import * as string from '../../string'
 import * as validation from '../../dashboard/validation'
 
@@ -24,6 +26,7 @@ import SubmitButton from './submitButton'
 
 const REGISTRATION_QUERY_PARAMS = {
     organizationId: 'organization_id',
+    redirectTo: 'redirect_to',
 } as const
 
 // ====================
@@ -34,11 +37,20 @@ const REGISTRATION_QUERY_PARAMS = {
 export default function Registration() {
     const auth = authModule.useAuth()
     const location = router.useLocation()
+    const { localStorage } = localStorageProvider.useLocalStorage()
     const [email, setEmail] = React.useState('')
     const [password, setPassword] = React.useState('')
     const [confirmPassword, setConfirmPassword] = React.useState('')
     const [isSubmitting, setIsSubmitting] = React.useState(false)
-    const { organizationId } = parseUrlSearchParams(location.search)
+    const { organizationId, redirectTo } = parseUrlSearchParams(location.search)
+
+    React.useEffect(() => {
+        if (redirectTo != null) {
+            localStorage.set(localStorageModule.LocalStorageKey.loginRedirect, redirectTo)
+        } else {
+            localStorage.delete(localStorageModule.LocalStorageKey.loginRedirect)
+        }
+    }, [localStorage, redirectTo])
 
     return (
         <div className="flex flex-col gap-6 text-primary text-sm items-center justify-center min-h-screen">
@@ -101,5 +113,6 @@ export default function Registration() {
 function parseUrlSearchParams(search: string) {
     const query = new URLSearchParams(search)
     const organizationId = query.get(REGISTRATION_QUERY_PARAMS.organizationId)
-    return { organizationId }
+    const redirectTo = query.get(REGISTRATION_QUERY_PARAMS.redirectTo)
+    return { organizationId, redirectTo }
 }
