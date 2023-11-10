@@ -152,7 +152,7 @@ object JPMSUtils {
           .get()
 
         /** Copy classes into the target directory from all the dependencies */
-        log.info(s"Copying classes to $output")
+        log.debug(s"Copying classes to $output")
         val sourceProducts = products.all(copyDepsFilter).value.flatten
 
         if (!(outputPath.toFile.exists())) {
@@ -162,13 +162,13 @@ object JPMSUtils {
         val outputLangProvider =
           outputPath / "META-INF" / "services" / "com.oracle.truffle.api.provider.TruffleLanguageProvider"
         sourceProducts.foreach { sourceProduct =>
-          log.info(s"Copying ${sourceProduct} to ${output}")
+          log.debug(s"Copying ${sourceProduct} to ${output}")
           val sourceLangProvider =
             sourceProduct / "META-INF" / "services" / "com.oracle.truffle.api.provider.TruffleLanguageProvider"
           if (
             outputLangProvider.toFile.exists() && sourceLangProvider.exists()
           ) {
-            log.info(
+            log.debug(
               s"Merging ${sourceLangProvider} into ${outputLangProvider}"
             )
             val sourceLines = IO.readLines(sourceLangProvider)
