@@ -212,7 +212,10 @@ final class SerializationManager(private val context: TruffleCompilerContext) {
               "Non-parsed module used in ImportResolver"
             )
             val abstractBindings = bindings.prepareForSerialization(compiler)
-            (module.getName, abstractBindings)
+            (
+              module.getName,
+              org.enso.compiler.core.Persistance.Reference.of(abstractBindings)
+            )
           }
           .toMap
       ),

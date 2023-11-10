@@ -1,8 +1,10 @@
 package org.enso.interpreter.caches;
 
 import java.io.IOException;
+import java.util.AbstractMap;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.logging.Level;
 
 import org.apache.commons.lang3.StringUtils;
@@ -24,6 +26,7 @@ import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLogger;
 
 import buildinfo.Info;
+import scala.Option;
 import scala.Tuple2;
 import scala.collection.immutable.Map;
 
@@ -110,14 +113,18 @@ public final class ImportExportCache extends Cache<ImportExportCache.CachedBindi
     }
 
     public static final class MapToBindings  {
-        private final Map<QualifiedName, BindingsMap> _entries;
+        private final Map<QualifiedName, Persistance.Reference<BindingsMap>> entries;
 
-        public MapToBindings(Map<QualifiedName, BindingsMap> entries) {
-            this._entries = entries;
+        public MapToBindings(Map<QualifiedName, Persistance.Reference<BindingsMap>> entries) {
+            this.entries = entries;
         }
 
-        public Map<QualifiedName, BindingsMap> entries() {
-            return _entries;
+        public Option<BindingsMap> findForModule(QualifiedName moduleName) {
+          var ref = entries.get(moduleName);
+          if (ref.isEmpty()) {
+            return Option.empty();
+          }
+          return Option.apply(ref.get().get(BindingsMap.class));
         }
     }
 
@@ -129,12 +136,12 @@ public final class ImportExportCache extends Cache<ImportExportCache.CachedBindi
 
       @Override
       protected void writeObject(MapToBindings obj, Output out) throws IOException {
-        out.writeInt(obj.entries().size());
-        var it = obj.entries().iterator();
+        out.writeInt(obj.entries.size());
+        var it = obj.entries.iterator();
         while (it.hasNext()) {
           var e = it.next();
           out.writeInline(QualifiedName.class, e._1());
-          out.writeObject(e._2());
+          out.writeObject(e._2().get(BindingsMap.class));
         }
       }
 
@@ -146,7 +153,7 @@ public final class ImportExportCache extends Cache<ImportExportCache.CachedBindi
         b.sizeHint(size);
         while (size-- > 0) {
           var name = in.readInline(QualifiedName.class);
-          var value = in.readObject();
+          var value = in.readReference(BindingsMap.class);
           b.addOne(Tuple2.apply(name, value));
         }
         return new MapToBindings((Map) b.result());
