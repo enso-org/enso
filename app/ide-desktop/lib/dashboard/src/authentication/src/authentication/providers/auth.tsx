@@ -333,8 +333,8 @@ export function AuthProvider(props: AuthProviderProps) {
                     }
 
                     // 34560000 is the recommended max cookie age.
-                    document.cookie =
-                        'logged_in=yes;max-age=34560000;domain=enso.org;samesite=strict;secure'
+                    const parentDomain = location.hostname.replace(/^[^.]*\./, '')
+                    document.cookie = `logged_in=yes;max-age=34560000;domain=${parentDomain};samesite=strict;secure`
 
                     // Save access token so can it be reused by the backend.
                     cognito.saveAccessToken(session.accessToken)
@@ -516,7 +516,8 @@ export function AuthProvider(props: AuthProviderProps) {
     }
 
     const signOut = async () => {
-        document.cookie = 'logged_in=no;max-age=0;domain=enso.org'
+        const parentDomain = location.hostname.replace(/^[^.]*\./, '')
+        document.cookie = `logged_in=no;max-age=0;domain=${parentDomain}`
         cognito.saveAccessToken(null)
         localStorage.clearUserSpecificEntries()
         deinitializeSession()
