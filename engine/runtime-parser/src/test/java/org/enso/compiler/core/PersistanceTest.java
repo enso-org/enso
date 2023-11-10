@@ -97,6 +97,38 @@ public class PersistanceTest {
   }
 
   @Test
+  public void scalaListSharedRef() throws Exception {
+    var idLoc1 = new IdentifiedLocation(new Location(1, 5));
+    var in = join(idLoc1, join(idLoc1, nil()));
+
+    var out = serde(List.class, in, 28);
+
+    assertEquals("Two elements", 2, out.size());
+    assertEquals("Head is equal to original", idLoc1, out.head());
+    assertEquals("Tail is equal to original", idLoc1, out.last());
+    assertSame("Head and tail are the same", out.head(), out.last());
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void scalaListSharedRefAtDepth() throws Exception {
+    var idLoc1 = Singleton.INSTANCE;
+    var in = join(Option.apply(idLoc1), join(Option.apply(idLoc1), nil()));
+
+    var out = serde(List.class, in, -1);
+
+    assertEquals("Two elements", 2, out.size());
+    var readHead = (Option<Singleton>) out.head();
+    var readTail = (Option<Singleton>) out.last();
+
+    assertEquals("Head is equal to original", idLoc1, readHead.get());
+    assertEquals("Tail is equal to original", idLoc1, readTail.get());
+
+    assertNotSame("Head and tail are different", readHead, readTail);
+    assertSame("Head and tail are the same", readHead.get(), readTail.get());
+  }
+
+  @Test
   public void lazyScalaSequence() throws Exception {
     var s1 = new LazySeq("Hello");
     var s2 = new LazySeq("World");
@@ -155,7 +187,7 @@ public class PersistanceTest {
   private static <T> T serde(Class<T> clazz, T l, int expectedSize) throws IOException {
     var arr = Persistance.writeObject(l);
     if (expectedSize >= 0) {
-      assertEquals(expectedSize, arr.length - 8);
+      assertEquals(expectedSize, arr.length - 12);
     }
     var ref = Persistance.readObject(arr);
     return ref.get(clazz);
@@ -235,6 +267,28 @@ public class PersistanceTest {
     protected LazySeq readObject(Input in) throws IOException, ClassNotFoundException {
       var s = in.readUTF();
       return new LazySeq(s);
+    }
+  }
+
+  public static final class Singleton {
+    public static final Singleton INSTANCE = new Singleton();
+
+    private Singleton() {}
+  }
+
+  @ServiceProvider(service = Persistance.class)
+  public static final class PersistSingleton extends Persistance<Singleton> {
+
+    public PersistSingleton() {
+      super(Singleton.class, false, 432433);
+    }
+
+    @Override
+    protected void writeObject(Singleton obj, Output out) throws IOException {}
+
+    @Override
+    protected Singleton readObject(Input in) throws IOException, ClassNotFoundException {
+      return Singleton.INSTANCE;
     }
   }
 }

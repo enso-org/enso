@@ -29,6 +29,16 @@ public abstract class Persistance<T> {
   protected abstract void writeObject(T obj, Output out) throws IOException;
   protected abstract T readObject(Input in) throws IOException, ClassNotFoundException;
 
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+    sb.append("Persistance{");
+    sb.append("clazz=").append(clazz.getName());
+    sb.append(", id=").append(id);
+    sb.append('}');
+    return sb.toString();
+  }
+
   public static interface Output extends DataOutput {
     public abstract <T> void writeInline(Class<T> clazz, T obj) throws IOException;
     public abstract void writeObject(Object obj) throws IOException;
@@ -123,6 +133,9 @@ public abstract class Persistance<T> {
         var osData = new ReferenceOutput(this, os);
         p.writeInline(obj, osData);
         found = position;
+        if (os.size() == 0) {
+          os.write(0);
+        }
         var arr = os.toByteArray();
         main.write(arr);
         position += arr.length;
@@ -138,15 +151,19 @@ public abstract class Persistance<T> {
     if (at < 0) {
       return null;
     }
-    if (cache.cache.get(at) instanceof Object res) {
-      return res;
-    }
-
     var id = in.readInt();
     var p = map.forId(id);
+
+    if (cache.cache.get(at) instanceof Object res) {
+      return p.clazz.cast(res);
+    }
+
     var inData = new InputImpl(cache, at);
     var res = p.readWith(inData);
-    cache.cache.put(at, res);
+    var prev = cache.cache.put(at, res);
+    if (prev != null) {
+      throw raise(RuntimeException.class, new IOException("Adding at " + at + " object: " + res.getClass().getName() + " but there already is " + prev.getClass().getName()));
+    }
     return res;
   }
 

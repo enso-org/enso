@@ -171,7 +171,7 @@ public final class IrPersistance {
       var size = map.size();
       out.writeInt(size);
       var it = map.iterator();
-      while (it.hasNext()) {
+      while (size-- > 0) {
         var tuple = (Tuple2) it.next();
         out.writeObject(tuple._1());
         out.writeObject(tuple._2());
