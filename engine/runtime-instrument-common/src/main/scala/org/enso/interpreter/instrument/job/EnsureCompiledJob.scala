@@ -288,7 +288,8 @@ final class EnsureCompiledJob(
       ctx.executionService.modifyModuleSources(
         module,
         edits,
-        changeset.simpleUpdate.orNull
+        changeset.simpleUpdate.orNull,
+        logger
       )
       Option.when(shouldExecute)(changeset)
     } finally {

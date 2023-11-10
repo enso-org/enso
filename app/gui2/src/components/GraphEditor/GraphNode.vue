@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { nodeEditBindings } from '@/bindings'
 import CircularMenu from '@/components/CircularMenu.vue'
+import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import NodeTree from '@/components/GraphEditor/NodeTree.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { injectGraphSelection } from '@/providers/graphSelection'
@@ -18,26 +19,28 @@ import { unwrap } from '@/util/result'
 import { Vec2 } from '@/util/vec2'
 import type { ContentRange, ExprId, VisualizationIdentifier } from 'shared/yjsModel'
 import { computed, onUpdated, reactive, ref, watch, watchEffect } from 'vue'
-import GraphVisualization from './GraphVisualization.vue'
 
 const MAXIMUM_CLICK_LENGTH_MS = 300
 const MAXIMUM_CLICK_DISTANCE_SQ = 50
 
 const props = defineProps<{
   node: Node
+  edited: boolean
 }>()
 
 const emit = defineEmits<{
   updateRect: [rect: Rect]
   updateExprRect: [id: ExprId, rect: Rect]
   updateContent: [updates: [range: ContentRange, content: string][]]
-  movePosition: [delta: Vec2]
+  dragging: [offset: Vec2]
+  draggingCommited: []
   setVisualizationId: [id: Opt<VisualizationIdentifier>]
   setVisualizationVisible: [visible: boolean]
   delete: []
   replaceSelection: []
   'update:selected': [selected: boolean]
   outputPortAction: []
+  'update:edited': [cursorPosition: number]
 }>()
 
 const nodeSelection = injectGraphSelection(true)
@@ -288,6 +291,7 @@ onUpdated(() => {
     }
   }
 })
+
 watch(
   () => [isAutoEvaluationDisabled.value, isDocsVisible.value, isVisualizationVisible.value],
   () => {
@@ -307,12 +311,51 @@ const editableKeydownHandler = nodeEditBindings.handler({
   },
 })
 
+function startEditingHandler(event: PointerEvent) {
+  let range, textNode, offset
+  offset = 0
+
+  if ((document as any).caretPositionFromPoint) {
+    range = (document as any).caretPositionFromPoint(event.clientX, event.clientY)
+    textNode = range.offsetNode
+    offset = range.offset
+  } else if (document.caretRangeFromPoint) {
+    range = document.caretRangeFromPoint(event.clientX, event.clientY)
+    if (range == null) {
+      console.error('Could not find caret position when editing node.')
+    } else {
+      textNode = range.startContainer
+      offset = range.startOffset
+    }
+  } else {
+    console.error(
+      'Neither caretPositionFromPoint nor caretRangeFromPoint are supported by this browser',
+    )
+  }
+
+  let newRange = document.createRange()
+  newRange.setStart(textNode, offset)
+
+  let selection = window.getSelection()
+  if (selection != null) {
+    selection.removeAllRanges()
+    selection.addRange(newRange)
+  } else {
+    console.error('Could not set selection when editing node.')
+  }
+
+  emit('update:edited', offset)
+}
+
 const startEpochMs = ref(0)
 let startEvent: PointerEvent | null = null
 let startPos = Vec2.Zero
 
 const dragPointer = usePointer((pos, event, type) => {
-  emit('movePosition', pos.delta)
+  if (type !== 'start') {
+    const fullOffset = pos.absolute.sub(startPos)
+    emit('dragging', fullOffset)
+  }
   switch (type) {
     case 'start': {
       startEpochMs.value = Number(new Date())
@@ -332,6 +375,7 @@ const dragPointer = usePointer((pos, event, type) => {
       }
       startEvent = null
       startEpochMs.value = 0
+      emit('draggingCommited')
     }
   }
 })
@@ -418,12 +462,10 @@ function hoverExpr(id: ExprId | undefined) {
       <SvgIcon class="icon grab-handle" :name="icon"></SvgIcon
       ><span
         ref="editableRootNode"
-        class="editable"
-        contenteditable
         spellcheck="false"
         @beforeinput="editContent"
         @keydown="editableKeydownHandler"
-        @pointerdown.stop
+        @pointerdown.stop.prevent="startEditingHandler"
         @blur="projectStore.stopCapturingUndo()"
         ><NodeTree
           :ast="node.rootSpan"

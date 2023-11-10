@@ -13,10 +13,11 @@ import {
   qnLastSegment,
   qnParent,
   qnSplit,
+  tryIdentifier,
   tryQualifiedName,
   type QualifiedName,
 } from '@/util/qualifiedName'
-import { computed, ref, type ComputedRef, type Ref } from 'vue'
+import { computed, ref, type ComputedRef } from 'vue'
 
 /** Input's editing context.
  *
@@ -43,79 +44,70 @@ export type EditingContext =
   | { type: 'changeLiteral'; literal: Ast.Tree.TextLiteral | Ast.Tree.Number }
 
 /** Component Browser Input Data */
-export class Input {
-  /** The current input's text (code). */
-  readonly code: Ref<string>
-  /** The current selection (or cursor position if start is equal to end). */
-  readonly selection: Ref<{ start: number; end: number }>
-  /** The editing context deduced from code and selection */
-  readonly context: ComputedRef<EditingContext>
-  /** The filter deduced from code and selection. */
-  readonly filter: ComputedRef<Filter>
+export function useComponentBrowserInput() {
+  const code = ref('')
+  const selection = ref({ start: 0, end: 0 })
 
-  constructor() {
-    this.code = ref('')
-    this.selection = ref({ start: 0, end: 0 })
+  const context: ComputedRef<EditingContext> = computed(() => {
+    const input = code.value
+    const cursorPosition = selection.value.start
+    if (cursorPosition === 0) return { type: 'insert', position: 0 }
+    const editedPart = cursorPosition - 1
+    const inputAst = parseEnso(input)
+    const editedAst = astContainingChar(editedPart, inputAst).values()
+    const leaf = editedAst.next()
+    if (leaf.done) return { type: 'insert', position: cursorPosition }
+    switch (leaf.value.type) {
+      case Ast.Tree.Type.Ident:
+        return {
+          type: 'changeIdentifier',
+          identifier: leaf.value,
+          ...readOprApp(editedAst.next(), leaf.value),
+        }
+      case Ast.Tree.Type.TextLiteral:
+      case Ast.Tree.Type.Number:
+        return { type: 'changeLiteral', literal: leaf.value }
+      default:
+        return {
+          type: 'insert',
+          position: cursorPosition,
+          ...readOprApp(leaf),
+        }
+    }
+  })
 
-    this.context = computed(() => {
-      const input = this.code.value
-      const cursorPosition = this.selection.value.start
-      if (cursorPosition === 0) return { type: 'insert', position: 0 }
-      const editedPart = cursorPosition - 1
-      const inputAst = parseEnso(input)
-      const editedAst = astContainingChar(editedPart, inputAst).values()
-      const leaf = editedAst.next()
-      if (leaf.done) return { type: 'insert', position: cursorPosition }
-      switch (leaf.value.type) {
-        case Ast.Tree.Type.Ident:
-          return {
-            type: 'changeIdentifier',
-            identifier: leaf.value,
-            ...Input.readOprApp(editedAst.next(), input, leaf.value),
-          }
-        case Ast.Tree.Type.TextLiteral:
-        case Ast.Tree.Type.Number:
-          return { type: 'changeLiteral', literal: leaf.value }
-        default:
-          return {
-            type: 'insert',
-            position: cursorPosition,
-            ...Input.readOprApp(leaf, input),
-          }
-      }
-    })
+  // Filter deduced from the access (`.` operator) chain written by user.
+  const accessChainFilter: ComputedRef<Filter> = computed(() => {
+    const ctx = context.value
+    if (ctx.type === 'changeLiteral') return {}
+    if (ctx.oprApp == null || ctx.oprApp.lhs == null) return {}
+    const opr = ctx.oprApp.lastOpr()
+    const input = code.value
+    if (opr == null || !opr.ok || readTokenSpan(opr.value, input) !== '.') return {}
+    const selfType = pathAsSelfType(ctx.oprApp, input)
+    if (selfType != null) return { selfType }
+    const qn = pathAsQualifiedName(ctx.oprApp, input)
+    if (qn != null) return { qualifiedNamePattern: qn }
+    return {}
+  })
 
-    const qualifiedNameFilter: ComputedRef<Filter> = computed(() => {
-      const code = this.code.value
-      const ctx = this.context.value
-      if (ctx.type === 'changeLiteral') return {}
-      if (ctx.oprApp == null || ctx.oprApp.lhs == null) return {}
-      const opr = ctx.oprApp.lastOpr()
-      if (opr == null || !opr.ok || readTokenSpan(opr.value, code) !== '.') return {}
-      const qn = Input.pathAsQualifiedName(ctx.oprApp, code)
-      if (qn != null) return { qualifiedNamePattern: qn }
-      else return {}
-    })
+  const filter = computed(() => {
+    const input = code.value
+    const ctx = context.value
+    const filter = { ...accessChainFilter.value }
+    if (ctx.type === 'changeIdentifier') {
+      const start =
+        ctx.identifier.whitespaceStartInCodeParsed + ctx.identifier.whitespaceLengthInCodeParsed
+      const end = selection.value.end
+      filter.pattern = input.substring(start, end)
+    } else if (ctx.type === 'changeLiteral') {
+      filter.pattern = readAstSpan(ctx.literal, input)
+    }
+    return filter
+  })
 
-    this.filter = computed(() => {
-      const code = this.code.value
-      const ctx = this.context.value
-      const filter = { ...qualifiedNameFilter.value }
-      if (ctx.type === 'changeIdentifier') {
-        const start =
-          ctx.identifier.whitespaceStartInCodeParsed + ctx.identifier.whitespaceLengthInCodeParsed
-        const end = this.selection.value.end
-        filter.pattern = code.substring(start, end)
-      } else if (ctx.type === 'changeLiteral') {
-        filter.pattern = readAstSpan(ctx.literal, code)
-      }
-      return filter
-    })
-  }
-
-  private static readOprApp(
+  function readOprApp(
     leafParent: IteratorResult<Ast.Tree>,
-    code: string,
     editedAst?: Ast.Tree,
   ): {
     oprApp?: GeneralOprApp
@@ -140,9 +132,18 @@ export class Input {
     }
   }
 
-  private static pathAsQualifiedName(accessOpr: GeneralOprApp, code: string): QualifiedName | null {
-    const operandsAsIdents = Input.qnIdentifiers(accessOpr, code)
-    const segments = operandsAsIdents.map((ident) => readAstSpan(ident, code))
+  function pathAsSelfType(accessOpr: GeneralOprApp, inputCode: string): QualifiedName | null {
+    if (accessOpr.lhs == null) return null
+    if (accessOpr.lhs.type !== Ast.Tree.Type.Ident) return null
+    if (accessOpr.apps.length > 1) return null
+    const _ident = tryIdentifier(readAstSpan(accessOpr.lhs, inputCode))
+    // TODO[ao]: #7926 add implementation here
+    return null
+  }
+
+  function pathAsQualifiedName(accessOpr: GeneralOprApp, inputCode: string): QualifiedName | null {
+    const operandsAsIdents = qnIdentifiers(accessOpr, inputCode)
+    const segments = operandsAsIdents.map((ident) => readAstSpan(ident, inputCode))
     const rawQn = segments.join('.')
     const qn = tryQualifiedName(rawQn)
     return qn.ok ? qn.value : null
@@ -155,18 +156,20 @@ export class Input {
    * @param code The code from which `opr` was generated.
    * @returns If all path segments are identifiers, return them
    */
-  private static qnIdentifiers(opr: GeneralOprApp, code: string): Ast.Tree.Ident[] {
-    const operandsAsIdents = Array.from(opr.operandsOfLeftAssocOprChain(code, '.'), (operand) =>
-      operand?.type === 'ast' && operand.ast.type === Ast.Tree.Type.Ident ? operand.ast : null,
+  function qnIdentifiers(opr: GeneralOprApp, inputCode: string): Ast.Tree.Ident[] {
+    const operandsAsIdents = Array.from(
+      opr.operandsOfLeftAssocOprChain(inputCode, '.'),
+      (operand) =>
+        operand?.type === 'ast' && operand.ast.type === Ast.Tree.Type.Ident ? operand.ast : null,
     ).slice(0, -1)
     if (operandsAsIdents.some((optIdent) => optIdent == null)) return []
     else return operandsAsIdents as Ast.Tree.Ident[]
   }
 
   /** Apply given suggested entry to the input. */
-  applySuggestion(entry: SuggestionEntry) {
-    const oldCode = this.code.value
-    const changes = Array.from(this.inputChangesAfterApplying(entry)).reverse()
+  function applySuggestion(entry: SuggestionEntry) {
+    const oldCode = code.value
+    const changes = Array.from(inputChangesAfterApplying(entry)).reverse()
     const newCodeUpToLastChange = changes.reduce(
       (builder, change) => {
         const oldCodeFragment = oldCode.substring(builder.oldCodeIndex, change.range[0])
@@ -183,11 +186,11 @@ export class Input {
       !isModule && (firstCharAfter == null || /^[a-zA-Z0-9_]$/.test(firstCharAfter))
     const shouldMoveCursor = !isModule
     const newCursorPos = newCodeUpToLastChange.code.length + (shouldMoveCursor ? 1 : 0)
-    this.code.value =
+    code.value =
       newCodeUpToLastChange.code +
       (shouldInsertSpace ? ' ' : '') +
       oldCode.substring(newCodeUpToLastChange.oldCodeIndex)
-    this.selection.value = { start: newCursorPos, end: newCursorPos }
+    selection.value = { start: newCursorPos, end: newCursorPos }
   }
 
   /** Return all input changes resulting from applying given suggestion.
@@ -195,11 +198,11 @@ export class Input {
    * @returns The changes, starting from the rightmost. The `start` and `end` parameters refer
    * to indices of "old" input content.
    */
-  private *inputChangesAfterApplying(
+  function* inputChangesAfterApplying(
     entry: SuggestionEntry,
   ): Generator<{ range: [number, number]; str: string }> {
-    const ctx = this.context.value
-    const str = this.codeToBeInserted(entry)
+    const ctx = context.value
+    const str = codeToBeInserted(entry)
     switch (ctx.type) {
       case 'insert': {
         yield { range: [ctx.position, ctx.position], str }
@@ -214,18 +217,18 @@ export class Input {
         break
       }
     }
-    yield* this.qnChangesAfterApplying(entry)
+    yield* qnChangesAfterApplying(entry)
   }
 
-  private codeToBeInserted(entry: SuggestionEntry): string {
-    const ctx = this.context.value
+  function codeToBeInserted(entry: SuggestionEntry): string {
+    const ctx = context.value
     const opr = ctx.type !== 'changeLiteral' && ctx.oprApp != null ? ctx.oprApp.lastOpr() : null
     const oprAppSpacing =
       ctx.type === 'insert' && opr != null && opr.ok && opr.value.whitespaceLengthInCodeBuffer > 0
         ? ' '.repeat(opr.value.whitespaceLengthInCodeBuffer)
         : ''
     const extendingAccessOprChain =
-      opr != null && opr.ok && readTokenSpan(opr.value, this.code.value) === '.'
+      opr != null && opr.ok && readTokenSpan(opr.value, code.value) === '.'
     // Modules are special case, as we want to encourage user to continue writing path.
     if (entry.kind === SuggestionKind.Module) {
       if (extendingAccessOprChain) return `${oprAppSpacing}${entry.name}${oprAppSpacing}.`
@@ -245,14 +248,14 @@ export class Input {
   /** All changes to the qualified name already written by the user.
    *
    * See `inputChangesAfterApplying`. */
-  private *qnChangesAfterApplying(
+  function* qnChangesAfterApplying(
     entry: SuggestionEntry,
   ): Generator<{ range: [number, number]; str: string }> {
     if (entry.selfType != null) return []
     if (entry.kind === SuggestionKind.Local || entry.kind === SuggestionKind.Function) return []
-    if (this.context.value.type === 'changeLiteral') return []
-    if (this.context.value.oprApp == null) return []
-    const writtenQn = Input.qnIdentifiers(this.context.value.oprApp, this.code.value).reverse()
+    if (context.value.type === 'changeLiteral') return []
+    if (context.value.oprApp == null) return []
+    const writtenQn = qnIdentifiers(context.value.oprApp, code.value).reverse()
 
     let containingQn =
       entry.kind === SuggestionKind.Module
@@ -264,5 +267,18 @@ export class Input {
       yield { range: parsedTreeRange(ident), str: segment }
       containingQn = parent
     }
+  }
+
+  return {
+    /** The current input's text (code). */
+    code,
+    /** The current selection (or cursor position if start is equal to end). */
+    selection,
+    /** The editing context deduced from code and selection */
+    context,
+    /** The filter deduced from code and selection. */
+    filter,
+    /** Apply given suggested entry to the input. */
+    applySuggestion,
   }
 }

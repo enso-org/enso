@@ -198,11 +198,19 @@ spec setup =
             t.set (Column_Operation.Not (Column_Ref.Name "zzz")) . should_fail_with No_Such_Column
             t.set (Column_Operation.Not (Column_Ref.Index 42)) . should_fail_with Index_Out_Of_Bounds
 
-    Test.group "Unique derived column names" <|
-        Test.specify "Should disambiguate two derived columns that would otherwise have had the same name" <|
+    Test.group prefix+"Unique derived column names" <|
+        Test.specify "Should not disambiguate two derived columns that would otherwise have had the same name, with Set_Mode.Add_Or_Update" <|
             t = table_builder [["X", [1, 2, 3]]]
             column_op = Column_Operation.Power 2 (Column_Ref.Name "X")
             t2 = t.set column_op . set column_op
+            t2.column_names . should_equal ["X", "[2] ^ [X]"]
+            t2.at "X" . to_vector . should_equal [1, 2, 3]
+            t2.at "[2] ^ [X]" . to_vector . should_equal [2, 4, 8]
+
+        Test.specify "Should disambiguate two derived columns that would otherwise have had the same name, with Set_Mode.Add" <|
+            t = table_builder [["X", [1, 2, 3]]]
+            column_op = Column_Operation.Power 2 (Column_Ref.Name "X")
+            t2 = t.set column_op set_mode=Set_Mode.Add . set column_op set_mode=Set_Mode.Add
             t2.column_names . should_equal ["X", "[2] ^ [X]", "[2] ^ [X] 1"]
             t2.at "X" . to_vector . should_equal [1, 2, 3]
             t2.at "[2] ^ [X]" . to_vector . should_equal [2, 4, 8]
@@ -229,6 +237,26 @@ spec setup =
             t2 = t.set (Column_Operation.Add "prefix" (Column_Ref.Name "X"))
             t3 = t2.set (Column_Operation.Add "prefix" "X")
 
-            t3.column_names . should_equal ["X", "['prefix'] + [X]", "['prefix'] + 'X'"]
+            t3.column_names . should_equal ['X', "['prefix'] + [X]", "['prefix'] + 'X'"]
             t3.at "['prefix'] + [X]" . to_vector . should_equal ["prefixa", "prefixb", "prefixc"]
             t3.at "['prefix'] + 'X'" . to_vector . should_equal ["prefixX", "prefixX", "prefixX"]
+
+        Test.specify "Should not disambiguate if set_mode is Update" <|
+            t = table_builder [["X", [1, 2, 3]]]
+            t2 = t.set (Column_Operation.Add (Column_Ref.Name "X") 1) set_mode=Set_Mode.Update
+            t2.column_names . should_equal ["X"]
+            t2.at "X" . to_vector . should_equal [2, 3, 4]
+
+        Test.specify "Should not disambiguate if set_mode is Add_Or_Update" <|
+            t = table_builder [["X", [1, 2, 3]], ["[X] + 1", [10, 20, 30]]]
+            # set_mode=Set_Mode.Add_Or_Update is the default
+            t2 = t.set (Column_Operation.Add (Column_Ref.Name "X") 1)
+            t2.column_names . should_equal ["X", "[X] + 1"]
+            t2.at "X" . to_vector . should_equal [1, 2, 3]
+            t2.at "[X] + 1" . to_vector . should_equal [2, 3, 4]
+
+        Test.specify "Should not disambiguate if the new name is explicitly set" <|
+            t = table_builder [["X", [1, 2, 3]]]
+            t2 = t.set (Column_Operation.Add (Column_Ref.Name "X") 1) new_name="X"
+            t2.column_names . should_equal ["X"]
+            t2.at "X" . to_vector . should_equal [2, 3, 4]

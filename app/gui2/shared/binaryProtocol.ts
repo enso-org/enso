@@ -214,8 +214,10 @@ const FILE_IDENTIFIER_LENGTH = 4
 const SIZE_PREFIX_LENGTH = 4
 const TEXT_ENCODER = new TextEncoder()
 const TEXT_DECODER = new TextDecoder()
+const NULL_PTR = 0
 
 type Offset = number
+type CreateOffset = ((builder: Builder) => Offset) | null | undefined
 
 interface IGeneratedObject {
   pack(builder: Builder): Offset
@@ -468,13 +470,13 @@ export class Builder {
     // Trim trailing zeroes.
     let i = this.vtableInUse - 1
     // eslint-disable-next-line no-empty
-    for (; i >= 0 && this.vtable[i] == 0; i--) {}
+    for (; i >= 0 && this.vtable[i] === 0; i -= 1) {}
     const trimmedSize = i + 1
 
     // Write out the current vtable.
-    for (; i >= 0; i--) {
+    for (; i >= 0; i -= 1) {
       // Offset relative to the start of the table.
-      this.addInt16(this.vtable[i] != 0 ? vtableloc - this.vtable[i]! : 0)
+      this.addInt16(this.vtable[i] !== 0 ? vtableloc - this.vtable[i]! : 0)
     }
 
     const standardFields = 2 // The fields below:
@@ -525,7 +527,7 @@ export class Builder {
       if (fileIdentifier.length != FILE_IDENTIFIER_LENGTH) {
         throw new TypeError('FlatBuffers: file identifier must be length ' + FILE_IDENTIFIER_LENGTH)
       }
-      for (let i = FILE_IDENTIFIER_LENGTH - 1; i >= 0; i--) {
+      for (let i = FILE_IDENTIFIER_LENGTH - 1; i >= 0; i -= 1) {
         this.writeInt8(fileIdentifier.charCodeAt(i))
       }
     }
@@ -538,7 +540,7 @@ export class Builder {
     return this
   }
 
-  finishSizePrefixed(this: Builder, rootTable: Offset, fileIdentifier?: string): Builder {
+  finishSizePrefixed(rootTable: Offset, fileIdentifier?: string): Builder {
     this.finish(rootTable, fileIdentifier, true)
     return this
   }
@@ -783,14 +785,14 @@ export class InboundMessage implements Table {
 
   static createInboundMessage(
     builder: Builder,
-    messageIdOffset: Offset,
-    correlationIdOffset: Offset,
+    createMessageId: CreateOffset,
+    createCorrelationId: CreateOffset,
     payloadType: InboundPayload,
     payloadOffset: Offset,
   ): Offset {
     InboundMessage.startInboundMessage(builder)
-    InboundMessage.addMessageId(builder, messageIdOffset)
-    InboundMessage.addCorrelationId(builder, correlationIdOffset)
+    InboundMessage.addMessageId(builder, createMessageId?.(builder) ?? NULL_PTR)
+    InboundMessage.addCorrelationId(builder, createCorrelationId?.(builder) ?? NULL_PTR)
     InboundMessage.addPayloadType(builder, payloadType)
     InboundMessage.addPayload(builder, payloadOffset)
     return InboundMessage.endInboundMessage(builder)
@@ -874,14 +876,14 @@ export class OutboundMessage implements Table {
 
   static createOutboundMessage(
     builder: Builder,
-    messageIdOffset: Offset,
-    correlationIdOffset: Offset,
+    createMessageId: CreateOffset,
+    createCorrelationId: CreateOffset,
     payloadType: OutboundPayload,
     payloadOffset: Offset,
   ): Offset {
     OutboundMessage.startOutboundMessage(builder)
-    OutboundMessage.addMessageId(builder, messageIdOffset)
-    OutboundMessage.addCorrelationId(builder, correlationIdOffset)
+    OutboundMessage.addMessageId(builder, createMessageId?.(builder) ?? NULL_PTR)
+    OutboundMessage.addCorrelationId(builder, createCorrelationId?.(builder) ?? NULL_PTR)
     OutboundMessage.addPayloadType(builder, payloadType)
     OutboundMessage.addPayload(builder, payloadOffset)
     return OutboundMessage.endOutboundMessage(builder)
@@ -1057,7 +1059,7 @@ export class ReadOutOfBoundsError implements Table {
 export class None implements Table {
   bb!: ByteBuffer
   bbPos: number = 0
-  init(i: number, bb: ByteBuffer): Success {
+  init(i: number, bb: ByteBuffer): None {
     this.bbPos = i
     this.bb = bb
     return this
@@ -1143,9 +1145,9 @@ export class InitSessionCommand implements Table {
     return offset
   }
 
-  static createInitSessionCommand(builder: Builder, identifierOffset: Offset): Offset {
+  static createInitSessionCommand(builder: Builder, createIdentifier: CreateOffset): Offset {
     InitSessionCommand.startInitSessionCommand(builder)
-    InitSessionCommand.addIdentifier(builder, identifierOffset)
+    InitSessionCommand.addIdentifier(builder, createIdentifier?.(builder) ?? NULL_PTR)
     return InitSessionCommand.endInitSessionCommand(builder)
   }
 }
@@ -1221,14 +1223,14 @@ export class VisualizationContext implements Table {
 
   static createVisualizationContext(
     builder: Builder,
-    visualizationIdOffset: Offset,
-    contextIdOffset: Offset,
-    expressionIdOffset: Offset,
+    createVisualizationId: CreateOffset,
+    createContextId: CreateOffset,
+    createExpressionId: CreateOffset,
   ): Offset {
     VisualizationContext.startVisualizationContext(builder)
-    VisualizationContext.addVisualizationId(builder, visualizationIdOffset)
-    VisualizationContext.addContextId(builder, contextIdOffset)
-    VisualizationContext.addExpressionId(builder, expressionIdOffset)
+    VisualizationContext.addVisualizationId(builder, createVisualizationId?.(builder) ?? NULL_PTR)
+    VisualizationContext.addContextId(builder, createContextId?.(builder) ?? NULL_PTR)
+    VisualizationContext.addExpressionId(builder, createExpressionId?.(builder) ?? NULL_PTR)
     return VisualizationContext.endVisualizationContext(builder)
   }
 }
@@ -1311,7 +1313,7 @@ export class VisualizationUpdate implements Table {
   static createDataVector(builder: Builder, data: number[] | Uint8Array): Offset {
     builder.startVector(1, data.length, 1)
     // An iterator is more type-safe, but less performant.
-    for (let i = data.length - 1; i >= 0; i--) {
+    for (let i = data.length - 1; i >= 0; i -= 1) {
       builder.addInt8(data[i]!)
     }
     return builder.endVector()
@@ -1365,8 +1367,9 @@ export class Path implements Table {
 
   rawSegments(index: number): ArrayBuffer {
     const offset = this.bb.offset(this.bbPos, 6)
-    // FIXME: `null!` is incorrect
-    return offset ? this.bb.rawMessage(this.bb.vector(this.bbPos + offset) + index * 4) : null!
+    return offset
+      ? this.bb.rawMessage(this.bb.vector(this.bbPos + offset) + index * 4)
+      : new Uint8Array()
   }
 
   segments(index: number): string {
@@ -1393,7 +1396,7 @@ export class Path implements Table {
   static createSegmentsVector(builder: Builder, data: Offset[]): Offset {
     builder.startVector(4, data.length, 4)
     // An iterator is more type-safe, but less performant.
-    for (let i = data.length - 1; i >= 0; i--) {
+    for (let i = data.length - 1; i >= 0; i -= 1) {
       builder.addOffset(data[i]!)
     }
     return builder.endVector()
@@ -1408,9 +1411,9 @@ export class Path implements Table {
     return offset
   }
 
-  static createPath(builder: Builder, rootIdOffset: Offset, segmentsOffset: Offset): Offset {
+  static createPath(builder: Builder, createRootId: CreateOffset, segmentsOffset: Offset): Offset {
     Path.startPath(builder)
-    Path.addRootId(builder, rootIdOffset)
+    Path.addRootId(builder, createRootId?.(builder) ?? NULL_PTR)
     Path.addSegments(builder, segmentsOffset)
     return Path.endPath(builder)
   }
@@ -1484,7 +1487,7 @@ export class WriteFileCommand implements Table {
   static createContentsVector(builder: Builder, data: number[] | Uint8Array): Offset {
     builder.startVector(1, data.length, 1)
     // An iterator is more type-safe, but less performant.
-    for (let i = data.length - 1; i >= 0; i--) {
+    for (let i = data.length - 1; i >= 0; i -= 1) {
       builder.addInt8(data[i]!)
     }
     return builder.endVector()
@@ -1622,7 +1625,7 @@ export class FileContentsReply implements Table {
   static createContentsVector(builder: Builder, data: number[] | Uint8Array): Offset {
     builder.startVector(1, data.length, 1)
     // An iterator is more type-safe, but less performant.
-    for (let i = data.length - 1; i >= 0; i--) {
+    for (let i = data.length - 1; i >= 0; i -= 1) {
       builder.addInt8(data[i]!)
     }
     return builder.endVector()
@@ -1730,7 +1733,7 @@ export class WriteBytesCommand implements Table {
   static createBytesVector(builder: Builder, data: number[] | Uint8Array): Offset {
     builder.startVector(1, data.length, 1)
     // An iterator is more type-safe, but less performant.
-    for (let i = data.length - 1; i >= 0; i--) {
+    for (let i = data.length - 1; i >= 0; i -= 1) {
       builder.addInt8(data[i]!)
     }
     return builder.endVector()
@@ -1934,7 +1937,7 @@ export class ReadBytesReply implements Table {
   static createBytesVector(builder: Builder, data: number[] | Uint8Array): Offset {
     builder.startVector(1, data.length, 1)
     // An iterator is more type-safe, but less performant.
-    for (let i = data.length - 1; i >= 0; i--) {
+    for (let i = data.length - 1; i >= 0; i -= 1) {
       builder.addInt8(data[i]!)
     }
     return builder.endVector()
@@ -2126,7 +2129,7 @@ export class EnsoDigest implements Table {
   static createBytesVector(builder: Builder, data: number[] | Uint8Array): Offset {
     builder.startVector(1, data.length, 1)
     // An iterator is more type-safe, but less performant.
-    for (let i = data.length - 1; i >= 0; i--) {
+    for (let i = data.length - 1; i >= 0; i -= 1) {
       builder.addInt8(data[i]!)
     }
     return builder.endVector()

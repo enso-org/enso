@@ -20,37 +20,37 @@ export const VALID_EMAIL = 'email@example.com'
 
 /** Find an email input (if any) on the current page. */
 export function locateEmailInput(page: test.Locator | test.Page) {
-    return page.getByLabel('E-Mail Address:')
+    return page.getByLabel('Email')
 }
 
 /** Find a password input (if any) on the current page. */
 export function locatePasswordInput(page: test.Locator | test.Page) {
-    return page.getByLabel('Password:', { exact: true })
+    return page.getByPlaceholder('Enter your password')
 }
 
 /** Find a "confirm password" input (if any) on the current page. */
 export function locateConfirmPasswordInput(page: test.Locator | test.Page) {
-    return page.getByLabel('Confirm Password:')
+    return page.getByLabel('Confirm password')
 }
 
 /** Find an "old password" input (if any) on the current page. */
 export function locateOldPasswordInput(page: test.Locator | test.Page) {
-    return page.getByLabel('Old Password:')
+    return page.getByLabel('Old password')
 }
 
 /** Find a "new password" input (if any) on the current page. */
 export function locateNewPasswordInput(page: test.Locator | test.Page) {
-    return page.getByLabel('New Password:', { exact: true })
+    return page.getByPlaceholder('Enter your new password')
 }
 
 /** Find a "confirm new password" input (if any) on the current page. */
 export function locateConfirmNewPasswordInput(page: test.Locator | test.Page) {
-    return page.getByLabel('Confirm New Password:')
+    return page.getByPlaceholder('Confirm your new password')
 }
 
 /** Find a "username" input (if any) on the current page. */
 export function locateUsernameInput(page: test.Locator | test.Page) {
-    return page.getByPlaceholder('Username')
+    return page.getByPlaceholder('Enter your username')
 }
 
 /** Find a "name" input for a "new label" modal (if any) on the current page. */
