@@ -271,13 +271,12 @@ public abstract class Cache<T, M extends Cache.Metadata> {
             invalidateCache(cacheRoot, logger);
             return Optional.empty();
           }
-        } catch (IOException ioe) {
+        } catch (ClassNotFoundException | IOException ex) {
           logger.log(
-              logLevel, "`" + logName + "` failed to load (caused by: " + ioe.getMessage() + ").");
+              Level.WARNING,
+              "`" + logName + "` in " + dataPath + " failed to load: " + ex.getMessage());
+          logger.log(logLevel, "`" + logName + "` failed to load.", ex);
           invalidateCache(cacheRoot, logger);
-          return Optional.empty();
-        } catch (ClassNotFoundException e) {
-          logger.log(Level.WARNING, logName + " appears to be corrupted", e);
           return Optional.empty();
         }
       } else {
