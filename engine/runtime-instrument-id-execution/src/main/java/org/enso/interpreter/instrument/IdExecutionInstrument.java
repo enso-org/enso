@@ -60,89 +60,14 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
     this.env = env;
   }
 
-  private static final class NodeInfo extends Info {
-
-    private final UUID nodeId;
-    private final Object result;
-    private final long elapsedTime;
-    private final MaterializedFrame materializedFrame;
-    private final EnsoRootNode ensoRootNode;
-
-    private final EvalNode evalNode = EvalNode.build();
-
-    private NodeInfo(
-        UUID nodeId,
-        Object result,
-        long elapsedTime,
-        MaterializedFrame materializedFrame,
-        Node node) {
-      super();
-
-      this.nodeId = nodeId;
-      this.result = result;
-      this.elapsedTime = elapsedTime;
-      this.materializedFrame = materializedFrame;
-      this.ensoRootNode = (EnsoRootNode) node.getRootNode();
-    }
-
-    public static NodeInfo entered(MaterializedFrame materializedFrame, Node node) {
-      return new NodeInfo(getNodeId(node), null, -1, materializedFrame, node);
-    }
-
-    public static NodeInfo returned(
-        UUID nodeId,
-        Object result,
-        long elapsedTime,
-        MaterializedFrame materializedFrame,
-        Node node) {
-      return new NodeInfo(nodeId, result, elapsedTime, materializedFrame, node);
-    }
-
-    @Override
-    public UUID getId() {
-      return nodeId;
-    }
-
-    @Override
-    public Object getResult() {
-      return result;
-    }
-
-    @Override
-    public boolean isPanic() {
-      return result instanceof AbstractTruffleException && !(result instanceof DataflowError);
-    }
-
-    @Override
-    public long getElapsedTime() {
-      return elapsedTime;
-    }
-
-    @Override
-    public Object eval(String code) {
-      CallerInfo callerInfo =
-          new CallerInfo(
-              materializedFrame, ensoRootNode.getLocalScope(), ensoRootNode.getModuleScope());
-
-      return evalNode.execute(callerInfo, State.create(EnsoContext.get(null)), Text.create(code));
-    }
-
-    private static UUID getNodeId(Node node) {
-      return switch (node) {
-        case ExpressionNode n -> n.getId();
-        case FunctionCallInstrumentationNode n -> n.getId();
-        case null -> null;
-        default -> null;
-      };
-    }
-  }
-
   /** Factory for creating new id event nodes. */
   private static class IdEventNodeFactory implements ExecutionEventNodeFactory {
 
     private final CallTarget entryCallTarget;
     private final Callbacks callbacks;
     private final Timer timer;
+
+    private final EvalNode evalNode = EvalNode.build();
 
     /**
      * Creates a new event node factory.
@@ -160,6 +85,96 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
     @Override
     public ExecutionEventNode create(EventContext context) {
       return new IdExecutionEventNode(context);
+    }
+
+    /** Implementation of {@link Info} for the instrumented {@link Node}. */
+    private final class NodeInfo extends Info {
+
+      private final UUID nodeId;
+      private final Object result;
+      private final long elapsedTime;
+      private final MaterializedFrame materializedFrame;
+      private final EnsoRootNode ensoRootNode;
+
+      /**
+       * Create a {@link NodeInfo} for the entered node.
+       *
+       * @param materializedFrame the execution frame
+       * @param node the entered node
+       */
+      public NodeInfo(
+          MaterializedFrame materializedFrame,
+          Node node) {
+        super();
+
+        this.nodeId = getNodeId(node);
+        this.result = null;
+        this.elapsedTime = -1;
+        this.materializedFrame = materializedFrame;
+        this.ensoRootNode = (EnsoRootNode) node.getRootNode();
+      }
+
+      /**
+       * Create a {@link NodeInfo} for the executed node.
+       *
+       * @param nodeId the id of the executed node
+       * @param result the result of the node execution
+       * @param elapsedTime the execution time
+       * @param materializedFrame the execution frame
+       * @param node the executed node
+       */
+      public NodeInfo(
+          UUID nodeId,
+          Object result,
+          long elapsedTime,
+          MaterializedFrame materializedFrame,
+          Node node) {
+        super();
+
+        this.nodeId = nodeId;
+        this.result = result;
+        this.elapsedTime = elapsedTime;
+        this.materializedFrame = materializedFrame;
+        this.ensoRootNode = (EnsoRootNode) node.getRootNode();
+      }
+
+      @Override
+      public UUID getId() {
+        return nodeId;
+      }
+
+      @Override
+      public Object getResult() {
+        return result;
+      }
+
+      @Override
+      public boolean isPanic() {
+        return result instanceof AbstractTruffleException && !(result instanceof DataflowError);
+      }
+
+      @Override
+      public long getElapsedTime() {
+        return elapsedTime;
+      }
+
+      @Override
+      public Object eval(String code) {
+        CallerInfo callerInfo =
+            new CallerInfo(
+                materializedFrame, ensoRootNode.getLocalScope(), ensoRootNode.getModuleScope());
+
+        return evalNode.execute(callerInfo, State.create(EnsoContext.get(null)), Text.create(code));
+      }
+
+      private static UUID getNodeId(Node node) {
+        return switch (node) {
+          case ExpressionNode n -> n.getId();
+          case FunctionCallInstrumentationNode n -> n.getId();
+          case null -> null;
+          default -> null;
+        };
+      }
     }
 
     /** The execution event node class used by this instrument. */
@@ -188,7 +203,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
           return;
         }
 
-        Info info = NodeInfo.entered(frame.materialize(), context.getInstrumentedNode());
+        Info info = new NodeInfo(frame.materialize(), context.getInstrumentedNode());
         Object result = callbacks.findCachedResult(info);
 
         if (result != null) {
@@ -215,7 +230,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
         if (node instanceof FunctionCallInstrumentationNode functionCallInstrumentationNode
             && result instanceof FunctionCallInstrumentationNode.FunctionCall) {
           Info info =
-              NodeInfo.returned(
+              new NodeInfo(
                   functionCallInstrumentationNode.getId(),
                   result,
                   nanoTimeElapsed,
@@ -227,7 +242,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
           }
         } else if (node instanceof ExpressionNode expressionNode) {
           Info info =
-              NodeInfo.returned(
+              new NodeInfo(
                   expressionNode.getId(), result, nanoTimeElapsed, frame.materialize(), node);
           callbacks.updateCachedResult(info);
 
