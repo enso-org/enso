@@ -1909,14 +1909,14 @@ lazy val `bench-processor` = (project in file("lib/scala/bench-processor"))
     commands += WithDebugCommand.withDebug,
     (Test / fork) := true,
     (Test / parallelExecution) := false,
-    (Test / javaOptions) ++= {
-      val runtimeJars =
-        (LocalProject("runtime") / Compile / fullClasspath).value
-      val jarsStr = runtimeJars.map(_.data).mkString(File.pathSeparator)
+    (Test / javaOptions) ++=
       Seq(
-        s"-Dtruffle.class.path.append=${jarsStr}"
-      )
-    }
+        "-Dpolyglot.engine.WarnInterpreterOnly=false",
+        "-Dpolyglotimpl.DisableClassPathIsolation=true",
+      ),
+    // Append enso language on the class-path
+    (Test / unmanagedClasspath) :=
+      (LocalProject("runtime-with-instruments") / Compile / fullClasspath).value,
   )
   .dependsOn(`polyglot-api`)
   .dependsOn(runtime)
