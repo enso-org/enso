@@ -3,22 +3,9 @@ package org.enso.distribution.locking
 import nl.gn0s1s.bump.SemVer
 import org.enso.cli.task.TaskProgress
 import org.enso.distribution.FileSystem.PathSyntax
-import org.enso.distribution.{
-  DistributionManager,
-  FileSystem,
-  TemporaryDirectoryManager
-}
-import org.enso.runtimeversionmanager.components.{
-  GraalVMComponentConfiguration,
-  GraalVMVersion,
-  InstallerKind,
-  Manifest,
-  RuntimeVersionManager
-}
-import org.enso.runtimeversionmanager.releases.engine.{
-  EngineRelease,
-  EngineReleaseProvider
-}
+import org.enso.distribution.{DistributionManager, FileSystem, TemporaryDirectoryManager}
+import org.enso.runtimeversionmanager.components.{GraalVMComponentConfiguration, GraalVMVersion, InstallerKind, Manifest, RuntimeVersionManager}
+import org.enso.runtimeversionmanager.releases.engine.{EngineRelease, EngineReleaseProvider}
 import org.enso.runtimeversionmanager.releases.graalvm.GraalCEReleaseProvider
 import org.enso.runtimeversionmanager.releases.testing.FakeReleaseProvider
 import org.enso.runtimeversionmanager.test._
@@ -193,8 +180,8 @@ class ConcurrencyTest
         */
       val sync = new SlowTestSynchronizer
 
-      val engine1 = SemVer(0, 0, 1)
-      val engine2 = engine1.withPreRelease("pre")
+      val engine1 = SemVer(0, 1, 0)
+      val engine2 = SemVer(0, 0, 1).withPreRelease("pre")
 
       val tmpRoot = getTestDirectory / "test_data" / "tmp"
       Files.createDirectories(tmpRoot)
@@ -259,7 +246,7 @@ class ConcurrencyTest
         */
       val sync = new SlowTestSynchronizer
 
-      val engineVersion = SemVer(0, 0, 1)
+      val engineVersion = SemVer(0, 1, 0)
 
       sync.startThread("t1") {
         val componentsManager = makeComponentsManager(
