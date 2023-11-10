@@ -3,6 +3,7 @@ package org.enso.table.data.table;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.InferredBuilder;
+import org.enso.table.data.column.builder.MixedBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.StorageType;
@@ -161,37 +162,31 @@ public class Column {
   }
 
   /**
-   * Creates a new column with given name and elements.
+   * Creates a new column with given name and an element to repeat.
    *
    * @param name the name to use
-   * @param items the items contained in the column
+   * @param items the item repeated in the column
    * @return a column with given name and items
    */
-  public static Column fromRepeatedItems(String name, List<Value> items, int repeat, ProblemAggregator problemAggregator) {
-    if (repeat < 1) {
-      throw new IllegalArgumentException("Repeat count must be positive.");
+  public static Column fromRepeatedItem(String name, Value item, int repeat, ProblemAggregator problemAggregator) {
+    if (repeat < 0) {
+      throw new IllegalArgumentException("Repeat count must be non-negative.");
     }
 
-    if (repeat == 1) {
-      return fromItems(name, items, null, problemAggregator);
+    Object converted = Polyglot_Utils.convertPolyglotValue(item);
+
+    Builder builder;
+    if (converted == null) {
+      builder = new MixedBuilder(repeat);
+    } else {
+      StorageType storageType = StorageType.forBoxedItem(converted);
+      builder = Builder.getForType(storageType, repeat, problemAggregator);
     }
 
     Context context = Context.getCurrent();
-    var totalSize = items.size() * repeat;
 
-    var values = new ArrayList<Object>(items.size());
-    // ToDo: This a workaround for an issue with polyglot layer. #5590 is related.
-    // to revert replace with: for (Value item : items) {
-    for (Object item : items) {
-      Object converted = item instanceof Value v ? Polyglot_Utils.convertPolyglotValue(v) : item;
-      values.add(converted);
-      context.safepoint();
-    }
-
-    var builder = new InferredBuilder(totalSize, problemAggregator);
-    for (int i = 0; i < totalSize; i++) {
-      var item = values.get(i % items.size());
-      builder.appendNoGrow(item);
+    for (int i = 0; i < repeat; i++) {
+      builder.appendNoGrow(converted);
       context.safepoint();
     }
 
