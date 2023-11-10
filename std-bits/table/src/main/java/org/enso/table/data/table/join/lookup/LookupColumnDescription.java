@@ -1,4 +1,4 @@
-package org.enso.table.data.table.join;
+package org.enso.table.data.table.join.lookup;
 
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.table.Column;

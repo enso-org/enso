@@ -64,7 +64,7 @@ debug-assertions = false
 [profile.test]
 opt-level = 0
 lto = false
-debug = 1
+debug = 2
 debug-assertions = true
 
 [profile.integration-test]
