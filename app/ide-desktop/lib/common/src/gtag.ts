@@ -19,4 +19,8 @@ export function gtag(_action: 'event', _eventName: string, _eventParams?: object
 gtag('js', new Date())
 // @ts-expect-error This signature is intentionally omitted as "event" calls should be the only
 // calls allowed.
+// eslint-disable-next-line @typescript-eslint/naming-convention
+gtag('set', 'linker', { accept_incoming: true })
+// @ts-expect-error This signature is intentionally omitted as "event" calls should be the only
+// calls allowed.
 gtag('config', 'G-CLTBJ37MDM')
