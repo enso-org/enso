@@ -45,11 +45,11 @@ public abstract class Persistance<T> {
   }
 
   final T readWith(Input in) {
-      try {
-        return readObject(in);
-      } catch (IOException | ClassNotFoundException ex) {
-        throw raise(RuntimeException.class, ex);
-      }
+    try {
+      return readObject(in);
+    } catch (IOException | ClassNotFoundException ex) {
+      throw raise(RuntimeException.class, ex);
+    }
   }
 
   public static <T> Reference<T> readObject(byte[] arr) throws IOException {
@@ -133,15 +133,21 @@ public abstract class Persistance<T> {
     }
   }
 
-  static Object readIndirect(ByteBuffer buffer, PersistanceMap map, Input in) throws IOException {
+  static Object readIndirect(InputCache cache, PersistanceMap map, Input in) throws IOException {
     var at = in.readInt();
     if (at < 0) {
       return null;
     }
+    if (cache.cache.get(at) instanceof Object res) {
+      return res;
+    }
+
     var id = in.readInt();
     var p = map.forId(id);
-    var inData = new InputImpl(buffer, at);
-    return p.readWith(inData);
+    var inData = new InputImpl(cache, at);
+    var res = p.readWith(inData);
+    cache.cache.put(at, res);
+    return res;
   }
 
   @SuppressWarnings("unchecked")
@@ -178,7 +184,7 @@ public abstract class Persistance<T> {
       return expectedType.cast(value);
     }
 
-    static <V> Reference<V> of(V obj) {
+    public static <V> Reference<V> of(V obj) {
       return new MemoryReference<>(obj);
     }
 
@@ -212,7 +218,8 @@ public abstract class Persistance<T> {
           throw new ClassCastException();
         }
       }
-      var in = new InputImpl(buffer, offset);
+      var cache = new InputCache(buffer);
+      var in = new InputImpl(cache, offset);
       var obj = in.readInline(clazz);
       return obj;
     }
@@ -246,12 +253,20 @@ public abstract class Persistance<T> {
     }
   }
 
+  private static final record InputCache(ByteBuffer buf, Map<Integer,Object> cache) {
+    InputCache(ByteBuffer buf) {
+      this(buf, new HashMap<>());
+    }
+  }
+
   private static final class InputImpl implements Input {
+    private final InputCache cache;
     private final ByteBuffer buf;
     private int at;
 
-    InputImpl(ByteBuffer buf, int at) {
-      this.buf = buf;
+    InputImpl(InputCache cache, int at) {
+      this.cache = cache;
+      this.buf = cache.buf();
       this.at = at;
     }
 
@@ -263,7 +278,7 @@ public abstract class Persistance<T> {
 
     @Override
     public Object readObject() throws IOException {
-      var obj = readIndirect(buf, PersistanceMap.DEFAULT, this);
+      var obj = readIndirect(cache, PersistanceMap.DEFAULT, this);
       return obj;
     }
 
@@ -388,6 +403,11 @@ public abstract class Persistance<T> {
     @Override
     public String readUTF() throws IOException {
       return DataInputStream.readUTF(this);
+    }
+
+    @Override
+    public String toString() {
+      return "Input[at=" + at + " of " + this.buf.limit() + "]";
     }
   }
 
