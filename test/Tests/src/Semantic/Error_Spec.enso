@@ -438,12 +438,9 @@ spec =
         Test.specify ".catch unwraps an error fully when it is wrapped multiple times" <|
             wrap = My_Error_Wrapper.Error
             error = My_Error.Error 12
-            IO.println 'AAA'
-            IO.println ([error, wrap error, wrap (wrap error), wrap (wrap (wrap error))].map x->x)
-            #[error, wrap error, wrap (wrap error), wrap (wrap (wrap error))].map e->
-            e = My_Error_Wrapper.Error (My_Error_Wrapper.Error error)
-            Error.throw e . catch My_Error x->
-                x . should_equal (My_Error.Error 12)
+            [error, wrap error, wrap (wrap error), wrap (wrap (wrap error))].map e->
+                Error.throw e . catch My_Error x->
+                    x . should_equal (My_Error.Error 12)
 
         Test.specify "works with Nothing as an error" <|
             Error.throw (My_Error_Wrapper.Error Nothing) . catch Nothing x->
