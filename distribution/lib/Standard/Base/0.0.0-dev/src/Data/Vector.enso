@@ -586,32 +586,19 @@ type Vector a
         max_warnings = 10
         num_errors = Ref.new 0
         wrapped_function i =
-            IO.println 'AAA map'
-            IO.println i
             x = self.at i
-            IO.println x
             result = function x
-            IO.println result
-            IO.println result.is_error
             case result.is_error of
                 False ->
                     if Warning.has_warnings result . not then result else
-                        Warning.get_all result . map warning->
-                            IO.println 'AAA wrap warning'
-                            IO.println warning
                         Warning.map_attached_warnings (Map_Error.Error i) result
                 True ->
-                    IO.println 'AAA de'
-                    IO.println result
-                    IO.println (Meta.get_simple_type_name result)
                     case on_problems of
                         Problem_Behavior.Ignore ->
                             Nothing
                         Problem_Behavior.Report_Error ->
                             Error.throw (Map_Error.Error i result.catch)
                         Problem_Behavior.Report_Warning ->
-                            IO.println 'AAA rw'
-                            IO.println num_errors.get
                             with_error_maybe = if num_errors.get >= max_warnings then Nothing else
                                 Warning.attach (Map_Error.Error i result.catch) Nothing
                             num_errors.modify (_+1)
