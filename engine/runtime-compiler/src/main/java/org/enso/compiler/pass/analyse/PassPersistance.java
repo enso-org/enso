@@ -1,7 +1,6 @@
 package org.enso.compiler.pass.analyse;
 
 import java.io.IOException;
-
 import org.enso.compiler.core.Persistance;
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph;
 import org.enso.compiler.pass.resolve.DocumentationComments;
@@ -10,7 +9,6 @@ import org.enso.compiler.pass.resolve.ModuleAnnotations;
 import org.enso.compiler.pass.resolve.TypeSignatures;
 import org.enso.interpreter.dsl.Persistable;
 import org.openide.util.lookup.ServiceProvider;
-
 import scala.Option;
 
 @Persistable(clazz = CachePreferenceAnalysis.WeightInfo.class, id = 1111)
@@ -73,43 +71,50 @@ public final class PassPersistance {
     }
   }
 
-  @org.openide.util.lookup.ServiceProvider(service=Persistance.class)
-  public static final class PersistAliasAnalysisGraphScope extends Persistance<org.enso.compiler.pass.analyse.AliasAnalysis$Graph$Scope> {
+  @org.openide.util.lookup.ServiceProvider(service = Persistance.class)
+  public static final class PersistAliasAnalysisGraphScope
+      extends Persistance<org.enso.compiler.pass.analyse.AliasAnalysis$Graph$Scope> {
     public PersistAliasAnalysisGraphScope() {
       super(org.enso.compiler.pass.analyse.AliasAnalysis$Graph$Scope.class, false, 1124);
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    protected org.enso.compiler.pass.analyse.AliasAnalysis$Graph$Scope readObject(Input in) throws IOException {
+    protected org.enso.compiler.pass.analyse.AliasAnalysis$Graph$Scope readObject(Input in)
+        throws IOException {
       var childScopes = in.readInline(scala.collection.immutable.List.class);
       var occurrences = (scala.collection.immutable.Set) in.readObject();
       var allDefinitions = in.readInline(scala.collection.immutable.List.class);
-      var parent = new org.enso.compiler.pass.analyse.AliasAnalysis$Graph$Scope(
-        childScopes, occurrences, allDefinitions
-      );
+      var parent =
+          new org.enso.compiler.pass.analyse.AliasAnalysis$Graph$Scope(
+              childScopes, occurrences, allDefinitions);
       var optionParent = Option.apply(parent);
-      childScopes.forall((object) -> {
-        var ch = (org.enso.compiler.pass.analyse.AliasAnalysis$Graph$Scope) object;
-        ch.parent_$eq(optionParent);
-        return null;
-      });
+      childScopes.forall(
+          (object) -> {
+            var ch = (org.enso.compiler.pass.analyse.AliasAnalysis$Graph$Scope) object;
+            ch.parent_$eq(optionParent);
+            return null;
+          });
       return parent;
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    protected void writeObject(org.enso.compiler.pass.analyse.AliasAnalysis$Graph$Scope obj, Output out) throws IOException {
+    protected void writeObject(
+        org.enso.compiler.pass.analyse.AliasAnalysis$Graph$Scope obj, Output out)
+        throws IOException {
       out.writeInline(scala.collection.immutable.List.class, obj.childScopes());
       out.writeObject(obj.occurrences());
       out.writeInline(scala.collection.immutable.List.class, obj.allDefinitions());
     }
   }
-  @org.openide.util.lookup.ServiceProvider(service=Persistance.class)
+
+  @org.openide.util.lookup.ServiceProvider(service = Persistance.class)
   public static final class PersistAliasAnalysisGraph extends Persistance<Graph> {
     public PersistAliasAnalysisGraph() {
       super(Graph.class, false, 1119);
     }
+
     @SuppressWarnings("unchecked")
     protected Graph readObject(Input in) throws IOException {
       var g = new Graph();
@@ -118,7 +123,8 @@ public final class PassPersistance {
       assignParents(rootScope);
       g.rootScope_$eq(rootScope);
 
-      var links = (scala.collection.immutable.Set)in.readInline(scala.collection.immutable.Set.class);
+      var links =
+          (scala.collection.immutable.Set) in.readInline(scala.collection.immutable.Set.class);
       g.links_$eq(links);
       return g;
     }
@@ -132,11 +138,14 @@ public final class PassPersistance {
 
     private static void assignParents(AliasAnalysis$Graph$Scope scope) {
       var option = Option.apply(scope);
-      scope.childScopes().foreach((ch) -> {
-        assignParents(ch);
-        ch.parent_$eq(option);
-        return null;
-      });
+      scope
+          .childScopes()
+          .foreach(
+              (ch) -> {
+                assignParents(ch);
+                ch.parent_$eq(option);
+                return null;
+              });
     }
   }
 }
