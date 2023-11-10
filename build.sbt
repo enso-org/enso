@@ -1133,8 +1133,8 @@ val benchOnlyOptions = if (java.lang.Boolean.getBoolean("bench.compileOnly")) {
 /** Truffle-related settings for test running.
   */
 val truffleRunOpts = Seq(
-  "-Dpolyglot.engine.IterativePartialEscape=true",
-  "-Dpolyglot.engine.BackgroundCompilation=false"
+  "-Dpolyglot.compiler.IterativePartialEscape=true",
+  "-Dpolyglot.compiler.BackgroundCompilation=false"
 )
 
 val truffleRunOptionsNoAssertSettings = Seq(
