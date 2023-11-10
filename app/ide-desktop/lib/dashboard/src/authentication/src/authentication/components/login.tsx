@@ -9,6 +9,8 @@ import AtIcon from 'enso-assets/at.svg'
 import CreateAccountIcon from 'enso-assets/create_account.svg'
 import LockIcon from 'enso-assets/lock.svg'
 
+import * as gtag from 'enso-common/src/gtag'
+
 import * as auth from '../providers/auth'
 import * as validation from '../../dashboard/validation'
 
@@ -53,6 +55,7 @@ export default function Login() {
                         }}
                         onClick={async event => {
                             event.preventDefault()
+                            gtag.gtag('event', 'cloud_sign_in', { provider: 'Google' })
                             await signInWithGoogle()
                         }}
                         className="relative rounded-full bg-cloud/10 hover:bg-gray-200 py-2"
@@ -66,6 +69,7 @@ export default function Login() {
                         }}
                         onClick={async event => {
                             event.preventDefault()
+                            gtag.gtag('event', 'cloud_sign_in', { provider: 'GitHub' })
                             await signInWithGitHub()
                         }}
                         className="relative rounded-full bg-cloud/10 hover:bg-gray-200 py-2"
@@ -84,6 +88,7 @@ export default function Login() {
                     onSubmit={async event => {
                         event.preventDefault()
                         setIsSubmitting(true)
+                        gtag.gtag('event', 'cloud_sign_in', { provider: 'Email' })
                         await signInWithPassword(email, password)
                         shouldReportValidityRef.current = true
                         setIsSubmitting(false)
