@@ -105,13 +105,12 @@ type Error
                         Maybe.None -> self
                         Maybe.Some inner_error -> handler inner_error
 
+    ## PRIVATE
+       Determines whether self is, or wraps, the specified error type.
     wraps_error : Any -> Boolean
     wraps_error self error_type =
         self.catch_primitive error_value->
-            check_wrapped =
-                inner_error = Wrapped_Error.from error_value . inner_error
-                inner_error.is_a error_type
-            Panic.catch No_Such_Conversion check_wrapped _->False
+            look_for_wrapped_error error_type error_value . is_some
 
     ## Transforms an error.
 
