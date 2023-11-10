@@ -122,7 +122,7 @@ public final class LogbackSetup extends LoggerSetup {
         } else {
             targetLogLevel = logLevel;
         }
-        LoggerAndContext env = contextInit(targetLogLevel, config, !logToFileEnabled());
+        LoggerAndContext env = contextInit(targetLogLevel, config, true);
 
         org.enso.logger.config.SocketAppender appenderConfig = config.getSocketAppender();
 
