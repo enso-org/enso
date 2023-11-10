@@ -3,7 +3,6 @@ import { useGraphStore } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import type { Highlighter } from '@/util/codemirror'
-import { colorFromString } from '@/util/colors'
 import { usePointer } from '@/util/events'
 import { useLocalStorage } from '@vueuse/core'
 import { rangeEncloses, type ExprId } from 'shared/yjsModel'
@@ -62,9 +61,8 @@ watchEffect(() => {
               break
             }
           }
-          const expressionInfo = foundNode
-            ? projectStore.computedValueRegistry.getExpressionInfo(foundNode)
-            : undefined
+          const expressionInfo = foundNode && graphStore.db.nodeExpressionInfo.lookup(foundNode)
+          const nodeColor = foundNode && graphStore.db.getNodeColorStyle(foundNode)
 
           if (foundNode != null) {
             dom
@@ -92,11 +90,9 @@ watchEffect(() => {
               groupNode.appendChild(document.createTextNode('Group: '))
               const groupNameNode = groupNode.appendChild(document.createElement('span'))
               groupNameNode.appendChild(document.createTextNode(`${method.module}.${method.name}`))
-              groupNameNode.style.color =
-                suggestionEntry?.groupIndex != null
-                  ? `var(--group-color-${suggestionDbStore.groups[suggestionEntry.groupIndex]
-                      ?.name})`
-                  : colorFromString(expressionInfo?.typename ?? 'Unknown')
+              if (nodeColor) {
+                groupNameNode.style.color = nodeColor
+              }
             }
           }
           return { dom }

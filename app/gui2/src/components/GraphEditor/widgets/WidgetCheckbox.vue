@@ -1,19 +1,20 @@
 <script setup lang="ts">
 import CheckboxWidget from '@/components/widgets/CheckboxWidget.vue'
 import { Tree } from '@/generated/ast'
-import { Score, defineWidget } from '@/providers/widgetRegistry'
+import { Score, defineWidget, widgetAst, type WidgetProps } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
 import { Ast, type AstExtended } from '@/util/ast'
 import { computed } from 'vue'
 
-const props = defineProps<{ ast: AstExtended }>()
+const props = defineProps<WidgetProps>()
 const graph = useGraphStore()
 const value = computed({
   get() {
-    return props.ast.repr().endsWith('True')
+    return widgetAst(props.input)?.repr().endsWith('True') ?? false
   },
   set(value) {
-    const node = getRawBoolNode(props.ast)
+    const ast = widgetAst(props.input)
+    const node = ast && getRawBoolNode(ast)
     if (node != null) {
       graph.setExpressionContent(node.astId, value ? 'True' : 'False')
     }
@@ -36,11 +37,11 @@ function getRawBoolNode(ast: AstExtended) {
   return null
 }
 
-export const widgetConfig = defineWidget({
-  beforeOverride: false,
+export const widgetDefinition = defineWidget({
   priority: 10,
   match: (info) => {
-    if (getRawBoolNode(info.ast) != null) {
+    const ast = widgetAst(info.input)
+    if (ast && getRawBoolNode(ast) != null) {
       return Score.Perfect
     }
     return Score.Mismatch

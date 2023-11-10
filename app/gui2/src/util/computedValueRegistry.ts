@@ -18,16 +18,22 @@ export interface ExpressionInfo {
 
 /** This class holds the computed values that have been received from the language server. */
 export class ComputedValueRegistry {
-  public db: ReactiveDb<ExpressionId, ExpressionInfo>
+  public db: ReactiveDb<ExpressionId, ExpressionInfo> = new ReactiveDb()
   private _updateHandler = this.processUpdates.bind(this)
-  private executionContext
+  private executionContext: ExecutionContext | undefined
 
-  constructor(executionContext: ExecutionContext) {
+  private constructor() {
     markRaw(this)
-    this.executionContext = executionContext
-    this.db = new ReactiveDb()
+  }
 
-    executionContext.on('expressionUpdates', this._updateHandler)
+  static WithExecutionContext(executionContext: ExecutionContext): ComputedValueRegistry {
+    const self = new ComputedValueRegistry()
+    executionContext.on('expressionUpdates', self._updateHandler)
+    return self
+  }
+
+  static Mock(): ComputedValueRegistry {
+    return new ComputedValueRegistry()
   }
 
   processUpdates(updates: ExpressionUpdate[]) {
@@ -42,7 +48,7 @@ export class ComputedValueRegistry {
   }
 
   destroy() {
-    this.executionContext.off('expressionUpdates', this._updateHandler)
+    this.executionContext?.off('expressionUpdates', this._updateHandler)
   }
 }
 

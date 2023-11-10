@@ -1,53 +1,52 @@
 <script setup lang="ts">
 import { injectGraphNavigator } from '@/providers/graphNavigator.ts'
 import { injectGraphSelection } from '@/providers/graphSelection.ts'
-import type { Edge } from '@/stores/graph'
+import { useGraphStore, type Edge } from '@/stores/graph'
 import { assert } from '@/util/assert'
 import { Rect } from '@/util/rect'
 import { Vec2 } from '@/util/vec2'
 import { clamp } from '@vueuse/core'
-import type { ExprId } from 'shared/yjsModel'
 import { computed, ref } from 'vue'
 
 const selection = injectGraphSelection(true)
 const navigator = injectGraphNavigator(true)
+const graph = useGraphStore()
 
 const props = defineProps<{
   edge: Edge
-  nodeRects: Map<ExprId, Rect>
-  exprRects: Map<ExprId, Rect>
-  lookupExprNode: (exprId: ExprId) => ExprId | undefined
-  lookupNodeColor: (nodeId: ExprId) => string | undefined
-}>()
-
-const emit = defineEmits<{
-  disconnectSource: []
-  disconnectTarget: []
 }>()
 
 const base = ref<SVGPathElement>()
 
-const sourceNode = computed(
-  () =>
-    props.edge.source ??
-    (selection?.hoveredNode != (props.edge.target && props.lookupExprNode(props.edge.target))
-      ? selection?.hoveredNode
-      : undefined),
-)
+const sourceNode = computed(() => {
+  const setSource = props.edge.source
+  // When the source is not set (i.e. edge is dragged), use the currently hovered over expression
+  // as the source, as long as it is not from the same node as the target.
+  if (setSource == null && selection?.hoveredNode != null) {
+    const rawTargetNode = graph.db.getExpressionNodeId(props.edge.target)
+    if (selection.hoveredNode != rawTargetNode) return selection.hoveredNode
+  }
+  return setSource
+})
 
-const targetExpr = computed(
-  () =>
-    props.edge.target ??
-    (selection?.hoveredNode != props.edge.source ? selection?.hoveredExpr : undefined),
-)
-const targetNode = computed(() => targetExpr.value && props.lookupExprNode(targetExpr.value))
-const targetNodeRect = computed(() => targetNode.value && props.nodeRects.get(targetNode.value))
+const targetExpr = computed(() => {
+  const setTarget = props.edge.target
+  // When the target is not set (i.e. edge is dragged), use the currently hovered over expression
+  // as the target, as long as it is not from the same node as the source.
+  if (setTarget == null && selection?.hoveredNode != null) {
+    if (selection.hoveredNode != props.edge.source) return selection.hoveredPort
+  }
+  return setTarget
+})
+
+const targetNode = computed(() => graph.db.getExpressionNodeId(targetExpr.value))
+const targetNodeRect = computed(() => targetNode.value && graph.nodeRects.get(targetNode.value))
 
 const targetRect = computed<Rect | null>(() => {
   const expr = targetExpr.value
   if (expr != null) {
     if (targetNode.value == null) return null
-    const targetRectRelative = props.exprRects.get(expr)
+    const targetRectRelative = graph.exprRects.get(expr)
     if (targetRectRelative == null || targetNodeRect.value == null) return null
     return targetRectRelative.offsetBy(targetNodeRect.value.pos)
   } else if (navigator?.sceneMousePos != null) {
@@ -58,7 +57,7 @@ const targetRect = computed<Rect | null>(() => {
 })
 const sourceRect = computed<Rect | null>(() => {
   if (sourceNode.value != null) {
-    return props.nodeRects.get(sourceNode.value) ?? null
+    return graph.nodeRects.get(sourceNode.value) ?? null
   } else if (navigator?.sceneMousePos != null) {
     return new Rect(navigator.sceneMousePos, Vec2.Zero)
   } else {
@@ -66,12 +65,11 @@ const sourceRect = computed<Rect | null>(() => {
   }
 })
 
-const edgeColor = computed(() => {
-  return (
-    (targetNode.value && props.lookupNodeColor(targetNode.value)) ??
-    (sourceNode.value && props.lookupNodeColor(sourceNode.value))
-  )
-})
+const edgeColor = computed(
+  () =>
+    (targetNode.value && graph.db.getNodeColorStyle(targetNode.value)) ??
+    (sourceNode.value && graph.db.getNodeColorStyle(sourceNode.value)),
+)
 
 /** The inputs to the edge state computation. */
 type Inputs = {
@@ -80,11 +78,12 @@ type Inputs = {
   sourceSize: Vec2
   /** The width and height of the port that the edge is attached to, if any. */
   targetSize: Vec2
-  /** The coordinates of the node input port that is the edge's destination, relative to the source position.
-   *  The edge enters the port from above. */
+  /** The coordinates of the node input port that is the edge's destination, relative to the source
+   * position. The edge enters the port from above. */
   targetOffset: Vec2
-  /** The distance between the target port top edge and the target node top edge. */
-  targetPortDistance: number | undefined
+  /** The distance between the target port top edge and the target node top edge. It is undefined
+   *  when there is no clear target node set, e.g. when the edge is being dragged. */
+  targetPortTopDistanceInNode: number | undefined
 }
 
 type JunctionPoints = {
@@ -176,15 +175,15 @@ function junctionPoints(inputs: Inputs): JunctionPoints | null {
   // edge will begin.
   const sourceMaxXOffset = Math.max(halfSourceSize.x - NODE_CORNER_RADIUS, 0)
   const attachment =
-    inputs.targetPortDistance != null
+    inputs.targetPortTopDistanceInNode != null
       ? {
           target: inputs.targetOffset.add(new Vec2(0, inputs.targetSize.y * -0.5)),
-          length: inputs.targetPortDistance,
+          length: inputs.targetPortTopDistanceInNode,
         }
       : undefined
 
   const targetWellBelowSource =
-    inputs.targetOffset.y - (inputs.targetPortDistance ?? 0) >= MIN_APPROACH_HEIGHT
+    inputs.targetOffset.y - (inputs.targetPortTopDistanceInNode ?? 0) >= MIN_APPROACH_HEIGHT
   const targetBelowSource = inputs.targetOffset.y > NODE_HEIGHT / 2.0
   const targetBeyondSource = Math.abs(inputs.targetOffset.x) > sourceMaxXOffset
   const horizontalRoomFor3Corners =
@@ -234,8 +233,8 @@ function junctionPoints(inputs: Inputs): JunctionPoints | null {
     // The target attachment will extend as far toward the edge of the node as it can without
     // rising above the source.
     let attachmentHeight =
-      inputs.targetPortDistance != null
-        ? Math.min(inputs.targetPortDistance, Math.abs(inputs.targetOffset.y))
+      inputs.targetPortTopDistanceInNode != null
+        ? Math.min(inputs.targetPortTopDistanceInNode, Math.abs(inputs.targetOffset.y))
         : 0
     let attachmentY = inputs.targetOffset.y - attachmentHeight - inputs.targetSize.y / 2.0
     let targetAttachment = new Vec2(inputs.targetOffset.x, attachmentY)
@@ -281,7 +280,7 @@ function junctionPoints(inputs: Inputs): JunctionPoints | null {
       heightAdjustment = 0
     }
     if (j0x == null || j1x == null || heightAdjustment == null) return null
-    const attachmentHeight = inputs.targetPortDistance ?? 0
+    const attachmentHeight = inputs.targetPortTopDistanceInNode ?? 0
     const top = Math.min(
       inputs.targetOffset.y - MIN_APPROACH_HEIGHT - attachmentHeight + heightAdjustment,
       0,
@@ -370,7 +369,7 @@ const currentJunctionPoints = computed(() => {
     targetOffset: target.center().sub(source.center()),
     sourceSize: source.size,
     targetSize: target.size,
-    targetPortDistance: targetNode != null ? target.top - targetNode.top : undefined,
+    targetPortTopDistanceInNode: targetNode != null ? target.top - targetNode.top : undefined,
   }
   return junctionPoints(inputs)
 })
@@ -442,8 +441,8 @@ function click(_e: PointerEvent) {
   const length = base.value.getTotalLength()
   let offset = lengthTo(navigator?.sceneMousePos)
   if (offset == null) return {}
-  if (offset < length / 2) emit('disconnectTarget')
-  else emit('disconnectSource')
+  if (offset < length / 2) graph.disconnectTarget(props.edge)
+  else graph.disconnectSource(props.edge)
 }
 
 function arrowPosition(): Vec2 | undefined {

@@ -47,6 +47,10 @@ export class AstExtended<T extends Tree | Token = Tree | Token, HasIdMap extends
     return Tree.isInstance(this.inner) ? Tree.typeNames[this.inner.type] : null
   }
 
+  tokenTypeName(): (typeof Token.typeNames)[number] | null {
+    return Token.isInstance(this.inner) ? Token.typeNames[this.inner.type] : null
+  }
+
   isToken<T extends Ast.Token.Type>(
     type?: T,
   ): this is AstExtended<Extract<Ast.Token, { type: T }>, HasIdMap> {

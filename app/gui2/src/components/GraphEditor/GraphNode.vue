@@ -1,12 +1,10 @@
 <script setup lang="ts">
-import { nodeEditBindings } from '@/bindings'
 import CircularMenu from '@/components/CircularMenu.vue'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import NodeWidgetTree from '@/components/GraphEditor/NodeWidgetTree.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { useGraphStore, type Node } from '@/stores/graph'
-import { useProjectStore } from '@/stores/project'
 import { useApproach } from '@/util/animation'
 import { usePointer, useResizeObserver } from '@/util/events'
 import { methodNameToIcon, typeNameToIcon } from '@/util/getIconName'
@@ -58,8 +56,6 @@ const isAutoEvaluationDisabled = ref(false)
 const isDocsVisible = ref(false)
 const isVisualizationVisible = computed(() => props.node.vis?.visible ?? false)
 
-const projectStore = useProjectStore()
-
 watchEffect(() => {
   const size = nodeSize.value
   if (!size.isZero()) {
@@ -86,62 +82,6 @@ const transform = computed(() => {
   let pos = props.node.position
   return `translate(${pos.x}px, ${pos.y}px)`
 })
-
-function getRelatedSpanOffset(domNode: globalThis.Node, domOffset: number): number {
-  if (domNode instanceof HTMLElement && domOffset == 1) {
-    const offsetData = domNode.dataset.spanStart
-    const offset = (offsetData != null && parseInt(offsetData)) || 0
-    const length = domNode.textContent?.length ?? 0
-    return offset + length
-  } else if (domNode instanceof Text) {
-    const siblingEl = domNode.previousElementSibling
-    if (siblingEl instanceof HTMLElement) {
-      const offsetData = siblingEl.dataset.spanStart
-      if (offsetData != null)
-        return parseInt(offsetData) + domOffset + (siblingEl.textContent?.length ?? 0)
-    }
-    const offsetData = domNode.parentElement?.dataset.spanStart
-    if (offsetData != null) return parseInt(offsetData) + domOffset
-  }
-  return 0
-}
-
-const nodeEditHandler = nodeEditBindings.handler({
-  cancel(e) {
-    if (e.target instanceof HTMLElement) {
-      e.target.blur()
-    }
-  },
-  edit(e) {
-    const pos = 'clientX' in e ? new Vec2(e.clientX, e.clientY) : undefined
-    startEditingNode(pos)
-  },
-})
-
-function startEditingNode(position: Vec2 | undefined) {
-  let sourceOffset = 0
-  if (position != null) {
-    let domNode, domOffset
-    if ((document as any).caretPositionFromPoint) {
-      const range = document.caretPositionFromPoint(position.x, position.y)
-      domNode = range?.offsetNode
-      domOffset = range?.offset
-    } else if (document.caretRangeFromPoint) {
-      const range = document.caretRangeFromPoint(position.x, position.y)
-      domNode = range?.startContainer
-      domOffset = range?.startOffset
-    } else {
-      console.error(
-        'Neither caretPositionFromPoint nor caretRangeFromPoint are supported by this browser',
-      )
-    }
-    if (domNode != null && domOffset != null) {
-      sourceOffset = getRelatedSpanOffset(domNode, domOffset)
-    }
-  }
-
-  emit('update:edited', sourceOffset)
-}
 
 const startEpochMs = ref(0)
 let startEvent: PointerEvent | null = null
@@ -180,7 +120,7 @@ const expressionInfo = computed(() => graph.db.nodeExpressionInfo.lookup(nodeId.
 const outputTypeName = computed(() => expressionInfo.value?.typename ?? 'Unknown')
 const executionState = computed(() => expressionInfo.value?.payload.type ?? 'Unknown')
 const suggestionEntry = computed(() => graph.db.nodeMainSuggestion.lookup(nodeId.value))
-const color = computed(() => graph.db.getNodeColor(nodeId.value))
+const color = computed(() => graph.db.getNodeColorStyle(nodeId.value))
 const icon = computed(() => {
   if (suggestionEntry.value?.iconName) {
     return suggestionEntry.value.iconName
@@ -234,14 +174,8 @@ const icon = computed(() => {
       @setVisualizationVisible="emit('setVisualizationVisible', $event)"
     />
     <div class="node" v-on="dragPointer.events">
-      <SvgIcon class="icon grab-handle" :name="icon"></SvgIcon
-      ><span
-        spellcheck="false"
-        class="treeRoot"
-        @pointerdown.capture="nodeEditHandler"
-        @blur="projectStore.stopCapturingUndo()"
-        ><NodeWidgetTree :ast="node.rootSpan"
-      /></span>
+      <SvgIcon class="icon grab-handle" :name="icon"></SvgIcon>
+      <NodeWidgetTree :ast="node.rootSpan" @update:edited="emit('update:edited', $event)" />
     </div>
     <svg class="bgPaths" :style="bgStyleVariables">
       <rect class="bgFill" />
@@ -446,40 +380,6 @@ const icon = computed(() => {
 .grab-handle {
   color: white;
   margin: 0 4px;
-}
-
-.treeRoot {
-  margin: 0 4px;
-  color: white;
-
-  /*
-   * NOTE(PG): The following monstrosity selectors attempt to detect a recursively first of last
-   * node element that declares a certain circle radius it naturally follows. That way we can adjust
-   * the node margins to make sure that the node and element radius circles are nicely concentric.
-   * Unfortunately is a depth limit to this detection due to how this selector is written. There is
-   * probably a better way to do this, but I'm out of ideas for now.
-   * 
-   * So far only "radius 24px" is implemented, but more can be added as needed.
-   */
-  &:has(
-      > :first-child.r-24,
-      > :first-child > :first-child.r-24,
-      > :first-child > :first-child > :first-child.r-24,
-      > :first-child > :first-child > :first-child > :first-child.r-24,
-      > :first-child > :first-child > :first-child > :first-child > :first-child.r-24
-    ) {
-    margin-left: 0px;
-  }
-
-  &:has(
-      > :last-child.r-24,
-      > :last-child > :last-child.r-24,
-      > :last-child > :last-child > :last-child.r-24,
-      > :last-child > :last-child > :last-child > :last-child.r-24,
-      > :last-child > :last-child > :last-child > :last-child > :last-child.r-24
-    ) {
-    margin-right: 0px;
-  }
 }
 
 .CircularMenu {

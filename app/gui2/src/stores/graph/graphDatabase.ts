@@ -1,18 +1,20 @@
-import type { Group, SuggestionDb } from '@/stores/suggestionDatabase'
+import { SuggestionDb, groupColorStyle, type Group } from '@/stores/suggestionDatabase'
+import { tryGetIndex } from '@/util/array'
 import { Ast, AstExtended } from '@/util/ast'
 import { colorFromString } from '@/util/colors'
-import type { ComputedValueRegistry } from '@/util/computedValueRegistry'
+import { ComputedValueRegistry } from '@/util/computedValueRegistry'
 import { ReactiveDb, ReactiveIndex, ReactiveMapping } from '@/util/database/reactiveDb'
 import type { Opt } from '@/util/opt'
 import { qnJoin, tryQualifiedName } from '@/util/qualifiedName'
 import { Vec2 } from '@/util/vec2'
+import * as set from 'lib0/set'
 import {
   visMetadataEquals,
   type ExprId,
   type NodeMetadata,
   type VisualizationMetadata,
 } from 'shared/yjsModel'
-import type { Ref } from 'vue'
+import { ref, type Ref } from 'vue'
 
 export class GraphDb {
   nodes = new ReactiveDb<ExprId, Node>()
@@ -27,7 +29,7 @@ export class GraphDb {
     })
     return idents
   })
-  nodeExpressions = new ReactiveIndex(this.nodes, (id, entry) => {
+  private nodeExpressions = new ReactiveIndex(this.nodes, (id, entry) => {
     const exprs = new Set<ExprId>()
     for (const ast of entry.rootSpan.walkRecursive()) {
       exprs.add(ast.astId)
@@ -57,11 +59,14 @@ export class GraphDb {
     if (suggestionId == null) return
     return this.suggestionDb.get(suggestionId)
   })
-  nodeVisuals = new ReactiveMapping(this.nodes, (id, _entry) => {
+  private nodeColors = new ReactiveMapping(this.nodes, (id, _entry) => {
     const index = this.nodeMainSuggestion.lookup(id)?.groupIndex
-    return index
-      ? `var(--group-color-${this.groups.value[index]?.name})`
-      : colorFromString(this.nodeExpressionInfo.lookup(id)?.typename ?? 'Unknown')
+    const group = tryGetIndex(this.groups.value, index)
+    if (group == null) {
+      const typename = this.nodeExpressionInfo.lookup(id)?.typename
+      return typename ? colorFromString(typename) : 'var(--node-color-no-type)'
+    }
+    return groupColorStyle(group)
   })
 
   getNode(id: ExprId): Node | undefined {
@@ -76,8 +81,12 @@ export class GraphDb {
     return this.nodes.keys()
   }
 
-  getNodeColor(id: ExprId): string | undefined {
-    return this.nodeVisuals.lookup(id)
+  getExpressionNodeId(exprId: ExprId | undefined): ExprId | undefined {
+    return exprId && set.first(this.nodeExpressions.reverseLookup(exprId))
+  }
+
+  getNodeColorStyle(id: ExprId): string {
+    return (id && this.nodeColors.lookup(id)) ?? 'var(--node-color-no-type)'
   }
 
   moveNodeToTop(id: ExprId) {
@@ -136,6 +145,10 @@ export class GraphDb {
     private groups: Ref<Group[]>,
     private valuesRegistry: ComputedValueRegistry,
   ) {}
+
+  static Mock(): GraphDb {
+    return new GraphDb(new SuggestionDb(), ref([]), ComputedValueRegistry.Mock())
+  }
 }
 
 export interface Node {

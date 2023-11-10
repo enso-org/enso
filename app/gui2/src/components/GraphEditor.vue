@@ -6,13 +6,13 @@ import { Uploader, uploadedExpression } from '@/components/GraphEditor/upload'
 import TopBar from '@/components/TopBar.vue'
 import { provideGraphNavigator } from '@/providers/graphNavigator'
 import { provideGraphSelection } from '@/providers/graphSelection'
+import { provideInteractionHandler, type Interaction } from '@/providers/interactionHandler'
 import { provideWidgetRegistry } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
-import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
+import { groupColorVar, useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { colorFromString } from '@/util/colors'
 import { keyboardBusy, keyboardBusyExceptIn, useEvent } from '@/util/events'
-import { Interaction } from '@/util/interaction'
 import { Vec2 } from '@/util/vec2'
 import * as set from 'lib0/set'
 import type { ExprId } from 'shared/yjsModel.ts'
@@ -26,12 +26,14 @@ const EXECUTION_MODES = ['design', 'live']
 const viewportNode = ref<HTMLElement>()
 const navigator = provideGraphNavigator(viewportNode)
 const graphStore = useGraphStore()
-const _ = provideWidgetRegistry(graphStore.db)
+const widgetRegistry = provideWidgetRegistry(graphStore.db)
+widgetRegistry.loadBuiltins()
 const projectStore = useProjectStore()
 const componentBrowserVisible = ref(false)
 const componentBrowserInputContent = ref('')
 const componentBrowserPosition = ref(Vec2.Zero)
 const suggestionDb = useSuggestionDbStore()
+const interaction = provideInteractionHandler()
 
 const nodeSelection = provideGraphSelection(navigator, graphStore.nodeRects, {
   onSelected(id) {
@@ -39,9 +41,15 @@ const nodeSelection = provideGraphSelection(navigator, graphStore.nodeRects, {
   },
 })
 
+const interactionBindingsHandler = interactionBindings.handler({
+  cancel: () => interaction.handleCancel(),
+  click: (e) => (e instanceof MouseEvent ? interaction.handleClick(e) : false),
+})
+
 useEvent(window, 'keydown', (event) => {
   interactionBindingsHandler(event) || graphBindingsHandler(event) || codeEditorHandler(event)
 })
+useEvent(window, 'pointerdown', interactionBindingsHandler, { capture: true })
 
 onMounted(() => viewportNode.value?.focus())
 
@@ -79,6 +87,7 @@ const graphBindingsHandler = graphBindings.handler({
   },
   deselectAll() {
     nodeSelection.deselectAll()
+    console.log('deselectAll')
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur()
     }
@@ -107,17 +116,6 @@ const codeEditorHandler = codeEditorBindings.handler({
   },
 })
 
-const interactionBindingsHandler = interactionBindings.handler({
-  cancel() {
-    cancelCurrentInteraction()
-  },
-  click(e) {
-    if (e instanceof MouseEvent) return currentInteraction.value?.click(e) ?? false
-    return false
-  },
-})
-useEvent(window, 'pointerdown', interactionBindingsHandler, { capture: true })
-
 /// Track play button presses.
 function onPlayButtonPress() {
   projectStore.lsRpcConnection.then(async () => {
@@ -140,43 +138,15 @@ watch(
 const groupColors = computed(() => {
   const styles: { [key: string]: string } = {}
   for (let group of suggestionDb.groups) {
-    const name = group.name.replace(/\s/g, '-')
-    let color = group.color ?? colorFromString(name)
-    styles[`--group-color-${name}`] = color
+    styles[groupColorVar(group)] = group.color ?? colorFromString(group.name.replace(/\w/g, '-'))
   }
   return styles
 })
 
-const currentInteraction = ref<Interaction>()
-class EditingNode extends Interaction {
-  cancel() {
-    componentBrowserVisible.value = false
-  }
+const editingNode: Interaction = {
+  cancel: () => (componentBrowserVisible.value = false),
 }
-const editingNode = new EditingNode()
-
-function setCurrentInteraction(interaction: Interaction | undefined) {
-  if (currentInteraction.value?.id === interaction?.id) return
-  currentInteraction.value?.cancel()
-  currentInteraction.value = interaction
-}
-
-function cancelCurrentInteraction() {
-  setCurrentInteraction(undefined)
-}
-
-/** Unset the current interaction, if it is the specified instance. */
-function interactionEnded(interaction: Interaction) {
-  if (currentInteraction.value?.id === interaction?.id) currentInteraction.value = undefined
-}
-
-watch(componentBrowserVisible, (visible) => {
-  if (visible) {
-    setCurrentInteraction(editingNode)
-  } else {
-    interactionEnded(editingNode)
-  }
-})
+interaction.setWhen(componentBrowserVisible, editingNode)
 
 async function handleFileDrop(event: DragEvent) {
   try {
@@ -260,7 +230,7 @@ const breadcrumbs = computed(() => {
     @drop.prevent="handleFileDrop($event)"
   >
     <svg :viewBox="navigator.viewBox">
-      <GraphEdges @startInteraction="setCurrentInteraction" @endInteraction="interactionEnded" />
+      <GraphEdges />
     </svg>
     <div :style="{ transform: navigator.transform }" class="htmlLayer">
       <GraphNodes />
@@ -300,6 +270,7 @@ const breadcrumbs = computed(() => {
   overflow: clip;
   cursor: none;
   --group-color-fallback: #006b8a;
+  --node-color-no-type: #596b81;
 }
 
 svg {

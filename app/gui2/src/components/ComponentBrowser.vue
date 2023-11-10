@@ -7,9 +7,10 @@ import { default as DocumentationPanel } from '@/components/DocumentationPanel.v
 import SvgIcon from '@/components/SvgIcon.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
 import { useProjectStore } from '@/stores/project'
-import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
+import { groupColorStyle, useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import { useApproach } from '@/util/animation'
+import { tryGetIndex } from '@/util/array'
 import { useEvent, useResizeObserver } from '@/util/events'
 import type { useNavigator } from '@/util/navigator'
 import type { Opt } from '@/util/opt'
@@ -160,13 +161,7 @@ function componentStyle(index: number) {
  * Group colors are populated in `GraphEditor`, and for each group in suggestion database a CSS variable is created.
  */
 function componentColor(component: Component): string {
-  const group = suggestionDbStore.groups[component.group ?? -1]
-  if (group) {
-    const name = group.name.replace(/\s/g, '-')
-    return `var(--group-color-${name})`
-  } else {
-    return 'var(--group-color-fallback)'
-  }
+  return groupColorStyle(tryGetIndex(suggestionDbStore.groups, component.group))
 }
 
 // === Highlight ===

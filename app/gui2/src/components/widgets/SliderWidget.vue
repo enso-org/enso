@@ -33,7 +33,6 @@ const inputValue = computed({
   },
   set(value) {
     if (typeof value === 'string') {
-      console.log(value, '->', toNumericOnly(value))
       value = parseFloat(toNumericOnly(value))
     }
     if (typeof value === 'number' && !isNaN(value)) {

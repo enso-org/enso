@@ -1,15 +1,14 @@
 <script setup lang="ts">
-import { Score, defineWidget } from '@/providers/widgetRegistry'
-import { Ast, type AstExtended } from '@/util/ast'
-
-const _props = defineProps<{ ast: AstExtended }>()
+import { Score, defineWidget, widgetAst, type WidgetProps } from '@/providers/widgetRegistry'
+import { Ast } from '@/util/ast'
+const _props = defineProps<WidgetProps>()
 </script>
 
 <script lang="ts">
-export const widgetConfig = defineWidget({
-  beforeOverride: false,
+export const widgetDefinition = defineWidget({
   priority: 10,
-  match: (info) => (info.ast.isToken(Ast.Token.Type.Wildcard) ? Score.Good : Score.Mismatch),
+  match: (props) =>
+    widgetAst(props.input)?.isToken(Ast.Token.Type.Wildcard) ? Score.Good : Score.Mismatch,
 })
 </script>
 

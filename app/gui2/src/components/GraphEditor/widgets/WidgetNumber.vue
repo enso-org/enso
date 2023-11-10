@@ -1,35 +1,36 @@
 <script setup lang="ts">
 import SliderWidget from '@/components/widgets/SliderWidget.vue'
 import { Tree } from '@/generated/ast'
-import { Score, defineWidget } from '@/providers/widgetRegistry'
+import { Score, defineWidget, widgetAst, type WidgetProps } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
-import { type AstExtended } from '@/util/ast'
 import { computed } from 'vue'
 
-const props = defineProps<{ ast: AstExtended }>()
+const props = defineProps<WidgetProps>()
 const graph = useGraphStore()
 const value = computed({
   get() {
-    return parseFloat(props.ast.repr())
+    return parseFloat(widgetAst(props.input)?.repr() ?? '')
   },
   set(value) {
-    graph.setExpressionContent(props.ast.astId, value.toString())
+    const id = widgetAst(props.input)?.astId
+    if (id) graph.setExpressionContent(id, value.toString())
   },
 })
 </script>
 <script lang="ts">
-export const widgetConfig = defineWidget({
-  beforeOverride: false,
+export const widgetDefinition = defineWidget({
   priority: 10,
   match: (info) => {
-    if (info.ast.isTree(Tree.Type.UnaryOprApp)) {
+    const ast = widgetAst(info.input)
+    if (!ast) return Score.Mismatch
+    if (ast.isTree(Tree.Type.UnaryOprApp)) {
       if (
-        info.ast.map((t) => t.opr).repr() === '-' &&
-        info.ast.tryMap((t) => t.rhs)?.isTree(Tree.Type.Number)
+        ast.map((t) => t.opr).repr() === '-' &&
+        ast.tryMap((t) => t.rhs)?.isTree(Tree.Type.Number)
       ) {
         return Score.Perfect
       }
-    } else if (info.ast.isTree(Tree.Type.Number)) {
+    } else if (ast.isTree(Tree.Type.Number)) {
       return Score.Perfect
     }
     return Score.Mismatch

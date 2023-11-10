@@ -7,7 +7,6 @@ import * as Y from 'yjs'
 export type Uuid = `${string}-${string}-${string}-${string}-${string}`
 declare const brandExprId: unique symbol
 export type ExprId = Uuid & { [brandExprId]: never }
-export const NULL_EXPR_ID: ExprId = '00000000-0000-0000-0000-000000000000' as ExprId
 
 export type VisualizationModule =
   | { kind: 'Builtin' }
@@ -237,6 +236,13 @@ export class IdMap {
     })
 
     this.finished = false
+  }
+
+  static Mock(): IdMap {
+    const doc = new Y.Doc()
+    const map = doc.getMap<Uint8Array>('idMap')
+    const text = doc.getText('contents')
+    return new IdMap(map, text)
   }
 
   private static keyForRange(range: readonly [number, number]): string {

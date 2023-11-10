@@ -1,28 +1,18 @@
-import type { AstExtended } from '@/util/ast'
-import { computed, proxyRefs, type Ref } from 'vue'
+import { identity } from '@vueuse/core'
 import { createContextStore } from '.'
-import type { WidgetComponent } from './widgetRegistry'
+import type { WidgetComponent, WidgetInput } from './widgetRegistry'
 
 export { injectFn as injectWidgetUsageInfo, provideFn as provideWidgetUsageInfo }
-const { provideFn, injectFn } = createContextStore(
-  'Widget usage info',
-  (
-    parentInfo: WidgetUsageInfo | undefined,
-    ast: Ref<AstExtended>,
-    selectedComponent: Ref<WidgetComponent | undefined>,
-  ): WidgetUsageInfo => {
-    return proxyRefs({
-      ast,
-      set: computed(() => {
-        const set = new Set(parentInfo && parentInfo.ast === ast.value ? parentInfo.set : undefined)
-        if (selectedComponent.value != null) set.add(selectedComponent.value)
-        return set
-      }),
-    })
-  },
-)
+const { provideFn, injectFn } = createContextStore('Widget usage info', identity<WidgetUsageInfo>)
 
+/**
+ * Information about the created widget used that can be accessed in its child views. This is used
+ * during widget selection to prevent the same widget type from being rendered multiple times on the
+ * same AST node.
+ */
 interface WidgetUsageInfo {
-  ast: AstExtended
-  set: Set<WidgetComponent>
+  input: WidgetInput
+  /** All widget types that were rendered so far using the same AST node. */
+  previouslyUsed: Set<WidgetComponent>
+  nesting: number
 }

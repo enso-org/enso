@@ -29,8 +29,8 @@ export class SuggestionDb {
   set(id: SuggestionId, entry: SuggestionEntry): void {
     this._internal.set(id, entry)
   }
-  get(id: SuggestionId): SuggestionEntry | undefined {
-    return this._internal.get(id)
+  get(id: SuggestionId | null | undefined): SuggestionEntry | undefined {
+    return id != null ? this._internal.get(id) : undefined
   }
   delete(id: SuggestionId): boolean {
     return this._internal.delete(id)
@@ -44,6 +44,19 @@ export interface Group {
   color?: string
   name: string
   project: QualifiedName
+}
+
+export function groupColorVar(group: Group | undefined): string {
+  if (group) {
+    const name = group.name.replace(/\s/g, '-')
+    return `--group-color-${name}`
+  } else {
+    return '--group-color-fallback'
+  }
+}
+
+export function groupColorStyle(group: Group | undefined): string {
+  return `var(${groupColorVar(group)})`
 }
 
 class Synchronizer {
