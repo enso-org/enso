@@ -14,7 +14,8 @@ trait Exec[-F[_, _]] {
 
   /** Execute Zio effect.
     *
-    * @param op effect to execute
+    * @param op    effect to execute
+    * @param trace object prevents the library from messing up the user's execution trace
     * @return a future containing either a failure or a result
     */
   def exec[E, A](op: F[E, A])(implicit trace: Trace): Future[Either[E, A]]
@@ -22,8 +23,10 @@ trait Exec[-F[_, _]] {
   /** Execute Zio effect with timeout.
     *
     * @param timeout execution timeout
-    * @param op effect to execute
-    * @return a future
+    * @param op      effect to execute
+    * @param trace   object prevents the library from messing up the user's execution trace
+    * @return a future. On timeout future is failed with `TimeoutException`.
+    *         Otherwise future contains either a failure or a result.
     */
   def execTimed[E, A](
     timeout: FiniteDuration,
@@ -32,9 +35,19 @@ trait Exec[-F[_, _]] {
 
   /** Execute long running task in background.
     *
-    * @param op effect to execute
+    * @param op    effect to execute
+    * @param trace object prevents the library from messing up the user's execution trace
     */
   def exec_[E <: Throwable, A](op: F[E, A])(implicit trace: Trace): Unit
+
+  /** Execute long running task in background.
+    *
+    * @param op    effect to execute with the explicit executor
+    * @param trace object prevents the library from messing up the user's execution trace
+    */
+  def exec__[E <: Throwable, A](op: Executor => F[E, A])(implicit
+    trace: Trace
+  ): Unit
 }
 
 /** Executor of Zio effects.
@@ -43,12 +56,7 @@ trait Exec[-F[_, _]] {
   */
 case class ZioExec(runtime: effect.Runtime) extends Exec[ZioExec.IO] {
 
-  /** Execute Zio effect.
-    *
-    * @param op effect to execute
-    * @param trace object prevents the library from messing up the user's execution trace
-    * @return a future containing either a failure or a result
-    */
+  /** @inheritdoc */
   override def exec[E, A](
     op: ZIO[ZAny, E, A]
   )(implicit trace: Trace): Future[Either[E, A]] =
@@ -63,14 +71,7 @@ case class ZioExec(runtime: effect.Runtime) extends Exec[ZioExec.IO] {
       promise.future
     }
 
-  /** Execute Zio effect with timeout.
-    *
-    * @param timeout execution timeout
-    * @param op effect to execute
-    * @param trace object prevents the library from messing up the user's execution trace
-    * @return a future. On timeout future is failed with `TimeoutException`.
-    * Otherwise future contains either a failure or a result.
-    */
+  /** @inheritdoc */
   override def execTimed[E, A](
     timeout: FiniteDuration,
     op: ZIO[ZAny, E, A]
@@ -90,16 +91,22 @@ case class ZioExec(runtime: effect.Runtime) extends Exec[ZioExec.IO] {
       promise.future
     }
 
-  /** Execute long running task in background.
-    *
-    * @param op effect to execute
-    * @param trace object prevents the library from messing up the user's execution trace
-    */
+  /** @inheritdoc */
   override def exec_[E <: Throwable, A](
     op: ZIO[ZAny, E, A]
   )(implicit trace: Trace): Unit =
     zio.Unsafe.unsafe { implicit unsafe =>
       runtime.instance.unsafe.fork(ZIO.blocking(op))
+    }
+
+  /** @inheritdoc */
+  override def exec__[E <: Throwable, A](
+    op: Executor => ZioExec.IO[E, A]
+  )(implicit trace: Trace): Unit =
+    zio.Unsafe.unsafe { implicit unsafe =>
+      runtime.instance.unsafe.fork(
+        ZIO.blockingExecutor.flatMap(ec => op(ec).onExecutor(ec))
+      )
     }
 }
 

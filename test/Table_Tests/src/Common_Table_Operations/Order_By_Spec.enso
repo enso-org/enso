@@ -198,10 +198,11 @@ spec setup =
             t4.at "alpha" . to_vector . should_equal [1, 3, 0, 2]
             t4.at "gamma" . to_vector . should_equal [3, 1, 4, 2]
 
-        Test.specify "should deal with real numbers" <|
+        Test.specify "should deal with real numbers, and not warn when ordering by floats" <|
             t1 = table.order_by ["tau"]
             t1.at "tau" . to_vector . should_equal [-0.1, 0.5, 1.6, 32.0]
             t1.at "alpha" . to_vector . should_equal [1, 2, 0, 3]
+            Problems.assume_no_problems t1
 
         Test.specify "should deal with nulls" <|
             t1 = table.order_by ["xi"]

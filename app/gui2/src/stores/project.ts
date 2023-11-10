@@ -455,7 +455,6 @@ export const useProjectStore = defineStore('project', () => {
   })
   const modulePath = computed(() => {
     const filePath = observedFileName.value
-    console.log(filePath)
     if (filePath == null) return undefined
     const withoutFileExt = filePath.replace(/\.enso$/, '')
     const withDotSeparators = withoutFileExt.replace(/\//g, '.')

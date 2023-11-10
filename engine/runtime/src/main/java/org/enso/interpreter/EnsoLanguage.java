@@ -243,6 +243,7 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
           false,
           false,
           true,
+          true,
           scala.Option.apply(new PrintStream(outputRedirect))
       );
       var moduleContext = new ModuleContext(

@@ -10,37 +10,32 @@ import { LanguageServer } from 'shared/languageServer'
 import { reactive, ref, type Ref } from 'vue'
 
 export class SuggestionDb {
-  internal: ReactiveDb<SuggestionId, SuggestionEntry>
-  public nameToId: ReactiveIndex<SuggestionId, SuggestionEntry, QualifiedName, SuggestionId>
-  public parent: ReactiveIndex<SuggestionId, SuggestionEntry, SuggestionId, SuggestionId>
-  constructor() {
-    this.internal = new ReactiveDb()
-    this.nameToId = new ReactiveIndex(this.internal, (id, entry) => [[entryQn(entry), id]])
-    this.parent = new ReactiveIndex(this.internal, (id, entry) => {
-      let qualifiedName: Opt<QualifiedName>
-      if (entry.memberOf) {
-        qualifiedName = entry.memberOf
-      } else {
-        qualifiedName = qnParent(entryQn(entry))
-      }
-      if (qualifiedName) {
-        const parents = Array.from(this.nameToId.lookup(qualifiedName))
-        return parents.map((p) => [id, p])
-      }
-      return []
-    })
-  }
+  _internal = new ReactiveDb<SuggestionId, SuggestionEntry>()
+  nameToId = new ReactiveIndex(this._internal, (id, entry) => [[entryQn(entry), id]])
+  parent = new ReactiveIndex(this._internal, (id, entry) => {
+    let qualifiedName: Opt<QualifiedName>
+    if (entry.memberOf) {
+      qualifiedName = entry.memberOf
+    } else {
+      qualifiedName = qnParent(entryQn(entry))
+    }
+    if (qualifiedName) {
+      const parents = Array.from(this.nameToId.lookup(qualifiedName))
+      return parents.map((p) => [id, p])
+    }
+    return []
+  })
   set(id: SuggestionId, entry: SuggestionEntry): void {
-    this.internal.set(id, reactive(entry))
+    this._internal.set(id, reactive(entry))
   }
   get(id: SuggestionId): SuggestionEntry | undefined {
-    return this.internal.get(id)
+    return this._internal.get(id)
   }
   delete(id: SuggestionId): boolean {
-    return this.internal.delete(id)
+    return this._internal.delete(id)
   }
   entries(): IterableIterator<[SuggestionId, SuggestionEntry]> {
-    return this.internal.entries()
+    return this._internal.entries()
   }
 }
 
@@ -51,14 +46,12 @@ export interface Group {
 }
 
 class Synchronizer {
-  entries: SuggestionDb
-  groups: Ref<Group[]>
   queue: AsyncQueue<{ currentVersion: number }>
 
-  constructor(entries: SuggestionDb, groups: Ref<Group[]>) {
-    this.entries = entries
-    this.groups = groups
-
+  constructor(
+    public entries: SuggestionDb,
+    public groups: Ref<Group[]>,
+  ) {
     const projectStore = useProjectStore()
     const initState = projectStore.lsRpcConnection.then(async (lsRpc) => {
       await rpcWithRetries(() =>
@@ -120,7 +113,6 @@ class Synchronizer {
 export const useSuggestionDbStore = defineStore('suggestionDatabase', () => {
   const entries = new SuggestionDb()
   const groups = ref<Group[]>([])
-
-  const synchronizer = new Synchronizer(entries, groups)
-  return { entries, groups, _synchronizer: synchronizer }
+  const _synchronizer = new Synchronizer(entries, groups)
+  return { entries, groups, _synchronizer }
 })

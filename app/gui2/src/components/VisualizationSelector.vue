@@ -3,7 +3,7 @@ import { visIdentifierEquals, type VisualizationIdentifier } from 'shared/yjsMod
 import { onMounted, ref } from 'vue'
 
 const props = defineProps<{
-  types: readonly VisualizationIdentifier[]
+  types: Iterable<VisualizationIdentifier>
   modelValue: VisualizationIdentifier
 }>()
 const emit = defineEmits<{ hide: []; 'update:modelValue': [type: VisualizationIdentifier] }>()

@@ -127,8 +127,11 @@ export class DistributedModule {
     this.undoManager = new Y.UndoManager([this.doc.contents, this.doc.idMap, this.doc.metadata])
   }
 
-  insertNewNode(offset: number, content: string, meta: NodeMetadata): ExprId {
-    const range = [offset, offset + content.length] as const
+  insertNewNode(offset: number, pattern: string, expression: string, meta: NodeMetadata): ExprId {
+    // Spaces at the beginning are needed to place the new node in scope of the `main` function with proper indentation.
+    const lhs = `    ${pattern} = `
+    const content = lhs + expression
+    const range = [offset + lhs.length, offset + content.length] as const
     const newId = random.uuidv4() as ExprId
     this.transact(() => {
       this.doc.contents.insert(offset, content + '\n')
@@ -233,11 +236,11 @@ export class IdMap {
     this.finished = false
   }
 
-  private static keyForRange(range: readonly [number, number]): string {
+  public static keyForRange(range: readonly [number, number]): string {
     return `${range[0].toString(16)}:${range[1].toString(16)}`
   }
 
-  private static rangeForKey(key: string): [number, number] {
+  public static rangeForKey(key: string): [number, number] {
     return key.split(':').map((x) => parseInt(x, 16)) as [number, number]
   }
 
@@ -357,6 +360,7 @@ export function isUuid(x: unknown): x is Uuid {
   return typeof x === 'string' && x.length === 36 && uuidRegex.test(x)
 }
 
+/** A range represented as start and end indices. */
 export type ContentRange = [number, number]
 
 export function rangeEncloses(a: ContentRange, b: ContentRange): boolean {
@@ -365,6 +369,11 @@ export function rangeEncloses(a: ContentRange, b: ContentRange): boolean {
 
 export function rangeIntersects(a: ContentRange, b: ContentRange): boolean {
   return a[0] <= b[1] && a[1] >= b[0]
+}
+
+/** Whether the given range is before the other range. */
+export function rangeIsBefore(a: ContentRange, b: ContentRange): boolean {
+  return a[1] <= b[0]
 }
 
 if (import.meta.vitest) {

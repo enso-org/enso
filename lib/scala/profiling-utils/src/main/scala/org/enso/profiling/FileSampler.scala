@@ -3,7 +3,7 @@ package org.enso.profiling
 import org.netbeans.modules.sampler.Sampler
 
 import java.io.{DataOutputStream, File, FileOutputStream}
-import java.util.concurrent.{CompletableFuture, Executor, Executors}
+import java.util.concurrent.{CompletableFuture, Executor}
 
 import scala.concurrent.duration.FiniteDuration
 import scala.util.Using
@@ -41,15 +41,8 @@ final class FileSampler(output: File) extends MethodsSampler {
   /** @inheritdoc */
   def stop(delay: FiniteDuration)(implicit ec: Executor): Unit =
     this.synchronized {
-      val executor = Executors.newSingleThreadScheduledExecutor()
-
-      CompletableFuture
-        .runAsync(
-          { () =>
-            executor.schedule[Unit](() => this.stop(), delay.length, delay.unit)
-          }: Runnable,
-          ec
-        )
-        .whenComplete((_, _) => executor.shutdown())
+      val delayedExecutor =
+        CompletableFuture.delayedExecutor(delay.length, delay.unit, ec)
+      CompletableFuture.supplyAsync(() => this.stop(), delayedExecutor)
     }
 }

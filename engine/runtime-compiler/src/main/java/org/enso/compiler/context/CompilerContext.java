@@ -28,6 +28,8 @@ import org.enso.polyglot.data.TypeGraph;
 public interface CompilerContext {
   boolean isIrCachingDisabled();
 
+  boolean isPrivateCheckDisabled();
+
   boolean isUseGlobalCacheLocations();
 
   boolean isInteractiveMode();

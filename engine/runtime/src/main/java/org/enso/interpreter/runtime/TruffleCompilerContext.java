@@ -55,6 +55,11 @@ final class TruffleCompilerContext implements CompilerContext {
   }
 
   @Override
+  public boolean isPrivateCheckDisabled() {
+    return context.isPrivateCheckDisabled();
+  }
+
+  @Override
   public boolean isUseGlobalCacheLocations() {
     return context.isUseGlobalCache();
   }
@@ -330,7 +335,7 @@ final class TruffleCompilerContext implements CompilerContext {
     public void close() {
       if (map != null) {
         if (module.bindings != null) {
-          loggerCompiler.log(Level.FINE, "Reassigining bindings to {0}", module);
+          loggerCompiler.log(Level.FINEST, "Reassigining bindings to {0}", module);
         }
         module.bindings = map;
       }
