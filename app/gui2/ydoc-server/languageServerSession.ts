@@ -1,17 +1,10 @@
 import { Client, RequestManager, WebSocketTransport } from '@open-rpc/client-js'
-import { ECDH } from 'crypto'
 import { simpleDiffString } from 'lib0/diff'
 import * as map from 'lib0/map'
 import { ObservableV2 } from 'lib0/observable'
 import * as random from 'lib0/random'
 import * as Y from 'yjs'
-import {
-  ErrorCode,
-  LanguageServer,
-  LsRpcError,
-  RemoteRpcError,
-  computeTextChecksum,
-} from '../shared/languageServer'
+import { LanguageServer, computeTextChecksum } from '../shared/languageServer'
 import { Checksum, Path } from '../shared/languageServerTypes'
 import {
   DistributedProject,

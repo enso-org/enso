@@ -118,9 +118,7 @@ export class ReactiveDb<K, V> extends ObservableV2<{
 
   /**
    * Moves an entry to the bottom of the database, making it the last entry in the iteration order
-   * of `entries()`. Does not trigger any observers that track any particular entry, only the order
-   * of iteration. Does not trigger add or delete events.
-   *
+   * of `entries()`.
    */
   moveToLast(id: K) {
     const value = this._internal.get(id)
@@ -128,9 +126,6 @@ export class ReactiveDb<K, V> extends ObservableV2<{
       this._internal.delete(id)
       this._internal.set(id, value)
     }
-    // // Trigger deps that track iteration order of the entire map, but nothing else. Triggering a
-    // // delete operation without specifying any specific key does exactly that.
-    // if (value != null) trigger(this.internal, 'delete' as TriggerOpTypes.DELETE)
   }
 }
 
@@ -271,10 +266,10 @@ export class ReactiveIndex<K, V, IK, IV> {
 export type Mapper<K, V, IV> = (key: K, value: V) => IV | undefined
 
 /**
- * Provides automatic indexing for a `ReactiveDb` instance. Allows only one value per key. It can be
- * thought of as a collection of `computed` values per each key in the `ReactiveDb`. The mapping is
- * automatically updated when any of its dependencies change, and is properly cleaned up when any
- * key is removed from {@link ReactiveDb}. Only accessed keys are ever actually computed.
+ * A one-to-one mapping for values in a  {@link ReactiveDb} instance. Allows only one value per key.
+ * It can be thought of as a collection of `computed` values per each key in the `ReactiveDb`. The
+ * mapping is automatically updated when any of its dependencies change, and is properly cleaned up
+ * when any key is removed from {@link ReactiveDb}. Only accessed keys are ever actually computed.
  *
  * @typeParam K - The key type of the ReactiveDb.
  * @typeParam V - The value type of the ReactiveDb.
