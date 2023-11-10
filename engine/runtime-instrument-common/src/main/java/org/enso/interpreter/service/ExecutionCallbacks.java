@@ -1,9 +1,6 @@
 package org.enso.interpreter.service;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.frame.MaterializedFrame;
-import com.oracle.truffle.api.interop.TruffleObject;
-import com.oracle.truffle.api.nodes.Node;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -15,16 +12,10 @@ import org.enso.interpreter.instrument.Visualization;
 import org.enso.interpreter.instrument.VisualizationHolder;
 import org.enso.interpreter.instrument.profiling.ExecutionTime;
 import org.enso.interpreter.instrument.profiling.ProfilingInfo;
-import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.node.expression.builtin.meta.TypeOfNode;
-import org.enso.interpreter.node.expression.debug.EvalNode;
-import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.type.Constants;
 import org.enso.interpreter.service.ExecutionService.ExpressionCall;
 import org.enso.interpreter.service.ExecutionService.ExpressionValue;
@@ -45,7 +36,6 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   private final Consumer<ExpressionValue> onComputedCallback;
   private final Consumer<ExpressionCall> functionCallCallback;
   private final Consumer<ExecutedVisualization> onExecutedVisualizationCallback;
-  private final EvalNode evalNode = EvalNode.build();
 
   /**
    * Creates callbacks instance.
@@ -80,38 +70,12 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   }
 
   @Override
-  public Object findCachedResult(Object materializedFrame, Object node, UUID nodeId) {
+  public Object findCachedResult(IdExecutionService.Info info) {
+    UUID nodeId = info.getId();
     Object result = getCachedResult(nodeId);
 
-    Iterator<Visualization> visualizations = findVisualizations(nodeId);
-    while (visualizations.hasNext()) {
-      Visualization visualization = visualizations.next();
-
-      if (visualization instanceof Visualization.OneshotExpression oneshotExpression) {
-        EnsoRootNode ensoRootNode = ((EnsoRootNode) ((Node) node).getRootNode());
-        CallerInfo callerInfo =
-            new CallerInfo(
-                ((MaterializedFrame) materializedFrame),
-                ensoRootNode.getLocalScope(),
-                ensoRootNode.getModuleScope());
-
-        Object visualizationResult = null;
-        Throwable visualizationError = null;
-        try {
-          visualizationResult =
-              evalNode.execute(
-                  callerInfo,
-                  State.create(EnsoContext.get(null)),
-                  Text.create(oneshotExpression.expression()));
-        } catch (Exception exception) {
-          visualizationError = exception;
-        }
-
-        ExecutedVisualization executedVisualization =
-            new ExecutedVisualization(
-                visualizationResult, visualizationError, visualization.id(), nodeId, result);
-        callOnExecutedVisualizationCallback(executedVisualization);
-      }
+    if (result != null) {
+      executeOneshotExpressions(nodeId, result, info);
     }
 
     // When executing the call stack we need to capture the FunctionCall of the next (top) stack
@@ -126,12 +90,14 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   }
 
   @Override
-  public void updateCachedResult(UUID nodeId, Object result, boolean isPanic, long nanoTimeElapsed) {
+  public void updateCachedResult(IdExecutionService.Info info) {
+    Object result = info.getResult();
     String resultType = typeOf(result);
+    UUID nodeId = info.getId();
     String cachedType = cache.getType(nodeId);
     FunctionCallInfo call = functionCallInfoById(nodeId);
     FunctionCallInfo cachedCall = cache.getCall(nodeId);
-    ProfilingInfo[] profilingInfo = new ProfilingInfo[] {new ExecutionTime(nanoTimeElapsed)};
+    ProfilingInfo[] profilingInfo = new ProfilingInfo[] {new ExecutionTime(info.getElapsedTime())};
 
     ExpressionValue expressionValue =
         new ExpressionValue(
@@ -139,6 +105,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
     syncState.setExpressionUnsync(nodeId);
     syncState.setVisualizationUnsync(nodeId);
 
+    boolean isPanic = info.isPanic();
     // Panics are not cached because a panic can be fixed by changing seemingly unrelated code,
     // like imports, and the invalidation mechanism can not always track those changes and
     // appropriately invalidate all dependent expressions.
@@ -149,6 +116,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
     cache.putType(nodeId, resultType);
 
     callOnComputedCallback(expressionValue);
+    executeOneshotExpressions(nodeId, result, info);
     if (isPanic) {
       // We mark the node as executed so that it is not reported as not executed call after the
       // program execution is complete. If we clear the call from the cache instead, it will mess
@@ -158,8 +126,11 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   }
 
   @CompilerDirectives.TruffleBoundary
-  public Object onFunctionReturn(UUID nodeId, TruffleObject result) {
-    var fnCall = (FunctionCallInstrumentationNode.FunctionCall) result;
+  @Override
+  public Object onFunctionReturn(IdExecutionService.Info info) {
+    FunctionCallInstrumentationNode.FunctionCall fnCall =
+        (FunctionCallInstrumentationNode.FunctionCall) info.getResult();
+    UUID nodeId = info.getId();
     calls.put(nodeId, FunctionCallInfo.fromFunctionCall(fnCall));
     functionCallCallback.accept(new ExpressionCall(nodeId, fnCall));
     // Return cached value after capturing the enterable function call in `functionCallCallback`
@@ -190,6 +161,28 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
             true);
 
     onCachedCallback.accept(expressionValue);
+  }
+
+  private void executeOneshotExpressions(UUID nodeId, Object result, IdExecutionService.Info info) {
+    Iterator<Visualization> visualizations = findVisualizations(nodeId);
+    while (visualizations.hasNext()) {
+      Visualization visualization = visualizations.next();
+
+      if (visualization instanceof Visualization.OneshotExpression oneshotExpression) {
+        Object visualizationResult = null;
+        Throwable visualizationError = null;
+        try {
+          visualizationResult = info.eval(oneshotExpression.expression());
+        } catch (Exception exception) {
+          visualizationError = exception;
+        }
+
+        ExecutedVisualization executedVisualization =
+            new ExecutedVisualization(
+                visualizationResult, visualizationError, visualization.id(), nodeId, result);
+        callOnExecutedVisualizationCallback(executedVisualization);
+      }
+    }
   }
 
   @CompilerDirectives.TruffleBoundary

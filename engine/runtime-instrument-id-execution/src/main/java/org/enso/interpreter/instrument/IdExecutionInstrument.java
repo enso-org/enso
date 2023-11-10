@@ -7,6 +7,7 @@ import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.frame.FrameInstance;
 import com.oracle.truffle.api.frame.FrameInstanceVisitor;
+import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.EventBinding;
 import com.oracle.truffle.api.instrumentation.EventContext;
@@ -57,6 +58,83 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
   protected void onCreate(Env env) {
     env.registerService(this);
     this.env = env;
+  }
+
+  private static final class NodeInfo extends Info {
+
+    private final UUID nodeId;
+    private final Object result;
+    private final long elapsedTime;
+    private final MaterializedFrame materializedFrame;
+    private final EnsoRootNode ensoRootNode;
+
+    private final EvalNode evalNode = EvalNode.build();
+
+    private NodeInfo(
+        UUID nodeId,
+        Object result,
+        long elapsedTime,
+        MaterializedFrame materializedFrame,
+        Node node) {
+      super();
+
+      this.nodeId = nodeId;
+      this.result = result;
+      this.elapsedTime = elapsedTime;
+      this.materializedFrame = materializedFrame;
+      this.ensoRootNode = (EnsoRootNode) node.getRootNode();
+    }
+
+    public static NodeInfo entered(MaterializedFrame materializedFrame, Node node) {
+      return new NodeInfo(getNodeId(node), null, -1, materializedFrame, node);
+    }
+
+    public static NodeInfo returned(
+        UUID nodeId,
+        Object result,
+        long elapsedTime,
+        MaterializedFrame materializedFrame,
+        Node node) {
+      return new NodeInfo(nodeId, result, elapsedTime, materializedFrame, node);
+    }
+
+    @Override
+    public UUID getId() {
+      return nodeId;
+    }
+
+    @Override
+    public Object getResult() {
+      return result;
+    }
+
+    @Override
+    public boolean isPanic() {
+      return result instanceof AbstractTruffleException && !(result instanceof DataflowError);
+    }
+
+    @Override
+    public long getElapsedTime() {
+      return elapsedTime;
+    }
+
+    @Override
+    public Object eval(String code) {
+      CallerInfo callerInfo =
+          new CallerInfo(
+              materializedFrame, ensoRootNode.getLocalScope(), ensoRootNode.getModuleScope());
+
+      return evalNode.execute(callerInfo, State.create(EnsoContext.get(null)), Text.create(code));
+    }
+
+    private static UUID getNodeId(Node node) {
+      return switch (node) {
+        case ExpressionNode n -> n.getId();
+        case FunctionCallInstrumentationNode n -> n.getId();
+        case null -> null;
+        default -> null;
+      };
+    }
   }
 
   /** Factory for creating new id event nodes. */
@@ -110,10 +188,9 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
           return;
         }
 
-        Node node = context.getInstrumentedNode();
-        UUID nodeId = getNodeId(node);
+        Info info = NodeInfo.entered(frame.materialize(), context.getInstrumentedNode());
+        Object result = callbacks.findCachedResult(info);
 
-        Object result = callbacks.findCachedResult(frame.materialize(), node, nodeId);
         if (result != null) {
           throw context.createUnwind(result);
         }
@@ -135,15 +212,28 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
         }
         Node node = context.getInstrumentedNode();
 
-        if (node instanceof FunctionCallInstrumentationNode
-            && result instanceof FunctionCallInstrumentationNode.FunctionCall functionCall) {
-          UUID nodeId = ((FunctionCallInstrumentationNode) node).getId();
-          var cachedResult = callbacks.onFunctionReturn(nodeId, functionCall);
+        if (node instanceof FunctionCallInstrumentationNode functionCallInstrumentationNode
+            && result instanceof FunctionCallInstrumentationNode.FunctionCall) {
+          Info info =
+              NodeInfo.returned(
+                  functionCallInstrumentationNode.getId(),
+                  result,
+                  nanoTimeElapsed,
+                  frame.materialize(),
+                  node);
+          Object cachedResult = callbacks.onFunctionReturn(info);
           if (cachedResult != null) {
             throw context.createUnwind(cachedResult);
           }
         } else if (node instanceof ExpressionNode expressionNode) {
-          onExpressionReturn(result, expressionNode.getId(), context, nanoTimeElapsed);
+          Info info =
+              NodeInfo.returned(
+                  expressionNode.getId(), result, nanoTimeElapsed, frame.materialize(), node);
+          callbacks.updateCachedResult(info);
+
+          if (info.isPanic()) {
+            throw context.createUnwind(result);
+          }
         }
       }
 
@@ -156,26 +246,6 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
         } else if (exception instanceof AbstractTruffleException) {
           onReturnValue(frame, exception);
         }
-      }
-
-      private void onExpressionReturn(
-          Object result, UUID nodeId, EventContext context, long elapsedTime) {
-        boolean isPanic =
-            result instanceof AbstractTruffleException && !(result instanceof DataflowError);
-        callbacks.updateCachedResult(nodeId, result, isPanic, elapsedTime);
-
-        if (isPanic) {
-          throw context.createUnwind(result);
-        }
-      }
-
-      private Object evaluateExpression(VirtualFrame frame, Node node, String expression) {
-        EvalNode eval = EvalNode.build();
-        EnsoRootNode rootNode = (EnsoRootNode) node.getRootNode();
-        CallerInfo callerInfo = new CallerInfo(frame.materialize(), rootNode.getLocalScope(), rootNode.getModuleScope());
-        State state = State.create(EnsoContext.get(node));
-
-        return eval.execute(callerInfo, state, Text.create(expression));
       }
 
       @CompilerDirectives.TruffleBoundary
@@ -220,15 +290,6 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
                       }
                     });
         return result == null;
-      }
-
-      private static UUID getNodeId(Node node) {
-        return switch (node) {
-          case ExpressionNode n -> n.getId();
-          case FunctionCallInstrumentationNode n -> n.getId();
-          case null -> null;
-          default -> null;
-        };
       }
     }
   }
