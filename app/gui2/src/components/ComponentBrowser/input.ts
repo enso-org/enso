@@ -110,7 +110,7 @@ export function useComponentBrowserInput(
     const input = code.value
     if (opr == null || !opr.ok || readTokenSpan(opr.value, input) !== '.') return {}
     const selfArg = pathAsSelfArgument(ctx.oprApp)
-    if (selfArg != null) return selfArg.type === 'known' ? { selfType: selfArg.typename } : {}
+    if (selfArg != null) return { selfArg: selfArg }
     const qn = pathAsQualifiedName(ctx.oprApp)
     if (qn != null) return { qualifiedNamePattern: qn }
     return {}

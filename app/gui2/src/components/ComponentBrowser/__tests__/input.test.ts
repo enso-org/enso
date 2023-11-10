@@ -10,6 +10,7 @@ import {
 import { readAstSpan } from '@/util/ast'
 import type { ExprId } from 'shared/yjsModel'
 import { expect, test } from 'vitest'
+import type { SelfArg } from '../filtering'
 import { useComponentBrowserInput } from '../input'
 
 test.each([
@@ -45,27 +46,32 @@ test.each([
     'operator1.',
     10,
     { type: 'insert', position: 10, oprApp: ['operator1', '.', null] },
-    { selfType: 'Standard.Base.Number' },
+    { selfArg: { type: 'known', typename: 'Standard.Base.Number' } },
   ],
   [
     'operator2.',
     10,
     { type: 'insert', position: 10, oprApp: ['operator2', '.', null] },
-    // No self type, as there is no operator2 node in current graph
-    { qualifiedNamePattern: 'operator2' },
+    { selfArg: { type: 'unknown' } },
+  ],
+  [
+    'operator3.',
+    10,
+    { type: 'insert', position: 10, oprApp: ['operator3', '.', null] },
+    // No self type, as there is no operator3 node in current graph
+    { qualifiedNamePattern: 'operator3' },
   ],
   [
     'operator1 -> operator1.',
     23,
     { type: 'insert', position: 23, oprApp: ['operator1', '.', null] },
-    // No self type, as operator1 is overshadowed
-    {},
+    { selfArg: { type: 'unknown' } },
   ],
   [
     'operator2 -> operator1.',
     23,
     { type: 'insert', position: 23, oprApp: ['operator1', '.', null] },
-    { selfType: 'Standard.Base.Number' },
+    { selfArg: { type: 'known', typename: 'Standard.Base.Number' } },
   ],
 ])(
   "Input context and filtering, when content is '%s' and cursor at %i",
@@ -79,11 +85,19 @@ test.each([
       identifier?: string
       literal?: string
     },
-    expFiltering: { pattern?: string; qualifiedNamePattern?: string; selfType?: string },
+    expFiltering: {
+      pattern?: string
+      qualifiedNamePattern?: string
+      selfArg?: { type: string; typename?: string }
+    },
   ) => {
     const operator1Id: ExprId = '3d0e9b96-3ca0-4c35-a820-7d3a1649de55' as ExprId
+    const operator2Id: ExprId = '5eb16101-dd2b-4034-a6e2-476e8bfa1f2b' as ExprId
     const graphStoreMock = {
-      identDefinitions: new Map([['operator1', operator1Id]]),
+      identDefinitions: new Map([
+        ['operator1', operator1Id],
+        ['operator2', operator2Id],
+      ]),
     }
     const computedValueRegistryMock = {
       getExpressionInfo(id: ExprId) {
@@ -121,7 +135,7 @@ test.each([
     }
     expect(filter.pattern).toStrictEqual(expFiltering.pattern)
     expect(filter.qualifiedNamePattern).toStrictEqual(expFiltering.qualifiedNamePattern)
-    expect(filter.selfType).toStrictEqual(expFiltering.selfType)
+    expect(filter.selfArg).toStrictEqual(expFiltering.selfArg)
   },
 )
 
