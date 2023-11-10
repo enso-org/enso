@@ -280,7 +280,7 @@ export function AuthProvider(props: AuthProviderProps) {
                         organization = await backend.usersMe()
                         try {
                             user =
-                                organization != null
+                                organization?.isEnabled === true
                                     ? (await backend.listUsers()).find(
                                           listedUser => listedUser.email === organization?.email
                                       ) ?? null
