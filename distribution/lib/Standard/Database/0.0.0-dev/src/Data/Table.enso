@@ -837,7 +837,7 @@ type Table
                  table.set "2 * [total_stock]" new_name="total_stock_expr"
     @new_name Widget_Helpers.make_column_name_selector
     set : Column | Text | Array | Vector | Range | Date_Range | Constant_Column | Column_Operation -> Text -> Set_Mode -> Problem_Behavior -> Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error
-    set self column new_name="" set_mode=Set_Mode.Add_Or_Update on_problems=Report_Warning =
+    set self column (new_name : Text = "") (set_mode : Set_Mode = Set_Mode.Add_Or_Update) (on_problems : Problem_Behavior = Report_Warning) =
         problem_builder = Problem_Builder.new
         unique = self.column_naming_helper.create_unique_name_strategy
         unique.mark_used self.column_names
@@ -855,15 +855,12 @@ type Table
             _ : Date_Range -> Error.throw (Unsupported_Database_Operation.Error "Cannot use `Date_Range` for `set` in the database.")
             _ -> Error.throw (Illegal_Argument.Error "Unsupported type for `Table.set`.")
 
-        name_is_generated column = case column of
-            _ : Column -> False
-            _ -> True
-
         ## If `new_name` was specified, use that. Otherwise, if `column` is a
            `Column`, use its name. In these two cases, do not make it unique.
-           Otherwise, make it unique.
+           Otherwise, make it unique. If set_mode is Update, however, do not
+           make it unique.
         new_column_name = if new_name != "" then new_name else
-            if name_is_generated column then unique.make_unique resolved.name else resolved.name
+            if column.is_a Column || set_mode==Set_Mode.Update || set_mode==Set_Mode.Add_Or_Update then resolved.name else unique.make_unique resolved.name
         renamed = resolved.rename new_column_name
         renamed.if_not_error <| self.column_naming_helper.check_ambiguity self.column_names renamed.name <|
             index = self.internal_columns.index_of (c -> c.name == renamed.name)

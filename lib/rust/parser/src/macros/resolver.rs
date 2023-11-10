@@ -159,8 +159,9 @@ impl<'s> Resolver<'s> {
         root_macro_map: &MacroMap,
         tokens: impl IntoIterator<Item = Token<'s>>,
     ) -> syntax::Tree<'s> {
+        let start = crate::source::code::Location::default();
         self.lines.push(syntax::item::Line {
-            newline: token::newline(Code::empty(0), Code::empty(0)),
+            newline: token::newline(Code::empty(start), Code::empty(start)),
             items:   default(),
         });
         tokens.into_iter().for_each(|t| self.push(root_macro_map, t));

@@ -38,49 +38,45 @@ export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
 
     return (
         <Modal centered className="bg-dim">
-            <div
+            <form
                 data-testid="confirm-delete-modal"
                 ref={element => {
                     element?.focus()
                 }}
                 tabIndex={-1}
-                className="relative rounded-2xl pointer-events-auto before:absolute before:rounded-2xl before:bg-frame-selected before:backdrop-blur-3xl before:w-full before:h-full"
+                className="relative flex flex-col gap-2 rounded-2xl w-96 px-4 p-2 pointer-events-auto before:absolute before:rounded-2xl before:bg-frame-selected before:backdrop-blur-3xl before:w-full before:h-full"
                 onKeyDown={event => {
                     if (event.key !== 'Escape') {
                         event.stopPropagation()
                     }
                 }}
+                onClick={event => {
+                    event.stopPropagation()
+                }}
+                onSubmit={event => {
+                    event.preventDefault()
+                    // Consider not calling `onSubmit()` here to make it harder to accidentally
+                    // delete an important asset.
+                    onSubmit()
+                }}
             >
-                <form
-                    onClick={event => {
-                        event.stopPropagation()
-                    }}
-                    onSubmit={event => {
-                        event.preventDefault()
-                        // Consider not calling `onSubmit()` here to make it harder to accidentally
-                        // delete an important asset.
-                        onSubmit()
-                    }}
-                    className="relative flex flex-col rounded-2xl gap-2 w-96 px-4 p-2"
-                >
-                    <div>Are you sure you want to delete {description}?</div>
-                    <div className="flex gap-2">
-                        <button
-                            type="submit"
-                            className="hover:cursor-pointer inline-block text-white bg-delete rounded-full px-4 py-1"
-                        >
-                            Delete
-                        </button>
-                        <button
-                            type="button"
-                            className="hover:cursor-pointer inline-block bg-frame-selected rounded-full px-4 py-1"
-                            onClick={unsetModal}
-                        >
-                            Cancel
-                        </button>
-                    </div>
-                </form>
-            </div>
+                <div className="relative">Are you sure you want to delete {description}?</div>
+                <div className="relative flex gap-2">
+                    <button
+                        type="submit"
+                        className="hover:cursor-pointer inline-block text-white bg-delete rounded-full px-4 py-1"
+                    >
+                        Delete
+                    </button>
+                    <button
+                        type="button"
+                        className="hover:cursor-pointer inline-block bg-frame-selected rounded-full px-4 py-1"
+                        onClick={unsetModal}
+                    >
+                        Cancel
+                    </button>
+                </div>
+            </form>
         </Modal>
     )
 }
