@@ -933,16 +933,20 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
     Test / javaOptions ++=
       Seq(
         "-Dpolyglot.engine.WarnInterpreterOnly=false",
-        "-Dpolyglotimpl.DisableClassPathIsolation=true"
+        "-Dpolyglotimpl.DisableClassPathIsolation=true",
+        s"-Dconfig.file=${sourceDirectory.value}/test/resources/application.conf",
+        "-Dslf4j.provider=ch.qos.logback.classic.spi.LogbackServiceProvider",
       ),
     // Append enso language on the class-path
     Test / unmanagedClasspath :=
       (LocalProject("runtime-with-instruments") / Compile / fullClasspath).value,
-    (Test / test) := (Test / test).dependsOn(`engine-runner` / assembly).value,
-    Test / javaOptions ++= Seq(
-      s"-Dconfig.file=${sourceDirectory.value}/test/resources/application.conf",
-      "-Dslf4j.provider=ch.qos.logback.classic.spi.LogbackServiceProvider"
-    ),
+    // In project-manager tests, we test installing projects and for that, we need
+    // to launch engine-runner properly. For that, we need all the JARs that we
+    // normally use in engine distribution. That is why there is dependency on
+    // `buildEngineDistributionNoIndex`.
+    (Test / test) := (Test / test)
+      .dependsOn(buildEngineDistributionNoIndex)
+      .value,
     rebuildNativeImage := NativeImage
       .buildNativeImage(
         "project-manager",
@@ -2559,6 +2563,12 @@ buildEngineDistributionNoIndex := {
     generateIndex       = false
   )
   log.info(s"Engine package created at $root")
+}
+
+// This makes the buildEngineDistributionNoIndex task usable as a dependency
+// of other tasks.
+ThisBuild / buildEngineDistributionNoIndex := {
+  buildEngineDistributionNoIndex.result.value
 }
 
 lazy val runEngineDistribution =
