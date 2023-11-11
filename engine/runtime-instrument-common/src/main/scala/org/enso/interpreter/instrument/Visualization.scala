@@ -32,6 +32,13 @@ object Visualization {
     arguments: Vector[AnyRef]
   ) extends Visualization
 
+  /** An expression that will be executed in the local scope.
+    *
+    * @param id the unique identifier of visualization
+    * @param expressionId the identifier of expression that provides the execution scope
+    * @param executionContextId the identifier of the execution context
+    * @param expression the expression to execute
+    */
   case class OneshotExpression(
     id: VisualizationId,
     expressionId: ExpressionId,

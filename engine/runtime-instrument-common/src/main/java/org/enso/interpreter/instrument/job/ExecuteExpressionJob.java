@@ -8,6 +8,9 @@ import org.enso.interpreter.instrument.execution.Executable;
 import org.enso.interpreter.instrument.execution.RuntimeContext;
 import org.enso.interpreter.util.ScalaConversions;
 
+/**
+ * The job that schedules the execution of the expression.
+ */
 public class ExecuteExpressionJob extends Job<Executable> {
 
   private final UUID contextId;
@@ -15,6 +18,14 @@ public class ExecuteExpressionJob extends Job<Executable> {
   private final UUID expressionId;
   private final String expression;
 
+  /**
+   * Create the {@link ExecuteExpressionJob}.
+   *
+   * @param contextId the execution context id.
+   * @param visualizationId the visualization id.
+   * @param expressionId the expression providing the execution scope.
+   * @param expression the expression to execute.
+   */
   public ExecuteExpressionJob(
       UUID contextId, UUID visualizationId, UUID expressionId, String expression) {
     super(ScalaConversions.cons(contextId, ScalaConversions.nil()), false, false);

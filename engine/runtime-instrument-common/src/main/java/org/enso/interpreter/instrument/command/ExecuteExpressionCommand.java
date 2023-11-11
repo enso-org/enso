@@ -10,6 +10,9 @@ import scala.concurrent.ExecutionContext;
 import scala.concurrent.Future;
 import scala.runtime.BoxedUnit;
 
+/**
+ * The command that handles the execute expression request.
+ */
 public final class ExecuteExpressionCommand extends ContextCmd {
 
   private final UUID contextId;
@@ -17,6 +20,15 @@ public final class ExecuteExpressionCommand extends ContextCmd {
   private final UUID expressionId;
   private final String expression;
 
+  /**
+   * Create the {@link ExecuteExpressionCommand}.
+   *
+   * @param maybeRequestId the request id.
+   * @param contextId the execution context id.
+   * @param visualizationId the visualization id.
+   * @param expressionId the expression providing the execution scope.
+   * @param expression the expression to execute.
+   */
   public ExecuteExpressionCommand(
       Option<UUID> maybeRequestId,
       UUID contextId,
