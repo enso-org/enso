@@ -13,6 +13,7 @@ import org.enso.table.data.table.join.conditions.HashableCondition;
 import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -49,6 +50,7 @@ public class HashJoin implements JoinStrategy {
   public JoinResult join(ProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
 
+    // TODO we can optimize and sometimes not create _both_ indices (e.g. if one side is much smaller than the other, it may be beneficial to avoid indexing the larger collection
     var leftIndex = MultiValueIndex.makeUnorderedIndex(leftEquals, conditionsHelper.getLeftTableRowCount(),
         textFoldingStrategies, problemAggregator);
     var rightIndex = MultiValueIndex.makeUnorderedIndex(rightEquals, conditionsHelper.getRightTableRowCount(),
@@ -62,9 +64,28 @@ public class HashJoin implements JoinStrategy {
 
       if (rightRows != null) {
         remainingMatcher.joinSubsets(leftRows, rightRows, resultBuilder, problemAggregator);
+      } else {
+        if (resultBuilderSettings.wantsLeftUnmatched()) {
+          for (int leftRow : leftRows) {
+            resultBuilder.addUnmatchedLeftRow(leftRow);
+            context.safepoint();
+          }
+        }
       }
 
       context.safepoint();
+    }
+
+    if (resultBuilderSettings.wantsRightUnmatched()) {
+      for (var rightEntry : rightIndex.mapping().entrySet()) {
+        UnorderedMultiValueKey rightKey = rightEntry.getKey();
+        boolean wasCompletelyUnmatched = !leftIndex.contains(rightKey);
+        if (wasCompletelyUnmatched) {
+          for (int rightRow : rightEntry.getValue()) {
+            resultBuilder.addUnmatchedRightRow(rightRow);
+          }
+        }
+      }
     }
 
     return resultBuilder.build();
