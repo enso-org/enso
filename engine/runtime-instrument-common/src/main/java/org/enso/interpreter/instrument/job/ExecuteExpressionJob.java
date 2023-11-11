@@ -8,9 +8,7 @@ import org.enso.interpreter.instrument.execution.Executable;
 import org.enso.interpreter.instrument.execution.RuntimeContext;
 import org.enso.interpreter.util.ScalaConversions;
 
-/**
- * The job that schedules the execution of the expression.
- */
+/** The job that schedules the execution of the expression. */
 public class ExecuteExpressionJob extends Job<Executable> {
 
   private final UUID contextId;

@@ -10,9 +10,7 @@ import scala.concurrent.ExecutionContext;
 import scala.concurrent.Future;
 import scala.runtime.BoxedUnit;
 
-/**
- * The command that handles the execute expression request.
- */
+/** The command that handles the execute expression request. */
 public final class ExecuteExpressionCommand extends ContextCmd {
 
   private final UUID contextId;
