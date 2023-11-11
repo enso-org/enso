@@ -3692,6 +3692,99 @@ class RuntimeVisualizationsTest
     new String(data) shouldEqual "42"
   }
 
+  it should "execute expression in the scope of local binding" in {
+    val contextId       = UUID.randomUUID()
+    val requestId       = UUID.randomUUID()
+    val visualizationId = UUID.randomUUID()
+    val moduleName      = "Enso_Test.Test.Main"
+    val metadata        = new Metadata
+
+    val idOp1        = metadata.addItem(23, 2)
+    val idOp2        = metadata.addItem(42, 13)
+    val idOp2Binding = metadata.addItem(30, 25)
+    val idRes        = metadata.addItem(60, 9)
+
+    val code =
+      """main =
+        |    operator1 = 42
+        |    operator2 = operator1 + 1
+        |    operator2
+        |
+        |fun1 x = x.to_text
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(moduleName, moduleName, "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+    context.receiveNIgnorePendingExpressionUpdates(
+      6
+    ) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(contextId, idOp1, ConstantsGen.INTEGER_BUILTIN),
+      TestMessages.update(contextId, idOp2, ConstantsGen.INTEGER_BUILTIN),
+      TestMessages
+        .update(contextId, idOp2Binding, ConstantsGen.NOTHING_BUILTIN),
+      TestMessages.update(contextId, idRes, ConstantsGen.INTEGER_BUILTIN),
+      context.executionComplete(contextId)
+    )
+
+    // execute expression
+    context.send(
+      Api.Request(
+        requestId,
+        Api.ExecuteExpression(
+          contextId,
+          visualizationId,
+          idOp2Binding,
+          "fun1 operator1+operator2"
+        )
+      )
+    )
+    val executeExpressionResponses =
+      context.receiveNIgnoreExpressionUpdates(3)
+    executeExpressionResponses should contain allOf (
+      Api.Response(requestId, Api.VisualizationAttached()),
+      context.executionComplete(contextId)
+    )
+    val Some(data) = executeExpressionResponses.collectFirst {
+      case Api.Response(
+            None,
+            Api.VisualizationUpdate(
+              Api.VisualizationContext(
+                `visualizationId`,
+                `contextId`,
+                `idOp2Binding`
+              ),
+              data
+            )
+          ) =>
+        data
+    }
+    new String(data) shouldEqual "85"
+  }
+
   it should "execute expression in the scope of main method" in {
     val contextId       = UUID.randomUUID()
     val requestId       = UUID.randomUUID()
