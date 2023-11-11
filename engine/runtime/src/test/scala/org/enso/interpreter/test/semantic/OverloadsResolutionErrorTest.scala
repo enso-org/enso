@@ -22,7 +22,7 @@ class OverloadsResolutionErrorTest extends InterpreterTest {
     interpreterContext: InterpreterContext
   ): Unit = {
 
-    "result in an error at runtime for method overloads" in {
+    "result in an error at runtime for member method overloads" in {
       val code =
         """import Standard.Base.Nothing
           |
@@ -38,6 +38,23 @@ class OverloadsResolutionErrorTest extends InterpreterTest {
         .filterNot(isDiagnosticLine)
         .toSet shouldEqual Set(
         "Test:4:1: error: Method overloads are not supported: Nothing.foo is defined multiple times in this module."
+      )
+    }
+
+    "result in an error at runtime for module method overloads" in {
+      val code =
+        """bar x y = x + y
+          |bar x = x + 10
+          |""".stripMargin.linesIterator.mkString("\n")
+
+      the[InterpreterException] thrownBy eval(code) should have message
+      "Compilation aborted due to errors."
+
+      val diagnostics = consumeOut
+      diagnostics
+        .filterNot(isDiagnosticLine)
+        .toSet shouldEqual Set(
+        "Test:2:1: error: Method overloads are not supported: bar is defined multiple times in this module."
       )
     }
 
