@@ -109,7 +109,7 @@ object Redefined {
   }
 
   /** An error representing the redefinition of a conversion in a given
-    * module. This is also known as a method overload.
+    * module
     *
     * @param targetType  the name of the atom the conversion was being
     *                    redefined on
@@ -195,7 +195,7 @@ object Redefined {
 
     /** @inheritdoc */
     override def message(source: Source): String =
-      s"Method overloads are not supported: ${targetType.map(_.name + ".").getOrElse("")}from " +
+      s"Ambiguous conversion: ${targetType.map(_.name + ".").getOrElse("")}from " +
       s"${sourceType.showCode()} is defined multiple times in this module."
 
     override def diagnosticKeys(): Array[Any] = targetType
@@ -230,7 +230,7 @@ object Redefined {
 
     /** @inheritdoc */
     override def showCode(indent: Int): String =
-      s"(Redefined (Conversion ${targetType.map(_.showCode() + ".").getOrElse("")}from $sourceType))"
+      s"(Redefined (Conversion ${targetType.map(_.showCode() + ".").getOrElse("")}from ${sourceType.showCode()}))"
   }
 
   /** An error representing the redefinition of a method in a given module.
