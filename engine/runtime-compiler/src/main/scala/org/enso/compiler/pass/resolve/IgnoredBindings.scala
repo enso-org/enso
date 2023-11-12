@@ -185,7 +185,7 @@ case object IgnoredBindings extends IRPass {
           arguments = newArgs,
           body      = resolveExpression(body, supply)
         )
-      case _: Function.Binding =>
+      case _ =>
         throw new CompilerError(
           "Function sugar should not be present during ignored " +
           "bindings desugaring."

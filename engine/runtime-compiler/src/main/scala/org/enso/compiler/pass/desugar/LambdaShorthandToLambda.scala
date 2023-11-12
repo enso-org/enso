@@ -143,7 +143,7 @@ case object LambdaShorthandToLambda extends IRPass {
       case blank: Name.Blank =>
         val newName = supply.newName()
 
-        Function.Lambda(
+        new Function.Lambda(
           List(
             DefinitionArgument.Specified(
               name = Name.Literal(
@@ -222,12 +222,12 @@ case object LambdaShorthandToLambda extends IRPass {
         // arg
         val appResult =
           actualDefArgs.foldRight(processedApp: Expression)((arg, body) =>
-            Function.Lambda(List(arg), body, None)
+            new Function.Lambda(List(arg), body, None)
           )
 
         // If the function is shorthand, do the same
         val resultExpr = if (functionIsShorthand) {
-          Function.Lambda(
+          new Function.Lambda(
             List(
               DefinitionArgument.Specified(
                 Name
@@ -279,7 +279,7 @@ case object LambdaShorthandToLambda extends IRPass {
             suspended    = false,
             location     = None
           )
-          Function.Lambda(List(defArg), body, locWithoutId)
+          new Function.Lambda(List(defArg), body, locWithoutId)
         }
       case tSet @ Application.Typeset(expr, _, _, _) =>
         tSet.copy(expression = expr.map(desugarExpression(_, freshNameSupply)))
@@ -424,7 +424,7 @@ case object LambdaShorthandToLambda extends IRPass {
           branches  = newBranches
         )
 
-        Function.Lambda(
+        new Function.Lambda(
           List(lambdaArg),
           newCaseExpr,
           caseExpr.location,

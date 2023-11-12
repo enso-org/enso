@@ -160,7 +160,7 @@ case object DemandAnalysis extends IRPass {
             isInsideCallArgument = false
           )
         )
-      case _: Function.Binding =>
+      case _ =>
         throw new CompilerError(
           "Function sugar should not be present during demand analysis."
         )

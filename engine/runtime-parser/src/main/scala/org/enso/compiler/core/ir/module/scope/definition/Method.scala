@@ -66,7 +66,7 @@ object Method {
     }
 
     var id: UUID @Identifier = randomId
-    val body                 = bodyList.head
+    lazy val body            = bodyList.head
 
     /** Creates a copy of `this`.
       *

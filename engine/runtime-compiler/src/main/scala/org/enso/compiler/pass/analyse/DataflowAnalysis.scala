@@ -308,7 +308,7 @@ case object DataflowAnalysis extends IRPass {
             body      = analyseExpression(body, info)
           )
           .updateMetadata(this -->> info)
-      case _: Function.Binding =>
+      case _ =>
         throw new CompilerError(
           "Function sugar should not be present during dataflow analysis."
         )

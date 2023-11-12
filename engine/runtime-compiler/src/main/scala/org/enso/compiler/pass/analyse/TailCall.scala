@@ -450,7 +450,7 @@ case object TailCall extends IRPass {
           arguments = args.map(analyseDefArgument),
           body      = analyseExpression(body, isInTailPosition = markAsTail)
         )
-      case _: Function.Binding =>
+      case _ =>
         throw new CompilerError(
           "Function sugar should not be present during tail call analysis."
         )

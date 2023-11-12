@@ -150,7 +150,7 @@ case object GenerateMethodBodies extends IRPass {
               Warning.WrongSelfParameterPos(funName, fun, parameterPosition)
             )
             lam
-          case _: Function.Binding =>
+          case _ =>
             throw new CompilerError(
               "Function definition sugar should not be present during method " +
               "body generation."
@@ -244,7 +244,7 @@ case object GenerateMethodBodies extends IRPass {
     expr: Expression,
     funName: Name
   ): Expression = {
-    Function.Lambda(
+    new Function.Lambda(
       arguments =
         if (funName.name == MAIN_FUNCTION_NAME) Nil
         else genSyntheticSelf() :: Nil,
