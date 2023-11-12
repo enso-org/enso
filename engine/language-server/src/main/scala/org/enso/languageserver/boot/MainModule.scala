@@ -25,6 +25,7 @@ import org.enso.languageserver.monitoring.{
   IdlenessMonitor,
   NoopEventsMonitor
 }
+import org.enso.languageserver.profiling.ProfilingManager
 import org.enso.languageserver.protocol.binary.{
   BinaryConnectionControllerFactory,
   InboundMessageDecoder
@@ -60,6 +61,7 @@ import org.slf4j.LoggerFactory
 import java.io.File
 import java.net.URI
 import java.time.Clock
+
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
@@ -373,6 +375,9 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     "project-settings-manager"
   )
 
+  val profilingManager =
+    system.actorOf(ProfilingManager.props, "profiling-manager")
+
   val libraryLocations =
     LibraryLocations.resolve(
       distributionManager,
@@ -448,6 +453,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     runtimeConnector       = runtimeConnector,
     idlenessMonitor        = idlenessMonitor,
     projectSettingsManager = projectSettingsManager,
+    profilingManager       = profilingManager,
     libraryConfig          = libraryConfig,
     config                 = languageServerConfig
   )

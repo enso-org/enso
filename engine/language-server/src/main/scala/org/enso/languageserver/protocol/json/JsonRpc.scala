@@ -24,6 +24,10 @@ import org.enso.languageserver.runtime.VisualizationApi._
 import org.enso.languageserver.session.SessionApi.InitProtocolConnection
 import org.enso.languageserver.text.TextApi._
 import org.enso.languageserver.libraries.LibraryApi._
+import org.enso.languageserver.profiling.ProfilingApi.{
+  ProfilingStart,
+  ProfilingStop
+}
 import org.enso.languageserver.runtime.RuntimeApi.RuntimeGetComponentGroups
 import org.enso.languageserver.vcsmanager.VcsManagerApi._
 import org.enso.languageserver.workspace.WorkspaceApi.ProjectInfo
@@ -102,6 +106,8 @@ object JsonRpc {
     .registerRequest(LibraryPublish)
     .registerRequest(LibraryPreinstall)
     .registerRequest(RuntimeGetComponentGroups)
+    .registerRequest(ProfilingStart)
+    .registerRequest(ProfilingStop)
     .registerNotification(TaskStarted)
     .registerNotification(TaskProgressUpdate)
     .registerNotification(TaskFinished)

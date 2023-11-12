@@ -8,16 +8,12 @@ import org.apache.commons.cli.{Option => CliOption, _}
 import org.enso.distribution.{DistributionManager, Environment}
 import org.enso.editions.DefaultEdition
 import org.enso.languageserver.boot
-import org.enso.languageserver.boot.{
-  LanguageServerConfig,
-  ProfilingConfig,
-  StartupConfig
-}
+import org.enso.languageserver.boot.{LanguageServerConfig, ProfilingConfig, StartupConfig}
 import org.enso.libraryupload.LibraryUploader.UploadFailedError
 import org.slf4j.event.Level
 import org.enso.pkg.{Contact, PackageManager, Template}
 import org.enso.polyglot.{HostEnsoUtils, LanguageInfo, Module, PolyglotContext}
-import org.enso.profiling.{FileSampler, NoopSampler}
+import org.enso.profiling.{NoopSampler, OutputStreamSampler}
 import org.enso.version.VersionDescription
 import org.graalvm.polyglot.PolyglotException
 
@@ -1293,12 +1289,14 @@ object Main {
   )(main: => A): A = {
     val sampler = profilingConfig.profilingPath match {
       case Some(path) =>
-        new FileSampler(path.toFile)
+        OutputStreamSampler.ofFile(path.toFile)
       case None =>
-        NoopSampler()
+        new NoopSampler()
     }
     sampler.start()
-    profilingConfig.profilingTime.foreach(sampler.stop(_)(executor))
+    profilingConfig.profilingTime.foreach(timeout =>
+      sampler.scheduleStop(timeout.length, timeout.unit, executor)
+    )
     sys.addShutdownHook(sampler.stop())
 
     try {
