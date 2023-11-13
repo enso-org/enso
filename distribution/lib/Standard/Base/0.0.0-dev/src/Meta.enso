@@ -588,6 +588,7 @@ get_short_type_name typ = @Builtin_Method "Meta.get_short_type_name"
 get_constructor_declaring_type : Any -> Any
 get_constructor_declaring_type constructor = @Builtin_Method "Meta.get_constructor_declaring_type"
 
+## PRIVATE
 instrumentor_builtin op args = @Builtin_Method "Meta.instrumentor_builtin"
 
 ## PRIVATE

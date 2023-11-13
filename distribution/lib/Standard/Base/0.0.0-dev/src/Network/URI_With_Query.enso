@@ -6,6 +6,7 @@ import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
+import project.Meta
 import project.Network.URI.URI
 import project.Nothing.Nothing
 
@@ -23,7 +24,7 @@ type URI_With_Query
        are used.
     to_uri : URI ! Enso_Secret_Error
     to_uri self =
-        java_uri = Java_URI.new self.uri.scheme self.uri.user_info self.uri.host self.uri.port self.uri.path self.query self.uri.fragment
+        java_uri = Java_URI.new self.uri.scheme self.uri.user_info self.uri.host (self.uri.port.if_nothing -1) self.uri.path self.query self.uri.fragment
         URI.Value java_uri
 
     ## GROUP Metadata
@@ -34,7 +35,7 @@ type URI_With_Query
         query_params = self.parameters.map p->
             if p.second.is_a Enso_Secret then Error.throw Enso_Secret_Error.Access_Denied else
                 p.first + "=" + (URLEncoder.encode p.second Encoding.utf_8.to_java_charset)
-        (if base_query == "" then "" else base_query + "&") + query_params.join "&"
+        (if base_query == "" then "" else base_query + "&") + (query_params.join "&")
 
     ## Adds a query parameter to the URI
 
@@ -53,8 +54,8 @@ type URI_With_Query
         query_params = self.parameters.map p->
             if p.second.is_a Enso_Secret then p.first + "=__SECRET__" else
                 p.first + "=" + (URLEncoder.encode p.second Encoding.utf_8.to_java_charset)
-        new_query = (if base_query == "" then "" else base_query + "&") + query_params.join "&"
-        java_uri = Java_URI.new self.uri.scheme self.uri.user_info self.uri.host self.uri.port self.uri.path new_query self.uri.fragment
+        new_query = (if base_query == "" then "" else base_query + "&") + (query_params.join "&")
+        java_uri = Java_URI.new self.uri.scheme self.uri.user_info self.uri.host (self.uri.port.if_nothing -1) self.uri.path new_query self.uri.fragment
         java_uri.toString
 
     ## PRIVATE

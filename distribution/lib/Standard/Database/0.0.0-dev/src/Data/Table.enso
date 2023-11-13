@@ -928,7 +928,7 @@ type Table
     make_temp_column_name : Text
     make_temp_column_name self = self.column_naming_helper.make_temp_column_name self.column_names
 
-    ## PRIVSATE
+    ## PRIVATE
        Run a table transformer with a temporary column added.
     with_temporary_column :  Column -> (Text -> Table -> Table) -> Table
     with_temporary_column self new_column:Column f:(Text -> Table -> Table) =

@@ -115,8 +115,7 @@ type URI
     port : Text | Nothing
     port self =
         port_number = self.internal_uri.getPort
-        <|
-            if port_number == -1 then Nothing else port_number.to_text
+        if port_number == -1 then Nothing else port_number.to_text
 
     ## GROUP Metadata
        Get the path part of this URI.

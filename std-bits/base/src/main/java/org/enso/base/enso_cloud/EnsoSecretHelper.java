@@ -31,9 +31,9 @@ public class EnsoSecretHelper {
   }
 
   private static String makeQueryAry(EnsoKeyValuePair pair) {
-    String resolvedKey = pair.key() != null && !pair.key().isBlank() ? URLEncoder.encode(pair.key(), StandardCharsets.UTF_8) + "=" : "";
+    String resolvedKey = pair.key() != null && !pair.key().isBlank() ? pair.key() + "=" : "";
     String resolvedValue = resolveValue(pair);
-    return resolvedKey + URLEncoder.encode(resolvedValue, StandardCharsets.UTF_8);
+    return resolvedKey + resolvedValue;
   }
 
   //** Gets a JDBC connection resolving EnsoKeyValuePair into the properties. **//

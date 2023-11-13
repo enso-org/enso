@@ -45,7 +45,7 @@ type Enso_User
 
 ## PRIVATE
 Enso_User.from (that:JS_Object) = if ["name", "email", "id"].any (k-> that.contains_key k . not) then Error.throw (Illegal_Argument.Error "Invalid JSON for an Enso_User.") else
-    root_folder_id = that.get ""
+    root_folder_id = that.get "rootDirectoryId" ""
     root_folder = Enso_File.Value "" root_folder_id "" Enso_Asset_Type.Folder
-    is_enabled = that.get "is_enabled" True
-    Enso_User.Value (that.get "name") (that.get "email") (that.get "id") root_folder is_enabled
+    is_enabled = that.get "isEnabled" True
+    Enso_User.User (that.get "name") (that.get "email") (that.get "id") root_folder is_enabled

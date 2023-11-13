@@ -2660,7 +2660,8 @@ concat_columns column_set all_tables result_type result_row_count on_problems =
    Conversion method to a Table from a Column.
 Table.from (that:Column) = that.to_table
 
-## Converts a Text value into a Table.
+## PRIVATE
+   Converts a Text value into a Table.
 
    The format of the text is determined by the `format` argument.
 
@@ -2673,7 +2674,8 @@ Table.from (that : Text) (format:Delimited_Format = Delimited_Format.Delimited '
         _ : Delimited_Format -> Delimited_Reader.read_text that format on_problems
         _ -> Unimplemented.throw "Table.from is currently only implemented for Delimited_Format."
 
-## Converts a Table into a Text value.
+## PRIVATE
+   Converts a Table into a Text value.
 
    The format of the text is determined by the `format` argument.
 
@@ -2689,7 +2691,8 @@ Text.from (that : Table) (format:Delimited_Format = Delimited_Format.Delimited '
    Conversion method to a Table from a Vector.
 Table.from (that:Vector) (fields : (Vector | Nothing) = Nothing) = that.to_table fields
 
-## Convert an `XML_Element` into a `Table`
+## PRIVATE
+   Convert an `XML_Element` into a `Table`
 
    Generates a single-row table with columns for the tag's contents.
 
@@ -2709,7 +2712,8 @@ Table.from (that:XML_Element) =
     # Generating a table from an `XML_Element` is the same logic as `expand_column`
     Table.new [["x", [that]]] . expand_column 'x' prefix=Prefix_Name.None
 
-## Convert an `XML_Document` into a `Table`
+## PRIVATE
+   Convert an `XML_Document` into a `Table`
 
    Generates a single-row table with columns for the root tag's contents.
 

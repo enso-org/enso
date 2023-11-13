@@ -14,7 +14,13 @@ import project.S3.S3
 ## Represents an S3 file or folder
    If the path ends with a slash, it is a folder. Otherwise, it is a file.
 type S3_File
-    ## PUBLIC
+    ## Given an S3 URI create a file representation.
+
+       Arguments:
+       - uri: The URI of the file.
+         The URI must be in the form `s3://bucket/path/to/file`.
+       - credentials: The credentials to use when accessing the file.
+         If not specified, the default credentials are used.
     new : Text -> AWS_Credential | Nothing -> S3_File
     new uri="s3://" credentials=Nothing =
         parts = S3.parse_uri uri

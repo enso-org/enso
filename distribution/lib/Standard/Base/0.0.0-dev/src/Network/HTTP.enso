@@ -19,6 +19,7 @@ import project.Network.HTTP.Request_Body.Request_Body
 import project.Network.HTTP.Response.Response
 import project.Network.Proxy.Proxy
 import project.Network.URI.URI
+import project.Network.URI_With_Query.URI_With_Query
 import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Runtime.Context
@@ -117,26 +118,32 @@ type HTTP
                         _ -> EnsoKeyValuePair.ofText h.name h.value
 
                     # Get uri and resolve query arguments
-                    uri = case req.uri of
-                        _ : Text -> req.uri.to_uri
-                        _ : URI -> req.uri
+                    uri_args = case req.uri of
+                        _ : Text -> [req.uri.to_uri, []]
+                        _ : URI -> [req.uri, []]
+                        _ : URI_With_Query ->
+                            mapped_arguments = req.uri.parameters.map arg-> case arg.second of
+                                _ : Enso_Secret -> EnsoKeyValuePair.ofSecret arg.first arg.second.id
+                                _ : Text -> EnsoKeyValuePair.ofText arg.first arg.second
+                                _ -> Error.throw (Illegal_Argument.Error "Invalid query argument type - all values must be Vector or Pair.")
+                            [req.uri.uri, mapped_arguments]
 
-                    response = Response.Value (EnsoSecretHelper.makeRequest self.internal_http_client builder uri.internal_uri [] mapped_headers)
+                    response = Response.Value (EnsoSecretHelper.makeRequest self.internal_http_client builder uri_args.first.internal_uri uri_args.second mapped_headers)
                     if error_on_failure_code.not || response.code.is_success then response else
                         Error.throw (Request_Error.Error "Status Code" ("Request failed with status code: " + response.code.to_text + ". " + response.body.decode_as_text))
 
     ## PRIVATE
        Static helper for get-like methods
-    fetch : (URI | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> Any
-    fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (Header | Pair Text Text))=[]) =
+    fetch : (URI | URI_With_Query | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> Any
+    fetch (uri:(URI | URI_With_Query | Text)) (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (Header | Pair Text Text))=[]) =
         check_method fetch_methods method <|
             request = Request.new method uri (parse_headers headers) Request_Body.Empty
             HTTP.new.request request
 
     ## PRIVATE
        Static helper for post-like methods
-    post : (URI | Text) -> Request_Body -> HTTP_Method -> Vector (Header | Pair Text Text) -> Any
-    post (uri:(URI | Text)) (body:Request_Body=Request_Body.Empty) (method:HTTP_Method=HTTP_Method.Post) (headers:(Vector (Header | Pair Text Text))=[]) =
+    post : (URI | URI_With_Query | Text) -> Request_Body -> HTTP_Method -> Vector (Header | Pair Text Text) -> Any
+    post (uri:(URI | URI_With_Query | Text)) (body:Request_Body=Request_Body.Empty) (method:HTTP_Method=HTTP_Method.Post) (headers:(Vector (Header | Pair Text Text))=[]) =
         check_method post_methods method <|
             request = Request.new method uri (parse_headers headers) body
             HTTP.new.request request
