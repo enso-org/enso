@@ -1,11 +1,12 @@
 import type { NonEmptyArray } from '@/util/array.ts'
 import { assertDefined, assertEqual } from '@/util/assert'
-import { expect, test } from 'vitest'
+import { mapIterator } from 'lib0/iterator'
 
 /**
  * Map that supports Object-based keys.
  *
- * Internally keys are converted to strings using the provided {@link keyMapper} function and then compared.
+ * Internally keys are converted to strings using the provided {@link keyMapper} function and
+ * then compared.
  *
  * @template Key The type of the keys.
  * @template Value The type of the values.
@@ -16,9 +17,9 @@ export class MappedKeyMap<Key, Value> {
 
   /** Construct a new map with a custom key mapper.
    *
-   * @param keyMapper The function that maps the user-facing keys to internal keys. It can be some sort of hash function or custom to-string converter.
-   * The function should return values that are `===`-equal for keys that should be considered equal.
-   *
+   * @param keyMapper The function that maps the user-facing keys to internal keys. It can be some
+   * sort of hash function or custom to-string converter. The function should return values that
+   * are `===`-equal for keys that should be considered equal.
    */
   constructor(private readonly keyMapper: (key: Key) => any) {}
 
@@ -67,7 +68,8 @@ export class MappedKeyMap<Key, Value> {
 /**
  * Set that uses a provided function to map the values to keys.
  *
- * It is useful e.g. when the values are objects, and we want to use different equality semantics than the default.
+ * It is useful e.g. when the values are objects, and we want to use different equality semantics
+ * than the default.
  *
  * @template T The type of the values.
  */
@@ -76,11 +78,18 @@ export class MappedSet<T extends Object> {
   private readonly set = new Map<any, T>()
 
   /** Construct a new set, optionally setting a custom value mapper.
-   * @param valueMapper The function that maps the keys to strings. It can be some sort of a hash function or custom to-string converter.
-   * The function should return values that are `===`-equal for values that should be considered equal.
-   *
+   * @param valueMapper The function that maps the user-facing values to internal keys. It can be
+   * some sort of hash function or custom to-string converter. The function should return values
+   * that are `===`-equal for keys that should be considered equal.
    */
-  constructor(private readonly valueMapper: (key: T) => any) {}
+  constructor(
+    private readonly valueMapper: (key: T) => any,
+    elements: Iterable<T> = [],
+  ) {
+    this.set = new Map(
+      mapIterator(elements[Symbol.iterator](), (elem) => [valueMapper(elem), elem]),
+    )
+  }
 
   /** Add the given value to the set. */
   add(value: T): this {
@@ -167,6 +176,8 @@ export class NonEmptyStack<T> {
 }
 
 if (import.meta.vitest) {
+  const { test, expect } = import.meta.vitest
+
   test('MyMap with number[] keys', () => {
     const map = new MappedKeyMap((key: number[]) => key.join(','))
 

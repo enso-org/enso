@@ -508,10 +508,14 @@ final class EnsureCompiledJob(
 
   private def getCacheMetadata(
     visualization: Visualization
-  ): Option[CachePreferenceAnalysis.Metadata] = {
-    val module = visualization.module
-    module.getIr.getMetadata(CachePreferenceAnalysis)
-  }
+  ): Option[CachePreferenceAnalysis.Metadata] =
+    visualization match {
+      case visualization: Visualization.AttachedVisualization =>
+        val module = visualization.module
+        module.getIr.getMetadata(CachePreferenceAnalysis)
+      case _: Visualization.OneshotExpression =>
+        None
+    }
 
   /** Get all project modules in the current compiler scope. */
   private def getProjectModulesInScope(implicit

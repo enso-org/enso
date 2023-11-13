@@ -1,7 +1,5 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
-import java.util.UUID;
-
 import org.enso.interpreter.instrument.Timer;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -15,7 +13,6 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.instrumentation.EventBinding;
 import com.oracle.truffle.api.interop.InteropException;
 import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.TruffleObject;
 
 final class Instrumentor implements EnsoObject, IdExecutionService.Callbacks {
 
@@ -61,33 +58,33 @@ final class Instrumentor implements EnsoObject, IdExecutionService.Callbacks {
   // Callbacks
   //
   @Override
-  public Object findCachedResult(UUID nodeId) {
+  public Object findCachedResult(IdExecutionService.Info info) {
     try {
       if (onEnter != null) {
-        var ret = InteropLibrary.getUncached().execute(onEnter, nodeId.toString());
+        var ret = InteropLibrary.getUncached().execute(onEnter, info.getId().toString());
         ret = InteropLibrary.getUncached().isNull(ret) ? null : ret;
-        return handle.isDisposed() ? null : ret;
-      }
-    } catch (InteropException ex) {
+        return handle.isDisposed() ? null : ret;    }
+    } catch (InteropException ignored) {
     }
     return null;
   }
 
   @Override
-  public void updateCachedResult(UUID nodeId, Object result, boolean isPanic, long nanoElapsedTime) {
+  public void updateCachedResult(IdExecutionService.Info info) {
     try {
       if (onReturn != null) {
-        InteropLibrary.getUncached().execute(onReturn, nodeId.toString(), result);
+        InteropLibrary.getUncached().execute(onReturn, info.getId().toString(), info.getResult());
       }
-    } catch (InteropException ex) {
+    } catch (InteropException ignored) {
     }
   }
 
   @Override
-  public Object onFunctionReturn(UUID nodeId, TruffleObject result) {
+  public Object onFunctionReturn(IdExecutionService.Info info) {
     try {
-      if (onCall != null && result instanceof FunctionCallInstrumentationNode.FunctionCall call) {
-        var args = (Object[])call.getArguments().clone();
+      if (onCall != null
+          && info.getResult() instanceof FunctionCallInstrumentationNode.FunctionCall call) {
+        var args = (Object[]) call.getArguments().clone();
         for (var i = 0; i < args.length; i++) {
           if (args[i] == null) {
             args[i] = EnsoContext.get(null).getBuiltins().nothing();
@@ -95,14 +92,14 @@ final class Instrumentor implements EnsoObject, IdExecutionService.Callbacks {
         }
         var ret = InteropLibrary.getUncached().execute(
                 onCall,
-                nodeId.toString(),
+                info.getId().toString(),
                 call.getFunction(),
                 ArrayLikeHelpers.asVectorWithCheckAt(args)
         );
         ret = InteropLibrary.getUncached().isNull(ret) ? null : ret;
         return handle.isDisposed() ? null : ret;
       }
-    } catch (InteropException ex) {
+    } catch (InteropException ignored) {
     }
     return null;
   }

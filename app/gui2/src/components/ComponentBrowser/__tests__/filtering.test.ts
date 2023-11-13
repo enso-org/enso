@@ -127,14 +127,22 @@ test.each([
   expect(filtering.filter(entry)).toBeNull()
 })
 
-test('An Instance method is shown when self type matches', () => {
-  const entry = makeMethod('Standard.Base.Data.Vector.Vector.get')
+test('An Instance method is shown when self arg matches', () => {
+  const entry1 = makeMethod('Standard.Base.Data.Vector.Vector.get')
+  const entry2 = makeMethod('Standard.Base.Data.Table.get')
   const filteringWithSelfType = new Filtering({
-    selfType: 'Standard.Base.Data.Vector.Vector' as QualifiedName,
+    selfArg: { type: 'known', typename: 'Standard.Base.Data.Vector.Vector' },
   })
-  expect(filteringWithSelfType.filter(entry)).not.toBeNull()
+  expect(filteringWithSelfType.filter(entry1)).not.toBeNull()
+  expect(filteringWithSelfType.filter(entry2)).toBeNull()
+  const filteringWithAnySelfType = new Filtering({
+    selfArg: { type: 'unknown' },
+  })
+  expect(filteringWithAnySelfType.filter(entry1)).not.toBeNull()
+  expect(filteringWithAnySelfType.filter(entry2)).not.toBeNull()
   const filteringWithoutSelfType = new Filtering({ pattern: 'get' })
-  expect(filteringWithoutSelfType.filter(entry)).toBeNull()
+  expect(filteringWithoutSelfType.filter(entry1)).toBeNull()
+  expect(filteringWithoutSelfType.filter(entry2)).toBeNull()
 })
 
 test.each([
@@ -147,7 +155,7 @@ test.each([
   makeMethod('Standard.Base.Data.Vector.Vector2.get'),
 ])('$name is filtered out when Vector self type is specified', (entry) => {
   const filtering = new Filtering({
-    selfType: 'Standard.Base.Data.Vector.Vector' as QualifiedName,
+    selfArg: { type: 'known', typename: 'Standard.Base.Data.Vector.Vector' },
   })
   expect(filtering.filter(entry)).toBeNull()
 })

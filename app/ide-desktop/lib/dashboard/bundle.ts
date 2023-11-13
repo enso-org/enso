@@ -32,6 +32,7 @@ async function bundle() {
         })
         opts.entryPoints.push(
             path.resolve(THIS_PATH, 'src', 'index.html'),
+            path.resolve(THIS_PATH, 'src', '404.html'),
             path.resolve(THIS_PATH, 'src', 'index.ts')
         )
         opts.metafile = ANALYZE
