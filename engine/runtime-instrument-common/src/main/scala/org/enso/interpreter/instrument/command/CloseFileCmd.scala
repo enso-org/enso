@@ -17,28 +17,38 @@ class CloseFileCmd(request: Api.CloseFileNotification)
     ctx: RuntimeContext,
     ec: ExecutionContext
   ): Unit = {
-    val logger                    = ctx.executionService.getLogger
-    val readLockTimestamp         = ctx.locking.acquireReadCompilationLock()
-    val fileLockTimestamp         = ctx.locking.acquireFileLock(request.path)
-    val pendingEditsLockTimestamp = ctx.locking.acquirePendingEditsLock()
+    val logger = ctx.executionService.getLogger
+
+    var readLockTimestamp: Long         = 0;
+    var fileLockTimestamp: Long         = 0;
+    var pendingEditsLockTimestamp: Long = 0;
     try {
+      readLockTimestamp         = ctx.locking.acquireReadCompilationLock()
+      fileLockTimestamp         = ctx.locking.acquireFileLock(request.path)
+      pendingEditsLockTimestamp = ctx.locking.acquirePendingEditsLock()
       ctx.state.pendingEdits.dequeue(request.path)
       ctx.executionService.resetModuleSources(request.path)
+    } catch {
+      case ie: InterruptedException =>
+        logger.log(Level.WARNING, "Failed to acquire lock: interrupted", ie)
     } finally {
-      ctx.locking.releasePendingEditsLock()
-      logger.log(
-        Level.FINEST,
-        "Kept pending edits lock [CloseFileCmd] for " + (System.currentTimeMillis - pendingEditsLockTimestamp) + " milliseconds"
+      logLockRelease(
+        logger,
+        "pending edits",
+        pendingEditsLockTimestamp,
+        ctx.locking.releasePendingEditsLock()
       )
-      ctx.locking.releaseFileLock(request.path)
-      logger.log(
-        Level.FINEST,
-        "Kept file lock [CloseFileCmd] for " + (System.currentTimeMillis - fileLockTimestamp) + " milliseconds"
+      logLockRelease(
+        logger,
+        "file",
+        fileLockTimestamp,
+        ctx.locking.releaseFileLock(request.path)
       )
-      ctx.locking.releaseReadCompilationLock()
-      logger.log(
-        Level.FINEST,
-        "Kept read compilation lock [CloseFileCmd] for " + (System.currentTimeMillis - readLockTimestamp) + " milliseconds"
+      logLockRelease(
+        logger,
+        "read compilation",
+        readLockTimestamp,
+        ctx.locking.releaseReadCompilationLock()
       )
     }
   }

@@ -37,17 +37,21 @@ class DestroyContextCmd(
   private def removeContext()(implicit ctx: RuntimeContext): Unit = {
     val logger = ctx.executionService.getLogger
     ctx.jobControlPlane.abortJobs(request.contextId)
-    val lockTimestamp = ctx.locking.acquireContextLock(request.contextId)
+    var lockTimestamp: Long = 0;
     try {
+      lockTimestamp = ctx.locking.acquireContextLock(request.contextId)
       ctx.contextManager.destroy(request.contextId)
       reply(Api.DestroyContextResponse(request.contextId))
+    } catch {
+      case ie: InterruptedException =>
+        logger.log(Level.WARNING, "Failed to acquire lock: interrupted", ie)
     } finally {
-      ctx.locking.releaseContextLock(request.contextId)
-      logger.log(
-        Level.FINEST,
-        s"Kept context lock [DestroyContextCmd] for ${System.currentTimeMillis() - lockTimestamp} milliseconds"
+      logLockRelease(
+        logger,
+        "context",
+        lockTimestamp,
+        ctx.locking.removeContextLock(request.contextId)
       )
-      ctx.locking.removeContextLock(request.contextId)
     }
   }
 

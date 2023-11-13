@@ -32,19 +32,24 @@ class DetachVisualizationJob(
 
   /** @inheritdoc */
   override def run(implicit ctx: RuntimeContext): Unit = {
-    val logger        = ctx.executionService.getLogger
-    val lockTimestamp = ctx.locking.acquireContextLock(contextId)
+    val logger              = ctx.executionService.getLogger
+    var lockTimestamp: Long = 0
     try {
+      lockTimestamp = ctx.locking.acquireContextLock(contextId)
       ctx.contextManager.removeVisualization(
         contextId,
         expressionId,
         visualizationId
       )
+    } catch {
+      case ie: InterruptedException =>
+        logger.log(Level.WARNING, "Failed to acquire lock: interrupted", ie)
     } finally {
-      ctx.locking.releaseContextLock(contextId)
-      logger.log(
-        Level.FINEST,
-        s"Kept context lock [DetachVisualizationJob] for ${System.currentTimeMillis() - lockTimestamp} milliseconds"
+      logLockRelease(
+        logger,
+        "context",
+        lockTimestamp,
+        ctx.locking.releaseContextLock(contextId)
       )
     }
   }

@@ -41,10 +41,12 @@ public class SetExecutionEnvironmentCommand extends AsynchronousCommand {
   private void setExecutionEnvironment(
       Runtime$Api$ExecutionEnvironment executionEnvironment, UUID contextId, RuntimeContext ctx) {
     var logger = ctx.executionService().getLogger();
-    var contextLockTimestamp = ctx.locking().acquireContextLock(contextId);
-    var writeLockTimestamp = ctx.locking().acquireWriteCompilationLock();
+    long contextLockTimestamp = 0;
+    long writeLockTimestamp = 0;
 
     try {
+      contextLockTimestamp = ctx.locking().acquireContextLock(contextId);
+      writeLockTimestamp = ctx.locking().acquireWriteCompilationLock();
       Stack<InstrumentFrame> stack = ctx.contextManager().getStack(contextId);
       ctx.jobControlPlane().abortJobs(contextId);
       ctx.executionService()
@@ -53,19 +55,25 @@ public class SetExecutionEnvironmentCommand extends AsynchronousCommand {
       CacheInvalidation.invalidateAll(stack);
       ctx.jobProcessor().run(ExecuteJob.apply(contextId, stack.toList()));
       reply(new Runtime$Api$SetExecutionEnvironmentResponse(contextId), ctx);
+    } catch (InterruptedException ie) {
+      logger.log(Level.WARNING, "Failed to acquire lock: interrupted", ie);
     } finally {
-      ctx.locking().releaseWriteCompilationLock();
-      logger.log(
-          Level.FINEST,
-          "Kept write compilation lock [SetExecutionEnvironmentCommand] for "
-              + (System.currentTimeMillis() - writeLockTimestamp)
-              + " milliseconds");
-      ctx.locking().releaseContextLock(contextId);
-      logger.log(
-          Level.FINEST,
-          "Kept context lock [SetExecutionEnvironmentCommand] for "
-              + (System.currentTimeMillis() - contextLockTimestamp)
-              + " milliseconds");
+      logLockRelease(
+          logger,
+          "write compilation",
+          writeLockTimestamp,
+          () -> {
+            ctx.locking().releaseWriteCompilationLock();
+            return BoxedUnit.UNIT;
+          });
+      logLockRelease(
+          logger,
+          "context",
+          contextLockTimestamp,
+          () -> {
+            ctx.locking().releaseContextLock(contextId);
+            return BoxedUnit.UNIT;
+          });
     }
   }
 }

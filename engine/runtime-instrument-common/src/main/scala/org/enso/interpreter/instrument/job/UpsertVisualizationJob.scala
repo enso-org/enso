@@ -59,9 +59,9 @@ class UpsertVisualizationJob(
   /** @inheritdoc */
   override def run(implicit ctx: RuntimeContext): Option[Executable] = {
     implicit val logger: TruffleLogger = ctx.executionService.getLogger
-    val lockTimestamp =
-      ctx.locking.acquireContextLock(config.executionContextId)
+    var lockTimestamp: Long            = 0
     try {
+      lockTimestamp = ctx.locking.acquireContextLock(config.executionContextId)
       val maybeCallable =
         UpsertVisualizationJob.evaluateVisualizationExpression(
           config.visualizationModule,
@@ -108,15 +108,16 @@ class UpsertVisualizationJob(
               Some(Executable(config.executionContextId, stack))
           }
       }
+    } catch {
+      case ie: InterruptedException =>
+        logger.log(Level.WARNING, "Failed to acquire lock: interrupted", ie)
+        None
     } finally {
-      ctx.locking.releaseContextLock(config.executionContextId)
-      logger.log(
-        Level.FINEST,
-        "Kept context lock [{0}] for {1} milliseconds.",
-        Array(
-          getClass.getSimpleName,
-          System.currentTimeMillis() - lockTimestamp
-        )
+      logLockRelease(
+        logger,
+        "context",
+        lockTimestamp,
+        ctx.locking.releaseContextLock(config.executionContextId)
       )
     }
   }
@@ -482,14 +483,16 @@ object UpsertVisualizationJob {
       callback,
       arguments
     )
-    val writeLockTimestamp = ctx.locking.acquireWriteCompilationLock()
+    var writeLockTimestamp: Long = 0
     try {
+      writeLockTimestamp = ctx.locking.acquireWriteCompilationLock()
       invalidateCaches(visualization)
     } finally {
-      ctx.locking.releaseWriteCompilationLock()
-      logger.log(
-        Level.FINEST,
-        s"Kept write compilation lock [UpsertVisualizationJob] for ${System.currentTimeMillis() - writeLockTimestamp} milliseconds"
+      Job.logLockRelease(
+        logger,
+        "write compilation",
+        writeLockTimestamp,
+        ctx.locking.releaseReadCompilationLock()
       )
     }
     ctx.contextManager.upsertVisualization(

@@ -1,9 +1,11 @@
 package org.enso.interpreter.instrument.command
 
+import com.oracle.truffle.api.TruffleLogger
 import org.enso.interpreter.instrument.execution.{Completion, RuntimeContext}
 import org.enso.polyglot.runtime.Runtime.{Api, ApiNotification, ApiResponse}
 import org.enso.polyglot.runtime.Runtime.Api.RequestId
 
+import java.util.logging.Level
 import scala.concurrent.ExecutionContext
 
 /** Base command trait that encapsulates a function request. Uses
@@ -34,5 +36,25 @@ abstract class Command(maybeRequestId: Option[RequestId]) {
     payload: ApiNotification
   )(implicit ctx: RuntimeContext): Unit = {
     ctx.endpoint.sendToClient(Api.Response(None, payload))
+  }
+
+  protected def logLockRelease(
+    logger: TruffleLogger,
+    name: String,
+    startTime: Long,
+    release: => Unit
+  ): Unit = {
+    if (startTime != 0) {
+      release
+      logger.log(
+        Level.FINEST,
+        "Kept {0} lock [{1}] for {2} milliseconds",
+        Array(
+          name,
+          getClass.getSimpleName,
+          System.currentTimeMillis - startTime
+        )
+      )
+    }
   }
 }

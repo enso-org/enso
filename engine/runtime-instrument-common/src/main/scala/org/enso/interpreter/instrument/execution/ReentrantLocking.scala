@@ -45,16 +45,6 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
     }
   }
 
-  /** @inheritdoc */
-  override def removeContextLock(contextId: UUID): Unit = {
-    contextMapLock.lock()
-    try {
-      contextLocks -= contextId
-    } finally {
-      contextMapLock.unlock()
-    }
-  }
-
   private def getFileLock(file: File): Lock = {
     fileMapLock.lock()
     try {
@@ -65,16 +55,6 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
         fileLocks += (file -> lock)
         lock
       }
-    } finally {
-      fileMapLock.unlock()
-    }
-  }
-
-  /** @inheritdoc */
-  override def removeFileLock(file: File): Unit = {
-    fileMapLock.lock()
-    try {
-      fileLocks -= file
     } finally {
       fileMapLock.unlock()
     }
@@ -148,8 +128,29 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
   }
 
   /** @inheritdoc */
-  override def releaseContextLock(contextId: UUID): Unit =
-    getContextLock(contextId).unlock()
+  override def releaseContextLock(contextId: UUID): Unit = {
+    contextMapLock.lock()
+    try {
+      if (contextLocks.contains(contextId)) {
+        contextLocks(contextId).unlock()
+      }
+    } finally {
+      contextMapLock.unlock()
+    }
+  }
+
+  /** @inheritdoc */
+  override def removeContextLock(contextId: UUID): Unit = {
+    contextMapLock.lock()
+    try {
+      if (contextLocks.contains(contextId)) {
+        contextLocks(contextId).unlock()
+        contextLocks -= contextId
+      }
+    } finally {
+      contextMapLock.unlock()
+    }
+  }
 
   /** @inheritdoc */
   override def acquireFileLock(file: File): Long = {
@@ -163,7 +164,16 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
   }
 
   /** @inheritdoc */
-  override def releaseFileLock(file: File): Unit = getFileLock(file).unlock()
+  override def releaseFileLock(file: File): Unit = {
+    fileMapLock.lock()
+    try {
+      if (fileLocks.contains(file)) {
+        fileLocks(file).unlock()
+      }
+    } finally {
+      fileMapLock.unlock()
+    }
+  }
 
   private def logLockAcquisition(lock: Lock, msg: String): Long = {
     val now = System.currentTimeMillis()

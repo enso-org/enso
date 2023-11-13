@@ -31,8 +31,9 @@ public final class InvalidateModulesIndexCommand extends AsynchronousCommand {
     return Future.apply(
         () -> {
           TruffleLogger logger = ctx.executionService().getLogger();
-          long writeCompilationLockTimestamp = ctx.locking().acquireWriteCompilationLock();
+          long writeCompilationLockTimestamp = 0;
           try {
+            writeCompilationLockTimestamp = ctx.locking().acquireWriteCompilationLock();
             ctx.jobControlPlane().abortBackgroundJobs(DeserializeLibrarySuggestionsJob.class);
 
             EnsoContext context = ctx.executionService().getContext();
@@ -50,14 +51,16 @@ public final class InvalidateModulesIndexCommand extends AsynchronousCommand {
 
             StartBackgroundProcessingJob.startBackgroundJobs(ctx);
             reply(new Runtime$Api$InvalidateModulesIndexResponse(), ctx);
+          } catch (InterruptedException ie) {
+            logger.log(Level.WARNING, "Failed to acquire lock: interrupted", ie);
           } finally {
-            ctx.locking().releaseWriteCompilationLock();
-            logger.log(
-                Level.FINEST,
-                "Kept write compilation lock [{0}] for {1} milliseconds.",
-                new Object[] {
-                  this.getClass().getSimpleName(),
-                  System.currentTimeMillis() - writeCompilationLockTimestamp
+            logLockRelease(
+                logger,
+                "write compilation",
+                writeCompilationLockTimestamp,
+                () -> {
+                  ctx.locking().releaseWriteCompilationLock();
+                  return BoxedUnit.UNIT;
                 });
           }
 

@@ -23,10 +23,12 @@ class EditFileCmd(request: Api.EditFileNotification)
     ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] = {
-    val logger                    = ctx.executionService.getLogger
-    val fileLockTimestamp         = ctx.locking.acquireFileLock(request.path)
-    val pendingEditsLockTimestamp = ctx.locking.acquirePendingEditsLock()
+    val logger                          = ctx.executionService.getLogger
+    var fileLockTimestamp: Long         = 0
+    var pendingEditsLockTimestamp: Long = 0
     try {
+      fileLockTimestamp         = ctx.locking.acquireFileLock(request.path)
+      pendingEditsLockTimestamp = ctx.locking.acquirePendingEditsLock()
       logger.log(
         Level.FINE,
         "Adding pending file edits: {}",
@@ -41,16 +43,22 @@ class EditFileCmd(request: Api.EditFileNotification)
         executeJobs.foreach(ctx.jobProcessor.run)
       }
       Future.successful(())
+    } catch {
+      case ie: InterruptedException =>
+        logger.log(Level.WARNING, "Failed to acquire lock: interrupted", ie)
+        Future.failed(ie)
     } finally {
-      ctx.locking.releasePendingEditsLock()
-      logger.log(
-        Level.FINEST,
-        "Kept pending edits lock [EditFileCmd] for " + (System.currentTimeMillis - pendingEditsLockTimestamp) + " milliseconds"
+      logLockRelease(
+        logger,
+        "pending edits",
+        pendingEditsLockTimestamp,
+        ctx.locking.releasePendingEditsLock()
       )
-      ctx.locking.releaseFileLock(request.path)
-      logger.log(
-        Level.FINEST,
-        "Kept file lock [EditFileCmd] for " + (System.currentTimeMillis - fileLockTimestamp) + " milliseconds"
+      logLockRelease(
+        logger,
+        "file",
+        fileLockTimestamp,
+        ctx.locking.releaseFileLock(request.path)
       )
     }
   }

@@ -1,8 +1,11 @@
 package org.enso.interpreter.instrument.job
 
-import java.util.UUID
+import com.oracle.truffle.api.TruffleLogger
 
+import java.util.UUID
 import org.enso.interpreter.instrument.execution.RuntimeContext
+
+import java.util.logging.Level
 
 /** A fine-grained request for a runtime server service. Uses [[RuntimeContext]]
   * to perform a request.
@@ -23,6 +26,38 @@ abstract class Job[+A](
     * @param ctx contains suppliers of services to perform a request
     */
   def run(implicit ctx: RuntimeContext): A
+
+  protected def logLockRelease(
+    logger: TruffleLogger,
+    name: String,
+    startTime: Long,
+    release: => Unit
+  ): Unit = {
+    Job.logLockRelease(logger, name, startTime, release)
+  }
+
+}
+
+object Job {
+  protected[job] def logLockRelease(
+    logger: TruffleLogger,
+    name: String,
+    startTime: Long,
+    release: => Unit
+  ): Unit = {
+    if (startTime != 0) {
+      release
+      logger.log(
+        Level.FINEST,
+        "Kept {0} lock [{1}] for {2} milliseconds",
+        Array(
+          name,
+          getClass.getSimpleName,
+          System.currentTimeMillis - startTime
+        )
+      )
+    }
+  }
 }
 
 /** The job queue can contain only one job of this type decided by the

@@ -5,6 +5,7 @@ import org.enso.interpreter.instrument.execution.RuntimeContext;
 import org.enso.interpreter.runtime.SerializationManager;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.CompilationStage;
+import scala.runtime.BoxedUnit;
 
 /** The job that serializes module. */
 public final class SerializeModuleJob extends BackgroundJob<Void> {
@@ -24,8 +25,9 @@ public final class SerializeModuleJob extends BackgroundJob<Void> {
     var compiler = ensoContext.getCompiler();
     SerializationManager serializationManager = SerializationManager.apply(compiler.context());
     boolean useGlobalCacheLocations = ensoContext.isUseGlobalCache();
-    var writeLockTimestamp = ctx.locking().acquireWriteCompilationLock();
+    long writeLockTimestamp = 0;
     try {
+      writeLockTimestamp = ctx.locking().acquireWriteCompilationLock();
       ctx.executionService()
           .getContext()
           .findModule(moduleName.toString())
@@ -44,15 +46,19 @@ public final class SerializeModuleJob extends BackgroundJob<Void> {
                 serializationManager.serializeModule(
                     compiler, module.asCompilerModule(), useGlobalCacheLocations, false);
               });
-    } finally {
-      ctx.locking().releaseWriteCompilationLock();
+    } catch (InterruptedException ie) {
       ctx.executionService()
           .getLogger()
-          .log(
-              Level.FINEST,
-              "Kept write compilation lock [SetExecutionEnvironmentCommand] for "
-                  + (System.currentTimeMillis() - writeLockTimestamp)
-                  + " milliseconds");
+          .log(Level.WARNING, "Failed to acquire lock: interrupted", ie);
+    } finally {
+      logLockRelease(
+          ctx.executionService().getLogger(),
+          "write compilation",
+          writeLockTimestamp,
+          () -> {
+            ctx.locking().releaseWriteCompilationLock();
+            return BoxedUnit.UNIT;
+          });
     }
     return null;
   }
