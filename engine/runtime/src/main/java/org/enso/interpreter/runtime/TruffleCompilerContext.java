@@ -206,7 +206,7 @@ final class TruffleCompilerContext implements CompilerContext {
     if (!builtins.isIrInitialized()) {
       log(
               Level.FINE,
-              "Initialising IR for [{0}].",
+              "Initializing IR for [{0}].",
               builtinsModule.getName()
       );
 

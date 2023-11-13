@@ -1340,6 +1340,8 @@ lazy val runtime = (project in file("engine/runtime"))
     libraryDependencies ++= jmh ++ jaxb ++ circe ++ Seq(
       "org.apache.commons"  % "commons-lang3"         % commonsLangVersion,
       "org.apache.tika"     % "tika-core"             % tikaVersion,
+      "com.esotericsoftware" % "kryo" % "5.4.0",
+      "io.altoo" %% "scala-kryo-serialization" % "1.0.2",
       "org.graalvm.sdk"     % "graal-sdk"             % graalMavenPackagesVersion % "provided",
       "org.graalvm.sdk"     % "polyglot-tck"          % graalMavenPackagesVersion % "provided",
       "org.graalvm.truffle" % "truffle-api"           % graalMavenPackagesVersion % "provided",
@@ -1358,6 +1360,8 @@ lazy val runtime = (project in file("engine/runtime"))
     Compile / compile / compileInputs := (Compile / compile / compileInputs)
       .dependsOn(CopyTruffleJAR.preCompileTask)
       .value,
+    // https://github.com/EsotericSoftware/kryo/issues/859
+    javaOptions ++= Seq("--add-opens", "java.base/java.util=ALL-UNNAMED", "--add-opens", "java.base/java.util.concurrent=ALL-UNNAMED", "--add-opens", "java.base/java.lang=ALL-UNNAMED", "--add-opens", "java.base/java.lang.invoke=ALL-UNNAMED", "--add-opens", "java.base/java.math=ALL-UNNAMED"),
     // Note [Classpath Separation]
     Test / javaOptions ++= testLogProviderOptions ++ Seq(
       "-Dgraalvm.locatorDisabled=true",

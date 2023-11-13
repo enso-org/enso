@@ -1,6 +1,9 @@
 package org.enso.interpreter.caches;
 
 import buildinfo.Info;
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.io.Output;
+import com.esotericsoftware.kryo.io.Input;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -33,40 +36,35 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
       this.entryName = module.getName().item();
       this.dataSuffix = irCacheDataExtension;
       this.metadataSuffix = irCacheMetadataExtension;
+      kryo.setRegistrationRequired(false);
     }
 
     @Override
     protected byte[] metadata(String sourceDigest, String blobDigest, CachedModule entry) {
-        try {
-            return objectMapper.writeValueAsBytes(new Metadata(sourceDigest, blobDigest, entry.compilationStage().toString()));
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
+            try (var output = new Output()) {
+                var object = new Metadata(sourceDigest, blobDigest, entry.compilationStage().toString());
+                kryo.writeObject(output, object);
+                return output.toBytes();
+            }
     }
 
     @Override
     protected CachedModule deserialize(EnsoContext context, byte[] data, Metadata meta, TruffleLogger logger) throws ClassNotFoundException, IOException, ClassNotFoundException {
-        try (var stream = new ObjectInputStream(new ByteArrayInputStream(data))) {
-          if (stream.readObject() instanceof Module ir) {
+        try (var stream = new Input(data)) {
+          Module ir = kryo.readObject(stream, Module.class);
               try {
                   return new CachedModule(ir,CompilationStage.valueOf(meta.compilationStage()), module.getSource());
               } catch (IOException ioe) {
                   throw new ClassNotFoundException(ioe.getMessage());
               }
-          } else {
-              throw new ClassNotFoundException("Expected Module, got " + data.getClass());
-          }
         }
     }
 
     @Override
     protected Optional<Metadata> metadataFromBytes(byte[] bytes, TruffleLogger logger) {
-        var maybeJsonString = new String(bytes, Cache.metadataCharset);
-        try {
-            return Optional.of(objectMapper.readValue(maybeJsonString, Metadata.class));
-        } catch (JsonProcessingException e) {
-            logger.log(logLevel, "Failed to deserialize module's metadata.", e);
-            return Optional.empty();
+        try (var stream = new Input(bytes)) {
+            Metadata metadata = kryo.readObject(stream, Metadata.class);
+            return Optional.of(metadata);
         }
     }
 
@@ -170,7 +168,13 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
         if (noUUIDs) {
           stream.filterUUIDs();
         }
-        stream.writeObject(entry.moduleIR());
+        Output output = null;
+        try {
+            output = new Output(stream);
+            kryo.writeObject(output, entry.moduleIR());
+        } finally {
+            output.close();
+        }
       }
       return byteStream.toByteArray();
     }
@@ -188,5 +192,6 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
     private final static String irCacheMetadataExtension = ".meta";
 
     private final static ObjectMapper objectMapper = new ObjectMapper();
+    private final static Kryo kryo = new Kryo();
 
 }

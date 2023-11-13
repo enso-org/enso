@@ -241,9 +241,9 @@ object DistributionPackage {
           command,
           None,
           "JAVA_OPTS" -> "-Dorg.jline.terminal.dumb=true"
-        ).!
+        ).!(ProcessLogger(println(_)))
         if (exitCode != 0) {
-          throw new RuntimeException(s"Cannot compile $libMajor.$libName.")
+          throw new RuntimeException(s"Cannot compile $libMajor.$libName at $path.")
         }
       } else {
         log.debug(s"No modified files. Not generating index for ${libName}.")
