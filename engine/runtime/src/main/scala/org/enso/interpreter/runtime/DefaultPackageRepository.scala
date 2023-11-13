@@ -1,13 +1,13 @@
 package org.enso.interpreter.runtime
 
 import org.enso.compiler.PackageRepository
-import org.enso.compiler.ImportExportCache
-import org.enso.compiler.SerializationManager
 import org.enso.compiler.context.CompilerContext
+import org.enso.compiler.data.BindingsMap
 import com.oracle.truffle.api.TruffleFile
 import com.typesafe.scalalogging.Logger
 import org.apache.commons.lang3.StringUtils
 import org.enso.editions.LibraryVersion
+import org.enso.interpreter.caches.ImportExportCache
 import org.enso.interpreter.runtime.util.TruffleFileSystem
 import org.enso.librarymanager.published.repository.LibraryManifest
 import org.enso.librarymanager.resolved.LibraryRoot
@@ -572,17 +572,21 @@ private class DefaultPackageRepository(
 
   override def getLibraryBindings(
     libraryName: LibraryName,
-    serializationManager: SerializationManager
-  ): Option[ImportExportCache.CachedBindings] = {
-    ensurePackageIsLoaded(libraryName).toOption.flatMap { _ =>
+    moduleName: QualifiedName,
+    context: CompilerContext
+  ): Option[BindingsMap] = {
+    val cache = ensurePackageIsLoaded(libraryName).toOption.flatMap { _ =>
       if (!loadedLibraryBindings.contains(libraryName)) {
         loadedPackages.get(libraryName).flatten.foreach(loadDependencies(_))
-        serializationManager
+        context
+          .asInstanceOf[TruffleCompilerContext]
+          .getSerializationManager()
           .deserializeLibraryBindings(libraryName)
           .foreach(cache => loadedLibraryBindings.addOne((libraryName, cache)))
       }
       loadedLibraryBindings.get(libraryName)
     }
+    cache.flatMap(_.bindings.entries().get(moduleName))
   }
 
   private def loadDependencies(pkg: Package[TruffleFile]): Unit = {

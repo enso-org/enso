@@ -2,7 +2,7 @@
 import { componentBrowserBindings } from '@/bindings'
 import { makeComponentList, type Component } from '@/components/ComponentBrowser/component'
 import { Filtering } from '@/components/ComponentBrowser/filtering'
-import { Input } from '@/components/ComponentBrowser/input'
+import { default as DocumentationPanel } from '@/components/DocumentationPanel.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
 import { useProjectStore } from '@/stores/project'
@@ -14,8 +14,10 @@ import type { useNavigator } from '@/util/navigator'
 import type { Opt } from '@/util/opt'
 import { allRanges } from '@/util/range'
 import { Vec2 } from '@/util/vec2'
-import { LoremIpsum } from 'lorem-ipsum'
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import type { SuggestionId } from 'shared/languageServerTypes/suggestions'
+import type { ContentRange } from 'shared/yjsModel.ts'
+import { computed, nextTick, onMounted, ref, watch, type Ref } from 'vue'
+import { useComponentBrowserInput } from './ComponentBrowser/input'
 
 const ITEM_SIZE = 32
 const TOP_BAR_HEIGHT = 32
@@ -23,20 +25,28 @@ const TOP_BAR_HEIGHT = 32
 const props = defineProps<{
   position: Vec2
   navigator: ReturnType<typeof useNavigator>
+  initialContent: string
+  initialCaretPosition: ContentRange
 }>()
 
 const emit = defineEmits<{
-  (e: 'finished'): void
+  finished: [selectedExpression: string]
 }>()
 
 onMounted(() => {
-  if (inputField.value != null) {
-    inputField.value.focus({ preventScroll: true })
-    selectLastAfterRefresh()
-  }
+  input.code.value = props.initialContent
+  nextTick(() => {
+    if (inputField.value != null) {
+      inputField.value.selectionStart = props.initialCaretPosition[0]
+      inputField.value.selectionEnd = props.initialCaretPosition[1]
+      inputField.value.focus({ preventScroll: true })
+      selectLastAfterRefresh()
+    }
+  })
 })
 
 const projectStore = useProjectStore()
+const suggestionDbStore = useSuggestionDbStore()
 
 // === Position ===
 
@@ -44,15 +54,17 @@ const transform = computed(() => {
   const nav = props.navigator
   const translate = nav.translate
   const position = translate.add(props.position).scale(nav.scale)
+  const x = Math.round(position.x)
+  const y = Math.round(position.y)
 
-  return `translate(${position.x}px, ${position.y}px) translateY(-100%)`
+  return `translate(${x}px, ${y}px) translateY(-100%)`
 })
 
 // === Input and Filtering ===
 
 const cbRoot = ref<HTMLElement>()
 const inputField = ref<HTMLInputElement>()
-const input = new Input()
+const input = useComponentBrowserInput()
 const filterFlags = ref({ showUnstable: false, showLocal: false })
 
 const currentFiltering = computed(() => {
@@ -79,7 +91,7 @@ function readInputFieldSelection() {
   }
 }
 // HTMLInputElement's same event is not supported in chrome yet. We just react for any
-// selectionchange in the document and check if the input selection chagned.
+// selectionchange in the document and check if the input selection changed.
 // BUT some operations like deleting does not emit 'selectionChange':
 // https://bugs.chromium.org/p/chromium/issues/detail?id=725890
 // Therefore we must also refresh selection after changing input.
@@ -111,13 +123,11 @@ function handleDefocus(e: FocusEvent) {
       inputField.value.focus({ preventScroll: true })
     }
   } else {
-    emit('finished')
+    emit('finished', input.code.value)
   }
 }
 
 // === Components List and Positions ===
-
-const suggestionDbStore = useSuggestionDbStore()
 
 const components = computed(() => {
   return makeComponentList(suggestionDbStore.entries, currentFiltering.value)
@@ -127,10 +137,7 @@ const visibleComponents = computed(() => {
   if (scroller.value == null) return []
   const scrollPosition = animatedScrollPosition.value
   const topmostVisible = componentAtY(scrollPosition)
-  const bottommostVisible = Math.max(
-    0,
-    componentAtY(animatedScrollPosition.value + scrollerSize.value.y),
-  )
+  const bottommostVisible = Math.max(0, componentAtY(scrollPosition + scrollerSize.value.y))
   return components.value.slice(bottommostVisible, topmostVisible + 1).map((component, i) => {
     return { component, index: i + bottommostVisible }
   })
@@ -172,9 +179,13 @@ const highlightHeight = computed(() => (selected.value != null ? ITEM_SIZE : 0))
 const animatedHighlightPosition = useApproach(highlightPosition)
 const animatedHighlightHeight = useApproach(highlightHeight)
 
-const selectedSuggestion = computed(() => {
+const selectedSuggestionId = computed(() => {
   if (selected.value === null) return null
-  const id = components.value[selected.value]?.suggestionId
+  return components.value[selected.value]?.suggestionId ?? null
+})
+
+const selectedSuggestion = computed(() => {
+  const id = selectedSuggestionId.value
   if (id == null) return null
   return suggestionDbStore.entries.get(id) ?? null
 })
@@ -239,7 +250,20 @@ function updateScroll() {
 // === Documentation Panel ===
 
 const docsVisible = ref(true)
-const docs = new LoremIpsum().generateParagraphs(6)
+
+const displayedDocs: Ref<Opt<SuggestionId>> = ref(null)
+const docEntry = computed({
+  get() {
+    return displayedDocs.value
+  },
+  set(value) {
+    displayedDocs.value = value
+  },
+})
+
+watch(selectedSuggestionId, (id) => {
+  docEntry.value = id
+})
 
 // === Accepting Entry ===
 
@@ -255,7 +279,11 @@ function applySuggestion(component: Opt<Component> = null): SuggestionEntry | nu
 function acceptSuggestion(index: Opt<Component> = null) {
   const applied = applySuggestion(index)
   const shouldFinish = applied != null && applied.kind !== SuggestionKind.Module
-  if (shouldFinish) emit('finished')
+  if (shouldFinish) emit('finished', input.code.value)
+}
+
+function acceptInput() {
+  emit('finished', input.code.value)
 }
 
 // === Key Events Handler ===
@@ -264,8 +292,8 @@ const handler = componentBrowserBindings.handler({
   applySuggestion() {
     applySuggestion()
   },
-  acceptSuggestion() {
-    acceptSuggestion()
+  acceptInput() {
+    acceptInput()
   },
   moveUp() {
     if (selected.value != null && selected.value < components.value.length - 1) {
@@ -280,6 +308,9 @@ const handler = componentBrowserBindings.handler({
       selected.value -= 1
     }
     scrollToSelected()
+  },
+  cancelEditing() {
+    emit('finished', props.initialContent)
   },
 })
 </script>
@@ -379,8 +410,8 @@ const handler = componentBrowserBindings.handler({
           </div>
         </div>
       </div>
-      <div class="panel docs scrollable" :class="{ hidden: !docsVisible }" @wheel.stop.passive>
-        {{ docs }}
+      <div class="panel docs" :class="{ hidden: !docsVisible }">
+        <DocumentationPanel v-model:selectedEntry="docEntry" />
       </div>
     </div>
     <div class="CBInput">
@@ -436,7 +467,6 @@ const handler = componentBrowserBindings.handler({
   width: 406px;
   clip-path: inset(0 0 0 0 round 20px);
   transition: clip-path 0.2s;
-  overflow-y: auto;
 }
 .docs.hidden {
   clip-path: inset(0 100% 0 0 round 20px);

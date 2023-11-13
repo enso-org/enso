@@ -1,12 +1,16 @@
 package org.enso.runner
 
-import org.enso.logger.Converter
-import org.enso.logger.JulHandler
+import org.enso.logger.{Converter, JulHandler, LoggerSetup}
 import org.enso.polyglot.debugger.{
   DebugServerInfo,
   DebuggerSessionManagerEndpoint
 }
-import org.enso.polyglot.{HostAccessFactory, PolyglotContext, RuntimeOptions}
+import org.enso.polyglot.{
+  HostAccessFactory,
+  LanguageInfo,
+  PolyglotContext,
+  RuntimeOptions
+}
 import org.graalvm.polyglot.Engine
 import org.graalvm.polyglot.Context
 import org.slf4j.event.Level
@@ -26,6 +30,7 @@ class ContextFactory {
     * @param repl the Repl manager to use for this context
     * @param logLevel the log level for this context
     * @param enableIrCaches whether or not IR caching should be enabled
+    * @param disablePrivateCheck If `private` keyword should be disabled.
     * @param strictErrors whether or not to use strict errors
     * @param useGlobalIrCacheLocation whether or not to use the global IR cache
     *                                 location
@@ -42,6 +47,7 @@ class ContextFactory {
     logLevel: Level,
     logMasking: Boolean,
     enableIrCaches: Boolean,
+    disablePrivateCheck: Boolean           = false,
     strictErrors: Boolean                  = false,
     useGlobalIrCacheLocation: Boolean      = true,
     enableAutoParallelism: Boolean         = false,
@@ -59,7 +65,8 @@ class ContextFactory {
     if (javaHome == null) {
       throw new IllegalStateException("Specify JAVA_HOME environment property");
     }
-    val logLevelName = Converter.toJavaLevel(logLevel).getName
+    val julLogLevel  = Converter.toJavaLevel(logLevel)
+    val logLevelName = julLogLevel.getName
     val builder = Context
       .newBuilder()
       .allowExperimentalOptions(true)
@@ -76,6 +83,10 @@ class ContextFactory {
         useGlobalIrCacheLocation.toString
       )
       .option(RuntimeOptions.DISABLE_IR_CACHES, (!enableIrCaches).toString)
+      .option(
+        RuntimeOptions.DISABLE_PRIVATE_CHECK,
+        disablePrivateCheck.toString
+      )
       .option(DebugServerInfo.ENABLE_OPTION, "true")
       .option(RuntimeOptions.LOG_MASKING, logMasking.toString)
       .options(options)
@@ -95,11 +106,21 @@ class ContextFactory {
           new DebuggerSessionManagerEndpoint(repl, peer)
         } else null
       }
-      .option(
-        RuntimeOptions.LOG_LEVEL,
-        logLevelName
-      )
-      .logHandler(JulHandler.get())
+
+    builder.option(RuntimeOptions.LOG_LEVEL, logLevelName)
+    val logHandler = JulHandler.get()
+    val logLevels  = LoggerSetup.get().getConfig.getLoggers
+    if (logLevels.hasEnsoLoggers()) {
+      logLevels.entrySet().forEach { entry =>
+        builder.option(
+          s"log.${LanguageInfo.ID}.${entry.getKey}.level",
+          Converter.toJavaLevel(entry.getValue).getName
+        )
+      }
+    }
+    builder
+      .logHandler(logHandler)
+
     val graalpy = new File(
       new File(
         new File(new File(new File(projectRoot), "polyglot"), "python"),

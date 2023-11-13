@@ -1,12 +1,17 @@
 import { injectGuiConfig, type GuiConfig } from '@/providers/guiConfig'
 import { bail } from '@/util/assert'
 import { ComputedValueRegistry } from '@/util/computedValueRegistry'
-import { attachProvider } from '@/util/crdt'
-import { AsyncQueue, rpcWithRetries as lsRpcWithRetries } from '@/util/net'
+import { attachProvider, useObserveYjs } from '@/util/crdt'
+import {
+  AsyncQueue,
+  createRpcTransport,
+  createWebsocketClient,
+  rpcWithRetries as lsRpcWithRetries,
+} from '@/util/net'
 import { isSome, type Opt } from '@/util/opt'
 import { tryQualifiedName } from '@/util/qualifiedName'
 import { VisualizationDataRegistry } from '@/util/visualizationDataRegistry'
-import { Client, RequestManager, WebSocketTransport } from '@open-rpc/client-js'
+import { Client, RequestManager } from '@open-rpc/client-js'
 import { computedAsync } from '@vueuse/core'
 import * as array from 'lib0/array'
 import * as object from 'lib0/object'
@@ -26,7 +31,6 @@ import type {
   StackItem,
   VisualizationConfiguration,
 } from 'shared/languageServerTypes'
-import { WebsocketClient } from 'shared/websocket'
 import { DistributedProject, type ExprId, type Uuid } from 'shared/yjsModel'
 import {
   computed,
@@ -38,6 +42,7 @@ import {
   watchEffect,
   type ShallowRef,
   type WatchSource,
+  type WritableComputedRef,
 } from 'vue'
 import { Awareness } from 'y-protocols/awareness'
 import * as Y from 'yjs'
@@ -68,7 +73,7 @@ async function initializeLsRpcConnection(
   connection: LanguageServer
   contentRoots: ContentRoot[]
 }> {
-  const transport = new WebSocketTransport(url)
+  const transport = createRpcTransport(url)
   const requestManager = new RequestManager([transport])
   const client = new Client(requestManager)
   const connection = new LanguageServer(client)
@@ -86,7 +91,7 @@ async function initializeLsRpcConnection(
 }
 
 async function initializeDataConnection(clientId: Uuid, url: string) {
-  const client = new WebsocketClient(url, { binaryType: 'arraybuffer', sendPings: false })
+  const client = createWebsocketClient(url, { binaryType: 'arraybuffer', sendPings: false })
   const connection = new DataServer(client)
   await connection.initialize(clientId)
   return connection
@@ -434,7 +439,7 @@ export const useProjectStore = defineStore('project', () => {
   const namespace = computed(() => config.value.engine?.namespace)
   const fullName = computed(() => {
     const ns = namespace.value
-    if (ns == null) {
+    if (import.meta.env.PROD && ns == null) {
       console.warn(
         'Unknown project\'s namespace. Assuming "local", however it likely won\'t work in cloud',
       )
@@ -450,7 +455,6 @@ export const useProjectStore = defineStore('project', () => {
   })
   const modulePath = computed(() => {
     const filePath = observedFileName.value
-    console.log(filePath)
     if (filePath == null) return undefined
     const withoutFileExt = filePath.replace(/\.enso$/, '')
     const withDotSeparators = withoutFileExt.replace(/\//g, '.')
@@ -458,6 +462,11 @@ export const useProjectStore = defineStore('project', () => {
   })
 
   watchEffect((onCleanup) => {
+    if (lsUrls.rpcUrl.startsWith('mock://')) {
+      doc.load()
+      doc.emit('load', [])
+      return
+    }
     // For now, let's assume that the websocket server is running on the same host as the web server.
     // Eventually, we can make this configurable, or even runtime variable.
     const socketUrl = new URL(location.origin)
@@ -538,6 +547,8 @@ export const useProjectStore = defineStore('project', () => {
     module.value?.undoManager.stopCapturing()
   }
 
+  const { executionMode } = setupSettings(projectModel)
+
   return {
     setObservedFileName(name: string) {
       observedFileName.value = name
@@ -546,6 +557,7 @@ export const useProjectStore = defineStore('project', () => {
     executionContext,
     module,
     modulePath,
+    projectModel,
     contentRoots,
     awareness,
     computedValueRegistry,
@@ -553,5 +565,45 @@ export const useProjectStore = defineStore('project', () => {
     dataConnection: markRaw(dataConnection),
     useVisualizationData,
     stopCapturingUndo,
+    executionMode,
   }
 })
+
+type ExecutionMode = 'live' | 'design'
+type Settings = { executionMode: WritableComputedRef<ExecutionMode> }
+function setupSettings(project: DistributedProject | null): Settings {
+  const settings = computed(() => project?.settings)
+  // Value synchronized with a key of the `settings` map, used to enforce reactive dependencies.
+  const executionMode_ = ref<ExecutionMode>()
+  const executionMode = computed<ExecutionMode>({
+    get() {
+      return executionMode_.value ?? 'design'
+    },
+    set(value) {
+      // Update the synchronized map; the change observer will set `executionMode_`.
+      if (settings.value != null) settings.value.set('executionMode', value)
+    },
+  })
+  useObserveYjs(settings, (event) => {
+    event.changes.keys.forEach((change, key) => {
+      if (key == 'executionMode') {
+        if (change.action === 'add' || change.action === 'update') {
+          switch (settings.value?.get('executionMode')) {
+            case 'design':
+              executionMode_.value = 'design'
+              break
+            case 'live':
+              executionMode_.value = 'live'
+              break
+            default:
+              console.log(`Bug: Unexpected executionMode. Ignoring...`, executionMode)
+              break
+          }
+        } else if (change.action === 'delete') {
+          executionMode_.value = undefined
+        }
+      }
+    })
+  })
+  return { executionMode }
+}

@@ -1,7 +1,6 @@
 package org.enso.languageserver.websocket.json
 
 import java.io.File
-
 import io.circe.literal._
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.testkit.FlakySpec
@@ -17,8 +16,8 @@ class FileNotificationsTest extends BaseServerTest with FlakySpec {
       // Interaction:
       // 1.  Client 1 creates a file.
       // 2.  Client 1 opens the file.
-      // 3.  Client 1 receives confirmation.
-      // 4.  Runtime receives open notification.
+      // 3.  Runtime receives open notification.
+      // 4.  Client 1 receives confirmation.
       // 5.  Client 2 opens the same file.
       // 6.  Client 2 receives confirmation
       // 7.  Runtime receives no notifications.
@@ -69,6 +68,9 @@ class FileNotificationsTest extends BaseServerTest with FlakySpec {
           }
           """)
       // 3
+      receiveAndReplyToOpenFile("foo.txt")
+
+      // 4
       client1.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 1,
@@ -85,12 +87,6 @@ class FileNotificationsTest extends BaseServerTest with FlakySpec {
             }
           }
           """)
-      // 4
-      runtimeConnectorProbe.expectMsg(
-        Api.Request(
-          Api.OpenFileNotification(file("foo.txt"), "123456789")
-        )
-      )
 
       // 5
       client2.send(json"""

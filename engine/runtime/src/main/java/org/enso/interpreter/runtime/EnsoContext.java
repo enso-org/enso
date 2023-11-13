@@ -80,6 +80,7 @@ public final class EnsoContext {
   private final EnsoLanguage language;
   private final Env environment;
   private final boolean assertionsEnabled;
+  private final boolean isPrivateCheckDisabled;
   private @CompilationFinal
   Compiler compiler;
   private final PrintStream out;
@@ -140,6 +141,7 @@ public final class EnsoContext {
     var isParallelismEnabled = getOption(RuntimeOptions.ENABLE_AUTO_PARALLELISM_KEY);
     this.isIrCachingDisabled
             = getOption(RuntimeOptions.DISABLE_IR_CACHES_KEY) || isParallelismEnabled;
+    this.isPrivateCheckDisabled = getOption(RuntimeOptions.DISABLE_PRIVATE_CHECK_KEY);
     this.executionEnvironment = getOption(EnsoLanguage.EXECUTION_ENVIRONMENT);
     this.assertionsEnabled = shouldAssertionsBeEnabled();
     this.shouldWaitForPendingSerializationJobs
@@ -148,6 +150,7 @@ public final class EnsoContext {
             = new CompilerConfig(
                     isParallelismEnabled,
                     true,
+                    !isPrivateCheckDisabled,
                     getOption(RuntimeOptions.STRICT_ERRORS_KEY),
                     scala.Option.empty());
     this.home = home;
@@ -730,6 +733,13 @@ public final class EnsoContext {
   }
 
   /**
+   * @return when {@code private} keyword should be checked.
+   */
+  public boolean isPrivateCheckDisabled() {
+    return isPrivateCheckDisabled;
+  }
+
+  /**
    * @return whether IR caching should be disabled for this context.
    */
   public boolean isIrCachingDisabled() {
@@ -765,13 +775,14 @@ public final class EnsoContext {
   }
 
   /**
-   * Gets a logger for the specified class.
+   * Gets a logger for the specified class that is bound to this engine.
+   * Such logger may then be safely used in threads defined in a thread-pool.
    *
-   * @param klass the class to name log entries with
+   * @param clazz the class to name log entries with
    * @return a new logger for the specified {@code path}
    */
-  public TruffleLogger getLogger(Class<?> klass) {
-    return TruffleLogger.getLogger(LanguageInfo.ID, klass);
+  public TruffleLogger getLogger(Class<?> clazz) {
+    return environment.getLogger(clazz);
   }
 
   /**

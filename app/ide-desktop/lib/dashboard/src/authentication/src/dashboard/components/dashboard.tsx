@@ -57,7 +57,7 @@ export default function Dashboard(props: DashboardProps) {
     const session = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
     const { setBackend } = backendProvider.useSetBackend()
-    const { modal } = modalProvider.useModal()
+    const { modalRef } = modalProvider.useModalRef()
     const { unsetModal } = modalProvider.useSetModal()
     const { localStorage } = localStorageProvider.useLocalStorage()
     const { shortcuts } = shortcutsProvider.useShortcuts()
@@ -86,7 +86,6 @@ export default function Dashboard(props: DashboardProps) {
             localStorage.get(localStorageModule.LocalStorageKey.isAssetSettingsPanelVisible) ??
             false
     )
-    const modalRef = React.useRef<modalProvider.Modal | null>(null)
     const [initialProjectName, setInitialProjectName] = React.useState(rawInitialProjectName)
 
     const isListingLocalDirectoryAndWillFail =
@@ -101,10 +100,6 @@ export default function Dashboard(props: DashboardProps) {
     React.useEffect(() => {
         setInitialized(true)
     }, [])
-
-    React.useEffect(() => {
-        modalRef.current = modal
-    }, [modal])
 
     React.useEffect(() => {
         unsetModal()
@@ -307,7 +302,7 @@ export default function Dashboard(props: DashboardProps) {
                 }
             },
         })
-    }, [shortcuts, /* should never change */ unsetModal])
+    }, [shortcuts, /* should never change */ modalRef, /* should never change */ unsetModal])
 
     const setBackendType = React.useCallback(
         (newBackendType: backendModule.BackendType) => {

@@ -29,5 +29,5 @@ pub fn main() {
     use std::io::Read;
     let mut input = String::new();
     std::io::stdin().read_to_string(&mut input).unwrap();
-    println!("{:#?}", enso_parser::lexer::run(&input));
+    println!("{:#?}", enso_parser::lexer::debug::lex_and_validate_spans(&input));
 }

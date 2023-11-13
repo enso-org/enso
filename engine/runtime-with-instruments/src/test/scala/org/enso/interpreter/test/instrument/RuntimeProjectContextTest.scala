@@ -6,6 +6,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
 import java.nio.file.Paths
+import java.util.logging.Level
 
 class RuntimeProjectContextTest extends AnyWordSpec with Matchers {
   "Runtime Context" should {
@@ -28,7 +29,8 @@ class RuntimeProjectContextTest extends AnyWordSpec with Matchers {
               .getAbsolutePath
           )
           .option(RuntimeOptions.EDITION_OVERRIDE, "0.0.0-dev")
-          .option(RuntimeOptions.LOG_LEVEL, "WARNING")
+          .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName)
+          .logHandler(System.err)
           .build()
         context.initialize(LanguageInfo.ID)
       }

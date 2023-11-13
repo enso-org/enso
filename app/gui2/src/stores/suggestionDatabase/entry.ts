@@ -1,5 +1,6 @@
 import { assert } from '@/util/assert'
 import type { Doc } from '@/util/docParser'
+import type { Icon } from '@/util/iconName'
 import {
   isIdentifier,
   isQualifiedName,
@@ -7,11 +8,9 @@ import {
   qnLastSegment,
   qnParent,
   qnSplit,
-  tryQualifiedName,
   type Identifier,
   type QualifiedName,
 } from '@/util/qualifiedName'
-import { unwrap } from '@/util/result'
 import type {
   SuggestionEntryArgument,
   SuggestionEntryScope,
@@ -62,7 +61,7 @@ export interface SuggestionEntry {
   /** A scope where this suggestion is visible. */
   scope?: SuggestionEntryScope
   /** A name of a custom icon to use when displaying the entry. */
-  iconName?: string
+  iconName?: Icon
   /** An index of a group from group list in suggestionDb store this entry belongs to. */
   groupIndex?: number
 }
@@ -76,7 +75,7 @@ export function entryQn(entry: SuggestionEntry): QualifiedName {
   } else if (entry.memberOf) {
     return qnJoin(entry.memberOf, entry.name)
   } else {
-    return qnJoin(entry.definedIn, unwrap(tryQualifiedName(entry.name)))
+    return qnJoin(entry.definedIn, entry.name)
   }
 }
 

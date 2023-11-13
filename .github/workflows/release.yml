@@ -628,6 +628,7 @@ jobs:
         env:
           APPLEID: ${{ secrets.APPLE_NOTARIZATION_USERNAME }}
           APPLEIDPASS: ${{ secrets.APPLE_NOTARIZATION_PASSWORD }}
+          APPLETEAMID: ${{ secrets.APPLE_NOTARIZATION_TEAM_ID }}
           CSC_IDENTITY_AUTO_DISCOVERY: "true"
           CSC_KEY_PASSWORD: ${{ secrets.APPLE_CODE_SIGNING_CERT_PASSWORD }}
           CSC_LINK: ${{ secrets.APPLE_CODE_SIGNING_CERT }}
@@ -725,7 +726,7 @@ jobs:
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.0.6
+        uses: s-weigand/setup-conda@v1.2.1
         with:
           update-conda: false
           conda-channels: anaconda, conda-forge
@@ -747,7 +748,7 @@ jobs:
         run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
         shell: bash
       - name: Checking out the repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           clean: false
           submodules: recursive
@@ -787,7 +788,7 @@ jobs:
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.0.6
+        uses: s-weigand/setup-conda@v1.2.1
         with:
           update-conda: false
           conda-channels: anaconda, conda-forge
@@ -809,7 +810,7 @@ jobs:
         run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
         shell: bash
       - name: Checking out the repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           clean: false
           submodules: recursive
@@ -826,6 +827,7 @@ jobs:
         env:
           APPLEID: ${{ secrets.APPLE_NOTARIZATION_USERNAME }}
           APPLEIDPASS: ${{ secrets.APPLE_NOTARIZATION_PASSWORD }}
+          APPLETEAMID: ${{ secrets.APPLE_NOTARIZATION_TEAM_ID }}
           CSC_IDENTITY_AUTO_DISCOVERY: "true"
           CSC_KEY_PASSWORD: ${{ secrets.APPLE_CODE_SIGNING_CERT_PASSWORD }}
           CSC_LINK: ${{ secrets.APPLE_CODE_SIGNING_CERT }}
@@ -856,7 +858,7 @@ jobs:
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.0.6
+        uses: s-weigand/setup-conda@v1.2.1
         with:
           update-conda: false
           conda-channels: anaconda, conda-forge
@@ -878,7 +880,7 @@ jobs:
         run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
         shell: bash
       - name: Checking out the repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           clean: false
           submodules: recursive

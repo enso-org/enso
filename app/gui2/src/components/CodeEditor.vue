@@ -160,7 +160,7 @@ const editorStyle = computed(() => {
   </div>
 </template>
 
-<style>
+<style scoped>
 .CodeEditor {
   position: absolute;
   bottom: 5px;
@@ -169,16 +169,8 @@ const editorStyle = computed(() => {
   height: 30%;
   max-width: calc(100% - 10px);
   max-height: calc(100% - 10px);
-
-  &::before {
-    content: '';
-    display: inline-block;
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    backdrop-filter: var(--blur-app-bg);
-    border-radius: 7px;
-  }
+  backdrop-filter: var(--blur-app-bg);
+  border-radius: 7px;
 
   &.v-enter-active,
   &.v-leave-active {
@@ -249,5 +241,9 @@ const editorStyle = computed(() => {
     backdrop-filter: blur(64px);
     border-radius: 4px;
   }
+}
+
+.CodeEditor :is(.cm-gutters) {
+  border-radius: 3px 0 0 3px;
 }
 </style>

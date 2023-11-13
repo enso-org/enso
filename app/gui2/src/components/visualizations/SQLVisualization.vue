@@ -15,9 +15,9 @@ type Data = SQLData | Error
 
 interface SQLData {
   error: undefined
-  dialect: string
+  dialect: string | undefined
   code: string
-  interpolations: SQLInterpolation[]
+  interpolations: SQLInterpolation[] | undefined
 }
 
 interface SQLInterpolation {
@@ -31,19 +31,13 @@ interface Error {
   code: undefined
   interpolations: undefined
 }
-
-declare const sqlFormatter: typeof import('sql-formatter')
 </script>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-
-// @ts-expect-error
-// eslint-disable-next-line no-redeclare
-import * as sqlFormatter from 'https://cdn.jsdelivr.net/npm/sql-formatter@13.0.0/+esm'
-
 import VisualizationContainer from '@/components/VisualizationContainer.vue'
 import { DEFAULT_THEME, type RGBA, type Theme } from '@/components/visualizations/builtins'
+import { computed } from 'vue'
+const sqlFormatter = await import('sql-formatter')
 
 const props = defineProps<{ data: Data }>()
 
@@ -55,10 +49,10 @@ const language = computed(() =>
     : 'sql',
 )
 const formatted = computed(() => {
-  if (props.data.error != null) {
+  if (props.data.error != null || props.data.code == null) {
     return undefined
   }
-  const params = props.data.interpolations.map((param) =>
+  const params = (props.data.interpolations ?? []).map((param) =>
     renderInterpolationParameter(theme, param),
   )
 

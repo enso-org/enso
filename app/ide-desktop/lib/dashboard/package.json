@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@heroicons/react": "^2.0.15",
+    "@sentry/react": "^7.74.0",
     "@types/node": "^18.17.5",
     "@types/react": "^18.0.27",
     "@types/react-dom": "^18.0.10",

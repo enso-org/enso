@@ -14,6 +14,8 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Consumer;
+import java.util.logging.Level;
+
 import org.enso.interpreter.instrument.profiling.ProfilingInfo;
 import org.enso.interpreter.node.MethodRootNode;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
@@ -376,7 +378,8 @@ public final class ExecutionService {
   public void modifyModuleSources(
       Module module,
       scala.collection.immutable.Seq<model.TextEdit> edits,
-      SimpleUpdate simpleUpdate) {
+      SimpleUpdate simpleUpdate,
+      TruffleLogger logger) {
     try {
       module.getSource();
     } catch (IOException e) {
@@ -391,6 +394,7 @@ public final class ExecutionService {
                     module.getName(), edits, failure, module.getLiteralSource());
               },
               rope -> {
+                logger.log(Level.FINE, "Applied edits. Source has {} lines, last line has {} characters", new Object[]{rope.lines().length(), rope.lines().drop(rope.lines().length() - 1).characters().length()});
                 module.setLiteralSource(rope, simpleUpdate);
                 return new Object();
               });

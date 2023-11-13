@@ -1,3 +1,5 @@
+/// <reference types="histoire" />
+
 import vue from '@vitejs/plugin-vue'
 import { fileURLToPath } from 'node:url'
 import postcssNesting from 'postcss-nesting'

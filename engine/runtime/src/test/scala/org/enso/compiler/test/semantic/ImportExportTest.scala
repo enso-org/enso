@@ -17,6 +17,7 @@ import org.scalatest.wordspec.AnyWordSpecLike
 
 import java.io.{ByteArrayOutputStream, ObjectOutputStream}
 import java.nio.file.Paths
+import java.util.logging.Level
 
 /** Tests a single package with multiple modules for import/export resolution.
   * Checks whether the exported symbols and defined entities metadata of the modules
@@ -41,7 +42,7 @@ class ImportExportTest
     .allowCreateThread(false)
     .out(out)
     .err(out)
-    .option(RuntimeOptions.LOG_LEVEL, "WARNING")
+    .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
     .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
     .logHandler(System.err)
     .option(
@@ -910,7 +911,7 @@ class ImportExportTest
       val baos   = new ByteArrayOutputStream()
       val stream = new ObjectOutputStream(baos)
       mainIr.preorder.foreach(
-        _.passData.prepareForSerialization(langCtx.getCompiler)
+        _.passData.prepareForSerialization(langCtx.getCompiler.context)
       )
       stream.writeObject(mainIr)
       baos.toByteArray should not be empty
@@ -942,7 +943,7 @@ class ImportExportTest
       val baos   = new ByteArrayOutputStream()
       val stream = new ObjectOutputStream(baos)
       mainIr.preorder.foreach(
-        _.passData.prepareForSerialization(langCtx.getCompiler)
+        _.passData.prepareForSerialization(langCtx.getCompiler.context)
       )
       stream.writeObject(mainIr)
       baos.toByteArray should not be empty

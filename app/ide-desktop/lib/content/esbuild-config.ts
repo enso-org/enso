@@ -103,6 +103,7 @@ export function bundlerOptions(args: Arguments) {
             '.wasm': 'copy',
             '.svg': 'dataurl',
             '.png': 'file',
+            '.jpg': 'file',
             '.ttf': 'copy',
         },
         entryPoints: [

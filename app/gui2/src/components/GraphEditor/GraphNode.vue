@@ -1,20 +1,14 @@
 <script setup lang="ts">
 import { nodeEditBindings } from '@/bindings'
 import CircularMenu from '@/components/CircularMenu.vue'
+import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import NodeTree from '@/components/GraphEditor/NodeTree.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
-import LoadingVisualization from '@/components/visualizations/LoadingVisualization.vue'
 import { injectGraphSelection } from '@/providers/graphSelection'
-import { provideVisualizationConfig } from '@/providers/visualizationConfig'
 import type { Node } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
-import {
-  DEFAULT_VISUALIZATION_CONFIGURATION,
-  DEFAULT_VISUALIZATION_IDENTIFIER,
-  useVisualizationStore,
-  type Visualization,
-} from '@/stores/visualization'
+import { useApproach } from '@/util/animation'
 import { colorFromString } from '@/util/colors'
 import { usePointer, useResizeObserver } from '@/util/events'
 import { methodNameToIcon, typeNameToIcon } from '@/util/getIconName'
@@ -24,29 +18,31 @@ import { Rect } from '@/util/rect'
 import { unwrap } from '@/util/result'
 import { Vec2 } from '@/util/vec2'
 import type { ContentRange, ExprId, VisualizationIdentifier } from 'shared/yjsModel'
-import { computed, onUpdated, reactive, ref, shallowRef, watch, watchEffect } from 'vue'
+import { computed, onUpdated, reactive, ref, watch, watchEffect } from 'vue'
 
 const MAXIMUM_CLICK_LENGTH_MS = 300
 const MAXIMUM_CLICK_DISTANCE_SQ = 50
 
 const props = defineProps<{
   node: Node
+  edited: boolean
 }>()
 
 const emit = defineEmits<{
   updateRect: [rect: Rect]
   updateExprRect: [id: ExprId, rect: Rect]
   updateContent: [updates: [range: ContentRange, content: string][]]
-  movePosition: [delta: Vec2]
+  dragging: [offset: Vec2]
+  draggingCommited: []
   setVisualizationId: [id: Opt<VisualizationIdentifier>]
   setVisualizationVisible: [visible: boolean]
   delete: []
   replaceSelection: []
   'update:selected': [selected: boolean]
   outputPortAction: []
+  'update:edited': [cursorPosition: number]
 }>()
 
-const visualizationStore = useVisualizationStore()
 const nodeSelection = injectGraphSelection(true)
 
 const nodeId = computed(() => props.node.rootSpan.astId)
@@ -59,28 +55,28 @@ const isSelected = computed(() => nodeSelection?.isSelected(nodeId.value) ?? fal
 watch(isSelected, (selected) => {
   menuVisible.value = menuVisible.value && selected
 })
-const visPreprocessor = ref(DEFAULT_VISUALIZATION_CONFIGURATION)
 
 const isAutoEvaluationDisabled = ref(false)
 const isDocsVisible = ref(false)
 const isVisualizationVisible = computed(() => props.node.vis?.visible ?? false)
 
-const visualization = shallowRef<Visualization>()
-
 const projectStore = useProjectStore()
-
-const visualizationData = projectStore.useVisualizationData(() => {
-  if (!isVisualizationVisible.value || !visPreprocessor.value) return
-  return {
-    ...visPreprocessor.value,
-    expressionId: props.node.rootSpan.astId,
-  }
-})
 
 watchEffect(() => {
   const size = nodeSize.value
   if (!size.isZero()) {
     emit('updateRect', new Rect(props.node.position, nodeSize.value))
+  }
+})
+
+const outputHovered = ref(false)
+const hoverAnimation = useApproach(() => (outputHovered.value ? 1 : 0), 50, 0.01)
+
+const bgStyleVariables = computed(() => {
+  return {
+    '--node-width': `${nodeSize.value.x}px`,
+    '--node-height': `${nodeSize.value.y}px`,
+    '--hover-animation': `${hoverAnimation.value}`,
   }
 })
 
@@ -296,62 +292,6 @@ onUpdated(() => {
   }
 })
 
-function updatePreprocessor(
-  visualizationModule: string,
-  expression: string,
-  ...positionalArgumentsExpressions: string[]
-) {
-  visPreprocessor.value = { visualizationModule, expression, positionalArgumentsExpressions }
-}
-
-function switchToDefaultPreprocessor() {
-  visPreprocessor.value = DEFAULT_VISUALIZATION_CONFIGURATION
-}
-
-provideVisualizationConfig({
-  fullscreen: false,
-  width: null,
-  height: 150,
-  get types() {
-    return visualizationStore.types(expressionInfo.value?.typename)
-  },
-  get isCircularMenuVisible() {
-    return menuVisible.value
-  },
-  get nodeSize() {
-    return nodeSize.value
-  },
-  get currentType() {
-    return props.node.vis ?? DEFAULT_VISUALIZATION_IDENTIFIER
-  },
-  hide: () => emit('setVisualizationVisible', false),
-  updateType: (id) => emit('setVisualizationId', id),
-})
-
-watchEffect(async () => {
-  if (props.node.vis == null) {
-    return
-  }
-
-  visualization.value = undefined
-  const module = await visualizationStore.get(props.node.vis)
-  if (module) {
-    if (module.defaultPreprocessor != null) {
-      updatePreprocessor(...module.defaultPreprocessor)
-    } else {
-      switchToDefaultPreprocessor()
-    }
-    visualization.value = module.default
-  }
-})
-
-const effectiveVisualization = computed(() => {
-  if (!visualization.value || visualizationData.value == null) {
-    return LoadingVisualization
-  }
-  return visualization.value
-})
-
 watch(
   () => [isAutoEvaluationDisabled.value, isDocsVisible.value, isVisualizationVisible.value],
   () => {
@@ -371,12 +311,51 @@ const editableKeydownHandler = nodeEditBindings.handler({
   },
 })
 
+function startEditingHandler(event: PointerEvent) {
+  let range, textNode, offset
+  offset = 0
+
+  if ((document as any).caretPositionFromPoint) {
+    range = (document as any).caretPositionFromPoint(event.clientX, event.clientY)
+    textNode = range.offsetNode
+    offset = range.offset
+  } else if (document.caretRangeFromPoint) {
+    range = document.caretRangeFromPoint(event.clientX, event.clientY)
+    if (range == null) {
+      console.error('Could not find caret position when editing node.')
+    } else {
+      textNode = range.startContainer
+      offset = range.startOffset
+    }
+  } else {
+    console.error(
+      'Neither caretPositionFromPoint nor caretRangeFromPoint are supported by this browser',
+    )
+  }
+
+  let newRange = document.createRange()
+  newRange.setStart(textNode, offset)
+
+  let selection = window.getSelection()
+  if (selection != null) {
+    selection.removeAllRanges()
+    selection.addRange(newRange)
+  } else {
+    console.error('Could not set selection when editing node.')
+  }
+
+  emit('update:edited', offset)
+}
+
 const startEpochMs = ref(0)
 let startEvent: PointerEvent | null = null
-let startPos = Vec2.Zero()
+let startPos = Vec2.Zero
 
 const dragPointer = usePointer((pos, event, type) => {
-  emit('movePosition', pos.delta)
+  if (type !== 'start') {
+    const fullOffset = pos.absolute.sub(startPos)
+    emit('dragging', fullOffset)
+  }
   switch (type) {
     case 'start': {
       startEpochMs.value = Number(new Date())
@@ -389,13 +368,14 @@ const dragPointer = usePointer((pos, event, type) => {
       if (
         Number(new Date()) - startEpochMs.value <= MAXIMUM_CLICK_LENGTH_MS &&
         startEvent != null &&
-        pos.absolute.distanceSquare(startPos) <= MAXIMUM_CLICK_DISTANCE_SQ
+        pos.absolute.distanceSquared(startPos) <= MAXIMUM_CLICK_DISTANCE_SQ
       ) {
         nodeSelection?.handleSelectionOf(startEvent, new Set([nodeId.value]))
         menuVisible.value = true
       }
       startEvent = null
       startEpochMs.value = 0
+      emit('draggingCommited')
     }
   }
 })
@@ -410,10 +390,10 @@ const executionState = computed(() => expressionInfo.value?.payload.type ?? 'Unk
 const suggestionEntry = computed(() => {
   const method = expressionInfo.value?.methodCall?.methodPointer
   if (method == null) return undefined
-  const moduleName = tryQualifiedName(method.module)
+  const typeName = tryQualifiedName(method.definedOnType)
   const methodName = tryQualifiedName(method.name)
-  if (!moduleName.ok || !methodName.ok) return undefined
-  const qualifiedName = qnJoin(unwrap(moduleName), unwrap(methodName))
+  if (!typeName.ok || !methodName.ok) return undefined
+  const qualifiedName = qnJoin(unwrap(typeName), unwrap(methodName))
   const [id] = suggestionDbStore.entries.nameToId.lookup(qualifiedName)
   if (id == null) return undefined
   return suggestionDbStore.entries.get(id)
@@ -468,22 +448,24 @@ function hoverExpr(id: ExprId | undefined) {
       :isVisualizationVisible="isVisualizationVisible"
       @update:isVisualizationVisible="emit('setVisualizationVisible', $event)"
     />
-    <component
-      :is="effectiveVisualization"
-      v-if="isVisualizationVisible && effectiveVisualization != null"
-      :data="visualizationData"
-      @update:preprocessor="updatePreprocessor"
+    <GraphVisualization
+      v-if="isVisualizationVisible"
+      :nodeSize="nodeSize"
+      :isCircularMenuVisible="menuVisible"
+      :currentType="props.node.vis"
+      :expressionId="props.node.rootSpan.astId"
+      :typename="expressionInfo?.typename"
+      @setVisualizationId="emit('setVisualizationId', $event)"
+      @setVisualizationVisible="emit('setVisualizationVisible', $event)"
     />
     <div class="node" v-on="dragPointer.events">
-      <SvgIcon class="icon grab-handle" :name="icon"></SvgIcon>
-      <span
+      <SvgIcon class="icon grab-handle" :name="icon"></SvgIcon
+      ><span
         ref="editableRootNode"
-        class="editable"
-        contenteditable
         spellcheck="false"
         @beforeinput="editContent"
         @keydown="editableKeydownHandler"
-        @pointerdown.stop
+        @pointerdown.stop.prevent="startEditingHandler"
         @blur="projectStore.stopCapturingUndo()"
         ><NodeTree
           :ast="node.rootSpan"
@@ -492,81 +474,98 @@ function hoverExpr(id: ExprId | undefined) {
           @updateHoveredExpr="hoverExpr($event)"
       /></span>
     </div>
-    <div key="outputPort" class="outputPort" @pointerdown="emit('outputPortAction')">
-      <svg viewBox="-22 -35 22 38" xmlns="http://www.w3.org/2000/svg" class="outputPortCap">
-        <path d="M 0 0 a 19 19 0 0 1 -19 -19" class="outputPortCapLine" />
-        <rect height="6" width="6" x="0" y="-3" class="outputPortCapButt" />
-      </svg>
-      <svg
-        viewBox="0 -35 1 38"
-        preserveAspectRatio="none"
-        xmlns="http://www.w3.org/2000/svg"
-        class="outputPortBar"
-      >
-        <path d="M 0 0 h 1" class="outputPortBarLine" />
-      </svg>
-      <svg viewBox="0 -35 22 38" xmlns="http://www.w3.org/2000/svg" class="outputPortCap">
-        <path d="M 0 0 a 19 19 0 0 0 19 -19" class="outputPortCapLine" />
-        <rect height="6" width="6" x="-6" y="-3" class="outputPortCapButt" />
-      </svg>
+    <svg class="bgPaths" :style="bgStyleVariables">
+      <rect class="bgFill" />
+      <rect
+        class="outputPortHoverArea"
+        @pointerenter="outputHovered = true"
+        @pointerleave="outputHovered = false"
+        @pointerdown="emit('outputPortAction')"
       />
-    </div>
+      <rect class="outputPort" />
+    </svg>
     <div class="outputTypeName">{{ outputTypeName }}</div>
   </div>
 </template>
 
 <style scoped>
-.outputPort {
+.bgPaths {
   width: 100%;
-  margin: 0;
-  position: fixed;
+  height: 100%;
+  position: absolute;
+  overflow: visible;
   top: 0px;
   left: 0px;
   display: flex;
-  opacity: 0;
+
+  --output-port-max-width: 6px;
+  --output-port-overlap: 0.1px;
+  --output-port-hover-width: 8px;
 }
-.outputPort:hover {
-  opacity: 1;
-}
-.outputPortCap {
-  flex: none;
-  height: 38px;
-  width: 22px;
-}
-.outputPortCapLine {
+.outputPort,
+.outputPortHoverArea {
+  x: calc(0px - var(--output-port-width) / 2);
+  y: calc(0px - var(--output-port-width) / 2);
+  width: calc(var(--node-width) + var(--output-port-width));
+  height: calc(var(--node-height) + var(--output-port-width));
+  rx: calc(var(--node-border-radius) + var(--output-port-width) / 2);
+
   fill: none;
-  stroke: var(--node-group-color);
-  opacity: 30%;
-  stroke-width: 6px;
+  stroke: var(--node-color-port);
+  stroke-width: calc(var(--output-port-width) + var(--output-port-overlap));
+  transition: stroke 0.2s ease;
+  --horizontal-line: calc(var(--node-width) - var(--node-border-radius) * 2);
+  --vertical-line: calc(var(--node-height) - var(--node-border-radius) * 2);
+  --radius-arclength: calc(
+    (var(--node-border-radius) + var(--output-port-width) * 0.5) * 2 * 3.141592653589793
+  );
+
+  stroke-dasharray: calc(var(--horizontal-line) + var(--radius-arclength) * 0.5) 10000%;
+  stroke-dashoffset: calc(
+    0px - var(--horizontal-line) - var(--vertical-line) - var(--radius-arclength) * 0.25
+  );
   stroke-linecap: round;
 }
-.outputPortCapButt {
-  fill: var(--node-group-color);
-  opacity: 30%;
+
+.outputPort {
+  --output-port-width: calc(
+    var(--output-port-max-width) * var(--hover-animation) - var(--output-port-overlap)
+  );
+  pointer-events: none;
 }
-.outputPortBar {
-  height: 38px;
-  width: 100%;
+
+.outputPortHoverArea {
+  --output-port-width: var(--output-port-hover-width);
+  stroke: transparent;
+  pointer-events: all;
 }
-.outputPortBarLine {
-  fill: none;
-  stroke: var(--node-group-color);
-  opacity: 30%;
-  /* 6px + extra width to prevent antialiasing issues:
-     The 1px on the top will draw mostly under the node, but will ensure the line meets the node.
-     (The 1px on the bottom will be clipped.) */
-  stroke-width: 8px;
+
+.bgFill {
+  width: var(--node-width);
+  height: var(--node-height);
+  rx: var(--node-border-radius);
+
+  fill: var(--node-color-primary);
+  transition: fill 0.2s ease;
 }
+
+.bgPaths .bgPaths:hover {
+  opacity: 1;
+}
+
 .GraphNode {
   --node-height: 32px;
-  --node-border-radius: calc(var(--node-height) * 0.5);
-  --output-port-padding: 6px;
+  --node-border-radius: 16px;
 
   --node-group-color: #357ab9;
 
-  --node-color-primary: color-mix(in oklab, var(--node-group-color) 100%, transparent 0%);
+  --node-color-primary: color-mix(
+    in oklab,
+    var(--node-group-color) 100%,
+    var(--node-group-color) 0%
+  );
   --node-color-port: color-mix(in oklab, var(--node-color-primary) 75%, white 15%);
-  --node-color-error: color-mix(in oklab, var(--node-group-color) 30%, rgba(255, 0, 0) 70%);
+  --node-color-error: color-mix(in oklab, var(--node-group-color) 30%, rgb(255, 0, 0) 70%);
 
   &.executionState-Unknown,
   &.executionState-Pending {
@@ -579,9 +578,6 @@ function hoverExpr(id: ExprId | undefined) {
   ::selection {
     background-color: rgba(255, 255, 255, 20%);
   }
-
-  padding-left: var(--output-port-padding);
-  padding-right: var(--output-port-padding);
 }
 
 .node {
@@ -590,8 +586,6 @@ function hoverExpr(id: ExprId | undefined) {
   left: 0;
   caret-shape: bar;
   height: var(--node-height);
-  background: var(--node-color-primary);
-  background-clip: padding-box;
   border-radius: var(--node-border-radius);
   display: flex;
   flex-direction: row;
@@ -599,14 +593,12 @@ function hoverExpr(id: ExprId | undefined) {
   white-space: nowrap;
   padding: 4px 8px;
   z-index: 2;
-  transition:
-    background 0.2s ease,
-    outline 0.2s ease;
+  transition: outline 0.2s ease;
   outline: 0px solid transparent;
 }
 .GraphNode .selection {
   position: absolute;
-  inset: calc(0px - var(--selected-node-border-width) + var(--output-port-padding));
+  inset: calc(0px - var(--selected-node-border-width));
   --node-current-selection-width: 0px;
 
   &:before {

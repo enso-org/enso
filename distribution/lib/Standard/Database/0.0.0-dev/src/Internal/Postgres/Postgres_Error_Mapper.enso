@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from project.Errors import SQL_Error
+from project.Errors import SQL_Error, Invariant_Violation
 
 ## PRIVATE
 type Postgres_Error_Mapper
@@ -9,3 +9,12 @@ type Postgres_Error_Mapper
     is_primary_key_violation : SQL_Error -> Boolean
     is_primary_key_violation error =
         error.java_exception.getMessage.contains "duplicate key value violates unique constraint"
+
+    ## PRIVATE
+    transform_custom_errors : SQL_Error -> Any
+    transform_custom_errors error =
+        message = error.java_exception.getMessage
+        if message.contains "ENSO INVARIANT VIOLATED" . not then error else
+            payloads = message.tokenize "\[ENSO INVARIANT VIOLATED: (.*)\]"
+            if payloads.length != 1 then error else
+                Invariant_Violation.Error payloads.first error

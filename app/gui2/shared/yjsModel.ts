@@ -37,21 +37,19 @@ export function visIdentifierEquals(a: VisualizationIdentifier, b: Visualization
   return a.name === b.name && object.equalFlat(a.module, b.module)
 }
 
-export interface NodeMetadata {
-  x: number
-  y: number
-  vis: VisualizationMetadata | null
-}
+export type ProjectSetting = string
 
 export class DistributedProject {
   doc: Y.Doc
   name: Y.Text
   modules: Y.Map<Y.Doc>
+  settings: Y.Map<ProjectSetting>
 
   constructor(doc: Y.Doc) {
     this.doc = doc
     this.name = this.doc.getText('name')
     this.modules = this.doc.getMap('modules')
+    this.settings = this.doc.getMap('settings')
   }
 
   moduleNames(): string[] {
@@ -82,12 +80,8 @@ export class DistributedProject {
     return new DistributedModule(doc)
   }
 
-  async createNewModule(name: string): Promise<DistributedModule> {
+  createNewModule(name: string): DistributedModule {
     return this.createUnloadedModule(name, new Y.Doc())
-  }
-
-  async openOrCreateModule(name: string): Promise<DistributedModule> {
-    return (await this.openModule(name)) ?? (await this.createNewModule(name))
   }
 
   deleteModule(name: string): void {
@@ -97,6 +91,12 @@ export class DistributedProject {
   dispose(): void {
     this.doc.destroy()
   }
+}
+
+export interface NodeMetadata {
+  x: number
+  y: number
+  vis: VisualizationMetadata | null
 }
 
 export class ModuleDoc {
@@ -127,8 +127,11 @@ export class DistributedModule {
     this.undoManager = new Y.UndoManager([this.doc.contents, this.doc.idMap, this.doc.metadata])
   }
 
-  insertNewNode(offset: number, content: string, meta: NodeMetadata): ExprId {
-    const range = [offset, offset + content.length] as const
+  insertNewNode(offset: number, pattern: string, expression: string, meta: NodeMetadata): ExprId {
+    // Spaces at the beginning are needed to place the new node in scope of the `main` function with proper indentation.
+    const lhs = `    ${pattern} = `
+    const content = lhs + expression
+    const range = [offset + lhs.length, offset + content.length] as const
     const newId = random.uuidv4() as ExprId
     this.transact(() => {
       this.doc.contents.insert(offset, content + '\n')
@@ -233,11 +236,11 @@ export class IdMap {
     this.finished = false
   }
 
-  private static keyForRange(range: readonly [number, number]): string {
+  public static keyForRange(range: readonly [number, number]): string {
     return `${range[0].toString(16)}:${range[1].toString(16)}`
   }
 
-  private static rangeForKey(key: string): [number, number] {
+  public static rangeForKey(key: string): [number, number] {
     return key.split(':').map((x) => parseInt(x, 16)) as [number, number]
   }
 
@@ -357,6 +360,7 @@ export function isUuid(x: unknown): x is Uuid {
   return typeof x === 'string' && x.length === 36 && uuidRegex.test(x)
 }
 
+/** A range represented as start and end indices. */
 export type ContentRange = [number, number]
 
 export function rangeEncloses(a: ContentRange, b: ContentRange): boolean {
@@ -365,6 +369,11 @@ export function rangeEncloses(a: ContentRange, b: ContentRange): boolean {
 
 export function rangeIntersects(a: ContentRange, b: ContentRange): boolean {
   return a[0] <= b[1] && a[1] >= b[0]
+}
+
+/** Whether the given range is before the other range. */
+export function rangeIsBefore(a: ContentRange, b: ContentRange): boolean {
+  return a[1] <= b[0]
 }
 
 if (import.meta.vitest) {

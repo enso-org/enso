@@ -51,33 +51,34 @@ interface UnknownTable {
   type: undefined
   json: unknown
   all_rows_count?: number
-  header: string[]
+  header: string[] | undefined
   indices_header?: string[]
   data: unknown[][] | undefined
   indices: unknown[][] | undefined
 }
-
-declare const agGrid: typeof import('ag-grid-enterprise')
 </script>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch, watchEffect, type Ref } from 'vue'
-
-import { useDebounceFn } from '@vueuse/core'
-
-// @ts-expect-error
-// eslint-disable-next-line no-redeclare
-import * as agGrid from 'https://cdn.jsdelivr.net/npm/ag-grid-enterprise@30.1.0/+esm'
-
+import VisualizationContainer from '@/components/VisualizationContainer.vue'
+import { useVisualizationConfig } from '@/providers/visualizationConfig'
 import type {
   ColDef,
   ColumnResizedEvent,
   GridOptions,
   HeaderValueGetterParams,
-} from 'ag-grid-community'
+} from '@ag-grid-community/core'
+import '@ag-grid-community/styles/ag-grid.css'
+import '@ag-grid-community/styles/ag-theme-alpine.css'
+import { useDebounceFn } from '@vueuse/core'
+import { computed, onMounted, ref, watch, watchEffect, type Ref } from 'vue'
+const [{ ClientSideRowModelModule }, { Grid, ModuleRegistry }, { LicenseManager }] =
+  await Promise.all([
+    import('@ag-grid-community/client-side-row-model'),
+    import('@ag-grid-community/core'),
+    import('@ag-grid-enterprise/core'),
+  ])
 
-import VisualizationContainer from '@/components/VisualizationContainer.vue'
-import { useVisualizationConfig } from '@/providers/visualizationConfig'
+ModuleRegistry.registerModules([ClientSideRowModelModule])
 
 const props = defineProps<{ data: Data }>()
 const emit = defineEmits<{
@@ -292,7 +293,8 @@ watchEffect(() => {
     rowData = [{ Value: toRender(data_.json) }]
   } else {
     const indicesHeader = ('indices_header' in data_ ? data_.indices_header : []).map(toField)
-    columnDefs = [...indicesHeader, ...data_.header.map(toField)]
+    const dataHeader = ('header' in data_ ? data_.header : [])?.map(toField) ?? []
+    columnDefs = [...indicesHeader, ...dataHeader]
 
     const rows =
       data_.data && data_.data.length > 0
@@ -385,11 +387,11 @@ function goToLastPage() {
 onMounted(() => {
   setRowLimitAndPage(1000, 0)
   if ('AG_GRID_LICENSE_KEY' in window && typeof window.AG_GRID_LICENSE_KEY === 'string') {
-    agGrid.LicenseManager.setLicenseKey(window.AG_GRID_LICENSE_KEY)
+    LicenseManager.setLicenseKey(window.AG_GRID_LICENSE_KEY)
   } else {
     console.warn('The AG_GRID_LICENSE_KEY is not defined.')
   }
-  new agGrid.Grid(tableNode.value!, agGridOptions.value)
+  new Grid(tableNode.value!, agGridOptions.value)
   setTimeout(() => updateTableSize(undefined), 0)
 })
 
@@ -443,9 +445,6 @@ watch(
 </template>
 
 <style scoped>
-@import url('https://cdn.jsdelivr.net/npm/ag-grid-community/styles/ag-grid.css');
-@import url('https://cdn.jsdelivr.net/npm/ag-grid-community/styles/ag-theme-alpine.css');
-
 .TableVisualization {
   display: flex;
   flex-flow: column;
