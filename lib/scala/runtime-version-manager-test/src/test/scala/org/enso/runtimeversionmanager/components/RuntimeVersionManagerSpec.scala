@@ -275,8 +275,13 @@ class RuntimeVersionManagerSpec
     FileSystem.writeTextFile(root / "manifest.yaml", manifest)
     val components = root / "component"
     Files.createDirectories(components)
-    makePlaceholder(components / "runner.jar")
-    FileSystem.writeTextFile(components / "runtime.jar", "placeholder")
+    if (runtimeVersion.isUnchained) {
+      Files.createDirectory(components / "runner")
+      makePlaceholder(components / "runner" / "runner.jar")
+    } else {
+      makePlaceholder(components / "runner.jar")
+    }
+    makePlaceholder(components / "runtime.jar")
   }
 
   private def fakeInstallRuntime(
