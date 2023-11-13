@@ -44,6 +44,7 @@ const nodeSelection = provideGraphSelection(navigator, graphStore.nodeRects, {
 })
 
 const graphEditorSourceNode = computed(() => {
+  if (graphStore.editedNodeInfo != null) return undefined
   return nodeSelection.selected.values().next().value
 })
 
