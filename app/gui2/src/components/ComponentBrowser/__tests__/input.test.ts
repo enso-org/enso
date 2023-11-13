@@ -10,7 +10,6 @@ import {
 import { readAstSpan } from '@/util/ast'
 import type { ExprId } from 'shared/yjsModel'
 import { expect, test } from 'vitest'
-import type { SelfArg } from '../filtering'
 import { useComponentBrowserInput } from '../input'
 
 test.each([
