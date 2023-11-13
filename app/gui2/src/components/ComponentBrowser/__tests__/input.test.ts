@@ -101,7 +101,6 @@ test.each([
     }
     const computedValueRegistryMock = {
       getExpressionInfo(id: ExprId) {
-        // const payload: ExpressionUpdatePayload = { type: 'Value' }
         if (id === operator1Id)
           return {
             typename: 'Standard.Base.Number',

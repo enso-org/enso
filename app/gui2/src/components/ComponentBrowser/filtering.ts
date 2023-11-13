@@ -269,8 +269,8 @@ class FilteringQualifiedName {
  * name is preferred before alias. See `FilteringWithPattern.tryMatch` implementation for details.
  */
 export class Filtering {
-  pattern: FilteringWithPattern | undefined
-  selfArg: SelfArg | undefined
+  pattern?: FilteringWithPattern
+  selfArg?: SelfArg
   qualifiedName?: FilteringQualifiedName
   fullPattern: string | undefined
   /** The first and last match are the parts of the string that are outside of the match.
@@ -290,7 +290,7 @@ export class Filtering {
     if (pattern) {
       this.pattern = new FilteringWithPattern(pattern)
     }
-    this.selfArg = selfArg
+    if (selfArg != null) this.selfArg = selfArg
     if (qualifiedNamePattern) {
       this.qualifiedName = new FilteringQualifiedName(qualifiedNamePattern)
       this.fullPattern = pattern ? `${qualifiedNamePattern}.${pattern}` : qualifiedNamePattern
