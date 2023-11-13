@@ -23,6 +23,10 @@ import { useComponentBrowserInput } from './ComponentBrowser/input'
 const ITEM_SIZE = 32
 const TOP_BAR_HEIGHT = 32
 
+const projectStore = useProjectStore()
+const suggestionDbStore = useSuggestionDbStore()
+const graphStore = useGraphStore()
+
 const props = defineProps<{
   position: Vec2
   navigator: ReturnType<typeof useNavigator>
@@ -35,39 +39,37 @@ const emit = defineEmits<{
   finished: [selectedExpression: string]
 }>()
 
-const initialContent = computed(() => {
+function getInitialContent(): string {
   if (props.sourceNode == null) return props.initialContent
   const sourceNode = props.sourceNode
-  const sourceNodeName = useGraphStore().getNodeBinding(sourceNode)
+  const sourceNodeName = graphStore.getNodeBinding(sourceNode)
   const sourceNodeNameWithDot = sourceNodeName ? sourceNodeName + '.' : ''
   return sourceNodeNameWithDot + props.initialContent
-})
+}
 
-const initialCaret = computed((): ContentRange => {
+function getInitialCaret(): ContentRange {
   if (props.sourceNode == null) return props.initialCaretPosition
   const sourceNode = props.sourceNode
-  const sourceNodeName = useGraphStore().getNodeBinding(sourceNode)
+  const sourceNodeName = graphStore.getNodeBinding(sourceNode)
   const sourceNodeNameWithDot = sourceNodeName ? sourceNodeName + '.' : ''
   return [
     props.initialCaretPosition[0] + sourceNodeNameWithDot.length,
     props.initialCaretPosition[1] + sourceNodeNameWithDot.length,
   ]
-})
+}
 
 onMounted(() => {
-  input.code.value = initialContent.value
   nextTick(() => {
+    input.code.value = getInitialContent()
+    const caret = getInitialCaret()
     if (inputField.value != null) {
-      inputField.value.selectionStart = initialCaret.value[0]
-      inputField.value.selectionEnd = initialCaret.value[1]
+      inputField.value.selectionStart = caret[0]
+      inputField.value.selectionEnd = caret[1]
       inputField.value.focus({ preventScroll: true })
       selectLastAfterRefresh()
     }
   })
 })
-
-const projectStore = useProjectStore()
-const suggestionDbStore = useSuggestionDbStore()
 
 // === Position ===
 
