@@ -4,6 +4,7 @@ import java.io.IOException;
 import org.enso.compiler.core.Persistance;
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph;
 import org.enso.compiler.pass.resolve.DocumentationComments;
+import org.enso.compiler.pass.resolve.FullyQualifiedNames;
 import org.enso.compiler.pass.resolve.IgnoredBindings;
 import org.enso.compiler.pass.resolve.ModuleAnnotations;
 import org.enso.compiler.pass.resolve.TypeSignatures;
@@ -26,6 +27,9 @@ import scala.Option;
 @Persistable(clazz = AliasAnalysis$Graph$Occurrence$Use.class, id = 1125)
 @Persistable(clazz = AliasAnalysis$Graph$Occurrence$Def.class, id = 1126)
 @Persistable(clazz = AliasAnalysis$Graph$Link.class, id = 1127)
+@Persistable(clazz = FullyQualifiedNames.FQNResolution.class, id = 1128)
+@Persistable(clazz = FullyQualifiedNames.ResolvedLibrary.class, id = 1129)
+@Persistable(clazz = FullyQualifiedNames.ResolvedModule.class, id = 1130)
 public final class PassPersistance {
   private PassPersistance() {}
 

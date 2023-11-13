@@ -9,6 +9,7 @@ import org.enso.compiler.core.Persistance;
 import org.enso.compiler.core.ir.expression.Application;
 import org.enso.compiler.core.ir.expression.Case;
 import org.enso.compiler.core.ir.expression.Foreign;
+import org.enso.compiler.core.ir.expression.warnings.Unused;
 import org.enso.compiler.core.ir.module.scope.Definition;
 import org.enso.compiler.core.ir.module.scope.Export;
 import org.enso.compiler.core.ir.module.scope.Import;
@@ -52,6 +53,7 @@ import scala.collection.immutable.Seq;
 @Persistable(clazz = Type.Function.class, id = 782)
 @Persistable(clazz = Name.BuiltinAnnotation.class, id = 783)
 @Persistable(clazz = Type.Error.class, id = 784)
+@Persistable(clazz = Unused.Binding.class, id = 785)
 public final class IrPersistance {
   private IrPersistance() {}
 
