@@ -7,8 +7,6 @@ import CreateAccountIcon from 'enso-assets/create_account.svg'
 import GoBackIcon from 'enso-assets/go_back.svg'
 import LockIcon from 'enso-assets/lock.svg'
 
-import * as gtag from 'enso-common/src/gtag'
-
 import * as authModule from '../providers/auth'
 import * as localStorageModule from '../../dashboard/localStorage'
 import * as localStorageProvider from '../../providers/localStorage'
@@ -59,7 +57,6 @@ export default function Registration() {
                 onSubmit={async event => {
                     event.preventDefault()
                     setIsSubmitting(true)
-                    gtag.gtag('event', 'registered')
                     await auth.signUp(email, password, organizationId)
                     setIsSubmitting(false)
                 }}

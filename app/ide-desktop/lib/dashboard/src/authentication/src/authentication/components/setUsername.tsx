@@ -5,8 +5,6 @@ import * as React from 'react'
 import ArrowRightIcon from 'enso-assets/arrow_right.svg'
 import AtIcon from 'enso-assets/at.svg'
 
-import * as gtag from 'enso-common/src/gtag'
-
 import * as auth from '../providers/auth'
 import * as backendProvider from '../../providers/backend'
 
@@ -32,7 +30,6 @@ export default function SetUsername() {
                 className="flex flex-col gap-6 bg-frame-selected rounded-4xl shadow-md p-8 w-full max-w-md"
                 onSubmit={async event => {
                     event.preventDefault()
-                    gtag.gtag('event', 'user_created')
                     await authSetUsername(backend, username, email)
                 }}
             >

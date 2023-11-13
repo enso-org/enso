@@ -9,6 +9,8 @@ import * as toast from 'react-toastify'
 
 import * as sentry from '@sentry/react'
 
+import * as gtag from 'enso-common/src/gtag'
+
 import * as app from '../../components/app'
 import type * as authServiceModule from '../service'
 import * as backendModule from '../../dashboard/backend'
@@ -273,6 +275,7 @@ export function AuthProvider(props: AuthProviderProps) {
                 ) {
                     setBackendWithoutSavingType(backend)
                 }
+                gtag.gtag('event', 'cloud_open')
                 let organization: backendModule.UserOrOrganization | null
                 let user: backendModule.SimpleUser | null
                 while (true) {
@@ -405,6 +408,7 @@ export function AuthProvider(props: AuthProviderProps) {
     }
 
     const signUp = async (username: string, password: string, organizationId: string | null) => {
+        gtag.gtag('event', 'cloud_sign_up')
         const result = await cognito.signUp(username, password, organizationId)
         if (result.ok) {
             toastSuccess(MESSAGES.signUpSuccess)
@@ -416,6 +420,7 @@ export function AuthProvider(props: AuthProviderProps) {
     }
 
     const confirmSignUp = async (email: string, code: string) => {
+        gtag.gtag('event', 'cloud_confirm_sign_up')
         const result = await cognito.confirmSignUp(email, code)
         if (result.err) {
             switch (result.val.kind) {
@@ -431,6 +436,7 @@ export function AuthProvider(props: AuthProviderProps) {
     }
 
     const signInWithPassword = async (email: string, password: string) => {
+        gtag.gtag('event', 'cloud_sign_in', { provider: 'Email' })
         const result = await cognito.signInWithPassword(email, password)
         if (result.ok) {
             toastSuccess(MESSAGES.signInWithPasswordSuccess)
@@ -448,6 +454,7 @@ export function AuthProvider(props: AuthProviderProps) {
             toastError('You cannot set your username on the local backend.')
             return false
         } else {
+            gtag.gtag('event', 'cloud_user_created')
             try {
                 const organizationId = await authService.cognito.organizationId()
                 // This should not omit success and error toasts as it is not possible
@@ -518,6 +525,7 @@ export function AuthProvider(props: AuthProviderProps) {
     const signOut = async () => {
         const parentDomain = location.hostname.replace(/^[^.]*\./, '')
         document.cookie = `logged_in=no;max-age=0;domain=${parentDomain}`
+        gtag.gtag('event', 'cloud_sign_out')
         cognito.saveAccessToken(null)
         localStorage.clearUserSpecificEntries()
         deinitializeSession()
@@ -539,16 +547,20 @@ export function AuthProvider(props: AuthProviderProps) {
         signUp: withLoadingToast(signUp),
         confirmSignUp: withLoadingToast(confirmSignUp),
         setUsername,
-        signInWithGoogle: () =>
-            cognito.signInWithGoogle().then(
+        signInWithGoogle: () => {
+            gtag.gtag('event', 'cloud_sign_in', { provider: 'Google' })
+            return cognito.signInWithGoogle().then(
                 () => true,
                 () => false
-            ),
-        signInWithGitHub: () =>
-            cognito.signInWithGitHub().then(
+            )
+        },
+        signInWithGitHub: () => {
+            gtag.gtag('event', 'cloud_sign_in', { provider: 'GitHub' })
+            return cognito.signInWithGitHub().then(
                 () => true,
                 () => false
-            ),
+            )
+        },
         signInWithPassword: withLoadingToast(signInWithPassword),
         forgotPassword: withLoadingToast(forgotPassword),
         resetPassword: withLoadingToast(resetPassword),
