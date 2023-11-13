@@ -1,24 +1,42 @@
 package org.enso.interpreter.test;
 
-import static org.junit.Assert.assertEquals;
-
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
+import org.hamcrest.MatcherAssert;
+import org.hamcrest.Matchers;
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 public class ConversionMethodTests extends TestBase {
   private static Context ctx;
 
+  private static final ByteArrayOutputStream out = new ByteArrayOutputStream();
+
   @BeforeClass
   public static void initCtx() {
-    ctx = createDefaultContext();
+    ctx = createDefaultContext(out);
   }
 
   @AfterClass
   public static void disposeCtx() {
     ctx.close();
+  }
+
+  @Before
+  public void resetOutput() {
+    out.reset();
+  }
+
+  private String getStdOut() {
+    return out.toString(StandardCharsets.UTF_8);
   }
 
   @Test
@@ -100,5 +118,27 @@ public class ConversionMethodTests extends TestBase {
        """;
     Value res = evalModule(ctx, src);
     assertEquals(7, res.asInt());
+  }
+
+  @Test
+  public void testAmbiguousConversionStrictUnused() {
+    String src = """      
+       type Foo
+          Mk_Foo data
+       type Bar
+          Mk_Bar x
+       
+       Foo.from (that:Bar) = Foo.Mk_Foo that.x+100
+       Foo.from (that:Bar) = Foo.Mk_Foo that.x+1000
+       
+       main = 42
+       """;
+    try {
+      Value res = evalModule(ctx, src);
+      fail("Expected an exception, but got " + res);
+    } catch (Exception e) {
+      assertEquals("Compilation aborted due to errors.", e.getMessage());
+      MatcherAssert.assertThat(getStdOut(), Matchers.containsString("Unnamed:7:1: error: Ambiguous conversion: Foo.from Bar is defined multiple times in this module."));
+    }
   }
 }

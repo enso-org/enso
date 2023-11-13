@@ -1,5 +1,11 @@
 import type { Filter } from '@/components/ComponentBrowser/filtering'
-import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
+import { useGraphStore } from '@/stores/graph'
+import { useProjectStore } from '@/stores/project'
+import {
+  SuggestionKind,
+  type SuggestionEntry,
+  type Typename,
+} from '@/stores/suggestionDatabase/entry'
 import {
   Ast,
   astContainingChar,
@@ -8,15 +14,18 @@ import {
   readAstSpan,
   readTokenSpan,
 } from '@/util/ast'
+import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
 import { GeneralOprApp } from '@/util/ast/opr'
+import type { ExpressionInfo } from '@/util/computedValueRegistry'
+import { MappedSet } from '@/util/containers'
 import {
   qnLastSegment,
   qnParent,
   qnSplit,
-  tryIdentifier,
   tryQualifiedName,
   type QualifiedName,
 } from '@/util/qualifiedName'
+import { IdMap, type ExprId } from 'shared/yjsModel'
 import { computed, ref, type ComputedRef } from 'vue'
 
 /** Input's editing context.
@@ -44,16 +53,21 @@ export type EditingContext =
   | { type: 'changeLiteral'; literal: Ast.Tree.TextLiteral | Ast.Tree.Number }
 
 /** Component Browser Input Data */
-export function useComponentBrowserInput() {
+export function useComponentBrowserInput(
+  graphStore: { identDefinitions: Map<string, ExprId> } = useGraphStore(),
+  computedValueRegistry: {
+    getExpressionInfo(id: ExprId): ExpressionInfo | undefined
+  } = useProjectStore().computedValueRegistry,
+) {
   const code = ref('')
   const selection = ref({ start: 0, end: 0 })
+  const ast = computed(() => parseEnso(code.value))
 
   const context: ComputedRef<EditingContext> = computed(() => {
-    const input = code.value
     const cursorPosition = selection.value.start
     if (cursorPosition === 0) return { type: 'insert', position: 0 }
     const editedPart = cursorPosition - 1
-    const inputAst = parseEnso(input)
+    const inputAst = ast.value
     const editedAst = astContainingChar(editedPart, inputAst).values()
     const leaf = editedAst.next()
     if (leaf.done) return { type: 'insert', position: cursorPosition }
@@ -76,6 +90,17 @@ export function useComponentBrowserInput() {
     }
   })
 
+  const internalUsages = computed(() => {
+    const analyzer = new AliasAnalyzer(code.value, ast.value)
+    analyzer.process()
+    function* internalUsages() {
+      for (const [_definition, usages] of analyzer.aliases) {
+        yield* usages
+      }
+    }
+    return new MappedSet(IdMap.keyForRange, internalUsages())
+  })
+
   // Filter deduced from the access (`.` operator) chain written by user.
   const accessChainFilter: ComputedRef<Filter> = computed(() => {
     const ctx = context.value
@@ -84,9 +109,9 @@ export function useComponentBrowserInput() {
     const opr = ctx.oprApp.lastOpr()
     const input = code.value
     if (opr == null || !opr.ok || readTokenSpan(opr.value, input) !== '.') return {}
-    const selfType = pathAsSelfType(ctx.oprApp, input)
-    if (selfType != null) return { selfType }
-    const qn = pathAsQualifiedName(ctx.oprApp, input)
+    const selfArg = pathAsSelfArgument(ctx.oprApp)
+    if (selfArg != null) return { selfArg: selfArg }
+    const qn = pathAsQualifiedName(ctx.oprApp)
     if (qn != null) return { qualifiedNamePattern: qn }
     return {}
   })
@@ -132,18 +157,23 @@ export function useComponentBrowserInput() {
     }
   }
 
-  function pathAsSelfType(accessOpr: GeneralOprApp, inputCode: string): QualifiedName | null {
+  function pathAsSelfArgument(
+    accessOpr: GeneralOprApp,
+  ): { type: 'known'; typename: Typename } | { type: 'unknown' } | null {
     if (accessOpr.lhs == null) return null
     if (accessOpr.lhs.type !== Ast.Tree.Type.Ident) return null
     if (accessOpr.apps.length > 1) return null
-    const _ident = tryIdentifier(readAstSpan(accessOpr.lhs, inputCode))
-    // TODO[ao]: #7926 add implementation here
-    return null
+    if (internalUsages.value.has(parsedTreeRange(accessOpr.lhs))) return { type: 'unknown' }
+    const ident = readAstSpan(accessOpr.lhs, code.value)
+    const definition = graphStore.identDefinitions.get(ident)
+    if (definition == null) return null
+    const typename = computedValueRegistry.getExpressionInfo(definition)?.typename
+    return typename != null ? { type: 'known', typename } : { type: 'unknown' }
   }
 
-  function pathAsQualifiedName(accessOpr: GeneralOprApp, inputCode: string): QualifiedName | null {
-    const operandsAsIdents = qnIdentifiers(accessOpr, inputCode)
-    const segments = operandsAsIdents.map((ident) => readAstSpan(ident, inputCode))
+  function pathAsQualifiedName(accessOpr: GeneralOprApp): QualifiedName | null {
+    const operandsAsIdents = qnIdentifiers(accessOpr)
+    const segments = operandsAsIdents.map((ident) => readAstSpan(ident, code.value))
     const rawQn = segments.join('.')
     const qn = tryQualifiedName(rawQn)
     return qn.ok ? qn.value : null
@@ -156,9 +186,9 @@ export function useComponentBrowserInput() {
    * @param code The code from which `opr` was generated.
    * @returns If all path segments are identifiers, return them
    */
-  function qnIdentifiers(opr: GeneralOprApp, inputCode: string): Ast.Tree.Ident[] {
+  function qnIdentifiers(opr: GeneralOprApp): Ast.Tree.Ident[] {
     const operandsAsIdents = Array.from(
-      opr.operandsOfLeftAssocOprChain(inputCode, '.'),
+      opr.operandsOfLeftAssocOprChain(code.value, '.'),
       (operand) =>
         operand?.type === 'ast' && operand.ast.type === Ast.Tree.Type.Ident ? operand.ast : null,
     ).slice(0, -1)
@@ -255,7 +285,7 @@ export function useComponentBrowserInput() {
     if (entry.kind === SuggestionKind.Local || entry.kind === SuggestionKind.Function) return []
     if (context.value.type === 'changeLiteral') return []
     if (context.value.oprApp == null) return []
-    const writtenQn = qnIdentifiers(context.value.oprApp, code.value).reverse()
+    const writtenQn = qnIdentifiers(context.value.oprApp).reverse()
 
     let containingQn =
       entry.kind === SuggestionKind.Module
