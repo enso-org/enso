@@ -15,7 +15,7 @@ import { keyboardBusy, keyboardBusyExceptIn, useEvent } from '@/util/events'
 import { Interaction } from '@/util/interaction'
 import { Vec2 } from '@/util/vec2'
 import * as set from 'lib0/set'
-import type { ExprId } from 'shared/yjsModel.ts'
+import type { ExprId, NodeMetadata } from 'shared/yjsModel.ts'
 import { computed, onMounted, ref, watch } from 'vue'
 import GraphEdges from './GraphEditor/GraphEdges.vue'
 import GraphNodes from './GraphEditor/GraphNodes.vue'
@@ -23,7 +23,7 @@ import GraphNodes from './GraphEditor/GraphNodes.vue'
 const EXECUTION_MODES = ['design', 'live']
 
 const viewportNode = ref<HTMLElement>()
-const navigator = provideGraphNavigator(viewportNode)
+const graphNavigator = provideGraphNavigator(viewportNode)
 const graphStore = useGraphStore()
 const projectStore = useProjectStore()
 const componentBrowserVisible = ref(false)
@@ -31,7 +31,7 @@ const componentBrowserInputContent = ref('')
 const componentBrowserPosition = ref(Vec2.Zero)
 const suggestionDb = useSuggestionDbStore()
 
-const nodeSelection = provideGraphSelection(navigator, graphStore.nodeRects, {
+const nodeSelection = provideGraphSelection(graphNavigator, graphStore.nodeRects, {
   onSelected(id) {
     const node = graphStore.nodes.get(id)
     if (node) {
@@ -58,16 +58,16 @@ const graphBindingsHandler = graphBindings.handler({
   },
   openComponentBrowser() {
     if (keyboardBusy()) return false
-    if (navigator.sceneMousePos != null && !componentBrowserVisible.value) {
-      componentBrowserPosition.value = navigator.sceneMousePos
+    if (graphNavigator.sceneMousePos != null && !componentBrowserVisible.value) {
+      componentBrowserPosition.value = graphNavigator.sceneMousePos
       componentBrowserVisible.value = true
       componentBrowserInputContent.value = ''
     }
   },
   newNode() {
     if (keyboardBusy()) return false
-    if (navigator.sceneMousePos != null) {
-      graphStore.createNode(navigator.sceneMousePos, 'hello "world"! 123 + x')
+    if (graphNavigator.sceneMousePos != null) {
+      graphStore.createNode(graphNavigator.sceneMousePos, 'hello "world"! 123 + x')
     }
   },
   deleteSelected() {
@@ -100,6 +100,14 @@ const graphBindingsHandler = graphBindings.handler({
       }
     })
   },
+  copyNode() {
+    if (keyboardBusy()) return false
+    copyNodeContent()
+  },
+  pasteNode() {
+    if (keyboardBusy()) return false
+    readNodeFromClipboard()
+  },
 })
 
 const codeEditorArea = ref<HTMLElement>()
@@ -122,8 +130,8 @@ const interactionBindingsHandler = interactionBindings.handler({
 })
 useEvent(window, 'pointerdown', interactionBindingsHandler, { capture: true })
 
-const scaledMousePos = computed(() => navigator.sceneMousePos?.scale(navigator.scale))
-const scaledSelectionAnchor = computed(() => nodeSelection.anchor?.scale(navigator.scale))
+const scaledMousePos = computed(() => graphNavigator.sceneMousePos?.scale(graphNavigator.scale))
+const scaledSelectionAnchor = computed(() => nodeSelection.anchor?.scale(graphNavigator.scale))
 
 /// Track play button presses.
 function onPlayButtonPress() {
@@ -193,7 +201,7 @@ async function handleFileDrop(event: DragEvent) {
           const file = item.getAsFile()
           if (file) {
             const clientPos = new Vec2(event.clientX, event.clientY)
-            const pos = navigator.clientToScenePos(clientPos)
+            const pos = graphNavigator.clientToScenePos(clientPos)
             const uploader = await Uploader.create(
               projectStore.lsRpcConnection,
               projectStore.dataConnection,
@@ -225,6 +233,44 @@ function getNodeContent(id: ExprId): string {
   return node.rootSpan.repr()
 }
 
+/// The content of a node that is copied to the clipboard. It contains the expression and the
+/// metadata. Used for serializing and deserializing the node information.
+interface CopiedNode {
+  expression: string
+  metadata: NodeMetadata | undefined
+}
+
+/// Copy the content of the selected node to the clipboard.
+function copyNodeContent() {
+  const id = nodeSelection.selected.values().next().value
+  const node = graphStore.nodes.get(id)
+  if (node == null) return
+  const content = node.rootSpan.repr()
+  const metadata = projectStore.module?.getNodeMetadata(id)
+  const copiedNode: CopiedNode = { expression: content, metadata }
+  navigator.clipboard.writeText(JSON.stringify(copiedNode))
+}
+
+/// Read the clipboard and if it contains valid data, create a node from the content.
+function readNodeFromClipboard() {
+  navigator.clipboard.readText().then((text) => {
+    try {
+      const copiedNode: CopiedNode = JSON.parse(text)
+      if (copiedNode.expression != null) {
+        graphStore.createNode(
+          graphNavigator.sceneMousePos ?? Vec2.Zero,
+          copiedNode.expression,
+          copiedNode.metadata,
+        )
+      } else {
+        console.warn('No valid expression in clipboard.')
+      }
+    } catch (err) {
+      console.error(`Reading clipboard failed. ${err}`)
+    }
+  })
+}
+
 // Watch the editedNode in the graph store
 watch(
   () => graphStore.editedNodeInfo,
@@ -250,21 +296,21 @@ watch(
     class="viewport"
     :style="groupColors"
     @click="graphBindingsHandler"
-    v-on.="navigator.events"
+    v-on.="graphNavigator.events"
     v-on..="nodeSelection.events"
     @dragover.prevent
     @drop.prevent="handleFileDrop($event)"
   >
-    <svg :viewBox="navigator.viewBox">
+    <svg :viewBox="graphNavigator.viewBox">
       <GraphEdges @startInteraction="setCurrentInteraction" @endInteraction="interactionEnded" />
     </svg>
-    <div :style="{ transform: navigator.transform }" class="htmlLayer">
+    <div :style="{ transform: graphNavigator.transform }" class="htmlLayer">
       <GraphNodes />
     </div>
     <ComponentBrowser
       v-if="componentBrowserVisible"
       ref="componentBrowser"
-      :navigator="navigator"
+      :navigator="graphNavigator"
       :position="componentBrowserPosition"
       @finished="onComponentBrowserFinished"
       :initialContent="componentBrowserInputContent"
@@ -289,7 +335,7 @@ watch(
       v-if="scaledMousePos"
       :position="scaledMousePos"
       :anchor="scaledSelectionAnchor"
-      :style="{ transform: navigator.prescaledTransform }"
+      :style="{ transform: graphNavigator.prescaledTransform }"
     />
   </div>
 </template>
