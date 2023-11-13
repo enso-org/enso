@@ -55,6 +55,7 @@ import org.enso.runtimeversionmanager.test.{
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo}
 import org.enso.testkit.{EitherValue, WithTemporaryDirectory}
 import org.enso.text.Sha3_224VersionCalculator
+import org.scalactic.source
 import org.scalatest.OptionValues
 import org.slf4j.event.Level
 
@@ -414,5 +415,41 @@ class BaseServerTest
           """
     )
     clientId
+  }
+
+  def receiveAndReplyToOpenFile()(implicit pos: source.Position): Unit = {
+    receiveAndReplyToOpenFile(None)
+  }
+  def receiveAndReplyToOpenFile(
+    fileName: String
+  )(implicit pos: source.Position): Unit = {
+    receiveAndReplyToOpenFile(Some(fileName))
+  }
+  private def receiveAndReplyToOpenFile(
+    fileName: Option[String]
+  )(implicit pos: source.Position): Unit = {
+    runtimeConnectorProbe.receiveN(1).head match {
+      case Api.Request(requestId, Api.OpenFileRequest(file, _)) =>
+        fileName match {
+          case Some(f) if f != file.getName =>
+            fail(
+              "expected OpenFile notification for `" + f + "`, got it for `" + file.getName + "`"
+            )
+          case _ =>
+        }
+        runtimeConnectorProbe.lastSender ! Api.Response(
+          requestId,
+          Api.OpenFileResponse
+        )
+      case Api.Request(
+            _,
+            _: Api.GetTypeGraphRequest | _: Api.EditFileNotification |
+            _: Api.CloseFileNotification
+          ) =>
+        // ignore
+        receiveAndReplyToOpenFile(fileName)
+      case msg =>
+        fail("expected OpenFile notification got " + msg)
+    }
   }
 }

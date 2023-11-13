@@ -1,4 +1,5 @@
 from Standard.Base import all hiding First, Last
+from Standard.Base.Runtime import assert
 
 import project.Data.Aggregate_Column.Aggregate_Column
 import project.Data.Column.Column
@@ -56,7 +57,7 @@ prepare_aggregate_columns naming_helper aggregates table error_on_missing_column
        any missing columns will be reported as errors. Therefore, we can assume
        that all the columns were present.
     keys_problem_builder.attach_problems_before Problem_Behavior.Report_Error <|
-        # assert resolved_keys.find .is_nothing . is_nothing . not then
+        assert (resolved_keys.contains Nothing . not)
         problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
         valid_resolved_aggregate_columns = aggregates.map (resolve_aggregate table problem_builder) . filter x-> x.is_nothing.not
 

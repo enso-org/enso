@@ -1317,7 +1317,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             <div className="flex flex-col w-min min-w-full h-full">
                 {backend.type !== backendModule.BackendType.local && (
                     <div className="sticky top-0 h-0">
-                        <div className="block sticky right-0 ml-auto w-29 p-2 z-1">
+                        <div className="block sticky right-0 ml-auto w-29 px-2 pt-2.25 pb-1.75 z-1">
                             <div className="inline-flex gap-3">
                                 {columnModule.EXTRA_COLUMNS.map(column => (
                                     <Button

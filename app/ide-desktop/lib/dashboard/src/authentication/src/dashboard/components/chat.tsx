@@ -777,71 +777,67 @@ export default function Chat(props: ChatProps) {
                         />
                     ))}
                 </div>
-                <div className="rounded-2xl bg-white p-1 mx-2 my-1">
-                    <form onSubmit={sendCurrentMessage}>
-                        <div>
-                            <textarea
-                                ref={messageInputRef}
-                                rows={1}
-                                autoFocus
-                                required
-                                placeholder="Type your message ..."
-                                className="w-full rounded-lg resize-none p-1"
-                                onKeyDown={event => {
-                                    switch (event.key) {
-                                        case 'Enter': {
-                                            // If the shift key is not pressed, submit the form.
-                                            // If the shift key is pressed, keep the default
-                                            // behavior of adding a newline.
-                                            if (!event.shiftKey) {
-                                                event.preventDefault()
-                                                event.currentTarget.form?.requestSubmit()
-                                            }
-                                        }
+                <form className="rounded-2xl bg-white p-1 mx-2 my-1" onSubmit={sendCurrentMessage}>
+                    <textarea
+                        ref={messageInputRef}
+                        rows={1}
+                        autoFocus
+                        required
+                        placeholder="Type your message ..."
+                        className="w-full rounded-lg resize-none p-1"
+                        onKeyDown={event => {
+                            switch (event.key) {
+                                case 'Enter': {
+                                    // If the shift key is not pressed, submit the form.
+                                    // If the shift key is pressed, keep the default
+                                    // behavior of adding a newline.
+                                    if (!event.shiftKey) {
+                                        event.preventDefault()
+                                        event.currentTarget.form?.requestSubmit()
                                     }
-                                }}
-                                onInput={event => {
-                                    const element = event.currentTarget
-                                    element.style.height = '0px'
-                                    element.style.height =
-                                        `min(${MAX_MESSAGE_INPUT_LINES}lh,` +
-                                        `${element.scrollHeight + 1}px)`
-                                    const newIsReplyEnabled = NON_WHITESPACE_CHARACTER_REGEX.test(
-                                        element.value
-                                    )
-                                    if (newIsReplyEnabled !== isReplyEnabled) {
-                                        setIsReplyEnabled(newIsReplyEnabled)
-                                    }
-                                }}
-                            />
-                            <div className="flex">
-                                <button
-                                    type="button"
-                                    disabled={!isReplyEnabled}
-                                    className={`text-xxs text-white rounded-full grow text-left px-1.5 py-1 ${
-                                        isReplyEnabled ? 'bg-gray-400' : 'bg-gray-300'
-                                    }`}
-                                    onClick={event => {
-                                        sendCurrentMessage(event, true)
-                                    }}
-                                >
-                                    New question? Click to start a new thread!
-                                </button>
-                                {/* Spacing. */}
-                                <div className="w-0.5" />
-                                <button
-                                    type="submit"
-                                    disabled={!isReplyEnabled}
-                                    className={`text-white bg-blue-600 rounded-full px-1.5 py-1 ${
-                                        isReplyEnabled ? '' : 'opacity-50'
-                                    }`}
-                                >
-                                    Reply!
-                                </button>
-                            </div>
-                        </div>
-                    </form>
-                </div>
+                                }
+                            }
+                        }}
+                        onInput={event => {
+                            const element = event.currentTarget
+                            element.style.height = '0px'
+                            element.style.height =
+                                `min(${MAX_MESSAGE_INPUT_LINES}lh,` +
+                                `${element.scrollHeight + 1}px)`
+                            const newIsReplyEnabled = NON_WHITESPACE_CHARACTER_REGEX.test(
+                                element.value
+                            )
+                            if (newIsReplyEnabled !== isReplyEnabled) {
+                                setIsReplyEnabled(newIsReplyEnabled)
+                            }
+                        }}
+                    />
+                    <div className="flex">
+                        <button
+                            type="button"
+                            disabled={!isReplyEnabled}
+                            className={`text-xxs text-white rounded-full grow text-left px-1.5 py-1 ${
+                                isReplyEnabled ? 'bg-gray-400' : 'bg-gray-300'
+                            }`}
+                            onClick={event => {
+                                sendCurrentMessage(event, true)
+                            }}
+                        >
+                            New question? Click to start a new thread!
+                        </button>
+                        {/* Spacing. */}
+                        <div className="w-0.5" />
+                        <button
+                            type="submit"
+                            disabled={!isReplyEnabled}
+                            className={`text-white bg-blue-600 rounded-full px-1.5 py-1 ${
+                                isReplyEnabled ? '' : 'opacity-50'
+                            }`}
+                        >
+                            Reply!
+                        </button>
+                    </div>
+                </form>
                 {!isPaidUser && (
                     <button
                         className="text-left leading-5 rounded-2xl bg-call-to-action text-white p-2 mx-2 my-1"

@@ -52,6 +52,8 @@ MockTransport.addMock('engine', async (method, data, transport) => {
       } satisfies response.GetSuggestionsDatabase
     case 'runtime/getComponentGroups':
       return { componentGroups: placeholderGroups() } satisfies response.GetComponentGroups
+    case 'file/list':
+      return { paths: [] } satisfies response.FileList
     case 'executionContext/push':
     case 'executionContext/pop':
     case 'executionContext/recompute':

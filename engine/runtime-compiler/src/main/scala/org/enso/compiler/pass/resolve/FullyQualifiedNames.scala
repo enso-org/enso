@@ -1,7 +1,12 @@
 package org.enso.compiler.pass.resolve
 
-import org.enso.compiler.{Compiler, PackageRepository}
-import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
+import org.enso.compiler.PackageRepository
+import org.enso.compiler.context.{
+  CompilerContext,
+  FreshNameSupply,
+  InlineContext,
+  ModuleContext
+}
 import org.enso.compiler.core.ir.{Expression, Module, Name, Type}
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.Export
@@ -429,30 +434,30 @@ case object FullyQualifiedNames extends IRPass {
   }
 
   sealed trait PartiallyResolvedFQN {
-    def prepareForSerialization(compiler: Compiler): PartiallyResolvedFQN
+    def prepareForSerialization(compiler: CompilerContext): PartiallyResolvedFQN
     def restoreFromSerialization(
-      compiler: Compiler
+      compiler: CompilerContext
     ): Option[PartiallyResolvedFQN]
   }
 
   case class ResolvedLibrary(namespace: String) extends PartiallyResolvedFQN {
     override def prepareForSerialization(
-      compiler: Compiler
+      compiler: CompilerContext
     ): PartiallyResolvedFQN = this
 
     override def restoreFromSerialization(
-      compiler: Compiler
+      compiler: CompilerContext
     ): Option[PartiallyResolvedFQN] = Some(this)
   }
   case class ResolvedModule(moduleRef: ModuleReference)
       extends PartiallyResolvedFQN {
     override def prepareForSerialization(
-      compiler: Compiler
+      compiler: CompilerContext
     ): PartiallyResolvedFQN =
       ResolvedModule(moduleRef.toAbstract)
 
     override def restoreFromSerialization(
-      compiler: Compiler
+      compiler: CompilerContext
     ): Option[PartiallyResolvedFQN] = {
       val packageRepository = compiler.getPackageRepository()
       moduleRef

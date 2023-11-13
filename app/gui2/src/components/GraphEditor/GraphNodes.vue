@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import GraphNode from '@/components/GraphEditor/GraphNode.vue'
 import UploadingFile from '@/components/GraphEditor/UploadingFile.vue'
+import { useDragging } from '@/components/GraphEditor/dragging'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import type { UploadingFile as File, FileName } from '@/stores/awareness'
@@ -13,6 +14,7 @@ import { computed, toRaw } from 'vue'
 
 const projectStore = useProjectStore()
 const graphStore = useGraphStore()
+const dragging = useDragging()
 const selection = injectGraphSelection(true)
 const navigator = injectGraphNavigator(true)
 
@@ -24,15 +26,9 @@ function updateNodeContent(id: ExprId, updates: [ContentRange, string][]) {
   })
 }
 
-function moveNode(movedId: ExprId, delta: Vec2) {
-  const scaledDelta = delta.scale(1 / (navigator?.scale ?? 1))
-  graphStore.transact(() => {
-    for (const id of selection?.isSelected(movedId) ? selection.selected : [movedId]) {
-      const node = graphStore.nodes.get(id)
-      if (node == null) continue
-      graphStore.setNodePosition(id, node.position.add(scaledDelta))
-    }
-  })
+function nodeIsDragged(movedId: ExprId, offset: Vec2) {
+  const scaledOffset = offset.scale(1 / (navigator?.scale ?? 1))
+  dragging.startOrUpdate(movedId, scaledOffset)
 }
 
 function hoverNode(id: ExprId | undefined) {
@@ -50,8 +46,11 @@ const uploadingFiles = computed<[FileName, File][]>(() => {
 <template>
   <GraphNode
     v-for="[id, node] in graphStore.nodes"
+    v-show="id != graphStore.editedNodeInfo?.id"
     :key="id"
     :node="node"
+    :edited="false"
+    @update:edited="graphStore.setEditedNode(id, $event)"
     @updateRect="graphStore.updateNodeRect(id, $event)"
     @delete="graphStore.deleteNode(id)"
     @updateExprRect="graphStore.updateExprRect"
@@ -60,7 +59,8 @@ const uploadingFiles = computed<[FileName, File][]>(() => {
     @updateContent="updateNodeContent(id, $event)"
     @setVisualizationId="graphStore.setNodeVisualizationId(id, $event)"
     @setVisualizationVisible="graphStore.setNodeVisualizationVisible(id, $event)"
-    @movePosition="moveNode(id, $event)"
+    @dragging="nodeIsDragged(id, $event)"
+    @draggingCommited="dragging.finishDrag()"
     @outputPortAction="graphStore.createEdgeFromOutput(id)"
   />
   <UploadingFile

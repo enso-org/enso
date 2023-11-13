@@ -361,5 +361,7 @@ spec =
 
     Test.group "Date_Time truncate" <|
         Test.specify "should be able to truncate a column of Date_Times" <|
-            Column.from_vector "foo" [Date_Time.new 2020 10 24 1 2 3, Date_Time.new 2020 10 24 1 2 3] . truncate . should_equal <| Column.from_vector "foo" [Date.new 2020 10 24, Date.new 2020 10 24]
-            Column.from_vector "foo" [Date_Time.new 2020 10 24 1 2 3, Date_Time.new 2020 10 24 1 2 3] . truncate . value_type . should_equal Value_Type.Date
+            c = Column.from_vector "foo" [Date_Time.new 2020 10 24 1 2 3, Date_Time.new 2020 10 24 1 2 3]
+            truncated = c.truncate
+            truncated . should_equal <| Column.from_vector "truncate([foo])" [Date.new 2020 10 24, Date.new 2020 10 24]
+            truncated . value_type . should_equal Value_Type.Date

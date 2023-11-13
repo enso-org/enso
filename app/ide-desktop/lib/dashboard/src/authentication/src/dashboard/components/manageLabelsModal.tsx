@@ -117,66 +117,60 @@ export default function ManageLabelsModal<
                     }}
                 >
                     <div className="absolute bg-frame-selected backdrop-blur-3xl rounded-2xl h-full w-full" />
-                    <div className="relative flex flex-col rounded-2xl gap-2 p-2">
+                    <form
+                        className="relative flex flex-col gap-1 rounded-2xl gap-2 p-2"
+                        onSubmit={async event => {
+                            event.preventDefault()
+                            setLabels(oldLabels => [...oldLabels, backendModule.LabelName(query)])
+                            try {
+                                if (color != null) {
+                                    await doCreateLabel(query, color)
+                                }
+                            } catch (error) {
+                                toastAndLog(null, error)
+                                setLabels(oldLabels =>
+                                    oldLabels.filter(oldLabel => oldLabel !== query)
+                                )
+                            }
+                            unsetModal()
+                        }}
+                    >
                         <div>
                             <h2 className="text-sm font-bold">Labels</h2>
                             {/* Space reserved for other tabs. */}
                         </div>
-                        <form
-                            className="flex gap-1"
-                            onSubmit={async event => {
-                                event.preventDefault()
-                                setLabels(oldLabels => [
-                                    ...oldLabels,
-                                    backendModule.LabelName(query),
-                                ])
-                                try {
-                                    if (color != null) {
-                                        await doCreateLabel(query, color)
-                                    }
-                                } catch (error) {
-                                    toastAndLog(null, error)
-                                    setLabels(oldLabels =>
-                                        oldLabels.filter(oldLabel => oldLabel !== query)
-                                    )
-                                }
-                                unsetModal()
-                            }}
+                        <div
+                            className={`flex items-center grow rounded-full border border-black-a10 gap-2 px-1 ${
+                                // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+                                canSelectColor && color != null && color.lightness <= 50
+                                    ? 'text-tag-text placeholder-tag-text'
+                                    : 'text-primary'
+                            }`}
+                            style={
+                                !canSelectColor || color == null
+                                    ? {}
+                                    : {
+                                          backgroundColor: backendModule.lChColorToCssColor(color),
+                                      }
+                            }
                         >
-                            <div
-                                className={`flex items-center grow rounded-full border border-black-a10 gap-2 px-1 ${
-                                    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-                                    canSelectColor && color != null && color.lightness <= 50
-                                        ? 'text-tag-text placeholder-tag-text'
-                                        : 'text-primary'
-                                }`}
-                                style={
-                                    !canSelectColor || color == null
-                                        ? {}
-                                        : {
-                                              backgroundColor:
-                                                  backendModule.lChColorToCssColor(color),
-                                          }
-                                }
-                            >
-                                <input
-                                    autoFocus
-                                    type="text"
-                                    placeholder="Type labels to search"
-                                    className="grow bg-transparent leading-170 h-6 px-1 py-px"
-                                    onChange={event => {
-                                        setQuery(event.currentTarget.value)
-                                    }}
-                                />
-                            </div>
-                            <button
-                                type="submit"
-                                disabled={!canCreateNewLabel}
-                                className="text-tag-text bg-invite rounded-full px-2 py-1 disabled:opacity-30"
-                            >
-                                <div className="h-6 py-0.5">Create</div>
-                            </button>
-                        </form>
+                            <input
+                                autoFocus
+                                type="text"
+                                placeholder="Type labels to search"
+                                className="grow bg-transparent leading-170 h-6 px-1 py-px"
+                                onChange={event => {
+                                    setQuery(event.currentTarget.value)
+                                }}
+                            />
+                        </div>
+                        <button
+                            type="submit"
+                            disabled={!canCreateNewLabel}
+                            className="text-tag-text bg-invite rounded-full px-2 py-1 disabled:opacity-30"
+                        >
+                            <div className="h-6 py-0.5">Create</div>
+                        </button>
                         {canSelectColor && (
                             <div className="flex gap-1">
                                 <div className="grow flex items-center gap-1">
@@ -201,7 +195,7 @@ export default function ManageLabelsModal<
                                     </div>
                                 ))}
                         </div>
-                    </div>
+                    </form>
                 </div>
             </Modal>
         )

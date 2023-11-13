@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { useProjectStore } from '@/stores/project'
+import { useObserveYjs } from '@/util/crdt'
 import diff from 'fast-diff'
 import { computed, watchEffect } from 'vue'
-import { useObserveYjs } from '../src/util/crdt'
 
 const props = defineProps<{ modelValue: string }>()
 const emit = defineEmits<{ 'update:modelValue': [modelValue: string] }>()

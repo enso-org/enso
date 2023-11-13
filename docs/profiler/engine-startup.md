@@ -9,6 +9,8 @@ Enso engine.
 
 ## Collecting the data
 
+### Via the Project Manager
+
 Start `project-manager` with following options to record first 20s of the Enso
 engine startup sequence:
 
@@ -25,6 +27,21 @@ $ graalvm/bin/jvisualvm --openfile start.npss
 ```
 
 Use VisualVM to analyze to recorded data.
+
+### Via the runner
+
+Runner executable also supports the profiling with the `--profiling-path`
+option. For example, you can run the Enso project with the profiling enabled:
+
+```
+$ enso --profiling-path=/tmp/run.npss --run ~/enso/project/New_Project_1
+```
+
+And then open it in the VisualVM:
+
+```
+$ visualvm --openfile /tmp/run.npss
+```
 
 ### Interactively Analyze
 

@@ -19,6 +19,9 @@ const CODE_GETTER: &str = "codeRepr";
 const WHITESPACE_GETTER: &str = "getWhitespace";
 const TREE_BEGIN: &str = "fieldSpanLeftOffsetCodeReprBegin";
 const TREE_LEN: &str = "fieldSpanLeftOffsetCodeReprLen";
+const TREE_WHITESPACE: &str = "fieldSpanLeftOffsetCodeLenUtf16";
+const TOKEN_WHITESPACE: &str = "fieldLeftOffsetCodeLenUtf16";
+const TOKEN_CODE_LENGTH: &str = "fieldCodeLenUtf16";
 
 /// Derive deserialization for all types in the typegraph.
 pub fn derive(graph: &mut TypeGraph, tree: ClassId, token: ClassId) {
@@ -151,16 +154,16 @@ fn start_whitespace() -> impl for<'a> Fn(MaterializerInput<'a>) -> String + 'sta
     |MaterializerInput { message }| format!("{message}.position()")
 }
 fn start_code_tree() -> impl for<'a> Fn(MaterializerInput<'a>) -> String + 'static {
-    |MaterializerInput { message }| format!("{message}.advance(fieldSpanLeftOffsetCodeUtf16)")
+    |MaterializerInput { message }| format!("{message}.advance({TREE_WHITESPACE})")
 }
 fn end_code_tree() -> impl for<'a> Fn(MaterializerInput<'a>) -> String + 'static {
     |MaterializerInput { message }| format!("{message}.position()")
 }
 fn start_code_token() -> impl for<'a> Fn(MaterializerInput<'a>) -> String + 'static {
-    |MaterializerInput { message }| format!("{message}.advance(fieldLeftOffsetCodeUtf16)")
+    |MaterializerInput { message }| format!("{message}.advance({TOKEN_WHITESPACE})")
 }
 fn end_code_token() -> impl for<'a> Fn(MaterializerInput<'a>) -> String + 'static {
-    |MaterializerInput { message }| format!("{message}.advance(fieldCodeUtf16)")
+    |MaterializerInput { message }| format!("{message}.advance({TOKEN_CODE_LENGTH})")
 }
 
 
