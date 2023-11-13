@@ -863,7 +863,9 @@ class Compiler(
   ): Unit = {
     if (config.isStrictErrors) {
       val diagnostics = modules.flatMap { module =>
-        val errors = gatherDiagnostics(module)
+        val errors =
+          if (context.wasLoadedFromCache(module)) List()
+          else gatherDiagnostics(module)
         List((module, errors))
       }
       if (reportDiagnostics(diagnostics)) {
