@@ -1822,7 +1822,6 @@ lazy val launcher = project
         ),
         includeRuntime = false,
         mainClass      = Some("org.enso.launcher.cli.Main"),
-        verbose        = true
       )
       .dependsOn(assembly)
       .dependsOn(VerifyReflectionSetup.run)
