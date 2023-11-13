@@ -1,6 +1,6 @@
 package org.enso.compiler.data
 
-import org.enso.compiler.{PackageRepository}
+import org.enso.compiler.PackageRepository
 import org.enso.compiler.PackageRepository.ModuleMap
 import org.enso.compiler.context.CompilerContext.Module
 import org.enso.compiler.core.Implicits.AsMetadata
@@ -58,7 +58,7 @@ case class BindingsMap(
   override def restoreFromSerialization(
     compiler: Compiler
   ): Option[BindingsMap] = {
-    val packageRepository = compiler.getPackageRepository()
+    val packageRepository = compiler.getPackageRepository
     this.toConcrete(packageRepository.getModuleMap)
   }
 
@@ -1012,7 +1012,7 @@ object BindingsMap {
     override def restoreFromSerialization(
       compiler: Compiler
     ): Option[Resolution] = {
-      val moduleMap = compiler.getPackageRepository().getModuleMap
+      val moduleMap = compiler.getPackageRepository.getModuleMap
       this.target.toConcrete(moduleMap).map(t => this.copy(target = t))
     }
 
