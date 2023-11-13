@@ -166,7 +166,7 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
         win: {
             // Compression is not used as the build time is huge and file size saving
             // almost zero.
-            target: passedArgs.target ?? 'msi',
+            target: passedArgs.target ?? 'nsis',
             icon: `${passedArgs.iconsDist}/icon.ico`,
         },
         linux: {
@@ -204,6 +204,17 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
             output: `${passedArgs.ideDist}`,
         },
         msi: {
+            runAfterFinish: false,
+        },
+        nsis: {
+            // Disables "block map" generation during electron building. Block maps
+            // can be used for incremental package update on client-side. However,
+            // their generation can take long time (even 30 mins), so we removed it
+            // for now. Moreover, we may probably never need them, as our updates
+            // are handled by us. More info:
+            // https://github.com/electron-userland/electron-builder/issues/2851
+            // https://github.com/electron-userland/electron-builder/issues/2900
+            differentialPackage: false,
             runAfterFinish: false,
         },
         dmg: {
