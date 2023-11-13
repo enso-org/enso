@@ -3,6 +3,7 @@ import project.Data.Array.Array
 import project.Data.Filter_Condition.Filter_Condition
 import project.Data.List.List
 import project.Data.Map.Map
+import project.Data.Maybe.Maybe
 import project.Data.Numbers.Integer
 import project.Data.Pair.Pair
 import project.Data.Range.Range
@@ -591,7 +592,7 @@ type Vector a
             case result.is_error of
                 False ->
                     if Warning.has_warnings result . not then result else
-                        Warning.map_attached_warnings (Map_Error.Error i) result
+                        Warning.map_attached_warnings (w-> Maybe.Some (Map_Error.Error i w)) result
                 True ->
                     case on_problems of
                         Problem_Behavior.Ignore ->

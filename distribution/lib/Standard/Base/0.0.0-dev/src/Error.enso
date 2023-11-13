@@ -107,10 +107,18 @@ type Error
 
     ## PRIVATE
        Determines whether self is, or wraps, the specified error type.
+       For uncaught error `self`.
     wraps_error : Any -> Boolean
     wraps_error self error_type =
         self.catch_primitive error_value->
             look_for_wrapped_error error_type error_value . is_some
+
+    ## PRIVATE
+       Determines whether self is, or wraps, the specified error type.
+       For plain error value.
+    error_value_wraps_error : Any -> Any -> Boolean
+    error_value_wraps_error error_value error_type =
+        look_for_wrapped_error error_type error_value . is_some
 
     ## Transforms an error.
 
