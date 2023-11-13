@@ -34,4 +34,9 @@ public record IdentifiedLocation(Location location, UUID uuid) {
   public Option<UUID> id() {
     return Option.apply(uuid());
   }
+
+  @Override
+  public String toString() {
+    return "IdentifiedLocation[location=" + this.location() + ", uuid="+ id() + "]";
+  }
 }

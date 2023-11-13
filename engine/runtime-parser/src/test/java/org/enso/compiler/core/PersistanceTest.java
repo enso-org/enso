@@ -32,16 +32,15 @@ public class PersistanceTest {
   @Test
   public void identifiedLocation() throws Exception {
     var il = new IdentifiedLocation(new Location(5, 19), Option.empty());
-    var in = serde(IdentifiedLocation.class, il, 8);
+    var in = serde(IdentifiedLocation.class, il, 12);
     assertEquals(il, in);
   }
 
   @Test
   public void identifiedLocationNoUUID() throws Exception {
     var il = new IdentifiedLocation(new Location(5, 19), Option.apply(UUID.randomUUID()));
-    var in = serde(IdentifiedLocation.class, il, 8);
-    assertEquals(
-        "UUIDs aren't serialized", new IdentifiedLocation(il.location(), Option.empty()), in);
+    var in = serde(IdentifiedLocation.class, il, 32);
+    assertEquals("UUIDs are serialized at the moment", il, in);
   }
 
   @Test
@@ -50,7 +49,7 @@ public class PersistanceTest {
     var idLoc1 = new IdentifiedLocation(new Location(1, 5));
     var in = scala.collection.immutable.Map$.MODULE$.empty().$plus(new Tuple2("Hi", idLoc1));
 
-    var out = serde(scala.collection.immutable.Map.class, in, 32);
+    var out = serde(scala.collection.immutable.Map.class, in, 36);
 
     assertEquals("One element", 1, out.size());
     assertEquals(in, out);
@@ -65,7 +64,7 @@ public class PersistanceTest {
         (scala.collection.mutable.HashMap)
             scala.collection.mutable.HashMap$.MODULE$.apply(immutable);
 
-    var out = serde(scala.collection.mutable.Map.class, in, 32);
+    var out = serde(scala.collection.mutable.Map.class, in, 36);
 
     assertEquals("One element", 1, out.size());
     assertEquals(in, out);
@@ -77,7 +76,7 @@ public class PersistanceTest {
     var idLoc1 = new IdentifiedLocation(new Location(1, 5));
     var in = scala.collection.immutable.Set$.MODULE$.empty().$plus(idLoc1);
 
-    var out = serde(scala.collection.immutable.Set.class, in, 20);
+    var out = serde(scala.collection.immutable.Set.class, in, 24);
 
     assertEquals("One element", 1, out.size());
     assertEquals(in, out);
@@ -89,10 +88,10 @@ public class PersistanceTest {
     var idLoc2 = new IdentifiedLocation(new Location(2, 4), Option.apply(UUID.randomUUID()));
     var in = join(idLoc2, join(idLoc1, nil()));
 
-    var out = serde(List.class, in, 36);
+    var out = serde(List.class, in, 64);
 
     assertEquals("Two elements", 2, out.size());
-    assertEquals("UUIDs aren't serialized", new IdentifiedLocation(idLoc2.location()), out.head());
+    assertEquals("UUIDs are serialized at the moment", idLoc2, out.head());
     assertEquals("Tail is the same", idLoc1, out.last());
   }
 
@@ -101,7 +100,7 @@ public class PersistanceTest {
     var idLoc1 = new IdentifiedLocation(new Location(1, 5));
     var in = join(idLoc1, join(idLoc1, nil()));
 
-    var out = serde(List.class, in, 28);
+    var out = serde(List.class, in, 32);
 
     assertEquals("Two elements", 2, out.size());
     assertEquals("Head is equal to original", idLoc1, out.head());
