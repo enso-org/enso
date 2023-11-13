@@ -48,6 +48,16 @@ public abstract class Persistance<T> {
     public abstract <T> T readInline(Class<T> clazz) throws IOException;
     public abstract Object readObject() throws IOException;
     public <T> Reference<T> readReference(Class<T> clazz) throws IOException;
+
+    /**
+    * Looks an associated service up. The service can be specified as
+    * additional arguments to {@link #readObject(byte[], Object...)}.
+    *
+    * @param <T> type of the service requested
+    * @param clazz the class representing the requested type
+    * @return instance of the requested service or {@code null}
+    */
+    public abstract <T> T lookup(Class<T> clazz);
   }
 
   final void writeInline(Object obj, Output out) throws IOException {
@@ -62,7 +72,7 @@ public abstract class Persistance<T> {
     }
   }
 
-  public static <T> Reference<T> readObject(byte[] arr) throws IOException {
+  public static <T> Reference<T> readObject(byte[] arr, Object... context) throws IOException {
     for (var i = 0; i < Generator.HEADER.length; i++) {
       if (arr[i] != Generator.HEADER[i]) {
         throw new IOException("Wrong header");
@@ -70,8 +80,9 @@ public abstract class Persistance<T> {
     }
     var buf = ByteBuffer.wrap(arr);
     var at = buf.getInt(4);
+    var cache = new InputCache(buf, context);
 
-    return Reference.from(buf, at);
+    return Reference.from(cache, at);
   }
 
   public static byte[] writeObject(Object obj) throws IOException {
@@ -168,7 +179,7 @@ public abstract class Persistance<T> {
   }
 
   @SuppressWarnings("unchecked")
-  static <T> Reference<T> readIndirectAsReference(ByteBuffer buffer, PersistanceMap map, Input in, Class<T> clazz) throws IOException {
+  static <T> Reference<T> readIndirectAsReference(InputCache buffer, PersistanceMap map, Input in, Class<T> clazz) throws IOException {
     var at = in.readInt();
     if (at < 0) {
       return null;
@@ -205,11 +216,11 @@ public abstract class Persistance<T> {
       return new MemoryReference<>(obj);
     }
 
-    static <V> Reference<V> from(ByteBuffer buffer, int offset) {
+    static <V> Reference<V> from(InputCache buffer, int offset) {
       return from(null, buffer, offset);
     }
 
-    static <V> Reference<V> from(Persistance<V> p, ByteBuffer buffer, int offset) {
+    static <V> Reference<V> from(Persistance<V> p, InputCache buffer, int offset) {
       return new BufferReference<>(p, buffer, offset);
     }
   }
@@ -217,12 +228,12 @@ public abstract class Persistance<T> {
 
   private static final class BufferReference<T> extends Reference<T> {
     private final Persistance<T> p;
-    private final ByteBuffer buffer;
+    private final InputCache cache;
     private final int offset;
 
-    BufferReference(Persistance<T> p, ByteBuffer buffer, int offset) {
+    BufferReference(Persistance<T> p, InputCache buffer, int offset) {
       this.p = p;
-      this.buffer = buffer;
+      this.cache = buffer;
       this.offset = offset;
     }
 
@@ -235,7 +246,6 @@ public abstract class Persistance<T> {
           throw new ClassCastException();
         }
       }
-      var cache = new InputCache(buffer);
       var in = new InputImpl(cache, offset);
       var obj = in.readInline(clazz);
       return obj;
@@ -270,9 +280,11 @@ public abstract class Persistance<T> {
     }
   }
 
-  private static final record InputCache(ByteBuffer buf, Map<Integer,Object> cache) {
-    InputCache(ByteBuffer buf) {
-      this(buf, new HashMap<>());
+  private static final record InputCache(
+    ByteBuffer buf, Object[] services, Map<Integer,Object> cache
+  ) {
+    InputCache(ByteBuffer buf, Object... services) {
+      this(buf, services, new HashMap<>());
     }
   }
 
@@ -285,6 +297,19 @@ public abstract class Persistance<T> {
       this.cache = cache;
       this.buf = cache.buf();
       this.at = at;
+    }
+
+    @Override
+    public <T> T lookup(Class<T> clazz) {
+      if (clazz == Object.class) {
+        return null;
+      }
+      for (var o : cache.services) {
+        if (clazz.isInstance(o)) {
+          return clazz.cast(o);
+        }
+      }
+      return null;
     }
 
     @Override
@@ -301,7 +326,7 @@ public abstract class Persistance<T> {
 
     @Override
     public <T> Reference<T> readReference(Class<T> clazz) throws IOException {
-      var obj = readIndirectAsReference(buf, PersistanceMap.DEFAULT, this, clazz);
+      var obj = readIndirectAsReference(cache, PersistanceMap.DEFAULT, this, clazz);
       return obj;
     }
 

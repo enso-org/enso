@@ -18,7 +18,6 @@ import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.polyglot.CompilationStage;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Optional;

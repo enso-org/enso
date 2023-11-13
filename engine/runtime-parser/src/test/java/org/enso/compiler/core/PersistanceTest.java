@@ -184,6 +184,18 @@ public class PersistanceTest {
     assertEquals("Same", map, out);
   }
 
+  @Test
+  public void withService() throws Exception {
+    var in = new Service(5);
+    var arr = Persistance.writeObject(in);
+
+    var plain = Persistance.readObject(arr);
+    assertEquals("Remains five", 5, plain.get(Service.class).value());
+
+    var multi = Persistance.readObject(arr, new Service(3));
+    assertEquals("Multiplied", 15, multi.get(Service.class).value());
+  }
+
   private static <T> T serde(Class<T> clazz, T l, int expectedSize) throws IOException {
     var arr = Persistance.writeObject(l);
     if (expectedSize >= 0) {
@@ -289,6 +301,28 @@ public class PersistanceTest {
     @Override
     protected Singleton readObject(Input in) throws IOException, ClassNotFoundException {
       return Singleton.INSTANCE;
+    }
+  }
+
+  record Service(int value) {}
+
+  @ServiceProvider(service = Persistance.class)
+  public static final class PersistWithService extends Persistance<Service> {
+
+    public PersistWithService() {
+      super(Service.class, false, 432434);
+    }
+
+    @Override
+    protected void writeObject(Service obj, Output out) throws IOException {
+      out.writeInt(obj.value());
+    }
+
+    @Override
+    protected Service readObject(Input in) throws IOException, ClassNotFoundException {
+      var v = in.readInt();
+      var service = in.lookup(Service.class);
+      return service == null ? new Service(v) : new Service(v * service.value());
     }
   }
 }
