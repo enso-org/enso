@@ -130,6 +130,42 @@ public final class IrPersistance {
   }
 
   @ServiceProvider(service = Persistance.class)
+  public static final class PersistLong extends Persistance<Long> {
+    public PersistLong() {
+      super(Long.class, true, 4438);
+    }
+
+    @Override
+    protected void writeObject(Long obj, Output out) throws IOException {
+      out.writeLong(obj);
+    }
+
+    @Override
+    protected Long readObject(Input in) throws IOException, ClassNotFoundException {
+      var obj = in.readLong();
+      return obj;
+    }
+  }
+
+  @ServiceProvider(service = Persistance.class)
+  public static final class PersistDouble extends Persistance<Double> {
+    public PersistDouble() {
+      super(Double.class, true, 4439);
+    }
+
+    @Override
+    protected void writeObject(Double obj, Output out) throws IOException {
+      out.writeDouble(obj);
+    }
+
+    @Override
+    protected Double readObject(Input in) throws IOException, ClassNotFoundException {
+      var obj = in.readDouble();
+      return obj;
+    }
+  }
+
+  @ServiceProvider(service = Persistance.class)
   public static final class PersistScalaList extends Persistance<List> {
     public PersistScalaList() {
       super(List.class, true, 4432);
@@ -263,7 +299,7 @@ public final class IrPersistance {
   @ServiceProvider(service = Persistance.class)
   public static final class PersistMap extends Persistance<HashMap> {
     public PersistMap() {
-      super(HashMap.class, true, 4439);
+      super(HashMap.class, true, 4440);
     }
 
     @Override
