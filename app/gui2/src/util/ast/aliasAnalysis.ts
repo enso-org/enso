@@ -1,6 +1,7 @@
 import { Token, Tree } from '@/generated/ast'
 import { assert } from '@/util/assert'
 import {
+  AstExtended,
   astPrettyPrintType,
   parseEnso,
   parsedTreeOrTokenRange,
@@ -25,7 +26,7 @@ const LOGGING_ENABLED = false
 
 class Scope {
   /** The variables defined in this scope. */
-  bindings: Map<string, Token> = new Map()
+  bindings: Map<string, AstExtended<Token>> = new Map()
 
   /** Construct a new scope for the given range. If the parent scope is provided, the new scope will be added to its
    * children.
@@ -45,11 +46,11 @@ class Scope {
    * scope, so the variables are not visible before they are defined. If not provided, the lookup will include all
    * symbols from the scope.
    */
-  resolve(identifier: string, location?: ContentRange): Token | undefined {
+  resolve(identifier: string, location?: ContentRange): AstExtended<Token> | undefined {
     const localBinding = this.bindings.get(identifier)
     if (
       localBinding != null &&
-      (location == null || rangeIsBefore(parsedTreeOrTokenRange(localBinding), location))
+      (location == null || rangeIsBefore(localBinding.span(), location))
     ) {
       return localBinding
     } else if (this.parent != null) {
@@ -99,7 +100,7 @@ export class AliasAnalyzer {
   readonly unresolvedSymbols = new MappedSet<ContentRange>(IdMap.keyForRange)
 
   /** The AST representation of the code. */
-  readonly ast: Tree
+  readonly ast: AstExtended<Tree>
 
   /** The special "root" scope that contains the analyzed tree. */
   readonly rootScope: Scope
@@ -118,12 +119,9 @@ export class AliasAnalyzer {
    * @param code text representation of the code.
    * @param ast AST representation of the code. If not provided, it will be parsed from the text.
    */
-  constructor(
-    private readonly code: string,
-    ast?: Tree,
-  ) {
-    this.ast = ast ?? parseEnso(code)
-    this.rootScope = new Scope(parsedTreeOrTokenRange(this.ast))
+  constructor(ast: AstExtended<Tree>) {
+    this.ast = ast
+    this.rootScope = new Scope(this.ast.span())
     this.scopes = new NonEmptyStack(this.rootScope)
   }
 
@@ -140,28 +138,22 @@ export class AliasAnalyzer {
   }
 
   /** Marks given token as a binding, i.e. a definition of a new variable. */
-  bind(token: Token) {
+  bind(token: AstExtended<Token>) {
     const scope = this.scopes.top
-    const identifier = readTokenSpan(token, this.code)
-    const range = parsedTreeOrTokenRange(token)
+    const identifier = token.repr()
+    const range = token.span()
     log(() => `Binding ${identifier}@[${range}]`)
     scope.bindings.set(identifier, token)
     assert(!this.aliases.has(range), `Token at ${range} is already bound.`)
     this.aliases.set(range, new MappedSet<ContentRange>(IdMap.keyForRange))
   }
 
-  addConnection(source: Token, target: Token) {
-    const sourceRange = parsedTreeOrTokenRange(source)
-    const targetRange = parsedTreeOrTokenRange(target)
+  addConnection(source: AstExtended<Token>, target: AstExtended<Token>) {
+    const sourceRange = source.span()
+    const targetRange = target.span()
     const targets = this.aliases.get(sourceRange)
     if (targets != null) {
-      log(
-        () =>
-          `Usage of ${readTokenSpan(
-            source,
-            this.code,
-          )}@[${targetRange}] resolved to [${sourceRange}]`,
-      )
+      log(() => `Usage of ${target.repr()}@[${targetRange}] resolved to [${sourceRange}]`)
       targets.add(targetRange)
     } else {
       console.warn(`No targets found for source range ${sourceRange}`)
@@ -169,9 +161,9 @@ export class AliasAnalyzer {
   }
 
   /** Marks given token as a usage, i.e. a reference to an existing variable. */
-  use(token: Token) {
-    const identifier = readTokenSpan(token, this.code)
-    const range = parsedTreeOrTokenRange(token)
+  use(token: AstExtended<Token>) {
+    const identifier = token.repr()
+    const range = token.span()
     const binding = this.scopes.top.resolve(identifier, range)
     if (binding != null) {
       this.addConnection(binding, token)
@@ -186,12 +178,12 @@ export class AliasAnalyzer {
     this.processTree(this.ast)
   }
 
-  processToken(token?: Token): void {
+  processToken(token?: AstExtended<Token>): void {
     if (token == null) {
       return
     }
 
-    const repr = readTokenSpan(token, this.code)
+    const repr = token.repr()
     if (identifierKind(repr) === IdentifierType.Variable) {
       if (this.contexts.top === Context.Pattern) {
         this.bind(token)
@@ -237,17 +229,14 @@ export class AliasAnalyzer {
   }
 
   /** Method that processes a single AST node. */
-  processTree(node?: Tree): void {
+  processTree(node?: AstExtended<Tree>): void {
     if (node == null) {
       return
     }
 
-    const range = () => parsedTreeOrTokenRange(node)
-    const repr = () => readAstOrTokenSpan(node, this.code)
-
     log(() => `\nprocessNode ${astPrettyPrintType(node)}\n====\n${repr()}\n====\n`)
 
-    switch (node.type) {
+    switch (node.inner.type) {
       case Tree.Type.BodyBlock:
         this.withNewScopeOver(node, () => {
           this.processNodeChildren(node)
@@ -341,7 +330,7 @@ export class AliasAnalyzer {
         this.processTree(node.expression)
         break
       default:
-        log(() => `Catch-all for ${astPrettyPrintType(node)} at ${range()}:\n${repr()}\n`)
+        log(() => `Catch-all for ${astPrettyPrintType(node)} at ${node.span()}:\n${node.repr()}\n`)
         this.processNodeChildren(node)
         break
     }

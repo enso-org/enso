@@ -1,8 +1,10 @@
 import { SuggestionDb, groupColorStyle, type Group } from '@/stores/suggestionDatabase'
 import { tryGetIndex } from '@/util/array'
 import { Ast, AstExtended } from '@/util/ast'
+import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
 import { colorFromString } from '@/util/colors'
 import { ComputedValueRegistry, type ExpressionInfo } from '@/util/computedValueRegistry'
+import { MappedKeyMap, MappedSet } from '@/util/containers'
 import { ReactiveDb, ReactiveIndex, ReactiveMapping } from '@/util/database/reactiveDb'
 import type { Opt } from '@/util/opt'
 import { qnJoin, tryQualifiedName } from '@/util/qualifiedName'
@@ -11,11 +13,46 @@ import * as set from 'lib0/set'
 import {
   IdMap,
   visMetadataEquals,
+  type ContentRange,
   type ExprId,
   type NodeMetadata,
   type VisualizationMetadata,
 } from 'shared/yjsModel'
 import { ref, type Ref } from 'vue'
+
+export class AliasAnalysisResult {
+  nodeUsages = new ReactiveDb<ExprId, Set<ExprId>>()
+
+  readFunctionAst(ast: AstExtended<Ast.Tree.Function>) {
+    const aliasAnalysis = new AliasAnalyzer(ast.parsedCode, ast.inner)
+    const usageRanges = new MappedSet(IdMap.keyForRange)
+    const usageRangeToExprId = new MappedKeyMap<ContentRange, ExprId>(IdMap.keyForRange)
+    ast.visitRecursive
+
+    for (const nodeAst of ast.visit(getFunctionNodeExpressions)) {
+      const node = nodeFromAst(nodeAst)
+      const nodeId = newNode.rootSpan.astId
+      const usages = this.nodeUsages.get(nodeId)
+      const nodeMeta = getMeta(nodeId)
+      currentNodeIds.add(nodeId)
+      if (node == null) {
+        this.nodes.set(nodeId, newNode)
+        if (nodeMeta) this.assignUpdatedMetadata(newNode, nodeMeta)
+      } else {
+        if (node.binding !== newNode.binding) {
+          node.binding = newNode.binding
+        }
+        if (node.outerExprId !== newNode.outerExprId) {
+          node.outerExprId = newNode.outerExprId
+        }
+        if (indexedDB.cmp(node.rootSpan.contentHash(), newNode.rootSpan.contentHash()) !== 0) {
+          node.rootSpan = newNode.rootSpan
+        }
+        if (nodeMeta) this.assignUpdatedMetadata(node, nodeMeta)
+      }
+    }
+  }
+}
 
 export class GraphDb {
   nodes = new ReactiveDb<ExprId, Node>()
