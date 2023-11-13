@@ -8,6 +8,7 @@ import {
   type SuggestionEntry,
 } from '@/stores/suggestionDatabase/entry'
 import { readAstSpan } from '@/util/ast'
+import type { ExprId } from 'shared/yjsModel'
 import { expect, test } from 'vitest'
 import { useComponentBrowserInput } from '../input'
 
@@ -40,20 +41,37 @@ test.each([
   ],
   ['2 +', 3, { type: 'insert', position: 3, oprApp: ['2', '+', null] }, {}],
   ['2 + 3', 5, { type: 'changeLiteral', literal: '3' }, { pattern: '3' }],
-  // TODO[ao] test cases for #7926
-  // [
-  //   'operator1.',
-  //   10,
-  //   { type: 'insert', position: 10, oprApp: ['operator1', '.', null] },
-  //   { selfType: 'Standard.Base.Number' },
-  // ],
-  // [
-  //   'operator2.',
-  //   10,
-  //   { type: 'insert', position: 10, oprApp: ['operator2', '.', null] },
-  //   // No self type, as the operator2 local is from another module
-  //   { qualifiedNamePattern: 'operator2' },
-  // ],
+  [
+    'operator1.',
+    10,
+    { type: 'insert', position: 10, oprApp: ['operator1', '.', null] },
+    { selfArg: { type: 'known', typename: 'Standard.Base.Number' } },
+  ],
+  [
+    'operator2.',
+    10,
+    { type: 'insert', position: 10, oprApp: ['operator2', '.', null] },
+    { selfArg: { type: 'unknown' } },
+  ],
+  [
+    'operator3.',
+    10,
+    { type: 'insert', position: 10, oprApp: ['operator3', '.', null] },
+    // No self type, as there is no operator3 node in current graph
+    { qualifiedNamePattern: 'operator3' },
+  ],
+  [
+    'operator1 -> operator1.',
+    23,
+    { type: 'insert', position: 23, oprApp: ['operator1', '.', null] },
+    { selfArg: { type: 'unknown' } },
+  ],
+  [
+    'operator2 -> operator1.',
+    23,
+    { type: 'insert', position: 23, oprApp: ['operator1', '.', null] },
+    { selfArg: { type: 'known', typename: 'Standard.Base.Number' } },
+  ],
 ])(
   "Input context and filtering, when content is '%s' and cursor at %i",
   (
@@ -66,16 +84,32 @@ test.each([
       identifier?: string
       literal?: string
     },
-    expFiltering: { pattern?: string; qualifiedNamePattern?: string; selfType?: string },
+    expFiltering: {
+      pattern?: string
+      qualifiedNamePattern?: string
+      selfArg?: { type: string; typename?: string }
+    },
   ) => {
-    // TODO[ao] See above commented cases for #7926
-    // const db = SuggestionDb.mock([
-    //   makeLocal('local.Project', 'operator1', 'Standard.Base.Number'),
-    //   makeLocal('local.Project.Another_Module', 'operator2', 'Standard.Base.Text'),
-    //   makeType('local.Project.operator1'),
-    //   makeLocal('local.Project', 'operator3', 'Standard.Base.Text'),
-    // ])
-    const input = useComponentBrowserInput()
+    const operator1Id: ExprId = '3d0e9b96-3ca0-4c35-a820-7d3a1649de55' as ExprId
+    const operator2Id: ExprId = '5eb16101-dd2b-4034-a6e2-476e8bfa1f2b' as ExprId
+    const graphStoreMock = {
+      identDefinitions: new Map([
+        ['operator1', operator1Id],
+        ['operator2', operator2Id],
+      ]),
+    }
+    const computedValueRegistryMock = {
+      getExpressionInfo(id: ExprId) {
+        if (id === operator1Id)
+          return {
+            typename: 'Standard.Base.Number',
+            methodCall: undefined,
+            payload: { type: 'Value' },
+            profilingInfo: [],
+          }
+      },
+    }
+    const input = useComponentBrowserInput(graphStoreMock, computedValueRegistryMock)
     input.code.value = code
     input.selection.value = { start: cursorPos, end: cursorPos }
     const context = input.context.value
@@ -99,7 +133,7 @@ test.each([
     }
     expect(filter.pattern).toStrictEqual(expFiltering.pattern)
     expect(filter.qualifiedNamePattern).toStrictEqual(expFiltering.qualifiedNamePattern)
-    expect(filter.selfType).toStrictEqual(expFiltering.selfType)
+    expect(filter.selfArg).toStrictEqual(expFiltering.selfArg)
   },
 )
 
@@ -177,6 +211,11 @@ const baseCases: ApplySuggestionCase[] = [
     suggestion: makeModule('local.Project.Module'),
     expected: 'Project.Module.',
   },
+  {
+    code: 'a -> a.',
+    suggestion: makeMethod('Standard.Base.Data.Vector.get'),
+    expected: 'a -> a.get ',
+  },
 ]
 
 function makeComplexCase(prefix: string, suffix: string): ApplySuggestionCase[] {
@@ -217,7 +256,10 @@ test.each([
   ({ code, cursorPos, suggestion, expected, expectedCursorPos }) => {
     cursorPos = cursorPos ?? code.length
     expectedCursorPos = expectedCursorPos ?? expected.length
-    const input = useComponentBrowserInput()
+    const input = useComponentBrowserInput(
+      { identDefinitions: new Map() },
+      { getExpressionInfo: (_id) => undefined },
+    )
     input.code.value = code
     input.selection.value = { start: cursorPos, end: cursorPos }
     input.applySuggestion(suggestion)
