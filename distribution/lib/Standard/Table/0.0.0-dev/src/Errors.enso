@@ -777,3 +777,23 @@ type Null_Values_In_Key_Columns
     to_display_text self =
         suffix = if self.add_sql_suffix.not then "" else " The operation has been rolled back. Due to how NULL equality works in SQL, these rows would not be correctly matched to the target rows. Please use a key that does not contain NULLs."
         "The operation encountered input rows that contained Nothing values in key columns (for example, the row " + self.example_row.to_display_text + ")."+suffix
+
+## Indicates that the query may not have downloaded all rows that were
+   available.
+
+   The count of extra rows is not included, because computing it would add too
+   much additional cost.
+
+   ! In-memory
+
+     The warning may also be reported in the in-memory backend, when
+     `Table.read` is called with a user-specified limit and some rows are
+     dropped. This is done to ensure both APIs behave consistently with `read`.
+type Not_All_Rows_Downloaded
+    ## PRIVATE
+    Warning (max_rows:Integer)
+
+    ## PRIVATE
+    to_display_text : Text
+    to_display_text self =
+        "The query has returned more than the maximum of "+self.max_rows.to_text+" rows, so some rows have been dropped from the result. If you want to get the full result, change the row limit."

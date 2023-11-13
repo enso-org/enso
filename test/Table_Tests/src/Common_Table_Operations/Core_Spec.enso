@@ -262,5 +262,115 @@ spec setup =
             table.rows . at 0 . at -4 . should_fail_with Index_Out_Of_Bounds
             table.rows . at 0 . at "unknown" . should_fail_with No_Such_Column
 
+
+    Test.group prefix+"Table.read" <|
+        t_big = table_builder [["X", (0.up_to 1500)]]
+        t_small = table_builder [["X", (0.up_to 10)]]
+
+        has_default_row_limit = setup.is_database
+
+        Test.specify "should have a row limit by default and warn about it" <|
+            t_big.row_count . should_equal 1500
+            t_small.row_count . should_equal 10
+
+            t1 = t_big.read
+            case has_default_row_limit of
+                True ->
+                    t1.row_count . should_equal 1000
+                    w1 = Problems.expect_only_warning Not_All_Rows_Downloaded t1
+                    w1.max_rows . should_equal 1000
+                False ->
+                    t1.row_count . should_equal 1500
+                    Problems.assume_no_problems t1
+
+            t2 = t_small.read
+            t2.row_count . should_equal 10
+            Problems.assume_no_problems t2
+
+        Test.specify "should allow to set the row limit" <|
+            t1 = t_big.read max_rows=23
+            t1.row_count . should_equal 23
+            w1 = Problems.expect_only_warning Not_All_Rows_Downloaded t1
+            w1.max_rows . should_equal 23
+            w1.to_display_text . should_contain "some rows have been dropped"
+
+            t2 = t_big.read max_rows=1500
+            t2.row_count . should_equal 1500
+            Problems.assume_no_problems t2
+
+            t3 = t_small.read max_rows=1
+            t3.row_count . should_equal 1
+            w3 = Problems.expect_only_warning Not_All_Rows_Downloaded t3
+            w3.max_rows . should_equal 1
+
+        Test.specify "should allow to have no row limit" <|
+            t1 = t_big.read max_rows=Nothing
+            t1.row_count . should_equal 1500
+            Problems.assume_no_problems t1
+
+        Test.specify "should allow to turn off the warning" <|
+            t1 = t_big.read warn_if_more_rows=False
+            t1.row_count . should_equal (if has_default_row_limit then 1000 else 1500)
+            Problems.assume_no_problems t1
+
+            t2 = t_big.read max_rows=123 warn_if_more_rows=False
+            t2.row_count . should_equal 123
+            Problems.assume_no_problems t2
+
+            t3 = t_big.read max_rows=12300 warn_if_more_rows=False
+            t3.row_count . should_equal 1500
+            Problems.assume_no_problems t3
+
+        Test.specify "should also work as Column.read" <|
+            c1 = t_big.at "X"
+            c1.length . should_equal 1500
+
+            r2 = c1.read
+            case has_default_row_limit of
+                True ->
+                    r2.length . should_equal 1000
+                    w2 = Problems.expect_only_warning Not_All_Rows_Downloaded r2
+                    w2.max_rows . should_equal 1000
+                False ->
+                    r2.length . should_equal 1500
+                    Problems.assume_no_problems r2
+
+            # to_vector always downloads the whole column, even if its large
+            c1.to_vector.length . should_equal 1500
+
+            r3 = c1.read max_rows=10
+            r3.length . should_equal 10
+            Problems.expect_only_warning Not_All_Rows_Downloaded r3
+
+            r4 = c1.read max_rows=Nothing
+            r4.length . should_equal 1500
+            Problems.assume_no_problems r4
+
+            r5 = c1.read max_rows=3 warn_if_more_rows=False
+            r5.length . should_equal 3
+            Problems.assume_no_problems r5
+
+        if setup.is_database then Test.specify "should allow similar API on Connection.read" <|
+            connection = setup.connection
+            connection.query t_big.name . row_count . should_equal 1500
+
+            t1 = connection.read t_big.name
+            t1.row_count . should_equal 1000
+            w1 = Problems.expect_only_warning Not_All_Rows_Downloaded t1
+            w1.max_rows . should_equal 1000
+
+            t2 = connection.read t_big.name limit=42
+            t2.row_count . should_equal 42
+            w2 = Problems.expect_only_warning Not_All_Rows_Downloaded t2
+            w2.max_rows . should_equal 42
+
+            t3 = connection.read t_big.name limit=Nothing
+            t3.row_count . should_equal 1500
+            Problems.assume_no_problems t3
+
+            t4 = connection.read t_big.name warn_if_more_rows=False
+            t4.row_count . should_equal 1000
+            Problems.assume_no_problems t4
+
 # A set of potentially problematic column names.
 weird_names = ['whitespace and \t others', 'foo "the bar" baz', "a 'X' c", "emoji? 😎 yep", "😊💡🎉🌻", "Polskie znaki - np. ąęćśó", 'acce\u0301nt a\u0301cuté', 'SELECT \'A\',"B" FROM t;--', '"', "'", '”', 'one " quote', 'double "" quote', 'even \nnewlines could go here', 'and\r\nthat\rtoo', 'foo ” bar', 'foo ”the” bar', 'x”; --']

@@ -41,10 +41,12 @@ fn check_file(path: &str, mut code: &str) {
     }
     let ast = enso_parser::Parser::new().run(code);
     let expected_span = 0..(code.encode_utf16().count() as u32);
-    enso_parser_debug::validate_spans(&ast, expected_span);
+    let mut locations = enso_parser::source::code::debug::LocationCheck::new();
+    enso_parser_debug::validate_spans(&ast, expected_span, &mut locations);
     for (parsed, original) in ast.code().lines().zip(code.lines()) {
         assert_eq!(parsed, original, "Bug: dropped tokens, while parsing: {path}");
     }
+    locations.check(code);
     let s_expr = enso_parser_debug::to_s_expr(&ast, code);
     println!("{s_expr}");
 }

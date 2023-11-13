@@ -119,7 +119,9 @@ final class SerializationManager(private val context: TruffleCompilerContext) {
       module.getIr,
       module.getIr.duplicate(keepIdentifiers = true)
     )
-    duplicatedIr.preorder.foreach(_.passData.prepareForSerialization(compiler))
+    duplicatedIr.preorder.foreach(
+      _.passData.prepareForSerialization(compiler.context)
+    )
 
     val task = doSerializeModule(
       getCache(module),
@@ -211,7 +213,8 @@ final class SerializationManager(private val context: TruffleCompilerContext) {
               BindingAnalysis,
               "Non-parsed module used in ImportResolver"
             )
-            val abstractBindings = bindings.prepareForSerialization(compiler)
+            val abstractBindings =
+              bindings.prepareForSerialization(compiler.context)
             (module.getName, abstractBindings)
           }
           .toMap
@@ -410,7 +413,7 @@ final class SerializationManager(private val context: TruffleCompilerContext) {
         case Some(loadedCache) =>
           val relinkedIrChecks =
             loadedCache.moduleIR.preorder
-              .map(_.passData.restoreFromSerialization(compiler))
+              .map(_.passData.restoreFromSerialization(compiler.context))
           context.updateModule(
             module,
             { u =>

@@ -911,7 +911,7 @@ class ImportExportTest
       val baos   = new ByteArrayOutputStream()
       val stream = new ObjectOutputStream(baos)
       mainIr.preorder.foreach(
-        _.passData.prepareForSerialization(langCtx.getCompiler)
+        _.passData.prepareForSerialization(langCtx.getCompiler.context)
       )
       stream.writeObject(mainIr)
       baos.toByteArray should not be empty
@@ -943,7 +943,7 @@ class ImportExportTest
       val baos   = new ByteArrayOutputStream()
       val stream = new ObjectOutputStream(baos)
       mainIr.preorder.foreach(
-        _.passData.prepareForSerialization(langCtx.getCompiler)
+        _.passData.prepareForSerialization(langCtx.getCompiler.context)
       )
       stream.writeObject(mainIr)
       baos.toByteArray should not be empty
