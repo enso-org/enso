@@ -381,6 +381,11 @@ impl RunContext {
         // === Unit tests and Enso tests ===
         debug!("Running unit tests and Enso tests.");
         if self.config.test_scala {
+            // Make sure that `sbt buildEngineDistributionNoIndex` is run before `project-manager/test`
+            // Note that we do not have to run `buildEngineDistribution` (with indexing), because it is
+            // unnecessary.
+            sbt.call_arg("buildEngineDistributionNoIndex").await?;
+
             // Run unit tests
             sbt.call_arg("set Global / parallelExecution := false; test").await?;
         }
