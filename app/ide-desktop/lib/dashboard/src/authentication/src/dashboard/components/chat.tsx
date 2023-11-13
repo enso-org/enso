@@ -264,10 +264,10 @@ function ChatHeader(props: InternalChatHeaderProps) {
             setIsThreadListVisible(false)
         }
         document.addEventListener('click', onClick)
-        gtag.gtag('event', 'cloud_open_chat')
+        gtag.event('cloud_open_chat')
         return () => {
             document.removeEventListener('click', onClick)
-            gtag.gtag('event', 'cloud_close_chat')
+            gtag.event('cloud_close_chat')
         }
     }, [])
 
