@@ -295,7 +295,7 @@ make_internal_generator_dialect =
     stddev_pop = ["STDDEV_POP", Base_Generator.make_function "stddev_pop"]
     stddev_samp = ["STDDEV_SAMP", Base_Generator.make_function "stddev_samp"]
     stats = [agg_median, agg_mode, agg_percentile, stddev_pop, stddev_samp]
-    date_ops = [make_extract_as_int "year", make_extract_as_int "quarter", make_extract_as_int "month", make_extract_as_int "week", make_extract_as_int "day", make_extract_as_int "hour", make_extract_as_int "minute", make_extract_fractional_as_int "second", make_extract_fractional_as_int "millisecond" modulus=1000, make_extract_fractional_as_int "microsecond" modulus=1000, ["date_add", make_date_add], ["date_diff", make_date_diff]]
+    date_ops = [make_extract_as_int "year", make_extract_as_int "quarter", make_extract_as_int "month", make_extract_as_int "week", make_extract_as_int "day", make_extract_as_int "hour", make_extract_as_int "minute", make_extract_fractional_as_int "second", make_extract_fractional_as_int "millisecond" modulus=1000, make_extract_fractional_as_int "microsecond" modulus=1000, ["date_add", make_date_add], ["date_diff", make_date_diff], ["date_trunc_to_day", make_date_trunc_to_day]]
     special_overrides = [is_null, is_empty]
     other = [["RUNTIME_ERROR", make_runtime_error_op]]
     my_mappings = text + counts + stats + first_last_aggregators + arith_extensions + bool + date_ops + special_overrides + other
@@ -715,6 +715,11 @@ make_date_diff arguments (metadata : Date_Period_Metadata) =
                 micros = Builder.code "EXTRACT(MICROSECONDS FROM (" ++ end ++ " - " ++ start ++ "))"
                 as_int64 <|
                     ((extract_seconds ++ " * 1000000").paren ++ " + " ++ (micros ++ " % 1000000").paren).paren
+
+make_date_trunc_to_day arguments =
+    if arguments.length != 1 then Error.throw (Illegal_State.Error "date_trunc_to_day expects exactly one sub expression. This is a bug in Database library.") else
+        expr = arguments.at 0
+        Builder.code "(DATE_TRUNC('day'," ++ expr ++ ") :: DATE)"
 
 ## PRIVATE
    Alters the expression casting the value to a 64-bit integer.

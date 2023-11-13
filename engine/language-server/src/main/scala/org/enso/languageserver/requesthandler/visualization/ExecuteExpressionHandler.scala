@@ -40,9 +40,10 @@ class ExecuteExpressionHandler(
         ) =>
       contextRegistry ! ContextRegistryProtocol.ExecuteExpression(
         clientId,
+        params.executionContextId,
         params.visualizationId,
         params.expressionId,
-        params.visualizationConfig
+        params.expression
       )
       val cancellable =
         context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)

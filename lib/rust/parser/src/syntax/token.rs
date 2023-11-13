@@ -137,8 +137,7 @@ impl<'s, T> Token<'s, T> {
     #[inline(always)]
     pub fn split_at(self, split: code::Length) -> (Token<'s, ()>, Token<'s, ()>) {
         let left_lexeme_offset = self.left_offset;
-        let right_lexeme_offset =
-            Code::empty(self.code.position_before().range_utf16().end + split.utf16_len());
+        let right_lexeme_offset = Code::empty(self.code.position_before().range().end + split);
         let (left_code, right_code) = self.code.split_at(split);
         let left = Token(left_lexeme_offset, left_code, ());
         let right = Token(right_lexeme_offset, right_code, ());
@@ -170,7 +169,7 @@ impl<'s, V: Clone> Token<'s, V> {
     pub fn without_offsets(&self) -> Self {
         Self {
             left_offset: self.left_offset.without_offset(),
-            code:        self.code.without_offset(),
+            code:        self.code.without_location(),
             variant:     self.variant.clone(),
         }
     }

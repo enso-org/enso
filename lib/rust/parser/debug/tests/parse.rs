@@ -484,6 +484,13 @@ fn dot_operator_blocks() {
 fn code_block_argument_list() {
     #[rustfmt::skip]
     let code = [
+        "foo",
+        "    bar",
+    ];
+    test!(&code.join("\n"), (ArgumentBlockApplication (Ident foo) #((Ident bar))));
+
+    #[rustfmt::skip]
+    let code = [
         "value = foo",
         "    bar",
     ];
@@ -491,7 +498,6 @@ fn code_block_argument_list() {
         (Assignment (Ident value) "=" (ArgumentBlockApplication (Ident foo) #((Ident bar))))
     ];
     test(&code.join("\n"), expect);
-
 
     #[rustfmt::skip]
     let code = [
@@ -1012,28 +1018,19 @@ x"#;
 
 #[test]
 fn interpolated_literals_in_inline_text() {
-    #[rustfmt::skip]
-    let cases = [
-        (r#"'Simple case.'"#, block![(TextLiteral #((Section "Simple case.")))]),
-        (r#"'With a `splice`.'"#, block![(TextLiteral
-            #((Section "With a ")
-              (Splice (Ident splice))
-              (Section ".")))]),
-        (r#"'` SpliceWithLeadingWhitespace`'"#, block![(TextLiteral
-            #((Splice (Ident SpliceWithLeadingWhitespace))))]),
-        (r#"'String with \n escape'"#, block![
-            (TextLiteral
-             #((Section "String with ") (Escape '\n') (Section " escape")))]),
-        (r#"'\x0Aescape'"#, block![
-            (TextLiteral #((Escape '\n') (Section "escape")))]),
-        (r#"'\u000Aescape'"#, block![
-            (TextLiteral #((Escape '\n') (Section "escape")))]),
-        (r#"'\u{0000A}escape'"#, block![
-            (TextLiteral #((Escape '\n') (Section "escape")))]),
-        (r#"'\U0000000Aescape'"#, block![
-            (TextLiteral #((Escape '\n') (Section "escape")))]),
-    ];
-    cases.into_iter().for_each(|(code, expected)| test(code, expected));
+    test!(r#"'Simple case.'"#, (TextLiteral #((Section "Simple case."))));
+    test!(r#"'With a `splice`.'"#, (TextLiteral
+        #((Section "With a ")
+          (Splice (Ident splice))
+          (Section "."))));
+    test!(r#"'` SpliceWithLeadingWhitespace`'"#,
+        (TextLiteral #((Splice (Ident SpliceWithLeadingWhitespace)))));
+    test!(r#"'String with \n escape'"#,
+        (TextLiteral #((Section "String with ") (Escape '\n') (Section " escape"))));
+    test!(r#"'\x0Aescape'"#, (TextLiteral #((Escape '\n') (Section "escape"))));
+    test!(r#"'\u000Aescape'"#, (TextLiteral #((Escape '\n') (Section "escape"))));
+    test!(r#"'\u{0000A}escape'"#, (TextLiteral #((Escape '\n') (Section "escape"))));
+    test!(r#"'\U0000000Aescape'"#, (TextLiteral #((Escape '\n') (Section "escape"))));
 }
 
 #[test]
@@ -1580,7 +1577,9 @@ fn test(code: &str, expect: lexpr::Value) {
 fn parse(code: &str) -> enso_parser::syntax::tree::Tree {
     let ast = enso_parser::Parser::new().run(code);
     let expected_span = 0..(code.encode_utf16().count() as u32);
-    enso_parser_debug::validate_spans(&ast, expected_span);
+    let mut locations = enso_parser::source::code::debug::LocationCheck::new();
+    enso_parser_debug::validate_spans(&ast, expected_span, &mut locations);
+    locations.check(code);
     ast
 }
 

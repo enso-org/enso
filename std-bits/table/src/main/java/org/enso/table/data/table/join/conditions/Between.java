@@ -1,4 +1,4 @@
-package org.enso.table.data.table.join;
+package org.enso.table.data.table.join.conditions;
 
 import org.enso.table.data.table.Column;
 

@@ -68,10 +68,10 @@ polyglot java import org.enso.base.ObjectComparator
 polyglot java import org.enso.table.data.index.MultiValueIndex
 polyglot java import org.enso.table.data.mask.OrderMask
 polyglot java import org.enso.table.data.table.Column as Java_Column
-polyglot java import org.enso.table.data.table.join.Between as Java_Join_Between
-polyglot java import org.enso.table.data.table.join.Equals as Java_Join_Equals
-polyglot java import org.enso.table.data.table.join.EqualsIgnoreCase as Java_Join_Equals_Ignore_Case
-polyglot java import org.enso.table.data.table.join.LookupJoin
+polyglot java import org.enso.table.data.table.join.conditions.Between as Java_Join_Between
+polyglot java import org.enso.table.data.table.join.conditions.Equals as Java_Join_Equals
+polyglot java import org.enso.table.data.table.join.conditions.EqualsIgnoreCase as Java_Join_Equals_Ignore_Case
+polyglot java import org.enso.table.data.table.join.lookup.LookupJoin
 polyglot java import org.enso.table.data.table.Table as Java_Table
 polyglot java import org.enso.table.error.TooManyColumnsException
 polyglot java import org.enso.table.error.NullValuesInKeyColumns
@@ -1570,7 +1570,7 @@ type Table
                  table.set "2 * [total_stock]" new_name="total_stock_expr"
     @column Column_Operation.default_widget
     set : Text | Column -> Text -> Set_Mode -> Problem_Behavior -> Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error
-    set self column:(Text | Column | Constant_Column | Column_Operation) new_name="" set_mode=Set_Mode.Add_Or_Update on_problems=Report_Warning =
+    set self column:(Text | Column | Constant_Column | Column_Operation) (new_name : Text = "") (set_mode : Set_Mode = Set_Mode.Add_Or_Update) (on_problems : Problem_Behavior = Report_Warning) =
         problem_builder = Problem_Builder.new
         unique = self.column_naming_helper.create_unique_name_strategy
         unique.mark_used self.column_names
@@ -1582,15 +1582,12 @@ type Table
             _ : Column_Operation -> column.evaluate self (set_mode==Set_Mode.Update && new_name=="") on_problems
             _ -> Error.throw (Illegal_Argument.Error "Unsupported type for `Table.set`.")
 
-        name_is_generated column = case column of
-            _ : Column -> False
-            _ -> True
-
         ## If `new_name` was specified, use that. Otherwise, if `column` is a
            `Column`, use its name. In these two cases, do not make it unique.
-           Otherwise, make it unique.
+           Otherwise, make it unique. If set_mode is Update, however, do not
+           make it unique.
         new_column_name = if new_name != "" then new_name else
-            if name_is_generated column then unique.make_unique resolved.name else resolved.name
+            if column.is_a Column || set_mode==Set_Mode.Update || set_mode==Set_Mode.Add_Or_Update then resolved.name else unique.make_unique resolved.name
         renamed = resolved.rename new_column_name
         renamed.if_not_error <| self.column_naming_helper.check_ambiguity self.column_names renamed.name <|
             check_add_mode = case set_mode of
@@ -1644,7 +1641,7 @@ type Table
     make_constant_column : Any -> Column
     make_constant_column self value =
         if Table_Helpers.is_column value then Error.throw (Illegal_Argument.Error "A constant value may only be created from a scalar, not a Column") else
-            Column.from_vector_repeated value.pretty [value] self.row_count
+            Column.from_repeated_item value.pretty value self.row_count
 
     ## PRIVATE
        Create a unique temporary column name.

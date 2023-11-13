@@ -4,7 +4,6 @@ import akka.event.EventStream
 import org.enso.jsonrpc.ProtocolFactory
 import org.enso.languageserver.boot.resource.{
   AsyncResourcesInitialization,
-  BlockingInitialization,
   DirectoriesInitialization,
   InitializationComponent,
   JsonRpcInitialization,
@@ -45,24 +44,21 @@ object ResourcesInitialization {
     truffleContext: Context,
     runtime: effect.Runtime
   )(implicit ec: ExecutionContextExecutor): InitializationComponent = {
-    new BlockingInitialization(
-      new SequentialResourcesInitialization(
-        ec,
-        new DirectoriesInitialization(ec, directoriesConfig),
-        new AsyncResourcesInitialization(
-          new JsonRpcInitialization(ec, protocolFactory),
-          new ZioRuntimeInitialization(ec, runtime, eventStream),
-          new RepoInitialization(
-            ec,
-            directoriesConfig,
-            eventStream,
-            sqlDatabase,
-            suggestionsRepo
-          ),
-          new TruffleContextInitialization(ec, truffleContext, eventStream)
-        )
-      ),
-      ec
+    new SequentialResourcesInitialization(
+      ec,
+      new DirectoriesInitialization(ec, directoriesConfig),
+      new AsyncResourcesInitialization(
+        new JsonRpcInitialization(ec, protocolFactory),
+        new ZioRuntimeInitialization(ec, runtime, eventStream),
+        new RepoInitialization(
+          ec,
+          directoriesConfig,
+          eventStream,
+          sqlDatabase,
+          suggestionsRepo
+        ),
+        new TruffleContextInitialization(ec, truffleContext, eventStream)
+      )
     )
   }
 }
