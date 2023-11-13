@@ -303,8 +303,10 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
       .resolve("component")
     val root = locateRootDirectory().toPath.normalize()
     // Copy all the components from build engine distribution.
+    val envMap = System.getenv()
+    val versionEnv = envMap.getOrDefault("ENSO_VERSION", "0.0.0-dev")
     val builtDistributionDir = root.resolve(
-      "built-distribution/enso-engine-0.0.0-dev-linux-amd64/enso-0.0.0-dev"
+      s"built-distribution/enso-engine-$versionEnv-$os-$arch/enso-$versionEnv"
     )
     if (!builtDistributionDir.toFile.exists()) {
       throw new AssertionError(
