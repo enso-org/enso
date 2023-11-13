@@ -24,3 +24,6 @@ gtag('set', 'linker', { accept_incoming: true })
 // @ts-expect-error This signature is intentionally omitted as "event" calls should be the only
 // calls allowed.
 gtag('config', 'G-CLTBJ37MDM')
+// @ts-expect-error This signature is intentionally omitted as "event" calls should be the only
+// calls allowed.
+gtag('config', 'G-DH47F649JC')
