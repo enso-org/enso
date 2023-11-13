@@ -17,7 +17,7 @@ crate-type = ["rlib", "cdylib"]
 
 [dependencies]
 enso-prelude = { path = "../prelude" }
-serde = { version = "1.0", features = ["derive"] }
+serde = { workspace = true }
 typenum = { version = "1.11.2" }
 rustversion = { version = "1.0" }
 failure = { workspace = true }

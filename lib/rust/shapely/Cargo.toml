@@ -21,9 +21,6 @@ default = []
 [dependencies]
 enso-zst = { path = "../zst" }
 enso-shapely-macros = { path = "macros" }
-paste = { workspace = true }
-derivative = { workspace = true }
-rustversion = { version = "1.0" }
 wasm-bindgen = { workspace = true }
 
 [dependencies.web-sys]

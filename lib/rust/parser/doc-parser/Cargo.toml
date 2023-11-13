@@ -14,7 +14,7 @@ enso-parser = { path = ".." }
 enso-prelude = { path = "../../prelude" }
 enso-profiler = { path = "../../profiler" }
 enso-reflect = { path = "../../reflect" }
-serde = { version = "1.0", features = ["derive"] }
+serde = { workspace = true }
 
 [dev-dependencies]
 enso-metamodel = { path = "../../metamodel", features = ["rust"] }

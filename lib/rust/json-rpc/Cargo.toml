@@ -15,5 +15,5 @@ enso-profiler-data = { path = "../profiler/data" }
 enso-profiler = { path = "../profiler" }
 futures = { version = "0.3.1" }
 failure = { workspace = true }
-serde = { version = "1.0.0", features = ["derive"] }
+serde = { workspace = true }
 serde_json = { workspace = true }

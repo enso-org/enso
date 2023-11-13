@@ -18,5 +18,5 @@ default = []
 
 [dependencies]
 bytemuck = { workspace = true }
-serde = { version = "1.0.126", features = ["derive", "rc"] }
+serde = { workspace = true }
 paste = { workspace = true }

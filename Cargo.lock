@@ -2287,12 +2287,9 @@ dependencies = [
 name = "enso-shapely"
 version = "0.2.0"
 dependencies = [
- "derivative",
  "enso-prelude",
  "enso-shapely-macros",
  "enso-zst",
- "paste",
- "rustversion",
  "wasm-bindgen",
  "wasm-bindgen-test",
  "web-sys",
@@ -2310,7 +2307,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 1.0.107",
- "wasm-bindgen-test",
 ]
 
 [[package]]
@@ -2979,16 +2975,12 @@ dependencies = [
 name = "ensogl-pack"
 version = "0.1.0"
 dependencies = [
- "enso-bitmap",
  "enso-prelude",
- "fs_extra",
  "futures",
  "ide-ci",
  "manifest-dir-macros",
- "regex",
  "serde",
  "serde_json",
- "tempfile",
  "tokio",
  "walkdir",
 ]

@@ -12,5 +12,5 @@ enso-metamodel = { path = "../" }
 derivative = { workspace = true }
 
 [dev-dependencies]
-serde = { version = "1", features = ["derive"] }
+serde = { workspace = true }
 enso-reflect = { path = "../../reflect" }

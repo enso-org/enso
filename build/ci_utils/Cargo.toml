@@ -44,11 +44,9 @@ path-slash = "0.2.1"
 platforms = { workspace = true }
 rand = "0.8.4"
 regex = { workspace = true }
-reqwest = { version = "0.11.5", default-features = false, features = [
-  "stream",
-] }
+reqwest = { workspace = true }
 semver = { workspace = true }
-serde = { version = "1.0.130", features = ["derive"] }
+serde = { workspace = true }
 serde_json = { workspace = true }
 serde_yaml = { workspace = true }
 sha2 = "0.10.2"

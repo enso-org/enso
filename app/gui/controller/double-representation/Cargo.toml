@@ -18,7 +18,7 @@ enso-text = { path = "../../../../lib/rust/text" }
 const_format = { workspace = true }
 failure = { workspace = true }
 itertools = { workspace = true }
-serde = { version = "1.0", features = ["derive"] }
+serde = { workspace = true }
 uuid = { version = "0.8", features = ["serde", "v4", "wasm-bindgen"] }
 
 [dev-dependencies]
