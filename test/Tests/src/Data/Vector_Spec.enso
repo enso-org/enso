@@ -803,8 +803,9 @@ type_spec name alter = Test.group name <|
     Test.group "error within map (on_problems=Report_Error)asdfasdf" <|
         fun a = if a == 30 then Error.throw (My_Error.Value a) else a+1
 
-        Test.specify "an error thrown inside map should fail a test as a My_Error" <|
+        Test.specify "an error thrown inside map should fail a test as both a My_Error and a Map_Error" <|
             alter [10, 20, 30, 40] . map fun . should_fail_with My_Error
+            alter [10, 20, 30, 40] . map fun . should_fail_with (Map_Error 2 (My_Error 30))
 
         Test.specify "an error thrown inside map and caught (without error parameter) should be wrapped in Map_Error" <|
             alter [10, 20, 30, 40] . map fun . catch . should_equal (Map_Error.Error 2 (My_Error.Value 30))
