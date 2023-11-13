@@ -211,17 +211,17 @@ class RuntimeVersionManagerSpec
 
     "include both bundled and installed components in list" in {
       prepareBundle(
-        engineVersion  = SemVer(0, 0, 1),
+        engineVersion  = SemVer(0, 0, 0),
         runtimeVersion = GraalVMVersion("1.0.0", "11")
       )
       val manager = makeRuntimeVersionManager()
-      manager.findOrInstallEngine(SemVer(0, 1, 0))
+      manager.findOrInstallEngine(SemVer(0, 0, 1).withPreRelease("pre"))
 
       manager
         .listInstalledEngines()
         .map(_.version) should contain theSameElementsAs Seq(
-        SemVer(0, 0, 1),
-        SemVer(0, 1, 0)
+        SemVer(0, 0, 0),
+        SemVer(0, 0, 1).withPreRelease("pre")
       )
 
       val runtimeVersions = manager.listInstalledGraalRuntimes().map(_.version)
