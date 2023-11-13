@@ -32,12 +32,12 @@ async function bundle() {
         })
         opts.entryPoints.push(
             path.resolve(THIS_PATH, 'src', 'index.html'),
-            path.resolve(THIS_PATH, 'src', '404.html'),
             path.resolve(THIS_PATH, 'src', 'index.ts')
         )
         opts.metafile = ANALYZE
         opts.loader['.html'] = 'copy'
         const result = await esbuild.build(opts)
+        await fs.copyFile('build/index.html', 'build/404.html')
         if (result.metafile) {
             console.log(await esbuild.analyzeMetafile(result.metafile))
         }
