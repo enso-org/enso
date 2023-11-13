@@ -5,6 +5,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.UUID;
+
+import org.enso.compiler.core.CompilerStub;
 import org.enso.compiler.core.Persistance;
 import org.enso.compiler.core.ir.expression.Application;
 import org.enso.compiler.core.ir.expression.Case;
@@ -469,7 +471,18 @@ public final class IrPersistance {
         var obj = (Tuple2<String, ProcessingPass.Metadata>) it.next();
         try {
           var pass = (ProcessingPass) Class.forName(obj._1()).getField("MODULE$").get(null);
-          storage.update(pass, obj._2());
+          var data = obj._2();
+          if (in.lookup(CompilerStub.class) instanceof CompilerStub stub) {
+            var restored = data.restoreFromSerialization(stub);
+            if (restored.isEmpty()) {
+              throw new IOException("Cannot convert " + data + " during deserialization");
+            } else {
+              data = restored.get();
+            }
+          } else {
+            throw new IOException("No CompilerContext registered for deserialization");
+          }
+          storage.update(pass, data);
         } catch (ReflectiveOperationException ex) {
           throw new IOException(ex);
         }

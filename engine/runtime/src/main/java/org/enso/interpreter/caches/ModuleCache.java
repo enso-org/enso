@@ -48,7 +48,7 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
 
     @Override
     protected CachedModule deserialize(EnsoContext context, byte[] data, Metadata meta, TruffleLogger logger) throws ClassNotFoundException, IOException, ClassNotFoundException {
-      var ref = Persistance.readObject(data);
+      var ref = Persistance.readObject(data, context.getCompiler().context());
       var mod = ref.get(Module.class);
       return new CachedModule(mod, CompilationStage.valueOf(meta.compilationStage()), module.getSource());
     }

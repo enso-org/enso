@@ -404,6 +404,7 @@ final class SerializationManager(private val context: TruffleCompilerContext) {
     compiler: Compiler,
     module: Module
   ): Option[Boolean] = {
+    compiler.getClass()
     if (isWaitingForSerialization(module)) {
       abort(module)
       None
@@ -414,9 +415,6 @@ final class SerializationManager(private val context: TruffleCompilerContext) {
 
       context.loadCache(getCache(module)).toScala match {
         case Some(loadedCache) =>
-          val relinkedIrChecks =
-            loadedCache.moduleIR.preorder
-              .map(_.passData.restoreFromSerialization(compiler.context))
           context.updateModule(
             module,
             { u =>
@@ -431,24 +429,7 @@ final class SerializationManager(private val context: TruffleCompilerContext) {
             module.getName,
             loadedCache.compilationStage
           )
-
-          if (!relinkedIrChecks.contains(false)) {
-            context.updateModule(module, _.hasCrossModuleLinks(true))
-            context.logSerializationManager(
-              debugLogLevel,
-              "Restored links (early phase) in module [{0}].",
-              module.getName
-            )
-            Some(true)
-          } else {
-            context.logSerializationManager(
-              debugLogLevel,
-              "Could not restore links (early phase) in module [{0}].",
-              module.getName
-            )
-            context.updateModule(module, _.hasCrossModuleLinks(false))
-            Some(false)
-          }
+          Some(true)
         case None =>
           context.logSerializationManager(
             debugLogLevel,
