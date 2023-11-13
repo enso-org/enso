@@ -2,6 +2,10 @@
 import { codeEditorBindings, graphBindings, interactionBindings } from '@/bindings'
 import CodeEditor from '@/components/CodeEditor.vue'
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
+import {
+  mouseDictatedPlacement,
+  type Environment,
+} from '@/components/ComponentBrowser/placement.ts'
 import { Uploader, uploadedExpression } from '@/components/GraphEditor/upload'
 import TopBar from '@/components/TopBar.vue'
 import { provideGraphNavigator } from '@/providers/graphNavigator'
@@ -13,6 +17,7 @@ import { useProjectStore } from '@/stores/project'
 import { groupColorVar, useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { colorFromString } from '@/util/colors'
 import { keyboardBusy, keyboardBusyExceptIn, useEvent } from '@/util/events'
+import type { Rect } from '@/util/rect.ts'
 import { Vec2 } from '@/util/vec2'
 import * as set from 'lib0/set'
 import type { ExprId } from 'shared/yjsModel.ts'
@@ -64,8 +69,7 @@ const graphBindingsHandler = graphBindings.handler({
     if (keyboardBusy()) return false
     if (navigator.sceneMousePos != null && !componentBrowserVisible.value) {
       componentBrowserPosition.value = navigator.sceneMousePos
-      componentBrowserVisible.value = true
-      componentBrowserInputContent.value = ''
+      interaction.setCurrent(new CreatingNode())
     }
   },
   newNode() {
@@ -148,6 +152,47 @@ const editingNode: Interaction = {
 }
 interaction.setWhen(componentBrowserVisible, editingNode)
 
+const placementEnvironment = computed(() => {
+  const mousePosition = navigator.sceneMousePos ?? Vec2.Zero
+  const nodeRects = [...graphStore.nodeRects.values()]
+  const selectedNodesIter = nodeSelection.selected.values()
+  const selectedNodeRects: Iterable<Rect> = [...selectedNodesIter]
+    .map((id) => graphStore.nodeRects.get(id))
+    .filter((item): item is Rect => item !== undefined)
+  const screenBounds = navigator.viewport
+  const environment: Environment = { mousePosition, nodeRects, selectedNodeRects, screenBounds }
+  return environment
+})
+
+/// Interaction to create a new node. This will create a temporary node and open the component browser.
+/// If the interaction is cancelled, the temporary node will be deleted, otherwise it will be kept.
+class CreatingNode implements Interaction {
+  nodeId: ExprId
+  // Start a node creation interaction. This will create a new node and open the component browser.
+  // For more information about the flow of the interaction, see `CreatingNode`.
+  constructor() {
+    // We create a temporary node to show the component browser on. This node will be deleted if
+    // the interaction is cancelled. It can later on be used to have a preview of the node as it is
+    // being created.
+    const nodeHeight = 32
+    const targetPosition = mouseDictatedPlacement(
+      Vec2.FromArr([0, nodeHeight]),
+      placementEnvironment.value,
+    )
+    const nodeId = graphStore.createNode(targetPosition.position, '')
+    if (nodeId == null) {
+      throw new Error('CreatingNode: Failed to create node.')
+    }
+    this.nodeId = nodeId
+    // From here on we just edit the temporary node.
+    graphStore.editedNodeInfo = { id: nodeId, range: [0, 0] }
+  }
+  cancel() {
+    // Aborting node creation means we no longer need the temporary node.
+    graphStore.deleteNode(this.nodeId)
+  }
+}
+
 async function handleFileDrop(event: DragEvent) {
   try {
     if (event.dataTransfer && event.dataTransfer.items) {
@@ -174,7 +219,7 @@ async function handleFileDrop(event: DragEvent) {
   }
 }
 
-function onComponentBrowserFinished(content: string) {
+function onComponentBrowserCommit(content: string) {
   if (content != null && graphStore.editedNodeInfo != null) {
     graphStore.setNodeContent(graphStore.editedNodeInfo.id, content)
   }
@@ -182,6 +227,9 @@ function onComponentBrowserFinished(content: string) {
   graphStore.editedNodeInfo = undefined
 }
 
+/**
+ *
+ */
 function getNodeContent(id: ExprId): string {
   const node = graphStore.db.nodes.get(id)
   if (node == null) return ''
@@ -240,7 +288,7 @@ const breadcrumbs = computed(() => {
       ref="componentBrowser"
       :navigator="navigator"
       :position="componentBrowserPosition"
-      @finished="onComponentBrowserFinished"
+      @finished="onComponentBrowserCommit"
       :initialContent="componentBrowserInputContent"
       :initialCaretPosition="graphStore.editedNodeInfo?.range ?? [0, 0]"
     />

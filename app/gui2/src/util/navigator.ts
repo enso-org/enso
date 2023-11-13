@@ -147,5 +147,6 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
     sceneMousePos,
     clientToScenePos,
     clientToSceneRect,
+    viewport,
   })
 }
