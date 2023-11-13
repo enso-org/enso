@@ -117,7 +117,7 @@ object IRPass {
   trait IRMetadata extends ProcessingPass.Metadata {
 
     type Metadata = IRMetadata
-    type Compiler = org.enso.compiler.Compiler
+    type Compiler = org.enso.compiler.context.CompilerContext
 
     /** The name of the metadata as a string. */
     val metadataName: String

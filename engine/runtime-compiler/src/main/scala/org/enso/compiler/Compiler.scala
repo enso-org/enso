@@ -9,7 +9,6 @@ import org.enso.compiler.context.{
 }
 import org.enso.compiler.context.CompilerContext.Module
 import org.enso.compiler.core.CompilerError
-import org.enso.compiler.core.CompilerStub
 import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.{
   Diagnostic,
@@ -61,7 +60,7 @@ class Compiler(
   val context: CompilerContext,
   val packageRepository: PackageRepository,
   config: CompilerConfig
-) extends CompilerStub {
+) {
   private val freshNameSupply: FreshNameSupply = new FreshNameSupply
   private val passes: Passes                   = new Passes(config)
   private val passManager: PassManager         = passes.passManager
@@ -296,7 +295,7 @@ class Compiler(
             context
               .getIr(module)
               .preorder
-              .map(_.passData.restoreFromSerialization(this))
+              .map(_.passData.restoreFromSerialization(this.context))
 
           if (!flags.contains(false)) {
             context.log(
