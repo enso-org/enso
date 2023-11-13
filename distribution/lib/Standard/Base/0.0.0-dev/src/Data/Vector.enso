@@ -597,43 +597,16 @@ type Vector a
                         Problem_Behavior.Ignore ->
                             Nothing
                         Problem_Behavior.Report_Error ->
-                            Error.throw (Map_Error.Error i result.catch)
+                            Error.throw (Map_Error.Error i result.catch_primitive)
                         Problem_Behavior.Report_Warning ->
                             with_error_maybe = if num_errors.get >= max_warnings then Nothing else
-                                Warning.attach (Map_Error.Error i result.catch) Nothing
+                                Warning.attach (Map_Error.Error i result.catch_primitive) Nothing
                             num_errors.modify (_+1)
                             with_error_maybe
         results = Vector.new self.length i-> wrapped_function i
         if num_errors.get <= max_warnings then results else
             err = Additional_Warnings.Error num_errors.get-max_warnings
             Warning.attach err results
-
-        ##
-            max_warnings = 10
-            attach_additional_warnings results count =
-                if count <= max_warnings then results else
-                    warning = Additional_Warnings.Error count-max_warnings
-                    Warning.attach warning results
-
-            go i sofar warnings_sofar =
-                if i == self.length then attach_additional_warnings sofar warnings_sofar else
-                    value = self.at i
-                    result = function value
-                    case result.is_error of
-                        False ->
-                            go i+1 sofar+[result] warnings_sofar
-                        True ->
-                            case on_problems of
-                                Problem_Behavior.Ignore ->
-                                    go i+1 sofar+[Nothing] warnings_sofar
-                                Problem_Behavior.Report_Error ->
-                                    wrapped = Map_Error.Error i result.catch
-                                    Error.throw wrapped
-                                Problem_Behavior.Report_Warning ->
-                                    with_warning_maybe = if warnings_sofar >= max_warnings then Nothing else
-                                        Warning.attach result.catch Nothing
-                                    go i+1 sofar+[with_warning_maybe] warnings_sofar+1
-            go 0 [] 0
 
     ## Applies a function to each element of the vector, returning the `Vector`
        that contains all results concatenated.
