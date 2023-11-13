@@ -1164,7 +1164,7 @@ lazy val `polyglot-api` = project
     Test / fork := true,
     commands += WithDebugCommand.withDebug,
     Test / envVars ++= distributionEnvironmentOverrides,
-    Test / javaOptions ++= testLogProviderOptions ++ Seq(
+    Test / javaOptions ++= Seq(
       "-Dpolyglot.engine.WarnInterpreterOnly=false",
       "-Dpolyglotimpl.DisableClassPathIsolation=true"
     ),
