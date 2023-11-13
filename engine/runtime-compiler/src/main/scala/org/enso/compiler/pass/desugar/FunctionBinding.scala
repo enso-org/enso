@@ -158,9 +158,9 @@ case object FunctionBinding extends IRPass {
               new Function.Lambda(List(arg), body, None)
             )
 
-          definition.Method.Explicit(
+          new definition.Method.Explicit(
             methRef,
-            List(newBody),
+            newBody,
             loc,
             passData,
             diagnostics

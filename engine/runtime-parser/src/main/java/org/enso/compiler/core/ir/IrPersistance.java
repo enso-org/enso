@@ -671,6 +671,8 @@ public final class IrPersistance {
     protected void writeObject(Method.Explicit obj, Output out) throws IOException {
       out.writeInline(Name.MethodReference.class, obj.methodReference());
       out.writeInline(Seq.class, obj.bodyList());
+      out.writeBoolean(obj.isStatic());
+      out.writeBoolean(obj.isStaticWrapperForInstanceMethod());
       out.writeInline(Option.class, obj.location());
       out.writeInline(MetadataStorage.class, obj.passData());
       out.writeInline(DiagnosticStorage.class, obj.diagnostics());
@@ -681,10 +683,12 @@ public final class IrPersistance {
     protected Method.Explicit readObject(Input in) throws IOException, ClassNotFoundException {
       var ref = in.readInline(Name.MethodReference.class);
       var bodyList = in.readInline(Seq.class);
+      var isStatic = in.readBoolean();
+      var isStaticWrapperForInstanceMethod = in.readBoolean();
       var location = in.readInline(Option.class);
       var meta = in.readInline(MetadataStorage.class);
       var diag = in.readInline(DiagnosticStorage.class);
-      return new Method.Explicit(ref, bodyList, location, meta, diag);
+      return new Method.Explicit(ref, bodyList, isStatic, isStaticWrapperForInstanceMethod, location, meta, diag);
     }
   }
 
