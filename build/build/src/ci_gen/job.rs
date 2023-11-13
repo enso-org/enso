@@ -15,6 +15,15 @@ use ide_ci::actions::workflow::definition::Strategy;
 
 
 
+/// This should be kept as recent as possible.
+///
+/// macOS must use a recent version of Electron Builder to have Python 3 support. Otherwise, build
+/// would fail due to Python 2 missing.
+///
+/// We keep old versions of Electron Builder for Windows to avoid NSIS installer bug:
+/// https://github.com/electron-userland/electron-builder/issues/6865
+const ELECTRON_BUILDER_MACOS_VERSION: Version = Version::new(24, 6, 4);
+
 pub trait RunsOn {
     fn strategy(&self) -> Option<Strategy> {
         None
@@ -242,6 +251,23 @@ pub fn expose_os_specific_signing_secret(os: OS, step: Step) -> Step {
     }
 }
 
+/// The command that bumps the version of the Electron-Builder to
+/// [`ELECTRON_BUILDER_MACOS_VERSION`].
+pub fn bump_electron_builder() -> Step {
+    // e.g. ` npm install electron-builder@24.6.4`
+    let command = format!("npm install electron-builder@{ELECTRON_BUILDER_MACOS_VERSION}");
+    Step { run: Some(command), ..default() }.with_name("Bump Electron Builder (macOS workaround)")
+}
+
+pub fn prepare_packaging_steps(os: OS, step: Step) -> Vec<Step> {
+    let mut steps = Vec::new();
+    if os == OS::MacOS {
+        steps.push(bump_electron_builder());
+    }
+    steps.push(expose_os_specific_signing_secret(os, step));
+    steps
+}
+
 #[derive(Clone, Copy, Debug)]
 pub struct PackageOldIde;
 impl JobArchetype for PackageOldIde {
@@ -250,7 +276,7 @@ impl JobArchetype for PackageOldIde {
             &os,
             "Package Old IDE",
             "ide build --wasm-source current-ci-run --backend-source current-ci-run",
-            |step| vec![expose_os_specific_signing_secret(os, step)],
+            |step| prepare_packaging_steps(os, step),
         )
     }
 }
@@ -263,7 +289,7 @@ impl JobArchetype for PackageNewIde {
             &os,
             "Package New IDE",
             "ide2 build --backend-source current-ci-run --gui2-upload-artifact false",
-            |step| vec![expose_os_specific_signing_secret(os, step)],
+            |step| prepare_packaging_steps(os, step),
         )
     }
 }
