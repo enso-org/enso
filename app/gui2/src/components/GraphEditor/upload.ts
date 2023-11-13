@@ -7,6 +7,7 @@ import type { DataServer } from 'shared/dataServer'
 import type { LanguageServer } from 'shared/languageServer'
 import { ErrorCode, RemoteRpcError } from 'shared/languageServer'
 import type { ContentRoot, Path, StackItem, Uuid } from 'shared/languageServerTypes'
+import { markRaw, toRaw } from 'vue'
 
 // === Constants ===
 
@@ -43,7 +44,7 @@ export class Uploader {
     this.checksum = SHA3.create()
     this.uploadedBytes = BigInt(0)
     this.position = position
-    this.stackItem = stackItem
+    this.stackItem = markRaw(toRaw(stackItem))
   }
 
   static async Create(

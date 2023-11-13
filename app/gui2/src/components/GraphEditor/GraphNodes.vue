@@ -7,8 +7,9 @@ import type { UploadingFile as File, FileName } from '@/stores/awareness'
 import { useGraphStore } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
 import type { Vec2 } from '@/util/vec2'
+import { stackItemsEqual } from 'shared/languageServerTypes'
 import type { ContentRange, ExprId } from 'shared/yjsModel'
-import { computed } from 'vue'
+import { computed, toRaw } from 'vue'
 
 const projectStore = useProjectStore()
 const graphStore = useGraphStore()
@@ -40,8 +41,8 @@ function hoverNode(id: ExprId | undefined) {
 
 const uploadingFiles = computed<[FileName, File][]>(() => {
   const currentStackItem = projectStore.executionContext.getStackTop()
-  return [...projectStore.awareness.allUploads()].filter(
-    ([_name, file]) => file.stackItem == currentStackItem,
+  return [...projectStore.awareness.allUploads()].filter(([_name, file]) =>
+    stackItemsEqual(file.stackItem, toRaw(currentStackItem)),
   )
 })
 </script>

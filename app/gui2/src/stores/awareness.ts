@@ -33,7 +33,7 @@ export class Awareness {
       for (const id of [...updates.added, ...updates.updated]) {
         const uploads = this.internal.getStates().get(id)?.uploads
         if (uploads) {
-          this.uploadingFiles.set(id, uploads)
+          this.uploadingFiles.set(id, structuredClone(uploads))
         }
       }
     })
