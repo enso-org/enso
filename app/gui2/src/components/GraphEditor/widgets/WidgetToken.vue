@@ -12,7 +12,7 @@ const repr = computed(() => widgetAst(props.input)?.repr())
 
 <script lang="ts">
 export const widgetDefinition = defineWidget({
-  priority: 0,
+  priority: 1000,
   match: (info) => (widgetAst(info.input)?.isToken() ? Score.Good : Score.Mismatch),
 })
 </script>

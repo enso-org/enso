@@ -93,42 +93,7 @@ provideWidgetTree(toRef(props, 'ast'), layoutTransitions.active)
 
 <style scoped>
 .NodeWidgetTree {
-  margin: 0 4px;
   color: white;
-
-  --left-radius-margin: 4px;
-  --right-radius-margin: 4px;
-
-  margin-left: calc(var(--left-radius-margin));
-  margin-right: calc(var(--right-radius-margin));
-
-  /*
-   * NOTE(PG): The following monstrosity selectors attempt to detect a recursively first of last
-   * node element that declares a certain circle radius it naturally follows. That way we can adjust
-   * the node margins to make sure that the node and element radius circles are nicely concentric.
-   * Unfortunately is a depth limit to this detection due to how this selector is written. There is
-   * probably a better way to do this, but I'm out of ideas for now.
-   * 
-   * So far only "radius 24px" is implemented, but more can be added as needed.
-   */
-  &:has(
-      > :first-child.r-24,
-      > :first-child > :first-child.r-24,
-      > :first-child > :first-child > :first-child.r-24,
-      > :first-child > :first-child > :first-child > :first-child.r-24,
-      > :first-child > :first-child > :first-child > :first-child > :first-child.r-24
-    ) {
-    --left-radius-margin: 0px;
-  }
-
-  &:has(
-      > :last-child.r-24,
-      > :last-child > :last-child.r-24,
-      > :last-child > :last-child > :last-child.r-24,
-      > :last-child > :last-child > :last-child > :last-child.r-24,
-      > :last-child > :last-child > :last-child > :last-child > :last-child.r-24
-    ) {
-    --right-radius-margin: 0px;
-  }
+  margin-left: 4px;
 }
 </style>

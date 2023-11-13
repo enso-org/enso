@@ -130,12 +130,8 @@ export const widgetDefinition = defineWidget({
 <template>
   <span
     ref="rootNode"
-    class="WidgetPort r-24"
-    :class="{
-      connected,
-      edgeHover: isCurrentEdgeHoverTarget && !hasConnection,
-      primary: props.nesting < 2,
-    }"
+    class="WidgetPort"
+    :class="{ connected, 'r-24': connected, primary: props.nesting < 2 }"
     @pointerenter="isHovered = true"
     @pointerleave="isHovered = false"
     ><NodeWidget :input="props.input"
@@ -143,7 +139,7 @@ export const widgetDefinition = defineWidget({
 </template>
 
 <style scoped>
-.WidgetPort {
+.WidgetPort.WidgetPort {
   display: inline-block;
   position: relative;
   vertical-align: middle;
@@ -158,6 +154,7 @@ export const widgetDefinition = defineWidget({
     margin 0.2s ease,
     padding 0.2s ease,
     background-color 0.2s ease;
+  pointer-events: none;
 }
 
 .WidgetPort:has(> .r-24:only-child) {
@@ -171,25 +168,22 @@ export const widgetDefinition = defineWidget({
   background-color: var(--node-color-port);
 }
 
-.WidgetPort.primary::before {
+.WidgetPort::before {
+  pointer-events: all;
   content: '';
   position: absolute;
   display: block;
-  inset: 0 4px;
+  inset: 4px 8px;
 }
 
 /* Expand hover area for primary ports. */
 .WidgetPort.primary::before {
   top: -4px;
   bottom: -4px;
-  border-radius: inherit;
 }
-/*
- * Additional hover area for hover hysteresis. Once a port is hovered, the over area is slightly
- * expanded to prevent accidental automatic unhovering during animation.
- */
-.WidgetPort.edgeHover::before {
-  left: -8px;
+
+.WidgetPort.connected::before {
+  left: 0px;
   right: 0px;
 }
 </style>
