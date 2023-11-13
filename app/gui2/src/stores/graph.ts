@@ -1,6 +1,6 @@
 import { useProjectStore } from '@/stores/project'
 import { DEFAULT_VISUALIZATION_IDENTIFIER } from '@/stores/visualization'
-import { Ast, AstExtended, childrenAstNodes, findAstWithRange, readAstSpan } from '@/util/ast'
+import { Ast, AstExtended, childrenAstNodes, findAstWithRange, parseEnso, readAstSpan } from '@/util/ast'
 import { useObserveYjs } from '@/util/crdt'
 import type { Opt } from '@/util/opt'
 import type { Rect } from '@/util/rect'
@@ -20,6 +20,8 @@ import {
 } from 'shared/yjsModel'
 import { computed, reactive, ref, watch } from 'vue'
 import * as Y from 'yjs'
+import { abstract } from "@/util/ast/abstract";
+import type { AbstractNode, AbstractNodeId } from "@/util/ast/abstract";
 
 export interface NodeEditInfo {
   id: ExprId
@@ -72,7 +74,16 @@ export const useGraphStore = defineStore('graph', () => {
 
   const _ast = ref<Ast.Tree>()
 
+  const astNodes = reactive(new Map<AbstractNodeId, AbstractNode>())
+  const astRoot = ref<AbstractNodeId>()
+
   function updateState() {
+    astNodes.clear()
+    const code = textContent.value
+    const tree = parseEnso(code)
+    const [root, _ws] = abstract(tree, astNodes, { code })
+    astRoot.value = root
+
     const module = proj.module
     if (module == null) return
     module.transact(() => {
