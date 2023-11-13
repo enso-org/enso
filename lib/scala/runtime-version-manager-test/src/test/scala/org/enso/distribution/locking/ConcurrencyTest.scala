@@ -193,8 +193,11 @@ class ConcurrencyTest
         */
       val sync = new SlowTestSynchronizer
 
-      val engine1 = SemVer(0, 1, 0)
-      val engine2 = SemVer(0, 0, 1).withPreRelease("pre")
+      /**
+       * Download only engines with associated runtimes.
+       */
+      val engine1 = SemVer(0, 0, 0)
+      val engine2 = engine1.withPreRelease("pre")
 
       val tmpRoot = getTestDirectory / "test_data" / "tmp"
       Files.createDirectories(tmpRoot)
@@ -259,7 +262,7 @@ class ConcurrencyTest
         */
       val sync = new SlowTestSynchronizer
 
-      val engineVersion = SemVer(0, 1, 0)
+      val engineVersion = SemVer(0, 0, 0)
 
       sync.startThread("t1") {
         val componentsManager = makeComponentsManager(

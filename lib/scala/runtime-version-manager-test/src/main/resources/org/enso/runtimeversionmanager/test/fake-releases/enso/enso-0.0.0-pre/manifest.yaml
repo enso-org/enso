@@ -1,0 +1,7 @@
+minimum-launcher-version: 0.0.0-dev
+minimum-project-manager-version: 0.0.0-dev
+graal-vm-version: 1.0.0
+graal-java-version: 11
+jvm-options:
+  - value: "-Doptions-added-from-manifest=42"
+  - value: "-Xanother-one"
