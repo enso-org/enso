@@ -1,12 +1,16 @@
 package org.enso.runner
 
-import org.enso.logger.Converter
-import org.enso.logger.JulHandler
+import org.enso.logger.{Converter, JulHandler, LoggerSetup}
 import org.enso.polyglot.debugger.{
   DebugServerInfo,
   DebuggerSessionManagerEndpoint
 }
-import org.enso.polyglot.{HostAccessFactory, PolyglotContext, RuntimeOptions}
+import org.enso.polyglot.{
+  HostAccessFactory,
+  LanguageInfo,
+  PolyglotContext,
+  RuntimeOptions
+}
 import org.graalvm.polyglot.Engine
 import org.graalvm.polyglot.Context
 import org.slf4j.event.Level
@@ -61,7 +65,8 @@ class ContextFactory {
     if (javaHome == null) {
       throw new IllegalStateException("Specify JAVA_HOME environment property");
     }
-    val logLevelName = Converter.toJavaLevel(logLevel).getName
+    val julLogLevel  = Converter.toJavaLevel(logLevel)
+    val logLevelName = julLogLevel.getName
     val builder = Context
       .newBuilder()
       .allowExperimentalOptions(true)
@@ -101,11 +106,21 @@ class ContextFactory {
           new DebuggerSessionManagerEndpoint(repl, peer)
         } else null
       }
-      .option(
-        RuntimeOptions.LOG_LEVEL,
-        logLevelName
-      )
-      .logHandler(JulHandler.get())
+
+    builder.option(RuntimeOptions.LOG_LEVEL, logLevelName)
+    val logHandler = JulHandler.get()
+    val logLevels  = LoggerSetup.get().getConfig.getLoggers
+    if (logLevels.hasEnsoLoggers()) {
+      logLevels.entrySet().forEach { entry =>
+        builder.option(
+          s"log.${LanguageInfo.ID}.${entry.getKey}.level",
+          Converter.toJavaLevel(entry.getValue).getName
+        )
+      }
+    }
+    builder
+      .logHandler(logHandler)
+
     val graalpy = new File(
       new File(
         new File(new File(new File(projectRoot), "polyglot"), "python"),
