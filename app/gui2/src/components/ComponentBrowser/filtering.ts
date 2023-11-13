@@ -263,7 +263,7 @@ class FilteringQualifiedName {
  */
 export class Filtering {
   pattern?: FilteringWithPattern
-  selfType?: Typename | undefined
+  selfType?: Typename
   qualifiedName?: FilteringQualifiedName
   fullPattern: string | undefined
   /** The first and last match are the parts of the string that are outside of the match.
@@ -283,7 +283,7 @@ export class Filtering {
     if (pattern) {
       this.pattern = new FilteringWithPattern(pattern)
     }
-    this.selfType = selfType
+    if (selfType != null) this.selfType = selfType
     if (qualifiedNamePattern) {
       this.qualifiedName = new FilteringQualifiedName(qualifiedNamePattern)
       this.fullPattern = pattern ? `${qualifiedNamePattern}.${pattern}` : qualifiedNamePattern
