@@ -584,10 +584,6 @@ type Vector a
              [1, 2, 3] . map +1
     map : (Any -> Any) -> Problem_Behavior -> Vector Any
     map self function on_problems=Problem_Behavior.Report_Error =
-        _ = [on_problems]
-        Vector.new self.length i-> function (self.at i)
-
-    newmap self function on_problems=Problem_Behavior.Report_Error =
         max_warnings = 10
         num_errors = Ref.new 0
         wrapped_function i =
