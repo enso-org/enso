@@ -34,8 +34,8 @@ provideWidgetTree(toRef(props, 'ast'), layoutTransitions.active)
 .NodeWidgetTree {
   color: white;
   margin-left: 4px;
-  transition: margin 0.2s ease;
   &:has(.WidgetPort.newToConnect) {
+    transition: margin 0.2s ease;
     margin-left: calc(4px - var(--widget-port-extra-pad));
   }
 
