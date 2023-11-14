@@ -2,13 +2,14 @@ import { SuggestionDb, groupColorStyle, type Group } from '@/stores/suggestionDa
 import { tryGetIndex } from '@/util/array'
 import { Ast, AstExtended } from '@/util/ast'
 import { colorFromString } from '@/util/colors'
-import { ComputedValueRegistry } from '@/util/computedValueRegistry'
+import { ComputedValueRegistry, type ExpressionInfo } from '@/util/computedValueRegistry'
 import { ReactiveDb, ReactiveIndex, ReactiveMapping } from '@/util/database/reactiveDb'
 import type { Opt } from '@/util/opt'
 import { qnJoin, tryQualifiedName } from '@/util/qualifiedName'
 import { Vec2 } from '@/util/vec2'
 import * as set from 'lib0/set'
 import {
+  IdMap,
   visMetadataEquals,
   type ExprId,
   type NodeMetadata,
@@ -36,6 +37,7 @@ export class GraphDb {
     }
     return Array.from(exprs, (expr) => [id, expr])
   })
+  nodeByBinding = new ReactiveIndex(this.nodes, (id, entry) => [[entry.binding, id]])
   connections = new ReactiveIndex(this.nodes, (id, entry) => {
     const usageEntries: [ExprId, ExprId][] = []
     const usages = this.idents.reverseLookup(entry.binding)
@@ -83,6 +85,14 @@ export class GraphDb {
 
   getExpressionNodeId(exprId: ExprId | undefined): ExprId | undefined {
     return exprId && set.first(this.nodeExpressions.reverseLookup(exprId))
+  }
+
+  getIdentDefiningNode(ident: string): ExprId | undefined {
+    return set.first(this.nodeByBinding.lookup(ident))
+  }
+
+  getExpressionInfo(id: ExprId): ExpressionInfo | undefined {
+    return this.valuesRegistry.getExpressionInfo(id)
   }
 
   getNodeColorStyle(id: ExprId): string {
@@ -146,8 +156,8 @@ export class GraphDb {
     private valuesRegistry: ComputedValueRegistry,
   ) {}
 
-  static Mock(): GraphDb {
-    return new GraphDb(new SuggestionDb(), ref([]), ComputedValueRegistry.Mock())
+  static Mock(registry = ComputedValueRegistry.Mock()): GraphDb {
+    return new GraphDb(new SuggestionDb(), ref([]), registry)
   }
 }
 
@@ -157,6 +167,16 @@ export interface Node {
   rootSpan: AstExtended<Ast.Tree>
   position: Vec2
   vis: Opt<VisualizationMetadata>
+}
+
+export function mockNode(binding: string, id: ExprId, code?: string): Node {
+  return {
+    outerExprId: id,
+    binding,
+    rootSpan: AstExtended.parse(code ?? '0', IdMap.Mock()),
+    position: Vec2.Zero,
+    vis: undefined,
+  }
 }
 
 function nodeFromAst(ast: AstExtended<Ast.Tree>): Node {
