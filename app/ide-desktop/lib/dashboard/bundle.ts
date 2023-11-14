@@ -37,6 +37,7 @@ async function bundle() {
         opts.metafile = ANALYZE
         opts.loader['.html'] = 'copy'
         const result = await esbuild.build(opts)
+        await fs.copyFile('build/index.html', 'build/404.html')
         if (result.metafile) {
             console.log(await esbuild.analyzeMetafile(result.metafile))
         }

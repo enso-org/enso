@@ -591,6 +591,7 @@
 - [Added XML support for `.to Table` and `.expand_column`.][8083]
 - [Added `Previous_Value` option to `fill_nothing` and `fill_empty`.][8105]
 - [Added `Table.format` for the in-memory backend.][8150]
+- [Implemented truncate `Date_Time` for database backend (Postgres only).][8235]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -844,6 +845,7 @@
 [8083]: https://github.com/enso-org/enso/pull/8083
 [8105]: https://github.com/enso-org/enso/pull/8105
 [8150]: https://github.com/enso-org/enso/pull/8150
+[8235]: https://github.com/enso-org/enso/pull/8235
 
 #### Enso Compiler
 

@@ -137,7 +137,7 @@ function loadAmplifyConfig(
     /** Load the environment-specific Amplify configuration. */
     const baseConfig = AMPLIFY_CONFIGS[config.ENVIRONMENT]
     let urlOpener: ((url: string) => void) | null = null
-    let accessTokenSaver: ((accessToken: string) => void) | null = null
+    let accessTokenSaver: ((accessToken: string | null) => void) | null = null
     if ('authenticationApi' in window) {
         /** When running on destop we want to have option to save access token to a file,
          * so it can be later reuse when issuing requests to Cloud API. */
@@ -164,7 +164,7 @@ function loadAmplifyConfig(
         ...baseConfig,
         ...platformConfig,
         urlOpener,
-        accessTokenSaver,
+        saveAccessToken: accessTokenSaver,
     }
 }
 
@@ -174,7 +174,7 @@ function openUrlWithExternalBrowser(url: string) {
 }
 
 /** Save the access token to a file. */
-function saveAccessToken(accessToken: string) {
+function saveAccessToken(accessToken: string | null) {
     window.authenticationApi.saveAccessToken(accessToken)
 }
 

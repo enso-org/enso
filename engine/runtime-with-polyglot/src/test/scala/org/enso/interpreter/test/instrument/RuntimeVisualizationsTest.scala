@@ -324,18 +324,22 @@ class RuntimeVisualizationsTest
     val visualizationFile =
       context.writeInSrcDir("Visualization", context.Visualization.code)
 
+    val contextId       = UUID.randomUUID()
+    val requestId       = UUID.randomUUID()
+    val visualizationId = UUID.randomUUID()
+
     context.send(
       Api.Request(
-        Api.OpenFileNotification(
+        requestId,
+        Api.OpenFileRequest(
           visualizationFile,
           context.Visualization.code
         )
       )
     )
-
-    val contextId       = UUID.randomUUID()
-    val requestId       = UUID.randomUUID()
-    val visualizationId = UUID.randomUUID()
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -345,9 +349,11 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
-    context.receiveNone shouldEqual None
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
@@ -443,18 +449,22 @@ class RuntimeVisualizationsTest
     val visualizationFile =
       context.writeInSrcDir("Visualization", context.Visualization.code)
 
+    val contextId       = UUID.randomUUID()
+    val requestId       = UUID.randomUUID()
+    val visualizationId = UUID.randomUUID()
+
     context.send(
       Api.Request(
-        Api.OpenFileNotification(
+        requestId,
+        Api.OpenFileRequest(
           visualizationFile,
           context.Visualization.code
         )
       )
     )
-
-    val contextId       = UUID.randomUUID()
-    val requestId       = UUID.randomUUID()
-    val visualizationId = UUID.randomUUID()
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -464,9 +474,11 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
-    context.receiveNone shouldEqual None
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
@@ -584,17 +596,22 @@ class RuntimeVisualizationsTest
     // open files
     context.send(
       Api.Request(
-        Api.OpenFileNotification(
+        requestId,
+        Api.OpenFileRequest(
           visualizationFile,
           context.Visualization.code
         )
       )
     )
-    context.receiveNone shouldEqual None
-    context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
-    context.receiveNone shouldEqual None
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -712,17 +729,22 @@ class RuntimeVisualizationsTest
     // open files
     context.send(
       Api.Request(
-        Api.OpenFileNotification(
+        requestId,
+        Api.OpenFileRequest(
           visualizationFile,
           context.Visualization.code
         )
       )
     )
-    context.receiveNone shouldEqual None
-    context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
-    context.receiveNone shouldEqual None
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -840,17 +862,22 @@ class RuntimeVisualizationsTest
     // open files
     context.send(
       Api.Request(
-        Api.OpenFileNotification(
+        requestId,
+        Api.OpenFileRequest(
           visualizationFile,
           context.Visualization.code
         )
       )
     )
-    context.receiveNone shouldEqual None
-    context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
-    context.receiveNone shouldEqual None
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -1071,24 +1098,30 @@ class RuntimeVisualizationsTest
     val visualizationFile =
       context.writeInSrcDir("Visualization", context.Visualization.code)
 
+    val contextId       = UUID.randomUUID()
+    val requestId       = UUID.randomUUID()
+    val visualizationId = UUID.randomUUID()
+
     // open files
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
-    context.receiveNone shouldEqual None
+
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
     context.send(
       Api.Request(
-        Api.OpenFileNotification(
+        requestId,
+        Api.OpenFileRequest(
           visualizationFile,
           context.Visualization.code
         )
       )
     )
-    context.receiveNone shouldEqual None
-
-    val contextId       = UUID.randomUUID()
-    val requestId       = UUID.randomUUID()
-    val visualizationId = UUID.randomUUID()
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -1200,23 +1233,29 @@ class RuntimeVisualizationsTest
     val visualizationFile =
       context.writeInSrcDir("Visualization", context.Visualization.code)
 
+    val contextId       = UUID.randomUUID()
+    val requestId       = UUID.randomUUID()
+    val visualizationId = UUID.randomUUID()
+
     // open files
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
-    context.receiveNone shouldEqual None
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
     context.send(
       Api.Request(
-        Api.OpenFileNotification(
+        requestId,
+        Api.OpenFileRequest(
           visualizationFile,
           context.Visualization.code
         )
       )
     )
-
-    val contextId       = UUID.randomUUID()
-    val requestId       = UUID.randomUUID()
-    val visualizationId = UUID.randomUUID()
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -1348,17 +1387,22 @@ class RuntimeVisualizationsTest
     // open files
     context.send(
       Api.Request(
-        Api.OpenFileNotification(
+        requestId,
+        Api.OpenFileRequest(
           visualizationFile,
           context.Visualization.code
         )
       )
     )
-    context.receiveNone shouldEqual None
-    context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
     )
-    context.receiveNone shouldEqual None
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -1454,24 +1498,30 @@ class RuntimeVisualizationsTest
     val visualizationFile =
       context.writeInSrcDir("Visualization", context.Visualization.code)
 
+    val contextId       = UUID.randomUUID()
+    val requestId       = UUID.randomUUID()
+    val visualizationId = UUID.randomUUID()
+
     // open files
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
-    context.receiveNone shouldEqual None
+
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
     context.send(
       Api.Request(
-        Api.OpenFileNotification(
+        requestId,
+        Api.OpenFileRequest(
           visualizationFile,
           context.Visualization.code
         )
       )
     )
-    context.receiveNone shouldEqual None
-
-    val contextId       = UUID.randomUUID()
-    val requestId       = UUID.randomUUID()
-    val visualizationId = UUID.randomUUID()
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -1607,9 +1657,11 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
-    context.receiveNone shouldEqual None
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
@@ -1673,9 +1725,11 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
-    context.receiveNone shouldEqual None
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
@@ -1769,9 +1823,11 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
-    context.receiveNone shouldEqual None
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
@@ -1850,9 +1906,11 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
-    context.receiveNone shouldEqual None
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
@@ -1941,18 +1999,22 @@ class RuntimeVisualizationsTest
     val visualizationFile =
       context.writeInSrcDir("Visualization", visualizationCode)
 
+    val contextId       = UUID.randomUUID()
+    val requestId       = UUID.randomUUID()
+    val visualizationId = UUID.randomUUID()
+
     context.send(
       Api.Request(
-        Api.OpenFileNotification(
+        requestId,
+        Api.OpenFileRequest(
           visualizationFile,
           visualizationCode
         )
       )
     )
-
-    val contextId       = UUID.randomUUID()
-    val requestId       = UUID.randomUUID()
-    val visualizationId = UUID.randomUUID()
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -1962,9 +2024,11 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
-    context.receiveNone shouldEqual None
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
@@ -2072,9 +2136,11 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
-    context.receiveNone shouldEqual None
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
@@ -2168,9 +2234,11 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
-    context.receiveNone shouldEqual None
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
@@ -2299,9 +2367,11 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
-    context.receiveNone shouldEqual None
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
@@ -2405,9 +2475,11 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
-    context.receiveNone shouldEqual None
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
@@ -2482,18 +2554,22 @@ class RuntimeVisualizationsTest
     val visualizationFile =
       context.writeInSrcDir("Visualization", context.Visualization.code)
 
+    val contextId       = UUID.randomUUID()
+    val requestId       = UUID.randomUUID()
+    val visualizationId = UUID.randomUUID()
+
     context.send(
       Api.Request(
-        Api.OpenFileNotification(
+        requestId,
+        Api.OpenFileRequest(
           visualizationFile,
           context.Visualization.code
         )
       )
     )
-
-    val contextId       = UUID.randomUUID()
-    val requestId       = UUID.randomUUID()
-    val visualizationId = UUID.randomUUID()
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -2503,9 +2579,11 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
-    context.receiveNone shouldEqual None
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
@@ -2609,18 +2687,22 @@ class RuntimeVisualizationsTest
         context.AnnotatedVisualization.code
       )
 
+    val contextId       = UUID.randomUUID()
+    val requestId       = UUID.randomUUID()
+    val visualizationId = UUID.randomUUID()
+
     context.send(
       Api.Request(
-        Api.OpenFileNotification(
+        requestId,
+        Api.OpenFileRequest(
           visualizationFile,
           context.AnnotatedVisualization.code
         )
       )
     )
-
-    val contextId       = UUID.randomUUID()
-    val requestId       = UUID.randomUUID()
-    val visualizationId = UUID.randomUUID()
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -2630,9 +2712,11 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
-    context.receiveNone shouldEqual None
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
@@ -2783,18 +2867,22 @@ class RuntimeVisualizationsTest
         context.AnnotatedVisualization.code
       )
 
+    val contextId       = UUID.randomUUID()
+    val requestId       = UUID.randomUUID()
+    val visualizationId = UUID.randomUUID()
+
     context.send(
       Api.Request(
-        Api.OpenFileNotification(
+        requestId,
+        Api.OpenFileRequest(
           visualizationFile,
           context.AnnotatedVisualization.code
         )
       )
     )
-
-    val contextId       = UUID.randomUUID()
-    val requestId       = UUID.randomUUID()
-    val visualizationId = UUID.randomUUID()
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -2804,9 +2892,11 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
-    context.receiveNone shouldEqual None
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
@@ -2965,9 +3055,11 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
-    context.receiveNone shouldEqual None
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
@@ -3065,9 +3157,11 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
-    context.receiveNone shouldEqual None
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
@@ -3169,9 +3263,11 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
-    context.receiveNone shouldEqual None
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
@@ -3304,9 +3400,11 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
-    context.receiveNone shouldEqual None
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
@@ -3415,5 +3513,366 @@ class RuntimeVisualizationsTest
         data
     }
     new String(data1, StandardCharsets.UTF_8) shouldEqual "C"
+  }
+
+  it should "execute expression in the scope of local expression cached" in {
+    val contextId       = UUID.randomUUID()
+    val requestId       = UUID.randomUUID()
+    val visualizationId = UUID.randomUUID()
+    val moduleName      = "Enso_Test.Test.Main"
+    val metadata        = new Metadata
+
+    val idOp1 = metadata.addItem(23, 2)
+    val idOp2 = metadata.addItem(42, 13)
+
+    val code =
+      """main =
+        |    operator1 = 42
+        |    operator2 = operator1 + 1
+        |    operator2
+        |
+        |fun1 x = x.to_text
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(moduleName, moduleName, "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+    context.receiveNIgnorePendingExpressionUpdates(
+      4
+    ) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(contextId, idOp1, ConstantsGen.INTEGER_BUILTIN),
+      TestMessages.update(contextId, idOp2, ConstantsGen.INTEGER_BUILTIN),
+      context.executionComplete(contextId)
+    )
+
+    // execute expression
+    context.send(
+      Api.Request(
+        requestId,
+        Api.ExecuteExpression(
+          contextId,
+          visualizationId,
+          idOp2,
+          "fun1 operator1"
+        )
+      )
+    )
+    val executeExpressionResponses =
+      context.receiveNIgnoreExpressionUpdates(3)
+    executeExpressionResponses should contain allOf (
+      Api.Response(requestId, Api.VisualizationAttached()),
+      context.executionComplete(contextId)
+    )
+    val Some(data) = executeExpressionResponses.collectFirst {
+      case Api.Response(
+            None,
+            Api.VisualizationUpdate(
+              Api.VisualizationContext(
+                `visualizationId`,
+                `contextId`,
+                `idOp2`
+              ),
+              data
+            )
+          ) =>
+        data
+    }
+    new String(data) shouldEqual "42"
+  }
+
+  it should "execute expression in the scope of local expression not cached" in {
+    val contextId       = UUID.randomUUID()
+    val requestId       = UUID.randomUUID()
+    val visualizationId = UUID.randomUUID()
+    val moduleName      = "Enso_Test.Test.Main"
+    val metadata        = new Metadata
+
+    val idOp1 = metadata.addItem(23, 2)
+    val idOp2 = metadata.addItem(42, 13)
+    val idRes = metadata.addItem(60, 9)
+
+    val code =
+      """main =
+        |    operator1 = 42
+        |    operator2 = operator1 + 1
+        |    operator2
+        |
+        |fun1 x = x.to_text
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(moduleName, moduleName, "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+    context.receiveNIgnorePendingExpressionUpdates(
+      5
+    ) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(contextId, idOp1, ConstantsGen.INTEGER_BUILTIN),
+      TestMessages.update(contextId, idOp2, ConstantsGen.INTEGER_BUILTIN),
+      TestMessages.update(contextId, idRes, ConstantsGen.INTEGER_BUILTIN),
+      context.executionComplete(contextId)
+    )
+
+    // execute expression
+    context.send(
+      Api.Request(
+        requestId,
+        Api.ExecuteExpression(
+          contextId,
+          visualizationId,
+          idRes,
+          "fun1 operator1"
+        )
+      )
+    )
+    val executeExpressionResponses =
+      context.receiveNIgnoreExpressionUpdates(3)
+    executeExpressionResponses should contain allOf (
+      Api.Response(requestId, Api.VisualizationAttached()),
+      context.executionComplete(contextId)
+    )
+    val Some(data) = executeExpressionResponses.collectFirst {
+      case Api.Response(
+            None,
+            Api.VisualizationUpdate(
+              Api.VisualizationContext(
+                `visualizationId`,
+                `contextId`,
+                `idRes`
+              ),
+              data
+            )
+          ) =>
+        data
+    }
+    new String(data) shouldEqual "42"
+  }
+
+  it should "execute expression in the scope of local binding" in {
+    val contextId       = UUID.randomUUID()
+    val requestId       = UUID.randomUUID()
+    val visualizationId = UUID.randomUUID()
+    val moduleName      = "Enso_Test.Test.Main"
+    val metadata        = new Metadata
+
+    val idOp1        = metadata.addItem(23, 2)
+    val idOp2        = metadata.addItem(42, 13)
+    val idOp2Binding = metadata.addItem(30, 25)
+    val idRes        = metadata.addItem(60, 9)
+
+    val code =
+      """main =
+        |    operator1 = 42
+        |    operator2 = operator1 + 1
+        |    operator2
+        |
+        |fun1 x = x.to_text
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(moduleName, moduleName, "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+    context.receiveNIgnorePendingExpressionUpdates(
+      6
+    ) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(contextId, idOp1, ConstantsGen.INTEGER_BUILTIN),
+      TestMessages.update(contextId, idOp2, ConstantsGen.INTEGER_BUILTIN),
+      TestMessages
+        .update(contextId, idOp2Binding, ConstantsGen.NOTHING_BUILTIN),
+      TestMessages.update(contextId, idRes, ConstantsGen.INTEGER_BUILTIN),
+      context.executionComplete(contextId)
+    )
+
+    // execute expression
+    context.send(
+      Api.Request(
+        requestId,
+        Api.ExecuteExpression(
+          contextId,
+          visualizationId,
+          idOp2Binding,
+          "fun1 operator1+operator2"
+        )
+      )
+    )
+    val executeExpressionResponses =
+      context.receiveNIgnoreExpressionUpdates(3)
+    executeExpressionResponses should contain allOf (
+      Api.Response(requestId, Api.VisualizationAttached()),
+      context.executionComplete(contextId)
+    )
+    val Some(data) = executeExpressionResponses.collectFirst {
+      case Api.Response(
+            None,
+            Api.VisualizationUpdate(
+              Api.VisualizationContext(
+                `visualizationId`,
+                `contextId`,
+                `idOp2Binding`
+              ),
+              data
+            )
+          ) =>
+        data
+    }
+    new String(data) shouldEqual "85"
+  }
+
+  it should "execute expression in the scope of main method" in {
+    val contextId       = UUID.randomUUID()
+    val requestId       = UUID.randomUUID()
+    val visualizationId = UUID.randomUUID()
+    val moduleName      = "Enso_Test.Test.Main"
+    val metadata        = new Metadata
+
+    val idOp1  = metadata.addItem(23, 2)
+    val idOp2  = metadata.addItem(42, 13)
+    val idMain = metadata.addItem(6, 63)
+
+    val code =
+      """main =
+        |    operator1 = 42
+        |    operator2 = operator1 + 1
+        |    operator2
+        |
+        |fun1 x = x.to_text
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(moduleName, moduleName, "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+    context.receiveNIgnorePendingExpressionUpdates(
+      5
+    ) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(contextId, idOp1, ConstantsGen.INTEGER_BUILTIN),
+      TestMessages.update(contextId, idOp2, ConstantsGen.INTEGER_BUILTIN),
+      TestMessages.update(contextId, idMain, ConstantsGen.INTEGER_BUILTIN),
+      context.executionComplete(contextId)
+    )
+
+    // execute expression
+    context.send(
+      Api.Request(
+        requestId,
+        Api.ExecuteExpression(
+          contextId,
+          visualizationId,
+          idMain,
+          "fun1 operator1+operator2"
+        )
+      )
+    )
+    val executeExpressionResponses =
+      context.receiveNIgnoreExpressionUpdates(3)
+    executeExpressionResponses should contain allOf (
+      Api.Response(requestId, Api.VisualizationAttached()),
+      context.executionComplete(contextId)
+    )
+    val Some(data) = executeExpressionResponses.collectFirst {
+      case Api.Response(
+            None,
+            Api.VisualizationUpdate(
+              Api.VisualizationContext(
+                `visualizationId`,
+                `contextId`,
+                `idMain`
+              ),
+              data
+            )
+          ) =>
+        data
+    }
+    new String(data) shouldEqual "85"
   }
 }

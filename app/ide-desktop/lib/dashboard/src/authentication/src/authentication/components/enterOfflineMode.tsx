@@ -1,14 +1,13 @@
-/** @file Registration confirmation page for when a user clicks the confirmation link set to their
- * email address. */
+/** @file Page to enter offlin mode and redirect to dashboard. */
 import * as React from 'react'
 
 import * as app from '../../components/app'
 import * as authProvider from '../providers/auth'
 import * as hooks from '../../hooks'
 
-// ============================
-// === Confirm Registration ===
-// ============================
+// ========================
+// === EnterOfflineMode ===
+// ========================
 
 /** An empty component redirecting users based on the backend response to user registration. */
 export default function EnterOfflineMode() {

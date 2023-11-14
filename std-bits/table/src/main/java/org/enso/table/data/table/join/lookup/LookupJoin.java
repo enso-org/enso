@@ -1,4 +1,4 @@
-package org.enso.table.data.table.join;
+package org.enso.table.data.table.join.lookup;
 
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.data.column.builder.Builder;
@@ -9,6 +9,7 @@ import org.enso.table.data.index.UnorderedMultiValueKey;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
+import org.enso.table.data.table.join.conditions.Equals;
 import org.enso.table.error.NonUniqueLookupKey;
 import org.enso.table.error.NullValuesInKeyColumns;
 import org.enso.table.error.UnmatchedRow;
@@ -17,7 +18,6 @@ import org.enso.table.util.ConstantList;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.IntStream;
 
 public class LookupJoin {

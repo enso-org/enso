@@ -1,11 +1,22 @@
-import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
+import {
+  SuggestionKind,
+  type SuggestionEntry,
+  type Typename,
+} from '@/stores/suggestionDatabase/entry'
 import type { Opt } from '@/util/opt'
 import { qnIsTopElement, qnParent, type QualifiedName } from '@/util/qualifiedName'
 import { Range } from '@/util/range'
 
+export type SelfArg =
+  | {
+      type: 'known'
+      typename: Typename
+    }
+  | { type: 'unknown' }
+
 export interface Filter {
   pattern?: string
-  selfType?: QualifiedName
+  selfArg?: SelfArg
   qualifiedNamePattern?: string
   showUnstable?: boolean
   showLocal?: boolean
@@ -228,8 +239,8 @@ class FilteringQualifiedName {
  *
  * - The private entries never matches.
  *
- * - If `selfType` is specified, only entries of methods taking a value of this type as self
- *   argument are accepted. Static methods, and methods of other types are filtered out.
+ * - If `selfArg` is specified, only entries of methods taking a value of this type as self
+ *   argument are accepted (or any non-static method if the type of self argument is unknown).
  *
  * - If `qualifiedNamePattern` is specified, only entries being a content of a module or type
  *   matching the pattern are accepted. If `pattern` is also specified (see below), the content
@@ -259,7 +270,7 @@ class FilteringQualifiedName {
  */
 export class Filtering {
   pattern?: FilteringWithPattern
-  selfType?: QualifiedName | undefined
+  selfArg?: SelfArg
   qualifiedName?: FilteringQualifiedName
   fullPattern: string | undefined
   /** The first and last match are the parts of the string that are outside of the match.
@@ -275,11 +286,11 @@ export class Filtering {
   currentModule?: QualifiedName
 
   constructor(filter: Filter, currentModule: Opt<QualifiedName> = undefined) {
-    const { pattern, selfType, qualifiedNamePattern, showUnstable, showLocal } = filter
+    const { pattern, selfArg, qualifiedNamePattern, showUnstable, showLocal } = filter
     if (pattern) {
       this.pattern = new FilteringWithPattern(pattern)
     }
-    this.selfType = selfType
+    if (selfArg != null) this.selfArg = selfArg
     if (qualifiedNamePattern) {
       this.qualifiedName = new FilteringQualifiedName(qualifiedNamePattern)
       this.fullPattern = pattern ? `${qualifiedNamePattern}.${pattern}` : qualifiedNamePattern
@@ -303,11 +314,9 @@ export class Filtering {
   }
 
   private selfTypeMatches(entry: SuggestionEntry): boolean {
-    if (this.selfType == null) {
-      return entry.selfType == null
-    } else {
-      return entry.selfType === this.selfType
-    }
+    if (this.selfArg == null) return entry.selfType == null
+    else if (this.selfArg.type == 'known') return entry.selfType === this.selfArg.typename
+    else return entry.selfType != null
   }
 
   private qualifiedNameMatches(entry: SuggestionEntry): MatchedParts | null {
@@ -317,7 +326,7 @@ export class Filtering {
 
   isMainView() {
     return (
-      this.pattern == null && this.selfType == null && this.qualifiedName == null && !this.showLocal
+      this.pattern == null && this.selfArg == null && this.qualifiedName == null && !this.showLocal
     )
   }
 

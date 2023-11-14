@@ -103,12 +103,10 @@ object ExecutorWithUnlimitedPool extends LanguageServerExecutor {
     )
     val profilingPathArguments =
       descriptor.profilingPath.toSeq
-        .flatMap(path => Seq("--server-profiling-path", path.toString))
+        .flatMap(path => Seq("--profiling-path", path.toString))
     val profilingTimeArguments =
       descriptor.profilingTime.toSeq
-        .flatMap(time =>
-          Seq("--server-profiling-time", time.toSeconds.toString)
-        )
+        .flatMap(time => Seq("--profiling-time", time.toSeconds.toString))
     val profilingEventsLogPathArguments =
       descriptor.profilingEventsLogPath.toSeq
         .flatMap(path =>

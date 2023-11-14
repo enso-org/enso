@@ -354,22 +354,26 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                     />
                 )}
             </ContextMenu>
-            <GlobalContextMenu
-                hidden={hidden}
-                hasCopyData={hasCopyData}
-                directoryKey={
-                    // This is SAFE, as both branches are guaranteed to be `DirectoryId`s
-                    // eslint-disable-next-line no-restricted-syntax
-                    (asset.type === backendModule.AssetType.directory
-                        ? item.key
-                        : item.directoryKey) as backendModule.DirectoryId
-                }
-                directoryId={
-                    asset.type === backendModule.AssetType.directory ? asset.id : item.directoryId
-                }
-                dispatchAssetListEvent={dispatchAssetListEvent}
-                doPaste={doPaste}
-            />
+            {category === categorySwitcher.Category.home && (
+                <GlobalContextMenu
+                    hidden={hidden}
+                    hasCopyData={hasCopyData}
+                    directoryKey={
+                        // This is SAFE, as both branches are guaranteed to be `DirectoryId`s
+                        // eslint-disable-next-line no-restricted-syntax
+                        (asset.type === backendModule.AssetType.directory
+                            ? item.key
+                            : item.directoryKey) as backendModule.DirectoryId
+                    }
+                    directoryId={
+                        asset.type === backendModule.AssetType.directory
+                            ? asset.id
+                            : item.directoryId
+                    }
+                    dispatchAssetListEvent={dispatchAssetListEvent}
+                    doPaste={doPaste}
+                />
+            )}
         </ContextMenus>
     )
 }

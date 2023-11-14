@@ -251,7 +251,7 @@ final class TreeToIr {
           methodRef,
           args,
           body,
-          getIdentifiedLocation(inputAst, 0, 1, null),
+          getIdentifiedLocation(inputAst, 0, 0, null),
           meta(), diag()
         );
         yield join(binding, appendTo);
