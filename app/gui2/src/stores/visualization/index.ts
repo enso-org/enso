@@ -119,6 +119,7 @@ export const useVisualizationStore = defineStore('visualization', () => {
           loadedScripts.add(url)
           const node = document.createElement('script')
           node.src = url
+          node.crossOrigin = 'anonymous'
           promises.push(
             new Promise<void>((resolve, reject) => {
               node.addEventListener('load', () => {
