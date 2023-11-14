@@ -18,7 +18,7 @@ Download links:
 
 - [Linux]({{download_prefix}}/enso-linux-{{version}}.AppImage) (AppImage);
 - [macOS]({{download_prefix}}/enso-mac-{{version}}.dmg) (DMG);
-- [Windows]({{download_prefix}}/enso-win-{{version}}.msi) (Installer
+- [Windows]({{download_prefix}}/enso-win-{{version}}.exe) (Installer
   Executable).
 
 This is the recommended download for most users.
