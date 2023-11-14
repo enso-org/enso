@@ -582,8 +582,6 @@ useEvent(document, 'scroll', endBrushing)
 </template>
 
 <style scoped>
-@import url('https://fonts.cdnfonts.com/css/dejavu-sans-mono');
-
 .ScatterplotVisualization {
   user-select: none;
   display: flex;
