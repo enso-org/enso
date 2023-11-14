@@ -1,7 +1,7 @@
 import { Ast, AstExtended } from "@/util/ast"
 import { GeneralOprApp } from "@/util/ast/opr"
-import { tryIdentifier, type Identifier, type QualifiedName, tryQualifiedName } from "@/util/qualifiedName"
-import { unwrap } from "@/util/result"
+import { tryIdentifier, type Identifier, type QualifiedName, tryQualifiedName, fromSegments } from "@/util/qualifiedName"
+import { unwrap, type Result } from "@/util/result"
 
 function parseIdent(ast: AstExtended): Identifier | null {
   if (ast.isTree(Ast.Tree.Type.Ident) || ast.isToken(Ast.Token.Type.Ident)) {
@@ -31,6 +31,27 @@ function parseIdents(ast: AstExtended): Identifier[] | null {
   }
 }
 
+function parseQualifiedName(ast: AstExtended): QualifiedName | null {
+  if (ast.isTree(Ast.Tree.Type.Ident) || ast.isToken(Ast.Token.Type.Ident)) {
+    const name = tryQualifiedName(ast.repr())
+    return name.ok ? name.value : null
+  } else if (ast.isTree(Ast.Tree.Type.OprApp)) {
+    const opr = new GeneralOprApp(ast)
+    const operands = opr.operandsOfLeftAssocOprChain('.')
+    const idents = [...operands].flatMap((operand) => {
+      if (operand && operand.type === 'ast') {
+        const ident = parseIdent(operand.ast)
+        return ident != null ? [ident] : []
+      } else {
+        return []
+      }
+    })
+    return fromSegments(idents)
+  } else {
+    return null
+  }
+}
+
 function recognizeImport(ast: AstExtended<Ast.Tree.Import>): Import | null {
   const from = ast.tryMap((import_) => import_.from?.body)
   const as = ast.tryMap((import_) => import_.as?.body)
@@ -42,27 +63,30 @@ function recognizeImport(ast: AstExtended<Ast.Tree.Import>): Import | null {
   // console.log('import_: ', import_ ? import_.repr() : 'undefined')
   // console.log('all: ', all ? all.repr() : 'undefined')
   // console.log('hiding: ', hiding ? hiding.repr() : 'undefined')
+  const module = from != null ? parseQualifiedName(from) 
+    : import_ != null ? parseQualifiedName(import_) : null
+  if (!module) return null
   if (all) {
     return {
-      from: unwrap(tryQualifiedName('Standard.Base')),
+      from: module,
       imported: { kind: 'All', except: [] }
     }
   } else if (from) {
     if (import_) {
       const names = parseIdents(import_) ?? []
       return {
-        from: unwrap(tryQualifiedName(from.repr())),
+        from: module,
         imported: { kind: 'List', names }
       }
     }
     return {
-      from: unwrap(tryQualifiedName(from.repr())),
+      from: module,
       imported: { kind: 'List', names: [unwrap(tryIdentifier('Table'))] }
     }
   } else if (import_) {
     const alias = as ? parseIdent(as) : null
     return {
-      from: unwrap(tryQualifiedName(import_.repr())),
+      from: module,
       imported: alias ? { kind: 'Module', alias } : { kind: 'Module' }
     }
   } else {
@@ -116,45 +140,73 @@ if (import.meta.vitest) {
   test.each([
     { code: '1 + 1', expected: null },
     {
-      code: 'from Standard.Base import all', 
+      code: 'from Standard.Base import all',
       expected: {
         from: unwrap(tryQualifiedName('Standard.Base')),
         imported: { kind: 'All', except: [] }
       }
     },
     {
-      code: 'from Standard.Base.Table import Table', 
+      code: 'from Standard.Base.Table import Table',
       expected: {
         from: unwrap(tryQualifiedName('Standard.Base.Table')),
         imported: { kind: 'List', names: [unwrap(tryIdentifier('Table'))] }
       }
     },
     {
-      code: 'from Standard.Collections import Array, HashMap', 
+      code: 'from Standard.Collections import Array, HashMap',
       expected: {
         from: unwrap(tryQualifiedName('Standard.Collections')),
         imported: { kind: 'List', names: [unwrap(tryIdentifier('Array')), unwrap(tryIdentifier('HashMap'))] }
       }
     },
     {
-      code: 'import Standard.Database', 
+      code: 'import Standard.Database',
       expected: {
         from: unwrap(tryQualifiedName('Standard.Database')),
         imported: { kind: 'Module' }
       }
     },
     {
-      code: 'import Standard.Base', 
+      code: 'import Standard.Base',
       expected: {
         from: unwrap(tryQualifiedName('Standard.Base')),
         imported: { kind: 'Module' }
       }
     },
     {
-      code: 'import AWS.Connection as Backend', 
+      code: 'import AWS.Connection as Backend',
       expected: {
         from: unwrap(tryQualifiedName('AWS.Connection')),
         imported: { kind: 'Module', alias: 'Backend' }
+      }
+    },
+    {
+      code: 'import Standard.Base.Data',
+      expected: {
+        from: unwrap(tryQualifiedName('Standard.Base.Data')),
+        imported: { kind: 'Module' }
+      }
+    },
+    {
+      code: 'import local',
+      expected: {
+        from: unwrap(tryQualifiedName('local')),
+        imported: { kind: 'Module' }
+      }
+    },
+    {
+      code: 'from Standard.Base import Foo, Bar',
+      expected: {
+        from: unwrap(tryQualifiedName('Standard.Base')),
+        imported: { kind: 'List', names: [unwrap(tryIdentifier('Foo')), unwrap(tryIdentifier('Bar'))] }
+      }
+    },
+    {
+      code: 'from   Standard  . Base import  Foo ,  Bar ,Buz',
+      expected: {
+        from: unwrap(tryQualifiedName('Standard.Base')),
+        imported: { kind: 'List', names: [unwrap(tryIdentifier('Foo')), unwrap(tryIdentifier('Bar')), unwrap(tryIdentifier('Buz'))] }
       }
     },
   ])('Recognizing import $code', ({ code, expected }) => {

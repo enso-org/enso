@@ -63,6 +63,10 @@ export function qnJoin(left: QualifiedName, right: QualifiedName): QualifiedName
   return `${left}.${right}` as QualifiedName
 }
 
+export function fromSegments(segments: Iterable<Identifier>): QualifiedName {
+  return [...segments].join('.') as QualifiedName
+}
+
 export function qnSegments(name: QualifiedName): Identifier[] {
   return name.split('.').map((segment) => segment as Identifier)
 }
