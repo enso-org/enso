@@ -767,9 +767,11 @@ case object DataflowAnalysis extends IRPass {
     * @param mapping storage for the direct mapping between program components
     */
   sealed case class DependencyMapping(
-    mapping: mutable.Map[DependencyInfo.Type, Set[DependencyInfo.Type]] =
-      mutable.Map()
+    mapping: mutable.Map[DependencyInfo.Type, Set[DependencyInfo.Type]]
   ) {
+    def this() = {
+      this(mutable.Map())
+    }
 
     /** Returns the set of all program component associated with the provided
       * key.
@@ -962,9 +964,12 @@ case object DataflowAnalysis extends IRPass {
     *                     depends on
     */
   sealed case class DependencyInfo(
-    dependents: DependencyMapping   = DependencyMapping(),
-    dependencies: DependencyMapping = DependencyMapping()
+    dependents: DependencyMapping,
+    dependencies: DependencyMapping
   ) extends IRPass.IRMetadata {
+    def this() = {
+      this(new DependencyMapping(), new DependencyMapping())
+    }
     override val metadataName: String = "DataflowAnalysis.DependencyInfo"
 
     /** Combines two dependency information containers.
@@ -991,6 +996,8 @@ case object DataflowAnalysis extends IRPass {
     ): Option[DependencyInfo] = Some(this)
   }
   object DependencyInfo {
+
+    def apply(): DependencyInfo = new DependencyInfo()
 
     /** The type of symbols in this analysis. */
     type Symbol = String

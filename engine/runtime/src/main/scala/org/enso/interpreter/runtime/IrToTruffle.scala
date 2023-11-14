@@ -12,6 +12,7 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{
   CallArgument,
   DefinitionArgument,
+  DiagnosticStorage,
   Empty,
   Expression,
   Function,
@@ -93,7 +94,7 @@ import org.enso.interpreter.node.{
 }
 import org.enso.interpreter.runtime.EnsoContext
 import org.enso.interpreter.runtime.callable
-import org.enso.interpreter.runtime.callable.argument.{ArgumentDefinition}
+import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition
 import org.enso.interpreter.runtime.callable.atom.{Atom, AtomConstructor}
 import org.enso.interpreter.runtime.callable.function.{
   FunctionSchema,
@@ -106,7 +107,7 @@ import org.enso.interpreter.runtime.callable.{
 }
 import org.enso.interpreter.runtime.data.Type
 import org.enso.interpreter.runtime.data.text.Text
-import org.enso.interpreter.runtime.scope.{ModuleScope}
+import org.enso.interpreter.runtime.scope.ModuleScope
 import org.enso.interpreter.{Constants, EnsoLanguage}
 
 import java.math.BigInteger
@@ -1662,7 +1663,8 @@ class IrToTruffle(
               isMethod = false,
               location,
               None,
-              passData
+              passData,
+              DiagnosticStorage()
             )
           )
         case n: Name.SelfType =>

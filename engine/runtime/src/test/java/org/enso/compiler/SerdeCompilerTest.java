@@ -1,13 +1,21 @@
 package org.enso.compiler;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.*;
 
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryo.io.Output;
+import com.esotericsoftware.kryo.util.MapReferenceResolver;
+import io.altoo.serialization.kryo.scala.serializer.ScalaImmutableAbstractSetSerializer;
+import io.altoo.serialization.kryo.scala.serializer.ScalaKryo;
+import io.altoo.serialization.kryo.scala.serializer.SubclassResolver;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -18,6 +26,7 @@ import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.SimpleFormatter;
 import org.enso.compiler.core.ir.Module;
+import org.enso.interpreter.caches.UUIDSerializer;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.SerializationManager$;
 import org.enso.pkg.PackageManager;
@@ -27,9 +36,85 @@ import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.io.IOAccess;
 import org.junit.Test;
+import scala.collection.immutable.Set;
 
 public class SerdeCompilerTest {
   private final MockHandler mockHandler = new MockHandler();
+
+  @Test
+  public void testSimpleCollections() throws Exception {
+    var referenceResolver = new MapReferenceResolver();
+    var classResolver = new SubclassResolver();
+    classResolver.enable();
+    var kryo = new Kryo(classResolver, referenceResolver);
+    kryo.addDefaultSerializer(
+        scala.collection.Set.class, ScalaImmutableAbstractSetSerializer.class);
+    kryo.register(scala.collection.immutable.Set.class);
+    kryo.setWarnUnregisteredClasses(true);
+    kryo.setRegistrationRequired(false);
+    var exampleSetBuilder = Set.newBuilder();
+    exampleSetBuilder.addOne(1);
+    exampleSetBuilder.addOne(2);
+    exampleSetBuilder.addOne(2);
+    exampleSetBuilder.addOne(3);
+    var exampleSet = exampleSetBuilder.result();
+    var bytes = serialize(kryo, exampleSet);
+    assertNotEquals(bytes.length, 0);
+    var result = deserialize(kryo, bytes, scala.collection.immutable.Set.class);
+    assertEquals(exampleSet, result);
+  }
+
+  @Test
+  public void testAliasAnalysisScope() throws Exception {
+    var referenceResolver = new MapReferenceResolver();
+    var classResolver = new SubclassResolver();
+    classResolver.enable();
+    var kryo = new ScalaKryo(classResolver, referenceResolver);
+    kryo.addDefaultSerializer(
+        scala.collection.Set.class, ScalaImmutableAbstractSetSerializer.class);
+    kryo.register(scala.collection.immutable.Set.class);
+    kryo.register(scala.None$.class);
+    kryo.register(scala.collection.immutable.Nil$.class);
+    kryo.setWarnUnregisteredClasses(true);
+    kryo.setRegistrationRequired(false);
+    var exampleSet = new org.enso.compiler.pass.analyse.AliasAnalysisDefs.Scope();
+    var bytes = serialize(kryo, exampleSet);
+    assertNotEquals(bytes.length, 0);
+    var result =
+        deserialize(kryo, bytes, org.enso.compiler.pass.analyse.AliasAnalysisDefs.Scope.class);
+    assertEquals(exampleSet, result);
+  }
+
+  @Test
+  public void testSimpleUUID() throws Exception {
+    var kryo = new Kryo();
+    kryo.register(UUID.class, new UUIDSerializer());
+    kryo.register(scala.collection.immutable.Set.class);
+    kryo.setRegistrationRequired(false);
+    kryo.setWarnUnregisteredClasses(true);
+    var exampleUUID = UUID.randomUUID();
+    var bytes = serialize(kryo, exampleUUID);
+    assertNotEquals(bytes.length, 0);
+    var result = deserialize(kryo, bytes, UUID.class);
+    assertEquals(exampleUUID, result);
+  }
+
+  private byte[] serialize(Kryo kryo, Object object) throws IOException {
+    var stream = new ByteArrayOutputStream(4096);
+    try (var output = new Output(stream)) {
+      kryo.writeClassAndObject(output, object);
+    }
+    return stream.toByteArray();
+  }
+
+  @SuppressWarnings("unchecked")
+  private <T> T deserialize(Kryo kryo, byte[] buffer, Class<T> clazz) {
+    Object t;
+    try (var input = new Input(buffer)) {
+      t = kryo.readClassAndObject(input);
+    }
+    return (T) t;
+  }
 
   @Test
   public void testFibTest() throws Exception {

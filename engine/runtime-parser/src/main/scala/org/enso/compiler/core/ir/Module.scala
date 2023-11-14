@@ -29,10 +29,28 @@ sealed case class Module(
   bindings: List[Definition],
   isPrivate: Boolean,
   location: Option[IdentifiedLocation],
-  passData: MetadataStorage      = MetadataStorage(),
-  diagnostics: DiagnosticStorage = DiagnosticStorage()
+  passData: MetadataStorage,
+  diagnostics: DiagnosticStorage
 ) extends IR
     with IRKind.Primitive {
+
+  def this(
+    imports: List[Import],
+    exports: List[Export],
+    bindings: List[Definition],
+    isPrivate: Boolean,
+    location: Option[IdentifiedLocation]
+  ) = {
+    this(
+      imports,
+      exports,
+      bindings,
+      isPrivate,
+      location,
+      MetadataStorage(),
+      DiagnosticStorage()
+    )
+  }
   var id: UUID @Identifier = randomId
 
   /** Creates a copy of `this`.
@@ -139,5 +157,27 @@ sealed case class Module(
     val defsString    = bindings.map(_.showCode(indent)).mkString("\n\n")
 
     List(importsString, exportsString, defsString).mkString("\n\n")
+  }
+}
+
+object Module {
+  def apply(
+    imports: List[Import],
+    exports: List[Export],
+    bindings: List[Definition],
+    isPrivate: Boolean,
+    location: Option[IdentifiedLocation],
+    passData: MetadataStorage      = MetadataStorage(),
+    diagnostics: DiagnosticStorage = DiagnosticStorage()
+  ): Module = {
+    new Module(
+      imports,
+      exports,
+      bindings,
+      isPrivate,
+      location,
+      passData,
+      diagnostics
+    )
   }
 }

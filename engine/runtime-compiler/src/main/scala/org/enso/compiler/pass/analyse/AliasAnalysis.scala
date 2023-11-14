@@ -1216,10 +1216,14 @@ case object AliasAnalysis extends IRPass {
       *                       Note that there may not be a link for all these definitions.
       */
     sealed class Scope(
-      var childScopes: List[Scope]             = List(),
-      var occurrences: Set[Occurrence]         = Set(),
-      var allDefinitions: List[Occurrence.Def] = List()
+      var childScopes: List[Scope],
+      var occurrences: Set[Occurrence],
+      var allDefinitions: List[Occurrence.Def]
     ) extends Serializable {
+
+      def this() = {
+        this(List(), Set(), List())
+      }
 
       var parent: Option[Scope] = None
 

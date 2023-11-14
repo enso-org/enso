@@ -455,10 +455,46 @@ object Name {
     override val name: String,
     override val isMethod: Boolean,
     location: Option[IdentifiedLocation],
-    originalName: Option[Name]     = None,
-    passData: MetadataStorage      = MetadataStorage(),
-    diagnostics: DiagnosticStorage = DiagnosticStorage()
+    originalName: Option[Name],
+    passData: MetadataStorage,
+    diagnostics: DiagnosticStorage
   ) extends Name {
+
+    def this(name: String, isMethod: Boolean) = {
+      this(name, isMethod, None, None, MetadataStorage(), DiagnosticStorage())
+    }
+
+    def this(
+      name: String,
+      isMethod: Boolean,
+      location: Option[IdentifiedLocation]
+    ) = {
+      this(
+        name,
+        isMethod,
+        location,
+        None,
+        MetadataStorage(),
+        DiagnosticStorage()
+      )
+    }
+
+    def this(
+      name: String,
+      isMethod: Boolean,
+      location: Option[IdentifiedLocation],
+      originalName: Option[Name]
+    ) = {
+      this(
+        name,
+        isMethod,
+        location,
+        originalName,
+        MetadataStorage(),
+        DiagnosticStorage()
+      )
+    }
+
     var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
@@ -529,6 +565,23 @@ object Name {
 
     /** @inheritdoc */
     override def showCode(indent: Int): String = name
+  }
+
+  object Literal {
+
+    def apply(
+      name: String,
+      isMethod: Boolean,
+      location: Option[IdentifiedLocation]
+    ): Literal =
+      new Literal(name, isMethod, location)
+    def apply(
+      name: String,
+      isMethod: Boolean,
+      location: Option[IdentifiedLocation],
+      originalName: Option[Name]
+    ): Literal =
+      new Literal(name, isMethod, location, originalName)
   }
 
   /** Base trait for annotations. */

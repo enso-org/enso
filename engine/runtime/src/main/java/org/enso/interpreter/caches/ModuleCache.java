@@ -16,7 +16,11 @@ import org.enso.compiler.core.ir.Module;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.polyglot.CompilationStage;
-
+import com.esotericsoftware.kryo.util.MapReferenceResolver;
+import io.altoo.serialization.kryo.scala.serializer.ScalaImmutableAbstractMapSerializer;
+import io.altoo.serialization.kryo.scala.serializer.ScalaImmutableAbstractSetSerializer;
+import io.altoo.serialization.kryo.scala.serializer.ScalaMutableMapSerializer;
+import io.altoo.serialization.kryo.scala.serializer.SubclassResolver;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -37,23 +41,84 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
       this.dataSuffix = irCacheDataExtension;
       this.metadataSuffix = irCacheMetadataExtension;
       kryo.setRegistrationRequired(false);
+      if (kryo.getClassResolver() instanceof SubclassResolver resolver) {
+          resolver.enable();
+      }
+      kryo.setWarnUnregisteredClasses(true);
+      kryo.addDefaultSerializer(java.util.UUID.class, UUIDSerializer.class);
+      kryo.addDefaultSerializer(scala.collection.Set.class, ScalaImmutableAbstractSetSerializer.class);
+      kryo.addDefaultSerializer(scala.collection.Map.class, ScalaImmutableAbstractMapSerializer.class);
+      kryo.addDefaultSerializer(scala.collection.mutable.Map.class, ScalaMutableMapSerializer.class);
+      kryo.register(java.util.UUID.class);
+      kryo.register(scala.collection.immutable.Set.class);
+      kryo.register(scala.collection.immutable.Map.class);
+      kryo.register(scala.collection.immutable.List.class);
+        kryo.register(scala.collection.immutable.$colon$colon.class);
+      kryo.register(scala.collection.mutable.HashMap.class);
+      kryo.register(org.enso.compiler.core.ir.Module.class);
+      kryo.register(org.enso.compiler.core.ir.module.scope.definition.Method.Explicit.class);
+      kryo.register(org.enso.compiler.core.ir.IdentifiedLocation.class);
+        kryo.register(org.enso.compiler.core.ir.DefinitionArgument.Specified.class);
+        kryo.register(org.enso.compiler.core.ir.expression.Application.Prefix.class);
+        kryo.register(org.enso.compiler.core.ir.CallArgument.Specified.class);
+        kryo.register(org.enso.compiler.core.ir.DiagnosticStorage.class);
+        kryo.register(org.enso.compiler.core.ir.Function.Lambda.class);
+        kryo.register(org.enso.compiler.core.ir.Literal.Number.class);
+        kryo.register(org.enso.compiler.core.ir.Name.Self.class);
+        kryo.register(org.enso.compiler.core.ir.Name.Literal.class);
+        kryo.register(org.enso.compiler.core.ir.Name.MethodReference.class);
+        kryo.register(org.enso.compiler.core.ir.expression.Application.Prefix.class);
+        kryo.register(org.enso.compiler.core.ir.MetadataStorage.class);
+
+        kryo.register(org.enso.compiler.pass.analyse.TailCall$.class);
+        kryo.register(org.enso.compiler.pass.analyse.AliasAnalysisDefs.Scope.class);
+        kryo.register(org.enso.compiler.pass.analyse.DataflowAnalysis.DependencyMapping.class);
+        kryo.register(org.enso.compiler.pass.analyse.DataflowAnalysis.DependencyInfo.class);
+        kryo.register(org.enso.compiler.pass.resolve.IgnoredBindings$.class);
+
+        kryo.register(org.enso.compiler.pass.analyse.AliasAnalysis$.class);
+        kryo.register(org.enso.compiler.pass.analyse.AliasAnalysisDefs.Occurrence.class);
+        kryo.register(org.enso.compiler.pass.analyse.AliasAnalysis.Graph.class);
+        kryo.register(org.enso.syntax.text.Location.class);
+
+        kryo.register(org.enso.compiler.pass.analyse.CachePreferenceAnalysis$.class);
+        kryo.register(org.enso.compiler.pass.analyse.CachePreferenceAnalysis.WeightInfo.class);
+        kryo.register(scala.collection.immutable.HashMap.class);
+        kryo.register(org.enso.compiler.pass.resolve.ModuleAnnotations$.class);
+        kryo.register(org.enso.compiler.pass.resolve.ModuleAnnotations.Annotations.class);
+        kryo.register(org.enso.compiler.pass.resolve.GenericAnnotations$.class);
+        kryo.register(org.enso.compiler.pass.resolve.GlobalNames$.class);
+        kryo.register(org.enso.compiler.pass.analyse.BindingAnalysis$.class);
+        kryo.register(org.enso.compiler.data.BindingsMap.class);
+        kryo.register(org.enso.pkg.QualifiedName.class);
+        kryo.register(org.enso.compiler.data.BindingsMap.ModuleMethod.class);
+        kryo.register(org.enso.compiler.data.BindingsMap.ResolvedMethod.class);
+        kryo.register(org.enso.compiler.data.BindingsMap.Resolution.class);
+        kryo.register(org.enso.interpreter.caches.ModuleCache.Metadata.class);
+
+
+        kryo.register(scala.collection.immutable.Nil$.class);
+
+        kryo.register(scala.None$.class);
+        kryo.register(scala.Some.class);
     }
 
     @Override
     protected byte[] metadata(String sourceDigest, String blobDigest, CachedModule entry) {
-            try (var output = new Output()) {
-                var object = new Metadata(sourceDigest, blobDigest, entry.compilationStage().toString());
-                kryo.writeObject(output, object);
-                return output.toBytes();
-            }
+        var stream = new ByteArrayOutputStream(4095);
+        try (var output = new Output(stream)) {
+            var object = new Metadata(sourceDigest, blobDigest, entry.compilationStage().toString());
+            kryo.writeClassAndObject(output, object);
+        }
+        return stream.toByteArray();
     }
 
     @Override
     protected CachedModule deserialize(EnsoContext context, byte[] data, Metadata meta, TruffleLogger logger) throws ClassNotFoundException, IOException, ClassNotFoundException {
         try (var stream = new Input(data)) {
-          Module ir = kryo.readObject(stream, Module.class);
+          Object ir = kryo.readClassAndObject(stream);
               try {
-                  return new CachedModule(ir,CompilationStage.valueOf(meta.compilationStage()), module.getSource());
+                  return new CachedModule((Module)ir,CompilationStage.valueOf(meta.compilationStage()), module.getSource());
               } catch (IOException ioe) {
                   throw new ClassNotFoundException(ioe.getMessage());
               }
@@ -63,8 +128,8 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
     @Override
     protected Optional<Metadata> metadataFromBytes(byte[] bytes, TruffleLogger logger) {
         try (var stream = new Input(bytes)) {
-            Metadata metadata = kryo.readObject(stream, Metadata.class);
-            return Optional.of(metadata);
+            Object metadata = kryo.readClassAndObject(stream);
+            return Optional.of((Metadata)metadata);
         }
     }
 
@@ -140,7 +205,7 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
 
     @Override
     protected byte[] serialize(EnsoContext context, CachedModule entry) throws IOException {
-      var byteStream = new ByteArrayOutputStream();
+      var byteStream = new ByteArrayOutputStream(4096);
       boolean noUUIDs = false;
       for (var p : context.getPackageRepository().getLoadedPackagesJava()) {
         if ("Standard".equals(p.namespace())) {
@@ -170,8 +235,8 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
         }
         Output output = null;
         try {
-            output = new Output(stream);
-            kryo.writeObject(output, entry.moduleIR());
+            output = new Output(stream, 4096);
+            kryo.writeClassAndObject(output, entry.moduleIR());
         } finally {
             output.close();
         }
@@ -192,6 +257,6 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
     private final static String irCacheMetadataExtension = ".meta";
 
     private final static ObjectMapper objectMapper = new ObjectMapper();
-    private final static Kryo kryo = new Kryo();
+    private final static Kryo kryo = new Kryo(new SubclassResolver(), new MapReferenceResolver());
 
 }
