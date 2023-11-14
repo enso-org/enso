@@ -154,10 +154,12 @@ function requiredImports(db: SuggestionDb, entry: SuggestionEntry): RequiredImpo
       return selfType ? requiredImports(db, selfType) : []
     }
     case SuggestionKind.Method: {
+      // TODO: we’re not handling extension methods here.
       const isStatic = entry.selfType == null
+      const selfType = selfTypeEntry(db, entry)
+      const selfTypeImports = isStatic && selfType ? requiredImports(db, selfType) : []
       if (isStatic) {
-        const selfType = selfTypeEntry(db, entry)
-        return selfType ? requiredImports(db, selfType) : []
+        return selfTypeImports
       } else {
         return []
       }
@@ -193,6 +195,7 @@ if (import.meta.vitest) {
     db.set(4, reexportedType)
     db.set(5, makeCon('Standard.Base.Type.Constructor'))
     db.set(6, makeStaticMethod('Standard.Base.Type.staticMethod'))
+    db.set(7, makeMethod('Standard.Base.Type.method'))
 
     return db
   }
@@ -245,6 +248,10 @@ if (import.meta.vitest) {
           from: unwrap(tryQualifiedName('Standard.Base')),
           import: unwrap(tryIdentifier('Type'))
         }]
+      },
+      {
+        id: 7,
+        expected: []
       },
     ]
   )('Required imports $id', ({ id, expected }) => {
