@@ -224,8 +224,6 @@ watchPostEffect(() => {
 </template>
 
 <style scoped>
-@import url('https://fonts.cdnfonts.com/css/dejavu-sans-mono');
-
 .HeatmapVisualization {
   display: flex;
 }
