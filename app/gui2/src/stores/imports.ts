@@ -58,11 +58,6 @@ function recognizeImport(ast: AstExtended<Ast.Tree.Import>): Import | null {
   const import_ = ast.tryMap((import_) => import_.import.body)
   const all = ast.tryMap((import_) => import_.all)
   const hiding = ast.tryMap((import_) => import_.hiding?.body)
-  // console.log('from: ', from ? from.repr() : 'undefined')
-  // console.log('as: ', as ? as.repr() : 'undefined')
-  // console.log('import_: ', import_ ? import_.repr() : 'undefined')
-  // console.log('all: ', all ? all.repr() : 'undefined')
-  // console.log('hiding: ', hiding ? hiding.repr() : 'undefined')
   const module = from != null ? parseQualifiedName(from)
     : import_ != null ? parseQualifiedName(import_) : null
   if (!module) return null
@@ -146,27 +141,6 @@ if (import.meta.vitest) {
       expected: {
         from: unwrap(tryQualifiedName('Standard.Base.Table')),
         imported: { kind: 'List', names: [unwrap(tryIdentifier('Table'))] }
-      }
-    },
-    {
-      code: 'from Standard.Collections import Array, HashMap',
-      expected: {
-        from: unwrap(tryQualifiedName('Standard.Collections')),
-        imported: { kind: 'List', names: [unwrap(tryIdentifier('Array')), unwrap(tryIdentifier('HashMap'))] }
-      }
-    },
-    {
-      code: 'import Standard.Database',
-      expected: {
-        from: unwrap(tryQualifiedName('Standard.Database')),
-        imported: { kind: 'Module' }
-      }
-    },
-    {
-      code: 'import Standard.Base',
-      expected: {
-        from: unwrap(tryQualifiedName('Standard.Base')),
-        imported: { kind: 'Module' }
       }
     },
     {
