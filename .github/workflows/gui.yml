@@ -817,8 +817,10 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Bump Electron Builder (macOS workaround)
-        run: npm install electron-builder@24.6.4
+      - name: Uninstall old Electron Builder
+        run: npm uninstall --save --workspace enso electron-builder
+      - name: Install new Electron Builder
+        run: npm install --save-dev --workspace enso electron-builder@24.6.4
       - run: ./run ide2 build --backend-source current-ci-run --gui2-upload-artifact false
         env:
           APPLEID: ${{ secrets.APPLE_NOTARIZATION_USERNAME }}
@@ -1008,8 +1010,10 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Bump Electron Builder (macOS workaround)
-        run: npm install electron-builder@24.6.4
+      - name: Uninstall old Electron Builder
+        run: npm uninstall --save --workspace enso electron-builder
+      - name: Install new Electron Builder
+        run: npm install --save-dev --workspace enso electron-builder@24.6.4
       - run: ./run ide build --wasm-source current-ci-run --backend-source current-ci-run
         env:
           APPLEID: ${{ secrets.APPLE_NOTARIZATION_USERNAME }}

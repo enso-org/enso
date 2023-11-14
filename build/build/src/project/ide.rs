@@ -49,7 +49,7 @@ impl Artifact {
         let image = dist_dir.as_ref().join(match target_os {
             OS::Linux => format!("enso-linux-{version}.AppImage"),
             OS::MacOS => format!("enso-mac-{version}.dmg"),
-            OS::Windows => format!("enso-win-{version}.msi"),
+            OS::Windows => format!("enso-win-{version}.exe"),
             _ => todo!("{target_os}-{target_arch} combination is not supported"),
         });
 

@@ -253,16 +253,27 @@ pub fn expose_os_specific_signing_secret(os: OS, step: Step) -> Step {
 
 /// The command that bumps the version of the Electron-Builder to
 /// [`ELECTRON_BUILDER_MACOS_VERSION`].
-pub fn bump_electron_builder() -> Step {
-    // e.g. ` npm install electron-builder@24.6.4`
-    let command = format!("npm install electron-builder@{ELECTRON_BUILDER_MACOS_VERSION}");
-    Step { run: Some(command), ..default() }.with_name("Bump Electron Builder (macOS workaround)")
+pub fn bump_electron_builder() -> Vec<Step> {
+    let uninstall_old = Step {
+        name: Some("Uninstall old Electron Builder".into()),
+        run: Some("npm uninstall --save --workspace enso electron-builder".into()),
+        ..default()
+    };
+    let command = format!(
+        "npm install --save-dev --workspace enso electron-builder@{ELECTRON_BUILDER_MACOS_VERSION}"
+    );
+    let install_new = Step {
+        name: Some("Install new Electron Builder".into()),
+        run: Some(command.clone()),
+        ..default()
+    };
+    vec![uninstall_old, install_new]
 }
 
 pub fn prepare_packaging_steps(os: OS, step: Step) -> Vec<Step> {
     let mut steps = Vec::new();
     if os == OS::MacOS {
-        steps.push(bump_electron_builder());
+        steps.extend(bump_electron_builder());
     }
     steps.push(expose_os_specific_signing_secret(os, step));
     steps
