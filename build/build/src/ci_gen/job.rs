@@ -264,11 +264,8 @@ pub fn bump_electron_builder() -> Vec<Step> {
     let command = format!(
         "npm install --save-dev --workspace enso electron-builder@{ELECTRON_BUILDER_MACOS_VERSION}"
     );
-    let install_new = Step {
-        name: Some("Install new Electron Builder".into()),
-        run: Some(command),
-        ..default()
-    };
+    let install_new =
+        Step { name: Some("Install new Electron Builder".into()), run: Some(command), ..default() };
     vec![npm_install, uninstall_old, install_new]
 }
 
@@ -281,6 +278,10 @@ pub fn prepare_packaging_steps(os: OS, step: Step) -> Vec<Step> {
     steps
 }
 
+pub fn with_packaging_steps(os: OS) -> impl FnOnce(Step) -> Vec<Step> {
+    move |step| prepare_packaging_steps(os, step)
+}
+
 #[derive(Clone, Copy, Debug)]
 pub struct PackageOldIde;
 impl JobArchetype for PackageOldIde {
@@ -289,7 +290,7 @@ impl JobArchetype for PackageOldIde {
             &os,
             "Package Old IDE",
             "ide build --wasm-source current-ci-run --backend-source current-ci-run",
-            |step| prepare_packaging_steps(os, step),
+            with_packaging_steps(os),
         )
     }
 }
@@ -302,7 +303,7 @@ impl JobArchetype for PackageNewIde {
             &os,
             "Package New IDE",
             "ide2 build --backend-source current-ci-run --gui2-upload-artifact false",
-            |step| prepare_packaging_steps(os, step),
+            with_packaging_steps(os),
         )
     }
 }
