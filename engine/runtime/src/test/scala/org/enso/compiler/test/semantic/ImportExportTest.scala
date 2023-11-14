@@ -4,6 +4,7 @@ import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.{Module, Warning}
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.Import
+import org.enso.compiler.core.Persistance
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.interpreter.runtime
@@ -15,9 +16,10 @@ import org.scalatest.BeforeAndAfter
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 
-import java.io.{ByteArrayOutputStream, ObjectOutputStream}
+import java.io.ByteArrayOutputStream
 import java.nio.file.Paths
 import java.util.logging.Level
+import java.io.IOException
 
 /** Tests a single package with multiple modules for import/export resolution.
   * Checks whether the exported symbols and defined entities metadata of the modules
@@ -908,13 +910,11 @@ class ImportExportTest
         .diagnostics
         .collect({ case w: Warning.DuplicatedImport => w })
       warn.size shouldEqual 1
-      val baos   = new ByteArrayOutputStream()
-      val stream = new ObjectOutputStream(baos)
       mainIr.preorder.foreach(
         _.passData.prepareForSerialization(langCtx.getCompiler.context)
       )
-      stream.writeObject(mainIr)
-      baos.toByteArray should not be empty
+      val arr = Persistance.writeObject(mainIr)
+      arr should not be empty
     }
 
     "serialize ambiguous import error" in {
@@ -940,13 +940,18 @@ class ImportExportTest
         .reason
         .asInstanceOf[errors.ImportExport.AmbiguousImport]
       ambiguousImport.symbolName shouldEqual "A_Type"
-      val baos   = new ByteArrayOutputStream()
-      val stream = new ObjectOutputStream(baos)
       mainIr.preorder.foreach(
         _.passData.prepareForSerialization(langCtx.getCompiler.context)
       )
-      stream.writeObject(mainIr)
-      baos.toByteArray should not be empty
+      try {
+        val arr = Persistance.writeObject(mainIr)
+        fail("Shouldn't return anything when there is an error" + arr)
+      } catch {
+        case ex: IOException =>
+          ex.getMessage should equal(
+            "No persistance for org.enso.compiler.core.ir.expression.errors.ImportExport"
+          )
+      }
     }
   }
 
