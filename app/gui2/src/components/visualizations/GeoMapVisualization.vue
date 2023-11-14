@@ -409,8 +409,6 @@ function pushPoints(newPoints: Location[]) {
 </template>
 
 <style scoped>
-@import url('https://api.tiles.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css');
-
 .GeoMapVisualization {
   height: 100%;
 }

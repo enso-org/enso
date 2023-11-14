@@ -16,8 +16,6 @@ const props = defineProps<{ data: unknown }>()
 </template>
 
 <style scoped>
-@import url('https://fonts.cdnfonts.com/css/dejavu-sans-mono');
-
 .JSONVisualization {
   font-family: 'DejaVu Sans Mono', monospace;
   white-space: pre;

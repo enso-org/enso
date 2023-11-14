@@ -131,8 +131,6 @@ function renderRegularInterpolation(value: string, fgColor: RGBA, bgColor: RGBA)
 </template>
 
 <style scoped>
-@import url('https://fonts.cdnfonts.com/css/dejavu-sans-mono');
-
 .SQLVisualization {
   padding: 4px;
 }
