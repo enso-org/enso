@@ -20,6 +20,7 @@ export enum LocalStorageKey {
     isTemplatesListOpen = 'is-templates-list-open',
     projectStartupInfo = 'project-startup-info',
     driveCategory = 'drive-category',
+    loginRedirect = 'login-redirect',
 }
 
 /** The data that can be stored in a {@link LocalStorage}. */
@@ -30,6 +31,7 @@ interface LocalStorageData {
     [LocalStorageKey.isTemplatesListOpen]: boolean
     [LocalStorageKey.projectStartupInfo]: backend.ProjectStartupInfo
     [LocalStorageKey.driveCategory]: categorySwitcher.Category
+    [LocalStorageKey.loginRedirect]: string
 }
 
 /** Whether each {@link LocalStorageKey} is user specific.
@@ -42,6 +44,7 @@ const IS_USER_SPECIFIC: Record<LocalStorageKey, boolean> = {
     [LocalStorageKey.isTemplatesListOpen]: false,
     [LocalStorageKey.projectStartupInfo]: true,
     [LocalStorageKey.driveCategory]: false,
+    [LocalStorageKey.loginRedirect]: true,
 }
 
 /** A LocalStorage data manager. */
@@ -118,6 +121,12 @@ export class LocalStorage {
                 ) {
                     this.values[LocalStorageKey.driveCategory] =
                         savedValues[LocalStorageKey.driveCategory]
+                }
+            }
+            if (LocalStorageKey.loginRedirect in savedValues) {
+                const value = savedValues[LocalStorageKey.loginRedirect]
+                if (typeof value === 'string') {
+                    this.values[LocalStorageKey.loginRedirect] = value
                 }
             }
             if (
