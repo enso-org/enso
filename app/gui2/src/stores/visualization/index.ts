@@ -120,7 +120,7 @@ export const useVisualizationStore = defineStore('visualization', () => {
           const node = document.createElement('script')
           node.src = url
           // Some resources still set only "Access-Control-Allow-Origin" in the response.
-          // We need to explicit make a request CORS - see https://resourcepolicy.fyi
+          // We need to explicitly make a request CORS - see https://resourcepolicy.fyi
           node.crossOrigin = 'anonymous'
           promises.push(
             new Promise<void>((resolve, reject) => {
