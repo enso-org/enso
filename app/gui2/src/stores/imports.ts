@@ -2,6 +2,9 @@ import { Ast, AstExtended } from "@/util/ast"
 import { GeneralOprApp } from "@/util/ast/opr"
 import { tryIdentifier, type Identifier, type QualifiedName, tryQualifiedName, fromSegments } from "@/util/qualifiedName"
 import { unwrap, type Result } from "@/util/result"
+import { SuggestionDb } from "@/stores/suggestionDatabase"
+import { entryQn, makeCon, makeMethod, makeModule, makeStaticMethod, makeType } from "@/stores/suggestionDatabase/entry"
+import { type SuggestionEntry, SuggestionKind } from "@/stores/suggestionDatabase/entry"
 
 function parseIdent(ast: AstExtended): Identifier | null {
   if (ast.isTree(Ast.Tree.Type.Ident) || ast.isToken(Ast.Token.Type.Ident)) {
@@ -109,8 +112,145 @@ interface All {
   except: Identifier[]
 }
 
+export type RequiredImport = QualifiedImport | UnqualifiedImport
+interface QualifiedImport {
+  kind: 'Qualified'
+  module: QualifiedName
+}
+
+interface UnqualifiedImport {
+  kind: 'Unqualified'
+  from: QualifiedName
+  import: Identifier
+}
+
+function requiredImports(db: SuggestionDb, entry: SuggestionEntry): RequiredImport[] {
+  switch (entry.kind) {
+    case SuggestionKind.Module:
+      {
+        return entry.reexportedIn ?
+          [{
+            kind: 'Unqualified',
+            from: entry.reexportedIn,
+            import: entry.name
+          }]
+          : [{
+            kind: 'Qualified',
+            module: entryQn(entry)
+          }]
+
+      }
+    case SuggestionKind.Type:
+      {
+        const from = entry.reexportedIn ? entry.reexportedIn : entry.definedIn
+        return [{
+          kind: 'Unqualified',
+          from,
+          import: entry.name
+        }]
+      }
+    case SuggestionKind.Constructor: {
+      const selfType = selfTypeEntry(db, entry)
+      return selfType ? requiredImports(db, selfType) : []
+    }
+    case SuggestionKind.Method: {
+      const isStatic = entry.selfType == null
+      if (isStatic) {
+        const selfType = selfTypeEntry(db, entry)
+        return selfType ? requiredImports(db, selfType) : []
+      } else {
+        return []
+      }
+    }
+    case SuggestionKind.Function:
+    case SuggestionKind.Local:
+    default:
+      return []
+  }
+}
+
+function selfTypeEntry(db: SuggestionDb, entry: SuggestionEntry): SuggestionEntry | undefined {
+  const name = entryQn(entry)
+  const [id] = db.nameToId.lookup(name)
+  const [parentId] = id ? db.parent.lookup(id) : []
+  if (parentId) {
+    return db.get(parentId)
+  }
+}
+
 if (import.meta.vitest) {
   const { test, expect } = import.meta.vitest
+
+  const mockDb = () => {
+    const db = new SuggestionDb()
+    const reexportedModule = makeModule('Standard.AWS.Connections')
+    reexportedModule.reexportedIn = unwrap(tryQualifiedName('Standard.Base'))
+    const reexportedType = makeModule('Standard.Database.Table.Table')
+    reexportedType.reexportedIn = unwrap(tryQualifiedName('Standard.Base'))
+    db.set(1, makeModule('Standard.Base'))
+    db.set(2, makeType('Standard.Base.Type'))
+    db.set(3, reexportedModule)
+    db.set(4, reexportedType)
+    db.set(5, makeCon('Standard.Base.Type.Constructor'))
+    db.set(6, makeStaticMethod('Standard.Base.Type.staticMethod'))
+
+    return db
+  }
+
+  test.each(
+    [
+      {
+        id: 1,
+        expected: [{
+          kind: 'Qualified',
+          module: unwrap(tryQualifiedName('Standard.Base')),
+        }]
+      },
+      {
+        id: 2,
+        expected: [{
+          kind: 'Unqualified',
+          from: unwrap(tryQualifiedName('Standard.Base')),
+          import: unwrap(tryIdentifier('Type'))
+        }]
+      },
+      {
+        id: 3,
+        expected: [{
+          kind: 'Unqualified',
+          from: unwrap(tryQualifiedName('Standard.Base')),
+          import: unwrap(tryIdentifier('Connections'))
+        }]
+      },
+      {
+        id: 4,
+        expected: [{
+          kind: 'Unqualified',
+          from: unwrap(tryQualifiedName('Standard.Base')),
+          import: unwrap(tryIdentifier('Table'))
+        }]
+      },
+      {
+        id: 5,
+        expected: [{
+          kind: 'Unqualified',
+          from: unwrap(tryQualifiedName('Standard.Base')),
+          import: unwrap(tryIdentifier('Type'))
+        }]
+      },
+      {
+        id: 6,
+        expected: [{
+          kind: 'Unqualified',
+          from: unwrap(tryQualifiedName('Standard.Base')),
+          import: unwrap(tryIdentifier('Type'))
+        }]
+      },
+    ]
+  )('Required imports $id', ({ id, expected }) => {
+    const db = mockDb()
+    expect(requiredImports(db, db.get(id)!)).toStrictEqual(expected)
+  })
 
   const parseImport = (code: string): Import | null => {
     let ast = null
