@@ -63,25 +63,20 @@ function recognizeImport(ast: AstExtended<Ast.Tree.Import>): Import | null {
   // console.log('import_: ', import_ ? import_.repr() : 'undefined')
   // console.log('all: ', all ? all.repr() : 'undefined')
   // console.log('hiding: ', hiding ? hiding.repr() : 'undefined')
-  const module = from != null ? parseQualifiedName(from) 
+  const module = from != null ? parseQualifiedName(from)
     : import_ != null ? parseQualifiedName(import_) : null
   if (!module) return null
   if (all) {
+    const except = (hiding != null ? parseIdents(hiding) : []) ?? []
     return {
       from: module,
-      imported: { kind: 'All', except: [] }
+      imported: { kind: 'All', except }
     }
-  } else if (from) {
-    if (import_) {
-      const names = parseIdents(import_) ?? []
-      return {
-        from: module,
-        imported: { kind: 'List', names }
-      }
-    }
+  } else if (from && import_) {
+    const names = parseIdents(import_) ?? []
     return {
       from: module,
-      imported: { kind: 'List', names: [unwrap(tryIdentifier('Table'))] }
+      imported: { kind: 'List', names }
     }
   } else if (import_) {
     const alias = as ? parseIdent(as) : null
@@ -207,6 +202,20 @@ if (import.meta.vitest) {
       expected: {
         from: unwrap(tryQualifiedName('Standard.Base')),
         imported: { kind: 'List', names: [unwrap(tryIdentifier('Foo')), unwrap(tryIdentifier('Bar')), unwrap(tryIdentifier('Buz'))] }
+      }
+    },
+    {
+      code: 'from Standard.Base import all hiding Foo, Bar',
+      expected: {
+        from: unwrap(tryQualifiedName('Standard.Base')),
+        imported: { kind: 'All', except: [unwrap(tryIdentifier('Foo')), unwrap(tryIdentifier('Bar'))] }
+      }
+    },
+    {
+      code: 'from   Standard  . Base import  all  hiding  Foo ,  Bar ,Buz',
+      expected: {
+        from: unwrap(tryQualifiedName('Standard.Base')),
+        imported: { kind: 'All', except: [unwrap(tryIdentifier('Foo')), unwrap(tryIdentifier('Bar')), unwrap(tryIdentifier('Buz'))] }
       }
     },
   ])('Recognizing import $code', ({ code, expected }) => {
