@@ -1,62 +1,5 @@
 package org.enso.interpreter.service;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.function.Consumer;
-
-import com.oracle.truffle.api.CallTarget;
-import com.oracle.truffle.api.instrumentation.EventBinding;
-import com.oracle.truffle.api.instrumentation.ExecutionEventNodeFactory;
-import com.oracle.truffle.api.nodes.RootNode;
-import java.util.Arrays;
-import java.util.Objects;
-import java.util.UUID;
-import java.util.function.Consumer;
-import java.util.logging.Level;
-
-import org.enso.interpreter.instrument.profiling.ProfilingInfo;
-import org.enso.interpreter.node.MethodRootNode;
-import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
-import org.enso.interpreter.node.expression.atom.QualifiedAccessorNode;
-import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
-import org.enso.interpreter.runtime.Module;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
-import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.callable.function.FunctionSchema;
-import org.enso.interpreter.runtime.data.Type;
-import org.enso.logger.masking.MaskedString;
-import org.enso.pkg.QualifiedName;
-
-import org.enso.compiler.context.SimpleUpdate;
-import org.enso.interpreter.instrument.Endpoint;
-import org.enso.polyglot.debugger.IdExecutionService;
-import org.enso.interpreter.instrument.MethodCallsCache;
-import org.enso.interpreter.instrument.NotificationHandler;
-import org.enso.interpreter.instrument.RuntimeCache;
-import org.enso.interpreter.instrument.Timer;
-import org.enso.interpreter.instrument.UpdatesSynchronizationState;
-import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
-import org.enso.interpreter.node.expression.builtin.text.util.TypeToDisplayTextNodeGen;
-import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.Module;
-import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.interpreter.runtime.scope.ModuleScope;
-import org.enso.interpreter.runtime.state.State;
-import org.enso.interpreter.service.error.FailedToApplyEditsException;
-import org.enso.interpreter.service.error.MethodNotFoundException;
-import org.enso.interpreter.service.error.ModuleNotFoundException;
-import org.enso.interpreter.service.error.SourceNotFoundException;
-import org.enso.interpreter.service.error.TypeNotFoundException;
-import org.enso.lockmanager.client.ConnectedLockManager;
-import org.enso.polyglot.LanguageInfo;
-import org.enso.polyglot.MethodNames;
-import org.enso.text.editing.JavaEditorAdapter;
-import org.enso.text.editing.model;
-
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleLogger;
@@ -71,6 +14,53 @@ import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.SourceSection;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.function.Consumer;
+import java.util.logging.Level;
+
+import org.enso.compiler.context.SimpleUpdate;
+import org.enso.interpreter.instrument.Endpoint;
+import org.enso.interpreter.instrument.MethodCallsCache;
+import org.enso.interpreter.instrument.NotificationHandler;
+import org.enso.interpreter.instrument.RuntimeCache;
+import org.enso.interpreter.instrument.Timer;
+import org.enso.interpreter.instrument.UpdatesSynchronizationState;
+import org.enso.interpreter.instrument.VisualizationHolder;
+import org.enso.interpreter.instrument.profiling.ProfilingInfo;
+import org.enso.interpreter.node.MethodRootNode;
+import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
+import org.enso.interpreter.node.expression.atom.QualifiedAccessorNode;
+import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
+import org.enso.interpreter.node.expression.builtin.text.util.TypeToDisplayTextNodeGen;
+import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.Module;
+import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.callable.function.FunctionSchema;
+import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.scope.ModuleScope;
+import org.enso.interpreter.runtime.state.State;
+import org.enso.interpreter.service.error.FailedToApplyEditsException;
+import org.enso.interpreter.service.error.MethodNotFoundException;
+import org.enso.interpreter.service.error.ModuleNotFoundException;
+import org.enso.interpreter.service.error.SourceNotFoundException;
+import org.enso.interpreter.service.error.TypeNotFoundException;
+import org.enso.lockmanager.client.ConnectedLockManager;
+import org.enso.logger.masking.MaskedString;
+import org.enso.pkg.QualifiedName;
+import org.enso.polyglot.LanguageInfo;
+import org.enso.polyglot.MethodNames;
+import org.enso.polyglot.debugger.ExecutedVisualization;
+import org.enso.polyglot.debugger.IdExecutionService;
+import org.enso.text.editing.JavaEditorAdapter;
+import org.enso.text.editing.model;
 
 /**
  * A service allowing externally-triggered code execution, registered by an instance of the
@@ -87,7 +77,6 @@ public final class ExecutionService {
   private final ExecuteRootNode execute = new ExecuteRootNode();
   private final CallRootNode call = new CallRootNode();
   private final InvokeMemberRootNode invoke = new InvokeMemberRootNode();
-
   private final Timer timer;
 
   /**
@@ -168,6 +157,7 @@ public final class ExecutionService {
    * @param onCachedCallback the consumer of the cached value events.
    */
   public void execute(
+      VisualizationHolder visualizationHolder,
       Module module,
       FunctionCallInstrumentationNode.FunctionCall call,
       RuntimeCache cache,
@@ -176,23 +166,32 @@ public final class ExecutionService {
       UUID nextExecutionItem,
       Consumer<ExecutionService.ExpressionCall> funCallCallback,
       Consumer<ExecutionService.ExpressionValue> onComputedCallback,
-      Consumer<ExecutionService.ExpressionValue> onCachedCallback
-  ) throws ArityException, SourceNotFoundException, UnsupportedMessageException, UnsupportedTypeException {
+      Consumer<ExecutionService.ExpressionValue> onCachedCallback,
+      Consumer<ExecutedVisualization> onExecutedVisualizationCallback)
+      throws ArityException,
+          SourceNotFoundException,
+          UnsupportedMessageException,
+          UnsupportedTypeException {
     SourceSection src = call.getFunction().getSourceSection();
     if (src == null) {
       throw new SourceNotFoundException(call.getFunction().getName());
     }
-    var callbacks = new ExecutionCallbacks(
-      nextExecutionItem, cache, methodCallsCache, syncState,
-      onCachedCallback, onComputedCallback, funCallCallback
-    );
+    var callbacks =
+        new ExecutionCallbacks(
+            visualizationHolder,
+            nextExecutionItem,
+            cache,
+            methodCallsCache,
+            syncState,
+            onCachedCallback,
+            onComputedCallback,
+            funCallCallback,
+            onExecutedVisualizationCallback);
     Optional<EventBinding<ExecutionEventNodeFactory>> eventNodeFactory =
-        idExecutionInstrument.map(service -> service.bind(
-          module,
-          call.getFunction().getCallTarget(),
-          callbacks,
-          this.timer
-        ));
+        idExecutionInstrument.map(
+            service ->
+                service.bind(
+                    module, call.getFunction().getCallTarget(), callbacks, this.timer));
     Object p = context.getThreadManager().enter();
     try {
       execute.getCallTarget().call(call);
@@ -221,22 +220,27 @@ public final class ExecutionService {
       String moduleName,
       String typeName,
       String methodName,
+      VisualizationHolder visualizationHolder,
       RuntimeCache cache,
       MethodCallsCache methodCallsCache,
       UpdatesSynchronizationState syncState,
       UUID nextExecutionItem,
-      Consumer<
-      ExecutionService.ExpressionCall> funCallCallback,
+      Consumer<ExecutionService.ExpressionCall> funCallCallback,
       Consumer<ExecutionService.ExpressionValue> onComputedCallback,
-      Consumer<ExecutionService.ExpressionValue> onCachedCallback
-    )
-      throws ArityException, TypeNotFoundException, MethodNotFoundException,
-          ModuleNotFoundException, UnsupportedMessageException, UnsupportedTypeException {
+      Consumer<ExecutionService.ExpressionValue> onCachedCallback,
+      Consumer<ExecutedVisualization> onExecutedVisualizationCallback)
+      throws ArityException,
+          TypeNotFoundException,
+          MethodNotFoundException,
+          ModuleNotFoundException,
+          UnsupportedMessageException,
+          UnsupportedTypeException {
     Module module =
         context.findModule(moduleName).orElseThrow(() -> new ModuleNotFoundException(moduleName));
     FunctionCallInstrumentationNode.FunctionCall call =
         prepareFunctionCall(module, typeName, methodName);
     execute(
+        visualizationHolder,
         module,
         call,
         cache,
@@ -245,20 +249,18 @@ public final class ExecutionService {
         nextExecutionItem,
         funCallCallback,
         onComputedCallback,
-        onCachedCallback
-    );
+        onCachedCallback,
+        onExecutedVisualizationCallback);
   }
 
   /**
    * Evaluates an expression in the scope of the provided module.
    *
    * @param module the module providing a scope for the expression
-   * @param expression the expression to evaluated
+   * @param expression the expression to evaluate
    * @return a result of evaluation
    */
-  public Object evaluateExpression(Module module, String expression)
-      throws UnsupportedMessageException, ArityException, UnknownIdentifierException,
-          UnsupportedTypeException {
+  public Object evaluateExpression(Module module, String expression) {
     Object p = context.getThreadManager().enter();
     try {
       return invoke.getCallTarget().call(module, expression);
@@ -290,11 +292,10 @@ public final class ExecutionService {
    * @param argument the argument applied to the function
    * @return the result of calling the function
    */
-  public Object callFunction(Object fn, Object argument)
-      throws UnsupportedTypeException, ArityException, UnsupportedMessageException {
+  public Object callFunction(Object fn, Object argument) {
     Object p = context.getThreadManager().enter();
     try {
-      return call.getCallTarget().call(fn, new Object[] { argument });
+      return call.getCallTarget().call(fn, new Object[] {argument});
     } finally {
       context.getThreadManager().leave(p);
     }
@@ -310,8 +311,11 @@ public final class ExecutionService {
    * @return the result of calling the function
    */
   public Object callFunctionWithInstrument(
-      RuntimeCache cache, Module module, Object function, Object... arguments)
-      throws UnsupportedTypeException, ArityException, UnsupportedMessageException {
+      VisualizationHolder visualizationHolder,
+      RuntimeCache cache,
+      Module module,
+      Object function,
+      Object... arguments) {
     UUID nextExecutionItem = null;
     CallTarget entryCallTarget =
         (function instanceof Function) ? ((Function) function).getCallTarget() : null;
@@ -322,18 +326,22 @@ public final class ExecutionService {
         (value) -> context.getLogger().finest("_ON_COMPUTED " + value.getExpressionId());
     Consumer<ExpressionValue> onCachedCallback =
         (value) -> context.getLogger().finest("_ON_CACHED_VALUE " + value.getExpressionId());
+    Consumer<ExecutedVisualization> onExecutedVisualizationCallback = (value) -> {};
 
-    var callbacks = new ExecutionCallbacks(
-      nextExecutionItem, cache, methodCallsCache, syncState,
-      onCachedCallback, onComputedCallback, funCallCallback
-    );
+    var callbacks =
+        new ExecutionCallbacks(
+            visualizationHolder,
+            nextExecutionItem,
+            cache,
+            methodCallsCache,
+            syncState,
+            onCachedCallback,
+            onComputedCallback,
+            funCallCallback,
+            onExecutedVisualizationCallback);
     Optional<EventBinding<ExecutionEventNodeFactory>> eventNodeFactory =
-        idExecutionInstrument.map(service -> service.bind(
-          module,
-          entryCallTarget,
-          callbacks,
-          this.timer
-        ));
+        idExecutionInstrument.map(
+            service -> service.bind(module, entryCallTarget, callbacks, this.timer));
     Object p = context.getThreadManager().enter();
     try {
       return call.getCallTarget().call(function, arguments);
@@ -451,12 +459,11 @@ public final class ExecutionService {
     var iop = InteropLibrary.getUncached();
     var p = context.getThreadManager().enter();
     try {
-      // Invoking a member on an Atom that does not have a method `to_display_text` will not, contrary to what is
+      // Invoking a member on an Atom that does not have a method `to_display_text` will not contrary to what is
       // expected from the documentation, throw an `UnsupportedMessageException`.
       // Instead it will crash with some internal assertion deep inside runtime. Hence the check.
       if (iop.isMemberInvocable(panic.getPayload(), "to_display_text")) {
-        return iop.asString(
-                iop.invokeMember(panic.getPayload(), "to_display_text"));
+        return iop.asString(iop.invokeMember(panic.getPayload(), "to_display_text"));
       } else throw UnsupportedMessageException.create();
     } catch (UnsupportedMessageException
         | ArityException
@@ -530,11 +537,15 @@ public final class ExecutionService {
 
     @Override
     public Object execute(VirtualFrame frame) {
-      var module = frame.getArguments()[0];
-      var expression = frame.getArguments()[1];
+      Object[] arguments = frame.getArguments();
+      Object module = arguments[0];
+      Object expression = arguments[1];
       try {
         return iop.invokeMember(module, MethodNames.Module.EVAL_EXPRESSION, expression);
-      } catch (UnknownIdentifierException | UnsupportedTypeException | ArityException | UnsupportedMessageException ex) {
+      } catch (UnknownIdentifierException
+          | UnsupportedTypeException
+          | ArityException
+          | UnsupportedMessageException ex) {
         throw raise(RuntimeException.class, ex);
       }
     }
@@ -686,7 +697,8 @@ public final class ExecutionService {
   }
 
   /** Points to the definition of a runtime function. */
-  public record FunctionPointer(QualifiedName moduleName, QualifiedName typeName, String functionName) {
+  public record FunctionPointer(
+      QualifiedName moduleName, QualifiedName typeName, String functionName) {
 
     public static FunctionPointer fromFunction(Function function) {
       RootNode rootNode = function.getCallTarget().getRootNode();
@@ -753,8 +765,8 @@ public final class ExecutionService {
         return false;
       }
       FunctionCallInfo that = (FunctionCallInfo) o;
-      return Objects.equals(functionPointer, that.functionPointer) && Arrays.equals(
-          notAppliedArguments, that.notAppliedArguments);
+      return Objects.equals(functionPointer, that.functionPointer)
+          && Arrays.equals(notAppliedArguments, that.notAppliedArguments);
     }
 
     @Override
@@ -768,14 +780,16 @@ public final class ExecutionService {
      *
      * @param call the function call.
      */
-    public static FunctionCallInfo fromFunctionCall(FunctionCallInstrumentationNode.FunctionCall call) {
+    public static FunctionCallInfo fromFunctionCall(
+        FunctionCallInstrumentationNode.FunctionCall call) {
       FunctionPointer functionPointer = FunctionPointer.fromFunction(call.getFunction());
       int[] notAppliedArguments = collectNotAppliedArguments(call);
 
       return new FunctionCallInfo(functionPointer, notAppliedArguments);
     }
 
-    private static int[] collectNotAppliedArguments(FunctionCallInstrumentationNode.FunctionCall call) {
+    private static int[] collectNotAppliedArguments(
+        FunctionCallInstrumentationNode.FunctionCall call) {
       Object[] arguments = call.getArguments();
       int[] notAppliedArgs = new int[arguments.length];
       int notAppliedArgsSize = 0;

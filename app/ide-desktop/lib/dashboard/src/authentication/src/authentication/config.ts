@@ -71,7 +71,7 @@ export const OAuthRedirect = newtype.newtypeConstructor<OAuthRedirect>()
 export type OAuthUrlOpener = (url: string, redirectUrl: string) => void
 /** A function used to save the access token to a credentials file. The token is used by the engine
  * to issue HTTP requests to the cloud API. */
-export type AccessTokenSaver = (accessToken: string) => void
+export type AccessTokenSaver = (accessToken: string | null) => void
 /** Function used to register a callback. The callback will get called when a deep link is received
  * by the app. This is only used in the desktop app (i.e., not in the cloud). This is used when the
  * user is redirected back to the app from the system browser, after completing an OAuth flow. */
@@ -96,7 +96,6 @@ export const OAUTH_RESPONSE_TYPE = OAuthResponseType('code')
 // === AmplifyConfig ===
 // =====================
 
-// Eslint does not like "etc.".
 /** Configuration for the AWS Amplify library.
  *
  * This details user pools, federated identity providers, etc. that are used to authenticate users.
@@ -107,7 +106,7 @@ export interface AmplifyConfig {
     userPoolId: UserPoolId
     userPoolWebClientId: UserPoolWebClientId
     urlOpener: OAuthUrlOpener | null
-    accessTokenSaver: AccessTokenSaver | null
+    saveAccessToken: AccessTokenSaver | null
     domain: OAuthDomain
     scope: OAuthScope[]
     redirectSignIn: OAuthRedirect

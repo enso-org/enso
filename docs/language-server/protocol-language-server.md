@@ -3788,11 +3788,33 @@ interface ExecutionContextExecutionStatusNotification {
 
 ### `executionContext/executeExpression`
 
-This message allows the client to execute an arbitrary expression on a given
-node. It behaves like oneshot
+This message allows the client to execute an arbitrary expression in a context
+of a given node. It behaves like putting a breakpoint after the expression with
+`expressionId` and executing the provided `expression`. All the local and global
+symbols that are available for the `expressionId` will be available when
+executing the `expression`. The result of the evaluation will be delivered as a
+visualization result on a binary connection. You can think of it as a oneshot
 [`executionContext/attachVisualization`](#executioncontextattachvisualization)
-visualization request, meaning that the visualization expression will be
-executed only once.
+visualization request, meaning that the expression will be executed once.
+
+For example, given the current code:
+
+```python
+main =
+    operator1 = 42
+    operator2 = operator1 + 1
+
+fun1 x = x.to_text
+```
+
+- You can execute an expression in the context of a function body. In this case,
+  the `expressionId` should point to the body of a function. E.g. in the context
+  of `main` available symbols are `operator1`, `operator2` and `fun1`.
+- Execute expression in the context of a local binding. E.g. in the context of
+  `operator2 = operator1 + 1` available symbols are `operator1`, `operator2` and
+  `fun1`.
+- Execute expression in the context of arbitrary expression. E.g. in the context
+  of `operator1 + 1` available symbols are `operator1` and `fun1`.
 
 - **Type:** Request
 - **Direction:** Client -> Server
@@ -3803,9 +3825,10 @@ executed only once.
 
 ```typescript
 interface ExecutionContextExecuteExpressionParameters {
+  executionContextId: UUID;
   visualizationId: UUID;
   expressionId: UUID;
-  visualizationConfig: VisualizationConfiguration;
+  expression: string;
 }
 ```
 
@@ -3821,11 +3844,8 @@ type ExecutionContextExecuteExpressionResult = null;
   `executionContext/canModify` capability for this context.
 - [`ContextNotFoundError`](#contextnotfounderror) when context can not be found
   by provided id.
-- [`ModuleNotFoundError`](#modulenotfounderror) to signal that the module with
-  the visualization cannot be found.
 - [`VisualizationExpressionError`](#visualizationexpressionerror) to signal that
-  the expression specified in the `VisualizationConfiguration` cannot be
-  evaluated.
+  the provided expression cannot be evaluated.
 
 ### `executionContext/attachVisualization`
 
