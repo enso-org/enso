@@ -47,7 +47,7 @@ public final class Warning implements EnsoObject {
     return value;
   }
 
-  @Builtin.Method(name = "origin", description = "Gets the payload of the warning.")
+  @Builtin.Method(name = "origin", description = "Gets the origin (stack trace) of the warning.")
   public Object getOrigin() {
     return origin;
   }

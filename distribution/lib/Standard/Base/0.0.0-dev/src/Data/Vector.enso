@@ -592,7 +592,13 @@ type Vector a
             case result.is_error of
                 False ->
                     if Warning.has_warnings result . not then result else
-                        Warning.map_attached_warnings (w-> Maybe.Some (Map_Error.Error i w)) result
+                        ##
+                            IO.println 'AAA'
+                            IO.println (Warning.get_all result)
+                            IO.println (Warning.get_all result . map (w-> Maybe.Some (Map_Error.Error i w)))
+                        r = Warning.map_attached_warnings (w-> Maybe.Some (Map_Error.Error i w)) result
+                        rws = Warning.get_all r
+                        #IO.println rws
                 True ->
                     case on_problems of
                         Problem_Behavior.Ignore ->
