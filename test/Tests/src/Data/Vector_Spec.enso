@@ -819,20 +819,20 @@ type_spec name alter = Test.group name <|
         map_fun a = if a == 30 then Error.throw Nothing else a+1
         alter [10, 20, 30, 40] . map map_fun . should_fail_with Nothing
 
-    Test.specify "an error thrown inside map should be ignored" <|
+    Test.specify "an error thrown inside map with on_problems=Problem_Behavior.Ignore should be ignored" <|
         alter [10, 20, 30, 40] . map map_fun on_problems=Problem_Behavior.Ignore . should_equal [11, 21, Nothing, 41]
 
-    Test.specify "an error thrown inside map should be attached as a warning" <|
+    Test.specify "an error thrown inside map with on_problems=Problem_Behavior.Report_Warning should be attached as a warning" <|
         result = alter [10, 20, 30, 40] . map map_fun on_problems=Problem_Behavior.Report_Warning
         result . should_equal [11, 21, Nothing, 41]
         Warning.get_all result . map .value . should_equal [Map_Error.Error 2 (My_Error.Value 30)]
 
-    Test.specify "multiple errors thrown inside map should be attached as warnings" <|
+    Test.specify "multiple errors thrown inside map with on_problems=Problem_Behavior.Report_Warning should be attached as warnings" <|
         result = alter [10, 30, 20, 30, 40, 30] . map map_fun on_problems=Problem_Behavior.Report_Warning
         result . should_equal [11, Nothing, 21, Nothing, 41, Nothing]
         Warning.get_all result . map .value . should_equal ([5, 3, 1].map i-> Map_Error.Error i (My_Error.Value 30))
 
-    Test.specify "many errors thrown inside map should be attached as warnings and an Additional_Warnings" <|
+    Test.specify "many errors thrown inside map with on_problems=Problem_Behavior.Report_Warning should be attached as warnings and an Additional_Warnings" <|
         result = alter ([10, 20] + (Vector.fill 12 30) + [40]) . map map_fun on_problems=Problem_Behavior.Report_Warning
         result . should_equal ([11, 21] + (Vector.fill 12 Nothing) + [41])
         expected_warnings_regular = 11.down_to 1 . map i-> Map_Error.Error i (My_Error.Value 30)
