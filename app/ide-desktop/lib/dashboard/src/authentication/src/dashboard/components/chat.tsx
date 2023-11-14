@@ -8,6 +8,7 @@ import DefaultUserIcon from 'enso-assets/default_user.svg'
 import TriangleDownIcon from 'enso-assets/triangle_down.svg'
 
 import * as chat from 'enso-chat/chat'
+import * as gtag from 'enso-common/src/gtag'
 
 import * as animations from '../../animations'
 import * as authProvider from '../../authentication/providers/auth'
@@ -263,8 +264,10 @@ function ChatHeader(props: InternalChatHeaderProps) {
             setIsThreadListVisible(false)
         }
         document.addEventListener('click', onClick)
+        gtag.event('cloud_open_chat')
         return () => {
             document.removeEventListener('click', onClick)
+            gtag.event('cloud_close_chat')
         }
     }, [])
 
