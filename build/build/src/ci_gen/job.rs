@@ -266,7 +266,7 @@ pub fn bump_electron_builder() -> Vec<Step> {
     );
     let install_new = Step {
         name: Some("Install new Electron Builder".into()),
-        run: Some(command.clone()),
+        run: Some(command),
         ..default()
     };
     vec![npm_install, uninstall_old, install_new]
