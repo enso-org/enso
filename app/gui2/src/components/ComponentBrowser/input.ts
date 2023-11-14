@@ -8,14 +8,11 @@ import {
 } from '@/stores/suggestionDatabase/entry'
 import {
   Ast,
+  AstExtended,
   astContainingChar,
-  parseEnso,
-  parsedTreeRange,
-  readAstSpan,
-  readTokenSpan,
 } from '@/util/ast'
 import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
-import { GeneralOprApp } from '@/util/ast/opr'
+import { GeneralOprApp, type OperatorChain } from '@/util/ast/opr'
 import type { ExpressionInfo } from '@/util/computedValueRegistry'
 import { MappedSet } from '@/util/containers'
 import {
@@ -41,16 +38,16 @@ export type EditingContext =
   | {
       type: 'insert'
       position: number
-      oprApp?: GeneralOprApp
+      oprApp?: GeneralOprApp<false>
     }
   // Suggestion should replace given identifier.
   | {
       type: 'changeIdentifier'
-      identifier: Ast.Tree.Ident
-      oprApp?: GeneralOprApp
+      identifier: AstExtended<Ast.Tree.Ident, false>
+      oprApp?: GeneralOprApp<false>
     }
   // Suggestion should replace given literal.
-  | { type: 'changeLiteral'; literal: Ast.Tree.TextLiteral | Ast.Tree.Number }
+  | { type: 'changeLiteral'; literal: AstExtended<Ast.Tree.TextLiteral | Ast.Tree.Number, false> }
 
 /** Component Browser Input Data */
 export function useComponentBrowserInput(
@@ -61,26 +58,26 @@ export function useComponentBrowserInput(
 ) {
   const code = ref('')
   const selection = ref({ start: 0, end: 0 })
-  const ast = computed(() => parseEnso(code.value))
+  const ast = computed(() => AstExtended.parse(code.value))
 
   const context: ComputedRef<EditingContext> = computed(() => {
     const cursorPosition = selection.value.start
     if (cursorPosition === 0) return { type: 'insert', position: 0 }
     const editedPart = cursorPosition - 1
     const inputAst = ast.value
-    const editedAst = astContainingChar(editedPart, inputAst).values()
+    const editedAst = inputAst.mapIter((ast) => astContainingChar(editedPart, ast))[Symbol.iterator]()
     const leaf = editedAst.next()
     if (leaf.done) return { type: 'insert', position: cursorPosition }
-    switch (leaf.value.type) {
+    switch (leaf.value.inner.type) {
       case Ast.Tree.Type.Ident:
         return {
           type: 'changeIdentifier',
-          identifier: leaf.value,
+          identifier: leaf.value as AstExtended<Ast.Tree.Ident, false>,
           ...readOprApp(editedAst.next(), leaf.value),
         }
       case Ast.Tree.Type.TextLiteral:
       case Ast.Tree.Type.Number:
-        return { type: 'changeLiteral', literal: leaf.value }
+        return { type: 'changeLiteral', literal: leaf.value as AstExtended<Ast.Tree.TextLiteral | Ast.Tree.Number, false> }
       default:
         return {
           type: 'insert',
@@ -91,7 +88,7 @@ export function useComponentBrowserInput(
   })
 
   const internalUsages = computed(() => {
-    const analyzer = new AliasAnalyzer(code.value, ast.value)
+    const analyzer = new AliasAnalyzer(code.value, ast.value.inner)
     analyzer.process()
     function* internalUsages() {
       for (const [_definition, usages] of analyzer.aliases) {
@@ -107,8 +104,7 @@ export function useComponentBrowserInput(
     if (ctx.type === 'changeLiteral') return {}
     if (ctx.oprApp == null || ctx.oprApp.lhs == null) return {}
     const opr = ctx.oprApp.lastOpr()
-    const input = code.value
-    if (opr == null || !opr.ok || readTokenSpan(opr.value, input) !== '.') return {}
+    if (opr == null || opr.repr() !== '.') return {}
     const selfArg = pathAsSelfArgument(ctx.oprApp)
     if (selfArg != null) return { selfArg: selfArg }
     const qn = pathAsQualifiedName(ctx.oprApp)
@@ -122,32 +118,32 @@ export function useComponentBrowserInput(
     const filter = { ...accessChainFilter.value }
     if (ctx.type === 'changeIdentifier') {
       const start =
-        ctx.identifier.whitespaceStartInCodeParsed + ctx.identifier.whitespaceLengthInCodeParsed
+        ctx.identifier.inner.whitespaceStartInCodeParsed + ctx.identifier.inner.whitespaceLengthInCodeParsed
       const end = selection.value.end
       filter.pattern = input.substring(start, end)
     } else if (ctx.type === 'changeLiteral') {
-      filter.pattern = readAstSpan(ctx.literal, input)
+      filter.pattern = ctx.literal.repr()
     }
     return filter
   })
 
   function readOprApp(
-    leafParent: IteratorResult<Ast.Tree>,
-    editedAst?: Ast.Tree,
+    leafParent: IteratorResult<AstExtended<Ast.Tree, false>>,
+    editedAst?: AstExtended<Ast.Tree, false>,
   ): {
-    oprApp?: GeneralOprApp
+    oprApp?: GeneralOprApp<false>
   } {
     if (leafParent.done) return {}
-    switch (leafParent.value.type) {
+    switch (leafParent.value.inner.type) {
       case Ast.Tree.Type.OprApp:
       case Ast.Tree.Type.OperatorBlockApplication: {
-        const generalized = new GeneralOprApp(leafParent.value)
+        const generalized = new GeneralOprApp(leafParent.value as OperatorChain<false>)
         const opr = generalized.lastOpr()
-        if (opr == null || !opr.ok) return {}
+        if (opr == null) return {}
         // Opr application affects context only when we edit right part of operator.
         else if (
           editedAst != null &&
-          opr.value.startInCodeBuffer > editedAst.whitespaceStartInCodeParsed
+          opr.inner.startInCodeBuffer > editedAst.inner.whitespaceStartInCodeParsed
         )
           return {}
         else return { oprApp: generalized }
@@ -158,22 +154,22 @@ export function useComponentBrowserInput(
   }
 
   function pathAsSelfArgument(
-    accessOpr: GeneralOprApp,
+    accessOpr: GeneralOprApp<false>,
   ): { type: 'known'; typename: Typename } | { type: 'unknown' } | null {
     if (accessOpr.lhs == null) return null
-    if (accessOpr.lhs.type !== Ast.Tree.Type.Ident) return null
+    if (!accessOpr.lhs.isTree(Ast.Tree.Type.Ident)) return null
     if (accessOpr.apps.length > 1) return null
-    if (internalUsages.value.has(parsedTreeRange(accessOpr.lhs))) return { type: 'unknown' }
-    const ident = readAstSpan(accessOpr.lhs, code.value)
+    if (internalUsages.value.has(accessOpr.lhs.span())) return { type: 'unknown' }
+    const ident = accessOpr.lhs.repr()
     const definition = graphStore.identDefinitions.get(ident)
     if (definition == null) return null
     const typename = computedValueRegistry.getExpressionInfo(definition)?.typename
     return typename != null ? { type: 'known', typename } : { type: 'unknown' }
   }
 
-  function pathAsQualifiedName(accessOpr: GeneralOprApp): QualifiedName | null {
+  function pathAsQualifiedName(accessOpr: GeneralOprApp<false>): QualifiedName | null {
     const operandsAsIdents = qnIdentifiers(accessOpr)
-    const segments = operandsAsIdents.map((ident) => readAstSpan(ident, code.value))
+    const segments = operandsAsIdents.map((ident) => ident.repr())
     const rawQn = segments.join('.')
     const qn = tryQualifiedName(rawQn)
     return qn.ok ? qn.value : null
@@ -186,14 +182,14 @@ export function useComponentBrowserInput(
    * @param code The code from which `opr` was generated.
    * @returns If all path segments are identifiers, return them
    */
-  function qnIdentifiers(opr: GeneralOprApp): Ast.Tree.Ident[] {
+  function qnIdentifiers(opr: GeneralOprApp<false>): AstExtended<Ast.Tree.Ident, false>[] {
     const operandsAsIdents = Array.from(
-      opr.operandsOfLeftAssocOprChain(code.value, '.'),
+      opr.operandsOfLeftAssocOprChain('.'),
       (operand) =>
-        operand?.type === 'ast' && operand.ast.type === Ast.Tree.Type.Ident ? operand.ast : null,
+        operand?.type === 'ast' && operand.ast.isTree(Ast.Tree.Type.Ident) ? operand.ast : null,
     ).slice(0, -1)
     if (operandsAsIdents.some((optIdent) => optIdent == null)) return []
-    else return operandsAsIdents as Ast.Tree.Ident[]
+    else return operandsAsIdents as AstExtended<Ast.Tree.Ident, false>[]
   }
 
   /** Apply given suggested entry to the input. */
@@ -239,11 +235,11 @@ export function useComponentBrowserInput(
         break
       }
       case 'changeIdentifier': {
-        yield { range: parsedTreeRange(ctx.identifier), str }
+        yield { range: ctx.identifier.span(), str }
         break
       }
       case 'changeLiteral': {
-        yield { range: parsedTreeRange(ctx.literal), str }
+        yield { range: ctx.literal.span(), str }
         break
       }
     }
@@ -254,11 +250,11 @@ export function useComponentBrowserInput(
     const ctx = context.value
     const opr = ctx.type !== 'changeLiteral' && ctx.oprApp != null ? ctx.oprApp.lastOpr() : null
     const oprAppSpacing =
-      ctx.type === 'insert' && opr != null && opr.ok && opr.value.whitespaceLengthInCodeBuffer > 0
-        ? ' '.repeat(opr.value.whitespaceLengthInCodeBuffer)
+      ctx.type === 'insert' && opr != null && opr.inner.whitespaceLengthInCodeBuffer > 0
+        ? ' '.repeat(opr.inner.whitespaceLengthInCodeBuffer)
         : ''
     const extendingAccessOprChain =
-      opr != null && opr.ok && readTokenSpan(opr.value, code.value) === '.'
+      opr != null && opr.repr() === '.'
     // Modules are special case, as we want to encourage user to continue writing path.
     if (entry.kind === SuggestionKind.Module) {
       if (extendingAccessOprChain) return `${oprAppSpacing}${entry.name}${oprAppSpacing}.`
@@ -294,7 +290,7 @@ export function useComponentBrowserInput(
     for (const ident of writtenQn) {
       if (containingQn == null) break
       const [parent, segment] = qnSplit(containingQn)
-      yield { range: parsedTreeRange(ident), str: segment }
+      yield { range: ident.span(), str: segment }
       containingQn = parent
     }
   }
