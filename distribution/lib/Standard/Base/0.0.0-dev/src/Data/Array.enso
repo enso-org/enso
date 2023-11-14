@@ -328,8 +328,8 @@ type Array
          Add 1 to each element of the array.
 
              [1, 2, 3].to_array . map +1
-    map : (Any -> Any) -> Vector Any
-    map self function = Vector.map self function
+    map : (Any -> Any) -> Problem_Behavior -> Vector Any
+    map self function on_problems=Problem_Behavior.Report_Error = Vector.map self function on_problems
 
     ## Applies a function to each element of the array, returning the `Vector`
        that contains all results concatenated.
