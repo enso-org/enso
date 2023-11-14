@@ -113,37 +113,51 @@ if (import.meta.vitest) {
     return null
   }
 
-
-  test('Recognizing import expressions', () => {
-    expect(parseImport('1 + 1')).toBeNull()
-
-    expect(parseImport('from Standard.Base import all')).toStrictEqual({
-      from: unwrap(tryQualifiedName('Standard.Base')),
-      imported: { kind: 'All', except: [] }
-    })
-
-    expect(parseImport('from Standard.Base.Table import Table')).toStrictEqual({
-      from: unwrap(tryQualifiedName('Standard.Base.Table')),
-      imported: { kind: 'List', names: [unwrap(tryIdentifier('Table'))] }
-    })
-
-    expect(parseImport('from Standard.Collections import Array, HashMap')).toStrictEqual({
-      from: unwrap(tryQualifiedName('Standard.Collections')),
-      imported: { kind: 'List', names: [unwrap(tryIdentifier('Array')), unwrap(tryIdentifier('HashMap'))] }
-    })
-
-    expect(parseImport('import Standard.Database')).toStrictEqual({
-      from: unwrap(tryQualifiedName('Standard.Database')),
-      imported: { kind: 'Module' }
-    })
-    expect(parseImport('import Standard.Base')).toStrictEqual({
-      from: unwrap(tryQualifiedName('Standard.Base')),
-      imported: { kind: 'Module' }
-    })
-
-    expect(parseImport('import AWS.Connection as Backend')).toStrictEqual({
-      from: unwrap(tryQualifiedName('AWS.Connection')),
-      imported: { kind: 'Module', alias: 'Backend' }
-    })
+  test.each([
+    { code: '1 + 1', expected: null },
+    {
+      code: 'from Standard.Base import all', 
+      expected: {
+        from: unwrap(tryQualifiedName('Standard.Base')),
+        imported: { kind: 'All', except: [] }
+      }
+    },
+    {
+      code: 'from Standard.Base.Table import Table', 
+      expected: {
+        from: unwrap(tryQualifiedName('Standard.Base.Table')),
+        imported: { kind: 'List', names: [unwrap(tryIdentifier('Table'))] }
+      }
+    },
+    {
+      code: 'from Standard.Collections import Array, HashMap', 
+      expected: {
+        from: unwrap(tryQualifiedName('Standard.Collections')),
+        imported: { kind: 'List', names: [unwrap(tryIdentifier('Array')), unwrap(tryIdentifier('HashMap'))] }
+      }
+    },
+    {
+      code: 'import Standard.Database', 
+      expected: {
+        from: unwrap(tryQualifiedName('Standard.Database')),
+        imported: { kind: 'Module' }
+      }
+    },
+    {
+      code: 'import Standard.Base', 
+      expected: {
+        from: unwrap(tryQualifiedName('Standard.Base')),
+        imported: { kind: 'Module' }
+      }
+    },
+    {
+      code: 'import AWS.Connection as Backend', 
+      expected: {
+        from: unwrap(tryQualifiedName('AWS.Connection')),
+        imported: { kind: 'Module', alias: 'Backend' }
+      }
+    },
+  ])('Recognizing import $code', ({ code, expected }) => {
+    expect(parseImport(code)).toStrictEqual(expected)
   })
 }
