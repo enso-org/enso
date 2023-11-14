@@ -598,10 +598,12 @@ type Vector a
                         Problem_Behavior.Ignore ->
                             Nothing
                         Problem_Behavior.Report_Error ->
-                            Error.throw (Map_Error.Error i result.catch)
+                            result.catch_primitive caught->
+                                Error.throw (Map_Error.Error i caught)
                         Problem_Behavior.Report_Warning ->
                             with_error_maybe = if num_errors.get >= max_warnings then Nothing else
-                                Warning.attach (Map_Error.Error i result.catch) Nothing
+                                result.catch_primitive caught->
+                                    Warning.attach (Map_Error.Error i caught) Nothing
                             num_errors.modify (_+1)
                             with_error_maybe
         results = Vector.new self.length i-> wrapped_function i
