@@ -119,7 +119,7 @@ export const useGraphStore = defineStore('graph', () => {
   useObserveYjs(metadata, (event) => {
     const meta = event.target
     for (const [id, op] of event.changes.keys) {
-      if (op.action === 'update') {
+      if (op.action === 'update' || op.action === 'add') {
         const data = meta.get(id)
         const node = nodes.get(id as ExprId)
         if (data != null && node != null) {
@@ -344,6 +344,12 @@ export const useGraphStore = defineStore('graph', () => {
     editedNodeInfo.value = { id, range }
   }
 
+  function getNodeBinding(id: ExprId): string {
+    const node = nodes.get(id)
+    if (node == null) return ''
+    return node.binding
+  }
+
   return {
     _ast,
     transact,
@@ -372,6 +378,7 @@ export const useGraphStore = defineStore('graph', () => {
     updateNodeRect,
     updateExprRect,
     setEditedNode,
+    getNodeBinding,
   }
 })
 

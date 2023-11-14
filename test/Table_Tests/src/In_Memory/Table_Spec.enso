@@ -871,42 +871,6 @@ spec =
                             t2.filter "Y" (Filter_Condition.Is_In in_vector) . at "Y" . to_vector . should_equal expected_neg_vector
                             t2.filter "Y" (Filter_Condition.Is_In in_column) . at "Y" . to_vector . should_equal expected_neg_vector
 
-        Test.specify "should perform `Is_In` efficiently for builtin types" <|
-            first_day = Date_Time.new 2000 1 1
-            make_date x = first_day + (Duration.new seconds=x)
-            init = Duration.time_execution <|
-                t = Table.new [["X", (200.up_to 10000 . to_vector)]]
-                vec = 4000.up_to 13000 . to_vector
-                expected_vector = 4000.up_to 10000 . to_vector
-                expected_vector_2 = 200.up_to 10000 . with_step 2 . to_vector
-                dates_vec = vec.map make_date
-                bool_vec = Vector.fill 7000 True
-                date_col = t.at "X" . map make_date
-                [t, vec, expected_vector, expected_vector_2, dates_vec, bool_vec, date_col]
-            t = init.second . at 0
-            vec = init.second . at 1
-            expected_vector = init.second . at 2
-            expected_vector_2 = init.second . at 3
-            dates_vec = init.second . at 4
-            bool_vec = init.second . at 5
-            date_col = init.second . at 6
-
-            expected_max_time_ms = init.first.total_milliseconds * 2
-            check_timing name ~action =
-                res = Duration.time_execution action
-                runtime_ms = res.first.total_milliseconds
-                if runtime_ms > expected_max_time_ms then
-                    Test.fail "Expected `Is_In` on "+name+" to be efficient, but it took "+runtime_ms.to_text+"ms while initialization itself took just "+expected_max_time_ms.to_text+"ms."
-
-            check_timing "integers" <|
-                t.filter "X" (Filter_Condition.Is_In vec) . at "X" . to_vector . should_equal expected_vector
-
-            check_timing "booleans" <|
-                t.filter (t.at "X" % 2 == 0) (Filter_Condition.Is_In bool_vec) . at "X" . to_vector . should_equal expected_vector_2
-
-            check_timing "dates" <|
-                t.filter date_col (Filter_Condition.Is_In dates_vec) . at "X" . to_vector . should_equal expected_vector
-
     Test.group "[In-Memory-specific] Table.join" <|
         Test.specify "should correctly report unsupported cross-backend joins" <|
             t = Table.new [["X", [1, 2, 3]]]

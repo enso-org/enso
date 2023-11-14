@@ -810,9 +810,21 @@ type Column
              example_truncate = Examples.decimal_column.truncate
     truncate : Column ! Invalid_Value_Type
     truncate self =
-        Value_Type.expect_numeric self <| self.short_circuit_special_floating_point <|
-            new_name = self.naming_helper.function_name "truncate" [self]
-            self.make_unary_op "TRUNCATE" new_name
+        new_name = self.naming_helper.function_name "truncate" [self]
+        precise_value_type = self.inferred_precise_value_type
+        case precise_value_type.is_numeric of
+            True ->
+                self.short_circuit_special_floating_point <|
+                    self.make_unary_op "TRUNCATE" new_name
+            False -> case precise_value_type == Value_Type.Date_Time of
+                True ->
+                    op = "date_trunc_to_day"
+                    case self.connection.dialect.is_supported op of
+                        True ->
+                            self.make_unary_op op new_name
+                        False ->
+                            Error.throw (Unsupported_Database_Operation.Error ("`Column.truncate` for `Date_Time` is not supported by this connection."))
+                False -> Error.throw <| Invalid_Value_Type.Column "Numeric or Date_Time" self.value_type self.name
 
     ## GROUP Standard.Base.Rounding
        Takes the ceiling of floating-point values, returning integer values.
@@ -826,7 +838,7 @@ type Column
 
              import Standard.Examples
 
-             example_truncate = Examples.decimal_column.ceil
+             example_ceil = Examples.decimal_column.ceil
     ceil : Column ! Invalid_Value_Type
     ceil self =
         Value_Type.expect_numeric self <| self.short_circuit_special_floating_point <|
@@ -845,7 +857,7 @@ type Column
 
              import Standard.Examples
 
-             example_truncate = Examples.decimal_column.floor
+             example_floor = Examples.decimal_column.floor
     floor : Column ! Invalid_Value_Type
     floor self =
         Value_Type.expect_numeric self <| self.short_circuit_special_floating_point <|

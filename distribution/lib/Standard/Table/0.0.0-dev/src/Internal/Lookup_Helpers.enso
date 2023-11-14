@@ -6,7 +6,7 @@ import project.Data.Type.Value_Type.Value_Type
 import project.Data.Type.Value_Type_Helpers
 from project.Errors import Missing_Input_Columns, Unexpected_Extra_Columns, Floating_Point_Equality, No_Common_Type, No_Output_Columns
 
-polyglot java import org.enso.table.data.table.join.LookupColumnDescription
+polyglot java import org.enso.table.data.table.join.lookup.LookupColumnDescription
 
 ## PRIVATE
 type Lookup_Column

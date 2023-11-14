@@ -2,10 +2,10 @@
 import { componentBrowserBindings } from '@/bindings'
 import { makeComponentList, type Component } from '@/components/ComponentBrowser/component'
 import { Filtering } from '@/components/ComponentBrowser/filtering'
-import { Input } from '@/components/ComponentBrowser/input'
 import { default as DocumentationPanel } from '@/components/DocumentationPanel.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
+import { useGraphStore } from '@/stores/graph.ts'
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
@@ -16,36 +16,60 @@ import type { Opt } from '@/util/opt'
 import { allRanges } from '@/util/range'
 import { Vec2 } from '@/util/vec2'
 import type { SuggestionId } from 'shared/languageServerTypes/suggestions'
-import type { ContentRange } from 'shared/yjsModel.ts'
+import type { ContentRange, ExprId } from 'shared/yjsModel.ts'
 import { computed, nextTick, onMounted, ref, watch, type Ref } from 'vue'
+import { useComponentBrowserInput } from './ComponentBrowser/input'
 
 const ITEM_SIZE = 32
 const TOP_BAR_HEIGHT = 32
+
+const projectStore = useProjectStore()
+const suggestionDbStore = useSuggestionDbStore()
+const graphStore = useGraphStore()
 
 const props = defineProps<{
   position: Vec2
   navigator: ReturnType<typeof useNavigator>
   initialContent: string
   initialCaretPosition: ContentRange
+  sourceNode: Opt<ExprId>
 }>()
 
 const emit = defineEmits<{
   finished: [selectedExpression: string]
 }>()
 
+function getInitialContent(): string {
+  if (props.sourceNode == null) return props.initialContent
+  const sourceNode = props.sourceNode
+  const sourceNodeName = graphStore.getNodeBinding(sourceNode)
+  const sourceNodeNameWithDot = sourceNodeName ? sourceNodeName + '.' : ''
+  return sourceNodeNameWithDot + props.initialContent
+}
+
+function getInitialCaret(): ContentRange {
+  if (props.sourceNode == null) return props.initialCaretPosition
+  const sourceNode = props.sourceNode
+  const sourceNodeName = graphStore.getNodeBinding(sourceNode)
+  const sourceNodeNameWithDot = sourceNodeName ? sourceNodeName + '.' : ''
+  return [
+    props.initialCaretPosition[0] + sourceNodeNameWithDot.length,
+    props.initialCaretPosition[1] + sourceNodeNameWithDot.length,
+  ]
+}
+
 onMounted(() => {
-  input.code.value = props.initialContent
   nextTick(() => {
+    input.code.value = getInitialContent()
+    const caret = getInitialCaret()
     if (inputField.value != null) {
-      inputField.value.selectionStart = props.initialCaretPosition[0]
-      inputField.value.selectionEnd = props.initialCaretPosition[1]
+      inputField.value.selectionStart = caret[0]
+      inputField.value.selectionEnd = caret[1]
       inputField.value.focus({ preventScroll: true })
       selectLastAfterRefresh()
     }
   })
 })
-
-const projectStore = useProjectStore()
 
 // === Position ===
 
@@ -63,7 +87,7 @@ const transform = computed(() => {
 
 const cbRoot = ref<HTMLElement>()
 const inputField = ref<HTMLInputElement>()
-const input = new Input()
+const input = useComponentBrowserInput()
 const filterFlags = ref({ showUnstable: false, showLocal: false })
 
 const currentFiltering = computed(() => {
@@ -127,8 +151,6 @@ function handleDefocus(e: FocusEvent) {
 }
 
 // === Components List and Positions ===
-
-const suggestionDbStore = useSuggestionDbStore()
 
 const components = computed(() => {
   return makeComponentList(suggestionDbStore.entries, currentFiltering.value)
