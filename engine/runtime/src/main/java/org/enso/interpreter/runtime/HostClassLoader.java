@@ -4,6 +4,8 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Host class loader that serves as a replacement for {@link
@@ -14,12 +16,14 @@ import java.util.concurrent.ConcurrentHashMap;
 public class HostClassLoader extends URLClassLoader {
 
   private final Map<String, Class<?>> loadedClasses = new ConcurrentHashMap<>();
+  private static final Logger logger = LoggerFactory.getLogger(HostClassLoader.class);
 
   public HostClassLoader() {
     super(new URL[0]);
   }
 
   void add(URL u) {
+    logger.debug("Adding URL '{}' to class path", u);
     addURL(u);
   }
 
@@ -30,8 +34,10 @@ public class HostClassLoader extends URLClassLoader {
 
   @Override
   protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
+    logger.trace("Loading class {}", name);
     var l = loadedClasses.get(name);
     if (l != null) {
+      logger.trace("Class {} found in cache", name);
       return l;
     }
     try {
@@ -39,9 +45,11 @@ public class HostClassLoader extends URLClassLoader {
       if (resolve) {
         l.getMethods();
       }
+      logger.trace("Class {} found, putting in cache", name);
       loadedClasses.put(name, l);
       return l;
     } catch (ClassNotFoundException ex) {
+      logger.trace("Class {} not found, delegating to super", name);
       return super.loadClass(name, resolve);
     }
   }
