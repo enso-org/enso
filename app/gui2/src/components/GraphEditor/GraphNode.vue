@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { nodeEditBindings } from '@/bindings'
 import CircularMenu from '@/components/CircularMenu.vue'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import NodeWidgetTree from '@/components/GraphEditor/NodeWidgetTree.vue'
@@ -134,6 +135,62 @@ const icon = computed(() => {
     return 'in_out'
   }
 })
+
+const nodeEditHandler = nodeEditBindings.handler({
+  cancel(e) {
+    if (e.target instanceof HTMLElement) {
+      e.target.blur()
+    }
+  },
+  edit(e) {
+    const pos = 'clientX' in e ? new Vec2(e.clientX, e.clientY) : undefined
+    startEditingNode(pos)
+  },
+})
+
+function startEditingNode(position: Vec2 | undefined) {
+  let sourceOffset = 0
+  if (position != null) {
+    let domNode, domOffset
+    if ((document as any).caretPositionFromPoint) {
+      const caret = document.caretPositionFromPoint(position.x, position.y)
+      domNode = caret?.offsetNode
+      domOffset = caret?.offset
+    } else if (document.caretRangeFromPoint) {
+      const caret = document.caretRangeFromPoint(position.x, position.y)
+      domNode = caret?.startContainer
+      domOffset = caret?.startOffset
+    } else {
+      console.error(
+        'Neither caretPositionFromPoint nor caretRangeFromPoint are supported by this browser',
+      )
+    }
+    if (domNode != null && domOffset != null) {
+      sourceOffset = getRelatedSpanOffset(domNode, domOffset)
+    }
+  }
+
+  emit('update:edited', sourceOffset)
+}
+
+function getRelatedSpanOffset(domNode: globalThis.Node, domOffset: number): number {
+  if (domNode instanceof HTMLElement && domOffset == 1) {
+    const offsetData = domNode.dataset.spanStart
+    const offset = (offsetData != null && parseInt(offsetData)) || 0
+    const length = domNode.textContent?.length ?? 0
+    return offset + length
+  } else if (domNode instanceof Text) {
+    const siblingEl = domNode.previousElementSibling
+    if (siblingEl instanceof HTMLElement) {
+      const offsetData = siblingEl.dataset.spanStart
+      if (offsetData != null)
+        return parseInt(offsetData) + domOffset + (siblingEl.textContent?.length ?? 0)
+    }
+    const offsetData = domNode.parentElement?.dataset.spanStart
+    if (offsetData != null) return parseInt(offsetData) + domOffset
+  }
+  return 0
+}
 </script>
 
 <template>
@@ -145,7 +202,7 @@ const icon = computed(() => {
       '--node-group-color': color,
     }"
     :class="{
-      edited,
+      edited: props.edited,
       dragging: dragPointer.dragging,
       selected: nodeSelection?.isSelected(nodeId),
       visualizationVisible: isVisualizationVisible,
@@ -173,9 +230,14 @@ const icon = computed(() => {
       @setVisualizationId="emit('setVisualizationId', $event)"
       @setVisualizationVisible="emit('setVisualizationVisible', $event)"
     />
-    <div class="node" v-on="dragPointer.events">
+    <div
+      class="node"
+      @pointerdown.capture="nodeEditHandler"
+      @keydown="nodeEditHandler"
+      v-on="dragPointer.events"
+    >
       <SvgIcon class="icon grab-handle" :name="icon"></SvgIcon>
-      <NodeWidgetTree :ast="node.rootSpan" @update:edited="emit('update:edited', $event)" />
+      <NodeWidgetTree :ast="node.rootSpan" />
     </div>
     <svg class="bgPaths" :style="bgStyleVariables">
       <rect class="bgFill" />

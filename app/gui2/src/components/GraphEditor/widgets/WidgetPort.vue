@@ -131,7 +131,12 @@ export const widgetDefinition = defineWidget({
   <span
     ref="rootNode"
     class="WidgetPort"
-    :class="{ connected, 'r-24': connected, primary: props.nesting < 2 }"
+    :class="{
+      connected,
+      'r-24': connected,
+      newToConnect: !hasConnection && isCurrentEdgeHoverTarget,
+      primary: props.nesting < 2,
+    }"
     @pointerenter="isHovered = true"
     @pointerleave="isHovered = false"
     ><NodeWidget :input="props.input"
@@ -139,7 +144,11 @@ export const widgetDefinition = defineWidget({
 </template>
 
 <style scoped>
-.WidgetPort.WidgetPort {
+:global(:root) {
+  --widget-port-extra-pad: 6px;
+}
+
+.WidgetPort {
   display: inline-block;
   position: relative;
   vertical-align: middle;
@@ -148,13 +157,12 @@ export const widgetDefinition = defineWidget({
   min-height: 24px;
   min-width: 24px;
   box-sizing: border-box;
-  padding: 0 8px;
-  margin: 0 -8px;
+  padding: 0 var(--widget-port-extra-pad);
+  margin: 0 calc(0px - var(--widget-port-extra-pad));
   transition:
     margin 0.2s ease,
     padding 0.2s ease,
     background-color 0.2s ease;
-  pointer-events: none;
 }
 
 .WidgetPort:has(> .r-24:only-child) {
@@ -168,22 +176,26 @@ export const widgetDefinition = defineWidget({
   background-color: var(--node-color-port);
 }
 
-.WidgetPort::before {
-  pointer-events: all;
-  content: '';
-  position: absolute;
-  display: block;
-  inset: 4px 8px;
-}
+.GraphEditor.draggingEdge .WidgetPort {
+  pointer-events: none;
 
-/* Expand hover area for primary ports. */
-.WidgetPort.primary::before {
-  top: -4px;
-  bottom: -4px;
-}
+  &::before {
+    pointer-events: all;
+    content: '';
+    position: absolute;
+    display: block;
+    inset: 4px var(--widget-port-extra-pad);
+  }
 
-.WidgetPort.connected::before {
-  left: 0px;
-  right: 0px;
+  /* Expand hover area for primary ports. */
+  &.primary::before {
+    top: -4px;
+    bottom: -4px;
+  }
+
+  &.connected::before {
+    left: 0px;
+    right: 0px;
+  }
 }
 </style>

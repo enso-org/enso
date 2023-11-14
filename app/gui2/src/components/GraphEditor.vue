@@ -276,7 +276,8 @@ const breadcrumbs = computed(() => {
   <!-- eslint-disable vue/attributes-order -->
   <div
     ref="viewportNode"
-    class="viewport"
+    class="GraphEditor"
+    :class="{ draggingEdge: graphStore.unconnectedEdge != null }"
     :style="groupColors"
     @click="graphBindingsHandler"
     v-on.="navigator.events"
@@ -319,7 +320,7 @@ const breadcrumbs = computed(() => {
 </template>
 
 <style scoped>
-.viewport {
+.GraphEditor {
   position: relative;
   contain: layout;
   overflow: clip;

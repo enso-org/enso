@@ -38,14 +38,7 @@ export const widgetDefinition = defineWidget({
 })
 </script>
 <template>
-  <SliderWidget
-    v-model="value"
-    class="WidgetNumber r-24"
-    :min="-1000"
-    :max="1000"
-    contenteditable="false"
-    @beforeinput.stop
-  />
+  <SliderWidget v-model="value" class="WidgetNumber r-24" :min="-1000" :max="1000" />
 </template>
 
 <style scoped>
