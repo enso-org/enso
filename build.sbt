@@ -1568,13 +1568,6 @@ lazy val `runtime-with-instruments` =
       ),
       // Note [Unmanaged Classpath]
       Test / unmanagedClasspath += (baseDirectory.value / ".." / ".." / "app" / "gui" / "view" / "graph-editor" / "src" / "builtin" / "visualization" / "native" / "inc"),
-      // We need to package runtime into Jar, as it should behave as an explicit JPMS
-      // module.
-      moduleInfos := Seq(
-        JpmsModule(
-          "org.enso.runtime"
-        )
-      ),
       // Filter module-info.java from the compilation
       excludeFilter := excludeFilter.value || "module-info.java"
     )
