@@ -244,19 +244,26 @@ function startNodeCreation() {
 }
 
 async function handleFileDrop(event: DragEvent) {
+  // A vertical gap between created nodes when multiple files were dropped together.
+  const MULTIPLE_FILES_GAP = 50
+
   try {
     if (event.dataTransfer && event.dataTransfer.items) {
-      ;[...event.dataTransfer.items].forEach(async (item) => {
+      ;[...event.dataTransfer.items].forEach(async (item, index) => {
         if (item.kind === 'file') {
           const file = item.getAsFile()
           if (file) {
             const clientPos = new Vec2(event.clientX, event.clientY)
-            const pos = navigator.clientToScenePos(clientPos)
-            const uploader = await Uploader.create(
+            const offset = new Vec2(0, index * -MULTIPLE_FILES_GAP)
+            const pos = navigator.clientToScenePos(clientPos).add(offset)
+            const uploader = await Uploader.Create(
               projectStore.lsRpcConnection,
               projectStore.dataConnection,
               projectStore.contentRoots,
+              projectStore.awareness,
               file,
+              pos,
+              projectStore.executionContext.getStackTop(),
             )
             const name = await uploader.upload()
             graphStore.createNode(pos, uploadedExpression(name))
