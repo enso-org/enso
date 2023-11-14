@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
+import java.util.ServiceLoader;
 
 /**
  * A helper class for accessing the JDBC components.
@@ -35,6 +36,13 @@ public class JDBCProxy {
    * @return a connection
    */
   public static Connection getConnection(String url, Properties properties) throws SQLException {
+    // We need to manually register all the drivers because the DriverManager is not able
+    // to correctly use our class loader, it only delegates to the platform class loader when
+    // loading the java.sql.Driver service.
+    var sl = ServiceLoader.load(java.sql.Driver.class, JDBCProxy.class.getClassLoader());
+    for (var driver : sl) {
+      DriverManager.registerDriver(driver);
+    }
     return DriverManager.getConnection(url, properties);
   }
 }
