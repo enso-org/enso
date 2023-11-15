@@ -26,8 +26,9 @@ public final class RuntimeEventsMonitor implements EventsMonitor {
   private final Clock clock;
 
   private static final XMLFormatter EVENT_FORMAT = new XMLFormatter();
-  private static final String XML_HEADER = "<?xml version='1.0'?>";
-  private static final String RECORDS_HEADER = "<records>";
+  private static final String XML_TAG = "<?xml version='1.0'?>";
+  private static final String RECORDS_TAG_OPEN = "<records>";
+  private static final String RECORDS_TAG_CLOSE = "</records>";
   private static final String MESSAGE_SEPARATOR = ",";
   private static final String MESSAGE_EMPTY_REQUEST_ID = "";
 
@@ -41,8 +42,8 @@ public final class RuntimeEventsMonitor implements EventsMonitor {
     this.out = out;
     this.clock = clock;
 
-    out.println(XML_HEADER);
-    out.println(RECORDS_HEADER);
+    out.println(XML_TAG);
+    out.println(RECORDS_TAG_OPEN);
   }
 
   /**
@@ -51,11 +52,7 @@ public final class RuntimeEventsMonitor implements EventsMonitor {
    * @param out the output stream.
    */
   public RuntimeEventsMonitor(PrintStream out) {
-    this.out = out;
-    this.clock = Clock.systemUTC();
-
-    out.println(XML_HEADER);
-    out.println(RECORDS_HEADER);
+    this(out, Clock.systemUTC());
   }
 
   /**
@@ -77,6 +74,7 @@ public final class RuntimeEventsMonitor implements EventsMonitor {
 
   @Override
   public void close() throws IOException {
+    out.println(RECORDS_TAG_CLOSE);
     out.close();
   }
 
@@ -84,11 +82,11 @@ public final class RuntimeEventsMonitor implements EventsMonitor {
     if (event instanceof Runtime$Api$Request request) {
       String entry =
           buildEntry(Direction.REQUEST, request.requestId(), request.payload().getClass());
-      out.println(entry);
+      out.print(entry);
     } else if (event instanceof Runtime$Api$Response response) {
       String entry =
           buildEntry(Direction.RESPONSE, response.correlationId(), response.payload().getClass());
-      out.println(entry);
+      out.print(entry);
     }
   }
 
