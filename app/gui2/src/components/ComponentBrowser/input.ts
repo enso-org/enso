@@ -1,6 +1,8 @@
 import type { Filter } from '@/components/ComponentBrowser/filtering'
 import { useGraphStore } from '@/stores/graph'
+import { requiredImports, type Import, type RequiredImport, covers } from '@/stores/imports'
 import { useProjectStore } from '@/stores/project'
+import { useSuggestionDbStore, type SuggestionDb } from '@/stores/suggestionDatabase'
 import {
   SuggestionKind,
   type SuggestionEntry,
@@ -23,7 +25,7 @@ import {
   type QualifiedName,
 } from '@/util/qualifiedName'
 import { IdMap, type ExprId } from 'shared/yjsModel'
-import { computed, ref, type ComputedRef } from 'vue'
+import { computed, ref, type ComputedRef, type Ref } from 'vue'
 
 /** Input's editing context.
  *
@@ -51,7 +53,8 @@ export type EditingContext =
 
 /** Component Browser Input Data */
 export function useComponentBrowserInput(
-  graphStore: { identDefinitions: Map<string, ExprId> } = useGraphStore(),
+  graphStore: { identDefinitions: Map<string, ExprId>, imports: Import[] } = useGraphStore(),
+  suggestionDbStore: { entries: SuggestionDb } = useSuggestionDbStore(),
   computedValueRegistry: {
     getExpressionInfo(id: ExprId): ExpressionInfo | undefined
   } = useProjectStore().computedValueRegistry,
@@ -126,6 +129,8 @@ export function useComponentBrowserInput(
     }
     return filter
   })
+
+  const imports = ref<RequiredImport[]>([])
 
   function readOprApp(
     leafParent: IteratorResult<AstExtended<Ast.Tree, false>>,
@@ -217,6 +222,21 @@ export function useComponentBrowserInput(
       (shouldInsertSpace ? ' ' : '') +
       oldCode.substring(newCodeUpToLastChange.oldCodeIndex)
     selection.value = { start: newCursorPos, end: newCursorPos }
+    imports.value = imports.value.concat(requiredImports(suggestionDbStore.entries, entry))
+    // console.log('Applying suggestion', entry)
+    // console.log('Required imports:', requiredImports(suggestionDbStore.entries, entry))
+    // console.log('Existing imports:', graphStore.imports)
+  }
+
+  function importsToAdd(): Set<RequiredImport> {
+    const existingImports = graphStore.imports
+    const finalImports = new Set<RequiredImport>()
+    for (const required of imports.value) {
+      if (!existingImports.some((existing) => covers(existing, required))) {
+        finalImports.add(required)
+      }
+    }
+    return finalImports
   }
 
   /** Return all input changes resulting from applying given suggestion.
@@ -306,5 +326,7 @@ export function useComponentBrowserInput(
     filter,
     /** Apply given suggested entry to the input. */
     applySuggestion,
+    /** A list of imports to add when the suggestion is accepted */
+    importsToAdd,
   }
 }

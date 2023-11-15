@@ -55,7 +55,7 @@ function parseQualifiedName(ast: AstExtended): QualifiedName | null {
   }
 }
 
-function recognizeImport(ast: AstExtended<Ast.Tree.Import>): Import | null {
+export function recognizeImport(ast: AstExtended<Ast.Tree.Import>): Import | null {
   const from = ast.tryMap((import_) => import_.from?.body)
   const as = ast.tryMap((import_) => import_.as?.body)
   const import_ = ast.tryMap((import_) => import_.import.body)
@@ -88,58 +88,63 @@ function recognizeImport(ast: AstExtended<Ast.Tree.Import>): Import | null {
   }
 }
 
-type ModuleName = QualifiedName
+export type ModuleName = QualifiedName
 
-interface Import {
+export interface Import {
   from: ModuleName,
   imported: ImportedNames,
 }
 
-type ImportedNames = Module | List | All
+export type ImportedNames = Module | List | All
 
-interface Module {
+export interface Module {
   kind: 'Module'
   alias?: Identifier
 }
 
-interface List {
+export interface List {
   kind: 'List'
   names: Identifier[]
 }
 
-interface All {
+export interface All {
   kind: 'All'
   except: Identifier[]
 }
 
 export type RequiredImport = QualifiedImport | UnqualifiedImport
-interface QualifiedImport {
+
+export interface QualifiedImport {
   kind: 'Qualified'
   module: QualifiedName
 }
 
-interface UnqualifiedImport {
+export interface UnqualifiedImport {
   kind: 'Unqualified'
   from: QualifiedName
   import: Identifier
 }
 
-function requiredImports(db: SuggestionDb, entry: SuggestionEntry): RequiredImport[] {
+export function requiredImportToText(value: RequiredImport): string {
+  switch (value.kind) {
+    case "Qualified": return `import ${value.module}`
+    case "Unqualified": return `from ${value.from} import ${value.import}`
+  }
+}
+
+export function requiredImports(db: SuggestionDb, entry: SuggestionEntry): RequiredImport[] {
   switch (entry.kind) {
     case SuggestionKind.Module:
-      {
-        return entry.reexportedIn ?
-          [{
-            kind: 'Unqualified',
-            from: entry.reexportedIn,
-            import: entry.name
-          }]
-          : [{
-            kind: 'Qualified',
-            module: entryQn(entry)
-          }]
-
-      }
+      return entry.reexportedIn ?
+        [{
+          kind: 'Unqualified',
+          from: entry.reexportedIn,
+          import: entry.name
+        }]
+        : [{
+          kind: 'Qualified',
+          module: entryQn(entry)
+        }]
     case SuggestionKind.Type:
       {
         const from = entry.reexportedIn ? entry.reexportedIn : entry.definedIn
@@ -180,7 +185,7 @@ function selfTypeEntry(db: SuggestionDb, entry: SuggestionEntry): SuggestionEntr
   }
 }
 
-function covers(existing: Import, required: RequiredImport): boolean {
+export function covers(existing: Import, required: RequiredImport): boolean {
   const [parent, name] = required.kind === 'Qualified'
     ? qnSplit(required.module)
     : required.kind === 'Unqualified'

@@ -20,6 +20,7 @@ import {
 } from 'shared/yjsModel'
 import { computed, reactive, ref, watch } from 'vue'
 import * as Y from 'yjs'
+import { recognizeImport, type Import } from '@/stores/imports'
 
 export interface NodeEditInfo {
   id: ExprId
@@ -71,6 +72,7 @@ export const useGraphStore = defineStore('graph', () => {
   })
 
   const _ast = ref<Ast.Tree>()
+  const imports = ref<Import[]>([])
 
   function updateState() {
     const module = proj.module
@@ -82,6 +84,18 @@ export const useGraphStore = defineStore('graph', () => {
 
       const ast = AstExtended.parse(textContentLocal, idMap)
       const updatedMap = idMap.finishAndSynchronize()
+
+      imports.value = []
+      ast.visitRecursive((node) => {
+        if (node.isTree(Ast.Tree.Type.Import)) {
+          const recognized = recognizeImport(node)
+          if (recognized) {
+            imports.value.push(recognized)
+          }
+          return false
+        }
+        return true
+      })
 
       const methodAst = ast.isTree()
         ? ast.tryMap((tree) =>
@@ -353,6 +367,7 @@ export const useGraphStore = defineStore('graph', () => {
   return {
     _ast,
     transact,
+    imports,
     nodes,
     editedNodeInfo,
     exprNodes,

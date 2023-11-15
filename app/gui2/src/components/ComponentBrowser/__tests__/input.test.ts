@@ -5,12 +5,18 @@ import {
   makeModule,
   makeModuleMethod,
   makeStaticMethod,
+  makeType,
   type SuggestionEntry,
 } from '@/stores/suggestionDatabase/entry'
 import { readAstSpan } from '@/util/ast'
 import type { ExprId } from 'shared/yjsModel'
 import { expect, test } from 'vitest'
 import { useComponentBrowserInput } from '../input'
+import { SuggestionDb } from '@/stores/suggestionDatabase'
+import type { ExpressionInfo } from '@/util/computedValueRegistry'
+import { tryIdentifier, tryQualifiedName } from '@/util/qualifiedName'
+import { unwrap } from '@/util/result'
+import type { Import, RequiredImport } from '@/stores/imports'
 
 test.each([
   ['', 0, { type: 'insert', position: 0 }, {}],
@@ -97,7 +103,9 @@ test.each([
         ['operator1', operator1Id],
         ['operator2', operator2Id],
       ]),
+      imports: [],
     }
+    const dbMock = { entries: new SuggestionDb() }
     const computedValueRegistryMock = {
       getExpressionInfo(id: ExprId) {
         if (id === operator1Id)
@@ -106,10 +114,10 @@ test.each([
             methodCall: undefined,
             payload: { type: 'Value' },
             profilingInfo: [],
-          }
+          } as ExpressionInfo
       },
     }
-    const input = useComponentBrowserInput(graphStoreMock, computedValueRegistryMock)
+    const input = useComponentBrowserInput(graphStoreMock, dbMock, computedValueRegistryMock)
     input.code.value = code
     input.selection.value = { start: cursorPos, end: cursorPos }
     const context = input.context.value
@@ -119,17 +127,17 @@ test.each([
       case 'insert':
         expect(context.position).toStrictEqual(expContext.position)
         expect(
-          context.oprApp != null ? Array.from(context.oprApp.componentsReprs(code)) : undefined,
+          context.oprApp != null ? Array.from(context.oprApp.componentsReprs()) : undefined,
         ).toStrictEqual(expContext.oprApp)
         break
       case 'changeIdentifier':
-        expect(readAstSpan(context.identifier, code)).toStrictEqual(expContext.identifier)
+        expect(context.identifier.repr()).toStrictEqual(expContext.identifier)
         expect(
-          context.oprApp != null ? Array.from(context.oprApp.componentsReprs(code)) : undefined,
+          context.oprApp != null ? Array.from(context.oprApp.componentsReprs()) : undefined,
         ).toStrictEqual(expContext.oprApp)
         break
       case 'changeLiteral':
-        expect(readAstSpan(context.literal, code)).toStrictEqual(expContext.literal)
+        expect(context.literal.repr()).toStrictEqual(expContext.literal)
     }
     expect(filter.pattern).toStrictEqual(expFiltering.pattern)
     expect(filter.qualifiedNamePattern).toStrictEqual(expFiltering.qualifiedNamePattern)
@@ -257,7 +265,8 @@ test.each([
     cursorPos = cursorPos ?? code.length
     expectedCursorPos = expectedCursorPos ?? expected.length
     const input = useComponentBrowserInput(
-      { identDefinitions: new Map() },
+      { identDefinitions: new Map(), imports: [] },
+      { entries: new SuggestionDb() },
       { getExpressionInfo: (_id) => undefined },
     )
     input.code.value = code
@@ -270,3 +279,50 @@ test.each([
     })
   },
 )
+
+interface ImportsCase {
+  suggestionId: number
+  existingImports: Import[]
+  initialCode?: string
+  expectedCode: string
+  expectedImports: RequiredImport[]
+}
+
+test.each([
+  {
+    suggestionId: 3,
+    existingImports: [],
+    expectedCode: 'Table.new ',
+    expectedImports: [{ kind: 'Unqualified', from: unwrap(tryQualifiedName('Standard.Base')), import: unwrap(tryIdentifier('Table')) }],
+  },
+  {
+    suggestionId: 3,
+    existingImports: [{ from: unwrap(tryQualifiedName('Standard.Base')), imported: { kind: 'All', except: [] } }],
+    expectedCode: 'Table.new ',
+    expectedImports: [],
+  },
+  // {
+  //   suggestionId: 3,
+  //   existingImports: [],
+  //   initialCode: 'Base.Table.',
+  //   expectedCode: 'Base.Table.new ',
+  //   expectedImports: [{ kind: 'Qualified', module: unwrap(tryQualifiedName('Standard.Base')) }],
+  // },
+] as ImportsCase[])('Required imports when applying ID $suggestionId to $initialCode', ({ suggestionId, existingImports, initialCode, expectedCode, expectedImports }) => {
+  initialCode = initialCode ?? ''
+  const db = new SuggestionDb()
+  db.set(1, makeModule('Standard.Base'))
+  db.set(2, makeType('Standard.Base.Table'))
+  db.set(3, makeCon('Standard.Base.Table.new'))
+  const input = useComponentBrowserInput(
+    { identDefinitions: new Map(), imports: existingImports },
+    { entries: db },
+    { getExpressionInfo: (_id) => undefined },
+  )
+  input.code.value = initialCode
+  input.selection.value = { start: initialCode.length, end: initialCode.length }
+  const suggestion = db.get(suggestionId)!
+  input.applySuggestion(suggestion)
+  expect(input.code.value).toEqual(expectedCode)
+  expect(input.importsToAdd()).toEqual(new Set(expectedImports))
+})
