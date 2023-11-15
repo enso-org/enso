@@ -74,17 +74,17 @@ import { Token, Tree } from '@/generated/ast'
 import { parseEnso } from '@/util/ast'
 import type { LazyObject } from '@/util/parserSupport'
 
-declare const brandAbstractNodeId: unique symbol
-export type AbstractNodeId = number & { [brandAbstractNodeId]: never }
+declare const brandAstId: unique symbol
+export type AstId = number & { [brandAstId]: never }
 
 declare const brandTokenId: unique symbol
 export type TokenId = number & { [brandTokenId]: never }
 
 let nextNodeId = 0
-function newNodeId(): AbstractNodeId {
+function newNodeId(): AstId {
   const id = nextNodeId
   nextNodeId++
-  return id as AbstractNodeId
+  return id as AstId
 }
 
 let nextTokenId = 0
@@ -94,10 +94,10 @@ function newTokenId(): TokenId {
   return id as TokenId
 }
 
-export type Tok = { code: string, id?: TokenId }
-export type NodeChild = { whitespace?: string | undefined; node: AbstractNodeId | Tok }
+export type Tok = { code: string; id?: TokenId }
+export type NodeChild = { whitespace?: string | undefined; node: AstId | Tok }
 
-function isToken(node: Tok | AbstractNodeId): node is Tok {
+function isToken(node: Tok | AstId): node is Tok {
   return typeof node == 'object'
 }
 
@@ -115,24 +115,37 @@ export class AbstractNode {
   }
 }
 type FunctionArgument = NodeChild[]
-type TokWithWhitespace = { whitespace?: string, node: Tok }
+type TokWithWhitespace = { whitespace?: string; node: Tok }
 export class Function extends AbstractNode {
   public name: NodeChild
   public args: FunctionArgument[]
   public equals: TokWithWhitespace | undefined
   public body: NodeChild | null
-  constructor(name: NodeChild, args: FunctionArgument[], equals: TokWithWhitespace | undefined, body: NodeChild | null) {
+  constructor(
+    name: NodeChild,
+    args: FunctionArgument[],
+    equals: TokWithWhitespace | undefined,
+    body: NodeChild | null,
+  ) {
     super([], Tree.Type.Function)
     this.name = name
     this.args = args
     this.equals = equals
     this.body = body
   }
-  static new(nodes: NodeMap, name: NodeChild, args: FunctionArgument[], equals: TokWithWhitespace | undefined, body: NodeChild | null): Function {
+  static new(
+    nodes: NodeMap,
+    name: NodeChild,
+    args: FunctionArgument[],
+    equals: TokWithWhitespace | undefined,
+    body: NodeChild | null,
+  ): Function {
     return new Function(name, args, equals, body)
   }
   get children(): NodeChild[] {
     const children = [this.name]
+    for (const arg of this.args)
+        children.push(...arg)
     if (this.equals !== undefined) {
       children.push({ whitespace: this.equals.whitespace ?? ' ', node: this.equals.node })
     } else {
@@ -145,9 +158,8 @@ export class Function extends AbstractNode {
   }
 }
 type BlockLine = {
-  // Always present in parsed trees. Can be undefined when creating a node (standard newline will be inserted).
-  newline?: TokWithWhitespace,
-  expression: NodeChild | null,
+  newline?: TokWithWhitespace
+  expression: NodeChild | null
 }
 export class Block extends AbstractNode {
   public lines: BlockLine[]
@@ -165,8 +177,7 @@ export class Block extends AbstractNode {
       } else {
         children.push({ node: { code: '\n' } })
       }
-      if (line.expression !== null)
-        children.push(line.expression)
+      if (line.expression !== null) children.push(line.expression)
     }
     return children
   }
@@ -181,9 +192,9 @@ export class Assignment extends AbstractNode {
     this.equals = equals
     this.value = value
   }
-  static new(nodes: NodeMap, name: string, expression: AbstractNodeId): Assignment {
-    const pattern = { node: { code: name }}
-    const value = { node: expression}
+  static new(nodes: NodeMap, name: string, expression: AstId): Assignment {
+    const pattern = { node: { code: name } }
+    const value = { node: expression }
     return new Assignment(pattern, undefined, value)
   }
 
@@ -198,7 +209,16 @@ export class RawCode extends AbstractNode {
   }
 
   static new(nodes: NodeMap, code: string): RawCode {
-    return new RawCode({ node: { code }})
+    return new RawCode({ node: { code } })
+  }
+}
+export class Tombstone extends AbstractNode {
+  constructor() {
+    super()
+  }
+
+  static new(): Tombstone {
+    return new Tombstone()
   }
 }
 
@@ -217,7 +237,7 @@ export class RawCode extends AbstractNode {
 // - I think usually an edit won't depend on analysis of the result of some sub-edit
 // - we can support explicit reanalysis-points when needed
 
-export type NodeMap = Map<AbstractNodeId, AbstractNode>
+export type NodeMap = Map<AstId, AbstractNode>
 
 export type CodeMaybePrinted = {
   info?: InfoMap
@@ -228,7 +248,7 @@ export function abstract(
   tree: Tree,
   nodesOut: NodeMap,
   source: CodeMaybePrinted,
-): { whitespace: string | undefined, node: AbstractNodeId } {
+): { whitespace: string | undefined; node: AstId } {
   const nodesExpected = new Map(
     Array.from(source.info?.nodes.entries() ?? [], ([span, ids]) => [span, [...ids]]),
   )
@@ -241,7 +261,7 @@ function abstract_(
   code: string,
   nodesExpected: NodeSpanMap,
   tokenIds: TokenSpanMap,
-): { whitespace: string | undefined, node: AbstractNodeId } {
+): { whitespace: string | undefined; node: AstId } {
   const treeType = tree.type
   let node
   const visitChildren = (tree: LazyObject) => {
@@ -274,7 +294,10 @@ function abstract_(
       const name = abstract_(tree.name, nodesOut, code, nodesExpected, tokenIds)
       const args = Array.from(tree.args, (arg) => visitChildren(arg))
       const equals = abstractToken(tree.equals, code, tokenIds)
-      const body = (tree.body !== undefined) ? abstract_(tree.body, nodesOut, code, nodesExpected, tokenIds) : null
+      const body =
+        tree.body !== undefined
+          ? abstract_(tree.body, nodesOut, code, nodesExpected, tokenIds)
+          : null
       node = Function.new(nodesOut, name, args, equals, body)
       break
     default:
@@ -315,11 +338,11 @@ function tokenKey(start: number, length: number, type: Token.Type): TokenKey {
   return `${start}:${length}:${type}`
 }
 
-type NodeSpanMap = Map<NodeKey, AbstractNodeId[]>
+type NodeSpanMap = Map<NodeKey, AstId[]>
 type TokenSpanMap = Map<TokenKey, TokenId>
 export type InfoMap = {
-  nodes: Map<NodeKey, AbstractNodeId[]>
-  tokens: Map<TokenKey, AbstractNodeId[]>
+  nodes: Map<NodeKey, AstId[]>
+  tokens: Map<TokenKey, AstId[]>
 }
 
 export type PrintedSource = {
@@ -327,7 +350,7 @@ export type PrintedSource = {
   code: string
 }
 
-export function print(root: AbstractNodeId | Tok, nodes: NodeMap): PrintedSource {
+export function print(root: AstId | Tok, nodes: NodeMap): PrintedSource {
   const info: InfoMap = {
     nodes: new Map(),
     tokens: new Map(),
@@ -335,7 +358,13 @@ export function print(root: AbstractNodeId | Tok, nodes: NodeMap): PrintedSource
   const code = print_(root, nodes, info, 0, '')
   return { info, code }
 }
-function print_(root: AbstractNodeId | Tok, nodes: NodeMap, info: InfoMap, offset: number, indent: string): string {
+function print_(
+  root: AstId | Tok,
+  nodes: NodeMap,
+  info: InfoMap,
+  offset: number,
+  indent: string,
+): string {
   if (isToken(root)) {
     return root.code
   }
@@ -344,6 +373,12 @@ function print_(root: AbstractNodeId | Tok, nodes: NodeMap, info: InfoMap, offse
   let code = ''
   if (node instanceof Block) {
     for (const line of node.lines) {
+      if (
+        line.expression?.node != null &&
+        !isToken(line.expression.node) &&
+        nodes.get(line.expression.node) instanceof Tombstone
+      )
+        continue
       code += line.newline?.whitespace ?? ''
       code += line.newline?.node.code ?? '\n'
       if (line.expression !== null) {
@@ -353,6 +388,8 @@ function print_(root: AbstractNodeId | Tok, nodes: NodeMap, info: InfoMap, offse
     }
   } else {
     for (const child of node.children) {
+      if (child.node != null && !isToken(child.node) && nodes.get(child.node) instanceof Tombstone)
+        continue
       if (child.whitespace != null) {
         code += child.whitespace
       } else if (code.length != 0) {
@@ -376,7 +413,7 @@ function print_(root: AbstractNodeId | Tok, nodes: NodeMap, info: InfoMap, offse
 }
 
 // Translates to a representation where nodes are arrays and leaves are tokens.
-export function debug(id: AbstractNodeId, nodes: NodeMap): any[] {
+export function debug(id: AstId, nodes: NodeMap): any[] {
   let node = nodes.get(id)
   if (node == null) throw new Error('missing node?')
   return node.children.map((child) => {
@@ -388,7 +425,7 @@ export function debug(id: AbstractNodeId, nodes: NodeMap): any[] {
   })
 }
 
-export function normalize(root: AbstractNodeId, nodes: NodeMap): AbstractNodeId {
+export function normalize(root: AstId, nodes: NodeMap): AstId {
   const printed = print(root, nodes)
   const tree = parseEnso(printed.code)
   return abstract(tree, nodes, printed).node
@@ -401,8 +438,7 @@ export function functionBlock(name: string, nodes: NodeMap): Block | null {
         const bodyId = node.body.node
         if (bodyId !== undefined && !isToken(bodyId)) {
           const body = nodes.get(bodyId)
-          if (body instanceof Block)
-            return body
+          if (body instanceof Block) return body
         }
       }
     }
@@ -410,10 +446,24 @@ export function functionBlock(name: string, nodes: NodeMap): Block | null {
   return null
 }
 
-export function insertNewNodeAST(block: Block, nodes: NodeMap, ident: string, expression: string) {
+export function insertNewNodeAST(
+  block: Block,
+  nodes: NodeMap,
+  ident: string,
+  expression: string,
+): { assignment: AstId; value: AstId } {
   const value = newNodeId()
   nodes.set(value, RawCode.new(nodes, expression))
   const assignment = newNodeId()
   nodes.set(assignment, Assignment.new(nodes, ident, value))
-  block.lines.push({ expression: { node: assignment }})
+  block.lines.push({ expression: { node: assignment } })
+  return { assignment, value }
+}
+
+export function deleteExpressionAST(nodes: NodeMap, id: AstId) {
+  nodes.set(id, new Tombstone())
+}
+
+export function replaceExpressionContentAST(nodes: NodeMap, id: AstId, code: string) {
+  nodes.set(id, RawCode.new(nodes, code))
 }

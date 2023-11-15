@@ -1,6 +1,15 @@
 import { useProjectStore } from '@/stores/project'
 import { DEFAULT_VISUALIZATION_IDENTIFIER } from '@/stores/visualization'
-import { Ast, AstExtended, childrenAstNodes, findAstWithRange, parseEnso, readAstSpan } from '@/util/ast'
+import {
+  Ast,
+  AstExtended,
+  childrenAstNodes,
+  findAstWithRange,
+  parseEnso,
+  readAstSpan,
+} from '@/util/ast'
+import type { AbstractNode, AstId } from '@/util/ast/abstract'
+import { abstract } from '@/util/ast/abstract'
 import { useObserveYjs } from '@/util/crdt'
 import type { Opt } from '@/util/opt'
 import type { Rect } from '@/util/rect'
@@ -20,8 +29,6 @@ import {
 } from 'shared/yjsModel'
 import { computed, reactive, ref, watch } from 'vue'
 import * as Y from 'yjs'
-import { abstract } from "@/util/ast/abstract";
-import type { AbstractNode, AbstractNodeId } from "@/util/ast/abstract";
 
 export interface NodeEditInfo {
   id: ExprId
@@ -74,8 +81,8 @@ export const useGraphStore = defineStore('graph', () => {
 
   const _ast = ref<Ast.Tree>()
 
-  const astNodes = reactive(new Map<AbstractNodeId, AbstractNode>())
-  const astRoot = ref<AbstractNodeId>()
+  const astNodes = reactive(new Map<AstId, AbstractNode>())
+  const astRoot = ref<AstId>()
 
   function updateState() {
     astNodes.clear()

@@ -1,7 +1,16 @@
-import { parseEnso } from "../index";
-import type { AbstractNodeId } from "../abstract";
-import {AbstractNode, abstract, debug, insertNewNodeAST, print, functionBlock} from "../abstract";
 import { expect, test } from 'vitest'
+import type { AstId } from '../abstract'
+import {
+  AbstractNode,
+  abstract,
+  debug,
+  deleteExpressionAST,
+  functionBlock,
+  insertNewNodeAST,
+  print,
+  replaceExpressionContentAST,
+} from '../abstract'
+import { parseEnso } from '../index'
 
 //const disabledCases = [
 //  ' a',
@@ -348,7 +357,7 @@ const cases = [
 test.each(cases)('parse/print round trip: %s', (code) => {
   // Get an AST.
   const tree = parseEnso(code)
-  const nodes = new Map<AbstractNodeId, AbstractNode>()
+  const nodes = new Map<AstId, AbstractNode>()
   const root = abstract(tree, nodes, { code }).node
 
   // Print AST back to source.
@@ -367,19 +376,45 @@ test.each(cases)('parse/print round trip: %s', (code) => {
 test('parse', () => {
   const code = 'foo bar+baz'
   const tree = parseEnso(code)
-  const nodes = new Map<AbstractNodeId, AbstractNode>()
+  const nodes = new Map<AstId, AbstractNode>()
   const root = abstract(tree, nodes, { code }).node
   expect(debug(root, nodes)).toEqual(['', [['foo'], [['bar'], '+', ['baz']]]])
 })
 
-test('insertNewNode', () => {
+test('insert new node', () => {
   const code = 'main =\n    text1 = "foo"\n'
   const tree = parseEnso(code)
-  const nodes = new Map<AbstractNodeId, AbstractNode>()
+  const nodes = new Map<AstId, AbstractNode>()
   const root = abstract(tree, nodes, { code }).node
   const main = functionBlock('main', nodes)
   expect(main).not.toBeNull()
   insertNewNodeAST(main!, nodes, 'baz', '42')
   const printed = print(root, nodes)
   expect(printed.code).toEqual('main =\n    text1 = "foo"\n    baz = 42\n')
+})
+
+test('replace expression content', () => {
+  const code = 'main =\n    text1 = "foo"\n'
+  const tree = parseEnso(code)
+  const nodes = new Map<AstId, AbstractNode>()
+  const root = abstract(tree, nodes, { code }).node
+  const main = functionBlock('main', nodes)
+  expect(main).not.toBeNull()
+  const newAssignment = insertNewNodeAST(main!, nodes, 'baz', '42')
+  replaceExpressionContentAST(nodes, newAssignment.value, '23')
+  const printed = print(root, nodes)
+  expect(printed.code).toEqual('main =\n    text1 = "foo"\n    baz = 23\n')
+})
+
+test('delete expression', () => {
+  const originalCode = 'main =\n    text1 = "foo"\n'
+  const tree = parseEnso(originalCode)
+  const nodes = new Map<AstId, AbstractNode>()
+  const root = abstract(tree, nodes, { code: originalCode }).node
+  const main = functionBlock('main', nodes)
+  expect(main).not.toBeNull()
+  const newAssignment = insertNewNodeAST(main!, nodes, 'baz', '42')
+  deleteExpressionAST(nodes, newAssignment.assignment)
+  const printed = print(root, nodes)
+  expect(printed.code).toEqual(originalCode)
 })
