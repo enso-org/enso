@@ -11,6 +11,8 @@ spec = Test.group "Refs" <|
         r.get . should_equal 'foo'
         r.put 'bar'
         r.get . should_equal 'bar'
+        r.modify (_+'s')
+        r.get . should_equal 'bars'
 
         vec = [r, r]
         vec.at 0 . put 123
