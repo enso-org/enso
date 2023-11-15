@@ -11,10 +11,3 @@ trait EventsMonitor {
     */
   def registerEvent(event: Any): Unit
 }
-
-/** Events monitor that does nothing. */
-final class NoopEventsMonitor extends EventsMonitor {
-
-  /** @inheritdoc */
-  override def registerEvent(event: Any): Unit = ()
-}
