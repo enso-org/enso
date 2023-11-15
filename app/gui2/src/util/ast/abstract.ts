@@ -95,7 +95,7 @@ function newTokenId(): TokenId {
 }
 
 export type Tok = { code: string, id?: TokenId }
-export type NodeChild = { whitespace: string | undefined; node: AbstractNodeId | Tok }
+export type NodeChild = { whitespace?: string | undefined; node: AbstractNodeId | Tok }
 
 function isToken(node: Tok | AbstractNodeId): node is Tok {
   return typeof node == 'object'
@@ -114,7 +114,41 @@ export class AbstractNode {
     return this._children
   }
 }
-type BlockLine = { newline: NodeChild, expression: NodeChild | null }
+type FunctionArgument = NodeChild[]
+type TokWithWhitespace = { whitespace?: string, node: Tok }
+export class Function extends AbstractNode {
+  public name: NodeChild
+  public args: FunctionArgument[]
+  public equals: TokWithWhitespace | undefined
+  public body: NodeChild | null
+  constructor(name: NodeChild, args: FunctionArgument[], equals: TokWithWhitespace | undefined, body: NodeChild | null) {
+    super([], Tree.Type.Function)
+    this.name = name
+    this.args = args
+    this.equals = equals
+    this.body = body
+  }
+  static new(nodes: NodeMap, name: NodeChild, args: FunctionArgument[], equals: TokWithWhitespace | undefined, body: NodeChild | null): Function {
+    return new Function(name, args, equals, body)
+  }
+  get children(): NodeChild[] {
+    const children = [this.name]
+    if (this.equals !== undefined) {
+      children.push({ whitespace: this.equals.whitespace ?? ' ', node: this.equals.node })
+    } else {
+      children.push({ whitespace: ' ', node: { code: '=' } })
+    }
+    if (this.body !== null) {
+      children.push(this.body)
+    }
+    return children
+  }
+}
+type BlockLine = {
+  // Always present in parsed trees. Can be undefined when creating a node (standard newline will be inserted).
+  newline?: TokWithWhitespace,
+  expression: NodeChild | null,
+}
 export class Block extends AbstractNode {
   public lines: BlockLine[]
 
@@ -126,11 +160,45 @@ export class Block extends AbstractNode {
   get children(): NodeChild[] {
     const children: NodeChild[] = []
     for (const line of this.lines) {
-      children.push(line.newline)
+      if (line.newline !== undefined) {
+        children.push(line.newline)
+      } else {
+        children.push({ node: { code: '\n' } })
+      }
       if (line.expression !== null)
         children.push(line.expression)
     }
     return children
+  }
+}
+export class Assignment extends AbstractNode {
+  public pattern: NodeChild
+  public equals: Tok | undefined
+  public value: NodeChild
+  constructor(pattern: NodeChild, equals: Tok | undefined, value: NodeChild) {
+    super([], Tree.Type.Assignment)
+    this.pattern = pattern
+    this.equals = equals
+    this.value = value
+  }
+  static new(nodes: NodeMap, name: string, expression: AbstractNodeId): Assignment {
+    const pattern = { node: { code: name }}
+    const value = { node: expression}
+    return new Assignment(pattern, undefined, value)
+  }
+
+  get children(): NodeChild[] {
+    const defaultEquals = { whitespace: this.value.whitespace, code: '=' }
+    return [this.pattern, { node: this.equals ?? defaultEquals }, this.value]
+  }
+}
+export class RawCode extends AbstractNode {
+  constructor(code: NodeChild) {
+    super([code])
+  }
+
+  static new(nodes: NodeMap, code: string): RawCode {
+    return new RawCode({ node: { code }})
   }
 }
 
@@ -176,6 +244,20 @@ function abstract_(
 ): { whitespace: string | undefined, node: AbstractNodeId } {
   const treeType = tree.type
   let node
+  const visitChildren = (tree: LazyObject) => {
+    const children: NodeChild[] = []
+    const visitor = (child: LazyObject) => {
+      if (Tree.isInstance(child)) {
+        children.push(abstract_(child, nodesOut, code, nodesExpected, tokenIds))
+      } else if (Token.isInstance(child)) {
+        children.push(abstractToken(child, code, tokenIds))
+      } else {
+        child.visitChildren(visitor)
+      }
+    }
+    tree.visitChildren(visitor)
+    return children
+  }
   switch (tree.type) {
     case Tree.Type.BodyBlock:
       const lines = Array.from(tree.statements, (line) => {
@@ -188,19 +270,15 @@ function abstract_(
       })
       node = new Block(lines)
       break
+    case Tree.Type.Function:
+      const name = abstract_(tree.name, nodesOut, code, nodesExpected, tokenIds)
+      const args = Array.from(tree.args, (arg) => visitChildren(arg))
+      const equals = abstractToken(tree.equals, code, tokenIds)
+      const body = (tree.body !== undefined) ? abstract_(tree.body, nodesOut, code, nodesExpected, tokenIds) : null
+      node = Function.new(nodesOut, name, args, equals, body)
+      break
     default:
-      const children: NodeChild[] = []
-      const visitor = (child: LazyObject) => {
-        if (Tree.isInstance(child)) {
-          children.push(abstract_(child, nodesOut, code, nodesExpected, tokenIds))
-        } else if (Token.isInstance(child)) {
-          children.push(abstractToken(child, code, tokenIds))
-        } else {
-          child.visitChildren(visitor)
-        }
-      }
-      tree.visitChildren(visitor)
-      node = new AbstractNode(children, treeType)
+      node = new AbstractNode(visitChildren(tree), treeType)
   }
   const whitespaceStart = tree.whitespaceStartInCodeParsed
   const whitespaceEnd = whitespaceStart + tree.whitespaceLengthInCodeParsed
@@ -249,29 +327,42 @@ export type PrintedSource = {
   code: string
 }
 
-export function print(root: AbstractNodeId, nodes: NodeMap): PrintedSource {
+export function print(root: AbstractNodeId | Tok, nodes: NodeMap): PrintedSource {
   const info: InfoMap = {
     nodes: new Map(),
     tokens: new Map(),
   }
-  const code = print_(root, nodes, info, 0)
+  const code = print_(root, nodes, info, 0, '')
   return { info, code }
 }
-function print_(root: AbstractNodeId, nodes: NodeMap, info: InfoMap, offset: number): string {
+function print_(root: AbstractNodeId | Tok, nodes: NodeMap, info: InfoMap, offset: number, indent: string): string {
+  if (isToken(root)) {
+    return root.code
+  }
   let node = nodes.get(root)
   if (node == null) throw new Error('missing node?')
   let code = ''
-  for (const child of node.children) {
-    if (child.whitespace != null) {
-      // TODO: Ensure indentation is appropriate for block.
-      code += child.whitespace
-    } else if (code.length != 0) {
-      code += ' '
+  if (node instanceof Block) {
+    for (const line of node.lines) {
+      code += line.newline?.whitespace ?? ''
+      code += line.newline?.node.code ?? '\n'
+      if (line.expression !== null) {
+        code += line.expression.whitespace ?? indent
+        code += print_(line.expression.node, nodes, info, offset, indent + '    ')
+      }
     }
-    if (isToken(child.node)) {
-      code += child.node.code
-    } else {
-      code += print_(child.node, nodes, info, offset + code.length)
+  } else {
+    for (const child of node.children) {
+      if (child.whitespace != null) {
+        code += child.whitespace
+      } else if (code.length != 0) {
+        code += ' '
+      }
+      if (isToken(child.node)) {
+        code += child.node.code
+      } else {
+        code += print_(child.node, nodes, info, offset + code.length, indent)
+      }
     }
   }
   const span = nodeKey(offset, code.length, node.treeType)
@@ -303,5 +394,26 @@ export function normalize(root: AbstractNodeId, nodes: NodeMap): AbstractNodeId 
   return abstract(tree, nodes, printed).node
 }
 
-export function insertNewNodeAST(nodes: NodeMap, ident: string, expression: string) {
+export function functionBlock(name: string, nodes: NodeMap): Block | null {
+  for (const [_id, node] of nodes) {
+    if (node instanceof Function) {
+      if (print(node.name.node, nodes).code === name && node.body != null) {
+        const bodyId = node.body.node
+        if (bodyId !== undefined && !isToken(bodyId)) {
+          const body = nodes.get(bodyId)
+          if (body instanceof Block)
+            return body
+        }
+      }
+    }
+  }
+  return null
+}
+
+export function insertNewNodeAST(block: Block, nodes: NodeMap, ident: string, expression: string) {
+  const value = newNodeId()
+  nodes.set(value, RawCode.new(nodes, expression))
+  const assignment = newNodeId()
+  nodes.set(assignment, Assignment.new(nodes, ident, value))
+  block.lines.push({ expression: { node: assignment }})
 }

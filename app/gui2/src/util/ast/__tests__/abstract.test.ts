@@ -1,6 +1,6 @@
 import { parseEnso } from "../index";
 import type { AbstractNodeId } from "../abstract";
-import { AbstractNode, abstract, debug, insertNewNodeAST, print } from "../abstract";
+import {AbstractNode, abstract, debug, insertNewNodeAST, print, functionBlock} from "../abstract";
 import { expect, test } from 'vitest'
 
 //const disabledCases = [
@@ -377,7 +377,9 @@ test('insertNewNode', () => {
   const tree = parseEnso(code)
   const nodes = new Map<AbstractNodeId, AbstractNode>()
   const root = abstract(tree, nodes, { code }).node
-  insertNewNodeAST(nodes, 'baz', '42')
+  const main = functionBlock('main', nodes)
+  expect(main).not.toBeNull()
+  insertNewNodeAST(main!, nodes, 'baz', '42')
   const printed = print(root, nodes)
-  expect(printed).toEqual('main =\n    text1 = "foo"\n    baz = 42\n')
+  expect(printed.code).toEqual('main =\n    text1 = "foo"\n    baz = 42\n')
 })
