@@ -318,6 +318,10 @@ const handler = componentBrowserBindings.handler({
     applySuggestion()
   },
   acceptInput() {
+    applySuggestion()
+    acceptInput()
+  },
+  acceptInputRaw() {
     acceptInput()
   },
   moveUp() {
