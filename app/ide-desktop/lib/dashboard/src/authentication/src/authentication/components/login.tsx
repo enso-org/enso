@@ -55,7 +55,7 @@ export default function Login() {
                             event.preventDefault()
                             await signInWithGoogle()
                         }}
-                        className="relative rounded-full bg-cloud/10 hover:bg-gray-200 py-2"
+                        className="relative rounded-full bg-cloud/10 hover:bg-cloud/20 focus:bg-cloud/20 transition-all duration-300 py-2"
                     >
                         <FontAwesomeIcon icon={fontawesomeIcons.faGoogle} />
                         Sign up or login with Google
@@ -68,7 +68,7 @@ export default function Login() {
                             event.preventDefault()
                             await signInWithGitHub()
                         }}
-                        className="relative rounded-full bg-cloud/10 hover:bg-gray-200 py-2"
+                        className="relative rounded-full bg-cloud/10 hover:bg-cloud/20 focus:bg-cloud/20 transition-all duration-300 py-2"
                     >
                         <FontAwesomeIcon icon={fontawesomeIcons.faGithub} />
                         Sign up or login with GitHub
@@ -117,7 +117,7 @@ export default function Login() {
                         footer={
                             <router.Link
                                 to={app.FORGOT_PASSWORD_PATH}
-                                className="text-xs text-blue-500 hover:text-blue-700 text-end"
+                                className="text-xs text-blue-500 hover:text-blue-700 focus:text-blue-700 transition-all duration-300 text-end"
                             >
                                 Forgot Your Password?
                             </router.Link>

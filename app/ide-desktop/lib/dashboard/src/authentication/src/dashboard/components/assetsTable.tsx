@@ -395,51 +395,47 @@ export default function AssetsTable(props: AssetsTableProps) {
             // This is required, otherwise we are using an outdated
             // `nameOfProjectToImmediatelyOpen`.
             setNameOfProjectToImmediatelyOpen(oldNameOfProjectToImmediatelyOpen => {
-                setTimeout(() => {
-                    setInitialized(true)
-                    setAssetTree(
-                        newAssets.map(asset => ({
-                            key: asset.id,
-                            item: asset,
-                            directoryKey: null,
-                            directoryId: null,
-                            children: null,
-                            depth: 0,
-                        }))
-                    )
-                    // The project name here might also be a string with project id, e.g.
-                    // when opening a project file from explorer on Windows.
-                    const isInitialProject = (asset: backendModule.AnyAsset) =>
-                        asset.title === oldNameOfProjectToImmediatelyOpen ||
-                        asset.id === oldNameOfProjectToImmediatelyOpen
-                    if (oldNameOfProjectToImmediatelyOpen != null) {
-                        const projectToLoad = newAssets
-                            .filter(backendModule.assetIsProject)
-                            .find(isInitialProject)
-                        if (projectToLoad != null) {
-                            dispatchAssetEvent({
-                                type: assetEventModule.AssetEventType.openProject,
-                                id: projectToLoad.id,
-                                shouldAutomaticallySwitchPage: true,
-                                runInBackground: false,
-                            })
-                        } else {
-                            toastAndLog(
-                                `Could not find project '${oldNameOfProjectToImmediatelyOpen}'`
-                            )
-                        }
+                setInitialized(true)
+                setAssetTree(
+                    newAssets.map(asset => ({
+                        key: asset.id,
+                        item: asset,
+                        directoryKey: null,
+                        directoryId: null,
+                        children: null,
+                        depth: 0,
+                    }))
+                )
+                // The project name here might also be a string with project id, e.g.
+                // when opening a project file from explorer on Windows.
+                const isInitialProject = (asset: backendModule.AnyAsset) =>
+                    asset.title === oldNameOfProjectToImmediatelyOpen ||
+                    asset.id === oldNameOfProjectToImmediatelyOpen
+                if (oldNameOfProjectToImmediatelyOpen != null) {
+                    const projectToLoad = newAssets
+                        .filter(backendModule.assetIsProject)
+                        .find(isInitialProject)
+                    if (projectToLoad != null) {
+                        dispatchAssetEvent({
+                            type: assetEventModule.AssetEventType.openProject,
+                            id: projectToLoad.id,
+                            shouldAutomaticallySwitchPage: true,
+                            runInBackground: false,
+                        })
+                    } else {
+                        toastAndLog(`Could not find project '${oldNameOfProjectToImmediatelyOpen}'`)
                     }
-                    setQueuedAssetEvents(oldQueuedAssetEvents => {
-                        if (oldQueuedAssetEvents.length !== 0) {
-                            window.setTimeout(() => {
-                                for (const event of oldQueuedAssetEvents) {
-                                    dispatchAssetEvent(event)
-                                }
-                            }, 0)
-                        }
-                        return []
-                    })
-                }, 0)
+                }
+                setQueuedAssetEvents(oldQueuedAssetEvents => {
+                    if (oldQueuedAssetEvents.length !== 0) {
+                        queueMicrotask(() => {
+                            for (const event of oldQueuedAssetEvents) {
+                                dispatchAssetEvent(event)
+                            }
+                        })
+                    }
+                    return []
+                })
                 return null
             })
         },
@@ -1207,6 +1203,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                         </ContextMenu>
                     </ContextMenus>
                 )
+            } else if (category !== categorySwitcher.Category.home) {
+                return null
             } else {
                 const deleteAction =
                     backend.type === backendModule.BackendType.local
@@ -1404,14 +1402,15 @@ export default function AssetsTable(props: AssetsTableProps) {
                     onContextMenu={(innerSelectedKeys, event, innerSetSelectedKeys) => {
                         event.preventDefault()
                         event.stopPropagation()
-                        setModal(
-                            doRenderContextMenu(
-                                innerSelectedKeys,
-                                event,
-                                innerSetSelectedKeys,
-                                false
-                            )
+                        const modal = doRenderContextMenu(
+                            innerSelectedKeys,
+                            event,
+                            innerSetSelectedKeys,
+                            false
                         )
+                        if (modal != null) {
+                            setModal(modal)
+                        }
                     }}
                     draggableRows
                     onRowDragStart={event => {
@@ -1534,15 +1533,19 @@ export default function AssetsTable(props: AssetsTableProps) {
                         })
                     }}
                     onDragLeave={event => {
+                        const payload = drag.LABELS.lookup(event)
                         if (
+                            payload != null &&
                             event.relatedTarget instanceof Node &&
                             !event.currentTarget.contains(event.relatedTarget)
                         ) {
                             setSelectedKeys(oldSelectedKeys => {
-                                dispatchAssetEvent({
-                                    type: assetEventModule.AssetEventType.temporarilyAddLabels,
-                                    ids: oldSelectedKeys,
-                                    labelNames: set.EMPTY,
+                                queueMicrotask(() => {
+                                    dispatchAssetEvent({
+                                        type: assetEventModule.AssetEventType.temporarilyAddLabels,
+                                        ids: oldSelectedKeys,
+                                        labelNames: set.EMPTY,
+                                    })
                                 })
                                 return oldSelectedKeys
                             })

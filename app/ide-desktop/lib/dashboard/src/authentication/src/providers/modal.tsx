@@ -17,10 +17,12 @@ interface SetModalContextType {
 /** State contained in a `ModalContext`. */
 interface ModalContextType {
     modal: Modal | null
+    modalRef: React.RefObject<Modal>
 }
 
 const ModalContext = React.createContext<ModalContextType>({
     modal: null,
+    modalRef: { current: null },
 })
 
 const SetModalContext = React.createContext<SetModalContextType>({
@@ -37,13 +39,23 @@ export interface ModalProviderProps extends React.PropsWithChildren {}
 export function ModalProvider(props: ModalProviderProps) {
     const { children } = props
     const [modal, setModal] = React.useState<Modal | null>(null)
+    const modalRef = React.useRef(modal)
+
+    React.useEffect(() => {
+        modalRef.current = modal
+    }, [modal])
+
     // This is NOT for optimization purposes - this is for debugging purposes,
     // so that a change of `modal` does not trigger VDOM changes everywhere in the page.
     const setModalProvider = React.useMemo(
         () => <SetModalProvider setModal={setModal}>{children}</SetModalProvider>,
         [children]
     )
-    return <ModalContext.Provider value={{ modal }}>{setModalProvider}</ModalContext.Provider>
+    return (
+        <ModalContext.Provider value={{ modal, modalRef }}>
+            {setModalProvider}
+        </ModalContext.Provider>
+    )
 }
 
 /** Props for a {@link ModalProvider}. */
@@ -62,6 +74,13 @@ function SetModalProvider(props: InternalSetModalProviderProps) {
 export function useModal() {
     const { modal } = React.useContext(ModalContext)
     return { modal }
+}
+
+/** A React context hook exposing the currently active modal (if one is currently visible) as a ref.
+ */
+export function useModalRef() {
+    const { modalRef } = React.useContext(ModalContext)
+    return { modalRef }
 }
 
 /** A React context hook exposing functions to set and unset the currently active modal. */

@@ -201,7 +201,7 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
 
   /**
    * Parses the given Enso source code snippet in {@code request}.
-   *
+   * <p>
    * Inline parsing does not handle the following expressions:
    * <ul>
    *     <li>Assignments</li>

@@ -103,17 +103,17 @@ type Column
 
     ## PRIVATE
        ADVANCED
-       Creates a new column given a name and a vector of elements repeated over and over.
+       Creates a new column given a name and an element repeated over and over.
 
        Arguments:
        - name: The name of the column to create.
-       - items: The elements to contain in the column.
-       - repeats: The number of times to repeat the vector.
-    from_vector_repeated : Text -> Vector -> Integer -> Column
-    from_vector_repeated name items repeats =
+       - item: The element to repeat in the column.
+       - repeats: The number of times to repeat the element.
+    from_repeated_item : Text -> Any -> Integer -> Column
+    from_repeated_item name item repeats =
         Invalid_Column_Names.handle_java_exception <| Illegal_Argument.handle_java_exception <|
             java_column = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
-                Java_Column.fromRepeatedItems name items repeats java_problem_aggregator
+                Java_Column.fromRepeatedItem name item repeats java_problem_aggregator
             Column.Value java_column
 
     ## PRIVATE

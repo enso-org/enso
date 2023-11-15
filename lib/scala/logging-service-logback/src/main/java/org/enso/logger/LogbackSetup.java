@@ -115,14 +115,14 @@ public final class LogbackSetup extends LoggerSetup {
             int port) {
         Level targetLogLevel;
         // Modify log level if we were asked to always log to a file.
-        // The receiver needs to get all logs (up to `trace`) so as to be able to log all verbose messages.
+        // The receiver needs to get all logs (up to `trace`) to be able to log all verbose messages.
         if (logToFileEnabled()) {
-            int min = Math.min(Level.TRACE.toInt(), config.logToFile().logLevel().toInt());
+            int min = Math.min(logLevel.toInt(), config.logToFile().logLevel().toInt());
             targetLogLevel = Level.intToLevel(min);
         } else {
             targetLogLevel = logLevel;
         }
-        LoggerAndContext env = contextInit(targetLogLevel, config, !logToFileEnabled());
+        LoggerAndContext env = contextInit(targetLogLevel, config, true);
 
         org.enso.logger.config.SocketAppender appenderConfig = config.getSocketAppender();
 
@@ -296,7 +296,7 @@ public final class LogbackSetup extends LoggerSetup {
         Filter<ILoggingEvent> filter;
         LoggersLevels loggers = config != null ? config.getLoggers() : null;
         if (loggers != null && !loggers.isEmpty()) {
-            filter = ApplicationFilter.fromLoggers(loggers);
+            filter = ApplicationFilter.fromLoggers(loggers, level, LANG_PREFIX);
         } else {
             filter = null;
         }
@@ -310,11 +310,13 @@ public final class LogbackSetup extends LoggerSetup {
             encoder.start();
         }
         void finalizeAppender(ch.qos.logback.core.Appender<ILoggingEvent> appender) {
-            ThresholdFilter threshold = new ThresholdFilter();
-            threshold.setLevel(ch.qos.logback.classic.Level.convertAnSLF4JLevel(level).toString());
-            appender.addFilter(threshold);
-            threshold.setContext(ctx);
-            threshold.start();
+            if (filter == null) {
+                ThresholdFilter threshold = new ThresholdFilter();
+                threshold.setLevel(ch.qos.logback.classic.Level.convertAnSLF4JLevel(level).toString());
+                appender.addFilter(threshold);
+                threshold.setContext(ctx);
+                threshold.start();
+            }
 
             // Root's log level is set to the minimal required log level.
             // Log level is controlled by `ThresholdFilter` instead, allowing is to specify different
@@ -333,4 +335,6 @@ public final class LogbackSetup extends LoggerSetup {
             logger.addAppender(appender);
         }
     }
+
+    private static final String LANG_PREFIX = "enso";
 }

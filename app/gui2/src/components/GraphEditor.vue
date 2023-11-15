@@ -2,6 +2,10 @@
 import { codeEditorBindings, graphBindings, interactionBindings } from '@/bindings'
 import CodeEditor from '@/components/CodeEditor.vue'
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
+import {
+  mouseDictatedPlacement,
+  type Environment,
+} from '@/components/ComponentBrowser/placement.ts'
 import { Uploader, uploadedExpression } from '@/components/GraphEditor/upload'
 import SelectionBrush from '@/components/SelectionBrush.vue'
 import TopBar from '@/components/TopBar.vue'
@@ -13,6 +17,7 @@ import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { colorFromString } from '@/util/colors'
 import { keyboardBusy, keyboardBusyExceptIn, useEvent } from '@/util/events'
 import { Interaction } from '@/util/interaction'
+import type { Rect } from '@/util/rect.ts'
 import { Vec2 } from '@/util/vec2'
 import * as set from 'lib0/set'
 import type { ExprId, NodeMetadata } from 'shared/yjsModel.ts'
@@ -43,6 +48,11 @@ const nodeSelection = provideGraphSelection(graphNavigator, graphStore.nodeRects
   },
 })
 
+const graphEditorSourceNode = computed(() => {
+  if (graphStore.editedNodeInfo != null) return undefined
+  return nodeSelection.selected.values().next().value
+})
+
 useEvent(window, 'keydown', (event) => {
   interactionBindingsHandler(event) || graphBindingsHandler(event) || codeEditorHandler(event)
 })
@@ -60,8 +70,7 @@ const graphBindingsHandler = graphBindings.handler({
     if (keyboardBusy()) return false
     if (graphNavigator.sceneMousePos != null && !componentBrowserVisible.value) {
       componentBrowserPosition.value = graphNavigator.sceneMousePos
-      componentBrowserVisible.value = true
-      componentBrowserInputContent.value = ''
+      startNodeCreation()
     }
   },
   newNode() {
@@ -162,51 +171,112 @@ const groupColors = computed(() => {
   return styles
 })
 
+/// === Interaction Handling ===
+/// The following code handles some ongoing user interactions within the graph editor. Interactions are used to create
+/// new nodes, connect nodes with edges, etc. They are implemented as classes that inherit from
+/// `Interaction`. The interaction classes are instantiated when the interaction starts and
+/// destroyed when the interaction ends. The interaction classes are also responsible for
+/// cancelling the interaction when needed. This is done by calling `cancelCurrentInteraction`.
+
 const currentInteraction = ref<Interaction>()
-class EditingNode extends Interaction {
+
+/// Set the current interaction. This will cancel the previous interaction.
+function setCurrentInteraction(interaction: Interaction) {
+  if (currentInteraction.value?.id === interaction?.id) return
+  cancelCurrentInteraction()
+  currentInteraction.value = interaction
+}
+
+/// End the current interaction and run its cancel handler.
+function cancelCurrentInteraction() {
+  currentInteraction.value?.cancel()
+  currentInteraction.value = undefined
+}
+
+/// End the current interaction without running its cancel handler.
+function abortCurrentInteraction() {
+  currentInteraction.value = undefined
+}
+
+class EdgeDragging extends Interaction {
+  nodeId: ExprId
+
+  constructor(nodeId: ExprId) {
+    super()
+    this.nodeId = nodeId
+  }
+
   cancel() {
     componentBrowserVisible.value = false
   }
 }
-const editingNode = new EditingNode()
 
-function setCurrentInteraction(interaction: Interaction | undefined) {
-  if (currentInteraction.value?.id === interaction?.id) return
-  currentInteraction.value?.cancel()
-  currentInteraction.value = interaction
-}
-
-function cancelCurrentInteraction() {
-  setCurrentInteraction(undefined)
-}
-
-/** Unset the current interaction, if it is the specified instance. */
-function interactionEnded(interaction: Interaction) {
-  if (currentInteraction.value?.id === interaction?.id) currentInteraction.value = undefined
-}
-
-watch(componentBrowserVisible, (visible) => {
-  if (visible) {
-    setCurrentInteraction(editingNode)
-  } else {
-    interactionEnded(editingNode)
-  }
+const placementEnvironment = computed(() => {
+  const mousePosition = navigator.sceneMousePos ?? Vec2.Zero
+  const nodeRects = [...graphStore.nodeRects.values()]
+  const selectedNodesIter = nodeSelection.selected.values()
+  const selectedNodeRects: Iterable<Rect> = [...selectedNodesIter]
+    .map((id) => graphStore.nodeRects.get(id))
+    .filter((item): item is Rect => item !== undefined)
+  const screenBounds = navigator.viewport
+  const environment: Environment = { mousePosition, nodeRects, selectedNodeRects, screenBounds }
+  return environment
 })
 
+/// Interaction to create a new node. This will create a temporary node and open the component browser.
+/// If the interaction is cancelled, the temporary node will be deleted, otherwise it will be kept.
+class CreatingNode extends Interaction {
+  nodeId: ExprId
+  constructor() {
+    super()
+    // We create a temporary node to show the component browser on. This node will be deleted if
+    // the interaction is cancelled. It can later on be used to have a preview of the node as it is being created.
+    const nodeHeight = 32
+    const targetPosition = mouseDictatedPlacement(
+      Vec2.FromArr([0, nodeHeight]),
+      placementEnvironment.value,
+    )
+    const nodeId = graphStore.createNode(targetPosition.position, '')
+    if (nodeId == null) {
+      throw new Error('CreatingNode: Failed to create node.')
+    }
+    this.nodeId = nodeId
+    // From here on we just edit the temporary node.
+    graphStore.editedNodeInfo = { id: nodeId, range: [0, 0] }
+  }
+  cancel() {
+    // Aborting node creation means we no longer need the temporary node.
+    graphStore.deleteNode(this.nodeId)
+  }
+}
+
+// Start a node creation interaction. This will create a new node and open the component browser.
+// For more information about the flow of the interaction, see `CreatingNode`.
+function startNodeCreation() {
+  setCurrentInteraction(new CreatingNode())
+}
+
 async function handleFileDrop(event: DragEvent) {
+  // A vertical gap between created nodes when multiple files were dropped together.
+  const MULTIPLE_FILES_GAP = 50
+
   try {
     if (event.dataTransfer && event.dataTransfer.items) {
-      ;[...event.dataTransfer.items].forEach(async (item) => {
+      ;[...event.dataTransfer.items].forEach(async (item, index) => {
         if (item.kind === 'file') {
           const file = item.getAsFile()
           if (file) {
             const clientPos = new Vec2(event.clientX, event.clientY)
-            const pos = graphNavigator.clientToScenePos(clientPos)
-            const uploader = await Uploader.create(
+            const offset = new Vec2(0, index * -MULTIPLE_FILES_GAP)
+            const pos = graphNavigator.clientToScenePos(clientPos).add(offset)
+            const uploader = await Uploader.Create(
               projectStore.lsRpcConnection,
               projectStore.dataConnection,
               projectStore.contentRoots,
+              projectStore.awareness,
               file,
+              pos,
+              projectStore.executionContext.getStackTop(),
             )
             const name = await uploader.upload()
             graphStore.createNode(pos, uploadedExpression(name))
@@ -219,7 +289,7 @@ async function handleFileDrop(event: DragEvent) {
   }
 }
 
-function onComponentBrowserFinished(content: string) {
+function onComponentBrowserCommit(content: string) {
   if (content != null && graphStore.editedNodeInfo != null) {
     graphStore.setNodeContent(graphStore.editedNodeInfo.id, content)
   }
@@ -227,6 +297,9 @@ function onComponentBrowserFinished(content: string) {
   graphStore.editedNodeInfo = undefined
 }
 
+/**
+ *
+ */
 function getNodeContent(id: ExprId): string {
   const node = graphStore.nodes.get(id)
   if (node == null) return ''
@@ -332,7 +405,10 @@ async function readNodeFromClipboard() {
     @drop.prevent="handleFileDrop($event)"
   >
     <svg :viewBox="graphNavigator.viewBox">
-      <GraphEdges @startInteraction="setCurrentInteraction" @endInteraction="interactionEnded" />
+      <GraphEdges
+        @startInteraction="setCurrentInteraction"
+        @endInteraction="abortCurrentInteraction"
+      />
     </svg>
     <div :style="{ transform: graphNavigator.transform }" class="htmlLayer">
       <GraphNodes />
@@ -342,9 +418,10 @@ async function readNodeFromClipboard() {
       ref="componentBrowser"
       :navigator="graphNavigator"
       :position="componentBrowserPosition"
-      @finished="onComponentBrowserFinished"
+      @finished="onComponentBrowserCommit"
       :initialContent="componentBrowserInputContent"
       :initialCaretPosition="graphStore.editedNodeInfo?.range ?? [0, 0]"
+      :sourceNode="graphEditorSourceNode"
     />
     <TopBar
       v-model:mode="projectStore.executionMode"
