@@ -10,6 +10,7 @@ import * as common from 'enso-common'
 import * as contentConfig from 'enso-content-config'
 import * as dashboard from 'enso-authentication'
 import * as detect from 'enso-common/src/detect'
+import * as gtag from 'enso-common/src/gtag'
 
 import * as remoteLog from './remoteLog'
 import GLOBAL_CONFIG from '../../../../gui/config.yaml' assert { type: 'yaml' }
@@ -251,6 +252,7 @@ class Main implements AppRunner {
         const isInAuthenticationFlow = url.searchParams.has('code') && url.searchParams.has('state')
         const authenticationUrl = location.href
         if (isInAuthenticationFlow) {
+            gtag.gtag('event', 'cloud_sign_in_redirect')
             history.replaceState(null, '', localStorage.getItem(INITIAL_URL_KEY))
         }
         const configOptions = contentConfig.OPTIONS.clone()
