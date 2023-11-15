@@ -36,13 +36,12 @@ object StdBits {
         else baseFilter
       val configFilter: ConfigurationFilter =
         DependencyFilter.configurationFilter(name = validConfig)
+      val graalVmOrgs = GraalVM.modules.map(_.organization).distinct
       // All graal related modules must be filtered away - they will be provided in
-      // module-path, and so, they must not be included anywhere else.
+      // module-path, and so, they must not be included in std-bits polyglot directories.
       val graalModuleFilter = DependencyFilter.moduleFilter(
-        name = new SimpleFilter(name => {
-          !GraalVM.modules.exists(graalModule =>
-            name.contains(graalModule.name)
-          )
+        organization = new SimpleFilter(orgName => {
+          !graalVmOrgs.contains(orgName)
         })
       )
       val relevantFiles =
