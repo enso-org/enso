@@ -92,8 +92,15 @@ pub mod env {
         /// appropriate identity from your keychain will be automatically used.
         CSC_IDENTITY_AUTO_DISCOVERY, bool;
 
-        /// Path to the python2 executable, used by electron-builder on macOS to package DMG.
-        PYTHON_PATH, PathBuf;
+        /// Note that enabling CSC_FOR_PULL_REQUEST can pose serious security risks. Refer to the
+        /// [CircleCI documentation](https://circleci.com/docs/1.0/fork-pr-builds/) for more
+        /// information. If the project settings contain SSH keys, sensitive environment variables,
+        /// or AWS credentials, and untrusted forks can submit pull requests to your repository, it
+        /// is not recommended to enable this option.
+        ///
+        /// In our case we are careful to not expose any sensitive information to third-party forks,
+        /// so we can safely enable this option.
+        CSC_FOR_PULL_REQUEST, bool;
     }
 }
 
@@ -372,18 +379,6 @@ impl IdeDesktop {
         let icons_build = self.build_icons(&icons_dist);
         let (icons, _content) = try_join(icons_build, client_build).await?;
 
-        let python_path = if TARGET_OS == OS::MacOS && !env::PYTHON_PATH.is_set() {
-            // On macOS electron-builder will fail during DMG creation if there is no python2
-            // installed. It is looked for in `/usr/bin/python` which is not valid place on newer
-            // MacOS versions.
-            // We can work around this by setting the `PYTHON_PATH` env variable. We attempt to
-            // locate `python2` in PATH which is enough to work on GitHub-hosted macOS
-            // runners.
-            Some(ide_ci::program::lookup("python2")?)
-        } else {
-            None
-        };
-
         let target_args = match target {
             Some(target) => vec!["--target".to_string(), target],
             None => vec![],
@@ -395,7 +390,6 @@ impl IdeDesktop {
             .set_env(env::ENSO_BUILD_GUI, gui.as_ref())?
             .set_env(env::ENSO_BUILD_IDE, output_path.as_ref())?
             .set_env(env::ENSO_BUILD_PROJECT_MANAGER, project_manager.as_ref())?
-            .set_env_opt(env::PYTHON_PATH, python_path.as_ref())?
             .workspace(Workspaces::Enso)
             // .args(["--loglevel", "verbose"])
             .run("dist")
