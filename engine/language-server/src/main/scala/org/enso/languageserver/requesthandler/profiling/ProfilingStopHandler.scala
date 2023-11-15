@@ -9,7 +9,7 @@ import org.enso.languageserver.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
 
-/** A request handler for `profiling/start` commands.
+/** A request handler for `profiling/stop` commands.
   *
   * @param timeout a request timeout
   * @param profilingManager a reference to the profiling manager
