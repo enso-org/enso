@@ -263,9 +263,7 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   function getNodeBinding(id: ExprId): string {
-    const node = nodes.get(id)
-    if (node == null) return ''
-    return node.binding
+    return db.nodes.get(id)?.binding ?? ''
   }
 
   return {
