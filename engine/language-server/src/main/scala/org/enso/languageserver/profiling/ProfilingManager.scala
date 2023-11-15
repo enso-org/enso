@@ -67,9 +67,9 @@ final class ProfilingManager(
         case Some(RunningSampler(instant, sampler, result)) =>
           sampler.stop()
 
-          Try(saveProfilingResult(result.toByteArray, instant)) match {
+          Try(saveSamplerResult(result.toByteArray, instant)) match {
             case Failure(exception) =>
-              logger.error("Failed to save profiling result.", exception)
+              logger.error("Failed to save the sampler's result.", exception)
             case Success(()) =>
           }
 
@@ -84,7 +84,7 @@ final class ProfilingManager(
       }
   }
 
-  private def saveProfilingResult(
+  private def saveSamplerResult(
     result: Array[Byte],
     instant: Instant
   ): Unit = {
@@ -134,12 +134,12 @@ object ProfilingManager {
     s"$SAMPLES_FILE_PREFIX-$datePart"
   }
 
-  private def createSamplesFileName(instant: Instant): String = {
+  def createSamplesFileName(instant: Instant): String = {
     val baseName = createProfilingFileName(instant)
     s"$baseName$SAMPLES_FILE_EXT"
   }
 
-  private def createEventsFileName(instant: Instant): String = {
+  def createEventsFileName(instant: Instant): String = {
     val baseName = createProfilingFileName(instant)
     s"$baseName$EVENTS_FILE_EXT"
   }

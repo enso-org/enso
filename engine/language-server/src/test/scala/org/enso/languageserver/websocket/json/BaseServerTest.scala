@@ -32,6 +32,7 @@ import org.enso.languageserver.filemanager._
 import org.enso.languageserver.io._
 import org.enso.languageserver.libraries._
 import org.enso.languageserver.monitoring.IdlenessMonitor
+import org.enso.languageserver.profiling.ProfilingManager
 import org.enso.languageserver.protocol.json.{
   JsonConnectionControllerFactory,
   JsonRpcProtocolFactory
@@ -61,6 +62,7 @@ import org.slf4j.event.Level
 
 import java.nio.file.{Files, Path}
 import java.util.UUID
+
 import scala.concurrent.duration._
 
 class BaseServerTest
@@ -315,6 +317,14 @@ class BaseServerTest
       )
     )
 
+    val profilingManager = system.actorOf(
+      ProfilingManager.props(
+        runtimeConnectorProbe.ref,
+        distributionManager,
+        clock
+      )
+    )
+
     val libraryConfig = LibraryConfig(
       localLibraryManager      = localLibraryManager,
       editionReferenceResolver = editionReferenceResolver,
@@ -345,6 +355,7 @@ class BaseServerTest
       runtimeConnector       = runtimeConnectorProbe.ref,
       idlenessMonitor        = idlenessMonitor,
       projectSettingsManager = projectSettingsManager,
+      profilingManager       = profilingManager,
       libraryConfig          = libraryConfig,
       config                 = config
     )
