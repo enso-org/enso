@@ -17,5 +17,6 @@ open module org.enso.runtime {
 
   provides com.oracle.truffle.api.instrumentation.provider.TruffleInstrumentProvider with
     org.enso.interpreter.instrument.ReplDebuggerInstrumentProvider,
-    org.enso.interpreter.instrument.RuntimeServerInstrumentProvider;
+    org.enso.interpreter.instrument.RuntimeServerInstrumentProvider,
+    org.enso.interpreter.instrument.IdExecutionInstrumentProvider;
 }
