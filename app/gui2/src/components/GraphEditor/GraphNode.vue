@@ -2,23 +2,18 @@
 import { nodeEditBindings } from '@/bindings'
 import CircularMenu from '@/components/CircularMenu.vue'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
-import NodeTree from '@/components/GraphEditor/NodeTree.vue'
+import NodeWidgetTree from '@/components/GraphEditor/NodeWidgetTree.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { injectGraphSelection } from '@/providers/graphSelection'
-import type { Node } from '@/stores/graph'
-import { useProjectStore } from '@/stores/project'
-import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
+import { useGraphStore, type Node } from '@/stores/graph'
 import { useApproach } from '@/util/animation'
-import { colorFromString } from '@/util/colors'
 import { usePointer, useResizeObserver } from '@/util/events'
 import { methodNameToIcon, typeNameToIcon } from '@/util/getIconName'
 import type { Opt } from '@/util/opt'
-import { qnJoin, tryQualifiedName } from '@/util/qualifiedName'
 import { Rect } from '@/util/rect'
-import { unwrap } from '@/util/result'
 import { Vec2 } from '@/util/vec2'
-import type { ContentRange, ExprId, VisualizationIdentifier } from 'shared/yjsModel'
-import { computed, onUpdated, reactive, ref, watch, watchEffect } from 'vue'
+import type { ContentRange, VisualizationIdentifier } from 'shared/yjsModel'
+import { computed, ref, watch, watchEffect } from 'vue'
 
 const MAXIMUM_CLICK_LENGTH_MS = 300
 const MAXIMUM_CLICK_DISTANCE_SQ = 50
@@ -30,7 +25,6 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   updateRect: [rect: Rect]
-  updateExprRect: [id: ExprId, rect: Rect]
   updateContent: [updates: [range: ContentRange, content: string][]]
   dragging: [offset: Vec2]
   draggingCommited: []
@@ -44,11 +38,14 @@ const emit = defineEmits<{
 }>()
 
 const nodeSelection = injectGraphSelection(true)
+const graph = useGraphStore()
+const isSourceOfDraggedEdge = computed(
+  () => graph.unconnectedEdge?.source === props.node.rootSpan.astId,
+)
 
 const nodeId = computed(() => props.node.rootSpan.astId)
 const rootNode = ref<HTMLElement>()
 const nodeSize = useResizeObserver(rootNode)
-const editableRootNode = ref<HTMLElement>()
 const menuVisible = ref(false)
 
 const isSelected = computed(() => nodeSelection?.isSelected(nodeId.value) ?? false)
@@ -60,8 +57,6 @@ const isAutoEvaluationDisabled = ref(false)
 const isDocsVisible = ref(false)
 const isVisualizationVisible = computed(() => props.node.vis?.visible ?? false)
 
-const projectStore = useProjectStore()
-
 watchEffect(() => {
   const size = nodeSize.value
   if (!size.isZero()) {
@@ -70,7 +65,11 @@ watchEffect(() => {
 })
 
 const outputHovered = ref(false)
-const hoverAnimation = useApproach(() => (outputHovered.value ? 1 : 0), 50, 0.01)
+const hoverAnimation = useApproach(
+  () => (outputHovered.value || isSourceOfDraggedEdge.value ? 1 : 0),
+  50,
+  0.01,
+)
 
 const bgStyleVariables = computed(() => {
   return {
@@ -84,268 +83,6 @@ const transform = computed(() => {
   let pos = props.node.position
   return `translate(${pos.x}px, ${pos.y}px)`
 })
-
-function getRelatedSpanOffset(domNode: globalThis.Node, domOffset: number): number {
-  if (domNode instanceof HTMLElement && domOffset == 1) {
-    const offsetData = domNode.dataset.spanStart
-    const offset = (offsetData != null && parseInt(offsetData)) || 0
-    const length = domNode.textContent?.length ?? 0
-    return offset + length
-  } else if (domNode instanceof Text) {
-    const siblingEl = domNode.previousElementSibling
-    if (siblingEl instanceof HTMLElement) {
-      const offsetData = siblingEl.dataset.spanStart
-      if (offsetData != null)
-        return parseInt(offsetData) + domOffset + (siblingEl.textContent?.length ?? 0)
-    }
-    const offsetData = domNode.parentElement?.dataset.spanStart
-    if (offsetData != null) return parseInt(offsetData) + domOffset
-  }
-  return 0
-}
-
-function updateRange(range: ContentRange, threhsold: number, adjust: number) {
-  range[0] = updateOffset(range[0], threhsold, adjust)
-  range[1] = updateOffset(range[1], threhsold, adjust)
-}
-
-function updateOffset(offset: number, threhsold: number, adjust: number) {
-  return offset >= threhsold ? offset + adjust : offset
-}
-
-function updateExprRect(id: ExprId, rect: Rect) {
-  emit('updateExprRect', id, rect)
-}
-
-interface TextEdit {
-  range: ContentRange
-  content: string
-}
-
-const editsToApply = reactive<TextEdit[]>([])
-
-function editContent(e: Event) {
-  e.preventDefault()
-  if (!(e instanceof InputEvent)) return
-
-  const domRanges = e.getTargetRanges()
-  const ranges = domRanges.map<ContentRange>((r) => {
-    return [
-      getRelatedSpanOffset(r.startContainer, r.startOffset),
-      getRelatedSpanOffset(r.endContainer, r.endOffset),
-    ]
-  })
-
-  switch (e.inputType) {
-    case 'insertText': {
-      const content = e.data ?? ''
-      for (let range of ranges) {
-        if (range[0] != range[1]) {
-          editsToApply.push({ range, content: '' })
-        }
-        editsToApply.push({ range: [range[1], range[1]], content })
-      }
-      break
-    }
-    case 'insertFromDrop':
-    case 'insertFromPaste': {
-      const content = e.dataTransfer?.getData('text/plain')
-      if (content != null) {
-        for (let range of ranges) {
-          editsToApply.push({ range, content })
-        }
-      }
-      break
-    }
-    case 'deleteByCut':
-    case 'deleteWordBackward':
-    case 'deleteWordForward':
-    case 'deleteContentBackward':
-    case 'deleteContentForward':
-    case 'deleteByDrag': {
-      for (let range of ranges) {
-        editsToApply.push({ range, content: '' })
-      }
-      break
-    }
-  }
-}
-
-watch(editsToApply, () => {
-  if (editsToApply.length === 0) return
-  saveSelections()
-  let edit: TextEdit | undefined
-  const updates: [ContentRange, string][] = []
-  while ((edit = editsToApply.shift())) {
-    const range = edit.range
-    const content = edit.content
-    const adjust = content.length - (range[1] - range[0])
-    editsToApply.forEach((e) => updateRange(e.range, range[1], adjust))
-    if (selectionToRecover) {
-      selectionToRecover.ranges.forEach((r) => updateRange(r, range[1], adjust))
-      if (selectionToRecover.anchor != null) {
-        selectionToRecover.anchor = updateOffset(selectionToRecover.anchor, range[1], adjust)
-      }
-      if (selectionToRecover.focus != null) {
-        selectionToRecover.focus = updateOffset(selectionToRecover.focus, range[1], adjust)
-      }
-    }
-    updates.push([range, content])
-  }
-  emit('updateContent', updates)
-})
-
-interface SavedSelections {
-  anchor: number | null
-  focus: number | null
-  ranges: ContentRange[]
-}
-
-let selectionToRecover: SavedSelections | null = null
-
-function saveSelections() {
-  const root = editableRootNode.value
-  const selection = window.getSelection()
-  if (root == null || selection == null || !selection.containsNode(root, true)) return
-  const ranges: ContentRange[] = Array.from({ length: selection.rangeCount }, (_, i) =>
-    selection.getRangeAt(i),
-  )
-    .filter((r) => r.intersectsNode(root))
-    .map((r) => [
-      getRelatedSpanOffset(r.startContainer, r.startOffset),
-      getRelatedSpanOffset(r.endContainer, r.endOffset),
-    ])
-
-  let anchor =
-    selection.anchorNode && root.contains(selection.anchorNode)
-      ? getRelatedSpanOffset(selection.anchorNode, selection.anchorOffset)
-      : null
-  let focus =
-    selection.focusNode && root.contains(selection.focusNode)
-      ? getRelatedSpanOffset(selection.focusNode, selection.focusOffset)
-      : null
-
-  selectionToRecover = {
-    anchor,
-    focus,
-    ranges,
-  }
-}
-
-onUpdated(() => {
-  const root = editableRootNode.value
-
-  function findTextNodeAtOffset(offset: number | null): { node: Text; offset: number } | null {
-    if (offset == null) return null
-    for (let textSpan of root?.querySelectorAll<HTMLSpanElement>('span[data-span-start]') ?? []) {
-      if (textSpan.children.length > 0) continue
-      const start = parseInt(textSpan.dataset.spanStart ?? '0')
-      const text = textSpan.textContent ?? ''
-      const end = start + text.length
-      if (start <= offset && offset <= end) {
-        let remainingOffset = offset - start
-        for (let node of textSpan.childNodes) {
-          if (node instanceof Text) {
-            let length = node.data.length
-            if (remainingOffset > length) {
-              remainingOffset -= length
-            } else {
-              return {
-                node,
-                offset: remainingOffset,
-              }
-            }
-          }
-        }
-      }
-    }
-    return null
-  }
-
-  if (selectionToRecover != null && editableRootNode.value != null) {
-    const saved = selectionToRecover
-    selectionToRecover = null
-    const selection = window.getSelection()
-    if (selection == null) return
-
-    for (let range of saved.ranges) {
-      const start = findTextNodeAtOffset(range[0])
-      const end = findTextNodeAtOffset(range[1])
-      if (start == null || end == null) continue
-      let newRange = document.createRange()
-      newRange.setStart(start.node, start.offset)
-      newRange.setEnd(end.node, end.offset)
-      selection.addRange(newRange)
-    }
-    if (saved.anchor != null || saved.focus != null) {
-      const anchor = findTextNodeAtOffset(saved.anchor) ?? {
-        node: selection.anchorNode,
-        offset: selection.anchorOffset,
-      }
-      const focus = findTextNodeAtOffset(saved.focus) ?? {
-        node: selection.focusNode,
-        offset: selection.focusOffset,
-      }
-      if (anchor.node == null || focus.node == null) return
-      selection.setBaseAndExtent(anchor.node, anchor.offset, focus.node, focus.offset)
-    }
-  }
-})
-
-watch(
-  () => [isAutoEvaluationDisabled.value, isDocsVisible.value, isVisualizationVisible.value],
-  () => {
-    rootNode.value?.focus()
-  },
-)
-
-const editableKeydownHandler = nodeEditBindings.handler({
-  selectAll() {
-    const element = editableRootNode.value
-    const selection = window.getSelection()
-    if (element == null || selection == null) return
-    const range = document.createRange()
-    range.selectNodeContents(element)
-    selection.removeAllRanges()
-    selection.addRange(range)
-  },
-})
-
-function startEditingHandler(event: PointerEvent) {
-  let range, textNode, offset
-  offset = 0
-
-  if ((document as any).caretPositionFromPoint) {
-    range = (document as any).caretPositionFromPoint(event.clientX, event.clientY)
-    textNode = range.offsetNode
-    offset = range.offset
-  } else if (document.caretRangeFromPoint) {
-    range = document.caretRangeFromPoint(event.clientX, event.clientY)
-    if (range == null) {
-      console.error('Could not find caret position when editing node.')
-    } else {
-      textNode = range.startContainer
-      offset = range.startOffset
-    }
-  } else {
-    console.error(
-      'Neither caretPositionFromPoint nor caretRangeFromPoint are supported by this browser',
-    )
-  }
-
-  let newRange = document.createRange()
-  newRange.setStart(textNode, offset)
-
-  let selection = window.getSelection()
-  if (selection != null) {
-    selection.removeAllRanges()
-    selection.addRange(newRange)
-  } else {
-    console.error('Could not set selection when editing node.')
-  }
-
-  emit('update:edited', offset)
-}
 
 const startEpochMs = ref(0)
 let startEvent: PointerEvent | null = null
@@ -380,24 +117,11 @@ const dragPointer = usePointer((pos, event, type) => {
   }
 })
 
-const suggestionDbStore = useSuggestionDbStore()
-
-const expressionInfo = computed(() =>
-  projectStore.computedValueRegistry.getExpressionInfo(props.node.rootSpan.astId),
-)
+const expressionInfo = computed(() => graph.db.nodeExpressionInfo.lookup(nodeId.value))
 const outputTypeName = computed(() => expressionInfo.value?.typename ?? 'Unknown')
 const executionState = computed(() => expressionInfo.value?.payload.type ?? 'Unknown')
-const suggestionEntry = computed(() => {
-  const method = expressionInfo.value?.methodCall?.methodPointer
-  if (method == null) return undefined
-  const typeName = tryQualifiedName(method.definedOnType)
-  const methodName = tryQualifiedName(method.name)
-  if (!typeName.ok || !methodName.ok) return undefined
-  const qualifiedName = qnJoin(unwrap(typeName), unwrap(methodName))
-  const [id] = suggestionDbStore.entries.nameToId.lookup(qualifiedName)
-  if (id == null) return undefined
-  return suggestionDbStore.entries.get(id)
-})
+const suggestionEntry = computed(() => graph.db.nodeMainSuggestion.lookup(nodeId.value))
+const color = computed(() => graph.db.getNodeColorStyle(nodeId.value))
 const icon = computed(() => {
   if (suggestionEntry.value?.iconName) {
     return suggestionEntry.value.iconName
@@ -411,14 +135,61 @@ const icon = computed(() => {
     return 'in_out'
   }
 })
-const color = computed(() =>
-  suggestionEntry.value?.groupIndex != null
-    ? `var(--group-color-${suggestionDbStore.groups[suggestionEntry.value.groupIndex]?.name})`
-    : colorFromString(expressionInfo.value?.typename ?? 'Unknown'),
-)
 
-function hoverExpr(id: ExprId | undefined) {
-  if (nodeSelection != null) nodeSelection.hoveredExpr = id
+const nodeEditHandler = nodeEditBindings.handler({
+  cancel(e) {
+    if (e.target instanceof HTMLElement) {
+      e.target.blur()
+    }
+  },
+  edit(e) {
+    const pos = 'clientX' in e ? new Vec2(e.clientX, e.clientY) : undefined
+    startEditingNode(pos)
+  },
+})
+
+function startEditingNode(position: Vec2 | undefined) {
+  let sourceOffset = 0
+  if (position != null) {
+    let domNode, domOffset
+    if ((document as any).caretPositionFromPoint) {
+      const caret = document.caretPositionFromPoint(position.x, position.y)
+      domNode = caret?.offsetNode
+      domOffset = caret?.offset
+    } else if (document.caretRangeFromPoint) {
+      const caret = document.caretRangeFromPoint(position.x, position.y)
+      domNode = caret?.startContainer
+      domOffset = caret?.startOffset
+    } else {
+      console.error(
+        'Neither caretPositionFromPoint nor caretRangeFromPoint are supported by this browser',
+      )
+    }
+    if (domNode != null && domOffset != null) {
+      sourceOffset = getRelatedSpanOffset(domNode, domOffset)
+    }
+  }
+
+  emit('update:edited', sourceOffset)
+}
+
+function getRelatedSpanOffset(domNode: globalThis.Node, domOffset: number): number {
+  if (domNode instanceof HTMLElement && domOffset == 1) {
+    const offsetData = domNode.dataset.spanStart
+    const offset = (offsetData != null && parseInt(offsetData)) || 0
+    const length = domNode.textContent?.length ?? 0
+    return offset + length
+  } else if (domNode instanceof Text) {
+    const siblingEl = domNode.previousElementSibling
+    if (siblingEl instanceof HTMLElement) {
+      const offsetData = siblingEl.dataset.spanStart
+      if (offsetData != null)
+        return parseInt(offsetData) + domOffset + (siblingEl.textContent?.length ?? 0)
+    }
+    const offsetData = domNode.parentElement?.dataset.spanStart
+    if (offsetData != null) return parseInt(offsetData) + domOffset
+  }
+  return 0
 }
 </script>
 
@@ -431,6 +202,7 @@ function hoverExpr(id: ExprId | undefined) {
       '--node-group-color': color,
     }"
     :class="{
+      edited: props.edited,
       dragging: dragPointer.dragging,
       selected: nodeSelection?.isSelected(nodeId),
       visualizationVisible: isVisualizationVisible,
@@ -458,21 +230,14 @@ function hoverExpr(id: ExprId | undefined) {
       @setVisualizationId="emit('setVisualizationId', $event)"
       @setVisualizationVisible="emit('setVisualizationVisible', $event)"
     />
-    <div class="node" v-on="dragPointer.events">
-      <SvgIcon class="icon grab-handle" :name="icon"></SvgIcon
-      ><span
-        ref="editableRootNode"
-        spellcheck="false"
-        @beforeinput="editContent"
-        @keydown="editableKeydownHandler"
-        @pointerdown.stop.prevent="startEditingHandler"
-        @blur="projectStore.stopCapturingUndo()"
-        ><NodeTree
-          :ast="node.rootSpan"
-          :nodeSpanStart="node.rootSpan.span()[0]"
-          @updateExprRect="updateExprRect"
-          @updateHoveredExpr="hoverExpr($event)"
-      /></span>
+    <div
+      class="node"
+      @pointerdown.capture="nodeEditHandler"
+      @keydown="nodeEditHandler"
+      v-on="dragPointer.events"
+    >
+      <SvgIcon class="icon grab-handle" :name="icon"></SvgIcon>
+      <NodeWidgetTree :ast="node.rootSpan" />
     </div>
     <svg class="bgPaths" :style="bgStyleVariables">
       <rect class="bgFill" />
@@ -480,11 +245,11 @@ function hoverExpr(id: ExprId | undefined) {
         class="outputPortHoverArea"
         @pointerenter="outputHovered = true"
         @pointerleave="outputHovered = false"
-        @pointerdown="emit('outputPortAction')"
+        @pointerdown.stop.prevent="emit('outputPortAction')"
       />
       <rect class="outputPort" />
+      <text class="outputTypeName">{{ outputTypeName }}</text>
     </svg>
-    <div class="outputTypeName">{{ outputTypeName }}</div>
   </div>
 </template>
 
@@ -499,7 +264,7 @@ function hoverExpr(id: ExprId | undefined) {
   display: flex;
 
   --output-port-max-width: 6px;
-  --output-port-overlap: 0.1px;
+  --output-port-overlap: 0.2px;
   --output-port-hover-width: 8px;
 }
 .outputPort,
@@ -540,6 +305,16 @@ function hoverExpr(id: ExprId | undefined) {
   pointer-events: all;
 }
 
+.outputTypeName {
+  user-select: none;
+  pointer-events: none;
+  z-index: 10;
+  text-anchor: middle;
+  opacity: calc(var(--hover-animation) * var(--hover-animation));
+  fill: var(--node-color-primary);
+  transform: translate(50%, calc(var(--node-height) + var(--output-port-max-width) + 16px));
+}
+
 .bgFill {
   width: var(--node-width);
   height: var(--node-height);
@@ -549,22 +324,16 @@ function hoverExpr(id: ExprId | undefined) {
   transition: fill 0.2s ease;
 }
 
-.bgPaths .bgPaths:hover {
-  opacity: 1;
-}
-
 .GraphNode {
   --node-height: 32px;
   --node-border-radius: 16px;
-
-  --node-group-color: #357ab9;
 
   --node-color-primary: color-mix(
     in oklab,
     var(--node-group-color) 100%,
     var(--node-group-color) 0%
   );
-  --node-color-port: color-mix(in oklab, var(--node-color-primary) 75%, white 15%);
+  --node-color-port: color-mix(in oklab, var(--node-color-primary) 85%, white 15%);
   --node-color-error: color-mix(in oklab, var(--node-group-color) 30%, rgb(255, 0, 0) 70%);
 
   &.executionState-Unknown,
@@ -580,6 +349,10 @@ function hoverExpr(id: ExprId | undefined) {
   }
 }
 
+.GraphNode.edited {
+  display: none;
+}
+
 .node {
   position: relative;
   top: 0;
@@ -591,11 +364,12 @@ function hoverExpr(id: ExprId | undefined) {
   flex-direction: row;
   align-items: center;
   white-space: nowrap;
-  padding: 4px 8px;
+  padding: 4px;
   z-index: 2;
   transition: outline 0.2s ease;
   outline: 0px solid transparent;
 }
+
 .GraphNode .selection {
   position: absolute;
   inset: calc(0px - var(--selected-node-border-width));
@@ -653,6 +427,10 @@ function hoverExpr(id: ExprId | undefined) {
   height: 24px;
   display: inline-flex;
   align-items: center;
+
+  & :deep(span) {
+    vertical-align: middle;
+  }
 }
 
 .container {
@@ -663,27 +441,10 @@ function hoverExpr(id: ExprId | undefined) {
 
 .grab-handle {
   color: white;
-  margin-right: 10px;
+  margin: 0 4px;
 }
 
 .CircularMenu {
   z-index: 1;
-}
-
-.outputTypeName {
-  user-select: none;
-  position: absolute;
-  left: 50%;
-  top: 110%;
-  transform: translateX(-50%);
-  opacity: 0;
-  transition: opacity 0.3s ease-in-out;
-  pointer-events: none;
-  z-index: 10;
-  color: var(--node-color-primary);
-}
-
-.GraphNode:hover .outputTypeName {
-  opacity: 1;
 }
 </style>
