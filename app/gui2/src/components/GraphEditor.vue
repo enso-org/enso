@@ -240,6 +240,8 @@ interface CopiedNode {
   metadata: NodeMetadata | undefined
 }
 
+const ENSO_MIME_TYPE = 'web application/enso'
+
 /// Copy the content of the selected node to the clipboard.
 function copyNodeContent() {
   const id = nodeSelection.selected.values().next().value
@@ -248,27 +250,47 @@ function copyNodeContent() {
   const content = node.rootSpan.repr()
   const metadata = projectStore.module?.getNodeMetadata(id)
   const copiedNode: CopiedNode = { expression: content, metadata }
-  navigator.clipboard.writeText(JSON.stringify(copiedNode))
+  const jsonItem = new Blob([JSON.stringify(copiedNode)], { type: ENSO_MIME_TYPE })
+  const textItem = new Blob([content], { type: 'text/plain' })
+  const clipboardItem = new ClipboardItem({ [jsonItem.type]: jsonItem, [textItem.type]: textItem })
+  navigator.clipboard.write([clipboardItem])
+}
+
+async function retrieveDataFromClipboard(): Promise<CopiedNode | undefined> {
+  const clipboardItems = await navigator.clipboard.read()
+  let fallback = undefined
+  for (const clipboardItem of clipboardItems) {
+    for (const type of clipboardItem.types) {
+      if (type === ENSO_MIME_TYPE) {
+        const blob = await clipboardItem.getType(type)
+        return JSON.parse(await blob.text())
+      }
+      if (type === 'text/plain') {
+        const blob = await clipboardItem.getType(type)
+        const fallbackExpression = await blob.text()
+        fallback = { expression: fallbackExpression, metadata: undefined }
+      }
+    }
+  }
+  return fallback
 }
 
 /// Read the clipboard and if it contains valid data, create a node from the content.
-function readNodeFromClipboard() {
-  navigator.clipboard.readText().then((text) => {
-    try {
-      const copiedNode: CopiedNode = JSON.parse(text)
-      if (copiedNode.expression != null) {
-        graphStore.createNode(
-          graphNavigator.sceneMousePos ?? Vec2.Zero,
-          copiedNode.expression,
-          copiedNode.metadata,
-        )
-      } else {
-        console.warn('No valid expression in clipboard.')
-      }
-    } catch (err) {
-      console.error(`Reading clipboard failed. ${err}`)
-    }
-  })
+async function readNodeFromClipboard() {
+  let copiedNode = await retrieveDataFromClipboard()
+  if (copiedNode == undefined) {
+    console.warn('No valid data in clipboard.')
+    return
+  }
+  if (copiedNode.expression != null) {
+    graphStore.createNode(
+      graphNavigator.sceneMousePos ?? Vec2.Zero,
+      copiedNode.expression,
+      copiedNode.metadata,
+    )
+  } else {
+    console.warn('No valid expression in clipboard.')
+  }
 }
 
 // Watch the editedNode in the graph store
