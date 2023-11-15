@@ -233,14 +233,37 @@ function getNodeContent(id: ExprId): string {
   return node.rootSpan.repr()
 }
 
-/// The content of a node that is copied to the clipboard. It contains the expression and the
-/// metadata. Used for serializing and deserializing the node information.
+// Watch the editedNode in the graph store
+watch(
+  () => graphStore.editedNodeInfo,
+  (editedInfo) => {
+    if (editedInfo != null) {
+      const targetNode = graphStore.nodes.get(editedInfo.id)
+      const targetPos = targetNode?.position ?? Vec2.Zero
+      const offset = new Vec2(20, 35)
+      componentBrowserPosition.value = targetPos.add(offset)
+      componentBrowserInputContent.value = getNodeContent(editedInfo.id)
+      componentBrowserVisible.value = true
+    } else {
+      componentBrowserVisible.value = false
+    }
+  },
+)
+
+/// === Clipboard ===
+
+const ENSO_MIME_TYPE = 'web application/enso'
+
+/// The data that is copied to the clipboard.
+interface ClipboardData {
+  nodes: CopiedNode[]
+}
+
+/// Node data that is copied to the clipboard. Used for serializing and deserializing the node information.
 interface CopiedNode {
   expression: string
   metadata: NodeMetadata | undefined
 }
-
-const ENSO_MIME_TYPE = 'web application/enso'
 
 /// Copy the content of the selected node to the clipboard.
 function copyNodeContent() {
@@ -250,7 +273,8 @@ function copyNodeContent() {
   const content = node.rootSpan.repr()
   const metadata = projectStore.module?.getNodeMetadata(id)
   const copiedNode: CopiedNode = { expression: content, metadata }
-  const jsonItem = new Blob([JSON.stringify(copiedNode)], { type: ENSO_MIME_TYPE })
+  const clipboardData: ClipboardData = { nodes: [copiedNode] }
+  const jsonItem = new Blob([JSON.stringify(clipboardData)], { type: ENSO_MIME_TYPE })
   const textItem = new Blob([content], { type: 'text/plain' })
   const clipboardItem = new ClipboardItem({ [jsonItem.type]: jsonItem, [textItem.type]: textItem })
   navigator.clipboard.write([clipboardItem])
@@ -277,11 +301,12 @@ async function retrieveDataFromClipboard(): Promise<CopiedNode | undefined> {
 
 /// Read the clipboard and if it contains valid data, create a node from the content.
 async function readNodeFromClipboard() {
-  let copiedNode = await retrieveDataFromClipboard()
-  if (copiedNode == undefined) {
+  let clipboardData = await retrieveDataFromClipboard()
+  if (clipboardData == undefined) {
     console.warn('No valid data in clipboard.')
     return
   }
+  const copiedNode = clipboardData.nodes[0]
   if (copiedNode.expression != null) {
     graphStore.createNode(
       graphNavigator.sceneMousePos ?? Vec2.Zero,
@@ -292,23 +317,6 @@ async function readNodeFromClipboard() {
     console.warn('No valid expression in clipboard.')
   }
 }
-
-// Watch the editedNode in the graph store
-watch(
-  () => graphStore.editedNodeInfo,
-  (editedInfo) => {
-    if (editedInfo != null) {
-      const targetNode = graphStore.nodes.get(editedInfo.id)
-      const targetPos = targetNode?.position ?? Vec2.Zero
-      const offset = new Vec2(20, 35)
-      componentBrowserPosition.value = targetPos.add(offset)
-      componentBrowserInputContent.value = getNodeContent(editedInfo.id)
-      componentBrowserVisible.value = true
-    } else {
-      componentBrowserVisible.value = false
-    }
-  },
-)
 </script>
 
 <template>
