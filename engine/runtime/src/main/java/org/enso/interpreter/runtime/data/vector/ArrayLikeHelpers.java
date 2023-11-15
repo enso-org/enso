@@ -1,4 +1,5 @@
 package org.enso.interpreter.runtime.data.vector;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
 
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -12,6 +13,7 @@ import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.error.DataflowError;
+import org.enso.interpreter.runtime.error.Warning;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.state.State;
 
@@ -86,6 +88,18 @@ public final class ArrayLikeHelpers {
     boolean nonTrivialEnsoValue = false;
     for (int i = 0; i < len; i++) {
       var value = invokeFunctionNode.execute(fun, frame, state, new Long[] {(long) i});
+
+      try {
+        System.out.println("JJJ invoke " + i + " " + value + " " + value.getClass());
+        System.out.println("JJJ invoke " + warnings.hasWarnings(value));
+        Warning ws[] = warnings.getWarnings(value, null);
+        for (Warning w : ws) {
+          System.out.println("JJJ w " + w + " " + w.getClass());
+        }
+      } catch (UnsupportedMessageException e) {
+        throw new IllegalStateException(e);
+      }
+
       if (value instanceof DataflowError) {
         return value;
       }
@@ -99,7 +113,15 @@ public final class ArrayLikeHelpers {
       }
       target.add(value);
     }
+
     var res = target.toArray();
+
+    Object os[] = (Object[]) res;
+    System.out.println("JJJ os " + os.length);
+    for (Object o : os) {
+      System.out.println("JJJ o " + o + " " + o.getClass());
+    }
+
     if (res instanceof long[] longs) {
       return Vector.fromLongArray(longs);
     }
