@@ -103,7 +103,7 @@ public abstract class Persistance<T> {
   }
 
   public static final class Generator {
-    static final byte[] HEADER = new byte[] { 0x0a, 0x0d, 0x01, 0x0f };
+    static final byte[] HEADER = new byte[] { 0x0a, 0x0d, 0x02, 0x0f };
 
     private final OutputStream main;
     private final Map<Object,Integer> knownObjects = new IdentityHashMap<>();

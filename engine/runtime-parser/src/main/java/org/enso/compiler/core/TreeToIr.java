@@ -122,7 +122,7 @@ final class TreeToIr {
                                       locations.get(1).start(),
                                       locations.get(locations.size() - 1).end()
                               ),
-                              Option.empty()
+                              null
                       )
               );
             }
@@ -843,7 +843,7 @@ final class TreeToIr {
         var locationWithANewLine = getIdentifiedLocation(body, 0, 0, null);
         if (last != null && last.location().isDefined() && last.location().get().end() != locationWithANewLine.get().end()) {
             var patched = new Location(last.location().get().start(), locationWithANewLine.get().end() - 1);
-            var id = new IdentifiedLocation(patched, last.location().get().id());
+            var id = IdentifiedLocation.create(patched, last.location().get().id());
             last = last.setLocation(Option.apply(id));
         }
         yield new Expression.Block(list, last, locationWithANewLine, false, meta(), diag());
@@ -1694,7 +1694,7 @@ final class TreeToIr {
         Math.min(en.start(), in.start()),
         Math.max(en.end(), in.end())
       );
-      return Option.apply(new IdentifiedLocation(loc, en.id()));
+      return Option.apply(IdentifiedLocation.create(loc, en.id()));
     } else {
       return encapsulating;
     }
@@ -1717,7 +1717,7 @@ final class TreeToIr {
       default -> {
         var begin = castToInt(ast.getStartCode()) + b;
         var end = castToInt(ast.getEndCode()) + e;
-        yield new IdentifiedLocation(new Location(begin, end), someId);
+        yield IdentifiedLocation.create(new Location(begin, end), someId);
       }
     });
   }
@@ -1752,7 +1752,7 @@ final class TreeToIr {
       end = ast.getPattern().getEndCode();
     }
     int end_ = castToInt(end);
-    return Option.apply(new IdentifiedLocation(new Location(begin_, end_), Option.empty()));
+    return Option.apply(IdentifiedLocation.create(new Location(begin_, end_), Option.empty()));
   }
 
   private Option<IdentifiedLocation> getIdentifiedLocation(Token ast) {
@@ -1764,7 +1764,7 @@ final class TreeToIr {
       default -> {
         int begin = castToInt(ast.getStartCode());
         int end = castToInt(ast.getEndCode());
-        var id = Option.apply(generateId ? UUID.randomUUID() : null);
+        var id = generateId ? UUID.randomUUID() : null;
         yield new IdentifiedLocation(new Location(begin, end), id);
       }
     });

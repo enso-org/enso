@@ -31,14 +31,14 @@ public class PersistanceTest {
 
   @Test
   public void identifiedLocation() throws Exception {
-    var il = new IdentifiedLocation(new Location(5, 19), Option.empty());
+    var il = new IdentifiedLocation(new Location(5, 19), null);
     var in = serde(IdentifiedLocation.class, il, 12);
     assertEquals(il, in);
   }
 
   @Test
   public void identifiedLocationNoUUID() throws Exception {
-    var il = new IdentifiedLocation(new Location(5, 19), Option.apply(UUID.randomUUID()));
+    var il = new IdentifiedLocation(new Location(5, 19), UUID.randomUUID());
     var in = serde(IdentifiedLocation.class, il, 32);
     assertEquals("UUIDs are serialized at the moment", il, in);
   }
@@ -85,7 +85,7 @@ public class PersistanceTest {
   @Test
   public void scalaList() throws Exception {
     var idLoc1 = new IdentifiedLocation(new Location(1, 5));
-    var idLoc2 = new IdentifiedLocation(new Location(2, 4), Option.apply(UUID.randomUUID()));
+    var idLoc2 = new IdentifiedLocation(new Location(2, 4), UUID.randomUUID());
     var in = join(idLoc2, join(idLoc1, nil()));
 
     var out = serde(List.class, in, 64);

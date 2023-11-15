@@ -28,6 +28,15 @@ import scala.collection.immutable.AbstractSeq;
 import scala.collection.immutable.List;
 import scala.collection.immutable.Seq;
 
+@Persistable(clazz = Module.class, id = 201)
+@Persistable(clazz = Name.Literal.class, id = 351)
+@Persistable(clazz = Import.Module.class, id = 342)
+@Persistable(clazz = Polyglot.class, id = 343)
+@Persistable(clazz = Export.Module.class, id = 344)
+@Persistable(clazz = Name.Qualified.class, id = 352)
+@Persistable(clazz = Method.Explicit.class, id = 361)
+@Persistable(clazz = Name.MethodReference.class, id = 362)
+@Persistable(clazz = Function.Lambda.class, id = 363)
 @Persistable(clazz = Polyglot.Java.class, id = 703)
 @Persistable(clazz = DefinitionArgument.Specified.class, id = 704)
 @Persistable(clazz = Name.Self.class, id = 705)
@@ -78,7 +87,7 @@ public final class IrPersistance {
     protected IdentifiedLocation readObject(Input in) throws IOException, ClassNotFoundException {
       var obj = in.readInline(Location.class);
       var id = in.readInline(Option.class);
-      return new IdentifiedLocation((Location) obj, id);
+      return IdentifiedLocation.create((Location) obj, id);
     }
   }
 
@@ -415,37 +424,6 @@ public final class IrPersistance {
   }
 
   @ServiceProvider(service = Persistance.class)
-  public static final class PersistIrModule extends Persistance<Module> {
-    public PersistIrModule() {
-      super(Module.class, false, 201);
-    }
-
-    @Override
-    protected void writeObject(Module obj, Output out) throws IOException {
-      out.writeInline(List.class, obj.imports());
-      out.writeInline(List.class, obj.exports());
-      out.writeInline(List.class, obj.bindings());
-      out.writeBoolean(obj.isPrivate());
-      out.writeInline(Option.class, obj.location());
-      out.writeInline(MetadataStorage.class, obj.passData());
-      out.writeInline(DiagnosticStorage.class, obj.diagnostics());
-    }
-
-    @SuppressWarnings("unchecked")
-    @Override
-    protected Module readObject(Input in) throws IOException, ClassNotFoundException {
-      List<Import> imports = in.readInline(List.class);
-      List<Export> exports = in.readInline(List.class);
-      List<Definition> bindings = in.readInline(List.class);
-      var isPrivate = in.readBoolean();
-      Option<IdentifiedLocation> location = in.readInline(Option.class);
-      var meta = in.readInline(MetadataStorage.class);
-      var diag = in.readInline(DiagnosticStorage.class);
-      return new Module(imports, exports, bindings, isPrivate, location, meta, diag);
-    }
-  }
-
-  @ServiceProvider(service = Persistance.class)
   public static final class PersistMetadataStorage extends Persistance<MetadataStorage> {
     public PersistMetadataStorage() {
       super(MetadataStorage.class, false, 301);
@@ -507,246 +485,6 @@ public final class IrPersistance {
     protected DiagnosticStorage readObject(Input in) throws IOException, ClassNotFoundException {
       return new DiagnosticStorage(
           (scala.collection.immutable.List) scala.collection.immutable.Nil$.MODULE$);
-    }
-  }
-
-  @ServiceProvider(service = Persistance.class)
-  public static final class PersistNameLiteral extends Persistance<Name.Literal> {
-    public PersistNameLiteral() {
-      super(Name.Literal.class, false, 351);
-    }
-
-    @Override
-    protected void writeObject(Name.Literal obj, Output out) throws IOException {
-      out.writeUTF(obj.name());
-      out.writeBoolean(obj.isMethod());
-      out.writeInline(Option.class, obj.location());
-      out.writeInline(Option.class, obj.originalName());
-      out.writeInline(MetadataStorage.class, obj.passData());
-      out.writeInline(DiagnosticStorage.class, obj.diagnostics());
-    }
-
-    @Override
-    @SuppressWarnings("unchecked")
-    protected Name.Literal readObject(Input in) throws IOException, ClassNotFoundException {
-      var name = in.readUTF();
-      var isMethod = in.readBoolean();
-      var location = in.readInline(Option.class);
-      var originalName = in.readInline(Option.class);
-      var meta = in.readInline(MetadataStorage.class);
-      var diag = in.readInline(DiagnosticStorage.class);
-      return new Name.Literal(name, isMethod, location, originalName, meta, diag);
-    }
-  }
-
-  @ServiceProvider(service = Persistance.class)
-  public static final class PersistNameQualified extends Persistance<Name.Qualified> {
-    public PersistNameQualified() {
-      super(Name.Qualified.class, false, 352);
-    }
-
-    @Override
-    protected void writeObject(Name.Qualified obj, Output out) throws IOException {
-      out.writeInline(List.class, obj.parts());
-      out.writeInline(Option.class, obj.location());
-      out.writeInline(MetadataStorage.class, obj.passData());
-      out.writeInline(DiagnosticStorage.class, obj.diagnostics());
-    }
-
-    @Override
-    @SuppressWarnings("unchecked")
-    protected Name.Qualified readObject(Input in) throws IOException, ClassNotFoundException {
-      var parts = in.readInline(List.class);
-      var location = in.readInline(Option.class);
-      var meta = in.readInline(MetadataStorage.class);
-      var diag = in.readInline(DiagnosticStorage.class);
-      return new Name.Qualified(parts, location, meta, diag);
-    }
-  }
-
-  @ServiceProvider(service = Persistance.class)
-  public static final class PersistImportModuleStorage extends Persistance<Import.Module> {
-    public PersistImportModuleStorage() {
-      super(Import.Module.class, false, 342);
-    }
-
-    @Override
-    protected void writeObject(Import.Module obj, Output out) throws IOException {
-      out.writeInline(Name.Qualified.class, obj.name());
-      out.writeInline(Option.class, obj.rename());
-      out.writeBoolean(obj.isAll());
-      out.writeInline(Option.class, obj.onlyNames());
-      out.writeInline(Option.class, obj.hiddenNames());
-      out.writeInline(Option.class, obj.location());
-      out.writeBoolean(obj.isSynthetic());
-      out.writeInline(MetadataStorage.class, obj.passData());
-      out.writeInline(DiagnosticStorage.class, obj.diagnostics());
-    }
-
-    @Override
-    @SuppressWarnings("unchecked")
-    protected Import.Module readObject(Input in) throws IOException, ClassNotFoundException {
-      var name = in.readInline(Name.Qualified.class);
-      var rename = in.readInline(Option.class);
-      var isAll = in.readBoolean();
-      var onlyNames = in.readInline(Option.class);
-      var hiddenNames = in.readInline(Option.class);
-      var location = in.readInline(Option.class);
-      var isSynthetic = in.readBoolean();
-      var meta = in.readInline(MetadataStorage.class);
-      var diag = in.readInline(DiagnosticStorage.class);
-      return new Import.Module(
-          name, rename, isAll, onlyNames, hiddenNames, location, isSynthetic, meta, diag);
-    }
-  }
-
-  @ServiceProvider(service = Persistance.class)
-  public static final class PersistPolyglot extends Persistance<Polyglot> {
-    public PersistPolyglot() {
-      super(Polyglot.class, false, 343);
-    }
-
-    @Override
-    protected void writeObject(Polyglot obj, Output out) throws IOException {
-      out.writeObject(obj.entity());
-      out.writeInline(Option.class, obj.rename());
-      out.writeInline(Option.class, obj.location());
-      out.writeInline(MetadataStorage.class, obj.passData());
-      out.writeInline(DiagnosticStorage.class, obj.diagnostics());
-    }
-
-    @Override
-    @SuppressWarnings("unchecked")
-    protected Polyglot readObject(Input in) throws IOException, ClassNotFoundException {
-      var entity = (Polyglot.Entity) in.readObject();
-      var rename = in.readInline(Option.class);
-      var location = in.readInline(Option.class);
-      var meta = in.readInline(MetadataStorage.class);
-      var diag = in.readInline(DiagnosticStorage.class);
-      return new Polyglot(entity, rename, location, meta, diag);
-    }
-  }
-
-  @ServiceProvider(service = Persistance.class)
-  public static final class PersistExportModuleStorage extends Persistance<Export.Module> {
-    public PersistExportModuleStorage() {
-      super(Export.Module.class, false, 344);
-    }
-
-    @Override
-    protected void writeObject(Export.Module obj, Output out) throws IOException {
-      out.writeInline(Name.Qualified.class, obj.name());
-      out.writeInline(Option.class, obj.rename());
-      out.writeBoolean(obj.isAll());
-      out.writeInline(Option.class, obj.onlyNames());
-      out.writeInline(Option.class, obj.hiddenNames());
-      out.writeInline(Option.class, obj.location());
-      out.writeBoolean(obj.isSynthetic());
-      out.writeInline(MetadataStorage.class, obj.passData());
-      out.writeInline(DiagnosticStorage.class, obj.diagnostics());
-    }
-
-    @Override
-    @SuppressWarnings("unchecked")
-    protected Export.Module readObject(Input in) throws IOException, ClassNotFoundException {
-      var name = in.readInline(Name.Qualified.class);
-      var rename = in.readInline(Option.class);
-      var isAll = in.readBoolean();
-      var onlyNames = in.readInline(Option.class);
-      var hiddenNames = in.readInline(Option.class);
-      var location = in.readInline(Option.class);
-      var isSynthetic = in.readBoolean();
-      var meta = in.readInline(MetadataStorage.class);
-      var diag = in.readInline(DiagnosticStorage.class);
-      return new Export.Module(
-          name, rename, isAll, onlyNames, hiddenNames, location, isSynthetic, meta, diag);
-    }
-  }
-
-  @ServiceProvider(service = Persistance.class)
-  public static final class PersistMethodExplicit extends Persistance<Method.Explicit> {
-    public PersistMethodExplicit() {
-      super(Method.Explicit.class, false, 361);
-    }
-
-    @Override
-    protected void writeObject(Method.Explicit obj, Output out) throws IOException {
-      out.writeInline(Name.MethodReference.class, obj.methodReference());
-      out.writeInline(Seq.class, obj.bodyList());
-      out.writeBoolean(obj.isStatic());
-      out.writeBoolean(obj.isStaticWrapperForInstanceMethod());
-      out.writeInline(Option.class, obj.location());
-      out.writeInline(MetadataStorage.class, obj.passData());
-      out.writeInline(DiagnosticStorage.class, obj.diagnostics());
-    }
-
-    @Override
-    @SuppressWarnings("unchecked")
-    protected Method.Explicit readObject(Input in) throws IOException, ClassNotFoundException {
-      var ref = in.readInline(Name.MethodReference.class);
-      var bodyList = in.readInline(Seq.class);
-      var isStatic = in.readBoolean();
-      var isStaticWrapperForInstanceMethod = in.readBoolean();
-      var location = in.readInline(Option.class);
-      var meta = in.readInline(MetadataStorage.class);
-      var diag = in.readInline(DiagnosticStorage.class);
-      return new Method.Explicit(ref, bodyList, isStatic, isStaticWrapperForInstanceMethod, location, meta, diag);
-    }
-  }
-
-  @ServiceProvider(service = Persistance.class)
-  public static final class PersistMethodReference extends Persistance<Name.MethodReference> {
-    public PersistMethodReference() {
-      super(Name.MethodReference.class, false, 362);
-    }
-
-    @Override
-    protected void writeObject(Name.MethodReference obj, Output out) throws IOException {
-      out.writeInline(Option.class, obj.typePointer());
-      out.writeObject(obj.methodName());
-      out.writeInline(Option.class, obj.location());
-      out.writeInline(MetadataStorage.class, obj.passData());
-      out.writeInline(DiagnosticStorage.class, obj.diagnostics());
-    }
-
-    @Override
-    @SuppressWarnings("unchecked")
-    protected Name.MethodReference readObject(Input in) throws IOException, ClassNotFoundException {
-      var typePointer = in.readInline(Option.class);
-      var methodName = (Name) in.readObject();
-      var location = in.readInline(Option.class);
-      var meta = in.readInline(MetadataStorage.class);
-      var diag = in.readInline(DiagnosticStorage.class);
-      return new Name.MethodReference(typePointer, methodName, location, meta, diag);
-    }
-  }
-
-  @ServiceProvider(service = Persistance.class)
-  public static final class PersistFunctionLambda extends Persistance<Function.Lambda> {
-    public PersistFunctionLambda() {
-      super(Function.Lambda.class, false, 363);
-    }
-
-    @Override
-    protected void writeObject(Function.Lambda obj, Output out) throws IOException {
-      out.writeInline(List.class, obj.arguments());
-      out.writeObject(obj.body());
-      out.writeInline(Option.class, obj.location());
-      out.writeBoolean(obj.canBeTCO());
-      out.writeInline(MetadataStorage.class, obj.passData());
-      out.writeInline(DiagnosticStorage.class, obj.diagnostics());
-    }
-
-    @Override
-    @SuppressWarnings("unchecked")
-    protected Function.Lambda readObject(Input in) throws IOException, ClassNotFoundException {
-      var arguments = in.readInline(List.class);
-      var body = (Expression) in.readObject();
-      var location = in.readInline(Option.class);
-      var canBeTCO = in.readBoolean();
-      var meta = in.readInline(MetadataStorage.class);
-      var diag = in.readInline(DiagnosticStorage.class);
-      return new Function.Lambda(arguments, body, location, canBeTCO, meta, diag);
     }
   }
 

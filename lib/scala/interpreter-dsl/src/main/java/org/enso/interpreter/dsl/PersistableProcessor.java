@@ -1,6 +1,8 @@
 package org.enso.interpreter.dsl;
 
 import java.io.IOException;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Set;
 
 import javax.annotation.processing.AbstractProcessor;
@@ -14,6 +16,7 @@ import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.PackageElement;
 import javax.lang.model.element.TypeElement;
+import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.MirroredTypeException;
 import javax.tools.Diagnostic.Kind;
 
@@ -83,26 +86,34 @@ public class PersistableProcessor extends AbstractProcessor {
       processingEnv.getMessager().printMessage(Kind.ERROR, "Cannot find type for " + typeElemName);
       return false;
     }
+    var richerConstructor = new Comparator<Object>() {
+      @Override
+      public int compare(Object a, Object b) {
+        var ea = (ExecutableElement)a;
+        var eb = (ExecutableElement)b;
+
+        var diff = eb.getParameters().size() - ea.getParameters().size();
+        if (diff == 0) {
+          diff = countSeq(eb.getParameters()) - countSeq(ea.getParameters());
+        }
+        return diff;
+      }
+    };
     var constructors = typeElem.getEnclosedElements().stream()
       .filter(
         e -> e.getModifiers().contains(Modifier.PUBLIC) && e.getKind() == ElementKind.CONSTRUCTOR
       )
-      .sorted((a, b) -> {
-        var ea = (ExecutableElement)a;
-        var eb = (ExecutableElement)b;
-
-        return eb.getParameters().size() - ea.getParameters().size();
-      })
+      .sorted(richerConstructor)
       .toList();
     if (constructors.isEmpty()) {
-      processingEnv.getMessager().printMessage(Kind.ERROR, "There should be exactly one constructor in " + typeElem);
+      processingEnv.getMessager().printMessage(Kind.ERROR, "There should be exactly one constructor in " + typeElem, orig);
       return false;
     }
     var cons = (ExecutableElement) constructors.get(0);
     if (constructors.size() > 1) {
       var snd = (ExecutableElement) constructors.get(1);
-      if (cons.getParameters().size() == snd.getParameters().size()) {
-        processingEnv.getMessager().printMessage(Kind.ERROR, "There should be exactly one 'richest' constructor in " + typeElem);
+      if (richerConstructor.compare(cons, snd) == 0) {
+        processingEnv.getMessager().printMessage(Kind.ERROR, "There should be exactly one 'richest' constructor in " + typeElem, orig);
         return false;
       }
     }
@@ -186,4 +197,16 @@ public class PersistableProcessor extends AbstractProcessor {
     }
     return true;
   }
+
+    private int countSeq(List<? extends VariableElement> parameters) {
+      var tu = processingEnv.getTypeUtils();
+      var cnt = 0;
+      for (var p : parameters) {
+        var type = tu.asElement(tu.erasure(p.asType()));
+        if (type != null && type.getSimpleName().toString().equals("Seq")) {
+          cnt++;
+        }
+      }
+      return cnt;
+    }
 }

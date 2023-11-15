@@ -8,8 +8,11 @@ public record IdentifiedLocation(Location location, UUID uuid) {
     this(location, (UUID)null);
   }
 
-  public IdentifiedLocation(Location location, Option<UUID> uuid) {
-    this(location, uuid.isEmpty() ? null : uuid.get());
+  /**
+   * Creates new location from an optional UUID.
+   */
+  public static IdentifiedLocation create(Location location, Option<UUID> uuid) {
+    return new IdentifiedLocation(location, uuid.isEmpty() ? null : uuid.get());
   }
 
   /** @return the character index of the start of this source location.

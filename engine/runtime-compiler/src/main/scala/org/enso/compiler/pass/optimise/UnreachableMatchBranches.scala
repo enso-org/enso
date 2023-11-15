@@ -146,7 +146,7 @@ case object UnreachableMatchBranches extends IRPass {
                     branch.location match {
                       case Some(branchLoc) =>
                         Some(
-                          new IdentifiedLocation(
+                          IdentifiedLocation.create(
                             new Location(loc.start, branchLoc.end),
                             loc.id
                           )
