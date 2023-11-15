@@ -91,10 +91,10 @@ public class PersistableProcessor extends AbstractProcessor {
         var ea = (ExecutableElement)a;
         var eb = (ExecutableElement)b;
 
-        return ea.getParameters().size() - eb.getParameters().size();
+        return eb.getParameters().size() - ea.getParameters().size();
       })
       .toList();
-    if (constructors.size() == 0) {
+    if (constructors.isEmpty()) {
       processingEnv.getMessager().printMessage(Kind.ERROR, "There should be exactly one constructor in " + typeElem);
       return false;
     }

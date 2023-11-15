@@ -56,6 +56,9 @@ public class ModuleCacheTest extends TestBase {
     var meta = new ModuleCache.Metadata("hash", "code", CompilationStage.AFTER_CODEGEN.toString());
     var cachedIr = module.getCache().deserialize(ensoCtx, arr, meta, null);
     assertNotNull("IR read", cachedIr);
-    CompilerTest.assertIR(name, module.getIr(), cachedIr.moduleIR());
+    for (var node : ScalaConversions.asJava(cachedIr.moduleIR().preorder())) {
+      node.passData().prepareForSerialization(ensoCtx.getCompiler().context());
+    }
+    CompilerTest.assertIR(name, ir, cachedIr.moduleIR());
   }
 }
