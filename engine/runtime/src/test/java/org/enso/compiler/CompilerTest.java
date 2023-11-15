@@ -38,7 +38,7 @@ public abstract class CompilerTest {
     return ir;
   }
 
-  static void assertIR(String msg, Module old, Module now) throws IOException {
+  public static void assertIR(String msg, Module old, Module now) throws IOException {
     Function<IR, String> filter = f -> simplifyIR(f, true, true, false);
     String ir1 = filter.apply(old);
     String ir2 = filter.apply(now);

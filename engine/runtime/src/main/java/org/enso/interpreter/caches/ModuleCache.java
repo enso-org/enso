@@ -147,7 +147,6 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
           }
         }
       }
-
       var arr = Persistance.writeObject(entry.moduleIR());
       return arr;
     }
