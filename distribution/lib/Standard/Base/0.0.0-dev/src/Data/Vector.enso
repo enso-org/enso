@@ -600,16 +600,14 @@ type Vector a
              [1, 2, 3] . map +1
     map : (Any -> Any) -> Problem_Behavior -> Vector Any
     map self function on_problems=Problem_Behavior.Report_Error =
-        lookup_function i = function (self.at i)
-        Array_Like_Helpers.vector_from_function self.length lookup_function on_problems
+        Array_Like_Helpers.vector_from_function self.length (function << self.at) on_problems
 
     ## PRIVATE
        Implementation of `map` that uses `vector_from_function_primitive`, which
        does not do error wrapping.
     map_primitive : (Any -> Any) -> Vector Any
     map_primitive self function =
-        lookup_function i = function (self.at i)
-        Array_Like_Helpers.vector_from_function_primitive self.length lookup_function
+        Array_Like_Helpers.vector_from_function_primitive self.length (function << self.at)
 
     ## Applies a function to each element of the vector, returning the `Vector`
        that contains all results concatenated.
