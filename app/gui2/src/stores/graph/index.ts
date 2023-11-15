@@ -10,7 +10,7 @@ import {
   parseEnso,
   readAstSpan,
 } from '@/util/ast'
-import type { AbstractNode, AstId } from '@/util/ast/abstract'
+import type { Ast, AstId } from '@/util/ast/abstract'
 import { abstract } from '@/util/ast/abstract'
 import { useObserveYjs } from '@/util/crdt'
 import type { Opt } from '@/util/opt'
@@ -88,7 +88,7 @@ export const useGraphStore = defineStore('graph', () => {
 
   const _ast = ref<Ast.Tree>()
 
-  const astNodes = reactive(new Map<AstId, AbstractNode>())
+  const astNodes = reactive(new Map<AstId, Ast>())
   const astRoot = ref<AstId>()
 
   function updateState() {

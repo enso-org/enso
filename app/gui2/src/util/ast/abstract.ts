@@ -95,19 +95,27 @@ function newTokenId(): TokenId {
 }
 
 export type Tok = { code: string; id?: TokenId }
-export type NodeChild = { whitespace?: string | undefined; node: AstId | Tok }
+export type NodeChild = { whitespace?: string | undefined; node: Ast | Tok }
 
-function isToken(node: Tok | AstId): node is Tok {
+function isToken(node: Tok | Ast): node is Tok {
   return typeof node == 'object'
 }
 
-export class AbstractNode {
-  protected _children: NodeChild[]
+export abstract class Ast {
   public treeType: Tree.Type | undefined
 
-  constructor(children?: NodeChild[], treeType?: Tree.Type) {
-    this._children = children ?? []
+  protected constructor(treeType?: Tree.Type) {
     this.treeType = treeType
+  }
+
+  abstract get children(): NodeChild[]
+}
+export class Generic extends Ast {
+  protected _children: NodeChild[]
+
+  constructor(children?: NodeChild[], treeType?: Tree.Type) {
+    super(treeType)
+    this._children = children ?? []
   }
 
   get children(): NodeChild[] {
@@ -116,7 +124,7 @@ export class AbstractNode {
 }
 type FunctionArgument = NodeChild[]
 type TokWithWhitespace = { whitespace?: string; node: Tok }
-export class Function extends AbstractNode {
+export class Function extends Ast {
   public name: NodeChild
   public args: FunctionArgument[]
   public equals: TokWithWhitespace | undefined
@@ -127,14 +135,13 @@ export class Function extends AbstractNode {
     equals: TokWithWhitespace | undefined,
     body: NodeChild | null,
   ) {
-    super([], Tree.Type.Function)
+    super(Tree.Type.Function)
     this.name = name
     this.args = args
     this.equals = equals
     this.body = body
   }
   static new(
-    nodes: NodeMap,
     name: NodeChild,
     args: FunctionArgument[],
     equals: TokWithWhitespace | undefined,
@@ -161,11 +168,11 @@ type BlockLine = {
   newline?: TokWithWhitespace
   expression: NodeChild | null
 }
-export class Block extends AbstractNode {
+export class Block extends Ast {
   public lines: BlockLine[]
 
   constructor(lines: BlockLine[]) {
-    super([], Tree.Type.BodyBlock)
+    super(Tree.Type.BodyBlock)
     this.lines = lines
   }
 
@@ -182,17 +189,17 @@ export class Block extends AbstractNode {
     return children
   }
 }
-export class Assignment extends AbstractNode {
+export class Assignment extends Ast {
   public pattern: NodeChild
   public equals: Tok | undefined
   public value: NodeChild
   constructor(pattern: NodeChild, equals: Tok | undefined, value: NodeChild) {
-    super([], Tree.Type.Assignment)
+    super(Tree.Type.Assignment)
     this.pattern = pattern
     this.equals = equals
     this.value = value
   }
-  static new(nodes: NodeMap, name: string, expression: AstId): Assignment {
+  static new(name: string, expression: Ast): Assignment {
     const pattern = { node: { code: name } }
     const value = { node: expression }
     return new Assignment(pattern, undefined, value)
@@ -203,22 +210,33 @@ export class Assignment extends AbstractNode {
     return [this.pattern, { node: this.equals ?? defaultEquals }, this.value]
   }
 }
-export class RawCode extends AbstractNode {
+export class RawCode extends Ast {
+  public code: NodeChild
+
   constructor(code: NodeChild) {
-    super([code])
+    super()
+    this.code = code
   }
 
-  static new(nodes: NodeMap, code: string): RawCode {
+  static new(code: string): RawCode {
     return new RawCode({ node: { code } })
   }
+
+  get children(): NodeChild[] {
+    return [this.code]
+  }
 }
-export class Tombstone extends AbstractNode {
+export class Tombstone extends Ast {
   constructor() {
     super()
   }
 
   static new(): Tombstone {
     return new Tombstone()
+  }
+
+  get children(): NodeChild[] {
+    return []
   }
 }
 
@@ -237,8 +255,6 @@ export class Tombstone extends AbstractNode {
 // - I think usually an edit won't depend on analysis of the result of some sub-edit
 // - we can support explicit reanalysis-points when needed
 
-export type NodeMap = Map<AstId, AbstractNode>
-
 export type CodeMaybePrinted = {
   info?: InfoMap
   code: string
@@ -246,29 +262,27 @@ export type CodeMaybePrinted = {
 
 export function abstract(
   tree: Tree,
-  nodesOut: NodeMap,
   source: CodeMaybePrinted,
-): { whitespace: string | undefined; node: AstId } {
+): { whitespace: string | undefined; node: Ast } {
   const nodesExpected = new Map(
     Array.from(source.info?.nodes.entries() ?? [], ([span, ids]) => [span, [...ids]]),
   )
   const tokenIds = source.info?.tokens ?? new Map()
-  return abstract_(tree, nodesOut, source.code, nodesExpected, tokenIds)
+  return abstract_(tree, source.code, nodesExpected, tokenIds)
 }
 function abstract_(
   tree: Tree,
-  nodesOut: NodeMap,
   code: string,
   nodesExpected: NodeSpanMap,
   tokenIds: TokenSpanMap,
-): { whitespace: string | undefined; node: AstId } {
+): { whitespace: string | undefined; node: Ast } {
   const treeType = tree.type
   let node
   const visitChildren = (tree: LazyObject) => {
     const children: NodeChild[] = []
     const visitor = (child: LazyObject) => {
       if (Tree.isInstance(child)) {
-        children.push(abstract_(child, nodesOut, code, nodesExpected, tokenIds))
+        children.push(abstract_(child, code, nodesExpected, tokenIds))
       } else if (Token.isInstance(child)) {
         children.push(abstractToken(child, code, tokenIds))
       } else {
@@ -284,24 +298,24 @@ function abstract_(
         const newline = abstractToken(line.newline, code, tokenIds)
         let expression = null
         if (line.expression != null) {
-          expression = abstract_(line.expression, nodesOut, code, nodesExpected, tokenIds)
+          expression = abstract_(line.expression, code, nodesExpected, tokenIds)
         }
         return { newline, expression }
       })
       node = new Block(lines)
       break
     case Tree.Type.Function:
-      const name = abstract_(tree.name, nodesOut, code, nodesExpected, tokenIds)
+      const name = abstract_(tree.name, code, nodesExpected, tokenIds)
       const args = Array.from(tree.args, (arg) => visitChildren(arg))
       const equals = abstractToken(tree.equals, code, tokenIds)
       const body =
         tree.body !== undefined
-          ? abstract_(tree.body, nodesOut, code, nodesExpected, tokenIds)
+          ? abstract_(tree.body, code, nodesExpected, tokenIds)
           : null
-      node = Function.new(nodesOut, name, args, equals, body)
+      node = Function.new(name, args, equals, body)
       break
     default:
-      node = new AbstractNode(visitChildren(tree), treeType)
+      node = new Generic(visitChildren(tree), treeType)
   }
   const whitespaceStart = tree.whitespaceStartInCodeParsed
   const whitespaceEnd = whitespaceStart + tree.whitespaceLengthInCodeParsed
@@ -309,12 +323,12 @@ function abstract_(
   const codeStart = whitespaceEnd
   const codeEnd = codeStart + tree.childrenLengthInCodeParsed
   const span = nodeKey(codeStart, codeEnd - codeStart, tree.type)
-  const id = nodesExpected.get(span)?.shift() ?? newNodeId()
-  // XXX: We could skip adding a node to the overlay if it is unchanged.
-  // - Use a smart map type that COWs its values and elides unnecessary changes.
-  nodesOut.set(id, node)
+  //const id = nodesExpected.get(span)?.shift() ?? newNodeId()
+  //nodesOut.set(id, node)
+  const id = node
   return { node: id, whitespace }
 }
+
 function abstractToken(token: Token, code: string, tokenIds: TokenSpanMap) {
   const whitespaceStart = token.whitespaceStartInCodeBuffer
   const whitespaceEnd = whitespaceStart + token.whitespaceLengthInCodeBuffer
@@ -338,11 +352,11 @@ function tokenKey(start: number, length: number, type: Token.Type): TokenKey {
   return `${start}:${length}:${type}`
 }
 
-type NodeSpanMap = Map<NodeKey, AstId[]>
+type NodeSpanMap = Map<NodeKey, Ast[]>
 type TokenSpanMap = Map<TokenKey, TokenId>
 export type InfoMap = {
-  nodes: Map<NodeKey, AstId[]>
-  tokens: Map<TokenKey, AstId[]>
+  nodes: Map<NodeKey, Ast[]>
+  tokens: Map<TokenKey, Ast[]>
 }
 
 export type PrintedSource = {
@@ -350,17 +364,16 @@ export type PrintedSource = {
   code: string
 }
 
-export function print(root: AstId | Tok, nodes: NodeMap): PrintedSource {
+export function print(root: Ast | Tok): PrintedSource {
   const info: InfoMap = {
     nodes: new Map(),
     tokens: new Map(),
   }
-  const code = print_(root, nodes, info, 0, '')
+  const code = print_(root, info, 0, '')
   return { info, code }
 }
 function print_(
-  root: AstId | Tok,
-  nodes: NodeMap,
+  root: Ast | Tok,
   info: InfoMap,
   offset: number,
   indent: string,
@@ -368,7 +381,7 @@ function print_(
   if (isToken(root)) {
     return root.code
   }
-  let node = nodes.get(root)
+  let node = root
   if (node == null) throw new Error('missing node?')
   let code = ''
   if (node instanceof Block) {
@@ -376,19 +389,19 @@ function print_(
       if (
         line.expression?.node != null &&
         !isToken(line.expression.node) &&
-        nodes.get(line.expression.node) instanceof Tombstone
+        line.expression.node instanceof Tombstone
       )
         continue
       code += line.newline?.whitespace ?? ''
       code += line.newline?.node.code ?? '\n'
       if (line.expression !== null) {
         code += line.expression.whitespace ?? indent
-        code += print_(line.expression.node, nodes, info, offset, indent + '    ')
+        code += print_(line.expression.node, info, offset, indent + '    ')
       }
     }
   } else {
     for (const child of node.children) {
-      if (child.node != null && !isToken(child.node) && nodes.get(child.node) instanceof Tombstone)
+      if (child.node != null && !isToken(child.node) && child.node instanceof Tombstone)
         continue
       if (child.whitespace != null) {
         code += child.whitespace
@@ -398,7 +411,7 @@ function print_(
       if (isToken(child.node)) {
         code += child.node.code
       } else {
-        code += print_(child.node, nodes, info, offset + code.length, indent)
+        code += print_(child.node, info, offset + code.length, indent)
       }
     }
   }
@@ -413,24 +426,25 @@ function print_(
 }
 
 // Translates to a representation where nodes are arrays and leaves are tokens.
-export function debug(id: AstId, nodes: NodeMap): any[] {
-  let node = nodes.get(id)
+export function debug(id: Ast): any[] {
+  let node = id
   if (node == null) throw new Error('missing node?')
   return node.children.map((child) => {
     if (isToken(child.node)) {
       return child.node.code
     } else {
-      return debug(child.node, nodes)
+      return debug(child.node)
     }
   })
 }
 
-export function normalize(root: AstId, nodes: NodeMap): AstId {
-  const printed = print(root, nodes)
+export function normalize(root: Ast): Ast {
+  const printed = print(root)
   const tree = parseEnso(printed.code)
-  return abstract(tree, nodes, printed).node
+  return abstract(tree, printed).node
 }
 
+/*
 export function functionBlock(name: string, nodes: NodeMap): Block | null {
   for (const [_id, node] of nodes) {
     if (node instanceof Function) {
@@ -445,25 +459,25 @@ export function functionBlock(name: string, nodes: NodeMap): Block | null {
   }
   return null
 }
+ */
 
 export function insertNewNodeAST(
   block: Block,
-  nodes: NodeMap,
   ident: string,
   expression: string,
-): { assignment: AstId; value: AstId } {
-  const value = newNodeId()
-  nodes.set(value, RawCode.new(nodes, expression))
-  const assignment = newNodeId()
-  nodes.set(assignment, Assignment.new(nodes, ident, value))
+): { assignment: Ast; value: Ast } {
+  const value = RawCode.new(expression)
+  const assignment = Assignment.new(ident, value)
   block.lines.push({ expression: { node: assignment } })
   return { assignment, value }
 }
 
-export function deleteExpressionAST(nodes: NodeMap, id: AstId) {
-  nodes.set(id, new Tombstone())
+export function deleteExpressionAST(id: Ast) {
+  // FIXME
+  //nodes.set(id, new Tombstone())
 }
 
-export function replaceExpressionContentAST(nodes: NodeMap, id: AstId, code: string) {
-  nodes.set(id, RawCode.new(nodes, code))
+export function replaceExpressionContentAST(id: Ast, code: string) {
+  // FIXME
+  //nodes.set(id, RawCode.new(nodes, code))
 }

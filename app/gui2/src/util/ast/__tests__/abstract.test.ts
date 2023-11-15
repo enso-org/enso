@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest'
 import type { AstId } from '../abstract'
 import {
-  AbstractNode,
+  Ast,
   abstract,
   debug,
   deleteExpressionAST,
@@ -357,7 +357,7 @@ const cases = [
 test.each(cases)('parse/print round trip: %s', (code) => {
   // Get an AST.
   const tree = parseEnso(code)
-  const nodes = new Map<AstId, AbstractNode>()
+  const nodes = new Map<AstId, Ast>()
   const root = abstract(tree, nodes, { code }).node
 
   // Print AST back to source.
@@ -376,7 +376,7 @@ test.each(cases)('parse/print round trip: %s', (code) => {
 test('parse', () => {
   const code = 'foo bar+baz'
   const tree = parseEnso(code)
-  const nodes = new Map<AstId, AbstractNode>()
+  const nodes = new Map<AstId, Ast>()
   const root = abstract(tree, nodes, { code }).node
   expect(debug(root, nodes)).toEqual(['', [['foo'], [['bar'], '+', ['baz']]]])
 })
@@ -384,7 +384,7 @@ test('parse', () => {
 test('insert new node', () => {
   const code = 'main =\n    text1 = "foo"\n'
   const tree = parseEnso(code)
-  const nodes = new Map<AstId, AbstractNode>()
+  const nodes = new Map<AstId, Ast>()
   const root = abstract(tree, nodes, { code }).node
   const main = functionBlock('main', nodes)
   expect(main).not.toBeNull()
@@ -396,7 +396,7 @@ test('insert new node', () => {
 test('replace expression content', () => {
   const code = 'main =\n    text1 = "foo"\n'
   const tree = parseEnso(code)
-  const nodes = new Map<AstId, AbstractNode>()
+  const nodes = new Map<AstId, Ast>()
   const root = abstract(tree, nodes, { code }).node
   const main = functionBlock('main', nodes)
   expect(main).not.toBeNull()
@@ -409,7 +409,7 @@ test('replace expression content', () => {
 test('delete expression', () => {
   const originalCode = 'main =\n    text1 = "foo"\n'
   const tree = parseEnso(originalCode)
-  const nodes = new Map<AstId, AbstractNode>()
+  const nodes = new Map<AstId, Ast>()
   const root = abstract(tree, nodes, { code: originalCode }).node
   const main = functionBlock('main', nodes)
   expect(main).not.toBeNull()
