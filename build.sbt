@@ -1814,7 +1814,7 @@ lazy val launcher = project
           "-H:IncludeResources=.*Main.enso$"
         ),
         includeRuntime = false,
-        mainClass      = Some("org.enso.launcher.cli.Main"),
+        mainClass      = Some("org.enso.launcher.cli.Main")
       )
       .dependsOn(assembly)
       .dependsOn(VerifyReflectionSetup.run)

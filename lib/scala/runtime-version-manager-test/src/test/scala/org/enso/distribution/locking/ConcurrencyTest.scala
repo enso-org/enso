@@ -193,9 +193,8 @@ class ConcurrencyTest
         */
       val sync = new SlowTestSynchronizer
 
-      /**
-       * Download only engines with associated runtimes.
-       */
+      /** Download only engines with associated runtimes.
+        */
       val engine1 = SemVer(0, 0, 0)
       val engine2 = engine1.withPreRelease("pre")
 
