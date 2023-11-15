@@ -9,6 +9,7 @@ import scala.collection.immutable.Seq
 /** A collection of utility methods for everything related to the GraalVM and Truffle.
   */
 object GraalVM {
+  // Keep in sync with graalMavenPackagesVersion in build.sbt
   val version: String = "23.1.0"
 
   /** The list of modules that are included in the `component` directory in engine distribution.
@@ -49,6 +50,7 @@ object GraalVM {
     * maven artifacts and all their transitive dependencies, but we have to copy all these artifacts
     * into engine distribution build, so we have to maintain these manually.
     */
+
   val pythonPkgs = Seq(
     "org.graalvm.python"   % "python-language"    % version,
     "org.graalvm.python"   % "python-resources"   % version,
@@ -70,6 +72,15 @@ object GraalVM {
     "org.graalvm.regex"    % "regex"       % version,
     "org.graalvm.shadowed" % "icu4j"       % version
   )
+
+  val chromeInspectorPkgs = Seq(
+    "org.graalvm.tools" % "chromeinspector-tool" % version,
+    "org.graalvm.shadowed" % "json" % version,
+    "org.graalvm.tools"    % "profiler-tool"      % version,
+  )
+
+  val toolsPkgs = chromeInspectorPkgs
+
 
   // TODO: Add graalvmPython
   val langsPkgs = jsPkgs

@@ -1372,7 +1372,7 @@ lazy val runtime = (project in file("engine/runtime"))
     ), // show timings for individual tests
     scalacOptions += "-Ymacro-annotations",
     scalacOptions ++= Seq("-Ypatmat-exhaust-depth", "off"),
-    libraryDependencies ++= jmh ++ jaxb ++ circe ++ GraalVM.langsPkgs ++ Seq(
+    libraryDependencies ++= jmh ++ jaxb ++ circe ++ Seq(
       "org.apache.commons"   % "commons-lang3"         % commonsLangVersion,
       "org.apache.tika"      % "tika-core"             % tikaVersion,
       "org.graalvm.polyglot" % "polyglot"              % graalMavenPackagesVersion % "provided",
@@ -1390,16 +1390,14 @@ lazy val runtime = (project in file("engine/runtime"))
       "com.github.sbt"       % "junit-interface"       % junitIfVersion            % Test,
       "org.hamcrest"         % "hamcrest-all"          % hamcrestVersion           % Test
     ),
-    // Dependencies with "Runtime" scope - we don't need them for compilation, just provide them
-    // at runtime (in module-path).
-    libraryDependencies ++= Seq(
-      "org.graalvm.truffle" % "truffle-runtime"  % graalMavenPackagesVersion % Runtime,
-      "org.graalvm.truffle" % "truffle-compiler" % graalMavenPackagesVersion % Runtime,
-      "org.graalvm.sdk"     % "nativeimage"      % graalMavenPackagesVersion % Runtime,
-      "org.graalvm.sdk"     % "word"             % graalMavenPackagesVersion % Runtime,
-      "org.graalvm.sdk"     % "jniutils"         % graalMavenPackagesVersion % Runtime,
-      "org.graalvm.sdk"     % "collections"      % graalMavenPackagesVersion % Runtime
-    ),
+    // Add all GraalVM packages with Runtime scope - we don't need them for compilation,
+    // just provide them at runtime (in module-path).
+    libraryDependencies ++= {
+      val necessaryModules = GraalVM.modules.map(_.withConfigurations(Some(Runtime.name)))
+      val tools = GraalVM.toolsPkgs.map(_.withConfigurations(Some(Runtime.name)))
+      val langs = GraalVM.langsPkgs.map(_.withConfigurations(Some(Runtime.name)))
+      necessaryModules ++ tools ++ langs
+    },
     Test / javaOptions ++= testLogProviderOptions ++ Seq(
       "-Dpolyglotimpl.DisableClassPathIsolation=true"
     ),
