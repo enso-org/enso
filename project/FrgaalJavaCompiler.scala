@@ -26,8 +26,8 @@ import java.io.FileWriter
 object FrgaalJavaCompiler {
   private val ENSO_SOURCES = ".enso-sources"
 
-  val frgaal      = "org.frgaal" % "compiler" % "20.0.1" % "provided"
-  val sourceLevel = "20"
+  val frgaal      = "org.frgaal" % "compiler" % "21.0.0" % "provided"
+  val sourceLevel = "21"
 
   val debugArg =
     "-J-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=localhost:8000"
