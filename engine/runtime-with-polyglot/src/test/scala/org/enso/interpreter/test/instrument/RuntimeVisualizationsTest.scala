@@ -1702,7 +1702,7 @@ class RuntimeVisualizationsTest
     )
     context.receiveN(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.VisualizationAttached()),
-      Api.Response(requestId, Api.ModuleNotFound("Test.Undefined"))
+      Api.Response(Api.ModuleNotFound("Test.Undefined"))
     )
   }
 
@@ -1869,8 +1869,8 @@ class RuntimeVisualizationsTest
     context.receiveN(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.VisualizationAttached()),
       Api.Response(
-        requestId,
         Api.VisualizationExpressionFailed(
+          Api.VisualizationContext(visualizationId, contextId, idMain),
           "Method `does_not_exist` of type Main could not be found.",
           Some(
             Api.ExecutionResult.Diagnostic.error(
@@ -1955,9 +1955,11 @@ class RuntimeVisualizationsTest
       Api.Response(requestId, Api.VisualizationAttached()),
       Api.Response(
         Api.VisualizationEvaluationFailed(
-          contextId,
-          visualizationId,
-          idMain,
+          Api.VisualizationContext(
+            visualizationId,
+            contextId,
+            idMain
+          ),
           "Method `visualise_me` of type Integer could not be found.",
           Some(
             Api.ExecutionResult.Diagnostic.error(
@@ -2073,9 +2075,11 @@ class RuntimeVisualizationsTest
       Api.Response(requestId, Api.VisualizationAttached()),
       Api.Response(
         Api.VisualizationEvaluationFailed(
-          contextId,
-          visualizationId,
-          idMain,
+          Api.VisualizationContext(
+            visualizationId,
+            contextId,
+            idMain
+          ),
           "Method `visualise_me` of type Integer could not be found.",
           Some(
             Api.ExecutionResult.Diagnostic.error(
@@ -2305,9 +2309,11 @@ class RuntimeVisualizationsTest
       ),
       Api.Response(
         Api.VisualizationEvaluationFailed(
-          contextId,
-          visualizationId,
-          idMain,
+          Api.VisualizationContext(
+            visualizationId,
+            contextId,
+            idMain
+          ),
           "42",
           Some(
             Api.ExecutionResult.Diagnostic.error(

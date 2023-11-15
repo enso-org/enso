@@ -14,6 +14,7 @@ import org.enso.jsonrpc.{
   JsonRpcServer,
   ProtocolFactory
 }
+import org.scalactic.source.Position
 import org.scalatest.matchers.{MatchResult, Matcher}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -122,12 +123,14 @@ abstract class JsonRpcServerTestKit
     def expectJson(
       json: Json,
       timeout: FiniteDuration = 5.seconds.dilated
-    ): Assertion = {
+    )(implicit pos: Position): Assertion = {
       val parsed = parse(expectMessage(timeout))
       parsed shouldEqual Right(json)
     }
 
-    def expectSomeJson(timeout: FiniteDuration = 5.seconds.dilated): Json = {
+    def expectSomeJson(
+      timeout: FiniteDuration = 5.seconds.dilated
+    )(implicit pos: Position): Json = {
       val parsed = parse(expectMessage(timeout))
       inside(parsed) { case Right(json) => json }
     }

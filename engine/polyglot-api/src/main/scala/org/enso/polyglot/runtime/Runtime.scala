@@ -1417,6 +1417,7 @@ object Runtime {
       * @param failure the detailed information about the failure
       */
     final case class VisualizationExpressionFailed(
+      ctx: VisualizationContext,
       message: String,
       failure: Option[ExecutionResult.Diagnostic]
     ) extends Error
@@ -1425,6 +1426,9 @@ object Runtime {
       /** @inheritdoc */
       override def toLogString(shouldMask: Boolean): String =
         "VisualizationExpressionFailed(" +
+        s"contextId=${ctx.contextId}," +
+        s"visualizationId=${ctx.visualizationId}," +
+        s"expressionId=${ctx.expressionId}," +
         s"message=${MaskedString(message).toLogString(shouldMask)}," +
         s"failure=${failure.map(_.toLogString(shouldMask))}" +
         ")"
@@ -1440,9 +1444,7 @@ object Runtime {
       * @param diagnostic the detailed information about the failure
       */
     final case class VisualizationEvaluationFailed(
-      contextId: ContextId,
-      visualizationId: VisualizationId,
-      expressionId: ExpressionId,
+      ctx: VisualizationContext,
       message: String,
       diagnostic: Option[ExecutionResult.Diagnostic]
     ) extends ApiNotification
@@ -1451,9 +1453,9 @@ object Runtime {
       /** @inheritdoc */
       override def toLogString(shouldMask: Boolean): String =
         "VisualizationEvaluationFailed(" +
-        s"contextId=$contextId," +
-        s"visualizationId=$visualizationId," +
-        s"expressionId=$expressionId," +
+        s"contextId=${ctx.contextId}," +
+        s"visualizationId=${ctx.visualizationId}," +
+        s"expressionId=${ctx.expressionId}," +
         s"message=${MaskedString(message).toLogString(shouldMask)}," +
         s"diagnostic=${diagnostic.map(_.toLogString(shouldMask))}" +
         ")"

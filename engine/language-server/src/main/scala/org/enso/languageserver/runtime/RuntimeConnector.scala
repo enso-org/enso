@@ -10,6 +10,7 @@ import org.enso.languageserver.runtime.RuntimeConnector.{
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.lockmanager.server.LockManagerService
 import org.enso.logger.akka.ActorMessageLogging
+import org.enso.logger.masking.ToLogString
 import org.enso.polyglot.runtime.Runtime
 import org.enso.polyglot.runtime.Runtime.{Api, ApiEnvelope}
 import org.graalvm.polyglot.io.MessageEndpoint
@@ -124,6 +125,11 @@ class RuntimeConnector(
             correlationId,
             payload.getClass.getCanonicalName
           )
+          payload match {
+            case msg: ToLogString =>
+              logger.warn("Dropped response: {}", msg.toLogString(false))
+            case _ =>
+          }
       }
       context.become(initialized(engine, senders - correlationId))
   })
