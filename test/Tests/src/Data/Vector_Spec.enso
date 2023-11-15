@@ -815,6 +815,11 @@ type_spec name alter = Test.group name <|
     Test.specify "an error thrown inside map and caught (with error parameter Map_Error) should be wrapped in Map_Error" <|
         alter [10, 20, 30, 40] . map map_fun . catch Map_Error . should_equal (Map_Error.Error 2 (My_Error.Error 30))
 
+    Test.specify "an error thrown inside nested maps should fail a test as both a My_Error and a Map_Error" <|
+        nested_vector = Vector.fill 5 (alter [10, 20, 30, 40])
+        nested_vector.map (_.map map_fun) . should_fail_with My_Error
+        nested_vector.map (_.map map_fun) . should_fail_with (Map_Error.Error 0 (Map_Error.Error 2 (My_Error.Error 30)))
+
     Test.specify "a Nothing thrown inside map should fail a test as Nothing" <|
         map_fun a = if a == 30 then Error.throw Nothing else a+1
         alter [10, 20, 30, 40] . map map_fun . should_fail_with Nothing
