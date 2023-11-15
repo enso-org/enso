@@ -56,7 +56,6 @@ const placementEnvironment = computed(() => {
     .map((id) => graphStore.nodeRects.get(id))
     .filter((item): item is Rect => item !== undefined)
   const screenBounds = navigator.viewport
-  console.log('placementEnvironment', mousePosition, nodeRects, selectedNodeRects, screenBounds)
   const environment: Environment = { mousePosition, nodeRects, selectedNodeRects, screenBounds }
   return environment
 })
