@@ -4,6 +4,7 @@ import CodeEditor from '@/components/CodeEditor.vue'
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
 import {
   mouseDictatedPlacement,
+  previousNodeDictatedPlacement,
   type Environment,
 } from '@/components/ComponentBrowser/placement.ts'
 import { Uploader, uploadedExpression } from '@/components/GraphEditor/upload'
@@ -33,7 +34,6 @@ const graphStore = useGraphStore()
 const projectStore = useProjectStore()
 const componentBrowserVisible = ref(false)
 const componentBrowserInputContent = ref('')
-const componentBrowserPosition = ref(Vec2.Zero)
 const suggestionDb = useSuggestionDbStore()
 
 const nodeSelection = provideGraphSelection(navigator, graphStore.nodeRects, {
@@ -46,6 +46,40 @@ const nodeSelection = provideGraphSelection(navigator, graphStore.nodeRects, {
       graphStore.nodes.set(id, node)
     }
   },
+})
+
+const placementEnvironment = computed(() => {
+  const mousePosition = navigator.sceneMousePos ?? Vec2.Zero
+  const nodeRects = [...graphStore.nodeRects.values()]
+  const selectedNodesIter = nodeSelection.selected.values()
+  const selectedNodeRects: Iterable<Rect> = [...selectedNodesIter]
+    .map((id) => graphStore.nodeRects.get(id))
+    .filter((item): item is Rect => item !== undefined)
+  const screenBounds = navigator.viewport
+  console.log('placementEnvironment', mousePosition, nodeRects, selectedNodeRects, screenBounds)
+  const environment: Environment = { mousePosition, nodeRects, selectedNodeRects, screenBounds }
+  return environment
+})
+
+const componentBrowserPosition = computed(() => {
+  const editedInfo = graphStore.editedNodeInfo
+  const isEditingNode = editedInfo != null
+  const hasNodeSelected = nodeSelection.selected.size > 0
+  // TODO: fix mouse placement to use the correct node size and create the correct layout from there.
+  const nodeSize = new Vec2(0, -24)
+  if (isEditingNode) {
+    const targetNode = graphStore.nodes.get(editedInfo.id)
+    const targetPos = targetNode?.position ?? Vec2.Zero
+    const offset = new Vec2(20, 35)
+    return targetPos.add(offset)
+  } else if (hasNodeSelected) {
+    const gapBetweenNodes = 48.0
+    return previousNodeDictatedPlacement(nodeSize, placementEnvironment.value, {
+      gap: gapBetweenNodes,
+    }).position
+  } else {
+    return mouseDictatedPlacement(nodeSize, placementEnvironment.value).position
+  }
 })
 
 const graphEditorSourceNode = computed(() => {
@@ -69,7 +103,6 @@ const graphBindingsHandler = graphBindings.handler({
   openComponentBrowser() {
     if (keyboardBusy()) return false
     if (navigator.sceneMousePos != null && !componentBrowserVisible.value) {
-      componentBrowserPosition.value = navigator.sceneMousePos
       startNodeCreation()
     }
   },
@@ -203,18 +236,6 @@ class EdgeDragging extends Interaction {
   }
 }
 
-const placementEnvironment = computed(() => {
-  const mousePosition = navigator.sceneMousePos ?? Vec2.Zero
-  const nodeRects = [...graphStore.nodeRects.values()]
-  const selectedNodesIter = nodeSelection.selected.values()
-  const selectedNodeRects: Iterable<Rect> = [...selectedNodesIter]
-    .map((id) => graphStore.nodeRects.get(id))
-    .filter((item): item is Rect => item !== undefined)
-  const screenBounds = navigator.viewport
-  const environment: Environment = { mousePosition, nodeRects, selectedNodeRects, screenBounds }
-  return environment
-})
-
 /// Interaction to create a new node. This will open the component browser.
 class CreatingNode extends Interaction {
   constructor() {
@@ -298,10 +319,6 @@ watch(
   () => graphStore.editedNodeInfo,
   (editedInfo) => {
     if (editedInfo != null) {
-      const targetNode = graphStore.nodes.get(editedInfo.id)
-      const targetPos = targetNode?.position ?? Vec2.Zero
-      const offset = new Vec2(20, 35)
-      componentBrowserPosition.value = targetPos.add(offset)
       componentBrowserInputContent.value = getNodeContent(editedInfo.id)
       componentBrowserVisible.value = true
     } else {
