@@ -358,7 +358,7 @@ fcTest.prop({
     ),
   ).toEqual<Placement>({
     // Note: Currently, this is a reimplementation of the entire mouse dictated placement algorithm.
-    position: new Vec2(x - radius, y - radius),
+    position: new Vec2(x + radius, y + radius),
   })
   // Non-overlap test omitted, as mouse-dictated node placement MAY overlap existing nodes.
   expect(getScreenBounds, 'Should not depend on `screenBounds`').not.toHaveBeenCalled()

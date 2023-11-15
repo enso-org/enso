@@ -64,8 +64,7 @@ const componentBrowserPosition = computed(() => {
   const editedInfo = graphStore.editedNodeInfo
   const isEditingNode = editedInfo != null
   const hasNodeSelected = nodeSelection.selected.size > 0
-  // TODO: fix mouse placement to use the correct node size and create the correct layout from there.
-  const nodeSize = new Vec2(0, -24)
+  const nodeSize = new Vec2(0, 24)
   if (isEditingNode) {
     const targetNode = graphStore.nodes.get(editedInfo.id)
     const targetPos = targetNode?.position ?? Vec2.Zero
