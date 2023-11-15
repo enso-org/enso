@@ -376,7 +376,10 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
   )
 
   val profilingManager =
-    system.actorOf(ProfilingManager.props, "profiling-manager")
+    system.actorOf(
+      ProfilingManager.props(distributionManager),
+      "profiling-manager"
+    )
 
   val libraryLocations =
     LibraryLocations.resolve(

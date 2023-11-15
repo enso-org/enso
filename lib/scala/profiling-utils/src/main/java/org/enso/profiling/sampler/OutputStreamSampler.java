@@ -1,4 +1,4 @@
-package org.enso.profiling;
+package org.enso.profiling.sampler;
 
 import java.io.DataOutputStream;
 import java.io.File;
@@ -6,7 +6,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.UUID;
 
 import org.netbeans.modules.sampler.Sampler;
 

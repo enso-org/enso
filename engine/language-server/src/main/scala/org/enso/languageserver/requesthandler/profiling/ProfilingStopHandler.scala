@@ -47,7 +47,7 @@ class ProfilingStopHandler(timeout: FiniteDuration, profilingManager: ActorRef)
       replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
       context.stop(self)
 
-    case ProfilingProtocol.ProfilingStopResponse(_) =>
+    case ProfilingProtocol.ProfilingStopResponse =>
       replyTo ! ResponseResult(ProfilingApi.ProfilingStop, id, Unused)
       cancellable.cancel()
       context.stop(self)

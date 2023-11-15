@@ -13,7 +13,7 @@ import org.enso.libraryupload.LibraryUploader.UploadFailedError
 import org.slf4j.event.Level
 import org.enso.pkg.{Contact, PackageManager, Template}
 import org.enso.polyglot.{HostEnsoUtils, LanguageInfo, Module, PolyglotContext}
-import org.enso.profiling.{NoopSampler, OutputStreamSampler}
+import org.enso.profiling.sampler.{NoopSampler, OutputStreamSampler}
 import org.enso.version.VersionDescription
 import org.graalvm.polyglot.PolyglotException
 

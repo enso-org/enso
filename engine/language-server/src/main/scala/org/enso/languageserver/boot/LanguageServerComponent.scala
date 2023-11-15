@@ -14,7 +14,7 @@ import org.enso.languageserver.runtime.RuntimeKiller.{
   RuntimeShutdownResult,
   ShutDownRuntime
 }
-import org.enso.profiling.{MethodsSampler, NoopSampler, OutputStreamSampler}
+import org.enso.profiling.sampler.{MethodsSampler, NoopSampler, OutputStreamSampler}
 import org.slf4j.event.Level
 
 import scala.concurrent.duration._

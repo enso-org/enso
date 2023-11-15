@@ -1,4 +1,4 @@
-package org.enso.profiling;
+package org.enso.profiling.sampler;
 
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;

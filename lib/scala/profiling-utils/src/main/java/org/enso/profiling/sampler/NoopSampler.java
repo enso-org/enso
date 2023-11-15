@@ -1,4 +1,6 @@
-package org.enso.profiling;
+package org.enso.profiling.sampler;
+
+import org.enso.profiling.sampler.MethodsSampler;
 
 /** Sampler that does nothing. */
 public class NoopSampler implements MethodsSampler {
