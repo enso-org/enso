@@ -1393,10 +1393,11 @@ lazy val runtime = (project in file("engine/runtime"))
     // Add all GraalVM packages with Runtime scope - we don't need them for compilation,
     // just provide them at runtime (in module-path).
     libraryDependencies ++= {
-      val necessaryModules = GraalVM.modules.map(_.withConfigurations(Some(Runtime.name)))
-      val tools = GraalVM.toolsPkgs.map(_.withConfigurations(Some(Runtime.name)))
-      val langs = GraalVM.langsPkgs.map(_.withConfigurations(Some(Runtime.name)))
-      necessaryModules ++ tools ++ langs
+      val necessaryModules =
+        GraalVM.modules.map(_.withConfigurations(Some(Runtime.name)))
+      val langs =
+        GraalVM.langsPkgs.map(_.withConfigurations(Some(Runtime.name)))
+      necessaryModules ++ langs
     },
     Test / javaOptions ++= testLogProviderOptions ++ Seq(
       "-Dpolyglotimpl.DisableClassPathIsolation=true"
