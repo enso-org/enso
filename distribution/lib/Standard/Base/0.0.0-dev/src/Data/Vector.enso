@@ -3,14 +3,12 @@ import project.Data.Array.Array
 import project.Data.Filter_Condition.Filter_Condition
 import project.Data.List.List
 import project.Data.Map.Map
-import project.Data.Maybe.Maybe
 import project.Data.Numbers.Integer
 import project.Data.Pair.Pair
 import project.Data.Range.Range
 import project.Data.Sort_Direction.Sort_Direction
 import project.Data.Text.Text
 import project.Error.Error
-import project.Errors.Common.Additional_Warnings
 import project.Errors.Common.Incomparable_Values
 import project.Errors.Common.Index_Out_Of_Bounds
 import project.Errors.Common.No_Such_Method
@@ -27,8 +25,6 @@ import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Random.Random
-import project.Runtime.Ref.Ref
-import project.Warning.Warning
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Filter_Condition import unify_condition_or_predicate, unify_condition_predicate_or_element
 from project.Data.Index_Sub_Range import drop_helper, Index_Sub_Range, take_helper
@@ -584,32 +580,8 @@ type Vector a
              [1, 2, 3] . map +1
     map : (Any -> Any) -> Problem_Behavior -> Vector Any
     map self function on_problems=Problem_Behavior.Report_Error =
-        max_warnings = 10
-        num_errors = Ref.new 0
-        wrapped_function i =
-            x = self.at i
-            result = function x
-            case result.is_error of
-                False ->
-                    if Warning.has_warnings result . not then result else
-                        Warning.map_attached_warnings (w-> Maybe.Some (Map_Error.Error i w)) result
-                True ->
-                    case on_problems of
-                        Problem_Behavior.Ignore ->
-                            Nothing
-                        Problem_Behavior.Report_Error ->
-                            result.catch_primitive caught->
-                                Error.throw (Map_Error.Error i caught)
-                        Problem_Behavior.Report_Warning ->
-                            with_error_maybe = if num_errors.get >= max_warnings then Nothing else
-                                result.catch_primitive caught->
-                                    Warning.attach (Map_Error.Error i caught) Nothing
-                            num_errors.modify (_+1)
-                            with_error_maybe
-        results = Vector.new self.length i-> wrapped_function i
-        if num_errors.get <= max_warnings then results else
-            err = Additional_Warnings.Error num_errors.get-max_warnings
-            Warning.attach err results
+        lookup_function i = function (self.at i)
+        Array_Like_Helpers.vector_from_function self.length lookup_function on_problems
 
     ## Applies a function to each element of the vector, returning the `Vector`
        that contains all results concatenated.
