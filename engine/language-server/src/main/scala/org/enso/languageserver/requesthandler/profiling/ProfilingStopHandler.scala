@@ -63,6 +63,6 @@ object ProfilingStopHandler {
     * @param profilingManager reference to the profiling manager
     */
   def props(timeout: FiniteDuration, profilingManager: ActorRef): Props =
-    Props(new ProfilingStartHandler(timeout, profilingManager))
+    Props(new ProfilingStopHandler(timeout, profilingManager))
 
 }

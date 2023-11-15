@@ -11,7 +11,7 @@ import org.enso.profiling.sampler.{MethodsSampler, OutputStreamSampler}
 import java.io.{ByteArrayOutputStream, PrintStream}
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
-import java.time.{Clock, Instant}
+import java.time.{Clock, Instant, ZoneOffset}
 import java.time.format.{DateTimeFormatter, DateTimeFormatterBuilder}
 import java.time.temporal.ChronoField
 
@@ -31,6 +31,10 @@ final class ProfilingManager(
     with LazyLogging {
 
   import ProfilingManager._
+
+  override def preStart(): Unit = {
+    Files.createDirectories(distributionManager.paths.profiling)
+  }
 
   override def receive: Receive =
     initialized(None)
@@ -109,14 +113,15 @@ object ProfilingManager {
     new DateTimeFormatterBuilder()
       .parseCaseInsensitive()
       .append(DateTimeFormatter.ISO_LOCAL_DATE)
-      .appendLiteral('-')
+      .appendLiteral('T')
       .appendValue(ChronoField.HOUR_OF_DAY, 2)
-      .appendLiteral(':')
+      .appendLiteral('-')
       .appendValue(ChronoField.MINUTE_OF_HOUR, 2)
       .optionalStart()
-      .appendLiteral(':')
+      .appendLiteral('-')
       .appendValue(ChronoField.SECOND_OF_MINUTE, 2)
       .toFormatter()
+      .withZone(ZoneOffset.UTC)
 
   private case class RunningSampler(
     instant: Instant,
@@ -148,7 +153,7 @@ object ProfilingManager {
   def props(
     runtimeConnector: ActorRef,
     distributionManager: DistributionManager,
-    clock: Clock = Clock.systemDefaultZone()
+    clock: Clock = Clock.systemUTC()
   ): Props =
     Props(new ProfilingManager(runtimeConnector, distributionManager, clock))
 }

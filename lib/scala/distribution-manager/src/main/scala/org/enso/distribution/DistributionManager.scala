@@ -157,7 +157,7 @@ class DistributionManager(val env: Environment) {
       runRoot                   = runRoot,
       locks                     = runRoot / LOCK_DIRECTORY,
       logs                      = LocallyInstalledDirectories.logDirectory,
-      profiling                 = runRoot / PROFILING_DIRECTORY,
+      profiling                 = dataRoot / PROFILING_DIRECTORY,
       unsafeTemporaryDirectory  = dataRoot / TMP_DIRECTORY,
       customEditions            = detectCustomEditionPaths(home),
       localLibrariesSearchPaths = detectLocalLibraryPaths(home),
