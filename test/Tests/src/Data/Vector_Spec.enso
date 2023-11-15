@@ -38,7 +38,7 @@ type My_Nan_Comparator
 Comparable.from (_:My_Nan) = My_Nan_Comparator
 
 type My_Error
-    Value a
+    Error a
 
 type Foo
     Value vec
@@ -66,7 +66,7 @@ foreign python generate_nested_py_array = """
     return [[1, 2, 3], [4, 5]]
 
 type_spec name alter = Test.group name <|
-    map_fun a = if a == 30 then Error.throw (My_Error.Value a) else a+1
+    map_fun a = if a == 30 then Error.throw (My_Error.Error a) else a+1
 
     pending_python_missing = if Polyglot.is_language_installed "python" then Nothing else
         "Can't run Python tests, Python is not installed."
@@ -113,7 +113,7 @@ type_spec name alter = Test.group name <|
         alter [1,2,3] . at 2 . should_equal 3
 
     Test.specify "should allow to store dataflow errors and raise them on access" <|
-        vec = [Error.throw (My_Error.Value "foo"), "bar"]
+        vec = [Error.throw (My_Error.Error "foo"), "bar"]
         vec.at 1 . should_equal "bar"
         vec.at 0 . should_fail_with My_Error
         vec.get 1 . should_equal "bar"
@@ -194,7 +194,7 @@ type_spec name alter = Test.group name <|
         vec.filter (x -> x > 3) . should_equal [4, 5]
         vec.filter (x -> x == 1) . should_equal [1]
         vec.filter (x -> x < 0) . should_equal []
-        vec.filter (x -> if x == 2 then Error.throw <| My_Error.Value "foo" else True) . should_fail_with My_Error
+        vec.filter (x -> if x == 2 then Error.throw <| My_Error.Error "foo" else True) . should_fail_with My_Error
 
     Test.specify "should filter elements by Filter_Condition" <|
         vec = alter [1, 2, 3, 4, 5]
@@ -294,12 +294,12 @@ type_spec name alter = Test.group name <|
     Test.specify "should filter elements with indices" <|
         (alter [0, 10, 2, 2] . filter_with_index (==)) . should_equal [0, 2]
         (alter [1, 2, 3, 4] . filter_with_index ix-> _-> ix < 2) . should_equal [1, 2]
-        (alter [1, 2, 3, 4] . filter_with_index ix-> _-> if ix == 1 then Error.throw <| My_Error.Value "foo" else True) . should_fail_with My_Error
+        (alter [1, 2, 3, 4] . filter_with_index ix-> _-> if ix == 1 then Error.throw <| My_Error.Error "foo" else True) . should_fail_with My_Error
 
     Test.specify "should partition elements" <|
         vec = alter [1, 2, 3, 4, 5]
         vec.partition (x -> x % 2 == 0) . should_equal <| Pair.new [2, 4] [1, 3, 5]
-        (vec . partition x-> if x == 1 then Error.throw <| My_Error.Value "foo" else True) . should_fail_with My_Error
+        (vec . partition x-> if x == 1 then Error.throw <| My_Error.Error "foo" else True) . should_fail_with My_Error
 
         vec.partition (Filter_Condition.Between 2 4) . should_equal <| Pair.new [2, 3, 4] [1, 5]
 
@@ -307,7 +307,7 @@ type_spec name alter = Test.group name <|
 
     Test.specify "should partition elements with indices" <|
         alter ["a", "b", "c", "d"] . partition_with_index (ix -> _ -> ix % 2 == 0) == (Pair.new ["a", "c"] ["b", "d"])
-        alter ["a", "b", "c", "d"] . partition_with_index (ix -> _ -> if ix % 2 == 0 then Error.throw <| My_Error.Value "foo" else True) . should_fail_with My_Error
+        alter ["a", "b", "c", "d"] . partition_with_index (ix -> _ -> if ix % 2 == 0 then Error.throw <| My_Error.Error "foo" else True) . should_fail_with My_Error
 
     Test.specify "should allow to join a vector of text elements to form a single text" <|
         alter ["a", "b", "c"] . join . should_equal "abc"
@@ -804,16 +804,16 @@ type_spec name alter = Test.group name <|
 
     Test.specify "an error thrown inside map should fail a test as both a My_Error and a Map_Error" <|
         alter [10, 20, 30, 40] . map map_fun . should_fail_with My_Error
-        alter [10, 20, 30, 40] . map map_fun . should_fail_with (Map_Error.Error 2 (My_Error.Value 30))
+        alter [10, 20, 30, 40] . map map_fun . should_fail_with (Map_Error.Error 2 (My_Error.Error 30))
 
     Test.specify "an error thrown inside map and caught (without error parameter) should be wrapped in Map_Error" <|
-        alter [10, 20, 30, 40] . map map_fun . catch . should_equal (Map_Error.Error 2 (My_Error.Value 30))
+        alter [10, 20, 30, 40] . map map_fun . catch . should_equal (Map_Error.Error 2 (My_Error.Error 30))
 
     Test.specify "an error thrown inside map and caught (with error parameter My_Error) should not be wrapped in Map_Error" <|
-        alter [10, 20, 30, 40] . map map_fun . catch My_Error . should_equal (My_Error.Value 30)
+        alter [10, 20, 30, 40] . map map_fun . catch My_Error . should_equal (My_Error.Error 30)
 
     Test.specify "an error thrown inside map and caught (with error parameter Map_Error) should be wrapped in Map_Error" <|
-        alter [10, 20, 30, 40] . map map_fun . catch Map_Error . should_equal (Map_Error.Error 2 (My_Error.Value 30))
+        alter [10, 20, 30, 40] . map map_fun . catch Map_Error . should_equal (Map_Error.Error 2 (My_Error.Error 30))
 
     Test.specify "a Nothing thrown inside map should fail a test as Nothing" <|
         map_fun a = if a == 30 then Error.throw Nothing else a+1
@@ -825,17 +825,17 @@ type_spec name alter = Test.group name <|
     Test.specify "an error thrown inside map with on_problems=Problem_Behavior.Report_Warning should be attached as a warning" <|
         result = alter [10, 20, 30, 40] . map map_fun on_problems=Problem_Behavior.Report_Warning
         result . should_equal [11, 21, Nothing, 41]
-        Warning.get_all result . map .value . should_equal [Map_Error.Error 2 (My_Error.Value 30)]
+        Warning.get_all result . map .value . should_equal [Map_Error.Error 2 (My_Error.Error 30)]
 
     Test.specify "multiple errors thrown inside map with on_problems=Problem_Behavior.Report_Warning should be attached as warnings" <|
         result = alter [10, 30, 20, 30, 40, 30] . map map_fun on_problems=Problem_Behavior.Report_Warning
         result . should_equal [11, Nothing, 21, Nothing, 41, Nothing]
-        Warning.get_all result . map .value . should_equal ([5, 3, 1].map i-> Map_Error.Error i (My_Error.Value 30))
+        Warning.get_all result . map .value . should_equal ([5, 3, 1].map i-> Map_Error.Error i (My_Error.Error 30))
 
     Test.specify "many errors thrown inside map with on_problems=Problem_Behavior.Report_Warning should be attached as warnings and an Additional_Warnings" <|
         result = alter ([10, 20] + (Vector.fill 12 30) + [40]) . map map_fun on_problems=Problem_Behavior.Report_Warning
         result . should_equal ([11, 21] + (Vector.fill 12 Nothing) + [41])
-        expected_warnings_regular = 11.down_to 1 . map i-> Map_Error.Error i (My_Error.Value 30)
+        expected_warnings_regular = 11.down_to 1 . map i-> Map_Error.Error i (My_Error.Error 30)
         expected_warnings = [(Additional_Warnings.Error 2)] + expected_warnings_regular
         Warning.get_all result . map .value . should_equal expected_warnings
 
