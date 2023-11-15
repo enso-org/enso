@@ -573,6 +573,26 @@ type Vector a
        Arguments:
        - function: A function that takes an element in the vector and returns
          some transformation of that element.
+       - on_problems: Specifies how to handle any problems that arise in
+         `function`.
+
+       ! Error Conditions
+
+         Errors and Warnings that arise when executing the function are wrapped
+         in `Map_Error`.
+
+         Only `MAX_MAP_WARNINGS` warnings are attached to result values. After
+         that, the warnings are dropped, but a count of the additional warnings
+         is attached in an `Additional_Warnings` warning.
+
+       ? Problem Handling
+
+         The result of Errors thrown when executing the function depend on `on_problems`:
+         - Problem_Behavior.Report_Error: The error is thrown.
+         - Problem_Behavior.Report_Warning: The result is `Nothing`, with the
+           error attached as a warning.
+         - Problem_Behavior.Ignore: The result is `Nothing`, and the error
+           attached as a warning.
 
        > Example
          Add 1 to each element of the vector.

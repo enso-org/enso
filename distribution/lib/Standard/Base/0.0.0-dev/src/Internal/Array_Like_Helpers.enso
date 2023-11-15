@@ -39,12 +39,14 @@ vector_from_function_primitive length constructor = @Builtin_Method "Array_Like_
 ## PRIVATE
    Construct a Vector by mapping a function over 0..length-1.
 
-   Errors and Warnings that arise when executing the function are wrapped in
-   `Map_Error`.
+   ! Error Conditions
 
-   Only `MAX_MAP_WARNINGS` warnings are attached to result values. After that,
-   the warnings are dropped, but a count of the additional warnings is attached
-   in an `Additional_Warnings` warning.
+     Errors and Warnings that arise when executing the function are wrapped in
+     `Map_Error`.
+
+     Only `MAX_MAP_WARNINGS` warnings are attached to result values. After that,
+     the warnings are dropped, but a count of the additional warnings is attached
+     in an `Additional_Warnings` warning.
 
    ? Problem Handling
 
