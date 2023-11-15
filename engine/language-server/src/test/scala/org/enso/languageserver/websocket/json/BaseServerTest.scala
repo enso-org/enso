@@ -72,7 +72,7 @@ class BaseServerTest
     with WithTemporaryDirectory
     with FakeEnvironment {
 
-  val timeout: FiniteDuration = 10.minutes
+  val timeout: FiniteDuration = 10.seconds
 
   def isFileWatcherEnabled: Boolean = false
 
