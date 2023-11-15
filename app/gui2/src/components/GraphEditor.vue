@@ -215,30 +215,16 @@ const placementEnvironment = computed(() => {
   return environment
 })
 
-/// Interaction to create a new node. This will create a temporary node and open the component browser.
-/// If the interaction is cancelled, the temporary node will be deleted, otherwise it will be kept.
+/// Interaction to create a new node. This will open the component browser.
 class CreatingNode extends Interaction {
-  nodeId: ExprId
   constructor() {
     super()
-    // We create a temporary node to show the component browser on. This node will be deleted if
-    // the interaction is cancelled. It can later on be used to have a preview of the node as it is being created.
-    const nodeHeight = 32
-    const targetPosition = mouseDictatedPlacement(
-      Vec2.FromArr([0, nodeHeight]),
-      placementEnvironment.value,
-    )
-    const nodeId = graphStore.createNode(targetPosition.position, '')
-    if (nodeId == null) {
-      throw new Error('CreatingNode: Failed to create node.')
-    }
-    this.nodeId = nodeId
-    // From here on we just edit the temporary node.
-    graphStore.editedNodeInfo = { id: nodeId, range: [0, 0] }
+    componentBrowserInputContent.value = ''
+    componentBrowserVisible.value = true
   }
-  cancel() {
-    // Aborting node creation means we no longer need the temporary node.
-    graphStore.deleteNode(this.nodeId)
+
+  cancel(): void {
+    // Nothing to do here. We just don't create a node and the component browser will close itself.
   }
 }
 
@@ -283,8 +269,17 @@ async function handleFileDrop(event: DragEvent) {
 
 function onComponentBrowserCommit(content: string) {
   if (content != null && graphStore.editedNodeInfo != null) {
+    /// We finish editing a node.
     graphStore.setNodeContent(graphStore.editedNodeInfo.id, content)
+  } else if (content != null) {
+    /// We finish creating a new node.
+    graphStore.createNode(componentBrowserPosition.value, content)
   }
+  componentBrowserVisible.value = false
+  graphStore.editedNodeInfo = undefined
+}
+
+function onComponentBrowserCancel() {
   componentBrowserVisible.value = false
   graphStore.editedNodeInfo = undefined
 }
@@ -342,7 +337,9 @@ watch(
       ref="componentBrowser"
       :navigator="navigator"
       :position="componentBrowserPosition"
-      @finished="onComponentBrowserCommit"
+      @accepted="onComponentBrowserCommit"
+      @closed="onComponentBrowserCancel"
+      @canceled="onComponentBrowserCancel"
       :initialContent="componentBrowserInputContent"
       :initialCaretPosition="graphStore.editedNodeInfo?.range ?? [0, 0]"
       :sourceNode="graphEditorSourceNode"

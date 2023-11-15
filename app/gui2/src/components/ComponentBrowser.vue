@@ -36,7 +36,9 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  finished: [selectedExpression: string]
+  accepted: [searcherExpression: string]
+  closed: [searcherExpression: string]
+  canceled: []
 }>()
 
 function getInitialContent(): string {
@@ -146,7 +148,7 @@ function handleDefocus(e: FocusEvent) {
       inputField.value.focus({ preventScroll: true })
     }
   } else {
-    emit('finished', input.code.value)
+    emit('closed', input.code.value)
   }
 }
 
@@ -302,11 +304,11 @@ function applySuggestion(component: Opt<Component> = null): SuggestionEntry | nu
 function acceptSuggestion(index: Opt<Component> = null) {
   const applied = applySuggestion(index)
   const shouldFinish = applied != null && applied.kind !== SuggestionKind.Module
-  if (shouldFinish) emit('finished', input.code.value)
+  if (shouldFinish) acceptInput()
 }
 
 function acceptInput() {
-  emit('finished', input.code.value)
+  emit('accepted', input.code.value)
 }
 
 // === Key Events Handler ===
@@ -333,7 +335,7 @@ const handler = componentBrowserBindings.handler({
     scrollToSelected()
   },
   cancelEditing() {
-    emit('finished', props.initialContent)
+    emit('canceled')
   },
 })
 </script>
