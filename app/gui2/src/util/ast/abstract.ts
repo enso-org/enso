@@ -119,7 +119,7 @@ export class Block extends AbstractNode {
   public lines: BlockLine[]
 
   constructor(lines: BlockLine[]) {
-    super()
+    super([], Tree.Type.BodyBlock)
     this.lines = lines
   }
 
@@ -132,8 +132,6 @@ export class Block extends AbstractNode {
     }
     return children
   }
-
-  // TODO: `children` getter that flattens `lines`
 }
 
 // edits:
