@@ -7,16 +7,16 @@ import {
   type Environment,
 } from '@/components/ComponentBrowser/placement.ts'
 import { Uploader, uploadedExpression } from '@/components/GraphEditor/upload'
-import SelectionBrush from '@/components/SelectionBrush.vue'
 import TopBar from '@/components/TopBar.vue'
 import { provideGraphNavigator } from '@/providers/graphNavigator'
 import { provideGraphSelection } from '@/providers/graphSelection'
+import { provideInteractionHandler, type Interaction } from '@/providers/interactionHandler'
+import { provideWidgetRegistry } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
-import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
+import { groupColorVar, useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { colorFromString } from '@/util/colors'
 import { keyboardBusy, keyboardBusyExceptIn, useEvent } from '@/util/events'
-import { Interaction } from '@/util/interaction'
 import type { Rect } from '@/util/rect.ts'
 import { Vec2 } from '@/util/vec2'
 import * as set from 'lib0/set'
@@ -24,28 +24,31 @@ import type { ExprId } from 'shared/yjsModel.ts'
 import { computed, onMounted, ref, watch } from 'vue'
 import GraphEdges from './GraphEditor/GraphEdges.vue'
 import GraphNodes from './GraphEditor/GraphNodes.vue'
+import GraphMouse from './GraphMouse.vue'
 
 const EXECUTION_MODES = ['design', 'live']
 
 const viewportNode = ref<HTMLElement>()
 const navigator = provideGraphNavigator(viewportNode)
 const graphStore = useGraphStore()
+const widgetRegistry = provideWidgetRegistry(graphStore.db)
+widgetRegistry.loadBuiltins()
 const projectStore = useProjectStore()
 const componentBrowserVisible = ref(false)
 const componentBrowserInputContent = ref('')
 const componentBrowserPosition = ref(Vec2.Zero)
 const suggestionDb = useSuggestionDbStore()
+const interaction = provideInteractionHandler()
 
 const nodeSelection = provideGraphSelection(navigator, graphStore.nodeRects, {
   onSelected(id) {
-    const node = graphStore.nodes.get(id)
-    if (node) {
-      // When a node is selected, we want to reorder it to be visually at the top. This is done by
-      // reinserting it into the nodes map, which is later iterated over in the template.
-      graphStore.nodes.delete(id)
-      graphStore.nodes.set(id, node)
-    }
+    graphStore.db.moveNodeToTop(id)
   },
+})
+
+const interactionBindingsHandler = interactionBindings.handler({
+  cancel: () => interaction.handleCancel(),
+  click: (e) => (e instanceof MouseEvent ? interaction.handleClick(e) : false),
 })
 
 const graphEditorSourceNode = computed(() => {
@@ -56,6 +59,7 @@ const graphEditorSourceNode = computed(() => {
 useEvent(window, 'keydown', (event) => {
   interactionBindingsHandler(event) || graphBindingsHandler(event) || codeEditorHandler(event)
 })
+useEvent(window, 'pointerdown', interactionBindingsHandler, { capture: true })
 
 onMounted(() => viewportNode.value?.focus())
 
@@ -70,7 +74,7 @@ const graphBindingsHandler = graphBindings.handler({
     if (keyboardBusy()) return false
     if (navigator.sceneMousePos != null && !componentBrowserVisible.value) {
       componentBrowserPosition.value = navigator.sceneMousePos
-      startNodeCreation()
+      interaction.setCurrent(new CreatingNode())
     }
   },
   newNode() {
@@ -92,6 +96,7 @@ const graphBindingsHandler = graphBindings.handler({
   },
   deselectAll() {
     nodeSelection.deselectAll()
+    console.log('deselectAll')
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur()
     }
@@ -102,7 +107,7 @@ const graphBindingsHandler = graphBindings.handler({
     graphStore.transact(() => {
       const allVisible = set
         .toArray(nodeSelection.selected)
-        .every((id) => !(graphStore.nodes.get(id)?.vis?.visible !== true))
+        .every((id) => !(graphStore.db.getNode(id)?.vis?.visible !== true))
 
       for (const nodeId of nodeSelection.selected) {
         graphStore.setNodeVisualizationVisible(nodeId, !allVisible)
@@ -119,20 +124,6 @@ const codeEditorHandler = codeEditorBindings.handler({
     showCodeEditor.value = !showCodeEditor.value
   },
 })
-
-const interactionBindingsHandler = interactionBindings.handler({
-  cancel() {
-    cancelCurrentInteraction()
-  },
-  click(e) {
-    if (e instanceof MouseEvent) return currentInteraction.value?.click(e) ?? false
-    return false
-  },
-})
-useEvent(window, 'pointerdown', interactionBindingsHandler, { capture: true })
-
-const scaledMousePos = computed(() => navigator.sceneMousePos?.scale(navigator.scale))
-const scaledSelectionAnchor = computed(() => nodeSelection.anchor?.scale(navigator.scale))
 
 /// Track play button presses.
 function onPlayButtonPress() {
@@ -156,52 +147,15 @@ watch(
 const groupColors = computed(() => {
   const styles: { [key: string]: string } = {}
   for (let group of suggestionDb.groups) {
-    const name = group.name.replace(/\s/g, '-')
-    let color = group.color ?? colorFromString(name)
-    styles[`--group-color-${name}`] = color
+    styles[groupColorVar(group)] = group.color ?? colorFromString(group.name.replace(/\w/g, '-'))
   }
   return styles
 })
 
-/// === Interaction Handling ===
-/// The following code handles some ongoing user interactions within the graph editor. Interactions are used to create
-/// new nodes, connect nodes with edges, etc. They are implemented as classes that inherit from
-/// `Interaction`. The interaction classes are instantiated when the interaction starts and
-/// destroyed when the interaction ends. The interaction classes are also responsible for
-/// cancelling the interaction when needed. This is done by calling `cancelCurrentInteraction`.
-
-const currentInteraction = ref<Interaction>()
-
-/// Set the current interaction. This will cancel the previous interaction.
-function setCurrentInteraction(interaction: Interaction) {
-  if (currentInteraction.value?.id === interaction?.id) return
-  cancelCurrentInteraction()
-  currentInteraction.value = interaction
+const editingNode: Interaction = {
+  cancel: () => (componentBrowserVisible.value = false),
 }
-
-/// End the current interaction and run its cancel handler.
-function cancelCurrentInteraction() {
-  currentInteraction.value?.cancel()
-  currentInteraction.value = undefined
-}
-
-/// End the current interaction without running its cancel handler.
-function abortCurrentInteraction() {
-  currentInteraction.value = undefined
-}
-
-class EdgeDragging extends Interaction {
-  nodeId: ExprId
-
-  constructor(nodeId: ExprId) {
-    super()
-    this.nodeId = nodeId
-  }
-
-  cancel() {
-    componentBrowserVisible.value = false
-  }
-}
+interaction.setWhen(componentBrowserVisible, editingNode)
 
 const placementEnvironment = computed(() => {
   const mousePosition = navigator.sceneMousePos ?? Vec2.Zero
@@ -217,12 +171,14 @@ const placementEnvironment = computed(() => {
 
 /// Interaction to create a new node. This will create a temporary node and open the component browser.
 /// If the interaction is cancelled, the temporary node will be deleted, otherwise it will be kept.
-class CreatingNode extends Interaction {
+class CreatingNode implements Interaction {
   nodeId: ExprId
+  // Start a node creation interaction. This will create a new node and open the component browser.
+  // For more information about the flow of the interaction, see `CreatingNode`.
   constructor() {
-    super()
     // We create a temporary node to show the component browser on. This node will be deleted if
-    // the interaction is cancelled. It can later on be used to have a preview of the node as it is being created.
+    // the interaction is cancelled. It can later on be used to have a preview of the node as it is
+    // being created.
     const nodeHeight = 32
     const targetPosition = mouseDictatedPlacement(
       Vec2.FromArr([0, nodeHeight]),
@@ -240,12 +196,6 @@ class CreatingNode extends Interaction {
     // Aborting node creation means we no longer need the temporary node.
     graphStore.deleteNode(this.nodeId)
   }
-}
-
-// Start a node creation interaction. This will create a new node and open the component browser.
-// For more information about the flow of the interaction, see `CreatingNode`.
-function startNodeCreation() {
-  setCurrentInteraction(new CreatingNode())
 }
 
 async function handleFileDrop(event: DragEvent) {
@@ -293,7 +243,7 @@ function onComponentBrowserCommit(content: string) {
  *
  */
 function getNodeContent(id: ExprId): string {
-  const node = graphStore.nodes.get(id)
+  const node = graphStore.db.nodes.get(id)
   if (node == null) return ''
   return node.rootSpan.repr()
 }
@@ -303,7 +253,7 @@ watch(
   () => graphStore.editedNodeInfo,
   (editedInfo) => {
     if (editedInfo != null) {
-      const targetNode = graphStore.nodes.get(editedInfo.id)
+      const targetNode = graphStore.db.nodes.get(editedInfo.id)
       const targetPos = targetNode?.position ?? Vec2.Zero
       const offset = new Vec2(20, 35)
       componentBrowserPosition.value = targetPos.add(offset)
@@ -314,13 +264,25 @@ watch(
     }
   },
 )
+
+const breadcrumbs = computed(() => {
+  return projectStore.executionContext.desiredStack.map((frame) => {
+    switch (frame.type) {
+      case 'ExplicitCall':
+        return frame.methodPointer.name
+      case 'LocalCall':
+        return frame.expressionId
+    }
+  })
+})
 </script>
 
 <template>
   <!-- eslint-disable vue/attributes-order -->
   <div
     ref="viewportNode"
-    class="viewport"
+    class="GraphEditor"
+    :class="{ draggingEdge: graphStore.unconnectedEdge != null }"
     :style="groupColors"
     @click="graphBindingsHandler"
     v-on.="navigator.events"
@@ -329,10 +291,7 @@ watch(
     @drop.prevent="handleFileDrop($event)"
   >
     <svg :viewBox="navigator.viewBox">
-      <GraphEdges
-        @startInteraction="setCurrentInteraction"
-        @endInteraction="abortCurrentInteraction"
-      />
+      <GraphEdges />
     </svg>
     <div :style="{ transform: navigator.transform }" class="htmlLayer">
       <GraphNodes />
@@ -351,7 +310,7 @@ watch(
       v-model:mode="projectStore.executionMode"
       :title="projectStore.name"
       :modes="EXECUTION_MODES"
-      :breadcrumbs="['main', 'ad_analytics']"
+      :breadcrumbs="breadcrumbs"
       @breadcrumbClick="console.log(`breadcrumb #${$event + 1} clicked.`)"
       @back="console.log('breadcrumbs \'back\' button clicked.')"
       @forward="console.log('breadcrumbs \'forward\' button clicked.')"
@@ -362,22 +321,18 @@ watch(
         <CodeEditor v-if="showCodeEditor" />
       </Suspense>
     </Transition>
-    <SelectionBrush
-      v-if="scaledMousePos"
-      :position="scaledMousePos"
-      :anchor="scaledSelectionAnchor"
-      :style="{ transform: navigator.prescaledTransform }"
-    />
+    <GraphMouse />
   </div>
 </template>
 
 <style scoped>
-.viewport {
+.GraphEditor {
   position: relative;
   contain: layout;
   overflow: clip;
   cursor: none;
   --group-color-fallback: #006b8a;
+  --node-color-no-type: #596b81;
 }
 
 svg {

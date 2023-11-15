@@ -20,7 +20,8 @@ export function useSelection<T>(
   const initiallySelected = new Set<T>()
   const selected = reactive(new Set<T>())
   const hoveredNode = ref<ExprId>()
-  const hoveredExpr = ref<ExprId>()
+  const hoveredPorts = reactive(new Set<ExprId>())
+  const hoveredPort = computed(() => [...hoveredPorts].pop())
 
   function readInitiallySelected() {
     initiallySelected.clear()
@@ -129,9 +130,11 @@ export function useSelection<T>(
     isSelected: (element: T) => selected.has(element),
     handleSelectionOf,
     hoveredNode,
-    hoveredExpr,
+    hoveredPort,
     mouseHandler: selectionEventHandler,
     events: pointer.events,
+    addHoveredPort: (port: ExprId) => hoveredPorts.add(port),
+    removeHoveredPort: (port: ExprId) => hoveredPorts.delete(port),
   })
 }
 
