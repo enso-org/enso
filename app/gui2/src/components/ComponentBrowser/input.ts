@@ -24,7 +24,7 @@ import {
   tryQualifiedName,
   type QualifiedName,
 } from '@/util/qualifiedName'
-import { IdMap, type ExprId } from 'shared/yjsModel'
+import { IdMap, type ExprId, type ContentRange } from 'shared/yjsModel'
 import { computed, ref, type ComputedRef, type Ref } from 'vue'
 
 /** Input's editing context.
@@ -53,7 +53,7 @@ export type EditingContext =
 
 /** Component Browser Input Data */
 export function useComponentBrowserInput(
-  graphStore: { identDefinitions: Map<string, ExprId>, imports: Import[] } = useGraphStore(),
+  graphStore: { identDefinitions: Map<string, ExprId>, imports: { import: Import, span: ContentRange }[] } = useGraphStore(),
   suggestionDbStore: { entries: SuggestionDb } = useSuggestionDbStore(),
   computedValueRegistry: {
     getExpressionInfo(id: ExprId): ExpressionInfo | undefined
@@ -232,7 +232,7 @@ export function useComponentBrowserInput(
     const existingImports = graphStore.imports
     const finalImports = new Set<RequiredImport>()
     for (const required of imports.value) {
-      if (!existingImports.some((existing) => covers(existing, required))) {
+      if (!existingImports.some((existing) => covers(existing.import, required))) {
         finalImports.add(required)
       }
     }

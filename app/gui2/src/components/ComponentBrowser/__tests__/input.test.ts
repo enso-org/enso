@@ -9,7 +9,7 @@ import {
   type SuggestionEntry,
 } from '@/stores/suggestionDatabase/entry'
 import { readAstSpan } from '@/util/ast'
-import type { ExprId } from 'shared/yjsModel'
+import type { ContentRange, ExprId } from 'shared/yjsModel'
 import { expect, test } from 'vitest'
 import { useComponentBrowserInput } from '../input'
 import { SuggestionDb } from '@/stores/suggestionDatabase'
@@ -282,7 +282,7 @@ test.each([
 
 interface ImportsCase {
   suggestionId: number
-  existingImports: Import[]
+  existingImports: { import: Import, span: ContentRange }[]
   initialCode?: string
   expectedCode: string
   expectedImports: RequiredImport[]
@@ -297,7 +297,7 @@ test.each([
   },
   {
     suggestionId: 3,
-    existingImports: [{ from: unwrap(tryQualifiedName('Standard.Base')), imported: { kind: 'All', except: [] } }],
+    existingImports: [{ import: { from: unwrap(tryQualifiedName('Standard.Base')), imported: { kind: 'All', except: [] } }, span: [0, 0] } ],
     expectedCode: 'Table.new ',
     expectedImports: [],
   },

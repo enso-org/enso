@@ -20,7 +20,7 @@ import {
 } from 'shared/yjsModel'
 import { computed, reactive, ref, watch } from 'vue'
 import * as Y from 'yjs'
-import { recognizeImport, type Import } from '@/stores/imports'
+import { recognizeImport, type Import, requiredImportToText, type RequiredImport } from '@/stores/imports'
 
 export interface NodeEditInfo {
   id: ExprId
@@ -72,7 +72,7 @@ export const useGraphStore = defineStore('graph', () => {
   })
 
   const _ast = ref<Ast.Tree>()
-  const imports = ref<Import[]>([])
+  const imports = ref<{ import: Import, span: ContentRange }[]>([])
 
   function updateState() {
     const module = proj.module
@@ -90,7 +90,7 @@ export const useGraphStore = defineStore('graph', () => {
         if (node.isTree(Ast.Tree.Type.Import)) {
           const recognized = recognizeImport(node)
           if (recognized) {
-            imports.value.push(recognized)
+            imports.value.push({ import: recognized, span: node.span() })
           }
           return false
         }
@@ -271,6 +271,16 @@ export const useGraphStore = defineStore('graph', () => {
     return mod.insertNewNode(mod.doc.contents.length, ident, expression, meta)
   }
 
+  function insertImport(requiredImport: RequiredImport) {
+    const mod = proj.module
+    if (mod == null) return
+    const lastImport = imports.value[imports.value.length - 1]
+    const offset = lastImport ? lastImport.span[1] + 1 : 0
+    mod.transact(() => {
+      mod.doc.contents.insert(offset, requiredImportToText(requiredImport) + '\n')
+    })
+  }
+
   function deleteNode(id: ExprId) {
     const node = nodes.get(id)
     if (node == null) return
@@ -394,6 +404,7 @@ export const useGraphStore = defineStore('graph', () => {
     updateExprRect,
     setEditedNode,
     getNodeBinding,
+    insertImport,
   }
 })
 

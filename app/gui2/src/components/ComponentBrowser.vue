@@ -296,6 +296,9 @@ function applySuggestion(component: Opt<Component> = null): SuggestionEntry | nu
   const suggestion = providedSuggestion ?? selectedSuggestion.value
   if (suggestion == null) return null
   input.applySuggestion(suggestion)
+  for (const im of input.importsToAdd()) {
+    graphStore.insertImport(im)
+  }
   return suggestion
 }
 
