@@ -212,13 +212,13 @@ class EdgeDragging extends Interaction {
 }
 
 const placementEnvironment = computed(() => {
-  const mousePosition = navigator.sceneMousePos ?? Vec2.Zero
+  const mousePosition = graphNavigator.sceneMousePos ?? Vec2.Zero
   const nodeRects = [...graphStore.nodeRects.values()]
   const selectedNodesIter = nodeSelection.selected.values()
   const selectedNodeRects: Iterable<Rect> = [...selectedNodesIter]
     .map((id) => graphStore.nodeRects.get(id))
     .filter((item): item is Rect => item !== undefined)
-  const screenBounds = navigator.viewport
+  const screenBounds = graphNavigator.viewport
   const environment: Environment = { mousePosition, nodeRects, selectedNodeRects, screenBounds }
   return environment
 })
@@ -344,7 +344,7 @@ function copyNodeContent() {
   const node = graphStore.nodes.get(id)
   if (node == null) return
   const content = node.rootSpan.repr()
-  const metadata = projectStore.module?.getNodeMetadata(id)
+  const metadata = projectStore.module?.getNodeMetadata(id) ?? undefined
   const copiedNode: CopiedNode = { expression: content, metadata }
   const clipboardData: ClipboardData = { nodes: [copiedNode] }
   const jsonItem = new Blob([JSON.stringify(clipboardData)], { type: ENSO_MIME_TYPE })
@@ -353,7 +353,7 @@ function copyNodeContent() {
   navigator.clipboard.write([clipboardItem])
 }
 
-async function retrieveDataFromClipboard(): Promise<CopiedNode | undefined> {
+async function retrieveDataFromClipboard(): Promise<ClipboardData | undefined> {
   const clipboardItems = await navigator.clipboard.read()
   let fallback = undefined
   for (const clipboardItem of clipboardItems) {
@@ -365,7 +365,8 @@ async function retrieveDataFromClipboard(): Promise<CopiedNode | undefined> {
       if (type === 'text/plain') {
         const blob = await clipboardItem.getType(type)
         const fallbackExpression = await blob.text()
-        fallback = { expression: fallbackExpression, metadata: undefined }
+        const fallbackNode = { expression: fallbackExpression, metadata: undefined } as CopiedNode
+        fallback = { nodes: [fallbackNode] } as ClipboardData
       }
     }
   }
@@ -380,6 +381,10 @@ async function readNodeFromClipboard() {
     return
   }
   const copiedNode = clipboardData.nodes[0]
+  if (copiedNode == undefined) {
+    console.warn('No valid node in clipboard.')
+    return
+  }
   if (copiedNode.expression != null) {
     graphStore.createNode(
       graphNavigator.sceneMousePos ?? Vec2.Zero,
