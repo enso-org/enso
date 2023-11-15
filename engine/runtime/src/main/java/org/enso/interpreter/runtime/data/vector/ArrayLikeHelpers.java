@@ -89,16 +89,8 @@ public final class ArrayLikeHelpers {
     for (int i = 0; i < len; i++) {
       var value = invokeFunctionNode.execute(fun, frame, state, new Long[] {(long) i});
 
-      try {
         System.out.println("JJJ invoke " + i + " " + value + " " + value.getClass());
         System.out.println("JJJ invoke " + warnings.hasWarnings(value));
-        Warning ws[] = warnings.getWarnings(value, null);
-        for (Warning w : ws) {
-          System.out.println("JJJ w " + w + " " + w.getClass());
-        }
-      } catch (UnsupportedMessageException e) {
-        throw new IllegalStateException(e);
-      }
 
       if (value instanceof DataflowError) {
         return value;
