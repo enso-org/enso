@@ -603,6 +603,14 @@ type Vector a
         lookup_function i = function (self.at i)
         Array_Like_Helpers.vector_from_function self.length lookup_function on_problems
 
+    ## PRIVATE
+       Implementation of `map` that uses `vector_from_function_primitive`, which
+       does not do error wrapping.
+    map_primitive : (Any -> Any) -> Vector Any
+    map_primitive self function =
+        lookup_function i = function (self.at i)
+        Array_Like_Helpers.vector_from_function_primitive self.length lookup_function
+
     ## Applies a function to each element of the vector, returning the `Vector`
        that contains all results concatenated.
 

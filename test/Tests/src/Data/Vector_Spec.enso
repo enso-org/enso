@@ -844,6 +844,9 @@ type_spec name alter = Test.group name <|
         expected_warnings = [(Additional_Warnings.Error 2)] + expected_warnings_regular
         Warning.get_all result . map .value . should_equal expected_warnings
 
+    Test.specify "map_primitive does not do error wrapping" <|
+        alter [10, 20, 30, 40] . map_primitive map_fun . catch . should_equal (My_Error.Error 30)
+
 spec =
     Test.group "Vector builder" <|
         Test.specify "empty builder.get" <|

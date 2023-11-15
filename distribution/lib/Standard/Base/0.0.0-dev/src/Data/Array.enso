@@ -331,6 +331,12 @@ type Array
     map : (Any -> Any) -> Problem_Behavior -> Vector Any
     map self function on_problems=Problem_Behavior.Report_Error = Vector.map self function on_problems
 
+    ## PRIVATE
+       Implementation of `map` that uses `vector_from_function_primitive`, which
+       does not do error wrapping.
+    map_primitive : (Any -> Any) -> Vector Any
+    map_primitive self function = Vector.map_primitive self function
+
     ## Applies a function to each element of the array, returning the `Vector`
        that contains all results concatenated.
 
