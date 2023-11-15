@@ -35,12 +35,15 @@ provideWidgetTree(toRef(props, 'ast'), layoutTransitions.active)
   color: white;
   margin-left: 4px;
   &:has(.WidgetPort.newToConnect) {
-    transition: margin 0.2s ease;
     margin-left: calc(4px - var(--widget-port-extra-pad));
   }
 
   &:has(.WidgetPort.newToConnect > .r-24:only-child) {
     margin-left: 4px;
   }
+}
+
+.GraphEditor.draggingEdge .NodeWidgetTree {
+  transition: margin 0.2s ease;
 }
 </style>
