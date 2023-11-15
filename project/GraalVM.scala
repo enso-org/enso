@@ -74,13 +74,12 @@ object GraalVM {
   )
 
   val chromeInspectorPkgs = Seq(
-    "org.graalvm.tools" % "chromeinspector-tool" % version,
-    "org.graalvm.shadowed" % "json" % version,
-    "org.graalvm.tools"    % "profiler-tool"      % version,
+    "org.graalvm.tools"    % "chromeinspector-tool" % version,
+    "org.graalvm.shadowed" % "json"                 % version,
+    "org.graalvm.tools"    % "profiler-tool"        % version
   )
 
   val toolsPkgs = chromeInspectorPkgs
-
 
   // TODO: Add graalvmPython
   val langsPkgs = jsPkgs
