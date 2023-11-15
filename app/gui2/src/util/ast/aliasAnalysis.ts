@@ -12,7 +12,7 @@ import {
 import { MappedKeyMap, MappedSet, NonEmptyStack } from '@/util/containers'
 import type { LazyObject } from '@/util/parserSupport.ts'
 import { mapIterator } from 'lib0/iterator'
-import type { ContentRange } from '../../../shared/yjsModel'
+import type { ContentRange, ExprId } from '../../../shared/yjsModel'
 import { IdMap, rangeIsBefore } from '../../../shared/yjsModel'
 
 const ACCESSOR_OPERATOR = '.'
@@ -98,7 +98,7 @@ export function identifierKind(identifier: string): IdentifierType {
 
 export class AliasAnalyzer {
   /** All symbols that are not yet resolved (i.e. that were not bound in the analyzed tree). */
-  readonly unresolvedSymbols = new MappedSet<ContentRange>(IdMap.keyForRange)
+  readonly unresolvedSymbols = new Set<ExprId>()
 
   /** The AST representation of the code. */
   readonly ast: AstExtended<Tree>
@@ -112,9 +112,7 @@ export class AliasAnalyzer {
   /** The stack for keeping track whether we are in a pattern or expression context. */
   private readonly contexts: NonEmptyStack<Context> = new NonEmptyStack(Context.Expression)
 
-  public readonly aliases = new MappedKeyMap<ContentRange, MappedSet<ContentRange>>(
-    IdMap.keyForRange,
-  )
+  public readonly aliases = new Map<ExprId, Set<ExprId>>()
 
   /**
    * @param code text representation of the code.
@@ -145,21 +143,22 @@ export class AliasAnalyzer {
   /** Marks given token as a binding, i.e. a definition of a new variable. */
   bind(token: AstExtended<Token>) {
     const scope = this.scopes.top
+    const id = token.astId()
     const identifier = token.repr()
     const range = token.span()
     log(() => `Binding ${identifier}@[${range}]`)
     scope.bindings.set(identifier, token)
-    assert(!this.aliases.has(range), `Token at ${range} is already bound.`)
-    this.aliases.set(range, new MappedSet<ContentRange>(IdMap.keyForRange))
+    assert(!this.aliases.has(id), `Token ${id} at ${range} is already bound.`)
+    this.aliases.set(id, new Set())
   }
 
   addConnection(source: AstExtended<Token>, target: AstExtended<Token>) {
     const sourceRange = source.span()
     const targetRange = target.span()
-    const targets = this.aliases.get(sourceRange)
+    const targets = this.aliases.get(source.astId())
     if (targets != null) {
       log(() => `Usage of ${target.repr()}@[${targetRange}] resolved to [${sourceRange}]`)
-      targets.add(targetRange)
+      targets.add(target.astId())
     } else {
       console.warn(`No targets found for source range ${sourceRange}`)
     }
@@ -174,7 +173,7 @@ export class AliasAnalyzer {
       this.addConnection(binding, token)
     } else {
       log(() => `Usage of ${identifier}@[${range}] is unresolved.`)
-      this.unresolvedSymbols.add(range)
+      this.unresolvedSymbols.add(token.astId())
     }
   }
 
@@ -219,7 +218,7 @@ export class AliasAnalyzer {
       return
     }
 
-    log(() => `\nprocessNode ${astPrettyPrintType(node)}\n====\n${repr()}\n====\n`)
+    log(() => `\nprocessNode ${astPrettyPrintType(node)}\n====\n${node.repr()}\n====\n`)
 
     // We may replace this with switch(true) once
     // https://github.com/microsoft/TypeScript/pull/53681 will be released.
@@ -260,13 +259,9 @@ export class AliasAnalyzer {
       }
     } else if (node.isTree(Tree.Type.MultiSegmentApp)) {
       // Intentionally omit segments' headers, as their are not a variable usage.
-      const segmentBodies = node.visit(function* (app) {
-        for (const segment of app.segments) {
-          if (segment.body != null) yield segment.body
-        }
-      })
-      for (const segmentBody of segmentBodies) {
-        this.processTree(segmentBody)
+      const segments = node.visit((app) => app.segments)
+      for (const segment of segments) {
+        this.processTree(segment.tryMap((seg) => seg.body))
       }
     } else if (node.isTree(Tree.Type.Assignment)) {
       this.withContext(Context.Pattern, () => {
@@ -279,36 +274,34 @@ export class AliasAnalyzer {
         this.processTree(node.map((f) => f.name))
       })
       this.withNewScopeOver(node, () => {
-        node.visit(function* (f) {
+        for (const argument of node.visit((f) => f.args)) {
           this.withContext(Context.Pattern, () => {
-            this.processTree(argument.pattern)
+            this.processTree(argument.map((arg) => arg.pattern))
           })
-          this.processTree(argument.default?.expression)
-        })
-        for (const argument of node.inner.args) {
+          this.processTree(argument.tryMap((arg) => arg.default?.expression))
         }
         this.processTree(node.tryMap((f) => f.body))
       })
     } else if (node.isTree(Tree.Type.CaseOf)) {
       this.processTree(node.tryMap((caseOf) => caseOf.expression))
-      for (const caseLine of node.inner.cases) {
-        const pattern = caseLine.case?.pattern
-        const arrow = caseLine.case?.arrow
-        const expression = caseLine.case?.expression
+      for (const caseLine of node.visit((caseOf) => caseOf.cases)) {
+        const pattern = caseLine.tryMap((line) => line.case?.pattern)
+        const arrow = caseLine.tryMap((line) => line.case?.arrow)
+        const expression = caseLine.tryMap((line) => line.case?.expression)
         if (pattern) {
-          const armStart = parsedTreeOrTokenRange(pattern)[0]
+          const armStart = pattern.span()[0]
           const armEnd = expression
-            ? parsedTreeOrTokenRange(expression)[1]
+            ? expression.span()[1]
             : arrow
-            ? parsedTreeOrTokenRange(arrow)[1]
-            : parsedTreeOrTokenRange(pattern)[1]
+            ? arrow.span()[1]
+            : pattern.span()[1]
 
           const armRange: ContentRange = [armStart, armEnd]
           this.withNewScopeOver(armRange, () => {
             this.withContext(Context.Pattern, () => {
-              this.processTree(caseLine.case?.pattern)
+              this.processTree(pattern)
             })
-            this.processTree(caseLine.case?.expression)
+            this.processTree(expression)
           })
         }
       }

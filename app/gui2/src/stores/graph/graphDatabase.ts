@@ -24,10 +24,7 @@ export class AliasAnalysisResult {
   nodeUsages = new ReactiveDb<ExprId, Set<ExprId>>()
 
   readFunctionAst(ast: AstExtended<Ast.Tree.Function>) {
-    const aliasAnalysis = new AliasAnalyzer(ast.parsedCode, ast.inner)
-    const usageRanges = new MappedSet(IdMap.keyForRange)
-    const usageRangeToExprId = new MappedKeyMap<ContentRange, ExprId>(IdMap.keyForRange)
-    ast.visitRecursive
+    const aliasAnalysis = new AliasAnalyzer(ast)
 
     for (const nodeAst of ast.visit(getFunctionNodeExpressions)) {
       const node = nodeFromAst(nodeAst)
