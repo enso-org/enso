@@ -15,6 +15,7 @@ polyglot java import java.util.Random as Java_Random
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
+from Standard.Test.Extensions import nested_error_matcher
 
 type My_Type
     Value foo
@@ -106,7 +107,7 @@ spec =
             error.catch . should_equal "bar"
             error.stack_trace.second.name . should_equal "Error_Spec.throw_a_bar"
             error.stack_trace.second.source_location.file.name . should_equal "Error_Spec.enso"
-            error.stack_trace.second.source_location.start_line . should_equal 32
+            error.stack_trace.second.source_location.start_line . should_equal 33
 
         Test.specify "should allow to inspect the stack trace of a recovered panic" <|
             error = Panic.recover Any <| throw_a_bar_panicking
@@ -449,8 +450,9 @@ spec =
         Test.specify "works with .should_fail_with" <|
             wrap = My_Error_Wrapper.Error
             error = My_Error.Error 12
-            [error, wrap error, wrap (wrap error), wrap (wrap (wrap error))].map e->
-                Error.throw e . should_fail_with My_Error
+            Error.throw (wrap error) . should_fail_with (nested_error_matcher [My_Error_Wrapper] My_Error)
+            Error.throw (wrap (wrap error)) . should_fail_with (nested_error_matcher [My_Error_Wrapper, My_Error_Wrapper] My_Error)
+            Error.throw (wrap (wrap (wrap error))) . should_fail_with (nested_error_matcher [My_Error_Wrapper, My_Error_Wrapper, My_Error_Wrapper] My_Error)
 
 type C
     Baz x
