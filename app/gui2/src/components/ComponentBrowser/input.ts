@@ -1,6 +1,6 @@
 import type { Filter } from '@/components/ComponentBrowser/filtering'
 import { useGraphStore } from '@/stores/graph'
-import { useProjectStore } from '@/stores/project'
+import type { GraphDb } from '@/stores/graph/graphDatabase'
 import {
   SuggestionKind,
   type SuggestionEntry,
@@ -16,7 +16,6 @@ import {
 } from '@/util/ast'
 import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
 import { GeneralOprApp } from '@/util/ast/opr'
-import type { ExpressionInfo } from '@/util/computedValueRegistry'
 import { MappedSet } from '@/util/containers'
 import {
   qnLastSegment,
@@ -25,7 +24,7 @@ import {
   tryQualifiedName,
   type QualifiedName,
 } from '@/util/qualifiedName'
-import { IdMap, type ExprId } from 'shared/yjsModel'
+import { IdMap } from 'shared/yjsModel'
 import { computed, ref, type ComputedRef } from 'vue'
 
 /** Input's editing context.
@@ -53,12 +52,7 @@ export type EditingContext =
   | { type: 'changeLiteral'; literal: Ast.Tree.TextLiteral | Ast.Tree.Number }
 
 /** Component Browser Input Data */
-export function useComponentBrowserInput(
-  graphStore: { identDefinitions: Map<string, ExprId> } = useGraphStore(),
-  computedValueRegistry: {
-    getExpressionInfo(id: ExprId): ExpressionInfo | undefined
-  } = useProjectStore().computedValueRegistry,
-) {
+export function useComponentBrowserInput(graphDb: GraphDb = useGraphStore().db) {
   const code = ref('')
   const selection = ref({ start: 0, end: 0 })
   const ast = computed(() => parseEnso(code.value))
@@ -165,9 +159,9 @@ export function useComponentBrowserInput(
     if (accessOpr.apps.length > 1) return null
     if (internalUsages.value.has(parsedTreeRange(accessOpr.lhs))) return { type: 'unknown' }
     const ident = readAstSpan(accessOpr.lhs, code.value)
-    const definition = graphStore.identDefinitions.get(ident)
+    const definition = graphDb.getIdentDefiningNode(ident)
     if (definition == null) return null
-    const typename = computedValueRegistry.getExpressionInfo(definition)?.typename
+    const typename = graphDb.getExpressionInfo(definition)?.typename
     return typename != null ? { type: 'known', typename } : { type: 'unknown' }
   }
 
