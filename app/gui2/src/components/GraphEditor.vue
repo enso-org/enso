@@ -302,7 +302,7 @@ interface CopiedNode {
 /// Copy the content of the selected node to the clipboard.
 function copyNodeContent() {
   const id = nodeSelection.selected.values().next().value
-  const node = graphStore.nodes.get(id)
+  const node = graphStore.db.nodes.get(id)
   if (node == null) return
   const content = node.rootSpan.repr()
   const metadata = projectStore.module?.getNodeMetadata(id) ?? undefined
