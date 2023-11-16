@@ -1943,26 +1943,16 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
     (Benchmark / parallelExecution) := false,
     (Benchmark / run / fork) := true,
     (Benchmark / run / connectInput) := true,
-    // Pass -Dtruffle.class.path.append to javac
-    (Benchmark / compile / javacOptions) ++= {
-      val runtimeClasspath =
-        (LocalProject("runtime") / Compile / fullClasspath).value
-      val runtimeInstrumentsClasspath =
-        (LocalProject(
-          "runtime-with-instruments"
-        ) / Compile / fullClasspath).value
-      val appendClasspath =
-        (runtimeClasspath ++ runtimeInstrumentsClasspath)
-          .map(_.data)
-          .mkString(File.pathSeparator)
-      Seq(
-        s"-J-Dtruffle.class.path.append=$appendClasspath"
-      )
-    },
+    (Benchmark / compile / unmanagedClasspath) ++=
+      (LocalProject(
+        "runtime-with-instruments"
+      ) / Compile / fullClasspath).value,
     (Benchmark / compile / javacOptions) ++= Seq(
       "-s",
       (Benchmark / sourceManaged).value.getAbsolutePath,
-      "-Xlint:unchecked"
+      "-Xlint:unchecked",
+      "-J-Dpolyglotimpl.DisableClassPathIsolation=true",
+      "-J-Dpolyglot.engine.WarnInterpreterOnly=false"
     ),
     (Benchmark / run / javaOptions) ++= {
       val runtimeClasspath =
