@@ -731,7 +731,6 @@ object BindingsMap {
     * @param builtinType true if constructor is annotated with @Builtin_Type, false otherwise.
     */
   case class Type(
-
     override val name: String,
     params: Seq[String],
     members: Seq[Cons],
