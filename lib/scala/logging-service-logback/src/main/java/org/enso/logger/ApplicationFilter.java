@@ -23,7 +23,7 @@ public class ApplicationFilter extends Filter<ILoggingEvent> {
     this.loggers = loggers;
     this.level = level;
     this.prefix = prefix;
-    this.prefixLength = prefix != null ? prefix.length() + 1 : 0; // inlude `.` in `enso.`
+    this.prefixLength = prefix != null ? prefix.length() : 0;
   }
 
   @Override
@@ -48,7 +48,12 @@ public class ApplicationFilter extends Filter<ILoggingEvent> {
 
   private boolean loggerNameMatches(String validLoggerName, String eventLoggerName) {
     if (prefix != null && eventLoggerName.startsWith(prefix)) {
-      return eventLoggerName.substring(prefixLength).startsWith(validLoggerName);
+      String prefixLessLoggerName = eventLoggerName.substring(prefixLength);
+      String normalizedLoggerName =
+          prefixLessLoggerName.startsWith(".")
+              ? prefixLessLoggerName.substring(1)
+              : prefixLessLoggerName;
+      return normalizedLoggerName.startsWith(validLoggerName);
     } else {
       return eventLoggerName.startsWith(validLoggerName);
     }

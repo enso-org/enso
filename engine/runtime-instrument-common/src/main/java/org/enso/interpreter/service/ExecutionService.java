@@ -72,7 +72,7 @@ public final class ExecutionService {
   private final EnsoContext context;
   private final Optional<IdExecutionService> idExecutionInstrument;
   private final NotificationHandler.Forwarder notificationForwarder;
-  private final TruffleLogger logger = TruffleLogger.getLogger(LanguageInfo.ID);
+  private final TruffleLogger logger = TruffleLogger.getLogger(LanguageInfo.ID, ExecutionService.class);
   private final ConnectedLockManager connectedLockManager;
   private final ExecuteRootNode execute = new ExecuteRootNode();
   private final CallRootNode call = new CallRootNode();
