@@ -8,7 +8,8 @@ from project.Test import Test
 ## Expect a function to fail with the provided dataflow error.
 
    Arguments:
-   - matcher: The expected type of dataflow error contained in `self`.
+   - matcher: The expected type of dataflow error contained in `self`. It can
+     also be a predicate to which the error is passed.
    - frames_to_skip (optional, advanced): used to alter the location which is
      displayed as the source of this error.
 
@@ -29,7 +30,8 @@ Any.should_fail_with self matcher frames_to_skip=0 =
 ## Expect a function to fail with the provided dataflow error.
 
    Arguments:
-   - matcher: The expected type of dataflow error contained in `self`.
+   - matcher: The expected type of dataflow error contained in `self`. It can
+     also be a predicate to which the error is passed.
    - frames_to_skip (optional, advanced): used to alter the location which is
      displayed as the source of this error.
 
