@@ -211,7 +211,7 @@ function getRelatedSpanOffset(domNode: globalThis.Node, domOffset: number): numb
   >
     <div class="selection" v-on="dragPointer.events"></div>
     <div class="binding" @pointerdown.stop>
-      {{ node.binding }}
+      {{ node.pattern?.repr() ?? '' }}
     </div>
     <CircularMenu
       v-if="menuVisible"

@@ -4,12 +4,12 @@ import { Ast, AstExtended } from '@/util/ast'
 import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
 import { colorFromString } from '@/util/colors'
 import { ComputedValueRegistry, type ExpressionInfo } from '@/util/computedValueRegistry'
-import { MappedKeyMap, MappedSet } from '@/util/containers'
+import { MappedKeyMap } from '@/util/containers'
 import { ReactiveDb, ReactiveIndex, ReactiveMapping } from '@/util/database/reactiveDb'
 import type { Opt } from '@/util/opt'
 import { qnJoin, tryQualifiedName } from '@/util/qualifiedName'
 import { Vec2 } from '@/util/vec2'
-import { iteratorFilter, mapIterator } from 'lib0/iterator'
+import { iteratorFilter } from 'lib0/iterator'
 import * as set from 'lib0/set'
 import {
   IdMap,
@@ -35,6 +35,8 @@ export class ConnectionsDb {
 
   readFunctionAst(ast: AstExtended<Ast.Tree.Function>) {
     const analyzer = new AliasAnalyzer(ast.parsedCode, ast.inner)
+    analyzer.process()
+    console.log(analyzer.aliases)
     const aliasRangeToTree = new MappedKeyMap<ContentRange, AstExtended | undefined>(
       IdMap.keyForRange,
     )
@@ -61,20 +63,30 @@ export class ConnectionsDb {
     for (const [alias, usages] of analyzer.aliases) {
       const aliasAst = aliasRangeToTree.get(alias)
       if (aliasAst == null) continue
-      const info = this.aliases.getOrAdd(aliasAst.astId, {
-        identifier: aliasAst,
-        usages: new Set(),
-      })
-      if (indexedDB.cmp(aliasAst.contentHash(), info.identifier.contentHash())) {
-        info.identifier = aliasAst
-      }
-      for (const usage of info.usages) {
-        const range = aliasIdToRange.get(usage)
-        if (range == null || !usages.has(range)) info.usages.delete(usage)
-      }
-      for (const usage of usages) {
-        const usageAst = aliasRangeToTree.get(usage)
-        if (usageAst != null && !info.usages.has(usageAst.astId)) info.usages.add(usageAst.astId)
+      const info = this.aliases.get(aliasAst.astId)
+      if (info == null) {
+        function* usageIds() {
+          for (const usage of usages) {
+            const usageAst = aliasRangeToTree.get(usage)
+            if (usageAst != null) yield usageAst.astId
+          }
+        }
+        this.aliases.set(aliasAst.astId, {
+          identifier: aliasAst,
+          usages: new Set(usageIds()),
+        })
+      } else {
+        if (indexedDB.cmp(aliasAst.contentHash(), info.identifier.contentHash())) {
+          info.identifier = aliasAst
+        }
+        for (const usage of info.usages) {
+          const range = aliasIdToRange.get(usage)
+          if (range == null || !usages.has(range)) info.usages.delete(usage)
+        }
+        for (const usage of usages) {
+          const usageAst = aliasRangeToTree.get(usage)
+          if (usageAst != null && !info.usages.has(usageAst.astId)) info.usages.add(usageAst.astId)
+        }
       }
     }
   }
@@ -96,6 +108,7 @@ export class GraphDb {
     for (const ast of entry.pattern.walkRecursive()) {
       exprs.add(ast.astId)
     }
+    console.log(id, exprs)
     return Array.from(exprs, (expr) => [id, expr])
   })
 
@@ -156,7 +169,11 @@ export class GraphDb {
     return exprId && set.first(this.nodeExpressions.reverseLookup(exprId))
   }
 
-  getNodeDefiningIdent(ident: string): ExprId | undefined {
+  getPatternExpressionNodeId(exprId: ExprId | undefined): ExprId | undefined {
+    return exprId && set.first(this.nodePatternExpressions.reverseLookup(exprId))
+  }
+
+  getIdentDefiningNode(ident: string): ExprId | undefined {
     return set.first(this.nodeByPattern.lookup(ident))
   }
 
