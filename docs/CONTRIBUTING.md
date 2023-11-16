@@ -332,7 +332,6 @@ shell will execute the appropriate thing. Furthermore we have `testOnly` and
 `benchOnly` that accept a glob pattern that delineates some subset of the tests
 or benchmarks to run (e.g. `testOnly *FunctionArguments*`).
 
-
 #### Building the Launcher Native Binary
 
 If you want to build the native launcher binary, you need to ensure that the

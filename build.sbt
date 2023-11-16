@@ -1957,13 +1957,12 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
     ),
     (Benchmark / run / javaOptions) ++= {
       // Take the module-path from the component directory inside the built engine distribution
-      val componentModulePaths = (ThisBuild / componentModulesPaths)
-        .value
+      val componentModulePaths = (ThisBuild / componentModulesPaths).value
         .map(_.data.getAbsolutePath)
       val runtimeJar =
-        (LocalProject("runtime-with-instruments") / assembly / assemblyOutputPath)
-          .value
-          .getAbsolutePath
+        (LocalProject(
+          "runtime-with-instruments"
+        ) / assembly / assemblyOutputPath).value.getAbsolutePath
       val allModulePaths = componentModulePaths ++ Seq(runtimeJar)
       Seq(
         "--module-path",
@@ -1973,7 +1972,7 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
       )
     },
     (Benchmark / run / mainClass) :=
-      (LocalProject("bench-processor") / mainClass).value,
+      (LocalProject("bench-processor") / mainClass).value
   )
   .settings(
     bench := Def

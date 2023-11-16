@@ -235,11 +235,11 @@ trace information of the logging process itself.
 ## JVM Architecture
 
 Enso's logging makes use of two logging APIs - `java.util.logging` and
-`org.slf4j`. The former is being used by the Truffle runtime, which itself relies on
-`jul`, while the latter is used everywhere else. The implementation of the
-logging is using off the shelf `Logback` implementation with some custom setup
-methods. The two APIss cooperate by essentially forwarding log messages from the
-former to the latter.
+`org.slf4j`. The former is being used by the Truffle runtime, which itself
+relies on `jul`, while the latter is used everywhere else. The implementation of
+the logging is using off the shelf `Logback` implementation with some custom
+setup methods. The two APIss cooperate by essentially forwarding log messages
+from the former to the latter.
 
 While typically any SLF4J customization would be performed via custom
 `LoggerFactory` and `Logger` implementation that is returned via a
