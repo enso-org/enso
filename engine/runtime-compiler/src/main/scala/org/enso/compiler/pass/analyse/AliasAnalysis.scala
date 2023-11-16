@@ -656,7 +656,7 @@ case object AliasAnalysis extends IRPass {
             )
           )
           .updateMetadata(this -->> Info.Scope.Child(graph, currentScope))
-      case _ =>
+      case _: Function.Binding =>
         throw new CompilerError(
           "Function sugar should not be present during alias analysis."
         )
