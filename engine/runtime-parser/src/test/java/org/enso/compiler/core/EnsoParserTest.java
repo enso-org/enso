@@ -21,7 +21,11 @@ public class EnsoParserTest {
 
   @BeforeClass
   public static void initEnsoParser() {
-    ensoCompiler = new EnsoParser();
+    try {
+      ensoCompiler = new EnsoParser();
+    } catch (LinkageError e) {
+      throw new AssertionError(e);
+    }
   }
 
   @AfterClass
@@ -1252,7 +1256,7 @@ public class EnsoParserTest {
         """,
         """
         # Comment with empty line
-        
+
         private
         """
     );
