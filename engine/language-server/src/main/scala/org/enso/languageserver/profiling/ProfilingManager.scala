@@ -5,8 +5,10 @@ import com.typesafe.scalalogging.LazyLogging
 import org.enso.distribution.DistributionManager
 import org.enso.languageserver.runtime.RuntimeConnector
 import org.enso.languageserver.runtime.events.RuntimeEventsMonitor
+import org.enso.logger.masking.MaskedPath
 import org.enso.profiling.events.NoopEventsMonitor
 import org.enso.profiling.sampler.{MethodsSampler, OutputStreamSampler}
+import org.enso.profiling.snapshot.HeapDumpGenerator
 
 import java.io.{ByteArrayOutputStream, PrintStream}
 import java.nio.charset.StandardCharsets
@@ -71,7 +73,10 @@ final class ProfilingManager(
             case Failure(exception) =>
               logger.error("Failed to save the sampler's result.", exception)
             case Success(samplesPath) =>
-              logger.trace("Saved the sampler's result to {}", samplesPath)
+              logger.trace(
+                "Saved the sampler's result to [{}].",
+                MaskedPath(samplesPath)
+              )
           }
 
           runtimeConnector ! RuntimeConnector.RegisterEventsMonitor(
@@ -83,6 +88,21 @@ final class ProfilingManager(
         case None =>
           sender() ! ProfilingProtocol.ProfilingStopResponse
       }
+
+    case ProfilingProtocol.ProfilingSnapshotRequest =>
+      val instant = clock.instant()
+
+      Try(saveHeapDump(instant)) match {
+        case Failure(exception) =>
+          logger.error("Failed to save the memory snapshot.", exception)
+        case Success(heapDumpPath) =>
+          logger.trace(
+            "Saved the memory snapshot to [{}].",
+            MaskedPath(heapDumpPath)
+          )
+      }
+
+      sender() ! ProfilingProtocol.ProfilingSnapshotResponse
   }
 
   private def saveSamplerResult(
@@ -96,6 +116,16 @@ final class ProfilingManager(
     Files.write(samplesPath, result)
 
     samplesPath
+  }
+
+  private def saveHeapDump(instant: Instant): Path = {
+    val heapDumpFileName = createHeapDumpFileName(instant)
+    val heapDumpPath =
+      distributionManager.paths.profiling.resolve(heapDumpFileName)
+
+    HeapDumpGenerator.generateHeapDump(heapDumpPath, false)
+
+    heapDumpPath
   }
 
   private def createEventsMonitor(instant: Instant): RuntimeEventsMonitor = {
@@ -112,6 +142,7 @@ object ProfilingManager {
   private val PROFILING_FILE_PREFIX = "enso-language-server"
   private val SAMPLES_FILE_EXT      = ".npss"
   private val EVENTS_FILE_EXT       = ".log"
+  private val HEAP_DUMP_FILE_EXT    = ".hprof"
 
   private val PROFILING_FILE_DATE_PART_FORMATTER =
     new DateTimeFormatterBuilder()
@@ -146,6 +177,11 @@ object ProfilingManager {
   def createEventsFileName(instant: Instant): String = {
     val baseName = createProfilingFileName(instant)
     s"$baseName$EVENTS_FILE_EXT"
+  }
+
+  def createHeapDumpFileName(instant: Instant): String = {
+    val baseName = createProfilingFileName(instant)
+    s"$baseName$HEAP_DUMP_FILE_EXT"
   }
 
   /** Creates the configuration object used to create a [[ProfilingManager]].

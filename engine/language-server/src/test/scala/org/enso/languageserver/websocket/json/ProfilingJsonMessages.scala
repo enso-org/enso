@@ -10,6 +10,7 @@ object ProfilingJsonMessages {
           "id": $reqId,
           "result": null
         }"""
+
   def profilingStart(reqId: Int) =
     json"""
         { "jsonrpc": "2.0",
@@ -22,6 +23,14 @@ object ProfilingJsonMessages {
     json"""
         { "jsonrpc": "2.0",
           "method": "profiling/stop",
+          "id": $reqId,
+          "params": null
+        }"""
+
+  def profilingSnapshot(reqId: Int) =
+    json"""
+        { "jsonrpc": "2.0",
+          "method": "profiling/snapshot",
           "id": $reqId,
           "params": null
         }"""
