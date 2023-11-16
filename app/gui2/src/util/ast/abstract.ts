@@ -95,33 +95,87 @@ function newTokenId(): TokenId {
 }
 
 export type Tok = { code: string; id?: TokenId }
-export type NodeChild = { whitespace?: string | undefined; node: Ast | Tok }
+export type NodeChild = { whitespace?: string | undefined; node: AstId | Tok }
 
-function isToken(node: Tok | Ast): node is Tok {
+function isToken(node: Tok | AstId): node is Tok {
   return typeof node == 'object'
 }
 
+type NodeMap = Map<AstId, Ast>
+
 export abstract class Ast {
   public treeType: Tree.Type | undefined
+  public id: AstId
 
-  protected constructor(treeType?: Tree.Type) {
+  protected constructor(id?: AstId, treeType?: Tree.Type) {
+    this.id = id ?? newNodeId()
     this.treeType = treeType
   }
 
-  abstract get children(): NodeChild[]
-}
-export class Generic extends Ast {
-  protected _children: NodeChild[]
+  abstract children(): Iterable<NodeChild>
 
-  constructor(children?: NodeChild[], treeType?: Tree.Type) {
-    super(treeType)
+  print(nodes: NodeMap): PrintedSource {
+    const info: InfoMap = {
+      nodes: new Map(),
+      tokens: new Map(),
+    }
+    const code = this.print_(nodes, info, 0, '')
+    return { info, code }
+  }
+
+  print_(
+    nodes: NodeMap,
+    info: InfoMap,
+    offset: number,
+    indent: string,
+  ): string {
+    let code = ''
+    for (const child of this.children()) {
+      if (child.node != null && !isToken(child.node) && nodes.get(child.node) instanceof Tombstone)
+        continue
+      if (child.whitespace != null) {
+        code += child.whitespace
+      } else if (code.length != 0) {
+        code += ' '
+      }
+      if (child.node != null) {
+        if (isToken(child.node)) {
+          code += child.node.code
+        } else {
+          code += nodes.get(child.node)!.print_(nodes, info, offset + code.length, indent)
+        }
+      }
+    }
+    const span = nodeKey(offset, code.length, this.treeType)
+    const infos = info.nodes.get(span)
+    if (infos == null) {
+      info.nodes.set(span, [this.id])
+    } else {
+      infos.push(this.id)
+    }
+    return code
+  }
+}
+
+export class Generic extends Ast {
+  private readonly _children: NodeChild[]
+
+  protected constructor(id?: AstId, children?: NodeChild[], treeType?: Tree.Type) {
+    super(id, treeType)
     this._children = children ?? []
   }
 
-  get children(): NodeChild[] {
+  static new(nodes: NodeMap, id?: AstId, children?: NodeChild[], treeType?: Tree.Type) {
+    const node = new Generic(id, children, treeType)
+    nodes.set(node.id, node)
+    return node
+  }
+
+  children(): Iterable<NodeChild> {
     return this._children
   }
 }
+
 type FunctionArgument = NodeChild[]
 type TokWithWhitespace = { whitespace?: string; node: Tok }
 export class Function extends Ast {
@@ -129,41 +183,46 @@ export class Function extends Ast {
   public args: FunctionArgument[]
   public equals: TokWithWhitespace | undefined
   public body: NodeChild | null
-  constructor(
+  protected constructor(
+    id: AstId | undefined,
     name: NodeChild,
     args: FunctionArgument[],
     equals: TokWithWhitespace | undefined,
     body: NodeChild | null,
   ) {
-    super(Tree.Type.Function)
+    super(id, Tree.Type.Function)
     this.name = name
     this.args = args
     this.equals = equals
     this.body = body
   }
   static new(
+    nodes: NodeMap,
+    id: AstId | undefined,
     name: NodeChild,
     args: FunctionArgument[],
     equals: TokWithWhitespace | undefined,
     body: NodeChild | null,
   ): Function {
-    return new Function(name, args, equals, body)
+    const node = new Function(id, name, args, equals, body)
+    nodes.set(node.id, node)
+    return node
   }
-  get children(): NodeChild[] {
-    const children = [this.name]
+  *children(): Iterable<NodeChild> {
+    yield this.name
     for (const arg of this.args)
-        children.push(...arg)
+      yield *arg
     if (this.equals !== undefined) {
-      children.push({ whitespace: this.equals.whitespace ?? ' ', node: this.equals.node })
+      yield { whitespace: this.equals.whitespace ?? ' ', node: this.equals.node }
     } else {
-      children.push({ whitespace: ' ', node: { code: '=' } })
+      yield { whitespace: ' ', node: { code: '=' } }
     }
     if (this.body !== null) {
-      children.push(this.body)
+      yield this.body
     }
-    return children
   }
 }
+
 type BlockLine = {
   newline?: TokWithWhitespace
   expression: NodeChild | null
@@ -171,71 +230,117 @@ type BlockLine = {
 export class Block extends Ast {
   public lines: BlockLine[]
 
-  constructor(lines: BlockLine[]) {
-    super(Tree.Type.BodyBlock)
+  protected constructor(id: AstId | undefined, lines: BlockLine[]) {
+    super(id, Tree.Type.BodyBlock)
     this.lines = lines
   }
 
-  get children(): NodeChild[] {
-    const children: NodeChild[] = []
+  static new(nodes: NodeMap, id: AstId | undefined, lines: BlockLine[]): Block {
+    const node = new Block(id, lines)
+    nodes.set(node.id, node)
+    return node
+  }
+
+  *children(): Iterable<NodeChild> {
     for (const line of this.lines) {
-      if (line.newline !== undefined) {
-        children.push(line.newline)
-      } else {
-        children.push({ node: { code: '\n' } })
-      }
-      if (line.expression !== null) children.push(line.expression)
+      yield line.newline ?? { node: { code: '\n' } }
+      if (line.expression !== null) yield line.expression
     }
-    return children
+  }
+
+  print_(
+    nodes: NodeMap,
+    info: InfoMap,
+    offset: number,
+    indent: string,
+  ): string {
+    let code = ''
+    for (const line of this.lines) {
+      if (
+        line.expression?.node != null &&
+        !isToken(line.expression.node) &&
+        nodes.get(line.expression.node) instanceof Tombstone
+      )
+        continue
+      code += line.newline?.whitespace ?? ''
+      code += line.newline?.node.code ?? '\n'
+      if (line.expression !== null) {
+        code += line.expression.whitespace ?? indent
+        if (line.expression.node != null) {
+          if (isToken(line.expression.node)) {
+            code += line.expression.node.code
+          } else {
+            code += nodes.get(line.expression.node)!.print_(nodes, info, offset, indent + '    ')
+          }
+        }
+      }
+    }
+    const span = nodeKey(offset, code.length, this.treeType)
+    const infos = info.nodes.get(span)
+    if (infos == null) {
+      info.nodes.set(span, [this.id])
+    } else {
+      infos.push(this.id)
+    }
+    return code
   }
 }
+
 export class Assignment extends Ast {
   public pattern: NodeChild
   public equals: Tok | undefined
   public value: NodeChild
-  constructor(pattern: NodeChild, equals: Tok | undefined, value: NodeChild) {
-    super(Tree.Type.Assignment)
+  protected constructor(id: AstId | undefined, pattern: NodeChild, equals: Tok | undefined, value: NodeChild) {
+    super(id, Tree.Type.Assignment)
     this.pattern = pattern
     this.equals = equals
     this.value = value
   }
-  static new(name: string, expression: Ast): Assignment {
+  static new(nodes: NodeMap, id: AstId | undefined, name: string, expression: AstId): Assignment {
     const pattern = { node: { code: name } }
     const value = { node: expression }
-    return new Assignment(pattern, undefined, value)
+    const node = new Assignment(id, pattern, undefined, value)
+    nodes.set(node.id, node)
+    return node
   }
 
-  get children(): NodeChild[] {
+  *children(): Iterable<NodeChild> {
+    yield this.pattern
     const defaultEquals = { whitespace: this.value.whitespace, code: '=' }
-    return [this.pattern, { node: this.equals ?? defaultEquals }, this.value]
+    yield { node: this.equals ?? defaultEquals }
+    yield this.value
   }
 }
 export class RawCode extends Ast {
   public code: NodeChild
 
-  constructor(code: NodeChild) {
-    super()
+  protected constructor(id: AstId | undefined, code: NodeChild) {
+    super(id)
     this.code = code
   }
 
-  static new(code: string): RawCode {
-    return new RawCode({ node: { code } })
+  static new(nodes: NodeMap, id: AstId | undefined, code: string): RawCode {
+    const node = new RawCode(id, { node: { code } })
+    nodes.set(node.id, node)
+    return node
   }
 
-  get children(): NodeChild[] {
-    return [this.code]
+  *children(): Iterable<NodeChild> {
+    yield this.code
   }
 }
 export class Tombstone extends Ast {
-  constructor() {
-    super()
+  protected constructor(id: AstId | undefined) {
+    super(id)
   }
 
-  static new(): Tombstone {
-    return new Tombstone()
+  static new(nodes: NodeMap, id: AstId | undefined): Tombstone {
+    const node = new Tombstone(id)
+    nodes.set(node.id, node)
+    return node
   }
 
-  get children(): NodeChild[] {
+  children(): Iterable<NodeChild> {
     return []
   }
 }
@@ -261,28 +366,29 @@ export type CodeMaybePrinted = {
 }
 
 export function abstract(
+  nodesOut: NodeMap,
   tree: Tree,
   source: CodeMaybePrinted,
-): { whitespace: string | undefined; node: Ast } {
+): { whitespace: string | undefined; node: AstId } {
   const nodesExpected = new Map(
     Array.from(source.info?.nodes.entries() ?? [], ([span, ids]) => [span, [...ids]]),
   )
   const tokenIds = source.info?.tokens ?? new Map()
-  return abstract_(tree, source.code, nodesExpected, tokenIds)
+  return abstract_(nodesOut, tree, source.code, nodesExpected, tokenIds)
 }
 function abstract_(
+  nodesOut: NodeMap,
   tree: Tree,
   code: string,
   nodesExpected: NodeSpanMap,
   tokenIds: TokenSpanMap,
-): { whitespace: string | undefined; node: Ast } {
-  const treeType = tree.type
+): { whitespace: string | undefined; node: AstId } {
   let node
   const visitChildren = (tree: LazyObject) => {
     const children: NodeChild[] = []
     const visitor = (child: LazyObject) => {
       if (Tree.isInstance(child)) {
-        children.push(abstract_(child, code, nodesExpected, tokenIds))
+        children.push(abstract_(nodesOut, child, code, nodesExpected, tokenIds))
       } else if (Token.isInstance(child)) {
         children.push(abstractToken(child, code, tokenIds))
       } else {
@@ -292,41 +398,44 @@ function abstract_(
     tree.visitChildren(visitor)
     return children
   }
+  const whitespaceStart = tree.whitespaceStartInCodeParsed
+  const whitespaceEnd = whitespaceStart + tree.whitespaceLengthInCodeParsed
+  const codeStart = whitespaceEnd
+  const codeEnd = codeStart + tree.childrenLengthInCodeParsed
+  const span = nodeKey(codeStart, codeEnd - codeStart, tree.type)
   switch (tree.type) {
-    case Tree.Type.BodyBlock:
+    case Tree.Type.BodyBlock: {
       const lines = Array.from(tree.statements, (line) => {
         const newline = abstractToken(line.newline, code, tokenIds)
         let expression = null
         if (line.expression != null) {
-          expression = abstract_(line.expression, code, nodesExpected, tokenIds)
+          expression = abstract_(nodesOut, line.expression, code, nodesExpected, tokenIds)
         }
         return { newline, expression }
       })
-      node = new Block(lines)
+      const id = nodesExpected.get(span)?.pop()
+      node = Block.new(nodesOut, id, lines)
       break
-    case Tree.Type.Function:
-      const name = abstract_(tree.name, code, nodesExpected, tokenIds)
+    }
+    case Tree.Type.Function: {
+      const name = abstract_(nodesOut, tree.name, code, nodesExpected, tokenIds)
       const args = Array.from(tree.args, (arg) => visitChildren(arg))
       const equals = abstractToken(tree.equals, code, tokenIds)
       const body =
         tree.body !== undefined
-          ? abstract_(tree.body, code, nodesExpected, tokenIds)
+          ? abstract_(nodesOut, tree.body, code, nodesExpected, tokenIds)
           : null
-      node = Function.new(name, args, equals, body)
+      const id = nodesExpected.get(span)?.pop()
+      node = Function.new(nodesOut, id, name, args, equals, body)
       break
-    default:
-      node = new Generic(visitChildren(tree), treeType)
+    }
+    default: {
+      const id = nodesExpected.get(span)?.pop()
+      node = Generic.new(nodesOut, id, visitChildren(tree), tree.type)
+    }
   }
-  const whitespaceStart = tree.whitespaceStartInCodeParsed
-  const whitespaceEnd = whitespaceStart + tree.whitespaceLengthInCodeParsed
   const whitespace = code.substring(whitespaceStart, whitespaceEnd)
-  const codeStart = whitespaceEnd
-  const codeEnd = codeStart + tree.childrenLengthInCodeParsed
-  const span = nodeKey(codeStart, codeEnd - codeStart, tree.type)
-  //const id = nodesExpected.get(span)?.shift() ?? newNodeId()
-  //nodesOut.set(id, node)
-  const id = node
-  return { node: id, whitespace }
+  return { node: node.id, whitespace }
 }
 
 function abstractToken(token: Token, code: string, tokenIds: TokenSpanMap) {
@@ -352,11 +461,11 @@ function tokenKey(start: number, length: number, type: Token.Type): TokenKey {
   return `${start}:${length}:${type}`
 }
 
-type NodeSpanMap = Map<NodeKey, Ast[]>
+type NodeSpanMap = Map<NodeKey, AstId[]>
 type TokenSpanMap = Map<TokenKey, TokenId>
 export type InfoMap = {
-  nodes: Map<NodeKey, Ast[]>
-  tokens: Map<TokenKey, Ast[]>
+  nodes: Map<NodeKey, AstId[]>
+  tokens: Map<TokenKey, AstId[]>
 }
 
 export type PrintedSource = {
@@ -364,120 +473,57 @@ export type PrintedSource = {
   code: string
 }
 
-export function print(root: Ast | Tok): PrintedSource {
-  const info: InfoMap = {
-    nodes: new Map(),
-    tokens: new Map(),
-  }
-  const code = print_(root, info, 0, '')
-  return { info, code }
-}
-function print_(
-  root: Ast | Tok,
-  info: InfoMap,
-  offset: number,
-  indent: string,
-): string {
-  if (isToken(root)) {
-    return root.code
-  }
-  let node = root
-  if (node == null) throw new Error('missing node?')
-  let code = ''
-  if (node instanceof Block) {
-    for (const line of node.lines) {
-      if (
-        line.expression?.node != null &&
-        !isToken(line.expression.node) &&
-        line.expression.node instanceof Tombstone
-      )
-        continue
-      code += line.newline?.whitespace ?? ''
-      code += line.newline?.node.code ?? '\n'
-      if (line.expression !== null) {
-        code += line.expression.whitespace ?? indent
-        code += print_(line.expression.node, info, offset, indent + '    ')
-      }
-    }
-  } else {
-    for (const child of node.children) {
-      if (child.node != null && !isToken(child.node) && child.node instanceof Tombstone)
-        continue
-      if (child.whitespace != null) {
-        code += child.whitespace
-      } else if (code.length != 0) {
-        code += ' '
-      }
-      if (isToken(child.node)) {
-        code += child.node.code
-      } else {
-        code += print_(child.node, info, offset + code.length, indent)
-      }
-    }
-  }
-  const span = nodeKey(offset, code.length, node.treeType)
-  const infos = info.nodes.get(span)
-  if (infos == null) {
-    info.nodes.set(span, [root])
-  } else {
-    infos.push(root)
-  }
-  return code
-}
-
-// Translates to a representation where nodes are arrays and leaves are tokens.
-export function debug(id: Ast): any[] {
-  let node = id
-  if (node == null) throw new Error('missing node?')
-  return node.children.map((child) => {
+type DebugTree = (DebugTree | string)[]
+export function debug(nodes: NodeMap, id: AstId): DebugTree {
+  return Array.from(nodes.get(id)!.children(), (child) => {
     if (isToken(child.node)) {
       return child.node.code
     } else {
-      return debug(child.node)
+      return debug(nodes, child.node)
     }
   })
 }
 
-export function normalize(root: Ast): Ast {
-  const printed = print(root)
+export function normalize(nodes: NodeMap, root: AstId): AstId {
+  const printed = nodes.get(root)!.print(nodes)
   const tree = parseEnso(printed.code)
-  return abstract(tree, printed).node
+  return abstract(nodes, tree, printed).node
 }
 
-/*
-export function functionBlock(name: string, nodes: NodeMap): Block | null {
+export function functionBlock(nodes: NodeMap, name: string): Block | null {
   for (const [_id, node] of nodes) {
     if (node instanceof Function) {
-      if (print(node.name.node, nodes).code === name && node.body != null) {
-        const bodyId = node.body.node
-        if (bodyId !== undefined && !isToken(bodyId)) {
-          const body = nodes.get(bodyId)
-          if (body instanceof Block) return body
+      const nodeName = (isToken(node.name.node)) ? node.name.node.code : nodes.get(node.name.node)!.print(nodes)
+      if (nodeName === name) {
+        if (node.body != null) {
+          const bodyId = node.body.node
+          if (bodyId !== undefined && !isToken(bodyId)) {
+            const body = nodes.get(bodyId)
+            if (body instanceof Block) return body
+          }
         }
       }
     }
   }
   return null
 }
- */
 
 export function insertNewNodeAST(
+  nodes: NodeMap,
   block: Block,
   ident: string,
   expression: string,
-): { assignment: Ast; value: Ast } {
-  const value = RawCode.new(expression)
-  const assignment = Assignment.new(ident, value)
-  block.lines.push({ expression: { node: assignment } })
-  return { assignment, value }
+): { assignment: AstId; value: AstId } {
+  const value = RawCode.new(nodes, undefined, expression)
+  const assignment = Assignment.new(nodes, undefined, ident, value.id)
+  block.lines.push({ expression: { node: assignment.id } })
+  return { assignment: assignment.id, value: value.id }
 }
 
-export function deleteExpressionAST(id: Ast) {
-  // FIXME
-  //nodes.set(id, new Tombstone())
+export function deleteExpressionAST(nodes: NodeMap, id: AstId) {
+  return Tombstone.new(nodes, id)
 }
 
-export function replaceExpressionContentAST(id: Ast, code: string) {
-  // FIXME
-  //nodes.set(id, RawCode.new(nodes, code))
+export function replaceExpressionContentAST(nodes: NodeMap, id: AstId, code: string) {
+  return RawCode.new(nodes, id, code)
 }
