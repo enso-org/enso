@@ -26,9 +26,7 @@ function visIdKey(id: VisualizationIdentifier) {
   return `${kindKey}::${id.name}`
 }
 
-onMounted(() => {
-  setTimeout(() => rootNode.value?.focus(), 0)
-})
+onMounted(() => setTimeout(() => rootNode.value?.focus(), 0))
 </script>
 
 <template>
