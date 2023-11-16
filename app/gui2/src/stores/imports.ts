@@ -1,11 +1,25 @@
-import { Ast, AstExtended } from "@/util/ast"
-import { GeneralOprApp } from "@/util/ast/opr"
-import { tryIdentifier, type Identifier, type QualifiedName, tryQualifiedName, fromSegments, qnParent, qnSplit } from "@/util/qualifiedName"
-import { unwrap, type Result } from "@/util/result"
-import { SuggestionDb } from "@/stores/suggestionDatabase"
-import { entryQn, makeCon, makeMethod, makeModule, makeStaticMethod, makeType } from "@/stores/suggestionDatabase/entry"
-import { type SuggestionEntry, SuggestionKind } from "@/stores/suggestionDatabase/entry"
-
+import { SuggestionDb } from '@/stores/suggestionDatabase'
+import {
+  SuggestionKind,
+  entryQn,
+  makeCon,
+  makeMethod,
+  makeModule,
+  makeStaticMethod,
+  makeType,
+  type SuggestionEntry,
+} from '@/stores/suggestionDatabase/entry'
+import { Ast, AstExtended } from '@/util/ast'
+import { GeneralOprApp } from '@/util/ast/opr'
+import {
+  fromSegments,
+  qnSplit,
+  tryIdentifier,
+  tryQualifiedName,
+  type Identifier,
+  type QualifiedName,
+} from '@/util/qualifiedName'
+import { unwrap } from '@/util/result'
 
 // === Imports analysis ===
 
@@ -66,26 +80,26 @@ export function recognizeImport(ast: AstExtended<Ast.Tree.Import>): Import | nul
   const import_ = ast.tryMap((import_) => import_.import.body)
   const all = ast.tryMap((import_) => import_.all)
   const hiding = ast.tryMap((import_) => import_.hiding?.body)
-  const module = from != null ? parseQualifiedName(from)
-    : import_ != null ? parseQualifiedName(import_) : null
+  const module =
+    from != null ? parseQualifiedName(from) : import_ != null ? parseQualifiedName(import_) : null
   if (!module) return null
   if (all) {
     const except = (hiding != null ? parseIdents(hiding) : []) ?? []
     return {
       from: module,
-      imported: { kind: 'All', except }
+      imported: { kind: 'All', except },
     }
   } else if (from && import_) {
     const names = parseIdents(import_) ?? []
     return {
       from: module,
-      imported: { kind: 'List', names }
+      imported: { kind: 'List', names },
     }
   } else if (import_) {
     const alias = as ? parseIdent(as) : null
     return {
       from: module,
-      imported: alias ? { kind: 'Module', alias } : { kind: 'Module' }
+      imported: alias ? { kind: 'Module', alias } : { kind: 'Module' },
     }
   } else {
     console.error('Unrecognized import', ast.debug())
@@ -97,8 +111,8 @@ export type ModuleName = QualifiedName
 
 /** Information about parsed import statement. */
 export interface Import {
-  from: ModuleName,
-  imported: ImportedNames,
+  from: ModuleName
+  imported: ImportedNames
 }
 
 export type ImportedNames = Module | List | All
@@ -142,8 +156,10 @@ export interface UnqualifiedImport {
 /** Get the string representation of the required import statement. */
 export function requiredImportToText(value: RequiredImport): string {
   switch (value.kind) {
-    case "Qualified": return `import ${value.module}`
-    case "Unqualified": return `from ${value.from} import ${value.import}`
+    case 'Qualified':
+      return `import ${value.module}`
+    case 'Unqualified':
+      return `from ${value.from} import ${value.import}`
   }
 }
 
@@ -151,25 +167,30 @@ export function requiredImportToText(value: RequiredImport): string {
 export function requiredImports(db: SuggestionDb, entry: SuggestionEntry): RequiredImport[] {
   switch (entry.kind) {
     case SuggestionKind.Module:
-      return entry.reexportedIn ?
-        [{
-          kind: 'Unqualified',
-          from: entry.reexportedIn,
-          import: entry.name
-        }]
-        : [{
-          kind: 'Qualified',
-          module: entryQn(entry)
-        }]
-    case SuggestionKind.Type:
-      {
-        const from = entry.reexportedIn ? entry.reexportedIn : entry.definedIn
-        return [{
+      return entry.reexportedIn
+        ? [
+            {
+              kind: 'Unqualified',
+              from: entry.reexportedIn,
+              import: entry.name,
+            },
+          ]
+        : [
+            {
+              kind: 'Qualified',
+              module: entryQn(entry),
+            },
+          ]
+    case SuggestionKind.Type: {
+      const from = entry.reexportedIn ? entry.reexportedIn : entry.definedIn
+      return [
+        {
           kind: 'Unqualified',
           from,
-          import: entry.name
-        }]
-      }
+          import: entry.name,
+        },
+      ]
+    }
     case SuggestionKind.Constructor: {
       const selfType = selfTypeEntry(db, entry)
       return selfType ? requiredImports(db, selfType) : []
@@ -215,20 +236,26 @@ function definedInEntry(db: SuggestionDb, entry: SuggestionEntry): SuggestionEnt
 
 /** Check if `existing` import statement covers `required`. */
 export function covers(existing: Import, required: RequiredImport): boolean {
-  const [parent, name] = required.kind === 'Qualified'
-    ? qnSplit(required.module)
-    : required.kind === 'Unqualified'
+  const [parent, name] =
+    required.kind === 'Qualified'
+      ? qnSplit(required.module)
+      : required.kind === 'Unqualified'
       ? [required.from, required.import]
       : [undefined, '']
-  const directlyImported = required.kind === 'Qualified'
-    && existing.imported.kind === 'Module'
-    && existing.from === required.module
-  const importedInList = existing.imported.kind === 'List'
-    && parent != null && existing.from === parent
-    && existing.imported.names.includes(name)
-  const importedWithAll = existing.imported.kind === 'All'
-    && parent != null && existing.from === parent
-    && !existing.imported.except.includes(name)
+  const directlyImported =
+    required.kind === 'Qualified' &&
+    existing.imported.kind === 'Module' &&
+    existing.from === required.module
+  const importedInList =
+    existing.imported.kind === 'List' &&
+    parent != null &&
+    existing.from === parent &&
+    existing.imported.names.includes(name)
+  const importedWithAll =
+    existing.imported.kind === 'All' &&
+    parent != null &&
+    existing.from === parent &&
+    !existing.imported.except.includes(name)
   return directlyImported || importedInList || importedWithAll
 }
 
@@ -240,57 +267,72 @@ if (import.meta.vitest) {
       description: 'Direct import of a module',
       existing: {
         from: unwrap(tryQualifiedName('Standard.Base')),
-        imported: { kind: 'Module' }
+        imported: { kind: 'Module' },
       } as Import,
-      required: { kind: 'Qualified', module: unwrap(tryQualifiedName('Standard.Base')) } as RequiredImport,
+      required: {
+        kind: 'Qualified',
+        module: unwrap(tryQualifiedName('Standard.Base')),
+      } as RequiredImport,
       expected: true,
     },
     {
       description: 'Module imported by alias',
       existing: {
         from: unwrap(tryQualifiedName('Standard.Base')),
-        imported: { kind: 'Module', alias: unwrap(tryIdentifier('MyBase')) }
+        imported: { kind: 'Module', alias: unwrap(tryIdentifier('MyBase')) },
       } as Import,
-      required: { kind: 'Qualified', module: unwrap(tryQualifiedName('Standard.Base')) } as RequiredImport,
+      required: {
+        kind: 'Qualified',
+        module: unwrap(tryQualifiedName('Standard.Base')),
+      } as RequiredImport,
       expected: true,
     },
     {
       description: 'Module imported from parent',
       existing: {
         from: unwrap(tryQualifiedName('Standard')),
-        imported: { kind: 'List', names: [unwrap(tryIdentifier('Base'))] }
+        imported: { kind: 'List', names: [unwrap(tryIdentifier('Base'))] },
       } as Import,
-      required: { kind: 'Qualified', module: unwrap(tryQualifiedName('Standard.Base')) } as RequiredImport,
+      required: {
+        kind: 'Qualified',
+        module: unwrap(tryQualifiedName('Standard.Base')),
+      } as RequiredImport,
       expected: true,
     },
     {
       description: 'Module imported from parent with all',
       existing: {
         from: unwrap(tryQualifiedName('Standard')),
-        imported: { kind: 'All', except: [] }
+        imported: { kind: 'All', except: [] },
       } as Import,
-      required: { kind: 'Qualified', module: unwrap(tryQualifiedName('Standard.Base')) } as RequiredImport,
+      required: {
+        kind: 'Qualified',
+        module: unwrap(tryQualifiedName('Standard.Base')),
+      } as RequiredImport,
       expected: true,
     },
     {
       description: 'Module hidden when importing all from parent',
       existing: {
         from: unwrap(tryQualifiedName('Standard')),
-        imported: { kind: 'All', except: [unwrap(tryIdentifier('Base'))] }
+        imported: { kind: 'All', except: [unwrap(tryIdentifier('Base'))] },
       } as Import,
-      required: { kind: 'Qualified', module: unwrap(tryQualifiedName('Standard.Base')) } as RequiredImport,
+      required: {
+        kind: 'Qualified',
+        module: unwrap(tryQualifiedName('Standard.Base')),
+      } as RequiredImport,
       expected: false,
     },
     {
       description: 'Type imported from module by name',
       existing: {
         from: unwrap(tryQualifiedName('Standard.Base')),
-        imported: { kind: 'List', names: [unwrap(tryIdentifier('Table'))] }
+        imported: { kind: 'List', names: [unwrap(tryIdentifier('Table'))] },
       } as Import,
       required: {
         kind: 'Unqualified',
         from: unwrap(tryQualifiedName('Standard.Base')),
-        import: unwrap(tryIdentifier('Table'))
+        import: unwrap(tryIdentifier('Table')),
       } as RequiredImport,
       expected: true,
     },
@@ -298,12 +340,12 @@ if (import.meta.vitest) {
       description: 'Type imported from module by all',
       existing: {
         from: unwrap(tryQualifiedName('Standard.Base')),
-        imported: { kind: 'All', except: [] }
+        imported: { kind: 'All', except: [] },
       } as Import,
       required: {
         kind: 'Unqualified',
         from: unwrap(tryQualifiedName('Standard.Base')),
-        import: unwrap(tryIdentifier('Table'))
+        import: unwrap(tryIdentifier('Table')),
       } as RequiredImport,
       expected: true,
     },
@@ -311,12 +353,12 @@ if (import.meta.vitest) {
       description: 'Type hidden when importing all',
       existing: {
         from: unwrap(tryQualifiedName('Standard.Base')),
-        imported: { kind: 'All', except: [unwrap(tryIdentifier('Table'))] }
+        imported: { kind: 'All', except: [unwrap(tryIdentifier('Table'))] },
       } as Import,
       required: {
         kind: 'Unqualified',
         from: unwrap(tryQualifiedName('Standard.Base')),
-        import: unwrap(tryIdentifier('Table'))
+        import: unwrap(tryIdentifier('Table')),
       } as RequiredImport,
       expected: false,
     },
@@ -345,68 +387,80 @@ if (import.meta.vitest) {
     return db
   }
 
-  test.each(
-    [
-      {
-        id: 1,
-        expected: [{
+  test.each([
+    {
+      id: 1,
+      expected: [
+        {
           kind: 'Qualified',
           module: unwrap(tryQualifiedName('Standard.Base')),
-        }]
-      },
-      {
-        id: 2,
-        expected: [{
+        },
+      ],
+    },
+    {
+      id: 2,
+      expected: [
+        {
           kind: 'Unqualified',
           from: unwrap(tryQualifiedName('Standard.Base')),
-          import: unwrap(tryIdentifier('Type'))
-        }]
-      },
-      {
-        id: 3,
-        expected: [{
+          import: unwrap(tryIdentifier('Type')),
+        },
+      ],
+    },
+    {
+      id: 3,
+      expected: [
+        {
           kind: 'Unqualified',
           from: unwrap(tryQualifiedName('Standard.Base')),
-          import: unwrap(tryIdentifier('Connections'))
-        }]
-      },
-      {
-        id: 4,
-        expected: [{
+          import: unwrap(tryIdentifier('Connections')),
+        },
+      ],
+    },
+    {
+      id: 4,
+      expected: [
+        {
           kind: 'Unqualified',
           from: unwrap(tryQualifiedName('Standard.Base')),
-          import: unwrap(tryIdentifier('Table'))
-        }]
-      },
-      {
-        id: 5,
-        expected: [{
+          import: unwrap(tryIdentifier('Table')),
+        },
+      ],
+    },
+    {
+      id: 5,
+      expected: [
+        {
           kind: 'Unqualified',
           from: unwrap(tryQualifiedName('Standard.Base')),
-          import: unwrap(tryIdentifier('Type'))
-        }]
-      },
-      {
-        id: 6,
-        expected: [{
+          import: unwrap(tryIdentifier('Type')),
+        },
+      ],
+    },
+    {
+      id: 6,
+      expected: [
+        {
           kind: 'Unqualified',
           from: unwrap(tryQualifiedName('Standard.Base')),
-          import: unwrap(tryIdentifier('Type'))
-        }]
-      },
-      {
-        id: 7,
-        expected: []
-      },
-      {
-        id: 9,
-        expected: [{
+          import: unwrap(tryIdentifier('Type')),
+        },
+      ],
+    },
+    {
+      id: 7,
+      expected: [],
+    },
+    {
+      id: 9,
+      expected: [
+        {
           kind: 'Qualified',
           module: unwrap(tryQualifiedName('Standard.Base')),
-        }]
-      },
-    ]
-  )('Required imports $id', ({ id, expected }) => {
+        },
+      ],
+    },
+  ])('Required imports $id', ({ id, expected }) => {
     const db = mockDb()
     expect(requiredImports(db, db.get(id)!)).toStrictEqual(expected)
   })
@@ -432,64 +486,84 @@ if (import.meta.vitest) {
       code: 'from Standard.Base import all',
       expected: {
         from: unwrap(tryQualifiedName('Standard.Base')),
-        imported: { kind: 'All', except: [] }
-      }
+        imported: { kind: 'All', except: [] },
+      },
     },
     {
       code: 'from Standard.Base.Table import Table',
       expected: {
         from: unwrap(tryQualifiedName('Standard.Base.Table')),
-        imported: { kind: 'List', names: [unwrap(tryIdentifier('Table'))] }
-      }
+        imported: { kind: 'List', names: [unwrap(tryIdentifier('Table'))] },
+      },
     },
     {
       code: 'import AWS.Connection as Backend',
       expected: {
         from: unwrap(tryQualifiedName('AWS.Connection')),
-        imported: { kind: 'Module', alias: 'Backend' }
-      }
+        imported: { kind: 'Module', alias: 'Backend' },
+      },
     },
     {
       code: 'import Standard.Base.Data',
       expected: {
         from: unwrap(tryQualifiedName('Standard.Base.Data')),
-        imported: { kind: 'Module' }
-      }
+        imported: { kind: 'Module' },
+      },
     },
     {
       code: 'import local',
       expected: {
         from: unwrap(tryQualifiedName('local')),
-        imported: { kind: 'Module' }
-      }
+        imported: { kind: 'Module' },
+      },
     },
     {
       code: 'from Standard.Base import Foo, Bar',
       expected: {
         from: unwrap(tryQualifiedName('Standard.Base')),
-        imported: { kind: 'List', names: [unwrap(tryIdentifier('Foo')), unwrap(tryIdentifier('Bar'))] }
-      }
+        imported: {
+          kind: 'List',
+          names: [unwrap(tryIdentifier('Foo')), unwrap(tryIdentifier('Bar'))],
+        },
+      },
     },
     {
       code: 'from   Standard  . Base import  Foo ,  Bar ,Buz',
       expected: {
         from: unwrap(tryQualifiedName('Standard.Base')),
-        imported: { kind: 'List', names: [unwrap(tryIdentifier('Foo')), unwrap(tryIdentifier('Bar')), unwrap(tryIdentifier('Buz'))] }
-      }
+        imported: {
+          kind: 'List',
+          names: [
+            unwrap(tryIdentifier('Foo')),
+            unwrap(tryIdentifier('Bar')),
+            unwrap(tryIdentifier('Buz')),
+          ],
+        },
+      },
     },
     {
       code: 'from Standard.Base import all hiding Foo, Bar',
       expected: {
         from: unwrap(tryQualifiedName('Standard.Base')),
-        imported: { kind: 'All', except: [unwrap(tryIdentifier('Foo')), unwrap(tryIdentifier('Bar'))] }
-      }
+        imported: {
+          kind: 'All',
+          except: [unwrap(tryIdentifier('Foo')), unwrap(tryIdentifier('Bar'))],
+        },
+      },
     },
     {
       code: 'from   Standard  . Base import  all  hiding  Foo ,  Bar ,Buz',
       expected: {
         from: unwrap(tryQualifiedName('Standard.Base')),
-        imported: { kind: 'All', except: [unwrap(tryIdentifier('Foo')), unwrap(tryIdentifier('Bar')), unwrap(tryIdentifier('Buz'))] }
-      }
+        imported: {
+          kind: 'All',
+          except: [
+            unwrap(tryIdentifier('Foo')),
+            unwrap(tryIdentifier('Bar')),
+            unwrap(tryIdentifier('Buz')),
+          ],
+        },
+      },
     },
   ])('Recognizing import $code', ({ code, expected }) => {
     expect(parseImport(code)).toStrictEqual(expected)

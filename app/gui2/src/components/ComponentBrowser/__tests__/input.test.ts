@@ -1,3 +1,5 @@
+import type { Import, RequiredImport } from '@/stores/imports'
+import { SuggestionDb } from '@/stores/suggestionDatabase'
 import {
   makeCon,
   makeLocal,
@@ -8,15 +10,12 @@ import {
   makeType,
   type SuggestionEntry,
 } from '@/stores/suggestionDatabase/entry'
-import { readAstSpan } from '@/util/ast'
-import type { ContentRange, ExprId } from 'shared/yjsModel'
-import { expect, test } from 'vitest'
-import { useComponentBrowserInput } from '../input'
-import { SuggestionDb } from '@/stores/suggestionDatabase'
 import type { ExpressionInfo } from '@/util/computedValueRegistry'
 import { tryIdentifier, tryQualifiedName } from '@/util/qualifiedName'
 import { unwrap } from '@/util/result'
-import type { Import, RequiredImport } from '@/stores/imports'
+import type { ContentRange, ExprId } from 'shared/yjsModel'
+import { expect, test } from 'vitest'
+import { useComponentBrowserInput } from '../input'
 
 test.each([
   ['', 0, { type: 'insert', position: 0 }, {}],
@@ -282,7 +281,7 @@ test.each([
 
 interface ImportsCase {
   suggestionId: number
-  existingImports: { import: Import, span: ContentRange }[]
+  existingImports: { import: Import; span: ContentRange }[]
   initialCode?: string
   expectedCode: string
   expectedImports: RequiredImport[]
@@ -293,11 +292,25 @@ test.each([
     suggestionId: 3,
     existingImports: [],
     expectedCode: 'Table.new ',
-    expectedImports: [{ kind: 'Unqualified', from: unwrap(tryQualifiedName('Standard.Base')), import: unwrap(tryIdentifier('Table')) }],
+    expectedImports: [
+      {
+        kind: 'Unqualified',
+        from: unwrap(tryQualifiedName('Standard.Base')),
+        import: unwrap(tryIdentifier('Table')),
+      },
+    ],
   },
   {
     suggestionId: 3,
-    existingImports: [{ import: { from: unwrap(tryQualifiedName('Standard.Base')), imported: { kind: 'All', except: [] } }, span: [0, 0] } ],
+    existingImports: [
+      {
+        import: {
+          from: unwrap(tryQualifiedName('Standard.Base')),
+          imported: { kind: 'All', except: [] },
+        },
+        span: [0, 0],
+      },
+    ],
     expectedCode: 'Table.new ',
     expectedImports: [],
   },
@@ -308,21 +321,24 @@ test.each([
   //   expectedCode: 'Base.Table.new ',
   //   expectedImports: [{ kind: 'Qualified', module: unwrap(tryQualifiedName('Standard.Base')) }],
   // },
-] as ImportsCase[])('Required imports when applying ID $suggestionId to $initialCode', ({ suggestionId, existingImports, initialCode, expectedCode, expectedImports }) => {
-  initialCode = initialCode ?? ''
-  const db = new SuggestionDb()
-  db.set(1, makeModule('Standard.Base'))
-  db.set(2, makeType('Standard.Base.Table'))
-  db.set(3, makeCon('Standard.Base.Table.new'))
-  const input = useComponentBrowserInput(
-    { identDefinitions: new Map(), imports: existingImports },
-    { entries: db },
-    { getExpressionInfo: (_id) => undefined },
-  )
-  input.code.value = initialCode
-  input.selection.value = { start: initialCode.length, end: initialCode.length }
-  const suggestion = db.get(suggestionId)!
-  input.applySuggestion(suggestion)
-  expect(input.code.value).toEqual(expectedCode)
-  expect(input.importsToAdd()).toEqual(new Set(expectedImports))
-})
+] as ImportsCase[])(
+  'Required imports when applying ID $suggestionId to $initialCode',
+  ({ suggestionId, existingImports, initialCode, expectedCode, expectedImports }) => {
+    initialCode = initialCode ?? ''
+    const db = new SuggestionDb()
+    db.set(1, makeModule('Standard.Base'))
+    db.set(2, makeType('Standard.Base.Table'))
+    db.set(3, makeCon('Standard.Base.Table.new'))
+    const input = useComponentBrowserInput(
+      { identDefinitions: new Map(), imports: existingImports },
+      { entries: db },
+      { getExpressionInfo: (_id) => undefined },
+    )
+    input.code.value = initialCode
+    input.selection.value = { start: initialCode.length, end: initialCode.length }
+    const suggestion = db.get(suggestionId)!
+    input.applySuggestion(suggestion)
+    expect(input.code.value).toEqual(expectedCode)
+    expect(input.importsToAdd()).toEqual(new Set(expectedImports))
+  },
+)

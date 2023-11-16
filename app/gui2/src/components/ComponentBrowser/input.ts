@@ -1,6 +1,6 @@
 import type { Filter } from '@/components/ComponentBrowser/filtering'
 import { useGraphStore } from '@/stores/graph'
-import { requiredImports, type Import, type RequiredImport, covers } from '@/stores/imports'
+import { covers, requiredImports, type Import, type RequiredImport } from '@/stores/imports'
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore, type SuggestionDb } from '@/stores/suggestionDatabase'
 import {
@@ -8,11 +8,7 @@ import {
   type SuggestionEntry,
   type Typename,
 } from '@/stores/suggestionDatabase/entry'
-import {
-  Ast,
-  AstExtended,
-  astContainingChar,
-} from '@/util/ast'
+import { Ast, AstExtended, astContainingChar } from '@/util/ast'
 import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
 import { GeneralOprApp, type OperatorChain } from '@/util/ast/opr'
 import type { ExpressionInfo } from '@/util/computedValueRegistry'
@@ -24,8 +20,8 @@ import {
   tryQualifiedName,
   type QualifiedName,
 } from '@/util/qualifiedName'
-import { IdMap, type ExprId, type ContentRange } from 'shared/yjsModel'
-import { computed, ref, type ComputedRef, type Ref } from 'vue'
+import { IdMap, type ContentRange, type ExprId } from 'shared/yjsModel'
+import { computed, ref, type ComputedRef } from 'vue'
 
 /** Input's editing context.
  *
@@ -53,7 +49,10 @@ export type EditingContext =
 
 /** Component Browser Input Data */
 export function useComponentBrowserInput(
-  graphStore: { identDefinitions: Map<string, ExprId>, imports: { import: Import, span: ContentRange }[] } = useGraphStore(),
+  graphStore: {
+    identDefinitions: Map<string, ExprId>
+    imports: { import: Import; span: ContentRange }[]
+  } = useGraphStore(),
   suggestionDbStore: { entries: SuggestionDb } = useSuggestionDbStore(),
   computedValueRegistry: {
     getExpressionInfo(id: ExprId): ExpressionInfo | undefined
@@ -68,7 +67,9 @@ export function useComponentBrowserInput(
     if (cursorPosition === 0) return { type: 'insert', position: 0 }
     const editedPart = cursorPosition - 1
     const inputAst = ast.value
-    const editedAst = inputAst.mapIter((ast) => astContainingChar(editedPart, ast))[Symbol.iterator]()
+    const editedAst = inputAst
+      .mapIter((ast) => astContainingChar(editedPart, ast))
+      [Symbol.iterator]()
     const leaf = editedAst.next()
     if (leaf.done) return { type: 'insert', position: cursorPosition }
     switch (leaf.value.inner.type) {
@@ -80,7 +81,10 @@ export function useComponentBrowserInput(
         }
       case Ast.Tree.Type.TextLiteral:
       case Ast.Tree.Type.Number:
-        return { type: 'changeLiteral', literal: leaf.value as AstExtended<Ast.Tree.TextLiteral | Ast.Tree.Number, false> }
+        return {
+          type: 'changeLiteral',
+          literal: leaf.value as AstExtended<Ast.Tree.TextLiteral | Ast.Tree.Number, false>,
+        }
       default:
         return {
           type: 'insert',
@@ -121,7 +125,8 @@ export function useComponentBrowserInput(
     const filter = { ...accessChainFilter.value }
     if (ctx.type === 'changeIdentifier') {
       const start =
-        ctx.identifier.inner.whitespaceStartInCodeParsed + ctx.identifier.inner.whitespaceLengthInCodeParsed
+        ctx.identifier.inner.whitespaceStartInCodeParsed +
+        ctx.identifier.inner.whitespaceLengthInCodeParsed
       const end = selection.value.end
       filter.pattern = input.substring(start, end)
     } else if (ctx.type === 'changeLiteral') {
@@ -188,10 +193,8 @@ export function useComponentBrowserInput(
    * @returns If all path segments are identifiers, return them
    */
   function qnIdentifiers(opr: GeneralOprApp<false>): AstExtended<Ast.Tree.Ident, false>[] {
-    const operandsAsIdents = Array.from(
-      opr.operandsOfLeftAssocOprChain('.'),
-      (operand) =>
-        operand?.type === 'ast' && operand.ast.isTree(Ast.Tree.Type.Ident) ? operand.ast : null,
+    const operandsAsIdents = Array.from(opr.operandsOfLeftAssocOprChain('.'), (operand) =>
+      operand?.type === 'ast' && operand.ast.isTree(Ast.Tree.Type.Ident) ? operand.ast : null,
     ).slice(0, -1)
     if (operandsAsIdents.some((optIdent) => optIdent == null)) return []
     else return operandsAsIdents as AstExtended<Ast.Tree.Ident, false>[]
@@ -273,8 +276,7 @@ export function useComponentBrowserInput(
       ctx.type === 'insert' && opr != null && opr.inner.whitespaceLengthInCodeBuffer > 0
         ? ' '.repeat(opr.inner.whitespaceLengthInCodeBuffer)
         : ''
-    const extendingAccessOprChain =
-      opr != null && opr.repr() === '.'
+    const extendingAccessOprChain = opr != null && opr.repr() === '.'
     // Modules are special case, as we want to encourage user to continue writing path.
     if (entry.kind === SuggestionKind.Module) {
       if (extendingAccessOprChain) return `${oprAppSpacing}${entry.name}${oprAppSpacing}.`

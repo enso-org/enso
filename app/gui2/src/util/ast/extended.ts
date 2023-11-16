@@ -88,7 +88,9 @@ export class AstExtended<T extends Tree | Token = Tree | Token, HasIdMap extends
     return debugAst(this.inner)
   }
 
-  tryMap<T2 extends Tree | Token>(mapper: (t: T) => Opt<T2>): AstExtended<T2, HasIdMap> | undefined {
+  tryMap<T2 extends Tree | Token>(
+    mapper: (t: T) => Opt<T2>,
+  ): AstExtended<T2, HasIdMap> | undefined {
     const mapped = mapper(this.inner)
     if (mapped == null) return
     return new AstExtended(mapped, this.ctx)
@@ -98,12 +100,18 @@ export class AstExtended<T extends Tree | Token = Tree | Token, HasIdMap extends
     return new AstExtended(mapper(this.inner), this.ctx)
   }
 
-  mapIter<T2 extends Tree | Token>(mapper: (t: T) => Iterable<T2>): Iterable<AstExtended<T2, HasIdMap>> {
+  mapIter<T2 extends Tree | Token>(
+    mapper: (t: T) => Iterable<T2>,
+  ): Iterable<AstExtended<T2, HasIdMap>> {
     return [...mapper(this.inner)].map((m) => new AstExtended(m, this.ctx))
   }
 
-  tryMapIter<T2 extends Tree | Token>(mapper: (t: T) => Iterable<Opt<T2>>): Iterable<AstExtended<T2, HasIdMap> | undefined> {
-    return [...mapper(this.inner)].map((m) => m != null ? new AstExtended(m, this.ctx) : undefined)
+  tryMapIter<T2 extends Tree | Token>(
+    mapper: (t: T) => Iterable<Opt<T2>>,
+  ): Iterable<AstExtended<T2, HasIdMap> | undefined> {
+    return [...mapper(this.inner)].map((m) =>
+      m != null ? new AstExtended(m, this.ctx) : undefined,
+    )
   }
 
   repr() {

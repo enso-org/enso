@@ -1,3 +1,9 @@
+import {
+  recognizeImport,
+  requiredImportToText,
+  type Import,
+  type RequiredImport,
+} from '@/stores/imports'
 import { useProjectStore } from '@/stores/project'
 import { DEFAULT_VISUALIZATION_IDENTIFIER } from '@/stores/visualization'
 import { Ast, AstExtended, childrenAstNodes, findAstWithRange, readAstSpan } from '@/util/ast'
@@ -20,7 +26,6 @@ import {
 } from 'shared/yjsModel'
 import { computed, reactive, ref, watch } from 'vue'
 import * as Y from 'yjs'
-import { recognizeImport, type Import, requiredImportToText, type RequiredImport } from '@/stores/imports'
 
 export interface NodeEditInfo {
   id: ExprId
@@ -72,7 +77,7 @@ export const useGraphStore = defineStore('graph', () => {
   })
 
   const _ast = ref<Ast.Tree>()
-  const imports = ref<{ import: Import, span: ContentRange }[]>([])
+  const imports = ref<{ import: Import; span: ContentRange }[]>([])
 
   function updateState() {
     const module = proj.module
@@ -276,6 +281,7 @@ export const useGraphStore = defineStore('graph', () => {
     if (mod == null) return
     const lastImport = imports.value[imports.value.length - 1]
     const offset = lastImport ? lastImport.span[1] + 1 : 0
+    // TODO: add imports in the same transaction as node.
     mod.transact(() => {
       mod.doc.contents.insert(offset, requiredImportToText(requiredImport) + '\n')
     })

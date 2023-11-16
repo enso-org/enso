@@ -1,8 +1,7 @@
-import { Tree, type MultipleOperatorError, type Token, OperatorBlockExpression } from '@/generated/ast'
+import { Tree, type Token } from '@/generated/ast'
 import { assert } from '@/util/assert'
-import { AstExtended, parseEnsoLine, readAstSpan, readTokenSpan } from '@/util/ast'
-import type { Result } from '@/util/result'
-import { iteratorMap, mapIterator } from 'lib0/iterator'
+import { AstExtended } from '@/util/ast'
+import { mapIterator } from 'lib0/iterator'
 
 /** An operand of one of the applications inside `GeneralOprApp` */
 export type GeneralOperand<HasIdMap extends boolean = true> =
@@ -10,7 +9,10 @@ export type GeneralOperand<HasIdMap extends boolean = true> =
   // A part of `GeneralOprApp`, consisting of lhs and first `statements` of applications.
   | { type: 'partOfGeneralOprApp'; oprApp: GeneralOprApp<HasIdMap>; statements: number }
 
-export type OperatorChain<HasIdMap extends boolean = true> = AstExtended<Tree.OprApp | Tree.OperatorBlockApplication, HasIdMap>
+export type OperatorChain<HasIdMap extends boolean = true> = AstExtended<
+  Tree.OprApp | Tree.OperatorBlockApplication,
+  HasIdMap
+>
 
 /** A structure unifying API of OprApp and OperatorBlockApplication */
 export class GeneralOprApp<HasIdMap extends boolean = true> {
@@ -24,35 +26,44 @@ export class GeneralOprApp<HasIdMap extends boolean = true> {
     this.lhs = ast.tryMap((t) => t.lhs) ?? null
     if (ast.isTree(Tree.Type.OprApp)) {
       const rhs = ast.tryMap((t) => t.rhs) ?? null
-      const opr = ast.tryMap((t) => t.opr.ok ? t.opr.value : undefined) ?? null
+      const opr = ast.tryMap((t) => (t.opr.ok ? t.opr.value : undefined)) ?? null
       this.apps = [{ opr, expr: rhs }]
     } else {
       const blockApplication = ast as AstExtended<Tree.OperatorBlockApplication, HasIdMap>
-      const operators = (ast: AstExtended<Tree.OperatorBlockApplication, HasIdMap>): Iterable<AstExtended<Token.Operator, HasIdMap> | undefined> => {
-        return ast.tryMapIter((ast) => [...ast.expressions].flatMap((line) => line.expression ? [line.expression] : [])
-          .map((expr) => expr.operator.ok ? expr.operator.value : null).values())
-      }
-      const exprs = (ast: AstExtended<Tree.OperatorBlockApplication, HasIdMap>): Iterable<AstExtended<Tree, HasIdMap> | undefined> => {
-        return ast.mapIter((ast) => [...ast.expressions].flatMap((line) => line.expression ? [line.expression] : [])
-          .map((expr) => expr.expression).values())
-      }
+      const operators = blockApplication.tryMapIter((ast) =>
+        [...ast.expressions]
+          .flatMap((line) => (line.expression ? [line.expression] : []))
+          .map((expr) => (expr.operator.ok ? expr.operator.value : null))
+          .values(),
+      )
+      const exprs = blockApplication.mapIter((ast) =>
+        [...ast.expressions]
+          .flatMap((line) => (line.expression ? [line.expression] : []))
+          .map((expr) => expr.expression)
+          .values(),
+      )
       function* zip<T, U>(left: Iterable<T>, right: Iterable<U>): Generator<[T, U]> {
-        const leftIterator = left[Symbol.iterator]();
-        const rightIterator = right[Symbol.iterator]();
+        const leftIterator = left[Symbol.iterator]()
+        const rightIterator = right[Symbol.iterator]()
 
         while (true) {
-          const leftResult = leftIterator.next();
-          const rightResult = rightIterator.next();
+          const leftResult = leftIterator.next()
+          const rightResult = rightIterator.next()
 
           if (leftResult.done || rightResult.done) {
-            break;
+            break
           }
 
-          yield [leftResult.value, rightResult.value];
+          yield [leftResult.value, rightResult.value]
         }
       }
 
-      this.apps = Array.from(mapIterator(zip(operators(blockApplication), exprs(blockApplication)), (([opr, expr]) => ({ opr: opr ? opr : null, expr: expr ? expr : null }))))
+      this.apps = Array.from(
+        mapIterator(zip(operators, exprs), ([opr, expr]) => ({
+          opr: opr ? opr : null,
+          expr: expr ? expr : null,
+        })),
+      )
     }
   }
 
@@ -74,9 +85,7 @@ export class GeneralOprApp<HasIdMap extends boolean = true> {
    *
    * Works like `operandsOfLeftAssocOprChain` defined in this module, see its docs for details.
    */
-  *operandsOfLeftAssocOprChain(
-    expectedOpr?: string,
-  ): Generator<GeneralOperand<HasIdMap> | null> {
+  *operandsOfLeftAssocOprChain(expectedOpr?: string): Generator<GeneralOperand<HasIdMap> | null> {
     // If this represents an OperatorBlockApplication, there may be many different operators. Our chain
     // ends with the first not matching starting from the end.
     let matchingOprs
@@ -114,7 +123,11 @@ export class GeneralOprApp<HasIdMap extends boolean = true> {
  */
 export type Operand<HasIdMap extends boolean = true> =
   | { type: 'ast'; ast: AstExtended<Tree, HasIdMap> }
-  | { type: 'partOfOprBlockApp'; ast: AstExtended<Tree.OperatorBlockApplication, HasIdMap>; statements: number }
+  | {
+      type: 'partOfOprBlockApp'
+      ast: AstExtended<Tree.OperatorBlockApplication, HasIdMap>
+      statements: number
+    }
 
 /** Read operands of an operator chain. Operator is assumed to be left-associative.
  *
