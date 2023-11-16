@@ -8,11 +8,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.source.Source;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-
 import org.apache.commons.lang3.StringUtils;
 import org.enso.compiler.core.ir.Module;
+import org.enso.compiler.core.ir.ProcessingPass;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.polyglot.CompilationStage;
@@ -48,7 +46,10 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
 
     @Override
     protected CachedModule deserialize(EnsoContext context, byte[] data, Metadata meta, TruffleLogger logger) throws ClassNotFoundException, IOException, ClassNotFoundException {
-      var ref = Persistance.readObject(data, context.getCompiler().context());
+      var ref = Persistance.readObject(data, (obj) -> switch (obj) {
+        case ProcessingPass.Metadata metadata -> metadata.restoreFromSerialization(context.getCompiler().context()).getOrElse(() -> obj);
+        default -> obj;
+      });
       var mod = ref.get(Module.class);
       return new CachedModule(mod, CompilationStage.valueOf(meta.compilationStage()), module.getSource());
     }
@@ -136,7 +137,10 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
 
     @Override
     protected byte[] serialize(EnsoContext context, CachedModule entry) throws IOException {
-      var arr = Persistance.writeObject(entry.moduleIR(), context.getCompiler().context());
+      var arr = Persistance.writeObject(entry.moduleIR(), (obj) -> switch (obj) {
+        case ProcessingPass.Metadata metadata -> metadata.prepareForSerialization(context.getCompiler().context());
+        default -> obj;
+      });
       return arr;
     }
 

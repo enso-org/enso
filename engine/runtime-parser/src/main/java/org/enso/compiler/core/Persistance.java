@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.ServiceLoader;
+import java.util.function.Function;
 
 import org.enso.compiler.core.Persistance.Reference;
 
@@ -39,24 +40,12 @@ public abstract class Persistance<T> {
     return sb.toString();
   }
 
-  public static interface Context {
-    /**
-    * Looks an associated service up. The service can be specified as
-    * additional arguments to {@link #readObject(byte[], Object...)}.
-    *
-    * @param <T> type of the service requested
-    * @param clazz the class representing the requested type
-    * @return instance of the requested service or {@code null}
-    */
-    public abstract <T> T lookup(Class<T> clazz);
-  }
-
-  public static interface Output extends DataOutput, Context {
+  public static interface Output extends DataOutput {
     public abstract <T> void writeInline(Class<T> clazz, T obj) throws IOException;
     public abstract void writeObject(Object obj) throws IOException;
   }
 
-  public static interface Input extends DataInput, Context {
+  public static interface Input extends DataInput {
     public abstract <T> T readInline(Class<T> clazz) throws IOException;
     public abstract Object readObject() throws IOException;
     public <T> Reference<T> readReference(Class<T> clazz) throws IOException;
@@ -74,7 +63,7 @@ public abstract class Persistance<T> {
     }
   }
 
-  public static <T> Reference<T> readObject(byte[] arr, Object... context) throws IOException {
+  public static <T> Reference<T> readObject(byte[] arr, Function<Object, Object> readResolve) throws IOException {
     for (var i = 0; i < Generator.HEADER.length; i++) {
       if (arr[i] != Generator.HEADER[i]) {
         throw new IOException("Wrong header");
@@ -82,19 +71,19 @@ public abstract class Persistance<T> {
     }
     var buf = ByteBuffer.wrap(arr);
     var at = buf.getInt(4);
-    var cache = new InputCache(buf, context);
+    var cache = new InputCache(buf, readResolve);
 
     return Reference.from(cache, at);
   }
 
-  public static byte[] writeObject(Object obj, Object... context) throws IOException {
+  public static byte[] writeObject(Object obj, Function<Object, Object> writeReplace) throws IOException {
     var out = new ByteArrayOutputStream();
     var data = new DataOutputStream(out);
     data.write(Generator.HEADER);
     data.writeInt(PersistanceMap.DEFAULT.versionStamp);
     data.write(new byte[4]); // space
     data.flush();
-    var g = new Generator(out, 12, context);
+    var g = new Generator(out, 12, writeReplace);
     var at = g.writeObject(obj);
     var arr = out.toByteArray();
     arr[4] = (byte) ((at >> 24) & 0xff);
@@ -104,36 +93,25 @@ public abstract class Persistance<T> {
     return arr;
   }
 
-  private static <T> T lookupService(Class<T> clazz, Object[] services) {
-      if (clazz == Object.class) {
-        return null;
-      }
-      for (var o : services) {
-        if (clazz.isInstance(o)) {
-          return clazz.cast(o);
-        }
-      }
-      return null;
-  }
-
   private static final class Generator {
     static final byte[] HEADER = new byte[] { 0x0a, 0x0d, 0x02, 0x0f };
 
     private final OutputStream main;
     private final Map<Object,Integer> knownObjects = new IdentityHashMap<>();
-    private final Object[] services;
+    private final Function<Object, Object> writeReplace;
     private int position;
 
-    private Generator(OutputStream out, int position, Object[] services) {
+    private Generator(OutputStream out, int position, Function<Object, Object> writeReplace) {
       this.main = out;
-      this.services = services;
+      this.writeReplace = writeReplace == null ? Function.identity() : writeReplace;
       this.position = position;
     }
 
-    final <T> int writeObject(T obj) throws IOException {
-      if (obj == null) {
+    final <T> int writeObject(T t) throws IOException {
+      if (t == null) {
         return -1;
       }
+      var obj = writeReplace.apply(t);
       var found = knownObjects.get(obj);
       if (found == null) {
         var p = PersistanceMap.DEFAULT.forType(obj.getClass());
@@ -153,6 +131,7 @@ public abstract class Persistance<T> {
         out.writeInt(-1);
         return;
       }
+      obj = writeReplace.apply(obj);
       var p = PersistanceMap.DEFAULT.forType(obj.getClass());
       var found = knownObjects.get(obj);
       if (found == null) {
@@ -187,6 +166,7 @@ public abstract class Persistance<T> {
 
     var inData = new InputImpl(cache, at);
     var res = p.readWith(inData);
+    res = cache.readResolve().apply(res);
     var prev = cache.cache.put(at, res);
     if (prev != null) {
       throw raise(RuntimeException.class, new IOException("Adding at " + at + " object: " + res.getClass().getName() + " but there already is " + prev.getClass().getName()));
@@ -285,12 +265,8 @@ public abstract class Persistance<T> {
     }
 
     @Override
-    public <T> T lookup(Class<T> clazz) {
-      return lookupService(clazz, generator.services);
-    }
-
-    @Override
-    public <T> void writeInline(Class<T> clazz, T obj) throws IOException {
+    public <T> void writeInline(Class<T> clazz, T t) throws IOException {
+      var obj = generator.writeReplace.apply(t);
       var p = PersistanceMap.DEFAULT.forType(clazz);
       p.writeInline(obj, this);
     }
@@ -302,10 +278,10 @@ public abstract class Persistance<T> {
   }
 
   private static final record InputCache(
-    ByteBuffer buf, Object[] services, Map<Integer,Object> cache
+    ByteBuffer buf, Function<Object, Object> readResolve, Map<Integer,Object> cache
   ) {
-    InputCache(ByteBuffer buf, Object... services) {
-      this(buf, services, new HashMap<>());
+    InputCache(ByteBuffer buf, Function<Object, Object> readResolve) {
+      this(buf, readResolve == null ? Function.identity() : readResolve, new HashMap<>());
     }
   }
 
@@ -321,14 +297,11 @@ public abstract class Persistance<T> {
     }
 
     @Override
-    public <T> T lookup(Class<T> clazz) {
-      return lookupService(clazz, cache.services);
-    }
-
-    @Override
     public <T> T readInline(Class<T> clazz) {
       var p = PersistanceMap.DEFAULT.forType(clazz);
-      return p.readWith(this);
+      var res = p.readWith(this);
+      var resolve = cache.readResolve().apply(res);
+      return clazz.cast(resolve);
     }
 
     @Override

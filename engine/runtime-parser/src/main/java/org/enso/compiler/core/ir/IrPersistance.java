@@ -5,8 +5,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.UUID;
-
-import org.enso.compiler.core.CompilerStub;
 import org.enso.compiler.core.Persistance;
 import org.enso.compiler.core.ir.expression.Application;
 import org.enso.compiler.core.ir.expression.Case;
@@ -432,15 +430,12 @@ public final class IrPersistance {
     @Override
     @SuppressWarnings("unchecked")
     protected void writeObject(MetadataStorage obj, Output out) throws IOException {
-      var map = obj.map((processingPass, data) -> {
-        if (out.lookup(CompilerStub.class) instanceof CompilerStub stub) {
-          var metadata = data.prepareForSerialization(stub);
-          var t = new Tuple2<>(processingPass.getClass().getName(), metadata);
-          return t;
-        } else {
-          throw raise(RuntimeException.class, new IOException("Cannot prepare " + data + " for serialization"));
-        }
-      });
+      var map =
+          obj.map(
+              (processingPass, data) -> {
+                var t = new Tuple2<>(processingPass.getClass().getName(), data);
+                return t;
+              });
       out.writeInline(scala.collection.immutable.Map.class, map);
     }
 
@@ -455,16 +450,6 @@ public final class IrPersistance {
         try {
           var pass = (ProcessingPass) Class.forName(obj._1()).getField("MODULE$").get(null);
           var data = obj._2();
-          if (in.lookup(CompilerStub.class) instanceof CompilerStub stub) {
-            var restored = data.restoreFromSerialization(stub);
-            if (restored.isEmpty()) {
-              throw new IOException("Cannot convert " + data + " during deserialization");
-            } else {
-              data = restored.get();
-            }
-          } else {
-            throw new IOException("No CompilerContext registered for deserialization");
-          }
           storage.update(pass, data);
         } catch (ReflectiveOperationException ex) {
           throw new IOException(ex);
@@ -503,6 +488,6 @@ public final class IrPersistance {
 
   @SuppressWarnings("unchecked")
   private static <E extends Throwable> E raise(Class<E> clazz, Throwable t) throws E {
-    throw (E)t;
+    throw (E) t;
   }
 }

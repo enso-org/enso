@@ -1,7 +1,7 @@
 package org.enso.compiler.test.semantic
 
 import org.enso.compiler.core.Implicits.AsMetadata
-import org.enso.compiler.core.ir.{Module, Warning}
+import org.enso.compiler.core.ir.{Module, ProcessingPass, Warning}
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.Import
 import org.enso.compiler.core.Persistance
@@ -910,7 +910,16 @@ class ImportExportTest
         .diagnostics
         .collect({ case w: Warning.DuplicatedImport => w })
       warn.size shouldEqual 1
-      val arr = Persistance.writeObject(mainIr, langCtx.getCompiler.context)
+      val arr = Persistance.writeObject(
+        mainIr,
+        {
+          case metadata: ProcessingPass.Metadata =>
+            metadata.prepareForSerialization(
+              langCtx.getCompiler.context.asInstanceOf[metadata.Compiler]
+            );
+          case obj => obj
+        }
+      );
       arr should not be empty
     }
 
@@ -938,7 +947,16 @@ class ImportExportTest
         .asInstanceOf[errors.ImportExport.AmbiguousImport]
       ambiguousImport.symbolName shouldEqual "A_Type"
       try {
-        val arr = Persistance.writeObject(mainIr, langCtx.getCompiler.context)
+        val arr = Persistance.writeObject(
+          mainIr,
+          {
+            case metadata: ProcessingPass.Metadata =>
+              metadata.prepareForSerialization(
+                langCtx.getCompiler.context.asInstanceOf[metadata.Compiler]
+              );
+            case obj => obj
+          }
+        );
         fail("Shouldn't return anything when there is an error" + arr)
       } catch {
         case ex: IOException =>
