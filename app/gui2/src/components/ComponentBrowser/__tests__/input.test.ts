@@ -1,3 +1,4 @@
+import { GraphDb, mockNode } from '@/stores/graph/graphDatabase'
 import {
   makeCon,
   makeLocal,
@@ -8,6 +9,7 @@ import {
   type SuggestionEntry,
 } from '@/stores/suggestionDatabase/entry'
 import { readAstSpan } from '@/util/ast'
+import { ComputedValueRegistry } from '@/util/computedValueRegistry'
 import type { ExprId } from 'shared/yjsModel'
 import { expect, test } from 'vitest'
 import { useComponentBrowserInput } from '../input'
@@ -92,24 +94,18 @@ test.each([
   ) => {
     const operator1Id: ExprId = '3d0e9b96-3ca0-4c35-a820-7d3a1649de55' as ExprId
     const operator2Id: ExprId = '5eb16101-dd2b-4034-a6e2-476e8bfa1f2b' as ExprId
-    const graphStoreMock = {
-      identDefinitions: new Map([
-        ['operator1', operator1Id],
-        ['operator2', operator2Id],
-      ]),
-    }
-    const computedValueRegistryMock = {
-      getExpressionInfo(id: ExprId) {
-        if (id === operator1Id)
-          return {
-            typename: 'Standard.Base.Number',
-            methodCall: undefined,
-            payload: { type: 'Value' },
-            profilingInfo: [],
-          }
-      },
-    }
-    const input = useComponentBrowserInput(graphStoreMock, computedValueRegistryMock)
+    const computedValueRegistryMock = ComputedValueRegistry.Mock()
+    computedValueRegistryMock.db.set(operator1Id, {
+      typename: 'Standard.Base.Number',
+      methodCall: undefined,
+      payload: { type: 'Value' },
+      profilingInfo: [],
+    })
+    const mockGraphDb = GraphDb.Mock(computedValueRegistryMock)
+    mockGraphDb.nodes.set(operator1Id, mockNode('operator1', operator1Id))
+    mockGraphDb.nodes.set(operator2Id, mockNode('operator2', operator2Id))
+
+    const input = useComponentBrowserInput(mockGraphDb)
     input.code.value = code
     input.selection.value = { start: cursorPos, end: cursorPos }
     const context = input.context.value
@@ -256,10 +252,8 @@ test.each([
   ({ code, cursorPos, suggestion, expected, expectedCursorPos }) => {
     cursorPos = cursorPos ?? code.length
     expectedCursorPos = expectedCursorPos ?? expected.length
-    const input = useComponentBrowserInput(
-      { identDefinitions: new Map() },
-      { getExpressionInfo: (_id) => undefined },
-    )
+
+    const input = useComponentBrowserInput(GraphDb.Mock())
     input.code.value = code
     input.selection.value = { start: cursorPos, end: cursorPos }
     input.applySuggestion(suggestion)

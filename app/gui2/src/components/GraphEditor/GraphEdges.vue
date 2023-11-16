@@ -1,84 +1,59 @@
 <script setup lang="ts">
 import GraphEdge from '@/components/GraphEditor/GraphEdge.vue'
 import { injectGraphSelection } from '@/providers/graphSelection.ts'
+import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
 import { useGraphStore } from '@/stores/graph'
-import { Interaction } from '@/util/interaction.ts'
 import type { ExprId } from 'shared/yjsModel.ts'
-import { watch } from 'vue'
 
-const emit = defineEmits<{
-  startInteraction: [Interaction]
-  endInteraction: [Interaction]
-}>()
-
-const graphStore = useGraphStore()
+const graph = useGraphStore()
 const selection = injectGraphSelection(true)
+const interaction = injectInteractionHandler()
 
-class EditingEdge extends Interaction {
+const editingEdge: Interaction = {
   cancel() {
-    const target = graphStore.unconnectedEdge?.disconnectedEdgeTarget
-    graphStore.transact(() => {
+    const target = graph.unconnectedEdge?.disconnectedEdgeTarget
+    graph.transact(() => {
       if (target != null) disconnectEdge(target)
-      graphStore.clearUnconnected()
+      graph.clearUnconnected()
     })
-  }
+  },
   click(_e: MouseEvent): boolean {
-    if (graphStore.unconnectedEdge == null) return false
-    const source = graphStore.unconnectedEdge.source ?? selection?.hoveredNode
-    const target = graphStore.unconnectedEdge.target ?? selection?.hoveredExpr
-    const targetNode = target != null ? graphStore.exprNodes.get(target) : undefined
-    graphStore.transact(() => {
+    if (graph.unconnectedEdge == null) return false
+    const source = graph.unconnectedEdge.source ?? selection?.hoveredNode
+    const target = graph.unconnectedEdge.target ?? selection?.hoveredPort
+    const targetNode = graph.db.getExpressionNodeId(target)
+    graph.transact(() => {
       if (source != null && source != targetNode) {
         if (target == null) {
-          if (graphStore.unconnectedEdge?.disconnectedEdgeTarget != null)
-            disconnectEdge(graphStore.unconnectedEdge.disconnectedEdgeTarget)
+          if (graph.unconnectedEdge?.disconnectedEdgeTarget != null)
+            disconnectEdge(graph.unconnectedEdge.disconnectedEdgeTarget)
           createNodeFromEdgeDrop(source)
         } else {
           createEdge(source, target)
         }
       }
-      graphStore.clearUnconnected()
+      graph.clearUnconnected()
     })
     return true
-  }
+  },
 }
-const editingEdge = new EditingEdge()
+interaction.setWhen(() => graph.unconnectedEdge != null, editingEdge)
 
 function disconnectEdge(target: ExprId) {
-  graphStore.setExpressionContent(target, '_')
+  graph.setExpressionContent(target, '_')
 }
 function createNodeFromEdgeDrop(source: ExprId) {
   console.log(`TODO: createNodeFromEdgeDrop(${JSON.stringify(source)})`)
 }
 function createEdge(source: ExprId, target: ExprId) {
-  const sourceNode = graphStore.nodes.get(source)
+  const sourceNode = graph.db.getNode(source)
   if (sourceNode == null) return
   // TODO: Check alias analysis to see if the binding is shadowed.
-  graphStore.setExpressionContent(target, sourceNode.binding)
+  graph.setExpressionContent(target, sourceNode.binding)
   // TODO: Use alias analysis to ensure declarations are in a dependency order.
 }
-
-watch(
-  () => graphStore.unconnectedEdge,
-  (edge) => {
-    if (edge != null) {
-      emit('startInteraction', editingEdge)
-    } else {
-      emit('endInteraction', editingEdge)
-    }
-  },
-)
 </script>
 
 <template>
-  <GraphEdge
-    v-for="(edge, index) in graphStore.edges"
-    :key="index"
-    :edge="edge"
-    :nodeRects="graphStore.nodeRects"
-    :exprRects="graphStore.exprRects"
-    :exprNodes="graphStore.exprNodes"
-    @disconnectSource="graphStore.disconnectSource(edge)"
-    @disconnectTarget="graphStore.disconnectTarget(edge)"
-  />
+  <GraphEdge v-for="(edge, index) in graph.edges" :key="index" :edge="edge" />
 </template>

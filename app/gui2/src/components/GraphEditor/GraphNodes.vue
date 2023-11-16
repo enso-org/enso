@@ -45,15 +45,13 @@ const uploadingFiles = computed<[FileName, File][]>(() => {
 
 <template>
   <GraphNode
-    v-for="[id, node] in graphStore.nodes"
-    v-show="id != graphStore.editedNodeInfo?.id"
+    v-for="[id, node] in graphStore.db.allNodes()"
     :key="id"
     :node="node"
-    :edited="false"
+    :edited="id === graphStore.editedNodeInfo?.id"
     @update:edited="graphStore.setEditedNode(id, $event)"
     @updateRect="graphStore.updateNodeRect(id, $event)"
     @delete="graphStore.deleteNode(id)"
-    @updateExprRect="graphStore.updateExprRect"
     @pointerenter="hoverNode(id)"
     @pointerleave="hoverNode(undefined)"
     @updateContent="updateNodeContent(id, $event)"

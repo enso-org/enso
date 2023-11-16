@@ -34,3 +34,8 @@ export function partitionPoint<T>(
   }
   return start
 }
+
+/** Index into an array using specified index. When the index is nullable, returns undefined. */
+export function tryGetIndex<T>(arr: T[], index: number | undefined | null): T | undefined {
+  return index == null ? undefined : arr[index]
+}

@@ -34,6 +34,21 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
     )
   }
 
+  function clientToSceneRect(clientRect: Rect): Rect {
+    const rect = elemRect(viewportNode.value)
+    const canvasPos = clientRect.pos.sub(rect.pos)
+    const v = viewport.value
+    const pos = new Vec2(
+      v.pos.x + v.size.x * (canvasPos.x / rect.size.x),
+      v.pos.y + v.size.y * (canvasPos.y / rect.size.y),
+    )
+    const size = new Vec2(
+      v.size.x * (clientRect.size.x / rect.size.x),
+      v.size.y * (clientRect.size.y / rect.size.y),
+    )
+    return new Rect(pos, size)
+  }
+
   let zoomPivot = Vec2.Zero
   const zoomPointer = usePointer((pos, _event, ty) => {
     if (ty === 'start') {
@@ -131,6 +146,7 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
     prescaledTransform,
     sceneMousePos,
     clientToScenePos,
+    clientToSceneRect,
     viewport,
   })
 }
