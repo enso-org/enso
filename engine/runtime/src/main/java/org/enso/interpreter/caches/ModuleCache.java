@@ -47,7 +47,14 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
     @Override
     protected CachedModule deserialize(EnsoContext context, byte[] data, Metadata meta, TruffleLogger logger) throws ClassNotFoundException, IOException, ClassNotFoundException {
       var ref = Persistance.readObject(data, (obj) -> switch (obj) {
-        case ProcessingPass.Metadata metadata -> metadata.restoreFromSerialization(context.getCompiler().context()).getOrElse(() -> obj);
+        case ProcessingPass.Metadata metadata -> {
+          var option = metadata.restoreFromSerialization(context.getCompiler().context());
+          if (option.nonEmpty()) {
+            yield option.get();
+          } else {
+            throw raise(RuntimeException.class, new IOException("Cannot convert " + metadata));
+          }
+        }
         default -> obj;
       });
       var mod = ref.get(Module.class);
@@ -158,4 +165,8 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
 
     private final static ObjectMapper objectMapper = new ObjectMapper();
 
+    @SuppressWarnings("unchecked")
+    private static <T extends Exception> T raise(Class<T> cls, Exception e) throws T {
+      throw (T)e;
+    }
 }
