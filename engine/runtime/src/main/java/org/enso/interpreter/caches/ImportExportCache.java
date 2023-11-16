@@ -1,19 +1,17 @@
 package org.enso.interpreter.caches;
 
 import java.io.IOException;
-import java.util.AbstractMap;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.logging.Level;
 
 import org.apache.commons.lang3.StringUtils;
-import org.enso.compiler.core.Persistance;
+import org.enso.persistance.Persistance;
+import org.enso.persistance.Persistable;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.BindingsMap.DefinedEntity;
 import org.enso.compiler.data.BindingsMap.ModuleReference;
 import org.enso.editions.LibraryName;
-import org.enso.interpreter.dsl.Persistable;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.pkg.QualifiedName;
 import org.enso.pkg.SourceFile;

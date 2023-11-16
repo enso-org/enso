@@ -1,4 +1,4 @@
-package org.enso.compiler.core;
+package org.enso.persistance;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataInput;
@@ -14,7 +14,7 @@ import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.function.Function;
 
-import org.enso.compiler.core.Persistance.Reference;
+import org.enso.persistance.Persistance.Reference;
 
 public abstract class Persistance<T> {
   private final Class<T> clazz;

@@ -249,6 +249,8 @@ bootstrap := {}
 lazy val enso = (project in file("."))
   .settings(version := "0.1")
   .aggregate(
+    `persistance-dsl`,
+    `persistance`,
     `interpreter-dsl`,
     `interpreter-dsl-test`,
     `json-rpc-server-test`,
@@ -1015,6 +1017,31 @@ lazy val searcher = project
   .dependsOn(testkit % Test)
   .dependsOn(`polyglot-api`)
 
+lazy val `persistance` = (project in file("lib/java/persistance"))
+  .settings(
+    version := "0.1",
+    frgaalJavaCompilerSetting,
+    Compile / javacOptions := ((Compile / javacOptions).value),
+    libraryDependencies ++= Seq()
+  )
+
+lazy val `persistance-dsl` = (project in file("lib/java/persistance-dsl"))
+  .settings(
+    version := "0.1",
+    frgaalJavaCompilerSetting,
+    Compile / javacOptions := ((Compile / javacOptions).value ++
+    // Only run ServiceProvider processor and ignore those defined in META-INF, thus
+    // fixing incremental compilation setup
+    Seq(
+      "-processor",
+      "org.netbeans.modules.openide.util.ServiceProviderProcessor"
+    )),
+    libraryDependencies ++= Seq(
+      "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided"
+    )
+  )
+  .dependsOn(`persistance`)
+
 lazy val `interpreter-dsl` = (project in file("lib/scala/interpreter-dsl"))
   .settings(
     version := "0.1",
@@ -1028,7 +1055,7 @@ lazy val `interpreter-dsl` = (project in file("lib/scala/interpreter-dsl"))
     )),
     libraryDependencies ++= Seq(
       "org.apache.commons" % "commons-lang3"           % commonsLangVersion,
-      "org.netbeans.api"   % "org-openide-util-lookup" % netbeansApiVersion,
+      "org.netbeans.api"   % "org-openide-util-lookup" % netbeansApiVersion % "provided",
       "com.google.guava"   % "guava"                   % guavaVersion exclude ("com.google.code.findbugs", "jsr305")
     )
   )
@@ -1338,22 +1365,23 @@ lazy val runtime = (project in file("engine/runtime"))
     scalacOptions += "-Ymacro-annotations",
     scalacOptions ++= Seq("-Ypatmat-exhaust-depth", "off"),
     libraryDependencies ++= jmh ++ jaxb ++ circe ++ Seq(
-      "org.apache.commons"  % "commons-lang3"         % commonsLangVersion,
-      "org.apache.tika"     % "tika-core"             % tikaVersion,
-      "org.graalvm.sdk"     % "graal-sdk"             % graalMavenPackagesVersion % "provided",
-      "org.graalvm.sdk"     % "polyglot-tck"          % graalMavenPackagesVersion % "provided",
-      "org.graalvm.truffle" % "truffle-api"           % graalMavenPackagesVersion % "provided",
-      "org.graalvm.truffle" % "truffle-dsl-processor" % graalMavenPackagesVersion % "provided",
-      "org.graalvm.truffle" % "truffle-tck"           % graalMavenPackagesVersion % "provided",
-      "org.graalvm.truffle" % "truffle-tck-common"    % graalMavenPackagesVersion % "provided",
-      "org.scalacheck"     %% "scalacheck"            % scalacheckVersion         % Test,
-      "org.scalactic"      %% "scalactic"             % scalacticVersion          % Test,
-      "org.scalatest"      %% "scalatest"             % scalatestVersion          % Test,
-      "org.graalvm.truffle" % "truffle-api"           % graalMavenPackagesVersion % Benchmark,
-      "org.typelevel"      %% "cats-core"             % catsVersion,
-      "junit"               % "junit"                 % junitVersion              % Test,
-      "com.github.sbt"      % "junit-interface"       % junitIfVersion            % Test,
-      "org.hamcrest"        % "hamcrest-all"          % hamcrestVersion           % Test
+      "org.apache.commons"  % "commons-lang3"           % commonsLangVersion,
+      "org.apache.tika"     % "tika-core"               % tikaVersion,
+      "org.graalvm.sdk"     % "graal-sdk"               % graalMavenPackagesVersion % "provided",
+      "org.graalvm.sdk"     % "polyglot-tck"            % graalMavenPackagesVersion % "provided",
+      "org.graalvm.truffle" % "truffle-api"             % graalMavenPackagesVersion % "provided",
+      "org.graalvm.truffle" % "truffle-dsl-processor"   % graalMavenPackagesVersion % "provided",
+      "org.graalvm.truffle" % "truffle-tck"             % graalMavenPackagesVersion % "provided",
+      "org.graalvm.truffle" % "truffle-tck-common"      % graalMavenPackagesVersion % "provided",
+      "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion        % "provided",
+      "org.scalacheck"     %% "scalacheck"              % scalacheckVersion         % Test,
+      "org.scalactic"      %% "scalactic"               % scalacticVersion          % Test,
+      "org.scalatest"      %% "scalatest"               % scalatestVersion          % Test,
+      "org.graalvm.truffle" % "truffle-api"             % graalMavenPackagesVersion % Benchmark,
+      "org.typelevel"      %% "cats-core"               % catsVersion,
+      "junit"               % "junit"                   % junitVersion              % Test,
+      "com.github.sbt"      % "junit-interface"         % junitIfVersion            % Test,
+      "org.hamcrest"        % "hamcrest-all"            % hamcrestVersion           % Test
     ),
     Compile / compile / compileInputs := (Compile / compile / compileInputs)
       .dependsOn(CopyTruffleJAR.preCompileTask)
@@ -1414,6 +1442,7 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(`common-polyglot-core-utils`)
   .dependsOn(`edition-updater`)
   .dependsOn(`interpreter-dsl`)
+  .dependsOn(`persistance-dsl` % "provided")
   .dependsOn(`library-manager`)
   .dependsOn(`logging-truffle-connector`)
   .dependsOn(`polyglot-api`)
@@ -1443,7 +1472,8 @@ lazy val `runtime-parser` =
     )
     .dependsOn(syntax)
     .dependsOn(`syntax-rust-definition`)
-    .dependsOn(`interpreter-dsl` % "provided")
+    .dependsOn(`persistance`)
+    .dependsOn(`persistance-dsl` % "provided")
 
 lazy val `runtime-compiler` =
   (project in file("engine/runtime-compiler"))
@@ -1451,17 +1481,18 @@ lazy val `runtime-compiler` =
       frgaalJavaCompilerSetting,
       instrumentationSettings,
       libraryDependencies ++= Seq(
-        "junit"          % "junit"           % junitVersion     % Test,
-        "com.github.sbt" % "junit-interface" % junitIfVersion   % Test,
-        "org.scalatest" %% "scalatest"       % scalatestVersion % Test,
-        "com.lihaoyi"   %% "fansi"           % fansiVersion
+        "junit"            % "junit"                   % junitVersion       % Test,
+        "com.github.sbt"   % "junit-interface"         % junitIfVersion     % Test,
+        "org.scalatest"   %% "scalatest"               % scalatestVersion   % Test,
+        "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided",
+        "com.lihaoyi"     %% "fansi"                   % fansiVersion
       )
     )
     .dependsOn(`runtime-parser`)
     .dependsOn(pkg)
     .dependsOn(`polyglot-api`)
     .dependsOn(editions)
-    .dependsOn(`interpreter-dsl` % "provided")
+    .dependsOn(`persistance-dsl` % "provided")
 
 lazy val `runtime-instrument-common` =
   (project in file("engine/runtime-instrument-common"))

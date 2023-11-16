@@ -21,7 +21,7 @@ import java.util.Arrays;
 import java.util.Optional;
 import java.util.logging.Level;
 
-import org.enso.compiler.core.Persistance;
+import org.enso.persistance.Persistance;
 
 public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCache.Metadata> {
 

@@ -1,14 +1,14 @@
 package org.enso.compiler.pass.analyse;
 
 import java.io.IOException;
-import org.enso.compiler.core.Persistance;
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph;
 import org.enso.compiler.pass.resolve.DocumentationComments;
 import org.enso.compiler.pass.resolve.FullyQualifiedNames;
 import org.enso.compiler.pass.resolve.IgnoredBindings;
 import org.enso.compiler.pass.resolve.ModuleAnnotations;
 import org.enso.compiler.pass.resolve.TypeSignatures;
-import org.enso.interpreter.dsl.Persistable;
+import org.enso.persistance.Persistable;
+import org.enso.persistance.Persistance;
 import org.openide.util.lookup.ServiceProvider;
 import scala.Option;
 

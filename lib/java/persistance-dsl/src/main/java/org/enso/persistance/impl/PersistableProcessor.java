@@ -1,4 +1,4 @@
-package org.enso.interpreter.dsl;
+package org.enso.persistance.impl;
 
 import java.io.IOException;
 import java.util.Comparator;
@@ -20,11 +20,13 @@ import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.MirroredTypeException;
 import javax.tools.Diagnostic.Kind;
 
+import org.enso.persistance.Persistable;
+
 import org.openide.util.lookup.ServiceProvider;
 
 @SupportedAnnotationTypes({
-  "org.enso.interpreter.dsl.Persistable",
-  "org.enso.interpreter.dsl.Persistable.Group"
+  "org.enso.persistance.Persistable",
+  "org.enso.persistance.Persistable.Group"
 })
 @ServiceProvider(service=Processor.class)
 public class PersistableProcessor extends AbstractProcessor {
@@ -123,7 +125,7 @@ public class PersistableProcessor extends AbstractProcessor {
     try (var w = fo.openWriter()) {
       w.append("package ").append(pkgName).append(";\n");
       w.append("import java.io.IOException;\n");
-      w.append("import org.enso.compiler.core.Persistance;\n");
+      w.append("import org.enso.persistance.Persistance;\n");
       w.append("@org.openide.util.lookup.ServiceProvider(service=Persistance.class)\n");
       w.append("public final class ").append(className).append(" extends Persistance<").append(typeElemName).append("> {\n");
       w.append("  public ").append(className).append("() {\n");

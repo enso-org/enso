@@ -4,11 +4,11 @@ import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.{Module, ProcessingPass, Warning}
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.Import
-import org.enso.compiler.core.Persistance
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.interpreter.runtime
 import org.enso.interpreter.runtime.EnsoContext
+import org.enso.persistance.Persistance
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.{LanguageInfo, MethodNames, RuntimeOptions}
 import org.graalvm.polyglot.{Context, Engine}

@@ -1,4 +1,4 @@
-package org.enso.interpreter.dsl;
+package org.enso.persistance;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Repeatable;
