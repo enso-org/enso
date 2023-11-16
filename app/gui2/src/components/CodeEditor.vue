@@ -1,12 +1,11 @@
 <script setup lang="ts">
-import { useGraphStore, type Node } from '@/stores/graph'
+import { useGraphStore } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import type { Highlighter } from '@/util/codemirror'
-import { colorFromString } from '@/util/colors'
 import { usePointer } from '@/util/events'
 import { useLocalStorage } from '@vueuse/core'
-import { rangeEncloses } from 'shared/yjsModel'
+import { rangeEncloses, type ExprId } from 'shared/yjsModel'
 import { computed, onMounted, ref, watchEffect } from 'vue'
 import { qnJoin, tryQualifiedName } from '../util/qualifiedName'
 import { unwrap } from '../util/result'
@@ -55,21 +54,20 @@ watchEffect(() => {
         hoverTooltip((ast, syn) => {
           const dom = document.createElement('div')
           const astSpan = ast.span()
-          let foundNode: Node | undefined
-          for (const node of graphStore.nodes.values()) {
+          let foundNode: ExprId | undefined
+          for (const [id, node] of graphStore.db.allNodes()) {
             if (rangeEncloses(node.rootSpan.span(), astSpan)) {
-              foundNode = node
+              foundNode = id
               break
             }
           }
-          const expressionInfo = foundNode
-            ? projectStore.computedValueRegistry.getExpressionInfo(foundNode.rootSpan.astId)
-            : undefined
+          const expressionInfo = foundNode && graphStore.db.nodeExpressionInfo.lookup(foundNode)
+          const nodeColor = foundNode && graphStore.db.getNodeColorStyle(foundNode)
 
           if (foundNode != null) {
             dom
               .appendChild(document.createElement('div'))
-              .appendChild(document.createTextNode(`AST ID: ${foundNode.rootSpan.astId}`))
+              .appendChild(document.createTextNode(`AST ID: ${foundNode}`))
           }
           if (expressionInfo != null) {
             dom
@@ -92,11 +90,9 @@ watchEffect(() => {
               groupNode.appendChild(document.createTextNode('Group: '))
               const groupNameNode = groupNode.appendChild(document.createElement('span'))
               groupNameNode.appendChild(document.createTextNode(`${method.module}.${method.name}`))
-              groupNameNode.style.color =
-                suggestionEntry?.groupIndex != null
-                  ? `var(--group-color-${suggestionDbStore.groups[suggestionEntry.groupIndex]
-                      ?.name})`
-                  : colorFromString(expressionInfo?.typename ?? 'Unknown')
+              if (nodeColor) {
+                groupNameNode.style.color = nodeColor
+              }
             }
           }
           return { dom }

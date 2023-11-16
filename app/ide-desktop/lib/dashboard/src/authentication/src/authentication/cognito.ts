@@ -181,8 +181,8 @@ export class Cognito {
     }
 
     /** Save the access token to a file for further reuse. */
-    saveAccessToken(accessToken: string) {
-        this.amplifyConfig.accessTokenSaver?.(accessToken)
+    saveAccessToken(accessToken: string | null) {
+        this.amplifyConfig.saveAccessToken?.(accessToken)
     }
 
     /** Return the current {@link UserSession}, or `None` if the user is not logged in.

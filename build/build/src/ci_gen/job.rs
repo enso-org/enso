@@ -15,6 +15,15 @@ use ide_ci::actions::workflow::definition::Strategy;
 
 
 
+/// This should be kept as recent as possible.
+///
+/// macOS must use a recent version of Electron Builder to have Python 3 support. Otherwise, build
+/// would fail due to Python 2 missing.
+///
+/// We keep old versions of Electron Builder for Windows to avoid NSIS installer bug:
+/// https://github.com/electron-userland/electron-builder/issues/6865
+const ELECTRON_BUILDER_MACOS_VERSION: Version = Version::new(24, 6, 4);
+
 pub trait RunsOn {
     fn strategy(&self) -> Option<Strategy> {
         None
@@ -236,9 +245,48 @@ pub fn expose_os_specific_signing_secret(os: OS, step: Step) -> Step {
                 secret::APPLE_NOTARIZATION_TEAM_ID,
                 &crate::ide::web::env::APPLETEAMID,
             )
-            .with_env(&crate::ide::web::env::CSC_IDENTITY_AUTO_DISCOVERY, "true"),
+            .with_env(&crate::ide::web::env::CSC_IDENTITY_AUTO_DISCOVERY, "true")
+            .with_env(&crate::ide::web::env::CSC_FOR_PULL_REQUEST, "true"),
         _ => step,
     }
+}
+
+/// The sequence of steps that bumps the version of the Electron-Builder to
+/// [`ELECTRON_BUILDER_MACOS_VERSION`].
+pub fn bump_electron_builder() -> Vec<Step> {
+    let npm_install =
+        Step { name: Some("NPM install".into()), run: Some("npm install".into()), ..default() };
+    let uninstall_old = Step {
+        name: Some("Uninstall old Electron Builder".into()),
+        run: Some("npm uninstall --save --workspace enso electron-builder".into()),
+        ..default()
+    };
+    let command = format!(
+        "npm install --save-dev --workspace enso electron-builder@{ELECTRON_BUILDER_MACOS_VERSION}"
+    );
+    let install_new =
+        Step { name: Some("Install new Electron Builder".into()), run: Some(command), ..default() };
+    vec![npm_install, uninstall_old, install_new]
+}
+
+/// Prepares the packaging steps for the given OS.
+///
+/// This involves exposing secrets necessary for code signing and notarization. Additionally, on
+/// macOS, it bumps the version of the Electron Builder to [`ELECTRON_BUILDER_MACOS_VERSION`].
+pub fn prepare_packaging_steps(os: OS, step: Step) -> Vec<Step> {
+    let mut steps = Vec::new();
+    if os == OS::MacOS {
+        steps.extend(bump_electron_builder());
+    }
+    steps.push(expose_os_specific_signing_secret(os, step));
+    steps
+}
+
+/// Convenience for [`prepare_packaging_steps`].
+///
+/// This function is useful when you want to use [`prepare_packaging_steps`] as a closure.
+pub fn with_packaging_steps(os: OS) -> impl FnOnce(Step) -> Vec<Step> {
+    move |step| prepare_packaging_steps(os, step)
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -249,7 +297,7 @@ impl JobArchetype for PackageOldIde {
             &os,
             "Package Old IDE",
             "ide build --wasm-source current-ci-run --backend-source current-ci-run",
-            |step| vec![expose_os_specific_signing_secret(os, step)],
+            with_packaging_steps(os),
         )
     }
 }
@@ -262,7 +310,7 @@ impl JobArchetype for PackageNewIde {
             &os,
             "Package New IDE",
             "ide2 build --backend-source current-ci-run --gui2-upload-artifact false",
-            |step| vec![expose_os_specific_signing_secret(os, step)],
+            with_packaging_steps(os),
         )
     }
 }
