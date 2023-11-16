@@ -1905,6 +1905,7 @@ lazy val `bench-processor` = (project in file("lib/scala/bench-processor"))
       "-processor",
       "org.netbeans.modules.openide.util.ServiceProviderProcessor"
     )),
+    mainClass := Some("org.enso.benchmarks.libs.LibBenchRunner"),
     commands += WithDebugCommand.withDebug,
     (Test / fork) := true,
     (Test / parallelExecution) := false,
@@ -1955,20 +1956,24 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
       "-J-Dpolyglot.engine.WarnInterpreterOnly=false"
     ),
     (Benchmark / run / javaOptions) ++= {
-      val runtimeClasspath =
-        (LocalProject("runtime") / Compile / fullClasspath).value
-      val runtimeInstrumentsClasspath =
-        (LocalProject(
-          "runtime-with-instruments"
-        ) / Compile / fullClasspath).value
-      val appendClasspath =
-        (runtimeClasspath ++ runtimeInstrumentsClasspath)
-          .map(_.data)
-          .mkString(File.pathSeparator)
+      // Take the module-path from the component directory inside the built engine distribution
+      val componentModulePaths = (ThisBuild / componentModulesPaths)
+        .value
+        .map(_.data.getAbsolutePath)
+      val runtimeJar =
+        (LocalProject("runtime-with-instruments") / assembly / assemblyOutputPath)
+          .value
+          .getAbsolutePath
+      val allModulePaths = componentModulePaths ++ Seq(runtimeJar)
       Seq(
-        s"-Dtruffle.class.path.append=$appendClasspath"
+        "--module-path",
+        allModulePaths.mkString(File.pathSeparator),
+        "--add-modules",
+        "org.enso.runtime"
       )
-    }
+    },
+    (Benchmark / run / mainClass) :=
+      (LocalProject("bench-processor") / mainClass).value,
   )
   .settings(
     bench := Def
