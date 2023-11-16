@@ -3,15 +3,15 @@ import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { DEFAULT_VISUALIZATION_IDENTIFIER } from '@/stores/visualization'
 import {
-  Ast,
   AstExtended,
+  RawAst,
   childrenAstNodes,
   findAstWithRange,
   parseEnso,
   readAstSpan,
 } from '@/util/ast'
-import type { Ast, AstId } from '@/util/ast/abstract'
-import { abstract } from '@/util/ast/abstract'
+import type { AstId } from '@/util/ast/abstract.ts'
+import { Ast, Function, abstract, findModuleMethod } from '@/util/ast/abstract.ts'
 import { useObserveYjs } from '@/util/crdt'
 import type { Opt } from '@/util/opt'
 import type { Rect } from '@/util/rect'
@@ -86,17 +86,7 @@ export const useGraphStore = defineStore('graph', () => {
     if (value != null) updateState()
   })
 
-  const _ast = ref<Ast.Tree>()
-
-  const astNodes = reactive(new Map<AstId, Ast>())
-  const astRoot = ref<AstId>()
-
   function updateState() {
-    astNodes.clear()
-    const code = textContent.value
-    const tree = parseEnso(code)
-    astRoot.value = abstract(tree, astNodes, { code }).node
-
     const module = proj.module
     if (module == null) return
     module.transact(() => {
@@ -104,19 +94,15 @@ export const useGraphStore = defineStore('graph', () => {
       const meta = module.doc.metadata
       const textContentLocal = textContent.value
 
-      const ast = AstExtended.parse(textContentLocal, idMap)
-      const updatedMap = idMap.finishAndSynchronize()
+      const newAst = new Map<AstId, Ast>()
+      const newRoot = abstract(newAst, parseEnso(textContentLocal), { code: textContentLocal }).node
 
-      const methodAst = ast.isTree()
-        ? ast.tryMap((tree) =>
-            getExecutedMethodAst(
-              tree,
-              textContentLocal,
-              proj.executionContext.getStackTop(),
-              updatedMap,
-            ),
-          )
-        : undefined
+      const methodAst = getExecutedMethodAst(
+        newAst,
+        newRoot,
+        proj.executionContext.getStackTop(),
+        idMap,
+      )
       if (methodAst) {
         db.readFunctionAst(methodAst, (id) => meta.get(id))
       }
@@ -331,25 +317,31 @@ export type UnconnectedEdge = {
 }
 
 function getExecutedMethodAst(
-  ast: Ast.Tree,
-  code: string,
+  nodes: Map<AstId, Ast>,
+  root: AstId,
   executionStackTop: StackItem,
   updatedIdMap: Y.Map<Uint8Array>,
-): Opt<Ast.Tree.Function> {
+): Opt<Function> {
   switch (executionStackTop.type) {
     case 'ExplicitCall': {
       // Assume that the provided AST matches the module in the method pointer. There is no way to
       // actually verify this assumption at this point.
       const ptr = executionStackTop.methodPointer
       const name = ptr.name
-      return findModuleMethod(ast, code, name)
+      const id = findModuleMethod(nodes, name)
+      if (id == null) return
+      const method = nodes.get(id)
+      if (!(method instanceof Function)) return
+      return method
     }
     case 'LocalCall': {
+      /*
       const exprId = executionStackTop.expressionId
       const range = lookupIdRange(updatedIdMap, exprId)
       if (range == null) return
       const node = findAstWithRange(ast, range)
-      if (node?.type === Ast.Tree.Type.Function) return node
+      if (node?.type === RawAst.Tree.Type.Function) return node
+       */
     }
   }
 }
@@ -363,15 +355,4 @@ function lookupIdRange(updatedIdMap: Y.Map<Uint8Array>, id: ExprId): [number, nu
   const endIndex = Y.createAbsolutePositionFromRelativePosition(decoded[1], doc)?.index
   if (index == null || endIndex == null) return
   return [index, endIndex]
-}
-
-function findModuleMethod(
-  moduleAst: Ast.Tree,
-  code: string,
-  methodName: string,
-): Opt<Ast.Tree.Function> {
-  for (const node of childrenAstNodes(moduleAst)) {
-    if (node.type === Ast.Tree.Type.Function && readAstSpan(node.name, code) === methodName)
-      return node
-  }
 }

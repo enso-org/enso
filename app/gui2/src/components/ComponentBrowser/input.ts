@@ -7,7 +7,7 @@ import {
   type Typename,
 } from '@/stores/suggestionDatabase/entry'
 import {
-  Ast,
+  RawAst,
   astContainingChar,
   parseEnso,
   parsedTreeRange,
@@ -45,11 +45,11 @@ export type EditingContext =
   // Suggestion should replace given identifier.
   | {
       type: 'changeIdentifier'
-      identifier: Ast.Tree.Ident
+      identifier: RawAst.Tree.Ident
       oprApp?: GeneralOprApp
     }
   // Suggestion should replace given literal.
-  | { type: 'changeLiteral'; literal: Ast.Tree.TextLiteral | Ast.Tree.Number }
+  | { type: 'changeLiteral'; literal: RawAst.Tree.TextLiteral | RawAst.Tree.Number }
 
 /** Component Browser Input Data */
 export function useComponentBrowserInput(graphDb: GraphDb = useGraphStore().db) {
@@ -66,14 +66,14 @@ export function useComponentBrowserInput(graphDb: GraphDb = useGraphStore().db) 
     const leaf = editedAst.next()
     if (leaf.done) return { type: 'insert', position: cursorPosition }
     switch (leaf.value.type) {
-      case Ast.Tree.Type.Ident:
+      case RawAst.Tree.Type.Ident:
         return {
           type: 'changeIdentifier',
           identifier: leaf.value,
           ...readOprApp(editedAst.next(), leaf.value),
         }
-      case Ast.Tree.Type.TextLiteral:
-      case Ast.Tree.Type.Number:
+      case RawAst.Tree.Type.TextLiteral:
+      case RawAst.Tree.Type.Number:
         return { type: 'changeLiteral', literal: leaf.value }
       default:
         return {
@@ -126,15 +126,15 @@ export function useComponentBrowserInput(graphDb: GraphDb = useGraphStore().db) 
   })
 
   function readOprApp(
-    leafParent: IteratorResult<Ast.Tree>,
-    editedAst?: Ast.Tree,
+    leafParent: IteratorResult<RawAst.Tree>,
+    editedAst?: RawAst.Tree,
   ): {
     oprApp?: GeneralOprApp
   } {
     if (leafParent.done) return {}
     switch (leafParent.value.type) {
-      case Ast.Tree.Type.OprApp:
-      case Ast.Tree.Type.OperatorBlockApplication: {
+      case RawAst.Tree.Type.OprApp:
+      case RawAst.Tree.Type.OperatorBlockApplication: {
         const generalized = new GeneralOprApp(leafParent.value)
         const opr = generalized.lastOpr()
         if (opr == null || !opr.ok) return {}
@@ -155,7 +155,7 @@ export function useComponentBrowserInput(graphDb: GraphDb = useGraphStore().db) 
     accessOpr: GeneralOprApp,
   ): { type: 'known'; typename: Typename } | { type: 'unknown' } | null {
     if (accessOpr.lhs == null) return null
-    if (accessOpr.lhs.type !== Ast.Tree.Type.Ident) return null
+    if (accessOpr.lhs.type !== RawAst.Tree.Type.Ident) return null
     if (accessOpr.apps.length > 1) return null
     if (internalUsages.value.has(parsedTreeRange(accessOpr.lhs))) return { type: 'unknown' }
     const ident = readAstSpan(accessOpr.lhs, code.value)
@@ -180,14 +180,14 @@ export function useComponentBrowserInput(graphDb: GraphDb = useGraphStore().db) 
    * @param code The code from which `opr` was generated.
    * @returns If all path segments are identifiers, return them
    */
-  function qnIdentifiers(opr: GeneralOprApp): Ast.Tree.Ident[] {
+  function qnIdentifiers(opr: GeneralOprApp): RawAst.Tree.Ident[] {
     const operandsAsIdents = Array.from(
       opr.operandsOfLeftAssocOprChain(code.value, '.'),
       (operand) =>
-        operand?.type === 'ast' && operand.ast.type === Ast.Tree.Type.Ident ? operand.ast : null,
+        operand?.type === 'ast' && operand.ast.type === RawAst.Tree.Type.Ident ? operand.ast : null,
     ).slice(0, -1)
     if (operandsAsIdents.some((optIdent) => optIdent == null)) return []
-    else return operandsAsIdents as Ast.Tree.Ident[]
+    else return operandsAsIdents as RawAst.Tree.Ident[]
   }
 
   /** Apply given suggested entry to the input. */

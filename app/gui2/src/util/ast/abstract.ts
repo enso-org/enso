@@ -1,7 +1,7 @@
 /**
  * # AST
  *
- * The goal of the new AST is to make expression edits simple.
+ * The goal of the AST is to make expression edits simple.
  *
  * ## Nodes
  *
@@ -123,12 +123,7 @@ export abstract class Ast {
     return { info, code }
   }
 
-  print_(
-    nodes: NodeMap,
-    info: InfoMap,
-    offset: number,
-    indent: string,
-  ): string {
+  print_(nodes: NodeMap, info: InfoMap, offset: number, indent: string): string {
     let code = ''
     for (const child of this.children()) {
       if (child.node != null && !isToken(child.node) && nodes.get(child.node) instanceof Tombstone)
@@ -210,8 +205,7 @@ export class Function extends Ast {
   }
   *children(): Iterable<NodeChild> {
     yield this.name
-    for (const arg of this.args)
-      yield *arg
+    for (const arg of this.args) yield* arg
     if (this.equals !== undefined) {
       yield { whitespace: this.equals.whitespace ?? ' ', node: this.equals.node }
     } else {
@@ -248,12 +242,7 @@ export class Block extends Ast {
     }
   }
 
-  print_(
-    nodes: NodeMap,
-    info: InfoMap,
-    offset: number,
-    indent: string,
-  ): string {
+  print_(nodes: NodeMap, info: InfoMap, offset: number, indent: string): string {
     let code = ''
     for (const line of this.lines) {
       if (
@@ -290,7 +279,12 @@ export class Assignment extends Ast {
   public pattern: NodeChild
   public equals: Tok | undefined
   public value: NodeChild
-  protected constructor(id: AstId | undefined, pattern: NodeChild, equals: Tok | undefined, value: NodeChild) {
+  protected constructor(
+    id: AstId | undefined,
+    pattern: NodeChild,
+    equals: Tok | undefined,
+    value: NodeChild,
+  ) {
     super(id, Tree.Type.Assignment)
     this.pattern = pattern
     this.equals = equals
@@ -490,22 +484,30 @@ export function normalize(nodes: NodeMap, root: AstId): AstId {
   return abstract(nodes, tree, printed).node
 }
 
-export function functionBlock(nodes: NodeMap, name: string): Block | null {
-  for (const [_id, node] of nodes) {
+export function findModuleMethod(nodes: NodeMap, name: string): AstId | null {
+  for (const [id, node] of nodes) {
     if (node instanceof Function) {
-      const nodeName = (isToken(node.name.node)) ? node.name.node.code : nodes.get(node.name.node)!.print(nodes)
+      const nodeName = isToken(node.name.node)
+        ? node.name.node.code
+        : nodes.get(node.name.node)!.print(nodes)
       if (nodeName === name) {
-        if (node.body != null) {
-          const bodyId = node.body.node
-          if (bodyId !== undefined && !isToken(bodyId)) {
-            const body = nodes.get(bodyId)
-            if (body instanceof Block) return body
-          }
-        }
+        return id
       }
     }
   }
   return null
+}
+
+export function functionBlock(nodes: NodeMap, name: string): Block | null {
+  const method = findModuleMethod(nodes, name)
+  if (method == null) return null
+  const node = nodes.get(method)
+  if (!(node instanceof Function) || node.body === null) return null
+  const bodyId = node.body.node
+  if (bodyId === undefined || isToken(bodyId)) return null
+  const body = nodes.get(bodyId)
+  if (!(body instanceof Block)) return null
+  return body
 }
 
 export function insertNewNodeAST(

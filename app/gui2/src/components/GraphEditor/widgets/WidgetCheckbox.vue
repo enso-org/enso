@@ -3,7 +3,7 @@ import CheckboxWidget from '@/components/widgets/CheckboxWidget.vue'
 import { Tree } from '@/generated/ast'
 import { Score, defineWidget, widgetAst, type WidgetProps } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
-import { Ast, type AstExtended } from '@/util/ast'
+import { RawAst, type AstExtended } from '@/util/ast'
 import { computed } from 'vue'
 
 const props = defineProps<WidgetProps>()

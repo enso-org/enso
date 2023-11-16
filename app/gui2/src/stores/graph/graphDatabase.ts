@@ -1,6 +1,8 @@
 import { SuggestionDb, groupColorStyle, type Group } from '@/stores/suggestionDatabase'
 import { tryGetIndex } from '@/util/array'
-import { Ast, AstExtended } from '@/util/ast'
+import { AstExtended, RawAst } from '@/util/ast'
+import { Ast, abstract } from '@/util/ast/abstract'
+import type { AstId } from '@/util/ast/abstract'
 import { colorFromString } from '@/util/colors'
 import { ComputedValueRegistry, type ExpressionInfo } from '@/util/computedValueRegistry'
 import { ReactiveDb, ReactiveIndex, ReactiveMapping } from '@/util/database/reactiveDb'
@@ -15,14 +17,20 @@ import {
   type NodeMetadata,
   type VisualizationMetadata,
 } from 'shared/yjsModel'
-import { ref, type Ref } from 'vue'
+import { reactive, ref, type Ref } from 'vue'
+
+/*
+const ast = reactive(new Map<AstId, Ast>())
+const astEdit = new Map<AstId, Ast>()
+const astRoot = ref<AstId>()
+ */
 
 export class GraphDb {
   nodes = new ReactiveDb<ExprId, Node>()
   idents = new ReactiveIndex(this.nodes, (_id, entry) => {
     const idents: [ExprId, string][] = []
     entry.rootSpan.visitRecursive((span) => {
-      if (span.isTree(Ast.Tree.Type.Ident)) {
+      if (span.isTree(RawAst.Tree.Type.Ident)) {
         idents.push([span.astId, span.repr()])
         return false
       }
@@ -104,7 +112,7 @@ export class GraphDb {
   }
 
   readFunctionAst(
-    functionAst: AstExtended<Ast.Tree.Function>,
+    functionAst: AstExtended<RawAst.Tree.Function>,
     getMeta: (id: ExprId) => NodeMetadata | undefined,
   ) {
     const currentNodeIds = new Set<ExprId>()
@@ -164,7 +172,7 @@ export class GraphDb {
 export interface Node {
   outerExprId: ExprId
   binding: string
-  rootSpan: AstExtended<Ast.Tree>
+  rootSpan: AstExtended<RawAst.Tree>
   position: Vec2
   vis: Opt<VisualizationMetadata>
 }
@@ -179,8 +187,8 @@ export function mockNode(binding: string, id: ExprId, code?: string): Node {
   }
 }
 
-function nodeFromAst(ast: AstExtended<Ast.Tree>): Node {
-  if (ast.isTree(Ast.Tree.Type.Assignment)) {
+function nodeFromAst(ast: AstExtended<RawAst.Tree>): Node {
+  if (ast.isTree(RawAst.Tree.Type.Assignment)) {
     return {
       outerExprId: ast.astId,
       binding: ast.map((t) => t.pattern).repr(),
@@ -199,11 +207,11 @@ function nodeFromAst(ast: AstExtended<Ast.Tree>): Node {
   }
 }
 
-function* getFunctionNodeExpressions(func: Ast.Tree.Function): Generator<Ast.Tree> {
+function* getFunctionNodeExpressions(func: RawAst.Tree.Function): Generator<RawAst.Tree> {
   if (func.body) {
-    if (func.body.type === Ast.Tree.Type.BodyBlock) {
+    if (func.body.type === RawAst.Tree.Type.BodyBlock) {
       for (const stmt of func.body.statements) {
-        if (stmt.expression && stmt.expression.type !== Ast.Tree.Type.Function) {
+        if (stmt.expression && stmt.expression.type !== RawAst.Tree.Type.Function) {
           yield stmt.expression
         }
       }

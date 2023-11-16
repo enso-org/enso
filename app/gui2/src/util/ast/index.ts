@@ -1,4 +1,4 @@
-import * as Ast from '@/generated/ast'
+import * as RawAst from '@/generated/ast'
 import { Token, Tree } from '@/generated/ast'
 import { assert } from '@/util/assert'
 import { parse } from '@/util/ffi'
@@ -10,7 +10,7 @@ import { AstExtended } from './extended'
 
 export { AstExtended }
 
-export { Ast }
+export { RawAst }
 
 export type HasAstRange = ContentRange | Tree | Token
 

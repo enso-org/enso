@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { Score, defineWidget, widgetAst, type WidgetProps } from '@/providers/widgetRegistry'
-import { Ast, AstExtended } from '@/util/ast'
+import { AstExtended, RawAst } from '@/util/ast'
 import { computed } from 'vue'
 
 const props = defineProps<WidgetProps>()
@@ -10,7 +10,7 @@ const spanClass = computed(() => widgetAst(props.input)?.treeTypeName())
 const children = computed(() => [...(widgetAst(props.input)?.children() ?? [])])
 
 function shouldNest(child: AstExtended, index: number) {
-  return widgetAst(props.input)!.isTree(Ast.Tree.Type.App) && !child.isTree(Ast.Tree.Type.App)
+  return widgetAst(props.input)!.isTree(RawAst.Tree.Type.App) && !child.isTree(RawAst.Tree.Type.App)
 }
 </script>
 

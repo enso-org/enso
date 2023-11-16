@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Score, defineWidget, widgetAst, type WidgetProps } from '@/providers/widgetRegistry'
-import { Ast } from '@/util/ast'
+import { RawAst } from '@/util/ast'
 const _props = defineProps<WidgetProps>()
 </script>
 
