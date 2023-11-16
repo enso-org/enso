@@ -9,8 +9,9 @@ import DocsTags from '@/components/DocumentationPanel/DocsTags.vue'
 import { HistoryStack } from '@/components/DocumentationPanel/history'
 import type { Docs, FunctionDocs, Sections, TypeDocs } from '@/components/DocumentationPanel/ir'
 import { lookupDocumentation, placeholder } from '@/components/DocumentationPanel/ir'
-import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
+import { groupColorStyle, useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import type { SuggestionId } from '@/stores/suggestionDatabase/entry'
+import { tryGetIndex } from '@/util/array'
 import type { Icon as IconName } from '@/util/iconName'
 import { type Opt } from '@/util/opt'
 import type { QualifiedName } from '@/util/qualifiedName'
@@ -56,18 +57,9 @@ const name = computed<Opt<QualifiedName>>(() => {
 
 // === Breadcrumbs ===
 
-const color = computed<string>(() => {
-  const id = props.selectedEntry
-  if (id) {
-    const entry = db.entries.get(id)
-    const groupIndex = entry?.groupIndex ?? -1
-    const group = db.groups[groupIndex]
-    if (group) {
-      const name = group.name.replace(/\s/g, '-')
-      return `var(--group-color-${name})`
-    }
-  }
-  return 'var(--group-color-fallback)'
+const color = computed(() => {
+  const groupIndex = db.entries.get(props.selectedEntry)?.groupIndex
+  return groupColorStyle(tryGetIndex(db.groups, groupIndex))
 })
 
 const icon = computed<IconName>(() => {

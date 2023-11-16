@@ -396,6 +396,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
       },
       (e) => {
         console.error('Failed to apply edit:', e)
+
         // Try to recover by reloading the file. Drop the attempted updates, since applying them
         // have failed.
         this.changeState(LsSyncState.WriteError)

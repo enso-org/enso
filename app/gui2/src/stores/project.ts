@@ -1,4 +1,5 @@
 import { injectGuiConfig, type GuiConfig } from '@/providers/guiConfig'
+import { Awareness } from '@/stores/awareness'
 import { bail } from '@/util/assert'
 import { ComputedValueRegistry } from '@/util/computedValueRegistry'
 import { attachProvider, useObserveYjs } from '@/util/crdt'
@@ -44,7 +45,6 @@ import {
   type WatchSource,
   type WritableComputedRef,
 } from 'vue'
-import { Awareness } from 'y-protocols/awareness'
 import * as Y from 'yjs'
 
 interface LsUrls {
@@ -472,7 +472,13 @@ export const useProjectStore = defineStore('project', () => {
     const socketUrl = new URL(location.origin)
     socketUrl.protocol = location.protocol.replace(/^http/, 'ws')
     socketUrl.pathname = '/project'
-    const provider = attachProvider(socketUrl.href, 'index', { ls: lsUrls.rpcUrl }, doc, awareness)
+    const provider = attachProvider(
+      socketUrl.href,
+      'index',
+      { ls: lsUrls.rpcUrl },
+      doc,
+      awareness.internal,
+    )
     onCleanup(() => {
       provider.dispose()
     })
@@ -516,7 +522,7 @@ export const useProjectStore = defineStore('project', () => {
   }
 
   const executionContext = createExecutionContextForMain()
-  const computedValueRegistry = new ComputedValueRegistry(executionContext)
+  const computedValueRegistry = ComputedValueRegistry.WithExecutionContext(executionContext)
   const visualizationDataRegistry = new VisualizationDataRegistry(executionContext, dataConnection)
 
   function useVisualizationData(
@@ -559,8 +565,8 @@ export const useProjectStore = defineStore('project', () => {
     modulePath,
     projectModel,
     contentRoots,
-    awareness,
-    computedValueRegistry,
+    awareness: markRaw(awareness),
+    computedValueRegistry: markRaw(computedValueRegistry),
     lsRpcConnection: markRaw(lsRpcConnection),
     dataConnection: markRaw(dataConnection),
     useVisualizationData,

@@ -26,9 +26,12 @@ self.addEventListener('install', event => {
 
 self.addEventListener('fetch', event => {
     const url = new URL(event.request.url)
-    if (url.hostname === 'localhost' && url.pathname === '/esbuild') {
+    if (
+        (url.hostname === 'localhost' || url.hostname === '127.0.0.1') &&
+        url.pathname === '/esbuild'
+    ) {
         return false
-    } else if (url.hostname === 'localhost') {
+    } else if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
         const responsePromise = caches
             .open(constants.CACHE_NAME)
             .then(cache => cache.match(event.request))

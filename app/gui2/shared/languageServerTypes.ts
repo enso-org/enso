@@ -179,6 +179,14 @@ export interface MethodPointer {
   name: string
 }
 
+export function methodPointerEquals(left: MethodPointer, right: MethodPointer): boolean {
+  return (
+    left.module === right.module &&
+    left.definedOnType === right.definedOnType &&
+    left.name === right.name
+  )
+}
+
 export type ProfilingInfo = ExecutionTime
 
 export interface ExecutionTime {
@@ -351,6 +359,18 @@ export interface ExplicitCall {
 export interface LocalCall {
   type: 'LocalCall'
   expressionId: ExpressionId
+}
+
+export function stackItemsEqual(left: StackItem, right: StackItem): boolean {
+  if (left.type !== right.type) return false
+
+  if (left.type === 'ExplicitCall') {
+    const explicitRight = right as ExplicitCall
+    return methodPointerEquals(left.methodPointer, explicitRight.methodPointer)
+  } else {
+    const localRight = right as LocalCall
+    return left.expressionId === localRight.expressionId
+  }
 }
 
 export namespace response {

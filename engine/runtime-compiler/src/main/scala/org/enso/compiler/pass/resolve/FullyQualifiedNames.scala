@@ -459,7 +459,7 @@ case object FullyQualifiedNames extends IRPass {
     override def restoreFromSerialization(
       compiler: CompilerContext
     ): Option[PartiallyResolvedFQN] = {
-      val packageRepository = compiler.getPackageRepository()
+      val packageRepository = compiler.getPackageRepository
       moduleRef
         .toConcrete(packageRepository.getModuleMap)
         .map(ResolvedModule(_))
