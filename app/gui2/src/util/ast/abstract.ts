@@ -73,6 +73,18 @@
 import { Token, Tree } from '@/generated/ast'
 import { parseEnso } from '@/util/ast'
 import type { LazyObject } from '@/util/parserSupport'
+import { reactive } from 'vue'
+
+const committed = reactive(new Map<AstId, Ast>())
+const edited = new Map<AstId, Ast>()
+
+function tryGetNode(id: AstId): Ast | null {
+  return edited.get(id) ?? committed.get(id) ?? null
+}
+
+export function getNode(id: AstId): Ast {
+  return tryGetNode(id)!
+}
 
 declare const brandAstId: unique symbol
 export type AstId = number & { [brandAstId]: never }
@@ -96,37 +108,42 @@ function newTokenId(): TokenId {
 
 export type Tok = { code: string; id?: TokenId }
 export type NodeChild = { whitespace?: string | undefined; node: AstId | Tok }
+type AstWithWhitespace = { whitespace?: string | undefined; node: AstId }
+type TokWithWhitespace = { whitespace?: string; node: Tok }
 
-function isToken(node: Tok | AstId): node is Tok {
+export function isToken(node: Tok | AstId): node is Tok {
   return typeof node == 'object'
 }
 
-type NodeMap = Map<AstId, Ast>
-
 export abstract class Ast {
-  public treeType: Tree.Type | undefined
-  public id: AstId
+  protected readonly treeType: Tree.Type | undefined
+  public readonly id: AstId
 
-  protected constructor(id?: AstId, treeType?: Tree.Type) {
+  constructor(id?: AstId, treeType?: Tree.Type) {
     this.id = id ?? newNodeId()
     this.treeType = treeType
+    edited.set(this.id, this)
   }
 
   abstract children(): Iterable<NodeChild>
 
-  print(nodes: NodeMap): PrintedSource {
+  code(): string {
+    return this.print().code
+  }
+
+  print(): PrintedSource {
     const info: InfoMap = {
       nodes: new Map(),
       tokens: new Map(),
     }
-    const code = this.print_(nodes, info, 0, '')
+    const code = this.print_(info, 0, '')
     return { info, code }
   }
 
-  print_(nodes: NodeMap, info: InfoMap, offset: number, indent: string): string {
+  print_(info: InfoMap, offset: number, indent: string): string {
     let code = ''
     for (const child of this.children()) {
-      if (child.node != null && !isToken(child.node) && nodes.get(child.node) instanceof Tombstone)
+      if (child.node != null && !isToken(child.node) && getNode(child.node) instanceof Tombstone)
         continue
       if (child.whitespace != null) {
         code += child.whitespace
@@ -137,7 +154,7 @@ export abstract class Ast {
         if (isToken(child.node)) {
           code += child.node.code
         } else {
-          code += nodes.get(child.node)!.print_(nodes, info, offset + code.length, indent)
+          code += getNode(child.node)!.print_(info, offset + code.length, indent)
         }
       }
     }
@@ -150,20 +167,23 @@ export abstract class Ast {
     }
     return code
   }
+
+  visitRecursive(visit: (ast: Ast) => boolean) {
+    for (const child of this.children()) {
+    }
+  }
 }
 
 export class Generic extends Ast {
   private readonly _children: NodeChild[]
 
-  protected constructor(id?: AstId, children?: NodeChild[], treeType?: Tree.Type) {
+  constructor(id?: AstId, children?: NodeChild[], treeType?: Tree.Type) {
     super(id, treeType)
     this._children = children ?? []
   }
 
-  static new(nodes: NodeMap, id?: AstId, children?: NodeChild[], treeType?: Tree.Type) {
-    const node = new Generic(id, children, treeType)
-    nodes.set(node.id, node)
-    return node
+  static new(id?: AstId, children?: NodeChild[], treeType?: Tree.Type) {
+    return new Generic(id, children, treeType)
   }
 
   children(): Iterable<NodeChild> {
@@ -172,83 +192,138 @@ export class Generic extends Ast {
 }
 
 type FunctionArgument = NodeChild[]
-type TokWithWhitespace = { whitespace?: string; node: Tok }
 export class Function extends Ast {
-  public name: NodeChild
-  public args: FunctionArgument[]
-  public equals: TokWithWhitespace | undefined
-  public body: NodeChild | null
-  protected constructor(
+  private _name: AstWithWhitespace
+  private _args: FunctionArgument[]
+  private _equals: TokWithWhitespace | undefined
+  private _body: AstWithWhitespace | null
+  get name(): Ast {
+    return getNode(this._name.node)
+  }
+  get body(): Ast | null {
+    return this._body ? getNode(this._body.node) : null
+  }
+  constructor(
     id: AstId | undefined,
-    name: NodeChild,
+    name: AstWithWhitespace,
     args: FunctionArgument[],
     equals: TokWithWhitespace | undefined,
-    body: NodeChild | null,
+    body: AstWithWhitespace | null,
   ) {
     super(id, Tree.Type.Function)
-    this.name = name
-    this.args = args
-    this.equals = equals
-    this.body = body
+    this._name = name
+    this._args = args
+    this._equals = equals
+    this._body = body
   }
   static new(
-    nodes: NodeMap,
     id: AstId | undefined,
-    name: NodeChild,
+    name: AstWithWhitespace,
     args: FunctionArgument[],
     equals: TokWithWhitespace | undefined,
-    body: NodeChild | null,
+    body: AstWithWhitespace | null,
   ): Function {
-    const node = new Function(id, name, args, equals, body)
-    nodes.set(node.id, node)
-    return node
+    return new Function(id, name, args, equals, body)
   }
   *children(): Iterable<NodeChild> {
-    yield this.name
-    for (const arg of this.args) yield* arg
-    if (this.equals !== undefined) {
-      yield { whitespace: this.equals.whitespace ?? ' ', node: this.equals.node }
+    yield this._name
+    for (const arg of this._args) yield* arg
+    if (this._equals !== undefined) {
+      yield { whitespace: this._equals.whitespace ?? ' ', node: this._equals.node }
     } else {
       yield { whitespace: ' ', node: { code: '=' } }
     }
-    if (this.body !== null) {
-      yield this.body
+    if (this._body !== null) {
+      yield this._body
+    }
+  }
+}
+
+export class Assignment extends Ast {
+  private _pattern: AstWithWhitespace
+  private _equals: TokWithWhitespace | undefined
+  private _expression: AstWithWhitespace
+  get pattern(): Ast {
+    return getNode(this._pattern.node)
+  }
+  get expression(): Ast {
+    return getNode(this._expression.node)
+  }
+  constructor(
+    id: AstId | undefined,
+    pattern: AstWithWhitespace,
+    equals: TokWithWhitespace | undefined,
+    expression: AstWithWhitespace,
+  ) {
+    super(id, Tree.Type.Assignment)
+    this._pattern = pattern
+    this._equals = equals
+    this._expression = expression
+  }
+  static new(
+    id: AstId | undefined,
+    ident: string,
+    equals: TokWithWhitespace | undefined,
+    expression: AstWithWhitespace,
+  ): Assignment {
+    const pattern = { node: Ident.new(undefined, ident).id }
+    return new Assignment(id, pattern, equals, expression)
+  }
+  *children(): Iterable<NodeChild> {
+    yield this._pattern
+    if (this._equals !== undefined) {
+      yield { whitespace: this._equals.whitespace ?? ' ', node: this._equals.node }
+    } else {
+      yield { whitespace: ' ', node: { code: '=' } }
+    }
+    if (this._expression !== null) {
+      yield this._expression
     }
   }
 }
 
 type BlockLine = {
   newline?: TokWithWhitespace
-  expression: NodeChild | null
+  expression: AstWithWhitespace | null
 }
 export class Block extends Ast {
-  public lines: BlockLine[]
+  private _lines: BlockLine[];
 
-  protected constructor(id: AstId | undefined, lines: BlockLine[]) {
-    super(id, Tree.Type.BodyBlock)
-    this.lines = lines
+  *expressions(): Iterable<Ast> {
+    for (const line of this._lines) {
+      if (line.expression) yield getNode(line.expression.node)
+    }
   }
 
-  static new(nodes: NodeMap, id: AstId | undefined, lines: BlockLine[]): Block {
-    const node = new Block(id, lines)
-    nodes.set(node.id, node)
-    return node
+  pushExpression(node: Ast) {
+    const cow = new Block(this.id, [...this._lines])
+    cow._lines.push({ expression: { node: node.id } })
+    edited.set(this.id, cow)
+  }
+
+  constructor(id: AstId | undefined, lines: BlockLine[]) {
+    super(id, Tree.Type.BodyBlock)
+    this._lines = lines
+  }
+
+  static new(id: AstId | undefined, lines: BlockLine[]): Block {
+    return new Block(id, lines)
   }
 
   *children(): Iterable<NodeChild> {
-    for (const line of this.lines) {
+    for (const line of this._lines) {
       yield line.newline ?? { node: { code: '\n' } }
       if (line.expression !== null) yield line.expression
     }
   }
 
-  print_(nodes: NodeMap, info: InfoMap, offset: number, indent: string): string {
+  print_(info: InfoMap, offset: number, indent: string): string {
     let code = ''
-    for (const line of this.lines) {
+    for (const line of this._lines) {
       if (
         line.expression?.node != null &&
         !isToken(line.expression.node) &&
-        nodes.get(line.expression.node) instanceof Tombstone
+        getNode(line.expression.node) instanceof Tombstone
       )
         continue
       code += line.newline?.whitespace ?? ''
@@ -259,7 +334,7 @@ export class Block extends Ast {
           if (isToken(line.expression.node)) {
             code += line.expression.node.code
           } else {
-            code += nodes.get(line.expression.node)!.print_(nodes, info, offset, indent + '    ')
+            code += getNode(line.expression.node)!.print_(info, offset, indent + '    ')
           }
         }
       }
@@ -275,48 +350,37 @@ export class Block extends Ast {
   }
 }
 
-export class Assignment extends Ast {
-  public pattern: NodeChild
-  public equals: Tok | undefined
-  public value: NodeChild
-  protected constructor(
-    id: AstId | undefined,
-    pattern: NodeChild,
-    equals: Tok | undefined,
-    value: NodeChild,
-  ) {
-    super(id, Tree.Type.Assignment)
-    this.pattern = pattern
-    this.equals = equals
-    this.value = value
+export class Ident extends Ast {
+  public token: TokWithWhitespace
+
+  constructor(id: AstId | undefined, token: TokWithWhitespace) {
+    super(id, Tree.Type.Ident)
+    this.token = token
   }
-  static new(nodes: NodeMap, id: AstId | undefined, name: string, expression: AstId): Assignment {
-    const pattern = { node: { code: name } }
-    const value = { node: expression }
-    const node = new Assignment(id, pattern, undefined, value)
-    nodes.set(node.id, node)
-    return node
+
+  static new(id: AstId | undefined, code: string): Ident {
+    return Ident.fromToken(id, { node: { code } })
+  }
+
+  static fromToken(id: AstId | undefined, token: TokWithWhitespace): Ident {
+    return new Ident(id, token)
   }
 
   *children(): Iterable<NodeChild> {
-    yield this.pattern
-    const defaultEquals = { whitespace: this.value.whitespace, code: '=' }
-    yield { node: this.equals ?? defaultEquals }
-    yield this.value
+    yield this.token
   }
 }
+
 export class RawCode extends Ast {
   public code: NodeChild
 
-  protected constructor(id: AstId | undefined, code: NodeChild) {
+  constructor(id: AstId | undefined, code: NodeChild) {
     super(id)
     this.code = code
   }
 
-  static new(nodes: NodeMap, id: AstId | undefined, code: string): RawCode {
-    const node = new RawCode(id, { node: { code } })
-    nodes.set(node.id, node)
-    return node
+  static new(id: AstId | undefined, code: string): RawCode {
+    return new RawCode(id, { node: { code } })
   }
 
   *children(): Iterable<NodeChild> {
@@ -324,14 +388,12 @@ export class RawCode extends Ast {
   }
 }
 export class Tombstone extends Ast {
-  protected constructor(id: AstId | undefined) {
+  constructor(id: AstId | undefined) {
     super(id)
   }
 
-  static new(nodes: NodeMap, id: AstId | undefined): Tombstone {
-    const node = new Tombstone(id)
-    nodes.set(node.id, node)
-    return node
+  static new(id: AstId | undefined): Tombstone {
+    return new Tombstone(id)
   }
 
   children(): Iterable<NodeChild> {
@@ -354,24 +416,25 @@ export class Tombstone extends Ast {
 // - I think usually an edit won't depend on analysis of the result of some sub-edit
 // - we can support explicit reanalysis-points when needed
 
-export type CodeMaybePrinted = {
-  info?: InfoMap
-  code: string
+export function parse(source: PrintedSource | string): Ast {
+  const code = typeof source === 'object' ? source.code : source
+  const ids = typeof source === 'object' ? source.info : undefined
+  const tree = parseEnso(code)
+  return getNode(abstract(tree, code, ids).node)
 }
 
-export function abstract(
-  nodesOut: NodeMap,
+function abstract(
   tree: Tree,
-  source: CodeMaybePrinted,
+  code: string,
+  info: InfoMap | undefined,
 ): { whitespace: string | undefined; node: AstId } {
   const nodesExpected = new Map(
-    Array.from(source.info?.nodes.entries() ?? [], ([span, ids]) => [span, [...ids]]),
+    Array.from(info?.nodes.entries() ?? [], ([span, ids]) => [span, [...ids]]),
   )
-  const tokenIds = source.info?.tokens ?? new Map()
-  return abstract_(nodesOut, tree, source.code, nodesExpected, tokenIds)
+  const tokenIds = info?.tokens ?? new Map()
+  return abstract_(tree, code, nodesExpected, tokenIds)
 }
 function abstract_(
-  nodesOut: NodeMap,
   tree: Tree,
   code: string,
   nodesExpected: NodeSpanMap,
@@ -382,7 +445,7 @@ function abstract_(
     const children: NodeChild[] = []
     const visitor = (child: LazyObject) => {
       if (Tree.isInstance(child)) {
-        children.push(abstract_(nodesOut, child, code, nodesExpected, tokenIds))
+        children.push(abstract_(child, code, nodesExpected, tokenIds))
       } else if (Token.isInstance(child)) {
         children.push(abstractToken(child, code, tokenIds))
       } else {
@@ -403,29 +466,40 @@ function abstract_(
         const newline = abstractToken(line.newline, code, tokenIds)
         let expression = null
         if (line.expression != null) {
-          expression = abstract_(nodesOut, line.expression, code, nodesExpected, tokenIds)
+          expression = abstract_(line.expression, code, nodesExpected, tokenIds)
         }
         return { newline, expression }
       })
       const id = nodesExpected.get(span)?.pop()
-      node = Block.new(nodesOut, id, lines)
+      node = new Block(id, lines)
       break
     }
     case Tree.Type.Function: {
-      const name = abstract_(nodesOut, tree.name, code, nodesExpected, tokenIds)
+      const name = abstract_(tree.name, code, nodesExpected, tokenIds)
       const args = Array.from(tree.args, (arg) => visitChildren(arg))
       const equals = abstractToken(tree.equals, code, tokenIds)
       const body =
-        tree.body !== undefined
-          ? abstract_(nodesOut, tree.body, code, nodesExpected, tokenIds)
-          : null
+        tree.body !== undefined ? abstract_(tree.body, code, nodesExpected, tokenIds) : null
       const id = nodesExpected.get(span)?.pop()
-      node = Function.new(nodesOut, id, name, args, equals, body)
+      node = new Function(id, name, args, equals, body)
+      break
+    }
+    case Tree.Type.Ident: {
+      const id = nodesExpected.get(span)?.pop()
+      node = Ident.fromToken(id, abstractToken(tree.token, code, tokenIds))
+      break
+    }
+    case Tree.Type.Assignment: {
+      const pattern = abstract_(tree.pattern, code, nodesExpected, tokenIds)
+      const equals = abstractToken(tree.equals, code, tokenIds)
+      const value = abstract_(tree.expr, code, nodesExpected, tokenIds)
+      const id = nodesExpected.get(span)?.pop()
+      node = new Assignment(id, pattern, equals, value)
       break
     }
     default: {
       const id = nodesExpected.get(span)?.pop()
-      node = Generic.new(nodesOut, id, visitChildren(tree), tree.type)
+      node = new Generic(id, visitChildren(tree), tree.type)
     }
   }
   const whitespace = code.substring(whitespaceStart, whitespaceEnd)
@@ -468,23 +542,25 @@ export type PrintedSource = {
 }
 
 type DebugTree = (DebugTree | string)[]
-export function debug(nodes: NodeMap, id: AstId): DebugTree {
-  return Array.from(nodes.get(id)!.children(), (child) => {
+export function debug(id: AstId): DebugTree {
+  return Array.from(getNode(id)!.children(), (child) => {
     if (isToken(child.node)) {
       return child.node.code
     } else {
-      return debug(nodes, child.node)
+      return debug(child.node)
     }
   })
 }
 
-export function normalize(nodes: NodeMap, root: AstId): AstId {
-  const printed = nodes.get(root)!.print(nodes)
+export function normalize(root: AstId): AstId {
+  const printed = getNode(root)!.print()
   const tree = parseEnso(printed.code)
-  return abstract(nodes, tree, printed).node
+  return abstract(tree, printed.code, printed.info).node
 }
 
-export function findModuleMethod(nodes: NodeMap, name: string): AstId | null {
+export function findModuleMethod(name: string): AstId | null {
+  // TODO
+  /*
   for (const [id, node] of nodes) {
     if (node instanceof Function) {
       const nodeName = isToken(node.name.node)
@@ -495,37 +571,35 @@ export function findModuleMethod(nodes: NodeMap, name: string): AstId | null {
       }
     }
   }
+   */
   return null
 }
 
-export function functionBlock(nodes: NodeMap, name: string): Block | null {
-  const method = findModuleMethod(nodes, name)
+export function functionBlock(name: string): Block | null {
+  const method = findModuleMethod(name)
   if (method == null) return null
-  const node = nodes.get(method)
+  const node = getNode(method)
   if (!(node instanceof Function) || node.body === null) return null
-  const bodyId = node.body.node
-  if (bodyId === undefined || isToken(bodyId)) return null
-  const body = nodes.get(bodyId)
+  const body = node.body
   if (!(body instanceof Block)) return null
   return body
 }
 
 export function insertNewNodeAST(
-  nodes: NodeMap,
   block: Block,
   ident: string,
   expression: string,
 ): { assignment: AstId; value: AstId } {
-  const value = RawCode.new(nodes, undefined, expression)
-  const assignment = Assignment.new(nodes, undefined, ident, value.id)
-  block.lines.push({ expression: { node: assignment.id } })
-  return { assignment: assignment.id, value: value.id }
+  const value = RawCode.new(undefined, expression).id
+  const assignment = Assignment.new(undefined, ident, undefined, { node: value })
+  block.pushExpression(assignment)
+  return { assignment: assignment.id, value }
 }
 
-export function deleteExpressionAST(nodes: NodeMap, id: AstId) {
-  return Tombstone.new(nodes, id)
+export function deleteExpressionAST(id: AstId) {
+  return Tombstone.new(id)
 }
 
-export function replaceExpressionContentAST(nodes: NodeMap, id: AstId, code: string) {
-  return RawCode.new(nodes, id, code)
+export function replaceExpressionContentAST(id: AstId, code: string) {
+  return RawCode.new(id, code)
 }

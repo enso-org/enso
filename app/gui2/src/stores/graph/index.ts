@@ -104,7 +104,7 @@ export const useGraphStore = defineStore('graph', () => {
         idMap,
       )
       if (methodAst) {
-        db.readFunctionAst(methodAst, (id) => meta.get(id))
+        db.readFunctionAst(methodAst, newAst, (id) => meta.get(id))
       }
     })
   }

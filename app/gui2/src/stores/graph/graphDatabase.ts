@@ -1,8 +1,8 @@
 import { SuggestionDb, groupColorStyle, type Group } from '@/stores/suggestionDatabase'
 import { tryGetIndex } from '@/util/array'
 import { AstExtended, RawAst } from '@/util/ast'
-import { Ast, abstract } from '@/util/ast/abstract'
 import type { AstId } from '@/util/ast/abstract'
+import { Assignment, Ast, Block, Function, abstract } from '@/util/ast/abstract'
 import { colorFromString } from '@/util/colors'
 import { ComputedValueRegistry, type ExpressionInfo } from '@/util/computedValueRegistry'
 import { ReactiveDb, ReactiveIndex, ReactiveMapping } from '@/util/database/reactiveDb'
@@ -17,10 +17,9 @@ import {
   type NodeMetadata,
   type VisualizationMetadata,
 } from 'shared/yjsModel'
-import { reactive, ref, type Ref } from 'vue'
+import { ref, type Ref } from 'vue'
 
 /*
-const ast = reactive(new Map<AstId, Ast>())
 const astEdit = new Map<AstId, Ast>()
 const astRoot = ref<AstId>()
  */
@@ -112,12 +111,12 @@ export class GraphDb {
   }
 
   readFunctionAst(
-    functionAst: AstExtended<RawAst.Tree.Function>,
+    functionAst: Function,
     getMeta: (id: ExprId) => NodeMetadata | undefined,
   ) {
     const currentNodeIds = new Set<ExprId>()
     if (functionAst) {
-      for (const nodeAst of functionAst.visit(getFunctionNodeExpressions)) {
+      for (const nodeAst of getFunctionNodeExpressions(functionAst)) {
         const newNode = nodeFromAst(nodeAst)
         const nodeId = newNode.rootSpan.astId
         const node = this.nodes.get(nodeId)
@@ -170,9 +169,9 @@ export class GraphDb {
 }
 
 export interface Node {
-  outerExprId: ExprId
+  outerExprId: AstId
   binding: string
-  rootSpan: AstExtended<RawAst.Tree>
+  rootSpan: Ast
   position: Vec2
   vis: Opt<VisualizationMetadata>
 }
@@ -187,36 +186,38 @@ export function mockNode(binding: string, id: ExprId, code?: string): Node {
   }
 }
 
-function nodeFromAst(ast: AstExtended<RawAst.Tree>): Node {
-  if (ast.isTree(RawAst.Tree.Type.Assignment)) {
+function nodeFromAst(ast: Ast): Node {
+  const common = {
+    outerExprId: ast.id,
+    position: Vec2.Zero,
+    vis: undefined,
+  }
+  if (ast instanceof Assignment) {
     return {
-      outerExprId: ast.astId,
-      binding: ast.map((t) => t.pattern).repr(),
-      rootSpan: ast.map((t) => t.expr),
-      position: Vec2.Zero,
-      vis: undefined,
+      binding: ast.pattern.code(),
+      rootSpan: ast.expression,
+      ...common,
     }
   } else {
     return {
-      outerExprId: ast.astId,
       binding: '',
       rootSpan: ast,
-      position: Vec2.Zero,
-      vis: undefined,
+      ...common,
     }
   }
 }
 
-function* getFunctionNodeExpressions(func: RawAst.Tree.Function): Generator<RawAst.Tree> {
-  if (func.body) {
-    if (func.body.type === RawAst.Tree.Type.BodyBlock) {
-      for (const stmt of func.body.statements) {
-        if (stmt.expression && stmt.expression.type !== RawAst.Tree.Type.Function) {
-          yield stmt.expression
-        }
+function* getFunctionNodeExpressions(func: Function, nodes: NodeMap): Generator<Ast> {
+  if (func.body === null) return
+  const body = nodes.get(func.body.node)
+  if (body instanceof Block) {
+    for (const stmt of body._lines) {
+      if (stmt.expression) {
+        const expression = nodes.get(stmt.expression.node)
+        if (expression && !(expression instanceof Function)) yield expression
       }
-    } else {
-      yield func.body
     }
+  } else if (body) {
+    yield body
   }
 }
