@@ -136,18 +136,7 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
 
     @Override
     protected byte[] serialize(EnsoContext context, CachedModule entry) throws IOException {
-      boolean noUUIDs = false;
-      for (var p : context.getPackageRepository().getLoadedPackagesJava()) {
-        if ("Standard".equals(p.namespace())) {
-          for (var s : p.listSourcesJava()) {
-            if (s.file().getPath().equals(entry.source().getPath())) {
-              noUUIDs = true;
-              break;
-            }
-          }
-        }
-      }
-      var arr = Persistance.writeObject(entry.moduleIR());
+      var arr = Persistance.writeObject(entry.moduleIR(), context.getCompiler().context());
       return arr;
     }
 

@@ -432,12 +432,15 @@ public final class IrPersistance {
     @Override
     @SuppressWarnings("unchecked")
     protected void writeObject(MetadataStorage obj, Output out) throws IOException {
-      var map =
-          obj.map(
-              (processingPass, metadata) -> {
-                var t = new Tuple2<>(processingPass.getClass().getName(), metadata);
-                return t;
-              });
+      var map = obj.map((processingPass, data) -> {
+        if (out.lookup(CompilerStub.class) instanceof CompilerStub stub) {
+          var metadata = data.prepareForSerialization(stub);
+          var t = new Tuple2<>(processingPass.getClass().getName(), metadata);
+          return t;
+        } else {
+          throw raise(RuntimeException.class, new IOException("Cannot prepare " + data + " for serialization"));
+        }
+      });
       out.writeInline(scala.collection.immutable.Map.class, map);
     }
 
@@ -496,5 +499,10 @@ public final class IrPersistance {
   private static <T> scala.collection.immutable.List<T> join(
       T head, scala.collection.immutable.List<T> tail) {
     return scala.collection.immutable.$colon$colon$.MODULE$.apply(head, tail);
+  }
+
+  @SuppressWarnings("unchecked")
+  private static <E extends Throwable> E raise(Class<E> clazz, Throwable t) throws E {
+    throw (E)t;
   }
 }

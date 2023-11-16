@@ -39,16 +39,7 @@ public abstract class Persistance<T> {
     return sb.toString();
   }
 
-  public static interface Output extends DataOutput {
-    public abstract <T> void writeInline(Class<T> clazz, T obj) throws IOException;
-    public abstract void writeObject(Object obj) throws IOException;
-  }
-
-  public static interface Input extends DataInput {
-    public abstract <T> T readInline(Class<T> clazz) throws IOException;
-    public abstract Object readObject() throws IOException;
-    public <T> Reference<T> readReference(Class<T> clazz) throws IOException;
-
+  public static interface Context {
     /**
     * Looks an associated service up. The service can be specified as
     * additional arguments to {@link #readObject(byte[], Object...)}.
@@ -58,6 +49,17 @@ public abstract class Persistance<T> {
     * @return instance of the requested service or {@code null}
     */
     public abstract <T> T lookup(Class<T> clazz);
+  }
+
+  public static interface Output extends DataOutput, Context {
+    public abstract <T> void writeInline(Class<T> clazz, T obj) throws IOException;
+    public abstract void writeObject(Object obj) throws IOException;
+  }
+
+  public static interface Input extends DataInput, Context {
+    public abstract <T> T readInline(Class<T> clazz) throws IOException;
+    public abstract Object readObject() throws IOException;
+    public <T> Reference<T> readReference(Class<T> clazz) throws IOException;
   }
 
   final void writeInline(Object obj, Output out) throws IOException {
@@ -85,14 +87,14 @@ public abstract class Persistance<T> {
     return Reference.from(cache, at);
   }
 
-  public static byte[] writeObject(Object obj) throws IOException {
+  public static byte[] writeObject(Object obj, Object... context) throws IOException {
     var out = new ByteArrayOutputStream();
     var data = new DataOutputStream(out);
     data.write(Generator.HEADER);
     data.writeInt(PersistanceMap.DEFAULT.versionStamp);
     data.write(new byte[4]); // space
     data.flush();
-    var g = new Generator(out, 12);
+    var g = new Generator(out, 12, context);
     var at = g.writeObject(obj);
     var arr = out.toByteArray();
     arr[4] = (byte) ((at >> 24) & 0xff);
@@ -102,19 +104,33 @@ public abstract class Persistance<T> {
     return arr;
   }
 
-  public static final class Generator {
+  private static <T> T lookupService(Class<T> clazz, Object[] services) {
+      if (clazz == Object.class) {
+        return null;
+      }
+      for (var o : services) {
+        if (clazz.isInstance(o)) {
+          return clazz.cast(o);
+        }
+      }
+      return null;
+  }
+
+  private static final class Generator {
     static final byte[] HEADER = new byte[] { 0x0a, 0x0d, 0x02, 0x0f };
 
     private final OutputStream main;
     private final Map<Object,Integer> knownObjects = new IdentityHashMap<>();
+    private final Object[] services;
     private int position;
 
-    private Generator(OutputStream out, int position) {
+    private Generator(OutputStream out, int position, Object[] services) {
       this.main = out;
+      this.services = services;
       this.position = position;
     }
 
-    public <T> int writeObject(T obj) throws IOException {
+    final <T> int writeObject(T obj) throws IOException {
       if (obj == null) {
         return -1;
       }
@@ -269,6 +285,11 @@ public abstract class Persistance<T> {
     }
 
     @Override
+    public <T> T lookup(Class<T> clazz) {
+      return lookupService(clazz, generator.services);
+    }
+
+    @Override
     public <T> void writeInline(Class<T> clazz, T obj) throws IOException {
       var p = PersistanceMap.DEFAULT.forType(clazz);
       p.writeInline(obj, this);
@@ -301,15 +322,7 @@ public abstract class Persistance<T> {
 
     @Override
     public <T> T lookup(Class<T> clazz) {
-      if (clazz == Object.class) {
-        return null;
-      }
-      for (var o : cache.services) {
-        if (clazz.isInstance(o)) {
-          return clazz.cast(o);
-        }
-      }
-      return null;
+      return lookupService(clazz, cache.services);
     }
 
     @Override

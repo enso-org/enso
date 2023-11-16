@@ -910,10 +910,7 @@ class ImportExportTest
         .diagnostics
         .collect({ case w: Warning.DuplicatedImport => w })
       warn.size shouldEqual 1
-      mainIr.preorder.foreach(
-        _.passData.prepareForSerialization(langCtx.getCompiler.context)
-      )
-      val arr = Persistance.writeObject(mainIr)
+      val arr = Persistance.writeObject(mainIr, langCtx.getCompiler.context)
       arr should not be empty
     }
 
@@ -940,11 +937,8 @@ class ImportExportTest
         .reason
         .asInstanceOf[errors.ImportExport.AmbiguousImport]
       ambiguousImport.symbolName shouldEqual "A_Type"
-      mainIr.preorder.foreach(
-        _.passData.prepareForSerialization(langCtx.getCompiler.context)
-      )
       try {
-        val arr = Persistance.writeObject(mainIr)
+        val arr = Persistance.writeObject(mainIr, langCtx.getCompiler.context)
         fail("Shouldn't return anything when there is an error" + arr)
       } catch {
         case ex: IOException =>

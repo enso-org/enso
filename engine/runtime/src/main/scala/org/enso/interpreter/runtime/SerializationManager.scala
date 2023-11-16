@@ -119,10 +119,6 @@ final class SerializationManager(private val context: TruffleCompilerContext) {
       module.getIr,
       module.getIr.duplicate(keepIdentifiers = true)
     )
-    duplicatedIr.preorder.foreach(
-      _.passData.prepareForSerialization(compiler.context)
-    )
-
     val task = doSerializeModule(
       getCache(module),
       duplicatedIr,

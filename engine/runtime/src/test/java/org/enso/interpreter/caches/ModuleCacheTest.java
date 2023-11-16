@@ -47,18 +47,12 @@ public class ModuleCacheTest extends TestBase {
     assertTrue("Module found", option.isPresent());
     var module = option.get();
     var ir = module.getIr().duplicate(true, true, true, true);
-    for (var node : ScalaConversions.asJava(ir.preorder())) {
-      node.passData().prepareForSerialization(ensoCtx.getCompiler().context());
-    }
     var cm = new ModuleCache.CachedModule(ir, CompilationStage.AFTER_CODEGEN, module.getSource());
     byte[] arr = module.getCache().serialize(ensoCtx, cm);
 
     var meta = new ModuleCache.Metadata("hash", "code", CompilationStage.AFTER_CODEGEN.toString());
     var cachedIr = module.getCache().deserialize(ensoCtx, arr, meta, null);
     assertNotNull("IR read", cachedIr);
-    for (var node : ScalaConversions.asJava(cachedIr.moduleIR().preorder())) {
-      node.passData().prepareForSerialization(ensoCtx.getCompiler().context());
-    }
     CompilerTest.assertIR(name, ir, cachedIr.moduleIR());
   }
 }
