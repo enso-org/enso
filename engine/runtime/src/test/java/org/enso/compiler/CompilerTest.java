@@ -129,6 +129,15 @@ public abstract class CompilerTest {
       int to = txt.indexOf("reason =", at + pref.length());
       txt = txt.substring(0, at) + "errors.Syntax (" + txt.substring(to);
     }
+    for (;;) {
+      final String pref = "List(";
+      int at = txt.indexOf(pref);
+      if (at == -1) {
+        break;
+      }
+      int to = at + pref.length();
+      txt = txt.substring(0, at) + "Seq(" + txt.substring(to);
+    }
     return txt;
   }
 }
