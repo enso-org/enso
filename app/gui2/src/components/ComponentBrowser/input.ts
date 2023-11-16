@@ -8,6 +8,7 @@ import {
 } from '@/stores/suggestionDatabase/entry'
 import {
   Ast,
+  AstExtended,
   astContainingChar,
   parseEnso,
   parsedTreeRange,
@@ -85,7 +86,7 @@ export function useComponentBrowserInput(graphDb: GraphDb = useGraphStore().db) 
   })
 
   const internalUsages = computed(() => {
-    const analyzer = new AliasAnalyzer(code.value, ast.value)
+    const analyzer = new AliasAnalyzer(AstExtended.parse(code.value))
     analyzer.process()
     function* internalUsages() {
       for (const [_definition, usages] of analyzer.aliases) {

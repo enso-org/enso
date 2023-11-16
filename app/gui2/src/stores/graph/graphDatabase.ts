@@ -9,6 +9,7 @@ import { ReactiveDb, ReactiveIndex, ReactiveMapping } from '@/util/database/reac
 import type { Opt } from '@/util/opt'
 import { qnJoin, tryQualifiedName } from '@/util/qualifiedName'
 import { Vec2 } from '@/util/vec2'
+import { mapIterator } from 'lib0/iterator'
 import * as set from 'lib0/set'
 import {
   IdMap,
@@ -20,32 +21,33 @@ import {
 } from 'shared/yjsModel'
 import { ref, type Ref } from 'vue'
 
-export class AliasAnalysisResult {
-  nodeUsages = new ReactiveDb<ExprId, Set<ExprId>>()
+export class ConnectionsDb {
+  aliasUsages = new ReactiveDb<ExprId, Set<ExprId>>()
+  connections = new ReactiveIndex(this.aliasUsages, (src, targets) =>
+    Array.from(targets, (target) => [src, target]),
+  )
 
   readFunctionAst(ast: AstExtended<Ast.Tree.Function>) {
     const aliasAnalysis = new AliasAnalyzer(ast)
+    this.removeOldAliases(aliasAnalysis)
+    for (const [alias, newUsages] of aliasAnalysis.aliases) {
+      const currentUsages = this.aliasUsages.get(alias)
+      if (currentUsages == null) this.aliasUsages.set(alias, newUsages)
+      else {
+        for (const usage of currentUsages) {
+          if (!newUsages.has(usage)) currentUsages.delete(usage)
+        }
+        for (const usage of newUsages) {
+          if (!currentUsages.has(usage)) currentUsages.add(usage)
+        }
+      }
+    }
+  }
 
-    for (const nodeAst of ast.visit(getFunctionNodeExpressions)) {
-      const node = nodeFromAst(nodeAst)
-      const nodeId = newNode.rootSpan.astId
-      const usages = this.nodeUsages.get(nodeId)
-      const nodeMeta = getMeta(nodeId)
-      currentNodeIds.add(nodeId)
-      if (node == null) {
-        this.nodes.set(nodeId, newNode)
-        if (nodeMeta) this.assignUpdatedMetadata(newNode, nodeMeta)
-      } else {
-        if (node.binding !== newNode.binding) {
-          node.binding = newNode.binding
-        }
-        if (node.outerExprId !== newNode.outerExprId) {
-          node.outerExprId = newNode.outerExprId
-        }
-        if (indexedDB.cmp(node.rootSpan.contentHash(), newNode.rootSpan.contentHash()) !== 0) {
-          node.rootSpan = newNode.rootSpan
-        }
-        if (nodeMeta) this.assignUpdatedMetadata(node, nodeMeta)
+  private removeOldAliases(aliasAnalysis: AliasAnalyzer) {
+    for (const key of this.aliasUsages.keys()) {
+      if (!aliasAnalysis.aliases.has(key)) {
+        this.aliasUsages.delete(key)
       }
     }
   }
@@ -53,36 +55,41 @@ export class AliasAnalysisResult {
 
 export class GraphDb {
   nodes = new ReactiveDb<ExprId, Node>()
-  idents = new ReactiveIndex(this.nodes, (_id, entry) => {
-    const idents: [ExprId, string][] = []
-    entry.rootSpan.visitRecursive((span) => {
-      if (span.isTree(Ast.Tree.Type.Ident)) {
-        idents.push([span.astId, span.repr()])
-        return false
-      }
-      return true
-    })
-    return idents
-  })
-  private nodeExpressions = new ReactiveIndex(this.nodes, (id, entry) => {
+  private connectionsDb = new ConnectionsDb()
+
+  constructor(
+    private suggestionDb: SuggestionDb,
+    private groups: Ref<Group[]>,
+    private valuesRegistry: ComputedValueRegistry,
+  ) {}
+
+  private nodePatternExpressions = new ReactiveIndex(this.nodes, (id, entry) => {
+    if (entry.pattern == null) return []
     const exprs = new Set<ExprId>()
-    for (const ast of entry.rootSpan.walkRecursive()) {
-      exprs.add(ast.astId)
+    for (const ast of entry.pattern.walkRecursive()) {
+      exprs.add(ast.astId())
     }
     return Array.from(exprs, (expr) => [id, expr])
   })
-  nodeByBinding = new ReactiveIndex(this.nodes, (id, entry) => [[entry.binding, id]])
-  connections = new ReactiveIndex(this.nodes, (id, entry) => {
-    const usageEntries: [ExprId, ExprId][] = []
-    const usages = this.idents.reverseLookup(entry.binding)
-    for (const usage of usages) {
-      usageEntries.push([id, usage])
+
+  private nodeExpressions = new ReactiveIndex(this.nodes, (id, entry) => {
+    const exprs = new Set<ExprId>()
+    for (const ast of entry.rootSpan.walkRecursive()) {
+      exprs.add(ast.astId())
     }
-    return usageEntries
+    return Array.from(exprs, (expr) => [id, expr])
   })
+
+  nodeByBinding = new ReactiveIndex(this.nodes, (id, entry) => [[entry.pattern?.repr(), id]])
+
+  get connections() {
+    return this.connectionsDb.connections
+  }
+
   nodeExpressionInfo = new ReactiveMapping(this.nodes, (id, _entry) =>
     this.valuesRegistry.getExpressionInfo(id),
   )
+
   nodeMainSuggestion = new ReactiveMapping(this.nodes, (id, _entry) => {
     const expressionInfo = this.nodeExpressionInfo.lookup(id)
     const method = expressionInfo?.methodCall?.methodPointer
@@ -95,6 +102,7 @@ export class GraphDb {
     if (suggestionId == null) return
     return this.suggestionDb.get(suggestionId)
   })
+
   private nodeColors = new ReactiveMapping(this.nodes, (id, _entry) => {
     const index = this.nodeMainSuggestion.lookup(id)?.groupIndex
     const group = tryGetIndex(this.groups.value, index)
@@ -145,7 +153,7 @@ export class GraphDb {
     if (functionAst) {
       for (const nodeAst of functionAst.visit(getFunctionNodeExpressions)) {
         const newNode = nodeFromAst(nodeAst)
-        const nodeId = newNode.rootSpan.astId
+        const nodeId = newNode.rootSpan.astId()
         const node = this.nodes.get(nodeId)
         const nodeMeta = getMeta(nodeId)
         currentNodeIds.add(nodeId)
@@ -153,8 +161,8 @@ export class GraphDb {
           this.nodes.set(nodeId, newNode)
           if (nodeMeta) this.assignUpdatedMetadata(newNode, nodeMeta)
         } else {
-          if (node.binding !== newNode.binding) {
-            node.binding = newNode.binding
+          if (indexedDB.cmp(node.pattern?.contentHash(), newNode.pattern?.contentHash())) {
+            node.pattern = newNode.pattern
           }
           if (node.outerExprId !== newNode.outerExprId) {
             node.outerExprId = newNode.outerExprId
@@ -172,6 +180,7 @@ export class GraphDb {
         this.nodes.delete(nodeId)
       }
     }
+    this.connectionsDb.readFunctionAst(functionAst)
   }
 
   assignUpdatedMetadata(node: Node, meta: NodeMetadata) {
@@ -184,12 +193,6 @@ export class GraphDb {
     }
   }
 
-  constructor(
-    private suggestionDb: SuggestionDb,
-    private groups: Ref<Group[]>,
-    private valuesRegistry: ComputedValueRegistry,
-  ) {}
-
   static Mock(registry = ComputedValueRegistry.Mock()): GraphDb {
     return new GraphDb(new SuggestionDb(), ref([]), registry)
   }
@@ -197,7 +200,7 @@ export class GraphDb {
 
 export interface Node {
   outerExprId: ExprId
-  binding: string
+  pattern: AstExtended<Ast.Tree> | undefined
   rootSpan: AstExtended<Ast.Tree>
   position: Vec2
   vis: Opt<VisualizationMetadata>
@@ -206,7 +209,7 @@ export interface Node {
 export function mockNode(binding: string, id: ExprId, code?: string): Node {
   return {
     outerExprId: id,
-    binding,
+    pattern: AstExtended.parse(binding, IdMap.Mock()),
     rootSpan: AstExtended.parse(code ?? '0', IdMap.Mock()),
     position: Vec2.Zero,
     vis: undefined,
@@ -216,16 +219,16 @@ export function mockNode(binding: string, id: ExprId, code?: string): Node {
 function nodeFromAst(ast: AstExtended<Ast.Tree>): Node {
   if (ast.isTree(Ast.Tree.Type.Assignment)) {
     return {
-      outerExprId: ast.astId,
-      binding: ast.map((t) => t.pattern).repr(),
+      outerExprId: ast.astId(),
+      pattern: ast.map((t) => t.pattern),
       rootSpan: ast.map((t) => t.expr),
       position: Vec2.Zero,
       vis: undefined,
     }
   } else {
     return {
-      outerExprId: ast.astId,
-      binding: '',
+      outerExprId: ast.astId(),
+      pattern: undefined,
       rootSpan: ast,
       position: Vec2.Zero,
       vis: undefined,
