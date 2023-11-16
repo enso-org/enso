@@ -64,7 +64,9 @@ useEvent(
   'pointerdown',
   (event) => {
     if (
-      document.activeElement instanceof HTMLElement &&
+      (document.activeElement instanceof HTMLElement ||
+        document.activeElement instanceof SVGElement ||
+        document.activeElement instanceof MathMLElement) &&
       viewportNode.value?.contains(document.activeElement)
     ) {
       const activeElement = document.activeElement

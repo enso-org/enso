@@ -28,6 +28,17 @@ function onWheel(event: WheelEvent) {
   }
 }
 
+function blur(event: Event) {
+  const target = event.target
+  if (
+    !(target instanceof HTMLElement) &&
+    !(target instanceof SVGElement) &&
+    !(target instanceof MathMLElement)
+  )
+    return
+  setTimeout(() => target.blur(), 0)
+}
+
 const rootNode = ref<HTMLElement>()
 const contentNode = ref<HTMLElement>()
 
@@ -102,21 +113,27 @@ const resizeBottomRight = usePointer((pos, _, type) => {
             hidden: config.fullscreen,
           }"
         >
-          <button class="image-button active" @pointerdown.stop="config.hide()">
+          <button
+            class="image-button active"
+            @pointerdown.stop="config.hide()"
+            @click="config.hide()"
+          >
             <SvgIcon class="icon" name="eye" />
           </button>
         </div>
         <div class="toolbar">
           <button
             class="image-button active"
-            @pointerdown.stop="config.fullscreen = !config.fullscreen"
+            @pointerdown.stop="(config.fullscreen = !config.fullscreen), blur($event)"
+            @click="config.fullscreen = !config.fullscreen"
           >
             <SvgIcon class="icon" :name="config.fullscreen ? 'exit_fullscreen' : 'fullscreen'" />
           </button>
           <div class="icon-container">
             <button
               class="image-button active"
-              @pointerdown.stop="isSelectorVisible = !isSelectorVisible"
+              @pointerdown.stop="(isSelectorVisible = !isSelectorVisible), blur($event)"
+              @click="isSelectorVisible = !isSelectorVisible"
             >
               <SvgIcon class="icon" name="compass" />
             </button>
