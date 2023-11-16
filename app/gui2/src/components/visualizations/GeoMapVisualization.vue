@@ -421,7 +421,9 @@ function pushPoints(newPoints: Location[]) {
   min-height: 24px;
 }
 
-/* Copied from mapbox-gl CSS. */
+/* Copied from mapbox-gl CSS. This is required because Tailwind's global CSS reset resets
+ * `background-color` and `background-image` to default values for buttons, and Mapbox's
+ * selector has lower specificity. */
 :deep(.mapboxgl-ctrl-attrib-button.mapboxgl-ctrl-attrib-button) {
   background-color: hsla(0, 0%, 100%, 0.5);
   background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg width='24' height='24' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg' fill-rule='evenodd'%3E%3Cpath d='M4 10a6 6 0 1012 0 6 6 0 10-12 0m5-3a1 1 0 102 0 1 1 0 10-2 0m0 3a1 1 0 112 0v3a1 1 0 11-2 0'/%3E%3C/svg%3E");
