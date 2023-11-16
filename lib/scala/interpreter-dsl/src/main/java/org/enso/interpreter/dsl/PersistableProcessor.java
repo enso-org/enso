@@ -131,7 +131,7 @@ public class PersistableProcessor extends AbstractProcessor {
       w.append("  }\n");
       w.append("  @SuppressWarnings(\"unchecked\")\n");
       w.append("  protected ").append(typeElemName).append(" readObject(Input in) throws IOException {\n");
-      w.append("    /* found: ").append(cons.getParameters().toString()).append("*/\n");
+
       for (var v : cons.getParameters()) {
         if (tu.isSameType(eu.getTypeElement("java.lang.String").asType(), v.asType())) {
           w.append("    var ").append(v.getSimpleName()).append(" = in.readUTF();\n");
@@ -139,10 +139,10 @@ public class PersistableProcessor extends AbstractProcessor {
           var type = tu.erasure(v.asType());
           var elem = (TypeElement) tu.asElement(type);
           var name = findFqn(elem);
-          if (elem.getKind().isInterface()) {
-            w.append("    var ").append(v.getSimpleName()).append(" = (").append(name).append(") in.readObject();\n");
-          } else {
+          if (shouldInline(elem)) {
             w.append("    var ").append(v.getSimpleName()).append(" = in.readInline(").append(name).append(".class);\n");
+          } else {
+            w.append("    var ").append(v.getSimpleName()).append(" = (").append(name).append(") in.readObject();\n");
           }
         } else switch (v.asType().getKind()) {
           case BOOLEAN ->
@@ -169,8 +169,6 @@ public class PersistableProcessor extends AbstractProcessor {
       w.append("  @SuppressWarnings(\"unchecked\")\n");
       w.append("  protected void writeObject(").append(typeElemName).append(" obj, Output out) throws IOException {\n");
 
-      w.append("  /* found: ").append(cons.getParameters().toString()).append("*/\n");
-
       for (var v : cons.getParameters()) {
         if (tu.isSameType(eu.getTypeElement("java.lang.String").asType(), v.asType())) {
           w.append("    out.writeUTF(obj.").append(v.getSimpleName()).append("());\n");
@@ -178,10 +176,10 @@ public class PersistableProcessor extends AbstractProcessor {
           var type = tu.erasure(v.asType());
           var elem = (TypeElement) tu.asElement(type);
           var name = findFqn(elem);
-          if (elem.getKind().isInterface()) {
-            w.append("    out.writeObject(obj.").append(v.getSimpleName()).append("());\n");
-          } else {
+          if (shouldInline(elem)) {
             w.append("    out.writeInline(").append(name).append(".class, obj.").append(v.getSimpleName()).append("());\n");
+          } else {
+            w.append("    out.writeObject(obj.").append(v.getSimpleName()).append("());\n");
           }
         } else switch (v.asType().getKind()) {
           case BOOLEAN ->
@@ -198,15 +196,23 @@ public class PersistableProcessor extends AbstractProcessor {
     return true;
   }
 
-    private int countSeq(List<? extends VariableElement> parameters) {
-      var tu = processingEnv.getTypeUtils();
-      var cnt = 0;
-      for (var p : parameters) {
-        var type = tu.asElement(tu.erasure(p.asType()));
-        if (type != null && type.getSimpleName().toString().equals("Seq")) {
-          cnt++;
-        }
+  private int countSeq(List<? extends VariableElement> parameters) {
+    var tu = processingEnv.getTypeUtils();
+    var cnt = 0;
+    for (var p : parameters) {
+      var type = tu.asElement(tu.erasure(p.asType()));
+      if (type != null && type.getSimpleName().toString().equals("Seq")) {
+        cnt++;
       }
-      return cnt;
     }
+    return cnt;
+  }
+
+  private  boolean shouldInline(TypeElement elem) {
+    var inline = switch (findFqn(elem)) {
+      case "scala.collection.immutable.Seq" -> true;
+      default -> false;
+    } || !elem.getKind().isInterface();
+    return inline;
+  }
 }
