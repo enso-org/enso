@@ -6,6 +6,9 @@ import { SuggestionDb } from "@/stores/suggestionDatabase"
 import { entryQn, makeCon, makeMethod, makeModule, makeStaticMethod, makeType } from "@/stores/suggestionDatabase/entry"
 import { type SuggestionEntry, SuggestionKind } from "@/stores/suggestionDatabase/entry"
 
+
+// === Imports analysis ===
+
 function parseIdent(ast: AstExtended): Identifier | null {
   if (ast.isTree(Ast.Tree.Type.Ident) || ast.isToken(Ast.Token.Type.Ident)) {
     return unwrap(tryIdentifier(ast.repr()))
@@ -16,7 +19,8 @@ function parseIdent(ast: AstExtended): Identifier | null {
 
 function parseIdents(ast: AstExtended): Identifier[] | null {
   if (ast.isTree(Ast.Tree.Type.Ident) || ast.isToken(Ast.Token.Type.Ident)) {
-    return [unwrap(tryIdentifier(ast.repr()))]
+    const ident = tryIdentifier(ast.repr())
+    return ident.ok ? [ident.value] : null
   } else if (ast.isTree(Ast.Tree.Type.OprApp)) {
     const opr = new GeneralOprApp(ast)
     const operands = opr.operandsOfLeftAssocOprChain(',')
@@ -55,6 +59,7 @@ function parseQualifiedName(ast: AstExtended): QualifiedName | null {
   }
 }
 
+/** Parse import statement. */
 export function recognizeImport(ast: AstExtended<Ast.Tree.Import>): Import | null {
   const from = ast.tryMap((import_) => import_.from?.body)
   const as = ast.tryMap((import_) => import_.as?.body)
@@ -90,6 +95,7 @@ export function recognizeImport(ast: AstExtended<Ast.Tree.Import>): Import | nul
 
 export type ModuleName = QualifiedName
 
+/** Information about parsed import statement. */
 export interface Import {
   from: ModuleName,
   imported: ImportedNames,
@@ -97,34 +103,43 @@ export interface Import {
 
 export type ImportedNames = Module | List | All
 
+/** import Module.Path (as Alias)? */
 export interface Module {
   kind: 'Module'
   alias?: Identifier
 }
 
+/** from Module.Path import (Ident),+ */
 export interface List {
   kind: 'List'
   names: Identifier[]
 }
 
+/** from Module.Path import all (hiding (Ident),*)? */
 export interface All {
   kind: 'All'
   except: Identifier[]
 }
 
+// === Required imports ===
+
+/** Import required for the suggestion entry. */
 export type RequiredImport = QualifiedImport | UnqualifiedImport
 
+/** import Module.Path */
 export interface QualifiedImport {
   kind: 'Qualified'
   module: QualifiedName
 }
 
+/** from Module.Path import SomeIdentifier */
 export interface UnqualifiedImport {
   kind: 'Unqualified'
   from: QualifiedName
   import: Identifier
 }
 
+/** Get the string representation of the required import statement. */
 export function requiredImportToText(value: RequiredImport): string {
   switch (value.kind) {
     case "Qualified": return `import ${value.module}`
@@ -132,6 +147,7 @@ export function requiredImportToText(value: RequiredImport): string {
   }
 }
 
+/** A list of required imports for specific suggestion entry */
 export function requiredImports(db: SuggestionDb, entry: SuggestionEntry): RequiredImport[] {
   switch (entry.kind) {
     case SuggestionKind.Module:
@@ -159,14 +175,16 @@ export function requiredImports(db: SuggestionDb, entry: SuggestionEntry): Requi
       return selfType ? requiredImports(db, selfType) : []
     }
     case SuggestionKind.Method: {
-      // TODO: we’re not handling extension methods here.
       const isStatic = entry.selfType == null
       const selfType = selfTypeEntry(db, entry)
+      const isExtension = selfType && selfType.definedIn !== entry.definedIn
+      const definedIn = definedInEntry(db, entry)
+      const extensionImports = isExtension && definedIn ? requiredImports(db, definedIn) : []
       const selfTypeImports = isStatic && selfType ? requiredImports(db, selfType) : []
       if (isStatic) {
-        return selfTypeImports
+        return [...extensionImports, ...selfTypeImports]
       } else {
-        return []
+        return [...extensionImports]
       }
     }
     case SuggestionKind.Function:
@@ -176,15 +194,26 @@ export function requiredImports(db: SuggestionDb, entry: SuggestionEntry): Requi
   }
 }
 
-function selfTypeEntry(db: SuggestionDb, entry: SuggestionEntry): SuggestionEntry | undefined {
-  const name = entryQn(entry)
-  const [id] = db.nameToId.lookup(name)
-  const [parentId] = id ? db.parent.lookup(id) : []
-  if (parentId) {
-    return db.get(parentId)
+function getEntryByName(db: SuggestionDb, name: QualifiedName): SuggestionEntry | undefined {
+  if (name) {
+    const [id] = db.nameToId.lookup(name)
+    if (id) {
+      return db.get(id)
+    }
   }
 }
 
+function selfTypeEntry(db: SuggestionDb, entry: SuggestionEntry): SuggestionEntry | undefined {
+  if (entry.memberOf) {
+    return getEntryByName(db, entry.memberOf)
+  }
+}
+
+function definedInEntry(db: SuggestionDb, entry: SuggestionEntry): SuggestionEntry | undefined {
+  return getEntryByName(db, entry.definedIn)
+}
+
+/** Check if `existing` import statement covers `required`. */
 export function covers(existing: Import, required: RequiredImport): boolean {
   const [parent, name] = required.kind === 'Qualified'
     ? qnSplit(required.module)
@@ -301,6 +330,8 @@ if (import.meta.vitest) {
     reexportedModule.reexportedIn = unwrap(tryQualifiedName('Standard.Base'))
     const reexportedType = makeModule('Standard.Database.Table.Table')
     reexportedType.reexportedIn = unwrap(tryQualifiedName('Standard.Base'))
+    const extensionMethod = makeMethod('Standard.Network.URI.fetch')
+    extensionMethod.definedIn = unwrap(tryQualifiedName('Standard.Base'))
     db.set(1, makeModule('Standard.Base'))
     db.set(2, makeType('Standard.Base.Type'))
     db.set(3, reexportedModule)
@@ -308,6 +339,8 @@ if (import.meta.vitest) {
     db.set(5, makeCon('Standard.Base.Type.Constructor'))
     db.set(6, makeStaticMethod('Standard.Base.Type.staticMethod'))
     db.set(7, makeMethod('Standard.Base.Type.method'))
+    db.set(8, makeType('Standard.Network.URI'))
+    db.set(9, extensionMethod)
 
     return db
   }
@@ -364,6 +397,13 @@ if (import.meta.vitest) {
       {
         id: 7,
         expected: []
+      },
+      {
+        id: 9,
+        expected: [{
+          kind: 'Qualified',
+          module: unwrap(tryQualifiedName('Standard.Base')),
+        }]
       },
     ]
   )('Required imports $id', ({ id, expected }) => {
