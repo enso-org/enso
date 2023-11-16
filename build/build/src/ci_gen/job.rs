@@ -251,7 +251,7 @@ pub fn expose_os_specific_signing_secret(os: OS, step: Step) -> Step {
     }
 }
 
-/// The command that bumps the version of the Electron-Builder to
+/// The sequence of steps that bumps the version of the Electron-Builder to
 /// [`ELECTRON_BUILDER_MACOS_VERSION`].
 pub fn bump_electron_builder() -> Vec<Step> {
     let npm_install =
@@ -269,6 +269,10 @@ pub fn bump_electron_builder() -> Vec<Step> {
     vec![npm_install, uninstall_old, install_new]
 }
 
+/// Prepares the packaging steps for the given OS.
+///
+/// This involves exposing secrets necessary for code signing and notarization. Additionally, on
+/// macOS, it bumps the version of the Electron Builder to [`ELECTRON_BUILDER_MACOS_VERSION`].
 pub fn prepare_packaging_steps(os: OS, step: Step) -> Vec<Step> {
     let mut steps = Vec::new();
     if os == OS::MacOS {
@@ -278,6 +282,9 @@ pub fn prepare_packaging_steps(os: OS, step: Step) -> Vec<Step> {
     steps
 }
 
+/// Convenience for [`prepare_packaging_steps`].
+///
+/// This function is useful when you want to use [`prepare_packaging_steps`] as a closure.
 pub fn with_packaging_steps(os: OS) -> impl FnOnce(Step) -> Vec<Step> {
     move |step| prepare_packaging_steps(os, step)
 }
