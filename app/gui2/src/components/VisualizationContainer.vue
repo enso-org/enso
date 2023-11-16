@@ -2,7 +2,7 @@
 import SvgIcon from '@/components/SvgIcon.vue'
 import VisualizationSelector from '@/components/VisualizationSelector.vue'
 import { useVisualizationConfig } from '@/providers/visualizationConfig'
-import { PointerButtonMask, usePointer } from '@/util/events'
+import { PointerButtonMask, isClick, usePointer } from '@/util/events'
 import { ref } from 'vue'
 
 const props = defineProps<{
@@ -125,15 +125,15 @@ const resizeBottomRight = usePointer((pos, _, type) => {
           <button
             class="image-button active"
             @pointerdown.stop="(config.fullscreen = !config.fullscreen), blur($event)"
-            @click="config.fullscreen = !config.fullscreen"
+            @click.prevent="!isClick($event) && (config.fullscreen = !config.fullscreen)"
           >
             <SvgIcon class="icon" :name="config.fullscreen ? 'exit_fullscreen' : 'fullscreen'" />
           </button>
           <div class="icon-container">
             <button
               class="image-button active"
-              @pointerdown.stop="(isSelectorVisible = !isSelectorVisible), blur($event)"
-              @click="isSelectorVisible = !isSelectorVisible"
+              @pointerdown.stop="isSelectorVisible = !isSelectorVisible"
+              @click.prevent="!isClick($event) && (isSelectorVisible = !isSelectorVisible)"
             >
               <SvgIcon class="icon" :name="config.icon ?? 'columns_increasing'" />
             </button>

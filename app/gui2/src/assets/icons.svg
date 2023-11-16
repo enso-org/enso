@@ -1308,10 +1308,10 @@
     </g>
     <g id="points" fill="none">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="5" y="2" width="2" height="2" rx="1" fill="black" fill-opacity="0.6" />
-            <rect x="2" y="11" width="2" height="2" rx="1" fill="black" fill-opacity="0.6" />
-            <rect x="12" y="4" width="2" height="2" rx="1" fill="black" fill-opacity="0.6" />
-            <rect x="10" y="10" width="2" height="2" rx="1" fill="black" fill-opacity="0.6" />
+            <rect x="5" y="2" width="3" height="3" rx="1.5" fill="black" fill-opacity="0.6" />
+            <rect x="1" y="11" width="3" height="3" rx="1.5" fill="black" fill-opacity="0.6" />
+            <rect x="12" y="4" width="3" height="3" rx="1.5" fill="black" fill-opacity="0.6" />
+            <rect x="10" y="10" width="3" height="3" rx="1.5" fill="black" fill-opacity="0.6" />
         </svg>
     </g>
     <g id="heatmap" fill="none">
