@@ -342,7 +342,7 @@ function updateColumnWidths() {
   }
   const cols = columnApi.getAllGridColumns().filter((c) => {
     const field = c.getColDef().field
-    return field && widths.has(field)
+    return field && !widths.has(field)
   })
   columnApi.autoSizeColumns(cols)
 }
@@ -372,6 +372,7 @@ onMounted(() => {
     console.warn('The AG_GRID_LICENSE_KEY is not defined.')
   }
   new Grid(tableNode.value!, agGridOptions.value)
+  updateColumnWidths()
 })
 </script>
 
