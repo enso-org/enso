@@ -69,14 +69,19 @@ import type {
 import '@ag-grid-community/styles/ag-grid.css'
 import '@ag-grid-community/styles/ag-theme-alpine.css'
 import { computed, onMounted, reactive, ref, watchEffect, type Ref } from 'vue'
-const [{ ClientSideRowModelModule }, { Grid, ModuleRegistry }, { LicenseManager }] =
-  await Promise.all([
-    import('@ag-grid-community/client-side-row-model'),
-    import('@ag-grid-community/core'),
-    import('@ag-grid-enterprise/core'),
-  ])
+const [
+  { ClientSideRowModelModule },
+  { RangeSelectionModule },
+  { Grid, ModuleRegistry },
+  { LicenseManager },
+] = await Promise.all([
+  import('@ag-grid-community/client-side-row-model'),
+  import('@ag-grid-enterprise/range-selection'),
+  import('@ag-grid-community/core'),
+  import('@ag-grid-enterprise/core'),
+])
 
-ModuleRegistry.registerModules([ClientSideRowModelModule])
+ModuleRegistry.registerModules([ClientSideRowModelModule, RangeSelectionModule])
 
 const props = defineProps<{ data: Data }>()
 const emit = defineEmits<{
