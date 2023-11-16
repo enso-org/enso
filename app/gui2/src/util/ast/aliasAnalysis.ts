@@ -1,7 +1,6 @@
 import { Token, Tree } from '@/generated/ast'
 import { assert } from '@/util/assert'
 import {
-  AstExtended,
   astPrettyPrintType,
   parseEnso,
   parsedTreeOrTokenRange,
@@ -11,8 +10,7 @@ import {
 
 import { MappedKeyMap, MappedSet, NonEmptyStack } from '@/util/containers'
 import type { LazyObject } from '@/util/parserSupport.ts'
-import { mapIterator } from 'lib0/iterator'
-import type { ContentRange, ExprId } from '../../../shared/yjsModel'
+import type { ContentRange } from '../../../shared/yjsModel'
 import { IdMap, rangeIsBefore } from '../../../shared/yjsModel'
 
 const ACCESSOR_OPERATOR = '.'
@@ -27,7 +25,7 @@ const LOGGING_ENABLED = false
 
 class Scope {
   /** The variables defined in this scope. */
-  bindings: Map<string, AstExtended<Token>> = new Map()
+  bindings: Map<string, Token> = new Map()
 
   /** Construct a new scope for the given range. If the parent scope is provided, the new scope will be added to its
    * children.
@@ -47,11 +45,11 @@ class Scope {
    * scope, so the variables are not visible before they are defined. If not provided, the lookup will include all
    * symbols from the scope.
    */
-  resolve(identifier: string, location?: ContentRange): AstExtended<Token> | undefined {
+  resolve(identifier: string, location?: ContentRange): Token | undefined {
     const localBinding = this.bindings.get(identifier)
     if (
       localBinding != null &&
-      (location == null || rangeIsBefore(localBinding.span(), location))
+      (location == null || rangeIsBefore(parsedTreeOrTokenRange(localBinding), location))
     ) {
       return localBinding
     } else if (this.parent != null) {
@@ -98,10 +96,10 @@ export function identifierKind(identifier: string): IdentifierType {
 
 export class AliasAnalyzer {
   /** All symbols that are not yet resolved (i.e. that were not bound in the analyzed tree). */
-  readonly unresolvedSymbols = new Set<ExprId>()
+  readonly unresolvedSymbols = new MappedSet<ContentRange>(IdMap.keyForRange)
 
   /** The AST representation of the code. */
-  readonly ast: AstExtended<Tree>
+  readonly ast: Tree
 
   /** The special "root" scope that contains the analyzed tree. */
   readonly rootScope: Scope
@@ -112,25 +110,26 @@ export class AliasAnalyzer {
   /** The stack for keeping track whether we are in a pattern or expression context. */
   private readonly contexts: NonEmptyStack<Context> = new NonEmptyStack(Context.Expression)
 
-  public readonly aliases = new Map<ExprId, Set<ExprId>>()
+  public readonly aliases = new MappedKeyMap<ContentRange, MappedSet<ContentRange>>(
+    IdMap.keyForRange,
+  )
 
   /**
    * @param code text representation of the code.
    * @param ast AST representation of the code. If not provided, it will be parsed from the text.
    */
-  constructor(ast: AstExtended<Tree>) {
-    this.ast = ast
-    this.rootScope = new Scope(this.ast.span())
+  constructor(
+    private readonly code: string,
+    ast?: Tree,
+  ) {
+    this.ast = ast ?? parseEnso(code)
+    this.rootScope = new Scope(parsedTreeOrTokenRange(this.ast))
     this.scopes = new NonEmptyStack(this.rootScope)
   }
 
   /** Invoke the given function in a new temporary scope. */
-  withNewScopeOver(
-    nodeOrRange: ContentRange | Tree | Token | AstExtended<Tree | Token>,
-    f: () => void,
-  ) {
-    const range =
-      nodeOrRange instanceof AstExtended ? nodeOrRange.span() : parsedTreeOrTokenRange(nodeOrRange)
+  withNewScopeOver(nodeOrRange: ContentRange | Tree | Token, f: () => undefined) {
+    const range = parsedTreeOrTokenRange(nodeOrRange)
     const scope = new Scope(range, this.scopes.top)
     this.scopes.withPushed(scope, f)
   }
@@ -141,39 +140,44 @@ export class AliasAnalyzer {
   }
 
   /** Marks given token as a binding, i.e. a definition of a new variable. */
-  bind(token: AstExtended<Token>) {
+  bind(token: Token) {
     const scope = this.scopes.top
-    const id = token.astId()
-    const identifier = token.repr()
-    const range = token.span()
+    const identifier = readTokenSpan(token, this.code)
+    const range = parsedTreeOrTokenRange(token)
     log(() => `Binding ${identifier}@[${range}]`)
     scope.bindings.set(identifier, token)
-    assert(!this.aliases.has(id), `Token ${id} at ${range} is already bound.`)
-    this.aliases.set(id, new Set())
+    assert(!this.aliases.has(range), `Token at ${range} is already bound.`)
+    this.aliases.set(range, new MappedSet<ContentRange>(IdMap.keyForRange))
   }
 
-  addConnection(source: AstExtended<Token>, target: AstExtended<Token>) {
-    const sourceRange = source.span()
-    const targetRange = target.span()
-    const targets = this.aliases.get(source.astId())
+  addConnection(source: Token, target: Token) {
+    const sourceRange = parsedTreeOrTokenRange(source)
+    const targetRange = parsedTreeOrTokenRange(target)
+    const targets = this.aliases.get(sourceRange)
     if (targets != null) {
-      log(() => `Usage of ${target.repr()}@[${targetRange}] resolved to [${sourceRange}]`)
-      targets.add(target.astId())
+      log(
+        () =>
+          `Usage of ${readTokenSpan(
+            source,
+            this.code,
+          )}@[${targetRange}] resolved to [${sourceRange}]`,
+      )
+      targets.add(targetRange)
     } else {
       console.warn(`No targets found for source range ${sourceRange}`)
     }
   }
 
   /** Marks given token as a usage, i.e. a reference to an existing variable. */
-  use(token: AstExtended<Token>) {
-    const identifier = token.repr()
-    const range = token.span()
+  use(token: Token) {
+    const identifier = readTokenSpan(token, this.code)
+    const range = parsedTreeOrTokenRange(token)
     const binding = this.scopes.top.resolve(identifier, range)
     if (binding != null) {
       this.addConnection(binding, token)
     } else {
       log(() => `Usage of ${identifier}@[${range}] is unresolved.`)
-      this.unresolvedSymbols.add(token.astId())
+      this.unresolvedSymbols.add(range)
     }
   }
 
@@ -182,12 +186,12 @@ export class AliasAnalyzer {
     this.processTree(this.ast)
   }
 
-  processToken(token?: AstExtended<Token>): void {
+  processToken(token?: Token): void {
     if (token == null) {
       return
     }
 
-    const repr = token.repr()
+    const repr = readTokenSpan(token, this.code)
     if (identifierKind(repr) === IdentifierType.Variable) {
       if (this.contexts.top === Context.Pattern) {
         this.bind(token)
@@ -201,116 +205,145 @@ export class AliasAnalyzer {
    *
    * All AST children will be processed recursively.
    */
-  processNodeChildren(node?: AstExtended<Tree>): void {
-    if (node == null) return
-    for (const child of node.children()) {
-      if (child.isTree()) {
-        this.processTree(child)
-      } else if (child.isToken()) {
-        this.processToken(child)
-      }
-    }
-  }
-
-  /** Method that processes a single AST node. */
-  processTree(node?: AstExtended<Tree>): void {
+  processNodeChildren(node?: LazyObject): void {
     if (node == null) {
       return
     }
 
-    log(() => `\nprocessNode ${astPrettyPrintType(node)}\n====\n${node.repr()}\n====\n`)
+    node.visitChildren((child) => {
+      if (Tree.isInstance(child)) {
+        this.processTree(child)
+      } else if (Token.isInstance(child)) {
+        this.processToken(child)
+      } else {
+        this.processNode(child)
+      }
+    })
+  }
 
-    // We may replace this with switch(true) once
-    // https://github.com/microsoft/TypeScript/pull/53681 will be released.
-    // I think it may be more readable.
-    if (node.isTree(Tree.Type.BodyBlock)) {
-      this.withNewScopeOver(node.inner, () => {
-        node.children
-        this.processNodeChildren(node)
-      })
-    } else if (node.isTree(Tree.Type.NamedApp)) {
-      this.processTree(node.map((app) => app.func))
-      // Intentionally omit name, as it is not a variable usage.
-      this.processTree(node.map((app) => app.arg))
-    } else if (node.isTree(Tree.Type.DefaultApp)) {
-      this.processTree(node.map((app) => app.func))
-      // Intentionally omit `default` keyword, because it is a keyword, not a variable usage.
-    } else if (node.isTree(Tree.Type.OprApp)) {
-      const oprToken = node.tryMap((app) => (app.opr.ok ? app.opr.value : null))
-      const opr = oprToken?.repr()
-      switch (opr) {
-        case LAMBDA_OPERATOR:
-          // Lambda expression. Left-hand side is a pattern, right-hand side is an expression. Introduces a new scope.
-          // Note that this is not a Tree.Type.Lambda, as that is for "new" lambdas syntax, like `\x -> x`.
-          this.withNewScopeOver(node, () => {
-            this.withContext(Context.Pattern, () => {
-              this.processTree(node.tryMap((app) => app.lhs))
-            })
-            this.processTree(node.tryMap((app) => app.rhs))
-          })
-          break
-        case ACCESSOR_OPERATOR:
-          this.processTree(node.tryMap((app) => app.lhs))
-          // Don't process the right-hand side, as it will be a method call, which is not a variable usage.
-          break
-        default:
-          this.processNodeChildren(node)
-          break
-      }
-    } else if (node.isTree(Tree.Type.MultiSegmentApp)) {
-      // Intentionally omit segments' headers, as their are not a variable usage.
-      const segments = node.visit((app) => app.segments)
-      for (const segment of segments) {
-        this.processTree(segment.tryMap((seg) => seg.body))
-      }
-    } else if (node.isTree(Tree.Type.Assignment)) {
-      this.withContext(Context.Pattern, () => {
-        this.processTree(node.map((assign) => assign.pattern))
-      })
-      this.processTree(node.map((assign) => assign.expr))
-    } else if (node.isTree(Tree.Type.Function)) {
-      // Function name goes to the current scope, unlike its arguments.
-      this.withContext(Context.Pattern, () => {
-        this.processTree(node.map((f) => f.name))
-      })
-      this.withNewScopeOver(node, () => {
-        for (const argument of node.visit((f) => f.args)) {
-          this.withContext(Context.Pattern, () => {
-            this.processTree(argument.map((arg) => arg.pattern))
-          })
-          this.processTree(argument.tryMap((arg) => arg.default?.expression))
-        }
-        this.processTree(node.tryMap((f) => f.body))
-      })
-    } else if (node.isTree(Tree.Type.CaseOf)) {
-      this.processTree(node.tryMap((caseOf) => caseOf.expression))
-      for (const caseLine of node.visit((caseOf) => caseOf.cases)) {
-        const pattern = caseLine.tryMap((line) => line.case?.pattern)
-        const arrow = caseLine.tryMap((line) => line.case?.arrow)
-        const expression = caseLine.tryMap((line) => line.case?.expression)
-        if (pattern) {
-          const armStart = pattern.span()[0]
-          const armEnd = expression
-            ? expression.span()[1]
-            : arrow
-            ? arrow.span()[1]
-            : pattern.span()[1]
-
-          const armRange: ContentRange = [armStart, armEnd]
-          this.withNewScopeOver(armRange, () => {
-            this.withContext(Context.Pattern, () => {
-              this.processTree(pattern)
-            })
-            this.processTree(expression)
-          })
-        }
-      }
-    } else if (node.isTree(Tree.Type.Documented)) {
-      // Intentionally omit documentation, as it is not a "real" code.
-      this.processTree(node.tryMap((documented) => documented.expression))
+  processNode(node?: LazyObject): void {
+    if (node == null) {
+      return
+    }
+    if (Tree.isInstance(node)) {
+      this.processTree(node)
+    } else if (Token.isInstance(node)) {
+      this.processToken(node)
     } else {
-      log(() => `Catch-all for ${astPrettyPrintType(node)} at ${node.span()}:\n${node.repr()}\n`)
-      this.processNodeChildren(node)
+      node.visitChildren((child) => {
+        this.processNode(child)
+      })
+    }
+  }
+
+  /** Method that processes a single AST node. */
+  processTree(node?: Tree): void {
+    if (node == null) {
+      return
+    }
+
+    const range = () => parsedTreeOrTokenRange(node)
+    const repr = () => readAstOrTokenSpan(node, this.code)
+
+    log(() => `\nprocessNode ${astPrettyPrintType(node)}\n====\n${repr()}\n====\n`)
+
+    switch (node.type) {
+      case Tree.Type.BodyBlock:
+        this.withNewScopeOver(node, () => {
+          this.processNodeChildren(node)
+        })
+        break
+      case Tree.Type.NamedApp:
+        this.processTree(node.func)
+        // Intentionally omit name, as it is not a variable usage.
+        this.processTree(node.arg)
+        break
+      case Tree.Type.DefaultApp:
+        this.processTree(node.func)
+        // Intentionally omit `default` keyword, because it is a keyword, not a variable usage.
+        break
+      case Tree.Type.OprApp: {
+        const opr = node.opr.ok ? readAstOrTokenSpan(node.opr.value, this.code) : ''
+        switch (opr) {
+          case LAMBDA_OPERATOR:
+            // Lambda expression. Left-hand side is a pattern, right-hand side is an expression. Introduces a new scope.
+            // Note that this is not a Tree.Type.Lambda, as that is for "new" lambdas syntax, like `\x -> x`.
+            this.withNewScopeOver(node, () => {
+              this.withContext(Context.Pattern, () => {
+                this.processTree(node.lhs)
+              })
+              this.processTree(node.rhs)
+            })
+            break
+          case ACCESSOR_OPERATOR:
+            this.processTree(node.lhs)
+            // Don't process the right-hand side, as it will be a method call, which is not a variable usage.
+            break
+          default:
+            this.processNodeChildren(node)
+            break
+        }
+        break
+      }
+      case Tree.Type.MultiSegmentApp:
+        for (const segment of node.segments) {
+          // Intentionally omit segment header, as it is not a variable usage.
+          this.processTree(segment.body)
+        }
+        break
+      case Tree.Type.Assignment:
+        this.withContext(Context.Pattern, () => {
+          this.processTree(node.pattern)
+        })
+        this.processTree(node.expr)
+        break
+      case Tree.Type.Function:
+        // Function name goes to the current scope, unlike its arguments.
+        this.withContext(Context.Pattern, () => {
+          this.processTree(node.name)
+        })
+        this.withNewScopeOver(node, () => {
+          for (const argument of node.args) {
+            this.withContext(Context.Pattern, () => {
+              this.processTree(argument.pattern)
+            })
+            this.processTree(argument.default?.expression)
+          }
+          this.processTree(node.body)
+        })
+        break
+      case Tree.Type.CaseOf:
+        this.processTree(node.expression)
+        for (const caseLine of node.cases) {
+          const pattern = caseLine.case?.pattern
+          const arrow = caseLine.case?.arrow
+          const expression = caseLine.case?.expression
+          if (pattern) {
+            const armStart = parsedTreeOrTokenRange(pattern)[0]
+            const armEnd = expression
+              ? parsedTreeOrTokenRange(expression)[1]
+              : arrow
+              ? parsedTreeOrTokenRange(arrow)[1]
+              : parsedTreeOrTokenRange(pattern)[1]
+
+            const armRange: ContentRange = [armStart, armEnd]
+            this.withNewScopeOver(armRange, () => {
+              this.withContext(Context.Pattern, () => {
+                this.processTree(caseLine.case?.pattern)
+              })
+              this.processTree(caseLine.case?.expression)
+            })
+          }
+        }
+        break
+      case Tree.Type.Documented:
+        // Intentionally omit documentation, as it is not a "real" code.
+        this.processTree(node.expression)
+        break
+      default:
+        log(() => `Catch-all for ${astPrettyPrintType(node)} at ${range()}:\n${repr()}\n`)
+        this.processNodeChildren(node)
+        break
     }
   }
 }

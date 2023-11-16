@@ -9,7 +9,7 @@ import { ReactiveDb, ReactiveIndex, ReactiveMapping } from '@/util/database/reac
 import type { Opt } from '@/util/opt'
 import { qnJoin, tryQualifiedName } from '@/util/qualifiedName'
 import { Vec2 } from '@/util/vec2'
-import { mapIterator } from 'lib0/iterator'
+import { iteratorFilter, mapIterator } from 'lib0/iterator'
 import * as set from 'lib0/set'
 import {
   IdMap,
@@ -21,33 +21,60 @@ import {
 } from 'shared/yjsModel'
 import { ref, type Ref } from 'vue'
 
+export interface AliasInfo {
+  identifier: AstExtended
+  usages: Set<ExprId>
+}
+
 export class ConnectionsDb {
-  aliasUsages = new ReactiveDb<ExprId, Set<ExprId>>()
-  connections = new ReactiveIndex(this.aliasUsages, (src, targets) =>
-    Array.from(targets, (target) => [src, target]),
+  aliases = new ReactiveDb<ExprId, AliasInfo>()
+  identifiers = new ReactiveIndex(this.aliases, (alias, info) => [[info.identifier.repr(), alias]])
+  connections = new ReactiveIndex(this.aliases, (alias, info) =>
+    Array.from(info.usages, (target) => [alias, target]),
   )
 
   readFunctionAst(ast: AstExtended<Ast.Tree.Function>) {
-    const aliasAnalysis = new AliasAnalyzer(ast)
-    this.removeOldAliases(aliasAnalysis)
-    for (const [alias, newUsages] of aliasAnalysis.aliases) {
-      const currentUsages = this.aliasUsages.get(alias)
-      if (currentUsages == null) this.aliasUsages.set(alias, newUsages)
-      else {
-        for (const usage of currentUsages) {
-          if (!newUsages.has(usage)) currentUsages.delete(usage)
-        }
-        for (const usage of newUsages) {
-          if (!currentUsages.has(usage)) currentUsages.add(usage)
-        }
+    const analyzer = new AliasAnalyzer(ast.parsedCode, ast.inner)
+    const aliasRangeToTree = new MappedKeyMap<ContentRange, AstExtended | undefined>(
+      IdMap.keyForRange,
+    )
+    const aliasIdToRange = new Map<ExprId, ContentRange>()
+    for (const [alias, usages] of analyzer.aliases) {
+      aliasRangeToTree.set(alias, undefined)
+      for (const usage of usages) aliasRangeToTree.set(usage, undefined)
+    }
+    ast.visitRecursive((ast) => {
+      if (aliasRangeToTree.has(ast.span())) {
+        aliasRangeToTree.set(ast.span(), ast)
+        aliasIdToRange.set(ast.astId, ast.span())
+      }
+      return true
+    })
+
+    for (const key of this.aliases.keys()) {
+      const range = aliasIdToRange.get(key)
+      if (range == null || !analyzer.aliases.has(range)) {
+        this.aliases.delete(key)
       }
     }
-  }
 
-  private removeOldAliases(aliasAnalysis: AliasAnalyzer) {
-    for (const key of this.aliasUsages.keys()) {
-      if (!aliasAnalysis.aliases.has(key)) {
-        this.aliasUsages.delete(key)
+    for (const [alias, usages] of analyzer.aliases) {
+      const aliasAst = aliasRangeToTree.get(alias)
+      if (aliasAst == null) continue
+      const info = this.aliases.getOrAdd(aliasAst.astId, {
+        identifier: aliasAst,
+        usages: new Set(),
+      })
+      if (indexedDB.cmp(aliasAst.contentHash(), info.identifier.contentHash())) {
+        info.identifier = aliasAst
+      }
+      for (const usage of info.usages) {
+        const range = aliasIdToRange.get(usage)
+        if (range == null || !usages.has(range)) info.usages.delete(usage)
+      }
+      for (const usage of usages) {
+        const usageAst = aliasRangeToTree.get(usage)
+        if (usageAst != null && !info.usages.has(usageAst.astId)) info.usages.add(usageAst.astId)
       }
     }
   }
@@ -67,7 +94,7 @@ export class GraphDb {
     if (entry.pattern == null) return []
     const exprs = new Set<ExprId>()
     for (const ast of entry.pattern.walkRecursive()) {
-      exprs.add(ast.astId())
+      exprs.add(ast.astId)
     }
     return Array.from(exprs, (expr) => [id, expr])
   })
@@ -75,12 +102,12 @@ export class GraphDb {
   private nodeExpressions = new ReactiveIndex(this.nodes, (id, entry) => {
     const exprs = new Set<ExprId>()
     for (const ast of entry.rootSpan.walkRecursive()) {
-      exprs.add(ast.astId())
+      exprs.add(ast.astId)
     }
     return Array.from(exprs, (expr) => [id, expr])
   })
 
-  nodeByBinding = new ReactiveIndex(this.nodes, (id, entry) => [[entry.pattern?.repr(), id]])
+  nodeByPattern = new ReactiveIndex(this.nodes, (id, entry) => [[entry.pattern?.repr(), id]])
 
   get connections() {
     return this.connectionsDb.connections
@@ -129,12 +156,20 @@ export class GraphDb {
     return exprId && set.first(this.nodeExpressions.reverseLookup(exprId))
   }
 
-  getIdentDefiningNode(ident: string): ExprId | undefined {
-    return set.first(this.nodeByBinding.lookup(ident))
+  getNodeDefiningIdent(ident: string): ExprId | undefined {
+    return set.first(this.nodeByPattern.lookup(ident))
   }
 
   getExpressionInfo(id: ExprId): ExpressionInfo | undefined {
     return this.valuesRegistry.getExpressionInfo(id)
+  }
+
+  getIdentifierOfConnection(source: ExprId): AstExtended | undefined {
+    return this.connectionsDb.aliases.get(source)?.identifier
+  }
+
+  identifierUsed(ident: string): boolean {
+    return this.connectionsDb.identifiers.hasKey(ident)
   }
 
   getNodeColorStyle(id: ExprId): string {
@@ -153,7 +188,7 @@ export class GraphDb {
     if (functionAst) {
       for (const nodeAst of functionAst.visit(getFunctionNodeExpressions)) {
         const newNode = nodeFromAst(nodeAst)
-        const nodeId = newNode.rootSpan.astId()
+        const nodeId = newNode.rootSpan.astId
         const node = this.nodes.get(nodeId)
         const nodeMeta = getMeta(nodeId)
         currentNodeIds.add(nodeId)
@@ -219,7 +254,7 @@ export function mockNode(binding: string, id: ExprId, code?: string): Node {
 function nodeFromAst(ast: AstExtended<Ast.Tree>): Node {
   if (ast.isTree(Ast.Tree.Type.Assignment)) {
     return {
-      outerExprId: ast.astId(),
+      outerExprId: ast.astId,
       pattern: ast.map((t) => t.pattern),
       rootSpan: ast.map((t) => t.expr),
       position: Vec2.Zero,
@@ -227,7 +262,7 @@ function nodeFromAst(ast: AstExtended<Ast.Tree>): Node {
     }
   } else {
     return {
-      outerExprId: ast.astId(),
+      outerExprId: ast.astId,
       pattern: undefined,
       rootSpan: ast,
       position: Vec2.Zero,

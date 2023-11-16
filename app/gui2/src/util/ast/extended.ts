@@ -18,13 +18,12 @@ import {
   walkRecursive,
 } from '.'
 import type { Opt } from '../opt'
-import type { LazyObject } from '../parserSupport'
 
 /**
  * AST with additional metadata containing AST IDs and original code reference. Can only be
  * constructed by parsing any enso source code string.
  */
-export class AstExtended<T extends LazyObject = Tree | Token, HasIdMap extends boolean = true> {
+export class AstExtended<T extends Tree | Token = Tree | Token, HasIdMap extends boolean = true> {
   inner: T
   private ctx: AstExtendedCtx<HasIdMap>
 
@@ -70,7 +69,7 @@ export class AstExtended<T extends LazyObject = Tree | Token, HasIdMap extends b
     this.ctx = ctx
   }
 
-  astId(this: AstExtended<Tree | Token, HasIdMap>): CondType<ExprId, HasIdMap> {
+  get astId(): CondType<ExprId, HasIdMap> {
     if (this.ctx.idMap != null) {
       const id = this.ctx.idMap.getIfExist(parsedTreeOrTokenRange(this.inner))
       assert(id != null, 'All AST nodes should have an assigned ID')
@@ -84,21 +83,21 @@ export class AstExtended<T extends LazyObject = Tree | Token, HasIdMap extends b
     return debugAst(this.inner)
   }
 
-  tryMap<T2 extends LazyObject>(mapper: (t: T) => Opt<T2>): AstExtended<T2, HasIdMap> | undefined {
+  tryMap<T2 extends Tree>(mapper: (t: T) => Opt<T2>): AstExtended<T2, HasIdMap> | undefined {
     const mapped = mapper(this.inner)
     if (mapped == null) return
     return new AstExtended(mapped, this.ctx)
   }
 
-  map<T2 extends LazyObject>(mapper: (t: T) => T2): AstExtended<T2, HasIdMap> {
+  map<T2 extends Tree | Token>(mapper: (t: T) => T2): AstExtended<T2, HasIdMap> {
     return new AstExtended(mapper(this.inner), this.ctx)
   }
 
-  repr(this: AstExtended<Tree | Token, HasIdMap>) {
+  repr() {
     return readAstOrTokenSpan(this.inner, this.ctx.parsedCode)
   }
 
-  span(this: AstExtended<Tree | Token, HasIdMap>): ContentRange {
+  span(): ContentRange {
     return parsedTreeOrTokenRange(this.inner)
   }
 
@@ -110,30 +109,25 @@ export class AstExtended<T extends LazyObject = Tree | Token, HasIdMap extends b
     return childrenAstNodesOrTokens(this.inner).map((child) => new AstExtended(child, this.ctx))
   }
 
-  walkRecursive(
-    this: AstExtended<Tree | Token, HasIdMap>,
-  ): Generator<AstExtended<Tree | Token, HasIdMap>> {
+  walkRecursive(): Generator<AstExtended<Tree | Token, HasIdMap>> {
     return this.visit(walkRecursive)
   }
 
-  whitespaceLength(this: AstExtended<Tree | Token, HasIdMap>) {
+  whitespaceLength() {
     return 'whitespaceLengthInCodeBuffer' in this.inner
       ? this.inner.whitespaceLengthInCodeBuffer
       : this.inner.whitespaceLengthInCodeParsed
   }
 
-  *visit<T2 extends LazyObject>(
-    visitor: (t: T) => Iterable<T2>,
+  *visit<T2 extends Tree | Token>(
+    visitor: (t: T) => Generator<T2>,
   ): Generator<AstExtended<T2, HasIdMap>> {
     for (const child of visitor(this.inner)) {
       yield new AstExtended(child, this.ctx)
     }
   }
 
-  visitRecursive(
-    this: AstExtended<Tree | Token, HasIdMap>,
-    visitor: (t: AstExtended<Tree | Token, HasIdMap>) => boolean,
-  ) {
+  visitRecursive(visitor: (t: AstExtended<Tree | Token, HasIdMap>) => boolean) {
     visitGenerator(this.walkRecursive(), visitor)
   }
 

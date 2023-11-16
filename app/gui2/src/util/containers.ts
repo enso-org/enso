@@ -75,7 +75,7 @@ export class MappedKeyMap<Key, Value> {
  */
 export class MappedSet<T extends Object> {
   /** The inner set that stores the keys. */
-  private readonly set = new Map<any, T>()
+  private readonly set: Map<any, T>
 
   /** Construct a new set, optionally setting a custom value mapper.
    * @param valueMapper The function that maps the user-facing values to internal keys. It can be

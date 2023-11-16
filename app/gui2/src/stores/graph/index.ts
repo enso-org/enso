@@ -121,7 +121,7 @@ export const useGraphStore = defineStore('graph', () => {
     let ident: string
     do {
       ident = randomString()
-    } while (db.idents.hasValue(ident))
+    } while (db.identifierUsed(ident))
     return ident
   }
 
@@ -263,7 +263,7 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   function getNodeBinding(id: ExprId): string {
-    return db.nodes.get(id)?.binding ?? ''
+    return db.nodes.get(id)?.pattern?.repr() ?? ''
   }
 
   return {
