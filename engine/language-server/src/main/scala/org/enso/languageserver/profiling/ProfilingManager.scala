@@ -105,9 +105,9 @@ final class ProfilingManager(
 
 object ProfilingManager {
 
-  private val SAMPLES_FILE_PREFIX = "samples"
-  private val SAMPLES_FILE_EXT    = ".npss"
-  private val EVENTS_FILE_EXT     = ".log"
+  private val PROFILING_FILE_PREFIX = "enso-language-server"
+  private val SAMPLES_FILE_EXT      = ".npss"
+  private val EVENTS_FILE_EXT       = ".log"
 
   private val PROFILING_FILE_DATE_PART_FORMATTER =
     new DateTimeFormatterBuilder()
@@ -131,7 +131,7 @@ object ProfilingManager {
 
   private def createProfilingFileName(instant: Instant): String = {
     val datePart = PROFILING_FILE_DATE_PART_FORMATTER.format(instant)
-    s"$SAMPLES_FILE_PREFIX-$datePart"
+    s"$PROFILING_FILE_PREFIX-$datePart"
   }
 
   def createSamplesFileName(instant: Instant): String = {
