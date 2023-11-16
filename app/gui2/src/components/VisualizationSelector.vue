@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import SvgIcon from '@/components/SvgIcon.vue'
+import { useVisualizationStore } from '@/stores/visualization'
 import { visIdentifierEquals, type VisualizationIdentifier } from 'shared/yjsModel'
 import { onMounted, ref } from 'vue'
 
@@ -7,6 +9,8 @@ const props = defineProps<{
   modelValue: VisualizationIdentifier
 }>()
 const emit = defineEmits<{ hide: []; 'update:modelValue': [type: VisualizationIdentifier] }>()
+
+const visualizationStore = useVisualizationStore()
 
 const rootNode = ref<HTMLElement>()
 
@@ -38,8 +42,10 @@ onMounted(() => setTimeout(() => rootNode.value?.focus(), 0))
         :key="visIdKey(type_)"
         :class="{ selected: visIdentifierEquals(props.modelValue, type_) }"
         @pointerdown.stop="emit('update:modelValue', type_)"
-        v-text="visIdLabel(type_)"
-      ></li>
+      >
+        <SvgIcon class="icon" :name="visualizationStore.icon(type_) ?? 'columns_increasing'" />
+        <span v-text="visIdLabel(type_)"></span>
+      </li>
     </ul>
   </div>
 </template>
@@ -70,14 +76,18 @@ onMounted(() => setTimeout(() => rootNode.value?.focus(), 0))
   position: relative;
 }
 
-.VisualizationSelector > ul {
+ul {
   display: flex;
   flex-flow: column;
+  gap: 2px;
   list-style-type: none;
   padding: 4px;
 }
 
 li {
+  display: flex;
+  gap: 4px;
+  align-items: center;
   cursor: pointer;
   padding: 0 8px;
   border-radius: 12px;

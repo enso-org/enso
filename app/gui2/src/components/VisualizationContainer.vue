@@ -135,7 +135,7 @@ const resizeBottomRight = usePointer((pos, _, type) => {
               @pointerdown.stop="(isSelectorVisible = !isSelectorVisible), blur($event)"
               @click="isSelectorVisible = !isSelectorVisible"
             >
-              <SvgIcon class="icon" name="compass" />
+              <SvgIcon class="icon" :name="config.icon ?? 'columns_increasing'" />
             </button>
             <VisualizationSelector
               v-if="isSelectorVisible"

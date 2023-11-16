@@ -1,5 +1,6 @@
 <script lang="ts">
 export const name = 'Table'
+export const icon = 'table'
 export const inputType =
   'Standard.Table.Data.Table.Table | Standard.Table.Data.Column.Column | Standard.Table.Data.Row.Row |Standard.Base.Data.Vector.Vector | Standard.Base.Data.Array.Array | Standard.Base.Data.Map.Map | Any'
 export const defaultPreprocessor = [

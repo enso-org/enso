@@ -95,10 +95,11 @@ export const useVisualizationStore = defineStore('visualization', () => {
     (roots) => roots.find((root) => root.type === 'Project')?.id,
   )
 
-  for (const { name, inputType } of builtinVisualizations) {
+  for (const { name, inputType, icon } of builtinVisualizations) {
     metadata.set(toVisualizationId({ module: { kind: 'Builtin' }, name }), {
       name,
       inputType,
+      icon,
     })
   }
 
@@ -179,7 +180,11 @@ export const useVisualizationStore = defineStore('visualization', () => {
             id = { module: { kind: 'CurrentProject' }, name: viz.name }
             cache.set(toVisualizationId(id), vizPromise)
           }
-          metadata.set(toVisualizationId(id), { name: viz.name, inputType: viz.inputType })
+          metadata.set(toVisualizationId(id), {
+            name: viz.name,
+            inputType: viz.inputType,
+            icon: viz.icon,
+          })
         } catch (error) {
           if (key) cache.delete(key)
           if (error instanceof InvalidVisualizationModuleError) {
@@ -222,6 +227,10 @@ export const useVisualizationStore = defineStore('visualization', () => {
     for (const type of types) yield fromVisualizationId(type)
   }
 
+  function icon(type: VisualizationIdentifier) {
+    return metadata.get(toVisualizationId(type))?.icon
+  }
+
   function get(meta: VisualizationIdentifier, ignoreCache = false) {
     const key = toVisualizationId(meta)
     if (!cache.get(key) || ignoreCache) {
@@ -250,5 +259,5 @@ export const useVisualizationStore = defineStore('visualization', () => {
     return module
   }
 
-  return { types, get }
+  return { types, get, icon }
 })

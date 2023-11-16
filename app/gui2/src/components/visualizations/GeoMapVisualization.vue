@@ -1,5 +1,6 @@
 <script lang="ts">
 export const name = 'Geo Map'
+export const icon = 'compass'
 export const inputType = 'Standard.Table.Data.Table.Table'
 export const scripts = [
   // mapbox-gl does not have an ESM release.
