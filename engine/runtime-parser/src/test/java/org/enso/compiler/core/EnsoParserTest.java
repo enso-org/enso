@@ -1349,28 +1349,12 @@ public class EnsoParserTest {
    * @return string representation of the IR
    */
   private static String simplifyIR(IR ir, boolean noIds, boolean noLocations, boolean lessDocs) {
+    if (noLocations) {
+      ir = ir.duplicate(false, true, true, true);
+    }
     String txt = ir.pretty();
     if (noIds) {
       txt = txt.replaceAll("[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]\\-[0-9a-f][0-9a-f][0-9a-f][0-9a-f]\\-[0-9a-f][0-9a-f][0-9a-f][0-9a-f]\\-[0-9a-f][0-9a-f][0-9a-f][0-9a-f]\\-[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]", "_");
-    }
-    if (noLocations) {
-      for (;;) {
-        final String pref = " Location(";
-        int at = txt.indexOf(pref);
-        if (at == -1) {
-          break;
-        }
-        int to = at + pref.length();
-        int depth = 1;
-        while (depth > 0) {
-          switch (txt.charAt(to)) {
-            case '(' -> depth++;
-            case ')' -> depth--;
-          }
-          to++;
-        }
-        txt = txt.substring(0, at) + "Location[_]" + txt.substring(to);
-      }
     }
     if (lessDocs) {
       for (;;) {
