@@ -59,23 +59,7 @@ const graphEditorSourceNode = computed(() => {
 useEvent(window, 'keydown', (event) => {
   interactionBindingsHandler(event) || graphBindingsHandler(event) || codeEditorHandler(event)
 })
-useEvent(
-  window,
-  'pointerdown',
-  (event) => {
-    if (
-      (document.activeElement instanceof HTMLElement ||
-        document.activeElement instanceof SVGElement ||
-        document.activeElement instanceof MathMLElement) &&
-      viewportNode.value?.contains(document.activeElement)
-    ) {
-      const activeElement = document.activeElement
-      setTimeout(() => activeElement.blur(), 0)
-    }
-    return interactionBindingsHandler(event)
-  },
-  { capture: true },
-)
+useEvent(window, 'pointerdown', interactionBindingsHandler, { capture: true })
 
 onMounted(() => viewportNode.value?.focus())
 

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useVisualizationStore } from '@/stores/visualization'
+import { useAutoBlur } from '@/util/autoBlur'
 import { visIdentifierEquals, type VisualizationIdentifier } from 'shared/yjsModel'
 import { onMounted, ref } from 'vue'
 
@@ -13,6 +14,7 @@ const emit = defineEmits<{ hide: []; 'update:modelValue': [type: VisualizationId
 const visualizationStore = useVisualizationStore()
 
 const rootNode = ref<HTMLElement>()
+useAutoBlur(rootNode)
 
 function visIdLabel(id: VisualizationIdentifier) {
   switch (id.module.kind) {
