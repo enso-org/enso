@@ -29,14 +29,10 @@ export interface AliasInfo {
 export class ConnectionsDb {
   aliases = new ReactiveDb<ExprId, AliasInfo>()
   identifiers = new ReactiveIndex(this.aliases, (alias, info) => [[info.identifier.repr(), alias]])
-  connections = new ReactiveIndex(this.aliases, (alias, info) =>
-    Array.from(info.usages, (target) => [alias, target]),
-  )
 
   readFunctionAst(ast: AstExtended<Ast.Tree.Function>) {
     const analyzer = new AliasAnalyzer(ast.parsedCode, ast.inner)
     analyzer.process()
-    console.log(analyzer.aliases)
     const aliasRangeToTree = new MappedKeyMap<ContentRange, AstExtended | undefined>(
       IdMap.keyForRange,
     )
@@ -108,7 +104,6 @@ export class GraphDb {
     for (const ast of entry.pattern.walkRecursive()) {
       exprs.add(ast.astId)
     }
-    console.log(id, exprs)
     return Array.from(exprs, (expr) => [id, expr])
   })
 
@@ -122,9 +117,21 @@ export class GraphDb {
 
   nodeByPattern = new ReactiveIndex(this.nodes, (id, entry) => [[entry.pattern?.repr(), id]])
 
-  get connections() {
-    return this.connectionsDb.connections
-  }
+  connections = new ReactiveIndex(this.connectionsDb.aliases, (alias, info) => {
+    const srcNode = this.getPatternExpressionNodeId(alias)
+    // Display connection starting from existing node.
+    //TODO[ao]: When implementing input nodes, they should be taken into account here.
+    if (srcNode == null) return []
+    function* allTargets(db: GraphDb): Generator<[ExprId, ExprId]> {
+      for (const usage of info.usages) {
+        const targetNode = db.getExpressionNodeId(usage)
+        // Display only connections to existing targets and different than source node
+        if (targetNode == null || targetNode === srcNode) continue
+        yield [alias, usage]
+      }
+    }
+    return Array.from(allTargets(this))
+  })
 
   nodeExpressionInfo = new ReactiveMapping(this.nodes, (id, _entry) =>
     this.valuesRegistry.getExpressionInfo(id),

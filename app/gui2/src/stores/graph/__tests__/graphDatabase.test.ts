@@ -34,7 +34,6 @@ test('Reading graph from definition', () => {
 
   const db = new GraphDb(new SuggestionDb(), ref([]), ComputedValueRegistry.Mock())
   const ast = AstExtended.parse(code, idMap)
-  console.log(idMap.toRawRanges())
   assert(ast.isTree(Ast.Tree.Type.BodyBlock))
   const func = ast.tryMap((block) => {
     const line = block.statements[Symbol.iterator]().next()
@@ -61,9 +60,10 @@ test('Reading graph from definition', () => {
   expect(db.getIdentDefiningNode('node2')).toBe(id08)
   expect(db.getIdentDefiningNode('function')).toBeUndefined()
 
-  expect(Array.from(db.connections.allForward(), ([key]) => key)).toEqual([id02, id03])
-  expect(Array.from(db.connections.lookup(id02))).toEqual([id05])
+  // Commented the connection from input node, as we don't support them yet.
+  expect(Array.from(db.connections.allForward(), ([key]) => key)).toEqual([id03])
+  // expect(Array.from(db.connections.lookup(id02))).toEqual([id05])
   expect(Array.from(db.connections.lookup(id03))).toEqual([id09])
-  expect(db.getIdentifierOfConnection(id02)?.repr()).toBe('a')
+  // expect(db.getIdentifierOfConnection(id02)?.repr()).toBe('a')
   expect(db.getIdentifierOfConnection(id03)?.repr()).toBe('node1')
 })
