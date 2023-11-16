@@ -6,7 +6,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-
 import org.netbeans.modules.sampler.Sampler;
 
 /**
@@ -15,8 +14,7 @@ import org.netbeans.modules.sampler.Sampler;
  */
 public final class OutputStreamSampler implements MethodsSampler {
 
-  private final Sampler sampler =
-      Sampler.createSampler(this.getClass().getSimpleName());
+  private final Sampler sampler = Sampler.createSampler(this.getClass().getSimpleName());
   private final OutputStream outputStream;
 
   private boolean isSamplingStarted = false;
