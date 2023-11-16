@@ -4,6 +4,7 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import org.graalvm.polyglot.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,9 +18,15 @@ public class HostClassLoader extends URLClassLoader {
 
   private final Map<String, Class<?>> loadedClasses = new ConcurrentHashMap<>();
   private static final Logger logger = LoggerFactory.getLogger(HostClassLoader.class);
+  // Classes from "org.graalvm" packages are loaded either by a class loader for the boot
+  // module layer, or by a specific class loader, depending on how enso is run. For example,
+  // if enso is run via `org.graalvm.polyglot.Context.eval` from `javac`, then the graalvm
+  // classes are loaded via a class loader somehow created by `javac` and not by the boot
+  // module layer's class loader.
+  private static final ClassLoader polyglotClassLoader = Context.class.getClassLoader();
 
   public HostClassLoader() {
-    super(new URL[0]);
+    super(new URL[0], polyglotClassLoader);
   }
 
   void add(URL u) {
