@@ -8,7 +8,11 @@ import org.apache.commons.cli.{Option => CliOption, _}
 import org.enso.distribution.{DistributionManager, Environment}
 import org.enso.editions.DefaultEdition
 import org.enso.languageserver.boot
-import org.enso.languageserver.boot.{LanguageServerConfig, ProfilingConfig, StartupConfig}
+import org.enso.languageserver.boot.{
+  LanguageServerConfig,
+  ProfilingConfig,
+  StartupConfig
+}
 import org.enso.libraryupload.LibraryUploader.UploadFailedError
 import org.slf4j.event.Level
 import org.enso.pkg.{Contact, PackageManager, Template}
