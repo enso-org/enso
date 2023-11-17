@@ -1,4 +1,4 @@
-package org.enso.persistance;
+package org.enso.persist;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -46,7 +46,7 @@ final class PerGenerator {
     java.lang.Object obj = writeReplace.apply(t);
     java.lang.Integer found = knownObjects.get(obj);
     if (found == null) {
-      org.enso.persistance.Persistance<?> p = PerMap.DEFAULT.forType(obj.getClass());
+      org.enso.persist.Persistance<?> p = PerMap.DEFAULT.forType(obj.getClass());
       java.io.ByteArrayOutputStream os = new ByteArrayOutputStream();
       p.writeInline(obj, new ReferenceOutput(this, os));
       found = this.position;
@@ -64,7 +64,7 @@ final class PerGenerator {
       return;
     }
     obj = writeReplace.apply(obj);
-    org.enso.persistance.Persistance<?> p = PerMap.DEFAULT.forType(obj.getClass());
+    org.enso.persist.Persistance<?> p = PerMap.DEFAULT.forType(obj.getClass());
     java.lang.Integer found = knownObjects.get(obj);
     if (found == null) {
       var os = new ByteArrayOutputStream();

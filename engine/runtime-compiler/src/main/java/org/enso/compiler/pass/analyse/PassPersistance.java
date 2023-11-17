@@ -7,8 +7,8 @@ import org.enso.compiler.pass.resolve.FullyQualifiedNames;
 import org.enso.compiler.pass.resolve.IgnoredBindings;
 import org.enso.compiler.pass.resolve.ModuleAnnotations;
 import org.enso.compiler.pass.resolve.TypeSignatures;
-import org.enso.persistance.Persistable;
-import org.enso.persistance.Persistance;
+import org.enso.persist.Persistable;
+import org.enso.persist.Persistance;
 import org.openide.util.lookup.ServiceProvider;
 import scala.Option;
 

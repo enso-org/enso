@@ -1,4 +1,4 @@
-package org.enso.persistance.impl;
+package org.enso.persist.impl;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -27,8 +27,8 @@ import javax.tools.Diagnostic.Kind;
 import org.openide.util.lookup.ServiceProvider;
 
 @SupportedAnnotationTypes({
-  "org.enso.persistance.Persistable",
-  "org.enso.persistance.Persistable.Group"
+  "org.enso.persist.Persistable",
+  "org.enso.persist.Persistable.Group"
 })
 @ServiceProvider(service=Processor.class)
 public class PersistableProcessor extends AbstractProcessor {
@@ -41,8 +41,8 @@ public class PersistableProcessor extends AbstractProcessor {
   public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
     var ok = true;
     var eu = processingEnv.getElementUtils();
-    var Persistable = eu.getTypeElement("org.enso.persistance.Persistable");
-    var PersistableGroup = eu.getTypeElement("org.enso.persistance.Persistable.Group");
+    var Persistable = eu.getTypeElement("org.enso.persist.Persistable");
+    var PersistableGroup = eu.getTypeElement("org.enso.persist.Persistable.Group");
     try {
       for (var elem : roundEnv.getElementsAnnotatedWith(Persistable)) {
         var anno = getAnnotation(elem, Persistable);
@@ -128,7 +128,7 @@ public class PersistableProcessor extends AbstractProcessor {
     try (var w = fo.openWriter()) {
       w.append("package ").append(pkgName).append(";\n");
       w.append("import java.io.IOException;\n");
-      w.append("import org.enso.persistance.Persistance;\n");
+      w.append("import org.enso.persist.Persistance;\n");
       w.append("@org.openide.util.lookup.ServiceProvider(service=Persistance.class)\n");
       w.append("public final class ").append(className).append(" extends Persistance<").append(typeElemName).append("> {\n");
       w.append("  public ").append(className).append("() {\n");

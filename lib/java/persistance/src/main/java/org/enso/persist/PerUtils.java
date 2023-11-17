@@ -1,4 +1,4 @@
-package org.enso.persistance;
+package org.enso.persist;
 
 final class PerUtils {
   private PerUtils() {}

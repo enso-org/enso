@@ -1,4 +1,4 @@
-package org.enso.persistance;
+package org.enso.persist;
 
 final class PerMemoryReference<T> extends Persistance.Reference<T> {
   static final Persistance.Reference<?> NULL = new PerMemoryReference<>(null);

@@ -213,7 +213,7 @@ final class SerializationManager(private val context: TruffleCompilerContext) {
               bindings.prepareForSerialization(compiler.context)
             (
               module.getName,
-              org.enso.persistance.Persistance.Reference.of(abstractBindings)
+              org.enso.persist.Persistance.Reference.of(abstractBindings)
             )
           }
           .toMap

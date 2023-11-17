@@ -6,8 +6,8 @@ import java.util.Optional;
 import java.util.logging.Level;
 
 import org.apache.commons.lang3.StringUtils;
-import org.enso.persistance.Persistance;
-import org.enso.persistance.Persistable;
+import org.enso.persist.Persistance;
+import org.enso.persist.Persistable;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.BindingsMap.DefinedEntity;
 import org.enso.compiler.data.BindingsMap.ModuleReference;

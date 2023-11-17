@@ -1,4 +1,4 @@
-package org.enso.persistance;
+package org.enso.persist;
 
 import java.io.DataInputStream;
 import java.io.IOException;
@@ -7,9 +7,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
-import static org.enso.persistance.PerUtils.raise;
-import org.enso.persistance.Persistance.Input;
-import org.enso.persistance.Persistance.Reference;
+import static org.enso.persist.PerUtils.raise;
+import org.enso.persist.Persistance.Input;
+import org.enso.persist.Persistance.Reference;
 
 final class PerInputImpl implements Input {
   private final InputCache cache;

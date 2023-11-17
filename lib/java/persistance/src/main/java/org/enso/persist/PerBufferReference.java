@@ -1,7 +1,7 @@
-package org.enso.persistance;
+package org.enso.persist;
 
-import org.enso.persistance.PerInputImpl.InputCache;
-import org.enso.persistance.Persistance.Reference;
+import org.enso.persist.PerInputImpl.InputCache;
+import org.enso.persist.Persistance.Reference;
 
 final class PerBufferReference<T> extends Persistance.Reference<T> {
   private final Persistance<T> p;
@@ -23,7 +23,7 @@ final class PerBufferReference<T> extends Persistance.Reference<T> {
         throw new ClassCastException();
       }
     }
-    org.enso.persistance.PerInputImpl in = new PerInputImpl(cache, offset);
+    org.enso.persist.PerInputImpl in = new PerInputImpl(cache, offset);
     T obj = in.readInline(clazz);
     return obj;
   }

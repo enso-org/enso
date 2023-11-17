@@ -34,4 +34,4 @@
  *
  * <p>{@snippet file="org/enso/persistance/PersistanceTest.java" region="annotation"}
  */
-package org.enso.persistance;
+package org.enso.persist;

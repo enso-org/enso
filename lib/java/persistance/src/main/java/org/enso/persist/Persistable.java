@@ -1,4 +1,4 @@
-package org.enso.persistance;
+package org.enso.persist;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Repeatable;

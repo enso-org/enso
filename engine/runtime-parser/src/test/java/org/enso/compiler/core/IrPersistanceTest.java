@@ -14,8 +14,8 @@ import org.enso.compiler.core.ir.IdentifiedLocation;
 import org.enso.compiler.core.ir.Location;
 import org.enso.compiler.core.ir.MetadataStorage;
 import org.enso.compiler.core.ir.Module;
-import org.enso.persistance.Persistable;
-import org.enso.persistance.Persistance;
+import org.enso.persist.Persistable;
+import org.enso.persist.Persistance;
 import org.junit.Test;
 import org.openide.util.lookup.ServiceProvider;
 

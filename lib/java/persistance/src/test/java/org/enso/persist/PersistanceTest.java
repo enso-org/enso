@@ -7,8 +7,8 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import org.enso.persistance.Persistable;
-import org.enso.persistance.Persistance;
+import org.enso.persist.Persistable;
+import org.enso.persist.Persistance;
 import org.junit.Test;
 import org.openide.util.lookup.ServiceProvider;
 

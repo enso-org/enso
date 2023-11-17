@@ -8,7 +8,7 @@ import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.interpreter.runtime
 import org.enso.interpreter.runtime.EnsoContext
-import org.enso.persistance.Persistance
+import org.enso.persist.Persistance
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.{LanguageInfo, MethodNames, RuntimeOptions}
 import org.graalvm.polyglot.{Context, Engine}

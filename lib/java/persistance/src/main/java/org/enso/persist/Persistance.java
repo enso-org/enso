@@ -1,11 +1,11 @@
-package org.enso.persistance;
+package org.enso.persist;
 
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.util.function.Function;
 
-import static org.enso.persistance.PerUtils.raise;
+import static org.enso.persist.PerUtils.raise;
 
 public abstract class Persistance<T> {
   final Class<T> clazz;

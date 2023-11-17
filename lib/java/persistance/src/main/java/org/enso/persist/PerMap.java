@@ -1,4 +1,4 @@
-package org.enso.persistance;
+package org.enso.persist;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -14,15 +14,15 @@ final class PerMap {
 
   private PerMap() {
     int hash = 0;
-    for (org.enso.persistance.Persistance p :
+    for (org.enso.persist.Persistance p :
         ServiceLoader.load(Persistance.class, getClass().getClassLoader())) {
-      org.enso.persistance.Persistance<?> prevId = ids.put(p.id, p);
+      org.enso.persist.Persistance<?> prevId = ids.put(p.id, p);
       if (prevId != null) {
         throw new IllegalStateException(
             "Multiple registrations for ID " + p.id + " " + prevId + " != " + p);
       }
       hash += p.id;
-      org.enso.persistance.Persistance<?> prevType = types.put(p.clazz, p);
+      org.enso.persist.Persistance<?> prevType = types.put(p.clazz, p);
       if (prevType != null) {
         throw new IllegalStateException(
             "Multiple registrations for " + p.clazz.getName() + " " + prevId + " != " + p);
@@ -40,7 +40,7 @@ final class PerMap {
     // as soon as they become visible from other threads, they have to look consistent
     NOT_FOUND:
     if (type != null) {
-      org.enso.persistance.Persistance<?> p = types.get(type);
+      org.enso.persist.Persistance<?> p = types.get(type);
       if (p != null) {
         if (!p.includingSubclasses) {
           break NOT_FOUND;
@@ -68,7 +68,7 @@ final class PerMap {
 
   @SuppressWarnings(value = "unchecked")
   final <T> Persistance<T> forType(Class<T> type) {
-    org.enso.persistance.Persistance<?> p = types.get(type);
+    org.enso.persist.Persistance<?> p = types.get(type);
     if (p == null) {
       p = searchSupertype(type.getName(), type);
     }
@@ -76,7 +76,7 @@ final class PerMap {
   }
 
   final Persistance<?> forId(int id) {
-    org.enso.persistance.Persistance<?> p = ids.get(id);
+    org.enso.persist.Persistance<?> p = ids.get(id);
     if (p == null) {
       throw PerUtils.raise(RuntimeException.class, new IOException("No persistance for " + id));
     }
