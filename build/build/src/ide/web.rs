@@ -19,7 +19,6 @@ use ide_ci::programs::node::NpmCommand;
 use ide_ci::programs::Npm;
 use ide_ci::temp;
 use std::process::Stdio;
-// use tempfile::TempDir;
 use tokio::process::Child;
 use tracing::Span;
 
@@ -395,7 +394,8 @@ impl IdeDesktop {
             .run("build")
             .run_ok();
 
-        let icons_dist = temp::Directory::new()?;
+        let icons_dist = ide_ci::global::temp::directory()?;
+        let icons_dist = icons_dist.not_dropped();
         let icons_build = self.build_icons(&icons_dist);
         let (icons, _content) = try_join(icons_build, client_build).await?;
 

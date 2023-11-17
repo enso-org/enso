@@ -63,18 +63,13 @@ impl Directory {
 }
 
 
-#[derive(Clone, Copy, Debug, Display)]
+#[derive(Clone, Copy, Debug, Default, Display)]
 pub enum Policy {
     /// Don't delete the directory when dropped.
     DontDrop,
     /// Delete the directory when dropped.
+    #[default]
     Drop,
-}
-
-impl Default for Policy {
-    fn default() -> Self {
-        Self::Drop
-    }
 }
 
 pub fn new_tempdir(policy: Policy) -> Result<Directory> {
