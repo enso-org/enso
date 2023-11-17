@@ -94,8 +94,11 @@ const graphBindingsHandler = graphBindings.handler({
     projectStore.module?.undoManager.redo()
   },
   openComponentBrowser() {
+    console.log('openComponentBrowser')
     if (keyboardBusy()) return false
+    console.log('openComponentBrowser2')
     if (graphNavigator.sceneMousePos != null && !componentBrowserVisible.value) {
+      console.log('openComponentBrowser3')
       interaction.setCurrent(creatingNode)
     }
   },
@@ -205,6 +208,7 @@ const placementEnvironment = computed(() => {
 
 const creatingNode: Interaction = {
   init: () => {
+    console.log('creatingNode init')
     componentBrowserInputContent.value = ''
     componentBrowserPosition.value = targetComponentBrowserPosition.value
     componentBrowserVisible.value = true
@@ -257,11 +261,13 @@ function onComponentBrowserCommit(content: string) {
   }
   componentBrowserVisible.value = false
   graphStore.editedNodeInfo = undefined
+  interaction.setCurrent(undefined)
 }
 
 function onComponentBrowserCancel() {
   componentBrowserVisible.value = false
   graphStore.editedNodeInfo = undefined
+  interaction.setCurrent(undefined)
 }
 
 /**
