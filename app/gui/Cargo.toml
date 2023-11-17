@@ -53,7 +53,7 @@ js-sys = { workspace = true }
 mockall = { version = "0.7.1", features = ["nightly"] }
 nalgebra = { workspace = true }
 semver = { workspace = true }
-serde = { version = "1.0", features = ["derive"] }
+serde = { workspace = true }
 serde_json = { workspace = true }
 sha3 = { version = "0.8.2" }
 superslice = { workspace = true }

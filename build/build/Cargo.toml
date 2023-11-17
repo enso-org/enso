@@ -6,80 +6,48 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
 anyhow = { workspace = true }
-async-compression = "0.3.12"
-async-trait = "0.1.51"
 aws-config = "0.49.0"
 aws-sdk-ecr = "0.19.0"
 aws-sdk-s3 = "0.19.0"
 base64 = "0.13.0"
 bytes = { workspace = true }
 byte-unit = { workspace = true }
-cached = "0.39.0"
-cfg-if = "1.0.0"
 chrono = { version = "0.4.19", features = ["serde"] }
 clap = { version = "3.1.5", features = ["derive", "env", "wrap_help"] }
 derivative = { workspace = true }
 derive_more = { workspace = true }
-dirs = "4.0.0"
-filetime = "0.2.15"
-flate2 = "1.0.22"
-flume = "0.10.10"
-fs_extra = "1.2.0"
+dirs = { workspace = true }
 futures = { workspace = true }
 futures-util = "0.3.17"
 glob = "0.3.0"
-#graphql_client = "0.10.0"
 handlebars = "4.3.5"
-heck = "0.4.0"
-humantime = "2.1.0"
 enso-build-base = { path = "../base" }
 enso-enso-font = { path = "../../lib/rust/enso-font" }
 enso-font = { path = "../../lib/rust/font" }
 ensogl-pack = { path = "../../lib/rust/ensogl/pack" }
 ide-ci = { path = "../ci_utils" }
-indexmap = "1.7.0"
-indicatif = "0.17.1"
-itertools = { workspace = true }
-lazy_static = { workspace = true }
-#git2 = "0.13.25"
 mime = "0.3.16"
 new_mime_guess = "4.0.1"
-nix = { workspace = true }
 octocrab = { workspace = true }
-ouroboros = "0.15.0"
-paste = { workspace = true }
-path-absolutize = "3.0.11"
 path-slash = "0.2.1"
-platforms = { version = "3.0.0", features = ["serde"] }
-pin-project = "1.0.8"
 port_check = "0.1.5"
-pretty_env_logger = "0.4.0"
 pulldown-cmark = "0.9.1"
-rand = "0.8.4"
 regex = { workspace = true }
-reqwest = { version = "0.11.5", default-features = false, features = [
-  "stream"
-] }
+reqwest = { workspace = true }
 semver = { workspace = true }
-serde = { version = "1.0.130", features = ["derive"] }
+serde = { workspace = true }
 serde_json = { workspace = true }
 serde_yaml = { workspace = true }
 scopeguard = "1.1.0"
 strum = { workspace = true }
-sysinfo = "0.26.2"
-tar = "0.4.37"
+sysinfo = { workspace = true }
 tempfile = "3.2.0"
 toml = "0.5.8"
 tokio = { workspace = true }
 tracing = { version = "0.1.37" }
-tracing-subscriber = "0.3.11"
-console-subscriber = { workspace = true }
-unicase = "2.6.0"
 url = "2.2.2"
 uuid = { version = "1.1.0", features = ["v4"] }
 walkdir = "2.3.2"
-which = "4.2.2"
-whoami = "1.2.1"
 zip = { version = "0.6.2", default-features = false, features = ["deflate"] }
 
 [build-dependencies]

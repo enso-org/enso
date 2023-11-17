@@ -7,7 +7,7 @@ authors = ["Enso Team <contact@enso.org>"]
 [dependencies]
 chrono = { version = "0.4.19", features = ["serde"] }
 csv = "1.1"
-serde = { version = "1", features = ["derive"] }
+serde = { workspace = true }
 enso-profiler = { path = "../../../lib/rust/profiler" }
 enso-profiler-data = { path = "../../../lib/rust/profiler/data" }
 ensogl-core = { path = "../../../lib/rust/ensogl/core" }

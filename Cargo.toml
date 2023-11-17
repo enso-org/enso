@@ -85,13 +85,17 @@ debug-assertions = true
 # We are tryingto maintain minimum set of dependencies. Before adding a new dependency, consult it
 # with the core development team. Thank you!
 console-subscriber = "0.1.8"
-nix = "0.26.1"
+dirs = { version = "5.0.1" }
+nix = { version = "0.27.1" }
 octocrab = { git = "https://github.com/enso-org/octocrab", default-features = false, features = [
   "rustls",
 ] }
+platforms = { version = "3.2.0", features = ["serde"] }
 regex = { version = "1.6.0" }
+serde = { version = "1.0.130", features = ["derive", "rc"] }
 serde_yaml = { version = "0.9.16" }
 serde-wasm-bindgen = { version = "0.4.5" }
+sysinfo = { version = "0.29.10" }
 tokio = { version = "1.23.0", features = ["full", "tracing"] }
 tokio-stream = { version = "0.1.12", features = ["fs"] }
 tokio-util = { version = "0.7.4", features = ["full"] }
@@ -126,7 +130,8 @@ bytes = { version = "1.1.0" }
 matches = { version = "0.1" }
 console_error_panic_hook = { version = "0.1.6" }
 reqwest = { version = "0.11.5", default-features = false, features = [
-  "rustls-tls"
+  "rustls-tls",
+  "stream"
 ] }
 proc-macro2 = { version = "1.0.50" }
 syn = { version = "2.0", features = [

@@ -23,7 +23,7 @@ ensogl-icons = { path = "../../../lib/rust/ensogl/component/icons" }
 flo_stream = { version = "0.4.0" }
 failure = { workspace = true }
 enso-notification = { path = "../../../lib/rust/notification" }
-serde = { version = "1.0", features = ["derive"] }
+serde = { workspace = true }
 serde_json = "1.0"
 
 [dev-dependencies]
