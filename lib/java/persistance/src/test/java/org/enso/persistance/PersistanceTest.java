@@ -102,6 +102,7 @@ public class PersistanceTest {
     return ref.get(clazz);
   }
 
+  // @start region="manual"
   @ServiceProvider(service = Persistance.class)
   public static final class PersistUUID extends Persistance<UUID> {
 
@@ -122,6 +123,7 @@ public class PersistanceTest {
       return new UUID(most, least);
     }
   }
+  // @end region="manual"
 
 
   public static final class Singleton {
@@ -146,6 +148,7 @@ public class PersistanceTest {
     }
   }
 
+  // @start region="annotation"
   @Persistable(clazz=Service.class, id=432434)
   @Persistable(clazz=IntegerSupply.class, id=432435)
   @Persistable(clazz=ServiceSupply.class, id=432436)
@@ -157,4 +160,5 @@ public class PersistanceTest {
   }
   public record IntegerSupply(Supplier<Integer> supply) {}
   public record ServiceSupply(Service supply) {}
+  // @end region="annotation"
 }

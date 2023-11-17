@@ -1,5 +1,5 @@
 /**
- * Framework for persisting Java objects and reading them "lazily". Use static {@link
+ * Framework for persisting Java objects and reading them <em>"lazily"</em>. Use static {@link
  * Persistance#write write} method to turn a graph of JVM objects into a {@code byte[]}.
  *
  * <p>{@snippet file="org/enso/persistance/PersistanceTest.java" region="write"}
@@ -22,6 +22,8 @@
  * implement subclass {@link Persistance} and implement its {@link Persistance#writeObject} and
  * {@link Persistance#readObject} method.
  *
+ * <p>{@snippet file="org/enso/persistance/PersistanceTest.java" region="read"}
+ *
  * <h2>Semi-automatic Persistance</h2>
  *
  * Writing serialization and deserialization implementation manually is a boring, tedious and
@@ -29,5 +31,7 @@
  * annotation processor that generates the necessary {@link Persistance} subclass based on the
  * "richest" constructor in the class to be persisted. This approach seems to work well for Java
  * records and Scala case classes.
+ *
+ * <p>{@snippet file="org/enso/persistance/PersistanceTest.java" region="annotation"}
  */
 package org.enso.persistance;
