@@ -2,12 +2,12 @@
  * Framework for persisting Java objects and reading them <em>"lazily"</em>. Use static {@link
  * Persistance#write write} method to turn a graph of JVM objects into a {@code byte[]}.
  *
- * <p>{@snippet file="org/enso/persistance/PersistanceTest.java" region="write"}
+ * <p>{@snippet file="org/enso/persist/PersistanceTest.java" region="write"}
  *
  * <p>Use sibling static {@link Persistance#read readO} method to read the byte buffer back into
  * their memory representation.
  *
- * <p>{@snippet file="org/enso/persistance/PersistanceTest.java" region="read"}
+ * <p>{@snippet file="org/enso/persist/PersistanceTest.java" region="read"}
  *
  * <h2>Laziness</h2>
  *
@@ -22,7 +22,7 @@
  * implement subclass {@link Persistance} and implement its {@link Persistance#writeObject} and
  * {@link Persistance#readObject} method.
  *
- * <p>{@snippet file="org/enso/persistance/PersistanceTest.java" region="read"}
+ * <p>{@snippet file="org/enso/persist/PersistanceTest.java" region="manual"}
  *
  * <h2>Semi-automatic Persistance</h2>
  *
@@ -32,6 +32,6 @@
  * "richest" constructor in the class to be persisted. This approach seems to work well for Java
  * records and Scala case classes.
  *
- * <p>{@snippet file="org/enso/persistance/PersistanceTest.java" region="annotation"}
+ * <p>{@snippet file="org/enso/persist/PersistanceTest.java" region="annotation"}
  */
 package org.enso.persist;
