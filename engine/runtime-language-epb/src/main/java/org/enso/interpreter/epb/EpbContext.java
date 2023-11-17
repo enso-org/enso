@@ -22,7 +22,6 @@ public class EpbContext {
   private final boolean isInner;
   private final TruffleLanguage.Env env;
   private @CompilerDirectives.CompilationFinal GuardedTruffleContext innerContext;
-  private final GuardedTruffleContext currentContext;
 
   /**
    * Creates a new instance of this context.
@@ -32,7 +31,6 @@ public class EpbContext {
   public EpbContext(TruffleLanguage.Env env) {
     this.env = env;
     isInner = env.getConfig().get(INNER_OPTION) != null;
-    currentContext = new GuardedTruffleContext(env.getContext(), isInner);
   }
 
   /**
@@ -104,28 +102,6 @@ public class EpbContext {
    */
   public static EpbContext get(Node node) {
     return REFERENCE.get(node);
-  }
-
-  /**
-   * Checks if this context corresponds to the inner Truffle context.
-   *
-   * @return true if run in the inner Truffle context, false otherwise.
-   */
-  public boolean isInner() {
-    return isInner;
-  }
-
-  /**
-   * @return the inner Truffle context handle if called from the outer context, or null if called in
-   *     the inner context.
-   */
-  public GuardedTruffleContext getInnerContext() {
-    return innerContext;
-  }
-
-  /** @return returns the currently entered Truffle context handle. */
-  public GuardedTruffleContext getCurrentContext() {
-    return currentContext;
   }
 
   /** @return the language environment associated with this context. */
