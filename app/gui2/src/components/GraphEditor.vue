@@ -4,6 +4,7 @@ import CodeEditor from '@/components/CodeEditor.vue'
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
 import {
   mouseDictatedPlacement,
+  previousNodeDictatedPlacement,
   type Environment,
 } from '@/components/ComponentBrowser/placement.ts'
 import { Uploader, uploadedExpression } from '@/components/GraphEditor/upload'
@@ -27,6 +28,9 @@ import GraphNodes from './GraphEditor/GraphNodes.vue'
 import GraphMouse from './GraphMouse.vue'
 
 const EXECUTION_MODES = ['design', 'live']
+// Difference in position between the component browser and a node for the input of the component browser to
+// be placed at the same position as the node.
+const COMPONENT_BROWSER_TO_NODE_OFFSET = new Vec2(20, 35)
 
 const viewportNode = ref<HTMLElement>()
 const graphNavigator = provideGraphNavigator(viewportNode)
@@ -36,7 +40,6 @@ widgetRegistry.loadBuiltins()
 const projectStore = useProjectStore()
 const componentBrowserVisible = ref(false)
 const componentBrowserInputContent = ref('')
-const componentBrowserPosition = ref(Vec2.Zero)
 const suggestionDb = useSuggestionDbStore()
 const interaction = provideInteractionHandler()
 
@@ -50,6 +53,29 @@ const interactionBindingsHandler = interactionBindings.handler({
   cancel: () => interaction.handleCancel(),
   click: (e) => (e instanceof MouseEvent ? interaction.handleClick(e) : false),
 })
+
+// This is where the component browser should be placed when it is opened.
+function targetComponentBrowserPosition() {
+  const editedInfo = graphStore.editedNodeInfo
+  const isEditingNode = editedInfo != null
+  const hasNodeSelected = nodeSelection.selected.size > 0
+  const nodeSize = new Vec2(0, 24)
+  if (isEditingNode) {
+    const targetNode = graphStore.db.nodes.get(editedInfo.id)
+    const targetPos = targetNode?.position ?? Vec2.Zero
+    return targetPos.add(COMPONENT_BROWSER_TO_NODE_OFFSET)
+  } else if (hasNodeSelected) {
+    const gapBetweenNodes = 48.0
+    return previousNodeDictatedPlacement(nodeSize, placementEnvironment.value, {
+      gap: gapBetweenNodes,
+    }).position
+  } else {
+    return mouseDictatedPlacement(nodeSize, placementEnvironment.value).position
+  }
+}
+
+// This is the current position of the component browser.
+const componentBrowserPosition = ref<Vec2>(Vec2.Zero)
 
 const graphEditorSourceNode = computed(() => {
   if (graphStore.editedNodeInfo != null) return undefined
@@ -73,8 +99,7 @@ const graphBindingsHandler = graphBindings.handler({
   openComponentBrowser() {
     if (keyboardBusy()) return false
     if (graphNavigator.sceneMousePos != null && !componentBrowserVisible.value) {
-      componentBrowserPosition.value = graphNavigator.sceneMousePos
-      interaction.setCurrent(new CreatingNode())
+      interaction.setCurrent(creatingNode)
     }
   },
   newNode() {
@@ -96,7 +121,6 @@ const graphBindingsHandler = graphBindings.handler({
   },
   deselectAll() {
     nodeSelection.deselectAll()
-    console.log('deselectAll')
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur()
     }
@@ -161,9 +185,13 @@ const groupColors = computed(() => {
 })
 
 const editingNode: Interaction = {
+  init: () => {
+    componentBrowserPosition.value = targetComponentBrowserPosition()
+  },
   cancel: () => (componentBrowserVisible.value = false),
 }
-interaction.setWhen(componentBrowserVisible, editingNode)
+const nodeIsBeingEdited = computed(() => graphStore.editedNodeInfo != null)
+interaction.setWhen(nodeIsBeingEdited, editingNode)
 
 const placementEnvironment = computed(() => {
   const mousePosition = graphNavigator.sceneMousePos ?? Vec2.Zero
@@ -177,33 +205,15 @@ const placementEnvironment = computed(() => {
   return environment
 })
 
-/// Interaction to create a new node. This will create a temporary node and open the component browser.
-/// If the interaction is cancelled, the temporary node will be deleted, otherwise it will be kept.
-class CreatingNode implements Interaction {
-  nodeId: ExprId
-  // Start a node creation interaction. This will create a new node and open the component browser.
-  // For more information about the flow of the interaction, see `CreatingNode`.
-  constructor() {
-    // We create a temporary node to show the component browser on. This node will be deleted if
-    // the interaction is cancelled. It can later on be used to have a preview of the node as it is
-    // being created.
-    const nodeHeight = 32
-    const targetPosition = mouseDictatedPlacement(
-      Vec2.FromArr([0, nodeHeight]),
-      placementEnvironment.value,
-    )
-    const nodeId = graphStore.createNode(targetPosition.position, '')
-    if (nodeId == null) {
-      throw new Error('CreatingNode: Failed to create node.')
-    }
-    this.nodeId = nodeId
-    // From here on we just edit the temporary node.
-    graphStore.editedNodeInfo = { id: nodeId, range: [0, 0] }
-  }
-  cancel() {
-    // Aborting node creation means we no longer need the temporary node.
-    graphStore.deleteNode(this.nodeId)
-  }
+const creatingNode: Interaction = {
+  init: () => {
+    componentBrowserInputContent.value = ''
+    componentBrowserPosition.value = targetComponentBrowserPosition()
+    componentBrowserVisible.value = true
+  },
+  cancel: () => {
+    // Nothing to do here. We just don't create a node and the component browser will close itself.
+  },
 }
 
 async function handleFileDrop(event: DragEvent) {
@@ -241,10 +251,22 @@ async function handleFileDrop(event: DragEvent) {
 
 function onComponentBrowserCommit(content: string) {
   if (content != null && graphStore.editedNodeInfo != null) {
+    /// We finish editing a node.
     graphStore.setNodeContent(graphStore.editedNodeInfo.id, content)
+  } else if (content != null) {
+    /// We finish creating a new node.
+    const nodePosition = componentBrowserPosition.value
+    graphStore.createNode(nodePosition.sub(COMPONENT_BROWSER_TO_NODE_OFFSET), content)
   }
   componentBrowserVisible.value = false
   graphStore.editedNodeInfo = undefined
+  interaction.setCurrent(undefined)
+}
+
+function onComponentBrowserCancel() {
+  componentBrowserVisible.value = false
+  graphStore.editedNodeInfo = undefined
+  interaction.setCurrent(undefined)
 }
 
 /**
@@ -261,10 +283,7 @@ watch(
   () => graphStore.editedNodeInfo,
   (editedInfo) => {
     if (editedInfo != null) {
-      const targetNode = graphStore.db.nodes.get(editedInfo.id)
-      const targetPos = targetNode?.position ?? Vec2.Zero
-      const offset = new Vec2(20, 35)
-      componentBrowserPosition.value = targetPos.add(offset)
+      componentBrowserPosition.value = targetComponentBrowserPosition()
       componentBrowserInputContent.value = getNodeContent(editedInfo.id)
       componentBrowserVisible.value = true
     } else {
@@ -382,7 +401,9 @@ async function readNodeFromClipboard() {
       ref="componentBrowser"
       :navigator="graphNavigator"
       :position="componentBrowserPosition"
-      @finished="onComponentBrowserCommit"
+      @accepted="onComponentBrowserCommit"
+      @closed="onComponentBrowserCancel"
+      @canceled="onComponentBrowserCancel"
       :initialContent="componentBrowserInputContent"
       :initialCaretPosition="graphStore.editedNodeInfo?.range ?? [0, 0]"
       :sourceNode="graphEditorSourceNode"
