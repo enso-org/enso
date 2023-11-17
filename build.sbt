@@ -1388,7 +1388,8 @@ lazy val runtime = (project in file("engine/runtime"))
       "org.typelevel"       %% "cats-core"             % catsVersion,
       "junit"                % "junit"                 % junitVersion              % Test,
       "com.github.sbt"       % "junit-interface"       % junitIfVersion            % Test,
-      "org.hamcrest"         % "hamcrest-all"          % hamcrestVersion           % Test
+      "org.hamcrest"         % "hamcrest-all"          % hamcrestVersion           % Test,
+    "org.slf4j" % "slf4j-nop" % slf4jVersion % Benchmark
     ),
     // Add all GraalVM packages with Runtime scope - we don't need them for compilation,
     // just provide them at runtime (in module-path).
@@ -1447,40 +1448,8 @@ lazy val runtime = (project in file("engine/runtime"))
     Benchmark / parallelExecution := false
   )
   .settings(
-    libraryDependencies ++= Seq(
-      "org.slf4j" % "slf4j-nop" % slf4jVersion % Benchmark
-    ),
-    (Benchmark / javaOptions) := {
-      val requiredModules = GraalVM.modules ++ GraalVM.langsPkgs ++ Seq(
-        "org.slf4j"      % "slf4j-api"       % slf4jVersion,
-        "org.slf4j"      % "slf4j-nop"       % slf4jVersion,
-      )
-      val requiredModulesCp = JPMSUtils.filterModulesFromClasspath(
-        (Benchmark / fullClasspath).value,
-        requiredModules,
-        streams.value.log,
-        shouldContainAll = true
-      )
-      val requiredModulesPaths = requiredModulesCp
-        .map(_.data.getAbsolutePath)
-      val runtimeJar =
-        (LocalProject("runtime-with-instruments") / assembly / assemblyOutputPath)
-          .value
-          .getAbsolutePath
-      val allModulePaths = requiredModulesPaths ++ Seq(runtimeJar)
-      val runtimeModuleName =
-        (LocalProject("runtime-with-instruments") / moduleInfos).value.head.moduleName
-      Seq(
-        // To enable logging in benchmarks, add ch.qos.logback module on the modulePath
-        "-Dslf4j.provider=org.slf4j.nop.NOPServiceProvider",
-        "--module-path",
-        allModulePaths.mkString(File.pathSeparator),
-        "--add-modules",
-        runtimeModuleName,
-        "--add-exports",
-        "org.slf4j.nop/org.slf4j.nop=org.slf4j",
-      )
-    }
+    (Benchmark / javaOptions) :=
+      (LocalProject("std-benchmarks") / Benchmark / run / javaOptions).value
   )
   .dependsOn(`common-polyglot-core-utils`)
   .dependsOn(`edition-updater`)
@@ -1538,6 +1507,8 @@ lazy val `runtime-instrument-common` =
       ),
       bench := (Benchmark / test).tag(Exclusive).value,
       Benchmark / parallelExecution := false,
+      (Benchmark / javaOptions) :=
+        (LocalProject("std-benchmarks") / Benchmark / run / javaOptions).value,
       Test / fork := true,
       Test / envVars ++= distributionEnvironmentOverrides ++ Map(
         "ENSO_TEST_DISABLE_IR_CACHE" -> "false"
@@ -1582,13 +1553,7 @@ lazy val `runtime-with-instruments` =
     .settings(
       frgaalJavaCompilerSetting,
       inConfig(Compile)(truffleRunOptionsSettings),
-      inConfig(Benchmark)(Defaults.testSettings),
       commands += WithDebugCommand.withDebug,
-      Benchmark / javacOptions --= Seq(
-        "-source",
-        frgaalSourceLevel,
-        "--enable-preview"
-      ),
       Test / javaOptions ++= testLogProviderOptions ++ Seq(
         "-Dpolyglotimpl.DisableClassPathIsolation=true"
       ),
@@ -1599,7 +1564,8 @@ lazy val `runtime-with-instruments` =
       libraryDependencies ++= Seq(
         "org.scalatest"      %% "scalatest"             % scalatestVersion          % Test,
         "org.graalvm.truffle" % "truffle-api"           % graalMavenPackagesVersion % Test,
-        "org.graalvm.truffle" % "truffle-dsl-processor" % graalMavenPackagesVersion % Test
+        "org.graalvm.truffle" % "truffle-dsl-processor" % graalMavenPackagesVersion % Test,
+        "org.slf4j"      % "slf4j-nop"       % slf4jVersion % Benchmark
       ),
       // Note [Unmanaged Classpath]
       Test / unmanagedClasspath += (baseDirectory.value / ".." / ".." / "app" / "gui" / "view" / "graph-editor" / "src" / "builtin" / "visualization" / "native" / "inc"),
@@ -1656,6 +1622,17 @@ lazy val `runtime-with-instruments` =
         case _ => MergeStrategy.first
       }
     )
+    /** Benchmark settings */
+    .settings(
+      inConfig(Benchmark)(Defaults.testSettings),
+      Benchmark / javacOptions --= Seq(
+        "-source",
+        frgaalSourceLevel,
+        "--enable-preview"
+      ),
+      (Benchmark / javaOptions) :=
+        (LocalProject("std-benchmarks") / Benchmark / run / javaOptions).value
+    )
     .dependsOn(runtime % "compile->compile;test->test;runtime->runtime")
     .dependsOn(`runtime-instrument-common`)
     .dependsOn(`runtime-instrument-id-execution`)
@@ -1694,7 +1671,9 @@ lazy val `runtime-with-polyglot` =
         "org.graalvm.polyglot" % "polyglot"     % graalMavenPackagesVersion % "provided",
         "org.graalvm.tools"    % "insight-tool" % graalMavenPackagesVersion % "provided",
         "org.scalatest"       %% "scalatest"    % scalatestVersion          % Test
-      )
+      ),
+      (Benchmark / javaOptions) :=
+        (LocalProject("std-benchmarks") / Benchmark / run / javaOptions).value
     )
     .dependsOn(runtime % "compile->compile;test->test;runtime->runtime")
     .dependsOn(`runtime-with-instruments`)
