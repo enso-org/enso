@@ -30,30 +30,31 @@ type Enso_File
 
     ## Represents the root folder of the current users.
     root : Enso_File
-    root = Enso_File.Value "" "" "" Enso_Asset_Type.Folder
+    root = Enso_File.Value "" "" "" Enso_Asset_Type.Directory
 
     ## PRIVATE
        Target URI for the api
     internal_uri : Text
     internal_uri self = case self.id of
-        "" -> if self.asset_type == Enso_Asset_Type.Folder then Utils.directory_api else
+        "" -> if self.asset_type == Enso_Asset_Type.Directory then Utils.directory_api else
             Error.throw (Illegal_Argument.Error "Invalid ID for a "+self.asset_type.to_text+".")
         _ -> case self.asset_type of
-            Enso_Asset_Type.Folder -> Utils.directory_api + "?parent_id=" + self.id
+            Enso_Asset_Type.Directory -> Utils.directory_api + "?parent_id=" + self.id
             Enso_Asset_Type.File -> Utils.files_api + "/" + self.id
             Enso_Asset_Type.Project -> Utils.projects_api + "/" + self.id
-            Enso_Asset_Type.Connection -> Utils.secrets_api + "/" + self.id
+            Enso_Asset_Type.Data_Link -> Utils.secrets_api + "/" + self.id
+            Enso_Asset_Type.Secret -> Error.throw (Illegal_Argument.Error "Secrets cannot be accessed directly.")
 
     ## Checks if the folder or file exists
     exists : Boolean
     exists self =
         auth_header = Utils.authorization_header
         response = HTTP.fetch self.internal_uri HTTP_Method.Get [auth_header]
-        response.status_code == 200
+        response.code.is_success
 
     ## Checks if this is a folder
     is_directory : Boolean
-    is_directory self = self.asset_type == Enso_Asset_Type.Folder
+    is_directory self = self.asset_type == Enso_Asset_Type.Directory
 
     ## PRIVATE
        ADVANCED
@@ -88,8 +89,8 @@ type Enso_File
        if it returns exceptionally).
     with_input_stream : Vector File_Access -> (Input_Stream -> Any ! File_Error) -> Any ! File_Error | Illegal_Argument
     with_input_stream self open_options action =
-        if self.is_directory then Error.throw (Illegal_Argument.Error "Enso_File folders cannot be opened as a stream." self.uri) else
-            if (open_options !=  [File_Access.Read]) then Error.throw (Illegal_Argument.Error "Enso_File files can only be opened for reading." self.uri) else
+        if self.is_directory then Error.throw (Illegal_Argument.Error "Directories cannot be opened as a stream." self.uri) else
+            if (open_options !=  [File_Access.Read]) then Error.throw (Illegal_Argument.Error "Files can only be opened for reading." self.uri) else
                 extension = if self.name.contains "." then "." + self.name.take (Text_Sub_Range.After_Last ".") else ""
                 url = "https://production-enso-organizations-files.s3.eu-west-1.amazonaws.com/" + self.organisation + "/" + self.id + extension
                 response = HTTP.fetch url HTTP_Method.Get []
@@ -115,9 +116,9 @@ type Enso_File
         _ = on_problems
         case format of
             Auto_Detect -> case self.asset_type of
-                Enso_Asset_Type.Folder -> self.list
+                Enso_Asset_Type.Directory -> self.list
                 Enso_Asset_Type.Project -> Error.throw (Illegal_Argument.Error "Projects cannot be read within Enso code. Open using the IDE.")
-                Enso_Asset_Type.Connection -> Error.throw (Illegal_Argument.Error "Connections cannot be read within Enso code. Open using the IDE.")
+                Enso_Asset_Type.Data_Link -> Error.throw (Illegal_Argument.Error "Connections cannot be read within Enso code. Open using the IDE.")
                 Enso_Asset_Type.File ->
                     real_format = Auto_Detect.get_reading_format self
                     if real_format == Nothing then Error.throw (File_Error.Unsupported_Type self) else
@@ -148,23 +149,29 @@ type Enso_File
     ## GROUP Metadata
        Returns the extension of the file.
     extension : Text
-    extension self = if self.is_directory then Error.throw (Illegal_Argument.Error "Directories do not have extensions." self.uri) else
-        name = self.name
-        last_dot = name.locate "." mode=Matching_Mode.Last
-        if last_dot.is_nothing then "" else
-            extension = name.drop (Index_Sub_Range.First last_dot.start)
-            if extension == "." then "" else extension
+    extension self = case self.asset_type of
+        Enso_Asset_Type.Directory -> Error.throw (Illegal_Argument.Error "Directories do not have extensions." self.uri)
+        Enso_Asset_Type.Secret -> Error.throw (Illegal_Argument.Error "Secrets cannot be accessed directly.")
+        Enso_Asset_Type.Project -> ".enso"
+        _ ->
+            name = self.name
+            last_dot = name.locate "." mode=Matching_Mode.Last
+            if last_dot.is_nothing then "" else
+                extension = name.drop (Index_Sub_Range.First last_dot.start)
+                if extension == "." then "" else extension
 
     ## Gets a list of assets within self.
     list : Vector Enso_File
-    list self = if self.asset_type != Enso_Asset_Type.Folder then Error.throw (Illegal_Argument.Error "Only folders can be listed.") else
+    list self = if self.asset_type != Enso_Asset_Type.Directory then Error.throw (Illegal_Argument.Error "Only directories can be listed.") else
         auth_header = Utils.authorization_header
         response = HTTP.fetch self.internal_uri HTTP_Method.Get [auth_header]
         response.if_not_error <|
             js_object = response.decode_as_json
             assets = js_object.get "assets" []
             files = assets.map t-> t.into Enso_File
-            files.filter f-> f.asset_type != Enso_Asset_Type.Connection || f.name.starts_with "connection-"
+
+            ## Remove secrets from the list
+            files.filter f-> f.asset_type != Enso_Asset_Type.Secret
 
 ## PRIVATE
 Enso_File.from (that:JS_Object) = if ["title", "id", "parentId"].any (k-> that.contains_key k . not) then Error.throw (Illegal_Argument.Error "Invalid JSON for an Enso_File.") else
@@ -182,17 +189,21 @@ type Enso_Asset_Type
     File
 
     ## Represents a folder.
-    Folder
+    Directory
+
+    ## Represents a secret.
+    Secret
 
     ## Represents a connection to another data source.
-    Connection
+    Data_Link
 
 ## PRIVATE
 Enso_Asset_Type.from (that:Text) = case that of
     "project" -> Enso_Asset_Type.Project
     "file" -> Enso_Asset_Type.File
-    "directory" -> Enso_Asset_Type.Folder
-    "secret" -> Enso_Asset_Type.Connection
+    "directory" -> Enso_Asset_Type.Directory
+    "secret" -> Enso_Asset_Type.Secret
+    "connection" -> Enso_Asset_Type.Data_Link
     _ -> Error.throw (Illegal_Argument.Error "Invalid asset type.")
 
 ## PRIVATE

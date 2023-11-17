@@ -15,11 +15,11 @@ type Enso_User
        Represents a user within Enso Cloud.
 
        Fields:
-       - name - The user's name.
-       - email - The user's email address.
-       - id - The user's unique ID.
-       - home - The user's home directory.
-       - is_enabled - Whether the user is enabled.
+       - name: The user's name.
+       - email: The user's email address.
+       - id: The user's unique ID.
+       - home: The user's home directory.
+       - is_enabled: Whether the user is enabled.
     User name:Text email:Text id:Text home:Enso_File is_enabled:Boolean=True
 
     ## Fetch the current user.
@@ -46,6 +46,6 @@ type Enso_User
 ## PRIVATE
 Enso_User.from (that:JS_Object) = if ["name", "email", "id"].any (k-> that.contains_key k . not) then Error.throw (Illegal_Argument.Error "Invalid JSON for an Enso_User.") else
     root_folder_id = that.get "rootDirectoryId" ""
-    root_folder = Enso_File.Value "" root_folder_id "" Enso_Asset_Type.Folder
+    root_folder = Enso_File.Value "" root_folder_id "" Enso_Asset_Type.Directory
     is_enabled = that.get "isEnabled" True
     Enso_User.User (that.get "name") (that.get "email") (that.get "id") root_folder is_enabled
