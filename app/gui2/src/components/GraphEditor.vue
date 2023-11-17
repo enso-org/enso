@@ -55,7 +55,7 @@ const interactionBindingsHandler = interactionBindings.handler({
 })
 
 // This is where the component browser should be placed when it is opened.
-const targetComponentBrowserPosition = computed(() => {
+function targetComponentBrowserPosition() {
   const editedInfo = graphStore.editedNodeInfo
   const isEditingNode = editedInfo != null
   const hasNodeSelected = nodeSelection.selected.size > 0
@@ -72,7 +72,8 @@ const targetComponentBrowserPosition = computed(() => {
   } else {
     return mouseDictatedPlacement(nodeSize, placementEnvironment.value).position
   }
-})
+}
+
 // This is the current position of the component browser.
 const componentBrowserPosition = ref<Vec2>(Vec2.Zero)
 
@@ -185,7 +186,7 @@ const groupColors = computed(() => {
 
 const editingNode: Interaction = {
   init: () => {
-    componentBrowserPosition.value = targetComponentBrowserPosition.value
+    componentBrowserPosition.value = targetComponentBrowserPosition()
   },
   cancel: () => (componentBrowserVisible.value = false),
 }
@@ -207,7 +208,7 @@ const placementEnvironment = computed(() => {
 const creatingNode: Interaction = {
   init: () => {
     componentBrowserInputContent.value = ''
-    componentBrowserPosition.value = targetComponentBrowserPosition.value
+    componentBrowserPosition.value = targetComponentBrowserPosition()
     componentBrowserVisible.value = true
   },
   cancel: () => {
@@ -282,9 +283,7 @@ watch(
   () => graphStore.editedNodeInfo,
   (editedInfo) => {
     if (editedInfo != null) {
-      const targetNode = graphStore.db.nodes.get(editedInfo.id)
-      const targetPos = targetNode?.position ?? Vec2.Zero
-      targetComponentBrowserPosition.value = targetPos.add(COMPONENT_BROWSER_TO_NODE_OFFSET)
+      componentBrowserPosition.value = targetComponentBrowserPosition()
       componentBrowserInputContent.value = getNodeContent(editedInfo.id)
       componentBrowserVisible.value = true
     } else {
