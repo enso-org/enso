@@ -1,10 +1,4 @@
-minimum-launcher-version: 2023.2.1-nightly.2023.7.20
-minimum-project-manager-version: 2023.2.1-nightly.2023.7.20
+minimum-launcher-version: 2023.2.1-nightly.2023.11.2
+minimum-project-manager-version: 2023.2.1-nightly.2023.11.2
 jvm-options:
-  - value: "-Dpolyglot.engine.IterativePartialEscape=true"
-  - value: "-Dtruffle.class.path.append=$enginePackagePath\\component\\runtime.jar"
-    os: "windows"
-  - value: "-Dtruffle.class.path.append=$enginePackagePath/component/runtime.jar"
-    os: "linux"
-  - value: "-Dtruffle.class.path.append=$enginePackagePath/component/runtime.jar"
-    os: "macos"
+  - value: "-Dpolyglot.compiler.IterativePartialEscape=true"

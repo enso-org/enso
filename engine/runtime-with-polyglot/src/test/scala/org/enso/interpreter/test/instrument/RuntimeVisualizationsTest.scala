@@ -57,6 +57,7 @@ class RuntimeVisualizationsTest
           RuntimeOptions.DISABLE_IR_CACHES,
           InstrumentTestContext.DISABLE_IR_CACHE
         )
+        .option("engine.WarnInterpreterOnly", "false")
         .option(
           RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
           Paths.get("../../distribution/component").toFile.getAbsolutePath

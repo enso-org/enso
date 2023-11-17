@@ -60,6 +60,8 @@ import org.scalactic.source
 import org.scalatest.OptionValues
 import org.slf4j.event.Level
 
+import java.io.File
+import java.net.URISyntaxException
 import java.nio.file.{Files, Path}
 import java.util.UUID
 
@@ -173,6 +175,31 @@ class BaseServerTest
     super.afterEach()
   }
 
+  /** Locates the root of the Enso repository. Heuristic: we just keep going up the directory tree
+    * until we are in a directory containing ".git" subdirectory. Note that we cannot use the "enso"
+    * name, as users are free to name their cloned directories however they like.
+    */
+  protected def locateRootDirectory(): File = {
+    var rootDir: File = null
+    try {
+      rootDir = new File(
+        classOf[
+          BaseServerTest
+        ].getProtectionDomain.getCodeSource.getLocation.toURI
+      )
+    } catch {
+      case e: URISyntaxException =>
+        fail("repository root directory not found: " + e.getMessage)
+    }
+    while (rootDir != null && !Files.exists(rootDir.toPath.resolve(".git"))) {
+      rootDir = rootDir.getParentFile
+    }
+    if (rootDir == null) {
+      fail("repository root directory not found")
+    }
+    rootDir
+  }
+
   override def clientControllerFactory: ClientControllerFactory = {
     val contentRootManagerWrapper: ContentRootManager =
       new ContentRootManagerWrapper(config, contentRootManagerActor)
@@ -272,8 +299,11 @@ class BaseServerTest
     initializationComponent.init().get(timeout.length, timeout.unit)
     suggestionsHandler ! ProjectNameUpdated("Test")
 
-    val environment         = fakeInstalledEnvironment()
-    val languageHome        = LanguageHome.detectFromExecutableLocation(environment)
+    val environment = fakeInstalledEnvironment()
+    val languageHomePath =
+      locateRootDirectory().toPath.resolve("distribution").resolve("component")
+    val languageHome = LanguageHome(languageHomePath)
+    languageHome.rootPath.toFile.exists() shouldBe true
     val distributionManager = new DistributionManager(environment)
     val lockManager: TestableThreadSafeFileLockManager =
       new TestableThreadSafeFileLockManager(distributionManager.paths.locks)
@@ -366,7 +396,7 @@ class BaseServerTest
     * was more suited towards testing the launcher.
     */
   override def fakeExecutablePath(portable: Boolean): Path =
-    Path.of("distribution/component/runner.jar")
+    Path.of("distribution/component/runner/runner.jar")
 
   /** Specifies if the `package.yaml` at project root should be auto-created. */
   protected def initializeProjectPackage: Boolean = true

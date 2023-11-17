@@ -113,7 +113,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     ActorSystem(
       serverConfig.name,
       None,
-      None,
+      Some(getClass.getClassLoader),
       Some(serverConfig.computeExecutionContext)
     )
   log.trace("Created ActorSystem [{}].", system)

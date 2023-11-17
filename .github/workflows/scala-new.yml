@@ -70,6 +70,7 @@ jobs:
           AWS_REGION: ${{ secrets.ENSO_LIB_S3_AWS_REGION }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          LC_ALL: C.UTF-8
       - if: success() || failure()
         name: Engine Test Reporter
         uses: dorny/test-reporter@v1
@@ -149,6 +150,7 @@ jobs:
           AWS_REGION: ${{ secrets.ENSO_LIB_S3_AWS_REGION }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          LC_ALL: C.UTF-8
       - if: success() || failure()
         name: Engine Test Reporter
         uses: dorny/test-reporter@v1
@@ -230,6 +232,7 @@ jobs:
           AWS_REGION: ${{ secrets.ENSO_LIB_S3_AWS_REGION }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          LC_ALL: C.UTF-8
       - if: success() || failure()
         name: Engine Test Reporter
         uses: dorny/test-reporter@v1

@@ -116,6 +116,7 @@ object DistributionPackage {
     distributionRoot: File,
     cacheFactory: CacheStoreFactory,
     log: Logger,
+    jarModulesToCopy: Seq[File],
     graalVersion: String,
     javaVersion: String,
     ensoVersion: String,
@@ -132,10 +133,17 @@ object DistributionPackage {
     )
 
     copyFilesIncremental(
-      Seq(file("runtime.jar"), file("runner.jar")),
+      jarModulesToCopy,
       distributionRoot / "component",
-      cacheFactory.make("engine-jars")
+      cacheFactory.make("module jars")
     )
+    // Put runner.jar into a nested directory, so that it is outside of the default
+    // module-path.
+    IO.copyFile(
+      file("runner.jar"),
+      distributionRoot / "component" / "runner" / "runner.jar"
+    )
+
     val parser = targetDir / Platform.dynamicLibraryFileName("enso_parser")
     copyFilesIncremental(
       Seq(parser),
