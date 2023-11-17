@@ -28,6 +28,8 @@ export const graphBindings = defineKeybinds('graph-editor', {
   deleteSelected: ['Delete'],
   selectAll: ['Mod+A'],
   deselectAll: ['Escape', 'PointerMain'],
+  copyNode: ['Mod+C'],
+  pasteNode: ['Mod+V'],
 })
 
 export const selectionMouseBindings = defineKeybinds('selection', {
