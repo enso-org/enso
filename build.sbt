@@ -1471,6 +1471,7 @@ lazy val runtime = (project in file("engine/runtime"))
       val runtimeModuleName =
         (LocalProject("runtime-with-instruments") / moduleInfos).value.head.moduleName
       Seq(
+        // To enable logging in benchmarks, add ch.qos.logback module on the modulePath
         "-Dslf4j.provider=org.slf4j.nop.NOPServiceProvider",
         "--module-path",
         allModulePaths.mkString(File.pathSeparator),
@@ -1965,8 +1966,19 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
     libraryDependencies ++= jmh ++ Seq(
       "org.openjdk.jmh"      % "jmh-core"                 % jmhVersion                % Benchmark,
       "org.openjdk.jmh"      % "jmh-generator-annprocess" % jmhVersion                % Benchmark,
-      "org.graalvm.polyglot" % "polyglot"                 % graalMavenPackagesVersion % Benchmark
+      "org.graalvm.polyglot" % "polyglot"                 % graalMavenPackagesVersion % Benchmark,
+      "org.slf4j" % "slf4j-api" % slf4jVersion % Benchmark,
+      "org.slf4j" % "slf4j-nop" % slf4jVersion % Benchmark,
     ),
+    // Add all GraalVM packages with Benchmark scope - we don't need them for compilation,
+    // just provide them for benchmarks (in module-path).
+    libraryDependencies ++= {
+      val necessaryModules =
+        GraalVM.modules.map(_.withConfigurations(Some(Benchmark.name)))
+      val langs =
+        GraalVM.langsPkgs.map(_.withConfigurations(Some(Benchmark.name)))
+      necessaryModules ++ langs
+    },
     commands += WithDebugCommand.withDebug,
     (Compile / logManager) :=
       sbt.internal.util.CustomLogManager.excludeMsg(
@@ -1982,6 +1994,8 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
     (Benchmark / parallelExecution) := false,
     (Benchmark / run / fork) := true,
     (Benchmark / run / connectInput) := true,
+    // This ensures that the full class-path of runtime-with-instruments is put on
+    // class-path of the Java compiler (and thus the benchmark annotation processor).
     (Benchmark / compile / unmanagedClasspath) ++=
       (LocalProject(
         "runtime-with-instruments"
@@ -1994,20 +2008,34 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
       "-J-Dpolyglot.engine.WarnInterpreterOnly=false"
     ),
     (Benchmark / run / javaOptions) ++= {
-      val componentModulePaths = (ThisBuild / componentModulesPaths).value
+      val requiredModules = GraalVM.modules ++ GraalVM.langsPkgs ++ Seq(
+        "org.slf4j" % "slf4j-api" % slf4jVersion,
+        "org.slf4j" % "slf4j-nop" % slf4jVersion,
+      )
+      val requiredModulesCp = JPMSUtils.filterModulesFromClasspath(
+        (Benchmark / fullClasspath).value,
+        requiredModules,
+        streams.value.log,
+        shouldContainAll = true
+      )
+      val requiredModulesPaths = requiredModulesCp
         .map(_.data.getAbsolutePath)
       val runtimeJar =
-        (LocalProject(
-          "runtime-with-instruments"
-        ) / assembly / assemblyOutputPath).value.getAbsolutePath
-      val allModulePaths = componentModulePaths ++ Seq(runtimeJar)
+        (LocalProject("runtime-with-instruments") / assembly / assemblyOutputPath)
+          .value
+          .getAbsolutePath
+      val allModulePaths = requiredModulesPaths ++ Seq(runtimeJar)
       val runtimeModuleName =
         (LocalProject("runtime-with-instruments") / moduleInfos).value.head.moduleName
       Seq(
+        // To enable logging in benchmarks, add ch.qos.logback module on the modulePath
+        "-Dslf4j.provider=org.slf4j.nop.NOPServiceProvider",
         "--module-path",
         allModulePaths.mkString(File.pathSeparator),
         "--add-modules",
-        runtimeModuleName
+        runtimeModuleName,
+        "--add-exports",
+        "org.slf4j.nop/org.slf4j.nop=org.slf4j",
       )
     },
     (Benchmark / run / mainClass) :=
