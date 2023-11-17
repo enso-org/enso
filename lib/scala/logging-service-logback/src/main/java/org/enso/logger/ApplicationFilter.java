@@ -48,12 +48,9 @@ public class ApplicationFilter extends Filter<ILoggingEvent> {
 
   private boolean loggerNameMatches(String validLoggerName, String eventLoggerName) {
     if (prefix != null && eventLoggerName.startsWith(prefix)) {
-      String prefixLessLoggerName = eventLoggerName.substring(prefixLength);
-      String normalizedLoggerName =
-          prefixLessLoggerName.startsWith(".")
-              ? prefixLessLoggerName.substring(1)
-              : prefixLessLoggerName;
-      return normalizedLoggerName.startsWith(validLoggerName);
+      int normalizedLoggerNameIdx =
+          eventLoggerName.indexOf(".") == prefixLength ? prefixLength + 1 : prefixLength;
+      return eventLoggerName.substring(normalizedLoggerNameIdx).startsWith(validLoggerName);
     } else {
       return eventLoggerName.startsWith(validLoggerName);
     }
