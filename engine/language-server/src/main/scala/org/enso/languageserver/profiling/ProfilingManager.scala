@@ -10,7 +10,7 @@ import org.enso.profiling.sampler.{MethodsSampler, OutputStreamSampler}
 
 import java.io.{ByteArrayOutputStream, PrintStream}
 import java.nio.charset.StandardCharsets
-import java.nio.file.Files
+import java.nio.file.{Files, Path}
 import java.time.{Clock, Instant, ZoneOffset}
 import java.time.format.{DateTimeFormatter, DateTimeFormatterBuilder}
 import java.time.temporal.ChronoField
@@ -70,7 +70,8 @@ final class ProfilingManager(
           Try(saveSamplerResult(result.toByteArray, instant)) match {
             case Failure(exception) =>
               logger.error("Failed to save the sampler's result.", exception)
-            case Success(()) =>
+            case Success(samplesPath) =>
+              logger.trace("Saved the sampler's result to {}", samplesPath)
           }
 
           runtimeConnector ! RuntimeConnector.RegisterEventsMonitor(
@@ -87,11 +88,14 @@ final class ProfilingManager(
   private def saveSamplerResult(
     result: Array[Byte],
     instant: Instant
-  ): Unit = {
+  ): Path = {
     val samplesFileName = createSamplesFileName(instant)
     val samplesPath =
       distributionManager.paths.profiling.resolve(samplesFileName)
+
     Files.write(samplesPath, result)
+
+    samplesPath
   }
 
   private def createEventsMonitor(instant: Instant): RuntimeEventsMonitor = {
