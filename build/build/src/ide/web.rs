@@ -1,3 +1,5 @@
+//! Code for dealing with JS/TS components of the GUI1 and the Electron client (IDE).
+
 use crate::prelude::*;
 
 use crate::ide::web::env::CSC_KEY_PASSWORD;
@@ -15,8 +17,9 @@ use ide_ci::ok_ready_boxed;
 use ide_ci::program::command::FallibleManipulator;
 use ide_ci::programs::node::NpmCommand;
 use ide_ci::programs::Npm;
+use ide_ci::temp;
 use std::process::Stdio;
-use tempfile::TempDir;
+// use tempfile::TempDir;
 use tokio::process::Child;
 use tracing::Span;
 
@@ -165,46 +168,59 @@ pub enum Command {
 }
 
 /// Things that are common to `watch` and `build`.
-#[derive(Debug)]
-pub struct ContentEnvironment<Assets, Output> {
-    pub asset_dir:   Assets,
+pub struct ContentEnvironment {
+    /// Internally managed directory where the assets are extracted.
+    pub asset_dir:   temp::Directory,
     pub wasm:        wasm::Artifact,
-    pub output_path: Output,
+    /// Where the GUI (contents) artifacts should be placed.
+    pub output_path:  PathBuf,
 }
 
-impl<Output: AsRef<Path>> ContentEnvironment<TempDir, Output> {
+impl Debug for ContentEnvironment {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let Self { asset_dir, wasm, output_path } = self;
+        f.debug_struct("ContentEnvironment")
+            .field("asset_dir", &*asset_dir)
+            .field("wasm", &wasm)
+            .field("output_path", &output_path)
+            .finish()
+    }
+}
+
+impl ContentEnvironment {
     pub async fn new(
         ide: &IdeDesktop,
         wasm: impl Future<Output = Result<wasm::Artifact>>,
         build_info: &BuildInfo,
-        output_path: Output,
+        output_path: PathBuf,
     ) -> Result<Self> {
         crate::web::install(&ide.repo_root).await?;
-        let asset_dir = TempDir::new()?;
+        let asset_dir = temp::Directory::new()?;
         let assets_download = download_js_assets(&asset_dir);
         let fonts_download = fonts::install_html_fonts(&ide.cache, &ide.octocrab, &asset_dir);
         let (wasm, _, _) = try_join3(wasm, assets_download, fonts_download).await?;
+        let output_path = output_path.into();
         ide.write_build_info(build_info)?;
         Ok(ContentEnvironment { asset_dir, wasm, output_path })
     }
 }
 
-impl<Assets: AsRef<Path>, Output: AsRef<Path>> FallibleManipulator
-    for ContentEnvironment<Assets, Output>
+impl FallibleManipulator
+    for ContentEnvironment
 {
     fn try_applying<C: IsCommandWrapper + ?Sized>(&self, command: &mut C) -> Result {
         let artifacts_for_gui =
             self.wasm.files_to_ship().into_iter().map(|file| file.to_path_buf()).collect_vec();
 
         command
-            .set_env(env::ENSO_BUILD_GUI, self.output_path.as_ref())?
+            .set_env(env::ENSO_BUILD_GUI, &self.output_path)?
             .set_env(env::ENSO_BUILD_GUI_WASM_ARTIFACTS, &artifacts_for_gui)?
-            .set_env(env::ENSO_BUILD_GUI_ASSETS, self.asset_dir.as_ref())?;
+            .set_env(env::ENSO_BUILD_GUI_ASSETS, &*self.asset_dir)?;
         Ok(())
     }
 }
 
-impl<Assets, Output> Drop for ContentEnvironment<Assets, Output> {
+impl Drop for ContentEnvironment {
     fn drop(&mut self) {
         info!("Dropping content environment.")
     }
@@ -301,12 +317,13 @@ impl IdeDesktop {
         dest = %output_path.as_ref().display(),
         build_info,
         err))]
-    pub async fn build_content<P: AsRef<Path>>(
+    pub async fn build_content(
         &self,
         wasm: impl Future<Output = Result<wasm::Artifact>>,
         build_info: &BuildInfo,
-        output_path: P,
-    ) -> Result<ContentEnvironment<TempDir, P>> {
+        output_path: impl AsRef<Path> + Send + Sync + 'static,
+    ) -> Result<ContentEnvironment> {
+        let output_path = output_path.as_ref().to_path_buf();
         let env = ContentEnvironment::new(self, wasm, build_info, output_path).await?;
         self.npm()?
             .try_applying(&env)?
@@ -329,9 +346,9 @@ impl IdeDesktop {
     ) -> Result<Watcher> {
         // When watching we expect our artifacts to be served through server, not appear in any
         // specific location on the disk.
-        let output_path = TempDir::new()?;
+        let output_path = tempfile::TempDir::new()?;
         let watch_environment =
-            ContentEnvironment::new(self, wasm, build_info, output_path).await?;
+            ContentEnvironment::new(self, wasm, build_info, output_path.path().to_path_buf()).await?;
         Span::current().record("wasm", watch_environment.wasm.as_ref().as_str());
         let child_process = self
             .npm()?
@@ -339,7 +356,7 @@ impl IdeDesktop {
             .workspace(Workspaces::Content)
             .run("watch")
             .spawn_intercepting()?;
-        Ok(Watcher { child_process, watch_environment })
+        Ok(Watcher { child_process, watch_environment, output_path })
     }
 
     /// Build the full Electron package, using the electron-builder.
@@ -378,7 +395,7 @@ impl IdeDesktop {
             .run("build")
             .run_ok();
 
-        let icons_dist = TempDir::new()?;
+        let icons_dist = temp::Directory::new()?;
         let icons_build = self.build_icons(&icons_dist);
         let (icons, _content) = try_join(icons_build, client_build).await?;
 
@@ -444,12 +461,12 @@ impl IdeDesktop {
 
         let pm_bundle = ProjectManagerInfo::new(&project_manager)?;
 
-        let temp_dir_for_gui = TempDir::new()?;
+        let temp_dir_for_gui = tempfile::TempDir::new()?;
         let content_env = ContentEnvironment::new(
             self,
             ok_ready_boxed(watched_wasm.as_ref().clone()),
             &build_info.await?,
-            &temp_dir_for_gui,
+            temp_dir_for_gui.path().to_path_buf(),
         )
         .await?;
 
@@ -460,7 +477,7 @@ impl IdeDesktop {
         }
 
 
-        let temp_dir_for_ide = TempDir::new()?;
+        let temp_dir_for_ide =  tempfile::TempDir::new()?;
         self.npm()?
             .try_applying(&content_env)?
             .set_env(env::ENSO_BUILD_IDE, temp_dir_for_ide.path())?
@@ -477,8 +494,10 @@ impl IdeDesktop {
 
 #[derive(Debug)]
 pub struct Watcher {
-    pub watch_environment: ContentEnvironment<TempDir, TempDir>,
+    pub watch_environment: ContentEnvironment,
     pub child_process:     Child,
+    /// We need to keep the output directory alive, so that the watcher can write to it.
+    pub output_path:       tempfile::TempDir
 }
 
 impl ProcessWrapper for Watcher {
@@ -493,7 +512,7 @@ mod tests {
 
     #[tokio::test]
     async fn download_test() -> Result {
-        let temp = TempDir::new()?;
+        let temp = tempfile::TempDir::new()?;
         download_js_assets(temp.path()).await?;
         Ok(())
     }

@@ -86,6 +86,7 @@ debug-assertions = true
 # with the core development team. Thank you!
 console-subscriber = "0.1.8"
 dirs = { version = "5.0.1" }
+multimap = { version = "0.9.1" }
 nix = { version = "0.27.1" }
 octocrab = { git = "https://github.com/enso-org/octocrab", default-features = false, features = [
   "rustls",
