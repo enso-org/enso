@@ -1389,7 +1389,7 @@ lazy val runtime = (project in file("engine/runtime"))
       "junit"                % "junit"                 % junitVersion              % Test,
       "com.github.sbt"       % "junit-interface"       % junitIfVersion            % Test,
       "org.hamcrest"         % "hamcrest-all"          % hamcrestVersion           % Test,
-    "org.slf4j" % "slf4j-nop" % slf4jVersion % Benchmark
+      "org.slf4j"            % "slf4j-nop"             % slf4jVersion              % Benchmark
     ),
     // Add all GraalVM packages with Runtime scope - we don't need them for compilation,
     // just provide them at runtime (in module-path).
@@ -1565,7 +1565,7 @@ lazy val `runtime-with-instruments` =
         "org.scalatest"      %% "scalatest"             % scalatestVersion          % Test,
         "org.graalvm.truffle" % "truffle-api"           % graalMavenPackagesVersion % Test,
         "org.graalvm.truffle" % "truffle-dsl-processor" % graalMavenPackagesVersion % Test,
-        "org.slf4j"      % "slf4j-nop"       % slf4jVersion % Benchmark
+        "org.slf4j"           % "slf4j-nop"             % slf4jVersion              % Benchmark
       ),
       // Note [Unmanaged Classpath]
       Test / unmanagedClasspath += (baseDirectory.value / ".." / ".." / "app" / "gui" / "view" / "graph-editor" / "src" / "builtin" / "visualization" / "native" / "inc"),
@@ -1946,8 +1946,8 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
       "org.openjdk.jmh"      % "jmh-core"                 % jmhVersion                % Benchmark,
       "org.openjdk.jmh"      % "jmh-generator-annprocess" % jmhVersion                % Benchmark,
       "org.graalvm.polyglot" % "polyglot"                 % graalMavenPackagesVersion % Benchmark,
-      "org.slf4j" % "slf4j-api" % slf4jVersion % Benchmark,
-      "org.slf4j" % "slf4j-nop" % slf4jVersion % Benchmark,
+      "org.slf4j"            % "slf4j-api"                % slf4jVersion              % Benchmark,
+      "org.slf4j"            % "slf4j-nop"                % slf4jVersion              % Benchmark
     ),
     // Add all GraalVM packages with Benchmark scope - we don't need them for compilation,
     // just provide them for benchmarks (in module-path).
@@ -1989,7 +1989,7 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
     (Benchmark / run / javaOptions) ++= {
       val requiredModules = GraalVM.modules ++ GraalVM.langsPkgs ++ Seq(
         "org.slf4j" % "slf4j-api" % slf4jVersion,
-        "org.slf4j" % "slf4j-nop" % slf4jVersion,
+        "org.slf4j" % "slf4j-nop" % slf4jVersion
       )
       val requiredModulesCp = JPMSUtils.filterModulesFromClasspath(
         (Benchmark / fullClasspath).value,
@@ -2000,12 +2000,14 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
       val requiredModulesPaths = requiredModulesCp
         .map(_.data.getAbsolutePath)
       val runtimeJar =
-        (LocalProject("runtime-with-instruments") / assembly / assemblyOutputPath)
-          .value
-          .getAbsolutePath
+        (LocalProject(
+          "runtime-with-instruments"
+        ) / assembly / assemblyOutputPath).value.getAbsolutePath
       val allModulePaths = requiredModulesPaths ++ Seq(runtimeJar)
       val runtimeModuleName =
-        (LocalProject("runtime-with-instruments") / moduleInfos).value.head.moduleName
+        (LocalProject(
+          "runtime-with-instruments"
+        ) / moduleInfos).value.head.moduleName
       Seq(
         // To enable logging in benchmarks, add ch.qos.logback module on the modulePath
         "-Dslf4j.provider=org.slf4j.nop.NOPServiceProvider",
@@ -2014,7 +2016,7 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
         "--add-modules",
         runtimeModuleName,
         "--add-exports",
-        "org.slf4j.nop/org.slf4j.nop=org.slf4j",
+        "org.slf4j.nop/org.slf4j.nop=org.slf4j"
       )
     },
     (Benchmark / run / mainClass) :=
