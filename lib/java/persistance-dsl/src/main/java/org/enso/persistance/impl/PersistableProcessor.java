@@ -2,20 +2,17 @@ package org.enso.persistance.impl;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 
 import javax.annotation.processing.AbstractProcessor;
-import javax.annotation.processing.ProcessingEnvironment;
 import javax.annotation.processing.Processor;
 import javax.annotation.processing.RoundEnvironment;
 import javax.annotation.processing.SupportedAnnotationTypes;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.AnnotationValue;
-import javax.lang.model.element.AnnotationValueVisitor;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
@@ -23,7 +20,6 @@ import javax.lang.model.element.Modifier;
 import javax.lang.model.element.PackageElement;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
-import javax.lang.model.type.MirroredTypeException;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.SimpleAnnotationValueVisitor9;
 import javax.tools.Diagnostic.Kind;
@@ -86,7 +82,7 @@ public class PersistableProcessor extends AbstractProcessor {
   private boolean generatePersistance(Element orig, AnnotationMirror anno) throws IOException {
     var eu = processingEnv.getElementUtils();
     var tu = processingEnv.getTypeUtils();
-    String typeElemName = readAnnoValue(anno, "clazz").replace('$', '.');
+    String typeElemName = readAnnoValue(anno, "clazz");
     var typeElem = eu.getTypeElement(typeElemName);
     if (typeElem == null) {
       processingEnv.getMessager().printMessage(Kind.ERROR, "Cannot find type for " + typeElemName);
@@ -245,7 +241,7 @@ public class PersistableProcessor extends AbstractProcessor {
             @Override
             public String visitType(TypeMirror t, Object p) {
               var e = (TypeElement) processingEnv.getTypeUtils().asElement(t);
-              return processingEnv.getElementUtils().getBinaryName(e).toString();
+              return e.getQualifiedName().toString();
             }
         }, null);
       }

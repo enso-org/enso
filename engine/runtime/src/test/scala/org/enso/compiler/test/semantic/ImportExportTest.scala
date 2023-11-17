@@ -910,7 +910,7 @@ class ImportExportTest
         .diagnostics
         .collect({ case w: Warning.DuplicatedImport => w })
       warn.size shouldEqual 1
-      val arr = Persistance.writeObject(
+      val arr = Persistance.write(
         mainIr,
         {
           case metadata: ProcessingPass.Metadata =>
@@ -947,7 +947,7 @@ class ImportExportTest
         .asInstanceOf[errors.ImportExport.AmbiguousImport]
       ambiguousImport.symbolName shouldEqual "A_Type"
       try {
-        val arr = Persistance.writeObject(
+        val arr = Persistance.write(
           mainIr,
           {
             case metadata: ProcessingPass.Metadata =>

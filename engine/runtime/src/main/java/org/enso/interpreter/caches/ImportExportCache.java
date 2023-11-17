@@ -52,7 +52,7 @@ public final class ImportExportCache extends Cache<ImportExportCache.CachedBindi
 
     @Override
     protected CachedBindings deserialize(EnsoContext context, byte[] data, Metadata meta, TruffleLogger logger) throws ClassNotFoundException, IOException, ClassNotFoundException {
-      var ref = Persistance.readObject(data, null);
+      var ref = Persistance.read(data, null);
       var bindings = ref.get(MapToBindings.class);
       return new CachedBindings(libraryName, bindings, Optional.empty());
     }
@@ -106,7 +106,7 @@ public final class ImportExportCache extends Cache<ImportExportCache.CachedBindi
 
     @Override
     protected byte[] serialize(EnsoContext context, CachedBindings entry) throws IOException {
-      var arr = Persistance.writeObject(entry.bindings(), null);
+      var arr = Persistance.write(entry.bindings(), null);
       return arr;
     }
 

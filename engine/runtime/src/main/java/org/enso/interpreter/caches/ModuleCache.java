@@ -46,7 +46,7 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
 
     @Override
     protected CachedModule deserialize(EnsoContext context, byte[] data, Metadata meta, TruffleLogger logger) throws ClassNotFoundException, IOException, ClassNotFoundException {
-      var ref = Persistance.readObject(data, (obj) -> switch (obj) {
+      var ref = Persistance.read(data, (obj) -> switch (obj) {
         case ProcessingPass.Metadata metadata -> {
           var option = metadata.restoreFromSerialization(context.getCompiler().context());
           if (option.nonEmpty()) {
@@ -144,7 +144,7 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
 
     @Override
     protected byte[] serialize(EnsoContext context, CachedModule entry) throws IOException {
-      var arr = Persistance.writeObject(entry.moduleIR(), (obj) -> switch (obj) {
+      var arr = Persistance.write(entry.moduleIR(), (obj) -> switch (obj) {
         case ProcessingPass.Metadata metadata -> metadata.prepareForSerialization(context.getCompiler().context());
         default -> obj;
       });

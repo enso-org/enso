@@ -5,7 +5,6 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.util.function.Function;
 
-import org.enso.persistance.PerInputImpl.InputCache;
 import static org.enso.persistance.PerUtils.raise;
 
 public abstract class Persistance<T> {
@@ -55,11 +54,11 @@ public abstract class Persistance<T> {
     }
   }
 
-  public static <T> Reference<T> readObject(byte[] arr, Function<Object, Object> readResolve) throws IOException {
+  public static <T> Reference<T> read(byte[] arr, Function<Object, Object> readResolve) throws IOException {
     return PerInputImpl.readObject(arr, readResolve);
   }
 
-  public static byte[] writeObject(Object obj, Function<Object, Object> writeReplace) throws IOException {
+  public static byte[] write(Object obj, Function<Object, Object> writeReplace) throws IOException {
     return PerGenerator.writeObject(obj, writeReplace);
   }
 

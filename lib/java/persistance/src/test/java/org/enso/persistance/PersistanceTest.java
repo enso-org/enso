@@ -3,8 +3,6 @@ package org.enso.compiler.core;
 import static org.junit.Assert.*;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -17,86 +15,90 @@ import org.openide.util.lookup.ServiceProvider;
 public class PersistanceTest {
   @Test
   public void testUUIDPersistance() throws Exception {
+    // @start region="write"
     var obj = UUID.randomUUID();
-    var buffer = Persistance.writeObject(obj, null);
+    var buffer = Persistance.write(obj, null);
     assertNotNull("Byte array is returned", buffer);
     assertNotEquals("It has non-zero length", 0, buffer.length);
+    // @end region="write"
 
-    var ref = Persistance.readObject(buffer, null);
+    // @start region="read"
+    var ref = Persistance.read(buffer, null);
     var loaded = ref.get(UUID.class);
     assertEquals("The same object was recreated", obj, loaded);
+    // @end region="read"
   }
 
   @Test
   public void readResolve() throws Exception {
     var in = new Service(5);
-    var arr = Persistance.writeObject(in, (Function<Object, Object>) null);
+    var arr = Persistance.write(in, (Function<Object, Object>) null);
 
-    var plain = Persistance.readObject(arr, (Function<Object, Object>) null);
+    var plain = Persistance.read(arr, (Function<Object, Object>) null);
     assertEquals("Remains five", 5, plain.get(Service.class).value());
 
-    var multiOnRead = Persistance.readObject(arr, (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
+    var multiOnRead = Persistance.read(arr, (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
     assertEquals("Multiplied on read", 15, multiOnRead.get(Service.class).value());
   }
 
   @Test
   public void writeReplace() throws Exception {
     var in = new Service(5);
-    var arr = Persistance.writeObject(in, (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
+    var arr = Persistance.write(in, (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
 
-    var plain = Persistance.readObject(arr, (Function<Object, Object>) null);
+    var plain = Persistance.read(arr, (Function<Object, Object>) null);
     assertEquals("Multiplied on write", 15, plain.get(Service.class).value());
   }
 
   @Test
   public void readResolveInline() throws Exception {
     var in = new ServiceSupply(new Service(5));
-    var arr = Persistance.writeObject(in, (Function<Object, Object>) null);
+    var arr = Persistance.write(in, (Function<Object, Object>) null);
 
-    var plain = Persistance.readObject(arr, (Function<Object, Object>) null);
+    var plain = Persistance.read(arr, (Function<Object, Object>) null);
     assertEquals("Remains five", 5, plain.get(ServiceSupply.class).supply().value());
 
-    var multiOnRead = Persistance.readObject(arr, (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
+    var multiOnRead = Persistance.read(arr, (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
     assertEquals("Multiplied on read", 15, multiOnRead.get(ServiceSupply.class).supply().value());
   }
 
   @Test
   public void writeReplaceInline() throws Exception {
     var in = new ServiceSupply(new Service(5));
-    var arr = Persistance.writeObject(in, (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
+    var arr = Persistance.write(in, (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
 
-    var plain = Persistance.readObject(arr, (Function<Object, Object>) null);
+    var plain = Persistance.read(arr, (Function<Object, Object>) null);
     assertEquals("Multiplied on write", 15, plain.get(ServiceSupply.class).supply().value());
   }
 
   @Test
   public void readResolveReference() throws Exception {
     var in = new IntegerSupply(new Service(5));
-    var arr = Persistance.writeObject(in, (Function<Object, Object>) null);
+    var arr = Persistance.write(in, (Function<Object, Object>) null);
 
-    var plain = Persistance.readObject(arr, (Function<Object, Object>) null);
+    var plain = Persistance.read(arr, (Function<Object, Object>) null);
     assertEquals("Remains five", 5, (int) plain.get(IntegerSupply.class).supply().get());
     assertEquals("Remains five 2", 5, (int) plain.get(IntegerSupply.class).supply().get());
 
-    var multiOnRead = Persistance.readObject(arr, (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
+    var multiOnRead = Persistance.read(arr, (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
     assertEquals("Multiplied on read", 15, (int) multiOnRead.get(IntegerSupply.class).supply().get());
   }
 
   @Test
   public void writeReplaceReference() throws Exception {
     var in = new IntegerSupply(new Service(5));
-    var arr = Persistance.writeObject(in, (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
+    var arr = Persistance.write(in, (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
 
-    var plain = Persistance.readObject(arr, (Function<Object, Object>) null);
+    var plain = Persistance.read(arr, (Function<Object, Object>) null);
     assertEquals("Multiplied on write", 15, (int) plain.get(IntegerSupply.class).supply().get());
   }
 
   private static <T> T serde(Class<T> clazz, T l, int expectedSize) throws IOException {
-    var arr = Persistance.writeObject(l, (Function<Object, Object>) null);
+    var arr = Persistance.write(l, (Function<Object, Object>) null);
     if (expectedSize >= 0) {
       assertEquals(expectedSize, arr.length - 12);
     }
-    var ref = Persistance.readObject(arr, (Function<Object, Object>) null);
+    var ref = Persistance.read(arr, (Function<Object, Object>) null);
     return ref.get(clazz);
   }
 
