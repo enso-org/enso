@@ -168,11 +168,12 @@ Global / excludeLintKeys += logManager
 // ============================================================================
 
 ThisBuild / javacOptions ++= Seq(
-  "-encoding",       // Provide explicit encoding (the next line)
-  "UTF-8",           // Specify character encoding used by Java source files
-  "-deprecation",    // Shows a description of each use or override of a deprecated member or class
-  "-g",              // Include debugging information
-  "-Xlint:unchecked" // Enable additional warnings
+  "-encoding",        // Provide explicit encoding (the next line)
+  "UTF-8",            // Specify character encoding used by Java source files
+  "-deprecation",     // Shows a description of each use or override of a deprecated member or class
+  "-g",               // Include debugging information
+  "-Xlint:unchecked", // Enable additional warnings
+  "-proc:full"        // Annotation processing is enabled
 )
 
 ThisBuild / scalacOptions ++= Seq(
@@ -974,6 +975,7 @@ lazy val `json-rpc-server` = project
 lazy val `json-rpc-server-test` = project
   .in(file("lib/scala/json-rpc-server-test"))
   .settings(
+    frgaalJavaCompilerSetting,
     libraryDependencies ++= akka,
     libraryDependencies ++= circe,
     libraryDependencies ++= Seq(
