@@ -9,9 +9,9 @@ import project.Error.Error
 import project.Meta
 import project.Network.URI.URI
 import project.Nothing.Nothing
+from project.Data.Boolean import Boolean, False, True
 
 polyglot java import java.net.URI as Java_URI
-polyglot java import java.net.URLEncoder
 
 ## Represents a URI with a set of query parameters
 type URI_With_Query
@@ -34,7 +34,7 @@ type URI_With_Query
         base_query = self.uri.query.if_nothing ""
         query_params = self.parameters.map p->
             if p.second.is_a Enso_Secret then Error.throw Enso_Secret_Error.Access_Denied else
-                p.first + "=" + (URLEncoder.encode p.second Encoding.utf_8.to_java_charset)
+                (encode_arg p.first) + "=" + (encode_arg p.second)
         (if base_query == "" then "" else base_query + "&") + (query_params.join "&")
 
     ## Adds a query parameter to the URI
@@ -53,7 +53,7 @@ type URI_With_Query
         base_query = self.uri.query.if_nothing ""
         query_params = self.parameters.map p->
             if p.second.is_a Enso_Secret then p.first + "=__SECRET__" else
-                p.first + "=" + (URLEncoder.encode p.second Encoding.utf_8.to_java_charset)
+                p.first + "=" + p.second
         new_query = (if base_query == "" then "" else base_query + "&") + (query_params.join "&")
         java_uri = Java_URI.new self.uri.scheme self.uri.user_info self.uri.host (self.uri.port.if_nothing -1) self.uri.path new_query self.uri.fragment
         java_uri.toString
@@ -102,3 +102,8 @@ type URI_With_Query
     ## Get the fragment part of this URI.
     fragment : Text | Nothing
     fragment self = self.uri.fragment
+
+encode_arg : Text -> Boolean -> Text
+encode_arg arg:Text encode_equals:Boolean=False =
+    encoded = arg.replace "%" "%25" . replace "&" "%26" . replace " " "%20"
+    if encode_equals then encoded.replace "=" "%3D" else encoded

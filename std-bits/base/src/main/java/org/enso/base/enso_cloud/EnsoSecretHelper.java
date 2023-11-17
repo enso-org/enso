@@ -39,9 +39,20 @@ public class EnsoSecretHelper {
     };
   }
 
+  /** Substitutes the minimal parts within the string for the URI parse. */
+  public static String encodeArg(String arg, boolean includeEquals) {
+    var encoded = arg.replace("%", "%25")
+        .replace("&", "%26")
+        .replace(" ", "%20");
+    if (includeEquals) {
+      encoded = encoded.replace("=", "%3D");
+    }
+    return encoded;
+  }
+
   private static String makeQueryAry(EnsoKeyValuePair pair, Function<EnsoKeyValuePair, String> resolver) {
-    String resolvedKey = pair.key() != null && !pair.key().isBlank() ? pair.key() + "=" : "";
-    String resolvedValue = resolver.apply(pair);
+    String resolvedKey = pair.key() != null && !pair.key().isBlank() ? encodeArg(pair.key(), true) + "=" : "";
+    String resolvedValue = encodeArg(resolver.apply(pair), false);
     return resolvedKey + resolvedValue;
   }
 
@@ -64,11 +75,17 @@ public class EnsoSecretHelper {
     URI resolvedURI = uri;
     URI renderedURI = uri;
     if (queryArguments != null && !queryArguments.isEmpty()) {
-      var baseQuery = uri.getQuery();
-      var query = queryArguments.stream().map(p -> makeQueryAry(p, EnsoSecretHelper::resolveValue)).collect(Collectors.joining("&"));
-      var newQuery = baseQuery != null && !baseQuery.isBlank() ? baseQuery + "&" + query : query;
       try {
-        resolvedURI = new URI(uri.getScheme(), uri.getAuthority(), uri.getPath(), newQuery, uri.getFragment());
+        var baseURI = new URI(uri.getScheme(), uri.getAuthority(), uri.getPath(), null, null).toString();
+
+        var baseQuery = uri.getQuery();
+        baseQuery = baseQuery != null && !baseQuery.isBlank() ? "?" + baseQuery + "&" : "?";
+        var query = baseQuery + queryArguments.stream().map(p -> makeQueryAry(p, EnsoSecretHelper::resolveValue)).collect(Collectors.joining("&"));
+
+        var baseFragment = uri.getFragment();
+        baseFragment = baseFragment != null && !baseFragment.isBlank() ? "#" + baseFragment : "";
+
+        resolvedURI = URI.create(baseURI + query + baseFragment);
         renderedURI = resolvedURI;
         if (queryArguments.stream().anyMatch(p -> p instanceof EnsoKeySecretPair)) {
           if (!resolvedURI.getScheme().equals("https")) {
@@ -76,9 +93,8 @@ public class EnsoSecretHelper {
             throw new IllegalArgumentException("Cannot use secrets in query string with non-HTTPS URI.");
           }
 
-          var renderedQuery = queryArguments.stream().map(p -> makeQueryAry(p, EnsoSecretHelper::renderValue)).collect(Collectors.joining("&"));
-          var newRenderedQuery = baseQuery != null && !baseQuery.isBlank() ? baseQuery + "&" + renderedQuery : renderedQuery;
-          renderedURI = new URI(uri.getScheme(), uri.getAuthority(), uri.getPath(), newRenderedQuery, uri.getFragment());
+          var renderedQuery = baseQuery + queryArguments.stream().map(p -> makeQueryAry(p, EnsoSecretHelper::renderValue)).collect(Collectors.joining("&"));
+          renderedURI = URI.create(baseURI + renderedQuery + baseFragment);
         }
       } catch (URISyntaxException e) {
         throw new IllegalArgumentException("Unable to build a valid URI.");
