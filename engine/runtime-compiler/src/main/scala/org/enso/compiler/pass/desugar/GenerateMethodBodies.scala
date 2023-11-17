@@ -150,7 +150,7 @@ case object GenerateMethodBodies extends IRPass {
               Warning.WrongSelfParameterPos(funName, fun, parameterPosition)
             )
             lam
-          case _ =>
+          case _: Function.Binding =>
             throw new CompilerError(
               "Function definition sugar should not be present during method " +
               "body generation."

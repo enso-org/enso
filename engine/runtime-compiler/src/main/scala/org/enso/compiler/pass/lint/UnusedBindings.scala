@@ -158,7 +158,7 @@ case object UnusedBindings extends IRPass {
           arguments = lintedArgs,
           body      = lintedBody
         )
-      case _ =>
+      case _: Function.Binding =>
         throw new CompilerError(
           "Function sugar should not be present during unused bindings linting."
         )

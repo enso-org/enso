@@ -188,7 +188,7 @@ case object LambdaConsolidate extends IRPass {
           location  = newLocation,
           canBeTCO  = chainedLambdas.last.canBeTCO
         )
-      case _ =>
+      case _: Function.Binding =>
         throw new CompilerError(
           "Function sugar should not be present during lambda consolidation."
         )
