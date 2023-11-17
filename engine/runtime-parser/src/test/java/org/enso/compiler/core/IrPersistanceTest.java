@@ -24,7 +24,7 @@ import scala.Tuple2;
 import scala.collection.immutable.List;
 import scala.collection.immutable.Seq;
 
-public class PersistanceTest {
+public class IrPersistanceTest {
   @Test
   public void locationTest() throws Exception {
     var l = new Location(12, 33);

@@ -1022,8 +1022,13 @@ lazy val `persistance` = (project in file("lib/java/persistance"))
     version := "0.1",
     frgaalJavaCompilerSetting,
     Compile / javacOptions := ((Compile / javacOptions).value),
-    libraryDependencies ++= Seq()
+    libraryDependencies ++= Seq(
+      "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % Test,
+      "junit"            % "junit"                   % junitVersion       % Test,
+      "com.github.sbt"   % "junit-interface"         % junitIfVersion     % Test
+    )
   )
+  .dependsOn(`persistance-dsl` % Test)
 
 lazy val `persistance-dsl` = (project in file("lib/java/persistance-dsl"))
   .settings(
@@ -1040,7 +1045,6 @@ lazy val `persistance-dsl` = (project in file("lib/java/persistance-dsl"))
       "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided"
     )
   )
-  .dependsOn(`persistance`)
 
 lazy val `interpreter-dsl` = (project in file("lib/scala/interpreter-dsl"))
   .settings(

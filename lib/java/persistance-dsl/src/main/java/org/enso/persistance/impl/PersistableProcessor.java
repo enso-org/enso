@@ -1,15 +1,21 @@
 package org.enso.persistance.impl;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 
 import javax.annotation.processing.AbstractProcessor;
+import javax.annotation.processing.ProcessingEnvironment;
 import javax.annotation.processing.Processor;
 import javax.annotation.processing.RoundEnvironment;
 import javax.annotation.processing.SupportedAnnotationTypes;
 import javax.lang.model.SourceVersion;
+import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.AnnotationValue;
+import javax.lang.model.element.AnnotationValueVisitor;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
@@ -18,9 +24,9 @@ import javax.lang.model.element.PackageElement;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.MirroredTypeException;
+import javax.lang.model.type.TypeMirror;
+import javax.lang.model.util.SimpleAnnotationValueVisitor9;
 import javax.tools.Diagnostic.Kind;
-
-import org.enso.persistance.Persistable;
 
 import org.openide.util.lookup.ServiceProvider;
 
@@ -38,19 +44,22 @@ public class PersistableProcessor extends AbstractProcessor {
   @Override
   public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
     var ok = true;
+    var eu = processingEnv.getElementUtils();
+    var Persistable = eu.getTypeElement("org.enso.persistance.Persistable");
+    var PersistableGroup = eu.getTypeElement("org.enso.persistance.Persistable.Group");
     try {
-      for (var elem : roundEnv.getElementsAnnotatedWith(Persistable.class)) {
-        var anno = elem.getAnnotation(Persistable.class);
+      for (var elem : roundEnv.getElementsAnnotatedWith(Persistable)) {
+        var anno = getAnnotation(elem, Persistable);
         ok &= generatePersistance(elem, anno);
       }
-      for (var elem : roundEnv.getElementsAnnotatedWith(Persistable.Group.class)) {
-        for (var anno : elem.getAnnotation(Persistable.Group.class).value()) {
-          ok &= generatePersistance(elem, anno);
+      for (var elem : roundEnv.getElementsAnnotatedWith(PersistableGroup)) {
+        var group = getAnnotation(elem, PersistableGroup);
+        for (var anno : readAnnoArray(group, "value")) {
+           ok &= generatePersistance(elem, anno);
         }
       }
     } catch (IOException e) {
       ok = false;
-      e.printStackTrace();
       processingEnv.getMessager().printMessage(Kind.ERROR, e.getMessage());
     }
     return ok;
@@ -74,15 +83,10 @@ public class PersistableProcessor extends AbstractProcessor {
     return sb.toString();
   }
 
-  private boolean generatePersistance(Element orig, Persistable anno) throws IOException {
+  private boolean generatePersistance(Element orig, AnnotationMirror anno) throws IOException {
     var eu = processingEnv.getElementUtils();
     var tu = processingEnv.getTypeUtils();
-    String typeElemName;
-    try {
-      typeElemName = anno.clazz().getName();
-    } catch (MirroredTypeException e) {
-      typeElemName = e.getTypeMirror().toString();
-    }
+    String typeElemName = readAnnoValue(anno, "clazz").replace('$', '.');
     var typeElem = eu.getTypeElement(typeElemName);
     if (typeElem == null) {
       processingEnv.getMessager().printMessage(Kind.ERROR, "Cannot find type for " + typeElemName);
@@ -129,7 +133,8 @@ public class PersistableProcessor extends AbstractProcessor {
       w.append("@org.openide.util.lookup.ServiceProvider(service=Persistance.class)\n");
       w.append("public final class ").append(className).append(" extends Persistance<").append(typeElemName).append("> {\n");
       w.append("  public ").append(className).append("() {\n");
-      w.append("    super(").append(typeElemName).append(".class, false, ").append(Integer.toString(anno.id())).append(");\n");
+      var id = readAnnoValue(anno, "id").toString(); // Integer.toString(anno.id());
+      w.append("    super(").append(typeElemName).append(".class, false, ").append(id).append(");\n");
       w.append("  }\n");
       w.append("  @SuppressWarnings(\"unchecked\")\n");
       w.append("  protected ").append(typeElemName).append(" readObject(Input in) throws IOException {\n");
@@ -216,5 +221,58 @@ public class PersistableProcessor extends AbstractProcessor {
       default -> false;
     } || !elem.getKind().isInterface();
     return inline;
+  }
+
+  private AnnotationMirror getAnnotation(Element elem, TypeElement annoType) {
+    var tu = processingEnv.getTypeUtils();
+    for (var m : elem.getAnnotationMirrors()) {
+      var realType = m.getAnnotationType();
+      if (tu.isSameType(realType, annoType.asType())) {
+        return m;
+      }
+    }
+    return null;
+  }
+
+  private String readAnnoValue(AnnotationMirror mirror, String name) {
+    for (var entry : mirror.getElementValues().entrySet()) {
+      if (name.equals(entry.getKey().getSimpleName().toString())) {
+        return entry.getValue().accept(new SimpleAnnotationValueVisitor9<String, Object>() {
+            @Override
+            public String visitInt(int i, Object p) {
+              return Integer.toString(i);
+            }
+            @Override
+            public String visitType(TypeMirror t, Object p) {
+              var e = (TypeElement) processingEnv.getTypeUtils().asElement(t);
+              return processingEnv.getElementUtils().getBinaryName(e).toString();
+            }
+        }, null);
+      }
+    }
+    throw new IllegalArgumentException();
+  }
+
+  private List<AnnotationMirror> readAnnoArray(AnnotationMirror mirror, String name) {
+    for (var entry : mirror.getElementValues().entrySet()) {
+      if (name.equals(entry.getKey().getSimpleName().toString())) {
+        return entry.getValue().accept(new SimpleAnnotationValueVisitor9<List<AnnotationMirror>, List<AnnotationMirror>>() {
+          @Override
+          public List<AnnotationMirror> visitArray(List<? extends AnnotationValue> vals, List<AnnotationMirror> p) {
+            for (var v : vals) {
+              v.accept(this, p);
+            }
+            return p;
+          }
+
+          @Override
+          public List<AnnotationMirror> visitAnnotation(AnnotationMirror a, List<AnnotationMirror> p) {
+            p.add(a);
+            return p;
+          }
+        }, new ArrayList<>());
+      }
+    }
+    throw new IllegalArgumentException();
   }
 }
