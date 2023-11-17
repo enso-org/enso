@@ -28,6 +28,9 @@ import GraphNodes from './GraphEditor/GraphNodes.vue'
 import GraphMouse from './GraphMouse.vue'
 
 const EXECUTION_MODES = ['design', 'live']
+// Difference in position between the component browser and a node for the input of the component browser to
+// be placed at the same position as the node.
+const COMPONENT_BROWSER_TO_NODE_OFFSET = new Vec2(20, 35)
 
 const viewportNode = ref<HTMLElement>()
 const graphNavigator = provideGraphNavigator(viewportNode)
@@ -60,8 +63,7 @@ const targetComponentBrowserPosition = computed(() => {
   if (isEditingNode) {
     const targetNode = graphStore.db.nodes.get(editedInfo.id)
     const targetPos = targetNode?.position ?? Vec2.Zero
-    const offset = new Vec2(20, 35)
-    return targetPos.add(offset)
+    return targetPos.add(COMPONENT_BROWSER_TO_NODE_OFFSET)
   } else if (hasNodeSelected) {
     const gapBetweenNodes = 48.0
     return previousNodeDictatedPlacement(nodeSize, placementEnvironment.value, {
@@ -94,11 +96,8 @@ const graphBindingsHandler = graphBindings.handler({
     projectStore.module?.undoManager.redo()
   },
   openComponentBrowser() {
-    console.log('openComponentBrowser')
     if (keyboardBusy()) return false
-    console.log('openComponentBrowser2')
     if (graphNavigator.sceneMousePos != null && !componentBrowserVisible.value) {
-      console.log('openComponentBrowser3')
       interaction.setCurrent(creatingNode)
     }
   },
@@ -121,7 +120,6 @@ const graphBindingsHandler = graphBindings.handler({
   },
   deselectAll() {
     nodeSelection.deselectAll()
-    console.log('deselectAll')
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur()
     }
@@ -208,7 +206,6 @@ const placementEnvironment = computed(() => {
 
 const creatingNode: Interaction = {
   init: () => {
-    console.log('creatingNode init')
     componentBrowserInputContent.value = ''
     componentBrowserPosition.value = targetComponentBrowserPosition.value
     componentBrowserVisible.value = true
@@ -257,7 +254,8 @@ function onComponentBrowserCommit(content: string) {
     graphStore.setNodeContent(graphStore.editedNodeInfo.id, content)
   } else if (content != null) {
     /// We finish creating a new node.
-    graphStore.createNode(targetComponentBrowserPosition.value, content)
+    const nodePosition = componentBrowserPosition.value
+    graphStore.createNode(nodePosition.sub(COMPONENT_BROWSER_TO_NODE_OFFSET), content)
   }
   componentBrowserVisible.value = false
   graphStore.editedNodeInfo = undefined
@@ -286,8 +284,7 @@ watch(
     if (editedInfo != null) {
       const targetNode = graphStore.db.nodes.get(editedInfo.id)
       const targetPos = targetNode?.position ?? Vec2.Zero
-      const offset = new Vec2(20, 35)
-      targetComponentBrowserPosition.value = targetPos.add(offset)
+      targetComponentBrowserPosition.value = targetPos.add(COMPONENT_BROWSER_TO_NODE_OFFSET)
       componentBrowserInputContent.value = getNodeContent(editedInfo.id)
       componentBrowserVisible.value = true
     } else {
