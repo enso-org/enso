@@ -158,14 +158,20 @@ export const useGraphStore = defineStore('graph', () => {
     unconnectedEdge.value = undefined
   }
 
-  function createNode(position: Vec2, expression: string): Opt<ExprId> {
+  function createNode(
+    position: Vec2,
+    expression: string,
+    metadata: NodeMetadata | undefined = undefined,
+  ): Opt<ExprId> {
     const mod = proj.module
     if (mod == null) return
-    const meta: NodeMetadata = {
+    const meta = metadata ?? {
       x: position.x,
       y: -position.y,
       vis: null,
     }
+    meta.x = position.x
+    meta.y = -position.y
     const ident = generateUniqueIdent()
     return mod.insertNewNode(mod.doc.contents.length, ident, expression, meta)
   }

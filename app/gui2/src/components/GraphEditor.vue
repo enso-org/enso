@@ -20,7 +20,7 @@ import { keyboardBusy, keyboardBusyExceptIn, useEvent } from '@/util/events'
 import type { Rect } from '@/util/rect.ts'
 import { Vec2 } from '@/util/vec2'
 import * as set from 'lib0/set'
-import type { ExprId } from 'shared/yjsModel.ts'
+import type { ExprId, NodeMetadata } from 'shared/yjsModel.ts'
 import { computed, onMounted, ref, watch } from 'vue'
 import GraphEdges from './GraphEditor/GraphEdges.vue'
 import GraphNodes from './GraphEditor/GraphNodes.vue'
@@ -29,7 +29,7 @@ import GraphMouse from './GraphMouse.vue'
 const EXECUTION_MODES = ['design', 'live']
 
 const viewportNode = ref<HTMLElement>()
-const navigator = provideGraphNavigator(viewportNode)
+const graphNavigator = provideGraphNavigator(viewportNode)
 const graphStore = useGraphStore()
 const widgetRegistry = provideWidgetRegistry(graphStore.db)
 widgetRegistry.loadBuiltins()
@@ -40,7 +40,7 @@ const componentBrowserPosition = ref(Vec2.Zero)
 const suggestionDb = useSuggestionDbStore()
 const interaction = provideInteractionHandler()
 
-const nodeSelection = provideGraphSelection(navigator, graphStore.nodeRects, {
+const nodeSelection = provideGraphSelection(graphNavigator, graphStore.nodeRects, {
   onSelected(id) {
     graphStore.db.moveNodeToTop(id)
   },
@@ -72,15 +72,15 @@ const graphBindingsHandler = graphBindings.handler({
   },
   openComponentBrowser() {
     if (keyboardBusy()) return false
-    if (navigator.sceneMousePos != null && !componentBrowserVisible.value) {
-      componentBrowserPosition.value = navigator.sceneMousePos
+    if (graphNavigator.sceneMousePos != null && !componentBrowserVisible.value) {
+      componentBrowserPosition.value = graphNavigator.sceneMousePos
       interaction.setCurrent(new CreatingNode())
     }
   },
   newNode() {
     if (keyboardBusy()) return false
-    if (navigator.sceneMousePos != null) {
-      graphStore.createNode(navigator.sceneMousePos, 'hello "world"! 123 + x')
+    if (graphNavigator.sceneMousePos != null) {
+      graphStore.createNode(graphNavigator.sceneMousePos, 'hello "world"! 123 + x')
     }
   },
   deleteSelected() {
@@ -113,6 +113,14 @@ const graphBindingsHandler = graphBindings.handler({
         graphStore.setNodeVisualizationVisible(nodeId, !allVisible)
       }
     })
+  },
+  copyNode() {
+    if (keyboardBusy()) return false
+    copyNodeContent()
+  },
+  pasteNode() {
+    if (keyboardBusy()) return false
+    readNodeFromClipboard()
   },
 })
 
@@ -158,13 +166,13 @@ const editingNode: Interaction = {
 interaction.setWhen(componentBrowserVisible, editingNode)
 
 const placementEnvironment = computed(() => {
-  const mousePosition = navigator.sceneMousePos ?? Vec2.Zero
+  const mousePosition = graphNavigator.sceneMousePos ?? Vec2.Zero
   const nodeRects = [...graphStore.nodeRects.values()]
   const selectedNodesIter = nodeSelection.selected.values()
   const selectedNodeRects: Iterable<Rect> = [...selectedNodesIter]
     .map((id) => graphStore.nodeRects.get(id))
     .filter((item): item is Rect => item !== undefined)
-  const screenBounds = navigator.viewport
+  const screenBounds = graphNavigator.viewport
   const environment: Environment = { mousePosition, nodeRects, selectedNodeRects, screenBounds }
   return environment
 })
@@ -210,7 +218,7 @@ async function handleFileDrop(event: DragEvent) {
           if (file) {
             const clientPos = new Vec2(event.clientX, event.clientY)
             const offset = new Vec2(0, index * -MULTIPLE_FILES_GAP)
-            const pos = navigator.clientToScenePos(clientPos).add(offset)
+            const pos = graphNavigator.clientToScenePos(clientPos).add(offset)
             const uploader = await Uploader.Create(
               projectStore.lsRpcConnection,
               projectStore.dataConnection,
@@ -275,6 +283,79 @@ const breadcrumbs = computed(() => {
     }
   })
 })
+
+/// === Clipboard ===
+
+const ENSO_MIME_TYPE = 'web application/enso'
+
+/// The data that is copied to the clipboard.
+interface ClipboardData {
+  nodes: CopiedNode[]
+}
+
+/// Node data that is copied to the clipboard. Used for serializing and deserializing the node information.
+interface CopiedNode {
+  expression: string
+  metadata: NodeMetadata | undefined
+}
+
+/// Copy the content of the selected node to the clipboard.
+function copyNodeContent() {
+  const id = nodeSelection.selected.values().next().value
+  const node = graphStore.db.nodes.get(id)
+  if (node == null) return
+  const content = node.rootSpan.repr()
+  const metadata = projectStore.module?.getNodeMetadata(id) ?? undefined
+  const copiedNode: CopiedNode = { expression: content, metadata }
+  const clipboardData: ClipboardData = { nodes: [copiedNode] }
+  const jsonItem = new Blob([JSON.stringify(clipboardData)], { type: ENSO_MIME_TYPE })
+  const textItem = new Blob([content], { type: 'text/plain' })
+  const clipboardItem = new ClipboardItem({ [jsonItem.type]: jsonItem, [textItem.type]: textItem })
+  navigator.clipboard.write([clipboardItem])
+}
+
+async function retrieveDataFromClipboard(): Promise<ClipboardData | undefined> {
+  const clipboardItems = await navigator.clipboard.read()
+  let fallback = undefined
+  for (const clipboardItem of clipboardItems) {
+    for (const type of clipboardItem.types) {
+      if (type === ENSO_MIME_TYPE) {
+        const blob = await clipboardItem.getType(type)
+        return JSON.parse(await blob.text())
+      }
+      if (type === 'text/plain') {
+        const blob = await clipboardItem.getType(type)
+        const fallbackExpression = await blob.text()
+        const fallbackNode = { expression: fallbackExpression, metadata: undefined } as CopiedNode
+        fallback = { nodes: [fallbackNode] } as ClipboardData
+      }
+    }
+  }
+  return fallback
+}
+
+/// Read the clipboard and if it contains valid data, create a node from the content.
+async function readNodeFromClipboard() {
+  let clipboardData = await retrieveDataFromClipboard()
+  if (clipboardData == undefined) {
+    console.warn('No valid data in clipboard.')
+    return
+  }
+  const copiedNode = clipboardData.nodes[0]
+  if (copiedNode == undefined) {
+    console.warn('No valid node in clipboard.')
+    return
+  }
+  if (copiedNode.expression != null) {
+    graphStore.createNode(
+      graphNavigator.sceneMousePos ?? Vec2.Zero,
+      copiedNode.expression,
+      copiedNode.metadata,
+    )
+  } else {
+    console.warn('No valid expression in clipboard.')
+  }
+}
 </script>
 
 <template>
@@ -285,21 +366,21 @@ const breadcrumbs = computed(() => {
     :class="{ draggingEdge: graphStore.unconnectedEdge != null }"
     :style="groupColors"
     @click="graphBindingsHandler"
-    v-on.="navigator.events"
+    v-on.="graphNavigator.events"
     v-on..="nodeSelection.events"
     @dragover.prevent
     @drop.prevent="handleFileDrop($event)"
   >
-    <svg :viewBox="navigator.viewBox">
+    <svg :viewBox="graphNavigator.viewBox">
       <GraphEdges />
     </svg>
-    <div :style="{ transform: navigator.transform }" class="htmlLayer">
+    <div :style="{ transform: graphNavigator.transform }" class="htmlLayer">
       <GraphNodes />
     </div>
     <ComponentBrowser
       v-if="componentBrowserVisible"
       ref="componentBrowser"
-      :navigator="navigator"
+      :navigator="graphNavigator"
       :position="componentBrowserPosition"
       @finished="onComponentBrowserCommit"
       :initialContent="componentBrowserInputContent"
