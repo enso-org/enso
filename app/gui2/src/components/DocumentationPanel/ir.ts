@@ -162,7 +162,7 @@ const handleDocumentation: Record<SuggestionKind, DocsHandle> = {
   }),
   [SuggestionKind.Type]: (db, entry, id) => ({
     kind: 'Type',
-    id,
+    _id: id,
     name: entryQn(entry),
     arguments: entry.arguments,
     sections: filterSections(entry.documentation),
@@ -171,7 +171,7 @@ const handleDocumentation: Record<SuggestionKind, DocsHandle> = {
   }),
   [SuggestionKind.Module]: (db, entry, id) => ({
     kind: 'Module',
-    id,
+    _id: id,
     name: entryQn(entry),
     sections: filterSections(entry.documentation),
     types: asTypeDocs(getChildren(db, id, SuggestionKind.Type)),

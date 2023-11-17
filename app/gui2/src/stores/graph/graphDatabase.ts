@@ -2,7 +2,7 @@ import { SuggestionDb, groupColorStyle, type Group } from '@/stores/suggestionDa
 import { tryGetIndex } from '@/util/array'
 import { AstExtended, RawAst } from '@/util/ast'
 import type { AstId } from '@/util/ast/abstract'
-import { Assignment, Ast, Block, Function, abstract } from '@/util/ast/abstract'
+import { Assignment, Ast, Block, Function } from '@/util/ast/abstract'
 import { colorFromString } from '@/util/colors'
 import { ComputedValueRegistry, type ExpressionInfo } from '@/util/computedValueRegistry'
 import { ReactiveDb, ReactiveIndex, ReactiveMapping } from '@/util/database/reactiveDb'
@@ -18,11 +18,6 @@ import {
   type VisualizationMetadata,
 } from 'shared/yjsModel'
 import { ref, type Ref } from 'vue'
-
-/*
-const astEdit = new Map<AstId, Ast>()
-const astRoot = ref<AstId>()
- */
 
 export class GraphDb {
   nodes = new ReactiveDb<ExprId, Node>()
@@ -188,7 +183,7 @@ export function mockNode(binding: string, id: ExprId, code?: string): Node {
 
 function nodeFromAst(ast: Ast): Node {
   const common = {
-    outerExprId: ast.id,
+    outerExprId: ast._id,
     position: Vec2.Zero,
     vis: undefined,
   }
@@ -207,17 +202,6 @@ function nodeFromAst(ast: Ast): Node {
   }
 }
 
-function* getFunctionNodeExpressions(func: Function, nodes: NodeMap): Generator<Ast> {
-  if (func.body === null) return
-  const body = nodes.get(func.body.node)
-  if (body instanceof Block) {
-    for (const stmt of body._lines) {
-      if (stmt.expression) {
-        const expression = nodes.get(stmt.expression.node)
-        if (expression && !(expression instanceof Function)) yield expression
-      }
-    }
-  } else if (body) {
-    yield body
-  }
+function* getFunctionNodeExpressions(func: Function): Iterable<Ast> {
+  return Array.from(func.bodyExpressions(), (e) => (!(e instanceof Function)))
 }

@@ -368,7 +368,7 @@ test.each(cases)('parse/print round trip: %s', (code) => {
 test('parse', () => {
   const code = 'foo bar+baz'
   const root = parse(code)
-  expect(debug(root.id)).toEqual(['', [['foo'], [['bar'], '+', ['baz']]]])
+  expect(debug(root._id)).toEqual(['', [['foo'], [['bar'], '+', ['baz']]]])
 })
 
 test('insert new node', () => {

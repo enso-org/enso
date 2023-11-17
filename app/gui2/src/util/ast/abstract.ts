@@ -1,8 +1,6 @@
 /**
  * # AST
  *
- * The goal of the AST is to make expression edits simple.
- *
  * ## Nodes
  *
  * A node has an ExprId and other metadata, type-specific information, and a sequence of children. Children can be node
@@ -74,6 +72,7 @@ import { Token, Tree } from '@/generated/ast'
 import { parseEnso } from '@/util/ast'
 import type { LazyObject } from '@/util/parserSupport'
 import { reactive } from 'vue'
+import type { ExprId } from "../../../shared/yjsModel";
 
 const committed = reactive(new Map<AstId, Ast>())
 const edited = new Map<AstId, Ast>()
@@ -82,15 +81,15 @@ function tryGetNode(id: AstId): Ast | null {
   return edited.get(id) ?? committed.get(id) ?? null
 }
 
-export function getNode(id: AstId): Ast {
+function getNode(id: AstId): Ast {
   return tryGetNode(id)!
 }
 
 declare const brandAstId: unique symbol
-export type AstId = number & { [brandAstId]: never }
+type AstId = number & { [brandAstId]: never }
 
 declare const brandTokenId: unique symbol
-export type TokenId = number & { [brandTokenId]: never }
+type TokenId = number & { [brandTokenId]: never }
 
 let nextNodeId = 0
 function newNodeId(): AstId {
@@ -115,14 +114,25 @@ export function isToken(node: Tok | AstId): node is Tok {
   return typeof node == 'object'
 }
 
+// Ast:
+// - If persisted a reactive watcher should replace it when necessary. (Simpler to persist ExprId).
+// - Synchronization will sometimes keep it up to date but this should not be relied on.
+//   - Certain types of change can orphan it, and it will no longer receive updates.
+// ExprId: Stable identifier.
+//
+// AstId: Internal to Ast.
+
 export abstract class Ast {
   protected readonly treeType: Tree.Type | undefined
-  public readonly id: AstId
+  public readonly _id: AstId
+  public readonly exprId: ExprId
 
-  constructor(id?: AstId, treeType?: Tree.Type) {
-    this.id = id ?? newNodeId()
+  // from Tree: (ExprId, Tree.Type)
+
+  protected constructor(id?: AstId, treeType?: Tree.Type) {
+    this._id = id ?? newNodeId()
     this.treeType = treeType
-    edited.set(this.id, this)
+    edited.set(this._id, this)
   }
 
   abstract children(): Iterable<NodeChild>
@@ -161,9 +171,9 @@ export abstract class Ast {
     const span = nodeKey(offset, code.length, this.treeType)
     const infos = info.nodes.get(span)
     if (infos == null) {
-      info.nodes.set(span, [this.id])
+      info.nodes.set(span, [this._id])
     } else {
-      infos.push(this.id)
+      infos.push(this._id)
     }
     return code
   }
@@ -202,6 +212,14 @@ export class Function extends Ast {
   }
   get body(): Ast | null {
     return this._body ? getNode(this._body.node) : null
+  }
+  *bodyExpressions(): Iterable<Ast> {
+    const body = this._body ? getNode(this._body.node) : null
+    if (body instanceof Block) {
+      yield* body.expressions()
+    } else if (body !== null) {
+      yield body
+    }
   }
   constructor(
     id: AstId | undefined,
@@ -266,7 +284,7 @@ export class Assignment extends Ast {
     equals: TokWithWhitespace | undefined,
     expression: AstWithWhitespace,
   ): Assignment {
-    const pattern = { node: Ident.new(undefined, ident).id }
+    const pattern = { node: Ident.new(undefined, ident)._id }
     return new Assignment(id, pattern, equals, expression)
   }
   *children(): Iterable<NodeChild> {
@@ -296,9 +314,10 @@ export class Block extends Ast {
   }
 
   pushExpression(node: Ast) {
-    const cow = new Block(this.id, [...this._lines])
-    cow._lines.push({ expression: { node: node.id } })
-    edited.set(this.id, cow)
+    if (!edited.has(this._id))
+      edited.set(this._id, new Block(this._id, [...this._lines]))
+    const cow = edited.get(this._id) as Block
+    cow._lines.push({ expression: { node: node._id } })
   }
 
   constructor(id: AstId | undefined, lines: BlockLine[]) {
@@ -306,8 +325,8 @@ export class Block extends Ast {
     this._lines = lines
   }
 
-  static new(id: AstId | undefined, lines: BlockLine[]): Block {
-    return new Block(id, lines)
+  static new(id: AstId | undefined, expressions: Ast[]): Block {
+    return new Block(id, expressions.map((e) => ({ expression: { node: e._id } })))
   }
 
   *children(): Iterable<NodeChild> {
@@ -342,9 +361,9 @@ export class Block extends Ast {
     const span = nodeKey(offset, code.length, this.treeType)
     const infos = info.nodes.get(span)
     if (infos == null) {
-      info.nodes.set(span, [this.id])
+      info.nodes.set(span, [this._id])
     } else {
-      infos.push(this.id)
+      infos.push(this._id)
     }
     return code
   }
@@ -372,11 +391,11 @@ export class Ident extends Ast {
 }
 
 export class RawCode extends Ast {
-  public code: NodeChild
+  private _code: NodeChild
 
   constructor(id: AstId | undefined, code: NodeChild) {
     super(id)
-    this.code = code
+    this._code = code
   }
 
   static new(id: AstId | undefined, code: string): RawCode {
@@ -384,7 +403,7 @@ export class RawCode extends Ast {
   }
 
   *children(): Iterable<NodeChild> {
-    yield this.code
+    yield this._code
   }
 }
 export class Tombstone extends Ast {
@@ -590,10 +609,10 @@ export function insertNewNodeAST(
   ident: string,
   expression: string,
 ): { assignment: AstId; value: AstId } {
-  const value = RawCode.new(undefined, expression).id
+  const value = RawCode.new(undefined, expression)._id
   const assignment = Assignment.new(undefined, ident, undefined, { node: value })
   block.pushExpression(assignment)
-  return { assignment: assignment.id, value }
+  return { assignment: assignment._id, value }
 }
 
 export function deleteExpressionAST(id: AstId) {
