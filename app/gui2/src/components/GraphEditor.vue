@@ -51,25 +51,13 @@ const interactionBindingsHandler = interactionBindings.handler({
   click: (e) => (e instanceof MouseEvent ? interaction.handleClick(e) : false),
 })
 
-const placementEnvironment = computed(() => {
-  const mousePosition = navigator.sceneMousePos ?? Vec2.Zero
-  const nodeRects = [...graphStore.nodeRects.values()]
-  const selectedNodesIter = nodeSelection.selected.values()
-  const selectedNodeRects: Iterable<Rect> = [...selectedNodesIter]
-    .map((id) => graphStore.nodeRects.get(id))
-    .filter((item): item is Rect => item !== undefined)
-  const screenBounds = navigator.viewport
-  const environment: Environment = { mousePosition, nodeRects, selectedNodeRects, screenBounds }
-  return environment
-})
-
 const componentBrowserPosition = computed(() => {
   const editedInfo = graphStore.editedNodeInfo
   const isEditingNode = editedInfo != null
   const hasNodeSelected = nodeSelection.selected.size > 0
   const nodeSize = new Vec2(0, 24)
   if (isEditingNode) {
-    const targetNode = graphStore.nodes.get(editedInfo.id)
+    const targetNode = graphStore.db.nodes.get(editedInfo.id)
     const targetPos = targetNode?.position ?? Vec2.Zero
     const offset = new Vec2(20, 35)
     return targetPos.add(offset)
@@ -105,7 +93,7 @@ const graphBindingsHandler = graphBindings.handler({
   openComponentBrowser() {
     if (keyboardBusy()) return false
     if (navigator.sceneMousePos != null && !componentBrowserVisible.value) {
-      startNodeCreation()
+      interaction.setCurrent(creatingNode)
     }
   },
   newNode() {
@@ -186,7 +174,8 @@ const groupColors = computed(() => {
 const editingNode: Interaction = {
   cancel: () => (componentBrowserVisible.value = false),
 }
-interaction.setWhen(componentBrowserVisible, editingNode)
+const nodeIsBeingEdited = computed(() => graphStore.editedNodeInfo != null)
+interaction.setWhen(nodeIsBeingEdited, editingNode)
 
 const placementEnvironment = computed(() => {
   const mousePosition = navigator.sceneMousePos ?? Vec2.Zero
@@ -200,21 +189,15 @@ const placementEnvironment = computed(() => {
   return environment
 })
 
-/// Interaction to create a new node. This will create a temporary node and open the component browser.
-/// If the interaction is cancelled, the temporary node will be deleted, otherwise it will be kept.
-class CreatingNode implements Interaction {
-  nodeId: ExprId
-  // Start a node creation interaction. This will create a new node and open the component browser.
-  // For more information about the flow of the interaction, see `CreatingNode`.
-  constructor() {
-    super()
+const creatingNode: Interaction = {
+  init: () => {
+    console.log('creatingNode.init')
     componentBrowserInputContent.value = ''
     componentBrowserVisible.value = true
-  }
-
-  cancel(): void {
+  },
+  cancel: () => {
     // Nothing to do here. We just don't create a node and the component browser will close itself.
-  }
+  },
 }
 
 async function handleFileDrop(event: DragEvent) {
