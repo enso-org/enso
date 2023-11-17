@@ -83,6 +83,9 @@ public class PersistableProcessor extends AbstractProcessor {
     var eu = processingEnv.getElementUtils();
     var tu = processingEnv.getTypeUtils();
     String typeElemName = readAnnoValue(anno, "clazz");
+    if (typeElemName == null) {
+      typeElemName = ((TypeElement) orig).getQualifiedName().toString();
+    }
     var typeElem = eu.getTypeElement(typeElemName);
     if (typeElem == null) {
       processingEnv.getMessager().printMessage(Kind.ERROR, "Cannot find type for " + typeElemName);
@@ -246,7 +249,7 @@ public class PersistableProcessor extends AbstractProcessor {
         }, null);
       }
     }
-    throw new IllegalArgumentException();
+    return null;
   }
 
   private List<AnnotationMirror> readAnnoArray(AnnotationMirror mirror, String name) {

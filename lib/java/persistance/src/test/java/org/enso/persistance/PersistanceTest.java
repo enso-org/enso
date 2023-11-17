@@ -151,7 +151,6 @@ public class PersistanceTest {
   // @start region="annotation"
   @Persistable(clazz=Service.class, id=432434)
   @Persistable(clazz=IntegerSupply.class, id=432435)
-  @Persistable(clazz=ServiceSupply.class, id=432436)
   public record Service(int value) implements Supplier<Integer> {
     @Override
     public Integer get() {
@@ -159,6 +158,10 @@ public class PersistanceTest {
     }
   }
   public record IntegerSupply(Supplier<Integer> supply) {}
-  public record ServiceSupply(Service supply) {}
   // @end region="annotation"
+
+  // @start region="self-annotation"
+  @Persistable(id=432436)
+  public record ServiceSupply(Service supply) {}
+  // @end region="self-annotation"
 }
