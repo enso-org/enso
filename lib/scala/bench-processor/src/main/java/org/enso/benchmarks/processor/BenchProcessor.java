@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.URISyntaxException;
+import java.nio.file.Files;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -69,27 +70,35 @@ public class BenchProcessor extends AbstractProcessor {
           "import org.enso.benchmarks.Utils;");
 
   public BenchProcessor() {
-    File currentDir = null;
-    try {
-      currentDir =
-          new File(
-              BenchProcessor.class.getProtectionDomain().getCodeSource().getLocation().toURI());
-    } catch (URISyntaxException e) {
-      failWithMessage("ensoDir not found: " + e.getMessage());
-    }
-    for (; currentDir != null; currentDir = currentDir.getParentFile()) {
-      if (currentDir.getName().equals("enso")) {
-        break;
-      }
-    }
-    if (currentDir == null) {
-      failWithMessage("Unreachable: Could not find Enso root directory");
-    }
-    ensoDir = currentDir;
+    ensoDir = locateRootDirectory();
 
     // Note that ensoHomeOverride does not have to exist, only its parent directory
     ensoHomeOverride = ensoDir.toPath().resolve("distribution").resolve("component").toFile();
   }
+
+  /**
+   * Locates the root of the Enso repository. Heuristic: we just keep going up the directory tree
+   * until we are in a directory containing ".git" subdirectory. Note that we cannot use the "enso"
+   * name, as users are free to name their cloned directories however they like.
+   */
+  private File locateRootDirectory() {
+    File rootDir = null;
+    try {
+      rootDir =
+          new File(
+              BenchProcessor.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+    } catch (URISyntaxException e) {
+      throw new AssertionError("repository root directory not found: " + e.getMessage());
+    }
+    for (; rootDir != null; rootDir = rootDir.getParentFile()) {
+      // Check if rootDir contains ".git" subdirectory
+      if (Files.exists(rootDir.toPath().resolve(".git"))) {
+        break;
+      }
+    }
+    return rootDir;
+  }
+
 
   @Override
   public SourceVersion getSupportedSourceVersion() {
