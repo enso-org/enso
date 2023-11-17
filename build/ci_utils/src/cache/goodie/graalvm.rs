@@ -140,7 +140,6 @@ mod tests {
     use super::*;
     use crate::cache;
     use crate::log::setup_logging;
-    use crate::programs::graal::Gu;
     use crate::programs::Java;
     use semver::BuildMetadata;
     use semver::Prerelease;
