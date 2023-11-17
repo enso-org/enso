@@ -12,7 +12,7 @@ import src.main.scala.licenses.{
   DistributionDescription,
   SBTDistributionComponent
 }
-import com.sandinh.javamodule.moduleinfo.{JpmsModule}
+import com.sandinh.javamodule.moduleinfo.JpmsModule
 
 import java.io.File
 
@@ -1446,6 +1446,41 @@ lazy val runtime = (project in file("engine/runtime"))
     }.evaluated,
     Benchmark / parallelExecution := false
   )
+  .settings(
+    libraryDependencies ++= Seq(
+      "org.slf4j" % "slf4j-nop" % slf4jVersion % Benchmark
+    ),
+    (Benchmark / javaOptions) := {
+      val requiredModules = GraalVM.modules ++ GraalVM.langsPkgs ++ Seq(
+        "org.slf4j"      % "slf4j-api"       % slf4jVersion,
+        "org.slf4j"      % "slf4j-nop"       % slf4jVersion,
+      )
+      val requiredModulesCp = JPMSUtils.filterModulesFromClasspath(
+        (Benchmark / fullClasspath).value,
+        requiredModules,
+        streams.value.log,
+        shouldContainAll = true
+      )
+      val requiredModulesPaths = requiredModulesCp
+        .map(_.data.getAbsolutePath)
+      val runtimeJar =
+        (LocalProject("runtime-with-instruments") / assembly / assemblyOutputPath)
+          .value
+          .getAbsolutePath
+      val allModulePaths = requiredModulesPaths ++ Seq(runtimeJar)
+      val runtimeModuleName =
+        (LocalProject("runtime-with-instruments") / moduleInfos).value.head.moduleName
+      Seq(
+        "-Dslf4j.provider=org.slf4j.nop.NOPServiceProvider",
+        "--module-path",
+        allModulePaths.mkString(File.pathSeparator),
+        "--add-modules",
+        runtimeModuleName,
+        "--add-exports",
+        "org.slf4j.nop/org.slf4j.nop=org.slf4j",
+      )
+    }
+  )
   .dependsOn(`common-polyglot-core-utils`)
   .dependsOn(`edition-updater`)
   .dependsOn(`interpreter-dsl`)
@@ -1568,7 +1603,10 @@ lazy val `runtime-with-instruments` =
       // Note [Unmanaged Classpath]
       Test / unmanagedClasspath += (baseDirectory.value / ".." / ".." / "app" / "gui" / "view" / "graph-editor" / "src" / "builtin" / "visualization" / "native" / "inc"),
       // Filter module-info.java from the compilation
-      excludeFilter := excludeFilter.value || "module-info.java"
+      excludeFilter := excludeFilter.value || "module-info.java",
+      moduleInfos := Seq(
+        JpmsModule("org.enso.runtime")
+      )
     )
     /** Assembling Uber Jar */
     .settings(
@@ -1956,7 +1994,6 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
       "-J-Dpolyglot.engine.WarnInterpreterOnly=false"
     ),
     (Benchmark / run / javaOptions) ++= {
-      // Take the module-path from the component directory inside the built engine distribution
       val componentModulePaths = (ThisBuild / componentModulesPaths).value
         .map(_.data.getAbsolutePath)
       val runtimeJar =
@@ -1964,11 +2001,13 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
           "runtime-with-instruments"
         ) / assembly / assemblyOutputPath).value.getAbsolutePath
       val allModulePaths = componentModulePaths ++ Seq(runtimeJar)
+      val runtimeModuleName =
+        (LocalProject("runtime-with-instruments") / moduleInfos).value.head.moduleName
       Seq(
         "--module-path",
         allModulePaths.mkString(File.pathSeparator),
         "--add-modules",
-        "org.enso.runtime"
+        runtimeModuleName
       )
     },
     (Benchmark / run / mainClass) :=
