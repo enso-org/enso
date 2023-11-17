@@ -51,7 +51,8 @@ const interactionBindingsHandler = interactionBindings.handler({
   click: (e) => (e instanceof MouseEvent ? interaction.handleClick(e) : false),
 })
 
-const componentBrowserPosition = computed(() => {
+// This is where the component browser should be placed when it is opened.
+const targetComponentBrowserPosition = computed(() => {
   const editedInfo = graphStore.editedNodeInfo
   const isEditingNode = editedInfo != null
   const hasNodeSelected = nodeSelection.selected.size > 0
@@ -70,6 +71,8 @@ const componentBrowserPosition = computed(() => {
     return mouseDictatedPlacement(nodeSize, placementEnvironment.value).position
   }
 })
+// This is the current position of the component browser.
+const componentBrowserPosition = ref<Vec2>(Vec2.Zero)
 
 const graphEditorSourceNode = computed(() => {
   if (graphStore.editedNodeInfo != null) return undefined
@@ -172,6 +175,9 @@ const groupColors = computed(() => {
 })
 
 const editingNode: Interaction = {
+  init: () => {
+    componentBrowserPosition.value = targetComponentBrowserPosition.value
+  },
   cancel: () => (componentBrowserVisible.value = false),
 }
 const nodeIsBeingEdited = computed(() => graphStore.editedNodeInfo != null)
@@ -191,8 +197,8 @@ const placementEnvironment = computed(() => {
 
 const creatingNode: Interaction = {
   init: () => {
-    console.log('creatingNode.init')
     componentBrowserInputContent.value = ''
+    componentBrowserPosition.value = targetComponentBrowserPosition.value
     componentBrowserVisible.value = true
   },
   cancel: () => {
@@ -239,7 +245,7 @@ function onComponentBrowserCommit(content: string) {
     graphStore.setNodeContent(graphStore.editedNodeInfo.id, content)
   } else if (content != null) {
     /// We finish creating a new node.
-    graphStore.createNode(componentBrowserPosition.value, content)
+    graphStore.createNode(targetComponentBrowserPosition.value, content)
   }
   componentBrowserVisible.value = false
   graphStore.editedNodeInfo = undefined
@@ -267,7 +273,7 @@ watch(
       const targetNode = graphStore.db.nodes.get(editedInfo.id)
       const targetPos = targetNode?.position ?? Vec2.Zero
       const offset = new Vec2(20, 35)
-      componentBrowserPosition.value = targetPos.add(offset)
+      targetComponentBrowserPosition.value = targetPos.add(offset)
       componentBrowserInputContent.value = getNodeContent(editedInfo.id)
       componentBrowserVisible.value = true
     } else {
