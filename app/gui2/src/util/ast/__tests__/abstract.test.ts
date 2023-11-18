@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest'
 import {
   debug,
-  deleteExpressionAST,
+  deleteExpressionAST, forgetAllAsts,
   functionBlock,
   insertNewNodeAST,
   parse,
@@ -363,12 +363,15 @@ test.each(cases)('parse/print round trip: %s', (code) => {
   // Check that Identities match original AST.
   const reprinted = root1.print()
   expect(reprinted.info).toEqual(info1)
+
+  forgetAllAsts()
 })
 
 test('parse', () => {
   const code = 'foo bar+baz'
   const root = parse(code)
   expect(debug(root._id)).toEqual(['', [['foo'], [['bar'], '+', ['baz']]]])
+  forgetAllAsts()
 })
 
 test('insert new node', () => {
@@ -379,6 +382,7 @@ test('insert new node', () => {
   insertNewNodeAST(main!, 'baz', '42')
   const printed = root.print()
   expect(printed.code).toEqual('main =\n    text1 = "foo"\n    baz = 42\n')
+  forgetAllAsts()
 })
 
 test('replace expression content', () => {
@@ -390,6 +394,7 @@ test('replace expression content', () => {
   replaceExpressionContentAST(newAssignment.value, '23')
   const printed = root.print()
   expect(printed.code).toEqual('main =\n    text1 = "foo"\n    baz = 23\n')
+  forgetAllAsts()
 })
 
 test('delete expression', () => {
@@ -401,4 +406,5 @@ test('delete expression', () => {
   deleteExpressionAST(newAssignment.assignment)
   const printed = root.print()
   expect(printed.code).toEqual(originalCode)
+  forgetAllAsts()
 })

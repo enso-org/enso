@@ -73,36 +73,29 @@ import { parseEnso } from '@/util/ast'
 import type { LazyObject } from '@/util/parserSupport'
 import { reactive } from 'vue'
 import type { ExprId } from "../../../shared/yjsModel";
+import * as random from "lib0/random";
 
 const committed = reactive(new Map<AstId, Ast>())
-const edited = new Map<AstId, Ast>()
+const edited = new Map<AstId, Ast | null>()
 
-function tryGetNode(id: AstId): Ast | null {
+function getNode(id: AstId): Ast | null {
+  return committed.get(id) ?? edited.get(id) ?? null
+}
+
+function getUncommitted(id: AstId): Ast | null {
   return edited.get(id) ?? committed.get(id) ?? null
 }
 
-function getNode(id: AstId): Ast {
-  return tryGetNode(id)!
-}
-
 declare const brandAstId: unique symbol
-type AstId = number & { [brandAstId]: never }
-
 declare const brandTokenId: unique symbol
-type TokenId = number & { [brandTokenId]: never }
+type AstId = ExprId & { [brandAstId]: never }
+type TokenId = ExprId & { [brandTokenId]: never }
 
-let nextNodeId = 0
 function newNodeId(): AstId {
-  const id = nextNodeId
-  nextNodeId++
-  return id as AstId
+  return random.uuidv4() as AstId
 }
-
-let nextTokenId = 0
 function newTokenId(): TokenId {
-  const id = nextTokenId
-  nextTokenId++
-  return id as TokenId
+  return random.uuidv4() as TokenId
 }
 
 export type Tok = { code: string; id?: TokenId }
@@ -111,28 +104,39 @@ type AstWithWhitespace = { whitespace?: string | undefined; node: AstId }
 type TokWithWhitespace = { whitespace?: string; node: Tok }
 
 export function isToken(node: Tok | AstId): node is Tok {
-  return typeof node == 'object'
+  return typeof node === 'object'
 }
 
 // Ast:
 // - If persisted a reactive watcher should replace it when necessary. (Simpler to persist ExprId).
 // - Synchronization will sometimes keep it up to date but this should not be relied on.
 //   - Certain types of change can orphan it, and it will no longer receive updates.
-// ExprId: Stable identifier.
-//
-// AstId: Internal to Ast.
+//     - (Orphaning is an effect, though.)
+
+// ExprId: Stable identifier. Untyped (type of associated Ast can change).
 
 export abstract class Ast {
   protected readonly treeType: Tree.Type | undefined
-  public readonly _id: AstId
-  public readonly exprId: ExprId
-
-  // from Tree: (ExprId, Tree.Type)
+  public _id: AstId
 
   protected constructor(id?: AstId, treeType?: Tree.Type) {
     this._id = id ?? newNodeId()
     this.treeType = treeType
     edited.set(this._id, this)
+  }
+
+  get exprId(): AstId {
+    return this._id
+  }
+
+  setExprId(exprId: AstId) {
+    this.delete()
+    this._id = exprId
+    edited.set(this._id, this)
+  }
+
+  delete() {
+    edited.set(this._id, null)
   }
 
   abstract children(): Iterable<NodeChild>
@@ -153,7 +157,7 @@ export abstract class Ast {
   print_(info: InfoMap, offset: number, indent: string): string {
     let code = ''
     for (const child of this.children()) {
-      if (child.node != null && !isToken(child.node) && getNode(child.node) instanceof Tombstone)
+      if (child.node != null && !isToken(child.node) && getUncommitted(child.node) === null)
         continue
       if (child.whitespace != null) {
         code += child.whitespace
@@ -164,7 +168,7 @@ export abstract class Ast {
         if (isToken(child.node)) {
           code += child.node.code
         } else {
-          code += getNode(child.node)!.print_(info, offset + code.length, indent)
+          code += getUncommitted(child.node)!.print_(info, offset + code.length, indent)
         }
       }
     }
@@ -207,7 +211,7 @@ export class Function extends Ast {
   private _args: FunctionArgument[]
   private _equals: TokWithWhitespace | undefined
   private _body: AstWithWhitespace | null
-  get name(): Ast {
+  get name(): Ast | null {
     return getNode(this._name.node)
   }
   get body(): Ast | null {
@@ -261,10 +265,10 @@ export class Assignment extends Ast {
   private _pattern: AstWithWhitespace
   private _equals: TokWithWhitespace | undefined
   private _expression: AstWithWhitespace
-  get pattern(): Ast {
+  get pattern(): Ast | null {
     return getNode(this._pattern.node)
   }
-  get expression(): Ast {
+  get expression(): Ast | null {
     return getNode(this._expression.node)
   }
   constructor(
@@ -309,7 +313,10 @@ export class Block extends Ast {
 
   *expressions(): Iterable<Ast> {
     for (const line of this._lines) {
-      if (line.expression) yield getNode(line.expression.node)
+      if (line.expression) {
+        const node = getNode(line.expression.node)
+        if (node) yield node
+      }
     }
   }
 
@@ -342,7 +349,7 @@ export class Block extends Ast {
       if (
         line.expression?.node != null &&
         !isToken(line.expression.node) &&
-        getNode(line.expression.node) instanceof Tombstone
+        getUncommitted(line.expression.node) === null
       )
         continue
       code += line.newline?.whitespace ?? ''
@@ -353,7 +360,7 @@ export class Block extends Ast {
           if (isToken(line.expression.node)) {
             code += line.expression.node.code
           } else {
-            code += getNode(line.expression.node)!.print_(info, offset, indent + '    ')
+            code += getUncommitted(line.expression.node)!.print_(info, offset, indent + '    ')
           }
         }
       }
@@ -406,19 +413,6 @@ export class RawCode extends Ast {
     yield this._code
   }
 }
-export class Tombstone extends Ast {
-  constructor(id: AstId | undefined) {
-    super(id)
-  }
-
-  static new(id: AstId | undefined): Tombstone {
-    return new Tombstone(id)
-  }
-
-  children(): Iterable<NodeChild> {
-    return []
-  }
-}
 
 // edits:
 // - child change: replace child by ID
@@ -439,7 +433,7 @@ export function parse(source: PrintedSource | string): Ast {
   const code = typeof source === 'object' ? source.code : source
   const ids = typeof source === 'object' ? source.info : undefined
   const tree = parseEnso(code)
-  return getNode(abstract(tree, code, ids).node)
+  return getUncommitted(abstract(tree, code, ids).node)!
 }
 
 function abstract(
@@ -522,7 +516,7 @@ function abstract_(
     }
   }
   const whitespace = code.substring(whitespaceStart, whitespaceEnd)
-  return { node: node.id, whitespace }
+  return { node: node._id, whitespace }
 }
 
 function abstractToken(token: Token, code: string, tokenIds: TokenSpanMap) {
@@ -578,19 +572,13 @@ export function normalize(root: AstId): AstId {
 }
 
 export function findModuleMethod(name: string): AstId | null {
-  // TODO
-  /*
-  for (const [id, node] of nodes) {
+  for (const [id, node] of committed) {
     if (node instanceof Function) {
-      const nodeName = isToken(node.name.node)
-        ? node.name.node.code
-        : nodes.get(node.name.node)!.print(nodes)
-      if (nodeName === name) {
+      if (node.name && node.name.code() === name) {
         return id
       }
     }
   }
-   */
   return null
 }
 
@@ -616,9 +604,14 @@ export function insertNewNodeAST(
 }
 
 export function deleteExpressionAST(id: AstId) {
-  return Tombstone.new(id)
+  edited.set(id, null)
 }
 
 export function replaceExpressionContentAST(id: AstId, code: string) {
   return RawCode.new(id, code)
+}
+
+export function forgetAllAsts() {
+  edited.clear()
+  committed.clear()
 }
