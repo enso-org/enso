@@ -3,7 +3,6 @@ package org.enso.compiler.core.ir;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.UUID;
 import org.enso.compiler.core.ir.expression.Application;
 import org.enso.compiler.core.ir.expression.Case;
@@ -20,9 +19,6 @@ import org.enso.persist.Persistance;
 import org.openide.util.lookup.ServiceProvider;
 import scala.Option;
 import scala.Tuple2;
-import scala.collection.Iterator;
-import scala.collection.SeqFactory;
-import scala.collection.immutable.AbstractSeq;
 import scala.collection.immutable.List;
 import scala.collection.immutable.Seq;
 
@@ -367,57 +363,7 @@ public final class IrPersistance {
       for (var i = 0; i < size; i++) {
         arr[i] = in.readReference(Object.class);
       }
-      return new AbstractSeq() {
-        @Override
-        public Object apply(int i) throws IndexOutOfBoundsException {
-          return arr[i].get(Object.class);
-        }
-
-        @Override
-        public int length() {
-          return size;
-        }
-
-        @Override
-        public boolean isDefinedAt(int idx) {
-          return 0 <= idx && idx < size;
-        }
-
-        @Override
-        public boolean isDefinedAt(Object idx) {
-          throw new IllegalStateException();
-        }
-
-        @Override
-        public Object apply(Object i) throws IndexOutOfBoundsException {
-          throw new IllegalStateException();
-        }
-
-        @Override
-        public SeqFactory iterableFactory() {
-          return super.iterableFactory();
-        }
-
-        @Override
-        public Iterator iterator() {
-          return new Iterator() {
-            private int at;
-
-            @Override
-            public boolean hasNext() {
-              return at < size;
-            }
-
-            @Override
-            public Object next() throws NoSuchElementException {
-              if (at >= size) {
-                throw new NoSuchElementException();
-              }
-              return apply(at++);
-            }
-          };
-        }
-      };
+      return new IrLazySeq(arr, size);
     }
   }
 
