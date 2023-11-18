@@ -45,7 +45,7 @@ object Function {
     */
   sealed case class Lambda(
     override val arguments: List[DefinitionArgument],
-    bodyList: Seq[Expression],
+    bodySeq: Seq[Expression],
     location: Option[IdentifiedLocation],
     override val canBeTCO: Boolean,
     passData: MetadataStorage,
@@ -63,7 +63,7 @@ object Function {
       this(arguments, Seq(body), location, canBeTCO, passData, diagnostics)
     }
     var id: UUID @Identifier = randomId
-    override lazy val body   = bodyList.head
+    override lazy val body   = bodySeq.head
 
     /** Creates a copy of `this`.
       *

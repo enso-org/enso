@@ -49,7 +49,7 @@ object Method {
     */
   sealed case class Explicit(
     override val methodReference: Name.MethodReference,
-    val bodyList: Seq[Expression],
+    val bodySeq: Seq[Expression],
     val isStatic: Boolean,
     val isStaticWrapperForInstanceMethod: Boolean,
     override val location: Option[IdentifiedLocation],
@@ -76,7 +76,7 @@ object Method {
     }
 
     var id: UUID @Identifier = randomId
-    lazy val body            = bodyList.head
+    lazy val body            = bodySeq.head
 
     /** Creates a copy of `this`.
       *
