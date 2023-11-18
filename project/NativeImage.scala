@@ -68,6 +68,12 @@ object NativeImage {
     *                            time initialization is set to default
     * @param initializeAtBuildtime a list of classes that should be initialized at
     *                              build time.
+    * @param additionalCp additional class-path entries to be added to the
+    *                     native image.
+    * @param includeRuntime Whether `org.enso.runtime` should is included. If yes, then
+    *                       it will be passed as a module to the native-image along with other
+    *                       Graal and Truffle related modules.
+    * @param verbose whether to print verbose output from the native image.
     */
   def buildNativeImage(
     artifactName: String,
@@ -78,7 +84,9 @@ object NativeImage {
     initializeAtRuntime: Seq[String]         = Seq.empty,
     initializeAtBuildtime: Seq[String]       = defaultBuildTimeInitClasses,
     mainClass: Option[String]                = None,
-    cp: Option[String]                       = None
+    additionalCp: Seq[String]                = Seq(),
+    verbose: Boolean                         = false,
+    includeRuntime: Boolean                  = true
   ): Def.Initialize[Task[Unit]] = Def
     .task {
       val log            = state.value.log
@@ -92,13 +100,16 @@ object NativeImage {
         (assembly / assemblyOutputPath).value.toPath.toAbsolutePath.normalize
 
       if (!file(nativeImagePath).exists()) {
-        log.error("Native Image component not found in the JVM distribution.")
         log.error(
-          "You can install Native Image with `gu install native-image`."
+          "Unexpected: Native Image component not found in the JVM distribution."
+        )
+        log.error("Is this a GraalVM distribution?")
+        log.error(
+          "On older distributions, you can install Native Image with `gu install native-image`."
         )
         throw new RuntimeException(
           "Native Image build failed, " +
-          "because Native Image component was not found."
+          "because native-image binary was not found."
         )
       }
       if (additionalOptions.contains("--language:java")) {
@@ -157,8 +168,35 @@ object NativeImage {
           Seq(s"--initialize-at-run-time=$classes")
         }
 
-      var cmd =
+      val runtimeCp = (LocalProject("runtime") / Runtime / fullClasspath).value
+      val runnerCp =
+        (LocalProject("engine-runner") / Runtime / fullClasspath).value
+      val ourCp      = (Runtime / fullClasspath).value
+      val cpToSearch = (ourCp ++ runtimeCp ++ runnerCp).distinct
+      val componentModules: Seq[String] = JPMSUtils
+        .filterModulesFromClasspath(
+          cpToSearch,
+          JPMSUtils.componentModules,
+          log,
+          shouldContainAll = true
+        )
+        .map(_.data.getAbsolutePath)
+
+      val fullCp =
+        if (includeRuntime) {
+          componentModules ++ additionalCp
+        } else {
+          ourCp.map(_.data.getAbsolutePath) ++ additionalCp
+        }
+      val cpStr = fullCp.mkString(File.pathSeparator)
+      log.debug("Class-path: " + cpStr)
+
+      val verboseOpt = if (verbose) Seq("--verbose") else Seq()
+
+      var cmd: Seq[String] =
         Seq(nativeImagePath) ++
+        verboseOpt ++
+        Seq("-cp", cpStr) ++
         quickBuildOption ++
         debugParameters ++ staticParameters ++ configs ++
         Seq("--no-fallback", "--no-server") ++
@@ -167,22 +205,16 @@ object NativeImage {
         initializeAtRuntimeOptions ++
         buildMemoryLimitOptions ++
         runtimeMemoryOptions ++
-        additionalOptions
+        additionalOptions ++
+        Seq("-o", artifactName)
 
-      if (mainClass.isEmpty) {
-        cmd = cmd ++
-          Seq("-jar", pathToJAR.toString) ++
-          Seq(artifactName)
-      } else {
-        val cpf = new File(cp.get).getAbsoluteFile()
-        if (!cpf.exists()) throw new IllegalStateException("Cannot find " + cpf)
-        val joinCp = pathToJAR.toString + File.pathSeparator + cpf
-        System.out.println("Class-path: " + joinCp);
-
-        cmd = cmd ++
-          Seq("-cp", joinCp) ++
-          Seq(mainClass.get) ++
-          Seq(artifactName)
+      cmd = mainClass match {
+        case Some(main) =>
+          cmd ++
+          Seq(main)
+        case None =>
+          cmd ++
+          Seq("-jar", pathToJAR.toString)
       }
 
       val pathParts = pathExts ++ Option(System.getenv("PATH")).toSeq

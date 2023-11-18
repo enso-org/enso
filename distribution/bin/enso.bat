@@ -6,5 +6,5 @@ if /I %%A==--dump-graphs (
 set EXTRA_OPTS=%EXTRA_OPTS% -Dgraal.Dump=Truffle:1
 )
 )
-java -jar -Dtruffle.class.path.append=%comp-dir%\runtime.jar -Dpolyglot.engine.IterativePartialEscape=true %EXTRA_OPTS% %JAVA_OPTS% %comp-dir%\runner.jar %*
+java --module-path %comp-dir% -Dpolyglot.compiler.IterativePartialEscape=true %EXTRA_OPTS% %JAVA_OPTS% -m org.enso.runtime/org.enso.EngineRunnerBootLoader %*
 exit /B %errorlevel%

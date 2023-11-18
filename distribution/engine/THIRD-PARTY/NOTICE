@@ -311,6 +311,46 @@ The license file can be found at `licenses/Eclipse_Distribution_License_(New_BSD
 Copyright notices related to this dependency can be found in the directory `org.eclipse.jgit.org.eclipse.jgit-6.7.0.202309050840-r`.
 
 
+'js-language', licensed under the MIT License, is distributed with the engine.
+The license file can be found at `licenses/MIT`.
+Copyright notices related to this dependency can be found in the directory `org.graalvm.js.js-language-23.1.0`.
+
+
+'polyglot', licensed under the Universal Permissive License, Version 1.0, is distributed with the engine.
+The license file can be found at `licenses/Universal_Permissive_License__Version_1.0`.
+Copyright notices related to this dependency can be found in the directory `org.graalvm.polyglot.polyglot-23.1.0`.
+
+
+'regex', licensed under the Universal Permissive License, Version 1.0, is distributed with the engine.
+The license file can be found at `licenses/Universal_Permissive_License__Version_1.0`.
+Copyright notices related to this dependency can be found in the directory `org.graalvm.regex.regex-23.1.0`.
+
+
+'collections', licensed under the Universal Permissive License, Version 1.0, is distributed with the engine.
+The license file can be found at `licenses/Universal_Permissive_License__Version_1.0`.
+Copyright notices related to this dependency can be found in the directory `org.graalvm.sdk.collections-23.1.0`.
+
+
+'nativeimage', licensed under the Universal Permissive License, Version 1.0, is distributed with the engine.
+The license file can be found at `licenses/Universal_Permissive_License__Version_1.0`.
+Copyright notices related to this dependency can be found in the directory `org.graalvm.sdk.nativeimage-23.1.0`.
+
+
+'word', licensed under the Universal Permissive License, Version 1.0, is distributed with the engine.
+The license file can be found at `licenses/Universal_Permissive_License__Version_1.0`.
+Copyright notices related to this dependency can be found in the directory `org.graalvm.sdk.word-23.1.0`.
+
+
+'icu4j', licensed under the Unicode/ICU License, is distributed with the engine.
+The license information can be found along with the copyright notices.
+Copyright notices related to this dependency can be found in the directory `org.graalvm.shadowed.icu4j-23.1.0`.
+
+
+'truffle-api', licensed under the Universal Permissive License, Version 1.0, is distributed with the engine.
+The license file can be found at `licenses/Universal_Permissive_License__Version_1.0`.
+Copyright notices related to this dependency can be found in the directory `org.graalvm.truffle.truffle-api-23.1.0`.
+
+
 'jline', licensed under the The BSD License, is distributed with the engine.
 The license file can be found at `licenses/BSD-3-Clause`.
 Copyright notices related to this dependency can be found in the directory `org.jline.jline-3.23.0`.

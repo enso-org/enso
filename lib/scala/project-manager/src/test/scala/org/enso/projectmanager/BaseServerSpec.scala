@@ -53,6 +53,7 @@ import pureconfig.generic.auto._
 import zio.interop.catz.core._
 import zio.{Runtime, Semaphore, ZAny, ZIO}
 
+import java.net.URISyntaxException
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
@@ -259,6 +260,31 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
     FileSystem.writeTextFile(editionsDir / editionName, editionConfig)
   }
 
+  /** Locates the root of the Enso repository. Heuristic: we just keep going up the directory tree
+    * until we are in a directory containing ".git" subdirectory. Note that we cannot use the "enso"
+    * name, as users are free to name their cloned directories however they like.
+    */
+  private def locateRootDirectory(): File = {
+    var rootDir: File = null
+    try {
+      rootDir = new File(
+        classOf[
+          BaseServerSpec
+        ].getProtectionDomain.getCodeSource.getLocation.toURI
+      )
+    } catch {
+      case e: URISyntaxException =>
+        fail("repository root directory not found: " + e.getMessage)
+    }
+    while (rootDir != null && !Files.exists(rootDir.toPath.resolve(".git"))) {
+      rootDir = rootDir.getParentFile
+    }
+    if (rootDir == null) {
+      fail("repository root directory not found")
+    }
+    rootDir
+  }
+
   /** This is a temporary solution to ensure that a valid engine distribution is
     * preinstalled.
     *
@@ -269,21 +295,27 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
     val os   = OS.operatingSystem.configName
     val ext  = if (OS.isWindows) "zip" else "tar.gz"
     val arch = OS.architecture
-    val path = FakeReleases.releaseRoot
+    val componentDestDir = FakeReleases.releaseRoot
       .resolve("enso")
       .resolve(s"enso-$version")
       .resolve(s"enso-engine-$version-$os-$arch.$ext")
       .resolve(s"enso-$version")
       .resolve("component")
-    val root = Path.of("../../../").toAbsolutePath.normalize
-    FileUtils.copyFile(
-      root.resolve("runner.jar").toFile,
-      path.resolve("runner.jar").toFile
+    val root = locateRootDirectory().toPath.normalize()
+    // Copy all the components from build engine distribution.
+    val envMap     = System.getenv()
+    val versionEnv = envMap.getOrDefault("ENSO_VERSION", "0.0.0-dev")
+    val builtDistributionDir = root.resolve(
+      s"built-distribution/enso-engine-$versionEnv-$os-$arch/enso-$versionEnv"
     )
-    FileUtils.copyFile(
-      root.resolve("runtime.jar").toFile,
-      path.resolve("runtime.jar").toFile
-    )
+    if (!builtDistributionDir.toFile.exists()) {
+      throw new AssertionError(
+        s"Expecting that engine distribution has already been built " +
+        s"for project-manager tests: There is no directory $builtDistributionDir. We need to copy all the components from there."
+      )
+    }
+    val componentsSourceDir = builtDistributionDir.resolve("component")
+    FileUtils.copyDirectory(componentsSourceDir.toFile, componentDestDir.toFile)
 
     val blackhole = system.actorOf(blackholeProps)
     val installAction = runtimeVersionManagementService.installEngine(

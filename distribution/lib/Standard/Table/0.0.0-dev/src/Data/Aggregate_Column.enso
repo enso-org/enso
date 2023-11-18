@@ -93,7 +93,7 @@ type Aggregate_Column
        - new_name: name of new column.
     Median (column:Text|Integer|Any=0) (new_name:Text="") # Any needed because of 6866
 
-    ## Creates a new column with the median of values (ignoring missing values)
+    ## Creates a new column with the percentile of values (ignoring missing values)
        of the column within each group. If no rows, evaluates to `Nothing`.
 
        Arguments:

@@ -93,14 +93,31 @@ export const args: Arguments = await yargs(process.argv.slice(2))
 
 /** Based on the given arguments, creates a configuration for the Electron Builder. */
 export function createElectronBuilderConfig(passedArgs: Arguments): electronBuilder.Configuration {
+    let version = BUILD_INFO.version
+    if (
+        passedArgs.target === 'msi' ||
+        (passedArgs.target == null && process.platform === 'win32')
+    ) {
+        // MSI installer imposes some restrictions on the version number. Namely, product version must have a major
+        // version less than 256, a minor version less than 256, and a build version less than 65536.
+        //
+        // As a workaround (we use year, like 2023, as a major version), we drop two leading digits from the major
+        // version number.
+        version = version.substring(2)
+    }
+
     return {
         appId: 'org.enso',
         productName: common.PRODUCT_NAME,
         extraMetadata: {
-            version: BUILD_INFO.version,
+            version,
         },
         copyright: `Copyright © ${new Date().getFullYear()} ${common.COMPANY_NAME}`,
-        artifactName: 'enso-${os}-${version}.${ext}',
+
+        // Note that the `artifactName` uses the "canonical" version of the product, not one that might have been
+        // simplified for the MSI installer to cope.
+        artifactName: 'enso-${os}-' + BUILD_INFO.version + '.${ext}',
+
         /** Definitions of URL {@link electronBuilder.Protocol} schemes used by the IDE.
          *
          * Electron will register all URL protocol schemes defined here with the OS.
@@ -185,6 +202,9 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
         ],
         directories: {
             output: `${passedArgs.ideDist}`,
+        },
+        msi: {
+            runAfterFinish: false,
         },
         nsis: {
             // Disables "block map" generation during electron building. Block maps

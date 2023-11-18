@@ -218,9 +218,19 @@ object FrgaalJavaCompiler {
     val allArguments = outputOption ++ frgaalOptions ++ nonJArgs ++ sources
 
     withArgumentFile(allArguments) { argsFile =>
+      // List of modules that Frgaal can use for compilation
+      val limitModules = Seq(
+        "java.base",
+        "jdk.zipfs",
+        "jdk.internal.vm.compiler.management",
+        "java.desktop",
+        "java.net.http",
+        "java.sql",
+        "jdk.jfr"
+      )
       val limitModulesArgs = Seq(
         "--limit-modules",
-        "java.base,jdk.zipfs,jdk.internal.vm.compiler.management,org.graalvm.locator,java.desktop,java.net.http"
+        limitModules.mkString(",")
       )
       // strippedJArgs needs to be passed via cmd line, and not via the argument file
       val forkArgs = (strippedJArgs ++ limitModulesArgs ++ Seq(
