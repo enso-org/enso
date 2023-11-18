@@ -190,7 +190,9 @@ public abstract class Persistance<T> {
       return (Reference<T>) PerMemoryReference.NULL;
     }
 
-    /** Extract object frm the reference.
+    /** Extract object from the reference. Multiple calls to this method
+     * may return the same or another instance of object depending on the
+     * type of the reference and <em>laziness policy</em>.
      *
      * @param <V> the type of the object to expect
      * @param expectedType the expected clazz of the object
