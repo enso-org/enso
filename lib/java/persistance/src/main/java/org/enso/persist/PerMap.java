@@ -3,7 +3,7 @@ package org.enso.persist;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.ServiceLoader;
+import org.openide.util.lookup.Lookups;
 
 final class PerMap {
 
@@ -14,8 +14,8 @@ final class PerMap {
 
   private PerMap() {
     int hash = 0;
-    for (org.enso.persist.Persistance p :
-        ServiceLoader.load(Persistance.class, getClass().getClassLoader())) {
+    var loader = getClass().getClassLoader();
+    for (var p : Lookups.metaInfServices(loader).lookupAll(Persistance.class)) {
       org.enso.persist.Persistance<?> prevId = ids.put(p.id, p);
       if (prevId != null) {
         throw new IllegalStateException(
