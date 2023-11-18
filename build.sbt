@@ -1083,8 +1083,8 @@ lazy val `persistance` = (project in file("lib/java/persistance"))
     Compile / javacOptions := ((Compile / javacOptions).value),
     libraryDependencies ++= Seq(
       "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion,
-      "junit"            % "junit"                   % junitVersion       % Test,
-      "com.github.sbt"   % "junit-interface"         % junitIfVersion     % Test
+      "junit"            % "junit"                   % junitVersion   % Test,
+      "com.github.sbt"   % "junit-interface"         % junitIfVersion % Test
     )
   )
   .dependsOn(`persistance-dsl` % Test)
