@@ -26,6 +26,11 @@ import javax.tools.Diagnostic.Kind;
 
 import org.openide.util.lookup.ServiceProvider;
 
+/**
+ * Processes the {@code Persistable} annotation. See its javadoc for
+ * proper usage. A new subclass of {@code Persistance} class is generated per each
+ * {@code Persistable} annotation.
+ */
 @SupportedAnnotationTypes({
   "org.enso.persist.Persistable",
   "org.enso.persist.Persistable.Group"
