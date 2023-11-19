@@ -2,16 +2,8 @@ import { GraphDb } from '@/stores/graph/graphDatabase'
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { DEFAULT_VISUALIZATION_IDENTIFIER } from '@/stores/visualization'
-import {
-  AstExtended,
-  RawAst,
-  childrenAstNodes,
-  findAstWithRange,
-  parseEnso,
-  readAstSpan,
-} from '@/util/ast'
 import type { AstId } from '@/util/ast/abstract.ts'
-import { Ast, Function, abstract, findModuleMethod } from '@/util/ast/abstract.ts'
+import {Function, findModuleMethod, parse, Ast} from '@/util/ast/abstract.ts'
 import { useObserveYjs } from '@/util/crdt'
 import type { Opt } from '@/util/opt'
 import type { Rect } from '@/util/rect'
@@ -94,17 +86,15 @@ export const useGraphStore = defineStore('graph', () => {
       const meta = module.doc.metadata
       const textContentLocal = textContent.value
 
-      const newAst = new Map<AstId, Ast>()
-      const newRoot = abstract(newAst, parseEnso(textContentLocal), { code: textContentLocal }).node
+      const newRoot = parse(textContentLocal)
 
       const methodAst = getExecutedMethodAst(
-        newAst,
         newRoot,
         proj.executionContext.getStackTop(),
         idMap,
       )
       if (methodAst) {
-        db.readFunctionAst(methodAst, newAst, (id) => meta.get(id))
+        db.readFunctionAst(methodAst, (id) => meta.get(id))
       }
     })
   }
@@ -190,7 +180,7 @@ export const useGraphStore = defineStore('graph', () => {
   function setNodeContent(id: ExprId, content: string) {
     const node = db.getNode(id)
     if (node == null) return
-    setExpressionContent(node.rootSpan.astId, content)
+    setExpressionContent(node.rootSpan.exprId, content)
   }
 
   function setExpressionContent(id: ExprId, content: string) {
@@ -208,7 +198,7 @@ export const useGraphStore = defineStore('graph', () => {
   function replaceNodeSubexpression(nodeId: ExprId, range: ContentRange, content: string) {
     const node = db.getNode(nodeId)
     if (node == null) return
-    proj.module?.replaceExpressionContent(node.rootSpan.astId, content, range)
+    proj.module?.replaceExpressionContent(node.rootSpan.exprId, content, range)
   }
 
   function setNodePosition(nodeId: ExprId, position: Vec2) {
@@ -323,8 +313,7 @@ export type UnconnectedEdge = {
 }
 
 function getExecutedMethodAst(
-  nodes: Map<AstId, Ast>,
-  root: AstId,
+  root: Ast,
   executionStackTop: StackItem,
   updatedIdMap: Y.Map<Uint8Array>,
 ): Opt<Function> {
@@ -334,13 +323,12 @@ function getExecutedMethodAst(
       // actually verify this assumption at this point.
       const ptr = executionStackTop.methodPointer
       const name = ptr.name
-      const id = findModuleMethod(nodes, name)
-      if (id == null) return
-      const method = nodes.get(id)
-      if (!(method instanceof Function)) return
+      const method = findModuleMethod(name)
+      if (!method) return
       return method
     }
     case 'LocalCall': {
+      // TODO
       /*
       const exprId = executionStackTop.expressionId
       const range = lookupIdRange(updatedIdMap, exprId)

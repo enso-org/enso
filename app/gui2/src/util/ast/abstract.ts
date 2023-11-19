@@ -88,8 +88,8 @@ function getUncommitted(id: AstId): Ast | null {
 
 declare const brandAstId: unique symbol
 declare const brandTokenId: unique symbol
-type AstId = ExprId & { [brandAstId]: never }
-type TokenId = ExprId & { [brandTokenId]: never }
+export type AstId = ExprId & { [brandAstId]: never }
+export type TokenId = ExprId & { [brandTokenId]: never }
 
 function newNodeId(): AstId {
   return random.uuidv4() as AstId
@@ -98,10 +98,14 @@ function newTokenId(): TokenId {
   return random.uuidv4() as TokenId
 }
 
-export type Tok = { code: string; id?: TokenId }
+export type Tok = { code: string; exprId: TokenId }
 export type NodeChild = { whitespace?: string | undefined; node: AstId | Tok }
 type AstWithWhitespace = { whitespace?: string | undefined; node: AstId }
 type TokWithWhitespace = { whitespace?: string; node: Tok }
+
+function token(code: string): Tok {
+  return { code, exprId: newTokenId() }
+}
 
 export function isToken(node: Tok | AstId): node is Tok {
   return typeof node === 'object'
@@ -182,8 +186,14 @@ export abstract class Ast {
     return code
   }
 
-  visitRecursive(visit: (ast: Ast) => boolean) {
+  visitRecursive(visit: (node: Ast | Tok) => void) {
+    visit(this)
     for (const child of this.children()) {
+      if (isToken(child.node)) {
+        visit(child.node)
+      } else {
+        getNode(child.node)?.visitRecursive(visit)
+      }
     }
   }
 }
@@ -211,6 +221,8 @@ export class Function extends Ast {
   private _args: FunctionArgument[]
   private _equals: TokWithWhitespace | undefined
   private _body: AstWithWhitespace | null
+  // FIXME: This should not be nullable. If the `ExprId` has been deleted, the same placeholder logic should be applied
+  //  here and in `children` (and indirectly, `print`).
   get name(): Ast | null {
     return getNode(this._name.node)
   }
@@ -253,7 +265,7 @@ export class Function extends Ast {
     if (this._equals !== undefined) {
       yield { whitespace: this._equals.whitespace ?? ' ', node: this._equals.node }
     } else {
-      yield { whitespace: ' ', node: { code: '=' } }
+      yield { whitespace: ' ', node: token('=') }
     }
     if (this._body !== null) {
       yield this._body
@@ -296,7 +308,7 @@ export class Assignment extends Ast {
     if (this._equals !== undefined) {
       yield { whitespace: this._equals.whitespace ?? ' ', node: this._equals.node }
     } else {
-      yield { whitespace: ' ', node: { code: '=' } }
+      yield { whitespace: ' ', node: token('=') }
     }
     if (this._expression !== null) {
       yield this._expression
@@ -338,7 +350,7 @@ export class Block extends Ast {
 
   *children(): Iterable<NodeChild> {
     for (const line of this._lines) {
-      yield line.newline ?? { node: { code: '\n' } }
+      yield line.newline ?? { node: token('\n') }
       if (line.expression !== null) yield line.expression
     }
   }
@@ -385,7 +397,7 @@ export class Ident extends Ast {
   }
 
   static new(id: AstId | undefined, code: string): Ident {
-    return Ident.fromToken(id, { node: { code } })
+    return Ident.fromToken(id, { node: token(code) })
   }
 
   static fromToken(id: AstId | undefined, token: TokWithWhitespace): Ident {
@@ -406,7 +418,7 @@ export class RawCode extends Ast {
   }
 
   static new(id: AstId | undefined, code: string): RawCode {
-    return new RawCode(id, { node: { code } })
+    return new RawCode(id, { node: token(code) })
   }
 
   *children(): Iterable<NodeChild> {
@@ -519,7 +531,7 @@ function abstract_(
   return { node: node._id, whitespace }
 }
 
-function abstractToken(token: Token, code: string, tokenIds: TokenSpanMap) {
+function abstractToken(token: Token, code: string, tokenIds: TokenSpanMap): { whitespace: string, node: Tok } {
   const whitespaceStart = token.whitespaceStartInCodeBuffer
   const whitespaceEnd = whitespaceStart + token.whitespaceLengthInCodeBuffer
   const whitespace = code.substring(whitespaceStart, whitespaceEnd)
@@ -527,8 +539,8 @@ function abstractToken(token: Token, code: string, tokenIds: TokenSpanMap) {
   const codeEnd = codeStart + token.lengthInCodeBuffer
   const tokenCode = code.substring(codeStart, codeEnd)
   const span = tokenKey(codeStart, codeEnd - codeStart, token.type)
-  const id = tokenIds.get(span) ?? newTokenId()
-  const node = { code: tokenCode, id }
+  const exprId = tokenIds.get(span) ?? newTokenId()
+  const node = { code: tokenCode, exprId }
   return { whitespace, node }
 }
 
@@ -571,11 +583,11 @@ export function normalize(root: AstId): AstId {
   return abstract(tree, printed.code, printed.info).node
 }
 
-export function findModuleMethod(name: string): AstId | null {
-  for (const [id, node] of committed) {
+export function findModuleMethod(name: string): Function | null {
+  for (const node of committed.values()) {
     if (node instanceof Function) {
       if (node.name && node.name.code() === name) {
-        return id
+        return node
       }
     }
   }
@@ -584,12 +596,8 @@ export function findModuleMethod(name: string): AstId | null {
 
 export function functionBlock(name: string): Block | null {
   const method = findModuleMethod(name)
-  if (method == null) return null
-  const node = getNode(method)
-  if (!(node instanceof Function) || node.body === null) return null
-  const body = node.body
-  if (!(body instanceof Block)) return null
-  return body
+  if (!method || !(method.body instanceof Block)) return null
+  return method.body
 }
 
 export function insertNewNodeAST(
