@@ -52,6 +52,7 @@ public abstract class ThunkExecutorNode extends Node {
   }
 
   @Specialization(
+      // TODO: [DB] callNode argument is cached and may contain references to types
       guards = {"function.isThunk()", "sameCallTarget(callNode, function)"},
       limit = Constants.CacheSizes.THUNK_EXECUTOR_NODE)
   Object doCached(
