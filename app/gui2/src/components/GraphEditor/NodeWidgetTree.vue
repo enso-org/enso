@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { provideWidgetTree } from '@/providers/widgetTree'
 import { useTransitioning } from '@/util/animation'
-import type { AstExtended } from '@/util/ast'
+import type { Ast } from '@/util/ast/abstract'
 import { toRef } from 'vue'
 import NodeWidget from './NodeWidget.vue'
 
-const props = defineProps<{ ast: AstExtended }>()
+const props = defineProps<{ ast: Ast }>()
 
 const observedLayoutTransitions = new Set([
   'margin-left',

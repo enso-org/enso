@@ -2,8 +2,7 @@ import { GraphDb } from '@/stores/graph/graphDatabase'
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { DEFAULT_VISUALIZATION_IDENTIFIER } from '@/stores/visualization'
-import type { AstId } from '@/util/ast/abstract.ts'
-import {Function, findModuleMethod, parse, Ast} from '@/util/ast/abstract.ts'
+import { Ast, Function, findModuleMethod } from '@/util/ast/abstract.ts'
 import { useObserveYjs } from '@/util/crdt'
 import type { Opt } from '@/util/opt'
 import type { Rect } from '@/util/rect'
@@ -86,13 +85,9 @@ export const useGraphStore = defineStore('graph', () => {
       const meta = module.doc.metadata
       const textContentLocal = textContent.value
 
-      const newRoot = parse(textContentLocal)
+      const newRoot = Ast.parse(textContentLocal)
 
-      const methodAst = getExecutedMethodAst(
-        newRoot,
-        proj.executionContext.getStackTop(),
-        idMap,
-      )
+      const methodAst = getExecutedMethodAst(newRoot, proj.executionContext.getStackTop(), idMap)
       if (methodAst) {
         db.readFunctionAst(methodAst, (id) => meta.get(id))
       }

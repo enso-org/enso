@@ -1,7 +1,7 @@
 import { SuggestionDb, groupColorStyle, type Group } from '@/stores/suggestionDatabase'
 import { tryGetIndex } from '@/util/array'
 import type { AstId } from '@/util/ast/abstract'
-import {Assignment, Ast, Function, Ident, parse} from '@/util/ast/abstract'
+import { Assignment, Ast, Function, Ident } from '@/util/ast/abstract'
 import { colorFromString } from '@/util/colors'
 import { ComputedValueRegistry, type ExpressionInfo } from '@/util/computedValueRegistry'
 import { ReactiveDb, ReactiveIndex, ReactiveMapping } from '@/util/database/reactiveDb'
@@ -101,10 +101,7 @@ export class GraphDb {
     this.nodes.moveToLast(id)
   }
 
-  readFunctionAst(
-    functionAst: Function,
-    getMeta: (id: ExprId) => NodeMetadata | undefined,
-  ) {
+  readFunctionAst(functionAst: Function, getMeta: (id: ExprId) => NodeMetadata | undefined) {
     const currentNodeIds = new Set<ExprId>()
     if (functionAst) {
       for (const nodeAst of getFunctionNodeExpressions(functionAst)) {
@@ -125,7 +122,7 @@ export class GraphDb {
           }
           // TODO
           //if (indexedDB.cmp(node.rootSpan.contentHash(), newNode.rootSpan.contentHash()) !== 0) {
-            node.rootSpan = newNode.rootSpan
+          node.rootSpan = newNode.rootSpan
           //}
           if (nodeMeta) this.assignUpdatedMetadata(node, nodeMeta)
         }
@@ -172,7 +169,7 @@ export function mockNode(binding: string, id: AstId, code?: string): Node {
   return {
     outerExprId: id,
     binding,
-    rootSpan: parse(code ?? '0'),
+    rootSpan: Ast.parse(code ?? '0'),
     position: Vec2.Zero,
     vis: undefined,
   }
@@ -200,5 +197,5 @@ function nodeFromAst(ast: Ast): Node {
 }
 
 function* getFunctionNodeExpressions(func: Function): Iterable<Ast> {
-  return Array.from(func.bodyExpressions(), (e) => (!(e instanceof Function)))
+  return Array.from(func.bodyExpressions(), (e) => !(e instanceof Function))
 }

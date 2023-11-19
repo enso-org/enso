@@ -1,10 +1,11 @@
 import { expect, test } from 'vitest'
 import {
+  Ast,
   debug,
-  deleteExpressionAST, forgetAllAsts,
+  deleteExpressionAST,
+  forgetAllAsts,
   functionBlock,
   insertNewNodeAST,
-  parse,
   replaceExpressionContentAST,
 } from '../abstract'
 
@@ -352,14 +353,14 @@ const cases = [
 ]
 test.each(cases)('parse/print round trip: %s', (code) => {
   // Get an AST.
-  const root = parse(code)
+  const root = Ast.parse(code)
   // Print AST back to source.
   const printed = root.print()
   const info1 = printed.info
   expect(printed.code).toEqual(code)
 
   // Re-parse.
-  const root1 = parse(printed)
+  const root1 = Ast.parse(printed)
   // Check that Identities match original AST.
   const reprinted = root1.print()
   expect(reprinted.info).toEqual(info1)
@@ -369,14 +370,14 @@ test.each(cases)('parse/print round trip: %s', (code) => {
 
 test('parse', () => {
   const code = 'foo bar+baz'
-  const root = parse(code)
+  const root = Ast.parse(code)
   expect(debug(root._id)).toEqual(['', [['foo'], [['bar'], '+', ['baz']]]])
   forgetAllAsts()
 })
 
 test('insert new node', () => {
   const code = 'main =\n    text1 = "foo"\n'
-  const root = parse(code)
+  const root = Ast.parse(code)
   const main = functionBlock('main')
   expect(main).not.toBeNull()
   insertNewNodeAST(main!, 'baz', '42')
@@ -387,7 +388,7 @@ test('insert new node', () => {
 
 test('replace expression content', () => {
   const code = 'main =\n    text1 = "foo"\n'
-  const root = parse(code)
+  const root = Ast.parse(code)
   const main = functionBlock('main')
   expect(main).not.toBeNull()
   const newAssignment = insertNewNodeAST(main!, 'baz', '42')
@@ -399,7 +400,7 @@ test('replace expression content', () => {
 
 test('delete expression', () => {
   const originalCode = 'main =\n    text1 = "foo"\n'
-  const root = parse(originalCode)
+  const root = Ast.parse(originalCode)
   const main = functionBlock('main')
   expect(main).not.toBeNull()
   const newAssignment = insertNewNodeAST(main!, 'baz', '42')

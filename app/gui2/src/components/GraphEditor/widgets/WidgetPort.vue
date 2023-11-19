@@ -57,7 +57,7 @@ const portRect = shallowRef<Rect>()
 const rectUpdateIsUseful = computed(() => isHovered.value || hasConnection.value)
 
 const randomUuid = uuidv4() as ExprId
-const portId = computed(() => widgetAst(props.input)?.astId ?? randomUuid)
+const portId = computed(() => widgetAst(props.input)?.exprId ?? randomUuid)
 
 watch(nodeSize, updateRect)
 onUpdated(() => {
@@ -93,20 +93,24 @@ function updateRect() {
 </script>
 
 <script lang="ts">
+import { Tree } from '@/generated/ast.ts'
+import { PlaceholderArgument } from '@/providers/widgetRegistry.ts'
+import { Ast, Tok } from '@/util/ast/abstract.ts'
+
 function canBeConnectedTo(input: WidgetInput): boolean {
-  const ast = widgetAst(input)
-  if (ast == null) return true // placeholders are always connectable
-  if (ast.isToken()) return false
-  switch (ast.inner.type) {
-    case Ast.Tree.Type.Invalid:
-    case Ast.Tree.Type.BodyBlock:
-    case Ast.Tree.Type.Ident:
-    case Ast.Tree.Type.Group:
-    case Ast.Tree.Type.Number:
-    case Ast.Tree.Type.OprApp:
-    case Ast.Tree.Type.UnaryOprApp:
-    case Ast.Tree.Type.Wildcard:
-    case Ast.Tree.Type.TextLiteral:
+  if (input instanceof PlaceholderArgument) return true // placeholders are always connectable
+  if (input instanceof Tok) return false
+  const ast: Ast = input
+  switch (ast.treeType) {
+    case Tree.Type.Invalid:
+    case Tree.Type.BodyBlock:
+    case Tree.Type.Ident:
+    case Tree.Type.Group:
+    case Tree.Type.Number:
+    case Tree.Type.OprApp:
+    case Tree.Type.UnaryOprApp:
+    case Tree.Type.Wildcard:
+    case Tree.Type.TextLiteral:
       return true
     default:
       return false
@@ -114,8 +118,8 @@ function canBeConnectedTo(input: WidgetInput): boolean {
 }
 
 function isConnected(input: WidgetInput, db: GraphDb) {
-  const astId = widgetAst(input)?.astId
-  return astId != null && db.connections.reverseLookup(astId).size > 0
+  const exprId = widgetAst(input)?.exprId
+  return exprId != null && db.connections.reverseLookup(exprId).size > 0
 }
 export const widgetDefinition = defineWidget({
   priority: 1,

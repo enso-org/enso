@@ -1,14 +1,15 @@
 import { GraphDb } from '@/stores/graph/graphDatabase'
-import { AstExtended } from '@/util/ast'
 import { IdMap, type ExprId } from 'shared/yjsModel'
 import { describe, expect, test } from 'vitest'
 import { defineComponent } from 'vue'
+import { Ast } from '../../util/ast/abstract'
 import {
   PlaceholderArgument,
   Score,
   WidgetRegistry,
   widgetArg,
   widgetAst,
+  widgetExpression,
   type WidgetDefinition,
   type WidgetModule,
 } from '../widgetRegistry'
@@ -38,11 +39,12 @@ describe('WidgetRegistry', () => {
 
   const widgetD = makeMockWidget('D', {
     priority: 20,
-    match: (info) => (widgetAst(info.input)?.repr() === '_' ? Score.Perfect : Score.Mismatch),
+    match: (info) =>
+      widgetExpression(info.input)?.code() === '_' ? Score.Perfect : Score.Mismatch,
   })
 
-  const someAst = AstExtended.parse('foo', IdMap.Mock())
-  const blankAst = AstExtended.parse('_', IdMap.Mock())
+  const someAst = Ast.parse('foo')
+  const blankAst = Ast.parse('_')
   const somePlaceholder = new PlaceholderArgument(
     '2095503f-c6b3-46e3-848a-be31360aab08' as ExprId,
     0,

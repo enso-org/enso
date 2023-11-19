@@ -40,10 +40,10 @@ const emit = defineEmits<{
 const nodeSelection = injectGraphSelection(true)
 const graph = useGraphStore()
 const isSourceOfDraggedEdge = computed(
-  () => graph.unconnectedEdge?.source === props.node.rootSpan.astId,
+  () => graph.unconnectedEdge?.source === props.node.rootSpan.exprId,
 )
 
-const nodeId = computed(() => props.node.rootSpan.astId)
+const nodeId = computed(() => props.node.rootSpan.exprId)
 const rootNode = ref<HTMLElement>()
 const nodeSize = useResizeObserver(rootNode)
 const menuVisible = ref(false)
@@ -225,7 +225,7 @@ function getRelatedSpanOffset(domNode: globalThis.Node, domOffset: number): numb
       :nodeSize="nodeSize"
       :isCircularMenuVisible="menuVisible"
       :currentType="props.node.vis"
-      :expressionId="props.node.rootSpan.astId"
+      :expressionId="props.node.rootSpan.exprId"
       :typename="expressionInfo?.typename"
       @setVisualizationId="emit('setVisualizationId', $event)"
       @setVisualizationVisible="emit('setVisualizationVisible', $event)"

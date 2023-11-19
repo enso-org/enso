@@ -6,9 +6,6 @@ import { LazyObject, LazySequence } from '@/util/parserSupport'
 import * as map from 'lib0/map'
 import type { ContentRange } from 'shared/yjsModel'
 import { isResult, mapOk } from '../result'
-import { AstExtended } from './extended'
-
-export { AstExtended }
 
 export { RawAst }
 

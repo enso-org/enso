@@ -275,7 +275,7 @@ function onComponentBrowserCancel() {
 function getNodeContent(id: ExprId): string {
   const node = graphStore.db.nodes.get(id)
   if (node == null) return ''
-  return node.rootSpan.repr()
+  return node.rootSpan.code()
 }
 
 // Watch the editedNode in the graph store
@@ -323,7 +323,7 @@ function copyNodeContent() {
   const id = nodeSelection.selected.values().next().value
   const node = graphStore.db.nodes.get(id)
   if (node == null) return
-  const content = node.rootSpan.repr()
+  const content = node.rootSpan.code()
   const metadata = projectStore.module?.getNodeMetadata(id) ?? undefined
   const copiedNode: CopiedNode = { expression: content, metadata }
   const clipboardData: ClipboardData = { nodes: [copiedNode] }
