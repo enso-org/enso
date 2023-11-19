@@ -101,7 +101,7 @@ case object MethodDefinitions extends IRPass {
               if canGenerateStaticWrappers(tp) =>
             val dup = method.duplicate()
             val static = dup.copy(body =
-              Function.Lambda(
+              new Function.Lambda(
                 List(
                   DefinitionArgument
                     .Specified(

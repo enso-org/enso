@@ -4,7 +4,7 @@ package org.enso.compiler.core.ir
   *
   * @param initDiagnostics the initial diagnostics
   */
-sealed class DiagnosticStorage(initDiagnostics: Seq[Diagnostic] = Seq())
+final class DiagnosticStorage(initDiagnostics: Seq[Diagnostic] = Seq())
     extends Serializable {
   private var diagnostics: List[Diagnostic] = initDiagnostics.toList
 

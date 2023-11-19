@@ -26,7 +26,6 @@ use ide_ci::actions::workflow::MessageLevel;
 use ide_ci::cache;
 use ide_ci::github::release::IsReleaseExt;
 use ide_ci::platform::DEFAULT_SHELL;
-use ide_ci::programs::graal;
 use ide_ci::programs::sbt;
 use ide_ci::programs::Flatc;
 use ide_ci::programs::Sbt;
@@ -196,14 +195,7 @@ impl RunContext {
         let graalvm =
             crate::engine::deduce_graal(self.octocrab.clone(), &self.repo_root.build_sbt).await?;
         graalvm.install_if_missing(&self.cache).await?;
-        graal::Gu.require_present().await?;
 
-        let required_components = [graal::ComponentId::NativeImage, graal::ComponentId::JS];
-        // Some GraalVM components depend on Sulong and are not available on all platforms (like
-        // Windows or M1 macOS). Thus, we treat them as optional. See e.g.
-        // https://github.com/oracle/graalpython/issues/156
-        let optional_components = [graal::ComponentId::Python];
-        graal::install_missing_components(required_components, optional_components).await?;
         prepare_simple_library_server.await??;
         Ok(())
     }
@@ -284,8 +276,6 @@ impl RunContext {
                 self.config.execute_benchmarks_once.to_string(),
             )],
         };
-
-        sbt.call_arg("bootstrap").await?;
 
         perhaps_generate_java_from_rust_job.await.transpose()?;
         let perhaps_test_java_generated_from_rust_job =
@@ -391,6 +381,11 @@ impl RunContext {
         // === Unit tests and Enso tests ===
         debug!("Running unit tests and Enso tests.");
         if self.config.test_scala {
+            // Make sure that `sbt buildEngineDistributionNoIndex` is run before
+            // `project-manager/test`. Note that we do not have to run
+            // `buildEngineDistribution` (with indexing), because it is unnecessary.
+            sbt.call_arg("buildEngineDistributionNoIndex").await?;
+
             // Run unit tests
             sbt.call_arg("set Global / parallelExecution := false; test").await?;
         }

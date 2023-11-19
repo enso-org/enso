@@ -35,6 +35,10 @@ import org.enso.languageserver.libraries.LibraryConfig
 import org.enso.languageserver.libraries.handler._
 import org.enso.languageserver.monitoring.MonitoringApi.{InitialPing, Ping}
 import org.enso.languageserver.monitoring.MonitoringProtocol
+import org.enso.languageserver.profiling.ProfilingApi.{
+  ProfilingStart,
+  ProfilingStop
+}
 import org.enso.languageserver.refactoring.RefactoringApi.{
   RenameProject,
   RenameSymbol
@@ -46,6 +50,10 @@ import org.enso.languageserver.requesthandler.io._
 import org.enso.languageserver.requesthandler.monitoring.{
   InitialPingHandler,
   PingHandler
+}
+import org.enso.languageserver.requesthandler.profiling.{
+  ProfilingStartHandler,
+  ProfilingStopHandler
 }
 import org.enso.languageserver.requesthandler.refactoring.{
   RenameProjectHandler,
@@ -102,8 +110,10 @@ import scala.concurrent.duration._
   * @param contentRootManager manages the available content roots
   * @param contextRegistry a router that dispatches execution context requests
   * @param suggestionsHandler a reference to the suggestions requests handler
+  * @param runtimeConnector a reference to the runtime connector
   * @param idlenessMonitor a reference to the idleness monitor actor
   * @param projectSettingsManager a reference to the project settings manager
+  * @param profilingManager a reference to the profiling manager
   * @param libraryConfig configuration of the library ecosystem
   * @param requestTimeout a request timeout
   */
@@ -123,6 +133,7 @@ class JsonConnectionController(
   val runtimeConnector: ActorRef,
   val idlenessMonitor: ActorRef,
   val projectSettingsManager: ActorRef,
+  val profilingManager: ActorRef,
   val libraryConfig: LibraryConfig,
   val languageServerConfig: Config,
   requestTimeout: FiniteDuration = 10.seconds
@@ -630,6 +641,12 @@ class JsonConnectionController(
       RuntimeGetComponentGroups -> runtime.GetComponentGroupsHandler.props(
         requestTimeout,
         runtimeConnector
+      ),
+      ProfilingStart -> ProfilingStartHandler
+        .props(requestTimeout, profilingManager),
+      ProfilingStop -> ProfilingStopHandler.props(
+        requestTimeout,
+        profilingManager
       )
     )
   }
@@ -675,6 +692,10 @@ object JsonConnectionController {
     * @param contentRootManager manages the available content roots
     * @param contextRegistry a router that dispatches execution context requests
     * @param suggestionsHandler a reference to the suggestions requests handler
+    * @param runtimeConnector a reference to the runtime connector
+    * @param idlenessMonitor a reference to the idleness monitor actor
+    * @param projectSettingsManager a reference to the project settings manager
+    * @param profilingManager a reference to the profiling manager
     * @param libraryConfig configuration of the library ecosystem
     * @param requestTimeout a request timeout
     * @return a configuration object
@@ -695,6 +716,7 @@ object JsonConnectionController {
     runtimeConnector: ActorRef,
     idlenessMonitor: ActorRef,
     projectSettingsManager: ActorRef,
+    profilingManager: ActorRef,
     libraryConfig: LibraryConfig,
     languageServerConfig: Config,
     requestTimeout: FiniteDuration = 10.seconds
@@ -716,6 +738,7 @@ object JsonConnectionController {
         runtimeConnector       = runtimeConnector,
         idlenessMonitor        = idlenessMonitor,
         projectSettingsManager = projectSettingsManager,
+        profilingManager       = profilingManager,
         libraryConfig          = libraryConfig,
         languageServerConfig   = languageServerConfig,
         requestTimeout         = requestTimeout
