@@ -23,7 +23,7 @@ import java.util.UUID
 @SerialVersionUID(
   8160L // Use BindingsMap
 )       // prevents reading broken caches, see PR-3692 for details
-sealed case class Module(
+final case class Module(
   imports: List[Import],
   exports: List[Export],
   bindings: List[Definition],

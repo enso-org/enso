@@ -572,7 +572,8 @@ object Main {
       topScope.compile(shouldCompileDependencies)
       exitSuccess()
     } catch {
-      case _: Throwable =>
+      case t: Throwable =>
+        logger.error("Unexpected internal error", t)
         exitFail()
     } finally {
       context.context.close()
