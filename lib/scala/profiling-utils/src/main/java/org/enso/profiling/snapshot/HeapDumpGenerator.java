@@ -11,6 +11,8 @@ public final class HeapDumpGenerator {
   private static final String HOT_SPOT_BEAN_NAME = "com.sun.management:type=HotSpotDiagnostic";
   private static volatile HotSpotDiagnosticMXBean hotSpotDiagnosticMXBean;
 
+  private HeapDumpGenerator() {}
+
   /**
    * Store the heap dump in the output file in the same format as the hprof heap dump.
    *
