@@ -62,7 +62,7 @@ pub fn remove_var<K: AsRef<OsStr>>(key: K) {
 /// define_env_var! {
 ///     /// Documentation.
 ///     ENV_VAR_NAME, PathBuf;
-/// };
+/// }
 /// let path = ENV_VAR_NAME.get().unwrap_or_else(|_error| PathBuf::from("default"));
 /// ```
 #[macro_export]
@@ -116,18 +116,6 @@ pub fn expect_var_os(name: impl AsRef<OsStr>) -> Result<OsString> {
 pub fn prepend_to_path(path: impl AsRef<Path>) -> Result {
     known::PATH.prepend(path)
 }
-
-// pub async fn fix_duplicated_env_var(var_name: impl AsRef<OsStr>) -> Result {
-//     let var_name = var_name.as_ref();
-//
-//     let mut paths = indexmap::IndexSet::new();
-//     while let Ok(path) = std::env::var(var_name) {
-//         paths.extend(std::env::split_paths(&path));
-//         std::env::remove_var(var_name);
-//     }
-//     crate::env::set_var(var_name, std::env::join_paths(paths)?);
-//     Ok(())
-// }
 
 /// A modification to some environment variable.
 #[derive(Clone, Debug)]

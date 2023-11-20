@@ -167,12 +167,7 @@ impl JobArchetype for BuildWasm {
 pub struct BuildBackend;
 impl JobArchetype for BuildBackend {
     fn job(&self, os: OS) -> Job {
-        plain_job_customized(&os, "Build Backend", "backend get", |step| {
-            let step = step
-                // This prevents https://github.com/sbt/sbt-assembly/issues/496
-                .with_env("LC_ALL", "C.UTF-8");
-            vec![step]
-        })
+        plain_job(&os, "Build Backend", "backend get")
     }
 }
 
@@ -334,9 +329,7 @@ impl JobArchetype for CiCheckBackend {
                 .with_secret_exposed_as(
                     secret::ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY,
                     crate::aws::env::AWS_SECRET_ACCESS_KEY,
-                )
-                // This prevents https://github.com/sbt/sbt-assembly/issues/496
-                .with_env("LC_ALL", "C.UTF-8");
+                );
             vec![main_step, step::engine_test_reporter(os), step::stdlib_test_reporter(os)]
         })
         .with_permission(Permission::Checks, Access::Write)
