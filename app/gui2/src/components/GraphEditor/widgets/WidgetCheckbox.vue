@@ -3,8 +3,8 @@ import CheckboxWidget from '@/components/widgets/CheckboxWidget.vue'
 import { Score, defineWidget, widgetAst, type WidgetProps } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
 import type { Ast } from '@/util/ast/abstract'
+import { PropertyAccess } from '@/util/ast/abstract.ts'
 import { computed } from 'vue'
-import {PropertyAccess} from "@/util/ast/abstract.ts"
 
 const props = defineProps<WidgetProps>()
 const graph = useGraphStore()

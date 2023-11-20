@@ -2,7 +2,9 @@ import { GraphDb } from '@/stores/graph/graphDatabase'
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { DEFAULT_VISUALIZATION_IDENTIFIER } from '@/stores/visualization'
+import { RawAst, childrenAstNodes, findAstWithRange, readAstSpan } from '@/util/ast'
 import { Ast, Function, findModuleMethod } from '@/util/ast/abstract.ts'
+import { AstExtended } from '@/util/ast/extended.ts'
 import { useObserveYjs } from '@/util/crdt'
 import type { Opt } from '@/util/opt'
 import type { Rect } from '@/util/rect'
@@ -20,8 +22,6 @@ import {
 } from 'shared/yjsModel'
 import { computed, markRaw, reactive, ref, toRef, watch } from 'vue'
 import * as Y from 'yjs'
-import {AstExtended} from "@/util/ast/extended.ts";
-import {childrenAstNodes, findAstWithRange, RawAst, readAstSpan} from "@/util/ast";
 
 export { type Node } from '@/stores/graph/graphDatabase'
 
@@ -322,10 +322,7 @@ export type UnconnectedEdge = {
   disconnectedEdgeTarget?: ExprId
 }
 
-function getExecutedMethodAst(
-  root: Ast,
-  executionStackTop: StackItem,
-): Opt<Function> {
+function getExecutedMethodAst(root: Ast, executionStackTop: StackItem): Opt<Function> {
   switch (executionStackTop.type) {
     case 'ExplicitCall': {
       // Assume that the provided AST matches the module in the method pointer. There is no way to
@@ -365,32 +362,32 @@ function getExecutedMethodAst_old(
   code: string,
   executionStackTop: StackItem,
   updatedIdMap: Y.Map<Uint8Array>,
-  ): Opt<RawAst.Tree.Function> {
+): Opt<RawAst.Tree.Function> {
   switch (executionStackTop.type) {
-case 'ExplicitCall': {
-    // Assume that the provided AST matches the module in the method pointer. There is no way to
-    // actually verify this assumption at this point.
-    const ptr = executionStackTop.methodPointer
-    const name = ptr.name
-            return findModuleMethod_old(ast, code, name)
-  }
-case 'LocalCall': {
-       const exprId = executionStackTop.expressionId
-       const range = lookupIdRange(updatedIdMap, exprId)
-       if (range == null) return
-       const node = findAstWithRange(ast, range)
+    case 'ExplicitCall': {
+      // Assume that the provided AST matches the module in the method pointer. There is no way to
+      // actually verify this assumption at this point.
+      const ptr = executionStackTop.methodPointer
+      const name = ptr.name
+      return findModuleMethod_old(ast, code, name)
+    }
+    case 'LocalCall': {
+      const exprId = executionStackTop.expressionId
+      const range = lookupIdRange(updatedIdMap, exprId)
+      if (range == null) return
+      const node = findAstWithRange(ast, range)
       if (node?.type === RawAst.Tree.Type.Function) return node
+    }
   }
-}
 }
 
 function findModuleMethod_old(
   moduleAst: RawAst.Tree,
-    code: string,
-    methodName: string,
-  ): Opt<RawAst.Tree.Function> {
+  code: string,
+  methodName: string,
+): Opt<RawAst.Tree.Function> {
   for (const node of childrenAstNodes(moduleAst)) {
-      if (node.type === RawAst.Tree.Type.Function && readAstSpan(node.name, code) === methodName)
-          return node
-      }
+    if (node.type === RawAst.Tree.Type.Function && readAstSpan(node.name, code) === methodName)
+      return node
+  }
 }

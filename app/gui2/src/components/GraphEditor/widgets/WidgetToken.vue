@@ -1,6 +1,12 @@
 <script setup lang="ts">
-import {Score, defineWidget, widgetAst, type WidgetProps, widgetToken} from '@/providers/widgetRegistry'
-import {Tok} from "@/util/ast/abstract"
+import {
+  Score,
+  defineWidget,
+  widgetAst,
+  widgetToken,
+  type WidgetProps,
+} from '@/providers/widgetRegistry'
+import { Tok } from '@/util/ast/abstract'
 import { computed, ref } from 'vue'
 
 const props = defineProps<WidgetProps>()

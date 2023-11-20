@@ -1,9 +1,5 @@
 import { expect, test } from 'vitest'
-import {
-  Ast,
-  debug,
-  forgetAllAsts,
-} from '../abstract'
+import { Ast, debug, forgetAllAsts } from '../abstract'
 
 //const disabledCases = [
 //  ' a',

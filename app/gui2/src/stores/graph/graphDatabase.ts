@@ -1,7 +1,9 @@
 import { SuggestionDb, groupColorStyle, type Group } from '@/stores/suggestionDatabase'
 import { tryGetIndex } from '@/util/array'
+import { RawAst } from '@/util/ast'
 import type { AstId } from '@/util/ast/abstract'
 import { Assignment, Ast, Function, Ident } from '@/util/ast/abstract'
+import type { AstExtended } from '@/util/ast/extended'
 import { colorFromString } from '@/util/colors'
 import { ComputedValueRegistry, type ExpressionInfo } from '@/util/computedValueRegistry'
 import { ReactiveDb, ReactiveIndex, ReactiveMapping } from '@/util/database/reactiveDb'
@@ -16,8 +18,6 @@ import {
   type VisualizationMetadata,
 } from 'shared/yjsModel'
 import { ref, type Ref } from 'vue'
-import type {AstExtended} from "@/util/ast/extended";
-import {RawAst} from "@/util/ast";
 
 export class GraphDb {
   nodes = new ReactiveDb<ExprId, Node>()
@@ -103,7 +103,11 @@ export class GraphDb {
     this.nodes.moveToLast(id)
   }
 
-  readFunctionAst(functionAst_old: AstExtended<RawAst.Tree.Function>, functionAst: Function, getMeta: (id: ExprId) => NodeMetadata | undefined) {
+  readFunctionAst(
+    functionAst_old: AstExtended<RawAst.Tree.Function>,
+    functionAst: Function,
+    getMeta: (id: ExprId) => NodeMetadata | undefined,
+  ) {
     const currentNodeIds = new Set<ExprId>()
     if (functionAst) {
       for (const nodeAst of getFunctionNodeExpressions(functionAst)) {

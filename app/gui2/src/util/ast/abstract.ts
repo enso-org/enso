@@ -90,7 +90,7 @@ export class Tok extends Expression {
   }
 }
 
-type Span = { start: number, end: number, whitespaceLength: number }
+type Span = { start: number; end: number; whitespaceLength: number }
 export abstract class Ast extends Expression {
   readonly treeType: Tree.Type | undefined
   _id: AstId
@@ -209,7 +209,12 @@ export class App extends Ast {
     this._arg = arg
   }
 
-  static _positional(span: Span, id: AstId | undefined, func: AstWithWhitespace, arg: NodeChild): App {
+  static _positional(
+    span: Span,
+    id: AstId | undefined,
+    func: AstWithWhitespace,
+    arg: NodeChild,
+  ): App {
     return new App(
       span,
       id,
@@ -229,7 +234,15 @@ export class App extends Ast {
     equals: TokWithWhitespace | undefined,
     arg: NodeChild,
   ) {
-    return new App(span, id, func, name, equals ?? { node: token('=', Token.Type.Operator) }, arg, Tree.Type.NamedApp)
+    return new App(
+      span,
+      id,
+      func,
+      name,
+      equals ?? { node: token('=', Token.Type.Operator) },
+      arg,
+      Tree.Type.NamedApp,
+    )
   }
 
   *_rawChildren(): Iterable<NodeChild> {
@@ -254,7 +267,12 @@ export class UnaryOprApp extends Ast {
     return id ? getNode(id) : null
   }
 
-  constructor(span: Span, id: AstId | undefined, opr: TokWithWhitespace, arg: AstWithWhitespace | null) {
+  constructor(
+    span: Span,
+    id: AstId | undefined,
+    opr: TokWithWhitespace,
+    arg: AstWithWhitespace | null,
+  ) {
     super(span, id, Tree.Type.UnaryOprApp)
     this._opr = opr
     this._arg = arg
@@ -271,7 +289,13 @@ export class OprApp extends Ast {
   protected _opr: NodeChild[]
   protected _rhs: AstWithWhitespace | null
 
-  constructor(span: Span, id: AstId | undefined, lhs: AstWithWhitespace | null, opr: NodeChild[], rhs: AstWithWhitespace | null) {
+  constructor(
+    span: Span,
+    id: AstId | undefined,
+    lhs: AstWithWhitespace | null,
+    opr: NodeChild[],
+    rhs: AstWithWhitespace | null,
+  ) {
     super(span, id, Tree.Type.OprApp)
     this._lhs = lhs
     this._opr = opr
@@ -286,7 +310,13 @@ export class OprApp extends Ast {
 }
 
 export class PropertyAccess extends OprApp {
-  constructor(span: Span, id: AstId | undefined, lhs: AstWithWhitespace | null, opr: TokWithWhitespace, rhs: AstWithWhitespace | null) {
+  constructor(
+    span: Span,
+    id: AstId | undefined,
+    lhs: AstWithWhitespace | null,
+    opr: TokWithWhitespace,
+    rhs: AstWithWhitespace | null,
+  ) {
     super(span, id, lhs, [opr], rhs)
   }
 }
@@ -584,7 +614,11 @@ function abstract_(
   const whitespaceEnd = whitespaceStart + tree.whitespaceLengthInCodeParsed
   const codeStart = whitespaceEnd
   const codeEnd = codeStart + tree.childrenLengthInCodeParsed
-  const span = { start: codeStart, end: codeEnd, whitespaceLength: tree.whitespaceLengthInCodeParsed }
+  const span = {
+    start: codeStart,
+    end: codeEnd,
+    whitespaceLength: tree.whitespaceLengthInCodeParsed,
+  }
   // All node types use this value in the same way to obtain the ID type, but each node does so separately because we
   // must pop the tree's span from the ID map *after* processing children.
   const spanKey = nodeKey(codeStart, codeEnd - codeStart, tree.type)
@@ -657,7 +691,9 @@ function abstract_(
     }
     case Tree.Type.OprApp: {
       const lhs = tree.lhs ? abstract_(tree.lhs, code, nodesExpected, tokenIds) : null
-      const opr = tree.opr.ok ? [abstractToken(tree.opr.value, code, tokenIds)] : visitChildren(tree.opr.error.payload)
+      const opr = tree.opr.ok
+        ? [abstractToken(tree.opr.value, code, tokenIds)]
+        : visitChildren(tree.opr.error.payload)
       const rhs = tree.rhs ? abstract_(tree.rhs, code, nodesExpected, tokenIds) : null
       const id = nodesExpected.get(spanKey)?.pop()
       if (opr.length === 1 && opr[0]?.node instanceof Tok && opr[0].node.code() === '.') {

@@ -1,7 +1,7 @@
 import * as RawAst from '@/generated/ast'
-import * as Ast from '@/util/ast/abstract'
 import { Token, Tree } from '@/generated/ast'
 import { assert } from '@/util/assert'
+import * as Ast from '@/util/ast/abstract'
 import { parse } from '@/util/ffi'
 import { LazyObject, LazySequence } from '@/util/parserSupport'
 import * as map from 'lib0/map'
