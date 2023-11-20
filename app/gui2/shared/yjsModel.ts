@@ -191,6 +191,10 @@ export class DistributedModule {
     })
   }
 
+  getNodeMetadata(id: ExprId): NodeMetadata | null {
+    return this.doc.metadata.get(id) ?? null
+  }
+
   getIdMap(): IdMap {
     return new IdMap(this.doc.idMap, this.doc.contents)
   }

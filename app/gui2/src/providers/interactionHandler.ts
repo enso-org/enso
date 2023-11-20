@@ -25,6 +25,7 @@ export class InteractionHandler {
     if (interaction !== this.currentInteraction) {
       this.currentInteraction?.cancel?.()
       this.currentInteraction = interaction
+      interaction?.init?.()
     }
   }
 
@@ -48,5 +49,6 @@ export class InteractionHandler {
 
 export interface Interaction {
   cancel?(): void
+  init?(): void
   click?(event: MouseEvent): boolean | void
 }
