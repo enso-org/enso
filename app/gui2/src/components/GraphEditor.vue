@@ -67,7 +67,8 @@ function targetComponentBrowserPosition() {
   } else if (hasNodeSelected) {
     const gapBetweenNodes = 48.0
     return previousNodeDictatedPlacement(nodeSize, placementEnvironment.value, {
-      gap: gapBetweenNodes,
+      horizontalGap: gapBetweenNodes,
+      verticalGap: gapBetweenNodes,
     }).position
   } else {
     return mouseDictatedPlacement(nodeSize, placementEnvironment.value).position
