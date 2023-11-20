@@ -8,7 +8,7 @@ import * as map from 'lib0/map'
 import type { ContentRange } from 'shared/yjsModel'
 import { isResult, mapOk } from '../result'
 
-export { RawAst }
+export { Ast, RawAst }
 
 export type HasAstRange = ContentRange | Tree | Token
 

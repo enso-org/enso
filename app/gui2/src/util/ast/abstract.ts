@@ -284,6 +284,17 @@ export class UnaryOprApp extends Ast {
   }
 }
 
+export class NegationOprApp extends UnaryOprApp {
+  constructor(
+    span: Span,
+    id: AstId | undefined,
+    opr: TokWithWhitespace,
+    arg: AstWithWhitespace | null,
+  ) {
+    super(span, id, opr, arg)
+  }
+}
+
 export class OprApp extends Ast {
   protected _lhs: AstWithWhitespace | null
   protected _opr: NodeChild[]
@@ -686,7 +697,11 @@ function abstract_(
       const opr = abstractToken(tree.opr, code, tokenIds)
       const arg = tree.rhs ? abstract_(tree.rhs, code, nodesExpected, tokenIds) : null
       const id = nodesExpected.get(spanKey)?.pop()
-      node = new UnaryOprApp(span, id, opr, arg)
+      if (opr.node.code() === '-') {
+        node = new NegationOprApp(span, id, opr, arg)
+      } else {
+        node = new UnaryOprApp(span, id, opr, arg)
+      }
       break
     }
     case Tree.Type.OprApp: {
