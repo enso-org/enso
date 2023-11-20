@@ -1472,9 +1472,9 @@ lazy val runtime = (project in file("engine/runtime"))
       Def.task {
         (Benchmark / testOnly).toTask(" -- -z " + name).value
       }
-    }.evaluated,
+    }.evaluated
   )
-  /** Benchmark settings  */
+  /** Benchmark settings */
   .settings(
     inConfig(Benchmark)(Defaults.testSettings),
     Benchmark / javacOptions --= Seq(
