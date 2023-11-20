@@ -33,7 +33,8 @@ const emit = defineEmits<{
   delete: []
   replaceSelection: []
   'update:selected': [selected: boolean]
-  outputPortAction: []
+  outputPortClick: []
+  outputPortDoubleClick: []
   'update:edited': [cursorPosition: number]
 }>()
 
@@ -191,6 +192,28 @@ function getRelatedSpanOffset(domNode: globalThis.Node, domOffset: number): numb
   }
   return 0
 }
+
+const timeBetweenClicks = 200
+let lastClickTime = 0
+let clickCount = 0
+let singleClickTimer: ReturnType<typeof setTimeout>
+function handlePortClick() {
+  clickCount++
+  if (clickCount === 1) {
+    singleClickTimer = setTimeout(function () {
+      clickCount = 0
+      // If within proper time range, consider it as fast clicks
+      if (Date.now() - lastClickTime >= timeBetweenClicks) {
+        emit('outputPortClick')
+      }
+      lastClickTime = Date.now()
+    }, timeBetweenClicks)
+  } else if (clickCount === 2) {
+    clearTimeout(singleClickTimer)
+    clickCount = 0
+    emit('outputPortDoubleClick')
+  }
+}
 </script>
 
 <template>
@@ -245,7 +268,7 @@ function getRelatedSpanOffset(domNode: globalThis.Node, domOffset: number): numb
         class="outputPortHoverArea"
         @pointerenter="outputHovered = true"
         @pointerleave="outputHovered = false"
-        @pointerdown.stop.prevent="emit('outputPortAction')"
+        @pointerdown="handlePortClick"
       />
       <rect class="outputPort" />
       <text class="outputTypeName">{{ outputTypeName }}</text>
