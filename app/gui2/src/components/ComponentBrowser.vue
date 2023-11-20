@@ -6,6 +6,7 @@ import { default as DocumentationPanel } from '@/components/DocumentationPanel.v
 import SvgIcon from '@/components/SvgIcon.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
 import { useGraphStore } from '@/stores/graph'
+import type { RequiredImport } from '@/stores/imports'
 import { useProjectStore } from '@/stores/project'
 import { groupColorStyle, useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
@@ -20,7 +21,6 @@ import type { SuggestionId } from 'shared/languageServerTypes/suggestions'
 import type { ContentRange, ExprId } from 'shared/yjsModel.ts'
 import { computed, nextTick, onMounted, ref, watch, type Ref } from 'vue'
 import { useComponentBrowserInput } from './ComponentBrowser/input'
-import type { RequiredImport } from '@/stores/imports'
 
 const ITEM_SIZE = 32
 const TOP_BAR_HEIGHT = 32

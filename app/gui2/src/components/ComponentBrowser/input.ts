@@ -36,16 +36,16 @@ import { computed, ref, type ComputedRef } from 'vue'
 export type EditingContext =
   // Suggestion should be inserted at given position.
   | {
-    type: 'insert'
-    position: number
-    oprApp?: GeneralOprApp<false>
-  }
+      type: 'insert'
+      position: number
+      oprApp?: GeneralOprApp<false>
+    }
   // Suggestion should replace given identifier.
   | {
-    type: 'changeIdentifier'
-    identifier: AstExtended<Ast.Tree.Ident, false>
-    oprApp?: GeneralOprApp<false>
-  }
+      type: 'changeIdentifier'
+      identifier: AstExtended<Ast.Tree.Ident, false>
+      oprApp?: GeneralOprApp<false>
+    }
   // Suggestion should replace given literal.
   | { type: 'changeLiteral'; literal: AstExtended<Ast.Tree.TextLiteral | Ast.Tree.Number, false> }
 
@@ -65,7 +65,7 @@ export function useComponentBrowserInput(
     const inputAst = ast.value
     const editedAst = inputAst
       .mapIter((ast) => astContainingChar(editedPart, ast))
-    [Symbol.iterator]()
+      [Symbol.iterator]()
     const leaf = editedAst.next()
     if (leaf.done) return { type: 'insert', position: cursorPosition }
     switch (leaf.value.inner.type) {
@@ -131,7 +131,7 @@ export function useComponentBrowserInput(
     return filter
   })
 
-  const imports = ref<{ context: string, info: RequiredImport }[]>([])
+  const imports = ref<{ context: string; info: RequiredImport }[]>([])
 
   function readOprApp(
     leafParent: IteratorResult<AstExtended<Ast.Tree, false>>,
@@ -228,11 +228,15 @@ export function useComponentBrowserInput(
       if (id) {
         const requiredEntry = suggestionDb.get(id)
         if (requiredEntry) {
-          imports.value = imports.value.concat(requiredImports(suggestionDb, requiredEntry).map((info) => ({ info, context })))
+          imports.value = imports.value.concat(
+            requiredImports(suggestionDb, requiredEntry).map((info) => ({ info, context })),
+          )
         }
       }
     } else {
-      imports.value = imports.value.concat(requiredImports(suggestionDb, entry).map((info) => ({ info, context })))
+      imports.value = imports.value.concat(
+        requiredImports(suggestionDb, entry).map((info) => ({ info, context })),
+      )
     }
   }
 

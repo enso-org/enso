@@ -14,6 +14,7 @@ import { provideGraphSelection } from '@/providers/graphSelection'
 import { provideInteractionHandler, type Interaction } from '@/providers/interactionHandler'
 import { provideWidgetRegistry } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
+import type { RequiredImport } from '@/stores/imports'
 import { useProjectStore } from '@/stores/project'
 import { groupColorVar, useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { colorFromString } from '@/util/colors'
@@ -26,7 +27,6 @@ import { computed, onMounted, ref, watch } from 'vue'
 import GraphEdges from './GraphEditor/GraphEdges.vue'
 import GraphNodes from './GraphEditor/GraphNodes.vue'
 import GraphMouse from './GraphMouse.vue'
-import type { RequiredImport } from '@/stores/imports'
 
 const EXECUTION_MODES = ['design', 'live']
 // Difference in position between the component browser and a node for the input of the component browser to
@@ -257,7 +257,12 @@ function onComponentBrowserCommit(content: string, requiredImports: RequiredImpo
   } else if (content != null) {
     /// We finish creating a new node.
     const nodePosition = componentBrowserPosition.value
-    graphStore.createNodeWithImport(nodePosition.sub(COMPONENT_BROWSER_TO_NODE_OFFSET), content, undefined, requiredImports)
+    graphStore.createNodeWithImport(
+      nodePosition.sub(COMPONENT_BROWSER_TO_NODE_OFFSET),
+      content,
+      undefined,
+      requiredImports,
+    )
   }
   componentBrowserVisible.value = false
   graphStore.editedNodeInfo = undefined

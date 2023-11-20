@@ -355,7 +355,14 @@ test.each([
   },
 ] as ImportsCase[])(
   '$description',
-  ({ suggestionId, existingImports, initialCode, manuallyEditedCode, expectedCode, expectedImports }) => {
+  ({
+    suggestionId,
+    existingImports,
+    initialCode,
+    manuallyEditedCode,
+    expectedCode,
+    expectedImports,
+  }) => {
     initialCode = initialCode ?? ''
     const db = new SuggestionDb()
     db.set(1, makeModule('Standard.Base'))

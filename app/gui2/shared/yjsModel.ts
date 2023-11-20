@@ -126,7 +126,13 @@ export class DistributedModule {
     this.undoManager = new Y.UndoManager([this.doc.contents, this.doc.idMap, this.doc.metadata])
   }
 
-  insertNewNode(offset: number, pattern: string, expression: string, meta: NodeMetadata, withImport?: { str: string, offset: number }): ExprId {
+  insertNewNode(
+    offset: number,
+    pattern: string,
+    expression: string,
+    meta: NodeMetadata,
+    withImport?: { str: string; offset: number },
+  ): ExprId {
     // Spaces at the beginning are needed to place the new node in scope of the `main` function with proper indentation.
     const lhs = `    ${pattern} = `
     const content = lhs + expression

@@ -103,13 +103,13 @@ export const useGraphStore = defineStore('graph', () => {
 
       const methodAst = ast.isTree()
         ? ast.tryMap((tree) =>
-          getExecutedMethodAst(
-            tree,
-            textContentLocal,
-            proj.executionContext.getStackTop(),
-            updatedMap,
-          ),
-        )
+            getExecutedMethodAst(
+              tree,
+              textContentLocal,
+              proj.executionContext.getStackTop(),
+              updatedMap,
+            ),
+          )
         : undefined
       if (methodAst) {
         db.readFunctionAst(methodAst, (id) => meta.get(id))
@@ -189,10 +189,11 @@ export const useGraphStore = defineStore('graph', () => {
     return mod.insertNewNode(mod.doc.contents.length, ident, expression, meta)
   }
 
-  function createNodeWithImport(position: Vec2,
+  function createNodeWithImport(
+    position: Vec2,
     expression: string,
     metadata: NodeMetadata | undefined = undefined,
-    withImport: RequiredImport[]
+    withImport: RequiredImport[],
   ) {
     const mod = proj.module
     if (mod == null) return
