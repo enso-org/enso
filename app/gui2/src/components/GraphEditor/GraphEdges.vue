@@ -3,6 +3,7 @@ import GraphEdge from '@/components/GraphEditor/GraphEdge.vue'
 import { injectGraphSelection } from '@/providers/graphSelection.ts'
 import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
 import { useGraphStore } from '@/stores/graph'
+import { Vec2 } from '@/util/vec2.ts'
 import type { ExprId } from 'shared/yjsModel.ts'
 
 const graph = useGraphStore()
@@ -17,7 +18,7 @@ const editingEdge: Interaction = {
       graph.clearUnconnected()
     })
   },
-  click(_e: MouseEvent): boolean {
+  click(_e: MouseEvent, graphNavigator): boolean {
     if (graph.unconnectedEdge == null) return false
     const source = graph.unconnectedEdge.source ?? selection?.hoveredNode
     const target = graph.unconnectedEdge.target ?? selection?.hoveredPort
@@ -27,7 +28,7 @@ const editingEdge: Interaction = {
         if (target == null) {
           if (graph.unconnectedEdge?.disconnectedEdgeTarget != null)
             disconnectEdge(graph.unconnectedEdge.disconnectedEdgeTarget)
-          createNodeFromEdgeDrop(source)
+          createNodeFromEdgeDrop(source, graphNavigator)
         } else {
           createEdge(source, target)
         }
@@ -42,8 +43,13 @@ interaction.setWhen(() => graph.unconnectedEdge != null, editingEdge)
 function disconnectEdge(target: ExprId) {
   graph.setExpressionContent(target, '_')
 }
-function createNodeFromEdgeDrop(source: ExprId) {
-  console.log(`TODO: createNodeFromEdgeDrop(${JSON.stringify(source)})`)
+function createNodeFromEdgeDrop(source: ExprId, graphNavigator) {
+  const node = graph.createNodeFromSource(graphNavigator.sceneMousePos ?? Vec2.Zero, source)
+  if (node != null) {
+    graph.setEditedNode(node, 0)
+  } else {
+    console.error('Failed to create node from edge drop.')
+  }
 }
 function createEdge(source: ExprId, target: ExprId) {
   const sourceNode = graph.db.getNode(source)

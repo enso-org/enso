@@ -51,7 +51,7 @@ const nodeSelection = provideGraphSelection(graphNavigator, graphStore.nodeRects
 
 const interactionBindingsHandler = interactionBindings.handler({
   cancel: () => interaction.handleCancel(),
-  click: (e) => (e instanceof MouseEvent ? interaction.handleClick(e) : false),
+  click: (e) => (e instanceof MouseEvent ? interaction.handleClick(e, graphNavigator) : false),
 })
 
 // This is where the component browser should be placed when it is opened.
