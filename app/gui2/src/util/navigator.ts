@@ -20,7 +20,7 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
     center.value = center.value.addScaled(pos.delta, -1 / scale.value)
   }, PointerButtonMask.Auxiliary)
 
-  function eventScreenPos(e: PointerEvent): Vec2 {
+  function eventScreenPos(e: { clientX: number; clientY: number }): Vec2 {
     return new Vec2(e.clientX, e.clientY)
   }
 
@@ -103,9 +103,49 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
     { capture: true },
   )
 
+  let isPointerDown = false
+  let scrolledThisFrame = false
   const eventMousePos = ref<Vec2 | null>(null)
+  let eventTargetScrollPos: Vec2 | null = null
   const sceneMousePos = computed(() =>
     eventMousePos.value ? clientToScenePos(eventMousePos.value) : null,
+  )
+
+  useEvent(
+    window,
+    'scroll',
+    (e) => {
+      if (
+        !isPointerDown ||
+        scrolledThisFrame ||
+        !eventMousePos.value ||
+        !(e.target instanceof Element)
+      )
+        return
+      scrolledThisFrame = true
+      requestAnimationFrame(() => (scrolledThisFrame = false))
+      if (!(e.target instanceof Element)) return
+      const newScrollPos = new Vec2(e.target.scrollLeft, e.target.scrollTop)
+      if (eventTargetScrollPos !== null) {
+        const delta = newScrollPos.sub(eventTargetScrollPos)
+        const mouseDelta = new Vec2(
+          (delta.x * e.target.clientWidth) / e.target.scrollWidth,
+          (delta.y * e.target.clientHeight) / e.target.scrollHeight,
+        )
+        eventMousePos.value = eventMousePos.value?.add(mouseDelta) ?? null
+      }
+      eventTargetScrollPos = newScrollPos
+    },
+    { capture: true },
+  )
+
+  useEvent(
+    window,
+    'scrollend',
+    () => {
+      eventTargetScrollPos = null
+    },
+    { capture: true },
   )
 
   return proxyRefs({
@@ -119,10 +159,12 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
         eventMousePos.value = null
       },
       pointerup(e: PointerEvent) {
+        isPointerDown = false
         panPointer.events.pointerup(e)
         zoomPointer.events.pointerup(e)
       },
       pointerdown(e: PointerEvent) {
+        isPointerDown = true
         panPointer.events.pointerdown(e)
         zoomPointer.events.pointerdown(e)
       },

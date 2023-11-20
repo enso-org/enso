@@ -48,6 +48,21 @@ class ProfilingManagerTest extends BaseServerTest {
       Files.exists(samplesFile) shouldEqual true
       Files.exists(eventsFile) shouldEqual true
     }
+
+    "save memory snapshot" in {
+      val client = getInitialisedWsClient()
+
+      client.send(json.profilingSnapshot(1))
+      client.expectJson(json.ok(1))
+
+      val distributionManager = getDistributionManager
+      val instant             = clock.instant
+      val snapshotFile = distributionManager.paths.profiling.resolve(
+        ProfilingManager.createHeapDumpFileName(instant)
+      )
+
+      Files.exists(snapshotFile) shouldEqual true
+    }
   }
 
 }

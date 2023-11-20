@@ -20,6 +20,8 @@ import type {
 import Compiler from '@/stores/visualization/compiler?worker'
 import { assertNever } from '@/util/assert'
 import { toError } from '@/util/error'
+import iconNames from '@/util/iconList.json'
+import type { Icon } from '@/util/iconName'
 import type { Opt } from '@/util/opt'
 import { defineKeybinds } from '@/util/shortcuts'
 import { Error as DataError } from 'shared/binaryProtocol'
@@ -32,12 +34,24 @@ import { z } from 'zod'
 export const currentProjectProtocol = 'enso-current-project:'
 export const stylePathAttribute = 'data-style-path'
 
+export type URLString = `${string}:${string}`
+
 const VisualizationModule = z.object({
   // This is UNSAFE, but unavoiable as the type of `Visualization` is too difficult to statically
-  // check. Insteead it will be caught by Vue when trying to mount the visualization, and replaced
+  // check. Instead it will be caught by Vue when trying to mount the visualization, and replaced
   // with a 'Loading Error' visualization.
   default: z.custom<Visualization>(() => true),
   name: z.string(),
+  // The name of an icon, or a URL or data URL. If it contains `:`, it is assumed to be a URL.
+  icon: z
+    .string()
+    .transform((s) => {
+      if (iconNames.includes(s)) return s as Icon
+      else if (s.includes(':')) return s as URLString
+      console.warn(`Invalid icon name '${s}'`)
+      return undefined
+    })
+    .optional(),
   inputType: z.string().optional(),
   defaultPreprocessor: (
     z.string().array().min(2) as unknown as z.ZodType<

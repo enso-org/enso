@@ -32,7 +32,10 @@ import org.enso.languageserver.filemanager._
 import org.enso.languageserver.io._
 import org.enso.languageserver.libraries._
 import org.enso.languageserver.monitoring.IdlenessMonitor
-import org.enso.languageserver.profiling.ProfilingManager
+import org.enso.languageserver.profiling.{
+  ProfilingManager,
+  TestProfilingSnapshot
+}
 import org.enso.languageserver.protocol.json.{
   JsonConnectionControllerFactory,
   JsonRpcProtocolFactory
@@ -87,6 +90,7 @@ class BaseServerTest
   val runtimeConnectorProbe = TestProbe()
   val versionCalculator     = Sha3_224VersionCalculator
   val clock                 = TestClock()
+  val profilingSnapshot     = new TestProfilingSnapshot
 
   val typeGraph: TypeGraph = {
     val graph = TypeGraph("Any")
@@ -351,6 +355,7 @@ class BaseServerTest
       ProfilingManager.props(
         runtimeConnectorProbe.ref,
         distributionManager,
+        profilingSnapshot,
         clock
       )
     )
