@@ -2,6 +2,7 @@
 import { useGraphStore } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
+import { useAutoBlur } from '@/util/autoBlur'
 import type { Highlighter } from '@/util/codemirror'
 import { usePointer } from '@/util/events'
 import { useLocalStorage } from '@vueuse/core'
@@ -30,6 +31,7 @@ const projectStore = useProjectStore()
 const graphStore = useGraphStore()
 const suggestionDbStore = useSuggestionDbStore()
 const rootElement = ref<HTMLElement>()
+useAutoBlur(rootElement)
 
 // == CodeMirror editor setup  ==
 
