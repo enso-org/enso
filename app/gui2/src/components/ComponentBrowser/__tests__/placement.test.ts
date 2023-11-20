@@ -21,7 +21,8 @@ const radius = size.y / 2
 
 const getScreenBounds = vi.fn(() => defaultScreenBounds)
 const getNodeRects = vi.fn(() => iterable.empty())
-const getGap = vi.fn(() => 24)
+const getHorizontalGap = vi.fn(() => 32)
+const getVerticalGap = vi.fn(() => 32)
 const getSelectedNodeRects = vi.fn(() => iterable.empty())
 const getMousePosition = vi.fn(() => Vec2.Zero)
 // Center is at (1100, 700)
@@ -157,7 +158,11 @@ describe('Non dictated placement', () => {
     },
   ])('$desc', ({ nodes, pos, gap, pan }) => {
     expect(
-      nonDictatedPlacement(nodeSize, nonDictatedEnvironment(nodes), gap ? { gap } : {}),
+      nonDictatedPlacement(
+        nodeSize,
+        nonDictatedEnvironment(nodes),
+        gap ? { horizontalGap: gap, verticalGap: gap } : {},
+      ),
     ).toEqual({ position: pos, pan })
     expect(getSelectedNodeRects, 'Should not depend on `selectedNodeRects`').not.toHaveBeenCalled()
     expect(getMousePosition, 'Should not depend on `mousePosition`').not.toHaveBeenCalled()
@@ -344,7 +349,7 @@ describe('Previous node dictated placement', () => {
       previousNodeDictatedPlacement(
         nodeSize,
         previousNodeDictatedEnvironment([...nodes, rectAt(1050, 690)]),
-        gap != null ? { gap } : {},
+        gap != null ? { horizontalGap: gap, verticalGap: gap } : {},
       ),
     ).toEqual({ position: pos, pan })
     expect(getMousePosition, 'Should not depend on `mousePosition`').not.toHaveBeenCalled()
@@ -422,8 +427,11 @@ describe('Mouse dictated placement', () => {
           },
         },
         {
-          get gap() {
-            return getGap()
+          get horizontalGap() {
+            return getHorizontalGap()
+          },
+          get verticalGap() {
+            return getVerticalGap()
           },
         },
       ),
@@ -435,7 +443,8 @@ describe('Mouse dictated placement', () => {
     expect(getScreenBounds, 'Should not depend on `screenBounds`').not.toHaveBeenCalled()
     expect(getNodeRects, 'Should not depend on `nodeRects`').not.toHaveBeenCalled()
     expect(getSelectedNodeRects, 'Should not depend on `selectedNodeRects`').not.toHaveBeenCalled()
-    expect(getGap, 'Should not depend on `gap`').not.toHaveBeenCalled()
+    expect(getHorizontalGap, 'Should not depend on `horizontalGap`').not.toHaveBeenCalled()
+    expect(getVerticalGap, 'Should not depend on `verticalGap`').not.toHaveBeenCalled()
   })
 })
 
