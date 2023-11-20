@@ -11,11 +11,11 @@ import org.enso.polyglot.{
   PolyglotContext,
   RuntimeOptions
 }
-import org.graalvm.polyglot.Engine
-import org.graalvm.polyglot.Context
+import org.graalvm.polyglot.{Context, Engine}
 import org.slf4j.event.Level
 
-import java.io.{File, InputStream, OutputStream}
+import java.io.{ByteArrayOutputStream, File, InputStream, OutputStream}
+import scala.util.{Failure, Success, Using}
 
 /** Utility class for creating Graal polyglot contexts.
   */
@@ -131,14 +131,7 @@ class ContextFactory {
     if (graalpy.exists()) {
       builder.option("python.Executable", graalpy.getAbsolutePath());
     }
-    if (
-      Engine
-        .newBuilder()
-        .allowExperimentalOptions(true)
-        .build()
-        .getLanguages()
-        .containsKey("java")
-    ) {
+    if (engineHasJava()) {
       builder
         .option("java.ExposeNativeJavaVM", "true")
         .option("java.Polyglot", "true")
@@ -147,5 +140,25 @@ class ContextFactory {
         .allowCreateThread(true)
     }
     new PolyglotContext(builder.build)
+  }
+
+  /** Checks whether the polyglot engine has Espresso.
+    *
+    * Creates a temporary polyglot engine for that and makes sure that it is closed.
+    */
+  private def engineHasJava(): Boolean = {
+    Using(
+      Engine
+        .newBuilder()
+        .allowExperimentalOptions(true)
+        .out(new ByteArrayOutputStream())
+        .err(new ByteArrayOutputStream())
+        .build()
+    ) { engine =>
+      engine.getLanguages.containsKey("java")
+    } match {
+      case Success(ret) => ret
+      case Failure(ex)  => throw new IllegalStateException("unreachable", ex)
+    }
   }
 }
