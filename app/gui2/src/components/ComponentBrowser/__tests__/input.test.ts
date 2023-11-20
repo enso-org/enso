@@ -2,6 +2,7 @@ import type { Import, RequiredImport } from '@/stores/imports'
 import { SuggestionDb } from '@/stores/suggestionDatabase'
 import {
   makeCon,
+  makeFunction,
   makeLocal,
   makeMethod,
   makeModule,
@@ -159,6 +160,11 @@ const baseCases: ApplySuggestionCase[] = [
     expected: 'operator1 ',
   },
   {
+    code: 'Main.',
+    suggestion: makeFunction('local.Project.Main', 'func1'),
+    expected: 'Main.func1 ',
+  },
+  {
     code: '',
     suggestion: makeMethod('Standard.Base.Data.Vector.get'),
     expected: '_.get ',
@@ -182,6 +188,21 @@ const baseCases: ApplySuggestionCase[] = [
     code: 'operator1.',
     suggestion: makeMethod('Standard.Base.Data.Vector.get'),
     expected: 'operator1.get ',
+  },
+  {
+    code: 'Standard.Base.Data.',
+    suggestion: makeStaticMethod('Standard.Base.Data.Vector.new'),
+    expected: 'Standard.Base.Data.Vector.new ',
+  },
+  {
+    code: 'Base.',
+    suggestion: makeStaticMethod('Standard.Base.Data.Vector.new'),
+    expected: 'Base.Data.Vector.new ',
+  },
+  {
+    code: 'Base.Data.',
+    suggestion: makeStaticMethod('Standard.Base.Data.Vector.new'),
+    expected: 'Base.Data.Vector.new ',
   },
   {
     code: 'Data.Vector.',
@@ -314,13 +335,20 @@ test.each([
     expectedCode: 'Table.new ',
     expectedImports: [],
   },
-  // {
-  //   suggestionId: 3,
-  //   existingImports: [],
-  //   initialCode: 'Base.Table.',
-  //   expectedCode: 'Base.Table.new ',
-  //   expectedImports: [{ kind: 'Qualified', module: unwrap(tryQualifiedName('Standard.Base')) }],
-  // },
+  {
+    suggestionId: 3,
+    existingImports: [],
+    initialCode: 'Base.',
+    expectedCode: 'Base.Table.new ',
+    expectedImports: [{ kind: 'Qualified', module: unwrap(tryQualifiedName('Standard.Base')) }],
+  },
+  {
+    suggestionId: 3,
+    existingImports: [],
+    initialCode: 'Base.Table.',
+    expectedCode: 'Base.Table.new ',
+    expectedImports: [{ kind: 'Qualified', module: unwrap(tryQualifiedName('Standard.Base')) }],
+  },
 ] as ImportsCase[])(
   'Required imports when applying ID $suggestionId to $initialCode',
   ({ suggestionId, existingImports, initialCode, expectedCode, expectedImports }) => {

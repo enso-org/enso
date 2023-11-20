@@ -12,7 +12,7 @@ import {
 import { Ast, AstExtended } from '@/util/ast'
 import { GeneralOprApp } from '@/util/ast/opr'
 import {
-  fromSegments,
+  qnFromSegments,
   qnSplit,
   tryIdentifier,
   tryQualifiedName,
@@ -67,7 +67,8 @@ function parseQualifiedName(ast: AstExtended): QualifiedName | null {
         return []
       }
     })
-    return fromSegments(idents)
+    const qname = qnFromSegments(idents)
+    return qname.ok ? qname.value : null
   } else {
     return null
   }

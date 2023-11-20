@@ -65,11 +65,11 @@ export function qnParent(name: QualifiedName): QualifiedName | null {
 }
 
 export function qnJoin(left: QualifiedName, right: QualifiedName): QualifiedName {
-  return `${left}.${right}` as QualifiedName
+  return unwrap(tryQualifiedName(`${left}.${right}`))
 }
 
-export function fromSegments(segments: Iterable<Identifier>): QualifiedName {
-  return [...segments].join('.') as QualifiedName
+export function qnFromSegments(segments: Iterable<Identifier>): Result<QualifiedName> {
+  return tryQualifiedName([...segments].join('.'))
 }
 
 export function qnSegments(name: QualifiedName): Identifier[] {

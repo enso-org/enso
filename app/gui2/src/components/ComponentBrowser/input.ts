@@ -7,6 +7,7 @@ import {
   SuggestionKind,
   type SuggestionEntry,
   type Typename,
+  entryQn,
 } from '@/stores/suggestionDatabase/entry'
 import { Ast, AstExtended, astContainingChar } from '@/util/ast'
 import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
@@ -15,11 +16,13 @@ import type { ExpressionInfo } from '@/util/computedValueRegistry'
 import { MappedSet } from '@/util/containers'
 import {
   qnLastSegment,
-  qnParent,
-  qnSplit,
   tryQualifiedName,
   type QualifiedName,
+  qnSegments,
+  qnFromSegments,
 } from '@/util/qualifiedName'
+import { unwrap } from '@/util/result'
+import { equalFlat } from 'lib0/array'
 import { IdMap, type ContentRange, type ExprId } from 'shared/yjsModel'
 import { computed, ref, type ComputedRef } from 'vue'
 
@@ -203,7 +206,8 @@ export function useComponentBrowserInput(
   /** Apply given suggested entry to the input. */
   function applySuggestion(entry: SuggestionEntry) {
     const oldCode = code.value
-    const changes = Array.from(inputChangesAfterApplying(entry)).reverse()
+    const { changes, requiredImport } = inputChangesAfterApplying(entry)
+    changes.reverse()
     const newCodeUpToLastChange = changes.reduce(
       (builder, change) => {
         const oldCodeFragment = oldCode.substring(builder.oldCodeIndex, change.range[0])
@@ -225,7 +229,18 @@ export function useComponentBrowserInput(
       (shouldInsertSpace ? ' ' : '') +
       oldCode.substring(newCodeUpToLastChange.oldCodeIndex)
     selection.value = { start: newCursorPos, end: newCursorPos }
-    imports.value = imports.value.concat(requiredImports(suggestionDbStore.entries, entry))
+    console.log(requiredImport)
+    if (requiredImport) {
+      const [id] = suggestionDbStore.entries.nameToId.lookup(requiredImport)
+      if (id) {
+        const requiredEntry = suggestionDbStore.entries.get(id)
+        if (requiredEntry) {
+          imports.value = imports.value.concat(requiredImports(suggestionDbStore.entries, requiredEntry))
+        }
+      }
+    } else {
+      imports.value = imports.value.concat(requiredImports(suggestionDbStore.entries, entry))
+    }
     // console.log('Applying suggestion', entry)
     // console.log('Required imports:', requiredImports(suggestionDbStore.entries, entry))
     // console.log('Existing imports:', graphStore.imports)
@@ -247,26 +262,28 @@ export function useComponentBrowserInput(
    * @returns The changes, starting from the rightmost. The `start` and `end` parameters refer
    * to indices of "old" input content.
    */
-  function* inputChangesAfterApplying(
+  function inputChangesAfterApplying(
     entry: SuggestionEntry,
-  ): Generator<{ range: [number, number]; str: string }> {
+  ): { changes: { range: ContentRange; str: string }[], requiredImport: QualifiedName | null } {
     const ctx = context.value
     const str = codeToBeInserted(entry)
+    let mainChange = undefined
     switch (ctx.type) {
       case 'insert': {
-        yield { range: [ctx.position, ctx.position], str }
+        mainChange = { range: [ctx.position, ctx.position] as ContentRange, str }
         break
       }
       case 'changeIdentifier': {
-        yield { range: ctx.identifier.span(), str }
+        mainChange = { range: ctx.identifier.span(), str }
         break
       }
       case 'changeLiteral': {
-        yield { range: ctx.literal.span(), str }
+        mainChange = { range: ctx.literal.span(), str }
         break
       }
     }
-    yield* qnChangesAfterApplying(entry)
+    const qnChange = qnChanges(entry)
+    return { changes: [mainChange, ...qnChange.changes], requiredImport: qnChange.requiredImport }
   }
 
   function codeToBeInserted(entry: SuggestionEntry): string {
@@ -293,27 +310,45 @@ export function useComponentBrowserInput(
     return oprAppSpacing + entry.name
   }
 
-  /** All changes to the qualified name already written by the user.
-   *
-   * See `inputChangesAfterApplying`. */
-  function* qnChangesAfterApplying(
-    entry: SuggestionEntry,
-  ): Generator<{ range: [number, number]; str: string }> {
-    if (entry.selfType != null) return []
-    if (entry.kind === SuggestionKind.Local || entry.kind === SuggestionKind.Function) return []
-    if (context.value.type === 'changeLiteral') return []
-    if (context.value.oprApp == null) return []
-    const writtenQn = qnIdentifiers(context.value.oprApp).reverse()
-
-    let containingQn =
-      entry.kind === SuggestionKind.Module
-        ? qnParent(entry.definedIn)
-        : entry.memberOf ?? entry.definedIn
-    for (const ident of writtenQn) {
-      if (containingQn == null) break
-      const [parent, segment] = qnSplit(containingQn)
-      yield { range: ident.span(), str: segment }
-      containingQn = parent
+  /** All changes to the qualified name already written by the user. */
+  function qnChanges(entry: SuggestionEntry): { changes: { range: ContentRange; str: string }[], requiredImport: QualifiedName | null } {
+    if (entry.selfType != null) return { changes: [], requiredImport: null }
+    if (entry.kind === SuggestionKind.Local || entry.kind === SuggestionKind.Function) return { changes: [], requiredImport: null }
+    if (context.value.type !== 'changeLiteral' && context.value.oprApp != null) {
+      const qn = entryQn(entry)
+      const identifiers = qnIdentifiers(context.value.oprApp)
+      const writtenSegments = identifiers.map((ident) => ident.repr())
+      const allSegments = qnSegments(qn)
+      const windowSize = writtenSegments.length
+      let position = undefined
+      for (let right = allSegments.length; right >= windowSize; right--) {
+        const left = right - windowSize
+        if (equalFlat(allSegments.slice(left, right), writtenSegments)) {
+          position = left
+          break
+        }
+      }
+      if (position == null) position = allSegments.length - 1 - writtenSegments.length
+      const nameSegments = allSegments.slice(position, -1)
+      const importSegments = allSegments.slice(0, position + 1)
+      const minimalNumberOfSegments = 2
+      console.log(importSegments, nameSegments)
+      const requiredImport = importSegments.length < minimalNumberOfSegments ? null : unwrap(qnFromSegments(importSegments))
+      let last = 0
+      const result = []
+      for (let i = 0; i < nameSegments.length; i++) {
+        const segment = nameSegments[i]
+        if (i < identifiers.length) {
+          const span = identifiers[i]!.span()
+          last = span[1]
+          result.push( { range: span, str: segment as string })
+        } else {
+          result.push( { range: [last, last] as ContentRange, str: '.' + segment as string })
+        }
+      }
+      return { changes: result.reverse(), requiredImport }
+    } else {
+      return { changes: [], requiredImport: null }
     }
   }
 
