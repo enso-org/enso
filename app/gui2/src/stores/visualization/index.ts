@@ -119,6 +119,9 @@ export const useVisualizationStore = defineStore('visualization', () => {
           loadedScripts.add(url)
           const node = document.createElement('script')
           node.src = url
+          // Some resources still set only "Access-Control-Allow-Origin" in the response.
+          // We need to explicitly make a request CORS - see https://resourcepolicy.fyi
+          node.crossOrigin = 'anonymous'
           promises.push(
             new Promise<void>((resolve, reject) => {
               node.addEventListener('load', () => {
@@ -163,7 +166,10 @@ export const useVisualizationStore = defineStore('visualization', () => {
             currentProjectProtocol + pathString,
             await projectRoot,
             await proj.dataConnection,
-          )
+          ).then(async (viz) => {
+            await loadScripts(viz)
+            return viz
+          })
           if (key) cache.set(key, vizPromise)
           const viz = await vizPromise
           if (abortController.signal.aborted) break

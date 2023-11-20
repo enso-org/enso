@@ -332,31 +332,6 @@ shell will execute the appropriate thing. Furthermore we have `testOnly` and
 `benchOnly` that accept a glob pattern that delineates some subset of the tests
 or benchmarks to run (e.g. `testOnly *FunctionArguments*`).
 
-#### Building the Interpreter CLI Fat Jar
-
-In order to build a fat jar with the CLI component, run the `assembly` task
-inside the `runner` subproject:
-
-```bash
-sbt "engine-runner/assembly"
-```
-
-This will produce an executable `runner.jar` fat jar and a `runtime.jar` fat jar
-in the repository root. The `runner.jar` depends only on the `runtime.jar` and a
-vanilla GraalVM distribution.
-
-#### Building the Project Manager Fat Jar
-
-In order to build a fat jar with the Project Manager component, run the
-`assembly` task on the `project-manager` subproject:
-
-```bash
-sbt "project-manager/assembly"
-```
-
-This will produce a `project-manager` fat jar and a `runtime.jar` fat jar in the
-repository root.
-
 #### Building the Launcher Native Binary
 
 If you want to build the native launcher binary, you need to ensure that the

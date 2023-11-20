@@ -3,7 +3,6 @@ package org.enso.compiler.core.ir
 import org.enso.compiler.core.{ConstantsNames, IR, Identifier}
 import org.enso.compiler.core.IR.randomId
 import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
-import org.enso.syntax.text.Location
 
 import java.util.UUID
 
@@ -45,7 +44,7 @@ object Name {
     * @param passData    the pass metadata associated with this node
     * @param diagnostics compiler diagnostics for this node
     */
-  sealed case class MethodReference(
+  final case class MethodReference(
     typePointer: Option[Name],
     methodName: Name,
     location: Option[IdentifiedLocation],
@@ -183,8 +182,8 @@ object Name {
         (identLoc, segment) => {
           identLoc.flatMap(loc => {
             Some(
-              IdentifiedLocation(
-                Location(
+              new IdentifiedLocation(
+                new Location(
                   loc.location.start,
                   segment.location
                     .flatMap(l => Some(l.location.end))
@@ -206,7 +205,7 @@ object Name {
     * @param diagnostics compiler diagnostics for this node
     * @return a copy of `this`, updated with the specified values
     */
-  sealed case class Qualified(
+  final case class Qualified(
     parts: List[Name],
     location: Option[IdentifiedLocation],
     passData: MetadataStorage      = MetadataStorage(),

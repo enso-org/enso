@@ -1,6 +1,10 @@
 import * as Ast from '@/generated/ast'
 import { Token, Tree } from '@/generated/ast'
 import { assert } from '@/util/assert'
+import * as encoding from 'lib0/encoding'
+import { digest } from 'lib0/hash/sha256'
+import * as map from 'lib0/map'
+
 import type { ContentRange, ExprId, IdMap } from 'shared/yjsModel'
 import { markRaw } from 'vue'
 import {
@@ -41,6 +45,10 @@ export class AstExtended<T extends Tree | Token = Tree | Token, HasIdMap extends
 
   treeTypeName(): (typeof Tree.typeNames)[number] | null {
     return Tree.isInstance(this.inner) ? Tree.typeNames[this.inner.type] : null
+  }
+
+  tokenTypeName(): (typeof Token.typeNames)[number] | null {
+    return Token.isInstance(this.inner) ? Token.typeNames[this.inner.type] : null
   }
 
   isToken<T extends Ast.Token.Type>(
@@ -93,6 +101,10 @@ export class AstExtended<T extends Tree | Token = Tree | Token, HasIdMap extends
     return parsedTreeOrTokenRange(this.inner)
   }
 
+  contentHash() {
+    return this.ctx.getHash(this)
+  }
+
   children(): AstExtended<Tree | Token, HasIdMap>[] {
     return childrenAstNodesOrTokens(this.inner).map((child) => new AstExtended(child, this.ctx))
   }
@@ -129,8 +141,38 @@ type CondType<T, Cond extends boolean> = Cond extends true
 class AstExtendedCtx<HasIdMap extends boolean> {
   parsedCode: string
   idMap: CondType<IdMap, HasIdMap>
+  contentHashes: Map<string, Uint8Array>
+
   constructor(parsedCode: string, idMap: CondType<IdMap, HasIdMap>) {
     this.parsedCode = parsedCode
     this.idMap = idMap
+    this.contentHashes = new Map()
+  }
+
+  static getHashKey(ast: AstExtended<Tree | Token, boolean>) {
+    return `${ast.isToken() ? 'T.' : ''}${ast.inner.type}.${ast.span()[0]}`
+  }
+
+  getHash(ast: AstExtended<Tree | Token, boolean>) {
+    const key = AstExtendedCtx.getHashKey(ast)
+    return map.setIfUndefined(this.contentHashes, key, () =>
+      digest(
+        encoding.encode((encoder) => {
+          const whitespace = ast.whitespaceLength()
+          encoding.writeUint32(encoder, whitespace)
+          if (ast.isToken()) {
+            encoding.writeUint8(encoder, 0)
+            encoding.writeUint32(encoder, ast.inner.type)
+            encoding.writeVarString(encoder, ast.repr())
+          } else {
+            encoding.writeUint8(encoder, 1)
+            encoding.writeUint32(encoder, ast.inner.type)
+            for (const child of ast.children()) {
+              encoding.writeUint8Array(encoder, this.getHash(child))
+            }
+          }
+        }),
+      ),
+    )
   }
 }

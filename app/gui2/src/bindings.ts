@@ -11,7 +11,8 @@ export const interactionBindings = defineKeybinds('current-interaction', {
 
 export const componentBrowserBindings = defineKeybinds('component-browser', {
   applySuggestion: ['Tab'],
-  acceptInput: ['Enter'],
+  acceptSuggestion: ['Enter'],
+  acceptInput: ['Mod+Enter'],
   cancelEditing: ['Escape'],
   moveUp: ['ArrowUp'],
   moveDown: ['ArrowDown'],
@@ -27,6 +28,8 @@ export const graphBindings = defineKeybinds('graph-editor', {
   deleteSelected: ['Delete'],
   selectAll: ['Mod+A'],
   deselectAll: ['Escape', 'PointerMain'],
+  copyNode: ['Mod+C'],
+  pasteNode: ['Mod+V'],
 })
 
 export const selectionMouseBindings = defineKeybinds('selection', {
@@ -38,5 +41,6 @@ export const selectionMouseBindings = defineKeybinds('selection', {
 })
 
 export const nodeEditBindings = defineKeybinds('node-edit', {
-  selectAll: ['Mod+A'],
+  cancel: ['Escape'],
+  edit: ['Mod+PointerMain'],
 })

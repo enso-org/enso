@@ -50,7 +50,7 @@ interface AuthenticationApi {
      * via a deep link. See {@link setDeepLinkHandler} for details. */
     setDeepLinkHandler: (callback: (url: string) => void) => void
     /** Saves the access token to a file. */
-    saveAccessToken: (access_token: string) => void
+    saveAccessToken: (accessToken: string | null) => void
 }
 
 // =====================================

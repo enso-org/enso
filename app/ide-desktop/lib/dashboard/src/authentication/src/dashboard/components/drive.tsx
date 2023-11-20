@@ -116,11 +116,14 @@ export default function Drive(props: DriveProps) {
 
     React.useEffect(() => {
         void (async () => {
-            if (backend.type !== backendModule.BackendType.local) {
+            if (
+                backend.type !== backendModule.BackendType.local &&
+                organization?.isEnabled === true
+            ) {
                 setLabels(await backend.listTags())
             }
         })()
-    }, [backend])
+    }, [backend, organization?.isEnabled])
 
     const doUploadFiles = React.useCallback(
         (files: File[]) => {

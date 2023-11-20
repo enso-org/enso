@@ -1,5 +1,4 @@
 import { bail } from '@/util/assert'
-import { MultiRange, Range } from '@/util/range'
 import { Rect } from '@/util/rect'
 import { Vec2 } from '@/util/vec2'
 
@@ -42,23 +41,12 @@ export function nonDictatedPlacement(
   const initialRect = new Rect(initialPosition, nodeSize)
   let top = initialPosition.y
   const height = nodeSize.y
-  const minimumVerticalSpace = height + gap * 2
   const bottom = () => top + height
-  const occupiedYRanges = new MultiRange()
-  for (const rect of nodeRects) {
+  const nodeRectsSorted = Array.from(nodeRects).sort((a, b) => a.top - b.top)
+  for (const rect of nodeRectsSorted) {
     if (initialRect.intersectsX(rect) && rect.bottom + gap > top) {
-      if (rect.top - bottom() >= gap) {
-        const range = new Range(rect.top, rect.bottom)
-        occupiedYRanges.insert(range, range.expand(gap))
-      } else {
+      if (rect.top - bottom() < gap) {
         top = rect.bottom + gap
-        const rangeIncludingTop = occupiedYRanges
-          .remove(new Range(-Infinity, rect.bottom + minimumVerticalSpace))
-          .at(-1)
-        if (rangeIncludingTop) {
-          top = Math.max(top, rangeIncludingTop.end + gap)
-          occupiedYRanges.remove(rangeIncludingTop)
-        }
       }
     }
   }
@@ -105,24 +93,13 @@ export function previousNodeDictatedPlacement(
   let left = initialLeft
   const width = nodeSize.x
   const right = () => left + width
-  const minimumHorizontalSpace = width + gap * 2
   const initialPosition = new Vec2(left, top)
   const initialRect = new Rect(initialPosition, nodeSize)
-  const occupiedXRanges = new MultiRange()
-  for (const rect of nodeRects) {
+  const sortedNodeRects = Array.from(nodeRects).sort((a, b) => a.left - b.left)
+  for (const rect of sortedNodeRects) {
     if (initialRect.intersectsY(rect) && rect.right + gap > left) {
-      if (rect.left - right() >= gap) {
-        const range = new Range(rect.left, rect.right)
-        occupiedXRanges.insert(range, range.expand(gap))
-      } else {
+      if (rect.left - right() < gap) {
         left = rect.right + gap
-        const rangeIncludingLeft = occupiedXRanges
-          .remove(new Range(-Infinity, rect.right + minimumHorizontalSpace))
-          .at(-1)
-        if (rangeIncludingLeft) {
-          left = Math.max(left, rangeIncludingLeft.end + gap)
-          occupiedXRanges.remove(rangeIncludingLeft)
-        }
       }
     }
   }
@@ -137,7 +114,7 @@ export function previousNodeDictatedPlacement(
 /** The new node should appear exactly below the mouse.
  *
  * Specifically, this code assumes the node is fully rounded on the left and right sides,
- * so it subtracts half the node height (assumed to be the node radius) from the mouse x and y
+ * so it adds half the node height (assumed to be the node radius) from the mouse x and y
  * positions.
  *
  * [Documentation](https://github.com/enso-org/design/blob/main/epics/component-browser/design.md#placement-of-newly-opened-component-browser) */
@@ -147,5 +124,5 @@ export function mouseDictatedPlacement(
   _opts?: PlacementOptions,
 ): Placement {
   const nodeRadius = nodeSize.y / 2
-  return { position: mousePosition.sub(new Vec2(nodeRadius, nodeRadius)) }
+  return { position: mousePosition.add(new Vec2(nodeRadius, nodeRadius)) }
 }

@@ -78,7 +78,7 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
-                    "User-Agent": "Java-http-client/17.0.7",
+                    "User-Agent": "Java-http-client/21.0.1",
                     "Content-Length": "0"
                   },
                   "origin": "127.0.0.1",
@@ -119,7 +119,7 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
-                    "User-Agent": "Java-http-client/17.0.7",
+                    "User-Agent": "Java-http-client/21.0.1",
                     "Content-Length": "0"
                   },
                   "origin": "127.0.0.1",
@@ -166,7 +166,7 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
-                    "User-Agent": "Java-http-client/17.0.7",
+                    "User-Agent": "Java-http-client/21.0.1",
                     "Content-Type": "text/plain; charset=UTF-8",
                     "Content-Length": "11"
                   },
@@ -189,7 +189,7 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
-                    "User-Agent": "Java-http-client/17.0.7",
+                    "User-Agent": "Java-http-client/21.0.1",
                     "Content-Type": "application/json",
                     "Content-Length": "20"
                   },
@@ -209,7 +209,7 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
-                    "User-Agent": "Java-http-client/17.0.7",
+                    "User-Agent": "Java-http-client/21.0.1",
                     "Content-Type": "application/json",
                     "Content-Length": "20"
                   },
@@ -228,7 +228,7 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
-                    "User-Agent": "Java-http-client/17.0.7",
+                    "User-Agent": "Java-http-client/21.0.1",
                     "Content-Type": "application/json",
                     "Content-Length": "50"
                   },
@@ -247,7 +247,7 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
-                    "User-Agent": "Java-http-client/17.0.7",
+                    "User-Agent": "Java-http-client/21.0.1",
                     "Content-Type": "application/json",
                     "Content-Length": "47"
                   },
@@ -270,7 +270,7 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
-                    "User-Agent": "Java-http-client/17.0.7",
+                    "User-Agent": "Java-http-client/21.0.1",
                     "Content-Type": "text/plain; charset=UTF-16LE",
                     "Content-Length": "24"
                   },
@@ -289,7 +289,7 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
-                    "User-Agent": "Java-http-client/17.0.7",
+                    "User-Agent": "Java-http-client/21.0.1",
                     "Content-Type": "text/csv; charset=UTF-8",
                     "Content-Length": "6"
                   },
@@ -343,7 +343,7 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
-                    "User-Agent": "Java-http-client/17.0.7",
+                    "User-Agent": "Java-http-client/21.0.1",
                     "Content-Type": "text/plain; charset=UTF-8",
                     "Content-Length": "11"
                   },
@@ -362,7 +362,7 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
-                    "User-Agent": "Java-http-client/17.0.7",
+                    "User-Agent": "Java-http-client/21.0.1",
                     "Content-Type": "text/plain; charset=UTF-8",
                     "Content-Length": "11"
                   },
@@ -381,7 +381,7 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
-                    "User-Agent": "Java-http-client/17.0.7",
+                    "User-Agent": "Java-http-client/21.0.1",
                     "Content-Type": "application/diff; charset=UTF-8",
                     "Content-Length": "11"
                   },
@@ -400,7 +400,7 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
-                    "User-Agent": "Java-http-client/17.0.7",
+                    "User-Agent": "Java-http-client/21.0.1",
                     "Content-Length": "0"
                   },
                   "origin": "127.0.0.1",
@@ -418,7 +418,7 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
-                    "User-Agent": "Java-http-client/17.0.7",
+                    "User-Agent": "Java-http-client/21.0.1",
                     "Content-Type": "text/plain; charset=UTF-8",
                     "Content-Length": "11"
                   },
@@ -437,7 +437,7 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
-                    "User-Agent": "Java-http-client/17.0.7",
+                    "User-Agent": "Java-http-client/21.0.1",
                     "Content-Type": "text/plain; charset=UTF-8",
                     "Content-Length": "11",
                     "Custom": "asdf"
@@ -483,7 +483,7 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
-                    "User-Agent": "Java-http-client/17.0.7",
+                    "User-Agent": "Java-http-client/21.0.1",
                     "Content-Type": "application/json; charset=UTF-8",
                     "Content-Length": "23"
                   },
@@ -502,7 +502,7 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
-                    "User-Agent": "Java-http-client/17.0.7",
+                    "User-Agent": "Java-http-client/21.0.1",
                     "Content-Type": "application/json",
                     "Content-Length": "23"
                   },
@@ -521,7 +521,7 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
-                    "User-Agent": "Java-http-client/17.0.7",
+                    "User-Agent": "Java-http-client/21.0.1",
                     "Content-Type": "application/json",
                     "Content-Length": "23"
                   },
@@ -540,7 +540,7 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
-                    "User-Agent": "Java-http-client/17.0.7",
+                    "User-Agent": "Java-http-client/21.0.1",
                     "Content-Type": "text/plain; charset=UTF-8",
                     "Content-Length": "23"
                   },

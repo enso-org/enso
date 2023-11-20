@@ -9,6 +9,7 @@ use crate::lexer;
 use crate::source::code::Location;
 
 
+
 /// Common traits.
 pub mod traits {
     pub use super::FirstChildTrim;

@@ -519,7 +519,7 @@ export const useProjectStore = defineStore('project', () => {
   }
 
   const executionContext = createExecutionContextForMain()
-  const computedValueRegistry = new ComputedValueRegistry(executionContext)
+  const computedValueRegistry = ComputedValueRegistry.WithExecutionContext(executionContext)
   const visualizationDataRegistry = new VisualizationDataRegistry(executionContext, dataConnection)
 
   function useVisualizationData(
@@ -563,7 +563,7 @@ export const useProjectStore = defineStore('project', () => {
     projectModel,
     contentRoots,
     awareness: markRaw(awareness),
-    computedValueRegistry,
+    computedValueRegistry: markRaw(computedValueRegistry),
     lsRpcConnection: markRaw(lsRpcConnection),
     dataConnection: markRaw(dataConnection),
     useVisualizationData,
