@@ -34,6 +34,8 @@ import { z } from 'zod'
 export const currentProjectProtocol = 'enso-current-project:'
 export const stylePathAttribute = 'data-style-path'
 
+export type URLString = `${string}:${string}`
+
 const VisualizationModule = z.object({
   // This is UNSAFE, but unavoiable as the type of `Visualization` is too difficult to statically
   // check. Instead it will be caught by Vue when trying to mount the visualization, and replaced
@@ -45,6 +47,7 @@ const VisualizationModule = z.object({
     .string()
     .transform((s) => {
       if (iconNames.includes(s)) return s as Icon
+      else if (s.includes(':')) return s as URLString
       console.warn(`Invalid icon name '${s}'`)
       return undefined
     })

@@ -9,6 +9,7 @@ import {
   useVisualizationStore,
   type Visualization,
 } from '@/stores/visualization'
+import type { URLString } from '@/stores/visualization/compilerMessaging'
 import { toError } from '@/util/error'
 import type { Icon } from '@/util/iconName'
 import type { Opt } from '@/util/opt'
@@ -36,7 +37,7 @@ const emit = defineEmits<{
 }>()
 
 const visualization = shallowRef<Visualization>()
-const icon = ref<Icon>()
+const icon = ref<Icon | URLString>()
 
 onErrorCaptured((vueError) => {
   error.value = vueError

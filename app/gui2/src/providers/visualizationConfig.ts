@@ -1,3 +1,4 @@
+import type { URLString } from '@/stores/visualization/compilerMessaging'
 import type { Icon } from '@/util/iconName'
 import { Vec2 } from '@/util/vec2'
 import type { VisualizationIdentifier } from 'shared/yjsModel'
@@ -9,7 +10,7 @@ export interface VisualizationConfig {
   background?: string
   readonly types: Iterable<VisualizationIdentifier>
   readonly currentType: VisualizationIdentifier
-  readonly icon: Icon | undefined
+  readonly icon: Icon | URLString | undefined
   readonly isCircularMenuVisible: boolean
   readonly nodeSize: Vec2
   width: number | null

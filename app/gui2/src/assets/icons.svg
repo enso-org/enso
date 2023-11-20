@@ -1322,5 +1322,15 @@
             <rect x="5.75" y="10.75" width="4.5" height="4.5" rx="1" fill="black" fill-opacity="0.6" />
         </svg>
     </g>
+    <g id="image" fill="none">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M1 3C1 2.44772 1.44772 2 2 2H14C14.5523 2 15 2.44772 15 3V4H1V3Z" fill="black" fill-opacity="0.6" />
+            <path d="M1 12H15V13C15 13.5523 14.5523 14 14 14H2C1.44772 14 1 13.5523 1 13V12Z" fill="black" fill-opacity="0.6" />
+            <rect x="1" y="4" width="2" height="8" fill="black" fill-opacity="0.6" />
+            <rect x="13" y="4" width="2" height="8" fill="black" fill-opacity="0.6" />
+            <circle cx="10.5" cy="6.5" r="1.5" fill="black" fill-opacity="0.6" />
+            <path d="M4 11.0237V8.02371C6 5.5237 7 6 8.5 7.50003L12 11.0237L4 11.0237Z" fill="black" fill-opacity="0.6" />
+        </svg>
+    </g>
     <!-- Please run `npm run generate-metadata` whenever this file is edited. -->
 </svg>
