@@ -31,6 +31,17 @@ public class ErrorCompilerTest extends CompilerTest {
   }
 
   @Test
+  public void unaryMinus() throws Exception {
+    var ir = parse("""
+    from Standard.Base import all
+
+    main = Date.new day=-
+    """);
+
+    assertSingleSyntaxError(ir, new Syntax.UnsupportedSyntax("Strange unary -"), "Syntax is not supported yet: Strange unary -", 51, 52);
+  }
+
+  @Test
   public void dotUnderscore2() throws Exception {
     var ir = parse("""
     run op =
