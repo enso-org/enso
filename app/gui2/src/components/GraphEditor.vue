@@ -26,6 +26,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import GraphEdges from './GraphEditor/GraphEdges.vue'
 import GraphNodes from './GraphEditor/GraphNodes.vue'
 import GraphMouse from './GraphMouse.vue'
+import type { RequiredImport } from '@/stores/imports'
 
 const EXECUTION_MODES = ['design', 'live']
 // Difference in position between the component browser and a node for the input of the component browser to
@@ -249,14 +250,14 @@ async function handleFileDrop(event: DragEvent) {
   }
 }
 
-function onComponentBrowserCommit(content: string) {
+function onComponentBrowserCommit(content: string, requiredImports: RequiredImport[]) {
   if (content != null && graphStore.editedNodeInfo != null) {
     /// We finish editing a node.
     graphStore.setNodeContent(graphStore.editedNodeInfo.id, content)
   } else if (content != null) {
     /// We finish creating a new node.
     const nodePosition = componentBrowserPosition.value
-    graphStore.createNode(nodePosition.sub(COMPONENT_BROWSER_TO_NODE_OFFSET), content)
+    graphStore.createNodeWithImport(nodePosition.sub(COMPONENT_BROWSER_TO_NODE_OFFSET), content, undefined, requiredImports)
   }
   componentBrowserVisible.value = false
   graphStore.editedNodeInfo = undefined

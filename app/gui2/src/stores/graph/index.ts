@@ -103,13 +103,13 @@ export const useGraphStore = defineStore('graph', () => {
 
       const methodAst = ast.isTree()
         ? ast.tryMap((tree) =>
-            getExecutedMethodAst(
-              tree,
-              textContentLocal,
-              proj.executionContext.getStackTop(),
-              updatedMap,
-            ),
-          )
+          getExecutedMethodAst(
+            tree,
+            textContentLocal,
+            proj.executionContext.getStackTop(),
+            updatedMap,
+          ),
+        )
         : undefined
       if (methodAst) {
         db.readFunctionAst(methodAst, (id) => meta.get(id))
@@ -189,15 +189,26 @@ export const useGraphStore = defineStore('graph', () => {
     return mod.insertNewNode(mod.doc.contents.length, ident, expression, meta)
   }
 
-  function insertImport(requiredImport: RequiredImport) {
+  function createNodeWithImport(position: Vec2,
+    expression: string,
+    metadata: NodeMetadata | undefined = undefined,
+    withImport: RequiredImport[]
+  ) {
     const mod = proj.module
     if (mod == null) return
+    const meta = metadata ?? {
+      x: position.x,
+      y: -position.y,
+      vis: null,
+    }
+    meta.x = position.x
+    meta.y = -position.y
+    const ident = generateUniqueIdent()
     const lastImport = db.imports.value[db.imports.value.length - 1]
-    const offset = lastImport ? lastImport.span[1] + 1 : 0
-    // TODO: add imports in the same transaction as node.
-    mod.transact(() => {
-      mod.doc.contents.insert(offset, requiredImportToText(requiredImport) + '\n')
-    })
+    const importOffset = lastImport ? lastImport.span[1] + 1 : 0
+    const imports = withImport.map((info) => requiredImportToText(info)).join('\n')
+    const importData = { str: imports, offset: importOffset }
+    return mod.insertNewNode(mod.doc.contents.length, ident, expression, meta, importData)
   }
 
   function deleteNode(id: ExprId) {
@@ -309,6 +320,7 @@ export const useGraphStore = defineStore('graph', () => {
     disconnectTarget,
     clearUnconnected,
     createNode,
+    createNodeWithImport,
     deleteNode,
     setNodeContent,
     setExpressionContent,
@@ -321,7 +333,6 @@ export const useGraphStore = defineStore('graph', () => {
     updateExprRect,
     setEditedNode,
     getNodeBinding,
-    insertImport,
   }
 })
 

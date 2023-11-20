@@ -20,6 +20,7 @@ import type { SuggestionId } from 'shared/languageServerTypes/suggestions'
 import type { ContentRange, ExprId } from 'shared/yjsModel.ts'
 import { computed, nextTick, onMounted, ref, watch, type Ref } from 'vue'
 import { useComponentBrowserInput } from './ComponentBrowser/input'
+import type { RequiredImport } from '@/stores/imports'
 
 const ITEM_SIZE = 32
 const TOP_BAR_HEIGHT = 32
@@ -37,7 +38,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  accepted: [searcherExpression: string]
+  accepted: [searcherExpression: string, requiredImports: RequiredImport[]]
   closed: [searcherExpression: string]
   canceled: []
 }>()
@@ -293,9 +294,6 @@ function applySuggestion(component: Opt<Component> = null): SuggestionEntry | nu
   const suggestion = providedSuggestion ?? selectedSuggestion.value
   if (suggestion == null) return null
   input.applySuggestion(suggestion)
-  for (const im of input.importsToAdd()) {
-    graphStore.insertImport(im)
-  }
   return suggestion
 }
 
@@ -306,7 +304,7 @@ function acceptSuggestion(index: Opt<Component> = null) {
 }
 
 function acceptInput() {
-  emit('accepted', input.code.value)
+  emit('accepted', input.code.value, Array.from(input.importsToAdd()))
 }
 
 // === Key Events Handler ===
