@@ -114,7 +114,6 @@ export class GraphDb {
   }
 
   readFunctionAst(
-    functionAst_old: AstExtended<RawAst.Tree.Function>,
     functionAst: Function,
     getMeta: (id: ExprId) => NodeMetadata | undefined,
   ) {

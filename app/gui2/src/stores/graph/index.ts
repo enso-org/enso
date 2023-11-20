@@ -88,23 +88,13 @@ export const useGraphStore = defineStore('graph', () => {
       const textContentLocal = textContent.value
 
       const ast = AstExtended.parse(textContentLocal, idMap)
-      const updatedMap = idMap.finishAndSynchronize()
-      const methodAst_old = ast.isTree()
-        ? ast.tryMap((tree) =>
-            getExecutedMethodAst_old(
-              tree,
-              textContentLocal,
-              proj.executionContext.getStackTop(),
-              updatedMap,
-            ),
-          )
-        : undefined
+      idMap.finishAndSynchronize()
 
       const newRoot = Ast.parse(textContentLocal)
 
       const methodAst = getExecutedMethodAst(newRoot, proj.executionContext.getStackTop())
-      if (methodAst_old && methodAst) {
-        db.readFunctionAst(methodAst_old, methodAst, (id) => meta.get(id))
+      if (methodAst) {
+        db.readFunctionAst(methodAst, (id) => meta.get(id))
       }
     })
   }
@@ -355,39 +345,4 @@ function lookupIdRange(updatedIdMap: Y.Map<Uint8Array>, id: ExprId): [number, nu
   const endIndex = Y.createAbsolutePositionFromRelativePosition(decoded[1], doc)?.index
   if (index == null || endIndex == null) return
   return [index, endIndex]
-}
-
-function getExecutedMethodAst_old(
-  ast: RawAst.Tree,
-  code: string,
-  executionStackTop: StackItem,
-  updatedIdMap: Y.Map<Uint8Array>,
-): Opt<RawAst.Tree.Function> {
-  switch (executionStackTop.type) {
-    case 'ExplicitCall': {
-      // Assume that the provided AST matches the module in the method pointer. There is no way to
-      // actually verify this assumption at this point.
-      const ptr = executionStackTop.methodPointer
-      const name = ptr.name
-      return findModuleMethod_old(ast, code, name)
-    }
-    case 'LocalCall': {
-      const exprId = executionStackTop.expressionId
-      const range = lookupIdRange(updatedIdMap, exprId)
-      if (range == null) return
-      const node = findAstWithRange(ast, range)
-      if (node?.type === RawAst.Tree.Type.Function) return node
-    }
-  }
-}
-
-function findModuleMethod_old(
-  moduleAst: RawAst.Tree,
-  code: string,
-  methodName: string,
-): Opt<RawAst.Tree.Function> {
-  for (const node of childrenAstNodes(moduleAst)) {
-    if (node.type === RawAst.Tree.Type.Function && readAstSpan(node.name, code) === methodName)
-      return node
-  }
 }
