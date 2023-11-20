@@ -21,8 +21,8 @@ const radius = size.y / 2
 
 const getScreenBounds = vi.fn(() => defaultScreenBounds)
 const getNodeRects = vi.fn(() => iterable.empty())
-const getHorizontalGap = vi.fn(() => 32)
-const getVerticalGap = vi.fn(() => 32)
+const getHorizontalGap = vi.fn(() => 24)
+const getVerticalGap = vi.fn(() => 24)
 const getSelectedNodeRects = vi.fn(() => iterable.empty())
 const getMousePosition = vi.fn(() => Vec2.Zero)
 // Center is at (1100, 700)
@@ -58,36 +58,36 @@ describe('Non dictated placement', () => {
 
   test.each([
     // === Miscellaneous tests ===
-    { desc: 'Empty graph', nodes: [], pos: new Vec2(1050, 690) },
+    { desc: 'Empty graph', nodes: [], pos: new Vec2(1090, 690) },
 
     // === Single node tests ===
-    { desc: 'Single node', nodes: [rectAt(1050, 690)], pos: new Vec2(1050, 734) },
+    { desc: 'Single node', nodes: [rectAt(1050, 690)], pos: new Vec2(1090, 734) },
     //
     {
       desc: 'Single node (far enough left that it does not overlap)',
-      nodes: [rectAt(950, 690)],
-      pos: new Vec2(1050, 690),
+      nodes: [rectAt(990, 690)],
+      pos: new Vec2(1090, 690),
     },
     {
       desc: 'Single node (far enough right that it does not overlap)',
-      nodes: [rectAt(1150, 690)],
-      pos: new Vec2(1050, 690),
+      nodes: [rectAt(1190, 690)],
+      pos: new Vec2(1090, 690),
     },
     {
       desc: 'Single node (overlaps on the left by 1px)',
-      nodes: [rectAt(951, 690)],
-      pos: new Vec2(1050, 734),
+      nodes: [rectAt(991, 690)],
+      pos: new Vec2(1090, 734),
     },
     {
       desc: 'Single node (overlaps on the right by 1px)',
-      nodes: [rectAt(1149, 690)],
-      pos: new Vec2(1050, 734),
+      nodes: [rectAt(1189, 690)],
+      pos: new Vec2(1090, 734),
     },
     {
       desc: 'Single node (BIG gap)',
       nodes: [rectAt(1050, 690)],
       gap: 1000,
-      pos: new Vec2(1050, 1710),
+      pos: new Vec2(1090, 1710),
       pan: new Vec2(0, 1020),
     },
 
@@ -95,12 +95,12 @@ describe('Non dictated placement', () => {
     {
       desc: 'Multiple nodes',
       nodes: map(range(0, 1001, 20), rectAtX(1050)),
-      pos: new Vec2(1050, 1044),
+      pos: new Vec2(1090, 1044),
     },
     {
       desc: 'Multiple nodes with gap',
       nodes: map(range(1000, -1, -20), rectAtX(1050)),
-      pos: new Vec2(1050, 1044),
+      pos: new Vec2(1090, 1044),
     },
     {
       desc: 'Multiple nodes with gap 2',
@@ -108,17 +108,17 @@ describe('Non dictated placement', () => {
         map(range(500, 901, 20), rectAtX(1050)),
         map(range(1000, 1501, 20), rectAtX(1050)),
       ),
-      pos: new Vec2(1050, 944),
+      pos: new Vec2(1090, 944),
     },
     {
       desc: 'Multiple nodes with gap (just big enough)',
       nodes: map(range(690, 1500, 88), rectAtX(1050)),
-      pos: new Vec2(1050, 734),
+      pos: new Vec2(1090, 734),
     },
     {
       desc: 'Multiple nodes with gap (slightly too small)',
       nodes: map(range(500, 849, 87), rectAtX(1050)),
-      pos: new Vec2(1050, 892),
+      pos: new Vec2(1090, 892),
     },
     {
       desc: 'Multiple nodes with smallest gap',
@@ -126,7 +126,7 @@ describe('Non dictated placement', () => {
         map(range(500, 901, 20), rectAtX(1050)),
         map(range(988, 1489, 20), rectAtX(1050)),
       ),
-      pos: new Vec2(1050, 944),
+      pos: new Vec2(1090, 944),
     },
     {
       desc: 'Multiple nodes with smallest gap (reverse)',
@@ -134,7 +134,7 @@ describe('Non dictated placement', () => {
         map(range(1488, 987, -20), rectAtX(1050)),
         map(range(900, 499, -20), rectAtX(1050)),
       ),
-      pos: new Vec2(1050, 944),
+      pos: new Vec2(1090, 944),
     },
     {
       desc: 'Multiple nodes with gap that is too small',
@@ -144,7 +144,7 @@ describe('Non dictated placement', () => {
       ),
       // This gap is 1px smaller than the previous test - so, 1px too small.
       // This position is offscreen (y >= 1000), so we pan so that the new node is centered (1531 - 690).
-      pos: new Vec2(1050, 1531),
+      pos: new Vec2(1090, 1531),
       pan: new Vec2(0, 841),
     },
     {
@@ -153,16 +153,15 @@ describe('Non dictated placement', () => {
         map(range(900, 499, -20), rectAtX(1050)),
         map(range(1487, 986, -20), rectAtX(1050)),
       ),
-      pos: new Vec2(1050, 1531),
+      pos: new Vec2(1090, 1531),
       pan: new Vec2(0, 841),
     },
   ])('$desc', ({ nodes, pos, gap, pan }) => {
     expect(
-      nonDictatedPlacement(
-        nodeSize,
-        nonDictatedEnvironment(nodes),
-        gap ? { horizontalGap: gap, verticalGap: gap } : {},
-      ),
+      nonDictatedPlacement(nodeSize, nonDictatedEnvironment(nodes), {
+        horizontalGap: gap ?? 24,
+        verticalGap: gap ?? 24,
+      }),
     ).toEqual({ position: pos, pan })
     expect(getSelectedNodeRects, 'Should not depend on `selectedNodeRects`').not.toHaveBeenCalled()
     expect(getMousePosition, 'Should not depend on `mousePosition`').not.toHaveBeenCalled()
@@ -218,36 +217,36 @@ describe('Previous node dictated placement', () => {
 
   test.each([
     // === Single node tests ===
-    { desc: 'Single node', nodes: [], pos: new Vec2(1050, 734) },
+    { desc: 'Single node', nodes: [], pos: new Vec2(1090, 734) },
     {
       desc: 'Single node (far enough up that it does not overlap)',
-      nodes: [rectAt(1150, 714)],
-      pos: new Vec2(1050, 734),
+      nodes: [rectAt(1189, 714)],
+      pos: new Vec2(1090, 734),
     },
     {
       desc: 'Single node (far enough down that it does not overlap)',
-      nodes: [rectAt(1150, 754)],
-      pos: new Vec2(1050, 734),
+      nodes: [rectAt(1189, 754)],
+      pos: new Vec2(1090, 734),
     },
     {
       desc: 'Single node (far enough left that it does not overlap)',
-      nodes: [rectAt(926, 734)],
-      pos: new Vec2(1050, 734),
+      nodes: [rectAt(966, 734)],
+      pos: new Vec2(1090, 734),
     },
     {
       desc: 'Single node (overlapping on the left by 1px)',
-      nodes: [rectAt(927, 734)],
-      pos: new Vec2(1051, 734),
+      nodes: [rectAt(967, 734)],
+      pos: new Vec2(1091, 734),
     },
     {
       desc: 'Single node (blocking initial position)',
-      nodes: [rectAt(1050, 734)],
-      pos: new Vec2(1174, 734),
+      nodes: [rectAt(1090, 734)],
+      pos: new Vec2(1214, 734),
     },
     {
       desc: 'Single node (far enough right that it does not overlap)',
       nodes: [rectAt(1174, 690)],
-      pos: new Vec2(1050, 734),
+      pos: new Vec2(1090, 734),
     },
     {
       desc: 'Single node (overlapping on the right by 1px)',
@@ -268,14 +267,14 @@ describe('Previous node dictated placement', () => {
       desc: 'Single node (BIG gap)',
       nodes: [],
       gap: 1000,
-      pos: new Vec2(1050, 1710),
+      pos: new Vec2(1090, 1710),
       pan: new Vec2(0, 1020),
     },
     {
       desc: 'Single node (BIG gap, overlapping on the left by 1px)',
-      nodes: [rectAt(927, 1710)],
+      nodes: [rectAt(967, 1710)],
       gap: 1000,
-      pos: new Vec2(2027, 1710),
+      pos: new Vec2(2067, 1710),
       pan: new Vec2(977, 1020),
     },
 
@@ -284,13 +283,13 @@ describe('Previous node dictated placement', () => {
       desc: 'Multiple nodes',
       nodes: map(range(1000, 2001, 100), rectAtY(734)),
       pos: new Vec2(2124, 734),
-      pan: new Vec2(1074, 44),
+      pan: new Vec2(1034, 44),
     },
     {
       desc: 'Multiple nodes (reverse)',
       nodes: map(range(2000, 999, -100), rectAtY(734)),
       pos: new Vec2(2124, 734),
-      pan: new Vec2(1074, 44),
+      pan: new Vec2(1034, 44),
     },
     {
       desc: 'Multiple nodes with gap',
@@ -333,7 +332,7 @@ describe('Previous node dictated placement', () => {
         map(range(1647, 1948, 100), rectAtY(734)),
       ),
       pos: new Vec2(2071, 734),
-      pan: new Vec2(1021, 44),
+      pan: new Vec2(981, 44),
     },
     {
       desc: 'Multiple nodes with gap that is too small (each range reversed)',
@@ -342,14 +341,14 @@ describe('Previous node dictated placement', () => {
         map(range(1947, 1646, -100), rectAtY(734)),
       ),
       pos: new Vec2(2071, 734),
-      pan: new Vec2(1021, 44),
+      pan: new Vec2(981, 44),
     },
   ])('$desc', ({ nodes, gap, pos, pan }) => {
     expect(
       previousNodeDictatedPlacement(
         nodeSize,
-        previousNodeDictatedEnvironment([...nodes, rectAt(1050, 690)]),
-        gap != null ? { horizontalGap: gap, verticalGap: gap } : {},
+        previousNodeDictatedEnvironment([...nodes, rectAt(1090, 690)]),
+        { horizontalGap: gap ?? 24, verticalGap: gap ?? 24 },
       ),
     ).toEqual({ position: pos, pan })
     expect(getMousePosition, 'Should not depend on `mousePosition`').not.toHaveBeenCalled()

@@ -36,7 +36,7 @@ export function nonDictatedPlacement(
   { screenBounds, nodeRects }: Environment,
   { verticalGap = theme.node.vertical_gap }: PlacementOptions = {},
 ): Placement {
-  const initialPosition = screenBounds.center().sub(nodeSize.scale(0.5))
+  const initialPosition = screenBounds.center().sub(new Vec2(nodeSize.y / 2, nodeSize.y / 2))
   const initialRect = new Rect(initialPosition, nodeSize)
   let top = initialPosition.y
   const height = nodeSize.y
@@ -62,7 +62,7 @@ export function nonDictatedPlacement(
  * In case the place is offscreen, the camera should be panned accordingly.
  *
  * Specifically, this code, in order:
- * - uses the left side of the first selected node and as the initial x-position
+ * - uses the left side of the first selected node as the initial x-position
  * - uses the lowest (highest y-position) of all selected nodes, plus the specified gap,
  *   as the initial y-position
  * - searches for all horizontal spans to the right of the initial position,
@@ -108,7 +108,7 @@ export function previousNodeDictatedPlacement(
   const finalPosition = new Vec2(left, top)
   if (new Rect(finalPosition, nodeSize).within(screenBounds)) return { position: finalPosition }
   else {
-    const screenCenter = screenBounds.center().sub(nodeSize.scale(0.5))
+    const screenCenter = screenBounds.center().sub(new Vec2(nodeSize.y / 2, nodeSize.y / 2))
     return { position: finalPosition, pan: finalPosition.sub(screenCenter) }
   }
 }
