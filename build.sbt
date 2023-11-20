@@ -1392,12 +1392,6 @@ lazy val runtime = (project in file("engine/runtime"))
     version := ensoVersion,
     commands += WithDebugCommand.withDebug,
     inConfig(Compile)(truffleRunOptionsSettings),
-    inConfig(Benchmark)(Defaults.testSettings),
-    Benchmark / javacOptions --= Seq(
-      "-source",
-      frgaalSourceLevel,
-      "--enable-preview"
-    ),
     Test / parallelExecution := false,
     Test / logBuffered := false,
     Test / testOptions += Tests.Argument(
@@ -1479,11 +1473,20 @@ lazy val runtime = (project in file("engine/runtime"))
         (Benchmark / testOnly).toTask(" -- -z " + name).value
       }
     }.evaluated,
-    Benchmark / parallelExecution := false
   )
+  /** Benchmark settings  */
   .settings(
+    inConfig(Benchmark)(Defaults.testSettings),
+    Benchmark / javacOptions --= Seq(
+      "-source",
+      frgaalSourceLevel,
+      "--enable-preview"
+    ),
     (Benchmark / javaOptions) :=
-      (LocalProject("std-benchmarks") / Benchmark / run / javaOptions).value
+      (LocalProject("std-benchmarks") / Benchmark / run / javaOptions).value,
+    (Benchmark / javaOptions) ++= benchOnlyOptions,
+    Benchmark / fork := true,
+    Benchmark / parallelExecution := false
   )
   .dependsOn(`common-polyglot-core-utils`)
   .dependsOn(`edition-updater`)
