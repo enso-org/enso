@@ -17,7 +17,7 @@ export { EditorView, tooltips, type TooltipView } from '@codemirror/view'
 export { type Highlighter } from '@lezer/highlight'
 export { minimalSetup } from 'codemirror'
 export { yCollab } from 'y-codemirror.next'
-import { AstExtended, RawAst } from '@/util/ast'
+import { RawAst } from '@/util/ast'
 import {
   Language,
   LanguageSupport,
@@ -39,6 +39,7 @@ import {
 } from '@lezer/common'
 import { styleTags, tags } from '@lezer/highlight'
 import { EditorView } from 'codemirror'
+import {AstExtended} from "@/util/ast/extended"
 
 type AstNode = AstExtended<RawAst.Tree | RawAst.Token, false>
 

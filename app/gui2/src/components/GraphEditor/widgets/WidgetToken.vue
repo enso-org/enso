@@ -7,7 +7,7 @@ const props = defineProps<WidgetProps>()
 
 const rootNode = ref<HTMLElement>()
 
-const spanClass = computed(() => widgetToken(props.input)?.tokenTypeName())
+const spanClass = computed(() => widgetToken(props.input)?.typeName())
 const repr = computed(() => widgetAst(props.input)?.code())
 </script>
 

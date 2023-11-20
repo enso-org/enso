@@ -16,6 +16,8 @@ import {
   type VisualizationMetadata,
 } from 'shared/yjsModel'
 import { ref, type Ref } from 'vue'
+import type {AstExtended} from "@/util/ast/extended";
+import {RawAst} from "@/util/ast";
 
 export class GraphDb {
   nodes = new ReactiveDb<ExprId, Node>()
@@ -101,7 +103,7 @@ export class GraphDb {
     this.nodes.moveToLast(id)
   }
 
-  readFunctionAst(functionAst: Function, getMeta: (id: ExprId) => NodeMetadata | undefined) {
+  readFunctionAst(functionAst_old: AstExtended<RawAst.Tree.Function>, functionAst: Function, getMeta: (id: ExprId) => NodeMetadata | undefined) {
     const currentNodeIds = new Set<ExprId>()
     if (functionAst) {
       for (const nodeAst of getFunctionNodeExpressions(functionAst)) {

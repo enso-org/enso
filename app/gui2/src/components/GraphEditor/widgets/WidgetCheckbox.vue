@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import CheckboxWidget from '@/components/widgets/CheckboxWidget.vue'
-import { Tree } from '@/generated/ast'
 import { Score, defineWidget, widgetAst, type WidgetProps } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
 import type { Ast } from '@/util/ast/abstract'
 import { computed } from 'vue'
+import {PropertyAccess} from "@/util/ast/abstract.ts"
 
 const props = defineProps<WidgetProps>()
 const graph = useGraphStore()
@@ -24,7 +24,7 @@ const value = computed({
 <script lang="ts">
 function getRawBoolNode(ast: Ast) {
   const candidate =
-    ast.isTree(Tree.Type.OprApp) && ast.code().startsWith('Boolean.')
+    ast instanceof PropertyAccess && ast.code().startsWith('Boolean.')
       ? ast.tryMap((t) => t.rhs)
       : ast
   if (

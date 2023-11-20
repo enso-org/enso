@@ -1,4 +1,5 @@
 import * as RawAst from '@/generated/ast'
+import * as Ast from '@/util/ast/abstract'
 import { Token, Tree } from '@/generated/ast'
 import { assert } from '@/util/assert'
 import { parse } from '@/util/ffi'

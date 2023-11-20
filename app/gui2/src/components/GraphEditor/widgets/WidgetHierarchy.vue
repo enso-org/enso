@@ -7,7 +7,7 @@ import { computed } from 'vue'
 
 const props = defineProps<WidgetProps>()
 
-const spanClass = computed(() => widgetAst(props.input)?.treeTypeName())
+const spanClass = computed(() => widgetAst(props.input)?.typeName())
 const children = computed(() => [...(widgetAst(props.input)?.children() ?? [])])
 
 function shouldNest(child: Expression, index: number) {
