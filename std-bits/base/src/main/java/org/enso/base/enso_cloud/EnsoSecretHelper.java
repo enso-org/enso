@@ -16,10 +16,15 @@ import java.util.Properties;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-/***
+/**
  * Makes HTTP requests with secrets in either header or query string.
  */
 public class EnsoSecretHelper {
+  /**
+   * Gets the value of an EnsoKeyValuePair resolving secrets.
+   * @param pair The pair to resolve.
+   * @return The pair's value. Should not be returned to Enso.
+   */
   private static String resolveValue(EnsoKeyValuePair pair) {
     return switch (pair) {
       case EnsoKeyStringPair stringPair -> stringPair.value();
@@ -30,6 +35,11 @@ public class EnsoSecretHelper {
     };
   }
 
+  /**
+   * Converts an EnsoKeyValuePair into a string for display purposes. Does not include secrets.
+   * @param pair The pair to render.
+   * @return The rendered string.
+   */
   private static String renderValue(EnsoKeyValuePair pair) {
     return switch (pair) {
       case EnsoKeyStringPair stringPair -> stringPair.value();
@@ -39,7 +49,9 @@ public class EnsoSecretHelper {
     };
   }
 
-  /** Substitutes the minimal parts within the string for the URI parse. */
+  /**
+   * Substitutes the minimal parts within the string for the URI parse.
+   * */
   public static String encodeArg(String arg, boolean includeEquals) {
     var encoded = arg.replace("%", "%25")
         .replace("&", "%26")
@@ -48,6 +60,18 @@ public class EnsoSecretHelper {
       encoded = encoded.replace("=", "%3D");
     }
     return encoded;
+  }
+
+    /**
+     * Replaces the query string in a URI.
+     * */
+  public static URI replaceQuery(URI uri, String newQuery) throws URISyntaxException {
+    var baseURI = new URI(uri.getScheme(), uri.getAuthority(), uri.getPath(), null, null).toString();
+
+    var baseFragment = uri.getFragment();
+    baseFragment = baseFragment != null && !baseFragment.isBlank() ? "#" + baseFragment : "";
+
+    return URI.create(baseURI + newQuery + baseFragment);
   }
 
   private static String makeQueryAry(EnsoKeyValuePair pair, Function<EnsoKeyValuePair, String> resolver) {
@@ -76,16 +100,11 @@ public class EnsoSecretHelper {
     URI renderedURI = uri;
     if (queryArguments != null && !queryArguments.isEmpty()) {
       try {
-        var baseURI = new URI(uri.getScheme(), uri.getAuthority(), uri.getPath(), null, null).toString();
-
         var baseQuery = uri.getQuery();
         baseQuery = baseQuery != null && !baseQuery.isBlank() ? "?" + baseQuery + "&" : "?";
         var query = baseQuery + queryArguments.stream().map(p -> makeQueryAry(p, EnsoSecretHelper::resolveValue)).collect(Collectors.joining("&"));
 
-        var baseFragment = uri.getFragment();
-        baseFragment = baseFragment != null && !baseFragment.isBlank() ? "#" + baseFragment : "";
-
-        resolvedURI = URI.create(baseURI + query + baseFragment);
+        resolvedURI = replaceQuery(uri, query);
         renderedURI = resolvedURI;
         if (queryArguments.stream().anyMatch(p -> p instanceof EnsoKeySecretPair)) {
           if (!resolvedURI.getScheme().equals("https")) {
@@ -94,7 +113,7 @@ public class EnsoSecretHelper {
           }
 
           var renderedQuery = baseQuery + queryArguments.stream().map(p -> makeQueryAry(p, EnsoSecretHelper::renderValue)).collect(Collectors.joining("&"));
-          renderedURI = URI.create(baseURI + renderedQuery + baseFragment);
+          renderedURI = replaceQuery(uri, renderedQuery);
         }
       } catch (URISyntaxException e) {
         throw new IllegalArgumentException("Unable to build a valid URI.");
@@ -115,8 +134,11 @@ public class EnsoSecretHelper {
     var javaResponse = client.send(httpRequest, bodyHandler);
 
     // Extract parts of the response
-    return new EnsoHttpResponse(renderedURI, javaResponse.headers(), javaResponse.body(), javaResponse.statusCode());
+    return new EnsoHttpResponse(renderedURI, javaResponse.headers().map().keySet().stream().toList(), javaResponse.headers(), javaResponse.body(), javaResponse.statusCode());
   }
 
-  public record EnsoHttpResponse(URI uri, HttpHeaders headers, InputStream body, int statusCode) { }
+  /**
+   * A subset of the HttpResponse to avoid leaking the decrypted Enso secrets.
+   */
+  public record EnsoHttpResponse(URI uri, List<String> headerNames, HttpHeaders headers, InputStream body, int statusCode) { }
 }
