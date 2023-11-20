@@ -1,9 +1,10 @@
-import { expect, test } from '@playwright/test'
+import { test } from '@playwright/test'
 import * as actions from './actions'
+import * as customExpect from './customExpect'
 import * as locate from './locate'
 
 test('graph can open and render nodes', async ({ page }) => {
   await actions.goToGraph(page)
-  await expect(locate.graphEditor(page, (f) => f.visible())).toExist()
-  await expect(locate.graphNode(page, (f) => f.visible())).toExist()
+  await customExpect.toExist(locate.graphEditor(page))
+  await customExpect.toExist(locate.graphNode(page))
 })

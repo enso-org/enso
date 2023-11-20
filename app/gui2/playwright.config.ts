@@ -4,7 +4,7 @@
  * (see below).
  * - System validation dialogs are not reliable between computers, as they may have different
  * default fonts. */
-import { defineConfig, expect, type Locator } from '@playwright/test'
+import { defineConfig } from '@playwright/test'
 
 const DEBUG = process.env.DEBUG_E2E === 'true'
 
@@ -86,38 +86,5 @@ export default defineConfig({
     command: process.env.CI ? 'E2E=true vite preview --port 5173' : 'E2E=true vite dev',
     port: 5173,
     reuseExistingServer: !process.env.CI,
-  },
-})
-
-expect.extend({
-  async toExist(locator: Locator) {
-    let pass: boolean
-    try {
-      // TODO: This can potentially be replaced with `expect.toBeVisible()` to provide better error messages.
-      // Ideally this should be renamed `toHaveSomeVisible` and the logic changed appropriately.
-      if (this.isNot) expect(await locator.count()).toBe(0)
-      else expect(await locator.count()).toBeGreaterThan(0)
-      pass = true
-    } catch {
-      pass = false
-    }
-    const message = pass
-      ? () =>
-          this.utils.matcherHint('toHaveAmount', undefined, undefined, { isNot: this.isNot }) +
-          '\n\n' +
-          `Locator: ${locator}\n` +
-          (this.isNot
-            ? 'Expected no elements to be visible\n'
-            : 'Expected at least one element to be visible\n')
-      : () =>
-          this.utils.matcherHint('toHaveAmount', undefined, undefined) +
-          '\n\n' +
-          `Locator: ${locator}\n` +
-          `Expected at least one element to be visible\n`
-    return {
-      message,
-      pass,
-      name: 'toHaveAmount',
-    }
   },
 })

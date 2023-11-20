@@ -8,8 +8,7 @@
     "histoire.config.ts",
     "e2e/**/*",
     "parser-codegen/**/*",
-    "node.env.d.ts",
-    "node.globals.d.ts"
+    "node.env.d.ts"
   ],
   "compilerOptions": {
     "baseUrl": ".",

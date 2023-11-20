@@ -32,6 +32,7 @@ class Filter {
     return this.selector
   }
 }
+
 // ================
 // === Locators ===
 // ================
@@ -128,7 +129,8 @@ function componentLocator<T extends string>(className: SanitizeClassName<T>) {
 
 export const graphEditor = componentLocator('GraphEditor')
 export const graphNode = componentLocator('GraphNode')
-export const graphVisualization = componentLocator('GraphVisualization')
+// @ts-expect-error
+export const anyVisualization = componentLocator('GraphVisualization > *')
 export const circularMenu = componentLocator('CircularMenu')
 export const componentBrowser = componentLocator('ComponentBrowser')
 
