@@ -674,7 +674,7 @@ type Array
     contains : Any -> Boolean
     contains self elem = self.any (== elem)
 
-    ## ALIAS combine, merge, join by row position
+    ## ALIAS combine, join by row position, merge
        GROUP Calculations
        Performs a pair-wise operation passed in `function` on consecutive
        elements of `self` and `that`.
