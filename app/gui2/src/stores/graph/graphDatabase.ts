@@ -4,7 +4,7 @@ import { Ast, AstExtended } from '@/util/ast'
 import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
 import { colorFromString } from '@/util/colors'
 import { ComputedValueRegistry, type ExpressionInfo } from '@/util/computedValueRegistry'
-import { MappedKeyMap } from '@/util/containers'
+import { MappedKeyMap, MappedSet } from '@/util/containers'
 import { ReactiveDb, ReactiveIndex, ReactiveMapping } from '@/util/database/reactiveDb'
 import type { Opt } from '@/util/opt'
 import { qnJoin, tryQualifiedName } from '@/util/qualifiedName'
@@ -21,76 +21,95 @@ import {
 } from 'shared/yjsModel'
 import { ref, type Ref } from 'vue'
 
-export interface AliasInfo {
-  identifier: AstExtended
+export interface BindingInfo {
+  identifier: string
   usages: Set<ExprId>
 }
 
-export class ConnectionsDb {
-  aliases = new ReactiveDb<ExprId, AliasInfo>()
-  identifiers = new ReactiveIndex(this.aliases, (alias, info) => [[info.identifier.repr(), alias]])
+export class BindingsDb {
+  bindings = new ReactiveDb<ExprId, BindingInfo>()
+  identifiers = new ReactiveIndex(this.bindings, (id, info) => [[info.identifier, id]])
 
   readFunctionAst(ast: AstExtended<Ast.Tree.Function>) {
+    // TODO[ao]: Rename 'alias' to 'binding' in AliasAnalyzer and it's more accurate term.
     const analyzer = new AliasAnalyzer(ast.parsedCode, ast.inner)
     analyzer.process()
-    const aliasRangeToTree = new MappedKeyMap<ContentRange, AstExtended | undefined>(
-      IdMap.keyForRange,
-    )
-    const aliasIdToRange = new Map<ExprId, ContentRange>()
-    for (const [alias, usages] of analyzer.aliases) {
-      aliasRangeToTree.set(alias, undefined)
-      for (const usage of usages) aliasRangeToTree.set(usage, undefined)
-    }
-    ast.visitRecursive((ast) => {
-      if (aliasRangeToTree.has(ast.span())) {
-        aliasRangeToTree.set(ast.span(), ast)
-        aliasIdToRange.set(ast.astId, ast.span())
-      }
-      return true
-    })
 
-    for (const key of this.aliases.keys()) {
-      const range = aliasIdToRange.get(key)
+    const [bindingRangeToTree, bindingIdToRange] = BindingsDb.rangeMappings(ast, analyzer)
+
+    // Remove old keys.
+    for (const key of this.bindings.keys()) {
+      const range = bindingIdToRange.get(key)
       if (range == null || !analyzer.aliases.has(range)) {
-        this.aliases.delete(key)
+        this.bindings.delete(key)
       }
     }
 
-    for (const [alias, usages] of analyzer.aliases) {
-      const aliasAst = aliasRangeToTree.get(alias)
+    // Add or update bindings.
+    for (const [bindingRange, usagesRanges] of analyzer.aliases) {
+      const aliasAst = bindingRangeToTree.get(bindingRange)
       if (aliasAst == null) continue
-      const info = this.aliases.get(aliasAst.astId)
+      const info = this.bindings.get(aliasAst.astId)
       if (info == null) {
         function* usageIds() {
-          for (const usage of usages) {
-            const usageAst = aliasRangeToTree.get(usage)
+          for (const usageRange of usagesRanges) {
+            const usageAst = bindingRangeToTree.get(usageRange)
             if (usageAst != null) yield usageAst.astId
           }
         }
-        this.aliases.set(aliasAst.astId, {
-          identifier: aliasAst,
+        this.bindings.set(aliasAst.astId, {
+          identifier: aliasAst.repr(),
           usages: new Set(usageIds()),
         })
       } else {
-        if (indexedDB.cmp(aliasAst.contentHash(), info.identifier.contentHash())) {
-          info.identifier = aliasAst
-        }
+        const newIdentifier = aliasAst.repr()
+        if (info.identifier != newIdentifier) info.identifier = newIdentifier
+        // Remove old usages.
         for (const usage of info.usages) {
-          const range = aliasIdToRange.get(usage)
-          if (range == null || !usages.has(range)) info.usages.delete(usage)
+          const range = bindingIdToRange.get(usage)
+          if (range == null || !usagesRanges.has(range)) info.usages.delete(usage)
         }
-        for (const usage of usages) {
-          const usageAst = aliasRangeToTree.get(usage)
+        // Add or update usages.
+        for (const usageRange of usagesRanges) {
+          const usageAst = bindingRangeToTree.get(usageRange)
           if (usageAst != null && !info.usages.has(usageAst.astId)) info.usages.add(usageAst.astId)
         }
       }
     }
   }
+
+  /** Create mappings between bindings' ranges and AST
+   *
+   * The AliasAnalyzer is general and returns ranges, but we're interested in AST nodes. This
+   * method creates mappings in both ways. For given range, only the shallowest AST node will be
+   * assigned (Ast.Tree.Identifier, not Ast.Token.Identifier).
+   */
+  private static rangeMappings(
+    ast: AstExtended,
+    analyzer: AliasAnalyzer,
+  ): [MappedKeyMap<ContentRange, AstExtended>, Map<ExprId, ContentRange>] {
+    const bindingRangeToTree = new MappedKeyMap<ContentRange, AstExtended>(IdMap.keyForRange)
+    const bindingIdToRange = new Map<ExprId, ContentRange>()
+    const bindingRanges = new MappedSet(IdMap.keyForRange)
+    for (const [binding, usages] of analyzer.aliases) {
+      bindingRanges.add(binding)
+      for (const usage of usages) bindingRanges.add(usage)
+    }
+    ast.visitRecursive((ast) => {
+      if (bindingRanges.has(ast.span())) {
+        bindingRangeToTree.set(ast.span(), ast)
+        bindingIdToRange.set(ast.astId, ast.span())
+        return false
+      }
+      return true
+    })
+    return [bindingRangeToTree, bindingIdToRange]
+  }
 }
 
 export class GraphDb {
   nodes = new ReactiveDb<ExprId, Node>()
-  private connectionsDb = new ConnectionsDb()
+  private bindings = new BindingsDb()
 
   constructor(
     private suggestionDb: SuggestionDb,
@@ -115,9 +134,7 @@ export class GraphDb {
     return Array.from(exprs, (expr) => [id, expr])
   })
 
-  nodeByPattern = new ReactiveIndex(this.nodes, (id, entry) => [[entry.pattern?.repr(), id]])
-
-  connections = new ReactiveIndex(this.connectionsDb.aliases, (alias, info) => {
+  connections = new ReactiveIndex(this.bindings.bindings, (alias, info) => {
     const srcNode = this.getPatternExpressionNodeId(alias)
     // Display connection starting from existing node.
     //TODO[ao]: When implementing input nodes, they should be taken into account here.
@@ -131,6 +148,14 @@ export class GraphDb {
       }
     }
     return Array.from(allTargets(this))
+  })
+
+  nodeMainOutputPort = new ReactiveIndex(this.nodes, (id, entry) => {
+    if (entry.pattern == null) return []
+    for (const ast of entry.pattern.walkRecursive()) {
+      if (this.bindings.bindings.has(ast.astId)) return [[id, ast.astId]]
+    }
+    return []
   })
 
   nodeExpressionInfo = new ReactiveMapping(this.nodes, (id, _entry) =>
@@ -164,6 +189,11 @@ export class GraphDb {
     return this.nodes.get(id)
   }
 
+  getNodeMainOutputPortIdentifier(id: ExprId): string | undefined {
+    const mainPort = set.first(this.nodeMainOutputPort.lookup(id))
+    return mainPort != null ? this.bindings.bindings.get(mainPort)?.identifier : undefined
+  }
+
   allNodes(): IterableIterator<[ExprId, Node]> {
     return this.nodes.entries()
   }
@@ -181,19 +211,20 @@ export class GraphDb {
   }
 
   getIdentDefiningNode(ident: string): ExprId | undefined {
-    return set.first(this.nodeByPattern.lookup(ident))
+    const binding = set.first(this.bindings.identifiers.lookup(ident))
+    return this.getPatternExpressionNodeId(binding)
   }
 
   getExpressionInfo(id: ExprId): ExpressionInfo | undefined {
     return this.valuesRegistry.getExpressionInfo(id)
   }
 
-  getIdentifierOfConnection(source: ExprId): AstExtended | undefined {
-    return this.connectionsDb.aliases.get(source)?.identifier
+  getIdentifierOfConnection(source: ExprId): string | undefined {
+    return this.bindings.bindings.get(source)?.identifier
   }
 
   identifierUsed(ident: string): boolean {
-    return this.connectionsDb.identifiers.hasKey(ident)
+    return this.bindings.identifiers.hasKey(ident)
   }
 
   getNodeColorStyle(id: ExprId): string {
@@ -239,7 +270,7 @@ export class GraphDb {
         this.nodes.delete(nodeId)
       }
     }
-    this.connectionsDb.readFunctionAst(functionAst)
+    this.bindings.readFunctionAst(functionAst)
   }
 
   assignUpdatedMetadata(node: Node, meta: NodeMetadata) {

@@ -49,7 +49,7 @@ function createEdge(source: ExprId, target: ExprId) {
   const ident = graph.db.getIdentifierOfConnection(source)
   if (ident == null) return
   // TODO: Check alias analysis to see if the binding is shadowed.
-  graph.setExpressionContent(target, ident.repr())
+  graph.setExpressionContent(target, ident)
   // TODO: Use alias analysis to ensure declarations are in a dependency order.
 }
 </script>

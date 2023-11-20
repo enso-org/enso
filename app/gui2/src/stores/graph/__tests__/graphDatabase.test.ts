@@ -32,7 +32,7 @@ test('Reading graph from definition', () => {
   idMap.insertKnownId([43, 48], id09)
   idMap.insertKnownId([51, 52], id10)
 
-  const db = new GraphDb(new SuggestionDb(), ref([]), ComputedValueRegistry.Mock())
+  const db = GraphDb.Mock()
   const ast = AstExtended.parse(code, idMap)
   assert(ast.isTree(Ast.Tree.Type.BodyBlock))
   const func = ast.tryMap((block) => {
@@ -64,6 +64,6 @@ test('Reading graph from definition', () => {
   expect(Array.from(db.connections.allForward(), ([key]) => key)).toEqual([id03])
   // expect(Array.from(db.connections.lookup(id02))).toEqual([id05])
   expect(Array.from(db.connections.lookup(id03))).toEqual([id09])
-  // expect(db.getIdentifierOfConnection(id02)?.repr()).toBe('a')
-  expect(db.getIdentifierOfConnection(id03)?.repr()).toBe('node1')
+  // expect(db.getIdentifierOfConnection(id02)).toBe('a')
+  expect(db.getIdentifierOfConnection(id03)).toBe('node1')
 })

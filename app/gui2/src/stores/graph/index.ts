@@ -262,10 +262,6 @@ export const useGraphStore = defineStore('graph', () => {
     editedNodeInfo.value = { id, range }
   }
 
-  function getNodeBinding(id: ExprId): string {
-    return db.nodes.get(id)?.pattern?.repr() ?? ''
-  }
-
   return {
     transact,
     db: markRaw(db),
@@ -290,7 +286,6 @@ export const useGraphStore = defineStore('graph', () => {
     updateNodeRect,
     updateExprRect,
     setEditedNode,
-    getNodeBinding,
   }
 })
 
