@@ -1,8 +1,8 @@
 package org.enso.compiler;
 
+import org.enso.compiler.core.ir.Location;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.expression.errors.Syntax;
-import org.enso.syntax.text.Location;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import org.junit.Test;

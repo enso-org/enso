@@ -31,7 +31,7 @@ class GatherDiagnosticsTest extends CompilerTest {
       hasDefaultsSuspended = false,
       None
     )
-    val lam = Function.Lambda(
+    val lam = new Function.Lambda(
       List(
         DefinitionArgument
           .Specified(
@@ -94,10 +94,8 @@ class GatherDiagnosticsTest extends CompilerTest {
             List(),
             None
           ),
-          definition.Method
-            .Explicit(method1Ref, lam, None),
-          definition.Method
-            .Explicit(method2Ref, error3, None)
+          new definition.Method.Explicit(method1Ref, lam, None),
+          new definition.Method.Explicit(method2Ref, error3, None)
         ),
         false,
         None
