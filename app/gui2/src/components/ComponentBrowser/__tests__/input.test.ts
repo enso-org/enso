@@ -291,15 +291,18 @@ test.each([
 )
 
 interface ImportsCase {
+  description: string
   suggestionId: number
   existingImports: { import: Import; span: ContentRange }[]
   initialCode?: string
+  manuallyEditedCode?: string
   expectedCode: string
   expectedImports: RequiredImport[]
 }
 
 test.each([
   {
+    description: 'Basic case of adding required import',
     suggestionId: 3,
     existingImports: [],
     expectedCode: 'Table.new ',
@@ -312,6 +315,7 @@ test.each([
     ],
   },
   {
+    description: 'No need to add already existing import',
     suggestionId: 3,
     existingImports: [
       {
@@ -326,6 +330,7 @@ test.each([
     expectedImports: [],
   },
   {
+    description: 'Importing the head of partially edited qualified name',
     suggestionId: 3,
     existingImports: [],
     initialCode: 'Base.',
@@ -333,15 +338,24 @@ test.each([
     expectedImports: [{ kind: 'Qualified', module: unwrap(tryQualifiedName('Standard.Base')) }],
   },
   {
+    description: 'Importing the head of partially edited qualified name (2)',
     suggestionId: 3,
     existingImports: [],
     initialCode: 'Base.Table.',
     expectedCode: 'Base.Table.new ',
     expectedImports: [{ kind: 'Qualified', module: unwrap(tryQualifiedName('Standard.Base')) }],
   },
+  {
+    description: 'Do not import if user changes input manually after applying suggestion',
+    suggestionId: 3,
+    existingImports: [],
+    manuallyEditedCode: '',
+    expectedCode: '',
+    expectedImports: [],
+  },
 ] as ImportsCase[])(
-  'Required imports when applying ID $suggestionId to $initialCode',
-  ({ suggestionId, existingImports, initialCode, expectedCode, expectedImports }) => {
+  '$description',
+  ({ suggestionId, existingImports, initialCode, manuallyEditedCode, expectedCode, expectedImports }) => {
     initialCode = initialCode ?? ''
     const db = new SuggestionDb()
     db.set(1, makeModule('Standard.Base'))
@@ -354,6 +368,9 @@ test.each([
     input.selection.value = { start: initialCode.length, end: initialCode.length }
     const suggestion = db.get(suggestionId)!
     input.applySuggestion(suggestion)
+    if (manuallyEditedCode != null) {
+      input.code.value = manuallyEditedCode
+    }
     expect(input.code.value).toEqual(expectedCode)
     expect(input.importsToAdd()).toEqual(new Set(expectedImports))
   },
