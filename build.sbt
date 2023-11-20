@@ -1462,7 +1462,15 @@ lazy val runtime = (project in file("engine/runtime"))
       .value
   )
   .settings(
-    bench := (Benchmark / test).tag(Exclusive).value,
+    bench := (Benchmark / test)
+      .tag(Exclusive)
+      .dependsOn(
+        // runtime.jar fat jar needs to be assembled as it is used in the
+        // benchmarks. This dependency is here so that `runtime/bench` works
+        // after clean build.
+        LocalProject("runtime-with-instruments") / assembly
+      )
+      .value,
     benchOnly := Def.inputTaskDyn {
       import complete.Parsers.spaceDelimited
       val name = spaceDelimited("<name>").parsed match {
