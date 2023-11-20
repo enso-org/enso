@@ -627,7 +627,7 @@ type Instrumentor
               if uuid == "expected-uuid" then
                 IO.println "evalutated to "+result.to_text
 
-              Meta.meta .fn . instrument . on_return fn=see_a_b expression="a+b" . activate
+            Meta.meta .fn . instrument . on_return fn=see_a_b expression="a+b" . activate
 
        Arguments:
        - fn: The callback function accepting UUID and computed value
