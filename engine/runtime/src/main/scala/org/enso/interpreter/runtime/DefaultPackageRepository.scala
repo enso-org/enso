@@ -586,7 +586,7 @@ private class DefaultPackageRepository(
       }
       loadedLibraryBindings.get(libraryName)
     }
-    cache.flatMap(_.bindings.entries().get(moduleName))
+    cache.flatMap(_.bindings.findForModule(moduleName))
   }
 
   private def loadDependencies(pkg: Package[TruffleFile]): Unit = {

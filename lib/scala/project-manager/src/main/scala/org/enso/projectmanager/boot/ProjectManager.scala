@@ -189,37 +189,10 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
         )
       }
 
-    val parseProfilingEventsLogPath = ZIO
-      .attempt {
-        Option(options.getOptionValue(Cli.PROFILING_EVENTS_LOG_PATH))
-          .map(Paths.get(_).toAbsolutePath)
-      }
-      .flatMap {
-        case pathOpt @ Some(path) =>
-          ZIO.ifZIO(ZIO.attempt(Files.isDirectory(path)))(
-            onTrue = printLineError(
-              s"Error: ${Cli.PROFILING_EVENTS_LOG_PATH} is a directory: $path"
-            ) *>
-              ZIO.fail(new FileAlreadyExistsException(path.toString)),
-            onFalse = ZIO.succeed(pathOpt)
-          )
-        case None =>
-          ZIO.succeed(None)
-      }
-      .catchAll { err =>
-        printLineError(s"Invalid ${Cli.PROFILING_EVENTS_LOG_PATH} argument.") *>
-        ZIO.fail(err)
-      }
-
     for {
-      profilingEventsLogPath <- parseProfilingEventsLogPath
-      profilingPath          <- parseProfilingPath
-      profilingTime          <- parseProfilingTime
-    } yield ProjectManagerOptions(
-      profilingEventsLogPath,
-      profilingPath,
-      profilingTime
-    )
+      profilingPath <- parseProfilingPath
+      profilingTime <- parseProfilingTime
+    } yield ProjectManagerOptions(profilingPath, profilingTime)
   }
 
   /** The main function of the application, which will be passed the command-line
@@ -240,7 +213,6 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
         logLevel <- setupLogging(verbosity, logMasking)
         procConf = MainProcessConfig(
           logLevel,
-          opts.profilingRuntimeEventsLog,
           opts.profilingPath,
           opts.profilingTime
         )
@@ -271,7 +243,7 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
         ()
       }
       .catchAll { exception =>
-        printLineError(s"Failed to setup logger: ${exception.getMessage()}")
+        printLineError(s"Failed to setup logger: ${exception.getMessage}")
       }
       .as(level)
   }

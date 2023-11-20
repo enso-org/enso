@@ -185,6 +185,9 @@ transport formats, please look [here](./protocol-architecture).
   - [`library/preinstall`](#librarypreinstall)
 - [Runtime Operations](#runtime-operations)
   - [`runtime/getComponentGroups`](#runtimegetcomponentgroups)
+- [Profiling Operations](#profiling-operations)
+  - [`profiling/start`](#profilingstart)
+  - [`profiling/stop`](#profilingstop)
 - [Errors](#errors-75)
   - [`Error`](#error)
   - [`AccessDeniedError`](#accessdeniederror)
@@ -5085,6 +5088,63 @@ interface RuntimeGetComponentGroupsParameters {}
 interface RuntimeGetComponentGroupsResult {
   componentGroups: LibraryComponentGroup[];
 }
+```
+
+#### Errors
+
+None
+
+## Profiling Operations
+
+### `profiling/start`
+
+Sent from the client to the server to initiate gathering the profiling data.
+This command should be followed by the [`profiling/stop`](#profilingstop)
+request to store the gathered data. After the profiling is started, subsequent
+`profiling/start` commands will do nothing.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+interface ProfilingStartParameters {}
+```
+
+#### Result
+
+```typescript
+interface ProfilingStartResult {}
+```
+
+#### Errors
+
+None
+
+### `profiling/stop`
+
+Sent from the client to the server to finish gathering the profiling data. The
+collected data is stored in the `ENSO_DATA_DIRECTORY/profiling` directory. After
+the profiling is stopped, subsequent `profiling/stop` commands will do nothing.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+interface ProfilingStopParameters {}
+```
+
+#### Result
+
+```typescript
+interface ProfilingStopResult {}
 ```
 
 #### Errors

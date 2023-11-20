@@ -28,6 +28,7 @@ import org.enso.pkg.QualifiedName
 import org.enso.polyglot.runtime.Runtime.Api
 
 import java.util.logging.Level
+import scala.annotation.unused
 
 /** A job that upserts a visualization.
   *
@@ -37,7 +38,7 @@ import java.util.logging.Level
   * @param config a visualization config
   */
 class UpsertVisualizationJob(
-  requestId: Option[Api.RequestId],
+  @unused requestId: Option[Api.RequestId],
   val visualizationId: Api.VisualizationId,
   val expressionId: Api.ExpressionId,
   config: Api.VisualizationConfiguration
@@ -70,11 +71,19 @@ class UpsertVisualizationJob(
 
       maybeCallable match {
         case Left(ModuleNotFound(moduleName)) =>
-          replyWithError(Api.ModuleNotFound(moduleName))
+          ctx.endpoint.sendToClient(
+            Api.Response(Api.ModuleNotFound(moduleName))
+          )
           None
 
         case Left(EvaluationFailed(message, result)) =>
-          replyWithExpressionFailedError(message, result)
+          replyWithExpressionFailedError(
+            config.executionContextId,
+            visualizationId,
+            expressionId,
+            message,
+            result
+          )
           None
 
         case Right(EvaluationResult(module, callable, arguments)) =>
@@ -122,22 +131,28 @@ class UpsertVisualizationJob(
   }
 
   private def replyWithExpressionFailedError(
+    contextId: Api.ContextId,
+    visualizationId: Api.VisualizationId,
+    expressionId: Api.ExpressionId,
     message: String,
     executionResult: Option[Api.ExecutionResult.Diagnostic]
   )(implicit ctx: RuntimeContext): Unit = {
+    ctx.executionService.getLogger.log(
+      Level.SEVERE,
+      "Visualization for expression {0} failed: {1} (evaluation result: {2}",
+      Array(expressionId, message, executionResult)
+    )
     ctx.endpoint.sendToClient(
       Api.Response(
-        requestId,
-        Api.VisualizationExpressionFailed(message, executionResult)
+        Api.VisualizationExpressionFailed(
+          Api.VisualizationContext(visualizationId, contextId, expressionId),
+          message,
+          executionResult
+        )
       )
     )
   }
 
-  private def replyWithError(error: Api.Error)(implicit
-    ctx: RuntimeContext
-  ): Unit = {
-    ctx.endpoint.sendToClient(Api.Response(requestId, error))
-  }
 }
 
 object UpsertVisualizationJob {

@@ -1,8 +1,8 @@
 package org.enso.compiler;
 
+import org.enso.compiler.core.ir.Location;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.expression.errors.Syntax;
-import org.enso.syntax.text.Location;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import org.junit.Test;
@@ -28,6 +28,17 @@ public class ErrorCompilerTest extends CompilerTest {
     """);
 
     assertSingleSyntaxError(ir, Syntax.InvalidUnderscore$.MODULE$, "Invalid use of _", 14, 15);
+  }
+
+  @Test
+  public void unaryMinus() throws Exception {
+    var ir = parse("""
+    from Standard.Base import all
+
+    main = Date.new day=-
+    """);
+
+    assertSingleSyntaxError(ir, new Syntax.UnsupportedSyntax("Strange unary -"), "Syntax is not supported yet: Strange unary -", 51, 52);
   }
 
   @Test

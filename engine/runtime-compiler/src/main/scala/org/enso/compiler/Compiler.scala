@@ -257,7 +257,7 @@ class Compiler(
       }
     )
 
-    var requiredModules = modules.flatMap { module =>
+    val requiredModules = modules.flatMap { module =>
       val importedModules = runImportsAndExportsResolution(module, generateCode)
       val isLoadedFromSource =
         (m: Module) => !context.wasLoadedFromCache(m) && !context.isSynthetic(m)
@@ -286,47 +286,11 @@ class Compiler(
       }
     }.distinct
 
-    var hasInvalidModuleRelink = false
     if (irCachingEnabled) {
       requiredModules.foreach { module =>
         ensureParsed(module)
-        if (!context.hasCrossModuleLinks(module)) {
-          val flags =
-            context
-              .getIr(module)
-              .preorder
-              .map(_.passData.restoreFromSerialization(this.context))
-
-          if (!flags.contains(false)) {
-            context.log(
-              Compiler.defaultLogLevel,
-              "Restored links (late phase) for module [{0}].",
-              context.getModuleName(module)
-            )
-          } else {
-            hasInvalidModuleRelink = true
-            context.log(
-              Compiler.defaultLogLevel,
-              "Failed to restore links (late phase) for module [{0}].",
-              context.getModuleName(module)
-            )
-            uncachedParseModule(module, isGenDocs = false)
-          }
-        }
       }
     }
-
-    if (hasInvalidModuleRelink) {
-      context.log(
-        Compiler.defaultLogLevel,
-        s"Some modules failed to relink. Re-running import and " +
-        s"export resolution."
-      )
-
-      requiredModules =
-        modules.flatMap(runImportsAndExportsResolution(_, generateCode))
-    }
-
     requiredModules.foreach { module =>
       if (
         !context
@@ -629,7 +593,6 @@ class Compiler(
         u.ir(discoveredModule)
         u.compilationStage(CompilationStage.AFTER_PARSING)
         u.loadedFromCache(false)
-        u.hasCrossModuleLinks(true)
       }
     )
   }
@@ -892,7 +855,9 @@ class Compiler(
   ): Unit = {
     if (config.isStrictErrors) {
       val diagnostics = modules.flatMap { module =>
-        val errors = gatherDiagnostics(module)
+        val errors =
+          if (context.wasLoadedFromCache(module)) List()
+          else gatherDiagnostics(module)
         List((module, errors))
       }
       if (reportDiagnostics(diagnostics)) {

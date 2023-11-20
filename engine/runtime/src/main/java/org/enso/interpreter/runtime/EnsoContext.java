@@ -65,6 +65,7 @@ import com.oracle.truffle.api.io.TruffleProcessBuilder;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.object.Shape;
 import com.oracle.truffle.api.source.Source;
+import java.net.MalformedURLException;
 
 import scala.jdk.javaapi.OptionConverters;
 
@@ -79,6 +80,7 @@ public final class EnsoContext {
 
   private final EnsoLanguage language;
   private final Env environment;
+  private final HostClassLoader hostClassLoader = new HostClassLoader();
   private final boolean assertionsEnabled;
   private final boolean isPrivateCheckDisabled;
   private @CompilationFinal
@@ -436,7 +438,12 @@ public final class EnsoContext {
   @TruffleBoundary
   public void addToClassPath(TruffleFile file) {
     if (findGuestJava() == null) {
-      environment.addToHostClassPath(file);
+        try {
+            var url = file.toUri().toURL();
+            hostClassLoader.add(url);
+        } catch (MalformedURLException ex) {
+            throw new IllegalStateException(ex);
+        }
     } else {
       try {
         var path = new File(file.toUri()).getAbsoluteFile();
@@ -520,7 +527,7 @@ public final class EnsoContext {
           var fullInnerClassName = curClassName + "$" + String.join("$", nestedClassPart);
           return lookupHostSymbol(pkgName, fullInnerClassName);
         }
-      } catch (RuntimeException | InteropException ex) {
+      } catch (ClassNotFoundException | RuntimeException | InteropException ex) {
         collectedExceptions.add(ex);
       }
     }
@@ -531,9 +538,11 @@ public final class EnsoContext {
   }
 
   private Object lookupHostSymbol(String pkgName, String curClassName)
-          throws UnknownIdentifierException, UnsupportedMessageException {
+          throws ClassNotFoundException, UnknownIdentifierException, UnsupportedMessageException {
     if (findGuestJava() == null) {
-      return environment.lookupHostSymbol(pkgName + "." + curClassName);
+      return environment.asHostSymbol(
+          hostClassLoader.loadClass(pkgName + "." + curClassName)
+      );
     } else {
       return InteropLibrary.getUncached().readMember(findGuestJava(), pkgName + "." + curClassName);
     }

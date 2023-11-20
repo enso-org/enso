@@ -216,28 +216,28 @@ public class VectorTest extends TestBase {
 
     {
       QUERIED.clear();
-      var raw = module.invokeMember("eval_expression", "copy");
+      var copy = module.invokeMember("eval_expression", "copy");
 
-      assertTrue("We got raw array", raw.hasArrayElements());
+      assertTrue("We got copy array", copy.hasArrayElements());
       assertEquals("All elements queried", 10, QUERIED.cardinality());
 
-      assertEquals("at0", raw.getArrayElement(0).asString());
-      assertEquals("at7", raw.getArrayElement(7).asString());
+      assertEquals("at0", copy.getArrayElement(0).asString());
+      assertEquals("at7", copy.getArrayElement(7).asString());
     }
 
 
 
     {
       QUERIED.clear();
-      var raw = module.invokeMember("eval_expression", "lazy");
+      var lazy = module.invokeMember("eval_expression", "lazy");
 
-      assertTrue("We got raw array", raw.hasArrayElements());
+      assertTrue("We got lazy array", lazy.hasArrayElements());
       assertEquals("No query yet", 0, QUERIED.cardinality());
 
-      assertEquals("at0", raw.getArrayElement(0).asString());
+      assertEquals("at0", lazy.getArrayElement(0).asString());
       assertEquals("One query", 1, QUERIED.cardinality());
 
-      assertEquals("at7", raw.getArrayElement(7).asString());
+      assertEquals("at7", lazy.getArrayElement(7).asString());
       assertEquals("Two queries", 2, QUERIED.cardinality());
     }
   }

@@ -226,42 +226,41 @@ class LambdaConsolidateTest extends CompilerTest {
     "collapse lambdas with multiple parameters" in {
       implicit val inlineContext: InlineContext = mkContext
 
-      val ir: Function.Lambda = Function
-        .Lambda(
+      val ir: Function.Lambda = new Function.Lambda(
+        List(
+          DefinitionArgument
+            .Specified(
+              Name
+                .Literal("a", isMethod = false, None),
+              None,
+              None,
+              suspended = false,
+              None
+            ),
+          DefinitionArgument.Specified(
+            Name.Literal("b", isMethod = false, None),
+            None,
+            None,
+            suspended = false,
+            None
+          )
+        ),
+        new Function.Lambda(
           List(
-            DefinitionArgument
-              .Specified(
-                Name
-                  .Literal("a", isMethod = false, None),
-                None,
-                None,
-                suspended = false,
-                None
-              ),
             DefinitionArgument.Specified(
-              Name.Literal("b", isMethod = false, None),
+              Name
+                .Literal("c", isMethod = false, None),
               None,
               None,
               suspended = false,
               None
             )
           ),
-          Function.Lambda(
-            List(
-              DefinitionArgument.Specified(
-                Name
-                  .Literal("c", isMethod = false, None),
-                None,
-                None,
-                suspended = false,
-                None
-              )
-            ),
-            Name.Literal("c", isMethod = false, None),
-            None
-          ),
+          Name.Literal("c", isMethod = false, None),
           None
-        )
+        ),
+        None
+      )
         .runPasses(passManager, inlineContext)
         .optimise
         .asInstanceOf[Function.Lambda]

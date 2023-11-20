@@ -12,11 +12,11 @@ import org.enso.compiler.core.{
 }
 import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.Literal
+import org.enso.compiler.core.ir.Location
 import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.pass.analyse.DataflowAnalysis
 import org.enso.interpreter.instrument.execution.model.PendingEdit
-import org.enso.syntax.text.Location
 import org.enso.text.editing.model.TextEdit
 import org.enso.text.editing.{IndexedSource, TextEditor}
 
@@ -288,7 +288,7 @@ object ChangesetBuilder {
       * @return the node with a new location
       */
     def shift(offset: Int): Node = {
-      val newLocation = location.copy(
+      val newLocation = new Location(
         start = location.start + offset,
         end   = location.end + offset
       )
@@ -359,7 +359,7 @@ object ChangesetBuilder {
               val nodeBetweenPreviousPositionAndNextNode =
                 Node(
                   NodeId(currentIr),
-                  Location(previousPosition, nextNode.location.start),
+                  new Location(previousPosition, nextNode.location.start),
                   false
                 )
               acc += nodeBetweenPreviousPositionAndNextNode
@@ -378,7 +378,7 @@ object ChangesetBuilder {
           if (hasRemainingTextAfterLastChild) {
             val nodeAfterLastChild = Node(
               NodeId(currentIr),
-              Location(lastCoveredPosition, endOfNonLeafIr),
+              new Location(lastCoveredPosition, endOfNonLeafIr),
               false
             )
             acc += nodeAfterLastChild
@@ -491,7 +491,7 @@ object ChangesetBuilder {
     edit: TextEdit,
     source: A
   ): Location = {
-    Location(
+    new Location(
       IndexedSource[A].toIndex(edit.range.start, source),
       IndexedSource[A].toIndex(edit.range.end, source)
     )

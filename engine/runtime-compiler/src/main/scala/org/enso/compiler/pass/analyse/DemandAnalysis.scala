@@ -8,6 +8,7 @@ import org.enso.compiler.core.ir.{
   Empty,
   Expression,
   Function,
+  IdentifiedLocation,
   Literal,
   Module,
   Name,
@@ -185,9 +186,10 @@ case object DemandAnalysis extends IRPass {
     } else {
       name match {
         case lit: Name.Literal if isDefined(lit) =>
-          val forceLocation   = name.location
-          val newNameLocation = name.location.map(l => l.copy(id = None))
-          val newName         = lit.copy(location = newNameLocation)
+          val forceLocation = name.location
+          val newNameLocation =
+            name.location.map(l => new IdentifiedLocation(l.location()))
+          val newName = lit.copy(location = newNameLocation)
           Application.Force(newName, forceLocation)
         case _ => name
       }
