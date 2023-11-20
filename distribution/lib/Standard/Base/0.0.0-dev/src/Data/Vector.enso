@@ -604,7 +604,7 @@ type Vector a
 
     ## PRIVATE
        Implementation of `map` that uses `vector_from_function_primitive`, which
-       does not do error wrapping.
+       does not do error wrapping, and does not have `on_problems`.
     map_primitive : (Any -> Any) -> Vector Any
     map_primitive self function =
         Array_Like_Helpers.vector_from_function_primitive self.length (function << self.at)
