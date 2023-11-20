@@ -189,7 +189,7 @@ export const useGraphStore = defineStore('graph', () => {
     const ident = generateUniqueIdent()
     let importData = undefined
     let additionalOffset = 0
-    if (withImports) {
+    if (withImports && withImports.length > 0) {
       const lastImport = db.imports.value[db.imports.value.length - 1]
       const importOffset = lastImport ? lastImport.span[1] + 1 : 0
       const imports = withImports.map((info) => requiredImportToText(info)).join('\n')

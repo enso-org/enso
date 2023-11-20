@@ -139,7 +139,7 @@ export class DistributedModule {
     const range = [offset + lhs.length, offset + content.length] as const
     const newId = random.uuidv4() as ExprId
     this.transact(() => {
-      if (withImport != null) {
+      if (withImport) {
         this.doc.contents.insert(withImport.offset, withImport.str + '\n')
       }
       this.doc.contents.insert(offset, content + '\n')
