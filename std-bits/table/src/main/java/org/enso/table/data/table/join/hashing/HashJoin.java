@@ -50,7 +50,6 @@ public class HashJoin implements JoinStrategy {
   public JoinResult join(ProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
 
-    // TODO we can optimize and sometimes not create _both_ indices (e.g. if one side is much smaller than the other, it may be beneficial to avoid indexing the larger collection
     var leftIndex = MultiValueIndex.makeUnorderedIndex(leftEquals, conditionsHelper.getLeftTableRowCount(),
         textFoldingStrategies, problemAggregator);
     var rightIndex = MultiValueIndex.makeUnorderedIndex(rightEquals, conditionsHelper.getRightTableRowCount(),
