@@ -41,16 +41,16 @@ import { computed, ref, type ComputedRef } from 'vue'
 export type EditingContext =
   // Suggestion should be inserted at given position.
   | {
-    type: 'insert'
-    position: number
-    oprApp?: GeneralOprApp<false>
-  }
+      type: 'insert'
+      position: number
+      oprApp?: GeneralOprApp<false>
+    }
   // Suggestion should replace given identifier.
   | {
-    type: 'changeIdentifier'
-    identifier: AstExtended<Ast.Tree.Ident, false>
-    oprApp?: GeneralOprApp<false>
-  }
+      type: 'changeIdentifier'
+      identifier: AstExtended<Ast.Tree.Ident, false>
+      oprApp?: GeneralOprApp<false>
+    }
   // Suggestion should replace given literal.
   | { type: 'changeLiteral'; literal: AstExtended<Ast.Tree.TextLiteral | Ast.Tree.Number, false> }
 
@@ -70,7 +70,7 @@ export function useComponentBrowserInput(
     const inputAst = ast.value
     const editedAst = inputAst
       .mapIter((ast) => astContainingChar(editedPart, ast))
-    [Symbol.iterator]()
+      [Symbol.iterator]()
     const leaf = editedAst.next()
     if (leaf.done) return { type: 'insert', position: cursorPosition }
     switch (leaf.value.inner.type) {
@@ -246,9 +246,9 @@ export function useComponentBrowserInput(
   }
 
   /** List of imports required for applied suggestions.
-    *
-    * If suggestion was manually edited by the user after accepting, it is not included. 
-    */
+   *
+   * If suggestion was manually edited by the user after accepting, it is not included.
+   */
   function importsToAdd(): RequiredImport[] {
     const existingImports = graphDb.imports.value
     const finalImports: RequiredImport[] = []
@@ -343,7 +343,7 @@ export function useComponentBrowserInput(
       if (indexOfAlreadyWrittenSegment == null) {
         // We didn’t find the exact match, which probably means the user has written
         // partial names, like `Dat.V.` instead of `Data.Vector`.
-        // In this case we will replace each written segment with the most recent 
+        // In this case we will replace each written segment with the most recent
         // segments of qualified name, and import what’s left.
         indexOfAlreadyWrittenSegment = allSegments.length - 1 - writtenSegments.length
       }

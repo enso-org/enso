@@ -21,8 +21,6 @@ import {
 } from '@/util/qualifiedName'
 import { unwrap } from '@/util/result'
 
-
-
 // ========================
 // === Imports analysis ===
 // ========================
@@ -139,8 +137,6 @@ export interface All {
   kind: 'All'
   except: Identifier[]
 }
-
-
 
 // ========================
 // === Required imports ===

@@ -196,7 +196,13 @@ export const useGraphStore = defineStore('graph', () => {
       additionalOffset += imports.length + 1
       importData = { str: imports, offset: importOffset }
     }
-    return mod.insertNewNode(mod.doc.contents.length + additionalOffset, ident, expression, meta, importData)
+    return mod.insertNewNode(
+      mod.doc.contents.length + additionalOffset,
+      ident,
+      expression,
+      meta,
+      importData,
+    )
   }
 
   function deleteNode(id: ExprId) {
