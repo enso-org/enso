@@ -1,3 +1,4 @@
+import { GraphDb, mockNode } from '@/stores/graph/graphDatabase'
 import type { Import, RequiredImport } from '@/stores/imports'
 import { SuggestionDb } from '@/stores/suggestionDatabase'
 import {
@@ -11,7 +12,7 @@ import {
   makeType,
   type SuggestionEntry,
 } from '@/stores/suggestionDatabase/entry'
-import type { ExpressionInfo } from '@/util/computedValueRegistry'
+import { ComputedValueRegistry } from '@/util/computedValueRegistry'
 import { tryIdentifier, tryQualifiedName } from '@/util/qualifiedName'
 import { unwrap } from '@/util/result'
 import type { ContentRange, ExprId } from 'shared/yjsModel'
@@ -98,26 +99,18 @@ test.each([
   ) => {
     const operator1Id: ExprId = '3d0e9b96-3ca0-4c35-a820-7d3a1649de55' as ExprId
     const operator2Id: ExprId = '5eb16101-dd2b-4034-a6e2-476e8bfa1f2b' as ExprId
-    const graphStoreMock = {
-      identDefinitions: new Map([
-        ['operator1', operator1Id],
-        ['operator2', operator2Id],
-      ]),
-      imports: [],
-    }
-    const dbMock = { entries: new SuggestionDb() }
-    const computedValueRegistryMock = {
-      getExpressionInfo(id: ExprId) {
-        if (id === operator1Id)
-          return {
-            typename: 'Standard.Base.Number',
-            methodCall: undefined,
-            payload: { type: 'Value' },
-            profilingInfo: [],
-          } as ExpressionInfo
-      },
-    }
-    const input = useComponentBrowserInput(graphStoreMock, dbMock, computedValueRegistryMock)
+    const computedValueRegistryMock = ComputedValueRegistry.Mock()
+    computedValueRegistryMock.db.set(operator1Id, {
+      typename: 'Standard.Base.Number',
+      methodCall: undefined,
+      payload: { type: 'Value' },
+      profilingInfo: [],
+    })
+    const [mockGraphDb, suggestionsMock] = GraphDb.Mock(computedValueRegistryMock)
+    mockGraphDb.nodes.set(operator1Id, mockNode('operator1', operator1Id))
+    mockGraphDb.nodes.set(operator2Id, mockNode('operator2', operator2Id))
+
+    const input = useComponentBrowserInput(mockGraphDb, suggestionsMock)
     input.code.value = code
     input.selection.value = { start: cursorPos, end: cursorPos }
     const context = input.context.value
@@ -284,11 +277,8 @@ test.each([
   ({ code, cursorPos, suggestion, expected, expectedCursorPos }) => {
     cursorPos = cursorPos ?? code.length
     expectedCursorPos = expectedCursorPos ?? expected.length
-    const input = useComponentBrowserInput(
-      { identDefinitions: new Map(), imports: [] },
-      { entries: new SuggestionDb() },
-      { getExpressionInfo: (_id) => undefined },
-    )
+    const [graphMock, suggestionsMock] = GraphDb.Mock()
+    const input = useComponentBrowserInput(graphMock, suggestionsMock)
     input.code.value = code
     input.selection.value = { start: cursorPos, end: cursorPos }
     input.applySuggestion(suggestion)
@@ -357,11 +347,9 @@ test.each([
     db.set(1, makeModule('Standard.Base'))
     db.set(2, makeType('Standard.Base.Table'))
     db.set(3, makeCon('Standard.Base.Table.new'))
-    const input = useComponentBrowserInput(
-      { identDefinitions: new Map(), imports: existingImports },
-      { entries: db },
-      { getExpressionInfo: (_id) => undefined },
-    )
+    const [graphMock, suggestionsMock] = GraphDb.Mock(undefined, db)
+    graphMock.imports.value = existingImports
+    const input = useComponentBrowserInput(graphMock, suggestionsMock)
     input.code.value = initialCode
     input.selection.value = { start: initialCode.length, end: initialCode.length }
     const suggestion = db.get(suggestionId)!

@@ -114,7 +114,7 @@ export function previousNodeDictatedPlacement(
 /** The new node should appear exactly below the mouse.
  *
  * Specifically, this code assumes the node is fully rounded on the left and right sides,
- * so it subtracts half the node height (assumed to be the node radius) from the mouse x and y
+ * so it adds half the node height (assumed to be the node radius) from the mouse x and y
  * positions.
  *
  * [Documentation](https://github.com/enso-org/design/blob/main/epics/component-browser/design.md#placement-of-newly-opened-component-browser) */
@@ -124,5 +124,5 @@ export function mouseDictatedPlacement(
   _opts?: PlacementOptions,
 ): Placement {
   const nodeRadius = nodeSize.y / 2
-  return { position: mousePosition.sub(new Vec2(nodeRadius, nodeRadius)) }
+  return { position: mousePosition.add(new Vec2(nodeRadius, nodeRadius)) }
 }

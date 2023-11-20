@@ -5,11 +5,12 @@ import { Filtering } from '@/components/ComponentBrowser/filtering'
 import { default as DocumentationPanel } from '@/components/DocumentationPanel.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
-import { useGraphStore } from '@/stores/graph.ts'
+import { useGraphStore } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
-import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
+import { groupColorStyle, useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import { useApproach } from '@/util/animation'
+import { tryGetIndex } from '@/util/array'
 import { useEvent, useResizeObserver } from '@/util/events'
 import type { useNavigator } from '@/util/navigator'
 import type { Opt } from '@/util/opt'
@@ -36,7 +37,9 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  finished: [selectedExpression: string]
+  accepted: [searcherExpression: string]
+  closed: [searcherExpression: string]
+  canceled: []
 }>()
 
 function getInitialContent(): string {
@@ -146,7 +149,7 @@ function handleDefocus(e: FocusEvent) {
       inputField.value.focus({ preventScroll: true })
     }
   } else {
-    emit('finished', input.code.value)
+    emit('closed', input.code.value)
   }
 }
 
@@ -182,13 +185,7 @@ function componentStyle(index: number) {
  * Group colors are populated in `GraphEditor`, and for each group in suggestion database a CSS variable is created.
  */
 function componentColor(component: Component): string {
-  const group = suggestionDbStore.groups[component.group ?? -1]
-  if (group) {
-    const name = group.name.replace(/\s/g, '-')
-    return `var(--group-color-${name})`
-  } else {
-    return 'var(--group-color-fallback)'
-  }
+  return groupColorStyle(tryGetIndex(suggestionDbStore.groups, component.group))
 }
 
 // === Highlight ===
@@ -305,11 +302,11 @@ function applySuggestion(component: Opt<Component> = null): SuggestionEntry | nu
 function acceptSuggestion(index: Opt<Component> = null) {
   const applied = applySuggestion(index)
   const shouldFinish = applied != null && applied.kind !== SuggestionKind.Module
-  if (shouldFinish) emit('finished', input.code.value)
+  if (shouldFinish) acceptInput()
 }
 
 function acceptInput() {
-  emit('finished', input.code.value)
+  emit('accepted', input.code.value)
 }
 
 // === Key Events Handler ===
@@ -317,6 +314,10 @@ function acceptInput() {
 const handler = componentBrowserBindings.handler({
   applySuggestion() {
     applySuggestion()
+  },
+  acceptSuggestion() {
+    applySuggestion()
+    acceptInput()
   },
   acceptInput() {
     acceptInput()
@@ -336,7 +337,7 @@ const handler = componentBrowserBindings.handler({
     scrollToSelected()
   },
   cancelEditing() {
-    emit('finished', props.initialContent)
+    emit('canceled')
   },
 })
 </script>

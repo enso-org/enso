@@ -13,6 +13,7 @@ import project.Extensions.Prefix_Name.Prefix_Name
 import project.Internal.Fan_Out
 import project.Internal.Java_Exports
 import project.Internal.Java_Problems
+import project.Internal.Widget_Helpers
 from project.Internal.Java_Exports import make_inferred_builder
 
 ## PRIVATE

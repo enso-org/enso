@@ -26,8 +26,8 @@ import java.io.FileWriter
 object FrgaalJavaCompiler {
   private val ENSO_SOURCES = ".enso-sources"
 
-  val frgaal      = "org.frgaal" % "compiler" % "20.0.1" % "provided"
-  val sourceLevel = "20"
+  val frgaal      = "org.frgaal" % "compiler" % "21.0.0" % "provided"
+  val sourceLevel = "21"
 
   val debugArg =
     "-J-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=localhost:8000"
@@ -218,9 +218,19 @@ object FrgaalJavaCompiler {
     val allArguments = outputOption ++ frgaalOptions ++ nonJArgs ++ sources
 
     withArgumentFile(allArguments) { argsFile =>
+      // List of modules that Frgaal can use for compilation
+      val limitModules = Seq(
+        "java.base",
+        "jdk.zipfs",
+        "jdk.internal.vm.compiler.management",
+        "java.desktop",
+        "java.net.http",
+        "java.sql",
+        "jdk.jfr"
+      )
       val limitModulesArgs = Seq(
         "--limit-modules",
-        "java.base,jdk.zipfs,jdk.internal.vm.compiler.management,org.graalvm.locator,java.desktop,java.net.http"
+        limitModules.mkString(",")
       )
       // strippedJArgs needs to be passed via cmd line, and not via the argument file
       val forkArgs = (strippedJArgs ++ limitModulesArgs ++ Seq(

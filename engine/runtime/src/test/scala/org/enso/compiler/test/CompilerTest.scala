@@ -150,7 +150,7 @@ trait CompilerRunner {
       * @return a method containing `ir` as its body
       */
     def asMethod: definition.Method = {
-      definition.Method.Explicit(
+      new definition.Method.Explicit(
         Name.MethodReference(
           Some(
             Name.Qualified(

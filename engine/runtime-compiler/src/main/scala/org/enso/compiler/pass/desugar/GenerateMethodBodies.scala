@@ -244,7 +244,7 @@ case object GenerateMethodBodies extends IRPass {
     expr: Expression,
     funName: Name
   ): Expression = {
-    Function.Lambda(
+    new Function.Lambda(
       arguments =
         if (funName.name == MAIN_FUNCTION_NAME) Nil
         else genSyntheticSelf() :: Nil,

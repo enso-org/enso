@@ -1,29 +1,28 @@
 import type { Filter } from '@/components/ComponentBrowser/filtering'
 import { useGraphStore } from '@/stores/graph'
-import { covers, requiredImports, type Import, type RequiredImport } from '@/stores/imports'
-import { useProjectStore } from '@/stores/project'
+import type { GraphDb } from '@/stores/graph/graphDatabase'
+import { covers, requiredImports, type RequiredImport } from '@/stores/imports'
 import { useSuggestionDbStore, type SuggestionDb } from '@/stores/suggestionDatabase'
 import {
   SuggestionKind,
+  entryQn,
   type SuggestionEntry,
   type Typename,
-  entryQn,
 } from '@/stores/suggestionDatabase/entry'
 import { Ast, AstExtended, astContainingChar } from '@/util/ast'
 import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
 import { GeneralOprApp, type OperatorChain } from '@/util/ast/opr'
-import type { ExpressionInfo } from '@/util/computedValueRegistry'
 import { MappedSet } from '@/util/containers'
 import {
+  qnFromSegments,
   qnLastSegment,
+  qnSegments,
   tryQualifiedName,
   type QualifiedName,
-  qnSegments,
-  qnFromSegments,
 } from '@/util/qualifiedName'
 import { unwrap } from '@/util/result'
 import { equalFlat } from 'lib0/array'
-import { IdMap, type ContentRange, type ExprId } from 'shared/yjsModel'
+import { IdMap, type ContentRange } from 'shared/yjsModel'
 import { computed, ref, type ComputedRef } from 'vue'
 
 /** Input's editing context.
@@ -52,14 +51,8 @@ export type EditingContext =
 
 /** Component Browser Input Data */
 export function useComponentBrowserInput(
-  graphStore: {
-    identDefinitions: Map<string, ExprId>
-    imports: { import: Import; span: ContentRange }[]
-  } = useGraphStore(),
-  suggestionDbStore: { entries: SuggestionDb } = useSuggestionDbStore(),
-  computedValueRegistry: {
-    getExpressionInfo(id: ExprId): ExpressionInfo | undefined
-  } = useProjectStore().computedValueRegistry,
+  graphDb: GraphDb = useGraphStore().db,
+  suggestionDb: SuggestionDb = useSuggestionDbStore().entries,
 ) {
   const code = ref('')
   const selection = ref({ start: 0, end: 0 })
@@ -174,9 +167,9 @@ export function useComponentBrowserInput(
     if (accessOpr.apps.length > 1) return null
     if (internalUsages.value.has(accessOpr.lhs.span())) return { type: 'unknown' }
     const ident = accessOpr.lhs.repr()
-    const definition = graphStore.identDefinitions.get(ident)
+    const definition = graphDb.getIdentDefiningNode(ident)
     if (definition == null) return null
-    const typename = computedValueRegistry.getExpressionInfo(definition)?.typename
+    const typename = graphDb.getExpressionInfo(definition)?.typename
     return typename != null ? { type: 'known', typename } : { type: 'unknown' }
   }
 
@@ -229,25 +222,21 @@ export function useComponentBrowserInput(
       (shouldInsertSpace ? ' ' : '') +
       oldCode.substring(newCodeUpToLastChange.oldCodeIndex)
     selection.value = { start: newCursorPos, end: newCursorPos }
-    console.log(requiredImport)
     if (requiredImport) {
-      const [id] = suggestionDbStore.entries.nameToId.lookup(requiredImport)
+      const [id] = suggestionDb.nameToId.lookup(requiredImport)
       if (id) {
-        const requiredEntry = suggestionDbStore.entries.get(id)
+        const requiredEntry = suggestionDb.get(id)
         if (requiredEntry) {
-          imports.value = imports.value.concat(requiredImports(suggestionDbStore.entries, requiredEntry))
+          imports.value = imports.value.concat(requiredImports(suggestionDb, requiredEntry))
         }
       }
     } else {
-      imports.value = imports.value.concat(requiredImports(suggestionDbStore.entries, entry))
+      imports.value = imports.value.concat(requiredImports(suggestionDb, entry))
     }
-    // console.log('Applying suggestion', entry)
-    // console.log('Required imports:', requiredImports(suggestionDbStore.entries, entry))
-    // console.log('Existing imports:', graphStore.imports)
   }
 
   function importsToAdd(): Set<RequiredImport> {
-    const existingImports = graphStore.imports
+    const existingImports = graphDb.imports.value
     const finalImports = new Set<RequiredImport>()
     for (const required of imports.value) {
       if (!existingImports.some((existing) => covers(existing.import, required))) {
@@ -262,9 +251,10 @@ export function useComponentBrowserInput(
    * @returns The changes, starting from the rightmost. The `start` and `end` parameters refer
    * to indices of "old" input content.
    */
-  function inputChangesAfterApplying(
-    entry: SuggestionEntry,
-  ): { changes: { range: ContentRange; str: string }[], requiredImport: QualifiedName | null } {
+  function inputChangesAfterApplying(entry: SuggestionEntry): {
+    changes: { range: ContentRange; str: string }[]
+    requiredImport: QualifiedName | null
+  } {
     const ctx = context.value
     const str = codeToBeInserted(entry)
     let mainChange = undefined
@@ -311,9 +301,13 @@ export function useComponentBrowserInput(
   }
 
   /** All changes to the qualified name already written by the user. */
-  function qnChanges(entry: SuggestionEntry): { changes: { range: ContentRange; str: string }[], requiredImport: QualifiedName | null } {
+  function qnChanges(entry: SuggestionEntry): {
+    changes: { range: ContentRange; str: string }[]
+    requiredImport: QualifiedName | null
+  } {
     if (entry.selfType != null) return { changes: [], requiredImport: null }
-    if (entry.kind === SuggestionKind.Local || entry.kind === SuggestionKind.Function) return { changes: [], requiredImport: null }
+    if (entry.kind === SuggestionKind.Local || entry.kind === SuggestionKind.Function)
+      return { changes: [], requiredImport: null }
     if (context.value.type !== 'changeLiteral' && context.value.oprApp != null) {
       const qn = entryQn(entry)
       const identifiers = qnIdentifiers(context.value.oprApp)
@@ -332,8 +326,10 @@ export function useComponentBrowserInput(
       const nameSegments = allSegments.slice(position, -1)
       const importSegments = allSegments.slice(0, position + 1)
       const minimalNumberOfSegments = 2
-      console.log(importSegments, nameSegments)
-      const requiredImport = importSegments.length < minimalNumberOfSegments ? null : unwrap(qnFromSegments(importSegments))
+      const requiredImport =
+        importSegments.length < minimalNumberOfSegments
+          ? null
+          : unwrap(qnFromSegments(importSegments))
       let last = 0
       const result = []
       for (let i = 0; i < nameSegments.length; i++) {
@@ -341,9 +337,9 @@ export function useComponentBrowserInput(
         if (i < identifiers.length) {
           const span = identifiers[i]!.span()
           last = span[1]
-          result.push( { range: span, str: segment as string })
+          result.push({ range: span, str: segment as string })
         } else {
-          result.push( { range: [last, last] as ContentRange, str: '.' + segment as string })
+          result.push({ range: [last, last] as ContentRange, str: ('.' + segment) as string })
         }
       }
       return { changes: result.reverse(), requiredImport }

@@ -386,8 +386,10 @@ export function applyUpdates(
     const updateResult = applyUpdate(entries, update, groups)
     if (!updateResult.ok) {
       updateResult.error.log()
-      console.error(`Removing entry ${update.id}, because its state is unclear`)
-      entries.delete(update.id)
+      if (entries.get(update.id) != null) {
+        console.error(`Removing entry ${update.id}, because its state is unclear`)
+        entries.delete(update.id)
+      }
     }
   }
 }
