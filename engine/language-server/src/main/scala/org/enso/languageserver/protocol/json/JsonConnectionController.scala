@@ -397,18 +397,16 @@ class JsonConnectionController(
       )
 
     case ContextRegistryProtocol.VisualizationEvaluationFailed(
-          contextId,
-          visualizationId,
-          expressionId,
+          ctx,
           message,
           diagnostic
         ) =>
       webActor ! Notification(
         VisualizationEvaluationFailed,
         VisualizationEvaluationFailed.Params(
-          contextId,
-          visualizationId,
-          expressionId,
+          ctx.contextId,
+          ctx.visualizationId,
+          ctx.expressionId,
           message,
           diagnostic
         )

@@ -6,7 +6,10 @@ import org.enso.jsonrpc.{Error, HasParams, HasResult, Method, Unused}
 import org.enso.languageserver.data.CapabilityRegistration
 import org.enso.languageserver.filemanager.Path
 import org.enso.languageserver.libraries.LibraryComponentGroup
-import org.enso.languageserver.runtime.ContextRegistryProtocol.ExecutionDiagnostic
+import org.enso.languageserver.runtime.ContextRegistryProtocol.{
+  ExecutionDiagnostic,
+  VisualizationContext
+}
 
 import java.util.UUID
 
@@ -265,6 +268,7 @@ object ExecutionApi {
       extends Error(2006, s"Visualization not found")
 
   case class VisualizationExpressionError(
+    ctx: VisualizationContext,
     msg: String,
     diagnostic: Option[ContextRegistryProtocol.ExecutionDiagnostic]
   ) extends Error(

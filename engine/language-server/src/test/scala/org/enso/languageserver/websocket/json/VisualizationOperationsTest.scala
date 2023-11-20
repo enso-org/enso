@@ -279,6 +279,7 @@ class VisualizationOperationsTest extends BaseServerTest {
       runtimeConnectorProbe.lastSender ! Api.Response(
         requestId,
         Api.VisualizationExpressionFailed(
+          Api.VisualizationContext(visualizationId, contextId, expressionId),
           expressionFailureMessage,
           Some(
             Api.ExecutionResult.Diagnostic.error(

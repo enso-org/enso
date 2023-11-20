@@ -145,9 +145,7 @@ final class ContextEventsListener(
       message.pipeTo(sessionRouter)
 
     case Api.VisualizationEvaluationFailed(
-          `contextId`,
-          visualizationId,
-          expressionId,
+          Api.VisualizationContext(visualizationId, contextId, expressionId),
           message,
           diagnostic
         ) =>
@@ -157,9 +155,7 @@ final class ContextEventsListener(
           .sequence
         payload =
           ContextRegistryProtocol.VisualizationEvaluationFailed(
-            contextId,
-            visualizationId,
-            expressionId,
+            VisualizationContext(visualizationId, contextId, expressionId),
             message,
             diagnostic
           )
