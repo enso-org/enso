@@ -187,8 +187,7 @@ export class GraphDb {
       const meta = getMeta(nodeId)
       if (meta) continue
       const node = this.nodes.get(nodeId)!
-      // The node with currently must be fixed
-      const size = new Vec2(200, theme.node.height)
+      const size = new Vec2(this.getNodeWidth(node), theme.node.height)
       const position = new Vec2(
         rectsPosition.x,
         rectsPosition.y + (theme.node.height + theme.node.vertical_gap) * nodeIndex,
