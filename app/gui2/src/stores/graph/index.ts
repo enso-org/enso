@@ -175,6 +175,7 @@ export const useGraphStore = defineStore('graph', () => {
     position: Vec2,
     expression: string,
     metadata: NodeMetadata | undefined = undefined,
+    withImports: RequiredImport[] | undefined = undefined,
   ): Opt<ExprId> {
     const mod = proj.module
     if (mod == null) return
@@ -186,29 +187,13 @@ export const useGraphStore = defineStore('graph', () => {
     meta.x = position.x
     meta.y = -position.y
     const ident = generateUniqueIdent()
-    return mod.insertNewNode(mod.doc.contents.length, ident, expression, meta)
-  }
-
-  function createNodeWithImport(
-    position: Vec2,
-    expression: string,
-    metadata: NodeMetadata | undefined = undefined,
-    withImport: RequiredImport[],
-  ) {
-    const mod = proj.module
-    if (mod == null) return
-    const meta = metadata ?? {
-      x: position.x,
-      y: -position.y,
-      vis: null,
+    let importData = undefined
+    if (withImports) {
+      const lastImport = db.imports.value[db.imports.value.length - 1]
+      const importOffset = lastImport ? lastImport.span[1] + 1 : 0
+      const imports = withImports.map((info) => requiredImportToText(info)).join('\n')
+      importData = { str: imports, offset: importOffset }
     }
-    meta.x = position.x
-    meta.y = -position.y
-    const ident = generateUniqueIdent()
-    const lastImport = db.imports.value[db.imports.value.length - 1]
-    const importOffset = lastImport ? lastImport.span[1] + 1 : 0
-    const imports = withImport.map((info) => requiredImportToText(info)).join('\n')
-    const importData = { str: imports, offset: importOffset }
     return mod.insertNewNode(mod.doc.contents.length, ident, expression, meta, importData)
   }
 
@@ -321,7 +306,6 @@ export const useGraphStore = defineStore('graph', () => {
     disconnectTarget,
     clearUnconnected,
     createNode,
-    createNodeWithImport,
     deleteNode,
     setNodeContent,
     setExpressionContent,

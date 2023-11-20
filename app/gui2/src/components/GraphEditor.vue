@@ -257,7 +257,7 @@ function onComponentBrowserCommit(content: string, requiredImports: RequiredImpo
   } else if (content != null) {
     /// We finish creating a new node.
     const nodePosition = componentBrowserPosition.value
-    graphStore.createNodeWithImport(
+    graphStore.createNode(
       nodePosition.sub(COMPONENT_BROWSER_TO_NODE_OFFSET),
       content,
       undefined,
