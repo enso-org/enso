@@ -36,6 +36,7 @@ import org.enso.languageserver.libraries.handler._
 import org.enso.languageserver.monitoring.MonitoringApi.{InitialPing, Ping}
 import org.enso.languageserver.monitoring.MonitoringProtocol
 import org.enso.languageserver.profiling.ProfilingApi.{
+  ProfilingSnapshot,
   ProfilingStart,
   ProfilingStop
 }
@@ -52,6 +53,7 @@ import org.enso.languageserver.requesthandler.monitoring.{
   PingHandler
 }
 import org.enso.languageserver.requesthandler.profiling.{
+  ProfilingSnapshotHandler,
   ProfilingStartHandler,
   ProfilingStopHandler
 }
@@ -643,6 +645,10 @@ class JsonConnectionController(
       ProfilingStart -> ProfilingStartHandler
         .props(requestTimeout, profilingManager),
       ProfilingStop -> ProfilingStopHandler.props(
+        requestTimeout,
+        profilingManager
+      ),
+      ProfilingSnapshot -> ProfilingSnapshotHandler.props(
         requestTimeout,
         profilingManager
       )

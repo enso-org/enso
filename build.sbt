@@ -708,7 +708,9 @@ lazy val `profiling-utils` = project
       exclude ("org.netbeans.api", "org-openide-util-ui")
       exclude ("org.netbeans.api", "org-openide-awt")
       exclude ("org.netbeans.api", "org-openide-modules")
-      exclude ("org.netbeans.api", "org-netbeans-api-annotations-common")
+      exclude ("org.netbeans.api", "org-netbeans-api-annotations-common"),
+      "junit"          % "junit"           % junitVersion   % Test,
+      "com.github.sbt" % "junit-interface" % junitIfVersion % Test
     )
   )
 
