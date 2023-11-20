@@ -304,7 +304,7 @@ function acceptSuggestion(index: Opt<Component> = null) {
 }
 
 function acceptInput() {
-  emit('accepted', input.code.value, Array.from(input.importsToAdd()))
+  emit('accepted', input.code.value, input.importsToAdd())
 }
 
 // === Key Events Handler ===

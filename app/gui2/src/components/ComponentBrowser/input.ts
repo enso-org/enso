@@ -41,16 +41,16 @@ import { computed, ref, type ComputedRef } from 'vue'
 export type EditingContext =
   // Suggestion should be inserted at given position.
   | {
-      type: 'insert'
-      position: number
-      oprApp?: GeneralOprApp<false>
-    }
+    type: 'insert'
+    position: number
+    oprApp?: GeneralOprApp<false>
+  }
   // Suggestion should replace given identifier.
   | {
-      type: 'changeIdentifier'
-      identifier: AstExtended<Ast.Tree.Ident, false>
-      oprApp?: GeneralOprApp<false>
-    }
+    type: 'changeIdentifier'
+    identifier: AstExtended<Ast.Tree.Ident, false>
+    oprApp?: GeneralOprApp<false>
+  }
   // Suggestion should replace given literal.
   | { type: 'changeLiteral'; literal: AstExtended<Ast.Tree.TextLiteral | Ast.Tree.Number, false> }
 
@@ -70,7 +70,7 @@ export function useComponentBrowserInput(
     const inputAst = ast.value
     const editedAst = inputAst
       .mapIter((ast) => astContainingChar(editedPart, ast))
-      [Symbol.iterator]()
+    [Symbol.iterator]()
     const leaf = editedAst.next()
     if (leaf.done) return { type: 'insert', position: cursorPosition }
     switch (leaf.value.inner.type) {
@@ -245,6 +245,10 @@ export function useComponentBrowserInput(
     }
   }
 
+  /** List of imports required for applied suggestions.
+    *
+    * If suggestion was manually edited by the user after accepting, it is not included. 
+    */
   function importsToAdd(): RequiredImport[] {
     const existingImports = graphDb.imports.value
     const finalImports: RequiredImport[] = []
@@ -322,37 +326,50 @@ export function useComponentBrowserInput(
     if (entry.kind === SuggestionKind.Local || entry.kind === SuggestionKind.Function)
       return { changes: [], requiredImport: null }
     if (context.value.type !== 'changeLiteral' && context.value.oprApp != null) {
+      // 1. Find the index of last identifier from the original qualified name that is already written by the user.
       const qn = entryQn(entry)
       const identifiers = qnIdentifiers(context.value.oprApp)
       const writtenSegments = identifiers.map((ident) => ident.repr())
       const allSegments = qnSegments(qn)
       const windowSize = writtenSegments.length
-      let position = undefined
+      let indexOfAlreadyWrittenSegment = undefined
       for (let right = allSegments.length; right >= windowSize; right--) {
         const left = right - windowSize
         if (equalFlat(allSegments.slice(left, right), writtenSegments)) {
-          position = left
+          indexOfAlreadyWrittenSegment = left
           break
         }
       }
-      if (position == null) position = allSegments.length - 1 - writtenSegments.length
-      const nameSegments = allSegments.slice(position, -1)
-      const importSegments = allSegments.slice(0, position + 1)
+      if (indexOfAlreadyWrittenSegment == null) {
+        // We didn’t find the exact match, which probably means the user has written
+        // partial names, like `Dat.V.` instead of `Data.Vector`.
+        // In this case we will replace each written segment with the most recent 
+        // segments of qualified name, and import what’s left.
+        indexOfAlreadyWrittenSegment = allSegments.length - 1 - writtenSegments.length
+      }
+      // `nameSegments` and `importSegments` overlap by one, because we need to import the first written identifier.
+      const nameSegments = allSegments.slice(indexOfAlreadyWrittenSegment, -1)
+      const importSegments = allSegments.slice(0, indexOfAlreadyWrittenSegment + 1)
+      // A correct qualified name contains more than 2 segments (namespace and project name).
       const minimalNumberOfSegments = 2
       const requiredImport =
         importSegments.length < minimalNumberOfSegments
           ? null
           : unwrap(qnFromSegments(importSegments))
-      let last = 0
+      // 2. We replace each written identifier with a correct one, and then append the rest of needed qualified name.
+      let lastEditedCharIndex = 0
       const result = []
       for (let i = 0; i < nameSegments.length; i++) {
         const segment = nameSegments[i]
         if (i < identifiers.length) {
+          // Identifier was already written by the user, we replace it with the correct one.
           const span = identifiers[i]!.span()
-          last = span[1]
+          lastEditedCharIndex = span[1]
           result.push({ range: span, str: segment as string })
         } else {
-          result.push({ range: [last, last] as ContentRange, str: ('.' + segment) as string })
+          // The rest of qualified name needs to be added at the end.
+          const range: ContentRange = [lastEditedCharIndex, lastEditedCharIndex]
+          result.push({ range, str: ('.' + segment) as string })
         }
       }
       return { changes: result.reverse(), requiredImport }

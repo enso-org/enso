@@ -21,11 +21,16 @@ import {
 } from '@/util/qualifiedName'
 import { unwrap } from '@/util/result'
 
+
+
+// ========================
 // === Imports analysis ===
+// ========================
 
 function parseIdent(ast: AstExtended): Identifier | null {
   if (ast.isTree(Ast.Tree.Type.Ident) || ast.isToken(Ast.Token.Type.Ident)) {
-    return unwrap(tryIdentifier(ast.repr()))
+    const ident = tryIdentifier(ast.repr())
+    return ident.ok ? ident.value : null
   } else {
     return null
   }
@@ -38,7 +43,7 @@ function parseIdents(ast: AstExtended): Identifier[] | null {
   } else if (ast.isTree(Ast.Tree.Type.OprApp)) {
     const opr = new GeneralOprApp(ast)
     const operands = opr.operandsOfLeftAssocOprChain(',')
-    const x = [...operands].flatMap((operand) => {
+    return [...operands].flatMap((operand) => {
       if (operand && operand.type === 'ast') {
         const ident = parseIdent(operand.ast)
         return ident != null ? [ident] : []
@@ -46,7 +51,6 @@ function parseIdents(ast: AstExtended): Identifier[] | null {
         return []
       }
     })
-    return x
   } else {
     return null
   }
@@ -136,7 +140,11 @@ export interface All {
   except: Identifier[]
 }
 
+
+
+// ========================
 // === Required imports ===
+// ========================
 
 /** Import required for the suggestion entry. */
 export type RequiredImport = QualifiedImport | UnqualifiedImport
