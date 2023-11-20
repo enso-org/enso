@@ -8,8 +8,8 @@ import {
   type WidgetProps,
 } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
+import { Ast } from '@/util/ast'
 import { computed } from 'vue'
-import { Ast } from "@/util/ast"
 
 const props = defineProps<WidgetProps>()
 const graph = useGraphStore()
@@ -30,10 +30,7 @@ export const widgetDefinition = defineWidget({
     const ast = info.input
     if (ast instanceof Ast.NumericLiteral) {
       return Score.Perfect
-    } else if (
-      ast instanceof Ast.NegationOprApp &&
-      ast.argument instanceof Ast.NumericLiteral
-    ) {
+    } else if (ast instanceof Ast.NegationOprApp && ast.argument instanceof Ast.NumericLiteral) {
       return Score.Perfect
     }
     return Score.Mismatch

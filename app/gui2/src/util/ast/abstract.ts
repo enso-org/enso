@@ -300,6 +300,14 @@ export class OprApp extends Ast {
   protected _opr: NodeChild[]
   protected _rhs: AstWithWhitespace | null
 
+  get lhs(): Ast | null {
+    return this._lhs ? getNode(this._lhs.node) : null
+  }
+
+  get rhs(): Ast | null {
+    return this._rhs ? getNode(this._rhs.node) : null
+  }
+
   constructor(
     span: Span,
     id: AstId | undefined,

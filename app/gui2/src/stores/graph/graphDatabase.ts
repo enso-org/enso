@@ -110,7 +110,7 @@ export class GraphDb {
   getNodeWidth(node: Node) {
     // FIXME [sb]: This should take into account the width of all widgets.
     // This will require a recursive traversal of the `Node`'s children.
-    return getTextWidth(node.rootSpan.repr(), '11.5px', '"M PLUS 1", sans-serif') * 1.2
+    return getTextWidth(node.rootSpan.code(), '11.5px', '"M PLUS 1", sans-serif') * 1.2
   }
 
   readFunctionAst(
