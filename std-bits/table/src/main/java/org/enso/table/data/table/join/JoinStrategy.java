@@ -37,12 +37,6 @@ public interface JoinStrategy {
       throw new IllegalArgumentException("Unsupported join condition.");
     }
 
-    if (betweenConditions.isEmpty() && (joinKind == JoinKind.LEFT_ANTI || joinKind == JoinKind.RIGHT_ANTI)) {
-      // TODO we could do a special startegy optimized for one sided index?
-      // but maybe we should just enhance HashJoin with doing just one index if that is beneficial??
-      // TODO think about it
-    }
-
     if (hashableConditions.isEmpty()) {
       assert !betweenConditions.isEmpty();
       return new SortJoin(betweenConditions, builderSettings);
