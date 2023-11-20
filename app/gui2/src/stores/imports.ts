@@ -235,6 +235,19 @@ function definedInEntry(db: SuggestionDb, entry: SuggestionEntry): SuggestionEnt
   return getEntryByName(db, entry.definedIn)
 }
 
+export function requiredImportEquals(left: RequiredImport, right: RequiredImport): boolean {
+  if (left.kind != right.kind) return false
+  switch (left.kind) {
+    case 'Qualified':
+      return left.module === (right as QualifiedImport).module
+    case 'Unqualified':
+      return (
+        left.from === (right as UnqualifiedImport).from &&
+        left.import === (right as UnqualifiedImport).import
+      )
+  }
+}
+
 /** Check if `existing` import statement covers `required`. */
 export function covers(existing: Import, required: RequiredImport): boolean {
   const [parent, name] =

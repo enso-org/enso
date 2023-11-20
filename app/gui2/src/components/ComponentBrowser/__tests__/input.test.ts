@@ -379,6 +379,6 @@ test.each([
       input.code.value = manuallyEditedCode
     }
     expect(input.code.value).toEqual(expectedCode)
-    expect(input.importsToAdd()).toEqual(new Set(expectedImports))
+    expect(input.importsToAdd()).toEqual(expectedImports)
   },
 )

@@ -1,7 +1,12 @@
 import type { Filter } from '@/components/ComponentBrowser/filtering'
 import { useGraphStore } from '@/stores/graph'
 import type { GraphDb } from '@/stores/graph/graphDatabase'
-import { covers, requiredImports, type RequiredImport } from '@/stores/imports'
+import {
+  covers,
+  requiredImportEquals,
+  requiredImports,
+  type RequiredImport,
+} from '@/stores/imports'
 import { useSuggestionDbStore, type SuggestionDb } from '@/stores/suggestionDatabase'
 import {
   SuggestionKind,
@@ -240,14 +245,15 @@ export function useComponentBrowserInput(
     }
   }
 
-  function importsToAdd(): Set<RequiredImport> {
+  function importsToAdd(): RequiredImport[] {
     const existingImports = graphDb.imports.value
-    const finalImports = new Set<RequiredImport>()
+    const finalImports: RequiredImport[] = []
     for (const { info, context } of imports.value) {
       const alreadyImported = existingImports.some((existing) => covers(existing.import, info))
+      const alreadyAdded = finalImports.some((existing) => requiredImportEquals(existing, info))
       const noLongerNeeded = !code.value.includes(context)
-      if (!alreadyImported && !noLongerNeeded) {
-        finalImports.add(info)
+      if (!alreadyImported && !noLongerNeeded && !alreadyAdded) {
+        finalImports.push(info)
       }
     }
     return finalImports
