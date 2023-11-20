@@ -166,7 +166,10 @@ export const useVisualizationStore = defineStore('visualization', () => {
             currentProjectProtocol + pathString,
             await projectRoot,
             await proj.dataConnection,
-          )
+          ).then(async (viz) => {
+            await loadScripts(viz)
+            return viz
+          })
           if (key) cache.set(key, vizPromise)
           const viz = await vizPromise
           if (abortController.signal.aborted) break
