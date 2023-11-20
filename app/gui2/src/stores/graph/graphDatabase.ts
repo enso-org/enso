@@ -11,13 +11,16 @@ import * as set from 'lib0/set'
 import {
   IdMap,
   visMetadataEquals,
+  type ContentRange,
   type ExprId,
   type NodeMetadata,
   type VisualizationMetadata,
 } from 'shared/yjsModel'
 import { ref, type Ref } from 'vue'
+import type { Import } from '../imports'
 
 export class GraphDb {
+  imports: Ref<{ import: Import; span: ContentRange }[]> = ref([])
   nodes = new ReactiveDb<ExprId, Node>()
   idents = new ReactiveIndex(this.nodes, (_id, entry) => {
     const idents: [ExprId, string][] = []
@@ -156,8 +159,11 @@ export class GraphDb {
     private valuesRegistry: ComputedValueRegistry,
   ) {}
 
-  static Mock(registry = ComputedValueRegistry.Mock()): GraphDb {
-    return new GraphDb(new SuggestionDb(), ref([]), registry)
+  static Mock(
+    registry = ComputedValueRegistry.Mock(),
+    db = new SuggestionDb(),
+  ): [GraphDb, SuggestionDb] {
+    return [new GraphDb(db, ref([]), registry), db]
   }
 }
 
