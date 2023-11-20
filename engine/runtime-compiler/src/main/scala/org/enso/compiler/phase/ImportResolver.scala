@@ -58,7 +58,7 @@ class ImportResolver(compiler: Compiler) {
           .getCompilationStage(current)
           .isBefore(
             CompilationStage.AFTER_IMPORT_RESOLUTION
-          ) || !context.hasCrossModuleLinks(current)
+          )
       ) {
         val importedModules: List[
           (Import, Option[BindingsMap.ResolvedImport])

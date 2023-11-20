@@ -616,14 +616,25 @@ type Instrumentor
        ADVANCED
 
        Registers callback to be executed when a node/expression evaluation
-       is over. The callback `fn` gets UUID and the computed value. Usually
+       is over. The callback `fn` gets UUID and the computed value (or value
+       of `expression` if specified). Usually
        the value is _cached_ and returned from `on_enter` callback next time
        the same expression is evaluated.
 
+       > Example
+         Specify `expression` to _"inline evaluate"_ it.
+            see_a_b uuid:Text ~result =
+              if uuid == "expected-uuid" then
+                IO.println "evalutated to "+result.to_text
+
+            Meta.meta .fn . instrument . on_return fn=see_a_b expression="a+b" . activate
+
        Arguments:
        - fn: The callback function accepting UUID and computed value
-    on_return self (fn : Text -> Any -> Nothing) =
-        new = instrumentor_builtin "onReturn" [ self.impl, fn ]
+       - expression: Expression to evaluate on_return - by default Nothing -
+         e.g. to provide the return value of the function
+    on_return self (fn : Text -> Any -> Nothing) (expression : Text|Nothing)=Nothing =
+        new = instrumentor_builtin "onReturn" [ self.impl, fn, expression ]
         Instrumentor.Value new
 
     ## PRIVATE

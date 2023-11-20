@@ -38,7 +38,7 @@ public abstract class CompilerTest {
     return ir;
   }
 
-  static void assertIR(String msg, Module old, Module now) throws IOException {
+  public static void assertIR(String msg, Module old, Module now) throws IOException {
     Function<IR, String> filter = f -> simplifyIR(f, true, true, false);
     String ir1 = filter.apply(old);
     String ir2 = filter.apply(now);
@@ -128,6 +128,15 @@ public abstract class CompilerTest {
       }
       int to = txt.indexOf("reason =", at + pref.length());
       txt = txt.substring(0, at) + "errors.Syntax (" + txt.substring(to);
+    }
+    for (;;) {
+      final String pref = "List(";
+      int at = txt.indexOf(pref);
+      if (at == -1) {
+        break;
+      }
+      int to = at + pref.length();
+      txt = txt.substring(0, at) + "Seq(" + txt.substring(to);
     }
     return txt;
   }

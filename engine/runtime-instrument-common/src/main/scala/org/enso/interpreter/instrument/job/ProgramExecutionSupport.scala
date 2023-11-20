@@ -551,9 +551,8 @@ object ProgramExecutionSupport {
         ctx.endpoint.sendToClient(
           Api.Response(
             Api.VisualizationEvaluationFailed(
-              contextId,
-              visualizationId,
-              expressionId,
+              Api
+                .VisualizationContext(visualizationId, contextId, expressionId),
               message,
               getDiagnosticOutcome.lift(error)
             )

@@ -130,6 +130,7 @@ class InterpreterContext(
       .in(in)
       .option(RuntimeOptions.LANGUAGE_HOME_OVERRIDE, languageHome)
       .option(RuntimeOptions.EDITION_OVERRIDE, edition)
+      .option("engine.WarnInterpreterOnly", "false")
       .serverTransport { (uri, peer) =>
         if (uri.toString == DebugServerInfo.URI) {
           new DebuggerSessionManagerEndpoint(sessionManager, peer)

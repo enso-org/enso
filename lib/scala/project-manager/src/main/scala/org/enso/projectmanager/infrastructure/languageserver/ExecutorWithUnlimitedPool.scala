@@ -107,18 +107,12 @@ object ExecutorWithUnlimitedPool extends LanguageServerExecutor {
     val profilingTimeArguments =
       descriptor.profilingTime.toSeq
         .flatMap(time => Seq("--profiling-time", time.toSeconds.toString))
-    val profilingEventsLogPathArguments =
-      descriptor.profilingEventsLogPath.toSeq
-        .flatMap(path =>
-          Seq("--server-profiling-events-log-path", path.toString)
-        )
     val startupArgs =
       if (descriptor.skipGraalVMUpdater) Seq("--skip-graalvm-updater")
       else Seq()
     val additionalArguments =
       profilingPathArguments ++
       profilingTimeArguments ++
-      profilingEventsLogPathArguments ++
       startupArgs
     val runSettings = runner
       .startLanguageServer(

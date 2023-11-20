@@ -6535,4 +6535,66 @@ class RuntimeServerTest
       .name
   }
 
+  it should "handle tailcalls" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+    val metadata   = new Metadata
+    val code =
+      """main =
+        |    fac 10
+        |
+        |fac n =
+        |    acc n v = if n <= 1 then v else
+        |      @Tail_Call acc n-1 n*v
+        |
+        |    acc n 1
+        |""".stripMargin.linesIterator.mkString("\n")
+
+    val res = metadata.addItem(11, 6, "aa")
+
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Set sources for the module
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, moduleName, "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveN(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(
+        contextId,
+        res,
+        ConstantsGen.INTEGER_BUILTIN,
+        methodCall =
+          Some(Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "fac")))
+      ),
+      context.executionComplete(contextId)
+    )
+  }
+
 }
