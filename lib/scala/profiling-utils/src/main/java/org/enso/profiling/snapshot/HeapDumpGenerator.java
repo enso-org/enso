@@ -6,9 +6,9 @@ import java.lang.management.ManagementFactory;
 import java.nio.file.Path;
 import javax.management.MBeanServer;
 
-public final class HeapDumpGenerator {
+final class HeapDumpGenerator {
 
-  private static final String HOT_SPOT_BEAN_NAME = "com.sun.management:type=HotSpotDiagnostic";
+  private static final String HotSpotBeanName = "com.sun.management:type=HotSpotDiagnostic";
   private static volatile HotSpotDiagnosticMXBean hotSpotDiagnosticMXBean;
 
   private HeapDumpGenerator() {}
@@ -33,6 +33,6 @@ public final class HeapDumpGenerator {
   private static HotSpotDiagnosticMXBean getHotSpotDiagnosticMXBean() throws IOException {
     MBeanServer mBeanServer = ManagementFactory.getPlatformMBeanServer();
     return ManagementFactory.newPlatformMXBeanProxy(
-        mBeanServer, HOT_SPOT_BEAN_NAME, HotSpotDiagnosticMXBean.class);
+        mBeanServer, HotSpotBeanName, HotSpotDiagnosticMXBean.class);
   }
 }

@@ -8,7 +8,7 @@ import org.enso.languageserver.runtime.events.RuntimeEventsMonitor
 import org.enso.logger.masking.MaskedPath
 import org.enso.profiling.events.NoopEventsMonitor
 import org.enso.profiling.sampler.{MethodsSampler, OutputStreamSampler}
-import org.enso.profiling.snapshot.HeapDumpGenerator
+import org.enso.profiling.snapshot.{HeapDumpSnapshot, ProfilingSnapshot}
 
 import java.io.{ByteArrayOutputStream, PrintStream}
 import java.nio.charset.StandardCharsets
@@ -23,11 +23,13 @@ import scala.util.{Failure, Success, Try}
   *
   * @param runtimeConnector the connection to runtime
   * @param distributionManager the distribution manager
+  * @param profilingSnapshot the profiling snapshot generator
   * @param clock the system clock
   */
 final class ProfilingManager(
   runtimeConnector: ActorRef,
   distributionManager: DistributionManager,
+  profilingSnapshot: ProfilingSnapshot,
   clock: Clock
 ) extends Actor
     with LazyLogging {
@@ -123,7 +125,7 @@ final class ProfilingManager(
     val heapDumpPath =
       distributionManager.paths.profiling.resolve(heapDumpFileName)
 
-    HeapDumpGenerator.generateHeapDump(heapDumpPath, false)
+    profilingSnapshot.generateSnapshot(heapDumpPath)
 
     heapDumpPath
   }
@@ -188,12 +190,21 @@ object ProfilingManager {
     *
     * @param runtimeConnector the connection to runtime
     * @param distributionManager the distribution manager
+    * @param profilingSnapshot the profiling snapshot generator
     * @param clock the system clock
     */
   def props(
     runtimeConnector: ActorRef,
     distributionManager: DistributionManager,
-    clock: Clock = Clock.systemUTC()
+    profilingSnapshot: ProfilingSnapshot = new HeapDumpSnapshot(),
+    clock: Clock                         = Clock.systemUTC()
   ): Props =
-    Props(new ProfilingManager(runtimeConnector, distributionManager, clock))
+    Props(
+      new ProfilingManager(
+        runtimeConnector,
+        distributionManager,
+        profilingSnapshot,
+        clock
+      )
+    )
 }
