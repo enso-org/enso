@@ -39,7 +39,7 @@ watchEffect(() => {
   if (!module) return
   const yText = module.doc.contents
   const undoManager = module.undoManager
-  const awareness = projectStore.awareness
+  const awareness = projectStore.awareness.internal
   editorView.setState(
     EditorState.create({
       doc: yText.toString(),
