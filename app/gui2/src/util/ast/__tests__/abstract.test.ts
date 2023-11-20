@@ -354,7 +354,7 @@ test.each(cases)('parse/print round trip: %s', (code) => {
   // Re-parse.
   const root1 = Ast.parse(printed)
   // Check that Identities match original AST.
-  // FIXME
+  // FIXME--Needed for AST edits.
   /*
   const reprinted = root1.print()
   expect(reprinted.info).toEqual(info1)
@@ -363,10 +363,13 @@ test.each(cases)('parse/print round trip: %s', (code) => {
   forgetAllAsts()
 })
 
-test('parse', () => {
-  const code = 'foo bar+baz'
-  const root = Ast.parse(code)
-  expect(debug(root._id)).toEqual(['', [['foo'], [['bar'], '+', ['baz']]]])
+const parseCases = [
+  { code: 'foo bar+baz', tree: ['', [['foo'], [['bar'], '+', ['baz']]]] },
+  { code: '(foo)', tree: ['', ['(', ['foo'], ')']] },
+]
+test.each(parseCases)('parse: %s', (testCase) => {
+  const root = Ast.parse(testCase.code)
+  expect(debug(root)).toEqual(testCase.tree)
   forgetAllAsts()
 })
 
