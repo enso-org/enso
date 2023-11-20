@@ -14,4 +14,10 @@ object ProfilingProtocol {
   /** A response to request to stop the profiling. */
   case object ProfilingStopResponse
 
+  /** A request to create a memory snapshot. */
+  case object ProfilingSnapshotRequest
+
+  /** A response to request to create a memory snapshot. */
+  case object ProfilingSnapshotResponse
+
 }

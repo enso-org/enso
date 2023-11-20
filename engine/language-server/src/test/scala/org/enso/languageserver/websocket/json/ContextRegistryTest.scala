@@ -819,7 +819,11 @@ class ContextRegistryTest extends BaseServerTest {
         }
       runtimeConnectorProbe.lastSender ! Api.Response(
         requestId2,
-        Api.VisualizationExpressionFailed(expressionFailureMessage, None)
+        Api.VisualizationExpressionFailed(
+          Api.VisualizationContext(visualizationId, contextId, expressionId),
+          expressionFailureMessage,
+          None
+        )
       )
       client.expectJson(
         json.executionContextVisualizationExpressionFailed(

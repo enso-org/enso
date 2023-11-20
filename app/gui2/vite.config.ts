@@ -19,6 +19,13 @@ export default defineConfig({
   optimizeDeps: {
     entries: 'index.html',
   },
+  server: {
+    headers: {
+      'Cross-Origin-Embedder-Policy': 'require-corp',
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Resource-Policy': 'same-origin',
+    },
+  },
   resolve: {
     alias: {
       ...(process.env.E2E === 'true'

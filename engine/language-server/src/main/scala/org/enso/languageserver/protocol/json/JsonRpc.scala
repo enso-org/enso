@@ -25,6 +25,7 @@ import org.enso.languageserver.session.SessionApi.InitProtocolConnection
 import org.enso.languageserver.text.TextApi._
 import org.enso.languageserver.libraries.LibraryApi._
 import org.enso.languageserver.profiling.ProfilingApi.{
+  ProfilingSnapshot,
   ProfilingStart,
   ProfilingStop
 }
@@ -108,6 +109,7 @@ object JsonRpc {
     .registerRequest(RuntimeGetComponentGroups)
     .registerRequest(ProfilingStart)
     .registerRequest(ProfilingStop)
+    .registerRequest(ProfilingSnapshot)
     .registerNotification(TaskStarted)
     .registerNotification(TaskProgressUpdate)
     .registerNotification(TaskFinished)

@@ -28,4 +28,15 @@ object ProfilingApi {
       }
   }
 
+  case object ProfilingSnapshot extends Method("profiling/snapshot") {
+
+    implicit val hasParams: HasParams.Aux[this.type, Unused.type] =
+      new HasParams[this.type] {
+        type Params = Unused.type
+      }
+    implicit val hasResult: HasResult.Aux[this.type, Unused.type] =
+      new HasResult[this.type] {
+        type Result = Unused.type
+      }
+  }
 }
