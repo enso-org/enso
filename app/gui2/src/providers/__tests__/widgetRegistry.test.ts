@@ -1,20 +1,22 @@
 import { GraphDb } from '@/stores/graph/graphDatabase'
 import { AstExtended } from '@/util/ast'
-import { IdMap, type ExprId } from 'shared/yjsModel'
+import { ArgumentPlaceholder } from '@/util/callTree'
+import { IdMap } from 'shared/yjsModel'
 import { describe, expect, test } from 'vitest'
 import { defineComponent } from 'vue'
 import {
-  PlaceholderArgument,
   Score,
   WidgetRegistry,
-  widgetArg,
-  widgetAst,
   type WidgetDefinition,
+  type WidgetInput,
   type WidgetModule,
 } from '../widgetRegistry'
 
 describe('WidgetRegistry', () => {
-  function makeMockWidget(name: string, widgetDefinition: WidgetDefinition): WidgetModule {
+  function makeMockWidget<T extends WidgetInput>(
+    name: string,
+    widgetDefinition: WidgetDefinition<T>,
+  ): WidgetModule<T> {
     return {
       default: defineComponent({ name }),
       widgetDefinition,
@@ -23,31 +25,36 @@ describe('WidgetRegistry', () => {
 
   const widgetA = makeMockWidget('A', {
     priority: 1,
-    match: (info) => (widgetAst(info.input) ? Score.Perfect : Score.Mismatch),
+    match: AstExtended.isInstance,
+    score: () => Score.Perfect,
   })
 
   const widgetB = makeMockWidget('B', {
     priority: 2,
-    match: (info) => (widgetArg(info.input) ? Score.Perfect : Score.Mismatch),
+    match: ArgumentPlaceholder.isInstance,
+    score: () => Score.Perfect,
   })
 
   const widgetC = makeMockWidget('C', {
     priority: 10,
-    match: () => Score.Good,
+    match: (input): input is WidgetInput => true,
+    score: () => Score.Good,
   })
 
   const widgetD = makeMockWidget('D', {
     priority: 20,
-    match: (info) => (widgetAst(info.input)?.repr() === '_' ? Score.Perfect : Score.Mismatch),
+    match: AstExtended.isInstance,
+    score: (info) => (info.input.repr() === '_' ? Score.Perfect : Score.Mismatch),
   })
 
   const someAst = AstExtended.parse('foo', IdMap.Mock())
   const blankAst = AstExtended.parse('_', IdMap.Mock())
-  const somePlaceholder = new PlaceholderArgument(
-    '2095503f-c6b3-46e3-848a-be31360aab08' as ExprId,
-    0,
-    0,
-  )
+  const somePlaceholder = new ArgumentPlaceholder(0, {
+    name: 'foo',
+    type: 'Any',
+    isSuspended: false,
+    hasDefault: false,
+  })
 
   const mockGraphDb = GraphDb.Mock()
   const registry = new WidgetRegistry(mockGraphDb)

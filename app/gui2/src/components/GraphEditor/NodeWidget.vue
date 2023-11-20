@@ -10,6 +10,9 @@ import { injectWidgetUsageInfo, provideWidgetUsageInfo } from '@/providers/widge
 import { computed, proxyRefs, ref, toRef } from 'vue'
 
 const props = defineProps<{ input: WidgetInput; nest?: boolean }>()
+defineOptions({
+  inheritAttrs: false,
+})
 
 const registry = injectWidgetRegistry()
 const tree = injectWidgetTree()
@@ -29,7 +32,11 @@ const nesting = computed(() => (parentUsageInfo?.nesting ?? 0) + (props.nest ===
 
 const selectedWidget = computed(() => {
   return registry.select(
-    { input: props.input, config: dynamicConfig.value, nesting: nesting.value },
+    {
+      input: props.input,
+      config: dynamicConfig.value,
+      nesting: nesting.value,
+    },
     sameInputParentWidgets.value,
   )
 })
@@ -54,6 +61,7 @@ const spanStart = computed(() => {
   {{ whitespace
   }}<component
     :is="selectedWidget"
+    v-if="selectedWidget"
     ref="rootNode"
     :input="props.input"
     :config="dynamicConfig"

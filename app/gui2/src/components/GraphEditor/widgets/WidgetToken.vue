@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { Score, defineWidget, widgetAst, type WidgetProps } from '@/providers/widgetRegistry'
+import { Score, defineWidget, widgetAst, widgetProps } from '@/providers/widgetRegistry'
+import { AstExtended } from '@/util/ast'
 import { computed, ref } from 'vue'
 
-const props = defineProps<WidgetProps>()
+const props = defineProps(widgetProps(widgetDefinition))
 
 const rootNode = ref<HTMLElement>()
 
@@ -11,9 +12,9 @@ const repr = computed(() => widgetAst(props.input)?.repr())
 </script>
 
 <script lang="ts">
-export const widgetDefinition = defineWidget({
+export const widgetDefinition = defineWidget(AstExtended.isToken(), {
   priority: 1000,
-  match: (info) => (widgetAst(info.input)?.isToken() ? Score.Good : Score.Mismatch),
+  score: Score.Good,
 })
 </script>
 
