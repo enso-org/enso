@@ -1,10 +1,7 @@
-import { SuggestionDb } from '@/stores/suggestionDatabase'
 import { Ast, AstExtended } from '@/util/ast'
-import { ComputedValueRegistry } from '@/util/computedValueRegistry'
 import assert from 'assert'
 import { IdMap, type ExprId } from 'shared/yjsModel'
 import { expect, test } from 'vitest'
-import { ref } from 'vue'
 import { GraphDb } from '../graphDatabase'
 
 test('Reading graph from definition', () => {

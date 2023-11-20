@@ -9,7 +9,6 @@ import { ReactiveDb, ReactiveIndex, ReactiveMapping } from '@/util/database/reac
 import type { Opt } from '@/util/opt'
 import { qnJoin, tryQualifiedName } from '@/util/qualifiedName'
 import { Vec2 } from '@/util/vec2'
-import { iteratorFilter } from 'lib0/iterator'
 import * as set from 'lib0/set'
 import {
   IdMap,
@@ -286,6 +285,19 @@ export class GraphDb {
   static Mock(registry = ComputedValueRegistry.Mock()): GraphDb {
     return new GraphDb(new SuggestionDb(), ref([]), registry)
   }
+
+  mockNode(binding: string, id: ExprId, code?: string) {
+    const node = {
+      outerExprId: id,
+      pattern: AstExtended.parse(binding, IdMap.Mock()),
+      rootSpan: AstExtended.parse(code ?? '0', IdMap.Mock()),
+      position: Vec2.Zero,
+      vis: undefined,
+    }
+    const bidingId = node.pattern.astId
+    this.nodes.set(id, node)
+    this.bindings.bindings.set(bidingId, { identifier: binding, usages: new Set() })
+  }
 }
 
 export interface Node {
@@ -294,16 +306,6 @@ export interface Node {
   rootSpan: AstExtended<Ast.Tree>
   position: Vec2
   vis: Opt<VisualizationMetadata>
-}
-
-export function mockNode(binding: string, id: ExprId, code?: string): Node {
-  return {
-    outerExprId: id,
-    pattern: AstExtended.parse(binding, IdMap.Mock()),
-    rootSpan: AstExtended.parse(code ?? '0', IdMap.Mock()),
-    position: Vec2.Zero,
-    vis: undefined,
-  }
 }
 
 function nodeFromAst(ast: AstExtended<Ast.Tree>): Node {
