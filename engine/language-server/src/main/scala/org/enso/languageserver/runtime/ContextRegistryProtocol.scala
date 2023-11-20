@@ -568,6 +568,7 @@ object ContextRegistryProtocol {
     * @param diagnostic the detailed information about the failure
     */
   case class VisualizationExpressionFailed(
+    ctx: VisualizationContext,
     message: String,
     diagnostic: Option[ExecutionDiagnostic]
   ) extends Failure
@@ -582,9 +583,7 @@ object ContextRegistryProtocol {
     * @param diagnostic the detailed information about the error
     */
   case class VisualizationEvaluationFailed(
-    contextId: UUID,
-    visualizationId: UUID,
-    expressionId: UUID,
+    ctx: VisualizationContext,
     message: String,
     diagnostic: Option[ExecutionDiagnostic]
   )

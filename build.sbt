@@ -178,11 +178,12 @@ Global / excludeLintKeys += logManager
 // ============================================================================
 
 ThisBuild / javacOptions ++= Seq(
-  "-encoding",       // Provide explicit encoding (the next line)
-  "UTF-8",           // Specify character encoding used by Java source files
-  "-deprecation",    // Shows a description of each use or override of a deprecated member or class
-  "-g",              // Include debugging information
-  "-Xlint:unchecked" // Enable additional warnings
+  "-encoding",        // Provide explicit encoding (the next line)
+  "UTF-8",            // Specify character encoding used by Java source files
+  "-deprecation",     // Shows a description of each use or override of a deprecated member or class
+  "-g",               // Include debugging information
+  "-Xlint:unchecked", // Enable additional warnings
+  "-proc:full"        // Annotation processing is enabled
 )
 
 ThisBuild / scalacOptions ++= Seq(
@@ -707,7 +708,9 @@ lazy val `profiling-utils` = project
       exclude ("org.netbeans.api", "org-openide-util-ui")
       exclude ("org.netbeans.api", "org-openide-awt")
       exclude ("org.netbeans.api", "org-openide-modules")
-      exclude ("org.netbeans.api", "org-netbeans-api-annotations-common")
+      exclude ("org.netbeans.api", "org-netbeans-api-annotations-common"),
+      "junit"          % "junit"           % junitVersion   % Test,
+      "com.github.sbt" % "junit-interface" % junitIfVersion % Test
     )
   )
 
@@ -1035,6 +1038,7 @@ lazy val `json-rpc-server` = project
 lazy val `json-rpc-server-test` = project
   .in(file("lib/scala/json-rpc-server-test"))
   .settings(
+    frgaalJavaCompilerSetting,
     libraryDependencies ++= akka,
     libraryDependencies ++= circe,
     libraryDependencies ++= Seq(
@@ -1390,12 +1394,6 @@ lazy val runtime = (project in file("engine/runtime"))
     version := ensoVersion,
     commands += WithDebugCommand.withDebug,
     inConfig(Compile)(truffleRunOptionsSettings),
-    inConfig(Benchmark)(Defaults.testSettings),
-    Benchmark / javacOptions --= Seq(
-      "-source",
-      frgaalSourceLevel,
-      "--enable-preview"
-    ),
     Test / parallelExecution := false,
     Test / logBuffered := false,
     Test / testOptions += Tests.Argument(
@@ -1466,7 +1464,15 @@ lazy val runtime = (project in file("engine/runtime"))
       .value
   )
   .settings(
-    bench := (Benchmark / test).tag(Exclusive).value,
+    bench := (Benchmark / test)
+      .tag(Exclusive)
+      .dependsOn(
+        // runtime.jar fat jar needs to be assembled as it is used in the
+        // benchmarks. This dependency is here so that `runtime/bench` works
+        // after clean build.
+        LocalProject("runtime-with-instruments") / assembly
+      )
+      .value,
     benchOnly := Def.inputTaskDyn {
       import complete.Parsers.spaceDelimited
       val name = spaceDelimited("<name>").parsed match {
@@ -1476,12 +1482,21 @@ lazy val runtime = (project in file("engine/runtime"))
       Def.task {
         (Benchmark / testOnly).toTask(" -- -z " + name).value
       }
-    }.evaluated,
-    Benchmark / parallelExecution := false
+    }.evaluated
   )
+  /** Benchmark settings */
   .settings(
+    inConfig(Benchmark)(Defaults.testSettings),
+    Benchmark / javacOptions --= Seq(
+      "-source",
+      frgaalSourceLevel,
+      "--enable-preview"
+    ),
     (Benchmark / javaOptions) :=
-      (LocalProject("std-benchmarks") / Benchmark / run / javaOptions).value
+      (LocalProject("std-benchmarks") / Benchmark / run / javaOptions).value,
+    (Benchmark / javaOptions) ++= benchOnlyOptions,
+    Benchmark / fork := true,
+    Benchmark / parallelExecution := false
   )
   .dependsOn(`common-polyglot-core-utils`)
   .dependsOn(`edition-updater`)

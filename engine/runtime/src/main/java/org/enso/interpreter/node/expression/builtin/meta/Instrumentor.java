@@ -21,6 +21,7 @@ final class Instrumentor implements EnsoObject, IdExecutionService.Callbacks {
   private final Module module;
   private final Object onEnter;
   private final Object onReturn;
+  private final Object onReturnExpr;
   private final Object onCall;
   private final EventBinding<?> handle;
 
@@ -30,16 +31,18 @@ final class Instrumentor implements EnsoObject, IdExecutionService.Callbacks {
     this.target = target;
     this.onEnter = null;
     this.onReturn = null;
+    this.onReturnExpr = null;
     this.onCall = null;
     this.handle = null;
   }
 
-  Instrumentor(Instrumentor orig, Object onEnter, Object onReturn, Object onCall, boolean activate) {
+  Instrumentor(Instrumentor orig, Object onEnter, Object onReturn, Object onReturnExpr, Object onCall, boolean activate) {
     this.module = orig.module;
     this.service = orig.service;
     this.target = orig.target;
     this.onEnter = onEnter != null ? onEnter : orig.onEnter;
     this.onReturn = onReturn != null ? onReturn : orig.onReturn;
+    this.onReturnExpr = onReturnExpr != null ? onReturnExpr : orig.onReturnExpr;
     this.onCall = onCall != null ? onCall : orig.onCall;
     this.handle = !activate ? null : service.bind(
       module, target, this, new Timer.Disabled()
@@ -73,7 +76,12 @@ final class Instrumentor implements EnsoObject, IdExecutionService.Callbacks {
   public void updateCachedResult(IdExecutionService.Info info) {
     try {
       if (onReturn != null) {
-        InteropLibrary.getUncached().execute(onReturn, info.getId().toString(), info.getResult());
+        var iop = InteropLibrary.getUncached();
+        var result = onReturnExpr == null || !iop.isString(onReturnExpr) ?
+          info.getResult()
+          :
+          InstrumentorEvalNode.asSuspendedEval(onReturnExpr, info);
+        iop.execute(onReturn, info.getId().toString(), result);
       }
     } catch (InteropException ignored) {
     }

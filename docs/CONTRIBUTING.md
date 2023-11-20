@@ -165,9 +165,7 @@ In order to build and run Enso you will need the following tools:
   [`project/build.properties`](../project/build.properties).
 - [Maven](https://maven.apache.org/) with version at least 3.6.3.
 - [GraalVM](https://www.graalvm.org/) with the same version as described in the
-  [`build.sbt`](../build.sbt) file, configured as your default JVM. GraalVM is
-  distributed for different Java versions, so you need a GraalVM distribution
-  for the same Java version as specified in [`build.sbt`](../build.sbt).
+  [`build.sbt`](../build.sbt) file, configured as your default JVM.
 - [Flatbuffers Compiler](https://google.github.io/flatbuffers) with version
   1.12.0.
 - [Rustup](https://rustup.rs), the rust toolchain management utility.
@@ -258,24 +256,6 @@ working on modern macOS properly. Thus, we've developed a replacement, the
 [Cargo Watch Plus](https://github.com/enso-org/cargo-watch-plus). To use it,
 simply export the `USE_CARGO_WATCH_PLUS=1` in your shell and the build system
 will pick it up instead of the `cargo-watch`.
-
-### Getting Set Up (JVM)
-
-In order to properly build the `runtime` component, the JVM running SBT needs to
-have some dependency JARs available in its module path at startup. To ensure
-they are available, before running any compilation or other tasks, these
-dependencies should be prepared. To do so, run the following command in the
-repository root directory:
-
-```bash
-sbt bootstrap
-```
-
-It is preferred to not run this command from the sbt shell, but in batch mode,
-because SBT has to be launched again anyway to pick up these JARs at startup.
-
-Bootstrap has to be run only when building the project for the first time
-**and** after each change of Graal version.
 
 ### Getting Set Up (Documentation)
 

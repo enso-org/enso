@@ -12,6 +12,11 @@ import {
   type WatchSource,
 } from 'vue'
 
+export function isClick(e: MouseEvent | PointerEvent) {
+  if (e instanceof PointerEvent) return e.pointerId !== -1
+  else return e.buttons !== 0
+}
+
 /**
  * Add an event listener for the duration of the component's lifetime.
  * @param target element on which to register the event
