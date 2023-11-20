@@ -1,4 +1,5 @@
 import project.Any.Any
+import project.Data.Enso_Cloud.Enso_Secret.Enso_Secret
 import project.Data.Map.Map
 import project.Data.Pair.Pair
 import project.Data.Set.Set
@@ -18,6 +19,7 @@ import project.Network.HTTP.Request_Body.Request_Body
 import project.Network.HTTP.Response.Response
 import project.Network.Proxy.Proxy
 import project.Network.URI.URI
+import project.Network.URI_With_Query.URI_With_Query
 import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Runtime.Context
@@ -29,11 +31,13 @@ polyglot java import java.lang.Exception as JException
 polyglot java import java.net.http.HttpClient
 polyglot java import java.net.http.HttpRequest
 polyglot java import java.net.http.HttpRequest.BodyPublisher
-polyglot java import java.net.http.HttpResponse
 polyglot java import java.net.InetSocketAddress
 polyglot java import java.net.ProxySelector
 polyglot java import java.nio.file.Path
-polyglot java import org.enso.base.Http_Utils
+polyglot java import org.enso.base.enso_cloud.EnsoKeyValuePair
+polyglot java import org.enso.base.enso_cloud.EnsoSecretHelper
+polyglot java import org.enso.base.net.http.MultipartBodyBuilder
+polyglot java import org.enso.base.net.http.UrlencodedBodyBuilder
 
 type HTTP
     ## PRIVATE
@@ -64,7 +68,7 @@ type HTTP
              example_new =
                 HTTP.new (timeout = (Duration.new seconds=30)) (proxy = Proxy.Address "example.com" 8080)
     new : Duration -> Boolean -> Proxy -> HTTP_Version -> HTTP
-    new (timeout = (Duration.new seconds=10)) (follow_redirects = True) (proxy = Proxy.System) (version = HTTP_Version.HTTP_1_1) =
+    new (timeout:Duration=(Duration.new seconds=10)) (follow_redirects:Boolean=True) (proxy:Proxy=Proxy.System) (version:HTTP_Version=HTTP_Version.HTTP_2) =
         HTTP.Value timeout follow_redirects proxy version
 
     ## PRIVATE
@@ -97,72 +101,49 @@ type HTTP
             Panic.catch JException handler=(cause-> Error.throw (Request_Error.Error 'IllegalArgumentException' cause.payload.getMessage))
 
         Panic.recover Any <| handle_request_error <| check_output_context <|
-            body_publishers = HttpRequest.BodyPublishers
-            builder = HttpRequest.newBuilder
-
-            # set uri
-            uri = case req.uri of
-                _ : Text -> req.uri.to_uri
-                _ : URI -> req.uri
-            builder.uri uri.internal_uri
-
             headers = resolve_headers req
-
             headers.if_not_error <|
-                # Generate body publisher and optional form content boundary
-                body_publisher_and_boundary = case req.body of
-                    Request_Body.Text text encoding _ ->
-                        body_publisher = case encoding of
-                            Nothing -> body_publishers.ofString text
-                            _ : Encoding ->  body_publishers.ofString text encoding.to_java_charset
-                        Pair.new body_publisher Nothing
-                    Request_Body.Json x ->
-                        json = x.to_json
-                        json.if_not_error <|
-                            Pair.new (body_publishers.ofString json) Nothing
-                    Request_Body.Binary file ->
-                        path = Path.of file.path
-                        Pair.new (body_publishers.ofFile path) Nothing
-                    Request_Body.Form_Data form_data url_encoded ->
-                        build_form_body_publisher form_data url_encoded
-                    Request_Body.Empty ->
-                        Pair.new (body_publishers.noBody) Nothing
-                    _ ->
-                        Error.throw (Illegal_Argument.Error ("Unsupported POST body: " + req.body.to_display_text + "; this is a bug in the Data library"))
-
-                # Send request
+                body_publisher_and_boundary = resolve_body_to_publisher_and_boundary req.body
                 body_publisher_and_boundary.if_not_error <|
-                    body_publisher = body_publisher_and_boundary.first
+                    # Create builder and set method and body
+                    builder = HttpRequest.newBuilder
+                    builder.method req.method.to_http_method_name body_publisher_and_boundary.first
+
+                    # Create Unified Header list
                     boundary = body_publisher_and_boundary.second
-
                     boundary_header_list = if boundary.is_nothing then [] else [Header.multipart_form_data boundary]
-
-                    # set method and body
-                    builder.method req.method.to_http_method_name body_publisher
-
-                    # set headers
                     all_headers = headers + boundary_header_list
-                    all_headers.map h-> builder.header h.name h.value
+                    mapped_headers = all_headers.map h-> case h.value of
+                        _ : Enso_Secret -> EnsoKeyValuePair.ofSecret h.name h.value.id
+                        _ -> EnsoKeyValuePair.ofText h.name h.value
 
-                    http_request = builder.build
-                    body_handler = HttpResponse.BodyHandlers . ofInputStream
+                    # Get uri and resolve query arguments
+                    uri_args = case req.uri of
+                        _ : Text -> [req.uri.to_uri, []]
+                        _ : URI -> [req.uri, []]
+                        _ : URI_With_Query ->
+                            mapped_arguments = req.uri.parameters.map arg-> case arg.second of
+                                _ : Enso_Secret -> EnsoKeyValuePair.ofSecret arg.first arg.second.id
+                                _ : Text -> EnsoKeyValuePair.ofText arg.first arg.second
+                                _ -> Error.throw (Illegal_Argument.Error "Invalid query argument type - all values must be Vector or Pair.")
+                            [req.uri.uri, mapped_arguments]
 
-                    response = Response.Value (self.internal_http_client.send http_request body_handler)
+                    response = Response.Value (EnsoSecretHelper.makeRequest self.internal_http_client builder uri_args.first.internal_uri uri_args.second mapped_headers)
                     if error_on_failure_code.not || response.code.is_success then response else
                         Error.throw (Request_Error.Error "Status Code" ("Request failed with status code: " + response.code.to_text + ". " + response.body.decode_as_text))
 
     ## PRIVATE
        Static helper for get-like methods
-    fetch : (URI | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> Any
-    fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (Header | Pair Text Text))=[]) =
+    fetch : (URI | URI_With_Query | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> Any
+    fetch (uri:(URI | URI_With_Query | Text)) (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (Header | Pair Text Text))=[]) =
         check_method fetch_methods method <|
             request = Request.new method uri (parse_headers headers) Request_Body.Empty
             HTTP.new.request request
 
     ## PRIVATE
        Static helper for post-like methods
-    post : (URI | Text) -> Request_Body -> HTTP_Method -> Vector (Header | Pair Text Text) -> Any
-    post (uri:(URI | Text)) (body:Request_Body=Request_Body.Empty) (method:HTTP_Method=HTTP_Method.Post) (headers:(Vector (Header | Pair Text Text))=[]) =
+    post : (URI | URI_With_Query | Text) -> Request_Body -> HTTP_Method -> Vector (Header | Pair Text Text) -> Any
+    post (uri:(URI | URI_With_Query | Text)) (body:Request_Body=Request_Body.Empty) (method:HTTP_Method=HTTP_Method.Post) (headers:(Vector (Header | Pair Text Text))=[]) =
         check_method post_methods method <|
             request = Request.new method uri (parse_headers headers) body
             HTTP.new.request request
@@ -172,31 +153,20 @@ type HTTP
        Build an HTTP client.
     internal_http_client : HttpClient
     internal_http_client self =
-        builder = HttpClient.newBuilder
-        builder.connectTimeout self.timeout
-        # redirect
-        redirect = HttpClient.Redirect
-        redirect_policy = case self.follow_redirects of
-            True -> redirect.ALWAYS
-            False -> redirect.NEVER
+        builder = HttpClient.newBuilder.connectTimeout self.timeout
+
+        redirect_policy = if self.follow_redirects then HttpClient.Redirect.ALWAYS else HttpClient.Redirect.NEVER
         builder.followRedirects redirect_policy
-        # proxy
+
         case self.proxy of
-            Proxy.Address proxy_host proxy_port ->
-                proxy_selector = ProxySelector.of (InetSocketAddress.new proxy_host proxy_port)
-                builder.proxy proxy_selector
-            Proxy.System ->
-                proxy_selector = ProxySelector.getDefault
-                builder.proxy proxy_selector
-            Proxy.None ->
-                Nothing
-        # version
+            Proxy.Address proxy_host proxy_port -> builder.proxy (ProxySelector.of (InetSocketAddress.new proxy_host proxy_port))
+            Proxy.System -> builder.proxy ProxySelector.getDefault
+            Proxy.None -> Nothing
+
         case self.version of
-            HTTP_Version.HTTP_1_1 ->
-                builder.version HttpClient.Version.HTTP_1_1
-            HTTP_Version.HTTP_2 ->
-                builder.version HttpClient.Version.HTTP_2
-        # build http client
+            HTTP_Version.HTTP_1_1 -> builder.version HttpClient.Version.HTTP_1_1
+            HTTP_Version.HTTP_2 -> builder.version HttpClient.Version.HTTP_2
+
         builder.build
 
 ## PRIVATE
@@ -250,20 +220,46 @@ resolve_headers req =
         all_headers + default_content_type
 
 ## PRIVATE
+   Generate body publisher and optional form content boundary
+resolve_body_to_publisher_and_boundary : Request_Body -> Pair BodyPublisher Text
+resolve_body_to_publisher_and_boundary body:Request_Body =
+    body_publishers = HttpRequest.BodyPublishers
+    case body of
+        Request_Body.Text text encoding _ ->
+            body_publisher = case encoding of
+                Nothing -> body_publishers.ofString text
+                _ : Encoding ->  body_publishers.ofString text encoding.to_java_charset
+            Pair.new body_publisher Nothing
+        Request_Body.Json x ->
+            json = x.to_json
+            json.if_not_error <|
+                Pair.new (body_publishers.ofString json) Nothing
+        Request_Body.Binary file ->
+            path = Path.of file.path
+            Pair.new (body_publishers.ofFile path) Nothing
+        Request_Body.Form_Data form_data url_encoded ->
+            build_form_body_publisher form_data url_encoded
+        Request_Body.Empty ->
+            Pair.new (body_publishers.noBody) Nothing
+        _ ->
+            Error.throw (Illegal_Argument.Error ("Unsupported POST body: " + body.to_display_text + "; this is a bug in the Data library"))
+
+
+## PRIVATE
 
    Build a BodyPublisher from the given form data.
    The pair's second value is a content boundary in the case of a `multipart/form-data` form; otherwise, Nothing
 build_form_body_publisher : Map Text (Text | File) -> Boolean -> Pair BodyPublisher Text
 build_form_body_publisher (form_data:(Map Text (Text | File))) (url_encoded:Boolean=False) = case url_encoded of
     True ->
-        body_builder = Http_Utils.urlencoded_body_builder
+        body_builder = UrlencodedBodyBuilder.new
         form_data.map_with_key key-> value->
             case value of
                 _ : Text -> body_builder.add_part_text key value
                 _ : File -> body_builder.add_part_file key value.path
         Pair.new body_builder.build Nothing
     False ->
-        body_builder = Http_Utils.multipart_body_builder
+        body_builder = MultipartBodyBuilder.new
         form_data.map_with_key key-> value->
             case value of
                 _ : Text -> body_builder.add_part_text key value

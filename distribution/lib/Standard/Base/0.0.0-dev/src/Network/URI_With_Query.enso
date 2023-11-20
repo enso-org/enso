@@ -1,0 +1,112 @@
+import project.Data.Enso_Cloud.Enso_Secret.Enso_Secret
+import project.Data.Enso_Cloud.Enso_Secret.Enso_Secret_Error
+import project.Data.Json.JS_Object
+import project.Data.Pair.Pair
+import project.Data.Text.Encoding.Encoding
+import project.Data.Text.Extensions
+import project.Data.Text.Text
+import project.Data.Vector.Vector
+import project.Error.Error
+import project.Errors.Common.Syntax_Error
+import project.Meta
+import project.Network.URI.URI
+import project.Nothing.Nothing
+import project.Panic.Panic
+from project.Data.Boolean import Boolean, False, True
+
+polyglot java import java.lang.Exception
+polyglot java import java.net.URI as Java_URI
+polyglot java import org.enso.base.enso_cloud.EnsoSecretHelper
+
+## Represents a URI with a set of query parameters
+type URI_With_Query
+    ## PRIVATE
+    Value uri:URI parameters:Vector
+
+    ## PRIVATE
+       Convert this to URI.
+       Materialize the URI_With_Query into a URI, but will error if any secrets
+       are used.
+    to_uri : URI ! Enso_Secret_Error
+    to_uri self =
+        Panic.catch Exception (URI.Value (EnsoSecretHelper.replaceQuery self.uri.internal_uri self.query)) caught_panic->
+            message = caught_panic.payload.getMessage
+            Error.throw (Syntax_Error.Error "Unable to collapse to a URI:"+message)
+
+    ## GROUP Metadata
+       Get the query part of this URI, but will error if any secrets are used.
+    query : Text | Nothing ! Enso_Secret_Error
+    query self =
+        base_query = self.uri.query.if_nothing ""
+        query_params = self.parameters.map p->
+            if p.second.is_a Enso_Secret then Error.throw Enso_Secret_Error.Access_Denied else
+                (EnsoSecretHelper.encodeArg p.first True) + "=" + (EnsoSecretHelper.encodeArg p.second False)
+        (if base_query == "" then "" else base_query + "&") + (query_params.join "&")
+
+    ## Adds a query parameter to the URI
+
+       Arguments:
+       - key: The key of the query parameter.
+       - value: The value of the query parameter.
+    add_query_argument : Text -> Text | Enso_Secret -> URI
+    add_query_argument self key:Text value:(Text|Enso_Secret) =
+        URI_With_Query.Value self.uri self.parameters+[Pair.new key value]
+
+    ## PRIVATE
+       Convert this URI to text.
+    to_text : Text
+    to_text self =
+        base_query = self.uri.query.if_nothing ""
+        query_params = self.parameters.map p->
+            if p.second.is_a Enso_Secret then p.first + "=__SECRET__" else
+                p.first + "=" + p.second
+        new_query = "?" + (if base_query == "" then "" else base_query + "&") + (query_params.join "&")
+
+        Panic.catch Exception (EnsoSecretHelper.replaceQuery self.uri.internal_uri new_query . toString) caught_panic->
+            message = caught_panic.payload.getMessage
+            Error.throw (Syntax_Error.Error "Unable to render URI_With_Query:"+message)
+
+    ## PRIVATE
+       Convert to a display representation of this URI.
+    to_display_text : Text
+    to_display_text self = self.to_text.to_display_text
+
+    ## PRIVATE
+       Convert to a JavaScript Object representing this URI.
+    to_js_object : JS_Object
+    to_js_object self =
+        type_pair = ["type", "URI_With_Query"]
+        cons_pair = ["constructor", "parse"]
+        JS_Object.from_pairs [type_pair, cons_pair, ["uri", self.uri.to_text], ["parameters", self.parameters.to_js_object]]
+
+    ## GROUP Metadata
+       Get the scheme part of this URI.
+    scheme : Text | Nothing
+    scheme self = self.uri.scheme
+
+    ## GROUP Metadata
+       Get the user info part of this URI.
+    user_info : Text | Nothing
+    user_info self = self.uri.user_info
+
+    ## GROUP Metadata
+       Get the host part of this URI.
+    host : Text | Nothing
+    host self = self.uri.host
+
+    ## Get the authority (user info and host) part of this URI.
+    authority : Text | Nothing
+    authority self = self.uri.authority
+
+    ## Get the port part of this URI.
+    port : Text | Nothing
+    port self = self.uri.port
+
+    ## GROUP Metadata
+       Get the path part of this URI.
+    path : Text | Nothing
+    path self = self.uri.path
+
+    ## Get the fragment part of this URI.
+    fragment : Text | Nothing
+    fragment self = self.uri.fragment

@@ -11,11 +11,11 @@ import project.Data.Time.Time_Zone.Time_Zone
 import project.Data.Vector.Vector
 import project.Error.Error as Base_Error
 import project.Errors.Common.Not_Found
-import project.Nothing.Nothing
 import project.Function.Function
+import project.Nothing.Nothing
 import project.Polyglot.Java
-from project.Runtime.Managed_Resource import Managed_Resource
 from project.Data.Boolean import Boolean, False, True
+from project.Runtime.Managed_Resource import Managed_Resource
 
 type Type
     ## PRIVATE
@@ -588,6 +588,7 @@ get_short_type_name typ = @Builtin_Method "Meta.get_short_type_name"
 get_constructor_declaring_type : Any -> Any
 get_constructor_declaring_type constructor = @Builtin_Method "Meta.get_constructor_declaring_type"
 
+## PRIVATE
 instrumentor_builtin op args = @Builtin_Method "Meta.instrumentor_builtin"
 
 ## PRIVATE

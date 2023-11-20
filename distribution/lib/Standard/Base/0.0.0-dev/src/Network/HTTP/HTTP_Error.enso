@@ -1,6 +1,7 @@
 import project.Any.Any
 import project.Data.Text.Text
 import project.Network.URI.URI
+import project.Network.URI_With_Query.URI_With_Query
 import project.Panic.Panic
 
 polyglot java import java.io.IOException
@@ -12,7 +13,7 @@ type HTTP_Error
        Arguments:
        - uri: The uri that couldn't be read.
        - message: The message for the error.
-    IO_Error (uri:URI) (message:Text)
+    IO_Error (uri:URI|URI_With_Query) (message:Text)
 
     ## PRIVATE
        Convert the HTTP_Error to a human-readable format.
@@ -21,6 +22,6 @@ type HTTP_Error
 
     ## PRIVATE
        Utility method for running an action with Java exceptions mapping.
-    handle_java_exceptions uri:URI ~action =
+    handle_java_exceptions (uri:URI|URI_With_Query) ~action =
         Panic.catch IOException action caught_panic->
             HTTP_Error.IO_Error uri ("An IO error has occurred: " + caught_panic.payload.to_text)

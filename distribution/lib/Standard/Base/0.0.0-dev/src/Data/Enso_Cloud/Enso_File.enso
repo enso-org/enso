@@ -1,0 +1,213 @@
+import project.Any.Any
+import project.Data.Enso_Cloud.Utils
+import project.Data.Index_Sub_Range.Index_Sub_Range
+import project.Data.Json.JS_Object
+import project.Data.Text.Encoding.Encoding
+import project.Data.Text.Matching_Mode.Matching_Mode
+import project.Data.Text.Text
+import project.Data.Text.Text_Sub_Range.Text_Sub_Range
+import project.Data.Vector.Vector
+import project.Error.Error
+import project.Errors.File_Error.File_Error
+import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Errors.Problem_Behavior.Problem_Behavior
+import project.Errors.Unimplemented.Unimplemented
+import project.Network.HTTP.HTTP
+import project.Network.HTTP.HTTP_Method.HTTP_Method
+import project.Nothing.Nothing
+import project.System.File.File_Access.File_Access
+import project.System.File_Format.File_For_Read
+import project.System.Input_Stream.Input_Stream
+import project.System.Output_Stream.Output_Stream
+from project.Data.Boolean import Boolean, False, True
+from project.Data.Text.Extensions import all
+from project.System.File_Format import Auto_Detect, File_Format, Bytes, Plain_Text_Format
+
+type Enso_File
+    ## PRIVATE
+       Represents a file or folder within the Enso cloud.
+    Value name:Text id:Text organisation:Text asset_type:Enso_Asset_Type
+
+    ## Represents the root folder of the current users.
+    root : Enso_File
+    root = Enso_File.Value "" "" "" Enso_Asset_Type.Directory
+
+    ## PRIVATE
+       Target URI for the api
+    internal_uri : Text
+    internal_uri self = case self.id of
+        "" -> if self.asset_type == Enso_Asset_Type.Directory then Utils.directory_api else
+            Error.throw (Illegal_Argument.Error "Invalid ID for a "+self.asset_type.to_text+".")
+        _ -> case self.asset_type of
+            Enso_Asset_Type.Directory -> Utils.directory_api + "?parent_id=" + self.id
+            Enso_Asset_Type.File -> Utils.files_api + "/" + self.id
+            Enso_Asset_Type.Project -> Utils.projects_api + "/" + self.id
+            Enso_Asset_Type.Data_Link -> Utils.secrets_api + "/" + self.id
+            Enso_Asset_Type.Secret -> Error.throw (Illegal_Argument.Error "Secrets cannot be accessed directly.")
+
+    ## Checks if the folder or file exists
+    exists : Boolean
+    exists self =
+        auth_header = Utils.authorization_header
+        response = HTTP.fetch self.internal_uri HTTP_Method.Get [auth_header]
+        response.code.is_success
+
+    ## Checks if this is a folder
+    is_directory : Boolean
+    is_directory self = self.asset_type == Enso_Asset_Type.Directory
+
+    ## PRIVATE
+       ADVANCED
+       Creates a new output stream for this file and runs the specified action
+       on it.
+
+       The created stream is automatically closed when `action` returns (even
+       if it returns exceptionally).
+
+       Arguments:
+       - open_options: A vector of `File_Access` objects determining how to open
+         the stream. These options set the access properties of the stream.
+       - action: A function that operates on the output stream and returns some
+         value. The value is returned from this method.
+    with_output_stream : Vector File_Access -> (Output_Stream -> Any ! File_Error) -> Any ! File_Error
+    with_output_stream self open_options action =
+        _ = [open_options, action]
+        Unimplemented.throw "Writing to Enso_Files is not currently implemented."
+
+    ## PRIVATE
+       ADVANCED
+       Creates a new input stream for this file and runs the specified action
+       on it.
+
+       Arguments:
+       - open_options: A vector of `File_Access` objects determining how to open
+         the stream. These options set the access properties of the stream.
+       - action: A function that operates on the input stream and returns some
+         value. The value is returned from this method.
+
+       The created stream is automatically closed when `action` returns (even
+       if it returns exceptionally).
+    with_input_stream : Vector File_Access -> (Input_Stream -> Any ! File_Error) -> Any ! File_Error | Illegal_Argument
+    with_input_stream self open_options action = if self.asset_type != Enso_Asset_Type.File then Error.throw (Illegal_Argument.Error "Only files can be opened as a stream.") else
+        if (open_options !=  [File_Access.Read]) then Error.throw (Illegal_Argument.Error "Files can only be opened for reading.") else
+            auth_header = Utils.authorization_header
+            response = HTTP.fetch self.internal_uri HTTP_Method.Get [auth_header]
+            response.if_not_error <|
+                js_object = response.decode_as_json
+                path = js_object.get "path"
+                if path.is_nothing then Error.throw (Illegal_Argument.Error "Invalid JSON for an Enso_File.") else
+                    url = path.replace "s3://production-enso-organizations-files/" "https://production-enso-organizations-files.s3.eu-west-1.amazonaws.com/"
+                    response = HTTP.fetch url HTTP_Method.Get []
+                    response.if_not_error <| response.with_stream action
+
+    ## ALIAS load, open
+       GROUP Input
+       Read a file using the specified file format
+
+       Arguments:
+       - format: A `File_Format` object used to read file into memory.
+         If `Auto_Detect` is specified; the provided file determines the specific
+         type and configures it appropriately. If there is no matching type then
+         a `File_Error.Unsupported_Type` error is returned.
+       - on_problems: Specifies the behavior when a problem occurs during the
+         function.
+         By default, a warning is issued, but the operation proceeds.
+         If set to `Report_Error`, the operation fails with a dataflow error.
+         If set to `Ignore`, the operation proceeds without errors or warnings.
+    @format File_Format.default_widget
+    read : File_Format -> Problem_Behavior -> Any ! Illegal_Argument | File_Error
+    read self format=Auto_Detect (on_problems=Problem_Behavior.Report_Warning) = case self.asset_type of
+        Enso_Asset_Type.Project -> Error.throw (Illegal_Argument.Error "Projects cannot be read within Enso code. Open using the IDE.")
+        Enso_Asset_Type.Secret -> Error.throw (Illegal_Argument.Error "Secrets cannot be read directly.")
+        Enso_Asset_Type.Data_Link -> Unimplemented.throw "Reading from a Data Link is not implemented yet."
+        Enso_Asset_Type.Directory -> if format == Auto_Detect then self.list else Error.throw (Illegal_Argument.Error "Directories can only be read using the Auto_Detect format.")
+        Enso_Asset_Type.File -> case format of
+            Auto_Detect ->
+                real_format = Auto_Detect.get_reading_format self
+                if real_format == Nothing then Error.throw (File_Error.Unsupported_Type self) else
+                    self.read real_format on_problems
+            _ -> self.with_input_stream [File_Access.Read] format.read_stream
+
+    ## ALIAS load bytes, open bytes
+       Reads all bytes in this file into a byte vector.
+    read_bytes : Vector ! File_Error
+    read_bytes self =
+        self.read Bytes
+
+    ## ALIAS load text, open text
+       Reads the whole file into a `Text`, with specified encoding.
+
+       Arguments:
+       - encoding: The text encoding to decode the file with. Defaults to UTF-8.
+       - on_problems: Specifies the behavior when a problem occurs during the
+         function.
+         By default, a warning is issued, but the operation proceeds.
+         If set to `Report_Error`, the operation fails with a dataflow error.
+         If set to `Ignore`, the operation proceeds without errors or warnings.
+    @encoding Encoding.default_widget
+    read_text : Encoding -> Problem_Behavior -> Text ! File_Error
+    read_text self (encoding=Encoding.utf_8) (on_problems=Problem_Behavior.Report_Warning) =
+        self.read (Plain_Text_Format.Plain_Text encoding) on_problems
+
+    ## GROUP Metadata
+       Returns the extension of the file.
+    extension : Text
+    extension self = case self.asset_type of
+        Enso_Asset_Type.Directory -> Error.throw (Illegal_Argument.Error "Directories do not have extensions.")
+        Enso_Asset_Type.Secret -> Error.throw (Illegal_Argument.Error "Secrets cannot be accessed directly.")
+        Enso_Asset_Type.Project -> ".enso"
+        _ ->
+            name = self.name
+            last_dot = name.locate "." mode=Matching_Mode.Last
+            if last_dot.is_nothing then "" else
+                extension = name.drop (Index_Sub_Range.First last_dot.start)
+                if extension == "." then "" else extension
+
+    ## Gets a list of assets within self.
+    list : Vector Enso_File
+    list self = if self.asset_type != Enso_Asset_Type.Directory then Error.throw (Illegal_Argument.Error "Only directories can be listed.") else
+        auth_header = Utils.authorization_header
+        response = HTTP.fetch self.internal_uri HTTP_Method.Get [auth_header]
+        response.if_not_error <|
+            js_object = response.decode_as_json
+            assets = js_object.get "assets" []
+            files = assets.map t-> t.into Enso_File
+
+            ## Remove secrets from the list
+            files.filter f-> f.asset_type != Enso_Asset_Type.Secret
+
+## PRIVATE
+Enso_File.from (that:JS_Object) = if ["title", "id", "parentId"].any (k-> that.contains_key k . not) then Error.throw (Illegal_Argument.Error "Invalid JSON for an Enso_File.") else
+    name = that.get "title"
+    id = that.get "id"
+    org = that.get "organizationId" ""
+    asset_type = (id.take (Text_Sub_Range.Before "-")):Enso_Asset_Type
+    Enso_File.Value name id org asset_type
+
+type Enso_Asset_Type
+    ## Represents an Enso project.
+    Project
+
+    ## Represents an file.
+    File
+
+    ## Represents a folder.
+    Directory
+
+    ## Represents a secret.
+    Secret
+
+    ## Represents a connection to another data source.
+    Data_Link
+
+## PRIVATE
+Enso_Asset_Type.from (that:Text) = case that of
+    "project" -> Enso_Asset_Type.Project
+    "file" -> Enso_Asset_Type.File
+    "directory" -> Enso_Asset_Type.Directory
+    "secret" -> Enso_Asset_Type.Secret
+    "connection" -> Enso_Asset_Type.Data_Link
+    _ -> Error.throw (Illegal_Argument.Error "Invalid asset type.")
+
+## PRIVATE
+File_For_Read.from (that:Enso_File) = File_For_Read.Value that.uri that.name that.extension

@@ -1,13 +1,12 @@
 from Standard.Base import all
-
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-import project.Data.Table.Table
 import project.Data.Column.Column
 import project.Data.Conversions.Convertible_To_Columns.Convertible_To_Columns
 import project.Data.Conversions.Convertible_To_Rows.Convertible_To_Rows
+import project.Data.Table.Table
 import project.Errors.No_Such_Column
 import project.Extensions.Prefix_Name.Prefix_Name
 import project.Internal.Fan_Out
@@ -41,7 +40,8 @@ expand_column (table : Table) (column : Text | Integer) (fields : (Vector Text) 
 
     Table.new output_builder.to_vector
 
-## GROUP Standard.Base.Conversions
+## PRIVATE
+   GROUP Standard.Base.Conversions
    Expand aggregate values in a column to separate rows.
 
    For each value in the specified column, if it is an aggregate (`Vector`,

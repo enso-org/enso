@@ -2558,6 +2558,10 @@ fill_previous column is_missing =
 Column.from (that:Vector) (name:Text="Vector") = Column.from_vector name that
 
 ## PRIVATE
+   Conversion method to a Column to a Vector.
+Vector.from (that:Column) = that.to_vector
+
+## PRIVATE
    Conversion method to a Column from a Vector.
 Column.from (that:Range) (name:Text="Range") = Column.from_vector name that.to_vector
 

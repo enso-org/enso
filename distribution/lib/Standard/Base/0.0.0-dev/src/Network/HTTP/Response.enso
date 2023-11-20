@@ -18,8 +18,6 @@ import project.System.File_Format.File_Format
 from project.Data.Text.Extensions import all
 from project.Network.HTTP.Response_Body import decode_format_selector
 
-polyglot java import org.enso.base.Http_Utils
-
 type Response
     ## PRIVATE
 
@@ -57,8 +55,8 @@ type Response
              example_headers = Examples.get_response.headers
     headers : Vector
     headers self =
-        header_entries = Vector.from_polyglot_array (Http_Utils.get_headers self.internal_http_response.headers)
-        header_entries.map e-> Header.new e.getKey e.getValue
+        header_keys = self.internal_http_response.headerNames
+        header_keys.flat_map k-> (self.internal_http_response.headers.allValues k).map v-> Header.new k v
 
     ## Get the response content type.
     content_type : Text | Nothing

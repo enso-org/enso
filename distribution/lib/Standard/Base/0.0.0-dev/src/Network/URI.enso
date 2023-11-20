@@ -1,26 +1,16 @@
-import project.Any.Any
-import project.Data.Boolean.Boolean
+import project.Data.Enso_Cloud.Enso_Secret.Enso_Secret
 import project.Data.Json.JS_Object
+import project.Data.Pair.Pair
 import project.Data.Text.Text
+import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Common.Syntax_Error
+import project.Network.URI_With_Query.URI_With_Query
 import project.Nothing.Nothing
 import project.Panic.Panic
 
-polyglot java import java.lang.Exception as JException
+polyglot java import java.lang.Exception
 polyglot java import java.net.URI as Java_URI
-polyglot java import java.util.Optional
-
-## PRIVATE
-
-   Handle a nothing value.
-
-   Arguments:
-   - value: The value that may possibly be nothing.
-handle_nothing : Any -> Any ! Nothing
-handle_nothing value = case value of
-    Nothing -> Error.throw Nothing
-    _ -> value
 
 type URI
     ## ALIAS get uri
@@ -41,7 +31,7 @@ type URI
              example_parse = URI.parse "http://example.com"
     parse : Text -> URI ! Syntax_Error
     parse uri:Text =
-        Panic.catch JException (URI.Value (Java_URI.create uri)) caught_panic->
+        Panic.catch Exception (URI.Value (Java_URI.create uri)) caught_panic->
             message = caught_panic.payload.getMessage
             truncated = if message.is_nothing || message.length > 100 then "Invalid URI '" + uri.to_display_text + "'" else
                 "URI syntax error: " + message
@@ -76,8 +66,8 @@ type URI
              import Standard.Examples
 
              example_scheme = Examples.uri.scheme
-    scheme : Text ! Nothing
-    scheme self = handle_nothing self.internal_uri.getScheme
+    scheme : Text | Nothing
+    scheme self = self.internal_uri.getScheme
 
     ## GROUP Metadata
        Get the user info part of this URI.
@@ -88,8 +78,8 @@ type URI
              import Standard.Examples
 
              example_user_info = Examples.uri.user_info
-    user_info : Text ! Nothing
-    user_info self = handle_nothing self.internal_uri.getUserInfo
+    user_info : Text | Nothing
+    user_info self = self.internal_uri.getUserInfo
 
     ## GROUP Metadata
        Get the host part of this URI.
@@ -100,8 +90,8 @@ type URI
              import Standard.Examples
 
              example_host = Examples.uri.host
-    host : Text ! Nothing
-    host self = handle_nothing self.internal_uri.getHost
+    host : Text | Nothing
+    host self = self.internal_uri.getHost
 
     ## Get the authority (user info and host) part of this URI.
 
@@ -111,8 +101,8 @@ type URI
              import Standard.Examples
 
              example_authority = Examples.uri.authority
-    authority : Text ! Nothing
-    authority self = handle_nothing self.internal_uri.getAuthority
+    authority : Text | Nothing
+    authority self = self.internal_uri.getAuthority
 
     ## Get the port part of this URI.
 
@@ -122,11 +112,10 @@ type URI
              import Standard.Examples
 
              example_port = Examples.uri.port
-    port : Text ! Nothing
+    port : Text | Nothing
     port self =
         port_number = self.internal_uri.getPort
-        handle_nothing <|
-            if port_number == -1 then Nothing else port_number.to_text
+        if port_number == -1 then Nothing else port_number.to_text
 
     ## GROUP Metadata
        Get the path part of this URI.
@@ -137,8 +126,8 @@ type URI
              import Standard.Examples
 
              example_path = Examples.uri.path
-    path : Text ! Nothing
-    path self = handle_nothing self.internal_uri.getPath
+    path : Text | Nothing
+    path self = self.internal_uri.getPath
 
     ## GROUP Metadata
        Get the query part of this URI.
@@ -149,8 +138,17 @@ type URI
              import Standard.Examples
 
              example_query = Examples.uri.query
-    query : Text ! Nothing
-    query self = handle_nothing self.internal_uri.getQuery
+    query : Text | Nothing
+    query self = self.internal_uri.getQuery
+
+    ## Adds a query parameter to the URI
+
+       Arguments:
+       - key: The key of the query parameter.
+       - value: The value of the query parameter.
+    add_query_argument : Text -> Text | Enso_Secret -> URI
+    add_query_argument self key:Text value:(Text|Enso_Secret) =
+        URI_With_Query.Value self [Pair.new key value]
 
     ## Get the fragment part of this URI.
 
@@ -160,38 +158,38 @@ type URI
              import Standard.Examples
 
              example_fragment = Examples.uri.fragment
-    fragment : Text ! Nothing
-    fragment self = handle_nothing self.internal_uri.getFragment
+    fragment : Text | Nothing
+    fragment self = self.internal_uri.getFragment
 
     ## PRIVATE
        ADVANCED
        Get the unescaped user info part of this URI.
-    raw_user_info : Text ! Nothing
-    raw_user_info self = handle_nothing self.internal_uri.getRawUserInfo
+    raw_user_info : Text | Nothing
+    raw_user_info self = self.internal_uri.getRawUserInfo
 
     ## PRIVATE
        ADVANCED
        Get the unescaped authority part of this URI.
-    raw_authority : Text ! Nothing
-    raw_authority self = handle_nothing self.internal_uri.getRawAuthority
+    raw_authority : Text | Nothing
+    raw_authority self = self.internal_uri.getRawAuthority
 
     ## PRIVATE
        ADVANCED
        Get the unescaped path part of this URI.
-    raw_path : Text ! Nothing
-    raw_path self = handle_nothing self.internal_uri.getRawPath
+    raw_path : Text | Nothing
+    raw_path self = self.internal_uri.getRawPath
 
     ## PRIVATE
        ADVANCED
        Get the unescaped query part of this URI.
-    raw_query : Text ! Nothing
-    raw_query self = handle_nothing self.internal_uri.getRawQuery
+    raw_query : Text | Nothing
+    raw_query self = self.internal_uri.getRawQuery
 
     ## PRIVATE
        ADVANCED
        Get the unescaped fragment part of this URI.
-    raw_fragment : Text ! Nothing
-    raw_fragment self = handle_nothing self.internal_uri.getRawFragment
+    raw_fragment : Text | Nothing
+    raw_fragment self = self.internal_uri.getRawFragment
 
     ## PRIVATE
        Convert this URI to text.
@@ -218,3 +216,6 @@ type URI
         type_pair = ["type", "URI"]
         cons_pair = ["constructor", "parse"]
         JS_Object.from_pairs [type_pair, cons_pair, ["uri", self.to_text]]
+
+## PRIVATE
+URI.from (that:Text) = URI.parse that

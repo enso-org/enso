@@ -215,7 +215,7 @@ type JS_Object
     into self target_type = case target_type of
         JS_Object -> self
         Vector -> self.to_vector
-        Map -> Map.from_pairs self.to_vector
+        Map -> Map.from_vector self.to_vector
         _ ->
             ## First try a conversion
             Panic.catch No_Such_Conversion (self.to target_type) _->

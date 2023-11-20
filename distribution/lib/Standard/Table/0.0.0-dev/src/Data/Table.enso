@@ -15,8 +15,8 @@ from Standard.Base.Metadata import make_single_choice
 from Standard.Base.Widget_Helpers import make_delimiter_selector
 
 import project.Data.Aggregate_Column.Aggregate_Column
-import project.Data.Calculations.Column_Operation.Column_Operation
 import project.Data.Blank_Selector.Blank_Selector
+import project.Data.Calculations.Column_Operation.Column_Operation
 import project.Data.Column as Column_Module
 import project.Data.Column.Column
 import project.Data.Column_Ref.Column_Ref
@@ -33,9 +33,9 @@ import project.Data.Report_Unmatched.Report_Unmatched
 import project.Data.Row.Row
 import project.Data.Set_Mode.Set_Mode
 import project.Data.Sort_Column.Sort_Column
-import project.Extensions.Table_Conversions
 import project.Delimited.Delimited_Format.Delimited_Format
 import project.Extensions.Prefix_Name.Prefix_Name
+import project.Extensions.Table_Conversions
 import project.Extensions.Table_Ref.Table_Ref
 import project.Internal.Add_Row_Number
 import project.Internal.Aggregate_Column_Helper
@@ -54,11 +54,9 @@ import project.Internal.Split_Tokenize
 import project.Internal.Table_Helpers
 import project.Internal.Table_Helpers.Table_Column_Helper
 import project.Internal.Widget_Helpers
-
 from project.Data.Column import get_item_string, normalize_string_for_display
 from project.Data.Type.Value_Type import Auto, Value_Type
 from project.Errors import all
-#from project.Extensions.Table_Conversions import all
 from project.Internal.Filter_Condition_Helpers import make_filter_column
 from project.Internal.Lookup_Helpers import make_java_lookup_column_description
 from project.Internal.Rows_View import Rows_View
@@ -73,10 +71,10 @@ polyglot java import org.enso.table.data.table.join.conditions.Equals as Java_Jo
 polyglot java import org.enso.table.data.table.join.conditions.EqualsIgnoreCase as Java_Join_Equals_Ignore_Case
 polyglot java import org.enso.table.data.table.join.lookup.LookupJoin
 polyglot java import org.enso.table.data.table.Table as Java_Table
-polyglot java import org.enso.table.error.TooManyColumnsException
-polyglot java import org.enso.table.error.NullValuesInKeyColumns
-polyglot java import org.enso.table.error.UnmatchedRow
 polyglot java import org.enso.table.error.NonUniqueLookupKey
+polyglot java import org.enso.table.error.NullValuesInKeyColumns
+polyglot java import org.enso.table.error.TooManyColumnsException
+polyglot java import org.enso.table.error.UnmatchedRow
 polyglot java import org.enso.table.operations.OrderBuilder
 polyglot java import org.enso.table.parsing.problems.ParseProblemAggregator
 
@@ -1287,36 +1285,36 @@ type Table
         Expand_Objects_Helpers.expand_column self column fields prefix
 
     ## GROUP Standard.Base.Conversions
-      Expand aggregate values in a column to separate rows.
+       Expand aggregate values in a column to separate rows.
 
-      For each value in the specified column, if it is an aggregate (`Vector`,
-      `Range`, etc.), expand it to multiple rows, duplicating the values in the
-      other columns.
+       For each value in the specified column, if it is an aggregate (`Vector`,
+       `Range`, etc.), expand it to multiple rows, duplicating the values in the
+       other columns.
 
-      Arguments:
-      - column: The column to expand.
-      - at_least_one_row: for an empty aggregate value, if `at_least_one_row` is
-        true, a single row is output with `Nothing` for the aggregates column; if
-        false, no row is output at all.
+       Arguments:
+       - column: The column to expand.
+       - at_least_one_row: for an empty aggregate value, if `at_least_one_row` is
+         true, a single row is output with `Nothing` for the aggregates column; if
+         false, no row is output at all.
 
-      The following aggregate values are supported:
-      - `Array`
-      - `Vector`
-      - `List`
-      - `Range`
-      - `Date_Range`
-      - `Pair
+       The following aggregate values are supported:
+       - `Array`
+       - `Vector`
+       - `List`
+       - `Range`
+       - `Date_Range`
+       - `Pair
 
-      Any other values are treated as non-aggregate values, and their rows are kept
-      unchanged.
+       Any other values are treated as non-aggregate values, and their rows are kept
+       unchanged.
 
-      In in-memory tables, it is permitted to mix values of different types.
+       In in-memory tables, it is permitted to mix values of different types.
 
-      > Example
-        Expand a column of integer `Vectors` to a column of `Integer`
+       > Example
+         Expand a column of integer `Vectors` to a column of `Integer`
 
-        table = Table.new [["aaa", [1, 2]], ["bbb", [[30, 31], [40, 41]]]]
-        # => Table.new [["aaa", [1, 1, 2, 2]], ["bbb", [30, 31, 40, 41]]]
+         table = Table.new [["aaa", [1, 2]], ["bbb", [[30, 31], [40, 41]]]]
+         # => Table.new [["aaa", [1, 1, 2, 2]], ["bbb", [30, 31, 40, 41]]]
     @column Widget_Helpers.make_column_name_selector
     expand_to_rows : Text | Integer -> Boolean -> Table ! Type_Error | No_Such_Column | Index_Out_Of_Bounds
     expand_to_rows self column at_least_one_row=False =
@@ -1423,7 +1421,7 @@ type Table
         column = self.evaluate_expression expression on_problems
         self.filter column Filter_Condition.Is_True
 
-    ## ALIAS first, last, slice, sample
+    ## ALIAS first, last, sample, slice
        GROUP Standard.Base.Selections
        Creates a new Table with the specified range of rows from the input
        Table.
@@ -2662,7 +2660,8 @@ concat_columns column_set all_tables result_type result_row_count on_problems =
    Conversion method to a Table from a Column.
 Table.from (that:Column) = that.to_table
 
-## Converts a Text value into a Table.
+## PRIVATE
+   Converts a Text value into a Table.
 
    The format of the text is determined by the `format` argument.
 
@@ -2675,7 +2674,8 @@ Table.from (that : Text) (format:Delimited_Format = Delimited_Format.Delimited '
         _ : Delimited_Format -> Delimited_Reader.read_text that format on_problems
         _ -> Unimplemented.throw "Table.from is currently only implemented for Delimited_Format."
 
-## Converts a Table into a Text value.
+## PRIVATE
+   Converts a Table into a Text value.
 
    The format of the text is determined by the `format` argument.
 
@@ -2691,7 +2691,8 @@ Text.from (that : Table) (format:Delimited_Format = Delimited_Format.Delimited '
    Conversion method to a Table from a Vector.
 Table.from (that:Vector) (fields : (Vector | Nothing) = Nothing) = that.to_table fields
 
-## Convert an `XML_Element` into a `Table`
+## PRIVATE
+   Convert an `XML_Element` into a `Table`
 
    Generates a single-row table with columns for the tag's contents.
 
@@ -2711,7 +2712,8 @@ Table.from (that:XML_Element) =
     # Generating a table from an `XML_Element` is the same logic as `expand_column`
     Table.new [["x", [that]]] . expand_column 'x' prefix=Prefix_Name.None
 
-## Convert an `XML_Document` into a `Table`
+## PRIVATE
+   Convert an `XML_Document` into a `Table`
 
    Generates a single-row table with columns for the root tag's contents.
 

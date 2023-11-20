@@ -144,7 +144,7 @@ type Array
     sort self (order = Sort_Direction.Ascending) on=Nothing by=Nothing on_incomparable=Problem_Behavior.Ignore =
         Vector.sort self order on by on_incomparable
 
-    ## ALIAS first, last, slice, sample
+    ## ALIAS first, last, sample, slice
        GROUP Selections
        Creates a new `Vector` with only the specified range of elements from the
        input, removing any elements outside the range.
@@ -515,7 +515,7 @@ type Array
     map_with_index : (Integer -> Any -> Any) -> Vector Any
     map_with_index self function = Vector.map_with_index self function
 
-    ## GROUP Selections
+    ## PRIVATE
        Creates a new array with the skipping elements until `start` and then
        continuing until `end` index.
 
@@ -674,7 +674,7 @@ type Array
     contains : Any -> Boolean
     contains self elem = self.any (== elem)
 
-    ## ALIAS combine, merge, join by row position
+    ## ALIAS combine, join by row position, merge
        GROUP Calculations
        Performs a pair-wise operation passed in `function` on consecutive
        elements of `self` and `that`.
@@ -752,7 +752,7 @@ type Array
     each_with_index : (Integer -> Any -> Any) -> Nothing
     each_with_index self f = Vector.each_with_index self f
 
-    ## ALIAS concatenate, union, append
+    ## ALIAS append, concatenate, union
        GROUP Operators
        Concatenates two arrays, resulting in a new `Vector`, containing all the
        elements of `self`, followed by all the elements of `that`.
