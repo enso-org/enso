@@ -188,13 +188,15 @@ export const useGraphStore = defineStore('graph', () => {
     meta.y = -position.y
     const ident = generateUniqueIdent()
     let importData = undefined
+    let additionalOffset = 0
     if (withImports) {
       const lastImport = db.imports.value[db.imports.value.length - 1]
       const importOffset = lastImport ? lastImport.span[1] + 1 : 0
       const imports = withImports.map((info) => requiredImportToText(info)).join('\n')
+      additionalOffset += imports.length + 1
       importData = { str: imports, offset: importOffset }
     }
-    return mod.insertNewNode(mod.doc.contents.length, ident, expression, meta, importData)
+    return mod.insertNewNode(mod.doc.contents.length + additionalOffset, ident, expression, meta, importData)
   }
 
   function deleteNode(id: ExprId) {
