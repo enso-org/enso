@@ -831,19 +831,19 @@ class Compiler(
     ir: Expression,
     source: Source,
     inlineContext: InlineContext
-  ): Unit =
-    if (inlineContext.compilerConfig.isStrictErrors) {
-      val errors = GatherDiagnostics
-        .runExpression(ir, inlineContext)
-        .unsafeGetMetadata(
-          GatherDiagnostics,
-          "No diagnostics metadata right after the gathering pass."
-        )
-        .diagnostics
-      if (reportDiagnostics(errors, source)) {
-        throw new CompilationAbortedException
-      }
+  ): Unit = {
+    val errors = GatherDiagnostics
+      .runExpression(ir, inlineContext)
+      .unsafeGetMetadata(
+        GatherDiagnostics,
+        "No diagnostics metadata right after the gathering pass."
+      )
+      .diagnostics
+    val hasErrors = reportDiagnostics(errors, source)
+    if (hasErrors && inlineContext.compilerConfig.isStrictErrors) {
+      throw new CompilationAbortedException
     }
+  }
 
   /** Runs the strict error handling mechanism (if enabled in the language
     * context) for the module-level compiler flow.
@@ -853,23 +853,23 @@ class Compiler(
   private def runErrorHandling(
     modules: List[Module]
   ): Unit = {
-    if (config.isStrictErrors) {
-      val diagnostics = modules.flatMap { module =>
-        val errors =
-          if (context.wasLoadedFromCache(module)) List()
-          else gatherDiagnostics(module)
-        List((module, errors))
-      }
-      if (reportDiagnostics(diagnostics)) {
-        val count =
-          diagnostics.map(_._2.collect { case e: Error => e }.length).sum
-        val warnCount =
-          diagnostics.map(_._2.collect { case e: Warning => e }.length).sum
-        context.getErr.println(
-          s"Aborting due to ${count} errors and ${warnCount} warnings."
-        )
-        throw new CompilationAbortedException
-      }
+    val diagnostics = modules.flatMap { module =>
+      val errors =
+        if (context.wasLoadedFromCache(module)) List()
+        else gatherDiagnostics(module)
+      List((module, errors))
+    }
+
+    val hasErrors = reportDiagnostics(diagnostics)
+    if (hasErrors && config.isStrictErrors) {
+      val count =
+        diagnostics.map(_._2.collect { case e: Error => e }.length).sum
+      val warnCount =
+        diagnostics.map(_._2.collect { case e: Warning => e }.length).sum
+      context.getErr.println(
+        s"Aborting due to ${count} errors and ${warnCount} warnings."
+      )
+      throw new CompilationAbortedException
     }
   }
 
