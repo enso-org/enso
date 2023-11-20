@@ -302,7 +302,7 @@ function portGroupStyle(port: PortData) {
       :nodePosition="props.node.position"
       :isCircularMenuVisible="menuVisible"
       :currentType="node.vis?.identifier"
-      :expressionId="nodeId"
+      :dataSource="{ type: 'node', nodeId }"
       :typename="expressionInfo?.typename"
       @update:rect="
         emit('update:visualizationRect', $event),

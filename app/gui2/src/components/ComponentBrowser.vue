@@ -19,8 +19,9 @@ import { allRanges } from '@/util/range'
 import { Vec2 } from '@/util/vec2'
 import type { SuggestionId } from 'shared/languageServerTypes/suggestions'
 import type { ContentRange, ExprId } from 'shared/yjsModel.ts'
-import { computed, nextTick, onMounted, ref, watch, type Ref } from 'vue'
+import { computed, nextTick, onMounted, ref, watch, type ComputedRef, type Ref } from 'vue'
 import { useComponentBrowserInput } from './ComponentBrowser/input'
+import GraphVisualization from './GraphEditor/GraphVisualization.vue'
 
 const ITEM_SIZE = 32
 const TOP_BAR_HEIGHT = 32
@@ -139,6 +140,7 @@ watch(
 )
 
 function handleDefocus(e: FocusEvent) {
+  console.log(e)
   const stillInside =
     cbRoot.value != null &&
     e.relatedTarget instanceof Node &&
@@ -148,9 +150,40 @@ function handleDefocus(e: FocusEvent) {
       inputField.value.focus({ preventScroll: true })
     }
   } else {
-    emit('closed', input.code.value)
+    console.log('DEFOCUS')
+    // emit('closed', input.code.value)
   }
 }
+
+// === Preview ===
+
+const inputElement = ref<HTMLElement>()
+const inputSize = useResizeObserver(inputElement)
+
+const previewedExpression = computed(() => {
+  if (selectedSuggestion.value == null) return input.code.value
+  else return input.inputAfterApplyingSuggestion(selectedSuggestion.value).newCode
+})
+
+const previewDataSource: ComputedRef<
+  | {
+      type: 'expression'
+      expression: string
+      contextId: ExprId
+    }
+  | undefined
+> = computed(() => {
+  if (!previewedExpression.value.trim()) return
+  if (!graphStore.methodAst) return
+  const body = graphStore.methodAst.tryMap((tree) => tree.body)
+  if (!body) return
+
+  return {
+    type: 'expression',
+    expression: previewedExpression.value,
+    contextId: body.astId,
+  }
+})
 
 // === Components List and Positions ===
 
@@ -437,7 +470,7 @@ const handler = componentBrowserBindings.handler({
         <DocumentationPanel v-model:selectedEntry="docEntry" />
       </div>
     </div>
-    <div class="CBInput">
+    <div ref="inputElement" class="CBInput">
       <input
         ref="inputField"
         v-model="input.code.value"
@@ -446,6 +479,13 @@ const handler = componentBrowserBindings.handler({
         @keyup="readInputFieldSelection"
       />
     </div>
+    <GraphVisualization
+      :nodeSize="inputSize"
+      :nodePosition="position"
+      :scale="1"
+      :isCircularMenuVisible="false"
+      :dataSource="previewDataSource"
+    />
   </div>
 </template>
 

@@ -16,6 +16,7 @@ import type { Opt } from '@/util/opt'
 import { Rect } from '@/util/rect'
 import type { URLString } from '@/util/urlString'
 import { Vec2 } from '@/util/vec2'
+import { computedAsync } from '@vueuse/core'
 import type { ExprId, VisualizationIdentifier } from 'shared/yjsModel'
 import {
   computed,
@@ -31,14 +32,26 @@ import {
 const TOP_WITHOUT_TOOLBAR_PX = 36
 const TOP_WITH_TOOLBAR_PX = 72
 
+type DataSource =
+  | {
+      type: 'node'
+      nodeId: ExprId
+    }
+  | {
+      type: 'expression'
+      expression: string
+      contextId: ExprId
+    }
+
 const props = defineProps<{
-  currentType: Opt<VisualizationIdentifier>
+  currentType?: Opt<VisualizationIdentifier>
   isCircularMenuVisible: boolean
   nodePosition: Vec2
   nodeSize: Vec2
   scale: number
   typename?: string | undefined
-  expressionId?: ExprId | undefined
+  // expressionId?: ExprId | undefined
+  dataSource?: DataSource | undefined
   data?: any | undefined
 }>()
 const emit = defineEmits<{
@@ -54,25 +67,29 @@ const projectStore = useProjectStore()
 const graphStore = useGraphStore()
 const visualizationStore = useVisualizationStore()
 
-const expressionInfo = computed(
-  () => props.expressionId && graphStore.db.getExpressionInfo(props.expressionId),
+const expressionInfo = computed(() =>
+  props.dataSource?.type === 'node'
+    ? graphStore.db.getExpressionInfo(props.dataSource.nodeId)
+    : undefined,
 )
 const typeName = computed(() => expressionInfo.value?.typename ?? 'Any')
 
 const configForGettingDefaultVisualization = computed<NodeVisualizationConfiguration | undefined>(
   () => {
     if (props.currentType) return
-    if (!props.expressionId) return
+    if (props.dataSource?.type !== 'node') return
     return {
       visualizationModule: 'Standard.Visualization.Helpers',
       expression: 'a -> a.default_visualization.to_js_object.to_json',
-      expressionId: props.expressionId,
+      expressionId: props.dataSource.nodeId,
     }
   },
 )
+
 const defaultVisualizationRaw = projectStore.useVisualizationData(
   configForGettingDefaultVisualization,
 ) as ShallowRef<{ library: { name: string } | null; name: string } | undefined>
+
 const defaultVisualization = computed<VisualizationIdentifier | undefined>(() => {
   const raw = defaultVisualizationRaw.value
   if (!raw) return
@@ -98,18 +115,28 @@ onErrorCaptured((vueError) => {
 })
 
 const visualizationData = projectStore.useVisualizationData(() => {
-  return props.data == null && props.expressionId != null
+  return props.data == null && props.dataSource?.type === 'node'
     ? {
         ...visPreprocessor.value,
-        expressionId: props.expressionId,
+        expressionId: props.dataSource.nodeId,
       }
     : null
+})
+
+const expressionVisualizationData = computedAsync(() => {
+  if (props.dataSource?.type !== 'expression') return
+  const preprocessor = visPreprocessor.value
+  const preprocessorCode = `${preprocessor.visualizationModule}.${
+    preprocessor.expression
+  } _ ${preprocessor.positionalArgumentsExpressions.join(' ')}`
+  const expression = `${preprocessorCode} <| ${props.dataSource.expression}`
+  return projectStore.executeExpression(props.dataSource.contextId, expression)
 })
 
 const effectiveVisualizationData = computed(() =>
   error.value
     ? { name: currentType.value?.name, error: error.value }
-    : props.data ?? visualizationData.value,
+    : props.data ?? visualizationData.value ?? expressionVisualizationData.value,
 )
 
 function updatePreprocessor(

@@ -21,6 +21,7 @@ import * as object from 'lib0/object'
 import { ObservableV2 } from 'lib0/observable'
 import * as random from 'lib0/random'
 import { defineStore } from 'pinia'
+import { OutboundPayload } from 'shared/binaryProtocol'
 import { DataServer } from 'shared/dataServer'
 import { LanguageServer } from 'shared/languageServer'
 import type {
@@ -588,6 +589,16 @@ export const useProjectStore = defineStore('project', () => {
     module.value?.undoManager.stopCapturing()
   }
 
+  function executeExpression(expressionId: ExprId, expression: string): Promise<string | null> {
+    return new Promise((resolve) => {
+      Promise.all([lsRpcConnection, dataConnection]).then(([lsRpc, data]) => {
+        const visualizationId = random.uuidv4() as Uuid
+        data.on(`${OutboundPayload.VISUALIZATION_UPDATE}`, (data) => resolve(data.dataString()))
+        lsRpc.executeExpression(executionContext.id, visualizationId, expressionId, expression)
+      })
+    })
+  }
+
   const { executionMode } = setupSettings(projectModel)
 
   return {
@@ -610,6 +621,7 @@ export const useProjectStore = defineStore('project', () => {
     stopCapturingUndo,
     executionMode,
     dataflowErrors,
+    executeExpression,
   }
 })
 

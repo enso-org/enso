@@ -18,6 +18,9 @@ export interface ExpressionInfo {
 
 /** This class holds the computed values that have been received from the language server. */
 export class VisualizationDataRegistry {
+  // TODO[ao] fill the gap.
+  /** This map stores only keys representing attached visualization. The responses for
+   * executeExpression are handled ... */
   private visualizationValues: Map<Uuid, string | null>
   private dataServer: Promise<DataServer>
   private executionContext: ExecutionContext
@@ -41,10 +44,15 @@ export class VisualizationDataRegistry {
         this.visualizationValues.delete(key)
       }
     }
+    for (const id of uuids) {
+      if (!this.visualizationValues.has(id)) {
+        this.visualizationValues.set(id, null)
+      }
+    }
   }
 
   private visualizationUpdate(update: VisualizationUpdate, uuid: Uuid | null) {
-    if (uuid) {
+    if (uuid && this.visualizationValues.has(uuid)) {
       const newData = update.dataString()
       const current = this.visualizationValues.get(uuid)
       if (current !== newData) {
