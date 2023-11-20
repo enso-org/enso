@@ -54,8 +54,6 @@ object Main {
   private val PROFILING_PATH                 = "profiling-path"
   private val PROFILING_TIME                 = "profiling-time"
   private val LANGUAGE_SERVER_OPTION         = "server"
-  private val LANGUAGE_SERVER_PROFILING_EVENTS_LOG_PATH =
-    "server-profiling-events-log-path"
   private val DAEMONIZE_OPTION               = "daemon"
   private val INTERFACE_OPTION               = "interface"
   private val RPC_PORT_OPTION                = "rpc-port"
@@ -201,16 +199,9 @@ object Main {
       .longOpt(PROFILING_TIME)
       .desc("The duration in seconds limiting the profiling time.")
       .build()
-    val lsProfilingEventsLogPathOption = CliOption.builder
-      .hasArg(true)
-      .numberOfArgs(1)
-      .argName("file")
-      .longOpt(LANGUAGE_SERVER_PROFILING_EVENTS_LOG_PATH)
-      .desc("The path to the runtime events log file.")
-      .build()
     val deamonizeOption = CliOption.builder
       .longOpt(DAEMONIZE_OPTION)
-      .desc("Deamonize Language Server")
+      .desc("Daemonize Language Server")
       .build()
     val interfaceOption = CliOption.builder
       .longOpt(INTERFACE_OPTION)
@@ -427,7 +418,6 @@ object Main {
       .addOption(lsOption)
       .addOption(lsProfilingPathOption)
       .addOption(lsProfilingTimeOption)
-      .addOption(lsProfilingEventsLogPathOption)
       .addOption(deamonizeOption)
       .addOption(interfaceOption)
       .addOption(rpcPortOption)
@@ -1026,16 +1016,7 @@ object Main {
       profilingTime <- Either
         .catchNonFatal(profilingTimeStr.map(_.toInt.seconds))
         .leftMap(_ => "Profiling time should be an integer")
-      profilingEventsLogPathStr =
-        Option(line.getOptionValue(LANGUAGE_SERVER_PROFILING_EVENTS_LOG_PATH))
-      profilingEventsLogPath <- Either
-        .catchNonFatal(profilingEventsLogPathStr.map(Paths.get(_)))
-        .leftMap(_ => "Profiling events log path is invalid")
-    } yield ProfilingConfig(
-      profilingEventsLogPath,
-      profilingPath,
-      profilingTime
-    )
+    } yield ProfilingConfig(profilingPath, profilingTime)
   }
 
   /** Prints the version of the Enso executable.
