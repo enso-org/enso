@@ -29,6 +29,7 @@ of type `node`, for example:
 }
 ```
 
-And launch it.
+And start debugging via
+[Run and Debug view](https://code.visualstudio.com/docs/editor/debugging#_run-and-debug-view)
 
 Note that the port 4711 is the default port for DAP.
