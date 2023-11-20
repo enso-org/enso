@@ -15,13 +15,16 @@ import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.polyglot.debugger.IdExecutionService;
 
 final class InstrumentorEvalNode extends RootNode {
-  private static final FunctionSchema SUSPENDED_EVAL = new FunctionSchema(FunctionSchema.CallerFrameAccess.NONE, new ArgumentDefinition[] {
-    new ArgumentDefinition(0, "expr", null, null, ArgumentDefinition.ExecutionMode.PASS_THUNK),
-    new ArgumentDefinition(1, "info", null, null, ArgumentDefinition.ExecutionMode.PASS_THUNK)
-  }, new boolean[] {
-    true,
-    true
-  }, new CallArgumentInfo[0], new Annotation[0]);
+  private static final FunctionSchema SUSPENDED_EVAL =
+      new FunctionSchema(
+          FunctionSchema.CallerFrameAccess.NONE,
+          new ArgumentDefinition[] {
+            new ArgumentDefinition(0, "expr", null, null, ArgumentDefinition.ExecutionMode.EXECUTE),
+            new ArgumentDefinition(1, "info", null, null, ArgumentDefinition.ExecutionMode.EXECUTE)
+          },
+          new boolean[] {true, true},
+          new CallArgumentInfo[0],
+          new Annotation[0]);
   private static final RootCallTarget CALL = new InstrumentorEvalNode().getCallTarget();
 
   private InstrumentorEvalNode() {
@@ -29,7 +32,7 @@ final class InstrumentorEvalNode extends RootNode {
   }
 
   static Function asSuspendedEval(Object expr, IdExecutionService.Info info) {
-    return new Function(CALL, null, SUSPENDED_EVAL, new Object[] { expr, info }, new Object[0]);
+    return new Function(CALL, null, SUSPENDED_EVAL, new Object[] {expr, info}, new Object[0]);
   }
 
   @Override
@@ -48,5 +51,4 @@ final class InstrumentorEvalNode extends RootNode {
       throw new PanicException(args[0], this);
     }
   }
-
 }
