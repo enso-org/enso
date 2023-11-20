@@ -4,10 +4,12 @@ import CodeEditor from '@/components/CodeEditor.vue'
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
 import {
   mouseDictatedPlacement,
+  nonDictatedPlacement,
   previousNodeDictatedPlacement,
   type Environment,
 } from '@/components/ComponentBrowser/placement.ts'
 import { Uploader, uploadedExpression } from '@/components/GraphEditor/upload'
+import PlusButton from '@/components/PlusButton.vue'
 import TopBar from '@/components/TopBar.vue'
 import { provideGraphNavigator } from '@/providers/graphNavigator'
 import { provideGraphSelection } from '@/providers/graphSelection'
@@ -31,6 +33,8 @@ const EXECUTION_MODES = ['design', 'live']
 // Difference in position between the component browser and a node for the input of the component browser to
 // be placed at the same position as the node.
 const COMPONENT_BROWSER_TO_NODE_OFFSET = new Vec2(20, 35)
+// Assumed size of a newly created node. This is used to place the component browser.
+const DEFAULT_NODE_SIZE = new Vec2(0, 24)
 
 const viewportNode = ref<HTMLElement>()
 const graphNavigator = provideGraphNavigator(viewportNode)
@@ -54,24 +58,38 @@ const interactionBindingsHandler = interactionBindings.handler({
   click: (e) => (e instanceof MouseEvent ? interaction.handleClick(e, graphNavigator) : false),
 })
 
+// Return the position for a new node, assuming there are currently nodes selected. If there are no nodes
+// selected, return undefined.
+function placementPositionForSelection() {
+  const hasNodeSelected = nodeSelection.selected.size > 0
+  if (!hasNodeSelected) return undefined
+  const gapBetweenNodes = 48.0
+  return previousNodeDictatedPlacement(DEFAULT_NODE_SIZE, placementEnvironment.value, {
+    gap: gapBetweenNodes,
+  }).position
+}
+
 // This is where the component browser should be placed when it is opened.
 function targetComponentBrowserPosition() {
   const editedInfo = graphStore.editedNodeInfo
   const isEditingNode = editedInfo != null
-  const hasNodeSelected = nodeSelection.selected.size > 0
-  const nodeSize = new Vec2(0, 24)
   if (isEditingNode) {
     const targetNode = graphStore.db.nodes.get(editedInfo.id)
     const targetPos = targetNode?.position ?? Vec2.Zero
     return targetPos.add(COMPONENT_BROWSER_TO_NODE_OFFSET)
   } else if (hasNodeSelected) {
     const gapBetweenNodes = 48.0
-    return previousNodeDictatedPlacement(nodeSize, placementEnvironment.value, {
+    return previousNodeDictatedPlacement(DEFAULT_NODE_SIZE, placementEnvironment.value, {
       horizontalGap: gapBetweenNodes,
       verticalGap: gapBetweenNodes,
     }).position
   } else {
-    return mouseDictatedPlacement(nodeSize, placementEnvironment.value).position
+    const targetPos = placementPositionForSelection()
+    if (targetPos != undefined) {
+      return targetPos
+    } else {
+      return mouseDictatedPlacement(DEFAULT_NODE_SIZE, placementEnvironment.value).position
+    }
   }
 }
 
@@ -210,6 +228,21 @@ const creatingNode: Interaction = {
   init: () => {
     componentBrowserInputContent.value = ''
     componentBrowserPosition.value = targetComponentBrowserPosition()
+    componentBrowserVisible.value = true
+  },
+  cancel: () => {
+    // Nothing to do here. We just don't create a node and the component browser will close itself.
+  },
+}
+
+const creatingNodeFromButton: Interaction = {
+  init: () => {
+    componentBrowserInputContent.value = ''
+    let targetPos = placementPositionForSelection()
+    if (targetPos == undefined) {
+      targetPos = nonDictatedPlacement(DEFAULT_NODE_SIZE, placementEnvironment.value).position
+    }
+    componentBrowserPosition.value = targetPos
     componentBrowserVisible.value = true
   },
   cancel: () => {
@@ -425,6 +458,7 @@ async function readNodeFromClipboard() {
       </Suspense>
     </Transition>
     <GraphMouse />
+    <PlusButton @pointerdown="interaction.setCurrent(creatingNodeFromButton)" />
   </div>
 </template>
 
