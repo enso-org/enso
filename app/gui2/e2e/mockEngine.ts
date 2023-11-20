@@ -62,7 +62,8 @@ collect_benches = Bench.build builder->
 
 main =
     benches = collect_benches
-    result = run_main benches`
+    result = run_main benches
+`
 
 export function getMainFile() {
   return mainFile
