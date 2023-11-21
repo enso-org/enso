@@ -1,3 +1,4 @@
+import { nonDictatedPlacement } from '@/components/ComponentBrowser/placement'
 import { GraphDb } from '@/stores/graph/graphDatabase'
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
@@ -5,7 +6,7 @@ import { DEFAULT_VISUALIZATION_IDENTIFIER } from '@/stores/visualization'
 import { Ast, AstExtended, childrenAstNodes, findAstWithRange, readAstSpan } from '@/util/ast'
 import { useObserveYjs } from '@/util/crdt'
 import type { Opt } from '@/util/opt'
-import type { Rect } from '@/util/rect'
+import { Rect } from '@/util/rect'
 import { Vec2 } from '@/util/vec2'
 import { defineStore } from 'pinia'
 import type { StackItem } from 'shared/languageServerTypes'
@@ -179,6 +180,7 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   function deleteNode(id: ExprId) {
+    nodeRects.delete(id)
     const node = db.getNode(id)
     if (!node) return
     proj.module?.deleteExpression(node.outerExprId)
@@ -245,7 +247,21 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   function updateNodeRect(id: ExprId, rect: Rect) {
-    nodeRects.set(id, rect)
+    if (rect.pos.equals(Vec2.Zero) && !metadata.value?.has(id)) {
+      const { position } = nonDictatedPlacement(rect.size, {
+        nodeRects: [...nodeRects.entries()]
+          .filter(([id]) => db.nodes.get(id))
+          .map(([, rect]) => rect),
+        // The rest of the properties should not matter.
+        selectedNodeRects: [],
+        screenBounds: Rect.Zero,
+        mousePosition: Vec2.Zero,
+      })
+      metadata.value?.set(id, { x: position.x, y: -position.y, vis: null })
+      nodeRects.set(id, new Rect(position, rect.size))
+    } else {
+      nodeRects.set(id, rect)
+    }
   }
 
   function updateExprRect(id: ExprId, rect: Rect | undefined) {

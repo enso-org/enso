@@ -1,15 +1,11 @@
-import { nonDictatedPlacement } from '@/components/ComponentBrowser/placement'
 import { SuggestionDb, groupColorStyle, type Group } from '@/stores/suggestionDatabase'
 import { tryGetIndex } from '@/util/array'
 import { Ast, AstExtended } from '@/util/ast'
 import { colorFromString } from '@/util/colors'
 import { ComputedValueRegistry, type ExpressionInfo } from '@/util/computedValueRegistry'
 import { ReactiveDb, ReactiveIndex, ReactiveMapping } from '@/util/database/reactiveDb'
-import { getTextWidth } from '@/util/measurement'
 import type { Opt } from '@/util/opt'
 import { qnJoin, tryQualifiedName } from '@/util/qualifiedName'
-import { Rect } from '@/util/rect'
-import theme from '@/util/theme.json'
 import { Vec2 } from '@/util/vec2'
 import * as set from 'lib0/set'
 import {
@@ -110,15 +106,8 @@ export class GraphDb {
   readFunctionAst(
     functionAst: AstExtended<Ast.Tree.Function>,
     getMeta: (id: ExprId) => NodeMetadata | undefined,
-    getWidth: (node: Node) => number = (node: Node) =>
-      // FIXME [ao]: This should take into account the width of all widgets. Probably
-      //   the better solution is to layout nodes once rendered (and all sizes are known).
-      getTextWidth(node.rootSpan.repr(), '11.5px', '"M PLUS 1", sans-serif') * 1.2,
   ) {
     const currentNodeIds = new Set<ExprId>()
-    const nodeRectMap = new Map<ExprId, Rect>()
-    let numberOfUnpositionedNodes = 0
-    let maxUnpositionedNodeWidth = 0
     if (functionAst) {
       for (const nodeAst of functionAst.visit(getFunctionNodeExpressions)) {
         const newNode = nodeFromAst(nodeAst)
@@ -139,20 +128,8 @@ export class GraphDb {
             node.rootSpan = newNode.rootSpan
           }
         }
-        if (!nodeMeta) {
-          numberOfUnpositionedNodes += 1
-          maxUnpositionedNodeWidth = Math.max(maxUnpositionedNodeWidth, getWidth(node ?? newNode))
-        } else {
+        if (nodeMeta) {
           this.assignUpdatedMetadata(node ?? newNode, nodeMeta)
-          nodeRectMap.set(
-            nodeId,
-            Rect.FromBounds(
-              nodeMeta.x,
-              -nodeMeta.y,
-              nodeMeta.x + getWidth(node ?? newNode),
-              -nodeMeta.y + theme.node.height,
-            ),
-          )
         }
       }
     }
@@ -161,33 +138,6 @@ export class GraphDb {
       if (!currentNodeIds.has(nodeId)) {
         this.nodes.delete(nodeId)
       }
-    }
-
-    const nodeRects = [...nodeRectMap.values()]
-    const rectsHeight =
-      numberOfUnpositionedNodes * (theme.node.height + theme.node.vertical_gap) -
-      theme.node.vertical_gap
-    const { position: rectsPosition } = nonDictatedPlacement(
-      new Vec2(maxUnpositionedNodeWidth, rectsHeight),
-      {
-        nodeRects,
-        // The rest of the properties should not matter.
-        selectedNodeRects: [],
-        screenBounds: Rect.Zero,
-        mousePosition: Vec2.Zero,
-      },
-    )
-    let nodeIndex = 0
-    for (const nodeId of this.allNodeIds()) {
-      const meta = getMeta(nodeId)
-      if (meta) continue
-      const node = this.nodes.get(nodeId)!
-      node.position = new Vec2(
-        rectsPosition.x,
-        rectsPosition.y + (theme.node.height + theme.node.vertical_gap) * nodeIndex,
-      )
-
-      nodeIndex += 1
     }
   }
 
