@@ -21,7 +21,7 @@ const editingEdge: Interaction = {
     if (graph.unconnectedEdge == null) return false
     const source = graph.unconnectedEdge.source ?? selection?.hoveredNode
     const target = graph.unconnectedEdge.target ?? selection?.hoveredPort
-    const targetNode = graph.db.getExpressionNodeId(target)
+    const targetNode = target && graph.db.getExpressionNodeId(target)
     graph.transact(() => {
       if (source != null && source != targetNode) {
         if (target == null) {

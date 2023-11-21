@@ -266,7 +266,7 @@ export class ReactiveIndex<K, V, IK, IV> {
 export type Mapper<K, V, IV> = (key: K, value: V) => IV | undefined
 
 /**
- * A one-to-one mapping for values in a  {@link ReactiveDb} instance. Allows only one value per key.
+ * A one-to-one mapping for values in a {@link ReactiveDb} instance. Allows only one value per key.
  * It can be thought of as a collection of `computed` values per each key in the `ReactiveDb`. The
  * mapping is automatically updated when any of its dependencies change, and is properly cleaned up
  * when any key is removed from {@link ReactiveDb}. Only accessed keys are ever actually computed.

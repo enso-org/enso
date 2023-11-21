@@ -65,7 +65,7 @@ export class GraphDb {
     if (suggestionId == null) return
     return this.suggestionDb.get(suggestionId)
   })
-  nodeColors = new ReactiveMapping(this.nodeIdToNode, (id, _entry) => {
+  nodeColor = new ReactiveMapping(this.nodeIdToNode, (id, _entry) => {
     const index = this.nodeMainSuggestion.lookup(id)?.groupIndex
     const group = tryGetIndex(this.groups.value, index)
     if (group == null) {
@@ -75,8 +75,8 @@ export class GraphDb {
     return groupColorStyle(group)
   })
 
-  getExpressionNodeId(exprId: ExprId | undefined): ExprId | undefined {
-    return exprId && set.first(this.nodeIdToExprId.reverseLookup(exprId))
+  getExpressionNodeId(exprId: ExprId): ExprId | undefined {
+    return set.first(this.nodeIdToExprId.reverseLookup(exprId))
   }
 
   getIdentDefiningNode(ident: string): ExprId | undefined {
@@ -88,7 +88,7 @@ export class GraphDb {
   }
 
   getNodeColorStyle(id: ExprId): string {
-    return (id && this.nodeColors.lookup(id)) ?? 'var(--node-color-no-type)'
+    return this.nodeColor.lookup(id) ?? 'var(--node-color-no-type)'
   }
 
   moveNodeToTop(id: ExprId) {
