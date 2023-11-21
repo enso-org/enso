@@ -738,9 +738,8 @@ spec =
             bad_file.delete
 
         ci_pending = if Environment.get "CI" != Nothing then "This test takes a lot of time so it is disabled on CI."
-        test_big_file extension = Test.specify "should be able to write and read a big "+extension+" file (>110MB)" pending=ci_pending <|
+        Test.specify "should be able to write and read a big XLSX file (>110MB)" pending=ci_pending <|
             n = 10^6
-            letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".characters
             IO.println "Generating random vector "+Time_Of_Day.now.to_text
             rng = RandomHelpers.new 123
             v = Vector.new n _->
@@ -749,7 +748,7 @@ spec =
             IO.println "Creating table           "+Time_Of_Day.now.to_text
             table = Table.new [["X", v]]
             IO.println "Done                     "+Time_Of_Day.now.to_text
-            big_file = enso_project.data / "transient" / ("big."+extension)
+            big_file = enso_project.data / "transient" / "big.xlsx"
             big_file.delete_if_exists
 
             IO.println "Writing file             "+Time_Of_Day.now.to_text
@@ -770,8 +769,34 @@ spec =
             read_table.column_names . should_equal ["X"]
             read_table.at "X" . at 0 . should_equal (v.at 0)
 
-        test_big_file "xlsx"
-        test_big_file "xls"
+        Test.specify "should be able to write and read a big XLS file (>110MB)" pending=ci_pending <|
+            IO.println "Generating random table  "+Time_Of_Day.now.to_text
+            rng = RandomHelpers.new 123
+            # Here we instead create a 2D table, because XLS has a limit of 65536 rows and 16k columns.
+            rows = 65000
+            cols = 20
+            table = Table.new <| Vector.new cols i->
+                v = Vector.new rows _-> rng.makeRandomString 100
+                ["col" + i.to_text, v]
+            IO.println "Done                     "+Time_Of_Day.now.to_text
+            big_file = enso_project.data / "transient" / "big.xls"
+            big_file.delete_if_exists
+
+            IO.println "Writing file             "+Time_Of_Day.now.to_text
+            table.write big_file on_existing_file=Existing_File_Behavior.Overwrite on_problems=Report_Error . should_succeed
+            IO.println "Done                     "+Time_Of_Day.now.to_text
+
+            # Verify that the file is as big as we expected.
+            size = big_file.size / (1024*1024)
+            IO.println size
+            (size > 110).should_be_true
+
+            workbook = big_file.read
+            sheets = workbook.sheet_names
+            sheets.length . should_equal 1
+            read_table = workbook.read (sheets.at 0)
+            read_table.row_count . should_equal rows+1
+            read_table.column_names.length . should_equal cols
 
     spec_fmt 'XLSX reading' Examples.xlsx .read
 
