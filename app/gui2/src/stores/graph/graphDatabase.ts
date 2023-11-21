@@ -153,9 +153,9 @@ export class GraphDb {
             nodeId,
             Rect.FromBounds(
               nodeMeta.x,
-              nodeMeta.y,
+              -nodeMeta.y,
               nodeMeta.x + this.getNodeWidth(node ?? newNode),
-              nodeMeta.y + theme.node.height,
+              -nodeMeta.y + theme.node.height,
             ),
           )
         }
@@ -187,13 +187,10 @@ export class GraphDb {
       const meta = getMeta(nodeId)
       if (meta) continue
       const node = this.nodes.get(nodeId)!
-      const size = new Vec2(this.getNodeWidth(node), theme.node.height)
-      const position = new Vec2(
+      node.position = new Vec2(
         rectsPosition.x,
         rectsPosition.y + (theme.node.height + theme.node.vertical_gap) * nodeIndex,
       )
-      nodeRects.push(new Rect(position, size))
-      node.position = new Vec2(position.x, position.y)
 
       nodeIndex += 1
     }
