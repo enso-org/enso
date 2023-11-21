@@ -1485,7 +1485,7 @@ type Column
          unusual events like DST.
     @period Date_Time_Helpers.make_period_selector_for_column
     date_add : (Column | Integer) -> Date_Period | Time_Period -> Column ! Invalid_Value_Type | Illegal_Argument
-    date_add self amount (period : Date_Period|Time_Period = default_date_period self) =
+    date_add self amount (period : Date_Period | Time_Period = default_date_period self) =
         Value_Type.expect_type self .is_date_or_time "date/time" <|
             my_type = self.inferred_precise_value_type
             Value_Type.expect_integer amount <|
@@ -1990,7 +1990,7 @@ type Column
        - warn_if_more_rows: if set to `True`, a warning is attached to the
          result if the number of rows returned by the query exceeds `max_rows`.
     read : (Nothing | Integer) -> Boolean -> Column
-    read self (max_rows : Integer | Nothing = Nothing) (warn_if_more_rows:Boolean = True) =
+    read self (max_rows : Nothing | Integer = Nothing) (warn_if_more_rows:Boolean = True) =
         if max_rows.is_nothing then self else
             self.to_table.read max_rows warn_if_more_rows . at 0
 
