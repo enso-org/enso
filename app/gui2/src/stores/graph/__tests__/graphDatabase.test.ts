@@ -7,6 +7,10 @@ import { expect, test } from 'vitest'
 import { ref } from 'vue'
 import * as Y from 'yjs'
 
+function mockGetWidth() {
+  return 200
+}
+
 function mockGraphDbFromCode(code: string) {
   const doc = new Y.Doc()
   const yIds = doc.getMap<Uint8Array>('ids')
@@ -17,7 +21,7 @@ function mockGraphDbFromCode(code: string) {
   const valuesRegistry = ComputedValueRegistry.Mock()
   return {
     doc,
-    graphDb: new GraphDb(suggestionDb, groups, valuesRegistry, () => 200),
+    graphDb: new GraphDb(suggestionDb, groups, valuesRegistry),
     idMap: new IdMap(yIds, yCode),
   }
 }
@@ -66,7 +70,7 @@ main =
 ])('New nodes are created below all other nodes (without existing positions)', ({ code }) => {
   const { graphDb, idMap } = mockGraphDbFromCode(code)
   const fn = expectFn(AstExtended.parse(code, idMap))
-  graphDb.readFunctionAst(fn, () => undefined)
+  graphDb.readFunctionAst(fn, () => undefined, mockGetWidth)
   let bottom = -Infinity
   for (const expr of fn.visit(getFunctionNodeExpressions)) {
     const node = graphDb.nodes.get(getExprId(expr))
@@ -96,7 +100,7 @@ main =
     count += 1
     if (count > 2) break
   }
-  graphDb.readFunctionAst(fn, (id) => yMetadata.get(id))
+  graphDb.readFunctionAst(fn, (id) => yMetadata.get(id), mockGetWidth)
   let bottom = -Infinity
   for (const expr of fn.visit(getFunctionNodeExpressions)) {
     const node = graphDb.nodes.get(getExprId(expr))

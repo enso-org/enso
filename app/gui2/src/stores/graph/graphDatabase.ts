@@ -5,7 +5,7 @@ import { Ast, AstExtended } from '@/util/ast'
 import { colorFromString } from '@/util/colors'
 import { ComputedValueRegistry, type ExpressionInfo } from '@/util/computedValueRegistry'
 import { ReactiveDb, ReactiveIndex, ReactiveMapping } from '@/util/database/reactiveDb'
-import { getTextWidth as originalGetTextWidth } from '@/util/measurement'
+import { getTextWidth } from '@/util/measurement'
 import type { Opt } from '@/util/opt'
 import { qnJoin, tryQualifiedName } from '@/util/qualifiedName'
 import { Rect } from '@/util/rect'
@@ -107,15 +107,13 @@ export class GraphDb {
     this.nodes.moveToLast(id)
   }
 
-  getNodeWidth(node: Node) {
-    // FIXME [sb]: This should take into account the width of all widgets.
-    // This will require a recursive traversal of the `Node`'s children.
-    return this.getTextWidth(node.rootSpan.repr(), '11.5px', '"M PLUS 1", sans-serif') * 1.2
-  }
-
   readFunctionAst(
     functionAst: AstExtended<Ast.Tree.Function>,
     getMeta: (id: ExprId) => NodeMetadata | undefined,
+    getWidth: (node: Node) => number = (node: Node) =>
+      // FIXME [ao]: This should take into account the width of all widgets. Probably
+      //   the better solution is to layout nodes once rendered (and all sizes are known).
+      getTextWidth(node.rootSpan.repr(), '11.5px', '"M PLUS 1", sans-serif') * 1.2,
   ) {
     const currentNodeIds = new Set<ExprId>()
     const nodeRectMap = new Map<ExprId, Rect>()
@@ -143,10 +141,7 @@ export class GraphDb {
         }
         if (!nodeMeta) {
           numberOfUnpositionedNodes += 1
-          maxUnpositionedNodeWidth = Math.max(
-            maxUnpositionedNodeWidth,
-            this.getNodeWidth(node ?? newNode),
-          )
+          maxUnpositionedNodeWidth = Math.max(maxUnpositionedNodeWidth, getWidth(node ?? newNode))
         } else {
           this.assignUpdatedMetadata(node ?? newNode, nodeMeta)
           nodeRectMap.set(
@@ -154,7 +149,7 @@ export class GraphDb {
             Rect.FromBounds(
               nodeMeta.x,
               -nodeMeta.y,
-              nodeMeta.x + this.getNodeWidth(node ?? newNode),
+              nodeMeta.x + getWidth(node ?? newNode),
               -nodeMeta.y + theme.node.height,
             ),
           )
@@ -210,7 +205,6 @@ export class GraphDb {
     private suggestionDb: SuggestionDb,
     private groups: Ref<Group[]>,
     private valuesRegistry: ComputedValueRegistry,
-    private getTextWidth: typeof originalGetTextWidth = originalGetTextWidth,
   ) {}
 
   static Mock(registry = ComputedValueRegistry.Mock()): GraphDb {
