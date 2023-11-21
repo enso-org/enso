@@ -278,6 +278,24 @@ impl Model {
         })
     }
 
+    fn start_language_server_profiling(&self) {
+        let controller = self.graph_controller.clone_ref();
+        executor::global::spawn(async move {
+            if let Err(err) = controller.start_language_server_profiling().await {
+                error!("Error starting the language server profiling: {err}");
+            }
+        })
+    }
+
+    fn stop_language_server_profiling(&self) {
+        let controller = self.graph_controller.clone_ref();
+        executor::global::spawn(async move {
+            if let Err(err) = controller.stop_language_server_profiling().await {
+                error!("Error stopping the language server profiling: {err}");
+            }
+        })
+    }
+
     /// Prepare a list of projects to display in the Open Project dialog.
     fn project_list_opened(&self, project_list_ready: frp::Source<()>) {
         let controller = self.ide_controller.clone_ref();
@@ -462,6 +480,9 @@ impl Project {
             view.set_read_only <+ view.toggle_read_only.map(f_!(model.toggle_read_only()));
             eval graph_view.execution_environment((env) model.execution_environment_changed(*env));
             eval_ graph_view.execution_environment_play_button_pressed( model.trigger_clean_live_execution());
+
+            eval_ view.start_language_server_profiling(model.start_language_server_profiling());
+            eval_ view.stop_language_server_profiling(model.stop_language_server_profiling());
 
             eval view.current_shortcut ((shortcut) model.handled_shortcut_changed(shortcut));
         }

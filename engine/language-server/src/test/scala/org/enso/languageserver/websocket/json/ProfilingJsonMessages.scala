@@ -11,12 +11,14 @@ object ProfilingJsonMessages {
           "result": null
         }"""
 
-  def profilingStart(reqId: Int) =
+  def profilingStart(reqId: Int, memorySnapshot: Boolean = false) =
     json"""
         { "jsonrpc": "2.0",
           "method": "profiling/start",
           "id": $reqId,
-          "params": null
+          "params": {
+            "memorySnapshot": $memorySnapshot
+          }
         }"""
 
   def profilingStop(reqId: Int) =

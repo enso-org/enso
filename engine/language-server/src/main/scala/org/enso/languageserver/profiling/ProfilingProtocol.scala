@@ -2,8 +2,11 @@ package org.enso.languageserver.profiling
 
 object ProfilingProtocol {
 
-  /** A request to start the profiling. */
-  case object ProfilingStartRequest
+  /** A request to start the profiling.
+    *
+    * @param memorySnapshot take memory snapshot
+    */
+  case class ProfilingStartRequest(memorySnapshot: Boolean)
 
   /** A response to request to start the profiling. */
   case object ProfilingStartResponse

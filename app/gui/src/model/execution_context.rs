@@ -568,6 +568,14 @@ pub trait API: Debug {
     #[allow(clippy::needless_lifetimes)] // Note: Needless lifetimes
     fn restart<'a>(&'a self) -> BoxFuture<'a, FallibleResult>;
 
+    /// Start the profiling of the language server.
+    #[allow(clippy::needless_lifetimes)] // Note: Needless lifetimes
+    fn start_profiling<'a>(&'a self) -> BoxFuture<'a, FallibleResult>;
+
+    /// Stop the profiling of the language server.
+    #[allow(clippy::needless_lifetimes)] // Note: Needless lifetimes
+    fn stop_profiling<'a>(&'a self) -> BoxFuture<'a, FallibleResult>;
+
     /// Adjust method pointers after the project rename action.
     fn rename_method_pointers(&self, old_project_name: String, new_project_name: String);
 

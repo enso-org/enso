@@ -328,6 +328,22 @@ impl model::execution_context::API for ExecutionContext {
         .boxed_local()
     }
 
+    fn start_profiling(&self) -> BoxFuture<FallibleResult> {
+        async move {
+            self.language_server.client.profiling_start(&Some(true)).await?;
+            Ok(())
+        }
+        .boxed_local()
+    }
+
+    fn stop_profiling(&self) -> BoxFuture<FallibleResult> {
+        async move {
+            self.language_server.client.profiling_stop().await?;
+            Ok(())
+        }
+        .boxed_local()
+    }
+
     fn rename_method_pointers(&self, old_project_name: String, new_project_name: String) {
         self.model.rename_method_pointers(old_project_name, new_project_name);
     }

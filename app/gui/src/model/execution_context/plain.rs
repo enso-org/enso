@@ -298,6 +298,14 @@ impl model::execution_context::API for ExecutionContext {
         futures::future::ready(Ok(())).boxed_local()
     }
 
+    fn start_profiling(&self) -> BoxFuture<FallibleResult> {
+        futures::future::ready(Ok(())).boxed_local()
+    }
+
+    fn stop_profiling(&self) -> BoxFuture<FallibleResult> {
+        futures::future::ready(Ok(())).boxed_local()
+    }
+
     fn rename_method_pointers(&self, old_project_name: String, new_project_name: String) {
         let update_method_pointer = |method_pointer: &mut MethodPointer| {
             let module = method_pointer.module.replacen(&old_project_name, &new_project_name, 1);

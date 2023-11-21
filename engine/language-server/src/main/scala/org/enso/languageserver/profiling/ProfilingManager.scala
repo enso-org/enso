@@ -44,7 +44,7 @@ final class ProfilingManager(
     initialized(None)
 
   private def initialized(sampler: Option[RunningSampler]): Receive = {
-    case ProfilingProtocol.ProfilingStartRequest =>
+    case ProfilingProtocol.ProfilingStartRequest(memorySnapshot) =>
       sampler match {
         case Some(_) =>
           sender() ! ProfilingProtocol.ProfilingStartResponse
@@ -62,13 +62,15 @@ final class ProfilingManager(
 
           sender() ! ProfilingProtocol.ProfilingStartResponse
           context.become(
-            initialized(Some(RunningSampler(instant, sampler, result)))
+            initialized(
+              Some(RunningSampler(instant, sampler, result, memorySnapshot))
+            )
           )
       }
 
     case ProfilingProtocol.ProfilingStopRequest =>
       sampler match {
-        case Some(RunningSampler(instant, sampler, result)) =>
+        case Some(RunningSampler(instant, sampler, result, memorySnapshot)) =>
           sampler.stop()
 
           Try(saveSamplerResult(result.toByteArray, instant)) match {
@@ -79,6 +81,10 @@ final class ProfilingManager(
                 "Saved the sampler's result to [{}].",
                 MaskedPath(samplesPath)
               )
+          }
+
+          if (memorySnapshot) {
+            saveMemorySnapshot(instant)
           }
 
           runtimeConnector ! RuntimeConnector.RegisterEventsMonitor(
@@ -93,19 +99,21 @@ final class ProfilingManager(
 
     case ProfilingProtocol.ProfilingSnapshotRequest =>
       val instant = clock.instant()
-
-      Try(saveHeapDump(instant)) match {
-        case Failure(exception) =>
-          logger.error("Failed to save the memory snapshot.", exception)
-        case Success(heapDumpPath) =>
-          logger.trace(
-            "Saved the memory snapshot to [{}].",
-            MaskedPath(heapDumpPath)
-          )
-      }
+      saveMemorySnapshot(instant)
 
       sender() ! ProfilingProtocol.ProfilingSnapshotResponse
   }
+
+  private def saveMemorySnapshot(instant: Instant): Unit =
+    Try(saveHeapDump(instant)) match {
+      case Failure(exception) =>
+        logger.error("Failed to save the memory snapshot.", exception)
+      case Success(heapDumpPath) =>
+        logger.trace(
+          "Saved the memory snapshot to [{}].",
+          MaskedPath(heapDumpPath)
+        )
+    }
 
   private def saveSamplerResult(
     result: Array[Byte],
@@ -163,7 +171,8 @@ object ProfilingManager {
   private case class RunningSampler(
     instant: Instant,
     sampler: MethodsSampler,
-    result: ByteArrayOutputStream
+    result: ByteArrayOutputStream,
+    memorySnapshot: Boolean
   )
 
   private def createProfilingFileName(instant: Instant): String = {

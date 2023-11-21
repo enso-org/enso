@@ -49,6 +49,44 @@ class ProfilingManagerTest extends BaseServerTest {
       Files.exists(eventsFile) shouldEqual true
     }
 
+    "save profiling with memory snapshot " in {
+      val client = getInitialisedWsClient()
+
+      client.send(json.profilingStart(1, memorySnapshot = true))
+      runtimeConnectorProbe.receiveN(1).head match {
+        case _: RuntimeConnector.RegisterEventsMonitor =>
+        // Ok
+        case other =>
+          fail(s"Unexpected message: $other")
+      }
+      client.expectJson(json.ok(1))
+
+      client.send(json.profilingStop(2))
+      runtimeConnectorProbe.receiveN(1).head match {
+        case _: RuntimeConnector.RegisterEventsMonitor =>
+        // Ok
+        case other =>
+          fail(s"Unexpected message: $other")
+      }
+      client.expectJson(json.ok(2))
+
+      val distributionManager = getDistributionManager
+      val instant             = clock.instant
+      val samplesFile = distributionManager.paths.profiling.resolve(
+        ProfilingManager.createSamplesFileName(instant)
+      )
+      val eventsFile = distributionManager.paths.profiling.resolve(
+        ProfilingManager.createEventsFileName(instant)
+      )
+      val snapshotFile = distributionManager.paths.profiling.resolve(
+        ProfilingManager.createHeapDumpFileName(instant)
+      )
+
+      Files.exists(samplesFile) shouldEqual true
+      Files.exists(eventsFile) shouldEqual true
+      Files.exists(snapshotFile) shouldEqual true
+    }
+
     "save memory snapshot" in {
       val client = getInitialisedWsClient()
 
