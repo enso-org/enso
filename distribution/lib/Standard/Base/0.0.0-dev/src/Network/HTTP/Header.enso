@@ -1,11 +1,13 @@
+import project.Data.Enso_Cloud.Enso_Secret.Enso_Secret
 import project.Data.Numbers.Integer
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
 import project.Nothing.Nothing
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Ordering import all
+from project.Data.Text.Extensions import all
 
-polyglot java import org.enso.base.Http_Utils
+polyglot java import java.util.Base64
 
 type Header
     ## PRIVATE
@@ -15,7 +17,7 @@ type Header
        Arguments:
        - name: The header name.
        - value: The header value.
-    Value name value
+    Value name:Text value:(Text|Enso_Secret)
 
     ## ALIAS Build a Header
 
@@ -31,8 +33,8 @@ type Header
              import Standard.Base.Network.HTTP.Header.Header
 
              example_new = Header.new "My_Header" "my header's value"
-    new : Text -> Text -> Header
-    new name value = Header.Value name value
+    new : Text -> Text | Enso_Secret -> Header
+    new name:Text value:(Text|Enso_Secret) = Header.Value name value
 
     ## Create an "Accept" header.
 
@@ -89,14 +91,13 @@ type Header
              example_auth_basic = Header.authorization_basic "user" "pass"
     authorization_basic : Text -> Text -> Header
     authorization_basic user pass =
-        Header.authorization (Http_Utils.header_basic_auth user pass)
+        Header.authorization (make_basic_auth user pass)
 
     ## Create bearer token auth header.
 
        Arguments:
        - token: The token.
-    authorization_bearer : Text -> Header
-    authorization_bearer token =
+    authorization_bearer token:Text =
         Header.authorization ("Bearer " + token)
 
     ## Create "Content-Type" header.
@@ -113,8 +114,8 @@ type Header
              import Standard.Base.Network.HTTP.Header.Header
 
              example_content_type = Header.content_type "my_type"
-    content_type : Text -> Encoding -> Header
-    content_type value encoding=Nothing =
+    content_type : Text -> Encoding | Nothing -> Header
+    content_type value:Text encoding:(Encoding|Nothing)=Nothing =
         charset = if encoding.is_nothing then "" else "; charset="+encoding.character_set
         Header.Value Header.content_type_header_name value+charset
 
@@ -163,7 +164,7 @@ type Header
 
              example_multipart = Header.multipart_form_data
     multipart_form_data : Text -> Header
-    multipart_form_data (boundary = "") =
+    multipart_form_data (boundary:Text="") =
         if boundary == "" then Header.content_type "multipart/form-data" else
             Header.content_type ("multipart/form-data; boundary=" + boundary)
 
@@ -184,7 +185,8 @@ type Header
     to_display_text : Text
     to_display_text self = self.name + ": " + self.value.to_display_text
 
-    ## Gets the name for content_type
+    ## PRIVATE
+       Gets the name for content_type
     content_type_header_name : Text
     content_type_header_name = "Content-Type"
 
@@ -204,3 +206,9 @@ type Header_Comparator
 
 ## PRIVATE
 Comparable.from (_:Header) = Header_Comparator
+
+## PRIVATE
+make_basic_auth : Text -> Text -> Text
+make_basic_auth user:Text pass:Text =
+    base64 = Base64.getEncoder.encodeToString (user + ":" + pass).utf_8
+    "Basic " + base64

@@ -494,7 +494,7 @@ export function AuthProvider(props: AuthProviderProps) {
         const result = await cognito.forgotPassword(email)
         if (result.ok) {
             toastSuccess(MESSAGES.forgotPasswordSuccess)
-            navigate(app.RESET_PASSWORD_PATH)
+            navigate(app.LOGIN_PATH)
         } else {
             toastError(result.val.message)
         }

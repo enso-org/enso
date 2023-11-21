@@ -1,7 +1,9 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Syntax_Error
 import Standard.Base.Errors.File_Error.File_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Unimplemented.Unimplemented
+import Standard.Base.System.File_Format.File_For_Read
 import Standard.Base.System.Input_Stream.Input_Stream
 import Standard.Base.System.Output_Stream.Output_Stream
 
@@ -12,7 +14,13 @@ import project.S3.S3
 ## Represents an S3 file or folder
    If the path ends with a slash, it is a folder. Otherwise, it is a file.
 type S3_File
-    ## PUBLIC
+    ## Given an S3 URI create a file representation.
+
+       Arguments:
+       - uri: The URI of the file.
+         The URI must be in the form `s3://bucket/path/to/file`.
+       - credentials: The credentials to use when accessing the file.
+         If not specified, the default credentials are used.
     new : Text -> AWS_Credential | Nothing -> S3_File
     new uri="s3://" credentials=Nothing =
         parts = S3.parse_uri uri
@@ -77,8 +85,8 @@ type S3_File
 
        The created stream is automatically closed when `action` returns (even
        if it returns exceptionally).
-    with_input_stream : Vector File_Access -> (Input_Stream -> Any ! File_Error) -> Any ! File_Error
-    with_input_stream self open_options action =
+    with_input_stream : Vector File_Access -> (Input_Stream -> Any ! File_Error) -> Any ! S3_Error | Illegal_Argument
+    with_input_stream self open_options action = if self.is_directory then Error.throw (Illegal_Argument.Error "S3 folders cannot be opened as a stream." self.uri) else
         if (open_options !=  [File_Access.Read]) then Error.throw (S3_Error.Error "S3 files can only be opened for reading." self.uri) else
             response_body = S3.get_object self.bucket self.prefix self.credentials
             response_body.with_stream action
@@ -206,3 +214,6 @@ type S3_File
                 sub_folders = pair.first . map key-> S3_File.Value self.bucket key self.credentials
                 files = pair.second . map key-> S3_File.Value self.bucket key self.credentials
                 sub_folders + files
+
+## PRIVATE
+File_For_Read.from (that:S3_File) = File_For_Read.Value that.uri that.name that.extension

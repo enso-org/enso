@@ -1780,3 +1780,9 @@ simple_unary_op column op_kind = column.make_unary_op op_kind
 Materialized_Column.from (that:Column) =
     _ = [that]
     Error.throw (Illegal_Argument.Error "Currently cross-backend operations are not supported. Materialize the column using `.read` before mixing it with an in-memory Table.")
+
+## PRIVATE
+   Conversion method to a Column to a Vector.
+Vector.from (that:Column) =
+    _ = [that]
+    Error.throw (Illegal_Argument.Error "To convert from a Database column to a vector you must first call `read` on the column.")
