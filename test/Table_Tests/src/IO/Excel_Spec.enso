@@ -15,6 +15,8 @@ import Standard.Examples
 
 import project.Util
 
+polyglot java import org.enso.table_test_helpers.RandomHelpers
+
 spec_fmt header file read_method sheet_count=5 =
     Test.group header <|
         Test.specify "should read a workbook in" <|
@@ -734,6 +736,39 @@ spec =
             r2.catch.to_display_text.should_contain "is corrupted"
 
             bad_file.delete
+
+        ci_pending = if Environment.get "CI" != Nothing then "This test takes a lot of time so it is disabled on CI."
+        Test.specify "should be able to write and read a big XLSX file (>110MB)" pending=ci_pending <|
+            n = 10^6
+            letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".characters
+            IO.println "Generating random vector "+Time_Of_Day.now.to_text
+            rng = RandomHelpers.new 123
+            v = Vector.new n _->
+                #Random.items letters count=190 with_replacement=True . join
+                rng.makeRandomString 190
+            IO.println "Creating table           "+Time_Of_Day.now.to_text
+            table = Table.new [["X", v]]
+            IO.println "Done                     "+Time_Of_Day.now.to_text
+            big_file = enso_project.data / "transient" / "big.xlsx"
+            big_file.delete_if_exists
+
+            IO.println "Writing file             "+Time_Of_Day.now.to_text
+            table.write big_file on_existing_file=Existing_File_Behavior.Overwrite on_problems=Report_Error . should_succeed
+            IO.println "Done                     "+Time_Of_Day.now.to_text
+
+            # Verify that the file is as big as we expected.
+            size = big_file.size / (1024*1024)
+            IO.println size
+            (size > 110).should_be_true
+
+            workbook = big_file.read
+            sheets = workbook.sheet_names
+            sheets.length . should_equal 1
+            read_table = workbook.read (sheets.at 0)
+            read_table.take 20 . print
+            read_table.row_count . should_equal n
+            read_table.column_names . should_equal ["X"]
+            read_table.at "X" . at 0 . should_equal (v.at 0)
 
     spec_fmt 'XLSX reading' Examples.xlsx .read
 
