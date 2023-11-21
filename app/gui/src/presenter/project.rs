@@ -280,19 +280,25 @@ impl Model {
 
     fn start_language_server_profiling(&self) {
         let controller = self.graph_controller.clone_ref();
+        let status_notifications = self.controller.status_notifications.clone_ref();
         executor::global::spawn(async move {
             if let Err(err) = controller.start_language_server_profiling().await {
                 error!("Error starting the language server profiling: {err}");
+            } else {
+                status_notifications.publish_event("Backend profiling started.");
             }
         })
     }
 
     fn stop_language_server_profiling(&self) {
         let controller = self.graph_controller.clone_ref();
+        let status_notifications = self.controller.status_notifications.clone_ref();
         executor::global::spawn(async move {
+            status_notifications.publish_event("Stopping backend profiling ...");
             if let Err(err) = controller.stop_language_server_profiling().await {
                 error!("Error stopping the language server profiling: {err}");
             }
+            status_notifications.publish_event("Backend profiling stopped.");
         })
     }
 
