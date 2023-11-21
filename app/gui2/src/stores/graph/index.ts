@@ -85,13 +85,7 @@ export const useGraphStore = defineStore('graph', () => {
       const idMap = module.getIdMap()
       const meta = module.doc.metadata
       const textContentLocal = textContent.value
-
-      const ast = AstExtended.parse(textContentLocal, idMap)
-      idMap.finishAndSynchronize()
-
-      const newRoot = Ast.parse(textContentLocal)
-      Ast.syncCommittedFromEdited()
-
+      const newRoot = Ast.parseTransitional(textContentLocal, idMap)
       const methodAst = getExecutedMethodAst(newRoot, proj.executionContext.getStackTop())
       if (methodAst) {
         db.readFunctionAst(methodAst, (id) => meta.get(id))
@@ -335,15 +329,4 @@ function getExecutedMethodAst(root: Ast.Ast, executionStackTop: StackItem): Opt<
        */
     }
   }
-}
-
-function lookupIdRange(updatedIdMap: Y.Map<Uint8Array>, id: ExprId): [number, number] | undefined {
-  const doc = updatedIdMap.doc!
-  const rangeBuffer = updatedIdMap.get(id)
-  if (rangeBuffer == null) return
-  const decoded = decodeRange(rangeBuffer)
-  const index = Y.createAbsolutePositionFromRelativePosition(decoded[0], doc)?.index
-  const endIndex = Y.createAbsolutePositionFromRelativePosition(decoded[1], doc)?.index
-  if (index == null || endIndex == null) return
-  return [index, endIndex]
 }

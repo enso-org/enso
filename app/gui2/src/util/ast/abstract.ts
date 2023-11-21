@@ -1,9 +1,11 @@
 import { Token, Tree } from '@/generated/ast'
 import { parseEnso } from '@/util/ast'
+import { AstExtended } from '@/util/ast/extended.ts'
 import type { LazyObject } from '@/util/parserSupport'
 import * as random from 'lib0/random'
 import { reactive } from 'vue'
 import type { ExprId } from '../../../shared/yjsModel'
+import { IdMap } from '../../../shared/yjsModel'
 
 const committed = reactive(new Map<AstId, Ast>())
 /** New nodes, COW-copies of modified nodes, and pending deletions (nulls) */
@@ -788,7 +790,7 @@ function abstractToken(
   const codeStart = token.startInCodeBuffer
   const codeEnd = codeStart + token.lengthInCodeBuffer
   const tokenCode = code.substring(codeStart, codeEnd)
-  const span = tokenKey(codeStart, codeEnd - codeStart, token.type)
+  const span = tokenKey(codeStart, codeEnd - codeStart)
   const exprId = tokenIds.get(span) ?? newTokenId()
   const node = new Tok(tokenCode, exprId, token.type)
   return { whitespace, node }
@@ -800,15 +802,15 @@ function nodeKey(start: number, length: number, type: Tree.Type | undefined): No
   const type_ = type?.toString() ?? '?'
   return `${start}:${length}:${type_}`
 }
-function tokenKey(start: number, length: number, type: Token.Type): TokenKey {
-  return `${start}:${length}:${type}`
+function tokenKey(start: number, length: number): TokenKey {
+  return `${start}:${length}`
 }
 
 type NodeSpanMap = Map<NodeKey, AstId[]>
 type TokenSpanMap = Map<TokenKey, TokenId>
 export type InfoMap = {
-  nodes: Map<NodeKey, AstId[]>
-  tokens: Map<TokenKey, AstId[]>
+  nodes: NodeSpanMap
+  tokens: TokenSpanMap
 }
 
 export type PrintedSource = {
@@ -882,4 +884,41 @@ export function forgetAllAsts() {
 
 export function parse(source: PrintedSource | string): Ast {
   return Ast.parse(source)
+}
+
+/** Parse using new AST types with old IdMap synchronization/editing. */
+export function parseTransitional(code: string, idMap: IdMap): Ast {
+  const legacyAst = AstExtended.parse(code, idMap)
+  idMap.finishAndSynchronize()
+  const nodes = new Map<NodeKey, AstId[]>()
+  const tokens = new Map<TokenKey, TokenId>()
+  const unique = new Set()
+  legacyAst.visitRecursivePostorder((nodeOrToken: AstExtended<Tree | Token>) => {
+    const start = nodeOrToken.span()[0]
+    const length = nodeOrToken.span()[1] - nodeOrToken.span()[0]
+    if (nodeOrToken.isToken()) {
+      const token: AstExtended<Token> = nodeOrToken
+      tokens.set(tokenKey(start, length), token.astId as TokenId)
+    } else if (nodeOrToken.isTree()) {
+      const node: AstExtended<Tree> = nodeOrToken
+      const id = node.astId as AstId
+      if (unique.has(id)) {
+        // This shouldn't be happening, but it's probably due to a bug in `AstExtended`-related code that will be
+        // replaced soon.
+        console.error(`Multiple occurrences of this UUID in tree:`, id)
+      } else {
+        unique.add(id)
+        const key = nodeKey(start, length, node.inner.type)
+        const ids = nodes.get(key)
+        if (ids !== undefined) {
+          ids.push(id)
+        } else {
+          nodes.set(key, [id])
+        }
+      }
+    }
+  })
+  const newRoot = Ast.parse({ info: { nodes, tokens }, code })
+  syncCommittedFromEdited()
+  return newRoot
 }

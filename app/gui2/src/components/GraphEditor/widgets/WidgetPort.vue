@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
+import { Tree } from '@/generated/ast.ts'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import {
@@ -9,18 +10,17 @@ import {
   type WidgetInput,
   type WidgetProps,
 } from '@/providers/widgetRegistry'
+import { PlaceholderArgument } from '@/providers/widgetRegistry.ts'
 import { injectWidgetTree } from '@/providers/widgetTree'
 import { useGraphStore } from '@/stores/graph'
 import type { GraphDb } from '@/stores/graph/graphDatabase'
 import { useRaf } from '@/util/animation'
+import { Ast } from '@/util/ast'
 import { useResizeObserver } from '@/util/events'
 import { Rect } from '@/util/rect'
 import { uuidv4 } from 'lib0/random'
 import type { ExprId } from 'shared/yjsModel'
 import { computed, nextTick, onUpdated, ref, shallowRef, toRef, watch, watchEffect } from 'vue'
-import { Tree } from '@/generated/ast.ts'
-import { PlaceholderArgument } from '@/providers/widgetRegistry.ts'
-import { Ast } from '@/util/ast'
 
 const graph = useGraphStore()
 const props = defineProps<WidgetProps>()

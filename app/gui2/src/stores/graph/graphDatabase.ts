@@ -1,8 +1,8 @@
 import { nonDictatedPlacement } from '@/components/ComponentBrowser/placement'
 import { SuggestionDb, groupColorStyle, type Group } from '@/stores/suggestionDatabase'
 import { tryGetIndex } from '@/util/array'
-import type { AstId } from '@/util/ast/abstract'
 import { Ast } from '@/util/ast'
+import type { AstId } from '@/util/ast/abstract'
 import { colorFromString } from '@/util/colors'
 import { ComputedValueRegistry, type ExpressionInfo } from '@/util/computedValueRegistry'
 import { ReactiveDb, ReactiveIndex, ReactiveMapping } from '@/util/database/reactiveDb'
@@ -111,10 +111,7 @@ export class GraphDb {
     return getTextWidth(node.rootSpan.code(), '11.5px', '"M PLUS 1", sans-serif') * 1.2
   }
 
-  readFunctionAst(
-    functionAst: Ast.Function,
-    getMeta: (id: ExprId) => NodeMetadata | undefined,
-  ) {
+  readFunctionAst(functionAst: Ast.Function, getMeta: (id: ExprId) => NodeMetadata | undefined) {
     const currentNodeIds = new Set<ExprId>()
     const nodeRectMap = new Map<ExprId, Rect>()
     let numberOfUnpositionedNodes = 0
