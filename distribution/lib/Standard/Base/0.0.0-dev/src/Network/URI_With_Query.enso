@@ -50,7 +50,7 @@ type URI_With_Query
        - key: The key of the query parameter.
        - value: The value of the query parameter.
     add_query_argument : Text -> Text | Enso_Secret -> URI
-    add_query_argument self key:Text value:(Text|Enso_Secret) =
+    add_query_argument self key:Text value:(Text | Enso_Secret) =
         URI_With_Query.Value self.uri self.parameters+[Pair.new key value]
 
     ## PRIVATE

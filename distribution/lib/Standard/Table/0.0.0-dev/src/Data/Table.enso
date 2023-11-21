@@ -1116,7 +1116,8 @@ type Table
             new_column = column_to_cast.cast value_type on_problems
             table.set new_column new_name=column_to_cast.name set_mode=Set_Mode.Update
 
-    ## Change the value type of table columns to a more specific one, based on
+    ## GROUP Standard.Base.Conversions
+       Change the value type of table columns to a more specific one, based on
        their contents.
 
        This is most useful for `Mixed` type columns and will allow to narrow
@@ -1271,7 +1272,7 @@ type Table
     parse_to_columns self column pattern="." case_sensitivity=Case_Sensitivity.Sensitive parse_values=True on_problems=Report_Error =
         Split_Tokenize.parse_to_columns self column pattern case_sensitivity parse_values on_problems
 
-    ## GROUP Standard.Base.Conversions
+    ## GROUP Standard.Base.Calculations
        Expand a column of objects to a new set of columns.
 
         Arguments:
@@ -1284,7 +1285,7 @@ type Table
     expand_column self (column : Text | Integer) (fields : (Vector Text) | Nothing = Nothing) (prefix : Prefix_Name = Prefix_Name.Column_Name) =
         Expand_Objects_Helpers.expand_column self column fields prefix
 
-    ## GROUP Standard.Base.Conversions
+    ## GROUP Standard.Base.Calculations
        Expand aggregate values in a column to separate rows.
 
        For each value in the specified column, if it is an aggregate (`Vector`,
@@ -1839,7 +1840,8 @@ type Table
                 self.java_table.crossJoin right.java_table right_prefix java_aggregator
             Table.Value new_java_table
 
-    ## Replaces values in this table by values from a lookup table.
+    ## GROUP Standard.Base.Calculations
+       Replaces values in this table by values from a lookup table.
        New values are looked up in the lookup table based on the `key_columns`.
        Columns found in the lookup table values are replaced by values from the
        lookup. Columns not found are left unchanged.

@@ -1774,7 +1774,8 @@ type Column
                 new_storage = self.java_column.getStorage.cast target_storage_type cast_problem_builder
                 Column.from_storage self.name new_storage
 
-    ## Change the value type of the column to a more specific one, based on its
+    ## GROUP Standard.Base.Conversions
+       Change the value type of the column to a more specific one, based on its
        contents.
 
        Arguments:
@@ -1845,7 +1846,7 @@ type Column
         new_st = self.to_vector.map new_fn
         Column.from_vector self.name new_st value_type=expected_value_type
 
-    ## ALIAS combine, merge, join by row position
+    ## ALIAS combine, join by row position, merge
 
        Applies `function` to consecutive pairs of elements of `self` and `that`
        and returns a column of results.
@@ -2121,7 +2122,7 @@ type Column
             sorted = self.to_vector.sort order by=wrapped
             Column.from_vector self.name sorted
 
-    ## ALIAS first, last, slice, sample
+    ## ALIAS first, last, sample, slice
        GROUP Standard.Base.Selections
        Creates a new Column with the specified range of rows from the input
        Column.
