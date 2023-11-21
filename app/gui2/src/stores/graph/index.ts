@@ -176,7 +176,8 @@ export const useGraphStore = defineStore('graph', () => {
     return mod.insertNewNode(mod.doc.contents.length, ident, expression, meta)
   }
 
-  // Create a node from a source expression, and insert it into the graph.
+  // Create a node from a source expression, and insert it into the graph. The return value will be
+  // the new node's ID, or `null` if the node creation fails.
   function createNodeFromSource(position: Vec2, source: ExprId): Opt<ExprId> {
     const sourceNodeName = getNodeBinding(source)
     const sourceNodeNameWithDot = sourceNodeName ? sourceNodeName + '.' : ''

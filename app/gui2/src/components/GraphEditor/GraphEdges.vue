@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import GraphEdge from '@/components/GraphEditor/GraphEdge.vue'
+import { GraphNavigator } from '@/providers/graphNavigator.ts'
 import { injectGraphSelection } from '@/providers/graphSelection.ts'
 import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
 import { useGraphStore } from '@/stores/graph'
@@ -18,7 +19,7 @@ const editingEdge: Interaction = {
       graph.clearUnconnected()
     })
   },
-  click(_e: MouseEvent, graphNavigator): boolean {
+  click(_e: MouseEvent, graphNavigator: GraphNavigator): boolean {
     if (graph.unconnectedEdge == null) return false
     const source = graph.unconnectedEdge.source ?? selection?.hoveredNode
     const target = graph.unconnectedEdge.target ?? selection?.hoveredPort
@@ -43,7 +44,7 @@ interaction.setWhen(() => graph.unconnectedEdge != null, editingEdge)
 function disconnectEdge(target: ExprId) {
   graph.setExpressionContent(target, '_')
 }
-function createNodeFromEdgeDrop(source: ExprId, graphNavigator) {
+function createNodeFromEdgeDrop(source: ExprId, graphNavigator: GraphNavigator) {
   const node = graph.createNodeFromSource(graphNavigator.sceneMousePos ?? Vec2.Zero, source)
   if (node != null) {
     graph.setEditedNode(node, 0)

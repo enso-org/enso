@@ -59,6 +59,9 @@ const interactionBindingsHandler = interactionBindings.handler({
   click: (e) => (e instanceof MouseEvent ? interaction.handleClick(e, graphNavigator) : false),
 })
 
+// Return the environment for the placement of a new node. The passed nodes should be the nodes that are
+// used as the source of the placement. This means, for example, the selected nodes when creating from a selection
+// or the node that is being edited when creating from a port double click.
 function environmentForNodes(nodeIds: IterableIterator<ExprId>): Environment {
   const nodeRects = [...graphStore.nodeRects.values()]
   const selectedNodeRects: Iterable<Rect> = [...nodeIds]
@@ -80,7 +83,8 @@ function placementPositionForSelection() {
   if (!hasNodeSelected) return undefined
   const gapBetweenNodes = 48.0
   return previousNodeDictatedPlacement(DEFAULT_NODE_SIZE, placementEnvironment.value, {
-    gap: gapBetweenNodes,
+    horizontalGap: gapBetweenNodes,
+    verticalGap: gapBetweenNodes,
   }).position
 }
 
@@ -88,16 +92,11 @@ function placementPositionForSelection() {
 function targetComponentBrowserPosition() {
   const editedInfo = graphStore.editedNodeInfo
   const isEditingNode = editedInfo != null
+  const hasNodeSelected = nodeSelection.selected.size > 0
   if (isEditingNode) {
     const targetNode = graphStore.db.nodes.get(editedInfo.id)
     const targetPos = targetNode?.position ?? Vec2.Zero
     return targetPos.add(COMPONENT_BROWSER_TO_NODE_OFFSET)
-  } else if (hasNodeSelected) {
-    const gapBetweenNodes = 48.0
-    return previousNodeDictatedPlacement(DEFAULT_NODE_SIZE, placementEnvironment.value, {
-      horizontalGap: gapBetweenNodes,
-      verticalGap: gapBetweenNodes,
-    }).position
   } else {
     const targetPos = placementPositionForSelection()
     if (targetPos != undefined) {
@@ -236,9 +235,6 @@ const creatingNode: Interaction = {
     componentBrowserPosition.value = targetComponentBrowserPosition()
     componentBrowserVisible.value = true
   },
-  cancel: () => {
-    // Nothing to do here. We just don't create a node and the component browser will close itself.
-  },
 }
 
 const creatingNodeFromButton: Interaction = {
@@ -251,18 +247,12 @@ const creatingNodeFromButton: Interaction = {
     componentBrowserPosition.value = targetPos
     componentBrowserVisible.value = true
   },
-  cancel: () => {
-    // Nothing to do here. We just don't create a node and the component browser will close itself.
-  },
 }
 
 const creatingNodeFromPortDoubleClick: Interaction = {
   init: () => {
     componentBrowserInputContent.value = ''
     componentBrowserVisible.value = true
-  },
-  cancel: () => {
-    // Nothing to do here. We just don't create a node and the component browser will close itself.
   },
 }
 
