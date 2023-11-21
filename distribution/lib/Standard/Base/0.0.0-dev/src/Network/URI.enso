@@ -141,7 +141,8 @@ type URI
     query : Text | Nothing
     query self = self.internal_uri.getQuery
 
-    ## Adds a query parameter to the URI
+    ## GROUP Calculations
+       Adds a query parameter to the URI
 
        Arguments:
        - key: The key of the query parameter.

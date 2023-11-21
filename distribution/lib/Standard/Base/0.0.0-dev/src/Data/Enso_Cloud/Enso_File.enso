@@ -21,7 +21,7 @@ import project.System.Input_Stream.Input_Stream
 import project.System.Output_Stream.Output_Stream
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
-from project.System.File_Format import Auto_Detect, File_Format, Bytes, Plain_Text_Format
+from project.System.File_Format import Auto_Detect, Bytes, File_Format, Plain_Text_Format
 
 type Enso_File
     ## PRIVATE

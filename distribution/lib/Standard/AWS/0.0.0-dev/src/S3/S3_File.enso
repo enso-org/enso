@@ -30,22 +30,25 @@ type S3_File
     ## PRIVATE
     Value bucket:Text prefix:Text credentials:(AWS_Credential | Nothing)
 
-    ## Gets the URI of this file
+    ## GROUP Standard.Base.Metadata
+       Gets the URI of this file
     uri : Text
     uri self = "s3://" + (if self.bucket=="" then "" else (self.bucket+"/"+self.prefix))
 
-    ## Checks if the folder or file exists
+    ## GROUP Standard.Base.Metadata
+       Checks if the folder or file exists
     exists : Boolean
     exists self = if self.bucket == "" then True else
         if self.prefix == "" then S3.head self.bucket "" self.credentials . is_error . not else
             pair = S3.read_bucket self.bucket self.prefix self.credentials max_count=1
             pair.second.length > 0
 
-    ## Checks if this is a folder
+    ## GROUP Standard.Base.Metadata
+       Checks if this is a folder
     is_directory : Boolean
     is_directory self = self.prefix=="" || self.prefix.ends_with "/"
 
-    ## GROUP Metadata
+    ## GROUP Standard.Base.Metadata
        Gets the size of a file in bytes.
     size : Integer
     size self =
@@ -92,7 +95,7 @@ type S3_File
             response_body.with_stream action
 
     ## ALIAS load, open
-       GROUP Input
+       GROUP Standard.Base.Input
        Read a file using the specified file format
 
        Arguments:
@@ -136,7 +139,7 @@ type S3_File
     read_text self (encoding=Encoding.utf_8) (on_problems=Problem_Behavior.Report_Warning) =
         self.read (Plain_Text encoding) on_problems
 
-    ## GROUP Operators
+    ## GROUP Standard.Base.Operators
        Join two path segments together.
 
        Arguments:
@@ -159,7 +162,7 @@ type S3_File
         path = loop initial parts
         S3_File.Value self.bucket path self.credentials
 
-    ## GROUP Calculations
+    ## GROUP Standard.Base.Calculations
        Join two or more path segments together, normalizing the `..` and `.` subpaths.
 
        Arguments:
@@ -169,7 +172,7 @@ type S3_File
         _ : Vector -> (subpaths.fold self c->p-> c / p)
         _ -> self.join [subpaths]
 
-    ## GROUP Metadata
+    ## GROUP Standard.Base.Metadata
        Returns the name of this file.
     name : Text
     name self = if self.prefix == "" then self.bucket else
@@ -177,7 +180,7 @@ type S3_File
         last_index = trimmed.lastIndexOf "/"
         if last_index == Nothing then trimmed else trimmed.drop (First last_index+1)
 
-    ## GROUP Metadata
+    ## GROUP Standard.Base.Metadata
        Returns the extension of the file.
     extension : Text
     extension self = if self.is_directory then Error.throw (S3_Error.Error "Directories do not have extensions." self.uri) else
@@ -187,7 +190,7 @@ type S3_File
             extension = name.drop (Index_Sub_Range.First last_dot.start)
             if extension == "." then "" else extension
 
-    ## GROUP Input
+    ## GROUP Standard.Base.Input
        Lists files contained in the directory denoted by this file.
 
        Arguments:
