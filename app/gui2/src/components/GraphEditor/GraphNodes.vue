@@ -45,7 +45,7 @@ const uploadingFiles = computed<[FileName, File][]>(() => {
 
 <template>
   <GraphNode
-    v-for="[id, node] in graphStore.db.allNodes()"
+    v-for="[id, node] in graphStore.db.nodeIdToNode.entries()"
     :key="id"
     :node="node"
     :edited="id === graphStore.editedNodeInfo?.id"

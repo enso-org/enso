@@ -105,7 +105,7 @@ export function useDragging() {
       function* draggedNodes(): Generator<[ExprId, DraggedNode]> {
         const ids = selection?.isSelected(movedId) ? selection.selected : [movedId]
         for (const id of ids) {
-          const node = graphStore.db.nodes.get(id)
+          const node = graphStore.db.nodeIdToNode.get(id)
           if (node != null) yield [id, { initialPos: node.position, currentPos: node.position }]
         }
       }
@@ -125,7 +125,7 @@ export function useDragging() {
       const rects: Rect[] = []
       for (const [id, { initialPos }] of this.draggedNodes) {
         const rect = graphStore.nodeRects.get(id)
-        const node = graphStore.db.nodes.get(id)
+        const node = graphStore.db.nodeIdToNode.get(id)
         if (rect != null && node != null) rects.push(new Rect(initialPos.add(newOffset), rect.size))
       }
       const snap = this.grid.snappedMany(rects, DRAG_SNAP_THRESHOLD)
@@ -161,7 +161,7 @@ export function useDragging() {
 
     updateNodesPosition() {
       for (const [id, dragged] of this.draggedNodes) {
-        const node = graphStore.db.nodes.get(id)
+        const node = graphStore.db.nodeIdToNode.get(id)
         if (node == null) continue
         // If node was moved in other way than current dragging, we want to stop dragging it.
         if (node.position.distanceSquared(dragged.currentPos) > 1.0) {

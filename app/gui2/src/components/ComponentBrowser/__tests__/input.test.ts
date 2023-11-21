@@ -102,8 +102,8 @@ test.each([
       profilingInfo: [],
     })
     const mockGraphDb = GraphDb.Mock(computedValueRegistryMock)
-    mockGraphDb.nodes.set(operator1Id, mockNode('operator1', operator1Id))
-    mockGraphDb.nodes.set(operator2Id, mockNode('operator2', operator2Id))
+    mockGraphDb.nodeIdToNode.set(operator1Id, mockNode('operator1', operator1Id))
+    mockGraphDb.nodeIdToNode.set(operator2Id, mockNode('operator2', operator2Id))
 
     const input = useComponentBrowserInput(mockGraphDb)
     input.code.value = code

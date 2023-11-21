@@ -54,14 +54,14 @@ const interactionBindingsHandler = interactionBindings.handler({
   click: (e) => (e instanceof MouseEvent ? interaction.handleClick(e) : false),
 })
 
-// This is where the component browser should be placed when it is opened.
+/** Where the component browser should be placed when it is opened. */
 function targetComponentBrowserPosition() {
   const editedInfo = graphStore.editedNodeInfo
   const isEditingNode = editedInfo != null
   const hasNodeSelected = nodeSelection.selected.size > 0
   const nodeSize = new Vec2(0, 24)
   if (isEditingNode) {
-    const targetNode = graphStore.db.nodes.get(editedInfo.id)
+    const targetNode = graphStore.db.nodeIdToNode.get(editedInfo.id)
     const targetPos = targetNode?.position ?? Vec2.Zero
     return targetPos.add(COMPONENT_BROWSER_TO_NODE_OFFSET)
   } else if (hasNodeSelected) {
@@ -75,7 +75,7 @@ function targetComponentBrowserPosition() {
   }
 }
 
-// This is the current position of the component browser.
+/** The current position of the component browser. */
 const componentBrowserPosition = ref<Vec2>(Vec2.Zero)
 
 const graphEditorSourceNode = computed(() => {
@@ -132,7 +132,7 @@ const graphBindingsHandler = graphBindings.handler({
     graphStore.transact(() => {
       const allVisible = set
         .toArray(nodeSelection.selected)
-        .every((id) => !(graphStore.db.getNode(id)?.vis?.visible !== true))
+        .every((id) => !(graphStore.db.nodeIdToNode.get(id)?.vis?.visible !== true))
 
       for (const nodeId of nodeSelection.selected) {
         graphStore.setNodeVisualizationVisible(nodeId, !allVisible)
@@ -158,7 +158,7 @@ const codeEditorHandler = codeEditorBindings.handler({
   },
 })
 
-/// Track play button presses.
+/** Track play button presses. */
 function onPlayButtonPress() {
   projectStore.lsRpcConnection.then(async () => {
     const modeValue = projectStore.executionMode
@@ -169,7 +169,7 @@ function onPlayButtonPress() {
   })
 }
 
-/// Watch for changes in the execution mode.
+// Watch for changes in the execution mode.
 watch(
   () => projectStore.executionMode,
   (modeValue) => {
@@ -252,10 +252,10 @@ async function handleFileDrop(event: DragEvent) {
 
 function onComponentBrowserCommit(content: string) {
   if (content != null && graphStore.editedNodeInfo != null) {
-    /// We finish editing a node.
+    // We finish editing a node.
     graphStore.setNodeContent(graphStore.editedNodeInfo.id, content)
   } else if (content != null) {
-    /// We finish creating a new node.
+    // We finish creating a new node.
     const nodePosition = componentBrowserPosition.value
     graphStore.createNode(nodePosition.sub(COMPONENT_BROWSER_TO_NODE_OFFSET), content)
   }
@@ -270,16 +270,13 @@ function onComponentBrowserCancel() {
   interaction.setCurrent(undefined)
 }
 
-/**
- *
- */
 function getNodeContent(id: ExprId): string {
-  const node = graphStore.db.nodes.get(id)
+  const node = graphStore.db.nodeIdToNode.get(id)
   if (node == null) return ''
   return node.rootSpan.repr()
 }
 
-// Watch the editedNode in the graph store
+// Watch the `editedNode` in the graph store
 watch(
   () => graphStore.editedNodeInfo,
   (editedInfo) => {
@@ -304,25 +301,25 @@ const breadcrumbs = computed(() => {
   })
 })
 
-/// === Clipboard ===
+// === Clipboard ===
 
 const ENSO_MIME_TYPE = 'web application/enso'
 
-/// The data that is copied to the clipboard.
+/** The data that is copied to the clipboard. */
 interface ClipboardData {
   nodes: CopiedNode[]
 }
 
-/// Node data that is copied to the clipboard. Used for serializing and deserializing the node information.
+/** Node data that is copied to the clipboard. Used for serializing and deserializing the node information. */
 interface CopiedNode {
   expression: string
   metadata: NodeMetadata | undefined
 }
 
-/// Copy the content of the selected node to the clipboard.
+/** Copy the content of the selected node to the clipboard. */
 function copyNodeContent() {
   const id = nodeSelection.selected.values().next().value
-  const node = graphStore.db.nodes.get(id)
+  const node = graphStore.db.nodeIdToNode.get(id)
   if (node == null) return
   const content = node.rootSpan.repr()
   const metadata = projectStore.module?.getNodeMetadata(id) ?? undefined

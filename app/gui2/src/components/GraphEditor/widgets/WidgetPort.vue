@@ -114,9 +114,10 @@ function canBeConnectedTo(input: WidgetInput): boolean {
 }
 
 function isConnected(input: WidgetInput, db: GraphDb) {
-  const astId = widgetAst(input)?.astId
-  return astId != null && db.connections.reverseLookup(astId).size > 0
+  const targetId = widgetAst(input)?.astId
+  return targetId != null && db.sourceIdToTargetId.reverseLookup(targetId).size > 0
 }
+
 export const widgetDefinition = defineWidget({
   priority: 1,
   match: (info) => {
@@ -127,6 +128,7 @@ export const widgetDefinition = defineWidget({
   },
 })
 </script>
+
 <template>
   <span
     ref="rootNode"
