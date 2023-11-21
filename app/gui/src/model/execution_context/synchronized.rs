@@ -330,7 +330,8 @@ impl model::execution_context::API for ExecutionContext {
 
     fn start_profiling(&self) -> BoxFuture<FallibleResult> {
         async move {
-            self.language_server.client.profiling_start(&Some(true)).await?;
+            let memory_snapshot = Some(true);
+            self.language_server.client.profiling_start(&memory_snapshot).await?;
             Ok(())
         }
         .boxed_local()

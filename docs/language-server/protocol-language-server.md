@@ -5112,7 +5112,7 @@ request to store the gathered data. After the profiling is started, subsequent
 
 ```typescript
 interface ProfilingStartParameters {
-  /** Also take a memory snapshot when the profiling is stopped.
+  /** Also take a memory snapshot when the profiling is stopped. */
   memorySnapshot?: boolean;
 }
 ```

@@ -401,7 +401,7 @@ impl Handle {
         Ok(())
     }
 
-    /// Command to stop gathering the profiling in the connected language server.
+    /// Command to stop gathering the profiling info in the connected language server.
     pub async fn stop_language_server_profiling(&self) -> FallibleResult {
         self.execution_ctx.stop_profiling().await?;
         Ok(())
