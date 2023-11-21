@@ -5,7 +5,7 @@ import { Ast, AstExtended } from '@/util/ast'
 import { colorFromString } from '@/util/colors'
 import { ComputedValueRegistry, type ExpressionInfo } from '@/util/computedValueRegistry'
 import { ReactiveDb, ReactiveIndex, ReactiveMapping } from '@/util/database/reactiveDb'
-import { getTextWidth } from '@/util/measurement'
+import { getTextWidth as originalGetTextWidth } from '@/util/measurement'
 import type { Opt } from '@/util/opt'
 import { qnJoin, tryQualifiedName } from '@/util/qualifiedName'
 import { Rect } from '@/util/rect'
@@ -110,7 +110,7 @@ export class GraphDb {
   getNodeWidth(node: Node) {
     // FIXME [sb]: This should take into account the width of all widgets.
     // This will require a recursive traversal of the `Node`'s children.
-    return getTextWidth(node.rootSpan.repr(), '11.5px', '"M PLUS 1", sans-serif') * 1.2
+    return this.getTextWidth(node.rootSpan.repr(), '11.5px', '"M PLUS 1", sans-serif') * 1.2
   }
 
   readFunctionAst(
@@ -210,6 +210,7 @@ export class GraphDb {
     private suggestionDb: SuggestionDb,
     private groups: Ref<Group[]>,
     private valuesRegistry: ComputedValueRegistry,
+    private getTextWidth: typeof originalGetTextWidth = originalGetTextWidth,
   ) {}
 
   static Mock(registry = ComputedValueRegistry.Mock()): GraphDb {
