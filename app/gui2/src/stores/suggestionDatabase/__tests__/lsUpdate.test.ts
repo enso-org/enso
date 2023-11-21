@@ -32,8 +32,8 @@ test('Qualified name indexing', () => {
   applyUpdates(db, test.addUpdatesForExpected(), test.groups)
   for (let i = 1; i <= 7; i++) {
     const qName = entryQn(db.get(i)!)
-    expect(db.nameToSuggestionId.lookup(qName)).toEqual(new Set([i]))
-    expect(db.nameToSuggestionId.reverseLookup(i)).toEqual(new Set([qName]))
+    expect(db.nameToId.lookup(qName)).toEqual(new Set([i]))
+    expect(db.nameToId.reverseLookup(i)).toEqual(new Set([qName]))
   }
 })
 

@@ -10,7 +10,7 @@ import { LanguageServer } from 'shared/languageServer'
 import { markRaw, ref, type Ref } from 'vue'
 
 export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
-  nameToSuggestionId = new ReactiveIndex(this, (id, entry) => [[entryQn(entry), id]])
+  nameToId = new ReactiveIndex(this, (id, entry) => [[entryQn(entry), id]])
   childIdToParentId = new ReactiveIndex(this, (id, entry) => {
     let qualifiedName: Opt<QualifiedName>
     if (entry.memberOf) {
@@ -19,7 +19,7 @@ export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
       qualifiedName = qnParent(entryQn(entry))
     }
     if (qualifiedName) {
-      const parents = Array.from(this.nameToSuggestionId.lookup(qualifiedName))
+      const parents = Array.from(this.nameToId.lookup(qualifiedName))
       return parents.map((p) => [id, p])
     }
     return []

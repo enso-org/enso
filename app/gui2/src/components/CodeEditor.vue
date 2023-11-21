@@ -85,7 +85,7 @@ watchEffect(() => {
             const moduleName = tryQualifiedName(method.module)
             const methodName = tryQualifiedName(method.name)
             const qualifiedName = qnJoin(unwrap(moduleName), unwrap(methodName))
-            const [id] = suggestionDbStore.entries.nameToSuggestionId.lookup(qualifiedName)
+            const [id] = suggestionDbStore.entries.nameToId.lookup(qualifiedName)
             const suggestionEntry = id != null ? suggestionDbStore.entries.get(id) : undefined
             if (suggestionEntry != null) {
               const groupNode = dom.appendChild(document.createElement('div'))

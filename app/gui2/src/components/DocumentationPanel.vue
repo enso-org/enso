@@ -105,7 +105,7 @@ function handleBreadcrumbClick(index: number) {
   if (name.value) {
     const qName = qnSlice(name.value, 0, index + 2)
     if (qName.ok) {
-      const [id] = db.entries.nameToSuggestionId.lookup(qName.value)
+      const [id] = db.entries.nameToId.lookup(qName.value)
       if (id) {
         historyStack.record(id)
       }
