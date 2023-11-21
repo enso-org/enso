@@ -3,7 +3,6 @@ import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { injectPortInfo } from '@/providers/portInfo'
 import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { ApplicationKind, ArgumentAst, ArgumentPlaceholder } from '@/util/callTree'
-import { isInstance } from '@/util/predicates'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
@@ -11,28 +10,25 @@ const props = defineProps(widgetProps(widgetDefinition))
 const portInfo = injectPortInfo(true)
 const showArgumentValue = computed(() => {
   return (
-    isInstance(ArgumentAst, props.input) &&
+    props.input instanceof ArgumentAst &&
     (portInfo == null || !portInfo.connected || portInfo.portId !== props.input.ast.astId)
   )
 })
 
-const placeholder = computed(() => isInstance(ArgumentPlaceholder, props.input))
+const placeholder = computed(() => props.input instanceof ArgumentPlaceholder)
 const primary = computed(() => props.nesting < 2)
 </script>
 
 <script lang="ts">
-export const widgetDefinition = defineWidget(
-  [isInstance(ArgumentPlaceholder), isInstance(ArgumentAst)],
-  {
-    priority: 1000,
-    score: (props) =>
-      props.input.info != null &&
-      (isInstance(ArgumentPlaceholder, props.input) ||
-        (props.nesting < 2 && props.input.kind === ApplicationKind.Prefix))
-        ? Score.Perfect
-        : Score.Mismatch,
-  },
-)
+export const widgetDefinition = defineWidget([ArgumentPlaceholder, ArgumentAst], {
+  priority: 1000,
+  score: (props) =>
+    props.input.info != null &&
+    (props.input instanceof ArgumentPlaceholder ||
+      (props.nesting < 2 && props.input.kind === ApplicationKind.Prefix))
+      ? Score.Perfect
+      : Score.Mismatch,
+})
 </script>
 
 <template>

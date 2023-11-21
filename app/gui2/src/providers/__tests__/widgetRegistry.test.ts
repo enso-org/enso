@@ -1,7 +1,6 @@
 import { GraphDb } from '@/stores/graph/graphDatabase'
 import { AstExtended } from '@/util/ast'
-import { ArgumentPlaceholder } from '@/util/callTree'
-import { anyWidgetInput, isInstance } from '@/util/predicates'
+import { ApplicationKind, ArgumentPlaceholder } from '@/util/callTree'
 import { IdMap } from 'shared/yjsModel'
 import { describe, expect, test } from 'vitest'
 import { defineComponent } from 'vue'
@@ -27,21 +26,21 @@ describe('WidgetRegistry', () => {
 
   const widgetA = makeMockWidget(
     'A',
-    defineWidget(isInstance(AstExtended), {
+    defineWidget(AstExtended, {
       priority: 1,
     }),
   )
 
   const widgetB = makeMockWidget(
     'B',
-    defineWidget(isInstance(ArgumentPlaceholder), {
+    defineWidget(ArgumentPlaceholder, {
       priority: 2,
     }),
   )
 
   const widgetC = makeMockWidget(
     'C',
-    defineWidget(anyWidgetInput, {
+    defineWidget((input: WidgetInput): input is WidgetInput => true, {
       priority: 10,
       score: Score.Good,
     }),
@@ -49,7 +48,7 @@ describe('WidgetRegistry', () => {
 
   const widgetD = makeMockWidget(
     'D',
-    defineWidget(isInstance(AstExtended), {
+    defineWidget(AstExtended, {
       priority: 20,
       score: (props) => (props.input.repr() === '_' ? Score.Perfect : Score.Mismatch),
     }),
@@ -57,12 +56,16 @@ describe('WidgetRegistry', () => {
 
   const someAst = AstExtended.parse('foo', IdMap.Mock())
   const blankAst = AstExtended.parse('_', IdMap.Mock())
-  const somePlaceholder = new ArgumentPlaceholder(0, {
-    name: 'foo',
-    type: 'Any',
-    isSuspended: false,
-    hasDefault: false,
-  })
+  const somePlaceholder = new ArgumentPlaceholder(
+    0,
+    {
+      name: 'foo',
+      type: 'Any',
+      isSuspended: false,
+      hasDefault: false,
+    },
+    ApplicationKind.Prefix,
+  )
 
   const mockGraphDb = GraphDb.Mock()
   const registry = new WidgetRegistry(mockGraphDb)

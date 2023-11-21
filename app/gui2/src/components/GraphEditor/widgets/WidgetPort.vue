@@ -10,7 +10,6 @@ import { useRaf } from '@/util/animation'
 import { Ast, AstExtended } from '@/util/ast'
 import { ArgumentAst, ArgumentPlaceholder } from '@/util/callTree'
 import { useResizeObserver } from '@/util/events'
-import { isInstance } from '@/util/predicates'
 import { Rect } from '@/util/rect'
 import { uuidv4 } from 'lib0/random'
 import type { ExprId } from 'shared/yjsModel'
@@ -66,11 +65,12 @@ const rectUpdateIsUseful = computed(() => isHovered.value || hasConnection.value
 
 const randomUuid = uuidv4() as ExprId
 const portId = computed(() => {
-  const ast = isInstance(AstExtended, props.input)
-    ? props.input
-    : isInstance(ArgumentAst, props.input) || isInstance(ForcePort, props.input)
-    ? props.input.ast
-    : undefined
+  const ast =
+    props.input instanceof AstExtended
+      ? props.input
+      : props.input instanceof ArgumentAst || props.input instanceof ForcePort
+      ? props.input.ast
+      : undefined
   return ast?.astId ?? randomUuid
 })
 
@@ -124,9 +124,6 @@ const innerWidget = computed(() => {
 <script lang="ts">
 export class ForcePort {
   constructor(public ast: AstExtended) {}
-  static isInstance(input: unknown): input is ForcePort {
-    return input instanceof ForcePort
-  }
 }
 
 declare const ForcePortKey: unique symbol
@@ -138,9 +135,9 @@ declare module '@/providers/widgetRegistry' {
 
 export const widgetDefinition = defineWidget(
   [
-    isInstance(ForcePort),
-    isInstance(ArgumentAst),
-    isInstance(ArgumentPlaceholder),
+    ForcePort,
+    ArgumentAst,
+    ArgumentPlaceholder,
     AstExtended.isTree([
       Ast.Tree.Type.Invalid,
       Ast.Tree.Type.BodyBlock,
@@ -158,7 +155,7 @@ export const widgetDefinition = defineWidget(
       const portInfo = injectPortInfo(true)
       if (
         portInfo != null &&
-        isInstance(AstExtended, props.input) &&
+        props.input instanceof AstExtended &&
         portInfo.portId === props.input.astId
       ) {
         return Score.Mismatch

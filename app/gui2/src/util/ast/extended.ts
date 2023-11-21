@@ -4,7 +4,6 @@ import { assert } from '@/util/assert'
 import * as encoding from 'lib0/encoding'
 import { digest } from 'lib0/hash/sha256'
 import * as map from 'lib0/map'
-
 import type { ContentRange, ExprId, IdMap } from 'shared/yjsModel'
 import { markRaw } from 'vue'
 import {
@@ -18,7 +17,6 @@ import {
   walkRecursive,
 } from '.'
 import type { Opt } from '../opt'
-import { isInstance } from '../predicates'
 
 type ExtractType<V, T> = T extends ReadonlyArray<infer Ts>
   ? Extract<V, { type: Ts }>
@@ -36,12 +34,12 @@ export class AstExtended<T extends Tree | Token = Tree | Token, HasIdMap extends
 
   public static isToken<T extends OneOrArray<Ast.Token.Type>>(type?: T) {
     return (obj: unknown): obj is AstExtended<ExtractType<Ast.Token, T>, boolean> =>
-      isInstance(AstExtended, obj) && obj.isToken(type)
+      obj instanceof AstExtended && obj.isToken(type)
   }
 
   public static isTree<T extends OneOrArray<Ast.Tree.Type>>(type?: T) {
     return (obj: unknown): obj is AstExtended<ExtractType<Ast.Tree, T>, boolean> =>
-      isInstance(AstExtended, obj) && obj.isTree(type)
+      obj instanceof AstExtended && obj.isTree(type)
   }
 
   public static parse(code: string): AstExtended<Tree, false>

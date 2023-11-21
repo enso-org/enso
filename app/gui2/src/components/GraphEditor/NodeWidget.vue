@@ -7,7 +7,6 @@ import {
 import { injectWidgetTree } from '@/providers/widgetTree'
 import { injectWidgetUsageInfo, provideWidgetUsageInfo } from '@/providers/widgetUsageInfo'
 import { AstExtended } from '@/util/ast'
-import { isInstance } from '@/util/predicates'
 import { computed, proxyRefs, ref, toRef } from 'vue'
 
 const props = defineProps<{ input: WidgetInput; nest?: boolean }>()
@@ -19,7 +18,7 @@ const registry = injectWidgetRegistry()
 const tree = injectWidgetTree()
 const parentUsageInfo = injectWidgetUsageInfo(true)
 const whitespace = computed(() =>
-  parentUsageInfo?.input !== props.input && isInstance(AstExtended, props.input)
+  parentUsageInfo?.input !== props.input && props.input instanceof AstExtended
     ? ' '.repeat(props.input.whitespaceLength() ?? 0)
     : '',
 )
@@ -53,7 +52,7 @@ provideWidgetUsageInfo(
   }),
 )
 const spanStart = computed(() => {
-  if (!isInstance(AstExtended, props.input)) return undefined
+  if (!(props.input instanceof AstExtended)) return undefined
   return props.input.span()[0] - tree.nodeSpanStart - whitespace.value.length
 })
 </script>

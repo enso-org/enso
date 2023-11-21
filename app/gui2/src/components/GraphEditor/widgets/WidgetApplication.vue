@@ -3,20 +3,19 @@ import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { AstExtended } from '@/util/ast'
 import { ArgumentApplication } from '@/util/callTree'
-import { isInstance } from '@/util/predicates'
 import { computed } from 'vue'
 import { ForcePort } from './WidgetPort.vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const targetMaybePort = computed(() =>
-  isInstance(AstExtended, props.input.target)
+  props.input.target instanceof AstExtended
     ? new ForcePort(props.input.target)
     : props.input.target,
 )
 </script>
 
 <script lang="ts">
-export const widgetDefinition = defineWidget(isInstance(ArgumentApplication), {
+export const widgetDefinition = defineWidget(ArgumentApplication, {
   priority: 1000,
 })
 </script>

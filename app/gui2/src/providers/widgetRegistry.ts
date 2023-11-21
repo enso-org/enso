@@ -80,9 +80,21 @@ export function widgetProps<T extends WidgetInput>(_def: WidgetDefinition<T>) {
   } as const
 }
 
-type InputMatchFn<T extends WidgetInput> = (input: WidgetInput) => input is T
+/**
+ * A class which instances have type `T`. Accepts classes that have a private constructors, such as
+ * `AstExtended` or `ArgumentPlaceholder`.
+ */
+type Class<T extends WidgetInput> = Function & { prototype: T }
+type InputMatcherFn<T extends WidgetInput> = (input: WidgetInput) => input is T
+type InputMatcher<T extends WidgetInput> = InputMatcherFn<T> | Class<T>
 
-type InputTy<M> = M extends InputMatchFn<infer T> | InputMatchFn<infer T>[] ? T : never
+type InputTy<M> = M extends (infer T)[]
+  ? InputTy<T>
+  : M extends InputMatcherFn<infer T>
+  ? T
+  : M extends Class<infer T>
+  ? T
+  : never
 
 export interface WidgetOptions<T extends WidgetInput> {
   /** The priority number determining the order in which the widgets are matched. Smaller numbers
@@ -159,12 +171,16 @@ function isWidgetDefinition(config: unknown): config is WidgetDefinition<any> {
 
 /**
  *
- * @param match Filter the widget input type to only accept specific types of input. The declared
- * widget props will depend on the type of input accepted by this filter. Only widgets that pass
- * this filter will be scored and potentially used.
+ * @param matchInputs Filter the widget input type to only accept specific types of input. The
+ * declared widget props will depend on the type of input accepted by this filter. Only widgets that
+ * pass this filter will be scored and potentially used.
+ *
+ * The filter can be a type guard function `(input: WidgetInput) => input is MyType`, a class
+ * constructor `MyType`, or an array combining any of the above. When an array is provided, the
+ * widget will match if any of the filters in the array match.
  */
-export function defineWidget<M extends InputMatchFn<any> | InputMatchFn<any>[]>(
-  match: M,
+export function defineWidget<M extends InputMatcher<any> | InputMatcher<any>[]>(
+  matchInputs: M,
   definition: WidgetOptions<InputTy<M>>,
 ): WidgetDefinition<InputTy<M>> {
   let score: WidgetDefinition<InputTy<M>>['score']
@@ -174,19 +190,28 @@ export function defineWidget<M extends InputMatchFn<any> | InputMatchFn<any>[]>(
     const staticScore = definition.score ?? Score.Perfect
     score = () => staticScore
   }
-  let matchFn: InputMatchFn<InputTy<M>>
-  if (Array.isArray(match)) {
-    matchFn = (input: WidgetInput): input is InputTy<M> => match.some((f) => f(input))
-  } else if (typeof match === 'function') {
-    matchFn = match
-  } else {
-    throw new Error('Invalid widget match definiton')
-  }
 
   return {
     priority: definition.priority,
-    match: matchFn,
+    match: makeInputMatcher<InputTy<M>>(matchInputs),
     score,
+  }
+}
+
+function makeInputMatcher<T extends WidgetInput>(
+  matcher: InputMatcher<T> | InputMatcher<T>[],
+): (input: WidgetInput) => input is T {
+  if (Array.isArray(matcher)) {
+    const matchers = matcher.map(makeInputMatcher)
+    return (input: WidgetInput): input is T => matchers.some((f) => f(input))
+  } else if (Object.getOwnPropertyDescriptor(matcher, 'prototype')?.writable === false) {
+    // A function with an existing non-writable prototype is a class constructor.
+    return (input: WidgetInput): input is T => input instanceof matcher
+  } else if (typeof matcher === 'function') {
+    // When matcher is a function with assignable prototype, it must be a type guard.
+    return matcher as (input: WidgetInput) => input is T
+  } else {
+    throw new Error('Invalid widget input matcher definiton: ' + matcher)
   }
 }
 
