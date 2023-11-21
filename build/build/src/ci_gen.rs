@@ -511,6 +511,11 @@ fn benchmark(name: &str, cmd_line: &str, timeout: Option<u32>) -> Result<Workflo
         "ENSO_BUILD_MINIMAL_RUN",
         wrap_expression(format!("true == inputs.{just_check_input_name}")),
     );
+    // This prevents https://github.com/sbt/sbt-assembly/issues/496
+    workflow.env(
+        "LC_ALL",
+        "C.UTF-8"
+    );
 
     let mut benchmark_job = plain_job(&BenchmarkRunner, name, cmd_line);
     benchmark_job.timeout_minutes = timeout;
