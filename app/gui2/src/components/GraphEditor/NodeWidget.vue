@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import {
   injectWidgetRegistry,
-  widgetAst,
   type WidgetConfiguration,
   type WidgetInput,
 } from '@/providers/widgetRegistry'
 import { injectWidgetTree } from '@/providers/widgetTree'
 import { injectWidgetUsageInfo, provideWidgetUsageInfo } from '@/providers/widgetUsageInfo'
+import { AstExtended } from '@/util/ast'
+import { isInstance } from '@/util/predicates'
 import { computed, proxyRefs, ref, toRef } from 'vue'
 
 const props = defineProps<{ input: WidgetInput; nest?: boolean }>()
@@ -18,8 +19,8 @@ const registry = injectWidgetRegistry()
 const tree = injectWidgetTree()
 const parentUsageInfo = injectWidgetUsageInfo(true)
 const whitespace = computed(() =>
-  parentUsageInfo?.input !== props.input
-    ? ' '.repeat(widgetAst(props.input)?.whitespaceLength() ?? 0)
+  parentUsageInfo?.input !== props.input && isInstance(AstExtended, props.input)
+    ? ' '.repeat(props.input.whitespaceLength() ?? 0)
     : '',
 )
 
@@ -52,8 +53,8 @@ provideWidgetUsageInfo(
   }),
 )
 const spanStart = computed(() => {
-  const ast = widgetAst(props.input)
-  return ast && ast.span()[0] - tree.nodeSpanStart - whitespace.value.length
+  if (!isInstance(AstExtended, props.input)) return undefined
+  return props.input.span()[0] - tree.nodeSpanStart - whitespace.value.length
 })
 </script>
 

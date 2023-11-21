@@ -1,12 +1,14 @@
 import { GraphDb } from '@/stores/graph/graphDatabase'
 import { AstExtended } from '@/util/ast'
 import { ArgumentPlaceholder } from '@/util/callTree'
+import { anyWidgetInput, isInstance } from '@/util/predicates'
 import { IdMap } from 'shared/yjsModel'
 import { describe, expect, test } from 'vitest'
 import { defineComponent } from 'vue'
 import {
   Score,
   WidgetRegistry,
+  defineWidget,
   type WidgetDefinition,
   type WidgetInput,
   type WidgetModule,
@@ -23,29 +25,35 @@ describe('WidgetRegistry', () => {
     }
   }
 
-  const widgetA = makeMockWidget('A', {
-    priority: 1,
-    match: AstExtended.isInstance,
-    score: () => Score.Perfect,
-  })
+  const widgetA = makeMockWidget(
+    'A',
+    defineWidget(isInstance(AstExtended), {
+      priority: 1,
+    }),
+  )
 
-  const widgetB = makeMockWidget('B', {
-    priority: 2,
-    match: ArgumentPlaceholder.isInstance,
-    score: () => Score.Perfect,
-  })
+  const widgetB = makeMockWidget(
+    'B',
+    defineWidget(isInstance(ArgumentPlaceholder), {
+      priority: 2,
+    }),
+  )
 
-  const widgetC = makeMockWidget('C', {
-    priority: 10,
-    match: (input): input is WidgetInput => true,
-    score: () => Score.Good,
-  })
+  const widgetC = makeMockWidget(
+    'C',
+    defineWidget(anyWidgetInput, {
+      priority: 10,
+      score: Score.Good,
+    }),
+  )
 
-  const widgetD = makeMockWidget('D', {
-    priority: 20,
-    match: AstExtended.isInstance,
-    score: (info) => (info.input.repr() === '_' ? Score.Perfect : Score.Mismatch),
-  })
+  const widgetD = makeMockWidget(
+    'D',
+    defineWidget(isInstance(AstExtended), {
+      priority: 20,
+      score: (props) => (props.input.repr() === '_' ? Score.Perfect : Score.Mismatch),
+    }),
+  )
 
   const someAst = AstExtended.parse('foo', IdMap.Mock())
   const blankAst = AstExtended.parse('_', IdMap.Mock())

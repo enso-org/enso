@@ -1,10 +1,11 @@
 import { Tree } from '@/generated/ast'
+import { AstExtended } from '@/util/ast'
 import { ArgumentApplication, ArgumentPlaceholder } from '@/util/callTree'
 import { isSome } from '@/util/opt'
+import { isInstance } from '@/util/predicates'
 import type { SuggestionEntryArgument } from 'shared/languageServerTypes/suggestions'
 import { IdMap } from 'shared/yjsModel'
 import { assert, expect, test } from 'vitest'
-import { AstExtended } from '..'
 
 const knownArguments: SuggestionEntryArgument[] = [
   { name: 'a', type: 'Any', isSuspended: false, hasDefault: false },
@@ -31,7 +32,7 @@ function testArgs(paddedExpression: string, pattern: string) {
     })
 
     const call = ArgumentApplication.FromAstWithInfo(ast, knownArguments, notAppliedArguments)
-    assert(call instanceof ArgumentApplication)
+    assert(isInstance(ArgumentApplication, call))
     expect(printArgPattern(call)).toEqual(pattern)
   })
 }
@@ -39,13 +40,12 @@ function testArgs(paddedExpression: string, pattern: string) {
 function printArgPattern(application: ArgumentApplication | AstExtended<Tree>) {
   const parts: string[] = []
   let current: ArgumentApplication | AstExtended<Tree> = application
-  while (ArgumentApplication.isInstance(current)) {
-    const sigil =
-      current.argument instanceof ArgumentPlaceholder
-        ? '?'
-        : current.appTree?.isTree(Tree.Type.NamedApp)
-        ? '='
-        : '@'
+  while (isInstance(ArgumentApplication, current)) {
+    const sigil = isInstance(ArgumentPlaceholder, current.argument)
+      ? '?'
+      : current.appTree?.isTree(Tree.Type.NamedApp)
+      ? '='
+      : '@'
     parts.push(sigil + (current.argument.info?.name ?? '_'))
     current = current.target
   }

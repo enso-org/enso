@@ -18,12 +18,13 @@ import {
   walkRecursive,
 } from '.'
 import type { Opt } from '../opt'
+import { isInstance } from '../predicates'
 
 type ExtractType<V, T> = T extends ReadonlyArray<infer Ts>
   ? Extract<V, { type: Ts }>
   : Extract<V, { type: T }>
 
-type OneOrArray<T> = T | readonly [...T[]]
+type OneOrArray<T> = T | readonly T[]
 
 /**
  * AST with additional metadata containing AST IDs and original code reference. Can only be
@@ -33,18 +34,14 @@ export class AstExtended<T extends Tree | Token = Tree | Token, HasIdMap extends
   inner: T
   private ctx: AstExtendedCtx<HasIdMap>
 
-  public static isInstance(obj: unknown): obj is AstExtended<Tree | Token, boolean> {
-    return obj instanceof AstExtended
-  }
-
   public static isToken<T extends OneOrArray<Ast.Token.Type>>(type?: T) {
     return (obj: unknown): obj is AstExtended<ExtractType<Ast.Token, T>, boolean> =>
-      AstExtended.isInstance(obj) && obj.isToken(type)
+      isInstance(AstExtended, obj) && obj.isToken(type)
   }
 
   public static isTree<T extends OneOrArray<Ast.Tree.Type>>(type?: T) {
     return (obj: unknown): obj is AstExtended<ExtractType<Ast.Tree, T>, boolean> =>
-      AstExtended.isInstance(obj) && obj.isTree(type)
+      isInstance(AstExtended, obj) && obj.isTree(type)
   }
 
   public static parse(code: string): AstExtended<Tree, false>

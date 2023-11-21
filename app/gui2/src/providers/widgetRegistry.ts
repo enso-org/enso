@@ -1,37 +1,9 @@
 import type { GraphDb } from '@/stores/graph/graphDatabase'
-import { AstExtended } from '@/util/ast'
 import { computed, shallowReactive, type Component, type PropType } from 'vue'
 import { z } from 'zod'
 import { createContextStore } from '.'
 
 export type WidgetComponent<T extends WidgetInput> = Component<WidgetProps<T>>
-
-// class WidgetInputAccess<K extends WidgetInputKeys> {
-//   private constructor(private key: K) {}
-
-//   private wrapped = new WeakMap<ValidWidgetInputTypes[K], WidgetInput>()
-//   private static instances = new Map<WidgetInputKeys, WidgetInputAccess<any>>()
-//   static For<K extends WidgetInputKeys>(key: K): WidgetInputAccess<K> {
-//     return map.setIfUndefined(
-//       WidgetInputAccess.instances,
-//       key as WidgetInputKeys,
-//       () => new WidgetInputAccess(key),
-//     )
-//   }
-
-//   wrap(input: ValidWidgetInputTypes[K]): WidgetInput {
-//     let wrapped = this.wrapped.get(input)
-//     if (wrapped == null) {
-//       wrapped = { [kindKey]: this.key, [kindVal]: input }
-//       this.wrapped.set(input, wrapped)
-//     }
-//     return wrapped
-//   }
-
-//   get(union: WidgetInput): ValidWidgetInputTypes[K] | undefined {
-//     return union[kindKey] === this.key ? union[kindVal] : undefined
-//   }
-// }
 
 /**
  * A type representing any kind of input that can have a widget attached to it. It is defined as an
@@ -56,32 +28,15 @@ export type WidgetComponent<T extends WidgetInput> = Component<WidgetProps<T>>
  */
 export interface WidgetInputTypes {}
 
-type ValidInputKey<K> = K extends keyof WidgetInputTypes & symbol
-  ? WidgetInputTypes[K] extends object
-    ? K
-    : never
-  : never
-
 /**
- * Filtered version of {@link WidgetInputTypes} that only contains valid declared input types.
+ * An union of all possible widget input types. A collection of all correctly declared value types
+ * on the extendable {@link WidgetInputTypes} interface.
+ *
+ * From the defined input types, it accepts only keys that are declared as symbols and have values
+ * that are objects. If your extension of {@link WidgetInputTypes} does not appear in this union,
+ * check if you have followed those rules.
  */
-export type ValidWidgetInputTypes = {
-  [P in ValidInputKey<keyof WidgetInputTypes>]: WidgetInputTypes[P]
-}
-
-export type WidgetInputKeys = keyof ValidWidgetInputTypes
-
-/**
- * A discriminated union of all possible widget input types.
- */
-export type WidgetInput = {
-  [K in keyof ValidWidgetInputTypes]: ValidWidgetInputTypes[K]
-}[keyof ValidWidgetInputTypes]
-
-export function widgetAst(input: WidgetInput): AstExtended | undefined {
-  return input instanceof AstExtended ? input : undefined
-  // return inputAst.get(input)
-}
+export type WidgetInput = Extract<WidgetInputTypes[keyof WidgetInputTypes & symbol], object>
 
 /**
  * Description of how well a widget matches given input. Used to determine which widget should be
@@ -94,15 +49,8 @@ export enum Score {
    */
   Mismatch,
   /**
-   * A bad, but syntactically valid match. Matching widget kind will only be used if it was
-   * explicitly requested using an override. Should be the default choice for cases where
-   * the node is syntactically valid in this widget's context, but no sensible defaults can
-   * be inferred from context.
-   */
-  OnlyOverride,
-  /**
-   * A good match, but there might be a better one. one. This widget will be used if there is no
-   * better option.
+   * A good match, but there might be a better one. This widget will be used if there is no better
+   * option.
    */
   Good,
   /** Widget matches perfectly and can be used outright, without checking other kinds. */
@@ -116,16 +64,15 @@ export interface WidgetProps<T> {
 }
 
 /**
- * Create vue props definition for a widget component. This cannot be done automatically by using
+ * Create Vue props definition for a widget component. This cannot be done automatically by using
  * typed `defineProps`, because vue compiler is not able to resolve conditional types. As a
- * workaround, the runtime prop information is specified manually, and the complex conditional type
- * is still provided through `PropType`.
- *
+ * workaround, the runtime prop information is specified manually, and the inferred `T: WidgetInput`
+ * type is provided through `PropType`.
  */
-export function widgetProps<Def extends WidgetDefinition<any>>(_def: Def) {
+export function widgetProps<T extends WidgetInput>(_def: WidgetDefinition<T>) {
   return {
     input: {
-      type: Object as PropType<Def extends WidgetDefinition<infer T> ? T : WidgetInput>,
+      type: Object as PropType<T>,
       required: true,
     },
     config: { type: Object as PropType<WidgetConfiguration | undefined>, required: false },
@@ -135,11 +82,7 @@ export function widgetProps<Def extends WidgetDefinition<any>>(_def: Def) {
 
 type InputMatchFn<T extends WidgetInput> = (input: WidgetInput) => input is T
 
-type InputTy<M> = M extends InputMatchFn<infer T>
-  ? T
-  : M extends InputMatchFn<infer T>[]
-  ? T
-  : never
+type InputTy<M> = M extends InputMatchFn<infer T> | InputMatchFn<infer T>[] ? T : never
 
 export interface WidgetOptions<T extends WidgetInput> {
   /** The priority number determining the order in which the widgets are matched. Smaller numbers
@@ -177,7 +120,7 @@ export interface WidgetDefinition<T extends WidgetInput> {
    * When a static score value is provided, it will be used for all inputs that pass the input
    * filter. When not provided, the widget will be considered a perfect match for all inputs that
    */
-  score: (info: WidgetProps<T>, db: GraphDb) => Score
+  score: (props: WidgetProps<T>, db: GraphDb) => Score
 }
 
 /**

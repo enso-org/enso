@@ -12,10 +12,6 @@ export class ArgumentPlaceholder {
     public index: number,
     public info: SuggestionEntryArgument,
   ) {}
-
-  static isInstance(obj: unknown): obj is ArgumentPlaceholder {
-    return obj instanceof ArgumentPlaceholder
-  }
 }
 
 export class ArgumentAst {
@@ -24,10 +20,6 @@ export class ArgumentAst {
     public index: number | undefined,
     public info: SuggestionEntryArgument | undefined,
   ) {}
-
-  static isInstance(obj: unknown): obj is ArgumentAst {
-    return obj instanceof ArgumentAst
-  }
 }
 
 export class ArgumentApplication {
@@ -36,10 +28,6 @@ export class ArgumentApplication {
     public target: ArgumentApplication | AstExtended<Tree>,
     public argument: ArgumentAst | ArgumentPlaceholder,
   ) {}
-
-  static isInstance(obj: unknown): obj is ArgumentApplication {
-    return obj instanceof ArgumentApplication
-  }
 
   static FromAstWithInfo(
     callRoot: AstExtended<Tree>,

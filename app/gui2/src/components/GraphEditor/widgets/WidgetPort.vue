@@ -10,8 +10,8 @@ import { useRaf } from '@/util/animation'
 import { Ast, AstExtended } from '@/util/ast'
 import { ArgumentAst, ArgumentPlaceholder } from '@/util/callTree'
 import { useResizeObserver } from '@/util/events'
+import { isInstance } from '@/util/predicates'
 import { Rect } from '@/util/rect'
-import { PROP_SYMBOLS } from '@deck.gl/core/lifecycle/constants'
 import { uuidv4 } from 'lib0/random'
 import type { ExprId } from 'shared/yjsModel'
 import {
@@ -66,12 +66,11 @@ const rectUpdateIsUseful = computed(() => isHovered.value || hasConnection.value
 
 const randomUuid = uuidv4() as ExprId
 const portId = computed(() => {
-  const ast =
-    props.input instanceof AstExtended
-      ? props.input
-      : props.input instanceof ArgumentAst || props.input instanceof ForcePort
-      ? props.input.ast
-      : undefined
+  const ast = isInstance(AstExtended, props.input)
+    ? props.input
+    : isInstance(ArgumentAst, props.input) || isInstance(ForcePort, props.input)
+    ? props.input.ast
+    : undefined
   return ast?.astId ?? randomUuid
 })
 
@@ -139,9 +138,9 @@ declare module '@/providers/widgetRegistry' {
 
 export const widgetDefinition = defineWidget(
   [
-    ForcePort.isInstance,
-    ArgumentAst.isInstance,
-    ArgumentPlaceholder.isInstance,
+    isInstance(ForcePort),
+    isInstance(ArgumentAst),
+    isInstance(ArgumentPlaceholder),
     AstExtended.isTree([
       Ast.Tree.Type.Invalid,
       Ast.Tree.Type.BodyBlock,
@@ -155,12 +154,12 @@ export const widgetDefinition = defineWidget(
   ],
   {
     priority: 0,
-    score: (info, _db) => {
+    score: (props, _db) => {
       const portInfo = injectPortInfo(true)
       if (
         portInfo != null &&
-        AstExtended.isInstance(info.input) &&
-        portInfo.portId === info.input.astId
+        isInstance(AstExtended, props.input) &&
+        portInfo.portId === props.input.astId
       ) {
         return Score.Mismatch
       } else {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Score, defineWidget, widgetAst, widgetProps } from '@/providers/widgetRegistry'
+import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { AstExtended } from '@/util/ast'
 import { computed, ref } from 'vue'
 
@@ -7,8 +7,8 @@ const props = defineProps(widgetProps(widgetDefinition))
 
 const rootNode = ref<HTMLElement>()
 
-const spanClass = computed(() => widgetAst(props.input)?.tokenTypeName())
-const repr = computed(() => widgetAst(props.input)?.repr())
+const spanClass = computed(() => props.input.tokenTypeName())
+const repr = computed(() => props.input.repr())
 </script>
 
 <script lang="ts">

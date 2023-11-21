@@ -2,16 +2,17 @@
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { defineWidget, Score, widgetProps } from '@/providers/widgetRegistry'
 import { ArgumentAst, ArgumentPlaceholder } from '@/util/callTree'
+import { isInstance } from '@/util/predicates'
 
 const props = defineProps(widgetProps(widgetDefinition))
 </script>
 
 <script lang="ts">
 export const widgetDefinition = defineWidget(
-  [ArgumentAst.isInstance, ArgumentPlaceholder.isInstance],
+  [isInstance(ArgumentAst), isInstance(ArgumentPlaceholder)],
   {
     priority: -1,
-    score: (info) => (info.nesting < 2 ? Score.Perfect : Score.Mismatch),
+    score: (props) => (props.nesting < 2 ? Score.Perfect : Score.Mismatch),
   },
 )
 </script>

@@ -22,19 +22,13 @@ const application = computed(() => {
   )
 })
 </script>
-
 <script lang="ts">
 export const widgetDefinition = defineWidget(
-  AstExtended.isTree([
-    Tree.Type.App,
-    Tree.Type.NamedApp,
-    Tree.Type.Ident,
-    Tree.Type.OprApp,
-  ] as const),
+  AstExtended.isTree([Tree.Type.App, Tree.Type.NamedApp, Tree.Type.Ident, Tree.Type.OprApp]),
   {
     priority: 8,
-    score: (info, db) => {
-      const ast = info.input
+    score: (props, db) => {
+      const ast = props.input
       if (ast.isTree([Tree.Type.App, Tree.Type.NamedApp])) return Score.Perfect
       return ast.astId && db.isMethodCall(ast.astId) ? Score.Perfect : Score.Mismatch
     },

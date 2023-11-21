@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import CheckboxWidget from '@/components/widgets/CheckboxWidget.vue'
 import { Tree } from '@/generated/ast'
-import { Score, defineWidget, widgetAst, widgetProps } from '@/providers/widgetRegistry'
+import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
 import { AstExtended } from '@/util/ast'
 import { computed } from 'vue'
@@ -11,11 +11,10 @@ const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()
 const value = computed({
   get() {
-    return widgetAst(props.input)?.repr().endsWith('True') ?? false
+    return props.input.repr().endsWith('True') ?? false
   },
   set(value) {
-    const ast = widgetAst(props.input)
-    const node = ast && getRawBoolNode(ast)
+    const node = getRawBoolNode(props.input)
     if (node != null) {
       graph.setExpressionContent(node.astId, value ? 'True' : 'False')
     }
@@ -42,9 +41,8 @@ export const widgetDefinition = defineWidget(
   AstExtended.isTree([Tree.Type.OprApp, Tree.Type.Ident]),
   {
     priority: 10,
-    score: (info) => {
-      const ast = widgetAst(info.input)
-      if (ast && getRawBoolNode(ast) != null) {
+    score: (props) => {
+      if (getRawBoolNode(props.input) != null) {
         return Score.Perfect
       }
       return Score.Mismatch
