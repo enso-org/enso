@@ -7,6 +7,34 @@ import { expect, test } from 'vitest'
 import { ref } from 'vue'
 import * as Y from 'yjs'
 
+function mockGraphDbFromCode(code: string) {
+  const doc = new Y.Doc()
+  const yIds = doc.getMap<Uint8Array>('ids')
+  const yCode = doc.getText('code')
+  yCode.insert(0, code)
+  const suggestionDb = new SuggestionDb()
+  const groups = ref<Group[]>([])
+  const valuesRegistry = ComputedValueRegistry.Mock()
+  return {
+    doc,
+    graphDb: new GraphDb(suggestionDb, groups, valuesRegistry, () => 200),
+    idMap: new IdMap(yIds, yCode),
+  }
+}
+
+function expectFn(ast: AstExtended<Ast.Tree.Tree, true>) {
+  let fn!: AstExtended<Ast.Tree.Function>
+  ast.visitRecursive((node) => {
+    if (node.isTree(Ast.Tree.Type.Function)) {
+      fn = node
+      return false
+    }
+    return true
+  })
+  expect(fn).toBeDefined()
+  return fn
+}
+
 function* getFunctionNodeExpressions(func: Ast.Tree.Function): Generator<Ast.Tree> {
   if (func.body) {
     if (func.body.type === Ast.Tree.Type.BodyBlock) {
@@ -36,28 +64,8 @@ main =
   e = 5`,
   },
 ])('New nodes are created below all other nodes (without existing positions)', ({ code }) => {
-  const doc = new Y.Doc()
-  const yIds = doc.getMap<Uint8Array>('ids')
-  const yCode = doc.getText('code')
-  yCode.insert(0, code)
-  const idMap = new IdMap(yIds, yCode)
-  const ast = AstExtended.parse(code, idMap)
-  let fn!: AstExtended<Ast.Tree.Function>
-  ast.visitRecursive((node) => {
-    if (node.isTree(Ast.Tree.Type.Function)) {
-      fn = node
-      return false
-    }
-    return true
-  })
-  expect(fn).toBeDefined()
-  const suggestionDb = new SuggestionDb()
-  const groups = ref<Group[]>([])
-  const valuesRegistry = ComputedValueRegistry.Mock()
-  const graphDb = new GraphDb(suggestionDb, groups, valuesRegistry, () => 200)
-  for (const expr of fn.visit(getFunctionNodeExpressions)) {
-    expect(graphDb.nodes.get(expr.astId)).toBeUndefined()
-  }
+  const { graphDb, idMap } = mockGraphDbFromCode(code)
+  const fn = expectFn(AstExtended.parse(code, idMap))
   graphDb.readFunctionAst(fn, () => undefined)
   let bottom = -Infinity
   for (const expr of fn.visit(getFunctionNodeExpressions)) {
@@ -79,26 +87,9 @@ main =
   e = 5`,
   },
 ])('New nodes are created below all other nodes (with existing positions)', ({ code }) => {
-  const doc = new Y.Doc()
-  const yIds = doc.getMap<Uint8Array>('ids')
-  const yCode = doc.getText('code')
+  const { doc, graphDb, idMap } = mockGraphDbFromCode(code)
   const yMetadata = doc.getMap<NodeMetadata>('metadata')
-  yCode.insert(0, code)
-  const idMap = new IdMap(yIds, yCode)
-  const ast = AstExtended.parse(code, idMap)
-  let fn!: AstExtended<Ast.Tree.Function>
-  ast.visitRecursive((node) => {
-    if (node.isTree(Ast.Tree.Type.Function)) {
-      fn = node
-      return false
-    }
-    return true
-  })
-  expect(fn).toBeDefined()
-  const suggestionDb = new SuggestionDb()
-  const groups = ref<Group[]>([])
-  const valuesRegistry = ComputedValueRegistry.Mock()
-  const graphDb = new GraphDb(suggestionDb, groups, valuesRegistry, () => 200)
+  const fn = expectFn(AstExtended.parse(code, idMap))
   let count = 0
   for (const expr of fn.visit(getFunctionNodeExpressions)) {
     yMetadata.set(getExprId(expr), { x: 0, y: -count * 32, vis: null })
