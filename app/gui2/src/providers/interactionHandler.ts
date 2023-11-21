@@ -1,5 +1,4 @@
 import type { GraphNavigator } from '@/providers/graphNavigator.ts'
-import type { NavigatorComposable } from '@/util/navigator.ts'
 import { watch, type WatchSource } from 'vue'
 import { createContextStore } from '.'
 

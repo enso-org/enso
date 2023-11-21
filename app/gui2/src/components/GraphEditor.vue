@@ -92,7 +92,6 @@ function placementPositionForSelection() {
 function targetComponentBrowserPosition() {
   const editedInfo = graphStore.editedNodeInfo
   const isEditingNode = editedInfo != null
-  const hasNodeSelected = nodeSelection.selected.size > 0
   if (isEditingNode) {
     const targetNode = graphStore.db.nodes.get(editedInfo.id)
     const targetPos = targetNode?.position ?? Vec2.Zero
