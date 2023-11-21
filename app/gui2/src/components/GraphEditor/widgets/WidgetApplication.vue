@@ -24,6 +24,7 @@ export const widgetDefinition = defineWidget(isInstance(ArgumentApplication), {
 <template>
   <span class="WidgetApplication">
     <NodeWidget :input="targetMaybePort" />
+    <NodeWidget v-if="props.input.infixOperator" :input="props.input.infixOperator" />
     <NodeWidget :input="props.input.argument" />
   </span>
 </template>

@@ -106,7 +106,9 @@ export class AstExtended<T extends Tree | Token = Tree | Token, HasIdMap extends
     return debugAst(this.inner)
   }
 
-  tryMap<T2 extends Tree>(mapper: (t: T) => Opt<T2>): AstExtended<T2, HasIdMap> | undefined {
+  tryMap<T2 extends Tree | Token>(
+    mapper: (t: T) => Opt<T2>,
+  ): AstExtended<T2, HasIdMap> | undefined {
     const mapped = mapper(this.inner)
     if (mapped == null) return
     return new AstExtended(mapped, this.ctx)

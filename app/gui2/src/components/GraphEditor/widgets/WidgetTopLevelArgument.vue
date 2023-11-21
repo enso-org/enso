@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { defineWidget, Score, widgetProps } from '@/providers/widgetRegistry'
-import { ArgumentAst, ArgumentPlaceholder } from '@/util/callTree'
+import { ApplicationKind, ArgumentAst, ArgumentPlaceholder } from '@/util/callTree'
 import { isInstance } from '@/util/predicates'
 
 const props = defineProps(widgetProps(widgetDefinition))
@@ -12,7 +12,10 @@ export const widgetDefinition = defineWidget(
   [isInstance(ArgumentAst), isInstance(ArgumentPlaceholder)],
   {
     priority: -1,
-    score: (props) => (props.nesting < 2 ? Score.Perfect : Score.Mismatch),
+    score: (props) =>
+      props.nesting < 2 && props.input.kind == ApplicationKind.Prefix
+        ? Score.Perfect
+        : Score.Mismatch,
   },
 )
 </script>

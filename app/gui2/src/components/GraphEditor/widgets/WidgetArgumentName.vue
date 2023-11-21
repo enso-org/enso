@@ -2,7 +2,7 @@
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { injectPortInfo } from '@/providers/portInfo'
 import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
-import { ArgumentAst, ArgumentPlaceholder } from '@/util/callTree'
+import { ApplicationKind, ArgumentAst, ArgumentPlaceholder } from '@/util/callTree'
 import { isInstance } from '@/util/predicates'
 import { computed } from 'vue'
 
@@ -27,7 +27,8 @@ export const widgetDefinition = defineWidget(
     priority: 1000,
     score: (props) =>
       props.input.info != null &&
-      (isInstance(ArgumentPlaceholder, props.input) || props.nesting < 2)
+      (isInstance(ArgumentPlaceholder, props.input) ||
+        (props.nesting < 2 && props.input.kind === ApplicationKind.Prefix))
         ? Score.Perfect
         : Score.Mismatch,
   },

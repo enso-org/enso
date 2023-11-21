@@ -29,7 +29,7 @@ export const widgetDefinition = defineWidget(
     priority: 8,
     score: (props, db) => {
       const ast = props.input
-      if (ast.isTree([Tree.Type.App, Tree.Type.NamedApp])) return Score.Perfect
+      if (ast.isTree([Tree.Type.App, Tree.Type.NamedApp, Tree.Type.OprApp])) return Score.Perfect
       return ast.astId && db.isMethodCall(ast.astId) ? Score.Perfect : Score.Mismatch
     },
   },
