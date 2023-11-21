@@ -591,7 +591,7 @@ export class Ident extends Ast {
   }
 }
 
-export class Placeholder extends Ast {
+export class Wildcard extends Ast {
   public token: TokWithWhitespace
 
   constructor(span: Span, id: AstId | undefined, token: TokWithWhitespace) {
@@ -765,7 +765,7 @@ function abstract_(
     case Tree.Type.Wildcard: {
       const token = abstractToken(tree.token, code, tokenIds)
       const id = nodesExpected.get(spanKey)?.pop()
-      node = new Placeholder(span, id, token)
+      node = new Wildcard(span, id, token)
       break
     }
     default: {
@@ -834,6 +834,7 @@ export function normalize(root: AstId): AstId {
   return abstract(tree, printed.code, printed.info).node
 }
 
+// FIXME: We should use alias analysis to handle ambiguous names correctly.
 export function findModuleMethod(name: string): Function | null {
   for (const node of committed.values()) {
     if (node instanceof Function) {

@@ -13,12 +13,14 @@ import { injectWidgetTree } from '@/providers/widgetTree'
 import { useGraphStore } from '@/stores/graph'
 import type { GraphDb } from '@/stores/graph/graphDatabase'
 import { useRaf } from '@/util/animation'
-import { RawAst } from '@/util/ast'
 import { useResizeObserver } from '@/util/events'
 import { Rect } from '@/util/rect'
 import { uuidv4 } from 'lib0/random'
 import type { ExprId } from 'shared/yjsModel'
 import { computed, nextTick, onUpdated, ref, shallowRef, toRef, watch, watchEffect } from 'vue'
+import { Tree } from '@/generated/ast.ts'
+import { PlaceholderArgument } from '@/providers/widgetRegistry.ts'
+import { Ast } from '@/util/ast'
 
 const graph = useGraphStore()
 const props = defineProps<WidgetProps>()
@@ -93,14 +95,10 @@ function updateRect() {
 </script>
 
 <script lang="ts">
-import { Tree } from '@/generated/ast.ts'
-import { PlaceholderArgument } from '@/providers/widgetRegistry.ts'
-import { Ast, Tok } from '@/util/ast/abstract.ts'
-
 function canBeConnectedTo(input: WidgetInput): boolean {
   if (input instanceof PlaceholderArgument) return true // placeholders are always connectable
-  if (input instanceof Tok) return false
-  const ast: Ast = input
+  if (input instanceof Ast.Tok) return false
+  const ast: Ast.Ast = input
   switch (ast.treeType) {
     case Tree.Type.Invalid:
     case Tree.Type.BodyBlock:

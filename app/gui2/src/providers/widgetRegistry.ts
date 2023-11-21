@@ -1,5 +1,5 @@
 import type { GraphDb } from '@/stores/graph/graphDatabase'
-import { Ast, Tok } from '@/util/ast/abstract'
+import { Ast } from '@/util/ast'
 import type { SuggestionId } from 'shared/languageServerTypes/suggestions'
 import type { ExprId } from 'shared/yjsModel'
 import { computed, shallowReactive, type Component } from 'vue'
@@ -33,18 +33,18 @@ export class PlaceholderArgument {
  * A type representing any kind of input that can have a widget attached to it. This can be either
  * an AST node, or a placeholder argument.
  */
-export type WidgetInput = Ast | Tok | PlaceholderArgument
+export type WidgetInput = Ast.Ast | Ast.Tok | PlaceholderArgument
 
-export function widgetAst(input: WidgetInput): Ast | undefined {
-  return input instanceof Ast ? input : undefined
+export function widgetAst(input: WidgetInput): Ast.Ast | undefined {
+  return input instanceof Ast.Ast ? input : undefined
 }
 
-export function widgetExpression(input: WidgetInput): Ast | Tok | undefined {
-  return input instanceof Ast || input instanceof Tok ? input : undefined
+export function widgetExpression(input: WidgetInput): Ast.Ast | Ast.Tok | undefined {
+  return input instanceof Ast.Ast || input instanceof Ast.Tok ? input : undefined
 }
 
-export function widgetToken(input: WidgetInput): Tok | undefined {
-  return input instanceof Tok ? input : undefined
+export function widgetToken(input: WidgetInput): Ast.Tok | undefined {
+  return input instanceof Ast.Tok ? input : undefined
 }
 
 export function widgetArg(input: WidgetInput): PlaceholderArgument | undefined {

@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { Score, defineWidget, widgetAst, type WidgetProps } from '@/providers/widgetRegistry'
-import type { Expression } from '@/util/ast/abstract'
-import { App } from '@/util/ast/abstract'
+import { Ast } from '@/util/ast'
 import { computed } from 'vue'
 
 const props = defineProps<WidgetProps>()
@@ -10,8 +9,8 @@ const props = defineProps<WidgetProps>()
 const spanClass = computed(() => widgetAst(props.input)?.typeName())
 const children = computed(() => [...(widgetAst(props.input)?.children() ?? [])])
 
-function shouldNest(child: Expression, index: number) {
-  return widgetAst(props.input) instanceof App && !(child instanceof App)
+function shouldNest(child: Ast.Expression, index: number) {
+  return widgetAst(props.input) instanceof Ast.App && !(child instanceof Ast.App)
 }
 </script>
 

@@ -2,7 +2,7 @@ import { GraphDb } from '@/stores/graph/graphDatabase'
 import { IdMap, type ExprId } from 'shared/yjsModel'
 import { describe, expect, test } from 'vitest'
 import { defineComponent } from 'vue'
-import { Ast } from '../../util/ast/abstract'
+import { Ast } from '@/util/ast'
 import {
   PlaceholderArgument,
   Score,
