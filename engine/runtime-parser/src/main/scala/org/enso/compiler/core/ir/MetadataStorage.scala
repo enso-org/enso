@@ -11,7 +11,7 @@ import org.enso.compiler.core.CompilerStub
   *                     storage with
   */
 //noinspection DuplicatedCode
-class MetadataStorage(
+final class MetadataStorage(
   startingMeta: Seq[MetadataPair[_]] = Seq()
 ) extends Serializable {
   private var metadata: Map[ProcessingPass, Any] = Map(

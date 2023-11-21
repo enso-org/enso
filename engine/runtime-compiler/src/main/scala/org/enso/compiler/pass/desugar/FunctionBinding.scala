@@ -111,7 +111,7 @@ case object FunctionBinding extends IRPass {
         val lambda = args
           .map(_.mapExpressions(desugarExpression))
           .foldRight(desugarExpression(body))((arg, body) =>
-            Function.Lambda(List(arg), body, None)
+            new Function.Lambda(List(arg), body, None)
           )
           .asInstanceOf[Function.Lambda]
           .copy(canBeTCO = canBeTCO, location = location)
@@ -155,10 +155,10 @@ case object FunctionBinding extends IRPass {
           val newBody = args
             .map(_.mapExpressions(desugarExpression))
             .foldRight(desugarExpression(body))((arg, body) =>
-              Function.Lambda(List(arg), body, None)
+              new Function.Lambda(List(arg), body, None)
             )
 
-          definition.Method.Explicit(
+          new definition.Method.Explicit(
             methRef,
             newBody,
             loc,
@@ -245,7 +245,7 @@ case object FunctionBinding extends IRPass {
                   val newBody = (requiredArgs ::: remainingArgs)
                     .map(_.mapExpressions(desugarExpression))
                     .foldRight(desugarExpression(body))((arg, body) =>
-                      Function.Lambda(List(arg), body, None)
+                      new Function.Lambda(List(arg), body, None)
                     )
                   Right(
                     definition.Method.Conversion(

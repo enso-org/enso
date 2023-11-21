@@ -129,6 +129,10 @@ object Runtime {
         name  = "attachVisualization"
       ),
       new JsonSubTypes.Type(
+        value = classOf[Api.ExecuteExpression],
+        name  = "executeExpression"
+      ),
+      new JsonSubTypes.Type(
         value = classOf[Api.VisualizationAttached],
         name  = "visualizationAttached"
       ),
@@ -1413,6 +1417,7 @@ object Runtime {
       * @param failure the detailed information about the failure
       */
     final case class VisualizationExpressionFailed(
+      ctx: VisualizationContext,
       message: String,
       failure: Option[ExecutionResult.Diagnostic]
     ) extends Error
@@ -1421,6 +1426,9 @@ object Runtime {
       /** @inheritdoc */
       override def toLogString(shouldMask: Boolean): String =
         "VisualizationExpressionFailed(" +
+        s"contextId=${ctx.contextId}," +
+        s"visualizationId=${ctx.visualizationId}," +
+        s"expressionId=${ctx.expressionId}," +
         s"message=${MaskedString(message).toLogString(shouldMask)}," +
         s"failure=${failure.map(_.toLogString(shouldMask))}" +
         ")"
@@ -1436,9 +1444,7 @@ object Runtime {
       * @param diagnostic the detailed information about the failure
       */
     final case class VisualizationEvaluationFailed(
-      contextId: ContextId,
-      visualizationId: VisualizationId,
-      expressionId: ExpressionId,
+      ctx: VisualizationContext,
       message: String,
       diagnostic: Option[ExecutionResult.Diagnostic]
     ) extends ApiNotification
@@ -1447,9 +1453,9 @@ object Runtime {
       /** @inheritdoc */
       override def toLogString(shouldMask: Boolean): String =
         "VisualizationEvaluationFailed(" +
-        s"contextId=$contextId," +
-        s"visualizationId=$visualizationId," +
-        s"expressionId=$expressionId," +
+        s"contextId=${ctx.contextId}," +
+        s"visualizationId=${ctx.visualizationId}," +
+        s"expressionId=${ctx.expressionId}," +
         s"message=${MaskedString(message).toLogString(shouldMask)}," +
         s"diagnostic=${diagnostic.map(_.toLogString(shouldMask))}" +
         ")"
@@ -1560,6 +1566,13 @@ object Runtime {
       * message will be dropped.
       */
     final case class InitializedNotification() extends ApiResponse
+
+    final case class ExecuteExpression(
+      contextId: ContextId,
+      visualizationId: VisualizationId,
+      expressionId: ExpressionId,
+      expression: String
+    ) extends ApiRequest
 
     /** A request sent from the client to the runtime server, to create a new
       * visualization for an expression identified by `expressionId`.

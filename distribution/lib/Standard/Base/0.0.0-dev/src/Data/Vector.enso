@@ -710,7 +710,7 @@ type Vector a
                     "and " + remaining_count.to_text + " more elements"
                 prefix.map .to_text . join ", " "[" " "+remaining_text+"]"
 
-    ## ALIAS concatenate, union, append
+    ## ALIAS append, concatenate, union
        GROUP Operators
        Concatenates two vectors, resulting in a new `Vector`, containing all the
        elements of `self`, followed by all the elements of `that`.
@@ -723,10 +723,9 @@ type Vector a
 
              [1] + [2]
     + : Vector Any -> Vector Any
-    + self that = case that of
+    + self that:(Array|Vector) = case that of
         _ : Vector -> Vector.insert_builtin self self.length that
         _ : Array -> self + Vector.from_polyglot_array that
-        _ -> Error.throw (Type_Error.Error Vector that "that")
 
     ## GROUP Calculations
        Inserts the given item into the vector at the given index.
@@ -807,7 +806,7 @@ type Vector a
     slice : Integer -> Integer -> Vector Any
     slice self start end = @Builtin_Method "Vector.slice"
 
-    ## ALIAS first, last, slice, sample
+    ## ALIAS first, last, sample, slice
        GROUP Selections
        Creates a new `Vector` with only the specified range of elements from the
        input, removing any elements outside the range.
@@ -843,7 +842,7 @@ type Vector a
     drop self range=(Index_Sub_Range.First 1) =
         drop_helper self.length (self.at _) self.slice (slice_ranges self) range
 
-    ## ALIAS combine, merge, join by row position
+    ## ALIAS combine, join by row position, merge
        GROUP Calculations
        Performs a pair-wise operation passed in `function` on consecutive
        elements of `self` and `that`.

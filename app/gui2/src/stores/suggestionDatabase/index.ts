@@ -7,7 +7,7 @@ import { type Opt } from '@/util/opt'
 import { qnParent, type QualifiedName } from '@/util/qualifiedName'
 import { defineStore } from 'pinia'
 import { LanguageServer } from 'shared/languageServer'
-import { reactive, ref, type Ref } from 'vue'
+import { markRaw, ref, type Ref } from 'vue'
 
 export class SuggestionDb {
   _internal = new ReactiveDb<SuggestionId, SuggestionEntry>()
@@ -25,11 +25,12 @@ export class SuggestionDb {
     }
     return []
   })
+
   set(id: SuggestionId, entry: SuggestionEntry): void {
-    this._internal.set(id, reactive(entry))
+    this._internal.set(id, entry)
   }
-  get(id: SuggestionId): SuggestionEntry | undefined {
-    return this._internal.get(id)
+  get(id: SuggestionId | null | undefined): SuggestionEntry | undefined {
+    return id != null ? this._internal.get(id) : undefined
   }
   delete(id: SuggestionId): boolean {
     return this._internal.delete(id)
@@ -43,6 +44,19 @@ export interface Group {
   color?: string
   name: string
   project: QualifiedName
+}
+
+export function groupColorVar(group: Group | undefined): string {
+  if (group) {
+    const name = group.name.replace(/\s/g, '-')
+    return `--group-color-${name}`
+  } else {
+    return '--group-color-fallback'
+  }
+}
+
+export function groupColorStyle(group: Group | undefined): string {
+  return `var(${groupColorVar(group)})`
 }
 
 class Synchronizer {
@@ -85,7 +99,18 @@ class Synchronizer {
   private setupUpdateHandler(lsRpc: LanguageServer) {
     lsRpc.on('search/suggestionsDatabaseUpdates', (param) => {
       this.queue.pushTask(async ({ currentVersion }) => {
-        if (param.currentVersion <= currentVersion) {
+        // There are rare cases where the database is updated twice in quick succession, with the
+        // second update containing the same version as the first. In this case, we still need to
+        // apply the second set of updates. Skipping it would result in the database then containing
+        // references to entries that don't exist. This might be an engine issue, but accepting the
+        // second updates seems to be harmless, so we do that.
+        if (param.currentVersion == currentVersion) {
+          console.log(
+            `Received multiple consecutive suggestion database updates with version ${param.currentVersion}`,
+          )
+        }
+
+        if (param.currentVersion < currentVersion) {
           console.log(
             `Skipping suggestion database update ${param.currentVersion}, because it's already applied`,
           )
@@ -113,6 +138,7 @@ class Synchronizer {
 export const useSuggestionDbStore = defineStore('suggestionDatabase', () => {
   const entries = new SuggestionDb()
   const groups = ref<Group[]>([])
+
   const _synchronizer = new Synchronizer(entries, groups)
-  return { entries, groups, _synchronizer }
+  return { entries: markRaw(entries), groups, _synchronizer }
 })

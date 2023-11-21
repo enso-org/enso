@@ -5,6 +5,18 @@
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link
+      rel="stylesheet"
+      type="text/css"
+      crossorigin
+      href="https://api.mapbox.com/mapbox-gl-js/v2.1.1/mapbox-gl.css"
+    />
+    <link
+      rel="stylesheet"
+      type="text/css"
+      crossorigin
+      href="https://fonts.cdnfonts.com/css/dejavu-sans-mono"
+    />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Enso GUI</title>
   </head>
@@ -12,16 +24,5 @@
     <div id="app"></div>
     <div id="enso-dashboard" class="enso-dashboard"></div>
     <script type="module" src="/src/main.ts"></script>
-    <script>
-      // Workaround for Amplify issue:
-      // https://ui.docs.amplify.aws/vue/getting-started/troubleshooting
-      // Using a `define` to replace `global` with `globalThis` triggers a bug in Vite:
-      // https://github.com/vitejs/vite/blob/cb3ab5f465e0de340c4d8b82603e7ee1489b5b62/packages/vite/src/node/plugins/define.ts#L154-L159
-      window.global = window
-      window.process = {
-        env: { DEBUG: undefined },
-      }
-      var exports = {}
-    </script>
   </body>
 </html>

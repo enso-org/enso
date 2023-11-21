@@ -1,5 +1,6 @@
 import project.Data.Numbers.Integer
 import project.Data.Text.Text
+import project.Nothing.Nothing
 import project.System.File.File
 
 from project.Data.Boolean import Boolean, False, True
@@ -47,13 +48,21 @@ type Source_Location
                 row + ":" + start + "-" + end
             False ->
                 start_line.to_text + '-' + end_line.to_text
-        cwd = File.current_directory
-        file = self.file.absolute
-        formatted_file = case file.is_child_of cwd of
-            True -> cwd.relativize file . path
-            _ -> file.path
-        formatted_file + ":" + indices
+        if self.file.is_nothing then "? Unknown ?:" + indices else
+            cwd = File.current_directory
+            file = self.file.absolute
+            formatted_file = case file.is_child_of cwd of
+                True -> cwd.relativize file . path
+                _ -> file.path
+            formatted_file + ":" + indices
 
     ## Return the source file corresponding to this location.
-    file : File
-    file self = File.new self.prim_location.getSource.getPath
+    file : File | Nothing
+    file self =
+        source = self.prim_location.getSource
+        path = if source.is_nothing then Nothing else source.getPath
+        if path.is_nothing then Nothing else File.new path
+
+    ## PRIVATE
+    to_display_text : Text
+    to_display_text self = self.formatted_coordinates

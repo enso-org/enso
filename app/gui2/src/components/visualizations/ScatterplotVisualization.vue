@@ -7,6 +7,7 @@ import { VisualizationContainer, defineKeybinds } from '@/util/visualizationBuil
 import { computed, ref, watch, watchEffect, watchPostEffect } from 'vue'
 
 export const name = 'Scatter Plot'
+export const icon = 'points'
 export const inputType = 'Standard.Table.Data.Table.Table | Standard.Base.Data.Vector.Vector'
 const DEFAULT_LIMIT = 1024
 export const defaultPreprocessor = [
@@ -582,8 +583,6 @@ useEvent(document, 'scroll', endBrushing)
 </template>
 
 <style scoped>
-@import url('https://fonts.cdnfonts.com/css/dejavu-sans-mono');
-
 .ScatterplotVisualization {
   user-select: none;
   display: flex;

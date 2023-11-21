@@ -592,6 +592,7 @@
 - [Added `Previous_Value` option to `fill_nothing` and `fill_empty`.][8105]
 - [Added `Table.format` for the in-memory backend.][8150]
 - [Implemented truncate `Date_Time` for database backend (Postgres only).][8235]
+- [Initial Enso Cloud APIs.][8006]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -841,6 +842,7 @@
 [7947]: https://github.com/enso-org/enso/pull/7947
 [7979]: https://github.com/enso-org/enso/pull/7979
 [8005]: https://github.com/enso-org/enso/pull/8005
+[8006]: https://github.com/enso-org/enso/pull/8006
 [8029]: https://github.com/enso-org/enso/pull/8029
 [8083]: https://github.com/enso-org/enso/pull/8083
 [8105]: https://github.com/enso-org/enso/pull/8105
@@ -996,6 +998,7 @@
 - [Modules can be `private`][7840]
 - [HTTPS and WSS support in Language Server][7937]
 - [Export of non-existing symbols results in error][7960]
+- [Upgrade GraalVM to 23.1.0 JDK21][7991]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -1145,6 +1148,7 @@
 [7840]: https://github.com/enso-org/enso/pull/7840
 [7937]: https://github.com/enso-org/enso/pull/7937
 [7960]: https://github.com/enso-org/enso/pull/7960
+[7991]: https://github.com/enso-org/enso/pull/7991
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

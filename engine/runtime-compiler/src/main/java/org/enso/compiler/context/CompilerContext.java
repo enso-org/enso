@@ -11,6 +11,7 @@ import java.util.logging.Level;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.PackageRepository;
 import org.enso.compiler.Passes;
+import org.enso.compiler.core.CompilerStub;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.CompilerConfig;
 import org.enso.editions.LibraryName;
@@ -25,7 +26,7 @@ import org.enso.polyglot.data.TypeGraph;
  * Compiler} and the information it needs from the runtime. The ultimate state is to compile the
  * {@link Compiler} & co. classes separately without any dependency on Truffle API.
  */
-public interface CompilerContext {
+public interface CompilerContext extends CompilerStub {
   boolean isIrCachingDisabled();
 
   boolean isPrivateCheckDisabled();
@@ -80,8 +81,6 @@ public interface CompilerContext {
 
   boolean wasLoadedFromCache(Module module);
 
-  boolean hasCrossModuleLinks(Module module);
-
   org.enso.compiler.core.ir.Module getIr(Module module);
 
   CompilationStage getCompilationStage(Module module);
@@ -107,8 +106,6 @@ public interface CompilerContext {
 
     void loadedFromCache(boolean b);
 
-    void hasCrossModuleLinks(boolean b);
-
     void resetScope();
 
     void invalidateCache();
@@ -132,8 +129,6 @@ public interface CompilerContext {
     public abstract CompilationStage getCompilationStage();
 
     public abstract boolean isSynthetic();
-
-    public abstract boolean hasCrossModuleLinks();
 
     public abstract org.enso.compiler.core.ir.Module getIr();
 

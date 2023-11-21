@@ -13,8 +13,17 @@ import java.util.UUID
   * @param mainComponent the main initialization logic
   * @param bufferRegistry the buffer registry actor ref
   * @param capabilityRouter the capability router actor ref
-  * @param system the actor system
+  * @param fileManager performs operations with file system
+  * @param vcsManager performs operations with VCS
+  * @param contentRootManager manages the available content roots
+  * @param contextRegistry a router that dispatches execution context requests
+  * @param suggestionsHandler a reference to the suggestions requests handler
+  * @param runtimeConnector a reference to the runtime connector
+  * @param idlenessMonitor a reference to the idleness monitor actor
+  * @param projectSettingsManager a reference to the project settings manager
+  * @param profilingManager a reference to the profiling manager
   * @param libraryConfig configuration of the library ecosystem
+  * @param system the actor system
   */
 class JsonConnectionControllerFactory(
   mainComponent: InitializationComponent,
@@ -31,6 +40,7 @@ class JsonConnectionControllerFactory(
   runtimeConnector: ActorRef,
   idlenessMonitor: ActorRef,
   projectSettingsManager: ActorRef,
+  profilingManager: ActorRef,
   libraryConfig: LibraryConfig,
   config: Config
 )(implicit system: ActorSystem)
@@ -59,6 +69,7 @@ class JsonConnectionControllerFactory(
         runtimeConnector       = runtimeConnector,
         idlenessMonitor        = idlenessMonitor,
         projectSettingsManager = projectSettingsManager,
+        profilingManager       = profilingManager,
         libraryConfig          = libraryConfig,
         languageServerConfig   = config
       ),

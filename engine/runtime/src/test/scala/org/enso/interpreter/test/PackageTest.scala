@@ -37,9 +37,10 @@ trait PackageTest extends AnyFlatSpec with Matchers with ValueEquality {
       .option(RuntimeOptions.EDITION_OVERRIDE, "0.0.0-dev")
       .option(RuntimeOptions.STRICT_ERRORS, "true")
       .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
+      .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
+      .option("engine.WarnInterpreterOnly", "false")
       .out(output)
       .in(System.in)
-      .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
       .logHandler(System.err)
     for ((key, value) <- customOptions) {
       ctxBuilder.option(key, value)

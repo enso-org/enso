@@ -46,7 +46,8 @@ list_objects : Text -> Text -> AWS_Credential | Nothing -> Integer -> Vector Tex
 list_objects bucket prefix="" credentials:(AWS_Credential | Nothing)=Nothing max_count=1000 =
     read_bucket bucket prefix credentials delimiter="" max_count=max_count . second
 
-## Reads an S3 bucket returning a pair of vectors, one with common prefixes and
+## PRIVATE
+   Reads an S3 bucket returning a pair of vectors, one with common prefixes and
    one with object keys.
 @credentials AWS_Credential.default_widget
 read_bucket : Text -> Text -> AWS_Credential | Nothing -> Integer -> Text -> Pair Vector Vector ! S3_Error
@@ -73,7 +74,8 @@ read_bucket bucket prefix="" credentials:(AWS_Credential | Nothing)=Nothing deli
 
     iterator request 0 [] [] True
 
-## Gets the metadata of a bucket or object.
+## ADVANCED
+   Gets the metadata of a bucket or object.
 
    Arguments:
    - bucket: the name of the bucket.

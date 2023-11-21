@@ -13,6 +13,7 @@ import * as hooks from '../../hooks'
 import * as identity from '../identity'
 import * as localStorageModule from '../localStorage'
 import * as localStorageProvider from '../../providers/localStorage'
+import * as modalProvider from '../../providers/modal'
 import * as uniqueString from '../../uniqueString'
 
 import * as app from '../../components/app'
@@ -80,6 +81,8 @@ export default function Drive(props: DriveProps) {
     const { organization } = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
     const { localStorage } = localStorageProvider.useLocalStorage()
+    const { modal } = modalProvider.useModal()
+    const { modalRef } = modalProvider.useModalRef()
     const toastAndLog = hooks.useToastAndLog()
     const [isFileBeingDragged, setIsFileBeingDragged] = React.useState(false)
     const [category, setCategory] = React.useState(
@@ -99,6 +102,12 @@ export default function Drive(props: DriveProps) {
     )
 
     React.useEffect(() => {
+        if (modal != null) {
+            setIsFileBeingDragged(false)
+        }
+    }, [modal])
+
+    React.useEffect(() => {
         const onBlur = () => {
             setIsFileBeingDragged(false)
         }
@@ -110,11 +119,14 @@ export default function Drive(props: DriveProps) {
 
     React.useEffect(() => {
         void (async () => {
-            if (backend.type !== backendModule.BackendType.local) {
+            if (
+                backend.type !== backendModule.BackendType.local &&
+                organization?.isEnabled === true
+            ) {
                 setLabels(await backend.listTags())
             }
         })()
-    }, [backend])
+    }, [backend, organization?.isEnabled])
 
     const doUploadFiles = React.useCallback(
         (files: File[]) => {
@@ -269,7 +281,9 @@ export default function Drive(props: DriveProps) {
     React.useEffect(() => {
         const onDragEnter = (event: DragEvent) => {
             if (
+                modalRef.current == null &&
                 page === pageSwitcher.Page.drive &&
+                category === categorySwitcher.Category.home &&
                 event.dataTransfer?.types.includes('Files') === true
             ) {
                 setIsFileBeingDragged(true)
@@ -279,7 +293,7 @@ export default function Drive(props: DriveProps) {
         return () => {
             document.body.removeEventListener('dragenter', onDragEnter)
         }
-    }, [page])
+    }, [page, category, /* should never change */ modalRef])
 
     return isListingRemoteDirectoryWhileOffline ? (
         <div className={`grow grid place-items-center mx-2 ${hidden ? 'hidden' : ''}`}>
@@ -396,7 +410,7 @@ export default function Drive(props: DriveProps) {
             organization != null &&
             backend.type === backendModule.BackendType.remote ? (
                 <div
-                    className="text-white text-lg fixed w-screen h-screen inset-0 opacity-0 hover:opacity-100 bg-primary bg-opacity-75 backdrop-blur-none hover:backdrop-blur-xs transition-all grid place-items-center"
+                    className="text-white text-lg fixed w-screen h-screen inset-0 bg-primary bg-opacity-75 backdrop-blur-xs grid place-items-center z-3"
                     onDragLeave={() => {
                         setIsFileBeingDragged(false)
                     }}

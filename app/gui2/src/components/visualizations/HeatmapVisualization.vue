@@ -1,5 +1,6 @@
 <script lang="ts">
 export const name = 'Heatmap'
+export const icon = 'heatmap'
 export const inputType = 'Standard.Table.Data.Table.Table | Standard.Base.Data.Vector.Vector'
 export const defaultPreprocessor = [
   'Standard.Visualization.Table.Visualization',
@@ -224,8 +225,6 @@ watchPostEffect(() => {
 </template>
 
 <style scoped>
-@import url('https://fonts.cdnfonts.com/css/dejavu-sans-mono');
-
 .HeatmapVisualization {
   display: flex;
 }

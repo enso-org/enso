@@ -74,6 +74,7 @@ class RuntimeErrorsTest
             .toFile
             .getAbsolutePath
         )
+        .option("engine.WarnInterpreterOnly", "false")
         .option(RuntimeOptions.EDITION_OVERRIDE, "0.0.0-dev")
         .logHandler(logHandler)
         .option(RuntimeOptions.LOG_LEVEL, defaultLogLevel.getName)
@@ -969,7 +970,7 @@ class RuntimeErrorsTest
     context.consumeOut shouldEqual List("499999999999")
   }
 
-  it should "not send updates when dataflow error changes in expression" in {
+  it should "send updates when dataflow error changes in expression" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
@@ -1061,15 +1062,41 @@ class RuntimeErrorsTest
         )
       )
     )
-    context.receiveNIgnoreExpressionUpdates(
-      1
+    context.receiveNIgnorePendingExpressionUpdates(
+      4
     ) should contain theSameElementsAs Seq(
+      TestMessages.error(
+        contextId,
+        xId,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Error",
+            "Standard.Base.Error.Error",
+            "throw"
+          )
+        ),
+        fromCache   = false,
+        typeChanged = false,
+        Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
+      ),
+      TestMessages.error(
+        contextId,
+        yId,
+        Api.ExpressionUpdate.Payload.DataflowError(Seq(xId)),
+        typeChanged = false
+      ),
+      TestMessages.update(
+        contextId,
+        mainResId,
+        ConstantsGen.NOTHING,
+        typeChanged = false
+      ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("(Error: MyError2)")
   }
 
-  it should "not send updates when dataflow error changes in method" in {
+  it should "send updates when dataflow error changes in method" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
@@ -1159,9 +1186,29 @@ class RuntimeErrorsTest
         )
       )
     )
-    context.receiveNIgnoreExpressionUpdates(
-      1
+    context.receiveNIgnorePendingExpressionUpdates(
+      4
     ) should contain theSameElementsAs Seq(
+      TestMessages.error(
+        contextId,
+        xId,
+        Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "foo")),
+        fromCache   = false,
+        typeChanged = false,
+        Api.ExpressionUpdate.Payload.DataflowError(Seq(fooThrowId, xId))
+      ),
+      TestMessages.error(
+        contextId,
+        yId,
+        Api.ExpressionUpdate.Payload.DataflowError(Seq(fooThrowId, xId)),
+        typeChanged = false
+      ),
+      TestMessages.update(
+        contextId,
+        mainResId,
+        ConstantsGen.NOTHING,
+        typeChanged = false
+      ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("(Error: MyError2)")

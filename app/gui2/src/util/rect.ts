@@ -9,11 +9,27 @@ export class Rect {
     readonly size: Vec2,
   ) {}
 
+  static Zero = new Rect(Vec2.Zero, Vec2.Zero)
+
+  static XYWH(x: number, y: number, w: number, h: number): Rect {
+    return new Rect(new Vec2(x, y), new Vec2(w, h))
+  }
+
   static FromBounds(left: number, top: number, right: number, bottom: number): Rect {
     return new Rect(new Vec2(left, top), new Vec2(right - left, bottom - top))
   }
 
-  static Zero = new Rect(Vec2.Zero, Vec2.Zero)
+  static FromCenterSize(center: Vec2, size: Vec2): Rect {
+    return new Rect(center.addScaled(size, -0.5), size)
+  }
+
+  static FromDomRect(domRect: DOMRect): Rect {
+    return new Rect(new Vec2(domRect.x, domRect.y), new Vec2(domRect.width, domRect.height))
+  }
+
+  offsetBy(offset: Vec2): Rect {
+    return new Rect(this.pos.add(offset), this.size)
+  }
 
   get left(): number {
     return this.pos.x

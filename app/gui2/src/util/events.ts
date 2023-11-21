@@ -12,6 +12,11 @@ import {
   type WatchSource,
 } from 'vue'
 
+export function isClick(e: MouseEvent | PointerEvent) {
+  if (e instanceof PointerEvent) return e.pointerId !== -1
+  else return e.buttons !== 0
+}
+
 /**
  * Add an event listener for the duration of the component's lifetime.
  * @param target element on which to register the event
@@ -139,7 +144,20 @@ export function useResizeObserver(
   useContentRect = true,
 ): Ref<Vec2> {
   const sizeRef = shallowRef<Vec2>(Vec2.Zero)
-  if (typeof ResizeObserver === 'undefined') return sizeRef
+  if (typeof ResizeObserver === 'undefined') {
+    // Fallback implementation for browsers/test environment that do not support ResizeObserver:
+    // Grab the size of the element every time the ref is assigned, or when the page is resized.
+    function refreshSize() {
+      const element = elementRef.value
+      if (element != null) {
+        const rect = element.getBoundingClientRect()
+        sizeRef.value = new Vec2(rect.width, rect.height)
+      }
+    }
+    watchEffect(refreshSize)
+    useEvent(window, 'resize', refreshSize)
+    return sizeRef
+  }
   const observer = new ResizeObserver((entries) => {
     let rect: { width: number; height: number } | null = null
     for (const entry of entries) {

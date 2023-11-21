@@ -261,7 +261,8 @@ type Date_Time_Formatter
     iso_time =
         Date_Time_Formatter.Value (EnsoDateTimeFormatter.makeISOConstant DateTimeFormatter.ISO_TIME "iso_time")
 
-    ## Returns a text representation of this formatter.
+    ## PRIVATE
+       Returns a text representation of this formatter.
     to_text : Text
     to_text self = case self.underlying.getFormatterKind of
         FormatterKind.CONSTANT ->
@@ -275,7 +276,8 @@ type Date_Time_Formatter
             original_pattern : Text -> "Date_Time_Formatter.from_java " + original_pattern.pretty
             Nothing -> "Date_Time_Formatter.from_java " + self.underlying.getFormatter.to_text
 
-    ## Parses a human-readable representation of this formatter.
+    ## PRIVATE
+       Parses a human-readable representation of this formatter.
     to_display_text : Text
     to_display_text self = self.to_text
 

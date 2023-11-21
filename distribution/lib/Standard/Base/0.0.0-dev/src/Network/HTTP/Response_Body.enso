@@ -40,7 +40,8 @@ maximum_body_in_memory = 4192
 
 ## PRIVATE
 type Response_Body
-    ## Create a Response_Body.
+    ## PRIVATE
+       Create a Response_Body.
 
        Arguments:
        - stream: The body of the response as an InputStream.

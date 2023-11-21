@@ -11,6 +11,7 @@ import org.enso.compiler.core.ir.{
   Function,
   IdentifiedLocation,
   Literal,
+  Location,
   Name,
   Type
 }
@@ -28,7 +29,6 @@ import org.enso.compiler.pass.resolve.{
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.Suggestion
 import org.enso.polyglot.data.{Tree, TypeGraph}
-import org.enso.syntax.text.Location
 import org.enso.text.editing.IndexedSource
 
 import java.util.UUID

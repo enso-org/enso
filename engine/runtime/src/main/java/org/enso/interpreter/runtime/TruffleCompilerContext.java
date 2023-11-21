@@ -151,11 +151,6 @@ final class TruffleCompilerContext implements CompilerContext {
   }
 
   @Override
-  public boolean hasCrossModuleLinks(CompilerContext.Module module) {
-    return ((Module)module).unsafeModule().hasCrossModuleLinks();
-  }
-
-  @Override
   public org.enso.compiler.core.ir.Module getIr(CompilerContext.Module module) {
     return module.getIr();
   }
@@ -225,17 +220,9 @@ final class TruffleCompilerContext implements CompilerContext {
           );
         } else {
           builtins.initializeBuiltinsIr(this, freshNameSupply, passes);
-          updateModule(
-            builtinsModule,
-            u -> u.hasCrossModuleLinks(true)
-          );
         }
       } else {
         builtins.initializeBuiltinsIr(this, freshNameSupply, passes);
-        updateModule(
-                builtinsModule,
-                u -> u.hasCrossModuleLinks(true)
-        );
       }
 
       if (irCachingEnabled && !wasLoadedFromCache(builtinsModule)) {
@@ -288,7 +275,6 @@ final class TruffleCompilerContext implements CompilerContext {
     private org.enso.compiler.core.ir.Module ir;
     private CompilationStage stage;
     private Boolean loadedFromCache;
-    private Boolean hasCrossModuleLinks;
     private boolean resetScope;
     private boolean invalidateCache;
 
@@ -317,11 +303,6 @@ final class TruffleCompilerContext implements CompilerContext {
     }
 
     @Override
-    public void hasCrossModuleLinks(boolean b) {
-      this.hasCrossModuleLinks = b;
-    }
-
-    @Override
     public void resetScope() {
       this.resetScope = true;
     }
@@ -347,9 +328,6 @@ final class TruffleCompilerContext implements CompilerContext {
       }
       if (loadedFromCache != null) {
         module.module.setLoadedFromCache(loadedFromCache);
-      }
-      if (hasCrossModuleLinks != null) {
-        module.module.setHasCrossModuleLinks(hasCrossModuleLinks);
       }
       if (resetScope) {
         module.module.ensureScopeExists();
@@ -427,11 +405,6 @@ final class TruffleCompilerContext implements CompilerContext {
     @Override
     public boolean isSynthetic() {
       return module.isSynthetic();
-    }
-
-    @Override
-    public boolean hasCrossModuleLinks() {
-      return module.hasCrossModuleLinks();
     }
 
     @Override
