@@ -399,6 +399,7 @@ export default function Dashboard(props: DashboardProps) {
                 />
                 <Home hidden={page !== pageSwitcher.Page.home} onTemplateClick={doCreateProject} />
                 <Drive
+                    supportsLocalBackend={supportsLocalBackend}
                     hidden={page !== pageSwitcher.Page.drive}
                     page={page}
                     initialProjectName={initialProjectName}
