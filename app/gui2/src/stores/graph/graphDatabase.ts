@@ -1,10 +1,8 @@
 import { nonDictatedPlacement } from '@/components/ComponentBrowser/placement'
 import { SuggestionDb, groupColorStyle, type Group } from '@/stores/suggestionDatabase'
 import { tryGetIndex } from '@/util/array'
-import { RawAst } from '@/util/ast'
 import type { AstId } from '@/util/ast/abstract'
-import { Assignment, Ast, Function, Ident } from '@/util/ast/abstract'
-import type { AstExtended } from '@/util/ast/extended'
+import { Ast } from '@/util/ast'
 import { colorFromString } from '@/util/colors'
 import { ComputedValueRegistry, type ExpressionInfo } from '@/util/computedValueRegistry'
 import { ReactiveDb, ReactiveIndex, ReactiveMapping } from '@/util/database/reactiveDb'
@@ -28,7 +26,7 @@ export class GraphDb {
   idents = new ReactiveIndex(this.nodes, (_id, entry) => {
     const idents: [ExprId, string][] = []
     entry.rootSpan.visitRecursive((span) => {
-      if (span instanceof Ident) {
+      if (span instanceof Ast.Ident) {
         idents.push([span.exprId, span.code()])
         return false
       }
@@ -114,7 +112,7 @@ export class GraphDb {
   }
 
   readFunctionAst(
-    functionAst: Function,
+    functionAst: Ast.Function,
     getMeta: (id: ExprId) => NodeMetadata | undefined,
   ) {
     const currentNodeIds = new Set<ExprId>()
@@ -224,7 +222,7 @@ export class GraphDb {
 export interface Node {
   outerExprId: AstId
   binding: string
-  rootSpan: Ast
+  rootSpan: Ast.Ast
   position: Vec2
   vis: Opt<VisualizationMetadata>
 }
@@ -239,13 +237,13 @@ export function mockNode(binding: string, id: AstId, code?: string): Node {
   }
 }
 
-function nodeFromAst(ast: Ast): Node {
+function nodeFromAst(ast: Ast.Ast): Node {
   const common = {
     outerExprId: ast._id,
     position: Vec2.Zero,
     vis: undefined,
   }
-  if (ast instanceof Assignment) {
+  if (ast instanceof Ast.Assignment) {
     return {
       binding: ast.pattern?.code() ?? '',
       rootSpan: ast.expression ?? ast,
@@ -260,6 +258,6 @@ function nodeFromAst(ast: Ast): Node {
   }
 }
 
-function* getFunctionNodeExpressions(func: Function): Iterable<Ast> {
-  return Array.from(func.bodyExpressions(), (e) => !(e instanceof Function))
+function getFunctionNodeExpressions(func: Ast.Function): Iterable<Ast.Ast> {
+  return Array.from(func.bodyExpressions()).filter((e) => !(e instanceof Ast.Function))
 }

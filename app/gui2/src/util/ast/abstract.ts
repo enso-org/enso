@@ -9,6 +9,20 @@ const committed = reactive(new Map<AstId, Ast>())
 /** New nodes, COW-copies of modified nodes, and pending deletions (nulls) */
 const edited = new Map<AstId, Ast | null>()
 
+/** Replace all committed values with the state of the uncommitted parse. */
+export function syncCommittedFromEdited() {
+  for (const id of committed.keys()) {
+    if (!edited.has(id)) committed.delete(id)
+  }
+  for (const [id, ast] of edited.entries()) {
+    if (ast === null) {
+      committed.delete(id)
+    } else {
+      committed.set(id, ast)
+    }
+  }
+}
+
 /** Returns a syntax node representing the current committed state of the given ID. */
 function getNode(id: AstId): Ast | null {
   return committed.get(id) ?? null
@@ -51,7 +65,7 @@ export abstract class Expression {
   abstract code(): string
 
   /** Returns child subtrees, without information about the whitespace between them. */
-  *children(): Iterable<Ast | Tok> {
+  *children(): IterableIterator<Ast | Tok> {
     for (const child of this._rawChildren()) {
       if (child.node instanceof Tok) {
         yield child.node
@@ -63,7 +77,7 @@ export abstract class Expression {
   }
 
   /** Returns child concrete subtrees. */
-  abstract _rawChildren(): Iterable<NodeChild>
+  abstract _rawChildren(): IterableIterator<NodeChild>
 }
 
 export class Tok extends Expression {
@@ -81,9 +95,7 @@ export class Tok extends Expression {
     return this._code
   }
 
-  _rawChildren(): Iterable<NodeChild> {
-    return []
-  }
+  *_rawChildren(): IterableIterator<NodeChild> {}
 
   typeName(): string {
     return Token.typeNames[this._tokenType]!
@@ -258,7 +270,7 @@ export class App extends Ast {
     )
   }
 
-  *_rawChildren(): Iterable<NodeChild> {
+  *_rawChildren(): IterableIterator<NodeChild> {
     yield this._func
     if (this._leftParen) yield this._leftParen
     if (this._name) yield this._name
@@ -293,7 +305,7 @@ export class UnaryOprApp extends Ast {
     this._arg = arg
   }
 
-  *_rawChildren(): Iterable<NodeChild> {
+  *_rawChildren(): IterableIterator<NodeChild> {
     yield this._opr
     if (this._arg) yield this._arg
   }
@@ -336,7 +348,7 @@ export class OprApp extends Ast {
     this._rhs = rhs
   }
 
-  *_rawChildren(): Iterable<NodeChild> {
+  *_rawChildren(): IterableIterator<NodeChild> {
     if (this._lhs) yield this._lhs
     for (const opr of this._opr) yield opr
     if (this._rhs) yield this._rhs
@@ -363,8 +375,8 @@ export class Generic extends Ast {
     this._children = children ?? []
   }
 
-  _rawChildren(): Iterable<NodeChild> {
-    return this._children
+  _rawChildren(): IterableIterator<NodeChild> {
+    return this._children.values()
   }
 }
 
@@ -376,8 +388,8 @@ export class NumericLiteral extends Ast {
     this._tokens = tokens ?? []
   }
 
-  _rawChildren(): Iterable<NodeChild> {
-    return this._tokens
+  _rawChildren(): IterableIterator<NodeChild> {
+    return this._tokens.values()
   }
 }
 
@@ -395,7 +407,7 @@ export class Function extends Ast {
   get body(): Ast | null {
     return this._body ? getNode(this._body.node) : null
   }
-  *bodyExpressions(): Iterable<Ast> {
+  *bodyExpressions(): IterableIterator<Ast> {
     const body = this._body ? getNode(this._body.node) : null
     if (body instanceof Block) {
       yield* body.expressions()
@@ -417,7 +429,7 @@ export class Function extends Ast {
     this._equals = equals
     this._body = body
   }
-  *_rawChildren(): Iterable<NodeChild> {
+  *_rawChildren(): IterableIterator<NodeChild> {
     yield this._name
     for (const arg of this._args) yield* arg
     if (this._equals !== undefined) {
@@ -465,7 +477,7 @@ export class Assignment extends Ast {
     return new Assignment(id, pattern, equals, expression)
   }
    */
-  *_rawChildren(): Iterable<NodeChild> {
+  *_rawChildren(): IterableIterator<NodeChild> {
     yield this._pattern
     if (this._equals !== undefined) {
       yield { whitespace: this._equals.whitespace ?? ' ', node: this._equals.node }
@@ -485,7 +497,7 @@ type BlockLine = {
 export class Block extends Ast {
   private _lines: BlockLine[];
 
-  *expressions(): Iterable<Ast> {
+  *expressions(): IterableIterator<Ast> {
     for (const line of this._lines) {
       if (line.expression) {
         const node = getNode(line.expression.node)
@@ -515,7 +527,7 @@ export class Block extends Ast {
   }
    */
 
-  *_rawChildren(): Iterable<NodeChild> {
+  *_rawChildren(): IterableIterator<NodeChild> {
     for (const line of this._lines) {
       yield line.newline ?? { node: token('\n', Token.Type.Newline) }
       if (line.expression !== null) yield line.expression
@@ -574,7 +586,7 @@ export class Ident extends Ast {
   }
    */
 
-  *_rawChildren(): Iterable<NodeChild> {
+  *_rawChildren(): IterableIterator<NodeChild> {
     yield this.token
   }
 }
@@ -587,7 +599,7 @@ export class Placeholder extends Ast {
     this.token = token
   }
 
-  *_rawChildren(): Iterable<NodeChild> {
+  *_rawChildren(): IterableIterator<NodeChild> {
     yield this.token
   }
 }
@@ -606,7 +618,7 @@ export class RawCode extends Ast {
     return new RawCode(id, { node: token(code, Token.Type.Ident) })
   }
 
-  *_rawChildren(): Iterable<NodeChild> {
+  *_rawChildren(): IterableIterator<NodeChild> {
     yield this._code
   }
 }
@@ -865,4 +877,8 @@ export function replaceExpressionContentAST(id: AstId, code: string) {
 export function forgetAllAsts() {
   edited.clear()
   committed.clear()
+}
+
+export function parse(source: PrintedSource | string): Ast {
+  return Ast.parse(source)
 }

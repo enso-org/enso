@@ -2,8 +2,7 @@ import { GraphDb } from '@/stores/graph/graphDatabase'
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { DEFAULT_VISUALIZATION_IDENTIFIER } from '@/stores/visualization'
-import { RawAst, childrenAstNodes, findAstWithRange, readAstSpan } from '@/util/ast'
-import { Ast, Function, findModuleMethod } from '@/util/ast/abstract.ts'
+import { Ast } from '@/util/ast'
 import { AstExtended } from '@/util/ast/extended.ts'
 import { useObserveYjs } from '@/util/crdt'
 import type { Opt } from '@/util/opt'
@@ -91,6 +90,7 @@ export const useGraphStore = defineStore('graph', () => {
       idMap.finishAndSynchronize()
 
       const newRoot = Ast.parse(textContentLocal)
+      Ast.syncCommittedFromEdited()
 
       const methodAst = getExecutedMethodAst(newRoot, proj.executionContext.getStackTop())
       if (methodAst) {
@@ -312,18 +312,19 @@ export type UnconnectedEdge = {
   disconnectedEdgeTarget?: ExprId
 }
 
-function getExecutedMethodAst(root: Ast, executionStackTop: StackItem): Opt<Function> {
+function getExecutedMethodAst(root: Ast.Ast, executionStackTop: StackItem): Opt<Ast.Function> {
   switch (executionStackTop.type) {
     case 'ExplicitCall': {
       // Assume that the provided AST matches the module in the method pointer. There is no way to
       // actually verify this assumption at this point.
       const ptr = executionStackTop.methodPointer
       const name = ptr.name
-      const method = findModuleMethod(name)
+      const method = Ast.findModuleMethod(name)
       if (!method) return
       return method
     }
     case 'LocalCall': {
+      console.error(`TODO`)
       // TODO
       /*
       const exprId = executionStackTop.expressionId
