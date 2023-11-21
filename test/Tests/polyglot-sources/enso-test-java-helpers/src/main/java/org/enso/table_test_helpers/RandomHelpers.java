@@ -11,8 +11,9 @@ public class RandomHelpers {
 
   public String makeRandomString(int length) {
     StringBuilder sb = new StringBuilder();
+    int n = 'z' - 'A';
     for (int i = 0; i < length; i++) {
-      sb.append((char) rng.nextInt(128));
+      sb.append((char) (rng.nextInt(n) + 'A'));
     }
     return sb.toString();
   }

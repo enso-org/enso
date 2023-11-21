@@ -738,7 +738,7 @@ spec =
             bad_file.delete
 
         ci_pending = if Environment.get "CI" != Nothing then "This test takes a lot of time so it is disabled on CI."
-        Test.specify "should be able to write and read a big XLSX file (>110MB)" pending=ci_pending <|
+        test_big_file extension = Test.specify "should be able to write and read a big "+extension+" file (>110MB)" pending=ci_pending <|
             n = 10^6
             letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".characters
             IO.println "Generating random vector "+Time_Of_Day.now.to_text
@@ -749,7 +749,7 @@ spec =
             IO.println "Creating table           "+Time_Of_Day.now.to_text
             table = Table.new [["X", v]]
             IO.println "Done                     "+Time_Of_Day.now.to_text
-            big_file = enso_project.data / "transient" / "big.xlsx"
+            big_file = enso_project.data / "transient" / ("big."+extension)
             big_file.delete_if_exists
 
             IO.println "Writing file             "+Time_Of_Day.now.to_text
@@ -769,6 +769,9 @@ spec =
             read_table.row_count . should_equal n
             read_table.column_names . should_equal ["X"]
             read_table.at "X" . at 0 . should_equal (v.at 0)
+
+        test_big_file "xlsx"
+        test_big_file "xls"
 
     spec_fmt 'XLSX reading' Examples.xlsx .read
 
