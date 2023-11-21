@@ -1,7 +1,6 @@
 package org.enso.compiler.core.ir;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import org.enso.compiler.core.ir.expression.Application;
@@ -230,14 +229,10 @@ public final class IrPersistance {
     @SuppressWarnings("unchecked")
     protected scala.collection.immutable.Map readObject(Input in)
         throws IOException, ClassNotFoundException {
-      var size = in.readInt();
-      var map = scala.collection.immutable.Map$.MODULE$.empty();
-      for (var i = 0; i < size; i++) {
-        var key = in.readObject();
-        var value = in.readObject();
-        map = map.$plus(new Tuple2(key, value));
-      }
-      return map;
+      var map = new IrLazyMap(in);
+      var mutableMap = scala.jdk.CollectionConverters.MapHasAsScala(map).asScala();
+      var immutableMap = scala.collection.immutable.Map.from(mutableMap);
+      return immutableMap;
     }
   }
 
@@ -309,13 +304,13 @@ public final class IrPersistance {
   }
 
   @ServiceProvider(service = Persistance.class)
-  public static final class PersistMap extends Persistance<HashMap> {
+  public static final class PersistMap extends Persistance<Map> {
     public PersistMap() {
-      super(HashMap.class, true, 4440);
+      super(Map.class, true, 4440);
     }
 
     @Override
-    protected void writeObject(HashMap m, Output out) throws IOException {
+    protected void writeObject(Map m, Output out) throws IOException {
       var size = m.size();
       out.writeInt(size);
       var it = m.entrySet().iterator();
@@ -328,15 +323,8 @@ public final class IrPersistance {
 
     @Override
     @SuppressWarnings("unchecked")
-    protected HashMap readObject(Input in) throws IOException, ClassNotFoundException {
-      var size = in.readInt();
-      var map = new HashMap<Object, Object>();
-      for (var i = 0; i < size; i++) {
-        var key = in.readObject();
-        var value = in.readObject();
-        map.put(key, value);
-      }
-      return map;
+    protected Map readObject(Input in) throws IOException, ClassNotFoundException {
+      return new IrLazyMap(in);
     }
   }
 
