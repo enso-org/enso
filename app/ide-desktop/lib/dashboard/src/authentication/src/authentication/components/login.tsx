@@ -30,8 +30,14 @@ const LOGIN_QUERY_PARAMS = {
 // === Login ===
 // =============
 
+/** Props for a {@link Login}. */
+export interface LoginProps {
+    supportsLocalBackend: boolean
+}
+
 /** A form for users to log in. */
-export default function Login() {
+export default function Login(props: LoginProps) {
+    const { supportsLocalBackend } = props
     const { search } = router.useLocation()
     const { signInWithGoogle, signInWithGitHub, signInWithPassword } = auth.useAuth()
 
@@ -181,18 +187,20 @@ export default function Login() {
                         <span className="ml-2">You don&apos;t have an account?</span>
                     </router.Link>
                 </div>
-                <div className="flex justify-center items-center mt-6">
-                    <router.Link
-                        to={app.ENTER_OFFLINE_MODE_PATH}
-                        className={
-                            'inline-flex items-center font-bold text-blue-500 hover:text-blue-700 ' +
-                            'text-xs text-center'
-                        }
-                    >
-                        <SvgMask src={ArrowRightIcon} />
-                        <span className="ml-2">Continue without creating an account</span>
-                    </router.Link>
-                </div>
+                {supportsLocalBackend && (
+                    <div className="flex justify-center items-center mt-6">
+                        <router.Link
+                            to={app.ENTER_OFFLINE_MODE_PATH}
+                            className={
+                                'inline-flex items-center font-bold text-blue-500 hover:text-blue-700 ' +
+                                'text-xs text-center'
+                            }
+                        >
+                            <SvgMask src={ArrowRightIcon} />
+                            <span className="ml-2">Continue without creating an account</span>
+                        </router.Link>
+                    </div>
+                )}
             </div>
         </div>
     )
