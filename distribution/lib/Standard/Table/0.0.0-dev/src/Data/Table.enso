@@ -414,7 +414,7 @@ type Table
 
        Arguments:
        - when: By default, only columns consisting of all blank cells are
-         selected. If set to Blank_Selector.Any_Cell_Blank, columns with one or
+         selected. If set to Blank_Selector.Any_Cell, columns with one or
          more blank values are selected.
        - treat_nans_as_blank: specifies whether `Number.nan` is considered as
          blank. By default, it is not.
@@ -427,7 +427,7 @@ type Table
 
              table.select_blank_columns
     select_blank_columns : Blank_Selector -> Boolean -> Table ! No_Output_Columns
-    select_blank_columns self (when:Blank_Selector = Blank_Selector.All_Cells_Blank) (treat_nans_as_blank : Boolean = False) =
+    select_blank_columns self (when:Blank_Selector = Blank_Selector.All_Cells) (treat_nans_as_blank : Boolean = False) =
         new_columns = self.columns_helper.select_blank_columns_helper when treat_nans_as_blank
         if new_columns.length == 0 then Error.throw (No_Output_Columns) else
             Table.new new_columns
@@ -440,7 +440,7 @@ type Table
 
        Arguments:
        - when By default, only columns consisting of all blank cells are
-         selected. If set to Blank_Selector.Any_Cell_Blank, columns with one or more blank values are
+         selected. If set to Blank_Selector.Any_Cell, columns with one or more blank values are
          selected.
        - treat_nans_as_blank: specified whether `Number.nan` is considered as
          blank. By default, it is not.
@@ -453,7 +453,7 @@ type Table
 
              table.remove_blank_columns
     remove_blank_columns : Blank_Selector -> Boolean -> Table ! No_Output_Columns
-    remove_blank_columns self (when:Blank_Selector = Blank_Selector.All_Cells_Blank) (treat_nans_as_blank : Boolean = False) =
+    remove_blank_columns self (when:Blank_Selector = Blank_Selector.All_Cells) (treat_nans_as_blank : Boolean = False) =
         new_columns = self.columns_helper.select_blank_columns_helper when treat_nans_as_blank invert_selection=True
         if new_columns.length == 0 then Error.throw (No_Output_Columns) else
             Table.new new_columns
@@ -1116,7 +1116,8 @@ type Table
             new_column = column_to_cast.cast value_type on_problems
             table.set new_column new_name=column_to_cast.name set_mode=Set_Mode.Update
 
-    ## Change the value type of table columns to a more specific one, based on
+    ## GROUP Standard.Base.Conversions
+       Change the value type of table columns to a more specific one, based on
        their contents.
 
        This is most useful for `Mixed` type columns and will allow to narrow
@@ -1271,7 +1272,7 @@ type Table
     parse_to_columns self column pattern="." case_sensitivity=Case_Sensitivity.Sensitive parse_values=True on_problems=Report_Error =
         Split_Tokenize.parse_to_columns self column pattern case_sensitivity parse_values on_problems
 
-    ## GROUP Standard.Base.Conversions
+    ## GROUP Standard.Base.Calculations
        Expand a column of objects to a new set of columns.
 
         Arguments:
@@ -1284,7 +1285,7 @@ type Table
     expand_column self (column : Text | Integer) (fields : (Vector Text) | Nothing = Nothing) (prefix : Prefix_Name = Prefix_Name.Column_Name) =
         Expand_Objects_Helpers.expand_column self column fields prefix
 
-    ## GROUP Standard.Base.Conversions
+    ## GROUP Standard.Base.Calculations
        Expand aggregate values in a column to separate rows.
 
        For each value in the specified column, if it is an aggregate (`Vector`,
@@ -1370,8 +1371,8 @@ type Table
              people.filter "age" (age -> (age%10 == 0))
     @column Widget_Helpers.make_column_name_selector
     @filter Widget_Helpers.make_filter_condition_selector
-    filter : (Column | Text | Integer) -> (Filter_Condition|(Any->Boolean)) -> Problem_Behavior -> Table ! No_Such_Column | Index_Out_Of_Bounds | Invalid_Value_Type
-    filter self column (filter : Filter_Condition | Function = Filter_Condition.Equal True) on_problems=Report_Warning = case column of
+    filter : (Column | Text | Integer) -> (Filter_Condition | (Any -> Boolean)) -> Problem_Behavior -> Table ! No_Such_Column | Index_Out_Of_Bounds | Invalid_Value_Type
+    filter self column (filter : Filter_Condition | (Any -> Boolean) = Filter_Condition.Equal True) on_problems=Report_Warning = case column of
         _ : Column ->
             mask filter_column = Table.Value (self.java_table.mask filter_column.java_column)
             case filter of
@@ -1567,7 +1568,7 @@ type Table
                  table.set double_inventory new_name="total_stock"
                  table.set "2 * [total_stock]" new_name="total_stock_expr"
     @column Column_Operation.default_widget
-    set : Text | Column -> Text -> Set_Mode -> Problem_Behavior -> Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error
+    set : Text | Column | Constant_Column | Column_Operation -> Text -> Set_Mode -> Problem_Behavior -> Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error
     set self column:(Text | Column | Constant_Column | Column_Operation) (new_name : Text = "") (set_mode : Set_Mode = Set_Mode.Add_Or_Update) (on_problems : Problem_Behavior = Report_Warning) =
         problem_builder = Problem_Builder.new
         unique = self.column_naming_helper.create_unique_name_strategy
@@ -1839,7 +1840,8 @@ type Table
                 self.java_table.crossJoin right.java_table right_prefix java_aggregator
             Table.Value new_java_table
 
-    ## Replaces values in this table by values from a lookup table.
+    ## GROUP Standard.Base.Calculations
+       Replaces values in this table by values from a lookup table.
        New values are looked up in the lookup table based on the `key_columns`.
        Columns found in the lookup table values are replaced by values from the
        lookup. Columns not found are left unchanged.
@@ -2082,7 +2084,7 @@ type Table
          retyped to the `Mixed` type to indicate that intention. Note that the
          `Mixed` type may not be supported by most Database backends.
     union : (Table | Vector Table) -> Match_Columns -> Boolean | Report_Unmatched -> Boolean -> Problem_Behavior -> Table
-    union self tables:Vector|Table match_columns=Match_Columns.By_Name keep_unmatched_columns=Report_Unmatched allow_type_widening=True on_problems=Report_Warning =
+    union self tables:(Table | Vector) match_columns=Match_Columns.By_Name keep_unmatched_columns=Report_Unmatched allow_type_widening=True on_problems=Report_Warning =
         all_tables = case tables of
             v : Vector -> [self] + (v.map t-> Table.from t)
             single_table -> [self, single_table]
@@ -2105,15 +2107,15 @@ type Table
        Remove rows which are all blank or containing blank values.
 
        Arguments:
-       - when: If Blank_Selector.Any_Cell_Blank, then remove any row containing
+       - when: If Blank_Selector.Any_Cell, then remove any row containing
         any blank values.
-         If Blank_Selector.All_Cells_Blank, then only remove rows with all blank values.
+         If Blank_Selector.All_Cells, then only remove rows with all blank values.
        - treat_nans_as_blank: If `True`, then `Number.nan` is considered as blank.
 
        ? Blank values
          Blank values are `Nothing`, `""` and depending on setting `Number.nan`.
     filter_blank_rows : Blank_Selector -> Boolean -> Table
-    filter_blank_rows self when=Blank_Selector.Any_Cell_Blank treat_nans_as_blank=False =
+    filter_blank_rows self when=Blank_Selector.Any_Cell treat_nans_as_blank=False =
         Table_Helpers.filter_blank_rows self when treat_nans_as_blank
 
     ## ALIAS count

@@ -1485,7 +1485,7 @@ type Column
          unusual events like DST.
     @period Date_Time_Helpers.make_period_selector_for_column
     date_add : (Column | Integer) -> Date_Period | Time_Period -> Column ! Invalid_Value_Type | Illegal_Argument
-    date_add self amount (period : Date_Period|Time_Period = default_date_period self) =
+    date_add self amount (period : Date_Period | Time_Period = default_date_period self) =
         Value_Type.expect_type self .is_date_or_time "date/time" <|
             my_type = self.inferred_precise_value_type
             Value_Type.expect_integer amount <|
@@ -1774,7 +1774,8 @@ type Column
                 new_storage = self.java_column.getStorage.cast target_storage_type cast_problem_builder
                 Column.from_storage self.name new_storage
 
-    ## Change the value type of the column to a more specific one, based on its
+    ## GROUP Standard.Base.Conversions
+       Change the value type of the column to a more specific one, based on its
        contents.
 
        Arguments:
@@ -1845,7 +1846,7 @@ type Column
         new_st = self.to_vector.map new_fn
         Column.from_vector self.name new_st value_type=expected_value_type
 
-    ## ALIAS combine, merge, join by row position
+    ## ALIAS combine, join by row position, merge
 
        Applies `function` to consecutive pairs of elements of `self` and `that`
        and returns a column of results.
@@ -1989,7 +1990,7 @@ type Column
        - warn_if_more_rows: if set to `True`, a warning is attached to the
          result if the number of rows returned by the query exceeds `max_rows`.
     read : (Nothing | Integer) -> Boolean -> Column
-    read self (max_rows : Integer | Nothing = Nothing) (warn_if_more_rows:Boolean = True) =
+    read self (max_rows : Nothing | Integer = Nothing) (warn_if_more_rows:Boolean = True) =
         if max_rows.is_nothing then self else
             self.to_table.read max_rows warn_if_more_rows . at 0
 
@@ -2121,7 +2122,7 @@ type Column
             sorted = self.to_vector.sort order by=wrapped
             Column.from_vector self.name sorted
 
-    ## ALIAS first, last, slice, sample
+    ## ALIAS first, last, sample, slice
        GROUP Standard.Base.Selections
        Creates a new Column with the specified range of rows from the input
        Column.

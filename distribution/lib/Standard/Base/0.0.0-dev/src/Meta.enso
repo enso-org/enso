@@ -634,7 +634,7 @@ type Instrumentor
        - fn: The callback function accepting UUID and computed value
        - expression: Expression to evaluate on_return - by default Nothing -
          e.g. to provide the return value of the function
-    on_return self (fn : Text -> Any -> Nothing) (expression : Text|Nothing)=Nothing =
+    on_return self (fn : Text -> Any -> Nothing) expression:(Text | Nothing)=Nothing =
         new = instrumentor_builtin "onReturn" [ self.impl, fn, expression ]
         Instrumentor.Value new
 

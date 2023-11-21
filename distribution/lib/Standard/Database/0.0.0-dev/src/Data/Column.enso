@@ -100,7 +100,7 @@ type Column
        - warn_if_more_rows: if set to `True`, a warning is attached to the
          result if the number of rows returned by the query exceeds `max_rows`.
     read : (Nothing | Integer) -> Boolean -> Materialized_Column
-    read self (max_rows : Integer | Nothing = 1000) (warn_if_more_rows:Boolean = True) =
+    read self (max_rows : Nothing | Integer = 1000) (warn_if_more_rows:Boolean = True) =
         self.to_table.read max_rows warn_if_more_rows . at 0
 
     ## GROUP Standard.Base.Conversions
@@ -1108,7 +1108,7 @@ type Column
     sort self order=Sort_Direction.Ascending =
         self.to_table.order_by [Sort_Column.Index 0 order] . at 0
 
-    ## ALIAS first, last, slice, sample
+    ## ALIAS first, last, sample, slice
        GROUP Standard.Base.Selections
        Creates a new Column with the specified range of rows from the input
        Column.
@@ -1417,7 +1417,7 @@ type Column
          unusual events like DST.
     @period Date_Time_Helpers.make_period_selector_for_column
     date_add : (Column | Integer) -> Date_Period | Time_Period -> Column ! Invalid_Value_Type | Illegal_Argument
-    date_add self amount (period : Date_Period|Time_Period = default_date_period self) =
+    date_add self amount (period : Date_Period | Time_Period = default_date_period self) =
         Value_Type.expect_type self .is_date_or_time "date/time" <|
             my_type = self.inferred_precise_value_type
             Value_Type.expect_integer amount <|
@@ -1602,7 +1602,8 @@ type Column
         check_cast_compatibility self.value_type value_type <|
             self.internal_do_cast value_type on_problems
 
-    ## Change the value type of the column to a more specific one, based on its
+    ## GROUP Standard.Base.Conversions
+       Change the value type of the column to a more specific one, based on its
        contents.
 
        This operation is currently not available in the Database backend.
@@ -1657,7 +1658,7 @@ type Column
         _ = [function, skip_nothing, expected_value_type]
         Error.throw <| Unsupported_Database_Operation.Error "`Column.map` is not supported in the Database backends."
 
-    ## ALIAS combine, merge, join by row position
+    ## ALIAS combine, join by row position, merge
 
        Applies `function` to consecutive pairs of elements of `self` and `that`
        and returns a column of results.

@@ -141,13 +141,14 @@ type URI
     query : Text | Nothing
     query self = self.internal_uri.getQuery
 
-    ## Adds a query parameter to the URI
+    ## GROUP Calculations
+       Adds a query parameter to the URI
 
        Arguments:
        - key: The key of the query parameter.
        - value: The value of the query parameter.
     add_query_argument : Text -> Text | Enso_Secret -> URI
-    add_query_argument self key:Text value:(Text|Enso_Secret) =
+    add_query_argument self key:Text value:(Text | Enso_Secret) =
         URI_With_Query.Value self [Pair.new key value]
 
     ## Get the fragment part of this URI.

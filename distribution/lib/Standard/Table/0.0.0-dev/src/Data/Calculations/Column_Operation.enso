@@ -122,7 +122,7 @@ type Column_Operation
 
     ## PRIVATE
        Create a widget for operation
-    default_widget : Table_Ref -> Widget
+    default_widget : Table_Ref -> Display -> Widget
     default_widget table:Table_Ref display=Display.Always =
         col_refs = Widget_Helpers.make_column_ref_by_name_selector table
         filter_cond = Widget_Helpers.make_filter_condition_selector table

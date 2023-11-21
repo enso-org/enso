@@ -210,7 +210,8 @@ type JS_Object
     to_default_visualization_data self =
         render self
 
-    ## Creates an Enso object from the JS_Object.
+    ## GROUP Conversions
+       Creates an Enso object from the JS_Object.
     into : Any -> Any
     into self target_type = case target_type of
         JS_Object -> self

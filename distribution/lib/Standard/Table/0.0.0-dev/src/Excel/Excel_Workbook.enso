@@ -209,5 +209,5 @@ type Excel_Workbook
        - name: the name of the worksheet to read.
     @name (self-> Single_Choice display=Display.Always values=(self.sheet_names.map t-> Option t t.pretty))
     sheet : Text | Integer -> Table
-    sheet self name:(Text|Integer) =
+    sheet self name:(Text | Integer) =
         self.read_section (Excel_Section.Worksheet name 0 Nothing)

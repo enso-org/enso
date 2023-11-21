@@ -89,8 +89,8 @@ type Vector a
        > Example
          Turn a list into a vector.
              Vector.collect (List.Cons 1 <| List.Cons 2 <| List.Nil) .x .xs stop_at=(_==List.Nil)
-    collect : Any -> (Any -> Any) -> (Any -> Any) -> Integer | Nothing -> ((Any -> Boolean) | Nothing) -> Vector Any
-    collect seq element:(Any -> Any) next:(Any->Any) limit:(Integer|Nothing)=Nothing stop_at:(Any->Boolean)=(_==Nothing) =
+    collect : Any -> (Any -> Any) -> (Any -> Any) -> Integer | Nothing -> (Any -> Boolean) -> Vector Any
+    collect seq element:(Any -> Any) next:(Any -> Any) limit:(Integer | Nothing)=Nothing stop_at:(Any -> Boolean)=(_==Nothing) =
         b = Vector.new_builder (if limit.is_nothing then 10 else limit)
         iterate item remaining = if remaining == 0 || (stop_at item) then b.to_vector else
             b.append <| element item
@@ -722,8 +722,8 @@ type Vector a
          Concatenate two single-element vectors.
 
              [1] + [2]
-    + : Vector Any -> Vector Any
-    + self that:(Array|Vector) = case that of
+    + : Vector Any | Array -> Vector Any
+    + self that:(Vector | Array) = case that of
         _ : Vector -> Vector.insert_builtin self self.length that
         _ : Array -> self + Vector.from_polyglot_array that
 
