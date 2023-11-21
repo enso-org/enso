@@ -16,27 +16,13 @@ output will be printed:
 [Graal DAP] Starting server and listening on /127.0.0.1:4711
 ```
 
-In VSCode, create a new
+There is a
 [Launch configuration](https://code.visualstudio.com/docs/editor/debugging#_launch-configurations)
-of type `node`, for example your `launch.json` could look like:
-
-\```json
-{
-    "configurations": [
-        {
-            "name": "Enso debug",
-            "type": "node",
-            "debugServer": 4711,
-            "request": "attach"
-          }
-    ]
-}
-\```
-
-Then you can start debugging via
-[Run and Debug view](https://code.visualstudio.com/docs/editor/debugging#_run-and-debug-view) by selecting the `Enso debug` configuration and pressing play:
+in the repository in
+[.vscode/launch.json](https://github.com/enso-org/enso/blob/a123cd0d9f4b04d05aae7a5231efba554062188f/.vscode/launch.json#L13-L16)
+with name `Debug Adapter Protocol`, you can start debugging via
+[Run and Debug view](https://code.visualstudio.com/docs/editor/debugging#_run-and-debug-view)
+by selecting the `Debug adapter protocol` configuration and pressing play:
 ![image](https://github.com/enso-org/enso/assets/1436948/b939e2a8-7d8e-4286-b7d3-61fbfbd99ce6)
-
-
 
 Note that the port 4711 is the default port for DAP.
