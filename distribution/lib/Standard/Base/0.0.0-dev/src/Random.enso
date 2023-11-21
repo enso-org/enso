@@ -43,7 +43,7 @@ type Random
              rng = Random.oew_generator 42
              i = rng.integer 0 10
     new_generator : Integer | Nothing -> Random_Generator
-    new_generator (seed:Integer | Nothing=Nothing) = Random_Generator.new seed
+    new_generator seed:(Integer | Nothing)=Nothing = Random_Generator.new seed
 
     ## GROUP Random
        TEXT_ONLY

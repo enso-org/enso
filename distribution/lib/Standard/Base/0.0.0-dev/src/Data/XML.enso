@@ -211,7 +211,7 @@ type XML_Element
             xpath = XPathFactory.newInstance.newXPath
             only_wanted_nodes (xpath.evaluate key self.java_element XPathConstants.NODESET)
 
-    ## GROUP Metadata
+    ## GROUP Selections
        Gets the child elements of an XML element.
 
        `children` only returns child elements and child text nodes that are not
@@ -238,7 +238,7 @@ type XML_Element
     child_count : Integer ! XML_Error
     child_count self = self.children_cache.length
 
-    ## GROUP Metadata
+    ## GROUP Selections
        Get an attribute of an XML element.
 
        Arguments:
@@ -257,8 +257,8 @@ type XML_Element
             attr = self.java_element.getAttributeNode name
             if attr.is_nothing then if_missing else attr.getValue
 
-    ## GROUP Metadata
-       Gets a map containing f the attributes of an XML element.
+    ## GROUP Selections
+       Gets a map containing of the attributes of an XML element.
 
        > Example
            XML_Document.from_text '<foo bar="one">hello</foo>' . root_element . attributes
