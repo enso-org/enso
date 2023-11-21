@@ -4,6 +4,7 @@ import CircularMenu from '@/components/CircularMenu.vue'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import NodeWidgetTree from '@/components/GraphEditor/NodeWidgetTree.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
+import { useDoubleClick } from '@/composables/doubleClick'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { useGraphStore, type Node } from '@/stores/graph'
 import { useApproach } from '@/util/animation'
@@ -193,27 +194,12 @@ function getRelatedSpanOffset(domNode: globalThis.Node, domOffset: number): numb
   return 0
 }
 
-const timeBetweenClicks = 200
-let lastClickTime = 0
-let clickCount = 0
-let singleClickTimer: ReturnType<typeof setTimeout>
-function handlePortClick() {
-  clickCount++
-  if (clickCount === 1) {
-    singleClickTimer = setTimeout(function () {
-      clickCount = 0
-      // If within proper time range, consider it as fast clicks
-      if (Date.now() - lastClickTime >= timeBetweenClicks) {
-        emit('outputPortClick')
-      }
-      lastClickTime = Date.now()
-    }, timeBetweenClicks)
-  } else if (clickCount === 2) {
-    clearTimeout(singleClickTimer)
-    clickCount = 0
+const handlePortClick = useDoubleClick(
+  () => emit('outputPortClick'),
+  () => {
     emit('outputPortDoubleClick')
-  }
-}
+  },
+).handleClick
 </script>
 
 <template>
@@ -268,7 +254,7 @@ function handlePortClick() {
         class="outputPortHoverArea"
         @pointerenter="outputHovered = true"
         @pointerleave="outputHovered = false"
-        @pointerdown="handlePortClick"
+        @pointerdown="handlePortClick()"
       />
       <rect class="outputPort" />
       <text class="outputTypeName">{{ outputTypeName }}</text>
