@@ -58,7 +58,8 @@ const name = computed<Opt<QualifiedName>>(() => {
 // === Breadcrumbs ===
 
 const color = computed(() => {
-  const groupIndex = db.entries.get(props.selectedEntry)?.groupIndex
+  const groupIndex =
+    props.selectedEntry != null ? db.entries.get(props.selectedEntry)?.groupIndex : undefined
   return groupColorStyle(tryGetIndex(db.groups, groupIndex))
 })
 
@@ -104,7 +105,7 @@ function handleBreadcrumbClick(index: number) {
   if (name.value) {
     const qName = qnSlice(name.value, 0, index + 2)
     if (qName.ok) {
-      const [id] = db.entries.nameToId.lookup(qName.value)
+      const [id] = db.entries.nameToSuggestionId.lookup(qName.value)
       if (id) {
         historyStack.record(id)
       }
