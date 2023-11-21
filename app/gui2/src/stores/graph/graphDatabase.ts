@@ -238,15 +238,13 @@ export class GraphDb {
     this.nodes.moveToLast(id)
   }
 
-  getNodeWidth(node: Node) {
-    // FIXME [sb]: This should take into account the width of all widgets.
-    // This will require a recursive traversal of the `Node`'s children.
-    return getTextWidth(node.rootSpan.repr(), '11.5px', '"M PLUS 1", sans-serif') * 1.2
-  }
-
   readFunctionAst(
     functionAst: AstExtended<Ast.Tree.Function>,
     getMeta: (id: ExprId) => NodeMetadata | undefined,
+    getWidth: (node: Node) => number = (node: Node) =>
+      // FIXME [ao]: This should take into account the width of all widgets. Probably
+      //   the better solution is to layout nodes once rendered (and all sizes are known).
+      getTextWidth(node.rootSpan.repr(), '11.5px', '"M PLUS 1", sans-serif') * 1.2,
   ) {
     const currentNodeIds = new Set<ExprId>()
     const nodeRectMap = new Map<ExprId, Rect>()
@@ -274,10 +272,7 @@ export class GraphDb {
         }
         if (!nodeMeta) {
           numberOfUnpositionedNodes += 1
-          maxUnpositionedNodeWidth = Math.max(
-            maxUnpositionedNodeWidth,
-            this.getNodeWidth(node ?? newNode),
-          )
+          maxUnpositionedNodeWidth = Math.max(maxUnpositionedNodeWidth, getWidth(node ?? newNode))
         } else {
           this.assignUpdatedMetadata(node ?? newNode, nodeMeta)
           nodeRectMap.set(
@@ -285,7 +280,7 @@ export class GraphDb {
             Rect.FromBounds(
               nodeMeta.x,
               nodeMeta.y,
-              nodeMeta.x + this.getNodeWidth(node ?? newNode),
+              nodeMeta.x + getWidth(node ?? newNode),
               nodeMeta.y + theme.node.height,
             ),
           )
@@ -319,7 +314,7 @@ export class GraphDb {
       const meta = getMeta(nodeId)
       if (meta) continue
       const node = this.nodes.get(nodeId)!
-      const size = new Vec2(this.getNodeWidth(node), theme.node.height)
+      const size = new Vec2(getWidth(node), theme.node.height)
       const position = new Vec2(
         rectsPosition.x,
         rectsPosition.y + (theme.node.height + theme.node.vertical_gap) * nodeIndex,

@@ -38,9 +38,13 @@ test('Reading graph from definition', () => {
     else return undefined
   })
   assert(func?.isTree(Ast.Tree.Type.Function))
-  db.readFunctionAst(func, (_) => {
-    return { x: 0.0, y: 0.0, vis: null }
-  })
+  db.readFunctionAst(
+    func,
+    (_) => {
+      return { x: 0.0, y: 0.0, vis: null }
+    },
+    (_) => 100.0,
+  )
 
   expect(Array.from(db.allNodeIds())).toEqual([id04, id08])
   expect(db.getExpressionNodeId(id04)).toBe(id04)

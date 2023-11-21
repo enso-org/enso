@@ -26,11 +26,15 @@ export type OnDelete = (cleanupFn: () => void) => void
  * @typeParam K - The key type for the database entries.
  * @typeParam V - The value type for the database entries.
  */
-export class ReactiveDb<K, V> extends ObservableV2<{
-  entryAdded(key: K, value: V, onDelete: OnDelete): void
-}> {
+export class ReactiveDb<K, V>
+  extends ObservableV2<{
+    entryAdded(key: K, value: V, onDelete: OnDelete): void
+  }>
+  implements Iterable<[K, V]>
+{
   _internal: Map<K, V>
-  onDelete: Map<K, Set<() => void>>
+  onDelete: Map<K, Set<() => void>>;
+  [Symbol.iterator] = this.entries
 
   constructor() {
     super()
