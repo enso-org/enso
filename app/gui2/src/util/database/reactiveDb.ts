@@ -9,7 +9,6 @@
  */
 
 import { LazySyncEffectSet } from '@/util/reactivity'
-// eslint-disable-next-line vue/prefer-import-from-vue
 import * as map from 'lib0/map'
 import { ObservableV2 } from 'lib0/observable'
 import * as set from 'lib0/set'
