@@ -93,11 +93,9 @@ export default function Dashboard(props: DashboardProps) {
 
     React.useEffect(() => {
         unsetModal()
-        if (page === pageSwitcher.Page.editor) {
-            document.body.style.cursor = 'none'
-        } else {
-            document.body.style.cursor = 'auto'
-        }
+        // FIXME [sb]: https://github.com/enso-org/cloud-v2/issues/777
+        // Workarounds for GUI1 should be removed when they are no longer necessary.
+        document.body.style.cursor = page === pageSwitcher.Page.editor ? 'none' : 'auto'
     }, [page, /* should never change */ unsetModal])
 
     React.useEffect(() => {
@@ -153,19 +151,29 @@ export default function Dashboard(props: DashboardProps) {
                         void (async () => {
                             const abortController = new AbortController()
                             setOpenProjectAbortController(abortController)
-                            await remoteBackendModule.waitUntilProjectIsReady(
-                                remoteBackend,
-                                savedProjectStartupInfo.projectAsset,
-                                abortController
+                            const oldProject = await backend.getProjectDetails(
+                                savedProjectStartupInfo.projectAsset.id,
+                                savedProjectStartupInfo.projectAsset.title
                             )
-                            if (!abortController.signal.aborted) {
-                                const project = await remoteBackend.getProjectDetails(
-                                    savedProjectStartupInfo.projectAsset.id,
-                                    savedProjectStartupInfo.projectAsset.title
+                            if (
+                                backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[
+                                    oldProject.state.type
+                                ]
+                            ) {
+                                await remoteBackendModule.waitUntilProjectIsReady(
+                                    remoteBackend,
+                                    savedProjectStartupInfo.projectAsset,
+                                    abortController
                                 )
-                                setProjectStartupInfo({ ...savedProjectStartupInfo, project })
-                                if (page === pageSwitcher.Page.editor) {
-                                    setPage(page)
+                                if (!abortController.signal.aborted) {
+                                    const project = await remoteBackend.getProjectDetails(
+                                        savedProjectStartupInfo.projectAsset.id,
+                                        savedProjectStartupInfo.projectAsset.title
+                                    )
+                                    setProjectStartupInfo({ ...savedProjectStartupInfo, project })
+                                    if (page === pageSwitcher.Page.editor) {
+                                        setPage(page)
+                                    }
                                 }
                             }
                         })()
