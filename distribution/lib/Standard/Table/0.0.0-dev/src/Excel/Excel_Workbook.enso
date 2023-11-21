@@ -13,6 +13,7 @@ import project.Excel.Excel_Section.Excel_Section
 import project.Internal.Excel_Reader
 import project.Internal.Java_Problems
 
+polyglot java import java.io.File as Java_File
 polyglot java import org.apache.poi.ss.usermodel.Workbook
 polyglot java import org.enso.table.read.ExcelReader
 
@@ -29,8 +30,8 @@ type Excel_Workbook
     new file xls_format=False headers=Infer =
         file_obj = File.new file . normalize
         File_Error.handle_java_exceptions file_obj <| Excel_Reader.handle_bad_format file_obj <|
-            file_obj.with_input_stream [File_Access.Read] stream->
-                Excel_Workbook.from_stream stream xls_format headers file_obj
+            java_file = Java_File.new file_obj.path
+            Excel_Workbook.Value (ExcelReader.getWorkbook java_file xls_format) file_obj xls_format headers
 
     ## PRIVATE
        ADVANCED
@@ -44,7 +45,7 @@ type Excel_Workbook
     from_stream : Input_Stream -> Boolean -> Boolean | Infer -> File | Nothing -> Excel_Workbook
     from_stream stream xls_format=False headers=Infer file=Nothing = Excel_Reader.handle_bad_format file <|
         stream.with_java_stream java_stream->
-            workbook = ExcelReader.readWorkbook java_stream xls_format
+            workbook = ExcelReader.getWorkbook java_stream xls_format
             Excel_Workbook.Value workbook file xls_format headers
 
     ## PRIVATE

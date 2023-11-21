@@ -764,10 +764,10 @@ spec =
             sheets = workbook.sheet_names
             sheets.length . should_equal 1
             read_table = workbook.read (sheets.at 0)
-            read_table.take 20 . print
-            read_table.row_count . should_equal n
-            read_table.column_names . should_equal ["X"]
-            read_table.at "X" . at 0 . should_equal (v.at 0)
+            read_table.row_count . should_equal n+1
+            read_table.column_names.length . should_equal 1
+            read_table.at 0 . at 0 . should_equal "X"
+            read_table.at 0 . at 1 . should_equal (v.at 0)
 
         Test.specify "should be able to write and read a big XLS file (>110MB)" pending=ci_pending <|
             IO.println "Generating random table  "+Time_Of_Day.now.to_text

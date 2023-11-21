@@ -1,12 +1,15 @@
 package org.enso.table.read;
 
 import java.io.IOException;
-import java.io.InputStream;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
+import org.apache.poi.poifs.filesystem.POIFSFileSystem;
 import org.apache.poi.ss.usermodel.Name;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.util.CellReference;
@@ -25,31 +28,22 @@ import org.enso.table.excel.ExcelSheet;
 import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 
-/** A table reader for MS Excel files. */
+/**
+ * A table reader for MS Excel files.
+ */
 public class ExcelReader {
-  /**
-   * Loads a workbook (either XLSX or XLS format from the specified input stream.
-   *
-   * @param stream an {@link InputStream} allowing to read the XLS(X) file contents.
-   * @param xls_format specifies whether the file is in Excel Binary Format (95-2003 format).
-   * @return a {@link Workbook} containing the specified data.
-   * @throws IOException - when the input stream cannot be read.
-   */
-  public static Workbook readWorkbook(InputStream stream, boolean xls_format) throws IOException {
-    return getWorkbook(stream, xls_format);
-  }
-
   /**
    * Reads a list of sheet names for the specified XLSX/XLS file into an array.
    *
-   * @param stream an {@link InputStream} allowing to read the XLS(X) file contents.
+   * @param file the {@link File} to load
    * @param xls_format specifies whether the file is in Excel Binary Format (95-2003 format).
    * @return a String[] containing the sheet names.
    * @throws IOException when the input stream cannot be read.
    */
-  public static String[] readSheetNames(InputStream stream, boolean xls_format) throws IOException {
-    Workbook workbook = getWorkbook(stream, xls_format);
-    return readSheetNames(workbook);
+  public static String[] readSheetNames(File file, boolean xls_format) throws IOException, InvalidFormatException {
+    try (Workbook workbook = getWorkbook(file, xls_format)) {
+      return readSheetNames(workbook);
+    }
   }
 
   /**
@@ -72,14 +66,15 @@ public class ExcelReader {
   /**
    * Reads a list of range names for the specified XLSX/XLS file into an array.
    *
-   * @param stream an {@link InputStream} allowing to read the XLSX file contents.
+   * @param file the {@link File} to load
    * @param xls_format specifies whether the file is in Excel Binary Format (95-2003 format).
    * @return a String[] containing the range names.
    * @throws IOException when the input stream cannot be read.
    */
-  public static String[] readRangeNames(InputStream stream, boolean xls_format) throws IOException {
-    Workbook workbook = getWorkbook(stream, xls_format);
-    return readRangeNames(workbook);
+  public static String[] readRangeNames(File file, boolean xls_format) throws IOException, InvalidFormatException {
+    try (Workbook workbook = getWorkbook(file, xls_format)) {
+      return readRangeNames(workbook);
+    }
   }
 
   /**
@@ -96,106 +91,106 @@ public class ExcelReader {
   /**
    * Reads a sheet by name for the specified XLSX/XLS file into a table.
    *
-   * @param stream an {@link InputStream} allowing to read the XLSX file contents.
+   * @param file the {@link File} to load
    * @param sheetName the name of the sheet to read.
    * @param skip_rows skip rows from the top the sheet.
    * @param row_limit maximum number of rows to read.
    * @param xls_format specifies whether the file is in Excel Binary Format (95-2003 format).
    * @return a {@link Table} containing the specified data.
-   * @throws IOException when the input stream cannot be read.
+   * @throws IOException              when the input stream cannot be read.
    * @throws InvalidLocationException when the sheet name is not found.
    */
   public static Table readSheetByName(
-      InputStream stream,
+      File file,
       String sheetName,
       ExcelHeaders.HeaderBehavior headers,
       int skip_rows,
       Integer row_limit,
       boolean xls_format,
       ProblemAggregator problemAggregator)
-      throws IOException, InvalidLocationException {
-    Workbook workbook = getWorkbook(stream, xls_format);
+      throws IOException, InvalidLocationException, InvalidFormatException {
+    try (Workbook workbook = getWorkbook(file, xls_format)) {
 
-    int sheetIndex = workbook.getSheetIndex(sheetName);
-    if (sheetIndex == -1) {
-      throw new InvalidLocationException("Unknown sheet '" + sheetName + "'.");
+      int sheetIndex = workbook.getSheetIndex(sheetName);
+      if (sheetIndex == -1) {
+        throw new InvalidLocationException("Unknown sheet '" + sheetName + "'.");
+      }
+
+      return readTable(
+          workbook,
+          sheetIndex,
+          null,
+          headers,
+          skip_rows,
+          row_limit == null ? Integer.MAX_VALUE : row_limit,
+          problemAggregator);
     }
-
-    return readTable(
-        workbook,
-        sheetIndex,
-        null,
-        headers,
-        skip_rows,
-        row_limit == null ? Integer.MAX_VALUE : row_limit,
-        problemAggregator);
   }
 
   /**
    * Reads a sheet by index for the specified XLSX/XLS file into a table.
    *
-   * @param stream an {@link InputStream} allowing to read the XLSX file contents.
+   * @param file the {@link File} to load
    * @param index the 1-based index to the sheet.
    * @param skip_rows skip rows from the top the sheet.
    * @param row_limit maximum number of rows to read.
    * @param xls_format specifies whether the file is in Excel Binary Format (95-2003 format).
    * @return a {@link Table} containing the specified data.
-   * @throws IOException when the input stream cannot be read.
+   * @throws IOException              when the input stream cannot be read.
    * @throws InvalidLocationException when the sheet index is not valid.
    */
   public static Table readSheetByIndex(
-      InputStream stream,
+      File file,
       int index,
       ExcelHeaders.HeaderBehavior headers,
       int skip_rows,
       Integer row_limit,
       boolean xls_format,
       ProblemAggregator problemAggregator)
-      throws IOException, InvalidLocationException {
-    Workbook workbook = getWorkbook(stream, xls_format);
+      throws IOException, InvalidLocationException, InvalidFormatException {
+    try (Workbook workbook = getWorkbook(file, xls_format)) {
+      int sheetCount = workbook.getNumberOfSheets();
+      if (index < 1 || index > sheetCount) {
+        throw new InvalidLocationException(
+            "Sheet index is not in valid range (1 to " + sheetCount + " inclusive).");
+      }
 
-    int sheetCount = workbook.getNumberOfSheets();
-    if (index < 1 || index > sheetCount) {
-      throw new InvalidLocationException(
-          "Sheet index is not in valid range (1 to " + sheetCount + " inclusive).");
+      return readTable(
+          workbook,
+          index - 1,
+          null,
+          headers,
+          skip_rows,
+          row_limit == null ? Integer.MAX_VALUE : row_limit,
+          problemAggregator);
     }
-
-    return readTable(
-        workbook,
-        index - 1,
-        null,
-        headers,
-        skip_rows,
-        row_limit == null ? Integer.MAX_VALUE : row_limit,
-        problemAggregator);
   }
 
   /**
-   * Reads a range by sheet name, named range or address for the specified XLSX/XLS file into a
-   * table.
+   * Reads a range by sheet name, named range or address for the specified XLSX/XLS file into a table.
    *
-   * @param stream an {@link InputStream} allowing to read the XLSX file contents.
+   * @param file the {@link File} to load
    * @param rangeNameOrAddress sheet name, range name or address to read.
    * @param headers specifies whether the first row should be used as headers.
    * @param skip_rows skip rows from the top of the range.
    * @param row_limit maximum number of rows to read.
    * @param xls_format specifies whether the file is in Excel Binary Format (95-2003 format).
    * @return a {@link Table} containing the specified data.
-   * @throws IOException when the input stream cannot be read.
+   * @throws IOException              when the input stream cannot be read.
    * @throws InvalidLocationException when the range name or address is not found.
    */
   public static Table readRangeByName(
-      InputStream stream,
+      File file,
       String rangeNameOrAddress,
       ExcelHeaders.HeaderBehavior headers,
       int skip_rows,
       Integer row_limit,
       boolean xls_format,
       ProblemAggregator problemAggregator)
-      throws IOException, InvalidLocationException {
-    Workbook workbook = getWorkbook(stream, xls_format);
-    return readRangeByName(
-        workbook, rangeNameOrAddress, headers, skip_rows, row_limit, problemAggregator);
+      throws IOException, InvalidLocationException, InvalidFormatException {
+    try (Workbook workbook = getWorkbook(file, xls_format)) {
+      return readRangeByName(workbook, rangeNameOrAddress, headers, skip_rows, row_limit, problemAggregator);
+    }
   }
 
   /**
@@ -245,7 +240,7 @@ public class ExcelReader {
   /**
    * Reads a range for the specified XLSX/XLS file into a table.
    *
-   * @param stream an {@link InputStream} allowing to read the XLSX file contents.
+   * @param file the {@link File} to load
    * @param excelRange the range to read.
    * @param skip_rows skip rows from the top of the range.
    * @param row_limit maximum number of rows to read.
@@ -254,33 +249,46 @@ public class ExcelReader {
    * @throws IOException when the input stream cannot be read.
    */
   public static Table readRange(
-      InputStream stream,
+      File file,
       ExcelRange excelRange,
       ExcelHeaders.HeaderBehavior headers,
       int skip_rows,
       Integer row_limit,
       boolean xls_format,
       ProblemAggregator problemAggregator)
-      throws IOException, InvalidLocationException {
-    return readRange(
-        getWorkbook(stream, xls_format),
-        excelRange,
-        headers,
-        skip_rows,
-        row_limit,
-        problemAggregator);
+      throws IOException, InvalidLocationException, InvalidFormatException {
+    try (Workbook workbook = getWorkbook(file, xls_format)) {
+      return readRange(
+          workbook,
+          excelRange,
+          headers,
+          skip_rows,
+          row_limit,
+          problemAggregator);
+    }
   }
 
   /**
-   * Load a workbook into memory from an InputStream.
+   * Open a workbook.
    *
-   * @param stream an {@link InputStream} allowing to read the XLSX file contents.
+   * @param file the {@link File} to load
    * @param xls_format specifies whether the file is in Excel Binary Format (95-2003 format).
    * @return a {@link Workbook} containing the specified data.
    * @throws IOException when the input stream cannot be read or an incorrect format occurs.
    */
-  public static Workbook getWorkbook(InputStream stream, boolean xls_format) throws IOException {
-    return xls_format ? new HSSFWorkbook(stream) : new XSSFWorkbook(stream);
+  public static Workbook getWorkbook(File file, boolean xls_format) throws IOException, InvalidFormatException {
+    if (xls_format) {
+      POIFSFileSystem fs = new POIFSFileSystem(file);
+      try {
+        // If the initialization succeeds, the POIFSFileSystem will be closed by the HSSFWorkbook::close.
+        return new HSSFWorkbook(fs);
+      } catch (Exception e) {
+        fs.close();
+        throw e;
+      }
+    } else {
+      return new XSSFWorkbook(file);
+    }
   }
 
   private static Table readRange(
@@ -321,10 +329,10 @@ public class ExcelReader {
       ExcelRow currentRow = sheet.get(excelRange.getTopRow());
       if (currentRow == null || currentRow.isEmpty(excelRange.getLeftColumn())) {
         return new Table(
-            new Column[] {
-              new Column(
-                  CellReference.convertNumToColString(excelRange.getLeftColumn() - 1),
-                  new ObjectStorage(new Object[0], 0))
+            new Column[]{
+                new Column(
+                    CellReference.convertNumToColString(excelRange.getLeftColumn() - 1),
+                    new ObjectStorage(new Object[0], 0))
             });
       }
 
@@ -358,8 +366,8 @@ public class ExcelReader {
         wholeRow
             ? new ArrayList<>()
             : IntStream.range(startCol, endCol + 1)
-                .mapToObj(i -> new InferredBuilder(size, problemAggregator))
-                .collect(Collectors.toList());
+            .mapToObj(i -> new InferredBuilder(size, problemAggregator))
+            .collect(Collectors.toList());
 
     // Read Cell Data
     int row = startRow;
