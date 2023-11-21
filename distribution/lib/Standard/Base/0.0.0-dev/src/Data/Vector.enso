@@ -650,7 +650,16 @@ type Vector a
 
              [1, 2, 3].map_with_index (+)
     map_with_index : (Integer -> Any -> Any) -> Vector Any
-    map_with_index self function = Vector.new self.length i-> function i (self.at i)
+    map_with_index self function =
+        Array_Like_Helpers.vector_from_function self.length (i-> function i (self.at i))
+
+    ## PRIVATE
+       Implementation of `map_with_primitive` that
+       uses`vector_from_function_primitive`, which does not do error wrapping,
+       and does not have `on_problems`.
+    map_with_index_primitive : (Any -> Any) -> Vector Any
+    map_with_index_primitive self function =
+        Array_Like_Helpers.vector_from_function_primitive self.length (i-> function i (self.at i))
 
     ## PRIVATE
        ADVANCED

@@ -319,6 +319,12 @@ type_spec name alter = Test.group name <|
         vec.to_text.should_equal "[1, 2, 3, 4]"
         mapped.to_text.should_equal "[1, 4, 9, 16]"
 
+    Test.specify "should allow mapping an operation with index" <|
+        vec = alter [1, 2, 3, 4]
+        mapped = vec.map_with_index i-> x-> x * x * i
+        vec.to_text.should_equal "[1, 2, 3, 4]"
+        mapped.to_text.should_equal "[0, 4, 18, 48]"
+
     Test.specify "should allow flat_mapping an operation, returning a new vector" <|
         vec = alter [1, 2, 0, 3]
         mapped = vec.flat_map n-> Vector.fill n n
@@ -807,6 +813,10 @@ type_spec name alter = Test.group name <|
 
     Test.specify "an error thrown inside map_primitive should fail a test as a My_Error" <|
         alter [10, 20, 30, 40] . map_primitive map_fun . should_fail_with My_Error
+
+    Test.specify "an error thrown inside map_primitive should fail a test as a My_Error" <|
+        map_with_index_fun _ a = if a == 30 then Error.throw (My_Error.Error a) else a+1
+        alter [10, 20, 30, 40] . map_with_index_primitive map_with_index_fun . should_fail_with My_Error
 
     Test.specify "an error thrown inside map and caught (without error parameter) should be wrapped in Map_Error" <|
         alter [10, 20, 30, 40] . map map_fun . catch . should_equal (Map_Error.Error 2 (My_Error.Error 30))

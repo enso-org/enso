@@ -522,6 +522,13 @@ type Array
     map_with_index self function = Vector.map_with_index self function
 
     ## PRIVATE
+       Implementation of `map_with_primitive` that
+       uses`vector_from_function_primitive`, which does not do error wrapping,
+       and does not have `on_problems`.
+    map_with_index_primitive : (Any -> Any) -> Vector Any
+    map_with_index_primitive self function = Vector.map_with_index_primitive self function
+
+    ## PRIVATE
        Creates a new array with the skipping elements until `start` and then
        continuing until `end` index.
 
