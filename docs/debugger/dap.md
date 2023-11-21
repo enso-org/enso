@@ -18,18 +18,25 @@ output will be printed:
 
 In VSCode, create a new
 [Launch configuration](https://code.visualstudio.com/docs/editor/debugging#_launch-configurations)
-of type `node`, for example:
+of type `node`, for example your `launch.json` could look like:
 
-```json
+\```json
 {
-  "name": "Enso debug",
-  "type": "node",
-  "debugServer": 4711,
-  "request": "attach"
+    "configurations": [
+        {
+            "name": "Enso debug",
+            "type": "node",
+            "debugServer": 4711,
+            "request": "attach"
+          }
+    ]
 }
-```
+\```
 
-And start debugging via
-[Run and Debug view](https://code.visualstudio.com/docs/editor/debugging#_run-and-debug-view)
+Then you can start debugging via
+[Run and Debug view](https://code.visualstudio.com/docs/editor/debugging#_run-and-debug-view) by selecting the `Enso debug` configuration and pressing play:
+![image](https://github.com/enso-org/enso/assets/1436948/b939e2a8-7d8e-4286-b7d3-61fbfbd99ce6)
+
+
 
 Note that the port 4711 is the default port for DAP.
