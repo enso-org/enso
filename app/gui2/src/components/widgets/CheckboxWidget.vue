@@ -6,7 +6,13 @@ const emit = defineEmits<{ 'update:modelValue': [modelValue: boolean] }>()
 <template>
   <div
     class="Checkbox r-24"
-    @pointerdown.stop
+    @pointerdown="
+      !$event.ctrlKey &&
+        !$event.shiftKey &&
+        !$event.altKey &&
+        !$event.metaKey &&
+        $event.stopImmediatePropagation()
+    "
     @click="emit('update:modelValue', !props.modelValue)"
   >
     <div :class="{ hidden: !props.modelValue }"></div>

@@ -4,6 +4,7 @@ import CircularMenu from '@/components/CircularMenu.vue'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import NodeWidgetTree from '@/components/GraphEditor/NodeWidgetTree.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
+import VectorWidget from '@/components/widgets/VectorWidget.vue'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { useGraphStore, type Node } from '@/stores/graph'
 import { useApproach } from '@/util/animation'
@@ -230,12 +231,7 @@ function getRelatedSpanOffset(domNode: globalThis.Node, domOffset: number): numb
       @setVisualizationId="emit('setVisualizationId', $event)"
       @setVisualizationVisible="emit('setVisualizationVisible', $event)"
     />
-    <div
-      class="node"
-      @pointerdown.capture="nodeEditHandler"
-      @keydown="nodeEditHandler"
-      v-on="dragPointer.events"
-    >
+    <div class="node" @keydown="nodeEditHandler">
       <SvgIcon class="icon grab-handle" :name="icon"></SvgIcon>
       <NodeWidgetTree :ast="node.rootSpan" />
     </div>

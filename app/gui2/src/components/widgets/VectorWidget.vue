@@ -1,8 +1,14 @@
-<script setup lang="ts" generic="T">
-import { nodeEditBindings } from '@/bindings'
+<script lang="ts">
 import SvgIcon from '@/components/SvgIcon.vue'
+import { defineKeybinds } from '@/util/shortcuts'
 import { ref } from 'vue'
 
+const bindings = defineKeybinds('vector-widget', {
+  dragListItem: ['PointerMain', 'Mod+PointerMain'],
+})
+</script>
+
+<script setup lang="ts" generic="T">
 const props = defineProps<{
   modelValue: T[]
   default: () => T
@@ -14,12 +20,11 @@ const emit = defineEmits<{ 'update:modelValue': [modelValue: T[]] }>()
 
 const dragItem = ref<T>()
 
-const nodeEditHandler = nodeEditBindings.handler({
+const mouseHandler = bindings.handler({
   dragListItem(event) {
     if (!(event instanceof DragEvent)) return
-    console.log('TODO: A list item is being dragged.')
     if (event.dataTransfer) {
-      event.dataTransfer.dropEffect = 'move'
+      event.dataTransfer.effectAllowed = 'move'
       if (dragItem.value && props.toJSON) {
         event.dataTransfer.setData(
           props.dragMimeType ?? 'application/json',
@@ -27,27 +32,57 @@ const nodeEditHandler = nodeEditBindings.handler({
         )
       }
     }
+    console.log('TODO: A list item is being dragged:', event.dataTransfer)
   },
 })
+
+function insertAt<T>(array: T[], index: number, item: T) {
+  array.splice(index, 0, item)
+  return array
+}
 </script>
 
 <template>
-  <div class="VectorWidget" @pointerdown.stop>
-    <TransitionGroup tag="ul" class="items">
-      <li
-        v-for="(item, index) in modelValue"
-        :key="props.getId?.(item) ?? index"
-        draggable="true"
-        class="item"
-        @dragstart="console.log($event), nodeEditHandler($event) && (dragItem = item)"
-      >
-        <slot :item="item"></slot>
-      </li>
-    </TransitionGroup>
+  <div
+    class="VectorWidget"
+    @pointerdown="
+      !$event.shiftKey && !$event.altKey && !$event.metaKey && $event.stopImmediatePropagation()
+    "
+  >
+    <div class="vector-literal literal">
+      <span class="token">[</span>
+      <TransitionGroup tag="ul" class="items">
+        <template v-for="(item, index) in modelValue" :key="props.getId?.(item) ?? index">
+          <li
+            v-if="index !== 0"
+            class="token"
+            @click="
+              emit('update:modelValue', insertAt([...props.modelValue], index, props.default()))
+            "
+          >
+            ,&nbsp;
+          </li>
+          <li
+            class="item"
+            draggable="true"
+            @dragstart="(dragItem = item), mouseHandler($event, false) || (dragItem = undefined)"
+          >
+            <slot :item="item"></slot>
+          </li>
+        </template>
+      </TransitionGroup>
+      <span class="token">]</span>
+    </div>
     <SvgIcon
       class="add-item"
       name="vector_add"
-      @pointerdown.stop
+      @pointerdown="
+        !$event.ctrlKey &&
+          !$event.shiftKey &&
+          !$event.altKey &&
+          !$event.metaKey &&
+          $event.stopImmediatePropagation()
+      "
       @click="emit('update:modelValue', [...props.modelValue, props.default()])"
     />
   </div>
@@ -72,29 +107,21 @@ const nodeEditHandler = nodeEditBindings.handler({
   width: 0;
 }
 
-.items {
+.vector-literal {
   display: flex;
 }
 
-.item::before,
-.item::after {
+ul {
+  display: flex;
+}
+
+.token {
   color: rgb(255 255 255 / 0.33);
   vertical-align: middle;
   align-items: center;
   display: inline-flex;
+  user-select: none;
   height: 24px;
-}
-
-.item:first-child::before {
-  content: '[';
-}
-
-.item::after {
-  content: ',\00a0';
-}
-
-.item:last-child::after {
-  content: ']';
 }
 
 .add-item {
