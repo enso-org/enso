@@ -747,7 +747,7 @@ function abstract_(
       const rhs = tree.rhs ? abstract_(tree.rhs, code, nodesExpected, tokenIds) : null
       const id = nodesExpected.get(spanKey)?.pop()
       if (opr.length === 1 && opr[0]?.node instanceof Tok && opr[0].node.code() === '.') {
-        // Propogate inferred type.
+        // Propagate inferred type.
         const token = { whitespace: opr[0].whitespace, node: opr[0].node }
         node = new PropertyAccess(span, id, lhs, token, rhs)
       } else {
