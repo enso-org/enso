@@ -33,7 +33,7 @@ object JPMSUtils {
     * When invoking the `java` command, these modules need to be put on the module-path.
     */
   val componentModules: Seq[ModuleID] =
-    GraalVM.modules ++ GraalVM.langsPkgs ++ Seq(
+    GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.toolsPkgs ++ Seq(
       "org.slf4j"      % "slf4j-api"       % slf4jVersion,
       "ch.qos.logback" % "logback-classic" % logbackClassicVersion,
       "ch.qos.logback" % "logback-core"    % logbackClassicVersion
