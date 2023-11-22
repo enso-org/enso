@@ -187,7 +187,7 @@ export function requiredImports(db: SuggestionDb, entry: SuggestionEntry): Requi
         : [
             {
               kind: 'Qualified',
-              module: entryQn(entry),
+              module: entry.definedIn,
             },
           ]
     case SuggestionKind.Type: {
@@ -224,23 +224,14 @@ export function requiredImports(db: SuggestionDb, entry: SuggestionEntry): Requi
   }
 }
 
-function getEntryByName(db: SuggestionDb, name: QualifiedName): SuggestionEntry | undefined {
-  if (name) {
-    const [id] = db.nameToId.lookup(name)
-    if (id) {
-      return db.get(id)
-    }
-  }
-}
-
 function selfTypeEntry(db: SuggestionDb, entry: SuggestionEntry): SuggestionEntry | undefined {
   if (entry.memberOf) {
-    return getEntryByName(db, entry.memberOf)
+    return db.getEntryByQualifiedName(entry.memberOf)
   }
 }
 
 function definedInEntry(db: SuggestionDb, entry: SuggestionEntry): SuggestionEntry | undefined {
-  return getEntryByName(db, entry.definedIn)
+  return db.getEntryByQualifiedName(entry.definedIn)
 }
 
 export function requiredImportEquals(left: RequiredImport, right: RequiredImport): boolean {

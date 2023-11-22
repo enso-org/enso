@@ -26,6 +26,13 @@ export class SuggestionDb {
     return []
   })
 
+  getEntryByQualifiedName(name: QualifiedName): SuggestionEntry | undefined {
+    const [id] = this.nameToId.lookup(name)
+    if (id) {
+      return this.get(id)
+    }
+  }
+
   set(id: SuggestionId, entry: SuggestionEntry): void {
     this._internal.set(id, entry)
   }
