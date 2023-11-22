@@ -37,7 +37,7 @@ function updateContent(updates: [range: ContentRange, content: string][]) {
   nodeContent.value = content
 }
 const idMap = new IdMap(yIdMap, text)
-const rootSpan = computed(() => Ast.parse(nodeContent.value)) // TODO: IdMap
+const rootSpan = computed(() => Ast.parse(nodeContent.value))
 
 const node = computed((): Node => {
   return {

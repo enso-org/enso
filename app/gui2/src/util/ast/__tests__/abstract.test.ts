@@ -347,14 +347,14 @@ test.each(cases)('parse/print round trip: %s', (code) => {
   // Get an AST.
   const root = Ast.parse(code)
   // Print AST back to source.
-  const printed = root._print()
+  const printed = Ast.print(root)
   const info1 = printed.info
   expect(printed.code).toEqual(code)
 
   // Re-parse.
   const root1 = Ast.parse(printed)
   // Check that Identities match original AST.
-  // FIXME--Needed for AST edits.
+  // FIXME--Needed for AST edits (#8367).
   /*
   const reprinted = root1.print()
   expect(reprinted.info).toEqual(info1)
@@ -373,7 +373,7 @@ test.each(parseCases)('parse: %s', (testCase) => {
   Ast.forgetAllAsts()
 })
 
-// TODO: Edits
+// TODO: Edits (#8367).
 if (false) {
   test('insert new node', () => {
     const code = 'main =\n    text1 = "foo"\n'
