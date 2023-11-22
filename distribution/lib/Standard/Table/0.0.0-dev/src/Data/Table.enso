@@ -622,6 +622,7 @@ type Table
             Table.new (self.columns.map c-> c.rename (names.at c.name))
 
     ## GROUP Standard.Base.Metadata
+       ICON table_edit
        Returns a new table with the columns renamed based on entries in the
        first row.
 
