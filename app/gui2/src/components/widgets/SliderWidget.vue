@@ -8,7 +8,13 @@ const emit = defineEmits<{ 'update:modelValue': [modelValue: number] }>()
 
 const dragPointer = usePointer((position, event, eventType) => {
   const slider = event.target
-  if (!(slider instanceof HTMLElement)) {
+  if (
+    !(slider instanceof HTMLElement) ||
+    event.ctrlKey ||
+    event.shiftKey ||
+    event.altKey ||
+    event.metaKey
+  ) {
     return
   }
 

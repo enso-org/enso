@@ -15,7 +15,7 @@ const value = computed({
     return props.input.children().filter((child) => child.isTree())
   },
   set(value) {
-    // FIXME: modify list of children
+    console.log('TODO: Update list of children', value)
   },
 })
 </script>
@@ -32,6 +32,9 @@ export const widgetDefinition = defineWidget(AstExtended.isTree([Tree.Type.Array
     v-slot="slotProps"
     v-model="value"
     :default="() => ({}) as never /* FIXME: */"
+    :getId="(item) => item.astId"
+    dragMimeType="application/x-enso-ast-node"
+    :toJSON="(item) => ({ id: item.astId, code: item.repr() })"
     class="WidgetVector"
     contenteditable="false"
   >

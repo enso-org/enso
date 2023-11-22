@@ -1,17 +1,49 @@
 <script setup lang="ts" generic="T">
+import { nodeEditBindings } from '@/bindings'
 import SvgIcon from '@/components/SvgIcon.vue'
+import { ref } from 'vue'
 
-const props = defineProps<{ modelValue: T[]; default: () => T }>()
+const props = defineProps<{
+  modelValue: T[]
+  default: () => T
+  getId?: (item: T) => PropertyKey | undefined
+  dragMimeType?: string
+  toJSON?: (item: T) => unknown
+}>()
 const emit = defineEmits<{ 'update:modelValue': [modelValue: T[]] }>()
+
+const dragItem = ref<T>()
+
+const nodeEditHandler = nodeEditBindings.handler({
+  dragListItem(event) {
+    if (!(event instanceof DragEvent)) return
+    console.log('TODO: A list item is being dragged.')
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = 'move'
+      if (dragItem.value && props.toJSON) {
+        event.dataTransfer.setData(
+          props.dragMimeType ?? 'application/json',
+          JSON.stringify(props.toJSON(dragItem.value)),
+        )
+      }
+    }
+  },
+})
 </script>
 
 <template>
-  <div class="VectorWidget">
-    <ul class="items">
-      <li v-for="(item, index) in modelValue" :key="index" class="item">
+  <div class="VectorWidget" @pointerdown.stop>
+    <TransitionGroup tag="ul" class="items">
+      <li
+        v-for="(item, index) in modelValue"
+        :key="props.getId?.(item) ?? index"
+        draggable="true"
+        class="item"
+        @dragstart="console.log($event), nodeEditHandler($event) && (dragItem = item)"
+      >
         <slot :item="item"></slot>
       </li>
-    </ul>
+    </TransitionGroup>
     <SvgIcon
       class="add-item"
       name="vector_add"
@@ -26,6 +58,18 @@ const emit = defineEmits<{ 'update:modelValue': [modelValue: T[]] }>()
   display: flex;
   gap: 8px;
   align-items: center;
+}
+
+.move,
+.enter-active,
+.leave-active {
+  transition: all 0.5s ease;
+}
+
+.enter-from,
+.leave-to {
+  opacity: 0;
+  width: 0;
 }
 
 .items {

@@ -43,4 +43,5 @@ export const selectionMouseBindings = defineKeybinds('selection', {
 export const nodeEditBindings = defineKeybinds('node-edit', {
   cancel: ['Escape'],
   edit: ['Mod+PointerMain'],
+  dragListItem: ['Shift+PointerMain'],
 })
