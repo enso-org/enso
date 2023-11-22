@@ -29,14 +29,14 @@ spec setup =
             table_builder [a, b, c, d, e, f]
 
         Test.specify "filter_blank_rows should drop rows that contain at least one missing cell" <|
-            d = t0.filter_blank_rows when=Blank_Selector.Any_Cell_Blank
+            d = t0.filter_blank_rows when=Blank_Selector.Any_Cell
             d.row_count . should_equal 1
             d.at "a" . to_vector . should_equal [5]
             d.at "b" . to_vector . should_equal [False]
             d.at "c" . to_vector . should_equal [" "]
 
         Test.specify "filter_blank_rows should drop rows that are all blank" <|
-            d2 = t0.filter_blank_rows when=Blank_Selector.All_Cells_Blank
+            d2 = t0.filter_blank_rows when=Blank_Selector.All_Cells
             d2.at "a" . to_vector . should_equal [0, 1, Nothing, 42, 5]
             d2.at "b" . to_vector . should_equal [True, Nothing, True, False, False]
             d2.at "c" . to_vector . should_equal ["", "foo", "bar", Nothing, " "]
@@ -49,12 +49,12 @@ spec setup =
             t1.row_count . should_equal 3
             t1.at "X" . to_vector . should_equal [Nothing, Nothing, Nothing]
 
-            t2 = t1.filter_blank_rows when=Blank_Selector.Any_Cell_Blank
+            t2 = t1.filter_blank_rows when=Blank_Selector.Any_Cell
             t2.row_count . should_equal 0
             t2.at "X" . to_vector . should_equal []
 
             t3 = table_builder [["X", ["", "", Nothing]]]
-            t4 = t3.filter_blank_rows when=Blank_Selector.All_Cells_Blank
+            t4 = t3.filter_blank_rows when=Blank_Selector.All_Cells
             t4.row_count . should_equal 0
             t4.at "X" . to_vector . should_equal []
 
@@ -72,7 +72,7 @@ spec setup =
             r1.columns.map .name . should_equal ["f"]
             r1.at "f" . to_vector . should_equal [Nothing, "", Nothing, ""]
 
-            r2 = t1.select_blank_columns when=Blank_Selector.Any_Cell_Blank
+            r2 = t1.select_blank_columns when=Blank_Selector.Any_Cell
             r2.columns.map .name . should_equal ["a", "b", "d", "e", "f"]
             r2.at "d" . to_vector . should_equal [Nothing, True, False, True]
 
@@ -81,7 +81,7 @@ spec setup =
             r1.columns.map .name . should_equal ["a", "b", "c", "d", "e"]
             r1.at "a" . to_vector . should_equal [1, Nothing, 3, 4]
 
-            r2 = t1.remove_blank_columns when=Blank_Selector.Any_Cell_Blank
+            r2 = t1.remove_blank_columns when=Blank_Selector.Any_Cell
             r2.columns.map .name . should_equal ["c"]
             r2.at "c" . to_vector . should_equal [10, 20, 30, 40]
 
@@ -93,12 +93,12 @@ spec setup =
             table_builder [c, g, h]
         if test_selection.is_nan_and_nothing_distinct then
             Test.specify "should not treat NaNs as blank by default" <|
-                r1 = t3.filter_blank_rows when=Blank_Selector.Any_Cell_Blank
+                r1 = t3.filter_blank_rows when=Blank_Selector.Any_Cell
                 # We cannot use `Vector.==` because `NaN != NaN`.
                 r1.at "X" . to_vector . to_text . should_equal "[1.5, NaN]"
                 r1.at "Y" . to_vector . should_equal [2.0, 5.0]
 
-                r2 = t3.filter_blank_rows when=Blank_Selector.All_Cells_Blank
+                r2 = t3.filter_blank_rows when=Blank_Selector.All_Cells
                 r2.at "X" . to_vector . to_text . should_equal "[2.0, 1.5, NaN, NaN]"
                 r2.at "Y" . to_vector . should_equal [Nothing, 2.0, Nothing, 5.0]
 
@@ -106,37 +106,37 @@ spec setup =
                 r3.columns.map .name . should_equal ["c", "g", "h"]
                 r3.at "g" . to_vector . to_text . should_equal "[NaN, 1.0, 2.0, 3.4]"
 
-                r4 = t4.remove_blank_columns when=Blank_Selector.Any_Cell_Blank
+                r4 = t4.remove_blank_columns when=Blank_Selector.Any_Cell
                 r4.columns.map .name . should_equal ["c", "g"]
                 r4.at "g" . to_vector . to_text . should_equal "[NaN, 1.0, 2.0, 3.4]"
 
-                r5 = t4.select_blank_columns when=Blank_Selector.Any_Cell_Blank
+                r5 = t4.select_blank_columns when=Blank_Selector.Any_Cell
                 r5.columns.map .name . should_equal ["h"]
                 r5.at "h" . to_vector . to_text . should_equal "[NaN, Nothing, NaN, Nothing]"
 
             Test.specify "should allow to treat NaNs as blank if asked" <|
-                r1 = t3.filter_blank_rows when=Blank_Selector.Any_Cell_Blank treat_nans_as_blank=True
+                r1 = t3.filter_blank_rows when=Blank_Selector.Any_Cell treat_nans_as_blank=True
                 # We cannot use `Vector.==` because `NaN != NaN`.
                 r1.at "X" . to_vector . should_equal [1.5]
                 r1.at "Y" . to_vector . should_equal [2.0]
 
-                r2 = t3.filter_blank_rows when=Blank_Selector.All_Cells_Blank treat_nans_as_blank=True
+                r2 = t3.filter_blank_rows when=Blank_Selector.All_Cells treat_nans_as_blank=True
                 r2.at "X" . to_vector . to_text . should_equal "[2.0, 1.5, NaN]"
                 r2.at "Y" . to_vector . should_equal [Nothing, 2.0, 5.0]
 
-                r3 = t4.remove_blank_columns when=Blank_Selector.All_Cells_Blank treat_nans_as_blank=True
+                r3 = t4.remove_blank_columns when=Blank_Selector.All_Cells treat_nans_as_blank=True
                 r3.columns.map .name . should_equal ["c", "g"]
                 r3.at "g" . to_vector . to_text . should_equal "[NaN, 1.0, 2.0, 3.4]"
 
-                r4 = t4.select_blank_columns when=Blank_Selector.All_Cells_Blank treat_nans_as_blank=True
+                r4 = t4.select_blank_columns when=Blank_Selector.All_Cells treat_nans_as_blank=True
                 r4.columns.map .name . should_equal ["h"]
                 r4.at "h" . to_vector . to_text . should_equal "[NaN, Nothing, NaN, Nothing]"
 
-                r5 = t4.remove_blank_columns when=Blank_Selector.Any_Cell_Blank treat_nans_as_blank=True
+                r5 = t4.remove_blank_columns when=Blank_Selector.Any_Cell treat_nans_as_blank=True
                 r5.columns.map .name . should_equal ["c"]
                 r5.at "c" . to_vector . should_equal [10, 20, 40, 30]
 
-                r6 = t4.select_blank_columns when=Blank_Selector.Any_Cell_Blank treat_nans_as_blank=True
+                r6 = t4.select_blank_columns when=Blank_Selector.Any_Cell treat_nans_as_blank=True
                 r6.columns.map .name . should_equal ["g", "h"]
                 r6.at "h" . to_vector . to_text . should_equal "[NaN, Nothing, NaN, Nothing]"
 

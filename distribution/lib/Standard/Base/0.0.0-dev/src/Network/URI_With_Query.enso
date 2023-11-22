@@ -43,13 +43,14 @@ type URI_With_Query
                 (EnsoSecretHelper.encodeArg p.first True) + "=" + (EnsoSecretHelper.encodeArg p.second False)
         (if base_query == "" then "" else base_query + "&") + (query_params.join "&")
 
-    ## Adds a query parameter to the URI
+    ## GROUP Calculations
+       Adds a query parameter to the URI
 
        Arguments:
        - key: The key of the query parameter.
        - value: The value of the query parameter.
     add_query_argument : Text -> Text | Enso_Secret -> URI
-    add_query_argument self key:Text value:(Text|Enso_Secret) =
+    add_query_argument self key:Text value:(Text | Enso_Secret) =
         URI_With_Query.Value self.uri self.parameters+[Pair.new key value]
 
     ## PRIVATE
@@ -94,11 +95,13 @@ type URI_With_Query
     host : Text | Nothing
     host self = self.uri.host
 
-    ## Get the authority (user info and host) part of this URI.
+    ## GROUP Metadata
+       Get the authority (user info and host) part of this URI.
     authority : Text | Nothing
     authority self = self.uri.authority
 
-    ## Get the port part of this URI.
+    ## GROUP Metadata
+       Get the port part of this URI.
     port : Text | Nothing
     port self = self.uri.port
 
@@ -107,6 +110,7 @@ type URI_With_Query
     path : Text | Nothing
     path self = self.uri.path
 
-    ## Get the fragment part of this URI.
+    ## GROUP Metadata
+       Get the fragment part of this URI.
     fragment : Text | Nothing
     fragment self = self.uri.fragment

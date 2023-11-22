@@ -36,7 +36,8 @@ polyglot java import org.xml.sax.SAXException
 polyglot java import org.xml.sax.SAXParseException
 
 type XML_Document
-    ## Read an XML document from a file.
+    ## GROUP Input
+       Read an XML document from a file.
 
        Arguments:
        - file: the `File` to read the XML document from.
@@ -71,7 +72,8 @@ type XML_Document
         XML_Error.handle_java_exceptions <|
            input_stream.with_java_stream java_stream-> XML_Document.from_source java_stream
 
-    ## Read an XML document from a string.
+    ## GROUP Conversions
+       Read an XML document from a string.
 
        Arguments:
        - xml_string: The string to read the XML document from.
@@ -98,7 +100,8 @@ type XML_Document
         XML_Utils.setCustomErrorHandler document_builder
         XML_Document.Value (document_builder.parse input_source)
 
-    ## Get the root element of the document.
+    ## GROUP Metadata
+       Get the root element of the document.
 
        > Example
          Get the root element of a document.
@@ -125,7 +128,8 @@ type XML_Document
     Value (java_document:Document)
 
 type XML_Element
-    ## Gets the tag of an XML element.
+    ## GROUP Metadata
+       Gets the tag of an XML element.
 
        > Example
          Get the tag of an XML element.
@@ -137,7 +141,8 @@ type XML_Element
         XML_Error.handle_java_exceptions <|
             self.java_element.getNodeName
 
-    ## Gets a child of an XML element.
+    ## GROUP Selections
+       Gets a child of an XML element.
 
        Arguments:
        - key: If an `Integer`, returns the element at position `at` in its list
@@ -156,12 +161,13 @@ type XML_Element
              root.get "@bar"
              # => "one"
     get : Text | Integer -> Any -> Any | Text | XML_Element | Vector (Text | XML_Element) ! No_Such_Key | Index_Out_Of_Bounds | XML_Error
-    get self key:(Text|Integer) ~if_missing=Nothing =
+    get self key:(Text | Integer) ~if_missing=Nothing =
         case key of
             _ : Integer -> self.children_cache.get key if_missing
             _ : Text -> if is_attribute_key key then self.get_xpath key . get 0 if_missing else self.get_xpath key
 
-    ## Gets a child or attribute of an XML element.
+    ## GROUP Selections
+       Gets a child or attribute of an XML element.
 
        Arguments:
        - key: If an `Integer`, returns the element at position `at` in its list
@@ -182,7 +188,7 @@ type XML_Element
              root.at "@bar"
              # => "one"
     at : Text | Integer -> Text | XML_Element | Vector (Text | XML_Element) ! No_Such_Key | Index_Out_Of_Bounds | XML_Error
-    at self key:(Text|Integer) =
+    at self key:(Text | Integer) =
         if_missing = case key of
             _ : Integer -> Error.throw (Index_Out_Of_Bounds.Error key self.child_count)
             _ : Text -> Error.throw (No_Such_Key.Error self key)
@@ -205,7 +211,8 @@ type XML_Element
             xpath = XPathFactory.newInstance.newXPath
             only_wanted_nodes (xpath.evaluate key self.java_element XPathConstants.NODESET)
 
-    ## Gets the child elements of an XML element.
+    ## GROUP Selections
+       Gets the child elements of an XML element.
 
        `children` only returns child elements and child text nodes that are not
        100% whitespace. Other node types, such as comments, are not included.
@@ -216,7 +223,8 @@ type XML_Element
     children : Vector (XML_Element | Text) ! XML_Error
     children self = self.children_cache
 
-    ## Gets the number children of an XML element.
+    ## GROUP Metadata
+       Gets the number children of an XML element.
 
        `child_count` only counts child elements and child text nodes that are
        not 100% whitespace. Other node types, such as comments, are not included
@@ -230,7 +238,8 @@ type XML_Element
     child_count : Integer ! XML_Error
     child_count self = self.children_cache.length
 
-    ## Get an attribute of an XML element.
+    ## GROUP Selections
+       Get an attribute of an XML element.
 
        Arguments:
        - name: The name of the attribute to get.
@@ -248,7 +257,8 @@ type XML_Element
             attr = self.java_element.getAttributeNode name
             if attr.is_nothing then if_missing else attr.getValue
 
-    ## Gets a map containing f the attributes of an XML element.
+    ## GROUP Selections
+       Gets a map containing of the attributes of an XML element.
 
        > Example
            XML_Document.from_text '<foo bar="one">hello</foo>' . root_element . attributes
@@ -262,7 +272,8 @@ type XML_Element
                 [node.getNodeName, node.getNodeValue]
             Map.from_vector keys_and_values
 
-    ## Gets the text (non-markup) contents of the element and its descendants,
+    ## GROUP Selections
+       Gets the text (non-markup) contents of the element and its descendants,
        if any.
 
        > Example
@@ -300,7 +311,8 @@ type XML_Element
         XML_Error.handle_java_exceptions <|
             XML_Utils.innerXML self.java_element
 
-    ## Gets elements matching a given tag name.
+    ## GROUP Metadata
+       Gets elements matching a given tag name.
 
        This searches through all descendants of the node, not just immediate children.
 

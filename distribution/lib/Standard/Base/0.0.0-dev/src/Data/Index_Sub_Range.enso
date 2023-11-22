@@ -19,7 +19,7 @@ from project.Data.Boolean import Boolean, False, True
 from project.Data.Range.Extensions import all
 from project.Metadata.Choice import Option
 from project.Metadata.Widget import Single_Choice
-from project.Random import Random, get_default_seed
+from project.Random import get_default_seed, Random
 
 type Index_Sub_Range
     ## Select the first `count` items.

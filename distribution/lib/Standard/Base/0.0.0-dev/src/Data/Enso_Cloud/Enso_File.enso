@@ -21,7 +21,7 @@ import project.System.Input_Stream.Input_Stream
 import project.System.Output_Stream.Output_Stream
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
-from project.System.File_Format import Auto_Detect, File_Format, Bytes, Plain_Text_Format
+from project.System.File_Format import Auto_Detect, Bytes, File_Format, Plain_Text_Format
 
 type Enso_File
     ## PRIVATE
@@ -45,14 +45,16 @@ type Enso_File
             Enso_Asset_Type.Data_Link -> Utils.secrets_api + "/" + self.id
             Enso_Asset_Type.Secret -> Error.throw (Illegal_Argument.Error "Secrets cannot be accessed directly.")
 
-    ## Checks if the folder or file exists
+    ## GROUP Metadata
+       Checks if the folder or file exists
     exists : Boolean
     exists self =
         auth_header = Utils.authorization_header
         response = HTTP.fetch self.internal_uri HTTP_Method.Get [auth_header]
         response.code.is_success
 
-    ## Checks if this is a folder
+    ## GROUP Metadata
+       Checks if this is a folder
     is_directory : Boolean
     is_directory self = self.asset_type == Enso_Asset_Type.Directory
 
@@ -163,7 +165,8 @@ type Enso_File
                 extension = name.drop (Index_Sub_Range.First last_dot.start)
                 if extension == "." then "" else extension
 
-    ## Gets a list of assets within self.
+    ## GROUP Input
+       Gets a list of assets within self.
     list : Vector Enso_File
     list self = if self.asset_type != Enso_Asset_Type.Directory then Error.throw (Illegal_Argument.Error "Only directories can be listed.") else
         auth_header = Utils.authorization_header

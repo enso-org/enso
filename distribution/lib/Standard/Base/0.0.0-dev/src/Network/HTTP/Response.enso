@@ -64,7 +64,8 @@ type Response
         content_type_optional = self.internal_http_response.headers.firstValue "Content-Type"
         if content_type_optional.isPresent then content_type_optional.get else Nothing
 
-    ## Get the response content length in bytes.
+    ## GROUP Metadata
+       Get the response content length in bytes.
        This method uses the `Content-Length` header, and does not read the body.
        If the header is not present will return Nothing.
     content_length : Integer | Nothing
