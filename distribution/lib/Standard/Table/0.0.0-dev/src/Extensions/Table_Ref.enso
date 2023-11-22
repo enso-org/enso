@@ -84,6 +84,6 @@ check_is_in_values operation_name values =
             Error.throw (Illegal_Argument.Error message)
         _ -> v
     case values of
-        _ : Vector -> values.map check_value
-        _ : Array -> values.map check_value
+        _ : Vector -> values.map_primitive check_value
+        _ : Array -> values.map_primitive check_value
         _ -> check_value values

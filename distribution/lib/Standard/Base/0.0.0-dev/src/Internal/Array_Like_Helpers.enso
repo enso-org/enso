@@ -88,6 +88,7 @@ vector_from_function length function on_problems=Problem_Behavior.Report_Error =
                         Nothing
                     Problem_Behavior.Report_Error ->
                         result.catch_primitive caught->
+                            st
                             Error.throw (Map_Error.Error i caught)
                     Problem_Behavior.Report_Warning ->
                         with_error_maybe = if num_errors.get >= MAX_MAP_WARNINGS then Nothing else
