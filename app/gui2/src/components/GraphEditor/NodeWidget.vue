@@ -1,15 +1,17 @@
 <script setup lang="ts">
-import {
-  injectWidgetRegistry,
-  type WidgetConfiguration,
-  type WidgetInput,
-} from '@/providers/widgetRegistry'
+import { injectWidgetRegistry, type WidgetInput } from '@/providers/widgetRegistry'
+import type { WidgetConfiguration } from '@/providers/widgetRegistry/configuration'
 import { injectWidgetTree } from '@/providers/widgetTree'
 import { injectWidgetUsageInfo, provideWidgetUsageInfo } from '@/providers/widgetUsageInfo'
 import { AstExtended } from '@/util/ast'
-import { computed, proxyRefs, ref, toRef } from 'vue'
+import type { Opt } from '@/util/opt'
+import { computed, proxyRefs, toRef } from 'vue'
 
-const props = defineProps<{ input: WidgetInput; nest?: boolean }>()
+const props = defineProps<{
+  input: WidgetInput
+  nest?: boolean
+  dynamicConfig?: Opt<WidgetConfiguration>
+}>()
 defineOptions({
   inheritAttrs: false,
 })
@@ -23,8 +25,6 @@ const whitespace = computed(() =>
     : '',
 )
 
-// TODO: Fetch dynamic widget config from engine. [#8260]
-const dynamicConfig = ref<WidgetConfiguration>()
 const sameInputParentWidgets = computed(() =>
   parentUsageInfo?.input === props.input ? parentUsageInfo?.previouslyUsed : undefined,
 )
@@ -34,7 +34,7 @@ const selectedWidget = computed(() => {
   return registry.select(
     {
       input: props.input,
-      config: dynamicConfig.value,
+      config: props.dynamicConfig ?? undefined,
       nesting: nesting.value,
     },
     sameInputParentWidgets.value,
