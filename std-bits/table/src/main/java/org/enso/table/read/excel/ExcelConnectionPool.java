@@ -20,7 +20,7 @@ public class ExcelConnectionPool {
   private ExcelConnectionPool() {
   }
 
-  public ExcelConnection connect(File file, ExcelFileFormat format, boolean write_access) throws IOException {
+  public ExcelConnection openConnection(File file, ExcelFileFormat format, boolean write_access) throws IOException {
     synchronized (this) {
       if (!file.exists()) {
         throw new FileNotFoundException(file.toString());
@@ -61,7 +61,7 @@ public class ExcelConnectionPool {
   void release(ExcelConnection excelConnection) throws IOException {
     synchronized (this) {
       excelConnection.record.refCount--;
-      if (excelConnection.record.refCount == 0) {
+      if (excelConnection.record.refCount <= 0) {
         excelConnection.record.close();
         records.remove(excelConnection.key);
       }
@@ -80,15 +80,7 @@ public class ExcelConnectionPool {
 
     <T> T withWorkbook(Function<Workbook, T> action) throws IOException {
       synchronized (this) {
-        if (workbook == null) {
-          if (initializationException != null) {
-            throw initializationException;
-          } else {
-            throw new IllegalStateException("The workbook is used after being closed.");
-          }
-        }
-
-        return action.apply(workbook);
+        return action.apply(accessCurrentWorkbook());
       }
     }
 
@@ -129,8 +121,25 @@ public class ExcelConnectionPool {
 
     public void close() throws IOException {
       synchronized (this) {
-        workbook.close();
+        if (workbook != null) {
+          workbook.close();
+        }
+
         workbook = null;
+      }
+    }
+
+    private Workbook accessCurrentWorkbook() throws IOException {
+      synchronized (this) {
+        if (workbook == null) {
+          if (initializationException != null) {
+            throw initializationException;
+          } else {
+            throw new IllegalStateException("The workbook is used after being closed.");
+          }
+        }
+
+        return workbook;
       }
     }
   }

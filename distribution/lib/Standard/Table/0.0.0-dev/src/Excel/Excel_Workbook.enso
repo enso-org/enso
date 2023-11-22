@@ -19,6 +19,9 @@ import project.Internal.Java_Problems
 polyglot java import java.io.File as Java_File
 polyglot java import org.apache.poi.ss.usermodel.Workbook
 polyglot java import org.enso.table.read.ExcelReader
+polyglot java import org.enso.table.read.excel.ExcelConnection
+polyglot java import org.enso.table.read.excel.ExcelConnectionPool
+polyglot java import org.enso.table.read.excel.ExcelFileFormat
 
 type Excel_Workbook
     ## PRIVATE
@@ -32,10 +35,11 @@ type Excel_Workbook
     new : File | Text -> Boolean -> Boolean | Infer -> Excel_Workbook
     new file xls_format=False headers=Infer =
         file_obj = File.new file . normalize
-        File_Error.handle_java_exceptions file_obj <| Excel_Reader.handle_bad_format file_obj <|
+        format = if xls_format then ExcelFileFormat.XLS else ExcelFileFormat.XLSX
+        File_Error.handle_java_exceptions file_obj <| Excel_Reader.handle_bad_format file_obj <| Illegal_State.handle_java_exception <|
             java_file = Java_File.new file_obj.path
-            workbook_resource = Managed_Resource.register (ExcelReader.getWorkbook java_file xls_format) close_workbook
-            Excel_Workbook.Value (Ref.new workbook_resource) file_obj xls_format headers
+            excel_connection_resource = Managed_Resource.register (ExcelConnectionPool.INSTANCE.openConnection java_file format False) close_connection
+            Excel_Workbook.Value excel_connection_resource file_obj xls_format headers
 
     ## PRIVATE
        ADVANCED
@@ -50,12 +54,11 @@ type Excel_Workbook
     from_stream stream xls_format=False headers=Infer file=Nothing = Excel_Reader.handle_bad_format file <|
         stream.with_java_stream java_stream->
             java_file = file # FIXME
-            workbook_resource = Managed_Resource.register (ExcelReader.getWorkbook java_file xls_format) close_workbook
-            Excel_Workbook.Value (Ref.new workbook_resource) file xls_format headers
+            Error.throw "TODO"
 
     ## PRIVATE
        Creates an Excel_Workbook connection.
-    Value (workbook_resource_ref : Ref (Nothing | Managed_Resource Workbook)) (file:(File|Nothing)) xls_format:Boolean headers:(Boolean|Infer)
+    Value (excel_connection_resource : Managed_Resource ExcelConnection) (file:(File|Nothing)) xls_format:Boolean headers:(Boolean|Infer)
 
     ## Returns the list of databases (or catalogs) for the connection.
     databases : Nothing
@@ -233,17 +236,14 @@ type Excel_Workbook
        operation on it will throw an `Illegal_State` error.
     close : Nothing
     close self =
-        self.with_java_workbook close_workbook . if_not_error <|
-            self.workbook_resource_ref.put Nothing
-            Nothing
+        self.excel_connection_resource.with connection->
+            connection.close
 
     ## PRIVATE
     with_java_workbook : (Workbook -> Any) -> Any ! Illegal_State
-    with_java_workbook self f =
-        case self.workbook_resource_ref.get of
-            Nothing -> Error.throw (Illegal_State.Error "The workbook has already been closed.")
-            resource -> resource.with f
+    with_java_workbook self f = Illegal_State.handle_java_exception <|
+        excel_connection_resource.with connection->
+            connection.withWorkbook f
 
 ## PRIVATE
-close_workbook java_workbook =
-    java_workbook.close
+close_connection c = c.close
