@@ -4,7 +4,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import project.Data.Type.Storage
 import project.Data.Type.Value_Type.Value_Type
 import project.Data.Type.Value_Type_Helpers
-from project.Errors import Missing_Input_Columns, Unexpected_Extra_Columns, Floating_Point_Equality, No_Common_Type, No_Output_Columns
+from project.Errors import Floating_Point_Equality, Missing_Input_Columns, No_Common_Type, No_Output_Columns, Unexpected_Extra_Columns
 
 polyglot java import org.enso.table.data.table.join.lookup.LookupColumnDescription
 

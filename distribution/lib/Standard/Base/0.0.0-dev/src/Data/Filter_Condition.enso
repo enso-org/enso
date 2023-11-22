@@ -275,8 +275,8 @@ sql_like_to_regex sql_pattern =
     Regex.compile regex_pattern
 
 ## PRIVATE
-unify_condition_or_predicate : Filter_Condition|(Any->Boolean) -> (Any -> Boolean)
-unify_condition_or_predicate (condition_or_predicate : Filter_Condition | Function) =
+unify_condition_or_predicate : Filter_Condition | (Any -> Boolean) -> (Any -> Boolean)
+unify_condition_or_predicate (condition_or_predicate : Filter_Condition | (Any -> Boolean)) =
     case condition_or_predicate of
         condition : Filter_Condition -> condition.to_predicate
         predicate -> handle_constructor_missing_arguments predicate predicate

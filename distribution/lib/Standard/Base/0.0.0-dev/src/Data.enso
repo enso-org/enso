@@ -15,6 +15,7 @@ import project.Network.HTTP.Request.Request
 import project.Network.HTTP.Request_Body.Request_Body
 import project.Network.HTTP.Request_Error
 import project.Network.URI.URI
+import project.Network.URI_With_Query.URI_With_Query
 import project.Nothing.Nothing
 import project.System.File.File
 from project.Data.Boolean import Boolean, False, True
@@ -22,6 +23,7 @@ from project.System.File_Format import Auto_Detect, File_Format
 
 ## ALIAS load, open
    GROUP Input
+   ICON data_input
    Reads a file into Enso.
    Uses the specified file format to parse the file into an Enso type. If not
    specified will use the file's extension to determine the file format.
@@ -66,6 +68,7 @@ read path format=Auto_Detect (on_problems=Problem_Behavior.Report_Warning) = cas
 
 ## ALIAS load text, open text
    GROUP Input
+   ICON data_input
    Open and read the file at the provided `path`.
 
    Arguments:
@@ -173,8 +176,8 @@ list_directory directory name_filter=Nothing recursive=False =
          import Standard.Base.Data
          file = enso_project.data / "spreadsheet.xls"
          Data.fetch URL . body . to_file file
-fetch : (URI | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
-fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (Header | Pair Text Text))=[]) (try_auto_parse_response:Boolean=True) =
+fetch : (URI | URI_With_Query | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
+fetch (uri:(URI | URI_With_Query | Text)) (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (Header | Pair Text Text))=[]) (try_auto_parse_response:Boolean=True) =
     response = HTTP.fetch uri method headers
     if try_auto_parse_response.not then response.with_materialized_body else
         response.decode if_unsupported=response.with_materialized_body
@@ -297,8 +300,8 @@ fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (
          test_file = enso_project.data / "sample.txt"
          form_data = Map.from_vector [["key", "val"], ["a_file", test_file]]
          response = Data.post url_post (Request_Body.Form_Data form_data url_encoded=True)
-post : (URI | Text) -> Request_Body -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
-post (uri:(URI | Text)) (body:Request_Body=Request_Body.Empty) (method:HTTP_Method=HTTP_Method.Post) (headers:(Vector (Header | Pair Text Text))=[]) (try_auto_parse_response:Boolean=True) =
+post : (URI | URI_With_Query | Text) -> Request_Body -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
+post (uri:(URI | URI_With_Query | Text)) (body:Request_Body=Request_Body.Empty) (method:HTTP_Method=HTTP_Method.Post) (headers:(Vector (Header | Pair Text Text))=[]) (try_auto_parse_response:Boolean=True) =
     response = HTTP.post uri body method headers
     if try_auto_parse_response.not then response.with_materialized_body else
         response.decode if_unsupported=response.with_materialized_body

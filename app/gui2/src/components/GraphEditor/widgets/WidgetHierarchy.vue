@@ -1,34 +1,24 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
-import { Score, defineWidget, widgetAst, type WidgetProps } from '@/providers/widgetRegistry'
-import { Ast, AstExtended } from '@/util/ast'
+import { defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import { AstExtended } from '@/util/ast'
 import { computed } from 'vue'
 
-const props = defineProps<WidgetProps>()
+const props = defineProps(widgetProps(widgetDefinition))
 
-const spanClass = computed(() => widgetAst(props.input)?.treeTypeName())
-const children = computed(() => [...(widgetAst(props.input)?.children() ?? [])])
-
-function shouldNest(child: AstExtended, index: number) {
-  return widgetAst(props.input)!.isTree(Ast.Tree.Type.App) && !child.isTree(Ast.Tree.Type.App)
-}
+const spanClass = computed(() => props.input.treeTypeName())
+const children = computed(() => [...props.input.children()])
 </script>
 
 <script lang="ts">
-export const widgetDefinition = defineWidget({
-  priority: 1000,
-  match: (info) => (widgetAst(info.input)?.isTree() ? Score.Good : Score.Mismatch),
+export const widgetDefinition = defineWidget(AstExtended.isTree(), {
+  priority: 1001,
 })
 </script>
 
 <template>
   <span :class="['Tree', spanClass]"
-    ><NodeWidget
-      v-for="(child, index) in children"
-      :key="child.astId"
-      :input="child"
-      :nest="shouldNest(child, index)"
-    />
+    ><NodeWidget v-for="(child, index) in children" :key="child.astId ?? index" :input="child" />
   </span>
 </template>
 

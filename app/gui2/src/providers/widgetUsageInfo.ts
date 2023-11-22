@@ -13,6 +13,6 @@ const { provideFn, injectFn } = createContextStore('Widget usage info', identity
 interface WidgetUsageInfo {
   input: WidgetInput
   /** All widget types that were rendered so far using the same AST node. */
-  previouslyUsed: Set<WidgetComponent>
+  previouslyUsed: Set<WidgetComponent<any>>
   nesting: number
 }

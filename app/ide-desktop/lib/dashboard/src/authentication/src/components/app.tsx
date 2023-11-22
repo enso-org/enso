@@ -213,7 +213,10 @@ function AppRouter(props: AppProps) {
                 {/* Login & registration pages are visible to unauthenticated users. */}
                 <router.Route element={<authProvider.GuestLayout />}>
                     <router.Route path={REGISTRATION_PATH} element={<Registration />} />
-                    <router.Route path={LOGIN_PATH} element={<Login />} />
+                    <router.Route
+                        path={LOGIN_PATH}
+                        element={<Login supportsLocalBackend={supportsLocalBackend} />}
+                    />
                 </router.Route>
                 {/* Protected pages are visible to authenticated users. */}
                 <router.Route element={<authProvider.ProtectedLayout />}>

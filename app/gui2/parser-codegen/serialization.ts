@@ -107,7 +107,7 @@ export class Type {
 
   static Sequence(element: Type): Type {
     return new Type(
-      tsf.createTypeReferenceNode('Iterable', [element.type]),
+      tsf.createTypeReferenceNode('IterableIterator', [element.type]),
       createSequenceReader(element.size, element.reader),
       createSequenceVisitor(element.size, visitorClosure(element.visitor, element.reader)),
       POINTER_SIZE,

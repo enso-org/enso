@@ -1,5 +1,6 @@
 import { nonDictatedPlacement } from '@/components/ComponentBrowser/placement'
 import { SuggestionDb, groupColorStyle, type Group } from '@/stores/suggestionDatabase'
+import type { SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import { tryGetIndex } from '@/util/array'
 import { Ast, AstExtended } from '@/util/ast'
 import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
@@ -9,11 +10,11 @@ import { MappedKeyMap, MappedSet } from '@/util/containers'
 import { ReactiveDb, ReactiveIndex, ReactiveMapping } from '@/util/database/reactiveDb'
 import { getTextWidth } from '@/util/measurement'
 import type { Opt } from '@/util/opt'
-import { qnJoin, tryQualifiedName } from '@/util/qualifiedName'
 import { Rect } from '@/util/rect'
 import theme from '@/util/theme.json'
 import { Vec2 } from '@/util/vec2'
 import * as set from 'lib0/set'
+import type { MethodCall } from 'shared/languageServerTypes'
 import {
   IdMap,
   visMetadataEquals,
@@ -152,6 +153,7 @@ export class GraphDb {
     }
     return Array.from(allTargets(this))
   })
+<<<<<<< HEAD
 
   /** First output port of the node.
    *
@@ -170,16 +172,13 @@ export class GraphDb {
     this.valuesRegistry.getExpressionInfo(id),
   )
 
+=======
+>>>>>>> f60836d9e10fd74c01414d5154869e3b37c76cd5
   nodeMainSuggestion = new ReactiveMapping(this.nodes, (id, _entry) => {
-    const expressionInfo = this.nodeExpressionInfo.lookup(id)
+    const expressionInfo = this.getExpressionInfo(id)
     const method = expressionInfo?.methodCall?.methodPointer
     if (method == null) return
-    const moduleName = tryQualifiedName(method.definedOnType)
-    const methodName = tryQualifiedName(method.name)
-    if (!moduleName.ok || !methodName.ok) return
-    const qualifiedName = qnJoin(moduleName.value, methodName.value)
-    const [suggestionId] = this.suggestionDb.nameToId.lookup(qualifiedName)
-    if (suggestionId == null) return
+    const suggestionId = this.suggestionDb.findByMethodPointer(method)
     return this.suggestionDb.get(suggestionId)
   })
 
@@ -187,7 +186,7 @@ export class GraphDb {
     const index = this.nodeMainSuggestion.lookup(id)?.groupIndex
     const group = tryGetIndex(this.groups.value, index)
     if (group == null) {
-      const typename = this.nodeExpressionInfo.lookup(id)?.typename
+      const typename = this.getExpressionInfo(id)?.typename
       return typename ? colorFromString(typename) : 'var(--node-color-no-type)'
     }
     return groupColorStyle(group)
@@ -233,6 +232,21 @@ export class GraphDb {
 
   identifierUsed(ident: string): boolean {
     return this.bindings.identifiers.hasKey(ident)
+  }
+
+  isMethodCall(id: ExprId): boolean {
+    return this.getExpressionInfo(id)?.methodCall != null
+  }
+
+  getMethodCallInfo(
+    id: ExprId,
+  ): { methodCall: MethodCall; suggestion: SuggestionEntry } | undefined {
+    const methodCall = this.getExpressionInfo(id)?.methodCall
+    if (methodCall == null) return
+    const suggestionId = this.suggestionDb.findByMethodPointer(methodCall.methodPointer)
+    const suggestion = this.suggestionDb.get(suggestionId)
+    if (suggestion == null) return
+    return { methodCall, suggestion }
   }
 
   getNodeColorStyle(id: ExprId): string {

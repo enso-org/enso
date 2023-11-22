@@ -25,10 +25,10 @@
     "eslint-plugin-react-hooks": "^4.6.0"
   },
   "scripts": {
-    "watch": "npm run watch --workspace enso-content",
-    "watch-dashboard": "npm run watch --workspace enso-dashboard",
-    "build-dashboard": "npm run build --workspace enso-dashboard",
-    "test-dashboard": "npm run test --workspace enso-dashboard",
+    "dev": "npm run watch --workspace enso-content",
+    "dashboard:dev": "npm run dev --workspace enso-dashboard",
+    "dashboard:build": "npm run build --workspace enso-dashboard",
+    "dashboard:test": "npm run test --workspace enso-dashboard",
     "typecheck": "npx tsc -p lib/types/tsconfig.json",
     "lint-only": "eslint .",
     "lint": "npm run --workspace=enso-gui2 compile-server && npm run lint-only"

@@ -3,9 +3,9 @@ import { Token, Tree } from '@/generated/ast'
 import { assert } from '@/util/assert'
 import { parse } from '@/util/ffi'
 import { LazyObject, LazySequence } from '@/util/parserSupport'
+import { isResult, mapOk } from '@/util/result'
 import * as map from 'lib0/map'
 import type { ContentRange } from 'shared/yjsModel'
-import { isResult, mapOk } from '../result'
 import { AstExtended } from './extended'
 
 export { AstExtended }

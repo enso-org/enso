@@ -2,32 +2,39 @@
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
-import {
-  Score,
-  defineWidget,
-  widgetAst,
-  type WidgetInput,
-  type WidgetProps,
-} from '@/providers/widgetRegistry'
+import { injectPortInfo, providePortInfo } from '@/providers/portInfo'
+import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { injectWidgetTree } from '@/providers/widgetTree'
 import { useGraphStore } from '@/stores/graph'
-import type { GraphDb } from '@/stores/graph/graphDatabase'
 import { useRaf } from '@/util/animation'
-import { Ast } from '@/util/ast'
+import { Ast, AstExtended } from '@/util/ast'
+import { ArgumentAst, ArgumentPlaceholder } from '@/util/callTree'
 import { useResizeObserver } from '@/util/events'
 import { Rect } from '@/util/rect'
 import { uuidv4 } from 'lib0/random'
 import type { ExprId } from 'shared/yjsModel'
-import { computed, nextTick, onUpdated, ref, shallowRef, toRef, watch, watchEffect } from 'vue'
+import {
+  computed,
+  nextTick,
+  onUpdated,
+  proxyRefs,
+  ref,
+  shallowRef,
+  toRef,
+  watch,
+  watchEffect,
+} from 'vue'
 
 const graph = useGraphStore()
-const props = defineProps<WidgetProps>()
+const props = defineProps(widgetProps(widgetDefinition))
+
 const navigator = injectGraphNavigator()
 const tree = injectWidgetTree()
 const selection = injectGraphSelection(true)
 
 const isHovered = ref(false)
-const hasConnection = computed(() => isConnected(props.input, graph.db))
+
+const hasConnection = computed(() => graph.db.connections.reverseLookup(portId.value).size > 0)
 const isCurrentEdgeHoverTarget = computed(
   () => isHovered.value && graph.unconnectedEdge != null && selection?.hoveredPort === portId.value,
 )
@@ -57,7 +64,22 @@ const portRect = shallowRef<Rect>()
 const rectUpdateIsUseful = computed(() => isHovered.value || hasConnection.value)
 
 const randomUuid = uuidv4() as ExprId
-const portId = computed(() => widgetAst(props.input)?.astId ?? randomUuid)
+const portId = computed(() => {
+  const ast =
+    props.input instanceof AstExtended
+      ? props.input
+      : props.input instanceof ArgumentAst || props.input instanceof ForcePort
+      ? props.input.ast
+      : undefined
+  return ast?.astId ?? randomUuid
+})
+
+providePortInfo(
+  proxyRefs({
+    portId,
+    connected: hasConnection,
+  }),
+)
 
 watch(nodeSize, updateRect)
 onUpdated(() => {
@@ -90,42 +112,59 @@ function updateRect() {
   if (portRect.value != null && localRect.equals(portRect.value)) return
   portRect.value = localRect
 }
+const innerWidget = computed(() => {
+  if (props.input instanceof ForcePort) {
+    return props.input.ast
+  } else {
+    return props.input
+  }
+})
 </script>
 
 <script lang="ts">
-function canBeConnectedTo(input: WidgetInput): boolean {
-  const ast = widgetAst(input)
-  if (ast == null) return true // placeholders are always connectable
-  if (ast.isToken()) return false
-  switch (ast.inner.type) {
-    case Ast.Tree.Type.Invalid:
-    case Ast.Tree.Type.BodyBlock:
-    case Ast.Tree.Type.Ident:
-    case Ast.Tree.Type.Group:
-    case Ast.Tree.Type.Number:
-    case Ast.Tree.Type.OprApp:
-    case Ast.Tree.Type.UnaryOprApp:
-    case Ast.Tree.Type.Wildcard:
-    case Ast.Tree.Type.TextLiteral:
-      return true
-    default:
-      return false
+export class ForcePort {
+  constructor(public ast: AstExtended) {}
+}
+
+declare const ForcePortKey: unique symbol
+declare module '@/providers/widgetRegistry' {
+  interface WidgetInputTypes {
+    [ForcePortKey]: ForcePort
   }
 }
 
-function isConnected(input: WidgetInput, db: GraphDb) {
-  const astId = widgetAst(input)?.astId
-  return astId != null && db.connections.reverseLookup(astId).size > 0
-}
-export const widgetDefinition = defineWidget({
-  priority: 1,
-  match: (info) => {
-    if (canBeConnectedTo(info.input)) {
-      return Score.Perfect
-    }
-    return Score.Mismatch
+export const widgetDefinition = defineWidget(
+  [
+    ForcePort,
+    ArgumentAst,
+    ArgumentPlaceholder,
+    AstExtended.isTree([
+      Ast.Tree.Type.Invalid,
+      Ast.Tree.Type.BodyBlock,
+      Ast.Tree.Type.Group,
+      Ast.Tree.Type.Number,
+      Ast.Tree.Type.OprApp,
+      Ast.Tree.Type.UnaryOprApp,
+      Ast.Tree.Type.Wildcard,
+      Ast.Tree.Type.TextLiteral,
+    ]),
+  ],
+  {
+    priority: 0,
+    score: (props, _db) => {
+      const portInfo = injectPortInfo(true)
+      if (
+        portInfo != null &&
+        props.input instanceof AstExtended &&
+        portInfo.portId === props.input.astId
+      ) {
+        return Score.Mismatch
+      } else {
+        return Score.Perfect
+      }
+    },
   },
-})
+)
 </script>
 <template>
   <span
@@ -139,7 +178,7 @@ export const widgetDefinition = defineWidget({
     }"
     @pointerenter="isHovered = true"
     @pointerleave="isHovered = false"
-    ><NodeWidget :input="props.input"
+    ><NodeWidget :input="innerWidget"
   /></span>
 </template>
 
@@ -159,10 +198,6 @@ export const widgetDefinition = defineWidget({
   box-sizing: border-box;
   padding: 0 var(--widget-port-extra-pad);
   margin: 0 calc(0px - var(--widget-port-extra-pad));
-  transition:
-    margin 0.2s ease,
-    padding 0.2s ease,
-    background-color 0.2s ease;
 }
 
 .WidgetPort:has(> .r-24:only-child) {
@@ -178,6 +213,10 @@ export const widgetDefinition = defineWidget({
 
 .GraphEditor.draggingEdge .WidgetPort {
   pointer-events: none;
+  transition:
+    margin 0.2s ease,
+    padding 0.2s ease,
+    background-color 0.2s ease;
 
   &::before {
     pointer-events: all;

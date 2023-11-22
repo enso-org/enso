@@ -1,0 +1,44 @@
+import project.Data.Pair.Pair
+import project.Data.Text.Text
+import project.Error.Error
+import project.Nothing.Nothing
+import project.Runtime.Ref.Ref
+import project.System.File.File
+
+polyglot java import org.enso.base.enso_cloud.AuthenticationProvider
+
+## PRIVATE
+cloud_root_uri = "" + AuthenticationProvider.getAPIRootURI
+
+## PRIVATE
+   Construct the authoization header for the request
+authorization_header : Pair Text Text
+authorization_header =
+    result = AuthenticationProvider.getToken.if_nothing <|
+        cred_file = File.home / ".enso" / "credentials"
+        if cred_file.exists.not then Error.throw Not_Logged_In else
+            AuthenticationProvider.setToken (cred_file.read_text)
+    Pair.new "Authorization" "Bearer "+result
+
+## PRIVATE
+   Root address for listing folders
+directory_api = cloud_root_uri + "directories"
+
+## PRIVATE
+   Root address for listing folders
+files_api = cloud_root_uri + "files"
+
+## PRIVATE
+   Root address for listing folders
+projects_api = cloud_root_uri + "projects"
+
+## PRIVATE
+   Root address for Secrets API
+secrets_api = cloud_root_uri + "secrets"
+
+## PRIVATE
+   Error if the user is not logged into Enso Cloud.
+type Not_Logged_In
+    ## PRIVATE
+    to_display_text : Text
+    to_display_text self = "Not logged into Enso cloud. Please log in and restart."

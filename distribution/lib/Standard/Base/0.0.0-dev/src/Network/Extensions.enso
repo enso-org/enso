@@ -8,6 +8,7 @@ import project.Network.HTTP.Header.Header
 import project.Network.HTTP.HTTP_Method.HTTP_Method
 import project.Network.HTTP.Request_Body.Request_Body
 import project.Network.URI.URI
+import project.Network.URI_With_Query.URI_With_Query
 from project.Data.Boolean import Boolean, False, True
 
 ## ALIAS parse_uri, uri from text
@@ -40,6 +41,23 @@ Text.to_uri self = URI.parse self
      parsed to an Enso native object.
 URI.fetch : HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
 URI.fetch self (method:HTTP_Method=HTTP_Method.Get) headers=[] try_auto_parse_response=True =
+    Data.fetch self method headers try_auto_parse_response
+
+## ALIAS download, http get
+   GROUP Input
+   Fetches from the URI and returns the response, parsing the body if the
+   content-type is recognised. Returns an  error if the status code does not
+   represent a successful response.
+
+   Arguments:
+   - method: The HTTP method to use. Must be one of `HTTP_Method.Get`,
+     `HTTP_Method.Head`, `HTTP_Method.Delete`, `HTTP_Method.Options`.
+     Defaults to `HTTP_Method.Get`.
+   - headers: The headers to send with the request. Defaults to an empty vector.
+   - try_auto_parse_response:  If successful should the body be attempted to be
+     parsed to an Enso native object.
+URI_With_Query.fetch : HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
+URI_With_Query.fetch self (method:HTTP_Method=HTTP_Method.Get) headers=[] try_auto_parse_response=True =
     Data.fetch self method headers try_auto_parse_response
 
 ## ALIAS upload, http post
@@ -80,4 +98,44 @@ URI.fetch self (method:HTTP_Method=HTTP_Method.Get) headers=[] try_auto_parse_re
      - Any other Enso object: shorthand for `Request_Body.Json that_object`.
 URI.post : Request_Body -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
 URI.post self (body:Request_Body=Request_Body.Empty) (method:HTTP_Method=HTTP_Method.Post) (headers:(Vector (Header | Pair Text Text))=[]) (try_auto_parse_response:Boolean=True) =
+    Data.post self body method headers try_auto_parse_response
+
+## ALIAS upload, http post
+   GROUP Input
+   Writes the provided data to the provided URI. Returns the response,
+   parsing the body if the content-type is recognised. Returns an  error if the
+   status code does not represent a successful response.
+
+   Arguments:
+   - body: The data to write. See `Supported Body Types` below.
+   - method: The HTTP method to use. Must be one of `HTTP_Method.Post`,
+     `HTTP_Method.Put`, `HTTP_Method.Patch`. Defaults to `HTTP_Method.Post`.
+   - headers: The headers to send with the request. Defaults to an empty vector.
+   - try_auto_parse_response:  If successful should the body be attempted to be
+     parsed to an Enso native object.
+
+   ! Specifying Content Types
+
+     If the `body` parameter specifies an explicit content type, then it is an
+     error to also specify additional `Content-Type` headers in the `headers`
+     parameter. (It is not an error to specify multiple `Content-Type` values in
+     `headers`, however.)
+
+   ! Supported Body Types
+
+     - Request_Body.Text: Sends a text string, with optional encoding and content
+       type.
+     - Request_Body.Json: Sends an Enso object, after converting it to JSON.
+     - Request_Body.Binary: Sends a file.
+     - Request_Body.Form_Data: Sends a form encoded as key/value pairs. The keys
+       must be `Text`, and the values must be `Text` or `File`.
+     - Request_Body.Empty: Sends an empty body.
+
+     Additionally, the following types are allowed as the `body` parameter:
+
+     - Text: shorthand for `Request_Body.Text that_text`.
+     - File: shorthand for `Request_Body.Binary that_file`.
+     - Any other Enso object: shorthand for `Request_Body.Json that_object`.
+URI_With_Query.post : Request_Body -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
+URI_With_Query.post self (body:Request_Body=Request_Body.Empty) (method:HTTP_Method=HTTP_Method.Post) (headers:(Vector (Header | Pair Text Text))=[]) (try_auto_parse_response:Boolean=True) =
     Data.post self body method headers try_auto_parse_response

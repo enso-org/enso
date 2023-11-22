@@ -4,6 +4,7 @@ import project.Data.Column.Column
 import project.Data.Table.Table
 
 ## GROUP Standard.Base.Conversions
+   ICON data_input
    Creates a column from a `Vector` of values.
 
    Arguments:
@@ -31,7 +32,7 @@ Date_Range.to_column self name="Date_Range" =
     Column.from_vector name self.to_vector
 
 ## ALIAS count, kurtosis, maximum, mean, median, minimum, mode, skew, standard_deviation, statistic, sum, variance
-   GROUP Standard.Base.Trigonometry
+   GROUP Standard.Base.Statistics
    Compute a single statistic on the column.
 
    Arguments:
@@ -52,7 +53,7 @@ Column.compute_bulk self statistics=[Statistic.Count, Statistic.Sum] =
     Table.from_rows names [values]
 
 ## ALIAS count, kurtosis, maximum, mean, median, minimum, mode, skew, standard_deviation, statistic, sum, variance
-   GROUP Standard.Base.Trigonometry
+   GROUP Standard.Base.Statistics
    Compute a single running statistic on the column.
 
    Arguments:
