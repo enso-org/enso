@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
+import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 
 import project.Data.Match_Columns.Match_Columns
 import project.Data.Table.Table
@@ -48,27 +49,27 @@ write_file file table on_existing_file section headers match_columns on_problems
     _ = [on_problems]
     ## If file does not exist or is empty then create a new workbook.
     workbook = if file.exists.not || (file.size == 0) then ExcelWriter.createWorkbook xls_format else
-        Excel_Reader.handle_reader file stream->(ExcelReader.getWorkbook stream xls_format)
+        Excel_Reader.handle_reader file java_file->(ExcelReader.getWorkbook java_file xls_format)
+    Managed_Resource.bracket workbook .close workbook->
+        existing_data_mode = make_java_existing_data_mode on_existing_file match_columns
+        java_headers = Excel_Reader.make_java_headers headers
+        ExcelWriter.setEnsoToTextCallbackIfUnset (.to_text)
+        result = handle_writer <| case section of
+            Excel_Section.Worksheet sheet skip_rows row_limit ->
+                ExcelWriter.writeTableToSheet workbook sheet existing_data_mode skip_rows table.java_table row_limit java_headers
+            Excel_Section.Cell_Range address skip_rows row_limit -> case address of
+                Excel_Range.Value java_range -> ExcelWriter.writeTableToRange workbook java_range existing_data_mode skip_rows table.java_table row_limit java_headers
+                _ : Text -> ExcelWriter.writeTableToRange workbook address existing_data_mode skip_rows table.java_table row_limit java_headers
+            _ : Excel_Section -> Error.throw (Illegal_Argument.Error "Only a Worksheet or Cell_Range is allowed in write_file")
 
-    existing_data_mode = make_java_existing_data_mode on_existing_file match_columns
-    java_headers = Excel_Reader.make_java_headers headers
-    ExcelWriter.setEnsoToTextCallbackIfUnset (.to_text)
-    result = handle_writer <| case section of
-        Excel_Section.Worksheet sheet skip_rows row_limit ->
-            ExcelWriter.writeTableToSheet workbook sheet existing_data_mode skip_rows table.java_table row_limit java_headers
-        Excel_Section.Cell_Range address skip_rows row_limit -> case address of
-            Excel_Range.Value java_range -> ExcelWriter.writeTableToRange workbook java_range existing_data_mode skip_rows table.java_table row_limit java_headers
-            _ : Text -> ExcelWriter.writeTableToRange workbook address existing_data_mode skip_rows table.java_table row_limit java_headers
-        _ : Excel_Section -> Error.throw (Illegal_Argument.Error "Only a Worksheet or Cell_Range is allowed in write_file")
-
-    if result.is_error then result else
-        write_stream stream = stream.with_java_stream java_stream->
-            workbook.write java_stream
-        case on_existing_file of
-            Existing_File_Behavior.Append ->
-                ## Special handling - have successfully added the extra sheet/range so now overwrite file with backup.
-                Existing_File_Behavior.Backup.write file write_stream
-            _ -> on_existing_file.write file write_stream
+        if result.is_error then result else
+            write_stream stream = stream.with_java_stream java_stream->
+                workbook.write java_stream
+            case on_existing_file of
+                Existing_File_Behavior.Append ->
+                    ## Special handling - have successfully added the extra sheet/range so now overwrite file with backup.
+                    Existing_File_Behavior.Backup.write file write_stream
+                _ -> on_existing_file.write file write_stream
 
 ## PRIVATE
    Handle and map the Java errors when writing an Excel file

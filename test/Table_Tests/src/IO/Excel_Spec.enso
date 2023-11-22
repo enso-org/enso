@@ -2,7 +2,10 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Dry_Run_Operation
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Context
+import Standard.Base.Runtime.Managed_Resource.Managed_Resource
+import Standard.Base.Runtime.Ref.Ref
 
 from Standard.Table import Table, Match_Columns, Excel, Excel_Range, Data_Formatter, Sheet_Names, Range_Names, Worksheet, Cell_Range, Delimited, Excel_Workbook
 
@@ -72,58 +75,67 @@ spec_fmt header file read_method sheet_count=5 =
 
 spec_write suffix test_sheet_name =
     Test.group ("Write " + suffix + " Files") <|
-        out = enso_project.data / ('out.' + suffix)
-        out_bak = enso_project.data / ('out.' + suffix + '.bak')
         table = enso_project.data/'varied_column.csv' . read
         clothes = enso_project.data/'clothes.csv' . read
         sub_clothes = clothes.select_columns [0, 1]
 
+        counter = Ref.new 0
+        create_out =
+            i = counter.get + 1
+            counter.put i
+            f = enso_project.data / "transient" / ("out" + i.to_text + "." + suffix)
+            Panic.rethrow f.delete_if_exists
+            f
+
         Test.specify 'should write a table to non-existent file as a new sheet with headers; and return the file object on success' <|
-            out.delete_if_exists
+            out = create_out
             table.write out on_problems=Report_Error . should_succeed . should_equal out
             written = out.read
             written.sheet_count . should_equal 1
             written.sheet_names . should_equal ['EnsoSheet']
             written.read 'EnsoSheet' . should_equal table
-            out.delete_if_exists
+            written.close
+            out.delete_if_exists . should_succeed
 
         Test.specify 'should write a table to non-existent file in append mode as a new sheet with headers' <|
-            out.delete_if_exists
+            out = create_out
             table.write out on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
             written = out.read
             written.sheet_count . should_equal 1
             written.sheet_names . should_equal ['EnsoSheet']
             written.read 'EnsoSheet' . should_equal table
-            out.delete_if_exists
+            written.close
+            out.delete_if_exists . should_succeed
 
         Test.specify 'should write a table to existing file overriding EnsoSheet' <|
-            out.delete_if_exists
+            out = create_out
             table.write out on_problems=Report_Error . should_succeed
             table.write out on_problems=Report_Error . should_succeed
-            written = out.read
-            written.sheet_count . should_equal 1
-            written.sheet_names . should_equal ['EnsoSheet']
-            written.read 'EnsoSheet' . should_equal table
-            out.delete_if_exists
+            written_workbook = out.read
+            written_workbook.sheet_count . should_equal 1
+            written_workbook.sheet_names . should_equal ['EnsoSheet']
+            written_workbook.read 'EnsoSheet' . should_equal table
+            written_workbook.close
+            out.delete_if_exists . should_succeed
 
         Test.specify 'should write a table to existing file in overwrite mode as a new sheet with headers' <|
-            out.delete_if_exists
+            out = create_out
             (enso_project.data / test_sheet_name) . copy_to out
             table.write out (Excel (Worksheet "Another")) on_existing_file=Existing_File_Behavior.Overwrite on_problems=Report_Error . should_succeed
             written = out.read (Excel (Worksheet "Another"))
             written.should_equal table
-            out.delete_if_exists
+            out.delete_if_exists . should_succeed
 
         Test.specify 'should write a table to existing file in overwrite mode as a new sheet without headers' <|
-            out.delete_if_exists
+            out = create_out
             (enso_project.data / test_sheet_name) . copy_to out
             table.write out (Excel (Worksheet "NoHeaders")) on_existing_file=Existing_File_Behavior.Overwrite on_problems=Report_Error . should_succeed
             written = out.read (Excel (Worksheet "NoHeaders"))
             written.should_equal (table.rename_columns ['A', 'B', 'C', 'D', 'E', 'F'])
-            out.delete_if_exists
+            out.delete_if_exists . should_succeed
 
         Test.specify 'should create new sheets at the start if index is 0' <|
-            out.delete_if_exists
+            out = create_out
             table.write out (Excel (Worksheet 0)) on_problems=Report_Error . should_succeed
             clothes.write out (Excel (Worksheet 0)) on_problems=Report_Error . should_succeed
             read_1 = out.read (Excel (Worksheet "Sheet1"))
@@ -132,48 +144,48 @@ spec_write suffix test_sheet_name =
             read_2 . should_equal clothes
             read_3 = out.read (Excel (Sheet_Names))
             read_3 . should_equal ["Sheet2", "Sheet1"]
-            out.delete_if_exists
+            out.delete_if_exists . should_succeed
 
         Test.specify 'should write a table to specific single cell location of an existing sheet' <|
-            out.delete_if_exists
+            out = create_out
             (enso_project.data / test_sheet_name) . copy_to out
             table.write out (Excel (Cell_Range "Another!G1")) on_problems=Report_Error . should_succeed
             written = out.read (Excel (Cell_Range "Another!G1"))
             written.should_equal table
-            out.delete_if_exists
+            out.delete_if_exists . should_succeed
 
         Test.specify 'should clear out an existing fixed range and replace' <|
-            out.delete_if_exists
+            out = create_out
             (enso_project.data / test_sheet_name) . copy_to out
             sub_clothes.write out (Excel (Cell_Range "Another!A1:D20")) on_problems=Report_Error . should_succeed
             written = out.read (Excel (Cell_Range "Another!A1"))
             written.should_equal sub_clothes
-            out.delete_if_exists
+            out.delete_if_exists . should_succeed
 
         Test.specify 'should clear out an existing range and replace' <|
-            out.delete_if_exists
+            out = create_out
             (enso_project.data / test_sheet_name) . copy_to out
             sub_clothes.write out (Excel (Cell_Range "Another!A1")) on_problems=Report_Error . should_succeed
             written = out.read (Excel (Cell_Range "Another!A1"))
             written.should_equal sub_clothes
-            out.delete_if_exists
+            out.delete_if_exists . should_succeed
 
         Test.specify 'should result in Invalid_Location error if trying to write in a bad location' <|
-            out.delete_if_exists
+            out = create_out
             (enso_project.data / test_sheet_name) . copy_to out
             sub_clothes.write out (Excel (Cell_Range "DoesNotExist!A1")) . should_fail_with Invalid_Location
             sub_clothes.write out (Excel (Cell_Range "DoesNotExist!A1:B2")) . should_fail_with Invalid_Location
             sub_clothes.write out (Excel (Cell_Range "SillyRangeName")) . should_fail_with Invalid_Location
-            out.delete_if_exists
+            out.delete_if_exists . should_succeed
 
         Test.specify 'should result in Range_Exceeded error if trying to write in too small a range' <|
-            out.delete_if_exists
+            out = create_out
             (enso_project.data / test_sheet_name) . copy_to out
             sub_clothes.write out (Excel (Cell_Range "Another!A1:B2")) . should_fail_with Range_Exceeded
-            out.delete_if_exists
+            out.delete_if_exists . should_succeed
 
         Test.specify 'should result in Existing_Data error if in Error mode and trying to replace' <|
-            out.delete_if_exists
+            out = create_out
             (enso_project.data / test_sheet_name) . copy_to out
             lmd = out.last_modified_time
             sub_clothes.write out (Excel (Worksheet 1)) on_existing_file=Existing_File_Behavior.Error . should_fail_with Existing_Data
@@ -181,149 +193,149 @@ spec_write suffix test_sheet_name =
             sub_clothes.write out (Excel (Cell_Range "Another!A1")) on_existing_file=Existing_File_Behavior.Error . should_fail_with Existing_Data
             sub_clothes.write out (Excel (Cell_Range "Sheet1!A9")) on_existing_file=Existing_File_Behavior.Error . should_fail_with Existing_Data
             out.last_modified_time.should_equal lmd
-            out.delete_if_exists
+            out.delete_if_exists . should_succeed
 
         Test.specify 'should not allow adding a new sheet if in Error mode and not clashing' <|
-            out.delete_if_exists
+            out = create_out
             (enso_project.data / test_sheet_name) . copy_to out
             lmd = out.last_modified_time
             result = sub_clothes.write out (Excel (Worksheet "Testing")) on_existing_file=Existing_File_Behavior.Error
             result.should_fail_with File_Error
             result.catch.should_be_a File_Error.Already_Exists
             out.last_modified_time.should_equal lmd
-            out.delete_if_exists
+            out.delete_if_exists . should_succeed
 
         Test.specify 'should write a table to non-existent file as a new sheet without headers' <|
-            out.delete_if_exists
+            out = create_out
             table.write out (Excel (Worksheet "Sheet1") headers=False) on_problems=Report_Error . should_succeed
             written = out.read
             written.sheet_count . should_equal 1
             written.sheet_names . should_equal ['Sheet1']
             written.read 'Sheet1' . should_equal (table.rename_columns ['A', 'B', 'C', 'D', 'E', 'F'])
-            out.delete_if_exists
+            out.delete_if_exists . should_succeed
 
         Test.specify 'should be able to append to a sheet by name' <|
-            out.delete_if_exists
+            out = create_out
             (enso_project.data / test_sheet_name) . copy_to out
             extra_another = Table.new [['AA', ['d', 'e']], ['BB',[4, 5]], ['CC',[True, False]], ['DD', ['2022-01-20', '2022-01-21']]]
             expected = Table.new [['AA', ['a','b','c','d', 'e']], ['BB',[1,2,3,4,5]], ['CC',[True, False, False, True, False]]]
             extra_another.write out (Excel (Worksheet "Another")) on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
             written = out.read (Excel (Worksheet "Another")) . select_columns [0, 1, 2]
             written.should_equal expected
-            out.delete_if_exists
+            out.delete_if_exists . should_succeed
 
         Test.specify 'should be able to append to a sheet by position' <|
-            out.delete_if_exists
+            out = create_out
             (enso_project.data / test_sheet_name) . copy_to out
             extra_another = Table.new [['A', ['d', 'e']], ['B',[4, 5]], ['C',[True, False]], ['D', ['2022-01-20', '2022-01-21']]]
             expected = Table.new [['AA', ['a','b','c','d', 'e']], ['BB',[1,2,3,4,5]], ['CC',[True, False, False, True, False]]]
             extra_another.write out (Excel (Worksheet "Another")) on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position on_problems=Report_Error . should_succeed
             written = out.read (Excel (Worksheet "Another")) . select_columns [0, 1, 2]
             written.should_equal expected
-            out.delete_if_exists
+            out.delete_if_exists . should_succeed
 
         Test.specify 'should be able to append to a sheet by name out of order' <|
-            out.delete_if_exists
+            out = create_out
             (enso_project.data / test_sheet_name) . copy_to out
             extra_another = Table.new [['CC',[True, False]], ['BB',[4, 5]], ['AA', ['d', 'e']], ['DD', ['2022-01-20', '2022-01-21']]]
             expected = Table.new [['AA', ['a','b','c','d', 'e']], ['BB',[1,2,3,4,5]], ['CC',[True, False, False, True, False]]]
             extra_another.write out (Excel (Worksheet "Another")) on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
             written = out.read (Excel (Worksheet "Another")) . select_columns [0, 1, 2]
             written.should_equal expected
-            out.delete_if_exists
+            out.delete_if_exists . should_succeed
 
         Test.specify 'should be able to append to a single cell by name' <|
-            out.delete_if_exists
+            out = create_out
             (enso_project.data / test_sheet_name) . copy_to out
             extra_another = Table.new [['AA', ['d', 'e']], ['BB',[4, 5]], ['CC',[True, False]], ['DD', ['2022-01-20', '2022-01-21']]]
             expected = Table.new [['AA', ['a','b','c','d', 'e']], ['BB',[1,2,3,4,5]], ['CC',[True, False, False, True, False]]]
             extra_another.write out (Excel (Cell_Range "Another!A1")) on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
             written = out.read (Excel (Worksheet "Another")) . select_columns [0, 1, 2]
             written.should_equal expected
-            out.delete_if_exists
+            out.delete_if_exists . should_succeed
 
         Test.specify 'should be able to append to a single cell by position' <|
-            out.delete_if_exists
+            out = create_out
             (enso_project.data / test_sheet_name) . copy_to out
             extra_another = Table.new [['A', ['d', 'e']], ['B',[4, 5]], ['C',[True, False]], ['D', ['2022-01-20', '2022-01-21']]]
             expected = Table.new [['AA', ['a','b','c','d', 'e']], ['BB',[1,2,3,4,5]], ['CC',[True, False, False, True, False]]]
             extra_another.write out (Excel (Cell_Range "Another!A1")) on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position on_problems=Report_Error . should_succeed
             written = out.read (Excel (Worksheet "Another")) . select_columns [0, 1, 2]
             written.should_equal expected
-            out.delete_if_exists
+            out.delete_if_exists . should_succeed
 
         Test.specify 'should be able to append to a single cell by name out of order' <|
-            out.delete_if_exists
+            out = create_out
             (enso_project.data / test_sheet_name) . copy_to out
             extra_another = Table.new [['CC',[True, False]], ['BB',[4, 5]], ['AA', ['d', 'e']], ['DD', ['2022-01-20', '2022-01-21']]]
             expected = Table.new [['AA', ['a','b','c','d', 'e']], ['BB',[1,2,3,4,5]], ['CC',[True, False, False, True, False]]]
             extra_another.write out (Excel (Cell_Range "Another!A1")) on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
             written = out.read (Excel (Worksheet "Another")) . select_columns [0, 1, 2]
             written.should_equal expected
-            out.delete_if_exists
+            out.delete_if_exists . should_succeed
 
         Test.specify 'should be able to append to a range by name' <|
-            out.delete_if_exists
+            out = create_out
             (enso_project.data / test_sheet_name) . copy_to out
             extra_another = Table.new [['AA', ['d', 'e']], ['BB', [4, 5]], ['CC', [True, False]], ['DD', ['2022-01-20', '2022-01-21']]]
             expected = Table.new [['AA', ['a', 'b', 'c', 'd', 'e']], ['BB', [1, 2, 3, 4, 5]], ['CC', [True, False, False, True, False]]]
             extra_another.write out (Excel (Cell_Range "Another!A1:D6")) on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
             written = out.read (Excel (Worksheet "Another")) . select_columns [0, 1, 2]
             written.should_equal expected
-            out.delete_if_exists
+            out.delete_if_exists . should_succeed
 
         Test.specify 'should be able to append to a range by position' <|
-            out.delete_if_exists
+            out = create_out
             (enso_project.data / test_sheet_name) . copy_to out
             extra_another = Table.new [['A', ['d', 'e']], ['B',[4, 5]], ['C',[True, False]], ['D', ['2022-01-20', '2022-01-21']]]
             expected = Table.new [['AA', ['a','b','c','d', 'e']], ['BB',[1,2,3,4,5]], ['CC',[True, False, False, True, False]]]
             extra_another.write out (Excel (Cell_Range "Another!A1:D6")) on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position on_problems=Report_Error . should_succeed
             written = out.read (Excel (Worksheet "Another")) . select_columns [0, 1, 2]
             written.should_equal expected
-            out.delete_if_exists
+            out.delete_if_exists . should_succeed
 
         Test.specify 'should be able to append to a range by name not in top left' <|
-            out.delete_if_exists
+            out = create_out
             (enso_project.data / test_sheet_name) . copy_to out
             extra_another = Table.new [['AA', ['d', 'e']], ['BB',[4, 5]], ['CC',[True, False]], ['DD', ['2022-01-20', '2022-01-21']]]
             expected = Table.new [['AA', ['f', 'g', 'h', 'd', 'e']], ['BB',[1, 2, 3, 4, 5]], ['CC',[True, False, False, True, False]]]
             extra_another.write out (Excel (Cell_Range "Random!K9")) on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
             written = out.read (Excel (Cell_Range "Random!K9")) . select_columns [0, 1, 2]
             written.should_equal expected
-            out.delete_if_exists
+            out.delete_if_exists . should_succeed
 
         Test.specify 'should be able to append to a range by name after deduplication of names' <|
-            out.delete_if_exists
+            out = create_out
             (enso_project.data / test_sheet_name) . copy_to out
             extra_another = Table.new [['AA', ['d', 'e']], ['BB',[4, 5]], ['AA 1',[True, False]], ['BB 1', ['2022-01-20', '2022-01-21']]]
             expected = Table.new [['AA', ['f', 'g', 'h', 'd', 'e']], ['BB',[1, 2, 3, 4, 5]], ['AA 1',[True, False, False, True, False]]]
             extra_another.write out (Excel (Cell_Range "Random!S3")) on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
             written = out.read (Excel (Cell_Range "Random!S3")) . select_columns [0, 1, 2]
             written.should_equal expected
-            out.delete_if_exists
+            out.delete_if_exists . should_succeed
 
         Test.specify 'should be able to append to a range by position not in top left' <|
-            out.delete_if_exists
+            out = create_out
             (enso_project.data / test_sheet_name) . copy_to out
             extra_another = Table.new [['A', ['d', 'e']], ['B',[4, 5]], ['C',[True, False]], ['D', ['2022-01-20', '2022-01-21']]]
             expected = Table.new [['AA', ['f', 'g', 'h', 'd', 'e']], ['BB',[1, 2, 3, 4, 5]], ['CC',[True, False, False, True, False]]]
             extra_another.write out (Excel (Cell_Range "Random!K9")) on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position on_problems=Report_Error . should_succeed
             written = out.read (Excel (Cell_Range "Random!K9")) . select_columns [0, 1, 2]
             written.should_equal expected
-            out.delete_if_exists
+            out.delete_if_exists . should_succeed
 
         Test.specify 'should be able to append to a range by name out of order' <|
-            out.delete_if_exists
+            out = create_out
             (enso_project.data / test_sheet_name) . copy_to out
             extra_another = Table.new [['CC',[True, False]], ['BB',[4, 5]], ['AA', ['d', 'e']], ['DD', ['2022-01-20', '2022-01-21']]]
             expected = Table.new [['AA', ['a','b','c','d', 'e']], ['BB',[1,2,3,4,5]], ['CC',[True, False, False, True, False]]]
             extra_another.write out (Excel (Cell_Range "Another!A1:D6")) on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
             written = out.read (Excel (Worksheet "Another")) . select_columns [0, 1, 2]
             written.should_equal expected
-            out.delete_if_exists
+            out.delete_if_exists . should_succeed
 
         Test.specify 'should be able to write to a new dry run file' <|
-            out.delete_if_exists
+            out = create_out
             temp = Context.Output.with_disabled <|
                 result = table.write out on_problems=Report_Error . should_succeed
                 Problems.expect_only_warning Dry_Run_Operation result
@@ -336,10 +348,10 @@ spec_write suffix test_sheet_name =
             temp.delete_if_exists
 
         Test.specify 'should be able to write to an existing empty file' <|
-            out.delete_if_exists
+            out = create_out
             [].write_bytes out
 
-            out_bak.delete_if_exists
+            out_bak = out.parent / (out.name+".bak")
 
             table.write out on_problems=Report_Error . should_succeed . should_equal out
             written = out.read
@@ -350,70 +362,70 @@ spec_write suffix test_sheet_name =
             out_bak.exists.should_be_true
             out_bak.size.should_equal 0
 
-            out.delete_if_exists
-            out_bak.delete_if_exists
+            out.delete_if_exists . should_succeed
+            out_bak.delete_if_exists . should_succeed
 
         Test.specify 'should fail to append to a sheet by name if missing columns' <|
-            out.delete_if_exists
+            out = create_out
             (enso_project.data / test_sheet_name) . copy_to out
             extra_another = Table.new [['CC',[True, False]], ['BB',[4, 5]], ['AA', ['d', 'e']]]
             extra_another.write out (Excel (Worksheet "Another")) on_existing_file=Existing_File_Behavior.Append . should_fail_with Column_Name_Mismatch
-            out.delete_if_exists
+            out.delete_if_exists . should_succeed
 
         Test.specify 'should fail to append to a sheet by name if extra columns' <|
-            out.delete_if_exists
+            out = create_out
             (enso_project.data / test_sheet_name) . copy_to out
             lmd = out.last_modified_time
             extra_another = Table.new [['CC',[True, False]], ['BB',[4, 5]], ['AA', ['d', 'e']], ['DD', ['2022-01-20', '2022-01-21']], ['EE', ['2022-01-20', '2022-01-21']]]
             extra_another.write out (Excel (Worksheet "Another")) on_existing_file=Existing_File_Behavior.Append . should_fail_with Column_Name_Mismatch
             out.last_modified_time.should_equal lmd
-            out.delete_if_exists
+            out.delete_if_exists . should_succeed
 
         Test.specify 'should fail to append to a sheet by name if no headers' <|
-            out.delete_if_exists
+            out = create_out
             (enso_project.data / test_sheet_name) . copy_to out
             lmd = out.last_modified_time
             extra_another = Table.new [['CC',[True, False]], ['BB',[4, 5]], ['AA', ['d', 'e']], ['DD', ['2022-01-20', '2022-01-21']], ['EE', ['2022-01-20', '2022-01-21']]]
             extra_another.write out (Excel (Worksheet "NoHeaders")) on_existing_file=Existing_File_Behavior.Append . should_fail_with Illegal_Argument
-            extra_another.write out (Excel (Worksheet "Another") False) on_existing_file=Existing_File_Behavior.Append . should_fail_with Illegal_Argument
+            extra_another.write out (Excel (Worksheet "Another") headers=False) on_existing_file=Existing_File_Behavior.Append . should_fail_with Illegal_Argument
             out.last_modified_time.should_equal lmd
-            out.delete_if_exists
+            out.delete_if_exists . should_succeed
 
         Test.specify 'should fail to append to a sheet by position if too few columns' <|
-            out.delete_if_exists
+            out = create_out
             (enso_project.data / test_sheet_name) . copy_to out
             lmd = out.last_modified_time
             extra_another = Table.new [['CC',[True, False]], ['BB',[4, 5]], ['AA', ['d', 'e']]]
             extra_another.write out (Excel (Worksheet "Another")) on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position . should_fail_with Column_Count_Mismatch
             out.last_modified_time.should_equal lmd
-            out.delete_if_exists
+            out.delete_if_exists . should_succeed
 
         Test.specify 'should fail to append to a sheet by position if too many columns' <|
-            out.delete_if_exists
+            out = create_out
             (enso_project.data / test_sheet_name) . copy_to out
             lmd = out.last_modified_time
             extra_another = Table.new [['CC',[True, False]], ['BB',[4, 5]], ['AA', ['d', 'e']], ['DD', ['2022-01-20', '2022-01-21']], ['EE', ['2022-01-20', '2022-01-21']]]
             extra_another.write out (Excel (Worksheet "Another")) on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position . should_fail_with Column_Count_Mismatch
             out.last_modified_time.should_equal lmd
-            out.delete_if_exists
+            out.delete_if_exists . should_succeed
 
         Test.specify 'should fail to append to a range by name if not large enough' <|
-            out.delete_if_exists
+            out = create_out
             (enso_project.data / test_sheet_name) . copy_to out
             lmd = out.last_modified_time
             extra_another = Table.new [['AA', ['d', 'e']], ['BB',[4, 5]], ['CC',[True, False]], ['DD', ['2022-01-20', '2022-01-21']]]
             extra_another.write out (Excel (Cell_Range "Another!A1:D5")) on_existing_file=Existing_File_Behavior.Append . should_fail_with Range_Exceeded
             out.last_modified_time.should_equal lmd
-            out.delete_if_exists
+            out.delete_if_exists . should_succeed
 
         Test.specify 'should fail to append to a range by name if it hits another table' <|
-            out.delete_if_exists
+            out = create_out
             (enso_project.data / test_sheet_name) . copy_to out
             lmd = out.last_modified_time
             extra_another = Table.new [['AA', ['d', 'e']], ['BB',[4, 5]], ['CC',[True, False]], ['DD', ['2022-01-20', '2022-01-21']]]
             extra_another.write out (Excel (Cell_Range "Random!B3")) on_existing_file=Existing_File_Behavior.Append . should_fail_with Existing_Data
             out.last_modified_time.should_equal lmd
-            out.delete_if_exists
+            out.delete_if_exists . should_succeed
 
         Test.specify "should fail if the target file is read-only" <|
             f = enso_project.data / "transient" / "permission."+suffix
@@ -429,7 +441,10 @@ spec_write suffix test_sheet_name =
                 r1 = t1.write f (Excel (Worksheet "Another")) on_existing_file=behavior
                 r1.should_fail_with File_Error
                 r1.catch.should_be_a File_Error.Access_Denied
-                f.read . read "EnsoSheet" . should_equal initial_data
+
+                read_table = Managed_Resource.bracket (f.read) (.close) workbook->
+                    workbook.read "EnsoSheet"
+                read_table.should_equal initial_data
 
             Util.set_writable f True
             f.delete
@@ -451,9 +466,6 @@ spec_write suffix test_sheet_name =
             t2 = encodings.read (Excel (Worksheet "Another"))
             t2.at "A" . to_vector . should_equal ["A", "B", "😊", "D"]
             encodings.delete
-
-        out.delete_if_exists
-        out_bak.delete_if_exists
 
 spec =
     Test.group 'Excel Range' <|
@@ -737,6 +749,16 @@ spec =
 
             bad_file.delete
 
+        Test.specify "will fail if an operation is performed on a closed workbook" <|
+            workbook = xlsx_sheet.read
+            workbook.sheet_count . should_equal 4
+
+            workbook.close . should_equal Nothing
+
+            workbook.sheet_count . should_fail_with Illegal_State
+            workbook.close . should_fail_with Illegal_State
+            workbook.read "Sheet1" . should_fail_with Illegal_State
+
         ci_pending = if Environment.get "CI" != Nothing then "This test takes a lot of time so it is disabled on CI."
         Test.specify "should be able to write and read a big XLSX file (>110MB)" pending=ci_pending <|
             n = 10^6
@@ -847,6 +869,8 @@ spec =
             problems = [Duplicate_Output_Column_Names.Error ["DD"]]
             Problems.test_problem_handling action problems tester
 
+    # Cleanup any leftovers from previous runs
+    enso_project.data/"transient" . list "out*" . each .delete
     spec_write "xlsx" 'TestSheet.xlsx'
     spec_write "xls" 'TestSheetOld.xls'
 

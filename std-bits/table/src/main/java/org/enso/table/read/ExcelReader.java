@@ -9,6 +9,8 @@ import java.util.stream.IntStream;
 
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
+import org.apache.poi.openxml4j.opc.OPCPackage;
+import org.apache.poi.openxml4j.opc.PackageAccess;
 import org.apache.poi.poifs.filesystem.POIFSFileSystem;
 import org.apache.poi.ss.usermodel.Name;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -287,7 +289,8 @@ public class ExcelReader {
         throw e;
       }
     } else {
-      return new XSSFWorkbook(file);
+      OPCPackage pkg = OPCPackage.open(file, PackageAccess.READ_WRITE);
+      return new XSSFWorkbook(pkg);
     }
   }
 
