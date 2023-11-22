@@ -39,7 +39,7 @@ object Error {
     */
   sealed case class InvalidIR(
     ir: IR,
-    override val passData: MetadataStorage      = MetadataStorage(),
+    override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Error
       with Diagnostic.Kind.Static
@@ -79,7 +79,8 @@ object Error {
           keepDiagnostics,
           keepIdentifiers
         ),
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId

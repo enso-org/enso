@@ -1771,7 +1771,7 @@ final class TreeToIr {
     });
   }
   private MetadataStorage meta() {
-    return MetadataStorage.apply(nil());
+    return new MetadataStorage();
   }
   private DiagnosticStorage diag() {
     return DiagnosticStorage.apply(nil());

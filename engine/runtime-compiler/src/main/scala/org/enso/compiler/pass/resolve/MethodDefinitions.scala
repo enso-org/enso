@@ -11,7 +11,7 @@ import org.enso.compiler.core.ir.{
 }
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.definition
-import org.enso.compiler.core.ir.MetadataStorage.ToPair
+import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.{Resolution, ResolvedType, Type}
 import org.enso.compiler.core.CompilerError
@@ -162,10 +162,12 @@ case object MethodDefinitions extends IRPass {
             )
           case Right(value: BindingsMap.ResolvedModule) =>
             typePointer.updateMetadata(
-              this -->> BindingsMap.Resolution(value)
+              new MetadataPair(this, BindingsMap.Resolution(value))
             )
           case Right(value: BindingsMap.ResolvedType) =>
-            typePointer.updateMetadata(this -->> BindingsMap.Resolution(value))
+            typePointer.updateMetadata(
+              new MetadataPair(this, BindingsMap.Resolution(value))
+            )
           case Right(_: BindingsMap.ResolvedPolyglotSymbol) =>
             errors.Resolution(
               typePointer,

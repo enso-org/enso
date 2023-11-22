@@ -57,7 +57,7 @@ object Import {
     hiddenNames: Option[List[Name.Literal]],
     override val location: Option[IdentifiedLocation],
     isSynthetic: Boolean                        = false,
-    override val passData: MetadataStorage      = MetadataStorage(),
+    override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Import
       with IRKind.Primitive {
@@ -113,7 +113,8 @@ object Import {
     ): Module =
       copy(
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId

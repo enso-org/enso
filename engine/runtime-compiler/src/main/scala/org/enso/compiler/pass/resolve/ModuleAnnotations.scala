@@ -51,14 +51,16 @@ case object ModuleAnnotations extends IRPass {
       case typ: Definition.SugaredType =>
         val res = Some(
           resolveComplexType(typ).updateMetadata(
-            this -->> Annotations(lastAnnotations)
+            new MetadataPair(this, Annotations(lastAnnotations))
           )
         )
         lastAnnotations = Seq()
         res
       case entity =>
         val res = Some(
-          entity.updateMetadata(this -->> Annotations(lastAnnotations))
+          entity.updateMetadata(
+            new MetadataPair(this, Annotations(lastAnnotations))
+          )
         )
         lastAnnotations = Seq()
         res
@@ -84,7 +86,9 @@ case object ModuleAnnotations extends IRPass {
       case comment: Comment => Some(comment)
       case entity =>
         val res = Some(
-          entity.updateMetadata(this -->> Annotations(lastAnnotations))
+          entity.updateMetadata(
+            new MetadataPair(this, Annotations(lastAnnotations))
+          )
         )
         lastAnnotations = Seq()
         res

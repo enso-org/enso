@@ -6,7 +6,7 @@ import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.{DefinitionArgument, Expression, Module, Name}
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
-import org.enso.compiler.core.ir.MetadataStorage.ToPair
+import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
 import org.enso.compiler.data.BindingsMap.ModuleReference
 import org.enso.compiler.data.{BindingsMap, CompilerConfig}
 import org.enso.compiler.pass.analyse.BindingAnalysis
@@ -262,9 +262,12 @@ trait CompilerRunner {
       mod,
       Module(List(), List(), List(), false, None)
         .updateMetadata(
-          BindingAnalysis -->> BindingsMap(
-            List(),
-            ModuleReference.Concrete(mod.asCompilerModule())
+          new MetadataPair(
+            BindingAnalysis,
+            BindingsMap(
+              List(),
+              ModuleReference.Concrete(mod.asCompilerModule())
+            )
           )
         )
     )

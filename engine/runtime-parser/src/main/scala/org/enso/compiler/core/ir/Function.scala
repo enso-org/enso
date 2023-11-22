@@ -114,7 +114,8 @@ object Function {
           keepIdentifiers
         ),
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId
@@ -200,7 +201,7 @@ object Function {
     override val body: Expression,
     location: Option[IdentifiedLocation],
     override val canBeTCO: Boolean = true,
-    passData: MetadataStorage      = MetadataStorage(),
+    passData: MetadataStorage      = new MetadataStorage(),
     diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Function
       with IRKind.Sugar {
@@ -271,7 +272,8 @@ object Function {
           keepIdentifiers
         ),
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId

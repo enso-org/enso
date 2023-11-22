@@ -4,7 +4,7 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.{Expression, Module}
 import org.enso.compiler.core.ir.Name
-import org.enso.compiler.core.ir.MetadataStorage.ToPair
+import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
 import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.pass.IRPass
@@ -84,7 +84,7 @@ case object ExpressionAnnotations extends IRPass {
               )
             case List(arg) =>
               doExpression(arg.value)
-                .updateMetadata(this -->> Annotations(Seq(ann)))
+                .updateMetadata(new MetadataPair(this, Annotations(Seq(ann))))
             case realFun :: args =>
               val recurFun = doExpression(realFun.value)
               val (finalFun, preArgs) = recurFun match {
@@ -95,7 +95,7 @@ case object ExpressionAnnotations extends IRPass {
               val recurArgs = args.map(_.mapExpressions(doExpression))
               app
                 .copy(function = finalFun, arguments = preArgs ++ recurArgs)
-                .updateMetadata(this -->> Annotations(Seq(ann)))
+                .updateMetadata(new MetadataPair(this, Annotations(Seq(ann))))
           }
         } else {
           val err =

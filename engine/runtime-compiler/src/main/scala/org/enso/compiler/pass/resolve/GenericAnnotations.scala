@@ -60,7 +60,10 @@ case object GenericAnnotations extends IRPass {
       case entity =>
         val res = Some(
           entity.updateMetadata(
-            this -->> ModuleAnnotations.Annotations(lastAnnotations)
+            new MetadataPair(
+              this,
+              ModuleAnnotations.Annotations(lastAnnotations)
+            )
           )
         )
         lastAnnotations = Seq()

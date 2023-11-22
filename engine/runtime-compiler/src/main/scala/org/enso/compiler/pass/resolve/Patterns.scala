@@ -6,7 +6,7 @@ import org.enso.compiler.core.ir.{Expression, Module, Name, Pattern}
 import org.enso.compiler.core.ir.expression.{errors, Case}
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
-import org.enso.compiler.core.ir.MetadataStorage.ToPair
+import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
@@ -120,23 +120,23 @@ object Patterns extends IRPass {
                   )
                 case Right(value: BindingsMap.ResolvedConstructor) =>
                   consName.updateMetadata(
-                    this -->> BindingsMap.Resolution(value)
+                    new MetadataPair(this, BindingsMap.Resolution(value))
                   )
                 case Right(value: BindingsMap.ResolvedModule) =>
                   consName.updateMetadata(
-                    this -->> BindingsMap.Resolution(value)
+                    new MetadataPair(this, BindingsMap.Resolution(value))
                   )
                 case Right(value: BindingsMap.ResolvedType) =>
                   consName.updateMetadata(
-                    this -->> BindingsMap.Resolution(value)
+                    new MetadataPair(this, BindingsMap.Resolution(value))
                   )
                 case Right(value: BindingsMap.ResolvedPolyglotSymbol) =>
                   consName.updateMetadata(
-                    this -->> BindingsMap.Resolution(value)
+                    new MetadataPair(this, BindingsMap.Resolution(value))
                   )
                 case Right(value: BindingsMap.ResolvedPolyglotField) =>
                   consName.updateMetadata(
-                    this -->> BindingsMap.Resolution(value)
+                    new MetadataPair(this, BindingsMap.Resolution(value))
                   )
 
                 case Right(_: BindingsMap.ResolvedMethod) =>
@@ -201,7 +201,7 @@ object Patterns extends IRPass {
                   )
                 case Right(value: BindingsMap.ResolvedType) =>
                   tpeName.updateMetadata(
-                    this -->> BindingsMap.Resolution(value)
+                    new MetadataPair(this, BindingsMap.Resolution(value))
                   )
                 case Right(_: BindingsMap.ResolvedConstructor) =>
                   errors.Resolution(
@@ -211,11 +211,11 @@ object Patterns extends IRPass {
                   )
                 case Right(value: BindingsMap.ResolvedPolyglotSymbol) =>
                   tpeName.updateMetadata(
-                    this -->> BindingsMap.Resolution(value)
+                    new MetadataPair(this, BindingsMap.Resolution(value))
                   )
                 case Right(value: BindingsMap.ResolvedPolyglotField) =>
                   tpeName.updateMetadata(
-                    this -->> BindingsMap.Resolution(value)
+                    new MetadataPair(this, BindingsMap.Resolution(value))
                   )
                 /*errors.Resolution(
                     tpeName,

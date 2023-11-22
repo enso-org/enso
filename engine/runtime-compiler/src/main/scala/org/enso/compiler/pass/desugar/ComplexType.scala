@@ -136,7 +136,10 @@ case object ComplexType extends IRPass {
               .map(_.annotations)
               .getOrElse(Nil)
             atom.updateMetadata(
-              ModuleAnnotations -->> ann.copy(ann.annotations ++ old)
+              new MetadataPair(
+                ModuleAnnotations,
+                ann.copy(ann.annotations ++ old)
+              )
             )
           })
           .getOrElse(atom)
@@ -212,13 +215,17 @@ case object ComplexType extends IRPass {
     )
 
     val withAnnotations = annotations
-      .map(ann => sumType.updateMetadata(ModuleAnnotations -->> ann))
+      .map(ann =>
+        sumType.updateMetadata(new MetadataPair(ModuleAnnotations, ann))
+      )
       .getOrElse(sumType)
 
     val withDoc = typ
       .getMetadata(DocumentationComments)
       .map(ann =>
-        withAnnotations.updateMetadata(DocumentationComments -->> ann)
+        withAnnotations.updateMetadata(
+          new MetadataPair(DocumentationComments, ann)
+        )
       )
       .getOrElse(sumType)
 

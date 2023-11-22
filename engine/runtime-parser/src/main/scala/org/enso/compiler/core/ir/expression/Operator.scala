@@ -43,7 +43,7 @@ object Operator {
     operator: Name,
     right: CallArgument,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
+    override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Operator
       with IRKind.Sugar {
@@ -102,7 +102,8 @@ object Operator {
           keepIdentifiers
         ),
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId

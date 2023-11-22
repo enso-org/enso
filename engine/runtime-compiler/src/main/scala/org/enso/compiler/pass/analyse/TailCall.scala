@@ -112,21 +112,23 @@ case object TailCall extends IRPass {
           .copy(
             body = analyseExpression(method.body, isInTailPosition = true)
           )
-          .updateMetadata(this -->> TailPosition.Tail)
+          .updateMetadata(new MetadataPair(this, TailPosition.Tail))
       case method @ definition.Method
             .Explicit(_, body, _, _, _) =>
         method
           .copy(
             body = analyseExpression(body, isInTailPosition = true)
           )
-          .updateMetadata(this -->> TailPosition.Tail)
+          .updateMetadata(new MetadataPair(this, TailPosition.Tail))
       case _: definition.Method.Binding =>
         throw new CompilerError(
           "Sugared method definitions should not occur during tail call " +
           "analysis."
         )
       case _: Definition.Type =>
-        moduleDefinition.updateMetadata(this -->> TailPosition.Tail)
+        moduleDefinition.updateMetadata(
+          new MetadataPair(this, TailPosition.Tail)
+        )
       case _: Definition.SugaredType =>
         throw new CompilerError(
           "Complex type definitions should not be present during " +
@@ -151,7 +153,7 @@ case object TailCall extends IRPass {
           .copy(expression =
             analyseExpression(ann.expression, isInTailPosition = true)
           )
-          .updateMetadata(this -->> TailPosition.Tail)
+          .updateMetadata(new MetadataPair(this, TailPosition.Tail))
       case err: Error => err
     }
   }
@@ -173,7 +175,7 @@ case object TailCall extends IRPass {
       else expression
     expressionWithWarning match {
       case empty: Empty =>
-        empty.updateMetadata(this -->> TailPosition.NotTail)
+        empty.updateMetadata(new MetadataPair(this, TailPosition.NotTail))
       case function: Function =>
         analyseFunction(function, isInTailPosition)
       case caseExpr: Case   => analyseCase(caseExpr, isInTailPosition)
@@ -181,7 +183,7 @@ case object TailCall extends IRPass {
       case app: Application => analyseApplication(app, isInTailPosition)
       case name: Name       => analyseName(name, isInTailPosition)
       case foreign: Foreign =>
-        foreign.updateMetadata(this -->> TailPosition.NotTail)
+        foreign.updateMetadata(new MetadataPair(this, TailPosition.NotTail))
       case literal: Literal => analyseLiteral(literal, isInTailPosition)
       case _: Comment =>
         throw new CompilerError(
@@ -202,16 +204,20 @@ case object TailCall extends IRPass {
             ),
             returnValue = analyseExpression(returnValue, isInTailPosition)
           )
-          .updateMetadata(this -->> TailPosition.fromBool(isInTailPosition))
+          .updateMetadata(
+            new MetadataPair(this, TailPosition.fromBool(isInTailPosition))
+          )
       case binding @ Expression.Binding(_, expression, _, _, _) =>
         binding
           .copy(
             expression = analyseExpression(expression, isInTailPosition = false)
           )
-          .updateMetadata(this -->> TailPosition.fromBool(isInTailPosition))
+          .updateMetadata(
+            new MetadataPair(this, TailPosition.fromBool(isInTailPosition))
+          )
       case err: Diagnostic =>
         err.updateMetadata(
-          this -->> TailPosition.fromBool(isInTailPosition)
+          new MetadataPair(this, TailPosition.fromBool(isInTailPosition))
         )
     }
   }
@@ -223,7 +229,9 @@ case object TailCall extends IRPass {
     * @return `name`, annotated with tail position metadata
     */
   def analyseName(name: Name, isInTailPosition: Boolean): Name = {
-    name.updateMetadata(this -->> TailPosition.fromBool(isInTailPosition))
+    name.updateMetadata(
+      new MetadataPair(this, TailPosition.fromBool(isInTailPosition))
+    )
   }
 
   /** Performs tail call analysis on a literal.
@@ -237,7 +245,9 @@ case object TailCall extends IRPass {
     literal: Literal,
     isInTailPosition: Boolean
   ): Literal = {
-    literal.updateMetadata(this -->> TailPosition.fromBool(isInTailPosition))
+    literal.updateMetadata(
+      new MetadataPair(this, TailPosition.fromBool(isInTailPosition))
+    )
   }
 
   /** Performs tail call analysis on an application.
@@ -258,25 +268,33 @@ case object TailCall extends IRPass {
             function  = analyseExpression(fn, isInTailPosition = false),
             arguments = args.map(analyseCallArg)
           )
-          .updateMetadata(this -->> TailPosition.fromBool(isInTailPosition))
+          .updateMetadata(
+            new MetadataPair(this, TailPosition.fromBool(isInTailPosition))
+          )
       case force @ Application.Force(target, _, _, _) =>
         force
           .copy(
             target = analyseExpression(target, isInTailPosition)
           )
-          .updateMetadata(this -->> TailPosition.fromBool(isInTailPosition))
+          .updateMetadata(
+            new MetadataPair(this, TailPosition.fromBool(isInTailPosition))
+          )
       case vector @ Application.Sequence(items, _, _, _) =>
         vector
           .copy(items =
             items.map(analyseExpression(_, isInTailPosition = false))
           )
-          .updateMetadata(this -->> TailPosition.fromBool(isInTailPosition))
+          .updateMetadata(
+            new MetadataPair(this, TailPosition.fromBool(isInTailPosition))
+          )
       case tSet @ Application.Typeset(expr, _, _, _) =>
         tSet
           .copy(expression =
             expr.map(analyseExpression(_, isInTailPosition = false))
           )
-          .updateMetadata(this -->> TailPosition.fromBool(isInTailPosition))
+          .updateMetadata(
+            new MetadataPair(this, TailPosition.fromBool(isInTailPosition))
+          )
       case _: Operator =>
         throw new CompilerError("Unexpected binary operator.")
     }
@@ -295,7 +313,7 @@ case object TailCall extends IRPass {
             // Note [Call Argument Tail Position]
             value = analyseExpression(expr, isInTailPosition = true)
           )
-          .updateMetadata(this -->> TailPosition.Tail)
+          .updateMetadata(new MetadataPair(this, TailPosition.Tail))
     }
   }
 
@@ -332,7 +350,9 @@ case object TailCall extends IRPass {
   def analyseType(value: Type, isInTailPosition: Boolean): Type = {
     value
       .mapExpressions(analyseExpression(_, isInTailPosition = false))
-      .updateMetadata(this -->> TailPosition.fromBool(isInTailPosition))
+      .updateMetadata(
+        new MetadataPair(this, TailPosition.fromBool(isInTailPosition))
+      )
   }
 
   /** Performs tail call analysis on a case expression.
@@ -351,7 +371,9 @@ case object TailCall extends IRPass {
             // Note [Analysing Branches in Case Expressions]
             branches = branches.map(analyseCaseBranch(_, isInTailPosition))
           )
-          .updateMetadata(this -->> TailPosition.fromBool(isInTailPosition))
+          .updateMetadata(
+            new MetadataPair(this, TailPosition.fromBool(isInTailPosition))
+          )
       case _: Case.Branch =>
         throw new CompilerError("Unexpected case branch.")
     }
@@ -387,7 +409,9 @@ case object TailCall extends IRPass {
           isInTailPosition
         )
       )
-      .updateMetadata(this -->> TailPosition.fromBool(isInTailPosition))
+      .updateMetadata(
+        new MetadataPair(this, TailPosition.fromBool(isInTailPosition))
+      )
   }
 
   /** Performs tail call analysis on a pattern.
@@ -404,17 +428,17 @@ case object TailCall extends IRPass {
           .copy(
             name = analyseName(name, isInTailPosition = false)
           )
-          .updateMetadata(this -->> TailPosition.NotTail)
+          .updateMetadata(new MetadataPair(this, TailPosition.NotTail))
       case cons @ Pattern.Constructor(constructor, fields, _, _, _) =>
         cons
           .copy(
             constructor = analyseName(constructor, isInTailPosition = false),
             fields      = fields.map(analysePattern)
           )
-          .updateMetadata(this -->> TailPosition.NotTail)
+          .updateMetadata(new MetadataPair(this, TailPosition.NotTail))
       case literal: Pattern.Literal =>
         literal
-          .updateMetadata(this -->> TailPosition.NotTail)
+          .updateMetadata(new MetadataPair(this, TailPosition.NotTail))
       case tpePattern @ Pattern.Type(name, tpe, _, _, _) =>
         tpePattern
           .copy(
@@ -422,7 +446,7 @@ case object TailCall extends IRPass {
             tpe  = analyseName(tpe, isInTailPosition = false)
           )
       case err: errors.Pattern =>
-        err.updateMetadata(this -->> TailPosition.NotTail)
+        err.updateMetadata(new MetadataPair(this, TailPosition.NotTail))
       case _: Pattern.Documentation =>
         throw new CompilerError(
           "Branch documentation should be desugared at an earlier stage."
@@ -457,7 +481,7 @@ case object TailCall extends IRPass {
     }
 
     resultFunction.updateMetadata(
-      this -->> TailPosition.fromBool(isInTailPosition)
+      new MetadataPair(this, TailPosition.fromBool(isInTailPosition))
     )
   }
 
@@ -473,10 +497,10 @@ case object TailCall extends IRPass {
           .copy(
             defaultValue = default.map(x =>
               analyseExpression(x, isInTailPosition = false)
-                .updateMetadata(this -->> TailPosition.NotTail)
+                .updateMetadata(new MetadataPair(this, TailPosition.NotTail))
             )
           )
-          .updateMetadata(this -->> TailPosition.NotTail)
+          .updateMetadata(new MetadataPair(this, TailPosition.NotTail))
     }
   }
 

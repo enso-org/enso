@@ -41,7 +41,7 @@ object Section {
     arg: CallArgument,
     operator: Name,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
+    override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Section
       with IRKind.Sugar {
@@ -92,7 +92,8 @@ object Section {
             keepIdentifiers
           ),
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId
@@ -142,7 +143,7 @@ object Section {
   sealed case class Sides(
     operator: Name,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
+    override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Section
       with IRKind.Sugar {
@@ -185,7 +186,8 @@ object Section {
             keepIdentifiers
           ),
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId
@@ -234,7 +236,7 @@ object Section {
     operator: Name,
     arg: CallArgument,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
+    override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Section
       with IRKind.Sugar {
@@ -285,7 +287,8 @@ object Section {
           keepIdentifiers
         ),
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId

@@ -19,7 +19,7 @@ import java.util.UUID
 sealed case class Pattern(
   originalPattern: org.enso.compiler.core.ir.Pattern,
   reason: Pattern.Reason,
-  passData: MetadataStorage      = MetadataStorage(),
+  passData: MetadataStorage      = new MetadataStorage(),
   diagnostics: DiagnosticStorage = DiagnosticStorage()
 ) extends Error
     with Diagnostic.Kind.Interactive
@@ -68,7 +68,8 @@ sealed case class Pattern(
           keepDiagnostics,
           keepIdentifiers
         ),
-      passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+      passData =
+        if (keepMetadata) passData.duplicate else new MetadataStorage(),
       diagnostics =
         if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
       id = if (keepIdentifiers) id else randomId

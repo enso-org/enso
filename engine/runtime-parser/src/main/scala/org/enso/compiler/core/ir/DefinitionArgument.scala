@@ -61,7 +61,7 @@ object DefinitionArgument {
     override val defaultValue: Option[Expression],
     override val suspended: Boolean,
     location: Option[IdentifiedLocation],
-    passData: MetadataStorage      = MetadataStorage(),
+    passData: MetadataStorage      = new MetadataStorage(),
     diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends DefinitionArgument
       with IRKind.Primitive {
@@ -136,7 +136,8 @@ object DefinitionArgument {
           )
         ),
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId

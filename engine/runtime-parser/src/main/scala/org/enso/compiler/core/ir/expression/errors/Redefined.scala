@@ -42,7 +42,7 @@ object Redefined {
     */
   sealed case class SelfArg(
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
+    override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Redefined
       with Diagnostic.Kind.Interactive
@@ -77,7 +77,8 @@ object Redefined {
     ): SelfArg =
       copy(
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId
@@ -123,7 +124,7 @@ object Redefined {
     targetType: Option[Name],
     sourceType: Name,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
+    override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Redefined
       with Diagnostic.Kind.Interactive
@@ -181,7 +182,8 @@ object Redefined {
             keepIdentifiers
           ),
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId
@@ -247,7 +249,7 @@ object Redefined {
     atomName: Option[Name],
     methodName: Name,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
+    override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Redefined
       with Diagnostic.Kind.Interactive
@@ -304,7 +306,8 @@ object Redefined {
             keepIdentifiers
           ),
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId
@@ -370,7 +373,7 @@ object Redefined {
     atomName: Name,
     methodName: Name,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
+    override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Redefined
       with Diagnostic.Kind.Interactive
@@ -430,7 +433,8 @@ object Redefined {
             keepIdentifiers
           ),
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId
@@ -488,7 +492,7 @@ object Redefined {
   sealed case class Type(
     typeName: Name,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
+    override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Redefined
       with Diagnostic.Kind.Interactive
@@ -535,7 +539,8 @@ object Redefined {
           keepIdentifiers
         ),
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId
@@ -588,7 +593,7 @@ object Redefined {
     */
   sealed case class Binding(
     invalidBinding: Expression.Binding,
-    override val passData: MetadataStorage      = MetadataStorage(),
+    override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Redefined
       with Diagnostic.Kind.Interactive
@@ -629,7 +634,8 @@ object Redefined {
             keepDiagnostics,
             keepIdentifiers
           ),
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId

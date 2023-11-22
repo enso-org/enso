@@ -104,7 +104,7 @@ case object IgnoredBindings extends IRPass {
 
   private def setNotIgnored[T <: IR](ir: T): T = {
     if (ir.getMetadata(this).isEmpty) {
-      ir.updateMetadata(this -->> State.NotIgnored)
+      ir.updateMetadata(new MetadataPair(this, State.NotIgnored))
     } else {
       ir
     }
@@ -153,7 +153,7 @@ case object IgnoredBindings extends IRPass {
           name       = newName,
           expression = resolveExpression(binding.expression, supply)
         )
-        .updateMetadata(this -->> State.Ignored)
+        .updateMetadata(new MetadataPair(this, State.Ignored))
     } else {
       setNotIgnored(
         binding
@@ -223,7 +223,7 @@ case object IgnoredBindings extends IRPass {
           .copy(defaultValue =
             spec.defaultValue.map(resolveExpression(_, freshNameSupply))
           )
-          .updateMetadata(this -->> State.Ignored)
+          .updateMetadata(new MetadataPair(this, State.Ignored))
       case spec: DefinitionArgument.Specified =>
         if (isIgnored) {
           val newName = freshNameSupply
@@ -240,7 +240,7 @@ case object IgnoredBindings extends IRPass {
               defaultValue =
                 spec.defaultValue.map(resolveExpression(_, freshNameSupply))
             )
-            .updateMetadata(this -->> State.Ignored)
+            .updateMetadata(new MetadataPair(this, State.Ignored))
         } else {
           setNotIgnored(
             spec
@@ -334,7 +334,7 @@ case object IgnoredBindings extends IRPass {
               passData    = name.passData,
               diagnostics = name.diagnostics
             )
-            .updateMetadata(this -->> State.Ignored)
+            .updateMetadata(new MetadataPair(this, State.Ignored))
 
           named.copy(
             name = newName
@@ -358,7 +358,7 @@ case object IgnoredBindings extends IRPass {
               passData    = name.passData,
               diagnostics = name.diagnostics
             )
-            .updateMetadata(this -->> State.Ignored)
+            .updateMetadata(new MetadataPair(this, State.Ignored))
 
           typed.copy(
             name = newName

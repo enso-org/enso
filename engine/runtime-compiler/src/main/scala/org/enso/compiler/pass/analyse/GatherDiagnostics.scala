@@ -41,7 +41,7 @@ case object GatherDiagnostics extends IRPass {
     ir: Module,
     moduleContext: ModuleContext
   ): Module =
-    ir.updateMetadata(this -->> gatherMetadata(ir))
+    ir.updateMetadata(new MetadataPair(this, gatherMetadata(ir)))
 
   /** Executes the pass on the provided `ir`, and attaches all the encountered
     * diagnostics to its metadata storage.
@@ -54,7 +54,7 @@ case object GatherDiagnostics extends IRPass {
   override def runExpression(
     ir: Expression,
     inlineContext: InlineContext
-  ): Expression = ir.updateMetadata(this -->> gatherMetadata(ir))
+  ): Expression = ir.updateMetadata(new MetadataPair(this, gatherMetadata(ir)))
 
   /** Gathers diagnostics from all children of an IR node.
     *

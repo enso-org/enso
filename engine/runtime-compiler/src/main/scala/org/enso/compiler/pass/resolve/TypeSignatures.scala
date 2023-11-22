@@ -102,14 +102,16 @@ case object TypeSignatures extends IRPass {
             val newMethodWithDoc = asc
               .getMetadata(DocumentationComments)
               .map(doc =>
-                newMethod.updateMetadata(DocumentationComments -->> doc)
+                newMethod.updateMetadata(
+                  new MetadataPair(DocumentationComments, doc)
+                )
               )
               .getOrElse(newMethod)
             val newMethodWithAnnotations = asc
               .getMetadata(ModuleAnnotations)
               .map(annotations =>
                 newMethodWithDoc.updateMetadata(
-                  ModuleAnnotations -->> annotations
+                  new MetadataPair(ModuleAnnotations, annotations)
                 )
               )
               .getOrElse(newMethodWithDoc)
@@ -119,7 +121,7 @@ case object TypeSignatures extends IRPass {
                 if (ref isSameReferenceAs methodRef) {
                   Some(
                     newMethodWithAnnotations.updateMetadata(
-                      this -->> Signature(sig)
+                      new MetadataPair(this, Signature(sig))
                     )
                   )
                 } else {
@@ -185,7 +187,9 @@ case object TypeSignatures extends IRPass {
     arguments: List[DefinitionArgument]
   ): Unit = {
     arguments.foreach(arg =>
-      arg.ascribedType.map(t => arg.updateMetadata(this -->> Signature(t)))
+      arg.ascribedType.map(t =>
+        arg.updateMetadata(new MetadataPair(this, Signature(t)))
+      )
     )
   }
 
@@ -224,9 +228,12 @@ case object TypeSignatures extends IRPass {
           ) =>
         val sig = resolveExpression(ascribedType.duplicate())
         specified.copy(
-          name = specified.name.updateMetadata(this -->> Signature(sig)),
-          ascribedType =
-            Some(ascribedType.updateMetadata(this -->> Signature(sig)))
+          name = specified.name.updateMetadata(
+            new MetadataPair(this, Signature(sig))
+          ),
+          ascribedType = Some(
+            ascribedType.updateMetadata(new MetadataPair(this, Signature(sig)))
+          )
         )
       case argument => argument
     }
@@ -239,7 +246,7 @@ case object TypeSignatures extends IRPass {
   private def resolveAscription(sig: Type.Ascription): Expression = {
     val newTyped = sig.typed.mapExpressions(resolveExpression)
     val newSig   = sig.signature.mapExpressions(resolveExpression)
-    newTyped.updateMetadata(this -->> Signature(newSig))
+    newTyped.updateMetadata(new MetadataPair(this, Signature(newSig)))
   }
 
   /** Resolves type signatures in a block.
@@ -269,7 +276,9 @@ case object TypeSignatures extends IRPass {
             val newBindingWithDoc = asc
               .getMetadata(DocumentationComments)
               .map(doc =>
-                newBinding.updateMetadata(DocumentationComments -->> doc)
+                newBinding.updateMetadata(
+                  new MetadataPair(DocumentationComments, doc)
+                )
               )
               .getOrElse(newBinding)
 
@@ -277,7 +286,9 @@ case object TypeSignatures extends IRPass {
               case typedName: Name =>
                 if (typedName.name == name.name) {
                   Some(
-                    newBindingWithDoc.updateMetadata(this -->> Signature(sig))
+                    newBindingWithDoc.updateMetadata(
+                      new MetadataPair(this, Signature(sig))
+                    )
                   )
                 } else {
                   List(

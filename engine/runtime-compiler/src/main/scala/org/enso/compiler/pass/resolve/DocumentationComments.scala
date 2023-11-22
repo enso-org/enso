@@ -108,8 +108,9 @@ case object DocumentationComments extends IRPass {
         None
       case other =>
         val res = lastDoc match {
-          case Some(doc) => other.updateMetadata(this -->> Doc(doc.doc))
-          case None      => other
+          case Some(doc) =>
+            other.updateMetadata(new MetadataPair(this, Doc(doc.doc)))
+          case None => other
         }
         lastDoc = None
         Some(res)
@@ -135,8 +136,9 @@ case object DocumentationComments extends IRPass {
             expression = resolveExpression(expression)
           )
         val res = lastDoc match {
-          case Some(doc) => resolved.updateMetadata(this -->> Doc(doc))
-          case None      => resolved
+          case Some(doc) =>
+            resolved.updateMetadata(new MetadataPair(this, Doc(doc)))
+          case None => resolved
         }
         lastDoc = None
         Some(res)
@@ -203,7 +205,7 @@ case object DocumentationComments extends IRPass {
         }
     val newBindings = (allModuleEntities.headOption match {
       case Some(doc: Comment.Documentation) =>
-        ir.updateMetadata(this -->> Doc(doc.doc))
+        ir.updateMetadata(new MetadataPair(this, Doc(doc.doc)))
         resolveList(ir.bindings.drop(1))
       case _ => resolveList(ir.bindings)
     }).map(resolveDefinition)

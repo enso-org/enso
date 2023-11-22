@@ -370,32 +370,32 @@ public final class IrPersistance {
   @ServiceProvider(service = Persistance.class)
   public static final class PersistMetadataStorage extends Persistance<MetadataStorage> {
     public PersistMetadataStorage() {
-      super(MetadataStorage.class, false, 301);
+      super(MetadataStorage.class, false, 381);
     }
 
     @Override
     @SuppressWarnings("unchecked")
     protected void writeObject(MetadataStorage obj, Output out) throws IOException {
-      var map =
-          obj.map(
-              (processingPass, data) -> {
-                var t = new Tuple2<>(processingPass.getClass().getName(), data);
-                return t;
-              });
-      out.writeInline(scala.collection.immutable.Map.class, map);
+      var map = new HashMap<String, Object>();
+      obj.map(
+          (processingPass, data) -> {
+            map.put(processingPass.getClass().getName(), data);
+            return null;
+          });
+      out.writeInline(java.util.HashMap.class, map);
     }
 
     @Override
     @SuppressWarnings("unchecked")
     protected MetadataStorage readObject(Input in) throws IOException, ClassNotFoundException {
-      var storage = new MetadataStorage(nil());
-      var map = in.readInline(scala.collection.immutable.Map.class);
-      var it = map.iterator();
+      var storage = new MetadataStorage();
+      var map = in.readInline(java.util.HashMap.class);
+      var it = map.entrySet().iterator();
       while (it.hasNext()) {
-        var obj = (Tuple2<String, ProcessingPass.Metadata>) it.next();
+        var obj = (Map.Entry<String, ProcessingPass.Metadata>) it.next();
         try {
-          var pass = (ProcessingPass) Class.forName(obj._1()).getField("MODULE$").get(null);
-          var data = obj._2();
+          var pass = (ProcessingPass) Class.forName(obj.getKey()).getField("MODULE$").get(null);
+          var data = obj.getValue();
           storage.update(pass, data);
         } catch (ReflectiveOperationException ex) {
           throw new IOException(ex);
