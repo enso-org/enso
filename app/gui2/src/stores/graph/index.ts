@@ -10,7 +10,6 @@ import { Vec2 } from '@/util/vec2'
 import { defineStore } from 'pinia'
 import type { StackItem } from 'shared/languageServerTypes'
 import {
-  decodeRange,
   visMetadataEquals,
   type ContentRange,
   type ExprId,
@@ -19,7 +18,6 @@ import {
   type VisualizationMetadata,
 } from 'shared/yjsModel'
 import { computed, markRaw, reactive, ref, toRef, watch } from 'vue'
-import * as Y from 'yjs'
 
 export { type Node } from '@/stores/graph/graphDatabase'
 

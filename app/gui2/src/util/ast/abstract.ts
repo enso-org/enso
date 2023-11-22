@@ -23,6 +23,7 @@ export function syncCommittedFromEdited() {
       committed.set(id, ast)
     }
   }
+  edited.clear()
 }
 
 /** Returns a syntax node representing the current committed state of the given ID. */
@@ -497,13 +498,17 @@ type BlockLine = {
   expression: AstWithWhitespace | null
 }
 export class Block extends Ast {
-  private _lines: BlockLine[];
+  private _lines: BlockLine[]
 
   *expressions(): IterableIterator<Ast> {
     for (const line of this._lines) {
       if (line.expression) {
         const node = getNode(line.expression.node)
-        if (node) yield node
+        if (node) {
+          yield node
+        } else {
+          console.warn(`Missing node:`, line.expression.node)
+        }
       }
     }
   }
@@ -819,13 +824,13 @@ export type PrintedSource = {
 }
 
 type DebugTree = (DebugTree | string)[]
-export function debug(root: Ast): DebugTree {
+export function debug(root: Ast, universe?: Map<AstId, Ast>): DebugTree {
   return Array.from(root._rawChildren(), (child) => {
     if (isToken(child.node)) {
       return child.node.code()
     } else {
-      const node = getUncommitted(child.node)
-      return node ? debug(node) : '<missing>'
+      const node = (universe ?? edited).get(child.node)
+      return node ? debug(node, universe) : '<missing>'
     }
   })
 }
@@ -837,8 +842,8 @@ export function normalize(root: AstId): AstId {
 }
 
 // FIXME: We should use alias analysis to handle ambiguous names correctly.
-export function findModuleMethod(name: string): Function | null {
-  for (const node of committed.values()) {
+export function findModuleMethod(name: string, universe?: Map<AstId, Ast>): Function | null {
+  for (const node of (universe ?? committed).values()) {
     if (node instanceof Function) {
       if (node.name && node.name.code() === name) {
         return node
@@ -905,7 +910,7 @@ export function parseTransitional(code: string, idMap: IdMap): Ast {
       if (unique.has(id)) {
         // This shouldn't be happening, but it's probably due to a bug in `AstExtended`-related code that will be
         // replaced soon.
-        console.error(`Multiple occurrences of this UUID in tree:`, id)
+        console.warn(`Multiple occurrences of this UUID in tree:`, id)
       } else {
         unique.add(id)
         const key = nodeKey(start, length, node.inner.type)
