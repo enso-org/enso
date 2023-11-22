@@ -1076,6 +1076,7 @@ type Column
                 result.rename self.name
 
     ## GROUP Standard.Base.Metadata
+       ICON text_input
        Returns a new column, containing the same elements as `self`, but with
        the given name.
 

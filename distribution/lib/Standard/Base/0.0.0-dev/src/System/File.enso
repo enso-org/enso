@@ -232,6 +232,7 @@ type File
 
     ## ALIAS load, open
        GROUP Input
+       ICON data_input
        Read a file using the specified file format
 
        Arguments:
@@ -268,6 +269,7 @@ type File
             format.read self on_problems
 
     ## ALIAS load bytes, open bytes
+       ICON data_input
        Reads all bytes in this file into a byte vector.
 
        > Example
@@ -282,6 +284,7 @@ type File
         self.with_input_stream opts (_.read_all_bytes)
 
     ## ALIAS load text, open text
+       ICON data_input
        Reads the whole file into a `Text`, with specified encoding.
 
        Arguments:

@@ -13,6 +13,7 @@ import project.Internal.Parse_To_Table
 import project.Internal.Widget_Helpers
 
 ## GROUP Standard.Base.Conversions
+   ICON convert
    Converts this `Vector` into a `Table`.
 
    Arguments:
@@ -23,6 +24,7 @@ Vector.to_table self fields=Nothing =
     Table.from_objects self fields
 
 ## GROUP Standard.Base.Constants
+   ICON data_input
    Converts an object or a Vector of object into a Table, by looking up the
    requested fields from each item.
 
