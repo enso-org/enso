@@ -906,6 +906,15 @@ type Vector a
     zip self that:Vector function=[_,_] =
         len = self.length.min that.length
         Vector.new len i-> function (self.at i) (that.at i)
+        #Array_Like_Helpers.vector_from_function len (i-> function (self.at i) (that.at i))
+
+    ## PRIVATE
+       Implementation of `zip` that uses `vector_from_function_primitive`, which
+       does not do error wrapping, and does not have `on_problems`.
+    zip_primitive : Vector Any -> (Any -> Any -> Any) -> Vector Any
+    zip_primitive self that function=[_,_] =
+        len = self.length.min that.length
+        Array_Like_Helpers.vector_from_function_primitive len (i-> function (self.at i) (that.at i))
 
     ## GROUP Calculations
        Extend `self` vector to the length of `n` appending elements `elem` to

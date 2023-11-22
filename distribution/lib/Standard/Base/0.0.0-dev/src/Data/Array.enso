@@ -713,6 +713,12 @@ type Array
     zip : Vector Any -> (Any -> Any -> Any) -> Vector Any
     zip self that:Vector function=[_,_] = Vector.zip self that function
 
+    ## PRIVATE
+       Implementation of `zip` that uses `vector_from_function_primitive`, which
+       does not do error wrapping, and does not have `on_problems`.
+    zip_primitive : Vector Any -> (Any -> Any -> Any) -> Vector Any
+    zip_primitive self that function=[_,_] = Vector.zip_primitive self that function
+
     ## Returns the array as a `Vector`.
     to_vector : Vector
     to_vector self = Vector.from_polyglot_array self

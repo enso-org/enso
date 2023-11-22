@@ -865,6 +865,11 @@ type_spec name alter = Test.group name <|
     Test.specify "map_primitive does not do error wrapping" <|
         alter [10, 20, 30, 40] . map_primitive map_fun . catch . should_equal (My_Error.Error 30)
 
+    Test.specify "zip_primitive does not do error wrapping" <|
+        zip_fun a _ = if a == 30 then Error.throw (My_Error.Error a) else a+1
+        arr = alter [10, 20, 30, 40]
+        arr . zip_primitive arr zip_fun . catch . should_equal (My_Error.Error 30)
+
 spec =
     Test.group "Vector builder" <|
         Test.specify "empty builder.get" <|
