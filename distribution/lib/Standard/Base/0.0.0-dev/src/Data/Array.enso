@@ -351,6 +351,12 @@ type Array
     flat_map : (Any -> Vector Any) -> Vector Any
     flat_map self function = Vector.flat_map self function
 
+    ## PRIVATE
+       Implementation of `flat_map` that uses `vector_from_function_primitive`, which
+       does not do error wrapping, and does not have `on_problems`.
+    flat_map_primitive : (Any -> Vector Any) -> Vector Any
+    flat_map_primitive self function = Vector.flat_map_primitive self function
+
     ## GROUP Selections
        Selects all elements of this array which satisfy a condition.
 

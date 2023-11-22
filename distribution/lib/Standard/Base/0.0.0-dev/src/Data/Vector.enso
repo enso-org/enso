@@ -624,6 +624,13 @@ type Vector a
     flat_map self function =
         self.map function . flatten
 
+    ## PRIVATE
+       Implementation of `flat_map` that uses `vector_from_function_primitive`, which
+       does not do error wrapping, and does not have `on_problems`.
+    flat_map_primitive : (Any -> Vector Any) -> Vector Any
+    flat_map_primitive self function =
+        self.map_primitive function . flatten
+
     ## GROUP Calculations
        Transforms a vector of vectors into a `Vector` of inner elements - removes
        one layer of nesting from a stack of nested vectors.
