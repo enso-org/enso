@@ -41,7 +41,7 @@ watchEffect(() => {
   if (!module) return
   const yText = module.doc.contents
   const undoManager = module.undoManager
-  const awareness = projectStore.awareness
+  const awareness = projectStore.awareness.internal
   editorView.setState(
     EditorState.create({
       doc: yText.toString(),
@@ -63,7 +63,7 @@ watchEffect(() => {
               break
             }
           }
-          const expressionInfo = foundNode && graphStore.db.nodeExpressionInfo.lookup(foundNode)
+          const expressionInfo = foundNode && graphStore.db.getExpressionInfo(foundNode)
           const nodeColor = foundNode && graphStore.db.getNodeColorStyle(foundNode)
 
           if (foundNode != null) {

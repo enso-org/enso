@@ -716,6 +716,7 @@ make_date_diff arguments (metadata : Date_Period_Metadata) =
                 as_int64 <|
                     ((extract_seconds ++ " * 1000000").paren ++ " + " ++ (micros ++ " % 1000000").paren).paren
 
+## PRIVATE
 make_date_trunc_to_day arguments =
     if arguments.length != 1 then Error.throw (Illegal_State.Error "date_trunc_to_day expects exactly one sub expression. This is a bug in Database library.") else
         expr = arguments.at 0

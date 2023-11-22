@@ -53,7 +53,8 @@ get_stack_trace =
 gc : Nothing
 gc = @Builtin_Method "Runtime.gc"
 
-## ADVANCED
+## PRIVATE
+   ADVANCED
 
    Asserts that the given action succeeds, otherwise throws a panic.
 
@@ -66,7 +67,8 @@ assert ~action message="" = assert_builtin action message
 ## PRIVATE
 assert_builtin ~action message = @Builtin_Method "Runtime.assert_builtin"
 
-## ADVANCED
+## PRIVATE
+   ADVANCED
 
    Executes the provided action without allowing it to inline.
 

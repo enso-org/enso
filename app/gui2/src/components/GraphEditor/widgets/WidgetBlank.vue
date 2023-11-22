@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { Score, defineWidget, type WidgetProps } from '@/providers/widgetRegistry'
+import { Score, defineWidget, widgetProps, type WidgetProps } from '@/providers/widgetRegistry'
 import { Ast } from '@/util/ast'
-const _props = defineProps<WidgetProps>()
+const _props = defineProps(widgetProps(widgetDefinition))
 </script>
 
 <script lang="ts">
-export const widgetDefinition = defineWidget({
+export const widgetDefinition = defineWidget((input) => input instanceof Ast.Wildcard, {
   priority: 10,
-  match: (props) => (props.input instanceof Ast.Wildcard ? Score.Good : Score.Mismatch),
+  score: Score.Good,
 })
 </script>
 

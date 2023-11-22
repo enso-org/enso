@@ -30,8 +30,14 @@ const LOGIN_QUERY_PARAMS = {
 // === Login ===
 // =============
 
+/** Props for a {@link Login}. */
+export interface LoginProps {
+    supportsLocalBackend: boolean
+}
+
 /** A form for users to log in. */
-export default function Login() {
+export default function Login(props: LoginProps) {
+    const { supportsLocalBackend } = props
     const { search } = router.useLocation()
     const { signInWithGoogle, signInWithGitHub, signInWithPassword } = auth.useAuth()
 
@@ -131,11 +137,13 @@ export default function Login() {
                 icon={CreateAccountIcon}
                 text="Don't have an account?"
             />
-            <Link
-                to={app.ENTER_OFFLINE_MODE_PATH}
-                icon={ArrowRightIcon}
-                text="Continue without creating an account"
-            />
+            {supportsLocalBackend && (
+                <Link
+                    to={app.ENTER_OFFLINE_MODE_PATH}
+                    icon={ArrowRightIcon}
+                    text="Continue without creating an account"
+                />
+            )}
         </div>
     )
 }

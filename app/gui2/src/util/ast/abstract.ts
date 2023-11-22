@@ -1,17 +1,20 @@
 import { Token, Tree } from '@/generated/ast'
 import { parseEnso } from '@/util/ast'
 import { AstExtended } from '@/util/ast/extended.ts'
+import * as Tok from '@/util/ast/token'
 import type { LazyObject } from '@/util/parserSupport'
+import { Err, Ok, type Result } from '@/util/result'
 import * as random from 'lib0/random'
 import { reactive } from 'vue'
 import type { ExprId } from '../../../shared/yjsModel'
 import { IdMap } from '../../../shared/yjsModel'
+export { Tok }
 
 const committed = reactive(new Map<AstId, Ast>())
 /** New nodes, COW-copies of modified nodes, and pending deletions (nulls) */
 const edited = new Map<AstId, Ast | null>()
 
-export type NodeChild<T = AstId | Tok> = { whitespace?: string | undefined; node: T }
+export type NodeChild<T = AstId | Tok.Tok> = { whitespace?: string | undefined; node: T }
 
 /** Replace all committed values with the state of the uncommitted parse. */
 export function syncCommittedFromEdited() {
@@ -55,57 +58,8 @@ function newTokenId(): TokenId {
   return random.uuidv4() as TokenId
 }
 
-function token(code: string, type: Token.Type): Tok {
-  return new Tok(code, newTokenId(), type)
-}
-
-export function isToken(node: Tok | AstId): node is Tok {
-  return node instanceof Tok
-}
-
-export abstract class Expression {
-  abstract code(): string
-
-  /** Returns child subtrees, without information about the whitespace between them. */
-  *children(): IterableIterator<Ast | Tok> {
-    for (const child of this._rawChildren()) {
-      if (child.node instanceof Tok) {
-        yield child.node
-      } else {
-        const node = getNode(child.node)
-        if (node) yield node
-      }
-    }
-  }
-
-  /** Returns child concrete subtrees. */
-  abstract _rawChildren(): IterableIterator<NodeChild>
-}
-
-export class Tok extends Expression {
-  private _code: string
-  exprId: TokenId
-  readonly _tokenType: Token.Type
-  constructor(code: string, id: TokenId, type: Token.Type) {
-    super()
-    this._code = code
-    this.exprId = id
-    this._tokenType = type
-  }
-
-  code(): string {
-    return this._code
-  }
-
-  *_rawChildren(): IterableIterator<NodeChild> {}
-
-  typeName(): string {
-    return Token.typeNames[this._tokenType]!
-  }
-}
-
-type Span = { start: number; end: number; whitespaceLength: number }
-export abstract class Ast extends Expression {
+export type Span = { start: number; end: number; whitespaceLength: number }
+export abstract class Ast {
   readonly treeType: Tree.Type | undefined
   _id: AstId
   // TODO for #8367: Eliminate this before enabling edit support.
@@ -114,6 +68,20 @@ export abstract class Ast extends Expression {
   get exprId(): AstId {
     return this._id
   }
+
+  /** Returns child subtrees, without information about the whitespace between them. */
+  *children(): IterableIterator<Ast | Tok.Tok> {
+    for (const child of this._rawChildren()) {
+      if (child.node instanceof Tok.Tok) {
+        yield child.node
+      } else {
+        const node = getNode(child.node)
+        if (node) yield node
+      }
+    }
+  }
+
+  abstract _rawChildren(): IterableIterator<NodeChild>
 
   code(): string {
     return print(this).code
@@ -131,10 +99,10 @@ export abstract class Ast extends Expression {
     return getUncommitted(abstract(tree, code, ids).node)!
   }
 
-  visitRecursive(visit: (node: Ast | Tok) => void) {
+  visitRecursive(visit: (node: Ast | Tok.Tok) => void) {
     visit(this)
     for (const child of this._rawChildren()) {
-      if (isToken(child.node)) {
+      if (child.node instanceof Tok.Tok) {
         visit(child.node)
       } else {
         getNode(child.node)?.visitRecursive(visit)
@@ -143,7 +111,6 @@ export abstract class Ast extends Expression {
   }
 
   protected constructor(span: Span, id?: AstId, treeType?: Tree.Type) {
-    super()
     this._id = id ?? newNodeId()
     this.treeType = treeType
     this.span = span
@@ -153,7 +120,11 @@ export abstract class Ast extends Expression {
   _print(info: InfoMap, offset: number, indent: string): string {
     let code = ''
     for (const child of this._rawChildren()) {
-      if (child.node != null && !isToken(child.node) && getUncommitted(child.node) === null)
+      if (
+        child.node != null &&
+        !(child.node instanceof Tok.Tok) &&
+        getUncommitted(child.node) === null
+      )
         continue
       if (child.whitespace != null) {
         code += child.whitespace
@@ -162,7 +133,7 @@ export abstract class Ast extends Expression {
         code += ' '
       }
       if (child.node != null) {
-        if (isToken(child.node)) {
+        if (child.node instanceof Tok.Tok) {
           code += child.node.code()
         } else {
           code += getUncommitted(child.node)!._print(info, offset + code.length, indent)
@@ -195,27 +166,39 @@ export abstract class Ast extends Expression {
 
 export class App extends Ast {
   private _func: NodeChild<AstId>
-  private _leftParen: NodeChild<Tok> | null
-  private _name: NodeChild<Tok> | null
-  private _equals: NodeChild<Tok> | null
-  private _arg: NodeChild
-  private _rightParen: NodeChild<Tok> | null
+  private _leftParen: NodeChild<Tok.OpenSymbol> | null
+  private _argumentName: NodeChild<Tok.Ident> | null
+  private _equals: NodeChild<Tok.Operator> | null
+  private _arg: NodeChild<AstId>
+  private _rightParen: NodeChild<Tok.CloseSymbol> | null
+
+  get function(): Ast {
+    return getNode(this._func.node)!
+  }
+
+  get argumentName(): Tok.Ident | null {
+    return this._argumentName?.node ?? null
+  }
+
+  get argument(): Ast {
+    return getNode(this._arg.node)!
+  }
 
   constructor(
     span: Span,
     id: AstId | undefined,
     func: NodeChild<AstId>,
-    leftParen: NodeChild<Tok> | null,
-    name: NodeChild<Tok> | null,
-    equals: NodeChild<Tok> | null,
-    arg: NodeChild,
-    rightParen: NodeChild<Tok> | null,
+    leftParen: NodeChild<Tok.OpenSymbol> | null,
+    name: NodeChild<Tok.Ident> | null,
+    equals: NodeChild<Tok.Operator> | null,
+    arg: NodeChild<AstId>,
+    rightParen: NodeChild<Tok.CloseSymbol> | null,
     treeType: Tree.Type,
   ) {
     super(span, id, treeType)
     this._func = func
     this._leftParen = leftParen
-    this._name = name
+    this._argumentName = name
     this._equals = equals
     this._arg = arg
     this._rightParen = rightParen
@@ -224,7 +207,7 @@ export class App extends Ast {
   *_rawChildren(): IterableIterator<NodeChild> {
     yield this._func
     if (this._leftParen) yield this._leftParen
-    if (this._name) yield this._name
+    if (this._argumentName) yield this._argumentName
     if (this._equals)
       yield { whitespace: this._equals.whitespace ?? this._arg.whitespace, node: this._equals.node }
     yield this._arg
@@ -236,7 +219,7 @@ function positionalApp(
   span: Span,
   id: AstId | undefined,
   func: NodeChild<AstId>,
-  arg: NodeChild,
+  arg: NodeChild<AstId>,
 ): App {
   return new App(
     span,
@@ -247,7 +230,7 @@ function positionalApp(
     null,
     arg,
     null,
-    isToken(arg.node) ? Tree.Type.DefaultApp : Tree.Type.App,
+    getNode(arg.node)?.code() === 'default' ? Tree.Type.DefaultApp : Tree.Type.App,
   )
 }
 
@@ -255,30 +238,20 @@ function namedApp(
   span: Span,
   id: AstId | undefined,
   func: NodeChild<AstId>,
-  leftParen: NodeChild<Tok> | null,
-  name: NodeChild<Tok>,
-  equals: NodeChild<Tok> | undefined,
-  arg: NodeChild,
-  rightParen: NodeChild<Tok> | null,
+  leftParen: NodeChild<Tok.OpenSymbol> | null,
+  name: NodeChild<Tok.Ident>,
+  equals: NodeChild<Tok.Operator>, // Edits (#8367): NodeChild<Tok.Tok> | undefined
+  arg: NodeChild<AstId>,
+  rightParen: NodeChild<Tok.CloseSymbol> | null,
 ) {
-  return new App(
-    span,
-    id,
-    func,
-    leftParen,
-    name,
-    equals ?? { node: token('=', Token.Type.Operator) },
-    arg,
-    rightParen,
-    Tree.Type.NamedApp,
-  )
+  return new App(span, id, func, leftParen, name, equals, arg, rightParen, Tree.Type.NamedApp)
 }
 
 export class UnaryOprApp extends Ast {
-  private _opr: NodeChild<Tok>
+  private _opr: NodeChild<Tok.Operator>
   private _arg: NodeChild<AstId> | null
 
-  get operator(): Tok {
+  get operator(): Tok.Operator {
     return this._opr.node
   }
 
@@ -290,7 +263,7 @@ export class UnaryOprApp extends Ast {
   constructor(
     span: Span,
     id: AstId | undefined,
-    opr: NodeChild<Tok>,
+    opr: NodeChild<Tok.Operator>,
     arg: NodeChild<AstId> | null,
   ) {
     super(span, id, Tree.Type.UnaryOprApp)
@@ -308,7 +281,7 @@ export class NegationOprApp extends UnaryOprApp {
   constructor(
     span: Span,
     id: AstId | undefined,
-    opr: NodeChild<Tok>,
+    opr: NodeChild<Tok.Operator>,
     arg: NodeChild<AstId> | null,
   ) {
     super(span, id, opr, arg)
@@ -322,6 +295,15 @@ export class OprApp extends Ast {
 
   get lhs(): Ast | null {
     return this._lhs ? getNode(this._lhs.node) : null
+  }
+
+  get operator(): Result<Tok.Operator, NodeChild[]> {
+    const first = this._opr[0]?.node
+    if (first && this._opr.length < 2 && first instanceof Tok.Operator) {
+      return Ok(first)
+    } else {
+      return Err(this._opr)
+    }
   }
 
   get rhs(): Ast | null {
@@ -353,7 +335,7 @@ export class PropertyAccess extends OprApp {
     span: Span,
     id: AstId | undefined,
     lhs: NodeChild<AstId> | null,
-    opr: NodeChild<Tok>,
+    opr: NodeChild<Tok.Operator>,
     rhs: NodeChild<AstId> | null,
   ) {
     super(span, id, lhs, [opr], rhs)
@@ -391,7 +373,7 @@ type FunctionArgument = NodeChild[]
 export class Function extends Ast {
   private _name: NodeChild<AstId>
   private _args: FunctionArgument[]
-  private _equals: NodeChild<Tok> | undefined
+  private _equals: NodeChild<Tok.Operator>
   private _body: NodeChild<AstId> | null
   // FIXME for #8367: This should not be nullable. If the `ExprId` has been deleted, the same placeholder logic should be applied
   //  here and in `rawChildren` (and indirectly, `print`).
@@ -414,7 +396,7 @@ export class Function extends Ast {
     id: AstId | undefined,
     name: NodeChild<AstId>,
     args: FunctionArgument[],
-    equals: NodeChild<Tok> | undefined,
+    equals: NodeChild<Tok.Operator>, // Edits (#8367): NodeChild<Tok.Operator> | undefined
     body: NodeChild<AstId> | null,
   ) {
     super(span, id, Tree.Type.Function)
@@ -426,11 +408,7 @@ export class Function extends Ast {
   *_rawChildren(): IterableIterator<NodeChild> {
     yield this._name
     for (const arg of this._args) yield* arg
-    if (this._equals !== undefined) {
-      yield { whitespace: this._equals.whitespace ?? ' ', node: this._equals.node }
-    } else {
-      yield { whitespace: ' ', node: token('=', Token.Type.Operator) }
-    }
+    yield { whitespace: this._equals.whitespace ?? ' ', node: this._equals.node }
     if (this._body !== null) {
       yield this._body
     }
@@ -439,7 +417,7 @@ export class Function extends Ast {
 
 export class Assignment extends Ast {
   private _pattern: NodeChild<AstId>
-  private _equals: NodeChild<Tok> | undefined
+  private _equals: NodeChild<Tok.Operator>
   private _expression: NodeChild<AstId>
   get pattern(): Ast | null {
     return getNode(this._pattern.node)
@@ -451,7 +429,7 @@ export class Assignment extends Ast {
     span: Span,
     id: AstId | undefined,
     pattern: NodeChild<AstId>,
-    equals: NodeChild<Tok> | undefined,
+    equals: NodeChild<Tok.Operator>, // TODO: Edits (#8367): Allow undefined
     expression: NodeChild<AstId>,
   ) {
     super(span, id, Tree.Type.Assignment)
@@ -464,7 +442,7 @@ export class Assignment extends Ast {
   static new(
     id: AstId | undefined,
     ident: string,
-    equals: WithWhitespace<Tok> | undefined,
+    equals: WithWhitespace<Tok.Operator> | undefined,
     expression: WithWhitespace<AstId>,
   ): Assignment {
     const pattern = { node: Ident.new(ident)._id }
@@ -473,11 +451,7 @@ export class Assignment extends Ast {
    */
   *_rawChildren(): IterableIterator<NodeChild> {
     yield this._pattern
-    if (this._equals !== undefined) {
-      yield { whitespace: this._equals.whitespace ?? ' ', node: this._equals.node }
-    } else {
-      yield { whitespace: ' ', node: token('=', Token.Type.Operator) }
-    }
+    yield { whitespace: this._equals.whitespace ?? ' ', node: this._equals.node }
     if (this._expression !== null) {
       yield this._expression
     }
@@ -485,11 +459,11 @@ export class Assignment extends Ast {
 }
 
 type BlockLine = {
-  newline?: NodeChild<Tok>
+  newline: NodeChild<Tok.Newline> // Edits (#8367): Allow undefined
   expression: NodeChild<AstId> | null
 }
 export class Block extends Ast {
-  private _lines: BlockLine[]
+  private _lines: BlockLine[];
 
   *expressions(): IterableIterator<Ast> {
     for (const line of this._lines) {
@@ -527,7 +501,7 @@ export class Block extends Ast {
 
   *_rawChildren(): IterableIterator<NodeChild> {
     for (const line of this._lines) {
-      yield line.newline ?? { node: token('\n', Token.Type.Newline) }
+      yield line.newline
       if (line.expression !== null) yield line.expression
     }
   }
@@ -535,22 +509,13 @@ export class Block extends Ast {
   _print(info: InfoMap, offset: number, indent: string): string {
     let code = ''
     for (const line of this._lines) {
-      if (
-        line.expression?.node != null &&
-        !isToken(line.expression.node) &&
-        getUncommitted(line.expression.node) === null
-      )
-        continue
+      if (line.expression?.node != null && getUncommitted(line.expression.node) === null) continue
       code += line.newline?.whitespace ?? ''
       code += line.newline?.node.code() ?? '\n'
       if (line.expression !== null) {
         code += line.expression.whitespace ?? indent
-        if (line.expression.node != null) {
-          if (isToken(line.expression.node)) {
-            code += line.expression.node.code
-          } else {
-            code += getUncommitted(line.expression.node)!._print(info, offset, indent + '    ')
-          }
+        if (line.expression.node !== null) {
+          code += getUncommitted(line.expression.node)!._print(info, offset, indent + '    ')
         }
       }
     }
@@ -566,15 +531,11 @@ export class Block extends Ast {
 }
 
 export class Ident extends Ast {
-  public token: NodeChild<Tok>
+  public token: NodeChild<Tok.Ident>
 
-  constructor(span: Span, id: AstId | undefined, token: NodeChild<Tok>) {
+  constructor(span: Span, id: AstId | undefined, token: NodeChild<Tok.Ident>) {
     super(span, id, Tree.Type.Ident)
     this.token = token
-  }
-
-  static _fromToken(span: Span, id: AstId | undefined, token: NodeChild<Tok>): Ident {
-    return new Ident(span, id, token)
   }
 
   // TODO: Edits (#8367)
@@ -590,9 +551,9 @@ export class Ident extends Ast {
 }
 
 export class Wildcard extends Ast {
-  public token: NodeChild<Tok>
+  public token: NodeChild<Tok.Wildcard>
 
-  constructor(span: Span, id: AstId | undefined, token: NodeChild<Tok>) {
+  constructor(span: Span, id: AstId | undefined, token: NodeChild<Tok.Wildcard>) {
     super(span, id, Tree.Type.Wildcard)
     this.token = token
   }
@@ -692,7 +653,7 @@ function abstract_(
     }
     case Tree.Type.Ident: {
       const id = nodesExpected.get(spanKey)?.pop()
-      node = Ident._fromToken(span, id, abstractToken(tree.token, code, tokenIds))
+      node = new Ident(span, id, abstractToken(tree.token, code, tokenIds))
       break
     }
     case Tree.Type.Assignment: {
@@ -712,9 +673,10 @@ function abstract_(
     }
     case Tree.Type.DefaultApp: {
       const func = abstract_(tree.func, code, nodesExpected, tokenIds)
-      const arg = abstractToken(tree.default, code, tokenIds)
+      const token = abstractToken(tree.default, code, tokenIds)
+      const arg = new Ident(token.node.span, undefined, token).exprId
       const id = nodesExpected.get(spanKey)?.pop()
-      node = positionalApp(span, id, func, arg)
+      node = positionalApp(span, id, func, { whitespace: token.whitespace, node: arg })
       break
     }
     case Tree.Type.NamedApp: {
@@ -746,7 +708,7 @@ function abstract_(
         : visitChildren(tree.opr.error.payload)
       const rhs = tree.rhs ? abstract_(tree.rhs, code, nodesExpected, tokenIds) : null
       const id = nodesExpected.get(spanKey)?.pop()
-      if (opr.length === 1 && opr[0]?.node instanceof Tok && opr[0].node.code() === '.') {
+      if (opr.length === 1 && opr[0]?.node instanceof Tok.Operator && opr[0].node.code() === '.') {
         // Propagate inferred type.
         const token = { whitespace: opr[0].whitespace, node: opr[0].node }
         node = new PropertyAccess(span, id, lhs, token, rhs)
@@ -779,16 +741,17 @@ function abstractToken(
   token: Token,
   code: string,
   tokenIds: TokenSpanMap,
-): { whitespace: string; node: Tok } {
+): { whitespace: string; node: Tok.Tok } {
   const whitespaceStart = token.whitespaceStartInCodeBuffer
   const whitespaceEnd = whitespaceStart + token.whitespaceLengthInCodeBuffer
   const whitespace = code.substring(whitespaceStart, whitespaceEnd)
   const codeStart = token.startInCodeBuffer
   const codeEnd = codeStart + token.lengthInCodeBuffer
   const tokenCode = code.substring(codeStart, codeEnd)
-  const span = tokenKey(codeStart, codeEnd - codeStart)
-  const exprId = tokenIds.get(span) ?? newTokenId()
-  const node = new Tok(tokenCode, exprId, token.type)
+  const span = { start: codeStart, end: codeEnd, whitespaceLength: whitespaceEnd - whitespaceStart }
+  const key = tokenKey(codeStart, codeEnd - codeStart)
+  const exprId = tokenIds.get(key) ?? newTokenId()
+  const node = Tok.make(tokenCode, exprId, token.type, span)
   return { whitespace, node }
 }
 
@@ -826,7 +789,7 @@ export function print(ast: Ast): PrintedSource {
 type DebugTree = (DebugTree | string)[]
 export function debug(root: Ast, universe?: Map<AstId, Ast>): DebugTree {
   return Array.from(root._rawChildren(), (child) => {
-    if (isToken(child.node)) {
+    if (child.node instanceof Tok.Tok) {
       return child.node.code()
     } else {
       const node = (universe ?? edited).get(child.node)
@@ -926,4 +889,11 @@ export function parseTransitional(code: string, idMap: IdMap): Ast {
   const newRoot = Ast.parse({ info: { nodes, tokens }, code })
   syncCommittedFromEdited()
   return newRoot
+}
+
+declare const AstKey: unique symbol
+declare module '@/providers/widgetRegistry' {
+  export interface WidgetInputTypes {
+    [AstKey]: Ast
+  }
 }

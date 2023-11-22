@@ -305,7 +305,7 @@ spec =
     Test.group "Dropping Missing Values" <|
         Test.specify "should correctly handle NaNs with mixed type columns" <|
             t = Table.new [["X", [1, 2, 3, 4, 5]], ["Y", ["A", "", Nothing, Number.nan, 0]]]
-            t1 = t.filter_blank_rows when=Blank_Selector.Any_Cell_Blank treat_nans_as_blank=False
+            t1 = t.filter_blank_rows when=Blank_Selector.Any_Cell treat_nans_as_blank=False
             t1.at "X" . to_vector . should_equal [1, 4, 5]
             # Comparing text value because `Number.nan != Number.nan`.
             t1.at "Y" . to_vector . to_text . should_equal "[A, NaN, 0]"
@@ -314,7 +314,7 @@ spec =
             c.to_vector . should_equal [False, True, True, True, False]
             c.value_type . should_equal Value_Type.Boolean
 
-            t2 = t.filter_blank_rows when=Blank_Selector.Any_Cell_Blank treat_nans_as_blank=True
+            t2 = t.filter_blank_rows when=Blank_Selector.Any_Cell treat_nans_as_blank=True
             t2.at "X" . to_vector . should_equal [1, 5]
             t2.at "Y" . to_vector . should_equal ['A', 0]
 

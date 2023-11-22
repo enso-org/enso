@@ -1,41 +1,32 @@
 <script setup lang="ts">
 import SliderWidget from '@/components/widgets/SliderWidget.vue'
-import {
-  Score,
-  defineWidget,
-  widgetAst,
-  widgetExpression,
-  type WidgetProps,
-} from '@/providers/widgetRegistry'
+import { Score, defineWidget, widgetProps, type WidgetProps } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
 import { Ast } from '@/util/ast'
 import { computed } from 'vue'
 
-const props = defineProps<WidgetProps>()
+const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()
 const value = computed({
   get() {
-    return parseFloat(widgetExpression(props.input)?.code() ?? '')
+    return parseFloat(props.input.code() ?? '')
   },
   set(value) {
-    const id = widgetAst(props.input)?.exprId
+    const id = props.input.astId
     if (id) graph.setExpressionContent(id, value.toString())
   },
 })
 </script>
 <script lang="ts">
-export const widgetDefinition = defineWidget({
-  priority: 10,
-  match: (info) => {
-    const ast = info.input
-    if (ast instanceof Ast.NumericLiteral) {
-      return Score.Perfect
-    } else if (ast instanceof Ast.NegationOprApp && ast.argument instanceof Ast.NumericLiteral) {
-      return Score.Perfect
-    }
-    return Score.Mismatch
+export const widgetDefinition = defineWidget(
+  (input) =>
+    input instanceof Ast.NumericLiteral ||
+    (input instanceof Ast.NegationOprApp && input.argument instanceof Ast.NumericLiteral),
+  {
+    priority: 10,
+    score: Score.Perfect,
   },
-})
+)
 </script>
 <template>
   <SliderWidget v-model="value" class="WidgetNumber r-24" :min="-1000" :max="1000" />

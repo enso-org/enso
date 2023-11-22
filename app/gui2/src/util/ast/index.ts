@@ -4,9 +4,9 @@ import { assert } from '@/util/assert'
 import * as Ast from '@/util/ast/abstract'
 import { parse } from '@/util/ffi'
 import { LazyObject, LazySequence } from '@/util/parserSupport'
+import { isResult, mapOk } from '@/util/result'
 import * as map from 'lib0/map'
 import type { ContentRange } from 'shared/yjsModel'
-import { isResult, mapOk } from '../result'
 
 export { Ast, RawAst }
 

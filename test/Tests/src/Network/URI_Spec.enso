@@ -12,22 +12,22 @@ spec =
             addr.user_info.should_equal "user:pass"
             addr.host.should_equal "example.com"
             addr.authority.should_equal "user:pass@example.com"
-            addr.port.should_fail_with Nothing
+            addr.port.should_equal Nothing
             addr.path.should_equal "/foo/bar"
             addr.query.should_equal "key=val"
-            addr.fragment.should_fail_with Nothing
+            addr.fragment.should_equal Nothing
         Test.specify "should escape URI" <|
             addr = URI.parse "https://%D0%9B%D0%B8%D0%BD%D1%83%D1%81:pass@ru.wikipedia.org/wiki/%D0%AF%D0%B4%D1%80%D0%BE_Linux?%D0%9A%D0%BE%D0%B4"
             addr.user_info.should_equal "Линус:pass"
             addr.authority.should_equal "Линус:pass@ru.wikipedia.org"
             addr.path.should_equal "/wiki/Ядро_Linux"
             addr.query.should_equal "Код"
-            addr.fragment.should_fail_with Nothing
+            addr.fragment.should_equal Nothing
             addr.raw_user_info.should_equal "%D0%9B%D0%B8%D0%BD%D1%83%D1%81:pass"
             addr.raw_authority.should_equal "%D0%9B%D0%B8%D0%BD%D1%83%D1%81:pass@ru.wikipedia.org"
             addr.raw_path.should_equal "/wiki/%D0%AF%D0%B4%D1%80%D0%BE_Linux"
             addr.raw_query.should_equal "%D0%9A%D0%BE%D0%B4"
-            addr.raw_fragment.should_fail_with Nothing
+            addr.raw_fragment.should_equal Nothing
         Test.specify "should return Syntax_Error when parsing invalid URI" <|
             URI.parse "a b c" . should_fail_with Syntax_Error
 
