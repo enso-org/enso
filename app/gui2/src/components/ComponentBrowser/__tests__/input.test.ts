@@ -1,5 +1,5 @@
 import { GraphDb, mockNode } from '@/stores/graph/graphDatabase'
-import type { Import, RequiredImport } from '@/stores/graph/imports'
+import type { RequiredImport } from '@/stores/graph/imports'
 import { SuggestionDb } from '@/stores/suggestionDatabase'
 import {
   makeCon,
@@ -15,7 +15,7 @@ import {
 import { ComputedValueRegistry } from '@/util/computedValueRegistry'
 import { tryIdentifier, tryQualifiedName } from '@/util/qualifiedName'
 import { unwrap } from '@/util/result'
-import type { ContentRange, ExprId } from 'shared/yjsModel'
+import type { ExprId } from 'shared/yjsModel'
 import { expect, test } from 'vitest'
 import { useComponentBrowserInput } from '../input'
 
@@ -335,13 +335,7 @@ test.each([
   },
 ] as ImportsCase[])(
   '$description',
-  ({
-    suggestionId,
-    initialCode,
-    manuallyEditedCode,
-    expectedCode,
-    expectedImports,
-  }) => {
+  ({ suggestionId, initialCode, manuallyEditedCode, expectedCode, expectedImports }) => {
     initialCode = initialCode ?? ''
     const db = new SuggestionDb()
     db.set(1, makeModule('Standard.Base'))

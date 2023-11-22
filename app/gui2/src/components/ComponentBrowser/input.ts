@@ -1,12 +1,7 @@
 import type { Filter } from '@/components/ComponentBrowser/filtering'
 import { useGraphStore } from '@/stores/graph'
 import type { GraphDb } from '@/stores/graph/graphDatabase'
-import {
-  covers,
-  requiredImportEquals,
-  requiredImports,
-  type RequiredImport,
-} from '@/stores/graph/imports'
+import { requiredImportEquals, requiredImports, type RequiredImport } from '@/stores/graph/imports'
 import { useSuggestionDbStore, type SuggestionDb } from '@/stores/suggestionDatabase'
 import {
   SuggestionKind,
@@ -19,12 +14,12 @@ import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
 import { GeneralOprApp, type OperatorChain } from '@/util/ast/opr'
 import { MappedSet } from '@/util/containers'
 import {
+  normalizeQualifiedName,
   qnFromSegments,
   qnLastSegment,
   qnSegments,
   tryQualifiedName,
   type QualifiedName,
-  normalizeQualifiedName,
 } from '@/util/qualifiedName'
 import { equalFlat } from 'lib0/array'
 import { IdMap, type ContentRange } from 'shared/yjsModel'

@@ -1,4 +1,4 @@
-import { Tree, type Token } from '@/generated/ast'
+import { OperatorBlockExpression, OperatorLine, Tree, type Token } from '@/generated/ast'
 import { assert } from '@/util/assert'
 import { AstExtended } from '@/util/ast'
 import { mapIterator } from 'lib0/iterator'
@@ -30,15 +30,17 @@ export class GeneralOprApp<HasIdMap extends boolean = true> {
       this.apps = [{ opr, expr: rhs }]
     } else {
       const blockApplication = ast as AstExtended<Tree.OperatorBlockApplication, HasIdMap>
+      const expressions = (line: OperatorLine): OperatorBlockExpression[] =>
+        line.expression ? [line.expression] : []
       const operators = blockApplication.tryMapIter((ast) =>
         [...ast.expressions]
-          .flatMap((line) => (line.expression ? [line.expression] : []))
+          .flatMap(expressions)
           .map((expr) => (expr.operator.ok ? expr.operator.value : null))
           .values(),
       )
       const exprs = blockApplication.mapIter((ast) =>
         [...ast.expressions]
-          .flatMap((line) => (line.expression ? [line.expression] : []))
+          .flatMap(expressions)
           .map((expr) => expr.expression)
           .values(),
       )

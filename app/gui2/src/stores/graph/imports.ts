@@ -1,7 +1,6 @@
 import { SuggestionDb } from '@/stores/suggestionDatabase'
 import {
   SuggestionKind,
-  entryQn,
   makeCon,
   makeMethod,
   makeModule,
@@ -12,13 +11,13 @@ import {
 import { Ast, AstExtended } from '@/util/ast'
 import { GeneralOprApp } from '@/util/ast/opr'
 import {
+  normalizeQualifiedName,
   qnFromSegments,
   qnSplit,
   tryIdentifier,
   tryQualifiedName,
   type Identifier,
   type QualifiedName,
-  normalizeQualifiedName,
 } from '@/util/qualifiedName'
 import { unwrap } from '@/util/result'
 
@@ -272,7 +271,10 @@ export function covers(existing: Import, required: RequiredImport): boolean {
   return directlyImported || importedInList || importedWithAll
 }
 
-export function filterOutRedundantImports(existing: { import: Import }[], required: RequiredImport[]): RequiredImport[] {
+export function filterOutRedundantImports(
+  existing: { import: Import }[],
+  required: RequiredImport[],
+): RequiredImport[] {
   return required.filter((info) => existing.some((existing) => covers(existing.import, info)))
 }
 

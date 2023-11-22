@@ -15,13 +15,13 @@ import type { Doc } from '@/util/docParser'
 import type { Icon } from '@/util/iconName'
 import { type Opt } from '@/util/opt'
 import {
+  normalizeQualifiedName,
   qnJoin,
   qnLastSegment,
   tryIdentifier,
   tryQualifiedName,
   type Identifier,
   type QualifiedName,
-  normalizeQualifiedName,
 } from '@/util/qualifiedName'
 import { Err, Ok, withContext, type Result } from '@/util/result'
 import * as lsTypes from 'shared/languageServerTypes/suggestions'

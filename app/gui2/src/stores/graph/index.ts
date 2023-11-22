@@ -1,5 +1,11 @@
 import { GraphDb } from '@/stores/graph/graphDatabase'
-import { recognizeImport, requiredImportToText, type RequiredImport, type Import, covers, filterOutRedundantImports } from '@/stores/graph/imports'
+import {
+  filterOutRedundantImports,
+  recognizeImport,
+  requiredImportToText,
+  type Import,
+  type RequiredImport,
+} from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { DEFAULT_VISUALIZATION_IDENTIFIER } from '@/stores/visualization'
