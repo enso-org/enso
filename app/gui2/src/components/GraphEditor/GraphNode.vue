@@ -365,6 +365,7 @@ function getRelatedSpanOffset(domNode: globalThis.Node, domOffset: number): numb
   align-items: center;
   white-space: nowrap;
   padding: 4px;
+  padding-right: 8px;
   z-index: 2;
   transition: outline 0.2s ease;
   outline: 0px solid transparent;
