@@ -153,6 +153,11 @@ export class GraphDb {
     return Array.from(allTargets(this))
   })
 
+  /** First output port of the node.
+   *
+   * When the node will be marked as source node for a new one (i.e. the node will be selected
+   * when adding), the resulting connection's source will be the main port.
+   */
   nodeMainOutputPort = new ReactiveIndex(this.nodes, (id, entry) => {
     if (entry.pattern == null) return []
     for (const ast of entry.pattern.walkRecursive()) {

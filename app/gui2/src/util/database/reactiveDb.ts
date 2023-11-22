@@ -10,13 +10,17 @@
 
 import { LazySyncEffectSet } from '@/util/reactivity'
 // eslint-disable-next-line vue/prefer-import-from-vue
+import { assert } from '@/util/assert'
 import * as map from 'lib0/map'
 import { ObservableV2 } from 'lib0/observable'
 import * as set from 'lib0/set'
 import { computed, reactive, type ComputedRef, type DebuggerOptions } from 'vue'
-import { assert } from '../assert'
 
 export type OnDelete = (cleanupFn: () => void) => void
+
+type ReactiveDBNotification<K, V> = {
+  entryAdded(key: K, value: V, onDelete: OnDelete): void
+}
 
 /**
  * Represents a reactive database adapter that extends the behaviors of `Map`.
@@ -27,9 +31,7 @@ export type OnDelete = (cleanupFn: () => void) => void
  * @typeParam V - The value type for the database entries.
  */
 export class ReactiveDb<K, V>
-  extends ObservableV2<{
-    entryAdded(key: K, value: V, onDelete: OnDelete): void
-  }>
+  extends ObservableV2<ReactiveDBNotification<K, V>>
   implements Iterable<[K, V]>
 {
   _internal: Map<K, V>
@@ -89,9 +91,9 @@ export class ReactiveDb<K, V>
    * @param valueToAdd - Value to add if there's no value under `key`.
    * @returns The value associated with the key. If was missing, the `valueToAdd` is returned.
    */
-  getOrAdd(key: K, valueToAdd: V): V {
+  getOrAdd(key: K, valueToAdd: () => V): V {
     if (!this._internal.has(key)) {
-      this.set(key, valueToAdd)
+      this.set(key, valueToAdd())
     }
     const value = this._internal.get(key)
     assert(value != null)
