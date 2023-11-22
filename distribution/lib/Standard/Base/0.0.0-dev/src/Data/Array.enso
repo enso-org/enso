@@ -27,6 +27,7 @@ from project.Data.Range.Extensions import all
 @Builtin_Type
 type Array
     ## GROUP Selections
+       ICON select_row
        Gets an element from the array at a specified index (0-based).
 
        Arguments:
@@ -146,6 +147,7 @@ type Array
 
     ## ALIAS first, last, sample, slice
        GROUP Selections
+       ICON select_row
        Creates a new `Vector` with only the specified range of elements from the
        input, removing any elements outside the range.
 
@@ -159,6 +161,7 @@ type Array
     take self range=(Index_Sub_Range.First 1) = Vector.take self range
 
     ## GROUP Selections
+       ICON select_row
        Creates a new `Vector`, removing any elements from the specified range.
 
        Arguments:
@@ -200,6 +203,7 @@ type Array
     remove self at=-1 = Vector.remove self at
 
     ## GROUP Selections
+       ICON select_row
        Get the first element from the array, or an `Index_Out_Of_Bounds` if the array
        is empty.
 
@@ -211,6 +215,7 @@ type Array
     first self = self.at 0
 
     ## GROUP Selections
+       ICON select_row
        Get the second element from the array, or a `Index_Out_Of_Bounds` if the
        array doesn't have a second element.
 
@@ -224,6 +229,7 @@ type Array
     second self = self.at 1
 
     ## GROUP Selections
+       ICON select_row
        Get the last element of the array, or an `Index_Out_Of_Bounds` if the array is
        empty.
 
@@ -293,6 +299,7 @@ type Array
     to_list self = Vector.to_list self
 
     ## GROUP Selections
+       ICON preparation
        Keeps only unique elements within the array, removing any duplicates.
 
        Arguments:
@@ -317,7 +324,8 @@ type Array
     distinct : (Any -> Any) -> Vector Any
     distinct self (on = x->x) = Vector.distinct self on
 
-    ## Applies a function to each element of the array, returning the `Vector` of
+    ## ICON dataframe_map_column
+       Applies a function to each element of the array, returning the `Vector` of
        results.
 
        Arguments:
@@ -346,6 +354,7 @@ type Array
     flat_map self function = Vector.flat_map self function
 
     ## GROUP Selections
+       ICON preparation
        Selects all elements of this array which satisfy a condition.
 
        Arguments:
@@ -393,7 +402,8 @@ type Array
     running_fold : Any -> (Any -> Any -> Any) -> Vector Any
     running_fold self init function = Vector.running_fold self init function
 
-    ## Combines all the elements of the array, by iteratively applying the
+    ## ICON dataframe_map_column
+       Combines all the elements of the array, by iteratively applying the
        passed function with next elements of the array.
 
        Arguments:
@@ -412,7 +422,8 @@ type Array
     fold : Any -> (Any -> Any -> Any) -> Any
     fold self init function = Vector.fold self init function
 
-    ## Combines all the elements of the array, by iteratively applying the
+    ## ICON dataframe_map_column
+       Combines all the elements of the array, by iteratively applying the
        passed function with next elements of the array.
 
        Arguments:
@@ -451,6 +462,7 @@ type Array
     pad self n elem = Vector.pad self n elem
 
     ## GROUP Selections
+       ICON preparation
        Partitions the array into `Vector`s of elements which satisfy a given
        condition and ones that do not.
 
@@ -548,7 +560,8 @@ type Array
     find : (Filter_Condition | (Any -> Boolean)) -> Integer -> Any -> Any
     find self condition start=0 ~if_missing=(Error.throw Not_Found) = Vector.find self condition start if_missing
 
-    ## Gets an element from the array at a specified index (0-based).
+    ## ICON select_row
+       Gets an element from the array at a specified index (0-based).
        If the index is invalid then `if_missing` is returned.
 
        Arguments:
@@ -570,6 +583,7 @@ type Array
     not_empty self = self.is_empty.not
 
     ## GROUP Selections
+       ICON preparation
        Selects all elements of this array which satisfy a predicate.
 
        Arguments:
@@ -609,7 +623,8 @@ type Array
     to_display_text : Text
     to_display_text self = self.short_display_text max_entries=40
 
-    ## Combines all the elements of a non-empty array using a binary operation.
+    ## ICON dataframe_map_column
+       Combines all the elements of a non-empty array using a binary operation.
        If the array is empty, it returns `if_empty`.
 
        Arguments:
@@ -676,6 +691,7 @@ type Array
 
     ## ALIAS combine, join by row position, merge
        GROUP Calculations
+       ICON dataframes_join
        Performs a pair-wise operation passed in `function` on consecutive
        elements of `self` and `that`.
 

@@ -311,8 +311,7 @@ type XML_Element
         XML_Error.handle_java_exceptions <|
             XML_Utils.innerXML self.java_element
 
-    ## GROUP Metadata
-       Gets elements matching a given tag name.
+    ## Gets elements matching a given tag name.
 
        This searches through all descendants of the node, not just immediate children.
 
