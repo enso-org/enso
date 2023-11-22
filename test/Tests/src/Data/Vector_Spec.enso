@@ -71,6 +71,8 @@ type_spec name alter = Test.group name <|
     pending_python_missing = if Polyglot.is_language_installed "python" then Nothing else
         "Can't run Python tests, Python is not installed."
 
+    pending_map_report_warning = "Vector.map does not yet support Report_Warning"
+
     Test.specify "text bytes" <|
         "Lore".utf_8 . should_equal [76, 111, 114, 101]
 
@@ -838,17 +840,17 @@ type_spec name alter = Test.group name <|
     Test.specify "an error thrown inside map with on_problems=Problem_Behavior.Ignore should be ignored" <|
         alter [10, 20, 30, 40] . map map_fun on_problems=Problem_Behavior.Ignore . should_equal [11, 21, Nothing, 41]
 
-    Test.specify "an error thrown inside map with on_problems=Problem_Behavior.Report_Warning should be attached as a warning" <|
+    Test.specify "an error thrown inside map with on_problems=Problem_Behavior.Report_Warning should be attached as a warning" pending=pending_map_report_warning <|
         result = alter [10, 20, 30, 40] . map map_fun on_problems=Problem_Behavior.Report_Warning
         result . should_equal [11, 21, Nothing, 41]
         Warning.get_all result . map .value . should_equal [Map_Error.Error 2 (My_Error.Error 30)]
 
-    Test.specify "multiple errors thrown inside map with on_problems=Problem_Behavior.Report_Warning should be attached as warnings" <|
+    Test.specify "multiple errors thrown inside map with on_problems=Problem_Behavior.Report_Warning should be attached as warnings" pending=pending_map_report_warning <|
         result = alter [10, 30, 20, 30, 40, 30] . map map_fun on_problems=Problem_Behavior.Report_Warning
         result . should_equal [11, Nothing, 21, Nothing, 41, Nothing]
         Warning.get_all result . map .value . should_equal ([5, 3, 1].map i-> Map_Error.Error i (My_Error.Error 30))
 
-    Test.specify "many errors thrown inside map with on_problems=Problem_Behavior.Report_Warning should be attached as warnings and an Additional_Warnings" <|
+    Test.specify "many errors thrown inside map with on_problems=Problem_Behavior.Report_Warning should be attached as warnings and an Additional_Warnings" pending=pending_map_report_warning <|
         result = alter ([10, 20] + (Vector.fill 12 30) + [40]) . map map_fun on_problems=Problem_Behavior.Report_Warning
         result . should_equal ([11, 21] + (Vector.fill 12 Nothing) + [41])
         expected_warnings_regular = 11.down_to 1 . map i-> Map_Error.Error i (My_Error.Error 30)

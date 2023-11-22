@@ -7,6 +7,7 @@ import project.Data.Vector.Vector
 import project.Errors.Common.Additional_Warnings
 import project.Error.Error
 import project.Errors.Problem_Behavior.Problem_Behavior
+import project.Errors.Unimplemented.Unimplemented
 import project.Nothing.Nothing
 import project.Runtime
 import project.IO
@@ -55,11 +56,15 @@ vector_from_function_primitive length constructor = @Builtin_Method "Array_Like_
      The result of Errors thrown when executing the function depend on `on_problems`:
      - Problem_Behavior.Report_Error: The error is thrown.
      - Problem_Behavior.Report_Warning: The result is `Nothing`, with the error
-       attached as a warning.
+       attached as a warning. Currently unimplemented.
      - Problem_Behavior.Ignore: The error is ignored, and the result is
        `Nothing`.
 vector_from_function : Integer -> (Integer -> Any) -> Problem_Behavior -> Vector Any
 vector_from_function length function on_problems=Problem_Behavior.Report_Error =
+    ## TODO: implement this.
+        See https://github.com/enso-org/enso/issues/8371
+    if on_problems == Problem_Behavior.Report_Warning then
+        Unimplemented.throw "on_problems=Problem_Behavior.Report_Warning is unimplemented for `Vector.map`"
     st =
         st = Runtime.get_stack_trace
         st.map x->
@@ -70,9 +75,13 @@ vector_from_function length function on_problems=Problem_Behavior.Report_Error =
         no_warnings_result = Warning.remove_warnings result
         case no_warnings_result.is_error of
             False ->
-                if Warning.has_warnings result . not then result else
-                    st
-                    Warning.map_attached_warnings (w-> Maybe.Some (Map_Error.Error i w)) result
+                ## TODO: implement this correctly.
+                   See https://github.com/enso-org/enso/issues/8371
+
+                    if Warning.has_warnings result . not then result else
+                        st
+                        Warning.map_attached_warnings (w-> Maybe.Some (Map_Error.Error i w)) result
+                result
             True ->
                 case on_problems of
                     Problem_Behavior.Ignore ->
