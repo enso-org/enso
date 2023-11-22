@@ -54,6 +54,13 @@ export type EditingContext =
   // Suggestion should replace given literal.
   | { type: 'changeLiteral'; literal: AstExtended<Ast.Tree.TextLiteral | Ast.Tree.Number, false> }
 
+/** An atomic change to the user input. */
+interface Change {
+  str: string
+  /** Range in the original code to be replaced with `str`. */
+  range: ContentRange
+}
+
 /** Component Browser Input Data */
 export function useComponentBrowserInput(
   graphDb: GraphDb = useGraphStore().db,
@@ -269,15 +276,15 @@ export function useComponentBrowserInput(
    * to indices of "old" input content.
    */
   function inputChangesAfterApplying(entry: SuggestionEntry): {
-    changes: { range: ContentRange; str: string }[]
+    changes: Change[]
     requiredImport: QualifiedName | null
   } {
     const ctx = context.value
     const str = codeToBeInserted(entry)
-    let mainChange = undefined
+    let mainChange: Change | undefined = undefined
     switch (ctx.type) {
       case 'insert': {
-        mainChange = { range: [ctx.position, ctx.position] as ContentRange, str }
+        mainChange = { range: [ctx.position, ctx.position], str }
         break
       }
       case 'changeIdentifier': {
@@ -290,7 +297,7 @@ export function useComponentBrowserInput(
       }
     }
     const qnChange = qnChanges(entry)
-    return { changes: [mainChange, ...qnChange.changes], requiredImport: qnChange.requiredImport }
+    return { changes: [mainChange!, ...qnChange.changes], requiredImport: qnChange.requiredImport }
   }
 
   function codeToBeInserted(entry: SuggestionEntry): string {
@@ -319,7 +326,7 @@ export function useComponentBrowserInput(
 
   /** All changes to the qualified name already written by the user. */
   function qnChanges(entry: SuggestionEntry): {
-    changes: { range: ContentRange; str: string }[]
+    changes: Change[]
     requiredImport: QualifiedName | null
   } {
     if (entry.selfType != null) return { changes: [], requiredImport: null }
