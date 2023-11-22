@@ -1,52 +1,70 @@
 import { GraphDb } from '@/stores/graph/graphDatabase'
 import { AstExtended } from '@/util/ast'
-import { IdMap, type ExprId } from 'shared/yjsModel'
+import { ApplicationKind, ArgumentPlaceholder } from '@/util/callTree'
+import { IdMap } from 'shared/yjsModel'
 import { describe, expect, test } from 'vitest'
 import { defineComponent } from 'vue'
 import {
-  PlaceholderArgument,
   Score,
   WidgetRegistry,
-  widgetArg,
-  widgetAst,
+  defineWidget,
   type WidgetDefinition,
+  type WidgetInput,
   type WidgetModule,
 } from '../widgetRegistry'
 
 describe('WidgetRegistry', () => {
-  function makeMockWidget(name: string, widgetDefinition: WidgetDefinition): WidgetModule {
+  function makeMockWidget<T extends WidgetInput>(
+    name: string,
+    widgetDefinition: WidgetDefinition<T>,
+  ): WidgetModule<T> {
     return {
       default: defineComponent({ name }),
       widgetDefinition,
     }
   }
 
-  const widgetA = makeMockWidget('A', {
-    priority: 1,
-    match: (info) => (widgetAst(info.input) ? Score.Perfect : Score.Mismatch),
-  })
+  const widgetA = makeMockWidget(
+    'A',
+    defineWidget(AstExtended, {
+      priority: 1,
+    }),
+  )
 
-  const widgetB = makeMockWidget('B', {
-    priority: 2,
-    match: (info) => (widgetArg(info.input) ? Score.Perfect : Score.Mismatch),
-  })
+  const widgetB = makeMockWidget(
+    'B',
+    defineWidget(ArgumentPlaceholder, {
+      priority: 2,
+    }),
+  )
 
-  const widgetC = makeMockWidget('C', {
-    priority: 10,
-    match: () => Score.Good,
-  })
+  const widgetC = makeMockWidget(
+    'C',
+    defineWidget((input: WidgetInput): input is WidgetInput => true, {
+      priority: 10,
+      score: Score.Good,
+    }),
+  )
 
-  const widgetD = makeMockWidget('D', {
-    priority: 20,
-    match: (info) => (widgetAst(info.input)?.repr() === '_' ? Score.Perfect : Score.Mismatch),
-  })
+  const widgetD = makeMockWidget(
+    'D',
+    defineWidget(AstExtended, {
+      priority: 20,
+      score: (props) => (props.input.repr() === '_' ? Score.Perfect : Score.Mismatch),
+    }),
+  )
 
   const someAst = AstExtended.parse('foo', IdMap.Mock())
   const blankAst = AstExtended.parse('_', IdMap.Mock())
-  const somePlaceholder = new PlaceholderArgument(
-    '2095503f-c6b3-46e3-848a-be31360aab08' as ExprId,
+  const somePlaceholder = new ArgumentPlaceholder(
     0,
-    0,
+    {
+      name: 'foo',
+      type: 'Any',
+      isSuspended: false,
+      hasDefault: false,
+    },
+    ApplicationKind.Prefix,
   )
 
   const mockGraphDb = GraphDb.Mock()

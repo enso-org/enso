@@ -156,14 +156,14 @@ export function readSequence<T>(
   address: number,
   size: number,
   reader: Reader<T>,
-): Iterable<T> {
+): IterableIterator<T> {
   const data = readPointer(view, address)
   const offset = 4
   const end = offset + size * readU32(data, 0)
   return new LazySequence(offset, size, end, (offset: number) => reader(data, offset))
 }
 
-export class LazySequence<T> implements Iterator<T> {
+export class LazySequence<T> implements IterableIterator<T> {
   private offset: number
   private readonly step: number
   private readonly end: number
