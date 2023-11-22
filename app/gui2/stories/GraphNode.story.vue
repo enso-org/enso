@@ -54,7 +54,7 @@ const mockRects = reactive(new Map())
 
 watchEffect((onCleanup) => {
   const id = node.value.rootSpan.astId
-  mockRects.set(id, Rect.Zero())
+  mockRects.set(id, Rect.Zero)
   onCleanup(() => {
     mockRects.delete(id)
   })
