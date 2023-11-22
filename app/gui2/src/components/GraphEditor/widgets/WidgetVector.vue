@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import NodeWidgetTree from '@/components/GraphEditor/NodeWidgetTree.vue'
+import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import VectorWidget from '@/components/widgets/VectorWidget.vue'
 import { Tree } from '@/generated/ast'
 import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
@@ -35,6 +35,6 @@ export const widgetDefinition = defineWidget(AstExtended.isTree([Tree.Type.Array
     class="WidgetVector"
     contenteditable="false"
   >
-    <NodeWidgetTree :ast="slotProps.item" />
+    <NodeWidget :input="slotProps.item" />
   </VectorWidget>
 </template>

@@ -33,6 +33,7 @@ provideWidgetTree(toRef(props, 'ast'), layoutTransitions.active)
 <style scoped>
 .NodeWidgetTree {
   color: white;
+  margin-left: 4px;
 
   outline: none;
   height: 24px;

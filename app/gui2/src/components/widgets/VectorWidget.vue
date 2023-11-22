@@ -15,6 +15,7 @@ const emit = defineEmits<{ 'update:modelValue': [modelValue: T[]] }>()
     <SvgIcon
       class="add-item"
       name="vector_add"
+      @pointerdown.stop
       @click="emit('update:modelValue', [...props.modelValue, props.default()])"
     />
   </div>

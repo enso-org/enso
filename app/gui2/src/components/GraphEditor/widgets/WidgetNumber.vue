@@ -18,6 +18,7 @@ const value = computed({
   },
 })
 </script>
+
 <script lang="ts">
 export const widgetDefinition = defineWidget(
   AstExtended.isTree([Tree.Type.UnaryOprApp, Tree.Type.Number]),
