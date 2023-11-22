@@ -54,8 +54,8 @@ type Auto_Detect
        Finds a matching format for reading the file.
 
        It assumes that `file` already exists.
-    get_reading_format : File -> Any | Nothing
-    get_reading_format file =
+    get_reading_format : File_For_Read -> Any | Nothing
+    get_reading_format file:File_For_Read =
         get_format f-> f.for_file_read file
 
     ## PRIVATE
@@ -121,8 +121,8 @@ type Plain_Text_Format
 
     ## PRIVATE
        If the File_Format supports reading from the file, return a configured instance.
-    for_file_read : File -> Plain_Text_Format | Nothing
-    for_file_read file =
+    for_file_read : File_For_Read -> Plain_Text_Format | Nothing
+    for_file_read file:File_For_Read =
         case file.extension of
             ".txt" -> Plain_Text_Format.Plain_Text
             ".log" -> Plain_Text_Format.Plain_Text
@@ -164,8 +164,8 @@ type Plain_Text_Format
 type Bytes
     ## PRIVATE
        If the File_Format supports reading from the file, return a configured instance.
-    for_file_read : File -> Bytes | Nothing
-    for_file_read file =
+    for_file_read : File_For_Read -> Bytes | Nothing
+    for_file_read file:File_For_Read =
         case file.extension of
             ".dat" -> Bytes
             _ -> Nothing
@@ -200,8 +200,8 @@ type Bytes
 type JSON_Format
     ## PRIVATE
        If the File_Format supports reading from the file, return a configured instance.
-    for_file_read : File -> JSON_Format | Nothing
-    for_file_read file =
+    for_file_read : File_For_Read -> JSON_Format | Nothing
+    for_file_read file:File_For_Read =
         case file.extension of
             ".json" -> JSON_Format
             ".geojson" -> JSON_Format
@@ -239,3 +239,17 @@ type JSON_Format
 
 ## A setting to infer the default behaviour of some option.
 type Infer
+
+## PRIVATE
+   A minimal interface allowing for_file_read
+type File_For_Read
+    ## PRIVATE
+       Arguments:
+       - `path` - the path or the URI of the file.
+       - `name` - the name of the file.
+       - `extension` - the extension of the file.
+       - `read_first_bytes` - a function that reads the first bytes of the file.
+    Value path:Text name:Text extension:Text (read_first_bytes:Function=(_->Nothing))
+
+## PRIVATE
+File_For_Read.from (that:File) = File_For_Read.Value that.path that.name that.extension that.read_first_bytes

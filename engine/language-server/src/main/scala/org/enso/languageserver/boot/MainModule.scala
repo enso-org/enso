@@ -171,7 +171,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
   )
 
   val runtimeEventsMonitor =
-    languageServerConfig.profiling.runtimeEventsLogPath match {
+    languageServerConfig.profiling.profilingEventsLogPath match {
       case Some(path) =>
         val out = new PrintStream(path.toFile, StandardCharsets.UTF_8)
         new RuntimeEventsMonitor(out)

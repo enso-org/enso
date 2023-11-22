@@ -108,6 +108,7 @@ export default function TopBar(props: TopBarProps) {
             <div className="flex gap-2">
                 <AssetInfoBar asset={asset} />
                 <UserBar
+                    supportsLocalBackend={supportsLocalBackend}
                     page={page}
                     isHelpChatOpen={isHelpChatOpen}
                     setIsHelpChatOpen={setIsHelpChatOpen}

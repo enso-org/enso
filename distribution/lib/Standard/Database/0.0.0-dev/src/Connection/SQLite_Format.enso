@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.System.File_Format.File_For_Read
 
 import project.Connection.Database
 import project.Connection.SQLite_Details.SQLite_Details
@@ -11,11 +12,16 @@ type SQLite_Format
 
     ## PRIVATE
        If the File_Format supports reading from the file, return a configured instance.
-    for_file_read : File -> SQLite_Format | Nothing
-    for_file_read file =
+    for_file_read : File_For_Read -> SQLite_Format | Nothing
+    for_file_read file:File_For_Read =
         expected_header = magic_header_string
         got_header = file.read_first_bytes expected_header.length
-        if got_header == expected_header then SQLite_Format.For_File else Nothing
+        if got_header == expected_header then SQLite_Format.For_File else
+            ## To allow for reading a SQLite file by extension if we cannot read the file header.
+            if got_header.is_nothing.not then Nothing else case file.extension of
+                ".db" -> SQLite_Format.For_File
+                ".sqlite" -> SQLite_Format.For_File
+                _ -> Nothing
 
     ## PRIVATE
        If the File_Format supports writing to the file, return a configured instance.

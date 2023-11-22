@@ -1,7 +1,7 @@
 from Standard.Base import all
 
-import Standard.Table.Internal.Naming_Properties.Unlimited_Naming_Properties
 import Standard.Table.Internal.Naming_Properties.Enso_Length_Limited_Naming_Properties
+import Standard.Table.Internal.Naming_Properties.Unlimited_Naming_Properties
 
 import project.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Properties
 
