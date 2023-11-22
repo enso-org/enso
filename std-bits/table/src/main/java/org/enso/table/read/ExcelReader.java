@@ -289,7 +289,7 @@ public class ExcelReader {
         throw e;
       }
     } else {
-      OPCPackage pkg = OPCPackage.open(file, PackageAccess.READ_WRITE);
+      OPCPackage pkg = OPCPackage.open(file, PackageAccess.READ);
       return new XSSFWorkbook(pkg);
     }
   }

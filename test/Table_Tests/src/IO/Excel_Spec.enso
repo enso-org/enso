@@ -449,6 +449,26 @@ spec_write suffix test_sheet_name =
             Util.set_writable f True
             f.delete
 
+        Test.specify "should allow to write to a workbook that is open, and reflect that changes when the sheet is read again" <|
+            out = create_out
+            table.write out on_problems=Report_Error . should_succeed
+
+            workbook = out.read
+            workbook.sheet_names.should_equal ["EnsoSheet"]
+
+            t1 = workbook.read "EnsoSheet"
+            t1.should_equal table
+
+            [Existing_File_Behavior.Backup, Existing_File_Behavior.Overwrite].each behavior->
+                t2 = Table.new [["X", [behavior.to_text, "B", "C", behavior.to_text+"..."]]]
+                t2.write out on_existing_file=behavior . should_succeed
+
+                workbook.sheet_names.should_equal ["EnsoSheet"]
+
+                # If we read the table again, it has the new values in it:
+                t3 = workbook.read "EnsoSheet"
+                t3.should_equal t2
+
         Test.specify "should fail if the parent directory does not exist" <|
             parent = enso_project.data / "transient" / "nonexistent"
             parent.exists.should_be_false
