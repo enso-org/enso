@@ -1,6 +1,7 @@
 import { OperatorBlockExpression, OperatorLine, Tree, type Token } from '@/generated/ast'
 import { assert } from '@/util/assert'
 import { AstExtended } from '@/util/ast'
+import { zip } from '@/util/iterable'
 import { mapIterator } from 'lib0/iterator'
 
 /** An operand of one of the applications inside `GeneralOprApp` */
@@ -44,22 +45,6 @@ export class GeneralOprApp<HasIdMap extends boolean = true> {
           .map((expr) => expr.expression)
           .values(),
       )
-      function* zip<T, U>(left: Iterable<T>, right: Iterable<U>): Generator<[T, U]> {
-        const leftIterator = left[Symbol.iterator]()
-        const rightIterator = right[Symbol.iterator]()
-
-        while (true) {
-          const leftResult = leftIterator.next()
-          const rightResult = rightIterator.next()
-
-          if (leftResult.done || rightResult.done) {
-            break
-          }
-
-          yield [leftResult.value, rightResult.value]
-        }
-      }
-
       this.apps = Array.from(
         mapIterator(zip(operators, exprs), ([opr, expr]) => ({
           opr: opr ? opr : null,
