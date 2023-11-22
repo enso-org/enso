@@ -2303,7 +2303,7 @@ type Table
         normalize_group_by input = case input of
             Aggregate_Column.Group_By c _ -> c
             _ : Aggregate_Column -> Error.throw (Illegal_Argument.Error "Only Aggregate_Column.Group_By can be used for cross_tab group_by clause.")
-            _ : Vector -> input.map normalize_group_by
+            _ : Vector -> input.map_primitive normalize_group_by
             _ -> input
 
         ## validate the name and group_by columns
@@ -2318,7 +2318,7 @@ type Table
         values_vector = case values of
             _ : Vector -> values
             _ -> [values]
-        resolved_values = values_vector.map (Aggregate_Column_Helper.resolve_aggregate self problem_builder)
+        resolved_values = values_vector.map_primitive (Aggregate_Column_Helper.resolve_aggregate self problem_builder)
         is_group_by c = case c of
             Aggregate_Column.Group_By _ _ -> True
             _ -> False
