@@ -124,7 +124,7 @@ type Data_Formatter
             vector = case formats of
                 v : Vector -> v
                 singleton -> [singleton]
-            converted = vector.map elem->
+            converted = vector.map_primitive elem->
                 ## Ensure the element is a `Date_Time_Formatter` or is converted to it.
                    We need to convert _each_ element - we cannot perform a 'bulk' conversion like `vector : Vector Date_Time_Formatter` because of erasure.
                 checked = elem : Date_Time_Formatter
