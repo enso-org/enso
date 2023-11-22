@@ -4,9 +4,10 @@ import { applyUpdates, entryFromLs } from '@/stores/suggestionDatabase/lsUpdate'
 import { ReactiveDb, ReactiveIndex } from '@/util/database/reactiveDb'
 import { AsyncQueue, rpcWithRetries } from '@/util/net'
 import { type Opt } from '@/util/opt'
-import { qnParent, type QualifiedName } from '@/util/qualifiedName'
+import { qnJoin, qnParent, tryQualifiedName, type QualifiedName } from '@/util/qualifiedName'
 import { defineStore } from 'pinia'
 import { LanguageServer } from 'shared/languageServer'
+import type { MethodPointer } from 'shared/languageServerTypes'
 import { markRaw, ref, type Ref } from 'vue'
 
 export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
@@ -24,6 +25,16 @@ export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
     }
     return []
   })
+
+  findByMethodPointer(method: MethodPointer): SuggestionId | undefined {
+    if (method == null) return
+    const moduleName = tryQualifiedName(method.definedOnType)
+    const methodName = tryQualifiedName(method.name)
+    if (!moduleName.ok || !methodName.ok) return
+    const qualifiedName = qnJoin(moduleName.value, methodName.value)
+    const [suggestionId] = this.nameToId.lookup(qualifiedName)
+    return suggestionId
+  }
 }
 
 export interface Group {

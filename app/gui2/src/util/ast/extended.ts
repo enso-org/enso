@@ -4,7 +4,6 @@ import { assert } from '@/util/assert'
 import * as encoding from 'lib0/encoding'
 import { digest } from 'lib0/hash/sha256'
 import * as map from 'lib0/map'
-
 import type { ContentRange, ExprId, IdMap } from 'shared/yjsModel'
 import { markRaw } from 'vue'
 import {
@@ -19,6 +18,12 @@ import {
 } from '.'
 import type { Opt } from '../opt'
 
+type ExtractType<V, T> = T extends ReadonlyArray<infer Ts>
+  ? Extract<V, { type: Ts }>
+  : Extract<V, { type: T }>
+
+type OneOrArray<T> = T | readonly T[]
+
 /**
  * AST with additional metadata containing AST IDs and original code reference. Can only be
  * constructed by parsing any enso source code string.
@@ -26,6 +31,16 @@ import type { Opt } from '../opt'
 export class AstExtended<T extends Tree | Token = Tree | Token, HasIdMap extends boolean = true> {
   inner: T
   private ctx: AstExtendedCtx<HasIdMap>
+
+  public static isToken<T extends OneOrArray<Ast.Token.Type>>(type?: T) {
+    return (obj: unknown): obj is AstExtended<ExtractType<Ast.Token, T>, boolean> =>
+      obj instanceof AstExtended && obj.isToken(type)
+  }
+
+  public static isTree<T extends OneOrArray<Ast.Tree.Type>>(type?: T) {
+    return (obj: unknown): obj is AstExtended<ExtractType<Ast.Tree, T>, boolean> =>
+      obj instanceof AstExtended && obj.isTree(type)
+  }
 
   public static parse(code: string): AstExtended<Tree, false>
   public static parse(code: string, idMap: IdMap): AstExtended<Tree, true>
@@ -51,16 +66,22 @@ export class AstExtended<T extends Tree | Token = Tree | Token, HasIdMap extends
     return Token.isInstance(this.inner) ? Token.typeNames[this.inner.type] : null
   }
 
-  isToken<T extends Ast.Token.Type>(
+  isToken<T extends OneOrArray<Ast.Token.Type>>(
     type?: T,
-  ): this is AstExtended<Extract<Ast.Token, { type: T }>, HasIdMap> {
-    return Token.isInstance(this.inner) && (type == null || this.inner.type === type)
+  ): this is AstExtended<ExtractType<Ast.Token, T>, HasIdMap> {
+    if (!Token.isInstance(this.inner)) return false
+    if (type == null) return true
+    if (Array.isArray(type)) return (type as Ast.Token.Type[]).includes(this.inner.type)
+    return this.inner.type === type
   }
 
-  isTree<T extends Ast.Tree.Type>(
+  isTree<T extends OneOrArray<Ast.Tree.Type>>(
     type?: T,
-  ): this is AstExtended<Extract<Ast.Tree, { type: T }>, HasIdMap> {
-    return Tree.isInstance(this.inner) && (type == null || this.inner.type === type)
+  ): this is AstExtended<ExtractType<Ast.Tree, T>, HasIdMap> {
+    if (!Tree.isInstance(this.inner)) return false
+    if (type == null) return true
+    if (Array.isArray(type)) return (type as Ast.Tree.Type[]).includes(this.inner.type)
+    return this.inner.type === type
   }
 
   private constructor(tree: T, ctx: AstExtendedCtx<HasIdMap>) {
@@ -83,7 +104,9 @@ export class AstExtended<T extends Tree | Token = Tree | Token, HasIdMap extends
     return debugAst(this.inner)
   }
 
-  tryMap<T2 extends Tree>(mapper: (t: T) => Opt<T2>): AstExtended<T2, HasIdMap> | undefined {
+  tryMap<T2 extends Tree | Token>(
+    mapper: (t: T) => Opt<T2>,
+  ): AstExtended<T2, HasIdMap> | undefined {
     const mapped = mapper(this.inner)
     if (mapped == null) return
     return new AstExtended(mapped, this.ctx)
@@ -174,5 +197,12 @@ class AstExtendedCtx<HasIdMap extends boolean> {
         }),
       ),
     )
+  }
+}
+
+declare const AstExtendedKey: unique symbol
+declare module '@/providers/widgetRegistry' {
+  export interface WidgetInputTypes {
+    [AstExtendedKey]: AstExtended
   }
 }

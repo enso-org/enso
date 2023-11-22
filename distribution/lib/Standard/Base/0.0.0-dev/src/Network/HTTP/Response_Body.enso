@@ -108,7 +108,7 @@ type Response_Body
         _ -> self
 
     ## ALIAS parse
-       GROUP Conversions
+       GROUP Input
        Uses the format to decode the body.
        If using `Auto_Detect`, the content-type will be used to determine the
        format.

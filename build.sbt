@@ -1428,7 +1428,9 @@ lazy val runtime = (project in file("engine/runtime"))
         GraalVM.modules.map(_.withConfigurations(Some(Runtime.name)))
       val langs =
         GraalVM.langsPkgs.map(_.withConfigurations(Some(Runtime.name)))
-      necessaryModules ++ langs
+      val tools =
+        GraalVM.toolsPkgs.map(_.withConfigurations(Some(Runtime.name)))
+      necessaryModules ++ langs ++ tools
     },
     Test / javaOptions ++= testLogProviderOptions ++ Seq(
       "-Dpolyglotimpl.DisableClassPathIsolation=true"

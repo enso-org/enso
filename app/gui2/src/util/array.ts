@@ -1,3 +1,5 @@
+import type { Opt } from './opt'
+
 /** An array that has at least one element present at all times. */
 export type NonEmptyArray<T> = [T, ...T[]]
 
@@ -36,6 +38,6 @@ export function partitionPoint<T>(
 }
 
 /** Index into an array using specified index. When the index is nullable, returns undefined. */
-export function tryGetIndex<T>(arr: T[], index: number | undefined | null): T | undefined {
-  return index == null ? undefined : arr[index]
+export function tryGetIndex<T>(arr: Opt<T[]>, index: Opt<number>): T | undefined {
+  return index == null ? undefined : arr?.[index]
 }

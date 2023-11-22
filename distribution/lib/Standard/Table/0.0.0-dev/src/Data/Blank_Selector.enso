@@ -1,6 +1,7 @@
-## TODO Documents
+## Specifies the condition for selecting blank cells.
 type Blank_Selector
-    ## Blank_Selector is used as a constructor for other functions.
-    Any_Cell_Blank
+    ## Select when any cell is blank or Nothing.
+    Any_Cell
 
-    All_Cells_Blank
+    ## Select when all the cells are blank or Nothing.
+    All_Cells
