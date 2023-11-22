@@ -117,7 +117,7 @@ const dragPointer = usePointer((pos, event, type) => {
   }
 })
 
-const expressionInfo = computed(() => graph.db.nodeExpressionInfo.lookup(nodeId.value))
+const expressionInfo = computed(() => graph.db.getExpressionInfo(nodeId.value))
 const outputTypeName = computed(() => expressionInfo.value?.typename ?? 'Unknown')
 const executionState = computed(() => expressionInfo.value?.payload.type ?? 'Unknown')
 const suggestionEntry = computed(() => graph.db.nodeMainSuggestion.lookup(nodeId.value))
@@ -420,17 +420,6 @@ function getRelatedSpanOffset(domNode: globalThis.Node, domOffset: number): numb
 .GraphNode .selection:hover + .binding,
 .GraphNode.selected .binding {
   opacity: 1;
-}
-
-.editable {
-  outline: none;
-  height: 24px;
-  display: inline-flex;
-  align-items: center;
-
-  & :deep(span) {
-    vertical-align: middle;
-  }
 }
 
 .container {
