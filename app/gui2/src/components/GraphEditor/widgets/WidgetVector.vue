@@ -15,7 +15,13 @@ const value = computed({
     return props.input.children().filter((child) => child.isTree())
   },
   set(value) {
-    console.log('TODO: Update list of children', value)
+    const id = props.input.astId
+    if (!id) return
+    graph.replaceNodeSubexpression(
+      id,
+      undefined!,
+      `[${value.map((item) => item.repr()).join(', ')}]`,
+    )
   },
 })
 </script>
@@ -31,7 +37,7 @@ export const widgetDefinition = defineWidget(AstExtended.isTree([Tree.Type.Array
   <VectorWidget
     v-slot="slotProps"
     v-model="value"
-    :default="() => ({}) as never /* FIXME: */"
+    :default="() => AstExtended.parse('_')"
     :getId="(item) => item.astId"
     dragMimeType="application/x-enso-ast-node"
     :toJSON="(item) => ({ id: item.astId, code: item.repr() })"
