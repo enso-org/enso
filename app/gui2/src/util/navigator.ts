@@ -8,7 +8,7 @@ function elemRect(target: Element | undefined): Rect {
     const domRect = target.getBoundingClientRect()
     return new Rect(new Vec2(domRect.x, domRect.y), new Vec2(domRect.width, domRect.height))
   }
-  return Rect.Zero
+  return Rect.Zero()
 }
 
 export type NavigatorComposable = ReturnType<typeof useNavigator>

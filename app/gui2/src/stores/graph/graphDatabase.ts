@@ -178,7 +178,7 @@ export class GraphDb {
         nodeRects,
         // The rest of the properties should not matter.
         selectedNodeRects: [],
-        screenBounds: Rect.Zero,
+        screenBounds: Rect.Zero(),
         mousePosition: Vec2.Zero,
       },
     )
