@@ -272,6 +272,10 @@ export function covers(existing: Import, required: RequiredImport): boolean {
   return directlyImported || importedInList || importedWithAll
 }
 
+export function filterOutRedundantImports(existing: { import: Import }[], required: RequiredImport[]): RequiredImport[] {
+  return required.filter((info) => existing.some((existing) => covers(existing.import, info)))
+}
+
 if (import.meta.vitest) {
   const { test, expect } = import.meta.vitest
 

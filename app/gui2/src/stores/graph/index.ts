@@ -1,5 +1,5 @@
 import { GraphDb } from '@/stores/graph/graphDatabase'
-import { recognizeImport, requiredImportToText, type RequiredImport } from '@/stores/graph/imports'
+import { recognizeImport, requiredImportToText, type RequiredImport, type Import, covers, filterOutRedundantImports } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { DEFAULT_VISUALIZATION_IDENTIFIER } from '@/stores/visualization'
@@ -47,6 +47,7 @@ export const useGraphStore = defineStore('graph', () => {
   const nodeRects = reactive(new Map<ExprId, Rect>())
   const exprRects = reactive(new Map<ExprId, Rect>())
   const editedNodeInfo = ref<NodeEditInfo>()
+  const imports = ref<{ import: Import; span: ContentRange }[]>([])
 
   const unconnectedEdge = ref<UnconnectedEdge>()
 
@@ -89,12 +90,12 @@ export const useGraphStore = defineStore('graph', () => {
       const ast = AstExtended.parse(textContentLocal, idMap)
       const updatedMap = idMap.finishAndSynchronize()
 
-      db.imports.value = []
+      imports.value = []
       ast.visitRecursive((node) => {
         if (node.isTree(Ast.Tree.Type.Import)) {
           const recognized = recognizeImport(node)
           if (recognized) {
-            db.imports.value.push({ import: recognized, span: node.span() })
+            imports.value.push({ import: recognized, span: node.span() })
           }
           return false
         }
@@ -190,11 +191,12 @@ export const useGraphStore = defineStore('graph', () => {
     let importData = undefined
     let additionalOffset = 0
     if (withImports && withImports.length > 0) {
-      const lastImport = db.imports.value[db.imports.value.length - 1]
+      const lastImport = imports.value[imports.value.length - 1]
       const importOffset = lastImport ? lastImport.span[1] + 1 : 0
-      const imports = withImports.map((info) => requiredImportToText(info)).join('\n')
-      additionalOffset += imports.length + 1
-      importData = { str: imports, offset: importOffset }
+      const importsToAdd = filterOutRedundantImports(imports.value, withImports)
+      const str = importsToAdd.map((info) => requiredImportToText(info)).join('\n')
+      additionalOffset += str.length + 1
+      importData = { str, offset: importOffset }
     }
     return mod.insertNewNode(
       mod.doc.contents.length + additionalOffset,
@@ -304,6 +306,7 @@ export const useGraphStore = defineStore('graph', () => {
   return {
     transact,
     db: markRaw(db),
+    imports,
     editedNodeInfo,
     unconnectedEdge,
     edges,

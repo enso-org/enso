@@ -257,13 +257,11 @@ export function useComponentBrowserInput(
    * If suggestion was manually edited by the user after accepting, it is not included.
    */
   function importsToAdd(): RequiredImport[] {
-    const existingImports = graphDb.imports.value
     const finalImports: RequiredImport[] = []
     for (const { info, context } of imports.value) {
-      const alreadyImported = existingImports.some((existing) => covers(existing.import, info))
       const alreadyAdded = finalImports.some((existing) => requiredImportEquals(existing, info))
       const noLongerNeeded = !code.value.includes(context)
-      if (!alreadyImported && !noLongerNeeded && !alreadyAdded) {
+      if (!noLongerNeeded && !alreadyAdded) {
         finalImports.push(info)
       }
     }

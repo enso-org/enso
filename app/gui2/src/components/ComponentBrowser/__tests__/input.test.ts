@@ -293,7 +293,6 @@ test.each([
 interface ImportsCase {
   description: string
   suggestionId: number
-  existingImports: { import: Import; span: ContentRange }[]
   initialCode?: string
   manuallyEditedCode?: string
   expectedCode: string
@@ -304,7 +303,6 @@ test.each([
   {
     description: 'Basic case of adding required import',
     suggestionId: 3,
-    existingImports: [],
     expectedCode: 'Table.new ',
     expectedImports: [
       {
@@ -315,24 +313,8 @@ test.each([
     ],
   },
   {
-    description: 'No need to add already existing import',
-    suggestionId: 3,
-    existingImports: [
-      {
-        import: {
-          from: unwrap(tryQualifiedName('Standard.Base')),
-          imported: { kind: 'All', except: [] },
-        },
-        span: [0, 0],
-      },
-    ],
-    expectedCode: 'Table.new ',
-    expectedImports: [],
-  },
-  {
     description: 'Importing the head of partially edited qualified name',
     suggestionId: 3,
-    existingImports: [],
     initialCode: 'Base.',
     expectedCode: 'Base.Table.new ',
     expectedImports: [{ kind: 'Qualified', module: unwrap(tryQualifiedName('Standard.Base')) }],
@@ -340,7 +322,6 @@ test.each([
   {
     description: 'Importing the head of partially edited qualified name (2)',
     suggestionId: 3,
-    existingImports: [],
     initialCode: 'Base.Table.',
     expectedCode: 'Base.Table.new ',
     expectedImports: [{ kind: 'Qualified', module: unwrap(tryQualifiedName('Standard.Base')) }],
@@ -348,7 +329,6 @@ test.each([
   {
     description: 'Do not import if user changes input manually after applying suggestion',
     suggestionId: 3,
-    existingImports: [],
     manuallyEditedCode: '',
     expectedCode: '',
     expectedImports: [],
@@ -357,7 +337,6 @@ test.each([
   '$description',
   ({
     suggestionId,
-    existingImports,
     initialCode,
     manuallyEditedCode,
     expectedCode,
@@ -369,7 +348,6 @@ test.each([
     db.set(2, makeType('Standard.Base.Table'))
     db.set(3, makeCon('Standard.Base.Table.new'))
     const [graphMock, suggestionsMock] = GraphDb.Mock(undefined, db)
-    graphMock.imports.value = existingImports
     const input = useComponentBrowserInput(graphMock, suggestionsMock)
     input.code.value = initialCode
     input.selection.value = { start: initialCode.length, end: initialCode.length }
