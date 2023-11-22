@@ -116,12 +116,7 @@ function isWidgetModule(module: unknown): module is WidgetModule {
 }
 
 function isWidgetComponent(component: unknown): component is WidgetComponent {
-  return (
-    typeof component === 'object' &&
-    component !== null &&
-    'setup' in component &&
-    typeof component.setup === 'function'
-  )
+  return typeof component === 'object' && component !== null
 }
 
 function isWidgetDefinition(config: unknown): config is WidgetDefinition {
