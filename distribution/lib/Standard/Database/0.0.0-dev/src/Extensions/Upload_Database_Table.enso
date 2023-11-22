@@ -12,6 +12,7 @@ from project.Errors import all
 from project.Internal.Upload_Table import all
 
 ## GROUP Standard.Base.Output
+   ICON data_output
    Creates a new database table from this table.
 
    Arguments:
@@ -60,6 +61,7 @@ Table.select_into_database_table self connection (table_name : Text) primary_key
     select_into_table_implementation self connection table_name primary_key temporary on_problems
 
 ## GROUP Standard.Base.Output
+   ICON data_output
    Updates the database table with the contents of the provided table.
 
    This operation will only work if this table is a 'trivial' table reference,
@@ -134,6 +136,7 @@ Table.update_rows self (source_table : Table | In_Memory_Table) (update_action :
     common_update_table source_table self update_action key_columns error_on_missing_columns on_problems
 
 ## GROUP Standard.Base.Output
+   ICON data_output
    Removes rows from a database table.
 
    It returns the count of the rows that have been deleted.

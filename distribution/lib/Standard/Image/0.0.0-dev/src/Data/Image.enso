@@ -43,6 +43,7 @@ type Image
         Image.Value (Java_Image.from_vector values rows channels)
 
     ## UNSTABLE
+       ICON data_input
 
        Read an image from a file.
 
@@ -78,6 +79,7 @@ type Image
             Error.throw (File_Error.IO_Error (File.new path) 'Failed to read the file')
 
     ## UNSTABLE
+       ICON data_output
 
        Write an image to a file.
 

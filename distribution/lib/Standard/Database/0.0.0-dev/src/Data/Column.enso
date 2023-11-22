@@ -78,7 +78,8 @@ type Column
     to_js_object : JS_Object
     to_js_object self = self.to_sql.to_js_object
 
-    ## Converts this column into a single-column table.
+    ## ICON data_input
+       Converts this column into a single-column table.
     to_table : Table
     to_table self =
         Table.Value self.name self.connection [self.as_internal] self.context
@@ -92,6 +93,7 @@ type Column
     info self = self.to_table.info
 
     ## GROUP Standard.Base.Input
+       ICON data_input
        Returns a materialized column containing rows of this column.
 
        Arguments:
@@ -104,6 +106,7 @@ type Column
         self.to_table.read max_rows warn_if_more_rows . at 0
 
     ## GROUP Standard.Base.Conversions
+       ICON convert
        Returns a vector containing all the elements in this column.
     to_vector : Vector Any
     to_vector self = self.read max_rows=Nothing . to_vector
@@ -881,6 +884,7 @@ type Column
             self.make_binary_op "DECIMAL_MOD" other new_name
 
     ## GROUP Standard.Base.Logical
+       ICON preparation
        Returns a column of first non-`Nothing` value on each row of `self` and
        `values` list.
 
@@ -1015,6 +1019,7 @@ type Column
 
     ## ALIAS fill missing, if_nothing
        GROUP Standard.Base.Values
+       ICON dataframe_map_column
 
        Returns a new column where missing values have been replaced with the
        provided default.
@@ -1044,6 +1049,7 @@ type Column
 
     ## ALIAS fill empty, if_empty
        GROUP Standard.Base.Values
+       ICON dataframe_map_column
 
        Returns a new column where empty Text values have been replaced with the
        provided default.
@@ -1070,6 +1076,7 @@ type Column
                 result.rename self.name
 
     ## GROUP Standard.Base.Metadata
+       ICON text_input
        Returns a new column, containing the same elements as `self`, but with
        the given name.
 
@@ -1110,6 +1117,7 @@ type Column
 
     ## ALIAS first, last, sample, slice
        GROUP Standard.Base.Selections
+       ICON select_row
        Creates a new Column with the specified range of rows from the input
        Column.
 
@@ -1120,6 +1128,7 @@ type Column
     take self range=(First 1) = self.to_table.take range . at 0
 
     ## GROUP Standard.Base.Selections
+       ICON select_row
        Creates a new Column from the input with the specified range of rows
        removed.
 
@@ -1130,6 +1139,7 @@ type Column
     drop self range=(First 1) = self.to_table.drop range . at 0
 
     ## GROUP Standard.Base.Text
+       ICON preparation
        Checks for each element of the column if it starts with `other`.
 
        Arguments:
@@ -1147,6 +1157,7 @@ type Column
         make_text_case_op self "starts_with" other case_sensitivity new_name
 
     ## GROUP Standard.Base.Text
+       ICON preparation
        Checks for each element of the column if it ends with `other`.
 
        Arguments:
@@ -1204,6 +1215,7 @@ type Column
                 self.make_binary_op "LIKE" pattern new_name
 
     ## GROUP Standard.Base.Text
+       ICON dataframe_map_column
        This function removes the specified characters, by default any
        whitespace, from the start, the end, or both ends of the input.
 
@@ -1225,6 +1237,7 @@ type Column
                     Error.throw (Unsupported_Database_Operation.Error ("`Column.trim "+where.to_text+"` is not supported by this connection."))
 
     ## GROUP Standard.Base.Text
+       ICON dataframe_map_column
        Replaces the first, or all occurrences of `term` with `new_text` in each
        row. If `term` is empty, the function returns the table unchanged.
 
@@ -1346,6 +1359,7 @@ type Column
         simple_unary_op self "minute"
 
     ## GROUP Standard.Base.Selections
+       ICON select_row
        Gets the second as an integer (0-60) from the time stored in the column.
 
        Applies only to columns that hold the `Time_Of_Day` or `Date_Time` types.
@@ -1492,6 +1506,7 @@ type Column
                 Column.Value new_name self.connection new_type_ref new_expr self.context
 
     ## GROUP Standard.Base.Conversions
+       ICON convert
        Parses a text column into values.
 
        In the Database backends, the default formatting settings of the
@@ -1543,6 +1558,7 @@ type Column
                 self.internal_do_cast type on_problems
 
     ## GROUP Standard.Base.Conversions
+       ICON convert
        Formatting values is not supported in database columns.
     @locale Locale.default_widget
     format : Text | Date_Time_Formatter | Column | Nothing -> Locale -> Column ! Illegal_Argument
@@ -1551,6 +1567,7 @@ type Column
         Error.throw <| Unsupported_Database_Operation.Error "`Column.format` is not implemented yet for the Database backends."
 
     ## GROUP Standard.Base.Conversions
+       ICON convert
        Cast the column to a specific type.
 
        Arguments:
@@ -1626,6 +1643,7 @@ type Column
             Column.Value new_column.name self.connection new_column.sql_type_reference new_column.expression self.context
 
     ## ALIAS transform column
+       ICON dataframe_map_column
 
        Applies `function` to each item in this column and returns the column
        of results.
@@ -1659,6 +1677,7 @@ type Column
         Error.throw <| Unsupported_Database_Operation.Error "`Column.map` is not supported in the Database backends."
 
     ## ALIAS combine, join by row position, merge
+       ICON dataframes_join
 
        Applies `function` to consecutive pairs of elements of `self` and `that`
        and returns a column of results.

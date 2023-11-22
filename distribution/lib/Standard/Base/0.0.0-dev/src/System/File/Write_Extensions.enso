@@ -19,6 +19,7 @@ from project.Data.Text.Extensions import all
 polyglot java import org.enso.base.Array_Utils
 
 ## GROUP Output
+   ICON data_output
    Writes (or appends) the text to the specified file using the supplied
    encoding. The behavior specified in the `existing_file` parameter will be
    used if the file exists.
@@ -64,7 +65,8 @@ Text.write self path encoding=Encoding.utf_8 on_existing_file=Existing_File_Beha
                 stream.write_bytes bytes
             r.if_not_error file
 
-## Writes (or appends) the Vector of bytes into the specified file. The behavior
+## ICON data_output
+   Writes (or appends) the Vector of bytes into the specified file. The behavior
    specified in the `existing_file` parameter will be used if the file exists.
 
    Arguments:
