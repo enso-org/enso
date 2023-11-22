@@ -284,12 +284,12 @@ spec = Test.group "Dataflow Warnings" <|
         res = [1,2,3,4].map even
 
         res . should_equal [1, 0, 1, 0]
-        Warning.get_all res . map .value . should_equal [(Map_Error.Error 3 4), (Map_Error.Error 2 3), (Map_Error.Error 1 2), (Map_Error.Error 0 1)]
+        Warning.get_all res . map .value . should_equal [4, 3, 2, 1]
         res.at 0 . should_equal 1
-        Warning.get_all (res.at 0) . map .value . should_equal [(Map_Error.Error 3 4), (Map_Error.Error 2 3), (Map_Error.Error 1 2), (Map_Error.Error 0 1)]
+        Warning.get_all (res.at 0) . map .value . should_equal [4, 3, 2, 1]
 
         slice = res.slice 1 4
-        Warning.get_all slice . map .value . should_equal [(Map_Error.Error 3 4), (Map_Error.Error 2 3), (Map_Error.Error 1 2), (Map_Error.Error 0 1)]
+        Warning.get_all slice . map .value . should_equal [4, 3, 2, 1]
 
         zero = even 0
         Warning.get_all zero . map .value . should_equal [0]
@@ -297,7 +297,7 @@ spec = Test.group "Dataflow Warnings" <|
         v = 0.up_to 10 . to_vector
         r = v.map x->(if x % 2 == 0 then 10*x else Warning.attach 100*x x)
         r.should_equal [0, 1, 20, 3, 40, 5, 60, 7, 80, 9]
-        Warning.get_all r . map .value . should_contain_the_same_elements_as [Map_Error.Error 1 100, Map_Error.Error 3 300, Map_Error.Error 5 500, Map_Error.Error 7 700, Map_Error.Error 9 900]
+        Warning.get_all r . map .value . should_contain_the_same_elements_as [100, 300, 500, 700, 900]
 
     Test.specify "should be preserved after operations on multi-dimensional Vector" <|
         even x = (Warning.attach x x) % 2
