@@ -275,7 +275,7 @@ export function filterOutRedundantImports(
   existing: { import: Import }[],
   required: RequiredImport[],
 ): RequiredImport[] {
-  return required.filter((info) => existing.some((existing) => covers(existing.import, info)))
+  return required.filter((info) => !existing.some((existing) => covers(existing.import, info)))
 }
 
 if (import.meta.vitest) {

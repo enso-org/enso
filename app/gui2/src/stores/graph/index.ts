@@ -196,10 +196,10 @@ export const useGraphStore = defineStore('graph', () => {
     const ident = generateUniqueIdent()
     let importData = undefined
     let additionalOffset = 0
-    if (withImports && withImports.length > 0) {
+    const importsToAdd = withImports ? filterOutRedundantImports(imports.value, withImports) : []
+    if (importsToAdd.length > 0) {
       const lastImport = imports.value[imports.value.length - 1]
       const importOffset = lastImport ? lastImport.span[1] + 1 : 0
-      const importsToAdd = filterOutRedundantImports(imports.value, withImports)
       const str = importsToAdd.map((info) => requiredImportToText(info)).join('\n')
       additionalOffset += str.length + 1
       importData = { str, offset: importOffset }
