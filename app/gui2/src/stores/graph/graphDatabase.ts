@@ -17,7 +17,7 @@ import {
   type VisualizationMetadata,
 } from 'shared/yjsModel'
 import { ref, type Ref } from 'vue'
-import type { Import } from '../imports'
+import type { Import } from '@/stores/graph/imports'
 
 export class GraphDb {
   imports: Ref<{ import: Import; span: ContentRange }[]> = ref([])

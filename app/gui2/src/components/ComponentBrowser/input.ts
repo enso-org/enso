@@ -6,7 +6,7 @@ import {
   requiredImportEquals,
   requiredImports,
   type RequiredImport,
-} from '@/stores/imports'
+} from '@/stores/graph/imports'
 import { useSuggestionDbStore, type SuggestionDb } from '@/stores/suggestionDatabase'
 import {
   SuggestionKind,

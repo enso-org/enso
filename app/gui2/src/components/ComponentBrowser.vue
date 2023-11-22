@@ -6,7 +6,7 @@ import { default as DocumentationPanel } from '@/components/DocumentationPanel.v
 import SvgIcon from '@/components/SvgIcon.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
 import { useGraphStore } from '@/stores/graph'
-import type { RequiredImport } from '@/stores/imports'
+import type { RequiredImport } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { groupColorStyle, useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'

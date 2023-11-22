@@ -1,5 +1,5 @@
 import { GraphDb, mockNode } from '@/stores/graph/graphDatabase'
-import type { Import, RequiredImport } from '@/stores/imports'
+import type { Import, RequiredImport } from '@/stores/graph/imports'
 import { SuggestionDb } from '@/stores/suggestionDatabase'
 import {
   makeCon,
