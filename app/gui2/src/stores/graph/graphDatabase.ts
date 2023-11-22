@@ -153,7 +153,6 @@ export class GraphDb {
     }
     return Array.from(allTargets(this))
   })
-<<<<<<< HEAD
 
   /** First output port of the node.
    *
@@ -168,12 +167,6 @@ export class GraphDb {
     return []
   })
 
-  nodeExpressionInfo = new ReactiveMapping(this.nodes, (id, _entry) =>
-    this.valuesRegistry.getExpressionInfo(id),
-  )
-
-=======
->>>>>>> f60836d9e10fd74c01414d5154869e3b37c76cd5
   nodeMainSuggestion = new ReactiveMapping(this.nodes, (id, _entry) => {
     const expressionInfo = this.getExpressionInfo(id)
     const method = expressionInfo?.methodCall?.methodPointer
