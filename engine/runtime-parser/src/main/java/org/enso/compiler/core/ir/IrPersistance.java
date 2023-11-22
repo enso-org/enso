@@ -230,8 +230,7 @@ public final class IrPersistance {
     protected scala.collection.immutable.Map readObject(Input in)
         throws IOException, ClassNotFoundException {
       var map = new IrLazyMap(in);
-      var mutableMap = scala.jdk.CollectionConverters.MapHasAsScala(map).asScala();
-      var immutableMap = scala.collection.immutable.Map.from(mutableMap);
+      var immutableMap = IrLazyImMap$.MODULE$.apply(map);
       return immutableMap;
     }
   }
