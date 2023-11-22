@@ -62,14 +62,18 @@ function parseQualifiedName(ast: AstExtended): QualifiedName | null {
   } else if (ast.isTree(Ast.Tree.Type.OprApp)) {
     const opr = new GeneralOprApp(ast)
     const operands = opr.operandsOfLeftAssocOprChain('.')
-    const idents = [...operands].flatMap((operand) => {
+    const idents = []
+    for (const operand of operands) {
       if (operand && operand.type === 'ast') {
         const ident = parseIdent(operand.ast)
-        return ident != null ? [ident] : []
-      } else {
-        return []
+        if (ident == null) {
+          // One of identifiers is invalid, so is the whole qualified name.
+          return null
+        } else {
+          idents.push(ident)
+        }
       }
-    })
+    }
     return normalizeQualifiedName(qnFromSegments(idents))
   } else {
     return null
@@ -500,6 +504,7 @@ if (import.meta.vitest) {
 
   test.each([
     { code: '1 + 1', expected: null },
+    { code: 'import Standard.(2+2).Base', expected: null },
     {
       code: 'from Standard.Base import all',
       expected: {
