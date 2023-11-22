@@ -23,6 +23,9 @@ in the repository in
 with name `Debug Adapter Protocol`, you can start debugging via
 [Run and Debug view](https://code.visualstudio.com/docs/editor/debugging#_run-and-debug-view)
 by selecting the `Debug adapter protocol` configuration and pressing play:
-![image](https://github.com/enso-org/enso/assets/1436948/b939e2a8-7d8e-4286-b7d3-61fbfbd99ce6)
+![image](https://github.com/enso-org/enso/assets/14013887/7f15abfd-b4fa-45d3-a100-142c465b6444)
+
+Another screenshot showing the DAP in action:
+![image](https://github.com/enso-org/enso/assets/14013887/41dd8b80-dbac-4a11-b3e2-97c99e42c507)
 
 Note that the port 4711 is the default port for DAP.
