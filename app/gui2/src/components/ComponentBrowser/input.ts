@@ -24,8 +24,8 @@ import {
   qnSegments,
   tryQualifiedName,
   type QualifiedName,
+  normalizeQualifiedName,
 } from '@/util/qualifiedName'
-import { unwrap } from '@/util/result'
 import { equalFlat } from 'lib0/array'
 import { IdMap, type ContentRange } from 'shared/yjsModel'
 import { computed, ref, type ComputedRef } from 'vue'
@@ -183,7 +183,7 @@ export function useComponentBrowserInput(
     const segments = operandsAsIdents.map((ident) => ident.repr())
     const rawQn = segments.join('.')
     const qn = tryQualifiedName(rawQn)
-    return qn.ok ? qn.value : null
+    return qn.ok ? normalizeQualifiedName(qn.value) : null
   }
 
   /**
@@ -355,7 +355,7 @@ export function useComponentBrowserInput(
       const requiredImport =
         importSegments.length < minimalNumberOfSegments
           ? null
-          : unwrap(qnFromSegments(importSegments))
+          : normalizeQualifiedName(qnFromSegments(importSegments))
       // 2. We replace each written identifier with a correct one, and then append the rest of needed qualified name.
       let lastEditedCharIndex = 0
       const result = []

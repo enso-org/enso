@@ -18,6 +18,7 @@ import {
   tryQualifiedName,
   type Identifier,
   type QualifiedName,
+  normalizeQualifiedName,
 } from '@/util/qualifiedName'
 import { unwrap } from '@/util/result'
 
@@ -57,7 +58,7 @@ function parseIdents(ast: AstExtended): Identifier[] | null {
 function parseQualifiedName(ast: AstExtended): QualifiedName | null {
   if (ast.isTree(Ast.Tree.Type.Ident) || ast.isToken(Ast.Token.Type.Ident)) {
     const name = tryQualifiedName(ast.repr())
-    return name.ok ? name.value : null
+    return name.ok ? normalizeQualifiedName(name.value) : null
   } else if (ast.isTree(Ast.Tree.Type.OprApp)) {
     const opr = new GeneralOprApp(ast)
     const operands = opr.operandsOfLeftAssocOprChain('.')
@@ -69,8 +70,7 @@ function parseQualifiedName(ast: AstExtended): QualifiedName | null {
         return []
       }
     })
-    const qname = qnFromSegments(idents)
-    return qname.ok ? qname.value : null
+    return normalizeQualifiedName(qnFromSegments(idents))
   } else {
     return null
   }
