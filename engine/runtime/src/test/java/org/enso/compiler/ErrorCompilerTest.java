@@ -428,6 +428,24 @@ public class ErrorCompilerTest extends CompilerTest {
     assertEquals(errors.head().location().get().length(), 6);
   }
 
+  @Test
+  public void testAnnotation1() throws Exception {
+    var ir = parse("""
+    @x `
+    id x = x
+    """);
+    assertSingleSyntaxError(ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 3, 4);
+  }
+
+  @Test
+  public void testAnnotation2() throws Exception {
+    var ir = parse("""
+    @` foo
+    id x = x
+    """);
+    assertSingleSyntaxError(ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 6);
+  }
+
   private void assertSingleSyntaxError(
       Module ir, Syntax.Reason type,
       String msg, int start, int end
