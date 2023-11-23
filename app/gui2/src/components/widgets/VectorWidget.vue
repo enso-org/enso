@@ -1,6 +1,7 @@
 <script lang="ts">
 import SvgIcon from '@/components/SvgIcon.vue'
 import { defineKeybinds } from '@/util/shortcuts'
+import { drag } from 'd3'
 import { computed, onUpdated, ref, watch, type Ref } from 'vue'
 
 const bindings = defineKeybinds('vector-widget', {
@@ -35,15 +36,15 @@ const MAX_DISTANCE_PX = 32
 const dragItem = ref<T>()
 
 // The type assertion is required to prevent Vue from wrapping `T` with `UnwrapSimpleRef`.
-const displayedChildren = ref([]) as Ref<T[]>
-const itemNodes = ref<HTMLLIElement[]>([])
-const childBoundingBoxes = ref<DOMRect[]>([])
+const displayedChildren = ref(props.modelValue) as Ref<T[]>
+const itemNodes = ref<(HTMLLIElement | null)[]>([])
+const childBoundingBoxes = ref<(DOMRect | undefined)[]>([])
 
 onUpdated(() => (itemNodes.value = []))
 
 function updateBoundingBoxes() {
   displayedChildren.value = props.modelValue
-  childBoundingBoxes.value = itemNodes.value.map((node) => node.getBoundingClientRect())
+  childBoundingBoxes.value = itemNodes.value.map((node) => node?.getBoundingClientRect())
 }
 watch(() => [props.modelValue, dragItem.value], updateBoundingBoxes)
 
@@ -82,9 +83,10 @@ function handleDragAndReturnChildList(event: DragEvent) {
   event.preventDefault()
   const distances = childBoundingBoxes.value
     .map((box, i) => {
-      const distance =
-        Math.max(box.left - event.clientX, event.clientX - box.right) +
-        Math.max(box.top - event.clientY, event.clientY - box.bottom)
+      const distance = !box
+        ? Infinity
+        : Math.max(box.left - event.clientX, event.clientX - box.right) +
+          Math.max(box.top - event.clientY, event.clientY - box.bottom)
       return { index: i, distance }
     })
     .sort(({ distance: a }, { distance: b }) => a - b)
@@ -123,11 +125,12 @@ function handleDragAndReturnChildList(event: DragEvent) {
     >
       <span class="token">[</span>
       <TransitionGroup tag="ul" name="list" class="items">
-        <template v-for="(item, index) in modelValue" :key="props.getId?.(item) ?? index">
+        <template v-for="(item, index) in displayedChildren" :key="props.getId?.(item) ?? index">
           <li v-if="index !== 0" class="token">,&nbsp;</li>
           <li
             :ref="(el) => itemNodes.push(el as HTMLLIElement)"
             class="item"
+            :class="{ dragging: item === dragItem }"
             draggable="true"
             @dragstart="(dragItem = item), mouseHandler($event, false) || (dragItem = undefined)"
           >
@@ -159,15 +162,15 @@ function handleDragAndReturnChildList(event: DragEvent) {
   align-items: center;
 }
 
-.list-move,
+/* FIXME: Transforms are broken when the CSS scale is not 1. */
+/* .list-move,
 .list-enter-active,
 .list-leave-active {
   transition: transform 0.5s ease;
-}
+} */
 
 .list-enter-from,
 .list-leave-to {
-  opacity: 0;
   width: 0;
 }
 
@@ -186,6 +189,10 @@ ul {
   display: inline-flex;
   user-select: none;
   height: 24px;
+}
+
+.item.dragging {
+  opacity: 0.5;
 }
 
 .add-item {
