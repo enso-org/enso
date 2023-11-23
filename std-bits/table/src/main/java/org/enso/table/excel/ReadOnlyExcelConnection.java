@@ -9,7 +9,7 @@ public class ReadOnlyExcelConnection implements AutoCloseable {
 
   private final ExcelConnectionPool myPool;
   final String key;
-  final ExcelConnectionPool.ConnectionRecord record;
+  ExcelConnectionPool.ConnectionRecord record;
 
   ReadOnlyExcelConnection(ExcelConnectionPool myPool, String key, ExcelConnectionPool.ConnectionRecord record) {
     this.myPool = myPool;
@@ -18,11 +18,21 @@ public class ReadOnlyExcelConnection implements AutoCloseable {
   }
 
   @Override
-  public void close() throws IOException {
+  public synchronized void close() throws IOException {
+    if (record == null) {
+      // already closed
+      return;
+    }
+
     myPool.release(this);
+    record = null;
   }
 
-  public <T> T withWorkbook(Function<Workbook, T> f) throws IOException {
+  public synchronized <T> T withWorkbook(Function<Workbook, T> f) throws IOException {
+    if (record == null) {
+      throw new IllegalStateException("ReadOnlyExcelConnection is being used after it was closed.");
+    }
+
     return record.withWorkbook(f);
   }
 }

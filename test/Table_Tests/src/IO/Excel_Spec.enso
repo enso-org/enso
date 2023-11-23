@@ -453,11 +453,11 @@ spec_write suffix test_sheet_name =
             out = create_out
             table.write out on_problems=Report_Error . should_succeed
 
-            workbook = out.read
+            workbook = out.read (Excel headers=True)
             workbook.sheet_names.should_equal ["EnsoSheet"]
 
             # We can have the workbook open multiple times in parallel too.
-            w2 = out.read
+            w2 = out.read (Excel headers=True)
 
             t1 = workbook.read "EnsoSheet"
             t1.should_equal table
@@ -803,7 +803,7 @@ spec =
             workbook.close . should_equal Nothing
 
             workbook.sheet_count . should_fail_with Illegal_State
-            workbook.close . should_fail_with Illegal_State
+            workbook.close . should_equal Nothing
             workbook.read "Sheet1" . should_fail_with Illegal_State
 
         ci_pending = if Environment.get "CI" != Nothing then "This test takes a lot of time so it is disabled on CI."

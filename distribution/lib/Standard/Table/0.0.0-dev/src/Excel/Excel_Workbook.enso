@@ -39,7 +39,7 @@ type Excel_Workbook
         File_Error.handle_java_exceptions file_obj <| Excel_Reader.handle_bad_format file_obj <| Illegal_State.handle_java_exception <|
             java_file = Java_File.new file_obj.path
             excel_connection_resource = Managed_Resource.register (ExcelConnectionPool.INSTANCE.openReadOnlyConnection java_file format) close_connection
-            Excel_Workbook.Value excel_connection_resource file_obj xls_format headers
+            Excel_Workbook.Value (Ref.new excel_connection_resource) file_obj xls_format headers
 
     ## PRIVATE
        ADVANCED
@@ -58,7 +58,7 @@ type Excel_Workbook
 
     ## PRIVATE
        Creates an Excel_Workbook connection.
-    Value (excel_connection_resource : Managed_Resource ReadOnlyExcelConnection) (file:(File|Nothing)) xls_format:Boolean headers:(Boolean|Infer)
+    Value (excel_connection_resource_ref : Ref (Managed_Resource ReadOnlyExcelConnection)) (file:(File|Nothing)) xls_format:Boolean headers:(Boolean|Infer)
 
     ## Returns the list of databases (or catalogs) for the connection.
     databases : Nothing
@@ -236,14 +236,21 @@ type Excel_Workbook
        operation on it will throw an `Illegal_State` error.
     close : Nothing
     close self =
-        self.excel_connection_resource.with connection->
-            connection.close
+        case self.excel_connection_resource_ref.get of
+            Nothing -> Nothing
+            resource ->
+                resource.finalize
+                self.excel_connection_resource_ref.put Nothing
+        Nothing
 
     ## PRIVATE
     with_java_workbook : (Workbook -> Any) -> Any ! Illegal_State
     with_java_workbook self f = Illegal_State.handle_java_exception <|
-        self.excel_connection_resource.with connection->
-            connection.withWorkbook f
+        case self.excel_connection_resource_ref.get of
+            Nothing ->
+                Error.throw (Illegal_State.Error "The workbook is being used after it was closed.")
+            resource -> resource.with connection->
+                connection.withWorkbook f
 
 ## PRIVATE
 close_connection c = c.close
