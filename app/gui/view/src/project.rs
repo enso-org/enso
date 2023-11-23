@@ -151,6 +151,10 @@ ensogl::define_endpoints! {
         accept_searcher_input(),
         /// Dump the suggestion database in JSON to the console.
         dump_suggestion_database(),
+        /// Start the language server profiling
+        start_language_server_profiling(),
+        /// Stop the language server profiling
+        stop_language_server_profiling(),
     }
 
     Output {
@@ -812,6 +816,8 @@ impl application::View for View {
             (Press, "debug_mode", "ctrl shift enter", "debug_push_breadcrumb"),
             (Press, "debug_mode", "ctrl shift b", "debug_pop_breadcrumb"),
             (Press, "debug_mode", "ctrl shift u", "dump_suggestion_database"),
+            (Press, "", "cmd alt ,", "start_language_server_profiling"),
+            (Press, "", "cmd alt .", "stop_language_server_profiling"),
         ]
         .iter()
         .map(|(a, b, c, d)| Self::self_shortcut_when(*a, *c, *d, *b))

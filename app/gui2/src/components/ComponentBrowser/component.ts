@@ -6,6 +6,7 @@ import {
   type SuggestionId,
 } from '@/stores/suggestionDatabase/entry'
 import { compareOpt } from '@/util/compare'
+import { displayedIconOf } from '@/util/getIconName'
 import type { Icon } from '@/util/iconName'
 import { isSome } from '@/util/opt'
 import { qnIsTopElement, qnLastSegmentIndex } from '@/util/qualifiedName'
@@ -100,7 +101,7 @@ export function makeComponent(
   return {
     ...labelOfEntry(entry, filtering, match),
     suggestionId: id,
-    icon: entry.iconName ?? 'marketplace',
+    icon: displayedIconOf(entry),
     group: entry.groupIndex,
   }
 }
@@ -114,6 +115,6 @@ export function makeComponentList(db: SuggestionDb, filtering: Filtering): Compo
       }
     }
   }
-  const matched = Array.from(matchSuggestions()).sort()
+  const matched = Array.from(matchSuggestions()).sort(compareSuggestions)
   return Array.from(matched, (info) => makeComponent(info, filtering))
 }

@@ -1,4 +1,6 @@
+import type { SuggestionEntry, Typename } from '@/stores/suggestionDatabase/entry'
 import type { Icon } from '@/util/iconName'
+import type { MethodPointer } from 'shared/languageServerTypes'
 
 const oldIconNameToNewIconNameLookup: Record<string, string> = {
   /* eslint-disable camelcase */
@@ -34,4 +36,14 @@ const typeNameToIconLookup: Record<string, Icon> = {
 
 export function typeNameToIcon(typeName: string): Icon {
   return typeNameToIconLookup[typeName] ?? 'enso_logo'
+}
+
+export function displayedIconOf(
+  entry?: SuggestionEntry,
+  methodCall?: MethodPointer,
+  actualType?: Typename,
+): Icon {
+  if (entry?.iconName) return mapOldIconName(entry.iconName)
+  if (!methodCall?.name && actualType) return typeNameToIcon(actualType)
+  return 'enso_logo'
 }

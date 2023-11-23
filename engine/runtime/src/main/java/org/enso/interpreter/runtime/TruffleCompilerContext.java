@@ -94,6 +94,11 @@ final class TruffleCompilerContext implements CompilerContext {
   }
 
   @Override
+  public void log(Level level, String msg, Throwable ex) {
+    loggerCompiler.log(level, msg, ex);
+  }
+
+  @Override
   public void logSerializationManager(Level level, String msg, Object... args) {
     loggerSerializationManager.log(level, msg, args);
   }

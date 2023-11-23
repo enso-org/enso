@@ -836,7 +836,7 @@ impl Step {
         input: impl AsRef<str>,
         given_name: impl Into<String>,
     ) -> Self {
-        let input_expr = get_input_expression(format!("secrets.{}", input.as_ref()));
+        let input_expr = get_input_expression(input.as_ref());
         self.with_env(given_name, input_expr)
     }
 

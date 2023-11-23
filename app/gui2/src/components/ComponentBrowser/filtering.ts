@@ -62,7 +62,8 @@ class FilteringWithPattern {
       'i',
     )
     if (pattern.length > 1 && !/_/.test(pattern)) {
-      // Similar to `wordMatchRegex`, but each letter in the pattern is considered a word.
+      // Similar to `wordMatchRegex`, but each letter in the pattern is considered a word,
+      // and we don't skip word (initials must match consecutive words).
       // The first match (`match[1]`) is the part before the first matched letter.
       // The rest of the matches come in groups of two:
       // - The matched letter
@@ -70,7 +71,7 @@ class FilteringWithPattern {
       const regex = pattern
         .split('')
         .map((c) => `(${c})`)
-        .join('(.*?_)')
+        .join('([^_]*?_)')
       this.initialsMatchRegex = new RegExp('(^|.*?_)' + regex + '(.*)', 'i')
     }
   }
@@ -338,21 +339,22 @@ export class Filtering {
     else return { score: 0 }
   }
 
+  private isLocal(entry: SuggestionEntry): boolean {
+    return this.currentModule != null && entry.definedIn === this.currentModule
+  }
+
   filter(entry: SuggestionEntry): MatchResult | null {
     let qualifiedNameMatch: Opt<MatchedParts>
     if (entry.isPrivate) return null
     else if (!this.selfTypeMatches(entry)) return null
     else if (!(qualifiedNameMatch = this.qualifiedNameMatches(entry))) return null
     else if (!this.showUnstable && entry.isUnstable) return null
-    else if (
-      this.showLocal &&
-      (this.currentModule == null || entry.definedIn !== this.currentModule)
-    )
-      return null
+    else if (this.showLocal && !this.isLocal(entry)) return null
     else if (this.pattern) {
       const patternMatch = this.pattern.tryMatch(entry)
-      if (!patternMatch || !qualifiedNameMatch) return patternMatch
-      else return { ...qualifiedNameMatch, ...patternMatch }
+      if (!patternMatch) return null
+      if (!this.showLocal && this.isLocal(entry)) patternMatch.score *= 2
+      return { ...qualifiedNameMatch, ...patternMatch }
     } else if (this.isMainView()) return this.mainViewFilter(entry)
     else return { score: 0 }
   }

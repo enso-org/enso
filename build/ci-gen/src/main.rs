@@ -43,6 +43,9 @@ async fn main() -> Result {
         ide_ci::fs::tokio::write(path, contents).await?;
     }
 
-    warn!("Remember to run formatter on the generated files!");
+    // Ensure that generated files are properly formatted.
+    enso_build::web::install(&repo_root).await?;
+    enso_build::web::run_script(&repo_root, enso_build::web::Script::Format).await?;
+
     Ok(())
 }
