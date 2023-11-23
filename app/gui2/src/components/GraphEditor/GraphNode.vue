@@ -4,6 +4,7 @@ import CircularMenu from '@/components/CircularMenu.vue'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import NodeWidgetTree from '@/components/GraphEditor/NodeWidgetTree.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
+import { useDoubleClick } from '@/composables/doubleClick'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { useGraphStore, type Node } from '@/stores/graph'
 import { useApproach } from '@/util/animation'
@@ -33,7 +34,8 @@ const emit = defineEmits<{
   delete: []
   replaceSelection: []
   'update:selected': [selected: boolean]
-  outputPortAction: []
+  outputPortClick: []
+  outputPortDoubleClick: []
   'update:edited': [cursorPosition: number]
 }>()
 
@@ -186,6 +188,13 @@ function getRelatedSpanOffset(domNode: globalThis.Node, domOffset: number): numb
   }
   return 0
 }
+
+const handlePortClick = useDoubleClick(
+  () => emit('outputPortClick'),
+  () => {
+    emit('outputPortDoubleClick')
+  },
+).handleClick
 </script>
 
 <template>
@@ -240,7 +249,7 @@ function getRelatedSpanOffset(domNode: globalThis.Node, domOffset: number): numb
         class="outputPortHoverArea"
         @pointerenter="outputHovered = true"
         @pointerleave="outputHovered = false"
-        @pointerdown.stop.prevent="emit('outputPortAction')"
+        @pointerdown="handlePortClick()"
       />
       <rect class="outputPort" />
       <text class="outputTypeName">{{ outputTypeName }}</text>
