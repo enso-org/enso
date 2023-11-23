@@ -498,7 +498,19 @@ spec_write suffix test_sheet_name =
             encodings.delete
 
         Test.specify "should be able to overwrite a pre-existing empty file" <|
-            Error.throw "TODO"
+            empty = enso_project.data / "transient" / "empty."+suffix
+            [Existing_File_Behavior.Backup, Existing_File_Behavior.Overwrite, Existing_File_Behavior.Append].each behavior-> Test.with_clue behavior.to_text+": " <|
+                empty.delete_if_exists . should_succeed
+                "".write empty
+                empty.exists.should_be_true
+                empty.size.should_equal 0
+
+                t1 = Table.new [["A", [behavior.to_text, "B", "C", "D"]], ["B", [1, 2, 3, 4]]]
+                t1.write empty on_existing_file=behavior . should_succeed
+                empty.exists.should_be_true
+
+                t2 = empty.read (Excel (Worksheet "EnsoSheet"))
+                t2.should_equal t1
 
 spec =
     Test.group 'Excel Range' <|
