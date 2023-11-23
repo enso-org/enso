@@ -67,6 +67,12 @@ object GraalVM {
     "org.tukaani"          % "xz"                 % "1.9"
   )
 
+  val pythonLauncher = Seq(
+    "org.graalvm.python" % "python-launcher" % version,
+    "org.graalvm.sdk" % "launcher-common" % version,
+    "org.graalvm.shadowed" % "jline" % version,
+  )
+
   val jsPkgs = Seq(
     "org.graalvm.js"       % "js-language" % version,
     "org.graalvm.regex"    % "regex"       % version,
@@ -81,7 +87,7 @@ object GraalVM {
 
   val toolsPkgs = chromeInspectorPkgs
 
-  val langsPkgs = jsPkgs ++ pythonPkgs
+  val langsPkgs = jsPkgs ++ pythonPkgs ++ pythonLauncher
 
   /** Augments a state transition to do GraalVM version check.
     *
