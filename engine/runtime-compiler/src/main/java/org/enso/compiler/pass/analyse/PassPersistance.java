@@ -6,6 +6,7 @@ import org.enso.compiler.pass.resolve.DocumentationComments;
 import org.enso.compiler.pass.resolve.DocumentationComments$;
 import org.enso.compiler.pass.resolve.ExpressionAnnotations$;
 import org.enso.compiler.pass.resolve.FullyQualifiedNames;
+import org.enso.compiler.pass.resolve.FullyQualifiedNames$;
 import org.enso.compiler.pass.resolve.GenericAnnotations$;
 import org.enso.compiler.pass.resolve.GlobalNames$;
 import org.enso.compiler.pass.resolve.IgnoredBindings;
@@ -58,6 +59,7 @@ import scala.Option;
 @Persistable(clazz = MethodDefinitions$.class, id = 1215)
 @Persistable(clazz = GenericAnnotations$.class, id = 1216)
 @Persistable(clazz = ExpressionAnnotations$.class, id = 1217)
+@Persistable(clazz = FullyQualifiedNames$.class, id = 1218)
 public final class PassPersistance {
   private PassPersistance() {}
 
