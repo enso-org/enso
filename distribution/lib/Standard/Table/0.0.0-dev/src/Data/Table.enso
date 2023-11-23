@@ -70,7 +70,6 @@ polyglot java import org.enso.table.data.table.join.conditions.Between as Java_J
 polyglot java import org.enso.table.data.table.join.conditions.Equals as Java_Join_Equals
 polyglot java import org.enso.table.data.table.join.conditions.EqualsIgnoreCase as Java_Join_Equals_Ignore_Case
 polyglot java import org.enso.table.data.table.join.lookup.LookupJoin
-polyglot java import org.enso.table.data.table.join.JoinKind as Java_Join_Kind
 polyglot java import org.enso.table.data.table.Table as Java_Table
 polyglot java import org.enso.table.error.NonUniqueLookupKey
 polyglot java import org.enso.table.error.NullValuesInKeyColumns
@@ -1809,14 +1808,6 @@ type Table
     @on Widget_Helpers.make_join_condition_selector
     join : Table -> Join_Kind -> Vector (Join_Condition | Text) | Text -> Text -> Problem_Behavior -> Table
     join self right:Table (join_kind : Join_Kind = Join_Kind.Left_Outer) on=[Join_Condition.Equals self.column_names.first] right_prefix="Right " on_problems=Report_Warning = Out_Of_Memory.handle_java_exception "join" <|
-        java_join_kind = case join_kind of
-            Join_Kind.Inner           -> Java_Join_Kind.INNER
-            Join_Kind.Left_Outer      -> Java_Join_Kind.LEFT_OUTER
-            Join_Kind.Right_Outer     -> Java_Join_Kind.RIGHT_OUTER
-            Join_Kind.Full            -> Java_Join_Kind.FULL
-            Join_Kind.Left_Exclusive  -> Java_Join_Kind.LEFT_ANTI
-            Join_Kind.Right_Exclusive -> Java_Join_Kind.RIGHT_ANTI
-
         columns_to_keep = case join_kind of
             Join_Kind.Left_Exclusive  -> [True, False]
             Join_Kind.Right_Exclusive -> [False, True]
@@ -1827,7 +1818,7 @@ type Table
 
         java_conditions = join_resolution.conditions
         new_java_table = Java_Problems.with_problem_aggregator on_problems java_aggregator->
-            self.java_table.join right.java_table java_conditions java_join_kind (columns_to_keep.at 0) (columns_to_keep.at 1) right_columns_to_drop right_prefix java_aggregator
+            self.java_table.join right.java_table java_conditions join_kind.to_java (columns_to_keep.at 0) (columns_to_keep.at 1) right_columns_to_drop right_prefix java_aggregator
         Table.Value new_java_table
 
     ## ALIAS cartesian join
