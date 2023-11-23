@@ -1,8 +1,7 @@
 <script lang="ts">
 import SvgIcon from '@/components/SvgIcon.vue'
 import { defineKeybinds } from '@/util/shortcuts'
-import { drag } from 'd3'
-import { computed, onUpdated, ref, watch, type Ref } from 'vue'
+import { computed, onUpdated, ref, watch, watchEffect, type Ref } from 'vue'
 
 const bindings = defineKeybinds('vector-widget', {
   dragListItem: ['PointerMain', 'Mod+PointerMain'],
@@ -41,9 +40,9 @@ const itemNodes = ref<(HTMLLIElement | null)[]>([])
 const childBoundingBoxes = ref<(DOMRect | undefined)[]>([])
 
 onUpdated(() => (itemNodes.value = []))
+watchEffect(() => (displayedChildren.value = props.modelValue))
 
 function updateBoundingBoxes() {
-  displayedChildren.value = props.modelValue
   childBoundingBoxes.value = itemNodes.value.map((node) => node?.getBoundingClientRect())
 }
 watch(() => [props.modelValue, dragItem.value], updateBoundingBoxes)
@@ -78,7 +77,7 @@ function handleDragAndReturnChildList(event: DragEvent) {
     !childBoundingBoxes.value.length ||
     (props.toDragPayload && !event.dataTransfer?.types.includes(mimeType.value))
   )
-    return props.modelValue
+    return displayedChildren.value
   event.dataTransfer.dropEffect = 'move'
   event.preventDefault()
   const distances = childBoundingBoxes.value
@@ -100,11 +99,14 @@ function handleDragAndReturnChildList(event: DragEvent) {
   else if (Math.abs(distances[0].index - distances[1].index) === 1)
     insertIndex = Math.max(distances[0].index, distances[1].index)
   else insertIndex = Math.min(distances[0].index, distances[1].index) + 1
+  const currentIndex = displayedChildren.value.indexOf(item)
+  if (currentIndex === insertIndex) return displayedChildren.value
   const newChildren = [...props.modelValue]
   const itemIndex = newChildren.indexOf(item)
   newChildren.splice(newChildren.indexOf(item), 1)
   if (insertIndex != null)
     newChildren.splice(insertIndex - Number(itemIndex >= 0 && insertIndex > itemIndex), 0, item)
+  updateBoundingBoxes()
   return newChildren
 }
 </script>
