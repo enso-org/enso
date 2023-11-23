@@ -39,6 +39,6 @@ export function typeNameToIcon(typeName: string): Icon {
 
 export function displayedIconOf(entry?: SuggestionEntry, actualType?: Typename): Icon {
   if (entry?.iconName) return mapOldIconName(entry.iconName)
-  if (actualType) return typeNameToIcon(actualType)
+  if (!entry && actualType) return typeNameToIcon(actualType)
   return 'enso_logo'
 }
