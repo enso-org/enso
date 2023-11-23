@@ -182,7 +182,7 @@ public final class Text implements EnsoObject {
   @ExportMessage
   TruffleString asTruffleString(
       @Cached TruffleString.FromJavaStringNode fromJavaStringNode) {
-    return fromJavaStringNode.execute(toString(), Encoding.UTF_8);
+    return fromJavaStringNode.execute(toString(), Encoding.UTF_16);
   }
 
   @CompilerDirectives.TruffleBoundary
