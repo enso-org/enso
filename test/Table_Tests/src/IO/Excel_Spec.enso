@@ -456,6 +456,9 @@ spec_write suffix test_sheet_name =
             workbook = out.read
             workbook.sheet_names.should_equal ["EnsoSheet"]
 
+            # We can have the workbook open multiple times in parallel too.
+            w2 = out.read
+
             t1 = workbook.read "EnsoSheet"
             t1.should_equal table
 
@@ -468,6 +471,13 @@ spec_write suffix test_sheet_name =
                 # If we read the table again, it has the new values in it:
                 t3 = workbook.read "EnsoSheet"
                 t3.should_equal t2
+
+                t4 = w2.read "EnsoSheet"
+                t4.should_equal t2
+
+            workbook.close
+            w2.close
+            out.delete_if_exists . should_succeed
 
         Test.specify "should fail if the parent directory does not exist" <|
             parent = enso_project.data / "transient" / "nonexistent"
