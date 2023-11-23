@@ -31,38 +31,30 @@ const mimeType = computed(() => props.dragMimeType ?? 'application/octet-stream'
 
 const DRAG_PREVIEW_CLASS = 'drag-preview'
 
-const dragItem = ref<T>()
 const dragIndex = ref<number>()
-
-function withIndex<T>(array: T[]) {
-  return array.map((item, index) => ({ item, index }))
-}
+const dragDisplayIndex = ref<number>()
 
 // The type assertions are required to prevent Vue from wrapping `T` with `UnwrapSimpleRef`.
-const displayedChildren = ref(withIndex(props.modelValue)) as Ref<{ item: T; index: number }[]>
-const itemNodes = ref(
-  props.modelValue.map((_, index) => ({
-    index,
-    element: document.createElement('li'),
-  })),
-)
-const childBoundingBoxes = ref([]) as Ref<{ index: number; boundingBox: DOMRect | undefined }[]>
-
-watchEffect(() => (displayedChildren.value = withIndex(props.modelValue)))
-watch(
-  displayedChildren,
-  () =>
-    (itemNodes.value = props.modelValue.map((_, index) => ({
-      index,
-      element: document.createElement('li'),
-    }))),
-)
+const displayedChildren = computed(() => {
+  if (
+    dragIndex.value == null ||
+    dragDisplayIndex.value == null ||
+    dragIndex.value === dragDisplayIndex.value
+  )
+    return props.modelValue
+  const array = [...props.modelValue]
+  const item = props.modelValue[dragIndex.value]!
+  array.splice(dragIndex.value, 1)
+  array.splice(dragDisplayIndex.value, 0, item)
+  return array
+})
+const itemNodes = ref<HTMLLIElement[]>([])
+const childBoundingBoxes = ref([]) as Ref<DOMRect[]>
 
 function updateBoundingBoxes() {
-  childBoundingBoxes.value = itemNodes.value.map(({ index, element }) => ({
-    index,
-    boundingBox: element?.getBoundingClientRect(),
-  }))
+  childBoundingBoxes.value = itemNodes.value
+    .map((element) => element.getBoundingClientRect())
+    .sort(({ left: a }, { left: b }) => a - b)
 }
 
 const mouseHandler = bindings.handler({
@@ -75,66 +67,57 @@ const mouseHandler = bindings.handler({
     }
     if (event.dataTransfer) {
       event.dataTransfer.effectAllowed = 'move'
-      if (dragItem.value && props.toPlainText) {
-        event.dataTransfer.setData('text/plain', props.toPlainText(dragItem.value))
-      }
-      if (dragItem.value && props.toDragPayload) {
-        event.dataTransfer.setData(mimeType.value, props.toDragPayload(dragItem.value))
+      event.dataTransfer.dropEffect = 'move'
+      if (dragIndex.value != null) {
+        const dragItem = props.modelValue[dragIndex.value]!
+        if (props.toPlainText) {
+          event.dataTransfer.setData('text/plain', props.toPlainText(dragItem))
+        }
+        if (props.toDragPayload) {
+          event.dataTransfer.setData(mimeType.value, props.toDragPayload(dragItem))
+        }
       }
     }
     updateBoundingBoxes()
   },
 })
 
-function handleDragAndReturnChildList(event: DragEvent) {
-  const item = dragItem.value
+function handleDrag(event: DragEvent) {
   const itemIndex = dragIndex.value
   if (
     !event.dataTransfer ||
-    !item ||
     itemIndex == null ||
     (props.toDragPayload && !event.dataTransfer?.types.includes(mimeType.value))
   )
     return displayedChildren.value
-  event.dataTransfer.dropEffect = 'move'
   event.preventDefault()
-  const nextSibling = childBoundingBoxes.value.find(
-    ({ boundingBox }) =>
-      boundingBox && event.clientX >= boundingBox.left && event.clientX <= boundingBox.right,
-  )
-  const insertIndex = nextSibling?.index ?? 0
-  const displayIndex = displayedChildren.value.findIndex(({ index }) => index === itemIndex)
-  console.log('d', displayIndex, 'i', insertIndex, 'I', itemIndex)
-  if (displayIndex === insertIndex) return displayedChildren.value
-  const newChildren = withIndex(props.modelValue)
-  newChildren.splice(itemIndex, 1)
-  newChildren.splice(insertIndex + (insertIndex < itemIndex ? -1 : 0), 0, {
-    item,
-    index: itemIndex,
-  })
-  console.log(childBoundingBoxes.value.map((i) => i.index))
-  setTimeout(updateBoundingBoxes, 100)
-  return newChildren
+  const insertIndex =
+    childBoundingBoxes.value.findIndex(
+      (bbox) => bbox && event.clientX >= bbox.left && event.clientX <= bbox.right,
+    ) ?? 0
+  if (dragDisplayIndex.value === insertIndex) return
+  dragDisplayIndex.value = insertIndex
+  requestAnimationFrame(updateBoundingBoxes)
 }
 
-function onDragStart(event: DragEvent, item: T, originalIndex: number) {
-  dragItem.value = item
-  dragIndex.value = originalIndex
+function onDragStart(event: DragEvent, index: number) {
+  dragIndex.value = index
   if (mouseHandler(event, false)) return
-  dragItem.value = undefined
   dragIndex.value = undefined
 }
 
 function onDragOver(event: DragEvent) {
-  displayedChildren.value = handleDragAndReturnChildList(event)
+  handleDrag(event)
 }
 
 function onDrop(event: DragEvent) {
-  emit(
-    'update:modelValue',
-    handleDragAndReturnChildList(event).map(({ item }) => item),
-  )
-  dragItem.value = undefined
+  event.preventDefault()
+  if (dragIndex.value !== dragDisplayIndex.value) {
+    emit('update:modelValue', displayedChildren.value)
+  }
+}
+
+function onDragEnd() {
   dragIndex.value = undefined
 }
 </script>
@@ -146,22 +129,20 @@ function onDrop(event: DragEvent) {
       !$event.shiftKey && !$event.altKey && !$event.metaKey && $event.stopImmediatePropagation()
     "
   >
-    <div class="vector-literal literal" @dragover="onDragOver" @drop="onDrop">
+    <div class="vector-literal literal" @dragover="onDragOver" @drop="onDrop" @dragend="onDragEnd">
       <span class="token">[</span>
       <TransitionGroup tag="ul" name="list" class="items">
         <template
-          v-for="({ item, index: originalIndex }, index) in displayedChildren"
-          :key="props.getId?.(item) ?? originalIndex"
+          v-for="(item, index) in displayedChildren"
+          :key="props.getId?.(item) ?? modelValue.indexOf(item)"
         >
           <li v-if="index !== 0" class="token">,&nbsp;</li>
           <li
-            :ref="
-              (el) => (itemNodes[index] = { index: originalIndex, element: el as HTMLLIElement })
-            "
+            ref="itemNodes"
             class="item"
-            :class="{ dragging: item === dragItem }"
+            :class="{ dragging: dragIndex && item === modelValue[dragIndex] }"
             draggable="true"
-            @dragstart="onDragStart($event, item, originalIndex)"
+            @dragstart="onDragStart($event, index)"
           >
             <slot :item="item"></slot>
           </li>
