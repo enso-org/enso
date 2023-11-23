@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
-import VectorWidget from '@/components/widgets/VectorWidget.vue'
+import ListWidget from '@/components/widgets/ListWidget.vue'
 import { Tree } from '@/generated/ast'
 import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
@@ -34,7 +34,7 @@ export const widgetDefinition = defineWidget(AstExtended.isTree([Tree.Type.Array
 </script>
 
 <template>
-  <VectorWidget
+  <ListWidget
     v-slot="{ item }"
     v-model="value"
     :default="() => AstExtended.parse('_')"
@@ -46,7 +46,7 @@ export const widgetDefinition = defineWidget(AstExtended.isTree([Tree.Type.Array
     contenteditable="false"
   >
     <NodeWidget :input="item" />
-  </VectorWidget>
+  </ListWidget>
 </template>
 
 <style scoped>

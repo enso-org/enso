@@ -1,7 +1,8 @@
 <script lang="ts">
 import SvgIcon from '@/components/SvgIcon.vue'
+import { setDragImageToBlank } from '@/util/drag'
 import { defineKeybinds } from '@/util/shortcuts'
-import { computed, ref, watch, watchEffect, type Ref } from 'vue'
+import { computed, ref, type Ref } from 'vue'
 
 const bindings = defineKeybinds('vector-widget', {
   dragListItem: ['PointerMain', 'Mod+PointerMain'],
@@ -48,6 +49,7 @@ const displayedChildren = computed(() => {
   array.splice(dragDisplayIndex.value, 0, item)
   return array
 })
+const dragPos = ref<{ x: number; y: number }>()
 const itemNodes = ref<HTMLLIElement[]>([])
 const childBoundingBoxes = ref([]) as Ref<DOMRect[]>
 
@@ -65,6 +67,7 @@ const mouseHandler = bindings.handler({
       target.classList.add(DRAG_PREVIEW_CLASS)
       requestAnimationFrame(() => target.classList.remove(DRAG_PREVIEW_CLASS))
     }
+    setDragImageToBlank(event)
     if (event.dataTransfer) {
       event.dataTransfer.effectAllowed = 'move'
       event.dataTransfer.dropEffect = 'move'
@@ -107,14 +110,14 @@ function onDragStart(event: DragEvent, index: number) {
 }
 
 function onDragOver(event: DragEvent) {
+  dragPos.value = { x: event.clientX, y: event.clientY }
   handleDrag(event)
 }
 
 function onDrop(event: DragEvent) {
+  if (dragIndex.value === dragDisplayIndex.value) return
   event.preventDefault()
-  if (dragIndex.value !== dragDisplayIndex.value) {
-    emit('update:modelValue', displayedChildren.value)
-  }
+  emit('update:modelValue', displayedChildren.value)
 }
 
 function onDragEnd() {
@@ -162,6 +165,13 @@ function onDragEnd() {
       "
       @click="emit('update:modelValue', [...props.modelValue, props.default()])"
     />
+    <div
+      v-if="dragIndex != null && dragPos"
+      class="drag-preview"
+      :style="{ transform: `translate(${dragPos.x}px, ${dragPos.y}px)` }"
+    >
+      <slot :item="modelValue[dragIndex]!"></slot>
+    </div>
   </div>
 </template>
 
@@ -216,5 +226,9 @@ ul {
 
 .add-item:hover {
   opacity: 1;
+}
+
+.drag-preview {
+  position: fixed;
 }
 </style>
