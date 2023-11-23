@@ -15,6 +15,7 @@ import { unwrap } from '../util/result'
 const {
   bracketMatching,
   foldGutter,
+  lintGutter,
   highlightSelectionMatches,
   minimalSetup,
   EditorState,
@@ -24,6 +25,8 @@ const {
   defaultHighlightStyle,
   tooltips,
   enso,
+  linter,
+  lsDiagnosticsToCMDiagnostics,
   hoverTooltip,
 } = await import('@/util/codemirror')
 
@@ -51,6 +54,7 @@ watchEffect(() => {
         syntaxHighlighting(defaultHighlightStyle as Highlighter),
         bracketMatching(),
         foldGutter(),
+        lintGutter(),
         highlightSelectionMatches(),
         tooltips({ position: 'absolute' }),
         hoverTooltip((ast, syn) => {
@@ -100,6 +104,7 @@ watchEffect(() => {
           return { dom }
         }),
         enso(),
+        linter(() => lsDiagnosticsToCMDiagnostics(yText.toString(), projectStore.diagnostics)),
       ],
     }),
   )
