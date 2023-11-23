@@ -13,13 +13,21 @@ const props = defineProps<{
   modelValue: T[]
   default: () => T
   getId?: (item: T) => PropertyKey | undefined
+  /** If present, a {@link DataTransferItem} is added with a MIME type of `text/plain`.
+   * This is useful if the drag payload has a representation that can be pasted in terminals,
+   * search bars, and/or address bars. */
+  toPlainText?: (item: T) => string
+  /** The MIME type for the payload output added by `toDragPayload`.
+   * Unused if `toDragPayload` is not also present.
+   * When in doubt, this should be `application/json`.
+   * Defaults to `application/octet-stream`, meaning the payload is arbitrary binary data. */
   dragMimeType?: string
-  toString?: (item: T) => string
-  toDragPayload?: (item: T) => unknown
+  /** When in doubt, this should be `JSON.stringify` of data describing the object. */
+  toDragPayload?: (item: T) => string
 }>()
 const emit = defineEmits<{ 'update:modelValue': [modelValue: T[]] }>()
 
-const mimeType = computed(() => props.dragMimeType ?? 'application/json')
+const mimeType = computed(() => props.dragMimeType ?? 'application/octet-stream')
 
 const DRAG_PREVIEW_CLASS = 'drag-preview'
 const MAX_DISTANCE_PX = 32
@@ -49,14 +57,11 @@ const mouseHandler = bindings.handler({
     }
     if (event.dataTransfer) {
       event.dataTransfer.effectAllowed = 'move'
-      if (dragItem.value && props.toString) {
-        event.dataTransfer.setData('text/plain', JSON.stringify(props.toString(dragItem.value)))
+      if (dragItem.value && props.toPlainText) {
+        event.dataTransfer.setData('text/plain', props.toPlainText(dragItem.value))
       }
       if (dragItem.value && props.toDragPayload) {
-        event.dataTransfer.setData(
-          mimeType.value,
-          JSON.stringify(props.toDragPayload(dragItem.value)),
-        )
+        event.dataTransfer.setData(mimeType.value, props.toDragPayload(dragItem.value))
       }
     }
   },

@@ -40,7 +40,8 @@ export const widgetDefinition = defineWidget(AstExtended.isTree([Tree.Type.Array
     :default="() => AstExtended.parse('_')"
     :getId="(item) => item.astId"
     dragMimeType="application/x-enso-ast-node"
-    :toDragPayload="(item) => ({ id: item.astId, code: item.repr() })"
+    :toPlainText="(item) => item.repr()"
+    :toDragPayload="(item) => JSON.stringify({ id: item.astId, code: item.repr() })"
     class="WidgetVector"
     contenteditable="false"
   >
