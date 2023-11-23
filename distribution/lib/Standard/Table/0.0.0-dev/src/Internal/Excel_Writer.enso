@@ -15,6 +15,7 @@ polyglot java import org.enso.table.error.ExistingDataException
 polyglot java import org.enso.table.error.InvalidLocationException
 polyglot java import org.enso.table.error.RangeExceededException
 polyglot java import org.enso.table.read.ExcelReader
+polyglot java import org.enso.table.read.excel.ExcelConnectionPool
 polyglot java import org.enso.table.write.ExcelWriter
 polyglot java import org.enso.table.write.ExistingDataMode
 
@@ -47,10 +48,7 @@ make_java_existing_data_mode on_existing_file match_columns = case on_existing_f
 write_file : File -> Table -> Existing_File_Behavior -> Excel_Section -> (Boolean|Infer) -> Match_Columns -> Problem_Behavior -> Boolean -> File
 write_file file table on_existing_file section headers match_columns on_problems xls_format=False =
     _ = [on_problems]
-    ## If file does not exist or is empty then create a new workbook.
-    workbook = if file.exists.not || (file.size == 0) then ExcelWriter.createWorkbook xls_format else
-        Excel_Reader.handle_reader file java_file->(ExcelReader.getWorkbook java_file xls_format)
-    Managed_Resource.bracket workbook .close workbook->
+    Managed_Resource.bracket (ExcelConnectionPool.INSTANCE.openConnection) .close excel_connection->
         existing_data_mode = make_java_existing_data_mode on_existing_file match_columns
         java_headers = Excel_Reader.make_java_headers headers
         ExcelWriter.setEnsoToTextCallbackIfUnset (.to_text)

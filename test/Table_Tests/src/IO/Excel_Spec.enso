@@ -487,6 +487,9 @@ spec_write suffix test_sheet_name =
             t2.at "A" . to_vector . should_equal ["A", "B", "😊", "D"]
             encodings.delete
 
+        Test.specify "should be able to overwrite a pre-existing empty file" <|
+            Error.throw "TODO"
+
 spec =
     Test.group 'Excel Range' <|
         check_range excel_range sheet_name tlbr_vector single_cell=False =

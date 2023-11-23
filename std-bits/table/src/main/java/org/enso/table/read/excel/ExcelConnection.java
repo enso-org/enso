@@ -25,4 +25,29 @@ public class ExcelConnection implements AutoCloseable {
   public <T> T withWorkbook(Function<Workbook, T> f) throws IOException {
     return record.withWorkbook(f);
   }
+
+  public <T> T withWorkbookCommit(Function<Workbook, T> f) throws IOException {
+    try {
+      return record.withWorkbook(workbook -> {
+        T result = f.apply(workbook);
+        try {
+          commitWorkbookChanges(workbook);
+        } catch (IOException e) {
+          throw new WrappedIOException(e);
+        }
+        return result;
+      });
+    } catch (WrappedIOException e) {
+      throw e.cause;
+    }
+  }
+
+  private static class WrappedIOException extends RuntimeException {
+    final IOException cause;
+
+    public WrappedIOException(IOException e) {
+      super(e);
+      this.cause = e;
+    }
+  }
 }
