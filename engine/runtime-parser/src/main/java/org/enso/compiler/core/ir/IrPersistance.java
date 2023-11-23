@@ -357,7 +357,7 @@ public final class IrPersistance {
   @ServiceProvider(service = Persistance.class)
   public static final class PersistMetadataStorage extends Persistance<MetadataStorage> {
     public PersistMetadataStorage() {
-      super(MetadataStorage.class, false, 301);
+      super(MetadataStorage.class, false, 381);
     }
 
     @Override
@@ -366,7 +366,7 @@ public final class IrPersistance {
       var map =
           obj.map(
               (processingPass, data) -> {
-                var t = new Tuple2<>(processingPass.getClass().getName(), data);
+                var t = new Tuple2<>(processingPass, data);
                 return t;
               });
       out.writeInline(scala.collection.immutable.Map.class, map);
@@ -375,19 +375,8 @@ public final class IrPersistance {
     @Override
     @SuppressWarnings("unchecked")
     protected MetadataStorage readObject(Input in) throws IOException, ClassNotFoundException {
-      var storage = new MetadataStorage(nil());
       var map = in.readInline(scala.collection.immutable.Map.class);
-      var it = map.iterator();
-      while (it.hasNext()) {
-        var obj = (Tuple2<String, ProcessingPass.Metadata>) it.next();
-        try {
-          var pass = (ProcessingPass) Class.forName(obj._1()).getField("MODULE$").get(null);
-          var data = obj._2();
-          storage.update(pass, data);
-        } catch (ReflectiveOperationException ex) {
-          throw new IOException(ex);
-        }
-      }
+      var storage = new MetadataStorage(map);
       return storage;
     }
   }

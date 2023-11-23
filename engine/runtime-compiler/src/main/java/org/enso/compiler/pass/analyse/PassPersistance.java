@@ -1,7 +1,6 @@
 package org.enso.compiler.pass.analyse;
 
 import java.io.IOException;
-
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph;
 import org.enso.compiler.pass.resolve.DocumentationComments;
 import org.enso.compiler.pass.resolve.DocumentationComments$;
@@ -22,7 +21,6 @@ import org.enso.compiler.pass.resolve.TypeSignatures$;
 import org.enso.persist.Persistable;
 import org.enso.persist.Persistance;
 import org.openide.util.lookup.ServiceProvider;
-
 import scala.Option;
 
 @Persistable(clazz = CachePreferenceAnalysis.WeightInfo.class, id = 1111)
@@ -43,7 +41,6 @@ import scala.Option;
 @Persistable(clazz = FullyQualifiedNames.FQNResolution.class, id = 1128)
 @Persistable(clazz = FullyQualifiedNames.ResolvedLibrary.class, id = 1129)
 @Persistable(clazz = FullyQualifiedNames.ResolvedModule.class, id = 1130)
-
 @Persistable(clazz = AliasAnalysis$.class, id = 1201)
 @Persistable(clazz = BindingAnalysis$.class, id = 1202)
 @Persistable(clazz = CachePreferenceAnalysis$.class, id = 1203)
