@@ -34,6 +34,16 @@ provideWidgetTree(toRef(props, 'ast'), layoutTransitions.active)
 .NodeWidgetTree {
   color: white;
   margin-left: 4px;
+
+  outline: none;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+
+  & :deep(span) {
+    vertical-align: middle;
+  }
+
   &:has(.WidgetPort.newToConnect) {
     margin-left: calc(4px - var(--widget-port-extra-pad));
   }

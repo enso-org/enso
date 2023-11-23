@@ -5,12 +5,12 @@ import * as router from 'react-router-dom'
 import * as toastify from 'react-toastify'
 
 import ArrowRightIcon from 'enso-assets/arrow_right.svg'
-import AtIcon from 'enso-assets/at.svg'
 import GoBackIcon from 'enso-assets/go_back.svg'
 import LockIcon from 'enso-assets/lock.svg'
 
 import * as app from '../../components/app'
 import * as auth from '../providers/auth'
+import * as hooks from '../../hooks'
 import * as string from '../../string'
 import * as validation from '../../dashboard/validation'
 
@@ -35,20 +35,30 @@ const RESET_PASSWORD_QUERY_PARAMS = {
 export default function ResetPassword() {
     const { resetPassword } = auth.useAuth()
     const { search } = router.useLocation()
+    const navigate = hooks.useNavigate()
 
-    const { verificationCode: initialCode, email: initialEmail } = parseUrlSearchParams(search)
+    const { verificationCode, email } = parseUrlSearchParams(search)
 
-    const [email, setEmail] = React.useState(initialEmail ?? '')
-    const [code, setCode] = React.useState(initialCode ?? '')
     const [newPassword, setNewPassword] = React.useState('')
     const [newPasswordConfirm, setNewPasswordConfirm] = React.useState('')
+
+    React.useEffect(() => {
+        if (email == null) {
+            toastify.toast.error('Could not reset password: missing email address')
+            navigate(app.LOGIN_PATH)
+        } else if (verificationCode == null) {
+            toastify.toast.error('Could not reset password: missing verification code')
+            navigate(app.LOGIN_PATH)
+        }
+    }, [email, navigate, verificationCode])
 
     const onSubmit = () => {
         if (newPassword !== newPasswordConfirm) {
             toastify.toast.error('Passwords do not match')
             return Promise.resolve()
         } else {
-            return resetPassword(email, code, newPassword)
+            // These should never be nullish, as the effect should immediately navigate away.
+            return resetPassword(email ?? '', verificationCode ?? '', newPassword)
         }
     }
 
@@ -62,25 +72,23 @@ export default function ResetPassword() {
                 }}
             >
                 <div className="font-medium self-center text-xl">Reset your password</div>
-                <Input
+                <input
                     required
+                    readOnly
+                    hidden
                     type="email"
                     autoComplete="email"
-                    label="Email"
-                    icon={AtIcon}
                     placeholder="Enter your email"
-                    value={email}
-                    setValue={setEmail}
+                    value={email ?? ''}
                 />
-                <Input
+                <input
                     required
+                    readOnly
+                    hidden
                     type="text"
                     autoComplete="one-time-code"
-                    label="Confirmation code"
-                    icon={LockIcon}
                     placeholder="Enter the confirmation code"
-                    value={code}
-                    setValue={setCode}
+                    value={verificationCode ?? ''}
                 />
                 <Input
                     required

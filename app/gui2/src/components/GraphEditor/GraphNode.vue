@@ -9,7 +9,7 @@ import { injectGraphSelection } from '@/providers/graphSelection'
 import { useGraphStore, type Node } from '@/stores/graph'
 import { useApproach } from '@/util/animation'
 import { usePointer, useResizeObserver } from '@/util/events'
-import { methodNameToIcon, typeNameToIcon } from '@/util/getIconName'
+import { mapOldIconName, typeNameToIcon } from '@/util/getIconName'
 import type { Opt } from '@/util/opt'
 import { Rect } from '@/util/rect'
 import { Vec2 } from '@/util/vec2'
@@ -119,22 +119,21 @@ const dragPointer = usePointer((pos, event, type) => {
   }
 })
 
-const expressionInfo = computed(() => graph.db.nodeExpressionInfo.lookup(nodeId.value))
+const expressionInfo = computed(() => graph.db.getExpressionInfo(nodeId.value))
 const outputTypeName = computed(() => expressionInfo.value?.typename ?? 'Unknown')
 const executionState = computed(() => expressionInfo.value?.payload.type ?? 'Unknown')
 const suggestionEntry = computed(() => graph.db.nodeMainSuggestion.lookup(nodeId.value))
 const color = computed(() => graph.db.getNodeColorStyle(nodeId.value))
 const icon = computed(() => {
   if (suggestionEntry.value?.iconName) {
-    return suggestionEntry.value.iconName
+    return mapOldIconName(suggestionEntry.value.iconName)
   }
+
   const methodName = expressionInfo.value?.methodCall?.methodPointer.name
-  if (methodName != null) {
-    return methodNameToIcon(methodName)
-  } else if (outputTypeName.value != null) {
+  if (methodName == null && outputTypeName.value != null) {
     return typeNameToIcon(outputTypeName.value)
   } else {
-    return 'in_out'
+    return 'enso_logo'
   }
 })
 
@@ -220,7 +219,7 @@ const handlePortClick = useDoubleClick(
   >
     <div class="selection" v-on="dragPointer.events"></div>
     <div class="binding" @pointerdown.stop>
-      {{ node.binding }}
+      {{ node.pattern?.repr() ?? '' }}
     </div>
     <CircularMenu
       v-if="menuVisible"
@@ -429,17 +428,6 @@ const handlePortClick = useDoubleClick(
 .GraphNode .selection:hover + .binding,
 .GraphNode.selected .binding {
   opacity: 1;
-}
-
-.editable {
-  outline: none;
-  height: 24px;
-  display: inline-flex;
-  align-items: center;
-
-  & :deep(span) {
-    vertical-align: middle;
-  }
 }
 
 .container {

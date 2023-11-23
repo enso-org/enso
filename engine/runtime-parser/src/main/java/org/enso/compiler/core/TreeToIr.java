@@ -961,6 +961,7 @@ final class TreeToIr {
             var arg = new CallArgument.Specified(Option.empty(), expr, expr.location(), meta(), diag());
             yield new Application.Prefix(negate, join(arg, nil()), false, expr.location(), meta(), diag());
           }
+          case null -> translateSyntaxError(tree, new Syntax.UnsupportedSyntax("Strange unary -"));
         };
       case Tree.TypeSignature sig -> {
         var methodName = buildName(sig.getVariable());

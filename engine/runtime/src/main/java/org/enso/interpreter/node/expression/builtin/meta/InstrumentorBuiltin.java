@@ -1,20 +1,18 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
 
-import com.oracle.truffle.api.nodes.Node;
-
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeAtNode;
-import org.enso.interpreter.runtime.data.vector.ArrayLikeCoerceToArrayNode;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeLengthNode;
 import org.enso.interpreter.runtime.error.PanicException;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
+import com.oracle.truffle.api.nodes.Node;
 
 @BuiltinMethod(
     type = "Meta",
@@ -33,7 +31,7 @@ public class InstrumentorBuiltin extends Node {
       if (atNode.executeAt(args, 0) instanceof Instrumentor b) {
         ret = switch (op) {
           case "onEnter" -> onEnter(b, atNode.executeAt(args, 1));
-          case "onReturn" -> onReturn(b, atNode.executeAt(args, 1));
+          case "onReturn" -> onReturn(b, atNode.executeAt(args, 1), atNode.executeAt(args, 2));
           case "onCall" -> onCall(b, atNode.executeAt(args, 1));
           case "activate" -> activate(b, atNode.executeAt(args, 1));
           case "deactivate" -> b.deactivate();
@@ -70,16 +68,16 @@ public class InstrumentorBuiltin extends Node {
   @CompilerDirectives.TruffleBoundary
   private Object onEnter(Instrumentor b, Object arg) {
     if (arg instanceof Function fn) {
-      return new Instrumentor(b, fn, null, null, false);
+      return new Instrumentor(b, fn, null, null, null, false);
     } else {
       return null;
     }
   }
 
   @CompilerDirectives.TruffleBoundary
-  private Object onReturn(Instrumentor b, Object arg) {
+  private Object onReturn(Instrumentor b, Object arg, Object expr) {
     if (arg instanceof Function fn) {
-      return new Instrumentor(b, null, fn, null, false);
+      return new Instrumentor(b, null, fn, expr, null, false);
     } else {
       return null;
     }
@@ -88,7 +86,7 @@ public class InstrumentorBuiltin extends Node {
   @CompilerDirectives.TruffleBoundary
   private Object onCall(Instrumentor b, Object arg) {
     if (arg instanceof Function fn) {
-      return new Instrumentor(b, null, null, fn, false);
+      return new Instrumentor(b, null, null, null, fn, false);
     } else {
       return null;
     }
@@ -97,7 +95,7 @@ public class InstrumentorBuiltin extends Node {
   @CompilerDirectives.TruffleBoundary
   private Object activate(Instrumentor b, Object arg) {
     if (arg instanceof Function fn) {
-      var builder = new Instrumentor(b, null, null, null, true);
+      var builder = new Instrumentor(b, null, null, null, null, true);
       var ctx = EnsoContext.get(this);
       return ctx.getResourceManager().register(builder, fn);
     } else {

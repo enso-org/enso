@@ -109,7 +109,7 @@ export const useGraphStore = defineStore('graph', () => {
     for (const [id, op] of event.changes.keys) {
       if (op.action === 'update' || op.action === 'add') {
         const data = meta.get(id)
-        const node = db.getNode(id as ExprId)
+        const node = db.nodeIdToNode.get(id as ExprId)
         if (data != null && node != null) {
           db.assignUpdatedMetadata(node, data)
         }
@@ -121,7 +121,7 @@ export const useGraphStore = defineStore('graph', () => {
     let ident: string
     do {
       ident = randomString()
-    } while (db.idents.hasValue(ident))
+    } while (db.identifierUsed(ident))
     return ident
   }
 
@@ -185,13 +185,13 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   function deleteNode(id: ExprId) {
-    const node = db.getNode(id)
+    const node = db.nodeIdToNode.get(id)
     if (node == null) return
     proj.module?.deleteExpression(node.outerExprId)
   }
 
   function setNodeContent(id: ExprId, content: string) {
-    const node = db.getNode(id)
+    const node = db.nodeIdToNode.get(id)
     if (node == null) return
     setExpressionContent(node.rootSpan.astId, content)
   }
@@ -209,13 +209,13 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   function replaceNodeSubexpression(nodeId: ExprId, range: ContentRange, content: string) {
-    const node = db.getNode(nodeId)
+    const node = db.nodeIdToNode.get(nodeId)
     if (node == null) return
     proj.module?.replaceExpressionContent(node.rootSpan.astId, content, range)
   }
 
   function setNodePosition(nodeId: ExprId, position: Vec2) {
-    const node = db.getNode(nodeId)
+    const node = db.nodeIdToNode.get(nodeId)
     if (node == null) return
     proj.module?.updateNodeMetadata(nodeId, { x: position.x, y: -position.y })
   }
@@ -239,13 +239,13 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   function setNodeVisualizationId(nodeId: ExprId, vis: Opt<VisualizationIdentifier>) {
-    const node = db.getNode(nodeId)
+    const node = db.nodeIdToNode.get(nodeId)
     if (node == null) return
     proj.module?.updateNodeMetadata(nodeId, { vis: normalizeVisMetadata(vis, node.vis?.visible) })
   }
 
   function setNodeVisualizationVisible(nodeId: ExprId, visible: boolean) {
-    const node = db.getNode(nodeId)
+    const node = db.nodeIdToNode.get(nodeId)
     if (node == null) return
     proj.module?.updateNodeMetadata(nodeId, { vis: normalizeVisMetadata(node.vis, visible) })
   }

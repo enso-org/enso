@@ -25,10 +25,10 @@ polyglot java import org.enso.table.parsing.DateParser
 polyglot java import org.enso.table.parsing.DateTimeParser
 polyglot java import org.enso.table.parsing.IdentityParser
 polyglot java import org.enso.table.parsing.NumberParser
+polyglot java import org.enso.table.parsing.problems.ParseProblemAggregator
 polyglot java import org.enso.table.parsing.TimeOfDayParser
 polyglot java import org.enso.table.parsing.TypeInferringParser
 polyglot java import org.enso.table.parsing.WhitespaceStrippingParser
-polyglot java import org.enso.table.parsing.problems.ParseProblemAggregator
 
 type Data_Formatter
     ## Specifies options for reading text data in a table to more specific types and

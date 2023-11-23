@@ -23,7 +23,7 @@ const editingEdge: Interaction = {
     if (graph.unconnectedEdge == null) return false
     const source = graph.unconnectedEdge.source ?? selection?.hoveredNode
     const target = graph.unconnectedEdge.target ?? selection?.hoveredPort
-    const targetNode = graph.db.getExpressionNodeId(target)
+    const targetNode = target && graph.db.getExpressionNodeId(target)
     graph.transact(() => {
       if (source != null && source != targetNode) {
         if (target == null) {
@@ -44,6 +44,7 @@ interaction.setWhen(() => graph.unconnectedEdge != null, editingEdge)
 function disconnectEdge(target: ExprId) {
   graph.setExpressionContent(target, '_')
 }
+
 function createNodeFromEdgeDrop(source: ExprId, graphNavigator: GraphNavigator) {
   const node = graph.createNodeFromSource(graphNavigator.sceneMousePos ?? Vec2.Zero, source)
   if (node != null) {
@@ -52,11 +53,12 @@ function createNodeFromEdgeDrop(source: ExprId, graphNavigator: GraphNavigator) 
     console.error('Failed to create node from edge drop.')
   }
 }
+
 function createEdge(source: ExprId, target: ExprId) {
-  const sourceNode = graph.db.getNode(source)
-  if (sourceNode == null) return
+  const ident = graph.db.getIdentifierOfConnection(source)
+  if (ident == null) return
   // TODO: Check alias analysis to see if the binding is shadowed.
-  graph.setExpressionContent(target, sourceNode.binding)
+  graph.setExpressionContent(target, ident)
   // TODO: Use alias analysis to ensure declarations are in a dependency order.
 }
 </script>
