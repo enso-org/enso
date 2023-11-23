@@ -34,7 +34,7 @@ type Header
 
              example_new = Header.new "My_Header" "my header's value"
     new : Text -> Text | Enso_Secret -> Header
-    new name:Text value:(Text|Enso_Secret) = Header.Value name value
+    new name:Text value:(Text | Enso_Secret) = Header.Value name value
 
     ## Create an "Accept" header.
 
@@ -115,7 +115,7 @@ type Header
 
              example_content_type = Header.content_type "my_type"
     content_type : Text -> Encoding | Nothing -> Header
-    content_type value:Text encoding:(Encoding|Nothing)=Nothing =
+    content_type value:Text encoding:(Encoding | Nothing)=Nothing =
         charset = if encoding.is_nothing then "" else "; charset="+encoding.character_set
         Header.Value Header.content_type_header_name value+charset
 

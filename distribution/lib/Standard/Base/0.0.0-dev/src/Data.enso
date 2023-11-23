@@ -23,6 +23,7 @@ from project.System.File_Format import Auto_Detect, File_Format
 
 ## ALIAS load, open
    GROUP Input
+   ICON data_input
    Reads a file into Enso.
    Uses the specified file format to parse the file into an Enso type. If not
    specified will use the file's extension to determine the file format.
@@ -67,6 +68,7 @@ read path format=Auto_Detect (on_problems=Problem_Behavior.Report_Warning) = cas
 
 ## ALIAS load text, open text
    GROUP Input
+   ICON data_input
    Open and read the file at the provided `path`.
 
    Arguments:

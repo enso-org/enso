@@ -199,8 +199,8 @@ type Date_Time_Formatter
          pattern. If not specified, defaults to `Locale.default`. If passing a
          `DateTimeFormatter` instance and this argument is set, it will
          overwrite the original locale of that formatter.
-    from_java : Text|DateTimeFormatter -> Locale -> Date_Time_Formatter ! Illegal_Argument
-    from_java pattern (locale:Locale|Nothing=Nothing) = case pattern of
+    from_java : Text | DateTimeFormatter -> Locale | Nothing -> Date_Time_Formatter ! Illegal_Argument
+    from_java pattern locale:(Locale | Nothing)=Nothing = case pattern of
         java_formatter : DateTimeFormatter ->
             amended_formatter = case locale of
                 Nothing -> java_formatter
