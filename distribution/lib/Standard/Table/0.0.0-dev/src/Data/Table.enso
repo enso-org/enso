@@ -81,6 +81,7 @@ polyglot java import org.enso.table.parsing.problems.ParseProblemAggregator
 ## Represents a column-oriented table data structure.
 type Table
     ## GROUP Standard.Base.Constants
+       ICON data_output
        Creates a new table from a vector of `[name, items]` pairs.
 
        Arguments:
@@ -122,6 +123,7 @@ type Table
             Table.Value (Java_Table.new cols)
 
     ## GROUP Standard.Base.Constants
+       ICON data_input
        Creates a new table from a vector of column names and a vector of vectors
        specifying row contents.
 
@@ -222,6 +224,7 @@ type Table
         rows
 
     ## GROUP Standard.Base.Selections
+       ICON select_column
        Returns the column with the given name.
 
        Arguments:
@@ -248,7 +251,8 @@ type Table
             Column.Value (java_columns.at selector)
         _ -> self.get selector (Error.throw (No_Such_Column.Error selector))
 
-    ## Returns the column with the given name or index.
+    ## ICON select_column
+       Returns the column with the given name or index.
 
        Arguments:
        - selector: The name or index of the column being looked up.
@@ -277,16 +281,19 @@ type Table
         if java_column.is_nothing then if_missing else Column.Value java_column
 
     ## GROUP Standard.Base.Selections
+       ICON select_column
        Gets the first column.
     first_column : Column ! Index_Out_Of_Bounds
     first_column self = self.at 0
 
     ## GROUP Standard.Base.Selections
+       ICON select_column
        Gets the second column
     second_column : Column ! Index_Out_Of_Bounds
     second_column self = self.at 1
 
     ## GROUP Standard.Base.Selections
+       ICON select_column
        Gets the last column
     last_column : Column ! Index_Out_Of_Bounds
     last_column self = self.at -1
@@ -355,6 +362,7 @@ type Table
 
     ## ALIAS drop_columns
        GROUP Standard.Base.Selections
+       ICON select_column
        Returns a new table with the chosen set of columns, as specified by the
        `columns`, removed from the input table. Any unmatched input columns will
        be kept in the output. Columns are returned in the same order as in the
@@ -408,6 +416,7 @@ type Table
 
     ## ALIAS select_missing_columns, select_na
        GROUP Standard.Base.Selections
+       ICON select_column
 
        Select columns which are either all blank or contain blank values. If no
        rows are present, all columns are considered blank.
@@ -434,6 +443,7 @@ type Table
 
     ## ALIAS drop_missing_columns, drop_na
        GROUP Standard.Base.Selections
+       ICON select_column
 
        Remove columns which are either all blank or contain blank values. If no
        rows are present, all columns are considered blank.
@@ -459,6 +469,7 @@ type Table
             Table.new new_columns
 
     ## GROUP Standard.Base.Selections
+       ICON select_column
        Returns a new table with the specified selection of columns moved to
        either the start or the end in the specified order.
 
@@ -513,6 +524,7 @@ type Table
         Table.new new_columns
 
     ## GROUP Standard.Base.Selections
+       ICON select_column
        Returns a new table with the columns sorted by name according to the
        specified sort method. By default, sorting will be according to
        case-sensitive ascending order based on the normalized Unicode ordering.
@@ -541,6 +553,7 @@ type Table
         Table.new new_columns
 
     ## GROUP Standard.Base.Metadata
+       ICON table_edit
        Returns a new table with the columns renamed based on either a mapping
        from the old name to the new or a positional list of new names.
 
@@ -609,6 +622,7 @@ type Table
             Table.new (self.columns.map c-> c.rename (names.at c.name))
 
     ## GROUP Standard.Base.Metadata
+       ICON table_edit
        Returns a new table with the columns renamed based on entries in the
        first row.
 
@@ -639,6 +653,7 @@ type Table
 
     ## ALIAS group by, summarize
        GROUP Standard.Base.Calculations
+       ICON sigma
 
        Aggregates the rows in a table using any `Group_By` entries in columns.
        The columns argument specifies which additional aggregations to perform and to return.
@@ -792,6 +807,7 @@ type Table
             Table.Value java_table
 
     ## GROUP Standard.Base.Selections
+       ICON preparation
        Returns the distinct set of rows within the specified columns from the
        input table.
 
@@ -840,6 +856,7 @@ type Table
         Table.Value java_table
 
     ## GROUP Standard.Base.Conversions
+       ICON convert
        Parses columns within a `Table` to a specific value type.
        By default, it looks at all `Text` columns and attempts to deduce the
        type (columns with other types are not affected).
@@ -963,6 +980,7 @@ type Table
             Table.new new_columns
 
     ## GROUP Standard.Base.Conversions
+       ICON convert
        Formats `Column`s within a `Table` using a format string,
        `Date_Time_Formatter`, or `Column` of format strings.
 
@@ -1055,6 +1073,7 @@ type Table
             Table.new new_columns
 
     ## GROUP Standard.Base.Conversions
+       ICON convert
        Cast the selected columns to a specific type.
 
        Returns a new table in which the selected columns are replaced with
@@ -1162,6 +1181,7 @@ type Table
             table.set new_column new_name=column_to_cast.name set_mode=Set_Mode.Update
 
     ## GROUP Standard.Base.Conversions
+       ICON split_text
        Splits a column of text into a set of new columns.
        The original column will be removed from the table.
        The new columns will be named with the name of the input column with a
@@ -1184,6 +1204,7 @@ type Table
         Split_Tokenize.split_to_columns self column delimiter column_count on_problems
 
     ## GROUP Standard.Base.Conversions
+       ICON split_text
        Splits a column of text into a set of new rows.
        The values of other columns are repeated for the new rows.
 
@@ -1197,6 +1218,7 @@ type Table
         Split_Tokenize.split_to_rows self column delimiter
 
     ## GROUP Standard.Base.Conversions
+       ICON split_text
        Tokenizes a column of text into a set of new columns using a regular
        expression.
        If the pattern contains marked groups, the values are concatenated
@@ -1223,6 +1245,7 @@ type Table
         Split_Tokenize.tokenize_to_columns self column pattern case_sensitivity column_count on_problems
 
     ## GROUP Standard.Base.Conversions
+       ICON split_text
        Tokenizes a column of text into a set of new rows using a regular
        expression.
        If the pattern contains marked groups, the values are concatenated
@@ -1243,6 +1266,7 @@ type Table
         Split_Tokenize.tokenize_to_rows self column pattern case_sensitivity at_least_one_row
 
     ## GROUP Standard.Base.Conversions
+       ICON split_text
        Converts a Text column into new columns using a regular expression
        pattern.
 
@@ -1273,6 +1297,7 @@ type Table
         Split_Tokenize.parse_to_columns self column pattern case_sensitivity parse_values on_problems
 
     ## GROUP Standard.Base.Calculations
+       ICON split_text
        Expand a column of objects to a new set of columns.
 
         Arguments:
@@ -1286,6 +1311,7 @@ type Table
         Expand_Objects_Helpers.expand_column self column fields prefix
 
     ## GROUP Standard.Base.Calculations
+       ICON split_text
        Expand aggregate values in a column to separate rows.
 
        For each value in the specified column, if it is an aggregate (`Vector`,
@@ -1323,6 +1349,7 @@ type Table
 
     ## ALIAS filter rows
        GROUP Standard.Base.Selections
+       ICON preparation
 
        Selects only the rows of this table that correspond to `True` values of
        `filter`.
@@ -1387,6 +1414,7 @@ type Table
 
     ## ALIAS filter rows
        GROUP Standard.Base.Selections
+       ICON preparation
 
        Selects only the rows of this table that correspond to `True` values of
        `filter`.
@@ -1424,6 +1452,7 @@ type Table
 
     ## ALIAS first, last, sample, slice
        GROUP Standard.Base.Selections
+       ICON select_row
        Creates a new Table with the specified range of rows from the input
        Table.
 
@@ -1454,6 +1483,7 @@ type Table
         Index_Sub_Range_Module.take_helper self.row_count self.rows.at self.slice (slice_ranges self) range
 
     ## GROUP Standard.Base.Selections
+       ICON select_row
        Creates a new Table from the input with the specified range of rows
        removed.
 
@@ -1490,6 +1520,7 @@ type Table
 
     ## ALIAS add index column, rank, record id
        GROUP Standard.Base.Values
+       ICON dataframe_map_column
        Adds a new column to the table enumerating the rows.
 
        Arguments:
@@ -1527,6 +1558,7 @@ type Table
 
     ## ALIAS add column, new column, update column
        GROUP Standard.Base.Values
+       ICON dataframe_map_column
        Sets the column value at the given name.
 
        Arguments:
@@ -1682,6 +1714,7 @@ type Table
         Vector.from_polyglot_array (Array_Proxy.from_proxy_object proxy)
 
     ## GROUP Standard.Base.Selections
+       ICON select_row
        Returns the first row of the table.
 
        In the database backend, it first materializes the table to in-memory.
@@ -1691,6 +1724,7 @@ type Table
             Row.Value self 0
 
     ## GROUP Standard.Base.Selections
+       ICON select_row
        Returns the second row of the table.
 
        In the database backend, it first materializes the table to in-memory.
@@ -1700,6 +1734,7 @@ type Table
             Row.Value self 1
 
     ## GROUP Standard.Base.Selections
+       ICON select_row
        Returns the last row of the table.
 
        In the database backend, it first materializes the table to in-memory.
@@ -1709,6 +1744,7 @@ type Table
             Row.Value self (self.row_count-1)
 
     ## GROUP Standard.Base.Calculations
+       ICON join
        Joins two tables according to the specified join conditions.
 
        Arguments:
@@ -1796,6 +1832,7 @@ type Table
 
     ## ALIAS cartesian join
        GROUP Standard.Base.Calculations
+       ICON join
        Joins tables by pairing every row of the left table with every row of the
        right table.
 
@@ -1841,6 +1878,7 @@ type Table
             Table.Value new_java_table
 
     ## GROUP Standard.Base.Calculations
+       ICON join
        Replaces values in this table by values from a lookup table.
        New values are looked up in the lookup table based on the `key_columns`.
        Columns found in the lookup table values are replaced by values from the
@@ -1929,6 +1967,7 @@ type Table
 
     ## ALIAS join by row position
        GROUP Standard.Base.Calculations
+       ICON dataframes_join
        Joins two tables by zipping rows from both tables table together - the
        first row of the left table is correlated with the first one of the right
        one etc.
@@ -1995,6 +2034,7 @@ type Table
 
     ## ALIAS append, concat
        GROUP Standard.Base.Calculations
+       ICON dataframes_union
        Appends records from other table(s) to this table.
 
        Arguments:
@@ -2104,6 +2144,7 @@ type Table
 
     ## ALIAS drop_missing_rows, dropna
        GROUP Standard.Base.Selections
+       ICON preparation
        Remove rows which are all blank or containing blank values.
 
        Arguments:
@@ -2131,7 +2172,8 @@ type Table
     row_count : Integer
     row_count self = self.java_table.rowCount
 
-    ## Returns a materialized dataframe containing rows of this table.
+    ## ICON data_input
+       Returns a materialized dataframe containing rows of this table.
 
        In the in-memory backend, this returns the same table, truncated to
        `max_rows`. This is only kept for API compatibility between database and
@@ -2171,6 +2213,7 @@ type Table
         Table.new [["Column", cols.map .name], ["Items Count", cols.map .count], ["Value Type", cols.map .value_type]]
 
     ## GROUP Standard.Base.Calculations
+       ICON dataframe_map_row
        Returns a new table with a chosen subset of columns left unchanged and
        the other columns pivoted to rows with a single name field and a single
        value field.
@@ -2242,6 +2285,7 @@ type Table
         problem_builder.attach_problems_after on_problems result
 
     ## GROUP Standard.Base.Calculations
+       ICON dataframe_map_column
        Returns a new table using a chosen field as the column header and then
        aggregating the rows within each value as specified. Optionally, a set of
        fields can be used to group the rows.
@@ -2383,6 +2427,7 @@ type Table
         Table.Value <| self.java_table.applyMask mask
 
     ## GROUP Standard.Base.Output
+       ICON data_output
        This function writes a table from memory into a file.
 
        The specific behavior of the various `File_Format`s is specified below.
@@ -2474,6 +2519,7 @@ type Table
 
     ## ALIAS fill missing, if_nothing
        GROUP Standard.Base.Values
+       ICON dataframe_clean
 
        Returns a new table where missing values in the specified columns have
        been replaced with the provided default(s).
@@ -2502,6 +2548,7 @@ type Table
 
     ## ALIAS fill empty, if_empty
        GROUP Standard.Base.Values
+       ICON dataframe_clean
 
        Returns a new column where empty Text values have been replaced with the
        provided default(s).
@@ -2528,6 +2575,7 @@ type Table
         Table_Helpers.replace_columns_with_transformed_columns self columns transformer
 
     ## GROUP Standard.Base.Text
+       ICON dataframe_map_column
        Replaces the first, or all occurrences of `term` with `new_text` in each
        row of the specified column. If `term` is empty, the function returns the
        table unchanged.

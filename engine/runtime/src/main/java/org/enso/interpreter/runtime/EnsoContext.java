@@ -866,7 +866,7 @@ public final class EnsoContext {
 
   public Thread createThread(boolean systemThread, Runnable run) {
     return systemThread ? environment.createSystemThread(run)
-            : environment.createThread(run);
+            : environment.newTruffleThreadBuilder(run).build();
   }
 
   public Future<Void> submitThreadLocal(Thread[] threads, ThreadLocalAction action) {
