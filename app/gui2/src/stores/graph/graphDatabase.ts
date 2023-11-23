@@ -32,7 +32,7 @@ export interface BindingInfo {
 
 export class BindingsDb {
   bindings = new ReactiveDb<ExprId, BindingInfo>()
-  identifiers = new ReactiveIndex(this.bindings, (id, info) => [[info.identifier, id]])
+  identifierToBindingId = new ReactiveIndex(this.bindings, (id, info) => [[info.identifier, id]])
 
   readFunctionAst(ast: AstExtended<Ast.Tree.Function>) {
     // TODO[ao]: Rename 'alias' to 'binding' in AliasAnalyzer and it's more accurate term.
@@ -112,7 +112,7 @@ export class BindingsDb {
 }
 
 export class GraphDb {
-  nodes = new ReactiveDb<ExprId, Node>()
+  nodeIdToNode = new ReactiveDb<ExprId, Node>()
   private bindings = new BindingsDb()
 
   constructor(
@@ -121,7 +121,7 @@ export class GraphDb {
     private valuesRegistry: ComputedValueRegistry,
   ) {}
 
-  private nodePatternExpressions = new ReactiveIndex(this.nodes, (id, entry) => {
+  private nodeIdToPatternExprIds = new ReactiveIndex(this.nodeIdToNode, (id, entry) => {
     if (entry.pattern == null) return []
     const exprs = new Set<ExprId>()
     for (const ast of entry.pattern.walkRecursive()) {
@@ -130,7 +130,7 @@ export class GraphDb {
     return Array.from(exprs, (expr) => [id, expr])
   })
 
-  private nodeExpressions = new ReactiveIndex(this.nodes, (id, entry) => {
+  private nodeIdToExprIds = new ReactiveIndex(this.nodeIdToNode, (id, entry) => {
     const exprs = new Set<ExprId>()
     for (const ast of entry.rootSpan.walkRecursive()) {
       exprs.add(ast.astId)
@@ -159,7 +159,7 @@ export class GraphDb {
    * When the node will be marked as source node for a new one (i.e. the node will be selected
    * when adding), the resulting connection's source will be the main port.
    */
-  nodeMainOutputPort = new ReactiveIndex(this.nodes, (id, entry) => {
+  nodeMainOutputPort = new ReactiveIndex(this.nodeIdToNode, (id, entry) => {
     if (entry.pattern == null) return []
     for (const ast of entry.pattern.walkRecursive()) {
       if (this.bindings.bindings.has(ast.astId)) return [[id, ast.astId]]
@@ -167,15 +167,16 @@ export class GraphDb {
     return []
   })
 
-  nodeMainSuggestion = new ReactiveMapping(this.nodes, (id, _entry) => {
+  nodeMainSuggestion = new ReactiveMapping(this.nodeIdToNode, (id, _entry) => {
     const expressionInfo = this.getExpressionInfo(id)
     const method = expressionInfo?.methodCall?.methodPointer
     if (method == null) return
     const suggestionId = this.suggestionDb.findByMethodPointer(method)
+    if (suggestionId == null) return
     return this.suggestionDb.get(suggestionId)
   })
 
-  private nodeColors = new ReactiveMapping(this.nodes, (id, _entry) => {
+  nodeColor = new ReactiveMapping(this.nodeIdToNode, (id, _entry) => {
     const index = this.nodeMainSuggestion.lookup(id)?.groupIndex
     const group = tryGetIndex(this.groups.value, index)
     if (group == null) {
@@ -185,33 +186,21 @@ export class GraphDb {
     return groupColorStyle(group)
   })
 
-  getNode(id: ExprId): Node | undefined {
-    return this.nodes.get(id)
-  }
-
   getNodeMainOutputPortIdentifier(id: ExprId): string | undefined {
     const mainPort = set.first(this.nodeMainOutputPort.lookup(id))
     return mainPort != null ? this.bindings.bindings.get(mainPort)?.identifier : undefined
   }
 
-  allNodes(): IterableIterator<[ExprId, Node]> {
-    return this.nodes.entries()
-  }
-
-  allNodeIds(): IterableIterator<ExprId> {
-    return this.nodes.keys()
-  }
-
   getExpressionNodeId(exprId: ExprId | undefined): ExprId | undefined {
-    return exprId && set.first(this.nodeExpressions.reverseLookup(exprId))
+    return exprId && set.first(this.nodeIdToExprIds.reverseLookup(exprId))
   }
 
   getPatternExpressionNodeId(exprId: ExprId | undefined): ExprId | undefined {
-    return exprId && set.first(this.nodePatternExpressions.reverseLookup(exprId))
+    return exprId && set.first(this.nodeIdToPatternExprIds.reverseLookup(exprId))
   }
 
   getIdentDefiningNode(ident: string): ExprId | undefined {
-    const binding = set.first(this.bindings.identifiers.lookup(ident))
+    const binding = set.first(this.bindings.identifierToBindingId.lookup(ident))
     return this.getPatternExpressionNodeId(binding)
   }
 
@@ -224,7 +213,7 @@ export class GraphDb {
   }
 
   identifierUsed(ident: string): boolean {
-    return this.bindings.identifiers.hasKey(ident)
+    return this.bindings.identifierToBindingId.hasKey(ident)
   }
 
   isMethodCall(id: ExprId): boolean {
@@ -237,17 +226,18 @@ export class GraphDb {
     const methodCall = this.getExpressionInfo(id)?.methodCall
     if (methodCall == null) return
     const suggestionId = this.suggestionDb.findByMethodPointer(methodCall.methodPointer)
+    if (suggestionId == null) return
     const suggestion = this.suggestionDb.get(suggestionId)
     if (suggestion == null) return
     return { methodCall, suggestion }
   }
 
   getNodeColorStyle(id: ExprId): string {
-    return (id && this.nodeColors.lookup(id)) ?? 'var(--node-color-no-type)'
+    return this.nodeColor.lookup(id) ?? 'var(--node-color-no-type)'
   }
 
   moveNodeToTop(id: ExprId) {
-    this.nodes.moveToLast(id)
+    this.nodeIdToNode.moveToLast(id)
   }
 
   readFunctionAst(
@@ -266,11 +256,11 @@ export class GraphDb {
       for (const nodeAst of functionAst.visit(getFunctionNodeExpressions)) {
         const newNode = nodeFromAst(nodeAst)
         const nodeId = newNode.rootSpan.astId
-        const node = this.nodes.get(nodeId)
+        const node = this.nodeIdToNode.get(nodeId)
         const nodeMeta = getMeta(nodeId)
         currentNodeIds.add(nodeId)
         if (node == null) {
-          this.nodes.set(nodeId, newNode)
+          this.nodeIdToNode.set(nodeId, newNode)
         } else {
           if (indexedDB.cmp(node.pattern?.contentHash(), newNode.pattern?.contentHash())) {
             node.pattern = newNode.pattern
@@ -300,9 +290,9 @@ export class GraphDb {
       }
     }
 
-    for (const nodeId of this.allNodeIds()) {
+    for (const nodeId of this.nodeIdToNode.keys()) {
       if (!currentNodeIds.has(nodeId)) {
-        this.nodes.delete(nodeId)
+        this.nodeIdToNode.delete(nodeId)
       }
     }
     this.bindings.readFunctionAst(functionAst)
@@ -322,10 +312,10 @@ export class GraphDb {
       },
     )
     let nodeIndex = 0
-    for (const nodeId of this.allNodeIds()) {
+    for (const nodeId of this.nodeIdToNode.keys()) {
       const meta = getMeta(nodeId)
       if (meta) continue
-      const node = this.nodes.get(nodeId)!
+      const node = this.nodeIdToNode.get(nodeId)!
       const size = new Vec2(getWidth(node), theme.node.height)
       const position = new Vec2(
         rectsPosition.x,
@@ -361,7 +351,7 @@ export class GraphDb {
       vis: undefined,
     }
     const bidingId = node.pattern.astId
-    this.nodes.set(id, node)
+    this.nodeIdToNode.set(id, node)
     this.bindings.bindings.set(bidingId, { identifier: binding, usages: new Set() })
   }
 }

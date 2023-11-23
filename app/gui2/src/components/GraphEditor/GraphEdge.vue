@@ -44,7 +44,9 @@ const targetExpr = computed(() => {
   return setTarget
 })
 
-const targetNode = computed(() => graph.db.getExpressionNodeId(targetExpr.value))
+const targetNode = computed(
+  () => targetExpr.value && graph.db.getExpressionNodeId(targetExpr.value),
+)
 const targetNodeRect = computed(() => targetNode.value && graph.nodeRects.get(targetNode.value))
 
 const targetRect = computed<Rect | null>(() => {
