@@ -422,7 +422,8 @@ function handleNodeOutputPortDoubleClick(id: ExprId) {
     DEFAULT_NODE_SIZE,
     placementEnvironment,
     {
-      gap: gapBetweenNodes,
+      horizontalGap: gapBetweenNodes,
+      verticalGap: gapBetweenNodes,
     },
   ).position
   interaction.setCurrent(creatingNodeFromPortDoubleClick)

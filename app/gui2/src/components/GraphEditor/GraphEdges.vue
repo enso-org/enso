@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import GraphEdge from '@/components/GraphEditor/GraphEdge.vue'
-import { GraphNavigator } from '@/providers/graphNavigator.ts'
+import type { GraphNavigator } from '@/providers/graphNavigator.ts'
 import { injectGraphSelection } from '@/providers/graphSelection.ts'
 import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
 import { useGraphStore } from '@/stores/graph'

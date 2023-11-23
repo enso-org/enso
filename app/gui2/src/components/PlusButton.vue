@@ -1,17 +1,11 @@
 <template>
-  <div class="parent">
-    <div class="circle-plus">
-      <div class="vertical"></div>
-      <div class="horizontal"></div>
-    </div>
+  <div class="circle-plus">
+    <div class="vertical"></div>
+    <div class="horizontal"></div>
   </div>
 </template>
 
-<script>
-export default {
-  name: 'PlusButton',
-}
-</script>
+<script setup lang="ts"></script>
 
 <style scoped>
 .circle-plus {
