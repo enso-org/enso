@@ -1,5 +1,6 @@
 <script lang="ts">
 export const name = 'Warnings'
+export const icon = 'exclamation'
 export const inputType = 'Any'
 export const defaultPreprocessor = [
   'Standard.Visualization.Warnings',

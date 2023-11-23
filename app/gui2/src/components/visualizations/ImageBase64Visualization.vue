@@ -1,5 +1,6 @@
 <script lang="ts">
 export const name = 'Image'
+export const icon = 'image'
 export const inputType = 'Standard.Image.Data.Image.Image'
 
 interface Data {

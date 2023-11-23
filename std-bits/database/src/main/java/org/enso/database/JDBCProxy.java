@@ -3,8 +3,9 @@ package org.enso.database;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.util.Properties;
 import java.util.ServiceLoader;
+import org.enso.base.enso_cloud.EnsoKeyValuePair;
+import org.enso.base.enso_cloud.EnsoSecretHelper;
 
 /**
  * A helper class for accessing the JDBC components.
@@ -35,7 +36,8 @@ public class JDBCProxy {
    * @param properties configuration for the connection
    * @return a connection
    */
-  public static Connection getConnection(String url, Properties properties) throws SQLException {
+  public static Connection getConnection(String url, EnsoKeyValuePair[] properties)
+      throws SQLException {
     // We need to manually register all the drivers because the DriverManager is not able
     // to correctly use our class loader, it only delegates to the platform class loader when
     // loading the java.sql.Driver service.
@@ -43,6 +45,7 @@ public class JDBCProxy {
     for (var driver : sl) {
       DriverManager.registerDriver(driver);
     }
-    return DriverManager.getConnection(url, properties);
+
+    return EnsoSecretHelper.getJDBCConnection(url, properties);
   }
 }

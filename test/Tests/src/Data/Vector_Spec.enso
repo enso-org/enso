@@ -387,7 +387,7 @@ type_spec name alter = Test.group name <|
     Test.specify "should define concatenation" <|
         concat = (alter [1, 2, 3]) + (alter [4, 5, 6])
         concat.should_equal [1, 2, 3, 4, 5, 6]
-        (alter [1, 2, 3])+1 . should_fail_with Type_Error
+        Test.expect_panic_with matcher=Type_Error ((alter [1, 2, 3])+1)
 
     Test.specify "should allow finding a value" <|
         input = alter [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]

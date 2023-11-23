@@ -4,6 +4,7 @@ import { injectGraphSelection } from '@/providers/graphSelection.ts'
 import { useGraphStore, type Edge } from '@/stores/graph'
 import { assert } from '@/util/assert'
 import { Rect } from '@/util/rect'
+import theme from '@/util/theme.json'
 import { Vec2 } from '@/util/vec2'
 import { clamp } from '@vueuse/core'
 import { computed, ref } from 'vue'
@@ -20,13 +21,17 @@ const base = ref<SVGPathElement>()
 
 const sourceNode = computed(() => {
   const setSource = props.edge.source
-  // When the source is not set (i.e. edge is dragged), use the currently hovered over expression
-  // as the source, as long as it is not from the same node as the target.
-  if (setSource == null && selection?.hoveredNode != null) {
-    const rawTargetNode = graph.db.getExpressionNodeId(props.edge.target)
-    if (selection.hoveredNode != rawTargetNode) return selection.hoveredNode
+  if (setSource != null) {
+    return graph.db.getPatternExpressionNodeId(setSource)
+  } else {
+    // When the source is not set (i.e. edge is dragged), use the currently hovered over expression
+    // as the source, as long as it is not from the same node as the target.
+    if (selection?.hoveredNode != null) {
+      const rawTargetNode = graph.db.getExpressionNodeId(props.edge.target)
+      if (selection.hoveredNode != rawTargetNode) return selection.hoveredNode
+    }
   }
-  return setSource
+  return undefined
 })
 
 const targetExpr = computed(() => {
@@ -39,7 +44,9 @@ const targetExpr = computed(() => {
   return setTarget
 })
 
-const targetNode = computed(() => graph.db.getExpressionNodeId(targetExpr.value))
+const targetNode = computed(
+  () => targetExpr.value && graph.db.getExpressionNodeId(targetExpr.value),
+)
 const targetNodeRect = computed(() => targetNode.value && graph.nodeRects.get(targetNode.value))
 
 const targetRect = computed<Rect | null>(() => {
@@ -94,8 +101,6 @@ type JunctionPoints = {
 
 /** Minimum height above the target the edge must approach it from. */
 const MIN_APPROACH_HEIGHT = 32
-const NODE_HEIGHT = 32 // TODO (crate::component::node::HEIGHT)
-const NODE_CORNER_RADIUS = 16 // TODO (crate::component::node::CORNER_RADIUS)
 /** The preferred arc radius. */
 const RADIUS_BASE = 20
 
@@ -173,7 +178,7 @@ function junctionPoints(inputs: Inputs): JunctionPoints | null {
   let halfSourceSize = inputs.sourceSize?.scale(0.5) ?? Vec2.Zero
   // The maximum x-distance from the source (our local coordinate origin) for the point where the
   // edge will begin.
-  const sourceMaxXOffset = Math.max(halfSourceSize.x - NODE_CORNER_RADIUS, 0)
+  const sourceMaxXOffset = Math.max(halfSourceSize.x - theme.node.corner_radius, 0)
   const attachment =
     inputs.targetPortTopDistanceInNode != null
       ? {
@@ -184,7 +189,7 @@ function junctionPoints(inputs: Inputs): JunctionPoints | null {
 
   const targetWellBelowSource =
     inputs.targetOffset.y - (inputs.targetPortTopDistanceInNode ?? 0) >= MIN_APPROACH_HEIGHT
-  const targetBelowSource = inputs.targetOffset.y > NODE_HEIGHT / 2.0
+  const targetBelowSource = inputs.targetOffset.y > theme.node.height / 2.0
   const targetBeyondSource = Math.abs(inputs.targetOffset.x) > sourceMaxXOffset
   const horizontalRoomFor3Corners =
     targetBeyondSource &&
@@ -222,9 +227,9 @@ function junctionPoints(inputs: Inputs): JunctionPoints | null {
       // at the point that it exits the node.
       const radius = Math.min(naturalRadius, maxRadius)
       const arcOriginX = Math.abs(inputs.targetOffset.x) - radius
-      const sourceArcOrigin = halfSourceSize.x - NODE_CORNER_RADIUS
+      const sourceArcOrigin = halfSourceSize.x - theme.node.corner_radius
       const circleOffset = arcOriginX - sourceArcOrigin
-      const intersection = circleIntersection(circleOffset, NODE_CORNER_RADIUS, radius)
+      const intersection = circleIntersection(circleOffset, theme.node.corner_radius, radius)
       sourceDY = -Math.abs(radius - intersection)
     } else if (halfSourceSize.y != 0) {
       sourceDY = -SOURCE_NODE_OVERLAP + halfSourceSize.y

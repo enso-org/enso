@@ -15,8 +15,8 @@ from Standard.Base.Metadata import make_single_choice
 from Standard.Base.Widget_Helpers import make_delimiter_selector
 
 import project.Data.Aggregate_Column.Aggregate_Column
-import project.Data.Calculations.Column_Operation.Column_Operation
 import project.Data.Blank_Selector.Blank_Selector
+import project.Data.Calculations.Column_Operation.Column_Operation
 import project.Data.Column as Column_Module
 import project.Data.Column.Column
 import project.Data.Column_Ref.Column_Ref
@@ -33,9 +33,9 @@ import project.Data.Report_Unmatched.Report_Unmatched
 import project.Data.Row.Row
 import project.Data.Set_Mode.Set_Mode
 import project.Data.Sort_Column.Sort_Column
-import project.Extensions.Table_Conversions
 import project.Delimited.Delimited_Format.Delimited_Format
 import project.Extensions.Prefix_Name.Prefix_Name
+import project.Extensions.Table_Conversions
 import project.Extensions.Table_Ref.Table_Ref
 import project.Internal.Add_Row_Number
 import project.Internal.Aggregate_Column_Helper
@@ -54,11 +54,9 @@ import project.Internal.Split_Tokenize
 import project.Internal.Table_Helpers
 import project.Internal.Table_Helpers.Table_Column_Helper
 import project.Internal.Widget_Helpers
-
 from project.Data.Column import get_item_string, normalize_string_for_display
 from project.Data.Type.Value_Type import Auto, Value_Type
 from project.Errors import all
-#from project.Extensions.Table_Conversions import all
 from project.Internal.Filter_Condition_Helpers import make_filter_column
 from project.Internal.Lookup_Helpers import make_java_lookup_column_description
 from project.Internal.Rows_View import Rows_View
@@ -74,16 +72,17 @@ polyglot java import org.enso.table.data.table.join.conditions.EqualsIgnoreCase 
 polyglot java import org.enso.table.data.table.join.lookup.LookupJoin
 polyglot java import org.enso.table.data.table.join.JoinKind as Java_Join_Kind
 polyglot java import org.enso.table.data.table.Table as Java_Table
-polyglot java import org.enso.table.error.TooManyColumnsException
-polyglot java import org.enso.table.error.NullValuesInKeyColumns
-polyglot java import org.enso.table.error.UnmatchedRow
 polyglot java import org.enso.table.error.NonUniqueLookupKey
+polyglot java import org.enso.table.error.NullValuesInKeyColumns
+polyglot java import org.enso.table.error.TooManyColumnsException
+polyglot java import org.enso.table.error.UnmatchedRow
 polyglot java import org.enso.table.operations.OrderBuilder
 polyglot java import org.enso.table.parsing.problems.ParseProblemAggregator
 
 ## Represents a column-oriented table data structure.
 type Table
     ## GROUP Standard.Base.Constants
+       ICON data_output
        Creates a new table from a vector of `[name, items]` pairs.
 
        Arguments:
@@ -125,6 +124,7 @@ type Table
             Table.Value (Java_Table.new cols)
 
     ## GROUP Standard.Base.Constants
+       ICON data_input
        Creates a new table from a vector of column names and a vector of vectors
        specifying row contents.
 
@@ -225,6 +225,7 @@ type Table
         rows
 
     ## GROUP Standard.Base.Selections
+       ICON select_column
        Returns the column with the given name.
 
        Arguments:
@@ -251,7 +252,8 @@ type Table
             Column.Value (java_columns.at selector)
         _ -> self.get selector (Error.throw (No_Such_Column.Error selector))
 
-    ## Returns the column with the given name or index.
+    ## ICON select_column
+       Returns the column with the given name or index.
 
        Arguments:
        - selector: The name or index of the column being looked up.
@@ -280,16 +282,19 @@ type Table
         if java_column.is_nothing then if_missing else Column.Value java_column
 
     ## GROUP Standard.Base.Selections
+       ICON select_column
        Gets the first column.
     first_column : Column ! Index_Out_Of_Bounds
     first_column self = self.at 0
 
     ## GROUP Standard.Base.Selections
+       ICON select_column
        Gets the second column
     second_column : Column ! Index_Out_Of_Bounds
     second_column self = self.at 1
 
     ## GROUP Standard.Base.Selections
+       ICON select_column
        Gets the last column
     last_column : Column ! Index_Out_Of_Bounds
     last_column self = self.at -1
@@ -358,6 +363,7 @@ type Table
 
     ## ALIAS drop_columns
        GROUP Standard.Base.Selections
+       ICON select_column
        Returns a new table with the chosen set of columns, as specified by the
        `columns`, removed from the input table. Any unmatched input columns will
        be kept in the output. Columns are returned in the same order as in the
@@ -411,13 +417,14 @@ type Table
 
     ## ALIAS select_missing_columns, select_na
        GROUP Standard.Base.Selections
+       ICON select_column
 
        Select columns which are either all blank or contain blank values. If no
        rows are present, all columns are considered blank.
 
        Arguments:
        - when: By default, only columns consisting of all blank cells are
-         selected. If set to Blank_Selector.Any_Cell_Blank, columns with one or
+         selected. If set to Blank_Selector.Any_Cell, columns with one or
          more blank values are selected.
        - treat_nans_as_blank: specifies whether `Number.nan` is considered as
          blank. By default, it is not.
@@ -430,20 +437,21 @@ type Table
 
              table.select_blank_columns
     select_blank_columns : Blank_Selector -> Boolean -> Table ! No_Output_Columns
-    select_blank_columns self (when:Blank_Selector = Blank_Selector.All_Cells_Blank) (treat_nans_as_blank : Boolean = False) =
+    select_blank_columns self (when:Blank_Selector = Blank_Selector.All_Cells) (treat_nans_as_blank : Boolean = False) =
         new_columns = self.columns_helper.select_blank_columns_helper when treat_nans_as_blank
         if new_columns.length == 0 then Error.throw (No_Output_Columns) else
             Table.new new_columns
 
     ## ALIAS drop_missing_columns, drop_na
        GROUP Standard.Base.Selections
+       ICON select_column
 
        Remove columns which are either all blank or contain blank values. If no
        rows are present, all columns are considered blank.
 
        Arguments:
        - when By default, only columns consisting of all blank cells are
-         selected. If set to Blank_Selector.Any_Cell_Blank, columns with one or more blank values are
+         selected. If set to Blank_Selector.Any_Cell, columns with one or more blank values are
          selected.
        - treat_nans_as_blank: specified whether `Number.nan` is considered as
          blank. By default, it is not.
@@ -456,12 +464,13 @@ type Table
 
              table.remove_blank_columns
     remove_blank_columns : Blank_Selector -> Boolean -> Table ! No_Output_Columns
-    remove_blank_columns self (when:Blank_Selector = Blank_Selector.All_Cells_Blank) (treat_nans_as_blank : Boolean = False) =
+    remove_blank_columns self (when:Blank_Selector = Blank_Selector.All_Cells) (treat_nans_as_blank : Boolean = False) =
         new_columns = self.columns_helper.select_blank_columns_helper when treat_nans_as_blank invert_selection=True
         if new_columns.length == 0 then Error.throw (No_Output_Columns) else
             Table.new new_columns
 
     ## GROUP Standard.Base.Selections
+       ICON select_column
        Returns a new table with the specified selection of columns moved to
        either the start or the end in the specified order.
 
@@ -516,6 +525,7 @@ type Table
         Table.new new_columns
 
     ## GROUP Standard.Base.Selections
+       ICON select_column
        Returns a new table with the columns sorted by name according to the
        specified sort method. By default, sorting will be according to
        case-sensitive ascending order based on the normalized Unicode ordering.
@@ -544,6 +554,7 @@ type Table
         Table.new new_columns
 
     ## GROUP Standard.Base.Metadata
+       ICON table_edit
        Returns a new table with the columns renamed based on either a mapping
        from the old name to the new or a positional list of new names.
 
@@ -612,6 +623,7 @@ type Table
             Table.new (self.columns.map c-> c.rename (names.at c.name))
 
     ## GROUP Standard.Base.Metadata
+       ICON table_edit
        Returns a new table with the columns renamed based on entries in the
        first row.
 
@@ -642,6 +654,7 @@ type Table
 
     ## ALIAS group by, summarize
        GROUP Standard.Base.Calculations
+       ICON sigma
 
        Aggregates the rows in a table using any `Group_By` entries in columns.
        The columns argument specifies which additional aggregations to perform and to return.
@@ -795,6 +808,7 @@ type Table
             Table.Value java_table
 
     ## GROUP Standard.Base.Selections
+       ICON preparation
        Returns the distinct set of rows within the specified columns from the
        input table.
 
@@ -843,6 +857,7 @@ type Table
         Table.Value java_table
 
     ## GROUP Standard.Base.Conversions
+       ICON convert
        Parses columns within a `Table` to a specific value type.
        By default, it looks at all `Text` columns and attempts to deduce the
        type (columns with other types are not affected).
@@ -966,6 +981,7 @@ type Table
             Table.new new_columns
 
     ## GROUP Standard.Base.Conversions
+       ICON convert
        Formats `Column`s within a `Table` using a format string,
        `Date_Time_Formatter`, or `Column` of format strings.
 
@@ -1058,6 +1074,7 @@ type Table
             Table.new new_columns
 
     ## GROUP Standard.Base.Conversions
+       ICON convert
        Cast the selected columns to a specific type.
 
        Returns a new table in which the selected columns are replaced with
@@ -1119,7 +1136,8 @@ type Table
             new_column = column_to_cast.cast value_type on_problems
             table.set new_column new_name=column_to_cast.name set_mode=Set_Mode.Update
 
-    ## Change the value type of table columns to a more specific one, based on
+    ## GROUP Standard.Base.Conversions
+       Change the value type of table columns to a more specific one, based on
        their contents.
 
        This is most useful for `Mixed` type columns and will allow to narrow
@@ -1164,6 +1182,7 @@ type Table
             table.set new_column new_name=column_to_cast.name set_mode=Set_Mode.Update
 
     ## GROUP Standard.Base.Conversions
+       ICON split_text
        Splits a column of text into a set of new columns.
        The original column will be removed from the table.
        The new columns will be named with the name of the input column with a
@@ -1186,6 +1205,7 @@ type Table
         Split_Tokenize.split_to_columns self column delimiter column_count on_problems
 
     ## GROUP Standard.Base.Conversions
+       ICON split_text
        Splits a column of text into a set of new rows.
        The values of other columns are repeated for the new rows.
 
@@ -1199,6 +1219,7 @@ type Table
         Split_Tokenize.split_to_rows self column delimiter
 
     ## GROUP Standard.Base.Conversions
+       ICON split_text
        Tokenizes a column of text into a set of new columns using a regular
        expression.
        If the pattern contains marked groups, the values are concatenated
@@ -1225,6 +1246,7 @@ type Table
         Split_Tokenize.tokenize_to_columns self column pattern case_sensitivity column_count on_problems
 
     ## GROUP Standard.Base.Conversions
+       ICON split_text
        Tokenizes a column of text into a set of new rows using a regular
        expression.
        If the pattern contains marked groups, the values are concatenated
@@ -1245,6 +1267,7 @@ type Table
         Split_Tokenize.tokenize_to_rows self column pattern case_sensitivity at_least_one_row
 
     ## GROUP Standard.Base.Conversions
+       ICON split_text
        Converts a Text column into new columns using a regular expression
        pattern.
 
@@ -1274,7 +1297,8 @@ type Table
     parse_to_columns self column pattern="." case_sensitivity=Case_Sensitivity.Sensitive parse_values=True on_problems=Report_Error =
         Split_Tokenize.parse_to_columns self column pattern case_sensitivity parse_values on_problems
 
-    ## GROUP Standard.Base.Conversions
+    ## GROUP Standard.Base.Calculations
+       ICON split_text
        Expand a column of objects to a new set of columns.
 
         Arguments:
@@ -1287,37 +1311,38 @@ type Table
     expand_column self (column : Text | Integer) (fields : (Vector Text) | Nothing = Nothing) (prefix : Prefix_Name = Prefix_Name.Column_Name) =
         Expand_Objects_Helpers.expand_column self column fields prefix
 
-    ## GROUP Standard.Base.Conversions
-      Expand aggregate values in a column to separate rows.
+    ## GROUP Standard.Base.Calculations
+       ICON split_text
+       Expand aggregate values in a column to separate rows.
 
-      For each value in the specified column, if it is an aggregate (`Vector`,
-      `Range`, etc.), expand it to multiple rows, duplicating the values in the
-      other columns.
+       For each value in the specified column, if it is an aggregate (`Vector`,
+       `Range`, etc.), expand it to multiple rows, duplicating the values in the
+       other columns.
 
-      Arguments:
-      - column: The column to expand.
-      - at_least_one_row: for an empty aggregate value, if `at_least_one_row` is
-        true, a single row is output with `Nothing` for the aggregates column; if
-        false, no row is output at all.
+       Arguments:
+       - column: The column to expand.
+       - at_least_one_row: for an empty aggregate value, if `at_least_one_row` is
+         true, a single row is output with `Nothing` for the aggregates column; if
+         false, no row is output at all.
 
-      The following aggregate values are supported:
-      - `Array`
-      - `Vector`
-      - `List`
-      - `Range`
-      - `Date_Range`
-      - `Pair
+       The following aggregate values are supported:
+       - `Array`
+       - `Vector`
+       - `List`
+       - `Range`
+       - `Date_Range`
+       - `Pair
 
-      Any other values are treated as non-aggregate values, and their rows are kept
-      unchanged.
+       Any other values are treated as non-aggregate values, and their rows are kept
+       unchanged.
 
-      In in-memory tables, it is permitted to mix values of different types.
+       In in-memory tables, it is permitted to mix values of different types.
 
-      > Example
-        Expand a column of integer `Vectors` to a column of `Integer`
+       > Example
+         Expand a column of integer `Vectors` to a column of `Integer`
 
-        table = Table.new [["aaa", [1, 2]], ["bbb", [[30, 31], [40, 41]]]]
-        # => Table.new [["aaa", [1, 1, 2, 2]], ["bbb", [30, 31, 40, 41]]]
+         table = Table.new [["aaa", [1, 2]], ["bbb", [[30, 31], [40, 41]]]]
+         # => Table.new [["aaa", [1, 1, 2, 2]], ["bbb", [30, 31, 40, 41]]]
     @column Widget_Helpers.make_column_name_selector
     expand_to_rows : Text | Integer -> Boolean -> Table ! Type_Error | No_Such_Column | Index_Out_Of_Bounds
     expand_to_rows self column at_least_one_row=False =
@@ -1325,6 +1350,7 @@ type Table
 
     ## ALIAS filter rows
        GROUP Standard.Base.Selections
+       ICON preparation
 
        Selects only the rows of this table that correspond to `True` values of
        `filter`.
@@ -1373,8 +1399,8 @@ type Table
              people.filter "age" (age -> (age%10 == 0))
     @column Widget_Helpers.make_column_name_selector
     @filter Widget_Helpers.make_filter_condition_selector
-    filter : (Column | Text | Integer) -> (Filter_Condition|(Any->Boolean)) -> Problem_Behavior -> Table ! No_Such_Column | Index_Out_Of_Bounds | Invalid_Value_Type
-    filter self column (filter : Filter_Condition | Function = Filter_Condition.Equal True) on_problems=Report_Warning = case column of
+    filter : (Column | Text | Integer) -> (Filter_Condition | (Any -> Boolean)) -> Problem_Behavior -> Table ! No_Such_Column | Index_Out_Of_Bounds | Invalid_Value_Type
+    filter self column (filter : Filter_Condition | (Any -> Boolean) = Filter_Condition.Equal True) on_problems=Report_Warning = case column of
         _ : Column ->
             mask filter_column = Table.Value (self.java_table.mask filter_column.java_column)
             case filter of
@@ -1389,6 +1415,7 @@ type Table
 
     ## ALIAS filter rows
        GROUP Standard.Base.Selections
+       ICON preparation
 
        Selects only the rows of this table that correspond to `True` values of
        `filter`.
@@ -1424,8 +1451,9 @@ type Table
         column = self.evaluate_expression expression on_problems
         self.filter column Filter_Condition.Is_True
 
-    ## ALIAS first, last, slice, sample
+    ## ALIAS first, last, sample, slice
        GROUP Standard.Base.Selections
+       ICON select_row
        Creates a new Table with the specified range of rows from the input
        Table.
 
@@ -1456,6 +1484,7 @@ type Table
         Index_Sub_Range_Module.take_helper self.row_count self.rows.at self.slice (slice_ranges self) range
 
     ## GROUP Standard.Base.Selections
+       ICON select_row
        Creates a new Table from the input with the specified range of rows
        removed.
 
@@ -1492,6 +1521,7 @@ type Table
 
     ## ALIAS add index column, rank, record id
        GROUP Standard.Base.Values
+       ICON dataframe_map_column
        Adds a new column to the table enumerating the rows.
 
        Arguments:
@@ -1529,6 +1559,7 @@ type Table
 
     ## ALIAS add column, new column, update column
        GROUP Standard.Base.Values
+       ICON dataframe_map_column
        Sets the column value at the given name.
 
        Arguments:
@@ -1570,7 +1601,7 @@ type Table
                  table.set double_inventory new_name="total_stock"
                  table.set "2 * [total_stock]" new_name="total_stock_expr"
     @column Column_Operation.default_widget
-    set : Text | Column -> Text -> Set_Mode -> Problem_Behavior -> Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error
+    set : Text | Column | Constant_Column | Column_Operation -> Text -> Set_Mode -> Problem_Behavior -> Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error
     set self column:(Text | Column | Constant_Column | Column_Operation) (new_name : Text = "") (set_mode : Set_Mode = Set_Mode.Add_Or_Update) (on_problems : Problem_Behavior = Report_Warning) =
         problem_builder = Problem_Builder.new
         unique = self.column_naming_helper.create_unique_name_strategy
@@ -1684,6 +1715,7 @@ type Table
         Vector.from_polyglot_array (Array_Proxy.from_proxy_object proxy)
 
     ## GROUP Standard.Base.Selections
+       ICON select_row
        Returns the first row of the table.
 
        In the database backend, it first materializes the table to in-memory.
@@ -1693,6 +1725,7 @@ type Table
             Row.Value self 0
 
     ## GROUP Standard.Base.Selections
+       ICON select_row
        Returns the second row of the table.
 
        In the database backend, it first materializes the table to in-memory.
@@ -1702,6 +1735,7 @@ type Table
             Row.Value self 1
 
     ## GROUP Standard.Base.Selections
+       ICON select_row
        Returns the last row of the table.
 
        In the database backend, it first materializes the table to in-memory.
@@ -1711,6 +1745,7 @@ type Table
             Row.Value self (self.row_count-1)
 
     ## GROUP Standard.Base.Calculations
+       ICON join
        Joins two tables according to the specified join conditions.
 
        Arguments:
@@ -1797,6 +1832,7 @@ type Table
 
     ## ALIAS cartesian join
        GROUP Standard.Base.Calculations
+       ICON join
        Joins tables by pairing every row of the left table with every row of the
        right table.
 
@@ -1841,7 +1877,9 @@ type Table
                 self.java_table.crossJoin right.java_table right_prefix java_aggregator
             Table.Value new_java_table
 
-    ## Replaces values in this table by values from a lookup table.
+    ## GROUP Standard.Base.Calculations
+       ICON join
+       Replaces values in this table by values from a lookup table.
        New values are looked up in the lookup table based on the `key_columns`.
        Columns found in the lookup table values are replaced by values from the
        lookup. Columns not found are left unchanged.
@@ -1929,6 +1967,7 @@ type Table
 
     ## ALIAS join by row position
        GROUP Standard.Base.Calculations
+       ICON dataframes_join
        Joins two tables by zipping rows from both tables table together - the
        first row of the left table is correlated with the first one of the right
        one etc.
@@ -1995,6 +2034,7 @@ type Table
 
     ## ALIAS append, concat
        GROUP Standard.Base.Calculations
+       ICON dataframes_union
        Appends records from other table(s) to this table.
 
        Arguments:
@@ -2084,7 +2124,7 @@ type Table
          retyped to the `Mixed` type to indicate that intention. Note that the
          `Mixed` type may not be supported by most Database backends.
     union : (Table | Vector Table) -> Match_Columns -> Boolean | Report_Unmatched -> Boolean -> Problem_Behavior -> Table
-    union self tables:Vector|Table match_columns=Match_Columns.By_Name keep_unmatched_columns=Report_Unmatched allow_type_widening=True on_problems=Report_Warning =
+    union self tables:(Table | Vector) match_columns=Match_Columns.By_Name keep_unmatched_columns=Report_Unmatched allow_type_widening=True on_problems=Report_Warning =
         all_tables = case tables of
             v : Vector -> [self] + (v.map t-> Table.from t)
             single_table -> [self, single_table]
@@ -2104,18 +2144,19 @@ type Table
 
     ## ALIAS drop_missing_rows, dropna
        GROUP Standard.Base.Selections
+       ICON preparation
        Remove rows which are all blank or containing blank values.
 
        Arguments:
-       - when: If Blank_Selector.Any_Cell_Blank, then remove any row containing
+       - when: If Blank_Selector.Any_Cell, then remove any row containing
         any blank values.
-         If Blank_Selector.All_Cells_Blank, then only remove rows with all blank values.
+         If Blank_Selector.All_Cells, then only remove rows with all blank values.
        - treat_nans_as_blank: If `True`, then `Number.nan` is considered as blank.
 
        ? Blank values
          Blank values are `Nothing`, `""` and depending on setting `Number.nan`.
     filter_blank_rows : Blank_Selector -> Boolean -> Table
-    filter_blank_rows self when=Blank_Selector.Any_Cell_Blank treat_nans_as_blank=False =
+    filter_blank_rows self when=Blank_Selector.Any_Cell treat_nans_as_blank=False =
         Table_Helpers.filter_blank_rows self when treat_nans_as_blank
 
     ## ALIAS count
@@ -2131,7 +2172,8 @@ type Table
     row_count : Integer
     row_count self = self.java_table.rowCount
 
-    ## Returns a materialized dataframe containing rows of this table.
+    ## ICON data_input
+       Returns a materialized dataframe containing rows of this table.
 
        In the in-memory backend, this returns the same table, truncated to
        `max_rows`. This is only kept for API compatibility between database and
@@ -2171,6 +2213,7 @@ type Table
         Table.new [["Column", cols.map .name], ["Items Count", cols.map .count], ["Value Type", cols.map .value_type]]
 
     ## GROUP Standard.Base.Calculations
+       ICON dataframe_map_row
        Returns a new table with a chosen subset of columns left unchanged and
        the other columns pivoted to rows with a single name field and a single
        value field.
@@ -2242,6 +2285,7 @@ type Table
         problem_builder.attach_problems_after on_problems result
 
     ## GROUP Standard.Base.Calculations
+       ICON dataframe_map_column
        Returns a new table using a chosen field as the column header and then
        aggregating the rows within each value as specified. Optionally, a set of
        fields can be used to group the rows.
@@ -2383,6 +2427,7 @@ type Table
         Table.Value <| self.java_table.applyMask mask
 
     ## GROUP Standard.Base.Output
+       ICON data_output
        This function writes a table from memory into a file.
 
        The specific behavior of the various `File_Format`s is specified below.
@@ -2474,6 +2519,7 @@ type Table
 
     ## ALIAS fill missing, if_nothing
        GROUP Standard.Base.Values
+       ICON dataframe_clean
 
        Returns a new table where missing values in the specified columns have
        been replaced with the provided default(s).
@@ -2502,6 +2548,7 @@ type Table
 
     ## ALIAS fill empty, if_empty
        GROUP Standard.Base.Values
+       ICON dataframe_clean
 
        Returns a new column where empty Text values have been replaced with the
        provided default(s).
@@ -2528,6 +2575,7 @@ type Table
         Table_Helpers.replace_columns_with_transformed_columns self columns transformer
 
     ## GROUP Standard.Base.Text
+       ICON dataframe_map_column
        Replaces the first, or all occurrences of `term` with `new_text` in each
        row of the specified column. If `term` is empty, the function returns the
        table unchanged.
@@ -2662,7 +2710,8 @@ concat_columns column_set all_tables result_type result_row_count on_problems =
    Conversion method to a Table from a Column.
 Table.from (that:Column) = that.to_table
 
-## Converts a Text value into a Table.
+## PRIVATE
+   Converts a Text value into a Table.
 
    The format of the text is determined by the `format` argument.
 
@@ -2675,7 +2724,8 @@ Table.from (that : Text) (format:Delimited_Format = Delimited_Format.Delimited '
         _ : Delimited_Format -> Delimited_Reader.read_text that format on_problems
         _ -> Unimplemented.throw "Table.from is currently only implemented for Delimited_Format."
 
-## Converts a Table into a Text value.
+## PRIVATE
+   Converts a Table into a Text value.
 
    The format of the text is determined by the `format` argument.
 
@@ -2691,7 +2741,8 @@ Text.from (that : Table) (format:Delimited_Format = Delimited_Format.Delimited '
    Conversion method to a Table from a Vector.
 Table.from (that:Vector) (fields : (Vector | Nothing) = Nothing) = that.to_table fields
 
-## Convert an `XML_Element` into a `Table`
+## PRIVATE
+   Convert an `XML_Element` into a `Table`
 
    Generates a single-row table with columns for the tag's contents.
 
@@ -2711,7 +2762,8 @@ Table.from (that:XML_Element) =
     # Generating a table from an `XML_Element` is the same logic as `expand_column`
     Table.new [["x", [that]]] . expand_column 'x' prefix=Prefix_Name.None
 
-## Convert an `XML_Document` into a `Table`
+## PRIVATE
+   Convert an `XML_Document` into a `Table`
 
    Generates a single-row table with columns for the root tag's contents.
 

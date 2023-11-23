@@ -1,5 +1,6 @@
 <script lang="ts">
 export const name = 'JSON'
+export const icon = 'braces'
 export const inputType = 'Any'
 </script>
 

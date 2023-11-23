@@ -26,7 +26,7 @@ make_double_builder initial_size java_problem_aggregator=(Missing_Required_Argum
     NumericBuilder.createDoubleBuilder initial_size java_problem_aggregator
 
 ## PRIVATE
-make_long_builder : Integer -> Bits -> NumericBuilder
+make_long_builder : Integer -> Bits -> ProblemAggregator -> NumericBuilder
 make_long_builder initial_size bits java_problem_aggregator=(Missing_Required_Argument.ensure_present "java_problem_aggregator") =
     integer_type = Storage.from_value_type_strict (Value_Type.Integer bits)
     NumericBuilder.createLongBuilder initial_size integer_type java_problem_aggregator

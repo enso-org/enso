@@ -1,5 +1,6 @@
 import { bail } from '@/util/assert'
 import { Rect } from '@/util/rect'
+import theme from '@/util/theme.json'
 import { Vec2 } from '@/util/vec2'
 
 export interface Environment {
@@ -10,16 +11,14 @@ export interface Environment {
 }
 
 export interface PlacementOptions {
-  gap?: number
+  horizontalGap?: number
+  verticalGap?: number
 }
 
 export interface Placement {
   position: Vec2
   pan?: Vec2
 }
-
-// The default gap is the height of a single node.
-const defaultGap = 24
 
 /** The new node should appear at the center of the screen if there is enough space for the new node.
  * Otherwise, it should be moved down to the closest free space.
@@ -35,18 +34,18 @@ const defaultGap = 24
 export function nonDictatedPlacement(
   nodeSize: Vec2,
   { screenBounds, nodeRects }: Environment,
-  { gap = defaultGap }: PlacementOptions = {},
+  { verticalGap = theme.node.vertical_gap }: PlacementOptions = {},
 ): Placement {
-  const initialPosition = screenBounds.center().sub(nodeSize.scale(0.5))
+  const initialPosition = screenBounds.center().sub(new Vec2(nodeSize.y / 2, nodeSize.y / 2))
   const initialRect = new Rect(initialPosition, nodeSize)
   let top = initialPosition.y
   const height = nodeSize.y
   const bottom = () => top + height
   const nodeRectsSorted = Array.from(nodeRects).sort((a, b) => a.top - b.top)
   for (const rect of nodeRectsSorted) {
-    if (initialRect.intersectsX(rect) && rect.bottom + gap > top) {
-      if (rect.top - bottom() < gap) {
-        top = rect.bottom + gap
+    if (initialRect.intersectsX(rect) && rect.bottom + verticalGap > top) {
+      if (rect.top - bottom() < verticalGap) {
+        top = rect.bottom + verticalGap
       }
     }
   }
@@ -63,7 +62,7 @@ export function nonDictatedPlacement(
  * In case the place is offscreen, the camera should be panned accordingly.
  *
  * Specifically, this code, in order:
- * - uses the left side of the first selected node and as the initial x-position
+ * - uses the left side of the first selected node as the initial x-position
  * - uses the lowest (highest y-position) of all selected nodes, plus the specified gap,
  *   as the initial y-position
  * - searches for all horizontal spans to the right of the initial position,
@@ -79,13 +78,16 @@ export function nonDictatedPlacement(
 export function previousNodeDictatedPlacement(
   nodeSize: Vec2,
   { screenBounds, selectedNodeRects, nodeRects }: Environment,
-  { gap = defaultGap }: PlacementOptions = {},
+  {
+    horizontalGap = theme.node.horizontal_gap,
+    verticalGap = theme.node.vertical_gap,
+  }: PlacementOptions = {},
 ): Placement {
   let initialLeft: number | undefined
   let top = -Infinity
   for (const rect of selectedNodeRects) {
     initialLeft ??= rect.left
-    const newTop = rect.bottom + gap
+    const newTop = rect.bottom + verticalGap
     if (newTop > top) top = newTop
   }
   if (initialLeft == null)
@@ -97,16 +99,16 @@ export function previousNodeDictatedPlacement(
   const initialRect = new Rect(initialPosition, nodeSize)
   const sortedNodeRects = Array.from(nodeRects).sort((a, b) => a.left - b.left)
   for (const rect of sortedNodeRects) {
-    if (initialRect.intersectsY(rect) && rect.right + gap > left) {
-      if (rect.left - right() < gap) {
-        left = rect.right + gap
+    if (initialRect.intersectsY(rect) && rect.right + horizontalGap > left) {
+      if (rect.left - right() < horizontalGap) {
+        left = rect.right + horizontalGap
       }
     }
   }
   const finalPosition = new Vec2(left, top)
   if (new Rect(finalPosition, nodeSize).within(screenBounds)) return { position: finalPosition }
   else {
-    const screenCenter = screenBounds.center().sub(nodeSize.scale(0.5))
+    const screenCenter = screenBounds.center().sub(new Vec2(nodeSize.y / 2, nodeSize.y / 2))
     return { position: finalPosition, pan: finalPosition.sub(screenCenter) }
   }
 }

@@ -9,7 +9,9 @@ import {
   useVisualizationStore,
   type Visualization,
 } from '@/stores/visualization'
+import type { URLString } from '@/stores/visualization/compilerMessaging'
 import { toError } from '@/util/error'
+import type { Icon } from '@/util/iconName'
 import type { Opt } from '@/util/opt'
 import type { Vec2 } from '@/util/vec2'
 import type { ExprId, VisualizationIdentifier } from 'shared/yjsModel'
@@ -35,6 +37,7 @@ const emit = defineEmits<{
 }>()
 
 const visualization = shallowRef<Visualization>()
+const icon = ref<Icon | URLString>()
 
 onErrorCaptured((vueError) => {
   error.value = vueError
@@ -76,6 +79,7 @@ watch(
 watchEffect(async () => {
   if (props.currentType == null) return
   visualization.value = undefined
+  icon.value = undefined
   try {
     const module = await visualizationStore.get(props.currentType).value
     if (module) {
@@ -85,6 +89,7 @@ watchEffect(async () => {
         switchToDefaultPreprocessor()
       }
       visualization.value = module.default
+      icon.value = module.icon
     } else {
       switch (props.currentType.module.kind) {
         case 'Builtin': {
@@ -127,6 +132,9 @@ provideVisualizationConfig({
   },
   get currentType() {
     return props.currentType ?? DEFAULT_VISUALIZATION_IDENTIFIER
+  },
+  get icon() {
+    return icon.value
   },
   hide: () => emit('setVisualizationVisible', false),
   updateType: (id) => emit('setVisualizationId', id),

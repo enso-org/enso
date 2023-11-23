@@ -39,11 +39,12 @@ function updateContent(updates: [range: ContentRange, content: string][]) {
 const idMap = new IdMap(yIdMap, text)
 
 const rootSpan = computed(() => AstExtended.parse(nodeContent.value, idMap))
+const pattern = computed(() => AstExtended.parse(nodeBinding.value, idMap))
 
 const node = computed((): Node => {
   return {
     outerExprId: '' as any,
-    binding: nodeBinding.value,
+    pattern: pattern.value,
     position: position.value,
     rootSpan: rootSpan.value,
     vis: undefined,

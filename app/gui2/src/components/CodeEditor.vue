@@ -2,6 +2,7 @@
 import { useGraphStore } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
+import { useAutoBlur } from '@/util/autoBlur'
 import type { Highlighter } from '@/util/codemirror'
 import { usePointer } from '@/util/events'
 import { useLocalStorage } from '@vueuse/core'
@@ -30,6 +31,7 @@ const projectStore = useProjectStore()
 const graphStore = useGraphStore()
 const suggestionDbStore = useSuggestionDbStore()
 const rootElement = ref<HTMLElement>()
+useAutoBlur(rootElement)
 
 // == CodeMirror editor setup  ==
 
@@ -39,7 +41,7 @@ watchEffect(() => {
   if (!module) return
   const yText = module.doc.contents
   const undoManager = module.undoManager
-  const awareness = projectStore.awareness
+  const awareness = projectStore.awareness.internal
   editorView.setState(
     EditorState.create({
       doc: yText.toString(),
@@ -55,13 +57,13 @@ watchEffect(() => {
           const dom = document.createElement('div')
           const astSpan = ast.span()
           let foundNode: ExprId | undefined
-          for (const [id, node] of graphStore.db.allNodes()) {
+          for (const [id, node] of graphStore.db.nodeIdToNode.entries()) {
             if (rangeEncloses(node.rootSpan.span(), astSpan)) {
               foundNode = id
               break
             }
           }
-          const expressionInfo = foundNode && graphStore.db.nodeExpressionInfo.lookup(foundNode)
+          const expressionInfo = foundNode && graphStore.db.getExpressionInfo(foundNode)
           const nodeColor = foundNode && graphStore.db.getNodeColorStyle(foundNode)
 
           if (foundNode != null) {
