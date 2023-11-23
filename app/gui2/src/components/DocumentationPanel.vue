@@ -58,7 +58,8 @@ const name = computed<Opt<QualifiedName>>(() => {
 // === Breadcrumbs ===
 
 const color = computed(() => {
-  const groupIndex = db.entries.get(props.selectedEntry)?.groupIndex
+  const groupIndex =
+    props.selectedEntry != null ? db.entries.get(props.selectedEntry)?.groupIndex : undefined
   return groupColorStyle(tryGetIndex(db.groups, groupIndex))
 })
 

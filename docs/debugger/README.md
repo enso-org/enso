@@ -15,5 +15,7 @@ used by Enso, broken up as follows:
   Debugger.
 - [**Chrome devtools debugger:**](./chrome-devtools.md) A guide how to debug
   Enso code using Chrome devtools.
+- [**Debug adapter protocol:**](./dap.md) A guide how to debug Enso code using
+  VSCode.
 - [**Debugging Engine (Runtime) only Java code:**](./runtime-debugging.md) A
   guide how to debug Enso code & the internal Java code.

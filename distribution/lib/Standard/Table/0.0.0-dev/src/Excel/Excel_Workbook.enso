@@ -155,6 +155,7 @@ type Excel_Workbook
 
     ## ALIAS range, sheet, worksheet
        GROUP Standard.Base.Input
+       ICON data_input
        Execute the query and load the results into memory as a Table.
 
        Arguments:
@@ -172,6 +173,7 @@ type Excel_Workbook
         Table.Value java_table
 
     ## GROUP Standard.Base.Input
+       ICON data_input
        Read an Excel_Section from the Workbook
 
        Arguments:
@@ -201,7 +203,7 @@ type Excel_Workbook
                         _ : Text -> ExcelReader.readRangeByName self.workbook address java_headers skip_rows row_limit java_problem_aggregator
                 Table.Value java_table
 
-    ## ALIAS worksheet, get
+    ## ALIAS get, worksheet
        GROUP Standard.Base.Input
        Reads a worksheet from the workbook.
 

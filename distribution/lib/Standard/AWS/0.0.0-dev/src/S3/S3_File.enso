@@ -96,6 +96,7 @@ type S3_File
 
     ## ALIAS load, open
        GROUP Standard.Base.Input
+       ICON data_input
        Read a file using the specified file format
 
        Arguments:
@@ -119,12 +120,14 @@ type S3_File
             _ -> self.with_input_stream [File_Access.Read] format.read_stream
 
     ## ALIAS load bytes, open bytes
+       ICON data_input
        Reads all bytes in this file into a byte vector.
     read_bytes : Vector ! File_Error
     read_bytes self =
         self.read Bytes
 
     ## ALIAS load text, open text
+       ICON data_input
        Reads the whole file into a `Text`, with specified encoding.
 
        Arguments:
