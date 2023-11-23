@@ -374,9 +374,20 @@ final class TruffleCompilerContext implements CompilerContext {
     @Override
     public BindingsMap getBindingsMap() {
       if (module.getIr() != null) {
-        var meta = module.getIr().passData();
-        var pass = meta.get(BindingAnalysis$.MODULE$);
-        return (BindingsMap) pass.get();
+        for (;;) {
+          try {
+            var meta = module.getIr().passData();
+            var pass = meta.get(BindingAnalysis$.MODULE$);
+            emitIOException();
+            return (BindingsMap) pass.get();
+          } catch (IOException ex) {
+            module.unsafeSetIr(null);
+            module.unsafeSetCompilationStage(CompilationStage.INITIAL);
+            var context = EnsoContext.get(null);
+            module.getCache().invalidate(context);
+            context.getCompiler().ensureParsed(this);
+          }
+        }
       } else {
         return bindings;
       }
@@ -446,5 +457,8 @@ final class TruffleCompilerContext implements CompilerContext {
       sb.append('}');
       return sb.toString();
     }
+  }
+
+  private static void emitIOException() throws IOException {
   }
 }

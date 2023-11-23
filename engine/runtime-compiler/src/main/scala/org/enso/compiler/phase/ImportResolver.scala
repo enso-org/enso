@@ -2,7 +2,6 @@ package org.enso.compiler.phase
 
 import org.enso.compiler.Compiler
 import org.enso.compiler.context.CompilerContext.Module
-import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.{Module => IRModule}
 import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.expression.errors
@@ -16,11 +15,9 @@ import org.enso.compiler.data.BindingsMap.{
   Type
 }
 import org.enso.compiler.core.CompilerError
-import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.editions.LibraryName
 import org.enso.polyglot.CompilationStage
 import scala.collection.mutable
-import java.io.IOException
 
 /** Runs imports resolution. Starts from a given module and then recursively
   * collects all modules that are reachable from it.
@@ -47,28 +44,9 @@ class ImportResolver(compiler: Compiler) {
   ): (List[Module], List[Module]) = {
 
     def analyzeModule(current: Module): List[Module] = {
-      val context = compiler.context
-      val (ir, currentLocal) =
-        try {
-          val ir = context.getIr(current)
-          val currentLocal = ir.unsafeGetMetadata(
-            BindingAnalysis,
-            "Non-parsed module used in ImportResolver"
-          )
-          (ir, currentLocal)
-        } catch {
-          case _: IOException =>
-            context.updateModule(
-              current,
-              u => {
-                u.ir(null)
-                u.compilationStage(CompilationStage.INITIAL)
-                u.invalidateCache()
-              }
-            )
-            compiler.ensureParsed(current)
-            return analyzeModule(current)
-        }
+      val context      = compiler.context
+      val ir           = context.getIr(current)
+      val currentLocal = current.getBindingsMap()
       // put the list of resolved imports in the module metadata
       if (
         context
