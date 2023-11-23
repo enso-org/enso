@@ -48,10 +48,10 @@ function createNodeFromEdgeDrop(source: ExprId) {
 }
 
 function createEdge(source: ExprId, target: ExprId) {
-  const sourceNode = graph.db.nodeIdToNode.get(source)
-  if (sourceNode == null) return
+  const ident = graph.db.getIdentifierOfConnection(source)
+  if (ident == null) return
   // TODO: Check alias analysis to see if the binding is shadowed.
-  graph.setExpressionContent(target, sourceNode.binding)
+  graph.setExpressionContent(target, ident)
   // TODO: Use alias analysis to ensure declarations are in a dependency order.
 }
 </script>

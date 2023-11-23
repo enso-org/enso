@@ -1,4 +1,4 @@
-import { GraphDb, mockNode } from '@/stores/graph/graphDatabase'
+import { GraphDb } from '@/stores/graph/graphDatabase'
 import {
   makeCon,
   makeLocal,
@@ -102,8 +102,8 @@ test.each([
       profilingInfo: [],
     })
     const mockGraphDb = GraphDb.Mock(computedValueRegistryMock)
-    mockGraphDb.nodeIdToNode.set(operator1Id, mockNode('operator1', operator1Id))
-    mockGraphDb.nodeIdToNode.set(operator2Id, mockNode('operator2', operator2Id))
+    mockGraphDb.mockNode('operator1', operator1Id)
+    mockGraphDb.mockNode('operator2', operator2Id)
 
     const input = useComponentBrowserInput(mockGraphDb)
     input.code.value = code
