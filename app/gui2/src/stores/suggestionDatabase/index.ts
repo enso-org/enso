@@ -10,10 +10,9 @@ import { LanguageServer } from 'shared/languageServer'
 import type { MethodPointer } from 'shared/languageServerTypes'
 import { markRaw, ref, type Ref } from 'vue'
 
-export class SuggestionDb {
-  _internal = new ReactiveDb<SuggestionId, SuggestionEntry>()
-  nameToId = new ReactiveIndex(this._internal, (id, entry) => [[entryQn(entry), id]])
-  parent = new ReactiveIndex(this._internal, (id, entry) => {
+export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
+  nameToId = new ReactiveIndex(this, (id, entry) => [[entryQn(entry), id]])
+  childIdToParentId = new ReactiveIndex(this, (id, entry) => {
     let qualifiedName: Opt<QualifiedName>
     if (entry.memberOf) {
       qualifiedName = entry.memberOf
@@ -26,19 +25,6 @@ export class SuggestionDb {
     }
     return []
   })
-
-  set(id: SuggestionId, entry: SuggestionEntry): void {
-    this._internal.set(id, entry)
-  }
-  get(id: SuggestionId | null | undefined): SuggestionEntry | undefined {
-    return id != null ? this._internal.get(id) : undefined
-  }
-  delete(id: SuggestionId): boolean {
-    return this._internal.delete(id)
-  }
-  entries(): IterableIterator<[SuggestionId, SuggestionEntry]> {
-    return this._internal.entries()
-  }
 
   findByMethodPointer(method: MethodPointer): SuggestionId | undefined {
     if (method == null) return

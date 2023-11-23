@@ -23,8 +23,8 @@ import {
 import { ref, type Ref } from 'vue'
 
 export class GraphDb {
-  nodes = new ReactiveDb<ExprId, Node>()
-  idents = new ReactiveIndex(this.nodes, (_id, entry) => {
+  nodeIdToNode = new ReactiveDb<ExprId, Node>()
+  nodeIdToBinding = new ReactiveIndex(this.nodeIdToNode, (_id, entry) => {
     const idents: [ExprId, string][] = []
     entry.rootSpan.visitRecursive((span) => {
       if (span.isTree(Ast.Tree.Type.Ident)) {
@@ -35,30 +35,31 @@ export class GraphDb {
     })
     return idents
   })
-  private nodeExpressions = new ReactiveIndex(this.nodes, (id, entry) => {
+  nodeIdToExprId = new ReactiveIndex(this.nodeIdToNode, (id, entry) => {
     const exprs = new Set<ExprId>()
     for (const ast of entry.rootSpan.walkRecursive()) {
       exprs.add(ast.astId)
     }
     return Array.from(exprs, (expr) => [id, expr])
   })
-  nodeByBinding = new ReactiveIndex(this.nodes, (id, entry) => [[entry.binding, id]])
-  connections = new ReactiveIndex(this.nodes, (id, entry) => {
+  bindingToNodeId = new ReactiveIndex(this.nodeIdToNode, (id, entry) => [[entry.binding, id]])
+  sourceIdToTargetId = new ReactiveIndex(this.nodeIdToNode, (id, entry) => {
     const usageEntries: [ExprId, ExprId][] = []
-    const usages = this.idents.reverseLookup(entry.binding)
+    const usages = this.nodeIdToBinding.reverseLookup(entry.binding)
     for (const usage of usages) {
       usageEntries.push([id, usage])
     }
     return usageEntries
   })
-  nodeMainSuggestion = new ReactiveMapping(this.nodes, (id, _entry) => {
+  nodeMainSuggestion = new ReactiveMapping(this.nodeIdToNode, (id, _entry) => {
     const expressionInfo = this.getExpressionInfo(id)
     const method = expressionInfo?.methodCall?.methodPointer
     if (method == null) return
     const suggestionId = this.suggestionDb.findByMethodPointer(method)
+    if (suggestionId == null) return
     return this.suggestionDb.get(suggestionId)
   })
-  private nodeColors = new ReactiveMapping(this.nodes, (id, _entry) => {
+  nodeColor = new ReactiveMapping(this.nodeIdToNode, (id, _entry) => {
     const index = this.nodeMainSuggestion.lookup(id)?.groupIndex
     const group = tryGetIndex(this.groups.value, index)
     if (group == null) {
@@ -68,24 +69,12 @@ export class GraphDb {
     return groupColorStyle(group)
   })
 
-  getNode(id: ExprId): Node | undefined {
-    return this.nodes.get(id)
-  }
-
-  allNodes(): IterableIterator<[ExprId, Node]> {
-    return this.nodes.entries()
-  }
-
-  allNodeIds(): IterableIterator<ExprId> {
-    return this.nodes.keys()
-  }
-
-  getExpressionNodeId(exprId: ExprId | undefined): ExprId | undefined {
-    return exprId && set.first(this.nodeExpressions.reverseLookup(exprId))
+  getExpressionNodeId(exprId: ExprId): ExprId | undefined {
+    return set.first(this.nodeIdToExprId.reverseLookup(exprId))
   }
 
   getIdentDefiningNode(ident: string): ExprId | undefined {
-    return set.first(this.nodeByBinding.lookup(ident))
+    return set.first(this.bindingToNodeId.lookup(ident))
   }
 
   getExpressionInfo(id: ExprId): ExpressionInfo | undefined {
@@ -102,17 +91,18 @@ export class GraphDb {
     const methodCall = this.getExpressionInfo(id)?.methodCall
     if (methodCall == null) return
     const suggestionId = this.suggestionDb.findByMethodPointer(methodCall.methodPointer)
+    if (suggestionId == null) return
     const suggestion = this.suggestionDb.get(suggestionId)
     if (suggestion == null) return
     return { methodCall, suggestion }
   }
 
   getNodeColorStyle(id: ExprId): string {
-    return (id && this.nodeColors.lookup(id)) ?? 'var(--node-color-no-type)'
+    return this.nodeColor.lookup(id) ?? 'var(--node-color-no-type)'
   }
 
   moveNodeToTop(id: ExprId) {
-    this.nodes.moveToLast(id)
+    this.nodeIdToNode.moveToLast(id)
   }
 
   getNodeWidth(node: Node) {
@@ -133,11 +123,11 @@ export class GraphDb {
       for (const nodeAst of functionAst.visit(getFunctionNodeExpressions)) {
         const newNode = nodeFromAst(nodeAst)
         const nodeId = newNode.rootSpan.astId
-        const node = this.nodes.get(nodeId)
+        const node = this.nodeIdToNode.get(nodeId)
         const nodeMeta = getMeta(nodeId)
         currentNodeIds.add(nodeId)
         if (node == null) {
-          this.nodes.set(nodeId, newNode)
+          this.nodeIdToNode.set(nodeId, newNode)
         } else {
           if (node.binding !== newNode.binding) {
             node.binding = newNode.binding
@@ -170,9 +160,9 @@ export class GraphDb {
       }
     }
 
-    for (const nodeId of this.allNodeIds()) {
+    for (const nodeId of this.nodeIdToNode.keys()) {
       if (!currentNodeIds.has(nodeId)) {
-        this.nodes.delete(nodeId)
+        this.nodeIdToNode.delete(nodeId)
       }
     }
 
@@ -191,10 +181,10 @@ export class GraphDb {
       },
     )
     let nodeIndex = 0
-    for (const nodeId of this.allNodeIds()) {
+    for (const nodeId of this.nodeIdToNode.keys()) {
       const meta = getMeta(nodeId)
       if (meta) continue
-      const node = this.nodes.get(nodeId)!
+      const node = this.nodeIdToNode.get(nodeId)!
       const size = new Vec2(this.getNodeWidth(node), theme.node.height)
       const position = new Vec2(
         rectsPosition.x,

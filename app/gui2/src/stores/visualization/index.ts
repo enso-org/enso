@@ -224,8 +224,8 @@ export const useVisualizationStore = defineStore('visualization', () => {
       type == null
         ? metadata.keys()
         : new Set([
-            ...(metadata.types.reverseLookup(type) ?? []),
-            ...(metadata.types.reverseLookup('Any') ?? []),
+            ...(metadata.visualizationIdToType.reverseLookup(type) ?? []),
+            ...(metadata.visualizationIdToType.reverseLookup('Any') ?? []),
           ])
     for (const type of types) yield fromVisualizationId(type)
   }
