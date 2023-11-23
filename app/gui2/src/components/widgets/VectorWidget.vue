@@ -1,7 +1,7 @@
 <script lang="ts">
 import SvgIcon from '@/components/SvgIcon.vue'
 import { defineKeybinds } from '@/util/shortcuts'
-import { computed, ref, watch, type Ref } from 'vue'
+import { computed, onUpdated, ref, watch, type Ref } from 'vue'
 
 const bindings = defineKeybinds('vector-widget', {
   dragListItem: ['PointerMain', 'Mod+PointerMain'],
@@ -38,6 +38,8 @@ const dragItem = ref<T>()
 const displayedChildren = ref([]) as Ref<T[]>
 const itemNodes = ref<HTMLLIElement[]>([])
 const childBoundingBoxes = ref<DOMRect[]>([])
+
+onUpdated(() => (itemNodes.value = []))
 
 function updateBoundingBoxes() {
   displayedChildren.value = props.modelValue
@@ -124,7 +126,7 @@ function handleDragAndReturnChildList(event: DragEvent) {
         <template v-for="(item, index) in modelValue" :key="props.getId?.(item) ?? index">
           <li v-if="index !== 0" class="token">,&nbsp;</li>
           <li
-            ref="itemNodes"
+            :ref="(el) => itemNodes.push(el as HTMLLIElement)"
             class="item"
             draggable="true"
             @dragstart="(dragItem = item), mouseHandler($event, false) || (dragItem = undefined)"
