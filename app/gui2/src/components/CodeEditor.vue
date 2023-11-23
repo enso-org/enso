@@ -41,7 +41,7 @@ watchEffect(() => {
   if (!module) return
   const yText = module.doc.contents
   const undoManager = module.undoManager
-  const awareness = projectStore.awareness
+  const awareness = projectStore.awareness.internal
   editorView.setState(
     EditorState.create({
       doc: yText.toString(),
@@ -57,13 +57,13 @@ watchEffect(() => {
           const dom = document.createElement('div')
           const astSpan = ast.span()
           let foundNode: ExprId | undefined
-          for (const [id, node] of graphStore.db.allNodes()) {
+          for (const [id, node] of graphStore.db.nodeIdToNode.entries()) {
             if (rangeEncloses(node.rootSpan.span(), astSpan)) {
               foundNode = id
               break
             }
           }
-          const expressionInfo = foundNode && graphStore.db.nodeExpressionInfo.lookup(foundNode)
+          const expressionInfo = foundNode && graphStore.db.getExpressionInfo(foundNode)
           const nodeColor = foundNode && graphStore.db.getNodeColorStyle(foundNode)
 
           if (foundNode != null) {

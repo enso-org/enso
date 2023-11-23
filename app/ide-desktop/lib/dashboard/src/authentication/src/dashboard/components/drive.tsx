@@ -3,6 +3,7 @@ import * as React from 'react'
 
 import * as common from 'enso-common'
 
+import * as appInfo from '../../appInfo'
 import * as assetEventModule from '../events/assetEvent'
 import * as assetListEventModule from '../events/assetListEvent'
 import * as authProvider from '../../authentication/providers/auth'
@@ -29,8 +30,9 @@ import Labels from './labels'
 
 /** Props for a {@link Drive}. */
 export interface DriveProps {
-    page: pageSwitcher.Page
+    supportsLocalBackend: boolean
     hidden: boolean
+    page: pageSwitcher.Page
     initialProjectName: string | null
     /** These events will be dispatched the next time the assets list is refreshed, rather than
      * immediately. */
@@ -57,8 +59,9 @@ export interface DriveProps {
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
 export default function Drive(props: DriveProps) {
     const {
-        page,
+        supportsLocalBackend,
         hidden,
+        page,
         initialProjectName,
         queuedAssetEvents,
         query,
@@ -315,8 +318,29 @@ export default function Drive(props: DriveProps) {
         </div>
     ) : isListingRemoteDirectoryAndWillFail ? (
         <div className={`grow grid place-items-center mx-2 ${hidden ? 'hidden' : ''}`}>
-            <div className="text-base text-center">
-                We will review your user details and enable the cloud experience for you shortly.
+            <div className="flex flex-col gap-4 text-base text-center">
+                Upgrade your plan to use {common.PRODUCT_NAME} Cloud.
+                <a
+                    className="block self-center whitespace-nowrap text-base text-white bg-help rounded-full self-center leading-170 h-8 py-px px-2 w-min"
+                    href="https://enso.org/pricing"
+                >
+                    Upgrade
+                </a>
+                {!supportsLocalBackend && (
+                    <button
+                        className="block self-center whitespace-nowrap text-base text-white bg-help rounded-full self-center leading-170 h-8 py-px px-2 w-min"
+                        onClick={async () => {
+                            const downloadUrl = await appInfo.getDownloadUrl()
+                            if (downloadUrl == null) {
+                                toastAndLog('Could not find a download link for the current OS')
+                            } else {
+                                window.open(downloadUrl, '_blank')
+                            }
+                        }}
+                    >
+                        Download Free Edition
+                    </button>
+                )}
             </div>
         </div>
     ) : (

@@ -78,7 +78,10 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
+                    "Connection": "Upgrade, HTTP2-Settings",
+                    "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
                     "User-Agent": "Java-http-client/21.0.1",
+                    "Upgrade": "h2c",
                     "Content-Length": "0"
                   },
                   "origin": "127.0.0.1",
@@ -119,7 +122,10 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
+                    "Connection": "Upgrade, HTTP2-Settings",
+                    "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
                     "User-Agent": "Java-http-client/21.0.1",
+                    "Upgrade": "h2c",
                     "Content-Length": "0"
                   },
                   "origin": "127.0.0.1",
@@ -166,7 +172,10 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
+                    "Connection": "Upgrade, HTTP2-Settings",
+                    "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
                     "User-Agent": "Java-http-client/21.0.1",
+                    "Upgrade": "h2c",
                     "Content-Type": "text/plain; charset=UTF-8",
                     "Content-Length": "11"
                   },
@@ -189,7 +198,10 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
+                    "Connection": "Upgrade, HTTP2-Settings",
+                    "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
                     "User-Agent": "Java-http-client/21.0.1",
+                    "Upgrade": "h2c",
                     "Content-Type": "application/json",
                     "Content-Length": "20"
                   },
@@ -209,7 +221,10 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
+                    "Connection": "Upgrade, HTTP2-Settings",
+                    "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
                     "User-Agent": "Java-http-client/21.0.1",
+                    "Upgrade": "h2c",
                     "Content-Type": "application/json",
                     "Content-Length": "20"
                   },
@@ -228,7 +243,10 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
+                    "Connection": "Upgrade, HTTP2-Settings",
+                    "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
                     "User-Agent": "Java-http-client/21.0.1",
+                    "Upgrade": "h2c",
                     "Content-Type": "application/json",
                     "Content-Length": "50"
                   },
@@ -247,7 +265,10 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
+                    "Connection": "Upgrade, HTTP2-Settings",
+                    "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
                     "User-Agent": "Java-http-client/21.0.1",
+                    "Upgrade": "h2c",
                     "Content-Type": "application/json",
                     "Content-Length": "47"
                   },
@@ -270,7 +291,10 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
+                    "Connection": "Upgrade, HTTP2-Settings",
+                    "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
                     "User-Agent": "Java-http-client/21.0.1",
+                    "Upgrade": "h2c",
                     "Content-Type": "text/plain; charset=UTF-16LE",
                     "Content-Length": "24"
                   },
@@ -289,7 +313,10 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
+                    "Connection": "Upgrade, HTTP2-Settings",
+                    "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
                     "User-Agent": "Java-http-client/21.0.1",
+                    "Upgrade": "h2c",
                     "Content-Type": "text/csv; charset=UTF-8",
                     "Content-Length": "6"
                   },
@@ -343,7 +370,10 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
+                    "Connection": "Upgrade, HTTP2-Settings",
+                    "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
                     "User-Agent": "Java-http-client/21.0.1",
+                    "Upgrade": "h2c",
                     "Content-Type": "text/plain; charset=UTF-8",
                     "Content-Length": "11"
                   },
@@ -362,7 +392,10 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
+                    "Connection": "Upgrade, HTTP2-Settings",
+                    "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
                     "User-Agent": "Java-http-client/21.0.1",
+                    "Upgrade": "h2c",
                     "Content-Type": "text/plain; charset=UTF-8",
                     "Content-Length": "11"
                   },
@@ -381,7 +414,10 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
+                    "Connection": "Upgrade, HTTP2-Settings",
+                    "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
                     "User-Agent": "Java-http-client/21.0.1",
+                    "Upgrade": "h2c",
                     "Content-Type": "application/diff; charset=UTF-8",
                     "Content-Length": "11"
                   },
@@ -400,7 +436,10 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
+                    "Connection": "Upgrade, HTTP2-Settings",
+                    "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
                     "User-Agent": "Java-http-client/21.0.1",
+                    "Upgrade": "h2c",
                     "Content-Length": "0"
                   },
                   "origin": "127.0.0.1",
@@ -418,7 +457,10 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
+                    "Connection": "Upgrade, HTTP2-Settings",
+                    "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
                     "User-Agent": "Java-http-client/21.0.1",
+                    "Upgrade": "h2c",
                     "Content-Type": "text/plain; charset=UTF-8",
                     "Content-Length": "11"
                   },
@@ -437,7 +479,10 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
+                    "Connection": "Upgrade, HTTP2-Settings",
+                    "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
                     "User-Agent": "Java-http-client/21.0.1",
+                    "Upgrade": "h2c",
                     "Content-Type": "text/plain; charset=UTF-8",
                     "Content-Length": "11",
                     "Custom": "asdf"
@@ -483,7 +528,10 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
+                    "Connection": "Upgrade, HTTP2-Settings",
+                    "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
                     "User-Agent": "Java-http-client/21.0.1",
+                    "Upgrade": "h2c",
                     "Content-Type": "application/json; charset=UTF-8",
                     "Content-Length": "23"
                   },
@@ -502,7 +550,10 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
+                    "Connection": "Upgrade, HTTP2-Settings",
+                    "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
                     "User-Agent": "Java-http-client/21.0.1",
+                    "Upgrade": "h2c",
                     "Content-Type": "application/json",
                     "Content-Length": "23"
                   },
@@ -521,7 +572,10 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
+                    "Connection": "Upgrade, HTTP2-Settings",
+                    "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
                     "User-Agent": "Java-http-client/21.0.1",
+                    "Upgrade": "h2c",
                     "Content-Type": "application/json",
                     "Content-Length": "23"
                   },
@@ -540,7 +594,10 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
+                    "Connection": "Upgrade, HTTP2-Settings",
+                    "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
                     "User-Agent": "Java-http-client/21.0.1",
+                    "Upgrade": "h2c",
                     "Content-Type": "text/plain; charset=UTF-8",
                     "Content-Length": "23"
                   },

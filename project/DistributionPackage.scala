@@ -95,6 +95,9 @@ object DistributionPackage {
   def executableName(baseName: String): String =
     if (Platform.isWindows) baseName + ".exe" else baseName
 
+  private def batName(baseName: String): String =
+    if (Platform.isWindows) baseName + ".bat" else baseName
+
   def createProjectManagerPackage(
     distributionRoot: File,
     cacheFactory: CacheStoreFactory
@@ -266,7 +269,7 @@ object DistributionPackage {
   ): Boolean = {
     import scala.collection.JavaConverters._
 
-    val enso = distributionRoot / "bin" / "enso"
+    val enso = distributionRoot / "bin" / batName("enso")
     log.info(s"Executing $enso ${args.mkString(" ")}")
     val pb  = new java.lang.ProcessBuilder()
     val all = new java.util.ArrayList[String]()

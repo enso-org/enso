@@ -234,7 +234,7 @@ function setDeepLinkHandler(logger: loggerProvider.Logger, navigate: (url: strin
              * the password reset page, with the verification code and email passed in the URL s-o they can
              * be filled in automatically. */
             case app.RESET_PASSWORD_PATH: {
-                const resetPasswordRedirectUrl = `${app.RESET_PASSWORD_PATH}${parsedUrl.search}`
+                const resetPasswordRedirectUrl = app.RESET_PASSWORD_PATH + parsedUrl.search
                 navigate(resetPasswordRedirectUrl)
                 break
             }
