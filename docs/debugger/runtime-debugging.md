@@ -109,6 +109,7 @@ way more tricky than in case of _VSCode_, _IGV_ or _NetBeans_. However, if you
 really want to stick with _IntelliJ_ as your only tool, following steps may help
 you to skip all the irrelevant code and get to the code you are interested in:
 
+- To get the mapping to Enso source code, evaluate the following expression in the Java debugger: `this.getRootNode().getSourceSection()`. Note that this, obviously, works only when the debugger is stopped in some Truffle node code.
 - To debug a method called `foo`, put a breakpoint in
   `org.enso.interpreter.node.ClosureRootNode#execute` with a condition on
   `this.name.contains("foo")`
