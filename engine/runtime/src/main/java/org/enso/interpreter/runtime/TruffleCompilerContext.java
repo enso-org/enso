@@ -1,14 +1,5 @@
 package org.enso.interpreter.runtime;
 
-import org.enso.compiler.Passes;
-import org.enso.compiler.pass.analyse.BindingAnalysis$;
-import org.enso.compiler.context.CompilerContext;
-import org.enso.compiler.context.FreshNameSupply;
-
-import com.oracle.truffle.api.TruffleLogger;
-import com.oracle.truffle.api.TruffleFile;
-import com.oracle.truffle.api.source.Source;
-
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.List;
@@ -20,8 +11,12 @@ import java.util.logging.Level;
 
 import org.enso.compiler.Compiler;
 import org.enso.compiler.PackageRepository;
+import org.enso.compiler.Passes;
+import org.enso.compiler.context.CompilerContext;
+import org.enso.compiler.context.FreshNameSupply;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.CompilerConfig;
+import org.enso.compiler.pass.analyse.BindingAnalysis$;
 import org.enso.editions.LibraryName;
 import org.enso.interpreter.caches.Cache;
 import org.enso.interpreter.caches.ModuleCache;
@@ -30,6 +25,10 @@ import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.CompilationStage;
 import org.enso.polyglot.data.TypeGraph;
+
+import com.oracle.truffle.api.TruffleFile;
+import com.oracle.truffle.api.TruffleLogger;
+import com.oracle.truffle.api.source.Source;
 
 import scala.Option;
 
@@ -272,7 +271,7 @@ final class TruffleCompilerContext implements CompilerContext {
   private final class ModuleUpdater implements Updater, AutoCloseable {
     private final Module module;
     private BindingsMap map;
-    private org.enso.compiler.core.ir.Module ir;
+    private org.enso.compiler.core.ir.Module[] ir;
     private CompilationStage stage;
     private Boolean loadedFromCache;
     private boolean resetScope;
@@ -289,7 +288,7 @@ final class TruffleCompilerContext implements CompilerContext {
 
     @Override
     public void ir(org.enso.compiler.core.ir.Module ir) {
-      this.ir = ir;
+      this.ir = new org.enso.compiler.core.ir.Module[] { ir };
     }
 
     @Override
@@ -321,7 +320,7 @@ final class TruffleCompilerContext implements CompilerContext {
         module.bindings = map;
       }
       if (ir != null) {
-        module.module.unsafeSetIr(ir);
+        module.module.unsafeSetIr(ir[0]);
       }
       if (stage != null) {
         module.module.unsafeSetCompilationStage(stage);
