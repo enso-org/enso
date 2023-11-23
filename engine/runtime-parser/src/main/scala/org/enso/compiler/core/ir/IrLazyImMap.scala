@@ -34,10 +34,4 @@ final private class IrLazyImMap[K, V](
   override def contains(key: K): Boolean = {
     underlying.containsKey(key)
   }
-
-}
-
-object IrLazyImMap {
-  def apply[K, V](map: java.util.Map[K, V]): Map[K, V] =
-    new IrLazyImMap[K, V](map)
 }
