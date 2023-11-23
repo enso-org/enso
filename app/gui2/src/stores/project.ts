@@ -525,6 +525,11 @@ export const useProjectStore = defineStore('project', () => {
   const computedValueRegistry = ComputedValueRegistry.WithExecutionContext(executionContext)
   const visualizationDataRegistry = new VisualizationDataRegistry(executionContext, dataConnection)
 
+  const diagnostics = ref<Diagnostic[]>([])
+  executionContext.on('executionStatus', (newDiagnostics) => {
+    diagnostics.value = newDiagnostics
+  })
+
   function useVisualizationData(
     configuration: WatchSource<Opt<NodeVisualizationConfiguration>>,
   ): ShallowRef<{} | undefined> {
@@ -561,6 +566,7 @@ export const useProjectStore = defineStore('project', () => {
     },
     name: projectName,
     executionContext,
+    diagnostics,
     module,
     modulePath,
     projectModel,

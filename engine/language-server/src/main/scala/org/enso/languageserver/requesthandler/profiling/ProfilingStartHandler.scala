@@ -3,7 +3,8 @@ package org.enso.languageserver.requesthandler.profiling
 import akka.actor.{Actor, ActorRef, Cancellable, Props}
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.jsonrpc._
-import org.enso.languageserver.profiling.{ProfilingApi, ProfilingProtocol}
+import org.enso.languageserver.profiling.ProfilingApi.ProfilingStart
+import org.enso.languageserver.profiling.ProfilingProtocol
 import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.util.UnhandledLogging
 
@@ -24,8 +25,10 @@ class ProfilingStartHandler(timeout: FiniteDuration, profilingManager: ActorRef)
   override def receive: Receive = requestStage
 
   private def requestStage: Receive = {
-    case Request(ProfilingApi.ProfilingStart, id, _) =>
-      profilingManager ! ProfilingProtocol.ProfilingStartRequest
+    case Request(ProfilingStart, id, ProfilingStart.Params(memorySnapshot)) =>
+      profilingManager ! ProfilingProtocol.ProfilingStartRequest(
+        memorySnapshot.getOrElse(false)
+      )
       val cancellable =
         context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
       context.become(
@@ -48,7 +51,7 @@ class ProfilingStartHandler(timeout: FiniteDuration, profilingManager: ActorRef)
       context.stop(self)
 
     case ProfilingProtocol.ProfilingStartResponse =>
-      replyTo ! ResponseResult(ProfilingApi.ProfilingStart, id, Unused)
+      replyTo ! ResponseResult(ProfilingStart, id, Unused)
       cancellable.cancel()
       context.stop(self)
   }

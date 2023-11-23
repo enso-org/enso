@@ -376,6 +376,10 @@ export function isUuid(x: unknown): x is Uuid {
 /** A range represented as start and end indices. */
 export type ContentRange = [number, number]
 
+export function rangeEquals(a: ContentRange, b: ContentRange): boolean {
+  return a[0] == b[0] && a[1] == b[1]
+}
+
 export function rangeEncloses(a: ContentRange, b: ContentRange): boolean {
   return a[0] <= b[0] && a[1] >= b[1]
 }

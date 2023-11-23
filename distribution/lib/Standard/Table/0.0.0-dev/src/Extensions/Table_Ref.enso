@@ -6,7 +6,7 @@ import project.Data.Column_Ref.Column_Ref
 import project.Data.Expression.Expression_Error
 import project.Data.Set_Mode.Set_Mode
 import project.Data.Table.Table
-from project.Errors import No_Such_Column, Existing_Column, Missing_Column
+from project.Errors import Existing_Column, Missing_Column, No_Such_Column
 
 ## PRIVATE
    A helper type allowing to resolve column references in a context of an underlying table.
@@ -62,8 +62,8 @@ type Table_Ref
 
     ## PRIVATE
        Set a column.
-    set : Any -> Set_Mode -> Problem_Behavior -> Table_Ref ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error
-    set self column new_name set_mode=Set_Mode.Add_Or_Update on_problems=Report_Warning =
+    set : Any -> Text -> Set_Mode -> Problem_Behavior -> Table_Ref ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error
+    set self column new_name:Text set_mode:Set_Mode=Set_Mode.Add_Or_Update on_problems:Problem_Behavior=Report_Warning =
         new_underlying = self.underlying.set column new_name set_mode=set_mode on_problems=on_problems
         Table_Ref.from new_underlying
 
