@@ -65,10 +65,9 @@ read_file file section headers on_problems xls_format=False =
                 Table.Value java_table
         Excel_Section.Cell_Range address skip_rows row_limit ->
             Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
-                java_range = case address of
-                    _ : Excel_Range -> address.java_range
-                    text : Text -> text
-                java_table = ExcelReader.readRange java_file java_range (make_java_headers headers) skip_rows row_limit file_format java_problem_aggregator
+                java_table = case address of
+                    _ : Excel_Range -> ExcelReader.readRange java_file address.java_range (make_java_headers headers) skip_rows row_limit file_format java_problem_aggregator
+                    _ : Text -> ExcelReader.readRangeByName java_file address (make_java_headers headers) skip_rows row_limit file_format java_problem_aggregator
                 Table.Value java_table
 
     handle_reader file reader
