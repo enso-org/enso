@@ -36,6 +36,15 @@ const suggestionDbStore = useSuggestionDbStore()
 const rootElement = ref<HTMLElement>()
 useAutoBlur(rootElement)
 
+const executionContextDiagnostics = computed(() =>
+  projectStore.module
+    ? lsDiagnosticsToCMDiagnostics(
+        projectStore.module.doc.contents.toString(),
+        projectStore.diagnostics,
+      )
+    : [],
+)
+
 // == CodeMirror editor setup  ==
 
 const editorView = new EditorView()
@@ -104,7 +113,7 @@ watchEffect(() => {
           return { dom }
         }),
         enso(),
-        linter(() => lsDiagnosticsToCMDiagnostics(yText.toString(), projectStore.diagnostics)),
+        linter(() => executionContextDiagnostics.value),
       ],
     }),
   )
