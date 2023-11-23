@@ -16,9 +16,9 @@ import org.enso.table.excel.ExcelRange;
 import org.enso.table.excel.ExcelRow;
 import org.enso.table.excel.ExcelSheet;
 import org.enso.table.problems.ProblemAggregator;
-import org.enso.table.read.excel.ExcelConnection;
-import org.enso.table.read.excel.ExcelConnectionPool;
-import org.enso.table.read.excel.ExcelFileFormat;
+import org.enso.table.excel.ReadOnlyExcelConnection;
+import org.enso.table.excel.ExcelConnectionPool;
+import org.enso.table.excel.ExcelFileFormat;
 import org.graalvm.polyglot.Context;
 
 import java.io.File;
@@ -260,7 +260,7 @@ public class ExcelReader {
   }
 
   private static <T> T withWorkbook(File file, ExcelFileFormat format, Function<Workbook, T> action) throws IOException {
-    try (ExcelConnection connection = ExcelConnectionPool.INSTANCE.openConnection(file, format, false)) {
+    try (ReadOnlyExcelConnection connection = ExcelConnectionPool.INSTANCE.openReadOnlyConnection(file, format)) {
       return connection.withWorkbook(action);
     }
   }

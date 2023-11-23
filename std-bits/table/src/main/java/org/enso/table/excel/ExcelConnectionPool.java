@@ -1,4 +1,4 @@
-package org.enso.table.read.excel;
+package org.enso.table.excel;
 
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
@@ -7,6 +7,7 @@ import org.apache.poi.openxml4j.opc.PackageAccess;
 import org.apache.poi.poifs.filesystem.POIFSFileSystem;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.enso.table.write.ExistingFileBehavior;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -20,8 +21,12 @@ public class ExcelConnectionPool {
   private ExcelConnectionPool() {
   }
 
-  public ExcelConnection openConnection(File file, ExcelFileFormat format, boolean write_access) throws IOException {
+  public ReadOnlyExcelConnection openReadOnlyConnection(File file, ExcelFileFormat format) throws IOException {
     synchronized (this) {
+      if (isCurrentlyWriting) {
+        throw new IllegalStateException("Cannot open a read-only Excel connection while an Excel file is being written to. This is a bug in the Table library.");
+      }
+
       if (!file.exists()) {
         throw new FileNotFoundException(file.toString());
       }
@@ -35,21 +40,54 @@ public class ExcelConnectionPool {
               "opened as " + existingRecord.format);
         }
 
-        if (write_access) {
-          existingRecord.ensureWriteAccess();
-        }
+        existingRecord.refCount++;
 
-        return new ExcelConnection(this, key, existingRecord);
+        return new ReadOnlyExcelConnection(this, key, existingRecord);
       } else {
         // Create the new record
         ConnectionRecord record = new ConnectionRecord();
         record.refCount = 1;
-        record.hasWriteAccess = write_access;
         record.file = file;
         record.format = format;
-        record.workbook = openWorkbook(file, format, write_access);
+        record.workbook = openWorkbook(file, format, false);
         records.put(key, record);
-        return new ExcelConnection(this, key, record);
+        return new ReadOnlyExcelConnection(this, key, record);
+      }
+    }
+  }
+
+  public <R> R performWrite(File file, ExcelFileFormat format, ExistingFileBehavior existingFileBehavior, Function<Workbook, R> writeAction) throws IOException {
+    synchronized (this) {
+      if (isCurrentlyWriting) {
+        throw new IllegalStateException("Another Excel write is in progress on the same thread. This is a bug in the Table library.");
+      }
+
+      isCurrentlyWriting = true;
+      try {
+        String key = getKeyForFile(file);
+
+        ConnectionRecord existingRecord = records.get(key);
+        // Close the existing read-only connection, if any.
+        if (existingRecord != null) {
+          existingRecord.close();
+        }
+
+        try {
+
+          // TODO backup logic
+          try (Workbook workbook = openWorkbook(file, format, true)) {
+            return writeAction.apply(workbook);
+          }
+
+        } finally {
+          // Reopen the read-only connection.
+          if (existingRecord != null) {
+            existingRecord.reopen(false);
+          }
+        }
+
+      } finally {
+        isCurrentlyWriting = false;
       }
     }
   }
@@ -58,7 +96,7 @@ public class ExcelConnectionPool {
     return file.getCanonicalPath();
   }
 
-  void release(ExcelConnection excelConnection) throws IOException {
+  void release(ReadOnlyExcelConnection excelConnection) throws IOException {
     synchronized (this) {
       excelConnection.record.refCount--;
       if (excelConnection.record.refCount <= 0) {
@@ -69,10 +107,10 @@ public class ExcelConnectionPool {
   }
 
   private final HashMap<String, ConnectionRecord> records = new HashMap<>();
+  private boolean isCurrentlyWriting = false;
 
   static class ConnectionRecord {
     private int refCount;
-    private boolean hasWriteAccess;
     private File file;
     private ExcelFileFormat format;
     private Workbook workbook;
@@ -84,41 +122,6 @@ public class ExcelConnectionPool {
       }
     }
 
-    private void ensureWriteAccess() throws IOException {
-      synchronized (this) {
-        if (hasWriteAccess) {
-          return;
-        }
-
-        workbook.close();
-        workbook = null;
-        try {
-          workbook = openWorkbook(file, format, true);
-        } catch (IOException e) {
-          throw recoverFromWriteAccessFailure(e);
-        }
-
-        hasWriteAccess = true;
-      }
-    }
-
-    private IOException recoverFromWriteAccessFailure(IOException originalException) throws IOException {
-      // If opening the workbook for writing has failed, it may mean we do not have the write permissions.
-      // But we have already closed the old workbook - now, even other users cannot use it anymore.
-      // To try recovery - we try reopening again in read mode - to ensure that at least the other users of the workbook can continue using it uninterrupted.
-      try {
-        workbook = openWorkbook(file, format, false);
-
-        // Afterwards, we rethrow the exception anyway - because the current user did not get the requested write access.
-        // But at least we kept other users happy.
-        throw originalException;
-      } catch (IOException e) {
-        // We failed to reopen the workbook in read mode either - that means that other users will now be affected too. There is nothing more we can do.
-        initializationException = e;
-        throw originalException;
-      }
-    }
-
     public void close() throws IOException {
       synchronized (this) {
         if (workbook != null) {
@@ -126,6 +129,23 @@ public class ExcelConnectionPool {
         }
 
         workbook = null;
+      }
+    }
+
+    void reopen(boolean throwOnFailure) throws IOException {
+      synchronized (this) {
+        if (workbook != null) {
+          throw new IllegalStateException("The workbook is already open.");
+        }
+
+        try {
+          workbook = openWorkbook(file, format, false);
+        } catch (IOException e) {
+          initializationException = e;
+          if (throwOnFailure) {
+            throw e;
+          }
+        }
       }
     }
 

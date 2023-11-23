@@ -1,4 +1,4 @@
-package org.enso.table.read.excel;
+package org.enso.table.excel;
 
 public enum ExcelFileFormat {
   XLS,
