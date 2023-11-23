@@ -122,7 +122,14 @@ const outputTypeName = computed(() => expressionInfo.value?.typename ?? 'Unknown
 const executionState = computed(() => expressionInfo.value?.payload.type ?? 'Unknown')
 const suggestionEntry = computed(() => graph.db.nodeMainSuggestion.lookup(nodeId.value))
 const color = computed(() => graph.db.getNodeColorStyle(nodeId.value))
-const icon = computed(() => displayedIconOf(suggestionEntry.value, outputTypeName.value))
+const icon = computed(() => {
+  const expressionInfo = graph.db.getExpressionInfo(nodeId.value)
+  return displayedIconOf(
+    suggestionEntry.value,
+    expressionInfo?.methodCall?.methodPointer,
+    outputTypeName.value,
+  )
+})
 
 const nodeEditHandler = nodeEditBindings.handler({
   cancel(e) {
