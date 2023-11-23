@@ -179,7 +179,7 @@ export const useGraphStore = defineStore('graph', () => {
   // Create a node from a source expression, and insert it into the graph. The return value will be
   // the new node's ID, or `null` if the node creation fails.
   function createNodeFromSource(position: Vec2, source: ExprId): Opt<ExprId> {
-    const sourceNodeName = getNodeBinding(source)
+    const sourceNodeName = db.getNodeMainOutputPortIdentifier(source)
     const sourceNodeNameWithDot = sourceNodeName ? sourceNodeName + '.' : ''
     return createNode(position, sourceNodeNameWithDot)
   }
@@ -276,10 +276,6 @@ export const useGraphStore = defineStore('graph', () => {
     editedNodeInfo.value = { id, range }
   }
 
-  function getNodeBinding(id: ExprId): string {
-    return db.nodes.get(id)?.binding ?? ''
-  }
-
   return {
     transact,
     db: markRaw(db),
@@ -304,7 +300,6 @@ export const useGraphStore = defineStore('graph', () => {
     updateNodeRect,
     updateExprRect,
     setEditedNode,
-    getNodeBinding,
     createNodeFromSource,
   }
 })
