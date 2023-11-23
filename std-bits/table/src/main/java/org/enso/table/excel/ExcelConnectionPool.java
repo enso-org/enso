@@ -1,5 +1,6 @@
 package org.enso.table.excel;
 
+import org.apache.poi.UnsupportedFileFormatException;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.openxml4j.opc.OPCPackage;
@@ -39,8 +40,8 @@ public class ExcelConnectionPool {
       if (existingRecord != null) {
         // Adapt the existing record
         if (existingRecord.format != format) {
-          throw new IllegalStateException("Requesting to open " + file + " as " + format + ", but it was already " +
-              "opened as " + existingRecord.format);
+          throw new ExcelFileFormatMismatchException("Requesting to open " + file + " as " + format + ", but it was " +
+              "already opened as " + existingRecord.format + ".");
         }
 
         existingRecord.refCount++;
@@ -93,7 +94,7 @@ public class ExcelConnectionPool {
               }
             } else {
               try (FileOutputStream fileOut = new FileOutputStream(file)) {
-                try(BufferedOutputStream workbookOut = new BufferedOutputStream(fileOut)) {
+                try (BufferedOutputStream workbookOut = new BufferedOutputStream(fileOut)) {
                   workbook.write(workbookOut);
                 }
               }
@@ -222,5 +223,11 @@ public class ExcelConnectionPool {
       case XLS -> new HSSFWorkbook();
       case XLSX -> new XSSFWorkbook();
     };
+  }
+
+  public static class ExcelFileFormatMismatchException extends UnsupportedFileFormatException {
+    public ExcelFileFormatMismatchException(String message) {
+      super(message);
+    }
   }
 }

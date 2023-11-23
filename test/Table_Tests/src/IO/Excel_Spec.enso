@@ -750,9 +750,23 @@ spec =
             result.catch.should_be_a File_Error.Not_Found
 
         Test.specify "should handle wrong xls_format gracefully" <|
+            xlsx_sheet_copy = enso_project.data / "transient" / "TestSheetCopy.xlsx"
+            xlsx_sheet.copy_to xlsx_sheet_copy
+
+            # At first, it fails with File_Error
             r1 = xlsx_sheet.read (Excel (Cell_Range "Sheet1!A:C") xls_format=True)
             r1.should_fail_with File_Error
             r1.catch.should_be_a File_Error.Corrupted_Format
+
+            # If we now open it correctly
+            r1_2 = xlsx_sheet.read
+            r1_2.should_succeed
+
+            # And then wrong again
+            r1_3 = xlsx_sheet.read (Excel (Cell_Range "Sheet1!A:C") xls_format=True)
+            # It should still fail the same:
+            r1_3.should_fail_with File_Error
+            r1_3.catch.should_be_a File_Error.Corrupted_Format
 
             r2 = xls_sheet.read (Excel (Cell_Range "Sheet1!A:C") xls_format=False)
             r2.should_fail_with File_Error
