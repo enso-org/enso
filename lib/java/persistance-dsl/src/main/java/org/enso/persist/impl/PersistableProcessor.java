@@ -156,6 +156,7 @@ public class PersistableProcessor extends AbstractProcessor {
       w.append("    super(").append(typeElemName).append(".class, false, ").append(id).append(");\n");
       w.append("  }\n");
       w.append("  @SuppressWarnings(\"unchecked\")\n");
+      w.append("  @Override\n");
       w.append("  protected ").append(typeElemName).append(" readObject(Input in) throws IOException {\n");
 
       if (cons != null) {
@@ -197,6 +198,7 @@ public class PersistableProcessor extends AbstractProcessor {
       }
       w.append("  }\n");
       w.append("  @SuppressWarnings(\"unchecked\")\n");
+      w.append("  @Override\n");
       w.append("  protected void writeObject(").append(typeElemName).append(" obj, Output out) throws IOException {\n");
       if (cons != null) {
         for (var v : cons.getParameters()) {
