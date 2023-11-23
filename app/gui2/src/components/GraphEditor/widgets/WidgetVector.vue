@@ -35,15 +35,21 @@ export const widgetDefinition = defineWidget(AstExtended.isTree([Tree.Type.Array
 
 <template>
   <VectorWidget
-    v-slot="slotProps"
+    v-slot="{ item }"
     v-model="value"
     :default="() => AstExtended.parse('_')"
     :getId="(item) => item.astId"
     dragMimeType="application/x-enso-ast-node"
-    :toJSON="(item) => ({ id: item.astId, code: item.repr() })"
+    :toDragPayload="(item) => ({ id: item.astId, code: item.repr() })"
     class="WidgetVector"
     contenteditable="false"
   >
-    <NodeWidget :input="slotProps.item" />
+    <NodeWidget :input="item" />
   </VectorWidget>
 </template>
+
+<style scoped>
+:deep(.item.drag-preview) {
+  background-color: var(--node-group-color);
+}
+</style>
