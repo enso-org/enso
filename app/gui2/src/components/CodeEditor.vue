@@ -3,8 +3,9 @@ import { useGraphStore } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { useAutoBlur } from '@/util/autoBlur'
-import type { Highlighter } from '@/util/codemirror'
+import type { Diagnostic, Highlighter } from '@/util/codemirror'
 import { usePointer } from '@/util/events'
+import { chain } from '@/util/iterable'
 import { useLocalStorage } from '@vueuse/core'
 import { rangeEncloses, type ExprId } from 'shared/yjsModel'
 import { computed, onMounted, ref, watchEffect } from 'vue'
@@ -44,6 +45,32 @@ const executionContextDiagnostics = computed(() =>
       )
     : [],
 )
+
+const expressionUpdatesDiagnostics = computed(() => {
+  const nodeMap = graphStore.db.nodeIdToNode
+  const updates = projectStore.computedValueRegistry.db
+  const panics = updates.type.reverseLookup('Panic')
+  const errors = updates.type.reverseLookup('DataflowError')
+  const diagnostics: Diagnostic[] = []
+  for (const id of chain(panics, errors)) {
+    const update = updates.get(id)
+    if (!update) continue
+    const node = nodeMap.get(id)
+    if (!node) continue
+    const [from, to] = node.rootSpan.span()
+    switch (update.payload.type) {
+      case 'Panic': {
+        diagnostics.push({ from, to, message: update.payload.message, severity: 'error' })
+        break
+      }
+      case 'DataflowError': {
+        diagnostics.push({ from, to, message: 'Unknown data flow error', severity: 'error' })
+        break
+      }
+    }
+  }
+  return diagnostics
+})
 
 // == CodeMirror editor setup  ==
 
@@ -113,7 +140,7 @@ watchEffect(() => {
           return { dom }
         }),
         enso(),
-        linter(() => executionContextDiagnostics.value),
+        linter(() => [...executionContextDiagnostics.value, ...expressionUpdatesDiagnostics.value]),
       ],
     }),
   )

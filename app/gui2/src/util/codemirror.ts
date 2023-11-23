@@ -11,7 +11,7 @@ export {
   foldNodeProp,
   syntaxHighlighting,
 } from '@codemirror/language'
-export { lintGutter, linter } from '@codemirror/lint'
+export { lintGutter, linter, type Diagnostic } from '@codemirror/lint'
 export { highlightSelectionMatches } from '@codemirror/search'
 export { EditorState } from '@codemirror/state'
 export { EditorView, tooltips, type TooltipView } from '@codemirror/view'
@@ -65,7 +65,6 @@ export function lsDiagnosticsToCMDiagnostics(
       message: diagnostic.message,
       severity:
         diagnostic.kind === 'Error' ? 'error' : diagnostic.kind === 'Warning' ? 'warning' : 'info',
-      source: 'enso-ls',
     })
   }
   return results

@@ -7,7 +7,7 @@ import type {
   ProfilingInfo,
 } from 'shared/languageServerTypes'
 import { markRaw } from 'vue'
-import { ReactiveDb } from './database/reactiveDb'
+import { ReactiveDb, ReactiveIndex } from './database/reactiveDb'
 
 export interface ExpressionInfo {
   typename: string | undefined
@@ -16,9 +16,13 @@ export interface ExpressionInfo {
   profilingInfo: ProfilingInfo[]
 }
 
+class ComputedValueDb extends ReactiveDb<ExpressionId, ExpressionInfo> {
+  type = new ReactiveIndex(this, (id, info) => [[id, info.payload.type]])
+}
+
 /** This class holds the computed values that have been received from the language server. */
 export class ComputedValueRegistry {
-  public db: ReactiveDb<ExpressionId, ExpressionInfo> = new ReactiveDb()
+  public db = new ComputedValueDb()
   private _updateHandler = this.processUpdates.bind(this)
   private executionContext: ExecutionContext | undefined
 
