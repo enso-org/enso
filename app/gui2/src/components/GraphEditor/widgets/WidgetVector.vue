@@ -38,7 +38,7 @@ export const widgetDefinition = defineWidget(AstExtended.isTree([Tree.Type.Array
     v-slot="{ item }"
     v-model="value"
     :default="() => AstExtended.parse('_')"
-    :getId="(item) => item.astId"
+    :getKey="(item) => item.astId"
     dragMimeType="application/x-enso-ast-node"
     :toPlainText="(item) => item.repr()"
     :toDragPayload="(item) => JSON.stringify({ id: item.astId, code: item.repr() })"

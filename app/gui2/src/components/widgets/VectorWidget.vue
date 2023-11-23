@@ -1,7 +1,7 @@
 <script lang="ts">
 import SvgIcon from '@/components/SvgIcon.vue'
 import { defineKeybinds } from '@/util/shortcuts'
-import { computed, onUpdated, ref, watch, watchEffect, type Ref } from 'vue'
+import { computed, ref, watch, watchEffect, type Ref } from 'vue'
 
 const bindings = defineKeybinds('vector-widget', {
   dragListItem: ['PointerMain', 'Mod+PointerMain'],
@@ -12,7 +12,7 @@ const bindings = defineKeybinds('vector-widget', {
 const props = defineProps<{
   modelValue: T[]
   default: () => T
-  getId?: (item: T) => PropertyKey | undefined
+  getKey?: (item: T) => PropertyKey | undefined
   /** If present, a {@link DataTransferItem} is added with a MIME type of `text/plain`.
    * This is useful if the drag payload has a representation that can be pasted in terminals,
    * search bars, and/or address bars. */
@@ -30,32 +30,48 @@ const emit = defineEmits<{ 'update:modelValue': [modelValue: T[]] }>()
 const mimeType = computed(() => props.dragMimeType ?? 'application/octet-stream')
 
 const DRAG_PREVIEW_CLASS = 'drag-preview'
-const MAX_DISTANCE_PX = 32
 
 const dragItem = ref<T>()
+const dragIndex = ref<number>()
 
-// The type assertion is required to prevent Vue from wrapping `T` with `UnwrapSimpleRef`.
-const displayedChildren = ref(props.modelValue) as Ref<T[]>
-const itemNodes = ref<(HTMLLIElement | null)[]>([])
-const childBoundingBoxes = ref<(DOMRect | undefined)[]>([])
+function withIndex<T>(array: T[]) {
+  return array.map((item, index) => ({ item, index }))
+}
 
-onUpdated(() => (itemNodes.value = []))
-watchEffect(() => (displayedChildren.value = props.modelValue))
+// The type assertions are required to prevent Vue from wrapping `T` with `UnwrapSimpleRef`.
+const displayedChildren = ref(withIndex(props.modelValue)) as Ref<{ item: T; index: number }[]>
+const itemNodes = ref(
+  props.modelValue.map((_, index) => ({
+    index,
+    element: document.createElement('li'),
+  })),
+)
+const childBoundingBoxes = ref([]) as Ref<{ index: number; boundingBox: DOMRect | undefined }[]>
+
+watchEffect(() => (displayedChildren.value = withIndex(props.modelValue)))
+watch(
+  displayedChildren,
+  () =>
+    (itemNodes.value = props.modelValue.map((_, index) => ({
+      index,
+      element: document.createElement('li'),
+    }))),
+)
 
 function updateBoundingBoxes() {
-  childBoundingBoxes.value = itemNodes.value.map((node) => node?.getBoundingClientRect())
+  childBoundingBoxes.value = itemNodes.value.map(({ index, element }) => ({
+    index,
+    boundingBox: element?.getBoundingClientRect(),
+  }))
 }
-watch(() => [props.modelValue, dragItem.value], updateBoundingBoxes)
 
 const mouseHandler = bindings.handler({
   dragListItem(event) {
     if (!(event instanceof DragEvent)) return
-    const target = event.target instanceof HTMLElement ? event.target : undefined
+    const target = event.target instanceof HTMLElement && event.target
     if (target) {
       target.classList.add(DRAG_PREVIEW_CLASS)
-      requestAnimationFrame(() => {
-        target.classList.remove(DRAG_PREVIEW_CLASS)
-      })
+      requestAnimationFrame(() => target.classList.remove(DRAG_PREVIEW_CLASS))
     }
     if (event.dataTransfer) {
       event.dataTransfer.effectAllowed = 'move'
@@ -66,48 +82,60 @@ const mouseHandler = bindings.handler({
         event.dataTransfer.setData(mimeType.value, props.toDragPayload(dragItem.value))
       }
     }
+    updateBoundingBoxes()
   },
 })
 
 function handleDragAndReturnChildList(event: DragEvent) {
   const item = dragItem.value
+  const itemIndex = dragIndex.value
   if (
     !event.dataTransfer ||
     !item ||
-    !childBoundingBoxes.value.length ||
+    itemIndex == null ||
     (props.toDragPayload && !event.dataTransfer?.types.includes(mimeType.value))
   )
     return displayedChildren.value
   event.dataTransfer.dropEffect = 'move'
   event.preventDefault()
-  const distances = childBoundingBoxes.value
-    .map((box, i) => {
-      const distance = !box
-        ? Infinity
-        : Math.max(box.left - event.clientX, event.clientX - box.right) +
-          Math.max(box.top - event.clientY, event.clientY - box.bottom)
-      return { index: i, distance }
-    })
-    .sort(({ distance: a }, { distance: b }) => a - b)
-  let insertIndex: number | undefined
-  if (!distances[0] || distances[0].distance >= MAX_DISTANCE_PX) {
-    // FIXME: Drag events currently do not fire outside the node; we need to listen to drag events on the workspace.
-    // Ignored; the pointer is too far away so the element should be removed.
-  } else if (!distances[1]) insertIndex = distances[0].index + 1
-  else if (distances[1].distance > MAX_DISTANCE_PX)
-    insertIndex = distances[0].index + (distances[1].index < distances[0].index ? 1 : 0)
-  else if (Math.abs(distances[0].index - distances[1].index) === 1)
-    insertIndex = Math.max(distances[0].index, distances[1].index)
-  else insertIndex = Math.min(distances[0].index, distances[1].index) + 1
-  const currentIndex = displayedChildren.value.indexOf(item)
-  if (currentIndex === insertIndex) return displayedChildren.value
-  const newChildren = [...props.modelValue]
-  const itemIndex = newChildren.indexOf(item)
-  newChildren.splice(newChildren.indexOf(item), 1)
-  if (insertIndex != null)
-    newChildren.splice(insertIndex - Number(itemIndex >= 0 && insertIndex > itemIndex), 0, item)
-  updateBoundingBoxes()
+  const nextSibling = childBoundingBoxes.value.find(
+    ({ boundingBox }) =>
+      boundingBox && event.clientX >= boundingBox.left && event.clientX <= boundingBox.right,
+  )
+  const insertIndex = nextSibling?.index ?? 0
+  const displayIndex = displayedChildren.value.findIndex(({ index }) => index === itemIndex)
+  console.log('d', displayIndex, 'i', insertIndex, 'I', itemIndex)
+  if (displayIndex === insertIndex) return displayedChildren.value
+  const newChildren = withIndex(props.modelValue)
+  newChildren.splice(itemIndex, 1)
+  newChildren.splice(insertIndex + (insertIndex < itemIndex ? -1 : 0), 0, {
+    item,
+    index: itemIndex,
+  })
+  console.log(childBoundingBoxes.value.map((i) => i.index))
+  setTimeout(updateBoundingBoxes, 100)
   return newChildren
+}
+
+function onDragStart(event: DragEvent, item: T, originalIndex: number) {
+  dragItem.value = item
+  dragIndex.value = originalIndex
+  if (mouseHandler(event, false)) return
+  dragItem.value = undefined
+  dragIndex.value = undefined
+}
+
+function onDragOver(event: DragEvent) {
+  displayedChildren.value = handleDragAndReturnChildList(event)
+}
+
+function onDrop(event: DragEvent) {
+  emit(
+    'update:modelValue',
+    handleDragAndReturnChildList(event).map(({ item }) => item),
+  )
+  dragItem.value = undefined
+  dragIndex.value = undefined
 }
 </script>
 
@@ -118,23 +146,22 @@ function handleDragAndReturnChildList(event: DragEvent) {
       !$event.shiftKey && !$event.altKey && !$event.metaKey && $event.stopImmediatePropagation()
     "
   >
-    <div
-      class="vector-literal literal"
-      @dragover="displayedChildren = handleDragAndReturnChildList($event)"
-      @drop="
-        emit('update:modelValue', handleDragAndReturnChildList($event)), (dragItem = undefined)
-      "
-    >
+    <div class="vector-literal literal" @dragover="onDragOver" @drop="onDrop">
       <span class="token">[</span>
       <TransitionGroup tag="ul" name="list" class="items">
-        <template v-for="(item, index) in displayedChildren" :key="props.getId?.(item) ?? index">
+        <template
+          v-for="({ item, index: originalIndex }, index) in displayedChildren"
+          :key="props.getId?.(item) ?? originalIndex"
+        >
           <li v-if="index !== 0" class="token">,&nbsp;</li>
           <li
-            :ref="(el) => itemNodes.push(el as HTMLLIElement)"
+            :ref="
+              (el) => (itemNodes[index] = { index: originalIndex, element: el as HTMLLIElement })
+            "
             class="item"
             :class="{ dragging: item === dragItem }"
             draggable="true"
-            @dragstart="(dragItem = item), mouseHandler($event, false) || (dragItem = undefined)"
+            @dragstart="onDragStart($event, item, originalIndex)"
           >
             <slot :item="item"></slot>
           </li>
@@ -164,7 +191,8 @@ function handleDragAndReturnChildList(event: DragEvent) {
   align-items: center;
 }
 
-/* FIXME: Transforms are broken when the CSS scale is not 1. */
+/* FIXME [sb]: Vue transforms are broken when the CSS scale is not 1:
+ * https://github.com/vuejs/core/issues/9665 */
 /* .list-move,
 .list-enter-active,
 .list-leave-active {
@@ -193,6 +221,7 @@ ul {
   height: 24px;
 }
 
+/* FIXME: `opacity: 0`, a copy of the dragged element should follow the mouse */
 .item.dragging {
   opacity: 0.5;
 }
