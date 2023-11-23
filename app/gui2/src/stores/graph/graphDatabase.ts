@@ -251,7 +251,12 @@ export class GraphDb {
         if (node == null) {
           this.nodeIdToNode.set(nodeId, newNode)
         } else {
-          if (indexedDB.cmp(node.pattern?.contentHash(), newNode.pattern?.contentHash())) {
+          if (
+            indexedDB.cmp(
+              node.pattern?.contentHash() ?? new Uint8Array(),
+              newNode.pattern?.contentHash() ?? new Uint8Array(),
+            )
+          ) {
             node.pattern = newNode.pattern
           }
           if (node.outerExprId !== newNode.outerExprId) {
