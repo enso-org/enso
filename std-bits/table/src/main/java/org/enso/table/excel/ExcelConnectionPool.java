@@ -9,8 +9,10 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.enso.table.write.ExistingFileBehavior;
 
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.function.Function;
@@ -24,7 +26,8 @@ public class ExcelConnectionPool {
   public ReadOnlyExcelConnection openReadOnlyConnection(File file, ExcelFileFormat format) throws IOException {
     synchronized (this) {
       if (isCurrentlyWriting) {
-        throw new IllegalStateException("Cannot open a read-only Excel connection while an Excel file is being written to. This is a bug in the Table library.");
+        throw new IllegalStateException("Cannot open a read-only Excel connection while an Excel file is being " +
+            "written to. This is a bug in the Table library.");
       }
 
       if (!file.exists()) {
@@ -56,10 +59,12 @@ public class ExcelConnectionPool {
     }
   }
 
-  public <R> R performWrite(File file, ExcelFileFormat format, ExistingFileBehavior existingFileBehavior, Function<Workbook, R> writeAction) throws IOException {
+  public <R> R performWrite(File file, ExcelFileFormat format, ExistingFileBehavior existingFileBehavior,
+                            Function<Workbook, R> writeAction) throws IOException {
     synchronized (this) {
       if (isCurrentlyWriting) {
-        throw new IllegalStateException("Another Excel write is in progress on the same thread. This is a bug in the Table library.");
+        throw new IllegalStateException("Another Excel write is in progress on the same thread. This is a bug in the " +
+            "Table library.");
       }
 
       isCurrentlyWriting = true;
@@ -73,10 +78,28 @@ public class ExcelConnectionPool {
         }
 
         try {
+          boolean preexistingFile = file.exists() && file.length() > 0;
 
-          // TODO backup logic
-          try (Workbook workbook = openWorkbook(file, format, true)) {
-            return writeAction.apply(workbook);
+          try (Workbook workbook = preexistingFile ? openWorkbook(file, format, true) : createEmptyWorkbook(format)) {
+            R result = writeAction.apply(workbook);
+
+            if (preexistingFile) {
+              switch (workbook) {
+                case HSSFWorkbook hssfWorkbook -> hssfWorkbook.write();
+                case XSSFWorkbook xssfWorkbook -> {
+                  // Nothing to do here - merely closing the workbook will save all changes in this mode.
+                }
+                default -> throw new IllegalStateException("Unknown workbook type: " + workbook.getClass());
+              }
+            } else {
+              try (FileOutputStream fileOut = new FileOutputStream(file)) {
+                try(BufferedOutputStream workbookOut = new BufferedOutputStream(fileOut)) {
+                  workbook.write(workbookOut);
+                }
+              }
+            }
+
+            return result;
           }
 
         } finally {
@@ -191,6 +214,13 @@ public class ExcelConnectionPool {
           throw new IOException("Invalid format encountered when opening the file " + file + " as " + format + ".", e);
         }
       }
+    };
+  }
+
+  private static Workbook createEmptyWorkbook(ExcelFileFormat format) {
+    return switch (format) {
+      case XLS -> new HSSFWorkbook();
+      case XLSX -> new XSSFWorkbook();
     };
   }
 }

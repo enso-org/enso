@@ -60,19 +60,28 @@ make_java_existing_file_behavior on_existing_file = case on_existing_file of
 write_file : File -> Table -> Existing_File_Behavior -> Excel_Section -> (Boolean|Infer) -> Match_Columns -> Problem_Behavior -> Boolean -> File
 write_file (file : File) (table : Table) (on_existing_file : Existing_File_Behavior) (section : Excel_Section) (headers : Boolean|Infer) (match_columns:Match_Columns) (on_problems:Problem_Behavior) (xls_format:Boolean) =
     _ = on_problems
-    java_file = Java_File.new file_obj.normalize.path
+    java_file = Java_File.new file.absolute.normalize.path
     file_format = if xls_format then ExcelFileFormat.XLS else ExcelFileFormat.XLSX
-    ExcelConnectionPool.INSTANCE.performWrite java_file file_format (make_java_existing_file_behavior on_existing_file)) writable_workbook->
-        existing_data_mode = make_java_existing_data_mode on_existing_file match_columns
-        java_headers = Excel_Reader.make_java_headers headers
-        ExcelWriter.setEnsoToTextCallbackIfUnset (.to_text)
-        handle_writer <| case section of
-            Excel_Section.Worksheet sheet skip_rows row_limit ->
-                ExcelWriter.writeTableToSheet workbook sheet existing_data_mode skip_rows table.java_table row_limit java_headers
-            Excel_Section.Cell_Range address skip_rows row_limit -> case address of
-                Excel_Range.Value java_range -> ExcelWriter.writeTableToRange workbook java_range existing_data_mode skip_rows table.java_table row_limit java_headers
-                _ : Text -> ExcelWriter.writeTableToRange workbook address existing_data_mode skip_rows table.java_table row_limit java_headers
-            _ : Excel_Section -> Error.throw (Illegal_Argument.Error "Only a Worksheet or Cell_Range is allowed in write_file")
+
+    ExcelWriter.setEnsoToTextCallbackIfUnset (.to_text)
+    existing_data_mode = make_java_existing_data_mode on_existing_file match_columns
+    java_headers = Excel_Reader.make_java_headers headers
+    write_strategy = case section of
+        Excel_Section.Worksheet sheet skip_rows row_limit ->
+            writable_workbook->
+                ExcelWriter.writeTableToSheet writable_workbook sheet existing_data_mode skip_rows table.java_table row_limit java_headers
+        Excel_Section.Cell_Range address skip_rows row_limit ->
+            java_range = case address of
+                Excel_Range.Value java_range -> java_range
+                text : Text -> text
+            writable_workbook->
+                ExcelWriter.writeTableToRange writable_workbook java_range existing_data_mode skip_rows table.java_table row_limit java_headers
+
+    ## We handle the panics _outside_ of the `performWrite` call, to ensure that the Java side notices the exception
+       (it may ignore a dataflow error being returned) and reverts operations if relevant.
+    write_strategy.if_not_error <| handle_writer <|
+        ExcelConnectionPool.INSTANCE.performWrite java_file file_format (make_java_existing_file_behavior on_existing_file) writable_workbook->
+            write_strategy writable_workbook
 
 ## PRIVATE
    Handle and map the Java errors when writing an Excel file

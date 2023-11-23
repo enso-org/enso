@@ -34,7 +34,7 @@ type Excel_Workbook
        - headers: Whether to use the first row as headers (default is to infer).
     new : File | Text -> Boolean -> Boolean | Infer -> Excel_Workbook
     new file xls_format=False headers=Infer =
-        file_obj = File.new file . normalize
+        file_obj = File.new file . absolute . normalize
         format = if xls_format then ExcelFileFormat.XLS else ExcelFileFormat.XLSX
         File_Error.handle_java_exceptions file_obj <| Excel_Reader.handle_bad_format file_obj <| Illegal_State.handle_java_exception <|
             java_file = Java_File.new file_obj.path
@@ -242,7 +242,7 @@ type Excel_Workbook
     ## PRIVATE
     with_java_workbook : (Workbook -> Any) -> Any ! Illegal_State
     with_java_workbook self f = Illegal_State.handle_java_exception <|
-        excel_connection_resource.with connection->
+        self.excel_connection_resource.with connection->
             connection.withWorkbook f
 
 ## PRIVATE
