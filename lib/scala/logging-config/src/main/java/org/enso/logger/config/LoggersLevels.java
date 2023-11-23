@@ -56,6 +56,15 @@ public class LoggersLevels {
   }
 
   /**
+   * Checks if any of the custom levels refer to Enso's loggers.
+   *
+   * @return true if any of the custom log levels are for `org.enso.*` class
+   */
+  public boolean hasEnsoLoggers() {
+    return loggers.keySet().stream().anyMatch(k -> k.startsWith(ENSO_PKG_PREFIX));
+  }
+
+  /**
    * Read any loggers' levels set via `-Dfoo.bar.Logger.level=<level>` env variables.
    *
    * @return a map of custom loggers' levels set on startup
@@ -94,4 +103,5 @@ public class LoggersLevels {
   }
 
   private static String SYS_PROP_SUFFIX = ".Logger.level";
+  private static String ENSO_PKG_PREFIX = "org.enso";
 }

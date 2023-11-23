@@ -21,35 +21,20 @@ import scala.concurrent.{ExecutionContext, Future}
 class ModifyVisualizationCmd(
   maybeRequestId: Option[Api.RequestId],
   request: Api.ModifyVisualization
-) extends AsynchronousCommand(maybeRequestId) {
+) extends ContextCmd(
+      request.visualizationConfig.executionContextId,
+      maybeRequestId
+    ) {
 
-  /** @inheritdoc */
-  override def executeAsynchronously(implicit
+  override protected def executeCmd()(implicit
     ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] = {
-    val logger        = ctx.executionService.getLogger
-    val contextId     = request.visualizationConfig.executionContextId
-    val lockTimestamp = ctx.locking.acquireContextLock(contextId)
-    try {
-      if (doesContextExist) {
-        modifyVisualization()
-      } else {
-        replyWithContextNotExistError()
-      }
-    } finally {
-      ctx.locking.releaseContextLock(contextId)
-      logger.log(
-        Level.FINEST,
-        s"Kept context lock [UpsertVisualizationJob] for ${System.currentTimeMillis() - lockTimestamp} milliseconds"
-      )
-    }
-  }
-
-  private def modifyVisualization()(implicit
-    ctx: RuntimeContext,
-    ec: ExecutionContext
-  ): Future[Unit] = {
+    ctx.executionService.getLogger.log(
+      Level.FINE,
+      "Modify visualization cmd for request id [{}] and visualization id [{}]",
+      Array(maybeRequestId, request.visualizationId)
+    )
     val existingVisualization = ctx.contextManager.getVisualizationById(
       request.visualizationConfig.executionContextId,
       request.visualizationId
@@ -59,7 +44,7 @@ class ModifyVisualizationCmd(
         val jobFilter: PartialFunction[Job[_], Option[ExpressionId]] = {
           case upsert: UpsertVisualizationJob
               if upsert.visualizationId == request.visualizationId =>
-            Some(upsert.key)
+            Some(upsert.expressionId)
         }
         ctx.jobControlPlane.jobInProgress(jobFilter)
       }
@@ -96,23 +81,6 @@ class ModifyVisualizationCmd(
               _ <- ctx.jobProcessor.run(ExecuteJob(exec))
             } yield ()
         }
-    }
-  }
-
-  private def doesContextExist(implicit ctx: RuntimeContext): Boolean = {
-    ctx.contextManager.contains(
-      request.visualizationConfig.executionContextId
-    )
-  }
-
-  private def replyWithContextNotExistError()(implicit
-    ctx: RuntimeContext,
-    ec: ExecutionContext
-  ): Future[Unit] = {
-    Future {
-      reply(
-        Api.ContextNotExistError(request.visualizationConfig.executionContextId)
-      )
     }
   }
 

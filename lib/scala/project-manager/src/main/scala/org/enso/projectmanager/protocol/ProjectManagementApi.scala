@@ -82,7 +82,9 @@ object ProjectManagementApi {
     case class Result(
       engineVersion: SemVer,
       languageServerJsonAddress: Socket,
+      languageServerSecureJsonAddress: Option[Socket],
       languageServerBinaryAddress: Socket,
+      languageServerSecureBinaryAddress: Option[Socket],
       projectName: String,
       projectNormalizedName: String,
       projectNamespace: String

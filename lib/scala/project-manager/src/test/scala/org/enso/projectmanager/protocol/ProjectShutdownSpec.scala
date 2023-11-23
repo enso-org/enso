@@ -10,6 +10,7 @@ import zio.{ZAny, ZIO}
 
 import java.util.UUID
 import org.enso.projectmanager.{BaseServerSpec, ProjectManagementOps}
+import org.enso.runtimeversionmanager.test.OverrideTestVersionSuite
 import org.enso.testkit.FlakySpec
 
 import scala.concurrent.duration._
@@ -17,7 +18,10 @@ import scala.concurrent.duration._
 class ProjectShutdownSpec
     extends BaseServerSpec
     with FlakySpec
+    with OverrideTestVersionSuite
     with ProjectManagementOps {
+
+  override val testVersion: SemVer = SemVer(0, 0, 1)
 
   override def beforeEach(): Unit = {
     super.beforeEach()

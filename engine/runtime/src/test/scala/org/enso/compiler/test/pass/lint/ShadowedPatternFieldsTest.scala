@@ -83,6 +83,9 @@ class ShadowedPatternFieldsTest extends CompilerTest {
 
       warning.shadowedName shouldEqual "a"
       warning.shadower shouldEqual pattern.fields(2)
+      warning.message(
+        null
+      ) shouldBe "The pattern field 'a' is shadowed by another one with the same name."
     }
   }
 }

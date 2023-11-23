@@ -3,12 +3,12 @@ from Standard.Base import all
 import Standard.Base.Data.Text.Regex.Regex_Syntax_Error
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
-import Standard.Table.Data.Table_Conversions
 import Standard.Test.Extensions
 
 from Standard.Table import Table
 from Standard.Table.Data.Type.Value_Type import Bits, Value_Type
 from Standard.Table.Errors import Invalid_Value_Type, Column_Count_Exceeded, Duplicate_Output_Column_Names, Missing_Input_Columns
+from Standard.Table.Extensions.Table_Conversions import all
 from Standard.Test import Test, Test_Suite, Problems
 from project.Util import all
 

@@ -10,7 +10,7 @@ import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import * as url from 'node:url'
 
-import * as esbuild from 'esbuild'
+import type * as esbuild from 'esbuild'
 import * as esbuildPluginNodeModules from '@esbuild-plugins/node-modules-polyfill'
 import esbuildPluginInlineImage from 'esbuild-plugin-inline-image'
 import esbuildPluginTime from 'esbuild-plugin-time'
@@ -97,6 +97,7 @@ export function bundlerOptions(args: Arguments) {
             /* eslint-disable @typescript-eslint/naming-convention */
             // The `file` loader copies the file, and replaces the import with the path to the file.
             '.png': 'file',
+            '.jpg': 'file',
             /* eslint-enable @typescript-eslint/naming-convention */
         },
         plugins: [
@@ -120,10 +121,14 @@ export function bundlerOptions(args: Arguments) {
             /* eslint-disable @typescript-eslint/naming-convention */
             /** Whether the application is being run locally. This enables a service worker that
              * properly serves `/index.html` to client-side routes like `/login`. */
-            IS_DEV_MODE: JSON.stringify(devMode),
+            'process.env.NODE_ENV': JSON.stringify(devMode ? 'development' : 'production'),
             /** Overrides the redirect URL for OAuth logins in the production environment.
              * This is needed for logins to work correctly under `./run gui watch`. */
             REDIRECT_OVERRIDE: 'undefined',
+            CLOUD_ENV:
+                process.env.ENSO_CLOUD_ENV != null
+                    ? JSON.stringify(process.env.ENSO_CLOUD_ENV)
+                    : 'undefined',
             /* eslint-enable @typescript-eslint/naming-convention */
         },
         pure: ['assert'],

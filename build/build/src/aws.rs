@@ -13,6 +13,7 @@ use s3::BucketContext;
 // ==============
 
 pub mod ecr;
+pub mod env;
 pub mod s3;
 
 

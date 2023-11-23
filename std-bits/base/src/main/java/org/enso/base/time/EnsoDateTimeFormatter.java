@@ -100,64 +100,14 @@ public class EnsoDateTimeFormatter {
     return switch (formatterKind) {
       case SIMPLE -> originalPattern;
       case ISO_WEEK_DATE -> "(ISO Week Date Format) " + originalPattern;
-      case RAW_JAVA -> "(Java Format Pattern) " + originalPattern;
+      case RAW_JAVA -> "(Java DateTimeFormatter) " + (originalPattern != null ? originalPattern : formatter.toString());
       case CONSTANT -> originalPattern;
     };
   }
 
   public LocalDate parseLocalDate(String dateString) {
     dateString = normaliseInput(dateString);
-
-    TemporalAccessor parsed = formatter.parse(dateString);
-
-    if (parsed.isSupported(ChronoField.EPOCH_DAY)) {
-      return LocalDate.ofEpochDay(parsed.getLong(ChronoField.EPOCH_DAY));
-    }
-
-    // Allow Year and Month to be parsed without a day (use first day of month).
-    if (parsed.isSupported(ChronoField.YEAR) && parsed.isSupported(ChronoField.MONTH_OF_YEAR)) {
-      int dayOfMonth =
-          parsed.isSupported(ChronoField.DAY_OF_MONTH) ? parsed.get(ChronoField.DAY_OF_MONTH) : 1;
-      return LocalDate.of(
-          parsed.get(ChronoField.YEAR), parsed.get(ChronoField.MONTH_OF_YEAR), dayOfMonth);
-    }
-
-    // Allow Year and Quarter to be parsed without a day (use first day of the quarter).
-    if (parsed.isSupported(ChronoField.YEAR) && parsed.isSupported(IsoFields.QUARTER_OF_YEAR)) {
-      int dayOfQuarter =
-          parsed.isSupported(IsoFields.DAY_OF_QUARTER) ? parsed.get(IsoFields.DAY_OF_QUARTER) : 1;
-      int year = parsed.get(ChronoField.YEAR);
-      int quarter = parsed.get(IsoFields.QUARTER_OF_YEAR);
-      int monthsToShift = 3 * (quarter - 1);
-      LocalDate firstDay = LocalDate.of(year, 1, 1);
-      return firstDay.plusMonths(monthsToShift).plusDays(dayOfQuarter - 1);
-    }
-
-    // Allow Month and Day to be parsed without a year (use current year).
-    if (parsed.isSupported(ChronoField.DAY_OF_MONTH)
-        && parsed.isSupported(ChronoField.MONTH_OF_YEAR)) {
-      return LocalDate.of(
-          LocalDate.now().getYear(),
-          parsed.get(ChronoField.MONTH_OF_YEAR),
-          parsed.get(ChronoField.DAY_OF_MONTH));
-    }
-
-    if (parsed.isSupported(IsoFields.WEEK_BASED_YEAR) && parsed.isSupported(IsoFields.WEEK_OF_WEEK_BASED_YEAR)) {
-      // Get the day of week or default to first day if not present.
-      long dayOfWeek = parsed.isSupported(ChronoField.DAY_OF_WEEK) ? parsed.get(ChronoField.DAY_OF_WEEK) : 1;
-      HashMap<TemporalField, Long> fields = new HashMap<>();
-      fields.put(IsoFields.WEEK_BASED_YEAR, parsed.getLong(IsoFields.WEEK_BASED_YEAR));
-      fields.put(IsoFields.WEEK_OF_WEEK_BASED_YEAR, parsed.getLong(IsoFields.WEEK_OF_WEEK_BASED_YEAR));
-      fields.put(ChronoField.DAY_OF_WEEK, dayOfWeek);
-
-      TemporalAccessor resolved = IsoFields.WEEK_OF_WEEK_BASED_YEAR.resolve(fields, parsed, ResolverStyle.SMART);
-      if (resolved.isSupported(ChronoField.EPOCH_DAY)) {
-        return LocalDate.ofEpochDay(resolved.getLong(ChronoField.EPOCH_DAY));
-      }
-    }
-
-    // This will usually throw at this point, but it will construct a more informative exception than we could.
-    return LocalDate.from(parsed);
+    return LocalDate.parse(dateString, formatter);
   }
 
   public ZonedDateTime parseZonedDateTime(String dateString) {

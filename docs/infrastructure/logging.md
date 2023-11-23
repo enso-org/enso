@@ -29,6 +29,7 @@ involving the centralized logging service.
   - [Setting Up Logging](#setting-up-logging)
   - [Log Masking](#log-masking)
   - [Logging in Tests](#logging-in-tests)
+  - [Logging to file](#logging-to-file)
 
 <!-- /MarkdownTOC -->
 
@@ -234,14 +235,14 @@ trace information of the logging process itself.
 ## JVM Architecture
 
 Enso's logging makes use of two logging APIs - `java.util.logging` and
-`org.slf4j`. The former is being used Truffle runtime, which itself relies on
-`jul`, while the latter is used everywhere else. The implementation of the
-logging is using off the shelf `Logback` implementation with some custom setup
-methods. The two APIss cooperate by essentially forwarding log messages from the
-former to the latter.
+`org.slf4j`. The former is being used by the Truffle runtime, which itself
+relies on `jul`, while the latter is used everywhere else. The implementation of
+the logging is using off the shelf `Logback` implementation with some custom
+setup methods. The two APIss cooperate by essentially forwarding log messages
+from the former to the latter.
 
 While typically any SLF4J customization would be performed via custom
-`LoggerFacotry` and `Logger` implementation that is returned via a
+`LoggerFactory` and `Logger` implementation that is returned via a
 `StaticLoggerBinder` instance, this is not possible for our use-case:
 
 - file logging requires Enso-specific directory which is only known during
@@ -346,3 +347,22 @@ information even if the object implements custom interface for masked logging.
 The Logging Service provides a helper function `TestLogger.gatherLogs` that will
 execute the closure and collect all logs reported in the specified class. That
 way it can verify that all logs are being reported within the provided code.
+
+### Logging to file
+
+By default Enso will attempt to persist (verbose) logs into a designated log
+file. This means that even though a user might be shown `WARNING` level logs in
+the console, logs with up to `DEBUG` level will be dumped into the log file. A
+user can disable this parallel logging to a file by setting the environment
+variable:
+
+```
+ENSO_LOG_TO_FILE=false project-manager ...
+```
+
+Users can also modify the default maximal log level, `DEBUG`, used when logging
+to a log file by setting the environment variable:
+
+```
+ENSO_LOG_TO_FILE_LOG_LEVEL=trace project-manager ...
+```

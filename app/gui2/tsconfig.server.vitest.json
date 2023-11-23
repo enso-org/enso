@@ -1,0 +1,8 @@
+{
+  "extends": "./tsconfig.server.json",
+  "exclude": [],
+  "compilerOptions": {
+    "lib": [],
+    "types": ["node", "vitest/importMeta"]
+  }
+}

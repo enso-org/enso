@@ -1,0 +1,421 @@
+import project.Any.Any
+import project.Data.Boolean.Boolean
+import project.Data.Json.Extensions
+import project.Data.Json.JS_Object
+import project.Data.Map.Map
+import project.Data.Numbers.Integer
+import project.Data.Text.Text
+import project.Data.Vector.Vector
+import project.Error.Error
+import project.Errors.Common.Index_Out_Of_Bounds
+import project.Errors.File_Error.File_Error
+import project.Errors.Illegal_State.Illegal_State
+import project.Errors.No_Such_Key.No_Such_Key
+import project.Nothing.Nothing
+import project.Panic.Panic
+import project.System.File.File
+import project.System.File.File_Access.File_Access
+import project.System.Input_Stream.Input_Stream
+from project.Data.Range.Extensions import all
+from project.Data.Text.Extensions import all
+
+polyglot java import java.io.StringReader
+polyglot java import java.lang.Exception as JException
+polyglot java import javax.xml.parsers.DocumentBuilder
+polyglot java import javax.xml.parsers.DocumentBuilderFactory
+polyglot java import javax.xml.xpath.XPathConstants
+polyglot java import javax.xml.xpath.XPathFactory
+polyglot java import org.enso.base.XML_Utils
+polyglot java import org.w3c.dom.Document
+polyglot java import org.w3c.dom.Element
+polyglot java import org.w3c.dom.Node
+polyglot java import org.w3c.dom.NodeList
+polyglot java import org.w3c.dom.Text as Java_Text
+polyglot java import org.xml.sax.InputSource
+polyglot java import org.xml.sax.SAXException
+polyglot java import org.xml.sax.SAXParseException
+
+type XML_Document
+    ## GROUP Input
+       Read an XML document from a file.
+
+       Arguments:
+       - file: the `File` to read the XML document from.
+
+       If there is an error reading the file, `File_Error` is thrown.
+
+       If there is a parsing error, `XML_Error.Parse_Error` is thrown.
+
+       > Example
+         Read an XML document in 'doc.xml'.
+
+             file = enso_project.data / "doc.xml"
+             doc = XML_Document.from_file test_file
+    from_file : File -> XML_Document ! XML_Error | File_Error
+    from_file file:File =
+        File_Error.handle_java_exceptions file <|
+            file.with_input_stream [File_Access.Read] XML_Document.from_stream
+
+    ## Read an XML document from an input stream.
+
+       Arguments:
+       - input_stream: the input stread to read the XML document from.
+
+       If there is a parsing error, `XML_Error.Parse_Error` is thrown.
+
+       > Example
+         Read an XML document from an input_stream.
+
+             doc = XML_Document.from_stream input_stream
+    from_stream : Input_Stream -> XML_Document ! XML_Error
+    from_stream input_stream:Input_Stream =
+        XML_Error.handle_java_exceptions <|
+           input_stream.with_java_stream java_stream-> XML_Document.from_source java_stream
+
+    ## GROUP Conversions
+       Read an XML document from a string.
+
+       Arguments:
+       - xml_string: The string to read the XML document from.
+
+       If there is a parsing error, `XML_Error.Parse_Error` is thrown.
+
+       > Example
+         Read an XML document from an string.
+
+             xml_string = "<foo></foo>"
+             doc = XML_Document.from_text xml_string
+    from_text : Text -> XML_Document ! XML_Error
+    from_text xml_string:Text =
+        XML_Error.handle_java_exceptions <|
+            string_reader = StringReader.new xml_string
+            XML_Document.from_source (InputSource.new string_reader)
+
+    ## PRIVATE
+       Read XML from an input source.
+    from_source : Any -> XML_Document ! XML_Error
+    from_source input_source =
+        document_builder_factory = DocumentBuilderFactory.newInstance
+        document_builder = document_builder_factory.newDocumentBuilder
+        XML_Utils.setCustomErrorHandler document_builder
+        XML_Document.Value (document_builder.parse input_source)
+
+    ## GROUP Metadata
+       Get the root element of the document.
+
+       > Example
+         Get the root element of a document.
+
+             doc = XML_Document.from_file file
+             root = doc.root_element
+    root_element : XML_Element ! XML_Error
+    root_element self =
+        XML_Error.handle_java_exceptions <|
+            java_element = self.java_document.getDocumentElement
+            XML_Element.new java_element
+
+    ## PRIVATE
+       Convert to a JavaScript Object representing this XML_Document.
+    to_js_object : JS_Object
+    to_js_object self = self.root_element.to_js_object
+
+    ## PRIVATE
+       Convert to a display representation of this XML_Document.
+    to_display_text : Text
+    to_display_text self = "XML_Document (" + self.root_element.to_display_text + ")"
+
+    ## PRIVATE
+    Value (java_document:Document)
+
+type XML_Element
+    ## GROUP Metadata
+       Gets the tag of an XML element.
+
+       > Example
+         Get the tag of an XML element.
+
+             XML_Document.from_text '<foo>hello</foo>' . root_element . name
+             # => "foo"
+    name : Text ! XML_Error
+    name self =
+        XML_Error.handle_java_exceptions <|
+            self.java_element.getNodeName
+
+    ## GROUP Selections
+       Gets a child of an XML element.
+
+       Arguments:
+       - key: If an `Integer`, returns the element at position `at` in its list
+         of children. If a `Text`, treats `key` as an XPath specifier, and
+         returns the elements it points to. If a `Text` that starts with `"@"`,
+         returns the attribute with the given name.
+
+       > Example
+           XML_Document.from_text '<foo><baz>hello</baz></foo>' . root_element . get 0
+           # => XML_Document.from_text "<baz>hello</baz>" . root_element
+
+       > Example
+         Get a tag attribute.
+
+             root = XML_Document.from_text '<foo bar="one">hello</foo>' . root_element
+             root.get "@bar"
+             # => "one"
+    get : Text | Integer -> Any -> Any | Text | XML_Element | Vector (Text | XML_Element) ! No_Such_Key | Index_Out_Of_Bounds | XML_Error
+    get self key:(Text | Integer) ~if_missing=Nothing =
+        case key of
+            _ : Integer -> self.children_cache.get key if_missing
+            _ : Text -> if is_attribute_key key then self.get_xpath key . get 0 if_missing else self.get_xpath key
+
+    ## GROUP Selections
+       Gets a child or attribute of an XML element.
+
+       Arguments:
+       - key: If an `Integer`, returns the element at position `at` in its list
+         of children. If a `Text`, treats `key` as an XPath specifier, and
+         returns the elements it points to. If a `Text` that starts with `"@"`,
+         returns the attribute with the given name.
+
+       > Example
+         Get a nested tag:
+
+             XML_Document.from_text '<foo><baz>hello</baz></foo>' . root_element . at 0
+             # => XML_Document.from_text "<baz>hello</baz>" . root_element
+
+       > Example
+         Get a tag attribute.
+
+             root = XML_Document.from_text '<foo bar="one">hello</foo>' . root_element
+             root.at "@bar"
+             # => "one"
+    at : Text | Integer -> Text | XML_Element | Vector (Text | XML_Element) ! No_Such_Key | Index_Out_Of_Bounds | XML_Error
+    at self key:(Text | Integer) =
+        if_missing = case key of
+            _ : Integer -> Error.throw (Index_Out_Of_Bounds.Error key self.child_count)
+            _ : Text -> Error.throw (No_Such_Key.Error self key)
+        self.get key if_missing
+
+    ## Get elements denoted by the given XPath key.
+
+       Arguments:
+       - key: The XPath string to use to search for elements.
+
+       > Example
+         Get an element by xpath.
+
+             root = XML_Document.from_file test_file . root_element
+             root.at "/class/teacher[1]/firstname"
+             # => [XML_Document.from_text "<firstname>Alice</firstname>" . root_element]
+    get_xpath : Text -> Vector (Text | XML_Element) ! XML_Error
+    get_xpath self key:Text =
+        XML_Error.handle_java_exceptions <|
+            xpath = XPathFactory.newInstance.newXPath
+            only_wanted_nodes (xpath.evaluate key self.java_element XPathConstants.NODESET)
+
+    ## GROUP Selections
+       Gets the child elements of an XML element.
+
+       `children` only returns child elements and child text nodes that are not
+       100% whitespace. Other node types, such as comments, are not included.
+
+       > Example
+             XML_Document.from_text '<foo><baz>hello</baz></foo>' . root_element . children
+             # => [XML_Document.from_text "<baz>hello</baz>"]
+    children : Vector (XML_Element | Text) ! XML_Error
+    children self = self.children_cache
+
+    ## GROUP Metadata
+       Gets the number children of an XML element.
+
+       `child_count` only counts child elements and child text nodes that are
+       not 100% whitespace. Other node types, such as comments, are not included
+       in the count.
+
+       > Example
+         Get the number of children of an element.
+
+             XML_Document.from_text '<foo> <bar>hello</bar> <bar>hello2</bar>< </foo>' . root_element . child_count
+             # => 2
+    child_count : Integer ! XML_Error
+    child_count self = self.children_cache.length
+
+    ## GROUP Selections
+       Get an attribute of an XML element.
+
+       Arguments:
+       - name: The name of the attribute to get.
+       - if_missing: The value returned if the attribute does not exist.
+
+       > Example
+         Get an attribute of an element.
+
+             root = XML_Document.from_text '<foo bar="one">hello</foo>' . root_element
+             root.attribute "bar"
+             # => "one"
+    attribute : Text -> Any -> Text | Any ! XML_Error
+    attribute self name:Text ~if_missing=(Error.throw (No_Such_Key.Error self name)) =
+        XML_Error.handle_java_exceptions <|
+            attr = self.java_element.getAttributeNode name
+            if attr.is_nothing then if_missing else attr.getValue
+
+    ## GROUP Selections
+       Gets a map containing of the attributes of an XML element.
+
+       > Example
+           XML_Document.from_text '<foo bar="one">hello</foo>' . root_element . attributes
+           # => Map.from_vector [["bar", "one"]]
+    attributes : Map Text Text ! XML_Error
+    attributes self =
+        XML_Error.handle_java_exceptions <|
+            named_node_map = self.java_element.getAttributes
+            keys_and_values = 0.up_to named_node_map.getLength . map i->
+                node = named_node_map.item i
+                [node.getNodeName, node.getNodeValue]
+            Map.from_vector keys_and_values
+
+    ## GROUP Selections
+       Gets the text (non-markup) contents of the element and its descendants,
+       if any.
+
+       > Example
+         Get the text content of an element.
+
+             XML_Document.from_text '<foo>hello</foo>' . root_element . text
+             # => "hello"
+    text : Text ! XML_Error
+    text self =
+        XML_Error.handle_java_exceptions <|
+            self.java_element.getTextContent
+
+    ## Gets the raw XML of the element (including tag, attributes and contents).
+
+       > Example
+         Get the outer XML of an element.
+
+             XML_Document.from_text '<foo>hello</foo>' . root_element . outer_xml
+             # => '<foo>hello</foo>'
+    outer_xml : Text ! XML_Error
+    outer_xml self =
+        XML_Error.handle_java_exceptions <|
+            XML_Utils.outerXML self.java_element
+
+    ## Gets the raw XML of the contents of the element, not including the
+       outermost tag and attributes.
+
+       > Example
+         Get the inner XML of an element.
+
+             XML_Document.from_text '<foo><bar>hello</bar></foo>' . root_element . inner_xml
+             # => '<bar>hello</bar>'
+    inner_xml : Text ! XML_Error
+    inner_xml self =
+        XML_Error.handle_java_exceptions <|
+            XML_Utils.innerXML self.java_element
+
+    ## Gets elements matching a given tag name.
+
+       This searches through all descendants of the node, not just immediate children.
+
+       > Example
+             XML_Document.from_text '<foo> <baz>hello</baz> <bar>and</bar> <baz>goodbye</baz> </foo>' . root_element . get_elements_by_tag_name "baz"
+             # => [XML_Document.from_text "<baz>hello</baz>" . root_element, XML_Document.from_text "<baz>goodbye</baz>" . root_element]
+    get_elements_by_tag_name : Text -> Vector XML_Element ! XML_Error
+    get_elements_by_tag_name self tag_name:Text =
+        XML_Error.handle_java_exceptions <|
+            only_wanted_nodes (self.java_element.getElementsByTagName tag_name)
+
+    ## PRIVATE
+       Convert to a display representation of this XML_Element.
+    to_display_text : Text
+    to_display_text self = 'XML_Element "' + self.name + '"'
+
+    ## PRIVATE
+       Convert to a JavaScript Object representing this XML_Element.
+    to_js_object : JS_Object ! XML_Error
+    to_js_object self =
+        builder = Vector.new_builder 4
+        builder.append ["type", "XML_Element"]
+        builder.append ["tag", self.name]
+        builder.append ["attributes", self.attributes.to_js_object]
+        builder.append ["children", self.children_cache.to_js_object]
+        JS_Object.from_pairs builder.to_vector
+
+    ## PRIVATE
+
+       Build a new XML_Element, populating the lazy `children_cache` field.
+    new : Element -> XML_Element
+    new java_element = XML_Element.Value java_element (build_child_list java_element)
+
+    ## PRIVATE
+    Value (java_element:Element) (~children_cache:(Vector (XML_Element | Text)))
+
+type XML_Error
+    ## An error that indicates that the XML data could not be parsed.
+
+       Arguments:
+       - line_number: the line on which the parse failed.
+       - column_number: the column at which the parse failed.
+    Parse_Error (line_number : Integer) (column_number : Integer)
+
+    ## Any other XML-related Java exception.
+    Other (error : Text)
+
+    ## PRIVATE
+
+       Utility method for running an action with Java exceptions mapping.
+    handle_java_exceptions : Any -> Any ! XML_Error
+    handle_java_exceptions ~action =
+        Panic.catch JException action caught_panic->
+            XML_Error.wrap_java_exception caught_panic.payload
+
+    ## PRIVATE
+
+       Converts a Java `Exception` into its Enso counterpart.
+    wrap_java_exception : JException -> XML_Error
+    wrap_java_exception exception:JException = case exception of
+        _ : SAXParseException -> Error.throw (XML_Error.Parse_Error exception.getLineNumber exception.getColumnNumber)
+        _ -> Error.throw (XML_Error.Other "An Exception has occurred: "+exception.to_text)
+
+    ## PRIVATE
+       Convert the XML_Error to a human-readable format.
+    to_display_text : Text
+    to_display_text self = case self of
+        XML_Error.Parse_Error line_number column_number -> "The XML document could not be parsed at line " + line_number.to_text + ", column " + column_number.to_text
+        XML_Error.Other error -> error
+
+## PRIVATE
+   Filter out unwanted nodes.
+   Wanted nodes are:
+   - Elements
+   - Text (if not completely whitespace)
+   - Attribute values (which only arise in the case of XPath keys)
+only_wanted_nodes : NodeList -> Vector (Text | XML_Element)
+only_wanted_nodes node_list:NodeList =
+    nodes = 0.up_to (node_list.getLength) . map i->
+        node_list.item i
+    is_wanted : Node -> Boolean
+    is_wanted node:Node =
+        is_element = node.getNodeType == Node.ELEMENT_NODE
+        is_attribute = node.getNodeType == Node.ATTRIBUTE_NODE
+        is_non_whitespace_text = node.getNodeType == Node.TEXT_NODE && node.getNodeValue.is_whitespace.not
+        is_element || is_attribute || is_non_whitespace_text
+
+    # If an Element, wrap in XML_Element. If Java_Text, extract the string. If an attribute, extract the value.
+    convert node =
+        if node.getNodeType == Node.ELEMENT_NODE then XML_Element.new node else
+            if node.getNodeType == Node.TEXT_NODE then node.getNodeValue else
+                if node.getNodeType == Node.ATTRIBUTE_NODE then node.getValue else
+                    Panic.throw (Illegal_State.Error ("Unexpected child type " + node.getNodeType.to_text))
+    nodes.filter is_wanted . map convert
+
+## PRIVATE
+
+    Build the child list, filtering out unwanted child nodes.
+build_child_list : Element -> Vector (XML_Element | Text) ! XML_Error
+build_child_list java_element =
+    XML_Error.handle_java_exceptions <|
+        only_wanted_nodes java_element.getChildNodes
+
+## PRIVATE
+   Returns true if `key` starts with "@".
+is_attribute_key : Text -> Boolean
+is_attribute_key s:Text = s.starts_with "@"

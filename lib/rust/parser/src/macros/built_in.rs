@@ -3,6 +3,7 @@
 use crate::macros::pattern::*;
 use crate::macros::*;
 
+use crate::source::Code;
 use crate::syntax::operator;
 
 
@@ -38,6 +39,7 @@ fn statement() -> resolver::SegmentMap<'static> {
     register_import_macros(&mut macro_map);
     register_export_macros(&mut macro_map);
     macro_map.register(type_def());
+    macro_map.register(private());
     macro_map.register(foreign());
     macro_map
 }
@@ -80,7 +82,10 @@ fn import_body<'s>(
         let field = match header.code.as_ref() {
             "polyglot" => {
                 body = Some(
-                    precedence.resolve(tokens).map(expect_ident).unwrap_or_else(expected_nonempty),
+                    precedence
+                        .resolve(tokens)
+                        .map(expect_ident)
+                        .unwrap_or_else(|| expected_nonempty(header.code.position_after())),
                 );
                 &mut polyglot
             }
@@ -89,7 +94,7 @@ fn import_body<'s>(
                     precedence
                         .resolve(tokens)
                         .map(expect_qualified)
-                        .unwrap_or_else(expected_nonempty),
+                        .unwrap_or_else(|| expected_nonempty(header.code.position_after())),
                 );
                 &mut from
             }
@@ -110,14 +115,17 @@ fn import_body<'s>(
             }
             "as" => {
                 body = Some(
-                    precedence.resolve(tokens).map(expect_ident).unwrap_or_else(expected_nonempty),
+                    precedence
+                        .resolve(tokens)
+                        .map(expect_ident)
+                        .unwrap_or_else(|| expected_nonempty(header.code.position_after())),
                 );
                 &mut as_
             }
             "hiding" => {
                 body = Some(
                     sequence_tree(precedence, tokens, expect_ident)
-                        .unwrap_or_else(expected_nonempty),
+                        .unwrap_or_else(|| expected_nonempty(header.code.position_after())),
                 );
                 &mut hiding
             }
@@ -173,7 +181,7 @@ fn export_body<'s>(
                     precedence
                         .resolve(tokens)
                         .map(expect_qualified)
-                        .unwrap_or_else(expected_nonempty),
+                        .unwrap_or_else(|| expected_nonempty(header.code.position_after())),
                 );
                 &mut from
             }
@@ -194,14 +202,17 @@ fn export_body<'s>(
             }
             "as" => {
                 body = Some(
-                    precedence.resolve(tokens).map(expect_ident).unwrap_or_else(expected_nonempty),
+                    precedence
+                        .resolve(tokens)
+                        .map(expect_ident)
+                        .unwrap_or_else(|| expected_nonempty(header.code.position_after())),
                 );
                 &mut as_
             }
             "hiding" => {
                 body = Some(
                     sequence_tree(precedence, tokens, expect_ident)
-                        .unwrap_or_else(expected_nonempty),
+                        .unwrap_or_else(|| expected_nonempty(header.code.position_after())),
                 );
                 &mut hiding
             }
@@ -338,7 +349,7 @@ fn to_body_statement(mut line_expression: syntax::Tree<'_>) -> syntax::Tree<'_> 
         return line_expression;
     }
     let mut last_argument_default = default();
-    let mut left_offset = crate::source::Offset::default();
+    let mut left_offset = line_expression.span.left_offset.position_before();
     let lhs = match &line_expression {
         Tree {
             variant: box Variant::OprApp(OprApp { lhs: Some(lhs), opr: Ok(opr), rhs: Some(rhs) }),
@@ -437,7 +448,8 @@ fn case_body<'s>(
         }
     }
     if !initial_case.is_empty() {
-        let newline = syntax::token::newline("", "");
+        let location = of_.code.position_after();
+        let newline = syntax::token::newline(location.clone(), location);
         case_builder.push(syntax::item::Line { newline, items: initial_case });
     }
     block.into_iter().for_each(|line| case_builder.push(line));
@@ -672,12 +684,26 @@ fn foreign<'s>() -> Definition<'s> {
     crate::macro_definition! {("foreign", everything()) foreign_body}
 }
 
+fn private<'s>() -> Definition<'s> {
+    crate::macro_definition! {("private", everything()) private_keyword}
+}
+
 fn skip<'s>() -> Definition<'s> {
     crate::macro_definition! {("SKIP", everything()) capture_expressions}
 }
 
 fn freeze<'s>() -> Definition<'s> {
     crate::macro_definition! {("FREEZE", everything()) capture_expressions}
+}
+
+fn private_keyword<'s>(
+    segments: NonEmptyVec<MatchedSegment<'s>>,
+    precedence: &mut operator::Precedence<'s>,
+) -> syntax::Tree<'s> {
+    let segment = segments.pop().0;
+    let keyword = into_private(segment.header);
+    let body = precedence.resolve(segment.result.tokens());
+    syntax::Tree::private(keyword, body)
 }
 
 /// Macro body builder that just parses the tokens of each segment as expressions, and places them
@@ -783,6 +809,11 @@ fn into_ident(token: syntax::token::Token) -> syntax::token::Ident {
     syntax::token::ident(left_offset, code, false, 0, false, false, false)
 }
 
+fn into_private(token: syntax::token::Token) -> syntax::token::Private {
+    let syntax::token::Token { left_offset, code, .. } = token;
+    syntax::token::private(left_offset, code)
+}
+
 
 // === Validators ===
 
@@ -802,7 +833,15 @@ fn expect_qualified(tree: syntax::Tree) -> syntax::Tree {
     }
 }
 
-fn expected_nonempty<'s>() -> syntax::Tree<'s> {
-    let empty = syntax::Tree::ident(syntax::token::ident("", "", false, 0, false, false, false));
+fn expected_nonempty(location: Code) -> syntax::Tree {
+    let empty = syntax::Tree::ident(syntax::token::ident(
+        location.clone(),
+        location,
+        false,
+        0,
+        false,
+        false,
+        false,
+    ));
     empty.with_error("Expected tokens.")
 }

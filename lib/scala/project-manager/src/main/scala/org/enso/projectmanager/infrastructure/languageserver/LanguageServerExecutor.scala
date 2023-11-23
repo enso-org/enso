@@ -12,7 +12,8 @@ trait LanguageServerExecutor {
     * @param progressTracker reference to an actor that should be notifed of any
     *                        locks
     * @param rpcPort port to use for the RPC channel
-    * @param dataPort port to use for the binary channel
+    * @param secureRpcPort port to use for the RPC channel
+    * @param secureDataPort port to use for the binary channel
     * @param lifecycleListener a listener that will be notified when the process
     *                          is started and terminated
     */
@@ -20,7 +21,9 @@ trait LanguageServerExecutor {
     descriptor: LanguageServerDescriptor,
     progressTracker: ActorRef,
     rpcPort: Int,
+    secureRpcPort: Option[Int],
     dataPort: Int,
+    secureDataPort: Option[Int],
     lifecycleListener: LifecycleListener
   ): Unit
 }

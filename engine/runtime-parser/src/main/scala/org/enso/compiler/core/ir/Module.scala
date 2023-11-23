@@ -1,8 +1,11 @@
 package org.enso.compiler.core.ir
 
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{randomId, Identifier, ToStringHelper}
+import org.enso.compiler.core.{IR, Identifier}
+import org.enso.compiler.core.IR.randomId
+import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
 import org.enso.compiler.core.ir.module.scope.{Definition, Export, Import}
+
+import java.util.UUID
 
 /** A representation of a top-level Enso module.
   *
@@ -12,23 +15,25 @@ import org.enso.compiler.core.ir.module.scope.{Definition, Export, Import}
   * @param imports     the import statements that bring other modules into scope
   * @param exports     the export statements for this module
   * @param bindings    the top-level bindings for this module
+  * @param isPrivate    whether or not this module is private (project-private)
   * @param location    the source location that the node corresponds to
   * @param passData    the pass metadata associated with this node
   * @param diagnostics compiler diagnostics for this node
   */
 @SerialVersionUID(
-  7681L // SuggestionBuilder needs to send ascribedType of constructor parameters
+  8160L // Use BindingsMap
 )       // prevents reading broken caches, see PR-3692 for details
-sealed case class Module(
+final case class Module(
   imports: List[Import],
   exports: List[Export],
   bindings: List[Definition],
-  override val location: Option[IdentifiedLocation],
-  override val passData: MetadataStorage      = MetadataStorage(),
-  override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+  isPrivate: Boolean,
+  location: Option[IdentifiedLocation],
+  passData: MetadataStorage      = MetadataStorage(),
+  diagnostics: DiagnosticStorage = DiagnosticStorage()
 ) extends IR
     with IRKind.Primitive {
-  override protected var id: Identifier = randomId
+  var id: UUID @Identifier = randomId
 
   /** Creates a copy of `this`.
     *
@@ -48,10 +53,18 @@ sealed case class Module(
     location: Option[IdentifiedLocation] = location,
     passData: MetadataStorage            = passData,
     diagnostics: DiagnosticStorage       = diagnostics,
-    id: Identifier                       = id
+    id: UUID @Identifier                 = id
   ): Module = {
     val res =
-      Module(imports, exports, bindings, location, passData, diagnostics)
+      Module(
+        imports,
+        exports,
+        bindings,
+        isPrivate,
+        location,
+        passData,
+        diagnostics
+      )
     res.id = id
     res
   }
@@ -92,7 +105,9 @@ sealed case class Module(
     copy(location = location)
 
   /** @inheritdoc */
-  override def mapExpressions(fn: Expression => Expression): Module = {
+  override def mapExpressions(
+    fn: java.util.function.Function[Expression, Expression]
+  ): Module = {
     copy(
       imports  = imports.map(_.mapExpressions(fn)),
       exports  = exports.map(_.mapExpressions(fn)),

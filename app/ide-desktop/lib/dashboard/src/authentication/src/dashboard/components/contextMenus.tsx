@@ -33,12 +33,13 @@ export default function ContextMenus(props: ContextMenusProps) {
         <>{children}</>
     ) : (
         <Modal
-            className="absolute overflow-hidden bg-dim w-full h-full z-10"
+            className="absolute overflow-hidden bg-dim w-full h-full"
             onContextMenu={innerEvent => {
                 innerEvent.preventDefault()
             }}
         >
             <div
+                data-testid="context-menus"
                 ref={contextMenuRef}
                 style={{ left, top }}
                 className="sticky flex pointer-events-none items-start gap-0.5 w-min"

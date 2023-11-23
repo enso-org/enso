@@ -10,9 +10,8 @@ const emit = defineEmits<{ click: [] }>()
 <style scoped>
 span {
   display: inline-block;
-  height: 20px;
-  padding-top: 1px;
-  padding-bottom: 1px;
+  height: 24px;
+  padding: 1px 0px;
 }
 
 .NavBreadcrumb {

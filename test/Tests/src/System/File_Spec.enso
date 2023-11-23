@@ -687,9 +687,15 @@ spec =
         Test.specify "Should handle parent-less file paths" <|
             transient = enso_project.data / "transient"
             f1 = transient / "./test1.txt"
-            f2 = File.new ("parentlesstest" + Date_Time.now.to_unix_epoch_milliseconds.to_text + ".txt")
+            f2_filename = "parentlesstest" + Date_Time.now.to_unix_epoch_milliseconds.to_text + ".txt"
+            f2 = File.new f2_filename
 
-            Panic.with_finalizer f2.delete <|
+            do_cleanup =
+                f2.delete_if_exists
+                f2_bak = File.new (f2_filename + ".bak")
+                f2_bak.delete_if_exists
+
+            Panic.with_finalizer do_cleanup <|
                 txt = "MY CONTENT"
                 txt.write f1
                 txt.write f2
@@ -739,7 +745,7 @@ spec =
 
         Test.specify "should list files in a directory" <|
             immediate = enso_project.data.list . map .to_text
-            immediate.sort.should_equal (resolve ["books.json", "helloworld.txt", "sample-json.weird-extension", "sample-malformed.json", "sample.json", "sample.png", "sample.txt", "sample.xxx", "transient", "tree", "windows.log", "windows.txt"])
+            immediate.sort.should_equal (resolve ["books.json", "helloworld.txt", "sample-json.weird-extension", "sample-malformed.json", "sample.json", "sample.png", "sample.txt", "sample.xxx", "transient", "tree", "windows.log", "windows.txt", 'xml'])
 
             filtered1 = enso_project.data.list name_filter="s[a-cw]mple.{t?t,md}" . map .to_text
             filtered1.should_equal (resolve ["sample.txt"])

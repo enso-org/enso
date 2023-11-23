@@ -18,6 +18,9 @@ import org.scalatest.matchers.should.Matchers
 import java.io.{ByteArrayOutputStream, File}
 import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
+import java.util.logging.ConsoleHandler
+import scala.concurrent.Await
+import scala.concurrent.duration._
 
 @scala.annotation.nowarn("msg=multiarg infix syntax")
 class RuntimeErrorsTest
@@ -44,13 +47,16 @@ class RuntimeErrorsTest
         namespace = "Enso_Test"
       )
     val out: ByteArrayOutputStream = new ByteArrayOutputStream()
+    val logHandler                 = new ConsoleHandler()
+    val defaultLogLevel            = java.util.logging.Level.WARNING;
+    logHandler.setLevel(defaultLogLevel)
+
     val executionContext = new PolyglotContext(
       Context
         .newBuilder(LanguageInfo.ID)
         .allowExperimentalOptions(true)
         .allowAllAccess(true)
         .option(RuntimeOptions.PROJECT_ROOT, pkg.root.getAbsolutePath)
-        .option(RuntimeOptions.LOG_LEVEL, "WARNING")
         .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
         .option(RuntimeOptions.ENABLE_PROJECT_SUGGESTIONS, "false")
         .option(RuntimeOptions.ENABLE_GLOBAL_SUGGESTIONS, "false")
@@ -68,7 +74,10 @@ class RuntimeErrorsTest
             .toFile
             .getAbsolutePath
         )
+        .option("engine.WarnInterpreterOnly", "false")
         .option(RuntimeOptions.EDITION_OVERRIDE, "0.0.0-dev")
+        .logHandler(logHandler)
+        .option(RuntimeOptions.LOG_LEVEL, defaultLogLevel.getName)
         .out(out)
         .serverTransport(runtimeServerEmulator.makeServerTransport)
         .build()
@@ -108,7 +117,7 @@ class RuntimeErrorsTest
 
   override protected def afterEach(): Unit = {
     context.executionContext.context.close()
-    context.runtimeServerEmulator.terminate()
+    Await.ready(context.runtimeServerEmulator.terminate(), 5.seconds)
   }
 
   it should "return panic sentinels in method body" in {
@@ -140,9 +149,11 @@ class RuntimeErrorsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
-    context.receiveNone shouldEqual None
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // push main
     context.send(
@@ -159,9 +170,8 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      7
+      6
     ) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -237,9 +247,11 @@ class RuntimeErrorsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
-    context.receiveNone shouldEqual None
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // push main
     context.send(
@@ -256,9 +268,8 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      7
+      6
     ) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -327,9 +338,11 @@ class RuntimeErrorsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
-    context.receiveNone shouldEqual None
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // push main
     context.send(
@@ -346,9 +359,8 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      5
+      4
     ) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -404,9 +416,11 @@ class RuntimeErrorsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
-    context.receiveNone shouldEqual None
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // push main
     context.send(
@@ -423,9 +437,8 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      5
+      4
     ) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -476,9 +489,11 @@ class RuntimeErrorsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
-    context.receiveNone shouldEqual None
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // push main
     context.send(
@@ -495,9 +510,8 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      5
+      4
     ) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -561,9 +575,11 @@ class RuntimeErrorsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
-    context.receiveNone shouldEqual None
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // push main
     context.send(
@@ -580,9 +596,8 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      6
+      5
     ) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.error(
         contextId,
@@ -638,9 +653,11 @@ class RuntimeErrorsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
-    context.receiveNone shouldEqual None
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // push main
     context.send(
@@ -657,9 +674,8 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      7
+      6
     ) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -724,9 +740,11 @@ class RuntimeErrorsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
-    context.receiveNone shouldEqual None
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // push main
     context.send(
@@ -743,9 +761,8 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      7
+      6
     ) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -808,9 +825,11 @@ class RuntimeErrorsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
-    context.receiveNone shouldEqual None
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // push main
     context.send(
@@ -827,9 +846,8 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      6
+      5
     ) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.error(
         contextId,
@@ -952,7 +970,7 @@ class RuntimeErrorsTest
     context.consumeOut shouldEqual List("499999999999")
   }
 
-  it should "not send updates when dataflow error changes in expression" in {
+  it should "send updates when dataflow error changes in expression" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
@@ -983,9 +1001,11 @@ class RuntimeErrorsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
-    context.receiveNone shouldEqual None
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // push main
     context.send(
@@ -1002,9 +1022,8 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      6
+      5
     ) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.error(
         contextId,
@@ -1043,15 +1062,41 @@ class RuntimeErrorsTest
         )
       )
     )
-    context.receiveNIgnoreExpressionUpdates(
-      1
+    context.receiveNIgnorePendingExpressionUpdates(
+      4
     ) should contain theSameElementsAs Seq(
+      TestMessages.error(
+        contextId,
+        xId,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Error",
+            "Standard.Base.Error.Error",
+            "throw"
+          )
+        ),
+        fromCache   = false,
+        typeChanged = false,
+        Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
+      ),
+      TestMessages.error(
+        contextId,
+        yId,
+        Api.ExpressionUpdate.Payload.DataflowError(Seq(xId)),
+        typeChanged = false
+      ),
+      TestMessages.update(
+        contextId,
+        mainResId,
+        ConstantsGen.NOTHING,
+        typeChanged = false
+      ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("(Error: MyError2)")
   }
 
-  it should "not send updates when dataflow error changes in method" in {
+  it should "send updates when dataflow error changes in method" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
@@ -1086,9 +1131,11 @@ class RuntimeErrorsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
-    context.receiveNone shouldEqual None
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // push main
     context.send(
@@ -1105,9 +1152,8 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      6
+      5
     ) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.error(
         contextId,
@@ -1140,9 +1186,29 @@ class RuntimeErrorsTest
         )
       )
     )
-    context.receiveNIgnoreExpressionUpdates(
-      1
+    context.receiveNIgnorePendingExpressionUpdates(
+      4
     ) should contain theSameElementsAs Seq(
+      TestMessages.error(
+        contextId,
+        xId,
+        Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "foo")),
+        fromCache   = false,
+        typeChanged = false,
+        Api.ExpressionUpdate.Payload.DataflowError(Seq(fooThrowId, xId))
+      ),
+      TestMessages.error(
+        contextId,
+        yId,
+        Api.ExpressionUpdate.Payload.DataflowError(Seq(fooThrowId, xId)),
+        typeChanged = false
+      ),
+      TestMessages.update(
+        contextId,
+        mainResId,
+        ConstantsGen.NOTHING,
+        typeChanged = false
+      ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("(Error: MyError2)")
@@ -1176,9 +1242,11 @@ class RuntimeErrorsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
-    context.receiveNone shouldEqual None
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // push main
     context.send(
@@ -1195,9 +1263,8 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      6
+      5
     ) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, xId, ConstantsGen.VECTOR),
       TestMessages.update(
@@ -1257,9 +1324,11 @@ class RuntimeErrorsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
-    context.receiveNone shouldEqual None
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // push main
     context.send(
@@ -1276,9 +1345,8 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      6
+      5
     ) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.panic(
         contextId,
@@ -1371,9 +1439,11 @@ class RuntimeErrorsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
-    context.receiveNone shouldEqual None
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // push main
     context.send(
@@ -1390,9 +1460,8 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      7
+      6
     ) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -1493,9 +1562,11 @@ class RuntimeErrorsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
-    context.receiveNone shouldEqual None
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // push main
     context.send(
@@ -1512,9 +1583,8 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      6
+      5
     ) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.panic(
         contextId,
@@ -1641,9 +1711,11 @@ class RuntimeErrorsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
-    context.receiveNone shouldEqual None
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // push main
     context.send(
@@ -1660,9 +1732,8 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      6
+      5
     ) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.panic(
         contextId,
@@ -1760,9 +1831,11 @@ class RuntimeErrorsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
-    context.receiveNone shouldEqual None
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // push main
     context.send(
@@ -1779,9 +1852,8 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      4
+      3
     ) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.panic(
         contextId,
@@ -1829,9 +1901,11 @@ class RuntimeErrorsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
-    context.receiveNone shouldEqual None
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // push main
     context.send(
@@ -1848,9 +1922,8 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      6
+      5
     ) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.error(
         contextId,
@@ -1934,9 +2007,11 @@ class RuntimeErrorsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
-    context.receiveNone shouldEqual None
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // push main
     context.send(
@@ -1953,9 +2028,8 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      6
+      5
     ) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -2046,9 +2120,11 @@ class RuntimeErrorsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
-    context.receiveNone shouldEqual None
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // push main
     context.send(
@@ -2065,9 +2141,8 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      6
+      5
     ) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -2159,9 +2234,11 @@ class RuntimeErrorsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
-    context.receiveNone shouldEqual None
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // push main
     context.send(
@@ -2178,9 +2255,8 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      5
+      4
     ) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.error(
         contextId,
@@ -2259,9 +2335,11 @@ class RuntimeErrorsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
-    context.receiveNone shouldEqual None
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // push main
     context.send(
@@ -2277,8 +2355,7 @@ class RuntimeErrorsTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,

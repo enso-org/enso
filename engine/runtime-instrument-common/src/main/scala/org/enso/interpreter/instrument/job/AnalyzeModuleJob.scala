@@ -59,7 +59,7 @@ object AnalyzeModuleJob {
         SuggestionBuilder(changeset.source, compiler)
           .build(moduleName, changeset.ir)
       val newSuggestions =
-        SuggestionBuilder(module, compiler)
+        SuggestionBuilder(module.asCompilerModule(), compiler)
           .build(moduleName, module.getIr)
       val diff = SuggestionDiff
         .compute(prevSuggestions, newSuggestions)
@@ -77,7 +77,7 @@ object AnalyzeModuleJob {
       ctx.executionService.getLogger
         .log(Level.FINEST, s"Analyzing not-indexed module ${module.getName}")
       val newSuggestions =
-        SuggestionBuilder(module, compiler)
+        SuggestionBuilder(module.asCompilerModule(), compiler)
           .build(moduleName, module.getIr)
       val prevExports = ModuleExports(moduleName.toString, Set())
       val newExports  = exportsBuilder.build(moduleName, module.getIr)

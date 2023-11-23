@@ -20,6 +20,7 @@ import UserMenu from './userMenu'
 
 /** Props for a {@link UserBar}. */
 export interface UserBarProps {
+    supportsLocalBackend: boolean
     page: pageSwitcher.Page
     isHelpChatOpen: boolean
     setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
@@ -32,6 +33,7 @@ export interface UserBarProps {
 /** A toolbar containing chat and the user menu. */
 export default function UserBar(props: UserBarProps) {
     const {
+        supportsLocalBackend,
         page,
         isHelpChatOpen,
         setIsHelpChatOpen,
@@ -57,7 +59,7 @@ export default function UserBar(props: UserBarProps) {
         setProjectAsset != null &&
         self != null
     return (
-        <div className="flex shrink-0 items-center bg-frame rounded-full gap-3 h-8 pl-2 pr-0.75 cursor-default pointer-events-auto">
+        <div className="flex shrink-0 items-center bg-frame backdrop-blur-3xl rounded-full gap-3 h-8 pl-2 pr-0.75 cursor-default pointer-events-auto">
             <Button
                 active={isHelpChatOpen}
                 image={ChatIcon}
@@ -88,12 +90,18 @@ export default function UserBar(props: UserBarProps) {
                 onClick={event => {
                     event.stopPropagation()
                     updateModal(oldModal =>
-                        oldModal?.type === UserMenu ? null : <UserMenu onSignOut={onSignOut} />
+                        oldModal?.type === UserMenu ? null : (
+                            <UserMenu
+                                supportsLocalBackend={supportsLocalBackend}
+                                onSignOut={onSignOut}
+                            />
+                        )
                     )
                 }}
             >
                 <img
                     src={DefaultUserIcon}
+                    alt="Open user menu"
                     height={28}
                     width={28}
                     onDragStart={event => {

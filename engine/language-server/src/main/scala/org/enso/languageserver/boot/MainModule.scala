@@ -2,6 +2,7 @@ package org.enso.languageserver.boot
 
 import akka.actor.ActorSystem
 import buildinfo.Info
+import com.typesafe.config.ConfigFactory
 import org.enso.distribution.locking.{
   ResourceManager,
   ThreadSafeFileLockManager
@@ -10,7 +11,7 @@ import org.enso.distribution.{DistributionManager, Environment, LanguageHome}
 import org.enso.editions.EditionResolver
 import org.enso.editions.updater.EditionManager
 import org.enso.filewatcher.WatcherAdapterFactory
-import org.enso.jsonrpc.JsonRpcServer
+import org.enso.jsonrpc.{JsonRpcServer, SecureConnectionConfig}
 import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data._
 import org.enso.languageserver.effect
@@ -21,9 +22,9 @@ import org.enso.languageserver.libraries._
 import org.enso.languageserver.monitoring.{
   HealthCheckEndpoint,
   IdlenessEndpoint,
-  IdlenessMonitor,
-  NoopEventsMonitor
+  IdlenessMonitor
 }
+import org.enso.languageserver.profiling.ProfilingManager
 import org.enso.languageserver.protocol.binary.{
   BinaryConnectionControllerFactory,
   InboundMessageDecoder
@@ -34,6 +35,7 @@ import org.enso.languageserver.protocol.json.{
 }
 import org.enso.languageserver.requesthandler.monitoring.PingHandler
 import org.enso.languageserver.runtime._
+import org.enso.languageserver.runtime.events.RuntimeEventsMonitor
 import org.enso.languageserver.search.SuggestionsHandler
 import org.enso.languageserver.session.SessionRouter
 import org.enso.languageserver.text.BufferRegistry
@@ -44,10 +46,11 @@ import org.enso.librarymanager.local.DefaultLocalLibraryProvider
 import org.enso.librarymanager.published.PublishedLibraryCache
 import org.enso.lockmanager.server.LockManagerService
 import org.enso.logger.Converter
-import org.enso.logger.masking.{MaskedPath, Masking}
+import org.enso.logger.masking.Masking
 import org.enso.logger.JulHandler
 import org.enso.logger.akka.AkkaConverter
 import org.enso.polyglot.{HostAccessFactory, RuntimeOptions, RuntimeServerInfo}
+import org.enso.profiling.events.NoopEventsMonitor
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo}
 import org.enso.text.{ContentBasedVersioning, Sha3_224VersionCalculator}
 import org.graalvm.polyglot.Engine
@@ -56,11 +59,12 @@ import org.graalvm.polyglot.io.MessageEndpoint
 import org.slf4j.event.Level
 import org.slf4j.LoggerFactory
 
-import java.io.File
+import java.io.{File, PrintStream}
 import java.net.URI
+import java.nio.charset.StandardCharsets
 import java.time.Clock
+
 import scala.concurrent.duration._
-import scala.util.{Failure, Success}
 
 /** A main module containing all components of the server.
   *
@@ -109,7 +113,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     ActorSystem(
       serverConfig.name,
       None,
-      None,
+      Some(getClass.getClassLoader),
       Some(serverConfig.computeExecutionContext)
     )
   log.trace("Created ActorSystem [{}].", system)
@@ -167,21 +171,12 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
   )
 
   val runtimeEventsMonitor =
-    languageServerConfig.profiling.runtimeEventsLogPath match {
+    languageServerConfig.profiling.profilingEventsLogPath match {
       case Some(path) =>
-        ApiEventsMonitor(path) match {
-          case Success(monitor) =>
-            monitor
-          case Failure(exception) =>
-            log.error(
-              "Failed to create runtime events monitor for [{}].",
-              MaskedPath(path),
-              exception
-            )
-            new NoopEventsMonitor
-        }
+        val out = new PrintStream(path.toFile, StandardCharsets.UTF_8)
+        new RuntimeEventsMonitor(out)
       case None =>
-        new NoopEventsMonitor
+        new NoopEventsMonitor()
     }
   log.trace(
     "Started runtime events monitor [{}].",
@@ -372,6 +367,12 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     "project-settings-manager"
   )
 
+  val profilingManager =
+    system.actorOf(
+      ProfilingManager.props(runtimeConnector, distributionManager),
+      "profiling-manager"
+    )
+
   val libraryLocations =
     LibraryLocations.resolve(
       distributionManager,
@@ -447,6 +448,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     runtimeConnector       = runtimeConnector,
     idlenessMonitor        = idlenessMonitor,
     projectSettingsManager = projectSettingsManager,
+    profilingManager       = profilingManager,
     libraryConfig          = libraryConfig,
     config                 = languageServerConfig
   )
@@ -455,12 +457,23 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     jsonRpcControllerFactory
   )
 
+  val secureConfig = SecureConnectionConfig
+    .fromApplicationConfig(applicationConfig())
+    .fold(
+      v => v.flatMap(msg => { log.warn(s"invalid secure config: $msg"); None }),
+      Some(_)
+    )
+
   val jsonRpcServer =
     new JsonRpcServer(
       jsonRpcProtocolFactory,
       jsonRpcControllerFactory,
       JsonRpcServer
-        .Config(outgoingBufferSize = 10000, lazyMessageTimeout = 10.seconds),
+        .Config(
+          outgoingBufferSize = 10000,
+          lazyMessageTimeout = 10.seconds,
+          secureConfig       = secureConfig
+        ),
       List(healthCheckEndpoint, idlenessEndpoint)
     )
   log.trace("Created JSON RPC Server [{}].", jsonRpcServer)
@@ -472,7 +485,8 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
       new BinaryConnectionControllerFactory(fileManager),
       BinaryWebSocketServer.Config(
         outgoingBufferSize = 100,
-        lazyMessageTimeout = 10.seconds
+        lazyMessageTimeout = 10.seconds,
+        secureConfig       = secureConfig
       )
     )
   log.trace("Created Binary WebSocket Server [{}].", binaryServer)
@@ -487,5 +501,14 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     suggestionsRepo.close()
     context.close()
     log.info("Closed Language Server main module.")
+  }
+
+  private def applicationConfig(): com.typesafe.config.Config = {
+    val empty = ConfigFactory.empty().atPath("akka.https")
+    ConfigFactory
+      .load()
+      .withFallback(empty)
+      .getConfig("akka")
+      .getConfig("https")
   }
 }

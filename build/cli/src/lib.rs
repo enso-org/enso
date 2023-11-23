@@ -38,11 +38,14 @@ use crate::arg::BuildJob;
 use crate::arg::Cli;
 use crate::arg::IsTargetSource;
 use crate::arg::IsWatchableSource;
+use crate::arg::OutputPath;
 use crate::arg::Target;
 use crate::arg::WatchJob;
 use anyhow::Context;
+use arg::BuildDescription;
 use clap::Parser;
 use derivative::Derivative;
+use enso_build::config::Config;
 use enso_build::context::BuildContext;
 use enso_build::engine::context::EnginePackageProvider;
 use enso_build::engine::Benchmarks;
@@ -53,15 +56,20 @@ use enso_build::project::backend;
 use enso_build::project::backend::Backend;
 use enso_build::project::gui;
 use enso_build::project::gui::Gui;
+use enso_build::project::gui2;
+use enso_build::project::gui2::Gui2;
 use enso_build::project::ide;
 use enso_build::project::ide::Ide;
+use enso_build::project::ide2;
 use enso_build::project::runtime;
 use enso_build::project::runtime::Runtime;
 use enso_build::project::wasm;
 use enso_build::project::wasm::Wasm;
+use enso_build::project::IsArtifact;
 use enso_build::project::IsTarget;
 use enso_build::project::IsWatchable;
 use enso_build::project::IsWatcher;
+use enso_build::source::BuildSource;
 use enso_build::source::BuildTargetJob;
 use enso_build::source::CiRunSource;
 use enso_build::source::ExternalSource;
@@ -77,6 +85,7 @@ use ide_ci::actions::workflow::is_in_env;
 use ide_ci::cache::Cache;
 use ide_ci::define_env_var;
 use ide_ci::fs::remove_if_exists;
+use ide_ci::github::release;
 use ide_ci::github::setup_octocrab;
 use ide_ci::global;
 use ide_ci::ok_ready_boxed;
@@ -85,7 +94,7 @@ use ide_ci::programs::git;
 use ide_ci::programs::git::clean;
 use ide_ci::programs::rustc;
 use ide_ci::programs::Cargo;
-use ide_ci::programs::Npm;
+use octocrab::models::ReleaseId;
 use std::time::Duration;
 use tempfile::tempdir;
 use tokio::process::Child;
@@ -131,7 +140,6 @@ impl Processor {
             inner: project::Context {
                 cache: Cache::new(&cli.cache_path).await?,
                 octocrab,
-                upload_artifacts: cli.upload_artifacts,
                 repo_root: enso_build::paths::new_repo_root(absolute_repo_path, &triple),
             },
             triple,
@@ -154,9 +162,13 @@ impl Processor {
     {
         let span = info_span!("Resolving.", ?target, ?source).entered();
         let destination = source.output_path.output_path;
+        let should_upload_artifact = source.build_args.upload_artifact;
         let source = match source.source {
-            arg::SourceKind::Build =>
-                T::resolve(self, source.build_args).map_ok(Source::BuildLocally).boxed(),
+            arg::SourceKind::Build => T::resolve(self, source.build_args.input)
+                .map_ok(move |input| {
+                    Source::BuildLocally(BuildSource { input, should_upload_artifact })
+                })
+                .boxed(),
             arg::SourceKind::Local =>
                 ok_ready_boxed(Source::External(ExternalSource::LocalFile(source.path))),
             arg::SourceKind::CiRun => {
@@ -243,10 +255,16 @@ impl Processor {
         &self,
         job: BuildJob<T>,
     ) -> BoxFuture<'static, Result<BuildTargetJob<T>>> {
-        let BuildJob { input, output_path } = job;
+        let BuildJob { input: BuildDescription { input, upload_artifact }, output_path } = job;
         let input = self.resolve_inputs::<T>(input);
         async move {
-            Ok(WithDestination { destination: output_path.output_path, inner: input.await? })
+            Ok(WithDestination::new(
+                BuildSource {
+                    input:                  input.await?,
+                    should_upload_artifact: upload_artifact,
+                },
+                output_path.output_path,
+            ))
         }
         .boxed()
     }
@@ -320,22 +338,20 @@ impl Processor {
         }
     }
 
-    // pub fn handle_engine(&self, engine: arg::engine::Target) -> BoxFuture<'static, Result> {
-    //     self.get(engine.source).void_ok().boxed()
-    // }
-    //
-    // pub fn handle_project_manager(
-    //     &self,
-    //     project_manager: arg::project_manager::Target,
-    // ) -> BoxFuture<'static, Result> {
-    //     self.get(project_manager.source).void_ok().boxed()
-    // }
-
     pub fn handle_gui(&self, gui: arg::gui::Target) -> BoxFuture<'static, Result> {
         match gui.command {
             arg::gui::Command::Build(job) => self.build(job),
             arg::gui::Command::Get(source) => self.get(source).void_ok().boxed(),
             arg::gui::Command::Watch(job) => self.watch_and_wait(job),
+        }
+    }
+
+    pub fn handle_gui2(&self, gui: arg::gui2::Target) -> BoxFuture<'static, Result> {
+        match gui.command {
+            arg::gui2::Command::Build(job) => self.build(job),
+            arg::gui2::Command::Get(source) => self.get(source).void_ok().boxed(),
+            arg::gui2::Command::Test => gui2::unit_tests(&self.repo_root),
+            arg::gui2::Command::Lint => gui2::lint(&self.repo_root),
         }
     }
 
@@ -424,7 +440,14 @@ impl Processor {
                     test_standard_library: true,
                     test_java_generated_from_rust: true,
                     build_benchmarks: true,
-                    execute_benchmarks: once(Benchmarks::Runtime).collect(),
+                    execute_benchmarks: {
+                        // Run benchmarks only on Linux.
+                        let mut ret = BTreeSet::new();
+                        if TARGET_OS == OS::Linux {
+                            ret.insert(Benchmarks::Runtime);
+                        }
+                        ret
+                    },
                     execute_benchmarks_once: true,
                     check_enso_benchmarks: true,
                     verify_packages: true,
@@ -432,8 +455,7 @@ impl Processor {
                 };
                 let context = self.prepare_backend_context(config);
                 async move {
-                    let mut context = context.await?;
-                    context.upload_artifacts = true;
+                    let context = context.await?;
                     context.build().await
                 }
                 .void_ok()
@@ -454,7 +476,7 @@ impl Processor {
             let paths = paths?;
             let inner = crate::project::Context {
                 repo_root: paths.repo_root.clone(),
-                upload_artifacts: true,
+                // upload_artifacts: true,
                 octocrab,
                 cache: Cache::new_default().await?,
             };
@@ -463,26 +485,48 @@ impl Processor {
         .boxed()
     }
 
+    /// Get a handle to the release by its identifier.
+    pub fn release(&self, id: ReleaseId) -> release::Handle {
+        ide_ci::github::release::Handle::new(&self.octocrab, self.remote_repo.clone(), id)
+    }
+
+    /// Upload IDE assets from the build job to the given release.
+    pub fn upload_ide_assets(
+        &self,
+        build_job: BoxFuture<'static, Result<ide::Artifact>>,
+        release_id: ReleaseId,
+        name_prefix: Option<String>,
+    ) -> BoxFuture<'static, Result> {
+        let release = self.release(release_id);
+        let add_prefix = move |name: String| {
+            if let Some(prefix) = name_prefix.clone() {
+                format!("{prefix}-{name}")
+            } else {
+                name
+            }
+        };
+        async move {
+            let artifacts = build_job.await?;
+            release
+                .upload_asset_file_with_custom_name(&artifacts.image, add_prefix.clone())
+                .await?;
+            release
+                .upload_asset_file_with_custom_name(&artifacts.image_checksum, add_prefix)
+                .await?;
+            Ok(())
+        }
+        .boxed()
+    }
+
     pub fn handle_ide(&self, ide: arg::ide::Target) -> BoxFuture<'static, Result> {
         match ide.command {
-            arg::ide::Command::Build { params } => self.build_ide(params).void_ok().boxed(),
+            arg::ide::Command::Build { params } => self.build_old_ide(params).void_ok().boxed(),
             arg::ide::Command::Upload { params, release_id } => {
-                let build_job = self.build_ide(params);
-                let release = ide_ci::github::release::Handle::new(
-                    &self.octocrab,
-                    self.remote_repo.clone(),
-                    release_id,
-                );
-                async move {
-                    let artifacts = build_job.await?;
-                    release.upload_asset_file(&artifacts.image).await?;
-                    release.upload_asset_file(&artifacts.image_checksum).await?;
-                    Ok(())
-                }
-                .boxed()
+                let build_job = self.build_old_ide(params);
+                self.upload_ide_assets(build_job, release_id, None)
             }
             arg::ide::Command::Start { params, ide_option } => {
-                let build_job = self.build_ide(params);
+                let build_job = self.build_old_ide(params);
                 async move {
                     let ide = build_job.await?;
                     ide.start_unpacked(ide_option).run_ok().await?;
@@ -540,6 +584,16 @@ impl Processor {
         }
     }
 
+    pub fn handle_ide2(&self, ide: arg::ide2::Target) -> BoxFuture<'static, Result> {
+        match ide.command {
+            arg::ide2::Command::Build { params } => self.build_new_ide(params).void_ok().boxed(),
+            arg::ide2::Command::Upload { params, release_id } => {
+                let build_job = self.build_new_ide(params);
+                self.upload_ide_assets(build_job, release_id, Some("ide2".into()))
+            }
+        }
+    }
+
     /// Spawns a Project Manager.
     pub fn spawn_project_manager(
         &self,
@@ -559,10 +613,27 @@ impl Processor {
         }
         .boxed()
     }
-
     pub fn build_ide(
         &self,
-        params: arg::ide::BuildInput,
+        input: ide::BuildInput<impl IsArtifact>,
+        output_path: OutputPath<impl IsTargetSource + Send + Sync + 'static>,
+    ) -> BoxFuture<'static, Result<ide::Artifact>> {
+        let target = Ide { target_os: self.triple.os, target_arch: self.triple.arch };
+        let artifact_name_prefix = input.artifact_name.clone();
+        let build_job = target.build(&self.context, input, output_path);
+        async move {
+            let artifacts = build_job.await?;
+            if is_in_env() {
+                artifacts.upload_as_ci_artifact(artifact_name_prefix).await?;
+            }
+            Ok(artifacts)
+        }
+        .boxed()
+    }
+
+    pub fn build_old_ide(
+        &self,
+        params: arg::ide::BuildInput<Gui>,
     ) -> BoxFuture<'static, Result<ide::Artifact>> {
         let arg::ide::BuildInput { gui, project_manager, output_path, electron_target } = params;
         let input = ide::BuildInput {
@@ -570,17 +641,39 @@ impl Processor {
             project_manager: self.get(project_manager),
             version: self.triple.versions.version.clone(),
             electron_target,
+            artifact_name: "ide".into(),
         };
-        let target = Ide { target_os: self.triple.os, target_arch: self.triple.arch };
-        let build_job = target.build(&self.context, input, output_path);
-        async move {
-            let artifacts = build_job.await?;
-            if is_in_env() {
-                artifacts.upload_as_ci_artifact().await?;
+        self.build_ide(input, output_path)
+    }
+
+    pub fn build_new_ide(
+        &self,
+        params: arg::ide2::BuildInput,
+    ) -> BoxFuture<'static, Result<ide2::Artifact>> {
+        let arg::ide::BuildInput { gui, project_manager, output_path, electron_target } = params;
+
+        let build_info_get = self.js_build_info();
+        let build_info_path = self.context.inner.repo_root.join(&*enso_build::ide::web::BUILD_INFO);
+
+        let build_info = async move {
+            let build_info = build_info_get.await?;
+            build_info_path.write_as_json(&build_info)
+        };
+
+        let gui = self.get(gui);
+
+        let input = ide::BuildInput {
+            gui: async move {
+                build_info.await?;
+                gui.await
             }
-            Ok(artifacts)
-        }
-        .boxed()
+            .boxed(),
+            project_manager: self.get(project_manager),
+            version: self.triple.versions.version.clone(),
+            electron_target,
+            artifact_name: "ide2".into(),
+        };
+        self.build_ide(input, output_path)
     }
 
     pub fn target<Target: Resolvable>(&self) -> Result<Target> {
@@ -648,6 +741,19 @@ impl Resolvable for Gui {
     }
 }
 
+impl Resolvable for Gui2 {
+    fn prepare_target(_context: &Processor) -> Result<Self> {
+        Ok(Gui2)
+    }
+
+    fn resolve(
+        _ctx: &Processor,
+        _from: <Self as IsTargetSource>::BuildInput,
+    ) -> BoxFuture<'static, Result<<Self as IsTarget>::BuildInput>> {
+        ok_ready_boxed(())
+    }
+}
+
 impl Resolvable for Runtime {
     fn prepare_target(_context: &Processor) -> Result<Self> {
         Ok(Runtime {})
@@ -689,41 +795,8 @@ impl Resolvable for Backend {
                 Ok(backend::BuildInput { external_runtime, versions })
             })
             .boxed()
-        // ok_ready_boxed(backend::BuildInput { versions: ctx.triple.versions.clone() })
     }
 }
-
-// impl Resolvable for ProjectManager {
-//     fn prepare_target(_context: &Processor) -> Result<Self> {
-//         Ok(ProjectManager)
-//     }
-//
-//     fn resolve(
-//         ctx: &Processor,
-//         _from: <Self as IsTargetSource>::BuildInput,
-//     ) -> BoxFuture<'static, Result<<Self as IsTarget>::BuildInput>> {
-//         ok_ready_boxed(project_manager::BuildInput {
-//             repo_root: ctx.repo_root().path,
-//             versions:  ctx.triple.versions.clone(),
-//         })
-//     }
-// }
-//
-// impl Resolvable for Engine {
-//     fn prepare_target(_context: &Processor) -> Result<Self> {
-//         Ok(Engine)
-//     }
-//
-//     fn resolve(
-//         ctx: &Processor,
-//         _from: <Self as IsTargetSource>::BuildInput,
-//     ) -> BoxFuture<'static, Result<<Self as IsTarget>::BuildInput>> {
-//         ok_ready_boxed(engine::BuildInput {
-//             repo_root: ctx.repo_root().path,
-//             versions:  ctx.triple.versions.clone(),
-//         })
-//     }
-// }
 
 pub trait WatchResolvable: Resolvable + IsWatchableSource + IsWatchable {
     fn resolve_watch(
@@ -751,11 +824,11 @@ impl WatchResolvable for Gui {
 }
 
 #[tracing::instrument(err, skip(config))]
-pub async fn main_internal(config: Option<enso_build::config::Config>) -> Result {
+pub async fn main_internal(config: Option<Config>) -> Result {
     trace!("Starting the build process.");
     let config = config.unwrap_or_else(|| {
         warn!("No config provided, using default config.");
-        enso_build::config::Config::default()
+        Config::default()
     });
 
     trace!("Creating the build context.");
@@ -769,6 +842,10 @@ pub async fn main_internal(config: Option<enso_build::config::Config>) -> Result
     let cli = Cli::parse();
 
     debug!("Parsed CLI arguments: {cli:#?}");
+
+    if cli.skip_npm_install {
+        enso_build::web::assume_installed();
+    }
 
     if !cli.skip_version_check {
         // Let's be helpful!
@@ -789,13 +866,14 @@ pub async fn main_internal(config: Option<enso_build::config::Config>) -> Result
     match cli.target {
         Target::Wasm(wasm) => ctx.handle_wasm(wasm).await?,
         Target::Gui(gui) => ctx.handle_gui(gui).await?,
+        Target::Gui2(gui2) => ctx.handle_gui2(gui2).await?,
         Target::Runtime(runtime) => ctx.handle_runtime(runtime).await?,
         // Target::ProjectManager(project_manager) =>
         //     ctx.handle_project_manager(project_manager).await?,
         // Target::Engine(engine) => ctx.handle_engine(engine).await?,
         Target::Backend(backend) => ctx.handle_backend(backend).await?,
         Target::Ide(ide) => ctx.handle_ide(ide).await?,
-        // TODO: consider if out-of-source ./dist should be removed
+        Target::Ide2(ide2) => ctx.handle_ide2(ide2).await?,
         Target::GitClean(options) => {
             let crate::arg::git_clean::Options { dry_run, cache, build_script } = options;
             let mut exclusions = vec![".idea"];
@@ -845,12 +923,13 @@ pub async fn main_internal(config: Option<enso_build::config::Config>) -> Result
                 .run_ok()
                 .await?;
 
-            Npm.cmd()?.install().run_ok().await?;
-            Npm.cmd()?.run("ci-check").run_ok().await?;
+            enso_build::web::install(&ctx.repo_root).await?;
+            enso_build::web::run_script(&ctx.repo_root, enso_build::web::Script::CiCheck).await?;
         }
         Target::Fmt => {
-            Npm.cmd()?.install().run_ok().await?;
-            let prettier = Npm.cmd()?.run("format").run_ok();
+            enso_build::web::install(&ctx.repo_root).await?;
+            let prettier =
+                enso_build::web::run_script(&ctx.repo_root, enso_build::web::Script::Format);
             let our_formatter =
                 enso_formatter::process_path(&ctx.repo_root, enso_formatter::Action::Format);
             let (r1, r2) = join!(prettier, our_formatter).await;
@@ -908,7 +987,7 @@ pub async fn main_internal(config: Option<enso_build::config::Config>) -> Result
     Ok(())
 }
 
-pub fn lib_main(config: Option<enso_build::config::Config>) -> Result {
+pub fn lib_main(config: Option<Config>) -> Result {
     trace!("Starting the tokio runtime.");
     let rt = tokio::runtime::Runtime::new()?;
     trace!("Entering main.");

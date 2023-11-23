@@ -13,8 +13,6 @@ from Standard.Base.Data.Text.Regex.Internal.Replacer import get_lru_size, replac
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
-polyglot java import org.enso.base.Replacer_Cache
-
 spec =
     Test.group "Compile" <|
         Test.specify "should be able to be compiled" <|

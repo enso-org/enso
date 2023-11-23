@@ -9,7 +9,7 @@ const DIR_NAME = path.dirname(url.fileURLToPath(import.meta.url))
 
 const conf = [
   {
-    ignores: ['rust-ffi/pkg', 'dist'],
+    ignores: ['rust-ffi/pkg', 'dist', 'src/generated', 'templates'],
   },
   ...compat.extends('plugin:vue/vue3-recommended'),
   eslintJs.configs.recommended,
@@ -20,12 +20,20 @@ const conf = [
       parserOptions: {
         tsconfigRootDir: DIR_NAME,
         ecmaVersion: 'latest',
-        project: ['./tsconfig.app.json', './tsconfig.node.json', './tsconfig.vitest.json'],
+        project: [
+          './tsconfig.app.json',
+          './tsconfig.node.json',
+          './tsconfig.server.json',
+          './tsconfig.app.vitest.json',
+          './tsconfig.server.vitest.json',
+          './tsconfig.story.json',
+        ],
       },
     },
     rules: {
       camelcase: [1, { ignoreImports: true }],
       'no-inner-declarations': 0,
+      'vue/attribute-hyphenation': [2, 'never'],
       'vue/v-on-event-hyphenation': [2, 'never'],
       '@typescript-eslint/no-unused-vars': [
         1,
@@ -34,6 +42,12 @@ const conf = [
           argsIgnorePattern: '^_',
         },
       ],
+    },
+  },
+  {
+    files: ['stories/*.vue'],
+    rules: {
+      'vue/multi-word-component-names': 0,
     },
   },
 ]

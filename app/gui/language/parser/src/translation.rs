@@ -81,7 +81,7 @@ impl Translate {
         let space = span.left_offset.code.repr.len();
         self.space_after.insert(self.offset, space);
         self.offset += space;
-        span.left_offset.visible.width_in_spaces
+        usize::try_from(span.left_offset.visible.width_in_spaces).unwrap()
     }
 
     /// This must be called at the beginning of each [`Token`], as they are processed in depth-first
@@ -93,7 +93,7 @@ impl Translate {
     /// This must be called at the beginning of each [`Token`], as they are processed in depth-first
     /// order. It updates the internal counter for the token's bytes, and returns its contents.
     fn visit_token_ref<T>(&mut self, token: syntax::token::Ref<T>) -> WithInitialSpace<String> {
-        let space = token.left_offset.visible.width_in_spaces;
+        let space = usize::try_from(token.left_offset.visible.width_in_spaces).unwrap();
         let body = token.code.to_string();
         self.space_after.insert(self.offset, space);
         self.offset += token.left_offset.code.repr.len();

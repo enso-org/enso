@@ -322,6 +322,7 @@ impl Repository {
         } else if !transaction.ignored.get() {
             // If the transaction was not ignored, we will add it to the undo stack.
             let frame = transaction.frame.borrow().clone();
+            debug!("Closing transaction '{transaction}'");
             self.new_undo_frame(frame);
         } else {
             debug!(

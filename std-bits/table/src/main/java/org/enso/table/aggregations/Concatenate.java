@@ -6,6 +6,8 @@ import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.InvalidAggregation;
 import org.enso.table.data.table.problems.UnquotedDelimiter;
+import org.enso.table.problems.ColumnAggregatedProblemAggregator;
+import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 
 public class Concatenate extends Aggregator {
@@ -27,7 +29,9 @@ public class Concatenate extends Aggregator {
   }
 
   @Override
-  public Object aggregate(List<Integer> indexes) {
+  public Object aggregate(List<Integer> indexes, ProblemAggregator problemAggregator) {
+    ColumnAggregatedProblemAggregator innerAggregator =
+        new ColumnAggregatedProblemAggregator(problemAggregator);
     Context context = Context.getCurrent();
     StringBuilder current = null;
     for (int row : indexes) {
@@ -36,7 +40,8 @@ public class Concatenate extends Aggregator {
         String textValue = toQuotedString(value, quote, separator);
 
         if (!separator.equals("") && quote.equals("") && textValue.contains(separator)) {
-          this.addProblem(new UnquotedDelimiter(this.getName(), row, "Unquoted delimiter."));
+          innerAggregator.reportColumnAggregatedProblem(
+              new UnquotedDelimiter(this.getName(), row, "Unquoted delimiter."));
         }
 
         if (current == null) {
@@ -47,7 +52,8 @@ public class Concatenate extends Aggregator {
           current.append(textValue);
         }
       } else {
-        this.addProblem(new InvalidAggregation(this.getName(), row, "Not a text value."));
+        innerAggregator.reportColumnAggregatedProblem(
+            new InvalidAggregation(this.getName(), row, "Not a text value."));
         return null;
       }
 

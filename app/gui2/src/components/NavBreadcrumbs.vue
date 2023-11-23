@@ -3,13 +3,13 @@ import SvgIcon from '@/components/SvgIcon.vue'
 
 import NavBreadcrumb from '@/components/NavBreadcrumb.vue'
 
-const _props = defineProps<{ breadcrumbs: string[] }>()
+const props = defineProps<{ breadcrumbs: string[] }>()
 const emit = defineEmits<{ click: [index: number] }>()
 </script>
 
 <template>
   <div class="NavBreadcrumbs">
-    <template v-for="(breadcrumb, index) in breadcrumbs" :key="index">
+    <template v-for="(breadcrumb, index) in props.breadcrumbs" :key="index">
       <SvgIcon v-if="index > 0" name="arrow_right_head_only" class="arrow" />
       <NavBreadcrumb :text="breadcrumb" @click="emit('click', index)" />
     </template>

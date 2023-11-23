@@ -5,6 +5,8 @@
 
 use crate::prelude::*;
 
+use crate::source::code::StrRef;
+
 
 
 // ============
@@ -41,25 +43,17 @@ pub(crate) struct Code {
 }
 
 /// Serde wrapper to serialize a `Cow` as the `Code` representation.
-#[allow(clippy::ptr_arg)] // This is the signature required by serde.
-pub(crate) fn serialize_cow<S>(cow: &Cow<'_, str>, ser: S) -> Result<S::Ok, S::Error>
+pub(crate) fn serialize_cow<S>(s: &StrRef, ser: S) -> Result<S::Ok, S::Error>
 where S: serde::Serializer {
-    let s = match cow {
-        Cow::Borrowed(s) => {
-            let begin = str::as_ptr(s) as u32;
-            let len = s.len() as u32;
-            Code { begin, len }
-        }
-        Cow::Owned(s) if s.is_empty() => Code { begin: 0, len: 0 },
-        Cow::Owned(_) => panic!(),
-    };
+    let s = s.0;
+    let s = Code { begin: str::as_ptr(s) as u32, len: s.len() as u32 };
     s.serialize(ser)
 }
 
-pub(crate) fn deserialize_cow<'c, 'de, D>(deserializer: D) -> Result<Cow<'c, str>, D::Error>
+pub(crate) fn deserialize_cow<'c, 'de, D>(deserializer: D) -> Result<StrRef<'c>, D::Error>
 where D: serde::Deserializer<'de> {
     let _ = deserializer.deserialize_u64(DeserializeU64);
-    Ok(Cow::Owned(String::new()))
+    Ok(StrRef(""))
 }
 
 

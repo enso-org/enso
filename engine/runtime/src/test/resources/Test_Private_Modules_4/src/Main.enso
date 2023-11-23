@@ -1,0 +1,7 @@
+import project.Sub
+export project.Sub
+
+# Fails at compile time - cannot mix private and public modules in a module subtree.
+
+main =
+    42

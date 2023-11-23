@@ -96,7 +96,9 @@ trait ProjectManagementOps { this: BaseServerSpec =>
       ProjectOpen.Result(
         engineVer,
         jsonSock,
+        None,
         binSock,
+        None,
         projectName,
         normalizedName,
         namespace

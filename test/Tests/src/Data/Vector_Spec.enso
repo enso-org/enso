@@ -387,7 +387,7 @@ type_spec name alter = Test.group name <|
     Test.specify "should define concatenation" <|
         concat = (alter [1, 2, 3]) + (alter [4, 5, 6])
         concat.should_equal [1, 2, 3, 4, 5, 6]
-        (alter [1, 2, 3])+1 . should_fail_with Type_Error
+        Test.expect_panic_with matcher=Type_Error ((alter [1, 2, 3])+1)
 
     Test.specify "should allow finding a value" <|
         input = alter [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
@@ -559,10 +559,11 @@ type_spec name alter = Test.group name <|
 
         vec.take (Sample 0) . should_equal []
         alter [] . take (Sample 0) . should_equal []
-        alter [] . take (Sample 1) . should_equal []
+        alter [] . take (Sample 1) . should_fail_with Illegal_Argument
         alter ["a"] . take (Sample 1) . should_equal ["a"]
         alter ["a", "a", "a"] . take (Sample 1) . should_equal ["a"]
-        alter ["a", "a", "a"] . take (Sample 100) . should_equal ["a", "a", "a"]
+        alter ["a", "a", "a"] . take (Sample 3) . should_equal ["a", "a", "a"]
+        alter ["a", "a", "a"] . take (Sample 100) . should_fail_with Illegal_Argument
 
         vec.drop (Sample 0) . should_equal vec
         alter [] . drop (Sample 0) . should_equal []
@@ -570,6 +571,16 @@ type_spec name alter = Test.group name <|
         alter ["a"] . drop (Sample 1) . should_equal []
         alter ["a", "a", "a"] . drop (Sample 1) . should_equal ["a", "a"]
         alter ["a", "a", "a"] . drop (Sample 100) . should_equal []
+
+    Test.group "take/drop Sample non-determinism" <|
+        v = 0.up_to 20 . to_vector
+
+        Test.specify "sampling should be deterministic when a seed is supplied" <|
+            v.take (Sample 3 seed=4200000) . should_equal (v.take (Sample 3 seed=4200000))
+
+        Test.specify "sampling should be non-deterministic when a seed is not supplied" <|
+            0.up_to 3 . map _->
+                v.take (Sample 3) . should_not_equal (v.take (Sample 3))
 
     Test.specify "take/drop should gracefully handle missing constructor arguments" <|
         [].take "FOO" . should_fail_with Type_Error
@@ -813,6 +824,20 @@ spec =
             e.length . should_equal 1
             b.at 0 . should_equal 32
 
+        Test.specify "Vector.collect lazy" <|
+            seq = Fib.sequence
+            seq.take 5 . should_equal [1, 1, 2, 3, 5]
+
+        Test.specify "Vector.collect empty list" <|
+            l = List.Nil
+            v = Vector.collect l .x .xs limit=30 stop_at=(_==List.Nil)
+            v . should_equal []
+
+        Test.specify "Vector.collect finite" <|
+            l = List.Cons 1 <| List.Cons 2 <| List.Cons 3 <| List.Nil
+            v = Vector.collect l .x .xs limit=30 stop_at=(_==List.Nil)
+            v . should_equal [1, 2, 3]
+
     Test.group "Vector/Array equality" <|
         v1 = [1, 2, 3]
         a1 = v1.to_array
@@ -864,5 +889,19 @@ spec =
         sliced_vector = v2.slice 0 v.length
         sliced_array = sliced_vector.to_array
         sliced_array
+
+
+
+type Fib
+    Number n:Integer ~next:Fib
+
+    take self limit:Integer = Vector.collect self .n .next limit
+
+    sequence =
+        sum_two seq = Fib.Number seq.n+seq.next.n (sum_two seq.next)
+        start = Fib.Number 1 <| Fib.Number 1 (sum_two start)
+        start
+
+
 
 main = Test_Suite.run_main spec

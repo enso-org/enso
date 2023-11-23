@@ -2,6 +2,7 @@ package org.enso.compiler;
 
 import java.io.OutputStream;
 import java.nio.file.Paths;
+import java.util.logging.Level;
 
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
@@ -28,7 +29,11 @@ public class ExecCompilerTest {
             Paths.get("../../distribution/component").toFile().getAbsolutePath()
         )
         .option(RuntimeOptions.STRICT_ERRORS, "false")
-        .logHandler(OutputStream.nullOutputStream())
+        .option(
+                RuntimeOptions.LOG_LEVEL,
+                Level.WARNING.getName()
+        )
+        .logHandler(System.err)
         .allowAllAccess(true)
         .build();
     assertNotNull("Enso language is supported", ctx.getEngine().getLanguages().get("enso"));
@@ -136,5 +141,48 @@ public class ExecCompilerTest {
     var run = module.invokeMember("eval_expression", "run");
     var err = run.execute(0);
     assertEquals("Error: Module is not a part of a package.", err.asString());
+  }
+
+  @Test
+  public void testDoubledRandom() throws Exception {
+    var module =
+        ctx.eval(
+            "enso",
+          """
+          from Standard.Base import all
+          polyglot java import java.util.Random
+
+          run seed =
+              operator1 = Random.new_generator seed
+          """);
+    var run = module.invokeMember("eval_expression", "run");
+    try {
+      var err = run.execute(1L);
+      fail("Not expecting any result: " + err);
+    } catch (PolyglotException ex) {
+      assertEquals("Compile error: Compiler Internal Error: No polyglot symbol for Random.", ex.getMessage());
+    }
+  }
+
+  @Test
+  public void testUnknownStaticField() throws Exception {
+    var module =
+        ctx.eval(
+            "enso",
+          """
+          from Standard.Base import all
+          polyglot java import java.util.Random as R
+
+          run seed = case seed of
+              R.NO_FIELD -> 0
+              _ -> -1
+          """);
+    var run = module.invokeMember("eval_expression", "run");
+    try {
+      var err = run.execute(1L);
+      fail("Not expecting any result: " + err);
+    } catch (PolyglotException ex) {
+      assertEquals("Compile error: NO_FIELD is not visible in this scope.", ex.getMessage());
+    }
   }
 }

@@ -66,10 +66,6 @@ public sealed abstract class Appender permits FileAppender, SocketAppender, Sent
     return setup(logLevel, loggerSetup);
   }
 
-  public boolean setupForURI(Level logLevel, String hostname, int port, LoggerSetup loggerSetup) {
-    return setup(logLevel, loggerSetup);
-  }
-
   public static final String defaultPattern =
       "[%level] [%d{yyyy-MM-dd'T'HH:mm:ssXXX}] [%logger] %msg%n";
   protected static final String patternKey = "pattern";

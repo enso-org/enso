@@ -55,12 +55,14 @@ class ProjectOpenHandler[F[+_, +_]: Exec: CovariantFlatMap](
         missingComponentAction = missingComponentAction
       )
     } yield ProjectOpen.Result(
-      engineVersion               = server.engineVersion,
-      languageServerJsonAddress   = server.sockets.jsonSocket,
-      languageServerBinaryAddress = server.sockets.binarySocket,
-      projectName                 = server.projectName,
-      projectNormalizedName       = server.projectNormalizedName,
-      projectNamespace            = server.projectNamespace
+      engineVersion                     = server.engineVersion,
+      languageServerJsonAddress         = server.sockets.jsonSocket,
+      languageServerSecureJsonAddress   = server.sockets.secureJsonSocket,
+      languageServerBinaryAddress       = server.sockets.binarySocket,
+      languageServerSecureBinaryAddress = server.sockets.secureBinarySocket,
+      projectName                       = server.projectName,
+      projectNormalizedName             = server.projectNormalizedName,
+      projectNamespace                  = server.projectNamespace
     )
   }
 

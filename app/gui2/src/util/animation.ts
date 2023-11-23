@@ -1,5 +1,5 @@
-import { onUnmounted, proxyRefs, ref, watch, type WatchSource } from 'vue'
-import { watchSourceToRef } from './reactivity'
+import { watchSourceToRef } from '@/util/reactivity'
+import { onScopeDispose, proxyRefs, ref, watch, type WatchSource } from 'vue'
 
 const rafCallbacks: { fn: (t: number, dt: number) => void; priority: number }[] = []
 
@@ -47,7 +47,7 @@ export function useRaf(
       unmountRaf()
     }
   })
-  onUnmounted(unmountRaf)
+  onScopeDispose(unmountRaf)
 }
 
 let rafRunning = false
@@ -116,4 +116,31 @@ export function useApproach(
   }
 
   return proxyRefs({ value: current, skip })
+}
+
+export function useTransitioning(observedProperties?: Set<string>) {
+  const hasActiveAnimations = ref(false)
+  let numActiveTransitions = 0
+  function onTransitionStart(e: TransitionEvent) {
+    if (!observedProperties || observedProperties.has(e.propertyName)) {
+      if (numActiveTransitions == 0) hasActiveAnimations.value = true
+      numActiveTransitions += 1
+    }
+  }
+
+  function onTransitionEnd(e: TransitionEvent) {
+    if (!observedProperties || observedProperties.has(e.propertyName)) {
+      numActiveTransitions -= 1
+      if (numActiveTransitions == 0) hasActiveAnimations.value = false
+    }
+  }
+
+  return {
+    active: hasActiveAnimations,
+    events: {
+      transitionstart: onTransitionStart,
+      transitionend: onTransitionEnd,
+      transitioncancel: onTransitionEnd,
+    },
+  }
 }

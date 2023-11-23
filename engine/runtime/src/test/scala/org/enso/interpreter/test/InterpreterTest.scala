@@ -28,6 +28,7 @@ import java.io.{
 }
 import java.nio.file.Paths
 import java.util.UUID
+import java.util.logging.Level
 
 case class LocationsInstrumenter(instrument: CodeLocationsTestInstrument) {
   var bindings: List[EventBinding[LocationsEventListener]] = List()
@@ -122,13 +123,14 @@ class InterpreterContext(
       .allowCreateThread(false)
       .out(output)
       .err(err)
-      .option(RuntimeOptions.LOG_LEVEL, "WARNING")
+      .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
       .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
       .environment("NO_COLOR", "true")
       .logHandler(System.err)
       .in(in)
       .option(RuntimeOptions.LANGUAGE_HOME_OVERRIDE, languageHome)
       .option(RuntimeOptions.EDITION_OVERRIDE, edition)
+      .option("engine.WarnInterpreterOnly", "false")
       .serverTransport { (uri, peer) =>
         if (uri.toString == DebugServerInfo.URI) {
           new DebuggerSessionManagerEndpoint(sessionManager, peer)

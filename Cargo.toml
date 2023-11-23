@@ -23,6 +23,7 @@ members = [
   "lib/rust/parser/src/syntax/tree/visitor",
   "lib/rust/parser/jni",
   "lib/rust/parser/generate-java",
+  "lib/rust/parser/schema",
   "lib/rust/parser/debug",
   "lib/rust/ensogl/pack",
   "lib/rust/profiler/data",
@@ -63,7 +64,7 @@ debug-assertions = false
 [profile.test]
 opt-level = 0
 lto = false
-debug = 1
+debug = 2
 debug-assertions = true
 
 [profile.integration-test]

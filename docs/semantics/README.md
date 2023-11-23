@@ -29,3 +29,5 @@ This specification is broken down into the following sections:
   those of suspended computations.
 - [**Modules:**](./modules.md) The semantics of Enso's modules.
 - [**Scoping:**](./scoping.md) Enso's scoping and identifier resolution rules.
+- [**Encapsulation:**](./encapsulation.md) The semantics of Enso's encapsulation
+  system - access restriction.

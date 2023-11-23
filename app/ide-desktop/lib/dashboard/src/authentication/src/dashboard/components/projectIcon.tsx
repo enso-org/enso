@@ -135,8 +135,10 @@ export default function ProjectIcon(props: ProjectIconProps) {
             try {
                 switch (backend.type) {
                     case backendModule.BackendType.remote: {
-                        if (!backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[state]) {
-                            setToastId(toast.toast.loading(LOADING_MESSAGE))
+                        if (state !== backendModule.ProjectState.opened) {
+                            if (!shouldRunInBackground) {
+                                setToastId(toast.toast.loading(LOADING_MESSAGE))
+                            }
                             await backend.openProject(
                                 item.id,
                                 {
@@ -239,13 +241,22 @@ export default function ProjectIcon(props: ProjectIconProps) {
         switch (event.type) {
             case assetEventModule.AssetEventType.newFolder:
             case assetEventModule.AssetEventType.uploadFiles:
-            case assetEventModule.AssetEventType.newSecret:
-            case assetEventModule.AssetEventType.deleteMultiple:
+            case assetEventModule.AssetEventType.newDataConnector:
+            case assetEventModule.AssetEventType.cut:
+            case assetEventModule.AssetEventType.cancelCut:
+            case assetEventModule.AssetEventType.move:
+            case assetEventModule.AssetEventType.delete:
+            case assetEventModule.AssetEventType.restore:
             case assetEventModule.AssetEventType.downloadSelected:
-            case assetEventModule.AssetEventType.removeSelf: {
+            case assetEventModule.AssetEventType.removeSelf:
+            case assetEventModule.AssetEventType.temporarilyAddLabels:
+            case assetEventModule.AssetEventType.temporarilyRemoveLabels:
+            case assetEventModule.AssetEventType.addLabels:
+            case assetEventModule.AssetEventType.removeLabels:
+            case assetEventModule.AssetEventType.deleteLabel: {
                 // Ignored. Any missing project-related events should be handled by
-                // `ProjectNameColumn`. `deleteMultiple` and `downloadSelected` are handled by
-                // `AssetRow`.
+                // `ProjectNameColumn`. `deleteMultiple`, `restoreMultiple` and `downloadSelected`
+                // are handled by `AssetRow`.
                 break
             }
             case assetEventModule.AssetEventType.openProject: {
@@ -358,7 +369,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
                         doOpenManually(item.id)
                     }}
                 >
-                    <SvgMask className={ICON_CLASSES} src={PlayIcon} />
+                    <SvgMask alt="Open in editor" className={ICON_CLASSES} src={PlayIcon} />
                 </button>
             )
         case backendModule.ProjectState.openInProgress:
@@ -381,6 +392,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
                         <Spinner size={ICON_SIZE_PX} state={spinnerState} />
                     </div>
                     <SvgMask
+                        alt="Stop execution"
                         src={StopIcon}
                         className={`${ICON_CLASSES} ${isRunningInBackground ? 'text-green' : ''}`}
                     />
@@ -407,6 +419,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
                             <Spinner size={24} state={spinnerState} />
                         </div>
                         <SvgMask
+                            alt="Stop execution"
                             src={StopIcon}
                             className={`${ICON_CLASSES} ${
                                 isRunningInBackground ? 'text-green' : ''
@@ -422,7 +435,11 @@ export default function ProjectIcon(props: ProjectIconProps) {
                                 openIde(true)
                             }}
                         >
-                            <SvgMask src={ArrowUpIcon} className={ICON_CLASSES} />
+                            <SvgMask
+                                alt="Open in editor"
+                                src={ArrowUpIcon}
+                                className={ICON_CLASSES}
+                            />
                         </button>
                     )}
                 </div>

@@ -5,6 +5,8 @@ import java.io.OutputStream;
 import java.nio.file.Paths;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.logging.Level;
+
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Language;
@@ -30,7 +32,11 @@ public class InsightForEnsoTest {
                         RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
                         Paths.get("../../distribution/component").toFile().getAbsolutePath()
                 )
-                .logHandler(OutputStream.nullOutputStream())
+                .option(
+                        RuntimeOptions.LOG_LEVEL,
+                        Level.WARNING.getName()
+                )
+                .logHandler(System.err)
                 .allowExperimentalOptions(true)
                 .allowIO(IOAccess.ALL)
                 .out(out)

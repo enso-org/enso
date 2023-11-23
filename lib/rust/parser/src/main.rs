@@ -75,25 +75,21 @@ fn check_file(path: &str, mut code: &str, parser: &mut enso_parser::Parser) {
     });
     for (error, span) in &*errors.borrow() {
         let whitespace = &span.left_offset.code.repr;
-        if matches!(whitespace, Cow::Borrowed(_)) {
-            let start = whitespace.as_ptr() as usize + whitespace.len() - code.as_ptr() as usize;
-            let mut line = 1;
-            let mut char = 0;
-            for (i, c) in code.char_indices() {
-                if i >= start {
-                    break;
-                }
-                if c == '\n' {
-                    line += 1;
-                    char = 0;
-                } else {
-                    char += 1;
-                }
+        let start = whitespace.as_ptr() as usize + whitespace.len() - code.as_ptr() as usize;
+        let mut line = 1;
+        let mut char = 0;
+        for (i, c) in code.char_indices() {
+            if i >= start {
+                break;
             }
-            eprintln!("{path}:{line}:{char}: {}", &error);
-        } else {
-            eprintln!("{path}:?:?: {}", &error);
-        };
+            if c == '\n' {
+                line += 1;
+                char = 0;
+            } else {
+                char += 1;
+            }
+        }
+        eprintln!("{path}:{line}:{char}: {}", &error);
     }
     for (parsed, original) in ast.code().lines().zip(code.lines()) {
         assert_eq!(parsed, original, "Bug: dropped tokens, while parsing: {path}");

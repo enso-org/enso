@@ -7,9 +7,13 @@ export default mergeConfig(
   defineConfig({
     test: {
       environment: 'jsdom',
-      includeSource: ['./{src,shared}/**/*.{ts,vue}'],
+      includeSource: ['./{src,shared,ydoc-server}/**/*.{ts,vue}'],
       exclude: [...configDefaults.exclude, 'e2e/*'],
       root: fileURLToPath(new URL('./', import.meta.url)),
+      restoreMocks: true,
+    },
+    define: {
+      RUNNING_VITEST: true,
     },
   }),
 )

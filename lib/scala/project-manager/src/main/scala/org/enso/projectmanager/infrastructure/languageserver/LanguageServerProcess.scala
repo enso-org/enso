@@ -27,7 +27,9 @@ import scala.concurrent.duration.{DurationInt, FiniteDuration}
   *                        related to initializing the engine
   * @param descriptor a LS descriptor
   * @param rpcPort port to bind for RPC connections
+  * @param secureRpcPort an optional port to bind for secure RPC connections
   * @param dataPort port to bind for binary connections
+  * @param secureDataPort an optional port to bind for secure  binary connections
   * @param bootTimeout maximum time permitted to wait for the process to finish
   *                    initializing; if the initialization heartbeat is not
   *                    received within this time the boot is treated as failed
@@ -39,7 +41,9 @@ class LanguageServerProcess(
   progressTracker: ActorRef,
   descriptor: LanguageServerDescriptor,
   rpcPort: Int,
+  secureRpcPort: Option[Int],
   dataPort: Int,
+  secureDataPort: Option[Int],
   bootTimeout: FiniteDuration,
   executor: LanguageServerExecutor
 ) extends Actor
@@ -74,7 +78,9 @@ class LanguageServerProcess(
         descriptor        = descriptor,
         progressTracker   = progressTracker,
         rpcPort           = rpcPort,
+        secureRpcPort     = secureRpcPort,
         dataPort          = dataPort,
+        secureDataPort    = secureDataPort,
         lifecycleListener = LifecycleListener
       )
       context.become(startingStage)
@@ -199,7 +205,9 @@ object LanguageServerProcess {
     progressTracker: ActorRef,
     descriptor: LanguageServerDescriptor,
     rpcPort: Int,
+    secureRpcPort: Option[Int],
     dataPort: Int,
+    secureDataPort: Option[Int],
     bootTimeout: FiniteDuration,
     executor: LanguageServerExecutor
   ): Props = Props(
@@ -207,7 +215,9 @@ object LanguageServerProcess {
       progressTracker,
       descriptor,
       rpcPort,
+      secureRpcPort,
       dataPort,
+      secureDataPort,
       bootTimeout,
       executor
     )

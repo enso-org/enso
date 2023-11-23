@@ -10,7 +10,6 @@ import project.Data.Time.Date_Range.Date_Range
 import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Date_Time_Formatter.Date_Time_Formatter
 import project.Data.Time.Day_Of_Week.Day_Of_Week
-import project.Data.Time.Day_Of_Week_From
 import project.Data.Time.Duration.Duration
 import project.Data.Time.Period.Period
 import project.Data.Time.Time_Of_Day.Time_Of_Day
@@ -827,3 +826,8 @@ is_weekend date =
 ## PRIVATE
 fits_in_range start end date =
     (start <= date) && (date < end)
+
+## PRIVATE
+Date.from (that:JS_Object) =
+    if that.get "type" == "Date" && ["year", "month", "day"].all that.contains_key then Date.new (that.get "year") (that.get "month") (that.get "day") else
+        Error.throw (Illegal_Argument.Error "Invalid JS_Object for Date.from.")

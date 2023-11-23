@@ -48,8 +48,6 @@ pub struct Type {
     pub data:          Data,
     /// The parent type, if any.
     pub parent:        Option<TypeId>,
-    /// Types that this type inherits from that are not the parent.
-    pub mixins:        Vec<TypeId>,
     /// If true, this type cannot be instantiated.
     pub abstract_:     bool,
     /// If true, this type is not open to extension by children outside those defined with it.
@@ -66,12 +64,11 @@ impl Type {
     /// Create a new datatype, with defaults for most fields.
     pub fn new(name: TypeName, data: Data) -> Self {
         let parent = Default::default();
-        let mixins = Default::default();
         let abstract_ = Default::default();
         let closed = Default::default();
         let child_field = Default::default();
         let discriminants = Default::default();
-        Type { name, data, parent, mixins, abstract_, closed, child_field, discriminants }
+        Type { name, data, parent, abstract_, closed, child_field, discriminants }
     }
 }
 
@@ -86,7 +83,7 @@ pub enum Data {
 
 impl Data {
     /// If this is a [`Data::Struct`], return its fields.
-    pub fn as_struct(&self) -> Option<&[Field]> {
+    pub fn fields(&self) -> Option<&[Field]> {
         match self {
             Data::Struct(fields) => Some(&fields[..]),
             _ => None,
@@ -271,6 +268,10 @@ impl TypeName {
     pub fn to_pascal_case(&self) -> String {
         self.0.to_pascal_case()
     }
+    /// Render in snake_case.
+    pub fn to_snake_case(&self) -> String {
+        self.0.to_snake_case()
+    }
     /// Append another `TypeName` to the end of `self`. See `Identifier::append`.
     pub fn append(&mut self, other: Self) {
         self.0.append(other.0)
@@ -298,6 +299,13 @@ impl FieldName {
     /// Render in camelCase.
     pub fn to_camel_case(&self) -> Option<String> {
         match self.0.to_camel_case() {
+            ident if ident.is_empty() => None,
+            ident => Some(ident),
+        }
+    }
+    /// Render in snake_case.
+    pub fn to_snake_case(&self) -> Option<String> {
+        match self.0.to_snake_case() {
             ident if ident.is_empty() => None,
             ident => Some(ident),
         }
@@ -355,9 +363,6 @@ impl TypeGraph {
             if let Some(parent) = &mut ty.parent {
                 rewrite(parent);
             }
-            for parent in &mut ty.mixins {
-                rewrite(parent);
-            }
             match &mut ty.data {
                 Data::Struct(fields) =>
                     for field in fields {
@@ -391,7 +396,6 @@ impl TypeGraph {
                 name: _,
                 data,
                 parent,
-                mixins,
                 abstract_: _,
                 closed: _,
                 child_field: _,
@@ -404,7 +408,6 @@ impl TypeGraph {
             if let Some(parent) = parent {
                 to_visit.insert(*parent);
             }
-            to_visit.extend(mixins);
             to_visit.extend(discriminants.values());
             match data {
                 Data::Struct(fields) => to_visit.extend(fields.iter().map(|field| field.type_)),

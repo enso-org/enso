@@ -158,6 +158,13 @@ spec setup =
                 rnd.at "alpha" . to_vector . should_equal alpha_sample
                 rnd.at "beta" . to_vector . should_equal beta_sample
 
+            Test.specify "sampling should be deterministic when a seed is supplied" <|
+                table.take (Sample 3 seed=4200000) . should_equal (table.take (Sample 3 seed=4200000))
+
+            Test.specify "sampling should be non-deterministic when a seed is not supplied" <|
+                0.up_to 3 . map _->
+                  table.take (Sample 3) . should_not_equal (table.take (Sample 3))
+
         if setup.is_database.not then
             Test.specify "should allow selecting rows as long as they satisfy a predicate" <|
                 t = table_builder [["a", [1, 2, 3, 4]], ["b", [5, 6, 7, 8]]]

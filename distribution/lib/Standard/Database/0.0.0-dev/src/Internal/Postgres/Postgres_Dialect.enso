@@ -82,6 +82,14 @@ type Postgres_Dialect
                 Base_Generator.generate_query self.internal_generator_dialect query . build
 
     ## PRIVATE
+       Wraps and possibly escapes the identifier so that it can be used in a
+       generated query regardless of what characters it contains.
+       The quotes used will depend on the dialect.
+    wrap_identifier : Text -> Text
+    wrap_identifier self identifier =
+        self.internal_generator_dialect.wrap_identifier_raw identifier
+
+    ## PRIVATE
        Prepares an ordering descriptor.
 
        One of the purposes of this method is to verify if the expected ordering
@@ -251,7 +259,7 @@ type Postgres_Dialect
        Returns true if the `replace` parameters are supported by this backend.
     if_replace_params_supports : Replace_Params -> Any -> Any
     if_replace_params_supports self replace_params ~action =
-        if supported_replace_params.contains replace_params then action else replace_params.throw_unsupported
+        if supported_replace_params.contains replace_params then action else replace_params.throw_unsupported "PostgreSQL"
 
 
     ## PRIVATE
@@ -272,7 +280,7 @@ type Postgres_Dialect
                                 True -> Value_Type.Decimal 1000 scale
                                 # If the needed precision is too big, we cannot set it, so we set the precision to unlimited. This loses scale.
                                 False -> Value_Type.Decimal Nothing Nothing
-                            Warning.attach (Inexact_Type_Coercion.Warning base_type new_type) new_type
+                            Warning.attach (Inexact_Type_Coercion.Warning base_type new_type unavailable=False) new_type
                         False -> base_type
                 _ -> base_type
 
@@ -287,9 +295,10 @@ make_internal_generator_dialect =
     stddev_pop = ["STDDEV_POP", Base_Generator.make_function "stddev_pop"]
     stddev_samp = ["STDDEV_SAMP", Base_Generator.make_function "stddev_samp"]
     stats = [agg_median, agg_mode, agg_percentile, stddev_pop, stddev_samp]
-    date_ops = [make_extract_as_int "year", make_extract_as_int "quarter", make_extract_as_int "month", make_extract_as_int "week", make_extract_as_int "day", make_extract_as_int "hour", make_extract_as_int "minute", make_extract_fractional_as_int "second", make_extract_fractional_as_int "millisecond" modulus=1000, make_extract_fractional_as_int "microsecond" modulus=1000, ["date_add", make_date_add], ["date_diff", make_date_diff]]
+    date_ops = [make_extract_as_int "year", make_extract_as_int "quarter", make_extract_as_int "month", make_extract_as_int "week", make_extract_as_int "day", make_extract_as_int "hour", make_extract_as_int "minute", make_extract_fractional_as_int "second", make_extract_fractional_as_int "millisecond" modulus=1000, make_extract_fractional_as_int "microsecond" modulus=1000, ["date_add", make_date_add], ["date_diff", make_date_diff], ["date_trunc_to_day", make_date_trunc_to_day]]
     special_overrides = [is_null, is_empty]
-    my_mappings = text + counts + stats + first_last_aggregators + arith_extensions + bool + date_ops + special_overrides
+    other = [["RUNTIME_ERROR", make_runtime_error_op]]
+    my_mappings = text + counts + stats + first_last_aggregators + arith_extensions + bool + date_ops + special_overrides + other
     Base_Generator.base_dialect . extend_with my_mappings
 
 ## PRIVATE
@@ -588,7 +597,7 @@ replace args metadata =
                         Builder.code "REPLACE(" ++ input ++ ", " ++ pattern ++ ", " ++ replacement ++ ")"
                 True -> Nothing
     case expression of
-        Nothing -> replace_params.throw_unsupported
+        Nothing -> replace_params.throw_unsupported "PostgreSQL"
        _ -> expression
 
 ## PRIVATE
@@ -708,6 +717,12 @@ make_date_diff arguments (metadata : Date_Period_Metadata) =
                     ((extract_seconds ++ " * 1000000").paren ++ " + " ++ (micros ++ " % 1000000").paren).paren
 
 ## PRIVATE
+make_date_trunc_to_day arguments =
+    if arguments.length != 1 then Error.throw (Illegal_State.Error "date_trunc_to_day expects exactly one sub expression. This is a bug in Database library.") else
+        expr = arguments.at 0
+        Builder.code "(DATE_TRUNC('day'," ++ expr ++ ") :: DATE)"
+
+## PRIVATE
    Alters the expression casting the value to a 64-bit integer.
 as_int64 expr =
     Builder.code "(" ++ expr ++ "::int8)"
@@ -719,3 +734,26 @@ as_int32 expr =
 
 ## PRIVATE
 postgres_statement_setter = Statement_Setter.default
+
+## PRIVATE
+   The RUNTIME_ERROR operation should allow the query to compile fine and it
+   will not prevent it from running if the branch including this operation is
+   not taken. But if the branch is computed, it should ensure the query fails.
+
+   This query never returns a value, so its type should be polymorphic. However,
+   that is not possible - so currently it just 'pretends' that it would return a
+   Boolean - because that is the type we expect in the use-case. This can be
+   altered if needed.
+
+   It takes a variable as the second argument. It can be any value that is not
+   statically known - this ensure that the optimizer will not be able to
+   pre-compute the expression too early (which could make the query fail
+   spuriously). See `make_invariant_check` in `Lookup_Query_Helper` for an
+   example.
+make_runtime_error_op arguments =
+    if arguments.length != 2 then
+        Panic.throw (Illegal_Argument.Error "RUNTIME_ERROR takes exactly 2 arguments (error message and a variable to ensure deferred execution).")
+    error_message = arguments.at 0
+    variable_to_defer = arguments.at 1
+
+    Builder.code "CAST('[ENSO INVARIANT VIOLATED: '||" ++ error_message ++ "||'] '||COALESCE(" ++ variable_to_defer ++ "::TEXT,'NULL') AS BOOLEAN)"

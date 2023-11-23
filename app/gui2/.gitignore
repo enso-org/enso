@@ -9,9 +9,11 @@ dist
 dist-ssr
 coverage
 *.local
+*.tsbuildinfo
 
 # Editor directories and files
 .vscode/*
+!.vscode/settings.json
 !.vscode/extensions.json
 .idea
 *.suo
@@ -22,3 +24,7 @@ coverage
 
 test-results/
 playwright-report/
+
+src/util/iconList.json
+src/util/iconName.ts
+src/stores/visualization/metadata.json

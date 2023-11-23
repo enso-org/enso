@@ -12,7 +12,6 @@ import org.enso.interpreter.runtime.type.ConstantsGen;
 import org.enso.interpreter.test.Metadata;
 import org.enso.interpreter.test.NodeCountingTestInstrument;
 import org.enso.interpreter.test.instrument.RuntimeServerTest.TestContext;
-import org.enso.polyglot.runtime.Runtime$Api$BackgroundJobsStartedNotification;
 import org.enso.polyglot.runtime.Runtime$Api$CreateContextRequest;
 import org.enso.polyglot.runtime.Runtime$Api$CreateContextResponse;
 import org.enso.polyglot.runtime.Runtime$Api$EditFileNotification;
@@ -26,7 +25,8 @@ import org.enso.polyglot.runtime.Runtime$Api$PushContextResponse;
 import org.enso.polyglot.runtime.Runtime$Api$Request;
 import org.enso.polyglot.runtime.Runtime$Api$Response;
 import org.enso.polyglot.runtime.Runtime$Api$SetExpressionValueNotification;
-import org.enso.polyglot.runtime.Runtime$Api$OpenFileNotification;
+import org.enso.polyglot.runtime.Runtime$Api$OpenFileRequest;
+import org.enso.polyglot.runtime.Runtime$Api$OpenFileResponse$;
 import org.enso.polyglot.runtime.Runtime$Api$StackItem$ExplicitCall;
 import org.enso.polyglot.runtime.Runtime$Api$StackItem$LocalCall;
 import org.enso.text.editing.model;
@@ -200,9 +200,12 @@ public class IncrementalUpdatesTest {
     );
     // Open the new file
     context.send(
-      Request(new Runtime$Api$OpenFileNotification(mainFile, contents))
+      Request(requestId, new Runtime$Api$OpenFileRequest(mainFile, contents))
     );
-    assertTrue("No reply", context.receiveNone().isEmpty());
+    response = context.receive().get();
+    assertEquals(response,
+            Response(requestId, Runtime$Api$OpenFileResponse$.MODULE$)
+    );
 
     nodeCountingInstrument.assertNewNodes("No execution, no nodes yet", 0, 0);
 
@@ -220,12 +223,11 @@ public class IncrementalUpdatesTest {
       )
     );
 
-    assertSameElements(context.receiveNIgnorePendingExpressionUpdates(5, 10, emptySet()),
+    assertSameElements(context.receiveNIgnorePendingExpressionUpdates(4, 10, emptySet()),
       Response(requestId, new Runtime$Api$PushContextResponse(contextId)),
       TestMessages.update(contextId, mainFoo, exprType, new Runtime$Api$MethodCall(new Runtime$Api$MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "foo"), Vector$.MODULE$.empty())),
       TestMessages.update(contextId, mainRes, ConstantsGen.NOTHING),
-      context.executionComplete(contextId),
-      Response(new Runtime$Api$BackgroundJobsStartedNotification())
+      context.executionComplete(contextId)
     );
     assertEquals(List.newBuilder().addOne(originalOutput), context.consumeOut());
 

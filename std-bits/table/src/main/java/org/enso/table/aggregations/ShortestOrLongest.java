@@ -5,6 +5,8 @@ import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.InvalidAggregation;
+import org.enso.table.problems.ColumnAggregatedProblemAggregator;
+import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 
 import java.util.List;
@@ -23,7 +25,8 @@ public class ShortestOrLongest extends Aggregator {
   }
 
   @Override
-  public Object aggregate(List<Integer> indexes) {
+  public Object aggregate(List<Integer> indexes, ProblemAggregator problemAggregator) {
+    ColumnAggregatedProblemAggregator innerAggregator = new ColumnAggregatedProblemAggregator(problemAggregator);
     Context context = Context.getCurrent();
     long length = 0;
     Object current = null;
@@ -32,7 +35,7 @@ public class ShortestOrLongest extends Aggregator {
       Object value = storage.getItemBoxed(row);
       if (value != null) {
         if (!(value instanceof String asString)) {
-          this.addProblem(new InvalidAggregation(this.getName(), row, "Not a text value."));
+          innerAggregator.reportColumnAggregatedProblem(new InvalidAggregation(this.getName(), row, "Not a text value."));
           return null;
         }
 

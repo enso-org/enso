@@ -95,7 +95,7 @@ public class BoolBuilder extends TypedBuilder {
   }
 
   @Override
-  public void writeTo(Object[] items) {
+  public void retypeToMixed(Object[] items) {
     for (int i = 0; i < size; i++) {
       if (isNa.get(i)) {
         items[i] = null;

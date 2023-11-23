@@ -2,12 +2,13 @@ package org.enso.table.data.table.join;
 
 import org.enso.base.arrays.IntArrayBuilder;
 import org.enso.table.data.mask.OrderMask;
-import org.enso.table.problems.AggregatedProblems;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.stream.Collectors;
 
-public record JoinResult(int[] matchedRowsLeftIndices, int[] matchedRowsRightIndices, AggregatedProblems problems) {
+public record JoinResult(int[] matchedRowsLeftIndices, int[] matchedRowsRightIndices) {
 
   public OrderMask getLeftOrderMask() {
     return new OrderMask(matchedRowsLeftIndices);
@@ -43,8 +44,8 @@ public record JoinResult(int[] matchedRowsLeftIndices, int[] matchedRowsRightInd
       rightIndices.add(rightIndex);
     }
 
-    public JoinResult build(AggregatedProblems problemsToInherit) {
-      return new JoinResult(leftIndices.build(), rightIndices.build(), problemsToInherit);
+    public JoinResult build() {
+      return new JoinResult(leftIndices.build(), rightIndices.build());
     }
   }
 }

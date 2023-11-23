@@ -6,6 +6,7 @@ use crate::prelude::*;
 use crate::controller::searcher::Mode;
 use crate::controller::searcher::Notification;
 use crate::executor::global::spawn_stream_handler;
+use crate::model::undo_redo::Transaction;
 use crate::presenter;
 use crate::presenter::graph::AstNodeId;
 use crate::presenter::graph::ViewNodeId;
@@ -45,25 +46,51 @@ pub struct NoSuchComponent(component_grid::EntryId);
 // === Model ===
 // =============
 
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, Debug)]
 struct Model {
     controller: controller::Searcher,
-    project:    view::project::View,
-    provider:   Rc<RefCell<Option<provider::Component>>>,
+    graph_controller: controller::Graph,
+    graph_presenter: presenter::Graph,
+    project: view::project::View,
+    provider: Rc<RefCell<Option<provider::Component>>>,
     input_view: ViewNodeId,
-    view:       component_browser::View,
+    view: component_browser::View,
+    mode: Immutable<Mode>,
+    transaction: Rc<Transaction>,
+    visualization_was_enabled: bool,
 }
 
 impl Model {
     #[profile(Debug)]
+    #[allow(clippy::too_many_arguments)]
     fn new(
         controller: controller::Searcher,
+        graph_controller: &controller::Graph,
+        graph_presenter: &presenter::Graph,
         project: view::project::View,
         input_view: ViewNodeId,
         view: component_browser::View,
+        mode: Mode,
+        transaction: Rc<Transaction>,
+        visualization_was_enabled: bool,
     ) -> Self {
         let provider = default();
-        Self { controller, project, view, provider, input_view }
+        let graph_controller = graph_controller.clone_ref();
+
+        let graph_presenter = graph_presenter.clone_ref();
+        let mode = Immutable(mode);
+        Self {
+            controller,
+            graph_controller,
+            graph_presenter,
+            project,
+            view,
+            provider,
+            input_view,
+            mode,
+            transaction,
+            visualization_was_enabled,
+        }
     }
 
     #[profile(Debug)]
@@ -80,6 +107,12 @@ impl Model {
         }
     }
 
+    fn update_preview(&self) {
+        if let Err(error) = self.controller.preview_input() {
+            error!("Failed to preview searcher preview because of error: {error}.")
+        }
+    }
+
     fn suggestion_accepted(
         &self,
         id: component_grid::EntryId,
@@ -91,6 +124,22 @@ impl Model {
                 error!("Error while applying suggestion: {err}.");
                 None
             }
+        }
+    }
+
+    fn abort_editing(&self) {
+        self.transaction.ignore();
+        self.controller.abort_editing();
+        if let Mode::EditNode { original_node_id, .. } = *self.mode {
+            self.reenable_visualization_if_needed();
+
+            self.graph_presenter.assign_node_view_explicitly(self.input_view, original_node_id);
+            // Force view update so resets to the old expression.
+            self.graph_presenter.force_view_update.emit(original_node_id);
+        }
+        let node_id = self.mode.node_id();
+        if let Err(err) = self.graph_controller.remove_node(node_id) {
+            error!("Error while removing a temporary node: {err}.");
         }
     }
 
@@ -118,15 +167,41 @@ impl Model {
         }
     }
 
+    fn reenable_visualization_if_needed(&self) {
+        if let Mode::EditNode { original_node_id, .. } = *self.mode {
+            if let Some(node_view) = self.graph_presenter.view_id_of_ast_node(original_node_id) {
+                self.project.graph().model.with_node(node_view, |node| {
+                    if self.visualization_was_enabled {
+                        node.enable_visualization();
+                    }
+                });
+            }
+        }
+    }
+
     fn expression_accepted(&self, entry_id: Option<component_grid::EntryId>) -> Option<AstNodeId> {
         if let Some(entry_id) = entry_id {
             self.suggestion_accepted(entry_id);
         }
         if !self.controller.is_input_empty() {
-            self.controller.commit_node().map(Some).unwrap_or_else(|err| {
-                error!("Error while committing node expression: {err}.");
-                None
-            })
+            match self.controller.commit_node() {
+                Ok(ast_id) => {
+                    if let Mode::EditNode { original_node_id, edited_node_id } = *self.mode {
+                        self.reenable_visualization_if_needed();
+
+                        self.graph_presenter
+                            .assign_node_view_explicitly(self.input_view, original_node_id);
+                        if let Err(err) = self.graph_controller.remove_node(edited_node_id) {
+                            error!("Error while removing a temporary node: {err}.");
+                        }
+                    }
+                    Some(ast_id)
+                }
+                Err(err) => {
+                    error!("Error while committing node expression: {err}.");
+                    None
+                }
+            }
         } else {
             // if input is empty or contains spaces only, we cannot update the node (there is no
             // valid AST to assign). Because it is an expected thing, we also do not report error.
@@ -178,13 +253,24 @@ impl SearcherPresenter for ComponentBrowserSearcher {
         // We get the position for searcher before initializing the input node, because the
         // added node will affect the AST, and the position will become incorrect.
         let position_in_code = graph_controller.graph().definition_end_location()?;
+        let graph = graph_controller.graph();
+        let transaction = graph.get_or_open_transaction("Open searcher");
 
-        let mode = Self::init_input_node(
-            parameters,
-            graph_presenter,
-            view.graph(),
-            &graph_controller.graph(),
-        )?;
+        let mode = Self::init_input_node(parameters, graph_presenter, view.graph(), &graph)?;
+
+        let mut visualization_was_enabled = false;
+        if let Mode::EditNode { original_node_id, .. } = mode {
+            if let Some(target_node_view) = graph_presenter.view_id_of_ast_node(original_node_id) {
+                view.graph().model.with_node(target_node_view, |node| {
+                    visualization_was_enabled = node.visualization_enabled.value();
+                    if visualization_was_enabled {
+                        node.disable_visualization();
+                    }
+                    node.show_preview();
+                });
+            }
+        }
+
 
         let searcher_controller = controller::Searcher::new_from_graph_controller(
             ide_controller,
@@ -206,7 +292,16 @@ impl SearcherPresenter for ComponentBrowserSearcher {
         }
 
         let input = parameters.input;
-        Ok(Self::new(searcher_controller, view, input))
+        Ok(Self::new(
+            searcher_controller,
+            &graph,
+            graph_presenter,
+            view,
+            input,
+            mode,
+            transaction,
+            visualization_was_enabled,
+        ))
     }
 
     fn expression_accepted(
@@ -219,7 +314,7 @@ impl SearcherPresenter for ComponentBrowserSearcher {
 
 
     fn abort_editing(self: Box<Self>) {
-        self.model.controller.abort_editing()
+        self.model.abort_editing();
     }
 
     fn input_view(&self) -> ViewNodeId {
@@ -229,23 +324,39 @@ impl SearcherPresenter for ComponentBrowserSearcher {
 
 impl ComponentBrowserSearcher {
     #[profile(Task)]
+    #[allow(clippy::too_many_arguments)]
     fn new(
         controller: controller::Searcher,
+        graph_controller: &controller::Graph,
+        graph_presenter: &presenter::Graph,
         view: view::project::View,
         input_view: ViewNodeId,
+        mode: Mode,
+        transaction: Rc<Transaction>,
+        visualization_was_enabled: bool,
     ) -> Self {
         let searcher_view = view.searcher().clone_ref();
-        let model = Rc::new(Model::new(controller, view, input_view, searcher_view));
+        let model = Rc::new(Model::new(
+            controller,
+            graph_controller,
+            graph_presenter,
+            view,
+            input_view,
+            searcher_view,
+            mode,
+            transaction,
+            visualization_was_enabled,
+        ));
         let network = frp::Network::new("presenter::Searcher");
 
         let graph = &model.project.graph().frp;
         let browser = &model.view;
 
         frp::extend! { network
-            eval model.project.searcher_input_changed ([model]((expr, selections)) {
+            on_input_changed <- model.project.searcher_input_changed.map(f!([model]((expr, selections)) {
                 let cursor_position = selections.last().map(|sel| sel.end).unwrap_or_default();
                 model.input_changed(expr, cursor_position);
-            });
+            }));
 
             action_list_changed <- any_mut::<()>();
             // When the searcher input is changed, we need to update immediately the list of
@@ -264,6 +375,7 @@ impl ComponentBrowserSearcher {
         let breadcrumbs = &browser.model().documentation.breadcrumbs;
         let documentation = &browser.model().documentation;
         frp::extend! { network
+            init <- source_();
             eval_ action_list_changed ([model, grid] {
                 model.provider.take();
                 let list = model.controller.components();
@@ -286,10 +398,16 @@ impl ComponentBrowserSearcher {
             documentation.frp.display_documentation <+ docs;
             eval grid.active ((entry) model.on_entry_for_docs_selected(*entry));
 
+            no_selection <- any(...);
+            no_selection <+ init.constant(true);
+            no_selection <+ grid.active.on_change().map(|e| e.is_none());
             eval_ grid.suggestion_accepted([]analytics::remote_log_event("component_browser::suggestion_accepted"));
+            update_preview <- on_input_changed.gate(&no_selection);
+            eval_ update_preview(model.update_preview());
             eval grid.active((entry) model.suggestion_selected(*entry));
             eval grid.module_entered((id) model.module_entered(*id));
         }
+        init.emit(());
 
         let weak_model = Rc::downgrade(&model);
         let notifications = model.controller.subscribe();

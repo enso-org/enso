@@ -76,7 +76,7 @@ object ProjectCreateHandler {
 
   /** Creates a configuration object used to create a [[ProjectCreateHandler]].
     *
-    * @param configurationService
+    * @param configurationService a global configuration service
     * @param projectService a project service
     * @param requestTimeout a request timeout
     * @param timeoutRetries a number of timeouts to wait until a failure is reported

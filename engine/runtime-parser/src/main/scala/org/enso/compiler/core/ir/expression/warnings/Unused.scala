@@ -2,6 +2,8 @@ package org.enso.compiler.core.ir
 package expression
 package warnings
 
+import com.oracle.truffle.api.source.Source
+
 /** Warnings about unused language entities. */
 sealed trait Unused extends Warning {
   val name: Name
@@ -14,7 +16,8 @@ object Unused {
     * @param name the name that is unused
     */
   sealed case class FunctionArgument(override val name: Name) extends Unused {
-    override def message: String = s"Unused function argument ${name.name}."
+    override def message(source: Source): String =
+      s"Unused function argument ${name.name}."
 
     override def diagnosticKeys(): Array[Any] = Array(name.name)
 
@@ -24,7 +27,8 @@ object Unused {
   }
 
   sealed case class PatternBinding(override val name: Name) extends Unused {
-    override def message: String = s"Unused pattern binding ${name.name}."
+    override def message(source: Source): String =
+      s"Unused pattern binding ${name.name}."
 
     override def diagnosticKeys(): Array[Any] = Array(name.name)
 
@@ -38,7 +42,8 @@ object Unused {
     * @param name the name that is unused
     */
   sealed case class Binding(override val name: Name) extends Unused {
-    override def message: String = s"Unused variable ${name.name}."
+    override def message(source: Source): String =
+      s"Unused variable ${name.name}."
 
     override def diagnosticKeys(): Array[Any] = Array(name.name)
 

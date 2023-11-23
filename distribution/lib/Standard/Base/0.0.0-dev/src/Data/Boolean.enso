@@ -1,6 +1,4 @@
 import project.Any.Any
-import project.Data.Ordering.Comparable
-import project.Data.Ordering.Ordering
 import project.Nothing.Nothing
 from project.Data.Boolean.Boolean import False, True
 
@@ -98,4 +96,3 @@ type Boolean
              if (27 % 3) == 0 then IO.println "Fizz"
     if_then : Any -> Any | Nothing
     if_then self ~on_true = @Builtin_Method "Boolean.if_then"
-

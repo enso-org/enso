@@ -7,7 +7,7 @@ import * as assetListEventModule from '../events/assetListEvent'
 import * as backendModule from '../backend'
 import * as hooks from '../../hooks'
 import * as http from '../../http'
-import * as localBackend from '../localBackend'
+import * as localBackendModule from '../localBackend'
 import * as localStorageModule from '../localStorage'
 import * as projectManager from '../projectManager'
 import * as remoteBackendModule from '../remoteBackend'
@@ -21,7 +21,7 @@ import * as modalProvider from '../../providers/modal'
 import * as shortcutsProvider from '../../providers/shortcuts'
 
 import * as pageSwitcher from './pageSwitcher'
-import * as spinner from './spinner'
+import type * as spinner from './spinner'
 import Chat, * as chat from './chat'
 import Drive from './drive'
 import Editor from './editor'
@@ -44,12 +44,17 @@ export interface DashboardProps {
 
 /** The component that contains the entire UI. */
 export default function Dashboard(props: DashboardProps) {
-    const { supportsLocalBackend, appRunner, initialProjectName, projectManagerUrl } = props
+    const {
+        supportsLocalBackend,
+        appRunner,
+        initialProjectName: rawInitialProjectName,
+        projectManagerUrl,
+    } = props
     const logger = loggerProvider.useLogger()
     const session = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
     const { setBackend } = backendProvider.useSetBackend()
-    const { modal } = modalProvider.useModal()
+    const { modalRef } = modalProvider.useModalRef()
     const { unsetModal } = modalProvider.useSetModal()
     const { localStorage } = localStorageProvider.useLocalStorage()
     const { shortcuts } = shortcutsProvider.useShortcuts()
@@ -71,7 +76,7 @@ export default function Dashboard(props: DashboardProps) {
     const [assetListEvents, dispatchAssetListEvent] =
         hooks.useEvent<assetListEventModule.AssetListEvent>()
     const [assetEvents, dispatchAssetEvent] = hooks.useEvent<assetEventModule.AssetEvent>()
-    const modalRef = React.useRef<modalProvider.Modal | null>(null)
+    const [initialProjectName, setInitialProjectName] = React.useState(rawInitialProjectName)
 
     const isListingLocalDirectoryAndWillFail =
         backend.type === backendModule.BackendType.local && loadingProjectManagerDidFail
@@ -87,16 +92,10 @@ export default function Dashboard(props: DashboardProps) {
     }, [])
 
     React.useEffect(() => {
-        modalRef.current = modal
-    }, [modal])
-
-    React.useEffect(() => {
         unsetModal()
-        if (page === pageSwitcher.Page.editor) {
-            document.body.style.cursor = 'none'
-        } else {
-            document.body.style.cursor = 'auto'
-        }
+        // FIXME [sb]: https://github.com/enso-org/cloud-v2/issues/777
+        // Workarounds for GUI1 should be removed when they are no longer necessary.
+        document.body.style.cursor = page === pageSwitcher.Page.editor ? 'none' : 'auto'
     }, [page, /* should never change */ unsetModal])
 
     React.useEffect(() => {
@@ -109,20 +108,20 @@ export default function Dashboard(props: DashboardProps) {
         let currentBackend = backend
         if (
             supportsLocalBackend &&
-            session.type !== authProvider.UserSessionType.offline &&
             localStorage.get(localStorageModule.LocalStorageKey.backendType) ===
                 backendModule.BackendType.local
         ) {
-            currentBackend = new localBackend.LocalBackend(
-                projectManagerUrl,
-                localStorage.get(localStorageModule.LocalStorageKey.projectStartupInfo) ?? null
-            )
+            currentBackend = new localBackendModule.LocalBackend(projectManagerUrl)
             setBackend(currentBackend)
         }
         const savedProjectStartupInfo = localStorage.get(
             localStorageModule.LocalStorageKey.projectStartupInfo
         )
-        if (savedProjectStartupInfo != null) {
+        if (rawInitialProjectName != null) {
+            if (page === pageSwitcher.Page.editor) {
+                setPage(pageSwitcher.Page.drive)
+            }
+        } else if (savedProjectStartupInfo != null) {
             if (savedProjectStartupInfo.backendType === backendModule.BackendType.remote) {
                 if (session.accessToken != null) {
                     if (
@@ -152,26 +151,55 @@ export default function Dashboard(props: DashboardProps) {
                         void (async () => {
                             const abortController = new AbortController()
                             setOpenProjectAbortController(abortController)
-                            await remoteBackendModule.waitUntilProjectIsReady(
-                                remoteBackend,
-                                savedProjectStartupInfo.projectAsset,
-                                abortController
+                            const oldProject = await backend.getProjectDetails(
+                                savedProjectStartupInfo.projectAsset.id,
+                                savedProjectStartupInfo.projectAsset.title
                             )
-                            if (!abortController.signal.aborted) {
-                                const project = await remoteBackend.getProjectDetails(
-                                    savedProjectStartupInfo.projectAsset.id,
-                                    savedProjectStartupInfo.projectAsset.title
+                            if (
+                                backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[
+                                    oldProject.state.type
+                                ]
+                            ) {
+                                await remoteBackendModule.waitUntilProjectIsReady(
+                                    remoteBackend,
+                                    savedProjectStartupInfo.projectAsset,
+                                    abortController
                                 )
-                                setProjectStartupInfo({ ...savedProjectStartupInfo, project })
-                                if (page === pageSwitcher.Page.editor) {
-                                    setPage(page)
+                                if (!abortController.signal.aborted) {
+                                    const project = await remoteBackend.getProjectDetails(
+                                        savedProjectStartupInfo.projectAsset.id,
+                                        savedProjectStartupInfo.projectAsset.title
+                                    )
+                                    setProjectStartupInfo({ ...savedProjectStartupInfo, project })
+                                    if (page === pageSwitcher.Page.editor) {
+                                        setPage(page)
+                                    }
                                 }
                             }
                         })()
                     }
                 }
             } else {
-                setProjectStartupInfo(savedProjectStartupInfo)
+                if (currentBackend.type === backendModule.BackendType.local) {
+                    setInitialProjectName(savedProjectStartupInfo.projectAsset.id)
+                } else {
+                    const localBackend = new localBackendModule.LocalBackend(projectManagerUrl)
+                    void (async () => {
+                        await localBackend.openProject(
+                            savedProjectStartupInfo.projectAsset.id,
+                            null,
+                            savedProjectStartupInfo.projectAsset.title
+                        )
+                        const project = await localBackend.getProjectDetails(
+                            savedProjectStartupInfo.projectAsset.id,
+                            savedProjectStartupInfo.projectAsset.title
+                        )
+                        setProjectStartupInfo({
+                            ...savedProjectStartupInfo,
+                            project,
+                        })
+                    })()
+                }
             }
         }
         // This MUST only run when the component is mounted.
@@ -265,14 +293,14 @@ export default function Dashboard(props: DashboardProps) {
                 }
             },
         })
-    }, [shortcuts, /* should never change */ unsetModal])
+    }, [shortcuts, /* should never change */ modalRef, /* should never change */ unsetModal])
 
     const setBackendType = React.useCallback(
         (newBackendType: backendModule.BackendType) => {
             if (newBackendType !== backend.type) {
                 switch (newBackendType) {
                     case backendModule.BackendType.local:
-                        setBackend(new localBackend.LocalBackend(projectManagerUrl, null))
+                        setBackend(new localBackendModule.LocalBackend(projectManagerUrl))
                         break
                     case backendModule.BackendType.remote: {
                         const headers = new Headers()
@@ -379,6 +407,7 @@ export default function Dashboard(props: DashboardProps) {
                 />
                 <Home hidden={page !== pageSwitcher.Page.home} onTemplateClick={doCreateProject} />
                 <Drive
+                    supportsLocalBackend={supportsLocalBackend}
                     hidden={page !== pageSwitcher.Page.drive}
                     page={page}
                     initialProjectName={initialProjectName}
@@ -397,7 +426,6 @@ export default function Dashboard(props: DashboardProps) {
                     isListingLocalDirectoryAndWillFail={isListingLocalDirectoryAndWillFail}
                     isListingRemoteDirectoryAndWillFail={isListingRemoteDirectoryAndWillFail}
                 />
-                <TheModal />
                 <Editor
                     hidden={page !== pageSwitcher.Page.editor}
                     supportsLocalBackend={supportsLocalBackend}

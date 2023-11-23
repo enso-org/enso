@@ -3,6 +3,12 @@ package org.enso.table.data.column.storage.type;
 import org.enso.base.Text_Utils;
 
 public record TextType(long maxLength, boolean fixedLength) implements StorageType {
+  public TextType {
+    if (maxLength == 0) {
+      throw new IllegalArgumentException("The maxLength of a text type must be positive or -1 to indicate unlimited length.");
+    }
+  }
+
   public static final TextType VARIABLE_LENGTH = new TextType(-1, false);
 
   public static TextType fixedLength(long length) {
@@ -10,7 +16,7 @@ public record TextType(long maxLength, boolean fixedLength) implements StorageTy
   }
 
   public static TextType variableLengthWithLimit(long maxLength) {
-    assert maxLength >= 0;
+    assert maxLength > 0;
     return new TextType(maxLength, false);
   }
 
@@ -90,6 +96,10 @@ public record TextType(long maxLength, boolean fixedLength) implements StorageTy
 
     boolean bothFixed = type1.fixedLength && type2.fixedLength;
     long lengthSum = type1.maxLength + type2.maxLength;
+    if (lengthSum == 0) {
+      return VARIABLE_LENGTH;
+    }
+
     return new TextType(lengthSum, bothFixed);
   }
 }

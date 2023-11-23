@@ -12,22 +12,25 @@ import project.Network.HTTP.Header.Header
 import project.Network.HTTP.HTTP
 import project.Network.HTTP.HTTP_Method.HTTP_Method
 import project.Network.HTTP.Request.Request
+import project.Network.HTTP.Request_Body.Request_Body
 import project.Network.HTTP.Request_Error
 import project.Network.URI.URI
+import project.Network.URI_With_Query.URI_With_Query
 import project.Nothing.Nothing
 import project.System.File.File
 from project.Data.Boolean import Boolean, False, True
-from project.Network.HTTP.Request_Body import all
 from project.System.File_Format import Auto_Detect, File_Format
 
 ## ALIAS load, open
    GROUP Input
+   ICON data_input
    Reads a file into Enso.
    Uses the specified file format to parse the file into an Enso type. If not
    specified will use the file's extension to determine the file format.
 
    Arguments:
-   - path: The path to the file to read.
+   - path: The path to the file to read. If the path is a URI, then the data
+     will be fetched if from a supported protocol.
    - format: A `File_Format` object used to read file into memory.
      If `Auto_Detect` is specified; the provided file determines the specific
      type and configures it appropriately. If there is no matching type then
@@ -58,11 +61,14 @@ from project.System.File_Format import Auto_Detect, File_Format
          example_xls_to_table = Data.read Examples.xls (Excel (Worksheet 'Dates'))
 @format File_Format.default_widget
 read : Text | File -> File_Format -> Problem_Behavior -> Any ! File_Error
-read path format=Auto_Detect (on_problems=Problem_Behavior.Report_Warning) =
-    File.new path . read format on_problems
+read path format=Auto_Detect (on_problems=Problem_Behavior.Report_Warning) = case path of
+    _ : Text -> if (path.starts_with "http://") || (path.starts_with "https://") then fetch path else
+        read (File.new path) format on_problems
+    _ -> File.new path . read format on_problems
 
 ## ALIAS load text, open text
    GROUP Input
+   ICON data_input
    Open and read the file at the provided `path`.
 
    Arguments:
@@ -154,10 +160,9 @@ list_directory directory name_filter=Nothing recursive=False =
    - method: The HTTP method to use. Must be one of `HTTP_Method.Get`,
      `HTTP_Method.Head`, `HTTP_Method.Delete`, `HTTP_Method.Options`.
      Defaults to `HTTP_Method.Get`.
-
    - headers: The headers to send with the request. Defaults to an empty vector.
-   - try_auto_parse:  If successful should the body be attempted to be parsed to
-     an Enso native object.
+   - try_auto_parse_response:  If successful should the body be attempted to be
+     parsed to an Enso native object.
 
    > Example
      Read from an HTTP endpoint.
@@ -171,13 +176,13 @@ list_directory directory name_filter=Nothing recursive=False =
          import Standard.Base.Data
          file = enso_project.data / "spreadsheet.xls"
          Data.fetch URL . body . to_file file
-fetch : (URI | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
-fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (Header | Pair Text Text))=[]) (try_auto_parse_response:Boolean=True) =
+fetch : (URI | URI_With_Query | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
+fetch (uri:(URI | URI_With_Query | Text)) (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (Header | Pair Text Text))=[]) (try_auto_parse_response:Boolean=True) =
     response = HTTP.fetch uri method headers
     if try_auto_parse_response.not then response.with_materialized_body else
         response.decode if_unsupported=response.with_materialized_body
 
-## ALIAS upload, http post
+## ALIAS http post, upload
    GROUP Input
    Writes the provided data to the provided URI. Returns the response,
    parsing the body if the content-type is recognised. Returns an  error if the
@@ -191,13 +196,6 @@ fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (
    - headers: The headers to send with the request. Defaults to an empty vector.
    - try_auto_parse:  If successful should the body be attempted to be parsed to
      an Enso native object.
-
-   ! Specifying Content Types
-
-     If the `body` parameter specifies an explicit content type, then it is an
-     error to also specify additional `Content-Type` headers in the `headers`
-     parameter. (It is not an error to specify multiple `Content-Type` values in
-     `headers`, however.)
 
    ! Supported Body Types
 
@@ -214,6 +212,38 @@ fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (
      - Text: shorthand for `Request_Body.Text that_text`.
      - File: shorthand for `Request_Body.Binary that_file`.
      - Any other Enso object: shorthand for `Request_Body.Json that_object`.
+
+   ! Specifying Content Types
+
+     If the `body` parameter specifies an explicit content type, then it is an
+     error to also specify additional `Content-Type` headers in the `headers`
+     parameter. (It is not an error to specify multiple `Content-Type` values in
+     `headers`, however.)
+
+   ! Default Content Types
+
+     The following specifies the default content type for each `Request_Body`
+     type.
+
+     - Request_Body.Text: `text/plain`
+     - Request_Body.Json: `application/json`
+     - Request_Body.Binary: `application/octet-stream`
+     - Request_Body.Form_Data:
+           If `url_encoded` is True: `application/x-www-form-urlencoded`
+           If `url_encoded` is False: `multipart/form-data`
+     - Request_Body.Empty: No content type is sent
+     - Text: `text/plain`
+     - File: `application/octet-stream`
+     - Any other Enso object: `application/json`
+
+   ! Specifying Text Encodings
+
+     Text encoding can be specified in the `encoding` parameter to the
+     `Request_Body.Text` constructor. This value will be added to the
+     `Content-Type` header.
+
+     If a value for `encoding` is specified, but no value for `content_type` is
+     specified, then `"text/plain"` is used as the content type.
 
    > Example
      Write a text string to an HTTP endpoint.
@@ -270,23 +300,8 @@ fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (
          test_file = enso_project.data / "sample.txt"
          form_data = Map.from_vector [["key", "val"], ["a_file", test_file]]
          response = Data.post url_post (Request_Body.Form_Data form_data url_encoded=True)
-post : (URI | Text) -> Request_Body -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
-post (uri:(URI | Text)) (body:Request_Body=Request_Body.Empty) (method:HTTP_Method=HTTP_Method.Post) (headers:(Vector (Header | Pair Text Text))=[]) (try_auto_parse_response:Boolean=True) =
+post : (URI | URI_With_Query | Text) -> Request_Body -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
+post (uri:(URI | URI_With_Query | Text)) (body:Request_Body=Request_Body.Empty) (method:HTTP_Method=HTTP_Method.Post) (headers:(Vector (Header | Pair Text Text))=[]) (try_auto_parse_response:Boolean=True) =
     response = HTTP.post uri body method headers
     if try_auto_parse_response.not then response.with_materialized_body else
         response.decode if_unsupported=response.with_materialized_body
-
-## ALIAS download, http get
-   GROUP Input
-   Fetches from the URI and returns the response, parsing the body if the
-   content-type is recognised. Returns an  error if the status code does not
-   represent a successful response.
-
-   Arguments:
-   - method: The HTTP method to use. Defaults to `GET`.
-   - headers: The headers to send with the request. Defaults to an empty vector.
-   - try_auto_parse:  If successful should the body be attempted to be parsed to
-     an Enso native object.
-URI.fetch : HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
-URI.fetch self method=HTTP_Method.Get headers=[] try_auto_parse=True =
-    Data.fetch self method headers try_auto_parse

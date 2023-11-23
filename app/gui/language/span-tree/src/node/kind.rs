@@ -99,12 +99,23 @@ impl Kind {
     /// Match the value with `Kind::InsertionPoint{..}` but not
     /// `Kind::InsertionPoint(ExpectedArgument(_))`.
     pub fn is_positional_insertion_point(&self) -> bool {
-        self.is_insertion_point() && !self.is_expected_argument()
+        self.is_insertion_point() && !self.is_expected_argument() && !self.is_expected_operand()
     }
 
     /// Match the value with `Kind::InsertionPoint(ExpectedArgument(_))`.
     pub fn is_expected_argument(&self) -> bool {
         matches!(self, Self::InsertionPoint(t) if t.kind.is_expected_argument())
+    }
+
+    /// Check if given kind is an insertino point for expected operand of an unfinished infix.
+    pub fn is_expected_operand(&self) -> bool {
+        matches!(
+            self,
+            Self::InsertionPoint(InsertionPoint {
+                kind: InsertionPointType::ExpectedOperand | InsertionPointType::ExpectedTarget,
+                ..
+            })
+        )
     }
 
     /// Match the argument in a prefix method application.
@@ -374,6 +385,10 @@ pub enum InsertionPointType {
         index: usize,
         named: bool,
     },
+    /// Expected target of unfinished infix expression.
+    ExpectedTarget,
+    /// Expected operand of unfinished infix expression.
+    ExpectedOperand,
 }
 
 // === Matchers ===

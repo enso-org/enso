@@ -16,7 +16,7 @@ import scala.concurrent.Future;
 import scala.runtime.BoxedUnit;
 
 /** The command to set the runtime execution environment. */
-public class SetExecutionEnvironmentCommand extends Command {
+public class SetExecutionEnvironmentCommand extends AsynchronousCommand {
 
   private final UUID contextId;
   private final Runtime$Api$ExecutionEnvironment executionEnvironment;
@@ -29,8 +29,7 @@ public class SetExecutionEnvironmentCommand extends Command {
   }
 
   @Override
-  public Future<BoxedUnit> execute(RuntimeContext ctx, ExecutionContext ec) {
-
+  public Future<BoxedUnit> executeAsynchronously(RuntimeContext ctx, ExecutionContext ec) {
     return Future.apply(
         () -> {
           setExecutionEnvironment(executionEnvironment, contextId, ctx);

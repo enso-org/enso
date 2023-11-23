@@ -7,17 +7,24 @@ import * as React from 'react'
 import * as router from 'react-router-dom'
 import * as toast from 'react-toastify'
 
+import * as sentry from '@sentry/react'
+
+import * as gtag from 'enso-common/src/gtag'
+
 import * as app from '../../components/app'
-import * as authServiceModule from '../service'
+import type * as authServiceModule from '../service'
 import * as backendModule from '../../dashboard/backend'
 import * as backendProvider from '../../providers/backend'
+import * as cognitoModule from '../cognito'
 import * as errorModule from '../../error'
 import * as http from '../../http'
 import * as localBackend from '../../dashboard/localBackend'
+import * as localStorageModule from '../../dashboard/localStorage'
 import * as localStorageProvider from '../../providers/localStorage'
 import * as loggerProvider from '../../providers/logger'
 import * as remoteBackend from '../../dashboard/remoteBackend'
 import * as sessionProvider from './session'
+import LoadingScreen from '../components/loadingScreen'
 
 // =================
 // === Constants ===
@@ -199,9 +206,10 @@ export function AuthProvider(props: AuthProviderProps) {
 
     const goOfflineInternal = React.useCallback(() => {
         setInitialized(true)
+        sentry.setUser(null)
         setUserSession(OFFLINE_USER_SESSION)
         if (supportsLocalBackend) {
-            setBackendWithoutSavingType(new localBackend.LocalBackend(projectManagerUrl, null))
+            setBackendWithoutSavingType(new localBackend.LocalBackend(projectManagerUrl))
         } else {
             // Provide dummy headers to avoid errors. This `Backend` will never be called as
             // the entire UI will be disabled.
@@ -251,6 +259,7 @@ export function AuthProvider(props: AuthProviderProps) {
             } else if (session == null) {
                 setInitialized(true)
                 if (!initialized) {
+                    sentry.setUser(null)
                     setUserSession(null)
                 }
             } else {
@@ -266,6 +275,7 @@ export function AuthProvider(props: AuthProviderProps) {
                 ) {
                     setBackendWithoutSavingType(backend)
                 }
+                gtag.event('cloud_open')
                 let organization: backendModule.UserOrOrganization | null
                 let user: backendModule.SimpleUser | null
                 while (true) {
@@ -273,7 +283,7 @@ export function AuthProvider(props: AuthProviderProps) {
                         organization = await backend.usersMe()
                         try {
                             user =
-                                organization != null
+                                organization?.isEnabled === true
                                     ? (await backend.listUsers()).find(
                                           listedUser => listedUser.email === organization?.email
                                       ) ?? null
@@ -305,11 +315,19 @@ export function AuthProvider(props: AuthProviderProps) {
                 }
                 let newUserSession: UserSession
                 if (organization == null) {
+                    sentry.setUser({ email: session.email })
                     newUserSession = {
                         type: UserSessionType.partial,
                         ...session,
                     }
                 } else {
+                    sentry.setUser({
+                        id: organization.id,
+                        email: organization.email,
+                        username: organization.name,
+                        // eslint-disable-next-line @typescript-eslint/naming-convention
+                        ip_address: '{{auto}}',
+                    })
                     newUserSession = {
                         type: UserSessionType.full,
                         ...session,
@@ -317,11 +335,15 @@ export function AuthProvider(props: AuthProviderProps) {
                         user,
                     }
 
-                    /** Save access token so can be reused by Enso backend. */
+                    // 34560000 is the recommended max cookie age.
+                    const parentDomain = location.hostname.replace(/^[^.]*\./, '')
+                    document.cookie = `logged_in=yes;max-age=34560000;domain=${parentDomain};samesite=strict;secure`
+
+                    // Save access token so can it be reused by the backend.
                     cognito.saveAccessToken(session.accessToken)
 
-                    /** Execute the callback that should inform the Electron app that the user has logged in.
-                     * This is done to transition the app from the authentication/dashboard view to the IDE. */
+                    // Execute the callback that should inform the Electron app that the user has logged in.
+                    // This is done to transition the app from the authentication/dashboard view to the IDE.
                     onAuthenticated(session.accessToken)
                 }
 
@@ -386,6 +408,7 @@ export function AuthProvider(props: AuthProviderProps) {
     }
 
     const signUp = async (username: string, password: string, organizationId: string | null) => {
+        gtag.event('cloud_sign_up')
         const result = await cognito.signUp(username, password, organizationId)
         if (result.ok) {
             toastSuccess(MESSAGES.signUpSuccess)
@@ -397,10 +420,11 @@ export function AuthProvider(props: AuthProviderProps) {
     }
 
     const confirmSignUp = async (email: string, code: string) => {
+        gtag.event('cloud_confirm_sign_up')
         const result = await cognito.confirmSignUp(email, code)
         if (result.err) {
             switch (result.val.kind) {
-                case 'UserAlreadyConfirmed':
+                case cognitoModule.ConfirmSignUpErrorKind.userAlreadyConfirmed:
                     break
                 default:
                     throw new errorModule.UnreachableCaseError(result.val.kind)
@@ -412,11 +436,12 @@ export function AuthProvider(props: AuthProviderProps) {
     }
 
     const signInWithPassword = async (email: string, password: string) => {
+        gtag.event('cloud_sign_in', { provider: 'Email' })
         const result = await cognito.signInWithPassword(email, password)
         if (result.ok) {
             toastSuccess(MESSAGES.signInWithPasswordSuccess)
         } else {
-            if (result.val.kind === 'UserNotFound') {
+            if (result.val.kind === cognitoModule.SignInWithPasswordErrorKind.userNotFound) {
                 navigate(app.REGISTRATION_PATH)
             }
             toastError(result.val.message)
@@ -429,6 +454,7 @@ export function AuthProvider(props: AuthProviderProps) {
             toastError('You cannot set your username on the local backend.')
             return false
         } else {
+            gtag.event('cloud_user_created')
             try {
                 const organizationId = await authService.cognito.organizationId()
                 // This should not omit success and error toasts as it is not possible
@@ -448,7 +474,15 @@ export function AuthProvider(props: AuthProviderProps) {
                         pending: MESSAGES.setUsernameLoading,
                     }
                 )
-                navigate(app.DASHBOARD_PATH)
+                const redirectTo = localStorage.get(
+                    localStorageModule.LocalStorageKey.loginRedirect
+                )
+                if (redirectTo != null) {
+                    localStorage.delete(localStorageModule.LocalStorageKey.loginRedirect)
+                    location.href = redirectTo
+                } else {
+                    navigate(app.DASHBOARD_PATH)
+                }
                 return true
             } catch {
                 return false
@@ -460,7 +494,7 @@ export function AuthProvider(props: AuthProviderProps) {
         const result = await cognito.forgotPassword(email)
         if (result.ok) {
             toastSuccess(MESSAGES.forgotPasswordSuccess)
-            navigate(app.RESET_PASSWORD_PATH)
+            navigate(app.LOGIN_PATH)
         } else {
             toastError(result.val.message)
         }
@@ -489,10 +523,15 @@ export function AuthProvider(props: AuthProviderProps) {
     }
 
     const signOut = async () => {
+        const parentDomain = location.hostname.replace(/^[^.]*\./, '')
+        document.cookie = `logged_in=no;max-age=0;domain=${parentDomain}`
+        gtag.event('cloud_sign_out')
+        cognito.saveAccessToken(null)
+        localStorage.clearUserSpecificEntries()
         deinitializeSession()
         setInitialized(false)
+        sentry.setUser(null)
         setUserSession(null)
-        localStorage.clear()
         // This should not omit success and error toasts as it is not possible
         // to render this optimistically.
         await toast.toast.promise(cognito.signOut(), {
@@ -508,16 +547,20 @@ export function AuthProvider(props: AuthProviderProps) {
         signUp: withLoadingToast(signUp),
         confirmSignUp: withLoadingToast(confirmSignUp),
         setUsername,
-        signInWithGoogle: () =>
-            cognito.signInWithGoogle().then(
+        signInWithGoogle: () => {
+            gtag.event('cloud_sign_in', { provider: 'Google' })
+            return cognito.signInWithGoogle().then(
                 () => true,
                 () => false
-            ),
-        signInWithGitHub: () =>
-            cognito.signInWithGitHub().then(
+            )
+        },
+        signInWithGitHub: () => {
+            gtag.event('cloud_sign_in', { provider: 'GitHub' })
+            return cognito.signInWithGitHub().then(
                 () => true,
                 () => false
-            ),
+            )
+        },
         signInWithPassword: withLoadingToast(signInWithPassword),
         forgotPassword: withLoadingToast(forgotPassword),
         resetPassword: withLoadingToast(resetPassword),
@@ -529,7 +572,7 @@ export function AuthProvider(props: AuthProviderProps) {
     return (
         <AuthContext.Provider value={value}>
             {/* Only render the underlying app after we assert for the presence of a current user. */}
-            {initialized && children}
+            {initialized ? children : <LoadingScreen />}
         </AuthContext.Provider>
     )
 }
@@ -596,10 +639,18 @@ export function ProtectedLayout() {
  * in the process of registering. */
 export function SemiProtectedLayout() {
     const { session } = useAuth()
+    const { localStorage } = localStorageProvider.useLocalStorage()
     const shouldPreventNavigation = getShouldPreventNavigation()
 
     if (!shouldPreventNavigation && session?.type === UserSessionType.full) {
-        return <router.Navigate to={app.DASHBOARD_PATH} />
+        const redirectTo = localStorage.get(localStorageModule.LocalStorageKey.loginRedirect)
+        if (redirectTo != null) {
+            localStorage.delete(localStorageModule.LocalStorageKey.loginRedirect)
+            location.href = redirectTo
+            return
+        } else {
+            return <router.Navigate to={app.DASHBOARD_PATH} />
+        }
     } else {
         return <router.Outlet context={session} />
     }
@@ -613,12 +664,20 @@ export function SemiProtectedLayout() {
  * not logged in. */
 export function GuestLayout() {
     const { session } = useAuth()
+    const { localStorage } = localStorageProvider.useLocalStorage()
     const shouldPreventNavigation = getShouldPreventNavigation()
 
     if (!shouldPreventNavigation && session?.type === UserSessionType.partial) {
         return <router.Navigate to={app.SET_USERNAME_PATH} />
     } else if (!shouldPreventNavigation && session?.type === UserSessionType.full) {
-        return <router.Navigate to={app.DASHBOARD_PATH} />
+        const redirectTo = localStorage.get(localStorageModule.LocalStorageKey.loginRedirect)
+        if (redirectTo != null) {
+            localStorage.delete(localStorageModule.LocalStorageKey.loginRedirect)
+            location.href = redirectTo
+            return
+        } else {
+            return <router.Navigate to={app.DASHBOARD_PATH} />
+        }
     } else {
         return <router.Outlet />
     }

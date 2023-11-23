@@ -14,7 +14,7 @@ import project.Metadata.Display
 import project.Metadata.Widget
 import project.Nothing.Nothing
 import project.Panic.Panic
-import project.Random
+import project.Random.Random
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Index_Sub_Range import handle_unmatched_type
 from project.Data.Range.Extensions import all
@@ -149,8 +149,8 @@ type Codepoint_Ranges
                             batch_resolve_indices_or_ranges text indices
                     _ -> resolve_index_or_range text indices
             Index_Sub_Range.Sample count seed ->
-                rng = Random.new seed
-                indices = Random.random_indices text.length count rng
+                rng = Random.new_generator seed
+                indices = rng.indices text.length count
                 Codepoint_Ranges.resolve text (Index_Sub_Range.By_Index indices)
             Index_Sub_Range.Every step start ->
                 if step <= 0 then Error.throw (Illegal_Argument.Error "Step within Every must be positive.") else

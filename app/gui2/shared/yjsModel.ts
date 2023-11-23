@@ -1,27 +1,54 @@
 import * as decoding from 'lib0/decoding'
 import * as encoding from 'lib0/encoding'
+import * as object from 'lib0/object'
+import * as random from 'lib0/random'
 import * as Y from 'yjs'
 
 export type Uuid = `${string}-${string}-${string}-${string}-${string}`
 declare const brandExprId: unique symbol
 export type ExprId = Uuid & { [brandExprId]: never }
-export const NULL_EXPR_ID: ExprId = '00000000-0000-0000-0000-000000000000' as ExprId
 
-export interface NodeMetadata {
-  x: number
-  y: number
-  vis?: string
+export type VisualizationModule =
+  | { kind: 'Builtin' }
+  | { kind: 'CurrentProject' }
+  | { kind: 'Library'; name: string }
+
+export interface VisualizationIdentifier {
+  module: VisualizationModule
+  name: string
 }
+
+export interface VisualizationMetadata extends VisualizationIdentifier {
+  visible: boolean
+}
+
+export function visMetadataEquals(
+  a: VisualizationMetadata | null | undefined,
+  b: VisualizationMetadata | null | undefined,
+) {
+  return (
+    (a == null && b == null) ||
+    (a != null && b != null && a.visible === b.visible && visIdentifierEquals(a, b))
+  )
+}
+
+export function visIdentifierEquals(a: VisualizationIdentifier, b: VisualizationIdentifier) {
+  return a.name === b.name && object.equalFlat(a.module, b.module)
+}
+
+export type ProjectSetting = string
 
 export class DistributedProject {
   doc: Y.Doc
   name: Y.Text
   modules: Y.Map<Y.Doc>
+  settings: Y.Map<ProjectSetting>
 
   constructor(doc: Y.Doc) {
     this.doc = doc
     this.name = this.doc.getText('name')
     this.modules = this.doc.getMap('modules')
+    this.settings = this.doc.getMap('settings')
   }
 
   moduleNames(): string[] {
@@ -52,12 +79,8 @@ export class DistributedProject {
     return new DistributedModule(doc)
   }
 
-  async createNewModule(name: string): Promise<DistributedModule> {
+  createNewModule(name: string): DistributedModule {
     return this.createUnloadedModule(name, new Y.Doc())
-  }
-
-  async openOrCreateModule(name: string): Promise<DistributedModule> {
-    return (await this.openModule(name)) ?? (await this.createNewModule(name))
   }
 
   deleteModule(name: string): void {
@@ -69,70 +92,115 @@ export class DistributedProject {
   }
 }
 
-export class DistributedModule {
-  doc: Y.Doc
+export interface NodeMetadata {
+  x: number
+  y: number
+  vis: VisualizationMetadata | null
+}
+
+export class ModuleDoc {
+  ydoc: Y.Doc
   contents: Y.Text
   idMap: Y.Map<Uint8Array>
   metadata: Y.Map<NodeMetadata>
+  constructor(ydoc: Y.Doc) {
+    this.ydoc = ydoc
+    this.contents = ydoc.getText('contents')
+    this.idMap = ydoc.getMap('idMap')
+    this.metadata = ydoc.getMap('metadata')
+  }
+}
 
-  static async load(doc: Y.Doc) {
-    doc.load()
-    await doc.whenLoaded
-    return new DistributedModule(doc)
+export class DistributedModule {
+  doc: ModuleDoc
+  undoManager: Y.UndoManager
+
+  static async load(ydoc: Y.Doc): Promise<DistributedModule> {
+    ydoc.load()
+    await ydoc.whenLoaded
+    return new DistributedModule(ydoc)
   }
 
-  constructor(doc: Y.Doc) {
-    this.doc = doc
-    this.contents = this.doc.getText('contents')
-    this.idMap = this.doc.getMap('idMap')
-    this.metadata = this.doc.getMap('metadata')
+  constructor(ydoc: Y.Doc) {
+    this.doc = new ModuleDoc(ydoc)
+    this.undoManager = new Y.UndoManager([this.doc.contents, this.doc.idMap, this.doc.metadata])
   }
 
-  insertNewNode(offset: number, content: string, meta: NodeMetadata): ExprId {
-    const range = [offset, offset + content.length]
-    const newId = crypto.randomUUID() as ExprId
-    this.doc.transact(() => {
-      this.contents.insert(offset, content + '\n')
-      const start = Y.createRelativePositionFromTypeIndex(this.contents, range[0])
-      const end = Y.createRelativePositionFromTypeIndex(this.contents, range[1])
-      this.idMap.set(newId, encodeRange([start, end]))
-      this.metadata.set(newId, meta)
+  insertNewNode(offset: number, pattern: string, expression: string, meta: NodeMetadata): ExprId {
+    // Spaces at the beginning are needed to place the new node in scope of the `main` function with proper indentation.
+    const lhs = `    ${pattern} = `
+    const content = lhs + expression
+    const range = [offset + lhs.length, offset + content.length] as const
+    const newId = random.uuidv4() as ExprId
+    this.transact(() => {
+      this.doc.contents.insert(offset, content + '\n')
+      const start = Y.createRelativePositionFromTypeIndex(this.doc.contents, range[0], -1)
+      const end = Y.createRelativePositionFromTypeIndex(this.doc.contents, range[1])
+      this.doc.idMap.set(newId, encodeRange([start, end]))
+      this.doc.metadata.set(newId, meta)
     })
     return newId
   }
 
-  replaceExpressionContent(id: ExprId, content: string, range?: ContentRange): void {
-    const rangeBuffer = this.idMap.get(id)
+  deleteExpression(id: ExprId): void {
+    const rangeBuffer = this.doc.idMap.get(id)
     if (rangeBuffer == null) return
     const [relStart, relEnd] = decodeRange(rangeBuffer)
-    const exprStart = Y.createAbsolutePositionFromRelativePosition(relStart, this.doc)?.index
-    const exprEnd = Y.createAbsolutePositionFromRelativePosition(relEnd, this.doc)?.index
+    const start = Y.createAbsolutePositionFromRelativePosition(relStart, this.doc.ydoc)?.index
+    const end = Y.createAbsolutePositionFromRelativePosition(relEnd, this.doc.ydoc)?.index
+    if (start == null || end == null) return
+    this.transact(() => {
+      this.doc.idMap.delete(id)
+      this.doc.metadata.delete(id)
+      this.doc.contents.delete(start, end - start)
+    })
+  }
+
+  replaceExpressionContent(id: ExprId, content: string, range?: ContentRange): void {
+    const rangeBuffer = this.doc.idMap.get(id)
+    if (rangeBuffer == null) return
+    const [relStart, relEnd] = decodeRange(rangeBuffer)
+    const exprStart = Y.createAbsolutePositionFromRelativePosition(relStart, this.doc.ydoc)?.index
+    const exprEnd = Y.createAbsolutePositionFromRelativePosition(relEnd, this.doc.ydoc)?.index
     if (exprStart == null || exprEnd == null) return
     const start = range == null ? exprStart : exprStart + range[0]
     const end = range == null ? exprEnd : exprStart + range[1]
     if (start > end) throw new Error('Invalid range')
-    if (start < exprStart || end > exprEnd) throw new Error('Range out of bounds')
-    this.doc.transact(() => {
+    if (start < exprStart || end > exprEnd)
+      throw new Error(
+        `Range out of bounds. Got [${start}, ${end}], bounds are [${exprStart}, ${exprEnd}]`,
+      )
+    this.transact(() => {
       if (content.length > 0) {
-        this.contents.insert(start, content)
+        this.doc.contents.insert(start, content)
       }
       if (start !== end) {
-        this.contents.delete(start + content.length, end - start)
+        this.doc.contents.delete(start + content.length, end - start)
       }
     })
   }
 
+  transact<T>(fn: () => T): T {
+    return this.doc.ydoc.transact(fn, 'local')
+  }
+
   updateNodeMetadata(id: ExprId, meta: Partial<NodeMetadata>): void {
-    const existing = this.metadata.get(id) ?? { x: 0, y: 0 }
-    this.metadata.set(id, { ...existing, ...meta })
+    const existing = this.doc.metadata.get(id) ?? { x: 0, y: 0, vis: null }
+    this.transact(() => {
+      this.doc.metadata.set(id, { ...existing, ...meta })
+    })
+  }
+
+  getNodeMetadata(id: ExprId): NodeMetadata | null {
+    return this.doc.metadata.get(id) ?? null
   }
 
   getIdMap(): IdMap {
-    return new IdMap(this.idMap, this.contents)
+    return new IdMap(this.doc.idMap, this.doc.contents)
   }
 
   dispose(): void {
-    this.doc.destroy()
+    this.doc.ydoc.destroy()
   }
 }
 
@@ -165,17 +233,27 @@ export class IdMap {
       if (!(isUuid(expr) && rangeBuffer instanceof Uint8Array)) return
       const indices = this.modelToIndices(rangeBuffer)
       if (indices == null) return
-      this.rangeToExpr.set(IdMap.keyForRange(indices), expr as ExprId)
+      const key = IdMap.keyForRange(indices)
+      if (!this.rangeToExpr.has(key)) {
+        this.rangeToExpr.set(key, expr as ExprId)
+      }
     })
 
     this.finished = false
   }
 
-  private static keyForRange(range: [number, number]): string {
+  static Mock(): IdMap {
+    const doc = new Y.Doc()
+    const map = doc.getMap<Uint8Array>('idMap')
+    const text = doc.getText('contents')
+    return new IdMap(map, text)
+  }
+
+  public static keyForRange(range: readonly [number, number]): string {
     return `${range[0].toString(16)}:${range[1].toString(16)}`
   }
 
-  private static rangeForKey(key: string): [number, number] {
+  public static rangeForKey(key: string): [number, number] {
     return key.split(':').map((x) => parseInt(x, 16)) as [number, number]
   }
 
@@ -197,7 +275,12 @@ export class IdMap {
     this.accessed.add(id)
   }
 
-  getOrInsertUniqueId(range: [number, number]): ExprId {
+  getIfExist(range: readonly [number, number]): ExprId | undefined {
+    const key = IdMap.keyForRange(range)
+    return this.rangeToExpr.get(key)
+  }
+
+  getOrInsertUniqueId(range: readonly [number, number]): ExprId {
     if (this.finished) {
       throw new Error('IdMap already finished')
     }
@@ -208,7 +291,7 @@ export class IdMap {
       this.accessed.add(val)
       return val
     } else {
-      const newId = crypto.randomUUID() as ExprId
+      const newId = random.uuidv4() as ExprId
       this.rangeToExpr.set(key, newId)
       this.accessed.add(newId)
       return newId
@@ -233,7 +316,7 @@ export class IdMap {
    *
    * Can be called at most once. After calling this method, the ID map is no longer usable.
    */
-  finishAndSynchronize(): void {
+  finishAndSynchronize(): typeof this.yMap {
     if (this.finished) {
       throw new Error('IdMap already finished')
     }
@@ -255,12 +338,13 @@ export class IdMap {
         // For all remaining expressions, we need to write them into the map.
         if (!this.accessed.has(expr)) return
         const range = IdMap.rangeForKey(key)
-        const start = Y.createRelativePositionFromTypeIndex(this.contents, range[0])
+        const start = Y.createRelativePositionFromTypeIndex(this.contents, range[0], -1)
         const end = Y.createRelativePositionFromTypeIndex(this.contents, range[1])
         const encoded = encodeRange([start, end])
         this.yMap.set(expr, encoded)
       })
     })
+    return this.yMap
   }
 }
 
@@ -275,7 +359,7 @@ function encodeRange(range: RelativeRange): Uint8Array {
   return encoding.toUint8Array(encoder)
 }
 
-function decodeRange(buffer: Uint8Array): RelativeRange {
+export function decodeRange(buffer: Uint8Array): RelativeRange {
   const decoder = decoding.createDecoder(buffer)
   const startLen = decoding.readUint8(decoder)
   const start = decoding.readUint8Array(decoder, startLen)
@@ -285,11 +369,16 @@ function decodeRange(buffer: Uint8Array): RelativeRange {
 }
 
 const uuidRegex = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/
-export function isUuid(x: any): x is Uuid {
+export function isUuid(x: unknown): x is Uuid {
   return typeof x === 'string' && x.length === 36 && uuidRegex.test(x)
 }
 
+/** A range represented as start and end indices. */
 export type ContentRange = [number, number]
+
+export function rangeEquals(a: ContentRange, b: ContentRange): boolean {
+  return a[0] == b[0] && a[1] == b[1]
+}
 
 export function rangeEncloses(a: ContentRange, b: ContentRange): boolean {
   return a[0] <= b[0] && a[1] >= b[1]
@@ -297,6 +386,11 @@ export function rangeEncloses(a: ContentRange, b: ContentRange): boolean {
 
 export function rangeIntersects(a: ContentRange, b: ContentRange): boolean {
   return a[0] <= b[1] && a[1] >= b[0]
+}
+
+/** Whether the given range is before the other range. */
+export function rangeIsBefore(a: ContentRange, b: ContentRange): boolean {
+  return a[1] <= b[0]
 }
 
 if (import.meta.vitest) {

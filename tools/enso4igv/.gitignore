@@ -1,4 +1,5 @@
 *.vsix
+dist
 nbcode
 !.idea
 .idea/*

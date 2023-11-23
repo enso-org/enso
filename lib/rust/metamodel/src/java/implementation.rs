@@ -11,7 +11,7 @@ use std::fmt::Write;
 // === Implementing Java Datatypes ===
 // ===================================
 
-/// Produce Java syntax implement all the types modeled in a [`TypeGraph`].
+/// Produce Java syntax implementing all the types modeled in a [`TypeGraph`].
 pub fn implement(graph: &TypeGraph, package: &str) -> Vec<syntax::Class> {
     let mut implementations = BTreeMap::new();
     for (id, class) in graph.classes.iter() {

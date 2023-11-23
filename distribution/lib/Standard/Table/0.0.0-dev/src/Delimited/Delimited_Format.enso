@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Network.HTTP.Response.Response
+import Standard.Base.System.File_Format.File_For_Read
 import Standard.Base.System.Input_Stream.Input_Stream
 from Standard.Base.Widget_Helpers import make_delimiter_selector
 
@@ -58,8 +59,8 @@ type Delimited_Format
     ## PRIVATE
        ADVANCED
        If the File_Format supports reading from the file, return a configured instance.
-    for_file_read : File -> Delimited_Format | Nothing
-    for_file_read file =
+    for_file_read : File_For_Read -> Delimited_Format | Nothing
+    for_file_read file:File_For_Read =
         case file.extension of
             ".csv" -> Delimited_Format.Delimited ','
             ".tab" -> Delimited_Format.Delimited '\t'

@@ -33,7 +33,8 @@ list_buckets credentials:(AWS_Credential | Nothing)=Nothing = handle_s3_errors <
     buckets = client.listBuckets.buckets
     buckets.map b->b.name
 
-## Gets the list of the items inside a bucket.
+## GROUP Standard.Base.Input
+   Gets the list of the items inside a bucket.
 
    Arguments:
    - bucket: the name of the bucket.
@@ -46,7 +47,8 @@ list_objects : Text -> Text -> AWS_Credential | Nothing -> Integer -> Vector Tex
 list_objects bucket prefix="" credentials:(AWS_Credential | Nothing)=Nothing max_count=1000 =
     read_bucket bucket prefix credentials delimiter="" max_count=max_count . second
 
-## Reads an S3 bucket returning a pair of vectors, one with common prefixes and
+## PRIVATE
+   Reads an S3 bucket returning a pair of vectors, one with common prefixes and
    one with object keys.
 @credentials AWS_Credential.default_widget
 read_bucket : Text -> Text -> AWS_Credential | Nothing -> Integer -> Text -> Pair Vector Vector ! S3_Error
@@ -73,7 +75,8 @@ read_bucket bucket prefix="" credentials:(AWS_Credential | Nothing)=Nothing deli
 
     iterator request 0 [] [] True
 
-## Gets the metadata of a bucket or object.
+## ADVANCED
+   Gets the metadata of a bucket or object.
 
    Arguments:
    - bucket: the name of the bucket.
@@ -149,4 +152,4 @@ make_client credentials:(AWS_Credential | Nothing) =
    Utility method for running an action with Java exceptions mapping.
 handle_io_errors uri:URI ~action =
     Panic.catch IOException action caught_panic->
-        S3_Error.Error ("An IO error has occurred: " + caught_panic.payload.to_text) uri.to_text
+        Error.throw (S3_Error.Error ("An IO error has occurred: " + caught_panic.payload.to_text) uri.to_text)

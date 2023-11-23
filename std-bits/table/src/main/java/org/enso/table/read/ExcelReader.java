@@ -3,7 +3,6 @@ package org.enso.table.read;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -23,7 +22,7 @@ import org.enso.table.excel.ExcelHeaders;
 import org.enso.table.excel.ExcelRange;
 import org.enso.table.excel.ExcelRow;
 import org.enso.table.excel.ExcelSheet;
-import org.enso.table.problems.WithProblems;
+import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 
 /** A table reader for MS Excel files. */
@@ -106,13 +105,14 @@ public class ExcelReader {
    * @throws IOException when the input stream cannot be read.
    * @throws InvalidLocationException when the sheet name is not found.
    */
-  public static WithProblems<Table> readSheetByName(
+  public static Table readSheetByName(
       InputStream stream,
       String sheetName,
       ExcelHeaders.HeaderBehavior headers,
       int skip_rows,
       Integer row_limit,
-      boolean xls_format)
+      boolean xls_format,
+      ProblemAggregator problemAggregator)
       throws IOException, InvalidLocationException {
     Workbook workbook = getWorkbook(stream, xls_format);
 
@@ -127,7 +127,8 @@ public class ExcelReader {
         null,
         headers,
         skip_rows,
-        row_limit == null ? Integer.MAX_VALUE : row_limit);
+        row_limit == null ? Integer.MAX_VALUE : row_limit,
+        problemAggregator);
   }
 
   /**
@@ -142,13 +143,14 @@ public class ExcelReader {
    * @throws IOException when the input stream cannot be read.
    * @throws InvalidLocationException when the sheet index is not valid.
    */
-  public static WithProblems<Table> readSheetByIndex(
+  public static Table readSheetByIndex(
       InputStream stream,
       int index,
       ExcelHeaders.HeaderBehavior headers,
       int skip_rows,
       Integer row_limit,
-      boolean xls_format)
+      boolean xls_format,
+      ProblemAggregator problemAggregator)
       throws IOException, InvalidLocationException {
     Workbook workbook = getWorkbook(stream, xls_format);
 
@@ -164,7 +166,8 @@ public class ExcelReader {
         null,
         headers,
         skip_rows,
-        row_limit == null ? Integer.MAX_VALUE : row_limit);
+        row_limit == null ? Integer.MAX_VALUE : row_limit,
+        problemAggregator);
   }
 
   /**
@@ -181,16 +184,18 @@ public class ExcelReader {
    * @throws IOException when the input stream cannot be read.
    * @throws InvalidLocationException when the range name or address is not found.
    */
-  public static WithProblems<Table> readRangeByName(
+  public static Table readRangeByName(
       InputStream stream,
       String rangeNameOrAddress,
       ExcelHeaders.HeaderBehavior headers,
       int skip_rows,
       Integer row_limit,
-      boolean xls_format)
+      boolean xls_format,
+      ProblemAggregator problemAggregator)
       throws IOException, InvalidLocationException {
     Workbook workbook = getWorkbook(stream, xls_format);
-    return readRangeByName(workbook, rangeNameOrAddress, headers, skip_rows, row_limit);
+    return readRangeByName(
+        workbook, rangeNameOrAddress, headers, skip_rows, row_limit, problemAggregator);
   }
 
   /**
@@ -204,12 +209,13 @@ public class ExcelReader {
    * @return a {@link Table} containing the specified data.
    * @throws InvalidLocationException when the range name or address is not found.
    */
-  public static WithProblems<Table> readRangeByName(
+  public static Table readRangeByName(
       Workbook workbook,
       String rangeNameOrAddress,
       ExcelHeaders.HeaderBehavior headers,
       int skip_rows,
-      Integer row_limit)
+      Integer row_limit,
+      ProblemAggregator problemAggregator)
       throws InvalidLocationException {
     int sheetIndex = workbook.getSheetIndex(rangeNameOrAddress);
     if (sheetIndex != -1) {
@@ -219,7 +225,8 @@ public class ExcelReader {
           null,
           headers,
           skip_rows,
-          row_limit == null ? Integer.MAX_VALUE : row_limit);
+          row_limit == null ? Integer.MAX_VALUE : row_limit,
+          problemAggregator);
     }
 
     Name name = workbook.getName(rangeNameOrAddress);
@@ -232,7 +239,7 @@ public class ExcelReader {
           "Invalid range name or address '" + rangeNameOrAddress + "'.");
     }
 
-    return readRange(workbook, excelRange, headers, skip_rows, row_limit);
+    return readRange(workbook, excelRange, headers, skip_rows, row_limit, problemAggregator);
   }
 
   /**
@@ -246,15 +253,22 @@ public class ExcelReader {
    * @return a {@link Table} containing the specified data.
    * @throws IOException when the input stream cannot be read.
    */
-  public static WithProblems<Table> readRange(
+  public static Table readRange(
       InputStream stream,
       ExcelRange excelRange,
       ExcelHeaders.HeaderBehavior headers,
       int skip_rows,
       Integer row_limit,
-      boolean xls_format)
+      boolean xls_format,
+      ProblemAggregator problemAggregator)
       throws IOException, InvalidLocationException {
-    return readRange(getWorkbook(stream, xls_format), excelRange, headers, skip_rows, row_limit);
+    return readRange(
+        getWorkbook(stream, xls_format),
+        excelRange,
+        headers,
+        skip_rows,
+        row_limit,
+        problemAggregator);
   }
 
   /**
@@ -269,12 +283,13 @@ public class ExcelReader {
     return xls_format ? new HSSFWorkbook(stream) : new XSSFWorkbook(stream);
   }
 
-  private static WithProblems<Table> readRange(
+  private static Table readRange(
       Workbook workbook,
       ExcelRange excelRange,
       ExcelHeaders.HeaderBehavior headers,
       int skip_rows,
-      Integer row_limit)
+      Integer row_limit,
+      ProblemAggregator problemAggregator)
       throws InvalidLocationException {
     int sheetIndex = workbook.getSheetIndex(excelRange.getSheetName());
     if (sheetIndex == -1) {
@@ -287,30 +302,30 @@ public class ExcelReader {
         excelRange,
         headers,
         skip_rows,
-        row_limit == null ? Integer.MAX_VALUE : row_limit);
+        row_limit == null ? Integer.MAX_VALUE : row_limit,
+        problemAggregator);
   }
 
-  private static WithProblems<Table> readTable(
+  private static Table readTable(
       Workbook workbook,
       int sheetIndex,
       ExcelRange excelRange,
       ExcelHeaders.HeaderBehavior headers,
       int skipRows,
-      int rowCount) {
+      int rowCount,
+      ProblemAggregator problemAggregator) {
     ExcelSheet sheet = new ExcelSheet(workbook, sheetIndex);
 
     // Expand Single Cell
     if (excelRange != null && excelRange.isSingleCell()) {
       ExcelRow currentRow = sheet.get(excelRange.getTopRow());
       if (currentRow == null || currentRow.isEmpty(excelRange.getLeftColumn())) {
-        return new WithProblems<>(
-            new Table(
-                new Column[] {
-                  new Column(
-                      CellReference.convertNumToColString(excelRange.getLeftColumn() - 1),
-                      new ObjectStorage(new Object[0], 0))
-                }),
-            Collections.emptyList());
+        return new Table(
+            new Column[] {
+              new Column(
+                  CellReference.convertNumToColString(excelRange.getLeftColumn() - 1),
+                  new ObjectStorage(new Object[0], 0))
+            });
       }
 
       excelRange = ExcelRange.expandSingleCell(excelRange, sheet);
@@ -333,7 +348,8 @@ public class ExcelReader {
             sheet.get(startRow),
             startRow < endRow ? sheet.get(startRow + 1) : null,
             startCol,
-            endCol);
+            endCol,
+            problemAggregator);
     startRow += excelHeaders.getRowsUsed();
 
     // Set up Storage
@@ -342,7 +358,7 @@ public class ExcelReader {
         wholeRow
             ? new ArrayList<>()
             : IntStream.range(startCol, endCol + 1)
-                .mapToObj(i -> new InferredBuilder(size))
+                .mapToObj(i -> new InferredBuilder(size, problemAggregator))
                 .collect(Collectors.toList());
 
     // Read Cell Data
@@ -356,7 +372,7 @@ public class ExcelReader {
             endCol == -1
                 ? Math.max(currentRow.getLastColumn(), startCol + builders.size() - 1)
                 : endCol;
-        expandBuilders(builders, size, currentEndCol - startCol, row - startRow);
+        expandBuilders(builders, size, currentEndCol - startCol, row - startRow, problemAggregator);
 
         for (int col = startCol; col <= currentEndCol; col++) {
           Object value = currentRow.getCellValue(col);
@@ -371,7 +387,7 @@ public class ExcelReader {
     if (wholeRow && (rowCount == 0 || row < sheet.getFirstRow())) {
       ExcelRow currentRow = sheet.get(sheet.getFirstRow());
       int currentEndCol = currentRow.getLastColumn();
-      expandBuilders(builders, size, currentEndCol - startCol + 1, size);
+      expandBuilders(builders, size, currentEndCol - startCol + 1, size, problemAggregator);
     }
 
     // Create Table
@@ -384,12 +400,17 @@ public class ExcelReader {
       throw new EmptySheetException();
     }
 
-    return new WithProblems<>(new Table(columns), excelHeaders.getProblems());
+    return new Table(columns);
   }
 
-  private static void expandBuilders(List<Builder> builders, int size, int columnCount, int rows) {
+  private static void expandBuilders(
+      List<Builder> builders,
+      int size,
+      int columnCount,
+      int rows,
+      ProblemAggregator problemAggregator) {
     for (int i = builders.size(); i <= columnCount; i++) {
-      Builder builder = new InferredBuilder(size);
+      Builder builder = new InferredBuilder(size, problemAggregator);
       builder.appendNulls(rows);
       builders.add(builder);
     }

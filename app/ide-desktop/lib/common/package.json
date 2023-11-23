@@ -5,6 +5,7 @@
   "main": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./src/detect": "./src/detect.ts"
+    "./src/detect": "./src/detect.ts",
+    "./src/gtag": "./src/gtag.ts"
   }
 }

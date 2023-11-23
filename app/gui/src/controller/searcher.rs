@@ -7,7 +7,6 @@ use crate::controller::graph::ImportType;
 use crate::controller::graph::RequiredImport;
 use crate::controller::searcher::breadcrumbs::BreadcrumbEntry;
 use crate::model::execution_context::GroupQualifiedName;
-use crate::model::module::NodeEditStatus;
 use crate::model::suggestion_database;
 use crate::presenter::searcher;
 
@@ -153,8 +152,10 @@ pub enum Mode {
     /// Searcher is working with a newly created node. `source_node` is either a selected node
     /// or a node from which the connection was dragged out before being dropped at the scene.
     NewNode { node_id: ast::Id, source_node: Option<ast::Id> },
-    /// Searcher should edit existing node's expression.
-    EditNode { node_id: ast::Id },
+    /// Searcher should edit existing node's expression. `edited_node_id` is the temporary node
+    /// created to preview the edited expression, while the `original_node_id` is the original node
+    /// in the graph that gets updated only in case of successful commit.
+    EditNode { edited_node_id: ast::Id, original_node_id: ast::Id },
 }
 
 impl Mode {
@@ -162,7 +163,7 @@ impl Mode {
     pub fn node_id(&self) -> ast::Id {
         match self {
             Mode::NewNode { node_id, .. } => *node_id,
-            Mode::EditNode { node_id, .. } => *node_id,
+            Mode::EditNode { edited_node_id: node_id, .. } => *node_id,
         }
     }
 
@@ -265,7 +266,6 @@ pub struct Searcher {
     this_arg:         Rc<Option<ThisNode>>,
     position_in_code: Immutable<Location<Byte>>,
     project:          model::Project,
-    node_edit_guard:  Rc<Option<EditGuard>>,
 }
 
 impl Searcher {
@@ -280,12 +280,11 @@ impl Searcher {
         position_in_code: Location<Byte>,
     ) -> FallibleResult<Self> {
         let project = project.clone_ref();
-        let data = if let Mode::EditNode { node_id } = mode {
-            Data::new_with_edited_node(&graph.graph(), node_id, cursor_position)?
+        let data = if let Mode::EditNode { original_node_id, .. } = mode {
+            Data::new_with_edited_node(&graph.graph(), original_node_id, cursor_position)?
         } else {
             default()
         };
-        let node_metadata_guard = Rc::new(Some(EditGuard::new(&mode, graph.clone_ref())));
         let this_arg = Rc::new(match mode {
             Mode::NewNode { source_node: Some(node), .. } => ThisNode::new(node, &graph.graph()),
             _ => None,
@@ -303,7 +302,6 @@ impl Searcher {
             language_server: project.json_rpc(),
             position_in_code: Immutable(position_in_code),
             project,
-            node_edit_guard: node_metadata_guard,
         };
         Ok(ret.init())
     }
@@ -514,12 +512,6 @@ impl Searcher {
     /// If `suggestion` is specified, the preview will contains code after applying it.
     /// Otherwise it will be just the current searcher input.
     pub fn preview(&self, suggestion: Option<&component::Suggestion>) -> FallibleResult {
-        let transaction_name = "Previewing Component Browser suggestion.";
-        let _skip = self
-            .graph
-            .undo_redo_repository()
-            .open_ignored_transaction_or_ignore_current(transaction_name);
-
         debug!("Updating node preview. Previewed suggestion: \"{suggestion:?}\".");
         self.clear_temporary_imports();
         let has_this = self.this_var().is_some();
@@ -551,7 +543,12 @@ impl Searcher {
                 current_input_requirements.chain(picked_suggestion_requirement.iter().cloned());
             self.graph.graph().add_required_imports(all_requirements, ImportType::Temporary)?;
         }
-        self.graph.graph().set_expression_ast(self.mode.node_id(), expression)?;
+        let execution_environment = self.graph.execution_environment();
+        self.graph.graph().set_preview_expression_ast(
+            self.mode.node_id(),
+            expression,
+            execution_environment,
+        )?;
 
         Ok(())
     }
@@ -579,7 +576,12 @@ impl Searcher {
             self.graph.graph().add_required_imports(requirements, ImportType::Permanent)?;
         }
 
-        let node_id = self.mode.node_id();
+        // In case of editing the node, we select the original node id here, as we want to update
+        // the original node, not the temporary one.
+        let node_id = match *self.mode {
+            Mode::NewNode { node_id, .. } => node_id,
+            Mode::EditNode { original_node_id, .. } => original_node_id,
+        };
         let graph = self.graph.graph();
         graph.set_expression_ast(node_id, self.get_expression(expression.elem))?;
         if let Mode::NewNode { .. } = *self.mode {
@@ -587,11 +589,6 @@ impl Searcher {
         }
         if let Some(this) = self.this_arg.deref().as_ref() {
             this.introduce_pattern(graph.clone_ref())?;
-        }
-        // Should go last, as we want to prevent a revert only when the committing process was
-        // successful.
-        if let Some(guard) = self.node_edit_guard.deref().as_ref() {
-            guard.prevent_revert()
         }
         Ok(node_id)
     }
@@ -612,11 +609,6 @@ impl Searcher {
     }
 
     fn clear_temporary_imports(&self) {
-        let transaction_name = "Clearing temporary imports after closing searcher.";
-        let _skip = self
-            .graph
-            .undo_redo_repository()
-            .open_ignored_transaction_or_ignore_current(transaction_name);
         self.graph.graph().clear_temporary_imports();
     }
 
@@ -756,137 +748,6 @@ fn add_virtual_entries_to_builder(builder: &mut component::Builder) {
 }
 
 
-// === Node Edit Metadata Guard ===
-
-/// On creation the `EditGuard` saves the current expression of the node to its metadata.
-/// When dropped the metadata is cleared again and, by default, the node content is reverted to the
-/// previous expression. The expression reversion can be prevented by calling `prevent_revert`.
-///
-/// This structure does not create any Undo Redo transactions, but may contribute to existing one
-/// if opened somewhere else.
-#[derive(Debug)]
-struct EditGuard {
-    node_id:           ast::Id,
-    graph:             controller::ExecutedGraph,
-    revert_expression: Cell<bool>,
-}
-
-impl EditGuard {
-    pub fn new(mode: &Mode, graph: controller::ExecutedGraph) -> Self {
-        debug!("Initialising EditGuard.");
-
-        let ret = Self { node_id: mode.node_id(), graph, revert_expression: Cell::new(true) };
-        ret.save_node_expression_to_metadata(mode).unwrap_or_else(|e| {
-            error!("Failed to save the node edit metadata due to error: {}", e)
-        });
-        ret
-    }
-
-    pub fn prevent_revert(&self) {
-        self.revert_expression.set(false);
-    }
-
-    /// Mark the node as edited in its metadata and save the current expression, so it can later
-    /// be restored.
-    fn save_node_expression_to_metadata(&self, mode: &Mode) -> FallibleResult {
-        let transaction_name = "Storing edited node original expression.";
-        let _skip = self
-            .graph
-            .undo_redo_repository()
-            .open_ignored_transaction_or_ignore_current(transaction_name);
-        let module = &self.graph.graph().module;
-        match mode {
-            Mode::NewNode { .. } => module.with_node_metadata(
-                self.node_id,
-                Box::new(|m| {
-                    m.edit_status = Some(NodeEditStatus::Created {});
-                }),
-            ),
-            Mode::EditNode { .. } => {
-                let node = self.graph.graph().node(self.node_id)?;
-                let previous_expression = node.info.expression().to_string();
-                module.with_node_metadata(
-                    self.node_id,
-                    Box::new(|metadata| {
-                        metadata.edit_status = Some(NodeEditStatus::Edited { previous_expression });
-                    }),
-                )
-            }
-        }
-    }
-
-    /// Mark the node as no longer edited and discard the edit metadata.
-    fn clear_node_edit_metadata(&self) -> FallibleResult {
-        let transaction_name = "Storing edited node original expression.";
-        let _skip = self
-            .graph
-            .undo_redo_repository()
-            .open_ignored_transaction_or_ignore_current(transaction_name);
-        let module = &self.graph.graph().module;
-        module.with_node_metadata(
-            self.node_id,
-            Box::new(|metadata| {
-                metadata.edit_status = None;
-            }),
-        )
-    }
-
-    fn get_saved_expression(&self) -> FallibleResult<Option<NodeEditStatus>> {
-        let module = &self.graph.graph().module;
-        Ok(module.node_metadata(self.node_id)?.edit_status)
-    }
-
-    fn revert_node_expression_edit(&self) -> FallibleResult {
-        let transaction_name = "Reverting node expression to original.";
-        let _skip = self
-            .graph
-            .undo_redo_repository()
-            .open_ignored_transaction_or_ignore_current(transaction_name);
-        let edit_status = self.get_saved_expression()?;
-        match edit_status {
-            None => {
-                error!(
-                    "Tried to revert the expression of the edited node, \
-                but found no edit metadata."
-                );
-            }
-            Some(NodeEditStatus::Created) => {
-                debug!("Deleting temporary node {} after aborting edit.", self.node_id);
-                self.graph.graph().remove_node(self.node_id)?;
-            }
-            Some(NodeEditStatus::Edited { previous_expression }) => {
-                debug!(
-                    "Reverting expression of node {} to {} after aborting edit.",
-                    self.node_id, &previous_expression
-                );
-                let graph = self.graph.graph();
-                graph.set_expression(self.node_id, previous_expression)?;
-            }
-        };
-        Ok(())
-    }
-}
-
-impl Drop for EditGuard {
-    fn drop(&mut self) {
-        if self.revert_expression.get() {
-            self.revert_node_expression_edit().unwrap_or_else(|e| {
-                error!("Failed to revert node edit after editing ended because of an error: {e}")
-            });
-        } else {
-            debug!("Not reverting node expression after edit.")
-        }
-        if self.graph.graph().node_exists(self.node_id) {
-            self.clear_node_edit_metadata().unwrap_or_else(|e| {
-                error!(
-                "Failed to clear node edit metadata after editing ended because of an error: {e}"
-            )
-            });
-        }
-    }
-}
-
-
 // === Helpers ===
 
 /// Build a component list with a single component, representing the given literal. When used as a
@@ -913,6 +774,7 @@ fn component_list_for_literal(
 pub mod test {
     use super::*;
 
+    use crate::controller::graph::NewNodeInfo;
     use crate::controller::ide::plain::ProjectOperationsNotSupported;
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
     use crate::presenter::searcher::apply_this_argument;
@@ -1022,7 +884,6 @@ pub mod test {
             ide.expect_manage_projects()
                 .returning_st(move || Err(ProjectOperationsNotSupported.into()));
             ide.expect_are_component_browser_private_entries_visible().returning_st(|| false);
-            let node_metadata_guard = default();
             let breadcrumbs = Breadcrumbs::new();
             let searcher = Searcher {
                 graph,
@@ -1036,13 +897,8 @@ pub mod test {
                 this_arg: Rc::new(this),
                 position_in_code: Immutable(code.last_line_end_location()),
                 project: project.clone_ref(),
-                node_edit_guard: node_metadata_guard,
             };
             Fixture { data, test, searcher, database }
-        }
-
-        fn new() -> Self {
-            Self::new_custom(|_| default(), |_, _| {})
         }
 
         fn lookup_suggestion(&self, name: &QualifiedName) -> component::Suggestion {
@@ -1492,81 +1348,18 @@ pub mod test {
         assert_eq!(module.ast().repr(), expected_code);
 
         // Edit existing node.
-        searcher.mode = Immutable(Mode::EditNode { node_id: node1.info.id() });
+        let mut tmp_node_info = NewNodeInfo::new_pushed_back("Nothing");
+        tmp_node_info.introduce_pattern = false;
+        let tmp_node = searcher.graph.graph().add_node(tmp_node_info).unwrap();
+        searcher.mode = Immutable(Mode::EditNode {
+            edited_node_id:   tmp_node,
+            original_node_id: node1.info.id(),
+        });
         searcher.commit_node().unwrap();
+        searcher.graph.graph().remove_node(tmp_node).unwrap();
         let expected_code =
             "import test.Test.Test\nmain =\n    Test.test_method\n    operator1 = Test.test_method";
         assert_eq!(module.ast().repr(), expected_code);
-    }
-
-    #[test]
-    fn edit_guard() {
-        let Fixture { test: _test, mut searcher, .. } = Fixture::new();
-        let graph = searcher.graph.graph();
-        let node = graph.nodes().unwrap().last().unwrap().clone();
-        let initial_node_expression = node.expression();
-        let node_id = node.info.id();
-        searcher.mode = Immutable(Mode::EditNode { node_id });
-        searcher.node_edit_guard =
-            Rc::new(Some(EditGuard::new(&searcher.mode, searcher.graph.clone_ref())));
-
-        // Apply an edit to the node.
-        graph.set_expression(node_id, "Edited Node").unwrap();
-
-        // Verify the metadata was initialised after the guard creation.
-        let module = graph.module.clone_ref();
-        module
-            .with_node_metadata(
-                node_id,
-                Box::new(|metadata| {
-                    assert_eq!(
-                        metadata.edit_status,
-                        Some(NodeEditStatus::Edited {
-                            previous_expression: node.info.expression().to_string(),
-                        })
-                    );
-                }),
-            )
-            .unwrap();
-
-        // Verify the metadata is cleared after the searcher is dropped.
-        drop(searcher);
-        module
-            .with_node_metadata(
-                node_id,
-                Box::new(|metadata| {
-                    assert_eq!(metadata.edit_status, None);
-                }),
-            )
-            .unwrap();
-        // Verify the node was reverted.
-
-        let node = graph.nodes().unwrap().last().unwrap().clone();
-        let final_node_expression = node.expression();
-        assert_eq!(initial_node_expression.to_string(), final_node_expression.to_string());
-    }
-
-    #[test]
-    fn edit_guard_no_revert() {
-        let Fixture { test: _test, mut searcher, .. } = Fixture::new();
-        let graph = searcher.graph.graph();
-        let node = graph.nodes().unwrap().last().unwrap().clone();
-        let node_id = node.info.id();
-        searcher.mode = Immutable(Mode::EditNode { node_id });
-        searcher.node_edit_guard =
-            Rc::new(Some(EditGuard::new(&searcher.mode, searcher.graph.clone_ref())));
-
-        // Apply an edit to the node.
-        let new_expression = "Edited Node";
-        graph.set_expression(node_id, new_expression).unwrap();
-        // Prevent reverting the node by calling the `prevent_revert` method.
-        searcher.node_edit_guard.deref().as_ref().unwrap().prevent_revert();
-
-        // Verify the node is not reverted after the searcher is dropped.
-        drop(searcher);
-        let node = graph.nodes().unwrap().last().unwrap().clone();
-        let final_node_expression = node.expression();
-        assert_eq!(final_node_expression.to_string(), new_expression);
     }
 
     /// Test recognition of qualified names in the searcher's input.

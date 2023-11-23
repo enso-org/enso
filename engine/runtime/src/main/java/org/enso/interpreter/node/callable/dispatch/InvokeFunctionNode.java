@@ -108,15 +108,20 @@ public abstract class InvokeFunctionNode extends BaseNode {
     if (cachedSchema.getCallerFrameAccess().shouldFrameBePassed()) {
       callerInfo = captureCallerInfoNode.execute(callerFrame.materialize());
     }
-    functionCallInstrumentationNode.execute(
-        callerFrame, function, state, mappedArguments.getSortedArguments());
-    return curryNode.execute(
-        callerFrame,
-        function,
-        callerInfo,
-        state,
-        mappedArguments.getSortedArguments(),
-        mappedArguments.getOversaturatedArguments());
+    var result =
+        functionCallInstrumentationNode.execute(
+            callerFrame, function, state, mappedArguments.getSortedArguments());
+    if (result instanceof FunctionCallInstrumentationNode.FunctionCall) {
+      return curryNode.execute(
+          callerFrame,
+          function,
+          callerInfo,
+          state,
+          mappedArguments.getSortedArguments(),
+          mappedArguments.getOversaturatedArguments());
+    } else {
+      return result;
+    }
   }
 
   /**

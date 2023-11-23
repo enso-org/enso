@@ -1,6 +1,7 @@
 from Standard.Base import all
 
 import Standard.Table.Data.Table.Table as Materialized_Table
+import Standard.Table.Internal.Java_Problems
 
 import project.Data.SQL_Type.SQL_Type
 import project.Internal.Column_Fetcher.Column_Fetcher
@@ -42,34 +43,35 @@ result_set_to_table result_set make_column_fetcher type_overrides=Nothing last_r
             effective_types
     column_fetchers = column_types.map make_column_fetcher
     initial_size = 10
-    column_builders = column_fetchers.map fetcher->
-        fetcher.make_builder initial_size
-    fetchers_and_builders = column_fetchers.zip column_builders
-    warnings_builder = Vector.new_builder
-    case last_row_only of
-        True ->
-            ## Not using the `ResultSet.last` as not supported by all connection types.
-            go has_next current = case has_next.not of
-                True ->
-                    if current.is_nothing then Nothing else
-                        column_builders.each_with_index ix-> builder-> builder.append (current.at ix)
-                        Nothing
-                False ->
-                    values = column_fetchers.map_with_index ix-> fetcher-> fetcher.fetch_value result_set ix+1
+    Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
+        column_builders = column_fetchers.map fetcher->
+            fetcher.make_builder initial_size java_problem_aggregator
+        fetchers_and_builders = column_fetchers.zip column_builders
+        warnings_builder = Vector.new_builder
+        case last_row_only of
+            True ->
+                ## Not using the `ResultSet.last` as not supported by all connection types.
+                go has_next current = case has_next.not of
+                    True ->
+                        if current.is_nothing then Nothing else
+                            column_builders.each_with_index ix-> builder-> builder.append (current.at ix)
+                            Nothing
+                    False ->
+                        values = column_fetchers.map_with_index ix-> fetcher-> fetcher.fetch_value result_set ix+1
+                        extract_warnings_into_builder warnings_builder result_set
+                        @Tail_Call go result_set.next values
+                go result_set.next Nothing
+            False ->
+                go has_next = if has_next.not then Nothing else
+                    fetchers_and_builders.each_with_index ix-> pair->
+                        fetcher = pair.first
+                        builder = pair.second
+                        value = fetcher.fetch_value result_set ix+1
+                        builder.append value
                     extract_warnings_into_builder warnings_builder result_set
-                    @Tail_Call go result_set.next values
-            go result_set.next Nothing
-        False ->
-            go has_next = if has_next.not then Nothing else
-                fetchers_and_builders.each_with_index ix-> pair->
-                    fetcher = pair.first
-                    builder = pair.second
-                    value = fetcher.fetch_value result_set ix+1
-                    builder.append value
-                extract_warnings_into_builder warnings_builder result_set
-                @Tail_Call go result_set.next
-            go result_set.next
-    Problem_Behavior.Report_Warning.attach_problems_before warnings_builder.to_vector <|
-        columns = column_builders.zip column_names builder-> name->
-            builder.make_column name
-        Materialized_Table.new columns
+                    @Tail_Call go result_set.next
+                go result_set.next
+        Problem_Behavior.Report_Warning.attach_problems_before warnings_builder.to_vector <|
+            columns = column_builders.zip column_names builder-> name->
+                builder.make_column name
+            Materialized_Table.new columns

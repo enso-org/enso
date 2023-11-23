@@ -19,6 +19,7 @@ polyglot java import org.enso.table.data.column.storage.type.IntegerType
 polyglot java import org.enso.table.data.column.storage.type.StorageType
 polyglot java import org.enso.table.data.column.storage.type.TextType
 polyglot java import org.enso.table.data.column.storage.type.TimeOfDayType
+polyglot java import org.enso.table.problems.ProblemAggregator
 
 ## PRIVATE
    Gets the value type represented by this Java Storage.
@@ -54,13 +55,16 @@ closest_storage_type value_type = case value_type of
         Error.throw (Illegal_Argument.Error "Value_Type.Char with fixed length must have a non-nothing size")
     Value_Type.Char max_length variable_length ->
         fixed_length = variable_length.not
-        TextType.new max_length fixed_length
+        TextType.new (max_length : Integer) fixed_length
     Value_Type.Date -> DateType.INSTANCE
     # We currently will not support storing dates without timezones in in-memory mode.
     Value_Type.Date_Time _ -> DateTimeType.INSTANCE
     Value_Type.Time -> TimeOfDayType.INSTANCE
     Value_Type.Mixed -> AnyObjectType.INSTANCE
-    Value_Type.Decimal _ _ -> BigIntegerType.INSTANCE
+    Value_Type.Decimal _ scale ->
+        is_integer = scale.is_nothing || scale <= 0
+        if is_integer then BigIntegerType.INSTANCE else
+            Error.throw (Illegal_Argument.Error "Columns of type "+value_type.to_display_text+" are currently not supported in the in-memory backend - only Decimal of integer type (scale <= 0) is supported. You may cast the column to Float first (lossy conversion).")
     _ ->
         Error.throw (Illegal_Argument.Error "Columns of type "+value_type.to_display_text+" are currently not supported in the in-memory backend.")
 
@@ -87,6 +91,6 @@ from_value_type_strict value_type =
 
 ## PRIVATE
    Creates a column storage builder for the given storage type.
-make_builder : StorageType -> Integer -> Java_Builder
-make_builder storage initial_size=64 =
-    Java_Builder.getForType storage initial_size
+make_builder : StorageType -> Integer -> ProblemAggregator -> Java_Builder
+make_builder storage initial_size java_problem_aggregator =
+    Java_Builder.getForType storage initial_size java_problem_aggregator

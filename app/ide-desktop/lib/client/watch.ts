@@ -86,7 +86,6 @@ const ALL_BUNDLES_READY = new Promise<Watches>((resolve, reject) => {
             },
         })
         dashboardOpts.outdir = path.resolve(IDE_DIR_PATH, 'assets')
-        dashboardOpts.write = false
         const dashboardBuilder = await esbuild.context(dashboardOpts)
         const dashboard = await dashboardBuilder.rebuild()
         console.log('Result of dashboard bundling: ', dashboard)

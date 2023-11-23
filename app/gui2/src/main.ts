@@ -2,13 +2,9 @@ import 'enso-dashboard/src/tailwind.css'
 
 const INITIAL_URL_KEY = `Enso-initial-url`
 
-import './assets/main.css'
-
+import * as dashboard from 'enso-authentication'
 import { isMac } from 'lib0/environment'
 import { decodeQueryParams } from 'lib0/url'
-import { createPinia } from 'pinia'
-import { createApp, type App } from 'vue'
-import AppRoot from './App.vue'
 
 const params = decodeQueryParams(location.href)
 
@@ -21,29 +17,32 @@ const config = {
   initialProjectName: params.project ?? null,
 }
 
-let app: App | null = null
+let unmount: null | (() => void) = null
+let runRequested = false
 
-interface StringConfig {
+export interface StringConfig {
   [key: string]: StringConfig | string
 }
 
+const vueAppEntry = import('./createApp')
+
 async function runApp(config: StringConfig | null, accessToken: string | null, metadata?: object) {
-  if (app != null) stopApp()
-  const rootProps = { config, accessToken, metadata }
-  app = createApp(AppRoot, rootProps)
-  app.use(createPinia())
-  app.mount('#app')
+  runRequested = true
+  const { mountProjectApp } = await vueAppEntry
+  if (runRequested) {
+    unmount?.()
+    const app = mountProjectApp({ config, accessToken, metadata })
+    unmount = () => app.unmount()
+  }
 }
 
 function stopApp() {
-  if (app == null) return
-  app.unmount()
-  app = null
+  runRequested = false
+  unmount?.()
+  unmount = null
 }
 
 const appRunner = { runApp, stopApp }
-
-const dashboard = await import('enso-authentication')
 
 /** The entrypoint into the IDE. */
 function main() {

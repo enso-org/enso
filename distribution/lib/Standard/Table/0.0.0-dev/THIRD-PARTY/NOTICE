@@ -51,6 +51,11 @@ The license information can be found along with the copyright notices.
 Copyright notices related to this dependency can be found in the directory `org.apache.logging.log4j.log4j-api-2.18.0`.
 
 
+'log4j-to-slf4j', licensed under the Apache License, Version 2.0, is distributed with the Table.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `org.apache.logging.log4j.log4j-to-slf4j-2.18.0`.
+
+
 'poi', licensed under the Apache License, Version 2.0, is distributed with the Table.
 The license information can be found along with the copyright notices.
 Copyright notices related to this dependency can be found in the directory `org.apache.poi.poi-5.2.3`.
@@ -69,4 +74,9 @@ Copyright notices related to this dependency can be found in the directory `org.
 'xmlbeans', licensed under the The Apache Software License, Version 2.0, is distributed with the Table.
 The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `org.apache.xmlbeans.xmlbeans-5.1.1`.
+
+
+'slf4j-api', licensed under the MIT License, is distributed with the Table.
+The license file can be found at `licenses/MIT`.
+Copyright notices related to this dependency can be found in the directory `org.slf4j.slf4j-api-1.7.36`.
 

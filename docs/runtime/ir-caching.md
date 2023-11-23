@@ -12,84 +12,82 @@ One of the largest pain points for users of Enso at the moment is the fact that
 it has to precompile the entire standard library on every project load. This is,
 in essence, due to the fact that the current parser is abysmally slow, and
 incredibly demanding. The obvious solution to improve this is to take the parser
-out of the equation in its entirety, by serialising the parser's output.
+out of the equation in its entirety, by serializing the parser's output.
 
-To that end, we want to serialise the Enso IR to a format that can later be read
+To that end, we want to serialize the Enso IR to a format that can later be read
 back in, bypassing the parser entirely. Furthermore, we can move the boundary at
-which this serialisation takes place to the end of the compiler pipeline,
+which this serialization takes place to the end of the compiler pipeline,
 thereby bypassing doing most of the compilation work, and further improving
 startup performance.
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
-- [Serialising the IR](#serialising-the-ir)
+- [Serializing the IR](#serializing-the-ir)
   - [Breaking Links](#breaking-links)
 - [Storing the IR](#storing-the-ir)
   - [Metadata Format](#metadata-format)
-  - [Portability Guarantees](#portability-guarantees)
+  - [Portability and Versioning](#portability-and-versioning)
 - [Loading the IR](#loading-the-ir)
   - [Integrity Checking](#integrity-checking)
   - [Error Handling](#error-handling)
   - [Imports](#imports)
-- [Testing the Serialisation](#testing-the-serialisation)
+- [Testing the Serialization](#testing-the-serialization)
 - [Future Directions](#future-directions)
 
 <!-- /MarkdownTOC -->
 
-## Serialising the IR
+## Serializing the IR
 
-As the serialised IR doesn't need to be read by anything other than Enso, we
-need not use a representation that is portable between platforms. As a result,
-we have picked the `Serializable` infrastructure that is _already present_ on
-the JVM. It has the following benefits:
+Using classical Java Serialization turned out to be unsuitably slow. Rather than
+switching to other serialization framework that does the same, but faster we
+desided in [PR-8207](https://github.com/enso-org/enso/pull/8207) to create _own
+persistance framework_ that radically changes the way we can read the caches.
+Rather than loading all the megabytes of stored data, it reads them _lazily on
+demand_.
 
-- It is able to serialise arbitrary object graphs while maintaining object
-  identity and tracking references. This cannot be disabled for `Serializable`,
-  but that is fine as we want it.
-- It is built into the JVM and is hence guaranteed to be portable between
-  instances of the same JVM.
-- It copes fine with highly-nested scala types, like our IR.
+Use following command to generate the Javadoc for the `org.enso.persist`
+package:
 
-In order to maximise the benefits of this process, we want to serialise the IR
-as _late_ in the compiler pipeline as possible. This means serialising it just
+```bash
+enso$ find lib/java/persistance/src/main/java/ | grep java$ | xargs ~/bin/graalvm-21/bin/javadoc -d target/javadoc/ --snippet-path lib/java/persistance/src/test/java/
+enso$ links target/javadoc/index.html
+```
+
+In order to maximize the benefits of this process, we want to serialize the IR
+as _late_ in the compiler pipeline as possible. This means serializing it just
 before the code generation step that generates Truffle nodes (before the
 `RuntimeStubsGenerator` and `IrToTruffle` run).
 
-This serialisation should take place in an _offloaded thread_ so that it doesn't
+This serialization should take place in an _offloaded thread_ so that it doesn't
 block the compiler from continuing.
 
 ### Breaking Links
 
-Doing this naïvely, however, means that we can inadvertently end up serialising
+Doing this naïvely, however, means that we can inadvertently end up serializing
 the entire module graph. This is due to the `BindingsMap`, which contains a
 reference to the associated `runtime.Module`, from which there is a reference to
 the `ModuleScope`. The `ModuleScope` may then reference other `runtime.Module`s
 which all contain `IR.Module`s. Therefore, done in a silly fashion, we end up
-serialising the entire reachable module graph. This is not what we want.
+serializing the entire reachable module graph. This is not what we want.
 
-While the ideal way of solving this problem would be to customise the
-serialisation and deserialisation process for the `BindingsMap`, the JVM's
-`Serializable` does not provide the ability to customise it enough to solve this
-problem. Instead, we solve it using a preprocessing step:
+The `Persistance.write` method contains additional `writeReplace` function which
+our cache system uses to perform following modification just before
+`ProcessingPass.Metadata` are stored down:
 
-- We can modify `BindingsMap` and its child types to be able to contain an
-  unlinked module pointer
-  `case class ModulePointer(qualifiedName: List[String])` in place of a
-  `Module`.
-- As the `MetadataStorage` type that holds the `BindingsMap` is mutable it can
-  be updated in place without having to reassemble the entire IR graph.
-- Hence, we can traverse all the nodes in the `ir.preorder` that have metadata
-  consisting of either the `BindingsMap` or `ResolvedName` types (provided by
-  the following passes: `BindingAnalysis`, `MethodDefinitions`, `GlobalNames`,
-  `VectorLiterals`, `Patterns`), and perform a replacement.
+- modify `BindingsMap` and its child types to be able to contain an unlinked
+  module pointer `case class ModulePointer(qualifiedName: List[String])` in
+  place of a `Module`.
+- As the `MetadataStorage` type that holds the `BindingsMap` is mutable it might
+  be tempting to update it in place, but relying on `writeReplace` mechanism is
+  safer as it only changes the format of object being written down, rather than
+  modifying objects of live `IR` - potentially shared with other parts of the
+  system.
 
 Having done this, we have broken any links that the IR may hold between modules,
-and can serialise each module individually.
+and can serialize each module individually.
 
-This serialisation must take place _after_ codegen has happened as it modifies
-the IR in place. The compiler can handle giving it to the offloaded
-serialisation thread. It _may_ be necessary to `duplicate` the IR before handing
-it to this thread, but this should be checked during development.
+It _may_ be safer to `duplicate` the IR before handing it to serialization, but
+it shouldn't be necessary if the `writeReplace` function is written correctly.
 
 ## Storing the IR
 
@@ -146,12 +144,28 @@ All hashes are encoded in SHA1 format, for performance reasons. The engine
 version is encoded in the cache path, and hence does not need to be explicitly
 specified in the metadata.
 
-### Portability Guarantees
+### Portability and Versioning
 
-As part of this design we provide only the following portability guarantees:
+These are two static methods in `Persistance` class to help creating a `byte[]`
+from a single object and then read it back. The array is identified with
+following header:
 
-- The serialised IR must be able to be deserialised by _the same version of
-  Enso_ that wrote the original blob.
+- 4 bytes fixed header
+- 4 bytes describing the version
+- 4 bytes to locate the beginning of the object (the objects aren't written
+  linearly)
+
+E.g. 12 bytes overhead before the actual data start. Following versioning is
+recommended when making a change:
+
+- when you change something really core in the `Persitance` implementation -
+  change the builtin header first four bytes
+- when you add or remove a Persistance implementation the version changes (as it
+  is computed from all the IDs present in the system)
+- when you change format of some `Persitance.writeObject` method - change its ID
+
+That way the same version of Enso will recognize its `.ir` files. Different
+versions of Enso will realize that the files aren't in suitable form.
 
 ## Loading the IR
 
@@ -165,10 +179,12 @@ checking on the loaded cache. It works as follows.
 2. **Check Integrity:** Check the module's [metadata](#metadata-format) for
    validity according to the [integrity rules](#integrity-checking).
 3. **Load:** If the cache passes the integrity check, load the `.ir` file. If
-   deserialisation fails in any way, immediately fall back to parsing the source
+   deserialization fails in any way, immediately fall back to parsing the source
    file.
-4. **Re-Link:** If loading completed successfully, re-link the `BindingsMap`
-   metadata to the proper modules in question.
+4. **Re-Link:** Relinking is part of **Load**. When using `Persistance.read`
+   provide own `readResolve` function. Such a function gets a chance to change
+   and replace each object read-in with appropriate variant respecting the whole
+   compiler environment.
 
 The main subtlety here is handling the dependencies between modules. We need to
 ensure that, when loading multiple cached libraries, we properly handle them
@@ -177,8 +193,8 @@ setting `AFTER_STATIC_PASSES` as the compilation state after loading the module.
 This will tie into the current `ImportsResolver` and `ExportsResolver` which are
 run in an un-gated fashion in `Compiler::run`.
 
-In order to prevent the execution of malicious code when deserialising we should
-employ a deserialisation filter as built into the JDK.
+Unlike classical Java deserialization nly registered `Persistance` subclasses
+may participate in deserialization making it much safer and less vulnerable.
 
 ### Integrity Checking
 
@@ -195,8 +211,8 @@ ignored if it is in a read-only location.
 It is important, as part of this, that we fail under all circumstances into a
 working state. This means that:
 
-- If serialisation fails, we report a low-priority error message and continue.
-- If deserialisation fails, we fall back to loading and parsing the original
+- If serialization fails, we report a low-priority error message and continue.
+- If deserialization fails, we fall back to loading and parsing the original
   source file.
 
 At no point should this mechanism be exposed to the user in any visible way,
@@ -215,12 +231,15 @@ until a complete cache invalidation was forced.
 Therefore, the compiler performs an additional check by invalidating module's
 cache if any of its imported modules have been invalidated.
 
-## Testing the Serialisation
+## Testing the Serialization
 
 There are two main elements that need to be tested as part of this feature.
 
-- Firstly, we need to test the serialisation and deserialisation process,
-  including the rewrite of `BindingsMap` to work properly.
+- `persistance` project comes with its own unit tests
+- `runtime-parser` project adds tests of various core classes used during `IR`
+  serialization - like Scala `List` or checks of the _laziness_ of Scala `Seq`
+- We need to test the serialization and deserialization process, including the
+  rewrite of `BindingsMap` to work properly.
 - We also need to test the discovery of cache locations on the filesystem and
   cache eviction strategies. The best way to do this is to set `$ENSO_DATA` to a
   temporary directory and then directly interact with the filesystem. Caching
@@ -243,16 +262,23 @@ library in a single pass.
 The bindings are serialized along with the library caches in a file with a
 `.bindings` suffix.
 
+Further more the storage of `.ir` files contains usage of _lazy_ `Seq`
+references to separate the general part of the `IR` tree from elements
+representing method bodies. As such the compiler can process the structure of
+`.ir` files, but avoid loading in `IR` for methods that aren't being executed.
+
 ## Future Directions
 
-Due to the less than ideal platform situation we're in, we're limited to using
-Java's `Serializable`. It is not as performant as other options.
+The `Persistance` framework gives us _laziness_ opportunities and we should use
+them more:
 
-- [FST](https://github.com/RuedigerMoeller/fast-serialization) is around 10x
-  faster than the JVM's serialization, and is a drop-in replacement.
-- However, the version that supports Java 11 utilises reflection that trips
-  warnings that will be disallowed with Java 17 (the next LTS version for
-  GraalVM).
-- The version that fixes this relies on the foreign memory API which is
-  available in Java 17. I recommend that once we're on Java 17 builds the
-  serialization is updated to work using FST.
+- have a single _blob_ with all `IR`s per a library and read only the parts that
+  are needed
+
+- experiement with GC - being able to release parts of unused `IR` once they
+  were used (for code generation or co.)
+
+- make the `.ir` files smaller where possible
+
+The use of `Persistance` has already sped up the execution time of simple
+`IO.println "Hello!"` by 16% - let's use it to speed things up even more.

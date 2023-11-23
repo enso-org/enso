@@ -2,6 +2,7 @@ package org.enso.compiler.test.pass.resolve
 
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
+import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.{Diagnostic, Expression, Module}
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.data.BindingsMap.ResolutionNotFound

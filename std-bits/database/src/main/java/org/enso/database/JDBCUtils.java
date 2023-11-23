@@ -5,9 +5,11 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZonedDateTime;
+import org.enso.polyglot.common_utils.Core_Date_Utils;
 
 public class JDBCUtils {
 
@@ -25,10 +27,30 @@ public class JDBCUtils {
     return offsetDateTime.toZonedDateTime();
   }
 
+  /**
+   * Gets a ZonedDateTime from a ResultSet, interpreting the result as LocalDateTime and then adding
+   * the system default timezone.
+   */
+  public static ZonedDateTime getLocalDateTimeAsZoned(ResultSet rs, int columnIndex)
+      throws SQLException {
+    LocalDateTime localDateTime = rs.getObject(columnIndex, LocalDateTime.class);
+    if (localDateTime == null) {
+      return null;
+    }
+    return localDateTime.atZone(Core_Date_Utils.defaultSystemZone());
+  }
+
   /** Sets a ZonedDateTime in a PreparedStatement. */
   public static void setZonedDateTime(
       PreparedStatement stmt, int columnIndex, ZonedDateTime zonedDateTime) throws SQLException {
     stmt.setObject(columnIndex, zonedDateTime.toOffsetDateTime(), Types.TIMESTAMP_WITH_TIMEZONE);
+  }
+
+  /** Sets a ZonedDateTime converting it to LocalDateTime in a PreparedStatement. */
+  public static void setLocalDateTime(
+      PreparedStatement stmt, int columnIndex, ZonedDateTime zonedDateTime) throws SQLException {
+    LocalDateTime localDateTime = zonedDateTime.toLocalDateTime();
+    stmt.setObject(columnIndex, localDateTime, Types.TIMESTAMP);
   }
 
   /** Sets a LocalTime in a PreparedStatement. */

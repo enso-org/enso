@@ -1,11 +1,9 @@
 <script setup lang="ts">
 import SvgIcon from '@/components/SvgIcon.vue'
-
-import { useDocumentEvent } from '@/util/events'
-
+import { useEvent } from '@/util/events'
 import { ref } from 'vue'
 
-const _props = defineProps<{ modes: string[]; modelValue: string }>()
+const props = defineProps<{ modes: string[]; modelValue: string }>()
 const emit = defineEmits<{ execute: []; 'update:modelValue': [mode: string] }>()
 
 const isDropdownOpen = ref(false)
@@ -21,21 +19,21 @@ function onDocumentClick(event: MouseEvent) {
   }
 }
 
-useDocumentEvent('click', onDocumentClick)
+useEvent(document, 'pointerdown', onDocumentClick)
 </script>
 
 <template>
   <div ref="executionModeSelectorNode" class="ExecutionModeSelector">
     <div class="execution-mode-button">
-      <div class="execution-mode button" @click="isDropdownOpen = !isDropdownOpen">
-        <span v-text="modelValue"></span>
+      <div class="execution-mode button" @pointerdown.stop="isDropdownOpen = !isDropdownOpen">
+        <span v-text="props.modelValue"></span>
       </div>
       <div class="divider"></div>
       <SvgIcon
         name="workflow_play"
         class="play button"
         draggable="false"
-        @click="
+        @pointerdown="
           () => {
             isDropdownOpen = false
             emit('execute')
@@ -43,25 +41,28 @@ useDocumentEvent('click', onDocumentClick)
         "
       />
     </div>
-    <div v-if="isDropdownOpen" class="execution-mode-dropdown">
-      <template v-for="otherMode in modes" :key="otherMode">
-        <span
-          v-if="modelValue !== otherMode"
-          class="button"
-          @click="emit('update:modelValue', otherMode)"
-          v-text="otherMode"
-        ></span>
-      </template>
-    </div>
+    <Transition name="dropdown">
+      <div v-if="isDropdownOpen" class="execution-mode-dropdown">
+        <template v-for="otherMode in props.modes" :key="otherMode">
+          <span
+            v-if="modelValue !== otherMode"
+            class="button"
+            @pointerdown="emit('update:modelValue', otherMode), (isDropdownOpen = false)"
+            v-text="otherMode"
+          ></span>
+        </template>
+      </div>
+    </Transition>
   </div>
 </template>
 
 <style scoped>
 span {
   display: inline-block;
-  height: 20px;
-  padding-top: 1px;
-  padding-bottom: 1px;
+  height: 24px;
+  padding: 1px 0px;
+  vertical-align: middle;
+  overflow: clip;
 }
 
 .ExecutionModeSelector {
@@ -72,10 +73,12 @@ span {
 .execution-mode-button {
   display: flex;
   align-items: center;
+  height: 24px;
   border-radius: var(--radius-full);
   background: #64b526;
 
   > .execution-mode {
+    font-weight: 600;
     padding: 0 8px;
   }
 
@@ -93,6 +96,8 @@ span {
 }
 
 .execution-mode-dropdown {
+  display: flex;
+  flex-flow: column;
   position: absolute;
   background: #64b526;
   border-radius: 10px;
@@ -110,6 +115,29 @@ span {
 
   *:hover {
     background: var(--color-dim);
+  }
+}
+
+.dropdown-enter-active,
+.dropdown-leave-active {
+  transition: all 0.1s;
+
+  > span {
+    transition: all 0.1s;
+  }
+}
+
+.dropdown-enter-from,
+.dropdown-leave-to {
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  overflow: hidden;
+
+  > span {
+    padding-top: 0;
+    padding-bottom: 0;
+    max-height: 0;
   }
 }
 </style>

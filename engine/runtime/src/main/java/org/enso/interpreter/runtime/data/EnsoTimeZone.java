@@ -15,6 +15,7 @@ import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.enso.polyglot.common_utils.Core_Date_Utils;
 
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
@@ -78,7 +79,7 @@ public final class EnsoTimeZone implements EnsoObject {
       autoRegister = false)
   @CompilerDirectives.TruffleBoundary
   public static EnsoTimeZone system() {
-    return new EnsoTimeZone(ZoneId.systemDefault());
+    return new EnsoTimeZone(Core_Date_Utils.defaultSystemZone());
   }
 
   @ExportMessage

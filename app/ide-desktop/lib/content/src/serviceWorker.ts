@@ -24,7 +24,7 @@ self.addEventListener('install', event => {
 
 self.addEventListener('fetch', event => {
     const url = new URL(event.request.url)
-    if (url.hostname === 'localhost') {
+    if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
         return false
     } else {
         event.respondWith(

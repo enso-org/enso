@@ -677,6 +677,10 @@ process for spawning and connecting to an engine instance is as follows:
     data connection, passing its client identifier as it does so. See
     [`session/initDataConnection`](./protocol-language-server.md#sessioninitdataconnection)
     below more information.
+5.  **Secure connections:** The language server can expose secure endpoints
+    (HTTPS and WSS), when configured appropriately. See
+    [HTTPS endpoints](./language-server-http-endpoints.md#https-endpoints) for
+    details.
 
 ## Service Connection Teardown
 

@@ -1,5 +1,6 @@
 package org.enso.compiler.test.semantic
 
+import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.{Expression, Module, Type}
 import org.enso.compiler.core.ir
 import org.enso.compiler.core.ir.module.scope.definition
@@ -153,7 +154,7 @@ class TypeSignaturesTest
   implicit private class PreprocessModule(code: String) {
     def preprocessModule: Module = {
       val module = new runtime.Module(Module, null, code)
-      langCtx.getCompiler.run(module)
+      langCtx.getCompiler.run(module.asCompilerModule())
       module.getIr
     }
   }

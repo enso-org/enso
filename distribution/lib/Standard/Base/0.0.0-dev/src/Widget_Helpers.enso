@@ -1,10 +1,9 @@
 import project.Data.Locale.Locale
 import project.Data.Time.Date.Date
 import project.Data.Time.Date_Time.Date_Time
-import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Data.Time.Date_Time_Formatter.Date_Time_Formatter
+import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Meta
-
 import project.Metadata.Widget
 from project.Metadata import make_single_choice
 

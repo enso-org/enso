@@ -16,7 +16,11 @@ object SessionApi {
 
     case class Params(clientId: UUID)
 
-    case class Result(contentRoots: Set[ContentRoot])
+    case class Result(
+      ensoVersion: String,
+      currentEdition: String,
+      contentRoots: Set[ContentRoot]
+    )
 
     implicit
     val hasParams: HasParams.Aux[this.type, InitProtocolConnection.Params] =

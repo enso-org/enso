@@ -2,7 +2,6 @@ package org.enso.jsonrpc
 
 import akka.NotUsed
 import akka.actor.{ActorRef, ActorSystem, Props}
-import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.ws.{BinaryMessage, Message, TextMessage}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
@@ -11,9 +10,8 @@ import akka.stream.{Materializer, OverflowStrategy}
 import com.typesafe.scalalogging.LazyLogging
 
 import java.util.UUID
-
 import scala.concurrent.duration._
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext
 
 /** Exposes a multi-client JSON RPC Server instance over WebSocket connections.
   *
@@ -32,7 +30,8 @@ class JsonRpcServer(
 )(
   implicit val system: ActorSystem,
   implicit val materializer: Materializer
-) extends LazyLogging {
+) extends Server
+    with LazyLogging {
 
   implicit val ec: ExecutionContext = system.dispatcher
 
@@ -92,7 +91,7 @@ class JsonRpcServer(
     Flow.fromSinkAndSource(incomingMessages, outgoingMessages)
   }
 
-  private def route(port: Int): Route = {
+  override protected def serverRoute(port: Int): Route = {
     val webSocketEndpoint =
       path(config.path) {
         get { handleWebSocketMessages(newUser(port)) }
@@ -103,17 +102,8 @@ class JsonRpcServer(
     }
   }
 
-  /** Binds this server instance to a given port and interface, allowing
-    * future connections.
-    *
-    * @param interface the interface to bind to.
-    * @param port the port to bind to.
-    * @return a server binding object.
-    */
-  def bind(interface: String, port: Int): Future[Http.ServerBinding] =
-    Http()
-      .newServerAt(interface, port)
-      .bind(route(port))
+  override protected def secureConfig(): Option[SecureConnectionConfig] =
+    config.secureConfig
 }
 
 object JsonRpcServer {
@@ -129,6 +119,7 @@ object JsonRpcServer {
   case class Config(
     outgoingBufferSize: Int,
     lazyMessageTimeout: FiniteDuration,
+    secureConfig: Option[SecureConnectionConfig],
     path: String = ""
   )
 
@@ -139,7 +130,11 @@ object JsonRpcServer {
       * @return a default config.
       */
     def default: Config =
-      Config(outgoingBufferSize = 1000, lazyMessageTimeout = 10.seconds)
+      Config(
+        outgoingBufferSize = 1000,
+        lazyMessageTimeout = 10.seconds,
+        secureConfig       = None
+      )
   }
 
   case class WebConnect(webActor: ActorRef, port: Int)

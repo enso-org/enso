@@ -23,7 +23,7 @@ pub mod block;
 // ============
 
 /// The Abstract Syntax Tree of the language.
-#[derive(Clone, Deref, DerefMut, Eq, PartialEq, Serialize, Reflect, Deserialize)]
+#[derive(Clone, Debug, Deref, DerefMut, Eq, PartialEq, Serialize, Reflect, Deserialize)]
 #[allow(missing_docs)]
 pub struct Tree<'s> {
     #[reflect(flatten, hide)]
@@ -41,19 +41,6 @@ pub fn Tree<'s>(span: Span<'s>, variant: impl Into<Variant<'s>>) -> Tree<'s> {
     Tree { variant, span }
 }
 
-impl<'s> Debug for Tree<'s> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let max_code_len = 30;
-        let ellipsis = "...";
-        let mut code = self.code();
-        if code.len() > max_code_len {
-            code = format!("{}{}", &code[..max_code_len - ellipsis.len()], ellipsis);
-        }
-        write!(f, "[{}:{}:\"{}\"] ", self.span.left_offset.visible, self.span.code_length, code)?;
-        Debug::fmt(&self.variant, f)
-    }
-}
-
 impl<'s> AsRef<Span<'s>> for Tree<'s> {
     fn as_ref(&self) -> &Span<'s> {
         &self.span
@@ -64,7 +51,7 @@ impl<'s> Default for Tree<'s> {
     fn default() -> Self {
         Self {
             variant: Box::new(Variant::Ident(Ident { token: Default::default() })),
-            span:    Default::default(),
+            span:    Span::empty_without_offset(),
         }
     }
 }
@@ -111,6 +98,11 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         /// A simple identifier, like `foo` or `bar`.
         Ident {
             pub token: token::Ident<'s>,
+        },
+        /// A `private` keyword, marking associated expressions as project-private.
+        Private {
+            pub keyword: token::Private<'s>,
+            pub body: Option<Tree<'s>>,
         },
         /// A numeric literal, like `10`.
         Number {
@@ -616,7 +608,7 @@ impl<'s> span::Builder<'s> for ArgumentType<'s> {
 
 // === CaseOf ===
 
-/// A that may contain a case-expression in a case-of expression.
+/// A line that may contain a case-expression in a case-of expression.
 #[derive(Clone, Debug, Default, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
 pub struct CaseLine<'s> {
     /// The token beginning the line. This will always be present, unless the first case-expression
@@ -669,7 +661,10 @@ impl<'s> Case<'s> {
 
 impl<'s> span::Builder<'s> for Case<'s> {
     fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
-        span.add(&mut self.pattern).add(&mut self.arrow).add(&mut self.expression)
+        span.add(&mut self.documentation)
+            .add(&mut self.pattern)
+            .add(&mut self.arrow)
+            .add(&mut self.expression)
     }
 }
 
@@ -763,21 +758,25 @@ impl<'s> span::Builder<'s> for OperatorDelimitedTree<'s> {
 pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
     match (&mut *func.variant, &mut *arg.variant) {
         (Variant::Annotated(func_ @ Annotated { argument: None, .. }), _) => {
+            func.span.code_length += arg.span.length_including_whitespace();
             func_.argument = maybe_apply(mem::take(&mut func_.argument), arg).into();
             func
         }
         (Variant::AnnotatedBuiltin(func_), _) => {
+            func.span.code_length += arg.span.length_including_whitespace();
             func_.expression = maybe_apply(mem::take(&mut func_.expression), arg).into();
             func
         }
-        (Variant::OprApp(OprApp { lhs: Some(_), opr: Ok(_), rhs }),
-                Variant::ArgumentBlockApplication(ArgumentBlockApplication { lhs: None, arguments }))
-        if rhs.is_none() => {
+        (Variant::OprApp(OprApp { lhs: Some(_), opr: Ok(_), rhs: rhs @ None }),
+                Variant::ArgumentBlockApplication(ArgumentBlockApplication { lhs: None, arguments })) => {
+            func.span.code_length += arg.span.length_including_whitespace();
             *rhs = block::body_from_lines(mem::take(arguments)).into();
             func
         }
         (_, Variant::ArgumentBlockApplication(block)) if block.lhs.is_none() => {
-            let func_left_offset = mem::take(&mut func.span.left_offset);
+            let code = func.span.code_length + arg.span.left_offset.code.length() + arg.span.code_length;
+            arg.span.code_length = code;
+            let func_left_offset = func.span.left_offset.take_as_prefix();
             let arg_left_offset = mem::replace(&mut arg.span.left_offset, func_left_offset);
             if let Some(first) = block.arguments.first_mut() {
                 first.newline.left_offset += arg_left_offset;
@@ -786,7 +785,9 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
             arg
         }
         (_, Variant::OperatorBlockApplication(block)) if block.lhs.is_none() => {
-            let func_left_offset = mem::take(&mut func.span.left_offset);
+            let code = func.span.code_length + arg.span.left_offset.code.length() + arg.span.code_length;
+            arg.span.code_length = code;
+            let func_left_offset = func.span.left_offset.take_as_prefix();
             let arg_left_offset = mem::replace(&mut arg.span.left_offset, func_left_offset);
             if let Some(first) = block.expressions.first_mut() {
                 first.newline.left_offset += arg_left_offset;
@@ -830,8 +831,10 @@ fn maybe_apply<'s>(f: Option<Tree<'s>>, x: Tree<'s>) -> Tree<'s> {
 pub fn join_text_literals<'s>(
     lhs: &mut TextLiteral<'s>,
     rhs: &mut TextLiteral<'s>,
+    lhs_span: &mut Span<'s>,
     rhs_span: Span<'s>,
 ) {
+    lhs_span.code_length += rhs_span.length_including_whitespace();
     match rhs.elements.first_mut() {
         Some(TextElement::Section { text }) => text.left_offset += rhs_span.left_offset,
         Some(TextElement::Escape { token }) => token.left_offset += rhs_span.left_offset,
@@ -871,6 +874,7 @@ pub fn apply_operator<'s>(
                 Variant::Number(Number { base: None, integer, fractional_digits })) => {
                 func_.integer = mem::take(integer);
                 func_.fractional_digits = mem::take(fractional_digits);
+                lhs_.span.code_length += rhs_.span.code_length;
                 lhs.take().unwrap()
             }
             _ => {
@@ -909,6 +913,7 @@ pub fn apply_operator<'s>(
     {
         let dot = opr.clone();
         let digits = digits.clone();
+        lhs.span.code_length += dot.code.length() + rhs.span.code_length;
         lhs_.fractional_digits = Some(FractionalDigits { dot, digits });
         return lhs.clone();
     }
@@ -916,12 +921,11 @@ pub fn apply_operator<'s>(
         if let Variant::ArgumentBlockApplication(block) = &mut *rhs_.variant {
             if block.lhs.is_none() {
                 if let Some(first) = block.arguments.first_mut() {
-                    first.newline.left_offset += mem::take(&mut rhs_.span.left_offset);
+                    first.newline.left_offset += rhs_.span.left_offset.take_as_prefix();
                 }
                 let ArgumentBlockApplication { lhs: _, arguments } = block;
                 let arguments = mem::take(arguments);
-                let rhs_ = block::body_from_lines(arguments);
-                rhs = Some(rhs_);
+                *rhs_ = block::body_from_lines(arguments);
             }
         }
     }
@@ -990,6 +994,7 @@ pub fn to_ast(token: Token) -> Tree {
         | token::Variant::BlockEnd(_)
         // This should be unreachable: `Precedence::resolve` doesn't calls `to_ast` for operators.
         | token::Variant::Operator(_)
+        | token::Variant::Private(_)
         // Map an error case in the lexer to an error in the AST.
         | token::Variant::Invalid(_) => {
             let message = format!("Unexpected token: {token:?}");

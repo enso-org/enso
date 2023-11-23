@@ -13,11 +13,14 @@ object LibraryManifestGenerator {
     *
     * It assumes that the engine-runner/assembly task is up to date (as it uses
     * its artifacts).
+    *
+    * @param javaOpts The java options to pass to the manifest generator.
     */
   def generateManifests(
     libraries: Seq[BundledLibrary],
     distributionRoot: File,
     log: Logger,
+    javaOpts: Seq[String],
     cacheStoreFactory: CacheStoreFactory
   ): Unit =
     for (BundledLibrary(qualifiedName, version) <- libraries) {
@@ -33,26 +36,28 @@ object LibraryManifestGenerator {
 
       val store =
         cacheStoreFactory.make(s"library-manifest-$namespace-$name-$version")
-      val sources = (projectPath / "src" allPaths).get
+      val sources = (projectPath / "src").allPaths.get
       Tracked.diffInputs(store, FileInfo.hash)(sources.toSet) { diff =>
         def manifestExists = (projectPath / "manifest.yaml").exists()
         if (diff.modified.nonEmpty || !manifestExists) {
           log.info(s"Regenerating manifest for [$projectPath].")
-          runGenerator(projectPath, log)
+          runGenerator(projectPath, javaOpts, log)
         } else {
           log.debug(s"[$projectPath] manifest is up to date.")
         }
       }
     }
 
-  private def runGenerator(projectPath: File, log: Logger): Unit = {
+  private def runGenerator(
+    projectPath: File,
+    javaOpts: Seq[String],
+    log: Logger
+  ): Unit = {
     val javaCommand =
       ProcessHandle.current().info().command().asScala.getOrElse("java")
     val command = Seq(
-      javaCommand,
-      s"-Dtruffle.class.path.append=runtime.jar",
-      "-jar",
-      "runner.jar",
+      javaCommand
+    ) ++ javaOpts ++ Seq(
       "--update-manifest",
       "--in-project",
       projectPath.getCanonicalPath

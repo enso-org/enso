@@ -3,14 +3,11 @@ package expression
 package errors
 
 import com.oracle.truffle.api.source.Source
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{
-  fileLocationFromSection,
-  randomId,
-  Identifier,
-  ToStringHelper
-}
+import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
+import org.enso.compiler.core.{IR, Identifier}
+import org.enso.compiler.core.IR.{fileLocationFromSection, randomId}
 
+import java.util.UUID
 import scala.annotation.unused
 
 /** An erroneous import or export statement.
@@ -30,7 +27,7 @@ sealed case class ImportExport(
     with org.enso.compiler.core.ir.module.scope.Import
     with org.enso.compiler.core.ir.module.scope.Export
     with IRKind.Primitive {
-  override protected var id: Identifier = randomId
+  var id: UUID @Identifier = randomId
 
   /** Creates a copy of `this`.
     *
@@ -46,7 +43,7 @@ sealed case class ImportExport(
     reason: ImportExport.Reason    = reason,
     passData: MetadataStorage      = passData,
     diagnostics: DiagnosticStorage = diagnostics,
-    id: Identifier                 = id
+    id: UUID @Identifier           = id
   ): ImportExport = {
     val res = ImportExport(ir, reason, passData, diagnostics)
     res.id = id
@@ -77,7 +74,9 @@ sealed case class ImportExport(
   override val location: Option[IdentifiedLocation] = ir.location
 
   /** @inheritdoc */
-  override def mapExpressions(fn: Expression => Expression): ImportExport =
+  override def mapExpressions(
+    fn: java.util.function.Function[Expression, Expression]
+  ): ImportExport =
     this
 
   /** @inheritdoc */
@@ -97,7 +96,7 @@ sealed case class ImportExport(
   override def children: List[IR] = List(ir)
 
   /** @inheritdoc */
-  override def message: String = reason.message
+  override def message(source: Source): String = reason.message(source)
 
   override def diagnosticKeys(): Array[Any] = Array(reason)
 
@@ -111,9 +110,10 @@ object ImportExport {
     */
   sealed trait Reason {
 
-    /** @return A human-readable description of the error.
+    /** @param source Location of the original import/export IR.
+      * @return A human-readable description of the error.
       */
-    def message: String
+    def message(source: Source): String
   }
 
   /** Used when the `project` keyword is used in an impossible position.
@@ -123,7 +123,7 @@ object ImportExport {
     */
   case class ProjectKeywordUsedButNotInProject(statementType: String)
       extends Reason {
-    override def message: String =
+    override def message(source: Source): String =
       s"The `project` keyword was used in an $statementType statement," +
       " but the module does not belong to a project."
   }
@@ -135,7 +135,8 @@ object ImportExport {
     */
   case class PackageCouldNotBeLoaded(name: String, reason: String)
       extends Reason {
-    override def message: String = s"Package containing the module $name" +
+    override def message(source: Source): String =
+      s"Package containing the module $name" +
       s" could not be loaded: $reason"
   }
 
@@ -144,31 +145,64 @@ object ImportExport {
     * @param name the module name.
     */
   case class ModuleDoesNotExist(name: String) extends Reason {
-    override def message: String = s"The module $name does not exist."
+    override def message(source: Source): String =
+      s"The module $name does not exist."
   }
 
   case class TypeDoesNotExist(
     typeName: String,
     moduleName: String
   ) extends Reason {
-    override def message: String =
+    override def message(source: Source): String =
       s"The type $typeName does not exist in module $moduleName"
   }
 
   case class SymbolDoesNotExist(
     symbolName: String,
-    moduleName: String
+    moduleOrTypeName: String
   ) extends Reason {
-    override def message: String =
-      s"The symbol $symbolName (module or type) does not exist in module $moduleName."
+    override def message(source: Source): String =
+      s"The symbol $symbolName (module, type, or constructor) does not exist in $moduleOrTypeName."
   }
 
   case class NoSuchConstructor(
     typeName: String,
     constructorName: String
   ) extends Reason {
-    override def message: String =
+    override def message(source: Source): String =
       s"No such constructor ${constructorName} in type $typeName"
+  }
+
+  case class ExportSymbolsFromPrivateModule(
+    moduleName: String
+  ) extends Reason {
+    override def message(source: Source): String =
+      s"Cannot export any symbol from module '$moduleName': The module is private"
+  }
+
+  case class ExportPrivateModule(
+    moduleName: String
+  ) extends Reason {
+    override def message(source: Source): String =
+      s"Cannot export private module '$moduleName'"
+  }
+
+  case class ImportPrivateModule(
+    moduleName: String
+  ) extends Reason {
+    override def message(source: Source): String =
+      s"Cannot import private module '$moduleName'"
+  }
+
+  case class SubmoduleVisibilityMismatch(
+    moduleName: String,
+    submoduleName: String,
+    moduleVisibility: String,
+    submoduleVisibility: String
+  ) extends Reason {
+    override def message(source: Source): String =
+      s"Cannot export submodule '$submoduleName' of module '$moduleName': " +
+      s"the submodule is $submoduleVisibility, but the module is $moduleVisibility"
   }
 
   /** Represents an ambiguous import resolution error, where the same symbol is imported more than once refereing
@@ -178,16 +212,14 @@ object ImportExport {
     * @param originalSymbolPath the original symbol path.
     * @param symbolName         the symbol name that is ambiguous.
     * @param symbolPath         the symbol path that is different than [[originalSymbolPath]].
-    * @param source             Location of the original import.
     */
   case class AmbiguousImport(
     originalImport: module.scope.Import,
     originalSymbolPath: String,
     symbolName: String,
-    symbolPath: String,
-    source: Source
+    symbolPath: String
   ) extends Reason {
-    override def message: String = {
+    override def message(source: Source): String = {
       val originalImportRepr =
         originalImport.location match {
           case Some(location) =>

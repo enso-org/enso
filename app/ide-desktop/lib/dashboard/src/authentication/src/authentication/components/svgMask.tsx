@@ -7,6 +7,7 @@ import * as React from 'react'
 
 /** Props for a {@link SvgMask}. */
 export interface SvgMaskProps {
+    alt?: string
     /** The URL of the SVG to use as the mask. */
     src: string
     title?: string
@@ -20,7 +21,7 @@ export interface SvgMaskProps {
 
 /** Use an SVG as a mask. This lets the SVG use the text color (`currentColor`). */
 export default function SvgMask(props: SvgMaskProps) {
-    const { src, title, style, className, onClick } = props
+    const { alt, src, title, style, className, onClick } = props
     const urlSrc = `url(${JSON.stringify(src)})`
 
     return (
@@ -41,7 +42,7 @@ export default function SvgMask(props: SvgMaskProps) {
             }}
         >
             {/* This is required for this component to have the right size. */}
-            <img src={src} className="opacity-0" />
+            <img alt={alt} src={src} className="opacity-0" />
         </div>
     )
 }

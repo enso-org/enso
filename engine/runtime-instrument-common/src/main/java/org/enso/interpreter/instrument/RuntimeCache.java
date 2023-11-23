@@ -6,13 +6,14 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import org.enso.interpreter.service.ExecutionService;
 
 /** A storage for computed values. */
 public final class RuntimeCache {
 
   private final Map<UUID, SoftReference<Object>> cache = new HashMap<>();
   private final Map<UUID, String> types = new HashMap<>();
-  private final Map<UUID, IdExecutionService.FunctionCallInfo> calls = new HashMap<>();
+  private final Map<UUID, ExecutionService.FunctionCallInfo> calls = new HashMap<>();
   private Map<UUID, Double> weights = new HashMap<>();
 
   /**
@@ -78,8 +79,8 @@ public final class RuntimeCache {
    * @return the function call that was previously associated with this expression.
    */
   @CompilerDirectives.TruffleBoundary
-  public IdExecutionService.FunctionCallInfo putCall(
-      UUID key, IdExecutionService.FunctionCallInfo call) {
+  public ExecutionService.FunctionCallInfo putCall(
+      UUID key, ExecutionService.FunctionCallInfo call) {
     if (call == null) {
       return calls.remove(key);
     }
@@ -88,7 +89,7 @@ public final class RuntimeCache {
 
   /** @return the cached function call associated with the expression. */
   @CompilerDirectives.TruffleBoundary
-  public IdExecutionService.FunctionCallInfo getCall(UUID key) {
+  public ExecutionService.FunctionCallInfo getCall(UUID key) {
     return calls.get(key);
   }
 

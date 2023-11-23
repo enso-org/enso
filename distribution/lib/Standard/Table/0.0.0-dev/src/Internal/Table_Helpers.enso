@@ -3,6 +3,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
 import project.Data.Aggregate_Column.Aggregate_Column
+import project.Data.Blank_Selector.Blank_Selector
 import project.Data.Column.Column
 import project.Data.Position.Position
 import project.Data.Set_Mode.Set_Mode
@@ -12,7 +13,6 @@ import project.Data.Type.Value_Type.Value_Type
 import project.Data.Type.Value_Type_Helpers
 import project.Internal.Column_Naming_Helper.Column_Naming_Helper
 import project.Internal.Problem_Builder.Problem_Builder
-import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 from project.Errors import Ambiguous_Column_Rename, Column_Type_Mismatch, Invalid_Aggregate_Column, Missing_Input_Columns, No_Common_Type, No_Input_Columns_Selected, No_Output_Columns, Too_Many_Column_Names_Provided
 
 polyglot java import java.util.HashSet
@@ -197,14 +197,15 @@ type Table_Column_Helper
        completely blank or have some blanks.
 
        Arguments:
-       - when_any: By default, only columns consisting of all blank cells are
-         selected. If set to `True`, columns with one or more blank values are
+       -TODO docs
+       - when: By default, only columns consisting of all blank cells are
+         selected. If set to Blank_Selector.Any_Cell, columns with one or more blank values are
          selected.
        - treat_nans_as_blank: If `True`, then `Number.nan` is considered as
          blank.
        - invert_selection: If `True`, then the selection is inverted.
-    select_blank_columns_helper : Boolean -> Boolean -> Boolean -> Vector
-    select_blank_columns_helper self when_any:Boolean treat_nans_as_blank:Boolean invert_selection:Boolean=False =
+    select_blank_columns_helper : Blank_Selector -> Boolean -> Boolean -> Vector
+    select_blank_columns_helper self (when:Blank_Selector = Blank_Selector.All_Cells) treat_nans_as_blank:Boolean invert_selection:Boolean=False =
         blanks = self.internal_columns.map_with_index ix-> internal_column->
             column = self.make_column internal_column
             blank_indicator = column.is_blank treat_nans_as_blank
@@ -223,7 +224,9 @@ type Table_Column_Helper
         just_indicators = table_with_blank_indicators.select_columns (blanks.map .name) on_problems=Problem_Behavior.Report_Error
 
         # Maximum is equivalent to Exists and Minimum is equivalent to Forall.
-        col_aggregate = if when_any then Aggregate_Column.Maximum _ else Aggregate_Column.Minimum _
+        col_aggregate = case when of
+            Blank_Selector.Any_Cell -> Aggregate_Column.Maximum _
+            Blank_Selector.All_Cells -> Aggregate_Column.Minimum _
         aggregates = blanks.map blanks_col-> col_aggregate blanks_col.name
 
         aggregate_result = just_indicators.aggregate aggregates on_problems=Problem_Behavior.Report_Error
@@ -441,25 +444,18 @@ resolve_order_by internal_columns column_selectors problem_builder =
 ## PRIVATE
    A helper method gathering the common logic for constructing expressions that
    can filter out blank rows.
-filter_blank_rows : Table -> Boolean -> Boolean -> Table
-filter_blank_rows table when_any treat_nans_as_blank =
+filter_blank_rows : Table -> Blank_Selector -> Boolean -> Table
+filter_blank_rows table when treat_nans_as_blank =
     cols = table.columns
     case cols.not_empty of
         True ->
-            merge = if when_any then (||) else (&&)
+            merge = case when of
+                Blank_Selector.Any_Cell -> (||)
+                Blank_Selector.All_Cells -> (&&)
             missing_mask = cols.map (_.is_blank treat_nans_as_blank) . reduce merge
             non_missing_mask = missing_mask.not
             table.filter non_missing_mask Filter_Condition.Is_True
         False -> table
-
-## PRIVATE
-   Checks if the given object implements a Table interface.
-
-   Currently, it relies on a hack - it checks if the object has a method
-   `is_table` and if it returns `True`.
-is_table obj =
-    known_types = ["Standard.Table.Data.Table.Table", "Standard.Database.Data.Table.Table"]
-    known_types.contains (Meta.get_qualified_type_name obj)
 
 ## PRIVATE
    Checks if the given object implements a Table interface.

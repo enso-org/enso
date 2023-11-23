@@ -51,10 +51,12 @@ trait NativeTest
     * @param args arguments to forward to the launcher
     * @param extraEnv environment variables to override for the launched
     *                 program, do not use these to override PATH
+    * @param extraJVMProps JVM properties to append to the launcher command
     */
   def runLauncher(
     args: Seq[String],
-    extraEnv: Map[String, String] = Map.empty
+    extraEnv: Map[String, String]      = Map.empty,
+    extraJVMProps: Map[String, String] = Map.empty
   ): RunResult = {
     if (extraEnv.contains("PATH")) {
       throw new IllegalArgumentException(
@@ -64,7 +66,8 @@ trait NativeTest
 
     runCommand(
       Seq(baseLauncherLocation.toAbsolutePath.toString) ++ args,
-      extraEnv.toSeq
+      extraEnv.toSeq,
+      extraJVMProps.toSeq
     )
   }
 
@@ -75,11 +78,13 @@ trait NativeTest
     * @param args arguments to forward to the launcher
     * @param extraEnv environment variables to override for the launched
     *                 program, do not use these to override PATH
+    * @param extraJVMProps JVM properties to append to the launcher command
     */
   def runLauncherAt(
     pathToLauncher: Path,
     args: Seq[String],
-    extraEnv: Map[String, String] = Map.empty
+    extraEnv: Map[String, String]      = Map.empty,
+    extraJVMProps: Map[String, String] = Map.empty
   ): RunResult = {
     if (extraEnv.contains("PATH")) {
       throw new IllegalArgumentException(
@@ -89,16 +94,20 @@ trait NativeTest
 
     runCommand(
       Seq(pathToLauncher.toAbsolutePath.toString) ++ args,
-      extraEnv.toSeq
+      extraEnv.toSeq,
+      extraJVMProps.toSeq
     )
   }
+
+  /** Returns a relative path to the root directory of the project. */
+  def rootDirectory: Path = Path.of("../../")
 
   /** Returns the expected location of the launcher binary compiled by the
     * Native Image. This binary can be copied into various places to test its
     * functionality.
     */
   def baseLauncherLocation: Path =
-    Path.of(".").resolve(OS.executableName("enso"))
+    rootDirectory.resolve(OS.executableName("enso"))
 
   /** Creates a copy of the tested launcher binary at the specified location.
     *
@@ -124,14 +133,17 @@ trait NativeTest
     * @param args arguments to forward to the launcher
     * @param pathOverride the system PATH that should be set for the launched
     *                     program
+    * @param extraJVMProps JVM properties to append to the launcher command
     */
   def runLauncherWithPath(
     args: Seq[String],
-    pathOverride: String
+    pathOverride: String,
+    extraJVMProps: Map[String, String] = Map.empty
   ): RunResult = {
     runCommand(
       Seq(baseLauncherLocation.toAbsolutePath.toString) ++ args,
-      Seq(NativeTest.PATH -> pathOverride)
+      Seq(NativeTest.PATH -> pathOverride),
+      extraJVMProps.toSeq
     )
   }
 }

@@ -95,6 +95,9 @@ object DistributionPackage {
   def executableName(baseName: String): String =
     if (Platform.isWindows) baseName + ".exe" else baseName
 
+  private def batName(baseName: String): String =
+    if (Platform.isWindows) baseName + ".bat" else baseName
+
   def createProjectManagerPackage(
     distributionRoot: File,
     cacheFactory: CacheStoreFactory
@@ -116,6 +119,7 @@ object DistributionPackage {
     distributionRoot: File,
     cacheFactory: CacheStoreFactory,
     log: Logger,
+    jarModulesToCopy: Seq[File],
     graalVersion: String,
     javaVersion: String,
     ensoVersion: String,
@@ -132,10 +136,17 @@ object DistributionPackage {
     )
 
     copyFilesIncremental(
-      Seq(file("runtime.jar"), file("runner.jar")),
+      jarModulesToCopy,
       distributionRoot / "component",
-      cacheFactory.make("engine-jars")
+      cacheFactory.make("module jars")
     )
+    // Put runner.jar into a nested directory, so that it is outside of the default
+    // module-path.
+    IO.copyFile(
+      file("runner.jar"),
+      distributionRoot / "component" / "runner" / "runner.jar"
+    )
+
     val parser = targetDir / Platform.dynamicLibraryFileName("enso_parser")
     copyFilesIncremental(
       Seq(parser),
@@ -258,7 +269,7 @@ object DistributionPackage {
   ): Boolean = {
     import scala.collection.JavaConverters._
 
-    val enso = distributionRoot / "bin" / "enso"
+    val enso = distributionRoot / "bin" / batName("enso")
     log.info(s"Executing $enso ${args.mkString(" ")}")
     val pb  = new java.lang.ProcessBuilder()
     val all = new java.util.ArrayList[String]()
@@ -551,8 +562,8 @@ object DistributionPackage {
       if (!packageDir.exists()) {
         IO.createDirectory(packageDir)
       }
-      val archiveName = s"graalvm-${os.name}-${architecture.name}-" +
-        s"$graalVersion-$graalJavaVersion"
+      val archiveName =
+        s"graalvm-${os.name}-${architecture.name}-$graalVersion-$graalJavaVersion"
       packageDir / (archiveName + os.archiveExt)
     }
 
@@ -848,7 +859,11 @@ object DistributionPackage {
         if (launcher.exists()) {
           fixLauncher(launcher, os)
           copyEngine(os, arch, launcher / "enso" / "dist")
-          copyGraal(os, arch, launcher / "enso" / "runtime")
+          copyGraal(
+            os,
+            arch,
+            launcher / "enso" / "runtime" / s"graalvm-ce-java$graalJavaVersion-$graalVersion/"
+          )
 
           val archive = builtArchive("bundle", os, arch)
           makeArchive(launcher, "enso", archive)
@@ -866,7 +881,11 @@ object DistributionPackage {
           }
 
           copyEngine(os, arch, pm / "enso" / "dist")
-          copyGraal(os, arch, pm / "enso" / "runtime")
+          copyGraal(
+            os,
+            arch,
+            pm / "enso" / "runtime" / s"graalvm-ce-java$graalJavaVersion-$graalVersion/"
+          )
 
           IO.copyFile(
             file("distribution/enso.bundle.template"),

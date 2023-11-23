@@ -17,6 +17,7 @@ import org.scalatest.matchers.should.Matchers
 import java.io.{ByteArrayOutputStream, File}
 import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
+import java.util.logging.Level
 
 @scala.annotation.nowarn("msg=multiarg infix syntax")
 class RuntimeSuggestionUpdatesTest
@@ -43,7 +44,7 @@ class RuntimeSuggestionUpdatesTest
         .allowExperimentalOptions(true)
         .allowAllAccess(true)
         .option(RuntimeOptions.PROJECT_ROOT, pkg.root.getAbsolutePath)
-        .option(RuntimeOptions.LOG_LEVEL, "WARNING")
+        .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName)
         .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
         .option(RuntimeOptions.ENABLE_GLOBAL_SUGGESTIONS, "false")
         .option(
@@ -61,6 +62,7 @@ class RuntimeSuggestionUpdatesTest
         )
         .option(RuntimeOptions.EDITION_OVERRIDE, "0.0.0-dev")
         .out(out)
+        .logHandler(System.err)
         .serverTransport(runtimeServerEmulator.makeServerTransport)
         .build()
     )
@@ -92,6 +94,13 @@ class RuntimeSuggestionUpdatesTest
   override protected def beforeEach(): Unit = {
     context = new TestContext("Test")
     val Some(Api.Response(_, Api.InitializedNotification())) = context.receive
+
+    context.send(
+      Api.Request(UUID.randomUUID(), Api.StartBackgroundProcessing())
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Api.BackgroundJobsStartedNotification())
+    )
   }
 
   override protected def afterEach(): Unit = {
@@ -119,9 +128,11 @@ class RuntimeSuggestionUpdatesTest
 
     // open file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, code))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, code))
     )
-    context.receiveNone shouldEqual None
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // push main
     context.send(
@@ -138,9 +149,8 @@ class RuntimeSuggestionUpdatesTest
       )
     )
     context.receiveNIgnoreExpressionUpdates(
-      4
+      3
     ) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
@@ -657,9 +667,11 @@ class RuntimeSuggestionUpdatesTest
 
     // open file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, code))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, code))
     )
-    context.receiveNone shouldEqual None
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // push main
     context.send(
@@ -676,9 +688,8 @@ class RuntimeSuggestionUpdatesTest
       )
     )
     context.receiveNIgnoreExpressionUpdates(
-      4
+      3
     ) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
@@ -813,9 +824,11 @@ class RuntimeSuggestionUpdatesTest
 
     // open file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
     )
-    context.receiveNone shouldEqual None
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // push main
     context.send(
@@ -832,9 +845,8 @@ class RuntimeSuggestionUpdatesTest
       )
     )
     context.receiveNIgnoreExpressionUpdates(
-      4
+      3
     ) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
@@ -987,13 +999,17 @@ class RuntimeSuggestionUpdatesTest
 
     // open files
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, mainCode))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, mainCode))
     )
-    context.receiveNone shouldEqual None
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
     context.send(
-      Api.Request(Api.OpenFileNotification(aFile, aCode))
+      Api.Request(requestId, Api.OpenFileRequest(aFile, aCode))
     )
-    context.receiveNone shouldEqual None
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // push main
     context.send(
@@ -1010,9 +1026,8 @@ class RuntimeSuggestionUpdatesTest
       )
     )
     context.receiveNIgnoreExpressionUpdates(
-      6
+      5
     ) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
@@ -1288,9 +1303,11 @@ class RuntimeSuggestionUpdatesTest
 
     // open file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, code))
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, code))
     )
-    context.receiveNone shouldEqual None
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
 
     // push main
     context.send(
@@ -1306,12 +1323,11 @@ class RuntimeSuggestionUpdatesTest
         )
       )
     )
-    val updates1 = context.receiveNIgnoreExpressionUpdates(4)
-    updates1.length shouldEqual 4
+    val updates1 = context.receiveNIgnoreExpressionUpdates(3)
+    updates1.length shouldEqual 3
     updates1 should contain allOf (
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.executionComplete(contextId),
-      Api.Response(Api.BackgroundJobsStartedNotification())
     )
     val indexedModules = updates1.collect {
       case Api.Response(
@@ -1333,12 +1349,11 @@ class RuntimeSuggestionUpdatesTest
     context.send(
       Api.Request(requestId, Api.RecomputeContextRequest(contextId, None, None))
     )
-    val updates2 = context.receiveNIgnoreExpressionUpdates(4)
-    updates2.length shouldEqual 4
+    val updates2 = context.receiveNIgnoreExpressionUpdates(3)
+    updates2.length shouldEqual 3
     updates2 should contain allOf (
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
-      context.executionComplete(contextId),
-      Api.Response(Api.BackgroundJobsStartedNotification())
+      context.executionComplete(contextId)
     )
     val indexedModules2 = updates1.collect {
       case Api.Response(

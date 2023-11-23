@@ -1,6 +1,6 @@
 package org.enso.table.data.table.problems;
 
-public class ArithmeticError extends ColumnAggregatedProblems {
+public class ArithmeticError extends ColumnAggregatedProblem {
     private final String message;
 
     public ArithmeticError(String locationName, String message, Integer row) {
@@ -9,7 +9,7 @@ public class ArithmeticError extends ColumnAggregatedProblems {
     }
 
     @Override
-    public boolean merge(ColumnAggregatedProblems another) {
+    public boolean merge(ColumnAggregatedProblem another) {
         if (another instanceof ArithmeticError arithmeticError
                 && this.getLocationName().equals(arithmeticError.getLocationName())
                 && this.message.equals(arithmeticError.message)) {

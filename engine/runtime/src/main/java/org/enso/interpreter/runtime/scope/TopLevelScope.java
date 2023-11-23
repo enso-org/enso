@@ -45,8 +45,10 @@ public final class TopLevelScope implements EnsoObject {
   }
 
   /** @return the list of modules in the scope. */
+  @SuppressWarnings("unchecked")
   public Collection<Module> getModules() {
-    return ScalaConversions.asJava(packageRepository.getLoadedModules());
+    var filtered = packageRepository.getLoadedModules().map(Module::fromCompilerModule);
+    return ScalaConversions.asJava(filtered.toSeq());
   }
 
   /**
@@ -56,7 +58,8 @@ public final class TopLevelScope implements EnsoObject {
    * @return empty result if the module does not exist or the requested module.
    */
   public Optional<Module> getModule(String name) {
-    return ScalaConversions.asJava(packageRepository.getLoadedModule(name));
+    return ScalaConversions.asJava(
+        packageRepository.getLoadedModule(name).map(Module::fromCompilerModule));
   }
 
   /**
@@ -68,13 +71,13 @@ public final class TopLevelScope implements EnsoObject {
    */
   public Module createModule(QualifiedName name, Package<TruffleFile> pkg, TruffleFile sourceFile) {
     Module module = new Module(name, pkg, sourceFile);
-    packageRepository.registerModuleCreatedInRuntime(module);
+    packageRepository.registerModuleCreatedInRuntime(module.asCompilerModule());
     return module;
   }
 
   public Module createModule(QualifiedName name, Package<TruffleFile> pkg, String source) {
     Module module = new Module(name, pkg, source);
-    packageRepository.registerModuleCreatedInRuntime(module);
+    packageRepository.registerModuleCreatedInRuntime(module.asCompilerModule());
     return module;
   }
 
@@ -147,7 +150,7 @@ public final class TopLevelScope implements EnsoObject {
       QualifiedName qualName = QualifiedName.fromString(args.getFirst());
       File location = new File(args.getSecond());
       Module module = new Module(qualName, null, context.getTruffleFile(location));
-      scope.packageRepository.registerModuleCreatedInRuntime(module);
+      scope.packageRepository.registerModuleCreatedInRuntime(module.asCompilerModule());
       return module;
     }
 

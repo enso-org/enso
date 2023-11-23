@@ -8,6 +8,7 @@ from project.Errors import all
 polyglot java import org.enso.table.data.column.builder.LossOfIntegerPrecision
 polyglot java import org.enso.table.data.column.operation.cast.ConversionFailure
 polyglot java import org.enso.table.data.column.operation.cast.ConversionFailureType
+polyglot java import org.enso.table.data.column.operation.map.MapOperationProblemAggregator
 polyglot java import org.enso.table.data.table.problems.ArithmeticError
 polyglot java import org.enso.table.data.table.problems.ArithmeticOverflow
 polyglot java import org.enso.table.data.table.problems.FloatingPointGrouping
@@ -18,8 +19,7 @@ polyglot java import org.enso.table.data.table.problems.UnquotedDelimiter
 polyglot java import org.enso.table.parsing.problems.AdditionalInvalidRows
 polyglot java import org.enso.table.parsing.problems.InvalidFormat
 polyglot java import org.enso.table.parsing.problems.InvalidRow
-polyglot java import org.enso.table.problems.AggregatedProblems
-polyglot java import org.enso.table.problems.WithAggregatedProblems
+polyglot java import org.enso.table.problems.ProblemAggregator
 polyglot java import org.enso.table.util.problems.DuplicateNames
 polyglot java import org.enso.table.util.problems.InvalidNames
 
@@ -65,29 +65,33 @@ translate_problem p = case p of
     _ : InvalidNames ->
         Invalid_Column_Names.Error (Vector.from_polyglot_array p.invalidNames)
     _ : InvalidFormat ->
-        Panic.throw (Illegal_Argument.Error "InvalidFormat should be translated using the Parse_Values_Helper.translate_parsing_problem instead. This is a bug in the Table library.")
+        Invalid_Format.Error p.column p.expectedEnsoValueType (Vector.from_polyglot_array p.cells)
     _ ->
         Panic.throw (Illegal_Argument.Error "Encountered an unknown problem type when converting Java problems into Enso. This is a bug in the Table library. The unexpected problem was: "+p.to_text)
 
 ## PRIVATE
-   Convert Java aggregated problems to Enso Vector of equivalents.
-parse_aggregated_problems : AggregatedProblems -> (Any -> Any) -> Vector
-parse_aggregated_problems problems (problem_mapping = translate_problem) =
-    if problems.is_nothing then [] else
-        problems_array = problems.getProblems
-        parsed = Vector.from_polyglot_array problems_array . map problem_mapping
-
-        if problems.getCount == problems_array.length then parsed else
-            parsed + [Additional_Warnings.Error (problems.getCount - problems_array.length)]
+unpack_problem_summary problem_summary =
+    problems_array = problem_summary.problems
+    count = problem_summary.allProblemsCount
+    ## TODO [RW, GT] In the next iterations we will want to remove
+       `translate_problem` in favour of constructing Enso problem instances
+       directly in Java code. To do so, we will need https://github.com/enso-org/enso/issues/7797
+    parsed = problems_array . map translate_problem
+    if count == parsed.length then parsed else
+        parsed + [Additional_Warnings.Error (count - parsed.length)]
 
 ## PRIVATE
-   Unpacks a `WithAggregatedProblems` instance, extracting the value and
-   attaching any associated problems according to the provided behavior.
+   This is the new preferred way of running Java methods that may report problems.
+with_problem_aggregator : Problem_Behavior -> (ProblemAggregator -> Any) -> Any
+with_problem_aggregator on_problems f =
+    ## This should be the only call to the `makeTopLevelAggregator` method in the whole codebase.
+    aggregator = ProblemAggregator.makeTopLevelAggregator
+    result = f aggregator
+    on_problems.attach_problems_after result (unpack_problem_summary aggregator.summarize)
 
-   The `problem_mapping` argument may be used to add custom problem mapping
-   logic that depends on a particular context.
-unpack_value_with_aggregated_problems : Problem_Behavior -> WithAggregatedProblems -> (Any -> Any) -> Any
-unpack_value_with_aggregated_problems on_problems with_problems (problem_mapping = translate_problem) =
-    problems = parse_aggregated_problems with_problems.problems problem_mapping
-    on_problems.attach_problems_before problems <|
-        with_problems.value
+## PRIVATE
+with_map_operation_problem_aggregator : (Text | Nothing) -> Problem_Behavior -> (MapOperationProblemAggregator -> Any) -> Any
+with_map_operation_problem_aggregator (location : Text | Nothing) on_problems f =
+    with_problem_aggregator on_problems java_aggregator->
+        problem_builder = MapOperationProblemAggregator.new java_aggregator location
+        f problem_builder

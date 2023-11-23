@@ -1,5 +1,12 @@
 /** @file Helper functions for environment detection. */
 
+// ===================
+// === IS_DEV_MODE ===
+// ===================
+
+/** Return whether the current build is in development mode */
+export const IS_DEV_MODE = process.env.NODE_ENV === 'development'
+
 // ================
 // === Platform ===
 // ================

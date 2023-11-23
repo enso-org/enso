@@ -12,7 +12,8 @@ import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
-import org.enso.table.problems.WithAggregatedProblems;
+import org.enso.table.problems.ProblemAggregator;
+import org.enso.table.util.BitSets;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
@@ -92,8 +93,8 @@ public final class LongStorage extends AbstractLongStorage {
     return isMissing.get((int) idx);
   }
 
-  private WithAggregatedProblems<Storage<?>> fillMissingDouble(double arg) {
-    final var builder = NumericBuilder.createDoubleBuilder(size);
+  private Storage<?> fillMissingDouble(double arg, ProblemAggregator problemAggregator) {
+    final var builder = NumericBuilder.createDoubleBuilder(size, problemAggregator);
     long rawArg = Double.doubleToRawLongBits(arg);
     Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
@@ -107,11 +108,12 @@ public final class LongStorage extends AbstractLongStorage {
       context.safepoint();
     }
 
-    return builder.sealWithProblems();
+    return builder.seal();
   }
 
-  private WithAggregatedProblems<Storage<?>> fillMissingLong(long arg) {
-    final var builder = NumericBuilder.createLongBuilder(size, IntegerType.INT_64);
+  private Storage<?> fillMissingLong(long arg, ProblemAggregator problemAggregator) {
+    final var builder =
+        NumericBuilder.createLongBuilder(size, IntegerType.INT_64, problemAggregator);
     Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
       if (isMissing.get(i)) {
@@ -123,11 +125,12 @@ public final class LongStorage extends AbstractLongStorage {
       context.safepoint();
     }
 
-    return builder.sealWithProblems();
+    return builder.seal();
   }
 
-  private WithAggregatedProblems<Storage<?>> fillMissingBigInteger(BigInteger bigInteger) {
-    final var builder = new BigIntegerBuilder(size);
+  private Storage<?> fillMissingBigInteger(
+      BigInteger bigInteger, ProblemAggregator problemAggregator) {
+    final var builder = new BigIntegerBuilder(size, problemAggregator);
     Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
       if (isMissing.get(i)) {
@@ -139,22 +142,23 @@ public final class LongStorage extends AbstractLongStorage {
       context.safepoint();
     }
 
-    return builder.sealWithProblems();
+    return builder.seal();
   }
 
   @Override
-  public WithAggregatedProblems<Storage<?>> fillMissing(Value arg, StorageType commonType) {
+  public Storage<?> fillMissing(
+      Value arg, StorageType commonType, ProblemAggregator problemAggregator) {
     if (arg.isNumber()) {
       if (NumericConverter.isCoercibleToLong(arg.as(Object.class))) {
-        return fillMissingLong(arg.asLong());
+        return fillMissingLong(arg.asLong(), problemAggregator);
       } else if (NumericConverter.isBigInteger(arg)) {
-        return fillMissingBigInteger(arg.asBigInteger());
+        return fillMissingBigInteger(arg.asBigInteger(), problemAggregator);
       } else {
-        return fillMissingDouble(arg.asDouble());
+        return fillMissingDouble(arg.asDouble(), problemAggregator);
       }
     }
 
-    return super.fillMissing(arg, commonType);
+    return super.fillMissing(arg, commonType, problemAggregator);
   }
 
   @Override
@@ -232,6 +236,15 @@ public final class LongStorage extends AbstractLongStorage {
     System.arraycopy(data, offset, newData, 0, newSize);
     BitSet newMask = isMissing.get(offset, offset + limit);
     return new LongStorage(newData, newSize, newMask, type);
+  }
+
+  @Override
+  public LongStorage appendNulls(int count) {
+    BitSet newMissing = BitSets.makeDuplicate(isMissing);
+    newMissing.set(size, size + count);
+    long[] newData = new long[size + count];
+    System.arraycopy(data, 0, newData, 0, size);
+    return new LongStorage(newData, size + count, newMissing, type);
   }
 
   @Override

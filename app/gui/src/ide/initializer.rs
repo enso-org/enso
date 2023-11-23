@@ -30,8 +30,14 @@ const PROJECT_MANAGER_TIMEOUT_SEC: u64 = 2 * 60 * 60;
 ///
 /// The IDE initialization is prone to connectivity problems, therefore we retry it several times.
 /// The number of retries is equal to this slice length.
-const INITIALIZATION_RETRY_TIMES: &[Duration] =
-    &[Duration::from_secs(1), Duration::from_secs(2), Duration::from_secs(4)];
+const INITIALIZATION_RETRY_TIMES: &[Duration] = &[
+    Duration::from_secs(1),
+    Duration::from_secs(2),
+    Duration::from_secs(4),
+    Duration::from_secs(8),
+    Duration::from_secs(16),
+    Duration::from_secs(32),
+];
 
 
 
@@ -298,11 +304,10 @@ mod test {
         let mock_client = project_manager::MockClient::default();
         let project_name = ProjectName::new_unchecked("TestProject");
         let project = project_manager::ProjectMetadata {
-            name:           project_name.clone(),
-            id:             uuid::Uuid::new_v4(),
-            last_opened:    default(),
-            engine_version: Some("127.0.01".to_owned()),
-            namespace:      "local".to_owned(),
+            name:        project_name.clone(),
+            id:          Uuid::new_v4(),
+            last_opened: default(),
+            namespace:   "local".to_owned(),
         };
         let expected_id = project.id;
         let projects = vec![project];

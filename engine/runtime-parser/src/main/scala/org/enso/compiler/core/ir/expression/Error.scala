@@ -1,15 +1,21 @@
 package org.enso.compiler.core.ir
 package expression
 
-import org.enso.compiler.core.IR.{randomId, Identifier, ToStringHelper}
+import com.oracle.truffle.api.source.Source
+import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
+import org.enso.compiler.core.IR.randomId
 import org.enso.compiler.core.ir.Expression
-import org.enso.compiler.core.{ir, IR}
+import org.enso.compiler.core.{ir, IR, Identifier}
+
+import java.util.UUID
 
 /** A trait for all errors in Enso's IR. */
 trait Error extends Expression with ir.module.scope.Definition with Diagnostic {
 
   /** @inheritdoc */
-  override def mapExpressions(fn: Expression => Expression): Error
+  override def mapExpressions(
+    fn: java.util.function.Function[Expression, Expression]
+  ): Error
 
   /** @inheritdoc */
   override def setLocation(location: Option[IdentifiedLocation]): Error
@@ -38,7 +44,7 @@ object Error {
   ) extends Error
       with Diagnostic.Kind.Static
       with IRKind.Primitive {
-    override protected var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -52,7 +58,7 @@ object Error {
       ir: IR                         = ir,
       passData: MetadataStorage      = passData,
       diagnostics: DiagnosticStorage = diagnostics,
-      id: Identifier                 = id
+      id: UUID @Identifier           = id
     ): InvalidIR = {
       val res = InvalidIR(ir, passData, diagnostics)
       res.id = id
@@ -88,7 +94,9 @@ object Error {
     override val location: Option[IdentifiedLocation] = ir.location
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): InvalidIR =
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): InvalidIR =
       this
 
     /** @inheritdoc */
@@ -107,7 +115,7 @@ object Error {
     override def children: List[IR] = List(ir)
 
     /** @inheritdoc */
-    override def message: String =
+    override def message(source: Source): String =
       "InvalidIR: Please report this as a compiler bug."
 
     override def diagnosticKeys(): Array[Any] = Array()

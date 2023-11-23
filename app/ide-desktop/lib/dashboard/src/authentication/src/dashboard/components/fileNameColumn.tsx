@@ -7,14 +7,14 @@ import * as assetTreeNode from '../assetTreeNode'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as eventModule from '../event'
-import * as fileInfo from '../../fileInfo'
+import * as fileIcon from '../../fileIcon'
 import * as hooks from '../../hooks'
 import * as indent from '../indent'
-import * as presence from '../presence'
 import * as shortcutsModule from '../shortcuts'
 import * as shortcutsProvider from '../../providers/shortcuts'
+import * as visibility from '../visibility'
 
-import * as column from '../column'
+import type * as column from '../column'
 import EditableSpan from './editableSpan'
 import SvgMask from '../../authentication/components/svgMask'
 
@@ -58,21 +58,31 @@ export default function FileNameColumn(props: FileNameColumnProps) {
         switch (event.type) {
             case assetEventModule.AssetEventType.newProject:
             case assetEventModule.AssetEventType.newFolder:
-            case assetEventModule.AssetEventType.newSecret:
+            case assetEventModule.AssetEventType.newDataConnector:
             case assetEventModule.AssetEventType.openProject:
             case assetEventModule.AssetEventType.closeProject:
             case assetEventModule.AssetEventType.cancelOpeningAllProjects:
-            case assetEventModule.AssetEventType.deleteMultiple:
+            case assetEventModule.AssetEventType.cut:
+            case assetEventModule.AssetEventType.cancelCut:
+            case assetEventModule.AssetEventType.move:
+            case assetEventModule.AssetEventType.delete:
+            case assetEventModule.AssetEventType.restore:
             case assetEventModule.AssetEventType.downloadSelected:
-            case assetEventModule.AssetEventType.removeSelf: {
+            case assetEventModule.AssetEventType.removeSelf:
+            case assetEventModule.AssetEventType.temporarilyAddLabels:
+            case assetEventModule.AssetEventType.temporarilyRemoveLabels:
+            case assetEventModule.AssetEventType.addLabels:
+            case assetEventModule.AssetEventType.removeLabels:
+            case assetEventModule.AssetEventType.deleteLabel: {
                 // Ignored. These events should all be unrelated to projects.
-                // `deleteMultiple` and `downloadSelected` are handled by `AssetRow`.
+                // `deleteMultiple`, `restoreMultiple` and `downloadSelected` are handled by
+                // `AssetRow`.
                 break
             }
             case assetEventModule.AssetEventType.uploadFiles: {
                 const file = event.files.get(item.key)
                 if (file != null) {
-                    rowState.setPresence(presence.Presence.inserting)
+                    rowState.setVisibility(visibility.Visibility.faded)
                     try {
                         const createdFile = await backend.uploadFile(
                             {
@@ -82,7 +92,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
                             },
                             file
                         )
-                        rowState.setPresence(presence.Presence.present)
+                        rowState.setVisibility(visibility.Visibility.visible)
                         setAsset({
                             ...asset,
                             id: createdFile.id,
@@ -105,6 +115,11 @@ export default function FileNameColumn(props: FileNameColumnProps) {
             className={`flex text-left items-center align-middle whitespace-nowrap rounded-l-full gap-1 px-1.5 py-1 min-w-max ${indent.indentClass(
                 item.depth
             )}`}
+            onKeyDown={event => {
+                if (rowState.isEditingName && event.key === 'Enter') {
+                    event.stopPropagation()
+                }
+            }}
             onClick={event => {
                 if (
                     eventModule.isSingleClick(event) &&
@@ -118,7 +133,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
                 }
             }}
         >
-            <SvgMask src={fileInfo.fileIcon()} className="m-1" />
+            <SvgMask src={fileIcon.fileIcon()} className="m-1" />
             <EditableSpan
                 editable={false}
                 onSubmit={async newTitle => {

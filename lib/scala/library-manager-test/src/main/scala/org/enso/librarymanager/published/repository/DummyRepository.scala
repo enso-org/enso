@@ -12,12 +12,13 @@ import org.enso.testkit.process.WrappedProcess
 import org.enso.yaml.YamlHelper
 
 import java.io.File
+import java.lang.ProcessBuilder.Redirect
 import java.nio.file.{Files, Path}
 import scala.util.Using
 import scala.util.control.NonFatal
 
 /** A helper class managing a library repository for testing purposes. */
-abstract class DummyRepository {
+abstract class DummyRepository(toolsRootDirectory: Path) {
 
   /** A library used for testing.
     *
@@ -175,7 +176,10 @@ abstract class DummyRepository {
     uploads: Boolean
   ): Server = DummyRepository.lock.synchronized {
     val serverDirectory =
-      Path.of("tools/simple-library-server").toAbsolutePath.normalize
+      toolsRootDirectory
+        .resolve(Path.of("tools/simple-library-server"))
+        .toAbsolutePath
+        .normalize
 
     // We can ommit installation step on CI because there is a separate step
     // executing `npm install` command before the tests.
@@ -186,6 +190,7 @@ abstract class DummyRepository {
         .command(preinstallCommand: _*)
         .directory(serverDirectory.toFile)
         .inheritIO()
+        .redirectOutput(Redirect.DISCARD)
         .start()
         .waitFor()
 

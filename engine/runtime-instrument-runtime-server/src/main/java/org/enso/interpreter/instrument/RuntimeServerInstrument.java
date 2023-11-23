@@ -1,14 +1,18 @@
 package org.enso.interpreter.instrument;
 
+import org.enso.polyglot.debugger.IdExecutionService;
+
 import com.oracle.truffle.api.TruffleContext;
 import com.oracle.truffle.api.instrumentation.ContextsListener;
 import com.oracle.truffle.api.instrumentation.EventBinding;
 import com.oracle.truffle.api.instrumentation.TruffleInstrument;
 import com.oracle.truffle.api.nodes.LanguageInfo;
+
 import java.io.IOException;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.Optional;
+
 import org.enso.distribution.locking.LockManager;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.service.ExecutionService;
@@ -35,11 +39,6 @@ public class RuntimeServerInstrument extends TruffleInstrument {
   private Env env;
   private Handler handler;
   private EventBinding<Initializer> initializerEventBinding;
-
-  /** @return the handler instance. */
-  public Handler getHandler() {
-    return handler;
-  }
 
   private void initializeExecutionService(ExecutionService service, TruffleContext context) {
     initializerEventBinding.dispose();

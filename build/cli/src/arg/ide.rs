@@ -1,5 +1,6 @@
 use crate::prelude::*;
 
+use crate::arg::IsTargetSource;
 use crate::arg::OutputPath;
 use crate::arg::Source;
 use crate::arg::WatchJob;
@@ -14,16 +15,19 @@ use octocrab::models::ReleaseId;
 
 
 
-source_args_hlp!(Target, "ide", BuildInput);
+source_args_hlp!(Target, "ide", BuildInput<Gui, Target>);
 
-#[derive(Args, Clone, Debug, PartialEq)]
-pub struct BuildInput {
+#[derive(Args, Clone, Debug, Derivative)]
+#[derivative(PartialEq)]
+pub struct BuildInput<Gui: IsTargetSource, Ide: IsTargetSource = Target> {
+    #[derivative(PartialEq(bound = ""))]
     #[clap(flatten)]
     pub gui:             Source<Gui>,
     #[clap(flatten)]
     pub project_manager: Source<Backend>,
+    #[derivative(PartialEq(bound = ""))]
     #[clap(flatten)]
-    pub output_path:     OutputPath<Target>,
+    pub output_path:     OutputPath<Ide>,
     /// Override the default target for electron-builder. E.g. pass `dir` for unpacked directory
     /// (fastest). See <https://www.electron.build> for all supported targets.
     #[clap(long, enso_env())]
@@ -36,18 +40,18 @@ pub enum Command {
     /// application.
     Build {
         #[clap(flatten)]
-        params: BuildInput,
+        params: BuildInput<Gui>,
     },
     Upload {
         #[clap(flatten)]
-        params:     BuildInput,
+        params:     BuildInput<Gui>,
         #[clap(long, env = *enso_build::env::ENSO_RELEASE_ID)]
         release_id: ReleaseId,
     },
     /// Like `Build` but automatically starts the IDE.
     Start {
         #[clap(flatten)]
-        params:     BuildInput,
+        params:     BuildInput<Gui>,
         /// Additional option to be passed to Enso IDE. Can be used multiple times to pass many
         /// arguments.
         #[clap(long, allow_hyphen_values = true, enso_env())]

@@ -52,6 +52,12 @@ run these benchmarks:
 - [Running standalone](#running-standalone)
 - [Running via JMH launcher](#running-via-jmh-launcher)
 
+Note that to avoid inflating the run-time of the std-lib benchmarks on the CI,
+some extra benchmarks (which are not measuring important functionality, but may
+serve as a baseline when trying to understand performance of similar scenarios)
+are disabled by default. To enable them, set the `ENSO_ENABLE_EXTRA_BENCHMARKS`
+environment variable before running any benchmarks.
+
 ### Running standalone
 
 A single source file in the project may contain multiple benchmark definitions.

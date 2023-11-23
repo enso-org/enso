@@ -9,13 +9,13 @@ import * as assetListEventModule from '../events/assetListEvent'
 import * as assetTreeNode from '../assetTreeNode'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
-import * as column from '../column'
+import type * as column from '../column'
 import * as eventModule from '../event'
 import * as hooks from '../../hooks'
 import * as indent from '../indent'
-import * as presence from '../presence'
 import * as shortcutsModule from '../shortcuts'
 import * as shortcutsProvider from '../../providers/shortcuts'
+import * as visibility from '../visibility'
 
 import EditableSpan from './editableSpan'
 import SvgMask from '../../authentication/components/svgMask'
@@ -36,7 +36,14 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         setItem,
         selected,
         setSelected,
-        state: { assetEvents, dispatchAssetListEvent, doToggleDirectoryExpansion },
+        state: {
+            numberOfSelectedItems,
+            assetEvents,
+            dispatchAssetListEvent,
+            topLevelAssets,
+            nodeMap,
+            doToggleDirectoryExpansion,
+        },
         rowState,
         setRowState,
     } = props
@@ -80,15 +87,25 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         switch (event.type) {
             case assetEventModule.AssetEventType.newProject:
             case assetEventModule.AssetEventType.uploadFiles:
-            case assetEventModule.AssetEventType.newSecret:
+            case assetEventModule.AssetEventType.newDataConnector:
             case assetEventModule.AssetEventType.openProject:
             case assetEventModule.AssetEventType.closeProject:
             case assetEventModule.AssetEventType.cancelOpeningAllProjects:
-            case assetEventModule.AssetEventType.deleteMultiple:
+            case assetEventModule.AssetEventType.cut:
+            case assetEventModule.AssetEventType.cancelCut:
+            case assetEventModule.AssetEventType.move:
+            case assetEventModule.AssetEventType.delete:
+            case assetEventModule.AssetEventType.restore:
             case assetEventModule.AssetEventType.downloadSelected:
-            case assetEventModule.AssetEventType.removeSelf: {
+            case assetEventModule.AssetEventType.removeSelf:
+            case assetEventModule.AssetEventType.temporarilyAddLabels:
+            case assetEventModule.AssetEventType.temporarilyRemoveLabels:
+            case assetEventModule.AssetEventType.addLabels:
+            case assetEventModule.AssetEventType.removeLabels:
+            case assetEventModule.AssetEventType.deleteLabel: {
                 // Ignored. These events should all be unrelated to directories.
-                // `deleteMultiple` and `downloadSelected` are handled by `AssetRow`.
+                // `deleteMultiple`, `restoreMultiple` and `downloadSelected` are handled by
+                // `AssetRow`.
                 break
             }
             case assetEventModule.AssetEventType.newFolder: {
@@ -96,13 +113,13 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
                     if (backend.type !== backendModule.BackendType.remote) {
                         toastAndLog('Cannot create folders on the local drive')
                     } else {
-                        rowState.setPresence(presence.Presence.inserting)
+                        rowState.setVisibility(visibility.Visibility.faded)
                         try {
                             const createdDirectory = await backend.createDirectory({
                                 parentId: asset.parentId,
                                 title: asset.title,
                             })
-                            rowState.setPresence(presence.Presence.present)
+                            rowState.setVisibility(visibility.Visibility.visible)
                             setAsset({
                                 ...asset,
                                 ...createdDirectory,
@@ -132,10 +149,15 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
             onMouseLeave={() => {
                 setIsHovered(false)
             }}
+            onKeyDown={event => {
+                if (rowState.isEditingName && event.key === 'Enter') {
+                    event.stopPropagation()
+                }
+            }}
             onClick={event => {
                 if (
                     eventModule.isSingleClick(event) &&
-                    (selected ||
+                    ((selected && numberOfSelectedItems === 1) ||
                         shortcuts.matchesMouseAction(shortcutsModule.MouseAction.editName, event))
                 ) {
                     setRowState(oldRowState => ({
@@ -170,6 +192,20 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
             )}
             <EditableSpan
                 editable={rowState.isEditingName}
+                checkSubmittable={newTitle =>
+                    (item.directoryKey != null
+                        ? nodeMap.current.get(item.directoryKey)?.children ?? []
+                        : topLevelAssets.current
+                    ).every(
+                        child =>
+                            // All siblings,
+                            child.key === item.key ||
+                            // that are directories,
+                            !backendModule.assetIsDirectory(child.item) ||
+                            // must have a different name.
+                            child.item.title !== newTitle
+                    )
+                }
                 onSubmit={async newTitle => {
                     setRowState(oldRowState => ({
                         ...oldRowState,

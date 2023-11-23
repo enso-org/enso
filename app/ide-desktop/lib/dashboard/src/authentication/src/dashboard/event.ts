@@ -1,6 +1,6 @@
 /** @file Utility functions related to event handling. */
 
-import * as React from 'react'
+import type * as React from 'react'
 
 // =============================
 // === Mouse event utilities ===

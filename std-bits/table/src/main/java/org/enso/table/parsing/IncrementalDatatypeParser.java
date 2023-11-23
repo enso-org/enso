@@ -2,9 +2,8 @@ package org.enso.table.parsing;
 
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.parsing.problems.ProblemAggregatorImpl;
-import org.enso.table.problems.AggregatedProblems;
-import org.enso.table.problems.WithAggregatedProblems;
+import org.enso.table.parsing.problems.CommonParseProblemAggregator;
+import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 
 /**
@@ -24,22 +23,23 @@ public abstract class IncrementalDatatypeParser extends DatatypeParser {
    * builder returned here expects - it should never return a value that cannot be accepted by the
    * builder.
    */
-  protected abstract Builder makeBuilderWithCapacity(int capacity);
+  protected abstract Builder makeBuilderWithCapacity(
+      int capacity, ProblemAggregator problemAggregator);
 
   /**
    * Parses a column of texts (represented as a {@code StringStorage}) and returns a new storage,
    * containing the parsed elements.
    */
-  public WithAggregatedProblems<Storage<?>> parseColumn(
-      String columnName, Storage<String> sourceStorage) {
-    Builder builder = makeBuilderWithCapacity(sourceStorage.size());
-    var aggregator = new ProblemAggregatorImpl(columnName);
+  @Override
+  public Storage<?> parseColumn(
+      Storage<String> sourceStorage, CommonParseProblemAggregator problemAggregator) {
+    Builder builder = makeBuilderWithCapacity(sourceStorage.size(), problemAggregator);
 
     Context context = Context.getCurrent();
     for (int i = 0; i < sourceStorage.size(); ++i) {
       String cell = sourceStorage.getItemBoxed(i);
       if (cell != null) {
-        Object parsed = parseSingleValue(cell, aggregator);
+        Object parsed = parseSingleValue(cell, problemAggregator);
         builder.appendNoGrow(parsed);
       } else {
         builder.appendNoGrow(null);
@@ -48,8 +48,6 @@ public abstract class IncrementalDatatypeParser extends DatatypeParser {
       context.safepoint();
     }
 
-    return new WithAggregatedProblems<>(
-        builder.seal(),
-        AggregatedProblems.merge(aggregator.getAggregatedProblems(), builder.getProblems()));
+    return builder.seal();
   }
 }

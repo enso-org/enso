@@ -1,4 +1,6 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+from Standard.Base.Runtime import assert
 
 import project.Data.Column.Column
 import project.Data.Table.Table
@@ -32,7 +34,17 @@ check_integrity entity1 entity2 =
    - entity2: The entity to check against the first.
 check_connection : (Table | Column) -> (Table | Column) -> Boolean
 check_connection entity1 entity2 =
-    Meta.is_same_object entity1.connection entity2.connection
+    # The `if_not_error` is needed `Meta.is_same_object` does not forward dataflow errors.
+    entity1.if_not_error <| entity2.if_not_error <|
+        Meta.is_same_object entity1.connection entity2.connection
+
+## PRIVATE
+ensure_same_connection : Text -> Vector -> Any -> Any ! Illegal_Argument
+ensure_same_connection name entities ~continuation =
+    assert entities.not_empty
+    all_same = entities.all entity-> check_connection entity entities.first
+    if all_same then continuation else
+        Error.throw (Illegal_Argument.Error "The input "+name+"s come from different connections. Cross-connection operations are not supported.")
 
 ## PRIVATE
 

@@ -408,24 +408,23 @@ public final class Function implements EnsoObject {
 
   @CompilerDirectives.TruffleBoundary
   public final String toString(boolean includeArguments) {
-    var n = callTarget.getRootNode();
-    var ss = n.getSourceSection();
-    if (ss == null) {
-      return super.toString();
-    }
     var iop = InteropLibrary.getUncached();
-    var src = ss.getSource();
-    var start = ss.getStartLine();
-    var end = ss.getEndLine();
     var sb = new StringBuilder();
+    var n = callTarget.getRootNode();
     sb.append(n.getName());
-    sb.append("[").append(src.getName()).append(":").append(start);
-    if (end == start) {
-      sb.append(":").append(ss.getStartColumn()).append("-").append(ss.getEndColumn());
-    } else {
-      sb.append("-").append(end);
+    var ss = n.getSourceSection();
+    if (ss != null) {
+      var src = ss.getSource();
+      var start = ss.getStartLine();
+      var end = ss.getEndLine();
+      sb.append("[").append(src.getName()).append(":").append(start);
+      if (end == start) {
+        sb.append(":").append(ss.getStartColumn()).append("-").append(ss.getEndColumn());
+      } else {
+        sb.append("-").append(end);
+      }
+      sb.append("]");
     }
-    sb.append("]");
     if (includeArguments) {
       for (var i = 0; i < schema.getArgumentsCount(); i++) {
         ArgumentDefinition info = schema.getArgumentInfos()[i];

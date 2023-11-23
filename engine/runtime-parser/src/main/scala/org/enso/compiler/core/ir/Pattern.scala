@@ -1,15 +1,20 @@
 package org.enso.compiler.core.ir
 
-import org.enso.compiler.core.{CompilerError, IR}
-import org.enso.compiler.core.ir.{Name => IRName, Literal => IRLiteral}
+import org.enso.compiler.core.{CompilerError, IR, Identifier}
+import org.enso.compiler.core.ir.{Literal => IRLiteral, Name => IRName}
 import org.enso.compiler.core.ir.expression.errors
-import org.enso.compiler.core.IR.{randomId, Identifier, ToStringHelper}
+import org.enso.compiler.core.IR.randomId
+import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
+
+import java.util.UUID
 
 /** The different types of patterns that can occur in a match. */
 trait Pattern extends IR {
 
   /** @inheritdoc */
-  override def mapExpressions(fn: Expression => Expression): Pattern
+  override def mapExpressions(
+    fn: java.util.function.Function[Expression, Expression]
+  ): Pattern
 
   /** @inheritdoc */
   override def setLocation(location: Option[IdentifiedLocation]): Pattern
@@ -42,7 +47,7 @@ object Pattern {
     override val passData: MetadataStorage      = MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Pattern {
-    override protected var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -58,7 +63,7 @@ object Pattern {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Name = {
       val res = Name(name, location, passData, diagnostics)
       res.id = id
@@ -87,7 +92,9 @@ object Pattern {
       )
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Name = {
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Name = {
       copy(name = name.mapExpressions(fn))
     }
 
@@ -132,7 +139,7 @@ object Pattern {
     override val passData: MetadataStorage      = MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Pattern {
-    override protected var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -150,7 +157,7 @@ object Pattern {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Constructor = {
       val res =
         Constructor(constructor, fields, location, passData, diagnostics)
@@ -229,7 +236,9 @@ object Pattern {
     }
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Constructor =
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Constructor =
       copy(
         constructor = constructor.mapExpressions(fn),
         fields      = fields.map(_.mapExpressions(fn))
@@ -280,7 +289,7 @@ object Pattern {
     override val passData: MetadataStorage      = MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Pattern {
-    override protected var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -296,7 +305,7 @@ object Pattern {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Literal = {
       val res = Literal(literal, location, passData, diagnostics)
       res.id = id
@@ -325,7 +334,9 @@ object Pattern {
       )
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Literal = {
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Literal = {
       copy(literal = literal.mapExpressions(fn))
     }
 
@@ -372,7 +383,7 @@ object Pattern {
     override val passData: MetadataStorage      = MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Pattern {
-    override protected var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -390,7 +401,7 @@ object Pattern {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Type = {
       val res = Type(name, tpe, location, passData, diagnostics)
       res.id = id
@@ -425,7 +436,9 @@ object Pattern {
       )
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Type = {
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Type = {
       copy(name = name.mapExpressions(fn), tpe = tpe.mapExpressions(fn))
     }
 
@@ -472,10 +485,12 @@ object Pattern {
     override val passData: MetadataStorage      = MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Pattern {
-    override protected var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Documentation =
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Documentation =
       this
 
     /** @inheritdoc */
@@ -498,7 +513,7 @@ object Pattern {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Documentation = {
       val res = Documentation(doc, location, passData, diagnostics)
       res.id = id

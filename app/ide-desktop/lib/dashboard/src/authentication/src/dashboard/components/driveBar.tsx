@@ -14,7 +14,9 @@ import * as modalProvider from '../../providers/modal'
 import * as shortcutsModule from '../shortcuts'
 import * as shortcutsProvider from '../../providers/shortcuts'
 
+import * as categorySwitcher from './categorySwitcher'
 import Button from './button'
+import NewDataConnectorModal from './newDataConnectorModal'
 
 // ================
 // === DriveBar ===
@@ -22,8 +24,10 @@ import Button from './button'
 
 /** Props for a {@link DriveBar}. */
 export interface DriveBarProps {
+    category: categorySwitcher.Category
     doCreateProject: (templateId: string | null) => void
     doCreateDirectory: () => void
+    doCreateDataConnector: (name: string, value: string) => void
     doUploadFiles: (files: File[]) => void
     dispatchAssetEvent: (event: assetEventModule.AssetEvent) => void
 }
@@ -31,11 +35,21 @@ export interface DriveBarProps {
 /** Displays the current directory path and permissions, upload and download buttons,
  * and a column display mode switcher. */
 export default function DriveBar(props: DriveBarProps) {
-    const { doCreateProject, doCreateDirectory, doUploadFiles, dispatchAssetEvent } = props
+    const {
+        category,
+        doCreateProject,
+        doCreateDirectory,
+        doCreateDataConnector,
+        doUploadFiles,
+        dispatchAssetEvent,
+    } = props
     const { backend } = backendProvider.useBackend()
-    const { unsetModal } = modalProvider.useSetModal()
+    const { setModal, unsetModal } = modalProvider.useSetModal()
     const { shortcuts } = shortcutsProvider.useShortcuts()
     const uploadFilesRef = React.useRef<HTMLInputElement>(null)
+    const isHomeCategory =
+        category === categorySwitcher.Category.home ||
+        backend.type === backendModule.BackendType.local
 
     React.useEffect(() => {
         return shortcuts.registerKeyboardHandlers({
@@ -56,21 +70,35 @@ export default function DriveBar(props: DriveBarProps) {
     }, [backend.type, doCreateDirectory, doCreateProject, /* should never change */ shortcuts])
 
     return (
-        <div className="flex py-0.5">
+        <div className="flex h-8 py-0.5">
             <div className="flex gap-2.5">
                 <button
+                    disabled={!isHomeCategory}
                     className="flex items-center bg-frame rounded-full h-8 px-2.5"
+                    {...(!isHomeCategory
+                        ? {
+                              title: 'You can only create a new project in Home.',
+                          }
+                        : {})}
                     onClick={() => {
                         unsetModal()
                         doCreateProject(null)
                     }}
                 >
-                    <span className="font-semibold leading-5 h-6 py-px">New Project</span>
+                    <span
+                        className={`font-semibold whitespace-nowrap leading-5 h-6 py-px ${
+                            !isHomeCategory ? 'opacity-50' : ''
+                        }`}
+                    >
+                        New Project
+                    </span>
                 </button>
                 <div className="flex items-center text-black-a50 bg-frame rounded-full gap-3 h-8 px-3">
                     {backend.type !== backendModule.BackendType.local && (
                         <Button
-                            active
+                            active={isHomeCategory}
+                            disabled={!isHomeCategory}
+                            error="You can only create a new folder in Home."
                             image={AddFolderIcon}
                             disabledOpacityClassName="opacity-20"
                             onClick={() => {
@@ -81,12 +109,14 @@ export default function DriveBar(props: DriveBarProps) {
                     )}
                     {backend.type !== backendModule.BackendType.local && (
                         <Button
-                            disabled
+                            active={isHomeCategory}
+                            disabled={!isHomeCategory}
+                            error="You can only create a new data connector in Home."
                             image={AddConnectorIcon}
-                            error="Not implemented yet."
                             disabledOpacityClassName="opacity-20"
-                            onClick={() => {
-                                // No backend support yet.
+                            onClick={event => {
+                                event.stopPropagation()
+                                setModal(<NewDataConnectorModal doCreate={doCreateDataConnector} />)
                             }}
                         />
                     )}
@@ -110,7 +140,9 @@ export default function DriveBar(props: DriveBarProps) {
                         }}
                     />
                     <Button
-                        active
+                        active={isHomeCategory}
+                        disabled={!isHomeCategory}
+                        error="You can only upload files to Home."
                         image={DataUploadIcon}
                         disabledOpacityClassName="opacity-20"
                         onClick={() => {
@@ -119,10 +151,20 @@ export default function DriveBar(props: DriveBarProps) {
                         }}
                     />
                     <Button
-                        active={backend.type === backendModule.BackendType.local}
-                        disabled={backend.type !== backendModule.BackendType.local}
+                        active={
+                            category !== categorySwitcher.Category.trash &&
+                            backend.type === backendModule.BackendType.local
+                        }
+                        disabled={
+                            category === categorySwitcher.Category.trash ||
+                            backend.type !== backendModule.BackendType.local
+                        }
                         image={DataDownloadIcon}
-                        error="Not implemented yet."
+                        error={
+                            category === categorySwitcher.Category.trash
+                                ? 'You cannot download files from Trash.'
+                                : 'Not implemented yet.'
+                        }
                         disabledOpacityClassName="opacity-20"
                         onClick={event => {
                             event.stopPropagation()

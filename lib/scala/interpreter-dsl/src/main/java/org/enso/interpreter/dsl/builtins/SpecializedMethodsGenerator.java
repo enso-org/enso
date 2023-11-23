@@ -110,7 +110,7 @@ public final class SpecializedMethodsGenerator extends MethodGenerator {
                                   fromVariableElementToMethodParameter(
                                       processingEnv, i, params.get(i)))
                           .collect(Collectors.toList()),
-                      wrapExceptions(processingEnv, method));
+                      wrapExceptions(method));
                 });
     if (specializedParamIdx.isEmpty()) {
       // No need to sort specializations when only dealing with a single one

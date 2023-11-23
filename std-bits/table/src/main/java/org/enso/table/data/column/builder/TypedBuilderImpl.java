@@ -18,7 +18,7 @@ public abstract class TypedBuilderImpl<T> extends TypedBuilder {
   }
 
   @Override
-  public void writeTo(Object[] items) {
+  public void retypeToMixed(Object[] items) {
     if (currentSize >= 0) System.arraycopy(data, 0, items, 0, currentSize);
   }
 
@@ -33,7 +33,6 @@ public abstract class TypedBuilderImpl<T> extends TypedBuilder {
       Object[] widenedData = Arrays.copyOf(data, data.length, Object[].class);
       ObjectBuilder res = new MixedBuilder(widenedData);
       res.setCurrentSize(currentSize);
-      res.setPreExistingProblems(getProblems());
       return res;
     } else {
       throw new UnsupportedOperationException();

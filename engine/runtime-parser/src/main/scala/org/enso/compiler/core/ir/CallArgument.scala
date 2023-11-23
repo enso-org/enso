@@ -1,7 +1,10 @@
 package org.enso.compiler.core.ir
 
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{randomId, Identifier, ToStringHelper}
+import org.enso.compiler.core.{IR, Identifier}
+import org.enso.compiler.core.IR.randomId
+import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
+
+import java.util.UUID
 
 /** Call-site arguments in Enso. */
 sealed trait CallArgument extends IR {
@@ -13,10 +16,9 @@ sealed trait CallArgument extends IR {
   val value: Expression
 
   /** @inheritdoc */
-  override def mapExpressions(fn: Expression => Expression): CallArgument
-
-  /** @inheritdoc */
-  override def setLocation(location: Option[IdentifiedLocation]): CallArgument
+  override def mapExpressions(
+    fn: java.util.function.Function[Expression, Expression]
+  ): CallArgument
 
   /** @inheritdoc */
   override def duplicate(
@@ -43,12 +45,12 @@ object CallArgument {
   sealed case class Specified(
     override val name: Option[Name],
     override val value: Expression,
-    override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    location: Option[IdentifiedLocation],
+    passData: MetadataStorage      = MetadataStorage(),
+    diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends CallArgument
       with IRKind.Primitive {
-    override protected var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -68,7 +70,7 @@ object CallArgument {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Specified = {
       val res = Specified(
         name,
@@ -116,7 +118,9 @@ object CallArgument {
     ): Specified = copy(location = location)
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Specified = {
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Specified = {
       copy(name = name.map(n => n.mapExpressions(fn)), value = fn(value))
     }
 

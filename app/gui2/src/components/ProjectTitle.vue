@@ -10,7 +10,7 @@ const emit = defineEmits<{ execute: []; 'update:mode': [mode: string] }>()
     <span class="title" v-text="props.title"></span>
     <ExecutionModeSelector
       :modes="props.modes"
-      :model-value="props.mode"
+      :modelValue="props.mode"
       @execute="emit('execute')"
       @update:modelValue="emit('update:mode', $event)"
     />
@@ -24,6 +24,7 @@ const emit = defineEmits<{ execute: []; 'update:mode': [mode: string] }>()
   align-items: center;
   background: var(--color-frame-bg);
   border-radius: var(--radius-full);
+  backdrop-filter: var(--blur-app-bg);
   gap: 8px;
   padding-left: 10px;
   padding-right: 4px;
@@ -32,9 +33,8 @@ const emit = defineEmits<{ execute: []; 'update:mode': [mode: string] }>()
 
   > .title {
     display: inline-block;
-    height: 20px;
-    padding-top: 1px;
-    padding-bottom: 1px;
+    height: 24px;
+    padding: 1px 0px;
   }
 }
 </style>

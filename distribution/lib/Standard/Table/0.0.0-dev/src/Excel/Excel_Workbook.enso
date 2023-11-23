@@ -11,6 +11,7 @@ import project.Data.Table.Table
 import project.Excel.Excel_Range.Excel_Range
 import project.Excel.Excel_Section.Excel_Section
 import project.Internal.Excel_Reader
+import project.Internal.Java_Problems
 
 polyglot java import org.apache.poi.ss.usermodel.Workbook
 polyglot java import org.enso.table.read.ExcelReader
@@ -154,20 +155,25 @@ type Excel_Workbook
 
     ## ALIAS range, sheet, worksheet
        GROUP Standard.Base.Input
+       ICON data_input
        Execute the query and load the results into memory as a Table.
 
        Arguments:
        - query: sheet name, range name or address to read from the workbook.
-       - limit: the maximum number of rows to return.
+       - limit: the maximum number of rows to read.
+         If set to `Nothing`, all rows will be returned.
     @query (self-> Single_Choice display=Display.Always values=(self.tables.at "Name" . to_vector . map t-> Option t t.pretty))
     read : Text -> Integer | Nothing -> Table
-    read self query limit=Nothing =
+    read self query (limit : Integer | Nothing = Nothing) =
         java_headers = Excel_Reader.make_java_headers self.headers
-        Excel_Reader.prepare_reader_table Report_Warning <| case query of
-            _ : Excel_Range -> ExcelReader.readRange self.workbook query.java_range java_headers 0 limit
-            _ : Text -> ExcelReader.readRangeByName self.workbook query java_headers 0 limit
+        java_table = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
+            case query of
+                _ : Excel_Range -> ExcelReader.readRange self.workbook query.java_range java_headers 0 limit java_problem_aggregator
+                _ : Text -> ExcelReader.readRangeByName self.workbook query java_headers 0 limit java_problem_aggregator
+        Table.Value java_table
 
     ## GROUP Standard.Base.Input
+       ICON data_input
        Read an Excel_Section from the Workbook
 
        Arguments:
@@ -180,16 +186,30 @@ type Excel_Workbook
             Excel_Section.Sheet_Names -> self.sheet_names
             Excel_Section.Range_Names -> self.named_ranges
             Excel_Section.Worksheet sheet skip_rows row_limit ->
+                names = self.sheet_names
                 sheet_name = case sheet of
-                    _ : Text -> sheet
+                    _ : Text -> if names.contains sheet then sheet else Error.throw (Illegal_Argument.Error "Worksheet not found.")
                     _ : Integer ->
-                        names = self.sheet_names
                         if (sheet < 1 || sheet >= names.length) then Error.throw (Illegal_Argument.Error "Worksheet index out of range.") else
                             names.at (sheet - 1)
                     _ -> Error.throw (Illegal_Argument.Error "Worksheet must be either Text or an Integer.")
-                Excel_Reader.prepare_reader_table Report_Warning <|
-                    ExcelReader.readRangeByName self.workbook sheet_name java_headers skip_rows row_limit
+                java_table = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
+                    ExcelReader.readRangeByName self.workbook sheet_name java_headers skip_rows row_limit java_problem_aggregator
+                Table.Value java_table
             Excel_Section.Cell_Range address skip_rows row_limit ->
-                Excel_Reader.prepare_reader_table Report_Warning <| case address of
-                    _ : Excel_Range -> ExcelReader.readRange self.workbook address.java_range java_headers skip_rows row_limit
-                    _ : Text -> ExcelReader.readRangeByName self.workbook address java_headers skip_rows row_limit
+                java_table = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
+                    case address of
+                        _ : Excel_Range -> ExcelReader.readRange self.workbook address.java_range java_headers skip_rows row_limit java_problem_aggregator
+                        _ : Text -> ExcelReader.readRangeByName self.workbook address java_headers skip_rows row_limit java_problem_aggregator
+                Table.Value java_table
+
+    ## ALIAS get, worksheet
+       GROUP Standard.Base.Input
+       Reads a worksheet from the workbook.
+
+       Arguments:
+       - name: the name of the worksheet to read.
+    @name (self-> Single_Choice display=Display.Always values=(self.sheet_names.map t-> Option t t.pretty))
+    sheet : Text | Integer -> Table
+    sheet self name:(Text | Integer) =
+        self.read_section (Excel_Section.Worksheet name 0 Nothing)

@@ -15,6 +15,10 @@ import org.enso.languageserver.data.{
 }
 import org.enso.languageserver.effect._
 import org.enso.languageserver.event.InitializedEvent
+import org.enso.languageserver.filemanager.PathWatcher.{
+  ForwardRequest,
+  ForwardResponse
+}
 import org.enso.languageserver.util.UnhandledLogging
 
 /** Handles `receivesTreeUpdates` capabilities acquisition and release.
@@ -146,9 +150,18 @@ final class ReceivesTreeUpdatesHandler(
         ) =>
       store.getWatcher(path) match {
         case Some(watcher) =>
-          watcher.forward(PathWatcherProtocol.UnwatchPath(client.rpcController))
+          watcher ! ForwardRequest(
+            sender(),
+            PathWatcherProtocol.UnwatchPath(client.rpcController)
+          )
         case None =>
           sender() ! CapabilityNotAcquiredResponse
+      }
+
+    case ForwardResponse(client, response, isLast) =>
+      client.forward(response)
+      if (isLast) {
+        context.become(withStore(store.removeWatcher(sender())))
       }
 
     case Terminated(watcher) =>

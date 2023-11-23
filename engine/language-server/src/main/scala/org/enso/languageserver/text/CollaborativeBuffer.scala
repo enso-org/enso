@@ -28,15 +28,17 @@ import org.enso.languageserver.text.CollaborativeBuffer.{
   IOTimeout,
   ReloadBuffer,
   ReloadBufferFailed,
-  ReloadedBuffer
+  ReloadedBuffer,
+  ServerConfirmationTimeout
 }
 import org.enso.languageserver.text.TextProtocol._
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.polyglot.runtime.Runtime.Api.ExpressionId
 import org.enso.text.{ContentBasedVersioning, ContentVersion}
 import org.enso.text.editing._
 import org.enso.text.editing.model.TextEdit
+
+import java.util.UUID
 
 /** An actor enabling multiple users edit collaboratively a file.
   *
@@ -101,8 +103,7 @@ class CollaborativeBuffer(
         replyTo,
         content,
         Some(attrs),
-        inMemoryBuffer,
-        Map.empty
+        inMemoryBuffer
       )
       unstashAll()
       timeoutCancellable.cancel()
@@ -118,8 +119,7 @@ class CollaborativeBuffer(
         replyTo,
         content,
         None,
-        inMemoryBuffer,
-        Map.empty
+        inMemoryBuffer
       )
       unstashAll()
       timeoutCancellable.cancel()
@@ -145,6 +145,33 @@ class CollaborativeBuffer(
       stop(Map.empty)
 
     case _ => stash()
+  }
+
+  private def waitingOnServerConfirmation(
+    requestId: Api.RequestId,
+    buffer: Buffer,
+    rpcSession: JsonSession,
+    replyTo: ActorRef,
+    timeout: Cancellable
+  ): Receive = {
+    case ServerConfirmationTimeout =>
+      replyTo ! OpenFileResponse(Left(OperationTimeout))
+      stop(Map.empty)
+    case Api.Response(Some(id), Api.OpenFileResponse) if id == requestId =>
+      timeout.cancel()
+      val cap = CapabilityRegistration(CanEdit(bufferPath))
+      replyTo ! OpenFileResponse(Right(OpenFileResult(buffer, Some(cap))))
+      unstashAll()
+      context.become(
+        collaborativeEditing(
+          buffer,
+          Map(rpcSession.clientId -> rpcSession),
+          Some(rpcSession),
+          Map.empty
+        )
+      )
+    case _ =>
+      stash()
   }
 
   private def collaborativeEditing(
@@ -672,7 +699,7 @@ class CollaborativeBuffer(
     lockHolder: Option[JsonSession],
     clientId: ClientId,
     change: FileEdit,
-    expressionId: ExpressionId,
+    expressionId: Api.ExpressionId,
     expressionValue: String,
     autoSave: Map[ClientId, (ContentVersion, Cancellable)]
   ): Unit = {
@@ -843,29 +870,33 @@ class CollaborativeBuffer(
 
   private def handleFileContent(
     rpcSession: JsonSession,
-    originalSender: ActorRef,
+    replyTo: ActorRef,
     file: FileManagerProtocol.TextualFileContent,
     attributes: Option[FileAttributes],
-    inMemoryBuffer: Boolean,
-    autoSave: Map[ClientId, (ContentVersion, Cancellable)]
+    inMemoryBuffer: Boolean
   ): Unit = {
     val initialBuffer = Buffer(file.path, file.content, inMemoryBuffer)
     val buffer = attributes.fold(initialBuffer)(attrs =>
       initialBuffer.withLastModifiedTime(attrs.lastModifiedTime)
     )
-    val cap = CapabilityRegistration(CanEdit(bufferPath))
-    originalSender ! OpenFileResponse(
-      Right(OpenFileResult(buffer, Some(cap)))
-    )
+    val requestId = UUID.randomUUID()
     runtimeConnector ! Api.Request(
-      Api.OpenFileNotification(file.path, file.content)
+      requestId,
+      Api.OpenFileRequest(file.path, file.content)
     )
+    val timeoutCancellable = context.system.scheduler
+      .scheduleOnce(
+        timingsConfig.runtimeRequestTimeout,
+        self,
+        ServerConfirmationTimeout
+      )
     context.become(
-      collaborativeEditing(
+      waitingOnServerConfirmation(
+        requestId,
         buffer,
-        Map(rpcSession.clientId -> rpcSession),
-        Some(rpcSession),
-        autoSave
+        rpcSession,
+        replyTo,
+        timeoutCancellable
       )
     )
   }
@@ -993,6 +1024,8 @@ class CollaborativeBuffer(
 object CollaborativeBuffer {
 
   case object IOTimeout
+
+  case object ServerConfirmationTimeout
 
   private case class AutoSave(
     clientId: ClientId,

@@ -61,7 +61,7 @@
 //! 1. If the `dist/index.js` file does not exist, or its modification date is older than
 //! `this_crate/js` sources:
 //!
-//!    1. `npm run install` is run in the `this_crate/js` directory.
+//!    1. `npm install` is assumed to have been already run in the `this_crate/js` directory.
 //!
 //!    2. The `this_crate/js/runner` is compiled to `target/ensogl-pack/dist/index.cjs`. This is the
 //!    main file which is capable of loading WASM file, displaying a loading screen, running
@@ -351,7 +351,6 @@ pub async fn compile_this_crate_ts_sources(paths: &Paths) -> Result<()> {
     println!("compile_this_crate_ts_sources");
     if check_if_ts_needs_rebuild(paths)? {
         info!("EnsoGL Pack TypeScript sources changed, recompiling.");
-        ide_ci::programs::Npm.cmd()?.install().current_dir(&paths.workspace).run_ok().await?;
         let run_script = async move |script_name, script_args: &[&str]| {
             ide_ci::programs::Npm
                 .cmd()?
@@ -378,6 +377,7 @@ pub async fn compile_this_crate_ts_sources(paths: &Paths) -> Result<()> {
 }
 
 /// Run wasm-pack to build the wasm artifact.
+#[context("Failed to run wasm-pack.")]
 pub async fn run_wasm_pack(
     paths: &Paths,
     provider: impl FnOnce(WasmPackOutputs) -> Result<WasmPackCommand>,

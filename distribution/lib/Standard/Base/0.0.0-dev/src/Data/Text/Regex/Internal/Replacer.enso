@@ -14,7 +14,7 @@ from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
 
 polyglot java import java.lang.StringBuilder
-polyglot java import org.enso.base.Replacer_Cache
+polyglot java import org.enso.base.text.Replacer_Cache
 
 type Replacer
     ## PRIVATE
@@ -62,13 +62,13 @@ type Replacer
 
    Get the size of the Replacer LRU cache. For testing.
 get_lru_size : Integer
-get_lru_size = Replacer_Cache.getLruSize
+get_lru_size = Replacer_Cache.INSTANCE.getLruSize
 
 ## PRIVATE
 
    Look up a replacement string in the Replacer LRU cache. For testing.
 replacer_cache_lookup : Text -> Replacer | Nothing
-replacer_cache_lookup replacement_string = Replacer_Cache.get replacement_string
+replacer_cache_lookup replacement_string = Replacer_Cache.INSTANCE.get replacement_string
 
 ## PRIVATE
 group_reference_regex = "\$(([0-9]+)|(\$)|(&)|(<([^>]+)>))"
@@ -84,7 +84,7 @@ group_reference_regex = "\$(([0-9]+)|(\$)|(&)|(<([^>]+)>))"
    replacement strings.
 build_replacement_vector_cached : Text -> Regex -> Vector Replacement ! No_Such_Group
 build_replacement_vector_cached replacement_string pattern =
-    Replacer_Cache.get_or_set replacement_string _->
+    Replacer_Cache.INSTANCE.get_or_set replacement_string _->
         build_replacement_vector replacement_string pattern
 
 ## PRIVATE

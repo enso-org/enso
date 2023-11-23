@@ -1,7 +1,8 @@
 package org.enso.compiler.core.ir.module.scope.imports
 
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{randomId, Identifier, ToStringHelper}
+import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
+import org.enso.compiler.core.{IR, Identifier}
+import org.enso.compiler.core.IR.randomId
 import org.enso.compiler.core.ir.module.scope.Import
 import org.enso.compiler.core.ir.{
   DiagnosticStorage,
@@ -10,6 +11,8 @@ import org.enso.compiler.core.ir.{
   IdentifiedLocation,
   MetadataStorage
 }
+
+import java.util.UUID
 
 /** An import of a polyglot class.
   *
@@ -28,7 +31,7 @@ sealed case class Polyglot(
   override val diagnostics: DiagnosticStorage = DiagnosticStorage()
 ) extends Import
     with IRKind.Primitive {
-  override protected var id: Identifier = randomId
+  var id: UUID @Identifier = randomId
 
   /** Creates a copy of `this`.
     *
@@ -47,7 +50,7 @@ sealed case class Polyglot(
     location: Option[IdentifiedLocation] = location,
     passData: MetadataStorage            = passData,
     diagnostics: DiagnosticStorage       = diagnostics,
-    id: Identifier                       = id
+    id: UUID @Identifier                 = id
   ): Polyglot = {
     val res =
       Polyglot(entity, rename, location, passData, diagnostics)
@@ -76,7 +79,9 @@ sealed case class Polyglot(
   ): Polyglot = copy(location = location)
 
   /** @inheritdoc */
-  override def mapExpressions(fn: Expression => Expression): Polyglot =
+  override def mapExpressions(
+    fn: java.util.function.Function[Expression, Expression]
+  ): Polyglot =
     this
 
   /** Returns the name this object is visible as from Enso code.

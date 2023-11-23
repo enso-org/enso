@@ -17,6 +17,7 @@ type EditableSpanPassthroughProps = JSX.IntrinsicElements['input'] & JSX.Intrins
 /** Props for an {@link EditableSpan}. */
 export interface EditableSpanProps extends Omit<EditableSpanPassthroughProps, 'onSubmit'> {
     editable?: boolean
+    checkSubmittable?: (value: string) => boolean
     onSubmit: (value: string) => void
     onCancel: () => void
     inputPattern?: string
@@ -28,6 +29,7 @@ export interface EditableSpanProps extends Omit<EditableSpanPassthroughProps, 'o
 export default function EditableSpan(props: EditableSpanProps) {
     const {
         editable = false,
+        checkSubmittable,
         children,
         onSubmit,
         onCancel,
@@ -36,8 +38,14 @@ export default function EditableSpan(props: EditableSpanProps) {
         ...passthroughProps
     } = props
     const { shortcuts } = shortcutsProvider.useShortcuts()
-
+    const [isSubmittable, setIsSubmittable] = React.useState(true)
     const inputRef = React.useRef<HTMLInputElement>(null)
+
+    React.useEffect(() => {
+        setIsSubmittable(checkSubmittable?.(inputRef.current?.value ?? '') ?? true)
+        // This effect MUST only run on mount.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
 
     React.useEffect(() => {
         if (editable) {
@@ -58,8 +66,10 @@ export default function EditableSpan(props: EditableSpanProps) {
                 className="flex grow"
                 onSubmit={event => {
                     event.preventDefault()
-                    if (inputRef.current != null) {
-                        onSubmit(inputRef.current.value)
+                    if (isSubmittable) {
+                        if (inputRef.current != null) {
+                            onSubmit(inputRef.current.value)
+                        }
                     }
                 }}
             >
@@ -70,14 +80,24 @@ export default function EditableSpan(props: EditableSpanProps) {
                     size={1}
                     defaultValue={children}
                     onBlur={event => event.currentTarget.form?.requestSubmit()}
-                    {...(inputPattern != null ? { pattern: inputPattern } : {})}
-                    {...(inputTitle != null ? { title: inputTitle } : {})}
+                    {...(inputPattern == null ? {} : { pattern: inputPattern })}
+                    {...(inputTitle == null ? {} : { title: inputTitle })}
+                    {...(checkSubmittable == null
+                        ? {}
+                        : {
+                              onInput: event => {
+                                  setIsSubmittable(checkSubmittable(event.currentTarget.value))
+                              },
+                          })}
                     {...passthroughProps}
                 />
-                <button type="submit" className="mx-0.5">
-                    <img src={TickIcon} />
-                </button>
+                {isSubmittable && (
+                    <button type="submit" className="mx-0.5">
+                        <img src={TickIcon} />
+                    </button>
+                )}
                 <button
+                    type="button"
                     className="mx-0.5"
                     onClick={event => {
                         event.stopPropagation()

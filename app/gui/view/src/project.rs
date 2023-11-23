@@ -203,7 +203,7 @@ struct Model {
 
 impl Model {
     fn new(app: &Application) -> Self {
-        let display_object = display::object::Instance::new();
+        let display_object = display::object::Instance::new_named("ProjectView");
         let searcher = app.new_view::<component_browser::View>();
         let graph_editor = app.new_view::<GraphEditor>();
         let code_editor = app.new_view::<code_editor::View>();
@@ -426,6 +426,8 @@ impl View {
         let _network = &self.frp.network;
         frp::extend! { _network
             self.model.code_editor.set_read_only <+ self.frp.set_read_only;
+            self.model.code_editor.hide <+ self.model.graph_editor.node_editing_started.constant(());
+            self.model.code_editor.hide <+ self.model.graph_editor.node_selected.constant(());
         }
         self
     }
@@ -712,6 +714,7 @@ impl View {
         let frp = &self.frp;
         let network = &frp.network;
         let graph_editor = &self.model.graph_editor.frp;
+        let code_editor = &self.model.code_editor;
         frp::extend! { network
             // Searcher type to use for node creation.
             // Debounces are needed, because there are shortcut conflits with Component Browser's
@@ -726,6 +729,7 @@ impl View {
 
             should_not_create_node <- graph_editor.node_editing || graph_editor.read_only;
             should_not_create_node <- should_not_create_node || graph_editor.is_fs_visualization_displayed;
+            should_not_create_node <- should_not_create_node || code_editor.is_visible;
             start_node_creation <- searcher_type.gate_not(&should_not_create_node);
             graph_editor.start_node_creation <+ start_node_creation.constant(());
         }

@@ -1,7 +1,7 @@
 package org.enso.table.data.column.operation.map.text;
 
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
-import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
+import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.Storage;
@@ -23,7 +23,7 @@ public abstract class StringBooleanOp extends BinaryMapOperation<String, Special
   }
 
   @Override
-  public BoolStorage runBinaryMap(SpecializedStorage<String> storage, Object arg, MapOperationProblemBuilder problemBuilder) {
+  public BoolStorage runBinaryMap(SpecializedStorage<String> storage, Object arg, MapOperationProblemAggregator problemAggregator) {
     if (arg == null) {
       BitSet newVals = new BitSet();
       BitSet newMissing = new BitSet();
@@ -61,7 +61,7 @@ public abstract class StringBooleanOp extends BinaryMapOperation<String, Special
   }
 
   @Override
-  public BoolStorage runZip(SpecializedStorage<String> storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
+  public BoolStorage runZip(SpecializedStorage<String> storage, Storage<?> arg, MapOperationProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     if (arg instanceof StringStorage v) {
       BitSet newVals = new BitSet();

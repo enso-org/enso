@@ -74,20 +74,32 @@ class LanguageServerBootLoader(
         while (binaryPort == jsonRpcPort) {
           binaryPort = findPort()
         }
+        var secureJsonRpcPort: Option[Int] = None
+        var secureBinaryPort: Option[Int]  = None
+        if (descriptor.networkConfig.enableSecure) {
+          val regularPorts = Set(jsonRpcPort, binaryPort)
+          secureJsonRpcPort = Some(findPort(regularPorts))
+          secureBinaryPort =
+            Some(findPort(regularPorts + secureJsonRpcPort.get))
+        }
         logger.info(
           "Found sockets for the language server " +
-          "[json:{}:{}, binary:{}:{}].",
+          "[json:{}:{}:{}, binary:{}:{}:{}].",
           descriptor.networkConfig.interface,
           jsonRpcPort,
+          secureJsonRpcPort.getOrElse("none"),
           descriptor.networkConfig.interface,
-          binaryPort
+          binaryPort,
+          secureBinaryPort.getOrElse("none")
         )
         self ! Boot
         context.become(
           bootingFirstTime(
-            rpcPort    = jsonRpcPort,
-            dataPort   = binaryPort,
-            retryCount = retry
+            rpcPort        = jsonRpcPort,
+            secureRpcPort  = secureJsonRpcPort,
+            dataPort       = binaryPort,
+            secureDataPort = secureBinaryPort,
+            retryCount     = retry
           )
         )
 
@@ -102,16 +114,20 @@ class LanguageServerBootLoader(
     */
   private def bootingFirstTime(
     rpcPort: Int,
+    secureRpcPort: Option[Int],
     dataPort: Int,
+    secureDataPort: Option[Int],
     retryCount: Int
   ): Receive =
     LoggingReceive.withLabel("bootingFirstTime") {
       booting(
-        rpcPort       = rpcPort,
-        dataPort      = dataPort,
-        shouldRetry   = true,
-        retryCount    = retryCount,
-        bootRequester = context.parent
+        rpcPort        = rpcPort,
+        secureRpcPort  = secureRpcPort,
+        dataPort       = dataPort,
+        secureDataPort = secureDataPort,
+        shouldRetry    = true,
+        retryCount     = retryCount,
+        bootRequester  = context.parent
       )
     }
 
@@ -123,7 +139,9 @@ class LanguageServerBootLoader(
     */
   private def booting(
     rpcPort: Int,
+    secureRpcPort: Option[Int],
     dataPort: Int,
+    secureDataPort: Option[Int],
     shouldRetry: Boolean,
     retryCount: Int,
     bootRequester: ActorRef
@@ -136,7 +154,9 @@ class LanguageServerBootLoader(
           descriptor      = descriptor,
           bootTimeout     = bootTimeout,
           rpcPort         = rpcPort,
+          secureRpcPort   = secureRpcPort,
           dataPort        = dataPort,
+          secureDataPort  = secureDataPort,
           executor        = executor
         ),
         s"process-wrapper-${descriptor.name}"
@@ -164,8 +184,10 @@ class LanguageServerBootLoader(
     case LanguageServerProcess.ServerConfirmedFinishedBooting =>
       val connectionInfo = LanguageServerConnectionInfo(
         descriptor.networkConfig.interface,
-        rpcPort  = rpcPort,
-        dataPort = dataPort
+        rpcPort        = rpcPort,
+        secureRpcPort  = secureRpcPort,
+        dataPort       = dataPort,
+        secureDataPort = secureDataPort
       )
       logger.info("Language server booted [{}].", connectionInfo)
 
@@ -241,11 +263,13 @@ class LanguageServerBootLoader(
   ): Receive =
     LoggingReceive.withLabel("rebooting") {
       booting(
-        rpcPort       = connectionInfo.rpcPort,
-        dataPort      = connectionInfo.dataPort,
-        shouldRetry   = false,
-        retryCount    = config.numberOfRetries,
-        bootRequester = rebootRequester
+        rpcPort        = connectionInfo.rpcPort,
+        secureRpcPort  = connectionInfo.secureRpcPort,
+        dataPort       = connectionInfo.dataPort,
+        secureDataPort = connectionInfo.secureDataPort,
+        shouldRetry    = false,
+        retryCount     = config.numberOfRetries,
+        bootRequester  = rebootRequester
       )
     }
 
@@ -281,11 +305,12 @@ class LanguageServerBootLoader(
     }
   }
 
-  private def findPort(): Int =
+  private def findPort(excludePorts: Set[Int] = Set.empty): Int =
     Tcp.findAvailablePort(
       descriptor.networkConfig.interface,
       descriptor.networkConfig.minPort,
-      descriptor.networkConfig.maxPort
+      descriptor.networkConfig.maxPort,
+      excludePorts
     )
 
   private case object FindFreeSocket

@@ -301,6 +301,7 @@ ensogl_core::define_endpoints_2! {
         hover(),
         unhover(),
         focus(),
+        blur(),
         set_single_line_mode(bool),
         set_hover(bool),
 
@@ -395,9 +396,13 @@ impl Text {
         let m = &self.data;
         let network = self.frp.network();
         let input = &self.frp.input;
+        let out = &self.frp.private.output;
 
         frp::extend! { network
             eval_ input.focus (m.focus());
+            eval_ input.blur (m.blur());
+            out.focused <+ input.focus.constant(true);
+            out.focused <+ input.blur.constant(false);
         }
     }
 
@@ -1965,6 +1970,7 @@ impl application::View for Text {
 
     fn global_shortcuts() -> Vec<shortcut::Shortcut> {
         use shortcut::ActionType::*;
+        // These shortcuts emit `focus` event when triggered.
         let focus_capturing_shortcuts = [
             (PressAndRepeat, "left", "cursor_move_left", ""),
             (PressAndRepeat, "right", "cursor_move_right", ""),

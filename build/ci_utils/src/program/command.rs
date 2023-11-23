@@ -246,10 +246,19 @@ pub trait IsCommandWrapper {
 
 
 
+    /// Value-based variant of [`Self::current_dir`], for convenience.
     fn with_current_dir(self, dir: impl AsRef<Path>) -> Self
     where Self: Sized {
         let mut this = self;
         this.current_dir(dir);
+        this
+    }
+
+    /// Value-based variant of [`Self::with_stdin`], for convenience.
+    fn with_stdin(self, stdin: Stdio) -> Self
+    where Self: Sized {
+        let mut this = self;
+        this.stdin(stdin);
         this
     }
 }

@@ -1,7 +1,7 @@
 /** @file Events related to changes in the asset list. */
-import * as backend from '../backend'
+import type * as backend from '../backend'
 
-import * as spinner from '../components/spinner'
+import type * as spinner from '../components/spinner'
 
 // This is required, to whitelist this event.
 // eslint-disable-next-line no-restricted-syntax
@@ -17,8 +17,9 @@ export enum AssetListEventType {
     newFolder = 'new-folder',
     newProject = 'new-project',
     uploadFiles = 'upload-files',
-    newSecret = 'new-secret',
+    newDataConnector = 'new-data-connector',
     closeFolder = 'close-folder',
+    move = 'move',
     willDelete = 'will-delete',
     delete = 'delete',
     removeSelf = 'remove-self',
@@ -34,8 +35,9 @@ interface AssetListEvents {
     newFolder: AssetListNewFolderEvent
     newProject: AssetListNewProjectEvent
     uploadFiles: AssetListUploadFilesEvent
-    newSecret: AssetListNewSecretEvent
+    newDataConnector: AssetListNewDataConnectorEvent
     closeFolder: AssetListCloseFolderEvent
+    move: AssetListMoveEvent
     willDelete: AssetListWillDeleteEvent
     delete: AssetListDeleteEvent
     removeSelf: AssetListRemoveSelfEvent
@@ -55,13 +57,17 @@ type SanityCheck<
 
 /** A signal to create a new directory. */
 interface AssetListNewFolderEvent extends AssetListBaseEvent<AssetListEventType.newFolder> {
+    /** `null` if and only if the parent directory is the root directory. */
     parentKey: backend.DirectoryId | null
+    /** `null` if and only if the parent directory is the root directory. */
     parentId: backend.DirectoryId | null
 }
 
 /** A signal to create a new project. */
 interface AssetListNewProjectEvent extends AssetListBaseEvent<AssetListEventType.newProject> {
+    /** `null` if and only if the parent directory is the root directory. */
     parentKey: backend.DirectoryId | null
+    /** `null` if and only if the parent directory is the root directory. */
     parentId: backend.DirectoryId | null
     templateId: string | null
     onSpinnerStateChange: ((state: spinner.SpinnerState) => void) | null
@@ -69,14 +75,19 @@ interface AssetListNewProjectEvent extends AssetListBaseEvent<AssetListEventType
 
 /** A signal to upload files. */
 interface AssetListUploadFilesEvent extends AssetListBaseEvent<AssetListEventType.uploadFiles> {
+    /** `null` if and only if the parent directory is the root directory. */
     parentKey: backend.DirectoryId | null
+    /** `null` if and only if the parent directory is the root directory. */
     parentId: backend.DirectoryId | null
     files: File[]
 }
 
-/** A signal to create a new secret. */
-interface AssetListNewSecretEvent extends AssetListBaseEvent<AssetListEventType.newSecret> {
+/** A signal to create a new data connector. */
+interface AssetListNewDataConnectorEvent
+    extends AssetListBaseEvent<AssetListEventType.newDataConnector> {
+    /** `null` if and only if the parent directory is the root directory. */
     parentKey: backend.DirectoryId | null
+    /** `null` if and only if the parent directory is the root directory. */
     parentId: backend.DirectoryId | null
     name: string
     value: string
@@ -86,6 +97,16 @@ interface AssetListNewSecretEvent extends AssetListBaseEvent<AssetListEventType.
 interface AssetListCloseFolderEvent extends AssetListBaseEvent<AssetListEventType.closeFolder> {
     id: backend.DirectoryId
     key: backend.DirectoryId
+}
+
+/** A signal that a file has been moved. */
+interface AssetListMoveEvent extends AssetListBaseEvent<AssetListEventType.move> {
+    key: backend.AssetId
+    /** `null` if and only if the new parent directory is the root directory. */
+    newParentKey: backend.AssetId | null
+    /** `null` if and only if the new parent directory is the root directory. */
+    newParentId: backend.DirectoryId | null
+    item: backend.AnyAsset
 }
 
 /** A signal that a file will be deleted. */

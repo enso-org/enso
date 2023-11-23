@@ -1,6 +1,6 @@
 package org.enso.table.data.table.problems;
 
-public class InvalidAggregation extends ColumnAggregatedProblems {
+public class InvalidAggregation extends ColumnAggregatedProblem {
   private final String message;
 
   public InvalidAggregation(String columnName, int row, String message) {
@@ -14,7 +14,7 @@ public class InvalidAggregation extends ColumnAggregatedProblems {
   }
 
   @Override
-  public boolean merge(ColumnAggregatedProblems another) {
+  public boolean merge(ColumnAggregatedProblem another) {
     if (another instanceof InvalidAggregation
         && this.getLocationName().equals(another.getLocationName())
         && this.message.equals(((InvalidAggregation) another).message)) {

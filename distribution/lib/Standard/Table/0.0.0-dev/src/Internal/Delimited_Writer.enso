@@ -155,10 +155,9 @@ write_to_writer table format java_writer separator_override=Nothing needs_leadin
             endings -> endings.to_text
     if needs_leading_newline then
         java_writer.write newline
-    writer = DelimitedWriter.new java_writer column_formatters format.delimiter newline quote_characters.first quote_characters.second format.comment_character quote_behavior write_headers
-    writer.write table.java_table
-    warnings = Java_Problems.parse_aggregated_problems writer.getReportedWarnings
-    Problem_Behavior.Report_Warning.attach_problems_after Nothing warnings
+    Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
+        writer = DelimitedWriter.new java_writer column_formatters format.delimiter newline quote_characters.first quote_characters.second format.comment_character quote_behavior write_headers java_problem_aggregator
+        writer.write table.java_table
 
 ## PRIVATE
 should_write_headers headers = case headers of

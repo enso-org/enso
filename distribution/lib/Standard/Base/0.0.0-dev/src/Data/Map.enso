@@ -56,7 +56,29 @@ type Map key value
     singleton : Any -> Any -> Map
     singleton key value = Map.empty.insert key value
 
-    ## GROUP Constants
+    ## ALIAS dictionary, lookup table
+       GROUP Constants
+       Builds a map from two Vectors. The first vector contains the keys, and
+       the second vector contains the values. The two vectors must be of the
+       same length.
+
+       Arguments:
+       - keys: A vector of keys.
+       - values: A vector of values.
+       - error_on_duplicates: A flag which specifies if duplicate keys on the
+         input vector should result in an error. By default, set to `True`,
+         meaning that if two entries in the vector share the same key, an
+         `Illegal_Argument` error is raised. If set to `False`, the last entry
+         with a given key will be kept.
+    from_keys_and_values : Vector Any -> Vector Any -> Boolean -> Map ! Illegal_Argument
+    from_keys_and_values keys:Vector values:Vector error_on_duplicates:Boolean=True =
+        if keys.length != values.length then Error.throw (Illegal_Argument.Error "`Map.from_keys_and_values` encountered two vectors of different lengths.") else
+            keys.fold_with_index Map.empty current-> idx-> key->
+                if error_on_duplicates.not || (current.contains_key key . not) then current.insert key (values.at idx) else
+                    Error.throw (Illegal_Argument.Error "`Map.from_keys_and_values` encountered duplicate key: "+key.to_display_text)
+
+    ## ALIAS dictionary, lookup table
+       GROUP Constants
        Builds a map from a vector of key-value pairs, with each key-value pair
        represented as a 2 element vector.
 

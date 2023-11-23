@@ -73,10 +73,10 @@ class CLIOutputSpec extends AnyWordSpec with Matchers {
         2
       )
 
-      wrapped.mkString(System.lineSeparator()) shouldEqual
+      wrapped.mkString("\n") shouldEqual
       """aa a b c d
         |   e f
-        |b  a""".stripMargin
+        |b  a""".replace("\r\n", "\n").stripMargin
     }
 
     "keep the minimum wrap width" in {
@@ -91,13 +91,13 @@ class CLIOutputSpec extends AnyWordSpec with Matchers {
         2
       )
 
-      wrapped.mkString(System.lineSeparator()) shouldEqual
+      wrapped.mkString("\n") shouldEqual
       """abcdef
         |     a b c
         |     d e f
         |abcde
         |     f
-        |b    a""".stripMargin
+        |b    a""".replace("\r\n", "\n").stripMargin
     }
   }
 
@@ -111,13 +111,15 @@ class CLIOutputSpec extends AnyWordSpec with Matchers {
       val aligned =
         s"""short     row
            |very long row
-           |""".stripMargin
-      CLIOutput.alignAndWrap(unaligned) shouldEqual aligned
+           |""".replace("\r\n", "\n").stripMargin
+      CLIOutput
+        .alignAndWrap(unaligned)
+        .replace("\r\n", "\n") shouldEqual aligned
     }
 
     "align single row tables too" in {
-      val unaligned = s"a${tabulation}b"
-      val aligned   = "a b"
+      val unaligned = s"a${tabulation}b".replace("\r\n", "\n")
+      val aligned   = "a b".replace("\r\n", "\n")
       CLIOutput.alignAndWrap(unaligned) shouldEqual aligned
     }
 
@@ -139,20 +141,24 @@ class CLIOutputSpec extends AnyWordSpec with Matchers {
            |Table Two
            |a b
            |c d
-           |""".stripMargin
-      CLIOutput.alignAndWrap(unaligned) shouldEqual aligned
+           |""".replace("\r\n", "\n").stripMargin
+      CLIOutput
+        .alignAndWrap(unaligned)
+        .replace("\r\n", "\n") shouldEqual aligned
     }
 
     "wrap text to 80 characters" in {
-      val text10 = "TEN LETTER"
+      val text10 = "TEN LETTER".replace("\r\n", "\n")
       val text80 = text10 * 8
-      CLIOutput.alignAndWrap(text80) shouldEqual text80
+      CLIOutput.alignAndWrap(text80).replace("\r\n", "\n") shouldEqual text80
 
       val longer = s"""$text80 MORE"""
       val longerWrapped =
         s"""$text80
-           |MORE""".stripMargin
-      CLIOutput.alignAndWrap(longer) shouldEqual longerWrapped
+           |MORE""".replace("\r\n", "\n").stripMargin
+      CLIOutput
+        .alignAndWrap(longer)
+        .replace("\r\n", "\n") shouldEqual longerWrapped
     }
   }
 }

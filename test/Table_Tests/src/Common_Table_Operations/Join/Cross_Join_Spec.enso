@@ -1,15 +1,17 @@
 from Standard.Base import all
-
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
-import Standard.Table.Data.Join_Kind_Cross.Join_Kind_Cross
-import Standard.Test.Extensions
 
-from Standard.Database.Errors import Unsupported_Database_Operation
-from Standard.Table import all hiding Table
+from Standard.Table import all
 from Standard.Table.Errors import all
+import Standard.Table.Data.Join_Kind_Cross.Join_Kind_Cross
+
+from Standard.Database import all
+from Standard.Database.Errors import Unsupported_Database_Operation, Integrity_Error
+
 from Standard.Test import Test, Problems
+import Standard.Test.Extensions
 
 from project.Common_Table_Operations.Util import expect_column_names, run_default_backend
 
@@ -159,3 +161,11 @@ spec setup =
             t1 = table_builder [["X", [1, 2]], ["Y", [4, 5]]]
             t2 = table_builder [["Z", ['a', 'b']], ["W", ['c', 'd']]]
             Test.expect_panic_with (t1.join t2 join_kind=Join_Kind_Cross.Cross on=[]) Type_Error
+
+        Test.specify "should gracefully handle tables from different backends" <|
+            t1 = table_builder [["A", ["a", "b"]]]
+            alternative_connection = Database.connect (SQLite In_Memory)
+            t0 = (Table.new [["X", [1, 2, 4]], ["Z", [10, 20, 30]]]).select_into_database_table alternative_connection "T0" temporary=True
+
+            r1 = t1.cross_join t0
+            r1.should_fail_with Illegal_Argument

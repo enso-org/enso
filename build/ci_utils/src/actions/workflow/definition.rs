@@ -19,6 +19,10 @@ use std::sync::atomic::Ordering;
 /// We use a very long timeout because we want to avoid cancelling jobs that are just slow.
 pub const DEFAULT_TIMEOUT_IN_MINUTES: u32 = 360;
 
+/// The name of the field in the matrix strategy that we use by convention for different
+/// runner labels (OS-es, but also runner-identifying labels).
+const MATRIX_STRATEGY_OS: &str = "os";
+
 pub fn wrap_expression(expression: impl AsRef<str>) -> String {
     format!("${{{{ {} }}}}", expression.as_ref())
 }
@@ -32,6 +36,11 @@ pub fn env_expression(environment_variable: &impl RawVariable) -> String {
     wrap_expression(format!("env.{}", environment_variable.name()))
 }
 
+/// Get expression that gets input from the workflow dispatch. See:
+/// <https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#providing-inputs>
+pub fn get_input_expression(name: impl Into<String>) -> String {
+    wrap_expression(format!("inputs.{}", name.into()))
+}
 
 pub fn is_github_hosted() -> String {
     "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')".into()
@@ -41,7 +50,7 @@ pub fn setup_conda() -> Step {
     // use crate::actions::workflow::definition::step::CondaChannel;
     Step {
         name: Some("Setup conda (GH runners only)".into()),
-        uses: Some("s-weigand/setup-conda@v1.0.6".into()),
+        uses: Some("s-weigand/setup-conda@v1.2.1".into()),
         r#if: Some(is_github_hosted()),
         with: Some(step::Argument::SetupConda {
             update_conda:   Some(false),
@@ -54,7 +63,7 @@ pub fn setup_conda() -> Step {
 pub fn setup_wasm_pack_step() -> Step {
     Step {
         name: Some("Installing wasm-pack".into()),
-        uses: Some("jetli/wasm-pack-action@v0.3.0".into()),
+        uses: Some("jetli/wasm-pack-action@v0.4.0".into()),
         with: Some(step::Argument::Other(BTreeMap::from_iter([(
             "version".into(),
             "v0.10.2".into(),
@@ -113,7 +122,7 @@ pub fn run(run_args: impl AsRef<str>) -> Step {
 pub fn cancel_workflow_action() -> Step {
     Step {
         name: Some("Cancel Previous Runs".into()),
-        uses: Some("styfle/cancel-workflow-action@0.9.1".into()),
+        uses: Some("styfle/cancel-workflow-action@0.12.0".into()),
         with: Some(step::Argument::Other(BTreeMap::from_iter([(
             "access_token".into(),
             "${{ github.token }}".into(),
@@ -781,12 +790,10 @@ impl Strategy {
         Ok(self)
     }
 
-    pub fn new_os(labels: impl Serialize) -> Strategy {
-        let oses = serde_json::to_value(labels).unwrap();
-        Strategy {
-            fail_fast: Some(false),
-            matrix:    [("os".to_string(), oses)].into_iter().collect(),
-        }
+    pub fn new_os(values: impl IntoIterator<Item: Serialize>) -> Result<Strategy> {
+        let mut matrix = Self { fail_fast: Some(false), ..default() };
+        matrix.insert_to_matrix(MATRIX_STRATEGY_OS, values)?;
+        Ok(matrix)
     }
 }
 
@@ -824,6 +831,15 @@ impl Step {
     }
 
     /// Expose a secret as an environment variable with a given name.
+    pub fn with_input_exposed_as(
+        self,
+        input: impl AsRef<str>,
+        given_name: impl Into<String>,
+    ) -> Self {
+        let input_expr = get_input_expression(format!("secrets.{}", input.as_ref()));
+        self.with_env(given_name, input_expr)
+    }
+
     pub fn with_secret_exposed_as(
         self,
         secret: impl AsRef<str>,
@@ -978,11 +994,11 @@ pub enum RunnerLabel {
     WindowsLatest,
     #[serde(rename = "X64")]
     X64,
-    #[serde(rename = "mwu-deluxe")]
-    MwuDeluxe,
     #[serde(rename = "benchmark")]
     Benchmark,
-    #[serde(rename = "${{ matrix.os }}")]
+    #[serde(rename = "metarunner")]
+    Metarunner,
+    #[serde(rename = "${{ matrix.os }}")] // Must be in sync with [`MATRIX_STRATEGY_OS`].
     MatrixOs,
 }
 
@@ -1024,9 +1040,7 @@ pub fn checkout_repo_step_customized(f: impl FnOnce(Step) -> Step) -> Vec<Step> 
     };
     let actual_checkout = Step {
         name: Some("Checking out the repository".into()),
-        // FIXME: Check what is wrong with v3. Seemingly Engine Tests fail because there's only a
-        //        shallow copy of the repo.
-        uses: Some("actions/checkout@v2".into()),
+        uses: Some("actions/checkout@v4".into()),
         with: Some(step::Argument::Checkout {
             repository: None,
             clean:      Some(false),

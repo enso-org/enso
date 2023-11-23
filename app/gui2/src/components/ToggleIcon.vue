@@ -8,8 +8,9 @@
  */
 
 import SvgIcon from '@/components/SvgIcon.vue'
+import type { Icon } from '@/util/iconName'
 
-const props = withDefaults(defineProps<{ icon: string; modelValue?: boolean }>(), {
+const props = withDefaults(defineProps<{ icon: Icon; modelValue?: boolean }>(), {
   modelValue: false,
 })
 const emit = defineEmits<{
@@ -21,6 +22,6 @@ const emit = defineEmits<{
   <SvgIcon
     :name="props.icon"
     :class="{ toggledOn: modelValue }"
-    @click="emit('update:modelValue', !modelValue)"
+    @pointerdown.stop="emit('update:modelValue', !modelValue)"
   />
 </template>

@@ -91,14 +91,17 @@ bench-report*.xml
 ## Binaries ##
 ##############
 
+/built-distribution/
 /enso
 /project-manager
-*.exe
 /enso.exp
 /enso.lib
+
+*.dll
+*.exe
 *.pdb
+*.so
 *.jar
-/built-distribution/
 
 
 #########

@@ -251,8 +251,12 @@ type Connection
 
        Arguments:
        - query: name of the table or sql statement to query.
-         If supplied as `Text`, the name is checked against the `tables` list to determine if it is a table or a query.
-       - limit: the maximum number of rows to return.
+         If supplied as `Text`, the name is checked against the `tables` list to
+         determine if it is a table or a query.
+       - limit: the maximum number of rows to read.
+         If set to `Nothing`, all rows will be returned.
+       - warn_if_more_rows: if set to `True`, a warning is attached to the
+         result if the number of rows returned by the query exceeds `limit`.
 
        ? Side Effects
 
@@ -262,9 +266,9 @@ type Connection
          `execute_update` for DML queries, or if they are supposed to return
          results, the `read` should be wrapped in an execution context check.
     @query make_table_name_selector
-    read : Text | SQL_Query -> Integer | Nothing -> Materialized_Table ! Table_Not_Found
-    read self query limit=Nothing =
-        self.query query . read max_rows=limit
+    read : Text | SQL_Query -> Integer | Nothing -> Boolean -> Materialized_Table ! Table_Not_Found
+    read self query (limit : Integer | Nothing = 1000) (warn_if_more_rows : Boolean = True) =
+        self.query query . read max_rows=limit warn_if_more_rows=warn_if_more_rows
 
     ## PRIVATE
        Creates a new empty table in the database and returns a query referencing
@@ -355,7 +359,6 @@ type Connection
         if Execution_Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "Executing update queries is forbidden as the Output context is disabled.") else
             statement_setter = self.dialect.get_statement_setter
             self.jdbc_connection.with_prepared_statement query statement_setter stmt->
-                stmt.toString.write "C:\Temp\MyQueries.sql" on_existing_file=Existing_File_Behavior.Append
                 result = case self.supports_large_update.get of
                     True -> Panic.catch UnsupportedOperationException stmt.executeLargeUpdate _->
                         self.supports_large_update.put False
@@ -422,7 +425,8 @@ type Connection
     column_naming_helper : Column_Naming_Helper
     column_naming_helper self =
         column_naming_properties = self.entity_naming_properties.for_column_names
-        Column_Naming_Helper.Value column_naming_properties
+        generated_column_naming_properties = self.entity_naming_properties.for_generated_column_names
+        Column_Naming_Helper.Value column_naming_properties generated_column_naming_properties
 
     ## PRIVATE
        Creates a Table reference that refers to a table with the given name.

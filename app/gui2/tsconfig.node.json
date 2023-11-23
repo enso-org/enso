@@ -5,14 +5,19 @@
     "vitest.config.*",
     "playwright.config.*",
     "eslint.config.js",
-    "ydoc-server/**/*",
-    "shared/**/*",
+    "histoire.config.ts",
     "e2e/**/*",
+    "parser-codegen/**/*",
     "node.env.d.ts"
   ],
   "compilerOptions": {
+    "baseUrl": ".",
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "types": ["node"]
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "verbatimModuleSyntax": true,
+    "outDir": "../../node_modules/.cache/tsc",
+    "types": ["node", "vitest/importMeta"]
   }
 }

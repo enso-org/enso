@@ -2,6 +2,7 @@ package org.enso.interpreter.node.expression.builtin.runtime;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleStackTrace;
+import com.oracle.truffle.api.dsl.NeverDefault;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
@@ -15,6 +16,12 @@ import org.enso.interpreter.runtime.error.PanicException;
     description = "Gets the current execution stacktrace.",
     autoRegister = false)
 public class GetStackTraceNode extends Node {
+
+  @NeverDefault
+  public static GetStackTraceNode create() {
+    return new GetStackTraceNode();
+  }
+
   EnsoObject execute(VirtualFrame requestOwnStackFrame) {
     var exception = new PanicException("Stacktrace", this);
     TruffleStackTrace.fillIn(exception);

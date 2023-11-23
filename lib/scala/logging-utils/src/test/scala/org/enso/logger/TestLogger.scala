@@ -1,8 +1,7 @@
 package org.enso.logger
 
 import org.slf4j.LoggerFactory
-import ch.qos.logback.classic.Logger
-import ch.qos.logback.classic.LoggerContext
+import ch.qos.logback.classic.{Level, Logger, LoggerContext}
 
 object TestLogger {
 
@@ -20,6 +19,7 @@ object TestLogger {
     appender.setContext(
       LoggerFactory.getILoggerFactory().asInstanceOf[LoggerContext]
     )
+    logger.setLevel(Level.WARN)
     logger.addAppender(appender)
     appender.start()
     val result = action

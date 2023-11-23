@@ -1,9 +1,10 @@
 import project.Data.Numbers.Integer
 import project.Data.Text.Text
-import project.Data.Time.Date_Time_Formatter.Date_Time_Format_Parse_Error
+import project.Data.Time.Errors.Date_Time_Format_Parse_Error
 import project.Data.Vector.Builder as Vector_Builder
 import project.Data.Vector.Vector
 import project.Error.Error
+import project.Errors.Illegal_State.Illegal_State
 import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Runtime.Ref.Ref
@@ -45,13 +46,13 @@ type Tokenizer
        recursion of variables defined inside of a method is not supported in
        Enso. So to achieve the mutual recursion, we instead define these as
        member methods.
-    Instance (original_text : Text) (chars : Vector Text) (tokens_builder : Vector_Builder Format_Token) (is_in_optional : Ref Boolean)
+    Instance (original_text : Text) (chars : Vector Text) (tokens_builder : Vector_Builder Format_Token) (optional_nesting : Ref Integer)
 
     ## PRIVATE
     new : Text -> Tokenizer
     new text =
         # Nothing is appended at the and as a guard to avoid checking for length.
-        Tokenizer.Instance text text.characters+[Nothing] Vector.new_builder (Ref.new False)
+        Tokenizer.Instance text text.characters+[Nothing] Vector.new_builder (Ref.new 0)
 
     ## PRIVATE
     finalize_token self current_token = case current_token of
@@ -59,9 +60,30 @@ type Tokenizer
         _ -> self.tokens_builder.append current_token
 
     ## PRIVATE
+       Checks if we are inside of an optional section.
+    is_in_optional : Boolean
+    is_in_optional self = self.optional_nesting.get > 0
+
+    ## PRIVATE
+    enter_optional_section : Nothing
+    enter_optional_section self =
+        i = self.optional_nesting.get
+        self.optional_nesting.put i+1
+        self.tokens_builder.append Format_Token.Optional_Section_Start
+
+    ## PRIVATE
+    exit_optional_section : Nothing
+    exit_optional_section self =
+        i = self.optional_nesting.get
+        if i <= 0 then
+            Panic.throw (Illegal_State.Error "Invariant violation: leaving optional section while not in one. This is a bug in the Tokenizer.")
+        self.optional_nesting.put i-1
+        self.tokens_builder.append Format_Token.Optional_Section_End
+
+    ## PRIVATE
     parse_normal self position current_token = case self.chars.at position of
         Nothing ->
-            if self.is_in_optional.get then
+            if self.is_in_optional then
                 Panic.throw (Date_Time_Format_Parse_Error.Error "Unterminated optional section within the pattern "+self.original_text.to_display_text)
             self.finalize_token current_token
             Nothing
@@ -69,18 +91,14 @@ type Tokenizer
             self.finalize_token current_token
             @Tail_Call self.parse_quoted position+1 ""
         "[" ->
-            if self.is_in_optional.get then
-                Panic.throw (Date_Time_Format_Parse_Error.Error "Nested optional sections are not allowed (at position "+position.to_text+" in pattern "+self.original_text.to_display_text+").")
             self.finalize_token current_token
-            self.tokens_builder.append Format_Token.Optional_Section_Start
-            self.is_in_optional.put True
+            self.enter_optional_section
             @Tail_Call self.parse_normal position+1 Nothing
         "]" ->
-            if self.is_in_optional.get.not then
+            if self.is_in_optional.not then
                 Panic.throw (Date_Time_Format_Parse_Error.Error "Unmatched closing bracket ] (at position "+position.to_text+" in pattern "+self.original_text.to_display_text+").")
             self.finalize_token current_token
-            self.tokens_builder.append Format_Token.Optional_Section_End
-            self.is_in_optional.put False
+            self.exit_optional_section
             @Tail_Call self.parse_normal position+1 Nothing
         "{" ->
             self.finalize_token current_token

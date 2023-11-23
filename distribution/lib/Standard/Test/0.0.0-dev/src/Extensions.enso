@@ -509,6 +509,64 @@ Error.should_contain_the_same_elements_as self that frames_to_skip=0 =
     _ = [that]
     Test.fail_match_on_unexpected_error self 1+frames_to_skip
 
+## Asserts that `self` value contains only elements in `that`.
+
+   It checks that all elements from `self` are also present in `that`. It does
+   not require that all elements of `that` are contained in `self`. Arities of
+   elements are not checked, so `self` may still contain more elements than 
+   `that` by containing duplicates.
+
+   It will work on any collection which supports the methods
+   `each : (Any -> Nothing) -> Any` and `contains : Any -> Boolean`.
+
+   Arguments:
+   - that: The collection to compare.
+   - frames_to_skip (optional, advanced): used to alter the location which is
+     displayed as the source of this error.
+
+   > Example
+     Assert that one vector should contain only elements in another.
+
+         import Standard.Examples
+         from Standard.Test import Test
+
+         example_should_equal = [1, 2] . should_only_contain_elements_in  [1, 2, 3, 4]
+Any.should_only_contain_elements_in : Any -> Integer -> Test_Result
+Any.should_only_contain_elements_in self that frames_to_skip=0 =
+    loc = Meta.get_source_location 1+frames_to_skip
+    self.each element->
+        if that.contains element . not then
+            msg = "The collection contained an element ("+element.to_text+") which was not expected (at " + loc + ")."
+            Test.fail msg
+    Test_Result.Success
+
+## Asserts that `self` value contains only elements in `that`.
+
+   It checks that all elements from `self` are also present in `that`. It does
+   not require that all elements of `that` are contained in `self`. Arities of
+   elements are not checked, so the collections can still differ in length by
+   containing duplicate elements.
+
+   It will work on any collection which supports the methods
+   `each : (Any -> Nothing) -> Any` and `contains : Any -> Boolean`.
+
+   Arguments:
+   - that: The collection to compare.
+   - frames_to_skip (optional, advanced): used to alter the location which is
+     displayed as the source of this error.
+
+   > Example
+     Assert that one vector should contain only elements in another.
+
+         import Standard.Examples
+         from Standard.Test import Test
+
+         example_should_equal = [1, 2] . should_only_contain_elements_in  [1, 2, 3, 4]
+Error.should_only_contain_elements_in  : Any -> Integer -> Test_Result
+Error.should_only_contain_elements_in self that frames_to_skip=0 =
+    _ = [that]
+    Test.fail_match_on_unexpected_error self 1+frames_to_skip
+
 ## Asserts that `self` value contains an element.
 
    Arguments:

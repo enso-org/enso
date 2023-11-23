@@ -13,7 +13,7 @@ use crate::binary::API;
 
 #[allow(missing_docs)]
 #[derive(Fail, Debug)]
-#[fail(display = "Failed to initialize language server binary connection: {}.", _0)]
+#[fail(display = "Failed to initialize language server binary connection: {}", _0)]
 pub struct FailedToInitializeProtocol(failure::Error);
 
 

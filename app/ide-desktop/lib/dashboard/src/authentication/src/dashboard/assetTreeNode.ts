@@ -9,11 +9,16 @@ import * as backendModule from './backend'
 
 /** A node in the drive's item tree. */
 export interface AssetTreeNode {
-    /** The original id of the asset (the placeholder id for new assets). This must never change. */
+    /** The id of the asset (or the placeholder id for new assets). This must never change. */
     key: backendModule.AssetId
     /** The actual asset. This MAY change if this is initially a placeholder item, but rows MAY
      * keep updated values within the row itself as well. */
     item: backendModule.AnyAsset
+    /** The id of the asset's parent directory (or the placeholder id for new assets).
+     * This must never change. */
+    directoryKey: backendModule.AssetId | null
+    /** The actual id of the asset's parent directory (or the placeholder id for new assets). */
+    directoryId: backendModule.DirectoryId | null
     /** This is `null` if the asset is not a directory asset, OR if it is a collapsed directory
      * asset. */
     children: AssetTreeNode[] | null
@@ -113,11 +118,15 @@ export function assetTreePreorderTraversal(
 /** Creates an {@link AssetTreeNode} from a {@link backendModule.AnyAsset}. */
 export function assetTreeNodeFromAsset(
     asset: backendModule.AnyAsset,
+    directoryKey: backendModule.AssetId | null,
+    directoryId: backendModule.DirectoryId | null,
     depth: number
 ): AssetTreeNode {
     return {
         key: asset.id,
         item: asset,
+        directoryKey,
+        directoryId,
         children: null,
         depth,
     }

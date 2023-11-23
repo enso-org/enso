@@ -2,8 +2,12 @@ package org.enso.compiler.core.ir
 package expression
 package errors
 
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{randomId, Identifier}
+import com.oracle.truffle.api.source.Source
+import org.enso.compiler.core.Implicits.ShowPassData
+import org.enso.compiler.core.{IR, Identifier}
+import org.enso.compiler.core.IR.randomId
+
+import java.util.UUID
 
 /** Errors pertaining to the redefinition of language constructs that are
   * not allowed to be.
@@ -11,7 +15,9 @@ import org.enso.compiler.core.IR.{randomId, Identifier}
 sealed trait Redefined extends Error {
 
   /** @inheritdoc */
-  override def mapExpressions(fn: Expression => Expression): Redefined
+  override def mapExpressions(
+    fn: java.util.function.Function[Expression, Expression]
+  ): Redefined
 
   /** @inheritdoc */
   override def setLocation(location: Option[IdentifiedLocation]): Redefined
@@ -41,7 +47,7 @@ object Redefined {
   ) extends Redefined
       with Diagnostic.Kind.Interactive
       with IRKind.Primitive {
-    override protected var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `self`.
       *
@@ -55,7 +61,7 @@ object Redefined {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): SelfArg = {
       val res = SelfArg(location, passData, diagnostics)
       res.id = id
@@ -83,11 +89,13 @@ object Redefined {
     ): SelfArg = copy(location = location)
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): SelfArg =
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): SelfArg =
       this
 
     /** @inheritdoc */
-    override def message: String =
+    override def message(source: Source): String =
       "Methods must have only one definition of the `this` argument, and " +
       "it must be the first."
 
@@ -101,7 +109,7 @@ object Redefined {
   }
 
   /** An error representing the redefinition of a conversion in a given
-    * module. This is also known as a method overload.
+    * module
     *
     * @param targetType  the name of the atom the conversion was being
     *                    redefined on
@@ -121,7 +129,7 @@ object Redefined {
       with Diagnostic.Kind.Interactive
       with module.scope.Definition
       with IRKind.Primitive {
-    override protected var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -141,7 +149,7 @@ object Redefined {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Conversion = {
       val res =
         Conversion(targetType, sourceType, location, passData, diagnostics)
@@ -186,8 +194,8 @@ object Redefined {
       copy(location = location)
 
     /** @inheritdoc */
-    override def message: String =
-      s"Method overloads are not supported: ${targetType.map(_.name + ".").getOrElse("")}from " +
+    override def message(source: Source): String =
+      s"Ambiguous conversion: ${targetType.map(_.name + ".").getOrElse("")}from " +
       s"${sourceType.showCode()} is defined multiple times in this module."
 
     override def diagnosticKeys(): Array[Any] = targetType
@@ -196,7 +204,9 @@ object Redefined {
       .toArray
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Conversion =
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Conversion =
       this
 
     /** @inheritdoc */
@@ -220,7 +230,7 @@ object Redefined {
 
     /** @inheritdoc */
     override def showCode(indent: Int): String =
-      s"(Redefined (Conversion ${targetType.map(_.showCode() + ".").getOrElse("")}from $sourceType))"
+      s"(Redefined (Conversion ${targetType.map(_.showCode() + ".").getOrElse("")}from ${sourceType.showCode()}))"
   }
 
   /** An error representing the redefinition of a method in a given module.
@@ -243,7 +253,7 @@ object Redefined {
       with Diagnostic.Kind.Interactive
       with module.scope.Definition
       with IRKind.Primitive {
-    override protected var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -262,7 +272,7 @@ object Redefined {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Method = {
       val res =
         Method(atomName, methodName, location, passData, diagnostics)
@@ -305,7 +315,7 @@ object Redefined {
       copy(location = location)
 
     /** @inheritdoc */
-    override def message: String =
+    override def message(source: Source): String =
       s"Method overloads are not supported: ${atomName.map(_.name + ".").getOrElse("")}" +
       s"${methodName.name} is defined multiple times in this module."
 
@@ -317,7 +327,9 @@ object Redefined {
     }
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Method = this
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Method = this
 
     /** @inheritdoc */
     override def toString: String =
@@ -364,7 +376,7 @@ object Redefined {
       with Diagnostic.Kind.Interactive
       with module.scope.Definition
       with IRKind.Primitive {
-    override protected var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -383,7 +395,7 @@ object Redefined {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): MethodClashWithAtom = {
       val res = MethodClashWithAtom(
         atomName,
@@ -431,7 +443,7 @@ object Redefined {
       copy(location = location)
 
     /** @inheritdoc */
-    override def message: String =
+    override def message(source: Source): String =
       s"Method definitions with the same name as atoms are not supported. " +
       s"Method ${methodName.name} clashes with the atom ${atomName.name} in this module."
 
@@ -440,7 +452,7 @@ object Redefined {
 
     /** @inheritdoc */
     override def mapExpressions(
-      fn: Expression => Expression
+      fn: java.util.function.Function[Expression, Expression]
     ): MethodClashWithAtom =
       this
 
@@ -482,7 +494,7 @@ object Redefined {
       with Diagnostic.Kind.Interactive
       with module.scope.Definition
       with IRKind.Primitive {
-    override protected var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -500,7 +512,7 @@ object Redefined {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Type = {
       val res =
         Type(atomName, location, passData, diagnostics)
@@ -534,14 +546,16 @@ object Redefined {
       copy(location = location)
 
     /** @inheritdoc */
-    override def message: String =
+    override def message(source: Source): String =
       s"Redefining atoms is not supported: ${typeName.name} is " +
       s"defined multiple times in this module."
 
     override def diagnosticKeys(): Array[Any] = Array(typeName.name)
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Type = this
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Type = this
 
     /** @inheritdoc */
     override def toString: String =
@@ -579,7 +593,7 @@ object Redefined {
   ) extends Redefined
       with Diagnostic.Kind.Interactive
       with IRKind.Primitive {
-    override protected var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -593,7 +607,7 @@ object Redefined {
       invalidBinding: Expression.Binding = invalidBinding,
       passData: MetadataStorage          = passData,
       diagnostics: DiagnosticStorage     = diagnostics,
-      id: Identifier                     = id
+      id: UUID @Identifier               = id
     ): Binding = {
       val res = Binding(invalidBinding, passData, diagnostics)
       res.id = id
@@ -631,7 +645,9 @@ object Redefined {
       invalidBinding.location
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Binding =
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Binding =
       this
 
     /** @inheritdoc */
@@ -650,7 +666,7 @@ object Redefined {
     override def children: List[IR] = List(invalidBinding)
 
     /** @inheritdoc */
-    override def message: String =
+    override def message(source: Source): String =
       s"Variable ${invalidBinding.name.name} is being redefined."
 
     override def diagnosticKeys(): Array[Any] = Array(

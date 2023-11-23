@@ -16,7 +16,7 @@ import electronIsDev from 'electron-is-dev'
 import * as common from 'enso-common'
 import * as contentConfig from 'enso-content-config'
 
-import * as clientConfig from './config'
+import type * as clientConfig from './config'
 import * as fileAssociations from '../file-associations'
 import * as project from './project-management'
 

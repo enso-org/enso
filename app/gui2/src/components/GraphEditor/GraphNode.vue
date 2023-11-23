@@ -1,0 +1,438 @@
+<script setup lang="ts">
+import { nodeEditBindings } from '@/bindings'
+import CircularMenu from '@/components/CircularMenu.vue'
+import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
+import NodeWidgetTree from '@/components/GraphEditor/NodeWidgetTree.vue'
+import SvgIcon from '@/components/SvgIcon.vue'
+import { injectGraphSelection } from '@/providers/graphSelection'
+import { useGraphStore, type Node } from '@/stores/graph'
+import { useApproach } from '@/util/animation'
+import { usePointer, useResizeObserver } from '@/util/events'
+import { mapOldIconName, typeNameToIcon } from '@/util/getIconName'
+import type { Opt } from '@/util/opt'
+import { Rect } from '@/util/rect'
+import { Vec2 } from '@/util/vec2'
+import type { ContentRange, VisualizationIdentifier } from 'shared/yjsModel'
+import { computed, ref, watch, watchEffect } from 'vue'
+
+const MAXIMUM_CLICK_LENGTH_MS = 300
+const MAXIMUM_CLICK_DISTANCE_SQ = 50
+
+const props = defineProps<{
+  node: Node
+  edited: boolean
+}>()
+
+const emit = defineEmits<{
+  updateRect: [rect: Rect]
+  updateContent: [updates: [range: ContentRange, content: string][]]
+  dragging: [offset: Vec2]
+  draggingCommited: []
+  setVisualizationId: [id: Opt<VisualizationIdentifier>]
+  setVisualizationVisible: [visible: boolean]
+  delete: []
+  replaceSelection: []
+  'update:selected': [selected: boolean]
+  outputPortAction: []
+  'update:edited': [cursorPosition: number]
+}>()
+
+const nodeSelection = injectGraphSelection(true)
+const graph = useGraphStore()
+const isSourceOfDraggedEdge = computed(
+  () => graph.unconnectedEdge?.source === props.node.rootSpan.astId,
+)
+
+const nodeId = computed(() => props.node.rootSpan.astId)
+const rootNode = ref<HTMLElement>()
+const nodeSize = useResizeObserver(rootNode)
+const menuVisible = ref(false)
+
+const isSelected = computed(() => nodeSelection?.isSelected(nodeId.value) ?? false)
+watch(isSelected, (selected) => {
+  menuVisible.value = menuVisible.value && selected
+})
+
+const isAutoEvaluationDisabled = ref(false)
+const isDocsVisible = ref(false)
+const isVisualizationVisible = computed(() => props.node.vis?.visible ?? false)
+
+watchEffect(() => {
+  const size = nodeSize.value
+  if (!size.isZero()) {
+    emit('updateRect', new Rect(props.node.position, nodeSize.value))
+  }
+})
+
+const outputHovered = ref(false)
+const hoverAnimation = useApproach(
+  () => (outputHovered.value || isSourceOfDraggedEdge.value ? 1 : 0),
+  50,
+  0.01,
+)
+
+const bgStyleVariables = computed(() => {
+  return {
+    '--node-width': `${nodeSize.value.x}px`,
+    '--node-height': `${nodeSize.value.y}px`,
+    '--hover-animation': `${hoverAnimation.value}`,
+  }
+})
+
+const transform = computed(() => {
+  let pos = props.node.position
+  return `translate(${pos.x}px, ${pos.y}px)`
+})
+
+const startEpochMs = ref(0)
+let startEvent: PointerEvent | null = null
+let startPos = Vec2.Zero
+
+const dragPointer = usePointer((pos, event, type) => {
+  if (type !== 'start') {
+    const fullOffset = pos.absolute.sub(startPos)
+    emit('dragging', fullOffset)
+  }
+  switch (type) {
+    case 'start': {
+      startEpochMs.value = Number(new Date())
+      startEvent = event
+      startPos = pos.absolute
+      event.stopImmediatePropagation()
+      break
+    }
+    case 'stop': {
+      if (
+        Number(new Date()) - startEpochMs.value <= MAXIMUM_CLICK_LENGTH_MS &&
+        startEvent != null &&
+        pos.absolute.distanceSquared(startPos) <= MAXIMUM_CLICK_DISTANCE_SQ
+      ) {
+        nodeSelection?.handleSelectionOf(startEvent, new Set([nodeId.value]))
+        menuVisible.value = true
+      }
+      startEvent = null
+      startEpochMs.value = 0
+      emit('draggingCommited')
+    }
+  }
+})
+
+const expressionInfo = computed(() => graph.db.getExpressionInfo(nodeId.value))
+const outputTypeName = computed(() => expressionInfo.value?.typename ?? 'Unknown')
+const executionState = computed(() => expressionInfo.value?.payload.type ?? 'Unknown')
+const suggestionEntry = computed(() => graph.db.nodeMainSuggestion.lookup(nodeId.value))
+const color = computed(() => graph.db.getNodeColorStyle(nodeId.value))
+const icon = computed(() => {
+  if (suggestionEntry.value?.iconName) {
+    return mapOldIconName(suggestionEntry.value.iconName)
+  }
+
+  const methodName = expressionInfo.value?.methodCall?.methodPointer.name
+  if (methodName == null && outputTypeName.value != null) {
+    return typeNameToIcon(outputTypeName.value)
+  } else {
+    return 'enso_logo'
+  }
+})
+
+const nodeEditHandler = nodeEditBindings.handler({
+  cancel(e) {
+    if (e.target instanceof HTMLElement) {
+      e.target.blur()
+    }
+  },
+  edit(e) {
+    const pos = 'clientX' in e ? new Vec2(e.clientX, e.clientY) : undefined
+    startEditingNode(pos)
+  },
+})
+
+function startEditingNode(position: Vec2 | undefined) {
+  let sourceOffset = 0
+  if (position != null) {
+    let domNode, domOffset
+    if ((document as any).caretPositionFromPoint) {
+      const caret = document.caretPositionFromPoint(position.x, position.y)
+      domNode = caret?.offsetNode
+      domOffset = caret?.offset
+    } else if (document.caretRangeFromPoint) {
+      const caret = document.caretRangeFromPoint(position.x, position.y)
+      domNode = caret?.startContainer
+      domOffset = caret?.startOffset
+    } else {
+      console.error(
+        'Neither caretPositionFromPoint nor caretRangeFromPoint are supported by this browser',
+      )
+    }
+    if (domNode != null && domOffset != null) {
+      sourceOffset = getRelatedSpanOffset(domNode, domOffset)
+    }
+  }
+
+  emit('update:edited', sourceOffset)
+}
+
+function getRelatedSpanOffset(domNode: globalThis.Node, domOffset: number): number {
+  if (domNode instanceof HTMLElement && domOffset == 1) {
+    const offsetData = domNode.dataset.spanStart
+    const offset = (offsetData != null && parseInt(offsetData)) || 0
+    const length = domNode.textContent?.length ?? 0
+    return offset + length
+  } else if (domNode instanceof Text) {
+    const siblingEl = domNode.previousElementSibling
+    if (siblingEl instanceof HTMLElement) {
+      const offsetData = siblingEl.dataset.spanStart
+      if (offsetData != null)
+        return parseInt(offsetData) + domOffset + (siblingEl.textContent?.length ?? 0)
+    }
+    const offsetData = domNode.parentElement?.dataset.spanStart
+    if (offsetData != null) return parseInt(offsetData) + domOffset
+  }
+  return 0
+}
+</script>
+
+<template>
+  <div
+    ref="rootNode"
+    class="GraphNode"
+    :style="{
+      transform,
+      '--node-group-color': color,
+    }"
+    :class="{
+      edited: props.edited,
+      dragging: dragPointer.dragging,
+      selected: nodeSelection?.isSelected(nodeId),
+      visualizationVisible: isVisualizationVisible,
+      ['executionState-' + executionState]: true,
+    }"
+  >
+    <div class="selection" v-on="dragPointer.events"></div>
+    <div class="binding" @pointerdown.stop>
+      {{ node.pattern?.repr() ?? '' }}
+    </div>
+    <CircularMenu
+      v-if="menuVisible"
+      v-model:isAutoEvaluationDisabled="isAutoEvaluationDisabled"
+      v-model:isDocsVisible="isDocsVisible"
+      :isVisualizationVisible="isVisualizationVisible"
+      @update:isVisualizationVisible="emit('setVisualizationVisible', $event)"
+    />
+    <GraphVisualization
+      v-if="isVisualizationVisible"
+      :nodeSize="nodeSize"
+      :isCircularMenuVisible="menuVisible"
+      :currentType="props.node.vis"
+      :expressionId="props.node.rootSpan.astId"
+      :typename="expressionInfo?.typename"
+      @setVisualizationId="emit('setVisualizationId', $event)"
+      @setVisualizationVisible="emit('setVisualizationVisible', $event)"
+    />
+    <div
+      class="node"
+      @pointerdown.capture="nodeEditHandler"
+      @keydown="nodeEditHandler"
+      v-on="dragPointer.events"
+    >
+      <SvgIcon class="icon grab-handle" :name="icon"></SvgIcon>
+      <NodeWidgetTree :ast="node.rootSpan" />
+    </div>
+    <svg class="bgPaths" :style="bgStyleVariables">
+      <rect class="bgFill" />
+      <rect
+        class="outputPortHoverArea"
+        @pointerenter="outputHovered = true"
+        @pointerleave="outputHovered = false"
+        @pointerdown.stop.prevent="emit('outputPortAction')"
+      />
+      <rect class="outputPort" />
+      <text class="outputTypeName">{{ outputTypeName }}</text>
+    </svg>
+  </div>
+</template>
+
+<style scoped>
+.bgPaths {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  overflow: visible;
+  top: 0px;
+  left: 0px;
+  display: flex;
+
+  --output-port-max-width: 6px;
+  --output-port-overlap: 0.2px;
+  --output-port-hover-width: 8px;
+}
+.outputPort,
+.outputPortHoverArea {
+  x: calc(0px - var(--output-port-width) / 2);
+  y: calc(0px - var(--output-port-width) / 2);
+  width: calc(var(--node-width) + var(--output-port-width));
+  height: calc(var(--node-height) + var(--output-port-width));
+  rx: calc(var(--node-border-radius) + var(--output-port-width) / 2);
+
+  fill: none;
+  stroke: var(--node-color-port);
+  stroke-width: calc(var(--output-port-width) + var(--output-port-overlap));
+  transition: stroke 0.2s ease;
+  --horizontal-line: calc(var(--node-width) - var(--node-border-radius) * 2);
+  --vertical-line: calc(var(--node-height) - var(--node-border-radius) * 2);
+  --radius-arclength: calc(
+    (var(--node-border-radius) + var(--output-port-width) * 0.5) * 2 * 3.141592653589793
+  );
+
+  stroke-dasharray: calc(var(--horizontal-line) + var(--radius-arclength) * 0.5) 10000%;
+  stroke-dashoffset: calc(
+    0px - var(--horizontal-line) - var(--vertical-line) - var(--radius-arclength) * 0.25
+  );
+  stroke-linecap: round;
+}
+
+.outputPort {
+  --output-port-width: calc(
+    var(--output-port-max-width) * var(--hover-animation) - var(--output-port-overlap)
+  );
+  pointer-events: none;
+}
+
+.outputPortHoverArea {
+  --output-port-width: var(--output-port-hover-width);
+  stroke: transparent;
+  pointer-events: all;
+}
+
+.outputTypeName {
+  user-select: none;
+  pointer-events: none;
+  z-index: 10;
+  text-anchor: middle;
+  opacity: calc(var(--hover-animation) * var(--hover-animation));
+  fill: var(--node-color-primary);
+  transform: translate(50%, calc(var(--node-height) + var(--output-port-max-width) + 16px));
+}
+
+.bgFill {
+  width: var(--node-width);
+  height: var(--node-height);
+  rx: var(--node-border-radius);
+
+  fill: var(--node-color-primary);
+  transition: fill 0.2s ease;
+}
+
+.GraphNode {
+  --node-height: 32px;
+  --node-border-radius: 16px;
+
+  --node-color-primary: color-mix(
+    in oklab,
+    var(--node-group-color) 100%,
+    var(--node-group-color) 0%
+  );
+  --node-color-port: color-mix(in oklab, var(--node-color-primary) 85%, white 15%);
+  --node-color-error: color-mix(in oklab, var(--node-group-color) 30%, rgb(255, 0, 0) 70%);
+
+  &.executionState-Unknown,
+  &.executionState-Pending {
+    --node-color-primary: color-mix(in oklab, var(--node-group-color) 60%, #aaa 40%);
+  }
+
+  position: absolute;
+  border-radius: var(--node-border-radius);
+  transition: box-shadow 0.2s ease-in-out;
+  ::selection {
+    background-color: rgba(255, 255, 255, 20%);
+  }
+}
+
+.GraphNode.edited {
+  display: none;
+}
+
+.node {
+  position: relative;
+  top: 0;
+  left: 0;
+  caret-shape: bar;
+  height: var(--node-height);
+  border-radius: var(--node-border-radius);
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  white-space: nowrap;
+  padding: 4px;
+  z-index: 2;
+  transition: outline 0.2s ease;
+  outline: 0px solid transparent;
+}
+
+.GraphNode .selection {
+  position: absolute;
+  inset: calc(0px - var(--selected-node-border-width));
+  --node-current-selection-width: 0px;
+
+  &:before {
+    content: '';
+    opacity: 0;
+    position: absolute;
+    border-radius: var(--node-border-radius);
+    display: block;
+    inset: var(--selected-node-border-width);
+    box-shadow: 0 0 0 var(--node-current-selection-width) var(--node-color-primary);
+
+    transition:
+      box-shadow 0.2s ease-in-out,
+      opacity 0.2s ease-in-out;
+  }
+}
+
+.GraphNode:is(:hover, .selected) .selection:before,
+.GraphNode .selection:hover:before {
+  --node-current-selection-width: var(--selected-node-border-width);
+}
+
+.GraphNode .selection:hover:before {
+  opacity: 0.15;
+}
+.GraphNode.selected .selection:before {
+  opacity: 0.2;
+}
+
+.GraphNode.selected .selection:hover:before {
+  opacity: 0.3;
+}
+.binding {
+  user-select: none;
+  margin-right: 10px;
+  color: black;
+  position: absolute;
+  right: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.GraphNode .selection:hover + .binding,
+.GraphNode.selected .binding {
+  opacity: 1;
+}
+
+.container {
+  position: relative;
+  display: flex;
+  gap: 4px;
+}
+
+.grab-handle {
+  color: white;
+  margin: 0 4px;
+}
+
+.CircularMenu {
+  z-index: 1;
+}
+</style>

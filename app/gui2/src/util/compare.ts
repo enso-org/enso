@@ -1,4 +1,4 @@
-import { isNone, isSome, type Opt } from './opt'
+import { isNone, isSome, type Opt } from '@/util/opt'
 
 /**
  * Compare two optional numbers. Returns a comparision result like specified for `sort`

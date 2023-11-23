@@ -137,10 +137,10 @@ impl<'s> ExpressionBuilder<'s> {
     pub fn operand(&mut self, operand: Operand<syntax::Tree<'s>>) {
         if self.prev_type == Some(ItemType::Ast) {
             if let Some(Operand { value: syntax::Tree { variant: box
-                    syntax::tree::Variant::TextLiteral(ref mut lhs), .. }, .. }) = self.output.last_mut()
+                    syntax::tree::Variant::TextLiteral(ref mut lhs), span: lhs_span }, .. }) = self.output.last_mut()
                     && !lhs.closed
                     && let box syntax::tree::Variant::TextLiteral(mut rhs) = operand.value.variant {
-                syntax::tree::join_text_literals(lhs, &mut rhs, operand.value.span);
+                syntax::tree::join_text_literals(lhs, &mut rhs, lhs_span, operand.value.span);
                 if let syntax::tree::TextLiteral { open: Some(open), newline: None, elements, closed: true, close: None } = lhs
                     && open.code.starts_with('#') {
                     let elements = mem::take(elements);

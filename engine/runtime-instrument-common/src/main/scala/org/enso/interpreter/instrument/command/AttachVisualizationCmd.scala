@@ -15,41 +15,20 @@ import scala.concurrent.{ExecutionContext, Future}
 class AttachVisualizationCmd(
   maybeRequestId: Option[Api.RequestId],
   request: Api.AttachVisualization
-) extends AsynchronousCommand(maybeRequestId) {
+) extends ContextCmd(
+      request.visualizationConfig.executionContextId,
+      maybeRequestId
+    ) {
 
-  /** @inheritdoc */
-  override def executeAsynchronously(implicit
+  override protected def executeCmd()(implicit
     ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] = {
-    val logger        = ctx.executionService.getLogger
-    val contextId     = request.visualizationConfig.executionContextId
-    val lockTimestamp = ctx.locking.acquireContextLock(contextId)
-    try {
-      if (doesContextExist) {
-        attachVisualization()
-      } else {
-        replyWithContextNotExistError()
-      }
-    } finally {
-      ctx.locking.releaseContextLock(contextId)
-      logger.log(
-        Level.FINEST,
-        s"Kept context lock [AttachVisualizationCmd] for ${System.currentTimeMillis() - lockTimestamp} milliseconds"
-      )
-    }
-  }
-
-  private def doesContextExist(implicit ctx: RuntimeContext): Boolean = {
-    ctx.contextManager.contains(
-      request.visualizationConfig.executionContextId
+    ctx.executionService.getLogger.log(
+      Level.FINE,
+      "Attach visualization cmd for request id [{}] and visualization id [{}]",
+      Array(maybeRequestId, request.visualizationId)
     )
-  }
-
-  private def attachVisualization()(implicit
-    ctx: RuntimeContext,
-    ec: ExecutionContext
-  ): Future[Unit] = {
     ctx.endpoint.sendToClient(
       Api.Response(maybeRequestId, Api.VisualizationAttached())
     )
@@ -66,17 +45,6 @@ class AttachVisualizationCmd(
     maybeFutureExecutable.flatMap {
       case None             => Future.successful(())
       case Some(executable) => ctx.jobProcessor.run(ExecuteJob(executable))
-    }
-  }
-
-  private def replyWithContextNotExistError()(implicit
-    ctx: RuntimeContext,
-    ec: ExecutionContext
-  ): Future[Unit] = {
-    Future {
-      reply(
-        Api.ContextNotExistError(request.visualizationConfig.executionContextId)
-      )
     }
   }
 

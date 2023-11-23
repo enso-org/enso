@@ -10,6 +10,7 @@ import project.Semantic.Deep_Export.Spec as Deep_Export_Spec
 import project.Semantic.Error_Spec
 import project.Semantic.Import_Loop.Spec as Import_Loop_Spec
 import project.Semantic.Meta_Spec
+import project.Semantic.Instrumentor_Spec
 import project.Semantic.Meta_Location_Spec
 import project.Semantic.Names_Spec
 import project.Semantic.Equals_Spec
@@ -33,8 +34,6 @@ import project.Data.List_Spec
 import project.Data.Locale_Spec
 import project.Data.Map_Spec
 import project.Data.Maybe_Spec
-import project.Data.Noise.Generator_Spec as Noise_Generator_Spec
-import project.Data.Noise_Spec
 import project.Data.Numbers_Spec
 import project.Data.Ordering_Spec
 import project.Data.Ordering.Comparator_Spec
@@ -56,6 +55,7 @@ import project.Data.Text.Parse_Spec
 import project.Data.Text.Regex_Spec
 import project.Data.Text.Span_Spec
 import project.Data.Text.Utils_Spec
+import project.Data.XML.XML_Spec
 
 import project.Data.Vector.Slicing_Helpers_Spec
 
@@ -65,9 +65,11 @@ import project.Network.Http_Spec
 import project.Network.URI_Spec
 
 import project.Runtime.Ascribed_Parameters_Spec
+import project.Runtime.Asserts_Spec
 import project.Runtime.Lazy_Spec
 import project.Runtime.Lazy_Generator_Spec
 import project.Runtime.Managed_Resource_Spec
+import project.Runtime.Missing_Required_Arguments_Spec
 import project.Runtime.Ref_Spec
 import project.Runtime.State_Spec
 import project.Runtime.Stack_Traces_Spec
@@ -112,11 +114,10 @@ main = Test_Suite.run_main <|
     Set_Spec.spec
     Maybe_Spec.spec
     Meta_Spec.spec
+    Instrumentor_Spec.spec
     Meta_Location_Spec.spec
     Names_Spec.spec
     Equals_Spec.spec
-    Noise_Generator_Spec.spec
-    Noise_Spec.spec
     Numbers_Spec.spec
     Ordering_Spec.spec
     Comparator_Spec.spec
@@ -132,6 +133,7 @@ main = Test_Suite.run_main <|
     Ref_Spec.spec
     Regex_Spec.spec
     Ascribed_Parameters_Spec.spec
+    Asserts_Spec.spec
     Lazy_Spec.spec
     Runtime_Spec.spec
     Self_Type_Spec.spec
@@ -140,6 +142,7 @@ main = Test_Suite.run_main <|
     Encoding_Spec.spec
     Text_Sub_Range_Spec.spec
     Managed_Resource_Spec.spec
+    Missing_Required_Arguments_Spec.spec
     Lazy_Generator_Spec.spec
     Stack_Traces_Spec.spec
     Utils_Spec.spec
@@ -153,3 +156,4 @@ main = Test_Suite.run_main <|
     Warnings_Spec.spec
     System_Spec.spec
     Random_Spec.spec
+    XML_Spec.spec

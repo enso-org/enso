@@ -48,7 +48,11 @@ export interface PageSwitcherProps {
 export default function PageSwitcher(props: PageSwitcherProps) {
     const { page, setPage, isEditorDisabled } = props
     return (
-        <div className="flex items-center shrink-0 gap-4">
+        <div
+            className={`flex items-center rounded-full shrink-0 gap-4 ${
+                page === Page.editor ? 'bg-frame backdrop-blur-3xl px-3 -mx-3' : ''
+            }`}
+        >
             {PAGE_DATA.map(pageData => {
                 const isDisabled =
                     pageData.page === page || (pageData.page === Page.editor && isEditorDisabled)

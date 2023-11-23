@@ -13,6 +13,8 @@ class PluginManagerSpec
     with OptionValues
     with WithTemporaryDirectory {
 
+  val extraJVMProps = Map("ENSO_LOG_TO_FILE" -> "false")
+
   def makePluginCode(name: String): Seq[String] =
     Seq(s"""echo Plugin $name.""")
 
@@ -45,7 +47,7 @@ class PluginManagerSpec
       writePlugin(path, "plugin2")
       writePlugin(path, "plugin3", prefixed = false)
 
-      val run = runLauncherWithPath(Seq("help"), path.toString)
+      val run = runLauncherWithPath(Seq("help"), path.toString, extraJVMProps)
       run should returnSuccess
       run.stdout should include("Plugin plugin1.")
       run.stdout should include("Plugin plugin2.")
@@ -56,7 +58,8 @@ class PluginManagerSpec
       val path = getTestDirectory.toAbsolutePath
       writePlugin(path, "plugin1")
 
-      val run = runLauncherWithPath(Seq("plugin1"), path.toString)
+      val run =
+        runLauncherWithPath(Seq("plugin1"), path.toString, extraJVMProps)
       run should returnSuccess
       run.stdout.trim shouldEqual "Plugin plugin1."
     }
@@ -64,7 +67,8 @@ class PluginManagerSpec
     "suggest similar plugin name on typo" in {
       val path = getTestDirectory.toAbsolutePath
       writePlugin(path, "plugin1")
-      val run = runLauncherWithPath(Seq("plugin2"), path.toString)
+      val run =
+        runLauncherWithPath(Seq("plugin2"), path.toString, extraJVMProps)
       run.exitCode should not equal 0
       run.stdout should include("plugin1")
     }

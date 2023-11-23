@@ -102,7 +102,7 @@ public final class ObjectComparator implements Comparator<Object> {
 
     // Booleans
     if (thisValue instanceof Boolean thisBool && thatValue instanceof Boolean thatBool) {
-      if (thisBool == thatBool) {
+      if (thisBool.booleanValue() == thatBool.booleanValue()) {
         return 0;
       }
       return thisBool ? 1 : -1;

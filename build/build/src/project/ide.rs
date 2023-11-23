@@ -4,6 +4,7 @@ use crate::project::gui::ide_desktop_from_context;
 use crate::project::gui::GuiBuildWithWatchedWasm;
 use crate::project::Context;
 use crate::project::Gui;
+use crate::project::IsArtifact;
 use crate::source::WatchTargetJob;
 
 use ide_ci::actions::artifacts::upload_compressed_directory;
@@ -25,7 +26,7 @@ pub struct Artifact {
 }
 
 impl Artifact {
-    fn new(
+    pub fn new(
         target_os: OS,
         target_arch: Arch,
         version: &Version,
@@ -60,12 +61,14 @@ impl Artifact {
         }
     }
 
-    pub async fn upload_as_ci_artifact(&self) -> Result {
+    pub async fn upload_as_ci_artifact(&self, prefix: impl AsRef<str>) -> Result {
         if is_in_env() {
-            upload_compressed_directory(&self.unpacked, format!("ide-unpacked-{TARGET_OS}"))
+            let prefix = prefix.as_ref();
+            upload_compressed_directory(&self.unpacked, format!("{prefix}-unpacked-{TARGET_OS}"))
                 .await?;
-            upload_single_file(&self.image, format!("ide-{TARGET_OS}")).await?;
-            upload_single_file(&self.image_checksum, format!("ide-{TARGET_OS}")).await?;
+            let packed_artifact_name = format!("{prefix}-{TARGET_OS}");
+            upload_single_file(&self.image, &packed_artifact_name).await?;
+            upload_single_file(&self.image_checksum, &packed_artifact_name).await?;
         } else {
             info!("Not in the CI environment, will not upload the artifacts.")
         }
@@ -91,14 +94,16 @@ impl Artifact {
 
 #[derive(derivative::Derivative)]
 #[derivative(Debug)]
-pub struct BuildInput {
+pub struct BuildInput<GuiArtifact> {
     #[derivative(Debug(format_with = "std::fmt::Display::fmt"))]
     pub version:         Version,
     #[derivative(Debug = "ignore")]
     pub project_manager: BoxFuture<'static, Result<crate::project::backend::Artifact>>,
     #[derivative(Debug = "ignore")]
-    pub gui:             BoxFuture<'static, Result<crate::project::gui::Artifact>>,
+    pub gui:             BoxFuture<'static, Result<GuiArtifact>>,
     pub electron_target: Option<String>,
+    /// The name base used to generate CI run artifact names.
+    pub artifact_name:   String,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -117,10 +122,10 @@ impl Ide {
     pub fn build(
         &self,
         context: &Context,
-        input: BuildInput,
+        input: BuildInput<impl IsArtifact>,
         output_path: impl AsRef<Path> + Send + Sync + 'static,
     ) -> BoxFuture<'static, Result<Artifact>> {
-        let BuildInput { version, project_manager, gui, electron_target } = input;
+        let BuildInput { version, project_manager, gui, electron_target, artifact_name: _ } = input;
         let ide_desktop = ide_desktop_from_context(context);
         let target_os = self.target_os;
         let target_arch = self.target_arch;
@@ -155,30 +160,3 @@ impl Ide {
         .boxed()
     }
 }
-
-
-// impl IsTarget for Ide {
-//     type BuildInput = BuildInput;
-//     type Output = Artifact;
-//
-//     fn artifact_name(&self) -> &str {
-//         // Version is not part of the name intentionally. We want to refer to PM bundles as
-//         // artifacts without knowing their version.
-//         static NAME: LazyLock<String> = LazyLock::new(|| format!("gui-{}", TARGET_OS));
-//         &*NAME
-//     }
-//
-//     fn build(
-//         &self,
-//         input: Self::BuildInput,
-//         output_path: impl AsRef<Path> + Send + Sync + 'static,
-//     ) -> BoxFuture<'static, Result<Self::Output>> {
-//         let ide_desktop = crate::ide::web::IdeDesktop::new(&input.repo_root.app.ide_desktop);
-//         async move {
-//             let (gui, project_manager) = try_join(input.gui, input.project_manager).await?;
-//             ide_desktop.dist(&gui, &project_manager, &output_path).await?;
-//             Ok(Artifact::new(&input.version, output_path.as_ref()))
-//         }
-//         .boxed()
-//     }
-// }

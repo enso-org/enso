@@ -1,5 +1,5 @@
 /** @file Contains useful error types common across the module. */
-import * as toastify from 'react-toastify'
+import type * as toastify from 'react-toastify'
 
 // =====================
 // === tryGetMessage ===

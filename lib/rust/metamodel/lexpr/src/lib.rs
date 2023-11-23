@@ -128,7 +128,7 @@ impl<'g> ToSExpr<'g> {
         let mut child = None;
         for id in hierarchy.iter().rev() {
             let ty = &self.graph[id];
-            let mut fields = ty.data.as_struct().unwrap();
+            let mut fields = ty.data.fields().unwrap();
             if let Some(i) = ty.child_field {
                 fields = &fields[..i];
             }
@@ -138,14 +138,14 @@ impl<'g> ToSExpr<'g> {
         if !discriminants.is_empty() {
             let discriminant_index = read_u32(data);
             let id = discriminants[&(discriminant_index as usize)];
-            let fields = self.graph[id].data.as_struct().unwrap();
+            let fields = self.graph[id].data.fields().unwrap();
             out.extend(fields.iter().filter_map(|field| self.field(field, data)));
             child = Some(id);
         }
         for id in hierarchy {
             let ty = &self.graph[id];
             if let Some(i) = ty.child_field {
-                let mut fields = ty.data.as_struct().unwrap();
+                let mut fields = ty.data.fields().unwrap();
                 fields = &fields[i..];
                 out.extend(fields.iter().filter_map(|field| self.field(field, data)));
             }

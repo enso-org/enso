@@ -36,7 +36,9 @@ object ExecutorWithUnlimitedPool extends LanguageServerExecutor {
     descriptor: LanguageServerDescriptor,
     progressTracker: ActorRef,
     rpcPort: Int,
+    secureRpcPort: Option[Int],
     dataPort: Int,
+    secureDataPort: Option[Int],
     lifecycleListener: LanguageServerExecutor.LifecycleListener
   ): Unit = {
     val runnable: Runnable = { () =>
@@ -45,7 +47,9 @@ object ExecutorWithUnlimitedPool extends LanguageServerExecutor {
           descriptor,
           progressTracker,
           rpcPort,
+          secureRpcPort,
           dataPort,
+          secureDataPort,
           lifecycleListener
         )
       } catch {
@@ -66,7 +70,9 @@ object ExecutorWithUnlimitedPool extends LanguageServerExecutor {
     descriptor: LanguageServerDescriptor,
     progressTracker: ActorRef,
     rpcPort: Int,
+    secureRpcPort: Option[Int],
     dataPort: Int,
+    secureDataPort: Option[Int],
     lifecycleListener: LanguageServerExecutor.LifecycleListener
   ): Unit = {
     val distributionConfiguration = descriptor.distributionConfiguration
@@ -76,10 +82,12 @@ object ExecutorWithUnlimitedPool extends LanguageServerExecutor {
     val inheritedLogLevel =
       LoggingServiceManager.currentLogLevelForThisApplication()
     val options = LanguageServerOptions(
-      rootId    = descriptor.rootId,
-      interface = descriptor.networkConfig.interface,
-      rpcPort   = rpcPort,
-      dataPort  = dataPort
+      rootId         = descriptor.rootId,
+      interface      = descriptor.networkConfig.interface,
+      rpcPort        = rpcPort,
+      secureRpcPort  = secureRpcPort,
+      dataPort       = dataPort,
+      secureDataPort = secureDataPort
     )
     val configurationManager = new GlobalRunnerConfigurationManager(
       versionManager,
@@ -95,24 +103,16 @@ object ExecutorWithUnlimitedPool extends LanguageServerExecutor {
     )
     val profilingPathArguments =
       descriptor.profilingPath.toSeq
-        .flatMap(path => Seq("--server-profiling-path", path.toString))
+        .flatMap(path => Seq("--profiling-path", path.toString))
     val profilingTimeArguments =
       descriptor.profilingTime.toSeq
-        .flatMap(time =>
-          Seq("--server-profiling-time", time.toSeconds.toString)
-        )
-    val profilingEventsLogPathArguments =
-      descriptor.profilingEventsLogPath.toSeq
-        .flatMap(path =>
-          Seq("--server-profiling-events-log-path", path.toString)
-        )
+        .flatMap(time => Seq("--profiling-time", time.toSeconds.toString))
     val startupArgs =
       if (descriptor.skipGraalVMUpdater) Seq("--skip-graalvm-updater")
       else Seq()
     val additionalArguments =
       profilingPathArguments ++
       profilingTimeArguments ++
-      profilingEventsLogPathArguments ++
       startupArgs
     val runSettings = runner
       .startLanguageServer(

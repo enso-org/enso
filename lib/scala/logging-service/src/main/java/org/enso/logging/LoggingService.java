@@ -1,7 +1,7 @@
 package org.enso.logging;
 
 import java.nio.file.Path;
-import org.enso.logger.config.Appender;
+import org.enso.logger.config.BaseConfig;
 import org.slf4j.event.Level;
 
 /**
@@ -16,12 +16,12 @@ public abstract class LoggingService<T> {
    * events.
    *
    * @param level the maximal log level handled by this service
-   * @param path
-   * @param prefix
-   * @param appender
+   * @param logRoot the root directory where logs are located
+   * @param logPrefix the prefix used in the name of the log file
+   * @param config config for the server log target
    * @return
    */
-  public abstract T start(Level level, Path path, String prefix, Appender appender);
+  public abstract T start(Level level, Path logRoot, String logPrefix, BaseConfig config);
 
   /** Shuts down the service. */
   public abstract void teardown();

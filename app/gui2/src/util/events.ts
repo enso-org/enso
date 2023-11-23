@@ -1,7 +1,8 @@
+import type { Opt } from '@/util/opt'
+import { Vec2 } from '@/util/vec2'
 import {
   computed,
-  onMounted,
-  onUnmounted,
+  onScopeDispose,
   proxyRefs,
   ref,
   shallowRef,
@@ -10,107 +11,119 @@ import {
   type Ref,
   type WatchSource,
 } from 'vue'
-import { Vec2 } from './vec2'
+
+export function isClick(e: MouseEvent | PointerEvent) {
+  if (e instanceof PointerEvent) return e.pointerId !== -1
+  else return e.buttons !== 0
+}
 
 /**
- * Add an event listener on an {@link HTMLElement} for the duration of the component's lifetime.
+ * Add an event listener for the duration of the component's lifetime.
  * @param target element on which to register the event
  * @param event name of event to register
  * @param handler event handler
  */
-export function useElementEvent<K extends keyof HTMLElementEventMap>(
-  target: HTMLElement,
+export function useEvent<K extends keyof DocumentEventMap>(
+  target: Document,
   event: K,
-  handler: (e: HTMLElementEventMap[K]) => void,
+  handler: (e: DocumentEventMap[K]) => void,
+  options?: boolean | AddEventListenerOptions,
+): void
+export function useEvent<K extends keyof WindowEventMap>(
+  target: Window,
+  event: K,
+  handler: (e: WindowEventMap[K]) => void,
+  options?: boolean | AddEventListenerOptions,
+): void
+export function useEvent<K extends keyof ElementEventMap>(
+  target: Element,
+  event: K,
+  handler: (event: ElementEventMap[K]) => void,
+  options?: boolean | AddEventListenerOptions,
+): void
+export function useEvent(
+  target: EventTarget,
+  event: string,
+  handler: (event: unknown) => void,
   options?: boolean | AddEventListenerOptions,
 ): void {
-  onMounted(() => {
-    target.addEventListener(event, handler, options)
-  })
-  onUnmounted(() => {
+  target.addEventListener(event, handler, options)
+  onScopeDispose(() => {
     target.removeEventListener(event, handler, options)
   })
 }
 
 /**
- * Add an event listener on window for the duration of component lifetime.
- * @param event name of event to register
- * @param handler event handler
- */
-export function useWindowEvent<K extends keyof WindowEventMap>(
-  event: K,
-  handler: (e: WindowEventMap[K]) => void,
-  options?: boolean | AddEventListenerOptions,
-): void {
-  onMounted(() => {
-    window.addEventListener(event, handler, options)
-  })
-  onUnmounted(() => {
-    window.removeEventListener(event, handler, options)
-  })
-}
-
-/**
- * Add an event listener on document for the duration of component lifetime.
- * @param event name of event to register
- * @param handler event handler
- */
-export function useDocumentEvent<K extends keyof DocumentEventMap>(
-  event: K,
-  handler: (e: DocumentEventMap[K]) => void,
-  options?: boolean | AddEventListenerOptions,
-): void {
-  onMounted(() => {
-    document.addEventListener(event, handler, options)
-  })
-  onUnmounted(() => {
-    document.removeEventListener(event, handler, options)
-  })
-}
-
-/**
- * Add an event listener on window for the duration of condition being true.
+ * Add an event listener for the duration of condition being true.
+ * @param target element on which to register the event
  * @param condition the condition that determines if event is bound
  * @param event name of event to register
  * @param handler event handler
  */
-export function useWindowEventConditional<K extends keyof WindowEventMap>(
-  event: K,
-  condition: WatchSource<boolean>,
-  handler: (e: WindowEventMap[K]) => void,
-  options?: boolean | AddEventListenerOptions,
-): void {
-  watch(condition, (conditionMet, _, onCleanup) => {
-    if (conditionMet) {
-      window.addEventListener(event, handler, options)
-      onCleanup(() => window.removeEventListener(event, handler, options))
-    }
-  })
-}
-
-/**
- * Add an event listener on document for the duration of condition being true.
- * @param condition the condition that determines if event is bound
- * @param event name of event to register
- * @param handler event handler
- */
-export function useDocumentEventConditional<K extends keyof DocumentEventMap>(
+export function useEventConditional<K extends keyof DocumentEventMap>(
+  target: Document,
   event: K,
   condition: WatchSource<boolean>,
   handler: (e: DocumentEventMap[K]) => void,
   options?: boolean | AddEventListenerOptions,
+): void
+export function useEventConditional<K extends keyof WindowEventMap>(
+  target: Window,
+  event: K,
+  condition: WatchSource<boolean>,
+  handler: (e: WindowEventMap[K]) => void,
+  options?: boolean | AddEventListenerOptions,
+): void
+export function useEventConditional<K extends keyof ElementEventMap>(
+  target: Element,
+  event: K,
+  condition: WatchSource<boolean>,
+  handler: (event: ElementEventMap[K]) => void,
+  options?: boolean | AddEventListenerOptions,
+): void
+export function useEventConditional(
+  target: EventTarget,
+  event: string,
+  condition: WatchSource<boolean>,
+  handler: (event: unknown) => void,
+  options?: boolean | AddEventListenerOptions,
+): void
+export function useEventConditional(
+  target: EventTarget,
+  event: string,
+  condition: WatchSource<boolean>,
+  handler: (event: unknown) => void,
+  options?: boolean | AddEventListenerOptions,
 ): void {
   watch(condition, (conditionMet, _, onCleanup) => {
     if (conditionMet) {
-      document.addEventListener(event, handler, options)
-      onCleanup(() => document.removeEventListener(event, handler, options))
+      target.addEventListener(event, handler, options)
+      onCleanup(() => target.removeEventListener(event, handler, options))
     }
   })
+}
+
+/** Whether any element currently has keyboard focus. */
+export function keyboardBusy() {
+  return document.activeElement != document.body
+}
+
+/** Whether focused element is within given element's subtree. */
+export function focusIsIn(el: Element) {
+  return el.contains(document.activeElement)
+}
+
+/**
+ * Whether any element currently has keyboard focus, except for elements within given subtree.
+ * When `el` is `null` or `undefined`, the function behaves as `keyboardBusy()`.
+ */
+export function keyboardBusyExceptIn(el: Opt<Element>) {
+  return keyboardBusy() && (el == null || !focusIsIn(el))
 }
 
 const hasWindow = typeof window !== 'undefined'
 const platform = hasWindow ? window.navigator?.platform ?? '' : ''
-const isMacLike = /(Mac|iPhone|iPod|iPad)/i.test(platform)
+export const isMacLike = /(Mac|iPhone|iPod|iPad)/i.test(platform)
 
 export function modKey(e: KeyboardEvent): boolean {
   return isMacLike ? e.metaKey : e.ctrlKey
@@ -130,7 +143,21 @@ export function useResizeObserver(
   elementRef: Ref<Element | undefined | null>,
   useContentRect = true,
 ): Ref<Vec2> {
-  const sizeRef = shallowRef<Vec2>(Vec2.Zero())
+  const sizeRef = shallowRef<Vec2>(Vec2.Zero)
+  if (typeof ResizeObserver === 'undefined') {
+    // Fallback implementation for browsers/test environment that do not support ResizeObserver:
+    // Grab the size of the element every time the ref is assigned, or when the page is resized.
+    function refreshSize() {
+      const element = elementRef.value
+      if (element != null) {
+        const rect = element.getBoundingClientRect()
+        sizeRef.value = new Vec2(rect.width, rect.height)
+      }
+    }
+    watchEffect(refreshSize)
+    useEvent(window, 'resize', refreshSize)
+    return sizeRef
+  }
   const observer = new ResizeObserver((entries) => {
     let rect: { width: number; height: number } | null = null
     for (const entry of entries) {
@@ -206,15 +233,15 @@ export function usePointer(
   requiredButtonMask: number = PointerButtonMask.Main,
 ) {
   const trackedPointer: Ref<number | null> = ref(null)
-  let trackedElement: Element | null = null
+  let trackedElement: (Element & GlobalEventHandlers) | null = null
   let initialGrabPos: Vec2 | null = null
   let lastPos: Vec2 | null = null
 
-  const isTracking = () => trackedPointer.value != null
+  const dragging = computed(() => trackedPointer.value != null)
 
   function doStop(e: PointerEvent) {
-    if (trackedElement != null && trackedPointer.value != null) {
-      trackedElement.releasePointerCapture(trackedPointer.value)
+    if (trackedPointer.value != null) {
+      trackedElement?.releasePointerCapture(trackedPointer.value)
     }
 
     trackedPointer.value = null
@@ -233,47 +260,64 @@ export function usePointer(
     }
   }
 
-  useWindowEventConditional('pointerup', isTracking, (e: PointerEvent) => {
-    if (trackedPointer.value === e.pointerId) {
-      e.preventDefault()
-      doStop(e)
-    }
-  })
-
-  useWindowEventConditional('pointermove', isTracking, (e: PointerEvent) => {
-    if (trackedPointer.value === e.pointerId) {
-      e.preventDefault()
-      // handle release of all masked buttons as stop
-      if ((e.buttons & requiredButtonMask) != 0) {
-        doMove(e)
-      } else {
-        doStop(e)
-      }
-    }
-  })
-
   const events = {
     pointerdown(e: PointerEvent) {
       // pointers should not respond to unmasked mouse buttons
-      if ((e.buttons & requiredButtonMask) == 0) {
+      if ((e.buttons & requiredButtonMask) === 0) {
         return
       }
 
       if (trackedPointer.value == null && e.currentTarget instanceof Element) {
         e.preventDefault()
         trackedPointer.value = e.pointerId
-        trackedElement = e.currentTarget
+        // This is mostly SAFE, as virtually all `Element`s also extend `GlobalEventHandlers`.
+        trackedElement = e.currentTarget as Element & GlobalEventHandlers
         trackedElement.setPointerCapture(e.pointerId)
         initialGrabPos = new Vec2(e.clientX, e.clientY)
         lastPos = initialGrabPos
         handler(computePosition(e, initialGrabPos, lastPos), e, 'start')
       }
     },
+    pointerup(e: PointerEvent) {
+      if (trackedPointer.value !== e.pointerId) {
+        return
+      }
+      e.preventDefault()
+      doStop(e)
+    },
+    pointermove(e: PointerEvent) {
+      if (trackedPointer.value !== e.pointerId) {
+        return
+      }
+      e.preventDefault()
+      // handle release of all masked buttons as stop
+      if ((e.buttons & requiredButtonMask) !== 0) {
+        doMove(e)
+      } else {
+        doStop(e)
+      }
+    },
+  }
+
+  const stopEvents = {
+    pointerdown(e: PointerEvent) {
+      e.stopImmediatePropagation()
+      events.pointerdown(e)
+    },
+    pointerup(e: PointerEvent) {
+      e.stopImmediatePropagation()
+      events.pointerup(e)
+    },
+    pointermove(e: PointerEvent) {
+      e.stopImmediatePropagation()
+      events.pointermove(e)
+    },
   }
 
   return proxyRefs({
     events,
-    dragging: computed(() => trackedPointer.value != null),
+    stop: { events: stopEvents },
+    dragging,
   })
 }
 

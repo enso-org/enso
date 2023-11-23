@@ -70,8 +70,6 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
 
       val enginePath =
         getTestDirectory / "test_data" / "dist" / "0.0.0"
-      val runtimePath =
-        (enginePath / "component" / "runtime.jar").toAbsolutePath.normalize
       val runnerPath =
         (enginePath / "component" / "runner.jar").toAbsolutePath.normalize
 
@@ -85,13 +83,6 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
         javaArguments should contain("-Dlocally-added-options=value1")
         javaArguments should contain("-Doptions-added-from-manifest=42")
         javaArguments should contain("-Xanother-one")
-
-        javaArguments should contain(
-          s"-Dtruffle.class.path.append=$runtimePath"
-        )
-        javaArguments.filter(
-          _.contains("truffle.class.path.append")
-        ) should have length 1
 
         val appCommandLine = appArguments.mkString(" ")
 
@@ -286,10 +277,12 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
       newProject("test", projectPath, version)
 
       val options = LanguageServerOptions(
-        rootId    = UUID.randomUUID(),
-        interface = "127.0.0.2",
-        rpcPort   = 1234,
-        dataPort  = 4321
+        rootId         = UUID.randomUUID(),
+        interface      = "127.0.0.2",
+        rpcPort        = 1234,
+        secureRpcPort  = None,
+        dataPort       = 4321,
+        secureDataPort = None
       )
       val runSettings = runner
         .languageServer(

@@ -24,22 +24,22 @@ public abstract class BinaryMapOperation<T, I extends Storage<? super T>> {
    *
    * @param storage the storage to run operation on
    * @param arg the argument passed to the operation
-   * @param problemBuilder the builder allowing to report computation problems
+   * @param problemAggregator the aggregator allowing to report computation problems
    * @return the result of running the operation
    */
   public abstract Storage<?> runBinaryMap(
-      I storage, Object arg, MapOperationProblemBuilder problemBuilder);
+      I storage, Object arg, MapOperationProblemAggregator problemAggregator);
 
   /**
    * Run the operation in zip mode - combining corresponding rows of two storages.
    *
    * @param storage the storage to run operation on
    * @param arg the storage providing second arguments to the operation
-   * @param problemBuilder the builder allowing to report computation problems
+   * @param problemAggregator the aggregator allowing to report computation problems
    * @return the result of running the operation
    */
   public abstract Storage<?> runZip(
-      I storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder);
+      I storage, Storage<?> arg, MapOperationProblemAggregator problemAggregator);
 
   /** @return the name of this operation */
   public String getName() {

@@ -93,7 +93,7 @@ public abstract class LoggingSetupHelper {
               ec);
     } else {
       // Setup logger according to config
-      if (loggerSetup.setup(logLevel)) {
+      if (loggerSetup.setup(logLevel, logPath(), logFileSuffix(), loggerSetup.getConfig())) {
         loggingServiceEndpointPromise.success(Option.empty());
       }
     }

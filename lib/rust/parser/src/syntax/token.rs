@@ -105,7 +105,7 @@ use enso_shapely_macros::tagged_enum;
 // =============
 
 /// The lexical token definition. See the module docs to learn more about its usage scenarios.
-#[derive(Clone, Default, Deref, DerefMut, Eq, PartialEq, Serialize, Reflect, Deserialize)]
+#[derive(Clone, Debug, Default, Deref, DerefMut, Eq, PartialEq, Serialize, Reflect, Deserialize)]
 #[allow(missing_docs)]
 pub struct Token<'s, T = Variant> {
     #[reflect(flatten, hide)]
@@ -123,11 +123,10 @@ pub struct Token<'s, T = Variant> {
 #[allow(non_snake_case)]
 pub fn Token<'s, T>(
     left_offset: impl Into<Offset<'s>>,
-    code: impl Into<Code<'s>>,
+    code: Code<'s>,
     variant: T,
 ) -> Token<'s, T> {
     let left_offset = left_offset.into();
-    let code = code.into();
     Token { variant, left_offset, code }
 }
 
@@ -136,18 +135,12 @@ impl<'s, T> Token<'s, T> {
     /// position, which does not include the [`left_offset`]. It means that `split_at(Bytes(0))`
     /// will split the token into left offset only and a left-trimmed token.
     #[inline(always)]
-    pub fn split_at(self, offset: Bytes) -> (Token<'s, ()>, Token<'s, ()>, T) {
+    pub fn split_at(self, split: code::Length) -> (Token<'s, ()>, Token<'s, ()>) {
         let left_lexeme_offset = self.left_offset;
-        let right_lexeme_offset = Offset::default();
-        let left = Token(left_lexeme_offset, self.code.slice(Bytes(0)..offset), ());
-        let right = Token(right_lexeme_offset, self.code.slice(offset..), ());
-        (left, right, self.variant)
-    }
-
-    /// A version of [`split_at`] that discards the associated variant.
-    #[inline(always)]
-    pub fn split_at_(self, offset: Bytes) -> (Token<'s, ()>, Token<'s, ()>) {
-        let (left, right, _) = self.split_at(offset);
+        let right_lexeme_offset = Code::empty(self.code.position_before().range().end + split);
+        let (left_code, right_code) = self.code.split_at(split);
+        let left = Token(left_lexeme_offset, left_code, ());
+        let right = Token(right_lexeme_offset, right_code, ());
         (left, right)
     }
 
@@ -170,10 +163,15 @@ impl<'s, T> Token<'s, T> {
     }
 }
 
-impl<'s, T: Debug> Debug for Token<'s, T> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "[{}:{:?}] ", self.left_offset.visible, self.code)?;
-        Debug::fmt(&self.variant, f)
+impl<'s, V: Clone> Token<'s, V> {
+    /// Return this value with all source references stripped of positions. This supports comparing
+    /// tokens irrespective of their locations in the source.
+    pub fn without_offsets(&self) -> Self {
+        Self {
+            left_offset: self.left_offset.without_offset(),
+            code:        self.code.without_location(),
+            variant:     self.variant.clone(),
+        }
     }
 }
 
@@ -186,7 +184,7 @@ impl<'s, T: PartialEq> PartialEq<Token<'s, T>> for &Token<'s, T> {
 impl<'s, T> FirstChildTrim<'s> for Token<'s, T> {
     #[inline(always)]
     fn trim_as_first_child(&mut self) -> Span<'s> {
-        let left_offset = mem::take(&mut self.left_offset);
+        let left_offset = self.left_offset.take_as_prefix();
         let code_length = self.code.length();
         Span { left_offset, code_length }
     }
@@ -259,12 +257,12 @@ macro_rules! with_token_definition { ($f:ident ($($args:tt)*)) => { $f! { $($arg
         BlockStart,
         BlockEnd,
         Wildcard {
-            pub lift_level: usize
+            pub lift_level: u32
         },
         AutoScope,
         Ident {
             pub is_free:               bool,
-            pub lift_level:            usize,
+            pub lift_level:            u32,
             #[reflect(rename = "is_type_or_constructor")]
             pub is_type:               bool,
             pub is_operator_lexically: bool,
@@ -281,6 +279,7 @@ macro_rules! with_token_definition { ($f:ident ($($args:tt)*)) => { $f! { $($arg
             pub base: Option<Base>
         },
         NumberBase,
+        Private,
         TextStart,
         TextEnd,
         TextSection,
@@ -354,7 +353,7 @@ impl OperatorProperties {
     }
 
     /// Return a copy of this operator, with the given binary infix precedence.
-    pub fn with_binary_infix_precedence(self, value: usize) -> Self {
+    pub fn with_binary_infix_precedence(self, value: u32) -> Self {
         let precedence = Precedence { value };
         debug_assert!(precedence > Precedence::min());
         Self { binary_infix_precedence: Some(precedence), ..self }
@@ -527,7 +526,7 @@ impl OperatorProperties {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Reflect, Deserialize, PartialOrd, Ord)]
 pub struct Precedence {
     /// A numeric value determining precedence order.
-    value: usize,
+    value: u32,
 }
 
 impl Precedence {
@@ -607,7 +606,7 @@ macro_rules! generate_token_aliases {
             /// Constructor.
             pub fn [<$variant:snake:lower>]<'s> (
                 left_offset: impl Into<Offset<'s>>,
-                code: impl Into<Code<'s>>,
+                code: Code<'s>,
                 $($($field : $field_ty),*)?
             ) -> $variant<'s> {
                 Token(left_offset, code, variant::$variant($($($field),*)?))
@@ -616,7 +615,7 @@ macro_rules! generate_token_aliases {
             /// Constructor.
             pub fn [<$variant:snake:lower _>]<'s> (
                 left_offset: impl Into<Offset<'s>>,
-                code: impl Into<Code<'s>>,
+                code: Code<'s>,
                 $($($field : $field_ty),*)?
             ) -> Token<'s> {
                 Token(left_offset, code, variant::$variant($($($field),*)?)).into()

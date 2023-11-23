@@ -2,7 +2,7 @@
  * These are from variables defined at build time, environment variables,
  * monkeypatching on `window` and generated code. */
 // This file is being imported for its types.
-// eslint-disable-next-line no-restricted-syntax
+// eslint-disable-next-line no-restricted-syntax, @typescript-eslint/consistent-type-imports
 import * as buildJson from './../../build.json' assert { type: 'json' }
 
 // =============
@@ -50,7 +50,7 @@ interface AuthenticationApi {
      * via a deep link. See {@link setDeepLinkHandler} for details. */
     setDeepLinkHandler: (callback: (url: string) => void) => void
     /** Saves the access token to a file. */
-    saveAccessToken: (access_token: string) => void
+    saveAccessToken: (accessToken: string | null) => void
 }
 
 // =====================================
@@ -81,6 +81,7 @@ declare global {
             /* eslint-disable @typescript-eslint/naming-convention */
             APPLEID?: string
             APPLEIDPASS?: string
+            APPLETEAMID?: string
             /* eslint-enable @typescript-eslint/naming-convention */
         }
     }
@@ -94,6 +95,8 @@ declare global {
     // This will be `undefined` when it is not defined by esbuild.
     // eslint-disable-next-line no-restricted-syntax
     const REDIRECT_OVERRIDE: string | undefined
+    // eslint-disable-next-line no-restricted-syntax
+    const CLOUD_ENV: 'npekin' | 'pbuchu' | 'production' | undefined
     /* eslint-disable @typescript-eslint/naming-convention */
     /** Only exists in development mode. */
     // This is a function.

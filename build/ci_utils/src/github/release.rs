@@ -12,6 +12,13 @@ use reqwest::Body;
 use tracing::instrument;
 
 
+// ==============
+// === Export ===
+// ==============
+
+pub use octocrab::models::ReleaseId as Id;
+
+
 
 /// The extensions that will be used for the archives in the GitHub release assets.
 ///
@@ -81,14 +88,49 @@ pub trait IsReleaseExt: IsRelease + Sync {
 
     /// Upload a new asset to the release from a given file.
     ///
+    /// Given closure `f` is used to transform the filename.
+    #[instrument(skip_all, fields(source = %path.as_ref().display()), err)]
+    async fn upload_asset_file_with_custom_name(
+        &self,
+        path: impl AsRef<Path> + Send,
+        f: impl FnOnce(String) -> String + Send,
+    ) -> Result<Asset> {
+        let error_msg =
+            format!("Failed to upload an asset from the file under {}.", path.as_ref().display());
+        let filename = path.as_ref().try_file_name().map(|filename| f(filename.as_str().into()));
+        async move { self.upload_asset_file_as(path, &filename?).await }.await.context(error_msg)
+    }
+
+    /// Upload a new asset to the release from a given file.
+    ///
     /// The filename will be used to name the asset and deduce MIME content type.
     #[instrument(skip_all, fields(source = %path.as_ref().display()), err)]
     async fn upload_asset_file(&self, path: impl AsRef<Path> + Send) -> Result<Asset> {
         let error_msg =
             format!("Failed to upload an asset from the file under {}.", path.as_ref().display());
         async move {
+            let filename = path.try_file_name()?.to_owned();
+            self.upload_asset_file_as(path, filename).await
+        }
+        .await
+        .context(error_msg)
+    }
+
+    /// Upload a new asset to the release from a given file with a custom name.
+    #[instrument(skip_all, fields(source = %path.as_ref().display(), asset = %asset_filename.as_ref().display()), err)]
+    async fn upload_asset_file_as(
+        &self,
+        path: impl AsRef<Path> + Send,
+        asset_filename: impl AsRef<Path> + Send,
+    ) -> Result<Asset> {
+        let error_msg = format!(
+            "Failed to upload an asset from the file under {} as {}.",
+            path.as_ref().display(),
+            asset_filename.as_ref().display()
+        );
+        async move {
             let path = path.as_ref().to_path_buf();
-            let asset_name = path.try_file_name()?;
+            let asset_name = asset_filename.as_ref().to_owned();
             let content_type = new_mime_guess::from_path(&path).first_or_octet_stream();
             let metadata = crate::fs::tokio::metadata(&path).await?;
             trace!("File metadata: {metadata:#?}.");

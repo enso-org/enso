@@ -727,7 +727,7 @@ public class SignatureTest extends TestBase {
     assertFalse("false & false", compute.execute(false, false).asBoolean());
   }
 
-  private static void assertTypeError(String expArg, String expType, String realType, String msg) {
+  static void assertTypeError(String expArg, String expType, String realType, String msg) {
     if (!msg.contains(expArg)) {
       fail("Expecting value " + expArg + " in " + msg);
     }

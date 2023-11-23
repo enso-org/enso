@@ -125,16 +125,21 @@ impl<'a> Implementation for node::Ref<'a> {
                 let mut inserted_positional_placeholder_at = None;
                 let new_ast = modify_preserving_id(ast, |ast| {
                     if let Some(mut infix) = extended_infix {
-                        let item = ArgWithOffset { arg: new, offset: DEFAULT_OFFSET };
-                        let has_target = infix.target.is_some();
                         let has_arg = infix.args.last().unwrap().operand.is_some();
+                        let offset = infix
+                            .enumerate_non_empty_operands()
+                            .last()
+                            .map_or(DEFAULT_OFFSET, |op| op.offset);
                         let last_elem = infix.args.last_mut().unwrap();
+                        let item = ArgWithOffset { arg: new, offset };
+                        let has_target = infix.target.is_some();
                         last_elem.offset = DEFAULT_OFFSET;
                         match kind {
+                            ExpectedTarget => infix.target = Some(item),
                             BeforeArgument(0 | 1) if !has_target => infix.target = Some(item),
                             BeforeArgument(idx) => infix.insert_operand(*idx, item),
                             Append if has_arg => infix.push_operand(item),
-                            Append => last_elem.operand = Some(item),
+                            Append | ExpectedOperand => last_elem.operand = Some(item),
                             ExpectedArgument { .. } => unreachable!(
                                 "Expected arguments should be filtered out before this if block"
                             ),
@@ -183,6 +188,8 @@ impl<'a> Implementation for node::Ref<'a> {
                                 };
                                 prefix.args.push(item)
                             }
+                            ExpectedTarget | ExpectedOperand =>
+                                unreachable!("Wrong insertion point in method call"),
                         }
                         Ok(prefix.into_ast())
                     }

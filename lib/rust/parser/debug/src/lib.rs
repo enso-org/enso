@@ -23,6 +23,7 @@
 #![warn(unused_qualifications)]
 
 use enso_metamodel_lexpr::ToSExpr;
+use enso_parser::source::code::debug::LocationCheck;
 use enso_reflect::Reflect;
 use lexpr::Value;
 use std::collections::HashSet;
@@ -55,6 +56,7 @@ where T: serde::Serialize + Reflect {
         TextEnd::reflect(),
         TextStart::reflect(),
         Wildcard::reflect(),
+        Private::reflect(),
     ];
     skip_tokens.into_iter().for_each(|token| to_s_expr.skip(rust_to_meta[&token.id]));
     let ident_token = rust_to_meta[&Ident::reflect().id];
@@ -121,9 +123,18 @@ fn strip_hidden_fields(tree: Value) -> Value {
         ":spanLeftOffsetVisible",
         ":spanLeftOffsetCodeReprBegin",
         ":spanLeftOffsetCodeReprLen",
-        ":spanLeftOffsetCodeUtf16",
+        ":spanLeftOffsetCodeLenUtf8",
+        ":spanLeftOffsetCodeLenUtf16",
+        ":spanLeftOffsetCodeLenNewlines",
+        ":spanLeftOffsetCodeLenLineChars16",
+        ":spanLeftOffsetCodeStartUtf8",
+        ":spanLeftOffsetCodeStartUtf16",
+        ":spanLeftOffsetCodeStartLine",
+        ":spanLeftOffsetCodeStartCol16",
         ":spanCodeLengthUtf8",
         ":spanCodeLengthUtf16",
+        ":spanCodeLengthNewlines",
+        ":spanCodeLengthLineChars16",
     ];
     let hidden_tree_fields: HashSet<_> = hidden_tree_fields.into_iter().collect();
     Value::list(tree.to_vec().unwrap().into_iter().filter(|val| match val {
@@ -182,4 +193,61 @@ fn tuplify(value: Value) -> Value {
     let car = tuplify(car);
     let cdr = tuplify(cdr);
     Value::Cons(lexpr::Cons::new(car, cdr))
+}
+
+
+
+// ========================
+// === Span consistency ===
+// ========================
+
+/// Check the internal consistency of the `Tree` and `Token` spans from the given root, and validate
+/// that every character in the given range is covered exactly once in the token spans.
+pub fn validate_spans(
+    tree: &enso_parser::syntax::tree::Tree,
+    expected_span: std::ops::Range<u32>,
+    locations: &mut LocationCheck,
+) {
+    let mut sum_span = None;
+    fn concat<T: PartialEq + std::fmt::Debug + Copy>(
+        a: &Option<std::ops::Range<T>>,
+        b: &std::ops::Range<T>,
+    ) -> std::ops::Range<T> {
+        match a {
+            Some(a) => {
+                assert_eq!(a.end, b.start);
+                a.start..b.end
+            }
+            None => b.clone(),
+        }
+    }
+    sum_span = Some(concat(&sum_span, &tree.span.left_offset.code.range()));
+    tree.visit_items(|item| match item {
+        enso_parser::syntax::item::Ref::Token(token) => {
+            if !(token.left_offset.is_empty() && token.code.is_empty()) {
+                sum_span = Some(concat(&sum_span, &token.left_offset.code.range()));
+                sum_span = Some(concat(&sum_span, &token.code.range()));
+            }
+            let left_offset = token.left_offset.code.range();
+            let code = token.code.range();
+            locations.extend(&[left_offset.start, left_offset.end, code.start, code.end]);
+        }
+        enso_parser::syntax::item::Ref::Tree(tree) => {
+            let children_span =
+                concat(&Some(tree.span.left_offset.code.range()), &tree.span.range());
+            let children_span_ = children_span.start.utf16..children_span.end.utf16;
+            validate_spans(tree, children_span_, locations);
+            sum_span = Some(concat(&sum_span, &children_span));
+            let left_offset = tree.span.left_offset.code.range();
+            let code = tree.span.range();
+            locations.extend(&[left_offset.start, left_offset.end, code.start, code.end]);
+        }
+    });
+    if expected_span.is_empty() {
+        assert!(sum_span.map_or(true, |range| range.is_empty()));
+    } else {
+        let sum_span = sum_span.unwrap_or_default();
+        let sum_span = sum_span.start.utf16..sum_span.end.utf16;
+        assert_eq!(sum_span, expected_span);
+    }
 }

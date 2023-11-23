@@ -1,12 +1,14 @@
 package org.enso.compiler.test.semantic
 
-import org.enso.compiler.core.ir.{Module, Warning}
+import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.core.ir.{Module, ProcessingPass, Warning}
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.Import
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.interpreter.runtime
 import org.enso.interpreter.runtime.EnsoContext
+import org.enso.persist.Persistance
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.{LanguageInfo, MethodNames, RuntimeOptions}
 import org.graalvm.polyglot.{Context, Engine}
@@ -16,6 +18,8 @@ import org.scalatest.wordspec.AnyWordSpecLike
 
 import java.io.ByteArrayOutputStream
 import java.nio.file.Paths
+import java.util.logging.Level
+import java.io.IOException
 
 /** Tests a single package with multiple modules for import/export resolution.
   * Checks whether the exported symbols and defined entities metadata of the modules
@@ -40,7 +44,7 @@ class ImportExportTest
     .allowCreateThread(false)
     .out(out)
     .err(out)
-    .option(RuntimeOptions.LOG_LEVEL, "WARNING")
+    .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
     .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
     .logHandler(System.err)
     .option(
@@ -68,8 +72,10 @@ class ImportExportTest
   implicit private class CreateModule(moduleCode: String) {
     def createModule(moduleName: QualifiedName): runtime.Module = {
       val module = new runtime.Module(moduleName, null, moduleCode)
-      langCtx.getPackageRepository.registerModuleCreatedInRuntime(module)
-      langCtx.getCompiler.run(module)
+      langCtx.getPackageRepository.registerModuleCreatedInRuntime(
+        module.asCompilerModule()
+      )
+      langCtx.getCompiler.run(module.asCompilerModule())
       module
     }
   }
@@ -121,7 +127,8 @@ class ImportExportTest
       mainIr.imports.head match {
         case importErr: errors.ImportExport =>
           fail(
-            s"Import should be resolved, but instead produced errors.ImportExport with ${importErr.reason.message}"
+            s"Import should be resolved, but instead produced errors.ImportExport with ${importErr.reason
+              .message(null)}"
           )
         case _ => ()
       }
@@ -418,6 +425,147 @@ class ImportExportTest
     }
   }
 
+  "Exporting non-existing symbols" should {
+    "fail when exporting from current module" in {
+      val mainIr =
+        s"""
+           |
+           |from $namespace.$packageName.Main.Main_Type import Main_Constructor
+           |from $namespace.$packageName.Main.Main_Type export Main_Constructor, Non_Existing_Ctor
+           |
+           |type Main_Type
+           |  Main_Constructor
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Main"))
+          .getIr
+
+      mainIr.exports.size shouldEqual 1
+      mainIr.exports.head.isInstanceOf[errors.ImportExport] shouldBe true
+      mainIr.exports.head
+        .asInstanceOf[errors.ImportExport]
+        .reason
+        .isInstanceOf[errors.ImportExport.SymbolDoesNotExist] shouldBe true
+      mainIr.exports.head
+        .asInstanceOf[errors.ImportExport]
+        .reason
+        .asInstanceOf[errors.ImportExport.SymbolDoesNotExist]
+        .symbolName shouldEqual "Non_Existing_Ctor"
+    }
+
+    "fail when exporting from other module" in {
+      """
+        |# Empty
+        |""".stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+
+      val mainIr =
+        s"""
+           |import $namespace.$packageName.A_Module
+           |from $namespace.$packageName.A_Module export baz
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Main"))
+          .getIr
+
+      val bindingsMap = mainIr.unwrapBindingMap
+      bindingsMap shouldNot be(null)
+      mainIr.exports.size shouldEqual 1
+      mainIr.exports.head.isInstanceOf[errors.ImportExport] shouldBe true
+      mainIr.exports.head
+        .asInstanceOf[errors.ImportExport]
+        .reason
+        .isInstanceOf[errors.ImportExport.SymbolDoesNotExist] shouldBe true
+      mainIr.exports.head
+        .asInstanceOf[errors.ImportExport]
+        .reason
+        .asInstanceOf[errors.ImportExport.SymbolDoesNotExist]
+        .symbolName shouldEqual "baz"
+    }
+
+    "fail when exporting from type with `from`" in {
+      """
+        |type A_Type
+        |  A_Constructor
+        |""".stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+
+      val mainIr =
+        s"""
+           |import $namespace.$packageName.A_Module.A_Type
+           |from $namespace.$packageName.A_Module.A_Type export Non_Existing_Ctor
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Main"))
+          .getIr
+
+      mainIr.exports.size shouldEqual 1
+      mainIr.exports.head.isInstanceOf[errors.ImportExport] shouldBe true
+      mainIr.exports.head
+        .asInstanceOf[errors.ImportExport]
+        .reason
+        .isInstanceOf[errors.ImportExport.SymbolDoesNotExist] shouldBe true
+      mainIr.exports.head
+        .asInstanceOf[errors.ImportExport]
+        .reason
+        .asInstanceOf[errors.ImportExport.SymbolDoesNotExist]
+        .symbolName shouldEqual "Non_Existing_Ctor"
+    }
+
+    "fail when exporting from type" in {
+      """
+        |type A_Type
+        |  A_Constructor
+        |""".stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+
+      val mainIr =
+        s"""
+           |import $namespace.$packageName.A_Module.A_Type
+           |export $namespace.$packageName.A_Module.A_Type.FOO
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Main"))
+          .getIr
+
+      mainIr.exports.size shouldEqual 1
+      mainIr.exports.head.isInstanceOf[errors.ImportExport] shouldBe true
+      mainIr.exports.head
+        .asInstanceOf[errors.ImportExport]
+        .reason
+        .isInstanceOf[errors.ImportExport.SymbolDoesNotExist] shouldBe true
+      mainIr.exports.head
+        .asInstanceOf[errors.ImportExport]
+        .reason
+        .asInstanceOf[errors.ImportExport.SymbolDoesNotExist]
+        .symbolName shouldEqual "FOO"
+    }
+
+    "fail when exporting from module with `from`" in {
+      """
+        |foo = 42
+        |bar = 23
+        |""".stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+
+      val mainIr =
+        s"""
+           |import $namespace.$packageName.A_Module
+           |from $namespace.$packageName.A_Module export foo, bar, baz
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Main"))
+          .getIr
+
+      mainIr.exports.size shouldEqual 1
+      mainIr.exports.head.isInstanceOf[errors.ImportExport] shouldBe true
+      mainIr.exports.head
+        .asInstanceOf[errors.ImportExport]
+        .reason
+        .isInstanceOf[errors.ImportExport.SymbolDoesNotExist] shouldBe true
+      mainIr.exports.head
+        .asInstanceOf[errors.ImportExport]
+        .reason
+        .asInstanceOf[errors.ImportExport.SymbolDoesNotExist]
+        .symbolName shouldEqual "baz"
+    }
+  }
+
   "Import resolution from another library honor Main" should {
     "resolve Api from Main" in {
       val mainIr = """
@@ -434,14 +582,14 @@ class ImportExportTest
       val in = mainIr.imports.head
         .asInstanceOf[Import.Module]
 
-      in.name.name.toString() should include("Test.Logical_Export.Main")
-      in.onlyNames.get.map(_.name.toString()) shouldEqual List("Api")
+      in.name.name should include("Test.Logical_Export.Main")
+      in.onlyNames.get.map(_.name) shouldEqual List("Api")
 
       val errors = mainIr.preorder.filter(x => x.isInstanceOf[Error])
       errors.size shouldEqual 0
     }
 
-    "don't expose Impl from Main" in {
+    "not expose Impl from Main" in {
       val mainIr = """
                      |from Test.Logical_Export import Impl
                      |
@@ -450,12 +598,17 @@ class ImportExportTest
         .createModule(packageQualifiedName.createChild("Main"))
         .getIr
 
+      mainIr.imports.size shouldEqual 1
+      mainIr.imports.head.isInstanceOf[errors.ImportExport] shouldBe true
       mainIr.imports.head
         .asInstanceOf[errors.ImportExport]
         .reason
-        .message should include(
-        "The symbol Impl (module or type) does not exist in module Test.Logical_Export.Main."
-      )
+        .isInstanceOf[errors.ImportExport.SymbolDoesNotExist] shouldBe true
+      mainIr.imports.head
+        .asInstanceOf[errors.ImportExport]
+        .reason
+        .asInstanceOf[errors.ImportExport.SymbolDoesNotExist]
+        .symbolName shouldEqual "Impl"
     }
   }
 
@@ -738,6 +891,80 @@ class ImportExportTest
       allWarns.foreach(_.symbolName shouldEqual "A_Type")
       allWarns.foreach(_.originalImport shouldEqual origImport)
     }
+
+    "serialize duplicated import warning" in {
+      s"""
+         |type A_Type
+         |""".stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+      val mainIr =
+        s"""
+           |import $namespace.$packageName.A_Module.A_Type
+           |from $namespace.$packageName.A_Module import A_Type
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Main_Module"))
+          .getIr
+      mainIr.imports.size shouldEqual 2
+      val warn = mainIr
+        .imports(1)
+        .diagnostics
+        .collect({ case w: Warning.DuplicatedImport => w })
+      warn.size shouldEqual 1
+      val arr = Persistance.write(
+        mainIr,
+        {
+          case metadata: ProcessingPass.Metadata =>
+            metadata.prepareForSerialization(
+              langCtx.getCompiler.context.asInstanceOf[metadata.Compiler]
+            );
+          case obj => obj
+        }
+      );
+      arr should not be empty
+    }
+
+    "serialize ambiguous import error" in {
+      s"""
+         |type A_Type
+         |""".stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+      s"""
+         |type B_Type
+         |""".stripMargin
+        .createModule(packageQualifiedName.createChild("B_Module"))
+      val mainIr =
+        s"""
+           |from $namespace.$packageName.A_Module import A_Type
+           |import $namespace.$packageName.B_Module.B_Type as A_Type
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Main_Module"))
+          .getIr
+      mainIr.imports.size shouldEqual 2
+      val ambiguousImport = mainIr
+        .imports(1)
+        .asInstanceOf[errors.ImportExport]
+        .reason
+        .asInstanceOf[errors.ImportExport.AmbiguousImport]
+      ambiguousImport.symbolName shouldEqual "A_Type"
+      try {
+        val arr = Persistance.write(
+          mainIr,
+          {
+            case metadata: ProcessingPass.Metadata =>
+              metadata.prepareForSerialization(
+                langCtx.getCompiler.context.asInstanceOf[metadata.Compiler]
+              );
+            case obj => obj
+          }
+        );
+        fail("Shouldn't return anything when there is an error" + arr)
+      } catch {
+        case ex: IOException =>
+          ex.getMessage should equal(
+            "No persistance for org.enso.compiler.core.ir.expression.errors.ImportExport"
+          )
+      }
+    }
   }
 
   "Import resolution for three modules" should {
@@ -782,7 +1009,8 @@ class ImportExportTest
       mainIr.imports.head
         .asInstanceOf[errors.ImportExport]
         .reason
-        .message should include("A_Type")
+        .message(null) should include("A_Type")
+
     }
 
     "resolve all symbols (types and static module methods) from the module" in {
@@ -903,6 +1131,99 @@ class ImportExportTest
           .getIr
       mainIr.imports.size shouldEqual 1
       mainIr.imports.head.isInstanceOf[errors.ImportExport] shouldBe false
+    }
+  }
+
+  "Private modules" should {
+    "not be able to export private module" in {
+      """
+        |private
+        |""".stripMargin
+        .createModule(
+          packageQualifiedName.createChild("Priv_Module")
+        )
+
+      val mainIr = s"""
+                      |import $namespace.$packageName.Priv_Module
+                      |export $namespace.$packageName.Priv_Module
+                      |""".stripMargin
+        .createModule(packageQualifiedName.createChild("Main"))
+        .getIr
+
+      mainIr.exports.size shouldEqual 1
+      mainIr.exports.head.isInstanceOf[errors.ImportExport] shouldBe true
+      mainIr.exports.head
+        .asInstanceOf[errors.ImportExport]
+        .reason
+        .isInstanceOf[errors.ImportExport.ExportPrivateModule] shouldBe true
+    }
+
+    "not be able to export anything from private module itself" in {
+      val mainIr =
+        s"""
+           |private
+           |
+           |from $namespace.$packageName export Type_In_Priv_Module
+           |
+           |type Type_In_Priv_Module
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Main"))
+          .getIr
+
+      mainIr.exports.size shouldEqual 1
+      mainIr.exports.head.isInstanceOf[errors.ImportExport] shouldBe true
+      mainIr.exports.head
+        .asInstanceOf[errors.ImportExport]
+        .reason
+        .isInstanceOf[
+          errors.ImportExport.ExportSymbolsFromPrivateModule
+        ] shouldBe true
+
+    }
+
+    "not be able to export anything from private module from Main module" in {
+      """
+        |private
+        |type Type_In_Priv_Module
+        |""".stripMargin
+        .createModule(
+          packageQualifiedName.createChild("Priv_Module")
+        )
+
+      val mainIr =
+        s"""
+           |from $namespace.$packageName.Priv_Module import Type_In_Priv_Module
+           |from $namespace.$packageName.Priv_Module export Type_In_Priv_Module
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Main"))
+          .getIr
+
+      mainIr.exports.size shouldEqual 1
+      mainIr.exports.head.isInstanceOf[errors.ImportExport] shouldBe true
+      mainIr.exports.head
+        .asInstanceOf[errors.ImportExport]
+        .reason
+        .isInstanceOf[errors.ImportExport.ExportPrivateModule] shouldBe true
+    }
+
+    "be able to import stuff from private modules in the same library" in {
+      """
+        |private
+        |type Type_In_Priv_Module
+        |""".stripMargin
+        .createModule(
+          packageQualifiedName.createChild("Priv_Module")
+        )
+
+      val mainIr =
+        s"""
+           |from $namespace.$packageName.Priv_Module import Type_In_Priv_Module
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Main"))
+          .getIr
+
+      val errors = mainIr.preorder.filter(x => x.isInstanceOf[Error])
+      errors.size shouldEqual 0
     }
   }
 }

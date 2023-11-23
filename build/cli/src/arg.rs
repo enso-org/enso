@@ -20,7 +20,9 @@ pub mod backend;
 pub mod engine;
 pub mod git_clean;
 pub mod gui;
+pub mod gui2;
 pub mod ide;
+pub mod ide2;
 pub mod java_gen;
 pub mod project_manager;
 pub mod release;
@@ -75,10 +77,10 @@ pub trait IsTargetSource {
     const SOURCE_NAME: &'static str;
     const PATH_NAME: &'static str;
     const OUTPUT_PATH_NAME: &'static str;
-    // const UPLOAD_ASSET_NAME: &'static str;
     const RUN_ID_NAME: &'static str;
     const RELEASE_DESIGNATOR_NAME: &'static str;
     const ARTIFACT_NAME_NAME: &'static str;
+    const UPLOAD_ARTIFACT_NAME: &'static str;
     const DEFAULT_OUTPUT_PATH: &'static str;
 
     type BuildInput: Clone + Debug + PartialEq + Args + Send + Sync;
@@ -99,6 +101,7 @@ macro_rules! source_args_hlp {
             const RUN_ID_NAME: &'static str = concat!($prefix, "-", "run-id");
             const RELEASE_DESIGNATOR_NAME: &'static str = concat!($prefix, "-", "release");
             const ARTIFACT_NAME_NAME: &'static str = concat!($prefix, "-", "artifact-name");
+            const UPLOAD_ARTIFACT_NAME: &'static str = concat!($prefix, "-", "upload-artifact");
             const DEFAULT_OUTPUT_PATH: &'static str = concat!("dist/", $prefix);
 
             type BuildInput = $inputs;
@@ -111,8 +114,10 @@ macro_rules! source_args_hlp {
 pub enum Target {
     /// Build/Test the Rust part of the GUI.
     Wasm(wasm::Target),
-    /// Build/Run GUI that consists of WASM and JS parts. This is what we deploy to cloud.
+    /// Build/Run the legacy Rust-based GUI that consists of WASM and JS parts.
     Gui(gui::Target),
+    /// Build/Run the new, Vue-based GUI.
+    Gui2(gui2::Target),
     /// Enso Engine Runtime.
     Runtime(runtime::Target),
     // /// Project Manager package (just the binary, no Engine)
@@ -121,8 +126,10 @@ pub enum Target {
     // Engine(engine::Target),
     /// Build/Get Project Manager bundle (includes Enso Engine with GraalVM Runtime).
     Backend(backend::Target),
-    /// Build/Run/Test IDE bundle (includes GUI and Project Manager).
+    /// Build/Run/Test IDE bundle (includes Rust-based GUI and Project Manager).
     Ide(ide::Target),
+    /// Build/Run/Test IDE bundle (includes Vue-based GUI and Project Manager).
+    Ide2(ide2::Target),
     /// Clean the repository. Keeps the IntelliJ's .idea directory intact. WARNING: This removes
     /// files that are not under version control in the repository subtree.
     GitClean(git_clean::Options),
@@ -167,10 +174,9 @@ pub struct Cli {
     #[clap(long, global = true, enso_env())]
     pub skip_version_check: bool,
 
-    /// Whether built artifacts should be uploaded as part of CI run. Ignored in non-CI
-    /// environment.
-    #[clap(long, global = true, hide = !ide_ci::actions::workflow::is_in_env(), parse(try_from_str), default_value_t = true, enso_env())]
-    pub upload_artifacts: bool,
+    /// Assume that `npm install` was already run in the repository root and skip it.
+    #[clap(long, global = true, enso_env())]
+    pub skip_npm_install: bool,
 
     #[clap(subcommand)]
     pub target: Target,
@@ -179,7 +185,8 @@ pub struct Cli {
 /// Describe where to get a target artifacts from.
 ///
 /// This is the CLI representation of a [crate::source::Source] for a given target.
-#[derive(Args, Clone, Debug, PartialEq)]
+#[derive(Args, Clone, Debug, Derivative)]
+#[derivative(PartialEq)]
 pub struct Source<Target: IsTargetSource> {
     /// How the given target should be acquired.
     #[clap(name = Target::SOURCE_NAME, arg_enum, long, default_value_t= SourceKind::Build,
@@ -213,14 +220,13 @@ pub struct Source<Target: IsTargetSource> {
     pub release: Option<String>,
 
     /// Used when `SourceKind::Build` is used.
+    #[derivative(PartialEq(bound = ""))]
     #[clap(flatten)]
-    pub build_args: Target::BuildInput,
+    pub build_args: BuildDescription<Target>,
 
+    #[derivative(PartialEq(bound = ""))]
     #[clap(flatten)]
     pub output_path: OutputPath<Target>,
-    //
-    // #[clap(name = Target::UPLOAD_ASSET_NAME, long)]
-    // pub upload_asset: bool,
 }
 
 /// Discriminator denoting how some target artifact should be obtained.
@@ -258,11 +264,21 @@ impl<Target: IsTargetSource> AsRef<Path> for OutputPath<Target> {
     }
 }
 
+#[derive(Args, Clone, Derivative)]
+#[derivative(Debug, PartialEq)]
+pub struct BuildDescription<Target: IsTargetSource> {
+    #[derivative(PartialEq(bound = ""))]
+    #[clap(flatten)]
+    pub input:           Target::BuildInput,
+    #[clap(name = Target::UPLOAD_ARTIFACT_NAME, long, enso_env(), default_value_t = ide_ci::actions::workflow::is_in_env())]
+    pub upload_artifact: bool,
+}
+
 #[derive(Args, Clone, PartialEq, Derivative)]
 #[derivative(Debug)]
 pub struct BuildJob<Target: IsTargetSource> {
     #[clap(flatten)]
-    pub input:       Target::BuildInput,
+    pub input:       BuildDescription<Target>,
     #[clap(flatten)]
     pub output_path: OutputPath<Target>,
 }

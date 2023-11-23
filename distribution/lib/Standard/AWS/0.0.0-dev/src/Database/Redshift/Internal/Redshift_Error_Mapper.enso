@@ -11,3 +11,7 @@ type Redshift_Error_Mapper
         # Currently not implemented, skipping the error recognition.
         _ = error
         False
+
+    ## PRIVATE
+    transform_custom_errors : SQL_Error -> Any
+    transform_custom_errors error = error

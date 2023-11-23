@@ -5,7 +5,6 @@ import org.enso.interpreter.instrument.job.DetachVisualizationJob
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.RequestId
 
-import java.util.logging.Level
 import scala.concurrent.{ExecutionContext, Future}
 
 /** A command that detaches a visualization from the expression.
@@ -16,36 +15,11 @@ import scala.concurrent.{ExecutionContext, Future}
 class DetachVisualizationCmd(
   maybeRequestId: Option[RequestId],
   request: Api.DetachVisualization
-) extends AsynchronousCommand(maybeRequestId) {
+) extends ContextCmd(request.contextId, maybeRequestId) {
 
-  /** @inheritdoc */
-  override def executeAsynchronously(implicit
+  override protected def executeCmd()(implicit
     ctx: RuntimeContext,
     ec: ExecutionContext
-  ): Future[Unit] = {
-    val logger        = ctx.executionService.getLogger
-    val lockTimestamp = ctx.locking.acquireContextLock(request.contextId)
-    try {
-      if (doesContextExist) {
-        detachVisualization()
-      } else {
-        replyWithContextNotExistError()
-      }
-    } finally {
-      ctx.locking.releaseContextLock(request.contextId)
-      logger.log(
-        Level.FINEST,
-        s"Kept context lock [DetachVisualizationCmd] for ${System.currentTimeMillis() - lockTimestamp} milliseconds"
-      )
-    }
-  }
-
-  private def doesContextExist(implicit ctx: RuntimeContext): Boolean = {
-    ctx.contextManager.contains(request.contextId)
-  }
-
-  private def detachVisualization()(implicit
-    ctx: RuntimeContext
   ): Future[Unit] = {
     ctx.endpoint.sendToClient(
       Api.Response(maybeRequestId, Api.VisualizationDetached())
@@ -57,15 +31,6 @@ class DetachVisualizationCmd(
         request.contextId
       )
     )
-  }
-
-  private def replyWithContextNotExistError()(implicit
-    ctx: RuntimeContext,
-    ec: ExecutionContext
-  ): Future[Unit] = {
-    Future {
-      reply(Api.ContextNotExistError(request.contextId))
-    }
   }
 
 }

@@ -14,8 +14,13 @@ import org.enso.languageserver.runtime.RuntimeKiller.{
   RuntimeShutdownResult,
   ShutDownRuntime
 }
-import org.enso.profiling.{FileSampler, MethodsSampler, NoopSampler}
+import org.enso.profiling.sampler.{
+  MethodsSampler,
+  NoopSampler,
+  OutputStreamSampler
+}
 import org.slf4j.event.Level
+
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContextExecutor, Future}
 
@@ -45,22 +50,57 @@ class LanguageServerComponent(config: LanguageServerConfig, logLevel: Level)
         binding <- module.jsonRpcServer.bind(config.interface, config.rpcPort)
         _       <- Future { logger.debug("Json RPC server initialized.") }
       } yield binding
+    val bindSecureJsonServer: Future[Option[Http.ServerBinding]] = {
+      config.secureRpcPort match {
+        case Some(port) =>
+          module.jsonRpcServer
+            .bind(config.interface, port, secure = true)
+            .map(Some(_))
+        case None =>
+          Future.successful(None)
+      }
+    }
     val bindBinaryServer =
       for {
         binding <- module.binaryServer.bind(config.interface, config.dataPort)
         _       <- Future { logger.debug("Binary server initialized.") }
       } yield binding
+
+    val bindSecureBinaryServer: Future[Option[Http.ServerBinding]] = {
+      config.secureDataPort match {
+        case Some(port) =>
+          module.binaryServer
+            .bind(config.interface, port, secure = true)
+            .map(Some(_))
+        case None =>
+          Future.successful(None)
+      }
+    }
     for {
-      jsonBinding   <- bindJsonServer
-      binaryBinding <- bindBinaryServer
+      jsonBinding         <- bindJsonServer
+      secureJsonBinding   <- bindSecureJsonServer
+      binaryBinding       <- bindBinaryServer
+      secureBinaryBinding <- bindSecureBinaryServer
       _ <- Future {
-        maybeServerCtx =
-          Some(ServerContext(sampler, module, jsonBinding, binaryBinding))
+        maybeServerCtx = Some(
+          ServerContext(
+            sampler,
+            module,
+            jsonBinding,
+            secureJsonBinding,
+            binaryBinding,
+            secureBinaryBinding
+          )
+        )
       }
       _ <- Future {
         logger.info(
-          s"Started server at json:${config.interface}:${config.rpcPort}, " +
-          s"binary:${config.interface}:${config.dataPort}"
+          s"Started server at json:${config.interface}${config.rpcPort}, ${config.secureRpcPort
+            .map(p => s"secure-jsons:${config.interface}$p")
+            .getOrElse("")}, " +
+          s"binary:${config.interface}:${config.dataPort}${config.secureDataPort
+            .map(p => s", secure-binary:${config.interface}$p")
+            .getOrElse("")}"
         )
       }
     } yield ComponentStarted
@@ -70,12 +110,14 @@ class LanguageServerComponent(config: LanguageServerConfig, logLevel: Level)
   private def startSampling(config: LanguageServerConfig): MethodsSampler = {
     val sampler = config.profilingConfig.profilingPath match {
       case Some(path) =>
-        new FileSampler(path.toFile)
+        OutputStreamSampler.ofFile(path.toFile)
       case None =>
-        NoopSampler()
+        new NoopSampler()
     }
     sampler.start()
-    config.profilingConfig.profilingTime.foreach(sampler.stop(_))
+    config.profilingConfig.profilingTime.foreach(timeout =>
+      sampler.scheduleStop(timeout.length, timeout.unit, ec)
+    )
 
     sampler
   }
@@ -156,13 +198,17 @@ object LanguageServerComponent {
     * @param sampler a sampler gathering the application performance statistics
     * @param mainModule a main module containing all components of the server
     * @param jsonBinding a http binding for rpc protocol
+    * @param secureJsonBinding an optional https binding for rpc protocol
     * @param binaryBinding a http binding for data protocol
+    * @param secureBinaryBinding an optional https binding for data protocol
     */
   case class ServerContext(
     sampler: MethodsSampler,
     mainModule: MainModule,
     jsonBinding: Http.ServerBinding,
-    binaryBinding: Http.ServerBinding
+    secureJsonBinding: Option[Http.ServerBinding],
+    binaryBinding: Http.ServerBinding,
+    secureBinaryBinding: Option[Http.ServerBinding]
   )
 
 }

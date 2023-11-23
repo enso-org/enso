@@ -18,6 +18,15 @@ Integer.is_even self = self % 2 == 0
 
 Float.get_fun_factor self = "Wow, " + self.to_text + " is such a fun number!"
 
+type Complex
+    Value re:Float im:Float
+
+    new re=0 im=0 = Complex.Value re im
+
+    + self (that:Complex) = Complex.new self.re+that.re self.im+that.im
+
+Complex.from (that:Number) = Complex.new that
+
 spec =
     eps = 0.000001
     almost_max_long = 9223372036854775806
@@ -535,6 +544,12 @@ spec =
             0.truncate . should_equal 0
             3.truncate . should_equal 3
             -3.truncate . should_equal -3
+
+    Test.group "Number Conversions" <|
+        Test.specify "Returns its argument" <|
+            v1 = (Complex.new 1 2) + (Complex.new 3)
+            v2 = (Complex.new 1 2) + 3
+            v1 . should_equal v2
 
     Test.group "BigInts" <|
         expected_value = 2002115494039257055317447151023464523838443110452722331466645440244415760562579268801894716412

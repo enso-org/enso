@@ -1,0 +1,281 @@
+from Standard.Base import all
+
+import project.Data.Column.Column
+import project.Data.Table.Table
+import project.Data.Type.Value_Type.Value_Type
+import project.Internal.Problem_Builder.Problem_Builder
+
+from project.Errors import Column_Count_Exceeded, Column_Count_Mismatch
+from project.Internal.Java_Exports import make_string_builder
+
+polyglot java import org.enso.table.data.mask.OrderMask
+
+## PRIVATE
+   Transform a table by transforming a column into a set of columns. Takes a
+   function that maps a single element of the input column to a vector of output
+   values. The original column is replaced by the new columns.
+
+   Arguments:
+   - table: The table to transform.
+   - input_column: The column to transform.
+   - function: A function that transforms a single element of `input_column`
+     to multiple values.
+fan_out_to_columns : Table -> Text | Integer -> (Any -> Vector Any) -> Integer | Nothing -> (Integer -> Any) -> Problem_Behavior -> Table | Nothing
+fan_out_to_columns table input_column_id function column_count=Nothing column_builder=make_string_builder on_problems=Report_Error =
+    input_column = table.get input_column_id
+    problem_builder = Problem_Builder.new
+    new_columns_unrenamed = map_columns_to_multiple input_column function column_count column_builder=column_builder problem_builder=problem_builder
+    new_columns = rename_new_columns table input_column.name new_columns_unrenamed problem_builder
+    new_table = replace_column_with_columns table input_column new_columns
+    problem_builder.attach_problems_after on_problems new_table
+
+## PRIVATE
+   Transform a column by applying the given function to the values in the
+   column. The function produces multiple outputs, so each row is duplicated,
+   with each row getting a distinct output value in place of the original
+   input value. The other column values are just duplicated.
+
+   Arguments:
+   - table: The table to transform.
+   - input_column: The column to transform.
+   - function: A function that transforms a single element of `input_column`
+     to multiple values.
+   - at_least_one_row: When true, if the function returns an empty list, a
+     single row is output with `Nothing` for the transformed column. If false,
+    the row is not output at all.
+fan_out_to_rows : Table -> Text | Integer -> (Any -> Vector Any) -> Boolean -> (Integer -> Any) -> Problem_Behavior -> Table
+fan_out_to_rows table input_column_id function at_least_one_row=False column_builder=make_string_builder on_problems=Report_Error =
+    ## Treat this as a special case of fan_out_to_rows_and_columns, with one
+       column. Wrap the provided function to convert each value to a singleton
+       `Vector`.
+    wrapped_function x = function x . map y-> [y]
+    column_names = [input_column_id]
+    fan_out_to_rows_and_columns table input_column_id wrapped_function column_names at_least_one_row=at_least_one_row column_builder=column_builder on_problems=on_problems
+
+## PRIVATE
+   Transform a column by applying the given function to the values in the
+   column. The function returns a `Vector` of `Vectors`. Each inner vector turns
+   into multiple new columns in a single row. Each inner vector within the outer
+   vector produces an output row, so each row is duplicated, with each row
+   getting a distinct set of output values in place of the original input value.
+   The other column values are just duplicated.
+
+   ! Error Conditions
+
+     The inner vectors should all have the same number of values, which should
+     match the provided `column_names`. If a value is too short, it will be
+     padded with Nothing, and if it is too long, it will be truncated. In either
+     case, Column_Count_Mismatch will be added as a warning. (It is expected
+     that the caller of this private method will ensure that the provided
+     function will produce inner vectors of the correct length, but we check for
+     it anyway.)
+
+   > Example
+   f("12 34 56") -> [[1, 2], [3, 4], [5, 6]]
+
+   foo | bar       | baz
+   ----+-----------+----
+     x | 12 34 56  |   y    ===>
+   ... | ...       | ...
+
+   foo | bar 1 | bar 2 | baz
+   ----+-------+-------+----
+     x |     1 |     2 |   y
+     x |     3 |     4 |   y
+     x |     5 |     6 |   y
+   ... | ...   | ...   | ...
+
+   Arguments:
+   - table: The table to transform.
+   - input_column: The column to transform.
+   - function: A function that transforms a single element of `input_column`
+     to a `Vector` of `Vector` of values.
+   - column_names: The names for the generated columns.
+   - on_problems: Specifies the behavior when a problem occurs.
+fan_out_to_rows_and_columns : Table -> Text | Integer -> (Any -> Vector (Vector Any)) -> Vector Text -> Boolean -> (Integer -> Any) -> Problem_Behavior -> Table
+fan_out_to_rows_and_columns table input_column_id function column_names at_least_one_row=False column_builder=make_string_builder on_problems=Report_Error =
+    problem_builder = Problem_Builder.new
+    unique = table.column_naming_helper.create_unique_name_strategy
+
+    input_column = table.at input_column_id
+    input_storage = input_column.java_column.getStorage
+    num_input_rows = input_storage.size
+
+    num_output_columns = column_names.length
+
+    # Guess that most of the time, we'll get at least one value for each input.
+    initial_size = input_column.length
+    # Accumulates the outputs of the function.
+    output_column_builders = Vector.new num_output_columns _-> column_builder initial_size
+    # Accumulates repeated position indices for the order mask.
+    order_mask_positions = Vector.new_builder initial_size
+
+    maybe_add_empty_row vecs =
+        should_add_empty_row = vecs.is_empty && at_least_one_row
+        if should_add_empty_row.not then vecs else
+            empty_row = Vector.fill num_output_columns Nothing
+            [empty_row]
+
+    0.up_to num_input_rows . each i->
+        input_value = input_storage.getItemBoxed i
+        output_values = function input_value |> maybe_add_empty_row
+        # Append each group of values to the builder.
+        output_values.each row_unchecked->
+            row = uniform_length num_output_columns row_unchecked problem_builder
+            row.each_with_index i-> v-> output_column_builders.at i . append v
+        # Append n copies of the input row position, n = # of output values.
+        repeat_each output_values.length <| order_mask_positions.append i
+
+    # Reserve the non-input column names that will not be changing.
+    non_input_columns = table.columns.filter c-> c.name != input_column.name
+    unique.mark_used <| non_input_columns.map .name
+
+    # Build the output column
+    output_storages = output_column_builders.map .seal
+    output_columns = output_storages.map_with_index i-> output_storage->
+        column_name = unique.make_unique <| column_names.at i
+        Column.from_storage column_name output_storage
+
+    # Build the order mask.
+    order_mask = OrderMask.new (order_mask_positions.to_vector)
+
+    ## Build the new table, replacing the input column with the new output
+       columns.
+    new_columns_unflattened = table.columns.map column->
+        case column.name == input_column_id of
+            True ->
+                # Replace the input column with the output columns.
+                output_columns
+            False ->
+                # Build a new column from the old one with the mask
+                old_storage = column.java_column.getStorage
+                new_storage = old_storage.applyMask order_mask
+                [Column.from_storage column.name new_storage]
+    new_columns = new_columns_unflattened.flatten
+
+    new_table = Table.new new_columns
+    problem_builder.attach_problems_after on_problems new_table
+
+## PRIVATE
+
+   Map a multi-valued function over a column and return the results as set of
+   output columns.
+
+   Returns a Pair of a Vector of Columns and a Vector of problems.
+
+   Arguments:
+   - input_column: The column to transform.
+   - function: A function that transforms a single element of `input_column`
+     to multiple values.
+   - column_count: The number of columns to split to.
+     If `Nothing` then columns will be added to fit all data.
+     If the data exceeds the `column_count`, a `Column_Count_Exceeded` error
+     will follow the `on_problems` behavior.
+   - on_problems: Specifies the behavior when a problem occurs.
+map_columns_to_multiple : Column -> (Any -> Vector Any) -> Integer | Nothing -> (Integer -> Any) -> Problem_Builder -> Vector Column
+map_columns_to_multiple input_column function column_count column_builder=make_string_builder problem_builder =
+    num_rows = input_column.length
+    input_storage = input_column.java_column.getStorage
+
+    builders = case column_count of
+        Nothing ->
+            builders = Vector.new_builder
+
+            0.up_to num_rows . each i->
+                input_value = input_storage.getItemBoxed i
+                output_values = function input_value
+
+                # Add more builders if necessary to accommodate `output_values`.
+                if output_values.length > builders.length then
+                    num_builders_needed = output_values.length - builders.length
+                    repeat_each num_builders_needed <|
+                        builder = column_builder num_rows
+
+                        # Pad the new builder with nulls
+                        num_nulls_needed = i
+                        builder.appendNulls num_nulls_needed
+
+                        builders.append builder
+
+                ## Add `output_values` to builders; if there are more builders
+                   than `output_values`, pad with null.
+                0.up_to builders.length . each i->
+                    builders.at i . appendNoGrow (output_values.get i Nothing)
+
+            builders.to_vector
+
+        _ : Integer ->
+            builders = Vector.new column_count (_-> column_builder num_rows)
+
+            output_lengths = 0.up_to num_rows . map i->
+                input_value = input_storage.getItemBoxed i
+                output_values = function input_value
+
+                ## Add `output_values` to builders; if there are more builders
+                   than `output_values`, pad with null.
+                0.up_to builders.length . each i->
+                    builders.at i . appendNoGrow (output_values.get i Nothing)
+
+                output_values.length
+
+            max_output_length = maximum output_lengths
+
+            if max_output_length > column_count then
+                problem = Column_Count_Exceeded.Error column_count max_output_length
+                problem_builder.report_other_warning problem
+
+            builders
+
+    # Name columns. If there's only one, use the original column name.
+    new_column_names = case builders.length of
+        1 -> [input_column.name]
+        _ -> 0.up_to builders.length . map i-> input_column.name + " " + (i+1).to_text
+
+    # Build Columns.
+    storages = builders.map .seal
+    new_column_names.zip storages Column.from_storage
+
+## PRIVATE
+   Rename a vector of columns to be unique when added to a table.
+rename_new_columns : Table -> Text -> Vector Column -> Problem_Builder -> Vector Column
+rename_new_columns table removed_column_name columns problem_builder =
+    unique = table.column_naming_helper.create_unique_name_strategy
+    remaining_columns = table.columns . filter (c-> c.name != removed_column_name) . map .name
+    unique.mark_used remaining_columns
+    new_columns = columns.map column->
+        new_name = unique.make_unique column.name
+        column.rename new_name
+    problem_builder.report_unique_name_strategy unique
+    new_columns
+
+## PRIVATE
+   Replace a single column in a table with new columns.
+   Does not ensure names are unique; that must be done before calling this.
+replace_column_with_columns : Table -> Column -> Vector Column -> Table
+replace_column_with_columns table old_column new_columns =
+    Table.new ((table.columns.map (c-> if c.name == old_column.name then new_columns else [c])).flatten)
+
+## PRIVATE
+   Return the maximum value of the vector.
+   Throws Empty_Error if the vector is empty.
+maximum : Vector Any -> Vector Any
+maximum vec = if vec.is_empty then Nothing else
+    vec.reduce (a-> b-> a.max b)
+
+## PRIVATE
+   Repeat a computation n times.
+repeat_each : Integer -> Any -> Any
+repeat_each n ~action = 0.up_to n . each _-> action
+
+## PRIVATE
+   Pad or truncate a vector to be a specified length; if altered, report
+   it as a Column_Count_Mismatch warning.
+uniform_length : Integer -> Vector Any -> Problem_Builder -> Vector Any
+uniform_length target_length v problem_builder = if v.length == target_length then v else
+    problem = Column_Count_Mismatch.Error target_length v.length
+    problem_builder.report_other_warning problem
+    case v.length < target_length of
+        # Pad.
+        True -> v.pad target_length Nothing
+        # Truncate.
+        False -> v.take target_length

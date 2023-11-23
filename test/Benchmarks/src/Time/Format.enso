@@ -1,0 +1,49 @@
+from Standard.Base import all
+from Standard.Table import all
+
+from Standard.Test import Bench
+
+type Data
+    Value ~vec ~column
+
+    create =
+        Data.Value create_date_vector create_date_column
+
+create_date_vector =
+    base = Date.new 1999 1 1
+    n = 10000
+    Vector.new n i->
+        base.date_add i Date_Period.Day
+
+create_date_column =
+    Column.from_vector "Dates" create_date_vector
+
+## A flag that can be changed to run additional benchmarks.
+   By default, only the benchmarks that we care about are run on CI.
+   However, during development it may be useful to also compare a few more
+   approaches as a baseline check - so they can be enabled manually by changing
+   this flag.
+run_optional_benchmarks = False
+
+options = Bench.options . set_warmup (Bench.phase_conf 1 4) . set_measure (Bench.phase_conf 2 4)
+
+collect_benches = Bench.build builder->
+    data = Data.create
+
+    builder.group "Format_Vector_Of_Dates" options group_builder->
+        group_builder.specify "Naive" <|
+            data.vec.map d-> d.format "dd.MM.yyyy"
+
+        if run_optional_benchmarks then group_builder.specify "Prepared_Formatter" <|
+            formatter = Date_Time_Formatter.from "dd.MM.yyyy"
+            data.vec.map d-> d.format formatter
+
+        if run_optional_benchmarks then group_builder.specify "Java_Formatter_recreated_on_each" <|
+            data.vec.map d->
+                java_formatter = Date_Time_Formatter.from_java "dd.MM.yyyy"
+                d.format java_formatter
+
+        group_builder.specify "Column_Format" <|
+            data.column.format "dd.MM.yyyy"
+
+main = collect_benches . run_main

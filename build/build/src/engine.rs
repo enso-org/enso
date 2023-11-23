@@ -4,6 +4,8 @@
 
 use crate::prelude::*;
 
+use crate::engine::bundle::GraalVmVersion;
+use crate::get_graal_packages_version;
 use crate::get_graal_version;
 use crate::paths::generated;
 
@@ -127,7 +129,7 @@ pub struct BuildConfigurationFlags {
     pub build_benchmarks:              bool,
     /// Whether the Enso-written benchmarks should be checked whether they compile.
     ///
-    /// Note that this does not benchmark, only ensures that they are buildable.
+    /// Note that this does not run benchmark, only ensures that they are buildable.
     /// Also, this does nothing if `execute_benchmarks` contains `Benchmarks::Enso`.
     pub check_enso_benchmarks:         bool,
     /// Which benchmarks should be run.
@@ -308,5 +310,15 @@ pub async fn deduce_graal(
         graal_version: get_graal_version(&build_sbt_content)?,
         os: TARGET_OS,
         arch: TARGET_ARCH,
+    })
+}
+
+pub async fn deduce_graal_bundle(
+    build_sbt: &generated::RepoRootBuildSbt,
+) -> Result<GraalVmVersion> {
+    let build_sbt_content = ide_ci::fs::tokio::read_to_string(build_sbt).await?;
+    Ok(GraalVmVersion {
+        graal:    get_graal_version(&build_sbt_content)?,
+        packages: get_graal_packages_version(&build_sbt_content)?,
     })
 }

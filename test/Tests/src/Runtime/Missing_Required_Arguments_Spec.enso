@@ -1,0 +1,87 @@
+from Standard.Base import all
+import Standard.Base.Errors.Common.Missing_Required_Argument
+import Standard.Base.Errors.Common.Not_Invokable
+
+import Standard.Base.Runtime.Ref.Ref
+
+from Standard.Test import Test, Test_Suite
+import Standard.Test.Extensions
+
+my_function (xyz : Integer = Missing_Required_Argument.ensure_present "xyz") (y : Integer = 100) =
+    xyz + y
+
+my_function_2 (x : Integer = Missing_Required_Argument.ensure_present "x") =
+    x * 10
+
+type Foo
+    Ctor (x : Integer = Missing_Required_Argument.ensure_present "x") (y : Integer = 100)
+
+    member self (txt : Text = Missing_Required_Argument.ensure_present "txt") =
+        "Foo(" + self.x.to_text + ", " + self.y.to_text + "): " + txt
+
+spec = Test.group "Missing_Required_Argument" <|
+    Test.specify "should do nothing if the argument is provided" <|
+        r1 = my_function 23
+        r1.should_equal 123
+
+        r2 = my_function 23 1000
+        r2.should_equal 1023
+
+        r3 = my_function_2 44
+        r3.should_equal 440
+
+        r4 = Foo.Ctor 44
+        r4.x . should_equal 44
+        r4.y . should_equal 100
+
+        r5 = Foo.Ctor 44 . member "Hello"
+        r5 . should_equal "Foo(44, 100): Hello"
+
+    Test.specify "should raise an error if a required argument is not specified" <|
+        r1 = my_function
+        r1.should_fail_with Missing_Required_Argument
+        r1.catch.argument_name . should_equal "xyz"
+        r1.catch.function_name . should_equal "Missing_Required_Arguments_Spec.my_function"
+        r1.catch.call_location.file.name . should_equal "Missing_Required_Arguments_Spec.enso"
+        r1.catch.call_location.start_line . should_equal 41
+        r1.catch.to_display_text . should_equal "Missing required argument `xyz` in function `Missing_Required_Arguments_Spec.my_function`."
+
+        r2 = my_function_2
+        r2.should_fail_with Missing_Required_Argument
+
+        r3 = Foo.Ctor
+        r3.should_fail_with Missing_Required_Argument
+
+        r4 = Foo.Ctor 44 . member
+        r4.should_fail_with Missing_Required_Argument
+        r4.catch.argument_name . should_equal "txt"
+        r4.catch.function_name . should_equal "Foo.member"
+        r4.catch.to_display_text . should_equal "Missing required argument `txt` in function `Foo.member`."
+
+    Test.specify "but will still allow suspending the argument explicitly" <|
+        f1 = my_function _
+        f1.should_be_a Function
+
+        (f1 44) . should_equal 144
+        # The default `y` argument gets defaulted, so it cannot be overridden anymore.
+        Test.expect_panic Not_Invokable (f1 44 1000)
+
+        # To keep the original argument
+        f1_2 = my_function _ _
+        f1_2.should_be_a Function
+        (f1_2 44 1000) . should_equal 1044
+
+        f2 = my_function_2 _
+        f2.should_be_a Function
+        (f2 44) . should_equal 440
+
+        f3 = Foo.Ctor _
+        f3.should_be_a Function
+        (f3 44) . should_equal (Foo.Ctor 44 100)
+
+        o = Foo.Ctor 44
+        mf4 = o.member _
+        mf4.should_be_a Function
+        (mf4 "Hello") . should_equal "Foo(44, 100): Hello"
+
+main = Test_Suite.run_main spec

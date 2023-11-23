@@ -1,0 +1,7 @@
+# This project has a private module tree
+
+import project.Sub.Priv
+
+main =
+    Priv.foo
+

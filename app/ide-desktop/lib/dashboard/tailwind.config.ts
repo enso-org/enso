@@ -14,7 +14,7 @@ const THIS_PATH = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)))
 
 // The names come from a third-party API and cannot be changed.
 /* eslint-disable no-restricted-syntax, @typescript-eslint/naming-convention */
-export const content = [THIS_PATH + '/src/**/*.tsx']
+export const content = [THIS_PATH + '/src/**/*.tsx', THIS_PATH + '/src/**/*.ts']
 export const important = `:is(.enso-dashboard, .enso-chat)`
 export const theme = {
     extend: {
@@ -53,6 +53,8 @@ export const theme = {
             'permission-docs': 'rgba(91, 8, 226, 0.64)',
             'permission-exec': 'rgba(236, 2, 2, 0.70)',
             'permission-view': 'rgba(0, 0, 0, 0.10)',
+            'label-running-project': '#257fd2',
+            'label-low-resources': '#ff6b18',
             'call-to-action': '#fa6c08',
             'black-a5': 'rgba(0, 0, 0, 0.05)',
             'black-a10': 'rgba(0, 0, 0, 0.10)',
@@ -66,6 +68,9 @@ export const theme = {
             sm: '0.8125rem',
             xl: '1.1875rem',
             '4xl': '2.375rem',
+        },
+        borderRadius: {
+            '4xl': '2rem',
         },
         lineHeight: {
             '144.5': '144.5%',
@@ -106,6 +111,7 @@ export const theme = {
             '10lh': '10lh',
         },
         minWidth: {
+            '31.5': '7.875rem',
             '33.25': '8.3125rem',
             '40': '10rem',
             '61.25': '15.3125rem',
@@ -117,6 +123,7 @@ export const theme = {
         },
         zIndex: {
             '1': '1',
+            '3': '3',
         },
         backdropBlur: {
             xs: '2px',

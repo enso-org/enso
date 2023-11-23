@@ -186,8 +186,8 @@ type Warning
        > Example
          Detach warnings of a specific type.
 
-             result = Warning.detach_selected_warnings value (_.is_a Illegal_State.Error)
-             result.first # `value` with the matched warnings removed
+             result = Warning.detach_selected_warnings value (_.is_a Illegal_State)
+             result.first  # `value` with the matched warnings removed
              result.second # the list of matched warnings
     detach_selected_warnings : Any -> (Any -> Boolean) -> Pair Any Vector
     detach_selected_warnings value predicate =

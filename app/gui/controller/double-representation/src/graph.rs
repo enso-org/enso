@@ -4,6 +4,7 @@ use crate::prelude::*;
 
 use crate::connection;
 use crate::connection::Connection;
+use crate::context_switch::ContextSwitch;
 use crate::definition;
 use crate::definition::DefinitionInfo;
 use crate::definition::DefinitionProvider;
@@ -14,6 +15,7 @@ use crate::node::NodeInfo;
 use ast::known;
 use ast::Ast;
 use ast::BlockLine;
+use engine_protocol::language_server::ExecutionEnvironment;
 
 
 
@@ -197,6 +199,28 @@ impl GraphInfo {
     pub fn edit_node(&mut self, node_id: ast::Id, new_expression: Ast) -> FallibleResult {
         self.update_node(node_id, |mut node| {
             node.set_expression(new_expression);
+            Some(node)
+        })
+    }
+
+    /// Sets expression of the previewed node. Similar to `edit_node`, but also adds the context
+    /// switch statement to disable the output context. This way execution of the previewed node
+    /// will not produce unwanted side effects. `execution_environment` is the name of environment
+    /// output context should be disabled in.
+    #[profile(Debug)]
+    pub fn edit_preview_node(
+        &mut self,
+        node_id: ast::Id,
+        new_expression: Ast,
+        execution_environment: ExecutionEnvironment,
+    ) -> FallibleResult {
+        self.update_node(node_id, |mut node| {
+            node.set_expression(new_expression);
+            node.set_context_switch(crate::context_switch::ContextSwitchExpression {
+                switch:      ContextSwitch::Disable,
+                context:     crate::context_switch::Context::Output,
+                environment: execution_environment.to_string().into(),
+            });
             Some(node)
         })
     }

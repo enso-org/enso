@@ -1,6 +1,7 @@
 package org.enso.logger.config;
 
 import com.typesafe.config.Config;
+import java.nio.file.Path;
 import org.enso.logger.LoggerSetup;
 import org.slf4j.event.Level;
 
@@ -22,6 +23,18 @@ public final class ConsoleAppender extends Appender {
   @Override
   public boolean setup(Level logLevel, LoggerSetup appenderSetup) {
     return appenderSetup.setupConsoleAppender(logLevel);
+  }
+
+  @Override
+  public boolean setupForPath(
+      Level logLevel, Path logRoot, String logPrefix, LoggerSetup loggerSetup) {
+    LogToFile logToFileOpt = loggerSetup.getConfig().logToFile();
+    if (logToFileOpt.enabled()) {
+      Level minLevel =
+          Level.intToLevel(Math.min(logToFileOpt.logLevel().toInt(), logLevel.toInt()));
+      loggerSetup.setupFileAppender(minLevel, logRoot, logPrefix);
+    }
+    return loggerSetup.setupConsoleAppender(logLevel);
   }
 
   public String getPattern() {

@@ -9,7 +9,6 @@ use crate::paths::TargetTriple;
 use crate::project::Context;
 use crate::project::IsArtifact;
 use crate::project::IsTarget;
-use crate::source::BuildTargetJob;
 use crate::source::WithDestination;
 use crate::version::Versions;
 
@@ -42,7 +41,7 @@ impl IsTarget for Runtime {
     fn build_internal(
         &self,
         context: Context,
-        job: BuildTargetJob<Self>,
+        job: WithDestination<Self::BuildInput>,
     ) -> BoxFuture<'static, Result<Self::Artifact>> {
         let config = BuildConfigurationFlags {
             build_engine_package: true,

@@ -9,7 +9,10 @@ import java.util.List;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+
 import org.enso.polyglot.MethodNames.Module;
+import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.io.IOAccess;
@@ -61,7 +64,11 @@ public class EqualsBenchmarks {
 
     var ctx = Context.newBuilder()
         .allowExperimentalOptions(true)
-        .logHandler(new ByteArrayOutputStream())
+        .option(
+                RuntimeOptions.LOG_LEVEL,
+                Level.WARNING.getName()
+        )
+        .logHandler(System.err)
         .allowIO(IOAccess.ALL)
         .allowAllAccess(true)
         .option(

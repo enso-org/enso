@@ -1,0 +1,19 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Listen to 5005",
+      "type": "java+",
+      "request": "attach",
+      "listen": "true",
+      "hostName": "localhost",
+      "port": "5005"
+    },
+    {
+      "name": "Debug Adapter Protocol",
+      "type": "node",
+      "debugServer": 4711,
+      "request": "attach"
+    }
+  ]
+}

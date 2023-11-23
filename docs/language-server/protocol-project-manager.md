@@ -243,9 +243,19 @@ the action.
   languageServerJsonAddress: IPWithSocket;
 
   /**
+   * The optional endpoint used for secure JSON-RPC protocol.
+   */
+  languageServerSecureJsonAddress?: IPWithSocket;
+
+  /**
    * The endpoint used for binary protocol.
    */
   languageServerBinaryAddress: IPWithSocket;
+
+  /**
+   * The optional endpoint used for secure binary protocol.
+   */
+  languageServerSecureBinaryAddress?: IPWithSocket;
 
   // The name of the project as it is opened.
   projectName: String;

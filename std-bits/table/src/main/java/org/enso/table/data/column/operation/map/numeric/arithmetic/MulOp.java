@@ -1,7 +1,7 @@
 package org.enso.table.data.column.operation.map.numeric.arithmetic;
 
 import java.math.BigInteger;
-import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
+import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.IntegerType;
 
@@ -12,23 +12,24 @@ public class MulOp<T extends Number, I extends Storage<? super T>>
   }
 
   @Override
-  public double doDouble(double a, double b, int ix, MapOperationProblemBuilder problemBuilder) {
+  public double doDouble(
+      double a, double b, int ix, MapOperationProblemAggregator problemAggregator) {
     return a * b;
   }
 
   @Override
-  public Long doLong(long a, long b, int ix, MapOperationProblemBuilder problemBuilder) {
+  public Long doLong(long a, long b, int ix, MapOperationProblemAggregator problemAggregator) {
     try {
       return Math.multiplyExact(a, b);
     } catch (ArithmeticException e) {
-      problemBuilder.reportOverflow(IntegerType.INT_64, a, "*", b);
+      problemAggregator.reportOverflow(IntegerType.INT_64, a, "*", b);
       return null;
     }
   }
 
   @Override
   public BigInteger doBigInteger(
-      BigInteger a, BigInteger b, int ix, MapOperationProblemBuilder problemBuilder) {
+      BigInteger a, BigInteger b, int ix, MapOperationProblemAggregator problemAggregator) {
     return a.multiply(b);
   }
 }

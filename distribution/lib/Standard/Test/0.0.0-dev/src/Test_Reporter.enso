@@ -57,15 +57,15 @@ print_report spec config builder =
                 Test_Result.Failure msg details ->
                     escaped_message = escape_xml msg . replace '\n' '&#10;'
                     builder.append ('\n            <failure message="' + escaped_message + '">\n')
+                    # We always print the message again as content - otherwise the GitHub action may fail to parse it.
+                    builder.append (escape_xml msg)
                     if details.is_nothing.not then
-                        ## We duplicate the message, because sometimes the
-                           attribute is skipped if the node has any content.
-                        builder.append (escape_xml msg)
-                        builder.append '\n'
+                        ## If there are additional details, we print them as well.
+                        builder.append '\n\n'
                         builder.append (escape_xml details)
-                    builder.append '</failure>\n'
+                    builder.append '\n            </failure>\n'
                 Test_Result.Pending msg -> builder.append ('\n            <skipped message="' + (escape_xml msg) + '"/>\n        ')
-            builder.append '</testcase>\n'
+            builder.append '        </testcase>\n'
         builder.append '    </testsuite>\n'
 
     should_print_behavior = config.print_only_failures.not || spec.behaviors.any (b -> b.result.is_fail)

@@ -1,9 +1,9 @@
 package org.enso.table.data.table;
 
-import org.enso.base.Text_Utils;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.InferredBuilder;
+import org.enso.table.data.column.builder.MixedBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.StorageType;
@@ -13,7 +13,7 @@ import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.enso.table.error.InvalidColumnNameException;
 import org.enso.table.error.UnexpectedColumnTypeException;
-import org.enso.table.problems.WithAggregatedProblems;
+import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
@@ -121,10 +121,10 @@ public class Column {
   }
 
   /** Creates a column from an Enso array, ensuring Enso dates are converted to Java dates. */
-  public static WithAggregatedProblems<Column> fromItems(String name, List<Value> items, StorageType expectedType) throws ClassCastException {
+  public static Column fromItems(String name, List<Value> items, StorageType expectedType, ProblemAggregator problemAggregator) throws ClassCastException {
     Context context = Context.getCurrent();
     int n = items.size();
-    Builder builder = expectedType == null ? new InferredBuilder(n) : Builder.getForType(expectedType, n);
+    Builder builder = expectedType == null ? new InferredBuilder(n, problemAggregator) : Builder.getForType(expectedType, n, problemAggregator);
 
     // ToDo: This a workaround for an issue with polyglot layer. #5590 is related.
     for (Object item : items) {
@@ -138,8 +138,7 @@ public class Column {
       context.safepoint();
     }
 
-    var result = new Column(name, builder.seal());
-    return new WithAggregatedProblems<>(result, builder.getProblems());
+    return new Column(name, builder.seal());
   }
 
   /**
@@ -149,57 +148,49 @@ public class Column {
    * is only safe if we guarantee that the method will not get a Date value, or will reject it right after processing
    * it.
    */
-  public static WithAggregatedProblems<Column> fromItemsNoDateConversion(String name, List<Object> items, StorageType expectedType) throws ClassCastException {
+  public static Column fromItemsNoDateConversion(String name, List<Object> items, StorageType expectedType, ProblemAggregator problemAggregator) throws ClassCastException {
     Context context = Context.getCurrent();
     int n = items.size();
-    Builder builder = expectedType == null ? new InferredBuilder(n) : Builder.getForType(expectedType, n);
+    Builder builder = expectedType == null ? new InferredBuilder(n, problemAggregator) : Builder.getForType(expectedType, n, problemAggregator);
 
     for (Object item : items) {
       builder.appendNoGrow(item);
       context.safepoint();
     }
 
-    var result = new Column(name, builder.seal());
-    return new WithAggregatedProblems<>(result, builder.getProblems());
+    return new Column(name, builder.seal());
   }
 
   /**
-   * Creates a new column with given name and elements.
+   * Creates a new column with given name and an element to repeat.
    *
    * @param name the name to use
-   * @param items the items contained in the column
+   * @param items the item repeated in the column
    * @return a column with given name and items
    */
-  public static WithAggregatedProblems<Column> fromRepeatedItems(String name, List<Value> items, int repeat) {
-    if (repeat < 1) {
-      throw new IllegalArgumentException("Repeat count must be positive.");
+  public static Column fromRepeatedItem(String name, Value item, int repeat, ProblemAggregator problemAggregator) {
+    if (repeat < 0) {
+      throw new IllegalArgumentException("Repeat count must be non-negative.");
     }
 
-    if (repeat == 1) {
-      return fromItems(name, items, null);
+    Object converted = Polyglot_Utils.convertPolyglotValue(item);
+
+    Builder builder;
+    if (converted == null) {
+      builder = new MixedBuilder(repeat);
+    } else {
+      StorageType storageType = StorageType.forBoxedItem(converted);
+      builder = Builder.getForType(storageType, repeat, problemAggregator);
     }
 
     Context context = Context.getCurrent();
-    var totalSize = items.size() * repeat;
 
-    var values = new ArrayList<Object>(items.size());
-    // ToDo: This a workaround for an issue with polyglot layer. #5590 is related.
-    // to revert replace with: for (Value item : items) {
-    for (Object item : items) {
-      Object converted = item instanceof Value v ? Polyglot_Utils.convertPolyglotValue(v) : item;
-      values.add(converted);
+    for (int i = 0; i < repeat; i++) {
+      builder.appendNoGrow(converted);
       context.safepoint();
     }
 
-    var builder = new InferredBuilder(totalSize);
-    for (int i = 0; i < totalSize; i++) {
-      var item = values.get(i % items.size());
-      builder.appendNoGrow(item);
-      context.safepoint();
-    }
-
-    var result = new Column(name, builder.seal());
-    return new WithAggregatedProblems<>(result, builder.getProblems());
+    return new Column(name, builder.seal());
   }
 
   /** @return the index of this column */

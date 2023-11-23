@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
+import org.enso.compiler.context.FramePointer;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -100,9 +101,9 @@ public class DebugLocalScope implements EnsoObject {
 
     int maxParentLevel =
         bindings.values().stream()
-            .max(Comparator.comparingInt(FramePointer::getParentLevel))
+            .max(Comparator.comparingInt(FramePointer::parentLevel))
             .orElseThrow()
-            .getParentLevel();
+            .parentLevel();
 
     // Get all binding names for a particular parent level
     List<List<String>> bindingsByLevels = new ArrayList<>(maxParentLevel + 1);
@@ -110,7 +111,7 @@ public class DebugLocalScope implements EnsoObject {
       final int finalLevel = level;
       List<String> levelBindings =
           bindings.entrySet().stream()
-              .filter(entry -> entry.getValue().getParentLevel() == finalLevel)
+              .filter(entry -> entry.getValue().parentLevel() == finalLevel)
               .map(Entry::getKey)
               .collect(Collectors.toList());
       bindingsByLevels.add(levelBindings);
@@ -253,18 +254,18 @@ public class DebugLocalScope implements EnsoObject {
   }
 
   private Object getValue(MaterializedFrame frame, FramePointer ptr) {
-    return ptr == null ? null : getProperFrame(frame, ptr).getValue(ptr.getFrameSlotIdx());
+    return ptr == null ? null : getProperFrame(frame, ptr).getValue(ptr.frameSlotIdx());
   }
 
   private void setValue(MaterializedFrame frame, FramePointer ptr, Object value) {
     assert ptr != null;
     MaterializedFrame properFrame = getProperFrame(frame, ptr);
-    properFrame.setObject(ptr.getFrameSlotIdx(), value);
+    properFrame.setObject(ptr.frameSlotIdx(), value);
   }
 
   private MaterializedFrame getProperFrame(MaterializedFrame frame, FramePointer ptr) {
     MaterializedFrame currentFrame = frame;
-    for (int i = 0; i < ptr.getParentLevel(); i++) {
+    for (int i = 0; i < ptr.parentLevel(); i++) {
       currentFrame = Function.ArgumentsHelper.getLocalScope(currentFrame.getArguments());
     }
     return currentFrame;

@@ -2,7 +2,6 @@ package org.enso.logging;
 
 import java.net.URI;
 import java.nio.file.Path;
-import org.enso.logger.config.Appender;
 import org.enso.logger.config.LoggingServer;
 import org.slf4j.event.Level;
 import scala.concurrent.ExecutionContext;
@@ -27,13 +26,22 @@ public class LoggingServiceManager {
       throw new LoggingServiceAlreadySetup();
     } else {
       if (config.appenders().containsKey(config.appender())) {
-        currentLevel = logLevel;
+        if (config.logToFile().enabled()) {
+          String envSetLogLevel = System.getenv("ENSO_LOG_TO_FILE_LOG_LEVEL");
+          if (envSetLogLevel != null) {
+            currentLevel = config.logToFile().logLevel();
+          } else {
+            int min = Math.min(config.logToFile().logLevel().toInt(), logLevel.toInt());
+            currentLevel = Level.intToLevel(min);
+          }
+        } else {
+          currentLevel = logLevel;
+        }
         return Future.apply(
             () -> {
               var server = LoggingServiceFactory.get().localServerFor(port);
               loggingService = server;
-              Appender appender = config.appenders().get(config.appender());
-              return server.start(logLevel, logPath, logFileSuffix, appender);
+              return server.start(logLevel, logPath, logFileSuffix, config);
             },
             ec);
       } else {

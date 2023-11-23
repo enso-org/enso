@@ -11,4 +11,6 @@ type Entity_Naming_Properties
          the `Naming_Properties` interface.
        - for_column_names: properties of naming database columns. Should
          implement the `Naming_Properties` interface.
-    Value for_table_names for_column_names
+       - for_generated_column_names: properties of naming generated columns.
+         Should implement the `Naming_Properties` interface.
+    Value for_table_names for_column_names for_generated_column_names

@@ -14,10 +14,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Formatter;
 import java.util.logging.Handler;
+import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.SimpleFormatter;
 import org.enso.compiler.core.ir.Module;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.SerializationManager$;
 import org.enso.pkg.PackageManager;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.MethodNames;
@@ -47,20 +49,21 @@ public class SerdeCompilerTest {
               ctx.getBindings(LanguageInfo.ID)
                   .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
                   .asHostObject();
-      var module = ensoContext.getModuleForFile(pkg.mainFile()).get();
+      var module = ensoContext.getModuleForFile(pkg.mainFile()).get().asCompilerModule();
       var compiler = ensoContext.getCompiler();
 
       ctx.enter();
       var result = compiler.run(module);
       assertEquals("Two library modules are compiled", result.compiledModules().size(), 2);
       assertEquals(result.compiledModules().exists(m -> m == module), true);
-      var serializationManager = ensoContext.getCompiler().getSerializationManager();
+      var serializationManager =
+          SerializationManager$.MODULE$.apply(ensoContext.getCompiler().context());
       var futures = new ArrayList<Future<?>>();
       result
           .compiledModules()
           .foreach(
               (m) -> {
-                var future = serializationManager.serializeModule(m, true, true);
+                var future = serializationManager.serializeModule(compiler, m, true, true);
                 futures.add(future);
                 return null;
               });
@@ -82,7 +85,7 @@ public class SerdeCompilerTest {
               ctx.getBindings(LanguageInfo.ID)
                   .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
                   .asHostObject();
-      var module = ensoContext.getModuleForFile(pkg.mainFile()).get();
+      var module = ensoContext.getModuleForFile(pkg.mainFile()).get().asCompilerModule();
       var compiler = ensoContext.getCompiler();
 
       ctx.enter();
@@ -90,7 +93,8 @@ public class SerdeCompilerTest {
       mockHandler.assertNoFailureMessage();
       assertEquals(result.compiledModules().exists(m -> m == module), true);
 
-      var methods = module.getScope().getAllMethods();
+      var methods =
+          org.enso.interpreter.runtime.Module.fromCompilerModule(module).getScope().getAllMethods();
       var main = methods.get(0);
 
       assertEquals("Main.main", main.getName());
@@ -115,6 +119,7 @@ public class SerdeCompilerTest {
             .option(
                 RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
                 Paths.get("../../distribution/component").toFile().getAbsolutePath())
+            .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
             .logHandler(mockHandler)
             .option("log.enso.org.enso.compiler.Compiler.level", "FINE")
             .allowAllAccess(true)
@@ -142,7 +147,6 @@ public class SerdeCompilerTest {
       if (failMsg != null && failMsg.equals(msg)) {
         failure = new AssertionError(this.toString() + "\nGot forbidden message: " + msg);
       }
-      System.err.println(msg);
     }
 
     @Override

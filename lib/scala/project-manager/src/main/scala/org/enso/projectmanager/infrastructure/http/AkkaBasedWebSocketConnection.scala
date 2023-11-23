@@ -2,11 +2,14 @@ package org.enso.projectmanager.infrastructure.http
 
 import akka.NotUsed
 import akka.actor.{ActorRef, ActorSystem, Props}
-import akka.http.scaladsl.Http
+import akka.http.scaladsl.{ConnectionContext, Http}
 import akka.http.scaladsl.model.ws._
 import akka.pattern.pipe
 import akka.stream.scaladsl.{Flow, Sink, Source}
 import akka.stream.{CompletionStrategy, OverflowStrategy}
+import com.typesafe.scalalogging.Logger
+import org.enso.jsonrpc.SecureConnectionConfig
+import org.enso.projectmanager.infrastructure.http
 import org.enso.projectmanager.infrastructure.http.AkkaBasedWebSocketConnection._
 import org.enso.projectmanager.infrastructure.http.FanOutReceiver.{
   Attach,
@@ -24,9 +27,14 @@ import org.enso.projectmanager.infrastructure.http.WebSocketConnection.{
   * @param address a server address
   * @param system an actor system
   */
-class AkkaBasedWebSocketConnection(address: String)(implicit
+class AkkaBasedWebSocketConnection(
+  address: String,
+  secureConfig: Option[SecureConnectionConfig]
+)(implicit
   system: ActorSystem
 ) extends WebSocketConnection {
+
+  private lazy val logger = Logger[http.AkkaBasedWebSocketConnection.type]
 
   import system.dispatcher
 
@@ -76,8 +84,25 @@ class AkkaBasedWebSocketConnection(address: String)(implicit
 
   /** @inheritdoc */
   def connect(): Unit = {
+    val server = Http()
+    secureConfig
+      .flatMap { config =>
+        {
+          val ctx = config
+            .generateSSLContext()
+            .map(sslContext => ConnectionContext.httpsClient(sslContext))
+          if (ctx.isFailure) {
+            logger.warn(
+              "failed to establish requested secure context: {}",
+              ctx.failed.get.getMessage
+            )
+          }
+          ctx.toOption
+        }
+      }
+      .foreach(ctx => server.setDefaultClientHttpsContext(ctx))
     val (future, _) =
-      Http()
+      server
         .singleWebSocketRequest(
           WebSocketRequest(address),
           flow

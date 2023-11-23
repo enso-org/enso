@@ -1,4 +1,7 @@
+import project.Data.Text.Case.Case
 import project.Data.Text.Text
+from project.Data.Text.Extensions import all
+
 
 type HTTP_Method
     ## The HTTP method "OPTIONS".
@@ -46,3 +49,17 @@ type HTTP_Method
         HTTP_Method.Trace -> "TRACE"
         HTTP_Method.Connect -> "CONNECT"
         HTTP_Method.Custom verb -> verb
+
+## PRIVATE
+   Converts from Text to an HTTP_Method.
+HTTP_Method.from (that:Text) = case that.to_case Case.Upper of
+    "OPTIONS" -> HTTP_Method.Options
+    "GET" -> HTTP_Method.Get
+    "HEAD" -> HTTP_Method.Head
+    "POST" -> HTTP_Method.Post
+    "PUT" -> HTTP_Method.Put
+    "PATCH" -> HTTP_Method.Patch
+    "DELETE" -> HTTP_Method.Delete
+    "TRACE" -> HTTP_Method.Trace
+    "CONNECT" -> HTTP_Method.Connect
+    _ -> HTTP_Method.Custom that

@@ -1,11 +1,14 @@
 package org.enso.table.aggregations;
 
-import java.util.List;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.InvalidAggregation;
+import org.enso.table.problems.ColumnAggregatedProblemAggregator;
+import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
+
+import java.util.List;
 
 /**
  * Aggregate Column counting the number of (non-)empty entries in a group. If `isEmpty` is true,
@@ -29,17 +32,20 @@ public class CountEmpty extends Aggregator {
   }
 
   @Override
-  public Object aggregate(List<Integer> indexes) {
+  public Object aggregate(List<Integer> indexes, ProblemAggregator problemAggregator) {
+    ColumnAggregatedProblemAggregator innerAggregator = new ColumnAggregatedProblemAggregator(problemAggregator);
     Context context = Context.getCurrent();
     int count = 0;
     for (int row : indexes) {
       Object value = storage.getItemBoxed(row);
-      if (value != null && !(value instanceof String)) {
-        this.addProblem(new InvalidAggregation(this.getName(), row, "Not a text value."));
+      if (value == null) {
+        count += isEmpty ? 1 : 0;
+      } else if (value instanceof String asString) {
+        count += asString.isEmpty() == isEmpty ? 1 : 0;
+      } else {
+        innerAggregator.reportColumnAggregatedProblem(new InvalidAggregation(this.getName(), row, "Not a text value."));
         return null;
       }
-
-      count += ((value == null || ((String) value).length() == 0) == isEmpty ? 1 : 0);
 
       context.safepoint();
     }

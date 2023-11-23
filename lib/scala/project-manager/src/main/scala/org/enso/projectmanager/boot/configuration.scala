@@ -12,13 +12,11 @@ object configuration {
     *  main project manager process.
     *
     *  @param logLevel the logging level
-    *  @param profilingEventsLogPath the path to the runtime events log file
     *  @param profilingPath the path to the profiling out file
     *  @param profilingTime the time limiting the profiling duration
     */
   case class MainProcessConfig(
     logLevel: Level,
-    profilingEventsLogPath: Option[Path],
     profilingPath: Option[Path],
     profilingTime: Option[FiniteDuration]
   )
@@ -83,8 +81,14 @@ object configuration {
     * @param interface an interface to listen to
     * @param minPort min port for the LS
     * @param maxPort max port for the LS
+    * @param enableSecure true, if secure connections should be enabled, false otherwise
     */
-  case class NetworkConfig(interface: String, minPort: Int, maxPort: Int)
+  case class NetworkConfig(
+    interface: String,
+    minPort: Int,
+    maxPort: Int,
+    enableSecure: Boolean
+  )
 
   /** A configuration object for bootloader properties.
     *

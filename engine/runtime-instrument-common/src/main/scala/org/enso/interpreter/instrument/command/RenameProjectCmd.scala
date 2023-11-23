@@ -1,6 +1,7 @@
 package org.enso.interpreter.instrument.command
 
 import java.util.logging.Level
+import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.instrument.{CacheInvalidation, InstrumentFrame}
 import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.interpreter.instrument.job.{EnsureCompiledJob, ExecuteJob}
@@ -55,7 +56,7 @@ class RenameProjectCmd(
         )
 
       projectModules.foreach { module =>
-        module.setIndexed(false)
+        Module.fromCompilerModule(module).setIndexed(false)
         ctx.endpoint.sendToClient(
           Api.Response(
             Api.SuggestionsDatabaseModuleUpdateNotification(

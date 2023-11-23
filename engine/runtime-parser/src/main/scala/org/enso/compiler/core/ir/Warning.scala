@@ -12,10 +12,9 @@ object Warning {
   case class DuplicatedImport(
     override val location: Option[IdentifiedLocation],
     originalImport: ir.module.scope.Import,
-    symbolName: String,
-    source: Source
+    symbolName: String
   ) extends Warning {
-    override def message: String = {
+    override def message(source: Source): String = {
       val originalImportRepr =
         originalImport.location match {
           case Some(location) =>
@@ -35,7 +34,7 @@ object Warning {
     */
   case class WrongTco(override val location: Option[IdentifiedLocation])
       extends Warning {
-    override def message: String =
+    override def message(source: Source): String =
       "A @Tail_Call annotation was placed in a non-tail-call position."
 
     override def diagnosticKeys(): Array[Any] = Array()
@@ -49,7 +48,7 @@ object Warning {
   case class WrongBuiltinMethod(
     override val location: Option[IdentifiedLocation]
   ) extends Warning {
-    override def message: String =
+    override def message(source: Source): String =
       "A @Builtin_Method annotation allows only the name of the builtin node in the body."
 
     override def diagnosticKeys(): Array[Any] = Array()
@@ -68,7 +67,7 @@ object Warning {
   ) extends Warning {
     override val location: Option[IdentifiedLocation] = ir.location
 
-    override def message: String =
+    override def message(source: Source): String =
       s"${funName.name}: Self parameter should be declared as the first parameter. Instead its position is: ${paramPosition + 1}."
 
     override def diagnosticKeys(): Array[Any] =
@@ -87,7 +86,7 @@ object Warning {
   ) extends Warning {
     override val location: Option[IdentifiedLocation] = ir.location
 
-    override def message: String =
+    override def message(source: Source): String =
       s"The expression ${ir.showCode()} could not be parallelised: $reason."
 
     override def diagnosticKeys(): Array[Any] = Array(ir.showCode(), reason)
@@ -98,7 +97,7 @@ object Warning {
 
     /** @return a human-readable description of this error condition.
       */
-    override def message: String =
+    override def message(source: Source): String =
       s"A non-unit type ${ir.name} is used on value level (in ${context})." +
       " This is probably an error."
 
