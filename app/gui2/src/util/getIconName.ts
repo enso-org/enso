@@ -1,3 +1,4 @@
+import type { SuggestionEntry, Typename } from '@/stores/suggestionDatabase/entry'
 import type { Icon } from '@/util/iconName'
 
 const oldIconNameToNewIconNameLookup: Record<string, string> = {
@@ -34,4 +35,10 @@ const typeNameToIconLookup: Record<string, Icon> = {
 
 export function typeNameToIcon(typeName: string): Icon {
   return typeNameToIconLookup[typeName] ?? 'enso_logo'
+}
+
+export function displayedIconOf(entry?: SuggestionEntry, actualType?: Typename): Icon {
+  if (entry?.iconName) return mapOldIconName(entry.iconName)
+  if (actualType) return typeNameToIcon(actualType)
+  return 'enso_logo'
 }
