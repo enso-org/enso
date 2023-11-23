@@ -41,3 +41,11 @@ export function partitionPoint<T>(
 export function tryGetIndex<T>(arr: Opt<T[]>, index: Opt<number>): T | undefined {
   return index == null ? undefined : arr?.[index]
 }
+
+/**
+ * Check if two byte arrays have the same value. Allows optional values. If both inputs are `null`
+ * or `undefined`, the comparison also succeeds.
+ */
+export function byteArraysEqual(a: Opt<Uint8Array>, b: Opt<Uint8Array>): boolean {
+  return a === b || (a != null && b != null && indexedDB.cmp(a, b) === 0)
+}
