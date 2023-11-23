@@ -31,6 +31,16 @@ public class ErrorCompilerTest extends CompilerTest {
   }
 
   @Test
+  public void spaceDotUnderscore() throws Exception {
+    var ir = parse("""
+    run op =
+      op ._
+    """);
+
+    assertSingleSyntaxError(ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 14, 16);
+  }
+
+  @Test
   public void unaryMinus() throws Exception {
     var ir = parse("""
     from Standard.Base import all
