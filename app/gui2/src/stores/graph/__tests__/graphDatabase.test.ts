@@ -46,7 +46,7 @@ test('Reading graph from definition', () => {
     (_) => 100.0,
   )
 
-  expect(Array.from(db.allNodeIds())).toEqual([id04, id08])
+  expect(Array.from(db.nodeIdToNode.keys())).toEqual([id04, id08])
   expect(db.getExpressionNodeId(id04)).toBe(id04)
   expect(db.getExpressionNodeId(id05)).toBe(id04)
   expect(db.getExpressionNodeId(id06)).toBe(id04)

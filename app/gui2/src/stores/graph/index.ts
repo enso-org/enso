@@ -128,7 +128,7 @@ export const useGraphStore = defineStore('graph', () => {
   const edges = computed(() => {
     const disconnectedEdgeTarget = unconnectedEdge.value?.disconnectedEdgeTarget
     const edges = []
-    for (const [target, sources] of db.sourceIdToTargetId.allReverse()) {
+    for (const [target, sources] of db.connections.allReverse()) {
       if (target === disconnectedEdgeTarget) continue
       for (const source of sources) {
         edges.push({ source, target })
