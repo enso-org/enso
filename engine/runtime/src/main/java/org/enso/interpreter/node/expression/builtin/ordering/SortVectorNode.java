@@ -101,7 +101,7 @@ public abstract class SortVectorNode extends Node {
         "areAllDefaultComparators(lengthNode, atNode, comparators)",
         "interop.isNull(byFunc)",
         "interop.isNull(onFunc)"
-      }, limit = "3")
+      })
   Object sortPrimitives(
       State state,
       Object self,

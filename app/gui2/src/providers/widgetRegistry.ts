@@ -162,7 +162,7 @@ function isWidgetModule(module: unknown): module is WidgetModule<any> {
 }
 
 function isWidgetComponent(component: unknown): component is WidgetComponent<any> {
-  return typeof component === 'object' && component !== null && 'render' in component
+  return typeof component === 'object' && component !== null
 }
 
 function isWidgetDefinition(config: unknown): config is WidgetDefinition<any> {
