@@ -13,7 +13,7 @@ license-file = "../../LICENSE"
 enso-metamodel = { path = "../../metamodel", features = ["rust"] }
 enso-parser = { path = ".." }
 enso-reflect = { path = "../../reflect", features = ["graphviz"] }
-serde = { version = "1", features = ["derive"] }
+serde = { workspace = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 serde_json = { workspace = true }

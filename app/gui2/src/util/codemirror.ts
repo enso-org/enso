@@ -11,6 +11,7 @@ export {
   foldNodeProp,
   syntaxHighlighting,
 } from '@codemirror/language'
+export { lintGutter, linter, type Diagnostic } from '@codemirror/lint'
 export { highlightSelectionMatches } from '@codemirror/search'
 export { EditorState } from '@codemirror/state'
 export { EditorView, tooltips, type TooltipView } from '@codemirror/view'
@@ -26,6 +27,7 @@ import {
   languageDataProp,
   syntaxTree,
 } from '@codemirror/language'
+import { type Diagnostic } from '@codemirror/lint'
 import { hoverTooltip as originalHoverTooltip, type TooltipView } from '@codemirror/view'
 import {
   NodeProp,
@@ -39,6 +41,34 @@ import {
 } from '@lezer/common'
 import { styleTags, tags } from '@lezer/highlight'
 import { EditorView } from 'codemirror'
+import type { Diagnostic as LSDiagnostic } from 'shared/languageServerTypes'
+
+export function lsDiagnosticsToCMDiagnostics(
+  source: string,
+  diagnostics: LSDiagnostic[],
+): Diagnostic[] {
+  if (!diagnostics.length) return []
+  const results: Diagnostic[] = []
+  let pos = 0
+  const lineStartIndices = []
+  for (const line of source.split('\n')) {
+    lineStartIndices.push(pos)
+    pos += line.length + 1
+  }
+  for (const diagnostic of diagnostics) {
+    if (!diagnostic.location) continue
+    results.push({
+      from:
+        (lineStartIndices[diagnostic.location.start.line] ?? 0) +
+        diagnostic.location.start.character,
+      to: (lineStartIndices[diagnostic.location.end.line] ?? 0) + diagnostic.location.end.character,
+      message: diagnostic.message,
+      severity:
+        diagnostic.kind === 'Error' ? 'error' : diagnostic.kind === 'Warning' ? 'warning' : 'info',
+    })
+  }
+  return results
+}
 
 type AstNode = AstExtended<Ast.Tree | Ast.Token, false>
 
