@@ -43,6 +43,8 @@ public interface CompilerContext extends CompilerStub {
 
   void log(Level level, String msg, Object... args);
 
+  void log(Level level, String msg, Throwable ex);
+
   void logSerializationManager(Level level, String msg, Object... args);
 
   void notifySerializeModule(QualifiedName moduleName);

@@ -30,6 +30,7 @@ import project.Number_Parse
 import project.Numeric
 import project.Range
 import project.Sum
+import project.Startup
 import project.Runtime.Panics_And_Errors
 from Standard.Base.Runtime import Debug
 
@@ -83,6 +84,8 @@ all_benchmarks =
 
     # Runtime
     builder.append Panics_And_Errors.collect_benches
+
+    builder.append Startup.collect_benches
 
     builder.to_vector
 

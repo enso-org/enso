@@ -153,6 +153,10 @@ export class AstExtended<T extends Tree | Token = Tree | Token, HasIdMap extends
   visitRecursive(visitor: (t: AstExtended<Tree | Token, HasIdMap>) => boolean) {
     visitGenerator(this.walkRecursive(), visitor)
   }
+
+  get parsedCode() {
+    return this.ctx.parsedCode
+  }
 }
 
 type CondType<T, Cond extends boolean> = Cond extends true

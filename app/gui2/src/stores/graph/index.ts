@@ -121,14 +121,14 @@ export const useGraphStore = defineStore('graph', () => {
     let ident: string
     do {
       ident = randomString()
-    } while (db.nodeIdToBinding.hasValue(ident))
+    } while (db.identifierUsed(ident))
     return ident
   }
 
   const edges = computed(() => {
     const disconnectedEdgeTarget = unconnectedEdge.value?.disconnectedEdgeTarget
     const edges = []
-    for (const [target, sources] of db.sourceIdToTargetId.allReverse()) {
+    for (const [target, sources] of db.connections.allReverse()) {
       if (target === disconnectedEdgeTarget) continue
       for (const source of sources) {
         edges.push({ source, target })
@@ -174,6 +174,14 @@ export const useGraphStore = defineStore('graph', () => {
     meta.y = -position.y
     const ident = generateUniqueIdent()
     return mod.insertNewNode(mod.doc.contents.length, ident, expression, meta)
+  }
+
+  // Create a node from a source expression, and insert it into the graph. The return value will be
+  // the new node's ID, or `null` if the node creation fails.
+  function createNodeFromSource(position: Vec2, source: ExprId): Opt<ExprId> {
+    const sourceNodeName = db.getNodeMainOutputPortIdentifier(source)
+    const sourceNodeNameWithDot = sourceNodeName ? sourceNodeName + '.' : ''
+    return createNode(position, sourceNodeNameWithDot)
   }
 
   function deleteNode(id: ExprId) {
@@ -268,10 +276,6 @@ export const useGraphStore = defineStore('graph', () => {
     editedNodeInfo.value = { id, range }
   }
 
-  function getNodeBinding(id: ExprId): string {
-    return db.nodeIdToNode.get(id)?.binding ?? ''
-  }
-
   return {
     transact,
     db: markRaw(db),
@@ -296,7 +300,7 @@ export const useGraphStore = defineStore('graph', () => {
     updateNodeRect,
     updateExprRect,
     setEditedNode,
-    getNodeBinding,
+    createNodeFromSource,
   }
 })
 

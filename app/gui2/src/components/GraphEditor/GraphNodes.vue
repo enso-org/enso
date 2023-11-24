@@ -18,6 +18,10 @@ const dragging = useDragging()
 const selection = injectGraphSelection(true)
 const navigator = injectGraphNavigator(true)
 
+const emit = defineEmits<{
+  nodeOutputPortDoubleClick: [nodeId: ExprId]
+}>()
+
 function updateNodeContent(id: ExprId, updates: [ContentRange, string][]) {
   graphStore.transact(() => {
     for (const [range, content] of updates) {
@@ -59,7 +63,8 @@ const uploadingFiles = computed<[FileName, File][]>(() => {
     @setVisualizationVisible="graphStore.setNodeVisualizationVisible(id, $event)"
     @dragging="nodeIsDragged(id, $event)"
     @draggingCommited="dragging.finishDrag()"
-    @outputPortAction="graphStore.createEdgeFromOutput(id)"
+    @outputPortClick="graphStore.createEdgeFromOutput(id)"
+    @outputPortDoubleClick="emit('nodeOutputPortDoubleClick', id)"
   />
   <UploadingFile
     v-for="(nameAndFile, index) in uploadingFiles"

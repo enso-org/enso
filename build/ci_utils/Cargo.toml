@@ -11,31 +11,24 @@ async-trait = "0.1.51"
 bincode = "1.3.3"
 byte-unit = { workspace = true }
 bytes = { workspace = true }
-cached = "0.39.0"
-convert_case = { workspace = true }
-cfg-if = "1.0.0"
 chrono = { version = "0.4.19", features = ["serde"] }
 clap = { version = "3.1.5", features = ["derive", "env"] }
-cron = "0.12.0"
 data-encoding = "2.3.2"
 dependency_runner = "1.0.0"
 derivative = { workspace = true }
 derive_more = { workspace = true }
-dirs = "4.0.0"
+dirs = { workspace = true }
 enso-build-base = { path = "../base" }
 enso-zst = { path = "../../lib/rust/zst" }
-filetime = "0.2.15"
 flate2 = "1.0.22"
 flume = "0.10.10"
 fs_extra = "1.2.0"
 futures = { workspace = true }
 futures-util = "0.3.17"
 glob = "0.3.0"
-graphql_client = "0.11.0"
 headers = "0.3.7"
 heck = "0.4.0"
 http-serde = "1.1.0"
-indexmap = "1.7.0"
 indicatif = { version = "0.17.1", features = ["tokio"] }
 itertools = { workspace = true }
 lazy_static = { workspace = true }
@@ -43,33 +36,23 @@ log = "0.4.14"
 mime = "0.3.16"
 multimap = "0.8.3"
 new_mime_guess = "4.0.0"
-nix = { workspace = true }
 octocrab = { workspace = true }
 paste = { workspace = true }
 path-absolutize = "3.0.11"
 pathdiff = "0.2.1"
 path-slash = "0.2.1"
-platforms = "3.0.0"
-pin-project = "1.0.8"
-port_check = "0.1.5"
-pretty_env_logger = "0.4.0"
-proc-macro2 = { workspace = true }
-quote = { workspace = true }
+platforms = { workspace = true }
 rand = "0.8.4"
 regex = { workspace = true }
-reqwest = { version = "0.11.5", default-features = false, features = [
-  "stream",
-] }
+reqwest = { workspace = true }
 semver = { workspace = true }
-serde = { version = "1.0.130", features = ["derive"] }
+serde = { workspace = true }
 serde_json = { workspace = true }
 serde_yaml = { workspace = true }
-scopeguard = "1.1.0"
 sha2 = "0.10.2"
 strum = { workspace = true }
 symlink = "0.1.0"
-syn = { workspace = true }
-sysinfo = "0.26.2"
+sysinfo = { workspace = true }
 tar = "0.4.37"
 tempfile = "3.2.0"
 tokio = { workspace = true }
@@ -82,7 +65,6 @@ url = "2.2.2"
 uuid = { version = "1.1.0", features = ["v4", "serde"] }
 walkdir = "2.3.2"
 which = "4.2.2"
-whoami = "1.2.1"
 zip = { version = "0.6.2", default-features = false, features = ["deflate"] }
 
 [dev-dependencies]

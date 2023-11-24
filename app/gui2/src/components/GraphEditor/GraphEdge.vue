@@ -21,13 +21,17 @@ const base = ref<SVGPathElement>()
 
 const sourceNode = computed(() => {
   const setSource = props.edge.source
-  // When the source is not set (i.e. edge is dragged), use the currently hovered over expression
-  // as the source, as long as it is not from the same node as the target.
-  if (setSource == null && selection?.hoveredNode != null) {
-    const rawTargetNode = props.edge.target && graph.db.getExpressionNodeId(props.edge.target)
-    if (selection.hoveredNode != rawTargetNode) return selection.hoveredNode
+  if (setSource != null) {
+    return graph.db.getPatternExpressionNodeId(setSource)
+  } else {
+    // When the source is not set (i.e. edge is dragged), use the currently hovered over expression
+    // as the source, as long as it is not from the same node as the target.
+    if (selection?.hoveredNode != null) {
+      const rawTargetNode = graph.db.getExpressionNodeId(props.edge.target)
+      if (selection.hoveredNode != rawTargetNode) return selection.hoveredNode
+    }
   }
-  return setSource
+  return undefined
 })
 
 const targetExpr = computed(() => {

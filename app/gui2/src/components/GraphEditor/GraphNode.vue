@@ -4,11 +4,12 @@ import CircularMenu from '@/components/CircularMenu.vue'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import NodeWidgetTree from '@/components/GraphEditor/NodeWidgetTree.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
+import { useDoubleClick } from '@/composables/doubleClick'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { useGraphStore, type Node } from '@/stores/graph'
 import { useApproach } from '@/util/animation'
 import { usePointer, useResizeObserver } from '@/util/events'
-import { methodNameToIcon, typeNameToIcon } from '@/util/getIconName'
+import { displayedIconOf, mapOldIconName, typeNameToIcon } from '@/util/getIconName'
 import type { Opt } from '@/util/opt'
 import { Rect } from '@/util/rect'
 import { Vec2 } from '@/util/vec2'
@@ -33,7 +34,8 @@ const emit = defineEmits<{
   delete: []
   replaceSelection: []
   'update:selected': [selected: boolean]
-  outputPortAction: []
+  outputPortClick: []
+  outputPortDoubleClick: []
   'update:edited': [cursorPosition: number]
 }>()
 
@@ -123,17 +125,12 @@ const executionState = computed(() => expressionInfo.value?.payload.type ?? 'Unk
 const suggestionEntry = computed(() => graph.db.nodeMainSuggestion.lookup(nodeId.value))
 const color = computed(() => graph.db.getNodeColorStyle(nodeId.value))
 const icon = computed(() => {
-  if (suggestionEntry.value?.iconName) {
-    return suggestionEntry.value.iconName
-  }
-  const methodName = expressionInfo.value?.methodCall?.methodPointer.name
-  if (methodName != null) {
-    return methodNameToIcon(methodName)
-  } else if (outputTypeName.value != null) {
-    return typeNameToIcon(outputTypeName.value)
-  } else {
-    return 'in_out'
-  }
+  const expressionInfo = graph.db.getExpressionInfo(nodeId.value)
+  return displayedIconOf(
+    suggestionEntry.value,
+    expressionInfo?.methodCall?.methodPointer,
+    outputTypeName.value,
+  )
 })
 
 const nodeEditHandler = nodeEditBindings.handler({
@@ -191,6 +188,13 @@ function getRelatedSpanOffset(domNode: globalThis.Node, domOffset: number): numb
   }
   return 0
 }
+
+const handlePortClick = useDoubleClick(
+  () => emit('outputPortClick'),
+  () => {
+    emit('outputPortDoubleClick')
+  },
+).handleClick
 </script>
 
 <template>
@@ -211,7 +215,7 @@ function getRelatedSpanOffset(domNode: globalThis.Node, domOffset: number): numb
   >
     <div class="selection" v-on="dragPointer.events"></div>
     <div class="binding" @pointerdown.stop>
-      {{ node.binding }}
+      {{ node.pattern?.repr() ?? '' }}
     </div>
     <CircularMenu
       v-if="menuVisible"
@@ -245,7 +249,7 @@ function getRelatedSpanOffset(domNode: globalThis.Node, domOffset: number): numb
         class="outputPortHoverArea"
         @pointerenter="outputHovered = true"
         @pointerleave="outputHovered = false"
-        @pointerdown.stop.prevent="emit('outputPortAction')"
+        @pointerdown="handlePortClick()"
       />
       <rect class="outputPort" />
       <text class="outputTypeName">{{ outputTypeName }}</text>

@@ -10,12 +10,17 @@
 
 import { LazySyncEffectSet } from '@/util/reactivity'
 // eslint-disable-next-line vue/prefer-import-from-vue
+import { assert } from '@/util/assert'
 import * as map from 'lib0/map'
 import { ObservableV2 } from 'lib0/observable'
 import * as set from 'lib0/set'
 import { computed, reactive, type ComputedRef, type DebuggerOptions } from 'vue'
 
 export type OnDelete = (cleanupFn: () => void) => void
+
+type ReactiveDBNotification<K, V> = {
+  entryAdded(key: K, value: V, onDelete: OnDelete): void
+}
 
 /**
  * Represents a reactive database adapter that extends the behaviors of `Map`.
@@ -25,11 +30,13 @@ export type OnDelete = (cleanupFn: () => void) => void
  * @typeParam K - The key type for the database entries.
  * @typeParam V - The value type for the database entries.
  */
-export class ReactiveDb<K, V> extends ObservableV2<{
-  entryAdded(key: K, value: V, onDelete: OnDelete): void
-}> {
+export class ReactiveDb<K, V>
+  extends ObservableV2<ReactiveDBNotification<K, V>>
+  implements Iterable<[K, V]>
+{
   _internal: Map<K, V>
-  onDelete: Map<K, Set<() => void>>
+  onDelete: Map<K, Set<() => void>>;
+  [Symbol.iterator] = this.entries
 
   constructor() {
     super()
@@ -66,6 +73,31 @@ export class ReactiveDb<K, V> extends ObservableV2<{
   /** Same as `Map.get` */
   get(key: K): V | undefined {
     return this._internal.get(key)
+  }
+
+  /**
+   * Checks if the database contains the key.
+   * @param key - A key to chec.
+   */
+  has(key: K): boolean {
+    return this._internal.has(key)
+  }
+
+  /**
+   * Retrieves the value corresponding to a specified key in the database, or insert the provided
+   * one if missing. Will emit an `entryAdded` event after the addition.
+   *
+   * @param key - The key for which to retrieve the value.
+   * @param valueToAdd - Value to add if there's no value under `key`.
+   * @returns The value associated with the key. If was missing, the `valueToAdd` is returned.
+   */
+  getOrAdd(key: K, valueToAdd: () => V): V {
+    if (!this._internal.has(key)) {
+      this.set(key, valueToAdd())
+    }
+    const value = this._internal.get(key)
+    assert(value != null)
+    return value
   }
 
   /**
@@ -145,6 +177,8 @@ export type Indexer<K, V, IK, IV> = (key: K, value: V) => [IK, IV][]
 /**
  * Provides automatic indexing for a `ReactiveDb` instance.
  * Utilizes both forward and reverse mapping for efficient lookups and reverse lookups.
+ * The index updates not only after key/value change from db, but also on any change of
+ * reactive dependency.
  *
  * @typeParam K - The key type of the ReactiveDb.
  * @typeParam V - The value type of the ReactiveDb.
@@ -245,6 +279,10 @@ export class ReactiveIndex<K, V, IK, IV> {
   reverseLookup(value: IV): Set<IK> {
     this.effects.flush()
     return this.reverse.get(value) ?? set.create()
+  }
+
+  hasKey(key: IK): boolean {
+    return this.forward.has(key)
   }
 
   hasValue(value: IV): boolean {
