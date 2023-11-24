@@ -52,9 +52,8 @@ type Excel_Workbook
        - file: Optional file reference.
     from_stream : Input_Stream -> Boolean -> Boolean | Infer -> File | Nothing -> Excel_Workbook
     from_stream stream xls_format=False headers=Infer file=Nothing = Excel_Reader.handle_bad_format file <|
-        stream.with_java_stream java_stream->
-            java_file = file # FIXME
-            Error.throw "TODO"
+        _ = [stream, xls_format, headers]
+        Error.throw "TODO"
 
     ## PRIVATE
        Creates an Excel_Workbook connection.
