@@ -41,7 +41,7 @@ type Join_Kind
 
     ## PRIVATE
     to_java : Java_Join_Kind
-    to_java self = case join_kind of
+    to_java self = case self of
         Join_Kind.Inner           -> Java_Join_Kind.INNER
         Join_Kind.Left_Outer      -> Java_Join_Kind.LEFT_OUTER
         Join_Kind.Right_Outer     -> Java_Join_Kind.RIGHT_OUTER
