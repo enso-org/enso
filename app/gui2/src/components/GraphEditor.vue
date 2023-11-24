@@ -16,6 +16,7 @@ import { provideGraphSelection } from '@/providers/graphSelection'
 import { provideInteractionHandler, type Interaction } from '@/providers/interactionHandler'
 import { provideWidgetRegistry } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
+import type { RequiredImport } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { groupColorVar, useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { colorFromString } from '@/util/colors'
@@ -294,7 +295,7 @@ function resetComponentBrowserState() {
   interaction.setCurrent(undefined)
 }
 
-function onComponentBrowserCommit(content: string) {
+function onComponentBrowserCommit(content: string, requiredImports: RequiredImport[]) {
   if (content != null) {
     if (graphStore.editedNodeInfo) {
       // We finish editing a node.
@@ -302,7 +303,13 @@ function onComponentBrowserCommit(content: string) {
     } else {
       // We finish creating a new node.
       const nodePosition = componentBrowserPosition.value
-      graphStore.createNode(nodePosition.sub(COMPONENT_BROWSER_TO_NODE_OFFSET), content)
+      const metadata = undefined
+      graphStore.createNode(
+        nodePosition.sub(COMPONENT_BROWSER_TO_NODE_OFFSET),
+        content,
+        metadata,
+        requiredImports,
+      )
     }
   }
   resetComponentBrowserState()

@@ -58,6 +58,19 @@ export class AstExtended<T extends Tree | Token = Tree | Token, HasIdMap extends
     return new AstExtended(ast, ctx)
   }
 
+  public static parseLine(code: string): AstExtended<Tree, false> {
+    const block = AstExtended.parse(code)
+    assert(block.isTree(Tree.Type.BodyBlock))
+    return block.map((block) => {
+      const statements = block.statements[Symbol.iterator]()
+      const firstLine = statements.next()
+      assert(!firstLine.done)
+      assert(!!statements.next().done)
+      assert(firstLine.value.expression != null)
+      return firstLine.value.expression
+    })
+  }
+
   treeTypeName(): (typeof Tree.typeNames)[number] | null {
     return Tree.isInstance(this.inner) ? Tree.typeNames[this.inner.type] : null
   }
@@ -114,6 +127,20 @@ export class AstExtended<T extends Tree | Token = Tree | Token, HasIdMap extends
 
   map<T2 extends Tree | Token>(mapper: (t: T) => T2): AstExtended<T2, HasIdMap> {
     return new AstExtended(mapper(this.inner), this.ctx)
+  }
+
+  mapIter<T2 extends Tree | Token>(
+    mapper: (t: T) => Iterable<T2>,
+  ): Iterable<AstExtended<T2, HasIdMap>> {
+    return [...mapper(this.inner)].map((m) => new AstExtended(m, this.ctx))
+  }
+
+  tryMapIter<T2 extends Tree | Token>(
+    mapper: (t: T) => Iterable<Opt<T2>>,
+  ): Iterable<AstExtended<T2, HasIdMap> | undefined> {
+    return [...mapper(this.inner)].map((m) =>
+      m != null ? new AstExtended(m, this.ctx) : undefined,
+    )
   }
 
   repr() {

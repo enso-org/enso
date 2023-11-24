@@ -6,6 +6,7 @@ import { default as DocumentationPanel } from '@/components/DocumentationPanel.v
 import SvgIcon from '@/components/SvgIcon.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
 import { useGraphStore } from '@/stores/graph'
+import type { RequiredImport } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { groupColorStyle, useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
@@ -37,7 +38,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  accepted: [searcherExpression: string]
+  accepted: [searcherExpression: string, requiredImports: RequiredImport[]]
   closed: [searcherExpression: string]
   canceled: []
 }>()
@@ -303,7 +304,7 @@ function acceptSuggestion(index: Opt<Component> = null) {
 }
 
 function acceptInput() {
-  emit('accepted', input.code.value)
+  emit('accepted', input.code.value, input.importsToAdd())
 }
 
 // === Key Events Handler ===

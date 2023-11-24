@@ -1,5 +1,12 @@
 import { nonDictatedPlacement } from '@/components/ComponentBrowser/placement'
 import { GraphDb } from '@/stores/graph/graphDatabase'
+import {
+  filterOutRedundantImports,
+  recognizeImport,
+  requiredImportToText,
+  type Import,
+  type RequiredImport,
+} from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { DEFAULT_VISUALIZATION_IDENTIFIER } from '@/stores/visualization'
@@ -47,6 +54,7 @@ export const useGraphStore = defineStore('graph', () => {
   const nodeRects = reactive(new Map<ExprId, Rect>())
   const exprRects = reactive(new Map<ExprId, Rect>())
   const editedNodeInfo = ref<NodeEditInfo>()
+  const imports = ref<{ import: Import; span: ContentRange }[]>([])
 
   const unconnectedEdge = ref<UnconnectedEdge>()
 
@@ -88,6 +96,18 @@ export const useGraphStore = defineStore('graph', () => {
 
       const ast = AstExtended.parse(textContentLocal, idMap)
       const updatedMap = idMap.finishAndSynchronize()
+
+      imports.value = []
+      ast.visitRecursive((node) => {
+        if (node.isTree(Ast.Tree.Type.Import)) {
+          const recognized = recognizeImport(node)
+          if (recognized) {
+            imports.value.push({ import: recognized, span: node.span() })
+          }
+          return false
+        }
+        return true
+      })
 
       const methodAst =
         ast.isTree() &&
@@ -165,6 +185,7 @@ export const useGraphStore = defineStore('graph', () => {
     position: Vec2,
     expression: string,
     metadata: NodeMetadata | undefined = undefined,
+    withImports: RequiredImport[] | undefined = undefined,
   ): Opt<ExprId> {
     const mod = proj.module
     if (!mod) return
@@ -176,7 +197,23 @@ export const useGraphStore = defineStore('graph', () => {
     meta.x = position.x
     meta.y = -position.y
     const ident = generateUniqueIdent()
-    return mod.insertNewNode(mod.doc.contents.length, ident, expression, meta)
+    let importData = undefined
+    let additionalOffset = 0
+    const importsToAdd = withImports ? filterOutRedundantImports(imports.value, withImports) : []
+    if (importsToAdd.length > 0) {
+      const lastImport = imports.value[imports.value.length - 1]
+      const importOffset = lastImport ? lastImport.span[1] + 1 : 0
+      const str = importsToAdd.map((info) => requiredImportToText(info)).join('\n')
+      additionalOffset += str.length + 1
+      importData = { str, offset: importOffset }
+    }
+    return mod.insertNewNode(
+      mod.doc.contents.length + additionalOffset,
+      ident,
+      expression,
+      meta,
+      importData,
+    )
   }
 
   // Create a node from a source expression, and insert it into the graph. The return value will be
@@ -296,6 +333,7 @@ export const useGraphStore = defineStore('graph', () => {
   return {
     transact,
     db: markRaw(db),
+    imports,
     editedNodeInfo,
     unconnectedEdge,
     edges,

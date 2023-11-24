@@ -286,8 +286,8 @@ export class GraphDb {
     }
   }
 
-  static Mock(registry = ComputedValueRegistry.Mock()): GraphDb {
-    return new GraphDb(new SuggestionDb(), ref([]), registry)
+  static Mock(registry = ComputedValueRegistry.Mock(), db = new SuggestionDb()): GraphDb {
+    return new GraphDb(db, ref([]), registry)
   }
 
   mockNode(binding: string, id: ExprId, code?: string) {

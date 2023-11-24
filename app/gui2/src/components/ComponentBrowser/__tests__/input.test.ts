@@ -1,15 +1,20 @@
 import { GraphDb } from '@/stores/graph/graphDatabase'
+import type { RequiredImport } from '@/stores/graph/imports'
+import { SuggestionDb } from '@/stores/suggestionDatabase'
 import {
   makeCon,
+  makeFunction,
   makeLocal,
   makeMethod,
   makeModule,
   makeModuleMethod,
   makeStaticMethod,
+  makeType,
   type SuggestionEntry,
 } from '@/stores/suggestionDatabase/entry'
-import { readAstSpan } from '@/util/ast'
 import { ComputedValueRegistry } from '@/util/computedValueRegistry'
+import { tryIdentifier, tryQualifiedName } from '@/util/qualifiedName'
+import { unwrap } from '@/util/result'
 import type { ExprId } from 'shared/yjsModel'
 import { expect, test } from 'vitest'
 import { useComponentBrowserInput } from '../input'
@@ -105,7 +110,7 @@ test.each([
     mockGraphDb.mockNode('operator1', operator1Id)
     mockGraphDb.mockNode('operator2', operator2Id)
 
-    const input = useComponentBrowserInput(mockGraphDb)
+    const input = useComponentBrowserInput(mockGraphDb, new SuggestionDb())
     input.code.value = code
     input.selection.value = { start: cursorPos, end: cursorPos }
     const context = input.context.value
@@ -115,17 +120,17 @@ test.each([
       case 'insert':
         expect(context.position).toStrictEqual(expContext.position)
         expect(
-          context.oprApp != null ? Array.from(context.oprApp.componentsReprs(code)) : undefined,
+          context.oprApp != null ? Array.from(context.oprApp.componentsReprs()) : undefined,
         ).toStrictEqual(expContext.oprApp)
         break
       case 'changeIdentifier':
-        expect(readAstSpan(context.identifier, code)).toStrictEqual(expContext.identifier)
+        expect(context.identifier.repr()).toStrictEqual(expContext.identifier)
         expect(
-          context.oprApp != null ? Array.from(context.oprApp.componentsReprs(code)) : undefined,
+          context.oprApp != null ? Array.from(context.oprApp.componentsReprs()) : undefined,
         ).toStrictEqual(expContext.oprApp)
         break
       case 'changeLiteral':
-        expect(readAstSpan(context.literal, code)).toStrictEqual(expContext.literal)
+        expect(context.literal.repr()).toStrictEqual(expContext.literal)
     }
     expect(filter.pattern).toStrictEqual(expFiltering.pattern)
     expect(filter.qualifiedNamePattern).toStrictEqual(expFiltering.qualifiedNamePattern)
@@ -146,6 +151,11 @@ const baseCases: ApplySuggestionCase[] = [
     code: '',
     suggestion: makeLocal('local.Project.Main', 'operator1'),
     expected: 'operator1 ',
+  },
+  {
+    code: 'Main.',
+    suggestion: makeFunction('local.Project.Main', 'func1'),
+    expected: 'Main.func1 ',
   },
   {
     code: '',
@@ -171,6 +181,21 @@ const baseCases: ApplySuggestionCase[] = [
     code: 'operator1.',
     suggestion: makeMethod('Standard.Base.Data.Vector.get'),
     expected: 'operator1.get ',
+  },
+  {
+    code: 'Standard.Base.Data.',
+    suggestion: makeStaticMethod('Standard.Base.Data.Vector.new'),
+    expected: 'Standard.Base.Data.Vector.new ',
+  },
+  {
+    code: 'Base.',
+    suggestion: makeStaticMethod('Standard.Base.Data.Vector.new'),
+    expected: 'Base.Data.Vector.new ',
+  },
+  {
+    code: 'Base.Data.',
+    suggestion: makeStaticMethod('Standard.Base.Data.Vector.new'),
+    expected: 'Base.Data.Vector.new ',
   },
   {
     code: 'Data.Vector.',
@@ -252,8 +277,8 @@ test.each([
   ({ code, cursorPos, suggestion, expected, expectedCursorPos }) => {
     cursorPos = cursorPos ?? code.length
     expectedCursorPos = expectedCursorPos ?? expected.length
-
-    const input = useComponentBrowserInput(GraphDb.Mock())
+    const graphMock = GraphDb.Mock()
+    const input = useComponentBrowserInput(graphMock, new SuggestionDb())
     input.code.value = code
     input.selection.value = { start: cursorPos, end: cursorPos }
     input.applySuggestion(suggestion)
@@ -262,5 +287,70 @@ test.each([
       start: expectedCursorPos,
       end: expectedCursorPos,
     })
+  },
+)
+
+interface ImportsCase {
+  description: string
+  suggestionId: number
+  initialCode?: string
+  manuallyEditedCode?: string
+  expectedCode: string
+  expectedImports: RequiredImport[]
+}
+
+test.each([
+  {
+    description: 'Basic case of adding required import',
+    suggestionId: 3,
+    expectedCode: 'Table.new ',
+    expectedImports: [
+      {
+        kind: 'Unqualified',
+        from: unwrap(tryQualifiedName('Standard.Base')),
+        import: unwrap(tryIdentifier('Table')),
+      },
+    ],
+  },
+  {
+    description: 'Importing the head of partially edited qualified name',
+    suggestionId: 3,
+    initialCode: 'Base.',
+    expectedCode: 'Base.Table.new ',
+    expectedImports: [{ kind: 'Qualified', module: unwrap(tryQualifiedName('Standard.Base')) }],
+  },
+  {
+    description: 'Importing the head of partially edited qualified name (2)',
+    suggestionId: 3,
+    initialCode: 'Base.Table.',
+    expectedCode: 'Base.Table.new ',
+    expectedImports: [{ kind: 'Qualified', module: unwrap(tryQualifiedName('Standard.Base')) }],
+  },
+  {
+    description: 'Do not import if user changes input manually after applying suggestion',
+    suggestionId: 3,
+    manuallyEditedCode: '',
+    expectedCode: '',
+    expectedImports: [],
+  },
+] as ImportsCase[])(
+  '$description',
+  ({ suggestionId, initialCode, manuallyEditedCode, expectedCode, expectedImports }) => {
+    initialCode = initialCode ?? ''
+    const db = new SuggestionDb()
+    db.set(1, makeModule('Standard.Base'))
+    db.set(2, makeType('Standard.Base.Table'))
+    db.set(3, makeCon('Standard.Base.Table.new'))
+    const graphMock = GraphDb.Mock(undefined, db)
+    const input = useComponentBrowserInput(graphMock, db)
+    input.code.value = initialCode
+    input.selection.value = { start: initialCode.length, end: initialCode.length }
+    const suggestion = db.get(suggestionId)!
+    input.applySuggestion(suggestion)
+    if (manuallyEditedCode != null) {
+      input.code.value = manuallyEditedCode
+    }
+    expect(input.code.value).toEqual(expectedCode)
+    expect(input.importsToAdd()).toEqual(expectedImports)
   },
 )
