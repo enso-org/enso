@@ -48,9 +48,7 @@ export function useEvent(
   options?: boolean | AddEventListenerOptions,
 ): void {
   target.addEventListener(event, handler, options)
-  onScopeDispose(() => {
-    target.removeEventListener(event, handler, options)
-  })
+  onScopeDispose(() => target.removeEventListener(event, handler, options))
 }
 
 /**

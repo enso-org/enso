@@ -72,6 +72,8 @@ const mouseHandler = bindings.handler({
     setDragImageToBlank(event)
     if (event.dataTransfer) {
       event.dataTransfer.effectAllowed = 'move'
+      // `dropEffect: none` does not work for removing an element - it disables drop completely.
+      event.dataTransfer.dropEffect = 'move'
       if (dragIndex.value != null) {
         const dragItem = props.modelValue[dragIndex.value]!
         if (props.toPlainText) {
@@ -106,7 +108,6 @@ function handleDrag(event: DragEvent) {
     return bbox && dx <= X_LENIENCE_PX && dy <= Y_LENIENCE_PX
   })
   const newShouldRemove = minDistanceSquared > REMOVE_DISTANCE_THRESHOLD_SQUARED_PX
-  event.dataTransfer.dropEffect = newShouldRemove ? 'none' : 'move'
   if (
     (insertIndex === -1 || dragDisplayIndex.value === insertIndex) &&
     newShouldRemove === shouldRemove.value
@@ -135,8 +136,9 @@ function onDragOver(event: DragEvent) {
 }
 
 function onDrop(event: DragEvent) {
-  if (dragIndex.value === dragDisplayIndex.value) return
+  if (dragIndex.value == null || dragIndex.value === dragDisplayIndex.value) return
   event.preventDefault()
+  event.stopImmediatePropagation()
   emit('update:modelValue', displayedChildren.value)
   cleanupDrag()
 }
@@ -144,15 +146,15 @@ function onDrop(event: DragEvent) {
 const onDragEnd = cleanupDrag
 
 onMounted(() => {
-  document.body.addEventListener('dragover', onDragOver)
-  document.body.addEventListener('drop', onDrop)
-  document.body.addEventListener('dragend', onDragEnd)
+  window.addEventListener('dragover', onDragOver)
+  window.addEventListener('drop', onDrop)
+  window.addEventListener('dragend', onDragEnd)
 })
 
 onUnmounted(() => {
-  document.body.removeEventListener('dragover', onDragOver)
-  document.body.removeEventListener('drop', onDrop)
-  document.body.removeEventListener('dragend', onDragEnd)
+  window.removeEventListener('dragover', onDragOver)
+  window.removeEventListener('drop', onDrop)
+  window.removeEventListener('dragend', onDragEnd)
 })
 </script>
 
@@ -164,7 +166,7 @@ onUnmounted(() => {
       !$event.shiftKey && !$event.altKey && !$event.metaKey && $event.stopImmediatePropagation()
     "
   >
-    <div class="vector-literal literal" @dragover="onDragOver" @drop="onDrop" @dragend="onDragEnd">
+    <div class="vector-literal literal">
       <span class="token">[</span>
       <TransitionGroup tag="ul" name="list" class="items">
         <template
