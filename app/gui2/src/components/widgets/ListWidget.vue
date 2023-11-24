@@ -30,28 +30,33 @@ const emit = defineEmits<{ 'update:modelValue': [modelValue: T[]] }>()
 
 const mimeType = computed(() => props.dragMimeType ?? 'application/octet-stream')
 
-const DRAG_PREVIEW_CLASS = 'drag-preview'
-
+const shouldRemove = ref(false)
 const dragIndex = ref<number>()
 const dragDisplayIndex = ref<number>()
 
 // The type assertions are required to prevent Vue from wrapping `T` with `UnwrapSimpleRef`.
 const displayedChildren = computed(() => {
-  if (
-    dragIndex.value == null ||
-    dragDisplayIndex.value == null ||
-    dragIndex.value === dragDisplayIndex.value
-  )
+  if (dragIndex.value == null) return props.modelValue
+  if (shouldRemove.value) {
+    const result = [...props.modelValue]
+    result.splice(dragIndex.value, 1)
+    return result
+  }
+  if (dragDisplayIndex.value == null || dragIndex.value === dragDisplayIndex.value)
     return props.modelValue
-  const array = [...props.modelValue]
+  const result = [...props.modelValue]
   const item = props.modelValue[dragIndex.value]!
-  array.splice(dragIndex.value, 1)
-  array.splice(dragDisplayIndex.value, 0, item)
-  return array
+  result.splice(dragIndex.value, 1)
+  result.splice(dragDisplayIndex.value, 0, item)
+  return result
 })
-const dragPos = ref<{ x: number; y: number }>()
+const dragPos = ref({ x: 0, y: 0 })
 const itemNodes = ref<HTMLLIElement[]>([])
 const childBoundingBoxes = ref([]) as Ref<DOMRect[]>
+
+const X_LENIENCE_PX = 2
+const Y_LENIENCE_PX = 8
+const REMOVE_DISTANCE_THRESHOLD_SQUARED_PX = 32 * 32
 
 function updateBoundingBoxes() {
   childBoundingBoxes.value = itemNodes.value
@@ -62,11 +67,6 @@ function updateBoundingBoxes() {
 const mouseHandler = bindings.handler({
   dragListItem(event) {
     if (!(event instanceof DragEvent)) return
-    const target = event.target instanceof HTMLElement && event.target
-    if (target) {
-      target.classList.add(DRAG_PREVIEW_CLASS)
-      requestAnimationFrame(() => target.classList.remove(DRAG_PREVIEW_CLASS))
-    }
     setDragImageToBlank(event)
     if (event.dataTransfer) {
       event.dataTransfer.effectAllowed = 'move'
@@ -94,11 +94,24 @@ function handleDrag(event: DragEvent) {
   )
     return displayedChildren.value
   event.preventDefault()
-  const insertIndex = childBoundingBoxes.value.findIndex(
-    (bbox) => bbox && event.clientX >= bbox.left && event.clientX <= bbox.right,
+  let minDistanceSquared = Infinity
+  const insertIndex = childBoundingBoxes.value.findIndex((bbox) => {
+    const dx = Math.max(bbox.left - event.clientX, event.clientX - bbox.right)
+    const dy = Math.max(bbox.top - event.clientY, event.clientY - bbox.bottom)
+    minDistanceSquared = Math.min(
+      minDistanceSquared,
+      (dx < 0 ? 0 : dx * dx) + (dy < 0 ? 0 : dy * dy),
+    )
+    return bbox && dx <= X_LENIENCE_PX && dy <= Y_LENIENCE_PX
+  })
+  const newShouldRemove = minDistanceSquared > REMOVE_DISTANCE_THRESHOLD_SQUARED_PX
+  if (
+    (insertIndex === -1 || dragDisplayIndex.value === insertIndex) &&
+    newShouldRemove === shouldRemove.value
   )
-  if (insertIndex === -1 || dragDisplayIndex.value === insertIndex) return
+    return
   dragDisplayIndex.value = insertIndex
+  shouldRemove.value = newShouldRemove
   requestAnimationFrame(updateBoundingBoxes)
 }
 
@@ -110,6 +123,7 @@ function onDragStart(event: DragEvent, index: number) {
 
 function onDragOver(event: DragEvent) {
   dragPos.value = { x: event.clientX, y: event.clientY }
+  console.log(dragPos.value)
   handleDrag(event)
 }
 
@@ -166,7 +180,7 @@ function onDragEnd() {
       @click="emit('update:modelValue', [...props.modelValue, props.default()])"
     />
     <div
-      v-if="dragIndex != null && dragPos"
+      v-if="dragIndex != null"
       class="drag-preview"
       :style="{ transform: `translate(${dragPos.x}px, ${dragPos.y}px)` }"
     >

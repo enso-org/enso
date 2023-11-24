@@ -13,6 +13,7 @@ const isNativeDragging = ref(false)
 
 useEvent(window, 'dragstart', () => (isNativeDragging.value = true), { capture: true })
 useEvent(window, 'dragend', () => (isNativeDragging.value = false), { capture: true })
+useEvent(window, 'drop', () => (isNativeDragging.value = false), { capture: true })
 </script>
 
 <template>
