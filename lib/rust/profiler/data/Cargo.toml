@@ -6,7 +6,7 @@ authors = ["Enso Team <contact@enso.org>"]
 
 [dependencies]
 derivative = { workspace = true }
-serde = { version = "1.0", features = ["derive"] }
+serde = { workspace = true }
 serde_json = { workspace = true }
 enso-prelude = { path = "../../prelude" }
 enso-profiler = { path = "../" }

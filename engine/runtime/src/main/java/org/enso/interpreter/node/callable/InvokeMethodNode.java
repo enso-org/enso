@@ -471,7 +471,7 @@ public abstract class InvokeMethodNode extends BaseNode {
         "!methods.hasType(self)",
         "!methods.hasSpecialDispatch(self)",
         "polyglotCallType.isInteropLibrary()",
-      }, limit = "3")
+      })
   Object doPolyglot(
       VirtualFrame frame,
       State state,
@@ -582,7 +582,7 @@ public abstract class InvokeMethodNode extends BaseNode {
         "!types.hasType(self)",
         "!types.hasSpecialDispatch(self)",
         "getPolyglotCallType(self, symbol, interop, methodResolverNode) == CONVERT_TO_ARRAY",
-      }, limit = "3")
+      })
   Object doConvertArray(
       VirtualFrame frame,
       State state,
@@ -606,7 +606,7 @@ public abstract class InvokeMethodNode extends BaseNode {
         "!types.hasType(self)",
         "!types.hasSpecialDispatch(self)",
         "getPolyglotCallType(self, symbol, interop, methodResolverNode) == CONVERT_TO_HASH_MAP",
-      }, limit = "3")
+      })
   Object doConvertHashMap(
       VirtualFrame frame,
       State state,

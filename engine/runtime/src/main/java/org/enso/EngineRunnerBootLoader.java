@@ -7,7 +7,6 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Path;
 import java.util.Enumeration;
-import java.util.List;
 
 /**
  * {@code runner.jar} is a fat jar containing all the dependencies for engine-runner, however, it
@@ -22,8 +21,6 @@ import java.util.List;
 public final class EngineRunnerBootLoader {
 
   private EngineRunnerBootLoader() {}
-
-  private static final String defaultRunnerJar = "runner/runner.jar";
 
   private static final ClassLoader loader;
 
@@ -53,7 +50,7 @@ public final class EngineRunnerBootLoader {
     var runtimeJar =
         EngineRunnerBootLoader.class.getProtectionDomain().getCodeSource().getLocation();
     try {
-      var runnerJarUri = runtimeJar.toURI().resolve(defaultRunnerJar);
+      var runnerJarUri = runtimeJar.toURI().resolve(ClassLoaderConstants.DEFAULT_RUNNER_JAR);
       return Path.of(runnerJarUri);
     } catch (URISyntaxException e) {
       throw new IllegalStateException(e);
@@ -62,9 +59,6 @@ public final class EngineRunnerBootLoader {
 
   private static final class IsolatedClassLoader extends URLClassLoader {
     private final ClassLoader systemClassLoader;
-    private static final List<String> resourceDelegationPatterns = List.of("org.slf4j", "ch.qos");
-    private static final List<String> classDelegationPatterns =
-        List.of("org.graalvm", "java", "org.slf4j", "ch.qos");
 
     public IsolatedClassLoader(URL runnerJarUrl) {
       super("org.enso.IsolatedClassLoader", new URL[] {runnerJarUrl}, null);
@@ -73,7 +67,7 @@ public final class EngineRunnerBootLoader {
 
     @Override
     public Class<?> loadClass(String name) throws ClassNotFoundException {
-      if (classDelegationPatterns.stream().anyMatch(name::startsWith)) {
+      if (ClassLoaderConstants.CLASS_DELEGATION_PATTERNS.stream().anyMatch(name::startsWith)) {
         return systemClassLoader.loadClass(name);
       } else {
         return super.loadClass(name);
@@ -82,7 +76,7 @@ public final class EngineRunnerBootLoader {
 
     @Override
     public URL findResource(String name) {
-      if (resourceDelegationPatterns.stream().anyMatch(name::startsWith)) {
+      if (ClassLoaderConstants.RESOURCE_DELEGATION_PATTERNS.stream().anyMatch(name::startsWith)) {
         return systemClassLoader.getResource(name);
       } else {
         return super.findResource(name);
@@ -91,7 +85,7 @@ public final class EngineRunnerBootLoader {
 
     @Override
     public Enumeration<URL> findResources(String name) throws IOException {
-      if (resourceDelegationPatterns.stream().anyMatch(name::startsWith)) {
+      if (ClassLoaderConstants.RESOURCE_DELEGATION_PATTERNS.stream().anyMatch(name::startsWith)) {
         return systemClassLoader.getResources(name);
       } else {
         return super.findResources(name);

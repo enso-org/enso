@@ -166,6 +166,7 @@ export const widgetDefinition = defineWidget(
   },
 )
 </script>
+
 <template>
   <span
     ref="rootNode"

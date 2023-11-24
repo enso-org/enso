@@ -213,8 +213,7 @@ collect_benches = Bench.build builder->
             r = scenario.table1.join t2 on=[Join_Condition.Between "x" "x_lows" "x_highs", Join_Condition.Between "y" "y_lows" "y_highs"]
             assert (r.row_count == scenario.table1.row_count)
 
-        # TODO this should be part of the main tests, but it was causing issues on CI; re-enable this with #8217
-        if extended_tests then group_builder.specify "AntiJoin" <|
+        group_builder.specify "AntiJoin" <|
             scenario = data.antijoin
             r = scenario.table2.join scenario.table1 on="key" join_kind=Join_Kind.Left_Exclusive
             assert (r.row_count == 1000)
