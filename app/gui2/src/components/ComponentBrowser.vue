@@ -34,7 +34,7 @@ const props = defineProps<{
   navigator: ReturnType<typeof useNavigator>
   initialContent: string
   initialCaretPosition: ContentRange
-  sourceNode: Opt<ExprId>
+  sourcePort: Opt<ExprId>
 }>()
 
 const emit = defineEmits<{
@@ -44,17 +44,15 @@ const emit = defineEmits<{
 }>()
 
 function getInitialContent(): string {
-  if (props.sourceNode == null) return props.initialContent
-  const sourceNode = props.sourceNode
-  const sourceNodeName = graphStore.db.getNodeMainOutputPortIdentifier(sourceNode)
+  if (props.sourcePort == null) return props.initialContent
+  const sourceNodeName = graphStore.db.getOutputPortIdentifier(props.sourcePort)
   const sourceNodeNameWithDot = sourceNodeName ? sourceNodeName + '.' : ''
   return sourceNodeNameWithDot + props.initialContent
 }
 
 function getInitialCaret(): ContentRange {
-  if (props.sourceNode == null) return props.initialCaretPosition
-  const sourceNode = props.sourceNode
-  const sourceNodeName = graphStore.db.getNodeMainOutputPortIdentifier(sourceNode)
+  if (props.sourcePort == null) return props.initialCaretPosition
+  const sourceNodeName = graphStore.db.getOutputPortIdentifier(props.sourcePort)
   const sourceNodeNameWithDot = sourceNodeName ? sourceNodeName + '.' : ''
   return [
     props.initialCaretPosition[0] + sourceNodeNameWithDot.length,

@@ -14,16 +14,20 @@ const interaction = injectInteractionHandler()
 const editingEdge: Interaction = {
   cancel() {
     const target = graph.unconnectedEdge?.disconnectedEdgeTarget
+    console.log('cancel')
     graph.transact(() => {
       if (target != null) disconnectEdge(target)
       graph.clearUnconnected()
     })
   },
   click(_e: MouseEvent, graphNavigator: GraphNavigator): boolean {
+    console.log('click')
+
     if (graph.unconnectedEdge == null) return false
     const source = graph.unconnectedEdge.source ?? selection?.hoveredNode
     const target = graph.unconnectedEdge.target ?? selection?.hoveredPort
     const targetNode = target && graph.db.getExpressionNodeId(target)
+    console.log('target', target, 'targetNode', targetNode)
     graph.transact(() => {
       if (source != null && source != targetNode) {
         if (target == null) {
@@ -55,7 +59,7 @@ function createNodeFromEdgeDrop(source: ExprId, graphNavigator: GraphNavigator) 
 }
 
 function createEdge(source: ExprId, target: ExprId) {
-  const ident = graph.db.getIdentifierOfConnection(source)
+  const ident = graph.db.getOutputPortIdentifier(source)
   if (ident == null) return
   // TODO: Check alias analysis to see if the binding is shadowed.
   graph.setExpressionContent(target, ident)

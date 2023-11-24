@@ -150,17 +150,18 @@ export class GraphDb {
     return Array.from(allTargets(this))
   })
 
-  /** First output port of the node.
-   *
-   * When the node will be marked as source node for a new one (i.e. the node will be selected
-   * when adding), the resulting connection's source will be the main port.
-   */
-  nodeMainOutputPort = new ReactiveIndex(this.nodeIdToNode, (id, entry) => {
+  /** Output port bindings of the node. Lists all bindings that can be dragged out from a node. */
+  nodeOutputPorts = new ReactiveIndex(this.nodeIdToNode, (id, entry) => {
     if (entry.pattern == null) return []
-    for (const ast of entry.pattern.walkRecursive()) {
-      if (this.bindings.bindings.has(ast.astId)) return [[id, ast.astId]]
-    }
-    return []
+    const ports = new Set<ExprId>()
+    entry.pattern.visitRecursive((ast) => {
+      if (this.bindings.bindings.has(ast.astId)) {
+        ports.add(ast.astId)
+        return false
+      }
+      return true
+    })
+    return Array.from(ports, (port) => [id, port])
   })
 
   nodeMainSuggestion = new ReactiveMapping(this.nodeIdToNode, (id, _entry) => {
@@ -182,9 +183,8 @@ export class GraphDb {
     return groupColorStyle(group)
   })
 
-  getNodeMainOutputPortIdentifier(id: ExprId): string | undefined {
-    const mainPort = set.first(this.nodeMainOutputPort.lookup(id))
-    return mainPort != null ? this.bindings.bindings.get(mainPort)?.identifier : undefined
+  getNodeFirstOutputPort(id: ExprId): ExprId {
+    return set.first(this.nodeOutputPorts.lookup(id)) ?? id
   }
 
   getExpressionNodeId(exprId: ExprId | undefined): ExprId | undefined {
@@ -204,7 +204,7 @@ export class GraphDb {
     return this.valuesRegistry.getExpressionInfo(id)
   }
 
-  getIdentifierOfConnection(source: ExprId): string | undefined {
+  getOutputPortIdentifier(source: ExprId): string | undefined {
     return this.bindings.bindings.get(source)?.identifier
   }
 
