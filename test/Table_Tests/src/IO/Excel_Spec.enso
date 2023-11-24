@@ -505,6 +505,8 @@ spec_write suffix test_sheet_name =
 
         Test.specify "should allow to write and read-back Unicode characters" <|
             encodings = enso_project.data / "transient" / "encodings."+suffix
+            encodings.delete_if_exists . should_succeed
+
             t1 = Table.new [["A", ["A", "B", "😊", "D"]], ["B", [1, 2, 3, 4]]]
             t1.write encodings (Excel (Worksheet "Another"))
             t2 = encodings.read (Excel (Worksheet "Another"))
