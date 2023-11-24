@@ -173,9 +173,21 @@ class ImportResolver(compiler: Compiler) {
     val mod = name.parts.dropRight(1).map(_.name).mkString(".")
     compiler.getModule(mod).flatMap { mod =>
       compiler.ensureParsed(mod)
-      mod
-        .getBindingsMap()
-        .definedEntities
+      var b = mod.getBindingsMap()
+      if (b == null) {
+        compiler.context.updateModule(
+          mod,
+          { u =>
+            u.invalidateCache()
+            u.ir(null)
+            u.compilationStage(CompilationStage.INITIAL)
+          }
+        )
+        compiler.ensureParsed(mod)
+        b = mod.getBindingsMap()
+      }
+
+      b.definedEntities
         .find(_.name == tp)
         .collect { case t: Type =>
           ResolvedType(ModuleReference.Concrete(mod), t)
