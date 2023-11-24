@@ -18,6 +18,7 @@ import org.enso.table.data.index.OrderedMultiValueKey;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.enso.table.data.table.join.CrossJoin;
+import org.enso.table.data.table.join.JoinKind;
 import org.enso.table.data.table.join.conditions.JoinCondition;
 import org.enso.table.data.table.join.JoinResult;
 import org.enso.table.data.table.join.JoinStrategy;
@@ -269,58 +270,17 @@ public class Table {
    * form one table. {@code rightColumnsToDrop} allows to drop columns from the right table that are redundant when
    * joining on equality of equally named columns.
    */
-  public Table join(Table right, List<JoinCondition> conditions, boolean keepLeftUnmatched, boolean keepMatched,
-                    boolean keepRightUnmatched, boolean includeLeftColumns, boolean includeRightColumns,
+  public Table join(Table right, List<JoinCondition> conditions, JoinKind joinKind, boolean includeLeftColumns, boolean includeRightColumns,
                     List<String> rightColumnsToDrop, String right_prefix, ProblemAggregator problemAggregator) {
-    Context context = Context.getCurrent();
     NameDeduplicator nameDeduplicator = NameDeduplicator.createDefault(problemAggregator);
-    if (!keepLeftUnmatched && !keepMatched && !keepRightUnmatched) {
-      throw new IllegalArgumentException("At least one of keepLeftUnmatched, keepMatched or keepRightUnmatched must " +
-          "be true.");
-    }
 
-    JoinStrategy strategy = JoinStrategy.createStrategy(conditions);
+    JoinStrategy strategy = JoinStrategy.createStrategy(conditions, joinKind);
     JoinResult joinResult = strategy.join(problemAggregator);
-
-    List<JoinResult> resultsToKeep = new ArrayList<>();
-
-    if (keepMatched) {
-      resultsToKeep.add(joinResult);
-    }
-
-    if (keepLeftUnmatched) {
-      Set<Integer> matchedLeftRows = joinResult.leftMatchedRows();
-      JoinResult.Builder leftUnmatchedBuilder = new JoinResult.Builder();
-      for (int i = 0; i < this.rowCount(); i++) {
-        if (!matchedLeftRows.contains(i)) {
-          leftUnmatchedBuilder.addRow(i, Index.NOT_FOUND);
-        }
-
-        context.safepoint();
-      }
-
-      resultsToKeep.add(leftUnmatchedBuilder.build());
-    }
-
-    if (keepRightUnmatched) {
-      Set<Integer> matchedRightRows = joinResult.rightMatchedRows();
-      JoinResult.Builder rightUnmatchedBuilder = new JoinResult.Builder();
-      for (int i = 0; i < right.rowCount(); i++) {
-        if (!matchedRightRows.contains(i)) {
-          rightUnmatchedBuilder.addRow(Index.NOT_FOUND, i);
-        }
-
-        context.safepoint();
-      }
-
-      resultsToKeep.add(rightUnmatchedBuilder.build());
-    }
 
     List<Column> newColumns = new ArrayList<>();
 
     if (includeLeftColumns) {
-      OrderMask leftMask =
-          OrderMask.concat(resultsToKeep.stream().map(JoinResult::getLeftOrderMask).collect(Collectors.toList()));
+      OrderMask leftMask = joinResult.getLeftOrderMask();
       for (Column column : this.columns) {
         Column newColumn = column.applyMask(leftMask);
         newColumns.add(newColumn);
@@ -328,14 +288,13 @@ public class Table {
     }
 
     if (includeRightColumns) {
-      OrderMask rightMask =
-          OrderMask.concat(resultsToKeep.stream().map(JoinResult::getRightOrderMask).collect(Collectors.toList()));
-      List<String> leftColumnNames = newColumns.stream().map(Column::getName).collect(Collectors.toList());
+      OrderMask rightMask = joinResult.getRightOrderMask();
+      List<String> leftColumnNames = newColumns.stream().map(Column::getName).toList();
 
       HashSet<String> toDrop = new HashSet<>(rightColumnsToDrop);
       List<Column> rightColumnsToKeep =
-          Arrays.stream(right.getColumns()).filter(col -> !toDrop.contains(col.getName())).collect(Collectors.toList());
-      List<String> rightColumNames = rightColumnsToKeep.stream().map(Column::getName).collect(Collectors.toList());
+          Arrays.stream(right.getColumns()).filter(col -> !toDrop.contains(col.getName())).toList();
+      List<String> rightColumNames = rightColumnsToKeep.stream().map(Column::getName).toList();
 
       List<String> newRightColumnNames = nameDeduplicator.combineWithPrefix(leftColumnNames, rightColumNames,
           right_prefix);

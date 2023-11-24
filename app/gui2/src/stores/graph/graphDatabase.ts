@@ -1,6 +1,6 @@
 import { SuggestionDb, groupColorStyle, type Group } from '@/stores/suggestionDatabase'
 import type { SuggestionEntry } from '@/stores/suggestionDatabase/entry'
-import { tryGetIndex } from '@/util/array'
+import { byteArraysEqual, tryGetIndex } from '@/util/array'
 import { Ast, AstExtended } from '@/util/ast'
 import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
 import { colorFromString } from '@/util/colors'
@@ -251,18 +251,13 @@ export class GraphDb {
         if (node == null) {
           this.nodeIdToNode.set(nodeId, newNode)
         } else {
-          if (
-            indexedDB.cmp(
-              node.pattern?.contentHash() ?? new Uint8Array(),
-              newNode.pattern?.contentHash() ?? new Uint8Array(),
-            )
-          ) {
+          if (!byteArraysEqual(node.pattern?.contentHash(), newNode.pattern?.contentHash())) {
             node.pattern = newNode.pattern
           }
           if (node.outerExprId !== newNode.outerExprId) {
             node.outerExprId = newNode.outerExprId
           }
-          if (indexedDB.cmp(node.rootSpan.contentHash(), newNode.rootSpan.contentHash()) !== 0) {
+          if (!byteArraysEqual(node.rootSpan.contentHash(), newNode.rootSpan.contentHash())) {
             node.rootSpan = newNode.rootSpan
           }
         }
