@@ -2,7 +2,7 @@
 import SvgIcon from '@/components/SvgIcon.vue'
 import { setDragImageToBlank } from '@/util/drag'
 import { defineKeybinds } from '@/util/shortcuts'
-import { computed, ref, type Ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, type Ref } from 'vue'
 
 const bindings = defineKeybinds('vector-widget', {
   dragListItem: ['PointerMain', 'Mod+PointerMain'],
@@ -70,7 +70,6 @@ const mouseHandler = bindings.handler({
     setDragImageToBlank(event)
     if (event.dataTransfer) {
       event.dataTransfer.effectAllowed = 'move'
-      event.dataTransfer.dropEffect = 'move'
       if (dragIndex.value != null) {
         const dragItem = props.modelValue[dragIndex.value]!
         if (props.toPlainText) {
@@ -105,6 +104,7 @@ function handleDrag(event: DragEvent) {
     return bbox && dx <= X_LENIENCE_PX && dy <= Y_LENIENCE_PX
   })
   const newShouldRemove = minDistanceSquared > REMOVE_DISTANCE_THRESHOLD_SQUARED_PX
+  event.dataTransfer.dropEffect = newShouldRemove ? 'none' : 'move'
   if (
     (insertIndex === -1 || dragDisplayIndex.value === insertIndex) &&
     newShouldRemove === shouldRemove.value
@@ -137,6 +137,18 @@ function onDragEnd() {
   dragIndex.value = undefined
   dragDisplayIndex.value = undefined
 }
+
+onMounted(() => {
+  document.body.addEventListener('dragover', onDragOver)
+  document.body.addEventListener('drop', onDrop)
+  document.body.addEventListener('dragend', onDragEnd)
+})
+
+onUnmounted(() => {
+  document.body.removeEventListener('dragover', onDragOver)
+  document.body.removeEventListener('drop', onDrop)
+  document.body.removeEventListener('dragend', onDragEnd)
+})
 </script>
 
 <template>
