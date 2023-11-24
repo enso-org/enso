@@ -19,6 +19,14 @@ Python in the runtime. Please familiarise yourself with the general operation of
 
 <!-- /MarkdownTOC -->
 
+## Install Graal Python standalone distribution
+
+Before you can use Python in Enso you need to install Graal Python standalone
+distribution. Download it at https://github.com/oracle/graalpython/releases/tag/graal-23.1.0
+
+Unzip the archive, and optionally put the `bin` directory on your `PATH`.
+In the rest of the document, `graalpy` points to the `bin/graalpy` binary.
+
 ## Polyglot Library System
 
 There is a support for using any Python library from Enso. Steps to include
@@ -32,8 +40,7 @@ numenso/src
 numenso/src/Main.enso
 numenso/package.yaml
 $ mkdir numenso/polyglot
-$ graalvm/bin/gu install python
-$ graalvm/bin/graalpy -m venv numenso/polyglot/python
+$ graalpy -m venv numenso/polyglot/python
 $ ./numenso/polyglot/python/bin/graalpy -m pip install numpy
 Successfully installed numpy-1.23.5
 ```
