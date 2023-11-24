@@ -3,6 +3,7 @@ package org.enso.table.excel;
 import org.apache.poi.UnsupportedFileFormatException;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
+import org.apache.poi.openxml4j.exceptions.OpenXML4JRuntimeException;
 import org.apache.poi.openxml4j.opc.OPCPackage;
 import org.apache.poi.openxml4j.opc.PackageAccess;
 import org.apache.poi.poifs.filesystem.POIFSFileSystem;
@@ -88,7 +89,14 @@ public class ExcelConnectionPool {
               switch (workbook) {
                 case HSSFWorkbook hssfWorkbook -> hssfWorkbook.write();
                 case XSSFWorkbook xssfWorkbook -> {
-                  // Nothing to do here - merely closing the workbook will save all changes in this mode.
+                  // Workaround for bug https://bz.apache.org/bugzilla/show_bug.cgi?id=59252
+                  // We have to invoke write with something to ensure the data is committed and will be saved to the _original_ file upon closing.
+                  // So we invoke write with null, and catch the exception.
+                  try {
+                    xssfWorkbook.write(null);
+                  } catch (OpenXML4JRuntimeException e) {
+                    // Ignore
+                  }
                 }
                 default -> throw new IllegalStateException("Unknown workbook type: " + workbook.getClass());
               }

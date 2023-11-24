@@ -475,7 +475,7 @@ spec_write suffix test_sheet_name =
             t1 = workbook.read "EnsoSheet"
             t1.should_equal table
 
-            [Existing_File_Behavior.Backup, Existing_File_Behavior.Overwrite].each behavior->
+            [Existing_File_Behavior.Backup, Existing_File_Behavior.Overwrite].each behavior-> Test.with_clue behavior.to_text+": " <|
                 t2 = Table.new [["X", [behavior.to_text, "B", "C", behavior.to_text+"..."]]]
                 t2.write out on_existing_file=behavior . should_succeed
 
