@@ -119,6 +119,9 @@ class Synchronizer {
       })
     })
     this.queue.pushTask(async ({ currentVersion }) => {
+      await new Promise((resolve) => {
+        lsRpc.once('executionContext/expressionComplete', () => resolve(undefined))
+      })
       const groups = await lsRpc.getComponentGroups()
       this.groups.value = groups.componentGroups.map(
         (group): Group => ({
