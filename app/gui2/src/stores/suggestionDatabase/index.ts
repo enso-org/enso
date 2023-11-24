@@ -26,6 +26,13 @@ export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
     return []
   })
 
+  getEntryByQualifiedName(name: QualifiedName): SuggestionEntry | undefined {
+    const [id] = this.nameToId.lookup(name)
+    if (id) {
+      return this.get(id)
+    }
+  }
+
   findByMethodPointer(method: MethodPointer): SuggestionId | undefined {
     if (method == null) return
     const moduleName = tryQualifiedName(method.definedOnType)
