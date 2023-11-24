@@ -1,13 +1,15 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import ListWidget from '@/components/widgets/ListWidget.vue'
-import { Tree } from '@/generated/ast'
+import { Tree, type Token } from '@/generated/ast'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
 import { AstExtended } from '@/util/ast'
 import { Vec2 } from '@/util/vec2'
 import { computed } from 'vue'
+
+type Item = AstExtended<Tree.Tree | Token.Token, boolean>
 
 const props = defineProps(widgetProps(widgetDefinition))
 
@@ -47,10 +49,10 @@ export const widgetDefinition = defineWidget(AstExtended.isTree([Tree.Type.Array
   <ListWidget
     v-model="value"
     :default="() => AstExtended.parse('_')"
-    :getKey="(item) => item.astId"
+    :getKey="(item: Item) => item.astId"
     dragMimeType="application/x-enso-ast-node"
-    :toPlainText="(item) => item.repr()"
-    :toDragPayload="(item) => JSON.stringify({ id: item.astId, code: item.repr() })"
+    :toPlainText="(item: Item) => item.repr()"
+    :toDragPayload="(item: Item) => JSON.stringify({ id: item.astId, code: item.repr() })"
     class="WidgetVector"
     contenteditable="false"
   >
