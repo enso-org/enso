@@ -272,6 +272,8 @@ export class GraphDb {
         this.nodeIdToNode.delete(nodeId)
       }
     }
+
+    this.bindings.readFunctionAst(functionAst)
   }
 
   assignUpdatedMetadata(node: Node, meta: NodeMetadata) {
