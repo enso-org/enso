@@ -46,7 +46,7 @@ const emit = defineEmits<{
 function getInitialContent(): string {
   if (props.sourceNode == null) return props.initialContent
   const sourceNode = props.sourceNode
-  const sourceNodeName = graphStore.getNodeBinding(sourceNode)
+  const sourceNodeName = graphStore.db.getNodeMainOutputPortIdentifier(sourceNode)
   const sourceNodeNameWithDot = sourceNodeName ? sourceNodeName + '.' : ''
   return sourceNodeNameWithDot + props.initialContent
 }
@@ -54,7 +54,7 @@ function getInitialContent(): string {
 function getInitialCaret(): ContentRange {
   if (props.sourceNode == null) return props.initialCaretPosition
   const sourceNode = props.sourceNode
-  const sourceNodeName = graphStore.getNodeBinding(sourceNode)
+  const sourceNodeName = graphStore.db.getNodeMainOutputPortIdentifier(sourceNode)
   const sourceNodeNameWithDot = sourceNodeName ? sourceNodeName + '.' : ''
   return [
     props.initialCaretPosition[0] + sourceNodeNameWithDot.length,

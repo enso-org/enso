@@ -1171,6 +1171,7 @@ type Number_Parse_Error
     to_display_text self =
         "Could not parse " + self.text.to_text + " as a double."
 
+## PRIVATE
 Float.from (that:Integer) = (1.0 * that):Float
 
 ## A wrapper type that ensures that a function may only take positive integers.
@@ -1190,7 +1191,8 @@ type Positive_Integer
         if integer > 0 then Positive_Integer.Value integer else
             Error.throw (Illegal_Argument.Error "Expected a positive integer, but got "+integer.to_display_text)
 
-## Allows to create a `Positive_Integer` from an `Integer`.
+## PRIVATE
+   Allows to create a `Positive_Integer` from an `Integer`.
    It will throw `Illegal_Argument` if the provided integer is not positive.
 Positive_Integer.from (that : Integer) = Positive_Integer.new that
 

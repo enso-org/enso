@@ -15,7 +15,7 @@ Start `project-manager` with following options to record first 20s of the Enso
 engine startup sequence:
 
 ```
-$ project-manager --profiling-events-log-path=start.log --profiling-path=start.npss --profiling-time=20
+$ project-manager --profiling-path=start.npss --profiling-time=20
 ```
 
 Let the IDE connect to just launched `project-manager` - e.g. start the IDE with

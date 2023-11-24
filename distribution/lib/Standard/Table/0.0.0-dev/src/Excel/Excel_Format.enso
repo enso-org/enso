@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.System.File_Format.File_For_Read
 import Standard.Base.System.Input_Stream.Input_Stream
 
 import project.Data.Match_Columns.Match_Columns
@@ -49,8 +50,8 @@ type Excel_Format
     ## PRIVATE
        ADVANCED
        If the File_Format supports reading from the file, return a configured instance.
-    for_file_read : File -> Excel_Format | Nothing
-    for_file_read file =
+    for_file_read : File_For_Read -> Excel_Format | Nothing
+    for_file_read file:File_For_Read =
         is_xls = should_treat_as_xls_format Infer file
         if is_xls.is_error then Nothing else
             Excel_Format.Excel xls_format=is_xls

@@ -139,7 +139,7 @@ class UpsertVisualizationJob(
   )(implicit ctx: RuntimeContext): Unit = {
     ctx.executionService.getLogger.log(
       Level.SEVERE,
-      "Visualization for expression {0} failed: {1} (evaluation result: {2}",
+      "Visualization for expression {0} failed: {1} (evaluation result: {2})",
       Array(expressionId, message, executionResult)
     )
     ctx.endpoint.sendToClient(

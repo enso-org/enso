@@ -1,9 +1,12 @@
 package org.enso.interpreter.runtime;
 
+import java.io.IOException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.Enumeration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import org.enso.ClassLoaderConstants;
 import org.graalvm.polyglot.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,6 +50,9 @@ public class HostClassLoader extends URLClassLoader {
       logger.trace("Class {} found in cache", name);
       return l;
     }
+    if (ClassLoaderConstants.CLASS_DELEGATION_PATTERNS.stream().anyMatch(name::startsWith)) {
+      return polyglotClassLoader.loadClass(name);
+    }
     try {
       l = findClass(name);
       if (resolve) {
@@ -58,6 +64,24 @@ public class HostClassLoader extends URLClassLoader {
     } catch (ClassNotFoundException ex) {
       logger.trace("Class {} not found, delegating to super", name);
       return super.loadClass(name, resolve);
+    }
+  }
+
+  @Override
+  public URL findResource(String name) {
+    if (ClassLoaderConstants.RESOURCE_DELEGATION_PATTERNS.stream().anyMatch(name::startsWith)) {
+      return polyglotClassLoader.getResource(name);
+    } else {
+      return super.findResource(name);
+    }
+  }
+
+  @Override
+  public Enumeration<URL> findResources(String name) throws IOException {
+    if (ClassLoaderConstants.RESOURCE_DELEGATION_PATTERNS.stream().anyMatch(name::startsWith)) {
+      return polyglotClassLoader.getResources(name);
+    } else {
+      return super.findResources(name);
     }
   }
 }

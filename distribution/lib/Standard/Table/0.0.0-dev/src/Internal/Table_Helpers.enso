@@ -199,13 +199,13 @@ type Table_Column_Helper
        Arguments:
        -TODO docs
        - when: By default, only columns consisting of all blank cells are
-         selected. If set to Blank_Selector.Any_Cell_Blank, columns with one or more blank values are
+         selected. If set to Blank_Selector.Any_Cell, columns with one or more blank values are
          selected.
        - treat_nans_as_blank: If `True`, then `Number.nan` is considered as
          blank.
        - invert_selection: If `True`, then the selection is inverted.
     select_blank_columns_helper : Blank_Selector -> Boolean -> Boolean -> Vector
-    select_blank_columns_helper self (when:Blank_Selector = Blank_Selector.All_Cells_Blank) treat_nans_as_blank:Boolean invert_selection:Boolean=False =
+    select_blank_columns_helper self (when:Blank_Selector = Blank_Selector.All_Cells) treat_nans_as_blank:Boolean invert_selection:Boolean=False =
         blanks = self.internal_columns.map_with_index ix-> internal_column->
             column = self.make_column internal_column
             blank_indicator = column.is_blank treat_nans_as_blank
@@ -225,8 +225,8 @@ type Table_Column_Helper
 
         # Maximum is equivalent to Exists and Minimum is equivalent to Forall.
         col_aggregate = case when of
-            Blank_Selector.Any_Cell_Blank -> Aggregate_Column.Maximum _
-            Blank_Selector.All_Cells_Blank -> Aggregate_Column.Minimum _
+            Blank_Selector.Any_Cell -> Aggregate_Column.Maximum _
+            Blank_Selector.All_Cells -> Aggregate_Column.Minimum _
         aggregates = blanks.map blanks_col-> col_aggregate blanks_col.name
 
         aggregate_result = just_indicators.aggregate aggregates on_problems=Problem_Behavior.Report_Error
@@ -450,8 +450,8 @@ filter_blank_rows table when treat_nans_as_blank =
     case cols.not_empty of
         True ->
             merge = case when of
-                Blank_Selector.Any_Cell_Blank -> (||)
-                Blank_Selector.All_Cells_Blank -> (&&)
+                Blank_Selector.Any_Cell -> (||)
+                Blank_Selector.All_Cells -> (&&)
             missing_mask = cols.map (_.is_blank treat_nans_as_blank) . reduce merge
             non_missing_mask = missing_mask.not
             table.filter non_missing_mask Filter_Condition.Is_True

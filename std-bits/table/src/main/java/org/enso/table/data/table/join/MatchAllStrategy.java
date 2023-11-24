@@ -15,10 +15,14 @@ public class MatchAllStrategy implements PluggableJoinStrategy {
       List<Integer> rightGroup,
       JoinResult.Builder resultBuilder,
       ProblemAggregator problemAggregator) {
+    if (!resultBuilder.settings.wantsCommon()) {
+      return;
+    }
+
     Context context = Context.getCurrent();
     for (var leftRow : leftGroup) {
       for (var rightRow : rightGroup) {
-        resultBuilder.addRow(leftRow, rightRow);
+        resultBuilder.addMatchedRowsPair(leftRow, rightRow);
         context.safepoint();
       }
 

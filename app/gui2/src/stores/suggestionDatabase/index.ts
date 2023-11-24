@@ -4,15 +4,15 @@ import { applyUpdates, entryFromLs } from '@/stores/suggestionDatabase/lsUpdate'
 import { ReactiveDb, ReactiveIndex } from '@/util/database/reactiveDb'
 import { AsyncQueue, rpcWithRetries } from '@/util/net'
 import { type Opt } from '@/util/opt'
-import { qnParent, type QualifiedName } from '@/util/qualifiedName'
+import { qnJoin, qnParent, tryQualifiedName, type QualifiedName } from '@/util/qualifiedName'
 import { defineStore } from 'pinia'
 import { LanguageServer } from 'shared/languageServer'
+import type { MethodPointer } from 'shared/languageServerTypes'
 import { markRaw, ref, type Ref } from 'vue'
 
-export class SuggestionDb {
-  _internal = new ReactiveDb<SuggestionId, SuggestionEntry>()
-  nameToId = new ReactiveIndex(this._internal, (id, entry) => [[entryQn(entry), id]])
-  parent = new ReactiveIndex(this._internal, (id, entry) => {
+export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
+  nameToId = new ReactiveIndex(this, (id, entry) => [[entryQn(entry), id]])
+  childIdToParentId = new ReactiveIndex(this, (id, entry) => {
     let qualifiedName: Opt<QualifiedName>
     if (entry.memberOf) {
       qualifiedName = entry.memberOf
@@ -33,17 +33,14 @@ export class SuggestionDb {
     }
   }
 
-  set(id: SuggestionId, entry: SuggestionEntry): void {
-    this._internal.set(id, entry)
-  }
-  get(id: SuggestionId | null | undefined): SuggestionEntry | undefined {
-    return id != null ? this._internal.get(id) : undefined
-  }
-  delete(id: SuggestionId): boolean {
-    return this._internal.delete(id)
-  }
-  entries(): IterableIterator<[SuggestionId, SuggestionEntry]> {
-    return this._internal.entries()
+  findByMethodPointer(method: MethodPointer): SuggestionId | undefined {
+    if (method == null) return
+    const moduleName = tryQualifiedName(method.definedOnType)
+    const methodName = tryQualifiedName(method.name)
+    if (!moduleName.ok || !methodName.ok) return
+    const qualifiedName = qnJoin(moduleName.value, methodName.value)
+    const [suggestionId] = this.nameToId.lookup(qualifiedName)
+    return suggestionId
   }
 }
 

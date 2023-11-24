@@ -106,11 +106,11 @@ test.each([
       payload: { type: 'Value' },
       profilingInfo: [],
     })
-    const [mockGraphDb, suggestionsMock] = GraphDb.Mock(computedValueRegistryMock)
-    mockGraphDb.nodes.set(operator1Id, mockNode('operator1', operator1Id))
-    mockGraphDb.nodes.set(operator2Id, mockNode('operator2', operator2Id))
+    const mockGraphDb = GraphDb.Mock(computedValueRegistryMock)
+    mockGraphDb.mockNode('operator1', operator1Id)
+    mockGraphDb.mockNode('operator2', operator2Id)
 
-    const input = useComponentBrowserInput(mockGraphDb, suggestionsMock)
+    const input = useComponentBrowserInput(mockGraphDb, new SuggestionDb())
     input.code.value = code
     input.selection.value = { start: cursorPos, end: cursorPos }
     const context = input.context.value
@@ -277,8 +277,8 @@ test.each([
   ({ code, cursorPos, suggestion, expected, expectedCursorPos }) => {
     cursorPos = cursorPos ?? code.length
     expectedCursorPos = expectedCursorPos ?? expected.length
-    const [graphMock, suggestionsMock] = GraphDb.Mock()
-    const input = useComponentBrowserInput(graphMock, suggestionsMock)
+    const graphMock = GraphDb.Mock()
+    const input = useComponentBrowserInput(graphMock, new SuggestionDb())
     input.code.value = code
     input.selection.value = { start: cursorPos, end: cursorPos }
     input.applySuggestion(suggestion)
@@ -341,8 +341,8 @@ test.each([
     db.set(1, makeModule('Standard.Base'))
     db.set(2, makeType('Standard.Base.Table'))
     db.set(3, makeCon('Standard.Base.Table.new'))
-    const [graphMock, suggestionsMock] = GraphDb.Mock(undefined, db)
-    const input = useComponentBrowserInput(graphMock, suggestionsMock)
+    const graphMock = GraphDb.Mock(undefined, db)
+    const input = useComponentBrowserInput(graphMock, db)
     input.code.value = initialCode
     input.selection.value = { start: initialCode.length, end: initialCode.length }
     const suggestion = db.get(suggestionId)!
