@@ -1,4 +1,0 @@
-COMP_PATH=$(dirname "$0")/../component
-
-exec java --module-path $COMP_PATH $JAVA_OPTS -m org.graalvm.py.launcher/com.oracle.graal.python.shell.GraalPythonMain "$@"
-exit
