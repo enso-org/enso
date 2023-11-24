@@ -9,11 +9,19 @@ type Data
     Value ~enso_bin:File ~empty_world:File ~hello_world:File
 
     bench_empty self =
-        res = Process.run self.enso_bin.path [ "--run", self.empty_world.to_text ]
+        startup self.enso_bin.path [ "--run", self.empty_world.to_text ]
 
     bench_hello self =
-        res = Process.run self.enso_bin.path [ "--run", self.hello_world.to_text ]
+        startup self.enso_bin.path [ "--run", self.hello_world.to_text ]
 
+startup exe:Text args:(Vector Text) =
+    result = Process.run exe args
+    case result.exit_code of
+        Exit_Code.Failure code ->
+            IO.println "Exit code: "+code
+            IO.println result.stdout
+            IO.println result.stderr
+        Exit_Code.Success -> Nothing
 
 collect_benches = Bench.build builder->
     options = Bench.options . set_warmup (Bench.phase_conf 2 5) . set_measure (Bench.phase_conf 3 5)
