@@ -192,17 +192,20 @@ spec_write suffix test_sheet_name =
             sub_clothes.write out (Excel (Worksheet "Another")) on_existing_file=Existing_File_Behavior.Error . should_fail_with Existing_Data
             sub_clothes.write out (Excel (Cell_Range "Another!A1")) on_existing_file=Existing_File_Behavior.Error . should_fail_with Existing_Data
             sub_clothes.write out (Excel (Cell_Range "Sheet1!A9")) on_existing_file=Existing_File_Behavior.Error . should_fail_with Existing_Data
-            out.last_modified_time.should_equal lmd
+
+            Test.with_clue "the original file should remain unmodified: " <|
+                out.last_modified_time.should_equal lmd
             out.delete_if_exists . should_succeed
 
-        Test.specify 'should not allow adding a new sheet if in Error mode and not clashing' <|
+        Test.specify 'should not allow adding a new sheet if in Error mode, even if sheet is not clashing' <|
             out = create_out
             (enso_project.data / test_sheet_name) . copy_to out
             lmd = out.last_modified_time
             result = sub_clothes.write out (Excel (Worksheet "Testing")) on_existing_file=Existing_File_Behavior.Error
             result.should_fail_with File_Error
             result.catch.should_be_a File_Error.Already_Exists
-            out.last_modified_time.should_equal lmd
+            Test.with_clue "the original file should remain unmodified: " <|
+                out.last_modified_time.should_equal lmd
             out.delete_if_exists . should_succeed
 
         Test.specify 'should write a table to non-existent file as a new sheet without headers' <|
@@ -212,6 +215,9 @@ spec_write suffix test_sheet_name =
             written.sheet_count . should_equal 1
             written.sheet_names . should_equal ['Sheet1']
             written.read 'Sheet1' . should_equal (table.rename_columns ['A', 'B', 'C', 'D', 'E', 'F'])
+
+            # We need to close the workbook to be able to delete it.
+            written.close
             out.delete_if_exists . should_succeed
 
         Test.specify 'should be able to append to a sheet by name' <|
@@ -362,8 +368,9 @@ spec_write suffix test_sheet_name =
             written.sheet_names . should_equal ['EnsoSheet']
             written.read 'EnsoSheet' . should_equal table
 
-            out_bak.exists.should_be_true
-            out_bak.size.should_equal 0
+            Test.with_clue "should have created a backup file: " <|
+                out_bak.exists.should_be_true
+                out_bak.size.should_equal 0
 
             out.delete_if_exists . should_succeed
             out_bak.delete_if_exists . should_succeed
@@ -436,14 +443,17 @@ spec_write suffix test_sheet_name =
             f.delete_if_exists
 
             initial_data = Table.new [["Y", [10, 20, 30]]]
-            initial_data.write f
-            Util.set_writable f False
+            initial_data.write f . should_succeed
+            Util.set_writable f False . should_succeed
 
             t1 = Table.new [["X", [1, 2, 3]]]
-            [Existing_File_Behavior.Backup, Existing_File_Behavior.Overwrite, Existing_File_Behavior.Append].each behavior->
+            [Existing_File_Behavior.Backup, Existing_File_Behavior.Overwrite, Existing_File_Behavior.Append].each behavior-> Test.with_clue behavior.to_text+": " <|
+                f.exists . should_be_true
+
                 r1 = t1.write f (Excel (Worksheet "Another")) on_existing_file=behavior
-                r1.should_fail_with File_Error
-                r1.catch.should_be_a File_Error.Access_Denied
+                Test.with_clue "("+r1.catch.to_display_text+") " <|
+                    r1.should_fail_with File_Error
+                    r1.catch.should_be_a File_Error.Access_Denied
 
                 read_table = Managed_Resource.bracket (f.read) (.close) workbook->
                     workbook.read "EnsoSheet"
@@ -489,8 +499,9 @@ spec_write suffix test_sheet_name =
             f = parent / "foo."+suffix
             t1 = Table.new [["X", [1, 2, 3]]]
             r1 = t1.write f (Excel (Worksheet "Another"))
-            r1.should_fail_with File_Error
-            r1.catch.should_be_a File_Error.Not_Found
+            Test.with_clue "("+r1.catch.to_display_text+") " <|
+                r1.should_fail_with File_Error
+                r1.catch.should_be_a File_Error.Not_Found
 
         Test.specify "should allow to write and read-back Unicode characters" <|
             encodings = enso_project.data / "transient" / "encodings."+suffix
