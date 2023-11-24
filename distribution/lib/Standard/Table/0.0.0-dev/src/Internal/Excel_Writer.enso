@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
@@ -77,11 +78,12 @@ write_file (file : File) (table : Table) (on_existing_file : Existing_File_Behav
             writable_workbook->
                 ExcelWriter.writeTableToRange writable_workbook java_range existing_data_mode skip_rows table.java_table row_limit java_headers
 
-    ## We handle the panics _outside_ of the `performWrite` call, to ensure that the Java side notices the exception
-       (it may ignore a dataflow error being returned) and reverts operations if relevant.
-    write_strategy.if_not_error <| handle_writer <|
-        ExcelConnectionPool.INSTANCE.performWrite java_file file_format (make_java_existing_file_behavior on_existing_file) writable_workbook->
-            write_strategy writable_workbook
+    File_Error.handle_java_exceptions file <|
+        ## We handle the panics _outside_ of the `performWrite` call, to ensure that the Java side notices the exception
+           (it may ignore a dataflow error being returned) and reverts operations if relevant.
+        write_strategy.if_not_error <| handle_writer <|
+            ExcelConnectionPool.INSTANCE.performWrite java_file file_format (make_java_existing_file_behavior on_existing_file) writable_workbook->
+                write_strategy writable_workbook
 
 ## PRIVATE
    Handle and map the Java errors when writing an Excel file

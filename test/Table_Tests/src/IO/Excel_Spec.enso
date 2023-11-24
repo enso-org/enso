@@ -340,6 +340,9 @@ spec_write suffix test_sheet_name =
                 result = table.write out on_problems=Report_Error . should_succeed
                 Problems.expect_only_warning Dry_Run_Operation result
                 result.exists.should_be_true
+
+                result.absolute.normalize.path . should_not_equal out.absolute.normalize.path
+
                 written = result.read
                 written.sheet_count . should_equal 1
                 written.sheet_names . should_equal ['EnsoSheet']
