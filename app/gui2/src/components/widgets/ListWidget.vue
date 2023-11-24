@@ -54,6 +54,8 @@ const dragPos = ref({ x: 0, y: 0 })
 const itemNodes = ref<HTMLLIElement[]>([])
 const childBoundingBoxes = ref([]) as Ref<DOMRect[]>
 
+const rootNode = ref<HTMLElement>()
+
 const X_LENIENCE_PX = 2
 const Y_LENIENCE_PX = 8
 const REMOVE_DISTANCE_THRESHOLD_SQUARED_PX = 32 * 32
@@ -115,6 +117,12 @@ function handleDrag(event: DragEvent) {
   requestAnimationFrame(updateBoundingBoxes)
 }
 
+function cleanupDrag() {
+  shouldRemove.value = false
+  dragIndex.value = undefined
+  dragDisplayIndex.value = undefined
+}
+
 function onDragStart(event: DragEvent, index: number) {
   dragIndex.value = index
   if (mouseHandler(event, false)) return
@@ -123,7 +131,6 @@ function onDragStart(event: DragEvent, index: number) {
 
 function onDragOver(event: DragEvent) {
   dragPos.value = { x: event.clientX, y: event.clientY }
-  console.log(dragPos.value)
   handleDrag(event)
 }
 
@@ -131,12 +138,10 @@ function onDrop(event: DragEvent) {
   if (dragIndex.value === dragDisplayIndex.value) return
   event.preventDefault()
   emit('update:modelValue', displayedChildren.value)
+  cleanupDrag()
 }
 
-function onDragEnd() {
-  dragIndex.value = undefined
-  dragDisplayIndex.value = undefined
-}
+const onDragEnd = cleanupDrag
 
 onMounted(() => {
   document.body.addEventListener('dragover', onDragOver)
@@ -153,6 +158,7 @@ onUnmounted(() => {
 
 <template>
   <div
+    ref="rootNode"
     class="VectorWidget"
     @pointerdown="
       !$event.shiftKey && !$event.altKey && !$event.metaKey && $event.stopImmediatePropagation()
@@ -169,7 +175,7 @@ onUnmounted(() => {
           <li
             ref="itemNodes"
             class="item"
-            :class="{ dragging: dragIndex && item === modelValue[dragIndex] }"
+            :class="{ dragging: !shouldRemove && index === dragDisplayIndex }"
             draggable="true"
             @dragstart="onDragStart($event, index)"
           >
@@ -191,13 +197,22 @@ onUnmounted(() => {
       "
       @click="emit('update:modelValue', [...props.modelValue, props.default()])"
     />
-    <div
-      v-if="dragIndex != null"
-      class="drag-preview"
-      :style="{ transform: `translate(${dragPos.x}px, ${dragPos.y}px)` }"
-    >
-      <slot :item="modelValue[dragIndex]!"></slot>
-    </div>
+    <template v-if="dragIndex != null">
+      <slot
+        v-if="$slots.dragPreview"
+        name="dragPreview"
+        :item="modelValue[dragIndex]!"
+        :x="dragPos.x"
+        :y="dragPos.y"
+      ></slot>
+      <div
+        v-else
+        class="drag-preview"
+        :style="{ transform: `translate(${dragPos.x}px, ${dragPos.y}px)` }"
+      >
+        <slot :item="modelValue[dragIndex]!"></slot>
+      </div>
+    </template>
   </div>
 </template>
 
@@ -238,9 +253,8 @@ ul {
   height: 24px;
 }
 
-/* FIXME: `opacity: 0`, a copy of the dragged element should follow the mouse */
 .item.dragging {
-  opacity: 0.5;
+  opacity: 0;
 }
 
 .add-item {
