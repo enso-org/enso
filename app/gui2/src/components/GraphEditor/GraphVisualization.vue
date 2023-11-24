@@ -2,6 +2,7 @@
 import LoadingErrorVisualization from '@/components/visualizations/LoadingErrorVisualization.vue'
 import LoadingVisualization from '@/components/visualizations/LoadingVisualization.vue'
 import { provideVisualizationConfig } from '@/providers/visualizationConfig'
+import { useGraphStore } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
 import {
   DEFAULT_VISUALIZATION_CONFIGURATION,
@@ -17,12 +18,6 @@ import type { Vec2 } from '@/util/vec2'
 import type { ExprId, VisualizationIdentifier } from 'shared/yjsModel'
 import { computed, onErrorCaptured, ref, shallowRef, watch, watchEffect } from 'vue'
 
-const visPreprocessor = ref(DEFAULT_VISUALIZATION_CONFIGURATION)
-const error = ref<Error>()
-
-const projectStore = useProjectStore()
-const visualizationStore = useVisualizationStore()
-
 const props = defineProps<{
   currentType: Opt<VisualizationIdentifier>
   isCircularMenuVisible: boolean
@@ -35,6 +30,23 @@ const emit = defineEmits<{
   setVisualizationId: [id: VisualizationIdentifier]
   setVisualizationVisible: [visible: boolean]
 }>()
+
+const visPreprocessor = ref(DEFAULT_VISUALIZATION_CONFIGURATION)
+const error = ref<Error>()
+
+const projectStore = useProjectStore()
+const graphStore = useGraphStore()
+const visualizationStore = useVisualizationStore()
+
+const expressionInfo = computed(
+  () => props.expressionId && graphStore.db.getExpressionInfo(props.expressionId),
+)
+const typeName = computed(() => expressionInfo.value?.typename ?? 'Any')
+const currentType = computed(() => {
+  if (props.currentType) return props.currentType
+  const [id] = visualizationStore.types(typeName.value)
+  return id
+})
 
 const visualization = shallowRef<Visualization>()
 const icon = ref<Icon | URLString>()
@@ -55,7 +67,7 @@ const visualizationData = projectStore.useVisualizationData(() => {
 
 const effectiveVisualizationData = computed(() =>
   error.value
-    ? { name: props.currentType?.name, error: error.value }
+    ? { name: currentType.value?.name, error: error.value }
     : props.data ?? visualizationData.value,
 )
 
@@ -72,16 +84,16 @@ function switchToDefaultPreprocessor() {
 }
 
 watch(
-  () => [props.currentType, visualization.value],
+  () => [currentType.value, visualization.value],
   () => (error.value = undefined),
 )
 
 watchEffect(async () => {
-  if (props.currentType == null) return
+  if (currentType.value == null) return
   visualization.value = undefined
   icon.value = undefined
   try {
-    const module = await visualizationStore.get(props.currentType).value
+    const module = await visualizationStore.get(currentType.value).value
     if (module) {
       if (module.defaultPreprocessor != null) {
         updatePreprocessor(...module.defaultPreprocessor)
@@ -91,22 +103,22 @@ watchEffect(async () => {
       visualization.value = module.default
       icon.value = module.icon
     } else {
-      switch (props.currentType.module.kind) {
+      switch (currentType.value.module.kind) {
         case 'Builtin': {
           error.value = new Error(
-            `The builtin visualization '${props.currentType.name}' was not found.`,
+            `The builtin visualization '${currentType.value.name}' was not found.`,
           )
           break
         }
         case 'CurrentProject': {
           error.value = new Error(
-            `The visualization '${props.currentType.name}' was not found in the current project.`,
+            `The visualization '${currentType.value.name}' was not found in the current project.`,
           )
           break
         }
         case 'Library': {
           error.value = new Error(
-            `The visualization '${props.currentType.name}' was not found in the library '${props.currentType.module.name}'.`,
+            `The visualization '${currentType.value.name}' was not found in the library '${currentType.value.module.name}'.`,
           )
           break
         }
@@ -131,7 +143,7 @@ provideVisualizationConfig({
     return props.nodeSize
   },
   get currentType() {
-    return props.currentType ?? DEFAULT_VISUALIZATION_IDENTIFIER
+    return currentType.value ?? DEFAULT_VISUALIZATION_IDENTIFIER
   },
   get icon() {
     return icon.value

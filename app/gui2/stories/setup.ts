@@ -89,6 +89,7 @@ export const setupVue3 = defineSetupVue3(({ app }) => {
         module: { kind: 'Builtin' },
         name: 'Current Type',
       },
+      icon: 'braces',
       types: [
         {
           module: { kind: 'Builtin' },

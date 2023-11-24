@@ -7,6 +7,7 @@ import SvgIcon from '@/components/SvgIcon.vue'
 import { useDoubleClick } from '@/composables/doubleClick'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { useGraphStore, type Node } from '@/stores/graph'
+import { useVisualizationStore } from '@/stores/visualization'
 import { useApproach } from '@/util/animation'
 import { usePointer, useResizeObserver } from '@/util/events'
 import { displayedIconOf } from '@/util/getIconName'
@@ -228,7 +229,7 @@ const handlePortClick = useDoubleClick(
       v-if="isVisualizationVisible"
       :nodeSize="nodeSize"
       :isCircularMenuVisible="menuVisible"
-      :currentType="props.node.vis"
+      :currentType="node.vis?.identifier"
       :expressionId="props.node.rootSpan.astId"
       :typename="expressionInfo?.typename"
       @setVisualizationId="emit('setVisualizationId', $event)"

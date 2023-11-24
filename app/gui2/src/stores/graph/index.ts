@@ -265,12 +265,16 @@ export const useGraphStore = defineStore('graph', () => {
     visible?: boolean,
   ): VisualizationMetadata | null {
     const vis: VisualizationMetadata = {
-      ...(id ?? DEFAULT_VISUALIZATION_IDENTIFIER),
+      identifier: id,
       visible: visible ?? false,
     }
     if (
       visMetadataEquals(vis, {
-        ...DEFAULT_VISUALIZATION_IDENTIFIER,
+        identifier: DEFAULT_VISUALIZATION_IDENTIFIER,
+        visible: false,
+      }) ||
+      visMetadataEquals(vis, {
+        identifier: undefined,
         visible: false,
       })
     )
@@ -287,7 +291,9 @@ export const useGraphStore = defineStore('graph', () => {
   function setNodeVisualizationVisible(nodeId: ExprId, visible: boolean) {
     const node = db.nodeIdToNode.get(nodeId)
     if (!node) return
-    proj.module?.updateNodeMetadata(nodeId, { vis: normalizeVisMetadata(node.vis, visible) })
+    proj.module?.updateNodeMetadata(nodeId, {
+      vis: normalizeVisMetadata(node.vis?.identifier, visible),
+    })
   }
 
   function updateNodeRect(id: ExprId, rect: Rect) {
