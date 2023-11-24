@@ -176,6 +176,14 @@ export const useGraphStore = defineStore('graph', () => {
     return mod.insertNewNode(mod.doc.contents.length, ident, expression, meta)
   }
 
+  // Create a node from a source expression, and insert it into the graph. The return value will be
+  // the new node's ID, or `null` if the node creation fails.
+  function createNodeFromSource(position: Vec2, source: ExprId): Opt<ExprId> {
+    const sourceNodeName = db.getNodeMainOutputPortIdentifier(source)
+    const sourceNodeNameWithDot = sourceNodeName ? sourceNodeName + '.' : ''
+    return createNode(position, sourceNodeNameWithDot)
+  }
+
   function deleteNode(id: ExprId) {
     const node = db.nodeIdToNode.get(id)
     if (node == null) return
@@ -292,6 +300,7 @@ export const useGraphStore = defineStore('graph', () => {
     updateNodeRect,
     updateExprRect,
     setEditedNode,
+    createNodeFromSource,
   }
 })
 
