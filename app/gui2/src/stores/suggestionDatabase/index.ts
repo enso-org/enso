@@ -3,7 +3,7 @@ import { entryQn, type SuggestionEntry, type SuggestionId } from '@/stores/sugge
 import { applyUpdates, entryFromLs } from '@/stores/suggestionDatabase/lsUpdate'
 import { ReactiveDb, ReactiveIndex } from '@/util/database/reactiveDb'
 import { AsyncQueue, rpcWithRetries } from '@/util/net'
-import { waitForEvent as nextEvent } from '@/util/observable'
+import { nextEvent } from '@/util/observable'
 import { type Opt } from '@/util/opt'
 import { qnJoin, qnParent, tryQualifiedName, type QualifiedName } from '@/util/qualifiedName'
 import { defineStore } from 'pinia'
