@@ -94,11 +94,10 @@ function handleDrag(event: DragEvent) {
   )
     return displayedChildren.value
   event.preventDefault()
-  const insertIndex =
-    childBoundingBoxes.value.findIndex(
-      (bbox) => bbox && event.clientX >= bbox.left && event.clientX <= bbox.right,
-    ) ?? 0
-  if (dragDisplayIndex.value === insertIndex) return
+  const insertIndex = childBoundingBoxes.value.findIndex(
+    (bbox) => bbox && event.clientX >= bbox.left && event.clientX <= bbox.right,
+  )
+  if (insertIndex === -1 || dragDisplayIndex.value === insertIndex) return
   dragDisplayIndex.value = insertIndex
   requestAnimationFrame(updateBoundingBoxes)
 }
@@ -122,6 +121,7 @@ function onDrop(event: DragEvent) {
 
 function onDragEnd() {
   dragIndex.value = undefined
+  dragDisplayIndex.value = undefined
 }
 </script>
 

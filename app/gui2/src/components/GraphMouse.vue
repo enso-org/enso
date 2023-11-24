@@ -11,8 +11,8 @@ const scaledMousePos = computed(() => navigator?.sceneMousePos?.scale(navigator?
 const scaledSelectionAnchor = computed(() => nodeSelection?.anchor?.scale(navigator?.scale ?? 1))
 const isNativeDragging = ref(false)
 
-useEvent(window, 'dragstart', () => (isNativeDragging.value = true))
-useEvent(window, 'dragend', () => (isNativeDragging.value = false))
+useEvent(window, 'dragstart', () => (isNativeDragging.value = true), { capture: true })
+useEvent(window, 'dragend', () => (isNativeDragging.value = false), { capture: true })
 </script>
 
 <template>
