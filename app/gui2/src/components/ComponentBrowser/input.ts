@@ -14,7 +14,6 @@ import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
 import { GeneralOprApp, type OperatorChain } from '@/util/ast/opr'
 import { MappedSet } from '@/util/containers'
 import {
-  normalizeQualifiedName,
   qnFromSegments,
   qnLastSegment,
   qnSegments,
@@ -185,7 +184,7 @@ export function useComponentBrowserInput(
     const segments = operandsAsIdents.map((ident) => ident.repr())
     const rawQn = segments.join('.')
     const qn = tryQualifiedName(rawQn)
-    return qn.ok ? normalizeQualifiedName(qn.value) : null
+    return qn.ok ? qn.value : null
   }
 
   /**
@@ -353,9 +352,7 @@ export function useComponentBrowserInput(
       // A correct qualified name contains more than 2 segments (namespace and project name).
       const minimalNumberOfSegments = 2
       const requiredImport =
-        importSegments.length < minimalNumberOfSegments
-          ? null
-          : normalizeQualifiedName(qnFromSegments(importSegments))
+        importSegments.length < minimalNumberOfSegments ? null : qnFromSegments(importSegments)
       // 2. We replace each written identifier with a correct one, and then append the rest of needed qualified name.
       let lastEditedCharIndex = 0
       const result = []

@@ -171,6 +171,8 @@ if (import.meta.vitest) {
     ['local.Project.Main', 'local.Project'],
     ['Standard.Table.Main', 'Standard.Table'],
     ['Standard.Table.Main.Table', 'Standard.Table.Table'],
+    ['Some.Path.Without.Main.Module', 'Some.Path.Without.Main.Module'],
+    ['Standard.Base', 'Standard.Base'],
   ])('normalizeQualifiedName drops Main module in %s', (name, expected) => {
     const qn = unwrap(tryQualifiedName(name))
     expect(normalizeQualifiedName(qn)).toEqual(unwrap(tryQualifiedName(expected)))

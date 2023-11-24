@@ -1,4 +1,4 @@
-import { GraphDb, mockNode } from '@/stores/graph/graphDatabase'
+import { GraphDb } from '@/stores/graph/graphDatabase'
 import type { RequiredImport } from '@/stores/graph/imports'
 import { SuggestionDb } from '@/stores/suggestionDatabase'
 import {

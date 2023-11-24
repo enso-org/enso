@@ -304,7 +304,12 @@ function onComponentBrowserCommit(content: string, requiredImports: RequiredImpo
       // We finish creating a new node.
       const nodePosition = componentBrowserPosition.value
       const metadata = undefined
-      graphStore.createNode(nodePosition.sub(COMPONENT_BROWSER_TO_NODE_OFFSET), content, metadata, requiredImports)
+      graphStore.createNode(
+        nodePosition.sub(COMPONENT_BROWSER_TO_NODE_OFFSET),
+        content,
+        metadata,
+        requiredImports,
+      )
     }
   }
   resetComponentBrowserState()
