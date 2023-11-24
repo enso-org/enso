@@ -45,9 +45,7 @@ const emit = defineEmits<{
 function getInitialContent(): string {
   if (props.sourceNode == null) return props.initialContent
   const sourceNode = props.sourceNode
-  console.log(sourceNode)
   const sourceNodeName = graphStore.db.getNodeMainOutputPortIdentifier(sourceNode)
-  console.log(sourceNodeName)
   const sourceNodeNameWithDot = sourceNodeName ? sourceNodeName + '.' : ''
   return sourceNodeNameWithDot + props.initialContent
 }

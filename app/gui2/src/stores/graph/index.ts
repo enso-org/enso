@@ -1,3 +1,4 @@
+import { nonDictatedPlacement } from '@/components/ComponentBrowser/placement'
 import { GraphDb } from '@/stores/graph/graphDatabase'
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
@@ -5,7 +6,7 @@ import { DEFAULT_VISUALIZATION_IDENTIFIER } from '@/stores/visualization'
 import { Ast, AstExtended, childrenAstNodes, findAstWithRange, readAstSpan } from '@/util/ast'
 import { useObserveYjs } from '@/util/crdt'
 import type { Opt } from '@/util/opt'
-import type { Rect } from '@/util/rect'
+import { Rect } from '@/util/rect'
 import { Vec2 } from '@/util/vec2'
 import { defineStore } from 'pinia'
 import type { StackItem } from 'shared/languageServerTypes'
@@ -74,12 +75,12 @@ export const useGraphStore = defineStore('graph', () => {
 
   watch(text, (value) => {
     textContent.value = value?.toString() ?? ''
-    if (value != null) updateState()
+    if (value) updateState()
   })
 
   function updateState() {
     const module = proj.module
-    if (module == null) return
+    if (!module) return
     module.transact(() => {
       const idMap = module.getIdMap()
       const meta = module.doc.metadata
@@ -88,16 +89,16 @@ export const useGraphStore = defineStore('graph', () => {
       const ast = AstExtended.parse(textContentLocal, idMap)
       const updatedMap = idMap.finishAndSynchronize()
 
-      const methodAst = ast.isTree()
-        ? ast.tryMap((tree) =>
-            getExecutedMethodAst(
-              tree,
-              textContentLocal,
-              proj.executionContext.getStackTop(),
-              updatedMap,
-            ),
-          )
-        : undefined
+      const methodAst =
+        ast.isTree() &&
+        ast.tryMap((tree) =>
+          getExecutedMethodAst(
+            tree,
+            textContentLocal,
+            proj.executionContext.getStackTop(),
+            updatedMap,
+          ),
+        )
       if (methodAst) {
         db.readFunctionAst(methodAst, (id) => meta.get(id))
       }
@@ -110,7 +111,7 @@ export const useGraphStore = defineStore('graph', () => {
       if (op.action === 'update' || op.action === 'add') {
         const data = meta.get(id)
         const node = db.nodeIdToNode.get(id as ExprId)
-        if (data != null && node != null) {
+        if (data && node) {
           db.assignUpdatedMetadata(node, data)
         }
       }
@@ -118,11 +119,10 @@ export const useGraphStore = defineStore('graph', () => {
   })
 
   function generateUniqueIdent() {
-    let ident: string
-    do {
-      ident = randomString()
-    } while (db.identifierUsed(ident))
-    return ident
+    for (;;) {
+      const ident = randomIdent()
+      if (!db.identifierUsed(ident)) return ident
+    }
   }
 
   const edges = computed(() => {
@@ -134,7 +134,7 @@ export const useGraphStore = defineStore('graph', () => {
         edges.push({ source, target })
       }
     }
-    if (unconnectedEdge.value != null) {
+    if (unconnectedEdge.value) {
       edges.push({
         source: unconnectedEdge.value.source,
         target: unconnectedEdge.value.target,
@@ -146,14 +146,17 @@ export const useGraphStore = defineStore('graph', () => {
   function createEdgeFromOutput(source: ExprId) {
     unconnectedEdge.value = { source }
   }
+
   function disconnectSource(edge: Edge) {
-    if (edge.target != null)
+    if (edge.target)
       unconnectedEdge.value = { target: edge.target, disconnectedEdgeTarget: edge.target }
   }
+
   function disconnectTarget(edge: Edge) {
-    if (edge.source != null && edge.target != null)
+    if (edge.source && edge.target)
       unconnectedEdge.value = { source: edge.source, disconnectedEdgeTarget: edge.target }
   }
+
   function clearUnconnected() {
     unconnectedEdge.value = undefined
   }
@@ -164,7 +167,7 @@ export const useGraphStore = defineStore('graph', () => {
     metadata: NodeMetadata | undefined = undefined,
   ): Opt<ExprId> {
     const mod = proj.module
-    if (mod == null) return
+    if (!mod) return
     const meta = metadata ?? {
       x: position.x,
       y: -position.y,
@@ -186,13 +189,13 @@ export const useGraphStore = defineStore('graph', () => {
 
   function deleteNode(id: ExprId) {
     const node = db.nodeIdToNode.get(id)
-    if (node == null) return
+    if (!node) return
     proj.module?.deleteExpression(node.outerExprId)
   }
 
   function setNodeContent(id: ExprId, content: string) {
     const node = db.nodeIdToNode.get(id)
-    if (node == null) return
+    if (!node) return
     setExpressionContent(node.rootSpan.astId, content)
   }
 
@@ -210,13 +213,13 @@ export const useGraphStore = defineStore('graph', () => {
 
   function replaceNodeSubexpression(nodeId: ExprId, range: ContentRange, content: string) {
     const node = db.nodeIdToNode.get(nodeId)
-    if (node == null) return
+    if (!node) return
     proj.module?.replaceExpressionContent(node.rootSpan.astId, content, range)
   }
 
   function setNodePosition(nodeId: ExprId, position: Vec2) {
     const node = db.nodeIdToNode.get(nodeId)
-    if (node == null) return
+    if (!node) return
     proj.module?.updateNodeMetadata(nodeId, { x: position.x, y: -position.y })
   }
 
@@ -240,31 +243,45 @@ export const useGraphStore = defineStore('graph', () => {
 
   function setNodeVisualizationId(nodeId: ExprId, vis: Opt<VisualizationIdentifier>) {
     const node = db.nodeIdToNode.get(nodeId)
-    if (node == null) return
+    if (!node) return
     proj.module?.updateNodeMetadata(nodeId, { vis: normalizeVisMetadata(vis, node.vis?.visible) })
   }
 
   function setNodeVisualizationVisible(nodeId: ExprId, visible: boolean) {
     const node = db.nodeIdToNode.get(nodeId)
-    if (node == null) return
+    if (!node) return
     proj.module?.updateNodeMetadata(nodeId, { vis: normalizeVisMetadata(node.vis, visible) })
   }
 
   function updateNodeRect(id: ExprId, rect: Rect) {
-    nodeRects.set(id, rect)
+    if (rect.pos.equals(Vec2.Zero) && !metadata.value?.has(id)) {
+      const { position } = nonDictatedPlacement(rect.size, {
+        nodeRects: [...nodeRects.entries()]
+          .filter(([id]) => db.nodeIdToNode.get(id))
+          .map(([, rect]) => rect),
+        // The rest of the properties should not matter.
+        selectedNodeRects: [],
+        screenBounds: Rect.Zero,
+        mousePosition: Vec2.Zero,
+      })
+      metadata.value?.set(id, { x: position.x, y: -position.y, vis: null })
+      nodeRects.set(id, new Rect(position, rect.size))
+    } else {
+      nodeRects.set(id, rect)
+    }
   }
 
   function updateExprRect(id: ExprId, rect: Rect | undefined) {
     const current = exprRects.get(id)
     if (rect) {
-      if (current == null || !current.equals(rect)) exprRects.set(id, rect)
+      if (!current || !current.equals(rect)) exprRects.set(id, rect)
     } else {
-      if (current != null) exprRects.delete(id)
+      if (current) exprRects.delete(id)
     }
   }
 
   function setEditedNode(id: ExprId | null, cursorPosition: number | null) {
-    if (id == null) {
+    if (!id) {
       editedNodeInfo.value = undefined
       return
     }
@@ -272,7 +289,7 @@ export const useGraphStore = defineStore('graph', () => {
       console.warn('setEditedNode: cursorPosition is null')
       return
     }
-    const range = [cursorPosition, cursorPosition] as ContentRange
+    const range: ContentRange = [cursorPosition, cursorPosition]
     editedNodeInfo.value = { id, range }
   }
 
@@ -304,7 +321,7 @@ export const useGraphStore = defineStore('graph', () => {
   }
 })
 
-function randomString() {
+function randomIdent() {
   return 'operator' + Math.round(Math.random() * 100000)
 }
 
@@ -326,7 +343,7 @@ function getExecutedMethodAst(
   code: string,
   executionStackTop: StackItem,
   updatedIdMap: Y.Map<Uint8Array>,
-): Opt<Ast.Tree.Function> {
+): Ast.Tree.Function | undefined {
   switch (executionStackTop.type) {
     case 'ExplicitCall': {
       // Assume that the provided AST matches the module in the method pointer. There is no way to
@@ -338,7 +355,7 @@ function getExecutedMethodAst(
     case 'LocalCall': {
       const exprId = executionStackTop.expressionId
       const range = lookupIdRange(updatedIdMap, exprId)
-      if (range == null) return
+      if (!range) return
       const node = findAstWithRange(ast, range)
       if (node?.type === Ast.Tree.Type.Function) return node
     }
@@ -348,7 +365,7 @@ function getExecutedMethodAst(
 function lookupIdRange(updatedIdMap: Y.Map<Uint8Array>, id: ExprId): [number, number] | undefined {
   const doc = updatedIdMap.doc!
   const rangeBuffer = updatedIdMap.get(id)
-  if (rangeBuffer == null) return
+  if (!rangeBuffer) return
   const decoded = decodeRange(rangeBuffer)
   const index = Y.createAbsolutePositionFromRelativePosition(decoded[0], doc)?.index
   const endIndex = Y.createAbsolutePositionFromRelativePosition(decoded[1], doc)?.index
@@ -360,7 +377,7 @@ function findModuleMethod(
   moduleAst: Ast.Tree,
   code: string,
   methodName: string,
-): Opt<Ast.Tree.Function> {
+): Ast.Tree.Function | undefined {
   for (const node of childrenAstNodes(moduleAst)) {
     if (node.type === Ast.Tree.Type.Function && readAstSpan(node.name, code) === methodName)
       return node
