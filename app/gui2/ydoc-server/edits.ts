@@ -104,7 +104,7 @@ function translateVisualizationToFile(
   vis: VisualizationMetadata,
 ): fileFormat.VisualizationMetadata | undefined {
   let project = undefined
-  switch (vis.identifier.module.kind) {
+  switch (vis.identifier?.module.kind) {
     case 'Builtin':
       project = { project: 'Builtin' } as const
       break
