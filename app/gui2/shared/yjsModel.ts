@@ -1,4 +1,3 @@
-import type { Opt } from '@/util/opt'
 import * as decoding from 'lib0/decoding'
 import * as encoding from 'lib0/encoding'
 import * as object from 'lib0/object'
@@ -20,11 +19,14 @@ export interface VisualizationIdentifier {
 }
 
 export interface VisualizationMetadata {
-  identifier: Opt<VisualizationIdentifier>
+  identifier: VisualizationIdentifier | null | undefined
   visible: boolean
 }
 
-export function visMetadataEquals(a: Opt<VisualizationMetadata>, b: Opt<VisualizationMetadata>) {
+export function visMetadataEquals(
+  a: VisualizationMetadata | null | undefined,
+  b: VisualizationMetadata | null | undefined,
+) {
   return (
     (a == null && b == null) ||
     (a != null &&
