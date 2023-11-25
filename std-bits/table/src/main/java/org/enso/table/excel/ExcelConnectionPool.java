@@ -3,18 +3,14 @@ package org.enso.table.excel;
 import org.apache.poi.UnsupportedFileFormatException;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
-import org.apache.poi.openxml4j.exceptions.OpenXML4JRuntimeException;
 import org.apache.poi.openxml4j.opc.OPCPackage;
 import org.apache.poi.openxml4j.opc.PackageAccess;
 import org.apache.poi.poifs.filesystem.POIFSFileSystem;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.enso.table.write.ExistingFileBehavior;
 
-import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.function.Function;
@@ -61,8 +57,29 @@ public class ExcelConnectionPool {
     }
   }
 
-  public <R> R performWrite(File file, ExcelFileFormat format, ExistingFileBehavior existingFileBehavior,
-                            Function<Workbook, R> writeAction) throws IOException {
+  public static class WriteHelper {
+    private final File file;
+    private final ExcelFileFormat format;
+
+    public WriteHelper(File file, ExcelFileFormat format) {
+      this.file = file;
+      this.format = format;
+    }
+
+    public Workbook openWorkbook(boolean writeAccess) throws IOException {
+      return ExcelConnectionPool.openWorkbook(file, format, writeAccess);
+    }
+  }
+
+  /**
+   * Executes a write action, ensuring that any other Excel connections are closed during the action, so that it can
+   * modify the file. Any existing connections are re-opened after the operation finishes (regardless of its success or
+   * error).
+   * <p>
+   * The action gets a {@link WriteHelper} object that can be used to open the workbook for reading or writing. The
+   * action must take care to close that workbook before returning.
+   */
+  public <R> R lockForWriting(File file, ExcelFileFormat format, Function<WriteHelper, R> action) throws IOException {
     synchronized (this) {
       if (isCurrentlyWriting) {
         throw new IllegalStateException("Another Excel write is in progress on the same thread. This is a bug in the " +
@@ -74,43 +91,14 @@ public class ExcelConnectionPool {
         String key = getKeyForFile(file);
 
         ConnectionRecord existingRecord = records.get(key);
-        // Close the existing read-only connection, if any.
+        // Close the existing connection, if any - to avoid the write operation failing due to the file being locked.
         if (existingRecord != null) {
           existingRecord.close();
         }
 
         try {
-          boolean preexistingFile = file.exists() && file.length() > 0;
-
-          try (Workbook workbook = preexistingFile ? openWorkbook(file, format, true) : createEmptyWorkbook(format)) {
-            R result = writeAction.apply(workbook);
-
-            if (preexistingFile) {
-              switch (workbook) {
-                case HSSFWorkbook hssfWorkbook -> hssfWorkbook.write();
-                case XSSFWorkbook xssfWorkbook -> {
-                  // Workaround for bug https://bz.apache.org/bugzilla/show_bug.cgi?id=59252
-                  // We have to invoke write with something to ensure the data is committed and will be saved to the _original_ file upon closing.
-                  // So we invoke write with null, and catch the exception.
-                  try {
-                    xssfWorkbook.write(null);
-                  } catch (OpenXML4JRuntimeException e) {
-                    // Ignore
-                  }
-                }
-                default -> throw new IllegalStateException("Unknown workbook type: " + workbook.getClass());
-              }
-            } else {
-              try (FileOutputStream fileOut = new FileOutputStream(file)) {
-                try (BufferedOutputStream workbookOut = new BufferedOutputStream(fileOut)) {
-                  workbook.write(workbookOut);
-                }
-              }
-            }
-
-            return result;
-          }
-
+          WriteHelper helper = new WriteHelper(file, format);
+          return action.apply(helper);
         } finally {
           // Reopen the read-only connection.
           if (existingRecord != null) {
