@@ -10,8 +10,10 @@ import org.apache.poi.poifs.filesystem.POIFSFileSystem;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -68,27 +70,36 @@ public class ExcelConnectionPool {
 
     public <R> R writeWorkbook(File file, Function<Workbook, R> writeAction) throws IOException {
 //      File tempFile = File.createTempFile("enso-tmp-workbook-", ".tmp");
-      boolean appendingToExisting = file.exists();
+      boolean preExistingFile = file.exists();
 //      if (appendingToExisting) {
 //        Files.copy(file.toPath(), tempFile.toPath());
 //      }
 
       try {
-        try (Workbook tempWorkbook = appendingToExisting ? ExcelConnectionPool.openWorkbook(file, format, true) :
+        try (Workbook tempWorkbook = preExistingFile ? ExcelConnectionPool.openWorkbook(file, format, true) :
             createEmptyWorkbook(format)) {
           R result = writeAction.apply(tempWorkbook);
-          switch (tempWorkbook) {
-            case HSSFWorkbook wb -> {
-              wb.write();
+          if (preExistingFile) {
+            // Save the file in place.
+            switch (tempWorkbook) {
+              case HSSFWorkbook wb -> {
+                wb.write();
+              }
+              case XSSFWorkbook wb -> {
+                try {
+                  wb.write(null);
+                } catch (OpenXML4JRuntimeException e) {
+                  // Ignore: Workaround for bug https://bz.apache.org/bugzilla/show_bug.cgi?id=59252
+                }
+              }
+              default -> throw new IllegalStateException("Unknown workbook type: " + tempWorkbook.getClass());
             }
-            case XSSFWorkbook wb -> {
-              try {
-                wb.write(null);
-              } catch (OpenXML4JRuntimeException e) {
-                // Ignore.
+          } else {
+            try (FileOutputStream fileOut = new FileOutputStream(file)) {
+              try (BufferedOutputStream workbookOut = new BufferedOutputStream(fileOut)) {
+                tempWorkbook.write(workbookOut);
               }
             }
-            default -> throw new IllegalStateException("Unknown workbook type: " + tempWorkbook.getClass());
           }
 
           return result;
