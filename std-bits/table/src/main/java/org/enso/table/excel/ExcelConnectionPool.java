@@ -15,6 +15,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.function.Function;
@@ -70,7 +71,7 @@ public class ExcelConnectionPool {
 
     public <R> R writeWorkbook(File file, Function<Workbook, R> writeAction) throws IOException {
 //      File tempFile = File.createTempFile("enso-tmp-workbook-", ".tmp");
-      boolean preExistingFile = file.exists();
+      boolean preExistingFile = file.exists() && Files.size(file.toPath()) > 0;
 //      if (appendingToExisting) {
 //        Files.copy(file.toPath(), tempFile.toPath());
 //      }

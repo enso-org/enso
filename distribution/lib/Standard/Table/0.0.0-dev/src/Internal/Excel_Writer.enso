@@ -77,7 +77,7 @@ write_file (file : File) (table : Table) (on_existing_file : Existing_File_Behav
                 write_helper.writeWorkbook (file_as_java temp_file) modification_strategy
                 result_file = if is_dry_run then temp_file else
                     needs_backup = on_existing_file == Existing_File_Behavior.Backup
-                    if needs_backup then
+                    if needs_backup && file.exists then
                         backup_file = find_bak_file file
                         Panic.rethrow <| file.copy_to backup_file
 
