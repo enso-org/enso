@@ -370,7 +370,7 @@ spec_write suffix test_sheet_name =
             opened_temp.sheet_names . should_equal ['EnsoSheet']
 
             temp2 = Context.Output.with_disabled <|
-                result = table.write out (Excel (Worksheet "Another") on_problems=Report_Error . should_succeed
+                result = table.write out (Excel (Worksheet "Another")) on_problems=Report_Error . should_succeed
                 Problems.expect_only_warning Dry_Run_Operation result
                 result.exists.should_be_true
                 result

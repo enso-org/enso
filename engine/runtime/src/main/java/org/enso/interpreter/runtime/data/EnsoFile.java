@@ -190,6 +190,7 @@ public final class EnsoFile implements EnsoObject {
   }
 
   @Builtin.Method(name = "canonical_builtin")
+  @Builtin.WrapException(from = IOException.class)
   @CompilerDirectives.TruffleBoundary
   public EnsoFile getCanonical() throws IOException {
     return new EnsoFile(this.truffleFile.getCanonicalFile());

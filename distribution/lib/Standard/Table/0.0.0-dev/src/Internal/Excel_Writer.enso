@@ -2,6 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
+import Standard.Base.Runtime.Context
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 
 import project.Data.Match_Columns.Match_Columns
@@ -57,10 +58,10 @@ write_file (file : File) (table : Table) (on_existing_file : Existing_File_Behav
         file_format = if xls_format then ExcelFileFormat.XLS else ExcelFileFormat.XLSX
 
         ExcelWriter.setEnsoToTextCallbackIfUnset (.to_text)
-        modification_strategy = prepare_file_modification_strategy table section on_existing_file match_columns
+        modification_strategy = prepare_file_modification_strategy table section headers on_existing_file match_columns
         is_dry_run = Context.Output.is_enabled.not
 
-        File_Error.handle_java_exceptions file <| write_strategy.if_not_error <| handle_writer <|
+        modification_strategy.if_not_error <| File_Error.handle_java_exceptions file <| handle_writer <|
             possible_backup_file = if on_existing_file == Existing_File_Behavior.Backup then file_as_java (find_bak_file file) else Nothing
             possible_dry_run_file = if is_dry_run.not then Nothing else
                 preexisting_dry_run_file = DryRunFileManager.preExistingTemporaryFile file.canonical.path
@@ -96,7 +97,7 @@ find_temp_file base_file =
     parent = base_file.canonical.parent
     name = base_file.name
     go i =
-        temp_file = parent / (name ++ ".temp." ++ System.nano_time.to_text)
+        temp_file = parent / (name + ".temp." + System.nano_time.to_text)
         if temp_file.exists then go (i + 1) else temp_file
     go 0
 
@@ -112,8 +113,8 @@ file_as_java file =
     Java_File.new file.canonical.path
 
 ## PRIVATE
-prepare_file_modification_strategy : Table -> Excel_Section -> Existing_File_Behavior -> Match_Columns -> (Workbook -> Nothing)
-prepare_file_modification_strategy table section on_existing_file match_columns =
+prepare_file_modification_strategy : Table -> Excel_Section -> Boolean|Infer -> Existing_File_Behavior -> Match_Columns -> (Workbook -> Nothing)
+prepare_file_modification_strategy table section headers on_existing_file match_columns =
     existing_data_mode = make_java_existing_data_mode on_existing_file match_columns
     java_headers = Excel_Reader.make_java_headers headers
     case section of

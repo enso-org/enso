@@ -317,7 +317,7 @@ type Any
 
              my_result.if_not_nothing <| my_result + 1
     if_not_nothing : Any -> Any
-    if_not_nothing self ~action = other
+    if_not_nothing self ~action = action
 
     ## GROUP Errors
        Executes the provided handler on an error, or returns the value unchanged.
