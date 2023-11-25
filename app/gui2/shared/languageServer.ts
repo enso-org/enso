@@ -322,14 +322,16 @@ export class LanguageServer extends ObservableV2<Notifications> {
 
   /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#executioncontextexecuteexpression) */
   executeExpression(
+    executionContextId: Uuid,
     visualizationId: Uuid,
     expressionId: ExpressionId,
-    visualizationConfig: VisualizationConfiguration,
+    expression: string,
   ): Promise<void> {
     return this.request('executionContext/executeExpression', {
+      executionContextId,
       visualizationId,
       expressionId,
-      visualizationConfig,
+      expression,
     })
   }
 

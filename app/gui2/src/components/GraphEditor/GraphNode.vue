@@ -41,11 +41,9 @@ const emit = defineEmits<{
 
 const nodeSelection = injectGraphSelection(true)
 const graph = useGraphStore()
-const isSourceOfDraggedEdge = computed(
-  () => graph.unconnectedEdge?.source === props.node.rootSpan.astId,
-)
-
 const nodeId = computed(() => props.node.rootSpan.astId)
+const isSourceOfDraggedEdge = computed(() => graph.unconnectedEdge?.source === nodeId.value)
+
 const rootNode = ref<HTMLElement>()
 const nodeSize = useResizeObserver(rootNode)
 const menuVisible = ref(false)
@@ -229,7 +227,9 @@ const handlePortClick = useDoubleClick(
       :nodeSize="nodeSize"
       :isCircularMenuVisible="menuVisible"
       :currentType="node.vis?.identifier"
-      :expressionId="props.node.rootSpan.astId"
+      :pattern="node.pattern"
+      :nodeId="node.outerExprId"
+      :expressionId="nodeId"
       :typename="expressionInfo?.typename"
       @setVisualizationId="emit('setVisualizationId', $event)"
       @setVisualizationVisible="emit('setVisualizationVisible', $event)"
