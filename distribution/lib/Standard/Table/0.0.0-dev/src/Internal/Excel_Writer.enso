@@ -64,7 +64,7 @@ write_file (file : File) (table : Table) (on_existing_file : Existing_File_Behav
         modification_strategy.if_not_error <| Panic.recover File_Error <| File_Error.handle_java_exceptions file <| handle_writer <|
             possible_backup_file = if on_existing_file == Existing_File_Behavior.Backup then file_as_java (find_bak_file file) else Nothing
             possible_dry_run_file = if is_dry_run.not then Nothing else
-                preexisting_dry_run_file = DryRunFileManager.preExistingTemporaryFile file.canonical.path
+                preexisting_dry_run_file = DryRunFileManager.preExistingTemporaryFile file.absolute.normalize.path
                 preexisting_dry_run_file.if_not_nothing <|
                     Java_File.new preexisting_dry_run_file
             accompanying_files = [possible_backup_file, possible_dry_run_file].filter (!= Nothing)
@@ -89,7 +89,7 @@ write_file (file : File) (table : Table) (on_existing_file : Existing_File_Behav
 ## PRIVATE
 find_temp_file : File -> File
 find_temp_file base_file =
-    parent = base_file.canonical.parent
+    parent = base_file.absolute.normalize.parent
     name = base_file.name
     go i =
         temp_file = parent / (name + ".temp." + System.nano_time.to_text)
@@ -99,13 +99,13 @@ find_temp_file base_file =
 ## PRIVATE
 find_bak_file : File -> File
 find_bak_file base_file =
-    parent = base_file.canonical.parent
+    parent = base_file.absolute.normalize.parent
     parent / (base_file.name + ".bak")
 
 ## PRIVATE
 file_as_java : File -> Java_File
 file_as_java file =
-    Java_File.new file.canonical.path
+    Java_File.new file.absolute.normalize.path
 
 ## PRIVATE
 prepare_file_modification_strategy : Table -> Excel_Section -> Boolean|Infer -> Existing_File_Behavior -> Match_Columns -> (Workbook -> Nothing)

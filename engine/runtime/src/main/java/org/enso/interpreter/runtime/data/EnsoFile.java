@@ -189,13 +189,6 @@ public final class EnsoFile implements EnsoObject {
     return this.truffleFile.getPath();
   }
 
-  @Builtin.Method(name = "canonical_builtin")
-  @Builtin.WrapException(from = IOException.class)
-  @CompilerDirectives.TruffleBoundary
-  public EnsoFile getCanonical() throws IOException {
-    return new EnsoFile(this.truffleFile.getCanonicalFile());
-  }
-
   @Builtin.Method
   @CompilerDirectives.TruffleBoundary
   public boolean isAbsolute() {
