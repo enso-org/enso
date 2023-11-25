@@ -61,7 +61,7 @@ write_file (file : File) (table : Table) (on_existing_file : Existing_File_Behav
         modification_strategy = prepare_file_modification_strategy table section headers on_existing_file match_columns
         is_dry_run = Context.Output.is_enabled.not
 
-        modification_strategy.if_not_error <| File_Error.handle_java_exceptions file <| handle_writer <|
+        modification_strategy.if_not_error <| Panic.recover File_Error <| File_Error.handle_java_exceptions file <| handle_writer <|
             possible_backup_file = if on_existing_file == Existing_File_Behavior.Backup then file_as_java (find_bak_file file) else Nothing
             possible_dry_run_file = if is_dry_run.not then Nothing else
                 preexisting_dry_run_file = DryRunFileManager.preExistingTemporaryFile file.canonical.path
@@ -72,22 +72,17 @@ write_file (file : File) (table : Table) (on_existing_file : Existing_File_Behav
             ExcelConnectionPool.INSTANCE.lockForWriting java_file file_format accompanying_files write_helper->
                 temp_file = if is_dry_run then file.create_dry_run_file copy_original=False else
                     find_temp_file file
-                temp_file_write_status = Managed_Resource.bracket write_helper.openWorkbookReadOnly (.close) readonly_workbook->
-                    modification_strategy readonly_workbook . if_not_error <| Context.Output.with_enabled <|
-                        options = [File_Access.Write] + if is_dry_run then [File_Access.Create, File_Access.Truncate_Existing] else
-                            [File_Access.Create_New]
-                        temp_file.with_output_stream options output_stream->
-                            output_stream.with_java_stream java_output_stream->
-                                readonly_workbook.write java_output_stream
-                result_file = temp_file_write_status.if_not_error <|
-                    if is_dry_run then temp_file else
-                        needs_backup = on_existing_file == Existing_File_Behavior.Backup
-                        backup_status = if needs_backup then
-                            backup_file = find_bak_file file
-                            file.copy_to backup_file
-                        backup_status.if_not_error <|
-                            temp_file.move_to file replace_existing=True . if_not_error <|
-                                file
+                if file.exists then
+                    Panic.rethrow <| file.copy_to temp_file
+                write_helper.writeWorkbook (file_as_java temp_file) modification_strategy
+                result_file = if is_dry_run then temp_file else
+                    needs_backup = on_existing_file == Existing_File_Behavior.Backup
+                    if needs_backup then
+                        backup_file = find_bak_file file
+                        Panic.rethrow <| file.copy_to backup_file
+
+                    Panic.rethrow <| temp_file.move_to file replace_existing=True
+                    file
 
                 result_file
 

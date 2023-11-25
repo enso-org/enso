@@ -3,6 +3,7 @@ package org.enso.table.excel;
 import org.apache.poi.UnsupportedFileFormatException;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
+import org.apache.poi.openxml4j.exceptions.OpenXML4JRuntimeException;
 import org.apache.poi.openxml4j.opc.OPCPackage;
 import org.apache.poi.openxml4j.opc.PackageAccess;
 import org.apache.poi.poifs.filesystem.POIFSFileSystem;
@@ -59,20 +60,42 @@ public class ExcelConnectionPool {
   }
 
   public static class WriteHelper {
-    private final File file;
     private final ExcelFileFormat format;
 
-    public WriteHelper(File file, ExcelFileFormat format) {
-      this.file = file;
+    public WriteHelper(ExcelFileFormat format) {
       this.format = format;
     }
 
-    public Workbook openWorkbook(boolean writeAccess) throws IOException {
-      return ExcelConnectionPool.openWorkbook(file, format, writeAccess);
-    }
+    public <R> R writeWorkbook(File file, Function<Workbook, R> writeAction) throws IOException {
+//      File tempFile = File.createTempFile("enso-tmp-workbook-", ".tmp");
+      boolean appendingToExisting = file.exists();
+//      if (appendingToExisting) {
+//        Files.copy(file.toPath(), tempFile.toPath());
+//      }
 
-    public Workbook openWorkbookReadOnly() throws IOException {
-      return openWorkbook(false);
+      try {
+        try (Workbook tempWorkbook = appendingToExisting ? ExcelConnectionPool.openWorkbook(file, format, true) :
+            createEmptyWorkbook(format)) {
+          R result = writeAction.apply(tempWorkbook);
+          switch (tempWorkbook) {
+            case HSSFWorkbook wb -> {
+              wb.write();
+            }
+            case XSSFWorkbook wb -> {
+              try {
+                wb.write(null);
+              } catch (OpenXML4JRuntimeException e) {
+                // Ignore.
+              }
+            }
+            default -> throw new IllegalStateException("Unknown workbook type: " + tempWorkbook.getClass());
+          }
+
+          return result;
+        }
+      } finally {
+//        tempFile.delete();
+      }
     }
   }
 
@@ -118,7 +141,7 @@ public class ExcelConnectionPool {
             }
           }
 
-          WriteHelper helper = new WriteHelper(file, format);
+          WriteHelper helper = new WriteHelper(format);
           return action.apply(helper);
         } finally {
           // Reopen the closed connections
