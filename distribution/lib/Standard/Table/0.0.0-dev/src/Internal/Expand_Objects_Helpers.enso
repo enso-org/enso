@@ -83,7 +83,7 @@ expand_to_rows table column at_least_one_row=False =
         Fan_Out.fan_out_to_rows table column row_expander at_least_one_row column_builder=builder
 
 ## PRIVATE
-create_table_from_objects : Any -> ((Vector Text) | Nothing) -> Table
+create_table_from_objects : Convertible_To_Rows -> (Vector Text | Nothing) -> Table
 create_table_from_objects (value : Convertible_To_Rows) (fields : Vector | Nothing) = if fields.is_nothing.not && fields.is_empty then Error.throw (Illegal_Argument.Error "The fields parameter cannot be empty.") else
     len = value.length
 

@@ -33,7 +33,8 @@ list_buckets credentials:(AWS_Credential | Nothing)=Nothing = handle_s3_errors <
     buckets = client.listBuckets.buckets
     buckets.map b->b.name
 
-## Gets the list of the items inside a bucket.
+## GROUP Standard.Base.Input
+   Gets the list of the items inside a bucket.
 
    Arguments:
    - bucket: the name of the bucket.

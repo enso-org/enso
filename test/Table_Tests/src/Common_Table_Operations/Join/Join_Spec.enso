@@ -284,18 +284,37 @@ spec setup =
 
         Test.specify "should allow to mix join conditions of various kinds" <|
             t1 = table_builder [["X", [1, 12, 12, 0]], ["Y", [1, 2, 3, 4]], ["Z", ["a", "A", "a", "ą"]], ["W", [1, 2, 3, 4]]]
-            t2 = table_builder [["X", [12, 12, 1]], ["l", [0, 100, 100]], ["u", [10, 100, 100]], ["Z", ["A", "A", "A"]], ["W'", [10, 20, 30]]]
+            t2 = table_builder [["X", [12, 12, 1]], ["l", [0, 100, 100]], ["u", [10, 100, 200]], ["Z", ["A", "A", "A"]], ["W'", [10, 20, 30]]]
 
-            r1 = t1.join t2 join_kind=Join_Kind.Inner on=[Join_Condition.Between "Y" "l" "u", Join_Condition.Equals_Ignore_Case "Z" "Z", Join_Condition.Equals "X" "X"] |> materialize |> _.order_by ["Y"]
-            expect_column_names ["X", "Y", "Z", "W", "l", "u", "Right Z", "W'"] r1
-            r1.at "X" . to_vector . should_equal [12, 12]
-            r1.at "Y" . to_vector . should_equal [2, 3]
-            r1.at "Z" . to_vector . should_equal ["A", "a"]
-            r1.at "W" . to_vector . should_equal [2, 3]
-            r1.at "l" . to_vector . should_equal [0, 0]
-            r1.at "u" . to_vector . should_equal [10, 10]
-            r1.at "Right Z" . to_vector . should_equal ["A", "A"]
-            r1.at "W'" . to_vector . should_equal [10, 10]
+            conditions = [Join_Condition.Between "Y" "l" "u", Join_Condition.Equals_Ignore_Case "Z" "Z", Join_Condition.Equals "X" "X"]
+            r1 = t1.join t2 join_kind=Join_Kind.Inner on=conditions |> materialize |> _.order_by ["Y"]
+            within_table r1 <|
+                r1.column_names.should_equal ["X", "Y", "Z", "W", "l", "u", "Right Z", "W'"]
+                r1.at "X" . to_vector . should_equal [12, 12]
+                r1.at "Y" . to_vector . should_equal [2, 3]
+                r1.at "Z" . to_vector . should_equal ["A", "a"]
+                r1.at "W" . to_vector . should_equal [2, 3]
+                r1.at "l" . to_vector . should_equal [0, 0]
+                r1.at "u" . to_vector . should_equal [10, 10]
+                r1.at "Right Z" . to_vector . should_equal ["A", "A"]
+                r1.at "W'" . to_vector . should_equal [10, 10]
+
+            r2 = t1.join t2 join_kind=Join_Kind.Left_Exclusive on=conditions |> materialize |> _.order_by ["Y"]
+            within_table r2 <|
+                r2.column_names.should_equal ["X", "Y", "Z", "W"]
+                r2.at "X" . to_vector . should_equal [1, 0]
+                r2.at "Y" . to_vector . should_equal [1, 4]
+                r2.at "Z" . to_vector . should_equal ["a", "ą"]
+                r2.at "W" . to_vector . should_equal [1, 4]
+
+            r3 = t1.join t2 join_kind=Join_Kind.Right_Exclusive on=conditions |> materialize |> _.order_by ["W'"]
+            within_table r3 <|
+                r3.column_names.should_equal ["X", "l", "u", "Z", "W'"]
+                r3.at "X" . to_vector . should_equal [12, 1]
+                r3.at "l" . to_vector . should_equal [100, 100]
+                r3.at "u" . to_vector . should_equal [100, 200]
+                r3.at "Z" . to_vector . should_equal ["A", "A"]
+                r3.at "W'" . to_vector . should_equal [20, 30]
 
         Test.specify "should work fine if the same condition is specified multiple times" <|
             r = t3.join t4 join_kind=Join_Kind.Inner on=["X", "X", "Y", "X", "Y"] |> materialize |> _.order_by ["X", "Y", "Z", "Right Z"]

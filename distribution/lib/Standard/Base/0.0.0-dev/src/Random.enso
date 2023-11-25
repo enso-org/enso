@@ -25,6 +25,7 @@ polyglot java import java.util.UUID
 polyglot java import org.enso.base.random.Random_Utils
 polyglot java import org.enso.base.random.RandomInstanceHolder
 
+## Type for creating random values.
 type Random
     ## PRIVATE
        GROUP Random
@@ -41,8 +42,8 @@ type Random
 
              rng = Random.oew_generator 42
              i = rng.integer 0 10
-    new_generator : Integer -> Random_Generator
-    new_generator (seed:Integer|Nothing=Nothing) = Random_Generator.new seed
+    new_generator : Integer | Nothing -> Random_Generator
+    new_generator seed:(Integer | Nothing)=Nothing = Random_Generator.new seed
 
     ## GROUP Random
        TEXT_ONLY
