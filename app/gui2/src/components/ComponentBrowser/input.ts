@@ -1,30 +1,27 @@
 import type { Filter } from '@/components/ComponentBrowser/filtering'
 import { useGraphStore } from '@/stores/graph'
 import type { GraphDb } from '@/stores/graph/graphDatabase'
+import { requiredImportEquals, requiredImports, type RequiredImport } from '@/stores/graph/imports'
+import { useSuggestionDbStore, type SuggestionDb } from '@/stores/suggestionDatabase'
 import {
   SuggestionKind,
+  entryQn,
   type SuggestionEntry,
   type Typename,
 } from '@/stores/suggestionDatabase/entry'
-import {
-  Ast,
-  astContainingChar,
-  parseEnso,
-  parsedTreeRange,
-  readAstSpan,
-  readTokenSpan,
-} from '@/util/ast'
+import { Ast, AstExtended, astContainingChar } from '@/util/ast'
 import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
-import { GeneralOprApp } from '@/util/ast/opr'
+import { GeneralOprApp, type OperatorChain } from '@/util/ast/opr'
 import { MappedSet } from '@/util/containers'
 import {
+  qnFromSegments,
   qnLastSegment,
-  qnParent,
-  qnSplit,
+  qnSegments,
   tryQualifiedName,
   type QualifiedName,
 } from '@/util/qualifiedName'
-import { IdMap } from 'shared/yjsModel'
+import { equalFlat } from 'lib0/array'
+import { IdMap, type ContentRange } from 'shared/yjsModel'
 import { computed, ref, type ComputedRef } from 'vue'
 
 /** Input's editing context.
@@ -40,41 +37,56 @@ export type EditingContext =
   | {
       type: 'insert'
       position: number
-      oprApp?: GeneralOprApp
+      oprApp?: GeneralOprApp<false>
     }
   // Suggestion should replace given identifier.
   | {
       type: 'changeIdentifier'
-      identifier: Ast.Tree.Ident
-      oprApp?: GeneralOprApp
+      identifier: AstExtended<Ast.Tree.Ident, false>
+      oprApp?: GeneralOprApp<false>
     }
   // Suggestion should replace given literal.
-  | { type: 'changeLiteral'; literal: Ast.Tree.TextLiteral | Ast.Tree.Number }
+  | { type: 'changeLiteral'; literal: AstExtended<Ast.Tree.TextLiteral | Ast.Tree.Number, false> }
+
+/** An atomic change to the user input. */
+interface Change {
+  str: string
+  /** Range in the original code to be replaced with `str`. */
+  range: ContentRange
+}
 
 /** Component Browser Input Data */
-export function useComponentBrowserInput(graphDb: GraphDb = useGraphStore().db) {
+export function useComponentBrowserInput(
+  graphDb: GraphDb = useGraphStore().db,
+  suggestionDb: SuggestionDb = useSuggestionDbStore().entries,
+) {
   const code = ref('')
   const selection = ref({ start: 0, end: 0 })
-  const ast = computed(() => parseEnso(code.value))
+  const ast = computed(() => AstExtended.parse(code.value))
 
   const context: ComputedRef<EditingContext> = computed(() => {
     const cursorPosition = selection.value.start
     if (cursorPosition === 0) return { type: 'insert', position: 0 }
     const editedPart = cursorPosition - 1
     const inputAst = ast.value
-    const editedAst = astContainingChar(editedPart, inputAst).values()
+    const editedAst = inputAst
+      .mapIter((ast) => astContainingChar(editedPart, ast))
+      [Symbol.iterator]()
     const leaf = editedAst.next()
     if (leaf.done) return { type: 'insert', position: cursorPosition }
-    switch (leaf.value.type) {
+    switch (leaf.value.inner.type) {
       case Ast.Tree.Type.Ident:
         return {
           type: 'changeIdentifier',
-          identifier: leaf.value,
+          identifier: leaf.value as AstExtended<Ast.Tree.Ident, false>,
           ...readOprApp(editedAst.next(), leaf.value),
         }
       case Ast.Tree.Type.TextLiteral:
       case Ast.Tree.Type.Number:
-        return { type: 'changeLiteral', literal: leaf.value }
+        return {
+          type: 'changeLiteral',
+          literal: leaf.value as AstExtended<Ast.Tree.TextLiteral | Ast.Tree.Number, false>,
+        }
       default:
         return {
           type: 'insert',
@@ -85,7 +97,7 @@ export function useComponentBrowserInput(graphDb: GraphDb = useGraphStore().db) 
   })
 
   const internalUsages = computed(() => {
-    const analyzer = new AliasAnalyzer(code.value, ast.value)
+    const analyzer = new AliasAnalyzer(code.value, ast.value.inner)
     analyzer.process()
     function* internalUsages() {
       for (const [_definition, usages] of analyzer.aliases) {
@@ -101,8 +113,7 @@ export function useComponentBrowserInput(graphDb: GraphDb = useGraphStore().db) 
     if (ctx.type === 'changeLiteral') return {}
     if (ctx.oprApp == null || ctx.oprApp.lhs == null) return {}
     const opr = ctx.oprApp.lastOpr()
-    const input = code.value
-    if (opr == null || !opr.ok || readTokenSpan(opr.value, input) !== '.') return {}
+    if (opr == null || opr.repr() !== '.') return {}
     const selfArg = pathAsSelfArgument(ctx.oprApp)
     if (selfArg != null) return { selfArg: selfArg }
     const qn = pathAsQualifiedName(ctx.oprApp)
@@ -116,32 +127,35 @@ export function useComponentBrowserInput(graphDb: GraphDb = useGraphStore().db) 
     const filter = { ...accessChainFilter.value }
     if (ctx.type === 'changeIdentifier') {
       const start =
-        ctx.identifier.whitespaceStartInCodeParsed + ctx.identifier.whitespaceLengthInCodeParsed
+        ctx.identifier.inner.whitespaceStartInCodeParsed +
+        ctx.identifier.inner.whitespaceLengthInCodeParsed
       const end = selection.value.end
       filter.pattern = input.substring(start, end)
     } else if (ctx.type === 'changeLiteral') {
-      filter.pattern = readAstSpan(ctx.literal, input)
+      filter.pattern = ctx.literal.repr()
     }
     return filter
   })
 
+  const imports = ref<{ context: string; info: RequiredImport }[]>([])
+
   function readOprApp(
-    leafParent: IteratorResult<Ast.Tree>,
-    editedAst?: Ast.Tree,
+    leafParent: IteratorResult<AstExtended<Ast.Tree, false>>,
+    editedAst?: AstExtended<Ast.Tree, false>,
   ): {
-    oprApp?: GeneralOprApp
+    oprApp?: GeneralOprApp<false>
   } {
     if (leafParent.done) return {}
-    switch (leafParent.value.type) {
+    switch (leafParent.value.inner.type) {
       case Ast.Tree.Type.OprApp:
       case Ast.Tree.Type.OperatorBlockApplication: {
-        const generalized = new GeneralOprApp(leafParent.value)
+        const generalized = new GeneralOprApp(leafParent.value as OperatorChain<false>)
         const opr = generalized.lastOpr()
-        if (opr == null || !opr.ok) return {}
+        if (opr == null) return {}
         // Opr application affects context only when we edit right part of operator.
         else if (
           editedAst != null &&
-          opr.value.startInCodeBuffer > editedAst.whitespaceStartInCodeParsed
+          opr.inner.startInCodeBuffer > editedAst.inner.whitespaceStartInCodeParsed
         )
           return {}
         else return { oprApp: generalized }
@@ -152,22 +166,22 @@ export function useComponentBrowserInput(graphDb: GraphDb = useGraphStore().db) 
   }
 
   function pathAsSelfArgument(
-    accessOpr: GeneralOprApp,
+    accessOpr: GeneralOprApp<false>,
   ): { type: 'known'; typename: Typename } | { type: 'unknown' } | null {
     if (accessOpr.lhs == null) return null
-    if (accessOpr.lhs.type !== Ast.Tree.Type.Ident) return null
+    if (!accessOpr.lhs.isTree(Ast.Tree.Type.Ident)) return null
     if (accessOpr.apps.length > 1) return null
-    if (internalUsages.value.has(parsedTreeRange(accessOpr.lhs))) return { type: 'unknown' }
-    const ident = readAstSpan(accessOpr.lhs, code.value)
+    if (internalUsages.value.has(accessOpr.lhs.span())) return { type: 'unknown' }
+    const ident = accessOpr.lhs.repr()
     const definition = graphDb.getIdentDefiningNode(ident)
     if (definition == null) return null
     const typename = graphDb.getExpressionInfo(definition)?.typename
     return typename != null ? { type: 'known', typename } : { type: 'unknown' }
   }
 
-  function pathAsQualifiedName(accessOpr: GeneralOprApp): QualifiedName | null {
+  function pathAsQualifiedName(accessOpr: GeneralOprApp<false>): QualifiedName | null {
     const operandsAsIdents = qnIdentifiers(accessOpr)
-    const segments = operandsAsIdents.map((ident) => readAstSpan(ident, code.value))
+    const segments = operandsAsIdents.map((ident) => ident.repr())
     const rawQn = segments.join('.')
     const qn = tryQualifiedName(rawQn)
     return qn.ok ? qn.value : null
@@ -180,20 +194,19 @@ export function useComponentBrowserInput(graphDb: GraphDb = useGraphStore().db) 
    * @param code The code from which `opr` was generated.
    * @returns If all path segments are identifiers, return them
    */
-  function qnIdentifiers(opr: GeneralOprApp): Ast.Tree.Ident[] {
-    const operandsAsIdents = Array.from(
-      opr.operandsOfLeftAssocOprChain(code.value, '.'),
-      (operand) =>
-        operand?.type === 'ast' && operand.ast.type === Ast.Tree.Type.Ident ? operand.ast : null,
+  function qnIdentifiers(opr: GeneralOprApp<false>): AstExtended<Ast.Tree.Ident, false>[] {
+    const operandsAsIdents = Array.from(opr.operandsOfLeftAssocOprChain('.'), (operand) =>
+      operand?.type === 'ast' && operand.ast.isTree(Ast.Tree.Type.Ident) ? operand.ast : null,
     ).slice(0, -1)
     if (operandsAsIdents.some((optIdent) => optIdent == null)) return []
-    else return operandsAsIdents as Ast.Tree.Ident[]
+    else return operandsAsIdents as AstExtended<Ast.Tree.Ident, false>[]
   }
 
   /** Apply given suggested entry to the input. */
   function applySuggestion(entry: SuggestionEntry) {
     const oldCode = code.value
-    const changes = Array.from(inputChangesAfterApplying(entry)).reverse()
+    const { changes, requiredImport } = inputChangesAfterApplying(entry)
+    changes.reverse()
     const newCodeUpToLastChange = changes.reduce(
       (builder, change) => {
         const oldCodeFragment = oldCode.substring(builder.oldCodeIndex, change.range[0])
@@ -215,6 +228,38 @@ export function useComponentBrowserInput(graphDb: GraphDb = useGraphStore().db) 
       (shouldInsertSpace ? ' ' : '') +
       oldCode.substring(newCodeUpToLastChange.oldCodeIndex)
     selection.value = { start: newCursorPos, end: newCursorPos }
+    const context = newCodeUpToLastChange.code
+    if (requiredImport) {
+      const [id] = suggestionDb.nameToId.lookup(requiredImport)
+      if (id) {
+        const requiredEntry = suggestionDb.get(id)
+        if (requiredEntry) {
+          imports.value = imports.value.concat(
+            requiredImports(suggestionDb, requiredEntry).map((info) => ({ info, context })),
+          )
+        }
+      }
+    } else {
+      imports.value = imports.value.concat(
+        requiredImports(suggestionDb, entry).map((info) => ({ info, context })),
+      )
+    }
+  }
+
+  /** List of imports required for applied suggestions.
+   *
+   * If suggestion was manually edited by the user after accepting, it is not included.
+   */
+  function importsToAdd(): RequiredImport[] {
+    const finalImports: RequiredImport[] = []
+    for (const { info, context } of imports.value) {
+      const alreadyAdded = finalImports.some((existing) => requiredImportEquals(existing, info))
+      const noLongerNeeded = !code.value.includes(context)
+      if (!noLongerNeeded && !alreadyAdded) {
+        finalImports.push(info)
+      }
+    }
+    return finalImports
   }
 
   /** Return all input changes resulting from applying given suggestion.
@@ -222,37 +267,39 @@ export function useComponentBrowserInput(graphDb: GraphDb = useGraphStore().db) 
    * @returns The changes, starting from the rightmost. The `start` and `end` parameters refer
    * to indices of "old" input content.
    */
-  function* inputChangesAfterApplying(
-    entry: SuggestionEntry,
-  ): Generator<{ range: [number, number]; str: string }> {
+  function inputChangesAfterApplying(entry: SuggestionEntry): {
+    changes: Change[]
+    requiredImport: QualifiedName | null
+  } {
     const ctx = context.value
     const str = codeToBeInserted(entry)
+    let mainChange: Change | undefined = undefined
     switch (ctx.type) {
       case 'insert': {
-        yield { range: [ctx.position, ctx.position], str }
+        mainChange = { range: [ctx.position, ctx.position], str }
         break
       }
       case 'changeIdentifier': {
-        yield { range: parsedTreeRange(ctx.identifier), str }
+        mainChange = { range: ctx.identifier.span(), str }
         break
       }
       case 'changeLiteral': {
-        yield { range: parsedTreeRange(ctx.literal), str }
+        mainChange = { range: ctx.literal.span(), str }
         break
       }
     }
-    yield* qnChangesAfterApplying(entry)
+    const qnChange = qnChanges(entry)
+    return { changes: [mainChange!, ...qnChange.changes], requiredImport: qnChange.requiredImport }
   }
 
   function codeToBeInserted(entry: SuggestionEntry): string {
     const ctx = context.value
     const opr = ctx.type !== 'changeLiteral' && ctx.oprApp != null ? ctx.oprApp.lastOpr() : null
     const oprAppSpacing =
-      ctx.type === 'insert' && opr != null && opr.ok && opr.value.whitespaceLengthInCodeBuffer > 0
-        ? ' '.repeat(opr.value.whitespaceLengthInCodeBuffer)
+      ctx.type === 'insert' && opr != null && opr.inner.whitespaceLengthInCodeBuffer > 0
+        ? ' '.repeat(opr.inner.whitespaceLengthInCodeBuffer)
         : ''
-    const extendingAccessOprChain =
-      opr != null && opr.ok && readTokenSpan(opr.value, code.value) === '.'
+    const extendingAccessOprChain = opr != null && opr.repr() === '.'
     // Modules are special case, as we want to encourage user to continue writing path.
     if (entry.kind === SuggestionKind.Module) {
       if (extendingAccessOprChain) return `${oprAppSpacing}${entry.name}${oprAppSpacing}.`
@@ -269,27 +316,62 @@ export function useComponentBrowserInput(graphDb: GraphDb = useGraphStore().db) 
     return oprAppSpacing + entry.name
   }
 
-  /** All changes to the qualified name already written by the user.
-   *
-   * See `inputChangesAfterApplying`. */
-  function* qnChangesAfterApplying(
-    entry: SuggestionEntry,
-  ): Generator<{ range: [number, number]; str: string }> {
-    if (entry.selfType != null) return []
-    if (entry.kind === SuggestionKind.Local || entry.kind === SuggestionKind.Function) return []
-    if (context.value.type === 'changeLiteral') return []
-    if (context.value.oprApp == null) return []
-    const writtenQn = qnIdentifiers(context.value.oprApp).reverse()
-
-    let containingQn =
-      entry.kind === SuggestionKind.Module
-        ? qnParent(entry.definedIn)
-        : entry.memberOf ?? entry.definedIn
-    for (const ident of writtenQn) {
-      if (containingQn == null) break
-      const [parent, segment] = qnSplit(containingQn)
-      yield { range: parsedTreeRange(ident), str: segment }
-      containingQn = parent
+  /** All changes to the qualified name already written by the user. */
+  function qnChanges(entry: SuggestionEntry): {
+    changes: Change[]
+    requiredImport: QualifiedName | null
+  } {
+    if (entry.selfType != null) return { changes: [], requiredImport: null }
+    if (entry.kind === SuggestionKind.Local || entry.kind === SuggestionKind.Function)
+      return { changes: [], requiredImport: null }
+    if (context.value.type !== 'changeLiteral' && context.value.oprApp != null) {
+      // 1. Find the index of last identifier from the original qualified name that is already written by the user.
+      const qn = entryQn(entry)
+      const identifiers = qnIdentifiers(context.value.oprApp)
+      const writtenSegments = identifiers.map((ident) => ident.repr())
+      const allSegments = qnSegments(qn)
+      const windowSize = writtenSegments.length
+      let indexOfAlreadyWrittenSegment = undefined
+      for (let right = allSegments.length; right >= windowSize; right--) {
+        const left = right - windowSize
+        if (equalFlat(allSegments.slice(left, right), writtenSegments)) {
+          indexOfAlreadyWrittenSegment = left
+          break
+        }
+      }
+      if (indexOfAlreadyWrittenSegment == null) {
+        // We didn’t find the exact match, which probably means the user has written
+        // partial names, like `Dat.V.` instead of `Data.Vector`.
+        // In this case we will replace each written segment with the most recent
+        // segments of qualified name, and import what’s left.
+        indexOfAlreadyWrittenSegment = allSegments.length - 1 - writtenSegments.length
+      }
+      // `nameSegments` and `importSegments` overlap by one, because we need to import the first written identifier.
+      const nameSegments = allSegments.slice(indexOfAlreadyWrittenSegment, -1)
+      const importSegments = allSegments.slice(0, indexOfAlreadyWrittenSegment + 1)
+      // A correct qualified name contains more than 2 segments (namespace and project name).
+      const minimalNumberOfSegments = 2
+      const requiredImport =
+        importSegments.length < minimalNumberOfSegments ? null : qnFromSegments(importSegments)
+      // 2. We replace each written identifier with a correct one, and then append the rest of needed qualified name.
+      let lastEditedCharIndex = 0
+      const result = []
+      for (let i = 0; i < nameSegments.length; i++) {
+        const segment = nameSegments[i]
+        if (i < identifiers.length) {
+          // Identifier was already written by the user, we replace it with the correct one.
+          const span = identifiers[i]!.span()
+          lastEditedCharIndex = span[1]
+          result.push({ range: span, str: segment as string })
+        } else {
+          // The rest of qualified name needs to be added at the end.
+          const range: ContentRange = [lastEditedCharIndex, lastEditedCharIndex]
+          result.push({ range, str: ('.' + segment) as string })
+        }
+      }
+      return { changes: result.reverse(), requiredImport }
+    } else {
+      return { changes: [], requiredImport: null }
     }
   }
 
@@ -304,5 +386,7 @@ export function useComponentBrowserInput(graphDb: GraphDb = useGraphStore().db) 
     filter,
     /** Apply given suggested entry to the input. */
     applySuggestion,
+    /** A list of imports to add when the suggestion is accepted */
+    importsToAdd,
   }
 }
