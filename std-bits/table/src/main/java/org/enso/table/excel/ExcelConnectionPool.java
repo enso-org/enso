@@ -12,6 +12,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.function.Function;
 
@@ -69,6 +70,10 @@ public class ExcelConnectionPool {
     public Workbook openWorkbook(boolean writeAccess) throws IOException {
       return ExcelConnectionPool.openWorkbook(file, format, writeAccess);
     }
+
+    public Workbook openWorkbookReadOnly() throws IOException {
+      return openWorkbook(false);
+    }
   }
 
   /**
@@ -78,8 +83,13 @@ public class ExcelConnectionPool {
    * <p>
    * The action gets a {@link WriteHelper} object that can be used to open the workbook for reading or writing. The
    * action must take care to close that workbook before returning.
+   * <p>
+   * Additional files that should be closed during the write action can be specified in the {@code accompanyingFiles}
+   * argument. These may be related temporary files that are written during the write operation and also need to get
+   * 'unlocked' for the time of write.
    */
-  public <R> R lockForWriting(File file, ExcelFileFormat format, Function<WriteHelper, R> action) throws IOException {
+  public <R> R lockForWriting(File file, ExcelFileFormat format, File[] accompanyingFiles,
+                              Function<WriteHelper, R> action) throws IOException {
     synchronized (this) {
       if (isCurrentlyWriting) {
         throw new IllegalStateException("Another Excel write is in progress on the same thread. This is a bug in the " +
@@ -89,20 +99,31 @@ public class ExcelConnectionPool {
       isCurrentlyWriting = true;
       try {
         String key = getKeyForFile(file);
-
-        ConnectionRecord existingRecord = records.get(key);
-        // Close the existing connection, if any - to avoid the write operation failing due to the file being locked.
-        if (existingRecord != null) {
-          existingRecord.close();
-        }
+        ArrayList<ConnectionRecord> recordsToReopen = new ArrayList<>(1 + accompanyingFiles.length);
 
         try {
+          // Close the existing connection, if any - to avoid the write operation failing due to the file being locked.
+          ConnectionRecord existingRecord = records.get(key);
+          if (existingRecord != null) {
+            existingRecord.close();
+            recordsToReopen.add(existingRecord);
+          }
+
+          for (File accompanyingFile : accompanyingFiles) {
+            String accompanyingKey = getKeyForFile(accompanyingFile);
+            ConnectionRecord accompanyingRecord = records.get(accompanyingKey);
+            if (accompanyingRecord != null) {
+              accompanyingRecord.close();
+              recordsToReopen.add(accompanyingRecord);
+            }
+          }
+
           WriteHelper helper = new WriteHelper(file, format);
           return action.apply(helper);
         } finally {
-          // Reopen the read-only connection.
-          if (existingRecord != null) {
-            existingRecord.reopen(false);
+          // Reopen the closed connections
+          for (ConnectionRecord record : recordsToReopen) {
+            record.reopen(false);
           }
         }
 

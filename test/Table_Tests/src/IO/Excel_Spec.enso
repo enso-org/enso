@@ -353,8 +353,67 @@ spec_write suffix test_sheet_name =
                 written.sheet_count . should_equal 1
                 written.sheet_names . should_equal ['EnsoSheet']
                 written.read 'EnsoSheet' . should_equal table
+                written.close
                 result
             temp.delete_if_exists
+
+        Test.specify "should be able to write to a dry-run file, even if the dry-run workbook is open" <|
+            out = create_out
+            temp = Context.Output.with_disabled <|
+                result = table.write out on_problems=Report_Error . should_succeed
+                Problems.expect_only_warning Dry_Run_Operation result
+                result.exists.should_be_true
+                result
+            temp.absolute.normalize.path . should_not_equal out.absolute.normalize.path
+
+            opened_temp = temp.read
+            opened_temp.sheet_names . should_equal ['EnsoSheet']
+
+            temp2 = Context.Output.with_disabled <|
+                result = table.write out (Excel (Worksheet "Another") on_problems=Report_Error . should_succeed
+                Problems.expect_only_warning Dry_Run_Operation result
+                result.exists.should_be_true
+                result
+
+            # The result should be written to the same file though.
+            temp2.absolute.normalize.path . should_equal temp.absolute.normalize.path
+
+            # The write operation replaces the dry run file, basing off of the original out file (which was empty in this example), so we still only get one sheet.
+            opened_temp.sheet_names . should_equal ['Another']
+
+            opened_temp.close
+            temp.delete_if_exists
+
+        Test.specify "should be able to create a backup, even if it is currently open" <|
+            out = create_out
+            bak = out.parent / (out.name+".bak")
+
+            t1 = Table.new [["X", [1]]]
+            t1.write out on_existing_file=Existing_File_Behavior.Backup on_problems=Report_Error . should_succeed
+            bak.exists.should_be_false
+
+            t2 = Table.new [["X", [2]]]
+            t2.write out on_existing_file=Existing_File_Behavior.Backup on_problems=Report_Error . should_succeed
+            bak.exists.should_be_true
+
+            opened_out = out.read
+            opened_backup = bak.read
+
+            opened_out.read 'EnsoSheet' . should_equal t2
+            opened_backup.read 'EnsoSheet' . should_equal t1
+
+            t3 = Table.new [["X", [3]]]
+            t3.write out on_existing_file=Existing_File_Behavior.Backup on_problems=Report_Error . should_succeed
+
+            opened_out.read 'EnsoSheet' . should_equal t3
+            # The backup should actually have been updated
+            opened_backup.read 'EnsoSheet' . should_equal t2
+
+            opened_out.close
+            opened_backup.close
+
+            out.delete_if_exists . should_succeed
+            bak.delete_if_exists . should_succeed
 
         Test.specify 'should be able to write to an existing empty file' <|
             out = create_out

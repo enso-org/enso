@@ -529,6 +529,12 @@ type File
     path : Text
     path self = @Builtin_Method "File.path"
 
+    ## PRIVATE
+       Returns the canonical version of this file (i.e. the absolute path with any symlinks resolved).
+    canonical : Text
+    canonical self =
+        File_Error.handle_java_exceptions self self.canonical_builtin
+
     ## GROUP Metadata
        Returns the name of this file.
 
