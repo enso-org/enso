@@ -30,7 +30,7 @@ import project.Number_Parse
 import project.Numeric
 import project.Range
 import project.Sum
-import project.Startup
+import project.Startup.Startup
 import project.Runtime.Panics_And_Errors
 from Standard.Base.Runtime import Debug
 
