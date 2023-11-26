@@ -89,8 +89,23 @@ all_benchmarks =
 
     builder.to_vector
 
-main =
-    benchmarks = all_benchmarks
+main filter=Nothing =
+    benchmarks = if filter.is_nothing then all_benchmarks else
+        no_nothing x = x.is_nothing.not
+
+        filter_benchmarks (b:Bench) = case b of
+            Bench.All groups ->
+                vec = groups.map filter_benchmarks . filter no_nothing
+                if vec.is_empty then Nothing else
+                    Bench.All vec
+            Bench.Group n opts specs -> if n.contains filter then b else
+                vec = specs.map filter_benchmarks . filter no_nothing
+                if vec.is_empty then Nothing else
+                    Bench.Group n opts vec
+            Bench.Spec n _ -> if n.contains filter then b else Nothing
+
+        all_benchmarks.map filter_benchmarks . filter no_nothing
+
     total_specs = benchmarks.map .total_specs . fold 0 (+)
     IO.println "Found "+benchmarks.length.to_text+" benchmark suites, containing "+total_specs.to_text+" specs in total."
     estimated_duration = benchmarks.map .estimated_runtime . fold Duration.zero (+)
