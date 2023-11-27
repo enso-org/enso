@@ -77,8 +77,8 @@ describe('WidgetRegistry', () => {
   test('selects a widget based on the input type', () => {
     const forAst = registry.select({ input: someAst, config: undefined, nesting: 0 })
     const forArg = registry.select({ input: somePlaceholder, config: undefined, nesting: 0 })
-    expect(forAst).toStrictEqual(widgetA.default)
-    expect(forArg).toStrictEqual(widgetB.default)
+    expect(forAst).toStrictEqual(widgetA)
+    expect(forArg).toStrictEqual(widgetB)
   })
 
   test('selects a widget outside of the excluded set', () => {
@@ -90,8 +90,8 @@ describe('WidgetRegistry', () => {
       { input: somePlaceholder, config: undefined, nesting: 0 },
       new Set([widgetB.default]),
     )
-    expect(forAst).toStrictEqual(widgetC.default)
-    expect(forArg).toStrictEqual(widgetC.default)
+    expect(forAst).toStrictEqual(widgetC)
+    expect(forArg).toStrictEqual(widgetC)
   })
 
   test('returns undefined when all options are exhausted', () => {
@@ -111,7 +111,7 @@ describe('WidgetRegistry', () => {
       { input: blankAst, config: undefined, nesting: 0 },
       new Set([widgetA.default, widgetD.default]),
     )
-    expect(selectedFirst).toStrictEqual(widgetD.default)
-    expect(selectedNext).toStrictEqual(widgetC.default)
+    expect(selectedFirst).toStrictEqual(widgetD)
+    expect(selectedNext).toStrictEqual(widgetC)
   })
 })

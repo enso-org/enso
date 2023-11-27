@@ -13,7 +13,8 @@ import { displayedIconOf } from '@/util/getIconName'
 import type { Opt } from '@/util/opt'
 import { Rect } from '@/util/rect'
 import { Vec2 } from '@/util/vec2'
-import type { ContentRange, VisualizationIdentifier } from 'shared/yjsModel'
+import { setIfUndefined } from 'lib0/map'
+import type { ContentRange, ExprId, VisualizationIdentifier } from 'shared/yjsModel'
 import { computed, ref, watch, watchEffect } from 'vue'
 
 const MAXIMUM_CLICK_LENGTH_MS = 300
@@ -34,16 +35,19 @@ const emit = defineEmits<{
   delete: []
   replaceSelection: []
   'update:selected': [selected: boolean]
-  outputPortClick: []
-  outputPortDoubleClick: []
+  outputPortClick: [portId: ExprId]
+  outputPortDoubleClick: [portId: ExprId]
   'update:edited': [cursorPosition: number]
 }>()
 
 const nodeSelection = injectGraphSelection(true)
 const graph = useGraphStore()
-const isSourceOfDraggedEdge = computed(
-  () => graph.unconnectedEdge?.source === props.node.rootSpan.astId,
-)
+
+const outputPortsSet = computed(() => {
+  const bindings = graph.db.nodeOutputPorts.lookup(nodeId.value)
+  if (bindings.size === 0) return new Set([nodeId.value])
+  return bindings
+})
 
 const nodeId = computed(() => props.node.rootSpan.astId)
 const rootNode = ref<HTMLElement>()
@@ -66,18 +70,10 @@ watchEffect(() => {
   }
 })
 
-const outputHovered = ref(false)
-const hoverAnimation = useApproach(
-  () => (outputHovered.value || isSourceOfDraggedEdge.value ? 1 : 0),
-  50,
-  0.01,
-)
-
 const bgStyleVariables = computed(() => {
   return {
     '--node-width': `${nodeSize.value.x}px`,
     '--node-height': `${nodeSize.value.y}px`,
-    '--hover-animation': `${hoverAnimation.value}`,
   }
 })
 
@@ -120,7 +116,7 @@ const dragPointer = usePointer((pos, event, type) => {
 })
 
 const expressionInfo = computed(() => graph.db.getExpressionInfo(nodeId.value))
-const outputTypeName = computed(() => expressionInfo.value?.typename ?? 'Unknown')
+const outputPortLabel = computed(() => expressionInfo.value?.typename ?? 'Unknown')
 const executionState = computed(() => expressionInfo.value?.payload.type ?? 'Unknown')
 const suggestionEntry = computed(() => graph.db.nodeMainSuggestion.lookup(nodeId.value))
 const color = computed(() => graph.db.getNodeColorStyle(nodeId.value))
@@ -129,7 +125,7 @@ const icon = computed(() => {
   return displayedIconOf(
     suggestionEntry.value,
     expressionInfo?.methodCall?.methodPointer,
-    outputTypeName.value,
+    outputPortLabel.value,
   )
 })
 
@@ -189,12 +185,56 @@ function getRelatedSpanOffset(domNode: globalThis.Node, domOffset: number): numb
   return 0
 }
 
-const handlePortClick = useDoubleClick(
-  () => emit('outputPortClick'),
-  () => {
-    emit('outputPortDoubleClick')
+const handlePortClick = useDoubleClick<[portId: ExprId]>(
+  (portId) => emit('outputPortClick', portId),
+  (portId) => {
+    emit('outputPortDoubleClick', portId)
   },
 ).handleClick
+interface PortData {
+  clipRange: [number, number]
+  label: string
+  portId: ExprId
+}
+
+const outputPorts = computed((): PortData[] => {
+  const ports = outputPortsSet.value
+  const numPorts = ports.size
+  return Array.from(ports, (portId, index) => {
+    const labelIdent = numPorts > 1 ? graph.db.getOutputPortIdentifier(portId) + ': ' : ''
+    const labelType = graph.db.getExpressionInfo(portId)?.typename ?? 'Unknown'
+    return {
+      clipRange: [index / numPorts, (index + 1) / numPorts],
+      label: labelIdent + labelType,
+      portId,
+    }
+  })
+})
+
+const outputHovered = ref<ExprId>()
+const hoverAnimations = new Map<ExprId, ReturnType<typeof useApproach>>()
+watchEffect(() => {
+  const ports = outputPortsSet.value
+  for (const key of hoverAnimations.keys()) if (!ports.has(key)) hoverAnimations.delete(key)
+  for (const port of outputPortsSet.value) {
+    setIfUndefined(hoverAnimations, port, () =>
+      useApproach(
+        () => (outputHovered.value === port || graph.unconnectedEdge?.target === port ? 1 : 0),
+        50,
+        0.01,
+      ),
+    )
+  }
+})
+
+function portGroupStyle(port: PortData) {
+  const [start, end] = port.clipRange
+  return {
+    '--hover-animation': hoverAnimations.get(port.portId)?.value ?? 0,
+    '--port-clip-start': start,
+    '--port-clip-end': end,
+  }
+}
 </script>
 
 <template>
@@ -245,14 +285,20 @@ const handlePortClick = useDoubleClick(
     </div>
     <svg class="bgPaths" :style="bgStyleVariables">
       <rect class="bgFill" />
-      <rect
-        class="outputPortHoverArea"
-        @pointerenter="outputHovered = true"
-        @pointerleave="outputHovered = false"
-        @pointerdown="handlePortClick()"
-      />
-      <rect class="outputPort" />
-      <text class="outputTypeName">{{ outputTypeName }}</text>
+      <template v-for="port of outputPorts" :key="port.portId">
+        <g :style="portGroupStyle(port)">
+          <g class="portClip">
+            <rect
+              class="outputPortHoverArea"
+              @pointerenter="outputHovered = port.portId"
+              @pointerleave="outputHovered = undefined"
+              @pointerdown.stop.prevent="handlePortClick(port.portId)"
+            />
+            <rect class="outputPort" />
+          </g>
+          <text class="outputPortLabel">{{ port.label }}</text>
+        </g>
+      </template>
     </svg>
   </div>
 </template>
@@ -310,7 +356,14 @@ const handlePortClick = useDoubleClick(
   pointer-events: all;
 }
 
-.outputTypeName {
+.portClip {
+  clip-path: inset(
+    0 calc((1 - var(--port-clip-end)) * (100% + 1px) - 0.5px) 0
+      calc(var(--port-clip-start) * (100% + 1px) + 0.5px)
+  );
+}
+
+.outputPortLabel {
   user-select: none;
   pointer-events: none;
   z-index: 10;
@@ -421,6 +474,7 @@ const handlePortClick = useDoubleClick(
   transform: translateY(-50%);
   opacity: 0;
   transition: opacity 0.2s ease-in-out;
+  white-space: nowrap;
 }
 
 .GraphNode .selection:hover + .binding,

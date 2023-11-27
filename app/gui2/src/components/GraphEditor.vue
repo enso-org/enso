@@ -110,12 +110,13 @@ function targetComponentBrowserPosition() {
 /** The current position of the component browser. */
 const componentBrowserPosition = ref<Vec2>(Vec2.Zero)
 
-function sourceNodeForSelection() {
+function sourcePortForSelection() {
   if (graphStore.editedNodeInfo != null) return undefined
-  return nodeSelection.selected.values().next().value
+  const firstSelectedNode = set.first(nodeSelection.selected)
+  return graphStore.db.getNodeFirstOutputPort(firstSelectedNode)
 }
 
-const componentBrowserSourceNode = ref<ExprId | undefined>(sourceNodeForSelection())
+const componentBrowserSourcePort = ref<ExprId | undefined>(sourcePortForSelection())
 
 useEvent(window, 'keydown', (event) => {
   interactionBindingsHandler(event) || graphBindingsHandler(event) || codeEditorHandler(event)
@@ -231,7 +232,7 @@ interaction.setWhen(nodeIsBeingEdited, editingNode)
 const creatingNode: Interaction = {
   init: () => {
     componentBrowserInputContent.value = ''
-    componentBrowserSourceNode.value = sourceNodeForSelection()
+    componentBrowserSourcePort.value = sourcePortForSelection()
     componentBrowserPosition.value = targetComponentBrowserPosition()
     componentBrowserVisible.value = true
   },
@@ -419,7 +420,7 @@ async function readNodeFromClipboard() {
 }
 
 function handleNodeOutputPortDoubleClick(id: ExprId) {
-  componentBrowserSourceNode.value = id
+  componentBrowserSourcePort.value = id
   const placementEnvironment = environmentForNodes([id].values())
   componentBrowserPosition.value = previousNodeDictatedPlacement(
     DEFAULT_NODE_SIZE,
@@ -458,7 +459,7 @@ function handleNodeOutputPortDoubleClick(id: ExprId) {
       :position="componentBrowserPosition"
       :initialContent="componentBrowserInputContent"
       :initialCaretPosition="graphStore.editedNodeInfo?.range ?? [0, 0]"
-      :sourceNode="componentBrowserSourceNode"
+      :sourcePort="componentBrowserSourcePort"
       @accepted="onComponentBrowserCommit"
       @closed="onComponentBrowserCancel"
       @canceled="onComponentBrowserCancel"

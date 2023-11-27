@@ -2,7 +2,7 @@
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
-import { injectPortInfo, providePortInfo } from '@/providers/portInfo'
+import { ForcePort, injectPortInfo, providePortInfo } from '@/providers/portInfo'
 import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { injectWidgetTree } from '@/providers/widgetTree'
 import { useGraphStore } from '@/stores/graph'
@@ -122,17 +122,6 @@ const innerWidget = computed(() => {
 </script>
 
 <script lang="ts">
-export class ForcePort {
-  constructor(public ast: AstExtended) {}
-}
-
-declare const ForcePortKey: unique symbol
-declare module '@/providers/widgetRegistry' {
-  interface WidgetInputTypes {
-    [ForcePortKey]: ForcePort
-  }
-}
-
 export const widgetDefinition = defineWidget(
   [
     ForcePort,

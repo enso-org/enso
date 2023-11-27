@@ -5,9 +5,13 @@ import {
   type WidgetInput,
 } from '@/providers/widgetRegistry'
 import { injectWidgetTree } from '@/providers/widgetTree'
-import { injectWidgetUsageInfo, provideWidgetUsageInfo } from '@/providers/widgetUsageInfo'
+import {
+  injectWidgetUsageInfo,
+  provideWidgetUsageInfo,
+  usageKeyForInput,
+} from '@/providers/widgetUsageInfo'
 import { AstExtended } from '@/util/ast'
-import { computed, proxyRefs, ref, toRef } from 'vue'
+import { computed, proxyRefs, ref } from 'vue'
 
 const props = defineProps<{ input: WidgetInput; nest?: boolean }>()
 defineOptions({
@@ -17,8 +21,11 @@ defineOptions({
 const registry = injectWidgetRegistry()
 const tree = injectWidgetTree()
 const parentUsageInfo = injectWidgetUsageInfo(true)
+const usageKey = computed(() => usageKeyForInput(props.input))
+const sameInputAsParent = computed(() => parentUsageInfo?.usageKey === usageKey.value)
+
 const whitespace = computed(() =>
-  parentUsageInfo?.input !== props.input && props.input instanceof AstExtended
+  !sameInputAsParent.value && props.input instanceof AstExtended
     ? ' '.repeat(props.input.whitespaceLength() ?? 0)
     : '',
 )
@@ -26,7 +33,7 @@ const whitespace = computed(() =>
 // TODO: Fetch dynamic widget config from engine. [#8260]
 const dynamicConfig = ref<WidgetConfiguration>()
 const sameInputParentWidgets = computed(() =>
-  parentUsageInfo?.input === props.input ? parentUsageInfo?.previouslyUsed : undefined,
+  sameInputAsParent.value ? parentUsageInfo?.previouslyUsed : undefined,
 )
 const nesting = computed(() => (parentUsageInfo?.nesting ?? 0) + (props.nest === true ? 1 : 0))
 
@@ -42,13 +49,19 @@ const selectedWidget = computed(() => {
 })
 provideWidgetUsageInfo(
   proxyRefs({
-    input: toRef(props, 'input'),
+    usageKey,
+    nesting,
     previouslyUsed: computed(() => {
       const nextSameNodeWidgets = new Set(sameInputParentWidgets.value)
-      if (selectedWidget.value != null) nextSameNodeWidgets.add(selectedWidget.value)
+      if (selectedWidget.value != null) {
+        nextSameNodeWidgets.add(selectedWidget.value.default)
+        if (selectedWidget.value.widgetDefinition.prevent) {
+          for (const prevented of selectedWidget.value.widgetDefinition.prevent)
+            nextSameNodeWidgets.add(prevented)
+        }
+      }
       return nextSameNodeWidgets
     }),
-    nesting,
   }),
 )
 const spanStart = computed(() => {
@@ -60,7 +73,7 @@ const spanStart = computed(() => {
 <template>
   {{ whitespace
   }}<component
-    :is="selectedWidget"
+    :is="selectedWidget.default"
     v-if="selectedWidget"
     ref="rootNode"
     :input="props.input"
@@ -69,4 +82,11 @@ const spanStart = computed(() => {
     :data-span-start="spanStart"
     :data-nesting="nesting"
   />
+  <span
+    v-else
+    :title="`No matching widget for input: ${
+      Object.getPrototypeOf(props.input)?.constructor?.name ?? JSON.stringify(props.input)
+    }`"
+    >🚫</span
+  >
 </template>
