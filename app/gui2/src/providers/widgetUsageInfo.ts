@@ -11,8 +11,18 @@ const { provideFn, injectFn } = createContextStore('Widget usage info', identity
  * AST node.
  */
 interface WidgetUsageInfo {
-  input: WidgetInput
+  usageKey: unknown
   /** All widget types that were rendered so far using the same AST node. */
   previouslyUsed: Set<WidgetComponent<any>>
   nesting: number
+}
+
+export const GetUsageKey = Symbol('GetUsageKey')
+
+export function usageKeyForInput(widget: WidgetInput): unknown {
+  if (GetUsageKey in widget && typeof widget[GetUsageKey] === 'function') {
+    return widget[GetUsageKey]()
+  } else {
+    return widget
+  }
 }

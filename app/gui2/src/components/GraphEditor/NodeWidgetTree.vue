@@ -1,16 +1,20 @@
 <script setup lang="ts">
 import { Tree } from '@/generated/ast'
 import { provideWidgetTree } from '@/providers/widgetTree'
+import { useGraphStore } from '@/stores/graph'
 import { useTransitioning } from '@/util/animation'
 import type { AstExtended } from '@/util/ast'
+import { ForcePort } from '@/util/callTree'
 import { computed, toRef } from 'vue'
 import NodeWidget from './NodeWidget.vue'
-import { ForcePort } from './widgets/WidgetPort.vue'
 
 const props = defineProps<{ ast: AstExtended }>()
-const rootPort = computed(() =>
-  props.ast.isTree(Tree.Type.Ident) ? new ForcePort(props.ast) : props.ast,
-)
+const graph = useGraphStore()
+const rootPort = computed(() => {
+  return props.ast.isTree(Tree.Type.Ident) && !graph.db.isKnownFunction(props.ast.astId)
+    ? new ForcePort(props.ast)
+    : props.ast
+})
 
 const observedLayoutTransitions = new Set([
   'margin-left',

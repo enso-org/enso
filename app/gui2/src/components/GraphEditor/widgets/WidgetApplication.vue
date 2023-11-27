@@ -2,9 +2,8 @@
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { AstExtended } from '@/util/ast'
-import { ArgumentApplication } from '@/util/callTree'
+import { ArgumentApplication, ForcePort } from '@/util/callTree'
 import { computed } from 'vue'
-import { ForcePort } from './WidgetPort.vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const targetMaybePort = computed(() =>

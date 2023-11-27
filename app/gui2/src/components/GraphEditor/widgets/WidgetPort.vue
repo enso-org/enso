@@ -8,7 +8,7 @@ import { injectWidgetTree } from '@/providers/widgetTree'
 import { useGraphStore } from '@/stores/graph'
 import { useRaf } from '@/util/animation'
 import { Ast, AstExtended } from '@/util/ast'
-import { ArgumentAst, ArgumentPlaceholder } from '@/util/callTree'
+import { ArgumentAst, ArgumentPlaceholder, ForcePort } from '@/util/callTree'
 import { useResizeObserver } from '@/util/events'
 import { Rect } from '@/util/rect'
 import { uuidv4 } from 'lib0/random'
@@ -122,17 +122,6 @@ const innerWidget = computed(() => {
 </script>
 
 <script lang="ts">
-export class ForcePort {
-  constructor(public ast: AstExtended) {}
-}
-
-declare const ForcePortKey: unique symbol
-declare module '@/providers/widgetRegistry' {
-  interface WidgetInputTypes {
-    [ForcePortKey]: ForcePort
-  }
-}
-
 export const widgetDefinition = defineWidget(
   [
     ForcePort,

@@ -56,7 +56,7 @@ test('Reading graph from definition', () => {
   expect(db.getIdentDefiningNode('function')).toBeUndefined()
   expect(db.getOutputPortIdentifier(db.getNodeFirstOutputPort(id04))).toBe('node1')
   expect(db.getOutputPortIdentifier(db.getNodeFirstOutputPort(id08))).toBe('node2')
-  expect(db.getOutputPortIdentifier(db.getNodeFirstOutputPort(id03))).toBeUndefined()
+  expect(db.getOutputPortIdentifier(db.getNodeFirstOutputPort(id03))).toBe('node1')
 
   // Commented the connection from input node, as we don't support them yet.
   expect(Array.from(db.connections.allForward(), ([key]) => key)).toEqual([id03])

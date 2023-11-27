@@ -1,6 +1,6 @@
 import { SuggestionDb, groupColorStyle, type Group } from '@/stores/suggestionDatabase'
 import type { SuggestionEntry } from '@/stores/suggestionDatabase/entry'
-import { byteArraysEqual, tryGetIndex } from '@/util/array'
+import { arrayEquals, byteArraysEqual, tryGetIndex } from '@/util/array'
 import { Ast, AstExtended } from '@/util/ast'
 import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
 import { colorFromString } from '@/util/colors'
@@ -10,7 +10,7 @@ import { ReactiveDb, ReactiveIndex, ReactiveMapping } from '@/util/database/reac
 import type { Opt } from '@/util/opt'
 import { Vec2 } from '@/util/vec2'
 import * as set from 'lib0/set'
-import type { MethodCall } from 'shared/languageServerTypes'
+import { methodPointerEquals, type MethodCall } from 'shared/languageServerTypes'
 import {
   IdMap,
   visMetadataEquals,
@@ -212,20 +212,35 @@ export class GraphDb {
     return this.bindings.identifierToBindingId.hasKey(ident)
   }
 
-  isMethodCall(id: ExprId): boolean {
-    return this.getExpressionInfo(id)?.methodCall != null
+  isKnownFunction(id: ExprId): boolean {
+    return this.getMethodCallInfo(id) != null
+  }
+
+  getMethodCall(id: ExprId): MethodCall | undefined {
+    const info = this.getExpressionInfo(id)
+    if (info == null) return
+    return (
+      info.methodCall ?? (info.payload.type === 'Value' ? info.payload.functionSchema : undefined)
+    )
   }
 
   getMethodCallInfo(
     id: ExprId,
-  ): { methodCall: MethodCall; suggestion: SuggestionEntry } | undefined {
-    const methodCall = this.getExpressionInfo(id)?.methodCall
+  ):
+    | { methodCall: MethodCall; suggestion: SuggestionEntry; staticallyApplied: boolean }
+    | undefined {
+    const info = this.getExpressionInfo(id)
+    if (info == null) return
+    const payloadFuncSchema =
+      info.payload.type === 'Value' ? info.payload.functionSchema : undefined
+    const methodCall = info.methodCall ?? payloadFuncSchema
     if (methodCall == null) return
     const suggestionId = this.suggestionDb.findByMethodPointer(methodCall.methodPointer)
     if (suggestionId == null) return
     const suggestion = this.suggestionDb.get(suggestionId)
     if (suggestion == null) return
-    return { methodCall, suggestion }
+    const staticallyApplied = mathodCallEquals(methodCall, payloadFuncSchema)
+    return { methodCall, suggestion, staticallyApplied }
   }
 
   getNodeColorStyle(id: ExprId): string {
@@ -344,4 +359,14 @@ function* getFunctionNodeExpressions(func: Ast.Tree.Function): Generator<Ast.Tre
       yield func.body
     }
   }
+}
+
+function mathodCallEquals(a: MethodCall | undefined, b: MethodCall | undefined): boolean {
+  return (
+    a === b ||
+    (a != null &&
+      b != null &&
+      methodPointerEquals(a.methodPointer, b.methodPointer) &&
+      arrayEquals(a.notAppliedArguments, b.notAppliedArguments))
+  )
 }

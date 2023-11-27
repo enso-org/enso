@@ -94,15 +94,6 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
     () => `translate(${translate.value.x * scale.value}px, ${translate.value.y * scale.value}px)`,
   )
 
-  useEvent(
-    window,
-    'contextmenu',
-    (e) => {
-      e.preventDefault()
-    },
-    { capture: true },
-  )
-
   let isPointerDown = false
   let scrolledThisFrame = false
   const eventMousePos = ref<Vec2 | null>(null)
@@ -178,6 +169,9 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
           const delta = new Vec2(e.deltaX, e.deltaY)
           center.value = center.value.addScaled(delta, 1 / scale.value)
         }
+      },
+      contextmenu(e: Event) {
+        e.preventDefault()
       },
     },
     translate,
