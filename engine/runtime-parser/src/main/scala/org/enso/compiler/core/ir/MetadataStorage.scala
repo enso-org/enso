@@ -12,11 +12,15 @@ import org.enso.compiler.core.CompilerStub
   */
 //noinspection DuplicatedCode
 final class MetadataStorage(
-  startingMeta: Seq[MetadataPair[_]] = Seq()
-) extends Serializable {
-  private var metadata: Map[ProcessingPass, Any] = Map(
-    startingMeta.map(_.asPair.asInstanceOf[(ProcessingPass, Any)]): _*
-  )
+  private var metadata: Map[ProcessingPass, Any]
+) {
+  def this(startingMeta: Seq[MetadataPair[_]] = Seq()) = {
+    this(
+      Map(
+        startingMeta.map(_.asPair.asInstanceOf[(ProcessingPass, Any)]): _*
+      )
+    )
+  }
 
   /** Adds a metadata pair to the node metadata.
     *
