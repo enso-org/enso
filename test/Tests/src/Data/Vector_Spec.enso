@@ -842,7 +842,7 @@ type_spec name alter = Test.group name <|
     Test.specify "an error thrown inside map_primitive should fail a test as a My_Error" <|
         alter [10, 20, 30, 40] . map_primitive map_fun . should_fail_with My_Error
 
-    Test.specify "an error thrown inside map_with_index_primitive  should fail a test as a My_Error" <|
+    Test.specify "an error thrown inside map_with_index_primitive should fail a test as a My_Error" <|
         map_with_index_fun _ a = if a == 30 then Error.throw (My_Error.Error a) else a+1
         alter [10, 20, 30, 40] . map_with_index_primitive map_with_index_fun . should_fail_with My_Error
 
@@ -875,7 +875,9 @@ type_spec name alter = Test.group name <|
         alter [10, 20, 30, 40] . map map_fun . should_fail_with (Map_Error.Error 2 Nothing)
 
     Test.specify "an error thrown inside map with on_problems=Problem_Behavior.Ignore should be ignored" <|
-        alter [10, 20, 30, 40] . map map_fun on_problems=Problem_Behavior.Ignore . should_equal [11, 21, Nothing, 41]
+        results = alter [10, 20, 30, 40] . map map_fun on_problems=Problem_Behavior.Ignore
+        results . should_equal [11, 21, Nothing, 41]
+        Warning.get_all results . should_equal []
 
     Test.specify "vector.map does not yet support report_warning"  <|
         Test.expect_panic_with matcher=Unimplemented <|

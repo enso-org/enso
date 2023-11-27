@@ -591,7 +591,7 @@ type Vector a
          `on_problems`:
          - Problem_Behavior.Report_Error: The error is thrown.
          - Problem_Behavior.Report_Warning: The result is `Nothing`, with the
-           error attached as a warning.
+           error attached as a warning. Currently unimplemented.
          - Problem_Behavior.Ignore: The result is `Nothing`, and the error
            attached as a warning.
 

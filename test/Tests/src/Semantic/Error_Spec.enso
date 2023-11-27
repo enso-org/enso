@@ -424,7 +424,7 @@ spec =
             r.to_display_text . should_contain "Try to apply a, b arguments"
 
     Test.group "Wrapped errors" <|
-        Test.specify ".catch unwraps an error when it is explicitly specified" <|
+        Test.specify ".catch unwraps an error when the inner error is explicitly specified" <|
             Error.throw (My_Error_Wrapper.Error (My_Error.Error 12)) . catch My_Error x->
                 x . should_equal (My_Error.Error 12)
 

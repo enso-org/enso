@@ -308,8 +308,6 @@ set_array value warnings = @Builtin_Method "Warning.set_array"
 map_attached_warnings_helper : (Any -> Maybe Any) -> Any -> Integer -> Any
 map_attached_warnings_helper mapper value frames_to_drop =
     warnings = Warning.get_all value
-    ## We use `Vector.map_primitive` here because this function is used in
-       `Vector.map`, and any problems here could cause unbounded recursion.
     mapped_warnings = warnings.map_primitive warning->
         case mapper warning.value of
             Maybe.Some new_payload ->
