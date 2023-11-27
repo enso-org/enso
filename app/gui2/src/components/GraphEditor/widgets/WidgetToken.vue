@@ -13,7 +13,7 @@ const repr = computed(() => props.input.code())
 </script>
 
 <script lang="ts">
-export const widgetDefinition = defineWidget((input) => input instanceof Tok.Tok, {
+export const widgetDefinition = defineWidget((input) => input instanceof Tok, {
   priority: 1000,
   score: Score.Good,
 })

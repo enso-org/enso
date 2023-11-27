@@ -135,16 +135,6 @@ export function* walkRecursive(node: Tree | Token): Generator<Tree | Token, void
   }
 }
 
-export function* walkRecursivePostorder(node: Tree | Token): Generator<Tree | Token> {
-  const stack: Iterator<Tree | Token>[] = [childrenAstNodesOrTokens(node).values()]
-  while (stack.length > 0) {
-    const next = stack[stack.length - 1]!.next()
-    if (next.done) stack.pop()
-    else if (false !== (yield next.value)) stack.push(childrenAstNodesOrTokens(next.value).values())
-  }
-  yield node
-}
-
 export function visitGenerator<T, N, R>(generator: Generator<T, R, N>, visit: (value: T) => N): R {
   let next = generator.next()
   while (!next.done) next = generator.next(visit(next.value))
@@ -161,10 +151,6 @@ export function visitGenerator<T, N, R>(generator: Generator<T, R, N>, visit: (v
  */
 export function visitRecursive(node: Tree | Token, visit: (node: Tree | Token) => boolean) {
   visitGenerator(walkRecursive(node), visit)
-}
-
-export function visitRecursivePostorder(node: Tree | Token, visit: (node: Tree | Token) => void) {
-  visitGenerator(walkRecursivePostorder(node), visit)
 }
 
 /**

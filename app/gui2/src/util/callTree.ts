@@ -32,7 +32,7 @@ export class ArgumentApplication {
   private constructor(
     public appTree: Ast.Ast | undefined,
     public target: ArgumentApplication | Ast.Ast | ArgumentPlaceholder | ArgumentAst,
-    public infixOperator: Ast.Tok.Operator | undefined,
+    public infixOperator: Ast.Tok | undefined,
     public argument: ArgumentAst | ArgumentPlaceholder,
   ) {}
 

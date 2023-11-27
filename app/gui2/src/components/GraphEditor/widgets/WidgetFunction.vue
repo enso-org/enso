@@ -23,8 +23,7 @@ const application = computed(() => {
 </script>
 <script lang="ts">
 export const widgetDefinition = defineWidget(
-  (input) =>
-    input instanceof Ast.App || input instanceof Ast.Ident || input instanceof Ast.OprApp,
+  (input) => input instanceof Ast.App || input instanceof Ast.Ident || input instanceof Ast.OprApp,
   {
     priority: 8,
     score: (props, db) => {

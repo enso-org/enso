@@ -315,14 +315,9 @@ function getExecutedMethodAst(root: Ast.Ast, executionStackTop: StackItem): Opt<
       return method
     }
     case 'LocalCall': {
-      console.error(`TODO`)
-      // TODO
-      /*
-      const exprId = executionStackTop.expressionId
-      const range = lookupIdRange(updatedIdMap, exprId)
-      if (range == null) return
-      const node = findAstWithRange(ast, range)
-      if (node?.type === RawAst.Tree.Type.Function) return node
+      console.error(`TODO (#8068)--this should not be reachable yet`)
+      /* AO: The expression ID is a call expression - we should get method pointer from expression updates and this way
+       * find the definition.
        */
     }
   }

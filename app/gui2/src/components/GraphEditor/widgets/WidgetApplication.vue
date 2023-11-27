@@ -8,9 +8,7 @@ import { ForcePort } from './WidgetPort.vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const targetMaybePort = computed(() =>
-  props.input.target instanceof Ast.Ast
-    ? new ForcePort(props.input.target)
-  : props.input.target,
+  props.input.target instanceof Ast.Ast ? new ForcePort(props.input.target) : props.input.target,
 )
 </script>
 

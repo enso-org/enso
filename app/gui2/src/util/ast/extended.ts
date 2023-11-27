@@ -15,7 +15,6 @@ import {
   visitGenerator,
   visitRecursive,
   walkRecursive,
-  walkRecursivePostorder,
 } from '.'
 import type { Opt } from '../opt'
 
@@ -137,10 +136,6 @@ export class AstExtended<T extends Tree | Token = Tree | Token, HasIdMap extends
     return this.visit(walkRecursive)
   }
 
-  walkRecursivePostorder(): Generator<AstExtended<Tree | Token, HasIdMap>> {
-    return this.visit(walkRecursivePostorder)
-  }
-
   whitespaceLength() {
     return 'whitespaceLengthInCodeBuffer' in this.inner
       ? this.inner.whitespaceLengthInCodeBuffer
@@ -157,10 +152,6 @@ export class AstExtended<T extends Tree | Token = Tree | Token, HasIdMap extends
 
   visitRecursive(visitor: (t: AstExtended<Tree | Token, HasIdMap>) => boolean) {
     visitGenerator(this.walkRecursive(), visitor)
-  }
-
-  visitRecursivePostorder(visitor: (t: AstExtended<Tree | Token, HasIdMap>) => void) {
-    visitGenerator(this.walkRecursivePostorder(), visitor)
   }
 }
 
