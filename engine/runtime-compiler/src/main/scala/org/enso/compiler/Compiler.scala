@@ -588,10 +588,12 @@ class Compiler(
         injectSyntheticModuleExports(expr, module.getDirectModulesRefs)
     val discoveredModule =
       recognizeBindings(exprWithModuleExports, moduleContext)
-    if (module.getBindingsMap() != null) {
-      discoveredModule.passData.update(
-        MetadataPair(BindingAnalysis)(module.getBindingsMap())
-      )
+    if (context.wasLoadedFromCache(module)) {
+      if (module.getBindingsMap() != null) {
+        discoveredModule.passData.update(
+          MetadataPair(BindingAnalysis)(module.getBindingsMap())
+        )
+      }
     }
     context.updateModule(
       module,
