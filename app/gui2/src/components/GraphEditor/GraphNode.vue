@@ -210,7 +210,7 @@ const handlePortClick = useDoubleClick(
     :style="{
       transform,
       width:
-        widthOverridePx != null
+        widthOverridePx != null && isVisualizationVisible
           ? `${Math.max(widthOverridePx, (contentNode?.scrollWidth ?? 0) + NODE_EXTRA_WIDTH_PX)}px`
           : undefined,
       '--node-group-color': color,
