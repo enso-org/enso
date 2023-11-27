@@ -68,6 +68,11 @@ foreign python generate_nested_py_array = """
 
 type_spec name alter = Test.group name <|
     map_fun a = if a == 30 then Error.throw (My_Error.Error a) else a+1
+    flat_map_fun a = if (a.at 0) == 30 then Error.throw (My_Error.Error a) else a+[100]
+    map_with_index_fun i a =
+        _ = [i]
+        if a == 30 then Error.throw (My_Error.Error a) else a+1
+    zip_fun a b = if a == 30 then Error.throw (My_Error.Error a) else a+b+1
 
     pending_python_missing = if Polyglot.is_language_installed "python" then Nothing else
         "Can't run Python tests, Python is not installed."
@@ -837,7 +842,7 @@ type_spec name alter = Test.group name <|
     Test.specify "an error thrown inside map_primitive should fail a test as a My_Error" <|
         alter [10, 20, 30, 40] . map_primitive map_fun . should_fail_with My_Error
 
-    Test.specify "an error thrown inside map_primitive should fail a test as a My_Error" <|
+    Test.specify "an error thrown inside map_with_index_primitive  should fail a test as a My_Error" <|
         map_with_index_fun _ a = if a == 30 then Error.throw (My_Error.Error a) else a+1
         alter [10, 20, 30, 40] . map_with_index_primitive map_with_index_fun . should_fail_with My_Error
 
@@ -849,6 +854,17 @@ type_spec name alter = Test.group name <|
 
     Test.specify "an error thrown inside map and caught (with error parameter Map_Error) should be wrapped in Map_Error" <|
         alter [10, 20, 30, 40] . map map_fun . catch Map_Error . should_equal (Map_Error.Error 2 (My_Error.Error 30))
+
+    Test.specify "an error thrown inside flat_map should fail a test as a Map_Error" <|
+        vec = alter ([[10], [20], [30], [40]].map alter)
+        vec.flat_map flat_map_fun vec . should_fail_with (Map_Error.Error 2 (My_Error.Error [30]))
+
+    Test.specify "an error thrown inside map_with_index should fail a test as a Map_Error" <|
+        alter [10, 20, 30, 40] . map_with_index map_with_index_fun . should_fail_with (Map_Error.Error 2 (My_Error.Error 30))
+
+    Test.specify "an error thrown inside zip should fail a test as a Map_Error" <|
+        vec = alter [10, 20, 30, 40]
+        vec.zip [10, 20, 30, 40] zip_fun . should_fail_with (Map_Error.Error 2 (My_Error.Error 30))
 
     Test.specify "an error thrown inside nested maps should be wrapped multiple times" <|
         nested_vector = Vector.fill 5 (alter [10, 20, 30, 40])

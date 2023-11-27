@@ -585,23 +585,25 @@ type Vector a
        - on_problems: Specifies how to handle any problems that arise in
          `function`.
 
-       ! Error Conditions
-
-         Errors and Warnings that arise when executing the function are wrapped
-         in `Map_Error`.
-
-         Only `MAX_MAP_WARNINGS` warnings are attached to result values. After
-         that, the warnings are dropped, but a count of the additional warnings
-         is attached in an `Additional_Warnings` warning.
-
        ? Problem Handling
 
-         The result of Errors thrown when executing the function depend on `on_problems`:
+         The result of Errors thrown when executing the function depend on
+         `on_problems`:
          - Problem_Behavior.Report_Error: The error is thrown.
          - Problem_Behavior.Report_Warning: The result is `Nothing`, with the
            error attached as a warning.
          - Problem_Behavior.Ignore: The result is `Nothing`, and the error
            attached as a warning.
+
+       ! Error Conditions
+
+         Errors that are thrown when executing the supplied function are wrapped
+         in `Map_Error`.
+
+         In the `Problem_Behavior.Report_Warning` case, only `MAX_MAP_WARNINGS`
+         warnings are attached to result values. After that, the warnings are
+         dropped, but a count of the additional warnings is attached in an
+         `Additional_Warnings` warning.
 
        > Example
          Add 1 to each element of the vector.
@@ -624,6 +626,11 @@ type Vector a
        Arguments:
        - function: A function that takes an element in the vector, transforms
          it, and returns a `Vector`.
+
+       ! Error Conditions
+
+         Errors that are thrown when executing the supplied function are wrapped
+         in `Map_Error`.
 
        > Example
          Replace each number `n` in the vector with itself repeated n times.
@@ -660,6 +667,11 @@ type Vector a
 
        The function is called with both the element index as well as the
        element itself.
+
+       ! Error Conditions
+
+         Errors that are thrown when executing the supplied function are wrapped
+         in `Map_Error`.
 
        > Example
          Sum numbers with their indices in a vector.
@@ -911,6 +923,11 @@ type Vector a
        The result of this function is a `Vector` of length being the shorter of
        `self` and `that`, containing results of calling `function`.
 
+       ! Error Conditions
+
+         Errors that are thrown when executing the supplied function are wrapped
+         in `Map_Error`.
+
        > Example
          Calculate the pairwise sum of two vectors.
 
@@ -924,8 +941,7 @@ type Vector a
     zip : Vector Any -> (Any -> Any -> Any) -> Vector Any
     zip self that:Vector function=[_,_] =
         len = self.length.min that.length
-        Vector.new len i-> function (self.at i) (that.at i)
-        #Array_Like_Helpers.vector_from_function len (i-> function (self.at i) (that.at i))
+        Array_Like_Helpers.vector_from_function len (i-> function (self.at i) (that.at i))
 
     ## PRIVATE
        Implementation of `zip` that uses `vector_from_function_primitive`, which
