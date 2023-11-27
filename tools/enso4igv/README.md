@@ -72,6 +72,8 @@ reaches a statement in Enso, it stops:
 
 ![Pause in GraalVM](https://github.com/enso-org/enso/assets/26887752/98eb0bb7-48c2-4208-9d9a-5b8bacc99de2)
 
+Read more on [Enso & Java Debugging](../../docs/debugger/runtime-debugging.md)
+
 ## Building VSCode Extension
 
 To build this VSCode extension and obtain _Enso_ syntax coloring as well as
