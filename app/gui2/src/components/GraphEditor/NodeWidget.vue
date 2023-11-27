@@ -1,22 +1,25 @@
 <script setup lang="ts">
 import {
   injectWidgetRegistry,
-  widgetAst,
   type WidgetConfiguration,
   type WidgetInput,
 } from '@/providers/widgetRegistry'
 import { injectWidgetTree } from '@/providers/widgetTree'
 import { injectWidgetUsageInfo, provideWidgetUsageInfo } from '@/providers/widgetUsageInfo'
+import { AstExtended } from '@/util/ast'
 import { computed, proxyRefs, ref, toRef } from 'vue'
 
 const props = defineProps<{ input: WidgetInput; nest?: boolean }>()
+defineOptions({
+  inheritAttrs: false,
+})
 
 const registry = injectWidgetRegistry()
 const tree = injectWidgetTree()
 const parentUsageInfo = injectWidgetUsageInfo(true)
 const whitespace = computed(() =>
-  parentUsageInfo?.input !== props.input
-    ? ' '.repeat(widgetAst(props.input)?.whitespaceLength() ?? 0)
+  parentUsageInfo?.input !== props.input && props.input instanceof AstExtended
+    ? ' '.repeat(props.input.whitespaceLength() ?? 0)
     : '',
 )
 
@@ -29,7 +32,11 @@ const nesting = computed(() => (parentUsageInfo?.nesting ?? 0) + (props.nest ===
 
 const selectedWidget = computed(() => {
   return registry.select(
-    { input: props.input, config: dynamicConfig.value, nesting: nesting.value },
+    {
+      input: props.input,
+      config: dynamicConfig.value,
+      nesting: nesting.value,
+    },
     sameInputParentWidgets.value,
   )
 })
@@ -45,8 +52,8 @@ provideWidgetUsageInfo(
   }),
 )
 const spanStart = computed(() => {
-  const ast = widgetAst(props.input)
-  return ast && ast.span()[0] - tree.nodeSpanStart - whitespace.value.length
+  if (!(props.input instanceof AstExtended)) return undefined
+  return props.input.span()[0] - tree.nodeSpanStart - whitespace.value.length
 })
 </script>
 
@@ -54,6 +61,7 @@ const spanStart = computed(() => {
   {{ whitespace
   }}<component
     :is="selectedWidget"
+    v-if="selectedWidget"
     ref="rootNode"
     :input="props.input"
     :config="dynamicConfig"

@@ -40,6 +40,7 @@ polyglot java import org.enso.table.parsing.problems.ParseProblemAggregator
 
 type Column
     ## GROUP Standard.Base.Input
+       ICON data_input
        Creates a new column given a name and a vector of elements.
 
        Arguments:
@@ -943,6 +944,7 @@ type Column
                 simple_unary_op self Java_Storage.Maps.FLOOR
 
     ## GROUP Standard.Base.Logical
+       ICON preparation
        Returns a column of first non-`Nothing` value on each row of `self` and
        `values` list.
 
@@ -1099,6 +1101,7 @@ type Column
 
     ## ALIAS fill missing, if_nothing
        GROUP Standard.Base.Values
+       ICON dataframe_map_column
 
        Returns a new column where missing values have been replaced with the
        provided default.
@@ -1136,6 +1139,7 @@ type Column
 
     ## ALIAS fill empty, if_empty
        GROUP Standard.Base.Values
+       ICON dataframe_map_column
 
        Returns a new column where empty Text values have been replaced with the
        provided default.
@@ -1163,6 +1167,7 @@ type Column
                     result.rename self.name
 
     ## GROUP Standard.Base.Text
+       ICON preparation
        Checks for each element of the column if it starts with `other`.
 
        Arguments:
@@ -1200,6 +1205,7 @@ type Column
         run_vectorized_binary_case_text_op self Java_Storage.Maps.STARTS_WITH other case_sensitivity (a -> b -> a.starts_with b case_sensitivity) new_name
 
     ## GROUP Standard.Base.Text
+       ICON preparation
        Checks for each element of the column if it ends with `other`.
 
        Arguments:
@@ -1282,6 +1288,7 @@ type Column
                 run_vectorized_binary_op self Java_Storage.Maps.LIKE pattern expected_result_type=Value_Type.Boolean
 
     ## GROUP Standard.Base.Text
+       ICON dataframe_map_column
        This function removes the specified characters, by default any
        whitespace, from the start, the end, or both ends of the input.
 
@@ -1305,6 +1312,7 @@ type Column
             Column.from_vector new_name mapped
 
     ## GROUP Standard.Base.Text
+       ICON dataframe_map_column
        Replaces the first, or all occurrences of `term` with `new_text` in each
        row. If `term` is empty, the function returns the column unchanged.
 
@@ -1406,6 +1414,7 @@ type Column
         simple_unary_op self Java_Storage.Maps.MINUTE
 
     ## GROUP Standard.Base.Selections
+       ICON select_row
        Gets the second as an integer (0-60) from the time stored in the column.
 
        Applies only to columns that hold the `Time_Of_Day` or `Date_Time` types.
@@ -1531,6 +1540,7 @@ type Column
                 run_unary_op self set.contains new_name=result_name skip_nulls=False expected_result_type=Value_Type.Boolean
 
     ## GROUP Standard.Base.Conversions
+       ICON convert
        Parses a text column into values.
 
        In the Database backends, the default formatting settings of the
@@ -1627,6 +1637,7 @@ type Column
             Column.Value (Java_Column.new self.name new_storage)
 
     ## GROUP Standard.Base.Conversions
+       ICON convert
        Format a `Column` using a format string (or `Column` of format strings).
 
        Arguments:
@@ -1719,6 +1730,7 @@ type Column
         new_column
 
     ## GROUP Standard.Base.Conversions
+       ICON convert
        Cast the column to a specific type.
 
        Arguments:
@@ -1813,6 +1825,7 @@ type Column
         self.cast new_value_type on_problems=Problem_Behavior.Report_Error
 
     ## ALIAS transform column
+       ICON dataframe_map_column
 
        Applies `function` to each item in this column and returns the column
        of results.
@@ -1847,6 +1860,7 @@ type Column
         Column.from_vector self.name new_st value_type=expected_value_type
 
     ## ALIAS combine, join by row position, merge
+       ICON dataframes_join
 
        Applies `function` to consecutive pairs of elements of `self` and `that`
        and returns a column of results.
@@ -1894,6 +1908,7 @@ type Column
         Column.from_vector new_name vec value_type=expected_value_type
 
     ## GROUP Standard.Base.Metadata
+       ICON text_input
        Returns a new column, containing the same elements as `self`, but with
        the given name.
 
@@ -1960,6 +1975,7 @@ type Column
     count self = self.length - self.count_nothing
 
     ## GROUP Standard.Base.Selections
+       ICON select_row
        Returns the value contained in this column at the given index.
 
        Arguments:
@@ -1982,7 +1998,8 @@ type Column
             if storage.isNa index then Nothing else
                 storage.getItem index
 
-    ## Returns a column containing rows of this column.
+    ## ICON data_input
+       Returns a column containing rows of this column.
 
        Arguments:
        - max_rows: specifies the maximum number of rows to read.
@@ -1995,6 +2012,7 @@ type Column
             self.to_table.read max_rows warn_if_more_rows . at 0
 
     ## GROUP Standard.Base.Conversions
+       ICON convert
        Returns a vector containing all the elements in this column.
 
        > Example
@@ -2045,7 +2063,8 @@ type Column
         storage_json = Vector.from_polyglot_array storage_proxy
         JS_Object.from_pairs [["name", name], ["data", storage_json]]
 
-    ## Converts this column into a single-column table.
+    ## ICON data_input
+       Converts this column into a single-column table.
 
        > Example
          Convert a column to a table.
@@ -2124,6 +2143,7 @@ type Column
 
     ## ALIAS first, last, sample, slice
        GROUP Standard.Base.Selections
+       ICON select_row
        Creates a new Column with the specified range of rows from the input
        Column.
 
@@ -2135,6 +2155,7 @@ type Column
         Index_Sub_Range_Module.take_helper self.length self.at self.slice (slice_ranges self) range
 
     ## GROUP Standard.Base.Selections
+       ICON select_row
        Creates a new Column from the input with the specified range of rows
        removed.
 
@@ -2155,6 +2176,7 @@ type Column
         Column.Value (self.java_column.slice offset limit)
 
     ## GROUP Standard.Base.Selections
+       ICON select_row
        Returns the first element in the column, if it exists.
 
        If the column is empty, this method will return a dataflow error
@@ -2170,6 +2192,7 @@ type Column
     first self = self.at 0
 
     ## GROUP Standard.Base.Selections
+       ICON select_row
        Returns the last element in the column, if it exists.
 
        If the column is empty, this method will return a dataflow error

@@ -395,6 +395,18 @@ impl Handle {
         }
     }
 
+    /// Command to start gathering the profiling info in the connected language server.
+    pub async fn start_language_server_profiling(&self) -> FallibleResult {
+        self.execution_ctx.start_profiling().await?;
+        Ok(())
+    }
+
+    /// Command to stop gathering the profiling info in the connected language server.
+    pub async fn stop_language_server_profiling(&self) -> FallibleResult {
+        self.execution_ctx.stop_profiling().await?;
+        Ok(())
+    }
+
     /// Get the current call stack frames.
     pub fn call_stack(&self) -> Vec<LocalCall> {
         self.execution_ctx.stack_items().collect()

@@ -16,6 +16,7 @@ import org.enso.compiler.core.ir.MetadataStorage;
 import org.enso.compiler.core.ir.Module;
 import org.enso.persist.Persistable;
 import org.enso.persist.Persistance;
+import org.junit.Before;
 import org.junit.Test;
 import org.openide.util.lookup.ServiceProvider;
 
@@ -25,6 +26,11 @@ import scala.collection.immutable.List;
 import scala.collection.immutable.Seq;
 
 public class IrPersistanceTest {
+  @Before
+  public void resetDebris() {
+    LazySeq.forbidden = false;
+  }
+
   @Test
   public void locationTest() throws Exception {
     var l = new Location(12, 33);
@@ -58,6 +64,30 @@ public class IrPersistanceTest {
     var out = serde(scala.collection.immutable.Map.class, in, 36);
 
     assertEquals("One element", 1, out.size());
+    assertEquals(in, out);
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void scalaImmutableMapIsLazy() throws Exception {
+    var s1 = new LazySeq("Hello");
+    var s2 = new LazySeq("World");
+    var in = (scala.collection.immutable.Map) scala.collection.immutable.Map$.MODULE$.empty()
+      .$plus(new Tuple2("Hello", s1))
+      .$plus(new Tuple2("World", s2));
+
+    LazySeq.forbidden = true;
+    var out = (scala.collection.immutable.Map)
+      serde(scala.collection.immutable.Map.class, in, 64);
+
+    assertEquals("Two pairs element", 2, out.size());
+    assertEquals("Two keys", 2, out.keySet().size());
+    assertTrue(out.keySet().contains("Hello"));
+    assertTrue(out.keySet().contains("World"));
+    LazySeq.forbidden = false;
+
+    assertEquals(s1, out.get("Hello").get());
+    assertEquals(s2, out.get("World").get());
     assertEquals(in, out);
   }
 
@@ -184,9 +214,32 @@ public class IrPersistanceTest {
     map.put("two", "duo");
     map.put("ten", "tre");
 
-    var out = serde(HashMap.class, map, -1);
+    var out = serde(java.util.Map.class, map, -1);
 
     assertEquals("Same", map, out);
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void hashMapIsLazy() throws Exception {
+    var s1 = new LazySeq("Hello");
+    var s2 = new LazySeq("World");
+    var in = new HashMap<String, LazySeq>();
+    in.put("Hello", s1);
+    in.put("World", s2);
+
+    LazySeq.forbidden = true;
+    var out = serde(java.util.Map.class, in, 64);
+
+    assertEquals("Two pairs element", 2, out.size());
+    assertEquals("Two keys", 2, out.keySet().size());
+    assertTrue(out.keySet().contains("Hello"));
+    assertTrue(out.keySet().contains("World"));
+    LazySeq.forbidden = false;
+
+    assertEquals(s1, out.get("Hello"));
+    assertEquals(s2, out.get("World"));
+    assertEquals(in, out);
   }
 
   @Test
