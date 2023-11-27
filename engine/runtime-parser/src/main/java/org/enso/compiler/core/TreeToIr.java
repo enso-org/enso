@@ -1438,7 +1438,11 @@ final class TreeToIr {
       } else {
         throw translateEntity(app, Syntax.UnexpectedExpression$.MODULE$);
       }
-      list = app.getLhs();
+      if (app.getLhs() != null) {
+        list = app.getLhs();
+      } else {
+        throw translateEntity(app, Syntax.UnexpectedExpression$.MODULE$);
+      }
     }
     segments.add(list);
     java.util.Collections.reverse(segments);
@@ -1771,7 +1775,7 @@ final class TreeToIr {
     });
   }
   private MetadataStorage meta() {
-    return MetadataStorage.apply(nil());
+    return new MetadataStorage();
   }
   private DiagnosticStorage diag() {
     return DiagnosticStorage.apply(nil());

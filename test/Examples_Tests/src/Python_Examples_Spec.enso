@@ -37,7 +37,6 @@ bin_dir =
 enso_bin =
     bin_dir / if Platform.os == Platform.OS.Windows then "enso.bat" else "enso"
 
-
 create_new_enso_project =
     bin = enso_bin
     tmp_file = File.create_temporary_file "enso_prj" ""

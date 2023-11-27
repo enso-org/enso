@@ -14,7 +14,7 @@ import Modal from './modal'
 // === NewLabelModal ===
 // =====================
 
-/** Props for a {@link ConfirmDeleteModal}. */
+/** Props for a {@link NewLabelModal}. */
 export interface NewLabelModalProps {
     labelNames: Set<string>
     eventTarget: HTMLElement

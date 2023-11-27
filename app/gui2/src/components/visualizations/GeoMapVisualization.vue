@@ -2,6 +2,10 @@
 export const name = 'Geo Map'
 export const icon = 'compass'
 export const inputType = 'Standard.Table.Data.Table.Table'
+export const defaultPreprocessor = [
+  'Standard.Visualization.Geo_Map',
+  'process_to_json_text',
+] as const
 export const scripts = [
   // mapbox-gl does not have an ESM release.
   'https://api.tiles.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js',
@@ -86,19 +90,14 @@ declare var deck: typeof import('deck.gl')
 import SvgIcon from '@/components/SvgIcon.vue'
 import { VisualizationContainer } from '@/util/visualizationBuiltins'
 import type { Deck } from 'deck.gl'
-import { computed, onMounted, onUnmounted, ref, watchPostEffect } from 'vue'
+import { computed, onUnmounted, ref, watchPostEffect } from 'vue'
 
 const props = defineProps<{ data: Data }>()
-const emit = defineEmits<{
-  'update:preprocessor': [module: string, method: string, ...args: string[]]
-}>()
 
 /** GeoMap Visualization. */
 
-/**
- * Mapbox API access token.
- * All the limits of API are listed here: https://docs.mapbox.com/api/#rate-limits
- */
+/** Mapbox API access token.
+ * All the limits of API are listed here: https://docs.mapbox.com/api/#rate-limits */
 const TOKEN =
   'pk.eyJ1IjoiZW5zby1vcmciLCJhIjoiY2tmNnh5MXh2MGlyOTJ5cWdubnFxbXo4ZSJ9.3KdAcCiiXJcSM18nwk09-Q'
 const SCATTERPLOT_LAYER = 'Scatterplot_Layer'
@@ -140,11 +139,6 @@ watchPostEffect(() => {
     updateMap()
     updateLayers()
   }
-})
-
-onMounted(() => {
-  dataPoints.value = []
-  emit('update:preprocessor', 'Standard.Visualization.Geo_Map', 'process_to_json_text')
 })
 
 onUnmounted(() => deckgl.value?.finalize())

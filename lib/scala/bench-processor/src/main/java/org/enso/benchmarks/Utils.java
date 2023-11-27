@@ -2,6 +2,7 @@ package org.enso.benchmarks;
 
 import java.io.File;
 import java.net.URISyntaxException;
+import java.nio.file.Files;
 
 /** Utility methods used by the benchmark classes from the generated code */
 public class Utils {
@@ -21,26 +22,30 @@ public class Utils {
   }
 
   /**
-   * Returns the root directory of the Enso repository.
+   * Locates the root of the Enso repository. Heuristic: we just keep going up the directory tree
+   * until we are in a directory containing ".git" subdirectory. Note that we cannot use the "enso"
+   * name, as users are free to name their cloned directories however they like.
    *
    * @return Non-null file pointing to the root directory of the Enso repository.
    */
   public static File findRepoRootDir() {
-    File ensoDir;
+    File rootDir = null;
     try {
-      ensoDir = new File(Utils.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+      rootDir = new File(Utils.class.getProtectionDomain().getCodeSource().getLocation().toURI());
     } catch (URISyntaxException e) {
-      throw new IllegalStateException("Unrecheable: ensoDir not found", e);
+      throw new IllegalStateException("repository root directory not found: " + e.getMessage());
     }
-    for (; ensoDir != null; ensoDir = ensoDir.getParentFile()) {
-      if (ensoDir.getName().equals("enso")) {
+    for (; rootDir != null; rootDir = rootDir.getParentFile()) {
+      // Check if rootDir contains ".git" subdirectory
+      if (Files.exists(rootDir.toPath().resolve(".git"))) {
         break;
       }
     }
-    if (ensoDir == null || !ensoDir.exists() || !ensoDir.isDirectory() || !ensoDir.canRead()) {
-      throw new IllegalStateException("Unrecheable: ensoDir does not exist or is not readable");
+    if (rootDir == null || !rootDir.exists() || !rootDir.isDirectory() || !rootDir.canRead()) {
+      throw new IllegalStateException(
+          "Unreachable: repository root directory does not exist or is not readable");
     }
-    return ensoDir;
+    return rootDir;
   }
 
   public static BenchSpec findSpecByName(BenchGroup group, String specName) {

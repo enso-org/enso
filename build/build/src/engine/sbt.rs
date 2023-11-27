@@ -39,6 +39,8 @@ impl CommandProvider for Context {
         for property in &self.system_properties {
             cmd.args(property);
         }
+        // This prevents https://github.com/sbt/sbt-assembly/issues/496
+        cmd.env(ide_ci::env::known::LC_ALL, ide_ci::env::known::C_UTF8);
         Ok(cmd)
     }
 }

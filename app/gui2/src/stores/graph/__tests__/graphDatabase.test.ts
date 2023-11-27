@@ -38,13 +38,7 @@ test('Reading graph from definition', () => {
     else return undefined
   })
   assert(func?.isTree(Ast.Tree.Type.Function))
-  db.readFunctionAst(
-    func,
-    (_) => {
-      return { x: 0.0, y: 0.0, vis: null }
-    },
-    (_) => 100.0,
-  )
+  db.readFunctionAst(func, (_) => ({ x: 0.0, y: 0.0, vis: null }))
 
   expect(Array.from(db.nodeIdToNode.keys())).toEqual([id04, id08])
   expect(db.getExpressionNodeId(id04)).toBe(id04)
@@ -60,14 +54,14 @@ test('Reading graph from definition', () => {
   expect(db.getIdentDefiningNode('node1')).toBe(id04)
   expect(db.getIdentDefiningNode('node2')).toBe(id08)
   expect(db.getIdentDefiningNode('function')).toBeUndefined()
-  expect(db.getNodeMainOutputPortIdentifier(id04)).toBe('node1')
-  expect(db.getNodeMainOutputPortIdentifier(id08)).toBe('node2')
-  expect(db.getNodeMainOutputPortIdentifier(id03)).toBeUndefined()
+  expect(db.getOutputPortIdentifier(db.getNodeFirstOutputPort(id04))).toBe('node1')
+  expect(db.getOutputPortIdentifier(db.getNodeFirstOutputPort(id08))).toBe('node2')
+  expect(db.getOutputPortIdentifier(db.getNodeFirstOutputPort(id03))).toBe('node1')
 
   // Commented the connection from input node, as we don't support them yet.
   expect(Array.from(db.connections.allForward(), ([key]) => key)).toEqual([id03])
   // expect(Array.from(db.connections.lookup(id02))).toEqual([id05])
   expect(Array.from(db.connections.lookup(id03))).toEqual([id09])
-  // expect(db.getIdentifierOfConnection(id02)).toBe('a')
-  expect(db.getIdentifierOfConnection(id03)).toBe('node1')
+  // expect(db.getOutputPortIdentifier(id02)).toBe('a')
+  expect(db.getOutputPortIdentifier(id03)).toBe('node1')
 })

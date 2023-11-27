@@ -1,7 +1,7 @@
 from Standard.Base import all
-import Standard.Base.Data.Time.Errors.Date_Time_Format_Parse_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
+from Standard.Base.Data.Time.Errors import Date_Time_Format_Parse_Error, Suspicious_Date_Time_Format
 
 from Standard.Table import Table, Column, Data_Formatter, Quote_Style, Value_Type
 from Standard.Table.Errors import all
@@ -167,6 +167,26 @@ spec =
             formatter.parse "1999-01-01 00:00" type=Value_Type.Time . should_equal Nothing
             formatter.parse "1999-01-01 00:00" type=Value_Type.Date . should_equal Nothing
             formatter.parse "30:00:65" . should_equal "30:00:65"
+
+        Test.specify "should report the warnings when parsing dates with suspicious format" <|
+            c1 = Column.from_vector "strs" ["31.12", "01.01"]
+            c2 = c1.parse Value_Type.Date "dd.MM"
+            current_year = Date.today.year
+            c2.to_vector . should_equal [Date.new current_year 12 31, Date.new current_year 01 01]
+            Problems.expect_only_warning Suspicious_Date_Time_Format c2
+
+            c3 = Column.from_vector "strs" ["04:24", "16:25"]
+            t3 = c3.to_table
+            t4 = t3.parse type=Value_Type.Time format="hh:mm"
+            # The entry `16:25` does not fit the 12h format, so it is not parsed.
+            t4.at "strs" . to_vector . should_equal [Time_Of_Day.new 4 24, Nothing]
+            Problems.expect_warning Suspicious_Date_Time_Format t4
+
+            # But no warnings on format
+            c5 = Column.from_vector "Y" [Date.new 2023 12 25, Date.new 2011 07 31]
+            c6 = c5.format "dd.MM"
+            c6.to_vector . should_equal ["25.12", "31.07"]
+            Problems.assume_no_problems c6
 
         Test.specify "should fallback to Text" <|
             formatter = Data_Formatter.Value

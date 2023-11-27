@@ -4,7 +4,7 @@
  * # Providers
  *
  * The {@link App} component is responsible for defining the global context used by child
- * components. For example, it defines a {@link toast.Toaster}, which is used to display temporary
+ * components. For example, it defines a {@link toastify.ToastContainer}, which is used to display temporary
  * notifications to the user. These global components are defined at the top of the {@link App} so
  * that they are available to all of the child components.
  *

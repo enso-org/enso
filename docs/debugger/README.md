@@ -17,7 +17,5 @@ used by Enso, broken up as follows:
   Enso code using Chrome devtools.
 - [**Debug adapter protocol:**](./dap.md) A guide how to debug Enso code using
   VSCode.
-- [**Debugging Enso and Java code at once:**](./mixed-debugging.md) A
-  step-by-step guide how to debug both Enso and Java code in a single debugger.
 - [**Debugging Engine (Runtime) only Java code:**](./runtime-debugging.md) A
-  guide how to debug the internal Engine Java code.
+  guide how to debug Enso code & the internal Java code.
