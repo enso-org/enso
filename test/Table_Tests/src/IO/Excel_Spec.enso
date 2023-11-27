@@ -360,7 +360,7 @@ spec_write suffix test_sheet_name =
                 result
             temp.delete_if_exists
 
-        Test.specify "should be able to write to a dry-run file, even if the dry-run workbook is open" <|
+        Test.specify "should be able to write to a dry-run file, even if the dry-run workbook is open, previous dry-run changes are not visible in next one" <|
             out = create_out
             temp = Context.Output.with_disabled <|
                 result = table.write out on_problems=Report_Error . should_succeed
@@ -383,6 +383,33 @@ spec_write suffix test_sheet_name =
 
             # The write operation replaces the dry run file, basing off of the original out file (which was empty in this example), so we still only get one sheet.
             opened_temp.sheet_names . should_equal ['Another']
+
+            opened_temp.close
+            temp.delete_if_exists
+
+        Test.specify "should be able to write to a dry-run file multiple times if the dry-run file object is threaded through" <|
+            out = create_out
+            temp1 = Context.Output.with_disabled <|
+                result = table.write out on_problems=Report_Error . should_succeed
+                Problems.expect_only_warning Dry_Run_Operation result
+                result.exists.should_be_true
+                result
+            temp1.absolute.normalize.path . should_not_equal out.absolute.normalize.path
+
+            opened_temp = temp1.read
+            opened_temp.sheet_names . should_equal ['EnsoSheet']
+
+            temp2 = Context.Output.with_disabled <|
+                result = table.write temp1 (Excel (Worksheet "Another")) on_problems=Report_Error . should_succeed
+                Problems.expect_only_warning Dry_Run_Operation result
+                result.exists.should_be_true
+                result
+
+            # The result should be written to the same file though.
+            temp2.absolute.normalize.path . should_equal temp1.absolute.normalize.path
+
+            # The write operation replaces the dry run file, basing off of the dry-run file itself - so both changes are visible.
+            opened_temp.sheet_names . should_equal ['EnsoSheet', 'Another']
 
             opened_temp.close
             temp.delete_if_exists
