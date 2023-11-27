@@ -58,7 +58,7 @@ export type Choice = z.infer<typeof choiceSchema>
 
 /** Defining widget definition type explicitly is necessary because of recursive structure
  * of some variants, like VectorEditor. Zod can’t handle type inference by itself.
- * */
+ */
 type WidgetDefinition =
   | SingleChoice
   | VectorEditor
