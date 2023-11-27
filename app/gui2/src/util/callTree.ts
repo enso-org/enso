@@ -1,5 +1,5 @@
 import { Token, Tree } from '@/generated/ast'
-import { GetUsageKey } from '@/providers/widgetUsageInfo'
+import type { ForcePort } from '@/providers/portInfo'
 import type { SuggestionEntry, SuggestionEntryArgument } from '@/stores/suggestionDatabase/entry'
 import type { MethodCall } from 'shared/languageServerTypes'
 import { tryGetIndex } from './array'
