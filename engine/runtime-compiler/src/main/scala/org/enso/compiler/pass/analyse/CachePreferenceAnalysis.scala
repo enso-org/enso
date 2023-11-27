@@ -60,7 +60,7 @@ case object CachePreferenceAnalysis extends IRPass {
   ): Module = {
     val weights = WeightInfo()
     ir.copy(bindings = ir.bindings.map(analyseModuleDefinition(_, weights)))
-      .updateMetadata(this -->> weights)
+      .updateMetadata(new MetadataPair(this, weights))
   }
 
   /** Performs the cache preference analysis on an inline expression.
@@ -93,12 +93,12 @@ case object CachePreferenceAnalysis extends IRPass {
       case method: definition.Method.Conversion =>
         method
           .copy(body = analyseExpression(method.body, weights))
-          .updateMetadata(this -->> weights)
+          .updateMetadata(new MetadataPair(this, weights))
       case method @ definition.Method
             .Explicit(_, body, _, _, _) =>
         method
           .copy(body = analyseExpression(body, weights))
-          .updateMetadata(this -->> weights)
+          .updateMetadata(new MetadataPair(this, weights))
       case _: definition.Method.Binding =>
         throw new CompilerError(
           "Sugared method definitions should not occur during cache " +
@@ -145,10 +145,10 @@ case object CachePreferenceAnalysis extends IRPass {
           .foreach(weights.update(_, Weight.Always))
         binding
           .copy(
-            name       = binding.name.updateMetadata(this -->> weights),
+            name       = binding.name.updateMetadata(new MetadataPair(this, weights)),
             expression = analyseExpression(binding.expression, weights)
           )
-          .updateMetadata(this -->> weights)
+          .updateMetadata(new MetadataPair(this, weights))
       case error: Error =>
         error
       case expr =>
@@ -157,7 +157,7 @@ case object CachePreferenceAnalysis extends IRPass {
         }
         expr
           .mapExpressions(analyseExpression(_, weights))
-          .updateMetadata(this -->> weights)
+          .updateMetadata(new MetadataPair(this, weights))
     }
   }
 
@@ -175,7 +175,7 @@ case object CachePreferenceAnalysis extends IRPass {
       case spec @ DefinitionArgument.Specified(_, _, defValue, _, _, _, _) =>
         spec
           .copy(defaultValue = defValue.map(analyseExpression(_, weights)))
-          .updateMetadata(this -->> weights)
+          .updateMetadata(new MetadataPair(this, weights))
     }
   }
 

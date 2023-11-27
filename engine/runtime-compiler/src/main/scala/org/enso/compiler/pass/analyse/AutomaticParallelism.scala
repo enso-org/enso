@@ -2,6 +2,7 @@ package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
 import org.enso.compiler.core.ir.{
   CallArgument,
   Expression,
@@ -10,7 +11,6 @@ import org.enso.compiler.core.ir.{
   Module,
   Name
 }
-import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.data.BindingsMap.{Resolution, ResolvedMethod}
 import org.enso.compiler.core.CompilerError
@@ -302,7 +302,9 @@ object AutomaticParallelism extends IRPass {
           ),
           None
         )
-        .updateMetadata(IgnoredBindings -->> IgnoredBindings.State.Ignored)
+        .updateMetadata(
+          new MetadataPair(IgnoredBindings, IgnoredBindings.State.Ignored)
+        )
     )
 
     val threadSpawns = threadBlocks.values.map { exprs =>
@@ -336,7 +338,9 @@ object AutomaticParallelism extends IRPass {
       )
       Expression
         .Binding(freshNameSupply.newName(), spawn, None)
-        .updateMetadata(IgnoredBindings -->> IgnoredBindings.State.Ignored)
+        .updateMetadata(
+          new MetadataPair(IgnoredBindings, IgnoredBindings.State.Ignored)
+        )
     }
 
     val threadJoins = threadSpawns.map { bind =>
@@ -360,7 +364,9 @@ object AutomaticParallelism extends IRPass {
           ),
           None
         )
-        .updateMetadata(IgnoredBindings -->> IgnoredBindings.State.Ignored)
+        .updateMetadata(
+          new MetadataPair(IgnoredBindings, IgnoredBindings.State.Ignored)
+        )
     }
 
     List(
