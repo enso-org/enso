@@ -62,6 +62,7 @@ class UpsertVisualizationJob(
     implicit val logger: TruffleLogger = ctx.executionService.getLogger
     val lockTimestamp =
       ctx.locking.acquireContextLock(config.executionContextId)
+    val writeLockTimestamp = ctx.locking.acquireWriteCompilationLock()
     try {
       val maybeCallable =
         UpsertVisualizationJob.evaluateVisualizationExpression(
@@ -118,6 +119,11 @@ class UpsertVisualizationJob(
           }
       }
     } finally {
+      ctx.locking.releaseWriteCompilationLock()
+      logger.log(
+        Level.FINEST,
+        s"Kept write compilation lock [UpsertVisualizationJob] for ${System.currentTimeMillis() - writeLockTimestamp} milliseconds"
+      )
       ctx.locking.releaseContextLock(config.executionContextId)
       logger.log(
         Level.FINEST,
@@ -319,6 +325,7 @@ object UpsertVisualizationJob {
           )
 
         case error =>
+          error.printStackTrace()
           ctx.executionService.getLogger.log(
             Level.SEVERE,
             "Evaluation of visualization argument [{0}] failed in module [{1}] with [{2}]: {3}",
@@ -507,16 +514,7 @@ object UpsertVisualizationJob {
         callback,
         arguments
       )
-    val writeLockTimestamp = ctx.locking.acquireWriteCompilationLock()
-    try {
-      invalidateCaches(visualization)
-    } finally {
-      ctx.locking.releaseWriteCompilationLock()
-      logger.log(
-        Level.FINEST,
-        s"Kept write compilation lock [UpsertVisualizationJob] for ${System.currentTimeMillis() - writeLockTimestamp} milliseconds"
-      )
-    }
+    invalidateCaches(visualization)
     ctx.contextManager.upsertVisualization(
       visualizationConfig.executionContextId,
       visualization
