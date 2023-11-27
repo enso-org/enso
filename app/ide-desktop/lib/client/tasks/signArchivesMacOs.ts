@@ -280,8 +280,9 @@ function lookupManyHelper<T, R extends Signable>(
         const results = await Promise.all(
             patterns.map(async pattern => {
                 const ret = await lookup(base, pattern)
-                if (ret.length === 0)
-                    console.error(`No files found for pattern ${pattern} in ${base}`)
+                if (ret.length === 0) {
+                    console.warn(`No files found for pattern ${String(pattern)} in ${base}`)
+                }
                 return ret
             })
         )
