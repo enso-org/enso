@@ -65,10 +65,6 @@ vector_from_function length function on_problems=Problem_Behavior.Report_Error =
         See https://github.com/enso-org/enso/issues/8371
     if on_problems == Problem_Behavior.Report_Warning then
         Unimplemented.throw "on_problems=Problem_Behavior.Report_Warning is unimplemented for `Vector.map`"
-    st =
-        st = Runtime.get_stack_trace
-        st.map x->
-            IO.println x
     num_errors = Ref.new 0
     wrapped_function i =
         result = function i
@@ -79,7 +75,6 @@ vector_from_function length function on_problems=Problem_Behavior.Report_Error =
                    See https://github.com/enso-org/enso/issues/8371
 
                     if Warning.has_warnings result . not then result else
-                        st
                         Warning.map_attached_warnings (w-> Maybe.Some (Map_Error.Error i w)) result
                 result
             True ->
@@ -88,12 +83,10 @@ vector_from_function length function on_problems=Problem_Behavior.Report_Error =
                         Nothing
                     Problem_Behavior.Report_Error ->
                         result.catch_primitive caught->
-                            st
                             Error.throw (Map_Error.Error i caught)
                     Problem_Behavior.Report_Warning ->
                         with_error_maybe = if num_errors.get >= MAX_MAP_WARNINGS then Nothing else
                             result.catch_primitive caught->
-                                st
                                 Warning.attach (Map_Error.Error i caught) Nothing
                         num_errors.modify (_+1)
                         with_error_maybe
