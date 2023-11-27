@@ -69,17 +69,22 @@ write_file (file : File) (table : Table) (on_existing_file : Existing_File_Behav
                     Java_File.new preexisting_dry_run_file
             accompanying_files = [possible_backup_file, possible_dry_run_file].filter (!= Nothing)
 
-            ExcelConnectionPool.INSTANCE.lockForWriting java_file file_format accompanying_files write_helper->
+            ExcelConnectionPool.INSTANCE.lockForWriting java_file file_format accompanying_files write_helper-> Context.Output.with_enabled <|
                 temp_file = if is_dry_run then file.create_dry_run_file copy_original=False else
                     find_temp_file file
-                if file.exists then
-                    Panic.rethrow <| file.copy_to temp_file
+
+                ## We 'sync' the temp_file to reflect the original target file - if it exists we copy the contents, if the source
+                   doesn't exist we also ensure that the temp file is not polluted with data from previous (dry-run) writes.
+                Panic.rethrow <|
+                    if file.exists then (file.copy_to temp_file) else (temp_file.delete_if_exists)
                 write_helper.writeWorkbook (file_as_java temp_file) modification_strategy
                 result_file = if is_dry_run then temp_file else
                     needs_backup = on_existing_file == Existing_File_Behavior.Backup
                     if needs_backup && file.exists then
                         backup_file = find_bak_file file
-                        Panic.rethrow <| file.copy_to backup_file
+                        ## We can move instead of copying because right in next line we will overwrite the original file
+                          anyway. And move should be more efficient.
+                        Panic.rethrow <| file.move_to backup_file
 
                     Panic.rethrow <| temp_file.move_to file replace_existing=True
                     file

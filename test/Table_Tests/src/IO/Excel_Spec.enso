@@ -434,6 +434,7 @@ spec_write suffix test_sheet_name =
                 out_bak.exists.should_be_true
                 out_bak.size.should_equal 0
 
+            written.close
             out.delete_if_exists . should_succeed
             out_bak.delete_if_exists . should_succeed
 

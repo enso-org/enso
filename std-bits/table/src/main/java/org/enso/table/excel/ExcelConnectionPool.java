@@ -13,9 +13,11 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.file.AccessMode;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.function.Function;
@@ -96,7 +98,7 @@ public class ExcelConnectionPool {
               default -> throw new IllegalStateException("Unknown workbook type: " + tempWorkbook.getClass());
             }
           } else {
-            try (FileOutputStream fileOut = new FileOutputStream(file)) {
+            try (OutputStream fileOut = Files.newOutputStream(file.toPath())) {
               try (BufferedOutputStream workbookOut = new BufferedOutputStream(fileOut)) {
                 tempWorkbook.write(workbookOut);
               }
@@ -144,6 +146,8 @@ public class ExcelConnectionPool {
             recordsToReopen.add(existingRecord);
           }
 
+          verifyIsWritable(file);
+
           for (File accompanyingFile : accompanyingFiles) {
             String accompanyingKey = getKeyForFile(accompanyingFile);
             ConnectionRecord accompanyingRecord = records.get(accompanyingKey);
@@ -151,6 +155,8 @@ public class ExcelConnectionPool {
               accompanyingRecord.close();
               recordsToReopen.add(accompanyingRecord);
             }
+
+            verifyIsWritable(accompanyingFile);
           }
 
           WriteHelper helper = new WriteHelper(format);
@@ -166,6 +172,17 @@ public class ExcelConnectionPool {
         isCurrentlyWriting = false;
       }
     }
+  }
+
+  private void verifyIsWritable(File file) throws IOException {
+    Path path = file.toPath();
+
+    if (!Files.exists(path)) {
+      // If the file does not exist, we assume that we can create it.
+      return;
+    }
+
+    path.getFileSystem().provider().checkAccess(path, AccessMode.WRITE, AccessMode.READ);
   }
 
   private String getKeyForFile(File file) throws IOException {
