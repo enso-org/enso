@@ -41,7 +41,9 @@ const selection = injectGraphSelection(true)
 
 const isHovered = ref(false)
 
-const hasConnection = computed(() => graph.db.connections.reverseLookup(portId.value).size > 0)
+const hasConnection = computed(
+  () => graph.db.sourceIdToTargetId.reverseLookup(portId.value).size > 0,
+)
 const isCurrentEdgeHoverTarget = computed(
   () => isHovered.value && graph.unconnectedEdge != null && selection?.hoveredPort === portId.value,
 )
@@ -176,6 +178,7 @@ export const widgetDefinition = defineWidget(
   },
 )
 </script>
+
 <template>
   <span
     ref="rootNode"

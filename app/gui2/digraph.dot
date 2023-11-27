@@ -1,0 +1,16 @@
+digraph arch {
+  gui_edit1 [shape="rect"];
+  gui_edit2 [shape="rect"];
+
+  text1 [label="text"];
+  tree1 [label="tree"];
+  text1 -> tree1 [label="parse"];
+  tree1 -> gui_edit1;
+  text1 -> gui_edit1 -> text1;
+  id_map -> gui_edit1 -> id_map;
+
+  text2 [shape="rect", label="text_edit"];
+  widget_tree -> text2 [label="print"];
+  text2 -> widget_tree [label="parse+translate"];
+  widget_tree -> gui_edit2 -> widget_tree;
+}

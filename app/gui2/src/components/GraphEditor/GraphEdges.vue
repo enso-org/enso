@@ -21,7 +21,7 @@ const editingEdge: Interaction = {
     if (graph.unconnectedEdge == null) return false
     const source = graph.unconnectedEdge.source ?? selection?.hoveredNode
     const target = graph.unconnectedEdge.target ?? selection?.hoveredPort
-    const targetNode = graph.db.getExpressionNodeId(target)
+    const targetNode = target && graph.db.getExpressionNodeId(target)
     graph.transact(() => {
       if (source != null && source != targetNode) {
         if (target == null) {
@@ -42,11 +42,13 @@ interaction.setWhen(() => graph.unconnectedEdge != null, editingEdge)
 function disconnectEdge(target: ExprId) {
   graph.setExpressionContent(target, '_')
 }
+
 function createNodeFromEdgeDrop(source: ExprId) {
   console.log(`TODO: createNodeFromEdgeDrop(${JSON.stringify(source)})`)
 }
+
 function createEdge(source: ExprId, target: ExprId) {
-  const sourceNode = graph.db.getNode(source)
+  const sourceNode = graph.db.nodeIdToNode.get(source)
   if (sourceNode == null) return
   // TODO: Check alias analysis to see if the binding is shadowed.
   graph.setExpressionContent(target, sourceNode.binding)
