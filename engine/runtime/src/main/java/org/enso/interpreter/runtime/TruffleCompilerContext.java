@@ -24,6 +24,7 @@ import org.enso.interpreter.runtime.type.Types;
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.CompilationStage;
+import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.data.TypeGraph;
 
 import com.oracle.truffle.api.TruffleFile;
@@ -276,7 +277,7 @@ final class TruffleCompilerContext implements CompilerContext {
   private final class ModuleUpdater implements Updater, AutoCloseable {
     private final Module module;
     private BindingsMap[] map;
-    private org.enso.compiler.core.ir.Module ir;
+    private org.enso.compiler.core.ir.Module[] ir;
     private CompilationStage stage;
     private Boolean loadedFromCache;
     private boolean resetScope;
@@ -293,7 +294,7 @@ final class TruffleCompilerContext implements CompilerContext {
 
     @Override
     public void ir(org.enso.compiler.core.ir.Module ir) {
-      this.ir = ir;
+      this.ir = new org.enso.compiler.core.ir.Module[] { ir };
     }
 
     @Override
@@ -325,7 +326,7 @@ final class TruffleCompilerContext implements CompilerContext {
         module.bindings = map[0];
       }
       if (ir != null) {
-        module.module.unsafeSetIr(ir);
+        module.module.unsafeSetIr(ir[0]);
       }
       if (stage != null) {
         module.module.unsafeSetCompilationStage(stage);
@@ -379,12 +380,19 @@ final class TruffleCompilerContext implements CompilerContext {
     @Override
     public BindingsMap getBindingsMap() {
       if (module.getIr() != null) {
-        var meta = module.getIr().passData();
-        var pass = meta.get(BindingAnalysis$.MODULE$);
-        return (BindingsMap) pass.get();
-      } else {
-        return bindings;
+        try {
+          var meta = module.getIr().passData();
+          var pass = meta.get(BindingAnalysis$.MODULE$);
+          emitIOException();
+          return (BindingsMap) pass.get();
+        } catch (IOException ex) {
+          var logger = TruffleLogger.getLogger(LanguageInfo.ID, org.enso.interpreter.runtime.Module.class);
+          var msg = "Cannot read BindingsMap for " + getName() + ": " + ex.getMessage();
+          logger.log(Level.SEVERE, msg);
+          logger.log(Level.FINE, msg, ex);
+        }
       }
+      return bindings;
     }
 
     @Override
@@ -451,5 +459,8 @@ final class TruffleCompilerContext implements CompilerContext {
       sb.append('}');
       return sb.toString();
     }
+  }
+
+  private static void emitIOException() throws IOException {
   }
 }
