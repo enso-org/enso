@@ -271,6 +271,7 @@ const handlePortClick = useDoubleClick(
   --output-port-overlap: 0.2px;
   --output-port-hover-width: 8px;
 }
+
 .outputPort,
 .outputPortHoverArea {
   x: calc(0px - var(--output-port-width) / 2);
@@ -409,6 +410,7 @@ const handlePortClick = useDoubleClick(
 .GraphNode.selected .selection:hover:before {
   opacity: 0.3;
 }
+
 .binding {
   user-select: none;
   margin-right: 10px;

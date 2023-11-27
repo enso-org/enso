@@ -12,7 +12,7 @@ const DEBOUNCE_MS = 1000
 // === ControlledInput ===
 // =======================
 
-/** Props for an {@link Input}. */
+/** Props for a {@link ControlledInput}. */
 export interface ControlledInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
     value: string
     error?: string

@@ -5,7 +5,7 @@ import { MockTransport } from '@/util/net'
 import type { QualifiedName } from '@/util/qualifiedName'
 import { Vec2 } from '@/util/vec2'
 import { defineSetupVue3 } from '@histoire/plugin-vue'
-import { uuidv4 } from 'lib0/random'
+import * as random from 'lib0/random'
 import { createPinia } from 'pinia'
 import type { LibraryComponentGroup, Uuid, response } from 'shared/languageServerTypes'
 import type { SuggestionEntry } from 'shared/languageServerTypes/suggestions'
@@ -13,7 +13,7 @@ import { ref } from 'vue'
 import mockDb from './mockSuggestions.json' assert { type: 'json' }
 import './story.css'
 
-const mockProjectId = uuidv4() as Uuid
+const mockProjectId = random.uuidv4() as Uuid
 const standardBase = 'Standard.Base' as QualifiedName
 
 export function placeholderGroups(): LibraryComponentGroup[] {

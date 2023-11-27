@@ -1,0 +1,20 @@
+# Snyk (https://snyk.io) policy file, patches or ignores known vulnerabilities.
+version: v1.25.0
+# ignores vulnerabilities until expiry date; change duration by modifying expiry date
+ignore:
+  javascript/DuplicateIfBody:
+    - '*':
+        reason: Intentional.
+  javascript/VueGetterDoesntReturn:
+    - '*':
+        reason: set() should not return... and TypeScript catches these errors.
+  javascript/MissingArgument:
+    - '*':
+        reason: TypeScript catches these errors. This warning is incorrect.
+  javascript/PromiseNotCaughtGeneral:
+    - '*':
+        reason: Not relevant.
+  javascript/IncompatibleTypesInComparison:
+    - '*':
+        reason: TypeScript catches these errors in a more sensible way.
+patch: {}

@@ -8,7 +8,10 @@ import {
   previousNodeDictatedPlacement,
   type Environment,
 } from '@/components/ComponentBrowser/placement.ts'
+import GraphEdges from '@/components/GraphEditor/GraphEdges.vue'
+import GraphNodes from '@/components/GraphEditor/GraphNodes.vue'
 import { Uploader, uploadedExpression } from '@/components/GraphEditor/upload'
+import GraphMouse from '@/components/GraphMouse.vue'
 import PlusButton from '@/components/PlusButton.vue'
 import TopBar from '@/components/TopBar.vue'
 import { provideGraphNavigator } from '@/providers/graphNavigator'
@@ -26,9 +29,6 @@ import { Vec2 } from '@/util/vec2'
 import * as set from 'lib0/set'
 import type { ExprId, NodeMetadata } from 'shared/yjsModel.ts'
 import { computed, onMounted, ref, watch } from 'vue'
-import GraphEdges from './GraphEditor/GraphEdges.vue'
-import GraphNodes from './GraphEditor/GraphNodes.vue'
-import GraphMouse from './GraphMouse.vue'
 
 const EXECUTION_MODES = ['design', 'live']
 // Difference in position between the component browser and a node for the input of the component browser to
@@ -436,7 +436,7 @@ function handleNodeOutputPortDoubleClick(id: ExprId) {
 <template>
   <div
     ref="viewportNode"
-    class="GraphEditor"
+    class="GraphEditor viewport"
     :class="{ draggingEdge: graphStore.unconnectedEdge != null }"
     :style="groupColors"
     v-on.="graphNavigator.events"

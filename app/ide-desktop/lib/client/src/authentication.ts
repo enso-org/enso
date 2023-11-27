@@ -57,16 +57,16 @@
  *
  * To prepare the application to handle deep links:
  * - Register a custom URL protocol scheme with the OS (c.f., `electron-builder-config.ts`).
- * - Define a listener for Electron {@link OPEN_URL_EVENT}s (c.f., {@link initOpenUrlListener}).
+ * - Define a listener for Electron `OPEN_URL_EVENT`s (c.f., {@link initOpenUrlListener}).
  * - Define a listener for {@link ipc.Channel.openDeepLink} events (c.f., `preload.ts`).
  *
  * Then when the user clicks on a deep link from an external source to the IDE:
  * - The OS redirects the user to the application.
- * - The application emits an Electron {@link OPEN_URL_EVENT}.
- * - The {@link OPEN_URL_EVENT} listener checks if the {@link URL} is a deep link.
- * - If the {@link URL} is a deep link, the {@link OPEN_URL_EVENT} listener prevents Electron from
+ * - The application emits an Electron `OPEN_URL_EVENT`.
+ * - The `OPEN_URL_EVENT` listener checks if the {@link URL} is a deep link.
+ * - If the {@link URL} is a deep link, the `OPEN_URL_EVENT` listener prevents Electron from
  * handling the event.
- * - The {@link OPEN_URL_EVENT} listener then emits an {@link ipc.Channel.openDeepLink} event.
+ * - The `OPEN_URL_EVENT` listener then emits an {@link ipc.Channel.openDeepLink} event.
  * - The {@link ipc.Channel.openDeepLink} listener registered by the dashboard receives the event.
  * Then it parses the {@link URL} from the event's {@link URL} argument. Then it uses the
  * {@link URL} to redirect the user to the dashboard, to the page specified in the {@link URL}'s
@@ -93,7 +93,6 @@ const logger = contentConfig.logger
 
 /** Configure all the functionality that must be set up in the Electron app to support
  * authentication-related flows. Must be called in the Electron app `whenReady` event.
- *
  * @param window - A function that returns the main Electron window. This argument is a lambda and
  * not a variable because the main window is not available when this function is called. This module
  * does not use the `window` until after it is initialized, so while the lambda may return `null` in
@@ -137,7 +136,6 @@ function initOpenUrlListener(window: () => electron.BrowserWindow) {
 
 /** Handle the 'open-url' event by parsing the received URL, checking if it is a deep link, and
  * sending it to the appropriate BrowserWindow via IPC.
- *
  * @param url - The URL to handle.
  * @param window - A function that returns the BrowserWindow to send the parsed URL to. */
 export function onOpenUrl(url: URL, window: () => electron.BrowserWindow) {

@@ -369,7 +369,7 @@ const handler = componentBrowserBindings.handler({
             @wheel.stop.passive
             @scroll="updateScroll"
           >
-            <div class="list-variant" style="">
+            <div class="list-variant">
               <div
                 v-for="item in visibleComponents"
                 :key="item.component.suggestionId"
