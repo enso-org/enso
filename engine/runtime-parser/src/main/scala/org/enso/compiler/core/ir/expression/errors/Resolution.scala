@@ -18,7 +18,7 @@ import java.util.UUID
 sealed case class Resolution(
   originalName: Name,
   reason: Resolution.Reason,
-  passData: MetadataStorage      = MetadataStorage(),
+  passData: MetadataStorage      = new MetadataStorage(),
   diagnostics: DiagnosticStorage = DiagnosticStorage()
 ) extends Error
     with Diagnostic.Kind.Interactive
@@ -72,7 +72,8 @@ sealed case class Resolution(
           keepDiagnostics,
           keepIdentifiers
         ),
-      passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+      passData =
+        if (keepMetadata) passData.duplicate else new MetadataStorage(),
       diagnostics =
         if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
       id = randomId
