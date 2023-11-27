@@ -17,10 +17,7 @@ object Implicits {
       * @return a string representation of the pass data for [[ir]]
       */
     def showPassData: String = {
-      val metaString: Seq[String] =
-        ir.passData.map((p, m) => (p, m.metadataName)).values.toSeq
-      val alphabetical = metaString.sorted
-      s"$alphabetical"
+      ir.passData.toString
     }
   }
 
@@ -91,7 +88,7 @@ object Implicits {
       * @return the metadata for `pass`, if it exists
       */
     def getMetadata[K <: ProcessingPass](pass: K): Option[pass.Metadata] = {
-      ir.passData.get(pass)
+      ir.passData.get(pass).asInstanceOf[Option[pass.Metadata]]
     }
 
     /** Unsafely gets the metadata for the specified pass, if it exists.
@@ -107,7 +104,10 @@ object Implicits {
       pass: ProcessingPass,
       msg: => String
     ): pass.Metadata = {
-      ir.passData.getUnsafe(pass)(msg)
+      ir.passData
+        .get(pass)
+        .getOrElse(throw new CompilerError(msg))
+        .asInstanceOf[pass.Metadata]
     }
   }
 

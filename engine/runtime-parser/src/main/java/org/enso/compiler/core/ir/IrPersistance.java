@@ -1,6 +1,7 @@
 package org.enso.compiler.core.ir;
 
 import java.io.IOException;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 import org.enso.compiler.core.ir.expression.Application;
@@ -357,25 +358,25 @@ public final class IrPersistance {
   @ServiceProvider(service = Persistance.class)
   public static final class PersistMetadataStorage extends Persistance<MetadataStorage> {
     public PersistMetadataStorage() {
-      super(MetadataStorage.class, false, 381);
+      super(MetadataStorage.class, false, 389);
     }
 
     @Override
     @SuppressWarnings("unchecked")
     protected void writeObject(MetadataStorage obj, Output out) throws IOException {
-      var map =
-          obj.map(
-              (processingPass, data) -> {
-                var t = new Tuple2<>(processingPass, data);
-                return t;
-              });
-      out.writeInline(scala.collection.immutable.Map.class, map);
+      var map = new LinkedHashMap<ProcessingPass, ProcessingPass.Metadata>();
+      obj.map(
+          (processingPass, data) -> {
+            map.put(processingPass, data);
+            return null;
+          });
+      out.writeInline(java.util.Map.class, map);
     }
 
     @Override
     @SuppressWarnings("unchecked")
     protected MetadataStorage readObject(Input in) throws IOException, ClassNotFoundException {
-      var map = in.readInline(scala.collection.immutable.Map.class);
+      var map = in.readInline(java.util.Map.class);
       var storage = new MetadataStorage(map);
       return storage;
     }
@@ -396,11 +397,6 @@ public final class IrPersistance {
       return new DiagnosticStorage(
           (scala.collection.immutable.List) scala.collection.immutable.Nil$.MODULE$);
     }
-  }
-
-  @SuppressWarnings("unchecked")
-  private static <T> scala.collection.immutable.List<T> nil() {
-    return (scala.collection.immutable.List<T>) scala.collection.immutable.Nil$.MODULE$;
   }
 
   private static <T> scala.collection.immutable.List<T> join(
