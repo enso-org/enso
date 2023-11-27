@@ -295,6 +295,7 @@ object UpsertVisualizationJob {
   ): Either[EvaluationFailure, AnyRef] = {
     Either
       .catchNonFatal {
+        ctx.locking.assertWriteCompilationLock()
         ctx.executionService.evaluateExpression(module, argumentExpression)
       }
       .leftFlatMap {
@@ -325,7 +326,6 @@ object UpsertVisualizationJob {
           )
 
         case error =>
-          error.printStackTrace()
           ctx.executionService.getLogger.log(
             Level.SEVERE,
             "Evaluation of visualization argument [{0}] failed in module [{1}] with [{2}]: {3}",
@@ -366,6 +366,7 @@ object UpsertVisualizationJob {
       .catchNonFatal {
         expression match {
           case Api.VisualizationExpression.Text(_, expression) =>
+            ctx.locking.assertWriteCompilationLock()
             ctx.executionService.evaluateExpression(
               expressionModule,
               expression
