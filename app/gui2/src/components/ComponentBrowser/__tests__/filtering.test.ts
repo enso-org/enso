@@ -36,7 +36,6 @@ test.each([
   makeModule('Standard.Base.Internal'), // Internal module
   makeModule('Standard.Internal.Foo'), // Internal project
 ])('$name entry is not in the CB main view', (entry) => {
-  console.log(entry.definedIn)
   const filtering = new Filtering({})
   expect(filtering.filter(entry)).toBeNull()
 })
