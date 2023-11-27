@@ -15,7 +15,6 @@ from Standard.Database.Errors import all
 
 from Standard.Test import Test, Problems
 import Standard.Test.Extensions
-from Standard.Test.Extensions import nested_error_matcher
 
 import enso_dev.Tests.Data.Round_Spec
 

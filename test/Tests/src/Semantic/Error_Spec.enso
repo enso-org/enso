@@ -15,7 +15,6 @@ polyglot java import java.util.Random as Java_Random
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
-from Standard.Test.Extensions import nested_error_matcher
 
 type My_Type
     Value foo
@@ -446,13 +445,6 @@ spec =
         Test.specify "works with Nothing as an error" <|
             Error.throw (My_Error_Wrapper.Error Nothing) . catch Nothing x->
                 x . should_equal Nothing
-
-        Test.specify "works with .should_fail_with" <|
-            wrap = My_Error_Wrapper.Error
-            error = My_Error.Error 12
-            Error.throw (wrap error) . should_fail_with (nested_error_matcher [My_Error_Wrapper] My_Error)
-            Error.throw (wrap (wrap error)) . should_fail_with (nested_error_matcher [My_Error_Wrapper, My_Error_Wrapper] My_Error)
-            Error.throw (wrap (wrap (wrap error))) . should_fail_with (nested_error_matcher [My_Error_Wrapper, My_Error_Wrapper, My_Error_Wrapper] My_Error)
 
 type C
     Baz x

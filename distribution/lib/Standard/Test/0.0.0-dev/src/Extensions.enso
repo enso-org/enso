@@ -654,33 +654,3 @@ Error.should_not_contain : Any -> Integer -> Test_Result
 Error.should_not_contain self element frames_to_skip=0 =
     _ = [element]
     Test.fail_match_on_unexpected_error self 1+frames_to_skip
-
-## PRIVATE
-   Matches a wrapped error. The error can be wrapped multiple times.
-
-   Arguments
-   - wrappers: A list of types of error wrappers.
-   - wrapped: A type or value to match the inner type again.
-   - error_value: The error being inspected.
-
-   > Example
-     Match a twice-wrapped error.
-
-     matcher = nested_error_matcher [Map_Error, Map_Error] Illegal_Argument
-     error = (Map_Error.Error 1 (Map_Error.Error 2 (Illegal_Argument.Error "bad")))
-     match_nested_error matcher error
-     # => True
-nested_error_matcher : Vector Any -> Any -> Any -> Boolean
-nested_error_matcher wrappers wrapped error_value =
-    go wrappers error_value =
-        case wrappers.is_empty of
-            True ->
-                error_value == wrapped || error_value.is_a wrapped
-            False ->
-                wrapper_type = wrappers.at 0
-                case Error.unwrap_error wrapper_type error_value of
-                    Maybe.Some inner_error ->
-                        @Tail_Call go (wrappers.drop 1) inner_error
-                    Maybe.None ->
-                        False
-    go wrappers error_value
