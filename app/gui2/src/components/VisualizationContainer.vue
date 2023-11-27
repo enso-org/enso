@@ -46,7 +46,8 @@ const resizeRight = usePointer((pos, _, type) => {
   if (type !== 'move' || pos.delta.x === 0) {
     return
   }
-  const width = pos.absolute.x - (contentNode.value?.getBoundingClientRect().left ?? 0)
+  const width =
+    (pos.absolute.x - (contentNode.value?.getBoundingClientRect().left ?? 0)) / config.scale
   config.width = Math.max(config.nodeSize.x, width)
 }, PointerButtonMask.Main)
 
@@ -54,7 +55,8 @@ const resizeBottom = usePointer((pos, _, type) => {
   if (type !== 'move' || pos.delta.y === 0) {
     return
   }
-  const height = pos.absolute.y - (contentNode.value?.getBoundingClientRect().top ?? 0)
+  const height =
+    (pos.absolute.y - (contentNode.value?.getBoundingClientRect().top ?? 0)) / config.scale
   config.height = Math.max(0, height)
 }, PointerButtonMask.Main)
 
@@ -63,11 +65,13 @@ const resizeBottomRight = usePointer((pos, _, type) => {
     return
   }
   if (pos.delta.x !== 0) {
-    const width = pos.absolute.x - (contentNode.value?.getBoundingClientRect().left ?? 0)
+    const width =
+      (pos.absolute.x - (contentNode.value?.getBoundingClientRect().left ?? 0)) / config.scale
     config.width = Math.max(config.nodeSize.x, width)
   }
   if (pos.delta.y !== 0) {
-    const height = pos.absolute.y - (contentNode.value?.getBoundingClientRect().top ?? 0)
+    const height =
+      (pos.absolute.y - (contentNode.value?.getBoundingClientRect().top ?? 0)) / config.scale
     config.height = Math.max(0, height)
   }
 }, PointerButtonMask.Main)
@@ -99,7 +103,9 @@ const resizeBottomRight = usePointer((pos, _, type) => {
           width: config.fullscreen
             ? undefined
             : `${Math.max(config.width ?? 0, config.nodeSize.x)}px`,
-          height: config.fullscreen ? undefined : `${config.height}px`,
+          height: config.fullscreen
+            ? undefined
+            : `${Math.max(config.height ?? 0, config.nodeSize.y)}px`,
         }"
         @wheel.passive="onWheel"
       >

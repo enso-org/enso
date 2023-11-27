@@ -5,6 +5,7 @@ import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import NodeWidgetTree from '@/components/GraphEditor/NodeWidgetTree.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useDoubleClick } from '@/composables/doubleClick'
+import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { useGraphStore, type Node } from '@/stores/graph'
 import { useApproach } from '@/util/animation'
@@ -18,6 +19,8 @@ import { computed, ref, watch, watchEffect } from 'vue'
 
 const MAXIMUM_CLICK_LENGTH_MS = 300
 const MAXIMUM_CLICK_DISTANCE_SQ = 50
+/** The width in pixels that is not the widget tree. This includes the icon, and padding. */
+const NODE_EXTRA_WIDTH_PX = 32
 
 const props = defineProps<{
   node: Node
@@ -25,12 +28,12 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  updateRect: [rect: Rect]
-  updateContent: [updates: [range: ContentRange, content: string][]]
+  'update:rect': [rect: Rect]
+  'update:content': [updates: [range: ContentRange, content: string][]]
   dragging: [offset: Vec2]
   draggingCommited: []
-  setVisualizationId: [id: Opt<VisualizationIdentifier>]
-  setVisualizationVisible: [visible: boolean]
+  'update:visualizationId': [id: Opt<VisualizationIdentifier>]
+  'update:visualizationVisible': [visible: boolean]
   delete: []
   replaceSelection: []
   'update:selected': [selected: boolean]
@@ -41,13 +44,19 @@ const emit = defineEmits<{
 
 const nodeSelection = injectGraphSelection(true)
 const graph = useGraphStore()
+const navigator = injectGraphNavigator(true)
 const isSourceOfDraggedEdge = computed(
   () => graph.unconnectedEdge?.source === props.node.rootSpan.astId,
 )
 
+const widthOverridePx = ref<number>()
 const nodeId = computed(() => props.node.rootSpan.astId)
 const rootNode = ref<HTMLElement>()
+const contentNode = ref<HTMLElement>()
 const nodeSize = useResizeObserver(rootNode)
+const baseNodeSize = computed(
+  () => new Vec2((contentNode.value?.scrollWidth ?? 0) + NODE_EXTRA_WIDTH_PX, nodeSize.value.y),
+)
 const menuVisible = ref(false)
 
 const isSelected = computed(() => nodeSelection?.isSelected(nodeId.value) ?? false)
@@ -62,7 +71,7 @@ const isVisualizationVisible = computed(() => props.node.vis?.visible ?? false)
 watchEffect(() => {
   const size = nodeSize.value
   if (!size.isZero()) {
-    emit('updateRect', new Rect(props.node.position, nodeSize.value))
+    emit('update:rect', new Rect(props.node.position, nodeSize.value))
   }
 })
 
@@ -159,14 +168,13 @@ function startEditingNode(position: Vec2 | undefined) {
       domOffset = caret?.startOffset
     } else {
       console.error(
-        'Neither caretPositionFromPoint nor caretRangeFromPoint are supported by this browser',
+        'Neither `caretPositionFromPoint` nor `caretRangeFromPoint` are supported by this browser',
       )
     }
     if (domNode != null && domOffset != null) {
       sourceOffset = getRelatedSpanOffset(domNode, domOffset)
     }
   }
-
   emit('update:edited', sourceOffset)
 }
 
@@ -191,9 +199,7 @@ function getRelatedSpanOffset(domNode: globalThis.Node, domOffset: number): numb
 
 const handlePortClick = useDoubleClick(
   () => emit('outputPortClick'),
-  () => {
-    emit('outputPortDoubleClick')
-  },
+  () => emit('outputPortDoubleClick'),
 ).handleClick
 </script>
 
@@ -203,6 +209,10 @@ const handlePortClick = useDoubleClick(
     class="GraphNode"
     :style="{
       transform,
+      width:
+        widthOverridePx != null
+          ? `${Math.max(widthOverridePx, (contentNode?.scrollWidth ?? 0) + NODE_EXTRA_WIDTH_PX)}px`
+          : undefined,
       '--node-group-color': color,
     }"
     :class="{
@@ -222,17 +232,19 @@ const handlePortClick = useDoubleClick(
       v-model:isAutoEvaluationDisabled="isAutoEvaluationDisabled"
       v-model:isDocsVisible="isDocsVisible"
       :isVisualizationVisible="isVisualizationVisible"
-      @update:isVisualizationVisible="emit('setVisualizationVisible', $event)"
+      @update:isVisualizationVisible="emit('update:visualizationVisible', $event)"
     />
     <GraphVisualization
       v-if="isVisualizationVisible"
-      :nodeSize="nodeSize"
+      :nodeSize="baseNodeSize"
+      :scale="navigator?.scale ?? 1"
       :isCircularMenuVisible="menuVisible"
       :currentType="props.node.vis"
       :expressionId="props.node.rootSpan.astId"
       :typename="expressionInfo?.typename"
-      @setVisualizationId="emit('setVisualizationId', $event)"
-      @setVisualizationVisible="emit('setVisualizationVisible', $event)"
+      @update:visualizationId="emit('update:visualizationId', $event)"
+      @update:visualizationVisible="emit('update:visualizationVisible', $event)"
+      @update:width="widthOverridePx = $event != null ? $event : undefined"
     />
     <div
       class="node"
@@ -241,7 +253,11 @@ const handlePortClick = useDoubleClick(
       v-on="dragPointer.events"
     >
       <SvgIcon class="icon grab-handle" :name="icon"></SvgIcon>
-      <NodeWidgetTree :ast="node.rootSpan" />
+      <div class="padding"></div>
+      <div ref="contentNode" class="widget-tree">
+        <NodeWidgetTree :ast="node.rootSpan" />
+      </div>
+      <div class="padding"></div>
     </div>
     <svg class="bgPaths" :style="bgStyleVariables">
       <rect class="bgFill" />
@@ -439,5 +455,9 @@ const handlePortClick = useDoubleClick(
 
 .CircularMenu {
   z-index: 1;
+}
+
+.padding {
+  flex-grow: 1;
 }
 </style>
