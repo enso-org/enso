@@ -53,7 +53,7 @@ object Unexpected {
     */
   sealed case class TypeSignature(
     override val ir: IR,
-    passData: MetadataStorage      = MetadataStorage(),
+    passData: MetadataStorage      = new MetadataStorage(),
     diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Unexpected
       with IRKind.Primitive
@@ -105,7 +105,8 @@ object Unexpected {
           keepDiagnostics,
           keepIdentifiers
         ),
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId

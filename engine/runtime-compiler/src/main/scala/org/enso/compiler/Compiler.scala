@@ -591,7 +591,7 @@ class Compiler(
     if (context.wasLoadedFromCache(module)) {
       if (module.getBindingsMap() != null) {
         discoveredModule.passData.update(
-          MetadataPair(BindingAnalysis)(module.getBindingsMap())
+          new MetadataPair(BindingAnalysis, module.getBindingsMap())
         )
       }
     }
