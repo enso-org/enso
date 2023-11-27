@@ -400,7 +400,8 @@ spec_write suffix test_sheet_name =
             bak.exists.should_be_true
 
             opened_out = out.read
-            opened_backup = bak.read
+            # We need to specify explicit format for the backup, because the extension is changed:
+            opened_backup = bak.read (Excel xls_format=(suffix=="xls"))
 
             opened_out.read 'EnsoSheet' . should_equal t2
             opened_backup.read 'EnsoSheet' . should_equal t1
