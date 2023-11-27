@@ -26,7 +26,7 @@ class AttachVisualizationCmd(
   ): Future[Unit] = {
     ctx.executionService.getLogger.log(
       Level.FINE,
-      "Attach visualization cmd for request id [{}] and visualization id [{}]",
+      "Attach visualization cmd for request id [{0}] and visualization id [{1}]",
       Array(maybeRequestId, request.visualizationId)
     )
     ctx.endpoint.sendToClient(

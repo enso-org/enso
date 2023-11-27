@@ -19,7 +19,7 @@ futures = { workspace = true }
 hex = { version = "0.4.2" }
 json-rpc = { path = "../../../../lib/rust/json-rpc" }
 mockall = { version = "0.7.1", features = ["nightly"] }
-serde = { version = "1.0", features = ["derive"] }
+serde = { workspace = true }
 serde_json = { workspace = true }
 sha3 = { version = "0.8.2" }
 strum = { workspace = true }

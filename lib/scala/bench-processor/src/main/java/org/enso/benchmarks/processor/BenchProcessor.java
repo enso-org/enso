@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.URISyntaxException;
+import java.nio.file.Files;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -20,6 +21,7 @@ import javax.tools.Diagnostic.Kind;
 import org.enso.benchmarks.BenchGroup;
 import org.enso.benchmarks.BenchSpec;
 import org.enso.benchmarks.ModuleBenchSuite;
+import org.enso.benchmarks.Utils;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.MethodNames.TopScope;
 import org.enso.polyglot.RuntimeOptions;
@@ -71,27 +73,12 @@ public class BenchProcessor extends AbstractProcessor {
           "import org.enso.benchmarks.Utils;");
 
   public BenchProcessor() {
-    File currentDir = null;
-    try {
-      currentDir =
-          new File(
-              BenchProcessor.class.getProtectionDomain().getCodeSource().getLocation().toURI());
-    } catch (URISyntaxException e) {
-      failWithMessage("ensoDir not found: " + e.getMessage());
-    }
-    for (; currentDir != null; currentDir = currentDir.getParentFile()) {
-      if (currentDir.getName().equals("enso")) {
-        break;
-      }
-    }
-    if (currentDir == null) {
-      failWithMessage("Unreachable: Could not find Enso root directory");
-    }
-    ensoDir = currentDir;
+    ensoDir = Utils.findRepoRootDir();
 
     // Note that ensoHomeOverride does not have to exist, only its parent directory
     ensoHomeOverride = ensoDir.toPath().resolve("distribution").resolve("component").toFile();
   }
+
 
   @Override
   public SourceVersion getSupportedSourceVersion() {
