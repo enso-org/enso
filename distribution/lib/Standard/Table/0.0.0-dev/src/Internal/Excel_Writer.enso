@@ -84,7 +84,7 @@ write_file (file : File) (table : Table) (on_existing_file : Existing_File_Behav
                         backup_file = find_bak_file file
                         ## We can move instead of copying because right in next line we will overwrite the original file
                           anyway. And move should be more efficient.
-                        Panic.rethrow <| file.move_to backup_file
+                        Panic.rethrow <| file.move_to backup_file replace_existing=True
 
                     Panic.rethrow <| temp_file.move_to file replace_existing=True
                     file
