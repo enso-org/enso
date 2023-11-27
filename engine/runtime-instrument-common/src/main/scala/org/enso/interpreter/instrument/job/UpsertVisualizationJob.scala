@@ -206,7 +206,7 @@ object UpsertVisualizationJob {
     */
   def upsertVisualization(
     visualization: Visualization
-  )(implicit ctx: RuntimeContext, logger: TruffleLogger): Unit =
+  )(implicit ctx: RuntimeContext): Unit =
     visualization match {
       case visualization: Visualization.AttachedVisualization =>
         val visualizationConfig = visualization.config
@@ -501,7 +501,7 @@ object UpsertVisualizationJob {
     visualizationConfig: Api.VisualizationConfiguration,
     callback: AnyRef,
     arguments: Vector[AnyRef]
-  )(implicit ctx: RuntimeContext, logger: TruffleLogger): Visualization = {
+  )(implicit ctx: RuntimeContext): Visualization = {
     val visualizationExpressionId =
       findVisualizationExpressionId(module, visualizationConfig.expression)
     val visualization =
