@@ -1808,15 +1808,6 @@ type Table
     @on Widget_Helpers.make_join_condition_selector
     join : Table -> Join_Kind -> Vector (Join_Condition | Text) | Text -> Text -> Problem_Behavior -> Table
     join self right:Table (join_kind : Join_Kind = Join_Kind.Left_Outer) on=[Join_Condition.Equals self.column_names.first] right_prefix="Right " on_problems=Report_Warning = Out_Of_Memory.handle_java_exception "join" <|
-        # [left_unmatched, matched, right_unmatched]
-        rows_to_keep = case join_kind of
-            Join_Kind.Inner           -> [False, True, False]
-            Join_Kind.Left_Outer      -> [True, True, False]
-            Join_Kind.Right_Outer     -> [False, True, True]
-            Join_Kind.Full            -> [True, True, True]
-            Join_Kind.Left_Exclusive  -> [True, False, False]
-            Join_Kind.Right_Exclusive -> [False, False, True]
-
         columns_to_keep = case join_kind of
             Join_Kind.Left_Exclusive  -> [True, False]
             Join_Kind.Right_Exclusive -> [False, True]
@@ -1827,7 +1818,7 @@ type Table
 
         java_conditions = join_resolution.conditions
         new_java_table = Java_Problems.with_problem_aggregator on_problems java_aggregator->
-            self.java_table.join right.java_table java_conditions (rows_to_keep.at 0) (rows_to_keep.at 1) (rows_to_keep.at 2) (columns_to_keep.at 0) (columns_to_keep.at 1) right_columns_to_drop right_prefix java_aggregator
+            self.java_table.join right.java_table java_conditions join_kind.to_java (columns_to_keep.at 0) (columns_to_keep.at 1) right_columns_to_drop right_prefix java_aggregator
         Table.Value new_java_table
 
     ## ALIAS cartesian join

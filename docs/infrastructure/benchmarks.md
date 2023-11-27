@@ -60,14 +60,27 @@ environment variable before running any benchmarks.
 
 ### Running standalone
 
-A single source file in the project may contain multiple benchmark definitions.
-If the source file defines `main` method, we can evaluate it the same way as any
-other Enso source file, for example via
-`runEngineDistribution --in-project test/Benchmarks --run <source file>`. The
-harness within the project is not meant for any sophisticated benchmarking, but
-rather for quick local evaluation. See the `Bench.measure` method documentation
-for more details. For more sophisticated approach, run the benchmarks via the
-JMH launcher.
+There is a universal launcher that enlists and executes all available benchmarks
+in `test/Benchmarks` project. Run it with
+
+```bash
+enso$ runEngineDistribution --run test/Benchmarks
+```
+
+command. The launcher accepts additional `filter` argument which allows one to
+select a benchmark of one's choice by checking for substrings in group or
+benchmark name. For example:
+
+```bash
+enso$ runEngineDistribution --run test/Benchmarks New_Vector
+```
+
+runs all the benchmarks that have `New_Vector` in their name.
+
+The harness within the project is not meant for any sophisticated benchmarking,
+but rather for quick local evaluation. See the `Bench.measure` method
+documentation for more details. For more sophisticated approach, run the
+benchmarks via the JMH launcher.
 
 ### Running via JMH launcher
 

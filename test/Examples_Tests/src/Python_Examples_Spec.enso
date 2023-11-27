@@ -12,7 +12,7 @@ pending_python_missing = if Polyglot.is_language_installed "python" then Nothing
 
 spec = Test.group "Python Examples" <|
     enso_bin =
-        p = Java_System.getProperty "truffle.class.path.append"
+        p = Java_System.getProperty "jdk.module.path"
         s = p.split Java_File.separator
         paths = s.take (Index_Sub_Range.While _!="..")
         j = paths . join Java_File.separator

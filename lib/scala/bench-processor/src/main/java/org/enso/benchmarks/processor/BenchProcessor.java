@@ -1,11 +1,8 @@
 package org.enso.benchmarks.processor;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.net.URISyntaxException;
-import java.nio.file.Files;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -21,6 +18,7 @@ import javax.tools.Diagnostic.Kind;
 import org.enso.benchmarks.BenchGroup;
 import org.enso.benchmarks.BenchSpec;
 import org.enso.benchmarks.ModuleBenchSuite;
+import org.enso.benchmarks.Utils;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.MethodNames.TopScope;
 import org.enso.polyglot.RuntimeOptions;
@@ -72,35 +70,11 @@ public class BenchProcessor extends AbstractProcessor {
           "import org.enso.benchmarks.Utils;");
 
   public BenchProcessor() {
-    ensoDir = locateRootDirectory();
+      ensoDir = Utils.findRepoRootDir();
 
-    // Note that ensoHomeOverride does not have to exist, only its parent directory
-    ensoHomeOverride = ensoDir.toPath().resolve("distribution").resolve("component").toFile();
+      // Note that ensoHomeOverride does not have to exist, only its parent directory
+      ensoHomeOverride = ensoDir.toPath().resolve("distribution").resolve("component").toFile();
   }
-
-  /**
-   * Locates the root of the Enso repository. Heuristic: we just keep going up the directory tree
-   * until we are in a directory containing ".git" subdirectory. Note that we cannot use the "enso"
-   * name, as users are free to name their cloned directories however they like.
-   */
-  private File locateRootDirectory() {
-    File rootDir = null;
-    try {
-      rootDir =
-          new File(
-              BenchProcessor.class.getProtectionDomain().getCodeSource().getLocation().toURI());
-    } catch (URISyntaxException e) {
-      throw new AssertionError("repository root directory not found: " + e.getMessage());
-    }
-    for (; rootDir != null; rootDir = rootDir.getParentFile()) {
-      // Check if rootDir contains ".git" subdirectory
-      if (Files.exists(rootDir.toPath().resolve(".git"))) {
-        break;
-      }
-    }
-    return rootDir;
-  }
-
 
   @Override
   public SourceVersion getSupportedSourceVersion() {

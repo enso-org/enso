@@ -3,10 +3,22 @@ package org.enso.compiler.pass.analyse;
 import java.io.IOException;
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph;
 import org.enso.compiler.pass.resolve.DocumentationComments;
+import org.enso.compiler.pass.resolve.DocumentationComments$;
+import org.enso.compiler.pass.resolve.ExpressionAnnotations$;
 import org.enso.compiler.pass.resolve.FullyQualifiedNames;
+import org.enso.compiler.pass.resolve.FullyQualifiedNames$;
+import org.enso.compiler.pass.resolve.GenericAnnotations$;
+import org.enso.compiler.pass.resolve.GlobalNames$;
 import org.enso.compiler.pass.resolve.IgnoredBindings;
+import org.enso.compiler.pass.resolve.IgnoredBindings$;
+import org.enso.compiler.pass.resolve.MethodCalls$;
+import org.enso.compiler.pass.resolve.MethodDefinitions$;
 import org.enso.compiler.pass.resolve.ModuleAnnotations;
+import org.enso.compiler.pass.resolve.ModuleAnnotations$;
+import org.enso.compiler.pass.resolve.Patterns$;
+import org.enso.compiler.pass.resolve.TypeNames$;
 import org.enso.compiler.pass.resolve.TypeSignatures;
+import org.enso.compiler.pass.resolve.TypeSignatures$;
 import org.enso.persist.Persistable;
 import org.enso.persist.Persistance;
 import org.openide.util.lookup.ServiceProvider;
@@ -30,6 +42,24 @@ import scala.Option;
 @Persistable(clazz = FullyQualifiedNames.FQNResolution.class, id = 1128)
 @Persistable(clazz = FullyQualifiedNames.ResolvedLibrary.class, id = 1129)
 @Persistable(clazz = FullyQualifiedNames.ResolvedModule.class, id = 1130)
+@Persistable(clazz = AliasAnalysis$.class, id = 1201)
+@Persistable(clazz = BindingAnalysis$.class, id = 1202)
+@Persistable(clazz = CachePreferenceAnalysis$.class, id = 1203)
+@Persistable(clazz = DataflowAnalysis$.class, id = 1204)
+@Persistable(clazz = GlobalNames$.class, id = 1205)
+@Persistable(clazz = IgnoredBindings$.class, id = 1206)
+@Persistable(clazz = Patterns$.class, id = 1207)
+@Persistable(clazz = TailCall$.class, id = 1208)
+@Persistable(clazz = TypeNames$.class, id = 1209)
+@Persistable(clazz = TypeSignatures$.class, id = 1210)
+@Persistable(clazz = DocumentationComments$.class, id = 1211)
+@Persistable(clazz = ModuleAnnotations$.class, id = 1212)
+@Persistable(clazz = GatherDiagnostics$.class, id = 1213)
+@Persistable(clazz = MethodCalls$.class, id = 1214)
+@Persistable(clazz = MethodDefinitions$.class, id = 1215)
+@Persistable(clazz = GenericAnnotations$.class, id = 1216)
+@Persistable(clazz = ExpressionAnnotations$.class, id = 1217)
+@Persistable(clazz = FullyQualifiedNames$.class, id = 1218)
 public final class PassPersistance {
   private PassPersistance() {}
 

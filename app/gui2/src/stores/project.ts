@@ -55,14 +55,12 @@ interface LsUrls {
 function resolveLsUrl(config: GuiConfig): LsUrls {
   const engine = config.engine
   if (engine == null) throw new Error('Missing engine configuration')
-
   if (engine.rpcUrl != null && engine.dataUrl != null) {
     return {
       rpcUrl: engine.rpcUrl,
       dataUrl: engine.dataUrl,
     }
   }
-
   throw new Error('Incomplete engine configuration')
 }
 
@@ -77,7 +75,6 @@ async function initializeLsRpcConnection(
   const requestManager = new RequestManager([transport])
   const client = new Client(requestManager)
   const connection = new LanguageServer(client)
-
   const initialization = await lsRpcWithRetries(() => connection.initProtocolConnection(clientId), {
     onBeforeRetry: (error, _, delay) => {
       console.warn(
@@ -525,6 +522,11 @@ export const useProjectStore = defineStore('project', () => {
   const computedValueRegistry = ComputedValueRegistry.WithExecutionContext(executionContext)
   const visualizationDataRegistry = new VisualizationDataRegistry(executionContext, dataConnection)
 
+  const diagnostics = ref<Diagnostic[]>([])
+  executionContext.on('executionStatus', (newDiagnostics) => {
+    diagnostics.value = newDiagnostics
+  })
+
   function useVisualizationData(
     configuration: WatchSource<Opt<NodeVisualizationConfiguration>>,
   ): ShallowRef<{} | undefined> {
@@ -561,6 +563,7 @@ export const useProjectStore = defineStore('project', () => {
     },
     name: projectName,
     executionContext,
+    diagnostics,
     module,
     modulePath,
     projectModel,
