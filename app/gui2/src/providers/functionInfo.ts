@@ -7,4 +7,4 @@ interface FunctionInfo {
 }
 
 export { injectFn as injectFunctionInfo, provideFn as provideFunctionInfo }
-const { provideFn, injectFn } = createContextStore('Port info', identity<FunctionInfo>)
+const { provideFn, injectFn } = createContextStore('Function info', identity<FunctionInfo>)

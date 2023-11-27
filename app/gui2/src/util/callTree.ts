@@ -228,15 +228,6 @@ function isAccessOperator(opr: AstExtended<Token.Operator> | undefined): boolean
   return opr != null && opr.repr() === '.'
 }
 
-export class ForcePort {
-  constructor(public ast: AstExtended) {
-    if (ast instanceof ForcePort) throw new Error('ForcePort cannot be nested')
-  }
-  [GetUsageKey]() {
-    return this.ast
-  }
-}
-
 declare const ArgumentApplicationKey: unique symbol
 declare const ArgumentPlaceholderKey: unique symbol
 declare const ArgumentAstKey: unique symbol

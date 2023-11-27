@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
+import { ForcePort } from '@/providers/portInfo'
 import { defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { AstExtended } from '@/util/ast'
-import { ArgumentApplication, ForcePort } from '@/util/callTree'
+import { ArgumentApplication } from '@/util/callTree'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))

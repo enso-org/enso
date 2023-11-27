@@ -212,7 +212,7 @@ export class GraphDb {
     return this.bindings.identifierToBindingId.hasKey(ident)
   }
 
-  isKnownFunction(id: ExprId): boolean {
+  isKnownFunctionCall(id: ExprId): boolean {
     return this.getMethodCallInfo(id) != null
   }
 
