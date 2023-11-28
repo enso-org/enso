@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import CheckboxWidget from '@/components/widgets/CheckboxWidget.vue'
-import { Tree } from '@/generated/ast'
 import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
-import { RawAstExtended } from '@/util/ast'
+import { RawAst, RawAstExtended } from '@/util/ast'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
@@ -24,12 +23,12 @@ const value = computed({
 <script lang="ts">
 function getRawBoolNode(ast: RawAstExtended) {
   const candidate =
-    ast.isTree(Tree.Type.OprApp) && ast.repr().startsWith('Boolean.')
+    ast.isTree(RawAst.Tree.Type.OprApp) && ast.repr().startsWith('Boolean.')
       ? ast.tryMap((t) => t.rhs)
       : ast
   if (
     candidate &&
-    candidate.isTree(Tree.Type.Ident) &&
+    candidate.isTree(RawAst.Tree.Type.Ident) &&
     ['True', 'False'].includes(candidate.repr())
   ) {
     return candidate
@@ -38,7 +37,7 @@ function getRawBoolNode(ast: RawAstExtended) {
 }
 
 export const widgetDefinition = defineWidget(
-  RawAstExtended.isTree([Tree.Type.OprApp, Tree.Type.Ident]),
+  RawAstExtended.isTree([RawAst.Tree.Type.OprApp, RawAst.Tree.Type.Ident]),
   {
     priority: 10,
     score: (props) => {

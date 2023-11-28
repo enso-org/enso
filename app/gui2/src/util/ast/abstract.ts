@@ -1,4 +1,4 @@
-import { Token, Tree } from '@/generated/ast'
+import * as RawAst from '@/generated/ast'
 import { parseEnso } from '@/util/ast'
 import { AstExtended as RawAstExtended } from '@/util/ast/extended'
 import type { LazyObject } from '@/util/parserSupport'
@@ -14,7 +14,7 @@ const edited = new Map<AstId, Ast | null>()
 
 const astExtended = reactive(new Map<AstId, RawAstExtended>())
 
-export type NodeChild<T = AstId | Tok> = { whitespace?: string | undefined; node: T }
+export type NodeChild<T = AstId | Token> = { whitespace?: string | undefined; node: T }
 
 /** Replace all committed values with the state of the uncommitted parse. */
 export function syncCommittedFromEdited() {
@@ -58,11 +58,11 @@ function newTokenId(): TokenId {
   return random.uuidv4() as TokenId
 }
 
-export class Tok {
+export class Token {
   private _code: string
   exprId: TokenId
-  readonly _tokenType: Token.Type
-  constructor(code: string, id: TokenId, type: Token.Type) {
+  readonly _tokenType: RawAst.Token.Type
+  constructor(code: string, id: TokenId, type: RawAst.Token.Type) {
     this._code = code
     this.exprId = id
     this._tokenType = type
@@ -73,12 +73,12 @@ export class Tok {
   }
 
   typeName(): string {
-    return Token.typeNames[this._tokenType]!
+    return RawAst.Token.typeNames[this._tokenType]!
   }
 }
 
 export abstract class Ast {
-  readonly treeType: Tree.Type | undefined
+  readonly treeType: RawAst.Tree.Type | undefined
   _id: AstId
 
   // Deprecated interface for incremental integration of Ast API. Eliminate usages for #8367.
@@ -91,9 +91,9 @@ export abstract class Ast {
   }
 
   /** Returns child subtrees, without information about the whitespace between them. */
-  *children(): IterableIterator<Ast | Tok> {
+  *children(): IterableIterator<Ast | Token> {
     for (const child of this._rawChildren()) {
-      if (child.node instanceof Tok) {
+      if (child.node instanceof Token) {
         yield child.node
       } else {
         const node = getNode(child.node)
@@ -110,7 +110,7 @@ export abstract class Ast {
 
   typeName(): string | undefined {
     if (this.treeType === undefined) return undefined
-    return Tree.typeNames[this.treeType]
+    return RawAst.Tree.typeNames[this.treeType]
   }
 
   static parse(source: PrintedSource | string): Ast {
@@ -120,10 +120,10 @@ export abstract class Ast {
     return getUncommitted(abstract(tree, code, ids).node)!
   }
 
-  visitRecursive(visit: (node: Ast | Tok) => void) {
+  visitRecursive(visit: (node: Ast | Token) => void) {
     visit(this)
     for (const child of this._rawChildren()) {
-      if (child.node instanceof Tok) {
+      if (child.node instanceof Token) {
         visit(child.node)
       } else {
         getNode(child.node)?.visitRecursive(visit)
@@ -131,7 +131,7 @@ export abstract class Ast {
     }
   }
 
-  protected constructor(id?: AstId, treeType?: Tree.Type) {
+  protected constructor(id?: AstId, treeType?: RawAst.Tree.Type) {
     this._id = id ?? newNodeId()
     this.treeType = treeType
     edited.set(this._id, this)
@@ -140,7 +140,11 @@ export abstract class Ast {
   _print(info: InfoMap, offset: number, indent: string): string {
     let code = ''
     for (const child of this._rawChildren()) {
-      if (child.node != null && !(child.node instanceof Tok) && getUncommitted(child.node) === null)
+      if (
+        child.node != null &&
+        !(child.node instanceof Token) &&
+        getUncommitted(child.node) === null
+      )
         continue
       if (child.whitespace != null) {
         code += child.whitespace
@@ -149,7 +153,7 @@ export abstract class Ast {
         code += ' '
       }
       if (child.node != null) {
-        if (child.node instanceof Tok) {
+        if (child.node instanceof Token) {
           code += child.node.code()
         } else {
           code += getUncommitted(child.node)!._print(info, offset + code.length, indent)
@@ -182,17 +186,17 @@ export abstract class Ast {
 
 export class App extends Ast {
   private _func: NodeChild<AstId>
-  private _leftParen: NodeChild<Tok> | null
-  private _argumentName: NodeChild<Tok> | null
-  private _equals: NodeChild<Tok> | null
+  private _leftParen: NodeChild<Token> | null
+  private _argumentName: NodeChild<Token> | null
+  private _equals: NodeChild<Token> | null
   private _arg: NodeChild<AstId>
-  private _rightParen: NodeChild<Tok> | null
+  private _rightParen: NodeChild<Token> | null
 
   get function(): Ast {
     return getNode(this._func.node)!
   }
 
-  get argumentName(): Tok | null {
+  get argumentName(): Token | null {
     return this._argumentName?.node ?? null
   }
 
@@ -203,12 +207,12 @@ export class App extends Ast {
   constructor(
     id: AstId | undefined,
     func: NodeChild<AstId>,
-    leftParen: NodeChild<Tok> | null,
-    name: NodeChild<Tok> | null,
-    equals: NodeChild<Tok> | null,
+    leftParen: NodeChild<Token> | null,
+    name: NodeChild<Token> | null,
+    equals: NodeChild<Token> | null,
     arg: NodeChild<AstId>,
-    rightParen: NodeChild<Tok> | null,
-    treeType: Tree.Type,
+    rightParen: NodeChild<Token> | null,
+    treeType: RawAst.Tree.Type,
   ) {
     super(id, treeType)
     this._func = func
@@ -230,11 +234,7 @@ export class App extends Ast {
   }
 }
 
-function positionalApp(
-  id: AstId | undefined,
-  func: NodeChild<AstId>,
-  arg: NodeChild<AstId>,
-): App {
+function positionalApp(id: AstId | undefined, func: NodeChild<AstId>, arg: NodeChild<AstId>): App {
   return new App(
     id,
     func,
@@ -243,27 +243,27 @@ function positionalApp(
     null,
     arg,
     null,
-    getNode(arg.node)?.code() === 'default' ? Tree.Type.DefaultApp : Tree.Type.App,
+    getNode(arg.node)?.code() === 'default' ? RawAst.Tree.Type.DefaultApp : RawAst.Tree.Type.App,
   )
 }
 
 function namedApp(
   id: AstId | undefined,
   func: NodeChild<AstId>,
-  leftParen: NodeChild<Tok> | null,
-  name: NodeChild<Tok>,
-  equals: NodeChild<Tok>, // Edits (#8367): NodeChild<Tok> | undefined
+  leftParen: NodeChild<Token> | null,
+  name: NodeChild<Token>,
+  equals: NodeChild<Token>, // Edits (#8367): NodeChild<Tok> | undefined
   arg: NodeChild<AstId>,
-  rightParen: NodeChild<Tok> | null,
+  rightParen: NodeChild<Token> | null,
 ) {
-  return new App(id, func, leftParen, name, equals, arg, rightParen, Tree.Type.NamedApp)
+  return new App(id, func, leftParen, name, equals, arg, rightParen, RawAst.Tree.Type.NamedApp)
 }
 
 export class UnaryOprApp extends Ast {
-  private _opr: NodeChild<Tok>
+  private _opr: NodeChild<Token>
   private _arg: NodeChild<AstId> | null
 
-  get operator(): Tok {
+  get operator(): Token {
     return this._opr.node
   }
 
@@ -272,12 +272,8 @@ export class UnaryOprApp extends Ast {
     return id ? getNode(id) : null
   }
 
-  constructor(
-    id: AstId | undefined,
-    opr: NodeChild<Tok>,
-    arg: NodeChild<AstId> | null,
-  ) {
-    super(id, Tree.Type.UnaryOprApp)
+  constructor(id: AstId | undefined, opr: NodeChild<Token>, arg: NodeChild<AstId> | null) {
+    super(id, RawAst.Tree.Type.UnaryOprApp)
     this._opr = opr
     this._arg = arg
   }
@@ -289,11 +285,7 @@ export class UnaryOprApp extends Ast {
 }
 
 export class NegationOprApp extends UnaryOprApp {
-  constructor(
-    id: AstId | undefined,
-    opr: NodeChild<Tok>,
-    arg: NodeChild<AstId> | null,
-  ) {
+  constructor(id: AstId | undefined, opr: NodeChild<Token>, arg: NodeChild<AstId> | null) {
     super(id, opr, arg)
   }
 }
@@ -307,9 +299,9 @@ export class OprApp extends Ast {
     return this._lhs ? getNode(this._lhs.node) : null
   }
 
-  get operator(): Result<Tok, NodeChild[]> {
+  get operator(): Result<Token, NodeChild[]> {
     const first = this._opr[0]?.node
-    if (first && this._opr.length < 2 && first instanceof Tok) {
+    if (first && this._opr.length < 2 && first instanceof Token) {
       return Ok(first)
     } else {
       return Err(this._opr)
@@ -326,7 +318,7 @@ export class OprApp extends Ast {
     opr: NodeChild[],
     rhs: NodeChild<AstId> | null,
   ) {
-    super(id, Tree.Type.OprApp)
+    super(id, RawAst.Tree.Type.OprApp)
     this._lhs = lhs
     this._opr = opr
     this._rhs = rhs
@@ -343,7 +335,7 @@ export class PropertyAccess extends OprApp {
   constructor(
     id: AstId | undefined,
     lhs: NodeChild<AstId> | null,
-    opr: NodeChild<Tok>,
+    opr: NodeChild<Token>,
     rhs: NodeChild<AstId> | null,
   ) {
     super(id, lhs, [opr], rhs)
@@ -354,7 +346,7 @@ export class PropertyAccess extends OprApp {
 export class Generic extends Ast {
   private readonly _children: NodeChild[]
 
-  constructor(id?: AstId, children?: NodeChild[], treeType?: Tree.Type) {
+  constructor(id?: AstId, children?: NodeChild[], treeType?: RawAst.Tree.Type) {
     super(id, treeType)
     this._children = children ?? []
   }
@@ -368,7 +360,7 @@ export class NumericLiteral extends Ast {
   private readonly _tokens: NodeChild[]
 
   constructor(id: AstId | undefined, tokens: NodeChild[]) {
-    super(id, Tree.Type.Number)
+    super(id, RawAst.Tree.Type.Number)
     this._tokens = tokens ?? []
   }
 
@@ -381,7 +373,7 @@ type FunctionArgument = NodeChild[]
 export class Function extends Ast {
   private _name: NodeChild<AstId>
   private _args: FunctionArgument[]
-  private _equals: NodeChild<Tok>
+  private _equals: NodeChild<Token>
   private _body: NodeChild<AstId> | null
   // FIXME for #8367: This should not be nullable. If the `ExprId` has been deleted, the same placeholder logic should be applied
   //  here and in `rawChildren` (and indirectly, `print`).
@@ -403,10 +395,10 @@ export class Function extends Ast {
     id: AstId | undefined,
     name: NodeChild<AstId>,
     args: FunctionArgument[],
-    equals: NodeChild<Tok>, // Edits (#8367): NodeChild<Tok> | undefined
+    equals: NodeChild<Token>, // Edits (#8367): NodeChild<Tok> | undefined
     body: NodeChild<AstId> | null,
   ) {
-    super(id, Tree.Type.Function)
+    super(id, RawAst.Tree.Type.Function)
     this._name = name
     this._args = args
     this._equals = equals
@@ -424,7 +416,7 @@ export class Function extends Ast {
 
 export class Assignment extends Ast {
   private _pattern: NodeChild<AstId>
-  private _equals: NodeChild<Tok>
+  private _equals: NodeChild<Token>
   private _expression: NodeChild<AstId>
   get pattern(): Ast | null {
     return getNode(this._pattern.node)
@@ -435,10 +427,10 @@ export class Assignment extends Ast {
   constructor(
     id: AstId | undefined,
     pattern: NodeChild<AstId>,
-    equals: NodeChild<Tok>, // TODO: Edits (#8367): Allow undefined
+    equals: NodeChild<Token>, // TODO: Edits (#8367): Allow undefined
     expression: NodeChild<AstId>,
   ) {
-    super(id, Tree.Type.Assignment)
+    super(id, RawAst.Tree.Type.Assignment)
     this._pattern = pattern
     this._equals = equals
     this._expression = expression
@@ -465,7 +457,7 @@ export class Assignment extends Ast {
 }
 
 type BlockLine = {
-  newline: NodeChild<Tok> // Edits (#8367): Allow undefined
+  newline: NodeChild<Token> // Edits (#8367): Allow undefined
   expression: NodeChild<AstId> | null
 }
 export class Block extends Ast {
@@ -485,7 +477,7 @@ export class Block extends Ast {
   }
 
   constructor(id: AstId | undefined, lines: BlockLine[]) {
-    super(id, Tree.Type.BodyBlock)
+    super(id, RawAst.Tree.Type.BodyBlock)
     this._lines = lines
   }
 
@@ -537,17 +529,17 @@ export class Block extends Ast {
 }
 
 export class Ident extends Ast {
-  public token: NodeChild<Tok>
+  public token: NodeChild<Token>
 
-  constructor(id: AstId | undefined, token: NodeChild<Tok>) {
-    super(id, Tree.Type.Ident)
+  constructor(id: AstId | undefined, token: NodeChild<Token>) {
+    super(id, RawAst.Tree.Type.Ident)
     this.token = token
   }
 
   // TODO: Edits (#8367)
   /*
   static new(id: AstId | undefined, code: string): Ident {
-    return Ident.fromToken(id, { node: token(code, Token.Type.Ident) })
+    return Ident.fromToken(id, { node: token(code, RawAst.Token.Type.Ident) })
   }
    */
 
@@ -557,10 +549,10 @@ export class Ident extends Ast {
 }
 
 export class Wildcard extends Ast {
-  public token: NodeChild<Tok>
+  public token: NodeChild<Token>
 
-  constructor(id: AstId | undefined, token: NodeChild<Tok>) {
-    super(id, Tree.Type.Wildcard)
+  constructor(id: AstId | undefined, token: NodeChild<Token>) {
+    super(id, RawAst.Tree.Type.Wildcard)
     this.token = token
   }
 
@@ -580,7 +572,7 @@ export class RawCode extends Ast {
   }
 
   static new(id: AstId | undefined, code: string): RawCode {
-    return new RawCode(id, { node: token(code, Token.Type.Ident) })
+    return new RawCode(id, { node: token(code, RawAst.Token.Type.Ident) })
   }
 
   *_rawChildren(): IterableIterator<NodeChild> {
@@ -590,7 +582,7 @@ export class RawCode extends Ast {
  */
 
 function abstract(
-  tree: Tree,
+  tree: RawAst.Tree,
   code: string,
   info: InfoMap | undefined,
 ): { whitespace: string | undefined; node: AstId } {
@@ -601,20 +593,20 @@ function abstract(
   return abstractTree(tree, code, nodesExpected, tokenIds)
 }
 function abstractTree(
-  tree: Tree,
+  tree: RawAst.Tree,
   code: string,
   nodesExpected: NodeSpanMap,
   tokenIds: TokenSpanMap,
 ): { whitespace: string | undefined; node: AstId } {
-  const recurseTree = (tree: Tree) => abstractTree(tree, code, nodesExpected, tokenIds)
-  const recurseToken = (token: Token.Token) => abstractToken(token, code, tokenIds)
+  const recurseTree = (tree: RawAst.Tree) => abstractTree(tree, code, nodesExpected, tokenIds)
+  const recurseToken = (token: RawAst.Token.Token) => abstractToken(token, code, tokenIds)
   let node
   const visitChildren = (tree: LazyObject) => {
     const children: NodeChild[] = []
     const visitor = (child: LazyObject) => {
-      if (Tree.isInstance(child)) {
+      if (RawAst.Tree.isInstance(child)) {
         children.push(recurseTree(child))
-      } else if (Token.isInstance(child)) {
+      } else if (RawAst.Token.isInstance(child)) {
         children.push(recurseToken(child))
       } else {
         child.visitChildren(visitor)
@@ -631,7 +623,7 @@ function abstractTree(
   // must pop the tree's span from the ID map *after* processing children.
   const spanKey = nodeKey(codeStart, codeEnd - codeStart, tree.type)
   switch (tree.type) {
-    case Tree.Type.BodyBlock: {
+    case RawAst.Tree.Type.BodyBlock: {
       const lines = Array.from(tree.statements, (line) => {
         const newline = recurseToken(line.newline)
         let expression = null
@@ -644,22 +636,21 @@ function abstractTree(
       node = new Block(id, lines)
       break
     }
-    case Tree.Type.Function: {
+    case RawAst.Tree.Type.Function: {
       const name = recurseTree(tree.name)
       const args = Array.from(tree.args, (arg) => visitChildren(arg))
       const equals = recurseToken(tree.equals)
-      const body =
-        tree.body !== undefined ? recurseTree(tree.body) : null
+      const body = tree.body !== undefined ? recurseTree(tree.body) : null
       const id = nodesExpected.get(spanKey)?.pop()
       node = new Function(id, name, args, equals, body)
       break
     }
-    case Tree.Type.Ident: {
+    case RawAst.Tree.Type.Ident: {
       const id = nodesExpected.get(spanKey)?.pop()
       node = new Ident(id, recurseToken(tree.token))
       break
     }
-    case Tree.Type.Assignment: {
+    case RawAst.Tree.Type.Assignment: {
       const pattern = recurseTree(tree.pattern)
       const equals = recurseToken(tree.equals)
       const value = recurseTree(tree.expr)
@@ -667,22 +658,24 @@ function abstractTree(
       node = new Assignment(id, pattern, equals, value)
       break
     }
-    case Tree.Type.App: {
+    case RawAst.Tree.Type.App: {
       const func = recurseTree(tree.func)
       const arg = recurseTree(tree.arg)
       const id = nodesExpected.get(spanKey)?.pop()
       node = positionalApp(id, func, arg)
       break
     }
-    case Tree.Type.DefaultApp: {
+    case RawAst.Tree.Type.DefaultApp: {
       const func = recurseTree(tree.func)
       const token = recurseToken(tree.default)
+      const argWhitespace = token.whitespace
+      token.whitespace = ''
       const arg = new Ident(undefined, token).exprId
       const id = nodesExpected.get(spanKey)?.pop()
-      node = positionalApp(id, func, { whitespace: token.whitespace, node: arg })
+      node = positionalApp(id, func, { whitespace: argWhitespace, node: arg })
       break
     }
-    case Tree.Type.NamedApp: {
+    case RawAst.Tree.Type.NamedApp: {
       const func = recurseTree(tree.func)
       const leftParen = tree.open ? recurseToken(tree.open) : null
       const name = recurseToken(tree.name)
@@ -693,7 +686,7 @@ function abstractTree(
       node = namedApp(id, func, leftParen, name, equals, arg, rightParen)
       break
     }
-    case Tree.Type.UnaryOprApp: {
+    case RawAst.Tree.Type.UnaryOprApp: {
       const opr = recurseToken(tree.opr)
       const arg = tree.rhs ? recurseTree(tree.rhs) : null
       const id = nodesExpected.get(spanKey)?.pop()
@@ -704,14 +697,14 @@ function abstractTree(
       }
       break
     }
-    case Tree.Type.OprApp: {
+    case RawAst.Tree.Type.OprApp: {
       const lhs = tree.lhs ? recurseTree(tree.lhs) : null
       const opr = tree.opr.ok
         ? [recurseToken(tree.opr.value)]
         : visitChildren(tree.opr.error.payload)
       const rhs = tree.rhs ? recurseTree(tree.rhs) : null
       const id = nodesExpected.get(spanKey)?.pop()
-      if (opr.length === 1 && opr[0]?.node instanceof Tok && opr[0].node.code() === '.') {
+      if (opr.length === 1 && opr[0]?.node instanceof Token && opr[0].node.code() === '.') {
         // Propagate inferred type.
         const token = { whitespace: opr[0].whitespace, node: opr[0].node }
         node = new PropertyAccess(id, lhs, token, rhs)
@@ -720,12 +713,12 @@ function abstractTree(
       }
       break
     }
-    case Tree.Type.Number: {
+    case RawAst.Tree.Type.Number: {
       const id = nodesExpected.get(spanKey)?.pop()
       node = new NumericLiteral(id, visitChildren(tree))
       break
     }
-    case Tree.Type.Wildcard: {
+    case RawAst.Tree.Type.Wildcard: {
       const token = recurseToken(tree.token)
       const id = nodesExpected.get(spanKey)?.pop()
       node = new Wildcard(id, token)
@@ -741,10 +734,10 @@ function abstractTree(
 }
 
 function abstractToken(
-  token: Token,
+  token: RawAst.Token,
   code: string,
   tokenIds: TokenSpanMap,
-): { whitespace: string; node: Tok } {
+): { whitespace: string; node: Token } {
   const whitespaceStart = token.whitespaceStartInCodeBuffer
   const whitespaceEnd = whitespaceStart + token.whitespaceLengthInCodeBuffer
   const whitespace = code.substring(whitespaceStart, whitespaceEnd)
@@ -754,13 +747,13 @@ function abstractToken(
   const span = { start: codeStart, end: codeEnd, whitespaceLength: whitespaceEnd - whitespaceStart }
   const key = tokenKey(codeStart, codeEnd - codeStart)
   const exprId = tokenIds.get(key) ?? newTokenId()
-  const node = new Tok(tokenCode, exprId, token.type)
+  const node = new Token(tokenCode, exprId, token.type)
   return { whitespace, node }
 }
 
 type NodeKey = string
 type TokenKey = string
-function nodeKey(start: number, length: number, type: Tree.Type | undefined): NodeKey {
+function nodeKey(start: number, length: number, type: RawAst.Tree.Type | undefined): NodeKey {
   const type_ = type?.toString() ?? '?'
   return `${start}:${length}:${type_}`
 }
@@ -792,7 +785,7 @@ export function print(ast: Ast): PrintedSource {
 type DebugTree = (DebugTree | string)[]
 export function debug(root: Ast, universe?: Map<AstId, Ast>): DebugTree {
   return Array.from(root._rawChildren(), (child) => {
-    if (child.node instanceof Tok) {
+    if (child.node instanceof Token) {
       return child.node.code()
     } else {
       const node = (universe ?? edited).get(child.node)
@@ -870,14 +863,14 @@ export function parseTransitional(code: string, idMap: IdMap): Ast {
   const nodes = new Map<NodeKey, AstId[]>()
   const tokens = new Map<TokenKey, TokenId>()
   astExtended.clear()
-  legacyAst.visitRecursive((nodeOrToken: RawAstExtended<Tree | Token>) => {
+  legacyAst.visitRecursive((nodeOrToken: RawAstExtended<RawAst.Tree | RawAst.Token>) => {
     const start = nodeOrToken.span()[0]
     const length = nodeOrToken.span()[1] - nodeOrToken.span()[0]
     if (nodeOrToken.isToken()) {
-      const token: RawAstExtended<Token> = nodeOrToken
+      const token: RawAstExtended<RawAst.Token> = nodeOrToken
       tokens.set(tokenKey(start, length), token.astId as TokenId)
     } else if (nodeOrToken.isTree()) {
-      const node: RawAstExtended<Tree> = nodeOrToken
+      const node: RawAstExtended<RawAst.Tree> = nodeOrToken
       let id = node.astId as AstId
       if (astExtended.has(id)) {
         id = newNodeId()
@@ -898,11 +891,15 @@ export function parseTransitional(code: string, idMap: IdMap): Ast {
   return newRoot
 }
 
+export function parse(source: PrintedSource | string): Ast {
+  return Ast.parse(source)
+}
+
 declare const AstKey: unique symbol
 declare const TokenKey: unique symbol
 declare module '@/providers/widgetRegistry' {
   export interface WidgetInputTypes {
     [AstKey]: Ast
-    [TokenKey]: Tok
+    [TokenKey]: Token
   }
 }

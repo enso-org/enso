@@ -46,7 +46,10 @@ export type EditingContext =
       oprApp?: GeneralOprApp<false>
     }
   // Suggestion should replace given literal.
-  | { type: 'changeLiteral'; literal: RawAstExtended<RawAst.Tree.TextLiteral | RawAst.Tree.Number, false> }
+  | {
+      type: 'changeLiteral'
+      literal: RawAstExtended<RawAst.Tree.TextLiteral | RawAst.Tree.Number, false>
+    }
 
 /** An atomic change to the user input. */
 interface Change {
@@ -85,7 +88,10 @@ export function useComponentBrowserInput(
       case RawAst.Tree.Type.Number:
         return {
           type: 'changeLiteral',
-          literal: leaf.value as RawAstExtended<RawAst.Tree.TextLiteral | RawAst.Tree.Number, false>,
+          literal: leaf.value as RawAstExtended<
+            RawAst.Tree.TextLiteral | RawAst.Tree.Number,
+            false
+          >,
         }
       default:
         return {
