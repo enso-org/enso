@@ -58,6 +58,19 @@ export class AstExtended<T extends Tree | Token = Tree | Token, HasIdMap extends
     return new AstExtended(ast, ctx)
   }
 
+  public static parseLine(code: string): AstExtended<Tree, false> {
+    const block = AstExtended.parse(code)
+    assert(block.isTree(Tree.Type.BodyBlock))
+    return block.map((block) => {
+      const statements = block.statements[Symbol.iterator]()
+      const firstLine = statements.next()
+      assert(!firstLine.done)
+      assert(!!statements.next().done)
+      assert(firstLine.value.expression != null)
+      return firstLine.value.expression
+    })
+  }
+
   treeTypeName(): (typeof Tree.typeNames)[number] | null {
     return Tree.isInstance(this.inner) ? Tree.typeNames[this.inner.type] : null
   }
@@ -116,6 +129,20 @@ export class AstExtended<T extends Tree | Token = Tree | Token, HasIdMap extends
     return new AstExtended(mapper(this.inner), this.ctx)
   }
 
+  mapIter<T2 extends Tree | Token>(
+    mapper: (t: T) => Iterable<T2>,
+  ): Iterable<AstExtended<T2, HasIdMap>> {
+    return [...mapper(this.inner)].map((m) => new AstExtended(m, this.ctx))
+  }
+
+  tryMapIter<T2 extends Tree | Token>(
+    mapper: (t: T) => Iterable<Opt<T2>>,
+  ): Iterable<AstExtended<T2, HasIdMap> | undefined> {
+    return [...mapper(this.inner)].map((m) =>
+      m != null ? new AstExtended(m, this.ctx) : undefined,
+    )
+  }
+
   repr() {
     return readAstOrTokenSpan(this.inner, this.ctx.parsedCode)
   }
@@ -150,8 +177,20 @@ export class AstExtended<T extends Tree | Token = Tree | Token, HasIdMap extends
     }
   }
 
+  /**
+   * Recursively visit AST nodes in depth-first order. The children of a node will be skipped when
+   * `visit` callback returns `false`.
+   *
+   * @param node Root node of the tree to walk. It will be visited first.
+   * @param visit Callback that is called for each node. If it returns `false`, the children of that
+   * node will be skipped, and the walk will continue to the next sibling.
+   */
   visitRecursive(visitor: (t: AstExtended<Tree | Token, HasIdMap>) => boolean) {
     visitGenerator(this.walkRecursive(), visitor)
+  }
+
+  get parsedCode() {
+    return this.ctx.parsedCode
   }
 }
 

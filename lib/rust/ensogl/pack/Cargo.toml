@@ -11,12 +11,8 @@ crate-type = ["rlib"]
 futures = { version = "0.3" }
 ide-ci = { path = "../../../../build/ci_utils" }
 manifest-dir-macros = "0.1.16"
-regex = { workspace = true }
-serde = { version = "1.0.130", features = ["derive"] }
+serde = { workspace = true }
 serde_json = { workspace = true }
-tempfile = "3"
 tokio = { workspace = true }
-fs_extra = "1.2.0"
 walkdir = "2"
-enso-bitmap = { path = "../../bitmap" }
 enso-prelude = { path = "../../prelude" }

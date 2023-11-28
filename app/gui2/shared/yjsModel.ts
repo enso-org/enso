@@ -126,13 +126,22 @@ export class DistributedModule {
     this.undoManager = new Y.UndoManager([this.doc.contents, this.doc.idMap, this.doc.metadata])
   }
 
-  insertNewNode(offset: number, pattern: string, expression: string, meta: NodeMetadata): ExprId {
+  insertNewNode(
+    offset: number,
+    pattern: string,
+    expression: string,
+    meta: NodeMetadata,
+    withImport?: { str: string; offset: number },
+  ): ExprId {
     // Spaces at the beginning are needed to place the new node in scope of the `main` function with proper indentation.
     const lhs = `    ${pattern} = `
     const content = lhs + expression
     const range = [offset + lhs.length, offset + content.length] as const
     const newId = random.uuidv4() as ExprId
     this.transact(() => {
+      if (withImport) {
+        this.doc.contents.insert(withImport.offset, withImport.str + '\n')
+      }
       this.doc.contents.insert(offset, content + '\n')
       const start = Y.createRelativePositionFromTypeIndex(this.doc.contents, range[0], -1)
       const end = Y.createRelativePositionFromTypeIndex(this.doc.contents, range[1])
@@ -375,6 +384,10 @@ export function isUuid(x: unknown): x is Uuid {
 
 /** A range represented as start and end indices. */
 export type ContentRange = [number, number]
+
+export function rangeEquals(a: ContentRange, b: ContentRange): boolean {
+  return a[0] == b[0] && a[1] == b[1]
+}
 
 export function rangeEncloses(a: ContentRange, b: ContentRange): boolean {
   return a[0] <= b[0] && a[1] >= b[1]

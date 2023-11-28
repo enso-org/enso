@@ -1,4 +1,4 @@
-/** @file Provides an {@link AuthService} which consists of an underyling {@link Cognito} API
+/** @file Provides an {@link AuthService} which consists of an underyling `Cognito` API
  * wrapper, along with some convenience callbacks to make URL redirects for the authentication flows
  * work with Electron. */
 import * as amplify from '@aws-amplify/auth'
@@ -193,7 +193,7 @@ function saveAccessToken(accessToken: string | null) {
  * handle the redirect for us. On the desktop however, we need to handle the redirect ourselves,
  * because it's a deep link into the app, and Amplify doesn't handle deep links.
  *
- * All URLs that don't have a pathname that starts with {@link AUTHENTICATION_PATHNAME_BASE} will be
+ * All URLs that don't have a pathname that starts with `AUTHENTICATION_PATHNAME_BASE` will be
  * ignored by this handler. */
 function setDeepLinkHandler(logger: loggerProvider.Logger, navigate: (url: string) => void) {
     const onDeepLink = (url: string) => {

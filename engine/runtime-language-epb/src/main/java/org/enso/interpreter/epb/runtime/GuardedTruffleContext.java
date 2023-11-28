@@ -35,7 +35,7 @@ public class GuardedTruffleContext {
    * @param run code to execute in given TruffleContext
    */
   public Thread createThread(TruffleLanguage.Env env, Consumer<TruffleContext> run) {
-    return env.createThread(() -> run.accept(context), context);
+    return env.newTruffleThreadBuilder(() -> run.accept(context)).context(context).build();
   }
 
   /**

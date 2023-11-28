@@ -23,7 +23,6 @@ import * as paths from 'paths'
  * The path of the log file is {@link generateUniqueLogFileName automatically generated}.
  *
  * The log file is created in the {@link paths.LOGS_DIRECTORY logs directory}
- *
  * @returns The full path of the log file. */
 export function addFileLog(): string {
     const dirname = paths.LOGS_DIRECTORY
@@ -35,7 +34,6 @@ export function addFileLog(): string {
 }
 
 /** Generate a unique log file name based on the current timestamp.
- *
  * @returns The file name log file. */
 export function generateUniqueLogFileName(): string {
     // Replace ':' with '-' because ':' is not allowed in file names.
@@ -54,7 +52,6 @@ export class FileConsumer extends linkedDist.Consumer {
     private readonly logFileHandle: number
 
     /** Create a log consumer that writes to a file.
-     *
      * @param logPath - The path of the log file. Must be writeable. */
     constructor(logPath: string) {
         super()

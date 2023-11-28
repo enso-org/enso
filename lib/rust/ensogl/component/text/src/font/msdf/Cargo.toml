@@ -16,7 +16,7 @@ failure = { workspace = true }
 js-sys = { workspace = true }
 nalgebra = { workspace = true }
 wasm-bindgen = { workspace = true }
-serde = { version = "1", features = ["rc", "derive"] }
+serde = { workspace = true }
 owned_ttf_parser = { workspace = true }
 enso-web = { path = "../../../../../../web" }
 
