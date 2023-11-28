@@ -13,7 +13,7 @@ import org.enso.compiler.core.ir.{
 }
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
-import org.enso.compiler.core.ir.MetadataStorage.ToPair
+import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.{
@@ -151,7 +151,7 @@ case object GlobalNames extends IRPass {
     ir.transformExpressions {
       case selfTp: Name.SelfType =>
         selfTypeResolution
-          .map(res => selfTp.updateMetadata(this -->> res))
+          .map(res => selfTp.updateMetadata(new MetadataPair(this, res)))
           .getOrElse(
             errors.Resolution(
               selfTp,
@@ -168,7 +168,9 @@ case object GlobalNames extends IRPass {
                     FullyQualifiedNames.ResolvedModule(modRef)
                   )
                 ) =>
-              lit.updateMetadata(this -->> Resolution(ResolvedModule(modRef)))
+              lit.updateMetadata(
+                new MetadataPair(this, Resolution(ResolvedModule(modRef)))
+              )
             case _ =>
               if (!lit.isMethod && !isLocalVar(lit)) {
                 val resolution = bindings.resolveName(lit.name)
@@ -180,13 +182,18 @@ case object GlobalNames extends IRPass {
                     )
                   case Right(r @ BindingsMap.ResolvedMethod(mod, method)) =>
                     if (isInsideApplication) {
-                      lit.updateMetadata(this -->> BindingsMap.Resolution(r))
+                      lit.updateMetadata(
+                        new MetadataPair(this, BindingsMap.Resolution(r))
+                      )
                     } else {
                       val self = freshNameSupply
                         .newName()
                         .updateMetadata(
-                          this -->> BindingsMap.Resolution(
-                            BindingsMap.ResolvedModule(mod)
+                          new MetadataPair(
+                            this,
+                            BindingsMap.Resolution(
+                              BindingsMap.ResolvedModule(mod)
+                            )
                           )
                         )
                       // The synthetic applications gets the location so that instrumentation
@@ -205,14 +212,19 @@ case object GlobalNames extends IRPass {
                         .getMetadata(ExpressionAnnotations)
                         .foreach(annotationsMeta =>
                           app.updateMetadata(
-                            ExpressionAnnotations -->> annotationsMeta
+                            new MetadataPair(
+                              ExpressionAnnotations,
+                              annotationsMeta
+                            )
                           )
                         )
                       fun.passData.remove(ExpressionAnnotations)
                       app
                     }
                   case Right(value) =>
-                    lit.updateMetadata(this -->> BindingsMap.Resolution(value))
+                    lit.updateMetadata(
+                      new MetadataPair(this, BindingsMap.Resolution(value))
+                    )
                 }
 
               } else {
@@ -288,8 +300,11 @@ case object GlobalNames extends IRPass {
         val self = freshNameSupply
           .newName()
           .updateMetadata(
-            this -->> BindingsMap.Resolution(
-              BindingsMap.ResolvedModule(mod)
+            new MetadataPair(
+              this,
+              BindingsMap.Resolution(
+                BindingsMap.ResolvedModule(mod)
+              )
             )
           )
         val selfArg = CallArgument.Specified(None, self, None)
@@ -374,7 +389,7 @@ case object GlobalNames extends IRPass {
   ): Expression = {
     freshNameSupply
       .newName()
-      .updateMetadata(this -->> BindingsMap.Resolution(cons))
+      .updateMetadata(new MetadataPair(this, BindingsMap.Resolution(cons)))
   }
 
   private def resolveQualName(

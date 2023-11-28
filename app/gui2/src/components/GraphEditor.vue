@@ -8,7 +8,10 @@ import {
   previousNodeDictatedPlacement,
   type Environment,
 } from '@/components/ComponentBrowser/placement.ts'
+import GraphEdges from '@/components/GraphEditor/GraphEdges.vue'
+import GraphNodes from '@/components/GraphEditor/GraphNodes.vue'
 import { Uploader, uploadedExpression } from '@/components/GraphEditor/upload'
+import GraphMouse from '@/components/GraphMouse.vue'
 import PlusButton from '@/components/PlusButton.vue'
 import TopBar from '@/components/TopBar.vue'
 import { provideGraphNavigator } from '@/providers/graphNavigator'
@@ -26,9 +29,6 @@ import { Vec2 } from '@/util/vec2'
 import * as set from 'lib0/set'
 import type { ExprId, NodeMetadata } from 'shared/yjsModel.ts'
 import { computed, onMounted, ref, watch } from 'vue'
-import GraphEdges from './GraphEditor/GraphEdges.vue'
-import GraphNodes from './GraphEditor/GraphNodes.vue'
-import GraphMouse from './GraphMouse.vue'
 
 const EXECUTION_MODES = ['design', 'live']
 // Difference in position between the component browser and a node for the input of the component browser to
@@ -110,12 +110,13 @@ function targetComponentBrowserPosition() {
 /** The current position of the component browser. */
 const componentBrowserPosition = ref<Vec2>(Vec2.Zero)
 
-function sourceNodeForSelection() {
+function sourcePortForSelection() {
   if (graphStore.editedNodeInfo != null) return undefined
-  return nodeSelection.selected.values().next().value
+  const firstSelectedNode = set.first(nodeSelection.selected)
+  return graphStore.db.getNodeFirstOutputPort(firstSelectedNode)
 }
 
-const componentBrowserSourceNode = ref<ExprId | undefined>(sourceNodeForSelection())
+const componentBrowserSourcePort = ref<ExprId | undefined>(sourcePortForSelection())
 
 useEvent(window, 'keydown', (event) => {
   interactionBindingsHandler(event) || graphBindingsHandler(event) || codeEditorHandler(event)
@@ -130,6 +131,12 @@ const graphBindingsHandler = graphBindings.handler({
   },
   redo() {
     projectStore.module?.undoManager.redo()
+  },
+  startProfiling() {
+    projectStore.lsRpcConnection.then((ls) => ls.profilingStart(true))
+  },
+  stopProfiling() {
+    projectStore.lsRpcConnection.then((ls) => ls.profilingStop())
   },
   openComponentBrowser() {
     if (keyboardBusy()) return false
@@ -231,7 +238,7 @@ interaction.setWhen(nodeIsBeingEdited, editingNode)
 const creatingNode: Interaction = {
   init: () => {
     componentBrowserInputContent.value = ''
-    componentBrowserSourceNode.value = sourceNodeForSelection()
+    componentBrowserSourcePort.value = sourcePortForSelection()
     componentBrowserPosition.value = targetComponentBrowserPosition()
     componentBrowserVisible.value = true
   },
@@ -419,7 +426,7 @@ async function readNodeFromClipboard() {
 }
 
 function handleNodeOutputPortDoubleClick(id: ExprId) {
-  componentBrowserSourceNode.value = id
+  componentBrowserSourcePort.value = id
   const placementEnvironment = environmentForNodes([id].values())
   componentBrowserPosition.value = previousNodeDictatedPlacement(
     DEFAULT_NODE_SIZE,
@@ -436,7 +443,7 @@ function handleNodeOutputPortDoubleClick(id: ExprId) {
 <template>
   <div
     ref="viewportNode"
-    class="GraphEditor"
+    class="GraphEditor viewport"
     :class="{ draggingEdge: graphStore.unconnectedEdge != null }"
     :style="groupColors"
     v-on.="graphNavigator.events"
@@ -458,7 +465,7 @@ function handleNodeOutputPortDoubleClick(id: ExprId) {
       :position="componentBrowserPosition"
       :initialContent="componentBrowserInputContent"
       :initialCaretPosition="graphStore.editedNodeInfo?.range ?? [0, 0]"
-      :sourceNode="componentBrowserSourceNode"
+      :sourcePort="componentBrowserSourcePort"
       @accepted="onComponentBrowserCommit"
       @closed="onComponentBrowserCancel"
       @canceled="onComponentBrowserCancel"

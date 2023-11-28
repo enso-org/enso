@@ -26,7 +26,7 @@ interface NewtypeVariant<TypeName extends string> {
 export type Newtype<T, TypeName extends string> = NewtypeVariant<TypeName> & T
 
 /** Extracts the original type out of a {@link Newtype}.
- * Its only use is in {@link asNewtype}. */
+ * Its only use is in {@link newtypeConstructor}. */
 type UnNewtype<T extends Newtype<unknown, string>> = T extends infer U & NewtypeVariant<T['_$type']>
     ? U
     : NotNewtype & Omit<T, '_$type'>

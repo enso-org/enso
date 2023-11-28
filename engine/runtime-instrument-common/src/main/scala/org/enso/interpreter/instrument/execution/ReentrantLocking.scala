@@ -99,6 +99,12 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
   override def releaseWriteCompilationLock(): Unit =
     compilationLock.writeLock().unlock()
 
+  override def assertWriteCompilationLock(): Unit =
+    assert(
+      compilationLock.writeLock().isHeldByCurrentThread,
+      "should already held write compilation lock during the operation"
+    )
+
   /** @inheritdoc */
   override def acquireReadCompilationLock(): Long = {
     // CloseFileCmd does:

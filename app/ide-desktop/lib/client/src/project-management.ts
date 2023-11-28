@@ -31,7 +31,6 @@ const logger = config.logger
 /** Open a project from the given path. Path can be either a source file under the project root,
  * or the project bundle. If needed, the project will be imported into the Project Manager-enabled
  * location.
- *
  * @returns Project ID (from Project Manager's metadata) identifying the imported project.
  * @throws {Error} if the path does not belong to a valid project. */
 export function importProjectFromPath(openedPath: string): string {
@@ -62,7 +61,6 @@ export function importProjectFromPath(openedPath: string): string {
 }
 
 /** Import the project from a bundle.
- *
  * @returns Project ID (from Project Manager's metadata) identifying the imported project. */
 export function importBundle(bundlePath: string): string {
     logger.log(`Importing project '${bundlePath}' from bundle.`)
@@ -140,7 +138,6 @@ export async function uploadBundle(bundle: stream.Readable): Promise<string> {
 }
 
 /** Import the project so it becomes visible to the Project Manager.
- *
  * @param rootPath - The path to the project root.
  * @returns The project ID (from the Project Manager's metadata) identifying the imported project.
  * @throws {Error} if a race condition occurs when generating a unique project directory name. */
@@ -191,7 +188,6 @@ interface ProjectMetadata {
  * This function checks if the input object has the required properties and correct types
  * to match the {@link ProjectMetadata} interface. It can be used at runtime to validate that
  * a given object has the expected shape.
- *
  * @param value - The object to check against the ProjectMetadata interface.
  * @returns A boolean value indicating whether the object matches
  * the {@link ProjectMetadata} interface. */

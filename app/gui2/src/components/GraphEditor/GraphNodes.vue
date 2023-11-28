@@ -19,7 +19,7 @@ const selection = injectGraphSelection(true)
 const navigator = injectGraphNavigator(true)
 
 const emit = defineEmits<{
-  nodeOutputPortDoubleClick: [nodeId: ExprId]
+  nodeOutputPortDoubleClick: [portId: ExprId]
 }>()
 
 function updateNodeContent(id: ExprId, updates: [ContentRange, string][]) {
@@ -63,8 +63,8 @@ const uploadingFiles = computed<[FileName, File][]>(() => {
     @pointerleave="hoverNode(undefined)"
     @dragging="nodeIsDragged(id, $event)"
     @draggingCommited="dragging.finishDrag()"
-    @outputPortClick="graphStore.createEdgeFromOutput(id)"
-    @outputPortDoubleClick="emit('nodeOutputPortDoubleClick', id)"
+    @outputPortClick="graphStore.createEdgeFromOutput"
+    @outputPortDoubleClick="emit('nodeOutputPortDoubleClick', $event)"
   />
   <UploadingFile
     v-for="(nameAndFile, index) in uploadingFiles"

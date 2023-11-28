@@ -19,7 +19,7 @@ interface SessionContextType {
     deinitializeSession: () => void
 }
 
-/** See {@link AuthContext} for safety details. */
+/** See `AuthContext` for safety details. */
 const SessionContext = React.createContext<SessionContextType>(
     // eslint-disable-next-line no-restricted-syntax
     {} as SessionContextType

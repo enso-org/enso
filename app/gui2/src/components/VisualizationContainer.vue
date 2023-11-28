@@ -135,7 +135,7 @@ const resizeBottomRight = usePointer((pos, _, type) => {
             @pointerdown.stop="config.hide()"
             @click="config.hide()"
           >
-            <SvgIcon class="icon" name="eye" />
+            <SvgIcon class="icon" name="eye" alt="Hide visualization" />
           </button>
         </div>
         <div class="toolbar">
@@ -146,7 +146,11 @@ const resizeBottomRight = usePointer((pos, _, type) => {
               isTriggeredByKeyboard($event) && (config.fullscreen = !config.fullscreen)
             "
           >
-            <SvgIcon class="icon" :name="config.fullscreen ? 'exit_fullscreen' : 'fullscreen'" />
+            <SvgIcon
+              class="icon"
+              :name="config.fullscreen ? 'exit_fullscreen' : 'fullscreen'"
+              :alt="config.fullscreen ? 'Exit fullscreen' : 'Enter fullscreen'"
+            />
           </button>
           <div class="icon-container">
             <button
@@ -156,7 +160,13 @@ const resizeBottomRight = usePointer((pos, _, type) => {
                 isTriggeredByKeyboard($event) && (isSelectorVisible = !isSelectorVisible)
               "
             >
-              <SvgIcon class="icon" :name="config.icon ?? 'columns_increasing'" />
+              <SvgIcon
+                class="icon"
+                :name="config.icon ?? 'columns_increasing'"
+                :alt="
+                  isSelectorVisible ? 'Hide visualization selector' : 'Show visualization selector'
+                "
+              />
             </button>
             <VisualizationSelector
               v-if="isSelectorVisible"
