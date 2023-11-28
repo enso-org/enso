@@ -132,6 +132,12 @@ const graphBindingsHandler = graphBindings.handler({
   redo() {
     projectStore.module?.undoManager.redo()
   },
+  startProfiling() {
+    projectStore.lsRpcConnection.then((ls) => ls.profilingStart(true))
+  },
+  stopProfiling() {
+    projectStore.lsRpcConnection.then((ls) => ls.profilingStop())
+  },
   openComponentBrowser() {
     if (keyboardBusy()) return false
     if (graphNavigator.sceneMousePos != null && !componentBrowserVisible.value) {
