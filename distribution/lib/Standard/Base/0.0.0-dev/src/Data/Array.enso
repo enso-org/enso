@@ -362,8 +362,8 @@ type Array
     map self function on_problems=Problem_Behavior.Report_Error = Vector.map self function on_problems
 
     ## PRIVATE
-       Implementation of `map` that uses `vector_from_function_primitive`, which
-       does not do error wrapping.
+       Implementation of `map` that does not do error wrapping, and does not
+       take an `on_problems` parameter.
     map_primitive : (Any -> Any) -> Vector Any
     map_primitive self function = Vector.map_primitive self function
 
@@ -387,8 +387,8 @@ type Array
     flat_map self function = Vector.flat_map self function
 
     ## PRIVATE
-       Implementation of `flat_map` that uses `vector_from_function_primitive`, which
-       does not do error wrapping, and does not have `on_problems`.
+       Implementation of `flat_map` that does not do error wrapping, and does
+       not take an `on_problems` parameter.
     flat_map_primitive : (Any -> Vector Any) -> Vector Any
     flat_map_primitive self function = Vector.flat_map_primitive self function
 
@@ -572,9 +572,8 @@ type Array
     map_with_index self function = Vector.map_with_index self function
 
     ## PRIVATE
-       Implementation of `map_with_primitive` that
-       uses`vector_from_function_primitive`, which does not do error wrapping,
-       and does not have `on_problems`.
+       Implementation of `map_with_index` that does not do error wrapping, and
+       does not take an `on_problems` parameter.
     map_with_index_primitive : (Any -> Any) -> Vector Any
     map_with_index_primitive self function = Vector.map_with_index_primitive self function
 
@@ -773,8 +772,8 @@ type Array
     zip self that:Vector function=[_,_] = Vector.zip self that function
 
     ## PRIVATE
-       Implementation of `zip` that uses `vector_from_function_primitive`, which
-       does not do error wrapping, and does not have `on_problems`.
+       Implementation of `zip` that does not do error wrapping, and does not
+       take an `on_problems` parameter.
     zip_primitive : Vector Any -> (Any -> Any -> Any) -> Vector Any
     zip_primitive self that function=[_,_] = Vector.zip_primitive self that function
 

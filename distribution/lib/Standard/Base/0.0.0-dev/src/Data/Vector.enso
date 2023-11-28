@@ -613,8 +613,8 @@ type Vector a
         Array_Like_Helpers.vector_from_function self.length (function << self.at) on_problems
 
     ## PRIVATE
-       Implementation of `map` that uses `vector_from_function_primitive`, which
-       does not do error wrapping, and does not have `on_problems`.
+       Implementation of `map` that does not do error wrapping, and does not
+       take an `on_problems` parameter.
     map_primitive : (Any -> Any) -> Vector Any
     map_primitive self function =
         Array_Like_Helpers.vector_from_function_primitive self.length (function << self.at)
@@ -640,8 +640,8 @@ type Vector a
         self.map function . flatten
 
     ## PRIVATE
-       Implementation of `flat_map` that uses `vector_from_function_primitive`, which
-       does not do error wrapping, and does not have `on_problems`.
+       Implementation of `flat_map` that does not do error wrapping, and does
+       not take an `on_problems` parameter.
     flat_map_primitive : (Any -> Vector Any) -> Vector Any
     flat_map_primitive self function =
         self.map_primitive function . flatten
@@ -681,9 +681,8 @@ type Vector a
         Array_Like_Helpers.vector_from_function self.length (i-> function i (self.at i))
 
     ## PRIVATE
-       Implementation of `map_with_primitive` that
-       uses`vector_from_function_primitive`, which does not do error wrapping,
-       and does not have `on_problems`.
+       Implementation of `map_with_index` that does not do error wrapping, and
+       does not take an `on_problems` parameter.
     map_with_index_primitive : (Any -> Any) -> Vector Any
     map_with_index_primitive self function =
         Array_Like_Helpers.vector_from_function_primitive self.length (i-> function i (self.at i))
@@ -943,8 +942,8 @@ type Vector a
         Array_Like_Helpers.vector_from_function len (i-> function (self.at i) (that.at i))
 
     ## PRIVATE
-       Implementation of `zip` that uses `vector_from_function_primitive`, which
-       does not do error wrapping, and does not have `on_problems`.
+       Implementation of `zip` that does not do error wrapping, and does not
+       take an `on_problems` parameter.
     zip_primitive : Vector Any -> (Any -> Any -> Any) -> Vector Any
     zip_primitive self that function=[_,_] =
         len = self.length.min that.length
