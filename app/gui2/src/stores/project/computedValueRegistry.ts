@@ -1,6 +1,5 @@
 import type { ExecutionContext } from '@/stores/project'
 import { ReactiveDb, ReactiveIndex } from '@/util/database/reactiveDb'
-import { ObservableV2 } from 'lib0/observable'
 import type {
   ExpressionId,
   ExpressionUpdate,
@@ -17,26 +16,17 @@ export interface ExpressionInfo {
   profilingInfo: ProfilingInfo[]
 }
 
-type ComputedValueRegistryEvents = {
-  update: (
-    update: ExpressionUpdate,
-    oldInfo: ExpressionInfo | undefined,
-    newInfo: ExpressionInfo,
-  ) => void
-}
-
 class ComputedValueDb extends ReactiveDb<ExpressionId, ExpressionInfo> {
   type = new ReactiveIndex(this, (id, info) => [[id, info.payload.type]])
 }
 
 /** This class holds the computed values that have been received from the language server. */
-export class ComputedValueRegistry extends ObservableV2<ComputedValueRegistryEvents> {
+export class ComputedValueRegistry {
   public db = new ComputedValueDb()
   private _updateHandler = this.processUpdates.bind(this)
   private executionContext: ExecutionContext | undefined
 
   private constructor() {
-    super()
     markRaw(this)
   }
 
@@ -55,7 +45,6 @@ export class ComputedValueRegistry extends ObservableV2<ComputedValueRegistryEve
     for (const update of updates) {
       const info = this.db.get(update.expressionId)
       const newInfo = combineInfo(info, update)
-      this.emit('update', [update, info, newInfo])
       this.db.set(update.expressionId, newInfo)
     }
   }
