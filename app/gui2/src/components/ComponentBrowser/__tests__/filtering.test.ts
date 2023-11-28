@@ -20,15 +20,21 @@ test.each([
   { ...makeStaticMethod('Standard.Base.Data.Vector.Vector.new'), groupIndex: 1 },
   makeModule('local.New_Project'),
   makeModule('Standard.Base.Data'),
+  makeModuleMethod('Standard.Base.Data.read_text'),
+  makeStaticMethod('local.Project.Foo.new'),
+  makeStaticMethod('local.Project.Internalization.internalize'),
 ])('$name entry is in the CB main view', (entry) => {
   const filtering = new Filtering({})
   expect(filtering.filter(entry)).not.toBeNull()
 })
 
 test.each([
-  makeModuleMethod('Standard.Base.Data.convert'), // not in group
+  makeModuleMethod('Standard.Base.Data.Vector.some_method'), // not in top group
   { ...makeMethod('Standard.Base.Data.Vector.Vector.get'), groupIndex: 1 }, // not static method
   makeModule('Standard.Base.Data.Vector'), // Not top module
+  makeStaticMethod('Standard.Base.Internal.Foo.bar'), // Internal method
+  makeModule('Standard.Base.Internal'), // Internal module
+  makeModule('Standard.Internal.Foo'), // Internal project
 ])('$name entry is not in the CB main view', (entry) => {
   const filtering = new Filtering({})
   expect(filtering.filter(entry)).toBeNull()
@@ -61,6 +67,18 @@ test.each([
   const substringFiltering = new Filtering({ qualifiedNamePattern: 'local.Proj.Mod' })
   expect(filtering.filter(entry)).toBeNull()
   expect(substringFiltering.filter(entry)).toBeNull()
+})
+
+test('Internal entry is not in the Standard.Base.Data content', () => {
+  const entry = makeModule('Standard.Base.Data.Internal')
+  const filtering = new Filtering({ qualifiedNamePattern: 'Standard.Base.Data' })
+  expect(filtering.filter(entry)).toBeNull()
+})
+
+test('The content of an internal module is displayed', () => {
+  const entry = makeModuleMethod('Standard.Base.Data.Internal.foo')
+  const filtering = new Filtering({ qualifiedNamePattern: 'Standard.Base.Data.Internal' })
+  expect(filtering.filter(entry)).not.toBeNull()
 })
 
 test.each([
