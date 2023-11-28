@@ -28,19 +28,16 @@ export function visMetadataEquals(
   b: VisualizationMetadata | null | undefined,
 ) {
   return (
-    (a == null && b == null) ||
-    (a != null &&
-      b != null &&
-      a.visible === b.visible &&
-      ((a.identifier == null && b.identifier == null) ||
-        (a.identifier != null &&
-          b.identifier != null &&
-          visIdentifierEquals(a.identifier, b.identifier))))
+    (!a && !b) ||
+    (a && b && a.visible === b.visible && visIdentifierEquals(a.identifier, b.identifier))
   )
 }
 
-export function visIdentifierEquals(a: VisualizationIdentifier, b: VisualizationIdentifier) {
-  return a.name === b.name && object.equalFlat(a.module, b.module)
+export function visIdentifierEquals(
+  a: VisualizationIdentifier | null | undefined,
+  b: VisualizationIdentifier | null | undefined,
+) {
+  return (!a && !b) || (a && b && a.name === b.name && object.equalFlat(a.module, b.module))
 }
 
 export type ProjectSetting = string

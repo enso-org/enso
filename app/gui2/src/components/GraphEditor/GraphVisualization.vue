@@ -52,7 +52,7 @@ const expressionInfo = computed(
 const typeName = computed(() => expressionInfo.value?.typename ?? 'Any')
 
 /** The Visualization ID for the method to get the default visualization. */
-const defaultVisualizationVisualizationId = random.uuidv4() as Uuid
+const defaultVisualizationId = random.uuidv4() as Uuid
 const defaultVisualization = computedAsync(async () => {
   if (props.currentType) return
   if (!props.expressionId) return
@@ -62,13 +62,13 @@ const defaultVisualization = computedAsync(async () => {
   const dataServer = await projectStore.dataConnection
   ls.executeExpression(
     projectStore.executionContext.id,
-    defaultVisualizationVisualizationId,
+    defaultVisualizationId,
     props.nodeId as ExprId,
     `${ident}.default_visualization.to_js_object.to_json`,
   )
   return new Promise<VisualizationIdentifier | undefined>((resolve) => {
     const onVisualizationUpdate = (payload: VisualizationUpdate, uuid: Uuid | null) => {
-      if (uuid !== defaultVisualizationVisualizationId) return
+      if (uuid !== defaultVisualizationId) return
       dataServer.off(`${OutboundPayload.VISUALIZATION_UPDATE}`, onVisualizationUpdate)
       const data = payload.dataString()
       const parsed: { library: { name: string } | null; name: string } | undefined = data
