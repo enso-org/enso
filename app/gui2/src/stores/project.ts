@@ -520,10 +520,45 @@ export const useProjectStore = defineStore('project', () => {
 
   const executionContext = createExecutionContextForMain()
   const visualizationDataRegistry = new VisualizationDataRegistry(executionContext, dataConnection)
-  const computedValueRegistry = ComputedValueRegistry.WithExecutionContext(
-    executionContext,
-    visualizationDataRegistry,
-  )
+  const computedValueRegistry = ComputedValueRegistry.WithExecutionContext(executionContext)
+
+  const dataflowErrorVisualizationIds = new Map<ExprId, Uuid>()
+
+  computedValueRegistry.on('update', (update, oldInfo, newInfo) => {
+    if (
+      (!oldInfo || oldInfo.payload.type !== 'DataflowError') &&
+      newInfo.payload.type === 'DataflowError'
+    ) {
+      const id = random.uuidv4() as Uuid
+      dataflowErrorVisualizationIds.set(update.expressionId, id)
+      executionContext?.setVisualization(id, {
+        expressionId: update.expressionId,
+        visualizationModule: 'Standard.Visualization.Preprocessor',
+        expression: {
+          module: 'Standard.Visualization.Preprocessor',
+          definedOnType: 'Standard.Visualization.Preprocessor',
+          name: 'error_preprocessor',
+        },
+      })
+    } else if (
+      oldInfo?.payload.type === 'DataflowError' &&
+      newInfo.payload.type !== 'DataflowError'
+    ) {
+      const id = dataflowErrorVisualizationIds.get(update.expressionId)
+      id && executionContext?.setVisualization(id, null)
+    }
+  })
+
+  function getDataflowError(exprId: ExpressionId) {
+    const id = dataflowErrorVisualizationIds.get(exprId)
+    if (!id) return
+    return shallowRef(
+      computed<{ kind: 'Dataflow'; message: string } | undefined>(() => {
+        const json = visualizationDataRegistry?.getRawData(id)
+        return json != null ? JSON.parse(json) : undefined
+      }),
+    )
+  }
 
   const diagnostics = ref<Diagnostic[]>([])
   executionContext.on('executionStatus', (newDiagnostics) => {
@@ -578,6 +613,7 @@ export const useProjectStore = defineStore('project', () => {
     useVisualizationData,
     stopCapturingUndo,
     executionMode,
+    getDataflowError,
   }
 })
 

@@ -1,6 +1,5 @@
 import type { ExecutionContext } from '@/stores/project'
-import type { VisualizationDataRegistry } from '@/util/visualizationDataRegistry'
-import * as random from 'lib0/random'
+import { ObservableV2 } from 'lib0/observable'
 import type {
   ExpressionId,
   ExpressionUpdate,
@@ -8,8 +7,7 @@ import type {
   MethodCall,
   ProfilingInfo,
 } from 'shared/languageServerTypes'
-import type { Uuid } from 'shared/yjsModel'
-import { computed, markRaw, shallowRef } from 'vue'
+import { markRaw } from 'vue'
 import { ReactiveDb, ReactiveIndex } from './database/reactiveDb'
 
 export interface ExpressionInfo {
@@ -19,29 +17,32 @@ export interface ExpressionInfo {
   profilingInfo: ProfilingInfo[]
 }
 
+type ComputedValueRegistryEvents = {
+  update: (
+    update: ExpressionUpdate,
+    oldInfo: ExpressionInfo | undefined,
+    newInfo: ExpressionInfo,
+  ) => void
+}
+
 class ComputedValueDb extends ReactiveDb<ExpressionId, ExpressionInfo> {
   type = new ReactiveIndex(this, (id, info) => [[id, info.payload.type]])
 }
 
 /** This class holds the computed values that have been received from the language server. */
-export class ComputedValueRegistry {
+export class ComputedValueRegistry extends ObservableV2<ComputedValueRegistryEvents> {
   public db = new ComputedValueDb()
-  private dataflowErrorVisualizationIds = new Map<ExpressionId, Uuid>()
   private _updateHandler = this.processUpdates.bind(this)
   private executionContext: ExecutionContext | undefined
-  private visualizationDataRegistry: VisualizationDataRegistry | undefined
 
   private constructor() {
+    super()
     markRaw(this)
   }
 
-  static WithExecutionContext(
-    executionContext: ExecutionContext,
-    visualizationDataRegistry: VisualizationDataRegistry,
-  ): ComputedValueRegistry {
+  static WithExecutionContext(executionContext: ExecutionContext): ComputedValueRegistry {
     const self = new ComputedValueRegistry()
     self.executionContext = executionContext
-    self.visualizationDataRegistry = visualizationDataRegistry
     executionContext.on('expressionUpdates', self._updateHandler)
     return self
   }
@@ -54,28 +55,7 @@ export class ComputedValueRegistry {
     for (const update of updates) {
       const info = this.db.get(update.expressionId)
       const newInfo = combineInfo(info, update)
-      if (
-        (!info || info.payload.type !== 'DataflowError') &&
-        newInfo.payload.type === 'DataflowError'
-      ) {
-        const id = random.uuidv4() as Uuid
-        this.dataflowErrorVisualizationIds.set(update.expressionId, id)
-        this.executionContext?.setVisualization(id, {
-          expressionId: update.expressionId,
-          visualizationModule: 'Standard.Visualization.Preprocessor',
-          expression: {
-            module: 'Standard.Visualization.Preprocessor',
-            definedOnType: 'Standard.Visualization.Preprocessor',
-            name: 'error_preprocessor',
-          },
-        })
-      } else if (
-        info?.payload.type === 'DataflowError' &&
-        newInfo.payload.type !== 'DataflowError'
-      ) {
-        const id = this.dataflowErrorVisualizationIds.get(update.expressionId)
-        id && this.executionContext?.setVisualization(id, null)
-      }
+      this.emit('update', [update, info, newInfo])
       this.db.set(update.expressionId, newInfo)
     }
   }
@@ -86,17 +66,6 @@ export class ComputedValueRegistry {
 
   destroy() {
     this.executionContext?.off('expressionUpdates', this._updateHandler)
-  }
-
-  getDataflowError(exprId: ExpressionId) {
-    const id = this.dataflowErrorVisualizationIds.get(exprId)
-    if (!id) return
-    return shallowRef(
-      computed<{ kind: 'Dataflow'; message: string } | undefined>(() => {
-        const json = this.visualizationDataRegistry?.getRawData(id)
-        return json != null ? JSON.parse(json) : undefined
-      }),
-    )
   }
 }
 
