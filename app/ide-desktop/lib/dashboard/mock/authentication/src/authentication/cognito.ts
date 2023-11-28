@@ -319,7 +319,7 @@ function parseUserSession(session: cognito.CognitoUserSession): UserSession {
 // ==============
 
 /** A wrapper around the Amplify "sign up" endpoint that converts known errors
- * to {@link SignUpError}s. */
+ * to `SignUpError`s. */
 async function signUp(
     _supportsDeepLinks: boolean,
     _username: string,
@@ -337,7 +337,7 @@ async function signUp(
 // =====================
 
 /** A wrapper around the Amplify "confirm sign up" endpoint that converts known errors
- * to {@link ConfirmSignUpError}s. */
+ * to `ConfirmSignUpError`s. */
 async function confirmSignUp(_email: string, _code: string) {
     return results.Result.wrapAsync(async () => {
         // Ignored.
@@ -353,7 +353,7 @@ async function confirmSignUp(_email: string, _code: string) {
 // ======================
 
 /** A wrapper around the Amplify "current authenticated user" endpoint that converts known errors
- * to {@link AmplifyError}s. */
+ * to `AmplifyError`s. */
 async function currentAuthenticatedUser() {
     const result = await results.Result.wrapAsync(
         // The methods are not needed.

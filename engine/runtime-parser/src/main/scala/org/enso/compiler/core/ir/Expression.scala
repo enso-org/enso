@@ -60,7 +60,7 @@ object Expression {
     returnValue: Expression,
     location: Option[IdentifiedLocation],
     suspended: Boolean             = false,
-    passData: MetadataStorage      = MetadataStorage(),
+    passData: MetadataStorage      = new MetadataStorage(),
     diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Expression
       with IRKind.Primitive {
@@ -121,7 +121,8 @@ object Expression {
           keepIdentifiers
         ),
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId
@@ -185,7 +186,7 @@ object Expression {
     name: Name,
     expression: Expression,
     location: Option[IdentifiedLocation],
-    passData: MetadataStorage      = MetadataStorage(),
+    passData: MetadataStorage      = new MetadataStorage(),
     diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Expression
       with IRKind.Primitive {
@@ -236,7 +237,8 @@ object Expression {
           keepIdentifiers
         ),
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId

@@ -19,7 +19,7 @@ const selection = injectGraphSelection(true)
 const navigator = injectGraphNavigator(true)
 
 const emit = defineEmits<{
-  nodeOutputPortDoubleClick: [nodeId: ExprId]
+  nodeOutputPortDoubleClick: [portId: ExprId]
 }>()
 
 function updateNodeContent(id: ExprId, updates: [ContentRange, string][]) {
@@ -55,7 +55,7 @@ const uploadingFiles = computed<[FileName, File][]>(() => {
     :edited="id === graphStore.editedNodeInfo?.id"
     @update:edited="graphStore.setEditedNode(id, $event)"
     @updateRect="graphStore.updateNodeRect(id, $event)"
-    @delete="graphStore.deleteNode(id)"
+    @delete="graphStore.deleteNode"
     @pointerenter="hoverNode(id)"
     @pointerleave="hoverNode(undefined)"
     @updateContent="updateNodeContent(id, $event)"
@@ -63,8 +63,8 @@ const uploadingFiles = computed<[FileName, File][]>(() => {
     @setVisualizationVisible="graphStore.setNodeVisualizationVisible(id, $event)"
     @dragging="nodeIsDragged(id, $event)"
     @draggingCommited="dragging.finishDrag()"
-    @outputPortClick="graphStore.createEdgeFromOutput(id)"
-    @outputPortDoubleClick="emit('nodeOutputPortDoubleClick', id)"
+    @outputPortClick="graphStore.createEdgeFromOutput"
+    @outputPortDoubleClick="emit('nodeOutputPortDoubleClick', $event)"
   />
   <UploadingFile
     v-for="(nameAndFile, index) in uploadingFiles"

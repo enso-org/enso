@@ -44,7 +44,6 @@ export function registerAssociations() {
  * For example, this happens on Windows when the browser redirects user using our
  * [deep link scheme]{@link common.DEEP_LINK_SCHEME}. On macOS this is not used, as the OS
  * handles the URL opening by passing the `open-url` event to the application.
- *
  * @param clientArgs - A list of arguments passed to the application, stripped from the initial
  * executable name and any electron dev mode arguments.
  * @returns The URL to open, or `null` if no file was specified. */
@@ -70,7 +69,6 @@ export function argsDenoteUrlOpenAttempt(clientArgs: string[]): URL | null {
 /** Handle the case where IDE is invoked with a URL to open.
  *
  * This happens on Windows when the browser redirects user using the deep link scheme.
- *
  * @param openedUrl - The URL to open. */
 export function handleOpenUrl(openedUrl: URL) {
     logger.log(`Opening URL '${openedUrl.toString()}'.`)
@@ -103,7 +101,6 @@ export function handleOpenUrl(openedUrl: URL) {
  * This method registers the callback for both events. Note that on Windows it is necessary to
  * use {@link setAsUrlHandler} and {@link unsetAsUrlHandler} to ensure that the callback
  * is called.
- *
  * @param callback - The callback to call when the application is requested to open a URL. */
 export function registerUrlCallback(callback: (url: URL) => void) {
     // First, register the callback for the `open-url` event. This is used on macOS.
@@ -155,7 +152,6 @@ export function registerUrlCallback(callback: (url: URL) => void) {
  * The mechanism is built on top of the Electron's
  * [instance lock]{@link https://www.electronjs.org/docs/api/app#apprequestsingleinstancelock}
  * functionality.
- *
  * @throws {Error} An error if another instance of the application has already acquired the lock. */
 export function setAsUrlHandler() {
     logger.log('Expecting URL callback, acquiring the lock.')

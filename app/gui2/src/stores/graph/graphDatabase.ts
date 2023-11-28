@@ -1,6 +1,6 @@
 import { SuggestionDb, groupColorStyle, type Group } from '@/stores/suggestionDatabase'
 import type { SuggestionEntry } from '@/stores/suggestionDatabase/entry'
-import { byteArraysEqual, tryGetIndex } from '@/util/array'
+import { arrayEquals, byteArraysEqual, tryGetIndex } from '@/util/array'
 import { Ast, AstExtended } from '@/util/ast'
 import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
 import { colorFromString } from '@/util/colors'
@@ -10,7 +10,7 @@ import { ReactiveDb, ReactiveIndex, ReactiveMapping } from '@/util/database/reac
 import type { Opt } from '@/util/opt'
 import { Vec2 } from '@/util/vec2'
 import * as set from 'lib0/set'
-import type { MethodCall } from 'shared/languageServerTypes'
+import { methodPointerEquals, type MethodCall } from 'shared/languageServerTypes'
 import {
   IdMap,
   visMetadataEquals,
@@ -150,17 +150,18 @@ export class GraphDb {
     return Array.from(allTargets(this))
   })
 
-  /** First output port of the node.
-   *
-   * When the node will be marked as source node for a new one (i.e. the node will be selected
-   * when adding), the resulting connection's source will be the main port.
-   */
-  nodeMainOutputPort = new ReactiveIndex(this.nodeIdToNode, (id, entry) => {
+  /** Output port bindings of the node. Lists all bindings that can be dragged out from a node. */
+  nodeOutputPorts = new ReactiveIndex(this.nodeIdToNode, (id, entry) => {
     if (entry.pattern == null) return []
-    for (const ast of entry.pattern.walkRecursive()) {
-      if (this.bindings.bindings.has(ast.astId)) return [[id, ast.astId]]
-    }
-    return []
+    const ports = new Set<ExprId>()
+    entry.pattern.visitRecursive((ast) => {
+      if (this.bindings.bindings.has(ast.astId)) {
+        ports.add(ast.astId)
+        return false
+      }
+      return true
+    })
+    return Array.from(ports, (port) => [id, port])
   })
 
   nodeMainSuggestion = new ReactiveMapping(this.nodeIdToNode, (id, _entry) => {
@@ -182,9 +183,8 @@ export class GraphDb {
     return groupColorStyle(group)
   })
 
-  getNodeMainOutputPortIdentifier(id: ExprId): string | undefined {
-    const mainPort = set.first(this.nodeMainOutputPort.lookup(id))
-    return mainPort != null ? this.bindings.bindings.get(mainPort)?.identifier : undefined
+  getNodeFirstOutputPort(id: ExprId): ExprId {
+    return set.first(this.nodeOutputPorts.lookup(id)) ?? id
   }
 
   getExpressionNodeId(exprId: ExprId | undefined): ExprId | undefined {
@@ -204,7 +204,7 @@ export class GraphDb {
     return this.valuesRegistry.getExpressionInfo(id)
   }
 
-  getIdentifierOfConnection(source: ExprId): string | undefined {
+  getOutputPortIdentifier(source: ExprId): string | undefined {
     return this.bindings.bindings.get(source)?.identifier
   }
 
@@ -212,20 +212,35 @@ export class GraphDb {
     return this.bindings.identifierToBindingId.hasKey(ident)
   }
 
-  isMethodCall(id: ExprId): boolean {
-    return this.getExpressionInfo(id)?.methodCall != null
+  isKnownFunctionCall(id: ExprId): boolean {
+    return this.getMethodCallInfo(id) != null
+  }
+
+  getMethodCall(id: ExprId): MethodCall | undefined {
+    const info = this.getExpressionInfo(id)
+    if (info == null) return
+    return (
+      info.methodCall ?? (info.payload.type === 'Value' ? info.payload.functionSchema : undefined)
+    )
   }
 
   getMethodCallInfo(
     id: ExprId,
-  ): { methodCall: MethodCall; suggestion: SuggestionEntry } | undefined {
-    const methodCall = this.getExpressionInfo(id)?.methodCall
+  ):
+    | { methodCall: MethodCall; suggestion: SuggestionEntry; staticallyApplied: boolean }
+    | undefined {
+    const info = this.getExpressionInfo(id)
+    if (info == null) return
+    const payloadFuncSchema =
+      info.payload.type === 'Value' ? info.payload.functionSchema : undefined
+    const methodCall = info.methodCall ?? payloadFuncSchema
     if (methodCall == null) return
     const suggestionId = this.suggestionDb.findByMethodPointer(methodCall.methodPointer)
     if (suggestionId == null) return
     const suggestion = this.suggestionDb.get(suggestionId)
     if (suggestion == null) return
-    return { methodCall, suggestion }
+    const staticallyApplied = mathodCallEquals(methodCall, payloadFuncSchema)
+    return { methodCall, suggestion, staticallyApplied }
   }
 
   getNodeColorStyle(id: ExprId): string {
@@ -344,4 +359,14 @@ function* getFunctionNodeExpressions(func: Ast.Tree.Function): Generator<Ast.Tre
       yield func.body
     }
   }
+}
+
+function mathodCallEquals(a: MethodCall | undefined, b: MethodCall | undefined): boolean {
+  return (
+    a === b ||
+    (a != null &&
+      b != null &&
+      methodPointerEquals(a.methodPointer, b.methodPointer) &&
+      arrayEquals(a.notAppliedArguments, b.notAppliedArguments))
+  )
 }

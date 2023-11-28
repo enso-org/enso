@@ -161,7 +161,7 @@ export interface AssetsTableState {
         key: backendModule.AssetId,
         title?: string
     ) => void
-    /** Called when the project is opened via the {@link ProjectActionButton}. */
+    /** Called when the project is opened via the `ProjectActionButton`. */
     doOpenManually: (projectId: backendModule.ProjectId) => void
     doOpenIde: (
         project: backendModule.ProjectAsset,
