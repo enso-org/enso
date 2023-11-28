@@ -436,15 +436,18 @@ object DistributionPackage {
     def executableName(base: String): String = base
     def archiveExt: String                   = ".tar.gz"
     def isUNIX: Boolean                      = true
+    def archs: Seq[Architecture]
   }
   object OS {
     case object Linux extends OS {
       override val name: String                 = "linux"
       override val hasSupportForSulong: Boolean = true
+      override val archs                        = Seq(Architecture.X64)
     }
     case object MacOS extends OS {
       override val name: String                 = "macos"
       override val hasSupportForSulong: Boolean = true
+      override val archs                        = Seq(Architecture.X64, Architecture.AarchX64)
     }
     case object Windows extends OS {
       override val name: String                         = "windows"
@@ -452,6 +455,7 @@ object DistributionPackage {
       override def executableName(base: String): String = base + ".exe"
       override def archiveExt: String                   = ".zip"
       override def isUNIX: Boolean                      = false
+      override val archs                                = Seq(Architecture.X64)
     }
 
     val platforms = Seq(Linux, MacOS, Windows)
@@ -478,7 +482,12 @@ object DistributionPackage {
       override def graalName: String = "x64"
     }
 
-    val archs = Seq(X64)
+    case object AarchX64 extends Architecture {
+      override def name: String = "aarch64"
+
+      override def graalName: String = "x64"
+    }
+
   }
 
   /** A helper class that manages building distribution artifacts. */
@@ -814,7 +823,7 @@ object DistributionPackage {
       val log = state.log
       for {
         os   <- OS.platforms
-        arch <- Architecture.archs
+        arch <- os.archs
       } {
         val launcher = builtArtifact("launcher", os, arch)
         if (launcher.exists()) {
@@ -853,7 +862,7 @@ object DistributionPackage {
       val log = state.log
       for {
         os   <- OS.platforms
-        arch <- Architecture.archs
+        arch <- os.archs
       } {
         val launcher = builtArtifact("launcher", os, arch)
         if (launcher.exists()) {
