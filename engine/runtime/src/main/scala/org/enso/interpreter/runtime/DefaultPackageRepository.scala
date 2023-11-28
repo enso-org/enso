@@ -102,7 +102,7 @@ private class DefaultPackageRepository(
   /** The mapping between the library and its cached bindings, if already laoded. */
   private val loadedLibraryBindings: collection.mutable.Map[
     LibraryName,
-    ImportExportCache.CachedBindings
+    Option[ImportExportCache.CachedBindings]
   ] =
     collection.mutable.LinkedHashMap()
 
@@ -578,15 +578,15 @@ private class DefaultPackageRepository(
     val cache = ensurePackageIsLoaded(libraryName).toOption.flatMap { _ =>
       if (!loadedLibraryBindings.contains(libraryName)) {
         loadedPackages.get(libraryName).flatten.foreach(loadDependencies(_))
-        context
+        val cachedBindingOption = context
           .asInstanceOf[TruffleCompilerContext]
           .getSerializationManager()
           .deserializeLibraryBindings(libraryName)
-          .foreach(cache => loadedLibraryBindings.addOne((libraryName, cache)))
+        loadedLibraryBindings.addOne((libraryName, cachedBindingOption))
       }
       loadedLibraryBindings.get(libraryName)
     }
-    cache.flatMap(_.bindings.findForModule(moduleName))
+    cache.flatMap(_.flatMap(_.bindings.findForModule(moduleName)))
   }
 
   private def loadDependencies(pkg: Package[TruffleFile]): Unit = {

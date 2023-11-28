@@ -61,6 +61,10 @@ import scala.collection.immutable.Seq;
 @Persistable(clazz = Name.BuiltinAnnotation.class, id = 783)
 @Persistable(clazz = Type.Error.class, id = 784)
 @Persistable(clazz = Unused.Binding.class, id = 785)
+@Persistable(clazz = Unused.PatternBinding.class, id = 786)
+@Persistable(clazz = Unused.FunctionArgument.class, id = 787)
+@Persistable(clazz = Warning.DuplicatedImport.class, id = 788)
+@Persistable(clazz = Warning.WrongBuiltinMethod.class, id = 789)
 public final class IrPersistance {
   private IrPersistance() {}
 
@@ -389,23 +393,15 @@ public final class IrPersistance {
     }
 
     @Override
-    protected void writeObject(DiagnosticStorage obj, Output out) throws IOException {}
+    protected void writeObject(DiagnosticStorage obj, Output out) throws IOException {
+      out.writeInline(List.class, obj.toList());
+    }
 
     @Override
     @SuppressWarnings("unchecked")
     protected DiagnosticStorage readObject(Input in) throws IOException, ClassNotFoundException {
-      return new DiagnosticStorage(
-          (scala.collection.immutable.List) scala.collection.immutable.Nil$.MODULE$);
+      var diags = in.readInline(List.class);
+      return new DiagnosticStorage(diags);
     }
-  }
-
-  private static <T> scala.collection.immutable.List<T> join(
-      T head, scala.collection.immutable.List<T> tail) {
-    return scala.collection.immutable.$colon$colon$.MODULE$.apply(head, tail);
-  }
-
-  @SuppressWarnings("unchecked")
-  private static <E extends Throwable> E raise(Class<E> clazz, Throwable t) throws E {
-    throw (E) t;
   }
 }
