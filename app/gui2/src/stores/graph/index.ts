@@ -10,7 +10,7 @@ import {
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { DEFAULT_VISUALIZATION_IDENTIFIER } from '@/stores/visualization'
-import { RawAst, RawAstExtended, childrenAstNodes, findAstWithRange, readAstSpan } from '@/util/ast'
+import { RawAst, RawAstExtended, Ast } from '@/util/ast'
 import { useObserveYjs } from '@/util/crdt'
 import type { Opt } from '@/util/opt'
 import { Rect } from '@/util/rect'
@@ -18,7 +18,6 @@ import { Vec2 } from '@/util/vec2'
 import { defineStore } from 'pinia'
 import type { StackItem } from 'shared/languageServerTypes'
 import {
-  decodeRange,
   visMetadataEquals,
   type ContentRange,
   type ExprId,
@@ -27,7 +26,6 @@ import {
   type VisualizationMetadata,
 } from 'shared/yjsModel'
 import { computed, markRaw, reactive, ref, toRef, watch } from 'vue'
-import * as Y from 'yjs'
 
 export { type Node } from '@/stores/graph/graphDatabase'
 
@@ -94,31 +92,21 @@ export const useGraphStore = defineStore('graph', () => {
       const meta = module.doc.metadata
       const textContentLocal = textContent.value
 
-      const ast = RawAstExtended.parse(textContentLocal, idMap)
-      const updatedMap = idMap.finishAndSynchronize()
+      const newRoot = Ast.parseTransitional(textContentLocal, idMap)
 
       imports.value = []
-      ast.visitRecursive((node) => {
-        if (node.isTree(RawAst.Tree.Type.Import)) {
-          const recognized = recognizeImport(node)
+      newRoot.visitRecursive((node) => {
+        if (node instanceof Ast.Ast && node.astExtended && node.astExtended.isTree(RawAst.Tree.Type.Import)) {
+          const recognized = recognizeImport(node.astExtended)
           if (recognized) {
-            imports.value.push({ import: recognized, span: node.span() })
+            imports.value.push({ import: recognized, span: node.astExtended.span() })
           }
           return false
         }
         return true
       })
 
-      const methodAst =
-        ast.isTree() &&
-        ast.tryMap((tree) =>
-          getExecutedMethodAst(
-            tree,
-            textContentLocal,
-            proj.executionContext.getStackTop(),
-            updatedMap,
-          ),
-        )
+      const methodAst = getExecutedMethodAst(newRoot, proj.executionContext.getStackTop())
       if (methodAst) {
         db.readFunctionAst(methodAst, (id) => meta.get(id))
       }
@@ -377,47 +365,26 @@ export type UnconnectedEdge = {
 }
 
 function getExecutedMethodAst(
-  ast: RawAst.Tree,
-  code: string,
+  ast_: Ast.Ast,
   executionStackTop: StackItem,
-  updatedIdMap: Y.Map<Uint8Array>,
-): RawAst.Tree.Function | undefined {
+): RawAstExtended<RawAst.Tree.Function> | undefined {
   switch (executionStackTop.type) {
     case 'ExplicitCall': {
       // Assume that the provided AST matches the module in the method pointer. There is no way to
       // actually verify this assumption at this point.
       const ptr = executionStackTop.methodPointer
-      const name = ptr.name
-      return findModuleMethod(ast, code, name)
+      const method = Ast.findModuleMethod(ptr.name)
+      if (!method) return
+      const ast = method.astExtended
+      if (!ast) return
+      if (!ast.isTree(RawAst.Tree.Type.Function)) return
+      return ast
     }
     case 'LocalCall': {
-      const exprId = executionStackTop.expressionId
-      const range = lookupIdRange(updatedIdMap, exprId)
-      if (!range) return
-      const node = findAstWithRange(ast, range)
-      if (node?.type === RawAst.Tree.Type.Function) return node
+      console.error(`TODO (#8068)--this should not be reachable yet`)
+      /* AO: The expression ID is a call expression - we should get method pointer from expression updates and this way
+       * find the definition.
+       */
     }
-  }
-}
-
-function lookupIdRange(updatedIdMap: Y.Map<Uint8Array>, id: ExprId): [number, number] | undefined {
-  const doc = updatedIdMap.doc!
-  const rangeBuffer = updatedIdMap.get(id)
-  if (!rangeBuffer) return
-  const decoded = decodeRange(rangeBuffer)
-  const index = Y.createAbsolutePositionFromRelativePosition(decoded[0], doc)?.index
-  const endIndex = Y.createAbsolutePositionFromRelativePosition(decoded[1], doc)?.index
-  if (index == null || endIndex == null) return
-  return [index, endIndex]
-}
-
-function findModuleMethod(
-  moduleAst: RawAst.Tree,
-  code: string,
-  methodName: string,
-): RawAst.Tree.Function | undefined {
-  for (const node of childrenAstNodes(moduleAst)) {
-    if (node.type === RawAst.Tree.Type.Function && readAstSpan(node.name, code) === methodName)
-      return node
   }
 }
