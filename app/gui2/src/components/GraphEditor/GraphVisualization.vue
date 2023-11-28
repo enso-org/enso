@@ -67,13 +67,11 @@ const defaultVisualizationRaw = projectStore.useVisualizationData(
 ) as ShallowRef<{ library: { name: string } | null; name: string } | undefined>
 const defaultVisualization = computed<VisualizationIdentifier | undefined>(() => {
   const raw = defaultVisualizationRaw.value
-  return (
-    raw && {
-      name: raw.name,
-      module:
-        raw.library == null ? { kind: 'Builtin' } : { kind: 'Library', name: raw.library.name },
-    }
-  )
+  if (!raw) return
+  return {
+    name: raw.name,
+    module: raw.library == null ? { kind: 'Builtin' } : { kind: 'Library', name: raw.library.name },
+  }
 })
 
 const currentType = computed(() => {
