@@ -380,6 +380,16 @@ export class LanguageServer extends ObservableV2<Notifications> {
     return this.request('runtime/getComponentGroups', {})
   }
 
+  /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#profilingstart) */
+  profilingStart(memorySnapshot?: boolean): Promise<void> {
+    return this.request('profiling/start', { memorySnapshot })
+  }
+
+  /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#profilingstop) */
+  profilingStop(): Promise<void> {
+    return this.request('profiling/stop', {})
+  }
+
   /** A helper function to subscribe to file updates.
    * Please use `ls.on('file/event')` directly if the initial `'Added'` notifications are not
    * needed. */
