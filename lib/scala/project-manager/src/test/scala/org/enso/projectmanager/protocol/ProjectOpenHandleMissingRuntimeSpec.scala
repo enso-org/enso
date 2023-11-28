@@ -4,7 +4,7 @@ import nl.gn0s1s.bump.SemVer
 import org.enso.runtimeversionmanager.test.OverrideTestVersionSuite
 
 class ProjectOpenHandleMissingRuntimeSpec
-  extends ProjectOpenSpecBase
+    extends ProjectOpenSpecBase
     with OverrideTestVersionSuite {
 
   override def testVersion: SemVer = SemVer(0, 0, 1)

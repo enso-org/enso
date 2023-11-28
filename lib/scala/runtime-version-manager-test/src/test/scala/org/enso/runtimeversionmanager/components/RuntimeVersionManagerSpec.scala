@@ -273,7 +273,7 @@ class RuntimeVersionManagerSpec
 
     "include both bundled and installed components in list" in {
       prepareBundle(
-        engineVersion = SemVer(0, 0, 1),
+        engineVersion  = SemVer(0, 0, 1),
         runtimeVersion = GraalVMVersion("23.2.0", "21.0.0")
       )
       val manager = makeRuntimeVersionManager()

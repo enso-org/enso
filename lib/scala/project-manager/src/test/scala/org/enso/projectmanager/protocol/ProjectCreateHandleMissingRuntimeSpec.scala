@@ -7,14 +7,14 @@ import org.enso.runtimeversionmanager.test.FakeReleases
 class ProjectCreateHandleMissingRuntimeSpec extends ProjectCreateSpecBase {
   override val distributionConfiguration =
     new TestDistributionConfiguration(
-      distributionRoot = testDistributionRoot.toPath,
-      engineReleaseProvider = FakeReleases.engineReleaseProvider,
+      distributionRoot       = testDistributionRoot.toPath,
+      engineReleaseProvider  = FakeReleases.engineReleaseProvider,
       runtimeReleaseProvider = FakeReleases.runtimeReleaseProvider,
-      discardChildOutput = !debugChildLogs
+      discardChildOutput     = !debugChildLogs
     ) {
       override def defaultJVMSettings: JVMSettings = JVMSettings(
         javaCommandOverride = None,
-        jvmOptions = Seq()
+        jvmOptions          = Seq()
       )
     }
 

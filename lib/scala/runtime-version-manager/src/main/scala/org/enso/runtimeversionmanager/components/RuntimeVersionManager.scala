@@ -559,7 +559,7 @@ class RuntimeVersionManager(
           * runtime may be removed if the installation fails.
           */
         def finishInstallation(
-                                runtime: GraalRuntime,
+          runtime: GraalRuntime,
           wasJustInstalled: Boolean
         ): Engine = {
           val enginePath =
@@ -754,7 +754,7 @@ class RuntimeVersionManager(
     */
   private def installGraalRuntime(
     runtimeVersion: GraalVMVersion
-                                 ): GraalRuntime =
+  ): GraalRuntime =
     FileSystem.withTemporaryDirectory("enso-install-runtime") { directory =>
       logger.info("Installing GraalVM runtime [{}].", runtimeVersion)
       val runtimePackage =

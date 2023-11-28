@@ -62,7 +62,7 @@ case class Engine(version: SemVer, path: Path, manifest: Manifest) {
       return Failure(
         CorruptedComponentError(
           s"Engine's runner.jar (expected at " +
-            s"`${MaskedPath(runnerPath.get).applyMasking()}`) is missing."
+          s"`${MaskedPath(runnerPath.get).applyMasking()}`) is missing."
         )
       )
     }
@@ -70,7 +70,7 @@ case class Engine(version: SemVer, path: Path, manifest: Manifest) {
       return Failure(
         CorruptedComponentError(
           s"`Engine's runtime.jar (expected at " +
-            s"${MaskedPath(runtimePath).applyMasking()}`) is missing."
+          s"${MaskedPath(runtimePath).applyMasking()}`) is missing."
         )
       )
     }
