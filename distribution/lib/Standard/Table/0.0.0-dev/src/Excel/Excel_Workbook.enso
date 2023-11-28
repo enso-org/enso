@@ -39,7 +39,9 @@ type Excel_Workbook
         File_Error.handle_java_exceptions file_obj <| Excel_Reader.handle_bad_format file_obj <| Illegal_State.handle_java_exception <|
             java_file = Java_File.new file_obj.path
             excel_connection_resource = Managed_Resource.register (ExcelConnectionPool.INSTANCE.openReadOnlyConnection java_file format) close_connection
-            Excel_Workbook.Value (Ref.new excel_connection_resource) file_obj xls_format headers
+            r = Excel_Workbook.Value (Ref.new excel_connection_resource) file_obj xls_format headers
+            IO.println r.sheet_names
+            r
 
     ## PRIVATE
        ADVANCED

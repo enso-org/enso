@@ -42,7 +42,7 @@ spec =
             r.sheet_names . should_equal ["MyTestSheet"]
             r.read "MyTestSheet" . should_equal expected_table
 
-            r2 = Data.fetch url try_auto_parse_response=False . decode (Excel Excel_Section.Worksheet)
+            r2 = Data.fetch url try_auto_parse_response=False . decode (Excel (Excel_Section.Worksheet "MyTestSheet"))
             r2.should_be_a Table
             r2 . should_equal expected_table
 
@@ -55,6 +55,6 @@ spec =
             r.sheet_names . should_equal ["MyTestSheet"]
             r.read "MyTestSheet" . should_equal expected_table
 
-            r2 = Data.fetch url try_auto_parse_response=False . decode (Excel Excel_Section.Worksheet)
+            r2 = Data.fetch url try_auto_parse_response=False . decode (Excel (Excel_Section.Worksheet "MyTestSheet"))
             r2.should_be_a Table
             r2 . should_equal expected_table

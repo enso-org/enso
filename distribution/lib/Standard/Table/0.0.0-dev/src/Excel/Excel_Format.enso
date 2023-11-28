@@ -87,6 +87,7 @@ type Excel_Format
        Implements the `Data.parse` for this `File_Format`
     read_stream : Input_Stream -> Any
     read_stream self stream:Input_Stream =
+        # TODO we should add ability to infer the format based on MIME type or URI
         xls_format = if self.xls_format == Infer then False else self.xls_format
 
         bad_format _ =

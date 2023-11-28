@@ -109,10 +109,11 @@ type Input_Stream
     materialize_to_temporary_file : File
     materialize_to_temporary_file self =
         temp_file = File.create_temporary_file "enso-materialized-stream"
-        self.with_java_stream java_input_stream->
+        result = self.with_java_stream java_input_stream->
             temp_file.with_output_stream [File_Access.Create, File_Access.Truncate_Existing, File_Access.Write] output_stream->
                 output_stream.with_java_stream java_output_stream->
                     java_input_stream.transferTo java_output_stream
+        result.if_not_error temp_file
 
 
 ## PRIVATE
