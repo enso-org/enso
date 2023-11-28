@@ -12,8 +12,9 @@ const props = defineProps<{ error: string }>()
   height: 24px;
   padding: 1px 8px;
   align-items: flex-start;
-  white-space: nowrap;
   gap: 10px;
+  font-weight: 800;
+  white-space: nowrap;
   border-radius: var(--radius-full);
   background-color: #e85252;
   color: var(--color-text-inversed);
