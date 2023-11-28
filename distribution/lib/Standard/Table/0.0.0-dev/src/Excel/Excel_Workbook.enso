@@ -52,8 +52,8 @@ type Excel_Workbook
        - file: Optional file reference.
     from_stream : Input_Stream -> Boolean -> Boolean | Infer -> File | Nothing -> Excel_Workbook
     from_stream stream xls_format=False headers=Infer file=Nothing = Excel_Reader.handle_bad_format file <|
-        _ = [stream, xls_format, headers]
-        Error.throw "TODO"
+        temp_file = stream.materialize_to_temporary_file
+        Excel_Workbook.new temp_file xls_format headers
 
     ## PRIVATE
        Creates an Excel_Workbook connection.
