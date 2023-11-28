@@ -22,10 +22,11 @@ Python in the runtime. Please familiarise yourself with the general operation of
 ## Install Graal Python standalone distribution
 
 Before you can use Python in Enso you need to install Graal Python standalone
-distribution. Download it at https://github.com/oracle/graalpython/releases/tag/graal-23.1.0
+distribution. Download it at
+https://github.com/oracle/graalpython/releases/tag/graal-23.1.0
 
-Unzip the archive, and optionally put the `bin` directory on your `PATH`.
-In the rest of the document, `graalpy` points to the `bin/graalpy` binary.
+Unzip the archive, and optionally put the `bin` directory on your `PATH`. In the
+rest of the document, `graalpy` points to the `bin/graalpy` binary.
 
 ## Polyglot Library System
 
