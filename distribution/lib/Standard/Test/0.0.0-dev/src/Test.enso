@@ -1,4 +1,6 @@
 from Standard.Base import all
+import Standard.Base.Errors.Common.Uninitialized_State
+import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.State
 
 import project.Test_Reporter
@@ -30,6 +32,7 @@ type Test
         if config.should_run_group name then
             case pending of
                 Nothing ->
+                    ensure_no_group_nesting
                     handle_failed_group_builder caught_panic =
                         stack_trace_text = caught_panic.stack_trace.map .to_display_text . join '\n'
                         result = Test_Result.Failure "A Panic has been thrown outside of `Test.specify`, failed to run the test group: "+caught_panic.payload.to_display_text details=caught_panic.to_text+'\n'+stack_trace_text
@@ -322,3 +325,10 @@ type Clue
        Arguments:
        - add_clue: either Nothing or a function which modifies a failure message
     Value add_clue
+
+## PRIVATE
+ensure_no_group_nesting =
+    Panic.catch Uninitialized_State handler=(_->Nothing) <|
+        # The first line will panic and so we will not reach the second one if there is no invalid nesting.
+        State.get Spec
+        Panic.throw (Illegal_State.Error "Test.group cannot be nested.")
