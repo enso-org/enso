@@ -3,7 +3,6 @@ package org.enso.compiler.core.ir
 import org.enso.compiler.core.{ConstantsNames, IR, Identifier}
 import org.enso.compiler.core.IR.randomId
 import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
-import org.enso.syntax.text.Location
 
 import java.util.UUID
 
@@ -45,11 +44,11 @@ object Name {
     * @param passData    the pass metadata associated with this node
     * @param diagnostics compiler diagnostics for this node
     */
-  sealed case class MethodReference(
+  final case class MethodReference(
     typePointer: Option[Name],
     methodName: Name,
     location: Option[IdentifiedLocation],
-    passData: MetadataStorage      = MetadataStorage(),
+    passData: MetadataStorage      = new MetadataStorage(),
     diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Name
       with IRKind.Sugar {
@@ -110,7 +109,8 @@ object Name {
           keepIdentifiers
         ),
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId
@@ -183,8 +183,8 @@ object Name {
         (identLoc, segment) => {
           identLoc.flatMap(loc => {
             Some(
-              IdentifiedLocation(
-                Location(
+              new IdentifiedLocation(
+                new Location(
                   loc.location.start,
                   segment.location
                     .flatMap(l => Some(l.location.end))
@@ -206,10 +206,10 @@ object Name {
     * @param diagnostics compiler diagnostics for this node
     * @return a copy of `this`, updated with the specified values
     */
-  sealed case class Qualified(
+  final case class Qualified(
     parts: List[Name],
     location: Option[IdentifiedLocation],
-    passData: MetadataStorage      = MetadataStorage(),
+    passData: MetadataStorage      = new MetadataStorage(),
     diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Name
       with IRKind.Primitive {
@@ -267,7 +267,8 @@ object Name {
           )
         ),
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId
@@ -291,7 +292,7 @@ object Name {
     */
   sealed case class Blank(
     location: Option[IdentifiedLocation],
-    passData: MetadataStorage      = MetadataStorage(),
+    passData: MetadataStorage      = new MetadataStorage(),
     diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Name
       with IRKind.Sugar {
@@ -326,7 +327,8 @@ object Name {
     ): Blank =
       copy(
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId
@@ -363,7 +365,7 @@ object Name {
   sealed case class Special(
     specialName: Special.Ident,
     location: Option[IdentifiedLocation],
-    passData: MetadataStorage      = MetadataStorage(),
+    passData: MetadataStorage      = new MetadataStorage(),
     diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Name
       with IRKind.Sugar {
@@ -398,7 +400,8 @@ object Name {
     ): Special =
       copy(
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId
@@ -456,7 +459,7 @@ object Name {
     override val isMethod: Boolean,
     location: Option[IdentifiedLocation],
     originalName: Option[Name]     = None,
-    passData: MetadataStorage      = MetadataStorage(),
+    passData: MetadataStorage      = new MetadataStorage(),
     diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Name {
     var id: UUID @Identifier = randomId
@@ -496,7 +499,8 @@ object Name {
     ): Literal =
       copy(
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId
@@ -561,7 +565,7 @@ object Name {
   sealed case class BuiltinAnnotation(
     override val name: String,
     location: Option[IdentifiedLocation],
-    passData: MetadataStorage      = MetadataStorage(),
+    passData: MetadataStorage      = new MetadataStorage(),
     diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Annotation
       with IRKind.Primitive {
@@ -597,7 +601,8 @@ object Name {
     ): BuiltinAnnotation =
       copy(
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId
@@ -646,7 +651,7 @@ object Name {
     override val name: String,
     expression: Expression,
     location: Option[IdentifiedLocation],
-    passData: MetadataStorage      = MetadataStorage(),
+    passData: MetadataStorage      = new MetadataStorage(),
     diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Annotation {
     var id: UUID @Identifier = randomId
@@ -684,7 +689,8 @@ object Name {
     ): GenericAnnotation =
       copy(
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId
@@ -732,7 +738,7 @@ object Name {
   sealed case class Self(
     location: Option[IdentifiedLocation],
     synthetic: Boolean             = false,
-    passData: MetadataStorage      = MetadataStorage(),
+    passData: MetadataStorage      = new MetadataStorage(),
     diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Name {
     var id: UUID @Identifier  = randomId
@@ -767,7 +773,8 @@ object Name {
     ): Self =
       copy(
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId
@@ -809,7 +816,7 @@ object Name {
     */
   sealed case class SelfType(
     location: Option[IdentifiedLocation],
-    passData: MetadataStorage      = MetadataStorage(),
+    passData: MetadataStorage      = new MetadataStorage(),
     diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Name {
     var id: UUID @Identifier  = randomId
@@ -843,7 +850,8 @@ object Name {
     ): SelfType =
       copy(
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId

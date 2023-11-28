@@ -1,18 +1,18 @@
 from Standard.Base import all
-
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-import project.Data.Table.Table
 import project.Data.Column.Column
 import project.Data.Conversions.Convertible_To_Columns.Convertible_To_Columns
 import project.Data.Conversions.Convertible_To_Rows.Convertible_To_Rows
+import project.Data.Table.Table
 import project.Errors.No_Such_Column
 import project.Extensions.Prefix_Name.Prefix_Name
 import project.Internal.Fan_Out
 import project.Internal.Java_Exports
 import project.Internal.Java_Problems
+import project.Internal.Widget_Helpers
 from project.Internal.Java_Exports import make_inferred_builder
 
 ## PRIVATE
@@ -40,7 +40,8 @@ expand_column (table : Table) (column : Text | Integer) (fields : (Vector Text) 
 
     Table.new output_builder.to_vector
 
-## GROUP Standard.Base.Conversions
+## PRIVATE
+   GROUP Standard.Base.Conversions
    Expand aggregate values in a column to separate rows.
 
    For each value in the specified column, if it is an aggregate (`Vector`,
@@ -82,7 +83,7 @@ expand_to_rows table column at_least_one_row=False =
         Fan_Out.fan_out_to_rows table column row_expander at_least_one_row column_builder=builder
 
 ## PRIVATE
-create_table_from_objects : Any -> ((Vector Text) | Nothing) -> Table
+create_table_from_objects : Convertible_To_Rows -> (Vector Text | Nothing) -> Table
 create_table_from_objects (value : Convertible_To_Rows) (fields : Vector | Nothing) = if fields.is_nothing.not && fields.is_empty then Error.throw (Illegal_Argument.Error "The fields parameter cannot be empty.") else
     len = value.length
 

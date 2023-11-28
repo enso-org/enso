@@ -1,6 +1,11 @@
 <script lang="ts">
 export const name = 'Geo Map'
+export const icon = 'compass'
 export const inputType = 'Standard.Table.Data.Table.Table'
+export const defaultPreprocessor = [
+  'Standard.Visualization.Geo_Map',
+  'process_to_json_text',
+] as const
 export const scripts = [
   // mapbox-gl does not have an ESM release.
   'https://api.tiles.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js',
@@ -85,19 +90,14 @@ declare var deck: typeof import('deck.gl')
 import SvgIcon from '@/components/SvgIcon.vue'
 import { VisualizationContainer } from '@/util/visualizationBuiltins'
 import type { Deck } from 'deck.gl'
-import { computed, onMounted, onUnmounted, ref, watchPostEffect } from 'vue'
+import { computed, onUnmounted, ref, watchPostEffect } from 'vue'
 
 const props = defineProps<{ data: Data }>()
-const emit = defineEmits<{
-  'update:preprocessor': [module: string, method: string, ...args: string[]]
-}>()
 
 /** GeoMap Visualization. */
 
-/**
- * Mapbox API access token.
- * All the limits of API are listed here: https://docs.mapbox.com/api/#rate-limits
- */
+/** Mapbox API access token.
+ * All the limits of API are listed here: https://docs.mapbox.com/api/#rate-limits */
 const TOKEN =
   'pk.eyJ1IjoiZW5zby1vcmciLCJhIjoiY2tmNnh5MXh2MGlyOTJ5cWdubnFxbXo4ZSJ9.3KdAcCiiXJcSM18nwk09-Q'
 const SCATTERPLOT_LAYER = 'Scatterplot_Layer'
@@ -139,11 +139,6 @@ watchPostEffect(() => {
     updateMap()
     updateLayers()
   }
-})
-
-onMounted(() => {
-  dataPoints.value = []
-  emit('update:preprocessor', 'Standard.Visualization.Geo_Map', 'process_to_json_text')
 })
 
 onUnmounted(() => deckgl.value?.finalize())
@@ -404,20 +399,28 @@ function pushPoints(newPoints: Location[]) {
       <button class="image-button"><SvgIcon name="geo_map_distance" /></button>
       <button class="image-button"><SvgIcon name="geo_map_pin" /></button>
     </template>
-    <div ref="mapNode" class="GeoMapVisualization" @wheel.stop></div>
+    <div ref="mapNode" class="GeoMapVisualization" @pointerdown.stop @wheel.stop></div>
   </VisualizationContainer>
 </template>
 
 <style scoped>
-@import url('https://api.tiles.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css');
-
 .GeoMapVisualization {
   height: 100%;
 }
-</style>
 
-<style>
-.GeoMapVisualization > .mapboxgl-map {
-  border-radius: 16px;
+:deep(.mapboxgl-map) {
+  border-radius: var(--radius-default);
+}
+
+:deep(.mapboxgl-ctrl-attrib.mapboxgl-compact) {
+  min-height: 24px;
+}
+
+/* Copied from mapbox-gl CSS. This is required because Tailwind's global CSS reset resets
+ * `background-color` and `background-image` to default values for buttons, and Mapbox's
+ * selector has lower specificity. */
+:deep(.mapboxgl-ctrl-attrib-button.mapboxgl-ctrl-attrib-button) {
+  background-color: hsla(0, 0%, 100%, 0.5);
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg width='24' height='24' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg' fill-rule='evenodd'%3E%3Cpath d='M4 10a6 6 0 1012 0 6 6 0 10-12 0m5-3a1 1 0 102 0 1 1 0 10-2 0m0 3a1 1 0 112 0v3a1 1 0 11-2 0'/%3E%3C/svg%3E");
 }
 </style>

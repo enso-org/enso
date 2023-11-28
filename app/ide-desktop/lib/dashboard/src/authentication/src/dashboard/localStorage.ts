@@ -18,8 +18,9 @@ export enum LocalStorageKey {
     backendType = 'backend-type',
     extraColumns = 'extra-columns',
     isAssetSettingsPanelVisible = 'is-asset-settings-panel-visible',
-    driveCategory = 'drive-category',
     projectStartupInfo = 'project-startup-info',
+    driveCategory = 'drive-category',
+    loginRedirect = 'login-redirect',
 }
 
 /** The data that can be stored in a {@link LocalStorage}. */
@@ -28,8 +29,9 @@ interface LocalStorageData {
     [LocalStorageKey.backendType]: backend.BackendType
     [LocalStorageKey.extraColumns]: column.ExtraColumn[]
     [LocalStorageKey.isAssetSettingsPanelVisible]: boolean
-    [LocalStorageKey.driveCategory]: categorySwitcher.Category
     [LocalStorageKey.projectStartupInfo]: backend.ProjectStartupInfo
+    [LocalStorageKey.driveCategory]: categorySwitcher.Category
+    [LocalStorageKey.loginRedirect]: string
 }
 
 /** Whether each {@link LocalStorageKey} is user specific.
@@ -40,8 +42,9 @@ const IS_USER_SPECIFIC: Record<LocalStorageKey, boolean> = {
     [LocalStorageKey.backendType]: false,
     [LocalStorageKey.extraColumns]: false,
     [LocalStorageKey.isAssetSettingsPanelVisible]: false,
-    [LocalStorageKey.driveCategory]: false,
     [LocalStorageKey.projectStartupInfo]: true,
+    [LocalStorageKey.driveCategory]: false,
+    [LocalStorageKey.loginRedirect]: true,
 }
 
 /** A LocalStorage data manager. */
@@ -118,6 +121,21 @@ export class LocalStorage {
                         backendType: savedInfo.backendType,
                         accessToken: savedInfo.accessToken,
                     }
+                }
+            }
+            if (LocalStorageKey.driveCategory in savedValues) {
+                const categories = Object.values(categorySwitcher.Category)
+                if (
+                    array.includesPredicate(categories)(savedValues[LocalStorageKey.driveCategory])
+                ) {
+                    this.values[LocalStorageKey.driveCategory] =
+                        savedValues[LocalStorageKey.driveCategory]
+                }
+            }
+            if (LocalStorageKey.loginRedirect in savedValues) {
+                const value = savedValues[LocalStorageKey.loginRedirect]
+                if (typeof value === 'string') {
+                    this.values[LocalStorageKey.loginRedirect] = value
                 }
             }
             if (

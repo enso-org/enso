@@ -30,7 +30,7 @@ const ICON_SIZE_PX = 24
 const ICON_CLASSES = 'w-6 h-6'
 const LOADING_MESSAGE =
     'Your environment is being created. It will take some time, please be patient.'
-/** The corresponding {@link SpinnerState} for each {@link backendModule.ProjectState},
+/** The corresponding {@link spinner.SpinnerState} for each {@link backendModule.ProjectState},
  * when using the remote backend. */
 const REMOTE_SPINNER_STATE: Record<backendModule.ProjectState, spinner.SpinnerState> = {
     [backendModule.ProjectState.closed]: spinner.SpinnerState.initial,
@@ -42,7 +42,7 @@ const REMOTE_SPINNER_STATE: Record<backendModule.ProjectState, spinner.SpinnerSt
     [backendModule.ProjectState.provisioned]: spinner.SpinnerState.loadingSlow,
     [backendModule.ProjectState.opened]: spinner.SpinnerState.done,
 }
-/** The corresponding {@link SpinnerState} for each {@link backendModule.ProjectState},
+/** The corresponding {@link spinner.SpinnerState} for each {@link backendModule.ProjectState},
  * when using the local backend. */
 const LOCAL_SPINNER_STATE: Record<backendModule.ProjectState, spinner.SpinnerState> = {
     [backendModule.ProjectState.closed]: spinner.SpinnerState.initial,
@@ -136,7 +136,9 @@ export default function ProjectIcon(props: ProjectIconProps) {
                 switch (backend.type) {
                     case backendModule.BackendType.remote: {
                         if (state !== backendModule.ProjectState.opened) {
-                            setToastId(toast.toast.loading(LOADING_MESSAGE))
+                            if (!shouldRunInBackground) {
+                                setToastId(toast.toast.loading(LOADING_MESSAGE))
+                            }
                             await backend.openProject(
                                 item.id,
                                 {

@@ -1,8 +1,8 @@
 use crate::prelude::*;
 
-use crate::ci_gen::job::expose_os_specific_signing_secret;
 use crate::ci_gen::job::plain_job;
 use crate::ci_gen::job::plain_job_customized;
+use crate::ci_gen::job::with_packaging_steps;
 use crate::ci_gen::job::RunsOn;
 use crate::version::promote::Designation;
 use crate::version::ENSO_EDITION;
@@ -235,9 +235,7 @@ impl JobArchetype for PublishRelease {
 pub struct UploadIde;
 impl JobArchetype for UploadIde {
     fn job(&self, os: OS) -> Job {
-        plain_job_customized(&os, "Build Old IDE", "ide upload --wasm-source current-ci-run --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}", |step| 
-            vec![expose_os_specific_signing_secret(os, step)]
-        )
+        plain_job_customized(&os, "Build Old IDE", "ide upload --wasm-source current-ci-run --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}", with_packaging_steps(os))
     }
 }
 
@@ -249,7 +247,7 @@ impl JobArchetype for UploadIde2 {
             &os,
             "Build New IDE",
             "ide2 upload --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}",
-            |step| vec![expose_os_specific_signing_secret(os, step)],
+            with_packaging_steps(os),
         )
     }
 }

@@ -74,6 +74,7 @@ class RuntimeErrorsTest
             .toFile
             .getAbsolutePath
         )
+        .option("engine.WarnInterpreterOnly", "false")
         .option(RuntimeOptions.EDITION_OVERRIDE, "0.0.0-dev")
         .logHandler(logHandler)
         .option(RuntimeOptions.LOG_LEVEL, defaultLogLevel.getName)

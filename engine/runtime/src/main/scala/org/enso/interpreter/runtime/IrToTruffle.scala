@@ -438,191 +438,203 @@ class IrToTruffle(
           dataflowInfo
         )
 
-        val function = methodDef.body match {
-          case fn: Function if isBuiltinMethod(fn.body) =>
-            // For builtin types that own the builtin method we only check that
-            // the method has been registered during the initialization of builtins
-            // and not attempt to register it in the scope (can't redefined methods).
-            // For non-builtin types (or modules) that own the builtin method
-            // we have to look up the function and register it in the scope.
-            // Static wrappers for instance methods have to be registered always.
-            val fullMethodName = methodDef.body
-              .asInstanceOf[Function.Lambda]
-              .body
-              .asInstanceOf[Literal.Text]
+        moduleScope.registerMethod(
+          cons,
+          methodDef.methodName.name,
+          () => {
+            val function = methodDef.body match {
+              case fn: Function if isBuiltinMethod(fn.body) =>
+                // For builtin types that own the builtin method we only check that
+                // the method has been registered during the initialization of builtins
+                // and not attempt to register it in the scope (can't redefined methods).
+                // For non-builtin types (or modules) that own the builtin method
+                // we have to look up the function and register it in the scope.
+                // Static wrappers for instance methods have to be registered always.
+                val fullMethodName = methodDef.body
+                  .asInstanceOf[Function.Lambda]
+                  .body
+                  .asInstanceOf[Literal.Text]
 
-            val builtinNameElements = fullMethodName.text.split('.')
-            if (builtinNameElements.length != 2) {
-              throw new CompilerError(
-                s"Unknown builtin method ${fullMethodName.text}, probably should be '$fullMethodDefName?'"
-              )
-            }
-            val methodName      = builtinNameElements(1)
-            val methodOwnerName = builtinNameElements(0)
-
-            val staticWrapper = methodDef.isStaticWrapperForInstanceMethod
-
-            val builtinFunction = context.getBuiltins
-              .getBuiltinFunction(
-                methodOwnerName,
-                methodName,
-                language,
-                staticWrapper
-              )
-            builtinFunction.toScala
-              .map(Some(_))
-              .toRight(
-                new CompilerError(
-                  s"Unable to find Truffle Node for method ${cons.getName}.${methodDef.methodName.name}"
-                )
-              )
-              .left
-              .flatMap { l =>
-                // Builtin Types Number and Integer have methods only for documentation purposes
-                val number = context.getBuiltins.number()
-                val ok =
-                  staticWrapper && (cons == number.getNumber.getEigentype || cons == number.getInteger.getEigentype) ||
-                  !staticWrapper && (cons == number.getNumber             || cons == number.getInteger)
-                if (ok) Right(None)
-                else Left(l)
-              }
-              .map(fOpt =>
-                fOpt.map { m =>
-                  if (m.isAutoRegister) {
-                    val irFunctionArgumentsCount = fn.arguments.length
-                    val builtinArgumentsCount =
-                      m.getFunction.getSchema.getArgumentsCount
-                    if (irFunctionArgumentsCount != builtinArgumentsCount) {
-                      val irFunctionArguments =
-                        fn.arguments.map(_.name.name).mkString(",")
-                      val builtinArguments =
-                        m.getFunction.getSchema.getArgumentInfos
-                          .map(_.getName)
-                          .mkString(",")
-                      throw new CompilerError(
-                        s"Wrong number of arguments provided in the definition of builtin function ${cons.getName}.${methodDef.methodName.name}. " +
-                        s"[$irFunctionArguments] vs [$builtinArguments]"
-                      )
-                    }
-                    val bodyBuilder =
-                      new expressionProcessor.BuildFunctionBody(
-                        fn.arguments,
-                        fn.body,
-                        effectContext,
-                        true
-                      )
-                    val builtinRootNode =
-                      m.getFunction.getCallTarget.getRootNode
-                        .asInstanceOf[BuiltinRootNode]
-                    builtinRootNode.setModuleName(moduleScope.getModule.getName)
-                    builtinRootNode.setTypeName(cons.getQualifiedName)
-                    new RuntimeFunction(
-                      m.getFunction.getCallTarget,
-                      null,
-                      new FunctionSchema(
-                        new Array[RuntimeAnnotation](0),
-                        bodyBuilder.args(): _*
-                      )
-                    )
-                  } else {
-                    m.getFunction
-                  }
+                val builtinNameElements = fullMethodName.text.split('.')
+                if (builtinNameElements.length != 2) {
+                  throw new CompilerError(
+                    s"Unknown builtin method ${fullMethodName.text}, probably should be '$fullMethodDefName?'"
+                  )
                 }
-              )
-          case fn: Function =>
-            val bodyBuilder =
-              new expressionProcessor.BuildFunctionBody(
-                fn.arguments,
-                fn.body,
-                effectContext,
-                true
-              )
-            val rootNode = MethodRootNode.build(
-              language,
-              expressionProcessor.scope,
-              moduleScope,
-              () => bodyBuilder.bodyNode(),
-              makeSection(moduleScope, methodDef.location),
-              cons,
-              methodDef.methodName.name
-            )
-            val callTarget = rootNode.getCallTarget
-            val arguments  = bodyBuilder.args()
-            // build annotations
-            val annotations =
-              methodDef.getMetadata(GenericAnnotations).toVector.flatMap {
-                meta =>
-                  meta.annotations
-                    .collect { case annotation: Name.GenericAnnotation =>
-                      val scopeElements = Seq(
-                        cons.getName,
-                        methodDef.methodName.name,
-                        annotation.name
-                      )
-                      val scopeName =
-                        scopeElements.mkString(Constants.SCOPE_SEPARATOR)
-                      val scopeInfo = annotation
-                        .unsafeGetMetadata(
-                          AliasAnalysis,
-                          s"Missing scope information for annotation " +
-                          s"${annotation.name} of method " +
-                          scopeElements.init.mkString(Constants.SCOPE_SEPARATOR)
-                        )
-                        .unsafeAs[AliasAnalysis.Info.Scope.Root]
-                      val dataflowInfo = annotation.unsafeGetMetadata(
-                        DataflowAnalysis,
-                        "Missing dataflow information for annotation " +
-                        s"${annotation.name} of method " +
-                        scopeElements.init.mkString(Constants.SCOPE_SEPARATOR)
-                      )
-                      val expressionProcessor = new ExpressionProcessor(
-                        scopeName,
-                        scopeInfo.graph,
-                        scopeInfo.graph.rootScope,
-                        dataflowInfo
-                      )
-                      val expressionNode =
-                        expressionProcessor.run(annotation.expression, true)
-                      val closureName =
-                        s"<default::${expressionProcessor.scopeName}>"
-                      val closureRootNode = ClosureRootNode.build(
-                        language,
-                        expressionProcessor.scope,
-                        moduleScope,
-                        expressionNode,
-                        makeSection(moduleScope, annotation.location),
-                        closureName,
-                        true,
-                        false
-                      )
-                      new RuntimeAnnotation(annotation.name, closureRootNode)
-                    }
-              }
+                val methodName      = builtinNameElements(1)
+                val methodOwnerName = builtinNameElements(0)
 
-            Right(
-              Some(
-                new RuntimeFunction(
-                  callTarget,
-                  null,
-                  new FunctionSchema(annotations.toArray, arguments: _*)
+                val staticWrapper = methodDef.isStaticWrapperForInstanceMethod
+
+                val builtinFunction = context.getBuiltins
+                  .getBuiltinFunction(
+                    methodOwnerName,
+                    methodName,
+                    language,
+                    staticWrapper
+                  )
+                builtinFunction.toScala
+                  .map(Some(_))
+                  .toRight(
+                    new CompilerError(
+                      s"Unable to find Truffle Node for method ${cons.getName}.${methodDef.methodName.name}"
+                    )
+                  )
+                  .left
+                  .flatMap { l =>
+                    // Builtin Types Number and Integer have methods only for documentation purposes
+                    val number = context.getBuiltins.number()
+                    val ok =
+                      staticWrapper && (cons == number.getNumber.getEigentype || cons == number.getInteger.getEigentype) ||
+                      !staticWrapper && (cons == number.getNumber             || cons == number.getInteger)
+                    if (ok) Right(None)
+                    else Left(l)
+                  }
+                  .map(fOpt =>
+                    fOpt.map { m =>
+                      if (m.isAutoRegister) {
+                        val irFunctionArgumentsCount = fn.arguments.length
+                        val builtinArgumentsCount =
+                          m.getFunction.getSchema.getArgumentsCount
+                        if (irFunctionArgumentsCount != builtinArgumentsCount) {
+                          val irFunctionArguments =
+                            fn.arguments.map(_.name.name).mkString(",")
+                          val builtinArguments =
+                            m.getFunction.getSchema.getArgumentInfos
+                              .map(_.getName)
+                              .mkString(",")
+                          throw new CompilerError(
+                            s"Wrong number of arguments provided in the definition of builtin function ${cons.getName}.${methodDef.methodName.name}. " +
+                            s"[$irFunctionArguments] vs [$builtinArguments]"
+                          )
+                        }
+                        val bodyBuilder =
+                          new expressionProcessor.BuildFunctionBody(
+                            fn.arguments,
+                            fn.body,
+                            effectContext,
+                            true
+                          )
+                        val builtinRootNode =
+                          m.getFunction.getCallTarget.getRootNode
+                            .asInstanceOf[BuiltinRootNode]
+                        builtinRootNode
+                          .setModuleName(moduleScope.getModule.getName)
+                        builtinRootNode.setTypeName(cons.getQualifiedName)
+                        new RuntimeFunction(
+                          m.getFunction.getCallTarget,
+                          null,
+                          new FunctionSchema(
+                            new Array[RuntimeAnnotation](0),
+                            bodyBuilder.args(): _*
+                          )
+                        )
+                      } else {
+                        m.getFunction
+                      }
+                    }
+                  )
+              case fn: Function =>
+                val bodyBuilder =
+                  new expressionProcessor.BuildFunctionBody(
+                    fn.arguments,
+                    fn.body,
+                    effectContext,
+                    true
+                  )
+                val rootNode = MethodRootNode.build(
+                  language,
+                  expressionProcessor.scope,
+                  moduleScope,
+                  () => bodyBuilder.bodyNode(),
+                  makeSection(moduleScope, methodDef.location),
+                  cons,
+                  methodDef.methodName.name
                 )
-              )
-            )
-          case _ =>
-            Left(
-              new CompilerError(
-                "Method bodies must be functions at the point of codegen."
-              )
-            )
-        }
-        function match {
-          case Left(failure) =>
-            throw failure
-          case Right(Some(fun)) =>
-            moduleScope.registerMethod(cons, methodDef.methodName.name, fun)
-          case _ =>
-          // Don't register dummy function nodes
-        }
+                val callTarget = rootNode.getCallTarget
+                val arguments  = bodyBuilder.args()
+                // build annotations
+                val annotations =
+                  methodDef.getMetadata(GenericAnnotations).toVector.flatMap {
+                    meta =>
+                      meta.annotations
+                        .collect { case annotation: Name.GenericAnnotation =>
+                          val scopeElements = Seq(
+                            cons.getName,
+                            methodDef.methodName.name,
+                            annotation.name
+                          )
+                          val scopeName =
+                            scopeElements.mkString(Constants.SCOPE_SEPARATOR)
+                          val scopeInfo = annotation
+                            .unsafeGetMetadata(
+                              AliasAnalysis,
+                              s"Missing scope information for annotation " +
+                              s"${annotation.name} of method " +
+                              scopeElements.init
+                                .mkString(Constants.SCOPE_SEPARATOR)
+                            )
+                            .unsafeAs[AliasAnalysis.Info.Scope.Root]
+                          val dataflowInfo = annotation.unsafeGetMetadata(
+                            DataflowAnalysis,
+                            "Missing dataflow information for annotation " +
+                            s"${annotation.name} of method " +
+                            scopeElements.init
+                              .mkString(Constants.SCOPE_SEPARATOR)
+                          )
+                          val expressionProcessor = new ExpressionProcessor(
+                            scopeName,
+                            scopeInfo.graph,
+                            scopeInfo.graph.rootScope,
+                            dataflowInfo
+                          )
+                          val expressionNode =
+                            expressionProcessor.run(annotation.expression, true)
+                          val closureName =
+                            s"<default::${expressionProcessor.scopeName}>"
+                          val closureRootNode = ClosureRootNode.build(
+                            language,
+                            expressionProcessor.scope,
+                            moduleScope,
+                            expressionNode,
+                            makeSection(moduleScope, annotation.location),
+                            closureName,
+                            true,
+                            false
+                          )
+                          new RuntimeAnnotation(
+                            annotation.name,
+                            closureRootNode
+                          )
+                        }
+                  }
+
+                Right(
+                  Some(
+                    new RuntimeFunction(
+                      callTarget,
+                      null,
+                      new FunctionSchema(annotations.toArray, arguments: _*)
+                    )
+                  )
+                )
+              case _ =>
+                Left(
+                  new CompilerError(
+                    "Method bodies must be functions at the point of codegen."
+                  )
+                )
+            }
+            function match {
+              case Left(failure) =>
+                throw failure
+              case Right(Some(fun)) =>
+                fun
+              case x =>
+                throw new IllegalStateException("Wrong state: " + x)
+            }
+          }
+        )
       }
     })
 

@@ -181,8 +181,8 @@ export class Cognito {
     }
 
     /** Save the access token to a file for further reuse. */
-    saveAccessToken(accessToken: string) {
-        this.amplifyConfig.accessTokenSaver?.(accessToken)
+    saveAccessToken(accessToken: string | null) {
+        this.amplifyConfig.saveAccessToken?.(accessToken)
     }
 
     /** Return the current {@link UserSession}, or `None` if the user is not logged in.
@@ -398,7 +398,6 @@ export const CURRENT_SESSION_NO_CURRENT_USER_ERROR = {
 /**
  * Convert an {@link AmplifyError} into a {@link CurrentSessionErrorKind} if it is a known error,
  * else re-throws the error.
- *
  * @throws {Error} If the error is not recognized.
  */
 export function intoCurrentSessionErrorKind(error: unknown): CurrentSessionErrorKind {
@@ -473,7 +472,6 @@ export interface SignUpError extends CognitoError {
 /**
  * Convert an {@link AmplifyError} into a {@link SignUpError} if it is a known error,
  * else re-throws the error.
- *
  * @throws {Error} If the error is not recognized.
  */
 export function intoSignUpErrorOrThrow(error: AmplifyError): SignUpError {

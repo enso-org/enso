@@ -115,14 +115,14 @@ public final class LogbackSetup extends LoggerSetup {
             int port) {
         Level targetLogLevel;
         // Modify log level if we were asked to always log to a file.
-        // The receiver needs to get all logs (up to `trace`) so as to be able to log all verbose messages.
+        // The receiver needs to get all logs (up to `trace`) to be able to log all verbose messages.
         if (logToFileEnabled()) {
-            int min = Math.min(Level.TRACE.toInt(), config.logToFile().logLevel().toInt());
+            int min = Math.min(logLevel.toInt(), config.logToFile().logLevel().toInt());
             targetLogLevel = Level.intToLevel(min);
         } else {
             targetLogLevel = logLevel;
         }
-        LoggerAndContext env = contextInit(targetLogLevel, config, !logToFileEnabled());
+        LoggerAndContext env = contextInit(targetLogLevel, config, true);
 
         org.enso.logger.config.SocketAppender appenderConfig = config.getSocketAppender();
 

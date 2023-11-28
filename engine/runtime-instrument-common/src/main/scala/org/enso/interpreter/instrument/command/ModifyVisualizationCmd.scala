@@ -10,6 +10,7 @@ import org.enso.interpreter.instrument.job.{
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.ExpressionId
 
+import java.util.logging.Level
 import scala.concurrent.{ExecutionContext, Future}
 
 /** A command that modifies a visualization.
@@ -29,6 +30,11 @@ class ModifyVisualizationCmd(
     ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] = {
+    ctx.executionService.getLogger.log(
+      Level.FINE,
+      "Modify visualization cmd for request id [{}] and visualization id [{}]",
+      Array(maybeRequestId, request.visualizationId)
+    )
     val existingVisualization = ctx.contextManager.getVisualizationById(
       request.visualizationConfig.executionContextId,
       request.visualizationId

@@ -24,12 +24,17 @@ test('Indexing is efficient', () => {
   db.set(2, reactive({ name: 'xyz' }))
   db.set(3, reactive({ name: 'abc' }))
   db.delete(2)
+  expect(adding).toHaveBeenCalledTimes(0)
+  expect(removing).toHaveBeenCalledTimes(0)
+  index.lookup('x')
+  expect(adding).toHaveBeenCalledTimes(2)
+  expect(removing).toHaveBeenCalledTimes(0)
+  db.set(1, { name: 'qdr' })
+  index.lookup('x')
   expect(adding).toHaveBeenCalledTimes(3)
   expect(removing).toHaveBeenCalledTimes(1)
-  db.set(1, { name: 'qdr' })
-  expect(adding).toHaveBeenCalledTimes(4)
-  expect(removing).toHaveBeenCalledTimes(2)
   db.get(3)!.name = 'xyz'
+  index.lookup('x')
   expect(adding).toHaveBeenCalledTimes(4)
   expect(removing).toHaveBeenCalledTimes(2)
   expect(index.lookup('qdr')).toEqual(new Set([1]))
@@ -41,9 +46,10 @@ test('Error reported when indexer implementation returns non-unique pairs', () =
   console.error = () => {}
   const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
   // Invalid index
-  new ReactiveIndex(db, (_id, _entry) => [[1, 1]])
+  const index = new ReactiveIndex(db, (_id, _entry) => [[1, 1]])
   db.set(1, 1)
   db.set(2, 2)
+  index.lookup(1)
   expect(consoleError).toHaveBeenCalledOnce()
   expect(consoleError).toHaveBeenCalledWith(
     'Attempt to repeatedly write the same key-value pair (1,1) to the index. Please check your indexer implementation.',
@@ -101,7 +107,7 @@ test('Parent index', async () => {
   expect(parent.reverseLookup(3)).toStrictEqual(new Set())
   expect(adding).toHaveBeenCalledTimes(2)
   expect(removing).toHaveBeenCalledTimes(0)
-  expect(lookupQn).toHaveBeenCalledTimes(6)
+  expect(lookupQn).toHaveBeenCalledTimes(5)
 
   db.delete(3)
   await nextTick()
@@ -109,5 +115,5 @@ test('Parent index', async () => {
   expect(parent.reverseLookup(2)).toEqual(new Set([1]))
   expect(adding).toHaveBeenCalledTimes(2)
   expect(removing).toHaveBeenCalledTimes(1)
-  expect(lookupQn).toHaveBeenCalledTimes(6)
+  expect(lookupQn).toHaveBeenCalledTimes(5)
 })

@@ -7,7 +7,7 @@ import scala.collection.mutable
 
 /** A mutable holder of all visualizations attached to an execution context.
   */
-class VisualizationHolder() {
+class VisualizationHolder {
 
   private val visualizationMap: mutable.Map[ExpressionId, List[Visualization]] =
     mutable.Map.empty.withDefaultValue(List.empty)
@@ -50,8 +50,14 @@ class VisualizationHolder() {
     * @param module the qualified module name
     * @return a list of matching visualization
     */
-  def findByModule(module: QualifiedName): Iterable[Visualization] =
-    visualizationMap.values.flatten.filter(_.module.getName == module)
+  def findByModule(
+    module: QualifiedName
+  ): Iterable[Visualization.AttachedVisualization] =
+    visualizationMap.values.flatten.collect {
+      case visualization: Visualization.AttachedVisualization
+          if visualization.module.getName == module =>
+        visualization
+    }
 
   /** Returns a visualization with the provided id.
     *
@@ -69,6 +75,6 @@ class VisualizationHolder() {
 object VisualizationHolder {
 
   /** Returns an empty visualization holder. */
-  def empty = new VisualizationHolder()
+  def empty = new VisualizationHolder
 
 }

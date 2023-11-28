@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { useGraphStore, type Node } from '@/stores/graph'
+import { useGraphStore } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
-import type { Highlighter } from '@/util/codemirror'
-import { colorFromString } from '@/util/colors'
+import { useAutoBlur } from '@/util/autoBlur'
+import type { Diagnostic, Highlighter } from '@/util/codemirror'
 import { usePointer } from '@/util/events'
+import { chain } from '@/util/iterable'
 import { useLocalStorage } from '@vueuse/core'
-import { rangeEncloses } from 'shared/yjsModel'
+import { rangeEncloses, type ExprId } from 'shared/yjsModel'
 import { computed, onMounted, ref, watchEffect } from 'vue'
 import { qnJoin, tryQualifiedName } from '../util/qualifiedName'
 import { unwrap } from '../util/result'
@@ -15,6 +16,7 @@ import { unwrap } from '../util/result'
 const {
   bracketMatching,
   foldGutter,
+  lintGutter,
   highlightSelectionMatches,
   minimalSetup,
   EditorState,
@@ -24,6 +26,8 @@ const {
   defaultHighlightStyle,
   tooltips,
   enso,
+  linter,
+  lsDiagnosticsToCMDiagnostics,
   hoverTooltip,
 } = await import('@/util/codemirror')
 
@@ -31,6 +35,42 @@ const projectStore = useProjectStore()
 const graphStore = useGraphStore()
 const suggestionDbStore = useSuggestionDbStore()
 const rootElement = ref<HTMLElement>()
+useAutoBlur(rootElement)
+
+const executionContextDiagnostics = computed(() =>
+  projectStore.module
+    ? lsDiagnosticsToCMDiagnostics(
+        projectStore.module.doc.contents.toString(),
+        projectStore.diagnostics,
+      )
+    : [],
+)
+
+const expressionUpdatesDiagnostics = computed(() => {
+  const nodeMap = graphStore.db.nodeIdToNode
+  const updates = projectStore.computedValueRegistry.db
+  const panics = updates.type.reverseLookup('Panic')
+  const errors = updates.type.reverseLookup('DataflowError')
+  const diagnostics: Diagnostic[] = []
+  for (const id of chain(panics, errors)) {
+    const update = updates.get(id)
+    if (!update) continue
+    const node = nodeMap.get(id)
+    if (!node) continue
+    const [from, to] = node.rootSpan.span()
+    switch (update.payload.type) {
+      case 'Panic': {
+        diagnostics.push({ from, to, message: update.payload.message, severity: 'error' })
+        break
+      }
+      case 'DataflowError': {
+        diagnostics.push({ from, to, message: 'Unknown data flow error', severity: 'error' })
+        break
+      }
+    }
+  }
+  return diagnostics
+})
 
 // == CodeMirror editor setup  ==
 
@@ -40,7 +80,7 @@ watchEffect(() => {
   if (!module) return
   const yText = module.doc.contents
   const undoManager = module.undoManager
-  const awareness = projectStore.awareness
+  const awareness = projectStore.awareness.internal
   editorView.setState(
     EditorState.create({
       doc: yText.toString(),
@@ -50,26 +90,26 @@ watchEffect(() => {
         syntaxHighlighting(defaultHighlightStyle as Highlighter),
         bracketMatching(),
         foldGutter(),
+        lintGutter(),
         highlightSelectionMatches(),
         tooltips({ position: 'absolute' }),
         hoverTooltip((ast, syn) => {
           const dom = document.createElement('div')
           const astSpan = ast.span()
-          let foundNode: Node | undefined
-          for (const node of graphStore.nodes.values()) {
+          let foundNode: ExprId | undefined
+          for (const [id, node] of graphStore.db.nodeIdToNode.entries()) {
             if (rangeEncloses(node.rootSpan.span(), astSpan)) {
-              foundNode = node
+              foundNode = id
               break
             }
           }
-          const expressionInfo = foundNode
-            ? projectStore.computedValueRegistry.getExpressionInfo(foundNode.rootSpan.astId)
-            : undefined
+          const expressionInfo = foundNode && graphStore.db.getExpressionInfo(foundNode)
+          const nodeColor = foundNode && graphStore.db.getNodeColorStyle(foundNode)
 
           if (foundNode != null) {
             dom
               .appendChild(document.createElement('div'))
-              .appendChild(document.createTextNode(`AST ID: ${foundNode.rootSpan.astId}`))
+              .appendChild(document.createTextNode(`AST ID: ${foundNode}`))
           }
           if (expressionInfo != null) {
             dom
@@ -92,16 +132,15 @@ watchEffect(() => {
               groupNode.appendChild(document.createTextNode('Group: '))
               const groupNameNode = groupNode.appendChild(document.createElement('span'))
               groupNameNode.appendChild(document.createTextNode(`${method.module}.${method.name}`))
-              groupNameNode.style.color =
-                suggestionEntry?.groupIndex != null
-                  ? `var(--group-color-${suggestionDbStore.groups[suggestionEntry.groupIndex]
-                      ?.name})`
-                  : colorFromString(expressionInfo?.typename ?? 'Unknown')
+              if (nodeColor) {
+                groupNameNode.style.color = nodeColor
+              }
             }
           }
           return { dom }
         }),
         enso(),
+        linter(() => [...executionContextDiagnostics.value, ...expressionUpdatesDiagnostics.value]),
       ],
     }),
   )
@@ -146,6 +185,7 @@ const editorStyle = computed(() => {
     @keydown.enter.stop
     @wheel.stop.passive
     @pointerdown.stop
+    @contextmenu.stop
   >
     <div class="resize-handle" v-on="resize.events" @dblclick="resetSize">
       <svg viewBox="0 0 16 16">

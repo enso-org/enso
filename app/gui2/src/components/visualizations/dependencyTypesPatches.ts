@@ -14,14 +14,9 @@ declare module 'd3' {
   }
 }
 
-declare module '@ag-grid-community/core' {
-  // These type parameters are defined on the original interface.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  interface ColDef<TData, TValue> {
-    /** Custom user-defined value. */
-    manuallySized: boolean
-  }
+import '@ag-grid-community/core'
 
+declare module '@ag-grid-community/core' {
   // These type parameters are defined on the original interface.
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   interface AbstractColDef<TData, TValue> {

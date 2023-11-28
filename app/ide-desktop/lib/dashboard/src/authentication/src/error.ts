@@ -5,7 +5,7 @@ import type * as toastify from 'react-toastify'
 // === tryGetMessage ===
 // =====================
 
-/** Evaluates the given type only if it the exact same type as {@link Expected}. */
+/** Evaluates the given type only if it the exact same type as `Expected`. */
 type MustBe<T, Expected> = (<U>() => U extends T ? 1 : 2) extends <U>() => U extends Expected
     ? 1
     : 2

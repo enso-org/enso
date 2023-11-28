@@ -9,36 +9,60 @@ import java.util.UUID;
 public interface IdExecutionService {
   String INSTRUMENT_ID = "id-value-extractor";
 
+  public abstract class Info {
+
+    /** @return UUID of the node, never {@code null}. */
+    public abstract UUID getId();
+
+    /** @return associated result or {@code null} if there is no associated result. */
+    public abstract Object getResult();
+
+    /** @return {@code true} when the result is panic, {@code false} otherwise. */
+    public abstract boolean isPanic();
+
+    /**
+     * @return time (in nanoseconds) needed to compute the result or {@code -1} when not available.
+     */
+    public abstract long getElapsedTime();
+
+    /**
+     * Evaluates given code in the context of current UUID location.
+     *
+     * @param code the Enso code to evaluate.
+     * @return result of the evaluation.
+     */
+    public abstract Object eval(String code);
+  }
+
   public interface Callbacks {
+
     /**
      * Finds out previously computed result for given id. If a result is returned, then the
      * execution of given node is skipped and the value is returned back.
      *
-     * @param nodeId identification of the node to be computed
+     * @param info info with UUID the node to be computed
      * @return {@code null} should the execution of the node be performed; any other value to skip
      *     the execution and return the value as a result.
      */
-    Object findCachedResult(UUID nodeId);
+    Object findCachedResult(Info info);
 
     /**
      * Notifies when an execution of a node is over.
      *
-     * @param nodeId identification of the node to be computed
-     * @param result the just computed result
-     * @param isPanic was the result a panic?
-     * @param nanoElapsedTime how long it took to compute the result?
+     * @param info info with node id, {@link Info#getResult()}, {@link Info#isPanic()} and {@link
+     *     Info#getElapsedTime()}
      */
-    void updateCachedResult(UUID nodeId, Object result, boolean isPanic, long nanoElapsedTime);
+    void updateCachedResult(Info info);
 
     /**
      * Notification when a returned value is a function.
      *
-     * @param nodeId identification of the node to be computed
-     * @param result info about function call
+     * @param info with identification of the node and {@link Info#getResult()} info about function
+     *     call
      * @return {@code null} should the execution of the node be performed; any other value to skip
      *     the execution and return the value as a result.
      */
-    Object onFunctionReturn(UUID nodeId, TruffleObject result);
+    Object onFunctionReturn(Info info);
   }
 
   /**

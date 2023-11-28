@@ -3,7 +3,8 @@ import { ReactiveDb, ReactiveIndex } from '@/util/database/reactiveDb'
 import type { Opt } from '@/util/opt'
 import type { VisualizationIdentifier } from 'shared/yjsModel'
 
-export interface VisualizationMetadata extends Pick<VisualizationModule, 'name' | 'inputType'> {}
+export interface VisualizationMetadata
+  extends Pick<VisualizationModule, 'name' | 'inputType' | 'icon'> {}
 
 function getTypesFromUnion(inputType: Opt<string>) {
   return inputType?.split('|').map((type) => type.trim()) ?? ['Any']
@@ -28,7 +29,7 @@ export function fromVisualizationId(key: VisualizationId): VisualizationIdentifi
 }
 
 export class VisualizationMetadataDb extends ReactiveDb<VisualizationId, VisualizationMetadata> {
-  types = new ReactiveIndex(this, (key, metadata) =>
+  visualizationIdToType = new ReactiveIndex(this, (key, metadata) =>
     getTypesFromUnion(metadata.inputType).map((type) => [key, type]),
   )
 }

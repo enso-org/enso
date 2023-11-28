@@ -14,6 +14,10 @@ export class Vec2 {
     return new Vec2(arr[0], arr[1])
   }
 
+  static FromDomPoint(point: DOMPoint): Vec2 {
+    return new Vec2(point.x, point.y)
+  }
+
   equals(other: Vec2): boolean {
     return this.x === other.x && this.y === other.y
   }
@@ -30,6 +34,10 @@ export class Vec2 {
     const dx = this.x - other.x
     const dy = this.y - other.y
     return dx * dx + dy * dy
+  }
+
+  inverse(): Vec2 {
+    return new Vec2(-this.x, -this.y)
   }
 
   add(other: Vec2): Vec2 {

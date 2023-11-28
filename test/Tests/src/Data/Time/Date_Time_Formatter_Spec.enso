@@ -3,8 +3,6 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Time_Error.Time_Error
 from Standard.Base.Data.Time.Errors import Date_Time_Format_Parse_Error, Suspicious_Date_Time_Format
 
-from Standard.Table import Column, Value_Type
-
 from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
 
@@ -348,26 +346,6 @@ spec =
 
             Date.parse "07/23" "MM/dd" . should_equal (Date.new current_year 7 23)
             Date.parse "14. of May" "d. 'of' MMMM" . should_equal (Date.new current_year 5 14)
-
-        Test.specify "should report the warnings when parsing a column as well" <|
-            c1 = Column.from_vector "strs" ["31.12", "01.01"]
-            c2 = c1.parse Value_Type.Date "dd.MM"
-            current_year = Date.today.year
-            c2.to_vector . should_equal [Date.new current_year 12 31, Date.new current_year 01 01]
-            Problems.expect_only_warning Suspicious_Date_Time_Format c2
-
-            c3 = Column.from_vector "strs" ["04:24", "16:25"]
-            t3 = c3.to_table
-            t4 = t3.parse type=Value_Type.Time format="hh:mm"
-            # The entry `16:25` does not fit the 12h format, so it is not parsed.
-            t4.at "strs" . to_vector . should_equal [Time_Of_Day.new 4 24, Nothing]
-            Problems.expect_warning Suspicious_Date_Time_Format t4
-
-            # But no warnings on format
-            c5 = Column.from_vector "Y" [Date.new 2023 12 25, Date.new 2011 07 31]
-            c6 = c5.format "dd.MM"
-            c6.to_vector . should_equal ["25.12", "31.07"]
-            Problems.assume_no_problems c6
 
         Test.specify "should allow nested patterns" <|
             # Difference between a nested pattern and two optional patterns next to each other.

@@ -182,11 +182,24 @@ class Runner(
         engine.defaultJVMOptions.filter(_.isRelevant).map(_.substitute(context))
       val environmentOptions =
         jvmOptsFromEnvironment.map(_.split(' ').toIndexedSeq).getOrElse(Seq())
-      val commandLineOptions = jvmSettings.jvmOptions.map(translateJVMOption)
+      val commandLineOptions        = jvmSettings.jvmOptions.map(translateJVMOption)
+      val shouldInvokeViaModulePath = engine.graalRuntimeVersion.isUnchained
 
-      val jvmArguments =
-        manifestOptions ++ environmentOptions ++ commandLineOptions ++
-        Seq("-jar", runnerJar)
+      var jvmArguments =
+        manifestOptions ++ environmentOptions ++ commandLineOptions
+      if (shouldInvokeViaModulePath) {
+        jvmArguments = jvmArguments :++ Seq(
+          "--module-path",
+          engine.componentDirPath.toAbsolutePath.normalize.toString,
+          "-m",
+          "org.enso.runtime/org.enso.EngineRunnerBootLoader"
+        )
+      } else {
+        jvmArguments = jvmArguments :++ Seq(
+          "-jar",
+          runnerJar
+        )
+      }
 
       val loggingConnectionArguments =
         if (runSettings.connectLoggerIfAvailable)
@@ -222,11 +235,25 @@ class Runner(
           prepareAndRunCommand(engine, overriddenCommand)
         }
       case None =>
-        runtimeVersionManager.withEngineAndRuntime(engineVersion) {
-          (engine, runtime) =>
-            prepareAndRunCommand(engine, JavaCommand.forRuntime(runtime))
+        if (needsRuntime(engineVersion)) {
+          runtimeVersionManager.withEngineAndRuntime(engineVersion) {
+            (engine, runtime) =>
+              prepareAndRunCommand(engine, JavaCommand.forRuntime(runtime))
+          }
+        } else {
+          runtimeVersionManager.withEngine(engineVersion) { engine =>
+            prepareAndRunCommand(engine, JavaCommand.systemJavaCommand)
+          }
         }
     }
+  }
+
+  /** Returns true if for the provided engine version, we also need to load or install
+    * GraalVM runtime.
+    */
+  private def needsRuntime(engineVersion: SemVer): Boolean = {
+    val engine = runtimeVersionManager.findOrInstallEngine(engineVersion)
+    engine.needsGraalDistribution
   }
 
   /** Returns arguments that should be added to a launched component to connect

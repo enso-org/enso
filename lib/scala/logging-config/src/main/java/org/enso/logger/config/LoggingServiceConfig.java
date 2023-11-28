@@ -6,6 +6,7 @@ import com.typesafe.config.ConfigFactory;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -45,8 +46,30 @@ public class LoggingServiceConfig implements BaseConfig {
   }
 
   public static LoggingServiceConfig parseConfig() throws MissingConfigurationField {
-    var empty = ConfigFactory.empty().atKey(configurationRoot);
-    var root = ConfigFactory.load().withFallback(empty).getConfig(configurationRoot);
+    return parseConfig(LoggingServiceConfig.class.getClassLoader());
+  }
+
+  /**
+   * Parses the logging-service config.
+   *
+   * @param classLoader A class loader used for loading the configuration resources. If null, the
+   *     system class loader will be used
+   */
+  public static LoggingServiceConfig parseConfig(ClassLoader classLoader)
+      throws MissingConfigurationField {
+    Objects.requireNonNull(classLoader, "classLoader cannot be null");
+    var emptyConf = ConfigFactory.empty().atKey(configurationRoot);
+    var defaultRootConf = ConfigFactory.load(classLoader);
+    var fallbackRootConf = ConfigFactory.load(LoggingServiceConfig.class.getClassLoader());
+    // thread context class loader may be different than class loader for the current class.
+    // And the thread context class loader (which is often the same as the system class loader)
+    // may not have access to the `application.conf` resource, so we need to load it from the
+    // class loader of the current class.
+    var root =
+        defaultRootConf
+            .withFallback(fallbackRootConf)
+            .withFallback(emptyConf)
+            .getConfig(configurationRoot);
     LoggingServer server;
     if (root.hasPath(serverKey)) {
       Config serverConfig = root.getConfig(serverKey);

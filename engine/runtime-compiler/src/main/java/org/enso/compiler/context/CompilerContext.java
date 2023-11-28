@@ -43,6 +43,8 @@ public interface CompilerContext extends CompilerStub {
 
   void log(Level level, String msg, Object... args);
 
+  void log(Level level, String msg, Throwable ex);
+
   void logSerializationManager(Level level, String msg, Object... args);
 
   void notifySerializeModule(QualifiedName moduleName);
@@ -81,8 +83,6 @@ public interface CompilerContext extends CompilerStub {
 
   boolean wasLoadedFromCache(Module module);
 
-  boolean hasCrossModuleLinks(Module module);
-
   org.enso.compiler.core.ir.Module getIr(Module module);
 
   CompilationStage getCompilationStage(Module module);
@@ -108,8 +108,6 @@ public interface CompilerContext extends CompilerStub {
 
     void loadedFromCache(boolean b);
 
-    void hasCrossModuleLinks(boolean b);
-
     void resetScope();
 
     void invalidateCache();
@@ -133,8 +131,6 @@ public interface CompilerContext extends CompilerStub {
     public abstract CompilationStage getCompilationStage();
 
     public abstract boolean isSynthetic();
-
-    public abstract boolean hasCrossModuleLinks();
 
     public abstract org.enso.compiler.core.ir.Module getIr();
 

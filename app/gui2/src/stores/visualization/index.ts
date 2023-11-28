@@ -95,10 +95,11 @@ export const useVisualizationStore = defineStore('visualization', () => {
     (roots) => roots.find((root) => root.type === 'Project')?.id,
   )
 
-  for (const { name, inputType } of builtinVisualizations) {
+  for (const { name, inputType, icon } of builtinVisualizations) {
     metadata.set(toVisualizationId({ module: { kind: 'Builtin' }, name }), {
       name,
       inputType,
+      icon,
     })
   }
 
@@ -119,6 +120,9 @@ export const useVisualizationStore = defineStore('visualization', () => {
           loadedScripts.add(url)
           const node = document.createElement('script')
           node.src = url
+          // Some resources still set only "Access-Control-Allow-Origin" in the response.
+          // We need to explicitly make a request CORS - see https://resourcepolicy.fyi
+          node.crossOrigin = 'anonymous'
           promises.push(
             new Promise<void>((resolve, reject) => {
               node.addEventListener('load', () => {
@@ -163,7 +167,10 @@ export const useVisualizationStore = defineStore('visualization', () => {
             currentProjectProtocol + pathString,
             await projectRoot,
             await proj.dataConnection,
-          )
+          ).then(async (viz) => {
+            await loadScripts(viz)
+            return viz
+          })
           if (key) cache.set(key, vizPromise)
           const viz = await vizPromise
           if (abortController.signal.aborted) break
@@ -176,7 +183,11 @@ export const useVisualizationStore = defineStore('visualization', () => {
             id = { module: { kind: 'CurrentProject' }, name: viz.name }
             cache.set(toVisualizationId(id), vizPromise)
           }
-          metadata.set(toVisualizationId(id), { name: viz.name, inputType: viz.inputType })
+          metadata.set(toVisualizationId(id), {
+            name: viz.name,
+            inputType: viz.inputType,
+            icon: viz.icon,
+          })
         } catch (error) {
           if (key) cache.delete(key)
           if (error instanceof InvalidVisualizationModuleError) {
@@ -213,10 +224,14 @@ export const useVisualizationStore = defineStore('visualization', () => {
       type == null
         ? metadata.keys()
         : new Set([
-            ...(metadata.types.reverseLookup(type) ?? []),
-            ...(metadata.types.reverseLookup('Any') ?? []),
+            ...(metadata.visualizationIdToType.reverseLookup(type) ?? []),
+            ...(metadata.visualizationIdToType.reverseLookup('Any') ?? []),
           ])
     for (const type of types) yield fromVisualizationId(type)
+  }
+
+  function icon(type: VisualizationIdentifier) {
+    return metadata.get(toVisualizationId(type))?.icon
   }
 
   function get(meta: VisualizationIdentifier, ignoreCache = false) {
@@ -247,5 +262,5 @@ export const useVisualizationStore = defineStore('visualization', () => {
     return module
   }
 
-  return { types, get }
+  return { types, get, icon }
 })

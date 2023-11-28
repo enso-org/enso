@@ -62,7 +62,6 @@ public final class Module implements EnsoObject {
   private QualifiedName name;
   private final ModuleCache cache;
   private boolean wasLoadedFromCache;
-  private boolean hasCrossModuleLinks;
   private final boolean synthetic;
   /**
    * This list is filled in case there is a directory with the same name as this module. The
@@ -88,7 +87,6 @@ public final class Module implements EnsoObject {
     this.name = name;
     this.cache = new ModuleCache(this);
     this.wasLoadedFromCache = false;
-    this.hasCrossModuleLinks = false;
     this.synthetic = false;
   }
 
@@ -106,7 +104,6 @@ public final class Module implements EnsoObject {
     this.name = name;
     this.cache = new ModuleCache(this);
     this.wasLoadedFromCache = false;
-    this.hasCrossModuleLinks = false;
     this.patchedValues = new PatchedModuleValues(this);
     this.synthetic = false;
   }
@@ -125,7 +122,6 @@ public final class Module implements EnsoObject {
     this.name = name;
     this.cache = new ModuleCache(this);
     this.wasLoadedFromCache = false;
-    this.hasCrossModuleLinks = false;
     this.patchedValues = new PatchedModuleValues(this);
     this.synthetic = false;
   }
@@ -147,7 +143,6 @@ public final class Module implements EnsoObject {
     this.compilationStage = synthetic ? CompilationStage.INITIAL : CompilationStage.AFTER_CODEGEN;
     this.cache = new ModuleCache(this);
     this.wasLoadedFromCache = false;
-    this.hasCrossModuleLinks = false;
     this.synthetic = synthetic;
   }
 
@@ -514,19 +509,6 @@ public final class Module implements EnsoObject {
   /** @param wasLoadedFromCache whether or not the module was loaded from the cache */
   void setLoadedFromCache(boolean wasLoadedFromCache) {
     this.wasLoadedFromCache = wasLoadedFromCache;
-  }
-
-  /**
-   * @return {@code true} if the module has had its cross-module links restored, otherwise {@code
-   *     false}
-   */
-  public boolean hasCrossModuleLinks() {
-    return hasCrossModuleLinks;
-  }
-
-  /** @param hasCrossModuleLinks whether or not the module has cross-module links restored */
-  void setHasCrossModuleLinks(boolean hasCrossModuleLinks) {
-    this.hasCrossModuleLinks = hasCrossModuleLinks;
   }
 
   /**

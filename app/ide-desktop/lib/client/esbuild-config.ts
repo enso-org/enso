@@ -18,7 +18,6 @@ import * as paths from './paths'
  * to the PM bundle root;
  * - `ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION` - version of the Engine (backend) that is bundled
  * along with this client build.
- *
  * @see bundlerOptions
  */
 export function bundlerOptionsFromEnv(): esbuild.BuildOptions {

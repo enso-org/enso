@@ -1,6 +1,6 @@
 package org.enso.refactoring;
 
-import org.enso.syntax.text.Location;
+import org.enso.compiler.core.ir.Location;
 import org.enso.text.buffer.Rope;
 import org.enso.text.editing.IndexedSource;
 import org.enso.text.editing.IndexedSource$;
@@ -11,6 +11,7 @@ import org.enso.text.editing.TextEditor;
 import org.enso.text.editing.model;
 import org.junit.Assert;
 import org.junit.Test;
+
 import scala.collection.immutable.Seq;
 import scala.collection.immutable.VectorBuilder;
 import scala.util.Either;

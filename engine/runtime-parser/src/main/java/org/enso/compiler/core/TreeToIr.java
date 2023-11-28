@@ -12,6 +12,7 @@ import org.enso.compiler.core.ir.Empty;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Function;
 import org.enso.compiler.core.ir.Literal;
+import org.enso.compiler.core.ir.Location;
 import org.enso.compiler.core.ir.Name;
 import org.enso.compiler.core.ir.MetadataStorage;
 import org.enso.compiler.core.ir.Module;
@@ -29,7 +30,6 @@ import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.compiler.core.ir.module.scope.Export;
 import org.enso.compiler.core.ir.module.scope.Import;
 import org.enso.compiler.core.ir.module.scope.imports.Polyglot;
-import org.enso.syntax.text.Location;
 import org.enso.syntax2.ArgumentDefinition;
 import org.enso.syntax2.Base;
 import org.enso.syntax2.DocComment;
@@ -41,6 +41,7 @@ import org.enso.syntax2.Tree;
 import org.enso.syntax2.Tree.Invalid;
 
 import org.enso.syntax2.Tree.Private;
+
 import scala.Option;
 import scala.collection.immutable.LinearSeq;
 import scala.collection.immutable.List;
@@ -121,7 +122,7 @@ final class TreeToIr {
                                       locations.get(1).start(),
                                       locations.get(locations.size() - 1).end()
                               ),
-                              Option.empty()
+                              null
                       )
               );
             }
@@ -842,7 +843,7 @@ final class TreeToIr {
         var locationWithANewLine = getIdentifiedLocation(body, 0, 0, null);
         if (last != null && last.location().isDefined() && last.location().get().end() != locationWithANewLine.get().end()) {
             var patched = new Location(last.location().get().start(), locationWithANewLine.get().end() - 1);
-            var id = new IdentifiedLocation(patched, last.location().get().id());
+            var id = IdentifiedLocation.create(patched, last.location().get().id());
             last = last.setLocation(Option.apply(id));
         }
         yield new Expression.Block(list, last, locationWithANewLine, false, meta(), diag());
@@ -960,6 +961,7 @@ final class TreeToIr {
             var arg = new CallArgument.Specified(Option.empty(), expr, expr.location(), meta(), diag());
             yield new Application.Prefix(negate, join(arg, nil()), false, expr.location(), meta(), diag());
           }
+          case null -> translateSyntaxError(tree, new Syntax.UnsupportedSyntax("Strange unary -"));
         };
       case Tree.TypeSignature sig -> {
         var methodName = buildName(sig.getVariable());
@@ -1436,7 +1438,11 @@ final class TreeToIr {
       } else {
         throw translateEntity(app, Syntax.UnexpectedExpression$.MODULE$);
       }
-      list = app.getLhs();
+      if (app.getLhs() != null) {
+        list = app.getLhs();
+      } else {
+        throw translateEntity(app, Syntax.UnexpectedExpression$.MODULE$);
+      }
     }
     segments.add(list);
     java.util.Collections.reverse(segments);
@@ -1693,7 +1699,7 @@ final class TreeToIr {
         Math.min(en.start(), in.start()),
         Math.max(en.end(), in.end())
       );
-      return Option.apply(new IdentifiedLocation(loc, en.id()));
+      return Option.apply(IdentifiedLocation.create(loc, en.id()));
     } else {
       return encapsulating;
     }
@@ -1716,7 +1722,7 @@ final class TreeToIr {
       default -> {
         var begin = castToInt(ast.getStartCode()) + b;
         var end = castToInt(ast.getEndCode()) + e;
-        yield new IdentifiedLocation(new Location(begin, end), someId);
+        yield IdentifiedLocation.create(new Location(begin, end), someId);
       }
     });
   }
@@ -1751,7 +1757,7 @@ final class TreeToIr {
       end = ast.getPattern().getEndCode();
     }
     int end_ = castToInt(end);
-    return Option.apply(new IdentifiedLocation(new Location(begin_, end_), Option.empty()));
+    return Option.apply(IdentifiedLocation.create(new Location(begin_, end_), Option.empty()));
   }
 
   private Option<IdentifiedLocation> getIdentifiedLocation(Token ast) {
@@ -1763,13 +1769,13 @@ final class TreeToIr {
       default -> {
         int begin = castToInt(ast.getStartCode());
         int end = castToInt(ast.getEndCode());
-        var id = Option.apply(generateId ? UUID.randomUUID() : null);
+        var id = generateId ? UUID.randomUUID() : null;
         yield new IdentifiedLocation(new Location(begin, end), id);
       }
     });
   }
   private MetadataStorage meta() {
-    return MetadataStorage.apply(nil());
+    return new MetadataStorage();
   }
   private DiagnosticStorage diag() {
     return DiagnosticStorage.apply(nil());

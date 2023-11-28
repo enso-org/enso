@@ -67,7 +67,7 @@ class Compiler(
   private val importResolver: ImportResolver   = new ImportResolver(this)
   private val irCachingEnabled                 = !context.isIrCachingDisabled
   private val useGlobalCacheLocations          = context.isUseGlobalCacheLocations
-  private val isInteractiveMode                = context.isInteractiveMode()
+  private val isInteractiveMode                = context.isInteractiveMode
   private val output: PrintStream =
     if (config.outputRedirect.isDefined)
       new PrintStream(config.outputRedirect.get)
@@ -111,7 +111,7 @@ class Compiler(
   }
 
   /** @return the package repository instance. */
-  def getPackageRepository(): PackageRepository =
+  def getPackageRepository: PackageRepository =
     context.getPackageRepository
 
   /** Processes the provided language sources, registering any bindings in the
@@ -141,7 +141,7 @@ class Compiler(
     shouldCompileDependencies: Boolean,
     useGlobalCacheLocations: Boolean
   ): Future[java.lang.Boolean] = {
-    getPackageRepository().getMainProjectPackage match {
+    getPackageRepository.getMainProjectPackage match {
       case None =>
         context.log(
           Level.SEVERE,
@@ -257,7 +257,7 @@ class Compiler(
       }
     )
 
-    var requiredModules = modules.flatMap { module =>
+    val requiredModules = modules.flatMap { module =>
       val importedModules = runImportsAndExportsResolution(module, generateCode)
       val isLoadedFromSource =
         (m: Module) => !context.wasLoadedFromCache(m) && !context.isSynthetic(m)
@@ -268,7 +268,7 @@ class Compiler(
       ) {
         val importedModulesLoadedFromSource = importedModules
           .filter(isLoadedFromSource)
-          .map(context.getModuleName(_))
+          .map(context.getModuleName)
         context.log(
           Compiler.defaultLogLevel,
           "{0} imported module caches were invalided, forcing invalidation of {1}. [{2}]",
@@ -278,7 +278,7 @@ class Compiler(
             importedModulesLoadedFromSource.take(10).mkString("", ",", "...")
           )
         )
-        context.updateModule(module, _.invalidateCache)
+        context.updateModule(module, _.invalidateCache())
         parseModule(module)
         runImportsAndExportsResolution(module, generateCode)
       } else {
@@ -286,47 +286,11 @@ class Compiler(
       }
     }.distinct
 
-    var hasInvalidModuleRelink = false
     if (irCachingEnabled) {
       requiredModules.foreach { module =>
         ensureParsed(module)
-        if (!context.hasCrossModuleLinks(module)) {
-          val flags =
-            context
-              .getIr(module)
-              .preorder
-              .map(_.passData.restoreFromSerialization(this.context))
-
-          if (!flags.contains(false)) {
-            context.log(
-              Compiler.defaultLogLevel,
-              "Restored links (late phase) for module [{0}].",
-              context.getModuleName(module)
-            )
-          } else {
-            hasInvalidModuleRelink = true
-            context.log(
-              Compiler.defaultLogLevel,
-              "Failed to restore links (late phase) for module [{0}].",
-              context.getModuleName(module)
-            )
-            uncachedParseModule(module, isGenDocs = false)
-          }
-        }
       }
     }
-
-    if (hasInvalidModuleRelink) {
-      context.log(
-        Compiler.defaultLogLevel,
-        s"Some modules failed to relink. Re-running import and " +
-        s"export resolution."
-      )
-
-      requiredModules =
-        modules.flatMap(runImportsAndExportsResolution(_, generateCode))
-    }
-
     requiredModules.foreach { module =>
       if (
         !context
@@ -457,9 +421,9 @@ class Compiler(
   private def isModuleInRootPackage(module: Module): Boolean = {
     if (!context.isInteractive(module)) {
       val pkg = PackageRepositoryUtils
-        .getPackageOf(getPackageRepository(), module.getSourceFile)
+        .getPackageOf(getPackageRepository, module.getSourceFile)
         .toScala
-      pkg.contains(getPackageRepository().getMainProjectPackage.get)
+      pkg.contains(getPackageRepository.getMainProjectPackage.get)
     } else false
   }
 
@@ -572,7 +536,7 @@ class Compiler(
       "Parsing module [{0}].",
       context.getModuleName(module)
     )
-    context.updateModule(module, _.resetScope)
+    context.updateModule(module, _.resetScope())
 
     if (irCachingEnabled && !context.isInteractive(module)) {
       if (context.deserializeModule(this, module)) {
@@ -603,7 +567,7 @@ class Compiler(
       "Loading module [{0}] from source.",
       context.getModuleName(module)
     )
-    context.updateModule(module, _.resetScope)
+    context.updateModule(module, _.resetScope())
 
     val moduleContext = ModuleContext(
       module           = module,
@@ -629,7 +593,6 @@ class Compiler(
         u.ir(discoveredModule)
         u.compilationStage(CompilationStage.AFTER_PARSING)
         u.loadedFromCache(false)
-        u.hasCrossModuleLinks(true)
       }
     )
   }
@@ -694,10 +657,10 @@ class Compiler(
       .build()
     val tree = ensoCompiler.parse(source.getCharacters)
 
-    ensoCompiler.generateIRInline(tree).flatMap { ir =>
+    ensoCompiler.generateIRInline(tree).map { ir =>
       val compilerOutput = runCompilerPhasesInline(ir, newContext)
       runErrorHandlingInline(compilerOutput, source, newContext)
-      Some((newContext, compilerOutput, source))
+      (newContext, compilerOutput, source)
     }
   }
 
@@ -741,14 +704,6 @@ class Compiler(
     */
   def parseInline(source: Source): Tree =
     ensoCompiler.parse(source.getCharacters())
-
-  /** Parses the metadata of the provided language sources.
-    *
-    * @param source the code to parse
-    * @return the source metadata
-    */
-//  def parseMeta(source: CharSequence): IDMap =
-//    Parser().splitMeta(source.toString)._2
 
   /** Enhances the provided IR with import/export statements for the provided list
     * of fully qualified names of modules. The statements are considered to be "synthetic" i.e. compiler-generated.
@@ -858,7 +813,7 @@ class Compiler(
     *                      for inline evaluation
     * @return the output result of the
     */
-  def runCompilerPhasesInline(
+  private def runCompilerPhasesInline(
     ir: Expression,
     inlineContext: InlineContext
   ): Expression = {
@@ -872,12 +827,12 @@ class Compiler(
     * @param source the original source code.
     * @param inlineContext the inline compilation context.
     */
-  def runErrorHandlingInline(
+  private def runErrorHandlingInline(
     ir: Expression,
     source: Source,
     inlineContext: InlineContext
   ): Unit =
-    if (config.isStrictErrors) {
+    if (inlineContext.compilerConfig.isStrictErrors) {
       val errors = GatherDiagnostics
         .runExpression(ir, inlineContext)
         .unsafeGetMetadata(
@@ -895,12 +850,14 @@ class Compiler(
     *
     * @param modules the modules to check against errors
     */
-  def runErrorHandling(
+  private def runErrorHandling(
     modules: List[Module]
   ): Unit = {
     if (config.isStrictErrors) {
       val diagnostics = modules.flatMap { module =>
-        val errors = gatherDiagnostics(module)
+        val errors =
+          if (context.wasLoadedFromCache(module)) List()
+          else gatherDiagnostics(module)
         List((module, errors))
       }
       if (reportDiagnostics(diagnostics)) {
@@ -921,7 +878,7 @@ class Compiler(
     * @param module the module for which to gather diagnostics
     * @return the diagnostics from the module
     */
-  def gatherDiagnostics(module: Module): List[Diagnostic] = {
+  private def gatherDiagnostics(module: Module): List[Diagnostic] = {
     GatherDiagnostics
       .runModule(
         context.getIr(module),

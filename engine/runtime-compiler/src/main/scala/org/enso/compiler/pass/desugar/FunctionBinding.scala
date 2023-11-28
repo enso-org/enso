@@ -14,7 +14,7 @@ import org.enso.compiler.core.ir.{
   Name,
   Type
 }
-import org.enso.compiler.core.ir.MetadataStorage.ToPair
+import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{
@@ -111,7 +111,7 @@ case object FunctionBinding extends IRPass {
         val lambda = args
           .map(_.mapExpressions(desugarExpression))
           .foldRight(desugarExpression(body))((arg, body) =>
-            Function.Lambda(List(arg), body, None)
+            new Function.Lambda(List(arg), body, None)
           )
           .asInstanceOf[Function.Lambda]
           .copy(canBeTCO = canBeTCO, location = location)
@@ -155,10 +155,10 @@ case object FunctionBinding extends IRPass {
           val newBody = args
             .map(_.mapExpressions(desugarExpression))
             .foldRight(desugarExpression(body))((arg, body) =>
-              Function.Lambda(List(arg), body, None)
+              new Function.Lambda(List(arg), body, None)
             )
 
-          definition.Method.Explicit(
+          new definition.Method.Explicit(
             methRef,
             newBody,
             loc,
@@ -192,7 +192,10 @@ case object FunctionBinding extends IRPass {
                 firstArg
                   .withName(newName)
                   .updateMetadata(
-                    IgnoredBindings -->> IgnoredBindings.State.Ignored
+                    new MetadataPair(
+                      IgnoredBindings,
+                      IgnoredBindings.State.Ignored
+                    )
                   )
               } else {
                 firstArg
@@ -212,7 +215,10 @@ case object FunctionBinding extends IRPass {
                       snd
                         .withName(newName)
                         .updateMetadata(
-                          IgnoredBindings -->> IgnoredBindings.State.Ignored
+                          new MetadataPair(
+                            IgnoredBindings,
+                            IgnoredBindings.State.Ignored
+                          )
                         )
                     ),
                     rest
@@ -245,7 +251,7 @@ case object FunctionBinding extends IRPass {
                   val newBody = (requiredArgs ::: remainingArgs)
                     .map(_.mapExpressions(desugarExpression))
                     .foldRight(desugarExpression(body))((arg, body) =>
-                      Function.Lambda(List(arg), body, None)
+                      new Function.Lambda(List(arg), body, None)
                     )
                   Right(
                     definition.Method.Conversion(

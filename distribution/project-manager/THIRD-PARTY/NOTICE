@@ -261,6 +261,31 @@ The license file can be found at `licenses/Bouncy_Castle_Licence.txt`.
 Copyright notices related to this dependency can be found in the directory `org.bouncycastle.bcutil-jdk15on-1.70`.
 
 
+'polyglot', licensed under the Universal Permissive License, Version 1.0, is distributed with the project-manager.
+The license file can be found at `licenses/Universal_Permissive_License__Version_1.0`.
+Copyright notices related to this dependency can be found in the directory `org.graalvm.polyglot.polyglot-23.1.0`.
+
+
+'collections', licensed under the Universal Permissive License, Version 1.0, is distributed with the project-manager.
+The license file can be found at `licenses/Universal_Permissive_License__Version_1.0`.
+Copyright notices related to this dependency can be found in the directory `org.graalvm.sdk.collections-23.1.0`.
+
+
+'nativeimage', licensed under the Universal Permissive License, Version 1.0, is distributed with the project-manager.
+The license file can be found at `licenses/Universal_Permissive_License__Version_1.0`.
+Copyright notices related to this dependency can be found in the directory `org.graalvm.sdk.nativeimage-23.1.0`.
+
+
+'word', licensed under the Universal Permissive License, Version 1.0, is distributed with the project-manager.
+The license file can be found at `licenses/Universal_Permissive_License__Version_1.0`.
+Copyright notices related to this dependency can be found in the directory `org.graalvm.sdk.word-23.1.0`.
+
+
+'truffle-api', licensed under the Universal Permissive License, Version 1.0, is distributed with the project-manager.
+The license file can be found at `licenses/Universal_Permissive_License__Version_1.0`.
+Copyright notices related to this dependency can be found in the directory `org.graalvm.truffle.truffle-api-23.1.0`.
+
+
 'reactive-streams', licensed under the CC0, is distributed with the project-manager.
 The license file can be found at `licenses/CC0`.
 Copyright notices related to this dependency can be found in the directory `org.reactivestreams.reactive-streams-1.0.3`.

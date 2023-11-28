@@ -108,7 +108,7 @@ export function lookupDocumentation(db: SuggestionDb, id: SuggestionId): Docs {
 
 function getChildren(db: SuggestionDb, id: SuggestionId, kind: SuggestionKind): Docs[] {
   if (!id) return []
-  const children = Array.from(db.parent.reverseLookup(id))
+  const children = Array.from(db.childIdToParentId.reverseLookup(id))
   return children.reduce((acc: Docs[], id: SuggestionId) => {
     if (db.get(id)?.kind === kind) {
       const docs = lookupDocumentation(db, id)

@@ -117,6 +117,7 @@ export default function TopBar(props: TopBarProps) {
                         setIsSettingsPanelVisible={setIsSettingsPanelVisible}
                     />
                     <UserBar
+                        supportsLocalBackend={supportsLocalBackend}
                         page={page}
                         isHelpChatOpen={isHelpChatOpen}
                         setIsHelpChatOpen={setIsHelpChatOpen}

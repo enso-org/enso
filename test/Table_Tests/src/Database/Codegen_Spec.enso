@@ -81,10 +81,10 @@ spec =
             c.to_sql.prepare . should_equal ['SELECT CAST(COALESCE("T1"."B", ?) AS TEXT) AS "B" FROM "T1" AS "T1"', ["not-applicable"]]
 
         Test.specify "filter_blank_rows should drop rows that contain at least one missing column in a Table" <|
-            t2 = t1.filter_blank_rows when=Blank_Selector.Any_Cell_Blank
+            t2 = t1.filter_blank_rows when=Blank_Selector.Any_Cell
             t2.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE (NOT ((("T1"."A" IS NULL) OR (("T1"."B" IS NULL) OR ("T1"."B" = \'\'))) OR ("T1"."C" IS NULL)))', []]
 
-            t3 = t1.filter_blank_rows when=Blank_Selector.All_Cells_Blank
+            t3 = t1.filter_blank_rows when=Blank_Selector.All_Cells
             t3.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE (NOT ((("T1"."A" IS NULL) AND (("T1"."B" IS NULL) OR ("T1"."B" = \'\'))) AND ("T1"."C" IS NULL)))', []]
 
     Test.group "[Codegen] Sorting" <|

@@ -1,6 +1,6 @@
 import { bail } from '@/util/assert'
-import { MultiRange, Range } from '@/util/range'
 import { Rect } from '@/util/rect'
+import theme from '@/util/theme.json'
 import { Vec2 } from '@/util/vec2'
 
 export interface Environment {
@@ -11,16 +11,14 @@ export interface Environment {
 }
 
 export interface PlacementOptions {
-  gap?: number
+  horizontalGap?: number
+  verticalGap?: number
 }
 
 export interface Placement {
   position: Vec2
   pan?: Vec2
 }
-
-// The default gap is the height of a single node.
-const defaultGap = 24
 
 /** The new node should appear at the center of the screen if there is enough space for the new node.
  * Otherwise, it should be moved down to the closest free space.
@@ -36,29 +34,18 @@ const defaultGap = 24
 export function nonDictatedPlacement(
   nodeSize: Vec2,
   { screenBounds, nodeRects }: Environment,
-  { gap = defaultGap }: PlacementOptions = {},
+  { verticalGap = theme.node.vertical_gap }: PlacementOptions = {},
 ): Placement {
-  const initialPosition = screenBounds.center().sub(nodeSize.scale(0.5))
+  const initialPosition = screenBounds.center().sub(new Vec2(nodeSize.y / 2, nodeSize.y / 2))
   const initialRect = new Rect(initialPosition, nodeSize)
   let top = initialPosition.y
   const height = nodeSize.y
-  const minimumVerticalSpace = height + gap * 2
   const bottom = () => top + height
-  const occupiedYRanges = new MultiRange()
-  for (const rect of nodeRects) {
-    if (initialRect.intersectsX(rect) && rect.bottom + gap > top) {
-      if (rect.top - bottom() >= gap) {
-        const range = new Range(rect.top, rect.bottom)
-        occupiedYRanges.insert(range, range.expand(gap))
-      } else {
-        top = rect.bottom + gap
-        const rangeIncludingTop = occupiedYRanges
-          .remove(new Range(-Infinity, rect.bottom + minimumVerticalSpace))
-          .at(-1)
-        if (rangeIncludingTop) {
-          top = Math.max(top, rangeIncludingTop.end + gap)
-          occupiedYRanges.remove(rangeIncludingTop)
-        }
+  const nodeRectsSorted = Array.from(nodeRects).sort((a, b) => a.top - b.top)
+  for (const rect of nodeRectsSorted) {
+    if (initialRect.intersectsX(rect) && rect.bottom + verticalGap > top) {
+      if (rect.top - bottom() < verticalGap) {
+        top = rect.bottom + verticalGap
       }
     }
   }
@@ -75,7 +62,7 @@ export function nonDictatedPlacement(
  * In case the place is offscreen, the camera should be panned accordingly.
  *
  * Specifically, this code, in order:
- * - uses the left side of the first selected node and as the initial x-position
+ * - uses the left side of the first selected node as the initial x-position
  * - uses the lowest (highest y-position) of all selected nodes, plus the specified gap,
  *   as the initial y-position
  * - searches for all horizontal spans to the right of the initial position,
@@ -91,13 +78,16 @@ export function nonDictatedPlacement(
 export function previousNodeDictatedPlacement(
   nodeSize: Vec2,
   { screenBounds, selectedNodeRects, nodeRects }: Environment,
-  { gap = defaultGap }: PlacementOptions = {},
+  {
+    horizontalGap = theme.node.horizontal_gap,
+    verticalGap = theme.node.vertical_gap,
+  }: PlacementOptions = {},
 ): Placement {
   let initialLeft: number | undefined
   let top = -Infinity
   for (const rect of selectedNodeRects) {
     initialLeft ??= rect.left
-    const newTop = rect.bottom + gap
+    const newTop = rect.bottom + verticalGap
     if (newTop > top) top = newTop
   }
   if (initialLeft == null)
@@ -105,31 +95,20 @@ export function previousNodeDictatedPlacement(
   let left = initialLeft
   const width = nodeSize.x
   const right = () => left + width
-  const minimumHorizontalSpace = width + gap * 2
   const initialPosition = new Vec2(left, top)
   const initialRect = new Rect(initialPosition, nodeSize)
-  const occupiedXRanges = new MultiRange()
-  for (const rect of nodeRects) {
-    if (initialRect.intersectsY(rect) && rect.right + gap > left) {
-      if (rect.left - right() >= gap) {
-        const range = new Range(rect.left, rect.right)
-        occupiedXRanges.insert(range, range.expand(gap))
-      } else {
-        left = rect.right + gap
-        const rangeIncludingLeft = occupiedXRanges
-          .remove(new Range(-Infinity, rect.right + minimumHorizontalSpace))
-          .at(-1)
-        if (rangeIncludingLeft) {
-          left = Math.max(left, rangeIncludingLeft.end + gap)
-          occupiedXRanges.remove(rangeIncludingLeft)
-        }
+  const sortedNodeRects = Array.from(nodeRects).sort((a, b) => a.left - b.left)
+  for (const rect of sortedNodeRects) {
+    if (initialRect.intersectsY(rect) && rect.right + horizontalGap > left) {
+      if (rect.left - right() < horizontalGap) {
+        left = rect.right + horizontalGap
       }
     }
   }
   const finalPosition = new Vec2(left, top)
   if (new Rect(finalPosition, nodeSize).within(screenBounds)) return { position: finalPosition }
   else {
-    const screenCenter = screenBounds.center().sub(nodeSize.scale(0.5))
+    const screenCenter = screenBounds.center().sub(new Vec2(nodeSize.y / 2, nodeSize.y / 2))
     return { position: finalPosition, pan: finalPosition.sub(screenCenter) }
   }
 }
@@ -137,7 +116,7 @@ export function previousNodeDictatedPlacement(
 /** The new node should appear exactly below the mouse.
  *
  * Specifically, this code assumes the node is fully rounded on the left and right sides,
- * so it subtracts half the node height (assumed to be the node radius) from the mouse x and y
+ * so it adds half the node height (assumed to be the node radius) from the mouse x and y
  * positions.
  *
  * [Documentation](https://github.com/enso-org/design/blob/main/epics/component-browser/design.md#placement-of-newly-opened-component-browser) */
@@ -147,5 +126,5 @@ export function mouseDictatedPlacement(
   _opts?: PlacementOptions,
 ): Placement {
   const nodeRadius = nodeSize.y / 2
-  return { position: mousePosition.sub(new Vec2(nodeRadius, nodeRadius)) }
+  return { position: mousePosition.add(new Vec2(nodeRadius, nodeRadius)) }
 }

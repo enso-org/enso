@@ -94,6 +94,16 @@ pub mod env {
 
         /// Path to the python2 executable, used by electron-builder on macOS to package DMG.
         PYTHON_PATH, PathBuf;
+
+        /// Note that enabling CSC_FOR_PULL_REQUEST can pose serious security risks. Refer to the
+        /// [CircleCI documentation](https://circleci.com/docs/1.0/fork-pr-builds/) for more
+        /// information. If the project settings contain SSH keys, sensitive environment variables,
+        /// or AWS credentials, and untrusted forks can submit pull requests to your repository, it
+        /// is not recommended to enable this option.
+        ///
+        /// In our case we are careful to not expose any sensitive information to third-party forks,
+        /// so we can safely enable this option.
+        CSC_FOR_PULL_REQUEST, bool;
     }
 }
 
@@ -379,7 +389,13 @@ impl IdeDesktop {
             // We can work around this by setting the `PYTHON_PATH` env variable. We attempt to
             // locate `python2` in PATH which is enough to work on GitHub-hosted macOS
             // runners.
-            Some(ide_ci::program::lookup("python2")?)
+            ide_ci::program::lookup("python2")
+                .inspect_err(|e| {
+                    // We do not fail, as this requirement might have been lifted by the
+                    // electron-builder bump. As for now, we do best effort to support both cases.
+                    warn!("Failed to locate python2 in PATH: {e}");
+                })
+                .ok()
         } else {
             None
         };

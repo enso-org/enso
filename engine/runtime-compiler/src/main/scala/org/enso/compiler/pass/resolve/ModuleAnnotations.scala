@@ -51,14 +51,16 @@ case object ModuleAnnotations extends IRPass {
       case typ: Definition.SugaredType =>
         val res = Some(
           resolveComplexType(typ).updateMetadata(
-            this -->> Annotations(lastAnnotations)
+            new MetadataPair(this, Annotations(lastAnnotations))
           )
         )
         lastAnnotations = Seq()
         res
       case entity =>
         val res = Some(
-          entity.updateMetadata(this -->> Annotations(lastAnnotations))
+          entity.updateMetadata(
+            new MetadataPair(this, Annotations(lastAnnotations))
+          )
         )
         lastAnnotations = Seq()
         res
@@ -84,7 +86,9 @@ case object ModuleAnnotations extends IRPass {
       case comment: Comment => Some(comment)
       case entity =>
         val res = Some(
-          entity.updateMetadata(this -->> Annotations(lastAnnotations))
+          entity.updateMetadata(
+            new MetadataPair(this, Annotations(lastAnnotations))
+          )
         )
         lastAnnotations = Seq()
         res
@@ -128,9 +132,6 @@ case object ModuleAnnotations extends IRPass {
 
     /** @inheritdoc */
     override def prepareForSerialization(compiler: Compiler): Annotations = {
-      annotations.foreach(ir =>
-        ir.preorder.foreach(_.passData.prepareForSerialization(compiler))
-      )
       this
     }
 
@@ -138,14 +139,6 @@ case object ModuleAnnotations extends IRPass {
     override def restoreFromSerialization(
       compiler: Compiler
     ): Option[IRPass.IRMetadata] = {
-      annotations.foreach { ann =>
-        ann.preorder.foreach { ir =>
-          if (!ir.passData.restoreFromSerialization(compiler)) {
-            return None
-          }
-        }
-      }
-
       Some(this)
     }
   }

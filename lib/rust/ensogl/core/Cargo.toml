@@ -46,7 +46,7 @@ num-traits = { version = "0.2" }
 ordered-float = { workspace = true }
 rustc-hash = { version = "1.0.1" }
 semver = { workspace = true }
-serde = { version = "1" }
+serde = { workspace = true }
 smallvec = { workspace = true }
 typenum = { version = "1.11.2" }
 # We require exact version of wasm-bindgen because we do patching final js in our build process,

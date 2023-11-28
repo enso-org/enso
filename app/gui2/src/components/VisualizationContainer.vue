@@ -2,7 +2,7 @@
 import SvgIcon from '@/components/SvgIcon.vue'
 import VisualizationSelector from '@/components/VisualizationSelector.vue'
 import { useVisualizationConfig } from '@/providers/visualizationConfig'
-import { PointerButtonMask, usePointer } from '@/util/events'
+import { PointerButtonMask, isClick, usePointer } from '@/util/events'
 import { ref } from 'vue'
 
 const props = defineProps<{
@@ -26,6 +26,17 @@ function onWheel(event: WheelEvent) {
   ) {
     event.stopPropagation()
   }
+}
+
+function blur(event: Event) {
+  const target = event.target
+  if (
+    !(target instanceof HTMLElement) &&
+    !(target instanceof SVGElement) &&
+    !(target instanceof MathMLElement)
+  )
+    return
+  setTimeout(() => target.blur(), 0)
 }
 
 const rootNode = ref<HTMLElement>()
@@ -102,23 +113,39 @@ const resizeBottomRight = usePointer((pos, _, type) => {
             hidden: config.fullscreen,
           }"
         >
-          <button class="image-button active" @pointerdown.stop="config.hide()">
-            <SvgIcon class="icon" name="eye" />
+          <button
+            class="image-button active"
+            @pointerdown.stop="config.hide()"
+            @click="config.hide()"
+          >
+            <SvgIcon class="icon" name="eye" alt="Hide visualization" />
           </button>
         </div>
         <div class="toolbar">
           <button
             class="image-button active"
-            @pointerdown.stop="config.fullscreen = !config.fullscreen"
+            @pointerdown.stop="(config.fullscreen = !config.fullscreen), blur($event)"
+            @click.prevent="!isClick($event) && (config.fullscreen = !config.fullscreen)"
           >
-            <SvgIcon class="icon" :name="config.fullscreen ? 'exit_fullscreen' : 'fullscreen'" />
+            <SvgIcon
+              class="icon"
+              :name="config.fullscreen ? 'exit_fullscreen' : 'fullscreen'"
+              :alt="config.fullscreen ? 'Exit fullscreen' : 'Enter fullscreen'"
+            />
           </button>
           <div class="icon-container">
             <button
               class="image-button active"
               @pointerdown.stop="isSelectorVisible = !isSelectorVisible"
+              @click.prevent="!isClick($event) && (isSelectorVisible = !isSelectorVisible)"
             >
-              <SvgIcon class="icon" name="compass" />
+              <SvgIcon
+                class="icon"
+                :name="config.icon ?? 'columns_increasing'"
+                :alt="
+                  isSelectorVisible ? 'Hide visualization selector' : 'Show visualization selector'
+                "
+              />
             </button>
             <VisualizationSelector
               v-if="isSelectorVisible"

@@ -415,9 +415,11 @@ class ContextEventsListenerSpec
         val visualizationId = UUID.randomUUID()
         val expressionId    = UUID.randomUUID()
         listener ! Api.VisualizationEvaluationFailed(
-          contextId,
-          visualizationId,
-          expressionId,
+          Api.VisualizationContext(
+            visualizationId,
+            contextId,
+            expressionId
+          ),
           message,
           None
         )
@@ -426,9 +428,11 @@ class ContextEventsListenerSpec
           DeliverToJsonController(
             clientId,
             VisualizationEvaluationFailed(
-              contextId,
-              visualizationId,
-              expressionId,
+              VisualizationContext(
+                visualizationId,
+                contextId,
+                expressionId
+              ),
               message,
               None
             )

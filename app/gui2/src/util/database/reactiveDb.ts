@@ -9,11 +9,18 @@
  */
 
 import { LazySyncEffectSet } from '@/util/reactivity'
-import { setIfUndefined } from 'lib0/map'
+// eslint-disable-next-line vue/prefer-import-from-vue
+import { assert } from '@/util/assert'
+import * as map from 'lib0/map'
 import { ObservableV2 } from 'lib0/observable'
-import { reactive } from 'vue'
+import * as set from 'lib0/set'
+import { computed, reactive, type ComputedRef, type DebuggerOptions } from 'vue'
 
 export type OnDelete = (cleanupFn: () => void) => void
+
+type ReactiveDBNotification<K, V> = {
+  entryAdded(key: K, value: V, onDelete: OnDelete): void
+}
 
 /**
  * Represents a reactive database adapter that extends the behaviors of `Map`.
@@ -23,16 +30,18 @@ export type OnDelete = (cleanupFn: () => void) => void
  * @typeParam K - The key type for the database entries.
  * @typeParam V - The value type for the database entries.
  */
-export class ReactiveDb<K, V> extends ObservableV2<{
-  entryAdded(key: K, value: V, onDelete: OnDelete): void
-}> {
+export class ReactiveDb<K, V>
+  extends ObservableV2<ReactiveDBNotification<K, V>>
+  implements Iterable<[K, V]>
+{
   _internal: Map<K, V>
-  onDelete: Map<K, Set<() => void>>
+  onDelete: Map<K, Set<() => void>>;
+  [Symbol.iterator] = this.entries
 
   constructor() {
     super()
-    this._internal = new Map()
-    this.onDelete = new Map()
+    this._internal = reactive(map.create())
+    this.onDelete = map.create()
   }
 
   /**
@@ -47,11 +56,12 @@ export class ReactiveDb<K, V> extends ObservableV2<{
     this.delete(key)
 
     this._internal.set(key, value)
+    const reactiveValue = this._internal.get(key) as V
     const onDelete: OnDelete = (callback) => {
-      const callbacks = setIfUndefined(this.onDelete, key, () => new Set())
+      const callbacks = map.setIfUndefined(this.onDelete, key, set.create)
       callbacks.add(callback)
     }
-    this.emit('entryAdded', [key, value, onDelete])
+    this.emit('entryAdded', [key, reactiveValue, onDelete])
   }
 
   /**
@@ -63,6 +73,31 @@ export class ReactiveDb<K, V> extends ObservableV2<{
   /** Same as `Map.get` */
   get(key: K): V | undefined {
     return this._internal.get(key)
+  }
+
+  /**
+   * Checks if the database contains the key.
+   * @param key - A key to chec.
+   */
+  has(key: K): boolean {
+    return this._internal.has(key)
+  }
+
+  /**
+   * Retrieves the value corresponding to a specified key in the database, or insert the provided
+   * one if missing. Will emit an `entryAdded` event after the addition.
+   *
+   * @param key - The key for which to retrieve the value.
+   * @param valueToAdd - Value to add if there's no value under `key`.
+   * @returns The value associated with the key. If was missing, the `valueToAdd` is returned.
+   */
+  getOrAdd(key: K, valueToAdd: () => V): V {
+    if (!this._internal.has(key)) {
+      this.set(key, valueToAdd())
+    }
+    const value = this._internal.get(key)
+    assert(value != null)
+    return value
   }
 
   /**
@@ -112,10 +147,22 @@ export class ReactiveDb<K, V> extends ObservableV2<{
   values(): IterableIterator<V> {
     return this._internal.values()
   }
+
+  /**
+   * Moves an entry to the bottom of the database, making it the last entry in the iteration order
+   * of `entries()`.
+   */
+  moveToLast(id: K) {
+    const value = this._internal.get(id)
+    if (value !== undefined) {
+      this._internal.delete(id)
+      this._internal.set(id, value)
+    }
+  }
 }
 
 /**
- * A function type representing an indexer for a `ReactiveDb`.
+ * A function type representing an indexer for a `ReactiveIndex`.
  *
  * An `Indexer` takes a key-value pair from the `ReactiveDb` and produces an array of index key-value pairs,
  * defining how the input key and value maps to keys and values in the index.
@@ -130,6 +177,8 @@ export type Indexer<K, V, IK, IV> = (key: K, value: V) => [IK, IV][]
 /**
  * Provides automatic indexing for a `ReactiveDb` instance.
  * Utilizes both forward and reverse mapping for efficient lookups and reverse lookups.
+ * The index updates not only after key/value change from db, but also on any change of
+ * reactive dependency.
  *
  * @typeParam K - The key type of the ReactiveDb.
  * @typeParam V - The value type of the ReactiveDb.
@@ -151,8 +200,8 @@ export class ReactiveIndex<K, V, IK, IV> {
    * @param indexer - The indexer function defining how db keys and values map to index keys and values.
    */
   constructor(db: ReactiveDb<K, V>, indexer: Indexer<K, V, IK, IV>) {
-    this.forward = reactive(new Map())
-    this.reverse = reactive(new Map())
+    this.forward = reactive(map.create())
+    this.reverse = reactive(map.create())
     this.effects = new LazySyncEffectSet()
     db.on('entryAdded', (key, value, onDelete) => {
       const stopEffect = this.effects.lazyEffect((onCleanup) => {
@@ -171,7 +220,7 @@ export class ReactiveIndex<K, V, IK, IV> {
    * @param value - The value to associate with the key.
    */
   writeToIndex(key: IK, value: IV): void {
-    const forward = setIfUndefined(this.forward, key, () => new Set())
+    const forward = map.setIfUndefined(this.forward, key, set.create)
     if (forward.has(value)) {
       console.error(
         `Attempt to repeatedly write the same key-value pair (${[
@@ -179,10 +228,11 @@ export class ReactiveIndex<K, V, IK, IV> {
           value,
         ]}) to the index. Please check your indexer implementation.`,
       )
+    } else {
+      forward.add(value)
+      const reverse = map.setIfUndefined(this.reverse, value, set.create)
+      reverse.add(key)
     }
-    forward.add(value)
-    const reverse = setIfUndefined(this.reverse, value, () => new Set())
-    reverse.add(key)
   }
 
   /**
@@ -199,6 +249,16 @@ export class ReactiveIndex<K, V, IK, IV> {
     remove(this.reverse, value, key)
   }
 
+  allForward(): IterableIterator<[IK, Set<IV>]> {
+    this.effects.flush()
+    return this.forward.entries()
+  }
+
+  allReverse(): IterableIterator<[IV, Set<IK>]> {
+    this.effects.flush()
+    return this.reverse.entries()
+  }
+
   /** Look for key in the forward index.
    * Returns a set of values associated with the given index key.
    *
@@ -207,7 +267,7 @@ export class ReactiveIndex<K, V, IK, IV> {
    */
   lookup(key: IK): Set<IV> {
     this.effects.flush()
-    return this.forward.get(key) ?? new Set()
+    return this.forward.get(key) ?? set.create()
   }
 
   /**
@@ -218,6 +278,69 @@ export class ReactiveIndex<K, V, IK, IV> {
    */
   reverseLookup(value: IV): Set<IK> {
     this.effects.flush()
-    return this.reverse.get(value) ?? new Set()
+    return this.reverse.get(value) ?? set.create()
+  }
+
+  hasKey(key: IK): boolean {
+    return this.forward.has(key)
+  }
+
+  hasValue(value: IV): boolean {
+    return this.reverse.has(value)
+  }
+}
+
+/**
+ * A function type representing a mapper function for {@link ReactiveMapping}.
+ *
+ * It takes a key-value pair from the {@link ReactiveDb} and produces a mapped value, which is then stored
+ * and can be looked up by the key.
+ *
+ * @param key - The key from the {@link ReactiveDb}.
+ * @param value - The value from the {@link ReactiveDb}.
+ *
+ * @returns A result of a mapping to store in the {@link ReactiveMapping}.
+ */
+export type Mapper<K, V, IV> = (key: K, value: V) => IV | undefined
+
+/**
+ * A one-to-one mapping for values in a {@link ReactiveDb} instance. Allows only one value per key.
+ * It can be thought of as a collection of `computed` values per each key in the `ReactiveDb`. The
+ * mapping is automatically updated when any of its dependencies change, and is properly cleaned up
+ * when any key is removed from {@link ReactiveDb}. Only accessed keys are ever actually computed.
+ *
+ * @typeParam K - The key type of the ReactiveDb.
+ * @typeParam V - The value type of the ReactiveDb.
+ * @typeParam M - The type of a mapped value.
+ */
+export class ReactiveMapping<K, V, M> {
+  /** Forward map from index keys to a mapped computed value */
+  computed: Map<K, ComputedRef<M | undefined>>
+
+  /**
+   * Constructs a new {@link ReactiveMapping} for the given {@link ReactiveDb} and an mapper function.
+   *
+   * @param db - The ReactiveDb to map over.
+   * @param indexer - The indexer function defining how db keys and values are mapped.
+   */
+  constructor(db: ReactiveDb<K, V>, indexer: Mapper<K, V, M>, debugOptions?: DebuggerOptions) {
+    this.computed = reactive(map.create())
+    db.on('entryAdded', (key, value, onDelete) => {
+      this.computed.set(
+        key,
+        computed(() => indexer(key, value), debugOptions),
+      )
+      onDelete(() => this.computed.delete(key))
+    })
+  }
+
+  /** Look for key in the mapping.
+   * Returns a mapped value associated with given key.
+   *
+   * @param key - The index key to look up values for.
+   * @return A mapped value, if the key is present in the mapping.
+   */
+  lookup(key: K): M | undefined {
+    return this.computed.get(key)?.value
   }
 }

@@ -30,8 +30,14 @@ const LOGIN_QUERY_PARAMS = {
 // === Login ===
 // =============
 
+/** Props for a {@link Login}. */
+export interface LoginProps {
+    supportsLocalBackend: boolean
+}
+
 /** A form for users to log in. */
-export default function Login() {
+export default function Login(props: LoginProps) {
+    const { supportsLocalBackend } = props
     const { search } = router.useLocation()
     const { signInWithGoogle, signInWithGitHub, signInWithPassword } = auth.useAuth()
 
@@ -55,7 +61,7 @@ export default function Login() {
                             event.preventDefault()
                             await signInWithGoogle()
                         }}
-                        className="relative rounded-full bg-cloud/10 hover:bg-gray-200 py-2"
+                        className="relative rounded-full bg-cloud/10 hover:bg-cloud/20 focus:bg-cloud/20 transition-all duration-300 py-2"
                     >
                         <FontAwesomeIcon icon={fontawesomeIcons.faGoogle} />
                         Sign up or login with Google
@@ -68,7 +74,7 @@ export default function Login() {
                             event.preventDefault()
                             await signInWithGitHub()
                         }}
-                        className="relative rounded-full bg-cloud/10 hover:bg-gray-200 py-2"
+                        className="relative rounded-full bg-cloud/10 hover:bg-cloud/20 focus:bg-cloud/20 transition-all duration-300 py-2"
                     >
                         <FontAwesomeIcon icon={fontawesomeIcons.faGithub} />
                         Sign up or login with GitHub
@@ -117,7 +123,7 @@ export default function Login() {
                         footer={
                             <router.Link
                                 to={app.FORGOT_PASSWORD_PATH}
-                                className="text-xs text-blue-500 hover:text-blue-700 text-end"
+                                className="text-xs text-blue-500 hover:text-blue-700 focus:text-blue-700 transition-all duration-300 text-end"
                             >
                                 Forgot Your Password?
                             </router.Link>
@@ -131,11 +137,13 @@ export default function Login() {
                 icon={CreateAccountIcon}
                 text="Don't have an account?"
             />
-            <Link
-                to={app.ENTER_OFFLINE_MODE_PATH}
-                icon={ArrowRightIcon}
-                text="Continue without creating an account"
-            />
+            {supportsLocalBackend && (
+                <Link
+                    to={app.ENTER_OFFLINE_MODE_PATH}
+                    icon={ArrowRightIcon}
+                    text="Continue without creating an account"
+                />
+            )}
         </div>
     )
 }

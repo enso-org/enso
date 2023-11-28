@@ -19,7 +19,10 @@ declare const self: ServiceWorkerGlobalScope
 
 self.addEventListener('fetch', event => {
     const url = new URL(event.request.url)
-    if (url.hostname === 'localhost' && url.pathname !== '/esbuild') {
+    if (
+        (url.hostname === 'localhost' || url.hostname === '127.0.0.1') &&
+        url.pathname !== '/esbuild'
+    ) {
         const responsePromise = /\/[^.]+$/.test(new URL(event.request.url).pathname)
             ? fetch('/index.html')
             : fetch(event.request.url)

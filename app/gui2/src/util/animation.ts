@@ -117,3 +117,30 @@ export function useApproach(
 
   return proxyRefs({ value: current, skip })
 }
+
+export function useTransitioning(observedProperties?: Set<string>) {
+  const hasActiveAnimations = ref(false)
+  let numActiveTransitions = 0
+  function onTransitionStart(e: TransitionEvent) {
+    if (!observedProperties || observedProperties.has(e.propertyName)) {
+      if (numActiveTransitions == 0) hasActiveAnimations.value = true
+      numActiveTransitions += 1
+    }
+  }
+
+  function onTransitionEnd(e: TransitionEvent) {
+    if (!observedProperties || observedProperties.has(e.propertyName)) {
+      numActiveTransitions -= 1
+      if (numActiveTransitions == 0) hasActiveAnimations.value = false
+    }
+  }
+
+  return {
+    active: hasActiveAnimations,
+    events: {
+      transitionstart: onTransitionStart,
+      transitionend: onTransitionEnd,
+      transitioncancel: onTransitionEnd,
+    },
+  }
+}

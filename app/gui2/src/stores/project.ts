@@ -1,4 +1,5 @@
 import { injectGuiConfig, type GuiConfig } from '@/providers/guiConfig'
+import { Awareness } from '@/stores/awareness'
 import { bail } from '@/util/assert'
 import { ComputedValueRegistry } from '@/util/computedValueRegistry'
 import { attachProvider, useObserveYjs } from '@/util/crdt'
@@ -44,7 +45,6 @@ import {
   type WatchSource,
   type WritableComputedRef,
 } from 'vue'
-import { Awareness } from 'y-protocols/awareness'
 import * as Y from 'yjs'
 
 interface LsUrls {
@@ -55,14 +55,12 @@ interface LsUrls {
 function resolveLsUrl(config: GuiConfig): LsUrls {
   const engine = config.engine
   if (engine == null) throw new Error('Missing engine configuration')
-
   if (engine.rpcUrl != null && engine.dataUrl != null) {
     return {
       rpcUrl: engine.rpcUrl,
       dataUrl: engine.dataUrl,
     }
   }
-
   throw new Error('Incomplete engine configuration')
 }
 
@@ -77,7 +75,6 @@ async function initializeLsRpcConnection(
   const requestManager = new RequestManager([transport])
   const client = new Client(requestManager)
   const connection = new LanguageServer(client)
-
   const initialization = await lsRpcWithRetries(() => connection.initProtocolConnection(clientId), {
     onBeforeRetry: (error, _, delay) => {
       console.warn(
@@ -472,7 +469,13 @@ export const useProjectStore = defineStore('project', () => {
     const socketUrl = new URL(location.origin)
     socketUrl.protocol = location.protocol.replace(/^http/, 'ws')
     socketUrl.pathname = '/project'
-    const provider = attachProvider(socketUrl.href, 'index', { ls: lsUrls.rpcUrl }, doc, awareness)
+    const provider = attachProvider(
+      socketUrl.href,
+      'index',
+      { ls: lsUrls.rpcUrl },
+      doc,
+      awareness.internal,
+    )
     onCleanup(() => {
       provider.dispose()
     })
@@ -516,8 +519,13 @@ export const useProjectStore = defineStore('project', () => {
   }
 
   const executionContext = createExecutionContextForMain()
-  const computedValueRegistry = new ComputedValueRegistry(executionContext)
+  const computedValueRegistry = ComputedValueRegistry.WithExecutionContext(executionContext)
   const visualizationDataRegistry = new VisualizationDataRegistry(executionContext, dataConnection)
+
+  const diagnostics = ref<Diagnostic[]>([])
+  executionContext.on('executionStatus', (newDiagnostics) => {
+    diagnostics.value = newDiagnostics
+  })
 
   function useVisualizationData(
     configuration: WatchSource<Opt<NodeVisualizationConfiguration>>,
@@ -555,12 +563,13 @@ export const useProjectStore = defineStore('project', () => {
     },
     name: projectName,
     executionContext,
+    diagnostics,
     module,
     modulePath,
     projectModel,
     contentRoots,
-    awareness,
-    computedValueRegistry,
+    awareness: markRaw(awareness),
+    computedValueRegistry: markRaw(computedValueRegistry),
     lsRpcConnection: markRaw(lsRpcConnection),
     dataConnection: markRaw(dataConnection),
     useVisualizationData,

@@ -84,7 +84,10 @@ class LocalScope(
     * @return the frame slot index for `id`.
     */
   def getVarSlotIdx(id: Graph.Id): Int = {
-    assert(localFrameSlotIdxs.contains(id))
+    assert(
+      localFrameSlotIdxs.contains(id),
+      "Cannot find " + id + " in " + localFrameSlotIdxs
+    )
     localFrameSlotIdxs(id)
   }
 

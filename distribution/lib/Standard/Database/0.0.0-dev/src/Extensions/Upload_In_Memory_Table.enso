@@ -12,6 +12,7 @@ from project.Errors import all
 from project.Internal.Upload_Table import all
 
 ## GROUP Standard.Base.Output
+   ICON data_output
    Creates a new database table from this in-memory table.
 
    Arguments:
@@ -60,6 +61,7 @@ Table.select_into_database_table self connection (table_name : Text) primary_key
     select_into_table_implementation self connection table_name primary_key temporary on_problems
 
 ## GROUP Standard.Base.Output
+   ICON data_output
    Updates the target table with the contents of this table.
 
    Arguments:
@@ -126,6 +128,7 @@ Table.update_rows self (source_table : Database_Table | Table) (update_action : 
     Error.throw (Illegal_Argument.Error "Table.update_rows modifies the underlying table, so it is only supported for Database tables - in-memory tables are immutable. Consider using `join` or `lookup_and_replace` for a similar operation that creates a new Table instead.")
 
 ## GROUP Standard.Base.Output
+   ICON data_output
    Removes rows from a database table.
 
    It returns the count of the rows that have been deleted.

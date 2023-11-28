@@ -4,7 +4,7 @@
  * # Providers
  *
  * The {@link App} component is responsible for defining the global context used by child
- * components. For example, it defines a {@link toast.Toaster}, which is used to display temporary
+ * components. For example, it defines a {@link toastify.ToastContainer}, which is used to display temporary
  * notifications to the user. These global components are defined at the top of the {@link App} so
  * that they are available to all of the child components.
  *
@@ -213,7 +213,10 @@ function AppRouter(props: AppProps) {
                 {/* Login & registration pages are visible to unauthenticated users. */}
                 <router.Route element={<authProvider.GuestLayout />}>
                     <router.Route path={REGISTRATION_PATH} element={<Registration />} />
-                    <router.Route path={LOGIN_PATH} element={<Login />} />
+                    <router.Route
+                        path={LOGIN_PATH}
+                        element={<Login supportsLocalBackend={supportsLocalBackend} />}
+                    />
                 </router.Route>
                 {/* Protected pages are visible to authenticated users. */}
                 <router.Route element={<authProvider.ProtectedLayout />}>

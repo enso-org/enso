@@ -5,48 +5,73 @@ import { Filtering } from '@/components/ComponentBrowser/filtering'
 import { default as DocumentationPanel } from '@/components/DocumentationPanel.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
+import { useGraphStore } from '@/stores/graph'
+import type { RequiredImport } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
-import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
+import { groupColorStyle, useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import { useApproach } from '@/util/animation'
+import { tryGetIndex } from '@/util/array'
 import { useEvent, useResizeObserver } from '@/util/events'
 import type { useNavigator } from '@/util/navigator'
 import type { Opt } from '@/util/opt'
 import { allRanges } from '@/util/range'
 import { Vec2 } from '@/util/vec2'
 import type { SuggestionId } from 'shared/languageServerTypes/suggestions'
-import type { ContentRange } from 'shared/yjsModel.ts'
+import type { ContentRange, ExprId } from 'shared/yjsModel.ts'
 import { computed, nextTick, onMounted, ref, watch, type Ref } from 'vue'
 import { useComponentBrowserInput } from './ComponentBrowser/input'
 
 const ITEM_SIZE = 32
 const TOP_BAR_HEIGHT = 32
 
+const projectStore = useProjectStore()
+const suggestionDbStore = useSuggestionDbStore()
+const graphStore = useGraphStore()
+
 const props = defineProps<{
   position: Vec2
   navigator: ReturnType<typeof useNavigator>
   initialContent: string
   initialCaretPosition: ContentRange
+  sourcePort: Opt<ExprId>
 }>()
 
 const emit = defineEmits<{
-  finished: [selectedExpression: string]
+  accepted: [searcherExpression: string, requiredImports: RequiredImport[]]
+  closed: [searcherExpression: string]
+  canceled: []
 }>()
 
+function getInitialContent(): string {
+  if (props.sourcePort == null) return props.initialContent
+  const sourceNodeName = graphStore.db.getOutputPortIdentifier(props.sourcePort)
+  const sourceNodeNameWithDot = sourceNodeName ? sourceNodeName + '.' : ''
+  return sourceNodeNameWithDot + props.initialContent
+}
+
+function getInitialCaret(): ContentRange {
+  if (props.sourcePort == null) return props.initialCaretPosition
+  const sourceNodeName = graphStore.db.getOutputPortIdentifier(props.sourcePort)
+  const sourceNodeNameWithDot = sourceNodeName ? sourceNodeName + '.' : ''
+  return [
+    props.initialCaretPosition[0] + sourceNodeNameWithDot.length,
+    props.initialCaretPosition[1] + sourceNodeNameWithDot.length,
+  ]
+}
+
 onMounted(() => {
-  input.code.value = props.initialContent
   nextTick(() => {
+    input.code.value = getInitialContent()
+    const caret = getInitialCaret()
     if (inputField.value != null) {
-      inputField.value.selectionStart = props.initialCaretPosition[0]
-      inputField.value.selectionEnd = props.initialCaretPosition[1]
+      inputField.value.selectionStart = caret[0]
+      inputField.value.selectionEnd = caret[1]
       inputField.value.focus({ preventScroll: true })
       selectLastAfterRefresh()
     }
   })
 })
-
-const projectStore = useProjectStore()
-const suggestionDbStore = useSuggestionDbStore()
 
 // === Position ===
 
@@ -123,7 +148,7 @@ function handleDefocus(e: FocusEvent) {
       inputField.value.focus({ preventScroll: true })
     }
   } else {
-    emit('finished', input.code.value)
+    emit('closed', input.code.value)
   }
 }
 
@@ -159,13 +184,7 @@ function componentStyle(index: number) {
  * Group colors are populated in `GraphEditor`, and for each group in suggestion database a CSS variable is created.
  */
 function componentColor(component: Component): string {
-  const group = suggestionDbStore.groups[component.group ?? -1]
-  if (group) {
-    const name = group.name.replace(/\s/g, '-')
-    return `var(--group-color-${name})`
-  } else {
-    return 'var(--group-color-fallback)'
-  }
+  return groupColorStyle(tryGetIndex(suggestionDbStore.groups, component.group))
 }
 
 // === Highlight ===
@@ -279,11 +298,11 @@ function applySuggestion(component: Opt<Component> = null): SuggestionEntry | nu
 function acceptSuggestion(index: Opt<Component> = null) {
   const applied = applySuggestion(index)
   const shouldFinish = applied != null && applied.kind !== SuggestionKind.Module
-  if (shouldFinish) emit('finished', input.code.value)
+  if (shouldFinish) acceptInput()
 }
 
 function acceptInput() {
-  emit('finished', input.code.value)
+  emit('accepted', input.code.value, input.importsToAdd())
 }
 
 // === Key Events Handler ===
@@ -291,6 +310,10 @@ function acceptInput() {
 const handler = componentBrowserBindings.handler({
   applySuggestion() {
     applySuggestion()
+  },
+  acceptSuggestion() {
+    applySuggestion()
+    acceptInput()
   },
   acceptInput() {
     acceptInput()
@@ -310,7 +333,7 @@ const handler = componentBrowserBindings.handler({
     scrollToSelected()
   },
   cancelEditing() {
-    emit('finished', props.initialContent)
+    emit('canceled')
   },
 })
 </script>
@@ -344,7 +367,7 @@ const handler = componentBrowserBindings.handler({
             @wheel.stop.passive
             @scroll="updateScroll"
           >
-            <div class="list-variant" style="">
+            <div class="list-variant">
               <div
                 v-for="item in visibleComponents"
                 :key="item.component.suggestionId"

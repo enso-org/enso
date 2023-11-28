@@ -39,7 +39,6 @@ export class RemoteLogger {
 // === Underlying logic ===
 
 /** Sends a log message to a remote server using the provided access token.
- *
  * @param accessToken - The access token for authentication.
  * @param message - The message to be logged on the server.
  * @param metadata - Additional metadata to include in the log.

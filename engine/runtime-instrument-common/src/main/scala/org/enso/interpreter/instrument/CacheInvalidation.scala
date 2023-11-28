@@ -153,8 +153,9 @@ object CacheInvalidation {
     command: Command,
     indexes: Set[IndexSelector] = Set()
   ): Unit =
-    visualizations.foreach { visualization =>
-      run(visualization.cache, command, indexes)
+    visualizations.collect {
+      case visualization: Visualization.AttachedVisualization =>
+        run(visualization.cache, command, indexes)
     }
 
   /** Run a cache invalidation instruction on an execution stack.
