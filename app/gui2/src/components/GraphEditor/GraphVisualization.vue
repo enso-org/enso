@@ -13,9 +13,10 @@ import type { URLString } from '@/stores/visualization/compilerMessaging'
 import { toError } from '@/util/error'
 import type { Icon } from '@/util/iconName'
 import type { Opt } from '@/util/opt'
-import type { Vec2 } from '@/util/vec2'
+import { Rect } from '@/util/rect'
+import { Vec2 } from '@/util/vec2'
 import type { ExprId, VisualizationIdentifier } from 'shared/yjsModel'
-import { computed, onErrorCaptured, ref, shallowRef, watch, watchEffect } from 'vue'
+import { computed, onErrorCaptured, onUnmounted, ref, shallowRef, watch, watchEffect } from 'vue'
 
 const visPreprocessor = ref(DEFAULT_VISUALIZATION_CONFIGURATION)
 const error = ref<Error>()
@@ -26,18 +27,22 @@ const visualizationStore = useVisualizationStore()
 const props = defineProps<{
   currentType: Opt<VisualizationIdentifier>
   isCircularMenuVisible: boolean
+  nodePosition: Vec2
   nodeSize: Vec2
   typename?: string | undefined
   expressionId?: ExprId | undefined
   data?: any | undefined
 }>()
 const emit = defineEmits<{
+  'update:rect': [rect: Rect | undefined]
   setVisualizationId: [id: VisualizationIdentifier]
   setVisualizationVisible: [visible: boolean]
 }>()
 
 const visualization = shallowRef<Visualization>()
 const icon = ref<Icon | URLString>()
+
+onUnmounted(() => emit('update:rect', undefined))
 
 onErrorCaptured((vueError) => {
   error.value = vueError
@@ -117,10 +122,29 @@ watchEffect(async () => {
   }
 })
 
+let width: number | null = null
+let height: number | null = 150
+
 provideVisualizationConfig({
   fullscreen: false,
-  width: null,
-  height: 150,
+  get width() {
+    return width
+  },
+  set width(value) {
+    width = value
+    if (width != null && height != null) {
+      emit('update:rect', new Rect(props.nodePosition, new Vec2(width, height)))
+    }
+  },
+  get height() {
+    return height
+  },
+  set height(value) {
+    height = value
+    if (width != null && height != null) {
+      emit('update:rect', new Rect(props.nodePosition, new Vec2(width, height)))
+    }
+  },
   get types() {
     return visualizationStore.types(props.typename)
   },
