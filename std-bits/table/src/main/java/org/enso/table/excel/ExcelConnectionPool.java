@@ -72,43 +72,36 @@ public class ExcelConnectionPool {
     }
 
     public <R> R writeWorkbook(File file, Function<Workbook, R> writeAction) throws IOException {
-//      File tempFile = File.createTempFile("enso-tmp-workbook-", ".tmp");
       boolean preExistingFile = file.exists() && Files.size(file.toPath()) > 0;
-//      if (appendingToExisting) {
-//        Files.copy(file.toPath(), tempFile.toPath());
-//      }
 
-      try {
-        try (Workbook tempWorkbook = preExistingFile ? ExcelConnectionPool.openWorkbook(file, format, true) :
-            createEmptyWorkbook(format)) {
-          R result = writeAction.apply(tempWorkbook);
-          if (preExistingFile) {
-            // Save the file in place.
-            switch (tempWorkbook) {
-              case HSSFWorkbook wb -> {
-                wb.write();
-              }
-              case XSSFWorkbook wb -> {
-                try {
-                  wb.write(null);
-                } catch (OpenXML4JRuntimeException e) {
-                  // Ignore: Workaround for bug https://bz.apache.org/bugzilla/show_bug.cgi?id=59252
-                }
-              }
-              default -> throw new IllegalStateException("Unknown workbook type: " + tempWorkbook.getClass());
+      try (Workbook workbook = preExistingFile ? ExcelConnectionPool.openWorkbook(file, format, true) :
+          createEmptyWorkbook(format)) {
+        R result = writeAction.apply(workbook);
+
+        if (preExistingFile) {
+          // Save the file in place.
+          switch (workbook) {
+            case HSSFWorkbook wb -> {
+              wb.write();
             }
-          } else {
-            try (OutputStream fileOut = Files.newOutputStream(file.toPath())) {
-              try (BufferedOutputStream workbookOut = new BufferedOutputStream(fileOut)) {
-                tempWorkbook.write(workbookOut);
+            case XSSFWorkbook wb -> {
+              try {
+                wb.write(null);
+              } catch (OpenXML4JRuntimeException e) {
+                // Ignore: Workaround for bug https://bz.apache.org/bugzilla/show_bug.cgi?id=59252
               }
+            }
+            default -> throw new IllegalStateException("Unknown workbook type: " + workbook.getClass());
+          }
+        } else {
+          try (OutputStream fileOut = Files.newOutputStream(file.toPath())) {
+            try (BufferedOutputStream workbookOut = new BufferedOutputStream(fileOut)) {
+              workbook.write(workbookOut);
             }
           }
-
-          return result;
         }
-      } finally {
-//        tempFile.delete();
+
+        return result;
       }
     }
   }

@@ -67,16 +67,17 @@ write_file (file : File) (table : Table) (on_existing_file : Existing_File_Behav
                 preexisting_dry_run_file = DryRunFileManager.preExistingTemporaryFile file.absolute.normalize.path
                 preexisting_dry_run_file.if_not_nothing <|
                     Java_File.new preexisting_dry_run_file
-            accompanying_files = [possible_backup_file, possible_dry_run_file].filter (!= Nothing)
+            accompanying_files = [possible_backup_file, possible_dry_run_file].filter (!= Nothing) . filter (!= java_file)
 
             ExcelConnectionPool.INSTANCE.lockForWriting java_file file_format accompanying_files write_helper-> Context.Output.with_enabled <|
+                # TODO this should work with False, why?
                 temp_file = if is_dry_run then file.create_dry_run_file copy_original=False else
                     find_temp_file file
 
                 ## We 'sync' the temp_file to reflect the original target file - if it exists we copy the contents, if the source
                    doesn't exist we also ensure that the temp file is not polluted with data from previous (dry-run) writes.
                 Panic.rethrow <|
-                    if file.exists then (file.copy_to temp_file) else (temp_file.delete_if_exists)
+                    if file.exists then (file.copy_to temp_file replace_existing=True) else (temp_file.delete_if_exists)
                 write_helper.writeWorkbook (file_as_java temp_file) modification_strategy
                 result_file = if is_dry_run then temp_file else
                     needs_backup = on_existing_file == Existing_File_Behavior.Backup
@@ -88,7 +89,6 @@ write_file (file : File) (table : Table) (on_existing_file : Existing_File_Behav
 
                     Panic.rethrow <| temp_file.move_to file replace_existing=True
                     file
-
                 result_file
 
 ## PRIVATE

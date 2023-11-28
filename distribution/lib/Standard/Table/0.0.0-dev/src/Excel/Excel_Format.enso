@@ -124,10 +124,9 @@ type Excel_Format
     write_table self file table on_existing_file match_columns on_problems =
         format = should_treat_as_xls_format self.xls_format file
 
-        r = case self.section of
+        case self.section of
             Excel_Section.Sheet_Names -> Error.throw (Illegal_Argument.Error "Sheet_Names cannot be used for `write`.")
             Excel_Section.Range_Names -> Error.throw (Illegal_Argument.Error "Range_Names cannot be used for `write`.")
             Excel_Section.Workbook ->
                 Excel_Writer.write_file file table on_existing_file (Excel_Section.Worksheet self.default_sheet) True match_columns on_problems format
             _ -> Excel_Writer.write_file file table on_existing_file self.section self.headers match_columns on_problems format
-        r.if_not_error file
