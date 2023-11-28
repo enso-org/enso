@@ -77,7 +77,6 @@ case class Engine(version: SemVer, path: Path, manifest: Manifest) {
     Success(())
   }
 
-
   /** Returns if the engine release was marked as broken when it was being
     * installed.
     *

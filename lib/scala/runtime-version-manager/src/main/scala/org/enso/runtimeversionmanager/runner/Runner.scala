@@ -168,7 +168,6 @@ class Runner(
         )
       }
 
-
       def translateJVMOption(option: (String, String)): String = {
         val name  = option._1
         val value = option._2
@@ -194,7 +193,10 @@ class Runner(
           "org.enso.runtime/org.enso.EngineRunnerBootLoader"
         )
       } else {
-        assert(engine.runnerPath.isDefined, "Engines path to runner.jar must be defined - it is not an unchained engine")
+        assert(
+          engine.runnerPath.isDefined,
+          "Engines path to runner.jar must be defined - it is not an unchained engine"
+        )
         val runnerJar = engine.runnerPath.get.toAbsolutePath.normalize.toString
         jvmArguments = jvmArguments :++ Seq(
           "-jar",

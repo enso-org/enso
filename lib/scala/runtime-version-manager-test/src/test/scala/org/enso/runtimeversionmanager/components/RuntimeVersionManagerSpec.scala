@@ -57,7 +57,7 @@ class RuntimeVersionManagerSpec
       val runtimeVersions =
         Set(
           components.GraalVMVersion("1.0.0", "11"),
-          components.GraalVMVersion("23.2.0", "21.0.0"),
+          components.GraalVMVersion("23.2.0", "21.0.0")
         )
       engineVersions.map(componentsManager.findOrInstallEngine)
 
