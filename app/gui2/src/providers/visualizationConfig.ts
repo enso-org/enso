@@ -13,8 +13,9 @@ export interface VisualizationConfig {
   readonly icon: Icon | URLString | undefined
   readonly isCircularMenuVisible: boolean
   readonly nodeSize: Vec2
+  isBelowToolbar: boolean
   width: number | null
-  height: number | null
+  height: number
   fullscreen: boolean
   hide: () => void
   updateType: (type: VisualizationIdentifier) => void

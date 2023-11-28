@@ -275,7 +275,7 @@ function portGroupStyle(port: PortData) {
       :typename="expressionInfo?.typename"
       @setVisualizationId="emit('setVisualizationId', $event)"
       @setVisualizationVisible="emit('setVisualizationVisible', $event)"
-      @update:size="emit('update:vizRect', $event)"
+      @update:rect="emit('update:vizRect', $event)"
     />
     <div
       class="node"

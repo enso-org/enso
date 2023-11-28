@@ -81,7 +81,6 @@ function placementPositionForSelection() {
   const hasNodeSelected = nodeSelection.selected.size > 0
   if (!hasNodeSelected) return
   const gapBetweenNodes = 48.0
-  console.log('pn', placementEnvironment.value)
   return previousNodeDictatedPlacement(DEFAULT_NODE_SIZE, placementEnvironment.value, {
     horizontalGap: gapBetweenNodes,
     verticalGap: gapBetweenNodes,
@@ -231,7 +230,6 @@ const creatingNode: Interaction = {
     componentBrowserInputContent.value = ''
     componentBrowserSourcePort.value = sourcePortForSelection()
     componentBrowserPosition.value = targetComponentBrowserPosition()
-    console.log('...', componentBrowserPosition.value)
     componentBrowserVisible.value = true
   },
 }

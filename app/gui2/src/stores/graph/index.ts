@@ -296,7 +296,7 @@ export const useGraphStore = defineStore('graph', () => {
       const { position } = nonDictatedPlacement(rect.size, {
         nodeRects: [...nodeRects.entries()]
           .filter(([id]) => db.nodeIdToNode.get(id))
-          .map(([, rect]) => vizRects.get(id) ?? rect),
+          .map(([id, rect]) => vizRects.get(id) ?? rect),
         // The rest of the properties should not matter.
         selectedNodeRects: [],
         screenBounds: Rect.Zero,

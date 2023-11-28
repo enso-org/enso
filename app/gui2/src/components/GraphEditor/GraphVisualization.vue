@@ -21,6 +21,9 @@ import { computed, onErrorCaptured, onUnmounted, ref, shallowRef, watch, watchEf
 const visPreprocessor = ref(DEFAULT_VISUALIZATION_CONFIGURATION)
 const error = ref<Error>()
 
+const TOP_WITHOUT_TOOLBAR_PX = 36
+const TOP_WITH_TOOLBAR_PX = 72
+
 const projectStore = useProjectStore()
 const visualizationStore = useVisualizationStore()
 
@@ -41,8 +44,6 @@ const emit = defineEmits<{
 
 const visualization = shallowRef<Visualization>()
 const icon = ref<Icon | URLString>()
-
-onUnmounted(() => emit('update:rect', undefined))
 
 onErrorCaptured((vueError) => {
   error.value = vueError
@@ -122,28 +123,44 @@ watchEffect(async () => {
   }
 })
 
-let width: number | null = null
-let height: number | null = 150
+const isBelowToolbar = ref(false)
+let width = ref<number | null>(null)
+let height = ref(150)
+
+watchEffect(() =>
+  emit(
+    'update:rect',
+    new Rect(
+      props.nodePosition,
+      new Vec2(
+        width.value ?? props.nodeSize.x,
+        height.value + (isBelowToolbar.value ? TOP_WITH_TOOLBAR_PX : TOP_WITHOUT_TOOLBAR_PX),
+      ),
+    ),
+  ),
+)
+
+onUnmounted(() => emit('update:rect', undefined))
 
 provideVisualizationConfig({
   fullscreen: false,
   get width() {
-    return width
+    return width.value
   },
   set width(value) {
-    width = value
-    if (width != null && height != null) {
-      emit('update:rect', new Rect(props.nodePosition, new Vec2(width, height)))
-    }
+    width.value = value
   },
   get height() {
-    return height
+    return height.value
   },
   set height(value) {
-    height = value
-    if (width != null && height != null) {
-      emit('update:rect', new Rect(props.nodePosition, new Vec2(width, height)))
-    }
+    height.value = value
+  },
+  get isBelowToolbar() {
+    return isBelowToolbar.value
+  },
+  set isBelowToolbar(value) {
+    isBelowToolbar.value = value
   },
   get types() {
     return visualizationStore.types(props.typename)
