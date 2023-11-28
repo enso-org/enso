@@ -360,14 +360,16 @@ spec_write suffix test_sheet_name =
                 result
             temp.delete_if_exists
 
-        Test.specify "should be able to write to a dry-run file, even if the dry-run workbook is open, previous dry-run changes are not visible in next one" <|
+        Test.specify "should be able to write to a dry-run file, even if the dry-run workbook is open" <|
             out = create_out
+            out.exists.should_be_false
             temp = Context.Output.with_disabled <|
                 result = table.write out on_problems=Report_Error . should_succeed
                 Problems.expect_only_warning Dry_Run_Operation result
                 result.exists.should_be_true
                 result
             temp.absolute.normalize.path . should_not_equal out.absolute.normalize.path
+            out.exists.should_be_false
 
             opened_temp = temp.read
             opened_temp.sheet_names . should_equal ['EnsoSheet']
@@ -378,10 +380,13 @@ spec_write suffix test_sheet_name =
                 result.exists.should_be_true
                 result
 
-            # The result should be written to the same file though.
+            # The result should be written to the same dry-run file on second attempt.
             temp2.absolute.normalize.path . should_equal temp.absolute.normalize.path
 
-            # The write operation replaces the dry run file, basing off of the original out file (which was empty in this example), so we still only get one sheet.
+            ## The write operation replaces the dry run file, basing off of the _original_ out file
+               (which was empty in this example), so we still only get one sheet.
+               Different example is tested in the test below, if the subsequent file happens to the returned
+               dry-run object - then both updates are visible - see below.
             opened_temp.sheet_names . should_equal ['Another']
 
             opened_temp.close
@@ -412,7 +417,7 @@ spec_write suffix test_sheet_name =
             opened_temp.sheet_names . should_equal ['EnsoSheet', 'Another']
 
             opened_temp.close
-            temp.delete_if_exists
+            temp1.delete_if_exists
 
         Test.specify "should be able to create a backup, even if it is currently open" <|
             out = create_out
