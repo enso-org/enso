@@ -19,6 +19,9 @@ create_vec = Vector.new 100000 (i-> i%10)
 
 id i = i
 
+id_one_error i = if i != 5 then i else
+    Error.throw (Illegal_Argument.Error "error")
+
 always_throw i =
     _ = [i]
     Error.throw (Illegal_Argument.Error "error")
@@ -32,6 +35,8 @@ collect_benches = Bench.build builder->
     builder.group "Map_Error" options group_builder->
         group_builder.specify "Map_Id_No_Errors" <|
             data.vec.map id
+        group_builder.specify "Map_Id_One_Error" <|
+            data.vec.map id_one_error . catch
         group_builder.specify "Map_Id_All_Errors_With_Ignore" <|
             data.vec.map always_throw on_problems=Problem_Behavior.Ignore
         group_builder.specify "Map_Id_Ten_Percent_Errors_With_Ignore" <|
