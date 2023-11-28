@@ -1,13 +1,17 @@
-import type { SuggestionEntry, Typename } from '@/stores/suggestionDatabase/entry'
+import {
+  SuggestionKind,
+  type SuggestionEntry,
+  type Typename,
+} from '@/stores/suggestionDatabase/entry'
 import type { Icon } from '@/util/iconName'
 import type { MethodPointer } from 'shared/languageServerTypes'
 
-const oldIconNameToNewIconNameLookup: Record<string, string> = {
+const oldIconNameToNewIconNameLookup: Record<string, Icon> = {
   /* eslint-disable camelcase */
-  dataframe_clean: 'clean_dataframe',
+  dataframe_clean: 'table_clean',
   dataframe_map_row: 'map_row',
-  dataframe_map_column: 'add_column',
-  dataframes_join: 'join3',
+  dataframe_map_column: 'column_add',
+  dataframes_join: 'join2-1',
   dataframes_union: 'union',
   sigma: 'transform4',
   io: 'in_out',
@@ -25,8 +29,8 @@ export function mapOldIconName(oldIconName: string): Icon {
 
 const typeNameToIconLookup: Record<string, Icon> = {
   'Standard.Base.Data.Text.Text': 'text_input',
-  'Standard.Base.Data.Numbers.Integer': 'number_input',
-  'Standard.Base.Data.Numbers.Float': 'number_input',
+  'Standard.Base.Data.Numbers.Integer': 'input_number',
+  'Standard.Base.Data.Numbers.Float': 'input_number',
   'Standard.Base.Data.Array.Array': 'array_new',
   'Standard.Base.Data.Vector.Vector': 'array_new',
   'Standard.Base.Data.Time.Date.Date': 'calendar',
@@ -43,7 +47,10 @@ export function displayedIconOf(
   methodCall?: MethodPointer,
   actualType?: Typename,
 ): Icon {
-  if (entry?.iconName) return mapOldIconName(entry.iconName)
-  if (!methodCall?.name && actualType) return typeNameToIcon(actualType)
+  if (entry) {
+    if (entry.iconName) return mapOldIconName(entry.iconName)
+    if (entry.kind === SuggestionKind.Local) return 'local_scope2'
+    if (entry.kind === SuggestionKind.Module) return 'collection'
+  } else if (!methodCall?.name && actualType) return typeNameToIcon(actualType)
   return 'enso_logo'
 }
