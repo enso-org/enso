@@ -1,4 +1,5 @@
 import type { ExecutionContext } from '@/stores/project'
+import { ReactiveDb, ReactiveIndex } from '@/util/database/reactiveDb'
 import { ObservableV2 } from 'lib0/observable'
 import type {
   ExpressionId,
@@ -8,7 +9,6 @@ import type {
   ProfilingInfo,
 } from 'shared/languageServerTypes'
 import { markRaw } from 'vue'
-import { ReactiveDb, ReactiveIndex } from './database/reactiveDb'
 
 export interface ExpressionInfo {
   typename: string | undefined

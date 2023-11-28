@@ -1,7 +1,9 @@
 import { injectGuiConfig, type GuiConfig } from '@/providers/guiConfig'
 import { Awareness } from '@/stores/awareness'
+import { ComputedValueRegistry } from '@/stores/project/computedValueRegistry'
+import { DataflowErrorRegistry } from '@/stores/project/dataflowErrorRegistry'
+import { VisualizationDataRegistry } from '@/stores/project/visualizationDataRegistry'
 import { bail } from '@/util/assert'
-import { ComputedValueRegistry } from '@/util/computedValueRegistry'
 import { attachProvider, useObserveYjs } from '@/util/crdt'
 import {
   AsyncQueue,
@@ -11,7 +13,6 @@ import {
 } from '@/util/net'
 import { isSome, type Opt } from '@/util/opt'
 import { tryQualifiedName } from '@/util/qualifiedName'
-import { VisualizationDataRegistry } from '@/util/visualizationDataRegistry'
 import { Client, RequestManager } from '@open-rpc/client-js'
 import { computedAsync } from '@vueuse/core'
 import * as array from 'lib0/array'
@@ -521,36 +522,10 @@ export const useProjectStore = defineStore('project', () => {
   const executionContext = createExecutionContextForMain()
   const visualizationDataRegistry = new VisualizationDataRegistry(executionContext, dataConnection)
   const computedValueRegistry = ComputedValueRegistry.WithExecutionContext(executionContext)
-
-  const dataflowErrorVisualizationIds = new Map<ExprId, Uuid>()
-
-  computedValueRegistry.on('update', (update, oldInfo, newInfo) => {
-    if (
-      (!oldInfo || oldInfo.payload.type !== 'DataflowError') &&
-      newInfo.payload.type === 'DataflowError'
-    ) {
-      const id = random.uuidv4() as Uuid
-      dataflowErrorVisualizationIds.set(update.expressionId, id)
-      executionContext?.setVisualization(id, {
-        expressionId: update.expressionId,
-        visualizationModule: 'Standard.Visualization.Preprocessor',
-        expression: {
-          module: 'Standard.Visualization.Preprocessor',
-          definedOnType: 'Standard.Visualization.Preprocessor',
-          name: 'error_preprocessor',
-        },
-      })
-    } else if (
-      oldInfo?.payload.type === 'DataflowError' &&
-      newInfo.payload.type !== 'DataflowError'
-    ) {
-      const id = dataflowErrorVisualizationIds.get(update.expressionId)
-      id && executionContext?.setVisualization(id, null)
-    }
-  })
+  const dataflowErrorRegistry = new DataflowErrorRegistry(computedValueRegistry, executionContext)
 
   function getDataflowError(exprId: ExpressionId) {
-    const id = dataflowErrorVisualizationIds.get(exprId)
+    const id = dataflowErrorRegistry.visualizationIds.get(exprId)
     if (!id) return
     return shallowRef(
       computed<{ kind: 'Dataflow'; message: string } | undefined>(() => {
