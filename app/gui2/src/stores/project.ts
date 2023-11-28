@@ -519,8 +519,11 @@ export const useProjectStore = defineStore('project', () => {
   }
 
   const executionContext = createExecutionContextForMain()
-  const computedValueRegistry = ComputedValueRegistry.WithExecutionContext(executionContext)
   const visualizationDataRegistry = new VisualizationDataRegistry(executionContext, dataConnection)
+  const computedValueRegistry = ComputedValueRegistry.WithExecutionContext(
+    executionContext,
+    visualizationDataRegistry,
+  )
 
   const diagnostics = ref<Diagnostic[]>([])
   executionContext.on('executionStatus', (newDiagnostics) => {
