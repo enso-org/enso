@@ -52,6 +52,6 @@ type Ref
           Increment the integer stored in a ref.
 
           (Ref.new 10) . modify (_+1) . get
-          # => 11
+          # => 10
     modify : (Any -> Any) -> Any
     modify self fun = self.put (fun self.get)
