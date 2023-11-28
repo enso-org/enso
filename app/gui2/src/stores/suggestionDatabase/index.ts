@@ -3,7 +3,6 @@ import { entryQn, type SuggestionEntry, type SuggestionId } from '@/stores/sugge
 import { applyUpdates, entryFromLs } from '@/stores/suggestionDatabase/lsUpdate'
 import { ReactiveDb, ReactiveIndex } from '@/util/database/reactiveDb'
 import { AsyncQueue, rpcWithRetries } from '@/util/net'
-import { nextEvent } from '@/util/observable'
 import { type Opt } from '@/util/opt'
 import { qnJoin, qnParent, tryQualifiedName, type QualifiedName } from '@/util/qualifiedName'
 import { defineStore } from 'pinia'
@@ -77,6 +76,7 @@ class Synchronizer {
         lsRpc.acquireCapability('search/receivesSuggestionsDatabaseUpdates', {}),
       )
       this.setupUpdateHandler(lsRpc)
+      this.loadGroups(lsRpc, projectStore.firstExecution)
       return Synchronizer.loadDatabase(entries, lsRpc, groups.value)
     })
 
@@ -126,8 +126,11 @@ class Synchronizer {
         }
       })
     })
+  }
+
+  private async loadGroups(lsRpc: LanguageServer, firstExecution: Promise<unknown>) {
     this.queue.pushTask(async ({ currentVersion }) => {
-      await nextEvent(lsRpc, 'executionContext/executionComplete')
+      await firstExecution
       const groups = await lsRpc.getComponentGroups()
       this.groups.value = groups.componentGroups.map(
         (group): Group => ({

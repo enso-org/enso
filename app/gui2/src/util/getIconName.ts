@@ -6,12 +6,12 @@ import {
 import type { Icon } from '@/util/iconName'
 import type { MethodPointer } from 'shared/languageServerTypes'
 
-const oldIconNameToNewIconNameLookup: Record<string, string> = {
+const oldIconNameToNewIconNameLookup: Record<string, Icon> = {
   /* eslint-disable camelcase */
-  dataframe_clean: 'clean_dataframe',
+  dataframe_clean: 'table_clean',
   dataframe_map_row: 'map_row',
-  dataframe_map_column: 'add_column',
-  dataframes_join: 'join3',
+  dataframe_map_column: 'column_add',
+  dataframes_join: 'join2-1',
   dataframes_union: 'union',
   sigma: 'transform4',
   io: 'in_out',

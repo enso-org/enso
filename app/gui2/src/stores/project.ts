@@ -9,6 +9,7 @@ import {
   createWebsocketClient,
   rpcWithRetries as lsRpcWithRetries,
 } from '@/util/net'
+import { nextEvent } from '@/util/observable'
 import { isSome, type Opt } from '@/util/opt'
 import { tryQualifiedName } from '@/util/qualifiedName'
 import { VisualizationDataRegistry } from '@/util/visualizationDataRegistry'
@@ -518,6 +519,9 @@ export const useProjectStore = defineStore('project', () => {
     })
   }
 
+  const firstExecution = lsRpcConnection.then((lsRpc) =>
+    nextEvent(lsRpc, 'executionContext/executionComplete'),
+  )
   const executionContext = createExecutionContextForMain()
   const computedValueRegistry = ComputedValueRegistry.WithExecutionContext(executionContext)
   const visualizationDataRegistry = new VisualizationDataRegistry(executionContext, dataConnection)
@@ -563,6 +567,7 @@ export const useProjectStore = defineStore('project', () => {
     },
     name: projectName,
     executionContext,
+    firstExecution,
     diagnostics,
     module,
     modulePath,
