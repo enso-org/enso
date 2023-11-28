@@ -2,7 +2,6 @@ package org.enso.runtimeversionmanager.test
 
 import org.enso.runtimeversionmanager.components.{
   GraalRuntime,
-  NoopComponentUpdater,
   RuntimeComponentUpdater,
   RuntimeComponentUpdaterFactory
 }
