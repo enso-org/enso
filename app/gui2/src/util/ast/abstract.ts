@@ -1,6 +1,6 @@
 import { Token, Tree } from '@/generated/ast'
 import { parseEnso } from '@/util/ast'
-import { AstExtended } from '@/util/ast/extended.ts'
+import { AstExtended as RawAstExtended } from '@/util/ast/extended'
 import type { LazyObject } from '@/util/parserSupport'
 import { Err, Ok, type Result } from '@/util/result'
 import * as random from 'lib0/random'
@@ -12,7 +12,7 @@ const committed = reactive(new Map<AstId, Ast>())
 /** New nodes, COW-copies of modified nodes, and pending deletions (nulls) */
 const edited = new Map<AstId, Ast | null>()
 
-const astExtended = reactive(new Map<AstId, AstExtended>())
+const astExtended = reactive(new Map<AstId, RawAstExtended>())
 
 export type NodeChild<T = AstId | Tok> = { whitespace?: string | undefined; node: T }
 
@@ -82,7 +82,7 @@ export abstract class Ast {
   _id: AstId
 
   // Deprecated interface for incremental integration of Ast API. Eliminate usages for #8367.
-  get astExtended(): AstExtended | undefined {
+  get astExtended(): RawAstExtended | undefined {
     return astExtended.get(this._id)
   }
 
@@ -865,19 +865,19 @@ export function parse(source: PrintedSource | string): Ast {
 
 /** Parse using new AST types with old IdMap synchronization/editing. */
 export function parseTransitional(code: string, idMap: IdMap): Ast {
-  const legacyAst = AstExtended.parse(code, idMap)
+  const legacyAst = RawAstExtended.parse(code, idMap)
   idMap.finishAndSynchronize()
   const nodes = new Map<NodeKey, AstId[]>()
   const tokens = new Map<TokenKey, TokenId>()
   astExtended.clear()
-  legacyAst.visitRecursive((nodeOrToken: AstExtended<Tree | Token>) => {
+  legacyAst.visitRecursive((nodeOrToken: RawAstExtended<Tree | Token>) => {
     const start = nodeOrToken.span()[0]
     const length = nodeOrToken.span()[1] - nodeOrToken.span()[0]
     if (nodeOrToken.isToken()) {
-      const token: AstExtended<Token> = nodeOrToken
+      const token: RawAstExtended<Token> = nodeOrToken
       tokens.set(tokenKey(start, length), token.astId as TokenId)
     } else if (nodeOrToken.isTree()) {
-      const node: AstExtended<Tree> = nodeOrToken
+      const node: RawAstExtended<Tree> = nodeOrToken
       let id = node.astId as AstId
       if (astExtended.has(id)) {
         id = newNodeId()

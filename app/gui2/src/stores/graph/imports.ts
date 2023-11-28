@@ -8,7 +8,7 @@ import {
   makeType,
   type SuggestionEntry,
 } from '@/stores/suggestionDatabase/entry'
-import { Ast, AstExtended } from '@/util/ast'
+import { RawAst, RawAstExtended } from '@/util/ast'
 import { GeneralOprApp } from '@/util/ast/opr'
 import {
   normalizeQualifiedName,
@@ -25,8 +25,8 @@ import { unwrap } from '@/util/result'
 // === Imports analysis ===
 // ========================
 
-function parseIdent(ast: AstExtended): Identifier | null {
-  if (ast.isTree(Ast.Tree.Type.Ident) || ast.isToken(Ast.Token.Type.Ident)) {
+function parseIdent(ast: RawAstExtended): Identifier | null {
+  if (ast.isTree(RawAst.Tree.Type.Ident) || ast.isToken(RawAst.Token.Type.Ident)) {
     const ident = tryIdentifier(ast.repr())
     return ident.ok ? ident.value : null
   } else {
@@ -34,11 +34,11 @@ function parseIdent(ast: AstExtended): Identifier | null {
   }
 }
 
-function parseIdents(ast: AstExtended): Identifier[] | null {
-  if (ast.isTree(Ast.Tree.Type.Ident) || ast.isToken(Ast.Token.Type.Ident)) {
+function parseIdents(ast: RawAstExtended): Identifier[] | null {
+  if (ast.isTree(RawAst.Tree.Type.Ident) || ast.isToken(RawAst.Token.Type.Ident)) {
     const ident = tryIdentifier(ast.repr())
     return ident.ok ? [ident.value] : null
-  } else if (ast.isTree(Ast.Tree.Type.OprApp)) {
+  } else if (ast.isTree(RawAst.Tree.Type.OprApp)) {
     const opr = new GeneralOprApp(ast)
     const operands = opr.operandsOfLeftAssocOprChain(',')
     return [...operands].flatMap((operand) => {
@@ -54,11 +54,11 @@ function parseIdents(ast: AstExtended): Identifier[] | null {
   }
 }
 
-function parseQualifiedName(ast: AstExtended): QualifiedName | null {
-  if (ast.isTree(Ast.Tree.Type.Ident) || ast.isToken(Ast.Token.Type.Ident)) {
+function parseQualifiedName(ast: RawAstExtended): QualifiedName | null {
+  if (ast.isTree(RawAst.Tree.Type.Ident) || ast.isToken(RawAst.Token.Type.Ident)) {
     const name = tryQualifiedName(ast.repr())
     return name.ok ? normalizeQualifiedName(name.value) : null
-  } else if (ast.isTree(Ast.Tree.Type.OprApp)) {
+  } else if (ast.isTree(RawAst.Tree.Type.OprApp)) {
     const opr = new GeneralOprApp(ast)
     const operands = opr.operandsOfLeftAssocOprChain('.')
     const idents = []
@@ -80,7 +80,7 @@ function parseQualifiedName(ast: AstExtended): QualifiedName | null {
 }
 
 /** Parse import statement. */
-export function recognizeImport(ast: AstExtended<Ast.Tree.Import>): Import | null {
+export function recognizeImport(ast: RawAstExtended<RawAst.Tree.Import>): Import | null {
   const from = ast.tryMap((import_) => import_.from?.body)
   const as = ast.tryMap((import_) => import_.as?.body)
   const import_ = ast.tryMap((import_) => import_.import.body)
@@ -486,8 +486,8 @@ if (import.meta.vitest) {
 
   const parseImport = (code: string): Import | null => {
     let ast = null
-    AstExtended.parse(code).visitRecursive((node) => {
-      if (node.isTree(Ast.Tree.Type.Import)) {
+    RawAstExtended.parse(code).visitRecursive((node) => {
+      if (node.isTree(RawAst.Tree.Type.Import)) {
         ast = node
         return false
       }

@@ -10,7 +10,7 @@ import {
   provideWidgetUsageInfo,
   usageKeyForInput,
 } from '@/providers/widgetUsageInfo'
-import { AstExtended } from '@/util/ast'
+import { RawAstExtended } from '@/util/ast'
 import { computed, proxyRefs, ref } from 'vue'
 
 const props = defineProps<{ input: WidgetInput; nest?: boolean }>()
@@ -25,7 +25,7 @@ const usageKey = computed(() => usageKeyForInput(props.input))
 const sameInputAsParent = computed(() => parentUsageInfo?.usageKey === usageKey.value)
 
 const whitespace = computed(() =>
-  !sameInputAsParent.value && props.input instanceof AstExtended
+  !sameInputAsParent.value && props.input instanceof RawAstExtended
     ? ' '.repeat(props.input.whitespaceLength() ?? 0)
     : '',
 )
@@ -65,7 +65,7 @@ provideWidgetUsageInfo(
   }),
 )
 const spanStart = computed(() => {
-  if (!(props.input instanceof AstExtended)) return undefined
+  if (!(props.input instanceof RawAstExtended)) return undefined
   return props.input.span()[0] - tree.nodeSpanStart - whitespace.value.length
 })
 </script>

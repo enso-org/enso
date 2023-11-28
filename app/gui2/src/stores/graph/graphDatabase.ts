@@ -1,7 +1,7 @@
 import { SuggestionDb, groupColorStyle, type Group } from '@/stores/suggestionDatabase'
 import type { SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import { arrayEquals, byteArraysEqual, tryGetIndex } from '@/util/array'
-import { Ast, AstExtended } from '@/util/ast'
+import { RawAst, RawAstExtended } from '@/util/ast'
 import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
 import { colorFromString } from '@/util/colors'
 import { ComputedValueRegistry, type ExpressionInfo } from '@/util/computedValueRegistry'
@@ -30,7 +30,7 @@ export class BindingsDb {
   bindings = new ReactiveDb<ExprId, BindingInfo>()
   identifierToBindingId = new ReactiveIndex(this.bindings, (id, info) => [[info.identifier, id]])
 
-  readFunctionAst(ast: AstExtended<Ast.Tree.Function>) {
+  readFunctionAst(ast: RawAstExtended<RawAst.Tree.Function>) {
     // TODO[ao]: Rename 'alias' to 'binding' in AliasAnalyzer and it's more accurate term.
     const analyzer = new AliasAnalyzer(ast.parsedCode, ast.inner)
     analyzer.process()
@@ -82,13 +82,13 @@ export class BindingsDb {
    *
    * The AliasAnalyzer is general and returns ranges, but we're interested in AST nodes. This
    * method creates mappings in both ways. For given range, only the shallowest AST node will be
-   * assigned (Ast.Tree.Identifier, not Ast.Token.Identifier).
+   * assigned (RawAst.Tree.Identifier, not RawAst.Token.Identifier).
    */
   private static rangeMappings(
-    ast: AstExtended,
+    ast: RawAstExtended,
     analyzer: AliasAnalyzer,
-  ): [MappedKeyMap<ContentRange, AstExtended>, Map<ExprId, ContentRange>] {
-    const bindingRangeToTree = new MappedKeyMap<ContentRange, AstExtended>(IdMap.keyForRange)
+  ): [MappedKeyMap<ContentRange, RawAstExtended>, Map<ExprId, ContentRange>] {
+    const bindingRangeToTree = new MappedKeyMap<ContentRange, RawAstExtended>(IdMap.keyForRange)
     const bindingIdToRange = new Map<ExprId, ContentRange>()
     const bindingRanges = new MappedSet(IdMap.keyForRange)
     for (const [binding, usages] of analyzer.aliases) {
@@ -252,7 +252,7 @@ export class GraphDb {
   }
 
   readFunctionAst(
-    functionAst: AstExtended<Ast.Tree.Function>,
+    functionAst: RawAstExtended<RawAst.Tree.Function>,
     getMeta: (id: ExprId) => NodeMetadata | undefined,
   ) {
     const currentNodeIds = new Set<ExprId>()
@@ -308,8 +308,8 @@ export class GraphDb {
   mockNode(binding: string, id: ExprId, code?: string) {
     const node = {
       outerExprId: id,
-      pattern: AstExtended.parse(binding, IdMap.Mock()),
-      rootSpan: AstExtended.parse(code ?? '0', IdMap.Mock()),
+      pattern: RawAstExtended.parse(binding, IdMap.Mock()),
+      rootSpan: RawAstExtended.parse(code ?? '0', IdMap.Mock()),
       position: Vec2.Zero,
       vis: undefined,
     }
@@ -321,14 +321,14 @@ export class GraphDb {
 
 export interface Node {
   outerExprId: ExprId
-  pattern: AstExtended<Ast.Tree> | undefined
-  rootSpan: AstExtended<Ast.Tree>
+  pattern: RawAstExtended<RawAst.Tree> | undefined
+  rootSpan: RawAstExtended<RawAst.Tree>
   position: Vec2
   vis: Opt<VisualizationMetadata>
 }
 
-function nodeFromAst(ast: AstExtended<Ast.Tree>): Node {
-  if (ast.isTree(Ast.Tree.Type.Assignment)) {
+function nodeFromAst(ast: RawAstExtended<RawAst.Tree>): Node {
+  if (ast.isTree(RawAst.Tree.Type.Assignment)) {
     return {
       outerExprId: ast.astId,
       pattern: ast.map((t) => t.pattern),
@@ -347,11 +347,11 @@ function nodeFromAst(ast: AstExtended<Ast.Tree>): Node {
   }
 }
 
-function* getFunctionNodeExpressions(func: Ast.Tree.Function): Generator<Ast.Tree> {
+function* getFunctionNodeExpressions(func: RawAst.Tree.Function): Generator<RawAst.Tree> {
   if (func.body) {
-    if (func.body.type === Ast.Tree.Type.BodyBlock) {
+    if (func.body.type === RawAst.Tree.Type.BodyBlock) {
       for (const stmt of func.body.statements) {
-        if (stmt.expression && stmt.expression.type !== Ast.Tree.Type.Function) {
+        if (stmt.expression && stmt.expression.type !== RawAst.Tree.Type.Function) {
           yield stmt.expression
         }
       }

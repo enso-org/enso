@@ -1,4 +1,4 @@
-import { Ast } from '@/util/ast'
+import { RawAst } from '@/util/ast'
 import { expect, test } from 'vitest'
 
 //const disabledCases = [
@@ -345,14 +345,14 @@ const cases = [
 ]
 test.each(cases)('parse/print round trip: %s', (code) => {
   // Get an AST.
-  const root = Ast.parse(code)
+  const root = RawAst.parse(code)
   // Print AST back to source.
-  const printed = Ast.print(root)
+  const printed = RawAst.print(root)
   const info1 = printed.info
   expect(printed.code).toEqual(code)
 
   // Re-parse.
-  const root1 = Ast.parse(printed)
+  const root1 = RawAst.parse(printed)
   // Check that Identities match original AST.
   // FIXME--Needed for AST edits (#8367).
   /*
@@ -360,7 +360,7 @@ test.each(cases)('parse/print round trip: %s', (code) => {
   expect(reprinted.info).toEqual(info1)
    */
 
-  Ast.forgetAllAsts()
+  RawAst.forgetAllAsts()
 })
 
 const parseCases = [
@@ -368,45 +368,45 @@ const parseCases = [
   { code: '(foo)', tree: ['', ['(', ['foo'], ')']] },
 ]
 test.each(parseCases)('parse: %s', (testCase) => {
-  const root = Ast.parse(testCase.code)
-  expect(Ast.debug(root)).toEqual(testCase.tree)
-  Ast.forgetAllAsts()
+  const root = RawAst.parse(testCase.code)
+  expect(RawAst.debug(root)).toEqual(testCase.tree)
+  RawAst.forgetAllAsts()
 })
 
 // TODO: Edits (#8367).
 if (false) {
   test('insert new node', () => {
     const code = 'main =\n    text1 = "foo"\n'
-    const root = Ast.parse(code)
-    const main = Ast.functionBlock('main')
+    const root = RawAst.parse(code)
+    const main = RawAst.functionBlock('main')
     expect(main).not.toBeNull()
     insertNewNodeAST(main!, 'baz', '42')
     const printed = root.print()
     expect(printed.code).toEqual('main =\n    text1 = "foo"\n    baz = 42\n')
-    Ast.forgetAllAsts()
+    RawAst.forgetAllAsts()
   })
 
   test('replace expression content', () => {
     const code = 'main =\n    text1 = "foo"\n'
-    const root = Ast.parse(code)
-    const main = Ast.functionBlock('main')
+    const root = RawAst.parse(code)
+    const main = RawAst.functionBlock('main')
     expect(main).not.toBeNull()
     const newAssignment = insertNewNodeAST(main!, 'baz', '42')
     replaceExpressionContentAST(newAssignment.value, '23')
     const printed = root.print()
     expect(printed.code).toEqual('main =\n    text1 = "foo"\n    baz = 23\n')
-    Ast.forgetAllAsts()
+    RawAst.forgetAllAsts()
   })
 
   test('delete expression', () => {
     const originalCode = 'main =\n    text1 = "foo"\n'
-    const root = Ast.parse(originalCode)
-    const main = Ast.functionBlock('main')
+    const root = RawAst.parse(originalCode)
+    const main = RawAst.functionBlock('main')
     expect(main).not.toBeNull()
     const newAssignment = insertNewNodeAST(main!, 'baz', '42')
     deleteExpressionAST(newAssignment.assignment)
     const printed = root.print()
     expect(printed.code).toEqual(originalCode)
-    Ast.forgetAllAsts()
+    RawAst.forgetAllAsts()
   })
 }

@@ -10,7 +10,7 @@ import {
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { DEFAULT_VISUALIZATION_IDENTIFIER } from '@/stores/visualization'
-import { Ast, AstExtended, childrenAstNodes, findAstWithRange, readAstSpan } from '@/util/ast'
+import { RawAst, RawAstExtended, childrenAstNodes, findAstWithRange, readAstSpan } from '@/util/ast'
 import { useObserveYjs } from '@/util/crdt'
 import type { Opt } from '@/util/opt'
 import { Rect } from '@/util/rect'
@@ -94,12 +94,12 @@ export const useGraphStore = defineStore('graph', () => {
       const meta = module.doc.metadata
       const textContentLocal = textContent.value
 
-      const ast = AstExtended.parse(textContentLocal, idMap)
+      const ast = RawAstExtended.parse(textContentLocal, idMap)
       const updatedMap = idMap.finishAndSynchronize()
 
       imports.value = []
       ast.visitRecursive((node) => {
-        if (node.isTree(Ast.Tree.Type.Import)) {
+        if (node.isTree(RawAst.Tree.Type.Import)) {
           const recognized = recognizeImport(node)
           if (recognized) {
             imports.value.push({ import: recognized, span: node.span() })
@@ -377,11 +377,11 @@ export type UnconnectedEdge = {
 }
 
 function getExecutedMethodAst(
-  ast: Ast.Tree,
+  ast: RawAst.Tree,
   code: string,
   executionStackTop: StackItem,
   updatedIdMap: Y.Map<Uint8Array>,
-): Ast.Tree.Function | undefined {
+): RawAst.Tree.Function | undefined {
   switch (executionStackTop.type) {
     case 'ExplicitCall': {
       // Assume that the provided AST matches the module in the method pointer. There is no way to
@@ -395,7 +395,7 @@ function getExecutedMethodAst(
       const range = lookupIdRange(updatedIdMap, exprId)
       if (!range) return
       const node = findAstWithRange(ast, range)
-      if (node?.type === Ast.Tree.Type.Function) return node
+      if (node?.type === RawAst.Tree.Type.Function) return node
     }
   }
 }
@@ -412,12 +412,12 @@ function lookupIdRange(updatedIdMap: Y.Map<Uint8Array>, id: ExprId): [number, nu
 }
 
 function findModuleMethod(
-  moduleAst: Ast.Tree,
+  moduleAst: RawAst.Tree,
   code: string,
   methodName: string,
-): Ast.Tree.Function | undefined {
+): RawAst.Tree.Function | undefined {
   for (const node of childrenAstNodes(moduleAst)) {
-    if (node.type === Ast.Tree.Type.Function && readAstSpan(node.name, code) === methodName)
+    if (node.type === RawAst.Tree.Type.Function && readAstSpan(node.name, code) === methodName)
       return node
   }
 }

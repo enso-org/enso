@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
-import { AstExtended } from '@/util/ast'
+import { RawAstExtended } from '@/util/ast'
 import { computed, ref } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
@@ -12,7 +12,7 @@ const repr = computed(() => props.input.repr())
 </script>
 
 <script lang="ts">
-export const widgetDefinition = defineWidget(AstExtended.isToken(), {
+export const widgetDefinition = defineWidget(RawAstExtended.isToken(), {
   priority: 1000,
   score: Score.Good,
 })

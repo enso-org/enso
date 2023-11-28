@@ -4,11 +4,11 @@ import { ForcePort } from '@/providers/portInfo'
 import { provideWidgetTree } from '@/providers/widgetTree'
 import { useGraphStore } from '@/stores/graph'
 import { useTransitioning } from '@/util/animation'
-import type { AstExtended } from '@/util/ast'
+import type { RawAstExtended } from '@/util/ast'
 import { computed, toRef } from 'vue'
 import NodeWidget from './NodeWidget.vue'
 
-const props = defineProps<{ ast: AstExtended }>()
+const props = defineProps<{ ast: RawAstExtended }>()
 const graph = useGraphStore()
 const rootPort = computed(() => {
   return props.ast.isTree(Tree.Type.Ident) && !graph.db.isKnownFunctionCall(props.ast.astId)

@@ -4,7 +4,7 @@ import { Tree } from '@/generated/ast'
 import { injectFunctionInfo, provideFunctionInfo } from '@/providers/functionInfo'
 import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
-import { AstExtended } from '@/util/ast'
+import { RawAstExtended } from '@/util/ast'
 import { ArgumentApplication } from '@/util/callTree'
 import { computed, proxyRefs } from 'vue'
 
@@ -38,7 +38,7 @@ const application = computed(() => {
 </script>
 <script lang="ts">
 export const widgetDefinition = defineWidget(
-  AstExtended.isTree([Tree.Type.App, Tree.Type.NamedApp, Tree.Type.Ident, Tree.Type.OprApp]),
+  RawAstExtended.isTree([Tree.Type.App, Tree.Type.NamedApp, Tree.Type.Ident, Tree.Type.OprApp]),
   {
     priority: -10,
     score: (props, db) => {

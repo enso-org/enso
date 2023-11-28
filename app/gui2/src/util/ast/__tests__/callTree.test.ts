@@ -1,6 +1,6 @@
 import { Tree } from '@/generated/ast'
 import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
-import { AstExtended } from '@/util/ast'
+import { RawAstExtended } from '@/util/ast'
 import { ArgumentApplication, ArgumentPlaceholder } from '@/util/callTree'
 import { isSome } from '@/util/opt'
 import { type Identifier, type QualifiedName } from '@/util/qualifiedName'
@@ -37,7 +37,7 @@ function testArgs(paddedExpression: string, pattern: string) {
     .filter(isSome)
 
   test(`argument list: ${paddedExpression} ${pattern}`, () => {
-    const parsedBlock = AstExtended.parse(expression, IdMap.Mock())
+    const parsedBlock = RawAstExtended.parse(expression, IdMap.Mock())
     assert(parsedBlock.isTree(Tree.Type.BodyBlock)) // necessary for type inference
     const ast = parsedBlock.map((t) => {
       const first = t.statements.next()
@@ -76,7 +76,7 @@ function testArgs(paddedExpression: string, pattern: string) {
   })
 }
 
-function printArgPattern(application: ArgumentApplication | AstExtended<Tree>) {
+function printArgPattern(application: ArgumentApplication | RawAstExtended<Tree>) {
   const parts: string[] = []
   let current: ArgumentApplication['target'] = application
   while (current instanceof ArgumentApplication) {

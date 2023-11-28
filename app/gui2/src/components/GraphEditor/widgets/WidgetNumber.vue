@@ -3,7 +3,7 @@ import SliderWidget from '@/components/widgets/SliderWidget.vue'
 import { Tree } from '@/generated/ast'
 import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
-import { AstExtended } from '@/util/ast'
+import { RawAstExtended } from '@/util/ast'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
@@ -20,7 +20,7 @@ const value = computed({
 </script>
 <script lang="ts">
 export const widgetDefinition = defineWidget(
-  AstExtended.isTree([Tree.Type.UnaryOprApp, Tree.Type.Number]),
+  RawAstExtended.isTree([Tree.Type.UnaryOprApp, Tree.Type.Number]),
   {
     priority: 10,
     score: (props) => {

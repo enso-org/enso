@@ -3,7 +3,7 @@ import type { ForcePort } from '@/providers/portInfo'
 import type { SuggestionEntry, SuggestionEntryArgument } from '@/stores/suggestionDatabase/entry'
 import type { MethodCall } from 'shared/languageServerTypes'
 import { tryGetIndex } from './array'
-import type { AstExtended } from './ast'
+import type { RawAstExtended } from './ast'
 
 export const enum ApplicationKind {
   Prefix,
@@ -24,7 +24,7 @@ export class ArgumentPlaceholder {
 
 export class ArgumentAst {
   constructor(
-    public ast: AstExtended<Tree>,
+    public ast: RawAstExtended<Tree>,
     public index: number | undefined,
     public info: SuggestionEntryArgument | undefined,
     public kind: ApplicationKind,
@@ -35,33 +35,33 @@ type InterpretedCall = AnalyzedInfix | AnalyzedPrefix
 
 interface AnalyzedInfix {
   kind: 'infix'
-  appTree: AstExtended<Tree.OprApp>
-  operator: AstExtended<Token.Operator> | undefined
-  lhs: AstExtended<Tree> | undefined
-  rhs: AstExtended<Tree> | undefined
+  appTree: RawAstExtended<Tree.OprApp>
+  operator: RawAstExtended<Token.Operator> | undefined
+  lhs: RawAstExtended<Tree> | undefined
+  rhs: RawAstExtended<Tree> | undefined
 }
 
 interface AnalyzedPrefix {
   kind: 'prefix'
-  func: AstExtended<Tree>
+  func: RawAstExtended<Tree>
   args: FoundApplication[]
 }
 
 interface FoundApplication {
-  appTree: AstExtended<Tree.App | Tree.NamedApp>
-  argument: AstExtended<Tree>
+  appTree: RawAstExtended<Tree.App | Tree.NamedApp>
+  argument: RawAstExtended<Tree>
   argName: string | undefined
 }
 
 export class ArgumentApplication {
   private constructor(
-    public appTree: AstExtended<Tree> | undefined,
-    public target: ArgumentApplication | AstExtended<Tree> | ArgumentPlaceholder | ArgumentAst,
-    public infixOperator: AstExtended<Token.Operator> | undefined,
-    public argument: AstExtended<Tree> | ArgumentAst | ArgumentPlaceholder,
+    public appTree: RawAstExtended<Tree> | undefined,
+    public target: ArgumentApplication | RawAstExtended<Tree> | ArgumentPlaceholder | ArgumentAst,
+    public infixOperator: RawAstExtended<Token.Operator> | undefined,
+    public argument: RawAstExtended<Tree> | ArgumentAst | ArgumentPlaceholder,
   ) {}
 
-  static Interpret(callRoot: AstExtended<Tree>, allowInterpretAsInfix: boolean): InterpretedCall {
+  static Interpret(callRoot: RawAstExtended<Tree>, allowInterpretAsInfix: boolean): InterpretedCall {
     if (allowInterpretAsInfix && callRoot.isTree([Tree.Type.OprApp])) {
       // Infix chains are handled one level at a time. Each application may have at most 2 arguments.
       return {
@@ -104,7 +104,7 @@ export class ArgumentApplication {
     appMethodCall: MethodCall | undefined,
     suggestion: SuggestionEntry | undefined,
     stripSelfArgument: boolean = false,
-  ): ArgumentApplication | AstExtended<Tree> {
+  ): ArgumentApplication | RawAstExtended<Tree> {
     const knownArguments = suggestion?.arguments
 
     if (interpreted.kind === 'infix') {
@@ -148,11 +148,11 @@ export class ArgumentApplication {
     )
 
     const prefixArgsToDisplay: Array<{
-      appTree: AstExtended<Tree>
+      appTree: RawAstExtended<Tree>
       argument: ArgumentAst | ArgumentPlaceholder
     }> = []
 
-    function insertPlaceholdersUpto(index: number, appTree: AstExtended<Tree>) {
+    function insertPlaceholdersUpto(index: number, appTree: RawAstExtended<Tree>) {
       while (placeholdersToInsert[0] != null && placeholdersToInsert[0] < index) {
         const argIndex = placeholdersToInsert.shift()
         const argInfo = tryGetIndex(knownArguments, argIndex)
@@ -201,7 +201,7 @@ export class ArgumentApplication {
     insertPlaceholdersUpto(Infinity, interpreted.func)
 
     return prefixArgsToDisplay.reduce(
-      (target: ArgumentApplication | AstExtended<Tree>, toDisplay) =>
+      (target: ArgumentApplication | RawAstExtended<Tree>, toDisplay) =>
         new ArgumentApplication(toDisplay.appTree, target, undefined, toDisplay.argument),
       interpreted.func,
     )
@@ -215,7 +215,7 @@ const unknownArgInfoNamed = (name: string) => ({
   hasDefault: false,
 })
 
-function getAccessOprSubject(app: AstExtended): AstExtended<Tree> | undefined {
+function getAccessOprSubject(app: RawAstExtended): RawAstExtended<Tree> | undefined {
   if (
     app.isTree([Tree.Type.OprApp]) &&
     isAccessOperator(app.tryMap((t) => (t.opr.ok ? t.opr.value : undefined)))
@@ -224,7 +224,7 @@ function getAccessOprSubject(app: AstExtended): AstExtended<Tree> | undefined {
   }
 }
 
-function isAccessOperator(opr: AstExtended<Token.Operator> | undefined): boolean {
+function isAccessOperator(opr: RawAstExtended<Token.Operator> | undefined): boolean {
   return opr != null && opr.repr() === '.'
 }
 

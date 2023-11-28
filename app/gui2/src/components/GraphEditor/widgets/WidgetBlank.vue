@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
-import { Ast, AstExtended } from '@/util/ast'
+import { RawAst, RawAstExtended } from '@/util/ast'
 const _props = defineProps(widgetProps(widgetDefinition))
 </script>
 
 <script lang="ts">
-export const widgetDefinition = defineWidget(AstExtended.isToken(Ast.Token.Type.Wildcard), {
+export const widgetDefinition = defineWidget(RawAstExtended.isToken(RawAst.Token.Type.Wildcard), {
   priority: 10,
   score: Score.Good,
 })
