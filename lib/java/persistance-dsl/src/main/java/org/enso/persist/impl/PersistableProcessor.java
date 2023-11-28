@@ -1,6 +1,7 @@
 package org.enso.persist.impl;
 
 import java.io.IOException;
+import java.lang.module.ModuleDescriptor;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -115,16 +116,30 @@ public class PersistableProcessor extends AbstractProcessor {
       )
       .sorted(richerConstructor)
       .toList();
+
+    ExecutableElement cons;
+    Element singleton;
     if (constructors.isEmpty()) {
-      processingEnv.getMessager().printMessage(Kind.ERROR, "There should be exactly one constructor in " + typeElem, orig);
-      return false;
-    }
-    var cons = (ExecutableElement) constructors.get(0);
-    if (constructors.size() > 1) {
-      var snd = (ExecutableElement) constructors.get(1);
-      if (richerConstructor.compare(cons, snd) == 0) {
-        processingEnv.getMessager().printMessage(Kind.ERROR, "There should be exactly one 'richest' constructor in " + typeElem, orig);
+      var singletonFields = typeElem.getEnclosedElements().stream().filter(
+        e -> e.getKind() == ElementKind.FIELD && e.getModifiers().contains(Modifier.STATIC) && e.getModifiers().contains(Modifier.PUBLIC)
+      ).filter(
+        e -> tu.isSameType(e.asType(), typeElem.asType())
+      ).toList();
+      if (singletonFields.isEmpty()) {
+        processingEnv.getMessager().printMessage(Kind.ERROR, "There should be exactly one constructor in " + typeElem, orig);
         return false;
+      }
+      singleton = singletonFields.get(0);
+      cons = null;
+    } else {
+      cons = (ExecutableElement) constructors.get(0);
+      singleton = null;
+      if (constructors.size() > 1) {
+        var snd = (ExecutableElement) constructors.get(1);
+        if (richerConstructor.compare(cons, snd) == 0) {
+          processingEnv.getMessager().printMessage(Kind.ERROR, "There should be exactly one 'richest' constructor in " + typeElem, orig);
+          return false;
+        }
       }
     }
     var pkgName = eu.getPackageOf(orig).getQualifiedName().toString();
@@ -137,68 +152,75 @@ public class PersistableProcessor extends AbstractProcessor {
       w.append("@org.openide.util.lookup.ServiceProvider(service=Persistance.class)\n");
       w.append("public final class ").append(className).append(" extends Persistance<").append(typeElemName).append("> {\n");
       w.append("  public ").append(className).append("() {\n");
-      var id = readAnnoValue(anno, "id").toString(); // Integer.toString(anno.id());
+      var id = readAnnoValue(anno, "id");
       w.append("    super(").append(typeElemName).append(".class, false, ").append(id).append(");\n");
       w.append("  }\n");
       w.append("  @SuppressWarnings(\"unchecked\")\n");
+      w.append("  @Override\n");
       w.append("  protected ").append(typeElemName).append(" readObject(Input in) throws IOException {\n");
 
-      for (var v : cons.getParameters()) {
-        if (tu.isSameType(eu.getTypeElement("java.lang.String").asType(), v.asType())) {
-          w.append("    var ").append(v.getSimpleName()).append(" = in.readUTF();\n");
-        } else if (!v.asType().getKind().isPrimitive()) {
-          var type = tu.erasure(v.asType());
-          var elem = (TypeElement) tu.asElement(type);
-          var name = findFqn(elem);
-          if (shouldInline(elem)) {
-            w.append("    var ").append(v.getSimpleName()).append(" = in.readInline(").append(name).append(".class);\n");
-          } else {
-            w.append("    var ").append(v.getSimpleName()).append(" = (").append(name).append(") in.readObject();\n");
-          }
-        } else switch (v.asType().getKind()) {
-          case BOOLEAN ->
-            w.append("    var ").append(v.getSimpleName()).append(" = in.readBoolean();\n");
-          case INT ->
-            w.append("    var ").append(v.getSimpleName()).append(" = in.readInt();\n");
-          default ->
-            processingEnv.getMessager().printMessage(Kind.ERROR, "Unsupported primitive type: " + v.asType().getKind());
-        }
-      }
-      w.append("    return new ").append(typeElemName).append("(\n");
-      w.append("      ");
-      {
-        var sep = "";
+      if (cons != null) {
         for (var v : cons.getParameters()) {
-          w.append(sep);
-          w.append(v.getSimpleName());
-          sep = ", ";
+          if (tu.isSameType(eu.getTypeElement("java.lang.String").asType(), v.asType())) {
+            w.append("    var ").append(v.getSimpleName()).append(" = in.readUTF();\n");
+          } else if (!v.asType().getKind().isPrimitive()) {
+            var type = tu.erasure(v.asType());
+            var elem = (TypeElement) tu.asElement(type);
+            var name = findFqn(elem);
+            if (shouldInline(elem)) {
+              w.append("    var ").append(v.getSimpleName()).append(" = in.readInline(").append(name).append(".class);\n");
+            } else {
+              w.append("    var ").append(v.getSimpleName()).append(" = (").append(name).append(") in.readObject();\n");
+            }
+          } else switch (v.asType().getKind()) {
+            case BOOLEAN ->
+              w.append("    var ").append(v.getSimpleName()).append(" = in.readBoolean();\n");
+            case INT ->
+              w.append("    var ").append(v.getSimpleName()).append(" = in.readInt();\n");
+            default ->
+              processingEnv.getMessager().printMessage(Kind.ERROR, "Unsupported primitive type: " + v.asType().getKind());
+          }
         }
+        w.append("    return new ").append(typeElemName).append("(\n");
+        w.append("      ");
+        {
+          var sep = "";
+          for (var v : cons.getParameters()) {
+            w.append(sep);
+            w.append(v.getSimpleName());
+            sep = ", ";
+          }
+        }
+        w.append("\n");
+        w.append("    );\n");
+      } else {
+        w.append("    return ").append(typeElemName).append(".").append(singleton.getSimpleName()).append(";\n");
       }
-      w.append("\n");
-      w.append("    );\n");
       w.append("  }\n");
       w.append("  @SuppressWarnings(\"unchecked\")\n");
+      w.append("  @Override\n");
       w.append("  protected void writeObject(").append(typeElemName).append(" obj, Output out) throws IOException {\n");
-
-      for (var v : cons.getParameters()) {
-        if (tu.isSameType(eu.getTypeElement("java.lang.String").asType(), v.asType())) {
-          w.append("    out.writeUTF(obj.").append(v.getSimpleName()).append("());\n");
-        } else if (!v.asType().getKind().isPrimitive()) {
-          var type = tu.erasure(v.asType());
-          var elem = (TypeElement) tu.asElement(type);
-          var name = findFqn(elem);
-          if (shouldInline(elem)) {
-            w.append("    out.writeInline(").append(name).append(".class, obj.").append(v.getSimpleName()).append("());\n");
-          } else {
-            w.append("    out.writeObject(obj.").append(v.getSimpleName()).append("());\n");
+      if (cons != null) {
+        for (var v : cons.getParameters()) {
+          if (tu.isSameType(eu.getTypeElement("java.lang.String").asType(), v.asType())) {
+            w.append("    out.writeUTF(obj.").append(v.getSimpleName()).append("());\n");
+          } else if (!v.asType().getKind().isPrimitive()) {
+            var type = tu.erasure(v.asType());
+            var elem = (TypeElement) tu.asElement(type);
+            var name = findFqn(elem);
+            if (shouldInline(elem)) {
+              w.append("    out.writeInline(").append(name).append(".class, obj.").append(v.getSimpleName()).append("());\n");
+            } else {
+              w.append("    out.writeObject(obj.").append(v.getSimpleName()).append("());\n");
+            }
+          } else switch (v.asType().getKind()) {
+            case BOOLEAN ->
+              w.append("    out.writeBoolean(obj.").append(v.getSimpleName()).append("());\n");
+            case INT ->
+              w.append("    out.writeInt(obj.").append(v.getSimpleName()).append("());\n");
+            default ->
+              processingEnv.getMessager().printMessage(Kind.ERROR, "Unsupported primitive type: " + v.asType().getKind());
           }
-        } else switch (v.asType().getKind()) {
-          case BOOLEAN ->
-            w.append("    out.writeBoolean(obj.").append(v.getSimpleName()).append("());\n");
-          case INT ->
-            w.append("    out.writeInt(obj.").append(v.getSimpleName()).append("());\n");
-          default ->
-            processingEnv.getMessager().printMessage(Kind.ERROR, "Unsupported primitive type: " + v.asType().getKind());
         }
       }
       w.append("  }\n");

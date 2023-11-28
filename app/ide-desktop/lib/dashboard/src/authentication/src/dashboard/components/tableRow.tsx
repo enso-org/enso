@@ -170,7 +170,7 @@ export default function TableRow<T, State = never, RowState = never, Key extends
                             /** This is SAFE, as the type is defined such that they MUST be
                              * present if it is specified as a generic parameter.
                              * See the type definitions of {@link TableRowProps} and
-                             * {@link TableProps}. */
+                             * `TableProps`. */
                             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                             state={state!}
                             rowState={rowState}

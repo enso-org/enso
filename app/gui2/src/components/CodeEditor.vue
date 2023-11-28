@@ -185,6 +185,7 @@ const editorStyle = computed(() => {
     @keydown.enter.stop
     @wheel.stop.passive
     @pointerdown.stop
+    @contextmenu.stop
   >
     <div class="resize-handle" v-on="resize.events" @dblclick="resetSize">
       <svg viewBox="0 0 16 16">

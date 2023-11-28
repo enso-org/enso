@@ -61,7 +61,7 @@ object Method {
       methodReference: Name.MethodReference,
       body: Expression,
       location: Option[IdentifiedLocation],
-      passData: MetadataStorage      = MetadataStorage(),
+      passData: MetadataStorage      = new MetadataStorage(),
       diagnostics: DiagnosticStorage = DiagnosticStorage()
     ) = {
       this(
@@ -133,7 +133,8 @@ object Method {
           keepIdentifiers
         ),
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy
           else DiagnosticStorage(),
@@ -238,7 +239,7 @@ object Method {
     arguments: List[DefinitionArgument],
     override val body: Expression,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
+    override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Method
       with IRKind.Sugar {
@@ -305,7 +306,8 @@ object Method {
           keepIdentifiers
         ),
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy
           else DiagnosticStorage(),
@@ -377,7 +379,7 @@ object Method {
     sourceTypeName: Expression,
     override val body: Expression,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
+    override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Method
       with IRKind.Primitive {
@@ -444,7 +446,8 @@ object Method {
           keepIdentifiers
         ),
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy
           else DiagnosticStorage(),

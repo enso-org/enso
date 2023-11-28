@@ -38,10 +38,7 @@ function applyEdits(module: NonNullable<typeof projectStore.module>, newText: st
   })
 }
 
-watchEffect(() => {
-  if (!projectStore.module) return
-  applyEdits(projectStore.module, props.modelValue)
-})
+watchEffect(() => projectStore.module && applyEdits(projectStore.module, props.modelValue))
 
 const text = computed(() => projectStore.module?.doc.contents)
 

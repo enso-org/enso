@@ -55,7 +55,7 @@ function createNodeFromEdgeDrop(source: ExprId, graphNavigator: GraphNavigator) 
 }
 
 function createEdge(source: ExprId, target: ExprId) {
-  const ident = graph.db.getIdentifierOfConnection(source)
+  const ident = graph.db.getOutputPortIdentifier(source)
   if (ident == null) return
   // TODO: Check alias analysis to see if the binding is shadowed.
   graph.setExpressionContent(target, ident)

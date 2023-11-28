@@ -73,7 +73,7 @@ interface AssetRowsDragPayloadItem {
     readonly asset: backend.AnyAsset
 }
 
-/** Data for a {@link DragEvent} started from an {@link AssetsTable}. */
+/** Data for a {@link DragEvent} started from an `AssetsTable`. */
 export type AssetRowsDragPayload = readonly AssetRowsDragPayloadItem[]
 
 // ========================

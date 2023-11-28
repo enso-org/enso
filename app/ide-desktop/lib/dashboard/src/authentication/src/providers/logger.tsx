@@ -21,7 +21,7 @@ export interface Logger {
 // === LoggerContext ===
 // =====================
 
-/** See {@link AuthContext} for safety details. */
+/** See `AuthContext` for safety details. */
 // eslint-disable-next-line no-restricted-syntax
 const LoggerContext = React.createContext<Logger>({} as Logger)
 
