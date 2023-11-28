@@ -522,18 +522,11 @@ export const useProjectStore = defineStore('project', () => {
   const executionContext = createExecutionContextForMain()
   const visualizationDataRegistry = new VisualizationDataRegistry(executionContext, dataConnection)
   const computedValueRegistry = ComputedValueRegistry.WithExecutionContext(executionContext)
-  const dataflowErrorRegistry = new DataflowErrorRegistry(computedValueRegistry, executionContext)
-
-  function getDataflowError(exprId: ExpressionId) {
-    const id = dataflowErrorRegistry.visualizationIds.get(exprId)
-    if (!id) return
-    return shallowRef(
-      computed<{ kind: 'Dataflow'; message: string } | undefined>(() => {
-        const json = visualizationDataRegistry?.getRawData(id)
-        return json != null ? JSON.parse(json) : undefined
-      }),
-    )
-  }
+  const dataflowErrorRegistry = new DataflowErrorRegistry(
+    computedValueRegistry,
+    executionContext,
+    visualizationDataRegistry,
+  )
 
   const diagnostics = ref<Diagnostic[]>([])
   executionContext.on('executionStatus', (newDiagnostics) => {
@@ -583,12 +576,12 @@ export const useProjectStore = defineStore('project', () => {
     contentRoots,
     awareness: markRaw(awareness),
     computedValueRegistry: markRaw(computedValueRegistry),
+    dataflowErrorRegistry: markRaw(dataflowErrorRegistry),
     lsRpcConnection: markRaw(lsRpcConnection),
     dataConnection: markRaw(dataConnection),
     useVisualizationData,
     stopCapturingUndo,
     executionMode,
-    getDataflowError,
   }
 })
 
