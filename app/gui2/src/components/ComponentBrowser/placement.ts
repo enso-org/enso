@@ -86,6 +86,7 @@ export function previousNodeDictatedPlacement(
   let initialLeft: number | undefined
   let top = -Infinity
   for (const rect of selectedNodeRects) {
+    console.log('selected', rect)
     initialLeft ??= rect.left
     const newTop = rect.bottom + verticalGap
     if (newTop > top) top = newTop
@@ -100,6 +101,7 @@ export function previousNodeDictatedPlacement(
   const sortedNodeRects = Array.from(nodeRects).sort((a, b) => a.left - b.left)
   for (const rect of sortedNodeRects) {
     if (initialRect.intersectsY(rect) && rect.right + horizontalGap > left) {
+      console.log('?', initialRect, rect)
       if (rect.left - right() < horizontalGap) {
         left = rect.right + horizontalGap
       }

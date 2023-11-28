@@ -65,7 +65,7 @@ const interactionBindingsHandler = interactionBindings.handler({
 // or the node that is being edited when creating from a port double click.
 function environmentForNodes(nodeIds: IterableIterator<ExprId>): Environment {
   const nodeRects = [...graphStore.nodeRects.values()]
-  const selectedNodeRects: Iterable<Rect> = [...nodeIds]
+  const selectedNodeRects = [...nodeIds]
     .map((id) => graphStore.nodeRects.get(id))
     .filter((item): item is Rect => item !== undefined)
   const screenBounds = graphNavigator.viewport
@@ -73,16 +73,15 @@ function environmentForNodes(nodeIds: IterableIterator<ExprId>): Environment {
   return { nodeRects, selectedNodeRects, screenBounds, mousePosition } as Environment
 }
 
-const placementEnvironment = computed(() => {
-  return environmentForNodes(nodeSelection.selected.values())
-})
+const placementEnvironment = computed(() => environmentForNodes(nodeSelection.selected.values()))
 
-// Return the position for a new node, assuming there are currently nodes selected. If there are no nodes
-// selected, return undefined.
+/** Return the position for a new node, assuming there are currently nodes selected. If there are no nodes
+ * selected, return `undefined`. */
 function placementPositionForSelection() {
   const hasNodeSelected = nodeSelection.selected.size > 0
-  if (!hasNodeSelected) return undefined
+  if (!hasNodeSelected) return
   const gapBetweenNodes = 48.0
+  console.log('pn', placementEnvironment.value)
   return previousNodeDictatedPlacement(DEFAULT_NODE_SIZE, placementEnvironment.value, {
     horizontalGap: gapBetweenNodes,
     verticalGap: gapBetweenNodes,
@@ -98,12 +97,10 @@ function targetComponentBrowserPosition() {
     const targetPos = targetNode?.position ?? Vec2.Zero
     return targetPos.add(COMPONENT_BROWSER_TO_NODE_OFFSET)
   } else {
-    const targetPos = placementPositionForSelection()
-    if (targetPos != undefined) {
-      return targetPos
-    } else {
-      return mouseDictatedPlacement(DEFAULT_NODE_SIZE, placementEnvironment.value).position
-    }
+    return (
+      placementPositionForSelection() ??
+      mouseDictatedPlacement(DEFAULT_NODE_SIZE, placementEnvironment.value).position
+    )
   }
 }
 
@@ -234,6 +231,7 @@ const creatingNode: Interaction = {
     componentBrowserInputContent.value = ''
     componentBrowserSourcePort.value = sourcePortForSelection()
     componentBrowserPosition.value = targetComponentBrowserPosition()
+    console.log('...', componentBrowserPosition.value)
     componentBrowserVisible.value = true
   },
 }
