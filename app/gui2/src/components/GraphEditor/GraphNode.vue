@@ -253,11 +253,9 @@ const handlePortClick = useDoubleClick(
       v-on="dragPointer.events"
     >
       <SvgIcon class="icon grab-handle" :name="icon"></SvgIcon>
-      <div class="padding"></div>
       <div ref="contentNode" class="widget-tree">
         <NodeWidgetTree :ast="node.rootSpan" />
       </div>
-      <div class="padding"></div>
     </div>
     <svg class="bgPaths" :style="bgStyleVariables">
       <rect class="bgFill" />
@@ -455,9 +453,5 @@ const handlePortClick = useDoubleClick(
 
 .CircularMenu {
   z-index: 1;
-}
-
-.padding {
-  flex-grow: 1;
 }
 </style>
