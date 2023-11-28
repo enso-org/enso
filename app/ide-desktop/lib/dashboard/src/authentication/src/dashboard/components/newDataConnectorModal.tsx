@@ -64,7 +64,7 @@ export default function NewDataConnectorModal(props: NewDataConnectorModalProps)
                     <input
                         autoFocus
                         placeholder="Enter the name of the data connector"
-                        className="grow bg-transparent border border-black-a10 rounded-full leading-170 h-6 px-4 py-px"
+                        className="grow bg-transparent border border-black/10 rounded-full leading-170 h-6 px-4 py-px"
                         onInput={event => {
                             setName(event.currentTarget.value)
                         }}
@@ -74,7 +74,7 @@ export default function NewDataConnectorModal(props: NewDataConnectorModalProps)
                     <div className="w-12 h-6 py-1">Value</div>
                     <input
                         placeholder="Enter the value of the data connector"
-                        className="grow bg-transparent border border-black-a10 rounded-full leading-170 h-6 px-4 py-px"
+                        className="grow bg-transparent border border-black/10 rounded-full leading-170 h-6 px-4 py-px"
                         onInput={event => {
                             setValue(event.currentTarget.value)
                         }}

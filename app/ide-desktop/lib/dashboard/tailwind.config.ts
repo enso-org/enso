@@ -1,26 +1,20 @@
 /** @file Configuration for Tailwind. */
 
-// =====================
-// === Configuration ===
-// =====================
-
-// The names come from a third-party API and cannot be changed.
-/* eslint-disable no-restricted-syntax, @typescript-eslint/naming-convention */
-export const content = [__dirname + '/src/**/*.tsx', __dirname + '/src/**/*.ts']
+export const content = ['./src/**/*.tsx', './src/**/*.ts']
 export const important = `:is(.enso-dashboard, .enso-chat)`
 export const theme = {
     extend: {
         colors: {
             /** The default color of all text. */
             // This should be named "regular".
-            primary: 'rgba(0, 0, 0, 0.60)',
-            'not-selected': 'rgba(0, 0, 0, 0.40)',
-            'icon-selected': 'rgba(0, 0, 0, 0.50)',
-            'icon-not-selected': 'rgba(0, 0, 0, 0.30)',
+            primary: 'rgb(0 0 0 / 0.6)',
+            'not-selected': 'rgb(0 0 0 / 0.4)',
+            'icon-selected': 'rgb(0 0 0 / 0.5)',
+            'icon-not-selected': 'rgb(0 0 0 / 0.3)',
             chat: '#484848',
             'ide-bg': '#ebeef1',
             'ide-bg-dark': '#d0d3d6',
-            selected: 'rgba(255, 255, 255, 0.40)',
+            selected: 'rgb(255 255 255 / 0.4)',
             // Should be `#3e515f14`, but `bg-opacity` does not work with RGBA.
             label: '#f0f1f3',
             help: '#3f68ce',
@@ -29,30 +23,25 @@ export const theme = {
             share: '#64b526',
             inversed: '#ffffff',
             green: '#3e8b29',
-            delete: 'rgba(243, 24, 10, 0.87)',
+            delete: 'rgb(243 24 10 / 0.87)',
             v3: '#252423',
             youtube: '#c62421',
             discord: '#404796',
-            dim: 'rgba(0, 0, 0, 0.25)',
-            frame: 'rgba(255, 255, 255, 0.40)',
-            'frame-selected': 'rgba(255, 255, 255, 0.70)',
-            'tag-text': 'rgba(255, 255, 255, 0.90)',
-            'tag-text-2': 'rgba(0, 0, 0, 0.60)',
-            'permission-owner': 'rgba(236, 2, 2, 0.70)',
-            'permission-admin': 'rgba(252, 60, 0, 0.70)',
-            'permission-edit': 'rgba(255, 138, 0, 0.90)',
-            'permission-read': 'rgba(152, 174, 18, 0.80)',
-            'permission-docs': 'rgba(91, 8, 226, 0.64)',
-            'permission-exec': 'rgba(236, 2, 2, 0.70)',
-            'permission-view': 'rgba(0, 0, 0, 0.10)',
+            dim: 'rgb(0 0 0 / 0.25)',
+            frame: 'rgb(255 255 255 / 0.40)',
+            'frame-selected': 'rgb(255 255 255 / 0.7)',
+            'tag-text': 'rgb(255 255 255 / 0.90)',
+            'tag-text-2': 'rgb(0 0 0 / 0.60)',
+            'permission-owner': 'rgb(236 2 2 / 0.70)',
+            'permission-admin': 'rgb(252 60 0 / 0.70)',
+            'permission-edit': 'rgb(255 138 0 / 0.90)',
+            'permission-read': 'rgb(152 174 18 / 0.80)',
+            'permission-docs': 'rgb(91 8 226 / 0.64)',
+            'permission-exec': 'rgb(236 2 2 / 0.70)',
+            'permission-view': 'rgb(0 0 0 / 0.10)',
             'label-running-project': '#257fd2',
             'label-low-resources': '#ff6b18',
             'call-to-action': '#fa6c08',
-            'black-a5': 'rgba(0, 0, 0, 0.05)',
-            'black-a10': 'rgba(0, 0, 0, 0.10)',
-            'black-a16': 'rgba(0, 0, 0, 0.16)',
-            'black-a30': 'rgba(0, 0, 0, 0.30)',
-            'black-a50': 'rgba(0, 0, 0, 0.50)',
             'gray-350': '#b7bcc5',
         },
         fontSize: {

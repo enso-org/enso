@@ -93,7 +93,7 @@ export default function DriveBar(props: DriveBarProps) {
                         New Project
                     </span>
                 </button>
-                <div className="flex items-center text-black-a50 bg-frame rounded-full gap-3 h-8 px-3">
+                <div className="flex items-center text-black/50 bg-frame rounded-full gap-3 h-8 px-3">
                     {backend.type !== backendModule.BackendType.local && (
                         <Button
                             active={isHomeCategory}
