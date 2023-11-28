@@ -1,0 +1,83 @@
+{
+  "$schema": "https://meta.open-rpc.org/",
+  "openrpc": "1.2.6",
+  "info": {
+    "title": "Enso Project Manager",
+    "description": "Manages (lists, opens, closes) Enso projects",
+    "version": "1.0.0"
+  },
+  "methods": [
+    {
+      "name": "project/open",
+      "params": [
+        { "name": "projectId", "schema": { "type": "string" } },
+        {
+          "name": "missingComponentAction",
+          "schema": { "enum": ["Fail", "Install", "ForceInstallBroken"] }
+        }
+      ],
+      "result": {
+        "name": "openProject",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "engineVersion": { "type": "string" },
+            "languageServerJsonAddress": {
+              "type": "object",
+              "properties": {
+                "host": { "type": "string" },
+                "port": { "type": "number" }
+              }
+            },
+            "languageServerBinaryAddress": {
+              "type": "object",
+              "properties": {
+                "host": { "type": "string" },
+                "port": { "type": "number" }
+              }
+            },
+            "projectName": { "type": "string" },
+            "projectNormalizedName": { "type": "string" },
+            "projectNamespace": { "type": "string" }
+          }
+        }
+      }
+    },
+    {
+      "name": "project/close",
+      "params": [{ "name": "projectId", "schema": { "type": "string" } }],
+      "result": {
+        "name": "closeProject",
+        "schema": { "type": "null" }
+      }
+    },
+    {
+      "name": "project/list",
+      "params": [
+        { "name": "numberOfProjects", "schema": { "type": "integer" }, "required": false }
+      ],
+      "result": {
+        "name": "listProject",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "projects": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string" },
+                  "namespace": { "type": "string" },
+                  "id": { "type": "string" },
+                  "engineVersion": { "anyOf": [{ "type": "string" }, { "type": "null" }] },
+                  "created": { "type": "string" },
+                  "lastOpened": { "anyOf": [{ "type": "string" }, { "type": "null" }] }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

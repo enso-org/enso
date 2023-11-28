@@ -18,7 +18,7 @@ import UserPermissions from './userPermissions'
 // === Constants ===
 // =================
 
-/** The vertical offset of the {@link PermissionTypeSelector} from its parent element, for the
+/** The vertical offset of the `PermissionTypeSelector` from its parent element, for the
  * input to invite new users. */
 const TYPE_SELECTOR_Y_OFFSET_PX = 32
 

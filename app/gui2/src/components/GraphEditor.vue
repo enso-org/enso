@@ -8,7 +8,10 @@ import {
   previousNodeDictatedPlacement,
   type Environment,
 } from '@/components/ComponentBrowser/placement.ts'
+import GraphEdges from '@/components/GraphEditor/GraphEdges.vue'
+import GraphNodes from '@/components/GraphEditor/GraphNodes.vue'
 import { Uploader, uploadedExpression } from '@/components/GraphEditor/upload'
+import GraphMouse from '@/components/GraphMouse.vue'
 import PlusButton from '@/components/PlusButton.vue'
 import TopBar from '@/components/TopBar.vue'
 import { provideGraphNavigator } from '@/providers/graphNavigator'
@@ -16,6 +19,7 @@ import { provideGraphSelection } from '@/providers/graphSelection'
 import { provideInteractionHandler, type Interaction } from '@/providers/interactionHandler'
 import { provideWidgetRegistry } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
+import type { RequiredImport } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { groupColorVar, useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { colorFromString } from '@/util/colors'
@@ -25,9 +29,6 @@ import { Vec2 } from '@/util/vec2'
 import * as set from 'lib0/set'
 import type { ExprId, NodeMetadata } from 'shared/yjsModel.ts'
 import { computed, onMounted, ref, watch } from 'vue'
-import GraphEdges from './GraphEditor/GraphEdges.vue'
-import GraphNodes from './GraphEditor/GraphNodes.vue'
-import GraphMouse from './GraphMouse.vue'
 
 const EXECUTION_MODES = ['design', 'live']
 // Difference in position between the component browser and a node for the input of the component browser to
@@ -109,12 +110,13 @@ function targetComponentBrowserPosition() {
 /** The current position of the component browser. */
 const componentBrowserPosition = ref<Vec2>(Vec2.Zero)
 
-function sourceNodeForSelection() {
+function sourcePortForSelection() {
   if (graphStore.editedNodeInfo != null) return undefined
-  return nodeSelection.selected.values().next().value
+  const firstSelectedNode = set.first(nodeSelection.selected)
+  return graphStore.db.getNodeFirstOutputPort(firstSelectedNode)
 }
 
-const componentBrowserSourceNode = ref<ExprId | undefined>(sourceNodeForSelection())
+const componentBrowserSourcePort = ref<ExprId | undefined>(sourcePortForSelection())
 
 useEvent(window, 'keydown', (event) => {
   interactionBindingsHandler(event) || graphBindingsHandler(event) || codeEditorHandler(event)
@@ -230,7 +232,7 @@ interaction.setWhen(nodeIsBeingEdited, editingNode)
 const creatingNode: Interaction = {
   init: () => {
     componentBrowserInputContent.value = ''
-    componentBrowserSourceNode.value = sourceNodeForSelection()
+    componentBrowserSourcePort.value = sourcePortForSelection()
     componentBrowserPosition.value = targetComponentBrowserPosition()
     componentBrowserVisible.value = true
   },
@@ -288,37 +290,43 @@ async function handleFileDrop(event: DragEvent) {
   }
 }
 
-function onComponentBrowserCommit(content: string) {
-  if (content != null && graphStore.editedNodeInfo != null) {
-    // We finish editing a node.
-    graphStore.setNodeContent(graphStore.editedNodeInfo.id, content)
-  } else if (content != null) {
-    // We finish creating a new node.
-    const nodePosition = componentBrowserPosition.value
-    graphStore.createNode(nodePosition.sub(COMPONENT_BROWSER_TO_NODE_OFFSET), content)
-  }
+function resetComponentBrowserState() {
   componentBrowserVisible.value = false
   graphStore.editedNodeInfo = undefined
   interaction.setCurrent(undefined)
 }
 
-function onComponentBrowserCancel() {
-  componentBrowserVisible.value = false
-  graphStore.editedNodeInfo = undefined
-  interaction.setCurrent(undefined)
+function onComponentBrowserCommit(content: string, requiredImports: RequiredImport[]) {
+  if (content != null) {
+    if (graphStore.editedNodeInfo) {
+      // We finish editing a node.
+      graphStore.setNodeContent(graphStore.editedNodeInfo.id, content)
+    } else {
+      // We finish creating a new node.
+      const nodePosition = componentBrowserPosition.value
+      const metadata = undefined
+      graphStore.createNode(
+        nodePosition.sub(COMPONENT_BROWSER_TO_NODE_OFFSET),
+        content,
+        metadata,
+        requiredImports,
+      )
+    }
+  }
+  resetComponentBrowserState()
 }
+
+const onComponentBrowserCancel = resetComponentBrowserState
 
 function getNodeContent(id: ExprId): string {
-  const node = graphStore.db.nodeIdToNode.get(id)
-  if (node == null) return ''
-  return node.rootSpan.repr()
+  return graphStore.db.nodeIdToNode.get(id)?.rootSpan.repr() ?? ''
 }
 
 // Watch the `editedNode` in the graph store
 watch(
   () => graphStore.editedNodeInfo,
   (editedInfo) => {
-    if (editedInfo != null) {
+    if (editedInfo) {
       componentBrowserPosition.value = targetComponentBrowserPosition()
       componentBrowserInputContent.value = getNodeContent(editedInfo.id)
       componentBrowserVisible.value = true
@@ -328,16 +336,16 @@ watch(
   },
 )
 
-const breadcrumbs = computed(() => {
-  return projectStore.executionContext.desiredStack.map((frame) => {
+const breadcrumbs = computed(() =>
+  projectStore.executionContext.desiredStack.map((frame) => {
     switch (frame.type) {
       case 'ExplicitCall':
         return frame.methodPointer.name
       case 'LocalCall':
         return frame.expressionId
     }
-  })
-})
+  }),
+)
 
 // === Clipboard ===
 
@@ -358,7 +366,7 @@ interface CopiedNode {
 function copyNodeContent() {
   const id = nodeSelection.selected.values().next().value
   const node = graphStore.db.nodeIdToNode.get(id)
-  if (node == null) return
+  if (!node) return
   const content = node.rootSpan.repr()
   const metadata = projectStore.module?.getNodeMetadata(id) ?? undefined
   const copiedNode: CopiedNode = { expression: content, metadata }
@@ -392,28 +400,27 @@ async function retrieveDataFromClipboard(): Promise<ClipboardData | undefined> {
 /// Read the clipboard and if it contains valid data, create a node from the content.
 async function readNodeFromClipboard() {
   let clipboardData = await retrieveDataFromClipboard()
-  if (clipboardData == undefined) {
+  if (!clipboardData) {
     console.warn('No valid data in clipboard.')
     return
   }
   const copiedNode = clipboardData.nodes[0]
-  if (copiedNode == undefined) {
+  if (!copiedNode) {
     console.warn('No valid node in clipboard.')
     return
   }
-  if (copiedNode.expression != null) {
-    graphStore.createNode(
-      graphNavigator.sceneMousePos ?? Vec2.Zero,
-      copiedNode.expression,
-      copiedNode.metadata,
-    )
-  } else {
+  if (copiedNode.expression == null) {
     console.warn('No valid expression in clipboard.')
   }
+  graphStore.createNode(
+    graphNavigator.sceneMousePos ?? Vec2.Zero,
+    copiedNode.expression,
+    copiedNode.metadata,
+  )
 }
 
 function handleNodeOutputPortDoubleClick(id: ExprId) {
-  componentBrowserSourceNode.value = id
+  componentBrowserSourcePort.value = id
   const placementEnvironment = environmentForNodes([id].values())
   componentBrowserPosition.value = previousNodeDictatedPlacement(
     DEFAULT_NODE_SIZE,
@@ -428,15 +435,14 @@ function handleNodeOutputPortDoubleClick(id: ExprId) {
 </script>
 
 <template>
-  <!-- eslint-disable vue/attributes-order -->
   <div
     ref="viewportNode"
-    class="GraphEditor"
+    class="GraphEditor viewport"
     :class="{ draggingEdge: graphStore.unconnectedEdge != null }"
     :style="groupColors"
-    @click="graphBindingsHandler"
     v-on.="graphNavigator.events"
     v-on..="nodeSelection.events"
+    @click="graphBindingsHandler"
     @dragover.prevent
     @drop.prevent="handleFileDrop($event)"
   >
@@ -451,12 +457,12 @@ function handleNodeOutputPortDoubleClick(id: ExprId) {
       ref="componentBrowser"
       :navigator="graphNavigator"
       :position="componentBrowserPosition"
+      :initialContent="componentBrowserInputContent"
+      :initialCaretPosition="graphStore.editedNodeInfo?.range ?? [0, 0]"
+      :sourcePort="componentBrowserSourcePort"
       @accepted="onComponentBrowserCommit"
       @closed="onComponentBrowserCancel"
       @canceled="onComponentBrowserCancel"
-      :initialContent="componentBrowserInputContent"
-      :initialCaretPosition="graphStore.editedNodeInfo?.range ?? [0, 0]"
-      :sourceNode="componentBrowserSourceNode"
     />
     <TopBar
       v-model:mode="projectStore.executionMode"

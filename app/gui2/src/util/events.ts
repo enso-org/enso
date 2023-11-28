@@ -1,5 +1,6 @@
 import type { Opt } from '@/util/opt'
 import { Vec2 } from '@/util/vec2'
+import type { ObservableV2 } from 'lib0/observable'
 import {
   computed,
   onScopeDispose,
@@ -11,6 +12,7 @@ import {
   type Ref,
   type WatchSource,
 } from 'vue'
+import { ReactiveDb } from './database/reactiveDb'
 
 export function isClick(e: MouseEvent | PointerEvent) {
   if (e instanceof PointerEvent) return e.pointerId !== -1

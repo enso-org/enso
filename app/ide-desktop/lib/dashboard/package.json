@@ -27,8 +27,8 @@
   "devDependencies": {
     "@esbuild-plugins/node-modules-polyfill": "^0.2.2",
     "@modyfi/vite-plugin-yaml": "^1.0.4",
-    "@playwright/experimental-ct-react": "^1.38.0",
-    "@playwright/test": "^1.38.0",
+    "@playwright/experimental-ct-react": "^1.40.0",
+    "@playwright/test": "^1.40.0",
     "@types/node": "^18.17.5",
     "@types/react": "^18.0.27",
     "@types/react-dom": "^18.0.10",

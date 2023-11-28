@@ -7,7 +7,7 @@ import org.enso.compiler.core.ir.{Expression, Function, Module, Name}
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition.Method
-import org.enso.compiler.core.ir.MetadataStorage.ToPair
+import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
 import org.enso.compiler.core.ir.`type`
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.{Resolution, ResolvedModule}
@@ -108,8 +108,11 @@ case object TypeNames extends IRPass {
     ir.getMetadata(TypeSignatures)
       .map { s =>
         ir.updateMetadata(
-          TypeSignatures -->> TypeSignatures.Signature(
-            resolveSignature(typeParams, bindingsMap, s.signature)
+          new MetadataPair(
+            TypeSignatures,
+            TypeSignatures.Signature(
+              resolveSignature(typeParams, bindingsMap, s.signature)
+            )
           )
         )
       }
@@ -143,7 +146,7 @@ case object TypeNames extends IRPass {
     resolvedName: Either[BindingsMap.ResolutionError, BindingsMap.ResolvedName]
   ): Name =
     resolvedName
-      .map(res => name.updateMetadata(this -->> Resolution(res)))
+      .map(res => name.updateMetadata(new MetadataPair(this, Resolution(res))))
       .fold(
         error =>
           errors.Resolution(name, errors.Resolution.ResolverError(error)),
