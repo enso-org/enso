@@ -19,7 +19,7 @@ const tree = injectWidgetTree()
 const parentUsageInfo = injectWidgetUsageInfo(true)
 const whitespace = computed(() =>
   parentUsageInfo?.input !== props.input && props.input instanceof Ast.Ast
-    ? ' '.repeat(props.input.span.whitespaceLength ?? 0)
+    ? ' '.repeat(props.input.astExtended?.whitespaceLength() ?? 0)
     : '',
 )
 
@@ -53,7 +53,7 @@ provideWidgetUsageInfo(
 )
 const spanStart = computed(() => {
   if (!(props.input instanceof Ast.Ast)) return undefined
-  return props.input.span.start - tree.nodeSpanStart - whitespace.value.length
+  return props.input.astExtended!.span()[0] - tree.nodeSpanStart - whitespace.value.length
 })
 </script>
 

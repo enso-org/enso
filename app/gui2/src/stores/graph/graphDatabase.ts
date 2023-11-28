@@ -226,7 +226,7 @@ export function mockNode(binding: string, id: AstId, code?: string): Node {
   return {
     outerExprId: id,
     binding,
-    rootSpan: Ast.parse(code ?? '0'),
+    rootSpan: Ast.Ast.parse(code ?? '0'),
     position: Vec2.Zero,
     vis: undefined,
   }

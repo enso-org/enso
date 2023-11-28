@@ -58,7 +58,7 @@ watchEffect(() => {
           const astSpan = ast.span()
           let foundNode: ExprId | undefined
           for (const [id, node] of graphStore.db.nodeIdToNode.entries()) {
-            if (rangeEncloses([node.rootSpan.span.start, node.rootSpan.span.end], astSpan)) {
+            if (node.rootSpan.astExtended && rangeEncloses(node.rootSpan.astExtended.span(), astSpan)) {
               foundNode = id
               break
             }
