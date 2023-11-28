@@ -19,7 +19,7 @@ export interface VisualizationIdentifier {
 }
 
 export interface VisualizationMetadata {
-  identifier: VisualizationIdentifier | null | undefined
+  identifier: VisualizationIdentifier | null
   visible: boolean
 }
 
@@ -199,9 +199,7 @@ export class DistributedModule {
 
   updateNodeMetadata(id: ExprId, meta: Partial<NodeMetadata>): void {
     const existing = this.doc.metadata.get(id) ?? { x: 0, y: 0, vis: null }
-    this.transact(() => {
-      this.doc.metadata.set(id, { ...existing, ...meta })
-    })
+    this.transact(() => this.doc.metadata.set(id, { ...existing, ...meta }))
   }
 
   getNodeMetadata(id: ExprId): NodeMetadata | null {

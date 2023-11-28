@@ -14,8 +14,8 @@ export type VisualizationMetadata = z.infer<typeof visualizationMetadata>
 const visualizationMetadata = z
   .object({
     show: z.boolean().default(true),
-    project: visualizationProject,
-    name: z.string(),
+    project: visualizationProject.nullable(),
+    name: z.string().nullable(),
   })
   .passthrough()
 

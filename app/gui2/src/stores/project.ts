@@ -263,7 +263,7 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
 
       // Detach removed visualizations.
       for (const [id, config] of state.visualizations) {
-        if (this.visualizationConfigs.get(id) == undefined) {
+        if (!this.visualizationConfigs.get(id)) {
           promises.push(detach(id, config))
         }
       }
@@ -537,11 +537,9 @@ export const useProjectStore = defineStore('project', () => {
 
     watch(
       configuration,
-      async (config, _, onCleanup) => {
+      (config, _, onCleanup) => {
         executionContext.setVisualization(id, config)
-        onCleanup(() => {
-          executionContext.setVisualization(id, null)
-        })
+        onCleanup(() => executionContext.setVisualization(id, null))
       },
       { immediate: true },
     )

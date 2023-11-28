@@ -115,7 +115,7 @@ function translateVisualizationToFile(
       project = { project: 'Library', contents: vis.identifier.module.name } as const
       break
     default:
-      return
+      return { name: null, show: vis.visible, project: null }
   }
   return {
     name: vis.identifier.name,
@@ -128,7 +128,7 @@ export function translateVisualizationFromFile(
   vis: fileFormat.VisualizationMetadata,
 ): VisualizationMetadata | undefined {
   let module
-  switch (vis.project.project) {
+  switch (vis.project?.project) {
     case 'Builtin':
       module = { kind: 'Builtin' } as const
       break
@@ -139,13 +139,10 @@ export function translateVisualizationFromFile(
       module = { kind: 'Library', name: vis.project.contents } as const
       break
     default:
-      return
+      module = null
   }
   return {
-    identifier: {
-      name: vis.name,
-      module,
-    },
+    identifier: module && vis.name ? { name: vis.name, module } : null,
     visible: vis.show,
   }
 }
