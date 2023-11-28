@@ -64,7 +64,7 @@ const error = computed(() => {
       return info.payload.message
     }
     case 'DataflowError': {
-      return projectStore.dataflowErrorRegistry.get(nodeId.value)?.value?.message.split(' (at')[0]
+      return projectStore.dataflowErrors.lookup(nodeId.value)?.value?.message.split(' (at')[0]
     }
     default:
       return undefined
