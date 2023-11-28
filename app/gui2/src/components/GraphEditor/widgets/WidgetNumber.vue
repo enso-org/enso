@@ -1,15 +1,16 @@
 <script setup lang="ts">
 import SliderWidget from '@/components/widgets/SliderWidget.vue'
-import { Score, defineWidget, widgetProps, type WidgetProps } from '@/providers/widgetRegistry'
+import { Tree } from '@/generated/ast'
+import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
-import { Ast } from '@/util/ast'
+import { AstExtended } from '@/util/ast'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()
 const value = computed({
   get() {
-    return parseFloat(props.input.code() ?? '')
+    return parseFloat(props.input.repr() ?? '')
   },
   set(value) {
     const id = props.input.astId
@@ -19,12 +20,22 @@ const value = computed({
 </script>
 <script lang="ts">
 export const widgetDefinition = defineWidget(
-  (input) =>
-    input instanceof Ast.NumericLiteral ||
-    (input instanceof Ast.NegationOprApp && input.argument instanceof Ast.NumericLiteral),
+  AstExtended.isTree([Tree.Type.UnaryOprApp, Tree.Type.Number]),
   {
     priority: 10,
-    score: Score.Perfect,
+    score: (props) => {
+      if (props.input.isTree(Tree.Type.UnaryOprApp)) {
+        if (
+          props.input.map((t) => t.opr).repr() === '-' &&
+          props.input.tryMap((t) => t.rhs)?.isTree(Tree.Type.Number)
+        ) {
+          return Score.Perfect
+        }
+      } else if (props.input.isTree(Tree.Type.Number)) {
+        return Score.Perfect
+      }
+      return Score.Mismatch
+    },
   },
 )
 </script>

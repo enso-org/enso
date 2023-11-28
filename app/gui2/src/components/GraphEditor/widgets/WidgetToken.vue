@@ -1,19 +1,18 @@
 <script setup lang="ts">
-import { Score, defineWidget, widgetProps, type WidgetProps } from '@/providers/widgetRegistry'
-import { Ast } from '@/util/ast'
-import { Tok } from '@/util/ast/abstract'
+import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import { AstExtended } from '@/util/ast'
 import { computed, ref } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 
 const rootNode = ref<HTMLElement>()
 
-const spanClass = computed(() => props.input.typeName())
-const repr = computed(() => props.input.code())
+const spanClass = computed(() => props.input.tokenTypeName())
+const repr = computed(() => props.input.repr())
 </script>
 
 <script lang="ts">
-export const widgetDefinition = defineWidget((input) => input instanceof Tok, {
+export const widgetDefinition = defineWidget(AstExtended.isToken(), {
   priority: 1000,
   score: Score.Good,
 })

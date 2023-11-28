@@ -1,20 +1,13 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
-import { Tree } from '@/generated/ast.ts'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
-import { injectPortInfo, providePortInfo } from '@/providers/portInfo'
-import {
-  Score,
-  defineWidget,
-  widgetProps,
-  type WidgetInput,
-  type WidgetProps,
-} from '@/providers/widgetRegistry'
+import { ForcePort, injectPortInfo, providePortInfo } from '@/providers/portInfo'
+import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { injectWidgetTree } from '@/providers/widgetTree'
 import { useGraphStore } from '@/stores/graph'
 import { useRaf } from '@/util/animation'
-import { Ast } from '@/util/ast'
+import { Ast, AstExtended } from '@/util/ast'
 import { ArgumentAst, ArgumentPlaceholder } from '@/util/callTree'
 import { useResizeObserver } from '@/util/events'
 import { Rect } from '@/util/rect'
@@ -41,9 +34,7 @@ const selection = injectGraphSelection(true)
 
 const isHovered = ref(false)
 
-const hasConnection = computed(
-  () => graph.db.sourceIdToTargetId.reverseLookup(portId.value).size > 0,
-)
+const hasConnection = computed(() => graph.db.connections.reverseLookup(portId.value).size > 0)
 const isCurrentEdgeHoverTarget = computed(
   () => isHovered.value && graph.unconnectedEdge != null && selection?.hoveredPort === portId.value,
 )
@@ -75,12 +66,12 @@ const rectUpdateIsUseful = computed(() => isHovered.value || hasConnection.value
 const randomUuid = uuidv4() as ExprId
 const portId = computed(() => {
   const ast =
-    props.input instanceof Ast.Ast
+    props.input instanceof AstExtended
       ? props.input
       : props.input instanceof ArgumentAst || props.input instanceof ForcePort
       ? props.input.ast
       : undefined
-  return ast?.exprId ?? randomUuid
+  return ast?.astId ?? randomUuid
 })
 
 providePortInfo(
@@ -131,35 +122,21 @@ const innerWidget = computed(() => {
 </script>
 
 <script lang="ts">
-export class ForcePort {
-  constructor(public ast: Ast.Ast) {}
-}
-
-declare const ForcePortKey: unique symbol
-declare module '@/providers/widgetRegistry' {
-  interface WidgetInputTypes {
-    [ForcePortKey]: ForcePort
-  }
-}
-
 export const widgetDefinition = defineWidget(
   [
     ForcePort,
     ArgumentAst,
     ArgumentPlaceholder,
-    (input) =>
-      input instanceof Ast.Ast &&
-      input.treeType !== undefined &&
-      [
-        Tree.Type.Invalid,
-        Tree.Type.BodyBlock,
-        Tree.Type.Group,
-        Tree.Type.Number,
-        Tree.Type.OprApp,
-        Tree.Type.UnaryOprApp,
-        Tree.Type.Wildcard,
-        Tree.Type.TextLiteral,
-      ].includes(input.treeType),
+    AstExtended.isTree([
+      Ast.Tree.Type.Invalid,
+      Ast.Tree.Type.BodyBlock,
+      Ast.Tree.Type.Group,
+      Ast.Tree.Type.Number,
+      Ast.Tree.Type.OprApp,
+      Ast.Tree.Type.UnaryOprApp,
+      Ast.Tree.Type.Wildcard,
+      Ast.Tree.Type.TextLiteral,
+    ]),
   ],
   {
     priority: 0,
@@ -167,8 +144,8 @@ export const widgetDefinition = defineWidget(
       const portInfo = injectPortInfo(true)
       if (
         portInfo != null &&
-        props.input instanceof Ast.Ast &&
-        portInfo.portId === props.input.exprId
+        props.input instanceof AstExtended &&
+        portInfo.portId === props.input.astId
       ) {
         return Score.Mismatch
       } else {

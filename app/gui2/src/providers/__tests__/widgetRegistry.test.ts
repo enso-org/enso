@@ -1,7 +1,7 @@
 import { GraphDb } from '@/stores/graph/graphDatabase'
-import { Ast } from '@/util/ast'
+import { AstExtended } from '@/util/ast'
 import { ApplicationKind, ArgumentPlaceholder } from '@/util/callTree'
-import { IdMap, type ExprId } from 'shared/yjsModel'
+import { IdMap } from 'shared/yjsModel'
 import { describe, expect, test } from 'vitest'
 import { defineComponent } from 'vue'
 import {
@@ -26,7 +26,7 @@ describe('WidgetRegistry', () => {
 
   const widgetA = makeMockWidget(
     'A',
-    defineWidget(Ast.Ast, {
+    defineWidget(AstExtended, {
       priority: 1,
     }),
   )
@@ -48,14 +48,14 @@ describe('WidgetRegistry', () => {
 
   const widgetD = makeMockWidget(
     'D',
-    defineWidget(Ast.Ast, {
+    defineWidget(AstExtended, {
       priority: 20,
-      score: (props) => (props.input.code() === '_' ? Score.Perfect : Score.Mismatch),
+      score: (props) => (props.input.repr() === '_' ? Score.Perfect : Score.Mismatch),
     }),
   )
 
-  const someAst = Ast.parse('foo')
-  const blankAst = Ast.parse('_')
+  const someAst = AstExtended.parse('foo', IdMap.Mock())
+  const blankAst = AstExtended.parse('_', IdMap.Mock())
   const somePlaceholder = new ArgumentPlaceholder(
     0,
     {
@@ -77,8 +77,8 @@ describe('WidgetRegistry', () => {
   test('selects a widget based on the input type', () => {
     const forAst = registry.select({ input: someAst, config: undefined, nesting: 0 })
     const forArg = registry.select({ input: somePlaceholder, config: undefined, nesting: 0 })
-    expect(forAst).toStrictEqual(widgetA.default)
-    expect(forArg).toStrictEqual(widgetB.default)
+    expect(forAst).toStrictEqual(widgetA)
+    expect(forArg).toStrictEqual(widgetB)
   })
 
   test('selects a widget outside of the excluded set', () => {
@@ -90,8 +90,8 @@ describe('WidgetRegistry', () => {
       { input: somePlaceholder, config: undefined, nesting: 0 },
       new Set([widgetB.default]),
     )
-    expect(forAst).toStrictEqual(widgetC.default)
-    expect(forArg).toStrictEqual(widgetC.default)
+    expect(forAst).toStrictEqual(widgetC)
+    expect(forArg).toStrictEqual(widgetC)
   })
 
   test('returns undefined when all options are exhausted', () => {
@@ -111,7 +111,7 @@ describe('WidgetRegistry', () => {
       { input: blankAst, config: undefined, nesting: 0 },
       new Set([widgetA.default, widgetD.default]),
     )
-    expect(selectedFirst).toStrictEqual(widgetD.default)
-    expect(selectedNext).toStrictEqual(widgetC.default)
+    expect(selectedFirst).toStrictEqual(widgetD)
+    expect(selectedNext).toStrictEqual(widgetC)
   })
 })

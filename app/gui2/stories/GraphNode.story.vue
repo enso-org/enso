@@ -7,7 +7,7 @@ import * as Y from 'yjs'
 import GraphNode from '@/components/GraphEditor/GraphNode.vue'
 import { provideGraphSelection } from '@/providers/graphSelection'
 import type { Node } from '@/stores/graph'
-import { Ast } from '@/util/ast'
+import { AstExtended } from '@/util/ast'
 import { useNavigator } from '@/util/navigator'
 import { Rect } from '@/util/rect'
 import { Vec2 } from '@/util/vec2'
@@ -37,12 +37,14 @@ function updateContent(updates: [range: ContentRange, content: string][]) {
   nodeContent.value = content
 }
 const idMap = new IdMap(yIdMap, text)
-const rootSpan = computed(() => Ast.parse(nodeContent.value))
+
+const rootSpan = computed(() => AstExtended.parse(nodeContent.value, idMap))
+const pattern = computed(() => AstExtended.parse(nodeBinding.value, idMap))
 
 const node = computed((): Node => {
   return {
     outerExprId: '' as any,
-    binding: nodeBinding.value,
+    pattern: pattern.value,
     position: position.value,
     rootSpan: rootSpan.value,
     vis: undefined,
@@ -52,7 +54,7 @@ const node = computed((): Node => {
 const mockRects = reactive(new Map())
 
 watchEffect((onCleanup) => {
-  const id = node.value.rootSpan.exprId
+  const id = node.value.rootSpan.astId
   mockRects.set(id, Rect.Zero)
   onCleanup(() => {
     mockRects.delete(id)

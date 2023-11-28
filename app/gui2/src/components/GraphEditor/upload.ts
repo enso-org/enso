@@ -56,9 +56,8 @@ export class Uploader {
     position: Vec2,
     stackItem: StackItem,
   ): Promise<Uploader> {
-    const projectRootId = await contentRoots.then((roots) =>
-      roots.find((root) => root.type == 'Project'),
-    )
+    const roots = await contentRoots
+    const projectRootId = roots.find((root) => root.type == 'Project')
     if (!projectRootId) throw new Error('Unable to find project root, uploading not possible.')
     const instance = new Uploader(
       await rpc,

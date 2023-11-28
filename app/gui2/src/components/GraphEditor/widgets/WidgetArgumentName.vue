@@ -11,7 +11,7 @@ const portInfo = injectPortInfo(true)
 const showArgumentValue = computed(() => {
   return (
     props.input instanceof ArgumentAst &&
-    (portInfo == null || !portInfo.connected || portInfo.portId !== props.input.ast.exprId)
+    (portInfo == null || !portInfo.connected || portInfo.portId !== props.input.ast.astId)
   )
 })
 

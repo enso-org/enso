@@ -11,14 +11,14 @@ export {
   foldNodeProp,
   syntaxHighlighting,
 } from '@codemirror/language'
+export { lintGutter, linter, type Diagnostic } from '@codemirror/lint'
 export { highlightSelectionMatches } from '@codemirror/search'
 export { EditorState } from '@codemirror/state'
 export { EditorView, tooltips, type TooltipView } from '@codemirror/view'
 export { type Highlighter } from '@lezer/highlight'
 export { minimalSetup } from 'codemirror'
 export { yCollab } from 'y-codemirror.next'
-import { RawAst } from '@/util/ast'
-import { AstExtended } from '@/util/ast/extended'
+import { Ast, AstExtended } from '@/util/ast'
 import {
   Language,
   LanguageSupport,
@@ -27,6 +27,7 @@ import {
   languageDataProp,
   syntaxTree,
 } from '@codemirror/language'
+import { type Diagnostic } from '@codemirror/lint'
 import { hoverTooltip as originalHoverTooltip, type TooltipView } from '@codemirror/view'
 import {
   NodeProp,
@@ -40,13 +41,41 @@ import {
 } from '@lezer/common'
 import { styleTags, tags } from '@lezer/highlight'
 import { EditorView } from 'codemirror'
+import type { Diagnostic as LSDiagnostic } from 'shared/languageServerTypes'
 
-type AstNode = AstExtended<RawAst.Tree | RawAst.Token, false>
+export function lsDiagnosticsToCMDiagnostics(
+  source: string,
+  diagnostics: LSDiagnostic[],
+): Diagnostic[] {
+  if (!diagnostics.length) return []
+  const results: Diagnostic[] = []
+  let pos = 0
+  const lineStartIndices = []
+  for (const line of source.split('\n')) {
+    lineStartIndices.push(pos)
+    pos += line.length + 1
+  }
+  for (const diagnostic of diagnostics) {
+    if (!diagnostic.location) continue
+    results.push({
+      from:
+        (lineStartIndices[diagnostic.location.start.line] ?? 0) +
+        diagnostic.location.start.character,
+      to: (lineStartIndices[diagnostic.location.end.line] ?? 0) + diagnostic.location.end.character,
+      message: diagnostic.message,
+      severity:
+        diagnostic.kind === 'Error' ? 'error' : diagnostic.kind === 'Warning' ? 'warning' : 'info',
+    })
+  }
+  return results
+}
+
+type AstNode = AstExtended<Ast.Tree | Ast.Token, false>
 
 const nodeTypes: NodeType[] = [
-  ...RawAst.Tree.typeNames.map((name, id) => NodeType.define({ id, name })),
-  ...RawAst.Token.typeNames.map((name, id) =>
-    NodeType.define({ id: id + RawAst.Tree.typeNames.length, name: 'Token' + name }),
+  ...Ast.Tree.typeNames.map((name, id) => NodeType.define({ id, name })),
+  ...Ast.Token.typeNames.map((name, id) =>
+    NodeType.define({ id: id + Ast.Tree.typeNames.length, name: 'Token' + name }),
   ),
 ]
 
@@ -90,7 +119,7 @@ function astToCodeMirrorTree(
   const childrenToConvert = hasSingleTokenChild ? [] : children
 
   const tree = new Tree(
-    nodeSet.types[ast.inner.type + (ast.isToken() ? RawAst.Tree.typeNames.length : 0)]!,
+    nodeSet.types[ast.inner.type + (ast.isToken() ? Ast.Tree.typeNames.length : 0)]!,
     childrenToConvert.map((child) => astToCodeMirrorTree(nodeSet, child)),
     childrenToConvert.map((child) => child.span()[0] - start),
     end - start,

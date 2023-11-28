@@ -9,6 +9,7 @@ import {
   createWebsocketClient,
   rpcWithRetries as lsRpcWithRetries,
 } from '@/util/net'
+import { nextEvent } from '@/util/observable'
 import { isSome, type Opt } from '@/util/opt'
 import { tryQualifiedName } from '@/util/qualifiedName'
 import { VisualizationDataRegistry } from '@/util/visualizationDataRegistry'
@@ -55,14 +56,12 @@ interface LsUrls {
 function resolveLsUrl(config: GuiConfig): LsUrls {
   const engine = config.engine
   if (engine == null) throw new Error('Missing engine configuration')
-
   if (engine.rpcUrl != null && engine.dataUrl != null) {
     return {
       rpcUrl: engine.rpcUrl,
       dataUrl: engine.dataUrl,
     }
   }
-
   throw new Error('Incomplete engine configuration')
 }
 
@@ -77,7 +76,6 @@ async function initializeLsRpcConnection(
   const requestManager = new RequestManager([transport])
   const client = new Client(requestManager)
   const connection = new LanguageServer(client)
-
   const initialization = await lsRpcWithRetries(() => connection.initProtocolConnection(clientId), {
     onBeforeRetry: (error, _, delay) => {
       console.warn(
@@ -521,9 +519,17 @@ export const useProjectStore = defineStore('project', () => {
     })
   }
 
+  const firstExecution = lsRpcConnection.then((lsRpc) =>
+    nextEvent(lsRpc, 'executionContext/executionComplete'),
+  )
   const executionContext = createExecutionContextForMain()
   const computedValueRegistry = ComputedValueRegistry.WithExecutionContext(executionContext)
   const visualizationDataRegistry = new VisualizationDataRegistry(executionContext, dataConnection)
+
+  const diagnostics = ref<Diagnostic[]>([])
+  executionContext.on('executionStatus', (newDiagnostics) => {
+    diagnostics.value = newDiagnostics
+  })
 
   function useVisualizationData(
     configuration: WatchSource<Opt<NodeVisualizationConfiguration>>,
@@ -561,6 +567,8 @@ export const useProjectStore = defineStore('project', () => {
     },
     name: projectName,
     executionContext,
+    firstExecution,
+    diagnostics,
     module,
     modulePath,
     projectModel,

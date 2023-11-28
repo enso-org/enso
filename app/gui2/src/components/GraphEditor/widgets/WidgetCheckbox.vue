@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import CheckboxWidget from '@/components/widgets/CheckboxWidget.vue'
-import { Score, defineWidget, widgetProps, type WidgetProps } from '@/providers/widgetRegistry'
+import { Tree } from '@/generated/ast'
+import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
-import { Ast } from '@/util/ast'
+import { AstExtended } from '@/util/ast'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
@@ -10,28 +11,34 @@ const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()
 const value = computed({
   get() {
-    return props.input?.code().endsWith('True') ?? false
+    return props.input.repr().endsWith('True') ?? false
   },
   set(value) {
     const node = getRawBoolNode(props.input)
     if (node != null) {
-      graph.setExpressionContent(node.exprId, value ? 'True' : 'False')
+      graph.setExpressionContent(node.astId, value ? 'True' : 'False')
     }
   },
 })
 </script>
 <script lang="ts">
-function getRawBoolNode(ast: Ast.Ast) {
+function getRawBoolNode(ast: AstExtended) {
   const candidate =
-    ast instanceof Ast.PropertyAccess && ast.lhs?.code() === 'Boolean' ? ast.rhs : ast
-  if (candidate instanceof Ast.Ident && ['True', 'False'].includes(candidate.code())) {
+    ast.isTree(Tree.Type.OprApp) && ast.repr().startsWith('Boolean.')
+      ? ast.tryMap((t) => t.rhs)
+      : ast
+  if (
+    candidate &&
+    candidate.isTree(Tree.Type.Ident) &&
+    ['True', 'False'].includes(candidate.repr())
+  ) {
     return candidate
   }
   return null
 }
 
 export const widgetDefinition = defineWidget(
-  (input) => input instanceof Ast.PropertyAccess || input instanceof Ast.Ident,
+  AstExtended.isTree([Tree.Type.OprApp, Tree.Type.Ident]),
   {
     priority: 10,
     score: (props) => {
