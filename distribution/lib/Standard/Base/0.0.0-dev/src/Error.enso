@@ -229,6 +229,5 @@ look_for_wrapped_error error_type=Any error_value =
     if error_value.is_a error_type then Maybe.Some error_value else
         try_unwrap =
             inner_error = Wrapped_Error.from error_value . inner_error
-            if inner_error.is_a error_type then Maybe.Some inner_error else
-                look_for_wrapped_error error_type inner_error
+            @Tail_Call look_for_wrapped_error error_type inner_error
         Panic.catch No_Such_Conversion try_unwrap _->Maybe.None
