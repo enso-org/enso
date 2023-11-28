@@ -173,6 +173,19 @@ spec =
                 f.copy_to g . should_fail_with Forbidden_Operation
                 g.exists.should_be_false
 
+            "A".write f on_existing_file=Existing_File_Behavior.Overwrite
+            "B".write g on_existing_file=Existing_File_Behavior.Overwrite
+
+            r = f.copy_to g
+            r.should_fail_with File_Error
+            r.catch.should_be_a File_Error.Already_Exists
+            f.read . should_equal "A"
+            g.read . should_equal "B"
+
+            f.copy_to g replace_existing=True . should_succeed
+            f.read . should_equal "A"
+            g.read . should_equal "A"
+
             f.delete_if_exists
             g.delete_if_exists
 
@@ -192,6 +205,20 @@ spec =
             f.move_to g . should_succeed
             f.exists.should_be_false
             g.exists.should_be_true
+
+            "A".write f on_existing_file=Existing_File_Behavior.Overwrite
+            "B".write g on_existing_file=Existing_File_Behavior.Overwrite
+            r = f.move_to g
+            r.should_fail_with File_Error
+            r.catch.should_be_a File_Error.Already_Exists
+            f.exists.should_be_true
+            g.exists.should_be_true
+            g.read . should_equal "B"
+
+            f.move_to g replace_existing=True . should_succeed
+            f.exists.should_be_false
+            g.exists.should_be_true
+            g.read . should_equal "A"
 
             f.delete_if_exists
             g.delete_if_exists
