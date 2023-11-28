@@ -20,7 +20,6 @@ import postcss from 'postcss'
 import tailwindcss from 'tailwindcss'
 import tailwindcssNesting from 'tailwindcss/nesting/index.js'
 
-import * as tailwindConfig from './tailwind.config.js'
 import * as utils from '../../utils'
 
 // =================
@@ -57,9 +56,7 @@ export function esbuildPluginGenerateTailwind(): esbuild.Plugin {
         name: 'enso-generate-tailwind',
         setup: build => {
             const cssProcessor = postcss([
-                tailwindcss({
-                    config: tailwindConfig,
-                }),
+                tailwindcss('./tailwind.config.ts'),
                 tailwindcssNesting(),
             ])
             build.onLoad({ filter: /tailwind\.css$/ }, async loadArgs => {
