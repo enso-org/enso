@@ -554,21 +554,28 @@ export const useProjectStore = defineStore('project', () => {
     )
   }
 
-  const dataflowErrors = new ReactiveMapping(computedValueRegistry.db, (id, info) =>
-    info.payload.type !== 'DataflowError'
-      ? undefined
-      : (useVisualizationData(
-          ref({
-            expressionId: id,
-            visualizationModule: 'Standard.Visualization.Preprocessor',
-            expression: {
-              module: 'Standard.Visualization.Preprocessor',
-              definedOnType: 'Standard.Visualization.Preprocessor',
-              name: 'error_preprocessor',
-            },
-          }),
-        ) as ShallowRef<{ kind: 'Dataflow'; message: string } | undefined>),
-  )
+  const dataflowErrors = new ReactiveMapping(computedValueRegistry.db, (id, info) => {
+    if (info.payload.type !== 'DataflowError') return
+    const data = useVisualizationData(
+      ref({
+        expressionId: id,
+        visualizationModule: 'Standard.Visualization.Preprocessor',
+        expression: {
+          module: 'Standard.Visualization.Preprocessor',
+          definedOnType: 'Standard.Visualization.Preprocessor',
+          name: 'error_preprocessor',
+        },
+      }),
+    )
+    return computed<{ kind: 'Dataflow'; message: string } | undefined>(() =>
+      'kind' in data &&
+      data.kind === 'Dataflow' &&
+      'message' in data &&
+      typeof data.message === 'string'
+        ? { kind: data.kind, message: data.message }
+        : undefined,
+    )
+  })
 
   function stopCapturingUndo() {
     module.value?.undoManager.stopCapturing()
