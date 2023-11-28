@@ -115,7 +115,7 @@ function translateVisualizationToFile(
       project = { project: 'Library', contents: vis.identifier.module.name } as const
       break
     default:
-      return { name: null, show: vis.visible, project: null }
+      return { show: vis.visible }
   }
   return {
     name: vis.identifier.name,

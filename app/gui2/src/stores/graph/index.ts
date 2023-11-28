@@ -9,9 +9,6 @@ import {
 } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
-// FIXME: For some reason this is required, otherwise `compilerMessaging.ts` erros with:
-// Cannot access 'VisualizationContainer' before initialization
-import '@/stores/visualization'
 import { Ast, AstExtended, childrenAstNodes, findAstWithRange, readAstSpan } from '@/util/ast'
 import { useObserveYjs } from '@/util/crdt'
 import type { Opt } from '@/util/opt'

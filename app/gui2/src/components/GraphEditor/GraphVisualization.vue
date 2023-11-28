@@ -10,10 +10,10 @@ import {
   useVisualizationStore,
   type Visualization,
 } from '@/stores/visualization'
-import type { URLString } from '@/stores/visualization/compilerMessaging'
 import { toError } from '@/util/error'
 import type { Icon } from '@/util/iconName'
 import type { Opt } from '@/util/opt'
+import type { URLString } from '@/util/urlString'
 import type { Vec2 } from '@/util/vec2'
 import type { ExprId, VisualizationIdentifier } from 'shared/yjsModel'
 import {
@@ -111,6 +111,8 @@ function updatePreprocessor(
 ) {
   visPreprocessor.value = { visualizationModule, expression, positionalArgumentsExpressions }
 }
+// Required to work around janky Vue definitions for the type of a Visualization
+const updatePreprocessor_ = updatePreprocessor as (...args: unknown[]) => void
 
 function switchToDefaultPreprocessor() {
   visPreprocessor.value = DEFAULT_VISUALIZATION_CONFIGURATION
@@ -203,7 +205,7 @@ const effectiveVisualization = computed(() => {
       <component
         :is="effectiveVisualization"
         :data="effectiveVisualizationData"
-        @update:preprocessor="updatePreprocessor"
+        @update:preprocessor="updatePreprocessor_"
       />
     </Suspense>
   </div>
