@@ -441,7 +441,7 @@ export default function Dashboard(props: DashboardProps) {
                         onTemplateClick={doCreateProject}
                     />
                     <Drive
-                    supportsLocalBackend={supportsLocalBackend}
+                        supportsLocalBackend={supportsLocalBackend}
                         hidden={page !== pageSwitcher.Page.drive}
                         page={page}
                         initialProjectName={initialProjectName}
@@ -487,6 +487,7 @@ export default function Dashboard(props: DashboardProps) {
                 >
                     {assetSettingsPanelProps && (
                         <AssetSettingsPanel
+                            supportsLocalBackend={supportsLocalBackend}
                             key={assetSettingsPanelProps.item.item.id}
                             {...assetSettingsPanelProps}
                             page={page}

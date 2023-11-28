@@ -30,6 +30,7 @@ export interface AssetSettingsPanelRequiredProps {
 
 /** Props for a {@link AssetSettingsPanel}. */
 export interface AssetSettingsPanelProps extends AssetSettingsPanelRequiredProps {
+    supportsLocalBackend: boolean
     page: pageSwitcher.Page
     category: categorySwitcher.Category
     isHelpChatOpen: boolean
@@ -47,6 +48,7 @@ export default function AssetSettingsPanel(props: AssetSettingsPanelProps) {
     const {
         item: rawItem,
         setItem: rawSetItem,
+        supportsLocalBackend,
         page,
         category,
         isHelpChatOpen,
@@ -119,6 +121,7 @@ export default function AssetSettingsPanel(props: AssetSettingsPanelProps) {
                         setIsSettingsPanelVisible={setIsSettingsPanelVisible}
                     />
                     <UserBar
+                        supportsLocalBackend={supportsLocalBackend}
                         isHelpChatOpen={isHelpChatOpen}
                         setIsHelpChatOpen={setIsHelpChatOpen}
                         onSignOut={onSignOut}
