@@ -20,7 +20,7 @@ import postcss from 'postcss'
 import tailwindcss from 'tailwindcss'
 import tailwindcssNesting from 'tailwindcss/nesting/index.js'
 
-import * as tailwindConfig from './tailwind.config'
+import * as tailwindConfig from './tailwind.config.js'
 import * as utils from '../../utils'
 
 // =================

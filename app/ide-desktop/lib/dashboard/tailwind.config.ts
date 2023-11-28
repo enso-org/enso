@@ -1,20 +1,8 @@
 /** @file Configuration for Tailwind. */
-import * as path from 'node:path'
-import * as url from 'node:url'
-
-// =================
-// === Constants ===
-// =================
-
-const THIS_PATH = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)))
-
-// =====================
-// === Configuration ===
-// =====================
 
 // The names come from a third-party API and cannot be changed.
 /* eslint-disable no-restricted-syntax, @typescript-eslint/naming-convention */
-export const content = [THIS_PATH + '/src/**/*.tsx', THIS_PATH + '/src/**/*.ts']
+export const content = ['src/**/*.tsx', 'src/**/*.ts']
 export const important = `:is(.enso-dashboard, .enso-chat)`
 export const theme = {
     extend: {
