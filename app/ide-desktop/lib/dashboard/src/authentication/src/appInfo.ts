@@ -113,25 +113,22 @@ async function getLatestRelease() {
     ) {
         return cachedRelease.gitHubRelease
     } else {
-        const response = await fetch(
-            'https://api.github.com/repos/enso-org/enso/releases?per_page=1',
-            {
-                headers: [
-                    ['Accept', 'application/vnd.github+json'],
-                    ['X-GitHub-Api-Version', '2022-11-28'],
-                ],
-            }
-        )
+        const response = await fetch('https://api.github.com/repos/enso-org/enso/releases/latest', {
+            headers: [
+                ['Accept', 'application/vnd.github+json'],
+                ['X-GitHub-Api-Version', '2022-11-28'],
+            ],
+        })
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        const data: [GitHubRelease] = await response.json()
+        const data: GitHubRelease = await response.json()
         localStorage.setItem(
             LOCAL_STORAGE_KEY,
             JSON.stringify({
                 lastFetchEpochMs: Number(new Date()),
-                gitHubRelease: data[0],
+                gitHubRelease: data,
             } satisfies CachedRelease)
         )
-        return data[0]
+        return data
     }
 }
 

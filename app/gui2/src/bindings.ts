@@ -30,6 +30,8 @@ export const graphBindings = defineKeybinds('graph-editor', {
   deselectAll: ['Escape', 'PointerMain'],
   copyNode: ['Mod+C'],
   pasteNode: ['Mod+V'],
+  startProfiling: ['Mod+Alt+,'],
+  stopProfiling: ['Mod+Alt+.'],
 })
 
 export const selectionMouseBindings = defineKeybinds('selection', {
