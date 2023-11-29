@@ -570,12 +570,17 @@ export const useProjectStore = defineStore('project', () => {
     return computed<{ kind: 'Dataflow'; message: string } | undefined>(() => {
       const value = data.value
       if (!value) return
-      return 'kind' in value &&
+      if (
+        'kind' in value &&
         value.kind === 'Dataflow' &&
         'message' in value &&
         typeof value.message === 'string'
-        ? { kind: value.kind, message: value.message }
-        : undefined
+      ) {
+        return { kind: value.kind, message: value.message }
+      } else {
+        console.error('Invalid dataflow error payload:', value)
+        return undefined
+      }
     })
   })
 
