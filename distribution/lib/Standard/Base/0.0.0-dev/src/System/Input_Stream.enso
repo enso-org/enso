@@ -103,18 +103,14 @@ type Input_Stream
         on_problems.attach_problems_after results.result problems
 
     ## PRIVATE
-       Reads the contents of this stream into a temporary file.
-       The file is deleted when Enso shuts down.
-       TODO: we may want to add some lifetime management here?
-    materialize_to_temporary_file : File
-    materialize_to_temporary_file self =
-        temp_file = File.create_temporary_file "enso-materialized-stream"
+       Reads the contents of this stream into a given file.
+    write_to_file : File -> File
+    write_to_file self file =
         result = self.with_java_stream java_input_stream->
-            temp_file.with_output_stream [File_Access.Create, File_Access.Truncate_Existing, File_Access.Write] output_stream->
+            file.with_output_stream [File_Access.Create, File_Access.Truncate_Existing, File_Access.Write] output_stream->
                 output_stream.with_java_stream java_output_stream->
                     java_input_stream.transferTo java_output_stream
-        result.if_not_error temp_file
-
+        result.if_not_error file
 
 ## PRIVATE
    Utility method for closing primitive Java streams. Provided to avoid

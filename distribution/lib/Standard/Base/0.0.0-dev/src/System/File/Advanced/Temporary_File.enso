@@ -1,0 +1,77 @@
+import project.Any.Any
+import project.Errors.Illegal_State.Illegal_State
+import project.Nothing.Nothing
+import project.Panic.Panic
+import project.Runtime.Managed_Resource.Managed_Resource
+import project.Runtime.Ref.Ref
+import project.System.File.File
+
+## PRIVATE
+   ADVANCED
+   A reference to a temporary file that will be deleted once all references to
+   it are gone.
+
+   It has to be used with extra care, as anywhere where the internal File
+   reference is leaked without ensuring the lifetime of the `Temporary_File`
+   instance, that file reference may easily become invalid (i.e. its file may
+   get deleted).
+type Temporary_File
+    ## PRIVATE
+    Instance (file_resource_reference : Ref (Nothing | Managed_Resource File))
+
+    ## PRIVATE
+    with_file : (File -> Any) -> Any
+    with_file self action = self.access_resource.with action
+
+    ## PRIVATE
+       Gets the raw file reference.
+       Note that the underlying file may be deleted at any time, once `self` is
+       unreachable.
+    unsafe_get : File
+    unsafe_get self = self.with_file (f->f)
+
+    ## PRIVATE
+       Deletes the temporary file, invalidating the reference.
+    dispose : Nothing
+    dispose self =
+        self.access_resource.finalize
+        self.file_resource_reference.put Nothing
+
+    ## PRIVATE
+    access_resource : Managed_Resource File
+    access_resource self = case self.file_resource_reference.get of
+        Nothing -> Panic.throw (Illegal_State.Error "Using the Temporary_File after it has been disposed is not allowed.")
+        resource -> resource
+
+    ## PRIVATE
+    to_text : Text
+    to_text self = case self.file_resource_reference.get of
+        Nothing -> "Temporary_File (disposed)"
+        resource -> "Temporary_File (" + (resource.with .to_text) + ")"
+
+    ## PRIVATE
+       Creates a new empty `Temporary_File`.
+    new : Text -> Text -> Temporary_File
+    new prefix="temp" suffix=".tmp" =
+        # The file will be deleted on JVM exit, but we will try to delete it sooner.
+        file = File.create_temporary_file prefix suffix
+        resource = Managed_Resource.register file cleanup_tmp_file
+        Temporary_File.Instance (Ref.new resource)
+
+    ## PRIVATE
+       Materializes the provided `Input_Stream` into a `Temporary_File`.
+    from_stream : Input_Stream
+    from_stream stream =
+        tmp_file = Temporary_File.new "enso-materialized-stream" ".tmp"
+        handler caught_panic =
+            tmp_file.dispose
+            Panic.throw caught_panic
+        Panic.catch Any handler=handler <|
+            tmp_file.with_file file->
+                Panic.rethrow <| stream.write_to_file file
+        tmp_file
+
+
+## PRIVATE
+cleanup_tmp_file file =
+    file.delete_if_exists
