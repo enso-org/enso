@@ -29,18 +29,19 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  'update:rect': [rect: Rect]
-  'update:content': [updates: [range: ContentRange, content: string][]]
   dragging: [offset: Vec2]
   draggingCommited: []
-  'update:visualizationId': [id: Opt<VisualizationIdentifier>]
-  'update:visualizationVisible': [visible: boolean]
   delete: []
   replaceSelection: []
-  'update:selected': [selected: boolean]
   outputPortClick: [portId: ExprId]
   outputPortDoubleClick: [portId: ExprId]
+  'update:content': [updates: [range: ContentRange, content: string][]]
   'update:edited': [cursorPosition: number]
+  'update:rect': [rect: Rect]
+  'update:selected': [selected: boolean]
+  'update:visualizationId': [id: Opt<VisualizationIdentifier>]
+  'update:visualizationRect': [rect: Rect | undefined]
+  'update:visualizationVisible': [visible: boolean]
 }>()
 
 const nodeSelection = injectGraphSelection(true)
@@ -280,13 +281,14 @@ function portGroupStyle(port: PortData) {
       v-if="isVisualizationVisible"
       :nodeSize="baseNodeSize"
       :scale="navigator?.scale ?? 1"
+      :nodePosition="props.node.position"
       :isCircularMenuVisible="menuVisible"
       :currentType="props.node.vis"
       :expressionId="props.node.rootSpan.astId"
       :typename="expressionInfo?.typename"
-      @update:visualizationId="emit('update:visualizationId', $event)"
-      @update:visualizationVisible="emit('update:visualizationVisible', $event)"
-      @update:width="widthOverridePx = $event != null ? $event : undefined"
+      @update:rect="emit('update:visualizationRect', $event)"
+      @update:id="emit('update:visualizationId', $event)"
+      @update:visible="emit('update:visualizationVisible', $event)"
     />
     <div
       class="node"

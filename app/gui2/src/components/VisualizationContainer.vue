@@ -3,7 +3,7 @@ import SvgIcon from '@/components/SvgIcon.vue'
 import VisualizationSelector from '@/components/VisualizationSelector.vue'
 import { useVisualizationConfig } from '@/providers/visualizationConfig'
 import { PointerButtonMask, isTriggeredByKeyboard, usePointer } from '@/util/events'
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, watchEffect } from 'vue'
 
 const props = defineProps<{
   /** If true, the visualization should be `overflow: visible` instead of `overflow: hidden`. */
@@ -20,6 +20,8 @@ const props = defineProps<{
 const MIN_WIDTH_PX = 96
 
 const config = useVisualizationConfig()
+
+watchEffect(() => (config.isBelowToolbar = props.belowToolbar))
 
 const isSelectorVisible = ref(false)
 
