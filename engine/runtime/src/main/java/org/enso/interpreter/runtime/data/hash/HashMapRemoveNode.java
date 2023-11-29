@@ -1,5 +1,10 @@
 package org.enso.interpreter.runtime.data.hash;
 
+import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
+import org.enso.interpreter.node.expression.builtin.meta.HashCodeNode;
+import org.enso.interpreter.runtime.error.DataflowError;
+
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.GenerateUncached;
@@ -10,10 +15,6 @@ import com.oracle.truffle.api.interop.StopIterationException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
-import org.enso.interpreter.node.expression.builtin.meta.HashCodeNode;
-import org.enso.interpreter.runtime.error.DataflowError;
 
 @BuiltinMethod(
     type = "Map",
@@ -31,16 +32,16 @@ public abstract class HashMapRemoveNode extends Node {
   public abstract EnsoHashMap execute(Object self, Object key);
 
   @Specialization
-  EnsoHashMap removeFromEnsoMap(EnsoHashMap ensoMap, Object key) {
-    var oldEntry = ensoMap.getMapBuilder().get(key);
-    if (oldEntry == null) {
-      throw DataflowError.withoutTrace("No such key", null);
+  EnsoHashMap removeFromEnsoMap(
+    EnsoHashMap ensoMap, Object key,
+      @Cached HashCodeNode hashCodeNode,
+      @Cached EqualsNode equalsNode
+  ) {
+    var mapBuilder = ensoMap.getMapBuilder(false);
+    if (mapBuilder.remove(key, hashCodeNode, equalsNode)) {
+      return mapBuilder.build();
     } else {
-      var newBuilder = ensoMap.getMapBuilder().duplicate();
-      if (!newBuilder.remove(key)) {
-        throw new IllegalStateException("Key '" + key + "' should be in the map");
-      }
-      return EnsoHashMap.createWithBuilder(newBuilder, newBuilder.getSize());
+      throw DataflowError.withoutTrace("No such key", null);
     }
   }
 
@@ -55,7 +56,7 @@ public abstract class HashMapRemoveNode extends Node {
     // use the default `hashCode` and `equals` Java methods. But we need to use our
     // EqualsNode, so we do the check for non-existing key inside the while loop.
     boolean keyToRemoveFound = false;
-    var mapBuilder = EnsoHashMapBuilder.create(hashCodeNode, equalsNode);
+    var mapBuilder = EnsoHashMapBuilder.create();
     try {
       Object entriesIterator = interop.getHashEntriesIterator(map);
       while (interop.hasIteratorNextElement(entriesIterator)) {
@@ -69,7 +70,7 @@ public abstract class HashMapRemoveNode extends Node {
           }
         } else {
           Object value = interop.readArrayElement(keyValueArr, 1);
-          mapBuilder.add(key, value);
+          mapBuilder = mapBuilder.put(key, value, hashCodeNode, equalsNode);
         }
       }
     } catch (UnsupportedMessageException | StopIterationException | InvalidArrayIndexException e) {
@@ -79,7 +80,7 @@ public abstract class HashMapRemoveNode extends Node {
       );
     }
     if (keyToRemoveFound) {
-      return EnsoHashMap.createWithBuilder(mapBuilder, mapBuilder.getSize());
+      return EnsoHashMap.createWithBuilder(mapBuilder, mapBuilder.generation());
     } else {
       CompilerDirectives.transferToInterpreter();
       throw DataflowError.withoutTrace("No such key " + keyToRemove, interop);
