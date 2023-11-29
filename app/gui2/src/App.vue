@@ -6,6 +6,7 @@ import { onMounted, toRef } from 'vue'
 
 const props = defineProps<{
   config: GuiConfig
+  metadata: object
 }>()
 
 provideGuiConfig(toRef(props, 'config'))

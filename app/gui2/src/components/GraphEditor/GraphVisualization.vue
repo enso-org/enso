@@ -32,14 +32,15 @@ const props = defineProps<{
   isCircularMenuVisible: boolean
   nodePosition: Vec2
   nodeSize: Vec2
+  scale: number
   typename?: string | undefined
   expressionId?: ExprId | undefined
   data?: any | undefined
 }>()
 const emit = defineEmits<{
   'update:rect': [rect: Rect | undefined]
-  setVisualizationId: [id: VisualizationIdentifier]
-  setVisualizationVisible: [visible: boolean]
+  'update:id': [id: VisualizationIdentifier]
+  'update:visible': [visible: boolean]
 }>()
 
 const visualization = shallowRef<Visualization>()
@@ -144,6 +145,9 @@ onUnmounted(() => emit('update:rect', undefined))
 
 provideVisualizationConfig({
   fullscreen: false,
+  get scale() {
+    return props.scale
+  },
   get width() {
     return width.value
   },
@@ -177,8 +181,8 @@ provideVisualizationConfig({
   get icon() {
     return icon.value
   },
-  hide: () => emit('setVisualizationVisible', false),
-  updateType: (id) => emit('setVisualizationId', id),
+  hide: () => emit('update:visible', false),
+  updateType: (id) => emit('update:id', id),
 })
 
 const effectiveVisualization = computed(() => {
