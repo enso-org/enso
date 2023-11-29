@@ -65,7 +65,10 @@ const expressionUpdatesDiagnostics = computed(() => {
         break
       }
       case 'DataflowError': {
-        diagnostics.push({ from, to, message: 'Unknown data flow error', severity: 'error' })
+        const error = projectStore.dataflowErrors.lookup(id)
+        if (error?.value?.message) {
+          diagnostics.push({ from, to, message: error.value.message, severity: 'error' })
+        }
         break
       }
     }

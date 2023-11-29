@@ -1,4 +1,5 @@
 import type { ExecutionContext } from '@/stores/project'
+import { ReactiveDb, ReactiveIndex } from '@/util/database/reactiveDb'
 import type {
   ExpressionId,
   ExpressionUpdate,
@@ -7,7 +8,6 @@ import type {
   ProfilingInfo,
 } from 'shared/languageServerTypes'
 import { markRaw } from 'vue'
-import { ReactiveDb, ReactiveIndex } from './database/reactiveDb'
 
 export interface ExpressionInfo {
   typename: string | undefined
@@ -32,6 +32,7 @@ export class ComputedValueRegistry {
 
   static WithExecutionContext(executionContext: ExecutionContext): ComputedValueRegistry {
     const self = new ComputedValueRegistry()
+    self.executionContext = executionContext
     executionContext.on('expressionUpdates', self._updateHandler)
     return self
   }
@@ -43,7 +44,8 @@ export class ComputedValueRegistry {
   processUpdates(updates: ExpressionUpdate[]) {
     for (const update of updates) {
       const info = this.db.get(update.expressionId)
-      this.db.set(update.expressionId, combineInfo(info, update))
+      const newInfo = combineInfo(info, update)
+      this.db.set(update.expressionId, newInfo)
     }
   }
 
