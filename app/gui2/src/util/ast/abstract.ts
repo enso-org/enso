@@ -101,7 +101,7 @@ export abstract class Ast {
 
   /** Returns child subtrees, without information about the whitespace between them. */
   *children(): IterableIterator<Ast | Token> {
-    for (const child of this._rawChildren()) {
+    for (const child of this.concreteChildren()) {
       if (child.node instanceof Token) {
         yield child.node
       } else {
@@ -111,7 +111,8 @@ export abstract class Ast {
     }
   }
 
-  abstract _rawChildren(): IterableIterator<NodeChild>
+  /** Returns child subtrees, including information about the whitespace between them. */
+  abstract concreteChildren(): IterableIterator<NodeChild>
 
   code(): string {
     return print(this).code
@@ -135,7 +136,7 @@ export abstract class Ast {
 
   visitRecursive(visit: (node: Ast | Token) => void) {
     visit(this)
-    for (const child of this._rawChildren()) {
+    for (const child of this.concreteChildren()) {
       if (child.node instanceof Token) {
         visit(child.node)
       } else {
@@ -152,7 +153,7 @@ export abstract class Ast {
 
   _print(info: InfoMap, offset: number, indent: string): string {
     let code = ''
-    for (const child of this._rawChildren()) {
+    for (const child of this.concreteChildren()) {
       if (
         child.node != null &&
         !(child.node instanceof Token) &&
@@ -236,7 +237,7 @@ export class App extends Ast {
     this._rightParen = rightParen
   }
 
-  *_rawChildren(): IterableIterator<NodeChild> {
+  *concreteChildren(): IterableIterator<NodeChild> {
     yield this._func
     if (this._leftParen) yield this._leftParen
     if (this._argumentName) yield this._argumentName
@@ -291,7 +292,7 @@ export class UnaryOprApp extends Ast {
     this._arg = arg
   }
 
-  *_rawChildren(): IterableIterator<NodeChild> {
+  *concreteChildren(): IterableIterator<NodeChild> {
     yield this._opr
     if (this._arg) yield this._arg
   }
@@ -337,7 +338,7 @@ export class OprApp extends Ast {
     this._rhs = rhs
   }
 
-  *_rawChildren(): IterableIterator<NodeChild> {
+  *concreteChildren(): IterableIterator<NodeChild> {
     if (this._lhs) yield this._lhs
     for (const opr of this._opr) yield opr
     if (this._rhs) yield this._rhs
@@ -364,8 +365,74 @@ export class Generic extends Ast {
     this._children = children ?? []
   }
 
-  _rawChildren(): IterableIterator<NodeChild> {
+  concreteChildren(): IterableIterator<NodeChild> {
     return this._children.values()
+  }
+}
+
+export class TextLiteral extends Ast {
+  private readonly open_: NodeChild<Token> | null
+  private readonly newline_: NodeChild<Token> | null
+  private readonly elements_: NodeChild[]
+  private readonly close_: NodeChild<Token> | null
+
+  constructor(
+    id: AstId | undefined,
+    open: NodeChild<Token> | null,
+    newline: NodeChild<Token> | null,
+    elements: NodeChild[],
+    close: NodeChild<Token> | null,
+    treeType?: RawAst.Tree.Type,
+  ) {
+    super(id, RawAst.Tree.Type.TextLiteral)
+    this.open_ = open
+    this.newline_ = newline
+    this.elements_ = elements
+    this.close_ = close
+  }
+
+  *concreteChildren(): IterableIterator<NodeChild> {
+    if (this.open_) yield this.open_
+    if (this.newline_) yield this.newline_
+    yield* this.elements_
+    if (this.close_) yield this.close_
+  }
+}
+
+export class Invalid extends Ast {
+  private readonly expression_: NodeChild<AstId>
+
+  constructor(id: AstId | undefined, expression: NodeChild<AstId>) {
+    super(id, RawAst.Tree.Type.Invalid)
+    this.expression_ = expression
+  }
+
+  *concreteChildren(): IterableIterator<NodeChild> {
+    yield this.expression_
+  }
+}
+
+export class Group extends Ast {
+  private readonly open_: NodeChild<Token> | undefined
+  private readonly expression_: NodeChild<AstId> | null
+  private readonly close_: NodeChild<Token> | undefined
+
+  constructor(
+    id: AstId | undefined,
+    open: NodeChild<Token> | undefined,
+    expression: NodeChild<AstId> | null,
+    close: NodeChild<Token> | undefined,
+  ) {
+    super(id, RawAst.Tree.Type.Group)
+    this.open_ = open
+    this.expression_ = expression
+    this.close_ = close
+  }
+
+  *concreteChildren(): IterableIterator<NodeChild> {
+    if (this.open_) yield this.open_
+    if (this.expression_) yield this.expression_
+    if (this.close_) yield this.close_
   }
 }
 
@@ -377,7 +444,7 @@ export class NumericLiteral extends Ast {
     this._tokens = tokens ?? []
   }
 
-  _rawChildren(): IterableIterator<NodeChild> {
+  concreteChildren(): IterableIterator<NodeChild> {
     return this._tokens.values()
   }
 }
@@ -398,7 +465,7 @@ export class Function extends Ast {
   }
   *bodyExpressions(): IterableIterator<Ast> {
     const body = this._body ? getNode(this._body.node) : null
-    if (body instanceof Block) {
+    if (body instanceof BodyBlock) {
       yield* body.expressions()
     } else if (body !== null) {
       yield body
@@ -417,7 +484,7 @@ export class Function extends Ast {
     this._equals = equals
     this._body = body
   }
-  *_rawChildren(): IterableIterator<NodeChild> {
+  *concreteChildren(): IterableIterator<NodeChild> {
     yield this._name
     for (const arg of this._args) yield* arg
     yield { whitespace: this._equals.whitespace ?? ' ', node: this._equals.node }
@@ -460,7 +527,7 @@ export class Assignment extends Ast {
     return new Assignment(id, pattern, equals, expression)
   }
    */
-  *_rawChildren(): IterableIterator<NodeChild> {
+  *concreteChildren(): IterableIterator<NodeChild> {
     yield this._pattern
     yield { whitespace: this._equals.whitespace ?? ' ', node: this._equals.node }
     if (this._expression !== null) {
@@ -473,7 +540,7 @@ type BlockLine = {
   newline: NodeChild<Token> // Edits (#8367): Allow undefined
   expression: NodeChild<AstId> | null
 }
-export class Block extends Ast {
+export class BodyBlock extends Ast {
   private _lines: BlockLine[];
 
   *expressions(): IterableIterator<Ast> {
@@ -510,7 +577,7 @@ export class Block extends Ast {
   }
    */
 
-  *_rawChildren(): IterableIterator<NodeChild> {
+  *concreteChildren(): IterableIterator<NodeChild> {
     for (const line of this._lines) {
       yield line.newline
       if (line.expression !== null) yield line.expression
@@ -556,7 +623,7 @@ export class Ident extends Ast {
   }
    */
 
-  *_rawChildren(): IterableIterator<NodeChild> {
+  *concreteChildren(): IterableIterator<NodeChild> {
     yield this.token
   }
 }
@@ -569,7 +636,7 @@ export class Wildcard extends Ast {
     this.token = token
   }
 
-  *_rawChildren(): IterableIterator<NodeChild> {
+  *concreteChildren(): IterableIterator<NodeChild> {
     yield this.token
   }
 }
@@ -646,7 +713,7 @@ function abstractTree(
         return { newline, expression }
       })
       const id = nodesExpected.get(spanKey)?.pop()
-      node = new Block(id, lines).exprId
+      node = new BodyBlock(id, lines).exprId
       break
     }
     case RawAst.Tree.Type.Function: {
@@ -745,6 +812,29 @@ function abstractTree(
       node = recurseTree(tree.ast).node
       break
     }
+    case RawAst.Tree.Type.Invalid: {
+      const expression = recurseTree(tree.ast)
+      const id = nodesExpected.get(spanKey)?.pop()
+      node = new Invalid(id, expression).exprId
+      break
+    }
+    case RawAst.Tree.Type.Group: {
+      const open = tree.open ? recurseToken(tree.open) : undefined
+      const expression = tree.body ? recurseTree(tree.body) : null
+      const close = tree.close ? recurseToken(tree.close) : undefined
+      const id = nodesExpected.get(spanKey)?.pop()
+      node = new Group(id, open, expression, close).exprId
+      break
+    }
+    case RawAst.Tree.Type.TextLiteral: {
+      const open = tree.open ? recurseToken(tree.open) : null
+      const newline = tree.newline ? recurseToken(tree.newline) : null
+      const elements = visitChildren(tree)
+      const close = tree.close ? recurseToken(tree.close) : null
+      const id = nodesExpected.get(spanKey)?.pop()
+      node = new TextLiteral(id, open, newline, elements, close).exprId
+      break
+    }
     default: {
       const id = nodesExpected.get(spanKey)?.pop()
       node = new Generic(id, visitChildren(tree), tree.type).exprId
@@ -765,7 +855,6 @@ function abstractToken(
   const codeStart = token.startInCodeBuffer
   const codeEnd = codeStart + token.lengthInCodeBuffer
   const tokenCode = code.substring(codeStart, codeEnd)
-  const span = { start: codeStart, end: codeEnd, whitespaceLength: whitespaceEnd - whitespaceStart }
   const key = tokenKey(codeStart, codeEnd - codeStart)
   const exprId = tokenIds.get(key) ?? newTokenId()
   const node = new Token(tokenCode, exprId, token.type)
@@ -805,7 +894,7 @@ export function print(ast: Ast): PrintedSource {
 
 type DebugTree = (DebugTree | string)[]
 export function debug(root: Ast, universe?: Map<AstId, Ast>): DebugTree {
-  return Array.from(root._rawChildren(), (child) => {
+  return Array.from(root.concreteChildren(), (child) => {
     if (child.node instanceof Token) {
       return child.node.code()
     } else {
@@ -836,9 +925,9 @@ export function findModuleMethod(name: string, universe?: Map<AstId, Ast>): Func
   return null
 }
 
-export function functionBlock(name: string): Block | null {
+export function functionBlock(name: string): BodyBlock | null {
   const method = findModuleMethod(name)
-  if (!method || !(method.body instanceof Block)) return null
+  if (!method || !(method.body instanceof BodyBlock)) return null
   return method.body
 }
 
@@ -892,10 +981,17 @@ export function parseTransitional(code: string, idMap: IdMap): Ast {
       tokens.set(tokenKey(start, length), token.astId as TokenId)
     } else if (nodeOrToken.isTree()) {
       const node: RawAstExtended<RawAst.Tree> = nodeOrToken
-      if (node.isTree(RawAst.Tree.Type.OprSectionBoundary) || node.isTree(RawAst.Tree.Type.TemplateFunction))
+      if (
+        node.isTree(RawAst.Tree.Type.OprSectionBoundary) ||
+        node.isTree(RawAst.Tree.Type.TemplateFunction)
+      )
         return true
       let id = node.astId as AstId
-      if (astExtended.has(id)) {
+      const preexisting = astExtended.get(id)
+      if (preexisting) {
+        if (!preexisting.isTree(RawAst.Tree.Type.Invalid)) {
+          console.warn(`Unexpected duplicate UUID in tree`, id)
+        }
         id = newNodeId()
       }
       astExtended.set(id, nodeOrToken)

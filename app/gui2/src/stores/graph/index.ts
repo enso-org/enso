@@ -10,7 +10,7 @@ import {
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { DEFAULT_VISUALIZATION_IDENTIFIER } from '@/stores/visualization'
-import { RawAst, Ast } from '@/util/ast'
+import { Ast, RawAst } from '@/util/ast'
 import { useObserveYjs } from '@/util/crdt'
 import type { Opt } from '@/util/opt'
 import { Rect } from '@/util/rect'
@@ -96,7 +96,11 @@ export const useGraphStore = defineStore('graph', () => {
 
       imports.value = []
       newRoot.visitRecursive((node) => {
-        if (node instanceof Ast.Ast && node.astExtended && node.astExtended.isTree(RawAst.Tree.Type.Import)) {
+        if (
+          node instanceof Ast.Ast &&
+          node.astExtended &&
+          node.astExtended.isTree(RawAst.Tree.Type.Import)
+        ) {
           const recognized = recognizeImport(node.astExtended)
           if (recognized) {
             imports.value.push({ import: recognized, span: node.astExtended.span() })

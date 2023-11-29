@@ -247,10 +247,7 @@ export class GraphDb {
     this.nodeIdToNode.moveToLast(id)
   }
 
-  readFunctionAst(
-    functionAst_: Ast.Function,
-    getMeta: (id: ExprId) => NodeMetadata | undefined,
-  ) {
+  readFunctionAst(functionAst_: Ast.Function, getMeta: (id: ExprId) => NodeMetadata | undefined) {
     const currentNodeIds = new Set<ExprId>()
     for (const nodeAst of functionAst_.bodyExpressions()) {
       const newNode = nodeFromAst(nodeAst)
@@ -261,13 +258,23 @@ export class GraphDb {
       if (node == null) {
         this.nodeIdToNode.set(nodeId, newNode)
       } else {
-        if (!byteArraysEqual(node.pattern?.astExtended?.contentHash(), newNode.pattern?.astExtended?.contentHash())) {
+        if (
+          !byteArraysEqual(
+            node.pattern?.astExtended?.contentHash(),
+            newNode.pattern?.astExtended?.contentHash(),
+          )
+        ) {
           node.pattern = newNode.pattern
         }
         if (node.outerExprId !== newNode.outerExprId) {
           node.outerExprId = newNode.outerExprId
         }
-        if (!byteArraysEqual(node.rootSpan.astExtended?.contentHash(), newNode.rootSpan.astExtended?.contentHash())) {
+        if (
+          !byteArraysEqual(
+            node.rootSpan.astExtended?.contentHash(),
+            newNode.rootSpan.astExtended?.contentHash(),
+          )
+        ) {
           node.rootSpan = newNode.rootSpan
         }
       }

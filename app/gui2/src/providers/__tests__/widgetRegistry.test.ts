@@ -50,7 +50,7 @@ describe('WidgetRegistry', () => {
     'D',
     defineWidget(RawAstExtended, {
       priority: 20,
-      score: (props) => (props.input.repr() === '_' ? Score.Perfect : Score.Mismatch),
+      score: (props) => (props.input.code() === '_' ? Score.Perfect : Score.Mismatch),
     }),
   )
 

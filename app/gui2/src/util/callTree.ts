@@ -2,7 +2,7 @@ import type { ForcePort } from '@/providers/portInfo'
 import type { SuggestionEntry, SuggestionEntryArgument } from '@/stores/suggestionDatabase/entry'
 import type { MethodCall } from 'shared/languageServerTypes'
 import { tryGetIndex } from './array'
-import { RawAst, type RawAstExtended } from './ast'
+import { Ast } from './ast'
 
 export const enum ApplicationKind {
   Prefix,
@@ -23,7 +23,7 @@ export class ArgumentPlaceholder {
 
 export class ArgumentAst {
   constructor(
-    public ast: RawAstExtended<RawAst.Tree>,
+    public ast: Ast.Ast,
     public index: number | undefined,
     public info: SuggestionEntryArgument | undefined,
     public kind: ApplicationKind,
@@ -34,65 +34,54 @@ type InterpretedCall = AnalyzedInfix | AnalyzedPrefix
 
 interface AnalyzedInfix {
   kind: 'infix'
-  appTree: RawAstExtended<RawAst.Tree.OprApp>
-  operator: RawAstExtended<RawAst.Token.Operator> | undefined
-  lhs: RawAstExtended<RawAst.Tree> | undefined
-  rhs: RawAstExtended<RawAst.Tree> | undefined
+  appTree: Ast.OprApp
+  operator: Ast.Token | undefined
+  lhs: Ast.Ast | undefined
+  rhs: Ast.Ast | undefined
 }
 
 interface AnalyzedPrefix {
   kind: 'prefix'
-  func: RawAstExtended<RawAst.Tree>
+  func: Ast.Ast
   args: FoundApplication[]
 }
 
 interface FoundApplication {
-  appTree: RawAstExtended<RawAst.Tree.App | RawAst.Tree.NamedApp>
-  argument: RawAstExtended<RawAst.Tree>
+  appTree: Ast.App
+  argument: Ast.Ast
   argName: string | undefined
 }
 
 export class ArgumentApplication {
   private constructor(
-    public appTree: RawAstExtended<RawAst.Tree> | undefined,
-    public target:
-      | ArgumentApplication
-      | RawAstExtended<RawAst.Tree>
-      | ArgumentPlaceholder
-      | ArgumentAst,
-    public infixOperator: RawAstExtended<RawAst.Token.Operator> | undefined,
-    public argument: RawAstExtended<RawAst.Tree> | ArgumentAst | ArgumentPlaceholder,
+    public appTree: Ast.Ast | undefined,
+    public target: ArgumentApplication | Ast.Ast | ArgumentPlaceholder | ArgumentAst,
+    public infixOperator: Ast.Token | undefined,
+    public argument: Ast.Ast | ArgumentAst | ArgumentPlaceholder,
   ) {}
 
-  static Interpret(
-    callRoot: RawAstExtended<RawAst.Tree>,
-    allowInterpretAsInfix: boolean,
-  ): InterpretedCall {
-    if (allowInterpretAsInfix && callRoot.isTree([RawAst.Tree.Type.OprApp])) {
+  static Interpret(callRoot: Ast.Ast, allowInterpretAsInfix: boolean): InterpretedCall {
+    if (allowInterpretAsInfix && callRoot instanceof Ast.OprApp) {
       // Infix chains are handled one level at a time. Each application may have at most 2 arguments.
       return {
         kind: 'infix',
         appTree: callRoot,
-        operator: callRoot.tryMap((t) => (t.opr.ok ? t.opr.value : undefined)),
-        lhs: callRoot.tryMap((t) => t.lhs),
-        rhs: callRoot.tryMap((t) => t.rhs),
+        operator: callRoot.operator.ok ? callRoot.operator.value : undefined,
+        lhs: callRoot.lhs ?? undefined,
+        rhs: callRoot.rhs ?? undefined,
       }
     } else {
       // Prefix chains are handled all at once, as they may have arbitrary number of arguments.
       const foundApplications: FoundApplication[] = []
       let nextApplication = callRoot
       // Traverse the AST and find all arguments applied in sequence to the same function.
-      while (nextApplication.isTree([RawAst.Tree.Type.App, RawAst.Tree.Type.NamedApp])) {
-        const argument = nextApplication.map((t) => t.arg)
-        const argName = nextApplication.isTree(RawAst.Tree.Type.NamedApp)
-          ? nextApplication.map((t) => t.name).repr()
-          : undefined
+      while (nextApplication instanceof Ast.App) {
         foundApplications.push({
           appTree: nextApplication,
-          argument,
-          argName,
+          argument: nextApplication.argument,
+          argName: nextApplication.argumentName?.code() ?? undefined,
         })
-        nextApplication = nextApplication.map((t) => t.func)
+        nextApplication = nextApplication.function
       }
       return {
         kind: 'prefix',
@@ -110,7 +99,7 @@ export class ArgumentApplication {
     appMethodCall: MethodCall | undefined,
     suggestion: SuggestionEntry | undefined,
     stripSelfArgument: boolean = false,
-  ): ArgumentApplication | RawAstExtended<RawAst.Tree> {
+  ): ArgumentApplication | Ast.Ast {
     const knownArguments = suggestion?.arguments
 
     if (interpreted.kind === 'infix') {
@@ -154,11 +143,11 @@ export class ArgumentApplication {
     )
 
     const prefixArgsToDisplay: Array<{
-      appTree: RawAstExtended<RawAst.Tree>
+      appTree: Ast.Ast
       argument: ArgumentAst | ArgumentPlaceholder
     }> = []
 
-    function insertPlaceholdersUpto(index: number, appTree: RawAstExtended<RawAst.Tree>) {
+    function insertPlaceholdersUpto(index: number, appTree: Ast.Ast) {
       while (placeholdersToInsert[0] != null && placeholdersToInsert[0] < index) {
         const argIndex = placeholdersToInsert.shift()
         const argInfo = tryGetIndex(knownArguments, argIndex)
@@ -207,7 +196,7 @@ export class ArgumentApplication {
     insertPlaceholdersUpto(Infinity, interpreted.func)
 
     return prefixArgsToDisplay.reduce(
-      (target: ArgumentApplication | RawAstExtended<RawAst.Tree>, toDisplay) =>
+      (target: ArgumentApplication | Ast.Ast, toDisplay) =>
         new ArgumentApplication(toDisplay.appTree, target, undefined, toDisplay.argument),
       interpreted.func,
     )
@@ -221,17 +210,12 @@ const unknownArgInfoNamed = (name: string) => ({
   hasDefault: false,
 })
 
-function getAccessOprSubject(app: RawAstExtended): RawAstExtended<RawAst.Tree> | undefined {
-  if (
-    app.isTree([RawAst.Tree.Type.OprApp]) &&
-    isAccessOperator(app.tryMap((t) => (t.opr.ok ? t.opr.value : undefined)))
-  ) {
-    return app.tryMap((t) => t.lhs)
-  }
+function getAccessOprSubject(app: Ast.Ast): Ast.Ast | undefined {
+  if (app instanceof Ast.PropertyAccess) return app.lhs ?? undefined
 }
 
-function isAccessOperator(opr: RawAstExtended<RawAst.Token.Operator> | undefined): boolean {
-  return opr != null && opr.repr() === '.'
+function isAccessOperator(opr: Ast.Token | undefined): boolean {
+  return opr != null && opr.code() === '.'
 }
 
 declare const ArgumentApplicationKey: unique symbol

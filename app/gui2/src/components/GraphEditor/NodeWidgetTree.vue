@@ -10,8 +10,8 @@ import NodeWidget from './NodeWidget.vue'
 const props = defineProps<{ ast: Ast.Ast }>()
 const graph = useGraphStore()
 const rootPort = computed(() => {
-  return props.ast instanceof Ast.Ident && !graph.db.isKnownFunctionCall(props.ast.astId) && props.ast.astExtended
-    ? new ForcePort(props.ast.astExtended)
+  return props.ast instanceof Ast.Ident && !graph.db.isKnownFunctionCall(props.ast.astId)
+    ? new ForcePort(props.ast)
     : props.ast
 })
 
