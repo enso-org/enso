@@ -139,6 +139,26 @@ public class JavaInteropTest extends TestBase {
       assertEquals("Compile error: nonFinalTwo is not a constant.", e.getMessage());
     }
   }
+  @Test
+  public void testShortConstant() {
+    var code = """
+        from Standard.Base import IO
+        polyglot java import org.enso.example.TestClass
+
+        to_string x = case x of
+          TestClass.FINAL_ONE -> "int"
+          TestClass.SHORT_ONE -> "short"
+          TestClass.LONG_ONE -> "long"
+          _ -> "none"
+
+        main =
+            IO.println <| to_string 1
+            IO.println <| to_string 2
+            IO.println <| to_string 3
+            IO.println <| to_string 4
+        """;
+    checkPrint(code, List.of("int", "none", "short", "long"));
+  }
 
   @Test
   public void testImportOuterClassAndReferenceInner() {
