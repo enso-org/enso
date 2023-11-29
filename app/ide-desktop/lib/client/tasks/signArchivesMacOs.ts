@@ -88,6 +88,10 @@ async function ensoPackageSignables(resourcesDir: string): Promise<Signable[]> {
             ],
         ],
         [
+            `component/truffle-nfi-libffi-23.1.0.jar`,
+            ['META-INF/resources/nfi-native/libnfi/darwin/*/bin/libtrufflenfi.dylib'],
+        ],
+        [
             `component/truffle-runtime-23.1.0.jar`,
             [
                 'META-INF/resources/engine/libtruffleattach/darwin/amd64/bin/libtruffleattach.dylib',
