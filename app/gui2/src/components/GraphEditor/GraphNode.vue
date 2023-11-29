@@ -21,7 +21,7 @@ import { computed, ref, watch, watchEffect } from 'vue'
 const MAXIMUM_CLICK_LENGTH_MS = 300
 const MAXIMUM_CLICK_DISTANCE_SQ = 50
 /** The width in pixels that is not the widget tree. This includes the icon, and padding. */
-const NODE_EXTRA_WIDTH_PX = 32
+const NODE_EXTRA_WIDTH_PX = 30
 
 const props = defineProps<{
   node: Node
@@ -286,7 +286,10 @@ function portGroupStyle(port: PortData) {
       :currentType="props.node.vis"
       :expressionId="props.node.rootSpan.astId"
       :typename="expressionInfo?.typename"
-      @update:rect="emit('update:visualizationRect', $event)"
+      @update:rect="
+        emit('update:visualizationRect', $event),
+          (widthOverridePx = $event && $event.size.x > baseNodeSize.x ? $event.size.x : undefined)
+      "
       @update:id="emit('update:visualizationId', $event)"
       @update:visible="emit('update:visualizationVisible', $event)"
     />
@@ -441,6 +444,7 @@ function portGroupStyle(port: PortData) {
   align-items: center;
   white-space: nowrap;
   padding: 4px;
+  padding-right: 8px;
   z-index: 2;
   transition: outline 0.2s ease;
   outline: 0px solid transparent;
