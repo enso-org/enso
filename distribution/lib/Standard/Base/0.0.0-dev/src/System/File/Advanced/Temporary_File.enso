@@ -26,7 +26,7 @@ type Temporary_File
     ## PRIVATE
        Gets the raw file reference.
        Note that the underlying file may be deleted at any time, once `self` is
-       unreachable.
+       unreachable - so this method has to be used with extra care.
     unsafe_get : File
     unsafe_get self = self.with_file (f->f)
 
@@ -61,7 +61,7 @@ type Temporary_File
     ## PRIVATE
        Materializes the provided `Input_Stream` into a `Temporary_File`.
        It will work the same regardless of whether the output context is enabled.
-    from_stream : Input_Stream
+    from_stream : Input_Stream -> Temporary_File
     from_stream stream = Context.Output.with_enabled <|
         tmp_file = Temporary_File.new "enso-materialized-stream" ".tmp"
         handler caught_panic =
@@ -72,6 +72,15 @@ type Temporary_File
                 Panic.rethrow <| stream.write_to_file file
         tmp_file
 
+    ## PRIVATE
+       Materializes the provided `Input_Stream` into a `Temporary_File`.
+       If the stream is already backed by a temporary or regular file, that file is returned.
+    from_stream_light : Input_Stream -> Temporary_File | File
+    from_stream_light stream =
+        case stream.associated_file of
+            tmp : Temporary_File -> tmp
+            file : File -> file
+            _ -> Temporary_File.from_stream stream
 
 ## PRIVATE
 cleanup_tmp_file file =

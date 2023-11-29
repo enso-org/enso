@@ -59,23 +59,22 @@ type Response_Body
     Raw_Stream (raw_stream:Input_Stream) (content_type:Text|Nothing) uri:URI
 
     ## PRIVATE
-    Byte_Array (bytes:Vector) (content_type:Text|Nothing) uri:URI
+    Materialized_Byte_Array (bytes:Vector) (content_type:Text|Nothing) uri:URI
 
     ## PRIVATE
-    Temporary_File (file_resource:Managed_Resource) (content_type:Text|Nothing) uri:URI
+    Materialized_Temporary_File (temporary_file:Temporary_File) (content_type:Text|Nothing) uri:URI
 
     ## PRIVATE
     with_stream : (Input_Stream -> Any ! HTTP_Error) -> Any ! HTTP_Error
     with_stream self action = case self of
         Response_Body.Raw_Stream raw_stream _ _ ->
             Managed_Resource.bracket raw_stream (_.close) action
-        Response_Body.Byte_Array bytes _ _ ->
+        Response_Body.Materialized_Byte_Array bytes _ _ ->
             byte_stream = Input_Stream.new (ByteArrayInputStream.new bytes) (HTTP_Error.handle_java_exceptions self.uri)
             Managed_Resource.bracket byte_stream (_.close) action
-        Response_Body.Temporary_File file_resource _ _ -> file_resource.with file->
-            opts = [File_Access.Read.to_java]
+        Response_Body.Materialized_Temporary_File temporary_file _ _ -> temporary_file.with_file file->
             stream = HTTP_Error.handle_java_exceptions self.uri (file.input_stream_builtin opts)
-            file_stream = Input_Stream.new stream (HTTP_Error.handle_java_exceptions self.uri)
+            file_stream = Input_Stream.new stream (HTTP_Error.handle_java_exceptions self.uri) associated_file=temporary_file
             Managed_Resource.bracket (file_stream) (_.close) action
 
     ## PRIVATE

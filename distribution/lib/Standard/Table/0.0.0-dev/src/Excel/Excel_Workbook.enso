@@ -6,6 +6,7 @@ import Standard.Base.Metadata.Display
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 import Standard.Base.Runtime.Ref.Ref
 import Standard.Base.System.Input_Stream.Input_Stream
+import Standard.Base.System.File.Advanced.Temporary_File.Temporary_File
 from Standard.Base.Data.Filter_Condition import sql_like_to_regex
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Single_Choice
@@ -32,8 +33,9 @@ type Excel_Workbook
        - file: The file to load.
        - xls_format: Whether to use the old XLS format (default is XLSX).
        - headers: Whether to use the first row as headers (default is to infer).
-    new : File | Text -> Boolean -> Boolean | Infer -> Excel_Workbook
+    new : File | Text | Temporary_File -> Boolean -> Boolean | Infer -> Excel_Workbook
     new file xls_format=False headers=Infer =
+        # TODO handle temporary file
         file_obj = File.new file . absolute . normalize
         format = if xls_format then ExcelFileFormat.XLS else ExcelFileFormat.XLSX
         File_Error.handle_java_exceptions file_obj <| Excel_Reader.handle_bad_format file_obj <| Illegal_State.handle_java_exception <|
@@ -52,12 +54,12 @@ type Excel_Workbook
        - file: Optional file reference.
     from_stream : Input_Stream -> Boolean -> Boolean | Infer -> File | Nothing -> Excel_Workbook
     from_stream stream xls_format=False headers=Infer file=Nothing = Excel_Reader.handle_bad_format file <|
-        temp_file = stream.materialize_to_temporary_file
+        temp_file = Temporary_File.from_stream_light stream
         Excel_Workbook.new temp_file xls_format headers
 
     ## PRIVATE
        Creates an Excel_Workbook connection.
-    Value (excel_connection_resource_ref : Ref (Managed_Resource ReadOnlyExcelConnection)) (file:(File|Nothing)) xls_format:Boolean headers:(Boolean|Infer)
+    Value (excel_connection_resource_ref : Ref (Managed_Resource ReadOnlyExcelConnection)) (file:(File|Temporary_File|Nothing)) xls_format:Boolean headers:(Boolean|Infer)
 
     ## Returns the list of databases (or catalogs) for the connection.
     databases : Nothing
@@ -65,7 +67,11 @@ type Excel_Workbook
 
     ## Returns the name of the current database (or catalog).
     database : Text
-    database self = if self.file.is_nothing then "" else self.file.path
+    database self = case self.file of
+        regular_file : File -> regular_file.path
+        ## A Temporary_File is still visualized as no path, because the fact that the workbook is stored as a file is
+           just an implementation detail - it is coming form a stream so there is no logical file it is associated with.
+        _ -> ""
 
     ## Returns a new Connection with the specified database set as default.
 
