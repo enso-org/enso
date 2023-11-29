@@ -316,6 +316,18 @@ class RuntimeVisualizationsTest
     val Some(Api.Response(_, Api.InitializedNotification())) = context.receive
   }
 
+  override protected def afterEach(): Unit = {
+    if (context != null) {
+      context.reset()
+      context.executionContext.context.close()
+      context.runtimeServerEmulator.terminate()
+      context.lockManager.reset()
+      context.out.reset()
+      FileUtils.deleteQuietly(context.tmpDir.toFile)
+      context = null
+    }
+  }
+
   it should "emit visualization update when expression is computed" in {
     val idMainRes  = context.Main.metadata.addItem(99, 1)
     val contents   = context.Main.code
