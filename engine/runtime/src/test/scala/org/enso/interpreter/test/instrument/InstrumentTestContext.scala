@@ -106,6 +106,10 @@ class InstrumentTestContext {
         true
     }
 
+  def reset(): Unit = {
+    messageQueue.clear()
+  }
+
 }
 
 object InstrumentTestContext {

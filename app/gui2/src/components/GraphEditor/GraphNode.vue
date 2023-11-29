@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { nodeEditBindings } from '@/bindings'
 import CircularMenu from '@/components/CircularMenu.vue'
+import GraphNodeError from '@/components/GraphEditor/GraphNodeError.vue'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import NodeWidgetTree from '@/components/GraphEditor/NodeWidgetTree.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
@@ -8,6 +9,7 @@ import { useDoubleClick } from '@/composables/doubleClick'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { useGraphStore, type Node } from '@/stores/graph'
+import { useProjectStore } from '@/stores/project'
 import { useApproach } from '@/util/animation'
 import { usePointer, useResizeObserver } from '@/util/events'
 import { displayedIconOf } from '@/util/getIconName'
@@ -45,6 +47,7 @@ const emit = defineEmits<{
 }>()
 
 const nodeSelection = injectGraphSelection(true)
+const projectStore = useProjectStore()
 const graph = useGraphStore()
 const navigator = injectGraphNavigator(true)
 
@@ -63,6 +66,20 @@ const baseNodeSize = computed(
   () => new Vec2((contentNode.value?.scrollWidth ?? 0) + NODE_EXTRA_WIDTH_PX, nodeSize.value.y),
 )
 const menuVisible = ref(false)
+
+const error = computed(() => {
+  const info = projectStore.computedValueRegistry.db.get(nodeId.value)
+  switch (info?.payload.type) {
+    case 'Panic': {
+      return info.payload.message
+    }
+    case 'DataflowError': {
+      return projectStore.dataflowErrors.lookup(nodeId.value)?.value?.message.split(' (at')[0]
+    }
+    default:
+      return undefined
+  }
+})
 
 const isSelected = computed(() => nodeSelection?.isSelected(nodeId.value) ?? false)
 watch(isSelected, (selected) => {
@@ -304,6 +321,7 @@ function portGroupStyle(port: PortData) {
         <NodeWidgetTree :ast="node.rootSpan" />
       </div>
     </div>
+    <GraphNodeError v-if="error" class="error" :error="error" />
     <svg class="bgPaths" :style="bgStyleVariables">
       <rect class="bgFill" />
       <template v-for="port of outputPorts" :key="port.portId">
@@ -517,5 +535,11 @@ function portGroupStyle(port: PortData) {
 
 .CircularMenu {
   z-index: 1;
+}
+
+.error {
+  position: absolute;
+  top: 100%;
+  margin-top: 4px;
 }
 </style>
