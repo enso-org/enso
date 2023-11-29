@@ -130,7 +130,7 @@ spec =
 
             count f.read . should_equal 30
 
-            # ensure correct format is used even for .bak file
+            # ensure correct format is used for reading the .bak file
             format = Auto_Detect.get_reading_format f
             count (f_bak.read format) . should_equal 10
 
