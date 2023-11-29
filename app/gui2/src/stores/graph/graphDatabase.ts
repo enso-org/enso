@@ -120,17 +120,13 @@ export class GraphDb {
   private nodeIdToPatternExprIds = new ReactiveIndex(this.nodeIdToNode, (id, entry) => {
     if (entry.pattern == null) return []
     const exprs = new Set<ExprId>()
-    for (const ast of entry.pattern.walkRecursive()) {
-      exprs.add(ast.astId)
-    }
+    entry.pattern.visitRecursive((astOrToken) => exprs.add(astOrToken.exprId))
     return Array.from(exprs, (expr) => [id, expr])
   })
 
   private nodeIdToExprIds = new ReactiveIndex(this.nodeIdToNode, (id, entry) => {
     const exprs = new Set<ExprId>()
-    for (const ast of entry.rootSpan.walkRecursive()) {
-      exprs.add(ast.astId)
-    }
+    entry.rootSpan.visitRecursive((astOrToken) => exprs.add(astOrToken.exprId))
     return Array.from(exprs, (expr) => [id, expr])
   })
 
@@ -255,33 +251,28 @@ export class GraphDb {
     functionAst_: Ast.Function,
     getMeta: (id: ExprId) => NodeMetadata | undefined,
   ) {
-    const functionAst = functionAst_.astExtended
-    if (!functionAst) return
-    if (!functionAst.isTree(RawAst.Tree.Type.Function)) return
     const currentNodeIds = new Set<ExprId>()
-    if (functionAst) {
-      for (const nodeAst of functionAst.visit(getFunctionNodeExpressions)) {
-        const newNode = nodeFromAst(nodeAst)
-        const nodeId = newNode.rootSpan.astId
-        const node = this.nodeIdToNode.get(nodeId)
-        const nodeMeta = getMeta(nodeId)
-        currentNodeIds.add(nodeId)
-        if (node == null) {
-          this.nodeIdToNode.set(nodeId, newNode)
-        } else {
-          if (!byteArraysEqual(node.pattern?.contentHash(), newNode.pattern?.contentHash())) {
-            node.pattern = newNode.pattern
-          }
-          if (node.outerExprId !== newNode.outerExprId) {
-            node.outerExprId = newNode.outerExprId
-          }
-          if (!byteArraysEqual(node.rootSpan.contentHash(), newNode.rootSpan.contentHash())) {
-            node.rootSpan = newNode.rootSpan
-          }
+    for (const nodeAst of functionAst_.bodyExpressions()) {
+      const newNode = nodeFromAst(nodeAst)
+      const nodeId = newNode.rootSpan.astId
+      const node = this.nodeIdToNode.get(nodeId)
+      const nodeMeta = getMeta(nodeId)
+      currentNodeIds.add(nodeId)
+      if (node == null) {
+        this.nodeIdToNode.set(nodeId, newNode)
+      } else {
+        if (!byteArraysEqual(node.pattern?.astExtended?.contentHash(), newNode.pattern?.astExtended?.contentHash())) {
+          node.pattern = newNode.pattern
         }
-        if (nodeMeta) {
-          this.assignUpdatedMetadata(node ?? newNode, nodeMeta)
+        if (node.outerExprId !== newNode.outerExprId) {
+          node.outerExprId = newNode.outerExprId
         }
+        if (!byteArraysEqual(node.rootSpan.astExtended?.contentHash(), newNode.rootSpan.astExtended?.contentHash())) {
+          node.rootSpan = newNode.rootSpan
+        }
+      }
+      if (nodeMeta) {
+        this.assignUpdatedMetadata(node ?? newNode, nodeMeta)
       }
     }
 
@@ -291,6 +282,9 @@ export class GraphDb {
       }
     }
 
+    const functionAst = functionAst_.astExtended
+    if (!functionAst) return
+    if (!functionAst.isTree(RawAst.Tree.Type.Function)) return
     this.bindings.readFunctionAst(functionAst)
   }
 
@@ -311,8 +305,8 @@ export class GraphDb {
   mockNode(binding: string, id: ExprId, code?: string) {
     const node = {
       outerExprId: id,
-      pattern: RawAstExtended.parse(binding, IdMap.Mock()),
-      rootSpan: RawAstExtended.parse(code ?? '0', IdMap.Mock()),
+      pattern: Ast.parse(binding),
+      rootSpan: Ast.parse(code ?? '0'),
       position: Vec2.Zero,
       vis: undefined,
     }
@@ -324,42 +318,29 @@ export class GraphDb {
 
 export interface Node {
   outerExprId: ExprId
-  pattern: RawAstExtended<RawAst.Tree> | undefined
-  rootSpan: RawAstExtended<RawAst.Tree>
+  pattern: Ast.Ast | undefined
+  rootSpan: Ast.Ast
   position: Vec2
   vis: Opt<VisualizationMetadata>
 }
 
-function nodeFromAst(ast: RawAstExtended<RawAst.Tree>): Node {
-  if (ast.isTree(RawAst.Tree.Type.Assignment)) {
+function nodeFromAst(ast: Ast.Ast): Node {
+  const common = {
+    outerExprId: ast.exprId,
+    position: Vec2.Zero,
+    vis: undefined,
+  }
+  if (ast instanceof Ast.Assignment && ast.expression) {
     return {
-      outerExprId: ast.astId,
-      pattern: ast.map((t) => t.pattern),
-      rootSpan: ast.map((t) => t.expr),
-      position: Vec2.Zero,
-      vis: undefined,
+      ...common,
+      pattern: ast.pattern ?? undefined,
+      rootSpan: ast.expression,
     }
   } else {
     return {
-      outerExprId: ast.astId,
+      ...common,
       pattern: undefined,
       rootSpan: ast,
-      position: Vec2.Zero,
-      vis: undefined,
-    }
-  }
-}
-
-function* getFunctionNodeExpressions(func: RawAst.Tree.Function): Generator<RawAst.Tree> {
-  if (func.body) {
-    if (func.body.type === RawAst.Tree.Type.BodyBlock) {
-      for (const stmt of func.body.statements) {
-        if (stmt.expression && stmt.expression.type !== RawAst.Tree.Type.Function) {
-          yield stmt.expression
-        }
-      }
-    } else {
-      yield func.body
     }
   }
 }

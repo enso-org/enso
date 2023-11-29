@@ -68,6 +68,11 @@ export class Token {
     this._tokenType = type
   }
 
+  // Compatibility wrapper for `exprId`.
+  get astId(): TokenId {
+    return this.exprId
+  }
+
   code(): string {
     return this._code
   }
@@ -90,6 +95,10 @@ export abstract class Ast {
     return this._id
   }
 
+  get astId(): AstId {
+    return this._id
+  }
+
   /** Returns child subtrees, without information about the whitespace between them. */
   *children(): IterableIterator<Ast | Token> {
     for (const child of this._rawChildren()) {
@@ -106,6 +115,10 @@ export abstract class Ast {
 
   code(): string {
     return print(this).code
+  }
+
+  repr(): string {
+    return this.code()
   }
 
   typeName(): string | undefined {
