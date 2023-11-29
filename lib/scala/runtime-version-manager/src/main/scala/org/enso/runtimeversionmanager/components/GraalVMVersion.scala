@@ -17,10 +17,7 @@ case class GraalVMVersion(graalVersion: String, javaVersion: String) {
 
   /** @inheritdoc
     */
-  override def toString: String = {
-    val unchained = if (isUnchained) "(unchained)" else ""
-    s"GraalVM $graalVersion Java $javaVersion" + unchained
-  }
+  override def toString: String = s"GraalVM $graalVersion Java $javaVersion"
 
   def graalMajorVersion: Int = graalVersion.split("\\.").head.toInt
 
@@ -32,9 +29,10 @@ case class GraalVMVersion(graalVersion: String, javaVersion: String) {
     }
   }
 
-  /** The GraalVM distribution policy changed a lot since GraalVM 23.0.0 for JDK 21.
-    * The newest GraalVM is now distributed as artifacts from the Maven central, and therefore,
-    * does not need to be downloaded at runtime.
+  /** The GraalVM distribution policy changed a lot since GraalVM 23.1.0 for JDK 21.
+    * Most of the components for the newest GraalVM distributions are distributed as
+    * artifacts from the Maven central. This mens there is no longer `gu` tool.
+    *
     * @see https://medium.com/graalvm/truffle-unchained-13887b77b62c
     * @return true if this version is associated with Truffle unchained.
     */
