@@ -1,9 +1,10 @@
 <script setup lang="ts">
+import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import DropdownWidget from '@/components/widgets/DropdownWidget.vue'
 import { widgetProps } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
 import { qnJoin, qnSegments, tryQualifiedName } from '@/util/qualifiedName.ts'
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()
@@ -20,13 +21,16 @@ const tagLabels = computed(() => {
     return qnJoin(segments[0], segments[1])
   })
 })
+const rootElement = ref<HTMLElement>()
+const parentColor = ref<string>()
 
-const parentColor = computed(() => {
-  // TODO: Get the correct ID of the expression once the AST is updated.
-  // Then use `graph.db.getNodeColorStyle` to get the color.
-  console.warn('TODO: Get the correct ID of the expression once the AST is updated.')
-  return 'oklch(0.525859375 0.11519042968750001 181.7578125)'
+onMounted(async () => {
+  await nextTick()
+  if (rootElement.value != null) {
+    parentColor.value = getComputedStyle(rootElement.value).getPropertyValue('--node-color-primary')
+  }
 })
+
 const selectedIndex = ref<number>()
 const selectedValue = computed(() => {
   if (selectedIndex.value == null) return props.input.info?.defaultValue ?? ''
@@ -37,17 +41,11 @@ const showArgumentValue = ref(true)
 
 // When the selected index changes, we update the expression content.
 watch(selectedIndex, (_index) => {
-  console.warn('TODO: Update the expression content once the AST is updated.')
-  const id = '' // TODO: Get the id of the expression once the AST is updated.
+  // TODO: Handle the case for ArgumentPlaceholder once the AST has been updated,
+  const id = props.input instanceof ArgumentAst ? props.input.ast.astId : undefined
   const expression = selectedValue.value ?? ''
   if (id) graph.setExpressionContent(id, expression)
   showDropdownWidget.value = false
-})
-
-const argName = computed(() => {
-  const name = props.input.info?.name
-  if (name == null) return ''
-  return name
 })
 </script>
 
@@ -66,19 +64,18 @@ export const widgetDefinition = defineWidget([ArgumentPlaceholder, ArgumentAst],
 </script>
 
 <template>
-  <div>
+  <div ref="rootElement" class="WidgetRoot">
     <span class="WidgetArgumentName" @pointerdown="showDropdownWidget = !showDropdownWidget">
       <template v-if="showArgumentValue">
-        <span class="name">{{ argName }}</span
-        ><span> {{ selectedValue }} </span>
+        <NodeWidget :input="props.input" /><span class="value"> {{ selectedValue }} </span>
       </template>
-      <template v-else>{{ argName }}</template>
+      <template v-else><NodeWidget :input="props.input" /></template>
     </span>
-    <div class="WidgetDrodown">
+    <div class="WidgetSingleChoice">
       <DropdownWidget
         v-if="showDropdownWidget"
-        :color="parentColor"
-        :values="tagLabels ?? []"
+        :color="parentColor ?? 'white'"
+        :values="tagLabels"
         :selectedValue="selectedValue"
         @click="selectedIndex = $event"
       />
@@ -86,13 +83,10 @@ export const widgetDefinition = defineWidget([ArgumentPlaceholder, ArgumentAst],
   </div>
 </template>
 <style scoped>
-.name {
-  color: rgb(255 255 255 / 0.5);
+.value {
+  margin-left: 8px;
 }
-.name {
-  margin-right: 8px;
-}
-.WidgetDrodown {
+.WidgetSingleChoice {
   position: absolute;
   top: 100%;
   margin-top: 4px;
