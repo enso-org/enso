@@ -878,7 +878,7 @@ pub async fn main_internal(config: Option<Config>) -> Result {
             let crate::arg::git_clean::Options { dry_run, cache, build_script } = options;
             let mut exclusions = vec![".idea"];
             if !build_script {
-                exclusions.push("target/enso-build");
+                exclusions.push("target/rust/buildscript");
             }
 
             if !dry_run {
