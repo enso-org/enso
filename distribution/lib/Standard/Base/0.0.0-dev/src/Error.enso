@@ -232,5 +232,5 @@ look_for_wrapped_error error_type=Any error_value =
                 Maybe.Some (Wrapped_Error.from error_value . inner_error)
         case inner_error_maybe of
             Maybe.None -> Maybe.None
-            Maybe.Some inner_error -> 
+            Maybe.Some inner_error ->
                 @Tail_Call look_for_wrapped_error error_type inner_error
