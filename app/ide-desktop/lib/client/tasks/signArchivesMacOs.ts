@@ -81,6 +81,13 @@ async function ensoPackageSignables(resourcesDir: string): Promise<Signable[]> {
             ],
         ],
         [
+            'component/python-resources-23.1.0.jar',
+            [
+                'META-INF/resources/darwin/*/lib/graalpy23.1/*.dylib',
+                'META-INF/resources/darwin/*/lib/graalpy23.1/modules/*.so',
+            ],
+        ],
+        [
             `component/truffle-runtime-23.1.0.jar`,
             [
                 'META-INF/resources/engine/libtruffleattach/darwin/amd64/bin/libtruffleattach.dylib',
