@@ -1,10 +1,9 @@
 import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
-import { RawAst, RawAstExtended } from '@/util/ast'
+import { Ast } from '@/util/ast'
 import { ArgumentApplication, ArgumentPlaceholder } from '@/util/callTree'
 import { isSome } from '@/util/opt'
 import { type Identifier, type QualifiedName } from '@/util/qualifiedName'
 import type { MethodCall } from 'shared/languageServerTypes'
-import { IdMap } from 'shared/yjsModel'
 import { assert, expect, test } from 'vitest'
 
 const mockSuggestion: SuggestionEntry = {
@@ -36,14 +35,11 @@ function testArgs(paddedExpression: string, pattern: string) {
     .filter(isSome)
 
   test(`argument list: ${paddedExpression} ${pattern}`, () => {
-    const parsedBlock = RawAstExtended.parse(expression, IdMap.Mock())
-    assert(parsedBlock.isTree(RawAst.Tree.Type.BodyBlock)) // necessary for type inference
-    const ast = parsedBlock.map((t) => {
-      const first = t.statements.next()
-      assert(first.done === false)
-      assert(first.value.expression != null)
-      return first.value.expression
-    })
+    const parsedBlock = Ast.parse(expression)
+    assert(parsedBlock instanceof Ast.BodyBlock) // necessary for type inference
+    const first = parsedBlock.expressions().next()
+    assert(first.done === false)
+    const ast = first.value
 
     const methodCall: MethodCall = {
       methodPointer: {
@@ -75,14 +71,14 @@ function testArgs(paddedExpression: string, pattern: string) {
   })
 }
 
-function printArgPattern(application: ArgumentApplication | RawAstExtended<RawAst.Tree>) {
+function printArgPattern(application: ArgumentApplication | Ast.Ast) {
   const parts: string[] = []
   let current: ArgumentApplication['target'] = application
   while (current instanceof ArgumentApplication) {
     const sigil =
       current.argument instanceof ArgumentPlaceholder
         ? '?'
-        : current.appTree?.isTree(RawAst.Tree.Type.NamedApp)
+        : current.appTree instanceof Ast.App && current.appTree.argumentName
         ? '='
         : '@'
     const argInfo = 'info' in current.argument ? current.argument.info : undefined
