@@ -42,10 +42,7 @@ spec =
             r.sheet_names . should_equal ["MyTestSheet"]
             r.read "MyTestSheet" . should_equal expected_table
 
-            ## TODO at some point it would be nice to modify the decode logic to be able to Infer the xls_format
-               even if other things (like Excel_Section) are specified explicitly;
-               currently the inference only works in Auto_Detect mode, hence in this test we need `xls_format=True`.
-            r2 = Data.fetch url try_auto_parse_response=False . decode (Excel (Excel_Section.Worksheet "MyTestSheet") xls_format=True)
+            r2 = Data.fetch url try_auto_parse_response=False . decode (Excel (Excel_Section.Worksheet "MyTestSheet"))
             r2.should_be_a Table
             r2 . should_equal expected_table
 

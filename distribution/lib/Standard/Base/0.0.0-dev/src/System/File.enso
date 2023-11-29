@@ -815,3 +815,11 @@ get_child_widget file =
             children = file.list
             options = children.map c-> Option c.name c.name.pretty
             Widget.Single_Choice values=options display=Display.Always
+
+## PRIVATE
+find_extension_from_name : Text -> Text
+find_extension_from_name name =
+    last_dot = name.locate "." mode=Matching_Mode.Last
+    if last_dot.is_nothing then "" else
+        extension = name.drop (Index_Sub_Range.First last_dot.start)
+        if extension == "." then "" else extension

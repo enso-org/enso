@@ -1,5 +1,6 @@
 import project.Any.Any
 import project.Data.Json.Json
+import project.Data.Numbers.Integer
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
 import project.Data.Vector.Vector
@@ -155,9 +156,10 @@ type Plain_Text_Format
         file.read_text self.encoding on_problems
 
     ## PRIVATE
-       Implements the `Data.parse` for this `File_Format`
-    read_stream : Input_Stream -> Any
-    read_stream self stream:Input_Stream =
+       Implements decoding the format from a stream.
+    read_stream : Input_Stream -> File_Format_Metadata -> Any
+    read_stream self stream:Input_Stream (metadata : File_Format_Metadata = File_Format_Metadata.no_information) =
+        _ = metadata
         Text.from_bytes (stream.read_all_bytes) self.encoding
 
 ## A file format for reading or writing files as a sequence of bytes.
@@ -191,9 +193,10 @@ type Bytes
         file.read_bytes
 
     ## PRIVATE
-       Implements the `Data.parse` for this `File_Format`
-    read_stream : Input_Stream -> Any
-    read_stream self stream:Input_Stream =
+       Implements decoding the format from a stream.
+    read_stream : Input_Stream -> File_Format_Metadata -> Any
+    read_stream self stream:Input_Stream (metadata : File_Format_Metadata = File_Format_Metadata.no_information) =
+        _ = metadata
         stream.read_all_bytes
 
 ## A file format for reading and writing files as JSON.
@@ -232,9 +235,10 @@ type JSON_Format
             Error.throw (File_Error.Corrupted_Format file error.to_display_text error)
 
     ## PRIVATE
-       Implements the `Data.parse` for this `File_Format`
-    read_stream : Input_Stream -> Any
-    read_stream self stream:Input_Stream =
+       Implements decoding the format from a stream.
+    read_stream : Input_Stream -> File_Format_Metadata -> Any
+    read_stream self stream:Input_Stream (metadata : File_Format_Metadata = File_Format_Metadata.no_information) =
+        _ = metadata
         Text.from_bytes (stream.read_all_bytes) Encoding.utf_8 . parse_json
 
 ## A setting to infer the default behaviour of some option.
@@ -245,11 +249,25 @@ type Infer
 type File_For_Read
     ## PRIVATE
        Arguments:
-       - `path` - the path or the URI of the file.
-       - `name` - the name of the file.
-       - `extension` - the extension of the file.
-       - `read_first_bytes` - a function that reads the first bytes of the file.
-    Value path:Text name:Text extension:Text (read_first_bytes:Function=(_->Nothing))
+       - path: the path or the URI of the file.
+       - name: the name of the file.
+       - extension: the extension of the file.
+       - read_first_bytes: a function that reads the first bytes of the file.
+       - content_type: the content type of the file.
+    Value path:Text|Nothing name:Text|Nothing extension:Text|Nothing (read_first_bytes:(Integer -> Nothing | Vector Integer)=(_->Nothing))
 
 ## PRIVATE
 File_For_Read.from (that:File) = File_For_Read.Value that.path that.name that.extension that.read_first_bytes
+
+## PRIVATE
+   Metadata that may aid `read_stream`.
+type File_Format_Metadata
+    ## PRIVATE
+       Arguments:
+       - file_name: the name of the file.
+       - content_type: the content type of the file.
+    Value (file_name : Text | Nothing = Nothing) (content_type : Text | Nothing = Nothing)
+
+    ## PRIVATE
+    no_information : File_Format_Metadata
+    no_information = File_Format_Metadata.Value
