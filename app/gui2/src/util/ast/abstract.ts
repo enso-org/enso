@@ -829,7 +829,11 @@ function abstractTree(
     case RawAst.Tree.Type.TextLiteral: {
       const open = tree.open ? recurseToken(tree.open) : null
       const newline = tree.newline ? recurseToken(tree.newline) : null
-      const elements = visitChildren(tree)
+      const elements = []
+      for (const e of tree.elements) {
+        elements.push(...visitChildren(e))
+      }
+      visitChildren(tree)
       const close = tree.close ? recurseToken(tree.close) : null
       const id = nodesExpected.get(spanKey)?.pop()
       node = new TextLiteral(id, open, newline, elements, close).exprId
