@@ -10,7 +10,7 @@ import {
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { DEFAULT_VISUALIZATION_IDENTIFIER } from '@/stores/visualization'
-import { RawAst, RawAstExtended, Ast } from '@/util/ast'
+import { RawAst, Ast } from '@/util/ast'
 import { useObserveYjs } from '@/util/crdt'
 import type { Opt } from '@/util/opt'
 import { Rect } from '@/util/rect'
@@ -367,18 +367,13 @@ export type UnconnectedEdge = {
 function getExecutedMethodAst(
   ast_: Ast.Ast,
   executionStackTop: StackItem,
-): RawAstExtended<RawAst.Tree.Function> | undefined {
+): Ast.Function | undefined {
   switch (executionStackTop.type) {
     case 'ExplicitCall': {
       // Assume that the provided AST matches the module in the method pointer. There is no way to
       // actually verify this assumption at this point.
       const ptr = executionStackTop.methodPointer
-      const method = Ast.findModuleMethod(ptr.name)
-      if (!method) return
-      const ast = method.astExtended
-      if (!ast) return
-      if (!ast.isTree(RawAst.Tree.Type.Function)) return
-      return ast
+      return Ast.findModuleMethod(ptr.name) ?? undefined
     }
     case 'LocalCall': {
       console.error(`TODO (#8068)--this should not be reachable yet`)

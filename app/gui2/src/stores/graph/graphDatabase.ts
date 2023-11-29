@@ -1,7 +1,7 @@
 import { SuggestionDb, groupColorStyle, type Group } from '@/stores/suggestionDatabase'
 import type { SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import { arrayEquals, byteArraysEqual, tryGetIndex } from '@/util/array'
-import { RawAst, RawAstExtended } from '@/util/ast'
+import { Ast, RawAst, RawAstExtended } from '@/util/ast'
 import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
 import { colorFromString } from '@/util/colors'
 import { ComputedValueRegistry, type ExpressionInfo } from '@/util/computedValueRegistry'
@@ -252,9 +252,12 @@ export class GraphDb {
   }
 
   readFunctionAst(
-    functionAst: RawAstExtended<RawAst.Tree.Function>,
+    functionAst_: Ast.Function,
     getMeta: (id: ExprId) => NodeMetadata | undefined,
   ) {
+    const functionAst = functionAst_.astExtended
+    if (!functionAst) return
+    if (!functionAst.isTree(RawAst.Tree.Type.Function)) return
     const currentNodeIds = new Set<ExprId>()
     if (functionAst) {
       for (const nodeAst of functionAst.visit(getFunctionNodeExpressions)) {
