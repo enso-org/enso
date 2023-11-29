@@ -14,6 +14,7 @@ Python in the runtime. Please familiarise yourself with the general operation of
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
+- [Install Graal Python standalone distribution](#install-graal-python-standalone-distribution)
 - [Polyglot Library System](#polyglot-library-system)
 - [Using Python Libraries](#using-python-libraries)
 
@@ -21,12 +22,15 @@ Python in the runtime. Please familiarise yourself with the general operation of
 
 ## Install Graal Python standalone distribution
 
-Before you can use Python in Enso you need to install Graal Python standalone
-distribution. Download it at
-https://github.com/oracle/graalpython/releases/tag/graal-23.1.0
+Before continuing this tutorial, you need to install Graal Python standalone
+distribution. Follow the instructions from
+https://www.graalvm.org/latest/reference-manual/python/#installing-graalpy. Note
+that for the basic Python usage, it is not necessary to download the GraalPy
+standalone distribution, we just need it for this tutorial because we initialize
+the _virtual environment_ and install `numpy` package with it.
 
-Unzip the archive, and optionally put the `bin` directory on your `PATH`. In the
-rest of the document, `graalpy` points to the `bin/graalpy` binary.
+In the rest of the document, `graalpy` points to the `bin/graalpy` binary from
+the downloaded Graal Python standalone distribution.
 
 ## Polyglot Library System
 
