@@ -567,14 +567,16 @@ export const useProjectStore = defineStore('project', () => {
         },
       }),
     )
-    return computed<{ kind: 'Dataflow'; message: string } | undefined>(() =>
-      'kind' in data &&
-      data.kind === 'Dataflow' &&
-      'message' in data &&
-      typeof data.message === 'string'
-        ? { kind: data.kind, message: data.message }
-        : undefined,
-    )
+    return computed<{ kind: 'Dataflow'; message: string } | undefined>(() => {
+      const value = data.value
+      if (!value) return
+      return 'kind' in value &&
+        value.kind === 'Dataflow' &&
+        'message' in value &&
+        typeof value.message === 'string'
+        ? { kind: value.kind, message: value.message }
+        : undefined
+    })
   })
 
   function stopCapturingUndo() {
