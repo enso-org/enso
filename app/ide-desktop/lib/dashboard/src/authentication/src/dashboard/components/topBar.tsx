@@ -3,6 +3,7 @@ import * as React from 'react'
 
 import FindIcon from 'enso-assets/find.svg'
 
+import * as assetQuery from '../../assetQuery'
 import type * as backendModule from '../backend'
 import * as shortcuts from '../shortcuts'
 
@@ -28,8 +29,8 @@ export interface TopBarProps {
     setBackendType: (backendType: backendModule.BackendType) => void
     isHelpChatOpen: boolean
     setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
-    query: string
-    setQuery: (value: string) => void
+    query: assetQuery.AssetQuery
+    setQuery: (query: assetQuery.AssetQuery) => void
     doRemoveSelf: () => void
     onSignOut: () => void
 }
@@ -95,9 +96,9 @@ export default function TopBar(props: TopBarProps) {
                             size={1}
                             id="search"
                             placeholder="Type to search for projects, data connectors, users, and more."
-                            value={query}
+                            value={query.query}
                             onChange={event => {
-                                setQuery(event.target.value)
+                                setQuery(assetQuery.AssetQuery.fromString(event.target.value))
                             }}
                             className="grow bg-transparent leading-5 h-6 py-px"
                         />
