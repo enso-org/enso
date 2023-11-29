@@ -144,6 +144,18 @@ public class ExecCompilerTest {
   }
 
   @Test
+  public void chainedSyntaxOperator() throws Exception {
+    var module = ctx.eval("enso", """
+    nums n = n
+        * 2
+        % 3
+    """);
+    var run = module.invokeMember("eval_expression", "nums");
+    var result = run.execute(5);
+    assertEquals("10 % 3 is one", 1, result.asInt());
+  }
+
+  @Test
   public void testInvalidEnsoProjectRef() throws Exception {
     var module =
         ctx.eval(

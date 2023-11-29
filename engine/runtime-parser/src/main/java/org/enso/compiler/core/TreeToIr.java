@@ -601,9 +601,11 @@ final class TreeToIr {
           var at = args.size();
           var self = translateExpression(app.getLhs(), false);
           for (var l : app.getExpressions()) {
-            var expr = isDotOperator(l.getExpression().getOperator().getRight()) ?
-              translateExpression(l.getExpression().getExpression(), true) :
-              translateSyntaxError(l.getExpression().getExpression(), Syntax.UnexpectedExpression$.MODULE$);
+            var invoke = isDotOperator(l.getExpression().getOperator().getRight());
+            if (self == null || !invoke) {
+              return null;
+            }
+            var expr = translateExpression(l.getExpression().getExpression(), true);
             if (expr instanceof Application.Prefix pref) {
               var arg = new CallArgument.Specified(Option.empty(), self, self.location(), meta(), diag());
               expr = new Application.Prefix(pref.function(), join(arg, pref.arguments()), false, expr.location(), meta(), diag());
@@ -766,21 +768,26 @@ final class TreeToIr {
           default -> {
             var lhs = unnamedCallArgument(app.getLhs());
             var rhs = unnamedCallArgument(app.getRhs());
-            var name = new Name.Literal(
-              op.codeRepr(), true, getIdentifiedLocation(op), Option.empty(), meta(), diag()
-            );
             var loc = getIdentifiedLocation(app);
-            if (lhs == null && rhs == null) {
-              yield new Section.Sides(name, loc, meta(), diag());
-            } else if (lhs == null) {
-              yield new Section.Right(name, rhs, loc, meta(), diag());
-            } else if (rhs == null) {
-              yield new Section.Left(lhs, name, loc, meta(), diag());
-            } else {
-              yield new Operator.Binary(lhs, name, rhs, loc,meta(), diag());
-            }
+            yield applyOperator(op, lhs, rhs, loc);
           }
         };
+      }
+      case Tree.OperatorBlockApplication app -> {
+        Expression expr = null;
+        var lhs = unnamedCallArgument(app.getLhs());
+        for (var l : app.getExpressions()) {
+          var op = l.getExpression().getOperator().getRight();
+          if (op == null || isDotOperator(op)) {
+            yield translateSyntaxError(l.getExpression().getExpression(), Syntax.UnexpectedExpression$.MODULE$);
+          }
+          var rhs = unnamedCallArgument(l.getExpression().getExpression());
+          var loc = getIdentifiedLocation(app);
+          var both = applyOperator(op, lhs, rhs, loc);
+          expr = both;
+          lhs = new CallArgument.Specified(Option.empty(), expr, loc, meta(), diag());
+        }
+        yield expr;
       }
       case Tree.Array arr -> {
         List<Expression> items = nil();
@@ -1012,6 +1019,21 @@ final class TreeToIr {
       case Tree.Invalid __ -> translateSyntaxError(tree, Syntax.UnexpectedExpression$.MODULE$);
       default -> translateSyntaxError(tree, new Syntax.UnsupportedSyntax("translateExpression"));
     };
+  }
+
+  private Operator applyOperator(Token.Operator op, CallArgument lhs, CallArgument rhs, Option<IdentifiedLocation> loc) {
+    var name = new Name.Literal(
+      op.codeRepr(), true, getIdentifiedLocation(op), Option.empty(), meta(), diag()
+    );
+    if (lhs == null && rhs == null) {
+      return new Section.Sides(name, loc, meta(), diag());
+    } else if (lhs == null) {
+      return new Section.Right(name, rhs, loc, meta(), diag());
+    } else if (rhs == null) {
+      return new Section.Left(lhs, name, loc, meta(), diag());
+    } else {
+      return new Operator.Binary(lhs, name, rhs, loc,meta(), diag());
+    }
   }
 
   Tree applySkip(Tree tree) {

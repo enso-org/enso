@@ -1259,6 +1259,28 @@ public class EnsoParserTest {
   }
 
   @Test
+  public void testBlockSyntaxOperators() throws Exception {
+    equivalenceTest("""
+    value = nums * each random + constant
+    """, """
+    value = nums
+        * each random
+        + constant
+    """);
+  }
+
+  @Test
+  public void testBlockSyntaxOperators2() throws Exception {
+    equivalenceTest("""
+    value = (nums + each random) * constant
+    """, """
+    value = nums
+        + each random
+        * constant
+    """);
+  }
+
+  @Test
   public void testPrivateModules() throws Exception {
     List<String> moduleCodes = List.of(
         "private",
