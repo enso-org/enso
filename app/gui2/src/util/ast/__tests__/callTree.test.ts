@@ -37,9 +37,10 @@ function testArgs(paddedExpression: string, pattern: string) {
   test(`argument list: ${paddedExpression} ${pattern}`, () => {
     const parsedBlock = Ast.parse(expression)
     assert(parsedBlock instanceof Ast.BodyBlock) // necessary for type inference
-    const first = parsedBlock.expressions().next()
-    assert(first.done === false)
-    const ast = first.value
+    const expressions = Array.from(parsedBlock.expressions())
+    const first = expressions[0]
+    assert(first !== undefined)
+    const ast = first
 
     const methodCall: MethodCall = {
       methodPointer: {
