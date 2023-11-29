@@ -227,7 +227,10 @@ type Error
 look_for_wrapped_error : Any -> Any -> Maybe Any
 look_for_wrapped_error error_type=Any error_value =
     if error_value.is_a error_type then Maybe.Some error_value else
-        try_unwrap =
-            inner_error = Wrapped_Error.from error_value . inner_error
-            @Tail_Call look_for_wrapped_error error_type inner_error
-        Panic.catch No_Such_Conversion try_unwrap _->Maybe.None
+        inner_error_maybe =
+            Panic.catch No_Such_Conversion handler=(_->Maybe.None) <|
+                Maybe.Some (Wrapped_Error.from error_value . inner_error)
+        case inner_error_maybe of
+            Maybe.None -> Maybe.None
+            Maybe.Some inner_error -> 
+                @Tail_Call look_for_wrapped_error error_type inner_error
