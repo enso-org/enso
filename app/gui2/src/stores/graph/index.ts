@@ -51,6 +51,7 @@ export const useGraphStore = defineStore('graph', () => {
     proj.computedValueRegistry,
   )
   const nodeRects = reactive(new Map<ExprId, Rect>())
+  const vizRects = reactive(new Map<ExprId, Rect>())
   const exprRects = reactive(new Map<ExprId, Rect>())
   const editedNodeInfo = ref<NodeEditInfo>()
   const imports = ref<{ import: Import; span: ContentRange }[]>([])
@@ -285,7 +286,7 @@ export const useGraphStore = defineStore('graph', () => {
       const { position } = nonDictatedPlacement(rect.size, {
         nodeRects: [...nodeRects.entries()]
           .filter(([id]) => db.nodeIdToNode.get(id))
-          .map(([, rect]) => rect),
+          .map(([id, rect]) => vizRects.get(id) ?? rect),
         // The rest of the properties should not matter.
         selectedNodeRects: [],
         screenBounds: Rect.Zero,
@@ -297,6 +298,11 @@ export const useGraphStore = defineStore('graph', () => {
     } else {
       nodeRects.set(nodeId, rect)
     }
+  }
+
+  function updateVizRect(id: ExprId, rect: Rect | undefined) {
+    if (rect) vizRects.set(id, rect)
+    else vizRects.delete(id)
   }
 
   function updateExprRect(id: ExprId, rect: Rect | undefined) {
@@ -329,6 +335,7 @@ export const useGraphStore = defineStore('graph', () => {
     unconnectedEdge,
     edges,
     nodeRects,
+    vizRects,
     exprRects,
     createEdgeFromOutput,
     disconnectSource,
@@ -344,6 +351,7 @@ export const useGraphStore = defineStore('graph', () => {
     setNodeVisualizationVisible,
     stopCapturingUndo,
     updateNodeRect,
+    updateVizRect,
     updateExprRect,
     setEditedNode,
     createNodeFromSource,
