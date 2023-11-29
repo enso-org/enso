@@ -613,7 +613,6 @@ function abstractTree(
 ): { whitespace: string | undefined; node: AstId } {
   const recurseTree = (tree: RawAst.Tree) => abstractTree(tree, code, nodesExpected, tokenIds)
   const recurseToken = (token: RawAst.Token.Token) => abstractToken(token, code, tokenIds)
-  let node
   const visitChildren = (tree: LazyObject) => {
     const children: NodeChild[] = []
     const visitor = (child: LazyObject) => {
@@ -635,6 +634,7 @@ function abstractTree(
   // All node types use this value in the same way to obtain the ID type, but each node does so separately because we
   // must pop the tree's span from the ID map *after* processing children.
   const spanKey = nodeKey(codeStart, codeEnd - codeStart, tree.type)
+  let node: AstId
   switch (tree.type) {
     case RawAst.Tree.Type.BodyBlock: {
       const lines = Array.from(tree.statements, (line) => {
@@ -646,7 +646,7 @@ function abstractTree(
         return { newline, expression }
       })
       const id = nodesExpected.get(spanKey)?.pop()
-      node = new Block(id, lines)
+      node = new Block(id, lines).exprId
       break
     }
     case RawAst.Tree.Type.Function: {
@@ -655,12 +655,12 @@ function abstractTree(
       const equals = recurseToken(tree.equals)
       const body = tree.body !== undefined ? recurseTree(tree.body) : null
       const id = nodesExpected.get(spanKey)?.pop()
-      node = new Function(id, name, args, equals, body)
+      node = new Function(id, name, args, equals, body).exprId
       break
     }
     case RawAst.Tree.Type.Ident: {
       const id = nodesExpected.get(spanKey)?.pop()
-      node = new Ident(id, recurseToken(tree.token))
+      node = new Ident(id, recurseToken(tree.token)).exprId
       break
     }
     case RawAst.Tree.Type.Assignment: {
@@ -668,14 +668,14 @@ function abstractTree(
       const equals = recurseToken(tree.equals)
       const value = recurseTree(tree.expr)
       const id = nodesExpected.get(spanKey)?.pop()
-      node = new Assignment(id, pattern, equals, value)
+      node = new Assignment(id, pattern, equals, value).exprId
       break
     }
     case RawAst.Tree.Type.App: {
       const func = recurseTree(tree.func)
       const arg = recurseTree(tree.arg)
       const id = nodesExpected.get(spanKey)?.pop()
-      node = positionalApp(id, func, arg)
+      node = positionalApp(id, func, arg).exprId
       break
     }
     case RawAst.Tree.Type.DefaultApp: {
@@ -685,7 +685,7 @@ function abstractTree(
       token.whitespace = ''
       const arg = new Ident(undefined, token).exprId
       const id = nodesExpected.get(spanKey)?.pop()
-      node = positionalApp(id, func, { whitespace: argWhitespace, node: arg })
+      node = positionalApp(id, func, { whitespace: argWhitespace, node: arg }).exprId
       break
     }
     case RawAst.Tree.Type.NamedApp: {
@@ -696,7 +696,7 @@ function abstractTree(
       const arg = recurseTree(tree.arg)
       const rightParen = tree.close ? recurseToken(tree.close) : null
       const id = nodesExpected.get(spanKey)?.pop()
-      node = namedApp(id, func, leftParen, name, equals, arg, rightParen)
+      node = namedApp(id, func, leftParen, name, equals, arg, rightParen).exprId
       break
     }
     case RawAst.Tree.Type.UnaryOprApp: {
@@ -704,9 +704,9 @@ function abstractTree(
       const arg = tree.rhs ? recurseTree(tree.rhs) : null
       const id = nodesExpected.get(spanKey)?.pop()
       if (opr.node.code() === '-') {
-        node = new NegationOprApp(id, opr, arg)
+        node = new NegationOprApp(id, opr, arg).exprId
       } else {
-        node = new UnaryOprApp(id, opr, arg)
+        node = new UnaryOprApp(id, opr, arg).exprId
       }
       break
     }
@@ -720,30 +720,38 @@ function abstractTree(
       if (opr.length === 1 && opr[0]?.node instanceof Token && opr[0].node.code() === '.') {
         // Propagate inferred type.
         const token = { whitespace: opr[0].whitespace, node: opr[0].node }
-        node = new PropertyAccess(id, lhs, token, rhs)
+        node = new PropertyAccess(id, lhs, token, rhs).exprId
       } else {
-        node = new OprApp(id, lhs, opr, rhs)
+        node = new OprApp(id, lhs, opr, rhs).exprId
       }
       break
     }
     case RawAst.Tree.Type.Number: {
       const id = nodesExpected.get(spanKey)?.pop()
-      node = new NumericLiteral(id, visitChildren(tree))
+      node = new NumericLiteral(id, visitChildren(tree)).exprId
       break
     }
     case RawAst.Tree.Type.Wildcard: {
       const token = recurseToken(tree.token)
       const id = nodesExpected.get(spanKey)?.pop()
-      node = new Wildcard(id, token)
+      node = new Wildcard(id, token).exprId
+      break
+    }
+    // These expression types are (or will be) used for backend analysis.
+    // The frontend can ignore them, avoiding some problems with expressions sharing spans
+    // (which makes it impossible to give them unique IDs in the current IdMap format).
+    case RawAst.Tree.Type.OprSectionBoundary:
+    case RawAst.Tree.Type.TemplateFunction: {
+      node = recurseTree(tree.ast).node
       break
     }
     default: {
       const id = nodesExpected.get(spanKey)?.pop()
-      node = new Generic(id, visitChildren(tree), tree.type)
+      node = new Generic(id, visitChildren(tree), tree.type).exprId
     }
   }
   const whitespace = code.substring(whitespaceStart, whitespaceEnd)
-  return { node: node._id, whitespace }
+  return { node, whitespace }
 }
 
 function abstractToken(
@@ -884,6 +892,8 @@ export function parseTransitional(code: string, idMap: IdMap): Ast {
       tokens.set(tokenKey(start, length), token.astId as TokenId)
     } else if (nodeOrToken.isTree()) {
       const node: RawAstExtended<RawAst.Tree> = nodeOrToken
+      if (node.isTree(RawAst.Tree.Type.OprSectionBoundary) || node.isTree(RawAst.Tree.Type.TemplateFunction))
+        return true
       let id = node.astId as AstId
       if (astExtended.has(id)) {
         id = newNodeId()
