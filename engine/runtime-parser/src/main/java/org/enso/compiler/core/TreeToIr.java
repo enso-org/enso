@@ -552,7 +552,7 @@ final class TreeToIr {
         method = buildName(id);
         loc = getIdentifiedLocation(sig);
       }
-      case Tree.OprApp app when ".".equals(app.getOpr().getRight().codeRepr()) -> {
+      case Tree.OprApp app when isDotOperator(app.getOpr().getRight()) -> {
         type = Option.apply(buildQualifiedName(app.getLhs()));
         method = buildName(app.getRhs());
         if (alwaysLocation) {
@@ -568,7 +568,7 @@ final class TreeToIr {
     );
   }
 
-  private Expression translateCall(Tree ast) {
+  private Expression translateCall(Tree ast, boolean isMethod) {
     var args = new java.util.ArrayList<CallArgument>();
     var hasDefaultsSuspended = false;
     var tree = ast;
@@ -597,25 +597,41 @@ final class TreeToIr {
           args.add(new CallArgument.Specified(Option.empty(), expr, loc, meta(), diag()));
           tree = app.getFunc();
         }
+        case Tree.OperatorBlockApplication app -> {
+          var at = args.size();
+          var self = translateExpression(app.getLhs(), false);
+          for (var l : app.getExpressions()) {
+            var expr = isDotOperator(l.getExpression().getOperator().getRight()) ?
+              translateExpression(l.getExpression().getExpression(), true) :
+              translateSyntaxError(l.getExpression().getExpression(), Syntax.UnexpectedExpression$.MODULE$);
+            if (expr instanceof Application.Prefix pref) {
+              var arg = new CallArgument.Specified(Option.empty(), self, self.location(), meta(), diag());
+              expr = new Application.Prefix(pref.function(), join(arg, pref.arguments()), false, expr.location(), meta(), diag());
+            }
+            var loc = getIdentifiedLocation(l.getExpression().getExpression());
+            args.add(at, new CallArgument.Specified(Option.empty(), expr, loc, meta(), diag()));
+            self = expr;
+          }
+          return self;
+        }
         default -> {
           Expression func;
           if (tree instanceof Tree.OprApp oprApp
-                  && oprApp.getOpr().getRight() != null
-                  && ".".equals(oprApp.getOpr().getRight().codeRepr())
+                  && isDotOperator(oprApp.getOpr().getRight())
                   && oprApp.getRhs() instanceof Tree.Ident) {
             func = translateExpression(oprApp.getRhs(), true);
             if (oprApp.getLhs() == null && args.isEmpty()) {
               return func;
             }
             if (oprApp.getLhs() != null) {
-              var self = translateExpression(oprApp.getLhs(), false);
+              var self = translateExpression(oprApp.getLhs(), isMethod);
               var loc = getIdentifiedLocation(oprApp.getLhs());
               args.add(new CallArgument.Specified(Option.empty(), self, loc, meta(), diag()));
             }
           } else if (args.isEmpty()) {
             return null;
           } else {
-            func = translateExpression(tree, false);
+            func = translateExpression(tree, isMethod);
           }
           java.util.Collections.reverse(args);
           var argsList = CollectionConverters.asScala(args.iterator()).toList();
@@ -682,7 +698,7 @@ final class TreeToIr {
     if (tree == null) {
       return null;
     }
-    var callExpression = translateCall(tree);
+    var callExpression = translateCall(tree, isMethod);
     if (callExpression != null) {
       return callExpression;
     }
@@ -1360,7 +1376,7 @@ final class TreeToIr {
         );
       }
       case Tree.Ident id -> new Pattern.Name(buildName(id), getIdentifiedLocation(id), meta(), diag());
-      case Tree.OprApp app when ".".equals(app.getOpr().getRight().codeRepr()) -> {
+      case Tree.OprApp app when isDotOperator(app.getOpr().getRight()) -> {
         var qualifiedName = buildQualifiedName(app);
         yield new Pattern.Constructor(
           qualifiedName, fields, getIdentifiedLocation(app), meta(), diag()
@@ -1793,6 +1809,10 @@ final class TreeToIr {
   }
   private static final <T> scala.collection.immutable.List<T> join(T head, scala.collection.immutable.List<T> tail) {
     return scala.collection.immutable.$colon$colon$.MODULE$.apply(head, tail);
+  }
+
+  private static boolean isDotOperator(Token.Operator op) {
+    return op != null && ".".equals(op.codeRepr());
   }
 
   private static Tree maybeManyParensed(Tree t) {

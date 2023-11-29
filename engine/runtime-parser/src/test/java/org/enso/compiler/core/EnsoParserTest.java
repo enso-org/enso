@@ -1247,6 +1247,18 @@ public class EnsoParserTest {
   }
 
   @Test
+  public void testBlockSyntax() throws Exception {
+    equivalenceTest("""
+    nums v fm ff n = v . map fm . filter ff . take n
+    """, """
+    nums v fm ff n = v
+        . map fm
+        . filter ff
+        . take n
+    """);
+  }
+
+  @Test
   public void testPrivateModules() throws Exception {
     List<String> moduleCodes = List.of(
         "private",
