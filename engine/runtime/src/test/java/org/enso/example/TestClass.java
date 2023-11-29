@@ -7,6 +7,8 @@ import java.util.function.Function;
 public class TestClass {
   public static final int FINAL_ONE = 1;
   public static int nonFinalTwo = 2;
+  public static final short SHORT_ONE = 3;
+  public static final long LONG_ONE = 4;
 
   private final Function<Long, Long> function;
 
