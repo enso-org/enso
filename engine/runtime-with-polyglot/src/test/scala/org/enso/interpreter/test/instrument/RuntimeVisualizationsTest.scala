@@ -32,8 +32,7 @@ class RuntimeVisualizationsTest
 
   class TestContext(packageName: String) extends InstrumentTestContext {
     val tmpDir: Path = Files.createTempDirectory("enso-test-packages")
-    sys.addShutdownHook(FileUtils.deleteQuietly(tmpDir.toFile))
-    val lockManager = new ThreadSafeFileLockManager(tmpDir.resolve("locks"))
+    val lockManager  = new ThreadSafeFileLockManager(tmpDir.resolve("locks"))
     val runtimeServerEmulator =
       new RuntimeServerEmulator(messageQueue, lockManager)
 
@@ -314,6 +313,18 @@ class RuntimeVisualizationsTest
   override protected def beforeEach(): Unit = {
     context = new TestContext("Test")
     val Some(Api.Response(_, Api.InitializedNotification())) = context.receive
+  }
+
+  override protected def afterEach(): Unit = {
+    if (context != null) {
+      context.reset()
+      context.executionContext.context.close()
+      context.runtimeServerEmulator.terminate()
+      context.lockManager.reset()
+      context.out.reset()
+      FileUtils.deleteQuietly(context.tmpDir.toFile)
+      context = null
+    }
   }
 
   it should "emit visualization update when expression is computed" in {
