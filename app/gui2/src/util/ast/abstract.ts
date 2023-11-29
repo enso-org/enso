@@ -902,7 +902,7 @@ export function debug(root: Ast, universe?: Map<AstId, Ast>): DebugTree {
     if (child.node instanceof Token) {
       return child.node.code()
     } else {
-      const node = (universe ?? edited).get(child.node)
+      const node = (universe ?? committed).get(child.node)
       return node ? debug(node, universe) : '<missing>'
     }
   })
@@ -1015,7 +1015,9 @@ export function parseTransitional(code: string, idMap: IdMap): Ast {
 }
 
 export function parse(source: PrintedSource | string): Ast {
-  return Ast.parse(source)
+  const ast = Ast.parse(source)
+  syncCommittedFromEdited()
+  return ast
 }
 
 declare const AstKey: unique symbol
