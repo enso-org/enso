@@ -55,6 +55,7 @@ const uploadingFiles = computed<[FileName, File][]>(() => {
     :edited="id === graphStore.editedNodeInfo?.id"
     @update:edited="graphStore.setEditedNode(id, $event)"
     @updateRect="graphStore.updateNodeRect(id, $event)"
+    @update:vizRect="graphStore.updateVizRect(id, $event)"
     @delete="graphStore.deleteNode"
     @pointerenter="hoverNode(id)"
     @pointerleave="hoverNode(undefined)"

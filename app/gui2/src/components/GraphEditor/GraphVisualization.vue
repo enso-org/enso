@@ -13,12 +13,16 @@ import type { URLString } from '@/stores/visualization/compilerMessaging'
 import { toError } from '@/util/error'
 import type { Icon } from '@/util/iconName'
 import type { Opt } from '@/util/opt'
-import type { Vec2 } from '@/util/vec2'
+import { Rect } from '@/util/rect'
+import { Vec2 } from '@/util/vec2'
 import type { ExprId, VisualizationIdentifier } from 'shared/yjsModel'
-import { computed, onErrorCaptured, ref, shallowRef, watch, watchEffect } from 'vue'
+import { computed, onErrorCaptured, onUnmounted, ref, shallowRef, watch, watchEffect } from 'vue'
 
 const visPreprocessor = ref(DEFAULT_VISUALIZATION_CONFIGURATION)
 const error = ref<Error>()
+
+const TOP_WITHOUT_TOOLBAR_PX = 36
+const TOP_WITH_TOOLBAR_PX = 72
 
 const projectStore = useProjectStore()
 const visualizationStore = useVisualizationStore()
@@ -26,12 +30,14 @@ const visualizationStore = useVisualizationStore()
 const props = defineProps<{
   currentType: Opt<VisualizationIdentifier>
   isCircularMenuVisible: boolean
+  nodePosition: Vec2
   nodeSize: Vec2
   typename?: string | undefined
   expressionId?: ExprId | undefined
   data?: any | undefined
 }>()
 const emit = defineEmits<{
+  'update:rect': [rect: Rect | undefined]
   setVisualizationId: [id: VisualizationIdentifier]
   setVisualizationVisible: [visible: boolean]
 }>()
@@ -117,10 +123,45 @@ watchEffect(async () => {
   }
 })
 
+const isBelowToolbar = ref(false)
+let width = ref<number | null>(null)
+let height = ref(150)
+
+watchEffect(() =>
+  emit(
+    'update:rect',
+    new Rect(
+      props.nodePosition,
+      new Vec2(
+        width.value ?? props.nodeSize.x,
+        height.value + (isBelowToolbar.value ? TOP_WITH_TOOLBAR_PX : TOP_WITHOUT_TOOLBAR_PX),
+      ),
+    ),
+  ),
+)
+
+onUnmounted(() => emit('update:rect', undefined))
+
 provideVisualizationConfig({
   fullscreen: false,
-  width: null,
-  height: 150,
+  get width() {
+    return width.value
+  },
+  set width(value) {
+    width.value = value
+  },
+  get height() {
+    return height.value
+  },
+  set height(value) {
+    height.value = value
+  },
+  get isBelowToolbar() {
+    return isBelowToolbar.value
+  },
+  set isBelowToolbar(value) {
+    isBelowToolbar.value = value
+  },
   get types() {
     return visualizationStore.types(props.typename)
   },

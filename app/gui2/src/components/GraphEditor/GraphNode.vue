@@ -27,6 +27,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   updateRect: [rect: Rect]
+  'update:vizRect': [rect: Rect | undefined]
   updateContent: [updates: [range: ContentRange, content: string][]]
   dragging: [offset: Vec2]
   draggingCommited: []
@@ -267,12 +268,14 @@ function portGroupStyle(port: PortData) {
     <GraphVisualization
       v-if="isVisualizationVisible"
       :nodeSize="nodeSize"
+      :nodePosition="props.node.position"
       :isCircularMenuVisible="menuVisible"
       :currentType="props.node.vis"
       :expressionId="props.node.rootSpan.astId"
       :typename="expressionInfo?.typename"
       @setVisualizationId="emit('setVisualizationId', $event)"
       @setVisualizationVisible="emit('setVisualizationVisible', $event)"
+      @update:rect="emit('update:vizRect', $event)"
     />
     <div
       class="node"
