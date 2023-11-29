@@ -1,8 +1,10 @@
 import { injectGuiConfig, type GuiConfig } from '@/providers/guiConfig'
 import { Awareness } from '@/stores/awareness'
+import { ComputedValueRegistry } from '@/stores/project/computedValueRegistry'
+import { VisualizationDataRegistry } from '@/stores/project/visualizationDataRegistry'
 import { bail } from '@/util/assert'
-import { ComputedValueRegistry } from '@/util/computedValueRegistry'
 import { attachProvider, useObserveYjs } from '@/util/crdt'
+import { ReactiveMapping } from '@/util/database/reactiveDb'
 import {
   AsyncQueue,
   createRpcTransport,
@@ -12,7 +14,6 @@ import {
 import { nextEvent } from '@/util/observable'
 import { isSome, type Opt } from '@/util/opt'
 import { tryQualifiedName } from '@/util/qualifiedName'
-import { VisualizationDataRegistry } from '@/util/visualizationDataRegistry'
 import { Client, RequestManager } from '@open-rpc/client-js'
 import { computedAsync } from '@vueuse/core'
 import * as array from 'lib0/array'
@@ -523,8 +524,8 @@ export const useProjectStore = defineStore('project', () => {
     nextEvent(lsRpc, 'executionContext/executionComplete'),
   )
   const executionContext = createExecutionContextForMain()
-  const computedValueRegistry = ComputedValueRegistry.WithExecutionContext(executionContext)
   const visualizationDataRegistry = new VisualizationDataRegistry(executionContext, dataConnection)
+  const computedValueRegistry = ComputedValueRegistry.WithExecutionContext(executionContext)
 
   const diagnostics = ref<Diagnostic[]>([])
   executionContext.on('executionStatus', (newDiagnostics) => {
@@ -540,9 +541,7 @@ export const useProjectStore = defineStore('project', () => {
       configuration,
       async (config, _, onCleanup) => {
         executionContext.setVisualization(id, config)
-        onCleanup(() => {
-          executionContext.setVisualization(id, null)
-        })
+        onCleanup(() => executionContext.setVisualization(id, null))
       },
       { immediate: true },
     )
@@ -554,6 +553,36 @@ export const useProjectStore = defineStore('project', () => {
       }),
     )
   }
+
+  const dataflowErrors = new ReactiveMapping(computedValueRegistry.db, (id, info) => {
+    if (info.payload.type !== 'DataflowError') return
+    const data = useVisualizationData(
+      ref({
+        expressionId: id,
+        visualizationModule: 'Standard.Visualization.Preprocessor',
+        expression: {
+          module: 'Standard.Visualization.Preprocessor',
+          definedOnType: 'Standard.Visualization.Preprocessor',
+          name: 'error_preprocessor',
+        },
+      }),
+    )
+    return computed<{ kind: 'Dataflow'; message: string } | undefined>(() => {
+      const value = data.value
+      if (!value) return
+      if (
+        'kind' in value &&
+        value.kind === 'Dataflow' &&
+        'message' in value &&
+        typeof value.message === 'string'
+      ) {
+        return { kind: value.kind, message: value.message }
+      } else {
+        console.error('Invalid dataflow error payload:', value)
+        return undefined
+      }
+    })
+  })
 
   function stopCapturingUndo() {
     module.value?.undoManager.stopCapturing()
@@ -580,6 +609,7 @@ export const useProjectStore = defineStore('project', () => {
     useVisualizationData,
     stopCapturingUndo,
     executionMode,
+    dataflowErrors,
   }
 })
 
