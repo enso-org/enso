@@ -60,8 +60,9 @@ type Temporary_File
 
     ## PRIVATE
        Materializes the provided `Input_Stream` into a `Temporary_File`.
+       It will work the same regardless of whether the output context is enabled.
     from_stream : Input_Stream
-    from_stream stream =
+    from_stream stream = Context.Output.with_enabled <|
         tmp_file = Temporary_File.new "enso-materialized-stream" ".tmp"
         handler caught_panic =
             tmp_file.dispose
