@@ -127,9 +127,11 @@ final class EnsoHashMapBuilder implements Iterable<EnsoHashMapBuilder.StorageEnt
     throw CompilerDirectives.shouldNotReachHere("byHash array is full!");
   }
 
-  /** Finds storage entry for given key or null */
+  /** Finds storage entry for given key or {@code null}.
+   * Searches only entries that are visible for given {@code generation}.
+   */
   public StorageEntry get(
-    Object key,
+    Object key, int generation,
     HashCodeNode hashCodeNode, EqualsNode equalsNode
   ) {
     var at = findWhereToStart(key, hashCodeNode);
@@ -137,8 +139,10 @@ final class EnsoHashMapBuilder implements Iterable<EnsoHashMapBuilder.StorageEnt
       if (byHash[at] == null) {
         return null;
       }
-      if (compare(equalsNode, key, byHash[at].key())) {
-        return byHash[at];
+      if (byHash[at].isVisible(generation)) {
+        if (compare(equalsNode, key, byHash[at].key())) {
+          return byHash[at];
+        }
       }
       if (++at == byHash.length) {
         at = 0;

@@ -106,8 +106,8 @@ public final class EnsoHashMap implements EnsoObject {
       Object key,
       @Shared("hash") @Cached HashCodeNode hashCodeNode,
       @Shared("equals") @Cached EqualsNode equalsNode) {
-    var entry = mapBuilder.get(key, hashCodeNode, equalsNode);
-    return entry != null && entry.isVisible(generation);
+    var entry = mapBuilder.get(key, generation, hashCodeNode, equalsNode);
+    return entry != null;
   }
 
   @ExportMessage
@@ -124,8 +124,8 @@ public final class EnsoHashMap implements EnsoObject {
       @Shared("hash") @Cached HashCodeNode hashCodeNode,
       @Shared("equals") @Cached EqualsNode equalsNode)
       throws UnknownKeyException {
-    StorageEntry entry = mapBuilder.get(key, hashCodeNode, equalsNode);
-    if (entry != null && entry.isVisible(generation)) {
+    StorageEntry entry = mapBuilder.get(key, generation, hashCodeNode, equalsNode);
+    if (entry != null) {
       return entry.value();
     } else {
       throw UnknownKeyException.create(key);
