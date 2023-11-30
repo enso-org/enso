@@ -46,13 +46,21 @@ export default function AssetRow(props: AssetRowProps) {
         initialRowState,
         hidden,
         selected,
+        isSoleSelectedItem,
         setSelected,
         allowContextMenu,
         onContextMenu,
         state,
         columns,
     } = props
-    const { assetEvents, dispatchAssetEvent, dispatchAssetListEvent, doCut, doPaste } = state
+    const {
+        assetEvents,
+        dispatchAssetEvent,
+        dispatchAssetListEvent,
+        setAssetSettingsPanelProps,
+        doCut,
+        doPaste,
+    } = state
     const { organization } = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
     const { setModal, unsetModal } = modalProvider.useSetModal()
@@ -66,6 +74,7 @@ export default function AssetRow(props: AssetRowProps) {
         ...initialRowState,
         setVisibility,
     }))
+
     React.useEffect(() => {
         setItem(rawItem)
     }, [rawItem])
@@ -104,7 +113,10 @@ export default function AssetRow(props: AssetRowProps) {
                 }))
                 await backend.updateAsset(
                     asset.id,
-                    { parentDirectoryId: newParentId ?? backend.rootDirectoryId(organization) },
+                    {
+                        parentDirectoryId: newParentId ?? backend.rootDirectoryId(organization),
+                        description: null,
+                    },
                     asset.title
                 )
             } catch (error) {
@@ -135,6 +147,12 @@ export default function AssetRow(props: AssetRowProps) {
             /* should never change */ dispatchAssetListEvent,
         ]
     )
+
+    React.useEffect(() => {
+        if (isSoleSelectedItem) {
+            setAssetSettingsPanelProps({ item, setItem })
+        }
+    }, [item, isSoleSelectedItem, /* should never change */ setAssetSettingsPanelProps])
 
     const doDelete = React.useCallback(async () => {
         setVisibility(visibilityModule.Visibility.hidden)

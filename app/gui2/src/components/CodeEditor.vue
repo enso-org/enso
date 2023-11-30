@@ -119,6 +119,14 @@ watchEffect(() => {
               .appendChild(document.createElement('div'))
               .appendChild(document.createTextNode(`Type: ${expressionInfo.typename ?? 'Unknown'}`))
           }
+          if (expressionInfo?.profilingInfo[0] != null) {
+            const profile = expressionInfo.profilingInfo[0]
+            const executionTime = (profile.ExecutionTime.nanoTime / 1_000_000).toFixed(3)
+            const text = `Execution Time: ${executionTime}ms`
+            dom
+              .appendChild(document.createElement('div'))
+              .appendChild(document.createTextNode(text))
+          }
 
           dom
             .appendChild(document.createElement('div'))
