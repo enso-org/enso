@@ -6,7 +6,6 @@ import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
 import { AstExtended } from '@/util/ast'
-import { Vec2 } from '@/util/vec2'
 import { computed } from 'vue'
 
 type Item = AstExtended<Tree.Tree | Token.Token, boolean>
@@ -29,13 +28,15 @@ const value = computed({
   },
 })
 
-const navigator = injectGraphNavigator(true)
-
-function toCSSTranslation(x: number, y: number) {
-  if (!navigator) return ''
-  const pos = navigator.clientToScenePos(new Vec2(x, y))
-  return `translate(${pos.x}px, ${pos.y}px)`
+function encodeAstPayload(ast: Item): string {
+  return ast.repr()
 }
+
+function decodeAstPayload(id: string): Item {
+  return AstExtended.parse(id)
+}
+
+const navigator = injectGraphNavigator(true)
 </script>
 
 <script lang="ts">
@@ -48,19 +49,18 @@ export const widgetDefinition = defineWidget(AstExtended.isTree([Tree.Type.Array
 <template>
   <ListWidget
     v-model="value"
-    :default="() => AstExtended.parse('_')"
-    :getKey="(item: Item) => item.astId"
+    :default="(): Item => AstExtended.parse('_')"
+    :getKey="(item) => item.astId"
     dragMimeType="application/x-enso-ast-node"
-    :toPlainText="(item: Item) => item.repr()"
-    :toDragPayload="(item: Item) => JSON.stringify({ id: item.astId, code: item.repr() })"
+    :toPlainText="(item) => item.repr()"
+    :toDragPayload="encodeAstPayload"
+    :fromDragPayload="decodeAstPayload"
+    :toDragPosition="(p) => navigator?.clientToScenePos(p) ?? p"
     class="WidgetVector"
     contenteditable="false"
   >
-    <template #default="{ item }"><NodeWidget :input="item" /></template>
-    <template #dragPreview="{ item, x, y }">
-      <div class="drag-preview" :style="{ transform: toCSSTranslation(x, y) }">
-        <NodeWidget :input="item" />
-      </div>
+    <template #default="{ item }">
+      <NodeWidget :input="item" />
     </template>
   </ListWidget>
 </template>

@@ -9,21 +9,21 @@ const navigator = injectGraphNavigator(true)
 const nodeSelection = injectGraphSelection(true)
 const scaledMousePos = computed(() => navigator?.sceneMousePos?.scale(navigator?.scale ?? 1))
 const scaledSelectionAnchor = computed(() => nodeSelection?.anchor?.scale(navigator?.scale ?? 1))
-const isNativeDragging = ref(false)
+const isNativeDragging = ref(0)
 
 useEvent(
   window,
-  'dragstart',
+  'dragenter',
   () => {
-    isNativeDragging.value = true
+    isNativeDragging.value += 1
   },
   { capture: true },
 )
 useEvent(
   window,
-  'dragend',
+  'dragleave',
   () => {
-    isNativeDragging.value = false
+    isNativeDragging.value -= 1
   },
   { capture: true },
 )
@@ -31,7 +31,7 @@ useEvent(
   window,
   'drop',
   () => {
-    isNativeDragging.value = false
+    isNativeDragging.value -= 1
   },
   { capture: true },
 )

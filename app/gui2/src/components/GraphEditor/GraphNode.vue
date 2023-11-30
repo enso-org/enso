@@ -364,7 +364,7 @@ const handlePortClick = useDoubleClick(
   align-items: center;
   white-space: nowrap;
   padding: 4px;
-  padding-right: 8px;
+  padding-right: 4px;
   z-index: 2;
   transition: outline 0.2s ease;
   outline: 0px solid transparent;

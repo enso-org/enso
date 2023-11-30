@@ -102,12 +102,12 @@ function fixupInputValue() {
 
 <style scoped>
 .SliderWidget {
-  clip-path: inset(0 round var(--radius-full));
   position: relative;
   user-select: none;
   justify-content: space-around;
   background: var(--color-widget);
   border-radius: var(--radius-full);
+  overflow: clip;
   width: 56px;
 }
 
