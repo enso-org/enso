@@ -49,10 +49,10 @@ export const widgetDefinition = defineWidget(AstExtended.isTree([Tree.Type.Array
 <template>
   <ListWidget
     v-model="value"
-    :default="(): Item => AstExtended.parse('_')"
-    :getKey="(item) => item.astId"
+    :default="() => AstExtended.parse('_')"
+    :getKey="(item: Item) => item.astId"
     dragMimeType="application/x-enso-ast-node"
-    :toPlainText="(item) => item.repr()"
+    :toPlainText="(item: Item) => item.repr()"
     :toDragPayload="encodeAstPayload"
     :fromDragPayload="decodeAstPayload"
     :toDragPosition="(p) => navigator?.clientToScenePos(p) ?? p"
