@@ -1,5 +1,6 @@
 import project.Any.Any
 import project.Data.Text.Text
+import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_State.Illegal_State
 import project.Nothing.Nothing
 import project.Panic.Panic
@@ -72,7 +73,9 @@ type Temporary_File
             Panic.throw caught_panic
         Panic.catch Any handler=handler <|
             tmp_file.with_file file->
-                Panic.rethrow <| stream.write_to_file file
+                Panic.rethrow <|
+                    File_Error.handle_java_exceptions Nothing <|
+                        stream.write_to_file file
         tmp_file
 
     ## PRIVATE
