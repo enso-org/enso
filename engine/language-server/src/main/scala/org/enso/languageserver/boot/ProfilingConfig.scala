@@ -23,19 +23,68 @@ case class ProfilingConfig(
     * @return the path to the runtime events log file
     */
   def profilingEventsLogPath: Option[Path] =
-    profilingPath.map { path =>
-      val profilingDirectory     = path.getParent
-      val profilingFileName      = path.getFileName.toString
-      val profilingFileExtension = FilenameUtils.getExtension(profilingFileName)
-      val eventsLogFileName =
-        profilingFileName.stripSuffix(
-          profilingFileExtension
-        ) + ProfilingConfig.EventsLogExtension
+    profilingPath.map(
+      ProfilingConfig.modifyPath(
+        _,
+        ProfilingConfig.EventsLogSuffix,
+        ProfilingConfig.EventsLogExtension
+      )
+    )
 
-      profilingDirectory.resolve(eventsLogFileName)
-    }
+  /** Creates a path to the JSON-RPC text messages log. */
+  def textMessagesPath: Option[Path] =
+    profilingPath.map(
+      ProfilingConfig.modifyPath(
+        _,
+        ProfilingConfig.MessagesSuffix,
+        ProfilingConfig.TextMessagesExtension
+      )
+    )
+
+  /** Creates a path to the binary messages log. */
+  def binaryMessagesPath: Option[Path] =
+    profilingPath.map(
+      ProfilingConfig.modifyPath(
+        _,
+        ProfilingConfig.MessagesSuffix,
+        ProfilingConfig.BinaryMessagesExtension
+      )
+    )
 }
+
 object ProfilingConfig {
 
+  private val EventsLogSuffix    = ""
   private val EventsLogExtension = "log"
+
+  private val MessagesSuffix          = "-messages"
+  private val TextMessagesExtension   = "txt"
+  private val BinaryMessagesExtension = "bin"
+
+  /** Modify the path by adding a suffix and changing the file extension.
+    *
+    * @param path the path to modify
+    * @param suffix the suffix to add
+    * @param extension the new file extension
+    * @return the modified path
+    */
+  private def modifyPath(
+    path: Path,
+    suffix: String,
+    extension: String
+  ): Path = {
+    val directory     = path.getParent
+    val fileName      = path.getFileName.toString
+    val fileExtension = FilenameUtils.getExtension(fileName)
+    val modifiedFileName =
+      if (fileExtension.isEmpty) {
+        s"$fileName$suffix.$extension"
+      } else {
+        val fileNameWithoutExtension = fileName.stripSuffix(s".$fileExtension")
+        s"$fileNameWithoutExtension$suffix.$extension"
+      }
+
+    directory.resolve(modifiedFileName)
+  }
+
 }

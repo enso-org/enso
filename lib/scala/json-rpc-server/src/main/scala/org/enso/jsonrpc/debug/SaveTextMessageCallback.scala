@@ -41,12 +41,13 @@ object SaveTextMessageCallback {
     message.take(MESSAGE_HEARTBEAT_HEAD).contains(MESSAGE_HEARTBEAT_TEXT)
 
   def apply(path: Path): SaveTextMessageCallback = {
-    Files.newBufferedWriter(path, StandardOpenOption.TRUNCATE_EXISTING).close()
+    Files
+      .newBufferedWriter(
+        path,
+        StandardOpenOption.CREATE,
+        StandardOpenOption.TRUNCATE_EXISTING
+      )
+      .close()
     new SaveTextMessageCallback(path)
-  }
-
-  def apply(): SaveTextMessageCallback = {
-    val tmpfile = Files.createTempFile("enso-messages-", ".txt")
-    new SaveTextMessageCallback(tmpfile)
   }
 }

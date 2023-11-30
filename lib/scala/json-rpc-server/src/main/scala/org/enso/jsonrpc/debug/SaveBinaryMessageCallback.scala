@@ -28,12 +28,13 @@ object SaveBinaryMessageCallback {
     System.lineSeparator().getBytes(StandardCharsets.UTF_8)
 
   def apply(path: Path): SaveBinaryMessageCallback = {
-    Files.newBufferedWriter(path, StandardOpenOption.TRUNCATE_EXISTING).close()
+    Files
+      .newBufferedWriter(
+        path,
+        StandardOpenOption.CREATE,
+        StandardOpenOption.TRUNCATE_EXISTING
+      )
+      .close()
     new SaveBinaryMessageCallback(path)
-  }
-
-  def apply(): SaveBinaryMessageCallback = {
-    val tmpfile = Files.createTempFile("enso-messages-", ".bin")
-    new SaveBinaryMessageCallback(tmpfile)
   }
 }
