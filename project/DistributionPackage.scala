@@ -444,10 +444,17 @@ object DistributionPackage {
       override val hasSupportForSulong: Boolean = true
       override val archs                        = Seq(Architecture.X64)
     }
-    case object MacOS extends OS {
-      override val name: String                 = "macos"
+    trait MacOS extends OS {
+      override val name: String = "macos"
+    }
+    case object MacOSAmd extends MacOS {
       override val hasSupportForSulong: Boolean = true
-      override val archs                        = Seq(Architecture.X64, Architecture.AarchX64)
+      override val archs                        = Seq(Architecture.X64)
+    }
+
+    case object MacOSArm extends MacOS {
+      override val hasSupportForSulong: Boolean = true
+      override val archs                        = Seq(Architecture.AarchX64)
     }
     case object Windows extends OS {
       override val name: String                         = "windows"
@@ -458,14 +465,23 @@ object DistributionPackage {
       override val archs                                = Seq(Architecture.X64)
     }
 
-    val platforms = Seq(Linux, MacOS, Windows)
+    val platforms = Seq(Linux, MacOSArm, MacOSAmd, Windows)
 
-    def apply(name: String): Option[OS] =
+    def apply(name: String, arch: Option[String]): Option[OS] =
       name.toLowerCase match {
-        case Linux.`name`   => Some(Linux)
-        case MacOS.`name`   => Some(MacOS)
-        case Windows.`name` => Some(Windows)
-        case _              => None
+        case Linux.`name` => Some(Linux)
+        case MacOSAmd.`name` =>
+          arch match {
+            case Some(Architecture.X64.`name`) =>
+              Some(MacOSAmd)
+            case Some(Architecture.AarchX64.`name`) =>
+              Some(MacOSArm)
+            case _ =>
+              None
+          }
+        case MacOSArm.`name` => Some(MacOSArm)
+        case Windows.`name`  => Some(Windows)
+        case _               => None
       }
   }
 
@@ -478,13 +494,12 @@ object DistributionPackage {
   }
   object Architecture {
     case object X64 extends Architecture {
-      override def name: String      = "amd64"
+      override val name: String      = "amd64"
       override def graalName: String = "x64"
     }
 
     case object AarchX64 extends Architecture {
-      override def name: String = "aarch64"
-
+      override val name: String      = "aarch64"
       override def graalName: String = "x64"
     }
 
@@ -681,7 +696,7 @@ object DistributionPackage {
       val executableFile = os match {
         case OS.Linux =>
           shallowFile
-        case OS.MacOS =>
+        case _: OS.MacOS =>
           if (deepFile.exists) {
             deepFile
           } else {
@@ -781,8 +796,11 @@ object DistributionPackage {
       val os =
         if (Platform.isWindows) OS.Windows
         else if (Platform.isLinux) OS.Linux
-        else if (Platform.isMacOS) OS.MacOS
-        else throw new IllegalStateException("Unknown OS")
+        else if (Platform.isMacOS) {
+          if (Platform.isAmd64) OS.MacOSAmd
+          else if (Platform.isArm64) OS.MacOSArm
+          else throw new IllegalStateException("Unknown Arch")
+        } else throw new IllegalStateException("Unknown OS")
       artifactRoot / artifactName(component, os, architecture)
     }
 

@@ -15,6 +15,12 @@ object Platform {
   def isMacOS: Boolean =
     sys.props("os.name").toLowerCase().contains("mac")
 
+  def isAmd64: Boolean =
+    sys.props("os.arch").toLowerCase().contains("amd64")
+
+  def isArm64: Boolean =
+    sys.props("os.arch").toLowerCase().contains("aarch64")
+
   /** Returns the dynamic library file name on the current platform.
     *
     * @param libraryName the library name
