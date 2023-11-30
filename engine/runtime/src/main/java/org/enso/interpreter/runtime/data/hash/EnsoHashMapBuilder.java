@@ -113,7 +113,7 @@ final class EnsoHashMapBuilder implements Iterable<EnsoHashMapBuilder.StorageEnt
         byHash[at] = new StorageEntry(key, value, nextGeneration);
         return;
       }
-      if (equalsNode.execute(byHash[at].key(), key)) {
+      if (compare(equalsNode, byHash[at].key(), key)) {
         var invalidatedEntry = byHash[at].markRemoved(nextGeneration);
         if (invalidatedEntry != byHash[at]) {
           byHash[at] = invalidatedEntry;
@@ -137,7 +137,7 @@ final class EnsoHashMapBuilder implements Iterable<EnsoHashMapBuilder.StorageEnt
       if (byHash[at] == null) {
         return null;
       }
-      if (equalsNode.execute(key, byHash[at].key())) {
+      if (compare(equalsNode, key, byHash[at].key())) {
         return byHash[at];
       }
       if (++at == byHash.length) {
@@ -170,7 +170,7 @@ final class EnsoHashMapBuilder implements Iterable<EnsoHashMapBuilder.StorageEnt
       if (byHash[at] == null) {
         return false;
       }
-      if (equalsNode.execute(key, byHash[at].key())) {
+      if (compare(equalsNode, key, byHash[at].key())) {
         var invalidatedEntry = byHash[at].markRemoved(nextGeneration);
         if (invalidatedEntry != byHash[at]) {
           byHash[at] = invalidatedEntry;
@@ -215,6 +215,14 @@ final class EnsoHashMapBuilder implements Iterable<EnsoHashMapBuilder.StorageEnt
   @Override
   public String toString() {
     return "EnsoHashMapBuilder{size = " + generation + ", storage = " + Arrays.toString(byHash) + "}";
+  }
+
+  private static boolean compare(EqualsNode equalsNode, Object a, Object b) {
+    if (a instanceof Double aDbl && b instanceof Double bDbl && aDbl.isNaN() && bDbl.isNaN()) {
+      return true;
+    } else {
+      return equalsNode.execute(a, b);
+    }
   }
 
   record StorageEntry(
