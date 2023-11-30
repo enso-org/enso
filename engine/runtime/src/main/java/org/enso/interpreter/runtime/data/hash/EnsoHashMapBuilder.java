@@ -238,11 +238,11 @@ final class EnsoHashMapBuilder {
     Object key,
     Object value,
     /**
-    * A sequential index of the entry within this map. {@link EnsoHashMap} uses it for checking
+    * A generation the entry got into this map. {@link EnsoHashMap} uses it for checking
     * whether a certain key belongs in that map.
     */
     int added,
-    /** Remove at */
+    /** Remove at a generation. */
     int removed
   ) {
     StorageEntry(Object key, Object value, int added) {
