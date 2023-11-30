@@ -22,7 +22,7 @@ type Input_Stream
 
        Given a Java InputStream, wraps as a Managed_Resource and returns a new
        Input_Stream.
-    new : Java_Input_Stream -> Any -> (Nothing | File | Temporary_File) Input_Stream
+    new : Java_Input_Stream -> Any -> (Nothing | File | Temporary_File) -> Input_Stream
     new java_stream error_handler associated_file=Nothing =
         resource = Managed_Resource.register java_stream close_stream
         Input_Stream.Value resource error_handler associated_file

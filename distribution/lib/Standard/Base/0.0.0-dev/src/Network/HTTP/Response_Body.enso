@@ -16,6 +16,7 @@ import project.Network.URI.URI
 import project.Nothing.Nothing
 import project.Runtime.Context
 import project.Runtime.Managed_Resource.Managed_Resource
+import project.System.File.Advanced.Temporary_File.Temporary_File
 import project.System.File.Existing_File_Behavior.Existing_File_Behavior
 import project.System.File.File
 import project.System.File.File_Access.File_Access
@@ -73,6 +74,7 @@ type Response_Body
             byte_stream = Input_Stream.new (ByteArrayInputStream.new bytes) (HTTP_Error.handle_java_exceptions self.uri)
             Managed_Resource.bracket byte_stream (_.close) action
         Response_Body.Materialized_Temporary_File temporary_file _ _ -> temporary_file.with_file file->
+            opts = [File_Access.Read.to_java]
             stream = HTTP_Error.handle_java_exceptions self.uri (file.input_stream_builtin opts)
             file_stream = Input_Stream.new stream (HTTP_Error.handle_java_exceptions self.uri) associated_file=temporary_file
             Managed_Resource.bracket (file_stream) (_.close) action
@@ -88,23 +90,19 @@ type Response_Body
                 body_stream.with_java_stream body_java_stream->
                     first_block = body_java_stream.readNBytes maximum_body_in_memory
                     case first_block.length < maximum_body_in_memory of
-                        True -> Response_Body.Byte_Array (Vector.from_polyglot_array first_block) self.content_type self.uri
-                        False ->
-                            file = File.create_temporary_file self.uri.host
-
-                            ## Write contents to temporary file
-                            Context.Output.with_enabled <|
+                        True -> Response_Body.Materialized_Byte_Array (Vector.from_polyglot_array first_block) self.content_type self.uri
+                        False -> Context.Output.with_enabled <|
+                            ## Write contents to a temporary file
+                            temp_file = Temporary_File.new self.uri.host
+                            r = temp_file.with_file file->
                                 file.with_output_stream [File_Access.Write, File_Access.Create, File_Access.Truncate_Existing] output_stream->
                                     output_stream.with_java_stream java_output_stream->
                                         java_output_stream.write first_block
                                         body_java_stream.transferTo java_output_stream
                                         java_output_stream.flush
                                         Nothing
-                                    output_stream.close
-
-                            ## Have a file with the correct set up
-                            resource = Managed_Resource.register file delete_file
-                            Response_Body.Temporary_File resource self.content_type self.uri
+                            r.if_not_error <|
+                                Response_Body.Materialized_Temporary_File temp_file self.content_type self.uri
         _ -> self
 
     ## ALIAS parse

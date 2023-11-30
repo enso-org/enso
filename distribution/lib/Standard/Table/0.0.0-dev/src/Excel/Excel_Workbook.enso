@@ -35,13 +35,22 @@ type Excel_Workbook
        - headers: Whether to use the first row as headers (default is to infer).
     new : File | Text | Temporary_File -> Boolean -> Boolean | Infer -> Excel_Workbook
     new file xls_format=False headers=Infer =
-        # TODO handle temporary file
-        file_obj = File.new file . absolute . normalize
-        format = if xls_format then ExcelFileFormat.XLS else ExcelFileFormat.XLSX
-        File_Error.handle_java_exceptions file_obj <| Excel_Reader.handle_bad_format file_obj <| Illegal_State.handle_java_exception <|
-            java_file = Java_File.new file_obj.path
-            excel_connection_resource = Managed_Resource.register (ExcelConnectionPool.INSTANCE.openReadOnlyConnection java_file format) close_connection
-            Excel_Workbook.Value (Ref.new excel_connection_resource) file_obj xls_format headers
+        file_obj = case file of
+            tmp : Temporary_File -> tmp
+            other -> File.new other
+        file_for_errors = if file_obj.is_a Temporary_File then Nothing else file_obj
+
+        continuation raw_file =
+            format = if xls_format then ExcelFileFormat.XLS else ExcelFileFormat.XLSX
+            File_Error.handle_java_exceptions raw_file <| Excel_Reader.handle_bad_format file_for_errors <| Illegal_State.handle_java_exception <|
+                # The `java_file` depends on the liveness of the possible `Temporary_File` but that is ensured by storing the `file_obj` in the resulting workbook instance.
+                java_file = Java_File.new raw_file.absolute.normalize.path
+                excel_connection_resource = Managed_Resource.register (ExcelConnectionPool.INSTANCE.openReadOnlyConnection java_file format) close_connection
+                Excel_Workbook.Value (Ref.new excel_connection_resource) file_obj xls_format headers
+
+        case file_obj of
+            tmp : Temporary_File -> tmp.with_file continuation
+            f : File -> continuation f
 
     ## PRIVATE
        ADVANCED
@@ -247,6 +256,25 @@ type Excel_Workbook
                 resource.finalize
                 self.excel_connection_resource_ref.put Nothing
         Nothing
+
+    ## Returns a simple text description of the workbook.
+    to_text : Text
+    to_text self =
+        associated_regular_file = case self.file of
+            regular_file : File -> " (" + regular_file.name + ")"
+            _ -> ""
+        "Excel_Workbook"+associated_regular_file
+
+    ## PRIVATE
+       Provides a JS object representation for use in visualizations.
+    to_js_object : JS_Object
+    to_js_object self =
+        headers = if self.headers == Infer then "Infer" else self.headers
+        additional_fields = case self.file of
+            regular_file : File -> [["file", regular_file.path]]
+            _ -> []
+        JS_Object.from_pairs <|
+            [["type", "Excel_Workbook"], ["headers", headers], ["xls_format", self.xls_format]] + additional_fields
 
     ## PRIVATE
     with_java_workbook : (Workbook -> Any) -> Any ! Illegal_State

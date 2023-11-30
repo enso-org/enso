@@ -564,6 +564,7 @@ spec_write suffix test_sheet_name =
 
             workbook = out.read (Excel headers=True)
             workbook.sheet_names.should_equal ["EnsoSheet"]
+            workbook.to_text . should_equal "Excel_Workbook ("+out.name+")"
 
             # We can have the workbook open multiple times in parallel too.
             w2 = out.read (Excel headers=True)
