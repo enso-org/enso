@@ -294,40 +294,39 @@ spec =
             pattern = Regex.compile "(?<건반>[a-z]+)"
             pattern.replace "foo bar, baz" "[$<건반>]" . should_equal "[foo] [bar], [baz]"
 
-        Test.group "should correctly evaluate documentation examples" <|
-           Test.specify "example 1" <|
-               pattern = Regex.compile 'aa'
-               pattern.replace 'aaa' 'b' . should_equal 'ba'
+       Test.specify "should correctly evaluate documentation examples - example 1" <|
+           pattern = Regex.compile 'aa'
+           pattern.replace 'aaa' 'b' . should_equal 'ba'
 
-           Test.specify "example 2" <|
-               pattern = Regex.compile '[lo]'
-               pattern.replace 'Hello World!' '#' . should_equal 'He### W#r#d!'
+       Test.specify "should correctly evaluate documentation examples - example 2" <|
+           pattern = Regex.compile '[lo]'
+           pattern.replace 'Hello World!' '#' . should_equal 'He### W#r#d!'
 
-           Test.specify "example 3" <|
-               pattern = Regex.compile 'l'
-               pattern.replace 'Hello World!' '#' only_first=True . should_equal 'He#lo World!'
+       Test.specify "should correctly evaluate documentation examples - example 3" <|
+           pattern = Regex.compile 'l'
+           pattern.replace 'Hello World!' '#' only_first=True . should_equal 'He#lo World!'
 
-           Test.specify "example 4" <|
-               pattern = Regex.compile '"(.*?)"'
-               pattern.replace '"abc" foo "bar" baz' '($1)' . should_equal '(abc) foo (bar) baz'
+       Test.specify "should correctly evaluate documentation examples - example 4" <|
+           pattern = Regex.compile '"(.*?)"'
+           pattern.replace '"abc" foo "bar" baz' '($1)' . should_equal '(abc) foo (bar) baz'
 
-           Test.specify "example 5" <|
-               pattern = Regex.compile "aa"
-               input = "aa ab aa ac ad aa aa ax"
-               match = pattern.replace input "xyz"
-               match . should_equal "xyz ab xyz ac ad xyz xyz ax"
+       Test.specify "should correctly evaluate documentation examples - example 5" <|
+           pattern = Regex.compile "aa"
+           input = "aa ab aa ac ad aa aa ax"
+           match = pattern.replace input "xyz"
+           match . should_equal "xyz ab xyz ac ad xyz xyz ax"
 
-           Test.specify "example 6" <|
-               pattern = Regex.compile "([a-z]+)"
-               pattern.replace "foo bar, baz" "[$1]" . should_equal "[foo] [bar], [baz]"
+       Test.specify "should correctly evaluate documentation examples - example 6" <|
+           pattern = Regex.compile "([a-z]+)"
+           pattern.replace "foo bar, baz" "[$1]" . should_equal "[foo] [bar], [baz]"
 
-        Test.specify "`replace` with an empty pattern should be an error" <|
-            pattern = Regex.compile ""
-            pattern.replace "ABC" . should_fail_with Illegal_Argument
+       Test.specify "`replace` with an empty pattern should be an error" <|
+           pattern = Regex.compile ""
+           pattern.replace "ABC" . should_fail_with Illegal_Argument
 
-        Test.specify "`replace` against a non-Text should fail with Illegal_Argument" <|
-            pattern = Regex.compile "abc"
-            pattern.replace 1 "abc" . should_fail_with Type_Error
+       Test.specify "`replace` against a non-Text should fail with Illegal_Argument" <|
+           pattern = Regex.compile "abc"
+           pattern.replace 1 "abc" . should_fail_with Type_Error
 
     Test.group "Match.text" <|
         pattern = Regex.compile "(.. .. )(?<letters>.+)()??(?<empty>)??"
@@ -453,25 +452,25 @@ spec =
             match.utf_16_start 5 . should_fail_with No_Such_Group
             match.utf_16_start "nonexistent" . should_fail_with No_Such_Group
 
-        Test.group "Match.utf_16_end" <|
-            pattern = Regex.compile "(.. .. )(?<letters>.+)()??(?<empty>)??"
-            input = "aa ab abc a bc bcd"
-            match = pattern.match input
-            match . should_be_a Match
+    Test.group "Match.utf_16_end" <|
+        pattern = Regex.compile "(.. .. )(?<letters>.+)()??(?<empty>)??"
+        input = "aa ab abc a bc bcd"
+        match = pattern.match input
+        match . should_be_a Match
 
-            Test.specify "should return the end of a group by index" <|
-                match.utf_16_end 1 . should_equal 6
+        Test.specify "should return the end of a group by index" <|
+            match.utf_16_end 1 . should_equal 6
 
-            Test.specify "should return the end of a group by name" <|
-                match.utf_16_end "letters" . should_equal 18
+        Test.specify "should return the end of a group by name" <|
+            match.utf_16_end "letters" . should_equal 18
 
-            Test.specify "should return Nothing if the group didn't match" <|
-                match.utf_16_end 3 . should_equal Nothing
-                match.utf_16_end "empty" . should_equal Nothing
+        Test.specify "should return Nothing if the group didn't match" <|
+            match.utf_16_end 3 . should_equal Nothing
+            match.utf_16_end "empty" . should_equal Nothing
 
-            Test.specify "should return No_Such_Group_Error if the group doesn't exist" <|
-                match.utf_16_end 5 . should_fail_with No_Such_Group
-                match.utf_16_end "nonexistent" . should_fail_with No_Such_Group
+        Test.specify "should return No_Such_Group_Error if the group doesn't exist" <|
+            match.utf_16_end 5 . should_fail_with No_Such_Group
+            match.utf_16_end "nonexistent" . should_fail_with No_Such_Group
 
     Test.group "Match.span" <|
         pattern = Regex.compile "(.. .. )(?<letters>.+)()??(?<empty>)??"
