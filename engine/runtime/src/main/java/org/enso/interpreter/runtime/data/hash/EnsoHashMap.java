@@ -17,7 +17,9 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.hash.EnsoHashMapBuilder.StorageEntry;
+import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
+import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 /**
@@ -135,7 +137,7 @@ public final class EnsoHashMap implements EnsoObject {
     try {
       return interop.getIterator(getCachedVectorRepresentation());
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException(e);
+      throw new PanicException(Text.create(e.getMessage()), interop);
     }
   }
 
@@ -197,7 +199,7 @@ public final class EnsoHashMap implements EnsoObject {
         keyStr = interop.asString(interop.toDisplayString(entry.key()));
         valStr = interop.asString(interop.toDisplayString(entry.value()));
       } catch (UnsupportedMessageException e) {
-        throw new IllegalStateException("Unreachable", e);
+        throw new PanicException(Text.create(e.getMessage()), interop);
       }
     } else {
       keyStr = entry.key().toString();

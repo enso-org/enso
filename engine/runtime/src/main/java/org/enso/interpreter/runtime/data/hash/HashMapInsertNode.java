@@ -3,7 +3,10 @@ package org.enso.interpreter.runtime.data.hash;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
 import org.enso.interpreter.node.expression.builtin.meta.HashCodeNode;
+import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.error.PanicException;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -63,10 +66,9 @@ public abstract class HashMapInsertNode extends Node {
         mapBuilder.put(key, value, hashCodeNode, equalsNode);
       }
     } catch (UnsupportedMessageException | StopIterationException | InvalidArrayIndexException e) {
-      throw new IllegalStateException(
-          "Polyglot hash map " + foreignMap + " has wrongly specified Interop API (hash entries iterator)",
-          e
-      );
+      CompilerDirectives.transferToInterpreter();
+      var msg = "Polyglot hash map " + foreignMap + " has wrongly specified Interop API (hash entries iterator)";
+      throw new PanicException(Text.create(msg), this);
     }
     mapBuilder = mapBuilder.asModifiable(mapBuilder.generation(), hashCodeNode, equalsNode);
     mapBuilder.put(keyToInsert, valueToInsert, hashCodeNode, equalsNode);
