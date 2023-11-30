@@ -193,7 +193,9 @@ public final class EnsoHashMapBuilder implements Iterable<EnsoHashMapBuilder.Sto
   private EnsoHashMapBuilder rehash(int size, HashCodeNode hashCodeNode, EqualsNode equalsNode) {
     var newBuilder = new EnsoHashMapBuilder(size);
     for (var entry : this) {
-      newBuilder.addImpl(entry.key(), entry.value(), hashCodeNode, equalsNode);
+      if (entry.isVisible(generation)) {
+        newBuilder.addImpl(entry.key(), entry.value(), hashCodeNode, equalsNode);
+      }
     }
     return newBuilder;
   }
