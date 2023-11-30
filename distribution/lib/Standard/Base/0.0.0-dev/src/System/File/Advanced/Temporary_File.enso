@@ -13,7 +13,20 @@ import project.System.Input_Stream.Input_Stream
 ## PRIVATE
    ADVANCED
    A reference to a temporary file that will be deleted once all references to
-   it are gone.
+   it are gone. This is an advanced helper facility for library developers, not
+   aimed to be used by regular users. Most users should just use
+   `File.create_temporary_file` instead.
+
+   This is helpful when implementing internal temporary files needed for some
+   operation, whose lifetime may have to be bound with some object (e.g. Excel
+   Workbook instance).
+
+   The advantage of using `Temporary_File` over `File.create_temporary_file` is
+   that the file is likely to get cleaned up earlier than JVM exit. If helper
+   files are only cleaned at JVM exit, we run the risk of exhausting disk
+   storage if the operation is ran numerous times. With this approach, the risk
+   should be much lower, because the files are cleaned up sooner - as soon as
+   the first GC run after the file is no longer reachable.
 
    It has to be used with extra care, as anywhere where the internal File
    reference is leaked without ensuring the lifetime of the `Temporary_File`
