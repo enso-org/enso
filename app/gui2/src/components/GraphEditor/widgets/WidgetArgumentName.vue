@@ -34,7 +34,7 @@ export const widgetDefinition = defineWidget([ArgumentPlaceholder, ArgumentAst],
 <template>
   <span class="WidgetArgumentName" :class="{ placeholder, primary }">
     <template v-if="showArgumentValue">
-      <span class="name">{{ props.input.info!.name }}</span
+      <span class="value">{{ props.input.info!.name }}</span
       ><NodeWidget :input="props.input" />
     </template>
     <template v-else>{{ props.input.info!.name }}</template>
@@ -43,11 +43,11 @@ export const widgetDefinition = defineWidget([ArgumentPlaceholder, ArgumentAst],
 
 <style scoped>
 .placeholder,
-.name {
+.value {
   color: rgb(255 255 255 / 0.5);
 }
 
-.name {
+.value {
   margin-right: 8px;
 }
 </style>
