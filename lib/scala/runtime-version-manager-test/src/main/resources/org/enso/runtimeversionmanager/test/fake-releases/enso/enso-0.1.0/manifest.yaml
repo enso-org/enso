@@ -1,7 +1,7 @@
 minimum-launcher-version: 0.0.0-dev
 minimum-project-manager-version: 9999.0.0
 graal-vm-version: 23.2.0
-graal-java-version: 21
+graal-java-version: 21.0.0
 jvm-options:
   - value: "-Dpolyglot.compiler.IterativePartialEscape=true"
   - value: "-Denso.version.override=0.1.0"

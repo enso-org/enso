@@ -30,7 +30,7 @@ const NAME = 'enso'
  * `yargs` is a modules we explicitly want the default imports of.
  * `node:process` is here because `process.on` does not exist on the namespace import. */
 const DEFAULT_IMPORT_ONLY_MODULES =
-    'node:process|chalk|string-length|yargs|yargs\\u002Fyargs|sharp|to-ico|connect|morgan|serve-static|create-servers|electron-is-dev|fast-glob|esbuild-plugin-.+|opener|tailwindcss.*|enso-assets.*|@modyfi\\u002Fvite-plugin-yaml'
+    'node:process|chalk|string-length|yargs|yargs\\u002Fyargs|sharp|to-ico|connect|morgan|serve-static|create-servers|electron-is-dev|fast-glob|esbuild-plugin-.+|opener|tailwindcss.*|enso-assets.*|@modyfi\\u002Fvite-plugin-yaml|validator.+'
 const ALLOWED_DEFAULT_IMPORT_MODULES = `${DEFAULT_IMPORT_ONLY_MODULES}|postcss`
 const OUR_MODULES = 'enso-.*'
 const RELATIVE_MODULES =

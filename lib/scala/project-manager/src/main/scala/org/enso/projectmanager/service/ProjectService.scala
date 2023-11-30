@@ -299,9 +299,7 @@ class ProjectService[
           RuntimeVersionManagerFactory(distributionConfiguration)
             .makeRuntimeVersionManager(progressTracker, missingComponentAction)
         val engine = runtimeVersionManager.findOrInstallEngine(version)
-        if (engine.needsGraalDistribution) {
-          runtimeVersionManager.findOrInstallGraalRuntime(engine)
-        }
+        runtimeVersionManager.findOrInstallGraalRuntime(engine)
         ()
       }
       .mapRuntimeManagerErrors(th =>

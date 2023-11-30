@@ -559,7 +559,7 @@ class RuntimeVersionManager(
           * runtime may be removed if the installation fails.
           */
         def finishInstallation(
-          runtimeOpt: Option[GraalRuntime],
+          runtime: GraalRuntime,
           wasJustInstalled: Boolean
         ): Engine = {
           val enginePath =
@@ -571,14 +571,8 @@ class RuntimeVersionManager(
               "Reverting the installation."
             )
             FileSystem.removeDirectory(enginePath)
-            runtimeOpt match {
-              case Some(runtime) =>
-                if (
-                  wasJustInstalled && findEnginesUsingRuntime(runtime).isEmpty
-                ) {
-                  safelyRemoveComponent(runtime.path)
-                }
-              case None =>
+            if (wasJustInstalled && findEnginesUsingRuntime(runtime).isEmpty) {
+              safelyRemoveComponent(runtime.path)
             }
 
             throw InstallationError(
@@ -602,7 +596,7 @@ class RuntimeVersionManager(
             LockType.Shared
           ) {
             findGraalRuntime(runtimeVersion).map { runtime =>
-              finishInstallation(Some(runtime), wasJustInstalled = false)
+              finishInstallation(runtime, wasJustInstalled = false)
             }
           }
 
@@ -620,17 +614,10 @@ class RuntimeVersionManager(
               .map((_, false))
               .getOrElse((installGraalRuntime(runtimeVersion), true))
 
-            finishInstallation(
-              Some(runtime),
-              wasJustInstalled = wasJustInstalled
-            )
+            finishInstallation(runtime, wasJustInstalled = wasJustInstalled)
           }
 
-        if (runtimeVersion.isUnchained) {
-          finishInstallation(None, wasJustInstalled = false)
-        } else {
-          getEngineIfRuntimeIsInstalled.getOrElse(getEngineOtherwise)
-        }
+        getEngineIfRuntimeIsInstalled.getOrElse(getEngineOtherwise)
       } catch {
         case e: Exception =>
           undoTemporaryEngine()
@@ -767,11 +754,7 @@ class RuntimeVersionManager(
     */
   private def installGraalRuntime(
     runtimeVersion: GraalVMVersion
-  ): GraalRuntime = {
-    assert(
-      !runtimeVersion.isUnchained,
-      "For Truffle unchained, there is nothing to be downloaded"
-    )
+  ): GraalRuntime =
     FileSystem.withTemporaryDirectory("enso-install-runtime") { directory =>
       logger.info("Installing GraalVM runtime [{}].", runtimeVersion)
       val runtimePackage =
@@ -858,7 +841,6 @@ class RuntimeVersionManager(
           throw e
       }
     }
-  }
 
   /** Install components required for the specified runtime on the specified OS.
     *
