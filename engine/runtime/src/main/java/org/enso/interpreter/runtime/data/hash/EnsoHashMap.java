@@ -1,6 +1,5 @@
 package org.enso.interpreter.runtime.data.hash;
 
-import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
@@ -11,7 +10,6 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.profiles.ConditionProfile;
-import java.util.ArrayList;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
 import org.enso.interpreter.node.expression.builtin.meta.HashCodeNode;
@@ -71,18 +69,18 @@ public final class EnsoHashMap implements EnsoObject {
 
   Object getCachedVectorRepresentation(ConditionProfile isNotCachedProfile) {
     if (isNotCachedProfile.profile(cachedVectorRepresentation == null)) {
-      CompilerDirectives.transferToInterpreter();
-      var keys = new ArrayList<Object>();
-      var values = new ArrayList<Object>();
+      var keys = new Object[size];
+      var values = new Object[size];
+      var at = 0;
       for (var entry : mapBuilder) {
         if (entry.isVisible(generation)) {
-          keys.add(entry.key());
-          values.add(entry.value());
+          keys[at] = entry.key();
+          values[at] = entry.value();
+          at++;
         }
       }
-      cachedVectorRepresentation =
-          ArrayLikeHelpers.asVectorFromArray(
-              HashEntriesVector.createFromKeysAndValues(keys.toArray(), values.toArray()));
+      var pairs = HashEntriesVector.createFromKeysAndValues(keys, values);
+      cachedVectorRepresentation = ArrayLikeHelpers.asVectorFromArray(pairs);
     }
     return cachedVectorRepresentation;
   }
