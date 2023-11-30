@@ -98,7 +98,7 @@ public final class EnsoHashMap implements EnsoObject {
 
   @ExportMessage
   int getHashSize() {
-    return generation;
+    return size;
   }
 
   @ExportMessage
