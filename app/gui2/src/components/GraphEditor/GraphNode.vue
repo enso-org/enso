@@ -310,12 +310,7 @@ function portGroupStyle(port: PortData) {
       @update:id="emit('update:visualizationId', $event)"
       @update:visible="emit('update:visualizationVisible', $event)"
     />
-    <div
-      class="node"
-      @pointerdown.capture="nodeEditHandler"
-      @keydown="nodeEditHandler"
-      v-on="dragPointer.events"
-    >
+    <div class="node" @keydown="nodeEditHandler">
       <SvgIcon class="icon grab-handle" :name="icon"></SvgIcon>
       <div ref="contentNode" class="widget-tree">
         <NodeWidgetTree :ast="node.rootSpan" />
