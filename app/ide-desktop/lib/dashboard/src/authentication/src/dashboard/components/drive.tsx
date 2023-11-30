@@ -17,6 +17,7 @@ import * as modalProvider from '../../providers/modal'
 import * as uniqueString from '../../uniqueString'
 
 import * as app from '../../components/app'
+import type * as assetSettingsPanel from './assetSettingsPanel'
 import * as pageSwitcher from './pageSwitcher'
 import type * as spinner from './spinner'
 import CategorySwitcher, * as categorySwitcher from './categorySwitcher'
@@ -44,6 +45,9 @@ export interface DriveProps {
     query: assetQuery.AssetQuery
     setQuery: React.Dispatch<React.SetStateAction<assetQuery.AssetQuery>>
     projectStartupInfo: backendModule.ProjectStartupInfo | null
+    setAssetSettingsPanelProps: React.Dispatch<
+        React.SetStateAction<assetSettingsPanel.AssetSettingsPanelRequiredProps | null>
+    >
     doCreateProject: (templateId: string | null) => void
     doOpenEditor: (
         project: backendModule.ProjectAsset,
@@ -72,6 +76,7 @@ export default function Drive(props: DriveProps) {
         dispatchAssetListEvent,
         assetEvents,
         dispatchAssetEvent,
+        setAssetSettingsPanelProps,
         doOpenEditor,
         doCloseEditor,
         loadingProjectManagerDidFail,
@@ -360,6 +365,7 @@ export default function Drive(props: DriveProps) {
                     dispatchAssetEvent={dispatchAssetEvent}
                     assetListEvents={assetListEvents}
                     dispatchAssetListEvent={dispatchAssetListEvent}
+                    setAssetSettingsPanelProps={setAssetSettingsPanelProps}
                     doOpenIde={doOpenEditor}
                     doCloseIde={doCloseEditor}
                     doCreateLabel={doCreateLabel}

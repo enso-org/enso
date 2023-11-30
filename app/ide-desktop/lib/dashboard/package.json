@@ -22,7 +22,8 @@
     "esbuild-plugin-time": "^1.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.7.0"
+    "react-router-dom": "^6.7.0",
+    "validator": "^13.11.0"
   },
   "devDependencies": {
     "@esbuild-plugins/node-modules-polyfill": "^0.2.2",
@@ -32,6 +33,7 @@
     "@types/node": "^18.17.5",
     "@types/react": "^18.0.27",
     "@types/react-dom": "^18.0.10",
+    "@types/validator": "^13.11.7",
     "@typescript-eslint/eslint-plugin": "^6.7.2",
     "@typescript-eslint/parser": "^6.7.2",
     "chalk": "^5.3.0",

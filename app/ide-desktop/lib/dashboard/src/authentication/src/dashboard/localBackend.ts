@@ -67,6 +67,7 @@ export class LocalBackend extends backend.Backend {
                 volume_id: '',
             },
             labels: [],
+            description: null,
         }))
     }
 

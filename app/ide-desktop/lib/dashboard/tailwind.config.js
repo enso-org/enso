@@ -96,16 +96,19 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
                 98.25: '24.5625rem',
                 112.5: '28.125rem',
                 115.25: '28.8125rem',
+                120: '30rem',
                 140: '35rem',
                 '10lh': '10lh',
             },
             minWidth: {
                 31.5: '7.875rem',
+                32: '8rem',
                 33.25: '8.3125rem',
                 40: '10rem',
                 61.25: '15.3125rem',
                 80: '20rem',
                 96: '24rem',
+                120: '30rem',
             },
             opacity: {
                 '1/3': '.33333333',
@@ -128,10 +131,12 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
             },
             transitionProperty: {
                 width: 'width',
+                'min-width': 'min-width',
                 'stroke-dasharray': 'stroke-dasharray',
                 'grid-template-rows': 'grid-template-rows',
             },
             transitionDuration: {
+                400: '400ms',
                 5000: '5000ms',
                 90000: '90000ms',
             },
