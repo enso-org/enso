@@ -9,9 +9,13 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Engine;
 import org.graalvm.polyglot.Source;
 import static org.junit.Assert.assertEquals;
+
+import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
 
 public class SharedEngineTest extends TestBase {
   private static Engine sharedEngine;
@@ -36,6 +40,16 @@ public class SharedEngineTest extends TestBase {
   @Before
   public void initializeContext() {
     this.ctx = defaultContextBuilder().engine(sharedEngine).build();
+  }
+
+  @AfterClass
+  public static void disposeEngine() {
+    sharedEngine.close();
+  }
+
+  @After
+  public void disposeCtx() {
+    this.ctx.close();
   }
 
   private final Source typeCase = Source.newBuilder("enso", """
