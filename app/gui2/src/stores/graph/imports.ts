@@ -28,7 +28,11 @@ import { unwrap } from '@/util/result'
 function unrollOprChain(ast: Ast.Ast, operator: string): Identifier[] | null {
   const idents: Identifier[] = []
   let ast_: Ast.Ast | null = ast
-  while (ast_ instanceof Ast.OprApp && ast_.operator.ok && ast_.operator.value.code() === operator) {
+  while (
+    ast_ instanceof Ast.OprApp &&
+    ast_.operator.ok &&
+    ast_.operator.value.code() === operator
+  ) {
     if (!(ast_.rhs instanceof Ast.Ident)) return null
     idents.unshift(identifierUnchecked(ast_.rhs.code()))
     ast_ = ast_.lhs

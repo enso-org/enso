@@ -370,7 +370,7 @@ export class Generic extends Ast {
   }
 }
 
-type MultiSegmentAppSegment = { header: NodeChild<Token>, body: NodeChild<AstId> | null }
+type MultiSegmentAppSegment = { header: NodeChild<Token>; body: NodeChild<AstId> | null }
 
 export class Import extends Ast {
   private polyglot_: MultiSegmentAppSegment | null
@@ -429,12 +429,12 @@ export class Import extends Ast {
       if (segment?.body) parts.push(segment.body)
       return parts
     }
-    yield *segment(this.polyglot_)
-    yield *segment(this.from_)
-    yield *segment(this.import__)
+    yield* segment(this.polyglot_)
+    yield* segment(this.from_)
+    yield* segment(this.import__)
     if (this.all_) yield this.all_
-    yield *segment(this.as_)
-    yield *segment(this.hiding_)
+    yield* segment(this.as_)
+    yield* segment(this.hiding_)
   }
 }
 
