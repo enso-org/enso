@@ -243,7 +243,7 @@ function LabelsColumn(props: AssetColumnProps) {
     const {
         item: { item: asset },
         setItem,
-        state: { category, labels, deletedLabelNames, doCreateLabel },
+        state: { category, labels, setQuery, deletedLabelNames, doCreateLabel },
         rowState: { temporarilyAddedLabels, temporarilyRemovedLabels },
     } = props
     const session = authProvider.useNonPartialUserSession()
@@ -294,7 +294,9 @@ function LabelsColumn(props: AssetColumnProps) {
                                 ? 'relative before:absolute before:rounded-full before:border-2 before:border-delete before:inset-0 before:w-full before:h-full'
                                 : ''
                         }
-                        onClick={() => {
+                        onContextMenu={event => {
+                            event.preventDefault()
+                            event.stopPropagation()
                             setAsset(oldAsset => {
                                 const newLabels =
                                     oldAsset.labels?.filter(oldLabel => oldLabel !== label) ?? []
@@ -318,6 +320,15 @@ function LabelsColumn(props: AssetColumnProps) {
                                     labels: newLabels,
                                 }
                             })
+                        }}
+                        onClick={event => {
+                            event.preventDefault()
+                            event.stopPropagation()
+                            setQuery(oldQuery =>
+                                oldQuery.labels.includes(label)
+                                    ? oldQuery.delete({ labels: [label] })
+                                    : oldQuery.add({ labels: [label] })
+                            )
                         }}
                     >
                         {label}

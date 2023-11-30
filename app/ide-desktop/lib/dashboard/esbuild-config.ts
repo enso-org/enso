@@ -58,8 +58,8 @@ export function esbuildPluginGenerateTailwind(): esbuild.Plugin {
         setup: build => {
             const cssProcessor = postcss(
                 tailwindcss({
-                    ...tailwindConfig,
-                    content: tailwindConfig.content.map(glob =>
+                    ...tailwindConfig.default,
+                    content: tailwindConfig.default.content.map(glob =>
                         glob.replace(/^[.][/]/, THIS_PATH + '/')
                     ),
                 }),
