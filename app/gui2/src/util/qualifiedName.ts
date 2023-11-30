@@ -1,4 +1,4 @@
-import { Err, Ok, unwrap, type Result } from '@/util/result'
+import { Err,Ok,unwrap,type Result } from '@/util/result'
 
 declare const identifierBrand: unique symbol
 declare const qualifiedNameBrand: unique symbol
@@ -16,6 +16,11 @@ export function isIdentifier(str: string): str is Identifier {
 
 export function tryIdentifier(str: string): Result<Identifier> {
   return isIdentifier(str) ? Ok(str) : Err(`"${str}" is not a valid identifier`)
+}
+
+/** Mark the input as an identifier without any validation. This should always be used to obtain an Identifier from an Ast, and never when creating or modifying an identifier. */
+export function identifierUnchecked(str: string): Identifier {
+  return str as Identifier
 }
 
 /** A string representing a valid qualified name of our language.

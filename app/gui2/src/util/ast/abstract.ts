@@ -370,6 +370,74 @@ export class Generic extends Ast {
   }
 }
 
+type MultiSegmentAppSegment = { header: NodeChild<Token>, body: NodeChild<AstId> | null }
+
+export class Import extends Ast {
+  private polyglot_: MultiSegmentAppSegment | null
+  private from_: MultiSegmentAppSegment | null
+  private import__: MultiSegmentAppSegment
+  private all_: NodeChild<Token> | null
+  private as_: MultiSegmentAppSegment | null
+  private hiding_: MultiSegmentAppSegment | null
+
+  get polyglot(): Ast | null {
+    return this.polyglot_?.body ? getNode(this.polyglot_.body.node) : null
+  }
+
+  get from(): Ast | null {
+    return this.from_?.body ? getNode(this.from_.body.node) : null
+  }
+
+  get import_(): Ast | null {
+    return this.import__?.body ? getNode(this.import__.body.node) : null
+  }
+
+  get all(): Token | null {
+    return this.all_?.node ?? null
+  }
+
+  get as(): Ast | null {
+    return this.as_?.body ? getNode(this.as_.body.node) : null
+  }
+
+  get hiding(): Ast | null {
+    return this.hiding_?.body ? getNode(this.hiding_.body.node) : null
+  }
+
+  constructor(
+    id: AstId | undefined,
+    polyglot: MultiSegmentAppSegment | null,
+    from: MultiSegmentAppSegment | null,
+    import_: MultiSegmentAppSegment,
+    all: NodeChild<Token> | null,
+    as: MultiSegmentAppSegment | null,
+    hiding: MultiSegmentAppSegment | null,
+  ) {
+    super(id, RawAst.Tree.Type.Import)
+    this.polyglot_ = polyglot
+    this.from_ = from
+    this.import__ = import_
+    this.all_ = all
+    this.as_ = as
+    this.hiding_ = hiding
+  }
+
+  *concreteChildren(): IterableIterator<NodeChild> {
+    const segment = (segment: MultiSegmentAppSegment | null) => {
+      const parts = []
+      if (segment) parts.push(segment.header)
+      if (segment?.body) parts.push(segment.body)
+      return parts
+    }
+    yield *segment(this.polyglot_)
+    yield *segment(this.from_)
+    yield *segment(this.import__)
+    if (this.all_) yield this.all_
+    yield *segment(this.as_)
+    yield *segment(this.hiding_)
+  }
+}
+
 export class TextLiteral extends Ast {
   private readonly open_: NodeChild<Token> | null
   private readonly newline_: NodeChild<Token> | null
@@ -382,7 +450,6 @@ export class TextLiteral extends Ast {
     newline: NodeChild<Token> | null,
     elements: NodeChild[],
     close: NodeChild<Token> | null,
-    treeType?: RawAst.Tree.Type,
   ) {
     super(id, RawAst.Tree.Type.TextLiteral)
     this.open_ = open
@@ -837,6 +904,21 @@ function abstractTree(
       const close = tree.close ? recurseToken(tree.close) : null
       const id = nodesExpected.get(spanKey)?.pop()
       node = new TextLiteral(id, open, newline, elements, close).exprId
+      break
+    }
+    case RawAst.Tree.Type.Import: {
+      const recurseSegment = (segment: RawAst.MultiSegmentAppSegment) => ({
+        header: recurseToken(segment.header),
+        body: segment.body ? recurseTree(segment.body) : null,
+      })
+      const polyglot = tree.polyglot ? recurseSegment(tree.polyglot) : null
+      const from = tree.from ? recurseSegment(tree.from) : null
+      const import_ = recurseSegment(tree.import)
+      const all = tree.all ? recurseToken(tree.all) : null
+      const as = tree.as ? recurseSegment(tree.as) : null
+      const hiding = tree.hiding ? recurseSegment(tree.hiding) : null
+      const id = nodesExpected.get(spanKey)?.pop()
+      node = new Import(id, polyglot, from, import_, all, as, hiding).exprId
       break
     }
     default: {

@@ -97,14 +97,10 @@ export const useGraphStore = defineStore('graph', () => {
 
       imports.value = []
       newRoot.visitRecursive((node) => {
-        if (
-          node instanceof Ast.Ast &&
-          node.astExtended &&
-          node.astExtended.isTree(RawAst.Tree.Type.Import)
-        ) {
-          const recognized = recognizeImport(node.astExtended)
+        if (node instanceof Ast.Import) {
+          const recognized = recognizeImport(node)
           if (recognized) {
-            imports.value.push({ import: recognized, span: node.astExtended.span() })
+            imports.value.push({ import: recognized, span: node.astExtended!.span() })
           }
           return false
         }
