@@ -353,7 +353,7 @@ const handler = componentBrowserBindings.handler({
         <div class="top-bar">
           <div class="top-bar-inner">
             <ToggleIcon v-model="filterFlags.showLocal" icon="local_scope2" />
-            <ToggleIcon icon="command_key3" />
+            <ToggleIcon icon="command3" />
             <ToggleIcon v-model="filterFlags.showUnstable" icon="unstable2" />
             <ToggleIcon icon="marketplace" />
             <ToggleIcon v-model="docsVisible" icon="right_side_panel" class="first-on-right" />

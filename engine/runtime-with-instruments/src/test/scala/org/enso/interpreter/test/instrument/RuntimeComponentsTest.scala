@@ -1,6 +1,6 @@
 package org.enso.interpreter.test.instrument
 
-import org.enso.distribution.FileSystem
+import org.apache.commons.io.FileUtils
 import org.enso.distribution.locking.ThreadSafeFileLockManager
 import org.enso.editions.LibraryName
 import org.enso.interpreter.runtime
@@ -28,6 +28,7 @@ import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
 import java.util.logging.Level
+import scala.concurrent.Await
 import scala.concurrent.duration._
 
 @scala.annotation.nowarn("msg=multiarg infix syntax")
@@ -74,7 +75,6 @@ class RuntimeComponentsTest
       new LinkedBlockingQueue()
 
     val tmpDir: Path = Files.createTempDirectory("enso-test-packages")
-    sys.addShutdownHook(FileSystem.removeDirectoryIfExists(tmpDir))
     val distributionHome: File =
       Paths.get("../../distribution/component").toFile.getAbsoluteFile
     val editionHome: File =
@@ -224,8 +224,15 @@ class RuntimeComponentsTest
     val Some(Api.Response(_, Api.InitializedNotification())) = context.receive
   }
   override protected def afterEach(): Unit = {
-    context.executionContext.context.close()
-    context.runtimeServerEmulator.terminate()
+    if (context != null) {
+      context.messageQueue.clear()
+      context.executionContext.context.close()
+      Await.ready(context.runtimeServerEmulator.terminate(), 5.seconds)
+      context.lockManager.reset()
+      context.out.reset()
+      FileUtils.deleteQuietly(context.tmpDir.toFile)
+      context = null
+    }
   }
 
   it should "load library extended by the component group" in {

@@ -4,6 +4,7 @@ import * as React from 'react'
 
 import * as assetEventModule from '../events/assetEvent'
 import * as assetListEventModule from '../events/assetListEvent'
+import * as assetQuery from '../../assetQuery'
 import * as backendModule from '../backend'
 import * as categorySwitcher from './categorySwitcher'
 import * as hooks from '../../hooks'
@@ -62,7 +63,7 @@ export default function Dashboard(props: DashboardProps) {
     const { localStorage } = localStorageProvider.useLocalStorage()
     const { shortcuts } = shortcutsProvider.useShortcuts()
     const [initialized, setInitialized] = React.useState(false)
-    const [query, setQuery] = React.useState('')
+    const [query, setQuery] = React.useState(() => assetQuery.AssetQuery.fromString(''))
     const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
     const [isHelpChatVisible, setIsHelpChatVisible] = React.useState(false)
     const [loadingProjectManagerDidFail, setLoadingProjectManagerDidFail] = React.useState(false)
@@ -109,7 +110,7 @@ export default function Dashboard(props: DashboardProps) {
     }, [page, /* should never change */ unsetModal])
 
     React.useEffect(() => {
-        if (query !== '') {
+        if (query.query !== '') {
             setPage(pageSwitcher.Page.drive)
         }
     }, [query])
@@ -446,6 +447,7 @@ export default function Dashboard(props: DashboardProps) {
                         page={page}
                         initialProjectName={initialProjectName}
                         query={query}
+                        setQuery={setQuery}
                         projectStartupInfo={projectStartupInfo}
                         queuedAssetEvents={queuedAssetEvents}
                         assetListEvents={assetListEvents}

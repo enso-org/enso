@@ -106,7 +106,7 @@ export default function AssetSettingsPanel(props: AssetSettingsPanelProps) {
 
     return (
         <div
-            className="absolute flex flex-col h-full border-black-a12 border-l-2 gap-8 w-120 pl-3 pr-4 py-2.25"
+            className="absolute flex flex-col h-full border-black/[0.12] border-l-2 gap-8 w-120 pl-3 pr-4 py-2.25"
             onClick={event => {
                 event.stopPropagation()
             }}

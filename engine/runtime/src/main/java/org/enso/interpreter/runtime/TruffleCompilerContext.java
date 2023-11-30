@@ -276,7 +276,7 @@ final class TruffleCompilerContext implements CompilerContext {
 
   private final class ModuleUpdater implements Updater, AutoCloseable {
     private final Module module;
-    private BindingsMap map;
+    private BindingsMap[] map;
     private org.enso.compiler.core.ir.Module[] ir;
     private CompilationStage stage;
     private Boolean loadedFromCache;
@@ -289,7 +289,7 @@ final class TruffleCompilerContext implements CompilerContext {
 
     @Override
     public void bindingsMap(BindingsMap map) {
-      this.map = map;
+      this.map = new BindingsMap[] { map };
     }
 
     @Override
@@ -320,10 +320,10 @@ final class TruffleCompilerContext implements CompilerContext {
     @Override
     public void close() {
       if (map != null) {
-        if (module.bindings != null) {
+        if (module.bindings != null && map[0] != null) {
           loggerCompiler.log(Level.FINEST, "Reassigining bindings to {0}", module);
         }
-        module.bindings = map;
+        module.bindings = map[0];
       }
       if (ir != null) {
         module.module.unsafeSetIr(ir[0]);
