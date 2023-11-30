@@ -1,13 +1,10 @@
 package org.enso.interpreter.runtime.data.hash;
 
 import java.util.Arrays;
-import java.util.Iterator;
-import java.util.stream.Stream;
 
 import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
 import org.enso.interpreter.node.expression.builtin.meta.HashCodeNode;
 
-import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives;
 
 /**
@@ -17,7 +14,7 @@ import com.oracle.truffle.api.CompilerDirectives;
  * There should be where most one snapshot for a given generation. All the snapshots should
  have generation smaller than this builder generation.
  */
-final class EnsoHashMapBuilder implements Iterable<EnsoHashMapBuilder.StorageEntry> {
+final class EnsoHashMapBuilder {
   /**
   * Array of entries. It is only being added into. Both {@code put} and {@code remove}
   * operations just add new entries into it using <em>linear hashing</em>.
@@ -46,11 +43,6 @@ final class EnsoHashMapBuilder implements Iterable<EnsoHashMapBuilder.StorageEnt
     this.byHash = new StorageEntry[initialCapacity];
   }
 
-  private EnsoHashMapBuilder(EnsoHashMapBuilder other) {
-    this.byHash = other.byHash.clone();
-    this.generation = other.generation;
-  }
-
   /**
    * Create a new builder with default size being {@code 11}.
    */
@@ -68,12 +60,24 @@ final class EnsoHashMapBuilder implements Iterable<EnsoHashMapBuilder.StorageEnt
     return actualSize;
   }
 
-  /** Provides access to all {@code StorageEntry} in this builder.
+  /** Provides access to all {@code StorageEntry} in this builder
+   * at given {@code atGeneration}.
    * Classical usage is to {@code for (var e : this) if (e.isVisible(atGeneration) operation(e))}.
    */
-  @Override
-  public Iterator<StorageEntry> iterator() {
-    return Stream.of(byHash).filter((e) -> e != null).iterator();
+  public StorageEntry[] getEntries(int atGeneration, int size) {
+    var arr = new StorageEntry[size];
+    var at = 0;
+    for (var i = 0; i < byHash.length; i++) {
+      var e = byHash[i];
+      if (e != null && e.isVisible(atGeneration)) {
+        arr[at++] = e;
+      }
+    }
+    if (at != arr.length) {
+      return Arrays.copyOf(arr, at);
+    } else {
+      return arr;
+    }
   }
 
   /**
@@ -194,8 +198,9 @@ final class EnsoHashMapBuilder implements Iterable<EnsoHashMapBuilder.StorageEnt
    */
   private EnsoHashMapBuilder rehash(int size, int atGeneration, HashCodeNode hashCodeNode, EqualsNode equalsNode) {
     var newBuilder = new EnsoHashMapBuilder(size);
-    for (var entry : this) {
-      if (entry.isVisible(atGeneration)) {
+    for (var i = 0; i < byHash.length; i++) {
+      var entry = byHash[i];
+      if (entry != null && entry.isVisible(atGeneration)) {
         newBuilder.put(entry.key(), entry.value(), hashCodeNode, equalsNode);
       }
     }
@@ -256,5 +261,4 @@ final class EnsoHashMapBuilder implements Iterable<EnsoHashMapBuilder.StorageEnt
       }
     }
   }
-
 }

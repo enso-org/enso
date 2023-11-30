@@ -72,12 +72,10 @@ public final class EnsoHashMap implements EnsoObject {
       var keys = new Object[size];
       var values = new Object[size];
       var at = 0;
-      for (var entry : mapBuilder) {
-        if (entry.isVisible(generation)) {
-          keys[at] = entry.key();
-          values[at] = entry.value();
-          at++;
-        }
+      for (var entry : mapBuilder.getEntries(generation, size)) {
+        keys[at] = entry.key();
+        values[at] = entry.value();
+        at++;
       }
       var pairs = HashEntriesVector.createFromKeysAndValues(keys, values);
       cachedVectorRepresentation = ArrayLikeHelpers.asVectorFromArray(pairs);
@@ -178,11 +176,9 @@ public final class EnsoHashMap implements EnsoObject {
     var sb = new StringBuilder();
     sb.append("{");
     boolean empty = true;
-    for (StorageEntry entry : mapBuilder) {
-      if (entry.isVisible(generation)) {
-        empty = false;
-        sb.append(entryToString(entry, useInterop)).append(", ");
-      }
+    for (StorageEntry entry : mapBuilder.getEntries(generation, size)) {
+      empty = false;
+      sb.append(entryToString(entry, useInterop)).append(", ");
     }
     if (!empty) {
       // Delete last comma
