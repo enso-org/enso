@@ -59,7 +59,7 @@ export enum Score {
 
 export interface WidgetProps<T> {
   input: T
-  config: WidgetConfiguration | undefined
+  config?: WidgetConfiguration | undefined
   nesting: number
 }
 
@@ -111,6 +111,9 @@ export interface WidgetOptions<T extends WidgetInput> {
    * pass the input filter.
    */
   score?: ((info: WidgetProps<T>, db: GraphDb) => Score) | Score
+  // A list of widget kinds that will be prevented from being used on the same node as this widget,
+  // once this widget is used.
+  prevent?: WidgetComponent<any>[]
 }
 
 export interface WidgetDefinition<T extends WidgetInput> {
@@ -133,6 +136,7 @@ export interface WidgetDefinition<T extends WidgetInput> {
    * filter. When not provided, the widget will be considered a perfect match for all inputs that
    */
   score: (props: WidgetProps<T>, db: GraphDb) => Score
+  prevent: WidgetComponent<any>[] | undefined
 }
 
 /**
@@ -195,6 +199,7 @@ export function defineWidget<M extends InputMatcher<any> | InputMatcher<any>[]>(
     priority: definition.priority,
     match: makeInputMatcher<InputTy<M>>(matchInputs),
     score,
+    prevent: definition.prevent,
   }
 }
 
@@ -232,15 +237,22 @@ export class WidgetRegistry {
 
   loadBuiltins() {
     const bulitinWidgets = import.meta.glob('@/components/GraphEditor/widgets/*.vue')
-    for (const [path, asyncModule] of Object.entries(bulitinWidgets)) {
-      this.loadAndCheckWidgetModule(asyncModule(), path)
-    }
+    this.loadAndCheckWidgetModules(Object.entries(bulitinWidgets))
   }
 
-  async loadAndCheckWidgetModule(asyncModule: Promise<unknown>, path: string) {
-    const m = await asyncModule
-    if (isWidgetModule(m)) this.registerWidgetModule(m)
-    else console.error('Invalid widget module:', path, m)
+  async loadAndCheckWidgetModules(
+    asyncModules: [path: string, asyncModule: () => Promise<unknown>][],
+  ) {
+    const modules = await Promise.allSettled(
+      asyncModules.map(([path, mod]) => mod().then((m) => [path, m] as const)),
+    )
+    for (const result of modules) {
+      if (result.status === 'fulfilled') {
+        const [path, mod] = result.value
+        if (isWidgetModule(mod)) this.registerWidgetModule(mod)
+        else console.error('Invalid widget module:', path, mod)
+      }
+    }
   }
 
   /**
@@ -261,26 +273,26 @@ export class WidgetRegistry {
   select<T extends WidgetInput>(
     props: WidgetProps<T>,
     alreadyUsed?: Set<WidgetComponent<any>>,
-  ): WidgetComponent<T> | undefined {
+  ): WidgetModule<T> | undefined {
     // The type and score of the best widget found so far.
-    let best: WidgetComponent<T> | undefined = undefined
+    let best: WidgetModule<T> | undefined = undefined
     let bestScore = Score.Mismatch
 
     // Iterate over all loaded widget kinds in order of decreasing priority.
-    for (const module of this.sortedModules.value) {
+    for (const widgetModule of this.sortedModules.value) {
       // Skip matching widgets that are declared as already used.
-      if (alreadyUsed && alreadyUsed.has(module.default)) continue
+      if (alreadyUsed && alreadyUsed.has(widgetModule.default)) continue
 
       // Skip widgets that don't match the input type.
-      if (!module.widgetDefinition.match(props.input)) continue
+      if (!widgetModule.widgetDefinition.match(props.input)) continue
 
       // Perform a match and update the best widget if the match is better than the previous one.
-      const score = module.widgetDefinition.score(props, this.db)
+      const score = widgetModule.widgetDefinition.score(props, this.db)
       // If we found a perfect match, we can return immediately, as there can be no better match.
-      if (score === Score.Perfect) return module.default
+      if (score === Score.Perfect) return widgetModule
       if (score > bestScore) {
         bestScore = score
-        best = module.default
+        best = widgetModule
       }
     }
     // Once we've checked all widgets, return the best match found, if any.

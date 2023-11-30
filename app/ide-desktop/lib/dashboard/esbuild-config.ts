@@ -56,12 +56,15 @@ export function esbuildPluginGenerateTailwind(): esbuild.Plugin {
     return {
         name: 'enso-generate-tailwind',
         setup: build => {
-            const cssProcessor = postcss([
+            const cssProcessor = postcss(
                 tailwindcss({
-                    config: tailwindConfig,
+                    ...tailwindConfig.default,
+                    content: tailwindConfig.default.content.map(glob =>
+                        glob.replace(/^[.][/]/, THIS_PATH + '/')
+                    ),
                 }),
-                tailwindcssNesting(),
-            ])
+                tailwindcssNesting()
+            )
             build.onLoad({ filter: /tailwind\.css$/ }, async loadArgs => {
                 // console.log(`Processing CSS file '${loadArgs.path}'.`)
                 const content = await fs.readFile(loadArgs.path, 'utf8')

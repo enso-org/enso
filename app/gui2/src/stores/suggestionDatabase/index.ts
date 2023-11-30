@@ -26,6 +26,13 @@ export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
     return []
   })
 
+  getEntryByQualifiedName(name: QualifiedName): SuggestionEntry | undefined {
+    const [id] = this.nameToId.lookup(name)
+    if (id) {
+      return this.get(id)
+    }
+  }
+
   findByMethodPointer(method: MethodPointer): SuggestionId | undefined {
     if (method == null) return
     const moduleName = tryQualifiedName(method.definedOnType)
@@ -69,6 +76,7 @@ class Synchronizer {
         lsRpc.acquireCapability('search/receivesSuggestionsDatabaseUpdates', {}),
       )
       this.setupUpdateHandler(lsRpc)
+      this.loadGroups(lsRpc, projectStore.firstExecution)
       return Synchronizer.loadDatabase(entries, lsRpc, groups.value)
     })
 
@@ -118,7 +126,11 @@ class Synchronizer {
         }
       })
     })
+  }
+
+  private async loadGroups(lsRpc: LanguageServer, firstExecution: Promise<unknown>) {
     this.queue.pushTask(async ({ currentVersion }) => {
+      await firstExecution
       const groups = await lsRpc.getComponentGroups()
       this.groups.value = groups.componentGroups.map(
         (group): Group => ({

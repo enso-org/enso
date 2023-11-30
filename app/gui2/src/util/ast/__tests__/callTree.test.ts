@@ -1,23 +1,39 @@
 import { Tree } from '@/generated/ast'
+import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import { AstExtended } from '@/util/ast'
 import { ArgumentApplication, ArgumentPlaceholder } from '@/util/callTree'
 import { isSome } from '@/util/opt'
-import type { SuggestionEntryArgument } from 'shared/languageServerTypes/suggestions'
+import { type Identifier, type QualifiedName } from '@/util/qualifiedName'
+import type { MethodCall } from 'shared/languageServerTypes'
 import { IdMap } from 'shared/yjsModel'
 import { assert, expect, test } from 'vitest'
 
-const knownArguments: SuggestionEntryArgument[] = [
-  { name: 'a', type: 'Any', isSuspended: false, hasDefault: false },
-  { name: 'b', type: 'Any', isSuspended: false, hasDefault: false },
-  { name: 'c', type: 'Any', isSuspended: false, hasDefault: false },
-  { name: 'd', type: 'Any', isSuspended: false, hasDefault: false },
-]
+const mockSuggestion: SuggestionEntry = {
+  kind: SuggestionKind.Method,
+  name: 'func' as Identifier,
+  definedIn: 'Foo.Bar' as QualifiedName,
+  selfType: 'Foo.Bar',
+  returnType: 'Any',
+  arguments: [
+    { name: 'self', type: 'Any', isSuspended: false, hasDefault: false },
+    { name: 'a', type: 'Any', isSuspended: false, hasDefault: false },
+    { name: 'b', type: 'Any', isSuspended: false, hasDefault: false },
+    { name: 'c', type: 'Any', isSuspended: false, hasDefault: false },
+    { name: 'd', type: 'Any', isSuspended: false, hasDefault: false },
+  ],
+  documentation: [],
+  isPrivate: false,
+  isUnstable: false,
+  aliases: [],
+}
 
 function testArgs(paddedExpression: string, pattern: string) {
   const expression = paddedExpression.trim()
   const notAppliedArguments = pattern
     .split(' ')
-    .map((p) => (p.startsWith('?') ? knownArguments.findIndex((k) => p.endsWith(k.name)) : null))
+    .map((p) =>
+      p.startsWith('?') ? mockSuggestion.arguments.findIndex((k) => p.slice(1) === k.name) : null,
+    )
     .filter(isSome)
 
   test(`argument list: ${paddedExpression} ${pattern}`, () => {
@@ -30,7 +46,31 @@ function testArgs(paddedExpression: string, pattern: string) {
       return first.value.expression
     })
 
-    const call = ArgumentApplication.FromAstWithInfo(ast, knownArguments, notAppliedArguments)
+    const methodCall: MethodCall = {
+      methodPointer: {
+        name: 'func',
+        definedOnType: 'Foo.Bar',
+        module: 'Foo.Bar',
+      },
+      notAppliedArguments,
+    }
+
+    const funcMethodCall: MethodCall = {
+      methodPointer: {
+        name: 'func',
+        definedOnType: 'Foo.Bar',
+        module: 'Foo.Bar',
+      },
+      notAppliedArguments: [1, 2, 3, 4],
+    }
+
+    const interpreted = ArgumentApplication.Interpret(ast, false)
+    const call = ArgumentApplication.FromInterpretedWithInfo(
+      interpreted,
+      funcMethodCall,
+      methodCall,
+      mockSuggestion,
+    )
     assert(call instanceof ArgumentApplication)
     expect(printArgPattern(call)).toEqual(pattern)
   })
@@ -46,7 +86,8 @@ function printArgPattern(application: ArgumentApplication | AstExtended<Tree>) {
         : current.appTree?.isTree(Tree.Type.NamedApp)
         ? '='
         : '@'
-    parts.push(sigil + (current.argument.info?.name ?? '_'))
+    const argInfo = 'info' in current.argument ? current.argument.info : undefined
+    parts.push(sigil + (argInfo?.name ?? '_'))
     current = current.target
   }
   return parts.reverse().join(' ')

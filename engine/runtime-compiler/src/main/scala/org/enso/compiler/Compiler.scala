@@ -18,6 +18,7 @@ import org.enso.compiler.core.ir.{
   Warning,
   Module => IRModule
 }
+import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
 import org.enso.compiler.core.ir.expression.Error
 import org.enso.compiler.core.ir.module.scope.Export
 import org.enso.compiler.core.ir.module.scope.Import
@@ -587,9 +588,17 @@ class Compiler(
         injectSyntheticModuleExports(expr, module.getDirectModulesRefs)
     val discoveredModule =
       recognizeBindings(exprWithModuleExports, moduleContext)
+    if (context.wasLoadedFromCache(module)) {
+      if (module.getBindingsMap() != null) {
+        discoveredModule.passData.update(
+          new MetadataPair(BindingAnalysis, module.getBindingsMap())
+        )
+      }
+    }
     context.updateModule(
       module,
       { u =>
+        u.bindingsMap(null);
         u.ir(discoveredModule)
         u.compilationStage(CompilationStage.AFTER_PARSING)
         u.loadedFromCache(false)

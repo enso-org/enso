@@ -28,7 +28,6 @@ import BUILD_INFO from '../../../../build.json' assert { type: 'json' }
 // =============
 
 /** The parts of the electron-builder configuration that we want to keep configurable.
- *
  * @see `args` definition below for fields description. */
 export interface Arguments {
     // The types come from a third-party API and cannot be changed.

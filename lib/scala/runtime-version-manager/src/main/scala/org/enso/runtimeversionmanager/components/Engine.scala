@@ -29,17 +29,6 @@ case class Engine(version: SemVer, path: Path, manifest: Manifest) {
     */
   def graalRuntimeVersion: GraalVMVersion = manifest.runtimeVersion
 
-  /** The GraalVM distribution policy changed a lot since GraalVM 23.0.0 for JDK 21.
-    * The newest GraalVM is now distributed as artifacts from the Maven central, and therefore,
-    * does not need to be downloaded at runtime.
-    *
-    * @see https://medium.com/graalvm/truffle-unchained-13887b77b62c
-    * @return true if a separate GraalVM distribution download is needed.
-    */
-  def needsGraalDistribution: Boolean = {
-    !graalRuntimeVersion.isUnchained
-  }
-
   /** A set of JVM options that should be added when running this engine.
     */
   def defaultJVMOptions: Seq[JVMOption] = manifest.jvmOptions
@@ -51,11 +40,13 @@ case class Engine(version: SemVer, path: Path, manifest: Manifest) {
 
   /** Path to the runner JAR.
     */
-  def runnerPath: Path = {
-    if (needsGraalDistribution) {
-      componentDirPath / "runner.jar"
+  def runnerPath: Option[Path] = {
+    if (graalRuntimeVersion.isUnchained) {
+      None
     } else {
-      componentDirPath / "runner" / "runner.jar"
+      Some(
+        componentDirPath / "runner.jar"
+      )
     }
   }
 
@@ -66,22 +57,25 @@ case class Engine(version: SemVer, path: Path, manifest: Manifest) {
   /** Checks if the installation is not corrupted and reports any issues as
     * failures.
     */
-  def ensureValid(): Try[Unit] =
-    if (!Files.exists(runnerPath))
-      Failure(
+  def ensureValid(): Try[Unit] = {
+    if (runnerPath.isDefined && !Files.exists(runnerPath.get)) {
+      return Failure(
         CorruptedComponentError(
           s"Engine's runner.jar (expected at " +
-          s"`${MaskedPath(runnerPath).applyMasking()}`) is missing."
+          s"`${MaskedPath(runnerPath.get).applyMasking()}`) is missing."
         )
       )
-    else if (!Files.exists(runtimePath))
-      Failure(
+    }
+    if (!Files.exists(runtimePath)) {
+      return Failure(
         CorruptedComponentError(
           s"`Engine's runtime.jar (expected at " +
           s"${MaskedPath(runtimePath).applyMasking()}`) is missing."
         )
       )
-    else Success(())
+    }
+    Success(())
+  }
 
   /** Returns if the engine release was marked as broken when it was being
     * installed.

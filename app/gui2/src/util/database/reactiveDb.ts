@@ -6,15 +6,16 @@
  *
  * 2. `ReactiveIndex`: This is an abstraction, that allows constructing arbitrary database indexes.
  *    Indexes update reactively, can depend on each other, and defer updates until the next lookup for efficiency.
+ *
+ * 3. `ReactiveMapping`: Similar to `ReactiveIndex`, but each key is correlated to one value (`M`) or zero (`undefined`).
  */
 
-import { LazySyncEffectSet } from '@/util/reactivity'
-// eslint-disable-next-line vue/prefer-import-from-vue
 import { assert } from '@/util/assert'
+import { LazySyncEffectSet } from '@/util/reactivity'
 import * as map from 'lib0/map'
 import { ObservableV2 } from 'lib0/observable'
 import * as set from 'lib0/set'
-import { computed, reactive, type ComputedRef, type DebuggerOptions } from 'vue'
+import { computed, effectScope, reactive, type ComputedRef, type DebuggerOptions } from 'vue'
 
 export type OnDelete = (cleanupFn: () => void) => void
 
@@ -326,11 +327,15 @@ export class ReactiveMapping<K, V, M> {
   constructor(db: ReactiveDb<K, V>, indexer: Mapper<K, V, M>, debugOptions?: DebuggerOptions) {
     this.computed = reactive(map.create())
     db.on('entryAdded', (key, value, onDelete) => {
-      this.computed.set(
-        key,
-        computed(() => indexer(key, value), debugOptions),
-      )
-      onDelete(() => this.computed.delete(key))
+      const scope = effectScope()
+      const mappedValue = scope.run(() =>
+        computed(() => scope.run(() => indexer(key, value)), debugOptions),
+      )! // This non-null assertion is SAFE, as the scope is initially active.
+      this.computed.set(key, mappedValue)
+      onDelete(() => {
+        scope.stop()
+        this.computed.delete(key)
+      })
     })
   }
 

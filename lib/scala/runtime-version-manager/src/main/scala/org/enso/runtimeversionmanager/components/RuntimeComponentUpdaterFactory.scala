@@ -21,7 +21,7 @@ object RuntimeComponentUpdaterFactory {
     /** @inheritdoc */
     override def build(runtime: GraalRuntime): RuntimeComponentUpdater = {
       if (runtime.version.isUnchained) {
-        NoopComponentUpdater
+        new UnchainedGraalVMComponentUpdater()
       } else {
         new GraalVMComponentUpdater(runtime)
       }

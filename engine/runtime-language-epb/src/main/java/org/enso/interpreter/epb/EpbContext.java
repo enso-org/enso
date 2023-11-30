@@ -69,9 +69,9 @@ public class EpbContext {
         (Consumer<TruffleContext>)
             (context) -> {
               var lock = innerContext.enter(null);
-              log.log(Level.FINEST, "Entering initialization thread");
-              cdl.countDown();
               try {
+                log.log(Level.FINEST, "Entering initialization thread");
+                cdl.countDown();
                 for (var l : langs.split(",")) {
                   log.log(Level.FINEST, "Initializing language {0}", l);
                   long then = System.currentTimeMillis();

@@ -31,7 +31,7 @@ final class PerInputImpl implements Input {
     var buf = ByteBuffer.wrap(arr);
     var version = buf.getInt(4);
     if (version != PerMap.DEFAULT.versionStamp) {
-      throw new IOException("Incompatible version " + version + " != " + PerMap.DEFAULT.versionStamp);
+      throw new IOException("Incompatible version " + Integer.toHexString(version) + " != " + Integer.toHexString(PerMap.DEFAULT.versionStamp));
     }
     var at = buf.getInt(8);
     var cache = new InputCache(buf, readResolve);

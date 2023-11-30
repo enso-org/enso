@@ -6,6 +6,7 @@ import { default as DocumentationPanel } from '@/components/DocumentationPanel.v
 import SvgIcon from '@/components/SvgIcon.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
 import { useGraphStore } from '@/stores/graph'
+import type { RequiredImport } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { groupColorStyle, useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
@@ -33,29 +34,25 @@ const props = defineProps<{
   navigator: ReturnType<typeof useNavigator>
   initialContent: string
   initialCaretPosition: ContentRange
-  sourceNode: Opt<ExprId>
+  sourcePort: Opt<ExprId>
 }>()
 
 const emit = defineEmits<{
-  accepted: [searcherExpression: string]
+  accepted: [searcherExpression: string, requiredImports: RequiredImport[]]
   closed: [searcherExpression: string]
   canceled: []
 }>()
 
 function getInitialContent(): string {
-  if (props.sourceNode == null) return props.initialContent
-  const sourceNode = props.sourceNode
-  console.log(sourceNode)
-  const sourceNodeName = graphStore.db.getNodeMainOutputPortIdentifier(sourceNode)
-  console.log(sourceNodeName)
+  if (props.sourcePort == null) return props.initialContent
+  const sourceNodeName = graphStore.db.getOutputPortIdentifier(props.sourcePort)
   const sourceNodeNameWithDot = sourceNodeName ? sourceNodeName + '.' : ''
   return sourceNodeNameWithDot + props.initialContent
 }
 
 function getInitialCaret(): ContentRange {
-  if (props.sourceNode == null) return props.initialCaretPosition
-  const sourceNode = props.sourceNode
-  const sourceNodeName = graphStore.db.getNodeMainOutputPortIdentifier(sourceNode)
+  if (props.sourcePort == null) return props.initialCaretPosition
+  const sourceNodeName = graphStore.db.getOutputPortIdentifier(props.sourcePort)
   const sourceNodeNameWithDot = sourceNodeName ? sourceNodeName + '.' : ''
   return [
     props.initialCaretPosition[0] + sourceNodeNameWithDot.length,
@@ -305,7 +302,7 @@ function acceptSuggestion(index: Opt<Component> = null) {
 }
 
 function acceptInput() {
-  emit('accepted', input.code.value)
+  emit('accepted', input.code.value, input.importsToAdd())
 }
 
 // === Key Events Handler ===
@@ -356,7 +353,7 @@ const handler = componentBrowserBindings.handler({
         <div class="top-bar">
           <div class="top-bar-inner">
             <ToggleIcon v-model="filterFlags.showLocal" icon="local_scope2" />
-            <ToggleIcon icon="command_key3" />
+            <ToggleIcon icon="command3" />
             <ToggleIcon v-model="filterFlags.showUnstable" icon="unstable2" />
             <ToggleIcon icon="marketplace" />
             <ToggleIcon v-model="docsVisible" icon="right_side_panel" class="first-on-right" />
@@ -370,7 +367,7 @@ const handler = componentBrowserBindings.handler({
             @wheel.stop.passive
             @scroll="updateScroll"
           >
-            <div class="list-variant" style="">
+            <div class="list-variant">
               <div
                 v-for="item in visibleComponents"
                 :key="item.component.suggestionId"

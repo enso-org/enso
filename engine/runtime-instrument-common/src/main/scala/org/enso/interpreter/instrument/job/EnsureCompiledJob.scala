@@ -378,7 +378,7 @@ final class EnsureCompiledJob(
   private def invalidateCaches(
     module: Module,
     changeset: Changeset[_]
-  )(implicit ctx: RuntimeContext, logger: TruffleLogger): Unit = {
+  )(implicit ctx: RuntimeContext): Unit = {
     val invalidationCommands =
       buildCacheInvalidationCommands(
         changeset,

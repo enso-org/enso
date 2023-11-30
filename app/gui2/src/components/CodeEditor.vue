@@ -64,7 +64,10 @@ const expressionUpdatesDiagnostics = computed(() => {
         break
       }
       case 'DataflowError': {
-        diagnostics.push({ from, to, message: 'Unknown data flow error', severity: 'error' })
+        const error = projectStore.dataflowErrors.lookup(id)
+        if (error?.value?.message) {
+          diagnostics.push({ from, to, message: error.value.message, severity: 'error' })
+        }
         break
       }
     }
@@ -115,6 +118,14 @@ watchEffect(() => {
             dom
               .appendChild(document.createElement('div'))
               .appendChild(document.createTextNode(`Type: ${expressionInfo.typename ?? 'Unknown'}`))
+          }
+          if (expressionInfo?.profilingInfo[0] != null) {
+            const profile = expressionInfo.profilingInfo[0]
+            const executionTime = (profile.ExecutionTime.nanoTime / 1_000_000).toFixed(3)
+            const text = `Execution Time: ${executionTime}ms`
+            dom
+              .appendChild(document.createElement('div'))
+              .appendChild(document.createTextNode(text))
           }
 
           dom
@@ -185,6 +196,7 @@ const editorStyle = computed(() => {
     @keydown.enter.stop
     @wheel.stop.passive
     @pointerdown.stop
+    @contextmenu.stop
   >
     <div class="resize-handle" v-on="resize.events" @dblclick="resetSize">
       <svg viewBox="0 0 16 16">

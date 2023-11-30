@@ -12,9 +12,9 @@ import {
   type WatchSource,
 } from 'vue'
 
-export function isClick(e: MouseEvent | PointerEvent) {
-  if (e instanceof PointerEvent) return e.pointerId !== -1
-  else return e.buttons !== 0
+export function isTriggeredByKeyboard(e: MouseEvent | PointerEvent) {
+  if (e instanceof PointerEvent) return e.pointerType !== 'mouse'
+  else return false
 }
 
 /**
