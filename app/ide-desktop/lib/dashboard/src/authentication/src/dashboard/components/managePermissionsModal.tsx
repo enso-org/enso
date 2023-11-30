@@ -2,6 +2,8 @@
 import * as React from 'react'
 import * as toast from 'react-toastify'
 
+import isEmail from 'validator/es/lib/isEmail'
+
 import * as auth from '../../authentication/providers/auth'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
@@ -55,7 +57,6 @@ export default function ManagePermissionsModal<
     const [users, setUsers] = React.useState<backendModule.SimpleUser[]>([])
     const [email, setEmail] = React.useState<string | null>(null)
     const [action, setAction] = React.useState(permissionsModule.PermissionAction.view)
-    const emailValidityRef = React.useRef<HTMLInputElement>(null)
     const position = React.useMemo(() => eventTarget?.getBoundingClientRect(), [eventTarget])
     const editablePermissions = React.useMemo(
         () =>
@@ -110,10 +111,8 @@ export default function ManagePermissionsModal<
             [emailsOfUsersWithPermission, usernamesOfUsersWithPermission, listedUsers]
         )
         const willInviteNewUser = React.useMemo(() => {
-            if (users.length !== 0) {
+            if (users.length !== 0 || email == null || email === '') {
                 return false
-            } else if (email == null || email === '') {
-                return true
             } else {
                 const lowercase = email.toLowerCase()
                 return (
@@ -139,6 +138,7 @@ export default function ManagePermissionsModal<
             if (willInviteNewUser) {
                 try {
                     setUsers([])
+                    setEmail('')
                     if (email != null) {
                         await backend.inviteUser({
                             organizationId: organization.id,
@@ -282,14 +282,6 @@ export default function ManagePermissionsModal<
                                     assetType={item.type}
                                     onChange={setAction}
                                 />
-                                <input
-                                    readOnly
-                                    hidden
-                                    ref={emailValidityRef}
-                                    type="email"
-                                    className="hidden"
-                                    value={email ?? ''}
-                                />
                                 <Autocomplete
                                     multiple
                                     autoFocus
@@ -318,10 +310,10 @@ export default function ManagePermissionsModal<
                             <button
                                 type="submit"
                                 disabled={
-                                    users.length === 0 ||
-                                    (email != null && emailsOfUsersWithPermission.has(email)) ||
-                                    (willInviteNewUser &&
-                                        emailValidityRef.current?.validity.valid !== true)
+                                    willInviteNewUser
+                                        ? email == null || !isEmail(email)
+                                        : users.length === 0 ||
+                                          (email != null && emailsOfUsersWithPermission.has(email))
                                 }
                                 className="text-tag-text bg-invite rounded-full px-2 py-1 disabled:opacity-30"
                             >
