@@ -7,6 +7,7 @@ import org.enso.interpreter.runtime.error.DataflowError;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -34,10 +35,10 @@ public abstract class HashMapRemoveNode extends Node {
   @Specialization
   EnsoHashMap removeFromEnsoMap(
     EnsoHashMap ensoMap, Object key,
-      @Cached HashCodeNode hashCodeNode,
-      @Cached EqualsNode equalsNode
+    @Shared("hash") @Cached HashCodeNode hashCodeNode,
+    @Shared("equals") @Cached EqualsNode equalsNode
   ) {
-    var mapBuilder = ensoMap.getMapBuilder(false);
+    var mapBuilder = ensoMap.getMapBuilder(false, hashCodeNode, equalsNode);
     if (mapBuilder.remove(key, hashCodeNode, equalsNode)) {
       return mapBuilder.build();
     } else {
@@ -50,8 +51,8 @@ public abstract class HashMapRemoveNode extends Node {
   )
   EnsoHashMap removeFromInteropMap(Object map, Object keyToRemove,
       @CachedLibrary(limit = "5") InteropLibrary interop,
-      @Cached HashCodeNode hashCodeNode,
-      @Cached EqualsNode equalsNode) {
+      @Shared("hash") @Cached HashCodeNode hashCodeNode,
+      @Shared("equals") @Cached EqualsNode equalsNode) {
     // We cannot simply call interop.isHashEntryExisting, because it would, most likely
     // use the default `hashCode` and `equals` Java methods. But we need to use our
     // EqualsNode, so we do the check for non-existing key inside the while loop.
@@ -70,7 +71,8 @@ public abstract class HashMapRemoveNode extends Node {
           }
         } else {
           Object value = interop.readArrayElement(keyValueArr, 1);
-          mapBuilder = mapBuilder.put(key, value, hashCodeNode, equalsNode);
+          mapBuilder = mapBuilder.asModifiable(mapBuilder.generation(), hashCodeNode, equalsNode);
+          mapBuilder.put(key, value, hashCodeNode, equalsNode);
         }
       }
     } catch (UnsupportedMessageException | StopIterationException | InvalidArrayIndexException e) {
@@ -80,7 +82,7 @@ public abstract class HashMapRemoveNode extends Node {
       );
     }
     if (keyToRemoveFound) {
-      return EnsoHashMap.createWithBuilder(mapBuilder, mapBuilder.generation());
+      return EnsoHashMap.createWithBuilder(mapBuilder);
     } else {
       CompilerDirectives.transferToInterpreter();
       throw DataflowError.withoutTrace("No such key " + keyToRemove, interop);

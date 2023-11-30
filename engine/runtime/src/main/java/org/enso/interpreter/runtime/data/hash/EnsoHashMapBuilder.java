@@ -7,34 +7,43 @@ import java.util.stream.Stream;
 import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
 import org.enso.interpreter.node.expression.builtin.meta.HashCodeNode;
 
+import com.oracle.truffle.api.CompilerAsserts;
+import com.oracle.truffle.api.CompilerDirectives;
+
 /**
- * A storage for a {@link EnsoHashMap}. For one builder, there may be many snapshots ({@link
- * EnsoHashMap}). There should be where most one snapshot for a given generation. All the snapshots should
+ * A storage for a {@link EnsoHashMap}. For one builder, there may be many
+ * {@link EnsoHashMap} instances that serve as a snapshot.
+ *
+ * There should be where most one snapshot for a given generation. All the snapshots should
  have generation smaller than this builder generation.
  */
-public final class EnsoHashMapBuilder implements Iterable<EnsoHashMapBuilder.StorageEntry> {
+final class EnsoHashMapBuilder implements Iterable<EnsoHashMapBuilder.StorageEntry> {
+  /**
+  * Array of entries. It is only being added into. Both {@code put} and {@code remove}
+  * operations just add new entries into it using <em>linear hashing</em>.
+  */
   private final StorageEntry[] byHash;
+  /** number of entries in the {@coede byHash} array. With every change to the builder,
+  * the generation increases by one. Once the generation reaches 75% of {@code byHash.length}
+  * it is time to <em>rehash</em> into new builder.
+  */
   private int generation;
-  private int size;
+  /** the actual number of entries in the builder at the latest {@code generation}.
+   * <ul>
+   *   <li>{@code put} of new key increases it</li>
+   *   <li>{@code put} over existing key doesn't change it</li>
+   *   <li>{@code remove} of a key decreases it</li>
+   * </ul>
+  */
+  private int actualSize;
 
+  /** Creates an empty builder with given capacity. The capacity specifies
+   * the size of array of {@link StorageEntry} instances. The {@code put}
+   * and {@code remove} operations add entries into the array until it is
+   * 75% full.
+   */
   private EnsoHashMapBuilder(int initialCapacity) {
     this.byHash = new StorageEntry[initialCapacity];
-  }
-
-  private EnsoHashMapBuilder(EnsoHashMapBuilder other, int generation) {
-    assert 0 < generation && generation <= other.generation;
-    this.byHash = other.byHash.clone();
-    this.generation = 0;
-    for (var i = 0; i < byHash.length; i++) {
-      if (byHash[i] != null) {
-        if (byHash[i].added() > generation || byHash[i].removed() <= generation) {
-          byHash[i] = null;
-        }
-      }
-      if (byHash[i] != null) {
-        this.generation++;
-      }
-    }
   }
 
   private EnsoHashMapBuilder(EnsoHashMapBuilder other) {
@@ -43,7 +52,7 @@ public final class EnsoHashMapBuilder implements Iterable<EnsoHashMapBuilder.Sto
   }
 
   /**
-   * Create a new builder with stored nodes.
+   * Create a new builder with default size being {@code 11}.
    */
   public static EnsoHashMapBuilder create() {
     return new EnsoHashMapBuilder(11);
@@ -54,123 +63,141 @@ public final class EnsoHashMapBuilder implements Iterable<EnsoHashMapBuilder.Sto
     return generation;
   }
 
-  /**
-   * Duplicates the MapBuilder with just first {@code numEntries} number of entries.
-   *
-   * @param numEntries Number of entries to take from this MapBuilder.
+  /** Returns the actual number of visible elements in current generation. */
+  public int size() {
+    return actualSize;
+  }
+
+  /** Provides access to all {@code StorageEntry} in this builder.
+   * Classical usage is to {@code for (var e : this) if (e.isVisible(atGeneration) operation(e))}.
    */
-  public EnsoHashMapBuilder duplicatePartial(int numEntries) {
-    return new EnsoHashMapBuilder(this, numEntries);
-  }
-
-  /** Duplicates this builder with all its entries. */
-  public EnsoHashMapBuilder duplicate() {
-    return new EnsoHashMapBuilder(this);
-  }
-
   @Override
   public Iterator<StorageEntry> iterator() {
     return Stream.of(byHash).filter((e) -> e != null).iterator();
   }
 
-  /** Adds a key-value mapping, overriding any existing value. */
-  public EnsoHashMapBuilder put(
-    Object key, Object value,
-    HashCodeNode hashCodeNode, EqualsNode equalsNode
-  ) {
-    if (generation * 4 > byHash.length * 3) {
-      var newBuilder = rehash(byHash.length * 2, hashCodeNode, equalsNode);
-      newBuilder.addImpl(key, value, hashCodeNode, equalsNode);
-      return newBuilder;
+  /**
+   * Prepares a builder ready for modification at given generation.
+   * It may return {@code this} if the {@code atGeneration == this.generation}
+   * and the {@code byHash} array is less than 75% full. Otherwise
+   * it may return new builder suitable for additions.
+   */
+  public EnsoHashMapBuilder asModifiable(int atGeneration, HashCodeNode hashCodeNode, EqualsNode equalsNode) {
+    if (atGeneration != generation || generation * 4 > byHash.length * 3) {
+      var newSize = Math.max(actualSize * 2, byHash.length);
+      return rehash(newSize, atGeneration, hashCodeNode, equalsNode);
     } else {
-      this.addImpl(key, value, hashCodeNode, equalsNode);
       return this;
     }
   }
 
-  private void addImpl(
+  /** Adds a key-value mapping. Uses {@code hashCodeNode} to compute
+   * hash and based on it location in the array. Then it searches for
+   * first empty slot after the identified location. If it finds an
+   * equal key, it marks it as removed, if it hasn't been removed yet.
+   * Once it finds an empty slot, it puts there a new entry with
+   * the next generation.
+   */
+  public void put(
     Object key, Object value,
     HashCodeNode hashCodeNode, EqualsNode equalsNode
   ) {
-    var where = new int[] { -1 };
-    var exists = find(key, where, hashCodeNode, equalsNode);
-    var at = where[0];
+    var at = findWhereToStart(key, hashCodeNode);
     var nextGeneration = ++generation;
-    if (exists != null) {
-      for (var i = 0; i < byHash.length; i++) {
-        if (byHash[at] == null) {
-          break;
+    var replacingExistingKey = false;
+    for (var i = 0; i < byHash.length; i++) {
+      if (byHash[at] == null) {
+        if (!replacingExistingKey) {
+          actualSize++;
         }
-        if (equalsNode.execute(byHash[at].key(), key)) {
-          byHash[at] = byHash[at].markRemoved(nextGeneration);
-        }
-        if (++at == byHash.length) {
-          at = 0;
+        byHash[at] = new StorageEntry(key, value, nextGeneration);
+        return;
+      }
+      if (equalsNode.execute(byHash[at].key(), key)) {
+        var invalidatedEntry = byHash[at].markRemoved(nextGeneration);
+        if (invalidatedEntry != byHash[at]) {
+          byHash[at] = invalidatedEntry;
+          replacingExistingKey = true;
         }
       }
+      if (++at == byHash.length) {
+        at = 0;
+      }
     }
-    byHash[at] = new StorageEntry(key, value, nextGeneration);
+    throw CompilerDirectives.shouldNotReachHere("byHash array is full!");
   }
 
+  /** Finds storage entry for given key or null */
   public StorageEntry get(
     Object key,
     HashCodeNode hashCodeNode, EqualsNode equalsNode
   ) {
-    return find(key, null, hashCodeNode, equalsNode);
-  }
-
-  private StorageEntry find(
-    Object key, int[] where,
-    HashCodeNode hashCodeNode, EqualsNode equalsNode
-  ) {
-    var hash = Math.abs(hashCodeNode.execute(key));
-    var at = (int) (hash % byHash.length);
+    var at = findWhereToStart(key, hashCodeNode);
     for (var i = 0; i < byHash.length; i++) {
       if (byHash[at] == null) {
-        if (where != null) {
-          where[0] = at;
-        }
         return null;
       }
       if (equalsNode.execute(key, byHash[at].key())) {
-        if (where != null) {
-          where[0] = at;
-        }
         return byHash[at];
       }
       if (++at == byHash.length) {
         at = 0;
       }
     }
-    return null;
+    throw CompilerDirectives.shouldNotReachHere("byHash array is full!");
+  }
+
+  private int findWhereToStart(Object key, HashCodeNode hashCodeNode) {
+    var hash = Math.abs(hashCodeNode.execute(key));
+    var at = (int) (hash % byHash.length);
+    return at;
   }
 
   /**
-   * Removes an entry denoted by the given key.
+   * Removes an entry denoted by the given key. Removal is "non-destrutive" - the
+   * "removed" entry stays in the array - only its {@link StorageEntry#removed()}
+   * value is set to the next generation.
    *
-   * @return true if the removal was successful, i.e., the key was in the map and was removed, false
-   *     otherwise.
+   * @return true if the removal was successful false otherwise.
    */
   public boolean remove(
     Object key,
     HashCodeNode hashCodeNode, EqualsNode equalsNode
   ) {
-    var at = new int[] { -1 };
-    var entry = find(key, at, hashCodeNode, equalsNode);
-    if (entry == null) {
-      return false;
-    } else {
-      byHash[at[0]] = entry.markRemoved(generation++);
-      return true;
+    var at = findWhereToStart(key, hashCodeNode);
+    var nextGeneration = ++generation;
+    for (var i = 0; i < byHash.length; i++) {
+      if (byHash[at] == null) {
+        return false;
+      }
+      if (equalsNode.execute(key, byHash[at].key())) {
+        var invalidatedEntry = byHash[at].markRemoved(nextGeneration);
+        if (invalidatedEntry != byHash[at]) {
+          byHash[at] = invalidatedEntry;
+          actualSize--;
+          return true;
+        }
+      }
+      if (++at == byHash.length) {
+        at = 0;
+      }
     }
+    throw CompilerDirectives.shouldNotReachHere("byHash array is full!");
   }
 
-  public boolean containsKey(
-    Object key,
-    HashCodeNode hashCodeNode, EqualsNode equalsNode
-  ) {
-    return find(key, null, hashCodeNode, equalsNode) != null;
+  /** Builds a new builder with given array size and puts into it all entries
+   * that are valid {@code atGeneration}.
+   */
+  private EnsoHashMapBuilder rehash(int size, int atGeneration, HashCodeNode hashCodeNode, EqualsNode equalsNode) {
+    var newBuilder = new EnsoHashMapBuilder(size);
+    for (var entry : this) {
+      if (entry.isVisible(atGeneration)) {
+        newBuilder.put(entry.key(), entry.value(), hashCodeNode, equalsNode);
+      }
+    }
+    return newBuilder;
   }
+
 
   /**
    * Creates a snapshot with the current size. The created snapshot contains all the entries that
@@ -182,22 +209,12 @@ public final class EnsoHashMapBuilder implements Iterable<EnsoHashMapBuilder.Sto
    * @return A new hash map snapshot.
    */
   public EnsoHashMap build() {
-    return EnsoHashMap.createWithBuilder(this, generation);
+    return EnsoHashMap.createWithBuilder(this);
   }
 
   @Override
   public String toString() {
     return "EnsoHashMapBuilder{size = " + generation + ", storage = " + Arrays.toString(byHash) + "}";
-  }
-
-  private EnsoHashMapBuilder rehash(int size, HashCodeNode hashCodeNode, EqualsNode equalsNode) {
-    var newBuilder = new EnsoHashMapBuilder(size);
-    for (var entry : this) {
-      if (entry.isVisible(generation)) {
-        newBuilder.addImpl(entry.key(), entry.value(), hashCodeNode, equalsNode);
-      }
-    }
-    return newBuilder;
   }
 
   record StorageEntry(

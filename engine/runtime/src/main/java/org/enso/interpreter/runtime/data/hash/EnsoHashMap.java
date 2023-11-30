@@ -37,35 +37,31 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 @Builtin(stdlibName = "Standard.Base.Data.Map.Map", name = "Map")
 public final class EnsoHashMap implements EnsoObject {
   private final EnsoHashMapBuilder mapBuilder;
-  /**
-   * Size of this Map. Basically an index into {@link EnsoHashMapBuilder}'s storage. See {@link
-   * #isEntryInThisMap(StorageEntry)}.
-   */
   private final int generation;
+  private final int size;
 
   private Object cachedVectorRepresentation;
 
-  private EnsoHashMap(EnsoHashMapBuilder mapBuilder, int generation) {
+  private EnsoHashMap(EnsoHashMapBuilder mapBuilder) {
     this.mapBuilder = mapBuilder;
-    this.generation = generation;
-    assert generation <= mapBuilder.generation();
+    this.generation = mapBuilder.generation();
+    this.size = mapBuilder.size();
   }
 
-  static EnsoHashMap createWithBuilder(EnsoHashMapBuilder mapBuilder, int snapshotSize) {
-    return new EnsoHashMap(mapBuilder, snapshotSize);
+  static EnsoHashMap createWithBuilder(EnsoHashMapBuilder mapBuilder) {
+    return new EnsoHashMap(mapBuilder);
   }
 
   static EnsoHashMap createEmpty() {
-    return new EnsoHashMap(EnsoHashMapBuilder.create(), 0);
+    return new EnsoHashMap(EnsoHashMapBuilder.create());
   }
 
-  EnsoHashMapBuilder getMapBuilder(boolean readOnly) {
+  EnsoHashMapBuilder getMapBuilder(
+      boolean readOnly, HashCodeNode hashCodeNode, EqualsNode equalsNode) {
     if (readOnly) {
       return mapBuilder;
     } else {
-      return mapBuilder.generation() == generation
-          ? mapBuilder
-          : mapBuilder.duplicatePartial(generation);
+      return mapBuilder.asModifiable(generation, hashCodeNode, equalsNode);
     }
   }
 
