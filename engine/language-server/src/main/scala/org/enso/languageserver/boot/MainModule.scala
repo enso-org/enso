@@ -468,6 +468,12 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
       Some(_)
     )
 
+  private val textMessageCallback =
+    languageServerConfig.profiling.textMessagesPath match {
+      case Some(path) => List(SaveTextMessageCallback(path))
+      case None       => Nil
+    }
+
   val jsonRpcServer =
     new JsonRpcServer(
       jsonRpcProtocolFactory,
@@ -479,9 +485,15 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
           secureConfig       = secureConfig
         ),
       List(healthCheckEndpoint, idlenessEndpoint),
-      List(SaveTextMessageCallback())
+      textMessageCallback
     )
   log.trace("Created JSON RPC Server [{}].", jsonRpcServer)
+
+  private val binaryMessageCallback =
+    languageServerConfig.profiling.binaryMessagesPath match {
+      case Some(path) => List(SaveBinaryMessageCallback(path))
+      case None       => Nil
+    }
 
   val binaryServer =
     new BinaryWebSocketServer(
@@ -493,7 +505,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
         lazyMessageTimeout = 10.seconds,
         secureConfig       = secureConfig
       ),
-      List(SaveBinaryMessageCallback())
+      binaryMessageCallback
     )
   log.trace("Created Binary WebSocket Server [{}].", binaryServer)
 
