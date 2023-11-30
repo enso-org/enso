@@ -11,7 +11,7 @@ import com.oracle.truffle.api.CompilerDirectives;
  * A storage for a {@link EnsoHashMap}. For one builder, there may be many
  * {@link EnsoHashMap} instances that serve as a snapshot.
  *
- * There should be where most one snapshot for a given generation. All the snapshots should
+ * There should be at most one snapshot for a given generation. All the snapshots should
  have generation smaller than this builder generation.
  */
 final class EnsoHashMapBuilder {
