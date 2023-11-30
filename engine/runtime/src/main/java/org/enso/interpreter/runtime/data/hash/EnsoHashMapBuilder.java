@@ -20,7 +20,7 @@ final class EnsoHashMapBuilder {
   * operations just add new entries into it using <em>linear hashing</em>.
   */
   private final StorageEntry[] byHash;
-  /** number of entries in the {@coede byHash} array. With every change to the builder,
+/** number of entries in the {@code byHash} array. With every change to the builder,
   * the generation increases by one. Once the generation reaches 75% of {@code byHash.length}
   * it is time to <em>rehash</em> into new builder.
   */
