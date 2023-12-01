@@ -42,6 +42,12 @@ public abstract class HashMapToVectorNode extends Node {
     return hashMap.getCachedVectorRepresentation(vectorReprNotCachedProfile);
   }
 
+  @Specialization(guards = "mapInterop.hasHashEntries(hashMap)", limit = "3")
+  Object foreignMapToVector(Object hashMap,
+      @CachedLibrary("hashMap") InteropLibrary mapInterop,
+      @CachedLibrary(limit = "3") InteropLibrary iteratorInterop) {
+    return createEntriesVectorFromForeignMap(hashMap, mapInterop, iteratorInterop);
+  }
 
   @Fallback
   Object fallback(Object object) {
