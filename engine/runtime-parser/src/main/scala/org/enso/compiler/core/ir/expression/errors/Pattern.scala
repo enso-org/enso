@@ -2,7 +2,6 @@ package org.enso.compiler.core.ir
 package expression
 package errors
 
-import com.oracle.truffle.api.source.Source
 import org.enso.compiler.core.{IR, Identifier}
 import org.enso.compiler.core.IR.randomId
 
@@ -75,7 +74,8 @@ sealed case class Pattern(
       id = if (keepIdentifiers) id else randomId
     )
 
-  override def message(source: Source): String = reason.explain
+  override def message(source: (IdentifiedLocation => String)): String =
+    reason.explain
 
   override def diagnosticKeys(): Array[Any] = Array(reason)
 

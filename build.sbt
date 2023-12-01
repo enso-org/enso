@@ -1517,7 +1517,6 @@ lazy val `runtime-parser` =
   (project in file("engine/runtime-parser"))
     .settings(
       frgaalJavaCompilerSetting,
-      instrumentationSettings,
       commands += WithDebugCommand.withDebug,
       fork := true,
       Test / javaOptions ++= Seq(
