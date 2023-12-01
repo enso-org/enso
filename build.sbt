@@ -1517,7 +1517,6 @@ lazy val `runtime-parser` =
   (project in file("engine/runtime-parser"))
     .settings(
       frgaalJavaCompilerSetting,
-      instrumentationSettings,
       commands += WithDebugCommand.withDebug,
       fork := true,
       Test / javaOptions ++= Seq(
@@ -2623,7 +2622,7 @@ buildEngineDistribution := {
     log                 = log,
     jarModulesToCopy    = modulesToCopy ++ engineModules,
     graalVersion        = graalMavenPackagesVersion,
-    javaVersion         = javaVersion,
+    javaVersion         = graalVersion,
     ensoVersion         = ensoVersion,
     editionName         = currentEdition,
     sourceStdlibVersion = stdLibVersion,
@@ -2656,7 +2655,7 @@ buildEngineDistributionNoIndex := {
     log                 = log,
     jarModulesToCopy    = modulesToCopy ++ engineModules,
     graalVersion        = graalMavenPackagesVersion,
-    javaVersion         = javaVersion,
+    javaVersion         = graalVersion,
     ensoVersion         = ensoVersion,
     editionName         = currentEdition,
     sourceStdlibVersion = stdLibVersion,

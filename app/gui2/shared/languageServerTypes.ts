@@ -187,7 +187,9 @@ export function methodPointerEquals(left: MethodPointer, right: MethodPointer): 
   )
 }
 
-export type ProfilingInfo = ExecutionTime
+export interface ProfilingInfo {
+  ExecutionTime: ExecutionTime
+}
 
 export interface ExecutionTime {
   /** The time elapsed during the expression's evaluation, in nanoseconds */

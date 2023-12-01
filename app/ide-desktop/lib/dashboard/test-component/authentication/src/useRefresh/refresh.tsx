@@ -7,7 +7,7 @@ import * as useRefresh from '../../../../src/authentication/src/useRefresh'
 // === Refresh ===
 // ===============
 
-/** The type of the state returned by {@link hooks.useRefresh}. */
+/** The type of the state returned by {@link useRefresh.useRefresh}. */
 export type RefreshState = useRefresh.RefreshState
 
 /** Props for a {@link Refresh}. */

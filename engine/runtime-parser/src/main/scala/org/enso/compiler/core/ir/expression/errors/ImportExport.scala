@@ -2,10 +2,9 @@ package org.enso.compiler.core.ir
 package expression
 package errors
 
-import com.oracle.truffle.api.source.Source
 import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
 import org.enso.compiler.core.{IR, Identifier}
-import org.enso.compiler.core.IR.{fileLocationFromSection, randomId}
+import org.enso.compiler.core.IR.randomId
 
 import java.util.UUID
 import scala.annotation.unused
@@ -97,7 +96,8 @@ sealed case class ImportExport(
   override def children: List[IR] = List(ir)
 
   /** @inheritdoc */
-  override def message(source: Source): String = reason.message(source)
+  override def message(source: (IdentifiedLocation => String)): String =
+    reason.message(source)
 
   override def diagnosticKeys(): Array[Any] = Array(reason)
 
@@ -114,7 +114,7 @@ object ImportExport {
     /** @param source Location of the original import/export IR.
       * @return A human-readable description of the error.
       */
-    def message(source: Source): String
+    def message(source: (IdentifiedLocation => String)): String
   }
 
   /** Used when the `project` keyword is used in an impossible position.
@@ -124,7 +124,7 @@ object ImportExport {
     */
   case class ProjectKeywordUsedButNotInProject(statementType: String)
       extends Reason {
-    override def message(source: Source): String =
+    override def message(source: (IdentifiedLocation => String)): String =
       s"The `project` keyword was used in an $statementType statement," +
       " but the module does not belong to a project."
   }
@@ -136,7 +136,7 @@ object ImportExport {
     */
   case class PackageCouldNotBeLoaded(name: String, reason: String)
       extends Reason {
-    override def message(source: Source): String =
+    override def message(source: (IdentifiedLocation => String)): String =
       s"Package containing the module $name" +
       s" could not be loaded: $reason"
   }
@@ -146,7 +146,7 @@ object ImportExport {
     * @param name the module name.
     */
   case class ModuleDoesNotExist(name: String) extends Reason {
-    override def message(source: Source): String =
+    override def message(source: (IdentifiedLocation => String)): String =
       s"The module $name does not exist."
   }
 
@@ -154,7 +154,7 @@ object ImportExport {
     typeName: String,
     moduleName: String
   ) extends Reason {
-    override def message(source: Source): String =
+    override def message(source: (IdentifiedLocation => String)): String =
       s"The type $typeName does not exist in module $moduleName"
   }
 
@@ -162,7 +162,7 @@ object ImportExport {
     symbolName: String,
     moduleOrTypeName: String
   ) extends Reason {
-    override def message(source: Source): String =
+    override def message(source: (IdentifiedLocation => String)): String =
       s"The symbol $symbolName (module, type, or constructor) does not exist in $moduleOrTypeName."
   }
 
@@ -170,28 +170,28 @@ object ImportExport {
     typeName: String,
     constructorName: String
   ) extends Reason {
-    override def message(source: Source): String =
+    override def message(source: (IdentifiedLocation => String)): String =
       s"No such constructor ${constructorName} in type $typeName"
   }
 
   case class ExportSymbolsFromPrivateModule(
     moduleName: String
   ) extends Reason {
-    override def message(source: Source): String =
+    override def message(source: (IdentifiedLocation => String)): String =
       s"Cannot export any symbol from module '$moduleName': The module is private"
   }
 
   case class ExportPrivateModule(
     moduleName: String
   ) extends Reason {
-    override def message(source: Source): String =
+    override def message(source: (IdentifiedLocation => String)): String =
       s"Cannot export private module '$moduleName'"
   }
 
   case class ImportPrivateModule(
     moduleName: String
   ) extends Reason {
-    override def message(source: Source): String =
+    override def message(source: (IdentifiedLocation => String)): String =
       s"Cannot import private module '$moduleName'"
   }
 
@@ -201,7 +201,7 @@ object ImportExport {
     moduleVisibility: String,
     submoduleVisibility: String
   ) extends Reason {
-    override def message(source: Source): String =
+    override def message(source: (IdentifiedLocation => String)): String =
       s"Cannot export submodule '$submoduleName' of module '$moduleName': " +
       s"the submodule is $submoduleVisibility, but the module is $moduleVisibility"
   }
@@ -220,12 +220,11 @@ object ImportExport {
     symbolName: String,
     symbolPath: String
   ) extends Reason {
-    override def message(source: Source): String = {
+    override def message(source: (IdentifiedLocation => String)): String = {
       val originalImportRepr =
         originalImport.location match {
-          case Some(location) =>
-            fileLocationFromSection(location, source)
-          case None => originalImport.showCode()
+          case Some(location) => source(location)
+          case None           => originalImport.showCode()
         }
       s"Symbol '$symbolName' resolved ambiguously to '$symbolPath' in the import Statement. " +
       s"The symbol was first resolved to '$originalSymbolPath' in the import statement '$originalImportRepr'."

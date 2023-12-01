@@ -109,7 +109,7 @@ export function useSelection<T>(
     overrideElemsToSelect.value = undefined
   }
 
-  const pointer = usePointer((pos, event, eventType) => {
+  const pointer = usePointer((_pos, event, eventType) => {
     if (eventType === 'start') {
       readInitiallySelected()
     } else if (pointer.dragging && anchor.value == null) {
@@ -120,6 +120,7 @@ export function useSelection<T>(
     }
     selectionEventHandler(event)
   })
+
   return proxyRefs({
     selected,
     anchor,

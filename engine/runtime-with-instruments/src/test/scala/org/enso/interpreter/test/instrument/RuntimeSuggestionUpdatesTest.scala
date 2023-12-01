@@ -1,6 +1,6 @@
 package org.enso.interpreter.test.instrument
 
-import org.enso.distribution.FileSystem
+import org.apache.commons.io.FileUtils
 import org.enso.distribution.locking.ThreadSafeFileLockManager
 import org.enso.interpreter.runtime.`type`.ConstantsGen
 import org.enso.pkg.{Package, PackageManager}
@@ -18,6 +18,8 @@ import java.io.{ByteArrayOutputStream, File}
 import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 import java.util.logging.Level
+import scala.concurrent.Await
+import scala.concurrent.duration._
 
 @scala.annotation.nowarn("msg=multiarg infix syntax")
 class RuntimeSuggestionUpdatesTest
@@ -30,8 +32,7 @@ class RuntimeSuggestionUpdatesTest
   class TestContext(packageName: String) extends InstrumentTestContext {
 
     val tmpDir: Path = Files.createTempDirectory("enso-test-packages")
-    sys.addShutdownHook(FileSystem.removeDirectoryIfExists(tmpDir))
-    val lockManager = new ThreadSafeFileLockManager(tmpDir.resolve("locks"))
+    val lockManager  = new ThreadSafeFileLockManager(tmpDir.resolve("locks"))
     val runtimeServerEmulator =
       new RuntimeServerEmulator(messageQueue, lockManager)
 
@@ -104,8 +105,15 @@ class RuntimeSuggestionUpdatesTest
   }
 
   override protected def afterEach(): Unit = {
-    context.executionContext.context.close()
-    context.runtimeServerEmulator.terminate()
+    if (context != null) {
+      context.reset()
+      context.executionContext.context.close()
+      Await.ready(context.runtimeServerEmulator.terminate(), 5.seconds)
+      context.lockManager.reset()
+      context.out.reset()
+      FileUtils.deleteQuietly(context.tmpDir.toFile)
+      context = null
+    }
   }
 
   it should "send suggestion updates after file modification" in {

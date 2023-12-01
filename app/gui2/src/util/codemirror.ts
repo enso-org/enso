@@ -11,7 +11,7 @@ export {
   foldNodeProp,
   syntaxHighlighting,
 } from '@codemirror/language'
-export { lintGutter, linter, type Diagnostic } from '@codemirror/lint'
+export { forceLinting, lintGutter, linter, type Diagnostic } from '@codemirror/lint'
 export { highlightSelectionMatches } from '@codemirror/search'
 export { EditorState } from '@codemirror/state'
 export { EditorView, tooltips, type TooltipView } from '@codemirror/view'
@@ -86,13 +86,13 @@ const nodeSet = new NodeSet(nodeTypes).extend(
     Number: tags.number,
     'Wildcard!': tags.variableName,
     'TextLiteral!': tags.string,
-    'OprApp!': tags.operator,
+    OprApp: tags.operator,
     TokenOperator: tags.operator,
     'Assignment/TokenOperator': tags.definitionOperator,
     UnaryOprApp: tags.operator,
     'Function/Ident': tags.function(tags.variableName),
     ForeignFunction: tags.function(tags.variableName),
-    'Import!': tags.function(tags.moduleKeyword),
+    'Import/TokenIdent': tags.function(tags.moduleKeyword),
     Export: tags.function(tags.moduleKeyword),
     Lambda: tags.function(tags.variableName),
     Documented: tags.docComment,

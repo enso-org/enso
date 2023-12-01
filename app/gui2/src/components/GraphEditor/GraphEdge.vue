@@ -327,7 +327,7 @@ function pathElements(junctions: JunctionPoints): { start: Vec2; elements: Eleme
   const start = junctions.points[0]
   if (start == null) return { start: Vec2.Zero, elements: [] }
   let prev = start
-  junctions.points.slice(1).map((j, i) => {
+  junctions.points.slice(1).forEach((j, i) => {
     const d = j.sub(prev)
     const radius = Math.min(junctions.maxRadius, Math.abs(d.x), Math.abs(d.y))
     const signX = Math.sign(d.x)

@@ -47,6 +47,7 @@ export default function Label(props: InternalLabelProps) {
     return (
         <button
             disabled={disabled}
+            title="Right click to remove label."
             className={`flex items-center rounded-full gap-1.5 h-6 px-2.25 ${className} ${
                 active ? '' : 'text-not-selected opacity-50'
             } ${disabled ? '' : 'group-hover:opacity-100'} ${

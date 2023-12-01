@@ -38,7 +38,7 @@ export function partitionPoint<T>(
 }
 
 /** Index into an array using specified index. When the index is nullable, returns undefined. */
-export function tryGetIndex<T>(arr: Opt<T[]>, index: Opt<number>): T | undefined {
+export function tryGetIndex<T>(arr: Opt<readonly T[]>, index: Opt<number>): T | undefined {
   return index == null ? undefined : arr?.[index]
 }
 
@@ -48,4 +48,8 @@ export function tryGetIndex<T>(arr: Opt<T[]>, index: Opt<number>): T | undefined
  */
 export function byteArraysEqual(a: Opt<Uint8Array>, b: Opt<Uint8Array>): boolean {
   return a === b || (a != null && b != null && indexedDB.cmp(a, b) === 0)
+}
+
+export function arrayEquals<T>(a: T[], b: T[]): boolean {
+  return a === b || (a.length === b.length && a.every((v, i) => v === b[i]))
 }

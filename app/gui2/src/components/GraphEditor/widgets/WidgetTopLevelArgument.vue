@@ -10,7 +10,7 @@ const props = defineProps(widgetProps(widgetDefinition))
 export const widgetDefinition = defineWidget([ArgumentAst, ArgumentPlaceholder], {
   priority: -1,
   score: (props) =>
-    props.nesting < 2 && props.input.kind == ApplicationKind.Prefix
+    props.nesting < 2 && props.input.kind === ApplicationKind.Prefix
       ? Score.Perfect
       : Score.Mismatch,
 })
@@ -38,7 +38,7 @@ export const widgetDefinition = defineWidget([ArgumentAst, ArgumentPlaceholder],
     border-left: 1px solid rgb(0 0 0 / 0.12);
   }
 }
-.name {
+.value {
   color: rgb(255 255 255 / 0.5);
   margin-right: 4px;
 }

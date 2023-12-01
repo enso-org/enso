@@ -46,6 +46,7 @@ const messageReconnectTimeout = 30000
 
 const setupWS = (wsclient: WebsocketClient, ws?: WebSocket | null | undefined) => {
   if (wsclient.shouldConnect && (wsclient.ws === null || ws)) {
+    // deepcode ignore MissingClose: This is closed by `WebsocketClient` below.
     const websocket = ws ?? new WebSocket(wsclient.url)
     const binaryType = wsclient.binaryType
     let pingTimeout: any = null

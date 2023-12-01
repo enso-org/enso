@@ -327,8 +327,8 @@ export function defineKeybinds<
     handlers: Partial<
       Record<BindingName | typeof DefaultHandler, (event: Event_) => boolean | void>
     >,
-  ): (event: Event_) => boolean {
-    return (event) => {
+  ): (event: Event_, stopAndPrevent?: boolean) => boolean {
+    return (event, stopAndPrevent = true) => {
       const eventModifierFlags = modifierFlagsForEvent(event)
       const keybinds =
         event instanceof KeyboardEvent
@@ -349,8 +349,10 @@ export function defineKeybinds<
       if (handle(event) === false) {
         return false
       }
-      event.stopImmediatePropagation()
-      event.preventDefault()
+      if (stopAndPrevent) {
+        event.stopImmediatePropagation()
+        event.preventDefault()
+      }
       return true
     }
   }

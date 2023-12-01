@@ -41,12 +41,10 @@ function isAuthEvent(value: string): value is AuthEvent {
 // =================================
 
 /** Callback called in response to authentication state changes.
- *
  * @see {@link amplify.Hub.listen}. */
 export type ListenerCallback = (event: AuthEvent, data?: unknown) => void
 
 /** Unsubscribe the {@link ListenerCallback} from authentication state changes.
- *
  * @see {@link amplify.Hub.listen}. */
 type UnsubscribeFunction = () => void
 

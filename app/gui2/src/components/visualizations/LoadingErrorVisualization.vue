@@ -4,7 +4,7 @@ export const inputType = 'Any'
 </script>
 
 <script setup lang="ts">
-import VisualizationContainer from '@/components/VisualizationContainer.vue'
+import { VisualizationContainer } from '@/util/visualizationBuiltins'
 import { watchEffect } from 'vue'
 
 const props = defineProps<{ data: { name: string; error: Error } }>()

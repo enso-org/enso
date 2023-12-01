@@ -9,7 +9,6 @@ import {
 } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
-import { DEFAULT_VISUALIZATION_IDENTIFIER } from '@/stores/visualization'
 import { Ast, AstExtended, childrenAstNodes, findAstWithRange, readAstSpan } from '@/util/ast'
 import { useObserveYjs } from '@/util/crdt'
 import type { Opt } from '@/util/opt'
@@ -52,6 +51,7 @@ export const useGraphStore = defineStore('graph', () => {
     proj.computedValueRegistry,
   )
   const nodeRects = reactive(new Map<ExprId, Rect>())
+  const vizRects = reactive(new Map<ExprId, Rect>())
   const exprRects = reactive(new Map<ExprId, Rect>())
   const editedNodeInfo = ref<NodeEditInfo>()
   const imports = ref<{ import: Import; span: ContentRange }[]>([])
@@ -131,9 +131,7 @@ export const useGraphStore = defineStore('graph', () => {
       if (op.action === 'update' || op.action === 'add') {
         const data = meta.get(id)
         const node = db.nodeIdToNode.get(id as ExprId)
-        if (data && node) {
-          db.assignUpdatedMetadata(node, data)
-        }
+        if (data && node) db.assignUpdatedMetadata(node, data)
       }
     }
   })
@@ -219,9 +217,9 @@ export const useGraphStore = defineStore('graph', () => {
   // Create a node from a source expression, and insert it into the graph. The return value will be
   // the new node's ID, or `null` if the node creation fails.
   function createNodeFromSource(position: Vec2, source: ExprId): Opt<ExprId> {
-    const sourceNodeName = db.getNodeMainOutputPortIdentifier(source)
-    const sourceNodeNameWithDot = sourceNodeName ? sourceNodeName + '.' : ''
-    return createNode(position, sourceNodeNameWithDot)
+    const sourcePortName = db.getOutputPortIdentifier(source)
+    const sourcePortNameWithDot = sourcePortName ? sourcePortName + '.' : ''
+    return createNode(position, sourcePortNameWithDot)
   }
 
   function deleteNode(id: ExprId) {
@@ -262,20 +260,11 @@ export const useGraphStore = defineStore('graph', () => {
 
   function normalizeVisMetadata(
     id: Opt<VisualizationIdentifier>,
-    visible?: boolean,
+    visible: boolean | undefined,
   ): VisualizationMetadata | null {
-    const vis: VisualizationMetadata = {
-      ...(id ?? DEFAULT_VISUALIZATION_IDENTIFIER),
-      visible: visible ?? false,
-    }
-    if (
-      visMetadataEquals(vis, {
-        ...DEFAULT_VISUALIZATION_IDENTIFIER,
-        visible: false,
-      })
-    )
-      return null
-    return vis
+    const vis: VisualizationMetadata = { identifier: id ?? null, visible: visible ?? false }
+    if (visMetadataEquals(vis, { identifier: null, visible: false })) return null
+    else return vis
   }
 
   function setNodeVisualizationId(nodeId: ExprId, vis: Opt<VisualizationIdentifier>) {
@@ -287,25 +276,33 @@ export const useGraphStore = defineStore('graph', () => {
   function setNodeVisualizationVisible(nodeId: ExprId, visible: boolean) {
     const node = db.nodeIdToNode.get(nodeId)
     if (!node) return
-    proj.module?.updateNodeMetadata(nodeId, { vis: normalizeVisMetadata(node.vis, visible) })
+    proj.module?.updateNodeMetadata(nodeId, {
+      vis: normalizeVisMetadata(node.vis?.identifier, visible),
+    })
   }
 
-  function updateNodeRect(id: ExprId, rect: Rect) {
-    if (rect.pos.equals(Vec2.Zero) && !metadata.value?.has(id)) {
+  function updateNodeRect(nodeId: ExprId, rect: Rect) {
+    if (rect.pos.equals(Vec2.Zero) && !metadata.value?.has(nodeId)) {
       const { position } = nonDictatedPlacement(rect.size, {
         nodeRects: [...nodeRects.entries()]
           .filter(([id]) => db.nodeIdToNode.get(id))
-          .map(([, rect]) => rect),
+          .map(([id, rect]) => vizRects.get(id) ?? rect),
         // The rest of the properties should not matter.
         selectedNodeRects: [],
         screenBounds: Rect.Zero,
         mousePosition: Vec2.Zero,
       })
-      metadata.value?.set(id, { x: position.x, y: -position.y, vis: null })
-      nodeRects.set(id, new Rect(position, rect.size))
+      const node = db.nodeIdToNode.get(nodeId)
+      metadata.value?.set(nodeId, { x: position.x, y: -position.y, vis: node?.vis ?? null })
+      nodeRects.set(nodeId, new Rect(position, rect.size))
     } else {
-      nodeRects.set(id, rect)
+      nodeRects.set(nodeId, rect)
     }
+  }
+
+  function updateVizRect(id: ExprId, rect: Rect | undefined) {
+    if (rect) vizRects.set(id, rect)
+    else vizRects.delete(id)
   }
 
   function updateExprRect(id: ExprId, rect: Rect | undefined) {
@@ -338,6 +335,7 @@ export const useGraphStore = defineStore('graph', () => {
     unconnectedEdge,
     edges,
     nodeRects,
+    vizRects,
     exprRects,
     createEdgeFromOutput,
     disconnectSource,
@@ -353,6 +351,7 @@ export const useGraphStore = defineStore('graph', () => {
     setNodeVisualizationVisible,
     stopCapturingUndo,
     updateNodeRect,
+    updateVizRect,
     updateExprRect,
     setEditedNode,
     createNodeFromSource,

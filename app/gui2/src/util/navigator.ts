@@ -94,15 +94,6 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
     () => `translate(${translate.value.x * scale.value}px, ${translate.value.y * scale.value}px)`,
   )
 
-  useEvent(
-    window,
-    'contextmenu',
-    (e) => {
-      e.preventDefault()
-    },
-    { capture: true },
-  )
-
   let isPointerDown = false
   let scrolledThisFrame = false
   const eventMousePos = ref<Vec2 | null>(null)
@@ -150,6 +141,12 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
 
   return proxyRefs({
     events: {
+      dragover(e: DragEvent) {
+        eventMousePos.value = eventScreenPos(e)
+      },
+      dragleave() {
+        eventMousePos.value = null
+      },
       pointermove(e: PointerEvent) {
         eventMousePos.value = eventScreenPos(e)
         panPointer.events.pointermove(e)
@@ -178,6 +175,9 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
           const delta = new Vec2(e.deltaX, e.deltaY)
           center.value = center.value.addScaled(delta, 1 / scale.value)
         }
+      },
+      contextmenu(e: Event) {
+        e.preventDefault()
       },
     },
     translate,

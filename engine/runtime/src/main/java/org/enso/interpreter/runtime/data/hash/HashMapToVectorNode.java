@@ -1,8 +1,11 @@
 package org.enso.interpreter.runtime.data.hash;
 
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
+import org.enso.interpreter.runtime.error.PanicException;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.GenerateUncached;
@@ -71,7 +74,9 @@ public abstract class HashMapToVectorNode extends Node {
           HashEntriesVector.createFromKeysAndValues(keys, values)
       );
     } catch (UnsupportedMessageException | StopIterationException | InvalidArrayIndexException e) {
-      throw new IllegalStateException("hashMap: " + hashMap + " has probably wrong hash interop API", e);
+      CompilerDirectives.transferToInterpreter();
+      var msg = "hashMap: " + hashMap + " has probably wrong hash interop API";
+      throw new PanicException(Text.create(msg), mapInterop);
     }
   }
 
