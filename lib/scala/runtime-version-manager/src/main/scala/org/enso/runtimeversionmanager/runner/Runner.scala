@@ -168,8 +168,6 @@ class Runner(
         )
       }
 
-      val runnerJar = engine.runnerPath.toAbsolutePath.normalize.toString
-
       def translateJVMOption(option: (String, String)): String = {
         val name  = option._1
         val value = option._2
@@ -195,6 +193,11 @@ class Runner(
           "org.enso.runtime/org.enso.EngineRunnerBootLoader"
         )
       } else {
+        assert(
+          engine.runnerPath.isDefined,
+          "Engines path to runner.jar must be defined - it is not an unchained engine"
+        )
+        val runnerJar = engine.runnerPath.get.toAbsolutePath.normalize.toString
         jvmArguments = jvmArguments :++ Seq(
           "-jar",
           runnerJar
@@ -235,25 +238,11 @@ class Runner(
           prepareAndRunCommand(engine, overriddenCommand)
         }
       case None =>
-        if (needsRuntime(engineVersion)) {
-          runtimeVersionManager.withEngineAndRuntime(engineVersion) {
-            (engine, runtime) =>
-              prepareAndRunCommand(engine, JavaCommand.forRuntime(runtime))
-          }
-        } else {
-          runtimeVersionManager.withEngine(engineVersion) { engine =>
-            prepareAndRunCommand(engine, JavaCommand.systemJavaCommand)
-          }
+        runtimeVersionManager.withEngineAndRuntime(engineVersion) {
+          (engine, runtime) =>
+            prepareAndRunCommand(engine, JavaCommand.forRuntime(runtime))
         }
     }
-  }
-
-  /** Returns true if for the provided engine version, we also need to load or install
-    * GraalVM runtime.
-    */
-  private def needsRuntime(engineVersion: SemVer): Boolean = {
-    val engine = runtimeVersionManager.findOrInstallEngine(engineVersion)
-    engine.needsGraalDistribution
   }
 
   /** Returns arguments that should be added to a launched component to connect

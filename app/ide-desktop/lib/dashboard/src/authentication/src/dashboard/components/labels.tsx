@@ -4,6 +4,7 @@ import * as React from 'react'
 import PlusIcon from 'enso-assets/plus.svg'
 import Trash2Icon from 'enso-assets/trash2.svg'
 
+import type * as assetQuery from '../../assetQuery'
 import type * as backend from '../backend'
 import * as drag from '../drag'
 import * as modalProvider from '../../providers/modal'
@@ -21,8 +22,8 @@ import SvgMask from '../../authentication/components/svgMask'
 /** Props for a {@link Labels}. */
 export interface LabelsProps {
     labels: backend.Label[]
-    currentLabels: backend.LabelName[] | null
-    setCurrentLabels: React.Dispatch<React.SetStateAction<backend.LabelName[] | null>>
+    query: assetQuery.AssetQuery
+    setQuery: React.Dispatch<React.SetStateAction<assetQuery.AssetQuery>>
     doCreateLabel: (name: string, color: backend.LChColor) => void
     doDeleteLabel: (id: backend.TagId, name: backend.LabelName) => void
     newLabelNames: Set<backend.LabelName>
@@ -33,13 +34,14 @@ export interface LabelsProps {
 export default function Labels(props: LabelsProps) {
     const {
         labels,
-        currentLabels,
-        setCurrentLabels,
+        query,
+        setQuery,
         doCreateLabel,
         doDeleteLabel,
         newLabelNames,
         deletedLabelNames,
     } = props
+    const currentLabels = query.labels
     const { setModal } = modalProvider.useSetModal()
 
     return (
@@ -57,21 +59,14 @@ export default function Labels(props: LabelsProps) {
                             <Label
                                 draggable
                                 color={label.color}
-                                active={currentLabels?.includes(label.value) ?? false}
+                                active={currentLabels.includes(label.value)}
                                 disabled={newLabelNames.has(label.value)}
                                 onClick={() => {
-                                    setCurrentLabels(oldLabels => {
-                                        if (oldLabels == null) {
-                                            return [label.value]
-                                        } else {
-                                            const newLabels = oldLabels.includes(label.value)
-                                                ? oldLabels.filter(
-                                                      oldLabel => oldLabel !== label.value
-                                                  )
-                                                : [...oldLabels, label.value]
-                                            return newLabels.length === 0 ? null : newLabels
-                                        }
-                                    })
+                                    setQuery(oldQuery =>
+                                        oldQuery.labels.includes(label.value)
+                                            ? oldQuery.delete({ labels: [label.value] })
+                                            : oldQuery.add({ labels: [label.value] })
+                                    )
                                 }}
                                 onDragStart={event => {
                                     drag.setDragImageToBlank(event)

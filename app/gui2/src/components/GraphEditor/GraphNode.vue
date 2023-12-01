@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { nodeEditBindings } from '@/bindings'
 import CircularMenu from '@/components/CircularMenu.vue'
+import GraphNodeError from '@/components/GraphEditor/GraphNodeError.vue'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import NodeWidgetTree from '@/components/GraphEditor/NodeWidgetTree.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useDoubleClick } from '@/composables/doubleClick'
+import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { useGraphStore, type Node } from '@/stores/graph'
+import { useProjectStore } from '@/stores/project'
 import { useApproach } from '@/util/animation'
 import { usePointer, useResizeObserver } from '@/util/events'
 import { displayedIconOf } from '@/util/getIconName'
@@ -19,6 +22,8 @@ import { computed, ref, watch, watchEffect } from 'vue'
 
 const MAXIMUM_CLICK_LENGTH_MS = 300
 const MAXIMUM_CLICK_DISTANCE_SQ = 50
+/** The width in pixels that is not the widget tree. This includes the icon, and padding. */
+const NODE_EXTRA_WIDTH_PX = 30
 
 const props = defineProps<{
   node: Node
@@ -26,22 +31,25 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  updateRect: [rect: Rect]
-  updateContent: [updates: [range: ContentRange, content: string][]]
   dragging: [offset: Vec2]
   draggingCommited: []
-  setVisualizationId: [id: Opt<VisualizationIdentifier>]
-  setVisualizationVisible: [visible: boolean]
   delete: []
   replaceSelection: []
-  'update:selected': [selected: boolean]
   outputPortClick: [portId: ExprId]
   outputPortDoubleClick: [portId: ExprId]
+  'update:content': [updates: [range: ContentRange, content: string][]]
   'update:edited': [cursorPosition: number]
+  'update:rect': [rect: Rect]
+  'update:selected': [selected: boolean]
+  'update:visualizationId': [id: Opt<VisualizationIdentifier>]
+  'update:visualizationRect': [rect: Rect | undefined]
+  'update:visualizationVisible': [visible: boolean]
 }>()
 
 const nodeSelection = injectGraphSelection(true)
+const projectStore = useProjectStore()
 const graph = useGraphStore()
+const navigator = injectGraphNavigator(true)
 
 const outputPortsSet = computed(() => {
   const bindings = graph.db.nodeOutputPorts.lookup(nodeId.value)
@@ -49,10 +57,29 @@ const outputPortsSet = computed(() => {
   return bindings
 })
 
+const widthOverridePx = ref<number>()
 const nodeId = computed(() => props.node.rootSpan.astId)
 const rootNode = ref<HTMLElement>()
+const contentNode = ref<HTMLElement>()
 const nodeSize = useResizeObserver(rootNode)
+const baseNodeSize = computed(
+  () => new Vec2((contentNode.value?.scrollWidth ?? 0) + NODE_EXTRA_WIDTH_PX, nodeSize.value.y),
+)
 const menuVisible = ref(false)
+
+const error = computed(() => {
+  const info = projectStore.computedValueRegistry.db.get(nodeId.value)
+  switch (info?.payload.type) {
+    case 'Panic': {
+      return info.payload.message
+    }
+    case 'DataflowError': {
+      return projectStore.dataflowErrors.lookup(nodeId.value)?.value?.message.split(' (at')[0]
+    }
+    default:
+      return undefined
+  }
+})
 
 const isSelected = computed(() => nodeSelection?.isSelected(nodeId.value) ?? false)
 watch(isSelected, (selected) => {
@@ -66,7 +93,7 @@ const isVisualizationVisible = computed(() => props.node.vis?.visible ?? false)
 watchEffect(() => {
   const size = nodeSize.value
   if (!size.isZero()) {
-    emit('updateRect', new Rect(props.node.position, nodeSize.value))
+    emit('update:rect', new Rect(props.node.position, nodeSize.value))
   }
 })
 
@@ -155,14 +182,13 @@ function startEditingNode(position: Vec2 | undefined) {
       domOffset = caret?.startOffset
     } else {
       console.error(
-        'Neither caretPositionFromPoint nor caretRangeFromPoint are supported by this browser',
+        'Neither `caretPositionFromPoint` nor `caretRangeFromPoint` are supported by this browser',
       )
     }
     if (domNode != null && domOffset != null) {
       sourceOffset = getRelatedSpanOffset(domNode, domOffset)
     }
   }
-
   emit('update:edited', sourceOffset)
 }
 
@@ -243,6 +269,10 @@ function portGroupStyle(port: PortData) {
     class="GraphNode"
     :style="{
       transform,
+      width:
+        widthOverridePx != null && isVisualizationVisible
+          ? `${Math.max(widthOverridePx, (contentNode?.scrollWidth ?? 0) + NODE_EXTRA_WIDTH_PX)}px`
+          : undefined,
       '--node-group-color': color,
     }"
     :class="{
@@ -262,27 +292,31 @@ function portGroupStyle(port: PortData) {
       v-model:isAutoEvaluationDisabled="isAutoEvaluationDisabled"
       v-model:isDocsVisible="isDocsVisible"
       :isVisualizationVisible="isVisualizationVisible"
-      @update:isVisualizationVisible="emit('setVisualizationVisible', $event)"
+      @update:isVisualizationVisible="emit('update:visualizationVisible', $event)"
     />
     <GraphVisualization
       v-if="isVisualizationVisible"
-      :nodeSize="nodeSize"
+      :nodeSize="baseNodeSize"
+      :scale="navigator?.scale ?? 1"
+      :nodePosition="props.node.position"
       :isCircularMenuVisible="menuVisible"
       :currentType="props.node.vis"
       :expressionId="props.node.rootSpan.astId"
       :typename="expressionInfo?.typename"
-      @setVisualizationId="emit('setVisualizationId', $event)"
-      @setVisualizationVisible="emit('setVisualizationVisible', $event)"
+      @update:rect="
+        emit('update:visualizationRect', $event),
+          (widthOverridePx = $event && $event.size.x > baseNodeSize.x ? $event.size.x : undefined)
+      "
+      @update:id="emit('update:visualizationId', $event)"
+      @update:visible="emit('update:visualizationVisible', $event)"
     />
-    <div
-      class="node"
-      @pointerdown.capture="nodeEditHandler"
-      @keydown="nodeEditHandler"
-      v-on="dragPointer.events"
-    >
+    <div class="node" @keydown="nodeEditHandler">
       <SvgIcon class="icon grab-handle" :name="icon"></SvgIcon>
-      <NodeWidgetTree :ast="node.rootSpan" />
+      <div ref="contentNode" class="widget-tree">
+        <NodeWidgetTree :ast="node.rootSpan" />
+      </div>
     </div>
+    <GraphNodeError v-if="error" class="error" :error="error" />
     <svg class="bgPaths" :style="bgStyleVariables">
       <rect class="bgFill" />
       <template v-for="port of outputPorts" :key="port.portId">
@@ -423,6 +457,7 @@ function portGroupStyle(port: PortData) {
   align-items: center;
   white-space: nowrap;
   padding: 4px;
+  padding-right: 8px;
   z-index: 2;
   transition: outline 0.2s ease;
   outline: 0px solid transparent;
@@ -495,5 +530,11 @@ function portGroupStyle(port: PortData) {
 
 .CircularMenu {
   z-index: 1;
+}
+
+.error {
+  position: absolute;
+  top: 100%;
+  margin-top: 4px;
 }
 </style>

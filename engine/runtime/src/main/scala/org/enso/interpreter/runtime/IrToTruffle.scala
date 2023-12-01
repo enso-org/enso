@@ -80,6 +80,7 @@ import org.enso.interpreter.node.expression.atom.{
   ConstantNode,
   QualifiedAccessorNode
 }
+import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode
 import org.enso.interpreter.node.expression.builtin.BuiltinRootNode
 import org.enso.interpreter.node.expression.constant._
 import org.enso.interpreter.node.expression.foreign.ForeignMethodCallNode
@@ -1375,7 +1376,10 @@ class IrToTruffle(
                               BadPatternMatch.NonConstantPolyglotSymbol(symbol)
                             )
                           } else {
-                            Right(iop.readMember(polyClass, symbol))
+                            val value = iop.readMember(polyClass, symbol);
+                            val ensoValue =
+                              HostValueToEnsoNode.getUncached().execute(value)
+                            Right(ensoValue)
                           }
                         }
                       } catch {
