@@ -593,6 +593,7 @@
 - [Added `Table.format` for the in-memory backend.][8150]
 - [Implemented truncate `Date_Time` for database backend (Postgres only).][8235]
 - [Initial Enso Cloud APIs.][8006]
+- [Support for loading big Excel files.][8403]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -848,6 +849,7 @@
 [8105]: https://github.com/enso-org/enso/pull/8105
 [8150]: https://github.com/enso-org/enso/pull/8150
 [8235]: https://github.com/enso-org/enso/pull/8235
+[8403]: https://github.com/enso-org/enso/pull/8403
 
 #### Enso Compiler
 
