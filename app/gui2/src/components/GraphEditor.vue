@@ -476,13 +476,13 @@ function handleNodeOutputPortDoubleClick(id: ExprId) {
       @forward="console.log('breadcrumbs \'forward\' button clicked.')"
       @execute="onPlayButtonPress()"
     />
+    <PlusButton @pointerdown="interaction.setCurrent(creatingNodeFromButton)" />
     <Transition>
       <Suspense ref="codeEditorArea">
         <CodeEditor v-if="showCodeEditor" />
       </Suspense>
     </Transition>
     <GraphMouse />
-    <PlusButton @pointerdown="interaction.setCurrent(creatingNodeFromButton)" />
   </div>
 </template>
 
