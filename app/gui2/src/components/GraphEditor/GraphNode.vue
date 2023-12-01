@@ -59,6 +59,7 @@ const outputPortsSet = computed(() => {
 
 const widthOverridePx = ref<number>()
 const nodeId = computed(() => props.node.rootSpan.astId)
+
 const rootNode = ref<HTMLElement>()
 const contentNode = ref<HTMLElement>()
 const nodeSize = useResizeObserver(rootNode)
@@ -300,8 +301,8 @@ function portGroupStyle(port: PortData) {
       :scale="navigator?.scale ?? 1"
       :nodePosition="props.node.position"
       :isCircularMenuVisible="menuVisible"
-      :currentType="props.node.vis"
-      :expressionId="props.node.rootSpan.astId"
+      :currentType="node.vis?.identifier"
+      :expressionId="nodeId"
       :typename="expressionInfo?.typename"
       @update:rect="
         emit('update:visualizationRect', $event),
