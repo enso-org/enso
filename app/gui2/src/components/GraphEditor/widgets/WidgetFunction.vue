@@ -41,6 +41,7 @@ const application = computed(() => {
 
 const selfArgumentAstId = computed<Opt<ExprId>>(() => {
   const tree = props.input
+  InterpretedCall
   if (tree.isTree(Tree.Type.OprApp)) {
     return tree.tryMap((tree) => tree.lhs)?.astId
   } else if (tree.isTree(Tree.Type.App)) {
@@ -54,15 +55,12 @@ const selfArgumentAstId = computed<Opt<ExprId>>(() => {
 })
 
 const escapeString = (str: string): string => {
-  let res = "'"
-  for (const c of str) {
-    res += c == "'" ? "\\'" : c
-  }
-  return res + "'"
+  const escaped = str.replaceAll(/([\\'])/, '\\$1')
+  return `'${escaped}'`
 }
 const makeArgsList = (args: string[]) => '[' + args.map(escapeString).join(', ') + ']'
 
-const config = computed<Opt<NodeVisualizationConfiguration>>(() => {
+const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => {
   const tree = props.input
   const expressionId = selfArgumentAstId.value
   const astId = tree.astId
@@ -70,25 +68,22 @@ const config = computed<Opt<NodeVisualizationConfiguration>>(() => {
     return null
   }
   const info = graph.db.getMethodCallInfo(astId)
-  const args = info?.suggestion.arguments.map((arg) => arg.name)
-  const name = info?.suggestion.name
-  if (name && args) {
-    return {
-      expressionId,
-      visualizationModule: 'Standard.Visualization.Widgets',
-      expression: {
-        module: 'Standard.Visualization.Widgets',
-        definedOnType: 'Standard.Visualization.Widgets',
-        name: 'get_widget_json',
-      },
-      positionalArgumentsExpressions: [`.${name}`, makeArgsList(args)],
-    }
-  } else {
-    return null
+  if (!info) return null
+  const args = info.suggestion.arguments.map((arg) => arg.name)
+  const name = info.suggestion.name
+  return {
+    expressionId,
+    visualizationModule: 'Standard.Visualization.Widgets',
+    expression: {
+      module: 'Standard.Visualization.Widgets',
+      definedOnType: 'Standard.Visualization.Widgets',
+      name: 'get_widget_json',
+    },
+    positionalArgumentsExpressions: [`.${name}`, makeArgsList(args)],
   }
 })
 
-const visualizationData = project.useVisualizationData(config)
+const visualizationData = project.useVisualizationData(visualizationConfig)
 const widgetConfiguration = computed(() => {
   const data = visualizationData.value
   if (data != null) {
