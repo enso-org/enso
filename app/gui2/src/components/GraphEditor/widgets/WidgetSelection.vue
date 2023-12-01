@@ -73,7 +73,6 @@ const selectedValue = computed(() => {
   return tagValues.value[selectedIndex.value] ?? ''
 })
 const showDropdownWidget = ref(false)
-const showArgumentValue = ref(true)
 
 // When the selected index changes, we update the expression content.
 watch(selectedIndex, (_index) => {
@@ -104,10 +103,7 @@ export const widgetDefinition = defineWidget([ArgumentPlaceholder, ArgumentAst],
 <template>
   <div ref="rootElement" class="WidgetRoot">
     <span class="WidgetArgumentName" @pointerdown="showDropdownWidget = !showDropdownWidget">
-      <template v-if="showArgumentValue">
-        <NodeWidget :input="props.input" /><span class="value"> {{ selectedValue }} </span>
-      </template>
-      <template v-else><NodeWidget :input="props.input" /></template>
+      <NodeWidget :input="props.input" /><span class="value"> {{ selectedValue }} </span>
     </span>
     <div class="WidgetSingleChoice">
       <DropdownWidget
