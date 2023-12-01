@@ -26,6 +26,7 @@ import org.enso.compiler.core.ir.expression.{
   Operator,
   Section
 }
+import org.enso.compiler.core.ir.expression.errors.Redefined
 import org.enso.compiler.core.ir.`type`
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Occurrence, Scope}
@@ -573,12 +574,16 @@ case object AliasAnalysis extends IRPass {
               new MetadataPair(this, Info.Occurrence(graph, occurrenceId))
             )
         } else {
-          throw new CompilerError(
-            s"""
-                Arguments should never be redefined. This is a bug.
-                ${}
-                """
-          )
+          val f = scope.occurrences.collectFirst {
+            case x if x.symbol == name.name => x
+          }
+          arg
+            .copy(
+              ascribedType = Some(new Redefined.Arg(name, arg.location))
+            )
+            .updateMetadata(
+              new MetadataPair(this, Info.Occurrence(graph, f.get.id))
+            )
         }
     }
   }
