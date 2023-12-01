@@ -1,6 +1,8 @@
 import { Tree, type Token } from '@/generated/ast'
 import type { AstExtended } from '@/util/ast'
 
+/** Determine whether an AST matches a specified pattern,
+ * where a specified identifier (by default `__`) in the pattern may match any arbitrary subtree. */
 export function isMatch(
   target: AstExtended<Tree.Tree | Token.Token, boolean>,
   pattern: AstExtended<Tree.Tree | Token.Token, boolean>,
@@ -23,6 +25,12 @@ export function isMatch(
   }
 }
 
+/** Extract matches from an AST matching a pattern,
+ * where a specified identifier (by default `__`) in the pattern may match any arbitrary subtree.
+ * Returns an array of the arbitrary subtrees that were matched, if the entire AST matches the entire pattern.
+ * Returns an empty array if the pattern contains no placeholder identifiers
+ * (as specified above, defaulting to `__`).
+ * Returns `undefined` if the AST does not match the pattern. */
 export function extractMatches<HasIdMap extends boolean = true>(
   target: AstExtended<Tree.Tree | Token.Token, HasIdMap>,
   pattern: AstExtended<Tree.Tree | Token.Token, HasIdMap>,

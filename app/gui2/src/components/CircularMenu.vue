@@ -2,12 +2,13 @@
 import ToggleIcon from '@/components/ToggleIcon.vue'
 
 const props = defineProps<{
-  isAutoEvaluationDisabled: boolean
+  isOutputContextEnabled: boolean
+  isOutputContextOverridden: boolean
   isDocsVisible: boolean
   isVisualizationVisible: boolean
 }>()
 const emit = defineEmits<{
-  'update:isAutoEvaluationDisabled': [isAutoEvaluationDisabled: boolean]
+  'update:isOutputContextOverridden': [isOutputContextOverridden: boolean]
   'update:isDocsVisible': [isDocsVisible: boolean]
   'update:isVisualizationVisible': [isVisualizationVisible: boolean]
 }>()
@@ -16,11 +17,14 @@ const emit = defineEmits<{
 <template>
   <div class="CircularMenu">
     <ToggleIcon
-      icon="no_auto_replay"
-      class="icon-container button no-auto-evaluate-button"
-      :alt="`${props.isAutoEvaluationDisabled ? 'Enable' : 'Disable'} auto-evaluation`"
-      :modelValue="props.isAutoEvaluationDisabled"
-      @update:modelValue="emit('update:isAutoEvaluationDisabled', $event)"
+      :icon="props.isOutputContextEnabled ? 'no_auto_replay' : 'auto_replay'"
+      class="icon-container button override-output-context-button"
+      :class="{ 'output-context-overridden': props.isOutputContextOverridden }"
+      :alt="`${
+        props.isOutputContextEnabled != props.isOutputContextOverridden ? 'Enable' : 'Disable'
+      } output context`"
+      :modelValue="props.isOutputContextOverridden"
+      @update:modelValue="emit('update:isOutputContextOverridden', $event)"
     />
     <ToggleIcon
       icon="docs"
@@ -70,10 +74,15 @@ const emit = defineEmits<{
   opacity: unset;
 }
 
-.no-auto-evaluate-button {
+.override-output-context-button {
   position: absolute;
   left: 9px;
   top: 8px;
+}
+
+.override-output-context-button {
+  opacity: 100%;
+  color: red;
 }
 
 .docs-button {

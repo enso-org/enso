@@ -3,7 +3,7 @@ import { extractMatches, isMatch } from '@/util/ast/match'
 import { expect, test } from 'vitest'
 
 test.each([
-  { target: '1 + 1', pattern: '1 + 1', extracted: [] },
+  { target: '1 + 1', pattern: '1  +  1', extracted: [] },
   { target: '1 + 2', pattern: '1 + __', extracted: ['2'] },
   { target: '1 + 2', pattern: '__ + 2', extracted: ['1'] },
   { target: '1 + 2', pattern: '__ + __', extracted: ['1', '2'] },
@@ -11,7 +11,7 @@ test.each([
   { target: '1', pattern: '(__)' },
   { target: '("a")', pattern: '(__)', extracted: ['"a"'] },
   { target: '[1, "a", True]', pattern: '[1, "a", True]', extracted: [] },
-  { target: '[1, "a", True]', pattern: '[__, "a", __]', extracted: ['1', 'True'] },
+  { target: '[1,      "a", True]', pattern: '[__, "a",      __]', extracted: ['1', 'True'] },
   { target: '[1, "a", True]', pattern: '[1, "a", False]' },
   { target: '[1, "a", True]', pattern: '[1, "a", True, 2]' },
   { target: '[1, "a", True]', pattern: '[1, "a", True, __]' },

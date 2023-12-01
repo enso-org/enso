@@ -591,6 +591,24 @@ export const useProjectStore = defineStore('project', () => {
     return id
   })
 
+  const currentExecutionEnvironmentConfig = computed<NodeVisualizationConfiguration | undefined>(
+    () => {
+      if (!anyExpressionId.value) return
+      return {
+        expressionId: anyExpressionId.value,
+        expression: 'x -> Standard.Base.Runtime.current_execution_environment',
+        visualizationModule: 'Standard.Base.Runtime',
+      }
+    },
+  )
+
+  const currentExecutionEnvironmentRaw = useVisualizationData(currentExecutionEnvironmentConfig)
+  const currentExecutionEnvironment = computed(() =>
+    typeof currentExecutionEnvironmentRaw.value === 'string'
+      ? currentExecutionEnvironmentRaw.value
+      : undefined,
+  )
+
   const outputContextPermissionConfig = computed<NodeVisualizationConfiguration | undefined>(() => {
     if (!anyExpressionId.value) return
     return {
@@ -606,6 +624,9 @@ export const useProjectStore = defineStore('project', () => {
   })
 
   const outputContextPermission = useVisualizationData(outputContextPermissionConfig)
+
+  // FIXME [sb]: This does not work as `anyExpressionId.value` is always `null`.
+  const isOutputContextEnabled = computed(() => outputContextPermission.value != null)
 
   function stopCapturingUndo() {
     module.value?.undoManager.stopCapturing()
@@ -630,7 +651,8 @@ export const useProjectStore = defineStore('project', () => {
     lsRpcConnection: markRaw(lsRpcConnection),
     dataConnection: markRaw(dataConnection),
     useVisualizationData,
-    outputContextPermission,
+    currentExecutionEnvironment,
+    isOutputContextEnabled,
     stopCapturingUndo,
     executionMode,
     dataflowErrors,

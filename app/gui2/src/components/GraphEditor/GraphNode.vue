@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script lang="ts">
 import { nodeEditBindings } from '@/bindings'
 import CircularMenu from '@/components/CircularMenu.vue'
 import GraphNodeError from '@/components/GraphEditor/GraphNodeError.vue'
@@ -11,6 +11,9 @@ import { injectGraphSelection } from '@/providers/graphSelection'
 import { useGraphStore, type Node } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
 import { useApproach } from '@/util/animation'
+import { AstExtended } from '@/util/ast'
+import { extractMatches } from '@/util/ast/match'
+import { escape as astStringEscape } from '@/util/ast/string'
 import { usePointer, useResizeObserver } from '@/util/events'
 import { displayedIconOf } from '@/util/getIconName'
 import type { Opt } from '@/util/opt'
@@ -20,6 +23,29 @@ import { setIfUndefined } from 'lib0/map'
 import type { ContentRange, ExprId, VisualizationIdentifier } from 'shared/yjsModel'
 import { computed, ref, watch, watchEffect } from 'vue'
 
+function withEnabledOutputContextPatternText(name: string) {
+  return (
+    "Standard.Base.Runtime.with_enabled_context Standard.Base.Runtime.Context.Output '" +
+    astStringEscape(name) +
+    "'"
+  )
+}
+const withEnabledOutputContextPatternAst = AstExtended.parse(
+  'Standard.Base.Runtime.with_enabled_context Standard.Base.Runtime.Context.Output __ <| __',
+)
+function withDisabledOutputContextPatternText(name: string) {
+  return (
+    "Standard.Base.Runtime.with_disabled_context Standard.Base.Runtime.Context.Output '" +
+    astStringEscape(name) +
+    "'"
+  )
+}
+const withDisabledOutputContextPatternAst = AstExtended.parse(
+  'Standard.Base.Runtime.with_disabled_context Standard.Base.Runtime.Context.Output __ <| __',
+)
+</script>
+
+<script setup lang="ts">
 const MAXIMUM_CLICK_LENGTH_MS = 300
 const MAXIMUM_CLICK_DISTANCE_SQ = 50
 /** The width in pixels that is not the widget tree. This includes the icon, and padding. */
@@ -86,7 +112,6 @@ watch(isSelected, (selected) => {
   menuVisible.value = menuVisible.value && selected
 })
 
-const isAutoEvaluationDisabled = ref(false)
 const isDocsVisible = ref(false)
 const isVisualizationVisible = computed(() => props.node.vis?.visible ?? false)
 
@@ -156,6 +181,61 @@ const icon = computed(() => {
   )
 })
 
+const exprWithoutEnabledOutputContext = computed(() => {
+  if (projectStore.isOutputContextEnabled) return
+  return extractMatches(props.node.rootSpan, withEnabledOutputContextPatternAst)?.[1]
+})
+
+const exprWithoutDisabledOutputContext = computed(() => {
+  if (!projectStore.isOutputContextEnabled) return
+  return extractMatches(props.node.rootSpan, withDisabledOutputContextPatternAst)?.[1]
+})
+
+const isOutputContextOverridden = computed({
+  get() {
+    return (
+      exprWithoutEnabledOutputContext.value != null ||
+      exprWithoutDisabledOutputContext.value != null
+    )
+  },
+  set(shouldOverride) {
+    const start = props.node.rootSpan.span()[0]
+    if (projectStore.isOutputContextEnabled) {
+      if (shouldOverride && exprWithoutEnabledOutputContext.value) {
+        // Remove force enable of output context.
+        emit('update:content', [[[start, exprWithoutEnabledOutputContext.value.span()[0]], '']])
+      } else if (
+        !shouldOverride &&
+        !exprWithoutEnabledOutputContext.value &&
+        projectStore.currentExecutionEnvironment != null
+      ) {
+        emit('update:content', [
+          [
+            [start, start],
+            withEnabledOutputContextPatternText(projectStore.currentExecutionEnvironment),
+          ],
+        ])
+      }
+    } else {
+      if (shouldOverride && exprWithoutDisabledOutputContext.value) {
+        // Remove force disable of output context.
+        emit('update:content', [[[start, exprWithoutDisabledOutputContext.value.span()[0]], '']])
+      } else if (
+        !shouldOverride &&
+        !exprWithoutDisabledOutputContext.value &&
+        projectStore.currentExecutionEnvironment != null
+      ) {
+        emit('update:content', [
+          [
+            [start, start],
+            withDisabledOutputContextPatternText(projectStore.currentExecutionEnvironment),
+          ],
+        ])
+      }
+    }
+  },
+})
+
 const nodeEditHandler = nodeEditBindings.handler({
   cancel(e) {
     if (e.target instanceof HTMLElement) {
@@ -217,6 +297,7 @@ const handlePortClick = useDoubleClick<[portId: ExprId]>(
     emit('outputPortDoubleClick', portId)
   },
 ).handleClick
+
 interface PortData {
   clipRange: [number, number]
   label: string
@@ -254,7 +335,7 @@ watchEffect(() => {
 })
 
 watchEffect(() => {
-  console.log(projectStore.outputContextPermission)
+  console.log('is output context enabled?', projectStore.isOutputContextEnabled)
 })
 
 function portGroupStyle(port: PortData) {
@@ -293,8 +374,9 @@ function portGroupStyle(port: PortData) {
     </div>
     <CircularMenu
       v-if="menuVisible"
-      v-model:isAutoEvaluationDisabled="isAutoEvaluationDisabled"
+      v-model:isOutputContextOverridden="isOutputContextOverridden"
       v-model:isDocsVisible="isDocsVisible"
+      :isOutputContextEnabled="projectStore.isOutputContextEnabled"
       :isVisualizationVisible="isVisualizationVisible"
       @update:isVisualizationVisible="emit('update:visualizationVisible', $event)"
     />
