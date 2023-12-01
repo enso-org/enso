@@ -25,7 +25,8 @@ public class TestHandler implements HttpHandler {
   public void handle(HttpExchange exchange) throws IOException {
     try {
       if (logRequests) {
-        System.out.println("Handling request: " + exchange.getRequestMethod() + " " + exchange.getRequestURI());
+        System.out.println(
+            "Handling request: " + exchange.getRequestMethod() + " " + exchange.getRequestURI());
       }
 
       doHandle(exchange);
