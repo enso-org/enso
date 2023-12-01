@@ -42,6 +42,7 @@ public class SimpleHTTPBin {
 
       while (state.isRunning()) {
         if (waitForEnter.isDone()) {
+          System.out.println("Stopping server... (enter)");
           state.stop();
           break;
         }
@@ -51,7 +52,9 @@ public class SimpleHTTPBin {
     } catch (InterruptedException e) {
       e.printStackTrace();
     } finally {
+      System.out.println("Finalizing server...");
       server.stop(3);
+      System.out.println("Server stopped.");
     }
   }
 
@@ -84,7 +87,7 @@ public class SimpleHTTPBin {
       final SimpleHTTPBin server1 = server;
       SignalHandler stopServerHandler =
           (Signal sig) -> {
-            System.out.println("Stopping server...");
+            System.out.println("Stopping server... (interrupt)");
             server1.stop();
           };
       for (String signalName : List.of("TERM", "INT")) {
