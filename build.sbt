@@ -2717,7 +2717,10 @@ val allStdBits: Parser[String] =
 lazy val `simple-httpbin` = project
   .in(file("tools") / "simple-httpbin")
   .settings(
+    autoScalaLibrary := false,
     Compile / javacOptions ++= Seq("-Xlint:all"),
+    Compile / run / mainClass := Some("org.enso.shttp.SimpleHTTPBin"),
+    assembly / mainClass := (Compile / run / mainClass).value,
     libraryDependencies ++= Seq(
       "org.apache.commons" % "commons-text" % commonsTextVersion
     ),
