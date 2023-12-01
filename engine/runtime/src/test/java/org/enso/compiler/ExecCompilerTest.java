@@ -127,6 +127,35 @@ public class ExecCompilerTest {
   }
 
   @Test
+  public void chainedSyntax() throws Exception {
+    var module = ctx.eval("enso", """
+    from Standard.Base import all
+
+    nums n = [1, 2, 3, 4, 5]
+        . map (x-> x*2)
+        . filter (x-> x % 3 == 0)
+        . take n
+    """);
+    var run = module.invokeMember("eval_expression", "nums");
+    var six = run.execute(1);
+    assertTrue(six.hasArrayElements());
+    assertEquals(1, six.getArraySize());
+    assertEquals(6, six.getArrayElement(0).asInt());
+  }
+
+  @Test
+  public void chainedSyntaxOperator() throws Exception {
+    var module = ctx.eval("enso", """
+    nums n = n
+        * 2
+        % 3
+    """);
+    var run = module.invokeMember("eval_expression", "nums");
+    var result = run.execute(5);
+    assertEquals("10 % 3 is one", 1, result.asInt());
+  }
+
+  @Test
   public void testInvalidEnsoProjectRef() throws Exception {
     var module =
         ctx.eval(

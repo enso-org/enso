@@ -4,7 +4,9 @@ import * as React from 'react'
 
 import * as assetEventModule from '../events/assetEvent'
 import * as assetListEventModule from '../events/assetListEvent'
+import * as assetQuery from '../../assetQuery'
 import * as backendModule from '../backend'
+import * as categorySwitcher from './categorySwitcher'
 import * as hooks from '../../hooks'
 import * as http from '../../http'
 import * as localBackendModule from '../localBackend'
@@ -20,9 +22,11 @@ import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
 import * as shortcutsProvider from '../../providers/shortcuts'
 
+import type * as assetSettingsPanel from './assetSettingsPanel'
 import * as pageSwitcher from './pageSwitcher'
 import type * as spinner from './spinner'
 import Chat, * as chat from './chat'
+import AssetSettingsPanel from './assetSettingsPanel'
 import Drive from './drive'
 import Editor from './editor'
 import Home from './home'
@@ -59,7 +63,7 @@ export default function Dashboard(props: DashboardProps) {
     const { localStorage } = localStorageProvider.useLocalStorage()
     const { shortcuts } = shortcutsProvider.useShortcuts()
     const [initialized, setInitialized] = React.useState(false)
-    const [query, setQuery] = React.useState('')
+    const [query, setQuery] = React.useState(() => assetQuery.AssetQuery.fromString(''))
     const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
     const [isHelpChatVisible, setIsHelpChatVisible] = React.useState(false)
     const [loadingProjectManagerDidFail, setLoadingProjectManagerDidFail] = React.useState(false)
@@ -76,6 +80,13 @@ export default function Dashboard(props: DashboardProps) {
     const [assetListEvents, dispatchAssetListEvent] =
         hooks.useEvent<assetListEventModule.AssetListEvent>()
     const [assetEvents, dispatchAssetEvent] = hooks.useEvent<assetEventModule.AssetEvent>()
+    const [assetSettingsPanelProps, setAssetSettingsPanelProps] =
+        React.useState<assetSettingsPanel.AssetSettingsPanelRequiredProps | null>(null)
+    const [isAssetSettingsPanelVisible, setIsAssetSettingsPanelVisible] = React.useState(
+        () =>
+            localStorage.get(localStorageModule.LocalStorageKey.isAssetSettingsPanelVisible) ??
+            false
+    )
     const [initialProjectName, setInitialProjectName] = React.useState(rawInitialProjectName)
 
     const isListingLocalDirectoryAndWillFail =
@@ -99,7 +110,7 @@ export default function Dashboard(props: DashboardProps) {
     }, [page, /* should never change */ unsetModal])
 
     React.useEffect(() => {
-        if (query !== '') {
+        if (query.query !== '') {
             setPage(pageSwitcher.Page.drive)
         }
     }, [query])
@@ -236,6 +247,13 @@ export default function Dashboard(props: DashboardProps) {
     }, [projectStartupInfo, /* should never change */ localStorage])
 
     React.useEffect(() => {
+        localStorage.set(
+            localStorageModule.LocalStorageKey.isAssetSettingsPanelVisible,
+            isAssetSettingsPanelVisible
+        )
+    }, [isAssetSettingsPanelVisible, /* should never change */ localStorage])
+
+    React.useEffect(() => {
         localStorage.set(localStorageModule.LocalStorageKey.page, page)
     }, [page, /* should never change */ localStorage])
 
@@ -365,82 +383,130 @@ export default function Dashboard(props: DashboardProps) {
         )
     }, [])
 
+    const doRemoveSelf = React.useCallback(() => {
+        if (projectStartupInfo?.projectAsset != null) {
+            dispatchAssetListEvent({
+                type: assetListEventModule.AssetListEventType.removeSelf,
+                id: projectStartupInfo.projectAsset.id,
+            })
+            setProjectStartupInfo(null)
+        }
+    }, [projectStartupInfo?.projectAsset, /* should never change */ dispatchAssetListEvent])
+
+    const onSignOut = React.useCallback(() => {
+        if (page === pageSwitcher.Page.editor) {
+            setPage(pageSwitcher.Page.drive)
+        }
+        setProjectStartupInfo(null)
+    }, [page])
+
     return (
         <>
             <div
-                className={`flex flex-col relative select-none text-primary text-xs h-screen pb-2 ${
+                className={`flex text-primary text-xs ${
                     page === pageSwitcher.Page.editor ? 'cursor-none pointer-events-none' : ''
                 }`}
-                onContextMenu={event => {
-                    event.preventDefault()
-                    unsetModal()
-                }}
             >
-                <TopBar
-                    supportsLocalBackend={supportsLocalBackend}
-                    projectAsset={projectStartupInfo?.projectAsset ?? null}
-                    setProjectAsset={projectStartupInfo?.setProjectAsset ?? null}
-                    page={page}
-                    setPage={setPage}
-                    asset={null}
-                    isEditorDisabled={projectStartupInfo == null}
-                    isHelpChatOpen={isHelpChatOpen}
-                    setIsHelpChatOpen={setIsHelpChatOpen}
-                    setBackendType={setBackendType}
-                    query={query}
-                    setQuery={setQuery}
-                    doRemoveSelf={() => {
-                        if (projectStartupInfo?.projectAsset != null) {
-                            dispatchAssetListEvent({
-                                type: assetListEventModule.AssetListEventType.removeSelf,
-                                id: projectStartupInfo.projectAsset.id,
-                            })
+                <div
+                    className="flex flex-col grow container-size gap-2 overflow-hidden relative select-none h-screen pb-2"
+                    onContextMenu={event => {
+                        event.preventDefault()
+                        unsetModal()
+                    }}
+                >
+                    <TopBar
+                        supportsLocalBackend={supportsLocalBackend}
+                        projectAsset={projectStartupInfo?.projectAsset ?? null}
+                        setProjectAsset={projectStartupInfo?.setProjectAsset ?? null}
+                        page={page}
+                        setPage={setPage}
+                        isEditorDisabled={projectStartupInfo == null}
+                        isHelpChatOpen={isHelpChatOpen}
+                        setIsHelpChatOpen={setIsHelpChatOpen}
+                        setBackendType={setBackendType}
+                        query={query}
+                        setQuery={setQuery}
+                        canToggleSettingsPanel={assetSettingsPanelProps != null}
+                        isSettingsPanelVisible={
+                            isAssetSettingsPanelVisible && assetSettingsPanelProps != null
+                        }
+                        setIsSettingsPanelVisible={setIsAssetSettingsPanelVisible}
+                        doRemoveSelf={doRemoveSelf}
+                        onSignOut={() => {
+                            if (page === pageSwitcher.Page.editor) {
+                                setPage(pageSwitcher.Page.drive)
+                            }
                             setProjectStartupInfo(null)
-                        }
-                    }}
-                    onSignOut={() => {
-                        if (page === pageSwitcher.Page.editor) {
-                            setPage(pageSwitcher.Page.drive)
-                        }
-                        setProjectStartupInfo(null)
-                    }}
-                />
-                <Home hidden={page !== pageSwitcher.Page.home} onTemplateClick={doCreateProject} />
-                <Drive
-                    supportsLocalBackend={supportsLocalBackend}
-                    hidden={page !== pageSwitcher.Page.drive}
-                    page={page}
-                    initialProjectName={initialProjectName}
-                    query={query}
-                    projectStartupInfo={projectStartupInfo}
-                    queuedAssetEvents={queuedAssetEvents}
-                    assetListEvents={assetListEvents}
-                    dispatchAssetListEvent={dispatchAssetListEvent}
-                    assetEvents={assetEvents}
-                    dispatchAssetEvent={dispatchAssetEvent}
-                    doCreateProject={doCreateProject}
-                    doOpenEditor={openEditor}
-                    doCloseEditor={closeEditor}
-                    loadingProjectManagerDidFail={loadingProjectManagerDidFail}
-                    isListingRemoteDirectoryWhileOffline={isListingRemoteDirectoryWhileOffline}
-                    isListingLocalDirectoryAndWillFail={isListingLocalDirectoryAndWillFail}
-                    isListingRemoteDirectoryAndWillFail={isListingRemoteDirectoryAndWillFail}
-                />
-                <Editor
-                    hidden={page !== pageSwitcher.Page.editor}
-                    supportsLocalBackend={supportsLocalBackend}
-                    projectStartupInfo={projectStartupInfo}
-                    appRunner={appRunner}
-                />
-                {/* `session.accessToken` MUST be present in order for the `Chat` component to work. */}
-                {isHelpChatVisible && session.accessToken != null && (
-                    <Chat
-                        isOpen={isHelpChatOpen}
-                        doClose={() => {
-                            setIsHelpChatOpen(false)
                         }}
                     />
-                )}
+                    <Home
+                        hidden={page !== pageSwitcher.Page.home}
+                        onTemplateClick={doCreateProject}
+                    />
+                    <Drive
+                        supportsLocalBackend={supportsLocalBackend}
+                        hidden={page !== pageSwitcher.Page.drive}
+                        page={page}
+                        initialProjectName={initialProjectName}
+                        query={query}
+                        setQuery={setQuery}
+                        projectStartupInfo={projectStartupInfo}
+                        queuedAssetEvents={queuedAssetEvents}
+                        assetListEvents={assetListEvents}
+                        dispatchAssetListEvent={dispatchAssetListEvent}
+                        assetEvents={assetEvents}
+                        dispatchAssetEvent={dispatchAssetEvent}
+                        setAssetSettingsPanelProps={setAssetSettingsPanelProps}
+                        doCreateProject={doCreateProject}
+                        doOpenEditor={openEditor}
+                        doCloseEditor={closeEditor}
+                        loadingProjectManagerDidFail={loadingProjectManagerDidFail}
+                        isListingRemoteDirectoryWhileOffline={isListingRemoteDirectoryWhileOffline}
+                        isListingLocalDirectoryAndWillFail={isListingLocalDirectoryAndWillFail}
+                        isListingRemoteDirectoryAndWillFail={isListingRemoteDirectoryAndWillFail}
+                    />
+                    <Editor
+                        hidden={page !== pageSwitcher.Page.editor}
+                        supportsLocalBackend={supportsLocalBackend}
+                        projectStartupInfo={projectStartupInfo}
+                        appRunner={appRunner}
+                    />
+                    {/* `session.accessToken` MUST be present in order for the `Chat` component to work. */}
+                    {isHelpChatVisible && session.accessToken != null && (
+                        <Chat
+                            page={page}
+                            isOpen={isHelpChatOpen}
+                            doClose={() => {
+                                setIsHelpChatOpen(false)
+                            }}
+                        />
+                    )}
+                </div>
+                <div
+                    className={`flex flex-col duration-500 transition-min-width ease-in-out overflow-hidden ${
+                        isAssetSettingsPanelVisible && assetSettingsPanelProps != null
+                            ? 'min-w-120'
+                            : 'min-w-0'
+                    }`}
+                >
+                    {assetSettingsPanelProps && (
+                        <AssetSettingsPanel
+                            supportsLocalBackend={supportsLocalBackend}
+                            key={assetSettingsPanelProps.item.item.id}
+                            {...assetSettingsPanelProps}
+                            page={page}
+                            category={categorySwitcher.Category.home}
+                            isHelpChatOpen={isHelpChatOpen}
+                            setIsHelpChatOpen={setIsHelpChatOpen}
+                            setIsSettingsPanelVisible={setIsAssetSettingsPanelVisible}
+                            dispatchAssetEvent={dispatchAssetEvent}
+                            projectAsset={projectStartupInfo?.projectAsset ?? null}
+                            setProjectAsset={projectStartupInfo?.setProjectAsset ?? null}
+                            doRemoveSelf={doRemoveSelf}
+                            onSignOut={onSignOut}
+                        />
+                    )}
+                </div>
             </div>
             <div className="text-xs text-primary select-none">
                 <TheModal />
