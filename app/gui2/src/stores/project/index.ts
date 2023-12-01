@@ -584,6 +584,29 @@ export const useProjectStore = defineStore('project', () => {
     })
   })
 
+  const anyExpressionId = computed(() => {
+    const ids = module.value?.getIdMap()
+    if (!ids) return
+    const [id] = ids.accessedSoFar()
+    return id
+  })
+
+  const outputContextPermissionConfig = computed<NodeVisualizationConfiguration | undefined>(() => {
+    if (!anyExpressionId.value) return
+    return {
+      expressionId: anyExpressionId.value,
+      expression:
+        'x -> Standard.Base.Runtime.ExecutionEnvironment.permission Standard.Base.Runtime.Context.Output',
+      visualizationModule: 'Standard.Base.Runtime',
+    }
+  })
+
+  watchEffect(() => {
+    console.log('anyexpr', anyExpressionId.value)
+  })
+
+  const outputContextPermission = useVisualizationData(outputContextPermissionConfig)
+
   function stopCapturingUndo() {
     module.value?.undoManager.stopCapturing()
   }
@@ -607,6 +630,7 @@ export const useProjectStore = defineStore('project', () => {
     lsRpcConnection: markRaw(lsRpcConnection),
     dataConnection: markRaw(dataConnection),
     useVisualizationData,
+    outputContextPermission,
     stopCapturingUndo,
     executionMode,
     dataflowErrors,

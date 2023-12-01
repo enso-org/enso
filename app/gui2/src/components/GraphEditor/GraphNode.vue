@@ -253,6 +253,10 @@ watchEffect(() => {
   }
 })
 
+watchEffect(() => {
+  console.log(projectStore.outputContextPermission)
+})
+
 function portGroupStyle(port: PortData) {
   const [start, end] = port.clipRange
   return {
