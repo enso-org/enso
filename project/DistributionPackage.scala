@@ -792,7 +792,6 @@ object DistributionPackage {
 
     /** Path to the artifact that is built on this local machine. */
     def localArtifact(component: String): File = {
-      val architecture = Architecture.X64
       val os =
         if (Platform.isWindows) OS.Windows
         else if (Platform.isLinux) OS.Linux
@@ -801,7 +800,7 @@ object DistributionPackage {
           else if (Platform.isArm64) OS.MacOSArm
           else throw new IllegalStateException("Unknown Arch")
         } else throw new IllegalStateException("Unknown OS")
-      artifactRoot / artifactName(component, os, architecture)
+      artifactRoot / artifactName(component, os, os.archs.head)
     }
 
     /** Path to a built archive.
