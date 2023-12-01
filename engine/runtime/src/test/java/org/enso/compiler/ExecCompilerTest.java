@@ -78,6 +78,17 @@ public class ExecCompilerTest {
   }
 
   @Test
+  public void redefinedArgument() throws Exception {
+    var module = ctx.eval("enso", """
+    type My_Type
+        Value a b c a
+    """);
+    var run = module.invokeMember("eval_expression", "My_Type.Value");
+    var error = run.newInstance(1, 2, 3, 4);
+    assertTrue("We get an error value back: " + error, error.isException());
+  }
+
+  @Test
   public void testSelfAssignment() throws Exception {
     var module = ctx.eval("enso", """
     from Standard.Base.Errors.Common import all

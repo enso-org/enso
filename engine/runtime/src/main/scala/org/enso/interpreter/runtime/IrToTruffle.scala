@@ -1833,6 +1833,10 @@ class IrToTruffle(
           context.getBuiltins
             .error()
             .makeCompileError(Text.create(err.message(source)))
+        case err: errors.Redefined.Arg =>
+          context.getBuiltins
+            .error()
+            .makeCompileError(Text.create(err.message(source)))
         case err: errors.Unexpected.TypeSignature =>
           context.getBuiltins
             .error()
