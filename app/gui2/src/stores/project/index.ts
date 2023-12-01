@@ -14,6 +14,7 @@ import {
 import { nextEvent } from '@/util/observable'
 import { isSome, type Opt } from '@/util/opt'
 import { tryQualifiedName } from '@/util/qualifiedName'
+import { Err, Ok, type Result } from '@/util/result'
 import { Client, RequestManager } from '@open-rpc/client-js'
 import { computedAsync } from '@vueuse/core'
 import * as array from 'lib0/array'
@@ -21,7 +22,7 @@ import * as object from 'lib0/object'
 import { ObservableV2 } from 'lib0/observable'
 import * as random from 'lib0/random'
 import { defineStore } from 'pinia'
-import { OutboundPayload } from 'shared/binaryProtocol'
+import { OutboundPayload, VisualizationUpdate } from 'shared/binaryProtocol'
 import { DataServer } from 'shared/dataServer'
 import { LanguageServer } from 'shared/languageServer'
 import type {
@@ -535,7 +536,7 @@ export const useProjectStore = defineStore('project', () => {
 
   function useVisualizationData(
     configuration: WatchSource<Opt<NodeVisualizationConfiguration>>,
-  ): ShallowRef<{} | undefined> {
+  ): ShallowRef<Result<{}> | undefined> {
     const id = random.uuidv4() as Uuid
 
     watch(
@@ -550,7 +551,8 @@ export const useProjectStore = defineStore('project', () => {
     return shallowRef(
       computed(() => {
         const json = visualizationDataRegistry.getRawData(id)
-        return json != null ? JSON.parse(json) : undefined
+        if (!json?.ok) return json ?? undefined
+        else return Ok(JSON.parse(json.value))
       }),
     )
   }
@@ -569,17 +571,20 @@ export const useProjectStore = defineStore('project', () => {
       }),
     )
     return computed<{ kind: 'Dataflow'; message: string } | undefined>(() => {
-      const value = data.value
-      if (!value) return
-      if (
-        'kind' in value &&
-        value.kind === 'Dataflow' &&
-        'message' in value &&
-        typeof value.message === 'string'
+      const visResult = data.value
+      if (!visResult) return
+      if (!visResult.ok) {
+        visResult.error.log('Dataflow Error visualization evaluation failed')
+        return undefined
+      } else if (
+        'kind' in visResult.value &&
+        visResult.value.kind === 'Dataflow' &&
+        'message' in visResult.value &&
+        typeof visResult.value.message === 'string'
       ) {
-        return { kind: value.kind, message: value.message }
+        return { kind: visResult.value.kind, message: visResult.value.message }
       } else {
-        console.error('Invalid dataflow error payload:', value)
+        console.error('Invalid dataflow error payload:', visResult.value)
         return undefined
       }
     })
@@ -589,16 +594,35 @@ export const useProjectStore = defineStore('project', () => {
     module.value?.undoManager.stopCapturing()
   }
 
-  function executeExpression(expressionId: ExprId, expression: string): Promise<string | null> {
+  function executeExpression(
+    expressionId: ExprId,
+    expression: string,
+  ): Promise<Result<string> | null> {
     return new Promise((resolve) => {
       Promise.all([lsRpcConnection, dataConnection]).then(([lsRpc, data]) => {
         const visualizationId = random.uuidv4() as Uuid
-        const handler = data.on(`${OutboundPayload.VISUALIZATION_UPDATE}`, (visData, uuid) => {
+        const dataHandler = (visData: VisualizationUpdate, uuid: Uuid | null) => {
           if (uuid === visualizationId) {
-            resolve(visData.dataString())
-            data.off(`${OutboundPayload.VISUALIZATION_UPDATE}`, handler)
+            const dataStr = visData.dataString()
+            resolve(dataStr != null ? Ok(dataStr) : null)
+            data.off(`${OutboundPayload.VISUALIZATION_UPDATE}`, dataHandler)
+            executionContext.off('visualizationEvaluationFailed', errorHandler)
           }
-        })
+        }
+        const errorHandler = (
+          uuid: Uuid,
+          _expressionId: ExpressionId,
+          message: string,
+          _diagnostic: Diagnostic | undefined,
+        ) => {
+          if (uuid == visualizationId) {
+            resolve(Err(message))
+            data.off(`${OutboundPayload.VISUALIZATION_UPDATE}`, dataHandler)
+            executionContext.off('visualizationEvaluationFailed', errorHandler)
+          }
+        }
+        data.on(`${OutboundPayload.VISUALIZATION_UPDATE}`, dataHandler)
+        executionContext.on('visualizationEvaluationFailed', errorHandler)
         lsRpc.executeExpression(executionContext.id, visualizationId, expressionId, expression)
       })
     })

@@ -8,6 +8,7 @@ import {
   DEFAULT_VISUALIZATION_CONFIGURATION,
   DEFAULT_VISUALIZATION_IDENTIFIER,
   useVisualizationStore,
+  type VisualizationDataSource,
 } from '@/stores/visualization'
 import type { Visualization } from '@/stores/visualization/runtimeTypes'
 import { toError } from '@/util/error'
@@ -32,17 +33,6 @@ import {
 const TOP_WITHOUT_TOOLBAR_PX = 36
 const TOP_WITH_TOOLBAR_PX = 72
 
-type DataSource =
-  | {
-      type: 'node'
-      nodeId: ExprId
-    }
-  | {
-      type: 'expression'
-      expression: string
-      contextId: ExprId
-    }
-
 const props = defineProps<{
   currentType?: Opt<VisualizationIdentifier>
   isCircularMenuVisible: boolean
@@ -51,7 +41,7 @@ const props = defineProps<{
   scale: number
   typename?: string | undefined
   // expressionId?: ExprId | undefined
-  dataSource?: DataSource | undefined
+  dataSource?: VisualizationDataSource | undefined
   data?: any | undefined
 }>()
 const emit = defineEmits<{
@@ -61,7 +51,7 @@ const emit = defineEmits<{
 }>()
 
 const visPreprocessor = ref(DEFAULT_VISUALIZATION_CONFIGURATION)
-const error = ref<Error>()
+const vueError = ref<Error>()
 
 const projectStore = useProjectStore()
 const graphStore = useGraphStore()
@@ -109,8 +99,8 @@ const currentType = computed(() => {
 const visualization = shallowRef<Visualization>()
 const icon = ref<Icon | URLString>()
 
-onErrorCaptured((vueError) => {
-  error.value = vueError
+onErrorCaptured((error) => {
+  vueError.value = error
   return false
 })
 
@@ -133,11 +123,16 @@ const expressionVisualizationData = computedAsync(() => {
   return projectStore.executeExpression(props.dataSource.contextId, expression)
 })
 
-const effectiveVisualizationData = computed(() =>
-  error.value
-    ? { name: currentType.value?.name, error: error.value }
-    : props.data ?? visualizationData.value ?? expressionVisualizationData.value,
-)
+const effectiveVisualizationData = computed(() => {
+  const name = currentType.value?.name
+  if (props.data) return props.data
+  if (vueError.value) return { name, error: vueError.value }
+  if (visualizationData.value && !visualizationData.value.ok)
+    return { name, error: new Error(visualizationData.value.error.payload) }
+  if (expressionVisualizationData.value && !expressionVisualizationData.value.ok)
+    return { name, error: new Error(expressionVisualizationData.value.error.payload) }
+  return visualizationData.value?.value ?? expressionVisualizationData.value?.value
+})
 
 function updatePreprocessor(
   visualizationModule: string,
@@ -155,7 +150,7 @@ function switchToDefaultPreprocessor() {
 
 watch(
   () => [currentType.value, visualization.value],
-  () => (error.value = undefined),
+  () => (vueError.value = undefined),
 )
 
 watchEffect(async () => {
@@ -175,19 +170,19 @@ watchEffect(async () => {
     } else {
       switch (currentType.value.module.kind) {
         case 'Builtin': {
-          error.value = new Error(
+          vueError.value = new Error(
             `The builtin visualization '${currentType.value.name}' was not found.`,
           )
           break
         }
         case 'CurrentProject': {
-          error.value = new Error(
+          vueError.value = new Error(
             `The visualization '${currentType.value.name}' was not found in the current project.`,
           )
           break
         }
         case 'Library': {
-          error.value = new Error(
+          vueError.value = new Error(
             `The visualization '${currentType.value.name}' was not found in the library '${currentType.value.module.name}'.`,
           )
           break
@@ -195,7 +190,7 @@ watchEffect(async () => {
       }
     }
   } catch (caughtError) {
-    error.value = toError(caughtError)
+    vueError.value = toError(caughtError)
   }
 })
 
@@ -261,7 +256,11 @@ provideVisualizationConfig({
 })
 
 const effectiveVisualization = computed(() => {
-  if (error.value) {
+  if (
+    vueError.value ||
+    (visualizationData.value && !visualizationData.value.ok) ||
+    (expressionVisualizationData.value && !expressionVisualizationData.value.ok)
+  ) {
     return LoadingErrorVisualization
   }
   if (!visualization.value || effectiveVisualizationData.value == null) {
