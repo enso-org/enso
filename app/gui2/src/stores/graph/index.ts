@@ -9,7 +9,6 @@ import {
 } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
-import { DEFAULT_VISUALIZATION_IDENTIFIER } from '@/stores/visualization'
 import { Ast, AstExtended, childrenAstNodes, findAstWithRange, readAstSpan } from '@/util/ast'
 import { useObserveYjs } from '@/util/crdt'
 import type { Opt } from '@/util/opt'
@@ -132,9 +131,7 @@ export const useGraphStore = defineStore('graph', () => {
       if (op.action === 'update' || op.action === 'add') {
         const data = meta.get(id)
         const node = db.nodeIdToNode.get(id as ExprId)
-        if (data && node) {
-          db.assignUpdatedMetadata(node, data)
-        }
+        if (data && node) db.assignUpdatedMetadata(node, data)
       }
     }
   })
@@ -263,20 +260,11 @@ export const useGraphStore = defineStore('graph', () => {
 
   function normalizeVisMetadata(
     id: Opt<VisualizationIdentifier>,
-    visible?: boolean,
+    visible: boolean | undefined,
   ): VisualizationMetadata | null {
-    const vis: VisualizationMetadata = {
-      ...(id ?? DEFAULT_VISUALIZATION_IDENTIFIER),
-      visible: visible ?? false,
-    }
-    if (
-      visMetadataEquals(vis, {
-        ...DEFAULT_VISUALIZATION_IDENTIFIER,
-        visible: false,
-      })
-    )
-      return null
-    return vis
+    const vis: VisualizationMetadata = { identifier: id ?? null, visible: visible ?? false }
+    if (visMetadataEquals(vis, { identifier: null, visible: false })) return null
+    else return vis
   }
 
   function setNodeVisualizationId(nodeId: ExprId, vis: Opt<VisualizationIdentifier>) {
@@ -288,11 +276,13 @@ export const useGraphStore = defineStore('graph', () => {
   function setNodeVisualizationVisible(nodeId: ExprId, visible: boolean) {
     const node = db.nodeIdToNode.get(nodeId)
     if (!node) return
-    proj.module?.updateNodeMetadata(nodeId, { vis: normalizeVisMetadata(node.vis, visible) })
+    proj.module?.updateNodeMetadata(nodeId, {
+      vis: normalizeVisMetadata(node.vis?.identifier, visible),
+    })
   }
 
-  function updateNodeRect(id: ExprId, rect: Rect) {
-    if (rect.pos.equals(Vec2.Zero) && !metadata.value?.has(id)) {
+  function updateNodeRect(nodeId: ExprId, rect: Rect) {
+    if (rect.pos.equals(Vec2.Zero) && !metadata.value?.has(nodeId)) {
       const { position } = nonDictatedPlacement(rect.size, {
         nodeRects: [...nodeRects.entries()]
           .filter(([id]) => db.nodeIdToNode.get(id))
@@ -302,10 +292,11 @@ export const useGraphStore = defineStore('graph', () => {
         screenBounds: Rect.Zero,
         mousePosition: Vec2.Zero,
       })
-      metadata.value?.set(id, { x: position.x, y: -position.y, vis: null })
-      nodeRects.set(id, new Rect(position, rect.size))
+      const node = db.nodeIdToNode.get(nodeId)
+      metadata.value?.set(nodeId, { x: position.x, y: -position.y, vis: node?.vis ?? null })
+      nodeRects.set(nodeId, new Rect(position, rect.size))
     } else {
-      nodeRects.set(id, rect)
+      nodeRects.set(nodeId, rect)
     }
   }
 

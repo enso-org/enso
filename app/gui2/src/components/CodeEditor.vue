@@ -8,7 +8,7 @@ import { usePointer } from '@/util/events'
 import { chain } from '@/util/iterable'
 import { useLocalStorage } from '@vueuse/core'
 import { rangeEncloses, type ExprId } from 'shared/yjsModel'
-import { computed, onMounted, ref, watchEffect } from 'vue'
+import { computed, onMounted, ref, watch, watchEffect } from 'vue'
 import { qnJoin, tryQualifiedName } from '../util/qualifiedName'
 import { unwrap } from '../util/result'
 
@@ -27,6 +27,7 @@ const {
   tooltips,
   enso,
   linter,
+  forceLinting,
   lsDiagnosticsToCMDiagnostics,
   hoverTooltip,
 } = await import('@/util/codemirror')
@@ -156,6 +157,8 @@ watchEffect(() => {
     }),
   )
 })
+
+watch([executionContextDiagnostics, expressionUpdatesDiagnostics], () => forceLinting(editorView))
 
 onMounted(() => {
   editorView.focus()

@@ -13,7 +13,6 @@ import {
   currentProjectProtocol,
   InvalidVisualizationModuleError,
   stylePathAttribute,
-  type VisualizationModule,
 } from '@/stores/visualization/compilerMessaging'
 import {
   fromVisualizationId,
@@ -21,12 +20,13 @@ import {
   VisualizationMetadataDb,
   type VisualizationId,
 } from '@/stores/visualization/metadata'
+import type { VisualizationModule } from '@/stores/visualization/runtimeTypes'
 import { rpcWithRetries } from '@/util/net'
 import type { Opt } from '@/util/opt'
 import { defineStore } from 'pinia'
 import type { Event as LSEvent, VisualizationConfiguration } from 'shared/languageServerTypes'
 import type { VisualizationIdentifier } from 'shared/yjsModel'
-import { computed, reactive, type DefineComponent, type PropType } from 'vue'
+import { computed, reactive } from 'vue'
 
 /** The directory in the project under which custom visualizations can be found. */
 const customVisualizationsDirectory = 'visualizations'
@@ -49,30 +49,14 @@ export const DEFAULT_VISUALIZATION_IDENTIFIER: VisualizationIdentifier = {
   name: 'JSON',
 }
 
-export type Visualization = DefineComponent<
-  // Props
-  { data: { type: PropType<any>; required: true } },
-  {},
-  unknown,
-  {},
-  {},
-  {},
-  {},
-  // Emits
-  {
-    'update:preprocessor'?: (module: string, method: string, ...args: string[]) => void
-  }
->
-
 const builtinVisualizations: VisualizationModule[] = [
   jsonVisualization,
-  // FIXME [sb]: what is the cause of the type errors?!
-  tableVisualization as VisualizationModule,
-  scatterplotVisualization as VisualizationModule,
+  tableVisualization,
+  scatterplotVisualization,
   histogramVisualization,
   heatmapVisualization,
   sqlVisualization,
-  geoMapVisualization as VisualizationModule,
+  geoMapVisualization,
   imageBase64Visualization,
   warningsVisualization,
 ]
