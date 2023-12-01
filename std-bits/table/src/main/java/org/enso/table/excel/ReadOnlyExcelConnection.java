@@ -1,9 +1,8 @@
 package org.enso.table.excel;
 
-import org.apache.poi.ss.usermodel.Workbook;
-
 import java.io.IOException;
 import java.util.function.Function;
+import org.apache.poi.ss.usermodel.Workbook;
 
 public class ReadOnlyExcelConnection implements AutoCloseable {
 
@@ -11,7 +10,8 @@ public class ReadOnlyExcelConnection implements AutoCloseable {
   final String key;
   ExcelConnectionPool.ConnectionRecord record;
 
-  ReadOnlyExcelConnection(ExcelConnectionPool myPool, String key, ExcelConnectionPool.ConnectionRecord record) {
+  ReadOnlyExcelConnection(
+      ExcelConnectionPool myPool, String key, ExcelConnectionPool.ConnectionRecord record) {
     this.myPool = myPool;
     this.key = key;
     this.record = record;

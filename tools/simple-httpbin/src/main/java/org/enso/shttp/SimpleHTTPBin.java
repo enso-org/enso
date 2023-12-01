@@ -12,10 +12,7 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
-
 import sun.misc.Signal;
 import sun.misc.SignalHandler;
 
@@ -36,10 +33,12 @@ public class SimpleHTTPBin {
     state.start();
 
     try (ExecutorService backgroundThreadService = Executors.newFixedThreadPool(1)) {
-      Future<Object> waitForEnter = backgroundThreadService.submit(() -> {
-        System.out.println("Press enter to stop server...");
-        return System.in.read();
-      });
+      Future<Object> waitForEnter =
+          backgroundThreadService.submit(
+              () -> {
+                System.out.println("Press enter to stop server...");
+                return System.in.read();
+              });
 
       while (state.isRunning()) {
         if (waitForEnter.isDone()) {
@@ -118,7 +117,9 @@ public class SimpleHTTPBin {
   }
 
   private static void setupFileServer(SimpleHTTPBin server) throws URISyntaxException {
-    Path myRuntimeJar = Path.of(SimpleHTTPBin.class.getProtectionDomain().getCodeSource().getLocation().toURI()).toAbsolutePath();
+    Path myRuntimeJar =
+        Path.of(SimpleHTTPBin.class.getProtectionDomain().getCodeSource().getLocation().toURI())
+            .toAbsolutePath();
     Path projectRoot = findProjectRoot(myRuntimeJar);
     Path testFilesRoot = projectRoot.resolve(pathToWWW);
     System.out.println("Serving files from directory " + testFilesRoot);
@@ -141,6 +142,7 @@ public class SimpleHTTPBin {
   private static final String pathToWWW = "tools/simple-httpbin/www-files";
 
   private static boolean looksLikeProjectRoot(Path path) {
-    return Stream.of("build.sbt", "tools", "project", pathToWWW).allMatch(p -> Files.exists(path.resolve(p)));
+    return Stream.of("build.sbt", "tools", "project", pathToWWW)
+        .allMatch(p -> Files.exists(path.resolve(p)));
   }
 }
