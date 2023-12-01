@@ -605,11 +605,16 @@ final class TreeToIr {
             if (self == null || !invoke) {
               return null;
             }
-            var expr = translateExpression(l.getExpression().getExpression(), true);
-            if (expr instanceof Application.Prefix pref) {
-              var arg = new CallArgument.Specified(Option.empty(), self, self.location(), meta(), diag());
-              expr = new Application.Prefix(pref.function(), join(arg, pref.arguments()), false, expr.location(), meta(), diag());
-            }
+            var expr = switch (translateExpression(l.getExpression().getExpression(), true)) {
+              case Application.Prefix pref -> {
+                var arg = new CallArgument.Specified(Option.empty(), self, self.location(), meta(), diag());
+                yield new Application.Prefix(pref.function(), join(arg, pref.arguments()), false, pref.location(), meta(), diag());
+              }
+              case Expression any -> {
+                var arg = new CallArgument.Specified(Option.empty(), self, self.location(), meta(), diag());
+                yield new Application.Prefix(any, join(arg, nil()), false, any.location(), meta(), diag());
+              }
+            };
             var loc = getIdentifiedLocation(l.getExpression().getExpression());
             args.add(at, new CallArgument.Specified(Option.empty(), expr, loc, meta(), diag()));
             self = expr;
