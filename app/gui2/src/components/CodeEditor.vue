@@ -158,9 +158,7 @@ watchEffect(() => {
   )
 })
 
-watch([executionContextDiagnostics, expressionUpdatesDiagnostics], () => 
-  forceLinting(editorView)
-)
+watch([executionContextDiagnostics, expressionUpdatesDiagnostics], () => forceLinting(editorView))
 
 onMounted(() => {
   editorView.focus()
