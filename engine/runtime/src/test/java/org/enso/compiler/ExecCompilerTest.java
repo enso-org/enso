@@ -1,6 +1,5 @@
 package org.enso.compiler;
 
-import java.io.OutputStream;
 import java.nio.file.Paths;
 import java.util.logging.Level;
 
@@ -10,6 +9,7 @@ import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.io.IOAccess;
 import org.junit.AfterClass;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -84,8 +84,16 @@ public class ExecCompilerTest {
         Value a b c a
     """);
     var run = module.invokeMember("eval_expression", "My_Type.Value");
-    var error = run.newInstance(1, 2, 3, 4);
-    assertTrue("We get an error value back: " + error, error.isException());
+    var atom = run.newInstance(1, 2, 3, 4);
+    assertFalse("In spite of error we get an instance back: " + atom, atom.isException());
+    assertEquals("Just three keys", 3, atom.getMemberKeys().size());
+    assertTrue("Check a: " + atom.getMemberKeys(), atom.getMemberKeys().contains("a"));
+    assertTrue("Check b: " + atom.getMemberKeys(), atom.getMemberKeys().contains("b"));
+    assertTrue("Check c: " + atom.getMemberKeys(), atom.getMemberKeys().contains("c"));
+
+    assertEquals("c", 3, atom.getMember("c").asInt());
+    assertEquals("b", 2, atom.getMember("b").asInt());
+    assertEquals("First value of a is taken", 1, atom.getMember("a").asInt());
   }
 
   @Test
