@@ -1,58 +1,62 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import ListWidget from '@/components/widgets/ListWidget.vue'
-import { Tree, type Token } from '@/generated/ast'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
-import { AstExtended } from '@/util/ast'
+import { Ast, RawAst } from '@/util/ast'
+import * as random from 'lib0/random'
 import { computed } from 'vue'
-
-type Item = AstExtended<Tree.Tree | Token.Token, boolean>
 
 const props = defineProps(widgetProps(widgetDefinition))
 
 const graph = useGraphStore()
 const value = computed({
   get() {
-    return props.input.children().filter((child) => child.isTree())
+    return Array.from(props.input.children()).filter(
+      (child): child is Ast.Ast => child instanceof Ast.Ast,
+    )
   },
   set(value) {
-    const id = props.input.astId
-    if (!id) return
-    graph.replaceNodeSubexpression(
-      id,
-      undefined!,
-      `[${value.map((item) => item.repr()).join(', ')}]`,
-    )
+    const newCode = `[${value.map((item) => item.repr()).join(', ')}]`
+    graph.replaceExpressionContent(props.input.astId, newCode)
   },
 })
 
-function encodeAstPayload(ast: Item): string {
+function encodeAstPayload(ast: Ast.Ast): string {
+  // TODO: serialize AST preserving metadata
   return ast.repr()
 }
 
-function decodeAstPayload(id: string): Item {
-  return AstExtended.parse(id)
+function decodeAstPayload(payload: string): Ast.Ast {
+  // TODO: deserialize AST with preserved metadata
+  return Ast.parse(payload)
 }
 
 const navigator = injectGraphNavigator(true)
 </script>
 
 <script lang="ts">
-export const widgetDefinition = defineWidget(AstExtended.isTree([Tree.Type.Array]), {
+export const widgetDefinition = defineWidget(Ast.Generic, {
   priority: 1000,
-  score: () => Score.Perfect,
+  score: (props) =>
+    props.input.treeType === RawAst.Tree.Type.Array ? Score.Perfect : Score.Mismatch,
 })
+
+function defaultWildcard(): Ast.Wildcard {
+  return new Ast.Wildcard(undefined, {
+    node: new Ast.Token('_', random.uuidv4() as Ast.TokenId, RawAst.Token.Type.Wildcard),
+  })
+}
 </script>
 
 <template>
   <ListWidget
     v-model="value"
-    :default="() => AstExtended.parse('_')"
-    :getKey="(item: Item) => item.astId"
+    :default="defaultWildcard"
+    :getKey="(item: Ast.Ast) => item.astId"
     dragMimeType="application/x-enso-ast-node"
-    :toPlainText="(item: Item) => item.repr()"
+    :toPlainText="(item) => item.repr()"
     :toDragPayload="encodeAstPayload"
     :fromDragPayload="decodeAstPayload"
     :toDragPosition="(p) => navigator?.clientToScenePos(p) ?? p"

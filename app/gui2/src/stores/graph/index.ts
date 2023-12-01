@@ -234,10 +234,18 @@ export const useGraphStore = defineStore('graph', () => {
     proj.stopCapturingUndo()
   }
 
-  function replaceNodeSubexpression(nodeId: ExprId, range: ContentRange, content: string) {
+  function replaceNodeSubexpression(
+    nodeId: ExprId,
+    range: ContentRange | undefined,
+    content: string,
+  ) {
     const node = db.nodeIdToNode.get(nodeId)
     if (!node) return
     proj.module?.replaceExpressionContent(node.rootSpan.astId, content, range)
+  }
+
+  function replaceExpressionContent(exprId: ExprId, content: string) {
+    proj.module?.replaceExpressionContent(exprId, content)
   }
 
   function setNodePosition(nodeId: ExprId, position: Vec2) {
@@ -334,6 +342,7 @@ export const useGraphStore = defineStore('graph', () => {
     setNodeContent,
     setExpressionContent,
     replaceNodeSubexpression,
+    replaceExpressionContent,
     setNodePosition,
     setNodeVisualizationId,
     setNodeVisualizationVisible,

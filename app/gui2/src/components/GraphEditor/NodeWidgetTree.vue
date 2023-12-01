@@ -33,9 +33,9 @@ provideWidgetTree(toRef(props, 'ast'), layoutTransitions.active)
 </script>
 
 <template>
-  <span class="NodeWidgetTree" spellcheck="false" v-on="layoutTransitions.events">
+  <div class="NodeWidgetTree" spellcheck="false" v-on="layoutTransitions.events">
     <NodeWidget :input="rootPort" />
-  </span>
+  </div>
 </template>
 
 <style scoped>
@@ -45,7 +45,7 @@ provideWidgetTree(toRef(props, 'ast'), layoutTransitions.active)
 
   outline: none;
   height: 24px;
-  display: inline-flex;
+  display: flex;
   align-items: center;
 
   & :deep(span) {

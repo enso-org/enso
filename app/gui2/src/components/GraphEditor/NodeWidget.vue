@@ -66,7 +66,8 @@ provideWidgetUsageInfo(
 )
 const spanStart = computed(() => {
   if (!(props.input instanceof Ast.Ast)) return undefined
-  return props.input.astExtended!.span()[0] - tree.nodeSpanStart - whitespace.value.length
+  if (props.input.astExtended == null) return undefined
+  return props.input.astExtended.span()[0] - tree.nodeSpanStart - whitespace.value.length
 })
 </script>
 

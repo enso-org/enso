@@ -297,9 +297,6 @@ useEvent(
   window,
   'dragenter',
   (e) => {
-    const transfer = e.dataTransfer
-    if (!transfer) return
-    console.log('dragenter', transfer.types, transfer.items[0], transfer.effectAllowed)
     if (e.dataTransfer?.types.includes(mimeType.value)) dragDetected.value += 1
   },
   { capture: true },
@@ -316,9 +313,6 @@ useEvent(
   window,
   'drop',
   (e) => {
-    const transfer = e.dataTransfer
-    if (!transfer) return
-    console.log('drop', transfer.types, transfer.items[0], transfer.effectAllowed)
     if (e.dataTransfer?.types.includes(mimeType.value)) dragDetected.value -= 1
   },
   { capture: true },
