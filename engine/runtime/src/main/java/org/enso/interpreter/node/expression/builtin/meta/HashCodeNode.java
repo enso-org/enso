@@ -55,6 +55,8 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.polyglot.common_utils.Core_Text_Utils;
 
+import com.oracle.truffle.api.dsl.Fallback;
+
 /**
  * Implements {@code hash_code} functionality.
  *
@@ -628,6 +630,11 @@ public abstract class HashCodeNode extends Node {
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
       @Shared("hashCodeNode") @Cached HashCodeNode hashCodeNode) {
     return hashCodeNode.execute(interop.toDisplayString(hostFunction));
+  }
+
+  @Fallback
+  long fallbackConstant(Object any) {
+    return 5343210;
   }
 
   static boolean isAtom(Object object) {
