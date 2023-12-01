@@ -9,9 +9,6 @@ import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.stream.Stream;
 import sun.misc.Signal;
 import sun.misc.SignalHandler;
@@ -32,21 +29,8 @@ public class SimpleHTTPBin {
     server.start();
     state.start();
 
-    try (ExecutorService backgroundThreadService = Executors.newFixedThreadPool(1)) {
-      Future<Object> waitForEnter =
-          backgroundThreadService.submit(
-              () -> {
-                System.out.println("Press enter to stop server...");
-                return System.in.read();
-              });
-
+    try {
       while (state.isRunning()) {
-        if (waitForEnter.isDone()) {
-          System.out.println("Stopping server... (enter)");
-          state.stop();
-          break;
-        }
-
         Thread.sleep(1000);
       }
     } catch (InterruptedException e) {
