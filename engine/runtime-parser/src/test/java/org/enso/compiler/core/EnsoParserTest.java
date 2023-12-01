@@ -1,18 +1,17 @@
 package org.enso.compiler.core;
 
-import com.oracle.truffle.api.source.Source;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.function.Function;
+
 import org.enso.compiler.core.ir.Module;
 import org.junit.AfterClass;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -1304,8 +1303,7 @@ public class EnsoParserTest {
   }
 
   public static Module compile(EnsoParser c, String code) {
-    var src = Source.newBuilder("enso", code, "test-" + Integer.toHexString(code.hashCode()) + ".enso").build();
-    var ir = c.compile(src.getCharacters());
+    var ir = c.compile(code);
     assertNotNull("IR was generated", ir);
     return ir;
   }

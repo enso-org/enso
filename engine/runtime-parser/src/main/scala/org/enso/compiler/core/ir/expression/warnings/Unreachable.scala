@@ -2,8 +2,6 @@ package org.enso.compiler.core.ir
 package expression
 package warnings
 
-import com.oracle.truffle.api.source.Source
-
 /** Warnings for unreachable code. */
 sealed trait Unreachable extends Warning {
   val location: Option[IdentifiedLocation]
@@ -25,7 +23,7 @@ object Unreachable {
         ""
       }
 
-    override def message(source: Source): String =
+    override def message(source: (IdentifiedLocation => String)): String =
       s"Unreachable case branches$atLocation."
 
     override def diagnosticKeys(): Array[Any] = Array(atLocation)
