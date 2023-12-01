@@ -1,6 +1,3 @@
-import VisualizationContainer from '@/components/VisualizationContainer.vue'
-import { useVisualizationConfig } from '@/providers/visualizationConfig'
-import type { Visualization } from '@/stores/visualization'
 import type {
   AddImportNotification,
   AddRawImportNotification,
@@ -18,52 +15,20 @@ import type {
   RegisterBuiltinModulesRequest,
 } from '@/stores/visualization/compiler'
 import Compiler from '@/stores/visualization/compiler?worker'
+import { VisualizationModule } from '@/stores/visualization/runtimeTypes'
 import { assertNever } from '@/util/assert'
 import { toError } from '@/util/error'
-import iconNames from '@/util/iconList.json'
-import type { Icon } from '@/util/iconName'
 import type { Opt } from '@/util/opt'
 import { defineKeybinds } from '@/util/shortcuts'
+import { VisualizationContainer, useVisualizationConfig } from '@/util/visualizationBuiltins'
 import { Error as DataError } from 'shared/binaryProtocol'
 import type { DataServer } from 'shared/dataServer'
 import type { Uuid } from 'shared/languageServerTypes'
 import * as vue from 'vue'
-import { z } from 'zod'
 
 /** The custom URL protocol used internally for project-local assets. */
 export const currentProjectProtocol = 'enso-current-project:'
 export const stylePathAttribute = 'data-style-path'
-
-export type URLString = `${string}:${string}`
-
-const VisualizationModule = z.object({
-  // This is UNSAFE, but unavoiable as the type of `Visualization` is too difficult to statically
-  // check. Instead it will be caught by Vue when trying to mount the visualization, and replaced
-  // with a 'Loading Error' visualization.
-  default: z.custom<Visualization>(() => true),
-  name: z.string(),
-  // The name of an icon, or a URL or data URL. If it contains `:`, it is assumed to be a URL.
-  icon: z
-    .string()
-    .transform((s) => {
-      if (iconNames.includes(s)) return s as Icon
-      else if (s.includes(':')) return s as URLString
-      console.warn(`Invalid icon name '${s}'`)
-      return undefined
-    })
-    .optional(),
-  inputType: z.string().optional(),
-  defaultPreprocessor: (
-    z.string().array().min(2) as unknown as z.ZodType<
-      [module: string, method: string, ...args: string[]]
-    >
-  )
-    .readonly()
-    .optional(),
-  scripts: z.string().array().optional(),
-  styles: z.string().array().optional(),
-})
-export type VisualizationModule = z.infer<typeof VisualizationModule>
 
 const moduleCache: Record<string, unknown> = {
   __proto__: null,

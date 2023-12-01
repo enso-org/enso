@@ -11,7 +11,7 @@ export {
   foldNodeProp,
   syntaxHighlighting,
 } from '@codemirror/language'
-export { lintGutter, linter, type Diagnostic } from '@codemirror/lint'
+export { forceLinting, lintGutter, linter, type Diagnostic } from '@codemirror/lint'
 export { highlightSelectionMatches } from '@codemirror/search'
 export { EditorState } from '@codemirror/state'
 export { EditorView, tooltips, type TooltipView } from '@codemirror/view'

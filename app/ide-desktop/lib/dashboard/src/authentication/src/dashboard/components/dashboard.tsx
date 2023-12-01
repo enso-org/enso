@@ -402,11 +402,13 @@ export default function Dashboard(props: DashboardProps) {
 
     return (
         <>
-            <div className="flex text-primary text-xs">
+            <div
+                className={`flex text-primary text-xs ${
+                    page === pageSwitcher.Page.editor ? 'cursor-none pointer-events-none' : ''
+                }`}
+            >
                 <div
-                    className={`flex flex-col grow container-size gap-2 overflow-hidden relative select-none h-screen pb-2 ${
-                        page === pageSwitcher.Page.editor ? 'cursor-none pointer-events-none' : ''
-                    }`}
+                    className="flex flex-col grow container-size gap-2 overflow-hidden relative select-none h-screen pb-2"
                     onContextMenu={event => {
                         event.preventDefault()
                         unsetModal()

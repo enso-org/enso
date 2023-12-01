@@ -264,7 +264,7 @@ spec =
 
         Test.specify "should convert the whole map to a vector" <|
             m = Map.empty . insert 0 0 . insert 3 -5 . insert 1 2
-            m.to_vector.should_equal [[0, 0], [3, -5], [1, 2]]
+            m.to_vector.sort on=_.first . should_equal [[0, 0], [1, 2], [3, -5]]
 
         Test.specify "should allow building the map from two vectors" <|
             expected = Map.empty . insert 0 0 . insert 3 -5 . insert 1 2
@@ -300,7 +300,9 @@ spec =
 
         Test.specify "should define a well-defined text conversion" <|
             m = Map.empty . insert 0 0 . insert 3 -5 . insert 1 2
-            m.to_text . should_equal "{0=0, 3=-5, 1=2}"
+            m.to_text . should_contain "0=0"
+            m.to_text . should_contain "3=-5"
+            m.to_text . should_contain "1=2"
 
         Test.specify "should define structural equality" <|
             map_1 = Map.empty . insert "1" 2 . insert "2" "1"
@@ -564,7 +566,7 @@ spec =
             js_dict = js_dict_from_vec ["A", 1, "B", 2]
             map = js_dict.insert "C" 3
             js_dict.to_vector.should_equal [["A", 1], ["B", 2]]
-            map.to_vector.should_equal [["A", 1], ["B", 2], ["C", 3]]
+            map.to_vector.sort on=_.first . should_equal [["A", 1], ["B", 2], ["C", 3]]
 
         Test.specify "should treat Java Map as Enso map" <|
             sort_by_keys vec = vec.sort by=x-> y-> Ordering.compare x.first y.first

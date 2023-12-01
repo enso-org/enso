@@ -2,7 +2,6 @@ package org.enso.compiler.core.ir
 package expression
 package errors
 
-import com.oracle.truffle.api.source.Source
 import org.enso.compiler.core.Implicits.ShowPassData
 import org.enso.compiler.core.{IR, Identifier}
 import org.enso.compiler.core.IR.randomId
@@ -96,7 +95,7 @@ object Redefined {
       this
 
     /** @inheritdoc */
-    override def message(source: Source): String =
+    override def message(source: (IdentifiedLocation => String)): String =
       "Methods must have only one definition of the `this` argument, and " +
       "it must be the first."
 
@@ -196,7 +195,7 @@ object Redefined {
       copy(location = location)
 
     /** @inheritdoc */
-    override def message(source: Source): String =
+    override def message(source: (IdentifiedLocation => String)): String =
       s"Ambiguous conversion: ${targetType.map(_.name + ".").getOrElse("")}from " +
       s"${sourceType.showCode()} is defined multiple times in this module."
 
@@ -318,7 +317,7 @@ object Redefined {
       copy(location = location)
 
     /** @inheritdoc */
-    override def message(source: Source): String =
+    override def message(source: (IdentifiedLocation => String)): String =
       s"Method overloads are not supported: ${atomName.map(_.name + ".").getOrElse("")}" +
       s"${methodName.name} is defined multiple times in this module."
 
@@ -447,7 +446,7 @@ object Redefined {
       copy(location = location)
 
     /** @inheritdoc */
-    override def message(source: Source): String =
+    override def message(source: (IdentifiedLocation => String)): String =
       s"Method definitions with the same name as atoms are not supported. " +
       s"Method ${methodName.name} clashes with the atom ${atomName.name} in this module."
 
@@ -551,7 +550,7 @@ object Redefined {
       copy(location = location)
 
     /** @inheritdoc */
-    override def message(source: Source): String =
+    override def message(source: (IdentifiedLocation => String)): String =
       s"Redefining atoms is not supported: ${typeName.name} is " +
       s"defined multiple times in this module."
 
@@ -672,7 +671,7 @@ object Redefined {
     override def children: List[IR] = List(invalidBinding)
 
     /** @inheritdoc */
-    override def message(source: Source): String =
+    override def message(source: (IdentifiedLocation => String)): String =
       s"Variable ${invalidBinding.name.name} is being redefined."
 
     override def diagnosticKeys(): Array[Any] = Array(

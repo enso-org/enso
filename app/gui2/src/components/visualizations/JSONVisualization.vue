@@ -5,7 +5,7 @@ export const inputType = 'Any'
 </script>
 
 <script setup lang="ts">
-import VisualizationContainer from '@/components/VisualizationContainer.vue'
+import { VisualizationContainer } from '@/util/visualizationBuiltins'
 
 const props = defineProps<{ data: unknown }>()
 </script>

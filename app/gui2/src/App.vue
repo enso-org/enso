@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { provideAppClassSet } from '@/providers/appClass'
 import { provideGuiConfig, type GuiConfig } from '@/providers/guiConfig'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import ProjectView from '@/views/ProjectView.vue'
@@ -9,6 +10,8 @@ const props = defineProps<{
   metadata: object
 }>()
 
+const classSet = provideAppClassSet()
+
 provideGuiConfig(toRef(props, 'config'))
 
 // Initialize suggestion db immediately, so it will be ready when user needs it.
@@ -16,7 +19,7 @@ onMounted(() => useSuggestionDbStore())
 </script>
 
 <template>
-  <ProjectView class="App flex" />
+  <ProjectView class="App flex" :class="[...classSet.keys()]" />
 </template>
 
 <style scoped>

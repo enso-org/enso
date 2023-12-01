@@ -1,4 +1,4 @@
-import type { VisualizationModule } from '@/stores/visualization/compilerMessaging'
+import type { VisualizationModule } from '@/stores/visualization/runtimeTypes'
 import { ReactiveDb, ReactiveIndex } from '@/util/database/reactiveDb'
 import type { Opt } from '@/util/opt'
 import type { VisualizationIdentifier } from 'shared/yjsModel'

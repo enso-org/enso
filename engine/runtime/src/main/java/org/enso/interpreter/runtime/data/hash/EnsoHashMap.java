@@ -2,6 +2,7 @@ package org.enso.interpreter.runtime.data.hash;
 
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnknownKeyException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
@@ -16,7 +17,9 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.hash.EnsoHashMapBuilder.StorageEntry;
+import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
+import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 /**
@@ -34,36 +37,32 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 @Builtin(stdlibName = "Standard.Base.Data.Map.Map", name = "Map")
 public final class EnsoHashMap implements EnsoObject {
   private final EnsoHashMapBuilder mapBuilder;
-  /**
-   * Size of this Map. Basically an index into {@link EnsoHashMapBuilder}'s storage. See {@link
-   * #isEntryInThisMap(StorageEntry)}.
-   */
-  private final int snapshotSize;
-  /**
-   * True iff {@code insert} method was already called. If insert was already called, and we are
-   * calling {@code insert} again, the {@link #mapBuilder} should be duplicated for the newly
-   * created Map.
-   */
-  private boolean insertCalled;
+  private final int generation;
+  private final int size;
 
   private Object cachedVectorRepresentation;
 
-  private EnsoHashMap(EnsoHashMapBuilder mapBuilder, int snapshotSize) {
+  private EnsoHashMap(EnsoHashMapBuilder mapBuilder) {
     this.mapBuilder = mapBuilder;
-    this.snapshotSize = snapshotSize;
-    assert snapshotSize <= mapBuilder.getSize();
+    this.generation = mapBuilder.generation();
+    this.size = mapBuilder.size();
   }
 
-  static EnsoHashMap createWithBuilder(EnsoHashMapBuilder mapBuilder, int snapshotSize) {
-    return new EnsoHashMap(mapBuilder, snapshotSize);
+  static EnsoHashMap createWithBuilder(EnsoHashMapBuilder mapBuilder) {
+    return new EnsoHashMap(mapBuilder);
   }
 
-  static EnsoHashMap createEmpty(HashCodeNode hashCodeNode, EqualsNode equalsNode) {
-    return new EnsoHashMap(EnsoHashMapBuilder.create(hashCodeNode, equalsNode), 0);
+  static EnsoHashMap createEmpty() {
+    return new EnsoHashMap(EnsoHashMapBuilder.create());
   }
 
-  EnsoHashMapBuilder getMapBuilder() {
-    return mapBuilder;
+  EnsoHashMapBuilder getMapBuilder(
+      boolean readOnly, HashCodeNode hashCodeNode, EqualsNode equalsNode) {
+    if (readOnly) {
+      return mapBuilder;
+    } else {
+      return mapBuilder.asModifiable(generation, hashCodeNode, equalsNode);
+    }
   }
 
   Object getCachedVectorRepresentation() {
@@ -72,37 +71,24 @@ public final class EnsoHashMap implements EnsoObject {
 
   Object getCachedVectorRepresentation(ConditionProfile isNotCachedProfile) {
     if (isNotCachedProfile.profile(cachedVectorRepresentation == null)) {
-      Object[] keys = new Object[snapshotSize];
-      Object[] values = new Object[snapshotSize];
-      int arrIdx = 0;
-      for (StorageEntry entry : mapBuilder.getStorage().getValues()) {
-        if (entry.index() < snapshotSize) {
-          keys[arrIdx] = entry.key();
-          values[arrIdx] = entry.value();
-          arrIdx++;
-        }
+      var keys = new Object[size];
+      var values = new Object[size];
+      var at = 0;
+      for (var entry : mapBuilder.getEntries(generation, size)) {
+        keys[at] = entry.key();
+        values[at] = entry.value();
+        at++;
       }
-      cachedVectorRepresentation =
-          ArrayLikeHelpers.asVectorFromArray(
-              HashEntriesVector.createFromKeysAndValues(keys, values));
+      var pairs = HashEntriesVector.createFromKeysAndValues(keys, values);
+      cachedVectorRepresentation = ArrayLikeHelpers.asVectorFromArray(pairs);
     }
     return cachedVectorRepresentation;
   }
 
-  public boolean isInsertCalled() {
-    return insertCalled;
-  }
-
-  public void setInsertCalled() {
-    assert !insertCalled : "setInsertCalled should be called at most once";
-    insertCalled = true;
-  }
-
   @Builtin.Method
   @Builtin.Specialize
-  public static EnsoHashMap empty(
-      @Cached HashCodeNode hashCodeNode, @Cached EqualsNode equalsNode) {
-    return createEmpty(hashCodeNode, equalsNode);
+  public static EnsoHashMap empty() {
+    return createEmpty();
   }
 
   @ExportMessage
@@ -112,23 +98,34 @@ public final class EnsoHashMap implements EnsoObject {
 
   @ExportMessage
   int getHashSize() {
-    return snapshotSize;
+    return size;
   }
 
   @ExportMessage
-  boolean isHashEntryExisting(Object key) {
-    return isEntryInThisMap(mapBuilder.get(key));
+  boolean isHashEntryExisting(
+      Object key,
+      @Shared("hash") @Cached HashCodeNode hashCodeNode,
+      @Shared("equals") @Cached EqualsNode equalsNode) {
+    var entry = mapBuilder.get(key, generation, hashCodeNode, equalsNode);
+    return entry != null;
   }
 
   @ExportMessage
-  boolean isHashEntryReadable(Object key) {
-    return isHashEntryExisting(key);
+  boolean isHashEntryReadable(
+      Object key,
+      @Shared("hash") @Cached HashCodeNode hashCodeNode,
+      @Shared("equals") @Cached EqualsNode equalsNode) {
+    return isHashEntryExisting(key, hashCodeNode, equalsNode);
   }
 
   @ExportMessage
-  Object readHashValue(Object key) throws UnknownKeyException {
-    StorageEntry entry = mapBuilder.get(key);
-    if (isEntryInThisMap(entry)) {
+  Object readHashValue(
+      Object key,
+      @Shared("hash") @Cached HashCodeNode hashCodeNode,
+      @Shared("equals") @Cached EqualsNode equalsNode)
+      throws UnknownKeyException {
+    StorageEntry entry = mapBuilder.get(key, generation, hashCodeNode, equalsNode);
+    if (entry != null) {
       return entry.value();
     } else {
       throw UnknownKeyException.create(key);
@@ -140,7 +137,7 @@ public final class EnsoHashMap implements EnsoObject {
     try {
       return interop.getIterator(getCachedVectorRepresentation());
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException(e);
+      throw new PanicException(Text.create(e.getMessage()), interop);
     }
   }
 
@@ -181,11 +178,9 @@ public final class EnsoHashMap implements EnsoObject {
     var sb = new StringBuilder();
     sb.append("{");
     boolean empty = true;
-    for (StorageEntry entry : mapBuilder.getStorage().getValues()) {
-      if (isEntryInThisMap(entry)) {
-        empty = false;
-        sb.append(entryToString(entry, useInterop)).append(", ");
-      }
+    for (StorageEntry entry : mapBuilder.getEntries(generation, size)) {
+      empty = false;
+      sb.append(entryToString(entry, useInterop)).append(", ");
     }
     if (!empty) {
       // Delete last comma
@@ -204,16 +199,12 @@ public final class EnsoHashMap implements EnsoObject {
         keyStr = interop.asString(interop.toDisplayString(entry.key()));
         valStr = interop.asString(interop.toDisplayString(entry.value()));
       } catch (UnsupportedMessageException e) {
-        throw new IllegalStateException("Unreachable", e);
+        throw new PanicException(Text.create(e.getMessage()), interop);
       }
     } else {
       keyStr = entry.key().toString();
       valStr = entry.value().toString();
     }
     return keyStr + "=" + valStr;
-  }
-
-  private boolean isEntryInThisMap(StorageEntry entry) {
-    return entry != null && entry.index() < snapshotSize;
   }
 }

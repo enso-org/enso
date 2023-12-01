@@ -48,9 +48,7 @@ export function useEvent(
   options?: boolean | AddEventListenerOptions,
 ): void {
   target.addEventListener(event, handler, options)
-  onScopeDispose(() => {
-    target.removeEventListener(event, handler, options)
-  })
+  onScopeDispose(() => target.removeEventListener(event, handler, options))
 }
 
 /**
@@ -231,6 +229,7 @@ export const enum PointerButtonMask {
 export function usePointer(
   handler: (pos: EventPosition, event: PointerEvent, eventType: PointerEventType) => void,
   requiredButtonMask: number = PointerButtonMask.Main,
+  predicate?: (e: PointerEvent) => boolean,
 ) {
   const trackedPointer: Ref<number | null> = ref(null)
   let trackedElement: (Element & GlobalEventHandlers) | null = null
@@ -263,7 +262,7 @@ export function usePointer(
   const events = {
     pointerdown(e: PointerEvent) {
       // pointers should not respond to unmasked mouse buttons
-      if ((e.buttons & requiredButtonMask) === 0) {
+      if ((e.buttons & requiredButtonMask) === 0 || (predicate && !predicate(e))) {
         return
       }
 
