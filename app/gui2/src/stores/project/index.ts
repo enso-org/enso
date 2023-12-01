@@ -593,7 +593,12 @@ export const useProjectStore = defineStore('project', () => {
     return new Promise((resolve) => {
       Promise.all([lsRpcConnection, dataConnection]).then(([lsRpc, data]) => {
         const visualizationId = random.uuidv4() as Uuid
-        data.on(`${OutboundPayload.VISUALIZATION_UPDATE}`, (data) => resolve(data.dataString()))
+        const handler = data.on(`${OutboundPayload.VISUALIZATION_UPDATE}`, (visData, uuid) => {
+          if (uuid === visualizationId) {
+            resolve(visData.dataString())
+            data.off(`${OutboundPayload.VISUALIZATION_UPDATE}`, handler)
+          }
+        })
         lsRpc.executeExpression(executionContext.id, visualizationId, expressionId, expression)
       })
     })

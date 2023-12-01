@@ -126,9 +126,9 @@ const visualizationData = projectStore.useVisualizationData(() => {
 const expressionVisualizationData = computedAsync(() => {
   if (props.dataSource?.type !== 'expression') return
   const preprocessor = visPreprocessor.value
-  const preprocessorCode = `${preprocessor.visualizationModule}.${
-    preprocessor.expression
-  } _ ${preprocessor.positionalArgumentsExpressions.join(' ')}`
+  const args = preprocessor.positionalArgumentsExpressions
+  const argsCode = args.length ? `(${args.join(') (')})` : ''
+  const preprocessorCode = `${preprocessor.visualizationModule}.${preprocessor.expression} _ ${argsCode}`
   const expression = `${preprocessorCode} <| ${props.dataSource.expression}`
   return projectStore.executeExpression(props.dataSource.contextId, expression)
 })
