@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
 
+import org.enso.polyglot.MethodNames;
 import org.enso.polyglot.MethodNames.Module;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
@@ -79,7 +80,7 @@ class ValuesGenerator {
 
         """.replace("{type}", typeCheck).replace("{import}", prelude)
         );
-        var check = c.invokeMember("eval_expression", "check");
+        var check = c.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "check");
         assertTrue("Can execute the check", check.canExecute());
         v = new ValueInfo(value, check);
         values.put(key, v);

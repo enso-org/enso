@@ -9,6 +9,7 @@ import java.util.Set;
 
 import org.enso.interpreter.runtime.type.ConstantsGen;
 import org.enso.interpreter.test.ValuesGenerator.Language;
+import org.enso.polyglot.MethodNames;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
@@ -176,6 +177,32 @@ public class MetaObjectTest extends TestBase {
           assertEquals(g.typeAny(), p);
         }
       }
+    }
+  }
+
+  @Test
+  public void compareQualifiedAndSimpleTypeName() throws Exception {
+    var g = generator();
+    var sn = ctx.eval("enso", """
+    from Standard.Base import Meta
+
+    sn v = Meta.get_simple_type_name v
+    """).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "sn");
+    var sb = new StringBuilder();
+    for (var v : g.allValues()) {
+      var simpleName = sn.execute(v).asString();
+      var meta = v.getMetaObject();
+      var metaName = meta != null ? meta.getMetaSimpleName() : "null";
+      if (!simpleName.equals(metaName)) {
+        sb.append("\n").append("Simple names shall be the same for ").
+          append(v).append(" get_simple_type_name: ").append(simpleName).
+          append(" getMetaSimpleName: ").append(metaName);
+      }
+    }
+    if (!sb.isEmpty()) {
+      var lines = sb.toString().lines().count() - 1;
+      sb.insert(0, "There is " + lines + " differences:");
+      fail(sb.toString());
     }
   }
 
