@@ -55,9 +55,23 @@ test.each([
     pattern:
       'Standard.Base.Runtime.with_enabled_context Standard.Base.Runtime.Context.Output "current_context_name" <| node2.fn',
   },
+  {
+    target:
+      'Standard.Base.Runtime.with_enabled_context Standard.Base.Runtime.Context.Output "current_context_name" <| a + b',
+    pattern:
+      'Standard.Base.Runtime.with_enabled_context Standard.Base.Runtime.Context.Output __ <| __',
+    extracted: ['"current_context_name"', 'a + b'],
+  },
+  {
+    target:
+      "Standard.Base.Runtime.with_enabled_context Standard.Base.Runtime.Context.Output 'current_context_name' <| a + b",
+    pattern:
+      'Standard.Base.Runtime.with_enabled_context Standard.Base.Runtime.Context.Output __ <| __',
+    extracted: ["'current_context_name'", 'a + b'],
+  },
 ])('`isMatch`', ({ target, pattern, extracted }) => {
-  const targetAst = AstExtended.parse(target)
-  const patternAst = AstExtended.parse(pattern)
+  const targetAst = AstExtended.parseLine(target)
+  const patternAst = AstExtended.parseLine(pattern)
   expect(
     isMatch(targetAst, patternAst),
     `'${target}' has CST ${extracted != null ? '' : 'not '}matching '${pattern}'`,

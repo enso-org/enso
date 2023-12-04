@@ -2,7 +2,7 @@
 import ToggleIcon from '@/components/ToggleIcon.vue'
 
 const props = defineProps<{
-  isOutputContextEnabled: boolean
+  isOutputContextEnabledGlobally: boolean
   isOutputContextOverridden: boolean
   isDocsVisible: boolean
   isVisualizationVisible: boolean
@@ -17,11 +17,13 @@ const emit = defineEmits<{
 <template>
   <div class="CircularMenu">
     <ToggleIcon
-      :icon="props.isOutputContextEnabled ? 'no_auto_replay' : 'auto_replay'"
+      :icon="props.isOutputContextEnabledGlobally ? 'no_auto_replay' : 'auto_replay'"
       class="icon-container button override-output-context-button"
       :class="{ 'output-context-overridden': props.isOutputContextOverridden }"
       :alt="`${
-        props.isOutputContextEnabled != props.isOutputContextOverridden ? 'Enable' : 'Disable'
+        props.isOutputContextEnabledGlobally != props.isOutputContextOverridden
+          ? 'Disable'
+          : 'Enable'
       } output context`"
       :modelValue="props.isOutputContextOverridden"
       @update:modelValue="emit('update:isOutputContextOverridden', $event)"

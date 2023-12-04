@@ -20,27 +20,27 @@ import type { Opt } from '@/util/opt'
 import { Rect } from '@/util/rect'
 import { Vec2 } from '@/util/vec2'
 import { setIfUndefined } from 'lib0/map'
-import type { ContentRange, ExprId, VisualizationIdentifier } from 'shared/yjsModel'
+import { type ContentRange, type ExprId, type VisualizationIdentifier } from 'shared/yjsModel'
 import { computed, ref, watch, watchEffect } from 'vue'
 
 function withEnabledOutputContextPatternText(name: string) {
   return (
     "Standard.Base.Runtime.with_enabled_context Standard.Base.Runtime.Context.Output '" +
     astStringEscape(name) +
-    "'"
+    "' "
   )
 }
-const withEnabledOutputContextPatternAst = AstExtended.parse(
+const withEnabledOutputContextPatternAst = AstExtended.parseLine(
   'Standard.Base.Runtime.with_enabled_context Standard.Base.Runtime.Context.Output __ <| __',
 )
 function withDisabledOutputContextPatternText(name: string) {
   return (
     "Standard.Base.Runtime.with_disabled_context Standard.Base.Runtime.Context.Output '" +
     astStringEscape(name) +
-    "'"
+    "' "
   )
 }
-const withDisabledOutputContextPatternAst = AstExtended.parse(
+const withDisabledOutputContextPatternAst = AstExtended.parseLine(
   'Standard.Base.Runtime.with_disabled_context Standard.Base.Runtime.Context.Output __ <| __',
 )
 </script>
@@ -200,38 +200,37 @@ const isOutputContextOverridden = computed({
     )
   },
   set(shouldOverride) {
-    const start = props.node.rootSpan.span()[0]
+    const module = projectStore.module
+    if (!module) return
     if (projectStore.isOutputContextEnabled) {
-      if (shouldOverride && exprWithoutEnabledOutputContext.value) {
-        // Remove force enable of output context.
-        emit('update:content', [[[start, exprWithoutEnabledOutputContext.value.span()[0]], '']])
+      if (shouldOverride && !exprWithoutDisabledOutputContext.value) {
+        emit('update:content', [
+          [[0, 0], withDisabledOutputContextPatternText(projectStore.executionMode)],
+        ])
       } else if (
         !shouldOverride &&
-        !exprWithoutEnabledOutputContext.value &&
-        projectStore.currentExecutionEnvironment != null
+        exprWithoutDisabledOutputContext.value &&
+        projectStore.executionMode != null
       ) {
-        emit('update:content', [
-          [
-            [start, start],
-            withEnabledOutputContextPatternText(projectStore.currentExecutionEnvironment),
-          ],
-        ])
+        const start = props.node.rootSpan.span()[0]
+        const subExprStart = exprWithoutDisabledOutputContext.value.span()[0]
+        // Remove force enable of output context.
+        emit('update:content', [[[0, subExprStart - start], '']])
       }
     } else {
-      if (shouldOverride && exprWithoutDisabledOutputContext.value) {
-        // Remove force disable of output context.
-        emit('update:content', [[[start, exprWithoutDisabledOutputContext.value.span()[0]], '']])
+      if (shouldOverride && !exprWithoutEnabledOutputContext.value) {
+        emit('update:content', [
+          [[0, 0], withEnabledOutputContextPatternText(projectStore.executionMode)],
+        ])
       } else if (
         !shouldOverride &&
-        !exprWithoutDisabledOutputContext.value &&
-        projectStore.currentExecutionEnvironment != null
+        exprWithoutEnabledOutputContext.value &&
+        projectStore.executionMode != null
       ) {
-        emit('update:content', [
-          [
-            [start, start],
-            withDisabledOutputContextPatternText(projectStore.currentExecutionEnvironment),
-          ],
-        ])
+        const start = props.node.rootSpan.span()[0]
+        const subExprStart = exprWithoutEnabledOutputContext.value.span()[0]
+        // Remove force enable of output context.
+        emit('update:content', [[[0, subExprStart - start], '']])
       }
     }
   },
@@ -335,10 +334,6 @@ watchEffect(() => {
   }
 })
 
-watchEffect(() => {
-  console.log('is output context enabled?', projectStore.isOutputContextEnabled)
-})
-
 function portGroupStyle(port: PortData) {
   const [start, end] = port.clipRange
   return {
@@ -377,7 +372,7 @@ function portGroupStyle(port: PortData) {
       v-if="menuVisible"
       v-model:isOutputContextOverridden="isOutputContextOverridden"
       v-model:isDocsVisible="isDocsVisible"
-      :isOutputContextEnabled="projectStore.isOutputContextEnabled"
+      :isOutputContextEnabledGlobally="projectStore.isOutputContextEnabled"
       :isVisualizationVisible="isVisualizationVisible"
       @update:isVisualizationVisible="emit('update:visualizationVisible', $event)"
     />

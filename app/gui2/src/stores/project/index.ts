@@ -584,49 +584,7 @@ export const useProjectStore = defineStore('project', () => {
     })
   })
 
-  const anyExpressionId = computed(() => {
-    const ids = module.value?.getIdMap()
-    if (!ids) return
-    const [id] = ids.accessedSoFar()
-    return id
-  })
-
-  const currentExecutionEnvironmentConfig = computed<NodeVisualizationConfiguration | undefined>(
-    () => {
-      if (!anyExpressionId.value) return
-      return {
-        expressionId: anyExpressionId.value,
-        expression: 'x -> Standard.Base.Runtime.current_execution_environment',
-        visualizationModule: 'Standard.Base.Runtime',
-      }
-    },
-  )
-
-  const currentExecutionEnvironmentRaw = useVisualizationData(currentExecutionEnvironmentConfig)
-  const currentExecutionEnvironment = computed(() =>
-    typeof currentExecutionEnvironmentRaw.value === 'string'
-      ? currentExecutionEnvironmentRaw.value
-      : undefined,
-  )
-
-  const outputContextPermissionConfig = computed<NodeVisualizationConfiguration | undefined>(() => {
-    if (!anyExpressionId.value) return
-    return {
-      expressionId: anyExpressionId.value,
-      expression:
-        'x -> Standard.Base.Runtime.ExecutionEnvironment.permission Standard.Base.Runtime.Context.Output',
-      visualizationModule: 'Standard.Base.Runtime',
-    }
-  })
-
-  watchEffect(() => {
-    console.log('anyexpr', anyExpressionId.value)
-  })
-
-  const outputContextPermission = useVisualizationData(outputContextPermissionConfig)
-
-  // FIXME [sb]: This does not work as `anyExpressionId.value` is always `null`.
-  const isOutputContextEnabled = computed(() => outputContextPermission.value != null)
+  const isOutputContextEnabled = computed(() => executionMode.value === 'live')
 
   function stopCapturingUndo() {
     module.value?.undoManager.stopCapturing()
@@ -651,7 +609,6 @@ export const useProjectStore = defineStore('project', () => {
     lsRpcConnection: markRaw(lsRpcConnection),
     dataConnection: markRaw(dataConnection),
     useVisualizationData,
-    currentExecutionEnvironment,
     isOutputContextEnabled,
     stopCapturingUndo,
     executionMode,
