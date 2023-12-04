@@ -168,20 +168,6 @@ const dragPointer = usePointer((pos, event, type) => {
   }
 })
 
-const expressionInfo = computed(() => graph.db.getExpressionInfo(nodeId.value))
-const outputPortLabel = computed(() => expressionInfo.value?.typename ?? 'Unknown')
-const executionState = computed(() => expressionInfo.value?.payload.type ?? 'Unknown')
-const suggestionEntry = computed(() => graph.db.nodeMainSuggestion.lookup(nodeId.value))
-const color = computed(() => graph.db.getNodeColorStyle(nodeId.value))
-const icon = computed(() => {
-  const expressionInfo = graph.db.getExpressionInfo(nodeId.value)
-  return displayedIconOf(
-    suggestionEntry.value,
-    expressionInfo?.methodCall?.methodPointer,
-    outputPortLabel.value,
-  )
-})
-
 const exprWithoutEnabledOutputContext = computed(() => {
   if (projectStore.isOutputContextEnabled) return
   return extractMatches(props.node.rootSpan, withEnabledOutputContextPatternAst)?.[1]
@@ -191,6 +177,13 @@ const exprWithoutDisabledOutputContext = computed(() => {
   if (!projectStore.isOutputContextEnabled) return
   return extractMatches(props.node.rootSpan, withDisabledOutputContextPatternAst)?.[1]
 })
+
+const displayedExpression = computed(
+  () =>
+    exprWithoutEnabledOutputContext.value ??
+    exprWithoutDisabledOutputContext.value ??
+    props.node.rootSpan,
+)
 
 const isOutputContextOverridden = computed({
   get() {
@@ -234,6 +227,22 @@ const isOutputContextOverridden = computed({
       }
     }
   },
+})
+
+// FIXME [sb]: https://github.com/enso-org/enso/issues/8442
+// This does not take into account `displayedExpression`.
+const expressionInfo = computed(() => graph.db.getExpressionInfo(nodeId.value))
+const outputPortLabel = computed(() => expressionInfo.value?.typename ?? 'Unknown')
+const executionState = computed(() => expressionInfo.value?.payload.type ?? 'Unknown')
+const suggestionEntry = computed(() => graph.db.nodeMainSuggestion.lookup(nodeId.value))
+const color = computed(() => graph.db.getNodeColorStyle(nodeId.value))
+const icon = computed(() => {
+  const expressionInfo = graph.db.getExpressionInfo(nodeId.value)
+  return displayedIconOf(
+    suggestionEntry.value,
+    expressionInfo?.methodCall?.methodPointer,
+    outputPortLabel.value,
+  )
 })
 
 const nodeEditHandler = nodeEditBindings.handler({
@@ -395,11 +404,7 @@ function portGroupStyle(port: PortData) {
     <div class="node" @keydown="nodeEditHandler" v-on="dragPointer.events">
       <SvgIcon class="icon grab-handle" :name="icon"></SvgIcon>
       <div ref="contentNode" class="widget-tree">
-        <NodeWidgetTree
-          :ast="
-            exprWithoutEnabledOutputContext ?? exprWithoutDisabledOutputContext ?? node.rootSpan
-          "
-        />
+        <NodeWidgetTree :ast="displayedExpression" />
       </div>
     </div>
     <GraphNodeError v-if="error" class="error" :error="error" />
