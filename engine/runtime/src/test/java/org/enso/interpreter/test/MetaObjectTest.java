@@ -219,6 +219,26 @@ public class MetaObjectTest extends TestBase {
           assertEquals("Text", simpleName);
           continue;
         }
+        if (v.isDuration()) {
+          assertEquals("Duration", simpleName);
+          continue;
+        }
+        if (v.isDate() && v.isTime()) {
+          assertEquals("Date_Time", simpleName);
+          continue;
+        }
+        if (v.isTimeZone()) {
+          assertEquals("Time_Zone", simpleName);
+          continue;
+        }
+        if (v.isDate()) {
+          assertEquals("Date", simpleName);
+          continue;
+        }
+        if (v.isTime()) {
+          assertEquals("Time_Of_Day", simpleName);
+          continue;
+        }
 
         sb.append("\n").append("Simple names shall be the same for ").
           append(v).append(" get_simple_type_name: ").append(simpleName).
