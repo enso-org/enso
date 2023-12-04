@@ -42,6 +42,9 @@ public class MetaIsATest extends TestBase {
 
   @AfterClass
   public static void disposeCtx() {
+    if (generator != null) {
+      generator.dispose();
+    }
     ctx.close();
   }
 

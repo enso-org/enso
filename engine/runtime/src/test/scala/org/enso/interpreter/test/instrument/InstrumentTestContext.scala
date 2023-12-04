@@ -1,12 +1,43 @@
 package org.enso.interpreter.test.instrument
 
+import org.apache.commons.io.FileUtils
+import org.enso.distribution.locking.ThreadSafeFileLockManager
+import org.enso.pkg.{Package, PackageManager}
+import org.enso.polyglot.{LanguageInfo, PolyglotContext}
 import org.enso.polyglot.runtime.Runtime.Api
+import org.graalvm.polyglot.Context
 
+import java.io.File
+import java.nio.file.{Files, Path}
 import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
+import scala.concurrent.Await
+import scala.concurrent.duration._
 
-class InstrumentTestContext {
+abstract class InstrumentTestContext(packageName: String) {
   protected val messageQueue: LinkedBlockingQueue[Api.Response] =
     new LinkedBlockingQueue()
+
+  protected val tmpDir: Path = Files.createTempDirectory("enso-test-packages")
+
+  private val lockManager = new ThreadSafeFileLockManager(
+    tmpDir.resolve("locks")
+  )
+
+  val pkg: Package[File] =
+    PackageManager.Default.create(tmpDir.toFile, packageName, "Enso_Test")
+
+  protected val context: Context
+
+  protected var executionContext: PolyglotContext = null
+
+  def init(): Unit = {
+    assert(context != null)
+    executionContext = new PolyglotContext(context)
+    context.initialize(LanguageInfo.ID)
+  }
+
+  protected val runtimeServerEmulator: RuntimeServerEmulator =
+    new RuntimeServerEmulator(messageQueue, lockManager)
 
   def receiveNone: Option[Api.Response] = {
     Option(messageQueue.poll())
@@ -106,7 +137,13 @@ class InstrumentTestContext {
         true
     }
 
-  def reset(): Unit = {
+  def close(): Unit = {
+    if (context != null) {
+      context.close()
+    }
+    Await.ready(runtimeServerEmulator.terminate(), 5.seconds)
+    lockManager.reset()
+    FileUtils.deleteQuietly(tmpDir.toFile)
     messageQueue.clear()
   }
 

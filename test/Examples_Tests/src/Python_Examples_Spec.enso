@@ -6,62 +6,82 @@ import Standard.Test.Extensions
 polyglot java import java.lang.System as Java_System
 polyglot java import java.io.File as Java_File
 
-pending_python_missing = if Polyglot.is_language_installed "python" then Nothing else """
-    Can't run Python tests, Python is not installed.
+is_python_lang_installed = Polyglot.is_language_installed "python"
+
+# numpy can be installed only on Linux so far (GraalVM version 23.1.0)
+on_linux = if Platform.os == Platform.OS.Linux then True else False
+
+graalpy_bin = "graalpy"
+
+is_graalpy_on_path =
+    res = Process.run graalpy_bin [ "--version" ]
+    res.exit_code == Exit_Code.Success
+
+should_run_test =
+    if on_linux && is_graalpy_on_path && is_python_lang_installed then True else False
+
+# We expect that on the CI, GraalPy standalone distribution is installed, and
+# `graalpy` is on the PATH.
+pending = if should_run_test then Nothing else """
+    Won't run Python numpy example test - Python not installed.
+
+
+bin_dir =
+    p = Java_System.getProperty "jdk.module.path"
+    s = p.split Java_File.separator
+    paths = s.take (Index_Sub_Range.While _!="..")
+    j = paths . join Java_File.separator
+    File.new j
+
+
+enso_bin =
+    bin_dir / if Platform.os == Platform.OS.Windows then "enso.bat" else "enso"
+
+create_new_enso_project =
+    bin = enso_bin
+    tmp_file = File.create_temporary_file "enso_prj" ""
+    dir = tmp_file/".."/(tmp_file.name+".dir") . normalize
+    res = Process.run bin.path [ "--new", dir.path ]
+    IO.println res.stdout
+    IO.println res.stderr
+    res.exit_code . should_equal Exit_Code.Success
+    dir
+
+
+setup_venv dir =
+    res = Process.run graalpy_bin [ "-m", "venv", dir.path ]
+    IO.println res.stdout
+    IO.println res.stderr
+    res.exit_code . should_equal Exit_Code.Success
+
+
+install_num_py dir =
+    res = Process.run (dir/"bin"/"graalpy").to_text [ "-m", "pip", "install", "numpy" ]
+    IO.println res.stdout
+    IO.println res.stderr
+    res.exit_code . should_equal Exit_Code.Success
+
+
+rewrite_main_file dir =
+    main = dir/"src"/"Main.enso"
+    main.exists . should_be_true
+    code = """
+        from Standard.Base import all
+
+        foreign python random_array s = """
+            import numpy
+            return numpy.random.normal(size=s)
+
+        main =
+            arr = random_array 10
+            vec = arr.to_vector.sort
+            [ arr, vec ]
+
+    code . write main on_existing_file=Existing_File_Behavior.Overwrite
 
 
 spec = Test.group "Python Examples" <|
-    enso_bin =
-        p = Java_System.getProperty "jdk.module.path"
-        s = p.split Java_File.separator
-        paths = s.take (Index_Sub_Range.While _!="..")
-        j = paths . join Java_File.separator
-        File.new j / if Platform.os == Platform.OS.Windows then "enso.bat" else "enso"
-
-    create_new_enso_project =
-        bin = enso_bin
-
-        tmp_file = File.create_temporary_file "enso_prj" ""
-        dir = tmp_file/".."/(tmp_file.name+".dir") . normalize
-        res = Process.run bin.path [ "--new", dir.path ]
-        IO.println res.stdout
-        IO.println res.stderr
-        res.exit_code . should_equal Exit_Code.Success
-        dir
-
-    Test.specify "Create Enso Project with numpy" pending=pending_python_missing <|
-        setup_venv dir =
-            gvm = File.new <| Java_System.getProperty "java.home"
-            python = gvm/"bin"/"graalpy"
-            res = Process.run python.path [ "-m", "venv", dir.path ]
-            IO.println res.stdout
-            IO.println res.stderr
-            res.exit_code . should_equal Exit_Code.Success
-
-        install_num_py dir =
-            python = dir/"bin"/"graalpy"
-            res = Process.run python.path [ "-m", "pip", "install", "numpy" ]
-            IO.println res.stdout
-            IO.println res.stderr
-            res.exit_code . should_equal Exit_Code.Success
-
-        rewrite_main_file dir =
-            main = dir/"src"/"Main.enso"
-            main.exists . should_be_true
-            code = """
-                from Standard.Base import all
-
-                foreign python random_array s = """
-                    import numpy
-                    return numpy.random.normal(size=s)
-
-                main =
-                    arr = random_array 10
-                    vec = arr.to_vector.sort
-                    [ arr, vec ]
-
-            code . write main on_existing_file=Existing_File_Behavior.Overwrite
-
+    Test.specify "Create Enso Project with numpy" pending=pending <|
         IO.println "==== Generating Enso Project ===="
         prj = create_new_enso_project
         IO.println "Project ready at "+prj.path
