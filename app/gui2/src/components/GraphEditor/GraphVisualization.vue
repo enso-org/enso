@@ -118,6 +118,8 @@ const expressionVisualizationData = computedAsync(() => {
   const preprocessor = visPreprocessor.value
   const args = preprocessor.positionalArgumentsExpressions
   const argsCode = args.length ? `(${args.join(') (')})` : ''
+  // TODO[ao]: it work with builtin visualization, but does not work in general case.
+  // Tracked in https://github.com/orgs/enso-org/discussions/6832#discussioncomment-7754474.
   const preprocessorCode = `${preprocessor.visualizationModule}.${preprocessor.expression} _ ${argsCode}`
   const expression = `${preprocessorCode} <| ${props.dataSource.expression}`
   return projectStore.executeExpression(props.dataSource.contextId, expression)

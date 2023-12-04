@@ -21,9 +21,8 @@ export interface ExpressionInfo {
 
 /** This class holds the computed values that have been received from the language server. */
 export class VisualizationDataRegistry {
-  // TODO[ao] fill the gap.
   /** This map stores only keys representing attached visualization. The responses for
-   * executeExpression are handled ... */
+   * executeExpression are handled by project store's `executeExpression` method. */
   private visualizationValues: Map<Uuid, Result<string> | null>
   private dataServer: Promise<DataServer>
   private executionContext: ExecutionContext
