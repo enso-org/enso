@@ -11,10 +11,13 @@ import com.oracle.truffle.api.interop.UnknownKeyException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
+
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.Suspend;
 import org.enso.interpreter.node.BaseNode.TailStatus;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
+import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.state.State;
 
 @BuiltinMethod(
@@ -37,19 +40,18 @@ public abstract class HashMapGetNode extends Node {
 
   @Specialization(guards = "interop.hasHashEntries(self)", limit = "3")
   Object hashMapGet(
-      VirtualFrame frame,
-      State state, Object self, Object key, Object defaultValue,
-      @CachedLibrary("self") InteropLibrary interop,
-      @Shared @Cached("build()") ThunkExecutorNode thunkExecutorNode) {
-    if (interop.isHashEntryReadable(self, key)) {
+    VirtualFrame frame,
+    State state, Object self, Object key, Object defaultValue,
+    @CachedLibrary("self") InteropLibrary interop,
+    @Shared @Cached("build()") ThunkExecutorNode thunkExecutorNode
+  ) {
       try {
         return interop.readHashValue(self, key);
-      } catch (UnsupportedMessageException | UnknownKeyException e) {
-        throw new IllegalStateException(e);
+      } catch (UnknownKeyException e) {
+        return thunkExecutorNode.executeThunk(frame, defaultValue, state, TailStatus.NOT_TAIL);
+      } catch (UnsupportedMessageException e) {
+        throw new PanicException(Text.create(e.getMessage()), this);
       }
-    } else {
-      return thunkExecutorNode.executeThunk(frame, defaultValue, state, TailStatus.NOT_TAIL);
-    }
   }
 
   @Fallback

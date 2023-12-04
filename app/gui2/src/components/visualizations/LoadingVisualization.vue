@@ -1,6 +1,6 @@
 <script lang="ts">
 import LoadingSpinner from '@/components/LoadingSpinner.vue'
-import VisualizationContainer from '@/components/VisualizationContainer.vue'
+import { VisualizationContainer } from '@/util/visualizationBuiltins'
 
 export const name = 'Loading'
 export const inputType = 'Any'

@@ -13,6 +13,7 @@ pub mod docker;
 pub mod flatc;
 pub mod git;
 pub mod go;
+pub mod graalpy;
 pub mod java;
 pub mod javac;
 pub mod node;

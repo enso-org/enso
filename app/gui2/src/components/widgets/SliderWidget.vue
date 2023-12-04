@@ -1,27 +1,31 @@
 <script setup lang="ts">
 import { PointerButtonMask, usePointer, useResizeObserver } from '@/util/events'
 import { getTextWidth } from '@/util/measurement'
-import { computed, ref } from 'vue'
+import { computed, ref, type StyleValue } from 'vue'
 
 const props = defineProps<{ modelValue: number; min: number; max: number }>()
 const emit = defineEmits<{ 'update:modelValue': [modelValue: number] }>()
 
-const dragPointer = usePointer((position, event, eventType) => {
-  const slider = event.target
-  if (!(slider instanceof HTMLElement)) {
-    return
-  }
+const dragPointer = usePointer(
+  (position, event, eventType) => {
+    const slider = event.target
+    if (!(slider instanceof HTMLElement)) {
+      return
+    }
 
-  if (eventType === 'start') {
-    event.stopImmediatePropagation()
-  }
+    if (eventType === 'start') {
+      event.stopImmediatePropagation()
+    }
 
-  const rect = slider.getBoundingClientRect()
-  const fractionRaw = (position.absolute.x - rect.left) / (rect.right - rect.left)
-  const fraction = Math.max(0, Math.min(1, fractionRaw))
-  const newValue = props.min + Math.round(fraction * (props.max - props.min))
-  emit('update:modelValue', newValue)
-}, PointerButtonMask.Main)
+    const rect = slider.getBoundingClientRect()
+    const fractionRaw = (position.absolute.x - rect.left) / (rect.right - rect.left)
+    const fraction = Math.max(0, Math.min(1, fractionRaw))
+    const newValue = props.min + Math.round(fraction * (props.max - props.min))
+    emit('update:modelValue', newValue)
+  },
+  PointerButtonMask.Main,
+  (event) => !event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey,
+)
 
 const sliderWidth = computed(
   () => `${((props.modelValue - props.min) * 100) / (props.max - props.min)}%`,
@@ -55,7 +59,7 @@ const inputMeasurements = computed(() => {
   return { availableWidth, font: style.font }
 })
 
-const inputStyle = computed(() => {
+const inputStyle = computed<StyleValue>(() => {
   if (inputNode.value == null) {
     return {}
   }
@@ -98,12 +102,12 @@ function fixupInputValue() {
 
 <style scoped>
 .SliderWidget {
-  clip-path: inset(0 round var(--radius-full));
   position: relative;
   user-select: none;
   justify-content: space-around;
   background: var(--color-widget);
   border-radius: var(--radius-full);
+  overflow: clip;
   width: 56px;
 }
 
