@@ -836,33 +836,33 @@ type_spec name alter = Test.group name <|
         Warning.get_all sorted . length . should_equal 10
         Warning.limit_reached sorted . should_equal True
 
-    Test.specify "an error thrown inside map should fail a test as a Map_Error" <|
+    Test.specify "an error thrown inside map should be caught as a Map_Error" <|
         alter [10, 20, 30, 40] . map map_fun . should_fail_with (Map_Error.Error 2 (My_Error.Error 30))
 
-    Test.specify "an error thrown inside map_primitive should fail a test as a My_Error" <|
+    Test.specify "an error thrown inside map_primitive should be caught as a My_Error" <|
         alter [10, 20, 30, 40] . map_primitive map_fun . should_fail_with My_Error
 
-    Test.specify "an error thrown inside map_with_index_primitive should fail a test as a My_Error" <|
+    Test.specify "an error thrown inside map_with_index_primitive should be caught as a My_Error" <|
         map_with_index_fun _ a = if a == 30 then Error.throw (My_Error.Error a) else a+1
         alter [10, 20, 30, 40] . map_with_index_primitive map_with_index_fun . should_fail_with My_Error
 
-    Test.specify "an error thrown inside map and caught (without error parameter) should be wrapped in Map_Error" <|
+    Test.specify "an error thrown inside map and caught (without error parameter) should be caught as a Map_Error" <|
         alter [10, 20, 30, 40] . map map_fun . catch . should_equal (Map_Error.Error 2 (My_Error.Error 30))
 
-    Test.specify "an error thrown inside map and caught (with error parameter My_Error) should not be wrapped in Map_Error" <|
+    Test.specify "an error thrown inside map and caught (with error parameter My_Error) should be caught as a My_Error" <|
         alter [10, 20, 30, 40] . map map_fun . catch My_Error . should_equal (My_Error.Error 30)
 
-    Test.specify "an error thrown inside map and caught (with error parameter Map_Error) should be wrapped in Map_Error" <|
+    Test.specify "an error thrown inside map and caught (with error parameter Map_Error) should be caught as a Map_Error" <|
         alter [10, 20, 30, 40] . map map_fun . catch Map_Error . should_equal (Map_Error.Error 2 (My_Error.Error 30))
 
-    Test.specify "an error thrown inside flat_map should fail a test as a Map_Error" <|
+    Test.specify "an error thrown inside flat_map should be caught as a Map_Error" <|
         vec = alter ([[10], [20], [30], [40]].map alter)
         vec.flat_map flat_map_fun vec . should_fail_with (Map_Error.Error 2 (My_Error.Error [30]))
 
-    Test.specify "an error thrown inside map_with_index should fail a test as a Map_Error" <|
+    Test.specify "an error thrown inside map_with_index should be caught as a Map_Error" <|
         alter [10, 20, 30, 40] . map_with_index map_with_index_fun . should_fail_with (Map_Error.Error 2 (My_Error.Error 30))
 
-    Test.specify "an error thrown inside zip should fail a test as a Map_Error" <|
+    Test.specify "an error thrown inside zip should be caught as a Map_Error" <|
         vec = alter [10, 20, 30, 40]
         vec.zip [10, 20, 30, 40] zip_fun . should_fail_with (Map_Error.Error 2 (My_Error.Error 30))
 
@@ -870,7 +870,7 @@ type_spec name alter = Test.group name <|
         nested_vector = Vector.fill 5 (alter [10, 20, 30, 40])
         nested_vector.map (_.map map_fun) . should_fail_with (Map_Error.Error 0 (Map_Error.Error 2 (My_Error.Error 30)))
 
-    Test.specify "a Nothing thrown inside map should fail a test as Nothing" <|
+    Test.specify "a Nothing thrown inside map should be caught as Nothing" <|
         map_fun a = if a == 30 then Error.throw Nothing else a+1
         alter [10, 20, 30, 40] . map map_fun . should_fail_with (Map_Error.Error 2 Nothing)
 
