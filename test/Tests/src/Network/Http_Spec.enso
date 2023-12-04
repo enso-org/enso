@@ -172,24 +172,7 @@ spec =
 
         Test.specify "Can perform a Request_Body.Text POST" <|
             response = Data.post url_post (Request_Body.Text "hello world")
-            expected_response = Json.parse <| '''
-                {
-                  "headers": {
-                    "Connection": "Upgrade, HTTP2-Settings",
-                    "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
-                    "User-Agent": "Java-http-client/21.0.1",
-                    "Upgrade": "h2c",
-                    "Content-Type": "text/plain; charset=UTF-8",
-                    "Content-Length": "11"
-                  },
-                  "origin": "127.0.0.1",
-                  "url": "",
-                  "method": "POST",
-                  "form": null,
-                  "files": null,
-                  "data": "hello world",
-                  "args": {}
-                }
+            expected_response = echo_response_template "POST" "hello world" content_type="text/plain; charset=UTF-8"
             response . should_equal expected_response
 
             url_response = url_post.to_uri.post (Request_Body.Text "hello world")
@@ -198,92 +181,27 @@ spec =
         Test.specify "Can perform a Request_Body.Json JSON POST" <|
             json = Json.parse '{"a": "asdf", "b": 123}'
             response = Data.post url_post (Request_Body.Json json)
-            expected_response = Json.parse <| '''
-                {
-                  "headers": {
-                    "Connection": "Upgrade, HTTP2-Settings",
-                    "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
-                    "User-Agent": "Java-http-client/21.0.1",
-                    "Upgrade": "h2c",
-                    "Content-Type": "application/json",
-                    "Content-Length": "20"
-                  },
-                  "origin": "127.0.0.1",
-                  "url": "",
-                  "method": "POST",
-                  "form": null,
-                  "files": null,
-                  "data": "{\\"a\\":\\"asdf\\",\\"b\\":123}",
-                  "args": {}
-                }
+            expected_response = echo_response_template "POST" '{"a":"asdf","b":123}' content_type="application/json"
             response . should_equal expected_response
 
         Test.specify "Can perform a JSON POST" <|
             json = Json.parse '{"a": "asdf", "b": 123}'
             response = Data.post url_post json
-            expected_response = Json.parse <| '''
-                {
-                  "headers": {
-                    "Connection": "Upgrade, HTTP2-Settings",
-                    "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
-                    "User-Agent": "Java-http-client/21.0.1",
-                    "Upgrade": "h2c",
-                    "Content-Type": "application/json",
-                    "Content-Length": "20"
-                  },
-                  "origin": "127.0.0.1",
-                  "url": "",
-                  "method": "POST",
-                  "form": null,
-                  "files": null,
-                  "data": "{\\"a\\":\\"asdf\\",\\"b\\":123}",
-                  "args": {}
-                }
+            expected_response = echo_response_template "POST" '{"a":"asdf","b":123}' content_type="application/json"
             response . should_equal expected_response
 
         Test.specify "Can perform an object Request_Body.Json POST" <|
             response = Data.post url_post (Request_Body.Json (Test_Type.Aaa "abc"))
-            expected_response = Json.parse <| '''
-                {
-                  "headers": {
-                    "Connection": "Upgrade, HTTP2-Settings",
-                    "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
-                    "User-Agent": "Java-http-client/21.0.1",
-                    "Upgrade": "h2c",
-                    "Content-Type": "application/json",
-                    "Content-Length": "50"
-                  },
-                  "origin": "127.0.0.1",
-                  "url": "",
-                  "method": "POST",
-                  "form": null,
-                  "files": null,
-                  "data": "{\\"type\\":\\"Test_Type\\",\\"constructor\\":\\"Aaa\\",\\"s\\":\\"abc\\"}",
-                  "args": {}
-                }
+            expected_response = echo_response_template "POST" '{"type":"Test_Type","constructor":"Aaa","s":"abc"}' content_type="application/json"
             response . should_equal expected_response
 
         Test.specify "Can perform an object JSON POST" <|
             response = Data.post url_post (Test_Type.Bbb 12)
-            expected_response = Json.parse <| '''
-                {
-                  "headers": {
-                    "Connection": "Upgrade, HTTP2-Settings",
-                    "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
-                    "User-Agent": "Java-http-client/21.0.1",
-                    "Upgrade": "h2c",
-                    "Content-Type": "application/json",
-                    "Content-Length": "47"
-                  },
-                  "origin": "127.0.0.1",
-                  "url": "",
-                  "method": "POST",
-                  "form": null,
-                  "files": null,
-                  "data": "{\\"type\\":\\"Test_Type\\",\\"constructor\\":\\"Bbb\\",\\"i\\":12}",
-                  "args": {}
-                }
+            expected_response = echo_response_template "POST" '{"type":"Test_Type","constructor":"Bbb","i":12}' content_type="application/json"
             response . should_equal expected_response
+
+            uri_response = url_post.to_uri.post (Test_Type.Bbb 12)
+            uri_response . should_equal expected_response
 
         Test.specify "can handle a bad .to_json" <|
             Data.post url_post (Bad_To_Json.Aaa "abcd") . should_fail_with Illegal_Argument
@@ -291,24 +209,7 @@ spec =
         Test.specify "Can perform a Text POST with explicit encoding" <|
             body = Request_Body.Text 'Hello World!' encoding=Encoding.utf_16_le
             response = Data.post url_post body
-            expected_response = Json.parse <| '''
-                {
-                  "headers": {
-                    "Connection": "Upgrade, HTTP2-Settings",
-                    "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
-                    "User-Agent": "Java-http-client/21.0.1",
-                    "Upgrade": "h2c",
-                    "Content-Type": "text/plain; charset=UTF-16LE",
-                    "Content-Length": "24"
-                  },
-                  "origin": "127.0.0.1",
-                  "url": "",
-                  "method": "POST",
-                  "form": null,
-                  "files": null,
-                  "data": "Hello World!",
-                  "args": {}
-                }
+            expected_response = echo_response_template "POST" "Hello World!" content_type="text/plain; charset=UTF-16LE" content_length=24
             response . should_equal expected_response
 
             uri_response = url_post.to_uri.post body
@@ -316,24 +217,8 @@ spec =
 
         Test.specify "Can perform a Text POST with explicit content type" <|
             response = Data.post url_post (Request_Body.Text 'a,b,c\n' content_type="text/csv")
-            expected_response = Json.parse <| '''
-                {
-                  "headers": {
-                    "Connection": "Upgrade, HTTP2-Settings",
-                    "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
-                    "User-Agent": "Java-http-client/21.0.1",
-                    "Upgrade": "h2c",
-                    "Content-Type": "text/csv; charset=UTF-8",
-                    "Content-Length": "6"
-                  },
-                  "origin": "127.0.0.1",
-                  "url": "",
-                  "method": "POST",
-                  "form": null,
-                  "files": null,
-                  "data": "a,b,c\\n",
-                  "args": {}
-                }
+
+            expected_response = echo_response_template "POST" 'a,b,c\n' content_type="text/csv; charset=UTF-8"
             response . should_equal expected_response
 
         Test.specify "Can perform a File POST" <|
@@ -347,6 +232,7 @@ spec =
             test_file = enso_project.data / "sample.png"
             response = Data.post url_post (Request_Body.Binary test_file)
             response.at "headers" . at "Content-Type" . should_equal "application/octet-stream"
+            response.at "headers" . at "Content-Length" . should_equal test_file.size.to_text
             response.at "data" . should_start_with '\uFFFDPNG'
 
         Test.specify "Can perform a url-encoded form POST" <|
@@ -373,68 +259,17 @@ spec =
 
         Test.specify "Can perform a Text POST with auto-conversion" <|
             response = Data.post url_post "hello world"
-            expected_response = Json.parse <| '''
-                {
-                  "headers": {
-                    "Connection": "Upgrade, HTTP2-Settings",
-                    "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
-                    "User-Agent": "Java-http-client/21.0.1",
-                    "Upgrade": "h2c",
-                    "Content-Type": "text/plain; charset=UTF-8",
-                    "Content-Length": "11"
-                  },
-                  "origin": "127.0.0.1",
-                  "url": "",
-                  "method": "POST",
-                  "form": null,
-                  "files": null,
-                  "data": "hello world",
-                  "args": {}
-                }
+            expected_response = echo_response_template "POST" "hello world" content_type="text/plain; charset=UTF-8"
             response . should_equal expected_response
 
         Test.specify "Can perform a Request_Body.Text PUT" <|
             response = Data.post url_put (Request_Body.Text "hello world") method=HTTP_Method.Put
-            expected_response = Json.parse <| '''
-                {
-                  "headers": {
-                    "Connection": "Upgrade, HTTP2-Settings",
-                    "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
-                    "User-Agent": "Java-http-client/21.0.1",
-                    "Upgrade": "h2c",
-                    "Content-Type": "text/plain; charset=UTF-8",
-                    "Content-Length": "11"
-                  },
-                  "origin": "127.0.0.1",
-                  "url": "",
-                  "method": "PUT",
-                  "form": null,
-                  "files": null,
-                  "data": "hello world",
-                  "args": {}
-                }
+            expected_response = echo_response_template "PUT" "hello world" content_type="text/plain; charset=UTF-8"
             response . should_equal expected_response
 
         Test.specify "Can perform a Request_Body.Text PATCH" <|
             response = Data.post url_patch (Request_Body.Text "hello world" content_type="application/diff") method=HTTP_Method.Patch
-            expected_response = Json.parse <| '''
-                {
-                  "headers": {
-                    "Connection": "Upgrade, HTTP2-Settings",
-                    "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
-                    "User-Agent": "Java-http-client/21.0.1",
-                    "Upgrade": "h2c",
-                    "Content-Type": "application/diff; charset=UTF-8",
-                    "Content-Length": "11"
-                  },
-                  "origin": "127.0.0.1",
-                  "url": "",
-                  "method": "PATCH",
-                  "form": null,
-                  "files": null,
-                  "data": "hello world",
-                  "args": {}
-                }
+            expected_response = echo_response_template "PATCH" "hello world" content_type="application/diff; charset=UTF-8"
             response . should_equal expected_response
 
         Test.specify "Can perform a DELETE" <|
@@ -460,28 +295,11 @@ spec =
 
         Test.specify "Can skip auto-parse" <|
             response = Data.post url_post (Request_Body.Text "hello world") try_auto_parse_response=False
-            expected_response = Json.parse <| '''
-                {
-                  "headers": {
-                    "Connection": "Upgrade, HTTP2-Settings",
-                    "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
-                    "User-Agent": "Java-http-client/21.0.1",
-                    "Upgrade": "h2c",
-                    "Content-Type": "text/plain; charset=UTF-8",
-                    "Content-Length": "11"
-                  },
-                  "origin": "127.0.0.1",
-                  "url": "",
-                  "method": "POST",
-                  "form": null,
-                  "files": null,
-                  "data": "hello world",
-                  "args": {}
-                }
+            expected_response = echo_response_template "POST" "hello world" content_type="text/plain; charset=UTF-8"
             response.decode_as_json . should_equal expected_response
 
         Test.specify "Can send a custom header" <|
-            response = Data.post url_post (Request_Body.Text "hello world") headers=[Header.new "Custom" "asdf"]
+            response = Data.post url_post (Request_Body.Text "hello world") headers=[Header.new "Custom" "asdf", Header.new "Another" 'a:b: c - "ddd"']
             expected_response = Json.parse <| '''
                 {
                   "headers": {
@@ -491,7 +309,8 @@ spec =
                     "Upgrade": "h2c",
                     "Content-Type": "text/plain; charset=UTF-8",
                     "Content-Length": "11",
-                    "Custom": "asdf"
+                    "Custom": "asdf",
+                    "Another": "a:b: c - \\"ddd\\""
                   },
                   "origin": "127.0.0.1",
                   "url": "",
@@ -575,6 +394,8 @@ spec =
 
         Test.specify "Multiple content types in the header list are respected" <|
             response = Data.post url_post (Request_Body.Text '{"a": "asdf", "b": 123}') headers=[Header.content_type "application/json", Header.content_type "text/plain"]
+            ## Our simple-httpbin server gets 2 Content-Type headers and merges them in the response.
+               How this is interpreted in practice depends on the server.
             expected_response = Json.parse <| '''
                 {
                   "headers": {
@@ -582,7 +403,7 @@ spec =
                     "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
                     "User-Agent": "Java-http-client/21.0.1",
                     "Upgrade": "h2c",
-                    "Content-Type": "application/json",
+                    "Content-Type": "application/json, text/plain",
                     "Content-Length": "23"
                   },
                   "origin": "127.0.0.1",
@@ -653,7 +474,7 @@ spec =
 
 main = Test_Suite.run_main spec
 
-response_template method data content_type content_length=data.length =
+echo_response_template method data content_type content_length=data.length =
     template = '''
         {
           "headers": {
@@ -673,4 +494,5 @@ response_template method data content_type content_length=data.length =
           "args": {}
         }
 
-    template.replace "<$CONTENT_TYPE>" content_type . replace "<$CONTENT_LENGTH>" content_length.to_text . replace "<$METHOD>" method . replace "<$DATA>" data.to_json
+    replaced = template.replace "<$CONTENT_TYPE>" content_type . replace "<$CONTENT_LENGTH>" content_length.to_text . replace "<$METHOD>" method . replace "<$DATA>" data.to_json
+    Json.parse replaced

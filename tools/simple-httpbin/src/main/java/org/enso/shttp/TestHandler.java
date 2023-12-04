@@ -2,6 +2,8 @@ package org.enso.shttp;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
+import org.apache.commons.text.StringEscapeUtils;
+
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -13,7 +15,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.apache.commons.text.StringEscapeUtils;
 
 public class TestHandler implements HttpHandler {
   private static final Set<String> ignoredHeaders = Set.of("Host");
@@ -44,27 +45,26 @@ public class TestHandler implements HttpHandler {
     String textEncoding = "UTF-8";
     HttpMethod meth = HttpMethod.valueOf(exchange.getRequestMethod());
 
-    String response;
+    StringBuilder response;
     if (meth == HttpMethod.HEAD || meth == HttpMethod.OPTIONS) {
-      response = "";
+      response = new StringBuilder();
       exchange.sendResponseHeaders(200, -1);
     } else {
       exchange.getResponseHeaders().put("Content-Type", List.of("application/json"));
-      response = "{\n";
-      response += "  \"headers\": {\n";
+      response = new StringBuilder("{\n");
+      response.append("  \"headers\": {\n");
       for (Map.Entry<String, List<String>> entry : exchange.getRequestHeaders().entrySet()) {
         if (!ignoredHeaders.contains(entry.getKey())) {
           if (!first) {
-            response += ",\n";
+            response.append(",\n");
           } else {
             first = false;
           }
-          response +=
-              "    \""
-                  + formatHeaderKey(entry.getKey())
-                  + "\": \""
-                  + entry.getValue().get(0)
-                  + "\"";
+          response
+              .append("    \"")
+              .append(formatHeaderKey(entry.getKey()))
+              .append("\": ")
+              .append(formatHeaderValues(entry.getValue()));
         }
         if (entry.getKey().equals("Content-type")) {
           contentType = entry.getValue().get(0);
@@ -74,28 +74,27 @@ public class TestHandler implements HttpHandler {
           }
         }
       }
-      response += "\n";
-      response += "  },\n";
-      response += "  \"origin\": \"127.0.0.1\",\n";
-      response += "  \"url\": \"\",\n";
-      response += "  \"method\": \"" + meth + "\",\n";
+      response.append("\n");
+      response.append("  },\n");
+      response.append("  \"origin\": \"127.0.0.1\",\n");
+      response.append("  \"url\": \"\",\n");
+      response.append("  \"method\": \"").append(meth).append("\",\n");
       if (meth == HttpMethod.POST
           || meth == HttpMethod.DELETE
           || meth == HttpMethod.PUT
           || meth == HttpMethod.PATCH) {
-        boolean isJson = contentType != null && contentType.equals("application/json");
-        response += "  \"form\": null,\n";
-        response += "  \"files\": null,\n";
+        response.append("  \"form\": null,\n");
+        response.append("  \"files\": null,\n");
         String value = readBody(exchange.getRequestBody(), textEncoding);
-        response +=
-            "  \"data\": \"" + (value == null ? "" : StringEscapeUtils.escapeJson(value)) + "\",\n";
+        response.append("  \"data\": \"").append(value == null ? "" : StringEscapeUtils.escapeJson(value)).append(
+            "\",\n");
       }
-      response += "  \"args\": {}\n";
-      response += "}";
-      exchange.sendResponseHeaders(200, response.getBytes().length);
+      response.append("  \"args\": {}\n");
+      response.append("}");
+      exchange.sendResponseHeaders(200, response.toString().getBytes().length);
     }
     OutputStream os = exchange.getResponseBody();
-    os.write(response.getBytes());
+    os.write(response.toString().getBytes());
     os.close();
   }
 
@@ -137,5 +136,10 @@ public class TestHandler implements HttpHandler {
     } else {
       return key;
     }
+  }
+
+  private String formatHeaderValues(List<String> key) {
+    String merged = key.stream().reduce((a, b) -> a + ", " + b).orElse("");
+    return "\"" + StringEscapeUtils.escapeJson(merged) + "\"";
   }
 }
