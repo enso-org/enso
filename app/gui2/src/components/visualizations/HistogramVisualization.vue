@@ -1,10 +1,9 @@
 <script lang="ts">
 import SvgIcon from '@/components/SvgIcon.vue'
-import VisualizationContainer from '@/components/VisualizationContainer.vue'
-import { useVisualizationConfig } from '@/providers/visualizationConfig'
 import { useEvent, useEventConditional } from '@/util/events'
 import { getTextWidth } from '@/util/measurement'
 import { defineKeybinds } from '@/util/shortcuts'
+import { VisualizationContainer, useVisualizationConfig } from '@/util/visualizationBuiltins'
 import { computed, ref, watch, watchEffect, watchPostEffect } from 'vue'
 
 export const name = 'Histogram'

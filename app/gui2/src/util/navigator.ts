@@ -141,6 +141,12 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
 
   return proxyRefs({
     events: {
+      dragover(e: DragEvent) {
+        eventMousePos.value = eventScreenPos(e)
+      },
+      dragleave() {
+        eventMousePos.value = null
+      },
       pointermove(e: PointerEvent) {
         eventMousePos.value = eventScreenPos(e)
         panPointer.events.pointermove(e)

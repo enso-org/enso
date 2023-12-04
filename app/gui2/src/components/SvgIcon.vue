@@ -1,12 +1,12 @@
 <script setup lang="ts">
 /**
- * A component displaying svg icon.
+ * A component displaying a SVG icon.
  *
  * It displays one group defined in `@/assets/icons.svg` file, specified by `variant` property.
  */
 import icons from '@/assets/icons.svg'
-import type { URLString } from '@/stores/visualization/compilerMessaging'
 import type { Icon } from '@/util/iconName'
+import type { URLString } from '@/util/urlString'
 
 const props = defineProps<{ name: Icon | URLString; width?: number; height?: number }>()
 </script>

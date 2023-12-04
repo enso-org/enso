@@ -9,6 +9,7 @@ use crate::cache::Cache;
 // ==============
 
 pub mod binaryen;
+pub mod graalpy;
 pub mod graalvm;
 pub mod sbt;
 

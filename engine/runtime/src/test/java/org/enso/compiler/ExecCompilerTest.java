@@ -1,6 +1,5 @@
 package org.enso.compiler;
 
-import java.io.OutputStream;
 import java.nio.file.Paths;
 import java.util.logging.Level;
 
@@ -10,6 +9,7 @@ import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.io.IOAccess;
 import org.junit.AfterClass;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -78,6 +78,25 @@ public class ExecCompilerTest {
   }
 
   @Test
+  public void redefinedArgument() throws Exception {
+    var module = ctx.eval("enso", """
+    type My_Type
+        Value a b c a
+    """);
+    var run = module.invokeMember("eval_expression", "My_Type.Value");
+    var atom = run.newInstance(1, 2, 3, 4);
+    assertFalse("In spite of error we get an instance back: " + atom, atom.isException());
+    assertEquals("Just three keys", 3, atom.getMemberKeys().size());
+    assertTrue("Check a: " + atom.getMemberKeys(), atom.getMemberKeys().contains("a"));
+    assertTrue("Check b: " + atom.getMemberKeys(), atom.getMemberKeys().contains("b"));
+    assertTrue("Check c: " + atom.getMemberKeys(), atom.getMemberKeys().contains("c"));
+
+    assertEquals("c", 3, atom.getMember("c").asInt());
+    assertEquals("b", 2, atom.getMember("b").asInt());
+    assertEquals("First value of a is taken", 1, atom.getMember("a").asInt());
+  }
+
+  @Test
   public void testSelfAssignment() throws Exception {
     var module = ctx.eval("enso", """
     from Standard.Base.Errors.Common import all
@@ -124,6 +143,35 @@ public class ExecCompilerTest {
         fail("Expecting Invalid use of _, but was: " + e.getMessage());
       }
     }
+  }
+
+  @Test
+  public void chainedSyntax() throws Exception {
+    var module = ctx.eval("enso", """
+    from Standard.Base import all
+
+    nums n = [1, 2, 3, 4, 5]
+        . map (x-> x*2)
+        . filter (x-> x % 3 == 0)
+        . take n
+    """);
+    var run = module.invokeMember("eval_expression", "nums");
+    var six = run.execute(1);
+    assertTrue(six.hasArrayElements());
+    assertEquals(1, six.getArraySize());
+    assertEquals(6, six.getArrayElement(0).asInt());
+  }
+
+  @Test
+  public void chainedSyntaxOperator() throws Exception {
+    var module = ctx.eval("enso", """
+    nums n = n
+        * 2
+        % 3
+    """);
+    var run = module.invokeMember("eval_expression", "nums");
+    var result = run.execute(5);
+    assertEquals("10 % 3 is one", 1, result.asInt());
   }
 
   @Test

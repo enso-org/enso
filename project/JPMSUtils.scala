@@ -41,7 +41,7 @@ object JPMSUtils {
 
   /** Filters modules by their IDs from the given classpath.
     * @param cp The classpath to filter
-    * @param modules These modules are looked for in the class path
+    * @param modules These modules are looked for in the class path, can be duplicated.
     * @param shouldContainAll If true, the method will throw an exception if not all modules were found
     *                         in the classpath.
     * @return The classpath with only the provided modules searched by their IDs.
@@ -52,22 +52,25 @@ object JPMSUtils {
     log: sbt.util.Logger,
     shouldContainAll: Boolean = false
   ): Def.Classpath = {
+    val distinctModules = modules.distinct
+
     def shouldFilterModule(module: ModuleID): Boolean = {
-      modules.exists(m =>
+      distinctModules.exists(m =>
         m.organization == module.organization &&
         m.name == module.name &&
         m.revision == module.revision
       )
     }
+
     val ret = cp.filter(dep => {
       val moduleID = dep.metadata.get(AttributeKey[ModuleID]("moduleID")).get
       shouldFilterModule(moduleID)
     })
     if (shouldContainAll) {
-      if (ret.size < modules.size) {
+      if (ret.size < distinctModules.size) {
         log.error("Not all modules from classpath were found")
         log.error(s"Returned (${ret.size}): $ret")
-        log.error(s"Expected: (${modules.size}): $modules")
+        log.error(s"Expected: (${distinctModules.size}): $distinctModules")
       }
     }
     ret

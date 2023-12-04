@@ -21,6 +21,7 @@ const value = computed({
   },
 })
 </script>
+
 <script lang="ts">
 function getRawBoolNode(ast: AstExtended) {
   const candidate =
@@ -50,6 +51,7 @@ export const widgetDefinition = defineWidget(
   },
 )
 </script>
+
 <template>
   <CheckboxWidget
     v-model="value"
@@ -58,5 +60,3 @@ export const widgetDefinition = defineWidget(
     @beforeinput.stop
   />
 </template>
-
-<style scoped></style>
