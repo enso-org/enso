@@ -1328,6 +1328,9 @@ type Builder
 ## PRIVATE
    Describes an error produced by a function mapped over a Vector. Includes the
    funtion argument's position in the vector.
+
+   An error that is wrapped as a `Map_Error` can be caught as a `Map_Error`, or
+   as itself. In the latter case, the `Map_Error` wrapper is stripped off.
 type Map_Error
     Error (index:Integer) inner_error
 

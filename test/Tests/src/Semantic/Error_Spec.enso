@@ -424,27 +424,27 @@ spec =
 
     Test.group "Wrapped errors" <|
         Test.specify ".catch unwraps an error when the inner error is explicitly specified" <|
-            Error.throw (My_Error_Wrapper.Error (My_Error.Error 12)) . catch My_Error x->
-                x . should_equal (My_Error.Error 12)
+            e = Error.throw (My_Error_Wrapper.Error (My_Error.Error 12)) . catch My_Error
+            e . should_equal (My_Error.Error 12)
 
         Test.specify ".catch does not unwrap an error when the wrapper is explicitly specified" <|
-            Error.throw (My_Error_Wrapper.Error (My_Error.Error 12)) . catch My_Error_Wrapper x->
-                x . should_equal (My_Error_Wrapper.Error (My_Error.Error 12))
+            e = Error.throw (My_Error_Wrapper.Error (My_Error.Error 12)) . catch My_Error_Wrapper
+            e . should_equal (My_Error_Wrapper.Error (My_Error.Error 12))
 
         Test.specify ".catch does not unwrap an error when the wrapper is not specified" <|
-            Error.throw (My_Error_Wrapper.Error (My_Error.Error 12)) . catch handler=x->
-                x . should_equal (My_Error_Wrapper.Error (My_Error.Error 12))
+            e = Error.throw (My_Error_Wrapper.Error (My_Error.Error 12)) . catch
+            e . should_equal (My_Error_Wrapper.Error (My_Error.Error 12))
 
         Test.specify "When unwrapping, .catch unwraps an error fully when it is wrapped multiple times" <|
             wrap = My_Error_Wrapper.Error
             error = My_Error.Error 12
-            [error, wrap error, wrap (wrap error), wrap (wrap (wrap error))].map e->
-                Error.throw e . catch My_Error x->
-                    x . should_equal (My_Error.Error 12)
+            [error, wrap error, wrap (wrap error), wrap (wrap (wrap error))].map err->
+                e = Error.throw err . catch My_Error
+                e . should_equal (My_Error.Error 12)
 
         Test.specify "works with Nothing as an error" <|
-            Error.throw (My_Error_Wrapper.Error Nothing) . catch Nothing x->
-                x . should_equal Nothing
+            e = Error.throw (My_Error_Wrapper.Error Nothing) . catch Nothing
+            e . should_equal Nothing
 
 type C
     Baz x

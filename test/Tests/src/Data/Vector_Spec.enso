@@ -70,7 +70,7 @@ type_spec name alter = Test.group name <|
     map_fun a = if a == 30 then Error.throw (My_Error.Error a) else a+1
     flat_map_fun a = if (a.at 0) == 30 then Error.throw (My_Error.Error a) else a+[100]
     map_with_index_fun i a =
-        _ = [i]
+        _ = i
         if a == 30 then Error.throw (My_Error.Error a) else a+1
     zip_fun a b = if a == 30 then Error.throw (My_Error.Error a) else a+b+1
 
