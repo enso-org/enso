@@ -150,6 +150,12 @@ public abstract class PyForeignNode extends ForeignFunctionCallNode {
       } else if (zone != null) {
         arguments[i] = zone;
       }
+      // Enso's Text type should be converted to TruffleString before sent to python, because
+      // python does not tend to use InteropLibrary, so any Text object would be treated as
+      // a foreign object, rather than 'str' type.
+      if (iop.isString(arguments[i])) {
+        arguments[i] = iop.asTruffleString(arguments[i]);
+      }
     }
     return coercePrimitiveNode.execute(interopLibrary.execute(getForeignFunction(), arguments));
   }

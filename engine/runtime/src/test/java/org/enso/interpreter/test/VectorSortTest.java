@@ -51,6 +51,7 @@ public class VectorSortTest extends TestBase {
 
   @AfterClass
   public static void disposeCtx() {
+    values.clear();
     context.close();
   }
 

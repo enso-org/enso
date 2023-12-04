@@ -1,6 +1,5 @@
 package org.enso.compiler.core.ir
 
-import com.oracle.truffle.api.source.Source
 import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
 import org.enso.compiler.core.{IR, Identifier}
 import org.enso.compiler.core.IR.randomId
@@ -82,7 +81,7 @@ sealed case class Empty(
   override def children: List[IR] = List()
 
   /** @inheritdoc */
-  override def message(source: Source): String =
+  override def message(source: (IdentifiedLocation => String)): String =
     "Empty IR: Please report this as a compiler bug."
 
   /** @inheritdoc */

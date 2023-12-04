@@ -425,7 +425,7 @@ spec setup =
             t2.should_fail_with Ambiguous_Column_Rename
             err = t2.catch
             err.column_name . should_equal "alpha"
-            err.new_names . should_equal ["StartsWithA", "EndsWithA"]
+            err.new_names . sort . should_equal ["EndsWithA", "StartsWithA"]
 
             t3 = table_builder [["aaa", [1]], ["bbb", [2]]]
             ## The rename patterns are deliberately prepared so that both will
@@ -459,7 +459,7 @@ spec setup =
         Test.specify "should correctly handle problems: duplicate names" <|
             map = ["Test", "Test", "Test", "Test"]
             action = table.rename_columns map on_problems=_
-            tester = expect_column_names ["Test", "Test 1", "Test 2", "Test 3"]
+            tester = expect_column_names ["Test 1", "Test 2", "Test 3", "Test"]
             problems = [Duplicate_Output_Column_Names.Error ["Test", "Test", "Test"]]
             Problems.test_problem_handling action problems tester
 

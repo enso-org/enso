@@ -18,7 +18,8 @@ export interface VisualizationIdentifier {
   name: string
 }
 
-export interface VisualizationMetadata extends VisualizationIdentifier {
+export interface VisualizationMetadata {
+  identifier: VisualizationIdentifier | null
   visible: boolean
 }
 
@@ -27,13 +28,16 @@ export function visMetadataEquals(
   b: VisualizationMetadata | null | undefined,
 ) {
   return (
-    (a == null && b == null) ||
-    (a != null && b != null && a.visible === b.visible && visIdentifierEquals(a, b))
+    (!a && !b) ||
+    (a && b && a.visible === b.visible && visIdentifierEquals(a.identifier, b.identifier))
   )
 }
 
-export function visIdentifierEquals(a: VisualizationIdentifier, b: VisualizationIdentifier) {
-  return a.name === b.name && object.equalFlat(a.module, b.module)
+export function visIdentifierEquals(
+  a: VisualizationIdentifier | null | undefined,
+  b: VisualizationIdentifier | null | undefined,
+) {
+  return (!a && !b) || (a && b && a.name === b.name && object.equalFlat(a.module, b.module))
 }
 
 export type ProjectSetting = string
@@ -195,9 +199,7 @@ export class DistributedModule {
 
   updateNodeMetadata(id: ExprId, meta: Partial<NodeMetadata>): void {
     const existing = this.doc.metadata.get(id) ?? { x: 0, y: 0, vis: null }
-    this.transact(() => {
-      this.doc.metadata.set(id, { ...existing, ...meta })
-    })
+    this.transact(() => this.doc.metadata.set(id, { ...existing, ...meta }))
   }
 
   getNodeMetadata(id: ExprId): NodeMetadata | null {

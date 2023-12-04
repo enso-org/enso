@@ -784,6 +784,13 @@ class ValuesGenerator {
     return v;
   }
 
+  public void dispose() {
+    values.clear();
+    multiValues.clear();
+    computed.clear();
+    languages.clear();
+  }
+
   public enum Language {
     ENSO, JAVASCRIPT, PYTHON, JAVA
   }
