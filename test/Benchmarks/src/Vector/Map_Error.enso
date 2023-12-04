@@ -11,6 +11,9 @@ polyglot java import java.util.ArrayList
 
 options = Bench.options . set_warmup (Bench.phase_conf 1 3) . set_measure (Bench.phase_conf 1 3)
 
+type Data
+    Value ~vec
+
 ## Repeats 0..9
 create_vec = Vector.new 100000 (i-> i%10)
 
@@ -27,20 +30,20 @@ throw_ten_percent i = if i > 0 then i else
     Error.throw (Illegal_Argument.Error "error")
 
 collect_benches = Bench.build builder->
-    unaltered_data = create_vec
+    unaltered_data = Data.Value create_vec
 
     type_group vector_type alter =
-        data = alter unaltered_data
+        data = Data.Value (alter unaltered_data.vec)
 
         builder.group "Map_Error_"+vector_type options group_builder->
             group_builder.specify "Map_Id_No_Errors" <|
-                data.map id
+                data.vec.map id
             group_builder.specify "Map_Id_One_Error" <|
-                data.map id_one_error . catch
+                data.vec.map id_one_error . catch
             group_builder.specify "Map_Id_All_Errors_With_Ignore" <|
-                data.map always_throw on_problems=Problem_Behavior.Ignore
+                data.vec.map always_throw on_problems=Problem_Behavior.Ignore
             group_builder.specify "Map_Id_Ten_Percent_Errors_With_Ignore" <|
-                data.map throw_ten_percent on_problems=Problem_Behavior.Ignore
+                data.vec.map throw_ten_percent on_problems=Problem_Behavior.Ignore
 
     type_group "Vector" identity
     type_group "Array" (v -> v.to_array)

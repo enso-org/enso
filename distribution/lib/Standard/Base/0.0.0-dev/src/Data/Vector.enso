@@ -588,16 +588,14 @@ type Vector a
 
          The result of Errors thrown when executing the function depend on
          `on_problems`:
-         - Problem_Behavior.Report_Error: The error is thrown.
-         - Problem_Behavior.Report_Warning: The result is `Nothing`, with the
-           error attached as a warning. Currently unimplemented.
-         - Problem_Behavior.Ignore: The result is `Nothing`, and the error is
+         - Report_Error: The first error is thrown.
+         - Report_Warning: The result for that element is `Nothing`, 
+           the error is attached as a warning. Currently unimplemented.
+         - Ignore: The result is `Nothing`, and the error is
            ignored.
 
-       ! Error Conditions
-
          Errors that are thrown when executing the supplied function are wrapped
-         in `Map_Error`.
+         in `Map_Error`, which contains the index at which the error occurred.
 
          In the `Problem_Behavior.Report_Warning` case, only `MAX_MAP_WARNINGS`
          warnings are attached to result values. After that, the warnings are
@@ -1330,6 +1328,9 @@ type Builder
 ## PRIVATE
    Describes an error produced by a function mapped over a Vector. Includes the
    funtion argument's position in the vector.
+
+   An error that is wrapped as a `Map_Error` can be caught as a `Map_Error`, or
+   as itself. In the latter case, the `Map_Error` wrapper is stripped off.
 type Map_Error
     Error (index:Integer) inner_error
 

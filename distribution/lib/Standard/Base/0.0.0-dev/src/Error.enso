@@ -121,15 +121,15 @@ type Error
              map_fun a = if a == 30 then Error.throw (Some_Error.Error a) else a+1
 
              # Catch an error as the inner error
-             alter [10, 20, 30, 40] . map map_fun . catch Some_Error
+             [10, 20, 30, 40] . map map_fun . catch Some_Error
              # => (Some_Error.Error 30)
 
              # Catch an error as the outer error
-             alter [10, 20, 30, 40] . map map_fun . catch Map_Error
+             [10, 20, 30, 40] . map map_fun . catch Map_Error
              # => (Map_Error.Error 2 (Some_Error.Error 30))
 
              # Catch an error without specifying an error type
-             alter [10, 20, 30, 40] . map map_fun . catch
+             [10, 20, 30, 40] . map map_fun . catch
              # => (Map_Error.Error 2 (Some_Error.Error 30))
     catch : Any -> (Error -> Any) -> Any
     catch self (error_type = Any) (handler = x->x) =
