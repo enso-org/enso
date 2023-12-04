@@ -399,7 +399,11 @@ function portGroupStyle(port: PortData) {
     <div class="node" @keydown="nodeEditHandler">
       <SvgIcon class="icon grab-handle" :name="icon"></SvgIcon>
       <div ref="contentNode" class="widget-tree">
-        <NodeWidgetTree :ast="node.rootSpan" />
+        <NodeWidgetTree
+          :ast="
+            exprWithoutEnabledOutputContext ?? exprWithoutDisabledOutputContext ?? node.rootSpan
+          "
+        />
       </div>
     </div>
     <GraphNodeError v-if="error" class="error" :error="error" />
