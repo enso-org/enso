@@ -359,8 +359,6 @@ test.each(cases)('parse/print round trip: %s', (code) => {
   const reprinted = root1.print()
   expect(reprinted.info).toEqual(info1)
    */
-
-  Ast.forgetAllAsts()
 })
 
 const parseCases = [
@@ -370,7 +368,6 @@ const parseCases = [
 test.each(parseCases)('parse: %s', (testCase) => {
   const root = Ast.parse(testCase.code)
   expect(Ast.debug(root)).toEqual(testCase.tree)
-  Ast.forgetAllAsts()
 })
 
 // TODO: Edits (#8367).
@@ -384,7 +381,6 @@ if (false) {
     insertNewNodeAST(main!, 'baz', '42')
     const printed = root.print()
     expect(printed.code).toEqual('main =\n    text1 = "foo"\n    baz = 42\n')
-    Ast.forgetAllAsts()
   })
 
   test('replace expression content', () => {
@@ -396,7 +392,6 @@ if (false) {
     replaceExpressionContentAST(newAssignment.value, '23')
     const printed = root.print()
     expect(printed.code).toEqual('main =\n    text1 = "foo"\n    baz = 23\n')
-    Ast.forgetAllAsts()
   })
 
   test('delete expression', () => {
@@ -408,7 +403,6 @@ if (false) {
     deleteExpressionAST(newAssignment.assignment)
     const printed = root.print()
     expect(printed.code).toEqual(originalCode)
-    Ast.forgetAllAsts()
   })
 }
  */

@@ -373,7 +373,7 @@ export type UnconnectedEdge = {
 }
 
 function getExecutedMethodAst(
-  ast_: Ast.Ast,
+  ast: Ast.Ast,
   executionStackTop: StackItem,
 ): Ast.Function | undefined {
   switch (executionStackTop.type) {
@@ -381,7 +381,7 @@ function getExecutedMethodAst(
       // Assume that the provided AST matches the module in the method pointer. There is no way to
       // actually verify this assumption at this point.
       const ptr = executionStackTop.methodPointer
-      return Ast.findModuleMethod(ptr.name) ?? undefined
+      return Ast.findModuleMethod(ast.module, ptr.name) ?? undefined
     }
     case 'LocalCall': {
       console.error(`TODO (#8068)--this should not be reachable yet`)
