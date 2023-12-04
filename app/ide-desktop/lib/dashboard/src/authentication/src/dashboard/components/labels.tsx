@@ -121,7 +121,7 @@ export default function Labels(props: LabelsProps) {
                             event.stopPropagation()
                             setModal(
                                 <NewLabelModal
-                                    labelNames={new Set(labels.map(label => label.value))}
+                                    labels={labels}
                                     eventTarget={event.currentTarget}
                                     doCreate={doCreateLabel}
                                 />

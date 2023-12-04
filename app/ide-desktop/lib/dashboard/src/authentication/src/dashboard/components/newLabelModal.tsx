@@ -10,34 +10,60 @@ import * as modalProvider from '../../providers/modal'
 import ColorPicker from './colorPicker'
 import Modal from './modal'
 
+// =================
+// === Constants ===
+// =================
+
+const COLOR_STRING_TO_COLOR = new Map(
+    backend.COLORS.map(color => [backend.lChColorToCssColor(color), color])
+)
+const INITIAL_COLOR_COUNTS = new Map(
+    backend.COLORS.map(color => [backend.lChColorToCssColor(color), 0])
+)
+
 // =====================
 // === NewLabelModal ===
 // =====================
 
 /** Props for a {@link NewLabelModal}. */
 export interface NewLabelModalProps {
-    labelNames: Set<string>
+    labels: backend.Label[]
     eventTarget: HTMLElement
     doCreate: (value: string, color: backend.LChColor) => void
 }
 
 /** A modal for creating a new label. */
 export default function NewLabelModal(props: NewLabelModalProps) {
-    const { labelNames, eventTarget, doCreate } = props
+    const { labels, eventTarget, doCreate } = props
     const logger = loggerProvider.useLogger()
     const { unsetModal } = modalProvider.useSetModal()
     const position = React.useMemo(() => eventTarget.getBoundingClientRect(), [eventTarget])
 
+    const labelNames = React.useMemo(
+        () => new Set<string>(labels.map(label => label.value)),
+        [labels]
+    )
+    const leastUsedColor = React.useMemo(() => {
+        const colorCounts = new Map(INITIAL_COLOR_COUNTS)
+        for (const label of labels) {
+            const colorString = backend.lChColorToCssColor(label.color)
+            colorCounts.set(colorString, (colorCounts.get(colorString) ?? 0) + 1)
+        }
+        const min = Math.min(...colorCounts.values())
+        const [minColor] = [...colorCounts.entries()].find(kv => kv[1] === min) ?? []
+        return minColor == null
+            ? backend.COLORS[0]
+            : COLOR_STRING_TO_COLOR.get(minColor) ?? backend.COLORS[0]
+    }, [labels])
+
     const [value, setName] = React.useState('')
     const [color, setColor] = React.useState<backend.LChColor | null>(null)
-    const canSubmit = Boolean(value && !labelNames.has(value) && color)
+    const canSubmit = Boolean(value && !labelNames.has(value))
 
     const onSubmit = () => {
         unsetModal()
         try {
-            if (color != null) {
-                doCreate(value, color)
-            }
+            doCreate(value, color ?? leastUsedColor)
         } catch (error) {
             const message = errorModule.getMessageOrToString(error)
             toastify.toast.error(message)
