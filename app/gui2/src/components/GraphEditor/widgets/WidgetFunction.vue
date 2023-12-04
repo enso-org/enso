@@ -41,7 +41,6 @@ const application = computed(() => {
 
 const selfArgumentAstId = computed<Opt<ExprId>>(() => {
   const tree = props.input
-  InterpretedCall
   if (tree.isTree(Tree.Type.OprApp)) {
     return tree.tryMap((tree) => tree.lhs)?.astId
   } else if (tree.isTree(Tree.Type.App)) {
