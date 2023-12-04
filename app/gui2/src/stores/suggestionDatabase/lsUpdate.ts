@@ -131,7 +131,7 @@ export function entryFromLs(
     () => {
       switch (lsEntry.type) {
         case 'function': {
-          const entry = { 
+          const entry = {
             kind: SuggestionKind.Function,
             annotations: [],
           }
@@ -161,7 +161,7 @@ export function entryFromLs(
           return Ok(entry)
         }
         case 'type': {
-          const entry = { 
+          const entry = {
             kind: SuggestionKind.Type,
             returnType: '',
             annotations: [],
@@ -207,8 +207,8 @@ export function entryFromLs(
           })
         }
         case 'local': {
-          const entry = { 
-            kind: SuggestionKind.Local, 
+          const entry = {
+            kind: SuggestionKind.Local,
             arguments: [],
             annotations: [],
           }

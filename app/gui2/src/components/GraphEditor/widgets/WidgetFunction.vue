@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { Tree } from '@/generated/ast'
-import { widgetConfigurationSchema } from '@/providers/widgetRegistry/configuration'
 import { injectFunctionInfo, provideFunctionInfo } from '@/providers/functionInfo'
 import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import { widgetConfigurationSchema } from '@/providers/widgetRegistry/configuration'
 import { useGraphStore } from '@/stores/graph'
 import { useProjectStore, type NodeVisualizationConfiguration } from '@/stores/project'
 import { AstExtended } from '@/util/ast'
