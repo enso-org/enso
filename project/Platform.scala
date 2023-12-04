@@ -15,8 +15,10 @@ object Platform {
   def isMacOS: Boolean =
     sys.props("os.name").toLowerCase().contains("mac")
 
-  def isAmd64: Boolean =
-    sys.props("os.arch").toLowerCase().contains("amd64")
+  def isAmd64: Boolean = {
+    val arch = sys.props("os.arch").toLowerCase()
+    arch.contains("amd64") || arch.contains("x86_64")
+  }
 
   def isArm64: Boolean =
     sys.props("os.arch").toLowerCase().contains("aarch64")
