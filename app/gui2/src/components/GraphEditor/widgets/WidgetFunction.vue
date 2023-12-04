@@ -67,9 +67,7 @@ const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => 
   const tree = props.input
   const expressionId = selfArgumentAstId.value
   const astId = tree.astId
-  if (astId == null || expressionId == null) {
-    return null
-  }
+  if (astId == null || expressionId == null) return null
   const info = graph.db.getMethodCallInfo(astId)
   if (!info) return null
   const args = info.suggestion.annotations
