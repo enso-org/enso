@@ -27,7 +27,7 @@ function withEnabledOutputContextPatternText(name: string) {
   return (
     "Standard.Base.Runtime.with_enabled_context Standard.Base.Runtime.Context.Output '" +
     astStringEscape(name) +
-    "' "
+    "' <| "
   )
 }
 const withEnabledOutputContextPatternAst = AstExtended.parseLine(
@@ -37,7 +37,7 @@ function withDisabledOutputContextPatternText(name: string) {
   return (
     "Standard.Base.Runtime.with_disabled_context Standard.Base.Runtime.Context.Output '" +
     astStringEscape(name) +
-    "' "
+    "' <| "
   )
 }
 const withDisabledOutputContextPatternAst = AstExtended.parseLine(
