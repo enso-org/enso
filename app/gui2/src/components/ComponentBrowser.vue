@@ -145,20 +145,28 @@ watch(
 )
 
 function handleDefocus(e: FocusEvent) {
-  console.log(e)
   const stillInside =
     cbRoot.value != null &&
     e.relatedTarget instanceof Node &&
     cbRoot.value.contains(e.relatedTarget)
-  if (stillInside) {
-    if (inputField.value != null) {
-      inputField.value.focus({ preventScroll: true })
-    }
-  } else {
-    console.log('DEFOCUS')
-    // emit('closed', input.code.value)
+  // We want to focus input even when relatedTarget == null, because sometimes defocus event is
+  // caused by focused item being removed, for example an entry in visualization chooser.
+  if (stillInside || e.relatedTarget == null) {
+    inputField.value?.focus({ preventScroll: true })
   }
 }
+
+useEvent(
+  window,
+  'pointerdown',
+  (event) => {
+    if (!(event.target instanceof Element)) return
+    if (!cbRoot.value?.contains(event.target)) {
+      emit('closed', input.code.value)
+    }
+  },
+  { capture: true },
+)
 
 // === Preview ===
 
@@ -530,17 +538,17 @@ const handler = componentBrowserBindings.handler({
 
 .docs {
   width: 406px;
-  clip-path: inset(0 0 0 0 round --radius-default);
+  clip-path: inset(0 0 0 0 round var(--radius-default));
   transition: clip-path 0.2s;
 }
 .docs.hidden {
-  clip-path: inset(0 100% 0 0 round --radius-default);
+  clip-path: inset(0 100% 0 0 round var(--radius-default));
 }
 
 .list {
   top: var(--radius-default);
   width: 100%;
-  height: calc(100% - --radius-default);
+  height: calc(100% - var(--radius-default));
   overflow-x: hidden;
   overflow-y: auto;
   position: relative;
