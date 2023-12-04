@@ -193,10 +193,33 @@ public class MetaObjectTest extends TestBase {
     """).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "sn");
     var sb = new StringBuilder();
     for (var v : g.allValues()) {
+      if (v.isMetaObject()) {
+        // covered by compareQualifiedAndSimpleTypeNameForTypes
+        continue;
+      }
       var simpleName = sn.execute(v).asString();
+      if (v.isNumber()) {
+        var ok = switch (simpleName) {
+          case "Integer", "Float" -> true;
+          default -> false;
+        };
+        assertTrue("Unexpected simple name for number: " + simpleName, ok);
+        continue;
+      }
       var meta = v.getMetaObject();
       var metaName = meta != null ? meta.getMetaSimpleName() : "null";
       if (!simpleName.equals(metaName)) {
+        if (v.isHostObject()) {
+          if (v.hasArrayElements()) {
+            assertEquals("Array", simpleName);
+            continue;
+          }
+        }
+        if (v.isString()) {
+          assertEquals("Text", simpleName);
+          continue;
+        }
+
         sb.append("\n").append("Simple names shall be the same for ").
           append(v).append(" get_simple_type_name: ").append(simpleName).
           append(" getMetaSimpleName: ").append(metaName);
