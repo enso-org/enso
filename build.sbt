@@ -1627,6 +1627,15 @@ lazy val `runtime-with-instruments` =
         "org.graalvm.truffle" % "truffle-dsl-processor" % graalMavenPackagesVersion % Test,
         "org.slf4j"           % "slf4j-nop"             % slf4jVersion              % Benchmark
       ),
+      // Add all GraalVM packages with Runtime scope - we don't need them for compilation,
+      // just provide them at runtime (in module-path).
+      libraryDependencies ++= {
+        val necessaryModules =
+          GraalVM.modules.map(_.withConfigurations(Some(Runtime.name)))
+        val langs =
+          GraalVM.langsPkgs.map(_.withConfigurations(Some(Runtime.name)))
+        necessaryModules ++ langs
+      },
       // Note [Unmanaged Classpath]
       Test / unmanagedClasspath += (baseDirectory.value / ".." / ".." / "app" / "gui" / "view" / "graph-editor" / "src" / "builtin" / "visualization" / "native" / "inc"),
       // Filter module-info.java from the compilation
@@ -1658,9 +1667,15 @@ lazy val `runtime-with-instruments` =
       assembly / assemblyJarName := "runtime.jar",
       assembly / test := {},
       assembly / assemblyOutputPath := file("runtime.jar"),
-      // Exclude all the Truffle/Graal related artifacts from the Uber jar
       assembly / assemblyExcludedJars := {
-        val pkgsToExclude = JPMSUtils.componentModules
+        // bouncycastle jdk5 needs to be excluded from the Uber jar, as otherwise its packages would
+        // clash with packages in org.bouncycastle.jdk18 modules
+        val bouncyCastleJdk5 = Seq(
+          "org.bouncycastle" % "bcutil-jdk15on" % bcpkixJdk15Version,
+          "org.bouncycastle" % "bcpkix-jdk15on" % bcpkixJdk15Version,
+          "org.bouncycastle" % "bcprov-jdk15on" % bcpkixJdk15Version
+        )
+        val pkgsToExclude = JPMSUtils.componentModules ++ bouncyCastleJdk5
         val ourFullCp     = (Runtime / fullClasspath).value
         JPMSUtils.filterModulesFromClasspath(
           ourFullCp,

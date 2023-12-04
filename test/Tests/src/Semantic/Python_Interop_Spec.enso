@@ -53,6 +53,12 @@ foreign python make_num_array = """
 foreign python make_str str = """
     return ("foo " + str + " bar")
 
+foreign python py_is_str obj = """
+    if type(obj) == str:
+        return True
+    else:
+        return False
+
 foreign python make_int = """
     return 10
 
@@ -101,6 +107,12 @@ spec =
             sorted_2 = arr_2.sort
             arr_2 . should_equal [30, 10, 20]
             sorted_2 . should_equal [10, 20, 30]
+
+
+        Test.specify "should recognize Text as Python string" <|
+            py_is_str "Hello" . should_be_true
+            py_is_str 10 . should_be_false
+            py_is_str Nothing . should_be_false
 
 
         Test.specify "should correctly marshall strings" <|
