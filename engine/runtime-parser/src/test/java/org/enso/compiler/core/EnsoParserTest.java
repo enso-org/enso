@@ -1246,6 +1246,62 @@ public class EnsoParserTest {
   }
 
   @Test
+  public void testBlockSyntax() throws Exception {
+    equivalenceTest("""
+    nums v fm ff n = v . map fm . filter ff . take n
+    """, """
+    nums v fm ff n = v
+        . map fm
+        . filter ff
+        . take n
+    """);
+  }
+
+  @Test
+  public void testBlockSyntaxOperators() throws Exception {
+    equivalenceTest("""
+    value = nums * each random + constant
+    """, """
+    value = nums
+        * each random
+        + constant
+    """);
+  }
+
+  @Test
+  public void testBlockSyntaxOperators2() throws Exception {
+    equivalenceTest("""
+    value = (nums + each random) * constant
+    """, """
+    value = nums
+        + each random
+        * constant
+    """);
+  }
+
+  @Test
+  public void testBlockSyntaxOperators3() throws Exception {
+    equivalenceTest("""
+    v = (rect1 . width) . center
+    """, """
+    v = rect1
+        . width
+        . center
+    """);
+  }
+
+  @Test
+  public void testBlockSyntaxOperators4() throws Exception {
+    equivalenceTest("""
+    v = (rect1 . width 4) . center 3 2
+    """, """
+    v = rect1
+        . width 4
+        . center 3 2
+    """);
+  }
+
+  @Test
   public void testPrivateModules() throws Exception {
     List<String> moduleCodes = List.of(
         "private",

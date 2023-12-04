@@ -9,7 +9,7 @@ export const defaultPreprocessor = [
 </script>
 
 <script setup lang="ts">
-import VisualizationContainer from '@/components/VisualizationContainer.vue'
+import { VisualizationContainer } from '@/util/visualizationBuiltins'
 
 type Data = string[]
 

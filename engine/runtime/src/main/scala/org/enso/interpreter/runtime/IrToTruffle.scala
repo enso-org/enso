@@ -1842,6 +1842,10 @@ class IrToTruffle(
           context.getBuiltins
             .error()
             .makeCompileError(Text.create(err.message(fileLocationFromSection)))
+        case err: errors.Redefined.Arg =>
+          context.getBuiltins
+            .error()
+            .makeCompileError(Text.create(err.message(fileLocationFromSection)))
         case err: errors.Unexpected.TypeSignature =>
           context.getBuiltins
             .error()
