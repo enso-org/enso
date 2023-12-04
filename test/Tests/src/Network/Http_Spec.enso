@@ -311,6 +311,9 @@ spec =
                 }
             response . should_equal expected_response
 
+            uri_response = url_post.to_uri.post body
+            uri_response . should_equal expected_response
+
         Test.specify "Can perform a Text POST with explicit content type" <|
             response = Data.post url_post (Request_Body.Text 'a,b,c\n' content_type="text/csv")
             expected_response = Json.parse <| '''
@@ -649,3 +652,25 @@ spec =
             resolve_headers (Request.new HTTP_Method.Get "" [Header.content_type "application/json", Header.content_type "text/plain"] (Request_Body.Text "")) . should_contain_the_same_elements_as expected
 
 main = Test_Suite.run_main spec
+
+response_template method data content_type content_length=data.length =
+    template = '''
+        {
+          "headers": {
+            "Connection": "Upgrade, HTTP2-Settings",
+            "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
+            "User-Agent": "Java-http-client/21.0.1",
+            "Upgrade": "h2c",
+            "Content-Type": "<$CONTENT_TYPE>",
+            "Content-Length": "<$CONTENT_LENGTH>"
+          },
+          "origin": "127.0.0.1",
+          "url": "",
+          "method": "<$METHOD>",
+          "form": null,
+          "files": null,
+          "data": <$DATA>,
+          "args": {}
+        }
+
+    template.replace "<$CONTENT_TYPE>" content_type . replace "<$CONTENT_LENGTH>" content_length.to_text . replace "<$METHOD>" method . replace "<$DATA>" data.to_json
