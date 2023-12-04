@@ -82,7 +82,7 @@ public final class TypeToDisplayTextNode extends Node {
       return "Ref";
     } else if (iop.hasMetaObject(value)) {
       try {
-        return iop.asString(iop.toDisplayString(iop.getMetaObject(value)));
+        return iop.asString(iop.getMetaSimpleName(iop.getMetaObject(value)));
       } catch (UnsupportedMessageException e) {
         throw new IllegalStateException("Receiver declares a meta object, but does not return it.");
       }

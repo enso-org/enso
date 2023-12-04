@@ -214,6 +214,10 @@ public class MetaObjectTest extends TestBase {
             assertEquals("Array", simpleName);
             continue;
           }
+          if (v.hasHashEntries()) {
+            assertEquals("Map", simpleName);
+            continue;
+          }
         }
         if (v.isString()) {
           assertEquals("Text", simpleName);
@@ -237,6 +241,10 @@ public class MetaObjectTest extends TestBase {
         }
         if (v.isTime()) {
           assertEquals("Time_Of_Day", simpleName);
+          continue;
+        }
+        if (v.isNull()) {
+          assertEquals("Nothing", simpleName);
           continue;
         }
 
