@@ -59,9 +59,7 @@ const selfArgumentAstId = computed<Opt<ExprId>>(() => {
   if (analyzed.kind === 'infix') {
     return analyzed.lhs?.astId
   } else {
-    // We’re not interested in prefix applications, as functions can’t have widget annotations
-    // and it’s not possible to call a method in a prefix form (any method call is an infix application).
-    return null
+    return analyzed.args[0]?.argument.astId
   }
 })
 
