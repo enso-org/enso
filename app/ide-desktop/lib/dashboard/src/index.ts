@@ -41,7 +41,7 @@ if (detect.IS_DEV_MODE && (!(typeof IS_VITE !== 'undefined') || !IS_VITE)) {
 authentication.run({
     logger: console,
     // This file is only included when building for the cloud.
-    supportsLocalBackend: false,
+    supportsLocalBackend: true,
     supportsDeepLinks: false,
     isAuthenticationDisabled: false,
     shouldShowDashboard: true,

@@ -270,10 +270,19 @@ export default function AssetRow(props: AssetRowProps) {
                 }
                 break
             }
+            case assetEventModule.AssetEventType.download: {
+                if (event.ids.has(item.key)) {
+                    download.download(
+                        `./api/project-manager/projects/${asset.id}/enso-project`,
+                        `${asset.title}.enso-project`
+                    )
+                }
+                break
+            }
             case assetEventModule.AssetEventType.downloadSelected: {
                 if (selected) {
                     download.download(
-                        './api/project-manager/' + `projects/${asset.id}/enso-project`,
+                        `./api/project-manager/projects/${asset.id}/enso-project`,
                         `${asset.title}.enso-project`
                     )
                 }
