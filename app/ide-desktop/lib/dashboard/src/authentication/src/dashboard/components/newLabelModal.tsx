@@ -10,17 +10,6 @@ import * as modalProvider from '../../providers/modal'
 import ColorPicker from './colorPicker'
 import Modal from './modal'
 
-// =================
-// === Constants ===
-// =================
-
-const COLOR_STRING_TO_COLOR = new Map(
-    backend.COLORS.map(color => [backend.lChColorToCssColor(color), color])
-)
-const INITIAL_COLOR_COUNTS = new Map(
-    backend.COLORS.map(color => [backend.lChColorToCssColor(color), 0])
-)
-
 // =====================
 // === NewLabelModal ===
 // =====================
@@ -43,18 +32,7 @@ export default function NewLabelModal(props: NewLabelModalProps) {
         () => new Set<string>(labels.map(label => label.value)),
         [labels]
     )
-    const leastUsedColor = React.useMemo(() => {
-        const colorCounts = new Map(INITIAL_COLOR_COUNTS)
-        for (const label of labels) {
-            const colorString = backend.lChColorToCssColor(label.color)
-            colorCounts.set(colorString, (colorCounts.get(colorString) ?? 0) + 1)
-        }
-        const min = Math.min(...colorCounts.values())
-        const [minColor] = [...colorCounts.entries()].find(kv => kv[1] === min) ?? []
-        return minColor == null
-            ? backend.COLORS[0]
-            : COLOR_STRING_TO_COLOR.get(minColor) ?? backend.COLORS[0]
-    }, [labels])
+    const leastUsedColor = React.useMemo(() => backend.leastUsedColor(labels), [labels])
 
     const [value, setName] = React.useState('')
     const [color, setColor] = React.useState<backend.LChColor | null>(null)
