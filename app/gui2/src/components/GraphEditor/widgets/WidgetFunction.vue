@@ -1,16 +1,17 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { Tree } from '@/generated/ast'
+import { widgetConfigurationSchema } from '@/providers/widgetRegistry/configuration'
 import { injectFunctionInfo, provideFunctionInfo } from '@/providers/functionInfo'
 import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
-import { widgetConfigurationSchema } from '@/providers/widgetRegistry/configuration'
 import { useGraphStore } from '@/stores/graph'
 import { useProjectStore, type NodeVisualizationConfiguration } from '@/stores/project'
 import { AstExtended } from '@/util/ast'
 import { ArgumentApplication } from '@/util/callTree'
 import type { Opt } from '@/util/opt'
 import type { ExprId } from 'shared/yjsModel'
-import { computed, proxyRefs } from 'vue'
+import { computed, proxyRefs, watch } from 'vue'
+
 const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()
 const project = useProjectStore()
@@ -21,17 +22,25 @@ provideFunctionInfo(
   }),
 )
 
-const application = computed(() => {
+const methodCallInfo = computed(() => {
   const astId = props.input.astId
-  if (astId == null) return props.input
-  const info = graph.db.getMethodCallInfo(astId)
-  const interpreted = ArgumentApplication.Interpret(props.input, info == null)
+  if (astId == null) return null
+  return graph.db.getMethodCallInfo(astId)
+})
 
+const interpreted = computed(() => {
+  return ArgumentApplication.Interpret(props.input, methodCallInfo.value == null)
+})
+
+const application = computed(() => {
+  const analyzed = interpreted.value
+  if (!analyzed) return props.input
   const noArgsCall =
-    interpreted.kind === 'prefix' ? graph.db.getMethodCall(interpreted.func.astId) : undefined
+    analyzed.kind === 'prefix' ? graph.db.getMethodCall(analyzed.func.astId) : undefined
 
+  const info = methodCallInfo.value
   return ArgumentApplication.FromInterpretedWithInfo(
-    interpreted,
+    analyzed,
     noArgsCall,
     info?.methodCall,
     info?.suggestion,
@@ -39,25 +48,22 @@ const application = computed(() => {
   )
 })
 
-const selfArgumentAstId = computed<Opt<ExprId>>(() => {
-  const tree = props.input
-  if (tree.isTree(Tree.Type.OprApp)) {
-    return tree.tryMap((tree) => tree.lhs)?.astId
-  } else if (tree.isTree(Tree.Type.App)) {
-    return tree.tryMap((tree) => tree.arg)?.astId
-  } else if (tree.isTree(Tree.Type.NamedApp)) {
-    return tree.tryMap((tree) => tree.arg)?.astId
-  } else if (tree.isTree(Tree.Type.Ident)) {
-    return tree.astId
-  }
-  return null
-})
-
 const escapeString = (str: string): string => {
-  const escaped = str.replaceAll(/([\\'])/, '\\$1')
+  const escaped = str.replaceAll(/([\\'])/g, '\\$1')
   return `'${escaped}'`
 }
 const makeArgsList = (args: string[]) => '[' + args.map(escapeString).join(', ') + ']'
+
+const selfArgumentAstId = computed<Opt<ExprId>>(() => {
+  const analyzed = ArgumentApplication.Interpret(props.input, true)
+  if (analyzed.kind === 'infix') {
+    return analyzed.lhs?.astId
+  } else {
+    // We’re not interested in prefix applications, as functions can’t have widget annotations
+    // and it’s not possible to call a method in a prefix form (any method call is an infix application).
+    return null
+  }
+})
 
 const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => {
   const tree = props.input
@@ -68,7 +74,8 @@ const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => 
   }
   const info = graph.db.getMethodCallInfo(astId)
   if (!info) return null
-  const args = info.suggestion.arguments.map((arg) => arg.name)
+  const args = info.suggestion.annotations
+  if (args.length === 0) return null
   const name = info.suggestion.name
   return {
     expressionId,
@@ -95,6 +102,8 @@ const widgetConfiguration = computed(() => {
   }
   return null
 })
+
+watch(widgetConfiguration, (c) => console.log(props.input.repr(), c), { immediate: true })
 </script>
 <script lang="ts">
 export const widgetDefinition = defineWidget(
