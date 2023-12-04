@@ -118,7 +118,7 @@ export default function ManageLabelsModal<
                 >
                     <div className="absolute bg-frame-selected backdrop-blur-3xl rounded-2xl h-full w-full" />
                     <form
-                        className="relative flex flex-col gap-1 rounded-2xl gap-2 p-2"
+                        className="relative flex flex-col rounded-2xl gap-2 p-2"
                         onSubmit={async event => {
                             event.preventDefault()
                             setLabels(oldLabels => [...oldLabels, backendModule.LabelName(query)])
@@ -172,7 +172,7 @@ export default function ManageLabelsModal<
                             <div className="h-6 py-0.5">Create</div>
                         </button>
                         {canSelectColor && (
-                            <div className="flex gap-1">
+                            <div className="flex flex-col items-center">
                                 <div className="grow flex items-center gap-1">
                                     <ColorPicker setColor={setColor} />
                                 </div>
@@ -186,7 +186,9 @@ export default function ManageLabelsModal<
                                         <Label
                                             active={labels.includes(label.value)}
                                             color={label.color}
-                                            onClick={async () => {
+                                            onClick={async event => {
+                                                event.preventDefault()
+                                                event.stopPropagation()
                                                 await doToggleLabel(label.value)
                                             }}
                                         >
