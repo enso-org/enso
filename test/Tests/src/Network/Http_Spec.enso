@@ -116,6 +116,9 @@ spec =
             response = Data.fetch url_get
             response.at "headers" . at "Content-Length" . should_equal "0"
 
+            uri_response = url_get.to_uri.fetch
+            uri_response.at "headers" . at "Content-Length" . should_equal "0"
+
         Test.specify "Can skip auto-parse" <|
             response = Data.fetch url_get try_auto_parse_response=False
             response.code.code . should_equal 200
