@@ -12,8 +12,11 @@ import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.error.Warning;
@@ -86,6 +89,7 @@ final class Array implements EnsoObject {
     }
 
     var v = items[(int) index];
+    /*
     if (this.hasWarnings(warnings)) {
       hasWarningsProfile.enter();
       Warning[] extracted = this.getWarnings(null, warnings);
@@ -94,6 +98,7 @@ final class Array implements EnsoObject {
       }
       return WithWarnings.wrap(EnsoContext.get(warnings), v, extracted);
     }
+    */
 
     return v;
   }
@@ -180,9 +185,20 @@ final class Array implements EnsoObject {
   private EconomicSet<Warning> collectAllWarnings(WarningsLibrary warnings, Node location)
       throws UnsupportedMessageException {
     EconomicSet<Warning> setOfWarnings = EconomicSet.create(new WithWarnings.WarningEquivalence());
-    for (Object item : items) {
+    EnsoContext ctx = EnsoContext.get(location);
+    Builtins builtins = ctx.getBuiltins();
+    for (int i = 0; i < items.length; ++i) {
+      final long index = i;
+      Object item = items[i];
       if (warnings.hasWarnings(item)) {
-        setOfWarnings.addAll(Arrays.asList(warnings.getWarnings(item, location)));
+        var origWarnings = warnings.getWarnings(item, location);
+        List<Warning> wrappedWarnings = Arrays.stream(origWarnings).map(warning -> {
+          var error = warning.getValue();
+          var wrappedError = builtins.error().makeMapError(index, error);
+          var wrappedWarning = Warning.create(ctx, wrappedError, warning.getOrigin());
+          return wrappedWarning;
+        }).collect(Collectors.toList());
+        setOfWarnings.addAll(wrappedWarnings);
       }
     }
     return setOfWarnings;
