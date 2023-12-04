@@ -10,7 +10,7 @@ import { AstExtended } from '@/util/ast'
 import { ArgumentApplication } from '@/util/callTree'
 import type { Opt } from '@/util/opt'
 import type { ExprId } from 'shared/yjsModel'
-import { computed, proxyRefs, watch } from 'vue'
+import { computed, proxyRefs } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()
@@ -100,8 +100,6 @@ const widgetConfiguration = computed(() => {
   }
   return null
 })
-
-watch(widgetConfiguration, (c) => console.log(props.input.repr(), c), { immediate: true })
 </script>
 <script lang="ts">
 export const widgetDefinition = defineWidget(
