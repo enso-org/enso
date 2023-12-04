@@ -19,7 +19,7 @@ object WithDebugCommand {
     "-agentlib:jdwp=transport=dt_socket,server=n,address=localhost:5005,suspend=y";
 
   val truffleNoBackgroundCompilationOptions = Seq(
-    "-Dpolyglot.engine.BackgroundCompilation=false"
+    //"-Dpolyglot.engine.BackgroundCompilation=false"
   )
 
   val truffleDumpGraphsOptions = Seq(

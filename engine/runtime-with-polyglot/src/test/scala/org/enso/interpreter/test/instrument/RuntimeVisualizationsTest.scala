@@ -2,6 +2,7 @@ package org.enso.interpreter.test.instrument
 
 import org.apache.commons.io.FileUtils
 import org.enso.distribution.locking.ThreadSafeFileLockManager
+import org.enso.interpreter.instrument.{TestExecutionEventListener}
 import org.enso.interpreter.runtime.`type`.ConstantsGen
 import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{Package, PackageManager, QualifiedName}
@@ -46,7 +47,8 @@ class RuntimeVisualizationsTest
         .allowExperimentalOptions(true)
         .allowAllAccess(true)
         .option(RuntimeOptions.PROJECT_ROOT, pkg.root.getAbsolutePath)
-        .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
+        .option(RuntimeOptions.LOG_LEVEL, Level.INFO.getName)
+        .option(RuntimeOptions.PREINITIALIZE, "js")
         .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
         .option(RuntimeOptions.ENABLE_PROJECT_SUGGESTIONS, "false")
         .option(RuntimeOptions.ENABLE_GLOBAL_SUGGESTIONS, "false")
@@ -68,6 +70,17 @@ class RuntimeVisualizationsTest
         .build()
     )
     executionContext.context.initialize(LanguageInfo.ID)
+    val instruments = executionContext.context.getEngine.getInstruments
+    println(s"Instruments: " + instruments.keySet)
+    //    val ctxListener = instruments.get(TestContextListener.ID)
+    //    ctxListener shouldNot be(null)
+    //    val ctxListenerCasted = ctxListener.lookup(classOf[TestContextListener])
+    //    ctxListenerCasted shouldNot be(null)
+    //    val threadListener = instruments.get(TestThreadListener.ID).lookup(classOf[TestThreadListener])
+    //    threadListener shouldNot be(null)
+    val executionEventListener = instruments.get(TestExecutionEventListener.ID).lookup(classOf[TestExecutionEventListener])
+    executionEventListener shouldNot be(null)
+    println("DONE: Test instruments initialized")
 
     def writeMain(contents: String): File =
       Files.write(pkg.mainFile.toPath, contents.getBytes).toFile
@@ -2341,7 +2354,7 @@ class RuntimeVisualizationsTest
     )
   }
 
-  it should "run visualization error preprocessor" in {
+  it should "[1] run visualization error preprocessor" in {
     val contextId       = UUID.randomUUID()
     val requestId       = UUID.randomUUID()
     val visualizationId = UUID.randomUUID()

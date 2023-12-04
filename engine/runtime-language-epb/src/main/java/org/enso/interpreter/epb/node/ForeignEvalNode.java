@@ -10,6 +10,8 @@ import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.Source;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.stream.Collectors;
 import org.enso.interpreter.epb.EpbContext;
 import org.enso.interpreter.epb.EpbLanguage;
@@ -45,10 +47,14 @@ public class ForeignEvalNode extends RootNode {
   public Object execute(VirtualFrame frame) {
     ensureParsed();
     if (foreign != null) {
+      var ctxLock = EpbContext.get(this).getLock();
+      ctxLock.lock();
       try {
         return foreign.execute(frame.getArguments());
       } catch (InteropException ex) {
         throw new ForeignParsingException(ex.getMessage(), this);
+      } finally {
+        ctxLock.unlock();
       }
     } else {
       CompilerDirectives.transferToInterpreter();
@@ -64,7 +70,8 @@ public class ForeignEvalNode extends RootNode {
 
   @CompilerDirectives.TruffleBoundary
   private void lockAndParse() throws IllegalStateException {
-    getLock().lock();
+    var ctxLock = EpbContext.get(this).getLock();
+    ctxLock.lock();
     try {
       if (foreign == null) {
         CompilerDirectives.transferToInterpreterAndInvalidate();
@@ -92,7 +99,7 @@ public class ForeignEvalNode extends RootNode {
         }
       }
     } finally {
-      getLock().unlock();
+      ctxLock.unlock();
     }
   }
 
