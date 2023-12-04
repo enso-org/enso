@@ -359,4 +359,14 @@ public final class AtomConstructor implements EnsoObject {
   Type getType(@CachedLibrary("this") TypesLibrary thisLib, @Cached("1") int ignore) {
     return EnsoContext.get(thisLib).getBuiltins().function();
   }
+
+  @ExportMessage
+  boolean hasMetaObject() {
+    return true;
+  }
+
+  @ExportMessage
+  Type getMetaObject(@CachedLibrary("this") InteropLibrary thisLib, @Cached("1") int ignore) {
+    return EnsoContext.get(thisLib).getBuiltins().function();
+  }
 }

@@ -184,6 +184,25 @@ public class MetaObjectTest extends TestBase {
   }
 
   @Test
+  public void typesOfConstructors() throws Exception {
+    var g = generator();
+    var types = new java.util.HashSet<Value>();
+    for (var c : g.constructorsAndValuesAndSumType()) {
+      if (c.isMetaObject()) {
+        types.add(c);
+      }
+    }
+    for (var c : g.constructorsAndValuesAndSumType()) {
+      if (c.isMetaObject() || types.contains(c.getMetaObject())) {
+        continue;
+      }
+      assertNotNull("c " + c + " has a type", c.getMetaObject());
+      assertEquals("c " + c + " is function", "Function", c.getMetaObject().getMetaSimpleName());
+      assertEquals("c " + c + " is function", g.typeFunction(), c.getMetaObject());
+    }
+  }
+
+  @Test
   public void compareQualifiedAndSimpleTypeName() throws Exception {
     var g = generator();
     var sn = ctx.eval("enso", """
