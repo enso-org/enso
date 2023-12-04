@@ -798,8 +798,12 @@ object DistributionPackage {
         else if (Platform.isMacOS) {
           if (Platform.isAmd64) OS.MacOSAmd
           else if (Platform.isArm64) OS.MacOSArm
-          else throw new IllegalStateException("Unknown Arch")
-        } else throw new IllegalStateException("Unknown OS")
+          else
+            throw new IllegalStateException(
+              "Unknown Arch: " + sys.props("os.arch")
+            )
+        } else
+          throw new IllegalStateException("Unknown OS: " + sys.props("os.name"))
       artifactRoot / artifactName(component, os, os.archs.head)
     }
 
