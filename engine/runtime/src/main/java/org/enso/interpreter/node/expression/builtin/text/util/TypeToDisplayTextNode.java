@@ -7,33 +7,46 @@ import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.type.TypesGen;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.dsl.GenerateUncached;
-import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.dsl.NeverDefault;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
-import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 
-@GenerateUncached
-public abstract class TypeToDisplayTextNode extends Node {
-  public abstract String execute(Object o);
+public final class TypeToDisplayTextNode extends Node {
+  @Child
+  private TypeOfNode typeOfNode;
+
+  private TypeToDisplayTextNode(TypeOfNode typeOfNode) {
+    this.typeOfNode = typeOfNode;
+  }
+
+  public String execute(Object o) {
+    return switch (o) {
+      case Type t -> t.getName();
+      default -> switch (typeOfNode.execute(o)) {
+        case Type t -> t.getName();
+        default -> fallbackDisplay(o);
+      };
+    };
+  }
 
   /**
    * Create a node that can display types as text.
    *
    * @return a new type display node
    */
-  public static TypeToDisplayTextNode build() {
-    return TypeToDisplayTextNodeGen.create();
+  @NeverDefault
+  public static TypeToDisplayTextNode create() {
+    return new TypeToDisplayTextNode(TypeOfNode.build());
   }
 
-  @Specialization
+  public static TypeToDisplayTextNode getUncached() {
+    return new TypeToDisplayTextNode(TypeOfNode.getUncached());
+  }
+
   @CompilerDirectives.TruffleBoundary
-  String doDisplay(
-      Object value,
-      @CachedLibrary(limit = "5") InteropLibrary objects,
-      @CachedLibrary(limit = "5") InteropLibrary displays,
-      @CachedLibrary(limit = "5") InteropLibrary strings) {
+  private String fallbackDisplay(Object value) {
+    var iop = InteropLibrary.getUncached();
     if (value == null) {
       // TODO [RW] This is a temporary workaround to make it possible to display errors related to
       // https://www.pivotaltracker.com/story/show/181652974
@@ -63,13 +76,13 @@ public abstract class TypeToDisplayTextNode extends Node {
       return TypesGen.asUnresolvedSymbol(value).getName() + " (Unresolved_Symbol)";
     } else if (TypesGen.isManagedResource(value)) {
       return "Managed_Resource";
-    } else if (objects.hasArrayElements(value)) {
+    } else if (iop.hasArrayElements(value)) {
       return "Array";
     } else if (TypesGen.isRef(value)) {
       return "Ref";
-    } else if (objects.hasMetaObject(value)) {
+    } else if (iop.hasMetaObject(value)) {
       try {
-        return strings.asString(displays.toDisplayString(objects.getMetaObject(value)));
+        return iop.asString(iop.toDisplayString(iop.getMetaObject(value)));
       } catch (UnsupportedMessageException e) {
         throw new IllegalStateException("Receiver declares a meta object, but does not return it.");
       }
