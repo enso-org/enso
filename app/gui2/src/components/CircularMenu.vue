@@ -80,7 +80,7 @@ const emit = defineEmits<{
   top: 8px;
 }
 
-.override-output-context-button {
+.output-context-overridden {
   opacity: 100%;
   color: red;
 }
