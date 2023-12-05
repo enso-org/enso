@@ -33,7 +33,7 @@ final class ArraySlice implements EnsoObject {
     } else {
       if (CompilerDirectives.inInterpreter()) {
         if (!InteropLibrary.getUncached().hasArrayElements(storage)) {
-          throw new IllegalStateException("ArraySlice needs array-like delegate, but got: " + storage);
+          throw EnsoContext.get(null).raiseAssertionPanic(null, "ArraySlice needs array-like delegate, but got: " + storage, null);
         }
       }
 

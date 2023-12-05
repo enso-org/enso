@@ -85,7 +85,7 @@ public abstract class InstantiateNode extends ExpressionNode {
           accumulatedWarnings = accumulatedWarnings.append(warnings.getWarnings(argument, this));
           argumentValues[i] = warnings.removeWarnings(argument);
         } catch (UnsupportedMessageException e) {
-          throw new IllegalStateException(e);
+          throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
         }
       } else if (TypesGen.isPanicSentinel(argument)) {
         sentinelProfile.enter();

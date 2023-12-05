@@ -10,6 +10,7 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.text.util.TypeToDisplayTextNode;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.Type;
@@ -33,7 +34,7 @@ public abstract class AnyToDisplayTextNode extends Node {
     try {
       return Text.create(strings.asString(displays.getExceptionMessage(self)));
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException(e);
+      throw EnsoContext.get(strings).raiseAssertionPanic(strings, null, e);
     }
   }
 
