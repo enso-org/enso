@@ -24,7 +24,7 @@ import { useProjectStore } from '@/stores/project'
 import { groupColorVar, useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { colorFromString } from '@/util/colors'
 import { keyboardBusy, keyboardBusyExceptIn, useEvent } from '@/util/events'
-import type { Rect } from '@/util/rect.ts'
+import { Rect } from '@/util/rect.ts'
 import { Vec2 } from '@/util/vec2'
 import * as set from 'lib0/set'
 import type { ExprId, NodeMetadata } from 'shared/yjsModel.ts'
@@ -152,6 +152,28 @@ const graphBindingsHandler = graphBindings.handler({
         graphStore.deleteNode(node)
       }
     })
+  },
+  zoomToSelected() {
+    if (!viewportNode.value) return
+    let left = Infinity
+    let top = Infinity
+    let right = -Infinity
+    let bottom = -Infinity
+    const nodesToCenter =
+      nodeSelection.selected.size === 0 ? graphStore.nodeRects.keys() : nodeSelection.selected
+    for (const id of nodesToCenter) {
+      const rect = graphStore.nodeRects.get(id)
+      if (!rect) continue
+      left = Math.min(left, rect.left)
+      right = Math.max(right, rect.right)
+      top = Math.min(top, rect.top)
+      bottom = Math.max(bottom, rect.bottom)
+    }
+    graphNavigator.panAndZoomTo(
+      Rect.FromBounds(left, top, right, bottom),
+      0.1,
+      Math.max(1, graphNavigator.scale),
+    )
   },
   selectAll() {
     if (keyboardBusy()) return

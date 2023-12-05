@@ -1,9 +1,6 @@
 package org.enso.interpreter.test.instrument
 
-import org.apache.commons.io.FileUtils
-import org.enso.distribution.locking.ThreadSafeFileLockManager
 import org.enso.interpreter.runtime.`type`.ConstantsGen
-import org.enso.pkg.{Package, PackageManager}
 import org.enso.polyglot._
 import org.enso.polyglot.data.Tree
 import org.enso.polyglot.runtime.Runtime.Api
@@ -15,11 +12,9 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import java.io.{ByteArrayOutputStream, File}
-import java.nio.file.{Files, Path, Paths}
+import java.nio.file.{Files, Paths}
 import java.util.UUID
 import java.util.logging.Level
-import scala.concurrent.Await
-import scala.concurrent.duration._
 
 @scala.annotation.nowarn("msg=multiarg infix syntax")
 class RuntimeSuggestionUpdatesTest
@@ -29,17 +24,11 @@ class RuntimeSuggestionUpdatesTest
 
   var context: TestContext = _
 
-  class TestContext(packageName: String) extends InstrumentTestContext {
+  class TestContext(packageName: String)
+      extends InstrumentTestContext(packageName) {
 
-    val tmpDir: Path = Files.createTempDirectory("enso-test-packages")
-    val lockManager  = new ThreadSafeFileLockManager(tmpDir.resolve("locks"))
-    val runtimeServerEmulator =
-      new RuntimeServerEmulator(messageQueue, lockManager)
-
-    val pkg: Package[File] =
-      PackageManager.Default.create(tmpDir.toFile, packageName, "Enso_Test")
     val out: ByteArrayOutputStream = new ByteArrayOutputStream()
-    val executionContext = new PolyglotContext(
+    val context =
       Context
         .newBuilder(LanguageInfo.ID)
         .allowExperimentalOptions(true)
@@ -66,8 +55,6 @@ class RuntimeSuggestionUpdatesTest
         .logHandler(System.err)
         .serverTransport(runtimeServerEmulator.makeServerTransport)
         .build()
-    )
-    executionContext.context.initialize(LanguageInfo.ID)
 
     def writeMain(contents: String): File =
       Files.write(pkg.mainFile.toPath, contents.getBytes).toFile
@@ -94,6 +81,7 @@ class RuntimeSuggestionUpdatesTest
 
   override protected def beforeEach(): Unit = {
     context = new TestContext("Test")
+    context.init()
     val Some(Api.Response(_, Api.InitializedNotification())) = context.receive
 
     context.send(
@@ -106,12 +94,8 @@ class RuntimeSuggestionUpdatesTest
 
   override protected def afterEach(): Unit = {
     if (context != null) {
-      context.reset()
-      context.executionContext.context.close()
-      Await.ready(context.runtimeServerEmulator.terminate(), 5.seconds)
-      context.lockManager.reset()
+      context.close()
       context.out.reset()
-      FileUtils.deleteQuietly(context.tmpDir.toFile)
       context = null
     }
   }

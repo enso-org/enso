@@ -7,7 +7,7 @@ import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { injectWidgetTree } from '@/providers/widgetTree'
 import { useGraphStore } from '@/stores/graph'
 import { useRaf } from '@/util/animation'
-import { Ast, AstExtended } from '@/util/ast'
+import { Ast } from '@/util/ast'
 import { ArgumentAst, ArgumentPlaceholder } from '@/util/callTree'
 import { useResizeObserver } from '@/util/events'
 import { Rect } from '@/util/rect'
@@ -66,7 +66,7 @@ const rectUpdateIsUseful = computed(() => isHovered.value || hasConnection.value
 const randomUuid = uuidv4() as ExprId
 const portId = computed(() => {
   const ast =
-    props.input instanceof AstExtended
+    props.input instanceof Ast.Ast
       ? props.input
       : props.input instanceof ArgumentAst || props.input instanceof ForcePort
       ? props.input.ast
@@ -127,16 +127,15 @@ export const widgetDefinition = defineWidget(
     ForcePort,
     ArgumentAst,
     ArgumentPlaceholder,
-    AstExtended.isTree([
-      Ast.Tree.Type.Invalid,
-      Ast.Tree.Type.BodyBlock,
-      Ast.Tree.Type.Group,
-      Ast.Tree.Type.Number,
-      Ast.Tree.Type.OprApp,
-      Ast.Tree.Type.UnaryOprApp,
-      Ast.Tree.Type.Wildcard,
-      Ast.Tree.Type.TextLiteral,
-    ]),
+    (ast) =>
+      ast instanceof Ast.Invalid ||
+      ast instanceof Ast.BodyBlock ||
+      ast instanceof Ast.Group ||
+      ast instanceof Ast.NumericLiteral ||
+      ast instanceof Ast.OprApp ||
+      ast instanceof Ast.UnaryOprApp ||
+      ast instanceof Ast.Wildcard ||
+      ast instanceof Ast.TextLiteral,
   ],
   {
     priority: 0,
@@ -144,7 +143,7 @@ export const widgetDefinition = defineWidget(
       const portInfo = injectPortInfo(true)
       if (
         portInfo != null &&
-        props.input instanceof AstExtended &&
+        props.input instanceof Ast.Ast &&
         portInfo.portId === props.input.astId
       ) {
         return Score.Mismatch

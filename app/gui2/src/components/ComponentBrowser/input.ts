@@ -9,7 +9,7 @@ import {
   type SuggestionEntry,
   type Typename,
 } from '@/stores/suggestionDatabase/entry'
-import { Ast, AstExtended, astContainingChar } from '@/util/ast'
+import { RawAst, RawAstExtended, astContainingChar } from '@/util/ast'
 import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
 import { GeneralOprApp, type OperatorChain } from '@/util/ast/opr'
 import { MappedSet } from '@/util/containers'
@@ -42,11 +42,14 @@ export type EditingContext =
   // Suggestion should replace given identifier.
   | {
       type: 'changeIdentifier'
-      identifier: AstExtended<Ast.Tree.Ident, false>
+      identifier: RawAstExtended<RawAst.Tree.Ident, false>
       oprApp?: GeneralOprApp<false>
     }
   // Suggestion should replace given literal.
-  | { type: 'changeLiteral'; literal: AstExtended<Ast.Tree.TextLiteral | Ast.Tree.Number, false> }
+  | {
+      type: 'changeLiteral'
+      literal: RawAstExtended<RawAst.Tree.TextLiteral | RawAst.Tree.Number, false>
+    }
 
 /** An atomic change to the user input. */
 interface Change {
@@ -62,7 +65,7 @@ export function useComponentBrowserInput(
 ) {
   const code = ref('')
   const selection = ref({ start: 0, end: 0 })
-  const ast = computed(() => AstExtended.parse(code.value))
+  const ast = computed(() => RawAstExtended.parse(code.value))
 
   const context: ComputedRef<EditingContext> = computed(() => {
     const cursorPosition = selection.value.start
@@ -75,17 +78,20 @@ export function useComponentBrowserInput(
     const leaf = editedAst.next()
     if (leaf.done) return { type: 'insert', position: cursorPosition }
     switch (leaf.value.inner.type) {
-      case Ast.Tree.Type.Ident:
+      case RawAst.Tree.Type.Ident:
         return {
           type: 'changeIdentifier',
-          identifier: leaf.value as AstExtended<Ast.Tree.Ident, false>,
+          identifier: leaf.value as RawAstExtended<RawAst.Tree.Ident, false>,
           ...readOprApp(editedAst.next(), leaf.value),
         }
-      case Ast.Tree.Type.TextLiteral:
-      case Ast.Tree.Type.Number:
+      case RawAst.Tree.Type.TextLiteral:
+      case RawAst.Tree.Type.Number:
         return {
           type: 'changeLiteral',
-          literal: leaf.value as AstExtended<Ast.Tree.TextLiteral | Ast.Tree.Number, false>,
+          literal: leaf.value as RawAstExtended<
+            RawAst.Tree.TextLiteral | RawAst.Tree.Number,
+            false
+          >,
         }
       default:
         return {
@@ -140,15 +146,15 @@ export function useComponentBrowserInput(
   const imports = ref<{ context: string; info: RequiredImport }[]>([])
 
   function readOprApp(
-    leafParent: IteratorResult<AstExtended<Ast.Tree, false>>,
-    editedAst?: AstExtended<Ast.Tree, false>,
+    leafParent: IteratorResult<RawAstExtended<RawAst.Tree, false>>,
+    editedAst?: RawAstExtended<RawAst.Tree, false>,
   ): {
     oprApp?: GeneralOprApp<false>
   } {
     if (leafParent.done) return {}
     switch (leafParent.value.inner.type) {
-      case Ast.Tree.Type.OprApp:
-      case Ast.Tree.Type.OperatorBlockApplication: {
+      case RawAst.Tree.Type.OprApp:
+      case RawAst.Tree.Type.OperatorBlockApplication: {
         const generalized = new GeneralOprApp(leafParent.value as OperatorChain<false>)
         const opr = generalized.lastOpr()
         if (opr == null) return {}
@@ -169,7 +175,7 @@ export function useComponentBrowserInput(
     accessOpr: GeneralOprApp<false>,
   ): { type: 'known'; typename: Typename } | { type: 'unknown' } | null {
     if (accessOpr.lhs == null) return null
-    if (!accessOpr.lhs.isTree(Ast.Tree.Type.Ident)) return null
+    if (!accessOpr.lhs.isTree(RawAst.Tree.Type.Ident)) return null
     if (accessOpr.apps.length > 1) return null
     if (internalUsages.value.has(accessOpr.lhs.span())) return { type: 'unknown' }
     const ident = accessOpr.lhs.repr()
@@ -194,12 +200,12 @@ export function useComponentBrowserInput(
    * @param code The code from which `opr` was generated.
    * @returns If all path segments are identifiers, return them
    */
-  function qnIdentifiers(opr: GeneralOprApp<false>): AstExtended<Ast.Tree.Ident, false>[] {
+  function qnIdentifiers(opr: GeneralOprApp<false>): RawAstExtended<RawAst.Tree.Ident, false>[] {
     const operandsAsIdents = Array.from(opr.operandsOfLeftAssocOprChain('.'), (operand) =>
-      operand?.type === 'ast' && operand.ast.isTree(Ast.Tree.Type.Ident) ? operand.ast : null,
+      operand?.type === 'ast' && operand.ast.isTree(RawAst.Tree.Type.Ident) ? operand.ast : null,
     ).slice(0, -1)
     if (operandsAsIdents.some((optIdent) => optIdent == null)) return []
-    else return operandsAsIdents as AstExtended<Ast.Tree.Ident, false>[]
+    else return operandsAsIdents as RawAstExtended<RawAst.Tree.Ident, false>[]
   }
 
   /** Apply given suggested entry to the input. */

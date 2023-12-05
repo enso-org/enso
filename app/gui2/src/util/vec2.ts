@@ -8,7 +8,7 @@ export class Vec2 {
     readonly y: number,
   ) {}
 
-  static Zero = new Vec2(0, 0)
+  static Zero: Vec2
 
   static FromArr(arr: [number, number]): Vec2 {
     return new Vec2(arr[0], arr[1])
@@ -80,3 +80,5 @@ export class Vec2 {
     return `(${this.x}, ${this.y})`
   }
 }
+
+Vec2.Zero = new Vec2(0, 0)

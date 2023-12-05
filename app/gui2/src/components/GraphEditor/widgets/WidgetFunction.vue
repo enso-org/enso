@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
-import { Tree } from '@/generated/ast'
 import { injectFunctionInfo, provideFunctionInfo } from '@/providers/functionInfo'
 import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { widgetConfigurationSchema } from '@/providers/widgetRegistry/configuration'
 import { useGraphStore } from '@/stores/graph'
 import { useProjectStore, type NodeVisualizationConfiguration } from '@/stores/project'
-import { AstExtended } from '@/util/ast'
+import { Ast } from '@/util/ast'
 import { ArgumentApplication } from '@/util/callTree'
 import type { Opt } from '@/util/opt'
 import type { ExprId } from 'shared/yjsModel'
@@ -23,7 +22,8 @@ provideFunctionInfo(
 )
 
 const methodCallInfo = computed(() => {
-  const astId = props.input.astId
+  const input: Ast.Ast = props.input
+  const astId = input.astId
   if (astId == null) return null
   return graph.db.getMethodCallInfo(astId)
 })
@@ -101,7 +101,7 @@ const widgetConfiguration = computed(() => {
 </script>
 <script lang="ts">
 export const widgetDefinition = defineWidget(
-  AstExtended.isTree([Tree.Type.App, Tree.Type.NamedApp, Tree.Type.Ident, Tree.Type.OprApp]),
+  (ast) => ast instanceof Ast.App || ast instanceof Ast.Ident || ast instanceof Ast.OprApp,
   {
     priority: -10,
     score: (props, db) => {
@@ -115,13 +115,13 @@ export const widgetDefinition = defineWidget(
       // and to resolve the infix call as its own application.
       if (prevFunctionState?.callId === ast.astId) return Score.Mismatch
 
-      if (ast.isTree([Tree.Type.App, Tree.Type.NamedApp, Tree.Type.OprApp])) return Score.Perfect
+      if (ast instanceof Ast.App || ast instanceof Ast.OprApp) return Score.Perfect
 
       const info = db.getMethodCallInfo(ast.astId)
       if (
         prevFunctionState != null &&
         info?.staticallyApplied === true &&
-        props.input.isTree(Tree.Type.Ident)
+        ast instanceof Ast.Ident
       ) {
         return Score.Mismatch
       }

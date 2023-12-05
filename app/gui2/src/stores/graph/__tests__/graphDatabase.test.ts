@@ -1,4 +1,4 @@
-import { Ast, AstExtended } from '@/util/ast'
+import { Ast } from '@/util/ast'
 import assert from 'assert'
 import { IdMap, type ExprId } from 'shared/yjsModel'
 import { expect, test } from 'vitest'
@@ -30,14 +30,11 @@ test('Reading graph from definition', () => {
   idMap.insertKnownId([51, 52], id10)
 
   const db = GraphDb.Mock()
-  const ast = AstExtended.parse(code, idMap)
-  assert(ast.isTree(Ast.Tree.Type.BodyBlock))
-  const func = ast.tryMap((block) => {
-    const line = block.statements[Symbol.iterator]().next()
-    if (!line.done) return line.value.expression
-    else return undefined
-  })
-  assert(func?.isTree(Ast.Tree.Type.Function))
+  const ast = Ast.parseTransitional(code, idMap)
+  assert(ast instanceof Ast.BodyBlock)
+  const expressions = Array.from(ast.expressions())
+  const func = expressions[0]
+  assert(func instanceof Ast.Function)
   db.readFunctionAst(func, (_) => ({ x: 0.0, y: 0.0, vis: null }))
 
   expect(Array.from(db.nodeIdToNode.keys())).toEqual([id04, id08])
