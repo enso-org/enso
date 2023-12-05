@@ -579,9 +579,6 @@ lazy val modulePathTestOptions =
     */
   val modulesToPatchIntoRuntime: ListBuffer[File] = ListBuffer()
   modulesToPatchIntoRuntime ++= (LocalProject(
-    "runtime-with-instruments"
-  ) / Compile / productDirectories).value
-  modulesToPatchIntoRuntime ++= (LocalProject(
     "runtime-instrument-common"
   ) / Compile / productDirectories).value
   modulesToPatchIntoRuntime ++= (LocalProject(
