@@ -23,6 +23,11 @@ import { setIfUndefined } from 'lib0/map'
 import { type ContentRange, type ExprId, type VisualizationIdentifier } from 'shared/yjsModel'
 import { computed, ref, watch, watchEffect } from 'vue'
 
+const MAXIMUM_CLICK_LENGTH_MS = 300
+const MAXIMUM_CLICK_DISTANCE_SQ = 50
+/** The width in pixels that is not the widget tree. This includes the icon, and padding. */
+const NODE_EXTRA_WIDTH_PX = 30
+
 const enableMethodName = 'with_enabled_context'
 const disableMethodName = 'with_disabled_context'
 function withOverriddenOutputContext(name: string, enable: boolean) {
@@ -40,11 +45,6 @@ const withOverriddenOutputContextPattern = AstExtended.parseLine(
 </script>
 
 <script setup lang="ts">
-const MAXIMUM_CLICK_LENGTH_MS = 300
-const MAXIMUM_CLICK_DISTANCE_SQ = 50
-/** The width in pixels that is not the widget tree. This includes the icon, and padding. */
-const NODE_EXTRA_WIDTH_PX = 30
-
 const props = defineProps<{
   node: Node
   edited: boolean
@@ -197,7 +197,7 @@ const isOutputContextOverridden = computed({
     if (override == null) return false
     else if (override.enabled === projectStore.isOutputContextEnabled) return false
     else {
-      const contextWithoutQuotes = override.contextExpr.repr().replace(/^['"]|['"]$/, '')
+      const contextWithoutQuotes = override.contextExpr.repr().replace(/^['"]|['"]$/g, '')
       return contextWithoutQuotes === projectStore.executionMode
     }
   },

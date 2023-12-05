@@ -497,7 +497,7 @@ export const useProjectStore = defineStore('project', () => {
     moduleDocGuid.value = guid
   }
 
-  projectModel.modules.observe((_) => tryReadDocGuid())
+  projectModel.modules.observe(tryReadDocGuid)
   watchEffect(tryReadDocGuid)
 
   const module = computedAsync(async () => {

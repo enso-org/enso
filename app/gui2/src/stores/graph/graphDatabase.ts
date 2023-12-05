@@ -4,6 +4,7 @@ import type { SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import { arrayEquals, byteArraysEqual, tryGetIndex } from '@/util/array'
 import { Ast, AstExtended } from '@/util/ast'
 import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
+import { nodeFromAst } from '@/util/ast/node'
 import { colorFromString } from '@/util/colors'
 import { MappedKeyMap, MappedSet } from '@/util/containers'
 import { ReactiveDb, ReactiveIndex, ReactiveMapping } from '@/util/database/reactiveDb'
@@ -325,26 +326,6 @@ export interface Node {
   rootSpan: AstExtended<Ast.Tree>
   position: Vec2
   vis: Opt<VisualizationMetadata>
-}
-
-function nodeFromAst(ast: AstExtended<Ast.Tree>): Node {
-  if (ast.isTree(Ast.Tree.Type.Assignment)) {
-    return {
-      outerExprId: ast.astId,
-      pattern: ast.map((t) => t.pattern),
-      rootSpan: ast.map((t) => t.expr),
-      position: Vec2.Zero,
-      vis: undefined,
-    }
-  } else {
-    return {
-      outerExprId: ast.astId,
-      pattern: undefined,
-      rootSpan: ast,
-      position: Vec2.Zero,
-      vis: undefined,
-    }
-  }
 }
 
 function* getFunctionNodeExpressions(func: Ast.Tree.Function): Generator<Ast.Tree> {
