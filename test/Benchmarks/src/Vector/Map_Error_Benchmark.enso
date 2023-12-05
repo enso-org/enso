@@ -35,7 +35,7 @@ collect_benches = Bench.build builder->
     type_group vector_type alter =
         data = Data.Value (alter unaltered_data.vec)
 
-        builder.group "Map_Error_"+vector_type options group_builder->
+        builder.group "Map_Error_Benchmark_"+vector_type options group_builder->
             group_builder.specify "Map_Id_No_Errors" <|
                 data.vec.map id
             group_builder.specify "Map_Id_One_Error" <|
