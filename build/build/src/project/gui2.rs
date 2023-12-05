@@ -70,6 +70,10 @@ pub fn e2e_tests(repo_root: impl AsRef<Path>) -> BoxFuture<'static, Result> {
     run_in_repo_root(Scripts::TestE2e, repo_root)
 }
 
+pub fn watch(repo_root: impl AsRef<Path>) -> BoxFuture<'static, Result> {
+    run_in_repo_root(Scripts::Dev, repo_root)
+}
+
 fn run_in_repo_root(script: Scripts, repo_root: impl AsRef<Path>) -> BoxFuture<'static, Result> {
     let repo_root = repo_root.as_ref().to_owned();
     async move {
