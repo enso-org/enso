@@ -25,7 +25,7 @@ import { computed, ref, watch, watchEffect } from 'vue'
 
 const enableMethodName = 'with_enabled_context'
 const disableMethodName = 'with_disabled_context'
-function withOverriddenOutputContextPatternText(name: string, enable: boolean) {
+function withOverriddenOutputContext(name: string, enable: boolean) {
   return (
     `Standard.Base.Runtime.${
       enable ? enableMethodName : disableMethodName
@@ -34,7 +34,7 @@ function withOverriddenOutputContextPatternText(name: string, enable: boolean) {
     "' <| "
   )
 }
-const withOverriddenOutputContextPatternAst = AstExtended.parseLine(
+const withOverriddenOutputContextPattern = AstExtended.parseLine(
   'Standard.Base.Runtime.__ Standard.Base.Runtime.Context.Output __ <| __',
 )
 </script>
@@ -162,8 +162,13 @@ const dragPointer = usePointer((pos, event, type) => {
   }
 })
 
-const exprWithoutOverriddenOutputContext = computed(() => {
-  const matches = extractMatches(props.node.rootSpan, withOverriddenOutputContextPatternAst)
+/** Returns the matched output context override, if any:
+ * - `enabled`: whether the override is for enabling, or disabling, the output context.
+ * - `contextExpr`: the AST tree representing the context for which the override should apply.
+ * - `innerExpr`: the AST tree representing the actual expression to be evaluated.
+ */
+const outputContextOverride = computed(() => {
+  const matches = extractMatches(props.node.rootSpan, withOverriddenOutputContextPattern)
   if (!matches) return
   let enabled: boolean
   switch (matches[0]?.repr()) {
@@ -183,29 +188,30 @@ const exprWithoutOverriddenOutputContext = computed(() => {
 })
 
 const displayedExpression = computed(
-  () => exprWithoutOverriddenOutputContext.value?.innerExpr ?? props.node.rootSpan,
+  () => outputContextOverride.value?.innerExpr ?? props.node.rootSpan,
 )
 
 const isOutputContextOverridden = computed({
   get() {
-    return (
-      exprWithoutOverriddenOutputContext.value != null &&
-      exprWithoutOverriddenOutputContext.value.enabled !== projectStore.isOutputContextEnabled &&
-      exprWithoutOverriddenOutputContext.value.contextExpr.repr().slice(1, -1) ===
-        projectStore.executionMode
-    )
+    const override = outputContextOverride.value
+    if (override == null) return false
+    else if (override.enabled === projectStore.isOutputContextEnabled) return false
+    else {
+      const contextWithoutQuotes = override.contextExpr.repr().replace(/^['"]|['"]$/, '')
+      return contextWithoutQuotes === projectStore.executionMode
+    }
   },
   set(shouldOverride) {
     const module = projectStore.module
     if (!module) return
-    const currentOverride = exprWithoutOverriddenOutputContext.value
+    const currentOverride = outputContextOverride.value
     const subExprStart = currentOverride?.innerExpr.span()[0]
     const start = 0
     const end = subExprStart ? subExprStart - props.node.rootSpan.span()[0] : 0
     if (projectStore.isOutputContextEnabled) {
       if (shouldOverride) {
         emit('update:content', [
-          [[start, end], withOverriddenOutputContextPatternText(projectStore.executionMode, false)],
+          [[start, end], withOverriddenOutputContext(projectStore.executionMode, false)],
         ])
       } else {
         // Remove force enable of output context.
@@ -214,7 +220,7 @@ const isOutputContextOverridden = computed({
     } else {
       if (shouldOverride) {
         emit('update:content', [
-          [[start, end], withOverriddenOutputContextPatternText(projectStore.executionMode, true)],
+          [[start, end], withOverriddenOutputContext(projectStore.executionMode, true)],
         ])
       } else {
         const start = props.node.rootSpan.span()[0]
