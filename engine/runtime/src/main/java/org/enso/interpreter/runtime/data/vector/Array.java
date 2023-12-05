@@ -186,6 +186,7 @@ final class Array implements EnsoObject {
       throws UnsupportedMessageException {
     EconomicSet<Warning> setOfWarnings = EconomicSet.create(new WithWarnings.WarningEquivalence());
     EnsoContext ctx = EnsoContext.get(location);
+    long maxWarnings = ctx.getWarningsLimit();
     Builtins builtins = ctx.getBuiltins();
     for (int i = 0; i < items.length; ++i) {
       final long index = i;
@@ -197,7 +198,7 @@ final class Array implements EnsoObject {
           var wrappedError = builtins.error().makeMapError(index, error);
           var wrappedWarning = Warning.create(ctx, wrappedError, warning.getOrigin());
           return wrappedWarning;
-        }).collect(Collectors.toList());
+        }).limit(maxWarnings).collect(Collectors.toList());
         setOfWarnings.addAll(wrappedWarnings);
       }
     }
