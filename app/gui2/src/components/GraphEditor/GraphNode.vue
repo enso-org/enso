@@ -23,25 +23,19 @@ import { setIfUndefined } from 'lib0/map'
 import { type ContentRange, type ExprId, type VisualizationIdentifier } from 'shared/yjsModel'
 import { computed, ref, watch, watchEffect } from 'vue'
 
-function withEnabledOutputContextPatternText(name: string) {
+const enableMethodName = 'with_enabled_context'
+const disableMethodName = 'with_disabled_context'
+function withOverriddenOutputContextPatternText(name: string, enable: boolean) {
   return (
-    "Standard.Base.Runtime.with_enabled_context Standard.Base.Runtime.Context.Output '" +
+    `Standard.Base.Runtime.${
+      enable ? enableMethodName : disableMethodName
+    } Standard.Base.Runtime.Context.Output '` +
     astStringEscape(name) +
     "' <| "
   )
 }
-const withEnabledOutputContextPatternAst = AstExtended.parseLine(
-  'Standard.Base.Runtime.with_enabled_context Standard.Base.Runtime.Context.Output __ <| __',
-)
-function withDisabledOutputContextPatternText(name: string) {
-  return (
-    "Standard.Base.Runtime.with_disabled_context Standard.Base.Runtime.Context.Output '" +
-    astStringEscape(name) +
-    "' <| "
-  )
-}
-const withDisabledOutputContextPatternAst = AstExtended.parseLine(
-  'Standard.Base.Runtime.with_disabled_context Standard.Base.Runtime.Context.Output __ <| __',
+const withOverriddenOutputContextPatternAst = AstExtended.parseLine(
+  'Standard.Base.Runtime.__ Standard.Base.Runtime.Context.Output __ <| __',
 )
 </script>
 
@@ -168,62 +162,63 @@ const dragPointer = usePointer((pos, event, type) => {
   }
 })
 
-const exprWithoutEnabledOutputContext = computed(() => {
-  if (projectStore.isOutputContextEnabled) return
-  return extractMatches(props.node.rootSpan, withEnabledOutputContextPatternAst)?.[1]
-})
-
-const exprWithoutDisabledOutputContext = computed(() => {
-  if (!projectStore.isOutputContextEnabled) return
-  return extractMatches(props.node.rootSpan, withDisabledOutputContextPatternAst)?.[1]
+const exprWithoutOverriddenOutputContext = computed(() => {
+  const matches = extractMatches(props.node.rootSpan, withOverriddenOutputContextPatternAst)
+  if (!matches) return
+  let enabled: boolean
+  switch (matches[0]?.repr()) {
+    case enableMethodName: {
+      enabled = true
+      break
+    }
+    case disableMethodName: {
+      enabled = false
+      break
+    }
+    default: {
+      return
+    }
+  }
+  return { enabled, contextExpr: matches[1]!, innerExpr: matches[2]! }
 })
 
 const displayedExpression = computed(
-  () =>
-    exprWithoutEnabledOutputContext.value ??
-    exprWithoutDisabledOutputContext.value ??
-    props.node.rootSpan,
+  () => exprWithoutOverriddenOutputContext.value?.innerExpr ?? props.node.rootSpan,
 )
 
 const isOutputContextOverridden = computed({
   get() {
     return (
-      exprWithoutEnabledOutputContext.value != null ||
-      exprWithoutDisabledOutputContext.value != null
+      exprWithoutOverriddenOutputContext.value != null &&
+      exprWithoutOverriddenOutputContext.value.enabled !== projectStore.isOutputContextEnabled &&
+      exprWithoutOverriddenOutputContext.value.contextExpr.repr().slice(1, -1) ===
+        projectStore.executionMode
     )
   },
   set(shouldOverride) {
     const module = projectStore.module
     if (!module) return
+    const currentOverride = exprWithoutOverriddenOutputContext.value
+    const subExprStart = currentOverride?.innerExpr.span()[0]
+    const start = 0
+    const end = subExprStart ? subExprStart - props.node.rootSpan.span()[0] : 0
     if (projectStore.isOutputContextEnabled) {
-      if (shouldOverride && !exprWithoutDisabledOutputContext.value) {
+      if (shouldOverride) {
         emit('update:content', [
-          [[0, 0], withDisabledOutputContextPatternText(projectStore.executionMode)],
+          [[start, end], withOverriddenOutputContextPatternText(projectStore.executionMode, false)],
         ])
-      } else if (
-        !shouldOverride &&
-        exprWithoutDisabledOutputContext.value &&
-        projectStore.executionMode != null
-      ) {
-        const start = props.node.rootSpan.span()[0]
-        const subExprStart = exprWithoutDisabledOutputContext.value.span()[0]
+      } else {
         // Remove force enable of output context.
-        emit('update:content', [[[0, subExprStart - start], '']])
+        emit('update:content', [[[start, end], '']])
       }
     } else {
-      if (shouldOverride && !exprWithoutEnabledOutputContext.value) {
+      if (shouldOverride) {
         emit('update:content', [
-          [[0, 0], withEnabledOutputContextPatternText(projectStore.executionMode)],
+          [[start, end], withOverriddenOutputContextPatternText(projectStore.executionMode, true)],
         ])
-      } else if (
-        !shouldOverride &&
-        exprWithoutEnabledOutputContext.value &&
-        projectStore.executionMode != null
-      ) {
+      } else {
         const start = props.node.rootSpan.span()[0]
-        const subExprStart = exprWithoutEnabledOutputContext.value.span()[0]
-        // Remove force enable of output context.
-        emit('update:content', [[[0, subExprStart - start], '']])
+        emit('update:content', [[[start, end], '']])
       }
     }
   },
