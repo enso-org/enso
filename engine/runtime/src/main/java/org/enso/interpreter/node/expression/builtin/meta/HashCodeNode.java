@@ -272,7 +272,7 @@ public abstract class HashCodeNode extends Node {
       try {
         return interop.asLong(result);
       } catch (UnsupportedMessageException e) {
-        throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
+        throw ctx.raiseAssertionPanic(this, null, e);
       }
     }
   }
