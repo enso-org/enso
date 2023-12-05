@@ -577,25 +577,23 @@ lazy val modulePathTestOptions =
     * in the `org.enso.runtime` module. In this way, we do not have to assembly the `runtime.jar`
     * fat jar.
     */
-  val modulesToPatchIntoRuntime: ListBuffer[File] = ListBuffer()
-  modulesToPatchIntoRuntime ++= (LocalProject(
-    "runtime-instrument-common"
-  ) / Compile / productDirectories).value
-  modulesToPatchIntoRuntime ++= (LocalProject(
-    "runtime-instrument-id-execution"
-  ) / Compile / productDirectories).value
-  modulesToPatchIntoRuntime ++= (LocalProject(
-    "runtime-instrument-repl-debugger"
-  ) / Compile / productDirectories).value
-  modulesToPatchIntoRuntime ++= (LocalProject(
-    "runtime-instrument-runtime-server"
-  ) / Compile / productDirectories).value
-  modulesToPatchIntoRuntime ++= (LocalProject(
-    "runtime-language-epb"
-  ) / Compile / productDirectories).value
-  modulesToPatchIntoRuntime ++= (LocalProject(
-    "runtime-compiler"
-  ) / Compile / productDirectories).value
+  val modulesToPatchIntoRuntime: Seq[File] =
+    (LocalProject(
+      "runtime-instrument-common"
+    ) / Compile / productDirectories).value ++
+    (LocalProject(
+      "runtime-instrument-id-execution"
+    ) / Compile / productDirectories).value ++
+    (LocalProject(
+      "runtime-instrument-repl-debugger"
+    ) / Compile / productDirectories).value ++
+    (LocalProject(
+      "runtime-instrument-runtime-server"
+    ) / Compile / productDirectories).value ++
+    (LocalProject(
+      "runtime-language-epb"
+    ) / Compile / productDirectories).value ++
+    (LocalProject("runtime-compiler") / Compile / productDirectories).value
   val patchStr = modulesToPatchIntoRuntime
     .map(_.getAbsolutePath)
     .mkString(File.pathSeparator)
