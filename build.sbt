@@ -525,18 +525,99 @@ lazy val componentModulesPaths =
 lazy val graalModulesPaths =
   taskKey[Def.Classpath](
     "Gathers all GraalVM modules (Jar archives that should be put on module-path" +
-      " as files"
+    " as files"
   )
 (ThisBuild / graalModulesPaths) := {
-  val runnerCp = (`engine-runner` / Runtime / fullClasspath).value
+  val runnerCp  = (`engine-runner` / Runtime / fullClasspath).value
   val runtimeCp = (LocalProject("runtime") / Runtime / fullClasspath).value
-  val fullCp = (runnerCp ++ runtimeCp).distinct
-  val log = streams.value.log
+  val fullCp    = (runnerCp ++ runtimeCp).distinct
+  val log       = streams.value.log
   JPMSUtils.filterModulesFromClasspath(
     fullCp,
     GraalVM.modules,
     log,
     shouldContainAll = true
+  )
+}
+
+/** The javaOptions are created such that the `runtime/test` will run with truffle-compiler
+  * So we need to properly create --module-path option.
+  * Module `org.enso.runtime` is added to --module-path as a path to a directory with
+  * expanded classes, i.e., not a Jar archive. This means we also have to properly create
+  * --patch-module option. This is an optimization so that we don't have to assembly the
+  * `runtime.jar` fat jar for the tests.
+  */
+lazy val modulePathTestOptions =
+  taskKey[Seq[String]](
+    "Provides javaOptions for running tests with --module-path set such that " +
+    "enso (`org.enso.runtime`) module and truffle-compiler and the rest of " +
+    "the GraalVM modules are on module-path. Also makes sure that the `runtime.jar` " +
+    "fat jar is not rebuilt unnecessarily"
+  )
+(ThisBuild / modulePathTestOptions) := {
+  val updateReport = (LocalProject("runtime") / Test / update).value
+  val runtimeModName = (LocalProject(
+    "runtime-with-instruments"
+  ) / moduleInfos).value.head.moduleName
+  val runtimeMod = (LocalProject(
+    "runtime-with-instruments"
+  ) / Compile / productDirectories).value
+  val graalMods = graalModulesPaths.value
+  val loggingMods = JPMSUtils.filterModulesFromUpdate(
+    updateReport,
+    logbackPkg ++ Seq(
+      "org.slf4j" % "slf4j-api" % slf4jVersion
+    ),
+    streams.value.log,
+    shouldContainAll = true
+  )
+
+  /** All these modules will be in --patch-module cmdline option to java, which means that
+    * for the JVM, it will appear that all the classes contained in these sbt projects are contained
+    * in the `org.enso.runtime` module. In this way, we do not have to assembly the `runtime.jar`
+    * fat jar.
+    */
+  val modulesToPatchIntoRuntime: ListBuffer[File] = ListBuffer()
+  modulesToPatchIntoRuntime ++= (LocalProject(
+    "runtime-with-instruments"
+  ) / Compile / productDirectories).value
+  modulesToPatchIntoRuntime ++= (LocalProject(
+    "runtime-instrument-common"
+  ) / Compile / productDirectories).value
+  modulesToPatchIntoRuntime ++= (LocalProject(
+    "runtime-instrument-id-execution"
+  ) / Compile / productDirectories).value
+  modulesToPatchIntoRuntime ++= (LocalProject(
+    "runtime-instrument-repl-debugger"
+  ) / Compile / productDirectories).value
+  modulesToPatchIntoRuntime ++= (LocalProject(
+    "runtime-instrument-runtime-server"
+  ) / Compile / productDirectories).value
+  modulesToPatchIntoRuntime ++= (LocalProject(
+    "runtime-language-epb"
+  ) / Compile / productDirectories).value
+  modulesToPatchIntoRuntime ++= (LocalProject(
+    "runtime-compiler"
+  ) / Compile / productDirectories).value
+  val patchStr = modulesToPatchIntoRuntime
+    .map(_.getAbsolutePath)
+    .mkString(File.pathSeparator)
+  val allModulesPaths: Seq[String] =
+    runtimeMod.map(_.getAbsolutePath) ++
+    graalMods.map(_.data.getAbsolutePath) ++
+    loggingMods.map(_.getAbsolutePath)
+  Seq(
+    // We can't use org.enso.logger.TestLogProvider here because it is not
+    // in a module, and it cannot be simple wrapped inside a module.
+    "-Dslf4j.provider=ch.qos.logback.classic.spi.LogbackServiceProvider",
+    "--module-path",
+    allModulesPaths.mkString(File.pathSeparator),
+    "--add-modules",
+    runtimeModName,
+    "--patch-module",
+    s"$runtimeModName=$patchStr",
+    "--add-reads",
+    s"$runtimeModName=ALL-UNNAMED"
   )
 }
 
@@ -1451,8 +1532,8 @@ lazy val runtime = (project in file("engine/runtime"))
       "junit"                % "junit"                   % junitVersion              % Test,
       "com.github.sbt"       % "junit-interface"         % junitIfVersion            % Test,
       "org.hamcrest"         % "hamcrest-all"            % hamcrestVersion           % Test,
-      "org.slf4j" % "slf4j-nop" % slf4jVersion % Benchmark,
-      "org.slf4j" % "slf4j-api" % slf4jVersion % Test
+      "org.slf4j"            % "slf4j-nop"               % slf4jVersion              % Benchmark,
+      "org.slf4j"            % "slf4j-api"               % slf4jVersion              % Test
     ),
     // Add all GraalVM packages with Runtime scope - we don't need them for compilation,
     // just provide them at runtime (in module-path).
@@ -1465,77 +1546,7 @@ lazy val runtime = (project in file("engine/runtime"))
         GraalVM.toolsPkgs.map(_.withConfigurations(Some(Runtime.name)))
       necessaryModules ++ langs ++ tools
     },
-    // The javaOptions are created such that the `runtime/test` will run with truffle-compiler
-    // So we need to properly create --module-path option.
-    // Module `org.enso.runtime` is added to --module-path as a path to a directory with
-    // expanded classes, i.e., not a Jar archive. This means we also have to properly create
-    // --patch-module option. This is an optimization so that we don't have to assembly the
-    // `runtime.jar` fat jar for the tests.
-    Test / javaOptions ++= {
-      val runtimeModName = (LocalProject(
-        "runtime-with-instruments"
-      ) / moduleInfos).value.head.moduleName
-      val runtimeMod = (LocalProject(
-        "runtime-with-instruments"
-      ) / Compile / productDirectories).value
-      val graalMods = graalModulesPaths.value
-      val loggingMods = JPMSUtils.filterModulesFromUpdate(
-        (Test / update).value,
-        logbackPkg ++ Seq(
-          "org.slf4j" % "slf4j-api" % slf4jVersion
-        ),
-        streams.value.log,
-        shouldContainAll = true
-      )
-
-      /** All these modules will be in --patch-module cmdline option to java, which means that
-       * for the JVM, it will appear that all the classes contained in these sbt projects are contained
-       * in the `org.enso.runtime` module. In this way, we do not have to assembly the `runtime.jar`
-       * fat jar.
-       */
-      val modulesToPatchIntoRuntime: ListBuffer[File] = ListBuffer()
-      modulesToPatchIntoRuntime ++= (LocalProject(
-        "runtime-with-instruments"
-      ) / Compile / productDirectories).value
-      modulesToPatchIntoRuntime ++= (LocalProject(
-        "runtime-instrument-common"
-      ) / Compile / productDirectories).value
-      modulesToPatchIntoRuntime ++= (LocalProject(
-        "runtime-instrument-id-execution"
-      ) / Compile / productDirectories).value
-      modulesToPatchIntoRuntime ++= (LocalProject(
-        "runtime-instrument-repl-debugger"
-      ) / Compile / productDirectories).value
-      modulesToPatchIntoRuntime ++= (LocalProject(
-        "runtime-instrument-runtime-server"
-      ) / Compile / productDirectories).value
-      modulesToPatchIntoRuntime ++= (LocalProject(
-        "runtime-language-epb"
-      ) / Compile / productDirectories).value
-      modulesToPatchIntoRuntime ++= (LocalProject(
-        "runtime-compiler"
-      ) / Compile / productDirectories).value
-      val patchStr = modulesToPatchIntoRuntime
-        .map(_.getAbsolutePath)
-        .mkString(File.pathSeparator)
-      val allModulesPaths: Seq[String] =
-        runtimeMod.map(_.getAbsolutePath) ++
-          graalMods.map(_.data.getAbsolutePath) ++
-          loggingMods.map(_.getAbsolutePath)
-      Seq(
-        // We can't use org.enso.logger.TestLogProvider here because it is not
-        // in a module, and it cannot be simple wrapped inside a module.
-        "-Dslf4j.provider=ch.qos.logback.classic.spi.LogbackServiceProvider",
-        "--module-path",
-        allModulesPaths.mkString(File.pathSeparator),
-        "--add-modules",
-        runtimeModName,
-        "--patch-module",
-        s"$runtimeModName=$patchStr",
-        "--add-reads",
-        s"$runtimeModName=ALL-UNNAMED"
-      )
-    },
+    Test / javaOptions := modulePathTestOptions.value,
     Test / unmanagedClasspath := (LocalProject(
       "runtime-with-instruments"
     ) / Compile / exportedProducts).value,

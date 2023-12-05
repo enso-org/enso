@@ -65,13 +65,13 @@ object JPMSUtils {
   }
 
   /** Filters all the requested modules from the given [[UpdateReport]].
-   *
-   * @param updateReport     The update report to filter. This is the result of `update.value`.
-   * @param modules          The modules to filter from the update report.
-   * @param log              The logger to use for logging.
-   * @param shouldContainAll If true, the method will log an error if not all modules were found.
-   * @return The list of files (Jar archives, directories, etc.) that were found in the update report.
-   */
+    *
+    * @param updateReport     The update report to filter. This is the result of `update.value`.
+    * @param modules          The modules to filter from the update report.
+    * @param log              The logger to use for logging.
+    * @param shouldContainAll If true, the method will log an error if not all modules were found.
+    * @return The list of files (Jar archives, directories, etc.) that were found in the update report.
+    */
   def filterModulesFromUpdate(
     updateReport: UpdateReport,
     modules: Seq[ModuleID],
@@ -81,8 +81,8 @@ object JPMSUtils {
     def shouldFilterModule(module: ModuleID): Boolean = {
       modules.exists(m =>
         m.organization == module.organization &&
-          m.name == module.name &&
-          m.revision == module.revision
+        m.name == module.name &&
+        m.revision == module.revision
       )
     }
 
