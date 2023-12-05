@@ -40,7 +40,6 @@ const props = defineProps<{
   nodeSize: Vec2
   scale: number
   typename?: string | undefined
-  // expressionId?: ExprId | undefined
   dataSource?: VisualizationDataSource | undefined
   data?: any | undefined
 }>()
