@@ -123,6 +123,15 @@ impl JobArchetype for NewGuiTest {
 }
 
 #[derive(Clone, Copy, Debug)]
+pub struct NewGuiE2ETest;
+impl JobArchetype for NewGuiE2ETest {
+    fn job(&self, os: OS) -> Job {
+        plain_job(&os, "New (Vue) E2E GUI tests (without backend)", "gui2 e2e-test")
+    }
+}
+
+
+#[derive(Clone, Copy, Debug)]
 pub struct NewGuiBuild;
 impl JobArchetype for NewGuiBuild {
     fn job(&self, os: OS) -> Job {
