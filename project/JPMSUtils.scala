@@ -64,8 +64,7 @@ object JPMSUtils {
     ret
   }
 
-  /**
-   * Filters all the requested modules from the given [[UpdateReport]].
+  /** Filters all the requested modules from the given [[UpdateReport]].
    *
    * @param updateReport     The update report to filter. This is the result of `update.value`.
    * @param modules          The modules to filter from the update report.
