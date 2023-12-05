@@ -33,6 +33,8 @@ import org.enso.text.editing.model;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import scala.Option;
@@ -54,12 +56,18 @@ public class IncrementalUpdatesTest {
   public void initializeContext() {
     RuntimeServerTest t = new RuntimeServerTest();
     context = t.new TestContext("Test");
+    context.init();
     var initResponse = context.receive().get();
     assertEquals(Response(new Runtime$Api$InitializedNotification()), initResponse);
     var engine = context.executionContext().context().getEngine();
     var instr = engine.getInstruments().get(NodeCountingTestInstrument.INSTRUMENT_ID);
     assertNotNull("NodeCountingTestInstrument found", instr);
     nodeCountingInstrument = instr.lookup(NodeCountingTestInstrument.class);
+  }
+
+  @After
+  public void teardownContext() {
+    context.close();
   }
 
   @Test

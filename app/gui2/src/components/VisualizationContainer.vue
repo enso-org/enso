@@ -170,13 +170,15 @@ const resizeBottomRight = usePointer((pos, _, type) => {
                 "
               />
             </button>
-            <VisualizationSelector
-              v-if="isSelectorVisible"
-              :types="config.types"
-              :modelValue="config.currentType"
-              @hide="hideSelector"
-              @update:modelValue="(isSelectorVisible = false), config.updateType($event)"
-            />
+            <Suspense>
+              <VisualizationSelector
+                v-if="isSelectorVisible"
+                :types="config.types"
+                :modelValue="config.currentType"
+                @hide="hideSelector"
+                @update:modelValue="(isSelectorVisible = false), config.updateType($event)"
+              />
+            </Suspense>
           </div>
         </div>
         <div v-if="$slots.toolbar" class="visualization-defined-toolbars">

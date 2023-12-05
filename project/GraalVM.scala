@@ -85,8 +85,7 @@ object GraalVM {
 
   val toolsPkgs = chromeInspectorPkgs ++ debugAdapterProtocolPkgs
 
-  // TODO: Add graalvmPython
-  val langsPkgs = jsPkgs
+  val langsPkgs = jsPkgs ++ pythonPkgs
 
   /** Augments a state transition to do GraalVM version check.
     *
