@@ -1,21 +1,12 @@
 import sbt.*
 import sbt.Keys.*
-import sbtassembly.Assembly.{Dependency, JarEntry, Library, Project}
-import sbtassembly.MergeStrategy
-
-import java.io.{File, FilenameFilter}
-import sbtassembly.CustomMergeStrategy
-import xsbti.compile.IncToolOptionsUtil
 import sbt.internal.inc.{CompileOutput, PlainVirtualFile}
+import sbtassembly.Assembly.{Dependency, JarEntry, Project}
+import sbtassembly.{CustomMergeStrategy, MergeStrategy}
+import xsbti.compile.IncToolOptionsUtil
 
-import java.nio.file.attribute.BasicFileAttributes
-import java.nio.file.{
-  FileVisitResult,
-  FileVisitor,
-  Files,
-  Path,
-  SimpleFileVisitor
-}
+import java.io.File
+import java.nio.file.{Files, Path}
 
 /** Collection of utility methods dealing with JPMS modules.
   * The motivation comes from the update of GraalVM to
@@ -71,6 +62,42 @@ object JPMSUtils {
       }
     }
     ret
+  }
+
+  /**
+   * Filters all the requested modules from the given [[UpdateReport]].
+   *
+   * @param updateReport     The update report to filter. This is the result of `update.value`.
+   * @param modules          The modules to filter from the update report.
+   * @param log              The logger to use for logging.
+   * @param shouldContainAll If true, the method will log an error if not all modules were found.
+   * @return The list of files (Jar archives, directories, etc.) that were found in the update report.
+   */
+  def filterModulesFromUpdate(
+    updateReport: UpdateReport,
+    modules: Seq[ModuleID],
+    log: sbt.util.Logger,
+    shouldContainAll: Boolean = false
+  ): Seq[File] = {
+    def shouldFilterModule(module: ModuleID): Boolean = {
+      modules.exists(m =>
+        m.organization == module.organization &&
+          m.name == module.name &&
+          m.revision == module.revision
+      )
+    }
+
+    val foundFiles = updateReport.select(
+      module = shouldFilterModule
+    )
+    if (shouldContainAll) {
+      if (foundFiles.size < modules.size) {
+        log.error("Not all modules from update were found")
+        log.error(s"Returned (${foundFiles.size}): $foundFiles")
+        log.error(s"Expected: (${modules.size}): $modules")
+      }
+    }
+    foundFiles
   }
 
   def filterTruffleAndGraalArtifacts(

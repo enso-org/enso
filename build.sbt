@@ -767,6 +767,47 @@ lazy val `logging-service-logback` = project
       "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided"
     ) ++ logbackPkg
   )
+  // JPMS settings
+  .settings(
+    moduleInfos := Seq(
+      AutomaticModule("org.enso.logging.test")
+    ),
+    // This compilation order is required for the module-info.java file to be properly compiled
+    compileOrder := CompileOrder.JavaThenScala,
+    Test / javacOptions ++= {
+      val requiredModulesOnMp = logbackPkg ++ Seq(
+        "org.slf4j" % "slf4j-api" % slf4jVersion,
+      )
+      val foundModulesOnMp = JPMSUtils.filterModulesFromUpdate(
+        update.value,
+        requiredModulesOnMp,
+        streams.value.log,
+        shouldContainAll = true
+      )
+      val modulesToPatch = JPMSUtils.filterModulesFromUpdate(
+        update.value,
+        Seq(
+          "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion
+        ),
+        streams.value.log,
+        shouldContainAll = true
+      )
+      val internalProjectsToPatch: ListBuffer[File] = ListBuffer()
+      internalProjectsToPatch ++= (LocalProject("logging-config") / Compile / productDirectories).value
+      internalProjectsToPatch ++= (Compile / productDirectories).value
+      val patchStr = (modulesToPatch ++ internalProjectsToPatch)
+        .map(_.getAbsolutePath)
+        .mkString(File.pathSeparator)
+
+      val thisModName = moduleInfos.value.head.moduleName
+      Seq(
+        "--module-path",
+        foundModulesOnMp.map(_.getAbsolutePath).mkString(File.pathSeparator),
+        "--patch-module",
+        s"$thisModName=$patchStr",
+      )
+    },
+  )
   .dependsOn(`logging-config`)
   .dependsOn(`logging-service`)
 
