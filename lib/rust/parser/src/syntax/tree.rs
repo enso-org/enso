@@ -211,6 +211,8 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             pub name: Tree<'s>,
             /// The argument patterns.
             pub args: Vec<ArgumentDefinition<'s>>,
+            /// An optional specification of return type, like `-> Integer`.
+            pub returns: Option<ReturnSpecification<'s>>,
             /// The `=` token.
             pub equals: token::Operator<'s>,
             /// The body, which will typically be an inline expression or a `BodyBlock` expression.
@@ -597,6 +599,22 @@ pub struct ArgumentType<'s> {
 impl<'s> span::Builder<'s> for ArgumentType<'s> {
     fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
         span.add(&mut self.operator).add(&mut self.type_)
+    }
+}
+
+/// A function return type specification.
+#[derive(Clone, Debug, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
+pub struct ReturnSpecification<'s> {
+    /// The `->` operator.
+    pub arrow:  token::Operator<'s>,
+    /// The function's return type.
+    #[reflect(rename = "type")]
+    pub r#type: Tree<'s>,
+}
+
+impl<'s> span::Builder<'s> for ReturnSpecification<'s> {
+    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
+        span.add(&mut self.arrow).add(&mut self.r#type)
     }
 }
 
