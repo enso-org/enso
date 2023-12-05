@@ -49,6 +49,19 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
     return new Rect(pos, size)
   }
 
+  function panAndZoomTo(rect: Rect, minScale = 0.1, maxScale = 1) {
+    if (!viewportNode.value) return
+    scale.value = Math.max(
+      minScale,
+      Math.min(
+        maxScale,
+        viewportNode.value.clientHeight / rect.height,
+        viewportNode.value.clientWidth / rect.width,
+      ),
+    )
+    center.value = new Vec2(rect.left + rect.width / 2, rect.top + rect.height / 2)
+  }
+
   let zoomPivot = Vec2.Zero
   const zoomPointer = usePointer((pos, _event, ty) => {
     if (ty === 'start') {
@@ -189,6 +202,7 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
     sceneMousePos,
     clientToScenePos,
     clientToSceneRect,
+    panAndZoomTo,
     viewport,
   })
 }
