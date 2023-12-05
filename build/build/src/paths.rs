@@ -84,13 +84,7 @@ impl TargetTriple {
     /// As the GraalVM we use does not support native Aarch64 builds, it should be treated as amd64
     /// there.
     pub fn engine(&self) -> Self {
-        let mut ret = self.clone();
-        ret.arch = if self.arch == Arch::AArch64 && self.os == OS::MacOS {
-            Arch::X86_64
-        } else {
-            self.arch
-        };
-        ret
+        self.clone()
     }
 
     /// Pretty prints architecture for our packages. Conform to GraalVM scheme as well.
