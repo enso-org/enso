@@ -13,8 +13,11 @@ import src.main.scala.licenses.{
   SBTDistributionComponent
 }
 import com.sandinh.javamodule.moduleinfo.JpmsModule
+import com.sandinh.javamodule.moduleinfo.AutomaticModule
+import sbt.librarymanagement.DependencyFilter
 
 import java.io.File
+import scala.collection.mutable.ListBuffer
 
 // ============================================================================
 // === Global Configuration ===================================================
@@ -519,6 +522,24 @@ lazy val componentModulesPaths =
   )
 }
 
+lazy val graalModulesPaths =
+  taskKey[Def.Classpath](
+    "Gathers all GraalVM modules (Jar archives that should be put on module-path" +
+      " as files"
+  )
+(ThisBuild / graalModulesPaths) := {
+  val runnerCp = (`engine-runner` / Runtime / fullClasspath).value
+  val runtimeCp = (LocalProject("runtime") / Runtime / fullClasspath).value
+  val fullCp = (runnerCp ++ runtimeCp).distinct
+  val log = streams.value.log
+  JPMSUtils.filterModulesFromClasspath(
+    fullCp,
+    GraalVM.modules,
+    log,
+    shouldContainAll = true
+  )
+}
+
 // ============================================================================
 // === Internal Libraries =====================================================
 // ============================================================================
@@ -766,47 +787,6 @@ lazy val `logging-service-logback` = project
       "io.sentry"        % "sentry"                  % "6.28.0",
       "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided"
     ) ++ logbackPkg
-  )
-  // JPMS settings
-  .settings(
-    moduleInfos := Seq(
-      AutomaticModule("org.enso.logging.test")
-    ),
-    // This compilation order is required for the module-info.java file to be properly compiled
-    compileOrder := CompileOrder.JavaThenScala,
-    Test / javacOptions ++= {
-      val requiredModulesOnMp = logbackPkg ++ Seq(
-        "org.slf4j" % "slf4j-api" % slf4jVersion,
-      )
-      val foundModulesOnMp = JPMSUtils.filterModulesFromUpdate(
-        update.value,
-        requiredModulesOnMp,
-        streams.value.log,
-        shouldContainAll = true
-      )
-      val modulesToPatch = JPMSUtils.filterModulesFromUpdate(
-        update.value,
-        Seq(
-          "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion
-        ),
-        streams.value.log,
-        shouldContainAll = true
-      )
-      val internalProjectsToPatch: ListBuffer[File] = ListBuffer()
-      internalProjectsToPatch ++= (LocalProject("logging-config") / Compile / productDirectories).value
-      internalProjectsToPatch ++= (Compile / productDirectories).value
-      val patchStr = (modulesToPatch ++ internalProjectsToPatch)
-        .map(_.getAbsolutePath)
-        .mkString(File.pathSeparator)
-
-      val thisModName = moduleInfos.value.head.moduleName
-      Seq(
-        "--module-path",
-        foundModulesOnMp.map(_.getAbsolutePath).mkString(File.pathSeparator),
-        "--patch-module",
-        s"$thisModName=$patchStr",
-      )
-    },
   )
   .dependsOn(`logging-config`)
   .dependsOn(`logging-service`)
@@ -1304,15 +1284,26 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .settings(
     // These settings are needed by language-server tests that create a runtime context.
     Test / fork := true,
-    Test / javaOptions ++= testLogProviderOptions ++ Seq(
-      "-Dpolyglot.engine.WarnInterpreterOnly=false",
-      "-Dpolyglotimpl.DisableClassPathIsolation=true"
-    ),
-    // Append enso language on the class-path
-    Test / unmanagedClasspath :=
-      (LocalProject(
+    Test / javaOptions ++= testLogProviderOptions ++ {
+      val runtimeJar = (LocalProject(
         "runtime-with-instruments"
-      ) / Compile / fullClasspath).value,
+      ) / assembly / assemblyOutputPath).value
+      val log = streams.value.log
+      val requiredModules =
+        (Test / internalDependencyClasspath).value ++ (Test / unmanagedClasspath).value
+      val allModules = requiredModules.map(_.data.getAbsolutePath) ++ Seq(
+        runtimeJar.getAbsolutePath
+      )
+      Seq(
+        "--module-path",
+        allModules.mkString(File.pathSeparator),
+        "--add-modules",
+        // TODO: Use JPMSModule name
+        "org.enso.runtime"
+      )
+    },
+    // Append enso language on the class-path
+    Test / unmanagedClasspath := componentModulesPaths.value,
     Test / compile := (Test / compile)
       .dependsOn(LocalProject("enso") / updateLibraryManifests)
       .value,
