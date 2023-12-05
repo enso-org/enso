@@ -472,6 +472,16 @@ spec =
             expected = [Header.content_type "application/json", Header.content_type "text/plain"]
             resolve_headers (Request.new HTTP_Method.Get "" [Header.content_type "application/json", Header.content_type "text/plain"] (Request_Body.Text "")) . should_contain_the_same_elements_as expected
 
+    Test.group "Http Error handling" <|
+        Test.specify "should be able to handle request errors" <|
+            err = Data.fetch "http://0.0.0.0:1/"
+            err.should_fail_with Request_Error
+
+        Test.specify "should be able to handle IO errors" <|
+            # TODO how to trigger this error???
+            err = Data.fetch "TODO"
+            err.should_fail_with HTTP_Error
+
 main = Test_Suite.run_main spec
 
 echo_response_template method data content_type content_length=data.length =
