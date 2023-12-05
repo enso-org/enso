@@ -1,7 +1,7 @@
 <script lang="ts">
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useVisualizationConfig } from '@/providers/visualizationConfig'
-import { useEvent, useEventConditional } from '@/util/events'
+import { useEvent } from '@/util/events'
 import { getTextWidth } from '@/util/measurement'
 import { VisualizationContainer, defineKeybinds } from '@/util/visualizationBuiltins'
 import { computed, ref, watch, watchEffect, watchPostEffect } from 'vue'
@@ -18,8 +18,7 @@ export const defaultPreprocessor = [
 ] as const
 
 const bindings = defineKeybinds('scatterplot-visualization', {
-  zoomIn: ['Mod+Z'],
-  showAll: ['Mod+A'],
+  zoomToSelected: ['Mod+A'],
 })
 
 /**
@@ -387,39 +386,6 @@ const brush = computed(() =>
 )
 watchEffect(() => d3Brush.value.call(brush.value))
 
-/** Zoom into the selected area of the plot.
- *
- * Based on https://www.d3-graph-gallery.com/graph/interactivity_brush.html
- * Section "Brushing for zooming". */
-function zoomToSelected() {
-  shouldAnimate.value = true
-  focus.value = undefined
-  if (
-    brushExtent.value == null ||
-    !Array.isArray(brushExtent.value[0]) ||
-    !Array.isArray(brushExtent.value[1])
-  ) {
-    return
-  }
-  const xScale_ = xScale.value
-  const yScale_ = yScale.value
-  const [[xMinRaw, yMaxRaw], [xMaxRaw, yMinRaw]] = brushExtent.value
-  const xMin = xScale_.invert(xMinRaw)
-  const xMax = xScale_.invert(xMaxRaw)
-  const yMin = yScale_.invert(yMinRaw)
-  const yMax = yScale_.invert(yMaxRaw)
-  bounds.value = [xMin, yMin, xMax, yMax]
-  xDomain.value = [xMin, xMax]
-  yDomain.value = [yMin, yMax]
-}
-
-function zoomIn() {
-  zoomToSelected()
-  endBrushing()
-}
-
-useEventConditional(document, 'keydown', isBrushing, bindings.handler({ zoomIn }))
-
 watch([boxWidth, boxHeight], () => (shouldAnimate.value = false))
 
 /** Helper function to match a d3 shape from its name. */
@@ -508,39 +474,66 @@ watchPostEffect(() => {
 // === Event handlers ===
 // ======================
 
-function showAll() {
-  shouldAnimate.value = true
-  focus.value = undefined
-  bounds.value = undefined
-  limit.value = DEFAULT_LIMIT
-  xDomain.value = [
-    extremesAndDeltas.value.xMin - extremesAndDeltas.value.paddingX,
-    extremesAndDeltas.value.xMax + extremesAndDeltas.value.paddingX,
-  ]
-  yDomain.value = [
-    extremesAndDeltas.value.yMin - extremesAndDeltas.value.paddingY,
-    extremesAndDeltas.value.yMax + extremesAndDeltas.value.paddingY,
-  ]
-  endBrushing()
-}
-
 function endBrushing() {
   brushExtent.value = undefined
   d3Brush.value.call(brush.value.move, null)
 }
 
-useEvent(document, 'keydown', bindings.handler({ showAll }))
 useEvent(document, 'click', endBrushing)
 useEvent(document, 'auxclick', endBrushing)
 useEvent(document, 'contextmenu', endBrushing)
 useEvent(document, 'scroll', endBrushing)
+
+/** Zoom into the selected area of the plot.
+ *
+ * Based on https://www.d3-graph-gallery.com/graph/interactivity_brush.html
+ * Section "Brushing for zooming". */
+function zoomToSelected(override?: boolean) {
+  shouldAnimate.value = true
+  focus.value = undefined
+  const shouldZoomToSelected = override ?? isBrushing.value
+  if (!shouldZoomToSelected) {
+    shouldAnimate.value = true
+    focus.value = undefined
+    bounds.value = undefined
+    limit.value = DEFAULT_LIMIT
+    xDomain.value = [
+      extremesAndDeltas.value.xMin - extremesAndDeltas.value.paddingX,
+      extremesAndDeltas.value.xMax + extremesAndDeltas.value.paddingX,
+    ]
+    yDomain.value = [
+      extremesAndDeltas.value.yMin - extremesAndDeltas.value.paddingY,
+      extremesAndDeltas.value.yMax + extremesAndDeltas.value.paddingY,
+    ]
+  } else {
+    if (
+      brushExtent.value == null ||
+      !Array.isArray(brushExtent.value[0]) ||
+      !Array.isArray(brushExtent.value[1])
+    )
+      return
+    const xScale_ = xScale.value
+    const yScale_ = yScale.value
+    const [[xMinRaw, yMaxRaw], [xMaxRaw, yMinRaw]] = brushExtent.value
+    const xMin = xScale_.invert(xMinRaw)
+    const xMax = xScale_.invert(xMaxRaw)
+    const yMin = yScale_.invert(yMinRaw)
+    const yMax = yScale_.invert(yMaxRaw)
+    bounds.value = [xMin, yMin, xMax, yMax]
+    xDomain.value = [xMin, xMax]
+    yDomain.value = [yMin, yMax]
+  }
+  endBrushing()
+}
+
+useEvent(document, 'keydown', bindings.handler({ zoomToSelected: () => zoomToSelected() }))
 </script>
 
 <template>
   <VisualizationContainer :belowToolbar="true">
     <template #toolbar>
       <button class="image-button active">
-        <SvgIcon name="show_all" alt="Fit all" @pointerdown="showAll" />
+        <SvgIcon name="show_all" alt="Fit all" @pointerdown="zoomToSelected(false)" />
       </button>
       <button class="image-button" :class="{ active: brushExtent != null }">
         <SvgIcon name="find" alt="Zoom to selected" @pointerdown="zoomToSelected" />
