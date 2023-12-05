@@ -32,6 +32,7 @@ pub mod prelude {
 use crate::prelude::*;
 use std::future::join;
 
+use crate::arg::gui2::TestType;
 use crate::arg::java_gen;
 use crate::arg::release::Action;
 use crate::arg::BuildJob;
@@ -350,8 +351,10 @@ impl Processor {
         match gui.command {
             arg::gui2::Command::Build(job) => self.build(job),
             arg::gui2::Command::Get(source) => self.get(source).void_ok().boxed(),
-            arg::gui2::Command::Test => gui2::unit_tests(&self.repo_root),
-            arg::gui2::Command::E2ETest => gui2::e2e_tests(&self.repo_root),
+            arg::gui2::Command::Test { r#type: TestType::Unit } =>
+                gui2::unit_tests(&self.repo_root),
+            arg::gui2::Command::Test { r#type: TestType::E2E } => gui2::e2e_tests(&self.repo_root),
+            arg::gui2::Command::Test { r#type: TestType::CI } => gui2::tests(&self.repo_root),
             arg::gui2::Command::Lint => gui2::lint(&self.repo_root),
         }
     }

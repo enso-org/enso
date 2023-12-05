@@ -27,6 +27,7 @@ pub enum Scripts {
     Dev,
     Build,
     Preview,
+    Test,
     #[strum(serialize = "test:unit")]
     TestUnit,
     #[strum(serialize = "test:e2e")]
@@ -53,6 +54,10 @@ pub fn script(repo_root: impl AsRef<Path>, script: Scripts) -> Result<NpmCommand
 /// Run steps that should be done along with the "lint"
 pub fn lint(repo_root: impl AsRef<Path>) -> BoxFuture<'static, Result> {
     run_in_repo_root(Scripts::Lint, repo_root)
+}
+
+pub fn tests(repo_root: impl AsRef<Path>) -> BoxFuture<'static, Result> {
+    run_in_repo_root(Scripts::Test, repo_root)
 }
 
 /// Run unit tests.

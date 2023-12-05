@@ -445,7 +445,6 @@ pub fn gui() -> Result<Workflow> {
     workflow.add(PRIMARY_OS, job::WasmTest);
     workflow.add(PRIMARY_OS, job::NativeTest);
     workflow.add(PRIMARY_OS, job::NewGuiTest);
-    workflow.add(PRIMARY_OS, job::NewGuiE2ETest);
 
     // FIXME: Integration tests are currently always failing.
     //        The should be reinstated when fixed.
