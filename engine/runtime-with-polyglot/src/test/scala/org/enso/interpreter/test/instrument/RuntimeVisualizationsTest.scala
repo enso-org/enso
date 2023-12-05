@@ -3977,10 +3977,11 @@ class RuntimeVisualizationsTest
     val moduleName      = "Enso_Test.Test.Main"
     val metadata        = new Metadata
 
-    val idMain = metadata.addItem(60, 6)
+    val idMain = metadata.addItem(90, 6)
 
     val code =
-      """import Standard.Visualization.Preprocessor
+      """import Standard.Visualization
+        |import Standard.Visualization.Preprocessor
         |
         |main =
         |    fn = x -> x
