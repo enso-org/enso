@@ -18,7 +18,7 @@ export const widgetDefinition = defineWidget([ArgumentAst, ArgumentPlaceholder],
 
 <template>
   <span class="WidgetTopLevelArgument">
-    <NodeWidget :input="props.input" nest />
+    <NodeWidget :input="props.input" :dynamicConfig="props.config" nest />
   </span>
 </template>
 
