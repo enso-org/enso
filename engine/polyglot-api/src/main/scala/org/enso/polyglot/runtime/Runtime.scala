@@ -1437,9 +1437,7 @@ object Runtime {
     /** Signals that an evaluation of a code responsible for generating
       * visualization data failed.
       *
-      * @param contextId the context's id.
-      * @param visualizationId the visualization identifier
-      * @param expressionId the identifier of a visualised expression
+      * @param ctx the visualization context
       * @param message the reason of the failure
       * @param diagnostic the detailed information about the failure
       */
@@ -1453,9 +1451,7 @@ object Runtime {
       /** @inheritdoc */
       override def toLogString(shouldMask: Boolean): String =
         "VisualizationEvaluationFailed(" +
-        s"contextId=${ctx.contextId}," +
-        s"visualizationId=${ctx.visualizationId}," +
-        s"expressionId=${ctx.expressionId}," +
+        s"ctx=$ctx," +
         s"message=${MaskedString(message).toLogString(shouldMask)}," +
         s"diagnostic=${diagnostic.map(_.toLogString(shouldMask))}" +
         ")"
