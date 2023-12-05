@@ -1,3 +1,4 @@
+import { useApproach } from '@/util/animation'
 import { PointerButtonMask, useEvent, usePointer, useResizeObserver } from '@/util/events'
 import { Rect } from '@/util/rect'
 import { Vec2 } from '@/util/vec2'
@@ -14,8 +15,32 @@ function elemRect(target: Element | undefined): Rect {
 export type NavigatorComposable = ReturnType<typeof useNavigator>
 export function useNavigator(viewportNode: Ref<Element | undefined>) {
   const size = useResizeObserver(viewportNode)
-  const center = ref<Vec2>(Vec2.Zero)
-  const scale = ref(1)
+  const targetCenter = ref<Vec2>(Vec2.Zero)
+  const targetX = computed(() => targetCenter.value.x)
+  const targetY = computed(() => targetCenter.value.y)
+  const centerX = useApproach(targetX)
+  const centerY = useApproach(targetY)
+  const center = computed({
+    get() {
+      return new Vec2(centerX.value, centerY.value)
+    },
+    set(value) {
+      targetCenter.value = value
+      centerX.value = value.x
+      centerY.value = value.y
+    },
+  })
+  const targetScale = ref(1)
+  const animatedScale = useApproach(targetScale)
+  const scale = computed({
+    get() {
+      return animatedScale.value
+    },
+    set(value) {
+      targetScale.value = value
+      animatedScale.value = value
+    },
+  })
   const panPointer = usePointer((pos) => {
     center.value = center.value.addScaled(pos.delta, -1 / scale.value)
   }, PointerButtonMask.Auxiliary)
@@ -51,7 +76,7 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
 
   function panAndZoomTo(rect: Rect, minScale = 0.1, maxScale = 1) {
     if (!viewportNode.value) return
-    scale.value = Math.max(
+    targetScale.value = Math.max(
       minScale,
       Math.min(
         maxScale,
@@ -59,7 +84,7 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
         viewportNode.value.clientWidth / rect.width,
       ),
     )
-    center.value = new Vec2(rect.left + rect.width / 2, rect.top + rect.height / 2)
+    targetCenter.value = new Vec2(rect.left + rect.width / 2, rect.top + rect.height / 2)
   }
 
   let zoomPivot = Vec2.Zero
