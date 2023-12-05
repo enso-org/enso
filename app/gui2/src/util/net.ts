@@ -211,7 +211,16 @@ export class AsyncQueue<State> {
     if (task == null) return
     this.taskRunning = true
     this.lastTask = this.lastTask
-      .then((state) => task(state))
+      .then(
+        (state) => task(state),
+        (error) => {
+          console.error(
+            "AsyncQueue failed to run task '" + task.toString() + "' with error:",
+            error,
+          )
+          throw error
+        },
+      )
       .finally(() => {
         this.taskRunning = false
         this.run()

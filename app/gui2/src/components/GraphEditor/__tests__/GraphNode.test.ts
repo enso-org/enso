@@ -12,6 +12,7 @@ import { SuggestionDb, type Group } from '@/stores/suggestionDatabase'
 import { AstExtended } from '@/util/ast'
 import { nodeFromAst } from '@/util/ast/node'
 import { PointerButtonMask } from '@/util/events'
+import { MockTransport, MockWebSocket } from '@/util/net'
 import { Rect } from '@/util/rect'
 import { Vec2 } from '@/util/vec2'
 import { createTestingPinia } from '@pinia/testing'
@@ -20,6 +21,7 @@ import { IdMap, type ContentRange } from 'shared/yjsModel'
 import { expect, test, vi } from 'vitest'
 import { computed, nextTick, ref, watchEffect } from 'vue'
 import * as Y from 'yjs'
+import { mockDataHandler, mockLSHandler } from '../../../../e2e/mockEngine'
 
 // It is currently not feasible to use generics here, as the type of the component's emits
 // is not exposed.
@@ -41,6 +43,8 @@ function handleEmit(wrapper: VueWrapper<any>, event: string, fn: (...args: any[]
 const INITIAL_NODE_CONTENT = 'a.b + c.d'
 
 test('overriding output context', async () => {
+  MockTransport.addMock('engine', mockLSHandler)
+  MockWebSocket.addMock('data', mockDataHandler)
   const doc = new Y.Doc()
   const yIds = doc.getMap<Uint8Array>('ids')
   const yCode = doc.getText('text')

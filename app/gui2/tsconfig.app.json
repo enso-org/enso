@@ -6,7 +6,8 @@
     "src/**/*.vue",
     "shared/**/*",
     "shared/**/*.vue",
-    "src/util/theme.json"
+    "src/util/theme.json",
+    "e2e/mockEngine.ts"
   ],
   "exclude": ["src/**/__tests__/*", "shared/**/__tests__/*", "public/**/__tests__/*"],
   "compilerOptions": {
