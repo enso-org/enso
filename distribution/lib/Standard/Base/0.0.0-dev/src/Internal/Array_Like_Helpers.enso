@@ -63,11 +63,9 @@ vector_from_function length function on_problems=Problem_Behavior.Report_Error =
     num_errors = Ref.new 0
     wrapped_function i =
         result = function i
-        no_warnings_result = Warning.remove_warnings result
-        case no_warnings_result.is_error of
+        case result.is_error of
             False ->
-                if Warning.has_warnings result . not then result else
-                    Warning.map_attached_warnings (w-> Maybe.Some (Map_Error.Error i w)) result
+                result
             True ->
                 case on_problems of
                     Problem_Behavior.Ignore ->
@@ -78,7 +76,7 @@ vector_from_function length function on_problems=Problem_Behavior.Report_Error =
                     Problem_Behavior.Report_Warning ->
                         with_error_maybe = if num_errors.get >= MAX_MAP_WARNINGS then Nothing else
                             result.catch_primitive caught->
-                                Warning.attach (Map_Error.Error i caught) Nothing
+                                Warning.attach caught Nothing
                         num_errors.modify (_+1)
                         with_error_maybe
     results = vector_from_function_primitive length wrapped_function

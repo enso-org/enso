@@ -907,6 +907,17 @@ type_spec name alter = Test.group name <|
         vec.flat_map_primitive (n-> Error.throw (My_Error.Error n)) . catch . should_equal (My_Error.Error 1)
 
 spec =
+    Test.group "asdfasdf" <|
+        map_fun a = if a == 30 then Error.throw (My_Error.Error a) else a+1
+        alter x = x
+        Test.specify "an error thrown inside map with on_problems=Problem_Behavior.Report_Warning should be attached as a warning" <|
+            result = alter [10, 20, 30, 40] . map map_fun on_problems=Problem_Behavior.Report_Warning
+            result . should_equal [11, 21, Nothing, 41]
+            actual = Warning.get_all result . map .value
+            expected = [Map_Error.Error 2 (My_Error.Error 30)]
+            q = actual == expected
+            Warning.get_all result . map .value . should_equal [Map_Error.Error 2 (My_Error.Error 30)]
+
     Test.group "Vector builder" <|
         Test.specify "empty builder.get" <|
             b = Vector.new_builder
