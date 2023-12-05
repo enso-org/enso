@@ -606,10 +606,15 @@ lazy val modulePathTestOptions =
     runtimeMod.map(_.getAbsolutePath) ++
     graalMods.map(_.data.getAbsolutePath) ++
     loggingMods.map(_.getAbsolutePath)
+  // We can't use org.enso.logger.TestLogProvider (or anything from our own logging framework here) because it is not
+  // in a module, and it cannot be simple wrapped inside a module.
+  // So we use plain ch.qos.logback with its configuration.
+  val testLogbackConf = (LocalProject(
+    "logging-service-logback"
+  ) / Test / sourceDirectory).value / "resources" / "logback-test.xml"
   Seq(
-    // We can't use org.enso.logger.TestLogProvider here because it is not
-    // in a module, and it cannot be simple wrapped inside a module.
     "-Dslf4j.provider=ch.qos.logback.classic.spi.LogbackServiceProvider",
+    s"-Dlogback.configurationFile=${testLogbackConf.getAbsolutePath}",
     "--module-path",
     allModulesPaths.mkString(File.pathSeparator),
     "--add-modules",
