@@ -1,13 +1,11 @@
 package org.enso.interpreter.dsl.builtins;
 
-import javax.lang.model.element.TypeElement;
-import javax.lang.model.type.TypeMirror;
-import org.enso.interpreter.dsl.Builtin;
-
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
+
+import javax.lang.model.element.TypeElement;
+
+import org.enso.interpreter.dsl.Builtin;
 
 /**
  * Wrapper around {@link Builtin.WrapException} annotation with all elements of Class type resolved.
@@ -30,8 +28,7 @@ public record SafeWrapException(TypeElement from, Optional<TypeElement> to) {
         if (from.equals(UnsupportedMessageExceptionClassName) && toPanicExcpetion) {
             return List.of(
                 "  } catch (" + from + " e) {",
-                "    com.oracle.truffle.api.CompilerDirectives.transferToInterpreter();",
-                "    throw new PanicException(e.getMessage(), this);"
+                "    throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);"
             );
         } else if (toPanicExcpetion) {
             return List.of(
