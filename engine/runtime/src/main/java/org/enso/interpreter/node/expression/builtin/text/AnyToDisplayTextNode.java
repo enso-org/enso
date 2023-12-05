@@ -10,6 +10,9 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.text.util.TypeToDisplayTextNode;
+import org.enso.interpreter.runtime.callable.atom.Atom;
+import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.enso.polyglot.common_utils.Core_Text_Utils;
@@ -59,6 +62,26 @@ public abstract class AnyToDisplayTextNode extends Node {
     } else {
       return takePrefix(self, limit);
     }
+  }
+
+  @Specialization
+  Text convertBoolean(boolean self) {
+    return Text.create(self ? "True" : "False");
+  }
+
+  @Specialization
+  Text convertAtomConstructor(AtomConstructor self) {
+    return Text.create(self.getDisplayName());
+  }
+
+  @Specialization
+  Text convertAtom(Atom self) {
+    return convertAtomConstructor(self.getConstructor());
+  }
+
+  @Specialization
+  Text convertType(Type self) {
+    return Text.create(self.getName());
   }
 
   @CompilerDirectives.TruffleBoundary

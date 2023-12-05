@@ -212,10 +212,6 @@ public class MetaObjectTest extends TestBase {
     """).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "sn");
     var sb = new StringBuilder();
     for (var v : g.allValues()) {
-      if (v.isMetaObject()) {
-        // covered by compareQualifiedAndSimpleTypeNameForTypes
-        continue;
-      }
       var simpleName = sn.execute(v).asString();
       if (v.isNumber()) {
         var ok = switch (simpleName) {
@@ -295,7 +291,7 @@ public class MetaObjectTest extends TestBase {
       }
 
       var simpleName = sn.execute(typ).asString();
-      var metaName = typ.getMetaSimpleName();
+      var metaName = typ.getMetaSimpleName() + ".type";
       if (!simpleName.equals(metaName)) {
         sb.append("\n").append("Simple names shall be the same for ").
           append(typ).append(" get_simple_type_name: ").append(simpleName).

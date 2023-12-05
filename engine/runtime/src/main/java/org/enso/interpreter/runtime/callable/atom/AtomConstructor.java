@@ -202,6 +202,7 @@ public final class AtomConstructor implements EnsoObject {
    *
    * @return the name to display of the Atom constructor
    */
+  @TruffleBoundary
   public String getDisplayName() {
     return name.equals("Value") || name.equals("Error") ? type.getName() + "." + name : name;
   }
