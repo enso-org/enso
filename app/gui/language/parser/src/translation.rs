@@ -210,14 +210,6 @@ impl Translate {
                 let app = maybe_prefix(func, arg).expect_unspaced()?;
                 self.finish_ast(app, builder)
             }
-            tree::Variant::DefaultApp(tree::DefaultApp { func, default }) => {
-                let func = self.translate(func);
-                let arg_builder = self.start_ast();
-                let default = self.visit_token(default);
-                let arg = default.map(|name| self.finish_ast(ast::Var { name }, arg_builder));
-                let app = maybe_prefix(func, arg).expect_unspaced()?;
-                self.finish_ast(app, builder)
-            }
             tree::Variant::NamedApp(tree::NamedApp { func, open, name, equals, arg, close }) => {
                 let func = self.translate(func);
                 let open = open.as_ref().map(|token| self.visit_token(token));

@@ -591,12 +591,6 @@ final class TreeToIr {
           args.add(new CallArgument.Specified(Option.apply(id), expr, loc, meta(), diag()));
           tree = app.getFunc();
         }
-        case Tree.DefaultApp app -> {
-          var loc = getIdentifiedLocation(app.getDefault());
-          var expr = buildName(app.getDefault());
-          args.add(new CallArgument.Specified(Option.empty(), expr, loc, meta(), diag()));
-          tree = app.getFunc();
-        }
         case Tree.OperatorBlockApplication app -> {
           var at = args.size();
           var self = translateExpression(app.getLhs(), false);
@@ -1079,7 +1073,6 @@ final class TreeToIr {
         case Tree.Documented documented -> documented.getExpression();
         case Tree.Assignment assignment -> assignment.getExpr();
         case Tree.TypeAnnotated annotated -> annotated.getExpression();
-        case Tree.DefaultApp app -> app.getFunc();
         case Tree.App app when isApplication(app.getFunc()) -> app.getFunc();
         case Tree.NamedApp app when isApplication(app.getFunc()) -> app.getFunc();
         case Tree.App app -> useOrElse(applySkip(app.getFunc()), app.getArg());
@@ -1101,7 +1094,6 @@ final class TreeToIr {
     return switch (tree) {
       case Tree.App ignored -> true;
       case Tree.NamedApp ignored -> true;
-      case Tree.DefaultApp ignored -> true;
       default -> false;
     };
   }

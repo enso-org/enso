@@ -392,7 +392,7 @@ fn named_arguments() {
 
 #[test]
 fn default_app() {
-    test!("f default", (DefaultApp (Ident f) default));
+    test!("f default", (App (Ident f) (Ident default)));
 }
 
 #[test]

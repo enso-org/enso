@@ -378,21 +378,6 @@ pub fn parse_argument_application<'s>(
                 close,
             })
         }
-        box Variant::DefaultApp(DefaultApp { func, default: default_ }) => {
-            let pattern = Tree::ident(default_.clone());
-            func.span.left_offset += expression.span.left_offset.take_as_prefix();
-            *expression = func.clone();
-            Some(ArgumentDefinition {
-                open: default(),
-                open2: default(),
-                suspension: default(),
-                pattern,
-                type_: default(),
-                close2: default(),
-                default: default(),
-                close: default(),
-            })
-        }
         _ => None,
     }
 }

@@ -319,7 +319,7 @@ function positionalApp(
     null,
     arg,
     null,
-    module.get(arg.node)?.code() === 'default' ? RawAst.Tree.Type.DefaultApp : RawAst.Tree.Type.App,
+    RawAst.Tree.Type.App,
   )
 }
 
@@ -914,16 +914,6 @@ function abstractTree(
       const arg = recurseTree(tree.arg)
       const id = nodesExpected.get(spanKey)?.pop()
       node = positionalApp(module, id, func, arg).exprId
-      break
-    }
-    case RawAst.Tree.Type.DefaultApp: {
-      const func = recurseTree(tree.func)
-      const token = recurseToken(tree.default)
-      const argWhitespace = token.whitespace
-      token.whitespace = ''
-      const arg = new Ident(module, undefined, token).exprId
-      const id = nodesExpected.get(spanKey)?.pop()
-      node = positionalApp(module, id, func, { whitespace: argWhitespace, node: arg }).exprId
       break
     }
     case RawAst.Tree.Type.NamedApp: {

@@ -148,11 +148,6 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             pub arg:    Tree<'s>,
             pub close:  Option<token::CloseSymbol<'s>>,
         },
-        /// Application using the `default` keyword.
-        DefaultApp {
-            pub func:    Tree<'s>,
-            pub default: token::Ident<'s>,
-        },
         /// Application of an operator, like `a + b`. The left or right operands might be missing,
         /// thus creating an operator section like `a +`, `+ b`, or simply `+`. See the
         /// [`OprSectionBoundary`] variant to learn more about operator section scope.
@@ -810,11 +805,6 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
             let open = Some(open);
             let close = Some(close.clone());
             Tree::named_app(func, open, lhs.token.clone(), opr.clone(), rhs.clone(), close)
-        }
-        (_, Variant::Ident(Ident { token })) if token.is_default => {
-            let mut token = token.clone();
-            token.left_offset += arg.span.left_offset;
-            Tree::default_app(func, token)
         }
         _ => Tree::app(func, arg)
     }
