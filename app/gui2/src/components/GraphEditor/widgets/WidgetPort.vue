@@ -136,6 +136,7 @@ export const widgetDefinition = defineWidget(
       Ast.Tree.Type.UnaryOprApp,
       Ast.Tree.Type.Wildcard,
       Ast.Tree.Type.TextLiteral,
+      Ast.Tree.Type.Ident,
     ]),
   ],
   {
