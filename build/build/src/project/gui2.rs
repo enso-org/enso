@@ -16,7 +16,6 @@ use ide_ci::programs::node::NpmCommand;
 use ide_ci::programs::Npm;
 
 
-
 // ===============
 // === Scripts ===
 // ===============
@@ -53,25 +52,27 @@ pub fn script(repo_root: impl AsRef<Path>, script: Scripts) -> Result<NpmCommand
 
 /// Run steps that should be done along with the "lint"
 pub fn lint(repo_root: impl AsRef<Path>) -> BoxFuture<'static, Result> {
-    let repo_root = repo_root.as_ref().to_owned();
-    async move {
-        crate::web::install(&repo_root).await?;
-        script(&repo_root, Scripts::Lint)?.run_ok().await
-    }
-    .boxed()
+    run_in_repo_root(Scripts::Lint, repo_root)
 }
 
 /// Run unit tests.
 pub fn unit_tests(repo_root: impl AsRef<Path>) -> BoxFuture<'static, Result> {
+    run_in_repo_root(Scripts::TestUnit, repo_root)
+}
+
+/// Run E2E tests.
+pub fn e2e_tests(repo_root: impl AsRef<Path>) -> BoxFuture<'static, Result> {
+    run_in_repo_root(Scripts::TestE2e, repo_root)
+}
+
+fn run_in_repo_root(script: Scripts, repo_root: impl AsRef<Path>) -> BoxFuture<'static, Result> {
     let repo_root = repo_root.as_ref().to_owned();
     async move {
         crate::web::install(&repo_root).await?;
-        script(&repo_root, Scripts::TestUnit)?.arg("run").run_ok().await
+        self::script(&repo_root, script)?.run_ok().await
     }
     .boxed()
 }
-
-
 
 // ================
 // === Artifact ===

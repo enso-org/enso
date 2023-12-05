@@ -23,6 +23,8 @@ pub enum Command {
     Get(Source<Gui2>),
     /// Runs the GUI's unit tests.
     Test,
+    /// Runs the GUI's E2E tests (without backend)
+    E2ETest,
     /// Run linter on the GUI's sources.
     Lint,
 }
