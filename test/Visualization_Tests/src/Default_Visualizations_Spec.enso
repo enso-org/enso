@@ -11,6 +11,8 @@ spec =
     expect_type_representation value expected_text =
             type_name = Meta.get_qualified_type_name value . to_text
             type_name . should_equal <| expected_text
+            simple_name = Meta.get_simple_type_name value . to_text
+            type_name . ends_with simple_name . should_be_true
 
     Test.group "Type Names of Visualization Defaults" <|
         """ IMPORTANT: When updating this, also update the default values in

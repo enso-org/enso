@@ -118,7 +118,7 @@ public final class EnsoDuration implements EnsoObject {
         return LocalDateTime.of(date, time);
       }
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException(e);
+      throw EnsoContext.get(interop).raiseAssertionPanic(interop, null, e);
     }
   }
 

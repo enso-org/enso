@@ -48,8 +48,7 @@ public abstract class ThrowPanicNode extends Node {
       try {
         throw interopLibrary.throwException(originalException);
       } catch (UnsupportedMessageException e) {
-        throw new IllegalStateException(
-            "Impossible, `isException` returned true for `originalException`.");
+        throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
       }
     } else {
       typeErrorProfile.enter();
@@ -69,7 +68,7 @@ public abstract class ThrowPanicNode extends Node {
     try {
       throw interopLibrary.throwException(payload);
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException("Impossible, `isException` returned true for `payload`.");
+      throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
   }
 

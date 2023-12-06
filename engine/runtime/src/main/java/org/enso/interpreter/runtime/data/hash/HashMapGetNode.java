@@ -1,5 +1,12 @@
 package org.enso.interpreter.runtime.data.hash;
 
+import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.dsl.Suspend;
+import org.enso.interpreter.node.BaseNode.TailStatus;
+import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
+import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.state.State;
+
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.Fallback;
@@ -11,14 +18,6 @@ import com.oracle.truffle.api.interop.UnknownKeyException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
-
-import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.dsl.Suspend;
-import org.enso.interpreter.node.BaseNode.TailStatus;
-import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
-import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.interpreter.runtime.state.State;
 
 @BuiltinMethod(
     type = "Map",
@@ -50,7 +49,8 @@ public abstract class HashMapGetNode extends Node {
       } catch (UnknownKeyException e) {
         return thunkExecutorNode.executeThunk(frame, defaultValue, state, TailStatus.NOT_TAIL);
       } catch (UnsupportedMessageException e) {
-        throw new PanicException(Text.create(e.getMessage()), this);
+        var ctx = EnsoContext.get(interop);
+        throw ctx.raiseAssertionPanic(interop, null, e);
       }
   }
 

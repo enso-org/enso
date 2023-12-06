@@ -578,8 +578,8 @@ spec =
             py_dict = py_dict_from_vec ["A", 1, "B", 2]
             map = py_dict.insert "C" 3
             py_dict.not_empty . should_be_true
-            py_dict.to_vector.should_equal [["A", 1], ["B", 2]]
-            map.to_vector.should_equal [["A", 1], ["B", 2], ["C", 3]]
+            py_dict.to_vector . should_contain_the_same_elements_as [["A", 1], ["B", 2]]
+            map.to_vector . should_contain_the_same_elements_as [["A", 1], ["B", 2], ["C", 3]]
             py_empty_dict.is_empty.should_be_true
             py_empty_dict.insert "A" 1 . insert "A" 2 . get "A" . should_equal 2
 
@@ -592,9 +592,9 @@ spec =
 
         Test.specify "should treat Enso maps as Python dicts when passed to Python" pending=pending_python_missing <|
             map1 = Map.empty.insert "A" 1 . insert "B" 2
-            py_vec_from_map map1 . should_equal [["A", 1], ["B", 2]]
+            py_vec_from_map map1 . should_contain_the_same_elements_as [["A", 1], ["B", 2]]
             map2 = Map.empty.insert "A" 1 . insert Nothing 2
-            py_vec_from_map map2 . should_equal [["A", 1], [Nothing, 2]]
+            py_vec_from_map map2 . should_contain_the_same_elements_as [["A", 1], [Nothing, 2]]
 
 
 main = Test_Suite.run_main spec
