@@ -50,6 +50,7 @@ export default function ChangePasswordModal() {
                     autoFocus
                     required
                     validate
+                    allowShowingPassword
                     id="old_password"
                     type="password"
                     name="old_password"
@@ -66,6 +67,7 @@ export default function ChangePasswordModal() {
                 <Input
                     required
                     validate
+                    allowShowingPassword
                     type="password"
                     autoComplete="new-password"
                     label="New password"
@@ -80,6 +82,7 @@ export default function ChangePasswordModal() {
                 <Input
                     required
                     validate
+                    allowShowingPassword
                     type="password"
                     autoComplete="new-password"
                     label="Confirm new password"

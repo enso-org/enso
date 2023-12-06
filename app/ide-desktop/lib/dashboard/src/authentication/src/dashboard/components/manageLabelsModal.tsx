@@ -118,7 +118,7 @@ export default function ManageLabelsModal<
                 >
                     <div className="absolute bg-frame-selected backdrop-blur-3xl rounded-2xl h-full w-full" />
                     <form
-                        className="relative flex flex-col gap-1 rounded-2xl gap-2 p-2"
+                        className="relative flex flex-col rounded-2xl gap-2 p-2"
                         onSubmit={async event => {
                             event.preventDefault()
                             setLabels(oldLabels => [...oldLabels, backendModule.LabelName(query)])
@@ -140,7 +140,7 @@ export default function ManageLabelsModal<
                             {/* Space reserved for other tabs. */}
                         </div>
                         <div
-                            className={`flex items-center grow rounded-full border border-black-a10 gap-2 px-1 ${
+                            className={`flex items-center grow rounded-full border border-black/10 gap-2 px-1 ${
                                 // eslint-disable-next-line @typescript-eslint/no-magic-numbers
                                 canSelectColor && color != null && color.lightness <= 50
                                     ? 'text-tag-text placeholder-tag-text'
