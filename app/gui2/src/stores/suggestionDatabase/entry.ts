@@ -64,6 +64,8 @@ export interface SuggestionEntry {
   iconName?: Icon
   /** An index of a group from group list in suggestionDb store this entry belongs to. */
   groupIndex?: number
+  /** A list of annotations. They are present for methods and constructors only. */
+  annotations: string[]
 }
 
 /**
@@ -95,6 +97,7 @@ function makeSimpleEntry(
     arguments: [],
     returnType,
     documentation: [],
+    annotations: [],
   }
 }
 
