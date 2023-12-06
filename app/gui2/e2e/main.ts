@@ -7,7 +7,7 @@ import { provideVisualizationConfig } from '../src/providers/visualizationConfig
 import { MockTransport, MockWebSocket } from '../src/util/net'
 import { Vec2 } from '../src/util/vec2'
 import MockApp from './MockApp.vue'
-import { mockDataHandler, mockLSHandler } from './mockEngine'
+import { mockDataHandler, mockLSHandler } from '../mock/engine'
 
 MockTransport.addMock('engine', mockLSHandler)
 MockWebSocket.addMock('data', mockDataHandler)

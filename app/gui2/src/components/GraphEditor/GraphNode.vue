@@ -11,7 +11,7 @@ import { injectGraphSelection } from '@/providers/graphSelection'
 import { useGraphStore, type Node } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
 import { useApproach } from '@/util/animation'
-import { AstExtended } from '@/util/ast'
+import { Ast } from '@/util/ast'
 import { extractMatches } from '@/util/ast/match'
 import { escape as astStringEscape } from '@/util/ast/string'
 import { usePointer, useResizeObserver } from '@/util/events'
@@ -39,7 +39,7 @@ function withOverriddenOutputContext(name: string, enable: boolean) {
     "' <| "
   )
 }
-const withOverriddenOutputContextPattern = AstExtended.parseLine(
+const withOverriddenOutputContextPattern = Ast.parseLine(
   'Standard.Base.Runtime.__ Standard.Base.Runtime.Context.Output __ <| __',
 )
 </script>
@@ -171,7 +171,7 @@ const outputContextOverride = computed(() => {
   const matches = extractMatches(props.node.rootSpan, withOverriddenOutputContextPattern)
   if (!matches) return
   let enabled: boolean
-  switch (matches[0]?.repr()) {
+  switch (matches[0]?.code()) {
     case enableMethodName: {
       enabled = true
       break
@@ -197,7 +197,7 @@ const isOutputContextOverridden = computed({
     if (override == null) return false
     else if (override.enabled === projectStore.isOutputContextEnabled) return false
     else {
-      const contextWithoutQuotes = override.contextExpr.repr().replace(/^['"]|['"]$/g, '')
+      const contextWithoutQuotes = override.contextExpr.code().replace(/^['"]|['"]$/g, '')
       return contextWithoutQuotes === projectStore.executionMode
     }
   },
@@ -205,16 +205,16 @@ const isOutputContextOverridden = computed({
     const module = projectStore.module
     if (!module) return
     const currentOverride = outputContextOverride.value
-    const subExprStart = currentOverride?.innerExpr.span()[0]
+    const subExprStart = currentOverride?.innerExpr.astExtended?.span()[0]
     const start = 0
-    const end = subExprStart ? subExprStart - props.node.rootSpan.span()[0] : 0
+    const end =
+      subExprStart != null ? subExprStart - (props.node.rootSpan.astExtended?.span()[0] ?? 0) : 0
     if (projectStore.isOutputContextEnabled) {
       if (shouldOverride) {
         emit('update:content', [
           [[start, end], withOverriddenOutputContext(projectStore.executionMode, false)],
         ])
       } else {
-        // Remove force enable of output context.
         emit('update:content', [[[start, end], '']])
       }
     } else {
@@ -223,7 +223,6 @@ const isOutputContextOverridden = computed({
           [[start, end], withOverriddenOutputContext(projectStore.executionMode, true)],
         ])
       } else {
-        const start = props.node.rootSpan.span()[0]
         emit('update:content', [[[start, end], '']])
       }
     }

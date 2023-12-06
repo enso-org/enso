@@ -1,7 +1,9 @@
 import * as RawAst from '@/generated/ast'
 import { parseEnso } from '@/util/ast'
 import { AstExtended as RawAstExtended } from '@/util/ast/extended'
+import type { Opt } from '@/util/opt'
 import type { LazyObject } from '@/util/parserSupport'
+import { unsafeEntries } from '@/util/record'
 import { Err, Ok, type Result } from '@/util/result'
 import * as random from 'lib0/random'
 import { reactive } from 'vue'
@@ -141,14 +143,12 @@ export abstract class Ast {
   }
 
   static deserialize(serialized: string): Ast {
-    const parsed: any = JSON.parse(serialized)
-    const nodes: NodeSpanMap = new Map(Object.entries(parsed.info.nodes))
-    const tokens: TokenSpanMap = new Map(Object.entries(parsed.info.tokens))
+    const parsed: SerializedPrintedSource = JSON.parse(serialized)
+    const nodes = new Map(unsafeEntries(parsed.info.nodes))
+    const tokens = new Map(unsafeEntries(parsed.info.tokens))
     const module = new Committed()
     const edit = new Edit(module)
     const tree = parseEnso(parsed.code)
-    type NodeSpanMap = Map<NodeKey, AstId[]>
-    type TokenSpanMap = Map<TokenKey, TokenId>
     const root = abstract(edit, tree, parsed.code, { nodes, tokens }).node
     edit.commit()
     return module.get(root)!
@@ -199,6 +199,16 @@ export abstract class Ast {
     const newRoot = abstract(edit, tree, code, ids).node
     edit.commit()
     return module.get(newRoot)!
+  }
+
+  static parseLine(source: PrintedSource | string): Ast {
+    const ast = this.parse(source)
+    if (ast instanceof BodyBlock) {
+      const [expr] = ast.expressions()
+      return expr instanceof Ast ? expr : ast
+    } else {
+      return ast
+    }
   }
 
   visitRecursive(visit: (node: Ast | Token) => void) {
@@ -1051,24 +1061,37 @@ function abstractToken(
   return { whitespace, node }
 }
 
-type NodeKey = string
-type TokenKey = string
-function nodeKey(start: number, length: number, type: RawAst.Tree.Type | undefined): NodeKey {
+declare const nodeKeyBrand: unique symbol
+type NodeKey = string & { [nodeKeyBrand]: never }
+declare const tokenKeyBrand: unique symbol
+type TokenKey = string & { [tokenKeyBrand]: never }
+function nodeKey(start: number, length: number, type: Opt<RawAst.Tree.Type>): NodeKey {
   const type_ = type?.toString() ?? '?'
-  return `${start}:${length}:${type_}`
+  return `${start}:${length}:${type_}` as NodeKey
 }
 function tokenKey(start: number, length: number): TokenKey {
-  return `${start}:${length}`
+  return `${start}:${length}` as TokenKey
+}
+
+interface SerializedInfoMap {
+  nodes: Record<NodeKey, AstId[]>
+  tokens: Record<TokenKey, TokenId>
+}
+
+interface SerializedPrintedSource {
+  info: SerializedInfoMap
+  code: string
 }
 
 type NodeSpanMap = Map<NodeKey, AstId[]>
 type TokenSpanMap = Map<TokenKey, TokenId>
-export type InfoMap = {
+
+export interface InfoMap {
   nodes: NodeSpanMap
   tokens: TokenSpanMap
 }
 
-type PrintedSource = {
+interface PrintedSource {
   info: InfoMap
   code: string
 }
@@ -1083,7 +1106,8 @@ export function print(ast: Ast): PrintedSource {
   return { info, code }
 }
 
-type DebugTree = (DebugTree | string)[]
+export type DebugTree = (DebugTree | string)[]
+
 export function debug(root: Ast, universe?: Map<AstId, Ast>): DebugTree {
   const module = root.module
   return Array.from(root.concreteChildren(), (child) => {
@@ -1179,9 +1203,8 @@ export function parseTransitional(code: string, idMap: IdMap): Ast {
   return newRoot
 }
 
-export function parse(source: PrintedSource | string): Ast {
-  return Ast.parse(source)
-}
+export const parse = Ast.parse
+export const parseLine = Ast.parseLine
 
 export function deserialize(serialized: string): Ast {
   return Ast.deserialize(serialized)

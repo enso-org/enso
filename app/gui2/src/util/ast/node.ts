@@ -1,13 +1,13 @@
 import type { Node } from '@/stores/graph'
-import { Ast, type AstExtended } from '@/util/ast'
+import { Ast } from '@/util/ast'
 import { Vec2 } from '@/util/vec2'
 
-export function nodeFromAst(ast: AstExtended<Ast.Tree>): Node {
-  if (ast.isTree(Ast.Tree.Type.Assignment)) {
+export function nodeFromAst(ast: Ast.Ast): Node {
+  if (ast instanceof Ast.Assignment) {
     return {
       outerExprId: ast.astId,
-      pattern: ast.map((t) => t.pattern),
-      rootSpan: ast.map((t) => t.expr),
+      pattern: ast.pattern ?? undefined,
+      rootSpan: ast.expression ?? ast,
       position: Vec2.Zero,
       vis: undefined,
     }

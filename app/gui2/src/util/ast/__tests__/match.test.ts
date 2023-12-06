@@ -1,4 +1,4 @@
-import { AstExtended } from '@/util/ast'
+import { Ast } from '@/util/ast'
 import { extractMatches, isMatch } from '@/util/ast/match'
 import { expect, test } from 'vitest'
 
@@ -79,16 +79,18 @@ test.each([
     extracted: ['with_enabled_context', "'current_context_name'", 'a + b'],
   },
 ])('`isMatch`', ({ target, pattern, extracted }) => {
-  const targetAst = AstExtended.parseLine(target)
-  const patternAst = AstExtended.parseLine(pattern)
+  const targetAst = Ast.parseLine(target)
+  const patternAst = Ast.parseLine(pattern)
   expect(
     isMatch(targetAst, patternAst),
     `'${target}' has CST ${extracted != null ? '' : 'not '}matching '${pattern}'`,
   ).toBe(extracted != null)
   expect(
-    extractMatches(targetAst, patternAst)?.map((match) => match.repr()),
+    extractMatches(targetAst, patternAst)?.map((match) => match.code()),
     extracted != null
-      ? `'${target}' matches '${pattern}' with '__' corresponding to '${extracted}'`
+      ? `'${target}' matches '${pattern}' with '__'s corresponding to ${JSON.stringify(extracted)
+          .slice(1, -1)
+          .replace(/"/g, "'")}`
       : `'${target}' does not match '${pattern}'`,
   ).toStrictEqual(extracted)
 })
