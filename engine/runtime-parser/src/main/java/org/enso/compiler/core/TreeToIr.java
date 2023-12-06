@@ -246,7 +246,7 @@ final class TreeToIr {
         var returnSignature = fn.getReturns();
         if (returnSignature != null) {
           var returnType = translateType(returnSignature.getType());
-          // TODO: Make use of return type declaration.
+          // TODO(#8240): Make use of return type declaration.
         }
         if (body == null) {
             var error = translateSyntaxError(inputAst, new Syntax.UnsupportedSyntax("Block without body"));
