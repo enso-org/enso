@@ -1,5 +1,7 @@
 package org.enso.base.enso_cloud;
 
+import org.enso.base.net.URIHelpers;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -101,26 +103,24 @@ public class EnsoSecretHelper {
     URI resolvedURI = uri;
     URI renderedURI = uri;
     if (queryArguments != null && !queryArguments.isEmpty()) {
+      boolean hasSecrets = queryArguments.stream().anyMatch(p -> p instanceof EnsoKeySecretPair);
+      if (hasSecrets && !uri.getScheme().equals("https")) {
+        // If used a secret then only allow HTTPS
+        throw new IllegalArgumentException("Cannot use secrets in query string with non-HTTPS URI, but the scheme was: " + uri.getScheme() + ".");
+      }
+
       try {
-        var baseQuery = uri.getQuery();
-        baseQuery = baseQuery != null && !baseQuery.isBlank() ? baseQuery + "&" : "";
-        var query =
-            baseQuery + queryArguments.stream().map(p -> makeQueryAry(p, EnsoSecretHelper::resolveValue)).collect(Collectors.joining("&"));
+        List<URIHelpers.NameValuePair> resolvedArguments = queryArguments.stream()
+            .map(p -> new URIHelpers.NameValuePair(p.key(), resolveValue(p)))
+            .toList();
+        List<URIHelpers.NameValuePair> renderedArguments = queryArguments.stream()
+            .map(p -> new URIHelpers.NameValuePair(p.key(), renderValue(p)))
+            .toList();
 
-        resolvedURI = replaceQuery(uri, query);
-        renderedURI = resolvedURI;
-        if (queryArguments.stream().anyMatch(p -> p instanceof EnsoKeySecretPair)) {
-          if (!resolvedURI.getScheme().equals("https")) {
-            // If used a secret then only allow HTTPS
-            throw new IllegalArgumentException("Cannot use secrets in query string with non-HTTPS URI.");
-          }
-
-          var renderedQuery = baseQuery + queryArguments.stream().map(p -> makeQueryAry(p,
-              EnsoSecretHelper::renderValue)).collect(Collectors.joining("&"));
-          renderedURI = replaceQuery(uri, renderedQuery);
-        }
+        resolvedURI = URIHelpers.addQueryParameters(uri, resolvedArguments);
+        renderedURI = URIHelpers.addQueryParameters(uri, renderedArguments);
       } catch (URISyntaxException e) {
-        throw new IllegalArgumentException("Unable to build a valid URI.");
+        throw new IllegalStateException("Unexpectedly unable to build a valid URI from the base URI: " + uri + " and query arguments: " + queryArguments + ".");
       }
     }
     builder.uri(resolvedURI);
