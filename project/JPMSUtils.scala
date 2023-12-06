@@ -176,45 +176,24 @@ object JPMSUtils {
         // copied to.
         val outputPath: Path = output.getSingleOutputAsPath
           .get()
-
-        /** Copy classes into the target directory from all the dependencies */
-        log.debug(s"Copying classes to $output")
+        // Class directories of all the dependencies.
         val sourceProducts = products.all(copyDepsFilter).value.flatten
+        log.info(s"Compiling $moduleInfo with javac")
 
-        if (!(outputPath.toFile.exists())) {
-          Files.createDirectory(outputPath)
-        }
-
-        val outputLangProvider =
-          outputPath / "META-INF" / "services" / "com.oracle.truffle.api.provider.TruffleLanguageProvider"
-        sourceProducts.foreach { sourceProduct =>
-          log.debug(s"Copying ${sourceProduct} to ${output}")
-          val sourceLangProvider =
-            sourceProduct / "META-INF" / "services" / "com.oracle.truffle.api.provider.TruffleLanguageProvider"
-          if (
-            outputLangProvider.toFile.exists() && sourceLangProvider.exists()
-          ) {
-            log.debug(
-              s"Merging ${sourceLangProvider} into ${outputLangProvider}"
+        // Ensure that all source product directories exist.
+        sourceProducts.foreach(sourceProduct => {
+          if (!sourceProduct.exists()) {
+            log.error(s"Source product ${sourceProduct} does not exist")
+            log.error(
+              "This means that the Compile/compile task was probably not run in " +
+              "the corresponding project"
             )
-            val sourceLines = IO.readLines(sourceLangProvider)
-            val destLines   = IO.readLines(outputLangProvider.toFile)
-            val outLines    = (sourceLines ++ destLines).distinct
-            IO.writeLines(outputLangProvider.toFile, outLines)
+            log.error("Run Compile/compile before this task")
           }
-          // Copy the rest of the directory - don't override META-INF.
-          IO.copyDirectory(
-            sourceProduct,
-            outputPath.toFile,
-            CopyOptions(
-              overwrite            = false,
-              preserveLastModified = true,
-              preserveExecutable   = true
-            )
-          )
-        }
+        })
 
-        log.info("Compiling module-info.java with javac")
+        copyClasses(sourceProducts, output, log)
+
         val baseJavacOpts = (Compile / javacOptions).value
         val fullCp        = (Compile / fullClasspath).value
         val (mp, cp) = fullCp.partition(file => {
@@ -233,8 +212,10 @@ object JPMSUtils {
           "--module-path",
           mp.map(_.data.getAbsolutePath).mkString(File.pathSeparator),
           "-d",
-          outputPath.toAbsolutePath().toString()
+          outputPath.toAbsolutePath.toString
         )
+        log.debug(s"javac options: $allOpts")
+
         val javaCompiler =
           (Compile / compile / compilers).value.javaTools.javac()
         val succ = javaCompiler.run(
@@ -246,9 +227,54 @@ object JPMSUtils {
           log
         )
         if (!succ) {
-          sys.error(s"Compilation of ${moduleInfo} failed")
+          log.error(s"Compilation of ${moduleInfo} failed")
         }
       }
-      .dependsOn(Compile / compile)
 
+  /** Copies all classes from all the dependencies `classes` directories into the target directory.
+    * @param sourceProducts From where the classes will be copied.
+    * @param output Target directory where all the classes from all the dependencies
+    *               will be copied to.
+    * @param log
+    */
+  private def copyClasses(
+    sourceProducts: Seq[File],
+    output: xsbti.compile.Output,
+    log: Logger
+  ): Unit = {
+    // TODO: Introduce some file timestamp checking - do not copy the classes every time
+    val outputPath: Path = output.getSingleOutputAsPath.get()
+    log.info(s"Copying classes from ${sourceProducts.size} projects to $output")
+
+    if (!(outputPath.toFile.exists())) {
+      Files.createDirectory(outputPath)
+    }
+
+    val outputLangProvider =
+      outputPath / "META-INF" / "services" / "com.oracle.truffle.api.provider.TruffleLanguageProvider"
+    sourceProducts.foreach { sourceProduct =>
+      log.debug(s"Copying ${sourceProduct} to ${output}")
+      val sourceLangProvider =
+        sourceProduct / "META-INF" / "services" / "com.oracle.truffle.api.provider.TruffleLanguageProvider"
+      if (outputLangProvider.toFile.exists() && sourceLangProvider.exists()) {
+        log.debug(
+          s"Merging ${sourceLangProvider} into ${outputLangProvider}"
+        )
+        val sourceLines = IO.readLines(sourceLangProvider)
+        val destLines   = IO.readLines(outputLangProvider.toFile)
+        val outLines    = (sourceLines ++ destLines).distinct
+        IO.writeLines(outputLangProvider.toFile, outLines)
+      }
+      // Copy the rest of the directory - don't override META-INF.
+      IO.copyDirectory(
+        sourceProduct,
+        outputPath.toFile,
+        CopyOptions(
+          overwrite            = false,
+          preserveLastModified = true,
+          preserveExecutable   = true
+        )
+      )
+    }
+  }
 }
