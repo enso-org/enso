@@ -72,6 +72,10 @@ const selectedValue = computed(() => {
   if (selectedIndex.value == null) return props.input.info?.defaultValue ?? ''
   return tagValues.value[selectedIndex.value] ?? ''
 })
+const selectedLabel = computed(() => {
+  if (selectedIndex.value == null) return props.input.info?.defaultValue ?? ''
+  return tagLabels.value[selectedIndex.value] ?? ''
+})
 const showDropdownWidget = ref(false)
 const showArgumentValue = ref(true)
 
@@ -114,7 +118,7 @@ export const widgetDefinition = defineWidget([ArgumentPlaceholder, ArgumentAst],
         v-if="showDropdownWidget"
         :color="parentColor ?? 'white'"
         :values="tagLabels"
-        :selectedValue="selectedValue"
+        :selectedValue="selectedLabel"
         @click="selectedIndex = $event"
       />
     </div>

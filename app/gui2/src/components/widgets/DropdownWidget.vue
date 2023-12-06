@@ -90,6 +90,19 @@ const NEXT_SORT_DIRECTION: Record<SortDirection, SortDirection> = {
   padding: 4px 0;
 }
 
+li {
+  text-align: left;
+  transition: transform 0.2s ease;
+}
+
+.selectable-item:hover {
+  transform: translateX(8px);
+}
+
+.list span {
+  vertical-align: text-bottom;
+}
+
 .list::-webkit-scrollbar {
   -webkit-appearance: none;
   width: 8px;
