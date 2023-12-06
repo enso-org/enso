@@ -2266,7 +2266,7 @@ class RuntimeVisualizationsTest
             "throw"
           )
         ),
-        Api.ExpressionUpdate.Payload.Panic("42 (Integer)", Seq(idMain)),
+        Api.ExpressionUpdate.Payload.Panic("Integer", Seq(idMain)),
         Some("Standard.Base.Panic.Panic")
       ),
       context.executionComplete(contextId)
@@ -2304,7 +2304,7 @@ class RuntimeVisualizationsTest
             "throw"
           )
         ),
-        Api.ExpressionUpdate.Payload.Panic("42 (Integer)", Seq(idMain)),
+        Api.ExpressionUpdate.Payload.Panic("Integer", Seq(idMain)),
         builtin = false
       ),
       Api.Response(
