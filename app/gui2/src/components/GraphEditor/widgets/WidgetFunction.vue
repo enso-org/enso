@@ -88,8 +88,8 @@ const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => 
 const visualizationData = project.useVisualizationData(visualizationConfig)
 const widgetConfiguration = computed(() => {
   const data = visualizationData.value
-  if (data != null) {
-    const parseResult = widgetConfigurationSchema.safeParse(data)
+  if (data != null && data.ok) {
+    const parseResult = widgetConfigurationSchema.safeParse(data.value)
     if (parseResult.success) {
       return parseResult.data
     } else {

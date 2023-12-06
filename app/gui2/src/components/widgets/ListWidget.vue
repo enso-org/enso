@@ -459,6 +459,10 @@ watchPostEffect(() => {
   }
 }
 
+div {
+  display: inline-block;
+}
+
 .vector-literal {
   display: flex;
   align-items: center;
