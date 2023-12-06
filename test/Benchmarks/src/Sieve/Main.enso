@@ -1,0 +1,26 @@
+from Standard.Base import all
+
+from Standard.Test import Bench
+
+import project.Sieve.Sieve_Original
+import project.Sieve.Sieve_Ascribed
+import project.Sieve.Sieve_Without_Types
+
+# execute as
+# sbt:enso> runEngineDistribution --run test/Benchmarks Sieve
+# or as
+# sbt:enso> std-benchmarks/benchOnly Sieve
+
+options = Bench.options . set_warmup (Bench.phase_conf 3 3) . set_measure (Bench.phase_conf 1 3)
+
+collect_benches = Bench.build builder->
+    assert_prime nth =
+        if nth==1299709 . not then Panic.throw "Wrong prime number: "+nth.to_text
+
+    builder.group "Sieve" options group_builder->
+        group_builder.specify "Original" <|
+            assert_prime <| Sieve_Original.compute_nth_prime 100000
+        group_builder.specify "Ascribed" <|
+            assert_prime <| Sieve_Ascribed.compute_nth_prime 100000
+        group_builder.specify "Without_Types" <|
+            assert_prime <| Sieve_Without_Types.compute_nth_prime 100000
