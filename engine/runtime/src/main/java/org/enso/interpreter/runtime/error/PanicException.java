@@ -17,7 +17,6 @@ import org.enso.interpreter.node.callable.IndirectInvokeMethodNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionMode;
 import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMode;
 import org.enso.interpreter.node.expression.builtin.text.util.TypeToDisplayTextNode;
-import org.enso.interpreter.node.expression.builtin.text.util.TypeToDisplayTextNodeGen;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
@@ -83,7 +82,7 @@ public final class PanicException extends AbstractTruffleException {
     try {
       msg = library.asString(library.getExceptionMessage(this));
     } catch (AssertionError | UnsupportedMessageException e) {
-      msg = TypeToDisplayTextNodeGen.getUncached().execute(payload);
+      msg = TypeToDisplayTextNode.getUncached().execute(payload);
     }
     cacheMessage = msg;
     return msg;

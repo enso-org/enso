@@ -73,7 +73,7 @@ class ConstructorsTest extends InterpreterTest {
 
     "throw an exception when match fails" in {
       val testCode =
-        """import Standard.Base.Data.List.List
+        """from Standard.Base import all
           |
           |main =
           |    nil = List.Nil

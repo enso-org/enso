@@ -58,8 +58,7 @@ public abstract class HashCallbackNode extends Node {
     try {
       return interop.asLong(res);
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException(
-          "Return type from Comparable.hash_callback should be Long", e);
+      throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
   }
 

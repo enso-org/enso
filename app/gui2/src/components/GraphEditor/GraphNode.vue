@@ -393,7 +393,7 @@ function portGroupStyle(port: PortData) {
       :nodePosition="props.node.position"
       :isCircularMenuVisible="menuVisible"
       :currentType="node.vis?.identifier"
-      :expressionId="nodeId"
+      :dataSource="{ type: 'node', nodeId }"
       :typename="expressionInfo?.typename"
       @update:rect="
         emit('update:visualizationRect', $event),
@@ -402,7 +402,7 @@ function portGroupStyle(port: PortData) {
       @update:id="emit('update:visualizationId', $event)"
       @update:visible="emit('update:visualizationVisible', $event)"
     />
-    <div class="node" @keydown="nodeEditHandler" v-on="dragPointer.events">
+    <div class="node" @pointerdown="nodeEditHandler" v-on="dragPointer.events">
       <SvgIcon class="icon grab-handle" :name="icon"></SvgIcon>
       <div ref="contentNode" class="widget-tree">
         <NodeWidgetTree :ast="displayedExpression" />

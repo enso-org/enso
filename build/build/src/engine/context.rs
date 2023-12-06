@@ -193,8 +193,22 @@ impl RunContext {
 
         // Setup GraalVM
         let graalvm =
-            crate::engine::deduce_graal(self.octocrab.clone(), &self.repo_root.build_sbt).await?;
+            engine::deduce_graal(self.octocrab.clone(), &self.repo_root.build_sbt).await?;
         graalvm.install_if_missing(&self.cache).await?;
+        let graal_version = engine::deduce_graal_bundle(&self.repo_root.build_sbt).await?;
+        let graalpy_version = graal_version.packages;
+
+        // Install GraalPy standalone distribution
+        // GraalPy has a version that corresponds to the `graalMavenPackagesVersion` variable in
+        // build.sbt
+        let graalpy = cache::goodie::graalpy::GraalPy {
+            client:  self.octocrab.clone(),
+            version: graalpy_version,
+            os:      self.paths.triple.os,
+            arch:    self.paths.triple.arch,
+        };
+        graalpy.install_if_missing(&self.cache).await?;
+        ide_ci::programs::graalpy::GraalPy.require_present().await?;
 
         prepare_simple_library_server.await??;
         Ok(())
