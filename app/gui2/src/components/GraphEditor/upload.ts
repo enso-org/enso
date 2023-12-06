@@ -1,4 +1,4 @@
-import { Awareness, type UploadingFile } from '@/stores/awareness'
+import { Awareness } from '@/stores/awareness'
 import { Vec2 } from '@/util/vec2'
 import { Keccak, sha3_224 as SHA3 } from '@noble/hashes/sha3'
 import type { Hash } from '@noble/hashes/utils'
@@ -17,33 +17,21 @@ const DATA_DIR_NAME = 'data'
 // === Uploader ===
 
 export class Uploader {
-  private rpc: LanguageServer
-  private binary: DataServer
-  private file: File
-  private projectRootId: Uuid
   private checksum: Hash<Keccak>
   private uploadedBytes: bigint
-  private awareness: Awareness
-  private position: Vec2
   private stackItem: StackItem
 
   private constructor(
-    rpc: LanguageServer,
-    binary: DataServer,
-    awareness: Awareness,
-    file: File,
-    projectRootId: Uuid,
-    position: Vec2,
+    private rpc: LanguageServer,
+    private binary: DataServer,
+    private awareness: Awareness,
+    private file: File,
+    private projectRootId: Uuid,
+    private position: Vec2,
     stackItem: StackItem,
   ) {
-    this.rpc = rpc
-    this.binary = binary
-    this.awareness = awareness
-    this.file = file
-    this.projectRootId = projectRootId
     this.checksum = SHA3.create()
     this.uploadedBytes = BigInt(0)
-    this.position = position
     this.stackItem = markRaw(toRaw(stackItem))
   }
 
@@ -72,14 +60,19 @@ export class Uploader {
   }
 
   async upload(): Promise<string> {
+    // This non-standard property is defined in Electron.
+    if ('path' in this.file && typeof this.file.path === 'string') {
+      const path = this.file.path
+      // TODO: We need to add the filesystem root to this Uploader too, to be able to access.
+      return path
+    }
     await this.ensureDataDirExists()
     const name = await this.pickUniqueName(this.file.name)
-    const file: UploadingFile = {
+    this.awareness.addOrUpdateUpload(name, {
       sizePercentage: 0,
       position: this.position,
       stackItem: this.stackItem,
-    }
-    this.awareness.addOrUpdateUpload(name, file)
+    })
     const remotePath: Path = { rootId: this.projectRootId, segments: [DATA_DIR_NAME, name] }
     const uploader = this
     const cleanup = this.cleanup.bind(this, name)
@@ -90,12 +83,11 @@ export class Uploader {
         uploader.uploadedBytes += BigInt(chunk.length)
         const bytes = Number(uploader.uploadedBytes)
         const sizePercentage = Math.round((bytes / uploader.file.size) * 100)
-        const file: UploadingFile = {
+        uploader.awareness.addOrUpdateUpload(name, {
           sizePercentage,
           position: uploader.position,
           stackItem: uploader.stackItem,
-        }
-        uploader.awareness.addOrUpdateUpload(name, file)
+        })
       },
       async close() {
         cleanup()
