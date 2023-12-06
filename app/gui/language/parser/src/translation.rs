@@ -383,11 +383,16 @@ impl Translate {
 
     /// Lower a function definition to [`Ast`] representation.
     fn translate_function(&mut self, function: &tree::Function) -> ast::Shape<Ast> {
-        let tree::Function { name, args, equals, body } = function;
+        let tree::Function { name, args, returns, equals, body } = function;
         let non_empty_name = "A function name cannot be an (empty) block.";
         let name = self.translate(name).expect(non_empty_name);
         let mut lhs_terms = vec![name];
         lhs_terms.extend(args.iter().map(|a| self.translate_argument_definition(a)));
+        if let Some(returns) = returns {
+            let non_empty_type = "A function return type cannot be an (empty) block.";
+            lhs_terms.push(self.translate_operator(&returns.arrow));
+            lhs_terms.push(self.translate(&returns.r#type).expect(non_empty_type))
+        }
         let larg = lhs_terms
             .into_iter()
             .reduce(|func, arg| prefix(func, arg).map(Ast::from))
