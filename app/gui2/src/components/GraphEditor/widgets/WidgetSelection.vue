@@ -102,10 +102,16 @@ export const widgetDefinition = defineWidget([ArgumentPlaceholder, ArgumentAst],
 
 <template>
   <div ref="rootElement" class="WidgetRoot">
-    <span class="WidgetArgumentName" @pointerdown="showDropdownWidget = !showDropdownWidget">
-      <NodeWidget :input="props.input" /><span class="value"> {{ selectedValue }} </span>
+    <span
+      class="SelectionWidgetArgumentValue"
+      @pointerdown="showDropdownWidget = !showDropdownWidget"
+    >
+      <NodeWidget :input="props.input" />
+      <template v-if="props.input instanceof ArgumentPlaceholder">
+        <span class="SelectionWidgetArgumentValue"> {{ selectedValue }} </span>
+      </template>
     </span>
-    <div class="WidgetSingleChoice">
+    <div class="SelectionWidgetSingleChoice">
       <DropdownWidget
         v-if="showDropdownWidget"
         :color="parentColor ?? 'white'"
@@ -117,10 +123,10 @@ export const widgetDefinition = defineWidget([ArgumentPlaceholder, ArgumentAst],
   </div>
 </template>
 <style scoped>
-.value {
+.SelectionWidgetArgumentValue {
   margin-left: 8px;
 }
-.WidgetSingleChoice {
+.SelectionWidgetSingleChoice {
   position: absolute;
   top: 100%;
   margin-top: 4px;
