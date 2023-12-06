@@ -176,7 +176,7 @@ class RuntimeErrorsTest
         contextId,
         xId,
         Api.ExpressionUpdate.Payload.Panic(
-          "Compile_Error.Error",
+          "Compile_Error",
           Seq(xId)
         ),
         builtin = true
@@ -185,7 +185,7 @@ class RuntimeErrorsTest
         contextId,
         yId,
         Api.ExpressionUpdate.Payload.Panic(
-          "Compile_Error.Error",
+          "Compile_Error",
           Seq(xId)
         ),
         builtin = true
@@ -194,7 +194,7 @@ class RuntimeErrorsTest
         contextId,
         mainResId,
         Api.ExpressionUpdate.Payload.Panic(
-          "Compile_Error.Error",
+          "Compile_Error",
           Seq(xId)
         ),
         builtin = true
@@ -316,6 +316,8 @@ class RuntimeErrorsTest
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
 
+    metadata.assertInCode(mainBodyId, contents, "foo 1 2")
+
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
     context.receive shouldEqual Some(
@@ -368,7 +370,7 @@ class RuntimeErrorsTest
           Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "foo")
         ),
         Api.ExpressionUpdate.Payload.Panic(
-          "Compile_Error.Error",
+          "Compile_Error",
           Seq(mainBodyId)
         ),
         builtin = true
@@ -1726,7 +1728,7 @@ class RuntimeErrorsTest
         xId,
         Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "foo")),
         Api.ExpressionUpdate.Payload.Panic(
-          "9 (Integer)",
+          "Integer",
           Seq(xId)
         ),
         builtin = false
@@ -1735,7 +1737,7 @@ class RuntimeErrorsTest
         contextId,
         yId,
         Api.ExpressionUpdate.Payload.Panic(
-          "9 (Integer)",
+          "Integer",
           Seq(xId)
         )
       ),
@@ -1743,7 +1745,7 @@ class RuntimeErrorsTest
         contextId,
         mainResId,
         Api.ExpressionUpdate.Payload.Panic(
-          "9 (Integer)",
+          "Integer",
           Seq(xId)
         )
       ),
@@ -2034,7 +2036,7 @@ class RuntimeErrorsTest
         contextId,
         xId,
         Api.ExpressionUpdate.Payload.Panic(
-          "Compile_Error.Error",
+          "Compile_Error",
           Seq(xId)
         ),
         builtin = true
@@ -2043,7 +2045,7 @@ class RuntimeErrorsTest
         contextId,
         mainResId,
         Api.ExpressionUpdate.Payload.Panic(
-          "Compile_Error.Error",
+          "Compile_Error",
           Seq(xId)
         ),
         builtin = true

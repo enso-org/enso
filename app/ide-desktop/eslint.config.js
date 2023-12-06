@@ -592,4 +592,11 @@ export default [
             'no-undef': 'off',
         },
     },
+    {
+        files: ['**/tailwind.config.ts'],
+        rules: {
+            'no-restricted-syntax': 'off',
+            '@typescript-eslint/naming-convention': 'off',
+        },
+    },
 ]

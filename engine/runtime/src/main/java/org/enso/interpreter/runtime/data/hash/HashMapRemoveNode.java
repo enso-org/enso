@@ -3,9 +3,8 @@ package org.enso.interpreter.runtime.data.hash;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
 import org.enso.interpreter.node.expression.builtin.meta.HashCodeNode;
-import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.error.DataflowError;
-import org.enso.interpreter.runtime.error.PanicException;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
@@ -68,7 +67,8 @@ public abstract class HashMapRemoveNode extends Node {
         if ((boolean) equalsNode.execute(keyToRemove, key)) {
           if (keyToRemoveFound) {
             CompilerDirectives.transferToInterpreter();
-            throw new PanicException(Text.create("Key " + key + " found twice"), this);
+            var ctx = EnsoContext.get(this);
+            throw ctx.raiseAssertionPanic(this, "Key " + key + " found twice", null);
           } else {
             keyToRemoveFound = true;
           }
@@ -81,7 +81,8 @@ public abstract class HashMapRemoveNode extends Node {
     } catch (UnsupportedMessageException | StopIterationException | InvalidArrayIndexException e) {
       CompilerDirectives.transferToInterpreter();
       var msg = "Polyglot hash map " + map + " has wrongly specified Interop API (hash entries iterator)";
-      throw new PanicException(Text.create(msg), this);
+      var ctx = EnsoContext.get(this);
+      throw ctx.raiseAssertionPanic(this, msg, e);
     }
     if (keyToRemoveFound) {
       return EnsoHashMap.createWithBuilder(mapBuilder);

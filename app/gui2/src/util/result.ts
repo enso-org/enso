@@ -46,10 +46,10 @@ export class ResultError<E = string> {
     this.context = []
   }
 
-  log() {
+  log(preamble: string = 'Error') {
     const ctx =
       this.context.length > 0 ? `\n${Array.from(this.context, (ctx) => ctx()).join('\n')}` : ''
-    console.error(`Error: ${this.payload}${ctx}`)
+    console.error(`${preamble}: ${this.payload}${ctx}`)
   }
 }
 

@@ -110,6 +110,7 @@ export default function Login(props: LoginProps) {
                     <Input
                         required
                         validate
+                        allowShowingPassword
                         type="password"
                         autoComplete="current-password"
                         label="Password"

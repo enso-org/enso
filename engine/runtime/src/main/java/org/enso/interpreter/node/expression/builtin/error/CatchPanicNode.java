@@ -89,7 +89,7 @@ public abstract class CatchPanicNode extends Node {
       try {
         return interopLibrary.throwException(originalException);
       } catch (UnsupportedMessageException e) {
-        throw new IllegalStateException(e);
+        throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
       }
     }
   }
