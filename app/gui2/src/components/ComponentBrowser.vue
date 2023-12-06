@@ -490,6 +490,7 @@ const handler = componentBrowserBindings.handler({
           v-model="input.code.value"
           name="cb-input"
           autocomplete="off"
+          @keydown.backspace.stop
           @keyup="readInputFieldSelection"
         />
       </div>
