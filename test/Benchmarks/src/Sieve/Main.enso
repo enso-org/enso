@@ -25,6 +25,8 @@ collect_benches = Bench.build builder->
             assert_prime <| Sieve_Ascribed.compute_nth_prime 100000
         group_builder.specify "Without_Types" <|
             assert_prime <| Sieve_Without_Types.compute_nth_prime 100000
+        group_builder.specify "Java_Script_File" <|
+            assert_prime <| Sieve_Java_Script.compute_nth_prime_from_js_file 100000
         group_builder.specify "Java_Script_All" <|
             assert_prime <| Sieve_Java_Script.all_in_java_script 100000
         group_builder.specify "Java_Script_Natural" <|
