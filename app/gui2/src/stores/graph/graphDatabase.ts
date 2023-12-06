@@ -10,6 +10,7 @@ import { MappedKeyMap, MappedSet } from '@/util/containers'
 import { ReactiveDb, ReactiveIndex, ReactiveMapping } from '@/util/database/reactiveDb'
 import type { Opt } from '@/util/opt'
 import { Vec2 } from '@/util/vec2'
+import * as random from 'lib0/random'
 import * as set from 'lib0/set'
 import { methodPointerEquals, type MethodCall } from 'shared/languageServerTypes'
 import {
@@ -291,8 +292,7 @@ export class GraphDb {
     }
 
     const functionAst = functionAst_.astExtended
-    if (!functionAst) return
-    if (!functionAst.isTree(RawAst.Tree.Type.Function)) return
+    if (!functionAst?.isTree(RawAst.Tree.Type.Function)) return
     this.bindings.readFunctionAst(functionAst)
   }
 
@@ -310,17 +310,19 @@ export class GraphDb {
     return new GraphDb(db, ref([]), registry)
   }
 
-  mockNode(binding: string, id: ExprId, code?: string) {
-    const node = {
+  mockNode(binding: string, id: ExprId, code?: string): Node {
+    const pattern = Ast.parse(binding)
+    const node: Node = {
       outerExprId: id,
-      pattern: Ast.parse(binding),
+      pattern,
       rootSpan: Ast.parse(code ?? '0'),
       position: Vec2.Zero,
       vis: undefined,
     }
-    const bidingId = node.pattern.astId
+    const bindingId = pattern.astId
     this.nodeIdToNode.set(id, node)
-    this.bindings.bindings.set(bidingId, { identifier: binding, usages: new Set() })
+    this.bindings.bindings.set(bindingId, { identifier: binding, usages: new Set() })
+    return node
   }
 }
 
@@ -330,6 +332,18 @@ export interface Node {
   rootSpan: Ast.Ast
   position: Vec2
   vis: Opt<VisualizationMetadata>
+}
+
+/** This should only be used for supplying as initial props when testing.
+ * Please do {@link GraphDb.mockNode} with a `useGraphStore().db` after mount. */
+export function mockNode(exprId?: ExprId): Node {
+  return {
+    outerExprId: exprId ?? (random.uuidv4() as ExprId),
+    pattern: undefined,
+    rootSpan: Ast.parse('0'),
+    position: Vec2.Zero,
+    vis: undefined,
+  }
 }
 
 function mathodCallEquals(a: MethodCall | undefined, b: MethodCall | undefined): boolean {

@@ -1,58 +1,55 @@
 import CircularMenu from '@/components/CircularMenu.vue'
 import GraphNode from '@/components/GraphEditor/GraphNode.vue'
+import { useGraphStore } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
-import { Ast } from '@/util/ast'
-import { nodeFromAst } from '@/util/ast/node'
 import { PointerButtonMask } from '@/util/events'
-import { MockTransport, MockWebSocket } from '@/util/net'
-import { handleEmit } from '@/util/test/vue'
+import { Vec2 } from '@/util/vec2'
 import { createTestingPinia } from '@pinia/testing'
 import { mount } from '@vue/test-utils'
-import { type ContentRange } from 'shared/yjsModel'
 import { expect, test, vi } from 'vitest'
-import { computed, nextTick, ref, watchEffect } from 'vue'
-import { mockDataHandler, mockLSHandler } from '../../../../mock/engine'
-import { mockGuiConfig, mockWidgetRegistry } from '../../../../mock/provideFns'
-import * as mockProviders from '../../../../mock/providers'
+import { computed, nextTick, watchEffect } from 'vue'
+import * as mock from '../../../../mock'
 
 const INITIAL_NODE_CONTENT = 'a.b + c.d'
 
 test('overriding output context', async () => {
-  MockTransport.addMock('engine', mockLSHandler)
-  MockWebSocket.addMock('data', mockDataHandler)
-  const text = ref(INITIAL_NODE_CONTENT)
-  const ast = computed(() => Ast.parseLine(text.value))
-  const node = computed(() => nodeFromAst(ast.value))
+  // NOTE: Tests are broken because `replaceExpressionContent` discards the old node ID.
+  mock.languageServer()
+  mock.dataServer()
   const pinia = createTestingPinia({ createSpy: vi.fn, stubActions: false })
+
+  const originalNode = mock.node()
+
   const component = mount(GraphNode, {
-    props: { node: node.value, edited: false },
+    props: { node: originalNode, edited: false },
     global: {
-      plugins: [
-        pinia,
-        mockGuiConfig,
-        mockWidgetRegistry,
-        () => {
-          const projectStore = useProjectStore(pinia)
-          const mod = projectStore.projectModel.createNewModule('Main.enso')
-          mod.doc.ydoc.emit('load', [])
+      plugins: [pinia, mock.guiConfig, mock.widgetRegistry, mock.projectStoreAndGraphStore],
+      provide: mock.providers.allWith({
+        'graph selection': {
+          // Required for the `CircularMenu` to be visible.
+          isSelected: () => true,
         },
-      ],
-      provide: mockProviders.all,
+      }),
     },
   })
-  watchEffect(() => component.setProps({ node: node.value }))
-  const handleUpdateContent = handleEmit(
-    component,
-    'update:content',
-    (updates: [range: ContentRange, content: string][]) => {
-      let newText = text.value
-      for (const [[start, end], content] of [...updates].reverse()) {
-        newText = newText.slice(0, start) + content + text.value.slice(end)
-      }
-      text.value = newText
-    },
-  )
+
+  const graphStore = useGraphStore()
+  const projectStore = useProjectStore()
+
+  await mock.waitForMainModule()
+
+  const exprId = graphStore.createNode(Vec2.Zero, INITIAL_NODE_CONTENT)!
+  graphStore.db.mockNode('a', exprId, INITIAL_NODE_CONTENT)
+  expect(exprId).toBeDefined()
+
+  const node = computed(() => graphStore.db.nodeIdToNode.get(exprId)!)
+  expect(node.value).toBeDefined()
+  watchEffect(() => component.setProps(node.value != null ? { node: node.value } : {}))
+  const text = computed(() => node.value?.rootSpan.code())
+
+  // Testing start
   const selection = component.find('.selection')
+  expect(selection).toBeDefined()
   await selection.trigger('pointerdown', {
     buttons: PointerButtonMask.Main,
     clientX: 0,
@@ -60,7 +57,9 @@ test('overriding output context', async () => {
   })
   await selection.trigger('pointerup', { clientX: 0, clientY: 0 })
   const circularMenu = component.findComponent(CircularMenu)
+  expect(circularMenu).toBeDefined()
   const contextOverrideIcon = circularMenu.find('[alt="Enable output context"]')
+  expect(contextOverrideIcon).toBeDefined()
 
   // Initial state
   expect(text.value).toBe(INITIAL_NODE_CONTENT)
@@ -68,7 +67,6 @@ test('overriding output context', async () => {
 
   // Override enabled
   await contextOverrideIcon.trigger('pointerdown')
-  await handleUpdateContent.run()
   expect(text.value).toBe(
     "Standard.Base.Runtime.with_enabled_context Standard.Base.Runtime.Context.Output 'design' <| " +
       INITIAL_NODE_CONTENT,
@@ -77,14 +75,11 @@ test('overriding output context', async () => {
 
   // Override disabled
   await contextOverrideIcon.trigger('pointerdown')
-  await handleUpdateContent.run()
   expect(text.value).toBe(INITIAL_NODE_CONTENT)
   expect(contextOverrideIcon.attributes('alt')).toBe('Enable output context')
 
   // Override enabled again; switch to "live" execution mode
   await contextOverrideIcon.trigger('pointerdown')
-  await handleUpdateContent.run()
-  const projectStore = useProjectStore(pinia)
   projectStore.executionMode = 'live'
   await nextTick()
   expect(text.value).toBe(
@@ -95,7 +90,6 @@ test('overriding output context', async () => {
 
   // Override enabled
   await contextOverrideIcon.trigger('pointerdown')
-  await handleUpdateContent.run()
   expect(text.value).toBe(
     "Standard.Base.Runtime.with_disabled_context Standard.Base.Runtime.Context.Output 'live' <| " +
       INITIAL_NODE_CONTENT,
@@ -104,13 +98,11 @@ test('overriding output context', async () => {
 
   // Override disabled
   await contextOverrideIcon.trigger('pointerdown')
-  await handleUpdateContent.run()
   expect(text.value).toBe(INITIAL_NODE_CONTENT)
   expect(contextOverrideIcon.attributes('alt')).toBe('Disable output context')
 
   // Override enabled from disabled state
   await contextOverrideIcon.trigger('pointerdown')
-  await handleUpdateContent.run()
   expect(text.value).toBe(
     "Standard.Base.Runtime.with_disabled_context Standard.Base.Runtime.Context.Output 'live' <| " +
       INITIAL_NODE_CONTENT,

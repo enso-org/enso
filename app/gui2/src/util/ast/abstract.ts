@@ -851,6 +851,7 @@ function abstract(
   const tokenIds = info?.tokens ?? new Map()
   return abstractTree(module, tree, code, nodesExpected, tokenIds)
 }
+
 function abstractTree(
   module: Edit,
   tree: RawAst.Tree,
@@ -879,8 +880,9 @@ function abstractTree(
   const whitespaceEnd = whitespaceStart + tree.whitespaceLengthInCodeParsed
   const codeStart = whitespaceEnd
   const codeEnd = codeStart + tree.childrenLengthInCodeParsed
-  // All node types use this value in the same way to obtain the ID type, but each node does so separately because we
-  // must pop the tree's span from the ID map *after* processing children.
+  // All node types use this value in the same way to obtain the ID type,
+  // but each node does so separately because we must pop the tree's span from the ID map
+  // *after* processing children.
   const spanKey = nodeKey(codeStart, codeEnd - codeStart, tree.type)
   let node: AstId
   switch (tree.type) {

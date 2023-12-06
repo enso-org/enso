@@ -1,4 +1,4 @@
-import type { GraphSelection as mockProviders } from '@/providers/graphSelection'
+import type { GraphSelection } from '@/providers/graphSelection'
 import type { GraphNavigator } from '../src/providers/graphNavigator'
 import { Rect } from '../src/util/rect'
 import { Vec2 } from '../src/util/vec2'
@@ -17,7 +17,11 @@ export const graphNavigator: GraphNavigator = {
   viewport: Rect.Zero,
 }
 
-export const graphSelection: mockProviders = {
+export function graphNavigatorWith(modifications?: Partial<GraphNavigator>): GraphNavigator {
+  return Object.assign({}, graphNavigator, modifications)
+}
+
+export const graphSelection: GraphSelection = {
   events: {} as any,
   anchor: undefined,
   deselectAll: () => {},
@@ -26,14 +30,26 @@ export const graphSelection: mockProviders = {
   handleSelectionOf: () => {},
   hoveredNode: undefined,
   hoveredPort: undefined,
-  // Required for the `CircularMenu` to be visible.
-  isSelected: () => true,
+  isSelected: () => false,
   mouseHandler: () => false,
   selectAll: () => {},
   selected: new Set(),
 }
 
+export function graphSelectionWith(modifications?: Partial<GraphSelection>): GraphSelection {
+  return Object.assign({}, graphSelection, modifications)
+}
+
 export const all = {
   'graph navigator': graphNavigator,
   'graph selection': graphSelection,
+}
+
+export function allWith(
+  modifications: Partial<{ [K in keyof typeof all]: Partial<(typeof all)[K]> }>,
+): typeof all {
+  return {
+    'graph navigator': graphNavigatorWith(modifications['graph navigator']),
+    'graph selection': graphSelectionWith(modifications['graph selection']),
+  }
 }

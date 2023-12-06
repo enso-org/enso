@@ -20,7 +20,7 @@ import type { Opt } from '@/util/opt'
 import { Rect } from '@/util/rect'
 import { Vec2 } from '@/util/vec2'
 import { setIfUndefined } from 'lib0/map'
-import { type ContentRange, type ExprId, type VisualizationIdentifier } from 'shared/yjsModel'
+import { type ExprId, type VisualizationIdentifier } from 'shared/yjsModel'
 import { computed, ref, watch, watchEffect } from 'vue'
 
 const MAXIMUM_CLICK_LENGTH_MS = 300
@@ -53,14 +53,10 @@ const props = defineProps<{
 const emit = defineEmits<{
   dragging: [offset: Vec2]
   draggingCommited: []
-  delete: []
-  replaceSelection: []
   outputPortClick: [portId: ExprId]
   outputPortDoubleClick: [portId: ExprId]
-  'update:content': [updates: [range: ContentRange, content: string][]]
   'update:edited': [cursorPosition: number]
   'update:rect': [rect: Rect]
-  'update:selected': [selected: boolean]
   'update:visualizationId': [id: Opt<VisualizationIdentifier>]
   'update:visualizationRect': [rect: Rect | undefined]
   'update:visualizationVisible': [visible: boolean]
@@ -205,25 +201,18 @@ const isOutputContextOverridden = computed({
     const module = projectStore.module
     if (!module) return
     const currentOverride = outputContextOverride.value
-    const subExprStart = currentOverride?.innerExpr.astExtended?.span()[0]
-    const start = 0
-    const end =
-      subExprStart != null ? subExprStart - (props.node.rootSpan.astExtended?.span()[0] ?? 0) : 0
-    if (projectStore.isOutputContextEnabled) {
-      if (shouldOverride) {
-        emit('update:content', [
-          [[start, end], withOverriddenOutputContext(projectStore.executionMode, false)],
-        ])
-      } else {
-        emit('update:content', [[[start, end], '']])
-      }
+    const code = currentOverride?.innerExpr.code() ?? props.node.rootSpan.code()
+    if (shouldOverride) {
+      graph.setExpressionContent(
+        props.node.outerExprId,
+        withOverriddenOutputContext(
+          projectStore.executionMode,
+          !projectStore.isOutputContextEnabled,
+        ) + code,
+      )
     } else {
-      if (shouldOverride) {
-        emit('update:content', [
-          [[start, end], withOverriddenOutputContext(projectStore.executionMode, true)],
-        ])
-      } else {
-        emit('update:content', [[[start, end], '']])
+      if (currentOverride?.innerExpr != null) {
+        graph.setExpressionContent(props.node.outerExprId, code)
       }
     }
   },
