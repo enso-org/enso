@@ -151,8 +151,11 @@ spec =
                 . add_query_argument "q4" "śnieżnobiały"
                 . add_query_argument "q5" s1
                 . add_query_argument "q6" s2
+                . add_query_argument "q7" ""
+                . add_query_argument "q8" " "
+                . add_query_argument "q9" "%%%"
             r3 = uri3.fetch
-            decode_query_params r3 . should_equal [["q4", "śnieżnobiały"], ["q5", s1], ["q6", s2]]
+            decode_query_params r3 . should_equal [["q4", "śnieżnobiały"], ["q5", s1], ["q6", s2], ["q7", ""], ["q8", " "], ["q9", "%%%"]]
 
             uri4 = base_uri
                 . add_query_argument "p+r" "b c"
