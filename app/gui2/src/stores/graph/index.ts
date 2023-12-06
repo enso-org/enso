@@ -53,7 +53,7 @@ export const useGraphStore = defineStore('graph', () => {
   const exprRects = reactive(new Map<ExprId, Rect>())
   const editedNodeInfo = ref<NodeEditInfo>()
   const imports = ref<{ import: Import; span: ContentRange }[]>([])
-  const methodAst = ref<AstExtended<Ast.Tree.Function>>()
+  const methodAst = ref<Ast.Function>()
 
   const unconnectedEdge = ref<UnconnectedEdge>()
 
@@ -107,16 +107,7 @@ export const useGraphStore = defineStore('graph', () => {
         return true
       })
 
-      methodAst.value = ast.isTree()
-        ? ast.tryMap((tree) =>
-            getExecutedMethodAst(
-              tree,
-              textContentLocal,
-              proj.executionContext.getStackTop(),
-              updatedMap,
-            ),
-          )
-        : undefined
+      methodAst.value = getExecutedMethodAst(newRoot, proj.executionContext.getStackTop())
       if (methodAst.value) {
         db.readFunctionAst(methodAst.value, (id) => meta.get(id))
       }

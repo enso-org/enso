@@ -180,7 +180,7 @@ const previewedExpression = computed(() => {
 const previewDataSource: ComputedRef<VisualizationDataSource | undefined> = computed(() => {
   if (!previewedExpression.value.trim()) return
   if (!graphStore.methodAst) return
-  const body = graphStore.methodAst.tryMap((tree) => tree.body)
+  const body = graphStore.methodAst.body
   if (!body) return
 
   return {
