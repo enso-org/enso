@@ -30,10 +30,10 @@ foreign js filter_in_js = """
     Filter.prototype.acceptAndAdd = function(n) {
         var filter = this;
         var sqrt = Math.sqrt(n);
-        for (;;) {
+        while (filter != null) {
             if (filter.number) {
                 if (n % filter.number === 0) {
-                    return false;
+                    return null;
                 }
                 if (filter.number > sqrt) {
                     break;
@@ -44,7 +44,7 @@ foreign js filter_in_js = """
         var newFilter = new Filter(n);
         this.last.next = newFilter;
         this.last = newFilter;
-        return true;
+        return this;
     };
     return new Filter(null);
 
