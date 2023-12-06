@@ -45,9 +45,9 @@ Primes.last_prime self = case self of
     Primes.Alg g _ -> g.n - 1
 
 
-compute_nth_prime n =
+compute_nth_prime n gen=natural fil=Filter.Empty =
     loop p n = if n == 0 then p else
         pn = p.next
         @Tail_Call loop pn n-1
-    p = Primes.Alg natural Filter.Empty
+    p = Primes.Alg gen fil
     loop p n . last_prime
