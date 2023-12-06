@@ -135,32 +135,49 @@ spec =
 
             uri1 = base_uri . add_query_argument "a" "b"
             r1 = uri1.fetch
-            IO.println r1
+            decode_query_params r1 . should_equal [["a", "b"]]
 
             uri2 = base_uri
                 . add_query_argument "q1" "b c"
                 . add_query_argument "q2" "e+f"
                 . add_query_argument "q3" "e%20f"
             r2 = uri2.fetch
-            IO.println r2
+            # All values should be encoded and decoded correctly so that they retain the original symbols:
+            decode_query_params r2 . should_equal [["q1", "b c"], ["q2", "e+f"], ["q3", "e%20f"]]
 
+            s1 = '"f"\'\' ; 🚀🚧a'
+            s2 = "[a=b]:[b=c][d=e], ]]] ==> <br>a"
             uri3 = base_uri
                 . add_query_argument "q4" "śnieżnobiały"
-                . add_query_argument "q5" '"f"\'\' ; 🚀🚧a'
-                . add_query_argument "q6" "[a=b]:[b=c][d=e], ]]] ==> <br>a"
+                . add_query_argument "q5" s1
+                . add_query_argument "q6" s2
             r3 = uri3.fetch
-            IO.println r3
+            decode_query_params r3 . should_equal [["q4", "śnieżnobiały"], ["q5", s1], ["q6", s2]]
 
             uri4 = base_uri
                 . add_query_argument "p+r" "b c"
                 . add_query_argument "p r" "b c"
-                . add_query_argument "🚀" "🚧"
+                . add_query_argument "🚀"  "🚧"
                 . add_query_argument "śnieżnobiałą" "łąkę"
-                . add_query_argument "[a=b]:[b=c][d=e], ]]] ==> <br>a" "zzz"
+                . add_query_argument s2 "zzz"
             r4 = uri4.fetch
-            IO.println r4
+            decode_query_params r4 . should_equal [["p+r", "b c"], ["p r", "b c"], ["🚀", "🚧"], ["śnieżnobiałą", "łąkę"], [s2, "zzz"]]
+
+        Test.specify "may allow duplicate keys in query parameters" <|
+            uri = URI.parse base_url+"get"
+                . add_query_argument "a" "b"
+                . add_query_argument "a" "c"
+                . add_query_argument "a" "d"
+            r = uri.fetch
+            decode_query_params r . should_equal [["a", "b"], ["a", "c"], ["a", "d"]]
 
         Test.specify "should correctly handle various characters within the key and value of arguments" pending=("TODO testing secrets is for later".if_nothing pending_has_url) <|
             Error.throw "TODO: test various characters inside of the secret value, like in the raw test above"
 
 main = Test_Suite.run_main spec
+
+decode_query_params : Json -> Vector (Pair Text Text)
+decode_query_params json_response =
+    params = json_response.at "queryParameters"
+    params.map pair->
+        [pair.at "name", pair.at "value"]

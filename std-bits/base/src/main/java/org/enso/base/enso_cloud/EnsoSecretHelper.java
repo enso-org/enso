@@ -101,7 +101,7 @@ public class EnsoSecretHelper {
     if (queryArguments != null && !queryArguments.isEmpty()) {
       try {
         var baseQuery = uri.getQuery();
-        baseQuery = baseQuery != null && !baseQuery.isBlank() ? "?" + baseQuery + "&" : "?";
+        baseQuery = baseQuery != null && !baseQuery.isBlank() ? baseQuery + "&" : "";
         var query = baseQuery + queryArguments.stream().map(p -> makeQueryAry(p, EnsoSecretHelper::resolveValue)).collect(Collectors.joining("&"));
 
         resolvedURI = replaceQuery(uri, query);

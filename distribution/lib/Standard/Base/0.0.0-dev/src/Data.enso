@@ -180,6 +180,10 @@ fetch : (URI | URI_With_Query | Text) -> HTTP_Method -> Vector (Header | Pair Te
 fetch (uri:(URI | URI_With_Query | Text)) (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (Header | Pair Text Text))=[]) (try_auto_parse_response:Boolean=True) =
     response = HTTP.fetch uri method headers
     if try_auto_parse_response.not then response.with_materialized_body else
+        ## We cannot catch decoding errors here and fall-back to the raw response
+           body, because as soon as decoding is started, at least part of the
+           input stream may already be consumed, so we cannot easily reconstruct
+           the whole stream.
         response.decode if_unsupported=response.with_materialized_body
 
 ## ALIAS http post, upload

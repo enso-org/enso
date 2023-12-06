@@ -80,6 +80,7 @@ public class TestHandler implements HttpHandler {
       }
 
       URI uri = exchange.getRequestURI();
+      System.out.println(exchange.getRequestMethod() + " " + uri);
 
       response.append("\n");
       response.append("  },\n");
@@ -87,20 +88,21 @@ public class TestHandler implements HttpHandler {
       response.append("  \"path\": \"" + StringEscapeUtils.escapeJson(uri.getPath()) + "\",\n");
       if (uri.getQuery() != null) {
         URIBuilder builder = new URIBuilder(uri);
-        List<NameValuePair> params = builder.getQueryParams().stream().sorted(nameValuePairComparator).toList();
-        response.append("  \"query\": {\n");
-        for (NameValuePair param : params) {
+        List<NameValuePair> params = builder.getQueryParams();
+        response.append("  \"queryParameters\": [\n");
+        for (int i = 0; i < params.size(); i++) {
+          NameValuePair param = params.get(i);
           String key = StringEscapeUtils.escapeJson(param.getName());
           String value = StringEscapeUtils.escapeJson(param.getValue());
-          response.append("    \"").append(key).append("\": \"").append(value).append("\"");
-          boolean isLast = param == params.get(params.size() - 1);
+          response.append("    {\"name\": \"").append(key).append("\", \"value\": \"").append(value).append("\"}");
+          boolean isLast = i == params.size() - 1;
           if (!isLast) {
             response.append(",\n");
           } else {
             response.append("\n");
           }
         }
-        response.append("  },\n");
+        response.append("  ],\n");
       }
 
       response.append("  \"method\": \"").append(meth).append("\",\n");
@@ -167,16 +169,4 @@ public class TestHandler implements HttpHandler {
     String merged = key.stream().reduce((a, b) -> a + ", " + b).orElse("");
     return "\"" + StringEscapeUtils.escapeJson(merged) + "\"";
   }
-
-  private final Comparator<NameValuePair> nameValuePairComparator = new Comparator<NameValuePair>() {
-    @Override
-    public int compare(NameValuePair o1, NameValuePair o2) {
-      int c = o1.getName().compareTo(o2.getName());
-      if (c != 0) {
-        return c;
-      }
-
-      return o1.getValue().compareTo(o2.getValue());
-    }
-  };
 }
