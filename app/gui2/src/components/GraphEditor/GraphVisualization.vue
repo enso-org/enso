@@ -242,7 +242,7 @@ provideVisualizationConfig({
     isBelowToolbar.value = value
   },
   get types() {
-    return visualizationStore.types(props.typename)
+    return Array.from(visualizationStore.types(props.typename))
   },
   get isCircularMenuVisible() {
     return props.isCircularMenuVisible
