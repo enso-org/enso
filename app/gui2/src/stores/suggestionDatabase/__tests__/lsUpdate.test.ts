@@ -308,6 +308,7 @@ class Fixture {
     isPrivate: false,
     isUnstable: false,
     reexportedIn: unwrap(tryQualifiedName('Standard.Base.Another.Module')),
+    annotations: [],
   }
   expectedType: SuggestionEntry = {
     kind: SuggestionKind.Type,
@@ -320,6 +321,7 @@ class Fixture {
     isPrivate: false,
     isUnstable: false,
     reexportedIn: unwrap(tryQualifiedName('Standard.Base.Another.Module')),
+    annotations: [],
   }
   expectedCon: SuggestionEntry = {
     kind: SuggestionKind.Constructor,
@@ -333,6 +335,7 @@ class Fixture {
     isPrivate: false,
     isUnstable: true,
     reexportedIn: unwrap(tryQualifiedName('Standard.Base.Another.Module')),
+    annotations: ['Annotation 1'],
   }
   expectedMethod: SuggestionEntry = {
     kind: SuggestionKind.Method,
@@ -347,6 +350,7 @@ class Fixture {
     aliases: [],
     isPrivate: false,
     isUnstable: false,
+    annotations: ['Annotation 2', 'Annotation 3'],
   }
   expectedStaticMethod: SuggestionEntry = {
     kind: SuggestionKind.Method,
@@ -361,6 +365,7 @@ class Fixture {
     isPrivate: false,
     isUnstable: false,
     reexportedIn: unwrap(tryQualifiedName('Standard.Base.Another.Module')),
+    annotations: [],
   }
   expectedFunction: SuggestionEntry = {
     kind: SuggestionKind.Function,
@@ -373,6 +378,7 @@ class Fixture {
     isPrivate: false,
     isUnstable: false,
     scope: this.scope,
+    annotations: [],
   }
   expectedLocal: SuggestionEntry = {
     kind: SuggestionKind.Local,
@@ -385,6 +391,7 @@ class Fixture {
     isPrivate: false,
     isUnstable: false,
     scope: this.scope,
+    annotations: [],
   }
 
   addUpdatesForExpected(): lsTypes.SuggestionsDatabaseUpdate[] {
@@ -422,7 +429,7 @@ class Fixture {
           returnType: 'Standard.Base.Type',
           documentation: this.conDocs,
           reexport: 'Standard.Base.Another.Module',
-          annotations: [],
+          annotations: ['Annotation 1'],
         },
       },
       {
@@ -437,7 +444,7 @@ class Fixture {
           arguments: [this.arg1],
           returnType: 'Standard.Base.Number',
           documentation: this.methodDocs,
-          annotations: [],
+          annotations: ['Annotation 2', 'Annotation 3'],
         },
       },
       {

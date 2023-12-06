@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Common.Uninitialized_State
 import Standard.Base.Runtime.State
 
 import project.Test_Reporter
@@ -39,9 +40,19 @@ type Test
                         State.run Spec (Spec.Value name List.Nil) <|
                             behaviors
                             State.get Spec
-                    Test_Reporter.print_report r config suite.builder
-                    new_suite = Test_Suite.Value suite.config (List.Cons r suite.specs) suite.builder
-                    State.put Test_Suite new_suite
+                    case find_parent_spec of
+                        Nothing ->
+                            # This is the root group - print report and save it to the test suite:
+                            Test_Reporter.print_report r config suite.builder
+                            new_suite = Test_Suite.Value suite.config (List.Cons r suite.specs) suite.builder
+                            State.put Test_Suite new_suite
+                        Spec.Value parent_name parent_behaviors ->
+                            # We add our nested group name to each behavior
+                            extended_behaviors = r.behaviors.map b-> b.prepend_name r.name
+
+                            # And then add the behaviors to our parent spec's list of behaviors
+                            new_spec = Spec.Value parent_name (prepend_list extended_behaviors parent_behaviors)
+                            State.put Spec new_spec
                 reason ->
                     Test_Reporter.report_pending_group name reason config suite.builder
 
@@ -313,6 +324,10 @@ type Behavior
     is_success : Boolean
     is_success self = self.result.is_success
 
+    ## PRIVATE
+    prepend_name : Text -> Behavior
+    prepend_name self name = Behavior.Value (name + " - " + self.name) self.result self.time_taken
+
 ## PRIVATE
 type Clue
     ## PRIVATE
@@ -322,3 +337,12 @@ type Clue
        Arguments:
        - add_clue: either Nothing or a function which modifies a failure message
     Value add_clue
+
+## PRIVATE
+find_parent_spec =
+    Panic.catch Uninitialized_State handler=(_->Nothing) <|
+        State.get Spec
+
+## PRIVATE
+prepend_list la lb =
+    la.reverse.fold lb lacc-> elem-> List.Cons elem lacc

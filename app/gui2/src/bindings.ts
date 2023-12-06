@@ -26,6 +26,7 @@ export const graphBindings = defineKeybinds('graph-editor', {
   newNode: ['N'],
   toggleVisualization: ['Space'],
   deleteSelected: ['Delete'],
+  zoomToSelected: ['Mod+Shift+A'],
   selectAll: ['Mod+A'],
   deselectAll: ['Escape', 'PointerMain'],
   copyNode: ['Mod+C'],

@@ -1,31 +1,29 @@
-import * as Ast from '@/generated/ast'
-import { Token, Tree } from '@/generated/ast'
+import * as RawAst from '@/generated/ast'
 import { assert } from '@/util/assert'
+import * as Ast from '@/util/ast/abstract'
 import { parse } from '@/util/ffi'
 import { LazyObject, LazySequence } from '@/util/parserSupport'
 import { isResult, mapOk } from '@/util/result'
 import * as map from 'lib0/map'
 import type { ContentRange } from 'shared/yjsModel'
-import { AstExtended } from './extended'
+import { AstExtended as RawAstExtended } from './extended'
 
-export { AstExtended }
+export { Ast, RawAst, RawAstExtended }
 
-export { Ast }
+export type HasAstRange = ContentRange | RawAst.Tree | RawAst.Token
 
-export type HasAstRange = ContentRange | Tree | Token
-
-export function parseEnso(code: string): Tree {
+export function parseEnso(code: string): RawAst.Tree {
   const blob = parse(code)
-  return Tree.read(new DataView(blob.buffer), blob.byteLength - 4)
+  return RawAst.Tree.read(new DataView(blob.buffer), blob.byteLength - 4)
 }
 
 /** Read a single line of code
  *
  * Is meant to be a helper for tests. If the code is multiline, an exception is raised.
  */
-export function parseEnsoLine(code: string): Tree {
+export function parseEnsoLine(code: string): RawAst.Tree {
   const block = parseEnso(code)
-  assert(block.type === Tree.Type.BodyBlock)
+  assert(block.type === RawAst.Tree.Type.BodyBlock)
   const statements = block.statements[Symbol.iterator]()
   const firstLine = statements.next()
   assert(!firstLine.done)
@@ -40,27 +38,27 @@ export function parseEnsoLine(code: string): Tree {
  * The AST is assumed to be generated from `code` and not modified sice then.
  * Otherwise an unspecified fragment of `code` may be returned.
  */
-export function readAstOrTokenSpan(node: Tree | Token, code: string): string {
+export function readAstOrTokenSpan(node: RawAst.Tree | RawAst.Token, code: string): string {
   const range = parsedTreeOrTokenRange(node)
   return code.substring(range[0], range[1])
 }
 
 /**
- * Read span of code represented by given Tree.
+ * Read span of code represented by given RawAst.Tree.
  *
  * The Tree is assumed to be a part of AST generated from `code`.
  */
-export function readAstSpan(node: Tree, code: string): string {
+export function readAstSpan(node: RawAst.Tree, code: string): string {
   const range = parsedTreeRange(node)
   return code.substring(range[0], range[1])
 }
 
 /**
- * Read span of code represented by given Token.
+ * Read span of code represented by given RawAst.Token.
  *
  * The Token is assumed to be a part of AST generated from `code`.
  */
-export function readTokenSpan(token: Token, code: string): string {
+export function readTokenSpan(token: RawAst.Token, code: string): string {
   const range = parsedTokenRange(token)
   return code.substring(range[0], range[1])
 }
@@ -68,19 +66,19 @@ export function readTokenSpan(token: Token, code: string): string {
 /**
  * Read direct AST children.
  */
-export function childrenAstNodes(obj: LazyObject): Tree[] {
-  const children: Tree[] = []
+export function childrenAstNodes(obj: LazyObject): RawAst.Tree[] {
+  const children: RawAst.Tree[] = []
   const visitor = (obj: LazyObject) => {
-    if (Tree.isInstance(obj)) children.push(obj)
-    else if (!Token.isInstance(obj)) obj.visitChildren(visitor)
+    if (RawAst.Tree.isInstance(obj)) children.push(obj)
+    else if (!RawAst.Token.isInstance(obj)) obj.visitChildren(visitor)
   }
   obj.visitChildren(visitor)
   return children
 }
-export function childrenAstNodesOrTokens(obj: LazyObject): (Tree | Token)[] {
-  const children: (Tree | Token)[] = []
+export function childrenAstNodesOrTokens(obj: LazyObject): (RawAst.Tree | RawAst.Token)[] {
+  const children: (RawAst.Tree | RawAst.Token)[] = []
   const visitor = (obj: LazyObject) => {
-    if (Tree.isInstance(obj) || Token.isInstance(obj)) {
+    if (RawAst.Tree.isInstance(obj) || RawAst.Token.isInstance(obj)) {
       children.push(obj)
     } else {
       obj.visitChildren(visitor)
@@ -91,7 +89,7 @@ export function childrenAstNodesOrTokens(obj: LazyObject): (Tree | Token)[] {
 }
 
 /** Returns all AST nodes from `root` tree containing given char, starting from the most nested. */
-export function astContainingChar(charIndex: number, root: Tree): Tree[] {
+export function astContainingChar(charIndex: number, root: RawAst.Tree): RawAst.Tree[] {
   return treePath(root, (node) => {
     const begin = node.whitespaceStartInCodeParsed + node.whitespaceLengthInCodeParsed
     const end = begin + node.childrenLengthInCodeParsed
@@ -101,10 +99,10 @@ export function astContainingChar(charIndex: number, root: Tree): Tree[] {
 
 /** Given a predicate, return a path from the root down the tree containing the
  *  first node at each level found to satisfy the predicate. */
-function treePath(obj: LazyObject, pred: (node: Tree) => boolean): Tree[] {
-  const path: Tree[] = []
+function treePath(obj: LazyObject, pred: (node: RawAst.Tree) => boolean): RawAst.Tree[] {
+  const path: RawAst.Tree[] = []
   const visitor = (obj: LazyObject) => {
-    if (Tree.isInstance(obj)) {
+    if (RawAst.Tree.isInstance(obj)) {
       const isMatch = pred(obj)
       if (isMatch) path.push(obj)
       return obj.visitChildren(visitor) || isMatch
@@ -117,9 +115,9 @@ function treePath(obj: LazyObject, pred: (node: Tree) => boolean): Tree[] {
 }
 
 export function findAstWithRange(
-  root: Tree | Token,
+  root: RawAst.Tree | RawAst.Token,
   range: ContentRange,
-): Tree | Token | undefined {
+): RawAst.Tree | RawAst.Token | undefined {
   for (const child of childrenAstNodes(root)) {
     const [begin, end] = parsedTreeOrTokenRange(child)
     if (begin === range[0] && end === range[1]) return child
@@ -127,9 +125,11 @@ export function findAstWithRange(
   }
 }
 
-export function* walkRecursive(node: Tree | Token): Generator<Tree | Token, void, boolean | void> {
+export function* walkRecursive(
+  node: RawAst.Tree | RawAst.Token,
+): Generator<RawAst.Tree | RawAst.Token, void, boolean | void> {
   if (false === (yield node)) return
-  const stack: Iterator<Tree | Token>[] = [childrenAstNodesOrTokens(node).values()]
+  const stack: Iterator<RawAst.Tree | RawAst.Token>[] = [childrenAstNodesOrTokens(node).values()]
   while (stack.length > 0) {
     const next = stack[stack.length - 1]!.next()
     if (next.done) stack.pop()
@@ -151,7 +151,10 @@ export function visitGenerator<T, N, R>(generator: Generator<T, R, N>, visit: (v
  * @param visit Callback that is called for each node. If it returns `false`, the children of that
  * node will be skipped, and the walk will continue to the next sibling.
  */
-export function visitRecursive(node: Tree | Token, visit: (node: Tree | Token) => boolean) {
+export function visitRecursive(
+  node: RawAst.Tree | RawAst.Token,
+  visit: (node: RawAst.Tree | RawAst.Token) => boolean,
+) {
   visitGenerator(walkRecursive(node), visit)
 }
 
@@ -162,21 +165,21 @@ export function visitRecursive(node: Tree | Token, visit: (node: Tree | Token) =
  * @returns Object with `start` and `end` properties; index of first character in the `node`
  *   and first character _not_ being in the `node`.
  */
-export function parsedTreeRange(tree: Tree): ContentRange {
+export function parsedTreeRange(tree: RawAst.Tree): ContentRange {
   const start = tree.whitespaceStartInCodeParsed + tree.whitespaceLengthInCodeParsed
   const end = start + tree.childrenLengthInCodeParsed
   return [start, end]
 }
 
-export function parsedTokenRange(token: Token): ContentRange {
+export function parsedTokenRange(token: RawAst.Token): ContentRange {
   const start = token.startInCodeBuffer
   const end = start + token.lengthInCodeBuffer
   return [start, end]
 }
 
 export function parsedTreeOrTokenRange(node: HasAstRange): ContentRange {
-  if (Tree.isInstance(node)) return parsedTreeRange(node)
-  else if (Token.isInstance(node)) return parsedTokenRange(node)
+  if (RawAst.Tree.isInstance(node)) return parsedTreeRange(node)
+  else if (RawAst.Token.isInstance(node)) return parsedTokenRange(node)
   else return node
 }
 
