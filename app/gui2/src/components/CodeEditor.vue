@@ -58,7 +58,8 @@ const expressionUpdatesDiagnostics = computed(() => {
     if (!update) continue
     const node = nodeMap.get(id)
     if (!node) continue
-    const [from, to] = node.rootSpan.span()
+    if (!node.rootSpan.astExtended) continue
+    const [from, to] = node.rootSpan.astExtended.span()
     switch (update.payload.type) {
       case 'Panic': {
         diagnostics.push({ from, to, message: update.payload.message, severity: 'error' })
@@ -102,7 +103,10 @@ watchEffect(() => {
           const astSpan = ast.span()
           let foundNode: ExprId | undefined
           for (const [id, node] of graphStore.db.nodeIdToNode.entries()) {
-            if (rangeEncloses(node.rootSpan.span(), astSpan)) {
+            if (
+              node.rootSpan.astExtended &&
+              rangeEncloses(node.rootSpan.astExtended.span(), astSpan)
+            ) {
               foundNode = id
               break
             }

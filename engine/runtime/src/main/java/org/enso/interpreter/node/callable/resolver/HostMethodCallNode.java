@@ -253,8 +253,7 @@ public abstract class HostMethodCallNode extends Node {
     try {
       return hostValueToEnsoNode.execute(members.readMember(self, symbol));
     } catch (UnsupportedMessageException | UnknownIdentifierException e) {
-      throw new IllegalStateException(
-          "Impossible to reach here. The member is checked to be readable.");
+      throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
   }
 

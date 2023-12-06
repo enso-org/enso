@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use regex::Regex;
 
 use crate::cache::goodie;
 use crate::cache::goodie::Goodie;
@@ -7,6 +6,9 @@ use crate::cache::Cache;
 use crate::env::known::PATH;
 use crate::github::RepoRef;
 use crate::programs::graalpy::GraalPy as GraalPyProgram;
+
+use regex::Regex;
+
 
 
 pub const CE_BUILDS_REPOSITORY: RepoRef = RepoRef { owner: "oracle", name: "graalpython" };

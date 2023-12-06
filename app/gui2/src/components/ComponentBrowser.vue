@@ -65,9 +65,8 @@ onMounted(() => {
     input.code.value = getInitialContent()
     const caret = getInitialCaret()
     if (inputField.value != null) {
-      inputField.value.selectionStart = caret[0]
-      inputField.value.selectionEnd = caret[1]
       inputField.value.focus({ preventScroll: true })
+      input.selection.value = { start: caret[0], end: caret[1] }
       selectLastAfterRefresh()
     }
   })

@@ -82,7 +82,7 @@ export function widgetProps<T extends WidgetInput>(_def: WidgetDefinition<T>) {
 
 /**
  * A class which instances have type `T`. Accepts classes that have a private constructors, such as
- * `AstExtended` or `ArgumentPlaceholder`.
+ * `Ast` or `ArgumentPlaceholder`.
  */
 type Class<T extends WidgetInput> = Function & { prototype: T }
 type InputMatcherFn<T extends WidgetInput> = (input: WidgetInput) => input is T

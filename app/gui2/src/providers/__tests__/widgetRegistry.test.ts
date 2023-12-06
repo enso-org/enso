@@ -1,7 +1,6 @@
 import { GraphDb } from '@/stores/graph/graphDatabase'
-import { AstExtended } from '@/util/ast'
+import { Ast } from '@/util/ast'
 import { ApplicationKind, ArgumentPlaceholder } from '@/util/callTree'
-import { IdMap } from 'shared/yjsModel'
 import { describe, expect, test } from 'vitest'
 import { defineComponent } from 'vue'
 import {
@@ -26,7 +25,7 @@ describe('WidgetRegistry', () => {
 
   const widgetA = makeMockWidget(
     'A',
-    defineWidget(AstExtended, {
+    defineWidget(Ast.Ast, {
       priority: 1,
     }),
   )
@@ -48,14 +47,14 @@ describe('WidgetRegistry', () => {
 
   const widgetD = makeMockWidget(
     'D',
-    defineWidget(AstExtended, {
+    defineWidget(Ast.Ast, {
       priority: 20,
-      score: (props) => (props.input.repr() === '_' ? Score.Perfect : Score.Mismatch),
+      score: (props) => (props.input.code() === '_' ? Score.Perfect : Score.Mismatch),
     }),
   )
 
-  const someAst = AstExtended.parse('foo', IdMap.Mock())
-  const blankAst = AstExtended.parse('_', IdMap.Mock())
+  const someAst = Ast.parse('foo')
+  const blankAst = Ast.parse('_')
   const somePlaceholder = new ArgumentPlaceholder(
     0,
     {
