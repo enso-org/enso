@@ -77,7 +77,7 @@ export default function NewLabelModal(props: NewLabelModalProps) {
                         autoFocus
                         size={1}
                         placeholder="Enter the name of the label"
-                        className={`grow bg-transparent border border-black-a10 rounded-full leading-170 h-6 px-4 py-px ${
+                        className={`grow bg-transparent border border-black/10 rounded-full leading-170 h-6 px-4 py-px ${
                             // eslint-disable-next-line @typescript-eslint/no-magic-numbers
                             color != null && color.lightness <= 50
                                 ? 'text-tag-text placeholder-frame-selected'

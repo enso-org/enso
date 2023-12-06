@@ -96,10 +96,8 @@ public final class EnsoFile implements EnsoObject {
         }
         hostArr[i] = (T) ctx.asJavaPolyglotObject(elem);
       }
-    } catch (UnsupportedMessageException | InvalidArrayIndexException e) {
-      throw new IllegalStateException("Unreachable", e);
-    } catch (ClassCastException e) {
-      throw new PanicException(e, interop);
+    } catch (ClassCastException | UnsupportedMessageException | InvalidArrayIndexException e) {
+      throw EnsoContext.get(interop).raiseAssertionPanic(interop, null, e);
     }
     return hostArr;
   }

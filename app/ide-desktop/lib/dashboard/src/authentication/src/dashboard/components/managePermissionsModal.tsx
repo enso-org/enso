@@ -273,7 +273,7 @@ export default function ManagePermissionsModal<
                                 void doSubmit()
                             }}
                         >
-                            <div className="flex items-center grow rounded-full border border-black-a10 gap-2 px-1">
+                            <div className="flex items-center grow rounded-full border border-black/10 gap-2 px-1">
                                 <PermissionSelector
                                     disabled={willInviteNewUser}
                                     selfPermission={self.permission}
