@@ -8,6 +8,7 @@ import {
   DEFAULT_VISUALIZATION_CONFIGURATION,
   DEFAULT_VISUALIZATION_IDENTIFIER,
   useVisualizationStore,
+  type VisualizationDataSource,
 } from '@/stores/visualization'
 import type { Visualization } from '@/stores/visualization/runtimeTypes'
 import { toError } from '@/util/error'
@@ -16,6 +17,7 @@ import type { Opt } from '@/util/opt'
 import { Rect } from '@/util/rect'
 import type { URLString } from '@/util/urlString'
 import { Vec2 } from '@/util/vec2'
+import { computedAsync } from '@vueuse/core'
 import type { ExprId, VisualizationIdentifier } from 'shared/yjsModel'
 import {
   computed,
@@ -32,13 +34,13 @@ const TOP_WITHOUT_TOOLBAR_PX = 36
 const TOP_WITH_TOOLBAR_PX = 72
 
 const props = defineProps<{
-  currentType: Opt<VisualizationIdentifier>
+  currentType?: Opt<VisualizationIdentifier>
   isCircularMenuVisible: boolean
   nodePosition: Vec2
   nodeSize: Vec2
   scale: number
   typename?: string | undefined
-  expressionId?: ExprId | undefined
+  dataSource?: VisualizationDataSource | undefined
   data?: any | undefined
 }>()
 const emit = defineEmits<{
@@ -48,31 +50,35 @@ const emit = defineEmits<{
 }>()
 
 const visPreprocessor = ref(DEFAULT_VISUALIZATION_CONFIGURATION)
-const error = ref<Error>()
+const vueError = ref<Error>()
 
 const projectStore = useProjectStore()
 const graphStore = useGraphStore()
 const visualizationStore = useVisualizationStore()
 
-const expressionInfo = computed(
-  () => props.expressionId && graphStore.db.getExpressionInfo(props.expressionId),
+const expressionInfo = computed(() =>
+  props.dataSource?.type === 'node'
+    ? graphStore.db.getExpressionInfo(props.dataSource.nodeId)
+    : undefined,
 )
 const typeName = computed(() => expressionInfo.value?.typename ?? 'Any')
 
 const configForGettingDefaultVisualization = computed<NodeVisualizationConfiguration | undefined>(
   () => {
     if (props.currentType) return
-    if (!props.expressionId) return
+    if (props.dataSource?.type !== 'node') return
     return {
       visualizationModule: 'Standard.Visualization.Helpers',
       expression: 'a -> a.default_visualization.to_js_object.to_json',
-      expressionId: props.expressionId,
+      expressionId: props.dataSource.nodeId,
     }
   },
 )
+
 const defaultVisualizationRaw = projectStore.useVisualizationData(
   configForGettingDefaultVisualization,
 ) as ShallowRef<{ library: { name: string } | null; name: string } | undefined>
+
 const defaultVisualization = computed<VisualizationIdentifier | undefined>(() => {
   const raw = defaultVisualizationRaw.value
   if (!raw) return
@@ -92,25 +98,42 @@ const currentType = computed(() => {
 const visualization = shallowRef<Visualization>()
 const icon = ref<Icon | URLString>()
 
-onErrorCaptured((vueError) => {
-  error.value = vueError
+onErrorCaptured((error) => {
+  vueError.value = error
   return false
 })
 
 const visualizationData = projectStore.useVisualizationData(() => {
-  return props.data == null && props.expressionId != null
+  return props.data == null && props.dataSource?.type === 'node'
     ? {
         ...visPreprocessor.value,
-        expressionId: props.expressionId,
+        expressionId: props.dataSource.nodeId,
       }
     : null
 })
 
-const effectiveVisualizationData = computed(() =>
-  error.value
-    ? { name: currentType.value?.name, error: error.value }
-    : props.data ?? visualizationData.value,
-)
+const expressionVisualizationData = computedAsync(() => {
+  if (props.dataSource?.type !== 'expression') return
+  const preprocessor = visPreprocessor.value
+  const args = preprocessor.positionalArgumentsExpressions
+  const argsCode = args.length ? `(${args.join(') (')})` : ''
+  // TODO[ao]: it work with builtin visualization, but does not work in general case.
+  // Tracked in https://github.com/orgs/enso-org/discussions/6832#discussioncomment-7754474.
+  const preprocessorCode = `${preprocessor.visualizationModule}.${preprocessor.expression} _ ${argsCode}`
+  const expression = `${preprocessorCode} <| ${props.dataSource.expression}`
+  return projectStore.executeExpression(props.dataSource.contextId, expression)
+})
+
+const effectiveVisualizationData = computed(() => {
+  const name = currentType.value?.name
+  if (props.data) return props.data
+  if (vueError.value) return { name, error: vueError.value }
+  if (visualizationData.value && !visualizationData.value.ok)
+    return { name, error: new Error(visualizationData.value.error.payload) }
+  if (expressionVisualizationData.value && !expressionVisualizationData.value.ok)
+    return { name, error: new Error(expressionVisualizationData.value.error.payload) }
+  return visualizationData.value?.value ?? expressionVisualizationData.value?.value
+})
 
 function updatePreprocessor(
   visualizationModule: string,
@@ -128,7 +151,7 @@ function switchToDefaultPreprocessor() {
 
 watch(
   () => [currentType.value, visualization.value],
-  () => (error.value = undefined),
+  () => (vueError.value = undefined),
 )
 
 watchEffect(async () => {
@@ -148,19 +171,19 @@ watchEffect(async () => {
     } else {
       switch (currentType.value.module.kind) {
         case 'Builtin': {
-          error.value = new Error(
+          vueError.value = new Error(
             `The builtin visualization '${currentType.value.name}' was not found.`,
           )
           break
         }
         case 'CurrentProject': {
-          error.value = new Error(
+          vueError.value = new Error(
             `The visualization '${currentType.value.name}' was not found in the current project.`,
           )
           break
         }
         case 'Library': {
-          error.value = new Error(
+          vueError.value = new Error(
             `The visualization '${currentType.value.name}' was not found in the library '${currentType.value.module.name}'.`,
           )
           break
@@ -168,7 +191,7 @@ watchEffect(async () => {
       }
     }
   } catch (caughtError) {
-    error.value = toError(caughtError)
+    vueError.value = toError(caughtError)
   }
 })
 
@@ -234,7 +257,11 @@ provideVisualizationConfig({
 })
 
 const effectiveVisualization = computed(() => {
-  if (error.value) {
+  if (
+    vueError.value ||
+    (visualizationData.value && !visualizationData.value.ok) ||
+    (expressionVisualizationData.value && !expressionVisualizationData.value.ok)
+  ) {
     return LoadingErrorVisualization
   }
   if (!visualization.value || effectiveVisualizationData.value == null) {

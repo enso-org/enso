@@ -1,17 +1,17 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { defineWidget, widgetProps } from '@/providers/widgetRegistry'
-import { AstExtended } from '@/util/ast'
+import { Ast } from '@/util/ast'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 
-const spanClass = computed(() => props.input.treeTypeName())
+const spanClass = computed(() => props.input.typeName())
 const children = computed(() => [...props.input.children()])
 </script>
 
 <script lang="ts">
-export const widgetDefinition = defineWidget(AstExtended.isTree(), {
+export const widgetDefinition = defineWidget((expression) => expression instanceof Ast.Ast, {
   priority: 1001,
 })
 </script>

@@ -93,6 +93,7 @@ export default function ResetPassword() {
                 <Input
                     required
                     validate
+                    allowShowingPassword
                     type="password"
                     autoComplete="new-password"
                     label="New password"
@@ -106,6 +107,7 @@ export default function ResetPassword() {
                 <Input
                     required
                     validate
+                    allowShowingPassword
                     type="password"
                     autoComplete="new-password"
                     label="Confirm new password"

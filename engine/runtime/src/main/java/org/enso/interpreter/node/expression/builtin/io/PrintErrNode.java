@@ -43,7 +43,7 @@ public abstract class PrintErrNode extends Node {
     try {
       print(ctx.getErr(), strings.asString(message));
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException("Impossible. self is guaranteed to be a string");
+      throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
     return ctx.getNothing();
   }

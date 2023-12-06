@@ -146,7 +146,7 @@ public abstract class LessThanNode extends Node {
               : otherWithWarnings;
       return lessThanNode.execute(self, other);
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException(e);
+      throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
   }
 
@@ -178,7 +178,7 @@ public abstract class LessThanNode extends Node {
       selfJavaString = selfInterop.asString(selfStr);
       otherJavaString = otherInterop.asString(otherStr);
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException(e);
+      throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
     return Normalizer.compare(
         selfJavaString,
@@ -200,7 +200,7 @@ public abstract class LessThanNode extends Node {
     try {
       return !selfInterop.asBoolean(selfBoolean) && otherInterop.asBoolean(otherBoolean);
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException(e);
+      throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
   }
 
@@ -229,7 +229,7 @@ public abstract class LessThanNode extends Node {
       );
       return self.compareTo(other) < 0;
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException(e);
+      throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
   }
 
@@ -255,7 +255,7 @@ public abstract class LessThanNode extends Node {
       );
       return self.isBefore(other);
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException(e);
+      throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
   }
 
@@ -275,7 +275,7 @@ public abstract class LessThanNode extends Node {
           otherInterop.asDate(otherDate)
       );
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException(e);
+      throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
   }
 
@@ -295,7 +295,7 @@ public abstract class LessThanNode extends Node {
           otherInterop.asTime(otherTime)
       );
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException(e);
+      throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
   }
 
@@ -311,7 +311,7 @@ public abstract class LessThanNode extends Node {
       Duration otherDur = otherInterop.asDuration(otherDuration);
       return selfDur.compareTo(otherDur) < 0;
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException(e);
+      throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
   }
 

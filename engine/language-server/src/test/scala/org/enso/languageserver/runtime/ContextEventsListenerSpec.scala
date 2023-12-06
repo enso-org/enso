@@ -304,6 +304,47 @@ class ContextEventsListenerSpec
         registry.expectNoMessage()
     }
 
+    "detach oneshot visualization when evaluation fails" taggedAs Retry in withEventsListener {
+      (clientId, contextId, router, registry, listener) =>
+        val ctx = Api.VisualizationContext(
+          UUID.randomUUID(),
+          contextId,
+          UUID.randomUUID()
+        )
+
+        listener ! RegisterOneshotVisualization(
+          ctx.contextId,
+          ctx.visualizationId,
+          ctx.expressionId
+        )
+
+        val message = "boom!"
+        listener ! Api.VisualizationEvaluationFailed(ctx, message, None)
+        registry.expectMsg(
+          DetachVisualization(
+            clientId,
+            ctx.contextId,
+            ctx.visualizationId,
+            ctx.expressionId
+          )
+        )
+
+        router.expectMsg(
+          DeliverToJsonController(
+            clientId,
+            VisualizationEvaluationFailed(
+              VisualizationContext(
+                ctx.visualizationId,
+                contextId,
+                ctx.expressionId
+              ),
+              message,
+              None
+            )
+          )
+        )
+    }
+
     "send visualization updates" taggedAs Retry in withEventsListener {
       (clientId, contextId, router, registry, listener) =>
         val ctx = Api.VisualizationContext(

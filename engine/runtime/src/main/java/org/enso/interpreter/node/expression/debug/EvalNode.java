@@ -64,13 +64,15 @@ public abstract class EvalNode extends BaseNode {
   RootCallTarget parseExpression(LocalScope scope, ModuleScope moduleScope, String expression) {
     EnsoContext context = EnsoContext.get(this);
     LocalScope localScope = scope.createChild();
+    var compiler = context.getCompiler();
     InlineContext inlineContext =
         InlineContext.fromJava(
             localScope,
             moduleScope.getModule().asCompilerModule(),
             scala.Option.apply(getTailStatus() != TailStatus.NOT_TAIL),
-            context.getCompilerConfig());
-    var compiler = context.getCompiler();
+            context.getCompilerConfig(),
+            scala.Option.apply(compiler.packageRepository()));
+
     var tuppleOption = compiler.runInline(expression, inlineContext);
     if (tuppleOption.isEmpty()) {
       throw new RuntimeException("Invalid code passed to `eval`: " + expression);
