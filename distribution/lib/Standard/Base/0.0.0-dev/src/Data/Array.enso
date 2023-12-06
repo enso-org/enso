@@ -8,6 +8,7 @@ import project.Data.Range.Range
 import project.Data.Sort_Direction.Sort_Direction
 import project.Data.Text.Text
 import project.Data.Vector.Empty_Error
+import project.Data.Vector.No_Wrap
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Common.Incomparable_Values
@@ -338,7 +339,10 @@ type Array
 
          The result of Errors thrown when executing the function depend on
          `on_problems`:
-         - Report_Error: The first error is thrown.
+         - Report_Error: The first error is thrown, and is wrapped in
+           `Map_Error`.
+         - No_Wrap: The first error is thrown, and is not wrapped in
+           `Map_Error`.
          - Report_Warning: The result for that element is `Nothing`, 
            the error is attached as a warning. Currently unimplemented.
          - Ignore: The result is `Nothing`, and the error is
@@ -356,14 +360,8 @@ type Array
          Add 1 to each element of the array.
 
              [1, 2, 3].to_array . map +1
-    map : (Any -> Any) -> Problem_Behavior -> Vector Any
+    map : (Any -> Any) -> Problem_Behavior | No_Wrap -> Vector Any
     map self function on_problems=Problem_Behavior.Report_Error = Vector.map self function on_problems
-
-    ## PRIVATE
-       Implementation of `map` that does not do error wrapping, and does not
-       take an `on_problems` parameter.
-    map_primitive : (Any -> Any) -> Vector Any
-    map_primitive self function = Vector.map_primitive self function
 
     ## Applies a function to each element of the array, returning the `Vector`
        that contains all results concatenated.
@@ -383,12 +381,6 @@ type Array
             [0, 1, 2].to_array . flat_map (n -> Vector.fill n n)
     flat_map : (Any -> Vector Any) -> Vector Any
     flat_map self function = Vector.flat_map self function
-
-    ## PRIVATE
-       Implementation of `flat_map` that does not do error wrapping, and does
-       not take an `on_problems` parameter.
-    flat_map_primitive : (Any -> Vector Any) -> Vector Any
-    flat_map_primitive self function = Vector.flat_map_primitive self function
 
     ## GROUP Selections
        ICON preparation
@@ -568,12 +560,6 @@ type Array
              [1, 2, 3].to_array.map_with_index (+)
     map_with_index : (Integer -> Any -> Any) -> Vector Any
     map_with_index self function = Vector.map_with_index self function
-
-    ## PRIVATE
-       Implementation of `map_with_index` that does not do error wrapping, and
-       does not take an `on_problems` parameter.
-    map_with_index_primitive : (Any -> Any) -> Vector Any
-    map_with_index_primitive self function = Vector.map_with_index_primitive self function
 
     ## PRIVATE
        Creates a new array with the skipping elements until `start` and then
@@ -768,12 +754,6 @@ type Array
              [1, 2, 3].to_array.zip [4, 5, 6].to_array == [[1, 4].to_array, [2, 5].to_array, [3, 6].to_array].to_array
     zip : Vector Any -> (Any -> Any -> Any) -> Vector Any
     zip self that:Vector function=[_,_] = Vector.zip self that function
-
-    ## PRIVATE
-       Implementation of `zip` that does not do error wrapping, and does not
-       take an `on_problems` parameter.
-    zip_primitive : Vector Any -> (Any -> Any -> Any) -> Vector Any
-    zip_primitive self that function=[_,_] = Vector.zip_primitive self that function
 
     ## Returns the array as a `Vector`.
     to_vector : Vector

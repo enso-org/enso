@@ -16,6 +16,7 @@ import project.Runtime.Ref.Ref
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Range.Extensions import all
 from project.Data.Vector import Empty_Error
+from project.Data.Vector.Extensions import all
 from project.Errors.Common import Unsupported_Argument_Types
 
 polyglot java import java.lang.NullPointerException

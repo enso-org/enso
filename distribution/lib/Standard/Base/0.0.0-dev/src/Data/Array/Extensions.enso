@@ -1,0 +1,86 @@
+import project.Any.Any
+import project.Data.Array.Array
+import project.Data.Vector.Vector
+import project.Internal.Array_Like_Helpers
+from Standard.Base.Data.Vector.Extensions import all
+
+## PRIVATE
+   ICON dataframe_map_column
+   Applies a function to each element of the array, returning the `Vector` of
+   results. Unlike `Array.map`, `map_primitive` does not wrap errors in
+   `Map_Error`.
+
+   Arguments:
+   - function: A function that takes an element in the array and returns
+       some transformation of that element.
+
+   > Example
+       Add 1 to each element of the array.
+
+           [1, 2, 3].to_array . map +1
+Array.map_primitive : (Any -> Any) -> Vector Any
+Array.map_primitive self function = Vector.map_primitive self function
+
+## PRIVATE
+   Applies a function to each element of the array, returning the `Vector`
+   that contains all results concatenated. Unlike `Array.flat_map`,
+   `flat_map_primitive` does not wrap errors in `Map_Error`.
+
+   Arguments:
+   - function: A function that takes an element in the array, transforms
+       it, and returns a `Vector`.
+
+   > Example
+       Replace each number `n` in the array with itself repeated n times.
+
+       [0, 1, 2].to_array . flat_map (n -> Vector.fill n n)
+Array.flat_map_primitive : (Any -> Vector Any) -> Vector Any
+Array.flat_map_primitive self function = Vector.flat_map_primitive self function
+
+## PRIVATE
+   Applies a function to each element of the array, returning the `Vector`
+   of results. Unlike `Array.map_with_index`, `map_with_index_primitive` does
+   not wrap errors in `Map_Error`.
+
+   Arguments:
+   - function: A function that takes an index and an item and calculates a
+       new value for at that index.
+
+   The function is called with both the element index as well as the
+   element itself.
+
+   > Example
+       Sum numbers with their indices in an array.
+
+           [1, 2, 3].to_array.map_with_index (+)
+Array.map_with_index_primitive : (Any -> Any) -> Vector Any
+Array.map_with_index_primitive self function = Vector.map_with_index_primitive self function
+
+## PRIVATE
+   ALIAS combine, join by row position, merge
+   GROUP Calculations
+   ICON dataframes_join
+   Performs a pair-wise operation passed in `function` on consecutive
+   elements of `self` and `that`. Unlike `Array.zip`, `zip_primitive` does
+   not wrap errors in `Map_Error`.
+
+   Arguments:
+   - that: The array to zip with `self`.
+   - function: The function used to combine pairwise elements of `self` and
+       `that`.
+
+   The result of this function is a `Vector` of length being the shorter of
+   `self` and `that`, containing results of calling `function`.
+
+   > Example
+       Calculate the pairwise sum of two arrays.
+
+           [1, 2, 3].to_array.zip [4, 5, 6].to_array (+)
+
+   > Example
+       When the `function` is not provided, it defaults to creating a pair
+       of both elements.
+
+           [1, 2, 3].to_array.zip [4, 5, 6].to_array == [[1, 4].to_array, [2, 5].to_array, [3, 6].to_array].to_array
+Array.zip_primitive : Vector Any -> (Any -> Any -> Any) -> Vector Any
+Array.zip_primitive self that function=[_,_] = Vector.zip_primitive self that function

@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Illegal_State.Illegal_State
+from Standard.Base.Data.Vector.Extensions import all
 
 import project.Data.Join_Condition.Join_Condition
 import project.Data.Type.Value_Type.Value_Type

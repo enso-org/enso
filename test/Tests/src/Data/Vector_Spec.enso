@@ -12,7 +12,9 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.Runtime.Ref.Ref
 import Standard.Base.Runtime.State
+from Standard.Base.Data.Array.Extensions import all
 from Standard.Base.Data.Index_Sub_Range.Index_Sub_Range import While, By_Index, Sample, Every
+from Standard.Base.Data.Vector.Extensions import all
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions

@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+from Standard.Base.Data.Vector.Extensions import all
 
 import project.Data.Column.Column
 import project.Data.Type.Enso_Types

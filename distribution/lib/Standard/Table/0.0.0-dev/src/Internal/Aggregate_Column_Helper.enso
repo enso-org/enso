@@ -1,4 +1,5 @@
 from Standard.Base import all hiding First, Last
+from Standard.Base.Data.Vector.Extensions import all
 from Standard.Base.Runtime import assert
 
 import project.Data.Aggregate_Column.Aggregate_Column

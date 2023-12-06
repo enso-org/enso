@@ -588,7 +588,10 @@ type Vector a
 
          The result of Errors thrown when executing the function depend on
          `on_problems`:
-         - Report_Error: The first error is thrown.
+         - Report_Error: The first error is thrown, and is wrapped in
+           `Map_Error`.
+         - No_Wrap: The first error is thrown, and is not wrapped in
+           `Map_Error`.
          - Report_Warning: The result for that element is `Nothing`, 
            the error is attached as a warning. Currently unimplemented.
          - Ignore: The result is `Nothing`, and the error is
@@ -606,16 +609,9 @@ type Vector a
          Add 1 to each element of the vector.
 
              [1, 2, 3] . map +1
-    map : (Any -> Any) -> Problem_Behavior -> Vector Any
+    map : (Any -> Any) -> Problem_Behavior | No_Wrap -> Vector Any
     map self function on_problems=Problem_Behavior.Report_Error =
         Array_Like_Helpers.vector_from_function self.length (function << self.at) on_problems
-
-    ## PRIVATE
-       Implementation of `map` that does not do error wrapping, and does not
-       take an `on_problems` parameter.
-    map_primitive : (Any -> Any) -> Vector Any
-    map_primitive self function =
-        Array_Like_Helpers.vector_from_function_primitive self.length (function << self.at)
 
     ## Applies a function to each element of the vector, returning the `Vector`
        that contains all results concatenated.
@@ -636,13 +632,6 @@ type Vector a
     flat_map : (Any -> Vector Any) -> Vector Any
     flat_map self function =
         self.map function . flatten
-
-    ## PRIVATE
-       Implementation of `flat_map` that does not do error wrapping, and does
-       not take an `on_problems` parameter.
-    flat_map_primitive : (Any -> Vector Any) -> Vector Any
-    flat_map_primitive self function =
-        self.map_primitive function . flatten
 
     ## GROUP Calculations
        Transforms a vector of vectors into a `Vector` of inner elements - removes
@@ -677,13 +666,6 @@ type Vector a
     map_with_index : (Integer -> Any -> Any) -> Vector Any
     map_with_index self function =
         Array_Like_Helpers.vector_from_function self.length (i-> function i (self.at i))
-
-    ## PRIVATE
-       Implementation of `map_with_index` that does not do error wrapping, and
-       does not take an `on_problems` parameter.
-    map_with_index_primitive : (Any -> Any) -> Vector Any
-    map_with_index_primitive self function =
-        Array_Like_Helpers.vector_from_function_primitive self.length (i-> function i (self.at i))
 
     ## PRIVATE
        ADVANCED
@@ -938,14 +920,6 @@ type Vector a
     zip self that:Vector function=[_,_] =
         len = self.length.min that.length
         Array_Like_Helpers.vector_from_function len (i-> function (self.at i) (that.at i))
-
-    ## PRIVATE
-       Implementation of `zip` that does not do error wrapping, and does not
-       take an `on_problems` parameter.
-    zip_primitive : Vector Any -> (Any -> Any -> Any) -> Vector Any
-    zip_primitive self that function=[_,_] =
-        len = self.length.min that.length
-        Array_Like_Helpers.vector_from_function_primitive len (i-> function (self.at i) (that.at i))
 
     ## GROUP Calculations
        Extend `self` vector to the length of `n` appending elements `elem` to
@@ -1337,6 +1311,11 @@ type Map_Error
     ## PRIVATE
     to_display_text : Text
     to_display_text self = "Error at index " + self.index.to_text + ": " + self.inner_error.to_display_text
+
+## PRIVATE
+   Indicates that a method should not wrap thrown errors in `Map_Error`.
+type No_Wrap
+    Value
 
 Wrapped_Error.from (that : Map_Error) = Wrapped_Error.Value that that.inner_error
 

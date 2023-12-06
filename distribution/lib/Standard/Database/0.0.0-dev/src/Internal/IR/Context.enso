@@ -5,6 +5,8 @@ import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.SQL_Expression.SQL_Expression
 
+from Standard.Base.Data.Vector.Extensions import all
+
 ## PRIVATE
 
    A context associated with an SQL query.
