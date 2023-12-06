@@ -3,6 +3,8 @@ package org.enso.shttp;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import org.apache.commons.text.StringEscapeUtils;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.utils.URIBuilder;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
@@ -10,6 +12,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
+import java.net.URI;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -74,10 +78,31 @@ public class TestHandler implements HttpHandler {
           }
         }
       }
+
+      URI uri = exchange.getRequestURI();
+
       response.append("\n");
       response.append("  },\n");
-      response.append("  \"origin\": \"127.0.0.1\",\n");
-      response.append("  \"url\": \"\",\n");
+      response.append("  \"origin\": \"" + exchange.getRemoteAddress().getAddress().getHostAddress() + "\",\n");
+      response.append("  \"path\": \"" + StringEscapeUtils.escapeJson(uri.getPath()) + "\",\n");
+      if (uri.getQuery() != null) {
+        URIBuilder builder = new URIBuilder(uri);
+        List<NameValuePair> params = builder.getQueryParams().stream().sorted(nameValuePairComparator).toList();
+        response.append("  \"query\": {\n");
+        for (NameValuePair param : params) {
+          String key = StringEscapeUtils.escapeJson(param.getName());
+          String value = StringEscapeUtils.escapeJson(param.getValue());
+          response.append("    \"").append(key).append("\": \"").append(value).append("\"");
+          boolean isLast = param == params.get(params.size() - 1);
+          if (!isLast) {
+            response.append(",\n");
+          } else {
+            response.append("\n");
+          }
+        }
+        response.append("  },\n");
+      }
+
       response.append("  \"method\": \"").append(meth).append("\",\n");
       if (meth == HttpMethod.POST
           || meth == HttpMethod.DELETE
@@ -142,4 +167,16 @@ public class TestHandler implements HttpHandler {
     String merged = key.stream().reduce((a, b) -> a + ", " + b).orElse("");
     return "\"" + StringEscapeUtils.escapeJson(merged) + "\"";
   }
+
+  private final Comparator<NameValuePair> nameValuePairComparator = new Comparator<NameValuePair>() {
+    @Override
+    public int compare(NameValuePair o1, NameValuePair o2) {
+      int c = o1.getName().compareTo(o2.getName());
+      if (c != 0) {
+        return c;
+      }
+
+      return o1.getValue().compareTo(o2.getValue());
+    }
+  };
 }

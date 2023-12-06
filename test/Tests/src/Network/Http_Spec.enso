@@ -3,6 +3,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Forbidden_Operation
 import Standard.Base.Errors.Common.Syntax_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Network.HTTP.HTTP_Error.HTTP_Error
 import Standard.Base.Network.HTTP.Request.Request
 import Standard.Base.Network.HTTP.Request_Body.Request_Body
 import Standard.Base.Network.HTTP.Request_Error
@@ -13,8 +14,6 @@ from Standard.Base.Network.HTTP import resolve_headers
 import Standard.Test.Extensions
 from Standard.Test import Test, Test_Suite
 from Standard.Test.Execution_Context_Helpers import run_with_and_without_output
-
-polyglot java import java.lang.System as Java_System
 
 type Test_Type
     Aaa (s:Text)
@@ -28,7 +27,7 @@ spec =
     ## To run this test locally:
        $ sbt 'simple-httpbin/run localhost 8080'
        $ export ENSO_HTTP_TEST_HTTPBIN_URL=http://localhost:8080/
-    base_url = Java_System.getenv "ENSO_HTTP_TEST_HTTPBIN_URL"
+    base_url = Environment.get "ENSO_HTTP_TEST_HTTPBIN_URL"
     pending_has_url = if base_url != Nothing then Nothing else
         "The HTTP tests only run when the `ENSO_HTTP_TEST_HTTPBIN_URL` environment variable is set to URL of the httpbin server"
 
@@ -85,7 +84,7 @@ spec =
                     "Content-Length": "0"
                   },
                   "origin": "127.0.0.1",
-                  "url": "",
+                  "path": "/get",
                   "method": "GET",
                   "args": {}
                 }
@@ -132,7 +131,7 @@ spec =
                     "Content-Length": "0"
                   },
                   "origin": "127.0.0.1",
-                  "url": "",
+                  "path": "/get",
                   "method": "GET",
                   "args": {}
                 }
@@ -172,7 +171,7 @@ spec =
 
         Test.specify "Can perform a Request_Body.Text POST" <|
             response = Data.post url_post (Request_Body.Text "hello world")
-            expected_response = echo_response_template "POST" "hello world" content_type="text/plain; charset=UTF-8"
+            expected_response = echo_response_template "POST" "/post" "hello world" content_type="text/plain; charset=UTF-8"
             response . should_equal expected_response
 
             url_response = url_post.to_uri.post (Request_Body.Text "hello world")
@@ -181,23 +180,23 @@ spec =
         Test.specify "Can perform a Request_Body.Json JSON POST" <|
             json = Json.parse '{"a": "asdf", "b": 123}'
             response = Data.post url_post (Request_Body.Json json)
-            expected_response = echo_response_template "POST" '{"a":"asdf","b":123}' content_type="application/json"
+            expected_response = echo_response_template "POST" "/post" '{"a":"asdf","b":123}' content_type="application/json"
             response . should_equal expected_response
 
         Test.specify "Can perform a JSON POST" <|
             json = Json.parse '{"a": "asdf", "b": 123}'
             response = Data.post url_post json
-            expected_response = echo_response_template "POST" '{"a":"asdf","b":123}' content_type="application/json"
+            expected_response = echo_response_template "POST" "/post" '{"a":"asdf","b":123}' content_type="application/json"
             response . should_equal expected_response
 
         Test.specify "Can perform an object Request_Body.Json POST" <|
             response = Data.post url_post (Request_Body.Json (Test_Type.Aaa "abc"))
-            expected_response = echo_response_template "POST" '{"type":"Test_Type","constructor":"Aaa","s":"abc"}' content_type="application/json"
+            expected_response = echo_response_template "POST" "/post" '{"type":"Test_Type","constructor":"Aaa","s":"abc"}' content_type="application/json"
             response . should_equal expected_response
 
         Test.specify "Can perform an object JSON POST" <|
             response = Data.post url_post (Test_Type.Bbb 12)
-            expected_response = echo_response_template "POST" '{"type":"Test_Type","constructor":"Bbb","i":12}' content_type="application/json"
+            expected_response = echo_response_template "POST" "/post" '{"type":"Test_Type","constructor":"Bbb","i":12}' content_type="application/json"
             response . should_equal expected_response
 
             uri_response = url_post.to_uri.post (Test_Type.Bbb 12)
@@ -209,7 +208,7 @@ spec =
         Test.specify "Can perform a Text POST with explicit encoding" <|
             body = Request_Body.Text 'Hello World!' encoding=Encoding.utf_16_le
             response = Data.post url_post body
-            expected_response = echo_response_template "POST" "Hello World!" content_type="text/plain; charset=UTF-16LE" content_length=24
+            expected_response = echo_response_template "POST" "/post" "Hello World!" content_type="text/plain; charset=UTF-16LE" content_length=24
             response . should_equal expected_response
 
             uri_response = url_post.to_uri.post body
@@ -218,7 +217,7 @@ spec =
         Test.specify "Can perform a Text POST with explicit content type" <|
             response = Data.post url_post (Request_Body.Text 'a,b,c\n' content_type="text/csv")
 
-            expected_response = echo_response_template "POST" 'a,b,c\n' content_type="text/csv; charset=UTF-8"
+            expected_response = echo_response_template "POST" "/post" 'a,b,c\n' content_type="text/csv; charset=UTF-8"
             response . should_equal expected_response
 
         Test.specify "Can perform a File POST" <|
@@ -259,17 +258,17 @@ spec =
 
         Test.specify "Can perform a Text POST with auto-conversion" <|
             response = Data.post url_post "hello world"
-            expected_response = echo_response_template "POST" "hello world" content_type="text/plain; charset=UTF-8"
+            expected_response = echo_response_template "POST" "/post" "hello world" content_type="text/plain; charset=UTF-8"
             response . should_equal expected_response
 
         Test.specify "Can perform a Request_Body.Text PUT" <|
             response = Data.post url_put (Request_Body.Text "hello world") method=HTTP_Method.Put
-            expected_response = echo_response_template "PUT" "hello world" content_type="text/plain; charset=UTF-8"
+            expected_response = echo_response_template "PUT" "/put" "hello world" content_type="text/plain; charset=UTF-8"
             response . should_equal expected_response
 
         Test.specify "Can perform a Request_Body.Text PATCH" <|
             response = Data.post url_patch (Request_Body.Text "hello world" content_type="application/diff") method=HTTP_Method.Patch
-            expected_response = echo_response_template "PATCH" "hello world" content_type="application/diff; charset=UTF-8"
+            expected_response = echo_response_template "PATCH" "/patch" "hello world" content_type="application/diff; charset=UTF-8"
             response . should_equal expected_response
 
         Test.specify "Can perform a DELETE" <|
@@ -284,7 +283,7 @@ spec =
                     "Content-Length": "0"
                   },
                   "origin": "127.0.0.1",
-                  "url": "",
+                  "path": "/delete",
                   "method": "DELETE",
                   "form": null,
                   "files": null,
@@ -295,7 +294,7 @@ spec =
 
         Test.specify "Can skip auto-parse" <|
             response = Data.post url_post (Request_Body.Text "hello world") try_auto_parse_response=False
-            expected_response = echo_response_template "POST" "hello world" content_type="text/plain; charset=UTF-8"
+            expected_response = echo_response_template "POST" "/post" "hello world" content_type="text/plain; charset=UTF-8"
             response.decode_as_json . should_equal expected_response
 
         Test.specify "Can send a custom header" <|
@@ -313,7 +312,7 @@ spec =
                     "Another": "a:b: c - \\"ddd\\""
                   },
                   "origin": "127.0.0.1",
-                  "url": "",
+                  "path": "/post",
                   "method": "POST",
                   "form": null,
                   "files": null,
@@ -321,6 +320,14 @@ spec =
                   "args": {}
                 }
             response . should_equal expected_response
+
+        Test.specify "can handle HTTP errors" <|
+            # This should give us bad request
+            r1 = Data.post url_delete
+            IO.println r1
+
+            r2 = Data.post base_url_with_slash + "some/unknown/path"
+            IO.println r2
 
         Test.specify "Cannot perform POST when output context is disabled" <|
             Context.Output.with_disabled <|
@@ -361,7 +368,7 @@ spec =
                     "Content-Length": "23"
                   },
                   "origin": "127.0.0.1",
-                  "url": "",
+                  "path": "/post",
                   "method": "POST",
                   "form": null,
                   "files": null,
@@ -383,7 +390,7 @@ spec =
                     "Content-Length": "23"
                   },
                   "origin": "127.0.0.1",
-                  "url": "",
+                  "path": "/post",
                   "method": "POST",
                   "form": null,
                   "files": null,
@@ -407,7 +414,7 @@ spec =
                     "Content-Length": "23"
                   },
                   "origin": "127.0.0.1",
-                  "url": "",
+                  "path": "/post",
                   "method": "POST",
                   "form": null,
                   "files": null,
@@ -429,7 +436,7 @@ spec =
                     "Content-Length": "23"
                   },
                   "origin": "127.0.0.1",
-                  "url": "",
+                  "path": "/post",
                   "method": "POST",
                   "form": null,
                   "files": null,
@@ -477,14 +484,14 @@ spec =
             err = Data.fetch "http://0.0.0.0:1/"
             err.should_fail_with Request_Error
 
-        Test.specify "should be able to handle IO errors" <|
+        Test.specify "should be able to handle IO errors" pending="TODO??" <|
             # TODO how to trigger this error???
             err = Data.fetch "TODO"
             err.should_fail_with HTTP_Error
 
 main = Test_Suite.run_main spec
 
-echo_response_template method data content_type content_length=data.length =
+echo_response_template method path data content_type content_length=data.length =
     template = '''
         {
           "headers": {
@@ -496,7 +503,7 @@ echo_response_template method data content_type content_length=data.length =
             "Content-Length": "<$CONTENT_LENGTH>"
           },
           "origin": "127.0.0.1",
-          "url": "",
+          "path": "<$PATH>",
           "method": "<$METHOD>",
           "form": null,
           "files": null,
@@ -504,5 +511,10 @@ echo_response_template method data content_type content_length=data.length =
           "args": {}
         }
 
-    replaced = template.replace "<$CONTENT_TYPE>" content_type . replace "<$CONTENT_LENGTH>" content_length.to_text . replace "<$METHOD>" method . replace "<$DATA>" data.to_json
+    replaced = template
+        . replace "<$CONTENT_TYPE>" content_type
+        . replace "<$CONTENT_LENGTH>" content_length.to_text
+        . replace "<$METHOD>" method
+        . replace "<$PATH>" path
+        . replace "<$DATA>" data.to_json
     Json.parse replaced

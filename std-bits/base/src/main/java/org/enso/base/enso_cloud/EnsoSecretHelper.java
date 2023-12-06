@@ -71,7 +71,7 @@ public class EnsoSecretHelper {
     var baseFragment = uri.getFragment();
     baseFragment = baseFragment != null && !baseFragment.isBlank() ? "#" + baseFragment : "";
 
-    return URI.create(baseURI + newQuery + baseFragment);
+    return URI.create(baseURI + "?" + newQuery + baseFragment);
   }
 
   private static String makeQueryAry(EnsoKeyValuePair pair, Function<EnsoKeyValuePair, String> resolver) {

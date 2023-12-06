@@ -2740,7 +2740,8 @@ lazy val `simple-httpbin` = project
     Compile / run / mainClass := Some("org.enso.shttp.SimpleHTTPBin"),
     assembly / mainClass := (Compile / run / mainClass).value,
     libraryDependencies ++= Seq(
-      "org.apache.commons" % "commons-text" % commonsTextVersion
+      "org.apache.commons"        % "commons-text" % commonsTextVersion,
+      "org.apache.httpcomponents" % "httpclient"   % httpComponentsVersion
     ),
     (Compile / run / fork) := true,
     (Compile / run / connectInput) := true
