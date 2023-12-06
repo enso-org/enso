@@ -50,7 +50,7 @@
     "tailwindcss": "^3.2.7",
     "tsx": "^3.12.6",
     "typescript": "~5.2.2",
-    "vite": "^4.4.9"
+    "vite": "^4.5.1"
   },
   "optionalDependencies": {
     "@esbuild/darwin-x64": "^0.17.15",
