@@ -15,8 +15,6 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Properties;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 /**
  * Makes HTTP requests with secrets in either header or query string.
@@ -48,38 +46,6 @@ public class EnsoSecretHelper {
       case EnsoKeySecretPair _ -> "__SECRET__";
       case null -> throw new IllegalArgumentException("EnsoKeyValuePair should not be NULL.");
     };
-  }
-
-  /**
-   * Substitutes the minimal parts within the string for the URI parse.
-   */
-  public static String encodeArg(String arg, boolean includeEquals) {
-    var encoded = arg.replace("%", "%25")
-        .replace("&", "%26")
-        .replace(" ", "%20");
-    if (includeEquals) {
-      encoded = encoded.replace("=", "%3D");
-    }
-    return encoded;
-  }
-
-  /**
-   * Replaces the query string in a URI.
-   */
-  @Deprecated
-  public static URI replaceQuery(URI uri, String newQuery) throws URISyntaxException {
-    var baseURI = new URI(uri.getScheme(), uri.getAuthority(), uri.getPath(), null, null).toString();
-
-    var baseFragment = uri.getFragment();
-    baseFragment = baseFragment != null && !baseFragment.isBlank() ? "#" + baseFragment : "";
-
-    return URI.create(baseURI + "?" + newQuery + baseFragment);
-  }
-
-  private static String makeQueryAry(EnsoKeyValuePair pair, Function<EnsoKeyValuePair, String> resolver) {
-    String resolvedKey = pair.key() != null && !pair.key().isBlank() ? encodeArg(pair.key(), true) + "=" : "";
-    String resolvedValue = encodeArg(resolver.apply(pair), false);
-    return resolvedKey + resolvedValue;
   }
 
   //** Gets a JDBC connection resolving EnsoKeyValuePair into the properties. **//
