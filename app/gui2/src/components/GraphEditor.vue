@@ -31,9 +31,6 @@ import type { ExprId, NodeMetadata } from 'shared/yjsModel.ts'
 import { computed, onMounted, ref, watch } from 'vue'
 
 const EXECUTION_MODES = ['design', 'live']
-// Difference in position between the component browser and a node for the input of the component browser to
-// be placed at the same position as the node.
-const COMPONENT_BROWSER_TO_NODE_OFFSET = new Vec2(20, 35)
 // Assumed size of a newly created node. This is used to place the component browser.
 const DEFAULT_NODE_SIZE = new Vec2(0, 24)
 const gapBetweenNodes = 48.0
@@ -88,13 +85,12 @@ function placementPositionForSelection() {
 }
 
 /** Where the component browser should be placed when it is opened. */
-function targetComponentBrowserPosition() {
+function targetComponentBrowserNodePosition() {
   const editedInfo = graphStore.editedNodeInfo
   const isEditingNode = editedInfo != null
   if (isEditingNode) {
     const targetNode = graphStore.db.nodeIdToNode.get(editedInfo.id)
-    const targetPos = targetNode?.position ?? Vec2.Zero
-    return targetPos.add(COMPONENT_BROWSER_TO_NODE_OFFSET)
+    return targetNode?.position ?? Vec2.Zero
   } else {
     return (
       placementPositionForSelection() ??
@@ -104,7 +100,7 @@ function targetComponentBrowserPosition() {
 }
 
 /** The current position of the component browser. */
-const componentBrowserPosition = ref<Vec2>(Vec2.Zero)
+const componentBrowserNodePosition = ref<Vec2>(Vec2.Zero)
 
 function sourcePortForSelection() {
   if (graphStore.editedNodeInfo != null) return undefined
@@ -246,7 +242,7 @@ const groupColors = computed(() => {
 
 const editingNode: Interaction = {
   init: () => {
-    componentBrowserPosition.value = targetComponentBrowserPosition()
+    componentBrowserNodePosition.value = targetComponentBrowserNodePosition()
   },
   cancel: () => (componentBrowserVisible.value = false),
 }
@@ -257,7 +253,7 @@ const creatingNode: Interaction = {
   init: () => {
     componentBrowserInputContent.value = ''
     componentBrowserSourcePort.value = sourcePortForSelection()
-    componentBrowserPosition.value = targetComponentBrowserPosition()
+    componentBrowserNodePosition.value = targetComponentBrowserNodePosition()
     componentBrowserVisible.value = true
   },
 }
@@ -269,7 +265,7 @@ const creatingNodeFromButton: Interaction = {
     if (targetPos == undefined) {
       targetPos = nonDictatedPlacement(DEFAULT_NODE_SIZE, placementEnvironment.value).position
     }
-    componentBrowserPosition.value = targetPos
+    componentBrowserNodePosition.value = targetPos
     componentBrowserVisible.value = true
   },
 }
@@ -327,14 +323,8 @@ function onComponentBrowserCommit(content: string, requiredImports: RequiredImpo
       graphStore.setNodeContent(graphStore.editedNodeInfo.id, content)
     } else {
       // We finish creating a new node.
-      const nodePosition = componentBrowserPosition.value
       const metadata = undefined
-      graphStore.createNode(
-        nodePosition.sub(COMPONENT_BROWSER_TO_NODE_OFFSET),
-        content,
-        metadata,
-        requiredImports,
-      )
+      graphStore.createNode(componentBrowserNodePosition.value, content, metadata, requiredImports)
     }
   }
   resetComponentBrowserState()
@@ -351,7 +341,7 @@ watch(
   () => graphStore.editedNodeInfo,
   (editedInfo) => {
     if (editedInfo) {
-      componentBrowserPosition.value = targetComponentBrowserPosition()
+      componentBrowserNodePosition.value = targetComponentBrowserNodePosition()
       componentBrowserInputContent.value = getNodeContent(editedInfo.id)
       componentBrowserVisible.value = true
     } else {
@@ -446,7 +436,7 @@ async function readNodeFromClipboard() {
 function handleNodeOutputPortDoubleClick(id: ExprId) {
   componentBrowserSourcePort.value = id
   const placementEnvironment = environmentForNodes([id].values())
-  componentBrowserPosition.value = previousNodeDictatedPlacement(
+  componentBrowserNodePosition.value = previousNodeDictatedPlacement(
     DEFAULT_NODE_SIZE,
     placementEnvironment,
     {
@@ -480,7 +470,7 @@ function handleNodeOutputPortDoubleClick(id: ExprId) {
       v-if="componentBrowserVisible"
       ref="componentBrowser"
       :navigator="graphNavigator"
-      :position="componentBrowserPosition"
+      :nodePosition="componentBrowserNodePosition"
       :initialContent="componentBrowserInputContent"
       :initialCaretPosition="graphStore.editedNodeInfo?.range ?? [0, 0]"
       :sourcePort="componentBrowserSourcePort"

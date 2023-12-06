@@ -143,7 +143,7 @@ export function useComponentBrowserInput(
     return filter
   })
 
-  const imports = ref<{ context: string; info: RequiredImport }[]>([])
+  const imports = ref<RequiredImport[]>([])
 
   function readOprApp(
     leafParent: IteratorResult<RawAstExtended<RawAst.Tree, false>>,
@@ -210,12 +210,32 @@ export function useComponentBrowserInput(
 
   /** Apply given suggested entry to the input. */
   function applySuggestion(entry: SuggestionEntry) {
-    const oldCode = code.value
+    const { newCode, newCursorPos, requiredImport } = inputAfterApplyingSuggestion(entry)
+    code.value = newCode
+    selection.value = { start: newCursorPos, end: newCursorPos }
+    if (requiredImport) {
+      const [id] = suggestionDb.nameToId.lookup(requiredImport)
+      if (id) {
+        const requiredEntry = suggestionDb.get(id)
+        if (requiredEntry) {
+          imports.value = imports.value.concat(requiredImports(suggestionDb, requiredEntry))
+        }
+      }
+    } else {
+      imports.value = imports.value.concat(requiredImports(suggestionDb, entry))
+    }
+  }
+
+  function inputAfterApplyingSuggestion(entry: SuggestionEntry): {
+    newCode: string
+    newCursorPos: number
+    requiredImport: QualifiedName | null
+  } {
     const { changes, requiredImport } = inputChangesAfterApplying(entry)
     changes.reverse()
     const newCodeUpToLastChange = changes.reduce(
       (builder, change) => {
-        const oldCodeFragment = oldCode.substring(builder.oldCodeIndex, change.range[0])
+        const oldCodeFragment = code.value.substring(builder.oldCodeIndex, change.range[0])
         return {
           code: builder.code + oldCodeFragment + change.str,
           oldCodeIndex: change.range[1],
@@ -224,31 +244,18 @@ export function useComponentBrowserInput(
       { code: '', oldCodeIndex: 0 },
     )
     const isModule = entry.kind === SuggestionKind.Module
-    const firstCharAfter = oldCode[newCodeUpToLastChange.oldCodeIndex]
+    const firstCharAfter = code.value[newCodeUpToLastChange.oldCodeIndex]
     const shouldInsertSpace =
       !isModule && (firstCharAfter == null || /^[a-zA-Z0-9_]$/.test(firstCharAfter))
     const shouldMoveCursor = !isModule
     const newCursorPos = newCodeUpToLastChange.code.length + (shouldMoveCursor ? 1 : 0)
-    code.value =
-      newCodeUpToLastChange.code +
-      (shouldInsertSpace ? ' ' : '') +
-      oldCode.substring(newCodeUpToLastChange.oldCodeIndex)
-    selection.value = { start: newCursorPos, end: newCursorPos }
-    const context = newCodeUpToLastChange.code
-    if (requiredImport) {
-      const [id] = suggestionDb.nameToId.lookup(requiredImport)
-      if (id) {
-        const requiredEntry = suggestionDb.get(id)
-        if (requiredEntry) {
-          imports.value = imports.value.concat(
-            requiredImports(suggestionDb, requiredEntry).map((info) => ({ info, context })),
-          )
-        }
-      }
-    } else {
-      imports.value = imports.value.concat(
-        requiredImports(suggestionDb, entry).map((info) => ({ info, context })),
-      )
+    return {
+      newCode:
+        newCodeUpToLastChange.code +
+        (shouldInsertSpace ? ' ' : '') +
+        code.value.substring(newCodeUpToLastChange.oldCodeIndex),
+      newCursorPos,
+      requiredImport,
     }
   }
 
@@ -258,11 +265,13 @@ export function useComponentBrowserInput(
    */
   function importsToAdd(): RequiredImport[] {
     const finalImports: RequiredImport[] = []
-    for (const { info, context } of imports.value) {
-      const alreadyAdded = finalImports.some((existing) => requiredImportEquals(existing, info))
-      const noLongerNeeded = !code.value.includes(context)
+    for (const anImport of imports.value) {
+      const alreadyAdded = finalImports.some((existing) => requiredImportEquals(existing, anImport))
+      const importedIdent =
+        anImport.kind == 'Qualified' ? qnLastSegment(anImport.module) : anImport.import
+      const noLongerNeeded = !code.value.includes(importedIdent)
       if (!noLongerNeeded && !alreadyAdded) {
-        finalImports.push(info)
+        finalImports.push(anImport)
       }
     }
     return finalImports
@@ -392,6 +401,8 @@ export function useComponentBrowserInput(
     filter,
     /** Apply given suggested entry to the input. */
     applySuggestion,
+    /** Return input after applying given suggestion, without changing state. */
+    inputAfterApplyingSuggestion,
     /** A list of imports to add when the suggestion is accepted */
     importsToAdd,
   }

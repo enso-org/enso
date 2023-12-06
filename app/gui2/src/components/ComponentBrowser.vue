@@ -10,6 +10,7 @@ import type { RequiredImport } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { groupColorStyle, useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
+import type { VisualizationDataSource } from '@/stores/visualization'
 import { useApproach } from '@/util/animation'
 import { tryGetIndex } from '@/util/array'
 import { useEvent, useResizeObserver } from '@/util/events'
@@ -19,18 +20,22 @@ import { allRanges } from '@/util/range'
 import { Vec2 } from '@/util/vec2'
 import type { SuggestionId } from 'shared/languageServerTypes/suggestions'
 import type { ContentRange, ExprId } from 'shared/yjsModel.ts'
-import { computed, nextTick, onMounted, ref, watch, type Ref } from 'vue'
+import { computed, nextTick, onMounted, ref, watch, type ComputedRef, type Ref } from 'vue'
 import { useComponentBrowserInput } from './ComponentBrowser/input'
+import GraphVisualization from './GraphEditor/GraphVisualization.vue'
 
 const ITEM_SIZE = 32
 const TOP_BAR_HEIGHT = 32
+// Difference in position between the component browser and a node for the input of the component browser to
+// be placed at the same position as the node.
+const COMPONENT_BROWSER_TO_NODE_OFFSET = new Vec2(20, 35)
 
 const projectStore = useProjectStore()
 const suggestionDbStore = useSuggestionDbStore()
 const graphStore = useGraphStore()
 
 const props = defineProps<{
-  position: Vec2
+  nodePosition: Vec2
   navigator: ReturnType<typeof useNavigator>
   initialContent: string
   initialCaretPosition: ContentRange
@@ -77,9 +82,10 @@ onMounted(() => {
 const transform = computed(() => {
   const nav = props.navigator
   const translate = nav.translate
-  const position = translate.add(props.position).scale(nav.scale)
-  const x = Math.round(position.x)
-  const y = Math.round(position.y)
+  const position = props.nodePosition.add(COMPONENT_BROWSER_TO_NODE_OFFSET)
+  const screenPosition = translate.add(position).scale(nav.scale)
+  const x = Math.round(screenPosition.x)
+  const y = Math.round(screenPosition.y)
 
   return `translate(${x}px, ${y}px) translateY(-100%)`
 })
@@ -142,14 +148,47 @@ function handleDefocus(e: FocusEvent) {
     cbRoot.value != null &&
     e.relatedTarget instanceof Node &&
     cbRoot.value.contains(e.relatedTarget)
-  if (stillInside) {
-    if (inputField.value != null) {
-      inputField.value.focus({ preventScroll: true })
-    }
-  } else {
-    emit('closed', input.code.value)
+  // We want to focus input even when relatedTarget == null, because sometimes defocus event is
+  // caused by focused item being removed, for example an entry in visualization chooser.
+  if (stillInside || e.relatedTarget == null) {
+    inputField.value?.focus({ preventScroll: true })
   }
 }
+
+useEvent(
+  window,
+  'pointerdown',
+  (event) => {
+    if (!(event.target instanceof Element)) return
+    if (!cbRoot.value?.contains(event.target)) {
+      emit('closed', input.code.value)
+    }
+  },
+  { capture: true },
+)
+
+// === Preview ===
+
+const inputElement = ref<HTMLElement>()
+const inputSize = useResizeObserver(inputElement, false)
+
+const previewedExpression = computed(() => {
+  if (selectedSuggestion.value == null) return input.code.value
+  else return input.inputAfterApplyingSuggestion(selectedSuggestion.value).newCode
+})
+
+const previewDataSource: ComputedRef<VisualizationDataSource | undefined> = computed(() => {
+  if (!previewedExpression.value.trim()) return
+  if (!graphStore.methodAst) return
+  const body = graphStore.methodAst.body
+  if (!body) return
+
+  return {
+    type: 'expression',
+    expression: previewedExpression.value,
+    contextId: body.astId,
+  }
+})
 
 // === Components List and Positions ===
 
@@ -436,14 +475,24 @@ const handler = componentBrowserBindings.handler({
         <DocumentationPanel v-model:selectedEntry="docEntry" />
       </div>
     </div>
-    <div class="CBInput">
-      <input
-        ref="inputField"
-        v-model="input.code.value"
-        name="cb-input"
-        autocomplete="off"
-        @keyup="readInputFieldSelection"
+    <div class="bottom-panel">
+      <GraphVisualization
+        class="visualization-preview"
+        :nodeSize="inputSize"
+        :nodePosition="nodePosition"
+        :scale="1"
+        :isCircularMenuVisible="false"
+        :dataSource="previewDataSource"
       />
+      <div ref="inputElement" class="CBInput">
+        <input
+          ref="inputField"
+          v-model="input.code.value"
+          name="cb-input"
+          autocomplete="off"
+          @keyup="readInputFieldSelection"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -451,6 +500,7 @@ const handler = componentBrowserBindings.handler({
 <style scoped>
 .ComponentBrowser {
   --list-height: 0px;
+  --radius-default: 20px;
   width: fit-content;
   color: rgba(0, 0, 0, 0.6);
   font-size: 11.5px;
@@ -468,7 +518,7 @@ const handler = componentBrowserBindings.handler({
 .panel {
   height: 380px;
   border: none;
-  border-radius: 20px;
+  border-radius: var(--radius-default);
   background-color: #eaeaea;
 }
 
@@ -487,17 +537,17 @@ const handler = componentBrowserBindings.handler({
 
 .docs {
   width: 406px;
-  clip-path: inset(0 0 0 0 round 20px);
+  clip-path: inset(0 0 0 0 round var(--radius-default));
   transition: clip-path 0.2s;
 }
 .docs.hidden {
-  clip-path: inset(0 100% 0 0 round 20px);
+  clip-path: inset(0 100% 0 0 round var(--radius-default));
 }
 
 .list {
-  top: 20px;
+  top: var(--radius-default);
   width: 100%;
-  height: calc(100% - 20px);
+  height: calc(100% - var(--radius-default));
   overflow-x: hidden;
   overflow-y: auto;
   position: relative;
@@ -537,7 +587,7 @@ const handler = componentBrowserBindings.handler({
   height: 40px;
   padding: 4px;
   background-color: #eaeaea;
-  border-radius: 20px;
+  border-radius: var(--radius-default);
   position: absolute;
   top: 0px;
   z-index: 1;
@@ -569,13 +619,18 @@ const handler = componentBrowserBindings.handler({
   }
 }
 
+.bottom-panel {
+  position: relative;
+}
 .CBInput {
-  border-radius: 20px;
+  border-radius: var(--radius-default);
   background-color: #eaeaea;
+  width: 100%;
   height: 40px;
   padding: 12px;
   display: flex;
   flex-direction: row;
+  position: absolute;
 
   & input {
     border: none;
@@ -585,5 +640,9 @@ const handler = componentBrowserBindings.handler({
     background: none;
     font: inherit;
   }
+}
+
+.visualization-preview {
+  position: absolute;
 }
 </style>
