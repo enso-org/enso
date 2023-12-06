@@ -2,7 +2,6 @@ import { injectGuiConfig, type GuiConfig } from '@/providers/guiConfig'
 import { Awareness } from '@/stores/awareness'
 import { ComputedValueRegistry } from '@/stores/project/computedValueRegistry'
 import { VisualizationDataRegistry } from '@/stores/project/visualizationDataRegistry'
-import { bail } from '@/util/assert'
 import { attachProvider, useObserveYjs } from '@/util/crdt'
 import { ReactiveMapping } from '@/util/database/reactiveDb'
 import {
@@ -303,11 +302,17 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
   }
 
   pop() {
-    if (this.desiredStack.length === 1) bail('Cannot pop last item from execution context stack')
+    if (this.desiredStack.length === 1) {
+      console.debug('Cannot pop last item from execution context stack')
+      return
+    }
     this.desiredStack.pop()
     this.queue.pushTask(async (state) => {
       if (!state.created) return state
-      if (state.stack.length === 1) bail('Cannot pop last item from execution context stack')
+      if (state.stack.length === 1) {
+        console.debug('Cannot pop last item from execution context stack')
+        return state
+      }
       await this.withBackoff(
         () => state.lsRpc.popExecutionContextItem(this.id),
         'Failed to pop item from execution context stack',
