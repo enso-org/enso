@@ -134,8 +134,12 @@ spec =
             base_uri = URI.parse base_url+"get"
 
             uri1 = base_uri . add_query_argument "a" "b"
+            uri1.should_be_a URI_With_Query
             r1 = uri1.fetch
             decode_query_params r1 . should_equal [["a", "b"]]
+
+            # Also check that after converting back to normal URI, we also get the same result:
+            decode_query_params (uri1.to_uri.fetch) . should_equal (decode_query_params r1)
 
             uri2 = base_uri
                 . add_query_argument "q1" "b c"
@@ -144,6 +148,7 @@ spec =
             r2 = uri2.fetch
             # All values should be encoded and decoded correctly so that they retain the original symbols:
             decode_query_params r2 . should_equal [["q1", "b c"], ["q2", "e+f"], ["q3", "e%20f"]]
+            decode_query_params (uri2.to_uri.fetch) . should_equal (decode_query_params r2)
 
             s1 = '"f"\'\' ; 🚀🚧a'
             s2 = "[a=b]:[b=c][d=e], ]]] ==> <br>a"
@@ -156,6 +161,7 @@ spec =
                 . add_query_argument "q9" "%%%"
             r3 = uri3.fetch
             decode_query_params r3 . should_equal [["q4", "śnieżnobiały"], ["q5", s1], ["q6", s2], ["q7", ""], ["q8", " "], ["q9", "%%%"]]
+            decode_query_params (uri3.to_uri.fetch) . should_equal (decode_query_params r3)
 
             uri4 = base_uri
                 . add_query_argument "p+r" "b c"
@@ -165,6 +171,7 @@ spec =
                 . add_query_argument s2 "zzz"
             r4 = uri4.fetch
             decode_query_params r4 . should_equal [["p+r", "b c"], ["p r", "b c"], ["🚀", "🚧"], ["śnieżnobiałą", "łąkę"], [s2, "zzz"]]
+            decode_query_params (uri4.to_uri.fetch) . should_equal (decode_query_params r4)
 
         Test.specify "may allow duplicate keys in query parameters" <|
             uri = URI.parse base_url+"get"
@@ -173,6 +180,7 @@ spec =
                 . add_query_argument "a" "d"
             r = uri.fetch
             decode_query_params r . should_equal [["a", "b"], ["a", "c"], ["a", "d"]]
+            decode_query_params (uri.to_uri.fetch) . should_equal (decode_query_params r)
 
         Test.specify "should correctly handle various characters within the key and value of arguments" pending=("TODO testing secrets is for later".if_nothing pending_has_url) <|
             Error.throw "TODO: test various characters inside of the secret value, like in the raw test above"
