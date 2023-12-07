@@ -302,6 +302,7 @@ async function handleFileDrop(event: DragEvent) {
           file,
           pos,
           projectStore.isOnLocalBackend,
+          event.ctrlKey,
           projectStore.executionContext.getStackTop(),
         )
         const uploadResult = await uploader.upload()

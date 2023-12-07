@@ -45,6 +45,7 @@ export class Uploader {
     private projectRootId: Uuid,
     private position: Vec2,
     private isOnLocalBackend: boolean,
+    private disableDirectRead: boolean,
     stackItem: StackItem,
   ) {
     this.checksum = SHA3.create()
@@ -60,6 +61,7 @@ export class Uploader {
     file: File,
     position: Vec2,
     isOnLocalBackend: boolean,
+    disableDirectRead: boolean,
     stackItem: StackItem,
   ): Promise<Uploader> {
     const roots = await contentRoots
@@ -73,6 +75,7 @@ export class Uploader {
       projectRootId.id,
       position,
       isOnLocalBackend,
+      disableDirectRead,
       stackItem,
     )
     return instance
@@ -80,7 +83,12 @@ export class Uploader {
 
   async upload(): Promise<UploadResult> {
     // This non-standard property is defined in Electron.
-    if ('path' in this.file && typeof this.file.path === 'string') {
+    if (
+      this.isOnLocalBackend &&
+      !this.disableDirectRead &&
+      'path' in this.file &&
+      typeof this.file.path === 'string'
+    ) {
       return { source: 'FileSystemRoot', name: this.file.path }
     }
     await this.ensureDataDirExists()
