@@ -1,4 +1,4 @@
-import { escape } from '@/util/ast/string'
+import * as astText from '@/util/ast/text'
 import { expect, test } from 'vitest'
 
 test.each([
@@ -6,5 +6,5 @@ test.each([
   { string: '\t\r\n\v"\'`', escaped: '\\t\\r\\n\\v\\"\\\'``' },
   { string: '`foo` `bar` `baz`', escaped: '``foo`` ``bar`` ``baz``' },
 ])('`escape`', ({ string, escaped }) => {
-  expect(escape(string)).toBe(escaped)
+  expect(astText.escape(string)).toBe(escaped)
 })
