@@ -503,6 +503,16 @@ spec =
             r2.headers.find (p-> p.name.equals_ignore_case "Test-Header") . value . should_equal "test-value"
             r2.headers.find (p-> p.name.equals_ignore_case "Other-Header") . value . should_equal "some other value"
 
+        Test.specify "is capable of handling aliasing headers" <|
+            uri = URI.from (base_url_with_slash + "test_headers")
+                . add_query_argument "my-header" "value-1"
+                . add_query_argument "my-header" "value-2"
+                . add_query_argument "my-header" "value-44"
+            r1 = Data.fetch uri try_auto_parse_response=False
+            r1.should_be_a Response
+            my_headers = r1.headers.filter (p-> p.name.equals_ignore_case "my-header") . map .value
+            my_headers.sort . should_equal ["value-1", "value-2", "value-44"]
+
     Test.group "Header resolution" <|
         Test.specify "Default content type and encoding" <|
             expected = [Header.content_type "text/plain; charset=UTF-8"]
