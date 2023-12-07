@@ -80,7 +80,7 @@ object JPMSUtils {
   /** Filters all the requested modules from the given [[UpdateReport]].
     *
     * @param updateReport     The update report to filter. This is the result of `update.value`.
-    * @param modules          The modules to filter from the update report.
+    * @param modules          The modules to filter from the update report. Can be duplicated.
     * @param log              The logger to use for logging.
     * @param shouldContainAll If true, the method will log an error if not all modules were found.
     * @return The list of files (Jar archives, directories, etc.) that were found in the update report.
@@ -91,8 +91,10 @@ object JPMSUtils {
     log: sbt.util.Logger,
     shouldContainAll: Boolean = false
   ): Seq[File] = {
+    val distinctModules = modules.distinct
+
     def shouldFilterModule(module: ModuleID): Boolean = {
-      modules.exists(m =>
+      distinctModules.exists(m =>
         m.organization == module.organization &&
         m.name == module.name &&
         m.revision == module.revision
@@ -103,10 +105,10 @@ object JPMSUtils {
       module = shouldFilterModule
     )
     if (shouldContainAll) {
-      if (foundFiles.size < modules.size) {
+      if (foundFiles.size < distinctModules.size) {
         log.error("Not all modules from update were found")
         log.error(s"Returned (${foundFiles.size}): $foundFiles")
-        log.error(s"Expected: (${modules.size}): $modules")
+        log.error(s"Expected: (${distinctModules.size}): $distinctModules")
       }
     }
     foundFiles
