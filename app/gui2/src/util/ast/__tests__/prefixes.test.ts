@@ -45,6 +45,26 @@ test.each([
     target:
       "Standard.Base.Runtime.with_enabled_context Standard.Base.Runtime.Context.Output 'foo' <| a + b",
   },
+  {
+    prefixes: {
+      a: '__+e +   __',
+    },
+    modifications: {
+      a: undefined,
+    },
+    source: 'd+e +   f',
+    target: 'f',
+  },
+  {
+    prefixes: {
+      a: '__+e +   __',
+    },
+    modifications: {
+      a: undefined,
+    },
+    source: 'd + e + f',
+    target: 'f',
+  },
 ])('modify', ({ prefixes: lines, modifications, source, target }) => {
   const prefixes = Prefixes.FromLines(lines as any)
   const sourceAst = Ast.parseLine(source)
