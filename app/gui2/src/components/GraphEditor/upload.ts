@@ -44,6 +44,7 @@ export class Uploader {
     private file: File,
     private projectRootId: Uuid,
     private position: Vec2,
+    private isOnLocalBackend: boolean,
     stackItem: StackItem,
   ) {
     this.checksum = SHA3.create()
@@ -58,6 +59,7 @@ export class Uploader {
     awareness: Awareness,
     file: File,
     position: Vec2,
+    isOnLocalBackend: boolean,
     stackItem: StackItem,
   ): Promise<Uploader> {
     const roots = await contentRoots
@@ -70,6 +72,7 @@ export class Uploader {
       file,
       projectRootId.id,
       position,
+      isOnLocalBackend,
       stackItem,
     )
     return instance
