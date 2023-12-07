@@ -6,7 +6,7 @@ import project.Internal.Array_Like_Helpers
 ## PRIVATE
    ICON dataframe_map_column
    Applies a function to each element of the vector, returning the `Vector` of
-   results. Unlike `Vector.map`, `map_primitive` does not wrap errors in
+   results. Unlike `Vector.map`, `map_no_wrap` does not wrap errors in
    `Map_Error`.
 
    Arguments:
@@ -17,14 +17,14 @@ import project.Internal.Array_Like_Helpers
        Add 1 to each element of the vector.
 
            [1, 2, 3] . map +1
-Vector.map_primitive : (Any -> Any) -> Vector Any
-Vector.map_primitive self function =
+Vector.map_no_wrap : (Any -> Any) -> Vector Any
+Vector.map_no_wrap self function =
     Array_Like_Helpers.vector_from_function self.length (function << self.at) on_problems=No_Wrap.Value
 
 ## PRIVATE
    Applies a function to each element of the vector, returning the `Vector`
    that contains all results concatenated. Unlike `Vector.flat_map`,
-   `flat_map_primitive` does not wrap errors in
+   `flat_map_no_wrap` does not wrap errors in
    `Map_Error`.
 
    Arguments:
@@ -35,9 +35,9 @@ Vector.map_primitive self function =
        Replace each number `n` in the vector with itself repeated n times.
 
        [0, 1, 2] . flat_map (n -> Vector.fill n n)
-Vector.flat_map_primitive : (Any -> Vector Any) -> Vector Any
-Vector.flat_map_primitive self function =
-    Vector.map_primitive self function . flatten
+Vector.flat_map_no_wrap : (Any -> Vector Any) -> Vector Any
+Vector.flat_map_no_wrap self function =
+    Vector.map_no_wrap self function . flatten
 
 ## PRIVATE
    Applies a function to each element of the vector, returning the `Vector`

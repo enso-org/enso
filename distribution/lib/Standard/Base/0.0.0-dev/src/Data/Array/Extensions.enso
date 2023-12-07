@@ -7,7 +7,7 @@ from Standard.Base.Data.Vector.Extensions import all
 ## PRIVATE
    ICON dataframe_map_column
    Applies a function to each element of the array, returning the `Vector` of
-   results. Unlike `Array.map`, `map_primitive` does not wrap errors in
+   results. Unlike `Array.map`, `map_no_wrap` does not wrap errors in
    `Map_Error`.
 
    Arguments:
@@ -18,13 +18,13 @@ from Standard.Base.Data.Vector.Extensions import all
        Add 1 to each element of the array.
 
            [1, 2, 3].to_array . map +1
-Array.map_primitive : (Any -> Any) -> Vector Any
-Array.map_primitive self function = Vector.map_primitive self function
+Array.map_no_wrap : (Any -> Any) -> Vector Any
+Array.map_no_wrap self function = Vector.map_no_wrap self function
 
 ## PRIVATE
    Applies a function to each element of the array, returning the `Vector`
    that contains all results concatenated. Unlike `Array.flat_map`,
-   `flat_map_primitive` does not wrap errors in `Map_Error`.
+   `flat_map_no_wrap` does not wrap errors in `Map_Error`.
 
    Arguments:
    - function: A function that takes an element in the array, transforms
@@ -34,8 +34,8 @@ Array.map_primitive self function = Vector.map_primitive self function
        Replace each number `n` in the array with itself repeated n times.
 
        [0, 1, 2].to_array . flat_map (n -> Vector.fill n n)
-Array.flat_map_primitive : (Any -> Vector Any) -> Vector Any
-Array.flat_map_primitive self function = Vector.flat_map_primitive self function
+Array.flat_map_no_wrap : (Any -> Vector Any) -> Vector Any
+Array.flat_map_no_wrap self function = Vector.flat_map_no_wrap self function
 
 ## PRIVATE
    Applies a function to each element of the array, returning the `Vector`

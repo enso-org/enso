@@ -329,9 +329,9 @@ type_spec name alter = Test.group name <|
         vec.to_text.should_equal "[1, 2, 3, 4]"
         mapped.to_text.should_equal "[1, 4, 9, 16]"
 
-    Test.specify "should allow map_primitive, returning a new vector" <|
+    Test.specify "should allow map_no_wrap, returning a new vector" <|
         vec = alter [1, 2, 3, 4]
-        mapped = vec.map_primitive x-> x * x
+        mapped = vec.map_no_wrap x-> x * x
         vec.to_text.should_equal "[1, 2, 3, 4]"
         mapped.to_text.should_equal "[1, 4, 9, 16]"
 
@@ -756,12 +756,12 @@ type_spec name alter = Test.group name <|
         alter [0, 1, 0] . flat_map (i -> if i == 1 then [1, 1] else [i]) . should_equal [0, 1, 1, 0]
         alter [0, 0, 0] . flat_map (i -> [i]) . should_equal [0, 0, 0]
 
-    Test.specify "should flat_map elements with flat_map_primitive" <|
-        alter [1, 2, 3] . flat_map_primitive (_ -> []) . should_equal []
-        alter [1, 2, 3] . flat_map_primitive (_ -> [0, 1]) . should_equal [0, 1, 0, 1, 0, 1]
-        alter [1, 2, 3] . flat_map_primitive (_ -> [0, [1]]) . should_equal [0, [1], 0, [1], 0, [1]]
-        alter [0, 1, 0] . flat_map_primitive (i -> if i == 1 then [1, 1] else [i]) . should_equal [0, 1, 1, 0]
-        alter [0, 0, 0] . flat_map_primitive (i -> [i]) . should_equal [0, 0, 0]
+    Test.specify "should flat_map elements with flat_map_no_wrap" <|
+        alter [1, 2, 3] . flat_map_no_wrap (_ -> []) . should_equal []
+        alter [1, 2, 3] . flat_map_no_wrap (_ -> [0, 1]) . should_equal [0, 1, 0, 1, 0, 1]
+        alter [1, 2, 3] . flat_map_no_wrap (_ -> [0, [1]]) . should_equal [0, [1], 0, [1], 0, [1]]
+        alter [0, 1, 0] . flat_map_no_wrap (i -> if i == 1 then [1, 1] else [i]) . should_equal [0, 1, 1, 0]
+        alter [0, 0, 0] . flat_map_no_wrap (i -> [i]) . should_equal [0, 0, 0]
 
     Test.specify "should allow inserting elements" <|
         alter [2, 3] . insert . should_equal [2, 3, Nothing]
@@ -842,8 +842,8 @@ type_spec name alter = Test.group name <|
     Test.specify "an error thrown inside map should be caught as a Map_Error" <|
         alter [10, 20, 30, 40] . map map_fun . should_fail_with (Map_Error.Error 2 (My_Error.Error 30))
 
-    Test.specify "an error thrown inside map_primitive should be caught as a My_Error" <|
-        alter [10, 20, 30, 40] . map_primitive map_fun . should_fail_with My_Error
+    Test.specify "an error thrown inside map_no_wrap should be caught as a My_Error" <|
+        alter [10, 20, 30, 40] . map_no_wrap map_fun . should_fail_with My_Error
 
     Test.specify "an error thrown inside map_with_index_primitive should be caught as a My_Error" <|
         map_with_index_fun _ a = if a == 30 then Error.throw (My_Error.Error a) else a+1
@@ -903,17 +903,17 @@ type_spec name alter = Test.group name <|
         expected_warnings = [(Additional_Warnings.Error 2)] + expected_warnings_regular
         Warning.get_all result . map .value . should_equal expected_warnings
 
-    Test.specify "map_primitive does not do error wrapping" <|
-        alter [10, 20, 30, 40] . map_primitive map_fun . catch . should_equal (My_Error.Error 30)
+    Test.specify "map_no_wrap does not do error wrapping" <|
+        alter [10, 20, 30, 40] . map_no_wrap map_fun . catch . should_equal (My_Error.Error 30)
 
     Test.specify "zip_primitive does not do error wrapping" <|
         zip_fun a _ = if a == 30 then Error.throw (My_Error.Error a) else a+1
         arr = alter [10, 20, 30, 40]
         arr . zip_primitive arr zip_fun . catch . should_equal (My_Error.Error 30)
 
-    Test.specify "flat_map_primitive does not do error wrapping" <|
+    Test.specify "flat_map_no_wrap does not do error wrapping" <|
         vec = alter [1, 2, 0, 3]
-        vec.flat_map_primitive (n-> Error.throw (My_Error.Error n)) . catch . should_equal (My_Error.Error 1)
+        vec.flat_map_no_wrap (n-> Error.throw (My_Error.Error n)) . catch . should_equal (My_Error.Error 1)
 
 spec =
     Test.group "Vector builder" <|

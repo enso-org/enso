@@ -164,8 +164,8 @@ type Context
         rewrite_internal_column column =
             Internal_Column.Value column.name column.sql_type_reference (SQL_Expression.Column alias column.name)
 
-        new_columns = column_lists.map_primitive columns->
-            columns.map_primitive rewrite_internal_column
+        new_columns = column_lists.map_no_wrap columns->
+            columns.map_no_wrap rewrite_internal_column
 
         encapsulated_columns = column_lists.flat_map columns->
             columns.map column-> [column.name, column.expression]
