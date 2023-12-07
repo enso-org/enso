@@ -23,7 +23,7 @@ import type { RequiredImport } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { groupColorVar, useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { colorFromString } from '@/util/colors'
-import { keyboardBusy, keyboardBusyExceptIn, useEvent } from '@/util/events'
+import { isMacLike, keyboardBusy, keyboardBusyExceptIn, useEvent } from '@/util/events'
 import { Rect } from '@/util/rect.ts'
 import { Vec2 } from '@/util/vec2'
 import * as set from 'lib0/set'
@@ -302,7 +302,7 @@ async function handleFileDrop(event: DragEvent) {
           file,
           pos,
           projectStore.isOnLocalBackend,
-          event.ctrlKey,
+          isMacLike ? event.metaKey : event.ctrlKey,
           projectStore.executionContext.getStackTop(),
         )
         const uploadResult = await uploader.upload()
