@@ -1,7 +1,6 @@
 package org.enso.shttp;
 
 import com.sun.net.httpserver.HttpExchange;
-
 import java.io.IOException;
 import java.util.Base64;
 import java.util.List;

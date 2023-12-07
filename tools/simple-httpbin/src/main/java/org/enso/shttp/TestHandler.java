@@ -1,10 +1,6 @@
 package org.enso.shttp;
 
 import com.sun.net.httpserver.HttpExchange;
-import org.apache.commons.text.StringEscapeUtils;
-import org.apache.http.NameValuePair;
-import org.apache.http.client.utils.URIBuilder;
-
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -17,6 +13,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.apache.commons.text.StringEscapeUtils;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.utils.URIBuilder;
 
 public class TestHandler extends SimpleHttpHandler {
   private final HttpMethod expectedMethod;
@@ -79,7 +78,8 @@ public class TestHandler extends SimpleHttpHandler {
 
       response.append("\n");
       response.append("  },\n");
-      response.append("  \"origin\": \"" + exchange.getRemoteAddress().getAddress().getHostAddress() + "\",\n");
+      response.append(
+          "  \"origin\": \"" + exchange.getRemoteAddress().getAddress().getHostAddress() + "\",\n");
       response.append("  \"path\": \"" + StringEscapeUtils.escapeJson(uri.getPath()) + "\",\n");
       if (uri.getQuery() != null) {
         URIBuilder builder = new URIBuilder(uri);
@@ -89,7 +89,12 @@ public class TestHandler extends SimpleHttpHandler {
           NameValuePair param = params.get(i);
           String key = StringEscapeUtils.escapeJson(param.getName());
           String value = StringEscapeUtils.escapeJson(param.getValue());
-          response.append("    {\"name\": \"").append(key).append("\", \"value\": \"").append(value).append("\"}");
+          response
+              .append("    {\"name\": \"")
+              .append(key)
+              .append("\", \"value\": \"")
+              .append(value)
+              .append("\"}");
           boolean isLast = i == params.size() - 1;
           if (!isLast) {
             response.append(",\n");
@@ -108,8 +113,10 @@ public class TestHandler extends SimpleHttpHandler {
         response.append("  \"form\": null,\n");
         response.append("  \"files\": null,\n");
         String value = readBody(exchange.getRequestBody(), textEncoding);
-        response.append("  \"data\": \"").append(value == null ? "" : StringEscapeUtils.escapeJson(value)).append(
-            "\",\n");
+        response
+            .append("  \"data\": \"")
+            .append(value == null ? "" : StringEscapeUtils.escapeJson(value))
+            .append("\",\n");
       }
       response.append("  \"args\": {}\n");
       response.append("}");

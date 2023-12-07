@@ -2,7 +2,6 @@ package org.enso.shttp;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
-
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
@@ -31,7 +30,8 @@ public abstract class SimpleHttpHandler implements HttpHandler {
 
   public abstract void doHandle(HttpExchange exchange) throws IOException;
 
-  protected final void sendResponse(int code, String message, HttpExchange exchange) throws IOException {
+  protected final void sendResponse(int code, String message, HttpExchange exchange)
+      throws IOException {
     byte[] response = message.getBytes(StandardCharsets.UTF_8);
     exchange.getResponseHeaders().add("Content-Type", "text/plain; charset=utf-8");
     exchange.sendResponseHeaders(code, response.length);

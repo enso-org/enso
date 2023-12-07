@@ -1,10 +1,9 @@
 package org.enso.shttp;
 
 import com.sun.net.httpserver.HttpExchange;
-import org.apache.http.client.utils.URIBuilder;
-
 import java.io.IOException;
 import java.net.URI;
+import org.apache.http.client.utils.URIBuilder;
 
 public class HeaderTestHandler extends SimpleHttpHandler {
   @Override
