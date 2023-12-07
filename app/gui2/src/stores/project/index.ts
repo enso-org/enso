@@ -143,6 +143,7 @@ type ExecutionContextNotification = {
   'executionFailed'(message: string): void
   'executionComplete'(): void
   'executionStatus'(diagnostics: Diagnostic[]): void
+  'newVisualizationConfiguration'(configs: Set<Uuid>): void
   'visualizationsConfigured'(configs: Set<Uuid>): void
 }
 
@@ -203,6 +204,7 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
     this.queue.pushTask(async (state) => {
       this.visSyncScheduled = false
       if (!state.created) return state
+      this.emit('newVisualizationConfiguration', [new Set(this.visualizationConfigs.keys())])
       const promises: Promise<void>[] = []
 
       const attach = (id: Uuid, config: NodeVisualizationConfiguration) => {
@@ -551,6 +553,7 @@ export const useProjectStore = defineStore('project', () => {
     return shallowRef(
       computed(() => {
         const json = visualizationDataRegistry.getRawData(id)
+        console.log('json', json)
         if (!json?.ok) return json ?? undefined
         else return Ok(JSON.parse(json.value))
       }),

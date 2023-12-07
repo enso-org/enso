@@ -35,7 +35,7 @@ export class VisualizationDataRegistry {
     this.dataServer = dataServer
     this.visualizationValues = reactive(new Map())
 
-    this.executionContext.on('visualizationsConfigured', this.reconfiguredHandler)
+    this.executionContext.on('newVisualizationConfiguration', this.reconfiguredHandler)
     this.dataServer.then((data) => {
       data.on(`${OutboundPayload.VISUALIZATION_UPDATE}`, this.dataHandler)
     })
@@ -43,6 +43,7 @@ export class VisualizationDataRegistry {
   }
 
   private visualizationsConfigured(uuids: Set<Uuid>) {
+    console.log('visualizationConfigured')
     for (const key of this.visualizationValues.keys()) {
       if (!uuids.has(key)) {
         this.visualizationValues.delete(key)
@@ -56,8 +57,10 @@ export class VisualizationDataRegistry {
   }
 
   private visualizationUpdate(update: VisualizationUpdate, uuid: Uuid | null) {
+    console.log('visualizaitonUpdate', update, uuid, this.visualizationValues.has(uuid))
     if (uuid && this.visualizationValues.has(uuid)) {
       const newData = update.dataString()
+      console.log(newData)
       const current = this.visualizationValues.get(uuid)
       if (newData == null && current != null) {
         this.visualizationValues.set(uuid, null)

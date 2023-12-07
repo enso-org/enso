@@ -116,6 +116,8 @@ const visualizationData = projectStore.useVisualizationData(() => {
     : null
 })
 
+watchEffect(() => console.log(visualizationData.value))
+
 const expressionVisualizationData = computedAsync(() => {
   if (props.dataSource?.type !== 'expression') return
   const preprocessor = visPreprocessor.value
