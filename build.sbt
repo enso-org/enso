@@ -555,7 +555,7 @@ lazy val modulePathTestOptions =
     "fat jar is not rebuilt unnecessarily"
   )
 (ThisBuild / modulePathTestOptions) := {
-  val updateReport = (LocalProject("runtime") / Test / update).value
+  val updateReport = (LocalProject("runtime-fat-jar") / Runtime / update).value
   val runtimeModName = (LocalProject(
     "runtime-fat-jar"
   ) / moduleInfos).value.head.moduleName
@@ -563,6 +563,12 @@ lazy val modulePathTestOptions =
     "runtime-fat-jar"
   ) / Compile / productDirectories).value
   val graalMods = graalModulesPaths.value
+  val graalLangMods = JPMSUtils.filterModulesFromUpdate(
+    updateReport,
+    GraalVM.langsPkgs,
+    streams.value.log,
+    shouldContainAll = true
+  )
   val loggingMods = JPMSUtils.filterModulesFromUpdate(
     updateReport,
     logbackPkg ++ Seq(
@@ -600,6 +606,7 @@ lazy val modulePathTestOptions =
   val allModulesPaths: Seq[String] =
     runtimeMod.map(_.getAbsolutePath) ++
     graalMods.map(_.data.getAbsolutePath) ++
+    graalLangMods.map(_.getAbsolutePath) ++
     loggingMods.map(_.getAbsolutePath)
   // We can't use org.enso.logger.TestLogProvider (or anything from our own logging framework here) because it is not
   // in a module, and it cannot be simple wrapped inside a module.
@@ -1760,7 +1767,24 @@ lazy val `runtime-fat-jar` =
       moduleInfos := Seq(
         JpmsModule("org.enso.runtime")
       ),
-      compileOrder := CompileOrder.JavaThenScala
+      compileOrder := CompileOrder.JavaThenScala,
+    )
+    /**
+    * The following libraryDependencies are provided in Runtime scope.
+    * Later, we will collect them into --module-path option.
+    * We don't collect them in Compile scope as it does not even make sense
+    * to run `compile` task in this project.
+    */
+    .settings(
+      libraryDependencies ++= {
+        val graalMods =
+          GraalVM.modules.map(_.withConfigurations(Some(Runtime.name)))
+        val langMods =
+          GraalVM.langsPkgs.map(_.withConfigurations(Some(Runtime.name)))
+        val logbackMods =
+          logbackPkg.map(_.withConfigurations(Some(Runtime.name))  )
+        graalMods ++ langMods ++ logbackMods
+      },
     )
     /** Assembling Uber Jar */
     .settings(
