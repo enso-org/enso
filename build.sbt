@@ -1637,7 +1637,6 @@ lazy val `runtime-parser` =
   (project in file("engine/runtime-parser"))
     .settings(
       frgaalJavaCompilerSetting,
-      instrumentationSettings,
       commands += WithDebugCommand.withDebug,
       fork := true,
       Test / javaOptions ++= Seq(
@@ -1772,9 +1771,15 @@ lazy val `runtime-fat-jar` =
       assembly / assemblyJarName := "runtime.jar",
       assembly / test := {},
       assembly / assemblyOutputPath := file("runtime.jar"),
-      // Exclude all the Truffle/Graal related artifacts from the Uber jar
       assembly / assemblyExcludedJars := {
-        val pkgsToExclude = JPMSUtils.componentModules
+        // bouncycastle jdk5 needs to be excluded from the Uber jar, as otherwise its packages would
+        // clash with packages in org.bouncycastle.jdk18 modules
+        val bouncyCastleJdk5 = Seq(
+          "org.bouncycastle" % "bcutil-jdk15on" % bcpkixJdk15Version,
+          "org.bouncycastle" % "bcpkix-jdk15on" % bcpkixJdk15Version,
+          "org.bouncycastle" % "bcprov-jdk15on" % bcpkixJdk15Version
+        )
+        val pkgsToExclude = JPMSUtils.componentModules ++ bouncyCastleJdk5
         val ourFullCp     = (Runtime / fullClasspath).value
         JPMSUtils.filterModulesFromClasspath(
           ourFullCp,
@@ -2982,9 +2987,11 @@ buildProjectManagerDistribution := {
 lazy val buildGraalDistribution =
   taskKey[Unit]("Builds the GraalVM distribution")
 buildGraalDistribution := {
-  val log    = streams.value.log
-  val distOs = "DIST_OS"
-  val osName = "os.name"
+  val log      = streams.value.log
+  val distOs   = "DIST_OS"
+  val distArch = "DIST_ARCH"
+  val osName   = "os.name"
+  val archName = "os.arch"
   val distName = sys.env.get(distOs).getOrElse {
     val name = sys.props(osName).takeWhile(!_.isWhitespace)
     if (sys.env.contains("CI")) {
@@ -2994,13 +3001,14 @@ buildGraalDistribution := {
     }
     name
   }
-  val os = DistributionPackage.OS(distName).getOrElse {
+  val arch = sys.env.get(distArch).orElse(sys.env.get(archName))
+  val os = DistributionPackage.OS(distName, arch).getOrElse {
     throw new RuntimeException(s"Failed to determine OS: $distName.")
   }
   packageBuilder.createGraalPackage(
     log,
     os,
-    DistributionPackage.Architecture.X64
+    os.archs.head
   )
 }
 

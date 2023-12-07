@@ -56,6 +56,7 @@ const data = ref<any>({
   ],
 })
 
+const nodePosition = ref(new Vec2(0, 0))
 const nodeSize = ref(new Vec2(400, 32))
 const currentType = computed<VisualizationIdentifier>(() => ({
   module: { kind: 'CurrentProject' },
@@ -81,6 +82,8 @@ const mockFsWrapperProps = computed(() => ({
         <GraphVisualization
           :currentType="currentType"
           :data="data"
+          :scale="1"
+          :nodePosition="nodePosition"
           :nodeSize="nodeSize"
           :isCircularMenuVisible="isCircularMenuVisible"
           @setVisualizationId="$event.module.kind === 'CurrentProject' && (type = $event.name)"

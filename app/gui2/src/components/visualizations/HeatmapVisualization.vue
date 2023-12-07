@@ -41,8 +41,7 @@ interface Bucket {
 </script>
 
 <script setup lang="ts">
-import VisualizationContainer from '@/components/VisualizationContainer.vue'
-import { useVisualizationConfig } from '@/providers/visualizationConfig'
+import { VisualizationContainer, useVisualizationConfig } from '@/util/visualizationBuiltins'
 import { computed, ref, watchPostEffect } from 'vue'
 
 const d3 = await import('d3')

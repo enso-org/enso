@@ -6,7 +6,7 @@ import org.enso.compiler.CompilerResult
 import org.enso.compiler.context._
 import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.CompilerError
-import org.enso.compiler.core.ir.{Diagnostic, Warning}
+import org.enso.compiler.core.ir.{Diagnostic, IdentifiedLocation, Warning}
 import org.enso.compiler.core.ir.expression.Error
 import org.enso.compiler.pass.analyse.{
   CachePreferenceAnalysis,
@@ -218,9 +218,18 @@ final class EnsureCompiledJob(
     diagnostic: Diagnostic
   ): Api.ExecutionResult.Diagnostic = {
     val source = module.getSource
+
+    def fileLocationFromSection(loc: IdentifiedLocation) = {
+      val section =
+        source.createSection(loc.location().start(), loc.location().length());
+      val locStr = "" + section.getStartLine() + ":" + section
+        .getStartColumn() + "-" + section.getEndLine() + ":" + section
+        .getEndColumn()
+      source.getName() + "[" + locStr + "]";
+    }
     Api.ExecutionResult.Diagnostic(
       kind,
-      Option(diagnostic.formattedMessage(source)),
+      Option(diagnostic.formattedMessage(fileLocationFromSection)),
       Option(module.getPath).map(new File(_)),
       diagnostic.location
         .map(loc =>

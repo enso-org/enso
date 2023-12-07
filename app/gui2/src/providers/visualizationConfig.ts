@@ -1,13 +1,13 @@
-import type { URLString } from '@/stores/visualization/compilerMessaging'
+import { createContextStore } from '@/providers'
 import type { Icon } from '@/util/iconName'
+import type { URLString } from '@/util/urlString'
 import { Vec2 } from '@/util/vec2'
 import type { VisualizationIdentifier } from 'shared/yjsModel'
 import { reactive } from 'vue'
-import { createContextStore } from '.'
 
 export interface VisualizationConfig {
-  /** Possible visualization types that can be switched to. */
   background?: string
+  /** Possible visualization types that can be switched to. */
   readonly types: Iterable<VisualizationIdentifier>
   readonly currentType: VisualizationIdentifier
   readonly icon: Icon | URLString | undefined

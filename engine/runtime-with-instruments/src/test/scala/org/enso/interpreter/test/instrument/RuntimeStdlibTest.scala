@@ -1,7 +1,5 @@
 package org.enso.interpreter.test.instrument
 
-import org.apache.commons.io.FileUtils
-import org.enso.distribution.locking.ThreadSafeFileLockManager
 import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{Package, PackageManager, QualifiedName}
 import org.enso.polyglot._
@@ -14,12 +12,11 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 
 import java.io.{ByteArrayOutputStream, File}
-import java.nio.file.{Files, Path, Paths}
+import java.nio.file.{Files, Paths}
 import java.util.UUID
-import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
+import java.util.concurrent.TimeUnit
 import java.util.logging.Level
 import scala.collection.mutable
-import scala.concurrent.Await
 import scala.concurrent.duration._
 
 @scala.annotation.nowarn("msg=multiarg infix syntax")
@@ -40,22 +37,15 @@ class RuntimeStdlibTest
 
   var context: TestContext = _
 
-  class TestContext(packageName: String) {
-
-    val messageQueue: LinkedBlockingQueue[Api.Response] =
-      new LinkedBlockingQueue()
-
-    val tmpDir: Path = Files.createTempDirectory("enso-test-packages")
+  class TestContext(packageName: String)
+      extends InstrumentTestContext(packageName) {
     val distributionHome: File =
       Paths.get("../../distribution/component").toFile.getAbsoluteFile
     val editionHome: File =
       Paths.get("../../distribution/lib").toRealPath().toFile.getAbsoluteFile
-    val edition     = TestEdition.readStdlib(editionHome)
-    val lockManager = new ThreadSafeFileLockManager(tmpDir.resolve("locks"))
-    val runtimeServerEmulator =
-      new RuntimeServerEmulator(messageQueue, lockManager)
+    val edition = TestEdition.readStdlib(editionHome)
 
-    val pkg: Package[File] =
+    override val pkg: Package[File] =
       PackageManager.Default.create(
         tmpDir.toFile,
         packageName,
@@ -63,7 +53,7 @@ class RuntimeStdlibTest
         edition = Some(edition)
       )
     val out: ByteArrayOutputStream = new ByteArrayOutputStream()
-    val executionContext = new PolyglotContext(
+    val context =
       Context
         .newBuilder(LanguageInfo.ID)
         .allowExperimentalOptions(true)
@@ -85,8 +75,6 @@ class RuntimeStdlibTest
         .logHandler(System.err)
         .serverTransport(runtimeServerEmulator.makeServerTransport)
         .build()
-    )
-    executionContext.context.initialize(LanguageInfo.ID)
 
     def toPackagesPath(paths: String*): String =
       paths.mkString(File.pathSeparator)
@@ -104,11 +92,7 @@ class RuntimeStdlibTest
 
     def send(msg: Api.Request): Unit = runtimeServerEmulator.sendToRuntime(msg)
 
-    def receiveOne: Option[Api.Response] = {
-      Option(messageQueue.poll())
-    }
-
-    def receive: Option[Api.Response] = {
+    override def receive: Option[Api.Response] = {
       Option(messageQueue.poll(3, TimeUnit.SECONDS))
     }
 
@@ -118,10 +102,6 @@ class RuntimeStdlibTest
 
     def receiveN(n: Int): List[Api.Response] = {
       Iterator.continually(receive).take(n).flatten.toList
-    }
-
-    def receiveN(n: Int, timeout: Long): List[Api.Response] = {
-      Iterator.continually(receive(timeout)).take(n).flatten.toList
     }
 
     def receiveAllUntil(
@@ -183,17 +163,14 @@ class RuntimeStdlibTest
 
   override protected def beforeEach(): Unit = {
     context = new TestContext("Test")
+    context.init()
     val Some(Api.Response(_, Api.InitializedNotification())) = context.receive
   }
 
   override protected def afterEach(): Unit = {
     if (context != null) {
-      context.messageQueue.clear()
-      context.executionContext.context.close()
-      Await.ready(context.runtimeServerEmulator.terminate(), 5.seconds)
-      context.lockManager.reset()
+      context.close()
       context.out.reset()
-      FileUtils.deleteQuietly(context.tmpDir.toFile)
       context = null
     }
   }

@@ -160,8 +160,19 @@ function LastModifiedColumn(props: AssetColumnProps) {
 // === SharedWithColumn ===
 // ========================
 
+/** The type of the `state` prop of a {@link SharedWithColumn}. */
+interface SharedWithColumnStateProp {
+    category: AssetColumnProps['state']['category']
+    dispatchAssetEvent: AssetColumnProps['state']['dispatchAssetEvent']
+}
+
+/** Props for a {@link SharedWithColumn}. */
+export interface SharedWithColumnProps extends Pick<AssetColumnProps, 'item' | 'setItem'> {
+    state: SharedWithColumnStateProp
+}
+
 /** A column listing the users with which this asset is shared. */
-function SharedWithColumn(props: AssetColumnProps) {
+export function SharedWithColumn(props: SharedWithColumnProps) {
     const {
         item: { item: asset },
         setItem,
@@ -371,6 +382,14 @@ function LabelsColumn(props: AssetColumnProps) {
     )
 }
 
+/** A column listing the users with which this asset is shared. */
+export function DocsColumn(props: AssetColumnProps) {
+    const {
+        item: { item: asset },
+    } = props
+    return <div className="flex items-center gap-1">{asset.description}</div>
+}
+
 // =========================
 // === PlaceholderColumn ===
 // =========================
@@ -409,7 +428,8 @@ export const COLUMN_HEADING: Record<
                 onMouseLeave={() => {
                     setIsHovered(false)
                 }}
-                onClick={() => {
+                onClick={event => {
+                    event.stopPropagation()
                     if (sortColumn === Column.name) {
                         setSortDirection(sorting.NEXT_SORT_DIRECTION[sortDirection ?? 'null'])
                     } else {
@@ -441,7 +461,8 @@ export const COLUMN_HEADING: Record<
                 onMouseLeave={() => {
                     setIsHovered(false)
                 }}
-                onClick={() => {
+                onClick={event => {
+                    event.stopPropagation()
                     if (sortColumn === Column.modified) {
                         setSortDirection(sorting.NEXT_SORT_DIRECTION[sortDirection ?? 'null'])
                     } else {
@@ -503,5 +524,5 @@ export const COLUMN_RENDERER: Record<Column, (props: AssetColumnProps) => JSX.El
     [Column.labels]: LabelsColumn,
     [Column.accessedByProjects]: PlaceholderColumn,
     [Column.accessedData]: PlaceholderColumn,
-    [Column.docs]: PlaceholderColumn,
+    [Column.docs]: DocsColumn,
 }

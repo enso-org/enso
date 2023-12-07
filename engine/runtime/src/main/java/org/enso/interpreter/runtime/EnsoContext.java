@@ -65,7 +65,11 @@ import com.oracle.truffle.api.io.TruffleProcessBuilder;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.object.Shape;
 import com.oracle.truffle.api.source.Source;
+
 import java.net.MalformedURLException;
+
+import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.error.PanicException;
 
 import scala.jdk.javaapi.OptionConverters;
 
@@ -888,6 +892,42 @@ public final class EnsoContext {
     } else {
       return null;
     }
+  }
+
+
+  /**
+   * Helper method to use when an unexpected state happens that should raise a panic,
+   * but not crash the interpreter. Creates a {@link PanicException} with
+   * <em>assertion error</em> payload.
+   *
+   *
+   * @param node where the problem happened (may be {@code null})
+   * @param message {@code null} (then {@code e.getMessage()} is used) or a special
+   *   message to use in the panic
+   * @param e external exception to extract message and stack from or {@code null}
+   * @return this method never returns it throws the {@link PanicException}
+   * @throws PanicException with <em>assertion error</em> payload
+   */
+  @CompilerDirectives.TruffleBoundary
+  public PanicException raiseAssertionPanic(Node node, String message, Throwable e) throws PanicException {
+    String msg;
+    String sep;
+    if (e != null) {
+      msg = e.getClass().getName();
+      if (message == null) {
+        message = e.getMessage();
+      }
+      sep = ": ";
+    } else {
+      msg = "";
+      sep = "";
+    }
+    if (message != null) {
+      msg = msg + sep + message;
+    }
+    var txt = Text.create(msg);
+    var err = getBuiltins().error().makeAssertionError(txt);
+    throw new PanicException(err, e, node);
   }
 
   private <T> T getOption(OptionKey<T> key) {

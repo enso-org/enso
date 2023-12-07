@@ -1,6 +1,6 @@
-import { Token, Tree } from '@/generated/ast'
 import { assert } from '@/util/assert'
 import {
+  RawAst,
   astPrettyPrintType,
   parseEnso,
   parsedTreeOrTokenRange,
@@ -25,7 +25,7 @@ const LOGGING_ENABLED = false
 
 class Scope {
   /** The variables defined in this scope. */
-  bindings: Map<string, Token> = new Map()
+  bindings: Map<string, RawAst.Token> = new Map()
 
   /** Construct a new scope for the given range. If the parent scope is provided, the new scope will be added to its
    * children.
@@ -45,7 +45,7 @@ class Scope {
    * scope, so the variables are not visible before they are defined. If not provided, the lookup will include all
    * symbols from the scope.
    */
-  resolve(identifier: string, location?: ContentRange): Token | undefined {
+  resolve(identifier: string, location?: ContentRange): RawAst.Token | undefined {
     const localBinding = this.bindings.get(identifier)
     if (
       localBinding != null &&
@@ -99,7 +99,7 @@ export class AliasAnalyzer {
   readonly unresolvedSymbols = new MappedSet<ContentRange>(IdMap.keyForRange)
 
   /** The AST representation of the code. */
-  readonly ast: Tree
+  readonly ast: RawAst.Tree
 
   /** The special "root" scope that contains the analyzed tree. */
   readonly rootScope: Scope
@@ -120,7 +120,7 @@ export class AliasAnalyzer {
    */
   constructor(
     private readonly code: string,
-    ast?: Tree,
+    ast?: RawAst.Tree,
   ) {
     this.ast = ast ?? parseEnso(code)
     this.rootScope = new Scope(parsedTreeOrTokenRange(this.ast))
@@ -128,7 +128,7 @@ export class AliasAnalyzer {
   }
 
   /** Invoke the given function in a new temporary scope. */
-  withNewScopeOver(nodeOrRange: ContentRange | Tree | Token, f: () => undefined) {
+  withNewScopeOver(nodeOrRange: ContentRange | RawAst.Tree | RawAst.Token, f: () => undefined) {
     const range = parsedTreeOrTokenRange(nodeOrRange)
     const scope = new Scope(range, this.scopes.top)
     this.scopes.withPushed(scope, f)
@@ -140,7 +140,7 @@ export class AliasAnalyzer {
   }
 
   /** Marks given token as a binding, i.e. a definition of a new variable. */
-  bind(token: Token) {
+  bind(token: RawAst.Token) {
     const scope = this.scopes.top
     const identifier = readTokenSpan(token, this.code)
     const range = parsedTreeOrTokenRange(token)
@@ -150,7 +150,7 @@ export class AliasAnalyzer {
     this.aliases.set(range, new MappedSet<ContentRange>(IdMap.keyForRange))
   }
 
-  addConnection(source: Token, target: Token) {
+  addConnection(source: RawAst.Token, target: RawAst.Token) {
     const sourceRange = parsedTreeOrTokenRange(source)
     const targetRange = parsedTreeOrTokenRange(target)
     const targets = this.aliases.get(sourceRange)
@@ -169,7 +169,7 @@ export class AliasAnalyzer {
   }
 
   /** Marks given token as a usage, i.e. a reference to an existing variable. */
-  use(token: Token) {
+  use(token: RawAst.Token) {
     const identifier = readTokenSpan(token, this.code)
     const range = parsedTreeOrTokenRange(token)
     const binding = this.scopes.top.resolve(identifier, range)
@@ -186,7 +186,7 @@ export class AliasAnalyzer {
     this.processTree(this.ast)
   }
 
-  processToken(token?: Token): void {
+  processToken(token?: RawAst.Token): void {
     if (token == null) {
       return
     }
@@ -211,9 +211,9 @@ export class AliasAnalyzer {
     }
 
     node.visitChildren((child) => {
-      if (Tree.isInstance(child)) {
+      if (RawAst.Tree.isInstance(child)) {
         this.processTree(child)
-      } else if (Token.isInstance(child)) {
+      } else if (RawAst.Token.isInstance(child)) {
         this.processToken(child)
       } else {
         this.processNode(child)
@@ -225,9 +225,9 @@ export class AliasAnalyzer {
     if (node == null) {
       return
     }
-    if (Tree.isInstance(node)) {
+    if (RawAst.Tree.isInstance(node)) {
       this.processTree(node)
-    } else if (Token.isInstance(node)) {
+    } else if (RawAst.Token.isInstance(node)) {
       this.processToken(node)
     } else {
       node.visitChildren((child) => {
@@ -237,7 +237,7 @@ export class AliasAnalyzer {
   }
 
   /** Method that processes a single AST node. */
-  processTree(node?: Tree): void {
+  processTree(node?: RawAst.Tree): void {
     if (node == null) {
       return
     }
@@ -248,26 +248,26 @@ export class AliasAnalyzer {
     log(() => `\nprocessNode ${astPrettyPrintType(node)}\n====\n${repr()}\n====\n`)
 
     switch (node.type) {
-      case Tree.Type.BodyBlock:
+      case RawAst.Tree.Type.BodyBlock:
         this.withNewScopeOver(node, () => {
           this.processNodeChildren(node)
         })
         break
-      case Tree.Type.NamedApp:
+      case RawAst.Tree.Type.NamedApp:
         this.processTree(node.func)
         // Intentionally omit name, as it is not a variable usage.
         this.processTree(node.arg)
         break
-      case Tree.Type.DefaultApp:
+      case RawAst.Tree.Type.DefaultApp:
         this.processTree(node.func)
         // Intentionally omit `default` keyword, because it is a keyword, not a variable usage.
         break
-      case Tree.Type.OprApp: {
+      case RawAst.Tree.Type.OprApp: {
         const opr = node.opr.ok ? readAstOrTokenSpan(node.opr.value, this.code) : ''
         switch (opr) {
           case LAMBDA_OPERATOR:
             // Lambda expression. Left-hand side is a pattern, right-hand side is an expression. Introduces a new scope.
-            // Note that this is not a Tree.Type.Lambda, as that is for "new" lambdas syntax, like `\x -> x`.
+            // Note that this is not a RawAst.Tree.Type.Lambda, as that is for "new" lambdas syntax, like `\x -> x`.
             this.withNewScopeOver(node, () => {
               this.withContext(Context.Pattern, () => {
                 this.processTree(node.lhs)
@@ -285,19 +285,19 @@ export class AliasAnalyzer {
         }
         break
       }
-      case Tree.Type.MultiSegmentApp:
+      case RawAst.Tree.Type.MultiSegmentApp:
         for (const segment of node.segments) {
           // Intentionally omit segment header, as it is not a variable usage.
           this.processTree(segment.body)
         }
         break
-      case Tree.Type.Assignment:
+      case RawAst.Tree.Type.Assignment:
         this.withContext(Context.Pattern, () => {
           this.processTree(node.pattern)
         })
         this.processTree(node.expr)
         break
-      case Tree.Type.Function:
+      case RawAst.Tree.Type.Function:
         // Function name goes to the current scope, unlike its arguments.
         this.withContext(Context.Pattern, () => {
           this.processTree(node.name)
@@ -312,7 +312,7 @@ export class AliasAnalyzer {
           this.processTree(node.body)
         })
         break
-      case Tree.Type.CaseOf:
+      case RawAst.Tree.Type.CaseOf:
         this.processTree(node.expression)
         for (const caseLine of node.cases) {
           const pattern = caseLine.case?.pattern
@@ -336,7 +336,7 @@ export class AliasAnalyzer {
           }
         }
         break
-      case Tree.Type.Documented:
+      case RawAst.Tree.Type.Documented:
         // Intentionally omit documentation, as it is not a "real" code.
         this.processTree(node.expression)
         break

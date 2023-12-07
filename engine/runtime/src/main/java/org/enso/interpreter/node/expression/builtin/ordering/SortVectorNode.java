@@ -271,7 +271,7 @@ public abstract class SortVectorNode extends Node {
         case IGNORE -> {
           return sortedVector;
         }
-        default -> throw new IllegalStateException("unreachable");
+        default -> throw EnsoContext.get(this).raiseAssertionPanic(this, "unreachable", null);
       }
     } catch (CompareException e) {
       return DataflowError.withoutTrace(
@@ -425,7 +425,7 @@ public abstract class SortVectorNode extends Node {
       return 50;
     } else {
       // Type is not a builtin type
-      throw new IllegalStateException("Should be a builtin type: " + builtinType);
+      throw EnsoContext.get(this).raiseAssertionPanic(this, "Should be a builtin type: " + builtinType, null);
     }
   }
 

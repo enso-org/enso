@@ -66,10 +66,8 @@ export function esbuildPluginGenerateTailwind(): esbuild.Plugin {
                 tailwindcssNesting()
             )
             build.onLoad({ filter: /tailwind\.css$/ }, async loadArgs => {
-                // console.log(`Processing CSS file '${loadArgs.path}'.`)
                 const content = await fs.readFile(loadArgs.path, 'utf8')
                 const result = await cssProcessor.process(content, { from: loadArgs.path })
-                // console.log(`Processed CSS file '${loadArgs.path}'.`)
                 return {
                     contents: result.content,
                     loader: 'css',

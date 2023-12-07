@@ -1,10 +1,7 @@
 package org.enso.interpreter.test.instrument
 
-import org.apache.commons.io.FileUtils
-import org.enso.distribution.locking.ThreadSafeFileLockManager
 import org.enso.interpreter.runtime.`type`.ConstantsGen
 import org.enso.interpreter.test.Metadata
-import org.enso.pkg.{Package, PackageManager}
 import org.enso.polyglot._
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.text.editing.model
@@ -16,11 +13,9 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import java.io.{ByteArrayOutputStream, File}
-import java.nio.file.{Files, Path, Paths}
+import java.nio.file.{Files, Paths}
 import java.util.UUID
 import java.util.logging.ConsoleHandler
-import scala.concurrent.Await
-import scala.concurrent.duration._
 
 @scala.annotation.nowarn("msg=multiarg infix syntax")
 class RuntimeErrorsTest
@@ -32,25 +27,15 @@ class RuntimeErrorsTest
 
   var context: TestContext = _
 
-  class TestContext(packageName: String) extends InstrumentTestContext {
+  class TestContext(packageName: String)
+      extends InstrumentTestContext(packageName) {
 
-    val tmpDir: Path = Files.createTempDirectory("enso-test-packages")
-    val lockManager  = new ThreadSafeFileLockManager(tmpDir.resolve("locks"))
-    val runtimeServerEmulator =
-      new RuntimeServerEmulator(messageQueue, lockManager)
-
-    val pkg: Package[File] =
-      PackageManager.Default.create(
-        tmpDir.toFile,
-        packageName,
-        namespace = "Enso_Test"
-      )
     val out: ByteArrayOutputStream = new ByteArrayOutputStream()
     val logHandler                 = new ConsoleHandler()
     val defaultLogLevel            = java.util.logging.Level.WARNING;
     logHandler.setLevel(defaultLogLevel)
 
-    val executionContext = new PolyglotContext(
+    val context =
       Context
         .newBuilder(LanguageInfo.ID)
         .allowExperimentalOptions(true)
@@ -80,8 +65,6 @@ class RuntimeErrorsTest
         .out(out)
         .serverTransport(runtimeServerEmulator.makeServerTransport)
         .build()
-    )
-    executionContext.context.initialize(LanguageInfo.ID)
 
     def writeMain(contents: String): File =
       Files.write(pkg.mainFile.toPath, contents.getBytes).toFile
@@ -111,17 +94,14 @@ class RuntimeErrorsTest
 
   override protected def beforeEach(): Unit = {
     context = new TestContext("Test")
+    context.init()
     val Some(Api.Response(_, Api.InitializedNotification())) = context.receive
   }
 
   override protected def afterEach(): Unit = {
     if (context != null) {
-      context.reset()
-      context.executionContext.context.close()
-      Await.ready(context.runtimeServerEmulator.terminate(), 5.seconds)
-      context.lockManager.reset()
+      context.close()
       context.out.reset()
-      FileUtils.deleteQuietly(context.tmpDir.toFile)
       context = null
     }
   }
@@ -196,7 +176,7 @@ class RuntimeErrorsTest
         contextId,
         xId,
         Api.ExpressionUpdate.Payload.Panic(
-          "Compile_Error.Error",
+          "Compile_Error",
           Seq(xId)
         ),
         builtin = true
@@ -205,7 +185,7 @@ class RuntimeErrorsTest
         contextId,
         yId,
         Api.ExpressionUpdate.Payload.Panic(
-          "Compile_Error.Error",
+          "Compile_Error",
           Seq(xId)
         ),
         builtin = true
@@ -214,7 +194,7 @@ class RuntimeErrorsTest
         contextId,
         mainResId,
         Api.ExpressionUpdate.Payload.Panic(
-          "Compile_Error.Error",
+          "Compile_Error",
           Seq(xId)
         ),
         builtin = true
@@ -336,6 +316,8 @@ class RuntimeErrorsTest
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
 
+    metadata.assertInCode(mainBodyId, contents, "foo 1 2")
+
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
     context.receive shouldEqual Some(
@@ -388,7 +370,7 @@ class RuntimeErrorsTest
           Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "foo")
         ),
         Api.ExpressionUpdate.Payload.Panic(
-          "Compile_Error.Error",
+          "Compile_Error",
           Seq(mainBodyId)
         ),
         builtin = true
@@ -1746,7 +1728,7 @@ class RuntimeErrorsTest
         xId,
         Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "foo")),
         Api.ExpressionUpdate.Payload.Panic(
-          "9 (Integer)",
+          "Integer",
           Seq(xId)
         ),
         builtin = false
@@ -1755,7 +1737,7 @@ class RuntimeErrorsTest
         contextId,
         yId,
         Api.ExpressionUpdate.Payload.Panic(
-          "9 (Integer)",
+          "Integer",
           Seq(xId)
         )
       ),
@@ -1763,7 +1745,7 @@ class RuntimeErrorsTest
         contextId,
         mainResId,
         Api.ExpressionUpdate.Payload.Panic(
-          "9 (Integer)",
+          "Integer",
           Seq(xId)
         )
       ),
@@ -2054,7 +2036,7 @@ class RuntimeErrorsTest
         contextId,
         xId,
         Api.ExpressionUpdate.Payload.Panic(
-          "Compile_Error.Error",
+          "Compile_Error",
           Seq(xId)
         ),
         builtin = true
@@ -2063,7 +2045,7 @@ class RuntimeErrorsTest
         contextId,
         mainResId,
         Api.ExpressionUpdate.Payload.Panic(
-          "Compile_Error.Error",
+          "Compile_Error",
           Seq(xId)
         ),
         builtin = true

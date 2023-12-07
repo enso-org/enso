@@ -309,10 +309,10 @@
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none"
             xmlns="http://www.w3.org/2000/svg">
             <g id="shape/arrow_left">
-                <path id="Union" fill-rule="evenodd" clip-rule="evenodd" d="M2.62268e-07 6L4 9L4 7L11 7L11 5L4 5L4 3L2.62268e-07 6Z" fill="#111827"/>
+                <path id="Union" fill-rule="evenodd" clip-rule="evenodd" d="M2.62268e-07 6L4 9L4 7L11 7L11 5L4 5L4 3L2.62268e-07 6Z" fill="currentColor"/>
             </g>
             <g id="Component 2">
-                <path id="Union_2" fill-rule="evenodd" clip-rule="evenodd" d="M16 9L12 6V8H5V10H12V12L16 9Z" fill="#111827"/>
+                <path id="Union_2" fill-rule="evenodd" clip-rule="evenodd" d="M16 9L12 6V8H5V10H12V12L16 9Z" fill="currentColor"/>
             </g>
         </svg>
     </g>
@@ -354,7 +354,7 @@
             xmlns="http://www.w3.org/2000/svg">
             <rect id="Rectangle 508" opacity="0.25" x="5" y="2" width="11" height="12" rx="2" fill="currentColor"/>
             <g id="shape/arrow_left">
-                <path id="Union" fill-rule="evenodd" clip-rule="evenodd" d="M12 8L8 5V7L1 7L1 9H8V11L12 8Z" fill="#111827"/>
+                <path id="Union" fill-rule="evenodd" clip-rule="evenodd" d="M12 8L8 5V7L1 7L1 9H8V11L12 8Z" fill="currentColor"/>
             </g>
         </svg>
     </g>
@@ -363,7 +363,7 @@
             xmlns="http://www.w3.org/2000/svg">
             <rect id="Rectangle 508" opacity="0.25" y="2" width="10" height="12" rx="2" fill="currentColor"/>
             <g id="shape/arrow_left">
-                <path id="Union" fill-rule="evenodd" clip-rule="evenodd" d="M16 8L12 5V7L5 7L5 9H12V11L16 8Z" fill="#111827"/>
+                <path id="Union" fill-rule="evenodd" clip-rule="evenodd" d="M16 8L12 5V7L5 7L5 9H12V11L16 8Z" fill="currentColor"/>
             </g>
         </svg>
     </g>
@@ -1204,10 +1204,10 @@
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none"
             xmlns="http://www.w3.org/2000/svg">
             <g id="shape/arrow_left">
-                <path id="Union" fill-rule="evenodd" clip-rule="evenodd" d="M11 3L8 7L10 7L10 14L12 14L12 7L14 7L11 3Z" fill="#111827"/>
+                <path id="Union" fill-rule="evenodd" clip-rule="evenodd" d="M11 3L8 7L10 7L10 14L12 14L12 7L14 7L11 3Z" fill="currentColor"/>
             </g>
             <g id="Component 2">
-                <path id="Union_2" fill-rule="evenodd" clip-rule="evenodd" d="M5 14L8 10L6 10L6 3L4 3L4 10L2 10L5 14Z" fill="#111827"/>
+                <path id="Union_2" fill-rule="evenodd" clip-rule="evenodd" d="M5 14L8 10L6 10L6 3L4 3L4 10L2 10L5 14Z" fill="currentColor"/>
             </g>
         </svg>
     </g>
@@ -1609,6 +1609,11 @@
             <rect x="13" y="4.5" width="3" height="3" fill="black" fill-opacity="0.6" />
             <rect x="13" y="8.5" width="3" height="3" fill="black" fill-opacity="0.6" />
             <path d="M13 12.5H16V13.5C16 14.6046 15.1046 15.5 14 15.5H13V12.5Z" fill="black" fill-opacity="0.6" />
+        </svg>
+    </g>
+    <g id="vector_add" fill="none">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M8 16C12.4183 16 16 12.4183 16 8C16 3.58172 12.4183 0 8 0C3.58172 0 0 3.58172 0 8C0 12.4183 3.58172 16 8 16ZM7 7V3H9V7H13V9H9V13H7V9H3V7L7 7Z" fill="#BCD3E8"/>
         </svg>
     </g>
     <!-- Please run `npm run generate-metadata` whenever this file is edited. -->

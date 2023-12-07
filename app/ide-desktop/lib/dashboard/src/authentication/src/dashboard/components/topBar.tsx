@@ -24,13 +24,15 @@ export interface TopBarProps {
     setPage: (page: pageSwitcher.Page) => void
     projectAsset: backendModule.ProjectAsset | null
     setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>> | null
-    asset: backendModule.Asset | null
     isEditorDisabled: boolean
     setBackendType: (backendType: backendModule.BackendType) => void
     isHelpChatOpen: boolean
     setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
     query: assetQuery.AssetQuery
     setQuery: (query: assetQuery.AssetQuery) => void
+    canToggleSettingsPanel: boolean
+    isSettingsPanelVisible: boolean
+    setIsSettingsPanelVisible: React.Dispatch<React.SetStateAction<boolean>>
     doRemoveSelf: () => void
     onSignOut: () => void
 }
@@ -44,13 +46,15 @@ export default function TopBar(props: TopBarProps) {
         setPage,
         projectAsset,
         setProjectAsset,
-        asset,
         isEditorDisabled,
         setBackendType,
         isHelpChatOpen,
         setIsHelpChatOpen,
         query,
         setQuery,
+        canToggleSettingsPanel,
+        isSettingsPanelVisible,
+        setIsSettingsPanelVisible,
         doRemoveSelf,
         onSignOut,
     } = props
@@ -106,19 +110,25 @@ export default function TopBar(props: TopBarProps) {
                     <div className="grow" />
                 </>
             )}
-            <div className="flex gap-2">
-                <AssetInfoBar asset={asset} />
-                <UserBar
-                    supportsLocalBackend={supportsLocalBackend}
-                    page={page}
-                    isHelpChatOpen={isHelpChatOpen}
-                    setIsHelpChatOpen={setIsHelpChatOpen}
-                    projectAsset={projectAsset}
-                    setProjectAsset={setProjectAsset}
-                    doRemoveSelf={doRemoveSelf}
-                    onSignOut={onSignOut}
-                />
-            </div>
+            {!isSettingsPanelVisible && (
+                <div className="flex gap-2">
+                    <AssetInfoBar
+                        canToggleSettingsPanel={canToggleSettingsPanel}
+                        isSettingsPanelVisible={isSettingsPanelVisible}
+                        setIsSettingsPanelVisible={setIsSettingsPanelVisible}
+                    />
+                    <UserBar
+                        supportsLocalBackend={supportsLocalBackend}
+                        page={page}
+                        isHelpChatOpen={isHelpChatOpen}
+                        setIsHelpChatOpen={setIsHelpChatOpen}
+                        projectAsset={projectAsset}
+                        setProjectAsset={setProjectAsset}
+                        doRemoveSelf={doRemoveSelf}
+                        onSignOut={onSignOut}
+                    />
+                </div>
+            )}
         </div>
     )
 }

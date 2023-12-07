@@ -5,6 +5,7 @@ import java.math.BigInteger;
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.EnsoMultiValue;
@@ -264,7 +265,7 @@ public abstract class EqualsNode extends Node {
       selfJavaString = selfInterop.asString(selfString);
       otherJavaString = otherInterop.asString(otherString);
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException(e);
+      throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
     return Core_Text_Utils.equals(selfJavaString, otherJavaString);
   }

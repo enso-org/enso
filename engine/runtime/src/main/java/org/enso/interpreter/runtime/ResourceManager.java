@@ -128,8 +128,8 @@ public class ResourceManager {
   @CompilerDirectives.TruffleBoundary
   public ManagedResource register(Object object, Object function) {
     if (isClosed) {
-      throw new IllegalStateException(
-          "Can't register new resources after resource manager is closed.");
+      throw EnsoContext.get(null).raiseAssertionPanic(null,
+          "Can't register new resources after resource manager is closed.", null);
     }
     if (workerThread == null || !workerThread.isAlive()) {
       worker.setKilled(false);
