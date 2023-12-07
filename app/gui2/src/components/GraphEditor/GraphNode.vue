@@ -229,7 +229,8 @@ const outputPorts = computed((): PortData[] => {
   const numPorts = ports.size
   return Array.from(ports, (portId, index) => {
     const labelIdent = numPorts > 1 ? graph.db.getOutputPortIdentifier(portId) + ': ' : ''
-    const labelType = graph.db.getExpressionInfo(portId)?.typename ?? 'Unknown'
+    const labelType =
+      graph.db.getExpressionInfo(numPorts > 1 ? portId : nodeId.value)?.typename ?? 'Unknown'
     return {
       clipRange: [index / numPorts, (index + 1) / numPorts],
       label: labelIdent + labelType,
