@@ -72,8 +72,11 @@ const selectedValue = computed(() => {
   if (selectedIndex.value == null) return props.input.info?.defaultValue ?? ''
   return tagValues.value[selectedIndex.value] ?? ''
 })
+const selectedLabel = computed(() => {
+  if (selectedIndex.value == null) return props.input.info?.defaultValue ?? ''
+  return tagLabels.value[selectedIndex.value] ?? ''
+})
 const showDropdownWidget = ref(false)
-const showArgumentValue = ref(true)
 
 // When the selected index changes, we update the expression content.
 watch(selectedIndex, (_index) => {
@@ -103,28 +106,31 @@ export const widgetDefinition = defineWidget([ArgumentPlaceholder, ArgumentAst],
 
 <template>
   <div ref="rootElement" class="WidgetRoot">
-    <span class="WidgetArgumentName" @pointerdown="showDropdownWidget = !showDropdownWidget">
-      <template v-if="showArgumentValue">
-        <NodeWidget :input="props.input" /><span class="value"> {{ selectedValue }} </span>
+    <span
+      class="SelectionWidgetArgumentValue"
+      @pointerdown="showDropdownWidget = !showDropdownWidget"
+    >
+      <NodeWidget :input="props.input" />
+      <template v-if="props.input instanceof ArgumentPlaceholder">
+        <span class="SelectionWidgetArgumentValue"> {{ selectedValue }} </span>
       </template>
-      <template v-else><NodeWidget :input="props.input" /></template>
     </span>
-    <div class="WidgetSingleChoice">
+    <div class="SelectionWidgetSingleChoice">
       <DropdownWidget
         v-if="showDropdownWidget"
         :color="parentColor ?? 'white'"
         :values="tagLabels"
-        :selectedValue="selectedValue"
+        :selectedValue="selectedLabel"
         @click="selectedIndex = $event"
       />
     </div>
   </div>
 </template>
 <style scoped>
-.value {
+.SelectionWidgetArgumentValue {
   margin-left: 8px;
 }
-.WidgetSingleChoice {
+.SelectionWidgetSingleChoice {
   position: absolute;
   top: 100%;
   margin-top: 4px;

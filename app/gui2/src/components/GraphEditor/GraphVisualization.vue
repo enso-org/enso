@@ -15,6 +15,7 @@ import { toError } from '@/util/error'
 import type { Icon } from '@/util/iconName'
 import type { Opt } from '@/util/opt'
 import { Rect } from '@/util/rect'
+import type { Result } from '@/util/result'
 import type { URLString } from '@/util/urlString'
 import { Vec2 } from '@/util/vec2'
 import { computedAsync } from '@vueuse/core'
@@ -77,14 +78,17 @@ const configForGettingDefaultVisualization = computed<NodeVisualizationConfigura
 
 const defaultVisualizationRaw = projectStore.useVisualizationData(
   configForGettingDefaultVisualization,
-) as ShallowRef<{ library: { name: string } | null; name: string } | undefined>
+) as ShallowRef<Result<{ library: { name: string } | null; name: string } | undefined>>
 
 const defaultVisualization = computed<VisualizationIdentifier | undefined>(() => {
   const raw = defaultVisualizationRaw.value
-  if (!raw) return
+  if (!raw?.ok || !raw.value) return
   return {
-    name: raw.name,
-    module: raw.library == null ? { kind: 'Builtin' } : { kind: 'Library', name: raw.library.name },
+    name: raw.value.name,
+    module:
+      raw.value.library == null
+        ? { kind: 'Builtin' }
+        : { kind: 'Library', name: raw.value.library.name },
   }
 })
 
@@ -238,7 +242,7 @@ provideVisualizationConfig({
     isBelowToolbar.value = value
   },
   get types() {
-    return visualizationStore.types(props.typename)
+    return Array.from(visualizationStore.types(props.typename))
   },
   get isCircularMenuVisible() {
     return props.isCircularMenuVisible
