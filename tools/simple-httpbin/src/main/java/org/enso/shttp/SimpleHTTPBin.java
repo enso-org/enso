@@ -59,14 +59,9 @@ public class SimpleHTTPBin {
     String host = args[0];
     SimpleHTTPBin server = null;
     try {
-      int port = Integer.valueOf(args[1]);
+      int port = Integer.parseInt(args[1]);
       server = new SimpleHTTPBin(host, port);
-      for (HttpMethod method : HttpMethod.values()) {
-        String path = "/" + method.toString().toLowerCase();
-        server.addHandler(path, new TestHandler());
-      }
-
-      setupFileServer(server);
+      setupServerEndpoints(server);
 
       final SimpleHTTPBin server1 = server;
       SignalHandler stopServerHandler =
@@ -101,6 +96,16 @@ public class SimpleHTTPBin {
     boolean isRunning() {
       return running;
     }
+  }
+
+  private static void setupServerEndpoints(SimpleHTTPBin server) throws URISyntaxException {
+    for (HttpMethod method : HttpMethod.values()) {
+      String path = "/" + method.toString().toLowerCase();
+      server.addHandler(path, new TestHandler());
+    }
+
+    setupFileServer(server);
+    server.addHandler("/wait10s", new TimeoutHandler(10*1000));
   }
 
   private static void setupFileServer(SimpleHTTPBin server) throws URISyntaxException {
