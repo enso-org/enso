@@ -1,13 +1,13 @@
 import 'enso-dashboard/src/tailwind.css'
 import { createPinia } from 'pinia'
 import { createApp, ref } from 'vue'
+import { mockDataHandler, mockLSHandler } from '../mock/engine'
 import '../src/assets/base.css'
 import { provideGuiConfig } from '../src/providers/guiConfig'
 import { provideVisualizationConfig } from '../src/providers/visualizationConfig'
 import { MockTransport, MockWebSocket } from '../src/util/net'
 import { Vec2 } from '../src/util/vec2'
 import MockApp from './MockApp.vue'
-import { mockDataHandler, mockLSHandler } from '../mock/engine'
 
 MockTransport.addMock('engine', mockLSHandler)
 MockWebSocket.addMock('data', mockDataHandler)
