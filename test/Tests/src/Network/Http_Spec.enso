@@ -49,6 +49,18 @@ spec =
         Test.specify "should make a custom method" <|
             "CUSTOM" . to HTTP_Method . should_equal (HTTP_Method.Custom "CUSTOM")
 
+    Test.group "HTTP_Status_Code" <|
+        Test.specify "should have a nice text representation" <|
+            s1 = HTTP_Status_Code.ok
+            s1.code . should_equal 200
+            s1.to_text . should_equal "200 OK"
+            s1.to_display_text . should_equal "OK"
+
+            s2 = HTTP_Status_Code.not_found
+            s2.code . should_equal 404
+            s2.to_text . should_equal "404 Not Found"
+            s2.to_display_text . should_equal "Not Found"
+
     Test.group "HTTP client" pending=pending_has_url <|
         Test.specify "should create HTTP client with timeout setting" <|
             http = HTTP.new (timeout = (Duration.new seconds=30))
@@ -169,10 +181,10 @@ spec =
             r2.at "headers" . at "Connection" . should_equal "Upgrade, HTTP2-Settings"
 
             r1 = HTTP.new version=HTTP_Version.HTTP_1_1 . request req . decode_as_json
-            r1.at "headers" . keys . should_not_contain "Connection"
-            r1.at "headers" . keys . should_not_contain "Http2-Settings"
-            r1.at "headers" . keys . should_not_contain "HTTP2-Settings"
-            r1.at "headers" . keys . should_not_contain "Upgrade"
+            header_names = r1.at "headers" . field_names . map (s-> s.to_case Case.Lower)
+            header_names.should_not_contain "connection"
+            header_names.should_not_contain "http2-settings"
+            header_names.should_not_contain "upgrade"
 
     Test.group "post" pending=pending_has_url <|
         url_post = base_url_with_slash + "post"
@@ -333,18 +345,26 @@ spec =
             response . should_equal expected_response
 
         Test.specify "can handle HTTP errors" <|
-            # This should give us 405 bad method
+            # This should give us 405 method not allowed
             r1 = Data.post url_delete
-            # TODO upgrade error handling to have better error type for failed requests
-            IO.println r1
+            r1.should_fail_with HTTP_Error
+            r1.catch.should_be_a HTTP_Error.Status_Error
+            IO.println r1.catch.to_display_text
+            r1.catch.status_code.code . should_equal 405
+            r1.catch.to_display_text . should_contain "status 405"
 
-            # TODO check for 404
             r2 = Data.post (base_url_with_slash + "some/unknown/path")
-            IO.println r2
+            r2.should_fail_with HTTP_Error
+            IO.println r2.catch.to_display_text
+            r2.catch.should_be_a HTTP_Error.Status_Error
+            r2.catch.status_code.code . should_equal 404
 
             # TODO check for 500? if I can set to custom method?
             r3 = Data.post (base_url_with_slash + "get") method=(HTTP_Method.Custom "BREW_COFFEE")
-            IO.println r3
+            r3.should_fail_with HTTP_Error
+            r3.catch.should_be_a HTTP_Error.Status_Error
+            IO.println r3.catch.to_display_text
+            r3.catch.status_code.code . should_equal 405
 
         Test.specify "Cannot perform POST when output context is disabled" <|
             Context.Output.with_disabled <|
@@ -469,7 +489,8 @@ spec =
 
         Test.specify "can also read headers from a response, when returning a raw response" <|
             r1 = Data.post url_post (Request_Body.Text "hello world") try_auto_parse_response=False
-            r1.headers.find (p-> p.name.equals_ignore_case "Content-Type") . value . should_equal "text/plain; charset=UTF-8"
+            # The result is JSON data:
+            r1.headers.find (p-> p.name.equals_ignore_case "Content-Type") . value . should_equal "application/json"
 
             uri = URI.from (base_url_with_slash + "set_headers")
                 . add_query_argument "test-header" "test-value"
