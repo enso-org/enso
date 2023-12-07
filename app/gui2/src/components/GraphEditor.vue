@@ -303,8 +303,8 @@ async function handleFileDrop(event: DragEvent) {
           pos,
           projectStore.executionContext.getStackTop(),
         )
-        const name = await uploader.upload()
-        graphStore.createNode(pos, uploadedExpression(name))
+        const uploadResult = await uploader.upload()
+        graphStore.createNode(pos, uploadedExpression(uploadResult))
       }
     } catch (err) {
       console.error(`Uploading file failed. ${err}`)

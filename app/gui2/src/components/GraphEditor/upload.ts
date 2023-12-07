@@ -1,4 +1,5 @@
 import { Awareness } from '@/stores/awareness'
+import * as astText from '@/util/ast/text'
 import { Vec2 } from '@/util/vec2'
 import { Keccak, sha3_224 as SHA3 } from '@noble/hashes/sha3'
 import type { Hash } from '@noble/hashes/utils'
@@ -11,10 +12,25 @@ import { markRaw, toRaw } from 'vue'
 
 // === Constants ===
 
-export const uploadedExpression = (name: string) => `enso_project.data/"${name}" . read`
 const DATA_DIR_NAME = 'data'
 
+export function uploadedExpression(result: UploadResult) {
+  switch (result.source) {
+    case 'Project': {
+      return `enso_project.data/'${astText.escape(result.name)}' . read`
+    }
+    case 'FileSystemRoot': {
+      return `Data.read '${astText.escape(result.name)}'`
+    }
+  }
+}
+
 // === Uploader ===
+
+export interface UploadResult {
+  source: 'FileSystemRoot' | 'Project'
+  name: string
+}
 
 export class Uploader {
   private checksum: Hash<Keccak>
@@ -59,12 +75,10 @@ export class Uploader {
     return instance
   }
 
-  async upload(): Promise<string> {
+  async upload(): Promise<UploadResult> {
     // This non-standard property is defined in Electron.
     if ('path' in this.file && typeof this.file.path === 'string') {
-      const path = this.file.path
-      // TODO: We need to add the filesystem root to this Uploader too, to be able to access.
-      return path
+      return { source: 'FileSystemRoot', name: this.file.path }
     }
     await this.ensureDataDirExists()
     const name = await this.pickUniqueName(this.file.name)
@@ -101,7 +115,7 @@ export class Uploader {
       },
     })
     await this.file.stream().pipeTo(writableStream)
-    return name
+    return { source: 'Project', name }
   }
 
   private cleanup(name: string) {
