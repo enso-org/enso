@@ -5,6 +5,7 @@ const mapping: Record<string, string> = {
   '\r': '\\r',
   '\t': '\\t',
   '\v': '\\v',
+  '\\': '\\\\',
   '"': '\\"',
   "'": "\\'",
   '`': '``',
@@ -13,5 +14,5 @@ const mapping: Record<string, string> = {
 /** Escape a string so it can be safely spliced into an interpolated (`''`) Enso string.
  * NOT USABLE to insert into raw strings. Does not include quotes. */
 export function escape(string: string) {
-  return string.replace(/[\0\b\f\n\r\t\v"'`]/g, (match) => mapping[match]!)
+  return string.replace(/[\0\b\f\n\r\t\v\\"'`]/g, (match) => mapping[match]!)
 }
