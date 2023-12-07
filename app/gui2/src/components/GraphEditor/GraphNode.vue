@@ -189,7 +189,7 @@ const isOutputContextOverridden = computed({
             disableOutputContext: undefined,
           },
     )
-    graph.setExpressionContent(props.node.outerExprId, newAst.code())
+    graph.setNodeContent(props.node.rootSpan.astId, newAst.code())
   },
 })
 
