@@ -347,7 +347,7 @@ export abstract class Ast {
   }
 
   static parseLine(source: PrintedSource | string): Ast {
-    const ast = this.parse(source)
+    const ast = Ast.parse(source)
     if (ast instanceof BodyBlock) {
       const [expr] = ast.expressions()
       return expr instanceof Ast ? expr : ast
