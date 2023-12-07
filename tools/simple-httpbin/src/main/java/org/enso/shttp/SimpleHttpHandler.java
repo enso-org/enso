@@ -21,9 +21,11 @@ public abstract class SimpleHttpHandler implements HttpHandler {
       doHandle(exchange);
     } catch (IOException e) {
       e.printStackTrace();
+      exchange.close();
       throw e;
     } catch (Exception e) {
       e.printStackTrace();
+      exchange.close();
     }
   }
 

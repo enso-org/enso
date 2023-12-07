@@ -349,13 +349,11 @@ spec =
             r1 = Data.post url_delete
             r1.should_fail_with HTTP_Error
             r1.catch.should_be_a HTTP_Error.Status_Error
-            IO.println r1.catch.to_display_text
             r1.catch.status_code.code . should_equal 405
             r1.catch.to_display_text . should_contain "status 405"
 
             r2 = Data.post (base_url_with_slash + "some/unknown/path")
             r2.should_fail_with HTTP_Error
-            IO.println r2.catch.to_display_text
             r2.catch.should_be_a HTTP_Error.Status_Error
             r2.catch.status_code.code . should_equal 404
             r2.catch.message . should_contain "<h1>404 Not Found</h1>"
@@ -363,7 +361,6 @@ spec =
             r3 = HTTP.new.request (Request.new (HTTP_Method.Custom "BREW_COFFEE") (base_url_with_slash + "get"))
             r3.should_fail_with HTTP_Error
             r3.catch.should_be_a HTTP_Error.Status_Error
-            IO.println r3.catch.to_display_text
             r3.catch.status_code.code . should_equal 400
 
         Test.specify "Cannot perform POST when output context is disabled" <|
@@ -535,6 +532,17 @@ spec =
             err = Data.fetch "http://0.0.0.0:1/"
             err.should_fail_with Request_Error
 
+        ## Checking this error partially as a warning - I spent a lot of time debugging why I'm getting such an error.
+           Apparently it happens when the httpbin server was crashing without sending any response.
+        Test.specify "should be able to handle server crash resulting in no response" <|
+            err = Data.fetch (base_url_with_slash+"crash")
+            err.should_fail_with Request_Error
+            err.catch.error_type . should_equal "java.io.IOException"
+            ## TODO I'm wondering if we should detect this particular error and add some explanation to it -
+               i.e. "The server did not send back any data."
+               I think it may be worth adding, because it may be really quite confusing for end users who get that kind of error.
+            err.catch.message . should_equal "HTTP/1.1 header parser received no bytes"
+
         Test.specify "should be able to handle IO errors" pending="TODO: Currently I was unable to figure out a way to test such errors" <|
             # how to trigger this error???
             err = Data.fetch "TODO"
@@ -578,7 +586,6 @@ spec =
             r2 = Data.fetch url
             r2.should_fail_with HTTP_Error
             r2.catch.status_code.code . should_equal 401
-            IO.println r2.catch.to_display_text
 
             # Invalid token
             r3 = Data.fetch url headers=[Header.authorization_bearer "invalid-token"]
