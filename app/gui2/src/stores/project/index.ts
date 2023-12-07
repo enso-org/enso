@@ -576,13 +576,11 @@ export const useProjectStore = defineStore('project', () => {
       if (!visResult.ok) {
         visResult.error.log('Dataflow Error visualization evaluation failed')
         return undefined
-      } else if (
-        'kind' in visResult.value &&
-        visResult.value.kind === 'Dataflow' &&
-        'message' in visResult.value &&
-        typeof visResult.value.message === 'string'
-      ) {
-        return { kind: visResult.value.kind, message: visResult.value.message }
+      } else if ('message' in visResult.value && typeof visResult.value.message === 'string') {
+        if ('kind' in visResult.value && visResult.value.kind === 'Dataflow')
+          return { kind: visResult.value.kind, message: visResult.value.message }
+        // Other kinds of error are not handled here
+        else return undefined
       } else {
         console.error('Invalid dataflow error payload:', visResult.value)
         return undefined
