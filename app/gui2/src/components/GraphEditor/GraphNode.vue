@@ -11,8 +11,7 @@ import { injectGraphSelection } from '@/providers/graphSelection'
 import { useGraphStore, type Node } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
 import { useApproach } from '@/util/animation'
-import { Ast } from '@/util/ast'
-import { extractMatches } from '@/util/ast/match'
+import { Prefixes } from '@/util/ast/prefixes'
 import { escape as astStringEscape } from '@/util/ast/string'
 import { usePointer, useResizeObserver } from '@/util/events'
 import { displayedIconOf } from '@/util/getIconName'
@@ -28,20 +27,15 @@ const MAXIMUM_CLICK_DISTANCE_SQ = 50
 /** The width in pixels that is not the widget tree. This includes the icon, and padding. */
 const NODE_EXTRA_WIDTH_PX = 30
 
-const enableMethodName = 'with_enabled_context'
-const disableMethodName = 'with_disabled_context'
-function withOverriddenOutputContext(name: string, enable: boolean) {
-  return (
-    `Standard.Base.Runtime.${
-      enable ? enableMethodName : disableMethodName
-    } Standard.Base.Runtime.Context.Output '` +
-    astStringEscape(name) +
-    "' <| "
-  )
-}
-const withOverriddenOutputContextPattern = Ast.parseLine(
-  'Standard.Base.Runtime.__ Standard.Base.Runtime.Context.Output __ <| __',
-)
+const prefixes = Prefixes.FromLines({
+  enableOutputContext:
+    'Standard.Base.Runtime.with_enabled_context Standard.Base.Runtime.Context.Output __ <| __',
+  disableOutputContext:
+    'Standard.Base.Runtime.with_disabled_context Standard.Base.Runtime.Context.Output __ <| __',
+  // Currently unused; included as PoC.
+  skip: 'SKIP __',
+  freeze: 'FREEZE __',
+})
 </script>
 
 <script setup lang="ts">
@@ -158,63 +152,44 @@ const dragPointer = usePointer((pos, event, type) => {
   }
 })
 
-/** Returns the matched output context override, if any:
- * - `enabled`: whether the override is for enabling, or disabling, the output context.
- * - `contextExpr`: the AST tree representing the context for which the override should apply.
- * - `innerExpr`: the AST tree representing the actual expression to be evaluated.
- */
-const outputContextOverride = computed(() => {
-  const matches = extractMatches(props.node.rootSpan, withOverriddenOutputContextPattern)
-  if (!matches) return
-  let enabled: boolean
-  switch (matches[0]?.code()) {
-    case enableMethodName: {
-      enabled = true
-      break
-    }
-    case disableMethodName: {
-      enabled = false
-      break
-    }
-    default: {
-      return
-    }
-  }
-  return { enabled, contextExpr: matches[1]!, innerExpr: matches[2]! }
-})
-
-const displayedExpression = computed(
-  () => outputContextOverride.value?.innerExpr ?? props.node.rootSpan,
-)
+const matches = computed(() => prefixes.extractMatches(props.node.rootSpan))
+const displayedExpression = computed(() => matches.value.innerExpr)
 
 const isOutputContextOverridden = computed({
   get() {
-    const override = outputContextOverride.value
-    if (override == null) return false
-    else if (override.enabled === projectStore.isOutputContextEnabled) return false
+    const override =
+      matches.value.matches.enableOutputContext ?? matches.value.matches.disableOutputContext
+    const overrideEnabled = matches.value.matches.enableOutputContext != null
+    // An override is only counted as enabled if it is currently in effect. This requires:
+    // - that an override exists
+    if (!override) return false
+    // - that it is setting the "enabled" value to a non-default value
+    else if (overrideEnabled === projectStore.isOutputContextEnabled) return false
+    // - and that it applies to the current execution context.
     else {
-      const contextWithoutQuotes = override.contextExpr.code().replace(/^['"]|['"]$/g, '')
+      const contextWithoutQuotes = override[0]?.code().replace(/^['"]|['"]$/g, '')
       return contextWithoutQuotes === projectStore.executionMode
     }
   },
   set(shouldOverride) {
     const module = projectStore.module
     if (!module) return
-    const currentOverride = outputContextOverride.value
-    const code = currentOverride?.innerExpr.code() ?? props.node.rootSpan.code()
-    if (shouldOverride) {
-      graph.setExpressionContent(
-        props.node.outerExprId,
-        withOverriddenOutputContext(
-          projectStore.executionMode,
-          !projectStore.isOutputContextEnabled,
-        ) + code,
-      )
-    } else {
-      if (currentOverride?.innerExpr != null) {
-        graph.setExpressionContent(props.node.outerExprId, code)
-      }
-    }
+    const replacements = shouldOverride
+      ? ["'" + astStringEscape(projectStore.executionMode) + "'"]
+      : undefined
+    const newAst = prefixes.modify(
+      props.node.rootSpan,
+      projectStore.isOutputContextEnabled
+        ? {
+            enableOutputContext: undefined,
+            disableOutputContext: replacements,
+          }
+        : {
+            enableOutputContext: replacements,
+            disableOutputContext: undefined,
+          },
+    )
+    graph.setExpressionContent(props.node.outerExprId, newAst.code())
   },
 })
 

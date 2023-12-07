@@ -78,7 +78,7 @@ test.each([
     pattern: 'Standard.Base.Runtime.__ Standard.Base.Runtime.Context.Output __ <| __',
     extracted: ['with_enabled_context', "'current_context_name'", 'a + b'],
   },
-])('`isMatch`', ({ target, pattern, extracted }) => {
+])('`isMatch` and `extractMatches`', ({ target, pattern, extracted }) => {
   const targetAst = Ast.parseLine(target)
   const patternAst = Ast.parseLine(pattern)
   expect(
