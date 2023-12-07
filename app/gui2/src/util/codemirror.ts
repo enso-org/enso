@@ -11,13 +11,14 @@ export {
   foldNodeProp,
   syntaxHighlighting,
 } from '@codemirror/language'
+export { forceLinting, lintGutter, linter, type Diagnostic } from '@codemirror/lint'
 export { highlightSelectionMatches } from '@codemirror/search'
 export { EditorState } from '@codemirror/state'
 export { EditorView, tooltips, type TooltipView } from '@codemirror/view'
 export { type Highlighter } from '@lezer/highlight'
 export { minimalSetup } from 'codemirror'
 export { yCollab } from 'y-codemirror.next'
-import { Ast, AstExtended } from '@/util/ast'
+import { RawAst, RawAstExtended } from '@/util/ast'
 import {
   Language,
   LanguageSupport,
@@ -26,6 +27,7 @@ import {
   languageDataProp,
   syntaxTree,
 } from '@codemirror/language'
+import { type Diagnostic } from '@codemirror/lint'
 import { hoverTooltip as originalHoverTooltip, type TooltipView } from '@codemirror/view'
 import {
   NodeProp,
@@ -39,13 +41,41 @@ import {
 } from '@lezer/common'
 import { styleTags, tags } from '@lezer/highlight'
 import { EditorView } from 'codemirror'
+import type { Diagnostic as LSDiagnostic } from 'shared/languageServerTypes'
 
-type AstNode = AstExtended<Ast.Tree | Ast.Token, false>
+export function lsDiagnosticsToCMDiagnostics(
+  source: string,
+  diagnostics: LSDiagnostic[],
+): Diagnostic[] {
+  if (!diagnostics.length) return []
+  const results: Diagnostic[] = []
+  let pos = 0
+  const lineStartIndices = []
+  for (const line of source.split('\n')) {
+    lineStartIndices.push(pos)
+    pos += line.length + 1
+  }
+  for (const diagnostic of diagnostics) {
+    if (!diagnostic.location) continue
+    results.push({
+      from:
+        (lineStartIndices[diagnostic.location.start.line] ?? 0) +
+        diagnostic.location.start.character,
+      to: (lineStartIndices[diagnostic.location.end.line] ?? 0) + diagnostic.location.end.character,
+      message: diagnostic.message,
+      severity:
+        diagnostic.kind === 'Error' ? 'error' : diagnostic.kind === 'Warning' ? 'warning' : 'info',
+    })
+  }
+  return results
+}
+
+type AstNode = RawAstExtended<RawAst.Tree | RawAst.Token, false>
 
 const nodeTypes: NodeType[] = [
-  ...Ast.Tree.typeNames.map((name, id) => NodeType.define({ id, name })),
-  ...Ast.Token.typeNames.map((name, id) =>
-    NodeType.define({ id: id + Ast.Tree.typeNames.length, name: 'Token' + name }),
+  ...RawAst.Tree.typeNames.map((name, id) => NodeType.define({ id, name })),
+  ...RawAst.Token.typeNames.map((name, id) =>
+    NodeType.define({ id: id + RawAst.Tree.typeNames.length, name: 'Token' + name }),
   ),
 ]
 
@@ -56,13 +86,13 @@ const nodeSet = new NodeSet(nodeTypes).extend(
     Number: tags.number,
     'Wildcard!': tags.variableName,
     'TextLiteral!': tags.string,
-    'OprApp!': tags.operator,
+    OprApp: tags.operator,
     TokenOperator: tags.operator,
     'Assignment/TokenOperator': tags.definitionOperator,
     UnaryOprApp: tags.operator,
     'Function/Ident': tags.function(tags.variableName),
     ForeignFunction: tags.function(tags.variableName),
-    'Import!': tags.function(tags.moduleKeyword),
+    'Import/TokenIdent': tags.function(tags.moduleKeyword),
     Export: tags.function(tags.moduleKeyword),
     Lambda: tags.function(tags.variableName),
     Documented: tags.docComment,
@@ -89,7 +119,7 @@ function astToCodeMirrorTree(
   const childrenToConvert = hasSingleTokenChild ? [] : children
 
   const tree = new Tree(
-    nodeSet.types[ast.inner.type + (ast.isToken() ? Ast.Tree.typeNames.length : 0)]!,
+    nodeSet.types[ast.inner.type + (ast.isToken() ? RawAst.Tree.typeNames.length : 0)]!,
     childrenToConvert.map((child) => astToCodeMirrorTree(nodeSet, child)),
     childrenToConvert.map((child) => child.span()[0] - start),
     end - start,
@@ -118,7 +148,7 @@ class EnsoParser extends Parser {
         const code = input.read(0, input.length)
         if (code !== self.cachedCode || self.cachedTree == null) {
           self.cachedCode = code
-          const ast = AstExtended.parse(code)
+          const ast = RawAstExtended.parse(code)
           self.cachedTree = astToCodeMirrorTree(self.nodeSet, ast, [[languageDataProp, facet]])
         }
         return self.cachedTree

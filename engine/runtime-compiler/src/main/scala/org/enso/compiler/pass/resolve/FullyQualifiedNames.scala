@@ -13,7 +13,7 @@ import org.enso.compiler.core.ir.module.scope.Export
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.expression.warnings
-import org.enso.compiler.core.ir.MetadataStorage.ToPair
+import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.{
   ExportedModule,
@@ -239,7 +239,10 @@ case object FullyQualifiedNames extends IRPass {
                   .getOrElse(false)
               ) {
                 lit.updateMetadata(
-                  this -->> FQNResolution(ResolvedLibrary(lit.name))
+                  new MetadataPair(
+                    this,
+                    FQNResolution(ResolvedLibrary(lit.name))
+                  )
                 )
               } else {
                 lit
@@ -329,7 +332,7 @@ case object FullyQualifiedNames extends IRPass {
               _.map(resolvedMod =>
                 freshNameSupply
                   .newName(from = Some(name))
-                  .updateMetadata(this -->> resolvedMod)
+                  .updateMetadata(new MetadataPair(this, resolvedMod))
                   .setLocation(name.location)
               )
             )

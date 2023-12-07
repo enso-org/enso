@@ -9,7 +9,7 @@ export class Rect {
     readonly size: Vec2,
   ) {}
 
-  static Zero = new Rect(Vec2.Zero, Vec2.Zero)
+  static Zero: Rect
 
   static XYWH(x: number, y: number, w: number, h: number): Rect {
     return new Rect(new Vec2(x, y), new Vec2(w, h))
@@ -47,6 +47,14 @@ export class Rect {
     return this.pos.x + this.size.x
   }
 
+  get width(): number {
+    return this.size.x
+  }
+
+  get height(): number {
+    return this.size.y
+  }
+
   equals(other: Rect): boolean {
     return this.pos.equals(other.pos) && this.size.equals(other.size)
   }
@@ -80,3 +88,5 @@ export class Rect {
     return this.intersectsX(other) && this.intersectsY(other)
   }
 }
+
+Rect.Zero = new Rect(Vec2.Zero, Vec2.Zero)

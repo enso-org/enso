@@ -4,7 +4,7 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.{Expression, Module}
 import org.enso.compiler.core.ir.Name
-import org.enso.compiler.core.ir.MetadataStorage.ToPair
+import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
 import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.{Resolution, ResolvedModule}
@@ -82,7 +82,9 @@ object MethodCalls extends IRPass {
                   resolution match {
                     case Some(List(resolution)) =>
                       val newName =
-                        name.updateMetadata(this -->> Resolution(resolution))
+                        name.updateMetadata(
+                          new MetadataPair(this, Resolution(resolution))
+                        )
                       val newArgs =
                         app.arguments.map(
                           _.mapExpressions(doExpression(_))

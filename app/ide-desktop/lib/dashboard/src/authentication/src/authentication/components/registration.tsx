@@ -76,6 +76,7 @@ export default function Registration() {
                 <Input
                     required
                     validate
+                    allowShowingPassword
                     type="password"
                     autoComplete="new-password"
                     label="Password"
@@ -89,6 +90,7 @@ export default function Registration() {
                 <Input
                     required
                     validate
+                    allowShowingPassword
                     type="password"
                     autoComplete="new-password"
                     label="Confirm password"

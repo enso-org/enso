@@ -67,7 +67,7 @@ interface AssetEvents {
     deleteLabel: AssetDeleteLabelEvent
 }
 
-/** A type to ensure that {@link AssetEvents} contains every {@link AssetLEventType}. */
+/** A type to ensure that {@link AssetEvents} contains every {@link AssetEventType}. */
 // This is meant only as a sanity check, so it is allowed to break lint rules.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 type SanityCheck<

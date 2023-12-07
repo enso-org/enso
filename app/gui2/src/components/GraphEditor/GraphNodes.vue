@@ -18,6 +18,10 @@ const dragging = useDragging()
 const selection = injectGraphSelection(true)
 const navigator = injectGraphNavigator(true)
 
+const emit = defineEmits<{
+  nodeOutputPortDoubleClick: [portId: ExprId]
+}>()
+
 function updateNodeContent(id: ExprId, updates: [ContentRange, string][]) {
   graphStore.transact(() => {
     for (const [range, content] of updates) {
@@ -45,21 +49,23 @@ const uploadingFiles = computed<[FileName, File][]>(() => {
 
 <template>
   <GraphNode
-    v-for="[id, node] in graphStore.db.allNodes()"
+    v-for="[id, node] in graphStore.db.nodeIdToNode.entries()"
     :key="id"
     :node="node"
     :edited="id === graphStore.editedNodeInfo?.id"
-    @update:edited="graphStore.setEditedNode(id, $event)"
-    @updateRect="graphStore.updateNodeRect(id, $event)"
     @delete="graphStore.deleteNode(id)"
     @pointerenter="hoverNode(id)"
     @pointerleave="hoverNode(undefined)"
-    @updateContent="updateNodeContent(id, $event)"
-    @setVisualizationId="graphStore.setNodeVisualizationId(id, $event)"
-    @setVisualizationVisible="graphStore.setNodeVisualizationVisible(id, $event)"
     @dragging="nodeIsDragged(id, $event)"
     @draggingCommited="dragging.finishDrag()"
-    @outputPortAction="graphStore.createEdgeFromOutput(id)"
+    @outputPortClick="graphStore.createEdgeFromOutput"
+    @outputPortDoubleClick="emit('nodeOutputPortDoubleClick', $event)"
+    @update:content="updateNodeContent(id, $event)"
+    @update:edited="graphStore.setEditedNode(id, $event)"
+    @update:rect="graphStore.updateNodeRect(id, $event)"
+    @update:visualizationId="graphStore.setNodeVisualizationId(id, $event)"
+    @update:visualizationRect="graphStore.updateVizRect(id, $event)"
+    @update:visualizationVisible="graphStore.setNodeVisualizationVisible(id, $event)"
   />
   <UploadingFile
     v-for="(nameAndFile, index) in uploadingFiles"

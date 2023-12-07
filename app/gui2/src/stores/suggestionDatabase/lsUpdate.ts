@@ -15,6 +15,7 @@ import type { Doc } from '@/util/docParser'
 import type { Icon } from '@/util/iconName'
 import { type Opt } from '@/util/opt'
 import {
+  normalizeQualifiedName,
   qnJoin,
   qnLastSegment,
   tryIdentifier,
@@ -41,6 +42,7 @@ interface UnfinishedEntry {
   scope?: SuggestionEntryScope
   iconName?: Icon
   groupIndex?: number | undefined
+  annotations?: string[]
 }
 
 function setLsName(
@@ -59,14 +61,15 @@ function setLsModule(
 ): entry is UnfinishedEntry & { name: Identifier; definedIn: QualifiedName } {
   const qn = tryQualifiedName(module)
   if (!qn.ok) return false
-  entry.definedIn = qn.value
+  const normalizedQn = normalizeQualifiedName(qn.value)
+  entry.definedIn = normalizedQn
   switch (entry.kind) {
     case SuggestionKind.Module:
-      entry.name = qnLastSegment(qn.value)
-      entry.returnType = qn.value
+      entry.name = qnLastSegment(normalizedQn)
+      entry.returnType = normalizedQn
       break
     case SuggestionKind.Type:
-      entry.returnType = qnJoin(qn.value, entry.name)
+      entry.returnType = qnJoin(normalizedQn, entry.name)
       break
   }
   return true
@@ -75,7 +78,7 @@ function setLsModule(
 function setAsOwner(entry: UnfinishedEntry, type: string) {
   const qn = tryQualifiedName(type)
   if (qn.ok) {
-    entry.memberOf = qn.value
+    entry.memberOf = normalizeQualifiedName(qn.value)
   } else {
     delete entry.memberOf
   }
@@ -103,7 +106,7 @@ function setLsReexported(
 ): entry is UnfinishedEntry & { reexprotedIn: QualifiedName } {
   const qn = tryQualifiedName(reexported)
   if (!qn.ok) return false
-  entry.reexportedIn = qn.value
+  entry.reexportedIn = normalizeQualifiedName(qn.value)
   return true
 }
 
@@ -128,7 +131,10 @@ export function entryFromLs(
     () => {
       switch (lsEntry.type) {
         case 'function': {
-          const entry = { kind: SuggestionKind.Function }
+          const entry = {
+            kind: SuggestionKind.Function,
+            annotations: [],
+          }
           if (!setLsName(entry, lsEntry.name)) return Err('Invalid name')
           if (!setLsModule(entry, lsEntry.module)) return Err('Invalid module name')
           setLsReturnType(entry, lsEntry.returnType)
@@ -145,6 +151,7 @@ export function entryFromLs(
             name: 'MODULE' as Identifier,
             arguments: [],
             returnType: '',
+            annotations: [],
           }
           if (!setLsModule(entry, lsEntry.module)) return Err('Invalid module name')
           if (lsEntry.reexport != null && !setLsReexported(entry, lsEntry.reexport))
@@ -154,7 +161,11 @@ export function entryFromLs(
           return Ok(entry)
         }
         case 'type': {
-          const entry = { kind: SuggestionKind.Type, returnType: '' }
+          const entry = {
+            kind: SuggestionKind.Type,
+            returnType: '',
+            annotations: [],
+          }
           if (!setLsName(entry, lsEntry.name)) return Err('Invalid name')
           if (!setLsModule(entry, lsEntry.module)) return Err('Invalid module name')
           if (lsEntry.reexport != null && !setLsReexported(entry, lsEntry.reexport))
@@ -176,6 +187,7 @@ export function entryFromLs(
           setLsReturnType(entry, lsEntry.returnType)
           return Ok({
             arguments: lsEntry.arguments,
+            annotations: lsEntry.annotations,
             ...entry,
           })
         }
@@ -190,11 +202,16 @@ export function entryFromLs(
           setLsReturnType(entry, lsEntry.returnType)
           return Ok({
             arguments: lsEntry.arguments,
+            annotations: lsEntry.annotations,
             ...entry,
           })
         }
         case 'local': {
-          const entry = { kind: SuggestionKind.Local, arguments: [] }
+          const entry = {
+            kind: SuggestionKind.Local,
+            arguments: [],
+            annotations: [],
+          }
           if (!setLsName(entry, lsEntry.name)) return Err('Invalid name')
           if (!setLsModule(entry, lsEntry.module)) return Err('Invalid module name')
           setLsReturnType(entry, lsEntry.returnType)

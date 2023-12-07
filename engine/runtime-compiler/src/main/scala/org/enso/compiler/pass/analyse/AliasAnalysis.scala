@@ -26,6 +26,7 @@ import org.enso.compiler.core.ir.expression.{
   Operator,
   Section
 }
+import org.enso.compiler.core.ir.expression.errors.Redefined
 import org.enso.compiler.core.ir.`type`
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Occurrence, Scope}
@@ -187,7 +188,7 @@ case object AliasAnalysis extends IRPass {
                 case occ: Info.Occurrence =>
                   occ.copy(graph = copyRootScopeGraph)
               }
-              copyNode.updateMetadata(this -->> newMeta)
+              copyNode.updateMetadata(new MetadataPair(this, newMeta))
             case None =>
           }
         }
@@ -243,7 +244,9 @@ case object AliasAnalysis extends IRPass {
                 topLevelGraph.rootScope,
                 lambdaReuseScope = true
               )
-            ).updateMetadata(this -->> Info.Scope.Root(topLevelGraph))
+            ).updateMetadata(
+              new MetadataPair(this, Info.Scope.Root(topLevelGraph))
+            )
           case _ =>
             throw new CompilerError(
               "The body of a method should always be a function."
@@ -259,7 +262,9 @@ case object AliasAnalysis extends IRPass {
                 topLevelGraph.rootScope,
                 lambdaReuseScope = true
               )
-            ).updateMetadata(this -->> Info.Scope.Root(topLevelGraph))
+            ).updateMetadata(
+              new MetadataPair(this, Info.Scope.Root(topLevelGraph))
+            )
           case _ =>
             throw new CompilerError(
               "The body of a method should always be a function."
@@ -293,11 +298,13 @@ case object AliasAnalysis extends IRPass {
                       topLevelGraph.rootScope
                     )
                   )
-                  .updateMetadata(this -->> Info.Scope.Root(topLevelGraph))
+                  .updateMetadata(
+                    new MetadataPair(this, Info.Scope.Root(topLevelGraph))
+                  )
               }
-            ).updateMetadata(this -->> Info.Scope.Root(graph))
+            ).updateMetadata(new MetadataPair(this, Info.Scope.Root(graph)))
           })
-        ).updateMetadata(this -->> Info.Scope.Root(topLevelGraph))
+        ).updateMetadata(new MetadataPair(this, Info.Scope.Root(topLevelGraph)))
       case _: Definition.SugaredType =>
         throw new CompilerError(
           "Complex type definitions should not be present during " +
@@ -326,7 +333,9 @@ case object AliasAnalysis extends IRPass {
               topLevelGraph.rootScope
             )
           )
-          .updateMetadata(this -->> Info.Scope.Root(topLevelGraph))
+          .updateMetadata(
+            new MetadataPair(this, Info.Scope.Root(topLevelGraph))
+          )
       case err: Error => err
     }
   }
@@ -390,7 +399,9 @@ case object AliasAnalysis extends IRPass {
               currentScope
             )
           )
-          .updateMetadata(this -->> Info.Scope.Child(graph, currentScope))
+          .updateMetadata(
+            new MetadataPair(this, Info.Scope.Child(graph, currentScope))
+          )
       case binding @ Expression.Binding(name, expression, _, _, _) =>
         if (!parentScope.hasSymbolOccurrenceAs[Occurrence.Def](name.name)) {
           val isSuspended = expression match {
@@ -418,7 +429,9 @@ case object AliasAnalysis extends IRPass {
                 parentScope
               )
             )
-            .updateMetadata(this -->> Info.Occurrence(graph, occurrenceId))
+            .updateMetadata(
+              new MetadataPair(this, Info.Occurrence(graph, occurrenceId))
+            )
         } else {
           errors.Redefined.Binding(binding)
         }
@@ -467,7 +480,9 @@ case object AliasAnalysis extends IRPass {
             memberType = analyseExpression(memberType, graph, memberTypeScope),
             value      = analyseExpression(value, graph, valueScope)
           )
-          .updateMetadata(this -->> Info.Occurrence(graph, labelId))
+          .updateMetadata(
+            new MetadataPair(this, Info.Occurrence(graph, labelId))
+          )
       case x =>
         x.mapExpressions(analyseExpression(_, graph, parentScope))
     }
@@ -515,7 +530,9 @@ case object AliasAnalysis extends IRPass {
         )
         scope.addDefinition(definition)
         arg
-          .updateMetadata(this -->> Info.Occurrence(graph, occurrenceId))
+          .updateMetadata(
+            new MetadataPair(this, Info.Occurrence(graph, occurrenceId))
+          )
           .copy(
             ascribedType =
               arg.ascribedType.map(analyseExpression(_, graph, scope))
@@ -553,14 +570,20 @@ case object AliasAnalysis extends IRPass {
               ascribedType =
                 arg.ascribedType.map(analyseExpression(_, graph, scope))
             )
-            .updateMetadata(this -->> Info.Occurrence(graph, occurrenceId))
+            .updateMetadata(
+              new MetadataPair(this, Info.Occurrence(graph, occurrenceId))
+            )
         } else {
-          throw new CompilerError(
-            s"""
-                Arguments should never be redefined. This is a bug.
-                ${}
-                """
-          )
+          val f = scope.occurrences.collectFirst {
+            case x if x.symbol == name.name => x
+          }
+          arg
+            .copy(
+              ascribedType = Some(new Redefined.Arg(name, arg.location))
+            )
+            .updateMetadata(
+              new MetadataPair(this, Info.Occurrence(graph, f.get.id))
+            )
         }
     }
   }
@@ -591,7 +614,9 @@ case object AliasAnalysis extends IRPass {
         val newScope = scope.addChild()
         tSet
           .copy(expression = expr.map(analyseExpression(_, graph, newScope)))
-          .updateMetadata(this -->> Info.Scope.Child(graph, newScope))
+          .updateMetadata(
+            new MetadataPair(this, Info.Scope.Child(graph, newScope))
+          )
       case _: Operator.Binary =>
         throw new CompilerError(
           "Binary operator occurred during Alias Analysis."
@@ -622,7 +647,9 @@ case object AliasAnalysis extends IRPass {
       }
       arg
         .copy(value = analyseExpression(expr, graph, currentScope))
-        .updateMetadata(this -->> Info.Scope.Child(graph, currentScope))
+        .updateMetadata(
+          new MetadataPair(this, Info.Scope.Child(graph, currentScope))
+        )
     }
   }
 
@@ -655,7 +682,9 @@ case object AliasAnalysis extends IRPass {
               currentScope
             )
           )
-          .updateMetadata(this -->> Info.Scope.Child(graph, currentScope))
+          .updateMetadata(
+            new MetadataPair(this, Info.Scope.Child(graph, currentScope))
+          )
       case _: Function.Binding =>
         throw new CompilerError(
           "Function sugar should not be present during alias analysis."
@@ -698,7 +727,9 @@ case object AliasAnalysis extends IRPass {
         graph.resolveGlobalUsage(occurrence)
       }
     }
-    name.updateMetadata(this -->> Info.Occurrence(graph, occurrenceId))
+    name.updateMetadata(
+      new MetadataPair(this, Info.Occurrence(graph, occurrenceId))
+    )
   }
 
   /** Performs alias analysis on a case expression.
@@ -748,7 +779,9 @@ case object AliasAnalysis extends IRPass {
           currentScope
         )
       )
-      .updateMetadata(this -->> Info.Scope.Child(graph, currentScope))
+      .updateMetadata(
+        new MetadataPair(this, Info.Scope.Child(graph, currentScope))
+      )
   }
 
   /** Performs alias analysis on a pattern.

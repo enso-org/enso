@@ -79,10 +79,13 @@ object GraalVM {
     "org.graalvm.tools"    % "profiler-tool"        % version
   )
 
-  val toolsPkgs = chromeInspectorPkgs
+  val debugAdapterProtocolPkgs = Seq(
+    "org.graalvm.tools" % "dap-tool" % version
+  )
 
-  // TODO: Add graalvmPython
-  val langsPkgs = jsPkgs
+  val toolsPkgs = chromeInspectorPkgs ++ debugAdapterProtocolPkgs
+
+  val langsPkgs = jsPkgs ++ pythonPkgs
 
   /** Augments a state transition to do GraalVM version check.
     *

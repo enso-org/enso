@@ -1,3 +1,4 @@
+import { useApproach } from '@/util/animation'
 import { PointerButtonMask, useEvent, usePointer, useResizeObserver } from '@/util/events'
 import { Rect } from '@/util/rect'
 import { Vec2 } from '@/util/vec2'
@@ -14,13 +15,37 @@ function elemRect(target: Element | undefined): Rect {
 export type NavigatorComposable = ReturnType<typeof useNavigator>
 export function useNavigator(viewportNode: Ref<Element | undefined>) {
   const size = useResizeObserver(viewportNode)
-  const center = ref<Vec2>(Vec2.Zero)
-  const scale = ref(1)
+  const targetCenter = ref<Vec2>(Vec2.Zero)
+  const targetX = computed(() => targetCenter.value.x)
+  const targetY = computed(() => targetCenter.value.y)
+  const centerX = useApproach(targetX)
+  const centerY = useApproach(targetY)
+  const center = computed({
+    get() {
+      return new Vec2(centerX.value, centerY.value)
+    },
+    set(value) {
+      targetCenter.value = value
+      centerX.value = value.x
+      centerY.value = value.y
+    },
+  })
+  const targetScale = ref(1)
+  const animatedScale = useApproach(targetScale)
+  const scale = computed({
+    get() {
+      return animatedScale.value
+    },
+    set(value) {
+      targetScale.value = value
+      animatedScale.value = value
+    },
+  })
   const panPointer = usePointer((pos) => {
     center.value = center.value.addScaled(pos.delta, -1 / scale.value)
   }, PointerButtonMask.Auxiliary)
 
-  function eventScreenPos(e: PointerEvent): Vec2 {
+  function eventScreenPos(e: { clientX: number; clientY: number }): Vec2 {
     return new Vec2(e.clientX, e.clientY)
   }
 
@@ -47,6 +72,19 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
       v.size.y * (clientRect.size.y / rect.size.y),
     )
     return new Rect(pos, size)
+  }
+
+  function panAndZoomTo(rect: Rect, minScale = 0.1, maxScale = 1) {
+    if (!viewportNode.value) return
+    targetScale.value = Math.max(
+      minScale,
+      Math.min(
+        maxScale,
+        viewportNode.value.clientHeight / rect.height,
+        viewportNode.value.clientWidth / rect.width,
+      ),
+    )
+    targetCenter.value = new Vec2(rect.left + rect.width / 2, rect.top + rect.height / 2)
   }
 
   let zoomPivot = Vec2.Zero
@@ -94,22 +132,59 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
     () => `translate(${translate.value.x * scale.value}px, ${translate.value.y * scale.value}px)`,
   )
 
-  useEvent(
-    window,
-    'contextmenu',
-    (e) => {
-      e.preventDefault()
-    },
-    { capture: true },
-  )
-
+  let isPointerDown = false
+  let scrolledThisFrame = false
   const eventMousePos = ref<Vec2 | null>(null)
+  let eventTargetScrollPos: Vec2 | null = null
   const sceneMousePos = computed(() =>
     eventMousePos.value ? clientToScenePos(eventMousePos.value) : null,
   )
 
+  useEvent(
+    window,
+    'scroll',
+    (e) => {
+      if (
+        !isPointerDown ||
+        scrolledThisFrame ||
+        !eventMousePos.value ||
+        !(e.target instanceof Element)
+      )
+        return
+      scrolledThisFrame = true
+      requestAnimationFrame(() => (scrolledThisFrame = false))
+      if (!(e.target instanceof Element)) return
+      const newScrollPos = new Vec2(e.target.scrollLeft, e.target.scrollTop)
+      if (eventTargetScrollPos !== null) {
+        const delta = newScrollPos.sub(eventTargetScrollPos)
+        const mouseDelta = new Vec2(
+          (delta.x * e.target.clientWidth) / e.target.scrollWidth,
+          (delta.y * e.target.clientHeight) / e.target.scrollHeight,
+        )
+        eventMousePos.value = eventMousePos.value?.add(mouseDelta) ?? null
+      }
+      eventTargetScrollPos = newScrollPos
+    },
+    { capture: true },
+  )
+
+  useEvent(
+    window,
+    'scrollend',
+    () => {
+      eventTargetScrollPos = null
+    },
+    { capture: true },
+  )
+
   return proxyRefs({
     events: {
+      dragover(e: DragEvent) {
+        eventMousePos.value = eventScreenPos(e)
+      },
+      dragleave() {
+        eventMousePos.value = null
+      },
       pointermove(e: PointerEvent) {
         eventMousePos.value = eventScreenPos(e)
         panPointer.events.pointermove(e)
@@ -119,10 +194,12 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
         eventMousePos.value = null
       },
       pointerup(e: PointerEvent) {
+        isPointerDown = false
         panPointer.events.pointerup(e)
         zoomPointer.events.pointerup(e)
       },
       pointerdown(e: PointerEvent) {
+        isPointerDown = true
         panPointer.events.pointerdown(e)
         zoomPointer.events.pointerdown(e)
       },
@@ -137,6 +214,9 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
           center.value = center.value.addScaled(delta, 1 / scale.value)
         }
       },
+      contextmenu(e: Event) {
+        e.preventDefault()
+      },
     },
     translate,
     scale,
@@ -147,6 +227,7 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
     sceneMousePos,
     clientToScenePos,
     clientToSceneRect,
+    panAndZoomTo,
     viewport,
   })
 }

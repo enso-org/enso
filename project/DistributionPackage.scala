@@ -95,6 +95,9 @@ object DistributionPackage {
   def executableName(baseName: String): String =
     if (Platform.isWindows) baseName + ".exe" else baseName
 
+  private def batName(baseName: String): String =
+    if (Platform.isWindows) baseName + ".bat" else baseName
+
   def createProjectManagerPackage(
     distributionRoot: File,
     cacheFactory: CacheStoreFactory
@@ -266,7 +269,7 @@ object DistributionPackage {
   ): Boolean = {
     import scala.collection.JavaConverters._
 
-    val enso = distributionRoot / "bin" / "enso"
+    val enso = distributionRoot / "bin" / batName("enso")
     log.info(s"Executing $enso ${args.mkString(" ")}")
     val pb  = new java.lang.ProcessBuilder()
     val all = new java.util.ArrayList[String]()
@@ -433,15 +436,25 @@ object DistributionPackage {
     def executableName(base: String): String = base
     def archiveExt: String                   = ".tar.gz"
     def isUNIX: Boolean                      = true
+    def archs: Seq[Architecture]
   }
   object OS {
     case object Linux extends OS {
       override val name: String                 = "linux"
       override val hasSupportForSulong: Boolean = true
+      override val archs                        = Seq(Architecture.X64)
     }
-    case object MacOS extends OS {
-      override val name: String                 = "macos"
+    trait MacOS extends OS {
+      override val name: String = "macos"
+    }
+    case object MacOSAmd extends MacOS {
       override val hasSupportForSulong: Boolean = true
+      override val archs                        = Seq(Architecture.X64)
+    }
+
+    case object MacOSArm extends MacOS {
+      override val hasSupportForSulong: Boolean = true
+      override val archs                        = Seq(Architecture.AarchX64)
     }
     case object Windows extends OS {
       override val name: String                         = "windows"
@@ -449,16 +462,26 @@ object DistributionPackage {
       override def executableName(base: String): String = base + ".exe"
       override def archiveExt: String                   = ".zip"
       override def isUNIX: Boolean                      = false
+      override val archs                                = Seq(Architecture.X64)
     }
 
-    val platforms = Seq(Linux, MacOS, Windows)
+    val platforms = Seq(Linux, MacOSArm, MacOSAmd, Windows)
 
-    def apply(name: String): Option[OS] =
+    def apply(name: String, arch: Option[String]): Option[OS] =
       name.toLowerCase match {
-        case Linux.`name`   => Some(Linux)
-        case MacOS.`name`   => Some(MacOS)
-        case Windows.`name` => Some(Windows)
-        case _              => None
+        case Linux.`name` => Some(Linux)
+        case MacOSAmd.`name` =>
+          arch match {
+            case Some(Architecture.X64.`name`) =>
+              Some(MacOSAmd)
+            case Some(Architecture.AarchX64.`name`) =>
+              Some(MacOSArm)
+            case _ =>
+              None
+          }
+        case MacOSArm.`name` => Some(MacOSArm)
+        case Windows.`name`  => Some(Windows)
+        case _               => None
       }
   }
 
@@ -471,11 +494,15 @@ object DistributionPackage {
   }
   object Architecture {
     case object X64 extends Architecture {
-      override def name: String      = "amd64"
+      override val name: String      = "amd64"
       override def graalName: String = "x64"
     }
 
-    val archs = Seq(X64)
+    case object AarchX64 extends Architecture {
+      override val name: String      = "aarch64"
+      override def graalName: String = "x64"
+    }
+
   }
 
   /** A helper class that manages building distribution artifacts. */
@@ -669,7 +696,7 @@ object DistributionPackage {
       val executableFile = os match {
         case OS.Linux =>
           shallowFile
-        case OS.MacOS =>
+        case _: OS.MacOS =>
           if (deepFile.exists) {
             deepFile
           } else {
@@ -765,13 +792,19 @@ object DistributionPackage {
 
     /** Path to the artifact that is built on this local machine. */
     def localArtifact(component: String): File = {
-      val architecture = Architecture.X64
       val os =
         if (Platform.isWindows) OS.Windows
         else if (Platform.isLinux) OS.Linux
-        else if (Platform.isMacOS) OS.MacOS
-        else throw new IllegalStateException("Unknown OS")
-      artifactRoot / artifactName(component, os, architecture)
+        else if (Platform.isMacOS) {
+          if (Platform.isAmd64) OS.MacOSAmd
+          else if (Platform.isArm64) OS.MacOSArm
+          else
+            throw new IllegalStateException(
+              "Unknown Arch: " + sys.props("os.arch")
+            )
+        } else
+          throw new IllegalStateException("Unknown OS: " + sys.props("os.name"))
+      artifactRoot / artifactName(component, os, os.archs.head)
     }
 
     /** Path to a built archive.
@@ -811,7 +844,7 @@ object DistributionPackage {
       val log = state.log
       for {
         os   <- OS.platforms
-        arch <- Architecture.archs
+        arch <- os.archs
       } {
         val launcher = builtArtifact("launcher", os, arch)
         if (launcher.exists()) {
@@ -850,7 +883,7 @@ object DistributionPackage {
       val log = state.log
       for {
         os   <- OS.platforms
-        arch <- Architecture.archs
+        arch <- os.archs
       } {
         val launcher = builtArtifact("launcher", os, arch)
         if (launcher.exists()) {

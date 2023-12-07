@@ -5,6 +5,7 @@ import * as toast from 'react-toastify'
 import * as array from '../array'
 import * as assetEventModule from '../events/assetEvent'
 import * as assetListEventModule from '../events/assetListEvent'
+import type * as assetQuery from '../../assetQuery'
 import * as assetTreeNode from '../assetTreeNode'
 import * as backendModule from '../backend'
 import * as columnModule from '../column'
@@ -19,7 +20,6 @@ import * as shortcutsModule from '../shortcuts'
 import * as shortcutsProvider from '../../providers/shortcuts'
 import * as sorting from '../sorting'
 import * as string from '../../string'
-import * as style from '../style'
 import * as uniqueString from '../../uniqueString'
 import type * as visibilityModule from '../visibility'
 
@@ -27,6 +27,7 @@ import * as authProvider from '../../authentication/providers/auth'
 import * as backendProvider from '../../providers/backend'
 import * as modalProvider from '../../providers/modal'
 
+import type * as assetSettingsPanel from './assetSettingsPanel'
 import * as categorySwitcher from './categorySwitcher'
 import AssetNameColumn from './assetNameColumn'
 import AssetRow from './assetRow'
@@ -43,8 +44,8 @@ import Table from './table'
 // === Constants ===
 // =================
 
-/** The number of pixels the header bar should shrink when the extra tab selector is visible. */
-const TABLE_HEADER_WIDTH_SHRINKAGE_PX = 274
+/** The number of pixels the header bar should shrink when the extra column selector is visible. */
+const TABLE_HEADER_WIDTH_SHRINKAGE_PX = 116
 /** A value that represents that the first argument is less than the second argument, in a
  * sorting function. */
 const COMPARE_LESS_THAN = -1
@@ -149,9 +150,14 @@ export interface AssetsTableState {
     setSortColumn: (column: columnModule.SortableColumn | null) => void
     sortDirection: sorting.SortDirection | null
     setSortDirection: (sortDirection: sorting.SortDirection | null) => void
+    query: assetQuery.AssetQuery
+    setQuery: React.Dispatch<React.SetStateAction<assetQuery.AssetQuery>>
     dispatchAssetListEvent: (event: assetListEventModule.AssetListEvent) => void
     assetEvents: assetEventModule.AssetEvent[]
     dispatchAssetEvent: (event: assetEventModule.AssetEvent) => void
+    setAssetSettingsPanelProps: React.Dispatch<
+        React.SetStateAction<assetSettingsPanel.AssetSettingsPanelRequiredProps | null>
+    >
     topLevelAssets: Readonly<React.MutableRefObject<assetTreeNode.AssetTreeNode[]>>
     nodeMap: Readonly<
         React.MutableRefObject<ReadonlyMap<backendModule.AssetId, assetTreeNode.AssetTreeNode>>
@@ -161,7 +167,7 @@ export interface AssetsTableState {
         key: backendModule.AssetId,
         title?: string
     ) => void
-    /** Called when the project is opened via the {@link ProjectActionButton}. */
+    /** Called when the project is opened via the `ProjectActionButton`. */
     doOpenManually: (projectId: backendModule.ProjectId) => void
     doOpenIde: (
         project: backendModule.ProjectAsset,
@@ -197,10 +203,10 @@ export const INITIAL_ROW_STATE = Object.freeze<AssetRowState>({
 
 /** Props for a {@link AssetsTable}. */
 export interface AssetsTableProps {
-    query: string
+    query: assetQuery.AssetQuery
+    setQuery: React.Dispatch<React.SetStateAction<assetQuery.AssetQuery>>
     category: categorySwitcher.Category
     allLabels: Map<backendModule.LabelName, backendModule.Label>
-    currentLabels: backendModule.LabelName[] | null
     initialProjectName: string | null
     projectStartupInfo: backendModule.ProjectStartupInfo | null
     deletedLabelNames: Set<backendModule.LabelName>
@@ -211,6 +217,9 @@ export interface AssetsTableProps {
     dispatchAssetListEvent: (event: assetListEventModule.AssetListEvent) => void
     assetEvents: assetEventModule.AssetEvent[]
     dispatchAssetEvent: (event: assetEventModule.AssetEvent) => void
+    setAssetSettingsPanelProps: React.Dispatch<
+        React.SetStateAction<assetSettingsPanel.AssetSettingsPanelRequiredProps | null>
+    >
     doOpenIde: (
         project: backendModule.ProjectAsset,
         setProject: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>,
@@ -228,15 +237,16 @@ export interface AssetsTableProps {
 export default function AssetsTable(props: AssetsTableProps) {
     const {
         query,
+        setQuery,
         category,
         allLabels,
-        currentLabels,
         deletedLabelNames,
         initialProjectName,
         projectStartupInfo,
         queuedAssetEvents: rawQueuedAssetEvents,
         assetListEvents,
         dispatchAssetListEvent,
+        setAssetSettingsPanelProps,
         assetEvents,
         dispatchAssetEvent,
         doOpenIde,
@@ -277,11 +287,17 @@ export default function AssetsTable(props: AssetsTableProps) {
         [backend, organization]
     )
     const filter = React.useMemo(() => {
-        if (query === '') {
+        if (query.query === '') {
             return null
         } else {
-            const regex = new RegExp(string.regexEscape(query), 'i')
-            return (node: assetTreeNode.AssetTreeNode) => regex.test(node.item.title)
+            return (node: assetTreeNode.AssetTreeNode) => {
+                const labels: string[] = node.item.labels ?? []
+                const lowercaseName = node.item.title.toLowerCase()
+                return (
+                    query.labels.every(label => labels.includes(label)) &&
+                    query.keywords.every(keyword => lowercaseName.includes(keyword.toLowerCase()))
+                )
+            }
         }
     }, [query])
     const displayItems = React.useMemo(() => {
@@ -465,7 +481,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                                 parentId: null,
                                 filterBy: CATEGORY_TO_FILTER_BY[category],
                                 recentProjects: category === categorySwitcher.Category.recent,
-                                labels: currentLabels,
+                                labels: null,
                             },
                             null
                         )
@@ -529,7 +545,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                                             filterBy: CATEGORY_TO_FILTER_BY[category],
                                             recentProjects:
                                                 category === categorySwitcher.Category.recent,
-                                            labels: currentLabels,
+                                            labels: null,
                                         },
                                         entry.item.title
                                     )
@@ -572,7 +588,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                                 parentId: null,
                                 filterBy: CATEGORY_TO_FILTER_BY[category],
                                 recentProjects: category === categorySwitcher.Category.recent,
-                                labels: currentLabels,
+                                labels: null,
                             },
                             null
                         )
@@ -587,7 +603,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 }
             }
         },
-        [category, currentLabels, accessToken, organization, backend]
+        [category, accessToken, organization, backend]
     )
 
     React.useEffect(() => {
@@ -609,12 +625,11 @@ export default function AssetsTable(props: AssetsTableProps) {
             let isClipPathUpdateQueued = false
             const updateClipPath = () => {
                 isClipPathUpdateQueued = false
-                const hasVerticalScrollbar =
-                    scrollContainer.scrollHeight > scrollContainer.clientHeight
-                const shrinkage =
-                    TABLE_HEADER_WIDTH_SHRINKAGE_PX +
-                    (hasVerticalScrollbar ? style.SCROLLBAR_WIDTH_PX : 0)
-                const rightOffset = `calc(100vw - ${shrinkage}px + ${scrollContainer.scrollLeft}px)`
+                const rightOffset = `${
+                    scrollContainer.clientWidth +
+                    scrollContainer.scrollLeft -
+                    TABLE_HEADER_WIDTH_SHRINKAGE_PX
+                }px`
                 headerRow.style.clipPath = `polygon(0 0, ${rightOffset} 0, ${rightOffset} 100%, 0 100%)`
             }
             const onScroll = () => {
@@ -624,8 +639,11 @@ export default function AssetsTable(props: AssetsTableProps) {
                 }
             }
             updateClipPath()
+            const observer = new ResizeObserver(onScroll)
+            observer.observe(scrollContainer)
             scrollContainer.addEventListener('scroll', onScroll)
             return () => {
+                observer.unobserve(scrollContainer)
                 scrollContainer.removeEventListener('scroll', onScroll)
             }
         } else {
@@ -641,6 +659,12 @@ export default function AssetsTable(props: AssetsTableProps) {
             )
         }
     }, [extraColumns, initialized, /* should never change */ localStorage])
+
+    React.useEffect(() => {
+        if (selectedKeys.size !== 1) {
+            setAssetSettingsPanelProps(null)
+        }
+    }, [selectedKeys.size, /* should never change */ setAssetSettingsPanelProps])
 
     const directoryListAbortControllersRef = React.useRef(
         new Map<backendModule.DirectoryId, AbortController>()
@@ -685,7 +709,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                             parentId: directoryId,
                             filterBy: CATEGORY_TO_FILTER_BY[category],
                             recentProjects: category === categorySwitcher.Category.recent,
-                            labels: currentLabels,
+                            labels: null,
                         },
                         title ?? null
                     )
@@ -752,7 +776,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 })()
             }
         },
-        [category, currentLabels, backend]
+        [category, backend]
     )
 
     const getNewProjectName = React.useCallback(
@@ -794,6 +818,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
                     projectState: null,
                     labels: [],
+                    description: null,
                 }
                 if (
                     event.parentId != null &&
@@ -846,6 +871,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                         ...(organization != null ? { opened_by: organization.email } : {}),
                     },
                     labels: [],
+                    description: null,
                 }
                 if (
                     event.parentId != null &&
@@ -895,6 +921,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                         modifiedAt: dateTime.toRfc3339(new Date()),
                         projectState: null,
                         labels: [],
+                        description: null,
                     })
                 )
                 const placeholderProjects = reversedFiles.filter(backendModule.fileIsProject).map(
@@ -913,6 +940,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                             ...(organization != null ? { opened_by: organization.email } : {}),
                         },
                         labels: [],
+                        description: null,
                     })
                 )
                 if (
@@ -977,6 +1005,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
                     projectState: null,
                     labels: [],
+                    description: null,
                 }
                 if (
                     event.parentId != null &&
@@ -1274,9 +1303,12 @@ export default function AssetsTable(props: AssetsTableProps) {
             setSortColumn,
             sortDirection,
             setSortDirection,
+            query,
+            setQuery,
             assetEvents,
             dispatchAssetEvent,
             dispatchAssetListEvent,
+            setAssetSettingsPanelProps,
             topLevelAssets: assetTreeRef,
             nodeMap: nodeMapRef,
             doToggleDirectoryExpansion,
@@ -1296,6 +1328,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             sortColumn,
             sortDirection,
             assetEvents,
+            query,
             doToggleDirectoryExpansion,
             doOpenManually,
             doOpenIde,
@@ -1303,6 +1336,8 @@ export default function AssetsTable(props: AssetsTableProps) {
             doCreateLabel,
             doCut,
             doPaste,
+            /* should never change */ setAssetSettingsPanelProps,
+            /* should never change */ setQuery,
             /* should never change */ setSortColumn,
             /* should never change */ setSortDirection,
             /* should never change */ dispatchAssetEvent,
@@ -1322,7 +1357,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                                         key={column}
                                         active={extraColumns.has(column)}
                                         image={columnModule.EXTRA_COLUMN_IMAGES[column]}
-                                        onClick={() => {
+                                        onClick={event => {
+                                            event.stopPropagation()
                                             const newExtraColumns = new Set(extraColumns)
                                             if (extraColumns.has(column)) {
                                                 newExtraColumns.delete(column)
@@ -1389,7 +1425,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     placeholder={
                         category === categorySwitcher.Category.trash
                             ? TRASH_PLACEHOLDER
-                            : query !== '' || currentLabels != null
+                            : query.query !== ''
                             ? QUERY_PLACEHOLDER
                             : PLACEHOLDER
                     }
@@ -1428,7 +1464,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                                 setModal(
                                     <DragModal
                                         event={event}
-                                        className="flex flex-col bg-frame rounded-2xl bg-frame-selected backdrop-blur-3xl"
+                                        className="flex flex-col rounded-2xl bg-frame-selected backdrop-blur-3xl"
                                         doCleanup={() => {
                                             drag.ASSET_ROWS.unbind(payload)
                                         }}
@@ -1440,6 +1476,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                                                 item={{ ...node, depth: 0 }}
                                                 state={state}
                                                 // Default states.
+                                                isSoleSelectedItem={false}
                                                 selected={false}
                                                 rowState={INITIAL_ROW_STATE}
                                                 // The drag placeholder cannot be interacted with.

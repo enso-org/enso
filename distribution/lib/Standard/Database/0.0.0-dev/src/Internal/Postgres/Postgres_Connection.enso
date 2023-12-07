@@ -144,6 +144,7 @@ type Postgres_Connection
     query self query alias="" = self.connection.query query alias
 
     ## GROUP Standard.Base.Input
+       ICON data_input
        Execute the query and load the results into memory as a Table.
 
        Arguments:

@@ -1,6 +1,5 @@
 package org.enso.compiler.core.ir
 
-import com.oracle.truffle.api.source.Source
 import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
 import org.enso.compiler.core.{IR, Identifier}
 import org.enso.compiler.core.IR.randomId
@@ -15,7 +14,7 @@ import java.util.UUID
   */
 sealed case class Empty(
   override val location: Option[IdentifiedLocation],
-  passData: MetadataStorage      = MetadataStorage(),
+  passData: MetadataStorage      = new MetadataStorage(),
   diagnostics: DiagnosticStorage = DiagnosticStorage()
 ) extends IR
     with Expression
@@ -51,7 +50,8 @@ sealed case class Empty(
   ): Empty =
     copy(
       location = if (keepLocations) location else None,
-      passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+      passData =
+        if (keepMetadata) passData.duplicate else new MetadataStorage(),
       diagnostics =
         if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
       id = if (keepIdentifiers) id else randomId
@@ -81,7 +81,7 @@ sealed case class Empty(
   override def children: List[IR] = List()
 
   /** @inheritdoc */
-  override def message(source: Source): String =
+  override def message(source: (IdentifiedLocation => String)): String =
     "Empty IR: Please report this as a compiler bug."
 
   /** @inheritdoc */

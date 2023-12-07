@@ -1,11 +1,19 @@
 <script setup lang="ts">
+import { ForcePort } from '@/providers/portInfo'
 import { provideWidgetTree } from '@/providers/widgetTree'
+import { useGraphStore } from '@/stores/graph'
 import { useTransitioning } from '@/util/animation'
-import type { AstExtended } from '@/util/ast'
-import { toRef } from 'vue'
+import { Ast } from '@/util/ast'
+import { computed, toRef } from 'vue'
 import NodeWidget from './NodeWidget.vue'
 
-const props = defineProps<{ ast: AstExtended }>()
+const props = defineProps<{ ast: Ast.Ast }>()
+const graph = useGraphStore()
+const rootPort = computed(() => {
+  return props.ast instanceof Ast.Ident && !graph.db.isKnownFunctionCall(props.ast.astId)
+    ? new ForcePort(props.ast)
+    : props.ast
+})
 
 const observedLayoutTransitions = new Set([
   'margin-left',
@@ -25,15 +33,25 @@ provideWidgetTree(toRef(props, 'ast'), layoutTransitions.active)
 </script>
 
 <template>
-  <span class="NodeWidgetTree" spellcheck="false" v-on="layoutTransitions.events">
-    <NodeWidget :input="ast" />
-  </span>
+  <div class="NodeWidgetTree" spellcheck="false" v-on="layoutTransitions.events">
+    <NodeWidget :input="rootPort" />
+  </div>
 </template>
 
 <style scoped>
 .NodeWidgetTree {
   color: white;
   margin-left: 4px;
+
+  outline: none;
+  height: 24px;
+  display: flex;
+  align-items: center;
+
+  & :deep(span) {
+    vertical-align: middle;
+  }
+
   &:has(.WidgetPort.newToConnect) {
     margin-left: calc(4px - var(--widget-port-extra-pad));
   }

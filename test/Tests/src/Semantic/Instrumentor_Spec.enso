@@ -14,11 +14,12 @@ fib2 n f=1 s=1 =
 
 spec =
     Test.group "Instrument fibonacci" <|
+        a_plus_b_uuid = "00000000-aaaa-bbbb-0000-000000000000" # UUID for a+b
+
         Test.specify "collect and filter on return updates" <|
             b = Vector.new_builder
 
             collect uuid:Text result =
-                a_plus_b_uuid = "00000000-aaaa-bbbb-0000-000000000000" # UUID for a+b
                 if uuid == a_plus_b_uuid then
                     b.append result
                 Nothing
@@ -43,6 +44,38 @@ spec =
 
             # no more instrumenting after finalize
             b.to_vector.length . should_equal 1
+
+        Test.specify "access local variables " <|
+            b = Vector.new_builder
+
+            collect uuid:Text ~result =
+                if uuid == a_plus_b_uuid then
+                    case result of
+                        v : Vector -> b.append_vector_range v
+                        anything -> Test.fail <| "Should be a number: " + anything.to_text
+                Nothing
+
+            expr = "[a, b, a-b]"
+            instrumenter = Meta.meta .fib . instrument . on_return collect expression=expr . activate
+
+            instrumenter . with _->
+                result = fib 10
+
+                v = b.to_vector
+
+                v.length . should_equal 3
+                result . should_equal 89
+                v . should_equal [55, 34, 21]
+
+            instrumenter.finalize
+            # no op:
+            instrumenter.finalize
+
+            result = fib 10
+            result . should_equal 89
+
+            # no more instrumenting after finalize
+            b.to_vector.length . should_equal 3
 
         Test.specify "replay with caches and specify different result" <|
             replay uuid:Text = case uuid of

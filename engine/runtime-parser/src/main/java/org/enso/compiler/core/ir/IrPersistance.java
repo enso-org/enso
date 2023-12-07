@@ -1,7 +1,7 @@
 package org.enso.compiler.core.ir;
 
 import java.io.IOException;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 import org.enso.compiler.core.ir.expression.Application;
@@ -61,6 +61,10 @@ import scala.collection.immutable.Seq;
 @Persistable(clazz = Name.BuiltinAnnotation.class, id = 783)
 @Persistable(clazz = Type.Error.class, id = 784)
 @Persistable(clazz = Unused.Binding.class, id = 785)
+@Persistable(clazz = Unused.PatternBinding.class, id = 786)
+@Persistable(clazz = Unused.FunctionArgument.class, id = 787)
+@Persistable(clazz = Warning.DuplicatedImport.class, id = 788)
+@Persistable(clazz = Warning.WrongBuiltinMethod.class, id = 789)
 public final class IrPersistance {
   private IrPersistance() {}
 
@@ -230,14 +234,9 @@ public final class IrPersistance {
     @SuppressWarnings("unchecked")
     protected scala.collection.immutable.Map readObject(Input in)
         throws IOException, ClassNotFoundException {
-      var size = in.readInt();
-      var map = scala.collection.immutable.Map$.MODULE$.empty();
-      for (var i = 0; i < size; i++) {
-        var key = in.readObject();
-        var value = in.readObject();
-        map = map.$plus(new Tuple2(key, value));
-      }
-      return map;
+      var map = new IrLazyMap(in);
+      var immutableMap = new IrLazyImMap(map);
+      return immutableMap;
     }
   }
 
@@ -309,13 +308,13 @@ public final class IrPersistance {
   }
 
   @ServiceProvider(service = Persistance.class)
-  public static final class PersistMap extends Persistance<HashMap> {
+  public static final class PersistMap extends Persistance<Map> {
     public PersistMap() {
-      super(HashMap.class, true, 4440);
+      super(Map.class, true, 4440);
     }
 
     @Override
-    protected void writeObject(HashMap m, Output out) throws IOException {
+    protected void writeObject(Map m, Output out) throws IOException {
       var size = m.size();
       out.writeInt(size);
       var it = m.entrySet().iterator();
@@ -328,15 +327,8 @@ public final class IrPersistance {
 
     @Override
     @SuppressWarnings("unchecked")
-    protected HashMap readObject(Input in) throws IOException, ClassNotFoundException {
-      var size = in.readInt();
-      var map = new HashMap<Object, Object>();
-      for (var i = 0; i < size; i++) {
-        var key = in.readObject();
-        var value = in.readObject();
-        map.put(key, value);
-      }
-      return map;
+    protected Map readObject(Input in) throws IOException, ClassNotFoundException {
+      return new IrLazyMap(in);
     }
   }
 
@@ -370,37 +362,26 @@ public final class IrPersistance {
   @ServiceProvider(service = Persistance.class)
   public static final class PersistMetadataStorage extends Persistance<MetadataStorage> {
     public PersistMetadataStorage() {
-      super(MetadataStorage.class, false, 301);
+      super(MetadataStorage.class, false, 389);
     }
 
     @Override
     @SuppressWarnings("unchecked")
     protected void writeObject(MetadataStorage obj, Output out) throws IOException {
-      var map =
-          obj.map(
-              (processingPass, data) -> {
-                var t = new Tuple2<>(processingPass.getClass().getName(), data);
-                return t;
-              });
-      out.writeInline(scala.collection.immutable.Map.class, map);
+      var map = new LinkedHashMap<ProcessingPass, ProcessingPass.Metadata>();
+      obj.map(
+          (processingPass, data) -> {
+            map.put(processingPass, data);
+            return null;
+          });
+      out.writeInline(java.util.Map.class, map);
     }
 
     @Override
     @SuppressWarnings("unchecked")
     protected MetadataStorage readObject(Input in) throws IOException, ClassNotFoundException {
-      var storage = new MetadataStorage(nil());
-      var map = in.readInline(scala.collection.immutable.Map.class);
-      var it = map.iterator();
-      while (it.hasNext()) {
-        var obj = (Tuple2<String, ProcessingPass.Metadata>) it.next();
-        try {
-          var pass = (ProcessingPass) Class.forName(obj._1()).getField("MODULE$").get(null);
-          var data = obj._2();
-          storage.update(pass, data);
-        } catch (ReflectiveOperationException ex) {
-          throw new IOException(ex);
-        }
-      }
+      var map = in.readInline(java.util.Map.class);
+      var storage = new MetadataStorage(map);
       return storage;
     }
   }
@@ -412,28 +393,15 @@ public final class IrPersistance {
     }
 
     @Override
-    protected void writeObject(DiagnosticStorage obj, Output out) throws IOException {}
+    protected void writeObject(DiagnosticStorage obj, Output out) throws IOException {
+      out.writeInline(List.class, obj.toList());
+    }
 
     @Override
     @SuppressWarnings("unchecked")
     protected DiagnosticStorage readObject(Input in) throws IOException, ClassNotFoundException {
-      return new DiagnosticStorage(
-          (scala.collection.immutable.List) scala.collection.immutable.Nil$.MODULE$);
+      var diags = in.readInline(List.class);
+      return new DiagnosticStorage(diags);
     }
-  }
-
-  @SuppressWarnings("unchecked")
-  private static <T> scala.collection.immutable.List<T> nil() {
-    return (scala.collection.immutable.List<T>) scala.collection.immutable.Nil$.MODULE$;
-  }
-
-  private static <T> scala.collection.immutable.List<T> join(
-      T head, scala.collection.immutable.List<T> tail) {
-    return scala.collection.immutable.$colon$colon$.MODULE$.apply(head, tail);
-  }
-
-  @SuppressWarnings("unchecked")
-  private static <E extends Throwable> E raise(Class<E> clazz, Throwable t) throws E {
-    throw (E) t;
   }
 }

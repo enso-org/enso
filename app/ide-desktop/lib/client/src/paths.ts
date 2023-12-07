@@ -20,7 +20,7 @@ export const APP_PATH = electron.app.getAppPath()
 
 /** The path of the directory in which the log files of IDE are stored.
  *
- * This is based on the Electron `logs` directory, see {@link Electron.App.getPath}. */
+ * This is based on the Electron `logs` directory, see {@link electron.app.getPath}. */
 export const LOGS_DIRECTORY = electron.app.getPath('logs')
 
 /** The application assets, all files bundled with it. */

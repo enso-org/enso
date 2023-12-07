@@ -5,6 +5,7 @@ declare const qualifiedNameBrand: unique symbol
 const identifierRegexPart = '(?:(?:[a-zA-Z_][0-9]*)+|[!$%&*+,-./:;<=>?@\\^|~]+)'
 const identifierRegex = new RegExp(`^${identifierRegexPart}$`)
 const qnRegex = new RegExp(`^${identifierRegexPart}(?:\\.${identifierRegexPart})*$`)
+const mainSegmentRegex = new RegExp(`^(${identifierRegexPart}\\.${identifierRegexPart})\\.Main`)
 
 /** A string representing a valid identifier of our language. */
 export type Identifier = string & { [identifierBrand]: never; [qualifiedNameBrand]: never }
@@ -15,6 +16,11 @@ export function isIdentifier(str: string): str is Identifier {
 
 export function tryIdentifier(str: string): Result<Identifier> {
   return isIdentifier(str) ? Ok(str) : Err(`"${str}" is not a valid identifier`)
+}
+
+/** Mark the input as an identifier without any validation. This should always be used to obtain an Identifier from an Ast, and never when creating or modifying an identifier. */
+export function identifierUnchecked(str: string): Identifier {
+  return str as Identifier
 }
 
 /** A string representing a valid qualified name of our language.
@@ -31,6 +37,11 @@ export function isQualifiedName(str: string): str is QualifiedName {
 
 export function tryQualifiedName(str: string): Result<QualifiedName> {
   return isQualifiedName(str) ? Ok(str) : Err(`"${str}" is not a valid qualified name`)
+}
+
+/** Normalize qualified name, removing `Main` module segment of a project if it is present. */
+export function normalizeQualifiedName(name: QualifiedName): QualifiedName {
+  return name.replace(mainSegmentRegex, '$1') as QualifiedName
 }
 
 /** The index of the `.` between the last segment and all other segments.
@@ -61,6 +72,10 @@ export function qnParent(name: QualifiedName): QualifiedName | null {
 
 export function qnJoin(left: QualifiedName, right: QualifiedName): QualifiedName {
   return `${left}.${right}` as QualifiedName
+}
+
+export function qnFromSegments(segments: Iterable<Identifier>): QualifiedName {
+  return [...segments].join('.') as QualifiedName
 }
 
 export function qnSegments(name: QualifiedName): Identifier[] {
@@ -155,5 +170,16 @@ if (import.meta.vitest) {
   ])('qnIsTopElement(%s) returns %s', (name, result) => {
     const qn = unwrap(tryQualifiedName(name))
     expect(qnIsTopElement(qn)).toBe(result)
+  })
+
+  test.each([
+    ['local.Project.Main', 'local.Project'],
+    ['Standard.Table.Main', 'Standard.Table'],
+    ['Standard.Table.Main.Table', 'Standard.Table.Table'],
+    ['Some.Path.Without.Main.Module', 'Some.Path.Without.Main.Module'],
+    ['Standard.Base', 'Standard.Base'],
+  ])('normalizeQualifiedName drops Main module in %s', (name, expected) => {
+    const qn = unwrap(tryQualifiedName(name))
+    expect(normalizeQualifiedName(qn)).toEqual(unwrap(tryQualifiedName(expected)))
   })
 }

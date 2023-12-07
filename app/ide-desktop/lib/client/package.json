@@ -19,25 +19,24 @@
   "dependencies": {
     "@types/mime-types": "^2.1.1",
     "@types/opener": "^1.4.0",
+    "@types/tar": "^6.1.4",
+    "@types/yargs": "^17.0.30",
     "chalk": "^5.2.0",
     "create-servers": "3.2.0",
     "electron-is-dev": "^2.0.0",
     "mime-types": "^2.1.35",
     "opener": "^1.5.2",
     "string-length": "^5.0.1",
-    "@types/tar": "^6.1.4",
     "tar": "^6.1.13",
-    "@types/yargs": "^17.0.30",
     "yargs": "17.6.2"
   },
   "comments": {
     "electron-builder": "Cannot be updated to a newer version because of a NSIS installer issue: https://github.com/enso-org/enso/issues/5169"
   },
   "devDependencies": {
-    "crypto-js": "4.1.1",
+    "@electron/notarize": "2.1.0",
     "electron": "25.7.0",
     "electron-builder": "^22.14.13",
-    "@electron/notarize": "2.1.0",
     "enso-common": "^1.0.0",
     "esbuild": "^0.19.3",
     "fast-glob": "^3.2.12",
@@ -45,10 +44,10 @@
     "tsx": "^3.12.6"
   },
   "optionalDependencies": {
-    "dmg-license": "^1.0.11",
     "@esbuild/darwin-x64": "^0.17.15",
     "@esbuild/linux-x64": "^0.17.15",
-    "@esbuild/windows-x64": "^0.17.15"
+    "@esbuild/windows-x64": "^0.17.15",
+    "dmg-license": "^1.0.11"
   },
   "scripts": {
     "typecheck": "npm run --workspace=enso-gui2 compile-server && tsc --noEmit",

@@ -13,7 +13,6 @@ import {
   currentProjectProtocol,
   InvalidVisualizationModuleError,
   stylePathAttribute,
-  type VisualizationModule,
 } from '@/stores/visualization/compilerMessaging'
 import {
   fromVisualizationId,
@@ -21,12 +20,13 @@ import {
   VisualizationMetadataDb,
   type VisualizationId,
 } from '@/stores/visualization/metadata'
+import type { VisualizationModule } from '@/stores/visualization/runtimeTypes'
 import { rpcWithRetries } from '@/util/net'
 import type { Opt } from '@/util/opt'
 import { defineStore } from 'pinia'
 import type { Event as LSEvent, VisualizationConfiguration } from 'shared/languageServerTypes'
-import type { VisualizationIdentifier } from 'shared/yjsModel'
-import { computed, reactive, type DefineComponent, type PropType } from 'vue'
+import type { ExprId, VisualizationIdentifier } from 'shared/yjsModel'
+import { computed, reactive } from 'vue'
 
 /** The directory in the project under which custom visualizations can be found. */
 const customVisualizationsDirectory = 'visualizations'
@@ -49,30 +49,25 @@ export const DEFAULT_VISUALIZATION_IDENTIFIER: VisualizationIdentifier = {
   name: 'JSON',
 }
 
-export type Visualization = DefineComponent<
-  // Props
-  { data: { type: PropType<any>; required: true } },
-  {},
-  unknown,
-  {},
-  {},
-  {},
-  {},
-  // Emits
-  {
-    'update:preprocessor'?: (module: string, method: string, ...args: string[]) => void
-  }
->
+export type VisualizationDataSource =
+  | {
+      type: 'node'
+      nodeId: ExprId
+    }
+  | {
+      type: 'expression'
+      expression: string
+      contextId: ExprId
+    }
 
 const builtinVisualizations: VisualizationModule[] = [
   jsonVisualization,
-  // FIXME [sb]: what is the cause of the type errors?!
-  tableVisualization as VisualizationModule,
-  scatterplotVisualization as VisualizationModule,
+  tableVisualization,
+  scatterplotVisualization,
   histogramVisualization,
   heatmapVisualization,
   sqlVisualization,
-  geoMapVisualization as VisualizationModule,
+  geoMapVisualization,
   imageBase64Visualization,
   warningsVisualization,
 ]
@@ -95,10 +90,11 @@ export const useVisualizationStore = defineStore('visualization', () => {
     (roots) => roots.find((root) => root.type === 'Project')?.id,
   )
 
-  for (const { name, inputType } of builtinVisualizations) {
+  for (const { name, inputType, icon } of builtinVisualizations) {
     metadata.set(toVisualizationId({ module: { kind: 'Builtin' }, name }), {
       name,
       inputType,
+      icon,
     })
   }
 
@@ -182,7 +178,11 @@ export const useVisualizationStore = defineStore('visualization', () => {
             id = { module: { kind: 'CurrentProject' }, name: viz.name }
             cache.set(toVisualizationId(id), vizPromise)
           }
-          metadata.set(toVisualizationId(id), { name: viz.name, inputType: viz.inputType })
+          metadata.set(toVisualizationId(id), {
+            name: viz.name,
+            inputType: viz.inputType,
+            icon: viz.icon,
+          })
         } catch (error) {
           if (key) cache.delete(key)
           if (error instanceof InvalidVisualizationModuleError) {
@@ -219,10 +219,14 @@ export const useVisualizationStore = defineStore('visualization', () => {
       type == null
         ? metadata.keys()
         : new Set([
-            ...(metadata.types.reverseLookup(type) ?? []),
-            ...(metadata.types.reverseLookup('Any') ?? []),
+            ...(metadata.visualizationIdToType.reverseLookup(type) ?? []),
+            ...(metadata.visualizationIdToType.reverseLookup('Any') ?? []),
           ])
     for (const type of types) yield fromVisualizationId(type)
+  }
+
+  function icon(type: VisualizationIdentifier) {
+    return metadata.get(toVisualizationId(type))?.icon
   }
 
   function get(meta: VisualizationIdentifier, ignoreCache = false) {
@@ -253,5 +257,5 @@ export const useVisualizationStore = defineStore('visualization', () => {
     return module
   }
 
-  return { types, get }
+  return { types, get, icon }
 })

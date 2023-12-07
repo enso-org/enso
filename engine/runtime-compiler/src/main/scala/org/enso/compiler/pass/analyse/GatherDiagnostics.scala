@@ -12,7 +12,7 @@ import org.enso.compiler.core.ir.{
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.resolve.TypeSignatures
+import org.enso.compiler.pass.resolve.{GenericAnnotations, TypeSignatures}
 
 /** A pass that traverses the given root IR and accumulates all the encountered
   * diagnostic nodes in the root.
@@ -41,7 +41,7 @@ case object GatherDiagnostics extends IRPass {
     ir: Module,
     moduleContext: ModuleContext
   ): Module =
-    ir.updateMetadata(this -->> gatherMetadata(ir))
+    ir.updateMetadata(new MetadataPair(this, gatherMetadata(ir)))
 
   /** Executes the pass on the provided `ir`, and attaches all the encountered
     * diagnostics to its metadata storage.
@@ -54,7 +54,7 @@ case object GatherDiagnostics extends IRPass {
   override def runExpression(
     ir: Expression,
     inlineContext: InlineContext
-  ): Expression = ir.updateMetadata(this -->> gatherMetadata(ir))
+  ): Expression = ir.updateMetadata(new MetadataPair(this, gatherMetadata(ir)))
 
   /** Gathers diagnostics from all children of an IR node.
     *
@@ -69,25 +69,23 @@ case object GatherDiagnostics extends IRPass {
         val typeSignatureDiagnostics =
           arg
             .getMetadata(TypeSignatures)
-            .map(_.signature.preorder.collect { case err: Diagnostic =>
-              err
-            })
+            .map(_.signature.preorder.collect(collectDiagnostics))
             .getOrElse(Nil)
         typeSignatureDiagnostics ++ arg.diagnostics.toList
       case x: definition.Method =>
         val typeSignatureDiagnostics =
           x.getMetadata(TypeSignatures)
-            .map(_.signature.preorder.collect { case err: Diagnostic =>
-              err
-            })
+            .map(_.signature.preorder.collect(collectDiagnostics))
             .getOrElse(Nil)
-        typeSignatureDiagnostics ++ x.diagnostics.toList
+        val annotationsDiagnostics =
+          x.getMetadata(GenericAnnotations)
+            .map(_.annotations.flatMap(_.preorder.collect(collectDiagnostics)))
+            .getOrElse(Nil)
+        typeSignatureDiagnostics ++ annotationsDiagnostics ++ x.diagnostics.toList
       case x: Expression =>
         val typeSignatureDiagnostics =
           x.getMetadata(TypeSignatures)
-            .map(_.signature.preorder.collect { case err: Diagnostic =>
-              err
-            })
+            .map(_.signature.preorder.collect(collectDiagnostics))
             .getOrElse(Nil)
         typeSignatureDiagnostics ++ x.diagnostics.toList
       case x =>
@@ -96,6 +94,10 @@ case object GatherDiagnostics extends IRPass {
     DiagnosticsMeta(
       diagnostics.distinctBy(d => new DiagnosticKeys(d))
     )
+  }
+
+  private val collectDiagnostics: PartialFunction[IR, Diagnostic] = {
+    case err: Diagnostic => err
   }
 
   final private class DiagnosticKeys(private val diagnostic: Diagnostic) {
@@ -119,7 +121,8 @@ case object GatherDiagnostics extends IRPass {
       for (k <- diagnostic.diagnosticKeys()) {
         sum += k.hashCode
       }
-      return sum
+
+      sum
     }
   }
 

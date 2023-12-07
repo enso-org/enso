@@ -2,6 +2,9 @@ import project.Any.Any
 import project.Data
 import project.Data.Array.Array
 import project.Data.Boolean
+import project.Data.Enso_Cloud.Enso_File.Enso_File
+import project.Data.Enso_Cloud.Enso_Secret.Enso_Secret
+import project.Data.Enso_Cloud.Enso_User.Enso_User
 import project.Data.Filter_Condition.Filter_Condition
 import project.Data.Index_Sub_Range.Index_Sub_Range
 import project.Data.Interval.Bound
@@ -96,6 +99,9 @@ from project.System.File_Format.Plain_Text_Format import Plain_Text
 export project.Any.Any
 export project.Data
 export project.Data.Array.Array
+export project.Data.Enso_Cloud.Enso_File.Enso_File
+export project.Data.Enso_Cloud.Enso_Secret.Enso_Secret
+export project.Data.Enso_Cloud.Enso_User.Enso_User
 export project.Data.Filter_Condition.Filter_Condition
 export project.Data.Index_Sub_Range.Index_Sub_Range
 export project.Data.Interval.Bound

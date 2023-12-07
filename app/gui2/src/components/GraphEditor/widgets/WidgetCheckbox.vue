@@ -1,53 +1,50 @@
 <script setup lang="ts">
 import CheckboxWidget from '@/components/widgets/CheckboxWidget.vue'
-import { Tree } from '@/generated/ast'
-import { Score, defineWidget, widgetAst, type WidgetProps } from '@/providers/widgetRegistry'
+import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
-import { Ast, type AstExtended } from '@/util/ast'
+import { Ast } from '@/util/ast'
 import { computed } from 'vue'
 
-const props = defineProps<WidgetProps>()
+const props = defineProps(widgetProps(widgetDefinition))
+
 const graph = useGraphStore()
 const value = computed({
   get() {
-    return widgetAst(props.input)?.repr().endsWith('True') ?? false
+    return props.input.code().endsWith('True') ?? false
   },
   set(value) {
-    const ast = widgetAst(props.input)
-    const node = ast && getRawBoolNode(ast)
+    const node = getRawBoolNode(props.input)
     if (node != null) {
       graph.setExpressionContent(node.astId, value ? 'True' : 'False')
     }
   },
 })
 </script>
+
 <script lang="ts">
-function getRawBoolNode(ast: AstExtended) {
+function getRawBoolNode(ast: Ast.Ast) {
   const candidate =
-    ast.isTree(Tree.Type.OprApp) && ast.repr().startsWith('Boolean.')
-      ? ast.tryMap((t) => t.rhs)
-      : ast
-  if (
-    candidate &&
-    candidate.isTree(Ast.Tree.Type.Ident) &&
-    ['True', 'False'].includes(candidate.repr())
-  ) {
+    ast instanceof Ast.PropertyAccess && ast.lhs?.code() === 'Boolean' ? ast.rhs : ast
+  if (candidate instanceof Ast.Ident && ['True', 'False'].includes(candidate.code())) {
     return candidate
   }
   return null
 }
 
-export const widgetDefinition = defineWidget({
-  priority: 10,
-  match: (info) => {
-    const ast = widgetAst(info.input)
-    if (ast && getRawBoolNode(ast) != null) {
-      return Score.Perfect
-    }
-    return Score.Mismatch
+export const widgetDefinition = defineWidget(
+  (input) => input instanceof Ast.PropertyAccess || input instanceof Ast.Ident,
+  {
+    priority: 10,
+    score: (props) => {
+      if (getRawBoolNode(props.input) != null) {
+        return Score.Perfect
+      }
+      return Score.Mismatch
+    },
   },
-})
+)
 </script>
+
 <template>
   <CheckboxWidget
     v-model="value"
@@ -56,5 +53,3 @@ export const widgetDefinition = defineWidget({
     @beforeinput.stop
   />
 </template>
-
-<style scoped></style>

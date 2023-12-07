@@ -31,6 +31,27 @@ public class ErrorCompilerTest extends CompilerTest {
   }
 
   @Test
+  public void spaceDotUnderscore() throws Exception {
+    var ir = parse("""
+    run op =
+      op ._
+    """);
+
+    assertSingleSyntaxError(ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 14, 16);
+  }
+
+  @Test
+  public void unaryMinus() throws Exception {
+    var ir = parse("""
+    from Standard.Base import all
+
+    main = Date.new day=-
+    """);
+
+    assertSingleSyntaxError(ir, new Syntax.UnsupportedSyntax("Strange unary -"), "Syntax is not supported yet: Strange unary -", 51, 52);
+  }
+
+  @Test
   public void dotUnderscore2() throws Exception {
     var ir = parse("""
     run op =
@@ -415,6 +436,24 @@ public class ErrorCompilerTest extends CompilerTest {
     assertTrue(errors.head().reason() instanceof Syntax.UnsupportedSyntax);
     assertEquals(errors.head().location().get().start(), 0);
     assertEquals(errors.head().location().get().length(), 6);
+  }
+
+  @Test
+  public void testAnnotation1() throws Exception {
+    var ir = parse("""
+    @x `
+    id x = x
+    """);
+    assertSingleSyntaxError(ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 3, 4);
+  }
+
+  @Test
+  public void testAnnotation2() throws Exception {
+    var ir = parse("""
+    @` foo
+    id x = x
+    """);
+    assertSingleSyntaxError(ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 6);
   }
 
   private void assertSingleSyntaxError(

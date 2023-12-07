@@ -14,7 +14,7 @@ import org.enso.compiler.core.ir.{
   Name,
   Type
 }
-import org.enso.compiler.core.ir.MetadataStorage.ToPair
+import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{
@@ -192,7 +192,10 @@ case object FunctionBinding extends IRPass {
                 firstArg
                   .withName(newName)
                   .updateMetadata(
-                    IgnoredBindings -->> IgnoredBindings.State.Ignored
+                    new MetadataPair(
+                      IgnoredBindings,
+                      IgnoredBindings.State.Ignored
+                    )
                   )
               } else {
                 firstArg
@@ -212,7 +215,10 @@ case object FunctionBinding extends IRPass {
                       snd
                         .withName(newName)
                         .updateMetadata(
-                          IgnoredBindings -->> IgnoredBindings.State.Ignored
+                          new MetadataPair(
+                            IgnoredBindings,
+                            IgnoredBindings.State.Ignored
+                          )
                         )
                     ),
                     rest

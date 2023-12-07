@@ -1,22 +1,29 @@
 <script setup lang="ts">
 import { nodeEditBindings } from '@/bindings'
 import CircularMenu from '@/components/CircularMenu.vue'
+import GraphNodeError from '@/components/GraphEditor/GraphNodeError.vue'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import NodeWidgetTree from '@/components/GraphEditor/NodeWidgetTree.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
+import { useDoubleClick } from '@/composables/doubleClick'
+import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { useGraphStore, type Node } from '@/stores/graph'
+import { useProjectStore } from '@/stores/project'
 import { useApproach } from '@/util/animation'
 import { usePointer, useResizeObserver } from '@/util/events'
-import { methodNameToIcon, typeNameToIcon } from '@/util/getIconName'
+import { displayedIconOf } from '@/util/getIconName'
 import type { Opt } from '@/util/opt'
 import { Rect } from '@/util/rect'
 import { Vec2 } from '@/util/vec2'
-import type { ContentRange, VisualizationIdentifier } from 'shared/yjsModel'
+import { setIfUndefined } from 'lib0/map'
+import type { ContentRange, ExprId, VisualizationIdentifier } from 'shared/yjsModel'
 import { computed, ref, watch, watchEffect } from 'vue'
 
 const MAXIMUM_CLICK_LENGTH_MS = 300
 const MAXIMUM_CLICK_DISTANCE_SQ = 50
+/** The width in pixels that is not the widget tree. This includes the icon, and padding. */
+const NODE_EXTRA_WIDTH_PX = 30
 
 const props = defineProps<{
   node: Node
@@ -24,29 +31,56 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  updateRect: [rect: Rect]
-  updateContent: [updates: [range: ContentRange, content: string][]]
   dragging: [offset: Vec2]
   draggingCommited: []
-  setVisualizationId: [id: Opt<VisualizationIdentifier>]
-  setVisualizationVisible: [visible: boolean]
   delete: []
   replaceSelection: []
-  'update:selected': [selected: boolean]
-  outputPortAction: []
+  outputPortClick: [portId: ExprId]
+  outputPortDoubleClick: [portId: ExprId]
+  'update:content': [updates: [range: ContentRange, content: string][]]
   'update:edited': [cursorPosition: number]
+  'update:rect': [rect: Rect]
+  'update:selected': [selected: boolean]
+  'update:visualizationId': [id: Opt<VisualizationIdentifier>]
+  'update:visualizationRect': [rect: Rect | undefined]
+  'update:visualizationVisible': [visible: boolean]
 }>()
 
 const nodeSelection = injectGraphSelection(true)
+const projectStore = useProjectStore()
 const graph = useGraphStore()
-const isSourceOfDraggedEdge = computed(
-  () => graph.unconnectedEdge?.source === props.node.rootSpan.astId,
-)
+const navigator = injectGraphNavigator(true)
 
+const outputPortsSet = computed(() => {
+  const bindings = graph.db.nodeOutputPorts.lookup(nodeId.value)
+  if (bindings.size === 0) return new Set([nodeId.value])
+  return bindings
+})
+
+const widthOverridePx = ref<number>()
 const nodeId = computed(() => props.node.rootSpan.astId)
+
 const rootNode = ref<HTMLElement>()
+const contentNode = ref<HTMLElement>()
 const nodeSize = useResizeObserver(rootNode)
+const baseNodeSize = computed(
+  () => new Vec2((contentNode.value?.scrollWidth ?? 0) + NODE_EXTRA_WIDTH_PX, nodeSize.value.y),
+)
 const menuVisible = ref(false)
+
+const error = computed(() => {
+  const info = projectStore.computedValueRegistry.db.get(nodeId.value)
+  switch (info?.payload.type) {
+    case 'Panic': {
+      return info.payload.message
+    }
+    case 'DataflowError': {
+      return projectStore.dataflowErrors.lookup(nodeId.value)?.value?.message.split(' (at')[0]
+    }
+    default:
+      return undefined
+  }
+})
 
 const isSelected = computed(() => nodeSelection?.isSelected(nodeId.value) ?? false)
 watch(isSelected, (selected) => {
@@ -60,22 +94,14 @@ const isVisualizationVisible = computed(() => props.node.vis?.visible ?? false)
 watchEffect(() => {
   const size = nodeSize.value
   if (!size.isZero()) {
-    emit('updateRect', new Rect(props.node.position, nodeSize.value))
+    emit('update:rect', new Rect(props.node.position, nodeSize.value))
   }
 })
-
-const outputHovered = ref(false)
-const hoverAnimation = useApproach(
-  () => (outputHovered.value || isSourceOfDraggedEdge.value ? 1 : 0),
-  50,
-  0.01,
-)
 
 const bgStyleVariables = computed(() => {
   return {
     '--node-width': `${nodeSize.value.x}px`,
     '--node-height': `${nodeSize.value.y}px`,
-    '--hover-animation': `${hoverAnimation.value}`,
   }
 })
 
@@ -117,23 +143,18 @@ const dragPointer = usePointer((pos, event, type) => {
   }
 })
 
-const expressionInfo = computed(() => graph.db.nodeExpressionInfo.lookup(nodeId.value))
-const outputTypeName = computed(() => expressionInfo.value?.typename ?? 'Unknown')
+const expressionInfo = computed(() => graph.db.getExpressionInfo(nodeId.value))
+const outputPortLabel = computed(() => expressionInfo.value?.typename ?? 'Unknown')
 const executionState = computed(() => expressionInfo.value?.payload.type ?? 'Unknown')
 const suggestionEntry = computed(() => graph.db.nodeMainSuggestion.lookup(nodeId.value))
 const color = computed(() => graph.db.getNodeColorStyle(nodeId.value))
 const icon = computed(() => {
-  if (suggestionEntry.value?.iconName) {
-    return suggestionEntry.value.iconName
-  }
-  const methodName = expressionInfo.value?.methodCall?.methodPointer.name
-  if (methodName != null) {
-    return methodNameToIcon(methodName)
-  } else if (outputTypeName.value != null) {
-    return typeNameToIcon(outputTypeName.value)
-  } else {
-    return 'in_out'
-  }
+  const expressionInfo = graph.db.getExpressionInfo(nodeId.value)
+  return displayedIconOf(
+    suggestionEntry.value,
+    expressionInfo?.methodCall?.methodPointer,
+    outputPortLabel.value,
+  )
 })
 
 const nodeEditHandler = nodeEditBindings.handler({
@@ -162,14 +183,13 @@ function startEditingNode(position: Vec2 | undefined) {
       domOffset = caret?.startOffset
     } else {
       console.error(
-        'Neither caretPositionFromPoint nor caretRangeFromPoint are supported by this browser',
+        'Neither `caretPositionFromPoint` nor `caretRangeFromPoint` are supported by this browser',
       )
     }
     if (domNode != null && domOffset != null) {
       sourceOffset = getRelatedSpanOffset(domNode, domOffset)
     }
   }
-
   emit('update:edited', sourceOffset)
 }
 
@@ -191,6 +211,58 @@ function getRelatedSpanOffset(domNode: globalThis.Node, domOffset: number): numb
   }
   return 0
 }
+
+const handlePortClick = useDoubleClick<[portId: ExprId]>(
+  (portId) => emit('outputPortClick', portId),
+  (portId) => {
+    emit('outputPortDoubleClick', portId)
+  },
+).handleClick
+interface PortData {
+  clipRange: [number, number]
+  label: string
+  portId: ExprId
+}
+
+const outputPorts = computed((): PortData[] => {
+  const ports = outputPortsSet.value
+  const numPorts = ports.size
+  return Array.from(ports, (portId, index) => {
+    const labelIdent = numPorts > 1 ? graph.db.getOutputPortIdentifier(portId) + ': ' : ''
+    const labelType =
+      graph.db.getExpressionInfo(numPorts > 1 ? portId : nodeId.value)?.typename ?? 'Unknown'
+    return {
+      clipRange: [index / numPorts, (index + 1) / numPorts],
+      label: labelIdent + labelType,
+      portId,
+    }
+  })
+})
+
+const outputHovered = ref<ExprId>()
+const hoverAnimations = new Map<ExprId, ReturnType<typeof useApproach>>()
+watchEffect(() => {
+  const ports = outputPortsSet.value
+  for (const key of hoverAnimations.keys()) if (!ports.has(key)) hoverAnimations.delete(key)
+  for (const port of outputPortsSet.value) {
+    setIfUndefined(hoverAnimations, port, () =>
+      useApproach(
+        () => (outputHovered.value === port || graph.unconnectedEdge?.target === port ? 1 : 0),
+        50,
+        0.01,
+      ),
+    )
+  }
+})
+
+function portGroupStyle(port: PortData) {
+  const [start, end] = port.clipRange
+  return {
+    '--hover-animation': hoverAnimations.get(port.portId)?.value ?? 0,
+    '--port-clip-start': start,
+    '--port-clip-end': end,
+  }
+}
 </script>
 
 <template>
@@ -199,6 +271,10 @@ function getRelatedSpanOffset(domNode: globalThis.Node, domOffset: number): numb
     class="GraphNode"
     :style="{
       transform,
+      width:
+        widthOverridePx != null && isVisualizationVisible
+          ? `${Math.max(widthOverridePx, (contentNode?.scrollWidth ?? 0) + NODE_EXTRA_WIDTH_PX)}px`
+          : undefined,
       '--node-group-color': color,
     }"
     :class="{
@@ -211,44 +287,54 @@ function getRelatedSpanOffset(domNode: globalThis.Node, domOffset: number): numb
   >
     <div class="selection" v-on="dragPointer.events"></div>
     <div class="binding" @pointerdown.stop>
-      {{ node.binding }}
+      {{ node.pattern?.repr() ?? '' }}
     </div>
     <CircularMenu
       v-if="menuVisible"
       v-model:isAutoEvaluationDisabled="isAutoEvaluationDisabled"
       v-model:isDocsVisible="isDocsVisible"
       :isVisualizationVisible="isVisualizationVisible"
-      @update:isVisualizationVisible="emit('setVisualizationVisible', $event)"
+      @update:isVisualizationVisible="emit('update:visualizationVisible', $event)"
     />
     <GraphVisualization
       v-if="isVisualizationVisible"
-      :nodeSize="nodeSize"
+      :nodeSize="baseNodeSize"
+      :scale="navigator?.scale ?? 1"
+      :nodePosition="props.node.position"
       :isCircularMenuVisible="menuVisible"
-      :currentType="props.node.vis"
-      :expressionId="props.node.rootSpan.astId"
+      :currentType="node.vis?.identifier"
+      :dataSource="{ type: 'node', nodeId }"
       :typename="expressionInfo?.typename"
-      @setVisualizationId="emit('setVisualizationId', $event)"
-      @setVisualizationVisible="emit('setVisualizationVisible', $event)"
+      @update:rect="
+        emit('update:visualizationRect', $event),
+          (widthOverridePx = $event && $event.size.x > baseNodeSize.x ? $event.size.x : undefined)
+      "
+      @update:id="emit('update:visualizationId', $event)"
+      @update:visible="emit('update:visualizationVisible', $event)"
     />
-    <div
-      class="node"
-      @pointerdown.capture="nodeEditHandler"
-      @keydown="nodeEditHandler"
-      v-on="dragPointer.events"
-    >
+    <div class="node" @pointerdown="nodeEditHandler" v-on="dragPointer.events">
       <SvgIcon class="icon grab-handle" :name="icon"></SvgIcon>
-      <NodeWidgetTree :ast="node.rootSpan" />
+      <div ref="contentNode" class="widget-tree">
+        <NodeWidgetTree :ast="node.rootSpan" />
+      </div>
     </div>
+    <GraphNodeError v-if="error" class="error" :error="error" />
     <svg class="bgPaths" :style="bgStyleVariables">
       <rect class="bgFill" />
-      <rect
-        class="outputPortHoverArea"
-        @pointerenter="outputHovered = true"
-        @pointerleave="outputHovered = false"
-        @pointerdown.stop.prevent="emit('outputPortAction')"
-      />
-      <rect class="outputPort" />
-      <text class="outputTypeName">{{ outputTypeName }}</text>
+      <template v-for="port of outputPorts" :key="port.portId">
+        <g :style="portGroupStyle(port)">
+          <g class="portClip">
+            <rect
+              class="outputPortHoverArea"
+              @pointerenter="outputHovered = port.portId"
+              @pointerleave="outputHovered = undefined"
+              @pointerdown.stop.prevent="handlePortClick(port.portId)"
+            />
+            <rect class="outputPort" />
+          </g>
+          <text class="outputPortLabel">{{ port.label }}</text>
+        </g>
+      </template>
     </svg>
   </div>
 </template>
@@ -267,6 +353,7 @@ function getRelatedSpanOffset(domNode: globalThis.Node, domOffset: number): numb
   --output-port-overlap: 0.2px;
   --output-port-hover-width: 8px;
 }
+
 .outputPort,
 .outputPortHoverArea {
   x: calc(0px - var(--output-port-width) / 2);
@@ -305,7 +392,14 @@ function getRelatedSpanOffset(domNode: globalThis.Node, domOffset: number): numb
   pointer-events: all;
 }
 
-.outputTypeName {
+.portClip {
+  clip-path: inset(
+    0 calc((1 - var(--port-clip-end)) * (100% + 1px) - 0.5px) 0
+      calc(var(--port-clip-start) * (100% + 1px) + 0.5px)
+  );
+}
+
+.outputPortLabel {
   user-select: none;
   pointer-events: none;
   z-index: 10;
@@ -365,6 +459,7 @@ function getRelatedSpanOffset(domNode: globalThis.Node, domOffset: number): numb
   align-items: center;
   white-space: nowrap;
   padding: 4px;
+  padding-right: 8px;
   z-index: 2;
   transition: outline 0.2s ease;
   outline: 0px solid transparent;
@@ -405,6 +500,7 @@ function getRelatedSpanOffset(domNode: globalThis.Node, domOffset: number): numb
 .GraphNode.selected .selection:hover:before {
   opacity: 0.3;
 }
+
 .binding {
   user-select: none;
   margin-right: 10px;
@@ -415,22 +511,12 @@ function getRelatedSpanOffset(domNode: globalThis.Node, domOffset: number): numb
   transform: translateY(-50%);
   opacity: 0;
   transition: opacity 0.2s ease-in-out;
+  white-space: nowrap;
 }
 
 .GraphNode .selection:hover + .binding,
 .GraphNode.selected .binding {
   opacity: 1;
-}
-
-.editable {
-  outline: none;
-  height: 24px;
-  display: inline-flex;
-  align-items: center;
-
-  & :deep(span) {
-    vertical-align: middle;
-  }
 }
 
 .container {
@@ -446,5 +532,11 @@ function getRelatedSpanOffset(domNode: globalThis.Node, domOffset: number): numb
 
 .CircularMenu {
   z-index: 1;
+}
+
+.error {
+  position: absolute;
+  top: 100%;
+  margin-top: 4px;
 }
 </style>

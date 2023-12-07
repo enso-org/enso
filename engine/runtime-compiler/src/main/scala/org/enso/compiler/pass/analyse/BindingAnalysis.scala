@@ -6,7 +6,7 @@ import org.enso.compiler.core.ir.{Expression, Module, Name}
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.module.scope.imports
-import org.enso.compiler.core.ir.MetadataStorage.ToPair
+import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.Cons
 import org.enso.compiler.pass.IRPass
@@ -95,9 +95,12 @@ case object BindingAnalysis extends IRPass {
       .flatten
       .map(BindingsMap.ModuleMethod)
     ir.updateMetadata(
-      this -->> BindingsMap(
-        definedSumTypes ++ importedPolyglot ++ moduleMethods,
-        moduleContext.moduleReference()
+      new MetadataPair(
+        this,
+        BindingsMap(
+          definedSumTypes ++ importedPolyglot ++ moduleMethods,
+          moduleContext.moduleReference()
+        )
       )
     )
   }
