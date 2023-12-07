@@ -95,7 +95,6 @@ public class TestHandler implements HttpHandler {
       }
 
       URI uri = exchange.getRequestURI();
-      System.out.println(exchange.getRequestMethod() + " " + uri);
 
       response.append("\n");
       response.append("  },\n");

@@ -105,6 +105,8 @@ public class SimpleHTTPBin {
     }
 
     server.addHandler("/test_headers", new HeaderTestHandler());
+    server.addHandler("/test_token_auth", new TokenAuthTestHandler());
+    server.addHandler("/test_basic_auth", new BasicAuthTestHandler());
     setupFileServer(server);
   }
 

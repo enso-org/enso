@@ -358,6 +358,7 @@ spec =
             IO.println r2.catch.to_display_text
             r2.catch.should_be_a HTTP_Error.Status_Error
             r2.catch.status_code.code . should_equal 404
+            r2.catch.message . should_contain "<h1>404 Not Found</h1>"
 
             r3 = HTTP.new.request (Request.new (HTTP_Method.Custom "BREW_COFFEE") (base_url_with_slash + "get"))
             r3.should_fail_with HTTP_Error
@@ -534,15 +535,42 @@ spec =
             err = Data.fetch "http://0.0.0.0:1/"
             err.should_fail_with Request_Error
 
-        Test.specify "should be able to handle IO errors" pending="TODO??" <|
-            # TODO how to trigger this error???
+        Test.specify "should be able to handle IO errors" pending="TODO: Currently I was unable to figure out a way to test such errors" <|
+            # how to trigger this error???
             err = Data.fetch "TODO"
             err.should_fail_with HTTP_Error
 
     Test.group "Http Auth" <|
-        Test.specify "should allow to specify authentication headers" <|
-            # TODO figure out what is there to check right now?
-            Error.throw "TODO"
+        Test.specify "should support Basic user+password authentication" <|
+            url = base_url_with_slash + "test_basic_auth"
+            #r1 = Data.fetch url
+            #r1.should_fail_with HTTP_Error
+            #r1.catch.status_code.code . should_equal 401
+
+            r2 = Data.fetch url headers=[Header.authorization_basic "enso-test-user" "my secret password: 1234@#; ść + 😎"]
+            r2.should_succeed
+            r2.should_be_a Text
+            r2.should_equal "Authorization successful, welcome enso-test-user!"
+
+            r3 = Data.fetch url headers=[Header.authorization_basic "other user" "1234"]
+            r3.should_fail_with HTTP_Error
+            r3.catch.status_code.code . should_equal 403
+
+        Test.specify "should support Bearer token authentication" <|
+            url = base_url_with_slash + "test_token_auth"
+            #r1 = Data.fetch url
+            #r1.should_fail_with HTTP_Error
+            #r1.catch.status_code.code . should_equal 401
+            #IO.println r1.catch.to_display_text
+
+            r2 = Data.fetch url headers=[Header.authorization_bearer "deadbeef-coffee-1234"]
+            r2.should_succeed
+            r2.should_be_a Text
+            r2.should_equal "Authorization successful."
+
+            r3 = Data.fetch url headers=[Header.authorization_bearer "invalid-token"]
+            r3.should_fail_with HTTP_Error
+            r3.catch.status_code.code . should_equal 403
 
 main = Test_Suite.run_main spec
 
