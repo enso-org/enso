@@ -3,11 +3,9 @@ package org.enso.base.enso_cloud;
 import org.enso.base.net.URIHelpers;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.http.HttpClient;
-import java.net.http.HttpHeaders;
 import java.net.http.HttpRequest.Builder;
 import java.net.http.HttpResponse;
 import java.sql.Connection;
@@ -72,7 +70,8 @@ public class EnsoSecretHelper {
       boolean hasSecrets = queryArguments.stream().anyMatch(p -> p instanceof EnsoKeySecretPair);
       if (hasSecrets && !uri.getScheme().equals("https")) {
         // If used a secret then only allow HTTPS
-        throw new IllegalArgumentException("Cannot use secrets in query string with non-HTTPS URI, but the scheme was: " + uri.getScheme() + ".");
+        throw new IllegalArgumentException("Cannot use secrets in query string with non-HTTPS URI, but the scheme " +
+            "was: " + uri.getScheme() + ".");
       }
 
       try {
@@ -86,7 +85,9 @@ public class EnsoSecretHelper {
         resolvedURI = URIHelpers.addQueryParameters(uri, resolvedArguments);
         renderedURI = URIHelpers.addQueryParameters(uri, renderedArguments);
       } catch (URISyntaxException e) {
-        throw new IllegalStateException("Unexpectedly unable to build a valid URI from the base URI: " + uri + " and query arguments: " + queryArguments + ".");
+        throw new IllegalStateException(
+            "Unexpectedly unable to build a valid URI from the base URI: " + uri + " and query arguments: " + queryArguments + "."
+        );
       }
     }
     builder.uri(resolvedURI);
@@ -104,14 +105,6 @@ public class EnsoSecretHelper {
     var javaResponse = client.send(httpRequest, bodyHandler);
 
     // Extract parts of the response
-    return new EnsoHttpResponse(renderedURI, javaResponse.headers().map().keySet().stream().toList(),
-        javaResponse.headers(), javaResponse.body(), javaResponse.statusCode());
-  }
-
-  /**
-   * A subset of the HttpResponse to avoid leaking the decrypted Enso secrets.
-   */
-  public record EnsoHttpResponse(URI uri, List<String> headerNames, HttpHeaders headers, InputStream body,
-                                 int statusCode) {
+    return new EnsoHttpResponse(renderedURI, javaResponse.headers(), javaResponse.body(), javaResponse.statusCode());
   }
 }
