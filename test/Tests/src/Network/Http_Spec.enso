@@ -494,7 +494,7 @@ spec =
             # The result is JSON data:
             r1.headers.find (p-> p.name.equals_ignore_case "Content-Type") . value . should_equal "application/json"
 
-            uri = URI.from (base_url_with_slash + "set_headers")
+            uri = URI.from (base_url_with_slash + "test_headers")
                 . add_query_argument "test-header" "test-value"
                 . add_query_argument "Other-Header" "some other value"
             r2 = Data.fetch uri try_auto_parse_response=False

@@ -104,6 +104,7 @@ public class SimpleHTTPBin {
       server.addHandler(path, new TestHandler(method));
     }
 
+    server.addHandler("/test_headers", new HeaderTestHandler());
     setupFileServer(server);
   }
 
