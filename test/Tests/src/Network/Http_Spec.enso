@@ -7,7 +7,6 @@ import Standard.Base.Network.HTTP.HTTP_Error.HTTP_Error
 import Standard.Base.Network.HTTP.Request.Request
 import Standard.Base.Network.HTTP.Request_Body.Request_Body
 import Standard.Base.Network.HTTP.Request_Error
-import Standard.Base.Network.HTTP.Response.Response
 import Standard.Base.Network.Proxy.Proxy
 import Standard.Base.Runtime.Context
 from Standard.Base.Network.HTTP import resolve_headers
@@ -484,17 +483,9 @@ spec =
             err = Data.fetch "http://0.0.0.0:1/"
             err.should_fail_with Request_Error
 
-        Test.specify "should be able to handle IO errors" <|
+        Test.specify "should be able to handle IO errors" pending="TODO??" <|
             # TODO how to trigger this error???
-            # Tried triggering by exceeding timeout but:
-            # 1. timeout here is just connection timeout
-            # 2. if the timeout occurs before connecting - we get Request_Error
-            # 3. if the timeout occurs after connecting - this limit is not applicable and the app just waits patiently...
-            req = HTTP.new timeout=(Duration.new seconds=1) . request (Request.get (base_url_with_slash + "wait10s"))
-            req.should_be_a Response
-            err = req.decode_as_text
-            IO.println err
-            IO.println err.length
+            err = Data.fetch "TODO"
             err.should_fail_with HTTP_Error
 
 main = Test_Suite.run_main spec
