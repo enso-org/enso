@@ -1,12 +1,22 @@
+import com.sandinh.javamodule.moduleinfo.ModuleInfoPlugin.autoImport.moduleInfos
 import sbt.*
 import sbt.Keys.*
 import sbt.internal.inc.{CompileOutput, PlainVirtualFile}
+import sbt.util.CacheStore
 import sbtassembly.Assembly.{Dependency, JarEntry, Project}
 import sbtassembly.{CustomMergeStrategy, MergeStrategy}
 import xsbti.compile.IncToolOptionsUtil
 
 import java.io.File
-import java.nio.file.{Files, Path}
+import java.nio.file.attribute.BasicFileAttributes
+import java.nio.file.{
+  FileVisitOption,
+  FileVisitResult,
+  Files,
+  Path,
+  SimpleFileVisitor
+}
+import scala.collection.mutable
 
 /** Collection of utility methods dealing with JPMS modules.
   * The motivation comes from the update of GraalVM to
@@ -177,10 +187,13 @@ object JPMSUtils {
         val outputPath: Path = output.getSingleOutputAsPath
           .get()
         // Class directories of all the dependencies.
-        val sourceProducts = products.all(copyDepsFilter).value.flatten
+        val sourceProducts =
+          productDirectories.all(copyDepsFilter).value.flatten
         log.info(s"Compiling $moduleInfo with javac")
 
-        // Ensure that all source product directories exist.
+        val moduleName  = moduleInfos.value.head.moduleName
+        val cacheStore  = streams.value.cacheStoreFactory
+        val repoRootDir = (LocalProject("enso") / baseDirectory).value
         sourceProducts.foreach(sourceProduct => {
           if (!sourceProduct.exists()) {
             log.error(s"Source product ${sourceProduct} does not exist")
@@ -190,9 +203,10 @@ object JPMSUtils {
             )
             log.error("Run Compile/compile before this task")
           }
+          val relPath = repoRootDir.toPath.relativize(sourceProduct.toPath)
+          val cache   = cacheStore.make("cache-" + relPath.toString)
+          copyClasses(sourceProduct, output, cache, log)
         })
-
-        copyClasses(sourceProducts, output, log)
 
         val baseJavacOpts = (Compile / javacOptions).value
         val fullCp        = (Compile / fullClasspath).value
@@ -232,49 +246,68 @@ object JPMSUtils {
       }
 
   /** Copies all classes from all the dependencies `classes` directories into the target directory.
-    * @param sourceProducts From where the classes will be copied.
+    * @param sourceClassesDir Directory from where the classes will be copied.
     * @param output Target directory where all the classes from all the dependencies
     *               will be copied to.
     * @param log
     */
   private def copyClasses(
-    sourceProducts: Seq[File],
+    sourceClassesDir: File,
     output: xsbti.compile.Output,
+    cache: CacheStore,
     log: Logger
   ): Unit = {
-    // TODO: Introduce some file timestamp checking - do not copy the classes every time
+    require(sourceClassesDir.isDirectory)
     val outputPath: Path = output.getSingleOutputAsPath.get()
-    log.info(s"Copying classes from ${sourceProducts.size} projects to $output")
-
-    if (!(outputPath.toFile.exists())) {
-      Files.createDirectory(outputPath)
-    }
-
-    val outputLangProvider =
-      outputPath / "META-INF" / "services" / "com.oracle.truffle.api.provider.TruffleLanguageProvider"
-    sourceProducts.foreach { sourceProduct =>
-      log.debug(s"Copying ${sourceProduct} to ${output}")
-      val sourceLangProvider =
-        sourceProduct / "META-INF" / "services" / "com.oracle.truffle.api.provider.TruffleLanguageProvider"
-      if (outputLangProvider.toFile.exists() && sourceLangProvider.exists()) {
-        log.debug(
-          s"Merging ${sourceLangProvider} into ${outputLangProvider}"
-        )
-        val sourceLines = IO.readLines(sourceLangProvider)
-        val destLines   = IO.readLines(outputLangProvider.toFile)
-        val outLines    = (sourceLines ++ destLines).distinct
-        IO.writeLines(outputLangProvider.toFile, outLines)
+    val outputDir        = outputPath.toFile
+    val filesToCopy      = mutable.HashSet.empty[File]
+    val fileVisitor = new SimpleFileVisitor[Path] {
+      override def visitFile(
+        path: Path,
+        attrs: BasicFileAttributes
+      ): FileVisitResult = {
+        if (!path.toFile.isDirectory) {
+          filesToCopy.add(path.toFile)
+        }
+        FileVisitResult.CONTINUE
       }
-      // Copy the rest of the directory - don't override META-INF.
-      IO.copyDirectory(
-        sourceProduct,
-        outputPath.toFile,
-        CopyOptions(
-          overwrite            = false,
-          preserveLastModified = true,
-          preserveExecutable   = true
-        )
-      )
+
+      override def preVisitDirectory(
+        dir: Path,
+        attrs: BasicFileAttributes
+      ): FileVisitResult = {
+        // We do not care about files in META-INF directory. Everything should be described
+        // in the `module-info.java`.
+        if (dir.getFileName.toString == "META-INF") {
+          FileVisitResult.SKIP_SUBTREE
+        } else {
+          FileVisitResult.CONTINUE
+        }
+      }
+    }
+    Files.walkFileTree(sourceClassesDir.toPath, fileVisitor)
+    if (!outputDir.exists()) {
+      IO.createDirectory(outputDir)
+    }
+    Tracked.diffInputs(cache, FileInfo.lastModified)(filesToCopy.toSet) {
+      changeReport =>
+        for (f <- changeReport.removed) {
+          val relPath = sourceClassesDir.toPath.relativize(f.toPath)
+          val dest    = outputDir.toPath.resolve(relPath)
+          IO.delete(dest.toFile)
+        }
+        for (f <- changeReport.modified -- changeReport.removed) {
+          val relPath = sourceClassesDir.toPath.relativize(f.toPath)
+          val dest    = outputDir.toPath.resolve(relPath)
+          IO.copyFile(f, dest.toFile)
+        }
+        for (f <- changeReport.unmodified) {
+          val relPath = sourceClassesDir.toPath.relativize(f.toPath)
+          val dest    = outputDir.toPath.resolve(relPath)
+          if (!dest.toFile.exists()) {
+            IO.copyFile(f, dest.toFile)
+          }
+        }
     }
   }
 }
