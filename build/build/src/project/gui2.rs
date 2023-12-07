@@ -53,28 +53,31 @@ pub fn script(repo_root: impl AsRef<Path>, script: Scripts) -> Result<NpmCommand
 
 /// Run steps that should be done along with the "lint"
 pub fn lint(repo_root: impl AsRef<Path>) -> BoxFuture<'static, Result> {
-    run_in_repo_root(Scripts::Lint, repo_root)
+    install_and_run_script(Scripts::Lint, repo_root)
 }
 
 pub fn tests(repo_root: impl AsRef<Path>) -> BoxFuture<'static, Result> {
-    run_in_repo_root(Scripts::Test, repo_root)
+    install_and_run_script(Scripts::Test, repo_root)
 }
 
 /// Run unit tests.
 pub fn unit_tests(repo_root: impl AsRef<Path>) -> BoxFuture<'static, Result> {
-    run_in_repo_root(Scripts::TestUnit, repo_root)
+    install_and_run_script(Scripts::TestUnit, repo_root)
 }
 
 /// Run E2E tests.
 pub fn e2e_tests(repo_root: impl AsRef<Path>) -> BoxFuture<'static, Result> {
-    run_in_repo_root(Scripts::TestE2e, repo_root)
+    install_and_run_script(Scripts::TestE2e, repo_root)
 }
 
 pub fn watch(repo_root: impl AsRef<Path>) -> BoxFuture<'static, Result> {
-    run_in_repo_root(Scripts::Dev, repo_root)
+    install_and_run_script(Scripts::Dev, repo_root)
 }
 
-fn run_in_repo_root(script: Scripts, repo_root: impl AsRef<Path>) -> BoxFuture<'static, Result> {
+fn install_and_run_script(
+    script: Scripts,
+    repo_root: impl AsRef<Path>,
+) -> BoxFuture<'static, Result> {
     let repo_root = repo_root.as_ref().to_owned();
     async move {
         crate::web::install(&repo_root).await?;
