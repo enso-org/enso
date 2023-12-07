@@ -105,7 +105,7 @@ public final class WithWarnings implements EnsoObject {
         EconomicSet<Warning> tmp = cloneSetAndAppend(maxWarnings, warnings, valueWarnings);
         allWarnings = Warning.fromSetToArray(tmp);
       } catch (UnsupportedMessageException e) {
-        throw new IllegalStateException(e);
+        throw EnsoContext.get(warningsLibrary).raiseAssertionPanic(warningsLibrary, null, e);
       }
     } else {
       allWarnings = Warning.fromSetToArray(warnings);

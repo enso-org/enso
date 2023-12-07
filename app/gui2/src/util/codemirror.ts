@@ -18,7 +18,7 @@ export { EditorView, tooltips, type TooltipView } from '@codemirror/view'
 export { type Highlighter } from '@lezer/highlight'
 export { minimalSetup } from 'codemirror'
 export { yCollab } from 'y-codemirror.next'
-import { Ast, AstExtended } from '@/util/ast'
+import { RawAst, RawAstExtended } from '@/util/ast'
 import {
   Language,
   LanguageSupport,
@@ -70,12 +70,12 @@ export function lsDiagnosticsToCMDiagnostics(
   return results
 }
 
-type AstNode = AstExtended<Ast.Tree | Ast.Token, false>
+type AstNode = RawAstExtended<RawAst.Tree | RawAst.Token, false>
 
 const nodeTypes: NodeType[] = [
-  ...Ast.Tree.typeNames.map((name, id) => NodeType.define({ id, name })),
-  ...Ast.Token.typeNames.map((name, id) =>
-    NodeType.define({ id: id + Ast.Tree.typeNames.length, name: 'Token' + name }),
+  ...RawAst.Tree.typeNames.map((name, id) => NodeType.define({ id, name })),
+  ...RawAst.Token.typeNames.map((name, id) =>
+    NodeType.define({ id: id + RawAst.Tree.typeNames.length, name: 'Token' + name }),
   ),
 ]
 
@@ -119,7 +119,7 @@ function astToCodeMirrorTree(
   const childrenToConvert = hasSingleTokenChild ? [] : children
 
   const tree = new Tree(
-    nodeSet.types[ast.inner.type + (ast.isToken() ? Ast.Tree.typeNames.length : 0)]!,
+    nodeSet.types[ast.inner.type + (ast.isToken() ? RawAst.Tree.typeNames.length : 0)]!,
     childrenToConvert.map((child) => astToCodeMirrorTree(nodeSet, child)),
     childrenToConvert.map((child) => child.span()[0] - start),
     end - start,
@@ -148,7 +148,7 @@ class EnsoParser extends Parser {
         const code = input.read(0, input.length)
         if (code !== self.cachedCode || self.cachedTree == null) {
           self.cachedCode = code
-          const ast = AstExtended.parse(code)
+          const ast = RawAstExtended.parse(code)
           self.cachedTree = astToCodeMirrorTree(self.nodeSet, ast, [[languageDataProp, facet]])
         }
         return self.cachedTree

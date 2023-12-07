@@ -103,6 +103,7 @@ const resizeBottomRight = usePointer((pos, _, type) => {
       }"
       :style="{
         '--color-visualization-bg': config.background,
+        '--node-height': `${config.nodeSize.y}px`,
       }"
     >
       <div class="resizer-right" v-on="resizeRight.stop.events"></div>
@@ -191,6 +192,7 @@ const resizeBottomRight = usePointer((pos, _, type) => {
 
 <style scoped>
 .VisualizationContainer {
+  --node-height: 32px;
   --permanent-toolbar-width: 96px;
   color: var(--color-text);
   background: var(--color-visualization-bg);
@@ -201,11 +203,11 @@ const resizeBottomRight = usePointer((pos, _, type) => {
 }
 
 .VisualizationContainer.below-node {
-  padding-top: 36px;
+  padding-top: --node-height;
 }
 
 .VisualizationContainer.below-toolbar {
-  padding-top: 72px;
+  padding-top: calc(var(--node-height) + 40px);
 }
 
 .VisualizationContainer.fullscreen {
@@ -251,7 +253,7 @@ const resizeBottomRight = usePointer((pos, _, type) => {
   position: absolute;
   display: flex;
   gap: 4px;
-  top: 36px;
+  top: calc(var(--node-height) + 4px);
 }
 
 .VisualizationContainer.fullscreen .toolbars {

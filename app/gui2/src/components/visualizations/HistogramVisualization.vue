@@ -1,6 +1,6 @@
 <script lang="ts">
 import SvgIcon from '@/components/SvgIcon.vue'
-import { useEvent, useEventConditional } from '@/util/events'
+import { useEvent } from '@/util/events'
 import { getTextWidth } from '@/util/measurement'
 import { defineKeybinds } from '@/util/shortcuts'
 import { VisualizationContainer, useVisualizationConfig } from '@/util/visualizationBuiltins'
@@ -15,8 +15,7 @@ export const defaultPreprocessor = [
 ] as const
 
 const bindings = defineKeybinds('histogram-visualization', {
-  zoomIn: ['Mod+Z'],
-  showAll: ['Mod+A'],
+  zoomToSelected: ['Mod+A'],
 })
 
 /**
@@ -407,40 +406,6 @@ const brush = computed(() =>
 // both zoom and brush events working at the same time. See https://stackoverflow.com/a/59757276.
 watchEffect(() => d3Brush.value.call(brush.value))
 
-/** Zoom into the selected area of the plot.
- *
- * Based on https://www.d3-graph-gallery.com/graph/interactivity_brush.html
- * Section "Brushing for zooming". */
-function zoomToSelected() {
-  if (brushExtent.value == null) {
-    return
-  }
-  focus.value = undefined
-  const xScale_ = xScale.value
-  const startRaw = brushExtent.value[0]
-  const endRaw = brushExtent.value[1]
-  const start = typeof startRaw === 'number' ? startRaw : startRaw[0]
-  const end = typeof endRaw === 'number' ? endRaw : endRaw[0]
-  const selectionWidth = end - start
-  zoomLevel.value *= boxWidth.value / selectionWidth
-  const xMin = xScale_.invert(start)
-  const xMax = xScale_.invert(end)
-  xDomain.value = [xMin, xMax]
-  shouldAnimate.value = true
-}
-
-function endBrushing() {
-  brushExtent.value = undefined
-  d3Brush.value.call(brush.value.move, null)
-}
-
-function zoomIn() {
-  zoomToSelected()
-  endBrushing()
-}
-
-useEventConditional(document, 'keydown', isBrushing, bindings.handler({ zoomIn }))
-
 /**
  * Return the extrema of the data and and paddings that ensure data will fit into the
  * drawing area.
@@ -556,15 +521,41 @@ watchPostEffect(() => {
 // === Event handlers ===
 // ======================
 
-function showAll() {
-  focus.value = undefined
-  zoomLevel.value = 1
-  xDomain.value = originalXScale.value.domain()
-  shouldAnimate.value = true
+function endBrushing() {
+  brushExtent.value = undefined
+  d3Brush.value.call(brush.value.move, null)
+}
+
+/** Zoom into the selected area of the plot.
+ *
+ * Based on https://www.d3-graph-gallery.com/graph/interactivity_brush.html
+ * Section "Brushing for zooming". */
+function zoomToSelected(override?: boolean) {
+  const shouldZoomToSelected = override ?? isBrushing.value
+  if (!shouldZoomToSelected) {
+    focus.value = undefined
+    zoomLevel.value = 1
+    xDomain.value = originalXScale.value.domain()
+    shouldAnimate.value = true
+  } else {
+    if (brushExtent.value == null) return
+    focus.value = undefined
+    const xScale_ = xScale.value
+    const startRaw = brushExtent.value[0]
+    const endRaw = brushExtent.value[1]
+    const start = typeof startRaw === 'number' ? startRaw : startRaw[0]
+    const end = typeof endRaw === 'number' ? endRaw : endRaw[0]
+    const selectionWidth = end - start
+    zoomLevel.value *= boxWidth.value / selectionWidth
+    const xMin = xScale_.invert(start)
+    const xMax = xScale_.invert(end)
+    xDomain.value = [xMin, xMax]
+    shouldAnimate.value = true
+  }
   endBrushing()
 }
 
-useEvent(document, 'keydown', bindings.handler({ showAll }))
+useEvent(document, 'keydown', bindings.handler({ zoomToSelected: () => zoomToSelected() }))
 useEvent(document, 'click', endBrushing)
 useEvent(document, 'auxclick', endBrushing)
 useEvent(document, 'contextmenu', endBrushing)
@@ -575,10 +566,10 @@ useEvent(document, 'scroll', endBrushing)
   <VisualizationContainer :belowToolbar="true">
     <template #toolbar>
       <button class="image-button active">
-        <SvgIcon name="show_all" alt="Fit all" @click="showAll" />
+        <SvgIcon name="show_all" alt="Fit all" @click="zoomToSelected(false)" />
       </button>
       <button class="image-button" :class="{ active: brushExtent != null }">
-        <SvgIcon name="find" alt="Zoom to selected" @click="zoomToSelected" />
+        <SvgIcon name="find" alt="Zoom to selected" @click="zoomToSelected(true)" />
       </button>
     </template>
     <div ref="containerNode" class="HistogramVisualization" @pointerdown.stop>

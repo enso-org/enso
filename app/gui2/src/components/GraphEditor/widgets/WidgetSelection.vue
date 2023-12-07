@@ -9,18 +9,54 @@ import { computed, nextTick, onMounted, ref, watch } from 'vue'
 const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()
 
-const tagLabels = computed(() => {
+/** Static selection entry, label and value are the same. */
+interface StaticTag {
+  kind: 'Static'
+  label: string
+}
+
+/** Dynamic selection entry, label and value can be different. */
+interface DynamicTag {
+  kind: 'Dynamic'
+  label: string
+  value: string
+}
+type Tag = StaticTag | DynamicTag
+
+const staticTags = computed<Tag[]>(() => {
   const tags = props.input.info?.tagValues
   if (tags == null) return []
   return tags.map((tag) => {
     const qualifiedName = tryQualifiedName(tag)
-    if (!qualifiedName.ok) return tag
+    if (!qualifiedName.ok) return { kind: 'Static', label: tag }
     const segments = qnSegments(qualifiedName.value).slice(-2)
-    if (segments[0] == undefined) return tag
-    if (segments[1] == undefined) return segments[0]
-    return qnJoin(segments[0], segments[1])
+    if (segments[0] == undefined) return { kind: 'Static', label: tag }
+    if (segments[1] == undefined) return { kind: 'Static', label: segments[0] }
+    return { kind: 'Static', label: qnJoin(segments[0], segments[1]) }
   })
 })
+
+const dynamicTags = computed<Tag[]>(() => {
+  const config = props.config
+  if (config == null) return []
+  const [_, widgetConfig] = config.find(([name]) => name === props.input.info?.name) ?? []
+  if (widgetConfig && widgetConfig.kind == 'Single_Choice') {
+    return widgetConfig.values.map((value) => ({
+      kind: 'Dynamic',
+      label: value.label || value.value,
+      value: value.value,
+    }))
+  } else {
+    return []
+  }
+})
+
+const tags = computed(() => (dynamicTags.value.length > 0 ? dynamicTags.value : staticTags.value))
+const tagLabels = computed(() => tags.value.map((tag) => tag.label))
+const tagValues = computed(() => {
+  return tags.value.map((tag) => (tag.kind == 'Static' ? tag.label : tag.value))
+})
+
 const rootElement = ref<HTMLElement>()
 const parentColor = ref<string>()
 
@@ -34,7 +70,11 @@ onMounted(async () => {
 const selectedIndex = ref<number>()
 const selectedValue = computed(() => {
   if (selectedIndex.value == null) return props.input.info?.defaultValue ?? ''
-  return tagLabels.value[selectedIndex.value]
+  return tagValues.value[selectedIndex.value] ?? ''
+})
+const selectedLabel = computed(() => {
+  if (selectedIndex.value == null) return props.input.info?.defaultValue ?? ''
+  return tagLabels.value[selectedIndex.value] ?? ''
 })
 const showDropdownWidget = ref(false)
 const showArgumentValue = ref(true)
@@ -57,7 +97,9 @@ export const widgetDefinition = defineWidget([ArgumentPlaceholder, ArgumentAst],
   priority: 999,
   score: (props) => {
     const tags = props.input.info?.tagValues
-    if (tags == null) return Score.Mismatch
+    const [_, dynamicConfig] = props.config?.find(([name]) => name === props.input.info?.name) ?? []
+    const isSuitableDynamicConfig = dynamicConfig && dynamicConfig.kind === 'Single_Choice'
+    if (tags == null && !isSuitableDynamicConfig) return Score.Mismatch
     return Score.Perfect
   },
 })
@@ -76,7 +118,7 @@ export const widgetDefinition = defineWidget([ArgumentPlaceholder, ArgumentAst],
         v-if="showDropdownWidget"
         :color="parentColor ?? 'white'"
         :values="tagLabels"
-        :selectedValue="selectedValue"
+        :selectedValue="selectedLabel"
         @click="selectedIndex = $event"
       />
     </div>

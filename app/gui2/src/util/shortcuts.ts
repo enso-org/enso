@@ -182,7 +182,7 @@ const normalizedKeyboardSegmentLookup = Object.fromEntries<string>(
 )
 normalizedKeyboardSegmentLookup[''] = '+'
 normalizedKeyboardSegmentLookup['space'] = ' '
-normalizedKeyboardSegmentLookup['osdelete'] = isMacLike ? 'Delete' : 'Backspace'
+normalizedKeyboardSegmentLookup['osdelete'] = isMacLike ? 'Backspace' : 'Delete'
 type NormalizeKeybindSegment = {
   [K in KeybindSegment as Lowercase<K>]: K
 }

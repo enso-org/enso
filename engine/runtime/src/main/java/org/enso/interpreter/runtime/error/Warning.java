@@ -110,7 +110,7 @@ public final class Warning implements EnsoObject {
         sortArray(arr);
         return ArrayLikeHelpers.wrapEnsoObjects(arr);
       } catch (UnsupportedMessageException e) {
-        throw new IllegalStateException(e);
+        throw EnsoContext.get(warnings).raiseAssertionPanic(warnings, null, e);
       }
     } else {
       return ArrayLikeHelpers.empty();
@@ -178,8 +178,7 @@ public final class Warning implements EnsoObject {
       }
       return WithWarnings.wrap(ctx, value, warningsCast);
     } catch (UnsupportedMessageException | InvalidArrayIndexException ex) {
-      CompilerDirectives.transferToInterpreter();
-      throw new IllegalStateException(ex);
+      throw EnsoContext.get(interop).raiseAssertionPanic(interop, null, ex);
     }
   }
 
