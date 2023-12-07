@@ -436,6 +436,14 @@ export const useProjectStore = defineStore('project', () => {
   const contentRoots = initializedConnection.then(({ contentRoots }) => contentRoots)
   const dataConnection = initializeDataConnection(clientId, lsUrls.dataUrl)
 
+  const rpcUrl = new URL(lsUrls.rpcUrl)
+  const isOnLocalBackend =
+    rpcUrl.protocol === 'mock:' ||
+    rpcUrl.hostname === 'localhost' ||
+    rpcUrl.hostname === '127.0.0.1' ||
+    rpcUrl.hostname === '[::1]' ||
+    rpcUrl.hostname === '0:0:0:0:0:0:0:1'
+
   const name = computed(() => config.value.startup?.project)
   const namespace = computed(() => config.value.engine?.namespace)
   const fullName = computed(() => {
@@ -635,6 +643,7 @@ export const useProjectStore = defineStore('project', () => {
       observedFileName.value = name
     },
     name: projectName,
+    isOnLocalBackend,
     executionContext,
     firstExecution,
     diagnostics,
