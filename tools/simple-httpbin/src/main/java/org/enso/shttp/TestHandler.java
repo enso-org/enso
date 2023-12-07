@@ -1,7 +1,6 @@
 package org.enso.shttp;
 
 import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpHandler;
 import org.apache.commons.text.StringEscapeUtils;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.utils.URIBuilder;
@@ -19,32 +18,14 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class TestHandler implements HttpHandler {
+public class TestHandler extends SimpleHttpHandler {
   private final HttpMethod expectedMethod;
   private static final Set<String> ignoredHeaders = Set.of("Host");
 
   private static final Pattern textEncodingRegex = Pattern.compile(".*; charset=([^;]+).*");
-  private final boolean logRequests = false;
 
   public TestHandler(HttpMethod expectedMethod) {
     this.expectedMethod = expectedMethod;
-  }
-
-  @Override
-  public void handle(HttpExchange exchange) throws IOException {
-    try {
-      if (logRequests) {
-        System.out.println(
-            "Handling request: " + exchange.getRequestMethod() + " " + exchange.getRequestURI());
-      }
-
-      doHandle(exchange);
-    } catch (IOException e) {
-      e.printStackTrace();
-      throw e;
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
   }
 
   public void doHandle(HttpExchange exchange) throws IOException {
@@ -53,7 +34,7 @@ public class TestHandler implements HttpHandler {
     String textEncoding = "UTF-8";
     HttpMethod method;
     try {
-       method = HttpMethod.valueOf(exchange.getRequestMethod());
+      method = HttpMethod.valueOf(exchange.getRequestMethod());
     } catch (IllegalArgumentException e) {
       exchange.sendResponseHeaders(400, -1);
       return;
@@ -133,10 +114,10 @@ public class TestHandler implements HttpHandler {
       response.append("  \"args\": {}\n");
       response.append("}");
       exchange.sendResponseHeaders(200, response.toString().getBytes().length);
+      try (OutputStream os = exchange.getResponseBody()) {
+        os.write(response.toString().getBytes());
+      }
     }
-    OutputStream os = exchange.getResponseBody();
-    os.write(response.toString().getBytes());
-    os.close();
   }
 
   private String readBody(InputStream inputStream, String encoding) {

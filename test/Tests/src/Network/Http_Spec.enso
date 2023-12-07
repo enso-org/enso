@@ -543,31 +543,44 @@ spec =
     Test.group "Http Auth" <|
         Test.specify "should support Basic user+password authentication" <|
             url = base_url_with_slash + "test_basic_auth"
-            #r1 = Data.fetch url
-            #r1.should_fail_with HTTP_Error
-            #r1.catch.status_code.code . should_equal 401
 
-            r2 = Data.fetch url headers=[Header.authorization_basic "enso-test-user" "my secret password: 1234@#; ść + 😎"]
-            r2.should_succeed
-            r2.should_be_a Text
-            r2.should_equal "Authorization successful, welcome enso-test-user!"
+            # Correct user and password
+            r1 = Data.fetch url headers=[Header.authorization_basic "enso-test-user" "my secret password: 1234@#; ść + 😎"]
+            r1.should_succeed
+            r1.should_be_a Text
+            r1.should_equal "Authorization successful, welcome enso-test-user!"
 
+            # No auth data
+            r2 = Data.fetch url
+            r2.should_fail_with HTTP_Error
+            r2.catch.status_code.code . should_equal 401
+
+            # Incorrect credentials
             r3 = Data.fetch url headers=[Header.authorization_basic "other user" "1234"]
             r3.should_fail_with HTTP_Error
             r3.catch.status_code.code . should_equal 403
 
+            # Correct user, incorrect password
+            r4 = Data.fetch url headers=[Header.authorization_basic "enso-test-user" "1234"]
+            r4.should_fail_with HTTP_Error
+            r4.catch.status_code.code . should_equal 403
+
         Test.specify "should support Bearer token authentication" <|
             url = base_url_with_slash + "test_token_auth"
-            #r1 = Data.fetch url
-            #r1.should_fail_with HTTP_Error
-            #r1.catch.status_code.code . should_equal 401
-            #IO.println r1.catch.to_display_text
 
-            r2 = Data.fetch url headers=[Header.authorization_bearer "deadbeef-coffee-1234"]
-            r2.should_succeed
-            r2.should_be_a Text
-            r2.should_equal "Authorization successful."
+            # Correct token
+            r1 = Data.fetch url headers=[Header.authorization_bearer "deadbeef-coffee-1234"]
+            r1.should_succeed
+            r1.should_be_a Text
+            r1.should_equal "Authorization successful."
 
+            # No auth data
+            r2 = Data.fetch url
+            r2.should_fail_with HTTP_Error
+            r2.catch.status_code.code . should_equal 401
+            IO.println r2.catch.to_display_text
+
+            # Invalid token
             r3 = Data.fetch url headers=[Header.authorization_bearer "invalid-token"]
             r3.should_fail_with HTTP_Error
             r3.catch.status_code.code . should_equal 403

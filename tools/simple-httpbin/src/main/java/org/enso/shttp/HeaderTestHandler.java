@@ -1,15 +1,14 @@
 package org.enso.shttp;
 
 import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpHandler;
 import org.apache.http.client.utils.URIBuilder;
 
 import java.io.IOException;
 import java.net.URI;
 
-public class HeaderTestHandler implements HttpHandler {
+public class HeaderTestHandler extends SimpleHttpHandler {
   @Override
-  public void handle(HttpExchange exchange) throws IOException {
+  public void doHandle(HttpExchange exchange) throws IOException {
     URI uri = exchange.getRequestURI();
     URIBuilder builder = new URIBuilder(uri);
     try {

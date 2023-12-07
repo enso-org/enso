@@ -1,20 +1,17 @@
 package org.enso.shttp;
 
 import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpHandler;
 
 import java.io.IOException;
 import java.util.List;
 
-import static org.enso.shttp.Utils.sendResponse;
-
-public class TokenAuthTestHandler implements HttpHandler {
+public class TokenAuthTestHandler extends SimpleHttpHandler {
   private final String secretToken = "deadbeef-coffee-1234";
 
   @Override
-  public void handle(HttpExchange exchange) throws IOException {
+  public void doHandle(HttpExchange exchange) throws IOException {
     List<String> authHeaders = exchange.getRequestHeaders().get("Authorization");
-    if (authHeaders.isEmpty()) {
+    if (authHeaders == null || authHeaders.isEmpty()) {
       sendResponse(401, "Not authorized.", exchange);
       return;
     } else if (authHeaders.size() > 1) {

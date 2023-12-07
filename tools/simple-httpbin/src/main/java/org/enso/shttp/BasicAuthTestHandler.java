@@ -1,24 +1,21 @@
 package org.enso.shttp;
 
 import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpHandler;
 
 import java.io.IOException;
 import java.util.Base64;
 import java.util.List;
 
-import static org.enso.shttp.Utils.sendResponse;
-
-public class BasicAuthTestHandler implements HttpHandler {
+public class BasicAuthTestHandler extends SimpleHttpHandler {
   private final String username = "enso-test-user";
 
   // ends with 😎 emoji
   private final String password = "my secret password: 1234@#; ść + \uD83D\uDE0E";
 
   @Override
-  public void handle(HttpExchange exchange) throws IOException {
+  public void doHandle(HttpExchange exchange) throws IOException {
     List<String> authHeaders = exchange.getRequestHeaders().get("Authorization");
-    if (authHeaders.isEmpty()) {
+    if (authHeaders == null || authHeaders.isEmpty()) {
       sendResponse(401, "Not authorized.", exchange);
       return;
     } else if (authHeaders.size() > 1) {
