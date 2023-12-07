@@ -162,11 +162,11 @@ spec =
 
         Test.specify "Unsupported method" <|
             err = Data.fetch url_get method=HTTP_Method.Post
-            err.catch.should_equal (Illegal_Argument.Error "Unsupported method Post")
+            err.catch.should_equal (Illegal_Argument.Error "Unsupported method POST")
 
         Test.specify "Cannot DELETE through fetch" <|
             err = Data.fetch url_get method=HTTP_Method.Delete
-            err.catch.should_equal (Illegal_Argument.Error "Unsupported method Delete")
+            err.catch.should_equal (Illegal_Argument.Error "Unsupported method DELETE")
 
         Test.specify "unknown host" <|
             Data.fetch "http://undefined_host.invalid" . should_fail_with Request_Error
@@ -359,12 +359,11 @@ spec =
             r2.catch.should_be_a HTTP_Error.Status_Error
             r2.catch.status_code.code . should_equal 404
 
-            # TODO check for 500? if I can set to custom method?
-            r3 = Data.post (base_url_with_slash + "get") method=(HTTP_Method.Custom "BREW_COFFEE")
+            r3 = HTTP.new.request (Request.new (HTTP_Method.Custom "BREW_COFFEE") (base_url_with_slash + "get"))
             r3.should_fail_with HTTP_Error
             r3.catch.should_be_a HTTP_Error.Status_Error
             IO.println r3.catch.to_display_text
-            r3.catch.status_code.code . should_equal 405
+            r3.catch.status_code.code . should_equal 400
 
         Test.specify "Cannot perform POST when output context is disabled" <|
             Context.Output.with_disabled <|
@@ -379,7 +378,10 @@ spec =
 
         Test.specify "Unsupported method" <|
             err = Data.post url_post (Request_Body.Text "hello world") method=HTTP_Method.Get
-            err.catch.should_equal (Illegal_Argument.Error "Unsupported method Get")
+            err.catch.should_equal (Illegal_Argument.Error "Unsupported method GET")
+
+            err2 = Data.post url_post (Request_Body.Text "hello world") method=(HTTP_Method.Custom "BREW_COFFEE")
+            err2.catch.should_equal (Illegal_Argument.Error "Unsupported method Custom: BREW_COFFEE")
 
         Test.specify "unknown host" <|
             Data.post "http://undefined_host.invalid" (Request_Body.Text "hello world") . should_fail_with Request_Error

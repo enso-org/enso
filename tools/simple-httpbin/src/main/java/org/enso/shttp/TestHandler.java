@@ -51,14 +51,20 @@ public class TestHandler implements HttpHandler {
     boolean first = true;
     String contentType = null;
     String textEncoding = "UTF-8";
-    HttpMethod meth = HttpMethod.valueOf(exchange.getRequestMethod());
+    HttpMethod method;
+    try {
+       method = HttpMethod.valueOf(exchange.getRequestMethod());
+    } catch (IllegalArgumentException e) {
+      exchange.sendResponseHeaders(400, -1);
+      return;
+    }
 
     StringBuilder response;
-    if (meth == HttpMethod.HEAD || meth == HttpMethod.OPTIONS) {
+    if (method == HttpMethod.HEAD || method == HttpMethod.OPTIONS) {
       response = new StringBuilder();
       exchange.sendResponseHeaders(200, -1);
     } else {
-      if (meth != expectedMethod) {
+      if (method != expectedMethod) {
         exchange.sendResponseHeaders(405, -1);
         return;
       }
@@ -114,11 +120,11 @@ public class TestHandler implements HttpHandler {
         response.append("  ],\n");
       }
 
-      response.append("  \"method\": \"").append(meth).append("\",\n");
-      if (meth == HttpMethod.POST
-          || meth == HttpMethod.DELETE
-          || meth == HttpMethod.PUT
-          || meth == HttpMethod.PATCH) {
+      response.append("  \"method\": \"").append(method).append("\",\n");
+      if (method == HttpMethod.POST
+          || method == HttpMethod.DELETE
+          || method == HttpMethod.PUT
+          || method == HttpMethod.PATCH) {
         response.append("  \"form\": null,\n");
         response.append("  \"files\": null,\n");
         String value = readBody(exchange.getRequestBody(), textEncoding);
