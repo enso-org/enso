@@ -63,7 +63,7 @@ public class SimpleHTTPBin {
       server = new SimpleHTTPBin(host, port);
       for (HttpMethod method : HttpMethod.values()) {
         String path = "/" + method.toString().toLowerCase();
-        server.addHandler(path, new TestHandler());
+        server.addHandler(path, new TestHandler(method));
       }
 
       setupFileServer(server);

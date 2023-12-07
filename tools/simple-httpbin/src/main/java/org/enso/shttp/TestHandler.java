@@ -20,10 +20,15 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class TestHandler implements HttpHandler {
+  private final HttpMethod expectedMethod;
   private static final Set<String> ignoredHeaders = Set.of("Host");
 
   private static final Pattern textEncodingRegex = Pattern.compile(".*; charset=([^;]+).*");
   private final boolean logRequests = false;
+
+  public TestHandler(HttpMethod expectedMethod) {
+    this.expectedMethod = expectedMethod;
+  }
 
   @Override
   public void handle(HttpExchange exchange) throws IOException {
@@ -53,6 +58,11 @@ public class TestHandler implements HttpHandler {
       response = new StringBuilder();
       exchange.sendResponseHeaders(200, -1);
     } else {
+      if (meth != expectedMethod) {
+        exchange.sendResponseHeaders(405, -1);
+        return;
+      }
+
       exchange.getResponseHeaders().put("Content-Type", List.of("application/json"));
       response = new StringBuilder("{\n");
       response.append("  \"headers\": {\n");

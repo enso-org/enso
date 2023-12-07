@@ -163,6 +163,17 @@ spec =
             Data.fetch "zxcv://bad.scheme" . should_fail_with Request_Error
             Data.fetch "" . should_fail_with Request_Error
 
+        Test.specify "can select the version" <|
+            req = Request.get url_get
+            r2 = HTTP.new version=HTTP_Version.HTTP_2 . request req . decode_as_json
+            r2.at "headers" . at "Connection" . should_equal "Upgrade, HTTP2-Settings"
+
+            r1 = HTTP.new version=HTTP_Version.HTTP_1_1 . request req . decode_as_json
+            r1.at "headers" . keys . should_not_contain "Connection"
+            r1.at "headers" . keys . should_not_contain "Http2-Settings"
+            r1.at "headers" . keys . should_not_contain "HTTP2-Settings"
+            r1.at "headers" . keys . should_not_contain "Upgrade"
+
     Test.group "post" pending=pending_has_url <|
         url_post = base_url_with_slash + "post"
         url_put = base_url_with_slash + "put"
@@ -322,12 +333,18 @@ spec =
             response . should_equal expected_response
 
         Test.specify "can handle HTTP errors" <|
-            # This should give us bad request
+            # This should give us 405 bad method
             r1 = Data.post url_delete
+            # TODO upgrade error handling to have better error type for failed requests
             IO.println r1
 
-            r2 = Data.post base_url_with_slash + "some/unknown/path"
+            # TODO check for 404
+            r2 = Data.post (base_url_with_slash + "some/unknown/path")
             IO.println r2
+
+            # TODO check for 500? if I can set to custom method?
+            r3 = Data.post (base_url_with_slash + "get") method=(HTTP_Method.Custom "BREW_COFFEE")
+            IO.println r3
 
         Test.specify "Cannot perform POST when output context is disabled" <|
             Context.Output.with_disabled <|
@@ -450,6 +467,17 @@ spec =
         Test.specify "Cannot specify content type (implicitly via explicit text encoding) in both body and headers" <|
             Data.post url_post (Request_Body.Text "hello world" encoding=Encoding.utf_8) headers=[Header.content_type "application/json"] . should_fail_with Illegal_Argument
 
+        Test.specify "can also read headers from a response, when returning a raw response" <|
+            r1 = Data.post url_post (Request_Body.Text "hello world") try_auto_parse_response=False
+            r1.headers.find (p-> p.name.equals_ignore_case "Content-Type") . value . should_equal "text/plain; charset=UTF-8"
+
+            uri = URI.from (base_url_with_slash + "set_headers")
+                . add_query_argument "test-header" "test-value"
+                . add_query_argument "Other-Header" "some other value"
+            r2 = Data.fetch uri try_auto_parse_response=False
+            r2.headers.find (p-> p.name.equals_ignore_case "Test-Header") . value . should_equal "test-value"
+            r2.headers.find (p-> p.name.equals_ignore_case "Other-Header") . value . should_equal "some other value"
+
     Test.group "Header resolution" <|
         Test.specify "Default content type and encoding" <|
             expected = [Header.content_type "text/plain; charset=UTF-8"]
@@ -487,6 +515,11 @@ spec =
             # TODO how to trigger this error???
             err = Data.fetch "TODO"
             err.should_fail_with HTTP_Error
+
+    Test.group "Http Auth" <|
+        Test.specify "should allow to specify authentication headers" <|
+            # TODO figure out what is there to check right now?
+            Error.throw "TODO"
 
 main = Test_Suite.run_main spec
 

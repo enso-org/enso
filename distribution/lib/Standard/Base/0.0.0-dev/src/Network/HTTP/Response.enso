@@ -53,7 +53,7 @@ type Response
              import Standard.Examples
 
              example_headers = Examples.get_response.headers
-    headers : Vector
+    headers : Vector Header
     headers self =
         header_keys = self.internal_http_response.headerNames
         header_keys.flat_map k-> (self.internal_http_response.headers.allValues k).map v-> Header.new k v
