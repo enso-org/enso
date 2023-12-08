@@ -808,6 +808,135 @@ public class SignatureTest extends TestBase {
     assertFalse("false & false", compute.execute(false, false).asBoolean());
   }
 
+  @Test
+  public void unresolvedReturnTypeSignature() throws Exception {
+    final URI uri = new URI("memory://neg.enso");
+    final Source src = Source.newBuilder("enso", """
+    neg a -> Xyz = 0 - a
+    """,uri.getAuthority())
+        .uri(uri)
+        .buildLiteral();
+
+    try {
+      var module = ctx.eval(src);
+      var neg = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "neg");
+      fail("Expecting an exception from compilation, not: " + neg);
+    } catch (PolyglotException e) {
+      System.out.println(e);
+      assertTrue("It is a syntax error exception", e.isSyntaxError());
+    }
+  }
+
+  @Test
+  public void validReturnTypeSignature() throws Exception {
+    final URI uri = new URI("memory://rts.enso");
+    final Source src = Source.newBuilder("enso", """
+    from Standard.Base import Integer
+    add1 a b -> Integer = a+b
+    add2 (a : Integer) (b : Integer) -> Integer = a+b
+    """,uri.getAuthority())
+        .uri(uri)
+        .buildLiteral();
+
+    var module = ctx.eval(src);
+    var add1 = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "add1");
+    assertEquals(3, add1.execute(1, 2).asInt());
+
+    var add2 = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "add2");
+    assertEquals(3, add2.execute(1, 2).asInt());
+  }
+
+
+  /**
+   * This test demonstrates a slightly un-intuitive, but apparently needed by our rules, behaviour of `->` with ascriptions:
+   * for `foo a:Integer -> Integer` what happens? TODO
+   * for `foo a : Integer -> Integer` what happens? TODO
+   */
+  @Test
+  public void weirdReturnTypeSignature() throws Exception {
+    final URI uri = new URI("memory://rts.enso");
+    final Source src = Source.newBuilder("enso", """
+    from Standard.Base import Integer
+    foo a:Integer -> Integer = a+10
+    bar a:Integer -> Integer = a+100
+    """,uri.getAuthority())
+        .uri(uri)
+        .buildLiteral();
+
+    // TODO figure out these
+    var module = ctx.eval(src);
+    var add1 = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo");
+    assertEquals(11, add1.execute(1).asInt());
+
+    var add2 = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "bar");
+    assertEquals(101, add2.execute(1).asInt());
+  }
+
+  @Test
+  public void returnTypeCheckOptInError() throws Exception {
+    final URI uri = new URI("memory://rts.enso");
+    final Source src = Source.newBuilder("enso", """
+    from Standard.Base import Integer
+    plusChecked a b -> Integer = b+a
+    """,uri.getAuthority())
+        .uri(uri)
+        .buildLiteral();
+
+    var module = ctx.eval(src);
+    var plusChecked = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "plusChecked");
+    assertEquals(5, plusChecked.execute(2, 3).asInt());
+    try {
+      var res = plusChecked.execute("a", "b");
+      fail("Expecting an exception, not: " + res);
+    } catch (PolyglotException e) {
+      System.out.println("PLus checked: " + e);
+      // TODO
+      assertTrue(true);
+    }
+  }
+
+  /** Similar scenario to {@code returnTypeCheckOptInError}, but with the opt out signature the check is not currently performed. */
+  @Test
+  public void returnTypeCheckOptOut() throws Exception {
+    final URI uri = new URI("memory://rts.enso");
+    final Source src = Source.newBuilder("enso", """
+    from Standard.Base import Integer
+    plusUnchecked : Integer -> Integer -> Integer
+    plusUnchecked a b = b+a
+    """,uri.getAuthority())
+        .uri(uri)
+        .buildLiteral();
+
+    var module = ctx.eval(src);
+    var plusChecked = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "plusUnchecked");
+    assertEquals(5, plusChecked.execute(2, 3).asInt());
+    // This variant does allow other types, because the signature remains unchecked:
+    assertEquals("ba", plusChecked.execute("a", "b").asString());
+  }
+
+  @Test
+  public void returnTypeCheckOptInErrorZeroArguments() throws Exception {
+    final URI uri = new URI("memory://rts.enso");
+    final Source src = Source.newBuilder("enso", """
+    from Standard.Base import Integer
+    constant -> Integer = "foo"
+    foo a b = a + constant + b
+    """,uri.getAuthority())
+        .uri(uri)
+        .buildLiteral();
+
+    var module = ctx.eval(src);
+    var plusChecked = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo");
+    try {
+      var res = plusChecked.execute(2, 3);
+      fail("Expecting an exception, not: " + res);
+    } catch (PolyglotException e) {
+      System.out.println("Constant checked: " + e);
+      // TODO
+      assertTrue(true);
+    }
+  }
+
   static void assertTypeError(String expArg, String expType, String realType, String msg) {
     if (!msg.contains(expArg)) {
       fail("Expecting value " + expArg + " in " + msg);
