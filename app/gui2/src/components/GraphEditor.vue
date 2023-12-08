@@ -528,7 +528,7 @@ function handleNodeOutputPortDoubleClick(id: ExprId) {
       :modes="EXECUTION_MODES"
       :breadcrumbs="breadcrumbs"
       @breadcrumbClick="console.log(`breadcrumb #${$event + 1} clicked.`)"
-      @back="projectStore.executionContext.pop()"
+      @back="exitNode"
       @forward="console.log('breadcrumbs \'forward\' button clicked.')"
       @execute="onPlayButtonPress()"
     />
