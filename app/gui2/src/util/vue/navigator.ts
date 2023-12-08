@@ -1,5 +1,5 @@
-import { useApproach } from '@/util/animation'
-import { PointerButtonMask, useEvent, usePointer, useResizeObserver } from '@/util/events'
+import { useApproach } from '@/util/vue/animation'
+import { PointerButtonMask, useEvent, usePointer, useResizeObserver } from '@/util/vue/events'
 import { Rect } from '@/util/rect'
 import { Vec2 } from '@/util/vec2'
 import { computed, proxyRefs, ref, type Ref } from 'vue'

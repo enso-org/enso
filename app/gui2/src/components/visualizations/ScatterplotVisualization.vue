@@ -1,9 +1,9 @@
 <script lang="ts">
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useVisualizationConfig } from '@/providers/visualizationConfig'
-import { useEvent } from '@/util/events'
 import { getTextWidth } from '@/util/measurement'
 import { VisualizationContainer, defineKeybinds } from '@/util/visualizationBuiltins'
+import { useEvent } from '@/util/vue/events'
 import { computed, ref, watch, watchEffect, watchPostEffect } from 'vue'
 
 export const name = 'Scatter Plot'

@@ -7,7 +7,7 @@ import {
   nonDictatedPlacement,
   previousNodeDictatedPlacement,
   type Environment,
-} from '@/components/ComponentBrowser/placement.ts'
+} from '@/components/ComponentBrowser/placement'
 import GraphEdges from '@/components/GraphEditor/GraphEdges.vue'
 import GraphNodes from '@/components/GraphEditor/GraphNodes.vue'
 import { Uploader, uploadedExpression } from '@/components/GraphEditor/upload'
@@ -23,11 +23,11 @@ import type { RequiredImport } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { groupColorVar, useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { colorFromString } from '@/util/colors'
-import { keyboardBusy, keyboardBusyExceptIn, useEvent } from '@/util/events'
-import { Rect } from '@/util/rect.ts'
+import { Rect } from '@/util/rect'
 import { Vec2 } from '@/util/vec2'
+import { keyboardBusy, keyboardBusyExceptIn, useEvent } from '@/util/vue/events'
 import * as set from 'lib0/set'
-import type { ExprId, NodeMetadata } from 'shared/yjsModel.ts'
+import type { ExprId, NodeMetadata } from 'shared/yjsModel'
 import { computed, onMounted, ref, watch } from 'vue'
 
 const EXECUTION_MODES = ['design', 'live']

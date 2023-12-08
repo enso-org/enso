@@ -4,13 +4,13 @@ import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { useAutoBlur } from '@/util/autoBlur'
 import type { Diagnostic, Highlighter } from '@/util/codemirror'
-import { usePointer } from '@/util/events'
 import { chain } from '@/util/iterable'
+import { qnJoin, tryQualifiedName } from '@/util/qualifiedName'
+import { unwrap } from '@/util/result'
+import { usePointer } from '@/util/vue/events'
 import { useLocalStorage } from '@vueuse/core'
 import { rangeEncloses, type ExprId } from 'shared/yjsModel'
 import { computed, onMounted, ref, watch, watchEffect } from 'vue'
-import { qnJoin, tryQualifiedName } from '../util/qualifiedName'
-import { unwrap } from '../util/result'
 
 // Use dynamic imports to aid code splitting. The codemirror dependency is quite large.
 const {

@@ -25,12 +25,11 @@
  * All unannotated identifiers are assumed to preexist in the environment (captured from an external scope or imports).
  */
 
-import type { ContentRange } from '@/../../../../shared/yjsModel'
 import { assertDefined } from '@/util/assert'
+import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
 import { MappedKeyMap, MappedSet } from '@/util/containers'
+import { IdMap, type ContentRange } from 'shared/yjsModel'
 import { expect, test } from 'vitest'
-import { IdMap } from '../../../../shared/yjsModel'
-import { AliasAnalyzer } from '../aliasAnalysis'
 
 /** The type of annotation. */
 enum AnnotationType {
@@ -57,7 +56,7 @@ function parseAnnotations(annotatedCode: string): {
   unannotatedCode: string
   annotations: MappedKeyMap<ContentRange, Annotation>
 } {
-  const annotations = new MappedKeyMap(IdMap.keyForRange)
+  const annotations = new MappedKeyMap<ContentRange, Annotation>(IdMap.keyForRange)
 
   // Iterate over all annotations (either bindings or usages).
   // I.e. we want to cover both `«1,x»` and `»1,x«` cases, while keeping the track of the annotation type.
@@ -69,7 +68,14 @@ function parseAnnotations(annotatedCode: string): {
 
   const unannotatedCode = annotatedCode.replace(
     annotationRegex,
-    (match, bindingPrefix, bindingName, usagePrefix, usageName, offset) => {
+    (
+      match,
+      bindingPrefix: string | undefined,
+      bindingName: string | undefined,
+      usagePrefix: string | undefined,
+      usageName: string | undefined,
+      offset: number,
+    ) => {
       console.log(`Processing annotated identifier ${match}.`)
 
       // Sanity check: either both binding prefix and name are present, or both usage prefix and name are present.
@@ -78,13 +84,13 @@ function parseAnnotations(annotatedCode: string): {
       expect(usagePrefix != null).toBe(usageName != null)
       expect(bindingPrefix != null).not.toBe(usagePrefix != null)
 
-      const id = parseInt(bindingPrefix ?? usagePrefix, 10)
-      const name = bindingName ?? usageName
+      const id = parseInt(bindingPrefix ?? usagePrefix ?? '0', 10)
+      const name = bindingName ?? usageName ?? ''
       const kind = bindingPrefix != null ? AnnotationType.Binding : AnnotationType.Usage
 
       const start = offset - accumulatedOffset
       const end = start + name.length
-      const range = [start, end]
+      const range: ContentRange = [start, end]
 
       const annotation = new Annotation(kind, id)
       accumulatedOffset += match.length - name.length

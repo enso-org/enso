@@ -1,6 +1,6 @@
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { useGraphStore } from '@/stores/graph'
-import { useApproach } from '@/util/animation'
+import { useApproach } from '@/util/vue/animation'
 import { partitionPoint } from '@/util/array'
 import type { Opt } from '@/util/opt'
 import { Rect } from '@/util/rect'

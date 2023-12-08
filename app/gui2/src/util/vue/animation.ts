@@ -1,4 +1,4 @@
-import { watchSourceToRef } from '@/util/reactivity'
+import { watchSourceToRef } from '@/util/vue/reactivity'
 import { onScopeDispose, proxyRefs, ref, watch, type WatchSource } from 'vue'
 
 const rafCallbacks: { fn: (t: number, dt: number) => void; priority: number }[] = []

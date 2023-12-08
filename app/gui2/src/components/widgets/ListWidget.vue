@@ -1,10 +1,10 @@
 <script lang="ts">
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useAppClass } from '@/providers/appClass'
-import { useRaf } from '@/util/animation'
-import { useEvent } from '@/util/events'
 import { Range } from '@/util/range'
 import { Vec2 } from '@/util/vec2'
+import { useRaf } from '@/util/vue/animation'
+import { useEvent } from '@/util/vue/events'
 import { uuidv4 } from 'lib0/random'
 import { nextTick } from 'process'
 import { computed, ref, shallowReactive, watchEffect, watchPostEffect } from 'vue'

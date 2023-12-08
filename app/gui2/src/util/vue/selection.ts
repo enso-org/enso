@@ -1,10 +1,10 @@
 import { selectionMouseBindings } from '@/bindings'
-import { usePointer } from '@/util/events'
-import type { NavigatorComposable } from '@/util/navigator'
 import type { Rect } from '@/util/rect'
 import type { Vec2 } from '@/util/vec2'
+import { usePointer } from '@/util/vue/events'
+import type { NavigatorComposable } from '@/util/vue/navigator'
+import { type ExprId } from 'shared/yjsModel'
 import { computed, proxyRefs, reactive, ref, shallowRef } from 'vue'
-import { type ExprId } from '../../shared/yjsModel.ts'
 
 export type SelectionComposable<T> = ReturnType<typeof useSelection<T>>
 export function useSelection<T>(

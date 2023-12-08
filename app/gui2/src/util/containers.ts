@@ -1,4 +1,4 @@
-import type { NonEmptyArray } from '@/util/array.ts'
+import type { NonEmptyArray } from '@/util/array'
 import { assertDefined, assertEqual } from '@/util/assert'
 import { mapIterator } from 'lib0/iterator'
 

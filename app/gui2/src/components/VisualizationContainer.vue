@@ -2,7 +2,7 @@
 import SvgIcon from '@/components/SvgIcon.vue'
 import VisualizationSelector from '@/components/VisualizationSelector.vue'
 import { useVisualizationConfig } from '@/providers/visualizationConfig'
-import { PointerButtonMask, isTriggeredByKeyboard, usePointer } from '@/util/events'
+import { PointerButtonMask, isTriggeredByKeyboard, usePointer } from '@/util/vue/events'
 import { onMounted, ref, watchEffect } from 'vue'
 
 const props = defineProps<{

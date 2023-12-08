@@ -6,11 +6,11 @@ import { ForcePort, injectPortInfo, providePortInfo } from '@/providers/portInfo
 import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { injectWidgetTree } from '@/providers/widgetTree'
 import { useGraphStore } from '@/stores/graph'
-import { useRaf } from '@/util/animation'
 import { Ast } from '@/util/ast'
 import { ArgumentAst, ArgumentPlaceholder } from '@/util/callTree'
-import { useResizeObserver } from '@/util/events'
 import { Rect } from '@/util/rect'
+import { useRaf } from '@/util/vue/animation'
+import { useResizeObserver } from '@/util/vue/events'
 import { uuidv4 } from 'lib0/random'
 import type { ExprId } from 'shared/yjsModel'
 import {

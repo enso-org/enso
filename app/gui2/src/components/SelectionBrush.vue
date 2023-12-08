@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { useApproach } from '@/util/animation'
-import { useEvent } from '@/util/events'
 import type { Vec2 } from '@/util/vec2'
+import { useApproach } from '@/util/vue/animation'
+import { useEvent } from '@/util/vue/events'
 import { computed, ref, watch, type Ref } from 'vue'
 
 const props = defineProps<{

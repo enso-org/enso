@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { injectGraphNavigator } from '@/providers/graphNavigator.ts'
-import { injectGraphSelection } from '@/providers/graphSelection.ts'
+import { injectGraphNavigator } from '@/providers/graphNavigator'
+import { injectGraphSelection } from '@/providers/graphSelection'
 import { useGraphStore, type Edge } from '@/stores/graph'
 import { assert } from '@/util/assert'
 import { Rect } from '@/util/rect'

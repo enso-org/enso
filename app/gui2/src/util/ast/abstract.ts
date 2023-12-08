@@ -4,9 +4,8 @@ import { AstExtended as RawAstExtended } from '@/util/ast/extended'
 import type { LazyObject } from '@/util/parserSupport'
 import { Err, Ok, type Result } from '@/util/result'
 import * as random from 'lib0/random'
+import { IdMap, type ExprId } from 'shared/yjsModel'
 import { reactive } from 'vue'
-import type { ExprId } from '../../../shared/yjsModel'
-import { IdMap } from '../../../shared/yjsModel'
 
 interface Module {
   get(id: AstId): Ast | null

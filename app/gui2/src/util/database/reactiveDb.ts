@@ -11,7 +11,7 @@
  */
 
 import { assert } from '@/util/assert'
-import { LazySyncEffectSet } from '@/util/reactivity'
+import { LazySyncEffectSet } from '@/util/vue/reactivity'
 import * as map from 'lib0/map'
 import { ObservableV2 } from 'lib0/observable'
 import * as set from 'lib0/set'

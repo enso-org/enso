@@ -1,4 +1,4 @@
-import type { Opt } from './opt'
+import type { Opt } from '@/util/opt'
 
 /** An array that has at least one element present at all times. */
 export type NonEmptyArray<T> = [T, ...T[]]

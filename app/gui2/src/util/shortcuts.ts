@@ -1,4 +1,4 @@
-import { isMacLike } from '@/util/events'
+import { isMacLike } from '@/util/vue/events'
 
 /** All possible modifier keys. */
 export type ModifierKey = keyof typeof RAW_MODIFIER_FLAG
