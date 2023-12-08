@@ -1,4 +1,5 @@
-@import url('./font-enso-code.css');
+@import url('./font-enso.css');
+@import url('./font-mplus1.css');
 
 /* color palette from <https://github.com/vuejs/theme> */
 :root {
@@ -59,7 +60,10 @@
   --radius-default: 16px;
   --section-gap: 160px;
   --selected-node-border-width: 20px;
-  --font-code: 'Enso Code', /* System sans-serif font stack */ system-ui, -apple-system,
+  --font-sans: 'M PLUS 1', /* System sans-serif font stack */ system-ui, -apple-system,
+    BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans',
+    'Droid Sans', 'Helvetica Neue', Arial, sans-serif;
+  --font-code: 'Enso', /* System sans-serif font stack */ system-ui, -apple-system,
     BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans',
     'Droid Sans', 'Helvetica Neue', Arial, sans-serif;
   --font-mono: 'DejaVu Sans Mono', /* System monspace font stack */ ui-monospace, Menlo, Monaco,
