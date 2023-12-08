@@ -125,3 +125,6 @@ build_java_uri_with_parameters java_uri java_params =
     Panic.catch URISyntaxException (URIHelpers.addQueryParameters java_uri java_params) caught_panic->
         message = caught_panic.payload.getMessage
         Error.throw (Syntax_Error.Error "Unable to collapse to a URI: "+message)
+
+## PRIVATE
+URI.from (that : URI_With_Query) = that.to_uri

@@ -9,6 +9,7 @@ import Standard.Base.Network.HTTP.Response.Response
 import Standard.Base.Network.HTTP.Request_Body.Request_Body
 import Standard.Base.Network.HTTP.Request_Error
 import Standard.Base.Network.Proxy.Proxy
+import Standard.Base.Network.URI_With_Query.URI_With_Query
 import Standard.Base.Runtime.Context
 from Standard.Base.Network.HTTP import resolve_headers
 
@@ -104,7 +105,7 @@ spec =
                 }
             response . should_equal expected_response
 
-            uri_response = url_get.to_uri.fetch
+            uri_response = url_get.to URI . fetch
             uri_response . should_equal expected_response
 
         Test.specify "Can perform a HEAD" <|
@@ -354,16 +355,28 @@ spec =
             r1.catch.status_code.code . should_equal 405
             r1.catch.to_display_text . should_contain "status 405"
 
-            r2 = Data.post (base_url_with_slash + "some/unknown/path")
+            uri2 = URI.from (base_url_with_slash + "some/unknown/path")
+            r2 = Data.post uri2
             r2.should_fail_with HTTP_Error
             r2.catch.should_be_a HTTP_Error.Status_Error
             r2.catch.status_code.code . should_equal 404
             r2.catch.message . should_contain "<h1>404 Not Found</h1>"
+            r2.catch.uri . should_equal uri2
 
             r3 = HTTP.new.request (Request.new (HTTP_Method.Custom "BREW_COFFEE") (base_url_with_slash + "get"))
             r3.should_fail_with HTTP_Error
             r3.catch.should_be_a HTTP_Error.Status_Error
             r3.catch.status_code.code . should_equal 400
+
+            # Also test the URI_With_Query variant
+            uri4 = uri2.add_query_argument "a" "b" . add_query_argument "c" "d"
+            uri4.should_be_a URI_With_Query
+            r4 = uri4.fetch
+            r4.should_fail_with HTTP_Error
+            r4.catch.should_be_a HTTP_Error.Status_Error
+            r4.catch.status_code.code . should_equal 404
+            # The error may not necessarily store the URI_With_Query but a raw URI:
+            r4.catch.uri . should_equal (URI.from uri4)
 
         Test.specify "Cannot perform POST when output context is disabled" <|
             Context.Output.with_disabled <|
