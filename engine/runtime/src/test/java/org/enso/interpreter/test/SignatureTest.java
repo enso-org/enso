@@ -937,6 +937,69 @@ public class SignatureTest extends TestBase {
     }
   }
 
+  @Test
+  public void returnTypeCheckOptInAllowDataflowErrors() throws Exception {
+    final URI uri = new URI("memory://rts.enso");
+    final Source src = Source.newBuilder("enso", """
+    from Standard.Base import Integer, Error
+    foo x -> Integer = case x of
+        1 -> 100
+        2 -> "TWO"
+        3 -> Error.throw "My error"
+        _ -> x+1
+    """,uri.getAuthority())
+        .uri(uri)
+        .buildLiteral();
+
+    var module = ctx.eval(src);
+    var foo = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo");
+    assertEquals(100, foo.execute(1).asInt());
+
+    try {
+      var res = foo.execute(2);
+      fail("Expecting an exception, not: " + res);
+    } catch (PolyglotException e) {
+      System.out.println("foo TWO: " + e);
+      // TODO
+      assertTrue(true);
+    }
+
+    // TODO
+    var res = foo.execute(3);
+    System.out.println(res);
+    assertTrue(res.isException());
+    assertContains(res.toString(), "My error");
+  }
+
+  @Test
+  public void returnTypeCheckOptInTailRec() throws Exception {
+    final URI uri = new URI("memory://rts.enso");
+    final Source src = Source.newBuilder("enso", """
+    from Standard.Base import Integer, Error
+    factorial (x : Integer) -> Integer =
+        go n acc -> Integer =
+            if n == 0 then acc else
+                if n == 10 then "TEN :)" else
+                    @Tail_Call go (n-1) (acc*n)
+        go x 1
+    """,uri.getAuthority())
+        .uri(uri)
+        .buildLiteral();
+
+    var module = ctx.eval(src);
+    var factorial = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "factorial");
+    assertEquals(120, factorial.execute(5).asInt());
+    assertEquals(1, factorial.execute(0).asInt());
+    try {
+      var res = factorial.execute(20);
+      fail("Expecting an exception, not: " + res);
+    } catch (PolyglotException e) {
+      System.out.println("go checked: " + e);
+      // TODO "TEN :)" is not a valid Integer, so it should explode
+      assertTrue(true);
+    }
+  }
+
   static void assertTypeError(String expArg, String expType, String realType, String msg) {
     if (!msg.contains(expArg)) {
       fail("Expecting value " + expArg + " in " + msg);
