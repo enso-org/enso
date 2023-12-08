@@ -12,6 +12,7 @@ import GraphEdges from '@/components/GraphEditor/GraphEdges.vue'
 import GraphNodes from '@/components/GraphEditor/GraphNodes.vue'
 import { Uploader, uploadedExpression } from '@/components/GraphEditor/upload'
 import GraphMouse from '@/components/GraphMouse.vue'
+import type { BreadcrumbItem } from '@/components/NavBreadcrumbs.vue'
 import PlusButton from '@/components/PlusButton.vue'
 import TopBar from '@/components/TopBar.vue'
 import { useDoubleClick } from '@/composables/doubleClick.ts'
@@ -29,8 +30,9 @@ import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName.ts'
 import { Rect } from '@/util/rect.ts'
 import { Vec2 } from '@/util/vec2'
 import * as set from 'lib0/set'
+import type { StackItem } from 'shared/languageServerTypes.ts'
 import type { ExprId, NodeMetadata } from 'shared/yjsModel.ts'
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch, watchEffect } from 'vue'
 
 const EXECUTION_MODES = ['design', 'live']
 // Assumed size of a newly created node. This is used to place the component browser.
@@ -117,7 +119,14 @@ useEvent(window, 'keydown', (event) => {
 })
 useEvent(window, 'pointerdown', interactionBindingsHandler, { capture: true })
 
-onMounted(() => viewportNode.value?.focus())
+function initBreadcrumbs() {
+  breadcrumbs.value = projectStore.executionContext.desiredStack.slice()
+}
+
+onMounted(() => {
+  viewportNode.value?.focus()
+  initBreadcrumbs()
+})
 
 const graphBindingsHandler = graphBindings.handler({
   undo() {
@@ -233,31 +242,6 @@ const codeEditorHandler = codeEditorBindings.handler({
     showCodeEditor.value = !showCodeEditor.value
   },
 })
-
-function enterNode(id: ExprId) {
-  const expressionInfo = graphStore.db.getExpressionInfo(id)
-  if (expressionInfo == undefined || expressionInfo.methodCall == undefined) {
-    console.debug('Cannot enter node that has no method call.')
-    return
-  }
-  const definedOnType = tryQualifiedName(expressionInfo.methodCall.methodPointer.definedOnType)
-  if (!projectStore.modulePath?.ok) {
-    console.warn('Cannot enter node while no module is open.')
-    return
-  }
-  const openModuleName = qnLastSegment(projectStore.modulePath.value)
-  if (definedOnType.ok && qnLastSegment(definedOnType.value) != openModuleName) {
-    console.debug('Cannot enter node that is not defined on current module.')
-    return
-  }
-  projectStore.executionContext.push(id)
-  graphStore.updateState()
-}
-
-function exitNode() {
-  projectStore.executionContext.pop()
-  graphStore.updateState()
-}
 
 /** Track play button presses. */
 function onPlayButtonPress() {
@@ -396,17 +380,6 @@ watch(
   },
 )
 
-const breadcrumbs = computed(() =>
-  projectStore.executionContext.desiredStack.map((frame) => {
-    switch (frame.type) {
-      case 'ExplicitCall':
-        return frame.methodPointer.name
-      case 'LocalCall':
-        return frame.expressionId
-    }
-  }),
-)
-
 // === Clipboard ===
 
 const ENSO_MIME_TYPE = 'web application/enso'
@@ -492,6 +465,91 @@ function handleNodeOutputPortDoubleClick(id: ExprId) {
   ).position
   interaction.setCurrent(creatingNodeFromPortDoubleClick)
 }
+
+// === Stack Navigation ===
+
+const breadcrumbs = ref<StackItem[]>([])
+const breadcrumbLabels = computed(() => {
+  const activeStackLength = projectStore.executionContext.desiredStack.length
+  const result: BreadcrumbItem[] = breadcrumbs.value.map((item, index) => {
+    const label = stackItemToLabel(item)
+    const isActive = index < activeStackLength
+    return { label, active: isActive } as BreadcrumbItem
+  })
+  return result
+})
+const allowNavigationLeft = computed(() => {
+  return projectStore.executionContext.desiredStack.length > 1
+})
+const allowNavigationRight = computed(
+  () => projectStore.executionContext.desiredStack.length < breadcrumbs.value.length,
+)
+function stackItemToLabel(item: StackItem): string {
+  switch (item.type) {
+    case 'ExplicitCall':
+      return item.methodPointer.name
+    case 'LocalCall': {
+      const exprId = item.expressionId
+      const info = graphStore.db.getExpressionInfo(exprId)
+      return info?.methodCall?.methodPointer.name ?? 'unknown'
+    }
+  }
+}
+
+function handleBreadcrumbClick(index: number) {
+  const activeStack = projectStore.executionContext.desiredStack
+  if (index < activeStack.length) {
+    const diff = activeStack.length - index - 1
+    for (let i = 0; i < diff; i++) {
+      projectStore.executionContext.pop()
+    }
+  } else if (index >= activeStack.length) {
+    const diff = index - activeStack.length + 1
+    for (let i = 0; i < diff; i++) {
+      const stackItem = breadcrumbs.value[index - i]
+      if (stackItem?.type === 'LocalCall') {
+        const exprId = stackItem.expressionId
+        projectStore.executionContext.push(exprId)
+      } else {
+        console.warn('Cannot enter non-local call.')
+      }
+    }
+  }
+  graphStore.updateState()
+}
+
+function enterNode(id: ExprId) {
+  const expressionInfo = graphStore.db.getExpressionInfo(id)
+  if (expressionInfo == undefined || expressionInfo.methodCall == undefined) {
+    console.debug('Cannot enter node that has no method call.')
+    return
+  }
+  const definedOnType = tryQualifiedName(expressionInfo.methodCall.methodPointer.definedOnType)
+  if (definedOnType.ok && qnLastSegment(definedOnType.value) != 'Main') {
+    console.debug('Cannot enter node that is not defined on Main.')
+    return
+  }
+  projectStore.executionContext.push(id)
+  graphStore.updateState()
+
+  breadcrumbs.value = projectStore.executionContext.desiredStack.slice()
+}
+
+function exitNode() {
+  projectStore.executionContext.pop()
+  graphStore.updateState()
+}
+
+function enterNextNode() {
+  const nextNodeIndex = projectStore.executionContext.desiredStack.length
+  const nextNode = breadcrumbs.value[nextNodeIndex]
+  if (nextNode?.type === 'LocalCall') {
+    projectStore.executionContext.push(nextNode.expressionId)
+    graphStore.updateState()
+  } else {
+    console.warn('Cannot enter non-local call.')
+  }
+}
 </script>
 
 <template>
@@ -531,10 +589,12 @@ function handleNodeOutputPortDoubleClick(id: ExprId) {
       v-model:mode="projectStore.executionMode"
       :title="projectStore.name"
       :modes="EXECUTION_MODES"
-      :breadcrumbs="breadcrumbs"
-      @breadcrumbClick="console.log(`breadcrumb #${$event + 1} clicked.`)"
+      :breadcrumbs="breadcrumbLabels"
+      :allowNavigationLeft="allowNavigationLeft"
+      :allowNavigationRight="allowNavigationRight"
+      @breadcrumbClick="handleBreadcrumbClick"
       @back="exitNode"
-      @forward="console.log('breadcrumbs \'forward\' button clicked.')"
+      @forward="enterNextNode"
       @execute="onPlayButtonPress()"
     />
     <PlusButton @pointerdown="interaction.setCurrent(creatingNodeFromButton)" />
