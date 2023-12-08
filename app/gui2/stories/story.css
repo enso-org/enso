@@ -1,6 +1,13 @@
+@import url('../src/assets/font-enso-code.css');
+
+:root {
+  --font-code: 'Enso Code', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto',
+    'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', Arial, sans-serif;
+}
+
 .histoire-story-viewer .__histoire-render-story > [data-v-app] {
   height: 100%;
-  font-family: 'M PLUS 1', sans-serif;
+  font-family: var(--font-code);
   font-size: 11.5px;
   font-weight: 500;
   line-height: 20px;

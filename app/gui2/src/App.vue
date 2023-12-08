@@ -29,7 +29,7 @@ onMounted(() => useSuggestionDbStore())
 
 .App {
   color: var(--color-text);
-  font-family: 'M PLUS 1', sans-serif;
+  font-family: var(--font-code);
   font-size: 11.5px;
   font-weight: 500;
   line-height: 20px;
