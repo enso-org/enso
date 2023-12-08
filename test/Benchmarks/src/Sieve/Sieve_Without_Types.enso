@@ -38,16 +38,17 @@ type Primes
 Primes.next self = case self of
     Primes.Alg g f ->
         filter = f.acceptAndAdd g.n
-        new_primes = Primes.Alg g.next filter
-        if Meta.is_same_object filter f then @Tail_Call new_primes.next else new_primes
+        nf = if filter.is_nothing then f else filter
+        new_primes = Primes.Alg g.next nf
+        if filter.is_nothing || Meta.is_same_object filter f then @Tail_Call new_primes.next else new_primes
 
 Primes.last_prime self = case self of
     Primes.Alg g _ -> g.n - 1
 
 
-compute_nth_prime n =
+compute_nth_prime n gen=natural fil=Filter.Empty =
     loop p n = if n == 0 then p else
         pn = p.next
         @Tail_Call loop pn n-1
-    p = Primes.Alg natural Filter.Empty
+    p = Primes.Alg gen fil
     loop p n . last_prime

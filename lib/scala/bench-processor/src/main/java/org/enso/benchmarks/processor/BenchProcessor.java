@@ -231,7 +231,7 @@ public class BenchProcessor extends AbstractProcessor {
         "      throw new IllegalStateException(\"Project root directory does not exist or cannot be read: \" + Objects.toString(projectRootDir));");
     out.println("    }");
     out.println("    File languageHomeOverride = Utils.findLanguageHomeOverride();");
-    out.println("    var ctx = Context.newBuilder(LanguageInfo.ID)");
+    out.println("    var ctx = Context.newBuilder()");
     out.println("      .allowExperimentalOptions(true)");
     out.println("      .allowIO(IOAccess.ALL)");
     out.println("      .allowAllAccess(true)");
