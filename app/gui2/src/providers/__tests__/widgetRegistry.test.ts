@@ -11,6 +11,7 @@ import {
   type WidgetInput,
   type WidgetModule,
 } from '../widgetRegistry'
+import { DisplayMode, widgetConfigurationSchema } from '../widgetRegistry/configuration'
 
 describe('WidgetRegistry', () => {
   function makeMockWidget<T extends WidgetInput>(
@@ -114,3 +115,72 @@ describe('WidgetRegistry', () => {
     expect(selectedNext).toStrictEqual(widgetC)
   })
 })
+
+/* eslint-disable camelcase */
+describe('Engine-provided configuration', () => {
+  const singleChoiceData = [
+    'range',
+    {
+      type: 'Widget',
+      constructor: 'Single_Choice',
+      values: [
+        {
+          type: 'Choice',
+          constructor: 'Option',
+          label: 'First',
+          value: '(Index_Sub_Range.First 1)',
+          parameters: [],
+          icon: '',
+        },
+      ],
+      label: null,
+      display: {
+        type: 'Display',
+        constructor: 'Always',
+      },
+      allow_custom: true,
+    },
+  ]
+  const vectorEditorData = [
+    'list',
+    {
+      type: 'Widget',
+      constructor: 'Vector_Editor',
+      item_editor: singleChoiceData[1],
+      item_default: 'Text',
+      display: {
+        type: 'Display',
+        constructor: 'Always',
+      },
+    },
+  ]
+
+  const singleChoiceExpected = [
+    'range',
+    {
+      kind: 'Single_Choice',
+      values: [{ label: 'First', value: '(Index_Sub_Range.First 1)', parameters: [] }],
+      label: null,
+      display: DisplayMode.Always,
+    },
+  ]
+
+  const vectorEditorExpected = [
+    'list',
+    {
+      kind: 'Vector_Editor',
+      item_editor: singleChoiceExpected[1],
+      item_default: 'Text',
+    },
+  ]
+
+  test.each([
+    { input: [['self', null]], expected: [['self', null]] },
+    { input: [singleChoiceData], expected: [singleChoiceExpected] },
+    { input: [vectorEditorData], expected: [vectorEditorExpected] },
+  ])('Testing engine configuration', ({ input, expected }) => {
+    const res = widgetConfigurationSchema.safeParse(input)
+    expect(res).toMatchObject({ success: true, data: expected })
+  })
+})
+/* eslint-enable camelcase */

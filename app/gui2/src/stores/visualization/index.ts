@@ -25,7 +25,7 @@ import { rpcWithRetries } from '@/util/net'
 import type { Opt } from '@/util/opt'
 import { defineStore } from 'pinia'
 import type { Event as LSEvent, VisualizationConfiguration } from 'shared/languageServerTypes'
-import type { VisualizationIdentifier } from 'shared/yjsModel'
+import type { ExprId, VisualizationIdentifier } from 'shared/yjsModel'
 import { computed, reactive } from 'vue'
 
 /** The directory in the project under which custom visualizations can be found. */
@@ -48,6 +48,17 @@ export const DEFAULT_VISUALIZATION_IDENTIFIER: VisualizationIdentifier = {
   module: { kind: 'Builtin' },
   name: 'JSON',
 }
+
+export type VisualizationDataSource =
+  | {
+      type: 'node'
+      nodeId: ExprId
+    }
+  | {
+      type: 'expression'
+      expression: string
+      contextId: ExprId
+    }
 
 const builtinVisualizations: VisualizationModule[] = [
   jsonVisualization,

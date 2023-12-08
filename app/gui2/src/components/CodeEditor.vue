@@ -201,6 +201,7 @@ const editorStyle = computed(() => {
     class="CodeEditor"
     :style="editorStyle"
     @keydown.enter.stop
+    @keydown.backspace.stop
     @wheel.stop.passive
     @pointerdown.stop
     @contextmenu.stop

@@ -6,8 +6,8 @@ import type { VisualizationIdentifier } from 'shared/yjsModel'
 import { reactive } from 'vue'
 
 export interface VisualizationConfig {
-  /** Possible visualization types that can be switched to. */
   background?: string
+  /** Possible visualization types that can be switched to. */
   readonly types: Iterable<VisualizationIdentifier>
   readonly currentType: VisualizationIdentifier
   readonly icon: Icon | URLString | undefined

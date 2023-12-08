@@ -53,6 +53,7 @@ export const useGraphStore = defineStore('graph', () => {
   const exprRects = reactive(new Map<ExprId, Rect>())
   const editedNodeInfo = ref<NodeEditInfo>()
   const imports = ref<{ import: Import; span: ContentRange }[]>([])
+  const methodAst = ref<Ast.Function>()
 
   const unconnectedEdge = ref<UnconnectedEdge>()
 
@@ -106,9 +107,9 @@ export const useGraphStore = defineStore('graph', () => {
         return true
       })
 
-      const methodAst = getExecutedMethodAst(newRoot, proj.executionContext.getStackTop())
-      if (methodAst) {
-        db.readFunctionAst(methodAst, (id) => meta.get(id))
+      methodAst.value = getExecutedMethodAst(newRoot, proj.executionContext.getStackTop())
+      if (methodAst.value) {
+        db.readFunctionAst(methodAst.value, (id) => meta.get(id))
       }
     })
   }
@@ -333,6 +334,7 @@ export const useGraphStore = defineStore('graph', () => {
     nodeRects,
     vizRects,
     exprRects,
+    methodAst,
     createEdgeFromOutput,
     disconnectSource,
     disconnectTarget,
