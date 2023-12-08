@@ -227,4 +227,3 @@ export const widgetDefinition = defineWidget(
   }
 }
 </style>
-@/util/data/rect

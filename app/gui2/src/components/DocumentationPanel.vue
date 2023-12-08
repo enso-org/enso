@@ -190,4 +190,3 @@ function handleBreadcrumbClick(index: number) {
   padding: 0 8px;
 }
 </style>
-@/util/data/opt @/util/data/array

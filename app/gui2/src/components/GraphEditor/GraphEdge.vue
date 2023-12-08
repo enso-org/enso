@@ -520,4 +520,3 @@ const arrowTransform = computed(() => {
   stroke: rgba(255, 255, 255, 0.4);
 }
 </style>
-@/util/data/vec2@/util/data/rect

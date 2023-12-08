@@ -66,4 +66,3 @@ function createEdge(source: ExprId, target: ExprId) {
 <template>
   <GraphEdge v-for="(edge, index) in graph.edges" :key="index" :edge="edge" />
 </template>
-@/util/data/vec2

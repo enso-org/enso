@@ -74,4 +74,3 @@ const uploadingFiles = computed<[FileName, File][]>(() => {
     :file="nameAndFile[1]"
   />
 </template>
-@/util/data/vec2

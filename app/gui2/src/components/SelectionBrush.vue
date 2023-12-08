@@ -81,4 +81,3 @@ const brushStyle = computed(() => {
   }
 }
 </style>
-@/util/data/vec2

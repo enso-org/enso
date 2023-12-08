@@ -25,4 +25,3 @@ svg {
   min-height: var(--height);
 }
 </style>
-@/util/data/urlString

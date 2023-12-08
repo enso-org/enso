@@ -287,5 +287,3 @@ const effectiveVisualization = computed(() => {
     </Suspense>
   </div>
 </template>
-@/util/data/opt @/util/data/result @/util/data/vec2 @/util/data/rect
-@/util/data/error@/util/data/urlString

@@ -91,4 +91,3 @@ const spanStart = computed(() => {
     >🚫</span
   >
 </template>
-@/util/data/opt

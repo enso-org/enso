@@ -134,4 +134,3 @@ export const widgetDefinition = defineWidget(
 <template>
   <NodeWidget :input="application" :dynamicConfig="widgetConfiguration" />
 </template>
-@/util/data/opt

@@ -522,4 +522,3 @@ svg {
   height: 0;
 }
 </style>
-@/util/data/vec2 @/util/data/rect

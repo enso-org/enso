@@ -127,4 +127,3 @@ button {
   }
 }
 </style>
-@/util/data/urlString

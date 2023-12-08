@@ -647,4 +647,3 @@ const handler = componentBrowserBindings.handler({
   position: absolute;
 }
 </style>
-@/util/data/opt @/util/data/vec2 @/util/data/range @/util/data/array
