@@ -1,6 +1,5 @@
-import { isUrlString, type URLString } from '@/util/data/urlString'
-import iconNames from '@/util/iconList.json'
-import type { Icon } from '@/util/iconName'
+import { isUrlString } from '@/util/data/urlString'
+import { isIconName } from '@/util/iconName'
 import type { DefineComponent, PropType } from 'vue'
 import * as z from 'zod'
 
@@ -42,8 +41,7 @@ export const VisualizationModule = z.object({
   icon: z
     .string()
     .transform((s) => {
-      if (iconNames.includes(s)) return s as Icon
-      else if (isUrlString(s)) return s as URLString
+      if (isIconName(s) || isUrlString(s)) return s
       console.warn(`Invalid icon name '${s}'`)
       return undefined
     })
