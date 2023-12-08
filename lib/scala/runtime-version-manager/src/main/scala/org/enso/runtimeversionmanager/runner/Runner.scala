@@ -187,6 +187,8 @@ class Runner(
         manifestOptions ++ environmentOptions ++ commandLineOptions
       if (shouldInvokeViaModulePath) {
         jvmArguments = jvmArguments :++ Seq(
+          "--add-modules",
+          "org.jline",
           "--module-path",
           engine.componentDirPath.toAbsolutePath.normalize.toString,
           "-m",
