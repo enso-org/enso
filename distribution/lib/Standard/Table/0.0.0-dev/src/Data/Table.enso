@@ -12,7 +12,6 @@ import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.Runtime.Context
-from Standard.Base.Data.Vector.Extensions import all
 from Standard.Base.Metadata import make_single_choice
 from Standard.Base.Widget_Helpers import make_delimiter_selector
 

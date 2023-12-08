@@ -4,7 +4,6 @@ import Standard.Base.Errors.Common.Forbidden_Operation
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Context
-from Standard.Base.Data.Vector.Extensions import all
 from Standard.Base.Runtime import assert
 
 import Standard.Table.Data.Table.Table as In_Memory_Table
