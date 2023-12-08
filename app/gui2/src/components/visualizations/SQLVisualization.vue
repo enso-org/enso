@@ -139,7 +139,7 @@ function renderRegularInterpolation(value: string, fgColor: RGBA, bgColor: RGBA)
 
 <style>
 .SQLVisualization .sql {
-  font-family: 'DejaVu Sans Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
   margin-left: 7px;
   margin-top: 5px;
