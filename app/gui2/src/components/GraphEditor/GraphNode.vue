@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script lang="ts">
 import { nodeEditBindings } from '@/bindings'
 import CircularMenu from '@/components/CircularMenu.vue'
 import GraphNodeError from '@/components/GraphEditor/GraphNodeError.vue'
@@ -11,13 +11,15 @@ import { injectGraphSelection } from '@/providers/graphSelection'
 import { useGraphStore, type Node } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
 import { useApproach } from '@/util/animation'
+import { Prefixes } from '@/util/ast/prefixes'
+import * as astText from '@/util/ast/text'
 import { usePointer, useResizeObserver } from '@/util/events'
 import { displayedIconOf } from '@/util/getIconName'
 import type { Opt } from '@/util/opt'
 import { Rect } from '@/util/rect'
 import { Vec2 } from '@/util/vec2'
 import { setIfUndefined } from 'lib0/map'
-import type { ContentRange, ExprId, VisualizationIdentifier } from 'shared/yjsModel'
+import { type ExprId, type VisualizationIdentifier } from 'shared/yjsModel'
 import { computed, ref, watch, watchEffect } from 'vue'
 
 const MAXIMUM_CLICK_LENGTH_MS = 300
@@ -25,6 +27,18 @@ const MAXIMUM_CLICK_DISTANCE_SQ = 50
 /** The width in pixels that is not the widget tree. This includes the icon, and padding. */
 const NODE_EXTRA_WIDTH_PX = 30
 
+const prefixes = Prefixes.FromLines({
+  enableOutputContext:
+    'Standard.Base.Runtime.with_enabled_context Standard.Base.Runtime.Context.Output __ <| __',
+  disableOutputContext:
+    'Standard.Base.Runtime.with_disabled_context Standard.Base.Runtime.Context.Output __ <| __',
+  // Currently unused; included as PoC.
+  skip: 'SKIP __',
+  freeze: 'FREEZE __',
+})
+</script>
+
+<script setup lang="ts">
 const props = defineProps<{
   node: Node
   edited: boolean
@@ -33,14 +47,10 @@ const props = defineProps<{
 const emit = defineEmits<{
   dragging: [offset: Vec2]
   draggingCommited: []
-  delete: []
-  replaceSelection: []
   outputPortClick: [portId: ExprId]
   outputPortDoubleClick: [portId: ExprId]
-  'update:content': [updates: [range: ContentRange, content: string][]]
   'update:edited': [cursorPosition: number]
   'update:rect': [rect: Rect]
-  'update:selected': [selected: boolean]
   'update:visualizationId': [id: Opt<VisualizationIdentifier>]
   'update:visualizationRect': [rect: Rect | undefined]
   'update:visualizationVisible': [visible: boolean]
@@ -87,7 +97,6 @@ watch(isSelected, (selected) => {
   menuVisible.value = menuVisible.value && selected
 })
 
-const isAutoEvaluationDisabled = ref(false)
 const isDocsVisible = ref(false)
 const isVisualizationVisible = computed(() => props.node.vis?.visible ?? false)
 
@@ -143,6 +152,49 @@ const dragPointer = usePointer((pos, event, type) => {
   }
 })
 
+const matches = computed(() => prefixes.extractMatches(props.node.rootSpan))
+const displayedExpression = computed(() => matches.value.innerExpr)
+
+const isOutputContextOverridden = computed({
+  get() {
+    const override =
+      matches.value.matches.enableOutputContext ?? matches.value.matches.disableOutputContext
+    const overrideEnabled = matches.value.matches.enableOutputContext != null
+    // An override is only counted as enabled if it is currently in effect. This requires:
+    // - that an override exists
+    if (!override) return false
+    // - that it is setting the "enabled" value to a non-default value
+    else if (overrideEnabled === projectStore.isOutputContextEnabled) return false
+    // - and that it applies to the current execution context.
+    else {
+      const contextWithoutQuotes = override[0]?.code().replace(/^['"]|['"]$/g, '')
+      return contextWithoutQuotes === projectStore.executionMode
+    }
+  },
+  set(shouldOverride) {
+    const module = projectStore.module
+    if (!module) return
+    const replacements = shouldOverride
+      ? ["'" + astText.escape(projectStore.executionMode) + "'"]
+      : undefined
+    const newAst = prefixes.modify(
+      props.node.rootSpan,
+      projectStore.isOutputContextEnabled
+        ? {
+            enableOutputContext: undefined,
+            disableOutputContext: replacements,
+          }
+        : {
+            enableOutputContext: replacements,
+            disableOutputContext: undefined,
+          },
+    )
+    graph.setNodeContent(props.node.rootSpan.astId, newAst.code())
+  },
+})
+
+// FIXME [sb]: https://github.com/enso-org/enso/issues/8442
+// This does not take into account `displayedExpression`.
 const expressionInfo = computed(() => graph.db.getExpressionInfo(nodeId.value))
 const outputPortLabel = computed(() => expressionInfo.value?.typename ?? 'Unknown')
 const executionState = computed(() => expressionInfo.value?.payload.type ?? 'Unknown')
@@ -218,6 +270,7 @@ const handlePortClick = useDoubleClick<[portId: ExprId]>(
     emit('outputPortDoubleClick', portId)
   },
 ).handleClick
+
 interface PortData {
   clipRange: [number, number]
   label: string
@@ -291,8 +344,9 @@ function portGroupStyle(port: PortData) {
     </div>
     <CircularMenu
       v-if="menuVisible"
-      v-model:isAutoEvaluationDisabled="isAutoEvaluationDisabled"
+      v-model:isOutputContextOverridden="isOutputContextOverridden"
       v-model:isDocsVisible="isDocsVisible"
+      :isOutputContextEnabledGlobally="projectStore.isOutputContextEnabled"
       :isVisualizationVisible="isVisualizationVisible"
       @update:isVisualizationVisible="emit('update:visualizationVisible', $event)"
     />
@@ -315,7 +369,7 @@ function portGroupStyle(port: PortData) {
     <div class="node" @pointerdown="nodeEditHandler" v-on="dragPointer.events">
       <SvgIcon class="icon grab-handle" :name="icon"></SvgIcon>
       <div ref="contentNode" class="widget-tree">
-        <NodeWidgetTree :ast="node.rootSpan" />
+        <NodeWidgetTree :ast="displayedExpression" />
       </div>
     </div>
     <GraphNodeError v-if="error" class="error" :error="error" />

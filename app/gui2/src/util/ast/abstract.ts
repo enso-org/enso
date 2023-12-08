@@ -1,7 +1,9 @@
 import * as RawAst from '@/generated/ast'
 import { parseEnso } from '@/util/ast'
 import { AstExtended as RawAstExtended } from '@/util/ast/extended'
+import type { Opt } from '@/util/opt'
 import type { LazyObject } from '@/util/parserSupport'
+import { unsafeEntries } from '@/util/record'
 import { Err, Ok, type Result } from '@/util/result'
 import * as random from 'lib0/random'
 import { reactive } from 'vue'
@@ -29,6 +31,10 @@ class Committed implements Module {
 
   getExtended(id: AstId): RawAstExtended | undefined {
     return this.astExtended.get(id)
+  }
+
+  temporaryEdit() {
+    return new TemporaryEdit(this)
   }
 }
 
@@ -76,6 +82,147 @@ class Edit implements Module {
   }
 }
 
+class MergedMap<K, V> implements Map<K, V> {
+  readonly [Symbol.toStringTag] = 'Map'
+  bases: Map<K, V>[]
+  constructor(...bases: Map<K, V>[]) {
+    this.bases = bases
+  }
+
+  private keysSet() {
+    return new Set(this.bases.flatMap((base) => [...base.keys()]))
+  }
+
+  /** Warning: Very slow!!! */
+  get size() {
+    return this.keysSet().size
+  }
+
+  *keys() {
+    for (const key of new Set(this.bases.flatMap((base) => [...base.keys()]))) {
+      yield key
+    }
+  }
+
+  *values() {
+    for (const key of new Set(this.bases.flatMap((base) => [...base.keys()]))) {
+      for (const base of this.bases) {
+        if (base.has(key)) {
+          yield base.get(key)!
+          break
+        }
+      }
+    }
+  }
+
+  *entries() {
+    for (const key of new Set(this.bases.flatMap((base) => [...base.keys()]))) {
+      for (const base of this.bases) {
+        if (base.has(key)) {
+          yield [key, base.get(key)!] satisfies [] | unknown[]
+          break
+        }
+      }
+    }
+  }
+
+  [Symbol.iterator]() {
+    return this.entries()
+  }
+
+  clear() {
+    for (const base of this.bases) base.clear()
+  }
+
+  forEach() {
+    //
+    return new Set(this.bases.flatMap((base) => [...base.keys()])).size
+  }
+
+  has(k: K) {
+    return this.bases.some((base) => base.has(k))
+  }
+
+  get(k: K) {
+    for (const base of this.bases) {
+      if (base.has(k)) return base.get(k)
+    }
+  }
+
+  set(k: K, v: V) {
+    let set = false
+    for (const base of this.bases) {
+      if (base.has(k)) {
+        base.set(k, v)
+        set = true
+        break
+      }
+    }
+    if (!set) {
+      this.bases[0]?.set(k, v)
+    }
+    return this
+  }
+
+  delete(k: K) {
+    let deleted = false
+    for (const base of this.bases) {
+      deleted ||= base.delete(k)
+    }
+    return deleted
+  }
+}
+
+class MergedCommitted implements Committed {
+  nodes: Map<AstId, Ast>
+  astExtended: Map<AstId, RawAstExtended>
+
+  constructor(
+    readonly base: Committed,
+    readonly pending: Map<AstId, Ast | null>,
+  ) {
+    this.nodes = new MergedMap(this.pending, base.nodes) as Map<AstId, Ast>
+    this.astExtended = base.astExtended
+  }
+
+  /** Returns a syntax node representing the current committed state of the given ID. */
+  get(id: AstId): Ast | null {
+    return this.nodes.get(id) ?? null
+  }
+
+  getExtended(id: AstId): RawAstExtended | undefined {
+    return this.base.getExtended(id)
+  }
+
+  temporaryEdit(): TemporaryEdit {
+    return new TemporaryEdit(this)
+  }
+}
+
+export class TemporaryEdit extends Edit {
+  readonly base: Committed
+  readonly pending: Map<AstId, Ast | null>
+
+  constructor(base: Committed) {
+    super(base)
+    this.pending = new Map()
+    this.base = new MergedCommitted(base, this.pending)
+  }
+
+  // Intentionally stubbed out.
+  commit() {}
+
+  /** Splice a subtree from a different parse into this parse. */
+  splice(node: Ast) {
+    this.set(node.astId, node)
+    node.visitRecursive((node) => {
+      if (node instanceof Ast) {
+        this.set(node.astId, node)
+      }
+    })
+  }
+}
+
 // TODO (#8367): Flatten overlay into input `committed`.
 /*
 export function normalize(rootIn: Ast): Ast {
@@ -103,9 +250,9 @@ function newTokenId(): TokenId {
 }
 
 export class Token {
-  private _code: string
+  _code: string
   exprId: TokenId
-  readonly _tokenType: RawAst.Token.Type
+  _tokenType: RawAst.Token.Type
   constructor(code: string, id: TokenId, type: RawAst.Token.Type) {
     this._code = code
     this.exprId = id
@@ -141,14 +288,12 @@ export abstract class Ast {
   }
 
   static deserialize(serialized: string): Ast {
-    const parsed: any = JSON.parse(serialized)
-    const nodes: NodeSpanMap = new Map(Object.entries(parsed.info.nodes))
-    const tokens: TokenSpanMap = new Map(Object.entries(parsed.info.tokens))
+    const parsed: SerializedPrintedSource = JSON.parse(serialized)
+    const nodes = new Map(unsafeEntries(parsed.info.nodes))
+    const tokens = new Map(unsafeEntries(parsed.info.tokens))
     const module = new Committed()
     const edit = new Edit(module)
     const tree = parseEnso(parsed.code)
-    type NodeSpanMap = Map<NodeKey, AstId[]>
-    type TokenSpanMap = Map<TokenKey, TokenId>
     const root = abstract(edit, tree, parsed.code, { nodes, tokens }).node
     edit.commit()
     return module.get(root)!
@@ -199,6 +344,16 @@ export abstract class Ast {
     const newRoot = abstract(edit, tree, code, ids).node
     edit.commit()
     return module.get(newRoot)!
+  }
+
+  static parseLine(source: PrintedSource | string): Ast {
+    const ast = Ast.parse(source)
+    if (ast instanceof BodyBlock) {
+      const [expr] = ast.expressions()
+      return expr instanceof Ast ? expr : ast
+    } else {
+      return ast
+    }
   }
 
   visitRecursive(visit: (node: Ast | Token) => void) {
@@ -254,12 +409,12 @@ export abstract class Ast {
 }
 
 export class App extends Ast {
-  private _func: NodeChild<AstId>
-  private _leftParen: NodeChild<Token> | null
-  private _argumentName: NodeChild<Token> | null
-  private _equals: NodeChild<Token> | null
-  private _arg: NodeChild<AstId>
-  private _rightParen: NodeChild<Token> | null
+  _func: NodeChild<AstId>
+  _leftParen: NodeChild<Token> | null
+  _argumentName: NodeChild<Token> | null
+  _equals: NodeChild<Token> | null
+  _arg: NodeChild<AstId>
+  _rightParen: NodeChild<Token> | null
 
   get function(): Ast {
     return this.module.get(this._func.node)!
@@ -302,6 +457,24 @@ export class App extends Ast {
     yield this._arg
     if (this._rightParen) yield this._rightParen
   }
+}
+
+const mapping: Record<string, string> = {
+  '\b': '\\b',
+  '\f': '\\f',
+  '\n': '\\n',
+  '\r': '\\r',
+  '\t': '\\t',
+  '\v': '\\v',
+  '"': '\\"',
+  "'": "\\'",
+  '`': '``',
+}
+
+/** Escape a string so it can be safely spliced into an interpolated (`''`) Enso string.
+ * NOT USABLE to insert into raw strings. Does not include quotes. */
+export function escape(string: string) {
+  return string.replace(/[\0\b\f\n\r\t\v"'`]/g, (match) => mapping[match]!)
 }
 
 function positionalApp(
@@ -347,8 +520,8 @@ function namedApp(
 }
 
 export class UnaryOprApp extends Ast {
-  private _opr: NodeChild<Token>
-  private _arg: NodeChild<AstId> | null
+  _opr: NodeChild<Token>
+  _arg: NodeChild<AstId> | null
 
   get operator(): Token {
     return this._opr.node
@@ -388,9 +561,9 @@ export class NegationOprApp extends UnaryOprApp {
 }
 
 export class OprApp extends Ast {
-  protected _lhs: NodeChild<AstId> | null
-  protected _opr: NodeChild[]
-  protected _rhs: NodeChild<AstId> | null
+  _lhs: NodeChild<AstId> | null
+  _opr: NodeChild[]
+  _rhs: NodeChild<AstId> | null
 
   get lhs(): Ast | null {
     return this._lhs ? this.module.get(this._lhs.node) : null
@@ -443,7 +616,7 @@ export class PropertyAccess extends OprApp {
 
 /** Representation without any type-specific accessors, for tree types that don't require any special treatment. */
 export class Generic extends Ast {
-  private readonly _children: NodeChild[]
+  _children: NodeChild[]
 
   constructor(module: Edit, id?: AstId, children?: NodeChild[], treeType?: RawAst.Tree.Type) {
     super(module, id, treeType)
@@ -458,35 +631,35 @@ export class Generic extends Ast {
 type MultiSegmentAppSegment = { header: NodeChild<Token>; body: NodeChild<AstId> | null }
 
 export class Import extends Ast {
-  private polyglot_: MultiSegmentAppSegment | null
-  private from_: MultiSegmentAppSegment | null
-  private import__: MultiSegmentAppSegment
-  private all_: NodeChild<Token> | null
-  private as_: MultiSegmentAppSegment | null
-  private hiding_: MultiSegmentAppSegment | null
+  _polyglot: MultiSegmentAppSegment | null
+  _from: MultiSegmentAppSegment | null
+  _import: MultiSegmentAppSegment
+  _all: NodeChild<Token> | null
+  _as: MultiSegmentAppSegment | null
+  _hiding: MultiSegmentAppSegment | null
 
   get polyglot(): Ast | null {
-    return this.polyglot_?.body ? this.module.get(this.polyglot_.body.node) : null
+    return this._polyglot?.body ? this.module.get(this._polyglot.body.node) : null
   }
 
   get from(): Ast | null {
-    return this.from_?.body ? this.module.get(this.from_.body.node) : null
+    return this._from?.body ? this.module.get(this._from.body.node) : null
   }
 
   get import_(): Ast | null {
-    return this.import__?.body ? this.module.get(this.import__.body.node) : null
+    return this._import?.body ? this.module.get(this._import.body.node) : null
   }
 
   get all(): Token | null {
-    return this.all_?.node ?? null
+    return this._all?.node ?? null
   }
 
   get as(): Ast | null {
-    return this.as_?.body ? this.module.get(this.as_.body.node) : null
+    return this._as?.body ? this.module.get(this._as.body.node) : null
   }
 
   get hiding(): Ast | null {
-    return this.hiding_?.body ? this.module.get(this.hiding_.body.node) : null
+    return this._hiding?.body ? this.module.get(this._hiding.body.node) : null
   }
 
   constructor(
@@ -500,12 +673,12 @@ export class Import extends Ast {
     hiding: MultiSegmentAppSegment | null,
   ) {
     super(module, id, RawAst.Tree.Type.Import)
-    this.polyglot_ = polyglot
-    this.from_ = from
-    this.import__ = import_
-    this.all_ = all
-    this.as_ = as
-    this.hiding_ = hiding
+    this._polyglot = polyglot
+    this._from = from
+    this._import = import_
+    this._all = all
+    this._as = as
+    this._hiding = hiding
   }
 
   *concreteChildren(): IterableIterator<NodeChild> {
@@ -515,20 +688,20 @@ export class Import extends Ast {
       if (segment?.body) parts.push(segment.body)
       return parts
     }
-    yield* segment(this.polyglot_)
-    yield* segment(this.from_)
-    yield* segment(this.import__)
-    if (this.all_) yield this.all_
-    yield* segment(this.as_)
-    yield* segment(this.hiding_)
+    yield* segment(this._polyglot)
+    yield* segment(this._from)
+    yield* segment(this._import)
+    if (this._all) yield this._all
+    yield* segment(this._as)
+    yield* segment(this._hiding)
   }
 }
 
 export class TextLiteral extends Ast {
-  private readonly open_: NodeChild<Token> | null
-  private readonly newline_: NodeChild<Token> | null
-  private readonly elements_: NodeChild[]
-  private readonly close_: NodeChild<Token> | null
+  _open: NodeChild<Token> | null
+  _newline: NodeChild<Token> | null
+  _elements: NodeChild[]
+  _close: NodeChild<Token> | null
 
   constructor(
     module: Edit,
@@ -539,37 +712,37 @@ export class TextLiteral extends Ast {
     close: NodeChild<Token> | null,
   ) {
     super(module, id, RawAst.Tree.Type.TextLiteral)
-    this.open_ = open
-    this.newline_ = newline
-    this.elements_ = elements
-    this.close_ = close
+    this._open = open
+    this._newline = newline
+    this._elements = elements
+    this._close = close
   }
 
   *concreteChildren(): IterableIterator<NodeChild> {
-    if (this.open_) yield this.open_
-    if (this.newline_) yield this.newline_
-    yield* this.elements_
-    if (this.close_) yield this.close_
+    if (this._open) yield this._open
+    if (this._newline) yield this._newline
+    yield* this._elements
+    if (this._close) yield this._close
   }
 }
 
 export class Invalid extends Ast {
-  private readonly expression_: NodeChild<AstId>
+  _expression: NodeChild<AstId>
 
   constructor(module: Edit, id: AstId | undefined, expression: NodeChild<AstId>) {
     super(module, id, RawAst.Tree.Type.Invalid)
-    this.expression_ = expression
+    this._expression = expression
   }
 
   *concreteChildren(): IterableIterator<NodeChild> {
-    yield this.expression_
+    yield this._expression
   }
 }
 
 export class Group extends Ast {
-  private readonly open_: NodeChild<Token> | undefined
-  private readonly expression_: NodeChild<AstId> | null
-  private readonly close_: NodeChild<Token> | undefined
+  _open: NodeChild<Token> | undefined
+  _expression: NodeChild<AstId> | null
+  _close: NodeChild<Token> | undefined
 
   constructor(
     module: Edit,
@@ -579,20 +752,20 @@ export class Group extends Ast {
     close: NodeChild<Token> | undefined,
   ) {
     super(module, id, RawAst.Tree.Type.Group)
-    this.open_ = open
-    this.expression_ = expression
-    this.close_ = close
+    this._open = open
+    this._expression = expression
+    this._close = close
   }
 
   *concreteChildren(): IterableIterator<NodeChild> {
-    if (this.open_) yield this.open_
-    if (this.expression_) yield this.expression_
-    if (this.close_) yield this.close_
+    if (this._open) yield this._open
+    if (this._expression) yield this._expression
+    if (this._close) yield this._close
   }
 }
 
 export class NumericLiteral extends Ast {
-  private readonly _tokens: NodeChild[]
+  _tokens: NodeChild[]
 
   constructor(module: Edit, id: AstId | undefined, tokens: NodeChild[]) {
     super(module, id, RawAst.Tree.Type.Number)
@@ -605,11 +778,12 @@ export class NumericLiteral extends Ast {
 }
 
 type FunctionArgument = NodeChild[]
+
 export class Function extends Ast {
-  private _name: NodeChild<AstId>
-  private _args: FunctionArgument[]
-  private _equals: NodeChild<Token>
-  private _body: NodeChild<AstId> | null
+  _name: NodeChild<AstId>
+  _args: FunctionArgument[]
+  _equals: NodeChild<Token>
+  _body: NodeChild<AstId> | null
   // FIXME for #8367: This should not be nullable. If the `ExprId` has been deleted, the same placeholder logic should be applied
   //  here and in `rawChildren` (and indirectly, `print`).
   get name(): Ast | null {
@@ -651,9 +825,9 @@ export class Function extends Ast {
 }
 
 export class Assignment extends Ast {
-  private _pattern: NodeChild<AstId>
-  private _equals: NodeChild<Token>
-  private _expression: NodeChild<AstId>
+  _pattern: NodeChild<AstId>
+  _equals: NodeChild<Token>
+  _expression: NodeChild<AstId>
   get pattern(): Ast | null {
     return this.module.get(this._pattern.node)
   }
@@ -693,12 +867,13 @@ export class Assignment extends Ast {
   }
 }
 
-type BlockLine = {
+interface BlockLine {
   newline: NodeChild<Token> // Edits (#8367): Allow undefined
   expression: NodeChild<AstId> | null
 }
+
 export class BodyBlock extends Ast {
-  private _lines: BlockLine[];
+  _lines: BlockLine[];
 
   *expressions(): IterableIterator<Ast> {
     for (const line of this._lines) {
@@ -809,7 +984,7 @@ export class Wildcard extends Ast {
 }
 
 export class RawCode extends Ast {
-  private _code: NodeChild
+  _code: NodeChild
 
   constructor(module: Edit, id: AstId | undefined, code: NodeChild) {
     super(module, id)
@@ -841,6 +1016,7 @@ function abstract(
   const tokenIds = info?.tokens ?? new Map()
   return abstractTree(module, tree, code, nodesExpected, tokenIds)
 }
+
 function abstractTree(
   module: Edit,
   tree: RawAst.Tree,
@@ -869,8 +1045,9 @@ function abstractTree(
   const whitespaceEnd = whitespaceStart + tree.whitespaceLengthInCodeParsed
   const codeStart = whitespaceEnd
   const codeEnd = codeStart + tree.childrenLengthInCodeParsed
-  // All node types use this value in the same way to obtain the ID type, but each node does so separately because we
-  // must pop the tree's span from the ID map *after* processing children.
+  // All node types use this value in the same way to obtain the ID type,
+  // but each node does so separately because we must pop the tree's span from the ID map
+  // *after* processing children.
   const spanKey = nodeKey(codeStart, codeEnd - codeStart, tree.type)
   let node: AstId
   switch (tree.type) {
@@ -1041,24 +1218,37 @@ function abstractToken(
   return { whitespace, node }
 }
 
-type NodeKey = string
-type TokenKey = string
-function nodeKey(start: number, length: number, type: RawAst.Tree.Type | undefined): NodeKey {
+declare const nodeKeyBrand: unique symbol
+type NodeKey = string & { [nodeKeyBrand]: never }
+declare const tokenKeyBrand: unique symbol
+type TokenKey = string & { [tokenKeyBrand]: never }
+function nodeKey(start: number, length: number, type: Opt<RawAst.Tree.Type>): NodeKey {
   const type_ = type?.toString() ?? '?'
-  return `${start}:${length}:${type_}`
+  return `${start}:${length}:${type_}` as NodeKey
 }
 function tokenKey(start: number, length: number): TokenKey {
-  return `${start}:${length}`
+  return `${start}:${length}` as TokenKey
+}
+
+interface SerializedInfoMap {
+  nodes: Record<NodeKey, AstId[]>
+  tokens: Record<TokenKey, TokenId>
+}
+
+interface SerializedPrintedSource {
+  info: SerializedInfoMap
+  code: string
 }
 
 type NodeSpanMap = Map<NodeKey, AstId[]>
 type TokenSpanMap = Map<TokenKey, TokenId>
-export type InfoMap = {
+
+export interface InfoMap {
   nodes: NodeSpanMap
   tokens: TokenSpanMap
 }
 
-type PrintedSource = {
+interface PrintedSource {
   info: InfoMap
   code: string
 }
@@ -1073,7 +1263,8 @@ export function print(ast: Ast): PrintedSource {
   return { info, code }
 }
 
-type DebugTree = (DebugTree | string)[]
+export type DebugTree = (DebugTree | string)[]
+
 export function debug(root: Ast, universe?: Map<AstId, Ast>): DebugTree {
   const module = root.module
   return Array.from(root.concreteChildren(), (child) => {
@@ -1169,9 +1360,8 @@ export function parseTransitional(code: string, idMap: IdMap): Ast {
   return newRoot
 }
 
-export function parse(source: PrintedSource | string): Ast {
-  return Ast.parse(source)
-}
+export const parse = Ast.parse
+export const parseLine = Ast.parseLine
 
 export function deserialize(serialized: string): Ast {
   return Ast.deserialize(serialized)
