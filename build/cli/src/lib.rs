@@ -929,7 +929,9 @@ pub async fn main_internal(config: Option<Config>) -> Result {
                 .await?;
 
             enso_build::web::install(&ctx.repo_root).await?;
-            enso_build::web::run_script(&ctx.repo_root, enso_build::web::Script::CiCheck).await?;
+            enso_build::web::run_script(&ctx.repo_root, enso_build::web::Script::Typecheck).await?;
+            enso_build::web::run_script(&ctx.repo_root, enso_build::web::Script::Lint).await?;
+            enso_build::web::run_script(&ctx.repo_root, enso_build::web::Script::Prettier).await?;
         }
         Target::Fmt => {
             enso_build::web::install(&ctx.repo_root).await?;
