@@ -5,10 +5,10 @@ import {
   type Environment,
   type Placement,
 } from '@/components/ComponentBrowser/placement'
-import * as iterable from '@/util/iterable'
-import { chain, map, range } from '@/util/iterable'
-import { Rect } from '@/util/rect'
-import { Vec2 } from '@/util/vec2'
+import * as iterable from '@/util/data/iterable'
+import { chain, map, range } from '@/util/data/iterable'
+import { Rect } from '@/util/data/rect'
+import { Vec2 } from '@/util/data/vec2'
 import { fc, test as fcTest } from '@fast-check/vitest'
 import { describe, expect, test, vi } from 'vitest'
 

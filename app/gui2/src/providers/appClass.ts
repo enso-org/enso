@@ -1,5 +1,5 @@
 import { createContextStore } from '@/providers'
-import type { Opt } from '@/util/opt'
+import type { Opt } from '@/util/data/opt'
 import { reactive, watch, type WatchSource } from 'vue'
 
 export { provideFn as provideAppClassSet }

@@ -1,8 +1,8 @@
 <script lang="ts">
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useAppClass } from '@/providers/appClass'
-import { Range } from '@/util/range'
-import { Vec2 } from '@/util/vec2'
+import { Range } from '@/util/data/range'
+import { Vec2 } from '@/util/data/vec2'
 import { useRaf } from '@/util/vue/animation'
 import { useEvent } from '@/util/vue/events'
 import { uuidv4 } from 'lib0/random'
@@ -602,3 +602,4 @@ div {
   color: white;
 }
 </style>
+@/util/data/vec2 @/util/data/range

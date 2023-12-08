@@ -1,4 +1,4 @@
-import { isSome, type Opt } from '@/util/opt'
+import { isSome, type Opt } from '@/util/data/opt'
 
 export type Result<T = undefined, E = string> =
   | { ok: true; value: T }

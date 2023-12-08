@@ -1,7 +1,7 @@
 import type { ForcePort } from '@/providers/portInfo'
 import type { SuggestionEntry, SuggestionEntryArgument } from '@/stores/suggestionDatabase/entry'
-import { tryGetIndex } from '@/util/array'
 import { Ast } from '@/util/ast'
+import { tryGetIndex } from '@/util/data/array'
 import type { MethodCall } from 'shared/languageServerTypes'
 
 export const enum ApplicationKind {

@@ -7,7 +7,7 @@ import { injectGraphSelection } from '@/providers/graphSelection'
 import type { UploadingFile as File, FileName } from '@/stores/awareness'
 import { useGraphStore } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
-import type { Vec2 } from '@/util/vec2'
+import type { Vec2 } from '@/util/data/vec2'
 import { stackItemsEqual } from 'shared/languageServerTypes'
 import type { ContentRange, ExprId } from 'shared/yjsModel'
 import { computed, toRaw } from 'vue'
@@ -74,3 +74,4 @@ const uploadingFiles = computed<[FileName, File][]>(() => {
     :file="nameAndFile[1]"
   />
 </template>
+@/util/data/vec2

@@ -4,7 +4,7 @@ import type { GraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
 import { useGraphStore } from '@/stores/graph'
-import { Vec2 } from '@/util/vec2'
+import { Vec2 } from '@/util/data/vec2'
 import type { ExprId } from 'shared/yjsModel'
 
 const graph = useGraphStore()
@@ -66,3 +66,4 @@ function createEdge(source: ExprId, target: ExprId) {
 <template>
   <GraphEdge v-for="(edge, index) in graph.edges" :key="index" :edge="edge" />
 </template>
+@/util/data/vec2

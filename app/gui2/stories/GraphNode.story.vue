@@ -103,3 +103,4 @@ const SetupStory = createSetupComponent((app) => {
     </template>
   </Story>
 </template>
+@/util/data/vec2 @/util/data/rect

@@ -1,4 +1,4 @@
-import { Err, Ok, ResultError, rejectionToResult, type Result } from '@/util/result'
+import { Err, Ok, ResultError, rejectionToResult, type Result } from '@/util/data/result'
 import { WebSocketTransport } from '@open-rpc/client-js'
 import type {
   IJSONRPCNotificationResponse,

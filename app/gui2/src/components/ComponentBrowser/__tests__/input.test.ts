@@ -14,8 +14,8 @@ import {
   makeType,
   type SuggestionEntry,
 } from '@/stores/suggestionDatabase/entry'
+import { unwrap } from '@/util/data/result'
 import { tryIdentifier, tryQualifiedName } from '@/util/qualifiedName'
-import { unwrap } from '@/util/result'
 import type { ExprId } from 'shared/yjsModel'
 import { expect, test } from 'vitest'
 

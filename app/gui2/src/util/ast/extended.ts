@@ -11,7 +11,7 @@ import {
   visitRecursive,
   walkRecursive,
 } from '@/util/ast'
-import type { Opt } from '@/util/opt'
+import type { Opt } from '@/util/data/opt'
 import * as encoding from 'lib0/encoding'
 import * as sha256 from 'lib0/hash/sha256'
 import * as map from 'lib0/map'

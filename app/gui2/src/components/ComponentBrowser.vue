@@ -13,10 +13,10 @@ import { useProjectStore } from '@/stores/project'
 import { groupColorStyle, useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import type { VisualizationDataSource } from '@/stores/visualization'
-import { tryGetIndex } from '@/util/array'
-import type { Opt } from '@/util/opt'
-import { allRanges } from '@/util/range'
-import { Vec2 } from '@/util/vec2'
+import { tryGetIndex } from '@/util/data/array'
+import type { Opt } from '@/util/data/opt'
+import { allRanges } from '@/util/data/range'
+import { Vec2 } from '@/util/data/vec2'
 import { useApproach } from '@/util/vue/animation'
 import { useEvent, useResizeObserver } from '@/util/vue/events'
 import type { useNavigator } from '@/util/vue/navigator'
@@ -647,3 +647,4 @@ const handler = componentBrowserBindings.handler({
   position: absolute;
 }
 </style>
+@/util/data/opt @/util/data/vec2 @/util/data/range @/util/data/array

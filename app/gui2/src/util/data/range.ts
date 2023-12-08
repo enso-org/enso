@@ -1,4 +1,4 @@
-import { partitionPoint } from '@/util/array'
+import { partitionPoint } from '@/util/data/array'
 
 export interface RangeWithMatch {
   readonly start: number

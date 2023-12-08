@@ -21,8 +21,8 @@ import {
   type VisualizationId,
 } from '@/stores/visualization/metadata'
 import type { VisualizationModule } from '@/stores/visualization/runtimeTypes'
+import type { Opt } from '@/util/data/opt'
 import { rpcWithRetries } from '@/util/net'
-import type { Opt } from '@/util/opt'
 import { defineStore } from 'pinia'
 import type { Event as LSEvent, VisualizationConfiguration } from 'shared/languageServerTypes'
 import type { ExprId, VisualizationIdentifier } from 'shared/yjsModel'

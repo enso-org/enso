@@ -1,6 +1,6 @@
 import { SnapGrid } from '@/components/GraphEditor/dragging'
-import { Rect } from '@/util/rect'
-import { Vec2 } from '@/util/vec2'
+import { Rect } from '@/util/data/rect'
+import { Vec2 } from '@/util/data/vec2'
 import { expect, test } from 'vitest'
 import { computed } from 'vue'
 

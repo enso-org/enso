@@ -1,7 +1,7 @@
+import { Rect } from '@/util/data/rect'
+import { Vec2 } from '@/util/data/vec2'
 import { useApproach } from '@/util/vue/animation'
 import { PointerButtonMask, useEvent, usePointer, useResizeObserver } from '@/util/vue/events'
-import { Rect } from '@/util/rect'
-import { Vec2 } from '@/util/vec2'
 import { computed, proxyRefs, ref, type Ref } from 'vue'
 
 function elemRect(target: Element | undefined): Rect {

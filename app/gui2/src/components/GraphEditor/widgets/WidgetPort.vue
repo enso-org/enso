@@ -8,7 +8,7 @@ import { injectWidgetTree } from '@/providers/widgetTree'
 import { useGraphStore } from '@/stores/graph'
 import { Ast } from '@/util/ast'
 import { ArgumentAst, ArgumentPlaceholder } from '@/util/callTree'
-import { Rect } from '@/util/rect'
+import { Rect } from '@/util/data/rect'
 import { useRaf } from '@/util/vue/animation'
 import { useResizeObserver } from '@/util/vue/events'
 import { uuidv4 } from 'lib0/random'
@@ -227,3 +227,4 @@ export const widgetDefinition = defineWidget(
   }
 }
 </style>
+@/util/data/rect

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Vec2 } from '@/util/vec2'
+import type { Vec2 } from '@/util/data/vec2'
 import { useApproach } from '@/util/vue/animation'
 import { useEvent } from '@/util/vue/events'
 import { computed, ref, watch, type Ref } from 'vue'
@@ -81,3 +81,4 @@ const brushStyle = computed(() => {
   }
 }
 </style>
+@/util/data/vec2

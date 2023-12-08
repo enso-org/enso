@@ -10,10 +10,10 @@ import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { useGraphStore, type Node } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
+import type { Opt } from '@/util/data/opt'
+import { Rect } from '@/util/data/rect'
+import { Vec2 } from '@/util/data/vec2'
 import { displayedIconOf } from '@/util/getIconName'
-import type { Opt } from '@/util/opt'
-import { Rect } from '@/util/rect'
-import { Vec2 } from '@/util/vec2'
 import { useApproach } from '@/util/vue/animation'
 import { usePointer, useResizeObserver } from '@/util/vue/events'
 import { setIfUndefined } from 'lib0/map'
@@ -540,3 +540,4 @@ function portGroupStyle(port: PortData) {
   margin-top: 4px;
 }
 </style>
+@/util/data/opt @/util/data/vec2 @/util/data/rect

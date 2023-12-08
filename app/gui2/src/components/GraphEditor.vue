@@ -23,8 +23,8 @@ import type { RequiredImport } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { groupColorVar, useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { colorFromString } from '@/util/colors'
-import { Rect } from '@/util/rect'
-import { Vec2 } from '@/util/vec2'
+import { Rect } from '@/util/data/rect'
+import { Vec2 } from '@/util/data/vec2'
 import { keyboardBusy, keyboardBusyExceptIn, useEvent } from '@/util/vue/events'
 import * as set from 'lib0/set'
 import type { ExprId, NodeMetadata } from 'shared/yjsModel'
@@ -522,3 +522,4 @@ svg {
   height: 0;
 }
 </style>
+@/util/data/vec2 @/util/data/rect

@@ -1,5 +1,5 @@
 import { createContextStore } from '@/providers'
-import type { Rect } from '@/util/rect'
+import type { Rect } from '@/util/data/rect'
 import type { NavigatorComposable } from '@/util/vue/navigator'
 import { useSelection } from '@/util/vue/selection'
 import type { ExprId } from 'shared/yjsModel'

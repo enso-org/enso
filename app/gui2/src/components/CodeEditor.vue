@@ -4,9 +4,9 @@ import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { useAutoBlur } from '@/util/autoBlur'
 import type { Diagnostic, Highlighter } from '@/util/codemirror'
-import { chain } from '@/util/iterable'
+import { chain } from '@/util/data/iterable'
+import { unwrap } from '@/util/data/result'
 import { qnJoin, tryQualifiedName } from '@/util/qualifiedName'
-import { unwrap } from '@/util/result'
 import { usePointer } from '@/util/vue/events'
 import { useLocalStorage } from '@vueuse/core'
 import { rangeEncloses, type ExprId } from 'shared/yjsModel'
@@ -306,3 +306,4 @@ const editorStyle = computed(() => {
   border-radius: 3px 0 0 3px;
 }
 </style>
+@/util/data/result @/util/data/iterable

@@ -1,9 +1,9 @@
 import { SuggestionDb, type Group } from '@/stores/suggestionDatabase'
 import { SuggestionKind, entryQn, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import { applyUpdates } from '@/stores/suggestionDatabase/lsUpdate'
+import { unwrap } from '@/util/data/result'
 import { parseDocs } from '@/util/docParser'
 import { tryIdentifier, tryQualifiedName, type QualifiedName } from '@/util/qualifiedName'
-import { unwrap } from '@/util/result'
 import * as lsTypes from 'shared/languageServerTypes/suggestions'
 import { expect, test } from 'vitest'
 

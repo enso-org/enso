@@ -1,4 +1,4 @@
-import { Vec2 } from '@/util/vec2'
+import { Vec2 } from '@/util/data/vec2'
 
 /**
  * Axis-aligned rectangle. Defined in terms of a top-left point and a size.

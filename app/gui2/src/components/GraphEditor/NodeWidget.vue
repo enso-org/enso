@@ -8,7 +8,7 @@ import {
   usageKeyForInput,
 } from '@/providers/widgetUsageInfo'
 import { Ast } from '@/util/ast'
-import type { Opt } from '@/util/opt'
+import type { Opt } from '@/util/data/opt'
 import { computed, proxyRefs } from 'vue'
 
 const props = defineProps<{
@@ -91,3 +91,4 @@ const spanStart = computed(() => {
     >🚫</span
   >
 </template>
+@/util/data/opt

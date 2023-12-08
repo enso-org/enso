@@ -104,3 +104,4 @@ const mockFsWrapperProps = computed(() => ({
     </template>
   </Story>
 </template>
+@/util/data/vec2

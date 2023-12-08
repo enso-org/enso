@@ -1,6 +1,6 @@
 import { selectionMouseBindings } from '@/bindings'
-import type { Rect } from '@/util/rect'
-import type { Vec2 } from '@/util/vec2'
+import type { Rect } from '@/util/data/rect'
+import type { Vec2 } from '@/util/data/vec2'
 import { usePointer } from '@/util/vue/events'
 import type { NavigatorComposable } from '@/util/vue/navigator'
 import { type ExprId } from 'shared/yjsModel'
