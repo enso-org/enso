@@ -3,6 +3,11 @@ package org.enso.interpreter.test.instrument
 import org.enso.interpreter.runtime.EnsoContext
 import org.enso.interpreter.runtime.`type`.ConstantsGen
 import org.enso.interpreter.test.Metadata
+import org.enso.interpreter.test.instruments.{
+  InstrumentTestContext,
+  TestEdition,
+  TestMessages
+}
 import org.enso.pkg.{Package, PackageManager}
 import org.enso.polyglot._
 import org.enso.polyglot.runtime.Runtime.Api

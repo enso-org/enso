@@ -1,4 +1,4 @@
-package org.enso.interpreter.test.instrument
+package org.enso.interpreter.test.instruments
 
 import java.util.UUID
 

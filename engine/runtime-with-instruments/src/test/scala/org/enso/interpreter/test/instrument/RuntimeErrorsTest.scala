@@ -2,6 +2,10 @@ package org.enso.interpreter.test.instrument
 
 import org.enso.interpreter.runtime.`type`.ConstantsGen
 import org.enso.interpreter.test.Metadata
+import org.enso.interpreter.test.instruments.{
+  InstrumentTestContext,
+  TestMessages
+}
 import org.enso.polyglot._
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.text.editing.model

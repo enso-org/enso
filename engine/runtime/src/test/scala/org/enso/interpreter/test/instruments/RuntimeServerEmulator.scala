@@ -1,4 +1,4 @@
-package org.enso.interpreter.test.instrument
+package org.enso.interpreter.test.instruments
 
 import akka.actor.ActorSystem
 import org.enso.distribution.locking.ThreadSafeLockManager

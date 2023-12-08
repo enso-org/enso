@@ -1,8 +1,12 @@
 package org.enso.interpreter.test
 
 import com.oracle.truffle.api.instrumentation.EventBinding
-import org.enso.interpreter.test.CodeIdsTestInstrument.IdEventListener
-import org.enso.interpreter.test.CodeLocationsTestInstrument.LocationsEventListener
+import org.enso.interpreter.test.instrument.CodeIdsTestInstrument.IdEventListener
+import org.enso.interpreter.test.instrument.{
+  CodeIdsTestInstrument,
+  CodeLocationsTestInstrument
+}
+import org.enso.interpreter.test.instrument.CodeLocationsTestInstrument.LocationsEventListener
 import org.enso.polyglot.debugger.{
   DebugServerInfo,
   DebuggerSessionManagerEndpoint,

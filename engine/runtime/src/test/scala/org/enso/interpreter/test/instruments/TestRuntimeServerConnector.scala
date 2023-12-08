@@ -1,4 +1,4 @@
-package org.enso.interpreter.test.instrument
+package org.enso.interpreter.test.instruments
 
 import akka.actor.{Actor, ActorRef, Props}
 import com.typesafe.scalalogging.LazyLogging
