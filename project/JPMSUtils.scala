@@ -168,6 +168,9 @@ object JPMSUtils {
     * Note that sbt is not able to correctly handle `module-info.java` files when
     * compilation order is defined to mixed order.
     *
+    * Compilation of `module-info.java` is skipped iff none of all the classes from all the dependencies
+    * changed and if the `module-info.java` itself have not changed.
+    *
     * @param copyDepsFilter The filter of scopes of the projects from which the class files are first
     *                    copied into the `target` directory before `module-info.java` is compiled.
     * @param modulePath IDs of dependencies that should be put on the module path. The modules
@@ -194,11 +197,11 @@ object JPMSUtils {
         // Class directories of all the dependencies.
         val sourceProducts =
           productDirectories.all(copyDepsFilter).value.flatten
-        log.info(s"Compiling $moduleInfo with javac")
 
-        val moduleName  = moduleInfos.value.head.moduleName
-        val cacheStore  = streams.value.cacheStoreFactory
-        val repoRootDir = (LocalProject("enso") / baseDirectory).value
+        val moduleName     = moduleInfos.value.head.moduleName
+        val cacheStore     = streams.value.cacheStoreFactory
+        val repoRootDir    = (LocalProject("enso") / baseDirectory).value
+        var someDepChanged = false
         sourceProducts.foreach(sourceProduct => {
           if (!sourceProduct.exists()) {
             log.error(s"Source product ${sourceProduct} does not exist")
@@ -208,45 +211,62 @@ object JPMSUtils {
             )
             log.error("Run Compile/compile before this task")
           }
-          val relPath = repoRootDir.toPath.relativize(sourceProduct.toPath)
-          val cache   = cacheStore.make("cache-" + relPath.toString)
-          copyClasses(sourceProduct, output, cache, log)
+          val relPath    = repoRootDir.toPath.relativize(sourceProduct.toPath)
+          val cache      = cacheStore.make("cache-" + relPath.toString)
+          val depChanged = copyClasses(sourceProduct, output, cache, log)
+          if (depChanged) {
+            someDepChanged = true
+          }
         })
 
         val baseJavacOpts = (Compile / javacOptions).value
         val fullCp        = (Compile / fullClasspath).value
-        val (mp, cp) = fullCp.partition(file => {
-          val moduleID =
-            file.metadata.get(AttributeKey[ModuleID]("moduleID")).get
-          modulePath.exists(mod => {
-            mod.organization == moduleID.organization &&
-            mod.name == moduleID.name &&
-            mod.revision == moduleID.revision
-          })
-        })
-
-        val allOpts = baseJavacOpts ++ Seq(
-          "--class-path",
-          cp.map(_.data.getAbsolutePath).mkString(File.pathSeparator),
-          "--module-path",
-          mp.map(_.data.getAbsolutePath).mkString(File.pathSeparator),
-          "-d",
-          outputPath.toAbsolutePath.toString
-        )
-        log.debug(s"javac options: $allOpts")
-
         val javaCompiler =
           (Compile / compile / compilers).value.javaTools.javac()
-        val succ = javaCompiler.run(
-          Array(PlainVirtualFile(moduleInfo.toPath)),
-          allOpts.toArray,
-          output,
-          incToolOpts,
-          reporter,
-          log
-        )
-        if (!succ) {
-          log.error(s"Compilation of ${moduleInfo} failed")
+
+        // Skip module-info.java compilation if the source have not changed
+        // Force the compilation if some class file from one of the dependencies changed,
+        // just to be sure that we don't cause any weird compilation errors.
+        val moduleInfoCache = cacheStore.make("cache-module-info-" + moduleName)
+        Tracked.diffInputs(moduleInfoCache, FileInfo.lastModified)(
+          Set(moduleInfo)
+        ) { changeReport =>
+          if (
+            someDepChanged || changeReport.modified.nonEmpty || changeReport.added.nonEmpty
+          ) {
+            log.info(s"Compiling $moduleInfo with javac")
+            val (mp, cp) = fullCp.partition(file => {
+              val moduleID =
+                file.metadata.get(AttributeKey[ModuleID]("moduleID")).get
+              modulePath.exists(mod => {
+                mod.organization == moduleID.organization &&
+                mod.name == moduleID.name &&
+                mod.revision == moduleID.revision
+              })
+            })
+
+            val allOpts = baseJavacOpts ++ Seq(
+              "--class-path",
+              cp.map(_.data.getAbsolutePath).mkString(File.pathSeparator),
+              "--module-path",
+              mp.map(_.data.getAbsolutePath).mkString(File.pathSeparator),
+              "-d",
+              outputPath.toAbsolutePath.toString
+            )
+            log.debug(s"javac options: $allOpts")
+
+            val succ = javaCompiler.run(
+              Array(PlainVirtualFile(moduleInfo.toPath)),
+              allOpts.toArray,
+              output,
+              incToolOpts,
+              reporter,
+              log
+            )
+            if (!succ) {
+              log.error(s"Compilation of ${moduleInfo} failed")
+            }
+          }
         }
       }
 
@@ -255,13 +275,15 @@ object JPMSUtils {
     * @param output Target directory where all the classes from all the dependencies
     *               will be copied to.
     * @param log
+    * @return True iff some of the dependencies changed, i.e., if there is a modified class file, or
+    *         some class file was added, or removed
     */
   private def copyClasses(
     sourceClassesDir: File,
     output: xsbti.compile.Output,
     cache: CacheStore,
     log: Logger
-  ): Unit = {
+  ): Boolean = {
     require(sourceClassesDir.isDirectory)
     val outputPath: Path = output.getSingleOutputAsPath.get()
     val outputDir        = outputPath.toFile
@@ -294,25 +316,30 @@ object JPMSUtils {
     if (!outputDir.exists()) {
       IO.createDirectory(outputDir)
     }
+    var someDependencyChanged = false
     Tracked.diffInputs(cache, FileInfo.lastModified)(filesToCopy.toSet) {
       changeReport =>
         for (f <- changeReport.removed) {
           val relPath = sourceClassesDir.toPath.relativize(f.toPath)
           val dest    = outputDir.toPath.resolve(relPath)
           IO.delete(dest.toFile)
+          someDependencyChanged = true
         }
         for (f <- changeReport.modified -- changeReport.removed) {
           val relPath = sourceClassesDir.toPath.relativize(f.toPath)
           val dest    = outputDir.toPath.resolve(relPath)
           IO.copyFile(f, dest.toFile)
+          someDependencyChanged = true
         }
         for (f <- changeReport.unmodified) {
           val relPath = sourceClassesDir.toPath.relativize(f.toPath)
           val dest    = outputDir.toPath.resolve(relPath)
           if (!dest.toFile.exists()) {
             IO.copyFile(f, dest.toFile)
+            someDependencyChanged = true
           }
         }
     }
+    someDependencyChanged
   }
 }
