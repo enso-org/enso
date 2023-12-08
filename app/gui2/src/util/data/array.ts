@@ -1,3 +1,5 @@
+/** @file Functions for querying and manipulating arrays. */
+
 import type { Opt } from '@/util/data/opt'
 
 /** An array that has at least one element present at all times. */

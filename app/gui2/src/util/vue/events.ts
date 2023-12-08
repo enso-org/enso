@@ -1,3 +1,5 @@
+/** @file Vue composables for listening to DOM events. */
+
 import type { Opt } from '@/util/data/opt'
 import { Vec2 } from '@/util/data/vec2'
 import {

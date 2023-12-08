@@ -1,3 +1,5 @@
+/** @file A Vue composable for keeping track of selected DOM elements. */
+
 import { selectionMouseBindings } from '@/bindings'
 import type { Rect } from '@/util/data/rect'
 import type { Vec2 } from '@/util/data/vec2'

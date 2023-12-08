@@ -1,3 +1,5 @@
+/** @file Ranges between two numbers, and sets of multiple ranges with gaps between. */
+
 import { partitionPoint } from '@/util/data/array'
 
 export interface RangeWithMatch {

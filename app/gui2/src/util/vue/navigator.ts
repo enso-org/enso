@@ -1,3 +1,5 @@
+/** @file A Vue composable for panning and zooming a DOM element. */
+
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { useApproach } from '@/util/vue/animation'
