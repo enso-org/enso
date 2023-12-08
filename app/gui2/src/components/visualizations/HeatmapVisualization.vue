@@ -229,7 +229,7 @@ watchPostEffect(() => {
 }
 
 .label {
-  font-family: 'DejaVu Sans Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 10px;
 }
 </style>
