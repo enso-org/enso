@@ -1,5 +1,6 @@
 @import url('./font-enso.css');
 @import url('./font-mplus1.css');
+@import url('./font-dejavu.css');
 
 /* color palette from <https://github.com/vuejs/theme> */
 :root {
