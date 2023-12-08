@@ -1,9 +1,9 @@
 <script setup lang="ts">
+import type { Diagnostic, Highlighter } from '@/components/CodeEditor/codemirror'
 import { useGraphStore } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { useAutoBlur } from '@/util/autoBlur'
-import type { Diagnostic, Highlighter } from '@/util/codemirror'
 import { chain } from '@/util/data/iterable'
 import { unwrap } from '@/util/data/result'
 import { qnJoin, tryQualifiedName } from '@/util/qualifiedName'
@@ -30,7 +30,7 @@ const {
   forceLinting,
   lsDiagnosticsToCMDiagnostics,
   hoverTooltip,
-} = await import('@/util/codemirror')
+} = await import('@/components/CodeEditor/codemirror')
 
 const projectStore = useProjectStore()
 const graphStore = useGraphStore()
