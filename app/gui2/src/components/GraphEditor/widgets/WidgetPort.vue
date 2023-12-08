@@ -78,12 +78,7 @@ const ast = computed(() =>
 )
 const portId = computed(() => ast.value?.astId ?? randomUuid)
 
-providePortInfo(
-  proxyRefs({
-    portId,
-    connected: hasConnection,
-  }),
-)
+providePortInfo(proxyRefs({ portId, connected: hasConnection }))
 
 watch(nodeSize, updateRect)
 onUpdated(() => nextTick(updateRect))
@@ -130,8 +125,7 @@ export const widgetDefinition = defineWidget(
       ast instanceof Ast.OprApp ||
       ast instanceof Ast.UnaryOprApp ||
       ast instanceof Ast.Wildcard ||
-      ast instanceof Ast.TextLiteral ||
-      ast instanceof Ast.Ident,
+      ast instanceof Ast.TextLiteral,
   ],
   {
     priority: 0,
