@@ -4,7 +4,6 @@ use crate::arg::BuildJob;
 use crate::arg::Source;
 use crate::source_args_hlp;
 
-use clap::clap_derive::ArgEnum;
 use clap::Args;
 use clap::Subcommand;
 use enso_build::project::gui2::Gui2;
@@ -15,16 +14,6 @@ source_args_hlp!(Gui2, "gui2", BuildInput);
 
 #[derive(Args, Clone, Copy, Debug, PartialEq)]
 pub struct BuildInput {}
-
-#[derive(ArgEnum, Clone, Copy, Debug, PartialEq)]
-pub enum TestType {
-    /// Run unit tests in watch mode
-    Unit,
-    /// Run E2E tests
-    E2E,
-    /// Run all tests without watching nor HTML reports.
-    CI,
-}
 
 #[derive(Subcommand, Clone, Debug, PartialEq)]
 pub enum Command {

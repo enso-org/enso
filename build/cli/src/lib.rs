@@ -32,7 +32,6 @@ pub mod prelude {
 use crate::prelude::*;
 use std::future::join;
 
-use crate::arg::gui2::TestType;
 use crate::arg::java_gen;
 use crate::arg::release::Action;
 use crate::arg::BuildJob;
