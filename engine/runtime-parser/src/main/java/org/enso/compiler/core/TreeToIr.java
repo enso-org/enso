@@ -243,12 +243,8 @@ final class TreeToIr {
         var methodRef = translateMethodReference(fn.getName(), false);
         var args = translateArgumentsDefinition(fn.getArgs());
         var body = translateExpression(fn.getBody());
-        var returnSignature = fn.getReturns();
-        if (returnSignature != null) {
-          var returnType = translateType(returnSignature.getType());
-          System.out.println("Method " + fn.getName().codeRepr() + " has returnType: " + returnType.showCode());
-          // TODO(#8240): Make use of return type declaration.
-        }
+        var returnSignature = resolveReturnTypeSignature(fn);
+        // TODO use returnSignature
         if (body == null) {
             var error = translateSyntaxError(inputAst, new Syntax.UnsupportedSyntax("Block without body"));
             yield join(error, appendTo);
@@ -397,7 +393,7 @@ final class TreeToIr {
         } else {
           name = buildNameOrQualifiedName(fun.getName());
         }
-        var ir = translateFunction(fun, name, fun.getArgs(), fun.getBody());
+        var ir = translateFunction(fun, name, fun.getArgs(), fun.getBody(), resolveReturnTypeSignature(fun));
         yield join(ir, appendTo);
       }
 
@@ -406,7 +402,7 @@ final class TreeToIr {
       case Tree.Assignment assignment -> {
         var name = buildName(assignment.getPattern());
         java.util.List<ArgumentDefinition> args = java.util.Collections.emptyList();
-        var ir = translateFunction(assignment, name, args, assignment.getExpr());
+        var ir = translateFunction(assignment, name, args, assignment.getExpr(), null);
         yield join(ir, appendTo);
       }
 
@@ -499,7 +495,8 @@ final class TreeToIr {
         return new Operator.Binary(fn, in, args.head(), getIdentifiedLocation(app), meta(), diag());
       }
     }
-    private Expression translateFunction(Tree fun, Name name, java.util.List<ArgumentDefinition> arguments, final Tree treeBody) {
+    private Expression translateFunction(Tree fun, Name name, java.util.List<ArgumentDefinition> arguments, final Tree treeBody, Expression returnType) {
+      // TODO use returnType
       List<DefinitionArgument> args;
       try {
         args = translateArgumentsDefinition(arguments);
@@ -534,6 +531,18 @@ final class TreeToIr {
           getIdentifiedLocation(fun), true, meta(), diag()
         );
       }
+   }
+
+   private Expression resolveReturnTypeSignature(Tree.Function fun) {
+     var returnSignature = fun.getReturns();
+     if (returnSignature == null) {
+       return null;
+     }
+
+     Expression returnType = translateType(returnSignature.getType());
+     // TODO later we ofc want to remove this debug:
+     System.out.println("Method " + fun.getName().codeRepr() + " has returnType: " + returnType.showCode());
+     return returnType;
    }
 
   private Type.Ascription translateTypeSignature(Tree sig, Tree type, Expression typeName) {
@@ -970,7 +979,7 @@ final class TreeToIr {
       }
       case Tree.Function fun -> {
         var name = buildName(fun.getName());
-        yield translateFunction(fun, name, fun.getArgs(), fun.getBody());
+        yield translateFunction(fun, name, fun.getArgs(), fun.getBody(), resolveReturnTypeSignature(fun));
       }
       case Tree.OprSectionBoundary bound -> translateExpression(bound.getAst(), false);
       case Tree.UnaryOprApp un when "-".equals(un.getOpr().codeRepr()) ->

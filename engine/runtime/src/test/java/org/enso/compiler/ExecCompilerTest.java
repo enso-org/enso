@@ -244,6 +244,20 @@ public class ExecCompilerTest {
   }
 
   @Test
+  public void inlineReturnSignatureOnLocalFunction() throws Exception {
+    var module = ctx.eval("enso", """
+    foo x y =
+        inner_foo (z : Integer) -> Integer = 100*z + 10*y + x
+        a = 3
+        r = inner_foo a
+        r + 50000
+    """);
+    var instance = module.invokeMember("eval_expression", "foo");
+    var result = instance.execute(1, 2);
+    assertEquals(50321, result.asInt());
+  }
+
+  @Test
   public void inlineReturnSignatureWithoutArguments() throws Exception {
     var module = ctx.eval("enso", """
     the_number -> Integer = 23
