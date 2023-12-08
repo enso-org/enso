@@ -281,33 +281,33 @@ async function handleFileDrop(event: DragEvent) {
   // A vertical gap between created nodes when multiple files were dropped together.
   const MULTIPLE_FILES_GAP = 50
 
-  try {
-    if (event.dataTransfer && event.dataTransfer.items) {
-      ;[...event.dataTransfer.items].forEach(async (item, index) => {
-        if (item.kind === 'file') {
-          const file = item.getAsFile()
-          if (file) {
-            const clientPos = new Vec2(event.clientX, event.clientY)
-            const offset = new Vec2(0, index * -MULTIPLE_FILES_GAP)
-            const pos = graphNavigator.clientToScenePos(clientPos).add(offset)
-            const uploader = await Uploader.Create(
-              projectStore.lsRpcConnection,
-              projectStore.dataConnection,
-              projectStore.contentRoots,
-              projectStore.awareness,
-              file,
-              pos,
-              projectStore.executionContext.getStackTop(),
-            )
-            const name = await uploader.upload()
-            graphStore.createNode(pos, uploadedExpression(name))
-          }
-        }
-      })
+  if (!event.dataTransfer?.items) return
+  ;[...event.dataTransfer.items].forEach(async (item, index) => {
+    try {
+      if (item.kind === 'file') {
+        const file = item.getAsFile()
+        if (!file) return
+        const clientPos = new Vec2(event.clientX, event.clientY)
+        const offset = new Vec2(0, index * -MULTIPLE_FILES_GAP)
+        const pos = graphNavigator.clientToScenePos(clientPos).add(offset)
+        const uploader = await Uploader.Create(
+          projectStore.lsRpcConnection,
+          projectStore.dataConnection,
+          projectStore.contentRoots,
+          projectStore.awareness,
+          file,
+          pos,
+          projectStore.isOnLocalBackend,
+          event.shiftKey,
+          projectStore.executionContext.getStackTop(),
+        )
+        const uploadResult = await uploader.upload()
+        graphStore.createNode(pos, uploadedExpression(uploadResult))
+      }
+    } catch (err) {
+      console.error(`Uploading file failed. ${err}`)
     }
-  } catch (err) {
-    console.error(`Uploading file failed. ${err}`)
-  }
+  })
 }
 
 function resetComponentBrowserState() {
