@@ -246,6 +246,7 @@ final class TreeToIr {
         var returnSignature = fn.getReturns();
         if (returnSignature != null) {
           var returnType = translateType(returnSignature.getType());
+          System.out.println("Method " + fn.getName().codeRepr() + " has returnType: " + returnType.showCode());
           // TODO(#8240): Make use of return type declaration.
         }
         if (body == null) {
