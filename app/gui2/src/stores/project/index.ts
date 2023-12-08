@@ -553,7 +553,6 @@ export const useProjectStore = defineStore('project', () => {
     return shallowRef(
       computed(() => {
         const json = visualizationDataRegistry.getRawData(id)
-        console.log('json', json)
         if (!json?.ok) return json ?? undefined
         else return Ok(JSON.parse(json.value))
       }),

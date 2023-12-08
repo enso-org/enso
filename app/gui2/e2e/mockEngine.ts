@@ -189,9 +189,7 @@ function createId(id: Uuid) {
 }
 
 function sendVizData(id: Uuid, config: VisualizationConfiguration) {
-  console.log('sendVizData', id, config)
   const vizData = mockVizData[`${config.visualizationModule}.${config.expression}`]
-  console.log(vizData, sendData)
   if (!vizData || !sendData) return
   const builder = new Builder()
   const exprId = visualizationExprIds.get(id)
@@ -214,7 +212,6 @@ function sendVizData(id: Uuid, config: VisualizationConfiguration) {
     OutboundPayload.VISUALIZATION_UPDATE,
     payload,
   )
-  console.log('Sending data')
   sendData(builder.finish(rootTable).toArrayBuffer())
 }
 
