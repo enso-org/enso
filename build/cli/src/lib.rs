@@ -351,10 +351,7 @@ impl Processor {
         match gui.command {
             arg::gui2::Command::Build(job) => self.build(job),
             arg::gui2::Command::Get(source) => self.get(source).void_ok().boxed(),
-            arg::gui2::Command::Test { r#type: TestType::Unit } =>
-                gui2::unit_tests(&self.repo_root),
-            arg::gui2::Command::Test { r#type: TestType::E2E } => gui2::e2e_tests(&self.repo_root),
-            arg::gui2::Command::Test { r#type: TestType::CI } => gui2::tests(&self.repo_root),
+            arg::gui2::Command::Test => gui2::tests(&self.repo_root),
             arg::gui2::Command::Watch => gui2::watch(&self.repo_root),
             arg::gui2::Command::Lint => gui2::lint(&self.repo_root),
         }

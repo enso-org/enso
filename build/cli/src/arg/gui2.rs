@@ -33,11 +33,7 @@ pub enum Command {
     /// Gets the GUI, either by compiling it from scratch or downloading from an external source.
     Get(Source<Gui2>),
     /// Runs the GUI's unit tests.
-    Test {
-        /// What kind of test should be run?
-        #[clap(long, arg_enum, default_value_t = TestType::Unit)]
-        r#type: TestType,
-    },
+    Test,
     /// Run linter on the GUI's sources.
     Lint,
     /// Continuously rebuilds GUI when its sources are changed and serves it using dev-server.

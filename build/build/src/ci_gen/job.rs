@@ -118,7 +118,7 @@ impl JobArchetype for NativeTest {
 pub struct NewGuiTest;
 impl JobArchetype for NewGuiTest {
     fn job(&self, os: OS) -> Job {
-        plain_job(&os, "New (Vue) GUI tests", "gui2 test --type=ci")
+        plain_job(&os, "New (Vue) GUI tests", "gui2 test")
     }
 }
 
