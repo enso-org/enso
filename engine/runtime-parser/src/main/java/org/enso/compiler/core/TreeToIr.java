@@ -244,7 +244,6 @@ final class TreeToIr {
         var args = translateArgumentsDefinition(fn.getArgs());
         var body = translateExpression(fn.getBody());
         var returnSignature = resolveReturnTypeSignature(fn);
-        // TODO use returnSignature
         if (body == null) {
             var error = translateSyntaxError(inputAst, new Syntax.UnsupportedSyntax("Block without body"));
             yield join(error, appendTo);
@@ -252,6 +251,7 @@ final class TreeToIr {
         var binding = new Method.Binding(
           methodRef,
           args,
+          Option.apply(returnSignature),
           body,
           getIdentifiedLocation(inputAst, 0, 0, null),
           meta(), diag()
@@ -274,7 +274,7 @@ final class TreeToIr {
         var text = buildTextConstant(body, body.getElements());
         var def = new Foreign.Definition(language, text, getIdentifiedLocation(fn.getBody()), meta(), diag());
         var binding = new Method.Binding(
-                methodRef, args, def, getIdentifiedLocation(inputAst), meta(), diag()
+                methodRef, args, Option.empty(), def, getIdentifiedLocation(inputAst), meta(), diag()
         );
         yield join(binding, appendTo);
       }
@@ -305,6 +305,7 @@ final class TreeToIr {
         var binding = new Method.Binding(
           reference,
           nil(),
+          Option.empty(),
           body.setLocation(aLoc),
           expandToContain(getIdentifiedLocation(a), aLoc),
           meta(), diag()
@@ -496,7 +497,6 @@ final class TreeToIr {
       }
     }
     private Expression translateFunction(Tree fun, Name name, java.util.List<ArgumentDefinition> arguments, final Tree treeBody, Expression returnType) {
-      // TODO use returnType
       List<DefinitionArgument> args;
       try {
         args = translateArgumentsDefinition(arguments);
@@ -520,6 +520,12 @@ final class TreeToIr {
         if (body == null) {
           body = translateSyntaxError(fun, Syntax.UnexpectedExpression$.MODULE$);
         }
+
+        if (returnType != null) {
+          // TODO
+          System.out.println("TODO: type ascription on 0-argument blocks");
+        }
+
         return new Expression.Binding(name, body,
           getIdentifiedLocation(fun), meta(), diag()
         );
@@ -527,12 +533,15 @@ final class TreeToIr {
         if (body == null) {
           return translateSyntaxError(fun, Syntax.UnexpectedDeclarationInType$.MODULE$);
         }
+
+        // TODO add ascription here too
         return new Function.Binding(name, args, body,
           getIdentifiedLocation(fun), true, meta(), diag()
         );
       }
    }
 
+   /** Returns the return type of a function, if it was specified inline. */
    private Expression resolveReturnTypeSignature(Tree.Function fun) {
      var returnSignature = fun.getReturns();
      if (returnSignature == null) {
