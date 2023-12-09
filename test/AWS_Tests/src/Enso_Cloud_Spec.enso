@@ -1,0 +1,27 @@
+from Standard.Base import all
+import Standard.Base.Data.Enso_Cloud.Utils as Cloud_Utils
+
+
+from Standard.Test import Test, Test_Suite
+import Standard.Test.Test_Environment
+import Standard.Test.Extensions
+
+
+## TODO [RW] not sure if this should be part of AWS_Tests or rather most likely it should be moved to a separate suite...
+spec =
+    ## To run this test locally:
+       $ sbt 'simple-httpbin/run localhost 8080'
+       $ export ENSO_HTTP_TEST_HTTPBIN_URL=http://localhost:8080/
+    base_url = Environment.get "ENSO_HTTP_TEST_HTTPBIN_URL"
+    pending_has_url = if base_url != Nothing then Nothing else
+        "The Cloud mock tests only run when the `ENSO_HTTP_TEST_HTTPBIN_URL` environment variable is set to URL of the simple-httpbin server"
+    enso_cloud_url = base_url.if_not_nothing <|
+        with_slash = if base_url.ends_with "/" then base_url else base_url + "/"
+        with_slash + "enso-cloud-mock/"
+    Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_API_URI" enso_cloud_url <|
+        Test.group "Enso Cloud Basic Utils" pending=pending_has_url <|
+            Test.specify "should be able to get the cloud URL from environment" <|
+                api_url = Cloud_Utils.cloud_root_uri
+                api_url.should_be enso_cloud_url
+
+main = Test_Suite.run_main spec
