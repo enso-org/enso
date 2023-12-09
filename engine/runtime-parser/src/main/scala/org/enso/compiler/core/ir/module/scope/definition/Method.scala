@@ -229,8 +229,6 @@ object Method {
     *
     * @param methodReference a reference to the method being defined
     * @param arguments       the arguments to the method
-    * @param returnType      the return type of the method (if the method
-    *                        opted-in to the return type check)
     * @param body            the body of the method
     * @param location        the source location that the node corresponds to
     * @param passData        the pass metadata associated with this node
@@ -239,7 +237,6 @@ object Method {
   sealed case class Binding(
     override val methodReference: Name.MethodReference,
     arguments: List[DefinitionArgument],
-    returnType: Option[Expression],
     override val body: Expression,
     override val location: Option[IdentifiedLocation],
     override val passData: MetadataStorage      = new MetadataStorage(),

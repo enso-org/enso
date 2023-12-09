@@ -846,32 +846,6 @@ public class SignatureTest extends TestBase {
     assertEquals(3, add2.execute(1, 2).asInt());
   }
 
-
-  /**
-   * This test demonstrates a slightly un-intuitive, but apparently needed by our rules, behaviour of `->` with ascriptions:
-   * for `foo a:Integer -> Integer` what happens? TODO
-   * for `foo a : Integer -> Integer` what happens? TODO
-   */
-  @Test
-  public void weirdReturnTypeSignature() throws Exception {
-    final URI uri = new URI("memory://rts.enso");
-    final Source src = Source.newBuilder("enso", """
-    from Standard.Base import Integer
-    foo a:Integer -> Integer = a+10
-    bar a:Integer -> Integer = a+100
-    """,uri.getAuthority())
-        .uri(uri)
-        .buildLiteral();
-
-    // TODO figure out these
-    var module = ctx.eval(src);
-    var add1 = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo");
-    assertEquals(11, add1.execute(1).asInt());
-
-    var add2 = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "bar");
-    assertEquals(101, add2.execute(1).asInt());
-  }
-
   @Test
   public void returnTypeCheckOptInError() throws Exception {
     final URI uri = new URI("memory://rts.enso");
@@ -889,9 +863,7 @@ public class SignatureTest extends TestBase {
       var res = plusChecked.execute("a", "b");
       fail("Expecting an exception, not: " + res);
     } catch (PolyglotException e) {
-      System.out.println("PLus checked: " + e);
-      // TODO
-      assertTrue(true);
+      assertContains("expected `expression` to be Integer, but got Text", e.getMessage());
     }
   }
 
@@ -931,9 +903,7 @@ public class SignatureTest extends TestBase {
       var res = plusChecked.execute(2, 3);
       fail("Expecting an exception, not: " + res);
     } catch (PolyglotException e) {
-      System.out.println("Constant checked: " + e);
-      // TODO
-      assertTrue(true);
+      assertContains("expected `expression` to be Integer, but got Text", e.getMessage());
     }
   }
 
@@ -957,9 +927,7 @@ public class SignatureTest extends TestBase {
       var res = plusChecked.execute(".");
       fail("Expecting an exception, not: " + res);
     } catch (PolyglotException e) {
-      System.out.println("Constant checked: " + e);
-      // TODO
-      assertTrue(true);
+      assertContains("expected `expression` to be Integer, but got Text", e.getMessage());
     }
   }
 
@@ -983,9 +951,7 @@ public class SignatureTest extends TestBase {
       var res = plusChecked.execute(".");
       fail("Expecting an exception, not: " + res);
     } catch (PolyglotException e) {
-      System.out.println("Constant checked: " + e);
-      // TODO
-      assertTrue(true);
+      assertContains("expected `expression` to be Integer, but got Text", e.getMessage());
     }
   }
 
@@ -1011,16 +977,12 @@ public class SignatureTest extends TestBase {
       var res = foo.execute(2);
       fail("Expecting an exception, not: " + res);
     } catch (PolyglotException e) {
-      System.out.println("foo TWO: " + e);
-      // TODO
-      assertTrue(true);
+      assertContains("expected `expression` to be Integer, but got Text", e.getMessage());
     }
 
-    // TODO
     var res = foo.execute(3);
-    System.out.println(res);
     assertTrue(res.isException());
-    assertContains(res.toString(), "My error");
+    assertContains("My error", res.toString());
   }
 
   @Test
@@ -1046,9 +1008,8 @@ public class SignatureTest extends TestBase {
       var res = factorial.execute(20);
       fail("Expecting an exception, not: " + res);
     } catch (PolyglotException e) {
-      System.out.println("go checked: " + e);
-      // TODO "TEN :)" is not a valid Integer, so it should explode
-      assertTrue(true);
+      // TODO we may want to change `expression` to 'the return type' or something
+      assertContains("expected `expression` to be Integer, but got Text", e.getMessage());
     }
   }
 

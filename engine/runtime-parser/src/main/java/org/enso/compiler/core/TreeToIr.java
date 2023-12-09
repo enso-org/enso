@@ -243,17 +243,19 @@ final class TreeToIr {
         var methodRef = translateMethodReference(fn.getName(), false);
         var args = translateArgumentsDefinition(fn.getArgs());
         var body = translateExpression(fn.getBody());
+        var loc = getIdentifiedLocation(inputAst, 0, 0, null);
         var returnSignature = resolveReturnTypeSignature(fn);
         if (body == null) {
             var error = translateSyntaxError(inputAst, new Syntax.UnsupportedSyntax("Block without body"));
             yield join(error, appendTo);
         }
+
+        var ascribedBody = addTypeAscription(body, returnSignature, loc);
         var binding = new Method.Binding(
           methodRef,
           args,
-          Option.apply(returnSignature),
-          body,
-          getIdentifiedLocation(inputAst, 0, 0, null),
+          ascribedBody,
+          loc,
           meta(), diag()
         );
         yield join(binding, appendTo);
@@ -274,7 +276,7 @@ final class TreeToIr {
         var text = buildTextConstant(body, body.getElements());
         var def = new Foreign.Definition(language, text, getIdentifiedLocation(fn.getBody()), meta(), diag());
         var binding = new Method.Binding(
-                methodRef, args, Option.empty(), def, getIdentifiedLocation(inputAst), meta(), diag()
+                methodRef, args, def, getIdentifiedLocation(inputAst), meta(), diag()
         );
         yield join(binding, appendTo);
       }
@@ -305,7 +307,6 @@ final class TreeToIr {
         var binding = new Method.Binding(
           reference,
           nil(),
-          Option.empty(),
           body.setLocation(aLoc),
           expandToContain(getIdentifiedLocation(a), aLoc),
           meta(), diag()
@@ -503,6 +504,8 @@ final class TreeToIr {
       } catch (SyntaxException ex) {
         return ex.toError();
       }
+
+      var loc = getIdentifiedLocation(fun);
       var body = translateExpression(treeBody);
       if (args.isEmpty()) {
         if (body instanceof Expression.Block block) {
@@ -521,23 +524,15 @@ final class TreeToIr {
           body = translateSyntaxError(fun, Syntax.UnexpectedExpression$.MODULE$);
         }
 
-        if (returnType != null) {
-          // TODO
-          System.out.println("TODO: type ascription on 0-argument blocks");
-        }
-
-        return new Expression.Binding(name, body,
-          getIdentifiedLocation(fun), meta(), diag()
-        );
+        var ascribedBody = addTypeAscription(body, returnType, loc);
+        return new Expression.Binding(name, ascribedBody, loc, meta(), diag());
       } else {
         if (body == null) {
           return translateSyntaxError(fun, Syntax.UnexpectedDeclarationInType$.MODULE$);
         }
 
-        // TODO add ascription here too
-        return new Function.Binding(name, args, body,
-          getIdentifiedLocation(fun), true, meta(), diag()
-        );
+        var ascribedBody = addTypeAscription(body, returnType, loc);
+        return new Function.Binding(name, args, ascribedBody, loc, true, meta(), diag());
       }
    }
 
@@ -548,11 +543,16 @@ final class TreeToIr {
        return null;
      }
 
-     Expression returnType = translateType(returnSignature.getType());
-     // TODO later we ofc want to remove this debug:
-     System.out.println("Method " + fun.getName().codeRepr() + " has returnType: " + returnType.showCode());
-     return returnType;
+     return translateType(returnSignature.getType());
    }
+
+  private Expression addTypeAscription(Expression body, Expression type, Option<IdentifiedLocation> loc) {
+     if (type == null) {
+       return body;
+     }
+
+     return new Type.Ascription(body, type, loc, meta(), diag());
+  }
 
   private Type.Ascription translateTypeSignature(Tree sig, Tree type, Expression typeName) {
     var fn = translateType(type);
