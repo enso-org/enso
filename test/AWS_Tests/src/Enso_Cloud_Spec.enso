@@ -18,10 +18,16 @@ spec =
     enso_cloud_url = base_url.if_not_nothing <|
         with_slash = if base_url.ends_with "/" then base_url else base_url + "/"
         with_slash + "enso-cloud-mock/"
-    Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_API_URI" enso_cloud_url <|
-        Test.group "Enso Cloud Basic Utils" pending=pending_has_url <|
-            Test.specify "should be able to get the cloud URL from environment" <|
-                api_url = Cloud_Utils.cloud_root_uri
-                api_url.should_be enso_cloud_url
+
+    ## This helper method is needed, because of the bug https://github.com/enso-org/enso/issues/7117
+       If the bug is fixed, we could move the overrides to the top-level and not have to re-initialize them.
+    with_mock_environment ~action =
+        Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_API_URI" enso_cloud_url <|
+            action
+
+    Test.group "Enso Cloud Basic Utils" pending=pending_has_url <|
+        Test.specify "should be able to get the cloud URL from environment" <| with_mock_environment <|
+            api_url = Cloud_Utils.cloud_root_uri
+            api_url.should_equal enso_cloud_url
 
 main = Test_Suite.run_main spec
