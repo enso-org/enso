@@ -1013,6 +1013,66 @@ public class SignatureTest extends TestBase {
     }
   }
 
+  /**
+   * An additional test to ensure that the way the return type check is implemented does not break the TCO. We execute a
+   * recursive computation that goes 100k frames deep - if TCO did not kick in here, we'd get a stack overflow.
+   */
+  @Test
+  public void returnTypeCheckOptInTCO() throws Exception {
+    final URI uri = new URI("memory://rts.enso");
+    final Source src = Source.newBuilder("enso", """
+    from Standard.Base import Integer, Error
+    foo (counter : Integer) (trap : Integer) -> Integer =
+        go i acc -> Integer =
+            if i == 0 then acc else
+                if i == trap then "TRAP!" else
+                    @Tail_Call go (i-1) (acc+1)
+        go counter 1
+    """,uri.getAuthority())
+        .uri(uri)
+        .buildLiteral();
+
+    var module = ctx.eval(src);
+    var foo = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo");
+    long n = 100000;
+    assertEquals(n + 1, foo.execute(n, -1).asInt());
+    try {
+      var res = foo.execute(n, 1);
+      fail("Expecting an exception, not: " + res);
+    } catch (PolyglotException e) {
+      assertContains("expected `expression` to be Integer, but got Text", e.getMessage());
+    }
+  }
+
+  @Test
+  public void returnTypeCheckOptInTCO2() throws Exception {
+    final URI uri = new URI("memory://rts.enso");
+    final Source src = Source.newBuilder("enso", """
+    from Standard.Base import Integer, Error
+    foo_ok counter -> Integer =
+        if counter == 0 then 0 else
+            @Tail_Call foo_ok (counter-1)
+    foo_bad counter -> Integer =
+        if counter == 0 then "ZERO" else
+            @Tail_Call foo_bad (counter-1)
+    """,uri.getAuthority())
+        .uri(uri)
+        .buildLiteral();
+
+    var module = ctx.eval(src);
+    var foo_ok = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo_ok");
+    long n = 100000;
+    assertEquals(0, foo_ok.execute(n).asInt());
+
+    try {
+      var foo_bad = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo_bad");
+      var res = foo_bad.execute(n);
+      fail("Expecting an exception, not: " + res);
+    } catch (PolyglotException e) {
+      assertContains("expected `expression` to be Integer, but got Text", e.getMessage());
+    }
+  }
+
   static void assertTypeError(String expArg, String expType, String realType, String msg) {
     if (!msg.contains(expArg)) {
       fail("Expecting value " + expArg + " in " + msg);
