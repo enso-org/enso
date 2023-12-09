@@ -937,6 +937,58 @@ public class SignatureTest extends TestBase {
     }
   }
 
+
+  @Test
+  public void returnTypeCheckOptInErrorZeroArgumentsExpression() throws Exception {
+    final URI uri = new URI("memory://rts.enso");
+    final Source src = Source.newBuilder("enso", """
+    from Standard.Base import Integer
+    foo a =
+        x -> Integer = a+a
+        x+x
+    """,uri.getAuthority())
+        .uri(uri)
+        .buildLiteral();
+
+    var module = ctx.eval(src);
+    var plusChecked = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo");
+    assertEquals(8, plusChecked.execute(2).asInt());
+    try {
+      var res = plusChecked.execute(".");
+      fail("Expecting an exception, not: " + res);
+    } catch (PolyglotException e) {
+      System.out.println("Constant checked: " + e);
+      // TODO
+      assertTrue(true);
+    }
+  }
+
+  @Test
+  public void returnTypeCheckOptInErrorZeroArgumentsBlock() throws Exception {
+    final URI uri = new URI("memory://rts.enso");
+    final Source src = Source.newBuilder("enso", """
+    from Standard.Base import Integer, IO
+    foo a =
+        x -> Integer =
+            a+a
+        x+x
+    """,uri.getAuthority())
+        .uri(uri)
+        .buildLiteral();
+
+    var module = ctx.eval(src);
+    var plusChecked = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo");
+    assertEquals(8, plusChecked.execute(2).asInt());
+    try {
+      var res = plusChecked.execute(".");
+      fail("Expecting an exception, not: " + res);
+    } catch (PolyglotException e) {
+      System.out.println("Constant checked: " + e);
+      // TODO
+      assertTrue(true);
+    }
+  }
+
   @Test
   public void returnTypeCheckOptInAllowDataflowErrors() throws Exception {
     final URI uri = new URI("memory://rts.enso");
