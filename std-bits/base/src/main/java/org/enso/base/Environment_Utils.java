@@ -40,5 +40,17 @@ public class Environment_Utils {
     }
   }
 
+  public static void setOverride(String name, String value) {
+    overrides.put(name, value);
+  }
+
+  public static void removeOverride(String name) {
+    overrides.remove(name);
+  }
+
+  public static String getOverride(String name) {
+    return overrides.get(name);
+  }
+
   private static final HashMap<String, String> overrides = new HashMap<>();
 }

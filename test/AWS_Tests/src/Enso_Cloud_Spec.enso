@@ -24,10 +24,10 @@ spec =
     with_mock_environment ~action =
         Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_API_URI" enso_cloud_url <|
             action
-
-    Test.group "Enso Cloud Basic Utils" pending=pending_has_url <|
-        Test.specify "should be able to get the cloud URL from environment" <| with_mock_environment <|
-            api_url = Cloud_Utils.cloud_root_uri
-            api_url.should_equal enso_cloud_url
+    with_mock_environment <|
+        Test.group "Enso Cloud Basic Utils" pending=pending_has_url <|
+            Test.specify "should be able to get the cloud URL from environment" <|
+                api_url = Cloud_Utils.cloud_root_uri
+                api_url.should_equal enso_cloud_url
 
 main = Test_Suite.run_main spec
