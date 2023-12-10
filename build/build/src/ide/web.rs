@@ -395,7 +395,7 @@ impl IdeDesktop {
             .run_ok();
 
         let icons_dist = ide_ci::global::temp::directory()?;
-        let icons_dist = icons_dist.not_dropped();
+        let icons_dist = icons_dist.not_dropped(); // FIXME
         let icons_build = self.build_icons(&icons_dist);
         let (icons, _content) = try_join(icons_build, client_build).await?;
 

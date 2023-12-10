@@ -20,7 +20,7 @@ derive_more = { workspace = true }
 dirs = { workspace = true }
 enso-build-base = { path = "../base" }
 enso-zst = { path = "../../lib/rust/zst" }
-flate2 = "1.0.22"
+flate2 = { workspace = true }
 flume = "0.10.10"
 fs_extra = "1.2.0"
 futures = { workspace = true }
@@ -29,7 +29,7 @@ glob = "0.3.0"
 headers = "0.3.7"
 heck = "0.4.0"
 http-serde = "1.1.0"
-indicatif = { version = "0.17.1", features = ["tokio"] }
+indicatif = { workspace = true }
 itertools = { workspace = true }
 lazy_static = { workspace = true }
 mime = "0.3.16"
@@ -52,7 +52,7 @@ sha2 = "0.10.2"
 strum = { workspace = true }
 symlink = "0.1.0"
 sysinfo = { workspace = true }
-tar = "0.4.37"
+tar = { workspace = true }
 tempfile = "3.2.0"
 tokio = { workspace = true }
 tokio-stream = { workspace = true }

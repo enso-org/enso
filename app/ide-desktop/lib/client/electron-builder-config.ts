@@ -303,6 +303,10 @@ export async function buildPackage(passedArgs: Arguments) {
         targets: passedArgs.platform.createTarget(),
     }
     console.log('Building with configuration:', cliOpts)
+    // Write options to JSON file for debugging purposes.
+    await fs.writeFile('electron-builder-config.json', JSON.stringify(cliOpts, null, 2))
+
+
     const result = await electronBuilder.build(cliOpts)
     console.log('Electron Builder is done. Result:', result)
     // FIXME: https://github.com/enso-org/enso/issues/6082

@@ -1,0 +1,21 @@
+[package]
+name = "enso-installer"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+enso-build-base = { path = "../base" }
+enso-build = { path = "../build" }
+flate2 = { workspace = true }
+ide-ci = { path = "../ci_utils" }
+indicatif = { workspace = true }
+tar = { workspace = true }
+tokio = { workspace = true }
+windows =  { version = "0.52.0", features = ["Win32", "Win32_UI", "Win32_UI_Shell"] }
+windows-sys =  "0.52.0"
+winreg = { workspace = true }
+
+[build-dependencies]
+embed-resource = "2.4.0"

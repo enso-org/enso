@@ -5,6 +5,37 @@ use std::fs::File;
 
 
 
+/// Synchronous version of [`extract_files`].
+#[context("Failed to extract files from the archive.")]
+pub fn extract_files_sync<R: Read>(
+    mut archive: tar::Archive<R>,
+    mut filter: impl FnMut(&Path) -> Option<PathBuf>,
+) -> Result {
+    let entries = archive.entries()?;
+    for entry in entries {
+        let mut entry = entry?;
+        let path_in_archive = entry.path()?;
+        if let Some(output_path) = filter(&path_in_archive) {
+            let entry_type = entry.header().entry_type();
+            let make_message = |prefix, path: Cow<Path>| {
+                format!(
+                    "{} {:?} entry: {} => {}",
+                    prefix,
+                    entry_type,
+                    path.display(),
+                    output_path.display()
+                )
+            };
+
+            trace!("{}", make_message("Extracting", path_in_archive));
+            entry.unpack(&output_path).with_context(|| {
+                make_message("Failed to extract", entry.path().unwrap_or_default())
+            })?;
+        }
+    }
+    Ok(())
+}
+
 // ===============
 // === Archive ===
 // ===============
@@ -34,34 +65,16 @@ impl Archive {
     }
 
     /// Synchronous version of [`extract_files`].
-    #[context("Failed to extract files from archive {}", self.path.display())]
     pub fn extract_files_sync(
-        mut self,
-        mut filter: impl FnMut(&Path) -> Option<PathBuf>,
+        self,
+        filter: impl FnMut(&Path) -> Option<PathBuf>,
     ) -> Result {
-        let entries = self.file.entries()?;
-        for entry in entries {
-            let mut entry = entry?;
-            let path_in_archive = entry.path()?;
-            if let Some(output_path) = filter(&path_in_archive) {
-                let entry_type = entry.header().entry_type();
-                let make_message = |prefix, path: Cow<Path>| {
-                    format!(
-                        "{} {:?} entry: {} => {}",
-                        prefix,
-                        entry_type,
-                        path.display(),
-                        output_path.display()
-                    )
-                };
-
-                trace!("{}", make_message("Extracting", path_in_archive));
-                entry.unpack(&output_path).with_context(|| {
-                    make_message("Failed to extract", entry.path().unwrap_or_default())
-                })?;
-            }
-        }
-        Ok(())
+        extract_files_sync(self.file, filter).with_context(|| {
+            format!(
+                "Failed to extract files from archive {}",
+                self.path.display()
+            )
+        })
     }
 
     /// The given function will be called with the path of each file within the archive. For each
