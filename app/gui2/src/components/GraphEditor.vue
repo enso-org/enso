@@ -241,8 +241,13 @@ function enterNode(id: ExprId) {
     return
   }
   const definedOnType = tryQualifiedName(expressionInfo.methodCall.methodPointer.definedOnType)
-  if (definedOnType.ok && qnLastSegment(definedOnType.value) != 'Main') {
-    console.debug('Cannot enter node that is not defined on Main.')
+  if (!projectStore.modulePath?.ok) {
+    console.warn('Cannot enter node while no module is open.')
+    return
+  }
+  const openModuleName = qnLastSegment(projectStore.modulePath.value)
+  if (definedOnType.ok && qnLastSegment(definedOnType.value) != openModuleName) {
+    console.debug('Cannot enter node that is not defined on current module.')
     return
   }
   projectStore.executionContext.push(id)
