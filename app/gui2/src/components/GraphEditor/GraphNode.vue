@@ -448,6 +448,7 @@ function portGroupStyle(port: PortData) {
 }
 
 .node {
+  font-family: var(--font-code);
   position: relative;
   top: 0;
   left: 0;
@@ -502,6 +503,7 @@ function portGroupStyle(port: PortData) {
 }
 
 .binding {
+  font-family: var(--font-code);
   user-select: none;
   margin-right: 10px;
   color: black;
