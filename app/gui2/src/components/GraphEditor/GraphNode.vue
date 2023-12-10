@@ -35,8 +35,10 @@ const emit = defineEmits<{
   draggingCommited: []
   delete: []
   replaceSelection: []
+  nodeDoubleClick: []
   outputPortClick: [portId: ExprId]
   outputPortDoubleClick: [portId: ExprId]
+  doubleClick: []
   'update:content': [updates: [range: ContentRange, content: string][]]
   'update:edited': [cursorPosition: number]
   'update:rect': [rect: Rect]
@@ -213,9 +215,18 @@ function getRelatedSpanOffset(domNode: globalThis.Node, domOffset: number): numb
 }
 
 const handlePortClick = useDoubleClick<[portId: ExprId]>(
-  (portId) => emit('outputPortClick', portId),
+  (_e, portId) => emit('outputPortClick', portId),
   (portId) => {
     emit('outputPortDoubleClick', portId)
+  },
+).handleClick
+
+const handleNodeClick = useDoubleClick(
+  (e) => {
+    nodeEditHandler(e)
+  },
+  () => {
+    emit('doubleClick')
   },
 ).handleClick
 interface PortData {
@@ -312,7 +323,7 @@ function portGroupStyle(port: PortData) {
       @update:id="emit('update:visualizationId', $event)"
       @update:visible="emit('update:visualizationVisible', $event)"
     />
-    <div class="node" @pointerdown="nodeEditHandler" v-on="dragPointer.events">
+    <div class="node" @pointerdown="handleNodeClick" v-on="dragPointer.events">
       <SvgIcon class="icon grab-handle" :name="icon"></SvgIcon>
       <div ref="contentNode" class="widget-tree">
         <NodeWidgetTree :ast="node.rootSpan" />
@@ -328,7 +339,7 @@ function portGroupStyle(port: PortData) {
               class="outputPortHoverArea"
               @pointerenter="outputHovered = port.portId"
               @pointerleave="outputHovered = undefined"
-              @pointerdown.stop.prevent="handlePortClick(port.portId)"
+              @pointerdown.stop.prevent="handlePortClick($event, port.portId)"
             />
             <rect class="outputPort" />
           </g>

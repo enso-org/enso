@@ -33,6 +33,8 @@ export const graphBindings = defineKeybinds('graph-editor', {
   pasteNode: ['Mod+V'],
   startProfiling: ['Mod+Alt+,'],
   stopProfiling: ['Mod+Alt+.'],
+  enterNode: ['Mod+E'],
+  exitNode: ['Mod+Shift+E'],
 })
 
 export const selectionMouseBindings = defineKeybinds('selection', {
