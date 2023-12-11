@@ -60,8 +60,8 @@ spec =
                         "id": "organization-27xJM00p8jWoL2qByTo6tQfciWC",
                         "name": "Parsed user",
                         "email": "enso-parse-test@example.com",
-                        "is_enabled": true,
-                        "root_directory_id": "directory-27xJM00p8jWoL2qByTo6tQfciWC"
+                        "isEnabled": true,
+                        "rootDirectoryId": "directory-27xJM00p8jWoL2qByTo6tQfciWC"
                     }
                 parsed_user = Enso_User.from json
                 parsed_user.id.should_equal "organization-27xJM00p8jWoL2qByTo6tQfciWC"

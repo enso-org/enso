@@ -46,8 +46,8 @@ public class UsersHandler implements CloudHandler {
           "id": "organization-27xJM00p8jWoL2qByTo6tQfciWC",
           "name": "My test User 1",
           "email": "enso-test-user-1@example.com",
-          "is_enabled": true,
-          "root_directory_id": "directory-27xJM00p8jWoL2qByTo6tQfciWC"
+          "isEnabled": true,
+          "rootDirectoryId": "directory-27xJM00p8jWoL2qByTo6tQfciWC"
       }
       """;
 
@@ -56,8 +56,8 @@ public class UsersHandler implements CloudHandler {
           "id": "organization-44AAA00A8AAAA2AAAAA6AAAAAAA",
           "name": "My test User 2",
           "email": "enso-test-user-2@example.com",
-          "is_enabled": false,
-          "root_directory_id": "directory-44AAA00A8AAAA2AAAAA6AAAAAAA"
+          "isEnabled": false,
+          "rootDirectoryId": "directory-44AAA00A8AAAA2AAAAA6AAAAAAA"
       }
       """;
 }
