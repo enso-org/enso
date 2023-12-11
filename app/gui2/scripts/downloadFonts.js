@@ -1,5 +1,6 @@
 import * as fsSync from 'node:fs'
 import * as fs from 'node:fs/promises'
+import * as http from 'node:http'
 import * as https from 'node:https'
 import tar from 'tar'
 import bz2 from 'unbzip2-stream'
@@ -12,11 +13,21 @@ const DEJAVU_SANS_MONO_FONT_URL =
 
 /** @param {string | https.RequestOptions | URL} options
  * @param {((res: import('node:http').IncomingMessage) => void) | undefined} [callback] */
-function httpsGet(options, callback) {
-  return https.get(options, (response) => {
+function get(options, callback) {
+  const protocol =
+    typeof options === 'string' ? new URL(options).protocol : options.protocol ?? 'https:'
+  /** @type {{ get: typeof http['get'] }} */
+  let httpModule = https
+  switch (protocol) {
+    case 'http:': {
+      httpModule = http
+      break
+    }
+  }
+  return httpModule.get(options, (response) => {
     const location = response.headers.location
     if (location) {
-      httpsGet(
+      get(
         typeof options === 'string' || options instanceof URL
           ? location
           : { ...options, ...new URL(location) },
@@ -32,7 +43,7 @@ console.info('Downloading Enso font...')
 await fs.rm('./public/font-enso/', { recursive: true, force: true })
 await fs.mkdir('./public/font-enso/', { recursive: true })
 await new Promise((resolve, reject) => {
-  httpsGet(ENSO_FONT_URL, (response) => {
+  get(ENSO_FONT_URL, (response) => {
     response.pipe(
       tar.extract({
         cwd: './public/font-enso/',
@@ -51,7 +62,7 @@ console.info('Downloading M PLUS 1 font...')
 await fs.rm('./public/font-mplus1/', { recursive: true, force: true })
 await fs.mkdir('./public/font-mplus1/', { recursive: true })
 await new Promise((resolve, reject) => {
-  httpsGet(MPLUS1_FONT_URL, (response) => {
+  get(MPLUS1_FONT_URL, (response) => {
     response.pipe(fsSync.createWriteStream('./public/font-mplus1/MPLUS1.ttf'))
     response.on('end', resolve)
     response.on('error', reject)
@@ -61,7 +72,7 @@ console.info('Downloading DejaVu Sans Mono font...')
 await fs.rm('./public/font-dejavu/', { recursive: true, force: true })
 await fs.mkdir('./public/font-dejavu/', { recursive: true })
 await new Promise((resolve, reject) => {
-  httpsGet(DEJAVU_SANS_MONO_FONT_URL, (response) => {
+  get(DEJAVU_SANS_MONO_FONT_URL, (response) => {
     response.pipe(bz2()).pipe(
       tar.extract({
         cwd: './public/font-dejavu/',
