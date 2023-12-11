@@ -1,9 +1,20 @@
+/** @file ⚠️⚠️⚠️ THIS SCRIPT IS PROVIDED ONLY FOR CONVENIENCE. ⚠️⚠️⚠️
+ * The sources of truth are at `build/build/src/project/gui2.rs` and
+ * `build/build/src/ide/web/fonts.rs`. */
+
 import * as fsSync from 'node:fs'
 import * as fs from 'node:fs/promises'
 import * as http from 'node:http'
 import * as https from 'node:https'
+import * as process from 'node:process'
 import tar from 'tar'
 import bz2 from 'unbzip2-stream'
+
+if (process.env.CI === '1') process.exit(0)
+
+const WARNING_MESSAGE =
+  '⚠️⚠️⚠️ Please use the buildscript (`./run`) to download fonts instead. ⚠️⚠️⚠️'
+let warningMessageAlreadyShown = false
 
 const ENSO_FONT_URL = 'https://github.com/enso-org/font/releases/download/1.0/enso-font-1.0.tar.gz'
 const MPLUS1_FONT_URL =
@@ -55,6 +66,8 @@ try {
   }
   console.info('Enso font already downloaded, skipping...')
 } catch {
+  if (!warningMessageAlreadyShown) console.warn(WARNING_MESSAGE)
+  warningMessageAlreadyShown = true
   console.info('Downloading Enso font...')
   await fs.rm('./public/font-enso/', { recursive: true, force: true })
   await fs.mkdir('./public/font-enso/', { recursive: true })
@@ -79,6 +92,8 @@ try {
   await fs.access(`./public/font-mplus1/MPLUS1.ttf`)
   console.info('M PLUS 1 font already downloaded, skipping...')
 } catch {
+  if (!warningMessageAlreadyShown) console.warn(WARNING_MESSAGE)
+  warningMessageAlreadyShown = true
   console.info('Downloading M PLUS 1 font...')
   await fs.rm('./public/font-mplus1/', { recursive: true, force: true })
   await fs.mkdir('./public/font-mplus1/', { recursive: true })
@@ -96,6 +111,8 @@ try {
   }
   console.info('DejaVu Sans Mono font already downloaded, skipping...')
 } catch {
+  if (!warningMessageAlreadyShown) console.warn(WARNING_MESSAGE)
+  warningMessageAlreadyShown = true
   console.info('Downloading DejaVu Sans Mono font...')
   await fs.rm('./public/font-dejavu/', { recursive: true, force: true })
   await fs.mkdir('./public/font-dejavu/', { recursive: true })

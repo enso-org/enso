@@ -68,3 +68,44 @@ pub fn extract_subtree(
     }
     Ok(())
 }
+
+/// Synchronous version of [`extract_files`].
+#[context("Failed to extract files from ZIP archive")]
+pub fn extract_files_sync(
+    archive: &mut ZipArchive<std::fs::File>,
+    mut filter: impl FnMut(&Path) -> Option<PathBuf>,
+) -> Result {
+    let paths: Vec<_> = archive.file_names().collect();
+    for path in paths {
+        let mut entry = archive
+            .by_name(path)
+            .with_context(|| format!("Could not find file in archive: {}", path))?;
+        let path_in_archive = Path::new(path);
+        if let Some(output_path) = filter(&path_in_archive) {
+            let entry_type = if entry.is_dir() { "directory" } else { "file" };
+            let make_message = |prefix, path: &str| {
+                format!("{} {:?} entry: {} => {}", prefix, entry_type, path, output_path.display())
+            };
+
+            trace!("{}", make_message("Extracting", path));
+            let mut output = std::fs::File::create(&output_path)
+                .with_context(|| make_message("Could not extract file", path))?;
+            std::io::copy(&mut entry, &mut output);
+        }
+    }
+    Ok(())
+}
+
+/// The given function will be called with the path of each file within the archive. For each
+/// input path, if it returns a path the file will be extracted to the returned path.
+///
+/// IMPORTANT: If the function uses its input path to generate an output path, care must be
+/// taken that the output path is not in an unexpected location, especially if coming from an
+/// untrusted archive.
+pub async fn extract_files(
+    archive: &mut ZipArchive<std::fs::File>,
+    filter: impl FnMut(&Path) -> Option<PathBuf>,
+) -> Result {
+    let job = move || extract_files_sync(archive, filter);
+    tokio::task::block_in_place(job)
+}

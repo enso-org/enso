@@ -59,13 +59,71 @@ pub async fn install_enso_font_for_html(
             let file = &def.file;
             writeln!(&mut css, "@font-face {{")?;
             writeln!(&mut css, "  font-family: '{family}{variant}';")?;
-            writeln!(&mut css, "    src: url('{url}/{file}');")?;
+            writeln!(&mut css, "  src: url('{url}/{file}');")?;
             writeln!(&mut css, "  font-weight: normal;")?;
             writeln!(&mut css, "  font-style: normal;")?;
             writeln!(&mut css, "}}")?;
         }
         let css_path = output_path.join("ensoFont.css");
         ide_ci::fs::tokio::write(css_path, css).await?;
+        Ok(())
+    };
+    try_join!(get_font_files, make_css_file)?;
+    Ok(())
+}
+
+pub async fn install_enso_font_for_html_2(
+    cache: &Cache,
+    octocrab: &Octocrab,
+    output_path: impl AsRef<Path>,
+    css_output_path: impl AsRef<Path>,
+) -> Result {
+    let output_path = output_path.as_ref();
+    let html_fonts: Vec<_> = [
+        NonVariableFaceHeader { weight: ttf::Weight::Thin, ..default() },
+        NonVariableFaceHeader { weight: ttf::Weight::ExtraLight, ..default() },
+        NonVariableFaceHeader { weight: ttf::Weight::Light, ..default() },
+        NonVariableFaceHeader { weight: ttf::Weight::Normal, ..default() },
+        NonVariableFaceHeader { weight: ttf::Weight::Medium, ..default() },
+        NonVariableFaceHeader { weight: ttf::Weight::SemiBold, ..default() },
+        NonVariableFaceHeader { weight: ttf::Weight::Bold, ..default() },
+        NonVariableFaceHeader { weight: ttf::Weight::ExtraBold, ..default() },
+        NonVariableFaceHeader { weight: ttf::Weight::Black, ..default() },
+    ]
+    .into_iter()
+    .collect();
+    let html_font_definitions = enso_enso_font::enso_font()
+        .variations()
+        .filter(|v| html_fonts.contains(&v.header))
+        .collect();
+    let get_font_files = async {
+        let package = get_enso_font_package_(cache, octocrab).await?;
+        enso_enso_font::extract_fonts(&html_font_definitions, package, output_path).await
+    };
+    let make_css_file = async {
+        let mut css = String::new();
+        let family = "Enso";
+        let url = ".";
+        for header in html_fonts {
+            use std::fmt::Write;
+            let def = html_font_definitions.get(header);
+            let def = def.ok_or_else(|| {
+                anyhow!(
+                    "Required font not found in Enso Font package. \
+                    Expected a font matching: {header:?}."
+                )
+            })?;
+            let file = def.file;
+            let weight = def.header.weight.to_number();
+            writeln!(&mut css, "@font-face {{")?;
+            writeln!(&mut css, "  font-family: '{family}';")?;
+            writeln!(&mut css, "  src: url('{url}/{file}');")?;
+            writeln!(&mut css, "  font-weight: {weight};")?;
+            writeln!(&mut css, "  font-style: normal;")?;
+            writeln!(&mut css, "}}")?;
+            writeln!(&mut css, "")?;
+        }
+        ide_ci::fs::tokio::write(css_output_path, css).await?;
         Ok(())
     };
     try_join!(get_font_files, make_css_file)?;
