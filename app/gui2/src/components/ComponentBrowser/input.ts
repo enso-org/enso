@@ -21,8 +21,13 @@ import {
   type QualifiedName,
 } from '@/util/qualifiedName'
 import { equalFlat } from 'lib0/array'
-import { IdMap, type ContentRange } from 'shared/yjsModel'
+import { IdMap, type ContentRange, type ExprId } from 'shared/yjsModel'
 import { computed, ref, type ComputedRef } from 'vue'
+
+/** Information how the component browser is used, needed for proper input initializing. */
+export type Usage =
+  | { type: 'newNode'; sourcePort?: ExprId | undefined }
+  | { type: 'editNode'; node: ExprId; cursorPos: number }
 
 /** Input's editing context.
  *
@@ -66,6 +71,7 @@ export function useComponentBrowserInput(
   const code = ref('')
   const selection = ref({ start: 0, end: 0 })
   const ast = computed(() => RawAstExtended.parse(code.value))
+  const imports = ref<RequiredImport[]>([])
 
   const context: ComputedRef<EditingContext> = computed(() => {
     const cursorPosition = selection.value.start
@@ -142,8 +148,6 @@ export function useComponentBrowserInput(
     }
     return filter
   })
-
-  const imports = ref<RequiredImport[]>([])
 
   function readOprApp(
     leafParent: IteratorResult<RawAstExtended<RawAst.Tree, false>>,
@@ -390,6 +394,27 @@ export function useComponentBrowserInput(
     }
   }
 
+  function reset(usage: Usage) {
+    switch (usage.type) {
+      case 'newNode':
+        if (usage.sourcePort) {
+          const sourceNodeName = graphDb.getOutputPortIdentifier(usage.sourcePort)
+          code.value = sourceNodeName ? sourceNodeName + '.' : ''
+          const caretPosition = code.value.length
+          selection.value = { start: caretPosition, end: caretPosition }
+        } else {
+          code.value = ''
+          selection.value = { start: 0, end: 0 }
+        }
+        break
+      case 'editNode':
+        code.value = graphDb.nodeIdToNode.get(usage.node)?.rootSpan.repr() ?? ''
+        selection.value = { start: usage.cursorPos, end: usage.cursorPos }
+        break
+    }
+    imports.value = []
+  }
+
   return {
     /** The current input's text (code). */
     code,
@@ -399,6 +424,8 @@ export function useComponentBrowserInput(
     context,
     /** The filter deduced from code and selection. */
     filter,
+    /** Re-initializes the input for given usage. */
+    reset,
     /** Apply given suggested entry to the input. */
     applySuggestion,
     /** Return input after applying given suggestion, without changing state. */

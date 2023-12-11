@@ -30,7 +30,7 @@ export { type Node } from '@/stores/graph/graphDatabase'
 
 export interface NodeEditInfo {
   id: ExprId
-  range: ContentRange
+  initialCursorPos: number
 }
 export const useGraphStore = defineStore('graph', () => {
   const proj = useProjectStore()
@@ -320,8 +320,7 @@ export const useGraphStore = defineStore('graph', () => {
       console.warn('setEditedNode: cursorPosition is null')
       return
     }
-    const range: ContentRange = [cursorPosition, cursorPosition]
-    editedNodeInfo.value = { id, range }
+    editedNodeInfo.value = { id, initialCursorPos: cursorPosition }
   }
 
   return {

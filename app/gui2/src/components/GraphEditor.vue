@@ -31,6 +31,7 @@ import { Vec2 } from '@/util/vec2'
 import * as set from 'lib0/set'
 import type { ExprId, NodeMetadata } from 'shared/yjsModel.ts'
 import { computed, onMounted, ref, watch } from 'vue'
+import { type Usage } from './ComponentBrowser/input'
 
 const EXECUTION_MODES = ['design', 'live']
 // Assumed size of a newly created node. This is used to place the component browser.
@@ -44,7 +45,8 @@ const widgetRegistry = provideWidgetRegistry(graphStore.db)
 widgetRegistry.loadBuiltins()
 const projectStore = useProjectStore()
 const componentBrowserVisible = ref(false)
-const componentBrowserInputContent = ref('')
+const componentBrowserNodePosition = ref<Vec2>(Vec2.Zero)
+const componentBrowserUsage = ref<Usage>({ type: 'newNode' })
 const suggestionDb = useSuggestionDbStore()
 const interaction = provideInteractionHandler()
 
@@ -101,16 +103,11 @@ function targetComponentBrowserNodePosition() {
   }
 }
 
-/** The current position of the component browser. */
-const componentBrowserNodePosition = ref<Vec2>(Vec2.Zero)
-
 function sourcePortForSelection() {
   if (graphStore.editedNodeInfo != null) return undefined
   const firstSelectedNode = set.first(nodeSelection.selected)
   return graphStore.db.getNodeFirstOutputPort(firstSelectedNode)
 }
-
-const componentBrowserSourcePort = ref<ExprId | undefined>(sourcePortForSelection())
 
 useEvent(window, 'keydown', (event) => {
   interactionBindingsHandler(event) || graphBindingsHandler(event) || codeEditorHandler(event)
@@ -297,8 +294,7 @@ interaction.setWhen(nodeIsBeingEdited, editingNode)
 
 const creatingNode: Interaction = {
   init: () => {
-    componentBrowserInputContent.value = ''
-    componentBrowserSourcePort.value = sourcePortForSelection()
+    componentBrowserUsage.value = { type: 'newNode', sourcePort: sourcePortForSelection() }
     componentBrowserNodePosition.value = targetComponentBrowserNodePosition()
     componentBrowserVisible.value = true
   },
@@ -306,7 +302,7 @@ const creatingNode: Interaction = {
 
 const creatingNodeFromButton: Interaction = {
   init: () => {
-    componentBrowserInputContent.value = ''
+    componentBrowserUsage.value = { type: 'newNode', sourcePort: sourcePortForSelection() }
     let targetPos = placementPositionForSelection()
     if (targetPos == undefined) {
       targetPos = nonDictatedPlacement(DEFAULT_NODE_SIZE, placementEnvironment.value).position
@@ -318,10 +314,50 @@ const creatingNodeFromButton: Interaction = {
 
 const creatingNodeFromPortDoubleClick: Interaction = {
   init: () => {
-    componentBrowserInputContent.value = ''
+    // component browser usage is set in event handler
     componentBrowserVisible.value = true
   },
 }
+
+function resetComponentBrowserState() {
+  componentBrowserVisible.value = false
+  graphStore.editedNodeInfo = undefined
+  interaction.setCurrent(undefined)
+}
+
+function onComponentBrowserCommit(content: string, requiredImports: RequiredImport[]) {
+  if (content != null) {
+    if (graphStore.editedNodeInfo) {
+      // We finish editing a node.
+      graphStore.setNodeContent(graphStore.editedNodeInfo.id, content)
+    } else {
+      // We finish creating a new node.
+      const metadata = undefined
+      graphStore.createNode(componentBrowserNodePosition.value, content, metadata, requiredImports)
+    }
+  }
+  resetComponentBrowserState()
+}
+
+const onComponentBrowserCancel = resetComponentBrowserState
+
+// Watch the `editedNode` in the graph store
+watch(
+  () => graphStore.editedNodeInfo,
+  (editedInfo) => {
+    if (editedInfo) {
+      componentBrowserNodePosition.value = targetComponentBrowserNodePosition()
+      componentBrowserUsage.value = {
+        type: 'editNode',
+        node: editedInfo.id,
+        cursorPos: editedInfo.initialCursorPos,
+      }
+      componentBrowserVisible.value = true
+    } else {
+      componentBrowserVisible.value = false
+    }
+  },
+)
 
 async function handleFileDrop(event: DragEvent) {
   // A vertical gap between created nodes when multiple files were dropped together.
@@ -355,46 +391,6 @@ async function handleFileDrop(event: DragEvent) {
     }
   })
 }
-
-function resetComponentBrowserState() {
-  componentBrowserVisible.value = false
-  graphStore.editedNodeInfo = undefined
-  interaction.setCurrent(undefined)
-}
-
-function onComponentBrowserCommit(content: string, requiredImports: RequiredImport[]) {
-  if (content != null) {
-    if (graphStore.editedNodeInfo) {
-      // We finish editing a node.
-      graphStore.setNodeContent(graphStore.editedNodeInfo.id, content)
-    } else {
-      // We finish creating a new node.
-      const metadata = undefined
-      graphStore.createNode(componentBrowserNodePosition.value, content, metadata, requiredImports)
-    }
-  }
-  resetComponentBrowserState()
-}
-
-const onComponentBrowserCancel = resetComponentBrowserState
-
-function getNodeContent(id: ExprId): string {
-  return graphStore.db.nodeIdToNode.get(id)?.rootSpan.repr() ?? ''
-}
-
-// Watch the `editedNode` in the graph store
-watch(
-  () => graphStore.editedNodeInfo,
-  (editedInfo) => {
-    if (editedInfo) {
-      componentBrowserNodePosition.value = targetComponentBrowserNodePosition()
-      componentBrowserInputContent.value = getNodeContent(editedInfo.id)
-      componentBrowserVisible.value = true
-    } else {
-      componentBrowserVisible.value = false
-    }
-  },
-)
 
 const breadcrumbs = computed(() =>
   projectStore.executionContext.desiredStack.map((frame) => {
@@ -480,7 +476,7 @@ async function readNodeFromClipboard() {
 }
 
 function handleNodeOutputPortDoubleClick(id: ExprId) {
-  componentBrowserSourcePort.value = id
+  componentBrowserUsage.value = { type: 'newNode', sourcePort: id }
   const placementEnvironment = environmentForNodes([id].values())
   componentBrowserNodePosition.value = previousNodeDictatedPlacement(
     DEFAULT_NODE_SIZE,
@@ -520,9 +516,7 @@ function handleNodeOutputPortDoubleClick(id: ExprId) {
       ref="componentBrowser"
       :navigator="graphNavigator"
       :nodePosition="componentBrowserNodePosition"
-      :initialContent="componentBrowserInputContent"
-      :initialCaretPosition="graphStore.editedNodeInfo?.range ?? [0, 0]"
-      :sourcePort="componentBrowserSourcePort"
+      :usage="componentBrowserUsage"
       @accepted="onComponentBrowserCommit"
       @closed="onComponentBrowserCancel"
       @canceled="onComponentBrowserCancel"

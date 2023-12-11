@@ -211,7 +211,7 @@ function getRelatedSpanOffset(domNode: globalThis.Node, domOffset: number): numb
     const offsetData = domNode.parentElement?.dataset.spanStart
     if (offsetData != null) return parseInt(offsetData) + domOffset
   }
-  return 0
+  return domOffset
 }
 
 const handlePortClick = useDoubleClick<[portId: ExprId]>(

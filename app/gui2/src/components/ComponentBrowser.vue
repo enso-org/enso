@@ -19,9 +19,8 @@ import type { Opt } from '@/util/opt'
 import { allRanges } from '@/util/range'
 import { Vec2 } from '@/util/vec2'
 import type { SuggestionId } from 'shared/languageServerTypes/suggestions'
-import type { ContentRange, ExprId } from 'shared/yjsModel.ts'
 import { computed, nextTick, onMounted, ref, watch, type ComputedRef, type Ref } from 'vue'
-import { useComponentBrowserInput } from './ComponentBrowser/input'
+import { useComponentBrowserInput, type Usage } from './ComponentBrowser/input'
 import GraphVisualization from './GraphEditor/GraphVisualization.vue'
 
 const ITEM_SIZE = 32
@@ -37,9 +36,7 @@ const graphStore = useGraphStore()
 const props = defineProps<{
   nodePosition: Vec2
   navigator: ReturnType<typeof useNavigator>
-  initialContent: string
-  initialCaretPosition: ContentRange
-  sourcePort: Opt<ExprId>
+  usage: Usage
 }>()
 
 const emit = defineEmits<{
@@ -48,31 +45,16 @@ const emit = defineEmits<{
   canceled: []
 }>()
 
-function getInitialContent(): string {
-  if (props.sourcePort == null) return props.initialContent
-  const sourceNodeName = graphStore.db.getOutputPortIdentifier(props.sourcePort)
-  const sourceNodeNameWithDot = sourceNodeName ? sourceNodeName + '.' : ''
-  return sourceNodeNameWithDot + props.initialContent
-}
-
-function getInitialCaret(): ContentRange {
-  if (props.sourcePort == null) return props.initialCaretPosition
-  const sourceNodeName = graphStore.db.getOutputPortIdentifier(props.sourcePort)
-  const sourceNodeNameWithDot = sourceNodeName ? sourceNodeName + '.' : ''
-  return [
-    props.initialCaretPosition[0] + sourceNodeNameWithDot.length,
-    props.initialCaretPosition[1] + sourceNodeNameWithDot.length,
-  ]
-}
-
 onMounted(() => {
   nextTick(() => {
-    input.code.value = getInitialContent()
-    const caret = getInitialCaret()
+    input.reset(props.usage)
+    selectLastAfterRefresh()
     if (inputField.value != null) {
       inputField.value.focus({ preventScroll: true })
-      input.selection.value = { start: caret[0], end: caret[1] }
-      selectLastAfterRefresh()
+    } else {
+      console.warn(
+        'Component Browser input element was not mounted. This is not expected and may break the Component Browser',
+      )
     }
   })
 })
@@ -159,6 +141,7 @@ useEvent(
   window,
   'pointerdown',
   (event) => {
+    if (event.button !== 0) return
     if (!(event.target instanceof Element)) return
     if (!cbRoot.value?.contains(event.target)) {
       emit('closed', input.code.value)
@@ -385,6 +368,9 @@ const handler = componentBrowserBindings.handler({
     @focusout="handleDefocus"
     @keydown="handler"
     @pointerdown.stop
+    @keydown.enter.stop
+    @keydown.backspace.stop
+    @keydown.delete.stop
   >
     <div class="panels">
       <div class="panel components">
