@@ -32,28 +32,14 @@ export class AstExtended<T extends Tree | Token = Tree | Token, HasIdMap extends
   inner: T
   private ctx: AstExtendedCtx<HasIdMap>
 
-  public static isToken<T extends OneOrArray<Ast.Token.Type>>(
-    type?: T,
-    predicate?: (node: AstExtended<ExtractType<Ast.Token, T>, boolean>) => boolean,
-  ) {
-    const ret = (obj: unknown): obj is AstExtended<ExtractType<Ast.Token, T>, boolean> =>
+  public static isToken<T extends OneOrArray<Ast.Token.Type>>(type?: T) {
+    return (obj: unknown): obj is AstExtended<ExtractType<Ast.Token, T>, boolean> =>
       obj instanceof AstExtended && obj.isToken(type)
-    return predicate
-      ? (obj: unknown): obj is AstExtended<ExtractType<Ast.Token, T>, boolean> =>
-          ret(obj) && predicate(obj)
-      : ret
   }
 
-  public static isTree<T extends OneOrArray<Ast.Tree.Type>>(
-    type?: T,
-    predicate?: (node: AstExtended<ExtractType<Ast.Tree, T>, boolean>) => boolean,
-  ) {
-    const ret = (obj: unknown): obj is AstExtended<ExtractType<Ast.Tree, T>, boolean> =>
+  public static isTree<T extends OneOrArray<Ast.Tree.Type>>(type?: T) {
+    return (obj: unknown): obj is AstExtended<ExtractType<Ast.Tree, T>, boolean> =>
       obj instanceof AstExtended && obj.isTree(type)
-    return predicate
-      ? (obj: unknown): obj is AstExtended<ExtractType<Ast.Tree, T>, boolean> =>
-          ret(obj) && predicate(obj)
-      : ret
   }
 
   public static parse(code: string): AstExtended<Tree, false>
