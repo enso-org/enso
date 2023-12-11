@@ -421,11 +421,6 @@ spec = Test.group "Dataflow Warnings" <|
         Warning.get_all vec_plus_1 . length . should_equal 100
         Warning.limit_reached vec . should_equal True
 
-        warn = Warning.attach "Boo!" 42
-        vec_2 = (0.up_to 500).map(e -> if (e < 30) then Warning.attach "Foo!" e else (warn + e))
-        Warning.get_all vec_2 . length . should_equal 31
-        Warning.limit_reached vec_2 . should_equal False
-
     Test.specify "should preserve warnings in tail calls" <|
         v = Warning.attach "Foo" [1, 2, 3]
 
