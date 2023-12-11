@@ -159,10 +159,10 @@ export function useDragging() {
     createSnapGrid() {
       const nonDraggedRects = computed(() => {
         const nonDraggedNodes = iteratorFilter(
-          graphStore.nodeRects.entries(),
-          ([id]) => !this.draggedNodes.has(id),
+          graphStore.currentNodeIds.values(),
+          (id) => !this.draggedNodes.has(id),
         )
-        return Array.from(nonDraggedNodes, ([, rect]) => rect)
+        return Array.from(nonDraggedNodes, (id) => graphStore.nodeRects.get(id)!)
       })
       return new SnapGrid(nonDraggedRects)
     }
