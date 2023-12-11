@@ -53,7 +53,6 @@ const uploadingFiles = computed<[FileName, File][]>(() => {
     @outputPortClick="graphStore.createEdgeFromOutput($event)"
     @outputPortDoubleClick="emit('nodeOutputPortDoubleClick', $event)"
     @doubleClick="emit('nodeDoubleClick', id)"
-    @update:content="updateNodeContent(id, $event)"
     @update:edited="graphStore.setEditedNode(id, $event)"
     @update:rect="graphStore.updateNodeRect(id, $event)"
     @update:visualizationId="graphStore.setNodeVisualizationId(id, $event)"

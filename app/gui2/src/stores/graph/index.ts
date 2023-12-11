@@ -338,7 +338,6 @@ export const useGraphStore = defineStore('graph', () => {
     updateVizRect,
     updateExprRect,
     setEditedNode,
-    createNodeFromSource,
     updateState,
   }
 })

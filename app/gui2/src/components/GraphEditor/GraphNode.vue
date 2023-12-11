@@ -53,7 +53,6 @@ const emit = defineEmits<{
   outputPortClick: [portId: ExprId]
   outputPortDoubleClick: [portId: ExprId]
   doubleClick: []
-  'update:content': [updates: [range: ContentRange, content: string][]]
   'update:edited': [cursorPosition: number]
   'update:rect': [rect: Rect]
   'update:visualizationId': [id: Opt<VisualizationIdentifier>]

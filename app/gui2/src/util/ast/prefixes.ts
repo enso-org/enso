@@ -1,15 +1,15 @@
 import { Ast } from '@/util/ast'
-import { extractMatches, replaceMatches } from '@/util/ast/match'
+import { Pattern } from '@/util/ast/match'
 import { unsafeKeys } from '@/util/record'
 
-type Matches<T> = Record<keyof T, Ast.Ast[] | undefined>
+type Matches<T> = Record<keyof T, Pattern[] | undefined>
 
 interface MatchResult<T> {
   innerExpr: Ast.Ast
-  matches: Record<keyof T, Ast.Ast[] | undefined>
+  matches: Record<keyof T, Ast.AstId[] | undefined>
 }
 
-export class Prefixes<T extends Record<keyof T, Ast.Ast>> {
+export class Prefixes<T extends Record<keyof T, Pattern>> {
   constructor(
     /** Note that these are checked in order of definition. */
     public prefixes: T,
@@ -19,17 +19,17 @@ export class Prefixes<T extends Record<keyof T, Ast.Ast>> {
   static FromLines<T>(lines: Record<keyof T, string>) {
     return new Prefixes(
       Object.fromEntries(
-        Object.entries<string>(lines).map(([name, line]) => [name, Ast.parseLine(line)]),
-      ) as Record<keyof T, Ast.Ast>,
+        Object.entries<string>(lines).map(([name, line]) => [name, Pattern.parse(line)]),
+      ) as Record<keyof T, Pattern>,
     )
   }
 
   extractMatches(expression: Ast.Ast): MatchResult<T> {
     const matches = Object.fromEntries(
-      Object.entries<Ast.Ast>(this.prefixes).map(([name, pattern]) => {
-        const matches = extractMatches(expression, pattern)
+      Object.entries<Pattern>(this.prefixes).map(([name, pattern]) => {
+        const matches = pattern.match(expression)
         const lastMatch = matches != null ? matches[matches.length - 1] : undefined
-        if (lastMatch) expression = lastMatch
+        if (lastMatch) expression = expression.module.get(lastMatch)!
         return [name, matches]
       }),
     ) as Matches<T>
