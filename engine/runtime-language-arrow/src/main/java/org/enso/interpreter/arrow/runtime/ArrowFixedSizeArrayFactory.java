@@ -38,7 +38,7 @@ public class ArrowFixedSizeArrayFactory implements TruffleObject {
 
     @Specialization(guards = "receiver.getLayout() == Date64")
     static Object doDate64(ArrowFixedSizeArrayFactory receiver, Object[] args) {
-      return new ArrowFixedArrayDate32((long) (args[0]));
+      return new ArrowFixedArrayDate64((long) (args[0]));
     }
 
     @Fallback

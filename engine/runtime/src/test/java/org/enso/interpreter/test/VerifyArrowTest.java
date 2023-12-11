@@ -6,6 +6,8 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.temporal.Temporal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.*;
@@ -61,11 +63,14 @@ public class VerifyArrowTest {
     Value date32Array = date32Constr.newInstance((long) 10);
     assertNotNull("allocated value should not be null", date32Array);
     assertTrue("allocated value should be an array", date32Array.hasArrayElements());
-    // assertTrue("allocated value should be an array", interop.hasArrayElements()); // false?
+    // TODO false?
+    // assertTrue("allocated value should be an array", interop.hasArrayElements(date32Array));
     var startDate = LocalDate.now();
     populateArrayWithConsecutiveDays(date32Array, startDate);
-    var dayPlus2 = date32Array.getArrayElement(2);
-    assertEquals(startDate.plusDays(2), dayPlus2.asDate());
+    var rawDayPlus2 = date32Array.getArrayElement(2);
+    var dayPlus2 = rawDayPlus2.asDate();
+    assertFalse(rawDayPlus2.isTime() || rawDayPlus2.isTimeZone());
+    assertEquals(startDate.plusDays(2), dayPlus2);
   }
 
   @Test
@@ -77,17 +82,32 @@ public class VerifyArrowTest {
     Value date64Array = date64Constr.newInstance((long) 10);
     assertNotNull("allocated value should not be null", date64Array);
     assertTrue("allocated value should be an array", date64Array.hasArrayElements());
-    // assertTrue("allocated value should be an array", interop.hasArrayElements()); // false?
-    var startDate = LocalDate.now(ZoneId.of("Europe/Paris"));
+    // TODO false?
+    // assertTrue("allocated value should be an array", interop.hasArrayElements(date64Array));
+    var startDate = ZonedDateTime.now(ZoneId.of("Europe/Paris"));
+    var startDateZone = startDate.getZone();
     populateArrayWithConsecutiveDays(date64Array, startDate);
-    var dayPlus2 = date64Array.getArrayElement(2);
-    assertEquals(startDate.plusDays(2), dayPlus2.asDate());
+    var rawZonedDateTime = date64Array.getArrayElement(2);
+    var dayPlus2 =
+        rawZonedDateTime.asDate().atTime(rawZonedDateTime.asTime()).atZone(startDateZone);
+    var startDateInstant = startDate.toInstant().atZone(startDate.getZone());
+    assertTrue(startDateInstant.plusDays(2).isEqual(dayPlus2));
+    assertFalse(startDate.isEqual(dayPlus2));
+
+    var startDate2 = ZonedDateTime.parse("2023-11-01T02:00:01+01:00[Europe/Paris]");
+    var startDate2Zone = startDate2.getZone();
+    var startDate2Pnf = ZonedDateTime.parse("2023-11-01T02:00:01-07:00[US/Pacific]");
+    populateArrayWithConsecutiveDays(date64Array, startDate2);
+    rawZonedDateTime = date64Array.getArrayElement(2);
+    dayPlus2 = rawZonedDateTime.asDate().atTime(rawZonedDateTime.asTime()).atZone(startDate2Zone);
+    assertTrue(startDate2.plusDays(2).isEqual(dayPlus2));
+    assertFalse(startDate2Pnf.plusDays(2).isEqual(dayPlus2));
   }
 
-  private void populateArrayWithConsecutiveDays(Value arr, LocalDate startDate) {
+  private void populateArrayWithConsecutiveDays(Value arr, Temporal startDate) {
     var len = arr.getArraySize();
     for (int i = 0; i < len; i++) {
-      arr.setArrayElement(i, startDate.plusDays(i));
+      arr.setArrayElement(i, startDate.plus(2, java.time.temporal.ChronoUnit.DAYS));
     }
   }
 

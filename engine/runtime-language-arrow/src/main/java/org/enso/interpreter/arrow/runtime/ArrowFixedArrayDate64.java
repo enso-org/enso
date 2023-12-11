@@ -7,14 +7,21 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import java.nio.ByteBuffer;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 
 @ExportLibrary(InteropLibrary.class)
 public class ArrowFixedArrayDate64 implements TruffleObject {
   private final long size;
   private final ByteBuffer buffer;
   private static final int elementSize = 8;
+
+  private static final long nanoDiv = 1000000000L;
+  private static final ZoneId utc = ZoneId.of("UTC");
 
   public ArrowFixedArrayDate64(long size) {
     this.size = size;
@@ -29,27 +36,31 @@ public class ArrowFixedArrayDate64 implements TruffleObject {
   @ExportMessage
   public Object readArrayElement(long index) {
     // TODO: Needs null bitmap
-    var daysSinceEpoch = buffer.getInt((int) index * elementSize);
-    var localDate = LocalDate.ofEpochDay(daysSinceEpoch);
-    return new ArrowDate(localDate);
+    var secondsPlusNanoSinceEpoch = buffer.getLong((int) index * elementSize);
+    var seconds = Math.floorDiv(secondsPlusNanoSinceEpoch, nanoDiv);
+    var nano = Math.floorMod(secondsPlusNanoSinceEpoch, nanoDiv);
+    var zonedDateTime = Instant.ofEpochSecond(seconds, nano).atZone(utc);
+    return new ArrowZonedDate(zonedDateTime);
   }
 
   @ExportMessage
   public void writeArrayElement(
       long index, Object value, @CachedLibrary(limit = "1") InteropLibrary iop)
       throws UnsupportedMessageException {
-    assert iop.isDate(value);
+    assert iop.isDate(value) && iop.isTime(value);
 
     var at = index * elementSize;
     if (iop.isTimeZone(value)) {
-      var zone = iop.asTimeZone(value);
-      var localDate = iop.asDate(value);
-      var milisecondsSinceEpoch = localDate.atStartOfDay(zone).toInstant().toEpochMilli();
-      buffer.putLong((int) at, milisecondsSinceEpoch);
+      var dateTime = iop.asDate(value).atTime(iop.asTime(value)).atZone(iop.asTimeZone(value));
+      var zoneDateTime = dateTime.withZoneSameLocal(utc);
+      var zoneDateTimeInstant = zoneDateTime.toInstant();
+      var secondsPlusNano =
+          zoneDateTimeInstant.getEpochSecond() * nanoDiv + zoneDateTimeInstant.getNano();
+      buffer.putLong((int) at, secondsPlusNano);
     } else {
-      var localDate = iop.asDate(value);
-      var milisecondsSinceEpoch = localDate.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli();
-      buffer.putLong((int) at, milisecondsSinceEpoch);
+      var dateTime = iop.asDate(value).atTime(iop.asTime(value)).toInstant(ZoneOffset.UTC);
+      var secondsPlusNano = dateTime.getEpochSecond() * nanoDiv + dateTime.getNano();
+      buffer.putLong((int) at, secondsPlusNano);
     }
     // TODO: Update nulls bitmap
   }
@@ -72,5 +83,44 @@ public class ArrowFixedArrayDate64 implements TruffleObject {
   @ExportMessage
   final boolean isArrayElementInsertable(long index) {
     return index >= 0 && index < size;
+  }
+
+  @ExportLibrary(InteropLibrary.class)
+  public class ArrowZonedDate implements TruffleObject {
+    private ZonedDateTime dateTime;
+
+    public ArrowZonedDate(ZonedDateTime dateTime) {
+      this.dateTime = dateTime;
+    }
+
+    @ExportMessage
+    public boolean isDate() {
+      return true;
+    }
+
+    @ExportMessage
+    public LocalDate asDate() {
+      return dateTime.toLocalDate();
+    }
+
+    @ExportMessage
+    public boolean isTime() {
+      return true;
+    }
+
+    @ExportMessage
+    public LocalTime asTime() {
+      return dateTime.toLocalTime();
+    }
+
+    @ExportMessage
+    public boolean isTimeZone() {
+      return true;
+    }
+
+    @ExportMessage
+    public ZoneId asTimeZone() {
+      return dateTime.getZone();
+    }
   }
 }

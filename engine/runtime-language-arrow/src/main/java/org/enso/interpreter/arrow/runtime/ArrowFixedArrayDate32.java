@@ -64,4 +64,23 @@ public class ArrowFixedArrayDate32 implements TruffleObject {
   final boolean isArrayElementInsertable(long index) {
     return index >= 0 && index < size;
   }
+
+  @ExportLibrary(InteropLibrary.class)
+  public class ArrowDate implements TruffleObject {
+    private LocalDate date;
+
+    public ArrowDate(LocalDate date) {
+      this.date = date;
+    }
+
+    @ExportMessage
+    public boolean isDate() {
+      return true;
+    }
+
+    @ExportMessage
+    public LocalDate asDate() {
+      return date;
+    }
+  }
 }
