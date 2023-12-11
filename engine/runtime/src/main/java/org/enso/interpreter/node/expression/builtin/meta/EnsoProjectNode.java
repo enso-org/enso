@@ -83,10 +83,11 @@ public abstract class EnsoProjectNode extends Node {
                         return Optional.empty();
                       }
                     } else {
-                      throw new IllegalStateException(
+                      CompilerDirectives.transferToInterpreter();
+                      throw EnsoContext.get(this).raiseAssertionPanic(this,
                           "Should not reach here: callRootNode = "
                               + callRootNode
-                              + ". Probably not called from Enso?");
+                              + ". Probably not called from Enso?", null);
                     }
                   },
                   // The first frame is always Enso_Project.enso_project

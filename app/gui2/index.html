@@ -24,16 +24,5 @@
     <div id="app"></div>
     <div id="enso-dashboard" class="enso-dashboard"></div>
     <script type="module" src="/src/main.ts"></script>
-    <script>
-      // Workaround for Amplify issue:
-      // https://ui.docs.amplify.aws/vue/getting-started/troubleshooting
-      // Using a `define` to replace `global` with `globalThis` triggers a bug in Vite:
-      // https://github.com/vitejs/vite/blob/cb3ab5f465e0de340c4d8b82603e7ee1489b5b62/packages/vite/src/node/plugins/define.ts#L154-L159
-      window.global = window
-      window.process = {
-        env: { DEBUG: undefined },
-      }
-      var exports = {}
-    </script>
   </body>
 </html>

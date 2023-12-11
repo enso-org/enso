@@ -23,13 +23,13 @@ import java.util.UUID
 @SerialVersionUID(
   8160L // Use BindingsMap
 )       // prevents reading broken caches, see PR-3692 for details
-sealed case class Module(
+final case class Module(
   imports: List[Import],
   exports: List[Export],
   bindings: List[Definition],
   isPrivate: Boolean,
   location: Option[IdentifiedLocation],
-  passData: MetadataStorage      = MetadataStorage(),
+  passData: MetadataStorage      = new MetadataStorage(),
   diagnostics: DiagnosticStorage = DiagnosticStorage()
 ) extends IR
     with IRKind.Primitive {
@@ -94,7 +94,8 @@ sealed case class Module(
         )
       ),
       location = if (keepLocations) location else None,
-      passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+      passData =
+        if (keepMetadata) passData.duplicate else new MetadataStorage(),
       diagnostics =
         if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
       id = if (keepIdentifiers) id else randomId

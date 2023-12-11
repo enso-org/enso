@@ -1,8 +1,8 @@
 package org.enso.compiler;
 
+import org.enso.compiler.core.ir.Location;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.expression.errors.Syntax;
-import org.enso.syntax.text.Location;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import org.junit.Test;
@@ -28,6 +28,27 @@ public class ErrorCompilerTest extends CompilerTest {
     """);
 
     assertSingleSyntaxError(ir, Syntax.InvalidUnderscore$.MODULE$, "Invalid use of _", 14, 15);
+  }
+
+  @Test
+  public void spaceDotUnderscore() throws Exception {
+    var ir = parse("""
+    run op =
+      op ._
+    """);
+
+    assertSingleSyntaxError(ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 14, 16);
+  }
+
+  @Test
+  public void unaryMinus() throws Exception {
+    var ir = parse("""
+    from Standard.Base import all
+
+    main = Date.new day=-
+    """);
+
+    assertSingleSyntaxError(ir, new Syntax.UnsupportedSyntax("Strange unary -"), "Syntax is not supported yet: Strange unary -", 51, 52);
   }
 
   @Test
@@ -415,6 +436,24 @@ public class ErrorCompilerTest extends CompilerTest {
     assertTrue(errors.head().reason() instanceof Syntax.UnsupportedSyntax);
     assertEquals(errors.head().location().get().start(), 0);
     assertEquals(errors.head().location().get().length(), 6);
+  }
+
+  @Test
+  public void testAnnotation1() throws Exception {
+    var ir = parse("""
+    @x `
+    id x = x
+    """);
+    assertSingleSyntaxError(ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 3, 4);
+  }
+
+  @Test
+  public void testAnnotation2() throws Exception {
+    var ir = parse("""
+    @` foo
+    id x = x
+    """);
+    assertSingleSyntaxError(ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 6);
   }
 
   private void assertSingleSyntaxError(

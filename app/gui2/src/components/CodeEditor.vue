@@ -2,11 +2,13 @@
 import { useGraphStore } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
-import type { Highlighter } from '@/util/codemirror'
+import { useAutoBlur } from '@/util/autoBlur'
+import type { Diagnostic, Highlighter } from '@/util/codemirror'
 import { usePointer } from '@/util/events'
+import { chain } from '@/util/iterable'
 import { useLocalStorage } from '@vueuse/core'
 import { rangeEncloses, type ExprId } from 'shared/yjsModel'
-import { computed, onMounted, ref, watchEffect } from 'vue'
+import { computed, onMounted, ref, watch, watchEffect } from 'vue'
 import { qnJoin, tryQualifiedName } from '../util/qualifiedName'
 import { unwrap } from '../util/result'
 
@@ -14,6 +16,7 @@ import { unwrap } from '../util/result'
 const {
   bracketMatching,
   foldGutter,
+  lintGutter,
   highlightSelectionMatches,
   minimalSetup,
   EditorState,
@@ -23,6 +26,9 @@ const {
   defaultHighlightStyle,
   tooltips,
   enso,
+  linter,
+  forceLinting,
+  lsDiagnosticsToCMDiagnostics,
   hoverTooltip,
 } = await import('@/util/codemirror')
 
@@ -30,6 +36,46 @@ const projectStore = useProjectStore()
 const graphStore = useGraphStore()
 const suggestionDbStore = useSuggestionDbStore()
 const rootElement = ref<HTMLElement>()
+useAutoBlur(rootElement)
+
+const executionContextDiagnostics = computed(() =>
+  projectStore.module
+    ? lsDiagnosticsToCMDiagnostics(
+        projectStore.module.doc.contents.toString(),
+        projectStore.diagnostics,
+      )
+    : [],
+)
+
+const expressionUpdatesDiagnostics = computed(() => {
+  const nodeMap = graphStore.db.nodeIdToNode
+  const updates = projectStore.computedValueRegistry.db
+  const panics = updates.type.reverseLookup('Panic')
+  const errors = updates.type.reverseLookup('DataflowError')
+  const diagnostics: Diagnostic[] = []
+  for (const id of chain(panics, errors)) {
+    const update = updates.get(id)
+    if (!update) continue
+    const node = nodeMap.get(id)
+    if (!node) continue
+    if (!node.rootSpan.astExtended) continue
+    const [from, to] = node.rootSpan.astExtended.span()
+    switch (update.payload.type) {
+      case 'Panic': {
+        diagnostics.push({ from, to, message: update.payload.message, severity: 'error' })
+        break
+      }
+      case 'DataflowError': {
+        const error = projectStore.dataflowErrors.lookup(id)
+        if (error?.value?.message) {
+          diagnostics.push({ from, to, message: error.value.message, severity: 'error' })
+        }
+        break
+      }
+    }
+  }
+  return diagnostics
+})
 
 // == CodeMirror editor setup  ==
 
@@ -39,7 +85,7 @@ watchEffect(() => {
   if (!module) return
   const yText = module.doc.contents
   const undoManager = module.undoManager
-  const awareness = projectStore.awareness
+  const awareness = projectStore.awareness.internal
   editorView.setState(
     EditorState.create({
       doc: yText.toString(),
@@ -49,19 +95,23 @@ watchEffect(() => {
         syntaxHighlighting(defaultHighlightStyle as Highlighter),
         bracketMatching(),
         foldGutter(),
+        lintGutter(),
         highlightSelectionMatches(),
         tooltips({ position: 'absolute' }),
         hoverTooltip((ast, syn) => {
           const dom = document.createElement('div')
           const astSpan = ast.span()
           let foundNode: ExprId | undefined
-          for (const [id, node] of graphStore.db.allNodes()) {
-            if (rangeEncloses(node.rootSpan.span(), astSpan)) {
+          for (const [id, node] of graphStore.db.nodeIdToNode.entries()) {
+            if (
+              node.rootSpan.astExtended &&
+              rangeEncloses(node.rootSpan.astExtended.span(), astSpan)
+            ) {
               foundNode = id
               break
             }
           }
-          const expressionInfo = foundNode && graphStore.db.nodeExpressionInfo.lookup(foundNode)
+          const expressionInfo = foundNode && graphStore.db.getExpressionInfo(foundNode)
           const nodeColor = foundNode && graphStore.db.getNodeColorStyle(foundNode)
 
           if (foundNode != null) {
@@ -73,6 +123,14 @@ watchEffect(() => {
             dom
               .appendChild(document.createElement('div'))
               .appendChild(document.createTextNode(`Type: ${expressionInfo.typename ?? 'Unknown'}`))
+          }
+          if (expressionInfo?.profilingInfo[0] != null) {
+            const profile = expressionInfo.profilingInfo[0]
+            const executionTime = (profile.ExecutionTime.nanoTime / 1_000_000).toFixed(3)
+            const text = `Execution Time: ${executionTime}ms`
+            dom
+              .appendChild(document.createElement('div'))
+              .appendChild(document.createTextNode(text))
           }
 
           dom
@@ -98,10 +156,13 @@ watchEffect(() => {
           return { dom }
         }),
         enso(),
+        linter(() => [...executionContextDiagnostics.value, ...expressionUpdatesDiagnostics.value]),
       ],
     }),
   )
 })
+
+watch([executionContextDiagnostics, expressionUpdatesDiagnostics], () => forceLinting(editorView))
 
 onMounted(() => {
   editorView.focus()
@@ -140,8 +201,10 @@ const editorStyle = computed(() => {
     class="CodeEditor"
     :style="editorStyle"
     @keydown.enter.stop
+    @keydown.backspace.stop
     @wheel.stop.passive
     @pointerdown.stop
+    @contextmenu.stop
   >
     <div class="resize-handle" v-on="resize.events" @dblclick="resetSize">
       <svg viewBox="0 0 16 16">
@@ -167,6 +230,7 @@ const editorStyle = computed(() => {
   max-height: calc(100% - 10px);
   backdrop-filter: var(--blur-app-bg);
   border-radius: 7px;
+  font-family: var(--font-mono);
 
   &.v-enter-active,
   &.v-leave-active {

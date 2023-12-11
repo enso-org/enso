@@ -42,22 +42,22 @@ test('Parent-children indexing', () => {
   const db = new SuggestionDb()
   applyUpdates(db, test.addUpdatesForExpected(), test.groups)
   // Parent lookup.
-  expect(db.parent.lookup(1)).toEqual(new Set([]))
-  expect(db.parent.lookup(2)).toEqual(new Set([1]))
-  expect(db.parent.lookup(3)).toEqual(new Set([2]))
-  expect(db.parent.lookup(4)).toEqual(new Set([2]))
-  expect(db.parent.lookup(5)).toEqual(new Set([2]))
-  expect(db.parent.lookup(6)).toEqual(new Set([1]))
-  expect(db.parent.lookup(7)).toEqual(new Set([1]))
+  expect(db.childIdToParentId.lookup(1)).toEqual(new Set([]))
+  expect(db.childIdToParentId.lookup(2)).toEqual(new Set([1]))
+  expect(db.childIdToParentId.lookup(3)).toEqual(new Set([2]))
+  expect(db.childIdToParentId.lookup(4)).toEqual(new Set([2]))
+  expect(db.childIdToParentId.lookup(5)).toEqual(new Set([2]))
+  expect(db.childIdToParentId.lookup(6)).toEqual(new Set([1]))
+  expect(db.childIdToParentId.lookup(7)).toEqual(new Set([1]))
 
   // Children lookup.
-  expect(db.parent.reverseLookup(1)).toEqual(new Set([2, 6, 7]))
-  expect(db.parent.reverseLookup(2)).toEqual(new Set([3, 4, 5]))
-  expect(db.parent.reverseLookup(3)).toEqual(new Set([]))
-  expect(db.parent.reverseLookup(4)).toEqual(new Set([]))
-  expect(db.parent.reverseLookup(5)).toEqual(new Set([]))
-  expect(db.parent.reverseLookup(6)).toEqual(new Set([]))
-  expect(db.parent.reverseLookup(7)).toEqual(new Set([]))
+  expect(db.childIdToParentId.reverseLookup(1)).toEqual(new Set([2, 6, 7]))
+  expect(db.childIdToParentId.reverseLookup(2)).toEqual(new Set([3, 4, 5]))
+  expect(db.childIdToParentId.reverseLookup(3)).toEqual(new Set([]))
+  expect(db.childIdToParentId.reverseLookup(4)).toEqual(new Set([]))
+  expect(db.childIdToParentId.reverseLookup(5)).toEqual(new Set([]))
+  expect(db.childIdToParentId.reverseLookup(6)).toEqual(new Set([]))
+  expect(db.childIdToParentId.reverseLookup(7)).toEqual(new Set([]))
 
   // Add new entry.
   const modifications: lsTypes.SuggestionsDatabaseUpdate[] = [
@@ -78,22 +78,22 @@ test('Parent-children indexing', () => {
     },
   ]
   applyUpdates(db, modifications, test.groups)
-  expect(db.parent.lookup(8)).toEqual(new Set([2]))
-  expect(db.parent.reverseLookup(8)).toEqual(new Set([]))
-  expect(db.parent.reverseLookup(2)).toEqual(new Set([3, 4, 5, 8]))
+  expect(db.childIdToParentId.lookup(8)).toEqual(new Set([2]))
+  expect(db.childIdToParentId.reverseLookup(8)).toEqual(new Set([]))
+  expect(db.childIdToParentId.reverseLookup(2)).toEqual(new Set([3, 4, 5, 8]))
 
   // Remove entry.
   const modifications2: lsTypes.SuggestionsDatabaseUpdate[] = [{ type: 'Remove', id: 3 }]
   applyUpdates(db, modifications2, test.groups)
-  expect(db.parent.lookup(3)).toEqual(new Set([]))
-  expect(db.parent.reverseLookup(2)).toEqual(new Set([4, 5, 8]))
+  expect(db.childIdToParentId.lookup(3)).toEqual(new Set([]))
+  expect(db.childIdToParentId.reverseLookup(2)).toEqual(new Set([4, 5, 8]))
 
   // Modify entry. Moving new method from `Standard.Base.Type` to `Standard.Base`.
   db.get(8)!.memberOf = 'Standard.Base' as QualifiedName
-  expect(db.parent.reverseLookup(1)).toEqual(new Set([2, 6, 7, 8]))
-  expect(db.parent.lookup(8)).toEqual(new Set([1]))
-  expect(db.parent.reverseLookup(8)).toEqual(new Set([]))
-  expect(db.parent.reverseLookup(2)).toEqual(new Set([4, 5]))
+  expect(db.childIdToParentId.reverseLookup(1)).toEqual(new Set([2, 6, 7, 8]))
+  expect(db.childIdToParentId.lookup(8)).toEqual(new Set([1]))
+  expect(db.childIdToParentId.reverseLookup(8)).toEqual(new Set([]))
+  expect(db.childIdToParentId.reverseLookup(2)).toEqual(new Set([4, 5]))
 })
 
 test("Modifying suggestion entries' fields", () => {
@@ -308,6 +308,7 @@ class Fixture {
     isPrivate: false,
     isUnstable: false,
     reexportedIn: unwrap(tryQualifiedName('Standard.Base.Another.Module')),
+    annotations: [],
   }
   expectedType: SuggestionEntry = {
     kind: SuggestionKind.Type,
@@ -320,6 +321,7 @@ class Fixture {
     isPrivate: false,
     isUnstable: false,
     reexportedIn: unwrap(tryQualifiedName('Standard.Base.Another.Module')),
+    annotations: [],
   }
   expectedCon: SuggestionEntry = {
     kind: SuggestionKind.Constructor,
@@ -333,6 +335,7 @@ class Fixture {
     isPrivate: false,
     isUnstable: true,
     reexportedIn: unwrap(tryQualifiedName('Standard.Base.Another.Module')),
+    annotations: ['Annotation 1'],
   }
   expectedMethod: SuggestionEntry = {
     kind: SuggestionKind.Method,
@@ -347,6 +350,7 @@ class Fixture {
     aliases: [],
     isPrivate: false,
     isUnstable: false,
+    annotations: ['Annotation 2', 'Annotation 3'],
   }
   expectedStaticMethod: SuggestionEntry = {
     kind: SuggestionKind.Method,
@@ -361,6 +365,7 @@ class Fixture {
     isPrivate: false,
     isUnstable: false,
     reexportedIn: unwrap(tryQualifiedName('Standard.Base.Another.Module')),
+    annotations: [],
   }
   expectedFunction: SuggestionEntry = {
     kind: SuggestionKind.Function,
@@ -373,6 +378,7 @@ class Fixture {
     isPrivate: false,
     isUnstable: false,
     scope: this.scope,
+    annotations: [],
   }
   expectedLocal: SuggestionEntry = {
     kind: SuggestionKind.Local,
@@ -385,6 +391,7 @@ class Fixture {
     isPrivate: false,
     isUnstable: false,
     scope: this.scope,
+    annotations: [],
   }
 
   addUpdatesForExpected(): lsTypes.SuggestionsDatabaseUpdate[] {
@@ -422,7 +429,7 @@ class Fixture {
           returnType: 'Standard.Base.Type',
           documentation: this.conDocs,
           reexport: 'Standard.Base.Another.Module',
-          annotations: [],
+          annotations: ['Annotation 1'],
         },
       },
       {
@@ -437,7 +444,7 @@ class Fixture {
           arguments: [this.arg1],
           returnType: 'Standard.Base.Number',
           documentation: this.methodDocs,
-          annotations: [],
+          annotations: ['Annotation 2', 'Annotation 3'],
         },
       },
       {

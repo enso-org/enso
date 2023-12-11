@@ -28,6 +28,7 @@ import org.enso.pkg.QualifiedName
 import org.enso.polyglot.runtime.Runtime.Api
 
 import java.util.logging.Level
+import scala.annotation.unused
 
 /** A job that upserts a visualization.
   *
@@ -37,7 +38,7 @@ import java.util.logging.Level
   * @param config a visualization config
   */
 class UpsertVisualizationJob(
-  requestId: Option[Api.RequestId],
+  @unused requestId: Option[Api.RequestId],
   val visualizationId: Api.VisualizationId,
   val expressionId: Api.ExpressionId,
   config: Api.VisualizationConfiguration
@@ -61,6 +62,7 @@ class UpsertVisualizationJob(
     implicit val logger: TruffleLogger = ctx.executionService.getLogger
     val lockTimestamp =
       ctx.locking.acquireContextLock(config.executionContextId)
+    val writeLockTimestamp = ctx.locking.acquireWriteCompilationLock()
     try {
       val maybeCallable =
         UpsertVisualizationJob.evaluateVisualizationExpression(
@@ -70,11 +72,19 @@ class UpsertVisualizationJob(
 
       maybeCallable match {
         case Left(ModuleNotFound(moduleName)) =>
-          replyWithError(Api.ModuleNotFound(moduleName))
+          ctx.endpoint.sendToClient(
+            Api.Response(Api.ModuleNotFound(moduleName))
+          )
           None
 
         case Left(EvaluationFailed(message, result)) =>
-          replyWithExpressionFailedError(message, result)
+          replyWithExpressionFailedError(
+            config.executionContextId,
+            visualizationId,
+            expressionId,
+            message,
+            result
+          )
           None
 
         case Right(EvaluationResult(module, callable, arguments)) =>
@@ -109,6 +119,11 @@ class UpsertVisualizationJob(
           }
       }
     } finally {
+      ctx.locking.releaseWriteCompilationLock()
+      logger.log(
+        Level.FINEST,
+        s"Kept write compilation lock [UpsertVisualizationJob] for ${System.currentTimeMillis() - writeLockTimestamp} milliseconds"
+      )
       ctx.locking.releaseContextLock(config.executionContextId)
       logger.log(
         Level.FINEST,
@@ -122,22 +137,28 @@ class UpsertVisualizationJob(
   }
 
   private def replyWithExpressionFailedError(
+    contextId: Api.ContextId,
+    visualizationId: Api.VisualizationId,
+    expressionId: Api.ExpressionId,
     message: String,
     executionResult: Option[Api.ExecutionResult.Diagnostic]
   )(implicit ctx: RuntimeContext): Unit = {
+    ctx.executionService.getLogger.log(
+      Level.SEVERE,
+      "Visualization for expression {0} failed: {1} (evaluation result: {2})",
+      Array(expressionId, message, executionResult)
+    )
     ctx.endpoint.sendToClient(
       Api.Response(
-        requestId,
-        Api.VisualizationExpressionFailed(message, executionResult)
+        Api.VisualizationExpressionFailed(
+          Api.VisualizationContext(visualizationId, contextId, expressionId),
+          message,
+          executionResult
+        )
       )
     )
   }
 
-  private def replyWithError(error: Api.Error)(implicit
-    ctx: RuntimeContext
-  ): Unit = {
-    ctx.endpoint.sendToClient(Api.Response(requestId, error))
-  }
 }
 
 object UpsertVisualizationJob {
@@ -185,7 +206,7 @@ object UpsertVisualizationJob {
     */
   def upsertVisualization(
     visualization: Visualization
-  )(implicit ctx: RuntimeContext, logger: TruffleLogger): Unit =
+  )(implicit ctx: RuntimeContext): Unit =
     visualization match {
       case visualization: Visualization.AttachedVisualization =>
         val visualizationConfig = visualization.config
@@ -274,6 +295,7 @@ object UpsertVisualizationJob {
   ): Either[EvaluationFailure, AnyRef] = {
     Either
       .catchNonFatal {
+        ctx.locking.assertWriteCompilationLock()
         ctx.executionService.evaluateExpression(module, argumentExpression)
       }
       .leftFlatMap {
@@ -344,6 +366,7 @@ object UpsertVisualizationJob {
       .catchNonFatal {
         expression match {
           case Api.VisualizationExpression.Text(_, expression) =>
+            ctx.locking.assertWriteCompilationLock()
             ctx.executionService.evaluateExpression(
               expressionModule,
               expression
@@ -478,7 +501,7 @@ object UpsertVisualizationJob {
     visualizationConfig: Api.VisualizationConfiguration,
     callback: AnyRef,
     arguments: Vector[AnyRef]
-  )(implicit ctx: RuntimeContext, logger: TruffleLogger): Visualization = {
+  )(implicit ctx: RuntimeContext): Visualization = {
     val visualizationExpressionId =
       findVisualizationExpressionId(module, visualizationConfig.expression)
     val visualization =
@@ -492,16 +515,7 @@ object UpsertVisualizationJob {
         callback,
         arguments
       )
-    val writeLockTimestamp = ctx.locking.acquireWriteCompilationLock()
-    try {
-      invalidateCaches(visualization)
-    } finally {
-      ctx.locking.releaseWriteCompilationLock()
-      logger.log(
-        Level.FINEST,
-        s"Kept write compilation lock [UpsertVisualizationJob] for ${System.currentTimeMillis() - writeLockTimestamp} milliseconds"
-      )
-    }
+    invalidateCaches(visualization)
     ctx.contextManager.upsertVisualization(
       visualizationConfig.executionContextId,
       visualization

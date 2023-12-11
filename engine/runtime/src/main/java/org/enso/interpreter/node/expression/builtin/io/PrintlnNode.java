@@ -44,7 +44,7 @@ public abstract class PrintlnNode extends Node {
     try {
       print(ctx.getOut(), strings.asString(message));
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException("Impossible. `message` is guaranteed to be a string");
+      throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
     return ctx.getNothing();
   }

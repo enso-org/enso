@@ -1,27 +1,27 @@
 package org.enso.interpreter.caches;
 
 import buildinfo.Info;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.source.Source;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
+
 import org.apache.commons.lang3.StringUtils;
 import org.enso.compiler.core.ir.Module;
+import org.enso.compiler.core.ir.ProcessingPass;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.polyglot.CompilationStage;
 
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.logging.Level;
+
+import org.enso.persist.Persistance;
 
 public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCache.Metadata> {
 
@@ -46,17 +46,19 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
 
     @Override
     protected CachedModule deserialize(EnsoContext context, byte[] data, Metadata meta, TruffleLogger logger) throws ClassNotFoundException, IOException, ClassNotFoundException {
-        try (var stream = new ObjectInputStream(new ByteArrayInputStream(data))) {
-          if (stream.readObject() instanceof Module ir) {
-              try {
-                  return new CachedModule(ir,CompilationStage.valueOf(meta.compilationStage()), module.getSource());
-              } catch (IOException ioe) {
-                  throw new ClassNotFoundException(ioe.getMessage());
-              }
+      var ref = Persistance.read(data, (obj) -> switch (obj) {
+        case ProcessingPass.Metadata metadata -> {
+          var option = metadata.restoreFromSerialization(context.getCompiler().context());
+          if (option.nonEmpty()) {
+            yield option.get();
           } else {
-              throw new ClassNotFoundException("Expected Module, got " + data.getClass());
+            throw raise(RuntimeException.class, new IOException("Cannot convert " + metadata));
           }
         }
+        default -> obj;
+      });
+      var mod = ref.get(Module.class);
+      return new CachedModule(mod, CompilationStage.valueOf(meta.compilationStage()), module.getSource());
     }
 
     @Override
@@ -142,37 +144,11 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
 
     @Override
     protected byte[] serialize(EnsoContext context, CachedModule entry) throws IOException {
-      var byteStream = new ByteArrayOutputStream();
-      boolean noUUIDs = false;
-      for (var p : context.getPackageRepository().getLoadedPackagesJava()) {
-        if ("Standard".equals(p.namespace())) {
-          for (var s : p.listSourcesJava()) {
-            if (s.file().getPath().equals(entry.source().getPath())) {
-              noUUIDs = true;
-              break;
-            }
-          }
-        }
-      }
-      try (var stream = new ObjectOutputStream(byteStream) {
-        void filterUUIDs() {
-          enableReplaceObject(true);
-        }
-
-        @Override
-        protected Object replaceObject(Object obj) throws IOException {
-          if (obj instanceof UUID) {
-            return null;
-          }
-          return obj;
-        }
-      }) {
-        if (noUUIDs) {
-          stream.filterUUIDs();
-        }
-        stream.writeObject(entry.moduleIR());
-      }
-      return byteStream.toByteArray();
+      var arr = Persistance.write(entry.moduleIR(), (obj) -> switch (obj) {
+        case ProcessingPass.Metadata metadata -> metadata.prepareForSerialization(context.getCompiler().context());
+        default -> obj;
+      });
+      return arr;
     }
 
     public record CachedModule(Module moduleIR, CompilationStage compilationStage, Source source) {
@@ -189,4 +165,8 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
 
     private final static ObjectMapper objectMapper = new ObjectMapper();
 
+    @SuppressWarnings("unchecked")
+    private static <T extends Exception> T raise(Class<T> cls, Exception e) throws T {
+      throw (T)e;
+    }
 }

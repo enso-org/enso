@@ -53,5 +53,6 @@ spec =
                 _ -> "other"
             ok_match . should_equal "Array"
             Meta.get_qualified_type_name proxy . should_equal "Standard.Base.Data.Array.Array"
+            Meta.get_simple_type_name proxy . should_equal "Array"
 
 main = Test_Suite.run_main spec

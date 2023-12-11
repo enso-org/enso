@@ -1,3 +1,5 @@
+polyglot java import org.enso.table.data.table.join.JoinKind as Java_Join_Kind
+
 type Join_Kind
     ## Returns only rows where a match between the left and right table is
        found. If one row from the left table matches multiple rows in the right
@@ -36,3 +38,13 @@ type Join_Kind
        In this mode, unlike in others, only columns of the right table are
        returned, since all columns of the left table would be all null anyway.
     Right_Exclusive
+
+    ## PRIVATE
+    to_java : Java_Join_Kind
+    to_java self = case self of
+        Join_Kind.Inner           -> Java_Join_Kind.INNER
+        Join_Kind.Left_Outer      -> Java_Join_Kind.LEFT_OUTER
+        Join_Kind.Right_Outer     -> Java_Join_Kind.RIGHT_OUTER
+        Join_Kind.Full            -> Java_Join_Kind.FULL
+        Join_Kind.Left_Exclusive  -> Java_Join_Kind.LEFT_ANTI
+        Join_Kind.Right_Exclusive -> Java_Join_Kind.RIGHT_ANTI

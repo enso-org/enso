@@ -241,6 +241,10 @@ class Package[F](
       .asScala
       .toList
   }
+
+  override def toString: String = {
+    s"Package[$name]"
+  }
 }
 
 /** A class responsible for creating and parsing package structures.

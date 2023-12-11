@@ -1,20 +1,5 @@
 package org.enso.interpreter.service;
 
-import com.oracle.truffle.api.CallTarget;
-import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.TruffleLogger;
-import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.instrumentation.EventBinding;
-import com.oracle.truffle.api.instrumentation.ExecutionEventNodeFactory;
-import com.oracle.truffle.api.interop.ArityException;
-import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.UnknownIdentifierException;
-import com.oracle.truffle.api.interop.UnsupportedMessageException;
-import com.oracle.truffle.api.interop.UnsupportedTypeException;
-import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.nodes.RootNode;
-import com.oracle.truffle.api.source.SourceSection;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
@@ -37,7 +22,7 @@ import org.enso.interpreter.node.MethodRootNode;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.node.expression.atom.QualifiedAccessorNode;
 import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
-import org.enso.interpreter.node.expression.builtin.text.util.TypeToDisplayTextNodeGen;
+import org.enso.interpreter.node.expression.builtin.text.util.TypeToDisplayTextNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
@@ -62,6 +47,21 @@ import org.enso.polyglot.debugger.IdExecutionService;
 import org.enso.text.editing.JavaEditorAdapter;
 import org.enso.text.editing.model;
 
+import com.oracle.truffle.api.CallTarget;
+import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.TruffleLogger;
+import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.instrumentation.EventBinding;
+import com.oracle.truffle.api.instrumentation.ExecutionEventNodeFactory;
+import com.oracle.truffle.api.interop.ArityException;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.UnknownIdentifierException;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.interop.UnsupportedTypeException;
+import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.nodes.RootNode;
+import com.oracle.truffle.api.source.SourceSection;
+
 /**
  * A service allowing externally-triggered code execution, registered by an instance of the
  * language.
@@ -72,7 +72,7 @@ public final class ExecutionService {
   private final EnsoContext context;
   private final Optional<IdExecutionService> idExecutionInstrument;
   private final NotificationHandler.Forwarder notificationForwarder;
-  private final TruffleLogger logger = TruffleLogger.getLogger(LanguageInfo.ID);
+  private final TruffleLogger logger = TruffleLogger.getLogger(LanguageInfo.ID, ExecutionService.class);
   private final ConnectedLockManager connectedLockManager;
   private final ExecuteRootNode execute = new ExecuteRootNode();
   private final CallRootNode call = new CallRootNode();
@@ -469,10 +469,10 @@ public final class ExecutionService {
         | ArityException
         | UnknownIdentifierException
         | UnsupportedTypeException e) {
-      return TypeToDisplayTextNodeGen.getUncached().execute(panic.getPayload());
+      return TypeToDisplayTextNode.getUncached().execute(panic.getPayload());
     } catch (Throwable e) {
       if (iop.isException(e)) {
-        return TypeToDisplayTextNodeGen.getUncached().execute(panic.getPayload());
+        return TypeToDisplayTextNode.getUncached().execute(panic.getPayload());
       } else {
         throw e;
       }

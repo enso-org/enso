@@ -132,13 +132,13 @@ case object SectionsToBinOp extends IRPass {
             diagnostics
           )
 
-          val rightLam = Function.Lambda(
+          val rightLam = new Function.Lambda(
             List(rightDefArg),
             opCall,
             None
           )
 
-          Function.Lambda(
+          new Function.Lambda(
             List(leftDefArg),
             rightLam,
             loc
@@ -187,13 +187,13 @@ case object SectionsToBinOp extends IRPass {
           diagnostics
         )
 
-        val rightLambda = Function.Lambda(
+        val rightLambda = new Function.Lambda(
           List(rightDefArg),
           opCall,
           None
         )
 
-        Function.Lambda(
+        new Function.Lambda(
           List(leftDefArg),
           rightLambda,
           loc
@@ -253,13 +253,13 @@ case object SectionsToBinOp extends IRPass {
             diagnostics
           )
 
-          val leftLam = Function.Lambda(
+          val leftLam = new Function.Lambda(
             List(leftDefArg),
             opCall,
             None
           )
 
-          Function.Lambda(
+          new Function.Lambda(
             List(rightDefArg),
             leftLam,
             loc
@@ -274,7 +274,7 @@ case object SectionsToBinOp extends IRPass {
             diagnostics
           )
 
-          Function.Lambda(
+          new Function.Lambda(
             List(leftDefArg),
             opCall,
             loc

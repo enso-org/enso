@@ -234,7 +234,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
                   functionCallInstrumentationNode.getId(),
                   result,
                   nanoTimeElapsed,
-                  frame.materialize(),
+                  frame == null ? null : frame.materialize(),
                   node);
           Object cachedResult = callbacks.onFunctionReturn(info);
           if (cachedResult != null) {
@@ -243,7 +243,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
         } else if (node instanceof ExpressionNode expressionNode) {
           Info info =
               new NodeInfo(
-                  expressionNode.getId(), result, nanoTimeElapsed, frame.materialize(), node);
+                  expressionNode.getId(), result, nanoTimeElapsed, frame == null ? null : frame.materialize(), node);
           callbacks.updateCachedResult(info);
 
           if (info.isPanic()) {
@@ -273,7 +273,8 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
           Object result = InteropLibrary.getFactory().getUncached().execute(functionCall);
           onReturnValue(null, result);
         } catch (InteropException e) {
-          throw new PanicException(Text.create(e.getMessage()), this);
+          var ctx = EnsoContext.get(this);
+          throw ctx.raiseAssertionPanic(this, null, e);
         }
       }
 

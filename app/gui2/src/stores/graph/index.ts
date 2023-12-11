@@ -1,16 +1,22 @@
+import { nonDictatedPlacement } from '@/components/ComponentBrowser/placement'
 import { GraphDb } from '@/stores/graph/graphDatabase'
+import {
+  filterOutRedundantImports,
+  recognizeImport,
+  requiredImportToText,
+  type Import,
+  type RequiredImport,
+} from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
-import { DEFAULT_VISUALIZATION_IDENTIFIER } from '@/stores/visualization'
-import { Ast, AstExtended, childrenAstNodes, findAstWithRange, readAstSpan } from '@/util/ast'
+import { Ast } from '@/util/ast'
 import { useObserveYjs } from '@/util/crdt'
 import type { Opt } from '@/util/opt'
-import type { Rect } from '@/util/rect'
+import { Rect } from '@/util/rect'
 import { Vec2 } from '@/util/vec2'
 import { defineStore } from 'pinia'
 import type { StackItem } from 'shared/languageServerTypes'
 import {
-  decodeRange,
   visMetadataEquals,
   type ContentRange,
   type ExprId,
@@ -19,7 +25,6 @@ import {
   type VisualizationMetadata,
 } from 'shared/yjsModel'
 import { computed, markRaw, reactive, ref, toRef, watch } from 'vue'
-import * as Y from 'yjs'
 
 export { type Node } from '@/stores/graph/graphDatabase'
 
@@ -44,8 +49,11 @@ export const useGraphStore = defineStore('graph', () => {
     proj.computedValueRegistry,
   )
   const nodeRects = reactive(new Map<ExprId, Rect>())
+  const vizRects = reactive(new Map<ExprId, Rect>())
   const exprRects = reactive(new Map<ExprId, Rect>())
   const editedNodeInfo = ref<NodeEditInfo>()
+  const imports = ref<{ import: Import; span: ContentRange }[]>([])
+  const methodAst = ref<Ast.Function>()
 
   const unconnectedEdge = ref<UnconnectedEdge>()
 
@@ -74,32 +82,34 @@ export const useGraphStore = defineStore('graph', () => {
 
   watch(text, (value) => {
     textContent.value = value?.toString() ?? ''
-    if (value != null) updateState()
+    if (value) updateState()
   })
 
   function updateState() {
     const module = proj.module
-    if (module == null) return
+    if (!module) return
     module.transact(() => {
       const idMap = module.getIdMap()
       const meta = module.doc.metadata
       const textContentLocal = textContent.value
 
-      const ast = AstExtended.parse(textContentLocal, idMap)
-      const updatedMap = idMap.finishAndSynchronize()
+      const newRoot = Ast.parseTransitional(textContentLocal, idMap)
 
-      const methodAst = ast.isTree()
-        ? ast.tryMap((tree) =>
-            getExecutedMethodAst(
-              tree,
-              textContentLocal,
-              proj.executionContext.getStackTop(),
-              updatedMap,
-            ),
-          )
-        : undefined
-      if (methodAst) {
-        db.readFunctionAst(methodAst, (id) => meta.get(id))
+      imports.value = []
+      newRoot.visitRecursive((node) => {
+        if (node instanceof Ast.Import) {
+          const recognized = recognizeImport(node)
+          if (recognized) {
+            imports.value.push({ import: recognized, span: node.astExtended!.span() })
+          }
+          return false
+        }
+        return true
+      })
+
+      methodAst.value = getExecutedMethodAst(newRoot, proj.executionContext.getStackTop(), db)
+      if (methodAst.value) {
+        db.readFunctionAst(methodAst.value, (id) => meta.get(id))
       }
     })
   }
@@ -109,20 +119,17 @@ export const useGraphStore = defineStore('graph', () => {
     for (const [id, op] of event.changes.keys) {
       if (op.action === 'update' || op.action === 'add') {
         const data = meta.get(id)
-        const node = db.getNode(id as ExprId)
-        if (data != null && node != null) {
-          db.assignUpdatedMetadata(node, data)
-        }
+        const node = db.nodeIdToNode.get(id as ExprId)
+        if (data && node) db.assignUpdatedMetadata(node, data)
       }
     }
   })
 
   function generateUniqueIdent() {
-    let ident: string
-    do {
-      ident = randomString()
-    } while (db.idents.hasValue(ident))
-    return ident
+    for (;;) {
+      const ident = randomIdent()
+      if (!db.identifierUsed(ident)) return ident
+    }
   }
 
   const edges = computed(() => {
@@ -134,7 +141,7 @@ export const useGraphStore = defineStore('graph', () => {
         edges.push({ source, target })
       }
     }
-    if (unconnectedEdge.value != null) {
+    if (unconnectedEdge.value) {
       edges.push({
         source: unconnectedEdge.value.source,
         target: unconnectedEdge.value.target,
@@ -146,39 +153,73 @@ export const useGraphStore = defineStore('graph', () => {
   function createEdgeFromOutput(source: ExprId) {
     unconnectedEdge.value = { source }
   }
+
   function disconnectSource(edge: Edge) {
-    if (edge.target != null)
+    if (edge.target)
       unconnectedEdge.value = { target: edge.target, disconnectedEdgeTarget: edge.target }
   }
+
   function disconnectTarget(edge: Edge) {
-    if (edge.source != null && edge.target != null)
+    if (edge.source && edge.target)
       unconnectedEdge.value = { source: edge.source, disconnectedEdgeTarget: edge.target }
   }
+
   function clearUnconnected() {
     unconnectedEdge.value = undefined
   }
 
-  function createNode(position: Vec2, expression: string): Opt<ExprId> {
+  function createNode(
+    position: Vec2,
+    expression: string,
+    metadata: NodeMetadata | undefined = undefined,
+    withImports: RequiredImport[] | undefined = undefined,
+  ): Opt<ExprId> {
     const mod = proj.module
-    if (mod == null) return
-    const meta: NodeMetadata = {
+    if (!mod) return
+    const meta = metadata ?? {
       x: position.x,
       y: -position.y,
       vis: null,
     }
+    meta.x = position.x
+    meta.y = -position.y
     const ident = generateUniqueIdent()
-    return mod.insertNewNode(mod.doc.contents.length, ident, expression, meta)
+    let importData = undefined
+    let additionalOffset = 0
+    const importsToAdd = withImports ? filterOutRedundantImports(imports.value, withImports) : []
+    if (importsToAdd.length > 0) {
+      const lastImport = imports.value[imports.value.length - 1]
+      const importOffset = lastImport ? lastImport.span[1] + 1 : 0
+      const str = importsToAdd.map((info) => requiredImportToText(info)).join('\n')
+      additionalOffset += str.length + 1
+      importData = { str, offset: importOffset }
+    }
+    return mod.insertNewNode(
+      mod.doc.contents.length + additionalOffset,
+      ident,
+      expression,
+      meta,
+      importData,
+    )
+  }
+
+  // Create a node from a source expression, and insert it into the graph. The return value will be
+  // the new node's ID, or `null` if the node creation fails.
+  function createNodeFromSource(position: Vec2, source: ExprId): Opt<ExprId> {
+    const sourcePortName = db.getOutputPortIdentifier(source)
+    const sourcePortNameWithDot = sourcePortName ? sourcePortName + '.' : ''
+    return createNode(position, sourcePortNameWithDot)
   }
 
   function deleteNode(id: ExprId) {
-    const node = db.getNode(id)
-    if (node == null) return
+    const node = db.nodeIdToNode.get(id)
+    if (!node) return
     proj.module?.deleteExpression(node.outerExprId)
   }
 
   function setNodeContent(id: ExprId, content: string) {
-    const node = db.getNode(id)
-    if (node == null) return
+    const node = db.nodeIdToNode.get(id)
+    if (!node) return
     setExpressionContent(node.rootSpan.astId, content)
   }
 
@@ -194,63 +235,84 @@ export const useGraphStore = defineStore('graph', () => {
     proj.stopCapturingUndo()
   }
 
-  function replaceNodeSubexpression(nodeId: ExprId, range: ContentRange, content: string) {
-    const node = db.getNode(nodeId)
-    if (node == null) return
+  function replaceNodeSubexpression(
+    nodeId: ExprId,
+    range: ContentRange | undefined,
+    content: string,
+  ) {
+    const node = db.nodeIdToNode.get(nodeId)
+    if (!node) return
     proj.module?.replaceExpressionContent(node.rootSpan.astId, content, range)
   }
 
+  function replaceExpressionContent(exprId: ExprId, content: string) {
+    proj.module?.replaceExpressionContent(exprId, content)
+  }
+
   function setNodePosition(nodeId: ExprId, position: Vec2) {
-    const node = db.getNode(nodeId)
-    if (node == null) return
+    const node = db.nodeIdToNode.get(nodeId)
+    if (!node) return
     proj.module?.updateNodeMetadata(nodeId, { x: position.x, y: -position.y })
   }
 
   function normalizeVisMetadata(
     id: Opt<VisualizationIdentifier>,
-    visible?: boolean,
+    visible: boolean | undefined,
   ): VisualizationMetadata | null {
-    const vis: VisualizationMetadata = {
-      ...(id ?? DEFAULT_VISUALIZATION_IDENTIFIER),
-      visible: visible ?? false,
-    }
-    if (
-      visMetadataEquals(vis, {
-        ...DEFAULT_VISUALIZATION_IDENTIFIER,
-        visible: false,
-      })
-    )
-      return null
-    return vis
+    const vis: VisualizationMetadata = { identifier: id ?? null, visible: visible ?? false }
+    if (visMetadataEquals(vis, { identifier: null, visible: false })) return null
+    else return vis
   }
 
   function setNodeVisualizationId(nodeId: ExprId, vis: Opt<VisualizationIdentifier>) {
-    const node = db.getNode(nodeId)
-    if (node == null) return
+    const node = db.nodeIdToNode.get(nodeId)
+    if (!node) return
     proj.module?.updateNodeMetadata(nodeId, { vis: normalizeVisMetadata(vis, node.vis?.visible) })
   }
 
   function setNodeVisualizationVisible(nodeId: ExprId, visible: boolean) {
-    const node = db.getNode(nodeId)
-    if (node == null) return
-    proj.module?.updateNodeMetadata(nodeId, { vis: normalizeVisMetadata(node.vis, visible) })
+    const node = db.nodeIdToNode.get(nodeId)
+    if (!node) return
+    proj.module?.updateNodeMetadata(nodeId, {
+      vis: normalizeVisMetadata(node.vis?.identifier, visible),
+    })
   }
 
-  function updateNodeRect(id: ExprId, rect: Rect) {
-    nodeRects.set(id, rect)
+  function updateNodeRect(nodeId: ExprId, rect: Rect) {
+    if (rect.pos.equals(Vec2.Zero) && !metadata.value?.has(nodeId)) {
+      const { position } = nonDictatedPlacement(rect.size, {
+        nodeRects: [...nodeRects.entries()]
+          .filter(([id]) => db.nodeIdToNode.get(id))
+          .map(([id, rect]) => vizRects.get(id) ?? rect),
+        // The rest of the properties should not matter.
+        selectedNodeRects: [],
+        screenBounds: Rect.Zero,
+        mousePosition: Vec2.Zero,
+      })
+      const node = db.nodeIdToNode.get(nodeId)
+      metadata.value?.set(nodeId, { x: position.x, y: -position.y, vis: node?.vis ?? null })
+      nodeRects.set(nodeId, new Rect(position, rect.size))
+    } else {
+      nodeRects.set(nodeId, rect)
+    }
+  }
+
+  function updateVizRect(id: ExprId, rect: Rect | undefined) {
+    if (rect) vizRects.set(id, rect)
+    else vizRects.delete(id)
   }
 
   function updateExprRect(id: ExprId, rect: Rect | undefined) {
     const current = exprRects.get(id)
     if (rect) {
-      if (current == null || !current.equals(rect)) exprRects.set(id, rect)
+      if (!current || !current.equals(rect)) exprRects.set(id, rect)
     } else {
-      if (current != null) exprRects.delete(id)
+      if (current) exprRects.delete(id)
     }
   }
 
   function setEditedNode(id: ExprId | null, cursorPosition: number | null) {
-    if (id == null) {
+    if (!id) {
       editedNodeInfo.value = undefined
       return
     }
@@ -258,22 +320,21 @@ export const useGraphStore = defineStore('graph', () => {
       console.warn('setEditedNode: cursorPosition is null')
       return
     }
-    const range = [cursorPosition, cursorPosition] as ContentRange
+    const range: ContentRange = [cursorPosition, cursorPosition]
     editedNodeInfo.value = { id, range }
-  }
-
-  function getNodeBinding(id: ExprId): string {
-    return db.nodes.get(id)?.binding ?? ''
   }
 
   return {
     transact,
     db: markRaw(db),
+    imports,
     editedNodeInfo,
     unconnectedEdge,
     edges,
     nodeRects,
+    vizRects,
     exprRects,
+    methodAst,
     createEdgeFromOutput,
     disconnectSource,
     disconnectTarget,
@@ -283,18 +344,21 @@ export const useGraphStore = defineStore('graph', () => {
     setNodeContent,
     setExpressionContent,
     replaceNodeSubexpression,
+    replaceExpressionContent,
     setNodePosition,
     setNodeVisualizationId,
     setNodeVisualizationVisible,
     stopCapturingUndo,
     updateNodeRect,
+    updateVizRect,
     updateExprRect,
     setEditedNode,
-    getNodeBinding,
+    createNodeFromSource,
+    updateState,
   }
 })
 
-function randomString() {
+function randomIdent() {
   return 'operator' + Math.round(Math.random() * 100000)
 }
 
@@ -312,47 +376,24 @@ export type UnconnectedEdge = {
 }
 
 function getExecutedMethodAst(
-  ast: Ast.Tree,
-  code: string,
+  ast: Ast.Ast,
   executionStackTop: StackItem,
-  updatedIdMap: Y.Map<Uint8Array>,
-): Opt<Ast.Tree.Function> {
+  db: GraphDb,
+): Ast.Function | undefined {
   switch (executionStackTop.type) {
     case 'ExplicitCall': {
       // Assume that the provided AST matches the module in the method pointer. There is no way to
       // actually verify this assumption at this point.
       const ptr = executionStackTop.methodPointer
-      const name = ptr.name
-      return findModuleMethod(ast, code, name)
+      return Ast.findModuleMethod(ast.module, ptr.name) ?? undefined
     }
     case 'LocalCall': {
       const exprId = executionStackTop.expressionId
-      const range = lookupIdRange(updatedIdMap, exprId)
-      if (range == null) return
-      const node = findAstWithRange(ast, range)
-      if (node?.type === Ast.Tree.Type.Function) return node
+      const info = db.getExpressionInfo(exprId)
+      if (!info) return undefined
+      const ptr = info.methodCall?.methodPointer
+      if (!ptr) return undefined
+      return Ast.findModuleMethod(ast.module, ptr.name) ?? undefined
     }
-  }
-}
-
-function lookupIdRange(updatedIdMap: Y.Map<Uint8Array>, id: ExprId): [number, number] | undefined {
-  const doc = updatedIdMap.doc!
-  const rangeBuffer = updatedIdMap.get(id)
-  if (rangeBuffer == null) return
-  const decoded = decodeRange(rangeBuffer)
-  const index = Y.createAbsolutePositionFromRelativePosition(decoded[0], doc)?.index
-  const endIndex = Y.createAbsolutePositionFromRelativePosition(decoded[1], doc)?.index
-  if (index == null || endIndex == null) return
-  return [index, endIndex]
-}
-
-function findModuleMethod(
-  moduleAst: Ast.Tree,
-  code: string,
-  methodName: string,
-): Opt<Ast.Tree.Function> {
-  for (const node of childrenAstNodes(moduleAst)) {
-    if (node.type === Ast.Tree.Type.Function && readAstSpan(node.name, code) === methodName)
-      return node
   }
 }

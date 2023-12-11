@@ -1,5 +1,6 @@
 <script lang="ts">
 export const name = 'Heatmap'
+export const icon = 'heatmap'
 export const inputType = 'Standard.Table.Data.Table.Table | Standard.Base.Data.Vector.Vector'
 export const defaultPreprocessor = [
   'Standard.Visualization.Table.Visualization',
@@ -40,8 +41,7 @@ interface Bucket {
 </script>
 
 <script setup lang="ts">
-import VisualizationContainer from '@/components/VisualizationContainer.vue'
-import { useVisualizationConfig } from '@/providers/visualizationConfig'
+import { VisualizationContainer, useVisualizationConfig } from '@/util/visualizationBuiltins'
 import { computed, ref, watchPostEffect } from 'vue'
 
 const d3 = await import('d3')
@@ -229,7 +229,7 @@ watchPostEffect(() => {
 }
 
 .label {
-  font-family: 'DejaVu Sans Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 10px;
 }
 </style>

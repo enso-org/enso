@@ -28,6 +28,17 @@ case class GraalVMVersion(graalVersion: String, javaVersion: String) {
       javaVersion.toInt
     }
   }
+
+  /** The GraalVM distribution policy changed a lot since GraalVM 23.1.0 for JDK 21.
+    * Most of the components for the newest GraalVM distributions are distributed as
+    * artifacts from the Maven central. This mens there is no longer `gu` tool.
+    *
+    * @see https://medium.com/graalvm/truffle-unchained-13887b77b62c
+    * @return true if this version is associated with Truffle unchained.
+    */
+  def isUnchained: Boolean = {
+    javaMajorVersion >= 21 && graalMajorVersion >= 23
+  }
 }
 
 object GraalVMVersion {

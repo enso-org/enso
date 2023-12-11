@@ -12,13 +12,11 @@ object configuration {
     *  main project manager process.
     *
     *  @param logLevel the logging level
-    *  @param profilingEventsLogPath the path to the runtime events log file
     *  @param profilingPath the path to the profiling out file
     *  @param profilingTime the time limiting the profiling duration
     */
   case class MainProcessConfig(
     logLevel: Level,
-    profilingEventsLogPath: Option[Path],
     profilingPath: Option[Path],
     profilingTime: Option[FiniteDuration]
   )

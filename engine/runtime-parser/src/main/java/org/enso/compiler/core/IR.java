@@ -1,6 +1,5 @@
 package org.enso.compiler.core;
 
-import com.oracle.truffle.api.source.Source;
 import java.io.Serializable;
 import java.util.UUID;
 import java.util.function.Function;
@@ -163,18 +162,4 @@ public interface IR extends Serializable {
 
   /** The size of a single indentation level. */
   int indentLevel = 4;
-
-  static String fileLocationFromSection(IdentifiedLocation loc, Source source) {
-    var section = source.createSection(loc.location().start(), loc.location().length());
-    var locStr =
-        ""
-            + section.getStartLine()
-            + ":"
-            + section.getStartColumn()
-            + "-"
-            + section.getEndLine()
-            + ":"
-            + section.getEndColumn();
-    return source.getName() + "[" + locStr + "]";
-  }
 }

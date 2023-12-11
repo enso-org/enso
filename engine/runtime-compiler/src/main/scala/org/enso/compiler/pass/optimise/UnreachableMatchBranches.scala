@@ -5,6 +5,7 @@ import org.enso.compiler.core.Implicits.AsDiagnostics
 import org.enso.compiler.core.ir.{
   Expression,
   IdentifiedLocation,
+  Location,
   Module,
   Pattern
 }
@@ -19,7 +20,6 @@ import org.enso.compiler.pass.analyse.{
 }
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.resolve.{DocumentationComments, IgnoredBindings}
-import org.enso.syntax.text.Location
 
 import scala.annotation.unused
 
@@ -146,8 +146,8 @@ case object UnreachableMatchBranches extends IRPass {
                     branch.location match {
                       case Some(branchLoc) =>
                         Some(
-                          IdentifiedLocation(
-                            Location(loc.start, branchLoc.end),
+                          IdentifiedLocation.create(
+                            new Location(loc.start, branchLoc.end),
                             loc.id
                           )
                         )

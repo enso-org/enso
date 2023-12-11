@@ -9,7 +9,7 @@ enum SortDirection {
   descending = 'descending',
 }
 
-const props = defineProps<{ color: string; selectedValue: string | null; values: string[] }>()
+const props = defineProps<{ color: string; selectedValue: string | undefined; values: string[] }>()
 const emit = defineEmits<{ click: [index: number] }>()
 
 const sortDirection = ref<SortDirection>(SortDirection.none)
@@ -53,7 +53,7 @@ const NEXT_SORT_DIRECTION: Record<SortDirection, SortDirection> = {
         <li v-if="value === selectedValue">
           <div class="selected-item"><span v-text="value"></span></div>
         </li>
-        <li v-else class="selectable-item button" @click="emit('click', index)">
+        <li v-else class="selectable-item button" @pointerdown="emit('click', index)">
           <span v-text="value"></span>
         </li>
       </template>
@@ -88,6 +88,19 @@ const NEXT_SORT_DIRECTION: Record<SortDirection, SortDirection> = {
   list-style-type: none;
   color: var(--color-text-light);
   padding: 4px 0;
+}
+
+li {
+  text-align: left;
+  transition: transform 0.2s ease;
+}
+
+.selectable-item:hover {
+  transform: translateX(8px);
+}
+
+.list span {
+  vertical-align: text-bottom;
 }
 
 .list::-webkit-scrollbar {

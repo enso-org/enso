@@ -19,7 +19,12 @@ object RuntimeComponentUpdaterFactory {
   object Default extends RuntimeComponentUpdaterFactory {
 
     /** @inheritdoc */
-    override def build(runtime: GraalRuntime): RuntimeComponentUpdater =
-      new GraalVMComponentUpdater(runtime)
+    override def build(runtime: GraalRuntime): RuntimeComponentUpdater = {
+      if (runtime.version.isUnchained) {
+        new UnchainedGraalVMComponentUpdater()
+      } else {
+        new GraalVMComponentUpdater(runtime)
+      }
+    }
   }
 }

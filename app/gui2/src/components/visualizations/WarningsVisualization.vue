@@ -1,5 +1,6 @@
 <script lang="ts">
 export const name = 'Warnings'
+export const icon = 'exclamation'
 export const inputType = 'Any'
 export const defaultPreprocessor = [
   'Standard.Visualization.Warnings',
@@ -8,7 +9,7 @@ export const defaultPreprocessor = [
 </script>
 
 <script setup lang="ts">
-import VisualizationContainer from '@/components/VisualizationContainer.vue'
+import { VisualizationContainer } from '@/util/visualizationBuiltins'
 
 type Data = string[]
 

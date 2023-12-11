@@ -58,7 +58,8 @@ const name = computed<Opt<QualifiedName>>(() => {
 // === Breadcrumbs ===
 
 const color = computed(() => {
-  const groupIndex = db.entries.get(props.selectedEntry)?.groupIndex
+  const groupIndex =
+    props.selectedEntry != null ? db.entries.get(props.selectedEntry)?.groupIndex : undefined
   return groupColorStyle(tryGetIndex(db.groups, groupIndex))
 })
 
@@ -166,7 +167,7 @@ function handleBreadcrumbClick(index: number) {
   --enso-docs-text-color: rbga(0, 0, 0, 0.6);
   --enso-docs-tag-background-color: #dcd8d8;
   --enso-docs-code-background-color: #dddcde;
-  font-family: 'M PLUS 1', DejaVuSansMonoBook, sans-serif;
+  font-family: var(--font-code);
   font-size: 11.5px;
   line-height: 160%;
   color: var(--enso-docs-text-color);

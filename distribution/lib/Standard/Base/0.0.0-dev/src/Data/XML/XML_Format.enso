@@ -5,6 +5,7 @@ import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Network.URI.URI
 import project.Nothing.Nothing
 import project.System.File.File
+import project.System.File_Format.File_For_Read
 import project.System.Input_Stream.Input_Stream
 from project.Data.Text.Extensions import all
 
@@ -12,8 +13,8 @@ from project.Data.Text.Extensions import all
 type XML_Format
     ## PRIVATE
        If the File_Format supports reading from the file, return a configured instance.
-    for_file_read : File -> XML_Format | Nothing
-    for_file_read file:File =
+    for_file_read : File_For_Read -> XML_Format | Nothing
+    for_file_read file:File_For_Read =
         case file.extension of
             ".xml" -> XML_Format
             _ -> Nothing

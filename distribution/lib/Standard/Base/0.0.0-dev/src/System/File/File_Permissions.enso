@@ -60,11 +60,13 @@ type File_Permissions
     owner_execute : Boolean
     owner_execute self = self.owner.contains Permission.Execute
 
-    ## Checks if the given file can be read by the group.
+    ## GROUP Metadata
+       Checks if the given file can be read by the group.
     group_read : Boolean
     group_read self = self.group.contains Permission.Read
 
-    ## Checks if the given file can be written by the group.
+    ## GROUP Metadata
+       Checks if the given file can be written by the group.
     group_write : Boolean
     group_write self = self.group.contains Permission.Write
 

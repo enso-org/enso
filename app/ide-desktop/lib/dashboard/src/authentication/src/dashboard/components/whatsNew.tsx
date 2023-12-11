@@ -16,7 +16,7 @@ export default function WhatsNew() {
             <h2 className="text-xl leading-144.5 py-0.5">Discover what&rsquo;s new</h2>
             <div className="grid gap-3 grid-cols-fill-75">
                 <a
-                    className="relative whatsnew-span-2 col-span-2 bg-v3 text-tag-text rounded-2xl h-45"
+                    className="relative whatsnew-span-2 col-span-1 sm:col-span-2 bg-v3 text-tag-text rounded-2xl h-45"
                     rel="noreferrer"
                     target="_blank"
                     href="https://enso.org/"

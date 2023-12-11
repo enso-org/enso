@@ -1,5 +1,6 @@
 <script lang="ts">
 export const name = 'SQL Query'
+export const icon = 'braces'
 export const inputType = 'Standard.Database.Data.Table.Table | Standard.Database.Data.Column.Column'
 export const defaultPreprocessor = [
   'Standard.Visualization.SQL.Visualization',
@@ -34,8 +35,8 @@ interface Error {
 </script>
 
 <script setup lang="ts">
-import VisualizationContainer from '@/components/VisualizationContainer.vue'
 import { DEFAULT_THEME, type RGBA, type Theme } from '@/components/visualizations/builtins'
+import { VisualizationContainer } from '@/util/visualizationBuiltins'
 import { computed } from 'vue'
 const sqlFormatter = await import('sql-formatter')
 
@@ -138,7 +139,7 @@ function renderRegularInterpolation(value: string, fgColor: RGBA, bgColor: RGBA)
 
 <style>
 .SQLVisualization .sql {
-  font-family: 'DejaVu Sans Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
   margin-left: 7px;
   margin-top: 5px;

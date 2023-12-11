@@ -49,13 +49,34 @@ object Method {
     */
   sealed case class Explicit(
     override val methodReference: Name.MethodReference,
-    override val body: Expression,
+    val bodySeq: Seq[Expression],
+    val isStatic: Boolean,
+    val isStaticWrapperForInstanceMethod: Boolean,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    override val passData: MetadataStorage,
+    override val diagnostics: DiagnosticStorage
   ) extends Method
       with IRKind.Primitive {
+    def this(
+      methodReference: Name.MethodReference,
+      body: Expression,
+      location: Option[IdentifiedLocation],
+      passData: MetadataStorage      = new MetadataStorage(),
+      diagnostics: DiagnosticStorage = DiagnosticStorage()
+    ) = {
+      this(
+        methodReference,
+        Seq(body),
+        Explicit.computeIsStatic(body),
+        Explicit.computeIsStaticWrapperForInstanceMethod(body),
+        location,
+        passData,
+        diagnostics
+      );
+    }
+
     var id: UUID @Identifier = randomId
+    lazy val body            = bodySeq.head
 
     /** Creates a copy of `this`.
       *
@@ -70,14 +91,19 @@ object Method {
     def copy(
       methodReference: Name.MethodReference = methodReference,
       body: Expression                      = body,
-      location: Option[IdentifiedLocation]  = location,
-      passData: MetadataStorage             = passData,
-      diagnostics: DiagnosticStorage        = diagnostics,
-      id: UUID @Identifier                  = id
+      isStatic: Boolean                     = Explicit.computeIsStatic(body),
+      isStaticWrapperForInstanceMethod: Boolean =
+        Explicit.computeIsStaticWrapperForInstanceMethod(body),
+      location: Option[IdentifiedLocation] = location,
+      passData: MetadataStorage            = passData,
+      diagnostics: DiagnosticStorage       = diagnostics,
+      id: UUID @Identifier                 = id
     ): Explicit = {
       val res = Explicit(
         methodReference,
-        body,
+        List(body),
+        isStatic,
+        isStaticWrapperForInstanceMethod,
         location,
         passData,
         diagnostics
@@ -107,7 +133,8 @@ object Method {
           keepIdentifiers
         ),
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy
           else DiagnosticStorage(),
@@ -156,8 +183,21 @@ object Method {
 
       s"${methodReference.showCode(indent)} = $exprStr"
     }
+  }
 
-    def isStatic: Boolean = body match {
+  object Explicit {
+    def unapply(m: Explicit): Option[
+      (
+        Name.MethodReference,
+        Expression,
+        Option[IdentifiedLocation],
+        MetadataStorage,
+        DiagnosticStorage
+      )
+    ] = {
+      Some((m.methodReference, m.body, m.location, m.passData, m.diagnostics))
+    }
+    private def computeIsStatic(body: IR): Boolean = body match {
       case function: Function.Lambda =>
         function.arguments.headOption.map(_.name) match {
           case Some(Name.Self(_, true, _, _)) => true
@@ -167,21 +207,21 @@ object Method {
         true // if it's not a function, it has no arguments, therefore no `self`
     }
 
-    def isStaticWrapperForInstanceMethod: Boolean = body match {
-      case function: Function.Lambda =>
-        function.arguments.map(_.name) match {
-          case Name.Self(_, true, _, _) :: Name.Self(
-                _,
-                false,
-                _,
-                _
-              ) :: _ =>
-            true
-          case _ => false
-        }
-      case _ => false
-    }
-
+    private def computeIsStaticWrapperForInstanceMethod(body: IR): Boolean =
+      body match {
+        case function: Function.Lambda =>
+          function.arguments.map(_.name) match {
+            case Name.Self(_, true, _, _) :: Name.Self(
+                  _,
+                  false,
+                  _,
+                  _
+                ) :: _ =>
+              true
+            case _ => false
+          }
+        case _ => false
+      }
   }
 
   /** The definition of a method for a given constructor using sugared
@@ -199,7 +239,7 @@ object Method {
     arguments: List[DefinitionArgument],
     override val body: Expression,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
+    override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Method
       with IRKind.Sugar {
@@ -266,7 +306,8 @@ object Method {
           keepIdentifiers
         ),
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy
           else DiagnosticStorage(),
@@ -338,7 +379,7 @@ object Method {
     sourceTypeName: Expression,
     override val body: Expression,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
+    override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Method
       with IRKind.Primitive {
@@ -405,7 +446,8 @@ object Method {
           keepIdentifiers
         ),
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy
           else DiagnosticStorage(),

@@ -89,7 +89,7 @@ public abstract class CaseNode extends ExpressionNode {
       Object result = doMatch(frame, warnings.removeWarnings(object), warnings);
       return WithWarnings.wrap(ctx, result, ws);
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException(e);
+      throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
   }
 

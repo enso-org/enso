@@ -109,7 +109,8 @@ default_aggregate_column_name aggregate_column include_column=True =
             "Count Distinct " + (columns.map .name . join " ")
         Percentile p c _ -> ((p*100).floor.to_text + "%-ile ") + (if include_column then c.name else "")
         _ ->
-            prefix = Meta.get_simple_type_name aggregate_column . replace "_" " "
+            atom = Meta.meta aggregate_column : Meta.Atom
+            prefix = atom.constructor.name . replace "_" " "
             c = aggregate_column.column
             prefix + (if include_column then " " + c.name else "")
 

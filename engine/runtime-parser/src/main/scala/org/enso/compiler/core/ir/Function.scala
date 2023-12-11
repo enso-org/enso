@@ -45,14 +45,25 @@ object Function {
     */
   sealed case class Lambda(
     override val arguments: List[DefinitionArgument],
-    override val body: Expression,
+    bodySeq: Seq[Expression],
     location: Option[IdentifiedLocation],
-    override val canBeTCO: Boolean = true,
-    passData: MetadataStorage      = MetadataStorage(),
-    diagnostics: DiagnosticStorage = DiagnosticStorage()
+    override val canBeTCO: Boolean,
+    passData: MetadataStorage,
+    diagnostics: DiagnosticStorage
   ) extends Function
       with IRKind.Primitive {
+    def this(
+      arguments: List[DefinitionArgument],
+      body: Expression,
+      location: Option[IdentifiedLocation],
+      canBeTCO: Boolean              = true,
+      passData: MetadataStorage      = new MetadataStorage(),
+      diagnostics: DiagnosticStorage = new DiagnosticStorage()
+    ) = {
+      this(arguments, Seq(body), location, canBeTCO, passData, diagnostics)
+    }
     var id: UUID @Identifier = randomId
+    override lazy val body   = bodySeq.head
 
     /** Creates a copy of `this`.
       *
@@ -75,7 +86,7 @@ object Function {
       id: UUID @Identifier                 = id
     ): Lambda = {
       val res =
-        Lambda(arguments, body, location, canBeTCO, passData, diagnostics)
+        Lambda(arguments, Seq(body), location, canBeTCO, passData, diagnostics)
       res.id = id
       res
     }
@@ -103,7 +114,8 @@ object Function {
           keepIdentifiers
         ),
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId
@@ -150,6 +162,29 @@ object Function {
     }
   }
 
+  object Lambda {
+    def unapply(l: Lambda): Some[
+      (
+        List[DefinitionArgument],
+        Expression,
+        Option[IdentifiedLocation],
+        Boolean,
+        MetadataStorage,
+        DiagnosticStorage
+      )
+    ] =
+      Some(
+        (
+          l.arguments,
+          l.body,
+          l.location,
+          l.canBeTCO,
+          l.passData,
+          l.diagnostics
+        )
+      )
+  }
+
   /** A representation of the syntactic sugar for defining functions.
     *
     * @param name        the name of the function
@@ -166,7 +201,7 @@ object Function {
     override val body: Expression,
     location: Option[IdentifiedLocation],
     override val canBeTCO: Boolean = true,
-    passData: MetadataStorage      = MetadataStorage(),
+    passData: MetadataStorage      = new MetadataStorage(),
     diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Function
       with IRKind.Sugar {
@@ -237,7 +272,8 @@ object Function {
           keepIdentifiers
         ),
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId

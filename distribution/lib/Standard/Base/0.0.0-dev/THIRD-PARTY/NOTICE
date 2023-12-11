@@ -5,3 +5,23 @@ Copyright 2020 - 2023 New Byte Order sp. z o. o.
 The license information can be found along with the copyright notices.
 Copyright notices related to this dependency can be found in the directory `com.ibm.icu.icu4j-73.1`.
 
+
+'polyglot', licensed under the Universal Permissive License, Version 1.0, is distributed with the Base.
+The license file can be found at `licenses/Universal_Permissive_License__Version_1.0`.
+Copyright notices related to this dependency can be found in the directory `org.graalvm.polyglot.polyglot-23.1.0`.
+
+
+'collections', licensed under the Universal Permissive License, Version 1.0, is distributed with the Base.
+The license file can be found at `licenses/Universal_Permissive_License__Version_1.0`.
+Copyright notices related to this dependency can be found in the directory `org.graalvm.sdk.collections-23.1.0`.
+
+
+'nativeimage', licensed under the Universal Permissive License, Version 1.0, is distributed with the Base.
+The license file can be found at `licenses/Universal_Permissive_License__Version_1.0`.
+Copyright notices related to this dependency can be found in the directory `org.graalvm.sdk.nativeimage-23.1.0`.
+
+
+'word', licensed under the Universal Permissive License, Version 1.0, is distributed with the Base.
+The license file can be found at `licenses/Universal_Permissive_License__Version_1.0`.
+Copyright notices related to this dependency can be found in the directory `org.graalvm.sdk.word-23.1.0`.
+

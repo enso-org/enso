@@ -12,8 +12,8 @@ import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.text.util.ExpectStringNode;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeCoerceToArrayNode;
-import org.enso.interpreter.runtime.error.PanicException;
 
 @BuiltinMethod(
     type = "Polyglot",
@@ -46,7 +46,7 @@ public abstract class InvokeNode extends Node {
         | UnsupportedTypeException
         | UnknownIdentifierException e) {
       err.enter();
-      throw new PanicException(e.getMessage(), this);
+      throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
   }
 }

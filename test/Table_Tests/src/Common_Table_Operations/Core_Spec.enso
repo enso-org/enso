@@ -1,6 +1,5 @@
 from Standard.Base import all
-import Standard.Base.Errors.Common.Arithmetic_Error
-import Standard.Base.Errors.Common.Index_Out_Of_Bounds
+from Standard.Base.Errors.Common import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import all
@@ -68,7 +67,7 @@ spec setup =
 
         Test.specify "should fail with Type Error is not an Integer or Text" <|
             table.at (Pair.new 1 2) . should_fail_with Illegal_Argument
-            table.at (Pair.new 1 2) . catch . to_display_text . should_equal "Illegal Argument: expected 'selector' to be either a Text or an Integer, but got Pair.Value."
+            table.at (Pair.new 1 2) . catch . to_display_text . should_equal "Illegal Argument: expected 'selector' to be either a Text or an Integer, but got Pair."
 
     Test.group prefix+"Table.get" <|
         Test.specify "should allow selecting columns by name" <|
@@ -97,7 +96,7 @@ spec setup =
 
         Test.specify "should fail with Type Error is not an Integer or Text" <|
             table.get (Pair.new 1 2) . should_fail_with Illegal_Argument
-            table.get (Pair.new 1 2) . catch . to_display_text . should_equal "Illegal Argument: expected 'selector' to be either a Text or an Integer, but got Pair.Value."
+            table.get (Pair.new 1 2) . catch . to_display_text . should_equal "Illegal Argument: expected 'selector' to be either a Text or an Integer, but got Pair."
 
     Test.group prefix+"Table.set" <|
         Test.specify "should allow adding a column" <|

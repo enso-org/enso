@@ -30,3 +30,19 @@ export function* chain<T>(...iters: Iterable<T>[]) {
     yield* iter
   }
 }
+
+export function* zip<T, U>(left: Iterable<T>, right: Iterable<U>): Generator<[T, U]> {
+  const leftIterator = left[Symbol.iterator]()
+  const rightIterator = right[Symbol.iterator]()
+
+  while (true) {
+    const leftResult = leftIterator.next()
+    const rightResult = rightIterator.next()
+
+    if (leftResult.done || rightResult.done) {
+      break
+    }
+
+    yield [leftResult.value, rightResult.value]
+  }
+}

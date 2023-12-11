@@ -26,6 +26,7 @@ import scala.util.control.NonFatal
   * @param locks a directory for storing lockfiles that are used to synchronize
   *              access to the various components
   * @param logs a directory for storing logs
+  * @param profiling a directory for storing profiling information
   * @param unsafeTemporaryDirectory path to the temporary directory, should not
   *                                 be used directly, see
   *                                 [[TemporaryDirectoryManager]]
@@ -43,6 +44,7 @@ case class DistributionPaths(
   runRoot: Path,
   locks: Path,
   logs: Path,
+  profiling: Path,
   unsafeTemporaryDirectory: Path,
   customEditions: Seq[Path],
   localLibrariesSearchPaths: Seq[Path],
@@ -60,7 +62,8 @@ case class DistributionPaths(
        |  locks    = ${mask(locks)},
        |  logs     = ${mask(logs)},
        |  tmp      = ${mask(unsafeTemporaryDirectory)},
-       |  ensoHome = ${mask(ensoHome)},
+       |  profiling = ${mask(profiling)},
+       |  ensoHome  = ${mask(ensoHome)},
        |  customEditions = ${mask(customEditions)},
        |  localLibrariesSearchpaths = ${mask(localLibrariesSearchPaths)}
        |)""".stripMargin
@@ -154,6 +157,7 @@ class DistributionManager(val env: Environment) {
       runRoot                   = runRoot,
       locks                     = runRoot / LOCK_DIRECTORY,
       logs                      = LocallyInstalledDirectories.logDirectory,
+      profiling                 = dataRoot / PROFILING_DIRECTORY,
       unsafeTemporaryDirectory  = dataRoot / TMP_DIRECTORY,
       customEditions            = detectCustomEditionPaths(home),
       localLibrariesSearchPaths = detectLocalLibraryPaths(home),
@@ -446,6 +450,7 @@ object DistributionManager {
   val TMP_DIRECTORY       = "tmp"
   val EDITIONS_DIRECTORY  = "editions"
   val LIBRARIES_DIRECTORY = "lib"
+  val PROFILING_DIRECTORY = "profiling"
 
   /** Defines paths inside of the ENSO_HOME directory. */
   object Home {

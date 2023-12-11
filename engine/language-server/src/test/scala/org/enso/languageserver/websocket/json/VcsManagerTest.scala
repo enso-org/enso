@@ -38,7 +38,7 @@ class VcsManagerTest extends BaseServerTest with FlakySpec {
   }
 
   "Initializing project" must {
-    "create a repository" in {
+    "create a repository" taggedAs Flaky in {
       val client = getInitialisedWsClient()
       client.send(json"""
           { "jsonrpc": "2.0",

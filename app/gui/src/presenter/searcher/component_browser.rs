@@ -194,6 +194,10 @@ impl Model {
                         if let Err(err) = self.graph_controller.remove_node(edited_node_id) {
                             error!("Error while removing a temporary node: {err}.");
                         }
+                        // Sync the view with the presenter state, updating the actual error and
+                        // pending state (as temporary node could receive some errors while
+                        // previewing suggestion).
+                        self.graph_presenter.force_view_update.emit(original_node_id);
                     }
                     Some(ast_id)
                 }

@@ -1,4 +1,5 @@
 import project.Any.Any
+import project.Data.Array.Array
 import project.Data.Filter_Condition.Filter_Condition
 import project.Data.Json.JS_Object
 import project.Data.Map.Map
@@ -29,6 +30,7 @@ from project.Data.Boolean import Boolean, False, True
 from project.Data.Index_Sub_Range import sort_and_merge_ranges
 from project.Data.Range.Extensions import all
 from project.Data.Text.Extensions import all
+from project.Runtime import assert
 
 polyglot java import org.enso.base.Regex_Utils
 polyglot java import org.enso.base.Text_Utils
@@ -347,6 +349,10 @@ type Regex
                     Nothing -> Error.throw (No_Such_Group.Error name)
                     _ -> read_group_map groups name
                 case n of
+                    _ : Array ->
+                        # This case is reachable after https://github.com/oracle/graal/commit/59bbc050602d5045662bdd91e7b9be19b0839a3b
+                        assert (n.length == 1)
+                        n.at 0
                     _ : Integer -> n
                     Nothing -> Error.throw (No_Such_Group.Error name)
 
@@ -375,7 +381,7 @@ type Regex
     group_nums_to_names : Map Integer Text
     group_nums_to_names self =
         map = polyglot_map_to_map self.internal_regex_object.groups
-        map.transform k-> v-> [v, k]
+        map.transform k-> v-> [v.at 0, k]
 
     ## Escape the special characters in `expression` such that the result is a
        valid literal pattern for the original string.

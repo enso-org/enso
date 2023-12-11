@@ -1,3 +1,4 @@
+import type { GraphNavigator } from '@/providers/graphNavigator.ts'
 import { watch, type WatchSource } from 'vue'
 import { createContextStore } from '.'
 
@@ -25,6 +26,7 @@ export class InteractionHandler {
     if (interaction !== this.currentInteraction) {
       this.currentInteraction?.cancel?.()
       this.currentInteraction = interaction
+      interaction?.init?.()
     }
   }
 
@@ -41,12 +43,15 @@ export class InteractionHandler {
     return hasCurrent
   }
 
-  handleClick(event: MouseEvent): boolean | void {
-    return this.currentInteraction?.click ? this.currentInteraction.click(event) : false
+  handleClick(event: MouseEvent, graphNavigator: GraphNavigator): boolean | void {
+    return this.currentInteraction?.click
+      ? this.currentInteraction.click(event, graphNavigator)
+      : false
   }
 }
 
 export interface Interaction {
   cancel?(): void
-  click?(event: MouseEvent): boolean | void
+  init?(): void
+  click?(event: MouseEvent, navigator: GraphNavigator): boolean | void
 }

@@ -1,5 +1,7 @@
 package org.enso.interpreter.runtime.data.text;
 
+import com.oracle.truffle.api.strings.TruffleString;
+import com.oracle.truffle.api.strings.TruffleString.Encoding;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.concurrent.locks.Lock;
@@ -175,6 +177,12 @@ public final class Text implements EnsoObject {
   @ExportMessage
   String asString(@Cached("build()") @Cached.Shared("strings") ToJavaStringNode toJavaStringNode) {
     return toJavaStringNode.execute(this);
+  }
+
+  @ExportMessage
+  TruffleString asTruffleString(
+      @Cached TruffleString.FromJavaStringNode fromJavaStringNode) {
+    return fromJavaStringNode.execute(toString(), Encoding.UTF_16);
   }
 
   @CompilerDirectives.TruffleBoundary

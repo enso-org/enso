@@ -61,6 +61,7 @@ trait ModifiedTest
       .option(RuntimeOptions.EDITION_OVERRIDE, "0.0.0-dev")
       .option(RuntimeOptions.STRICT_ERRORS, "true")
       .option(RuntimeOptions.DISABLE_IR_CACHES, "false")
+      .option("engine.WarnInterpreterOnly", "false")
       .out(output)
       .in(System.in)
       .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())

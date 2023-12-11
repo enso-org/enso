@@ -2,7 +2,6 @@ package org.enso.compiler.core.ir
 package expression
 package errors
 
-import com.oracle.truffle.api.source.Source
 import org.enso.compiler.core.Implicits.ShowPassData
 import org.enso.compiler.core.{IR, Identifier}
 import org.enso.compiler.core.IR.randomId
@@ -42,7 +41,7 @@ object Redefined {
     */
   sealed case class SelfArg(
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
+    override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Redefined
       with Diagnostic.Kind.Interactive
@@ -77,7 +76,8 @@ object Redefined {
     ): SelfArg =
       copy(
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId
@@ -95,7 +95,7 @@ object Redefined {
       this
 
     /** @inheritdoc */
-    override def message(source: Source): String =
+    override def message(source: (IdentifiedLocation => String)): String =
       "Methods must have only one definition of the `this` argument, and " +
       "it must be the first."
 
@@ -123,7 +123,7 @@ object Redefined {
     targetType: Option[Name],
     sourceType: Name,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
+    override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Redefined
       with Diagnostic.Kind.Interactive
@@ -181,7 +181,8 @@ object Redefined {
             keepIdentifiers
           ),
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId
@@ -194,7 +195,7 @@ object Redefined {
       copy(location = location)
 
     /** @inheritdoc */
-    override def message(source: Source): String =
+    override def message(source: (IdentifiedLocation => String)): String =
       s"Ambiguous conversion: ${targetType.map(_.name + ".").getOrElse("")}from " +
       s"${sourceType.showCode()} is defined multiple times in this module."
 
@@ -247,7 +248,7 @@ object Redefined {
     atomName: Option[Name],
     methodName: Name,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
+    override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Redefined
       with Diagnostic.Kind.Interactive
@@ -304,7 +305,8 @@ object Redefined {
             keepIdentifiers
           ),
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId
@@ -315,7 +317,7 @@ object Redefined {
       copy(location = location)
 
     /** @inheritdoc */
-    override def message(source: Source): String =
+    override def message(source: (IdentifiedLocation => String)): String =
       s"Method overloads are not supported: ${atomName.map(_.name + ".").getOrElse("")}" +
       s"${methodName.name} is defined multiple times in this module."
 
@@ -370,7 +372,7 @@ object Redefined {
     atomName: Name,
     methodName: Name,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
+    override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Redefined
       with Diagnostic.Kind.Interactive
@@ -430,7 +432,8 @@ object Redefined {
             keepIdentifiers
           ),
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId
@@ -443,7 +446,7 @@ object Redefined {
       copy(location = location)
 
     /** @inheritdoc */
-    override def message(source: Source): String =
+    override def message(source: (IdentifiedLocation => String)): String =
       s"Method definitions with the same name as atoms are not supported. " +
       s"Method ${methodName.name} clashes with the atom ${atomName.name} in this module."
 
@@ -488,7 +491,7 @@ object Redefined {
   sealed case class Type(
     typeName: Name,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
+    override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Redefined
       with Diagnostic.Kind.Interactive
@@ -535,7 +538,8 @@ object Redefined {
           keepIdentifiers
         ),
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId
@@ -546,7 +550,7 @@ object Redefined {
       copy(location = location)
 
     /** @inheritdoc */
-    override def message(source: Source): String =
+    override def message(source: (IdentifiedLocation => String)): String =
       s"Redefining atoms is not supported: ${typeName.name} is " +
       s"defined multiple times in this module."
 
@@ -577,6 +581,107 @@ object Redefined {
       s"(Redefined (Atom $typeName))"
   }
 
+  /** An error representing the redefinition of an atom in a given module.
+    *
+    * @param name    the name of the atom being redefined
+    * @param location    the location in the source to which this error
+    *                    corresponds
+    * @param passData    the pass metadata for the error
+    * @param diagnostics any diagnostics associated with this error.
+    */
+  sealed case class Arg(
+    name: Name,
+    override val location: Option[IdentifiedLocation],
+    override val passData: MetadataStorage      = new MetadataStorage(),
+    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+  ) extends Redefined
+      with Diagnostic.Kind.Interactive
+      with module.scope.Definition
+      with IRKind.Primitive {
+    var id: UUID @Identifier = randomId
+
+    /** Creates a copy of `this`.
+      *
+      * @param name    the name of the atom the method was being redefined
+      *                    on
+      * @param location    the location in the source to which this error
+      *                    corresponds
+      * @param passData    the pass metadata for the error
+      * @param diagnostics any diagnostics associated with this error.
+      * @param id          the identifier for the node
+      * @return a copy of `this`, updated with the specified values
+      */
+    def copy(
+      name: Name                           = name,
+      location: Option[IdentifiedLocation] = location,
+      passData: MetadataStorage            = passData,
+      diagnostics: DiagnosticStorage       = diagnostics,
+      id: UUID                             = id
+    ): Arg = {
+      val res =
+        Arg(name, location, passData, diagnostics)
+      res.id = id
+      res
+    }
+
+    /** @inheritdoc */
+    override def duplicate(
+      keepLocations: Boolean   = true,
+      keepMetadata: Boolean    = true,
+      keepDiagnostics: Boolean = true,
+      keepIdentifiers: Boolean = false
+    ): Arg =
+      copy(
+        name = name.duplicate(
+          keepLocations,
+          keepMetadata,
+          keepDiagnostics,
+          keepIdentifiers
+        ),
+        location = if (keepLocations) location else None,
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
+        diagnostics =
+          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
+        id = if (keepIdentifiers) id else randomId
+      )
+
+    /** @inheritdoc */
+    override def setLocation(location: Option[IdentifiedLocation]): Arg =
+      copy(location = location)
+
+    /** @inheritdoc */
+    override def message(source: (IdentifiedLocation => String)): String =
+      s"Redefining arguments is not supported: ${name.name} is " +
+      s"defined multiple times."
+
+    override def diagnosticKeys(): Array[Any] = Array(name.name)
+
+    /** @inheritdoc */
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Arg = this
+
+    /** @inheritdoc */
+    override def toString: String =
+      s"""
+         |Error.Redefined.Arg(
+         |name = $name,
+         |location = $location,
+         |passData = ${this.showPassData},
+         |diagnostics = $diagnostics,
+         |id = $id
+         |)
+         |""".stripMargin
+
+    /** @inheritdoc */
+    override def children: List[IR] = List(name)
+
+    /** @inheritdoc */
+    override def showCode(indent: Int): String =
+      s"(Redefined (Argument $name))"
+  }
+
   /** An error representing the redefinition of a binding in a given scope.
     *
     * While bindings in child scopes are allowed to _shadow_ bindings in
@@ -588,7 +693,7 @@ object Redefined {
     */
   sealed case class Binding(
     invalidBinding: Expression.Binding,
-    override val passData: MetadataStorage      = MetadataStorage(),
+    override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Redefined
       with Diagnostic.Kind.Interactive
@@ -629,7 +734,8 @@ object Redefined {
             keepDiagnostics,
             keepIdentifiers
           ),
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId
@@ -666,7 +772,7 @@ object Redefined {
     override def children: List[IR] = List(invalidBinding)
 
     /** @inheritdoc */
-    override def message(source: Source): String =
+    override def message(source: (IdentifiedLocation => String)): String =
       s"Variable ${invalidBinding.name.name} is being redefined."
 
     override def diagnosticKeys(): Array[Any] = Array(

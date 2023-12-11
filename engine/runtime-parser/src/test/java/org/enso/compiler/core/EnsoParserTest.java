@@ -1,18 +1,17 @@
 package org.enso.compiler.core;
 
-import com.oracle.truffle.api.source.Source;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.function.Function;
+
 import org.enso.compiler.core.ir.Module;
 import org.junit.AfterClass;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -21,7 +20,11 @@ public class EnsoParserTest {
 
   @BeforeClass
   public static void initEnsoParser() {
-    ensoCompiler = new EnsoParser();
+    try {
+      ensoCompiler = new EnsoParser();
+    } catch (LinkageError e) {
+      throw new AssertionError(e);
+    }
   }
 
   @AfterClass
@@ -1243,6 +1246,62 @@ public class EnsoParserTest {
   }
 
   @Test
+  public void testBlockSyntax() throws Exception {
+    equivalenceTest("""
+    nums v fm ff n = v . map fm . filter ff . take n
+    """, """
+    nums v fm ff n = v
+        . map fm
+        . filter ff
+        . take n
+    """);
+  }
+
+  @Test
+  public void testBlockSyntaxOperators() throws Exception {
+    equivalenceTest("""
+    value = nums * each random + constant
+    """, """
+    value = nums
+        * each random
+        + constant
+    """);
+  }
+
+  @Test
+  public void testBlockSyntaxOperators2() throws Exception {
+    equivalenceTest("""
+    value = (nums + each random) * constant
+    """, """
+    value = nums
+        + each random
+        * constant
+    """);
+  }
+
+  @Test
+  public void testBlockSyntaxOperators3() throws Exception {
+    equivalenceTest("""
+    v = (rect1 . width) . center
+    """, """
+    v = rect1
+        . width
+        . center
+    """);
+  }
+
+  @Test
+  public void testBlockSyntaxOperators4() throws Exception {
+    equivalenceTest("""
+    v = (rect1 . width 4) . center 3 2
+    """, """
+    v = rect1
+        . width 4
+        . center 3 2
+    """);
+  }
+
+  @Test
   public void testPrivateModules() throws Exception {
     List<String> moduleCodes = List.of(
         "private",
@@ -1252,7 +1311,7 @@ public class EnsoParserTest {
         """,
         """
         # Comment with empty line
-        
+
         private
         """
     );
@@ -1300,8 +1359,7 @@ public class EnsoParserTest {
   }
 
   public static Module compile(EnsoParser c, String code) {
-    var src = Source.newBuilder("enso", code, "test-" + Integer.toHexString(code.hashCode()) + ".enso").build();
-    var ir = c.compile(src.getCharacters());
+    var ir = c.compile(code);
     assertNotNull("IR was generated", ir);
     return ir;
   }
@@ -1345,28 +1403,12 @@ public class EnsoParserTest {
    * @return string representation of the IR
    */
   private static String simplifyIR(IR ir, boolean noIds, boolean noLocations, boolean lessDocs) {
+    if (noLocations) {
+      ir = ir.duplicate(false, true, true, true);
+    }
     String txt = ir.pretty();
     if (noIds) {
       txt = txt.replaceAll("[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]\\-[0-9a-f][0-9a-f][0-9a-f][0-9a-f]\\-[0-9a-f][0-9a-f][0-9a-f][0-9a-f]\\-[0-9a-f][0-9a-f][0-9a-f][0-9a-f]\\-[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]", "_");
-    }
-    if (noLocations) {
-      for (;;) {
-        final String pref = " Location(";
-        int at = txt.indexOf(pref);
-        if (at == -1) {
-          break;
-        }
-        int to = at + pref.length();
-        int depth = 1;
-        while (depth > 0) {
-          switch (txt.charAt(to)) {
-            case '(' -> depth++;
-            case ')' -> depth--;
-          }
-          to++;
-        }
-        txt = txt.substring(0, at) + "Location[_]" + txt.substring(to);
-      }
     }
     if (lessDocs) {
       for (;;) {

@@ -2,7 +2,6 @@ package org.enso.compiler.core.ir
 package expression
 package errors
 
-import com.oracle.truffle.api.source.Source
 import org.enso.compiler.core.{IR, Identifier}
 import org.enso.compiler.core.IR.randomId
 
@@ -18,7 +17,7 @@ import java.util.UUID
 sealed case class Conversion(
   storedIr: IR,
   reason: Conversion.Reason,
-  override val passData: MetadataStorage      = MetadataStorage(),
+  override val passData: MetadataStorage      = new MetadataStorage(),
   override val diagnostics: DiagnosticStorage = DiagnosticStorage()
 ) extends Error
     with Diagnostic.Kind.Interactive
@@ -72,7 +71,8 @@ sealed case class Conversion(
         keepDiagnostics,
         keepIdentifiers
       ),
-      passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+      passData =
+        if (keepMetadata) passData.duplicate else new MetadataStorage(),
       diagnostics =
         if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
       id = if (keepIdentifiers) id else randomId
@@ -90,7 +90,8 @@ sealed case class Conversion(
     s"(Error: ${storedIr.showCode(indent)})"
 
   /** @inheritdoc */
-  override def message(source: Source): String = reason.explain
+  override def message(source: (IdentifiedLocation => String)): String =
+    reason.explain
 
   override def diagnosticKeys(): Array[Any] = Array(reason.explain)
 

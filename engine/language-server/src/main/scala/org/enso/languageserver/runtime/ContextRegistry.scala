@@ -112,8 +112,11 @@ final class ContextRegistry(
       case update: Api.ExecutionUpdate =>
         store.getListener(update.contextId).foreach(_ ! update)
 
+      case update: Api.VisualizationExpressionFailed =>
+        store.getListener(update.ctx.contextId).foreach(_ ! update)
+
       case update: Api.VisualizationEvaluationFailed =>
-        store.getListener(update.contextId).foreach(_ ! update)
+        store.getListener(update.ctx.contextId).foreach(_ ! update)
 
       case CreateContextRequest(client, contextIdOpt) =>
         val contextId = contextIdOpt.getOrElse(UUID.randomUUID())

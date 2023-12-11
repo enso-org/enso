@@ -5,12 +5,13 @@ import java.nio.file.Path
 /** A helper class that provides paths for bundled components inside of an
   * engine distribution from which the runtime is being run.
   *
-  * @param languageHome the path to the directory containing the runner.jar and
-  *                     runtime.jar of the currently running language runtime.
+  * @param languageHome the path to the directory containing all the jar modules.
+  *                     of the currently running language runtime.
   *                     The path does not have to exist.
   */
 case class LanguageHome(languageHome: Path) {
-  private val rootPath = languageHome.getParent.toAbsolutePath.normalize
+  val rootPath = languageHome.getParent.toAbsolutePath.normalize
+  require(rootPath.toFile.exists())
 
   /** The path to editions bundled with the engine. */
   def editions: Path =
@@ -33,7 +34,7 @@ object LanguageHome {
     * the `engine-runner`.
     */
   def detectFromExecutableLocation(environment: Environment): LanguageHome = {
-    val homePath = environment.getPathToRunningExecutable.getParent
+    val homePath = environment.getPathToRunningExecutable.getParent.getParent
     LanguageHome(homePath)
   }
 }

@@ -112,7 +112,9 @@ case object TypeFunctions extends IRPass {
         val result = resolveApplication(app)
         app
           .getMetadata(DocumentationComments)
-          .map(doc => result.updateMetadata(DocumentationComments -->> doc))
+          .map(doc =>
+            result.updateMetadata(new MetadataPair(DocumentationComments, doc))
+          )
           .getOrElse(result)
     }
   }

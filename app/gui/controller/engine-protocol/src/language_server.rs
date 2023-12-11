@@ -159,6 +159,14 @@ trait API {
     #[MethodInput=RecomputeInput, rpc_name="executionContext/recompute"]
     fn recompute(&self, context_id: ContextId, invalidated_expressions: InvalidatedExpressions, execution_environment: Option<ExecutionEnvironment>) -> ();
 
+    /// Start the profiling of the language server.
+    #[MethodInput=ProfilingStartInput, rpc_name="profiling/start"]
+    fn profiling_start(&self, memory_snapshot: Option<bool>) -> ();
+
+    /// Stop the profiling of the language server.
+    #[MethodInput=ProfilingStopInput, rpc_name="profiling/stop"]
+    fn profiling_stop(&self) -> ();
+
     /// Obtain the full suggestions database.
     #[MethodInput=GetSuggestionsDatabaseInput, rpc_name="search/getSuggestionsDatabase"]
     fn get_suggestions_database(&self) -> response::GetSuggestionDatabase;

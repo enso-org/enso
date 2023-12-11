@@ -1417,6 +1417,7 @@ object Runtime {
       * @param failure the detailed information about the failure
       */
     final case class VisualizationExpressionFailed(
+      ctx: VisualizationContext,
       message: String,
       failure: Option[ExecutionResult.Diagnostic]
     ) extends Error
@@ -1425,6 +1426,9 @@ object Runtime {
       /** @inheritdoc */
       override def toLogString(shouldMask: Boolean): String =
         "VisualizationExpressionFailed(" +
+        s"contextId=${ctx.contextId}," +
+        s"visualizationId=${ctx.visualizationId}," +
+        s"expressionId=${ctx.expressionId}," +
         s"message=${MaskedString(message).toLogString(shouldMask)}," +
         s"failure=${failure.map(_.toLogString(shouldMask))}" +
         ")"
@@ -1433,16 +1437,12 @@ object Runtime {
     /** Signals that an evaluation of a code responsible for generating
       * visualization data failed.
       *
-      * @param contextId the context's id.
-      * @param visualizationId the visualization identifier
-      * @param expressionId the identifier of a visualised expression
+      * @param ctx the visualization context
       * @param message the reason of the failure
       * @param diagnostic the detailed information about the failure
       */
     final case class VisualizationEvaluationFailed(
-      contextId: ContextId,
-      visualizationId: VisualizationId,
-      expressionId: ExpressionId,
+      ctx: VisualizationContext,
       message: String,
       diagnostic: Option[ExecutionResult.Diagnostic]
     ) extends ApiNotification
@@ -1451,9 +1451,7 @@ object Runtime {
       /** @inheritdoc */
       override def toLogString(shouldMask: Boolean): String =
         "VisualizationEvaluationFailed(" +
-        s"contextId=$contextId," +
-        s"visualizationId=$visualizationId," +
-        s"expressionId=$expressionId," +
+        s"ctx=$ctx," +
         s"message=${MaskedString(message).toLogString(shouldMask)}," +
         s"diagnostic=${diagnostic.map(_.toLogString(shouldMask))}" +
         ")"
