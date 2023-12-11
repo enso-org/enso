@@ -5,17 +5,17 @@
  * a double click. For this function, a double click is defined as a second click that occurs within
  * 200ms of the first click. The click count is reset to 0 upon double click, or after 200ms. */
 export function useDoubleClick<Args extends any[]>(
-  onClick: (e: MouseEvent, ...args: Args) => void,
+  onClick: (...args: Args) => void,
   onDoubleClick: (...args: Args) => void,
 ) {
   const timeBetweenClicks = 200
   let clickCount = 0
   let singleClickTimer: ReturnType<typeof setTimeout>
 
-  const handleClick = (e: MouseEvent, ...args: Args) => {
+  const handleClick = (...args: Args) => {
     clickCount++
     if (clickCount === 1) {
-      onClick(e, ...args)
+      onClick(...args)
       singleClickTimer = setTimeout(() => {
         clickCount = 0
       }, timeBetweenClicks)

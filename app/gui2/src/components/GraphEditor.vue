@@ -14,7 +14,6 @@ import { Uploader, uploadedExpression } from '@/components/GraphEditor/upload'
 import GraphMouse from '@/components/GraphMouse.vue'
 import PlusButton from '@/components/PlusButton.vue'
 import TopBar from '@/components/TopBar.vue'
-import { useDoubleClick } from '@/composables/doubleClick.ts'
 import { provideGraphNavigator } from '@/providers/graphNavigator'
 import { provideGraphSelection } from '@/providers/graphSelection'
 import { provideInteractionHandler, type Interaction } from '@/providers/interactionHandler'
@@ -27,6 +26,7 @@ import { colorFromString } from '@/util/colors'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
+import { useDoubleClick } from '@/util/vue/doubleClick'
 import { keyboardBusy, keyboardBusyExceptIn, useEvent } from '@/util/vue/events'
 import * as set from 'lib0/set'
 import type { ExprId, NodeMetadata } from 'shared/yjsModel'
@@ -218,7 +218,7 @@ const graphBindingsHandler = graphBindings.handler({
 })
 
 const handleClick = useDoubleClick(
-  (e) => {
+  (e: MouseEvent) => {
     graphBindingsHandler(e)
   },
   () => {

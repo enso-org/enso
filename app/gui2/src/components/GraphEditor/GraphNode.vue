@@ -214,20 +214,14 @@ function getRelatedSpanOffset(domNode: globalThis.Node, domOffset: number): numb
   return 0
 }
 
-const handlePortClick = useDoubleClick<[portId: ExprId]>(
-  (_e, portId) => emit('outputPortClick', portId),
-  (portId) => {
-    emit('outputPortDoubleClick', portId)
-  },
+const handlePortClick = useDoubleClick(
+  (portId: ExprId) => emit('outputPortClick', portId),
+  (portId: ExprId) => emit('outputPortDoubleClick', portId),
 ).handleClick
 
 const handleNodeClick = useDoubleClick(
-  (e) => {
-    nodeEditHandler(e)
-  },
-  () => {
-    emit('doubleClick')
-  },
+  (e: MouseEvent) => nodeEditHandler(e),
+  () => emit('doubleClick'),
 ).handleClick
 interface PortData {
   clipRange: [number, number]
@@ -339,7 +333,7 @@ function portGroupStyle(port: PortData) {
               class="outputPortHoverArea"
               @pointerenter="outputHovered = port.portId"
               @pointerleave="outputHovered = undefined"
-              @pointerdown.stop.prevent="handlePortClick($event, port.portId)"
+              @pointerdown.stop.prevent="handlePortClick(port.portId)"
             />
             <rect class="outputPort" />
           </g>
