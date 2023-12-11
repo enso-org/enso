@@ -167,7 +167,7 @@ function handleBreadcrumbClick(index: number) {
   --enso-docs-text-color: rbga(0, 0, 0, 0.6);
   --enso-docs-tag-background-color: #dcd8d8;
   --enso-docs-code-background-color: #dddcde;
-  font-family: var(--font-code);
+  font-family: var(--font-sans);
   font-size: 11.5px;
   line-height: 160%;
   color: var(--enso-docs-text-color);

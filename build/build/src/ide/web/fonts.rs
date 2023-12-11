@@ -75,10 +75,12 @@ pub async fn install_enso_font_for_html(
 pub async fn install_enso_font_for_html_2(
     cache: &Cache,
     octocrab: &Octocrab,
+    css_basepath: &str,
     output_path: impl AsRef<Path>,
     css_output_path: impl AsRef<Path>,
 ) -> Result {
     let output_path = output_path.as_ref();
+    ide_ci::fs::tokio::create_dir_if_missing(output_path).await?;
     let html_fonts: Vec<_> = [
         NonVariableFaceHeader { weight: ttf::Weight::Thin, ..default() },
         NonVariableFaceHeader { weight: ttf::Weight::ExtraLight, ..default() },
@@ -103,7 +105,6 @@ pub async fn install_enso_font_for_html_2(
     let make_css_file = async {
         let mut css = String::new();
         let family = "Enso";
-        let url = ".";
         for header in html_fonts {
             use std::fmt::Write;
             let def = html_font_definitions.get(header);
@@ -117,7 +118,7 @@ pub async fn install_enso_font_for_html_2(
             let weight = def.header.weight.to_number();
             writeln!(&mut css, "@font-face {{")?;
             writeln!(&mut css, "  font-family: '{family}';")?;
-            writeln!(&mut css, "  src: url('{url}/{file}');")?;
+            writeln!(&mut css, "  src: url('{css_basepath}/{file}');")?;
             writeln!(&mut css, "  font-weight: {weight};")?;
             writeln!(&mut css, "  font-style: normal;")?;
             writeln!(&mut css, "}}")?;

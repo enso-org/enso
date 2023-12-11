@@ -89,7 +89,7 @@ try {
   })
 }
 try {
-  await fs.access(`./public/font-mplus1/MPLUS1.ttf`)
+  await fs.access(`./public/font-mplus1/MPLUS1[wght].ttf`)
   console.info('M PLUS 1 font already downloaded, skipping...')
 } catch {
   if (!warningMessageAlreadyShown) console.warn(WARNING_MESSAGE)
@@ -99,7 +99,7 @@ try {
   await fs.mkdir('./public/font-mplus1/', { recursive: true })
   await new Promise((resolve, reject) => {
     get(MPLUS1_FONT_URL, (response) => {
-      response.pipe(fsSync.createWriteStream('./public/font-mplus1/MPLUS1.ttf'))
+      response.pipe(fsSync.createWriteStream('./public/font-mplus1/MPLUS1[wght].ttf'))
       response.on('end', resolve)
       response.on('error', reject)
     })

@@ -156,6 +156,30 @@ pub async fn download_google_font(
     Ok(result)
 }
 
+pub async fn download_google_font_with_css(
+    cache: &Cache,
+    octocrab: &Octocrab,
+    family: &str,
+    css_family: &str,
+    css_basepath: &str,
+    output_path: impl AsRef<Path>,
+    css_output_path: impl AsRef<Path>,
+) -> Result<Vec<PathBuf>> {
+    let paths = download_google_font(cache, octocrab, family, output_path).await?;
+    let mut css = String::new();
+    use std::fmt::Write;
+    for path in &paths {
+        let file = path.file_name().and_then(|name| name.to_str()).unwrap_or("");
+        writeln!(&mut css, "@font-face {{")?;
+        writeln!(&mut css, "  font-family: '{css_family}';")?;
+        writeln!(&mut css, "  src: url('{css_basepath}/{file}');")?;
+        writeln!(&mut css, "}}")?;
+        writeln!(&mut css, "")?;
+    }
+    ide_ci::fs::tokio::write(css_output_path, css).await?;
+    Ok(paths)
+}
+
 // =============
 // === Tests ===
 // =============

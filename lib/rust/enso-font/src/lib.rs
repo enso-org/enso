@@ -84,7 +84,7 @@ pub fn enso_font() -> NonVariableDefinition {
 }
 
 /// Extract the fonts from the given archive file, and write them in the given directory.
-#[context("Failed to extract fonts from archive: {}", package.as_ref().display())]
+#[context("Failed to extract fonts from archive {}", package.as_ref().display())]
 pub async fn extract_fonts(
     fonts: &NonVariableDefinition,
     package: impl AsRef<Path>,

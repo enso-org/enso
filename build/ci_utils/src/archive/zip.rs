@@ -75,22 +75,28 @@ pub fn extract_files_sync(
     archive: &mut ZipArchive<std::fs::File>,
     mut filter: impl FnMut(&Path) -> Option<PathBuf>,
 ) -> Result {
-    let paths: Vec<_> = archive.file_names().collect();
-    for path in paths {
-        let mut entry = archive
-            .by_name(path)
-            .with_context(|| format!("Could not find file in archive: {}", path))?;
-        let path_in_archive = Path::new(path);
+    for i in 0..archive.len() {
+        let mut entry =
+            archive.by_index(i).with_context(|| format!("Error getting ZIP archive entry"))?;
+        let path_in_archive =
+            entry.enclosed_name().with_context(|| format!("Could not get file path"))?;
         if let Some(output_path) = filter(&path_in_archive) {
             let entry_type = if entry.is_dir() { "directory" } else { "file" };
-            let make_message = |prefix, path: &str| {
-                format!("{} {:?} entry: {} => {}", prefix, entry_type, path, output_path.display())
+            let make_message = |prefix, path: &Path| {
+                format!(
+                    "{} {:?} entry: {} => {}",
+                    prefix,
+                    entry_type,
+                    path.display(),
+                    output_path.display()
+                )
             };
 
-            trace!("{}", make_message("Extracting", path));
+            trace!("{}", make_message("Extracting", path_in_archive));
             let mut output = std::fs::File::create(&output_path)
-                .with_context(|| make_message("Could not extract file", path))?;
-            std::io::copy(&mut entry, &mut output);
+                .with_context(|| make_message("Could not extract file", path_in_archive))?;
+            std::io::copy(&mut entry, &mut output)
+                .with_context(|| format!("Could not copy file to {}", output_path.display()))?;
         }
     }
     Ok(())
