@@ -917,7 +917,6 @@ spec =
             result . should_equal [11, 21, Nothing, 41]
             actual = Warning.get_all result . map .value
             expected = [Map_Error.Error 2 (My_Error.Error 30)]
-            q = actual == expected
             Warning.get_all result . map .value . should_equal [Map_Error.Error 2 (My_Error.Error 30)]
 
     Test.group "Vector builder" <|
