@@ -42,16 +42,14 @@ const listUuid = uuidv4()
 
 const mimeType = computed(() => props.dragMimeType ?? 'application/octet-stream')
 
-const dragMetaMimePrefix = 'application/x-enso-list-meta'
+const dragMetaMimePrefix = 'application/x-enso-list-item;item='
 
 function stringToHex(str: string) {
-  return Array.from(str)
-    .map((c) =>
-      c.charCodeAt(0) < 128
-        ? c.charCodeAt(0).toString(16)
-        : encodeURIComponent(c).replace(/%/g, '').toLowerCase(),
-    )
-    .join('')
+  return Array.from(str, (c) =>
+    c.charCodeAt(0) < 128
+      ? c.charCodeAt(0).toString(16)
+      : encodeURIComponent(c).replace(/%/g, '').toLowerCase(),
+  ).join('')
 }
 
 function hexToString(hex: string) {
@@ -63,9 +61,9 @@ function encodeMetadataToMime(meta: DropMetadata) {
 }
 
 function decodeMetadataFromMime(mime: string): DropMetadata | undefined {
-  if (!mime.startsWith(dragMetaMimePrefix)) return undefined
-  const rawMeta = hexToString(mime.substring(dragMetaMimePrefix.length))
-  return JSON.parse(rawMeta) as DropMetadata
+  if (!mime.startsWith(dragMetaMimePrefix)) return
+  const data = hexToString(mime.substring(dragMetaMimePrefix.length))
+  return JSON.parse(data)
 }
 
 const draggedIndex = ref<number>()
@@ -297,9 +295,6 @@ useEvent(
   window,
   'dragenter',
   (e) => {
-    const transfer = e.dataTransfer
-    if (!transfer) return
-    console.log('dragenter', transfer.types, transfer.items[0], transfer.effectAllowed)
     if (e.dataTransfer?.types.includes(mimeType.value)) dragDetected.value += 1
   },
   { capture: true },
@@ -316,9 +311,6 @@ useEvent(
   window,
   'drop',
   (e) => {
-    const transfer = e.dataTransfer
-    if (!transfer) return
-    console.log('drop', transfer.types, transfer.items[0], transfer.effectAllowed)
     if (e.dataTransfer?.types.includes(mimeType.value)) dragDetected.value -= 1
   },
   { capture: true },
@@ -465,6 +457,10 @@ watchPostEffect(() => {
   .placeholder.list-leave-to {
     width: 0;
   }
+}
+
+div {
+  display: inline-block;
 }
 
 .vector-literal {

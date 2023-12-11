@@ -1,0 +1,129 @@
+from Standard.Base import all
+
+import project.Sieve.Sieve_Without_Types
+
+foreign js natural_in_js = """
+    class Gen {
+        constructor() {
+            this.n = 2
+        }
+
+        n() {
+            return this.n
+        }
+
+        next() {
+            this.n++
+            return this
+        }
+    }
+    return new Gen()
+
+compute_nth_prime_natural_in_js = Sieve_Without_Types.compute_nth_prime gen=natural_in_js
+
+foreign js filter_in_js = """
+    function Filter(number) {
+        this.number = number;
+        this.next = null;
+        this.last = this;
+    }
+    Filter.prototype.acceptAndAdd = function(n) {
+        var filter = this;
+        var sqrt = Math.sqrt(n);
+        while (filter != null) {
+            if (filter.number) {
+                if (n % filter.number === 0) {
+                    return null;
+                }
+                if (filter.number > sqrt) {
+                    break;
+                }
+            }
+            filter = filter.next;
+        }
+        var newFilter = new Filter(n);
+        this.last.next = newFilter;
+        this.last = newFilter;
+        return this;
+    };
+    return new Filter(null);
+
+compute_nth_prime_filter_in_js = Sieve_Without_Types.compute_nth_prime fil=filter_in_js
+
+compute_nth_prime_from_js_file n =
+    script = enso_project.data/"sieve.js"
+    bench_external_file script.to_text n
+
+foreign js bench_external_file script n = """
+    if (!globalThis.globalPrimes) {
+        Polyglot.evalFile("js", script.toString());
+    }
+    return globalPrimes(n);
+
+type Primes
+    Alg generator filter
+
+Primes.next self = case self of
+    Primes.Alg g f ->
+        filter = f.acceptAndAdd g.n
+        new_primes = Primes.Alg g.next filter
+        if Meta.is_same_object filter f then @Tail_Call new_primes.next else new_primes
+
+Primes.last_prime self = case self of
+    Primes.Alg g _ -> g.n - 1
+
+foreign js all_in_java_script n = """
+    function Natural() {
+        this.x = 2;
+    };
+    Natural.prototype.next = function() {
+        return this.x++;
+    };
+
+    function Filter(number) {
+        this.number = number;
+        this.next = null;
+        this.last = this;
+    }
+    Filter.prototype.acceptAndAdd = function(n) {
+        var filter = this;
+        var sqrt = Math.sqrt(n);
+        for (;;) {
+            if (n % filter.number === 0) {
+                return false;
+            }
+            if (filter.number > sqrt) {
+                break;
+            }
+            filter = filter.next;
+        }
+        var newFilter = new Filter(n);
+        this.last.next = newFilter;
+        this.last = newFilter;
+        return true;
+    };
+
+    function Primes(natural) {
+        this.natural = natural;
+        this.filter = null;
+    }
+    Primes.prototype.next = function() {
+        for (;;) {
+            var n = this.natural.next();
+            if (this.filter === null) {
+                this.filter = new Filter(n);
+                return n;
+            }
+            if (this.filter.acceptAndAdd(n)) {
+                return n;
+            }
+        }
+    };
+
+    var res = -1;
+    let primes = new Primes(new Natural());
+    for (let i = 0; i < n; i++) {
+        res = primes.next();
+    }
+    return res;
+

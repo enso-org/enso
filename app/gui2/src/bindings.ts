@@ -25,13 +25,16 @@ export const graphBindings = defineKeybinds('graph-editor', {
   openComponentBrowser: ['Enter'],
   newNode: ['N'],
   toggleVisualization: ['Space'],
-  deleteSelected: ['Delete'],
+  deleteSelected: ['OsDelete'],
+  zoomToSelected: ['Mod+Shift+A'],
   selectAll: ['Mod+A'],
   deselectAll: ['Escape', 'PointerMain'],
   copyNode: ['Mod+C'],
   pasteNode: ['Mod+V'],
   startProfiling: ['Mod+Alt+,'],
   stopProfiling: ['Mod+Alt+.'],
+  enterNode: ['Mod+E'],
+  exitNode: ['Mod+Shift+E'],
 })
 
 export const selectionMouseBindings = defineKeybinds('selection', {

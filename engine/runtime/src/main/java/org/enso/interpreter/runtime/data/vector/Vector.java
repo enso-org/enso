@@ -188,7 +188,9 @@ abstract class Vector implements EnsoObject {
     private Generic(Object storage) {
       if (CompilerDirectives.inInterpreter()) {
         if (!InteropLibrary.getUncached().hasArrayElements(storage)) {
-          throw new IllegalStateException("Vector needs array-like delegate, but got: " + storage);
+          throw EnsoContext.get(null)
+              .raiseAssertionPanic(
+                  null, "Vector needs array-like delegate, but got: " + storage, null);
         }
       }
       this.storage = storage;

@@ -60,6 +60,7 @@ trait NativeTestHelper {
     * @param extraEnv extra environment properties added to the environment. Care must be taken
     *                 on Windows where environment variables are (mostly) case-insensitive.
     * @param extraJVMProps extra JVM properties to be appended to the command
+    * @param timeoutSeconds timeout (in seconds) to wait for the command to finish
     * @param waitForDescendants if true, tries to wait for descendants of the launched process to finish too.
     *                           Especially important on Windows where child processes may run after the launcher
     *                           parent has been terminated.
@@ -68,8 +69,12 @@ trait NativeTestHelper {
     command: Seq[String],
     extraEnv: Seq[(String, String)],
     extraJVMProps: Seq[(String, String)],
+    timeoutSeconds: Long,
     waitForDescendants: Boolean = true
   ): RunResult =
-    start(command, extraEnv, extraJVMProps).join(waitForDescendants)
+    start(command, extraEnv, extraJVMProps).join(
+      waitForDescendants,
+      timeoutSeconds
+    )
 
 }

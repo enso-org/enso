@@ -8,9 +8,9 @@ import {
   makeType,
   type SuggestionEntry,
 } from '@/stores/suggestionDatabase/entry'
-import { Ast, AstExtended } from '@/util/ast'
-import { GeneralOprApp } from '@/util/ast/opr'
+import { Ast } from '@/util/ast'
 import {
+  identifierUnchecked,
   normalizeQualifiedName,
   qnFromSegments,
   qnSplit,
@@ -25,67 +25,48 @@ import { unwrap } from '@/util/result'
 // === Imports analysis ===
 // ========================
 
-function parseIdent(ast: AstExtended): Identifier | null {
-  if (ast.isTree(Ast.Tree.Type.Ident) || ast.isToken(Ast.Token.Type.Ident)) {
-    const ident = tryIdentifier(ast.repr())
-    return ident.ok ? ident.value : null
+function unrollOprChain(ast: Ast.Ast, operator: string): Identifier[] | null {
+  const idents: Identifier[] = []
+  let ast_: Ast.Ast | null = ast
+  while (
+    ast_ instanceof Ast.OprApp &&
+    ast_.operator.ok &&
+    ast_.operator.value.code() === operator
+  ) {
+    if (!(ast_.rhs instanceof Ast.Ident)) return null
+    idents.unshift(identifierUnchecked(ast_.rhs.code()))
+    ast_ = ast_.lhs
+  }
+  if (!(ast_ instanceof Ast.Ident)) return null
+  idents.unshift(identifierUnchecked(ast_.code()))
+  return idents
+}
+
+function parseIdent(ast: Ast.Ast): Identifier | null {
+  if (ast instanceof Ast.Ident) {
+    return identifierUnchecked(ast.code())
   } else {
     return null
   }
 }
 
-function parseIdents(ast: AstExtended): Identifier[] | null {
-  if (ast.isTree(Ast.Tree.Type.Ident) || ast.isToken(Ast.Token.Type.Ident)) {
-    const ident = tryIdentifier(ast.repr())
-    return ident.ok ? [ident.value] : null
-  } else if (ast.isTree(Ast.Tree.Type.OprApp)) {
-    const opr = new GeneralOprApp(ast)
-    const operands = opr.operandsOfLeftAssocOprChain(',')
-    return [...operands].flatMap((operand) => {
-      if (operand && operand.type === 'ast') {
-        const ident = parseIdent(operand.ast)
-        return ident != null ? [ident] : []
-      } else {
-        return []
-      }
-    })
-  } else {
-    return null
-  }
+function parseIdents(ast: Ast.Ast): Identifier[] | null {
+  return unrollOprChain(ast, ',')
 }
 
-function parseQualifiedName(ast: AstExtended): QualifiedName | null {
-  if (ast.isTree(Ast.Tree.Type.Ident) || ast.isToken(Ast.Token.Type.Ident)) {
-    const name = tryQualifiedName(ast.repr())
-    return name.ok ? normalizeQualifiedName(name.value) : null
-  } else if (ast.isTree(Ast.Tree.Type.OprApp)) {
-    const opr = new GeneralOprApp(ast)
-    const operands = opr.operandsOfLeftAssocOprChain('.')
-    const idents = []
-    for (const operand of operands) {
-      if (operand && operand.type === 'ast') {
-        const ident = parseIdent(operand.ast)
-        if (ident == null) {
-          // One of identifiers is invalid, so is the whole qualified name.
-          return null
-        } else {
-          idents.push(ident)
-        }
-      }
-    }
-    return normalizeQualifiedName(qnFromSegments(idents))
-  } else {
-    return null
-  }
+function parseQualifiedName(ast: Ast.Ast): QualifiedName | null {
+  const idents = unrollOprChain(ast, '.')
+  if (idents === null) return null
+  return normalizeQualifiedName(qnFromSegments(idents))
 }
 
 /** Parse import statement. */
-export function recognizeImport(ast: AstExtended<Ast.Tree.Import>): Import | null {
-  const from = ast.tryMap((import_) => import_.from?.body)
-  const as = ast.tryMap((import_) => import_.as?.body)
-  const import_ = ast.tryMap((import_) => import_.import.body)
-  const all = ast.tryMap((import_) => import_.all)
-  const hiding = ast.tryMap((import_) => import_.hiding?.body)
+export function recognizeImport(ast: Ast.Import): Import | null {
+  const from = ast.from
+  const as = ast.as
+  const import_ = ast.import_
+  const all = ast.all
+  const hiding = ast.hiding
   const module =
     from != null ? parseQualifiedName(from) : import_ != null ? parseQualifiedName(import_) : null
   if (!module) return null
@@ -108,7 +89,7 @@ export function recognizeImport(ast: AstExtended<Ast.Tree.Import>): Import | nul
       imported: alias ? { kind: 'Module', alias } : { kind: 'Module' },
     }
   } else {
-    console.error('Unrecognized import', ast.debug())
+    console.error('Unrecognized import', ast.code())
     return null
   }
 }
@@ -486,8 +467,8 @@ if (import.meta.vitest) {
 
   const parseImport = (code: string): Import | null => {
     let ast = null
-    AstExtended.parse(code).visitRecursive((node) => {
-      if (node.isTree(Ast.Tree.Type.Import)) {
+    Ast.parse(code).visitRecursive((node) => {
+      if (node instanceof Ast.Import) {
         ast = node
         return false
       }

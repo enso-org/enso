@@ -273,7 +273,8 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
           Object result = InteropLibrary.getFactory().getUncached().execute(functionCall);
           onReturnValue(null, result);
         } catch (InteropException e) {
-          throw new PanicException(Text.create(e.getMessage()), this);
+          var ctx = EnsoContext.get(this);
+          throw ctx.raiseAssertionPanic(this, null, e);
         }
       }
 

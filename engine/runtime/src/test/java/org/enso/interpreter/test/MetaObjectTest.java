@@ -9,6 +9,7 @@ import java.util.Set;
 
 import org.enso.interpreter.runtime.type.ConstantsGen;
 import org.enso.interpreter.test.ValuesGenerator.Language;
+import org.enso.polyglot.MethodNames;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
@@ -179,6 +180,128 @@ public class MetaObjectTest extends TestBase {
           assertEquals(g.typeAny(), p);
         }
       }
+    }
+  }
+
+  @Test
+  public void typesOfConstructors() throws Exception {
+    var g = generator();
+    var types = new java.util.HashSet<Value>();
+    for (var c : g.constructorsAndValuesAndSumType()) {
+      if (c.isMetaObject()) {
+        types.add(c);
+      }
+    }
+    for (var c : g.constructorsAndValuesAndSumType()) {
+      if (c.isMetaObject() || types.contains(c.getMetaObject())) {
+        continue;
+      }
+      assertNotNull("c " + c + " has a type", c.getMetaObject());
+      assertEquals("c " + c + " is function", "Function", c.getMetaObject().getMetaSimpleName());
+      assertEquals("c " + c + " is function", g.typeFunction(), c.getMetaObject());
+    }
+  }
+
+  @Test
+  public void compareQualifiedAndSimpleTypeName() throws Exception {
+    var g = generator();
+    var sn = ctx.eval("enso", """
+    from Standard.Base import Meta
+
+    sn v = Meta.get_simple_type_name v
+    """).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "sn");
+    var sb = new StringBuilder();
+    for (var v : g.allValues()) {
+      var simpleName = sn.execute(v).asString();
+      if (v.isNumber()) {
+        var ok = switch (simpleName) {
+          case "Integer", "Float" -> true;
+          default -> false;
+        };
+        assertTrue("Unexpected simple name for number: " + simpleName, ok);
+        continue;
+      }
+      var meta = v.getMetaObject();
+      var metaName = meta != null ? meta.getMetaSimpleName() : "null";
+      if (!simpleName.equals(metaName)) {
+        if (v.isHostObject()) {
+          if (v.hasArrayElements()) {
+            assertEquals("Array", simpleName);
+            continue;
+          }
+          if (v.hasHashEntries()) {
+            assertEquals("Map", simpleName);
+            continue;
+          }
+        }
+        if (v.isString()) {
+          assertEquals("Text", simpleName);
+          continue;
+        }
+        if (v.isDuration()) {
+          assertEquals("Duration", simpleName);
+          continue;
+        }
+        if (v.isDate() && v.isTime()) {
+          assertEquals("Date_Time", simpleName);
+          continue;
+        }
+        if (v.isTimeZone()) {
+          assertEquals("Time_Zone", simpleName);
+          continue;
+        }
+        if (v.isDate()) {
+          assertEquals("Date", simpleName);
+          continue;
+        }
+        if (v.isTime()) {
+          assertEquals("Time_Of_Day", simpleName);
+          continue;
+        }
+        if (v.isNull()) {
+          assertEquals("Nothing", simpleName);
+          continue;
+        }
+
+        sb.append("\n").append("Simple names shall be the same for ").
+          append(v).append(" get_simple_type_name: ").append(simpleName).
+          append(" getMetaSimpleName: ").append(metaName);
+      }
+    }
+    if (!sb.isEmpty()) {
+      var lines = sb.toString().lines().count() - 1;
+      sb.insert(0, "There is " + lines + " differences:");
+      fail(sb.toString());
+    }
+  }
+
+  @Test
+  public void compareQualifiedAndSimpleTypeNameForTypes() throws Exception {
+    var g = generator();
+    var sn = ctx.eval("enso", """
+    from Standard.Base import Meta
+
+    sn v = Meta.get_simple_type_name v
+    """).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "sn");
+    var sb = new StringBuilder();
+    for (var typ : g.allTypes()) {
+      if (!typ.isMetaObject()) {
+        // skip Nothing
+        continue;
+      }
+
+      var simpleName = sn.execute(typ).asString();
+      var metaName = typ.getMetaSimpleName() + ".type";
+      if (!simpleName.equals(metaName)) {
+        sb.append("\n").append("Simple names shall be the same for ").
+          append(typ).append(" get_simple_type_name: ").append(simpleName).
+          append(" getMetaSimpleName: ").append(metaName);
+      }
+    }
+    if (!sb.isEmpty()) {
+      var lines = sb.toString().lines().count() - 1;
+      sb.insert(0, "There is " + lines + " differences:");
+      fail(sb.toString());
     }
   }
 

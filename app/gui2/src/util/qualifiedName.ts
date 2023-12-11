@@ -18,6 +18,11 @@ export function tryIdentifier(str: string): Result<Identifier> {
   return isIdentifier(str) ? Ok(str) : Err(`"${str}" is not a valid identifier`)
 }
 
+/** Mark the input as an identifier without any validation. This should always be used to obtain an Identifier from an Ast, and never when creating or modifying an identifier. */
+export function identifierUnchecked(str: string): Identifier {
+  return str as Identifier
+}
+
 /** A string representing a valid qualified name of our language.
  *
  * In our language, the segments are separated by `.`, and its segments

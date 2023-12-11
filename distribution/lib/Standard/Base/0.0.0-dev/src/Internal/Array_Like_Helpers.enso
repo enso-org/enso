@@ -3,6 +3,7 @@ import project.Data.Array.Array
 import project.Data.Maybe.Maybe
 import project.Data.Numbers.Integer
 import project.Data.Vector.Map_Error
+import project.Data.Vector.No_Wrap
 import project.Data.Vector.Vector
 import project.Errors.Common.Additional_Warnings
 import project.Error.Error
@@ -46,19 +47,22 @@ vector_from_function_primitive length constructor = @Builtin_Method "Array_Like_
      Errors and Warnings that arise when executing the function are wrapped in
      `Map_Error`.
 
-     Only `MAX_MAP_WARNINGS` warnings are attached to result values. After that,
-     the warnings are dropped, but a count of the additional warnings is attached
-     in an `Additional_Warnings` warning.
+     Only `MAX_MAP_WARNINGS` number of warnings are attached to result values.
+     After that, the warnings are dropped, but a count of the additional
+     warnings is attached in an `Additional_Warnings` warning.
 
    ? Problem Handling
 
      The result of Errors thrown when executing the function depend on `on_problems`:
-     - Problem_Behavior.Report_Error: The error is thrown.
-     - Problem_Behavior.Report_Warning: The result is `Nothing`, with the error
-       attached as a warning. Currently unimplemented.
-     - Problem_Behavior.Ignore: The result is `Nothing`, and the error is
+     - Report_Error: The first error is thrown, and is wrapped in
+       `Map_Error`.
+     - No_Wrap: The first error is thrown, and is not wrapped in
+       `Map_Error`.
+     - Report_Warning: The result for that element is `Nothing`, 
+       the error is attached as a warning. Currently unimplemented.
+     - Ignore: The result is `Nothing`, and the error is
        ignored.
-vector_from_function : Integer -> (Integer -> Any) -> Problem_Behavior -> Vector Any
+vector_from_function : Integer -> (Integer -> Any) -> Problem_Behavior | No_Wrap -> Vector Any
 vector_from_function length function on_problems=Problem_Behavior.Report_Error =
     num_errors = Ref.new 0
     wrapped_function i =
@@ -73,6 +77,7 @@ vector_from_function length function on_problems=Problem_Behavior.Report_Error =
                     Problem_Behavior.Report_Error ->
                         result.catch_primitive caught->
                             Error.throw (Map_Error.Error i caught)
+                    No_Wrap.Value -> result
                     Problem_Behavior.Report_Warning ->
                         with_error_maybe = if num_errors.get >= MAX_MAP_WARNINGS then Nothing else
                             result.catch_primitive caught->

@@ -20,6 +20,7 @@ const navigator = injectGraphNavigator(true)
 
 const emit = defineEmits<{
   nodeOutputPortDoubleClick: [portId: ExprId]
+  nodeDoubleClick: [nodeId: ExprId]
 }>()
 
 function updateNodeContent(id: ExprId, updates: [ContentRange, string][]) {
@@ -60,6 +61,7 @@ const uploadingFiles = computed<[FileName, File][]>(() => {
     @draggingCommited="dragging.finishDrag()"
     @outputPortClick="graphStore.createEdgeFromOutput"
     @outputPortDoubleClick="emit('nodeOutputPortDoubleClick', $event)"
+    @doubleClick="emit('nodeDoubleClick', id)"
     @update:content="updateNodeContent(id, $event)"
     @update:edited="graphStore.setEditedNode(id, $event)"
     @update:rect="graphStore.updateNodeRect(id, $event)"
