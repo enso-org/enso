@@ -4,6 +4,7 @@ import { useApproach } from '@/util/animation'
 import { partitionPoint } from '@/util/array'
 import type { Opt } from '@/util/opt'
 import { Rect } from '@/util/rect'
+import theme from '@/util/theme.json'
 import { Vec2 } from '@/util/vec2'
 import { iteratorFilter } from 'lib0/iterator'
 import { abs } from 'lib0/math'
@@ -11,6 +12,7 @@ import type { ExprId } from 'shared/yjsModel'
 import { computed, markRaw, ref, watchEffect, type ComputedRef, type WatchStopHandle } from 'vue'
 
 const DRAG_SNAP_THRESHOLD = 15
+const VERTICAL_GAP = theme.node.vertical_gap
 
 export class SnapGrid {
   leftAxes: ComputedRef<number[]>
@@ -26,9 +28,15 @@ export class SnapGrid {
     this.rightAxes = computed(() =>
       Array.from(rects.value, (rect) => rect.right).sort((a, b) => a - b),
     )
-    this.topAxes = computed(() => Array.from(rects.value, (rect) => rect.top).sort((a, b) => a - b))
+    this.topAxes = computed(() =>
+      Array.from(rects.value, (rect) => rect.top)
+        .concat(Array.from(rects.value, (rect) => rect.bottom + VERTICAL_GAP))
+        .sort((a, b) => a - b),
+    )
     this.bottomAxes = computed(() =>
-      Array.from(rects.value, (rect) => rect.bottom).sort((a, b) => a - b),
+      Array.from(rects.value, (rect) => rect.bottom)
+        .concat(Array.from(rects.value, (rect) => rect.top - VERTICAL_GAP))
+        .sort((a, b) => a - b),
     )
   }
 
