@@ -108,8 +108,8 @@ spec =
                 r = Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_CREDENTIALS_FILE" invalid_token_file.absolute.normalize.path <|
                     Enso_User.current
                 r.should_fail_with HTTP_Error
-                r.should_be_a HTTP_Error.Status_Error
-                r.status_code.code . should_equal 403
+                r.catch.should_be_a HTTP_Error.Status_Error
+                r.catch.status_code.code . should_equal 403
 
             # Ensure the token is reset after the last test, so that any other tests will again use the correct one.
             reset_token
