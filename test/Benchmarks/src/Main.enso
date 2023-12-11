@@ -29,6 +29,7 @@ import project.Natural_Order_Sort
 import project.Number_Parse
 import project.Numeric
 import project.Range
+import project.Sieve
 import project.Sum
 import project.Startup.Startup
 import project.Runtime.Panics_And_Errors
@@ -86,6 +87,7 @@ all_benchmarks =
     builder.append Panics_And_Errors.collect_benches
 
     builder.append Startup.collect_benches
+    builder.append Sieve.Main.collect_benches
 
     builder.to_vector
 

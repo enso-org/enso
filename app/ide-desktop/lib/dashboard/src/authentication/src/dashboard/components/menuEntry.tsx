@@ -41,7 +41,7 @@ export default function MenuEntry(props: MenuEntryProps) {
         <button
             disabled={disabled}
             title={title}
-            className={`flex items-center place-content-between h-8 disabled:bg-transparent rounded-lg text-left disabled:opacity-50 hover:bg-black-a10 ${
+            className={`flex items-center place-content-between h-8 disabled:bg-transparent rounded-lg text-left disabled:opacity-50 hover:bg-black/10 ${
                 paddingClassName ?? 'px-3 py-1'
             }`}
             onClick={event => {

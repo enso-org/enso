@@ -53,6 +53,7 @@ export const useGraphStore = defineStore('graph', () => {
   const exprRects = reactive(new Map<ExprId, Rect>())
   const editedNodeInfo = ref<NodeEditInfo>()
   const imports = ref<{ import: Import; span: ContentRange }[]>([])
+  const methodAst = ref<Ast.Function>()
 
   const unconnectedEdge = ref<UnconnectedEdge>()
 
@@ -106,9 +107,9 @@ export const useGraphStore = defineStore('graph', () => {
         return true
       })
 
-      const methodAst = getExecutedMethodAst(newRoot, proj.executionContext.getStackTop())
-      if (methodAst) {
-        db.readFunctionAst(methodAst, (id) => meta.get(id))
+      methodAst.value = getExecutedMethodAst(newRoot, proj.executionContext.getStackTop(), db)
+      if (methodAst.value) {
+        db.readFunctionAst(methodAst.value, (id) => meta.get(id))
       }
     })
   }
@@ -333,6 +334,7 @@ export const useGraphStore = defineStore('graph', () => {
     nodeRects,
     vizRects,
     exprRects,
+    methodAst,
     createEdgeFromOutput,
     disconnectSource,
     disconnectTarget,
@@ -352,6 +354,7 @@ export const useGraphStore = defineStore('graph', () => {
     updateExprRect,
     setEditedNode,
     createNodeFromSource,
+    updateState,
   }
 })
 
@@ -375,6 +378,7 @@ export type UnconnectedEdge = {
 function getExecutedMethodAst(
   ast: Ast.Ast,
   executionStackTop: StackItem,
+  db: GraphDb,
 ): Ast.Function | undefined {
   switch (executionStackTop.type) {
     case 'ExplicitCall': {
@@ -384,10 +388,12 @@ function getExecutedMethodAst(
       return Ast.findModuleMethod(ast.module, ptr.name) ?? undefined
     }
     case 'LocalCall': {
-      console.error(`TODO (#8068)--this should not be reachable yet`)
-      /* AO: The expression ID is a call expression - we should get method pointer from expression updates and this way
-       * find the definition.
-       */
+      const exprId = executionStackTop.expressionId
+      const info = db.getExpressionInfo(exprId)
+      if (!info) return undefined
+      const ptr = info.methodCall?.methodPointer
+      if (!ptr) return undefined
+      return Ast.findModuleMethod(ast.module, ptr.name) ?? undefined
     }
   }
 }

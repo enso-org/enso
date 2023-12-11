@@ -47,7 +47,12 @@ class PluginManagerSpec
       writePlugin(path, "plugin2")
       writePlugin(path, "plugin3", prefixed = false)
 
-      val run = runLauncherWithPath(Seq("help"), path.toString, extraJVMProps)
+      val run = runLauncherWithPath(
+        Seq("help"),
+        path.toString,
+        extraJVMProps,
+        timeoutSeconds = 30
+      )
       run should returnSuccess
       run.stdout should include("Plugin plugin1.")
       run.stdout should include("Plugin plugin2.")
@@ -59,7 +64,12 @@ class PluginManagerSpec
       writePlugin(path, "plugin1")
 
       val run =
-        runLauncherWithPath(Seq("plugin1"), path.toString, extraJVMProps)
+        runLauncherWithPath(
+          Seq("plugin1"),
+          path.toString,
+          extraJVMProps,
+          timeoutSeconds = 30
+        )
       run should returnSuccess
       run.stdout.trim shouldEqual "Plugin plugin1."
     }
@@ -68,7 +78,12 @@ class PluginManagerSpec
       val path = getTestDirectory.toAbsolutePath
       writePlugin(path, "plugin1")
       val run =
-        runLauncherWithPath(Seq("plugin2"), path.toString, extraJVMProps)
+        runLauncherWithPath(
+          Seq("plugin2"),
+          path.toString,
+          extraJVMProps,
+          timeoutSeconds = 30
+        )
       run.exitCode should not equal 0
       run.stdout should include("plugin1")
     }

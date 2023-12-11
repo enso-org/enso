@@ -8,7 +8,8 @@ class NativeLauncherSpec extends NativeTest {
     "display its version" in {
       val run = runLauncher(
         Seq("version", "--json", "--only-launcher"),
-        extraJVMProps = Map("ENSO_LOG_TO_FILE" -> "false")
+        extraJVMProps  = Map("ENSO_LOG_TO_FILE" -> "false"),
+        timeoutSeconds = 30
       )
       run should returnSuccess
 

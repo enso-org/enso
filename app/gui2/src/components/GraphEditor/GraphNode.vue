@@ -35,8 +35,10 @@ const emit = defineEmits<{
   draggingCommited: []
   delete: []
   replaceSelection: []
+  nodeDoubleClick: []
   outputPortClick: [portId: ExprId]
   outputPortDoubleClick: [portId: ExprId]
+  doubleClick: []
   'update:content': [updates: [range: ContentRange, content: string][]]
   'update:edited': [cursorPosition: number]
   'update:rect': [rect: Rect]
@@ -213,9 +215,18 @@ function getRelatedSpanOffset(domNode: globalThis.Node, domOffset: number): numb
 }
 
 const handlePortClick = useDoubleClick<[portId: ExprId]>(
-  (portId) => emit('outputPortClick', portId),
+  (_e, portId) => emit('outputPortClick', portId),
   (portId) => {
     emit('outputPortDoubleClick', portId)
+  },
+).handleClick
+
+const handleNodeClick = useDoubleClick(
+  (e) => {
+    nodeEditHandler(e)
+  },
+  () => {
+    emit('doubleClick')
   },
 ).handleClick
 interface PortData {
@@ -229,7 +240,8 @@ const outputPorts = computed((): PortData[] => {
   const numPorts = ports.size
   return Array.from(ports, (portId, index) => {
     const labelIdent = numPorts > 1 ? graph.db.getOutputPortIdentifier(portId) + ': ' : ''
-    const labelType = graph.db.getExpressionInfo(portId)?.typename ?? 'Unknown'
+    const labelType =
+      graph.db.getExpressionInfo(numPorts > 1 ? portId : nodeId.value)?.typename ?? 'Unknown'
     return {
       clipRange: [index / numPorts, (index + 1) / numPorts],
       label: labelIdent + labelType,
@@ -302,7 +314,7 @@ function portGroupStyle(port: PortData) {
       :nodePosition="props.node.position"
       :isCircularMenuVisible="menuVisible"
       :currentType="node.vis?.identifier"
-      :expressionId="nodeId"
+      :dataSource="{ type: 'node', nodeId }"
       :typename="expressionInfo?.typename"
       @update:rect="
         emit('update:visualizationRect', $event),
@@ -311,7 +323,7 @@ function portGroupStyle(port: PortData) {
       @update:id="emit('update:visualizationId', $event)"
       @update:visible="emit('update:visualizationVisible', $event)"
     />
-    <div class="node" @pointerdown="nodeEditHandler" v-on="dragPointer.events">
+    <div class="node" @pointerdown="handleNodeClick" v-on="dragPointer.events">
       <SvgIcon class="icon grab-handle" :name="icon"></SvgIcon>
       <div ref="contentNode" class="widget-tree">
         <NodeWidgetTree :ast="node.rootSpan" />
@@ -327,7 +339,7 @@ function portGroupStyle(port: PortData) {
               class="outputPortHoverArea"
               @pointerenter="outputHovered = port.portId"
               @pointerleave="outputHovered = undefined"
-              @pointerdown.stop.prevent="handlePortClick(port.portId)"
+              @pointerdown.stop.prevent="handlePortClick($event, port.portId)"
             />
             <rect class="outputPort" />
           </g>
@@ -447,6 +459,7 @@ function portGroupStyle(port: PortData) {
 }
 
 .node {
+  font-family: var(--font-code);
   position: relative;
   top: 0;
   left: 0;
@@ -501,6 +514,7 @@ function portGroupStyle(port: PortData) {
 }
 
 .binding {
+  font-family: var(--font-code);
   user-select: none;
   margin-right: 10px;
   color: black;

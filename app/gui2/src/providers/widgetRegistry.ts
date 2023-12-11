@@ -1,6 +1,6 @@
+import { type WidgetConfiguration } from '@/providers/widgetRegistry/configuration'
 import type { GraphDb } from '@/stores/graph/graphDatabase'
 import { computed, shallowReactive, type Component, type PropType } from 'vue'
-import { z } from 'zod'
 import { createContextStore } from '.'
 
 export type WidgetComponent<T extends WidgetInput> = Component<WidgetProps<T>>
@@ -138,16 +138,6 @@ export interface WidgetDefinition<T extends WidgetInput> {
   score: (props: WidgetProps<T>, db: GraphDb) => Score
   prevent: WidgetComponent<any>[] | undefined
 }
-
-/**
- * An external configuration for a widget retreived from the language server.
- *
- * TODO: Actually implement reading dynamic widget configuration. [#8260]
- * The expected configuration type is defined as Enso type `Widget` in the following file:
- * distribution/lib/Standard/Base/0.0.0-dev/src/Metadata.enso
- */
-export type WidgetConfiguration = z.infer<typeof widgetConfigurationSchema>
-export const widgetConfigurationSchema = z.object({})
 
 export interface WidgetModule<T extends WidgetInput> {
   default: WidgetComponent<T>

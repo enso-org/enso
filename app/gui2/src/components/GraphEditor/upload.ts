@@ -1,4 +1,5 @@
-import { Awareness, type UploadingFile } from '@/stores/awareness'
+import { Awareness } from '@/stores/awareness'
+import * as astText from '@/util/ast/text'
 import { Vec2 } from '@/util/vec2'
 import { Keccak, sha3_224 as SHA3 } from '@noble/hashes/sha3'
 import type { Hash } from '@noble/hashes/utils'
@@ -11,39 +12,44 @@ import { markRaw, toRaw } from 'vue'
 
 // === Constants ===
 
-export const uploadedExpression = (name: string) => `enso_project.data/"${name}" . read`
 const DATA_DIR_NAME = 'data'
+
+export function uploadedExpression(result: UploadResult) {
+  switch (result.source) {
+    case 'Project': {
+      return `enso_project.data/'${astText.escape(result.name)}' . read`
+    }
+    case 'FileSystemRoot': {
+      return `Data.read '${astText.escape(result.name)}'`
+    }
+  }
+}
 
 // === Uploader ===
 
+export interface UploadResult {
+  source: 'FileSystemRoot' | 'Project'
+  name: string
+}
+
 export class Uploader {
-  private rpc: LanguageServer
-  private binary: DataServer
-  private file: File
-  private projectRootId: Uuid
   private checksum: Hash<Keccak>
   private uploadedBytes: bigint
-  private awareness: Awareness
-  private position: Vec2
   private stackItem: StackItem
 
   private constructor(
-    rpc: LanguageServer,
-    binary: DataServer,
-    awareness: Awareness,
-    file: File,
-    projectRootId: Uuid,
-    position: Vec2,
+    private rpc: LanguageServer,
+    private binary: DataServer,
+    private awareness: Awareness,
+    private file: File,
+    private projectRootId: Uuid,
+    private position: Vec2,
+    private isOnLocalBackend: boolean,
+    private disableDirectRead: boolean,
     stackItem: StackItem,
   ) {
-    this.rpc = rpc
-    this.binary = binary
-    this.awareness = awareness
-    this.file = file
-    this.projectRootId = projectRootId
     this.checksum = SHA3.create()
     this.uploadedBytes = BigInt(0)
-    this.position = position
     this.stackItem = markRaw(toRaw(stackItem))
   }
 
@@ -54,6 +60,8 @@ export class Uploader {
     awareness: Awareness,
     file: File,
     position: Vec2,
+    isOnLocalBackend: boolean,
+    disableDirectRead: boolean,
     stackItem: StackItem,
   ): Promise<Uploader> {
     const roots = await contentRoots
@@ -66,20 +74,30 @@ export class Uploader {
       file,
       projectRootId.id,
       position,
+      isOnLocalBackend,
+      disableDirectRead,
       stackItem,
     )
     return instance
   }
 
-  async upload(): Promise<string> {
+  async upload(): Promise<UploadResult> {
+    // This non-standard property is defined in Electron.
+    if (
+      this.isOnLocalBackend &&
+      !this.disableDirectRead &&
+      'path' in this.file &&
+      typeof this.file.path === 'string'
+    ) {
+      return { source: 'FileSystemRoot', name: this.file.path }
+    }
     await this.ensureDataDirExists()
     const name = await this.pickUniqueName(this.file.name)
-    const file: UploadingFile = {
+    this.awareness.addOrUpdateUpload(name, {
       sizePercentage: 0,
       position: this.position,
       stackItem: this.stackItem,
-    }
-    this.awareness.addOrUpdateUpload(name, file)
+    })
     const remotePath: Path = { rootId: this.projectRootId, segments: [DATA_DIR_NAME, name] }
     const uploader = this
     const cleanup = this.cleanup.bind(this, name)
@@ -90,12 +108,11 @@ export class Uploader {
         uploader.uploadedBytes += BigInt(chunk.length)
         const bytes = Number(uploader.uploadedBytes)
         const sizePercentage = Math.round((bytes / uploader.file.size) * 100)
-        const file: UploadingFile = {
+        uploader.awareness.addOrUpdateUpload(name, {
           sizePercentage,
           position: uploader.position,
           stackItem: uploader.stackItem,
-        }
-        uploader.awareness.addOrUpdateUpload(name, file)
+        })
       },
       async close() {
         cleanup()
@@ -109,7 +126,7 @@ export class Uploader {
       },
     })
     await this.file.stream().pipeTo(writableStream)
-    return name
+    return { source: 'Project', name }
   }
 
   private cleanup(name: string) {
