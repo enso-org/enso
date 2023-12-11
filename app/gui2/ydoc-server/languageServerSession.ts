@@ -285,6 +285,12 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
         const promise = this.ls.openTextFile(this.path)
         this.lastAction = promise.then()
         const result = await promise
+        if (!result.writeCapability) {
+          console.error('Could not acquire write capability for module:', this.path)
+          throw new Error(
+            `Could not acquire write capability for module '${this.path.segments.join('/')}'`,
+          )
+        }
         this.syncFileContents(result.content, result.currentVersion)
         this.changeState(LsSyncState.Synchronized)
         return
@@ -444,7 +450,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
         this.doc.metadata.delete(id)
       }
       this.syncedContent = content
-      this.syncedVersion = version ?? this.syncedVersion
+      this.syncedVersion = version
       this.syncedMeta = metadata
 
       const codeDiff = simpleDiffString(this.doc.contents.toString(), code)
@@ -531,7 +537,19 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
             },
           )
           .then(
-            () => exponentialBackoff(() => this.ls.openTextFile(this.path)),
+            () =>
+              exponentialBackoff(async () => {
+                const result = await this.ls.openTextFile(this.path)
+                if (!result.writeCapability) {
+                  console.error('Could not acquire write capability for module:', this.path)
+                  throw new Error(
+                    `Could not acquire write capability for module '${this.path.segments.join(
+                      '/',
+                    )}'`,
+                  )
+                }
+                return result
+              }),
             (error) => {
               console.error('Could not reopen file after write error:', error)
               // This error is unrecoverable.
