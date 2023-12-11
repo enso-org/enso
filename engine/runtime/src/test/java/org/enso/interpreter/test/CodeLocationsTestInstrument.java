@@ -1,4 +1,4 @@
-package org.enso.interpreter.test.instrument;
+package org.enso.interpreter.test;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.EventBinding;

@@ -17,10 +17,6 @@ import java.io.{ByteArrayOutputStream, File}
 import java.nio.file.{Files, Paths}
 import java.util.UUID
 import org.apache.commons.io.output.TeeOutputStream
-import org.enso.interpreter.test.instruments.{
-  InstrumentTestContext,
-  TestMessages
-}
 
 @scala.annotation.nowarn("msg=multiarg infix syntax")
 class RuntimeServerTest

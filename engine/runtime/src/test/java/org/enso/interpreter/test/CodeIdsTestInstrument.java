@@ -1,12 +1,12 @@
-package org.enso.interpreter.test.instrument;
+package org.enso.interpreter.test;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.*;
 import com.oracle.truffle.api.nodes.Node;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import org.enso.interpreter.node.ExpressionNode;
+import org.enso.interpreter.runtime.control.TailCallException;
 
 import java.util.UUID;
 
@@ -82,34 +82,11 @@ public class CodeIdsTestInstrument extends TruffleInstrument {
       return node;
     }
 
-    /**
-     * Uses reflection to get access to {@link org.enso.interpreter.node.ExpressionNode} and
-     * {@link org.enso.interpreter.runtime.control.TailCallException} classes. We need this because
-     * this instrument is not a part of the {@code org.enso.runtime} module, and thus cannot import these classes.
-     * It is part of {@code org.enso.runtime.test.instrument} module, which just provides few instruments
-     * for testing of the {@code org.enso.runtime} module.
-     *
-     * This is a hack to make the unit testing work and to remove the compile-time dependency on the
-     * {@code org.enso.runtime} module.
-     */
     private final class IdEventNode extends ExecutionEventNode {
       private final EventContext context;
-      private final Class<?> expressionNodeClass;
-      private final Method expressionNodeGetIdMethod;
-      private final Class<?> tailCallExceptionClass;
 
       IdEventNode(EventContext context) {
         this.context = context;
-        try {
-          // Are there two ExpressionNode classes at this point? One loaded here and one loaded inside
-          // the runtime module?
-          this.expressionNodeClass = Class.forName("org.enso.interpreter.node.ExpressionNode");
-          this.tailCallExceptionClass =
-              Class.forName("org.enso.interpreter.runtime.control.TailCallException");
-          this.expressionNodeGetIdMethod = expressionNodeClass.getDeclaredMethod("getId");
-        } catch (ClassNotFoundException | NoSuchMethodException e) {
-          throw new AssertionError(e);
-        }
       }
 
       @Override
@@ -118,6 +95,7 @@ public class CodeIdsTestInstrument extends TruffleInstrument {
       /**
        * Checks if the node to be executed is the node this listener was created to observe.
        *
+       * @param context current execution context
        * @param frame current execution frame
        * @param result the result of executing the node
        */
@@ -127,11 +105,11 @@ public class CodeIdsTestInstrument extends TruffleInstrument {
           return;
         }
         Node node = context.getInstrumentedNode();
-        if (!expressionNodeClass.isAssignableFrom(node.getClass())) {
+        if (!(node instanceof ExpressionNode)) {
           return;
         }
         nodes.put(this, result);
-        UUID id = getIdFromExpressionNode(node);
+        UUID id = ((ExpressionNode) node).getId();
         if (id == null || !id.equals(expectedId)) {
           return;
         }
@@ -140,32 +118,22 @@ public class CodeIdsTestInstrument extends TruffleInstrument {
         }
       }
 
-      private UUID getIdFromExpressionNode(Node expressionNode) {
-        assert expressionNodeClass.isAssignableFrom(expressionNode.getClass());
-        Object res = null;
-        try {
-          res = expressionNodeGetIdMethod.invoke(expressionNode);
-        } catch (IllegalAccessException | InvocationTargetException e) {
-          throw new AssertionError(e);
-        }
-        return (UUID) res;
-      }
-
       /**
        * Checks if the specified was called, if its execution triggered TCO.
        *
+       * @param context current execution context.
        * @param frame current execution frame.
        * @param exception the exception thrown from this node's execution.
        */
       @Override
       public void onReturnExceptional(VirtualFrame frame, Throwable exception) {
-        if (!(exception.getClass().equals(tailCallExceptionClass))) {
+        if (!(exception instanceof TailCallException)) {
           return;
         }
-        if (!(expressionNodeClass.isAssignableFrom(context.getInstrumentedNode().getClass()))) {
+        if (!(context.getInstrumentedNode() instanceof ExpressionNode)) {
           return;
         }
-        UUID id = getIdFromExpressionNode(context.getInstrumentedNode());
+        UUID id = ((ExpressionNode) context.getInstrumentedNode()).getId();
         if (expectedResult == null) {
           successful = true;
         }
@@ -175,9 +143,8 @@ public class CodeIdsTestInstrument extends TruffleInstrument {
       public String toString() {
         var sb = new StringBuilder();
         sb.append(context.getInstrumentedNode().getClass().getSimpleName());
-        if (expressionNodeClass.isAssignableFrom(context.getInstrumentedNode().getClass())) {
-          UUID id = getIdFromExpressionNode(context.getInstrumentedNode());
-          sb.append("@").append(id);
+        if (context.getInstrumentedNode() instanceof ExpressionNode expr) {
+            sb.append("@").append(expr.getId());
         }
         sb.append(" ");
         sb.append(context.getInstrumentedSourceSection());

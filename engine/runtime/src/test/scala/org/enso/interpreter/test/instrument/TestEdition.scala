@@ -1,4 +1,4 @@
-package org.enso.interpreter.test.instruments
+package org.enso.interpreter.test.instrument
 
 import nl.gn0s1s.bump.SemVer
 import org.enso.editions.{Editions, LibraryName}

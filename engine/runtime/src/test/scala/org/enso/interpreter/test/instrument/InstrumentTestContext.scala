@@ -1,4 +1,4 @@
-package org.enso.interpreter.test.instruments
+package org.enso.interpreter.test.instrument
 
 import org.apache.commons.io.FileUtils
 import org.enso.distribution.locking.ThreadSafeFileLockManager

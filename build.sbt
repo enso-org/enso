@@ -562,10 +562,6 @@ lazy val modulePathTestOptions =
   val runtimeMod = (LocalProject(
     "runtime-fat-jar"
   ) / Compile / productDirectories).value
-  val runtimeTestInstrModName =
-    (`runtime-test-instruments` / moduleInfos).value.head.moduleName
-  val runtimeTestInstrMod =
-    (`runtime-test-instruments` / Compile / productDirectories).value
   val graalMods = graalModulesPaths.value
   val graalLangMods = JPMSUtils.filterModulesFromUpdate(
     updateReport,
@@ -609,14 +605,9 @@ lazy val modulePathTestOptions =
     .mkString(File.pathSeparator)
   val allModulesPaths: Seq[String] =
     runtimeMod.map(_.getAbsolutePath) ++
-    runtimeTestInstrMod.map(_.getAbsolutePath) ++
     graalMods.map(_.data.getAbsolutePath) ++
     graalLangMods.map(_.getAbsolutePath) ++
     loggingMods.map(_.getAbsolutePath)
-  val modulesToAdd = Seq(
-    runtimeModName,
-    runtimeTestInstrModName
-  )
   // We can't use org.enso.logger.TestLogProvider (or anything from our own logging framework here) because it is not
   // in a module, and it cannot be simple wrapped inside a module.
   // So we use plain ch.qos.logback with its configuration.
@@ -629,11 +620,11 @@ lazy val modulePathTestOptions =
     "--module-path",
     allModulesPaths.mkString(File.pathSeparator),
     "--add-modules",
-    modulesToAdd.mkString(","),
+    runtimeModName,
     "--patch-module",
     s"$runtimeModName=$patchStr",
     "--add-reads",
-    s"$runtimeModName=ALL-UNNAMED,$runtimeTestInstrModName"
+    s"$runtimeModName=ALL-UNNAMED"
   )
 }
 
@@ -1512,40 +1503,6 @@ lazy val `runtime-language-epb` =
     )
     .dependsOn(`polyglot-api`)
 
-/** This project contains only Truffle instruments that are used in various tests in `runtime-*`
-  * projects.
-  */
-lazy val `runtime-test-instruments` =
-  (project in file("engine/runtime-test-instruments"))
-    .settings(
-      inConfig(Compile)(truffleRunOptionsSettings),
-      instrumentationSettings,
-      // Needed to compile module-info.java
-      compileOrder := xsbti.compile.CompileOrder.JavaThenScala,
-      moduleInfos := Seq(
-        JpmsModule("org.enso.runtime.test.instrument")
-      ),
-      libraryDependencies ++= {
-        GraalVM.modules.map(_.withConfigurations(Some(Compile.name)))
-      },
-      Compile / javacOptions ++= {
-        val updateReport = (Compile / update).value
-        val graalVmMods = JPMSUtils.filterModulesFromUpdate(
-          updateReport,
-          GraalVM.modules,
-          streams.value.log,
-          shouldContainAll = true
-        )
-        //val runtimeMod = (`runtime-fat-jar` / Compile / exportedProducts).value.head.data
-        //val allRequiredMods = graalVmMods ++ Seq(runtimeMod)
-        val allRequiredMods = graalVmMods
-        Seq(
-          "--module-path",
-          allRequiredMods.map(_.getAbsolutePath).mkString(File.pathSeparator)
-        )
-      }
-    )
-
 lazy val runtime = (project in file("engine/runtime"))
   .configs(Benchmark)
   .settings(
@@ -1598,17 +1555,7 @@ lazy val runtime = (project in file("engine/runtime"))
         GraalVM.toolsPkgs.map(_.withConfigurations(Some(Runtime.name)))
       necessaryModules ++ langs ++ tools
     },
-    Test / javaOptions := {
-      val prevOpts = modulePathTestOptions.value
-      // Append the `test-classes` directory of the current project to the `--patch-module` option.
-      // Otherwise, the test frameworks would be unable to load some testing classes as they are
-      // in the same package as some implementation classes (split packages).
-      val patchIdx       = prevOpts.indexOf("--patch-module") + 1
-      val testClassesDir = (Test / productDirectories).value.head
-      val newPatchOpt =
-        prevOpts(patchIdx) + File.pathSeparator + testClassesDir.getAbsolutePath
-      prevOpts.updated(patchIdx, newPatchOpt)
-    },
+    Test / javaOptions := modulePathTestOptions.value,
     Test / compile := (Test / compile)
       .dependsOn(LocalProject("runtime-fat-jar") / Compile / compileModuleInfo)
       .value,
@@ -1692,7 +1639,6 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(`connected-lock-manager`)
   .dependsOn(testkit % Test)
   .dependsOn(`logging-service-logback` % "test->test")
-  .dependsOn(`runtime-test-instruments` % "test->compile")
 
 lazy val `runtime-parser` =
   (project in file("engine/runtime-parser"))
@@ -1821,13 +1767,14 @@ lazy val `runtime-fat-jar` =
       moduleInfos := Seq(
         JpmsModule("org.enso.runtime")
       ),
-      compileOrder := CompileOrder.JavaThenScala
+      compileOrder := CompileOrder.JavaThenScala,
     )
-    /** The following libraryDependencies are provided in Runtime scope.
-      * Later, we will collect them into --module-path option.
-      * We don't collect them in Compile scope as it does not even make sense
-      * to run `compile` task in this project.
-      */
+    /**
+    * The following libraryDependencies are provided in Runtime scope.
+    * Later, we will collect them into --module-path option.
+    * We don't collect them in Compile scope as it does not even make sense
+    * to run `compile` task in this project.
+    */
     .settings(
       libraryDependencies ++= {
         val graalMods =
@@ -1835,9 +1782,9 @@ lazy val `runtime-fat-jar` =
         val langMods =
           GraalVM.langsPkgs.map(_.withConfigurations(Some(Runtime.name)))
         val logbackMods =
-          logbackPkg.map(_.withConfigurations(Some(Runtime.name)))
+          logbackPkg.map(_.withConfigurations(Some(Runtime.name))  )
         graalMods ++ langMods ++ logbackMods
-      }
+      },
     )
     /** Assembling Uber Jar */
     .settings(
