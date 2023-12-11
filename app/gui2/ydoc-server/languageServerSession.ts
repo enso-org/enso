@@ -86,7 +86,6 @@ export class LanguageServerSession extends ObservableV2<Events> {
           break
         }
         case 'Modified': {
-          console.log('mod', event)
           this.getModuleModelIfExists(event.path)?.reload()
           break
         }
@@ -111,7 +110,6 @@ export class LanguageServerSession extends ObservableV2<Events> {
       this.projectRootId = projectRoot.id
       await this.ls.acquireReceivesTreeUpdates({ rootId: this.projectRootId, segments: [] })
       const srcFiles = await this.scanSrcFiles()
-      console.log('ris')
       await Promise.all(
         this.indexDoc.doc.transact(
           () =>
@@ -261,7 +259,6 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
   }
 
   async open() {
-    console.log('open', LsSyncState[this.state])
     this.queuedAction = LsAction.Open
     switch (this.state) {
       case LsSyncState.Disposed:
@@ -418,7 +415,6 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
   }
 
   private syncFileContents(content: string, version: Checksum) {
-    console.log('sync', LsSyncState[this.state])
     this.doc.ydoc.transact(() => {
       const { code, idMapJson, metadataJson } = preParseContent(content)
       const idMapMeta = fileFormat.tryParseIdMapOrFallback(idMapJson)
@@ -462,7 +458,6 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
 
   async close() {
     this.queuedAction = LsAction.Close
-    console.log('close', LsSyncState[this.state])
     switch (this.state) {
       case LsSyncState.Disposed:
       case LsSyncState.Closed: {
@@ -497,7 +492,6 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
 
   async reload() {
     this.queuedAction = LsAction.Reload
-    console.log('reload', LsSyncState[this.state])
     switch (this.state) {
       case LsSyncState.Opening:
       case LsSyncState.Disposed:
@@ -512,7 +506,6 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
       case LsSyncState.WritingFile: {
         await this.lastAction
         if (this.queuedAction === LsAction.Reload) {
-          console.log('wrf')
           await this.reload()
         }
         return
