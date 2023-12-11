@@ -12,10 +12,10 @@ import GraphEdges from '@/components/GraphEditor/GraphEdges.vue'
 import GraphNodes from '@/components/GraphEditor/GraphNodes.vue'
 import { Uploader, uploadedExpression } from '@/components/GraphEditor/upload'
 import GraphMouse from '@/components/GraphMouse.vue'
-import type { BreadcrumbItem } from '@/components/NavBreadcrumbs.vue'
 import PlusButton from '@/components/PlusButton.vue'
 import TopBar from '@/components/TopBar.vue'
 import { useDoubleClick } from '@/composables/doubleClick.ts'
+import { useStackNavigator } from '@/composables/stackNavigator.ts'
 import { provideGraphNavigator } from '@/providers/graphNavigator'
 import { provideGraphSelection } from '@/providers/graphSelection'
 import { provideInteractionHandler, type Interaction } from '@/providers/interactionHandler'
@@ -26,13 +26,11 @@ import { useProjectStore } from '@/stores/project'
 import { groupColorVar, useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { colorFromString } from '@/util/colors'
 import { keyboardBusy, keyboardBusyExceptIn, useEvent } from '@/util/events'
-import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName.ts'
 import { Rect } from '@/util/rect.ts'
 import { Vec2 } from '@/util/vec2'
 import * as set from 'lib0/set'
-import type { StackItem } from 'shared/languageServerTypes.ts'
 import type { ExprId, NodeMetadata } from 'shared/yjsModel.ts'
-import { computed, onMounted, ref, watch, watchEffect } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 
 const EXECUTION_MODES = ['design', 'live']
 // Assumed size of a newly created node. This is used to place the component browser.
@@ -119,13 +117,8 @@ useEvent(window, 'keydown', (event) => {
 })
 useEvent(window, 'pointerdown', interactionBindingsHandler, { capture: true })
 
-function initBreadcrumbs() {
-  breadcrumbs.value = projectStore.executionContext.desiredStack.slice()
-}
-
 onMounted(() => {
   viewportNode.value?.focus()
-  initBreadcrumbs()
 })
 
 const graphBindingsHandler = graphBindings.handler({
@@ -217,12 +210,12 @@ const graphBindingsHandler = graphBindings.handler({
     if (keyboardBusy()) return false
     const selectedNode = set.first(nodeSelection.selected)
     if (selectedNode) {
-      enterNode(selectedNode)
+      stackNavigator.enterNode(selectedNode)
     }
   },
   exitNode() {
     if (keyboardBusy()) return false
-    exitNode()
+    stackNavigator.exitNode()
   },
 })
 
@@ -231,7 +224,7 @@ const handleClick = useDoubleClick(
     graphBindingsHandler(e)
   },
   () => {
-    exitNode()
+    stackNavigator.exitNode()
   },
 ).handleClick
 const codeEditorArea = ref<HTMLElement>()
@@ -466,90 +459,7 @@ function handleNodeOutputPortDoubleClick(id: ExprId) {
   interaction.setCurrent(creatingNodeFromPortDoubleClick)
 }
 
-// === Stack Navigation ===
-
-const breadcrumbs = ref<StackItem[]>([])
-const breadcrumbLabels = computed(() => {
-  const activeStackLength = projectStore.executionContext.desiredStack.length
-  const result: BreadcrumbItem[] = breadcrumbs.value.map((item, index) => {
-    const label = stackItemToLabel(item)
-    const isActive = index < activeStackLength
-    return { label, active: isActive } as BreadcrumbItem
-  })
-  return result
-})
-const allowNavigationLeft = computed(() => {
-  return projectStore.executionContext.desiredStack.length > 1
-})
-const allowNavigationRight = computed(
-  () => projectStore.executionContext.desiredStack.length < breadcrumbs.value.length,
-)
-function stackItemToLabel(item: StackItem): string {
-  switch (item.type) {
-    case 'ExplicitCall':
-      return item.methodPointer.name
-    case 'LocalCall': {
-      const exprId = item.expressionId
-      const info = graphStore.db.getExpressionInfo(exprId)
-      return info?.methodCall?.methodPointer.name ?? 'unknown'
-    }
-  }
-}
-
-function handleBreadcrumbClick(index: number) {
-  const activeStack = projectStore.executionContext.desiredStack
-  if (index < activeStack.length) {
-    const diff = activeStack.length - index - 1
-    for (let i = 0; i < diff; i++) {
-      projectStore.executionContext.pop()
-    }
-  } else if (index >= activeStack.length) {
-    const diff = index - activeStack.length + 1
-    for (let i = 0; i < diff; i++) {
-      const stackItem = breadcrumbs.value[index - i]
-      if (stackItem?.type === 'LocalCall') {
-        const exprId = stackItem.expressionId
-        projectStore.executionContext.push(exprId)
-      } else {
-        console.warn('Cannot enter non-local call.')
-      }
-    }
-  }
-  graphStore.updateState()
-}
-
-function enterNode(id: ExprId) {
-  const expressionInfo = graphStore.db.getExpressionInfo(id)
-  if (expressionInfo == undefined || expressionInfo.methodCall == undefined) {
-    console.debug('Cannot enter node that has no method call.')
-    return
-  }
-  const definedOnType = tryQualifiedName(expressionInfo.methodCall.methodPointer.definedOnType)
-  if (definedOnType.ok && qnLastSegment(definedOnType.value) != 'Main') {
-    console.debug('Cannot enter node that is not defined on Main.')
-    return
-  }
-  projectStore.executionContext.push(id)
-  graphStore.updateState()
-
-  breadcrumbs.value = projectStore.executionContext.desiredStack.slice()
-}
-
-function exitNode() {
-  projectStore.executionContext.pop()
-  graphStore.updateState()
-}
-
-function enterNextNode() {
-  const nextNodeIndex = projectStore.executionContext.desiredStack.length
-  const nextNode = breadcrumbs.value[nextNodeIndex]
-  if (nextNode?.type === 'LocalCall') {
-    projectStore.executionContext.push(nextNode.expressionId)
-    graphStore.updateState()
-  } else {
-    console.warn('Cannot enter non-local call.')
-  }
-}
+const stackNavigator = useStackNavigator()
 </script>
 
 <template>
@@ -570,7 +480,7 @@ function enterNextNode() {
     <div :style="{ transform: graphNavigator.transform }" class="htmlLayer">
       <GraphNodes
         @nodeOutputPortDoubleClick="handleNodeOutputPortDoubleClick"
-        @nodeDoubleClick="enterNode"
+        @nodeDoubleClick="(id) => stackNavigator.enterNode(id)"
       />
     </div>
     <ComponentBrowser
@@ -589,12 +499,12 @@ function enterNextNode() {
       v-model:mode="projectStore.executionMode"
       :title="projectStore.name"
       :modes="EXECUTION_MODES"
-      :breadcrumbs="breadcrumbLabels"
-      :allowNavigationLeft="allowNavigationLeft"
-      :allowNavigationRight="allowNavigationRight"
-      @breadcrumbClick="handleBreadcrumbClick"
-      @back="exitNode"
-      @forward="enterNextNode"
+      :breadcrumbs="stackNavigator.breadcrumbLabels.value"
+      :allowNavigationLeft="stackNavigator.allowNavigationLeft.value"
+      :allowNavigationRight="stackNavigator.allowNavigationRight.value"
+      @breadcrumbClick="stackNavigator.handleBreadcrumbClick"
+      @back="stackNavigator.exitNode"
+      @forward="stackNavigator.enterNextNodeFromHistory"
       @execute="onPlayButtonPress()"
     />
     <PlusButton @pointerdown="interaction.setCurrent(creatingNodeFromButton)" />

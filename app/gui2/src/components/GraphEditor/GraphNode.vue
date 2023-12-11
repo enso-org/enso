@@ -35,7 +35,6 @@ const emit = defineEmits<{
   draggingCommited: []
   delete: []
   replaceSelection: []
-  nodeDoubleClick: []
   outputPortClick: [portId: ExprId]
   outputPortDoubleClick: [portId: ExprId]
   doubleClick: []
