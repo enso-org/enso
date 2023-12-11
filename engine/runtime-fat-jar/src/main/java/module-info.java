@@ -13,7 +13,8 @@ open module org.enso.runtime {
 
   provides com.oracle.truffle.api.provider.TruffleLanguageProvider with
       org.enso.interpreter.EnsoLanguageProvider,
-      org.enso.interpreter.epb.EpbLanguageProvider;
+      org.enso.interpreter.epb.EpbLanguageProvider,
+      org.enso.interpreter.arrow.ArrowLanguageProvider;
 
   provides com.oracle.truffle.api.instrumentation.provider.TruffleInstrumentProvider with
     org.enso.interpreter.instrument.ReplDebuggerInstrumentProvider,

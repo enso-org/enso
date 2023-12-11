@@ -293,6 +293,7 @@ lazy val enso = (project in file("."))
     `runtime-parser`,
     `runtime-compiler`,
     `runtime-language-epb`,
+    `runtime-language-arrow`,
     `runtime-instrument-common`,
     `runtime-instrument-id-execution`,
     `runtime-instrument-repl-debugger`,
@@ -1486,6 +1487,14 @@ lazy val `runtime-language-epb` =
       )
     )
 
+lazy val `runtime-language-arrow` =
+  (project in file("engine/runtime-language-arrow"))
+    .settings(
+      inConfig(Compile)(truffleRunOptionsSettings),
+      instrumentationSettings
+    )
+    .dependsOn(`polyglot-api`)
+
 /** `runtime-test-instruments` project contains Truffle instruments that are used solely for testing.
   * It is compiled into an explicit Java module. Note that this project cannot have compile-time dependency on `runtime`
   * project, so if you need access to classes from `runtime`, you need to use reflection.
@@ -1877,6 +1886,7 @@ lazy val `runtime-fat-jar` =
             inProjects(
               LocalProject("runtime"),
               LocalProject("runtime-language-epb"),
+              LocalProject("runtime-language-arrow"),
               LocalProject("runtime-instrument-common"),
               LocalProject("runtime-instrument-id-execution"),
               LocalProject("runtime-instrument-repl-debugger"),
