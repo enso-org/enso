@@ -47,6 +47,19 @@ spec = Test.group "Pattern Matches" <|
         case Float of
             Float -> Nothing
             _ -> Test.fail "Expected the Float constructor to match."
+    Test.specify "match on the Number literal" <|
+        foo x = case x of
+            1 -> "ONE"
+            2 -> "TWO"
+            200 -> "TWO HUNDRED"
+            9999 -> "NINE THOUSAND NINE HUNDRED NINETY NINE"
+            _ -> Test.fail "OTHER - "+x.to_text
+
+        foo 1 . should_equal "ONE"
+        foo 2 . should_equal "TWO"
+        foo 200 . should_equal "TWO HUNDRED"
+        foo 9999 . should_equal "NINE THOUSAND NINE HUNDRED NINETY NINE"
+
     Test.specify "should be able to match on the Number type" <|
         case 1 of
             _ : Number -> Nothing
