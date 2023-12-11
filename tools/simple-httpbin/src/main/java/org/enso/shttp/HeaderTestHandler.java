@@ -7,7 +7,7 @@ import org.apache.http.client.utils.URIBuilder;
 
 public class HeaderTestHandler extends SimpleHttpHandler {
   @Override
-  public void doHandle(HttpExchange exchange) throws IOException {
+  protected void doHandle(HttpExchange exchange) throws IOException {
     URI uri = exchange.getRequestURI();
     URIBuilder builder = new URIBuilder(uri);
     try {

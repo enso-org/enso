@@ -28,7 +28,7 @@ public abstract class SimpleHttpHandler implements HttpHandler {
     }
   }
 
-  public abstract void doHandle(HttpExchange exchange) throws IOException;
+  protected abstract void doHandle(HttpExchange exchange) throws IOException;
 
   protected final void sendResponse(int code, String message, HttpExchange exchange)
       throws IOException {

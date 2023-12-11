@@ -10,6 +10,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Stream;
+
+import org.enso.shttp.cloud_mock.CloudHandler;
+import org.enso.shttp.cloud_mock.CloudRoot;
 import sun.misc.Signal;
 import sun.misc.SignalHandler;
 
@@ -108,6 +111,8 @@ public class SimpleHTTPBin {
     server.addHandler("/test_token_auth", new TokenAuthTestHandler());
     server.addHandler("/test_basic_auth", new BasicAuthTestHandler());
     server.addHandler("/crash", new CrashingTestHandler());
+    CloudRoot cloudRoot = new CloudRoot();
+    server.addHandler(cloudRoot.prefix, cloudRoot);
     setupFileServer(server);
   }
 
