@@ -571,7 +571,9 @@ const handler = componentBrowserBindings.handler({
   display: flex;
   position: absolute;
   line-height: 1;
+  font-family: var(--font-code);
 }
+
 .selected {
   color: white;
   & svg {
