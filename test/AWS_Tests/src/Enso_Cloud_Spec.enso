@@ -18,16 +18,32 @@ spec =
     enso_cloud_url = base_url.if_not_nothing <|
         with_slash = if base_url.ends_with "/" then base_url else base_url + "/"
         with_slash + "enso-cloud-mock/"
+    tmp_cred_file = File.create_temporary_file "enso-test-credentials" ".txt"
+    test_token = "TEST-ENSO-TOKEN-caffee"
+    test_token.write tmp_cred_file
 
     ## This helper method is needed, because of the bug https://github.com/enso-org/enso/issues/7117
        If the bug is fixed, we could move the overrides to the top-level and not have to re-initialize them.
     with_mock_environment ~action =
         Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_API_URI" enso_cloud_url <|
-            action
+            Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_CREDENTIALS_FILE" tmp_cred_file.absolute.normalize.path <|
+                action
     with_mock_environment <|
         Test.group "Enso Cloud Basic Utils" pending=pending_has_url <|
+            Test.specify "will report Not_Logged_In if no credentials file is found" <|
+                non_existent_file = (enso_project.data / "nonexistent-file") . absolute . normalize
+                non_existent_file.exists.should_be_false
+
+                Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_CREDENTIALS_FILE" non_existent_file.path <|
+                    # This test has to run before any other Cloud access, otherwise the token may already be cached.
+                    Cloud_Utils.authorization_header.should_fail_with Cloud_Utils.Not_Logged_In
+
             Test.specify "should be able to get the cloud URL from environment" <|
                 api_url = Cloud_Utils.cloud_root_uri
                 api_url.should_equal enso_cloud_url
+
+            Test.specify "should be able to read the authorization token" <|
+                Cloud_Utils.authorization_header.to_display_text.should_equal "Authorization: Bearer "+test_token
+
 
 main = Test_Suite.run_main spec
