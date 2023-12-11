@@ -131,7 +131,8 @@ export class LanguageServer extends ObservableV2<Notifications> {
         console.log(`LS [${uuid}] ${method}:`)
         console.dir(params)
       }
-      return await this.client.request({ method, params }, RPC_TIMEOUT_MS)
+      const ret = await this.client.request({ method, params }, RPC_TIMEOUT_MS)
+      return ret
     } catch (e) {
       const remoteError = RemoteRpcErrorSchema.safeParse(e)
       if (remoteError.success) {
@@ -402,27 +403,30 @@ export class LanguageServer extends ObservableV2<Notifications> {
     retry: <T>(cb: () => Promise<T>) => Promise<T> = (f) => f(),
   ) {
     let running = true
-    ;(async () => {
-      this.on('file/event', callback)
-      walkFs(this, { rootId, segments }, (type, path) => {
-        if (
-          !running ||
-          type !== 'File' ||
-          path.segments.length < segments.length ||
-          segments.some((seg, i) => seg !== path.segments[i])
-        )
-          return
-        callback({
-          path: { rootId: path.rootId, segments: path.segments.slice(segments.length) },
-          kind: 'Added',
+    const self = this
+    return {
+      promise: (async () => {
+        self.on('file/event', callback)
+        await retry(() => self.acquireReceivesTreeUpdates({ rootId, segments }))
+        await walkFs(self, { rootId, segments }, (type, path) => {
+          if (
+            !running ||
+            type !== 'File' ||
+            path.segments.length < segments.length ||
+            segments.some((segment, i) => segment !== path.segments[i])
+          )
+            return
+          callback({
+            path: { rootId: path.rootId, segments: path.segments.slice(segments.length) },
+            kind: 'Added',
+          })
         })
-      })
-      await retry(() => this.acquireReceivesTreeUpdates({ rootId, segments }))
-      if (!running) return
-    })()
-    return () => {
-      running = false
-      this.off('file/event', callback)
+        if (!running) return
+      })(),
+      unsubscribe() {
+        running = false
+        self.off('file/event', callback)
+      },
     }
   }
 

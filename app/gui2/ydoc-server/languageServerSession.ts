@@ -6,6 +6,7 @@ import * as random from 'lib0/random'
 import * as Y from 'yjs'
 import { LanguageServer, computeTextChecksum } from '../shared/languageServer'
 import { Checksum, Path } from '../shared/languageServerTypes'
+import { exponentialBackoff } from '../shared/retry'
 import {
   DistributedProject,
   ExprId,
@@ -75,7 +76,7 @@ export class LanguageServerSession extends ObservableV2<Events> {
         console.log('file/event', event)
       }
       switch (event.kind) {
-        case 'Added':
+        case 'Added': {
           if (isSourceFile(event.path)) {
             const fileInfo = await this.ls.fileInfo(event.path)
             if (fileInfo.attributes.kind.type == 'File') {
@@ -83,16 +84,18 @@ export class LanguageServerSession extends ObservableV2<Events> {
             }
           }
           break
-        case 'Modified':
+        }
+        case 'Modified': {
+          console.log('mod', event)
           this.getModuleModelIfExists(event.path)?.reload()
           break
+        }
       }
     })
-
-    this.ls.on('text/fileModifiedOnDisk', async (event) => {
-      this.getModuleModelIfExists(event.path)?.reload()
-    })
-
+    this.ls.on(
+      'text/fileModifiedOnDisk',
+      async (event) => this.getModuleModelIfExists(event.path)?.reload(),
+    )
     this.readInitialState()
   }
 
@@ -108,18 +111,19 @@ export class LanguageServerSession extends ObservableV2<Events> {
       this.projectRootId = projectRoot.id
       await this.ls.acquireReceivesTreeUpdates({ rootId: this.projectRootId, segments: [] })
       const srcFiles = await this.scanSrcFiles()
+      console.log('ris')
       await Promise.all(
-        this.indexDoc.doc.transact(() => {
-          return srcFiles.map((file) =>
-            this.getModuleModel(pushPathSegment(file.path, file.name)).open(),
-          )
-        }, this),
+        this.indexDoc.doc.transact(
+          () =>
+            srcFiles.map((file) =>
+              this.getModuleModel(pushPathSegment(file.path, file.name)).open(),
+            ),
+          this,
+        ),
       )
     } catch (error) {
       console.error('LS Initialization failed:', error)
-      if (error instanceof Error) {
-        this.emit('error', [error])
-      }
+      if (error instanceof Error) this.emit('error', [error])
       return
     }
     console.log('LS connection initialized.')
@@ -147,9 +151,7 @@ export class LanguageServerSession extends ObservableV2<Events> {
         const index = this.model.findModuleByDocId(wsDoc.doc.guid)
         this.docs.delete(wsDoc.doc.guid)
         this.authoritativeModules.delete(name)
-        if (index != null) {
-          this.model.deleteModule(index)
-        }
+        if (index != null) this.model.deleteModule(index)
       })
       return mod
     })
@@ -165,19 +167,18 @@ export class LanguageServerSession extends ObservableV2<Events> {
     this.retainCount++
   }
 
-  release(): Promise<void> {
+  async release(): Promise<void> {
     this.retainCount--
     if (this.retainCount === 0) {
       const closing = Promise.all(
         Array.from(this.authoritativeModules.values(), (mod) => mod.dispose()),
-      ).then(() => {})
+      )
       this.authoritativeModules.clear()
       this.model.doc.destroy()
       this.ls.dispose()
       sessions.delete(this.url)
-      return closing
+      await closing
     }
-    return Promise.resolve()
   }
 
   getYDoc(guid: string): WSSharedDoc | undefined {
@@ -233,6 +234,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
   syncedMeta: fileFormat.Metadata = fileFormat.tryParseMetadataOrFallback(null)
   queuedAction: LsAction | null = null
   cleanup = () => {}
+
   constructor(ls: LanguageServer, path: Path, sharedDoc: Y.Doc) {
     super()
     this.ls = ls
@@ -259,35 +261,37 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
   }
 
   async open() {
+    console.log('open', LsSyncState[this.state])
     this.queuedAction = LsAction.Open
     switch (this.state) {
       case LsSyncState.Disposed:
       case LsSyncState.WritingFile:
       case LsSyncState.Synchronized:
       case LsSyncState.WriteError:
-      case LsSyncState.Reloading:
+      case LsSyncState.Reloading: {
         return
-      case LsSyncState.Closing:
+      }
+      case LsSyncState.Closing: {
         await this.lastAction
-        if (this.queuedAction === LsAction.Open) {
-          await this.open()
-        }
+        if (this.queuedAction === LsAction.Open) await this.open()
         return
-      case LsSyncState.Opening:
+      }
+      case LsSyncState.Opening: {
         await this.lastAction
         return
-      case LsSyncState.Closed:
-        {
-          this.changeState(LsSyncState.Opening)
-          const opening = this.ls.openTextFile(this.path)
-          this.lastAction = opening.then()
-          const result = await opening
-          this.syncFileContents(result.content, result.currentVersion)
-          this.changeState(LsSyncState.Synchronized)
-        }
+      }
+      case LsSyncState.Closed: {
+        this.changeState(LsSyncState.Opening)
+        const promise = this.ls.openTextFile(this.path)
+        this.lastAction = promise.then()
+        const result = await promise
+        this.syncFileContents(result.content, result.currentVersion)
+        this.changeState(LsSyncState.Synchronized)
         return
+      }
       default: {
         const _: never = this.state
+        return
       }
     }
   }
@@ -394,8 +398,8 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
         this.syncedMeta = newMetadata
         this.changeState(LsSyncState.Synchronized)
       },
-      (e) => {
-        console.error('Failed to apply edit:', e)
+      (error) => {
+        console.error('Could not apply edit:', error)
 
         // Try to recover by reloading the file. Drop the attempted updates, since applying them
         // have failed.
@@ -408,6 +412,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
   }
 
   private syncFileContents(content: string, version: Checksum) {
+    console.log('sync', LsSyncState[this.state])
     this.doc.ydoc.transact(() => {
       const { code, idMapJson, metadataJson } = preParseContent(content)
       const idMapMeta = fileFormat.tryParseIdMapOrFallback(idMapJson)
@@ -439,7 +444,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
         this.doc.metadata.delete(id)
       }
       this.syncedContent = content
-      this.syncedVersion = version
+      this.syncedVersion = version ?? this.syncedVersion
       this.syncedMeta = metadata
 
       const codeDiff = simpleDiffString(this.doc.contents.toString(), code)
@@ -451,21 +456,25 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
 
   async close() {
     this.queuedAction = LsAction.Close
+    console.log('close', LsSyncState[this.state])
     switch (this.state) {
       case LsSyncState.Disposed:
-      case LsSyncState.Closed:
+      case LsSyncState.Closed: {
         return
-      case LsSyncState.Closing:
+      }
+      case LsSyncState.Closing: {
         await this.lastAction
         return
+      }
       case LsSyncState.Opening:
       case LsSyncState.WritingFile:
-      case LsSyncState.Reloading:
+      case LsSyncState.Reloading: {
         await this.lastAction
         if (this.queuedAction === LsAction.Close) {
           await this.close()
         }
         return
+      }
       case LsSyncState.WriteError:
       case LsSyncState.Synchronized: {
         this.changeState(LsSyncState.Closing)
@@ -482,27 +491,53 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
 
   async reload() {
     this.queuedAction = LsAction.Reload
+    console.log('reload', LsSyncState[this.state])
     switch (this.state) {
       case LsSyncState.Opening:
       case LsSyncState.Disposed:
       case LsSyncState.Closed:
-      case LsSyncState.Closing:
+      case LsSyncState.Closing: {
         return
-      case LsSyncState.Reloading:
+      }
+      case LsSyncState.Reloading: {
         await this.lastAction
         return
-      case LsSyncState.WritingFile:
+      }
+      case LsSyncState.WritingFile: {
         await this.lastAction
         if (this.queuedAction === LsAction.Reload) {
+          console.log('wrf')
           await this.reload()
         }
         return
-      case LsSyncState.Synchronized:
+      }
+      case LsSyncState.Synchronized: {
+        this.changeState(LsSyncState.Reloading)
+        const promise = Promise.all([this.ls.readFile(this.path), this.ls.fileChecksum(this.path)])
+        this.lastAction = promise.then()
+        const [contents, checksum] = await promise
+        this.syncFileContents(contents.contents, checksum.checksum)
+        this.changeState(LsSyncState.Synchronized)
+        return
+      }
       case LsSyncState.WriteError: {
         this.changeState(LsSyncState.Reloading)
-        const reloading = this.ls.closeTextFile(this.path).then(() => {
-          return this.ls.openTextFile(this.path)
-        })
+        const reloading = this.ls
+          .closeTextFile(this.path)
+          .then(
+            () => {},
+            (error) => {
+              console.error('Could not close file after write error:', error)
+            },
+          )
+          .then(
+            () => exponentialBackoff(() => this.ls.openTextFile(this.path)),
+            (error) => {
+              console.error('Could not reopen file after write error:', error)
+              // This error is unrecoverable.
+              throw error
+            },
+          )
         this.lastAction = reloading.then()
         const result = await reloading
         this.syncFileContents(result.content, result.currentVersion)
@@ -533,13 +568,11 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
     }
   }
 
-  dispose(): Promise<void> {
+  async dispose(): Promise<void> {
     this.cleanup()
     const alreadyClosed = this.inState(LsSyncState.Closing, LsSyncState.Closed)
     this.changeState(LsSyncState.Disposed)
-    if (!alreadyClosed) {
-      return this.ls.closeTextFile(this.path).then()
-    }
-    return Promise.resolve()
+    if (alreadyClosed) return Promise.resolve()
+    return this.ls.closeTextFile(this.path)
   }
 }

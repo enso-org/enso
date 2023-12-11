@@ -30,15 +30,19 @@ export async function exponentialBackoff<T, E>(
   const options = { ...defaultBackoffOptions, ...backoffOptions }
   for (let retries = 0; ; retries += 1) {
     try {
-      const result = await f()
-      return result
+      return await f()
     } catch (error) {
+      console.log(';_;', retries, options.maxRetries, error)
+      console.log('a')
       if (retries >= options.maxRetries) throw error
+      console.log('b')
       const delay = Math.min(
         options.retryDelayMax,
         options.retryDelay * options.retryDelayMultiplier ** retries,
       )
+      console.log('c')
       if (options.onBeforeRetry(error as E, retries, delay) === false) throw error
+      console.log('d')
       await wait(delay)
     }
   }

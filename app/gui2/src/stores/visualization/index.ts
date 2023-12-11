@@ -206,12 +206,18 @@ export const useVisualizationStore = defineStore('visualization', () => {
     }
   }
 
-  Promise.all([proj.lsRpcConnection, projectRoot]).then(([ls, projectRoot]) => {
+  Promise.all([proj.lsRpcConnection, projectRoot]).then(async ([ls, projectRoot]) => {
     if (!projectRoot) {
       console.error('Could not load custom visualizations: Project directory not found.')
       return
     }
-    ls.watchFiles(projectRoot, [customVisualizationsDirectory], onFileEvent, rpcWithRetries)
+    try {
+      await ls.watchFiles(projectRoot, [customVisualizationsDirectory], onFileEvent, rpcWithRetries)
+        .promise
+    } catch {
+      // Ignored. It is very likely that the `visualizations/` directory is not present, however
+      // there would be a race condition if the existence of `visualizations` is checked first.
+    }
   })
 
   function* types(type: Opt<string>) {
