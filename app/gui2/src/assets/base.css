@@ -1,5 +1,6 @@
-/* M PLUS 1 font import. */
-@import url('https://fonts.googleapis.com/css2?family=M+PLUS+1:wght@500;600;800&display=swap');
+@import url('./font-enso.css');
+@import url('./font-mplus1.css');
+@import url('./font-dejavu.css');
 
 /* color palette from <https://github.com/vuejs/theme> */
 :root {
@@ -60,6 +61,15 @@
   --radius-default: 16px;
   --section-gap: 160px;
   --selected-node-border-width: 20px;
+  --font-sans: 'M PLUS 1', /* System sans-serif font stack */ system-ui, -apple-system,
+    BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans',
+    'Droid Sans', 'Helvetica Neue', Arial, sans-serif;
+  --font-code: 'Enso', /* System sans-serif font stack */ system-ui, -apple-system,
+    BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans',
+    'Droid Sans', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'DejaVu Sans Mono', /* System monspace font stack */ ui-monospace, Menlo, Monaco,
+    'Cascadia Mono', 'Segoe UI Mono', 'Roboto Mono', 'Oxygen Mono', 'Ubuntu Monospace',
+    'Source Code Pro', 'Fira Mono', 'Droid Sans Mono', 'Courier New', monospace;
 }
 
 *,
