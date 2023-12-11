@@ -11,6 +11,7 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.BranchProfile;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -184,24 +185,26 @@ final class Array implements EnsoObject {
   @CompilerDirectives.TruffleBoundary
   private EconomicSet<Warning> collectAllWarnings(WarningsLibrary warnings, Node location)
       throws UnsupportedMessageException {
-    EconomicSet<Warning> setOfWarnings = EconomicSet.create(new WithWarnings.WarningEquivalence());
     EnsoContext ctx = EnsoContext.get(location);
     long maxWarnings = ctx.getWarningsLimit();
     Builtins builtins = ctx.getBuiltins();
+    List<Warning> wrappedWarnings = new ArrayList<>();
     for (int i = 0; i < items.length; ++i) {
       final long index = i;
       Object item = items[i];
       if (warnings.hasWarnings(item)) {
         var origWarnings = warnings.getWarnings(item, location);
-        List<Warning> wrappedWarnings = Arrays.stream(origWarnings).map(warning -> {
+        List<Warning> someWrappedWarnings = Arrays.stream(origWarnings).map(warning -> {
           var error = warning.getValue();
           var wrappedError = builtins.error().makeMapError(index, error);
           var wrappedWarning = Warning.create(ctx, wrappedError, warning.getOrigin());
           return wrappedWarning;
         }).limit(maxWarnings).collect(Collectors.toList());
-        setOfWarnings.addAll(wrappedWarnings);
+        wrappedWarnings.addAll(someWrappedWarnings );
       }
     }
+    EconomicSet<Warning> setOfWarnings = EconomicSet.create(new WithWarnings.WarningEquivalence());
+    setOfWarnings.addAll(wrappedWarnings.stream().limit(maxWarnings).toList());
     return setOfWarnings;
   }
 
