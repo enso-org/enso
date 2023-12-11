@@ -1,6 +1,6 @@
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
-import { useNavigator } from '@/util/navigator'
+import { useNavigator } from '@/util/vue/navigator'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import { effectScope, ref } from 'vue'
 
