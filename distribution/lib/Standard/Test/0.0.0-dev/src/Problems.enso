@@ -81,8 +81,8 @@ assume_no_problems result =
    It allows other warnings to be present also.
 
    Arguments:
-   - expected_warning: The expected warning. It can be a warning type, a
-     concrete value, or a predicate to which the error is passed.
+   - expected_warning: The expected warning. It can either by a warning type or
+     a concrete value.
    - result: The value to check.
 expect_warning : Any -> Any -> Nothing
 expect_warning expected_warning result =
@@ -91,7 +91,7 @@ expect_warning expected_warning result =
         Test.fail "Expected a warning "+expected_warning.to_text+", but a dataflow error has been matched: "+result.catch.to_display_text+" (at "+loc+")."
     warnings = get_attached_warnings result
     found = warnings.find if_missing=Nothing x->
-        (x == expected_warning) || (x.is_a expected_warning) || (expected_warning.is_a Function && expected_warning x)
+        (x == expected_warning) || (x.is_a expected_warning)
     found.if_nothing <|
         Test.fail "Expected the result to contain a warning: "+expected_warning.to_text+", but it did not. The warnings were "+warnings.short_display_text+' (at '+loc+').'
 
@@ -102,8 +102,8 @@ expect_warning expected_warning result =
    As a utility, it also returns the found warning.
 
    Arguments:
-   - expected_warning: The expected warning. It can be a warning type, a
-     concrete value, or a predicate to which the error is passed.
+   - expected_warning: The expected warning. It can either by a warning type or
+     a concrete value.
 
    - result: The value to check.
 expect_only_warning : Any -> Any -> Any

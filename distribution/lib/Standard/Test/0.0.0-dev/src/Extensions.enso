@@ -8,8 +8,7 @@ from project.Test import Test
 ## Expect a function to fail with the provided dataflow error.
 
    Arguments:
-   - matcher: The expected type of dataflow error contained in `self`. It can
-     also be a predicate to which the error is passed.
+   - matcher: The expected type of dataflow error contained in `self`.
    - frames_to_skip (optional, advanced): used to alter the location which is
      displayed as the source of this error.
 
@@ -30,8 +29,7 @@ Any.should_fail_with self matcher frames_to_skip=0 =
 ## Expect a function to fail with the provided dataflow error.
 
    Arguments:
-   - matcher: The expected type of dataflow error contained in `self`. It can
-     also be a predicate to which the error is passed.
+   - matcher: The expected type of dataflow error contained in `self`.
    - frames_to_skip (optional, advanced): used to alter the location which is
      displayed as the source of this error.
 
@@ -46,7 +44,7 @@ Any.should_fail_with self matcher frames_to_skip=0 =
 Error.should_fail_with : Any -> Integer -> Test_Result
 Error.should_fail_with self matcher frames_to_skip=0 =
     caught = self.catch
-    if caught == matcher || caught.is_a matcher || (matcher.is_a Function && matcher caught) then Nothing else
+    if caught == matcher || caught.is_a matcher then Nothing else
         loc = Meta.get_source_location 2+frames_to_skip
         matcher_text = matcher . to_text
         Test.fail ("Expected error "+matcher_text+", but error " + caught.to_text + " has been returned (at " + loc + ").")
