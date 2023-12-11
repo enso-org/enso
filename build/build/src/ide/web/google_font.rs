@@ -174,7 +174,7 @@ pub async fn download_google_font_with_css(
         writeln!(&mut css, "  font-family: '{css_family}';")?;
         writeln!(&mut css, "  src: url('{css_basepath}/{file}');")?;
         writeln!(&mut css, "}}")?;
-        writeln!(&mut css, "")?;
+        writeln!(&mut css)?;
     }
     ide_ci::fs::tokio::write(css_output_path, css).await?;
     Ok(paths)

@@ -122,7 +122,7 @@ pub async fn install_enso_font_for_html_2(
             writeln!(&mut css, "  font-weight: {weight};")?;
             writeln!(&mut css, "  font-style: normal;")?;
             writeln!(&mut css, "}}")?;
-            writeln!(&mut css, "")?;
+            writeln!(&mut css)?;
         }
         ide_ci::fs::tokio::write(css_output_path, css).await?;
         Ok(())

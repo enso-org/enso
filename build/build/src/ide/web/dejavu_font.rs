@@ -69,7 +69,7 @@ pub async fn download_dejavu_sans_mono_font_internal(
                 writeln!(&mut css, "  font-weight: {weight};")?;
                 writeln!(&mut css, "  font-style: normal;")?;
                 writeln!(&mut css, "}}")?;
-                writeln!(&mut css, "")?;
+                writeln!(&mut css)?;
             }
             ide_ci::fs::tokio::write(css_output_path, css).await?;
             Ok(())
