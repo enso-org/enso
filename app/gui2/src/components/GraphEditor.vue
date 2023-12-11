@@ -319,6 +319,13 @@ const creatingNodeFromPortDoubleClick: Interaction = {
   },
 }
 
+const creatingNodeFromEdgeDrop: Interaction = {
+  init: () => {
+    // component browser usage is set in event handler
+    componentBrowserVisible.value = true
+  },
+}
+
 function resetComponentBrowserState() {
   componentBrowserVisible.value = false
   graphStore.editedNodeInfo = undefined
@@ -488,6 +495,12 @@ function handleNodeOutputPortDoubleClick(id: ExprId) {
   ).position
   interaction.setCurrent(creatingNodeFromPortDoubleClick)
 }
+
+function handleEdgeDrop(source: ExprId, position: Vec2) {
+  componentBrowserUsage.value = { type: 'newNode', sourcePort: source }
+  componentBrowserNodePosition.value = position
+  interaction.setCurrent(creatingNodeFromEdgeDrop)
+}
 </script>
 
 <template>
@@ -503,7 +516,7 @@ function handleNodeOutputPortDoubleClick(id: ExprId) {
     @drop.prevent="handleFileDrop($event)"
   >
     <svg :viewBox="graphNavigator.viewBox">
-      <GraphEdges />
+      <GraphEdges @createNodeFromEdge="handleEdgeDrop" />
     </svg>
     <div :style="{ transform: graphNavigator.transform }" class="htmlLayer">
       <GraphNodes
@@ -518,7 +531,7 @@ function handleNodeOutputPortDoubleClick(id: ExprId) {
       :nodePosition="componentBrowserNodePosition"
       :usage="componentBrowserUsage"
       @accepted="onComponentBrowserCommit"
-      @closed="onComponentBrowserCancel"
+      @closed="onComponentBrowserCommit"
       @canceled="onComponentBrowserCancel"
     />
     <TopBar

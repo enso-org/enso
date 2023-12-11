@@ -203,14 +203,6 @@ export const useGraphStore = defineStore('graph', () => {
     )
   }
 
-  // Create a node from a source expression, and insert it into the graph. The return value will be
-  // the new node's ID, or `null` if the node creation fails.
-  function createNodeFromSource(position: Vec2, source: ExprId): Opt<ExprId> {
-    const sourcePortName = db.getOutputPortIdentifier(source)
-    const sourcePortNameWithDot = sourcePortName ? sourcePortName + '.' : ''
-    return createNode(position, sourcePortNameWithDot)
-  }
-
   function deleteNode(id: ExprId) {
     const node = db.nodeIdToNode.get(id)
     if (!node) return
@@ -352,7 +344,6 @@ export const useGraphStore = defineStore('graph', () => {
     updateVizRect,
     updateExprRect,
     setEditedNode,
-    createNodeFromSource,
     updateState,
   }
 })
