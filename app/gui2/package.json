@@ -11,7 +11,7 @@
     "dev": "vite",
     "build": "npm --workspace enso-authentication run compile && run-p typecheck build-only",
     "preview": "vite preview",
-    "test": "vitest run && playwright test --reporter=line",
+    "test": "vitest run && playwright test --reporter=html",
     "test:unit": "vitest",
     "test:e2e": "playwright test",
     "story:dev": "histoire dev",
