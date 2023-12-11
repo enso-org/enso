@@ -39,51 +39,80 @@ function get(options, callback) {
   })
 }
 
-console.info('Downloading Enso font...')
-await fs.rm('./public/font-enso/', { recursive: true, force: true })
-await fs.mkdir('./public/font-enso/', { recursive: true })
-await new Promise((resolve, reject) => {
-  get(ENSO_FONT_URL, (response) => {
-    response.pipe(
-      tar.extract({
-        cwd: './public/font-enso/',
-        strip: 1,
-        filter(path) {
-          // Reject files starting with `.`.
-          return !/[\\/][.]/.test(path)
-        },
-      }),
-    )
-    response.on('end', resolve)
-    response.on('error', reject)
+try {
+  for (const weight of [
+    'Thin',
+    'ExtraLight',
+    'Light',
+    'Regular',
+    'Medium',
+    'SemiBold',
+    'Bold',
+    'ExtraBold',
+    'Black',
+  ]) {
+    await fs.access(`./public/font-enso/Enso-${weight}.ttf`)
+  }
+  console.info('Enso font already downloaded, skipping...')
+} catch {
+  console.info('Downloading Enso font...')
+  await fs.rm('./public/font-enso/', { recursive: true, force: true })
+  await fs.mkdir('./public/font-enso/', { recursive: true })
+  await new Promise((resolve, reject) => {
+    get(ENSO_FONT_URL, (response) => {
+      response.pipe(
+        tar.extract({
+          cwd: './public/font-enso/',
+          strip: 1,
+          filter(path) {
+            // Reject files starting with `.`.
+            return !/[\\/][.]/.test(path)
+          },
+        }),
+      )
+      response.on('end', resolve)
+      response.on('error', reject)
+    })
   })
-})
-console.info('Downloading M PLUS 1 font...')
-await fs.rm('./public/font-mplus1/', { recursive: true, force: true })
-await fs.mkdir('./public/font-mplus1/', { recursive: true })
-await new Promise((resolve, reject) => {
-  get(MPLUS1_FONT_URL, (response) => {
-    response.pipe(fsSync.createWriteStream('./public/font-mplus1/MPLUS1.ttf'))
-    response.on('end', resolve)
-    response.on('error', reject)
+}
+try {
+  await fs.access(`./public/font-mplus1/MPLUS1.ttf`)
+  console.info('M PLUS 1 font already downloaded, skipping...')
+} catch {
+  console.info('Downloading M PLUS 1 font...')
+  await fs.rm('./public/font-mplus1/', { recursive: true, force: true })
+  await fs.mkdir('./public/font-mplus1/', { recursive: true })
+  await new Promise((resolve, reject) => {
+    get(MPLUS1_FONT_URL, (response) => {
+      response.pipe(fsSync.createWriteStream('./public/font-mplus1/MPLUS1.ttf'))
+      response.on('end', resolve)
+      response.on('error', reject)
+    })
   })
-})
-console.info('Downloading DejaVu Sans Mono font...')
-await fs.rm('./public/font-dejavu/', { recursive: true, force: true })
-await fs.mkdir('./public/font-dejavu/', { recursive: true })
-await new Promise((resolve, reject) => {
-  get(DEJAVU_SANS_MONO_FONT_URL, (response) => {
-    response.pipe(bz2()).pipe(
-      tar.extract({
-        cwd: './public/font-dejavu/',
-        strip: 2,
-        filter(path) {
-          return /[\\/]DejaVuSansMono/.test(path) || !/Oblique[.]ttf$/.test(path)
-        },
-      }),
-    )
-    response.on('end', resolve)
-    response.on('error', reject)
+}
+try {
+  for (const variant of ['', '-Bold']) {
+    await fs.access(`./public/font-dejavu/DejaVuSansMono${variant}.ttf`)
+  }
+  console.info('DejaVu Sans Mono font already downloaded, skipping...')
+} catch {
+  console.info('Downloading DejaVu Sans Mono font...')
+  await fs.rm('./public/font-dejavu/', { recursive: true, force: true })
+  await fs.mkdir('./public/font-dejavu/', { recursive: true })
+  await new Promise((resolve, reject) => {
+    get(DEJAVU_SANS_MONO_FONT_URL, (response) => {
+      response.pipe(bz2()).pipe(
+        tar.extract({
+          cwd: './public/font-dejavu/',
+          strip: 2,
+          filter(path) {
+            return /[\\/]DejaVuSansMono/.test(path) && !/Oblique[.]ttf$/.test(path)
+          },
+        }),
+      )
+      response.on('end', resolve)
+      response.on('error', reject)
+    })
   })
-})
+}
 console.info('Done.')
