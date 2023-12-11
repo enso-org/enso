@@ -1,15 +1,15 @@
 export function useDoubleClick<Args extends any[]>(
-  onClick: (...args: Args) => void,
+  onClick: (e: MouseEvent, ...args: Args) => void,
   onDoubleClick: (...args: Args) => void,
 ) {
   const timeBetweenClicks = 200
   let clickCount = 0
   let singleClickTimer: ReturnType<typeof setTimeout>
 
-  const handleClick = (...args: Args) => {
+  const handleClick = (e: MouseEvent, ...args: Args) => {
     clickCount++
     if (clickCount === 1) {
-      onClick(...args)
+      onClick(e, ...args)
       singleClickTimer = setTimeout(() => {
         clickCount = 0
       }, timeBetweenClicks)
