@@ -15,13 +15,15 @@ const mainFile = computed({
 </script>
 
 <template>
-  <MockProjectStoreWrapper v-model="mainFile"><App :config="{}" /></MockProjectStoreWrapper>
+  <MockProjectStoreWrapper v-model="mainFile">
+    <App :config="{}" :metadata="{}" />
+  </MockProjectStoreWrapper>
 </template>
 
 <style scoped>
 :is(.viewport) {
   color: var(--color-text);
-  font-family: 'M PLUS 1', sans-serif;
+  font-family: var(--font-code);
   font-size: 11.5px;
   font-weight: 500;
   line-height: 20px;
