@@ -14,6 +14,7 @@ import { Uploader, uploadedExpression } from '@/components/GraphEditor/upload'
 import GraphMouse from '@/components/GraphMouse.vue'
 import PlusButton from '@/components/PlusButton.vue'
 import TopBar from '@/components/TopBar.vue'
+import { useDoubleClick } from '@/composables/doubleClick.ts'
 import { provideGraphNavigator } from '@/providers/graphNavigator'
 import { provideGraphSelection } from '@/providers/graphSelection'
 import { provideInteractionHandler, type Interaction } from '@/providers/interactionHandler'
@@ -24,6 +25,7 @@ import { useProjectStore } from '@/stores/project'
 import { groupColorVar, useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { colorFromString } from '@/util/colors'
 import { keyboardBusy, keyboardBusyExceptIn, useEvent } from '@/util/events'
+import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName.ts'
 import { Rect } from '@/util/rect.ts'
 import { Vec2 } from '@/util/vec2'
 import * as set from 'lib0/set'
@@ -202,8 +204,27 @@ const graphBindingsHandler = graphBindings.handler({
     if (keyboardBusy()) return false
     readNodeFromClipboard()
   },
+  enterNode() {
+    if (keyboardBusy()) return false
+    const selectedNode = set.first(nodeSelection.selected)
+    if (selectedNode) {
+      enterNode(selectedNode)
+    }
+  },
+  exitNode() {
+    if (keyboardBusy()) return false
+    exitNode()
+  },
 })
 
+const handleClick = useDoubleClick(
+  (e) => {
+    graphBindingsHandler(e)
+  },
+  () => {
+    exitNode()
+  },
+).handleClick
 const codeEditorArea = ref<HTMLElement>()
 const showCodeEditor = ref(false)
 const codeEditorHandler = codeEditorBindings.handler({
@@ -212,6 +233,31 @@ const codeEditorHandler = codeEditorBindings.handler({
     showCodeEditor.value = !showCodeEditor.value
   },
 })
+
+function enterNode(id: ExprId) {
+  const expressionInfo = graphStore.db.getExpressionInfo(id)
+  if (expressionInfo == undefined || expressionInfo.methodCall == undefined) {
+    console.debug('Cannot enter node that has no method call.')
+    return
+  }
+  const definedOnType = tryQualifiedName(expressionInfo.methodCall.methodPointer.definedOnType)
+  if (!projectStore.modulePath?.ok) {
+    console.warn('Cannot enter node while no module is open.')
+    return
+  }
+  const openModuleName = qnLastSegment(projectStore.modulePath.value)
+  if (definedOnType.ok && qnLastSegment(definedOnType.value) != openModuleName) {
+    console.debug('Cannot enter node that is not defined on current module.')
+    return
+  }
+  projectStore.executionContext.push(id)
+  graphStore.updateState()
+}
+
+function exitNode() {
+  projectStore.executionContext.pop()
+  graphStore.updateState()
+}
 
 /** Track play button presses. */
 function onPlayButtonPress() {
@@ -456,7 +502,7 @@ function handleNodeOutputPortDoubleClick(id: ExprId) {
     :style="groupColors"
     v-on.="graphNavigator.events"
     v-on..="nodeSelection.events"
-    @click="graphBindingsHandler"
+    @click="handleClick"
     @dragover.prevent
     @drop.prevent="handleFileDrop($event)"
   >
@@ -464,7 +510,10 @@ function handleNodeOutputPortDoubleClick(id: ExprId) {
       <GraphEdges />
     </svg>
     <div :style="{ transform: graphNavigator.transform }" class="htmlLayer">
-      <GraphNodes @nodeOutputPortDoubleClick="handleNodeOutputPortDoubleClick" />
+      <GraphNodes
+        @nodeOutputPortDoubleClick="handleNodeOutputPortDoubleClick"
+        @nodeDoubleClick="enterNode"
+      />
     </div>
     <ComponentBrowser
       v-if="componentBrowserVisible"
@@ -484,7 +533,7 @@ function handleNodeOutputPortDoubleClick(id: ExprId) {
       :modes="EXECUTION_MODES"
       :breadcrumbs="breadcrumbs"
       @breadcrumbClick="console.log(`breadcrumb #${$event + 1} clicked.`)"
-      @back="console.log('breadcrumbs \'back\' button clicked.')"
+      @back="exitNode"
       @forward="console.log('breadcrumbs \'forward\' button clicked.')"
       @execute="onPlayButtonPress()"
     />
