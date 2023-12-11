@@ -27,7 +27,7 @@ const ITEM_SIZE = 32
 const TOP_BAR_HEIGHT = 32
 // Difference in position between the component browser and a node for the input of the component browser to
 // be placed at the same position as the node.
-const COMPONENT_BROWSER_TO_NODE_OFFSET = new Vec2(20, 35)
+const COMPONENT_BROWSER_TO_NODE_OFFSET = new Vec2(-4, -4)
 
 const projectStore = useProjectStore()
 const suggestionDbStore = useSuggestionDbStore()
@@ -48,7 +48,6 @@ const emit = defineEmits<{
 onMounted(() => {
   nextTick(() => {
     input.reset(props.usage)
-    selectLastAfterRefresh()
     if (inputField.value != null) {
       inputField.value.focus({ preventScroll: true })
     } else {
@@ -90,7 +89,15 @@ const currentFiltering = computed(() => {
   )
 })
 
-watch(currentFiltering, selectLastAfterRefresh)
+watch(currentFiltering, () => {
+  selected.value = input.autoSelectFirstComponent.value ? 0 : null
+  nextTick(() => {
+    scrollToBottom()
+    animatedScrollPosition.skip()
+    animatedHighlightPosition.skip()
+    animatedHighlightHeight.skip()
+  })
+})
 
 function readInputFieldSelection() {
   if (
@@ -246,21 +253,6 @@ const highlightClipPath = computed(() => {
   return `inset(${top}px 0px ${bottom}px 0px round 16px)`
 })
 
-/**
- * Select the last element after updating component list.
- *
- * As the list changes the scroller's content, we need to wait a frame so the scroller
- * recalculates its height and setting scrollTop will work properly.
- */
-function selectLastAfterRefresh() {
-  selected.value = 0
-  nextTick(() => {
-    scrollToSelected()
-    animatedScrollPosition.skip()
-    animatedHighlightPosition.skip()
-  })
-}
-
 // === Scrolling ===
 
 const scroller = ref<HTMLElement>()
@@ -278,6 +270,10 @@ const listContentHeightPx = computed(() => `${listContentHeight.value}px`)
 function scrollToSelected() {
   if (selectedPosition.value == null) return
   scrollPosition.value = Math.max(selectedPosition.value - scrollerSize.value.y + ITEM_SIZE, 0)
+}
+
+function scrollToBottom() {
+  scrollPosition.value = listContentHeight.value - scrollerSize.value.y
 }
 
 function updateScroll() {
@@ -476,8 +472,7 @@ const handler = componentBrowserBindings.handler({
           v-model="input.code.value"
           name="cb-input"
           autocomplete="off"
-          @keydown.backspace.stop
-          @keyup="readInputFieldSelection"
+          @input="readInputFieldSelection"
         />
       </div>
     </div>

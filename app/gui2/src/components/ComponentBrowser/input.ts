@@ -149,6 +149,21 @@ export function useComponentBrowserInput(
     return filter
   })
 
+  const autoSelectFirstComponent = computed(() => {
+    // We want to autoselect first component only when we may safely assume user want's to continue
+    // editing - they want to immediately see preview of best component and rather won't press
+    // enter (and if press, they won't be surprised by the results).
+    const ctx = context.value
+    // If no input, we're sure user want's to add something.
+    if (!code.value) return true
+    // When changing identifier, it is unfinished. Or, the best match should be exactly what
+    // the user wants
+    if (ctx.type === 'changeIdentifier') return true
+    // With partially written `.` chain we ssume user want's to add something.
+    if (ctx.type === 'insert' && ctx.oprApp?.lastOpr()?.repr() === '.') return true
+    return false
+  })
+
   function readOprApp(
     leafParent: IteratorResult<RawAstExtended<RawAst.Tree, false>>,
     editedAst?: RawAstExtended<RawAst.Tree, false>,
@@ -424,6 +439,8 @@ export function useComponentBrowserInput(
     context,
     /** The filter deduced from code and selection. */
     filter,
+    /** Flag indicating that we should autoselect first component after last update */
+    autoSelectFirstComponent,
     /** Re-initializes the input for given usage. */
     reset,
     /** Apply given suggested entry to the input. */
