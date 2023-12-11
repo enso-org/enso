@@ -3,7 +3,7 @@ package org.enso.base.enso_cloud;
 import org.enso.base.Environment_Utils;
 
 public class AuthenticationProvider {
-  private static String token;
+  private static String token = null;
 
   public static String setToken(String token) {
     AuthenticationProvider.token = token;
