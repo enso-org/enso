@@ -310,17 +310,7 @@ function positionalApp(
   func: NodeChild<AstId>,
   arg: NodeChild<AstId>,
 ): App {
-  return new App(
-    module,
-    id,
-    func,
-    null,
-    null,
-    null,
-    arg,
-    null,
-    RawAst.Tree.Type.App,
-  )
+  return new App(module, id, func, null, null, null, arg, null, RawAst.Tree.Type.App)
 }
 
 function namedApp(
