@@ -11,7 +11,7 @@ import { abs } from 'lib0/math'
 import type { ExprId } from 'shared/yjsModel'
 import { computed, markRaw, ref, watchEffect, type ComputedRef, type WatchStopHandle } from 'vue'
 
-const DRAG_SNAP_THRESHOLD = 15
+const DRAG_SNAP_THRESHOLD = 16
 const VERTICAL_GAP = theme.node.vertical_gap
 
 export class SnapGrid {
