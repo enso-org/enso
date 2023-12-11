@@ -76,11 +76,11 @@ pub fn extract_files_sync(
     mut filter: impl FnMut(&Path) -> Option<PathBuf>,
 ) -> Result {
     for i in 0..archive.len() {
-        let mut entry =
-            archive.by_index(i).with_context(|| format!("Error getting ZIP archive entry"))?;
-        let path_in_archive =
-            entry.enclosed_name().with_context(|| format!("Could not get file path"))?;
-        if let Some(output_path) = filter(&path_in_archive) {
+        let mut entry = archive.by_index(i).with_context(|| "Error getting ZIP archive entry")?;
+        let path_in_archive = entry
+            .enclosed_name()
+            .with_context(|| "Could not get file path of ZIP archive entry")?;
+        if let Some(output_path) = filter(path_in_archive) {
             let entry_type = if entry.is_dir() { "directory" } else { "file" };
             let make_message = |prefix, path: &Path| {
                 format!(
