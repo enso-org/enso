@@ -7,11 +7,13 @@ import com.oracle.truffle.api.instrumentation.SourceFilter;
 import com.oracle.truffle.api.instrumentation.SourceSectionFilter;
 import com.oracle.truffle.api.instrumentation.TruffleInstrument;
 import com.oracle.truffle.api.instrumentation.TruffleInstrument.Registration;
+import java.io.PrintStream;
+import org.apache.commons.io.output.NullOutputStream;
 
 @Registration(id = TestExecutionEventListener.ID, services = TestExecutionEventListener.class)
 public class TestExecutionEventListener extends TruffleInstrument
     implements ExecutionEventListener {
-
+  private static final PrintStream LOG = new PrintStream(NullOutputStream.INSTANCE); // System.err
   public static final String ID = "test-execution-event-listener";
 
   @Override
@@ -24,17 +26,18 @@ public class TestExecutionEventListener extends TruffleInstrument
 
   @Override
   public void onEnter(EventContext context, VirtualFrame frame) {
-    System.out.printf("onEnter: %s%n", context);
+    LOG.printf("onEnter: %s%n", context);
   }
 
   @Override
   public void onReturnValue(EventContext context, VirtualFrame frame, Object result) {
-    System.out.printf("onReturnValue: ctx=%s, result=%s %n", context, result);
+    LOG.printf("onReturnValue: ctx=%s, result=%s %n", context, result);
   }
 
   @Override
   public void onReturnExceptional(EventContext context, VirtualFrame frame, Throwable exception) {
-    System.out.printf("onReturnExceptional: ctx=%s, exception=%s %n", context, exception);
-    System.out.println();
+    LOG.printf("onReturnExceptional: ctx=%s, exception=%s %n", context, exception);
+    exception.printStackTrace(LOG);
+    LOG.println();
   }
 }
