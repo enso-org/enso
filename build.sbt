@@ -1944,14 +1944,12 @@ lazy val `runtime-fat-jar` =
 
 lazy val `runtime-with-instruments` =
   (project in file("engine/runtime-with-instruments"))
+    .enablePlugins(JPMSPlugin)
     .configs(Benchmark)
     .settings(
       frgaalJavaCompilerSetting,
       inConfig(Compile)(truffleRunOptionsSettings),
       commands += WithDebugCommand.withDebug,
-      Test / javaOptions ++= testLogProviderOptions ++ Seq(
-        "-Dpolyglotimpl.DisableClassPathIsolation=true"
-      ),
       Test / fork := true,
       Test / envVars ++= distributionEnvironmentOverrides ++ Map(
         "ENSO_TEST_DISABLE_IR_CACHE" -> "false"
@@ -1971,6 +1969,95 @@ lazy val `runtime-with-instruments` =
         // Return an empty file to satisfy the type checker (the assembly task expect File as a return type)
         file("")
       }
+    )
+    /**
+    * JPMS related settings
+    */
+    .settings(
+      Test / excludeFilter := "module-info.java",
+      Test / javaModuleName := "org.enso.runtime.with.instruments",
+      Test / modulePath := {
+        val runtimeMod = (`runtime-fat-jar` / Compile / productDirectories).value.head
+        val updateReport = (Test / update).value
+        val requiredModIds =
+          GraalVM.modules ++ GraalVM.langsPkgs ++ logbackPkg ++ Seq(
+            "org.slf4j" % "slf4j-api" % slf4jVersion
+          )
+        val requiredMods = JPMSUtils.filterModulesFromUpdate(
+          updateReport,
+          requiredModIds,
+          streams.value.log,
+          shouldContainAll = true
+        )
+        requiredMods ++ Seq(
+          runtimeMod
+        )
+      },
+      Test / addModules := {
+        val runtimeModName = (`runtime-fat-jar` / javaModuleName).value
+        Seq(
+          runtimeModName
+        )
+      },
+      Test / compileModuleInfo := Def.taskDyn {
+        JPMSUtils.compileModuleInfoInScope(
+          extraModulePath = (Test / modulePath).value,
+          scope = ScopeFilter(configurations = inConfigurations(Test))
+        )
+      }
+        .dependsOn(Test / compile)
+        .value,
+      (Test / patchModules) := {
+        val modulesToPatchIntoRuntime: Seq[File] =
+        (LocalProject(
+          "runtime-instrument-common"
+        ) / Compile / productDirectories).value ++
+        (LocalProject(
+          "runtime-instrument-id-execution"
+        ) / Compile / productDirectories).value ++
+        (LocalProject(
+          "runtime-instrument-repl-debugger"
+        ) / Compile / productDirectories).value ++
+        (LocalProject(
+          "runtime-instrument-runtime-server"
+        ) / Compile / productDirectories).value ++
+        (LocalProject(
+          "runtime-language-epb"
+        ) / Compile / productDirectories).value ++
+         (LocalProject("runtime-compiler") / Compile / productDirectories).value
+
+        val testClassesDir = (Test / productDirectories).value.head
+        val runtimeModName =  (`runtime-fat-jar` / javaModuleName).value
+        Map(
+          runtimeModName -> modulesToPatchIntoRuntime
+        )
+      },
+      (Test / addReads) := {
+         val runtimeModName = (`runtime-fat-jar` / javaModuleName).value
+          Map(
+            runtimeModName -> Seq(
+              "ALL-UNNAMED"
+            )
+          )
+      },
+      (Test / javaOptions) ++= {
+        // We can't use org.enso.logger.TestLogProvider (or anything from our own logging framework here) because it is not
+        // in a module, and it cannot be simple wrapped inside a module.
+        // So we use plain ch.qos.logback with its configuration.
+        val testLogbackConf = (LocalProject(
+          "logging-service-logback"
+        ) / Test / sourceDirectory).value / "resources" / "logback-test.xml"
+        Seq(
+          "-Dslf4j.provider=ch.qos.logback.classic.spi.LogbackServiceProvider",
+          s"-Dlogback.configurationFile=${testLogbackConf.getAbsolutePath}"
+        )
+      },
+      Test / test := (Test / test)
+        .dependsOn(Test / compileModuleInfo)
+        .value,
+      Test / testOnly := (Test / testOnly)
+        .dependsOn(Test / compileModuleInfo)
+        .evaluated
     )
     /** Benchmark settings */
     .settings(

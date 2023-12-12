@@ -12,7 +12,7 @@ import java.io.File
   * enable this plugin in a project with `.enablePlugins(JPMSPlugin)`. The keys and tasks provided by this plugin
   * corresponds to the module-related options of `javac` and `java` commands.
   *
-  * This plugin injects all the module-specific options to `javaOptions` and `javacOptions`, based on
+  * This plugin injects all the module-specific options to `javaOptions`, based on
   * the settings of this plugin.
   *
   * If this plugin is enabled, and no settings/tasks from this plugin are used, then the plugin will
@@ -65,55 +65,51 @@ object JPMSPlugin extends AutoPlugin {
     addExports := Map.empty,
     addReads := Map.empty,
     compileModuleInfo := {},
+    // javacOptions only inject --module-path and --add-modules, not the rest of the
+    // options.
     Compile / javacOptions ++= {
       constructOptions(
-        (Compile / modulePath).value,
-        (Compile / addModules).value,
-        (Compile / patchModules).value,
-        (Compile / addExports).value,
-        (Compile / addReads).value,
-        streams.value.log
+        streams.value.log,
+        modulePath = (Compile / modulePath).value,
+        addModules = (Compile / addModules).value
       )
     },
     Compile / javaOptions ++= {
       constructOptions(
+        streams.value.log,
         (Compile / modulePath).value,
         (Compile / addModules).value,
         (Compile / patchModules).value,
         (Compile / addExports).value,
-        (Compile / addReads).value,
-        streams.value.log
+        (Compile / addReads).value
       )
     },
     Test / javacOptions ++= {
       constructOptions(
-        (Test / modulePath).value,
-        (Test / addModules).value,
-        (Test / patchModules).value,
-        (Test / addExports).value,
-        (Test / addReads).value,
-        streams.value.log
+        streams.value.log,
+        modulePath = (Test / modulePath).value,
+        addModules = (Test / addModules).value
       )
     },
     Test / javaOptions ++= {
       constructOptions(
+        streams.value.log,
         (Test / modulePath).value,
         (Test / addModules).value,
         (Test / patchModules).value,
         (Test / addExports).value,
-        (Test / addReads).value,
-        streams.value.log
+        (Test / addReads).value
       )
     }
   )
 
-  private def constructOptions(
+  def constructOptions(
+    log: Logger,
     modulePath: Seq[File],
-    addModules: Seq[String],
-    patchModules: Map[String, Seq[File]],
-    addExports: Map[String, Seq[String]],
-    addReads: Map[String, Seq[String]],
-    log: Logger
+    addModules: Seq[String]              = Seq.empty,
+    patchModules: Map[String, Seq[File]] = Map.empty,
+    addExports: Map[String, Seq[String]] = Map.empty,
+    addReads: Map[String, Seq[String]]   = Map.empty
   ): Seq[String] = {
     val patchOpts: Seq[String] = patchModules.flatMap {
       case (moduleName, dirsToPatch) =>
