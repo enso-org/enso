@@ -54,6 +54,7 @@ export const useGraphStore = defineStore('graph', () => {
   const editedNodeInfo = ref<NodeEditInfo>()
   const imports = ref<{ import: Import; span: ContentRange }[]>([])
   const methodAst = ref<Ast.Function>()
+  const currentNodeIds = ref(new Set<ExprId>())
 
   const unconnectedEdge = ref<UnconnectedEdge>()
 
@@ -107,9 +108,9 @@ export const useGraphStore = defineStore('graph', () => {
         return true
       })
 
-      methodAst.value = getExecutedMethodAst(newRoot, proj.executionContext.getStackTop())
+      methodAst.value = getExecutedMethodAst(newRoot, proj.executionContext.getStackTop(), db)
       if (methodAst.value) {
-        db.readFunctionAst(methodAst.value, (id) => meta.get(id))
+        currentNodeIds.value = db.readFunctionAst(methodAst.value, (id) => meta.get(id))
       }
     })
   }
@@ -215,6 +216,8 @@ export const useGraphStore = defineStore('graph', () => {
     const node = db.nodeIdToNode.get(id)
     if (!node) return
     proj.module?.deleteExpression(node.outerExprId)
+    nodeRects.delete(id)
+    node.pattern?.visitRecursive((ast) => exprRects.delete(ast.astId))
   }
 
   function setNodeContent(id: ExprId, content: string) {
@@ -331,6 +334,7 @@ export const useGraphStore = defineStore('graph', () => {
     editedNodeInfo,
     unconnectedEdge,
     edges,
+    currentNodeIds,
     nodeRects,
     vizRects,
     exprRects,
@@ -354,6 +358,7 @@ export const useGraphStore = defineStore('graph', () => {
     updateExprRect,
     setEditedNode,
     createNodeFromSource,
+    updateState,
   }
 })
 
@@ -377,6 +382,7 @@ export type UnconnectedEdge = {
 function getExecutedMethodAst(
   ast: Ast.Ast,
   executionStackTop: StackItem,
+  db: GraphDb,
 ): Ast.Function | undefined {
   switch (executionStackTop.type) {
     case 'ExplicitCall': {
@@ -386,10 +392,12 @@ function getExecutedMethodAst(
       return Ast.findModuleMethod(ast.module, ptr.name) ?? undefined
     }
     case 'LocalCall': {
-      console.error(`TODO (#8068)--this should not be reachable yet`)
-      /* AO: The expression ID is a call expression - we should get method pointer from expression updates and this way
-       * find the definition.
-       */
+      const exprId = executionStackTop.expressionId
+      const info = db.getExpressionInfo(exprId)
+      if (!info) return undefined
+      const ptr = info.methodCall?.methodPointer
+      if (!ptr) return undefined
+      return Ast.findModuleMethod(ast.module, ptr.name) ?? undefined
     }
   }
 }

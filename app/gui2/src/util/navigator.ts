@@ -84,7 +84,11 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
         viewportNode.value.clientWidth / rect.width,
       ),
     )
-    targetCenter.value = new Vec2(rect.left + rect.width / 2, rect.top + rect.height / 2)
+    const centerX =
+      !Number.isFinite(rect.left) && !Number.isFinite(rect.width) ? 0 : rect.left + rect.width / 2
+    const centerY =
+      !Number.isFinite(rect.top) && !Number.isFinite(rect.height) ? 0 : rect.top + rect.height / 2
+    targetCenter.value = new Vec2(centerX, centerY)
   }
 
   let zoomPivot = Vec2.Zero
