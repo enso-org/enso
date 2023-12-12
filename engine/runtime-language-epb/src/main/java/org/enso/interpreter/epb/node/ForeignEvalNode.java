@@ -3,9 +3,16 @@ package org.enso.interpreter.epb.node;
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
+import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropException;
+import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.library.CachedLibrary;
+import com.oracle.truffle.api.library.ExportLibrary;
+import com.oracle.truffle.api.library.ExportMessage;
+import com.oracle.truffle.api.library.Message;
+import com.oracle.truffle.api.library.ReflectionLibrary;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.Source;
 import java.util.Arrays;
@@ -56,7 +63,11 @@ public class ForeignEvalNode extends RootNode {
         if (ctx.getInnerContext() != null) {
           prev = ctx.getInnerContext().enter(this);
         }
-        return foreign.execute(frame.getArguments());
+        var toRet = foreign.execute(frame.getArguments());
+        if (prev != null && toRet instanceof TruffleObject) {
+          toRet = new EpbProxyValue(toRet, ctx.getInnerContext());
+        }
+        return toRet;
       } catch (InteropException ex) {
         throw new ForeignParsingException(ex.getMessage(), this);
       } finally {
@@ -164,4 +175,5 @@ public class ForeignEvalNode extends RootNode {
     CallTarget ct = context.getEnv().parsePublic(source);
     foreign = insert(RForeignNodeGen.create(ct.call()));
   }
+
 }
