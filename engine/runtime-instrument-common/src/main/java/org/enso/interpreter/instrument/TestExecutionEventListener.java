@@ -8,12 +8,9 @@ import com.oracle.truffle.api.instrumentation.SourceSectionFilter;
 import com.oracle.truffle.api.instrumentation.TruffleInstrument;
 import com.oracle.truffle.api.instrumentation.TruffleInstrument.Registration;
 
-@Registration(
-    id = TestExecutionEventListener.ID,
-    services = TestExecutionEventListener.class
-)
-public class TestExecutionEventListener extends TruffleInstrument implements
-    ExecutionEventListener {
+@Registration(id = TestExecutionEventListener.ID, services = TestExecutionEventListener.class)
+public class TestExecutionEventListener extends TruffleInstrument
+    implements ExecutionEventListener {
 
   public static final String ID = "test-execution-event-listener";
 
@@ -21,8 +18,7 @@ public class TestExecutionEventListener extends TruffleInstrument implements
   protected void onCreate(Env env) {
     env.registerService(this);
     var jsSrcFilter = SourceFilter.newBuilder().languageIs("js").build();
-    var sourceSectionFilter = SourceSectionFilter.newBuilder()
-        .build();
+    var sourceSectionFilter = SourceSectionFilter.newBuilder().build();
     env.getInstrumenter().attachExecutionEventListener(SourceSectionFilter.ANY, this);
   }
 

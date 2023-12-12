@@ -5,10 +5,7 @@ import com.oracle.truffle.api.instrumentation.ThreadsActivationListener;
 import com.oracle.truffle.api.instrumentation.TruffleInstrument;
 import com.oracle.truffle.api.instrumentation.TruffleInstrument.Registration;
 
-@Registration(
-    id = TestThreadListener.ID,
-    services = TestThreadListener.class
-)
+@Registration(id = TestThreadListener.ID, services = TestThreadListener.class)
 public class TestThreadListener extends TruffleInstrument implements ThreadsActivationListener {
 
   public static final String ID = "test-thread-listener";
@@ -21,13 +18,15 @@ public class TestThreadListener extends TruffleInstrument implements ThreadsActi
 
   @Override
   public void onEnterThread(TruffleContext context) {
-    System.out.printf("[TestThreadListener:%s] onEnterThread: ctx=%s%n",
+    System.out.printf(
+        "[TestThreadListener:%s] onEnterThread: ctx=%s%n",
         Thread.currentThread().getName(), ctxToStr(context));
   }
 
   @Override
   public void onLeaveThread(TruffleContext context) {
-    System.out.printf("[TestThreadListener:%s] onLeaveThread: ctx=%s%n",
+    System.out.printf(
+        "[TestThreadListener:%s] onLeaveThread: ctx=%s%n",
         Thread.currentThread().getName(), ctxToStr(context));
   }
 

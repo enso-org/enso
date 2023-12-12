@@ -6,14 +6,10 @@ import com.oracle.truffle.api.instrumentation.TruffleInstrument;
 import com.oracle.truffle.api.instrumentation.TruffleInstrument.Registration;
 import com.oracle.truffle.api.nodes.LanguageInfo;
 
-@Registration(
-    id = TestContextListener.ID,
-    services = TestContextListener.class
-)
+@Registration(id = TestContextListener.ID, services = TestContextListener.class)
 public class TestContextListener extends TruffleInstrument implements ContextsListener {
 
   public static final String ID = "test-context-listener";
-
 
   @Override
   protected void onCreate(Env env) {
@@ -28,26 +24,38 @@ public class TestContextListener extends TruffleInstrument implements ContextsLi
 
   @Override
   public void onLanguageContextCreated(TruffleContext context, LanguageInfo language) {
-    System.out.println("Language context created: context=" + ctxToStr(context) + ", language="
-        + language.getId());
+    System.out.println(
+        "Language context created: context="
+            + ctxToStr(context)
+            + ", language="
+            + language.getId());
   }
 
   @Override
   public void onLanguageContextInitialized(TruffleContext context, LanguageInfo language) {
-    System.out.println("Language context initialized: context=" + ctxToStr(context) + ", language="
-        + language.getId());
+    System.out.println(
+        "Language context initialized: context="
+            + ctxToStr(context)
+            + ", language="
+            + language.getId());
   }
 
   @Override
   public void onLanguageContextFinalized(TruffleContext context, LanguageInfo language) {
-    System.out.println("Language context finalized: context=" + ctxToStr(context) + ", language="
-        + language.getId());
+    System.out.println(
+        "Language context finalized: context="
+            + ctxToStr(context)
+            + ", language="
+            + language.getId());
   }
 
   @Override
   public void onLanguageContextDisposed(TruffleContext context, LanguageInfo language) {
-    System.out.println("Language context disposed: context=" + ctxToStr(context) + ", language="
-        + language.getId());
+    System.out.println(
+        "Language context disposed: context="
+            + ctxToStr(context)
+            + ", language="
+            + language.getId());
   }
 
   @Override
