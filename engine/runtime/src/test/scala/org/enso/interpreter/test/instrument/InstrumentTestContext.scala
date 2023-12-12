@@ -3,7 +3,7 @@ package org.enso.interpreter.test.instrument
 import org.apache.commons.io.FileUtils
 import org.enso.distribution.locking.ThreadSafeFileLockManager
 import org.enso.pkg.{Package, PackageManager}
-import org.enso.polyglot.{LanguageInfo, PolyglotContext}
+import org.enso.polyglot.{PolyglotContext}
 import org.enso.polyglot.runtime.Runtime.Api
 import org.graalvm.polyglot.Context
 
@@ -33,7 +33,6 @@ abstract class InstrumentTestContext(packageName: String) {
   def init(): Unit = {
     assert(context != null)
     executionContext = new PolyglotContext(context)
-    context.initialize(LanguageInfo.ID)
   }
 
   protected val runtimeServerEmulator: RuntimeServerEmulator =

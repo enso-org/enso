@@ -1,6 +1,6 @@
 package org.enso.interpreter.epb;
 
-import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.TruffleContext;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.nodes.Node;
@@ -22,7 +22,7 @@ public class EpbContext {
   private static final String INNER_OPTION = "isEpbInner";
   private final boolean isInner;
   private final TruffleLanguage.Env env;
-  private @CompilerDirectives.CompilationFinal GuardedTruffleContext innerContext;
+  private @CompilationFinal GuardedTruffleContext innerContext;
   private final ReentrantLock lock = new ReentrantLock();
 
   /**
@@ -63,8 +63,10 @@ public class EpbContext {
       return;
     }
     var log = environment.getLogger(EpbContext.class);
-    log.log(Level.INFO, "Initializing languages {0}. In thread {1}",
-        new Object[]{langs, Thread.currentThread().getName()});
+    log.log(
+        Level.INFO,
+        "Initializing languages {0}. In thread {1}",
+        new Object[] {langs, Thread.currentThread().getName()});
     var cdl = new CountDownLatch(1);
     var run =
         (Consumer<TruffleContext>)
@@ -74,7 +76,9 @@ public class EpbContext {
               var beforeEnter = innerContext.enter(null);
               lock.lock();
               try {
-                log.log(Level.INFO, "Entering initialization thread '{0}'",
+                log.log(
+                    Level.INFO,
+                    "Entering initialization thread '{0}'",
                     Thread.currentThread().getName());
                 cdl.countDown();
                 for (var l : langs.split(",")) {
@@ -119,5 +123,9 @@ public class EpbContext {
 
   public ReentrantLock getLock() {
     return lock;
+  }
+
+  public GuardedTruffleContext getInnerContext() {
+    return innerContext;
   }
 }

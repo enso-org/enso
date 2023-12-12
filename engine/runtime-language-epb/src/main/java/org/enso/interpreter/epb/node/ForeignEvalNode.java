@@ -10,19 +10,20 @@ import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.Source;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.stream.Collectors;
 import org.enso.interpreter.epb.EpbContext;
 import org.enso.interpreter.epb.EpbLanguage;
 import org.enso.interpreter.epb.EpbParser;
 import org.enso.interpreter.epb.runtime.ForeignParsingException;
+import org.enso.interpreter.epb.runtime.GuardedTruffleContext;
 
 public class ForeignEvalNode extends RootNode {
   private final EpbParser.Result code;
-  private @Child ForeignFunctionCallNode foreign;
+  private @Child
+  ForeignFunctionCallNode foreign;
 
-  private @CompilationFinal ForeignParsingException parseException;
+  private @CompilationFinal
+  ForeignParsingException parseException;
   private final String[] argNames;
 
   /**
@@ -34,7 +35,7 @@ public class ForeignEvalNode extends RootNode {
    * @return an instance of this node
    */
   public static ForeignEvalNode build(
-      EpbLanguage language, EpbParser.Result code, List<String> arguments) {
+          EpbLanguage language, EpbParser.Result code, List<String> arguments) {
     return new ForeignEvalNode(language, code, arguments);
   }
 
@@ -80,8 +81,8 @@ public class ForeignEvalNode extends RootNode {
         var context = EpbContext.get(this);
         var installedLanguages = context.getEnv().getInternalLanguages();
         if (!installedLanguages.containsKey(truffleLangId)) {
-          this.parseException =
-              new ForeignParsingException(truffleLangId, installedLanguages.keySet(), this);
+          this.parseException
+                  = new ForeignParsingException(truffleLangId, installedLanguages.keySet(), this);
         } else {
           switch (foreignLang) {
             case JS:
@@ -105,31 +106,41 @@ public class ForeignEvalNode extends RootNode {
 
   private void parseJs() {
     EpbContext context = EpbContext.get(this);
-    String args = Arrays.stream(argNames).skip(1).collect(Collectors.joining(","));
-    String wrappedSrc =
-        "var poly_enso_eval=function("
-            + args
-            + "){\n"
-            + code.getForeignSource()
-            + "\n};poly_enso_eval";
-    Source source = Source.newBuilder(code.getLanguage().getTruffleId(), wrappedSrc, "").build();
-    CallTarget ct = context.getEnv().parsePublic(source);
-    foreign = insert(JsForeignNode.build(ct.call(), argNames.length));
+    GuardedTruffleContext inner = context.getInnerContext();
+    Object p = inner.enter(this);
+    try {
+      String args = Arrays.stream(argNames).skip(1).collect(Collectors.joining(","));
+      String wrappedSrc
+              = "var poly_enso_eval=function("
+              + args
+              + "){\n"
+              + code.getForeignSource()
+              + "\n};poly_enso_eval";
+      Source source = Source.newBuilder(code.getLanguage().getTruffleId(), wrappedSrc, "").build();
+
+      // After calling inner.enter, operating in a different, isolated truffle instance so need to
+      // call one with the correct semantics.
+      CallTarget ct = EpbContext.get(this).getEnv().parsePublic(source);
+      Object fn = ct.call();
+      foreign = insert(JsForeignNode.build(fn, argNames.length));
+    } finally {
+      inner.leave(this, p);
+    }
   }
 
   private void parsePy() {
     String args = Arrays.stream(argNames).collect(Collectors.joining(","));
     String head = """
-      import site
-      import polyglot
-      @polyglot.export_value
-      def polyglot_enso_python_eval("""
-          + args
-          + "):\n";
-    String indentLines =
-        code.getForeignSource().lines().map(l -> "    " + l).collect(Collectors.joining("\n"));
-    Source source =
-        Source.newBuilder(code.getLanguage().getTruffleId(), head + indentLines, "").build();
+        import site
+        import polyglot
+        @polyglot.export_value
+        def polyglot_enso_python_eval("""
+            + args
+            + "):\n";
+    String indentLines
+            = code.getForeignSource().lines().map(l -> "    " + l).collect(Collectors.joining("\n"));
+    Source source
+            = Source.newBuilder(code.getLanguage().getTruffleId(), head + indentLines, "").build();
     EpbContext context = EpbContext.get(this);
     CallTarget ct = context.getEnv().parsePublic(source);
     ct.call();

@@ -33,7 +33,7 @@ class RuntimeVisualizationsTest
       extends InstrumentTestContext(packageName) {
 
     val out: ByteArrayOutputStream = new ByteArrayOutputStream()
-    val context =
+    lazy val context =
       Context
         .newBuilder()
         .allowExperimentalOptions(true)
