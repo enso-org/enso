@@ -3,10 +3,10 @@ package org.enso.interpreter.test;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.*;
 import com.oracle.truffle.api.nodes.Node;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.runtime.control.TailCallException;
 
 import java.util.UUID;
 
@@ -21,7 +21,23 @@ import java.util.UUID;
     services = CodeIdsTestInstrument.class)
 public class CodeIdsTestInstrument extends TruffleInstrument {
   public static final String INSTRUMENT_ID = "ids-test";
+  private static final Class<?> exprNodeClass;
+  private static final Method exprNodeGetId;
+  private static final Class<?> tailCallExceptionClass;
   private Env env;
+
+  /**
+   * Use reflection to call methods from `runtime` project. We cannot use `runtime` as a dependency.
+   */
+  static {
+    try {
+      exprNodeClass = Class.forName("org.enso.interpreter.node.ExpressionNode");
+      exprNodeGetId = exprNodeClass.getMethod("getId");
+      tailCallExceptionClass = Class.forName("org.enso.interpreter.runtime.control.TailCallException");
+    } catch (ClassNotFoundException | NoSuchMethodException e) {
+      throw new AssertionError(e);
+    }
+  }
 
   /**
    * Initializes the instrument. Substitute for a constructor, called by the Truffle framework.
@@ -95,7 +111,6 @@ public class CodeIdsTestInstrument extends TruffleInstrument {
       /**
        * Checks if the node to be executed is the node this listener was created to observe.
        *
-       * @param context current execution context
        * @param frame current execution frame
        * @param result the result of executing the node
        */
@@ -105,16 +120,29 @@ public class CodeIdsTestInstrument extends TruffleInstrument {
           return;
         }
         Node node = context.getInstrumentedNode();
-        if (!(node instanceof ExpressionNode)) {
+        if (!(isInstanceOf(node, exprNodeClass))) {
           return;
         }
         nodes.put(this, result);
-        UUID id = ((ExpressionNode) node).getId();
+        UUID id = exprNodeGetId(node);
         if (id == null || !id.equals(expectedId)) {
           return;
         }
         if (expectedResult != null && expectedResult.equals(result.toString())) {
           successful = true;
+        }
+      }
+
+      private boolean isInstanceOf(Object obj, Class<?> clazz) {
+        return clazz.isInstance(obj);
+      }
+
+      private UUID exprNodeGetId(Object exprNode) {
+        assert isInstanceOf(exprNode, exprNodeClass);
+        try {
+          return (UUID) exprNodeGetId.invoke(exprNode);
+        } catch (IllegalAccessException | InvocationTargetException e) {
+          throw new AssertionError(e);
         }
       }
 
@@ -127,13 +155,13 @@ public class CodeIdsTestInstrument extends TruffleInstrument {
        */
       @Override
       public void onReturnExceptional(VirtualFrame frame, Throwable exception) {
-        if (!(exception instanceof TailCallException)) {
+        if (!isInstanceOf(exception, tailCallExceptionClass)) {
           return;
         }
-        if (!(context.getInstrumentedNode() instanceof ExpressionNode)) {
+        if (!isInstanceOf(context.getInstrumentedNode(), exprNodeClass)) {
           return;
         }
-        UUID id = ((ExpressionNode) context.getInstrumentedNode()).getId();
+        UUID id = exprNodeGetId(context.getInstrumentedNode());
         if (expectedResult == null) {
           successful = true;
         }
@@ -143,8 +171,9 @@ public class CodeIdsTestInstrument extends TruffleInstrument {
       public String toString() {
         var sb = new StringBuilder();
         sb.append(context.getInstrumentedNode().getClass().getSimpleName());
-        if (context.getInstrumentedNode() instanceof ExpressionNode expr) {
-            sb.append("@").append(expr.getId());
+        if (isInstanceOf(context.getInstrumentedNode(), exprNodeClass)) {
+          UUID id = exprNodeGetId(context.getInstrumentedNode());
+          sb.append("@").append(id);
         }
         sb.append(" ");
         sb.append(context.getInstrumentedSourceSection());

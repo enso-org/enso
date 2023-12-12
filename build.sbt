@@ -1503,6 +1503,29 @@ lazy val `runtime-language-epb` =
     )
     .dependsOn(`polyglot-api`)
 
+/** `runtime-test-instruments` project contains Truffle instruments that are used solely for testing.
+  * It is compiled into an explicit Java module. Note that this project cannot have compile-time dependency on `runtime`
+  * project, so if you need access to classes from `runtime`, you need to use reflection.
+  */
+lazy val `runtime-test-instruments` =
+  (project in file("engine/runtime-test-instruments"))
+    .enablePlugins(JPMSPlugin)
+    .settings(
+      inConfig(Compile)(truffleRunOptionsSettings),
+      truffleDslSuppressWarnsSetting,
+      instrumentationSettings,
+      javaModuleName := "org.enso.runtime.test",
+      modulePath := {
+        JPMSUtils.filterModulesFromUpdate(
+          update.value,
+          GraalVM.modules,
+          streams.value.log,
+          shouldContainAll = true
+        )
+      },
+      libraryDependencies ++= GraalVM.modules
+    )
+
 lazy val runtime = (project in file("engine/runtime"))
   .configs(Benchmark)
   .settings(
