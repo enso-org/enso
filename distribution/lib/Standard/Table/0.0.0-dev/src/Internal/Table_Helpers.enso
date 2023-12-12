@@ -66,7 +66,10 @@ type Table_Column_Helper
         problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
         result = self.select_columns_helper selectors case_sensitivity reorder problem_builder
         problem_builder.attach_problems_before on_problems <|
-            if error_on_empty && result.is_empty then Error.throw No_Output_Columns else result
+            handle_no_columns =
+                first_problem = problem_builder.build_problemset.get 0 if_missing=Nothing
+                Error.throw (No_Output_Columns.Error first_problem)
+            if error_on_empty && result.is_empty then handle_no_columns else result
 
     ## PRIVATE
        A helper function encapsulating shared code for `remove_columns`
@@ -96,7 +99,7 @@ type Table_Column_Helper
         result = self.internal_columns.filter column->
             should_be_removed = selected_names.get column.name False
             should_be_removed.not
-        if result.is_empty then Error.throw No_Output_Columns else
+        if result.is_empty then Error.throw No_Output_Columns.Error else
             problem_builder.attach_problems_after on_problems result
 
     ## PRIVATE
