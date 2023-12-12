@@ -48,13 +48,21 @@ public class ForeignEvalNode extends RootNode {
   public Object execute(VirtualFrame frame) {
     ensureParsed();
     if (foreign != null) {
-      var ctxLock = EpbContext.get(this).getLock();
+      var ctx = EpbContext.get(this);
+      var ctxLock = ctx.getLock();
       ctxLock.lock();
+      Object prev = null;
       try {
+        if (ctx.getInnerContext() != null) {
+          prev = ctx.getInnerContext().enter(this);
+        }
         return foreign.execute(frame.getArguments());
       } catch (InteropException ex) {
         throw new ForeignParsingException(ex.getMessage(), this);
       } finally {
+        if (ctx.getInnerContext() != null) {
+          ctx.getInnerContext().leave(this, prev);
+        }
         ctxLock.unlock();
       }
     } else {
