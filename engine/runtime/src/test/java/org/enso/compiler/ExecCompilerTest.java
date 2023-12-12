@@ -200,6 +200,29 @@ public class ExecCompilerTest {
   }
 
   @Test
+  public void inlineReturnSignature() throws Exception {
+    var module = ctx.eval("enso", """
+    foo (x : Integer) (y : Integer) -> Integer = 10*x + y
+    """);
+    var foo = module.invokeMember("eval_expression", "foo");
+    assertTrue("foo a function", foo.canExecute());
+    assertEquals(45, foo.execute(4, 5).asInt());
+  }
+
+  @Test
+  public void inlineReturnSignatureOnMemberMethod() throws Exception {
+    var module = ctx.eval("enso", """
+    type My_Type
+        Value x
+        
+        foo self (y : Integer) z -> Integer = 100*z + 10*y + self.x
+    """);
+    var instance = module.invokeMember("eval_expression", "My_Type.Value 1");
+    var result = instance.invokeMember("foo", 2, 3);
+    assertEquals(321, result.asInt());
+  }
+
+  @Test
   public void inlineReturnSignatureWithoutArguments() throws Exception {
     var module = ctx.eval("enso", """
     the_number -> Integer = 23
