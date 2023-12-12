@@ -393,7 +393,7 @@ spec setup =
                 r1 = t1.union t2 allow_type_widening=False
                 r1.should_fail_with No_Output_Columns
                 r1.catch.cause . should_be_a Column_Type_Mismatch
-                r1.to_display_text . should_equal "No columns in the result, because of another problem: The column [?] expects type ? but one of the provided tables had type ? which is not compatible with it."
+                r1.catch.to_display_text . should_equal "No columns in the result, because of another problem: The column [X] expects type Integer (16 bits) but one of the provided tables had type Integer (32 bits) which is not compatible with it."
 
                 # And this should report Column_Type_Mismatch as the more important error too:
                 t1.union t2 allow_type_widening=False on_problems=Problem_Behavior.Report_Error . should_fail_with Column_Type_Mismatch

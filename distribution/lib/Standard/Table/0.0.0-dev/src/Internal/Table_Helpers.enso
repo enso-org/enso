@@ -66,10 +66,7 @@ type Table_Column_Helper
         problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
         result = self.select_columns_helper selectors case_sensitivity reorder problem_builder
         problem_builder.attach_problems_before on_problems <|
-            handle_no_columns =
-                first_problem = problem_builder.build_problemset.get 0 if_missing=Nothing
-                Error.throw (No_Output_Columns.Error first_problem)
-            if error_on_empty && result.is_empty then handle_no_columns else result
+            if error_on_empty && result.is_empty then problem_builder.raise_no_output_columns_with_cause else result
 
     ## PRIVATE
        A helper function encapsulating shared code for `remove_columns`
