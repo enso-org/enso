@@ -5,6 +5,7 @@ use crate::ide::web::google_font;
 use enso_enso_font::ttf;
 use enso_font::NonVariableDefinition;
 use enso_font::NonVariableFaceHeader;
+use ide_ci::archive::archive::ExtractFiles;
 use ide_ci::cache::Cache;
 
 
@@ -176,4 +177,35 @@ async fn get_enso_font_package_(cache: &Cache, octocrab: &Octocrab) -> Result<Bo
         })
         .await?
         .into_boxed_path())
+}
+
+
+
+// =====================
+// === Extract Fonts ===
+// =====================
+
+/// Extract the fonts from the given archive file, and write them in the given directory.
+#[context("Failed to extract fonts from archive {}", package.as_ref().display())]
+pub async fn extract_fonts(
+    archive: impl ExtractFiles,
+    fonts: &NonVariableDefinition,
+    package: impl AsRef<Path>,
+    out_dir: impl AsRef<Path>,
+    normalize_path: &mut impl FnMut(&Path) -> Box<str>,
+) -> Result {
+    ide_ci::fs::tokio::create_dir_if_missing(out_dir.as_ref()).await?;
+    let mut files_expected: HashSet<_> = fonts.files().collect();
+    archive
+        .extract_files(|path_in_archive| {
+            let stripped_path = normalize_path(path_in_archive);
+            if files_expected.remove(stripped_path.as_ref()) {
+                Some(out_dir.as_ref().join(stripped_path.as_ref()))
+            } else {
+                None
+            }
+        })
+        .await?;
+    ensure!(files_expected.is_empty(), "Required fonts not found in archive: {files_expected:?}.");
+    Ok(())
 }

@@ -12,6 +12,7 @@ use tracing::Span;
 // === Export ===
 // ==============
 
+pub mod archive;
 pub mod tar;
 pub mod zip;
 

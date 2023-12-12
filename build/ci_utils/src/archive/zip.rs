@@ -1,5 +1,6 @@
 use crate::prelude::*;
 
+use crate::archive::archive::ExtractFiles;
 use anyhow::Context;
 use std::io::Cursor;
 use zip::read::ZipFile;
@@ -102,16 +103,9 @@ pub fn extract_files_sync(
     Ok(())
 }
 
-/// The given function will be called with the path of each file within the archive. For each
-/// input path, if it returns a path the file will be extracted to the returned path.
-///
-/// IMPORTANT: If the function uses its input path to generate an output path, care must be
-/// taken that the output path is not in an unexpected location, especially if coming from an
-/// untrusted archive.
-pub async fn extract_files(
-    archive: &mut ZipArchive<std::fs::File>,
-    filter: impl FnMut(&Path) -> Option<PathBuf>,
-) -> Result {
-    let job = move || extract_files_sync(archive, filter);
-    tokio::task::block_in_place(job)
+impl ExtractFiles for &mut ZipArchive<std::fs::File> {
+    async fn extract_files(self, filter: impl FnMut(&Path) -> Option<PathBuf>) -> Result {
+        let job = move || extract_files_sync(self, filter);
+        tokio::task::block_in_place(job)
+    }
 }

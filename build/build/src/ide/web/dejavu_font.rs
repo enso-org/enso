@@ -110,28 +110,18 @@ pub fn dejavu_sans_mono_font() -> NonVariableDefinition {
 }
 
 /// Extract the fonts from the given archive file, and write them in the given directory.
-#[context("Failed to extract fonts from archive {}", package.as_ref().display())]
 pub async fn extract_fonts(
     fonts: &NonVariableDefinition,
     package: impl AsRef<Path>,
     out_dir: impl AsRef<Path>,
 ) -> Result {
-    ide_ci::fs::tokio::create_dir_if_missing(out_dir.as_ref()).await?;
-    let mut files_expected: HashSet<_> = fonts.files().collect();
     let mut archive = ide_ci::archive::zip::open(&package)?;
-    ide_ci::archive::zip::extract_files(&mut archive, |path_in_archive| {
-        let mut iter = path_in_archive.iter();
+    crate::ide::web::fonts::extract_fonts(&mut archive, fonts, package, out_dir, &mut |path| {
+        let mut iter = path.iter();
         for _ in iter.by_ref().take(2) {}
-        let stripped_path = iter.as_str();
-        if files_expected.remove(stripped_path) {
-            Some(out_dir.as_ref().join(stripped_path))
-        } else {
-            None
-        }
+        Box::from(iter.as_str())
     })
-    .await?;
-    ensure!(files_expected.is_empty(), "Required fonts not found in archive: {files_expected:?}.");
-    Ok(())
+    .await
 }
 
 /// Download the DejaVu Font package, with caching and GitHub authentication.
