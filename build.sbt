@@ -16,6 +16,10 @@ import com.sandinh.javamodule.moduleinfo.JpmsModule
 import com.sandinh.javamodule.moduleinfo.AutomaticModule
 import sbt.librarymanagement.DependencyFilter
 
+// This import is unnecessary, but bit adds a proper code completion features
+// to IntelliJ.
+import JPMSPlugin.autoImport.*
+
 import java.io.File
 import scala.collection.mutable.ListBuffer
 
@@ -1528,6 +1532,7 @@ lazy val `runtime-test-instruments` =
 
 lazy val runtime = (project in file("engine/runtime"))
   .configs(Benchmark)
+  .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,
     truffleDslSuppressWarnsSetting,
@@ -1577,14 +1582,90 @@ lazy val runtime = (project in file("engine/runtime"))
       val tools =
         GraalVM.toolsPkgs.map(_.withConfigurations(Some(Runtime.name)))
       necessaryModules ++ langs ++ tools
-    },
-    Test / javaOptions := modulePathTestOptions.value,
-    Test / compile := (Test / compile)
-      .dependsOn(LocalProject("runtime-fat-jar") / Compile / compileModuleInfo)
-      .value,
+    }
+  )
+  .settings(
     Test / unmanagedClasspath := (LocalProject(
       "runtime-fat-jar"
     ) / Compile / exportedProducts).value,
+    Test / addModules := Seq(
+      (`runtime-test-instruments` / javaModuleName).value,
+      (`runtime-fat-jar` / javaModuleName).value
+    ),
+    Test / modulePath := {
+      val updateReport = (Test / update).value
+      val requiredModIds =
+        GraalVM.modules ++ GraalVM.langsPkgs ++ logbackPkg ++ Seq(
+          "org.slf4j" % "slf4j-api" % slf4jVersion
+        )
+      val requiredMods = JPMSUtils.filterModulesFromUpdate(
+        updateReport,
+        requiredModIds,
+        streams.value.log,
+        shouldContainAll = true
+      )
+      val runtimeTestInstrumentsMod =
+        (`runtime-test-instruments` / Compile / exportedProducts).value.head.data
+      val runtimeMod =
+        (`runtime-fat-jar` / Compile / exportedProducts).value.head.data
+      requiredMods ++
+      Seq(runtimeTestInstrumentsMod) ++
+      Seq(runtimeMod)
+    },
+    Test / patchModules := {
+
+      /** All these modules will be in --patch-module cmdline option to java, which means that
+        * for the JVM, it will appear that all the classes contained in these sbt projects are contained
+        * in the `org.enso.runtime` module. In this way, we do not have to assembly the `runtime.jar`
+        * fat jar.
+        */
+      val modulesToPatchIntoRuntime: Seq[File] =
+        (LocalProject(
+          "runtime-instrument-common"
+        ) / Compile / productDirectories).value ++
+        (LocalProject(
+          "runtime-instrument-id-execution"
+        ) / Compile / productDirectories).value ++
+        (LocalProject(
+          "runtime-instrument-repl-debugger"
+        ) / Compile / productDirectories).value ++
+        (LocalProject(
+          "runtime-instrument-runtime-server"
+        ) / Compile / productDirectories).value ++
+        (LocalProject(
+          "runtime-language-epb"
+        ) / Compile / productDirectories).value ++
+        (LocalProject("runtime-compiler") / Compile / productDirectories).value
+      // Patch test-classes into the runtime module. This is standard way to deal with the
+      // split package problem in unit tests. For example, Maven's surefire plugin does this.
+      val testClassesDir = (Test / productDirectories).value.head
+      Map(
+        (`runtime-fat-jar` / javaModuleName).value -> (modulesToPatchIntoRuntime ++ Seq(
+          testClassesDir
+        ))
+      )
+    },
+    Test / addReads := {
+      // We patched the test-classes into the runtime module. These classes access some stuff from
+      // uunamed module. Thus, let's add ALL-UNNAMED.
+      Map(
+        (`runtime-fat-jar` / javaModuleName).value -> Seq("ALL-UNNAMED")
+      )
+    },
+    Test / javaOptions ++= {
+      // We can't use org.enso.logger.TestLogProvider (or anything from our own logging framework here) because it is not
+      // in a module, and it cannot be simple wrapped inside a module.
+      // So we use plain ch.qos.logback with its configuration.
+      val testLogbackConf = (LocalProject(
+        "logging-service-logback"
+      ) / Test / sourceDirectory).value / "resources" / "logback-test.xml"
+      Seq(
+        "-Dslf4j.provider=ch.qos.logback.classic.spi.LogbackServiceProvider",
+        s"-Dlogback.configurationFile=${testLogbackConf.getAbsolutePath}"
+      )
+    }
+  )
+  .settings(
     Test / fork := true,
     Test / envVars ++= distributionEnvironmentOverrides ++ Map(
       "ENSO_TEST_DISABLE_IR_CACHE" -> "false"
@@ -1662,6 +1743,7 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(`connected-lock-manager`)
   .dependsOn(testkit % Test)
   .dependsOn(`logging-service-logback` % "test->test")
+  .dependsOn(`runtime-test-instruments` % "test->compile")
 
 lazy val `runtime-parser` =
   (project in file("engine/runtime-parser"))
@@ -1726,7 +1808,9 @@ lazy val `runtime-instrument-common` =
     )
     .dependsOn(`refactoring-utils`)
     .dependsOn(
-      runtime % "compile->compile;test->test;runtime->runtime;bench->bench"
+      LocalProject(
+        "runtime"
+      ) % "compile->compile;test->test;runtime->runtime;bench->bench"
     )
 
 lazy val `runtime-instrument-id-execution` =
@@ -1766,6 +1850,7 @@ lazy val `runtime-instrument-runtime-server` =
   */
 lazy val `runtime-fat-jar` =
   (project in file("engine/runtime-fat-jar"))
+    .enablePlugins(JPMSPlugin)
     .settings(
       Compile / compileModuleInfo := {
         JPMSUtils.compileModuleInfo(
@@ -1787,17 +1872,17 @@ lazy val `runtime-fat-jar` =
         .value,
       // Filter module-info.java from the compilation
       excludeFilter := excludeFilter.value || "module-info.java",
+      javaModuleName := "org.enso.runtime",
       moduleInfos := Seq(
         JpmsModule("org.enso.runtime")
       ),
-      compileOrder := CompileOrder.JavaThenScala,
+      compileOrder := CompileOrder.JavaThenScala
     )
-    /**
-    * The following libraryDependencies are provided in Runtime scope.
-    * Later, we will collect them into --module-path option.
-    * We don't collect them in Compile scope as it does not even make sense
-    * to run `compile` task in this project.
-    */
+    /** The following libraryDependencies are provided in Runtime scope.
+      * Later, we will collect them into --module-path option.
+      * We don't collect them in Compile scope as it does not even make sense
+      * to run `compile` task in this project.
+      */
     .settings(
       libraryDependencies ++= {
         val graalMods =
@@ -1805,9 +1890,9 @@ lazy val `runtime-fat-jar` =
         val langMods =
           GraalVM.langsPkgs.map(_.withConfigurations(Some(Runtime.name)))
         val logbackMods =
-          logbackPkg.map(_.withConfigurations(Some(Runtime.name))  )
+          logbackPkg.map(_.withConfigurations(Some(Runtime.name)))
         graalMods ++ langMods ++ logbackMods
-      },
+      }
     )
     /** Assembling Uber Jar */
     .settings(

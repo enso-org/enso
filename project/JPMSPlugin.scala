@@ -42,6 +42,13 @@ object JPMSPlugin extends AutoPlugin {
         |The key in the map is `module/package` and the value is a sequence of target modules
         |""".stripMargin
     )
+    val addReads = taskKey[Map[String, Seq[String]]](
+      """
+        |A map of module names to modules that will be put into --add-reads option.
+        |When a module A reads a module B, it means that it "depends" on it - it has the same
+        |effect as if module A would have `requires B` in its module-info.java file.
+        |""".stripMargin
+    )
     val compileModuleInfo = taskKey[Unit]("Compile module-info.java")
     val modulePathTestOptions_ = taskKey[Seq[String]](
       "Assembles options for the JVM for running tests with all the required modules. " +
@@ -56,22 +63,45 @@ object JPMSPlugin extends AutoPlugin {
     modulePath := Seq.empty,
     patchModules := Map.empty,
     addExports := Map.empty,
+    addReads := Map.empty,
     compileModuleInfo := {},
-    javacOptions ++= {
+    Compile / javacOptions ++= {
       constructOptions(
-        modulePath.value,
-        addModules.value,
-        patchModules.value,
-        addExports.value,
+        (Compile / modulePath).value,
+        (Compile / addModules).value,
+        (Compile / patchModules).value,
+        (Compile / addExports).value,
+        (Compile / addReads).value,
         streams.value.log
       )
     },
-    javaOptions ++= {
+    Compile / javaOptions ++= {
       constructOptions(
-        modulePath.value,
-        addModules.value,
-        patchModules.value,
-        addExports.value,
+        (Compile / modulePath).value,
+        (Compile / addModules).value,
+        (Compile / patchModules).value,
+        (Compile / addExports).value,
+        (Compile / addReads).value,
+        streams.value.log
+      )
+    },
+    Test / javacOptions ++= {
+      constructOptions(
+        (Test / modulePath).value,
+        (Test / addModules).value,
+        (Test / patchModules).value,
+        (Test / addExports).value,
+        (Test / addReads).value,
+        streams.value.log
+      )
+    },
+    Test / javaOptions ++= {
+      constructOptions(
+        (Test / modulePath).value,
+        (Test / addModules).value,
+        (Test / patchModules).value,
+        (Test / addExports).value,
+        (Test / addReads).value,
         streams.value.log
       )
     }
@@ -82,6 +112,7 @@ object JPMSPlugin extends AutoPlugin {
     addModules: Seq[String],
     patchModules: Map[String, Seq[File]],
     addExports: Map[String, Seq[String]],
+    addReads: Map[String, Seq[String]],
     log: Logger
   ): Seq[String] = {
     val patchOpts: Seq[String] = patchModules.flatMap {
@@ -127,7 +158,14 @@ object JPMSPlugin extends AutoPlugin {
       )
     }
 
-    modulePathOpts ++ addModsOpts ++ patchOpts ++ addExportsOpts
+    val addReadsOpts = addReads.flatMap { case (modName, targetModules) =>
+      Seq(
+        "--add-reads",
+        modName + "=" + targetModules.mkString(",")
+      )
+    }.toSeq
+
+    modulePathOpts ++ addModsOpts ++ patchOpts ++ addExportsOpts ++ addReadsOpts
   }
 
   /** Java does not mandate that the directories specified in the module path or
