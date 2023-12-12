@@ -4,13 +4,19 @@ import { useApproach } from '@/util/animation'
 import { partitionPoint } from '@/util/array'
 import type { Opt } from '@/util/opt'
 import { Rect } from '@/util/rect'
+import theme from '@/util/theme.json'
 import { Vec2 } from '@/util/vec2'
 import { iteratorFilter } from 'lib0/iterator'
-import { abs } from 'lib0/math'
 import type { ExprId } from 'shared/yjsModel'
 import { computed, markRaw, ref, watchEffect, type ComputedRef, type WatchStopHandle } from 'vue'
 
-const DRAG_SNAP_THRESHOLD = 15
+const DRAG_SNAP_THRESHOLD = 16
+const VERTICAL_GAP = theme.node.vertical_gap
+
+interface PartialVec2 {
+  x: number | null
+  y: number | null
+}
 
 export class SnapGrid {
   leftAxes: ComputedRef<number[]>
@@ -26,29 +32,35 @@ export class SnapGrid {
     this.rightAxes = computed(() =>
       Array.from(rects.value, (rect) => rect.right).sort((a, b) => a - b),
     )
-    this.topAxes = computed(() => Array.from(rects.value, (rect) => rect.top).sort((a, b) => a - b))
+    this.topAxes = computed(() =>
+      Array.from(rects.value, (rect) => rect.top)
+        .concat(Array.from(rects.value, (rect) => rect.bottom + VERTICAL_GAP))
+        .sort((a, b) => a - b),
+    )
     this.bottomAxes = computed(() =>
-      Array.from(rects.value, (rect) => rect.bottom).sort((a, b) => a - b),
+      Array.from(rects.value, (rect) => rect.bottom)
+        .concat(Array.from(rects.value, (rect) => rect.top - VERTICAL_GAP))
+        .sort((a, b) => a - b),
     )
   }
 
   snappedMany(rects: Rect[], threshold: number): Vec2 {
-    const minSnap = rects.reduce<[x: number | null, y: number | null]>(
+    const minSnap = rects.reduce<PartialVec2>(
       (minSnap, rect) => {
-        const [xSnap, ySnap] = this.snap(rect, threshold)
-        return [SnapGrid.minSnap(minSnap[0], xSnap), SnapGrid.minSnap(minSnap[1], ySnap)]
+        const snap = this.snap(rect, threshold)
+        return { x: SnapGrid.minSnap(minSnap.x, snap.x), y: SnapGrid.minSnap(minSnap.y, snap.y) }
       },
-      [null, null],
+      { x: null, y: null },
     )
-    return new Vec2(minSnap[0] ?? 0.0, minSnap[1] ?? 0.0)
+    return new Vec2(minSnap.x ?? 0.0, minSnap.y ?? 0.0)
   }
 
-  snap(rect: Rect, threshold: number): [x: number | null, y: number | null] {
+  snap(rect: Rect, threshold: number): PartialVec2 {
     const leftSnap = SnapGrid.boundSnap(rect.left, this.leftAxes.value, threshold)
     const rightSnap = SnapGrid.boundSnap(rect.right, this.rightAxes.value, threshold)
     const topSnap = SnapGrid.boundSnap(rect.top, this.topAxes.value, threshold)
     const bottomSnap = SnapGrid.boundSnap(rect.bottom, this.bottomAxes.value, threshold)
-    return [SnapGrid.minSnap(leftSnap, rightSnap), SnapGrid.minSnap(topSnap, bottomSnap)]
+    return { x: SnapGrid.minSnap(leftSnap, rightSnap), y: SnapGrid.minSnap(topSnap, bottomSnap) }
   }
 
   private static boundSnap(value: number, axes: number[], threshold: number): number | null {
@@ -58,11 +70,11 @@ export class SnapGrid {
     const notLowerNearest = axes[firstNotLower]
     const snapToHigher = notLowerNearest != null ? notLowerNearest - value : null
     const snap = SnapGrid.minSnap(snapToLower, snapToHigher)
-    return snap != null && abs(snap) <= threshold ? snap : null
+    return snap != null && Math.abs(snap) <= threshold ? snap : null
   }
 
   private static minSnap(a: Opt<number>, b: Opt<number>): number | null {
-    if (a != null && b != null) return abs(a) < abs(b) ? a : b
+    if (a != null && b != null) return Math.abs(a) < Math.abs(b) ? a : b
     else return a ?? b ?? null
   }
 }
@@ -135,10 +147,10 @@ export function useDragging() {
       const newSnappedOffsetTarget = snappedOffsetTarget.value
       // Skip animation if target offset does not change significantly, to avoid shivering
       // when node is snapped.
-      if (abs(newSnappedOffsetTarget.x - oldSnappedOffset.x) < 2.0) {
+      if (Math.abs(newSnappedOffsetTarget.x - oldSnappedOffset.x) < 2.0) {
         snapX.skip()
       }
-      if (abs(newSnappedOffsetTarget.y - oldSnappedOffset.y) < 2.0) {
+      if (Math.abs(newSnappedOffsetTarget.y - oldSnappedOffset.y) < 2.0) {
         snapY.skip()
       }
     }
@@ -151,10 +163,10 @@ export function useDragging() {
     createSnapGrid() {
       const nonDraggedRects = computed(() => {
         const nonDraggedNodes = iteratorFilter(
-          graphStore.nodeRects.entries(),
-          ([id]) => !this.draggedNodes.has(id),
+          graphStore.currentNodeIds.values(),
+          (id) => !this.draggedNodes.has(id),
         )
-        return Array.from(nonDraggedNodes, ([, rect]) => rect)
+        return Array.from(nonDraggedNodes, (id) => graphStore.nodeRects.get(id)!)
       })
       return new SnapGrid(nonDraggedRects)
     }

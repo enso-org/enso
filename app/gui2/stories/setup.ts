@@ -80,10 +80,12 @@ export const setupVue3 = defineSetupVue3(({ app }) => {
   provideVisualizationConfig._mock(
     {
       fullscreen: false,
+      scale: 1,
       width: 200,
       height: 150,
       hide() {},
       isCircularMenuVisible: false,
+      isBelowToolbar: false,
       nodeSize: new Vec2(200, 150),
       currentType: {
         module: { kind: 'Builtin' },

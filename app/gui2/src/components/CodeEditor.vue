@@ -230,6 +230,7 @@ const editorStyle = computed(() => {
   max-height: calc(100% - 10px);
   backdrop-filter: var(--blur-app-bg);
   border-radius: 7px;
+  font-family: var(--font-mono);
 
   &.v-enter-active,
   &.v-leave-active {

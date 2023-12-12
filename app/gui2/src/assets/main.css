@@ -7,7 +7,7 @@ body {
   transition:
     color 0.5s,
     background-color 0.5s;
-  font-family: 'M PLUS 1', sans-serif;
+  font-family: var(--font-sans);
   font-size: 11.5px;
   font-weight: 500;
   line-height: 20px;
