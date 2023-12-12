@@ -105,12 +105,15 @@ expect_warning expected_warning result =
    - expected_warning: The expected warning. It can either by a warning type or
      a concrete value.
    - result: The value to check.
-expect_only_warning : Any -> Any -> Any
-expect_only_warning expected_warning result =
+   - unwrap_errors: If true, remove any wrapping errors from the result before
+     checking against the expected warning.
+expect_only_warning : Any -> Any -> Boolean -> Any
+expect_only_warning expected_warning result unwrap_errors=False =
+    unwrap_maybe error = if unwrap_errors then Error.unwrap error else error
     loc = Meta.get_source_location 1
     if result.is_error then
         Test.fail "Expected only warning "+expected_warning.to_text+", but a dataflow error has been matched: "+result.catch.to_display_text+" (at "+loc+")."
-    warnings = get_attached_warnings result
+    warnings = get_attached_warnings result . map unwrap_maybe
     is_expected x =
         (x == expected_warning) || (x.is_a expected_warning)
     found = warnings.find if_missing=Nothing is_expected
@@ -120,7 +123,6 @@ expect_only_warning expected_warning result =
     if invalid.not_empty then
         Test.fail "Expected the result to contain only the warning: "+found.to_text+", but it also contained: "+invalid.to_text+' (at '+loc+').'
     found
-
 
 ## UNSTABLE
    Checks if the provided value does _not_ have a warning of the specified type.

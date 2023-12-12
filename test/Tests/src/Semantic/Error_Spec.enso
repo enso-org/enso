@@ -446,6 +446,12 @@ spec =
             e = Error.throw (My_Error_Wrapper.Error Nothing) . catch Nothing
             e . should_equal Nothing
 
+        Test.specify "Can unwrap a wrapped error" <|
+            wrapped_error = My_Error_Wrapper.Error "error"
+            wrapped_error2 = My_Error_Wrapper.Error (My_Error_Wrapper.Error "error")
+            Error.unwrap wrapped_error . should_equal "error"
+            Error.unwrap wrapped_error2 . should_equal "error"
+
 type C
     Baz x
 
