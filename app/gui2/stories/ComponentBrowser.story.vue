@@ -36,4 +36,3 @@ const position = new Vec2(-329.5, 0)
     </NavigatorWrapper>
   </Story>
 </template>
-@/util/data/vec2

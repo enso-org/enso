@@ -37,4 +37,3 @@ const scaledSelectionAnchor = computed(() => selectionAnchor.value?.scale(naviga
     ></slot>
   </div>
 </template>
-@/util/data/vec2

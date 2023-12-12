@@ -1,6 +1,6 @@
 <script setup lang="ts">
+import { PointerButtonMask, usePointer, useResizeObserver } from '@/composables/events'
 import { getTextWidth } from '@/util/measurement'
-import { PointerButtonMask, usePointer, useResizeObserver } from '@/util/vue/events'
 import { computed, ref, type StyleValue } from 'vue'
 
 const props = defineProps<{ modelValue: number; min: number; max: number }>()

@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import SelectionBrush from '@/components/SelectionBrush.vue'
+import { useEvent } from '@/composables/events'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
-import { useEvent } from '@/util/vue/events'
 import { computed, ref } from 'vue'
 
 const navigator = injectGraphNavigator(true)

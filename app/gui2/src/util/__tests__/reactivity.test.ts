@@ -1,4 +1,4 @@
-import { LazySyncEffectSet } from '@/util/vue/reactivity'
+import { LazySyncEffectSet } from '@/util/reactivity'
 import { expect, test, vi } from 'vitest'
 import { nextTick, reactive, ref } from 'vue'
 

@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
+import { useRaf } from '@/composables/animation'
+import { useResizeObserver } from '@/composables/events'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { ForcePort, injectPortInfo, providePortInfo } from '@/providers/portInfo'
@@ -10,8 +12,6 @@ import { useGraphStore } from '@/stores/graph'
 import { Ast } from '@/util/ast'
 import { ArgumentAst, ArgumentPlaceholder } from '@/util/callTree'
 import { Rect } from '@/util/data/rect'
-import { useRaf } from '@/util/vue/animation'
-import { useResizeObserver } from '@/util/vue/events'
 import { uuidv4 } from 'lib0/random'
 import type { ExprId } from 'shared/yjsModel'
 import {
