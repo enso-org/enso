@@ -41,8 +41,8 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   accepted: [searcherExpression: string, requiredImports: RequiredImport[]]
-  closed: [searcherExpression: string]
-  canceled: []
+  closed: [searcherExpression: string, requiredImports: RequiredImport[]]
+  canceled: [searcherExpression: string, requiredImports: RequiredImport[]]
 }>()
 
 onMounted(() => {
@@ -151,7 +151,7 @@ useEvent(
     if (event.button !== 0) return
     if (!(event.target instanceof Element)) return
     if (!cbRoot.value?.contains(event.target)) {
-      emit('closed', input.code.value)
+      emit('closed', input.code.value, input.importsToAdd())
     }
   },
   { capture: true },
@@ -350,7 +350,7 @@ const handler = componentBrowserBindings.handler({
     scrollToSelected()
   },
   cancelEditing() {
-    emit('canceled')
+    emit('canceled', input.code.value, input.importsToAdd())
   },
 })
 </script>
