@@ -60,18 +60,24 @@ class RuntimeVisualizationsTest
         .out(out)
         .serverTransport(runtimeServerEmulator.makeServerTransport)
         .build()
-    executionContext.context.initialize(LanguageInfo.ID)
-    val instruments = executionContext.context.getEngine.getInstruments
-    println(s"Instruments: " + instruments.keySet)
-    //    val ctxListener = instruments.get(TestContextListener.ID)
-    //    ctxListener shouldNot be(null)
-    //    val ctxListenerCasted = ctxListener.lookup(classOf[TestContextListener])
-    //    ctxListenerCasted shouldNot be(null)
-    //    val threadListener = instruments.get(TestThreadListener.ID).lookup(classOf[TestThreadListener])
-    //    threadListener shouldNot be(null)
-    val executionEventListener = instruments.get(TestExecutionEventListener.ID).lookup(classOf[TestExecutionEventListener])
-    executionEventListener shouldNot be(null)
-    println("DONE: Test instruments initialized")
+
+    override def init() = {
+      super.init()
+      executionContext.context.initialize(LanguageInfo.ID)
+      val instruments = executionContext.context.getEngine.getInstruments
+      println(s"Instruments: " + instruments.keySet)
+      //    val ctxListener = instruments.get(TestContextListener.ID)
+      //    ctxListener shouldNot be(null)
+      //    val ctxListenerCasted = ctxListener.lookup(classOf[TestContextListener])
+      //    ctxListenerCasted shouldNot be(null)
+      //    val threadListener = instruments.get(TestThreadListener.ID).lookup(classOf[TestThreadListener])
+      //    threadListener shouldNot be(null)
+      val executionEventListener = instruments
+        .get(TestExecutionEventListener.ID)
+        .lookup(classOf[TestExecutionEventListener])
+      executionEventListener shouldNot be(null)
+      println("DONE: Test instruments initialized")
+    }
 
     def writeMain(contents: String): File =
       Files.write(pkg.mainFile.toPath, contents.getBytes).toFile
