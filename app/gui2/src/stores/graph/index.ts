@@ -54,6 +54,7 @@ export const useGraphStore = defineStore('graph', () => {
   const editedNodeInfo = ref<NodeEditInfo>()
   const imports = ref<{ import: Import; span: ContentRange }[]>([])
   const methodAst = ref<Ast.Function>()
+  const currentNodeIds = ref(new Set<ExprId>())
 
   const unconnectedEdge = ref<UnconnectedEdge>()
 
@@ -109,7 +110,7 @@ export const useGraphStore = defineStore('graph', () => {
 
       methodAst.value = getExecutedMethodAst(newRoot, proj.executionContext.getStackTop(), db)
       if (methodAst.value) {
-        db.readFunctionAst(methodAst.value, (id) => meta.get(id))
+        currentNodeIds.value = db.readFunctionAst(methodAst.value, (id) => meta.get(id))
       }
     })
   }
@@ -215,6 +216,8 @@ export const useGraphStore = defineStore('graph', () => {
     const node = db.nodeIdToNode.get(id)
     if (!node) return
     proj.module?.deleteExpression(node.outerExprId)
+    nodeRects.delete(id)
+    node.pattern?.visitRecursive((ast) => exprRects.delete(ast.astId))
   }
 
   function setNodeContent(id: ExprId, content: string) {
@@ -331,6 +334,7 @@ export const useGraphStore = defineStore('graph', () => {
     editedNodeInfo,
     unconnectedEdge,
     edges,
+    currentNodeIds,
     nodeRects,
     vizRects,
     exprRects,
