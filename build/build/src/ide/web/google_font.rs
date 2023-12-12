@@ -15,18 +15,18 @@ use octocrab::models::repos;
 // =================
 
 /// Google Fonts repository.
-pub const GOOGLE_FONTS_REPOSITORY: RepoRef = RepoRef { owner: "google", name: "fonts" };
+pub const REPOSITORY: RepoRef = RepoRef { owner: "google", name: "fonts" };
 
 /// Path to the directory on the Google Fonts repository where we get the fonts from.
 ///
 /// The directory name denotes the license of the fonts. In our case this is SIL OPEN FONT LICENSE
 /// Version 1.1, commonly known as OFL.
-pub const GOOGLE_FONT_DIRECTORY: &str = "ofl";
+pub const DIRECTORY: &str = "ofl";
 
 /// We keep dependency to a fixed commit, so we can safely cache it.
 ///
 /// There are no known reasons not to bump this.
-pub const GOOGLE_FONT_SHA1: &str = "ea893a43af7c5ab5ccee189fc2720788d99887ed";
+pub const COMMIT_SHA1: &str = "ea893a43af7c5ab5ccee189fc2720788d99887ed";
 
 
 // ==============
@@ -51,7 +51,7 @@ impl Family {
         &self,
         handle: github::repo::Handle<impl IsRepo>,
     ) -> Result<Vec<repos::Content>> {
-        let path = format!("{GOOGLE_FONT_DIRECTORY}/{}", self.name);
+        let path = format!("{DIRECTORY}/{}", self.name);
         let files = handle.repos().get_content().r#ref(&self.r#ref).path(path).send().await?;
         Ok(files.items.into_iter().filter(|file| file.name.ends_with(".ttf")).collect())
     }
@@ -137,17 +137,14 @@ impl Storable for DownloadFont {
 // === Entry Point ===
 // ===================
 
-pub async fn download_google_font(
+pub async fn install(
     cache: &Cache,
     octocrab: &Octocrab,
     family: &str,
     output_path: impl AsRef<Path>,
 ) -> Result<Vec<PathBuf>> {
-    let family = Family {
-        repo:  GOOGLE_FONTS_REPOSITORY.into(),
-        r#ref: GOOGLE_FONT_SHA1.into(),
-        name:  family.into(),
-    };
+    let family =
+        Family { repo: REPOSITORY.into(), r#ref: COMMIT_SHA1.into(), name: family.into() };
     let font = DownloadFont { family, octocrab: octocrab.clone() };
     let cached_fonts = cache.get(font).await?;
     let copy_futures =
@@ -156,7 +153,7 @@ pub async fn download_google_font(
     Ok(result)
 }
 
-pub async fn download_google_font_with_css(
+pub async fn install_with_css(
     cache: &Cache,
     octocrab: &Octocrab,
     family: &str,
@@ -165,7 +162,7 @@ pub async fn download_google_font_with_css(
     output_path: impl AsRef<Path>,
     css_output_path: impl AsRef<Path>,
 ) -> Result<Vec<PathBuf>> {
-    let paths = download_google_font(cache, octocrab, family, output_path).await?;
+    let paths = install(cache, octocrab, family, output_path).await?;
     let mut css = String::new();
     use std::fmt::Write;
     for path in &paths {
@@ -195,7 +192,7 @@ mod tests {
         let path = r"C:\temp\google_fonts2";
         let octocrab = ide_ci::github::setup_octocrab().await?;
         let cache = Cache::new_default().await?;
-        let aaa = download_google_font(&cache, &octocrab, "mplus1", path).await?;
+        let aaa = install(&cache, &octocrab, "mplus1", path).await?;
         dbg!(aaa);
         Ok(())
     }

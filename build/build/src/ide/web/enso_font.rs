@@ -1,0 +1,126 @@
+use crate::prelude::*;
+
+use enso_enso_font::ttf;
+use enso_font::NonVariableFaceHeader;
+use ide_ci::cache::Cache;
+
+
+// =================
+// === Constants ===
+// =================
+
+const FONT_FAMILY: &str = enso_enso_font::FONT_FAMILY;
+
+
+
+// =================
+// === Enso Font ===
+// =================
+
+pub async fn install_for_html(
+    cache: &Cache,
+    octocrab: &Octocrab,
+    output_path: impl AsRef<Path>,
+) -> Result {
+    let output_path = output_path.as_ref();
+    let html_fonts: HashMap<_, _> = [
+        (NonVariableFaceHeader { weight: ttf::Weight::Normal, ..default() }, "Regular"),
+        (NonVariableFaceHeader { weight: ttf::Weight::ExtraBold, ..default() }, "Bold"),
+    ]
+    .into_iter()
+    .collect();
+    let html_font_definitions = enso_enso_font::font()
+        .variations()
+        .filter(|v| html_fonts.contains_key(&v.header))
+        .collect();
+    let get_font_files = async {
+        let package = download(cache, octocrab).await?;
+        enso_enso_font::extract_fonts(&html_font_definitions, package, output_path).await
+    };
+    let make_css_file = async {
+        let mut css = String::new();
+        let url = ".";
+        for (header, variant) in html_fonts {
+            use std::fmt::Write;
+            let def = html_font_definitions.get(header);
+            let def = def.ok_or_else(|| {
+                anyhow!(
+                    "Required font not found in Enso Font package. \
+                  Expected a font matching: {header:?}."
+                )
+            })?;
+            let file = &def.file;
+            writeln!(&mut css, "@font-face {{")?;
+            writeln!(&mut css, "  font-family: '{FONT_FAMILY}{variant}';")?;
+            writeln!(&mut css, "  src: url('{url}/{file}');")?;
+            writeln!(&mut css, "  font-weight: normal;")?;
+            writeln!(&mut css, "  font-style: normal;")?;
+            writeln!(&mut css, "}}")?;
+        }
+        let css_path = output_path.join("ensoFont.css");
+        ide_ci::fs::tokio::write(css_path, css).await?;
+        Ok(())
+    };
+    try_join!(get_font_files, make_css_file)?;
+    Ok(())
+}
+
+pub async fn install(
+    cache: &Cache,
+    octocrab: &Octocrab,
+    css_basepath: &str,
+    output_path: impl AsRef<Path>,
+    css_output_path: impl AsRef<Path>,
+) -> Result {
+    let output_path = output_path.as_ref();
+    ide_ci::fs::tokio::create_dir_if_missing(output_path).await?;
+    let html_fonts = vec![
+        NonVariableFaceHeader { weight: ttf::Weight::Thin, ..default() },
+        NonVariableFaceHeader { weight: ttf::Weight::ExtraLight, ..default() },
+        NonVariableFaceHeader { weight: ttf::Weight::Light, ..default() },
+        NonVariableFaceHeader { weight: ttf::Weight::Normal, ..default() },
+        NonVariableFaceHeader { weight: ttf::Weight::Medium, ..default() },
+        NonVariableFaceHeader { weight: ttf::Weight::SemiBold, ..default() },
+        NonVariableFaceHeader { weight: ttf::Weight::Bold, ..default() },
+        NonVariableFaceHeader { weight: ttf::Weight::ExtraBold, ..default() },
+        NonVariableFaceHeader { weight: ttf::Weight::Black, ..default() },
+    ];
+    let html_font_definitions =
+        enso_enso_font::font().variations().filter(|v| html_fonts.contains(&v.header)).collect();
+    let get_font_files = async {
+        let package = download(cache, octocrab).await?;
+        enso_enso_font::extract_fonts(&html_font_definitions, package, output_path).await
+    };
+    let make_css_file = async {
+        let contents = crate::ide::web::fonts::generate_css_file(
+            css_basepath,
+            FONT_FAMILY,
+            &html_font_definitions,
+            html_fonts.iter(),
+        )
+        .await?;
+        ide_ci::fs::tokio::write(css_output_path, contents).await?;
+        Ok(())
+    };
+    try_join!(get_font_files, make_css_file)?;
+    Ok(())
+}
+
+/// Download the Enso Font package, with caching and GitHub authentication.
+pub async fn download(cache: &Cache, octocrab: &Octocrab) -> Result<Box<Path>> {
+    Ok(cache
+        .get(ide_ci::cache::download::DownloadFile {
+            client: octocrab.client.clone(),
+            key:    ide_ci::cache::download::Key {
+                url:                enso_enso_font::PACKAGE_URL.parse().unwrap(),
+                additional_headers: reqwest::header::HeaderMap::from_iter([(
+                    reqwest::header::ACCEPT,
+                    reqwest::header::HeaderValue::from_static(
+                        mime::APPLICATION_OCTET_STREAM.as_ref(),
+                    ),
+                )]),
+            },
+        })
+        .await?
+        .into_boxed_path())
+}

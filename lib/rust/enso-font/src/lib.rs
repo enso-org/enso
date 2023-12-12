@@ -36,9 +36,9 @@ pub use owned_ttf_parser as ttf;
 // =================
 
 /// The name of the Enso font family.
-pub const ENSO_FONT_FAMILY_NAME: &str = "enso";
+pub const FONT_FAMILY: &str = "enso";
 
-const ENSO_FONT_FAMILY_FONTS: &[(&str, ttf::Weight)] = &[
+const FONTS: &[(&str, ttf::Weight)] = &[
     ("Black", ttf::Weight::Black),
     ("Bold", ttf::Weight::Bold),
     ("ExtraBold", ttf::Weight::ExtraBold),
@@ -68,8 +68,8 @@ pub mod feature {
 // =================
 
 /// Returns the Enso Font.
-pub fn enso_font() -> NonVariableDefinition {
-    ENSO_FONT_FAMILY_FONTS
+pub fn font() -> NonVariableDefinition {
+    FONTS
         .iter()
         .map(|(name, weight)| {
             let file = format!("Enso-{name}.ttf");

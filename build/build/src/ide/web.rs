@@ -26,6 +26,7 @@ use tracing::Span;
 // ==============
 
 pub mod dejavu_font;
+pub mod enso_font;
 pub mod fonts;
 pub mod google_font;
 

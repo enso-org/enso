@@ -125,7 +125,7 @@ impl IsTarget for Gui2 {
         let WithDestination { inner: _, destination } = job;
         async move {
             let repo_root = &context.repo_root;
-            crate::ide::web::google_font::download_google_font_with_css(
+            crate::ide::web::google_font::install_with_css(
                 &context.cache,
                 &context.octocrab,
                 "mplus1",
@@ -135,7 +135,7 @@ impl IsTarget for Gui2 {
                 &repo_root.app.gui_2.src.assets.font_mplus_1_css,
             )
             .await?;
-            crate::ide::web::dejavu_font::download_dejavu_sans_mono_font_with_css(
+            crate::ide::web::dejavu_font::install_sans_mono_with_css(
                 &context.cache,
                 &context.octocrab,
                 "/font-dejavu",
@@ -143,7 +143,7 @@ impl IsTarget for Gui2 {
                 &repo_root.app.gui_2.src.assets.font_dejavu_css,
             )
             .await?;
-            crate::ide::web::fonts::install_enso_font_for_html_2(
+            crate::ide::web::enso_font::install(
                 &context.cache,
                 &context.octocrab,
                 "/font-enso",
