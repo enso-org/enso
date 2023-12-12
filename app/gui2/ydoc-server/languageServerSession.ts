@@ -503,7 +503,10 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
         const reloading = this.ls.closeTextFile(this.path).then(() => {
           return this.ls.openTextFile(this.path)
         })
-        this.lastAction = reloading.then()
+        this.lastAction = reloading.then(
+          () => {},
+          () => {},
+        )
         const result = await reloading
         this.syncFileContents(result.content, result.currentVersion)
         this.changeState(LsSyncState.Synchronized)

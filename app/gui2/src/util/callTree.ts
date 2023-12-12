@@ -1,4 +1,4 @@
-import type { ForcePort } from '@/providers/portInfo'
+import type { PortId } from '@/providers/portInfo'
 import type { SuggestionEntry, SuggestionEntryArgument } from '@/stores/suggestionDatabase/entry'
 import type { MethodCall } from 'shared/languageServerTypes'
 import { tryGetIndex } from './array'
@@ -15,10 +15,15 @@ export const enum ApplicationKind {
  */
 export class ArgumentPlaceholder {
   constructor(
+    public callId: string,
     public index: number,
     public info: SuggestionEntryArgument,
     public kind: ApplicationKind,
   ) {}
+
+  get portId(): PortId {
+    return `${this.callId}[${this.index}]` as PortId
+  }
 }
 
 export class ArgumentAst {
@@ -28,11 +33,15 @@ export class ArgumentAst {
     public info: SuggestionEntryArgument | undefined,
     public kind: ApplicationKind,
   ) {}
+
+  get portId(): PortId {
+    return this.ast.exprId as string as PortId
+  }
 }
 
-type InterpretedCall = AnalyzedInfix | AnalyzedPrefix
+type InterpretedCall = InterpretedInfix | InterpretedPrefix
 
-interface AnalyzedInfix {
+interface InterpretedInfix {
   kind: 'infix'
   appTree: Ast.OprApp
   operator: Ast.Token | undefined
@@ -40,7 +49,7 @@ interface AnalyzedInfix {
   rhs: Ast.Ast | undefined
 }
 
-interface AnalyzedPrefix {
+interface InterpretedPrefix {
   kind: 'prefix'
   func: Ast.Ast
   args: FoundApplication[]
@@ -102,6 +111,9 @@ export class ArgumentApplication {
   ): ArgumentApplication | Ast.Ast {
     const knownArguments = suggestion?.arguments
 
+    const callId =
+      interpreted.kind === 'infix' ? interpreted.appTree.exprId : interpreted.func.exprId
+
     if (interpreted.kind === 'infix') {
       const isAccess = isAccessOperator(interpreted.operator)
       const argFor = (key: 'lhs' | 'rhs', index: number) => {
@@ -110,8 +122,8 @@ export class ArgumentApplication {
         return tree != null
           ? isAccess
             ? tree
-            : new ArgumentAst(tree, 0, info, ApplicationKind.Infix)
-          : new ArgumentPlaceholder(0, info, ApplicationKind.Infix)
+            : new ArgumentAst(tree, index, info, ApplicationKind.Infix)
+          : new ArgumentPlaceholder(callId, index, info, ApplicationKind.Infix)
       }
       return new ArgumentApplication(
         interpreted.appTree,
@@ -154,7 +166,7 @@ export class ArgumentApplication {
         if (argIndex != null && argInfo != null)
           prefixArgsToDisplay.push({
             appTree,
-            argument: new ArgumentPlaceholder(argIndex, argInfo, ApplicationKind.Prefix),
+            argument: new ArgumentPlaceholder(callId, argIndex, argInfo, ApplicationKind.Prefix),
           })
       }
     }
@@ -201,6 +213,14 @@ export class ArgumentApplication {
       interpreted.func,
     )
   }
+
+  allArguments(): Array<Ast.Ast | ArgumentAst | ArgumentPlaceholder> {
+    if (this.target instanceof ArgumentApplication) {
+      return [...this.target.allArguments(), this.argument]
+    } else {
+      return [this.argument]
+    }
+  }
 }
 
 const unknownArgInfoNamed = (name: string) => ({
@@ -221,12 +241,10 @@ function isAccessOperator(opr: Ast.Token | undefined): boolean {
 declare const ArgumentApplicationKey: unique symbol
 declare const ArgumentPlaceholderKey: unique symbol
 declare const ArgumentAstKey: unique symbol
-declare const ForcePortKey: unique symbol
 declare module '@/providers/widgetRegistry' {
   export interface WidgetInputTypes {
     [ArgumentApplicationKey]: ArgumentApplication
     [ArgumentPlaceholderKey]: ArgumentPlaceholder
     [ArgumentAstKey]: ArgumentAst
-    [ForcePortKey]: ForcePort
   }
 }

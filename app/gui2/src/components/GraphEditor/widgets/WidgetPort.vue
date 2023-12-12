@@ -2,20 +2,23 @@
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
-import { ForcePort, injectPortInfo, providePortInfo } from '@/providers/portInfo'
+import { ForcePort, injectPortInfo, providePortInfo, type PortId } from '@/providers/portInfo'
 import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { injectWidgetTree } from '@/providers/widgetTree'
-import { useGraphStore } from '@/stores/graph'
+import { PortViewInstance, useGraphStore } from '@/stores/graph'
 import { useRaf } from '@/util/animation'
 import { Ast } from '@/util/ast'
 import { ArgumentAst, ArgumentPlaceholder } from '@/util/callTree'
 import { useResizeObserver } from '@/util/events'
+import { cachedGetter } from '@/util/reactivity'
 import { Rect } from '@/util/rect'
 import { uuidv4 } from 'lib0/random'
-import type { ExprId } from 'shared/yjsModel'
 import {
   computed,
+  markRaw,
   nextTick,
+  onMounted,
+  onUnmounted,
   onUpdated,
   proxyRefs,
   ref,
@@ -57,21 +60,15 @@ watchEffect((onCleanup) => {
 // when any of following conditions are met:
 // 1. The expression can be connected to and is currently being hovered.
 // 2. The expression is already used as an existing edge endpoint.
-//
-// TODO: This should part of the `WidgetPort` component. But first, we need to make sure that the
-// ports are always created when necessary.
 const portRect = shallowRef<Rect>()
-const rectUpdateIsUseful = computed(() => isHovered.value || hasConnection.value)
+const portRegistrationIsUseful = computed(() => isHovered.value || hasConnection.value)
 
-const randomUuid = uuidv4() as ExprId
-const portId = computed(() => {
-  const ast =
-    props.input instanceof Ast.Ast
-      ? props.input
-      : props.input instanceof ArgumentAst || props.input instanceof ForcePort
-      ? props.input.ast
-      : undefined
-  return ast?.astId ?? randomUuid
+const randomUuid = uuidv4() as PortId
+// Since the port ID computation has many dependencies but rarely changes its final output, store
+// its result in an intermediate ref, and update it only when the value actually changes. That way
+// effects depending on the port ID value will not be re-triggered unnecessarily.
+const portId = cachedGetter<PortId>(() => {
+  return portIdOfInput(props.input) ?? (`RAND-${randomUuid}` as PortId)
 })
 
 providePortInfo(
@@ -87,16 +84,16 @@ onUpdated(() => {
 })
 useRaf(toRef(tree, 'hasActiveAnimations'), updateRect)
 
-watch(
-  () => [portId.value, portRect.value, rectUpdateIsUseful.value] as const,
-  ([id, rect, updateUseful], _, onCleanup) => {
-    if (id != null && rect != null && updateUseful) {
-      graph.updateExprRect(id, rect)
-      onCleanup(() => {
-        if (portId.value === id && rect === portRect.value) graph.updateExprRect(id, undefined)
-      })
-    }
+const randSlice = randomUuid.slice(0, 4)
+
+watchEffect(
+  (onCleanup) => {
+    const id = portId.value
+    const instance = markRaw(new PortViewInstance(portRect, tree.nodeId, props.onUpdate))
+    graph.addPortInstance(id, instance)
+    onCleanup(() => graph.removePortInstance(id, instance))
   },
+  { flush: 'post' },
 )
 
 function updateRect() {
@@ -114,7 +111,7 @@ function updateRect() {
 }
 const innerWidget = computed(() => {
   if (props.input instanceof ForcePort) {
-    return props.input.ast
+    return props.input.inner
   } else {
     return props.input
   }
@@ -122,6 +119,16 @@ const innerWidget = computed(() => {
 </script>
 
 <script lang="ts">
+function portIdOfInput(input: unknown): PortId | undefined {
+  return input instanceof Ast.Ast
+    ? (input.exprId as string as PortId)
+    : input instanceof ForcePort
+    ? (input.inner.exprId as string as PortId)
+    : input instanceof ArgumentPlaceholder || input instanceof ArgumentAst
+    ? input.portId
+    : undefined
+}
+
 export const widgetDefinition = defineWidget(
   [
     ForcePort,
@@ -141,11 +148,7 @@ export const widgetDefinition = defineWidget(
     priority: 0,
     score: (props, _db) => {
       const portInfo = injectPortInfo(true)
-      if (
-        portInfo != null &&
-        props.input instanceof Ast.Ast &&
-        portInfo.portId === props.input.astId
-      ) {
+      if (portInfo != null && portInfo.portId === portIdOfInput(props.input)) {
         return Score.Mismatch
       } else {
         return Score.Perfect
@@ -156,7 +159,7 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <span
+  <div
     ref="rootNode"
     class="WidgetPort"
     :class="{
@@ -165,10 +168,13 @@ export const widgetDefinition = defineWidget(
       newToConnect: !hasConnection && isCurrentEdgeHoverTarget,
       primary: props.nesting < 2,
     }"
+    :data-id="portId"
+    :data-h="randSlice"
     @pointerenter="isHovered = true"
     @pointerleave="isHovered = false"
-    ><NodeWidget :input="innerWidget" :dynamicConfig="props.config"
-  /></span>
+  >
+    <NodeWidget :input="innerWidget" :dynamicConfig="props.config" />
+  </div>
 </template>
 
 <style scoped>
@@ -177,9 +183,11 @@ export const widgetDefinition = defineWidget(
 }
 
 .WidgetPort {
-  display: inline-block;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
   position: relative;
-  vertical-align: middle;
   text-align: center;
   border-radius: 12px;
   min-height: 24px;

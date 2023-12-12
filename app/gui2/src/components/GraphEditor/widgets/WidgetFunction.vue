@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { injectFunctionInfo, provideFunctionInfo } from '@/providers/functionInfo'
+import type { PortId } from '@/providers/portInfo'
 import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { widgetConfigurationSchema } from '@/providers/widgetRegistry/configuration'
 import { useGraphStore } from '@/stores/graph'
@@ -17,15 +18,13 @@ const project = useProjectStore()
 
 provideFunctionInfo(
   proxyRefs({
-    callId: computed(() => props.input.astId),
+    callId: computed(() => props.input.exprId),
   }),
 )
 
 const methodCallInfo = computed(() => {
   const input: Ast.Ast = props.input
-  const astId = input.astId
-  if (astId == null) return null
-  return graph.db.getMethodCallInfo(astId)
+  return graph.db.getMethodCallInfo(input.exprId)
 })
 
 const interpreted = computed(() => {
@@ -33,14 +32,13 @@ const interpreted = computed(() => {
 })
 
 const application = computed(() => {
-  const analyzed = interpreted.value
-  if (!analyzed) return props.input
-  const noArgsCall =
-    analyzed.kind === 'prefix' ? graph.db.getMethodCall(analyzed.func.astId) : undefined
+  const call = interpreted.value
+  if (!call) return props.input
+  const noArgsCall = call.kind === 'prefix' ? graph.db.getMethodCall(call.func.exprId) : undefined
 
   const info = methodCallInfo.value
   return ArgumentApplication.FromInterpretedWithInfo(
-    analyzed,
+    call,
     noArgsCall,
     info?.methodCall,
     info?.suggestion,
@@ -54,19 +52,19 @@ const escapeString = (str: string): string => {
 }
 const makeArgsList = (args: string[]) => '[' + args.map(escapeString).join(', ') + ']'
 
-const selfArgumentAstId = computed<Opt<ExprId>>(() => {
+const selfArgumentExprId = computed<Opt<ExprId>>(() => {
   const analyzed = ArgumentApplication.Interpret(props.input, true)
   if (analyzed.kind === 'infix') {
-    return analyzed.lhs?.astId
+    return analyzed.lhs?.exprId
   } else {
-    return analyzed.args[0]?.argument.astId
+    return analyzed.args[0]?.argument.exprId
   }
 })
 
 const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => {
   const tree = props.input
-  const expressionId = selfArgumentAstId.value
-  const astId = tree.astId
+  const expressionId = selfArgumentExprId.value
+  const astId = tree.exprId
   if (astId == null || expressionId == null) return null
   const info = graph.db.getMethodCallInfo(astId)
   if (!info) return null
@@ -96,41 +94,55 @@ const widgetConfiguration = computed(() => {
       console.error('Unable to parse widget configuration.', data, parseResult.error)
     }
   }
-  return null
+  return undefined
 })
+
+function handleArgUpdate(value: unknown, origin: PortId): boolean {
+  const app = application.value
+  // TODO: placeholder argument update
+  console.log('handleArgUpdate', value, origin, app)
+  if (app instanceof ArgumentApplication) {
+    const args = app.allArguments()
+
+    // const arg = app.args.find((arg) => arg.argument.exprId === origin)
+    // if (arg != null) {
+    //   const newArg = { ...arg, argument: value }
+    //   const newCall = { ...app, args: app.args.map((arg) => (arg === newArg ? newArg : arg)) }
+    //   const newExpr = ArgumentApplication.ToAst(newCall)
+    //   if (newExpr != null) {
+    //     graph.db.updateExpr(props.input.exprId, newExpr)
+    //     return true
+    //   }
+    // }
+  }
+  return false
+}
 </script>
 <script lang="ts">
-export const widgetDefinition = defineWidget(
-  (ast) => ast instanceof Ast.App || ast instanceof Ast.Ident || ast instanceof Ast.OprApp,
-  {
-    priority: -10,
-    score: (props, db) => {
-      const ast = props.input
-      if (ast.astId == null) return Score.Mismatch
-      const prevFunctionState = injectFunctionInfo(true)
+export const widgetDefinition = defineWidget([Ast.App, Ast.Ident, Ast.OprApp], {
+  priority: -10,
+  score: (props, db) => {
+    const ast = props.input
+    if (ast.exprId == null) return Score.Mismatch
+    const prevFunctionState = injectFunctionInfo(true)
 
-      // It is possible to try to render the same function application twice, e.g. when detected an
-      // application with no arguments applied yet, but the application target is also an infix call.
-      // In that case, the reentrant call method info must be ignored to not create an infinite loop,
-      // and to resolve the infix call as its own application.
-      if (prevFunctionState?.callId === ast.astId) return Score.Mismatch
+    // It is possible to try to render the same function application twice, e.g. when detected an
+    // application with no arguments applied yet, but the application target is also an infix call.
+    // In that case, the reentrant call method info must be ignored to not create an infinite loop,
+    // and to resolve the infix call as its own application.
+    if (prevFunctionState?.callId === ast.exprId) return Score.Mismatch
 
-      if (ast instanceof Ast.App || ast instanceof Ast.OprApp) return Score.Perfect
+    if (ast instanceof Ast.App || ast instanceof Ast.OprApp) return Score.Perfect
 
-      const info = db.getMethodCallInfo(ast.astId)
-      if (
-        prevFunctionState != null &&
-        info?.staticallyApplied === true &&
-        ast instanceof Ast.Ident
-      ) {
-        return Score.Mismatch
-      }
-      return info != null ? Score.Perfect : Score.Mismatch
-    },
+    const info = db.getMethodCallInfo(ast.exprId)
+    if (prevFunctionState != null && info?.staticallyApplied === true && ast instanceof Ast.Ident) {
+      return Score.Mismatch
+    }
+    return info != null ? Score.Perfect : Score.Mismatch
   },
-)
+})
 </script>
 
 <template>
-  <NodeWidget :input="application" :dynamicConfig="widgetConfiguration" />
+  <NodeWidget :input="application" :dynamicConfig="widgetConfiguration" @update="handleArgUpdate" />
 </template>

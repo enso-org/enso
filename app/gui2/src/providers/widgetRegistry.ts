@@ -2,6 +2,7 @@ import { type WidgetConfiguration } from '@/providers/widgetRegistry/configurati
 import type { GraphDb } from '@/stores/graph/graphDatabase'
 import { computed, shallowReactive, type Component, type PropType } from 'vue'
 import { createContextStore } from '.'
+import type { PortId } from './portInfo'
 
 export type WidgetComponent<T extends WidgetInput> = Component<WidgetProps<T>>
 
@@ -77,6 +78,10 @@ export function widgetProps<T extends WidgetInput>(_def: WidgetDefinition<T>) {
     },
     config: { type: Object as PropType<WidgetConfiguration | undefined>, required: false },
     nesting: { type: Number, required: true },
+    onUpdate: {
+      type: Function as PropType<(value: unknown | undefined, origin: PortId) => void>,
+      required: true,
+    },
   } as const
 }
 

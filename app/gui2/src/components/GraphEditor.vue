@@ -506,15 +506,16 @@ function handleNodeOutputPortDoubleClick(id: ExprId) {
     @dragover.prevent
     @drop.prevent="handleFileDrop($event)"
   >
-    <svg :viewBox="graphNavigator.viewBox">
-      <GraphEdges />
-    </svg>
     <div :style="{ transform: graphNavigator.transform }" class="htmlLayer">
       <GraphNodes
         @nodeOutputPortDoubleClick="handleNodeOutputPortDoubleClick"
         @nodeDoubleClick="enterNode"
       />
     </div>
+    <svg :viewBox="graphNavigator.viewBox" class="svgBackdropLayer">
+      <GraphEdges />
+    </svg>
+
     <ComponentBrowser
       v-if="componentBrowserVisible"
       ref="componentBrowser"
@@ -557,10 +558,11 @@ function handleNodeOutputPortDoubleClick(id: ExprId) {
   --node-color-no-type: #596b81;
 }
 
-svg {
+.svgBackdropLayer {
   position: absolute;
   top: 0;
   left: 0;
+  z-index: 1;
 }
 
 .htmlLayer {
@@ -569,5 +571,6 @@ svg {
   left: 0;
   width: 0;
   height: 0;
+  z-index: 2;
 }
 </style>

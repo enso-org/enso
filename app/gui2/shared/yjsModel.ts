@@ -188,8 +188,27 @@ export class DistributedModule {
         this.doc.contents.insert(start, content)
       }
       if (start !== end) {
-        this.doc.contents.delete(start + content.length, end - start)
+        // FIXME: This is a workaround for edits causing stale IDs of deleted code to be preserved
+        // and assigned to empty ranges. Should be removed once ID map is no longer necessary.
+        const deleteStart = start + content.length
+        const deleteEnd = end + content.length
+        this.doc.idMap.forEach((rangeBuffer, expr) => {
+          const range = decodeRange(rangeBuffer)
+          const a = Y.createAbsolutePositionFromRelativePosition(range[0], this.doc.ydoc)?.index
+          if (a == null || a < deleteStart || a > deleteEnd) return
+          const b = Y.createAbsolutePositionFromRelativePosition(range[1], this.doc.ydoc)?.index
+          if (b == null || b < deleteStart || b > deleteEnd) return
+          this.doc.idMap.delete(expr)
+        })
+        this.doc.contents.delete(deleteStart, end - start)
       }
+      const newStart = Y.createRelativePositionFromTypeIndex(this.doc.contents, start, -1)
+      const newEnd = Y.createRelativePositionFromTypeIndex(
+        this.doc.contents,
+        start + content.length,
+        0,
+      )
+      this.doc.idMap.set(id, encodeRange([newStart, newEnd]))
     })
   }
 

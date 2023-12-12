@@ -3,6 +3,7 @@ import { parseEnso } from '@/util/ast'
 import { AstExtended as RawAstExtended } from '@/util/ast/extended'
 import type { LazyObject } from '@/util/parserSupport'
 import { Err, Ok, type Result } from '@/util/result'
+import * as map from 'lib0/map'
 import * as random from 'lib0/random'
 import { reactive } from 'vue'
 import type { ExprId } from '../../../shared/yjsModel'
@@ -158,10 +159,6 @@ export abstract class Ast {
     return this._id
   }
 
-  get astId(): AstId {
-    return this._id
-  }
-
   /** Returns child subtrees, without information about the whitespace between them. */
   *children(): IterableIterator<Ast | Token> {
     for (const child of this.concreteChildren()) {
@@ -243,12 +240,8 @@ export abstract class Ast {
       }
     }
     const span = nodeKey(offset, code.length, this.treeType)
-    const infos = info.nodes.get(span)
-    if (infos == null) {
-      info.nodes.set(span, [this._id])
-    } else {
-      infos.push(this._id)
-    }
+    const infos = map.setIfUndefined(info.nodes, span, (): AstId[] => [])
+    infos.push(this._id)
     return code
   }
 }

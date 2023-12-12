@@ -18,7 +18,7 @@ import { Rect } from '@/util/rect'
 import { Vec2 } from '@/util/vec2'
 import { setIfUndefined } from 'lib0/map'
 import type { ContentRange, ExprId, VisualizationIdentifier } from 'shared/yjsModel'
-import { computed, ref, watch, watchEffect } from 'vue'
+import { computed, onRenderTriggered, onUpdated, ref, watch, watchEffect } from 'vue'
 
 const MAXIMUM_CLICK_LENGTH_MS = 300
 const MAXIMUM_CLICK_DISTANCE_SQ = 50
@@ -60,7 +60,7 @@ const outputPortsSet = computed(() => {
 })
 
 const widthOverridePx = ref<number>()
-const nodeId = computed(() => props.node.rootSpan.astId)
+const nodeId = computed(() => props.node.rootSpan.exprId)
 
 const rootNode = ref<HTMLElement>()
 const contentNode = ref<HTMLElement>()

@@ -7,7 +7,7 @@ import * as Y from 'yjs'
 import GraphNode from '@/components/GraphEditor/GraphNode.vue'
 import { provideGraphSelection } from '@/providers/graphSelection'
 import type { Node } from '@/stores/graph'
-import { RawAstExtended } from '@/util/ast'
+import { Ast } from '@/util/ast'
 import { useNavigator } from '@/util/navigator'
 import { Rect } from '@/util/rect'
 import { Vec2 } from '@/util/vec2'
@@ -38,8 +38,8 @@ function updateContent(updates: [range: ContentRange, content: string][]) {
 }
 const idMap = new IdMap(yIdMap, text)
 
-const rootSpan = computed(() => RawAstExtended.parse(nodeContent.value, idMap))
-const pattern = computed(() => RawAstExtended.parse(nodeBinding.value, idMap))
+const rootSpan = computed(() => Ast.parseTransitional(nodeContent.value, idMap))
+const pattern = computed(() => Ast.parseTransitional(nodeBinding.value, idMap))
 
 const node = computed((): Node => {
   return {
@@ -54,7 +54,7 @@ const node = computed((): Node => {
 const mockRects = reactive(new Map())
 
 watchEffect((onCleanup) => {
-  const id = node.value.rootSpan.astId
+  const id = node.value.rootSpan.exprId
   mockRects.set(id, Rect.Zero)
   onCleanup(() => {
     mockRects.delete(id)
@@ -79,14 +79,15 @@ const SetupStory = createSetupComponent((app) => {
     <SetupStory />
     <div style="height: 72px; padding: 20px; padding-left: 50px">
       <GraphNode
+        :edited="false"
         :node="node"
         @movePosition="
           (nodeX += $event.x),
             (nodeY += $event.y),
             logEvent('movePosition', [JSON.stringify($event)])
         "
-        @updateContent="updateContent($event), logEvent('updateContent', [JSON.stringify($event)])"
-        @updateExprRect="(id, rect) => logEvent('updateExprRect', [id, JSON.stringify(rect)])"
+        @update:content="updateContent($event), logEvent('updateContent', [JSON.stringify($event)])"
+        @update:rect="(rect) => logEvent('update:rect', JSON.stringify(rect))"
         @replaceSelection="(selected = true), logEvent('replaceSelection', [])"
         @update:selected="(selected = $event), logEvent('update:selected', [$event])"
       />

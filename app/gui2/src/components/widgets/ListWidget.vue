@@ -425,6 +425,12 @@ watchPostEffect(() => {
 </template>
 
 <style scoped>
+.VectorWidget {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
 .VectorWidget.animate {
   .placeholder {
     display: flex;
@@ -470,10 +476,14 @@ div {
 
 .items {
   display: flex;
+  flex-direction: row;
+  align-items: center;
+  list-style: none;
 }
 
 .item {
   display: flex;
+  flex-direction: row;
   align-items: center;
 }
 
@@ -485,11 +495,7 @@ div {
 
 .token {
   color: rgb(255 255 255 / 0.33);
-  vertical-align: middle;
-  align-items: center;
-  display: inline-flex;
   user-select: none;
-  height: 24px;
 }
 
 .drop-area {

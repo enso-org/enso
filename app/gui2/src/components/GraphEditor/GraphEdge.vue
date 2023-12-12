@@ -27,7 +27,7 @@ const sourceNode = computed(() => {
     // When the source is not set (i.e. edge is dragged), use the currently hovered over expression
     // as the source, as long as it is not from the same node as the target.
     if (selection?.hoveredNode != null) {
-      const rawTargetNode = graph.db.getExpressionNodeId(props.edge.target)
+      const rawTargetNode = props.edge.target && graph.getPortNodeId(props.edge.target)
       if (selection.hoveredNode != rawTargetNode) return selection.hoveredNode
     }
   }
@@ -45,30 +45,29 @@ const targetExpr = computed(() => {
 })
 
 const targetNode = computed(
-  () => targetExpr.value && graph.db.getExpressionNodeId(targetExpr.value),
+  () => targetExpr.value && (graph.getPortNodeId(targetExpr.value) ?? selection?.hoveredNode),
 )
 const targetNodeRect = computed(() => targetNode.value && graph.nodeRects.get(targetNode.value))
 
-const targetRect = computed<Rect | null>(() => {
+const targetRect = computed<Rect | undefined>(() => {
   const expr = targetExpr.value
-  if (expr != null) {
-    if (targetNode.value == null) return null
-    const targetRectRelative = graph.exprRects.get(expr)
-    if (targetRectRelative == null || targetNodeRect.value == null) return null
+  if (expr != null && targetNode.value != null && targetNodeRect.value != null) {
+    const targetRectRelative = graph.getPortRelativeRect(expr)
+    if (targetRectRelative == null) return
     return targetRectRelative.offsetBy(targetNodeRect.value.pos)
   } else if (navigator?.sceneMousePos != null) {
     return new Rect(navigator.sceneMousePos, Vec2.Zero)
   } else {
-    return null
+    return undefined
   }
 })
-const sourceRect = computed<Rect | null>(() => {
+const sourceRect = computed<Rect | undefined>(() => {
   if (sourceNode.value != null) {
-    return graph.nodeRects.get(sourceNode.value) ?? null
+    return graph.nodeRects.get(sourceNode.value)
   } else if (navigator?.sceneMousePos != null) {
     return new Rect(navigator.sceneMousePos, Vec2.Zero)
   } else {
-    return null
+    return undefined
   }
 })
 

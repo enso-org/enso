@@ -1,4 +1,5 @@
 import { selectionMouseBindings } from '@/bindings'
+import type { PortId } from '@/providers/portInfo.ts'
 import { usePointer } from '@/util/events'
 import type { NavigatorComposable } from '@/util/navigator'
 import type { Rect } from '@/util/rect'
@@ -20,7 +21,7 @@ export function useSelection<T>(
   const initiallySelected = new Set<T>()
   const selected = reactive(new Set<T>())
   const hoveredNode = ref<ExprId>()
-  const hoveredPorts = reactive(new Set<ExprId>())
+  const hoveredPorts = reactive(new Set<PortId>())
   const hoveredPort = computed(() => [...hoveredPorts].pop())
 
   function readInitiallySelected() {
@@ -134,8 +135,8 @@ export function useSelection<T>(
     hoveredPort,
     mouseHandler: selectionEventHandler,
     events: pointer.events,
-    addHoveredPort: (port: ExprId) => hoveredPorts.add(port),
-    removeHoveredPort: (port: ExprId) => hoveredPorts.delete(port),
+    addHoveredPort: (port: PortId) => hoveredPorts.add(port),
+    removeHoveredPort: (port: PortId) => hoveredPorts.delete(port),
   })
 }
 
