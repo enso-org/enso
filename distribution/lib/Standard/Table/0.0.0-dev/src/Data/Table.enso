@@ -438,8 +438,7 @@ type Table
     select_blank_columns : Blank_Selector -> Boolean -> Table ! No_Output_Columns
     select_blank_columns self (when:Blank_Selector = Blank_Selector.All_Cells) (treat_nans_as_blank : Boolean = False) =
         new_columns = self.columns_helper.select_blank_columns_helper when treat_nans_as_blank
-        if new_columns.length == 0 then Error.throw (No_Output_Columns) else
-            Table.new new_columns
+        Table.new new_columns
 
     ## ALIAS drop_missing_columns, drop_na
        GROUP Standard.Base.Selections
@@ -465,8 +464,7 @@ type Table
     remove_blank_columns : Blank_Selector -> Boolean -> Table ! No_Output_Columns
     remove_blank_columns self (when:Blank_Selector = Blank_Selector.All_Cells) (treat_nans_as_blank : Boolean = False) =
         new_columns = self.columns_helper.select_blank_columns_helper when treat_nans_as_blank invert_selection=True
-        if new_columns.length == 0 then Error.throw (No_Output_Columns) else
-            Table.new new_columns
+        Table.new new_columns
 
     ## GROUP Standard.Base.Selections
        ICON select_column

@@ -297,8 +297,7 @@ type Table
     select_blank_columns : Blank_Selector -> Boolean -> Table
     select_blank_columns self (when:Blank_Selector = Blank_Selector.All_Cells) treat_nans_as_blank=False =
         new_columns = self.columns_helper.select_blank_columns_helper when treat_nans_as_blank
-        if new_columns.length == 0 then Error.throw (No_Output_Columns) else
-            self.updated_columns new_columns
+        self.updated_columns new_columns
 
     ## ALIAS drop_missing_columns, drop_na
        GROUP Standard.Base.Selections
@@ -324,8 +323,7 @@ type Table
     remove_blank_columns : Blank_Selector -> Boolean -> Table
     remove_blank_columns self (when:Blank_Selector = Blank_Selector.All_Cells) treat_nans_as_blank=False =
         new_columns = self.columns_helper.select_blank_columns_helper when treat_nans_as_blank invert_selection=True
-        if new_columns.length == 0 then Error.throw (No_Output_Columns) else
-            self.updated_columns new_columns
+        self.updated_columns new_columns
 
     ## GROUP Standard.Base.Selections
        ICON select_column
@@ -1734,7 +1732,10 @@ type Table
             problem_builder.attach_problems_before on_problems <|
                 problems = partitioned.first.map .value
                 on_problems.attach_problems_before problems <|
-                    if new_columns.is_empty then (Error.throw No_Output_Columns) else
+                    handle_no_output_columns =
+                        first_problem = if problems.is_empty then Nothing else problems.first
+                        Error.throw (No_Output_Columns.Error first_problem)
+                    if new_columns.is_empty then handle_no_output_columns else
                         self.updated_context_and_columns new_ctx new_columns subquery=True
 
     ## GROUP Standard.Base.Calculations

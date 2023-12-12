@@ -221,6 +221,8 @@ spec setup =
             selector_2 = [".*".to_regex, "hmmm".to_regex]
             t1 = table.remove_columns selector_2
             t1.should_fail_with No_Output_Columns
+            # No cause specified - even if some criteria were unmatched, that is not the reason for the No_Output_Columns (the reason is all other columns got deleted, by other criteria that _did_ match).
+            t1.catch.cause . should_equal Nothing
 
     Test.group prefix+"Table.reorder_columns" <|
         Test.specify "should work as shown in the doc examples" <|
