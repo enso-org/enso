@@ -1928,10 +1928,10 @@ type Table
     lookup_and_replace self lookup_table:Table key_columns:(Vector (Integer | Text | Regex) | Text | Integer | Regex) add_new_columns:Boolean=True allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
         lookup_columns = Lookup_Helpers.prepare_columns_for_lookup self lookup_table key_columns add_new_columns allow_unmatched_rows on_problems
 
-        java_descriptions = lookup_columns.map make_java_lookup_column_description
+        java_descriptions = lookup_columns.map make_java_lookup_column_description on_problems=No_Wrap.Value
 
         keys = lookup_columns.filter .is_key
-        java_keys = keys.map key_column->
+        java_keys = keys.map on_problems=No_Wrap.Value key_column->
             Java_Join_Equals.new key_column.base_column.java_column key_column.lookup_column.java_column
 
         handle_java_errors ~action =
