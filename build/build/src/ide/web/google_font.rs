@@ -169,7 +169,7 @@ pub async fn download_google_font_with_css(
     let mut css = String::new();
     use std::fmt::Write;
     for path in &paths {
-        let file = path.file_name().and_then(|name| name.to_str()).unwrap_or("");
+        let file = path.try_file_name()?.as_str();
         writeln!(&mut css, "@font-face {{")?;
         writeln!(&mut css, "  font-family: '{css_family}';")?;
         writeln!(&mut css, "  src: url('{css_basepath}/{file}');")?;
