@@ -1,6 +1,8 @@
+@import url('../src/assets/font-enso-code.css');
+
 .histoire-story-viewer .__histoire-render-story > [data-v-app] {
   height: 100%;
-  font-family: 'M PLUS 1', sans-serif;
+  font-family: var(--font-sans);
   font-size: 11.5px;
   font-weight: 500;
   line-height: 20px;

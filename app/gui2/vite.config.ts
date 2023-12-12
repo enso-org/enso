@@ -7,6 +7,7 @@ import tailwindcss from 'tailwindcss'
 import tailwindcssNesting from 'tailwindcss/nesting'
 import { defineConfig, type Plugin } from 'vite'
 import topLevelAwait from 'vite-plugin-top-level-await'
+// @ts-expect-error
 import * as tailwindConfig from '../ide-desktop/lib/dashboard/tailwind.config'
 import { createGatewayServer } from './ydoc-server'
 const localServerPort = 8080
@@ -50,7 +51,15 @@ export default defineConfig({
   assetsInclude: ['**/*.yaml', '**/*.svg'],
   css: {
     postcss: {
-      plugins: [tailwindcssNesting(postcssNesting()), tailwindcss({ config: tailwindConfig })],
+      plugins: [
+        tailwindcssNesting(postcssNesting()),
+        tailwindcss({
+          ...tailwindConfig.default,
+          content: tailwindConfig.default.content.map((glob: string) =>
+            glob.replace(/^[.][/]/, '../ide-desktop/lib/dashboard/'),
+          ),
+        }),
+      ],
     },
   },
   build: {

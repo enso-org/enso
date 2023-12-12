@@ -6,12 +6,12 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.nodes.RootNode;
 import org.enso.interpreter.EnsoLanguage;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.Annotation;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
-import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.polyglot.debugger.IdExecutionService;
 
 final class InstrumentorEvalNode extends RootNode {
@@ -47,8 +47,8 @@ final class InstrumentorEvalNode extends RootNode {
       var expr = InteropLibrary.getUncached().asString(args[0]);
       var info = (IdExecutionService.Info) args[1];
       return info.eval(expr);
-    } catch (UnsupportedMessageException ex) {
-      throw new PanicException(args[0], this);
+    } catch (UnsupportedMessageException e) {
+      throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
   }
 }

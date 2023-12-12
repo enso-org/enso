@@ -1,10 +1,10 @@
 package org.enso.languageserver.websocket.json
 
 import java.nio.file.{Files, Paths}
-
 import io.circe.literal._
+import org.enso.testkit.FlakySpec
 
-class ReceivesTreeUpdatesHandlerTest extends BaseServerTest {
+class ReceivesTreeUpdatesHandlerTest extends BaseServerTest with FlakySpec {
 
   override val isFileWatcherEnabled = true
 
@@ -68,7 +68,7 @@ class ReceivesTreeUpdatesHandlerTest extends BaseServerTest {
       client.expectJson(jsonrpc.ok(2))
     }
 
-    "receive file system updates" in {
+    "receive file system updates" taggedAs Flaky in {
       val client1 = getInitialisedWsClient()
       val client2 = getInitialisedWsClient()
       // acquire capability

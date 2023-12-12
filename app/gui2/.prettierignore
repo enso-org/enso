@@ -1,4 +1,8 @@
 *.html
 *.css
+!src/assets/base.css
+!src/assets/main.css
+!src/assets/font-*.css
+!stories/story.css
 
 **/generated

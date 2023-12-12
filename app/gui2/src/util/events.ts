@@ -1,6 +1,5 @@
 import type { Opt } from '@/util/opt'
 import { Vec2 } from '@/util/vec2'
-import type { ObservableV2 } from 'lib0/observable'
 import {
   computed,
   onScopeDispose,
@@ -12,11 +11,10 @@ import {
   type Ref,
   type WatchSource,
 } from 'vue'
-import { ReactiveDb } from './database/reactiveDb'
 
-export function isClick(e: MouseEvent | PointerEvent) {
-  if (e instanceof PointerEvent) return e.pointerId !== -1
-  else return e.buttons !== 0
+export function isTriggeredByKeyboard(e: MouseEvent | PointerEvent) {
+  if (e instanceof PointerEvent) return e.pointerType !== 'mouse'
+  else return false
 }
 
 /**
@@ -50,9 +48,7 @@ export function useEvent(
   options?: boolean | AddEventListenerOptions,
 ): void {
   target.addEventListener(event, handler, options)
-  onScopeDispose(() => {
-    target.removeEventListener(event, handler, options)
-  })
+  onScopeDispose(() => target.removeEventListener(event, handler, options))
 }
 
 /**
@@ -233,6 +229,7 @@ export const enum PointerButtonMask {
 export function usePointer(
   handler: (pos: EventPosition, event: PointerEvent, eventType: PointerEventType) => void,
   requiredButtonMask: number = PointerButtonMask.Main,
+  predicate?: (e: PointerEvent) => boolean,
 ) {
   const trackedPointer: Ref<number | null> = ref(null)
   let trackedElement: (Element & GlobalEventHandlers) | null = null
@@ -265,7 +262,7 @@ export function usePointer(
   const events = {
     pointerdown(e: PointerEvent) {
       // pointers should not respond to unmasked mouse buttons
-      if ((e.buttons & requiredButtonMask) === 0) {
+      if ((e.buttons & requiredButtonMask) === 0 || (predicate && !predicate(e))) {
         return
       }
 

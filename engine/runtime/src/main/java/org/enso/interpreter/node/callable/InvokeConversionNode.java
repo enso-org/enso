@@ -236,7 +236,7 @@ public abstract class InvokeConversionNode extends BaseNode {
       arguments[0] = txt;
       return invokeFunctionNode.execute(function, frame, state, arguments);
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException("Impossible, that is guaranteed to be a string.");
+      throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
   }
 

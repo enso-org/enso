@@ -195,7 +195,7 @@ public abstract class IndirectInvokeConversionNode extends Node {
           argumentsExecutionMode,
           isTail);
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException("Impossible, that is guaranteed to be a string.");
+      throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
   }
 

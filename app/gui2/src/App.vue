@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { provideAppClassSet } from '@/providers/appClass'
 import { provideGuiConfig, type GuiConfig } from '@/providers/guiConfig'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import ProjectView from '@/views/ProjectView.vue'
@@ -6,7 +7,10 @@ import { onMounted, toRef } from 'vue'
 
 const props = defineProps<{
   config: GuiConfig
+  metadata: object
 }>()
+
+const classSet = provideAppClassSet()
 
 provideGuiConfig(toRef(props, 'config'))
 
@@ -15,17 +19,14 @@ onMounted(() => useSuggestionDbStore())
 </script>
 
 <template>
-  <ProjectView class="App flex" />
+  <ProjectView class="App" :class="[...classSet.keys()]" />
 </template>
 
 <style scoped>
-.flex {
-  flex: 1;
-}
-
 .App {
+  flex: 1;
   color: var(--color-text);
-  font-family: 'M PLUS 1', sans-serif;
+  font-family: var(--font-sans);
   font-size: 11.5px;
   font-weight: 500;
   line-height: 20px;

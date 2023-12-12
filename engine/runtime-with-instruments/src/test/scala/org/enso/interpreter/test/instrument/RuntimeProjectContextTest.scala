@@ -2,18 +2,34 @@ package org.enso.interpreter.test.instrument
 
 import org.enso.polyglot.{LanguageInfo, RuntimeOptions}
 import org.graalvm.polyglot.{Context, PolyglotException}
+import org.scalatest.{BeforeAndAfterEach, Suite}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
 import java.nio.file.Paths
 import java.util.logging.Level
 
-class RuntimeProjectContextTest extends AnyWordSpec with Matchers {
+trait WithContext extends BeforeAndAfterEach { this: Suite =>
+  var context: Context = null
+
+  override def afterEach(): Unit = {
+    if (context != null) {
+      context.close()
+    }
+    super.afterEach()
+  }
+
+}
+
+class RuntimeProjectContextTest
+    extends AnyWordSpec
+    with Matchers
+    with WithContext {
   "Runtime Context" should {
     "report an exception if ran in context of a project " +
     "which cannot be loaded" in {
       val thrown = intercept[PolyglotException] {
-        val context = Context
+        context = Context
           .newBuilder(LanguageInfo.ID)
           .allowExperimentalOptions(true)
           .allowAllAccess(true)

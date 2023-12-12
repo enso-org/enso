@@ -1,6 +1,5 @@
-import { OperatorBlockExpression, OperatorLine, Tree, type Token } from '@/generated/ast'
 import { assert } from '@/util/assert'
-import { AstExtended } from '@/util/ast'
+import { RawAst, RawAstExtended } from '@/util/ast'
 import { zip } from '@/util/iterable'
 import { mapIterator } from 'lib0/iterator'
 
@@ -10,28 +9,28 @@ export type GeneralOperand<HasIdMap extends boolean = true> =
   // A part of `GeneralOprApp`, consisting of lhs and first `statements` of applications.
   | { type: 'partOfGeneralOprApp'; oprApp: GeneralOprApp<HasIdMap>; statements: number }
 
-export type OperatorChain<HasIdMap extends boolean = true> = AstExtended<
-  Tree.OprApp | Tree.OperatorBlockApplication,
+export type OperatorChain<HasIdMap extends boolean = true> = RawAstExtended<
+  RawAst.Tree.OprApp | RawAst.Tree.OperatorBlockApplication,
   HasIdMap
 >
 
 /** A structure unifying API of OprApp and OperatorBlockApplication */
 export class GeneralOprApp<HasIdMap extends boolean = true> {
-  lhs: AstExtended<Tree, HasIdMap> | null
+  lhs: RawAstExtended<RawAst.Tree, HasIdMap> | null
   apps: {
-    opr: AstExtended<Token.Operator, HasIdMap> | null
-    expr: AstExtended<Tree, HasIdMap> | null
+    opr: RawAstExtended<RawAst.Token.Operator, HasIdMap> | null
+    expr: RawAstExtended<RawAst.Tree, HasIdMap> | null
   }[]
 
   constructor(ast: OperatorChain<HasIdMap>) {
     this.lhs = ast.tryMap((t) => t.lhs) ?? null
-    if (ast.isTree(Tree.Type.OprApp)) {
+    if (ast.isTree(RawAst.Tree.Type.OprApp)) {
       const rhs = ast.tryMap((t) => t.rhs) ?? null
       const opr = ast.tryMap((t) => (t.opr.ok ? t.opr.value : undefined)) ?? null
       this.apps = [{ opr, expr: rhs }]
     } else {
-      const blockApplication = ast as AstExtended<Tree.OperatorBlockApplication, HasIdMap>
-      const expressions = (line: OperatorLine): OperatorBlockExpression[] =>
+      const blockApplication = ast as RawAstExtended<RawAst.Tree.OperatorBlockApplication, HasIdMap>
+      const expressions = (line: RawAst.OperatorLine): RawAst.OperatorBlockExpression[] =>
         line.expression ? [line.expression] : []
       const operators = blockApplication.tryMapIter((ast) =>
         [...ast.expressions]
@@ -55,7 +54,7 @@ export class GeneralOprApp<HasIdMap extends boolean = true> {
   }
 
   /** Last operator */
-  lastOpr(): AstExtended<Token.Operator, HasIdMap> | null {
+  lastOpr(): RawAstExtended<RawAst.Token.Operator, HasIdMap> | null {
     return this.apps[this.apps.length - 1]?.opr ?? null
   }
 
@@ -109,10 +108,10 @@ export class GeneralOprApp<HasIdMap extends boolean = true> {
  * representable by any AST structure.
  */
 export type Operand<HasIdMap extends boolean = true> =
-  | { type: 'ast'; ast: AstExtended<Tree, HasIdMap> }
+  | { type: 'ast'; ast: RawAstExtended<RawAst.Tree, HasIdMap> }
   | {
       type: 'partOfOprBlockApp'
-      ast: AstExtended<Tree.OperatorBlockApplication, HasIdMap>
+      ast: RawAstExtended<RawAst.Tree.OperatorBlockApplication, HasIdMap>
       statements: number
     }
 
@@ -128,12 +127,12 @@ export type Operand<HasIdMap extends boolean = true> =
  * @param expectedOpr if specified, the chain will be of specific operator.
  */
 export function* operandsOfLeftAssocOprChain<HasIdMap extends boolean = true>(
-  ast: AstExtended<Tree, HasIdMap>,
+  ast: RawAstExtended<RawAst.Tree, HasIdMap>,
   expectedOpr?: string,
 ): Generator<Operand<HasIdMap> | null> {
   switch (ast.inner.type) {
-    case Tree.Type.OprApp:
-    case Tree.Type.OperatorBlockApplication: {
+    case RawAst.Tree.Type.OprApp:
+    case RawAst.Tree.Type.OperatorBlockApplication: {
       const oprApp = new GeneralOprApp(ast as OperatorChain<HasIdMap>)
       for (const operand of oprApp.operandsOfLeftAssocOprChain(expectedOpr)) {
         if (operand == null || operand.type !== 'partOfGeneralOprApp') yield operand
@@ -142,7 +141,7 @@ export function* operandsOfLeftAssocOprChain<HasIdMap extends boolean = true>(
           if (isEntireOprApp) {
             yield { type: 'ast', ast }
           } else {
-            assert(ast.isTree(Tree.Type.OperatorBlockApplication))
+            assert(ast.isTree(RawAst.Tree.Type.OperatorBlockApplication))
             yield { type: 'partOfOprBlockApp', ast, statements: operand.statements }
           }
         }
@@ -170,11 +169,13 @@ if (import.meta.vitest) {
     { code: '.foo', result: [null, '.', 'foo'] },
     { code: 'foo.', result: ['foo', '.', null] },
   ])('Generalized infix from $code', ({ code, result }) => {
-    let ast = AstExtended.parseLine(code)
-    if (ast.isTree(Tree.Type.OprSectionBoundary)) {
+    let ast = RawAstExtended.parseLine(code)
+    if (ast.isTree(RawAst.Tree.Type.OprSectionBoundary)) {
       ast = ast.map((boundary) => boundary.ast)
     }
-    assert(ast.isTree(Tree.Type.OprApp) || ast.isTree(Tree.Type.OperatorBlockApplication))
+    assert(
+      ast.isTree(RawAst.Tree.Type.OprApp) || ast.isTree(RawAst.Tree.Type.OperatorBlockApplication),
+    )
     const opr = new GeneralOprApp(ast as OperatorChain<false>)
     expect(Array.from(opr.componentsReprs())).toStrictEqual(result)
   })
@@ -262,7 +263,7 @@ if (import.meta.vitest) {
       opr?: string
       result: { type: string; repr: string; statements?: number }[]
     }) => {
-      const ast = AstExtended.parseLine(code)
+      const ast = RawAstExtended.parseLine(code)
       const actual = operandsOfLeftAssocOprChain(ast, opr)
       const actualWithExpected = Array.from(actual, (operand, i) => {
         return { actual: operand, expected: result[i] }

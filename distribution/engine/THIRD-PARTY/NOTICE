@@ -291,14 +291,29 @@ The license file can be found at `licenses/Bouncy_Castle_Licence.txt`.
 Copyright notices related to this dependency can be found in the directory `org.bouncycastle.bcpkix-jdk15on-1.70`.
 
 
+'bcpkix-jdk18on', licensed under the Bouncy Castle Licence, is distributed with the engine.
+The license file can be found at `licenses/Bouncy_Castle_Licence.txt`.
+Copyright notices related to this dependency can be found in the directory `org.bouncycastle.bcpkix-jdk18on-1.76`.
+
+
 'bcprov-jdk15on', licensed under the Bouncy Castle Licence, is distributed with the engine.
 The license file can be found at `licenses/Bouncy_Castle_Licence.txt`.
 Copyright notices related to this dependency can be found in the directory `org.bouncycastle.bcprov-jdk15on-1.70`.
 
 
+'bcprov-jdk18on', licensed under the Bouncy Castle Licence, is distributed with the engine.
+The license file can be found at `licenses/Bouncy_Castle_Licence.txt`.
+Copyright notices related to this dependency can be found in the directory `org.bouncycastle.bcprov-jdk18on-1.76`.
+
+
 'bcutil-jdk15on', licensed under the Bouncy Castle Licence, is distributed with the engine.
 The license file can be found at `licenses/Bouncy_Castle_Licence.txt`.
 Copyright notices related to this dependency can be found in the directory `org.bouncycastle.bcutil-jdk15on-1.70`.
+
+
+'bcutil-jdk18on', licensed under the Bouncy Castle Licence, is distributed with the engine.
+The license file can be found at `licenses/Bouncy_Castle_Licence.txt`.
+Copyright notices related to this dependency can be found in the directory `org.bouncycastle.bcutil-jdk18on-1.76`.
 
 
 'checker-qual', licensed under the The MIT License, is distributed with the engine.
@@ -316,9 +331,24 @@ The license file can be found at `licenses/MIT`.
 Copyright notices related to this dependency can be found in the directory `org.graalvm.js.js-language-23.1.0`.
 
 
+'llvm-api', licensed under the New BSD License (3-clause BSD license), is distributed with the engine.
+The license file can be found at `licenses/BSD-3-Clause`.
+Copyright notices related to this dependency can be found in the directory `org.graalvm.llvm.llvm-api-23.1.0`.
+
+
 'polyglot', licensed under the Universal Permissive License, Version 1.0, is distributed with the engine.
 The license file can be found at `licenses/Universal_Permissive_License__Version_1.0`.
 Copyright notices related to this dependency can be found in the directory `org.graalvm.polyglot.polyglot-23.1.0`.
+
+
+'python-language', licensed under the MIT License, is distributed with the engine.
+The license file can be found at `licenses/MIT`.
+Copyright notices related to this dependency can be found in the directory `org.graalvm.python.python-language-23.1.0`.
+
+
+'python-resources', licensed under the MIT License, is distributed with the engine.
+The license file can be found at `licenses/MIT`.
+Copyright notices related to this dependency can be found in the directory `org.graalvm.python.python-resources-23.1.0`.
 
 
 'regex', licensed under the Universal Permissive License, Version 1.0, is distributed with the engine.
@@ -346,9 +376,29 @@ The license information can be found along with the copyright notices.
 Copyright notices related to this dependency can be found in the directory `org.graalvm.shadowed.icu4j-23.1.0`.
 
 
+'json', licensed under the Universal Permissive License, Version 1.0, is distributed with the engine.
+The license file can be found at `licenses/Universal_Permissive_License__Version_1.0`.
+Copyright notices related to this dependency can be found in the directory `org.graalvm.shadowed.json-23.1.0`.
+
+
+'profiler-tool', licensed under the GNU General Public License, version 2, with the Classpath Exception, is distributed with the engine.
+The license file can be found at `licenses/GNU_General_Public_License__version_2__with_the_Classpath_Exception`.
+Copyright notices related to this dependency can be found in the directory `org.graalvm.tools.profiler-tool-23.1.0`.
+
+
 'truffle-api', licensed under the Universal Permissive License, Version 1.0, is distributed with the engine.
 The license file can be found at `licenses/Universal_Permissive_License__Version_1.0`.
 Copyright notices related to this dependency can be found in the directory `org.graalvm.truffle.truffle-api-23.1.0`.
+
+
+'truffle-nfi', licensed under the Universal Permissive License, Version 1.0, is distributed with the engine.
+The license file can be found at `licenses/Universal_Permissive_License__Version_1.0`.
+Copyright notices related to this dependency can be found in the directory `org.graalvm.truffle.truffle-nfi-23.1.0`.
+
+
+'truffle-nfi-libffi', licensed under the Universal Permissive License, Version 1.0, is distributed with the engine.
+The license file can be found at `licenses/Universal_Permissive_License__Version_1.0`.
+Copyright notices related to this dependency can be found in the directory `org.graalvm.truffle.truffle-nfi-libffi-23.1.0`.
 
 
 'jline', licensed under the The BSD License, is distributed with the engine.
@@ -404,6 +454,11 @@ Copyright notices related to this dependency can be found in the directory `org.
 'slf4j-api', licensed under the MIT License, is distributed with the engine.
 The license file can be found at `licenses/MIT`.
 Copyright notices related to this dependency can be found in the directory `org.slf4j.slf4j-api-2.0.9`.
+
+
+'xz', licensed under the Public Domain, is distributed with the engine.
+The license file can be found at `licenses/Public_Domain`.
+Copyright notices related to this dependency can be found in the directory `org.tukaani.xz-1.9`.
 
 
 'cats-core_2.13', licensed under the MIT, is distributed with the engine.

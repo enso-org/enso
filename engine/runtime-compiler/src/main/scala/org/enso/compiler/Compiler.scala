@@ -18,6 +18,7 @@ import org.enso.compiler.core.ir.{
   Warning,
   Module => IRModule
 }
+import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
 import org.enso.compiler.core.ir.expression.Error
 import org.enso.compiler.core.ir.module.scope.Export
 import org.enso.compiler.core.ir.module.scope.Import
@@ -587,9 +588,17 @@ class Compiler(
         injectSyntheticModuleExports(expr, module.getDirectModulesRefs)
     val discoveredModule =
       recognizeBindings(exprWithModuleExports, moduleContext)
+    if (context.wasLoadedFromCache(module)) {
+      if (module.getBindingsMap() != null) {
+        discoveredModule.passData.update(
+          new MetadataPair(BindingAnalysis, module.getBindingsMap())
+        )
+      }
+    }
     context.updateModule(
       module,
       { u =>
+        u.bindingsMap(null);
         u.ir(discoveredModule)
         u.compilationStage(CompilationStage.AFTER_PARSING)
         u.loadedFromCache(false)
@@ -680,7 +689,7 @@ class Compiler(
   ): Unit = {
     val module = Option(context.findTopScopeModule(qualifiedName))
       .getOrElse {
-        val locStr = fileLocationFromSection(loc, source)
+        val locStr = fileLocationFromSectionOption(loc, source)
         throw new CompilerError(
           s"Attempted to import the unresolved module $qualifiedName " +
           s"during code generation. Defined at $locStr."
@@ -1003,6 +1012,16 @@ class Compiler(
       case _: Warning => (fansi.Color.Yellow ++ fansi.Bold.On, "warning: ")
       case _          => throw new IllegalStateException("Unexpected diagnostic type")
     }
+
+    def fileLocationFromSection(loc: IdentifiedLocation) = {
+      val section =
+        source.createSection(loc.location().start(), loc.location().length());
+      val locStr = "" + section.getStartLine() + ":" + section
+        .getStartColumn() + "-" + section.getEndLine() + ":" + section
+        .getEndColumn()
+      source.getName() + "[" + locStr + "]";
+    }
+
     private val sourceSection: Option[SourceSection] =
       diagnostic.location match {
         case Some(location) =>
@@ -1036,7 +1055,7 @@ class Compiler(
               .Str(srcPath + ":" + lineNumber + ":" + startColumn + ": ")
               .overlay(fansi.Bold.On)
             str ++= fansi.Str(subject).overlay(textAttrs)
-            str ++= diagnostic.formattedMessage(source)
+            str ++= diagnostic.formattedMessage(fileLocationFromSection)
             str ++= "\n"
             str ++= oneLineFromSourceColored(lineNumber, startColumn, endColumn)
             str ++= "\n"
@@ -1054,7 +1073,7 @@ class Compiler(
               )
               .overlay(fansi.Bold.On)
             str ++= fansi.Str(subject).overlay(textAttrs)
-            str ++= diagnostic.formattedMessage(source)
+            str ++= diagnostic.formattedMessage(fileLocationFromSection)
             str ++= "\n"
             val printAllSourceLines =
               section.getEndLine - section.getStartLine <= maxSourceLinesToPrint
@@ -1081,15 +1100,16 @@ class Compiler(
           // There is no source section associated with the diagnostics
           var str = fansi.Str()
           val fileLocation = diagnostic.location match {
-            case Some(_) => fileLocationFromSection(diagnostic.location, source)
-            case None    => source.getPath
+            case Some(_) =>
+              fileLocationFromSectionOption(diagnostic.location, source)
+            case None => source.getPath
           }
           str ++= fansi
             .Str(fileLocation)
             .overlay(fansi.Bold.On)
           str ++= ": "
           str ++= fansi.Str(subject).overlay(textAttrs)
-          str ++= diagnostic.formattedMessage(source)
+          str ++= diagnostic.formattedMessage(fileLocationFromSection)
           if (outSupportsAnsiColors) {
             str.render.stripLineEnd
           } else {
@@ -1160,7 +1180,7 @@ class Compiler(
     }
   }
 
-  private def fileLocationFromSection(
+  private def fileLocationFromSectionOption(
     loc: Option[IdentifiedLocation],
     source: Source
   ): String = {

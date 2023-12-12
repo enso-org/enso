@@ -10,6 +10,7 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.Type;
 
 @BuiltinMethod(
@@ -59,7 +60,7 @@ public abstract class IsSameObjectNode extends Node {
       Object metaRightName = interop.getMetaQualifiedName(metaRight);
       return isIdenticalObjects(metaLeftName, metaRightName, interop);
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException(e);
+      throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
   }
 

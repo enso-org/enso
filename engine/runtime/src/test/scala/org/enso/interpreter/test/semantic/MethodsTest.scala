@@ -103,6 +103,8 @@ class MethodsTest extends InterpreterTest {
     "throw an exception when non-existent" in {
       val code =
         """
+          |from Standard.Base.Errors.Common import all
+          |
           |main = 7.foo
           |""".stripMargin
       the[InterpreterException] thrownBy eval(
@@ -174,7 +176,7 @@ class MethodsTest extends InterpreterTest {
           |
           |    inc self = Foo.Mk_Foo self.a+1
           |
-          |main = 
+          |main =
           |    IO.println (Foo.inc (Foo.Mk_Foo 12))
           |    IO.println (Foo.Mk_Foo 13).inc
           |    IO.println (.inc self=Foo self=(Foo.Mk_Foo 14))
@@ -207,6 +209,8 @@ class MethodsTest extends InterpreterTest {
     "not be callable on instances when static" in {
       val code =
         """
+          |from Standard.Base.Errors.Common import all
+          |
           |type Foo
           |    Mk_Foo a
           |
@@ -223,6 +227,7 @@ class MethodsTest extends InterpreterTest {
       val code =
         """
           |import Standard.Base.Nothing.Nothing
+          |from Standard.Base.Errors.Common import all
           |
           |main = Nothing.is_nothing Nothing
           |""".stripMargin

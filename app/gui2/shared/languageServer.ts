@@ -322,14 +322,16 @@ export class LanguageServer extends ObservableV2<Notifications> {
 
   /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#executioncontextexecuteexpression) */
   executeExpression(
+    executionContextId: Uuid,
     visualizationId: Uuid,
     expressionId: ExpressionId,
-    visualizationConfig: VisualizationConfiguration,
+    expression: string,
   ): Promise<void> {
     return this.request('executionContext/executeExpression', {
+      executionContextId,
       visualizationId,
       expressionId,
-      visualizationConfig,
+      expression,
     })
   }
 
@@ -378,6 +380,16 @@ export class LanguageServer extends ObservableV2<Notifications> {
   /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#runtimegetcomponentgroups) */
   getComponentGroups(): Promise<response.GetComponentGroups> {
     return this.request('runtime/getComponentGroups', {})
+  }
+
+  /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#profilingstart) */
+  profilingStart(memorySnapshot?: boolean): Promise<void> {
+    return this.request('profiling/start', { memorySnapshot })
+  }
+
+  /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#profilingstop) */
+  profilingStop(): Promise<void> {
+    return this.request('profiling/stop', {})
   }
 
   /** A helper function to subscribe to file updates.

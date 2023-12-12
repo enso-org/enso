@@ -7,6 +7,7 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.data.EnsoObject;
+import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.error.PanicException;
 
@@ -23,7 +24,7 @@ public class GetStackTraceNode extends Node {
   }
 
   EnsoObject execute(VirtualFrame requestOwnStackFrame) {
-    var exception = new PanicException("Stacktrace", this);
+    var exception = new PanicException(Text.create("Stacktrace"), this);
     TruffleStackTrace.fillIn(exception);
     return stackTraceToArray(exception);
   }

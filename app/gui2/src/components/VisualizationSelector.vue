@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import SvgIcon from '@/components/SvgIcon.vue'
-import { useVisualizationStore } from '@/stores/visualization'
 import { useAutoBlur } from '@/util/autoBlur'
+import type { Icon } from '@/util/iconName'
+import type { URLString } from '@/util/urlString'
+import { computedAsync } from '@vueuse/core'
 import { visIdentifierEquals, type VisualizationIdentifier } from 'shared/yjsModel'
 import { onMounted, ref } from 'vue'
 
@@ -11,7 +13,21 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{ hide: []; 'update:modelValue': [type: VisualizationIdentifier] }>()
 
-const visualizationStore = useVisualizationStore()
+// This dynamic import is required to break the circular import chain:
+// `VisualizationSelector.vue` -> `compilerMessaging.ts` -> `VisualizationContainer.vue` ->
+// `VisualizationSelector.vue`
+const visualizationStore = computedAsync<{
+  icon: (type: VisualizationIdentifier) => Icon | URLString | undefined
+}>(
+  async () => {
+    return (await import('@/stores/visualization')).useVisualizationStore()
+  },
+  {
+    icon() {
+      return 'columns_increasing'
+    },
+  },
+)
 
 const rootNode = ref<HTMLElement>()
 useAutoBlur(rootNode)
@@ -32,11 +48,15 @@ function visIdKey(id: VisualizationIdentifier) {
   return `${kindKey}::${id.name}`
 }
 
-onMounted(() => setTimeout(() => rootNode.value?.focus(), 0))
+onMounted(() => setTimeout(() => rootNode.value?.querySelector('button')?.focus(), 1))
 </script>
 
 <template>
-  <div ref="rootNode" :tabindex="-1" class="VisualizationSelector" @blur="emit('hide')">
+  <div
+    ref="rootNode"
+    class="VisualizationSelector"
+    @focusout="$event.relatedTarget == null && emit('hide')"
+  >
     <div class="background"></div>
     <ul>
       <li
@@ -45,8 +65,10 @@ onMounted(() => setTimeout(() => rootNode.value?.focus(), 0))
         :class="{ selected: visIdentifierEquals(props.modelValue, type_) }"
         @pointerdown.stop="emit('update:modelValue', type_)"
       >
-        <SvgIcon class="icon" :name="visualizationStore.icon(type_) ?? 'columns_increasing'" />
-        <span v-text="visIdLabel(type_)"></span>
+        <button>
+          <SvgIcon class="icon" :name="visualizationStore.icon(type_) ?? 'columns_increasing'" />
+          <span v-text="visIdLabel(type_)"></span>
+        </button>
       </li>
     </ul>
   </div>
@@ -86,7 +108,8 @@ ul {
   padding: 4px;
 }
 
-li {
+button {
+  width: 100%;
   display: flex;
   gap: 4px;
   align-items: center;

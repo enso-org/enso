@@ -202,6 +202,7 @@ public final class AtomConstructor implements EnsoObject {
    *
    * @return the name to display of the Atom constructor
    */
+  @TruffleBoundary
   public String getDisplayName() {
     return name.equals("Value") || name.equals("Error") ? type.getName() + "." + name : name;
   }
@@ -357,6 +358,16 @@ public final class AtomConstructor implements EnsoObject {
 
   @ExportMessage
   Type getType(@CachedLibrary("this") TypesLibrary thisLib, @Cached("1") int ignore) {
+    return EnsoContext.get(thisLib).getBuiltins().function();
+  }
+
+  @ExportMessage
+  boolean hasMetaObject() {
+    return true;
+  }
+
+  @ExportMessage
+  Type getMetaObject(@CachedLibrary("this") InteropLibrary thisLib, @Cached("1") int ignore) {
     return EnsoContext.get(thisLib).getBuiltins().function();
   }
 }

@@ -7,7 +7,7 @@ import * as Y from 'yjs'
 import GraphNode from '@/components/GraphEditor/GraphNode.vue'
 import { provideGraphSelection } from '@/providers/graphSelection'
 import type { Node } from '@/stores/graph'
-import { AstExtended } from '@/util/ast'
+import { RawAstExtended } from '@/util/ast'
 import { useNavigator } from '@/util/navigator'
 import { Rect } from '@/util/rect'
 import { Vec2 } from '@/util/vec2'
@@ -38,8 +38,8 @@ function updateContent(updates: [range: ContentRange, content: string][]) {
 }
 const idMap = new IdMap(yIdMap, text)
 
-const rootSpan = computed(() => AstExtended.parse(nodeContent.value, idMap))
-const pattern = computed(() => AstExtended.parse(nodeBinding.value, idMap))
+const rootSpan = computed(() => RawAstExtended.parse(nodeContent.value, idMap))
+const pattern = computed(() => RawAstExtended.parse(nodeBinding.value, idMap))
 
 const node = computed((): Node => {
   return {

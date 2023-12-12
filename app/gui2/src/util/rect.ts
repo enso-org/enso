@@ -47,6 +47,14 @@ export class Rect {
     return this.pos.x + this.size.x
   }
 
+  get width(): number {
+    return this.size.x
+  }
+
+  get height(): number {
+    return this.size.y
+  }
+
   equals(other: Rect): boolean {
     return this.pos.equals(other.pos) && this.size.equals(other.size)
   }

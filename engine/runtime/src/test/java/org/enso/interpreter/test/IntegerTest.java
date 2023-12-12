@@ -10,6 +10,7 @@ import org.enso.interpreter.node.expression.builtin.number.integer.AddNode;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.graalvm.polyglot.Context;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.experimental.theories.Theories;
@@ -33,6 +34,11 @@ public class IntegerTest extends TestBase {
           addNode = AddNode.build();
           return null;
         });
+  }
+
+  @AfterClass
+  public static void teardown() {
+    ctx.close();
   }
 
   private static final EnsoBigInteger bigInt =

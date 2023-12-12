@@ -18,7 +18,7 @@ export const widgetDefinition = defineWidget([ArgumentAst, ArgumentPlaceholder],
 
 <template>
   <span class="WidgetTopLevelArgument">
-    <NodeWidget :input="props.input" nest />
+    <NodeWidget :input="props.input" :dynamicConfig="props.config" nest />
   </span>
 </template>
 
@@ -38,7 +38,7 @@ export const widgetDefinition = defineWidget([ArgumentAst, ArgumentPlaceholder],
     border-left: 1px solid rgb(0 0 0 / 0.12);
   }
 }
-.name {
+.value {
   color: rgb(255 255 255 / 0.5);
   margin-right: 4px;
 }
