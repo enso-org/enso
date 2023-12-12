@@ -100,11 +100,15 @@ type Duplicate_Output_Column_Names
 ## No columns in the output result.
 type No_Output_Columns
     ## PRIVATE
+    Error (cause : Any | Nothing = Nothing)
+
+    ## PRIVATE
 
        Pretty prints the no output columns error.
     to_display_text : Text
     to_display_text self =
-        "The result contains no columns."
+        if self.cause.is_nothing then "The result would contain no columns." else
+            "No columns in the result, because of another problem: "+self.cause.to_display_text
 
 ## Indicates that one column has been matched by multiple selectors, resulting
    in ambiguous new names.
