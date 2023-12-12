@@ -15,6 +15,8 @@ use ide_ci::cache::Cache;
 
 pub const PACKAGE_URL: &str = "https://github.com/dejavu-fonts/dejavu-fonts/releases/download/version_2_37/dejavu-fonts-ttf-2.37.zip";
 
+const FONT_FAMILY: &str = "DejaVu Sans Mono";
+
 const PACKAGE_FONTS_PREFIX: &str = "DejaVu";
 
 const PACKAGE_SANS_MONO_PREFIX: &str = "SansMono";
@@ -31,9 +33,8 @@ const DEJAVU_SANS_MONO_FONT_FAMILY_FONTS: &[(&str, font::Weight)] =
 pub async fn download_dejavu_sans_mono_font_internal(
     cache: &Cache,
     octocrab: &Octocrab,
-    css_basepath: Option<&str>,
     output_path: impl AsRef<Path>,
-    css_output_path: Option<impl AsRef<Path>>,
+    css_output_info: Option<(&str, impl AsRef<Path>)>,
 ) -> Result {
     let output_path = output_path.as_ref();
     let html_fonts: Vec<_> = [
@@ -49,29 +50,15 @@ pub async fn download_dejavu_sans_mono_font_internal(
         extract_fonts(&html_font_definitions, package, output_path).await
     };
     let make_css_file = async {
-        if let (Some(css_basepath), Some(css_output_path)) = (css_basepath, css_output_path) {
-            let mut css = String::new();
-            let family = "DejaVu Sans Mono";
-            for header in html_fonts {
-                use std::fmt::Write;
-                let def = html_font_definitions.get(header);
-                let def = def.ok_or_else(|| {
-                    anyhow!(
-                        "Required font not found in DejaVu Font package. \
-                  Expected a font matching: {header:?}."
-                    )
-                })?;
-                let file = def.file;
-                let weight = def.header.weight.to_number();
-                writeln!(&mut css, "@font-face {{")?;
-                writeln!(&mut css, "  font-family: '{family}';")?;
-                writeln!(&mut css, "  src: url('{css_basepath}/{file}');")?;
-                writeln!(&mut css, "  font-weight: {weight};")?;
-                writeln!(&mut css, "  font-style: normal;")?;
-                writeln!(&mut css, "}}")?;
-                writeln!(&mut css)?;
-            }
-            ide_ci::fs::tokio::write(css_output_path, css).await?;
+        if let Some((css_basepath, css_output_path)) = css_output_info {
+            let contents = crate::ide::web::fonts::generate_css_file(
+                css_basepath,
+                FONT_FAMILY,
+                &html_font_definitions,
+                html_fonts.iter(),
+            )
+            .await?;
+            ide_ci::fs::tokio::write(css_output_path, contents).await?;
             Ok(())
         } else {
             Ok(())
@@ -86,7 +73,8 @@ pub async fn download_dejavu_sans_mono_font(
     octocrab: &Octocrab,
     output_path: impl AsRef<Path>,
 ) -> Result {
-    download_dejavu_sans_mono_font_internal(cache, octocrab, None, output_path, None::<&str>).await
+    download_dejavu_sans_mono_font_internal(cache, octocrab, output_path, None::<(&str, &str)>)
+        .await
 }
 
 pub async fn download_dejavu_sans_mono_font_with_css(
@@ -99,9 +87,8 @@ pub async fn download_dejavu_sans_mono_font_with_css(
     download_dejavu_sans_mono_font_internal(
         cache,
         octocrab,
-        Some(css_basepath),
         output_path,
-        Some(css_output_path),
+        Some((css_basepath, css_output_path)),
     )
     .await
 }

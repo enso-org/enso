@@ -3,8 +3,16 @@ use crate::prelude::*;
 use crate::ide::web::google_font;
 
 use enso_enso_font::ttf;
+use enso_font::NonVariableDefinition;
 use enso_font::NonVariableFaceHeader;
 use ide_ci::cache::Cache;
+
+
+// =================
+// === Constants ===
+// =================
+
+const FONT_FAMILY: &str = "Enso";
 
 
 
@@ -45,7 +53,6 @@ pub async fn install_enso_font_for_html(
     };
     let make_css_file = async {
         let mut css = String::new();
-        let family = "Enso";
         let url = ".";
         for (header, variant) in html_fonts {
             use std::fmt::Write;
@@ -58,7 +65,7 @@ pub async fn install_enso_font_for_html(
             })?;
             let file = &def.file;
             writeln!(&mut css, "@font-face {{")?;
-            writeln!(&mut css, "  font-family: '{family}{variant}';")?;
+            writeln!(&mut css, "  font-family: '{FONT_FAMILY}{variant}';")?;
             writeln!(&mut css, "  src: url('{url}/{file}');")?;
             writeln!(&mut css, "  font-weight: normal;")?;
             writeln!(&mut css, "  font-style: normal;")?;
@@ -81,7 +88,7 @@ pub async fn install_enso_font_for_html_2(
 ) -> Result {
     let output_path = output_path.as_ref();
     ide_ci::fs::tokio::create_dir_if_missing(output_path).await?;
-    let html_fonts: Vec<_> = [
+    let html_fonts = vec![
         NonVariableFaceHeader { weight: ttf::Weight::Thin, ..default() },
         NonVariableFaceHeader { weight: ttf::Weight::ExtraLight, ..default() },
         NonVariableFaceHeader { weight: ttf::Weight::Light, ..default() },
@@ -91,9 +98,7 @@ pub async fn install_enso_font_for_html_2(
         NonVariableFaceHeader { weight: ttf::Weight::Bold, ..default() },
         NonVariableFaceHeader { weight: ttf::Weight::ExtraBold, ..default() },
         NonVariableFaceHeader { weight: ttf::Weight::Black, ..default() },
-    ]
-    .into_iter()
-    .collect();
+    ];
     let html_font_definitions = enso_enso_font::enso_font()
         .variations()
         .filter(|v| html_fonts.contains(&v.header))
@@ -103,32 +108,43 @@ pub async fn install_enso_font_for_html_2(
         enso_enso_font::extract_fonts(&html_font_definitions, package, output_path).await
     };
     let make_css_file = async {
-        let mut css = String::new();
-        let family = "Enso";
-        for header in html_fonts {
-            use std::fmt::Write;
-            let def = html_font_definitions.get(header);
-            let def = def.ok_or_else(|| {
-                anyhow!(
-                    "Required font not found in Enso Font package. \
-                    Expected a font matching: {header:?}."
-                )
-            })?;
-            let file = def.file;
-            let weight = def.header.weight.to_number();
-            writeln!(&mut css, "@font-face {{")?;
-            writeln!(&mut css, "  font-family: '{family}';")?;
-            writeln!(&mut css, "  src: url('{css_basepath}/{file}');")?;
-            writeln!(&mut css, "  font-weight: {weight};")?;
-            writeln!(&mut css, "  font-style: normal;")?;
-            writeln!(&mut css, "}}")?;
-            writeln!(&mut css)?;
-        }
-        ide_ci::fs::tokio::write(css_output_path, css).await?;
+        let contents =
+            generate_css_file(css_basepath, FONT_FAMILY, &html_font_definitions, html_fonts.iter())
+                .await?;
+        ide_ci::fs::tokio::write(css_output_path, contents).await?;
         Ok(())
     };
     try_join!(get_font_files, make_css_file)?;
     Ok(())
+}
+
+pub async fn generate_css_file(
+    basepath: &str,
+    family: &str,
+    definitions: &NonVariableDefinition,
+    fonts: impl Iterator<Item = &NonVariableFaceHeader>,
+) -> Result<String> {
+    let mut css = String::new();
+    for header in fonts {
+        use std::fmt::Write;
+        let def = definitions.get(*header);
+        let def = def.ok_or_else(|| {
+            anyhow!(
+                "Required font not found in Enso Font package. \
+                    Expected a font matching: {header:?}."
+            )
+        })?;
+        let file = def.file;
+        let weight = def.header.weight.to_number();
+        writeln!(&mut css, "@font-face {{")?;
+        writeln!(&mut css, "  font-family: '{family}';")?;
+        writeln!(&mut css, "  src: url('{basepath}/{file}');")?;
+        writeln!(&mut css, "  font-weight: {weight};")?;
+        writeln!(&mut css, "  font-style: normal;")?;
+        writeln!(&mut css, "}}")?;
+        writeln!(&mut css)?;
+    }
+    Ok(css)
 }
 
 
