@@ -88,7 +88,7 @@ pub fn filter_font(
 
 
 // =====================
-// === Install Fonts ===
+// === Make CSS File ===
 // =====================
 
 pub async fn write_css_file_if_required(
@@ -105,12 +105,6 @@ pub async fn write_css_file_if_required(
         Ok(())
     }
 }
-
-
-
-// =====================
-// === Make CSS File ===
-// =====================
 
 
 
