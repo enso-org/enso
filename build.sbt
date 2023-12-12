@@ -1613,7 +1613,6 @@ lazy val runtime = (project in file("engine/runtime"))
       Seq(runtimeMod)
     },
     Test / patchModules := {
-
       /** All these modules will be in --patch-module cmdline option to java, which means that
         * for the JVM, it will appear that all the classes contained in these sbt projects are contained
         * in the `org.enso.runtime` module. In this way, we do not have to assembly the `runtime.jar`
@@ -1646,10 +1645,13 @@ lazy val runtime = (project in file("engine/runtime"))
       )
     },
     Test / addReads := {
-      // We patched the test-classes into the runtime module. These classes access some stuff from
-      // uunamed module. Thus, let's add ALL-UNNAMED.
+      val runtimeModName = (`runtime-fat-jar` / javaModuleName).value
+      val testInstrumentsModName = (`runtime-test-instruments` / javaModuleName).value
       Map(
-        (`runtime-fat-jar` / javaModuleName).value -> Seq("ALL-UNNAMED")
+        // We patched the test-classes into the runtime module. These classes access some stuff from
+        // unnamed module. Thus, let's add ALL-UNNAMED.
+        runtimeModName -> Seq("ALL-UNNAMED", testInstrumentsModName),
+        testInstrumentsModName -> Seq(runtimeModName)
       )
     },
     Test / javaOptions ++= {
