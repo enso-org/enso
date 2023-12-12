@@ -1613,6 +1613,7 @@ lazy val runtime = (project in file("engine/runtime"))
       Seq(runtimeMod)
     },
     Test / patchModules := {
+
       /** All these modules will be in --patch-module cmdline option to java, which means that
         * for the JVM, it will appear that all the classes contained in these sbt projects are contained
         * in the `org.enso.runtime` module. In this way, we do not have to assembly the `runtime.jar`
@@ -1646,11 +1647,12 @@ lazy val runtime = (project in file("engine/runtime"))
     },
     Test / addReads := {
       val runtimeModName = (`runtime-fat-jar` / javaModuleName).value
-      val testInstrumentsModName = (`runtime-test-instruments` / javaModuleName).value
+      val testInstrumentsModName =
+        (`runtime-test-instruments` / javaModuleName).value
       Map(
         // We patched the test-classes into the runtime module. These classes access some stuff from
         // unnamed module. Thus, let's add ALL-UNNAMED.
-        runtimeModName -> Seq("ALL-UNNAMED", testInstrumentsModName),
+        runtimeModName         -> Seq("ALL-UNNAMED", testInstrumentsModName),
         testInstrumentsModName -> Seq(runtimeModName)
       )
     },
@@ -1970,14 +1972,14 @@ lazy val `runtime-with-instruments` =
         file("")
       }
     )
-    /**
-    * JPMS related settings
-    */
+    /** JPMS related settings
+      */
     .settings(
       Test / excludeFilter := "module-info.java",
       Test / javaModuleName := "org.enso.runtime.with.instruments",
       Test / modulePath := {
-        val runtimeMod = (`runtime-fat-jar` / Compile / productDirectories).value.head
+        val runtimeMod =
+          (`runtime-fat-jar` / Compile / productDirectories).value.head
         val updateReport = (Test / update).value
         val requiredModIds =
           GraalVM.modules ++ GraalVM.langsPkgs ++ logbackPkg ++ Seq(
@@ -1999,46 +2001,49 @@ lazy val `runtime-with-instruments` =
           runtimeModName
         )
       },
-      Test / compileModuleInfo := Def.taskDyn {
-        JPMSUtils.compileModuleInfoInScope(
-          extraModulePath = (Test / modulePath).value,
-          scope = ScopeFilter(configurations = inConfigurations(Test))
-        )
-      }
+      Test / compileModuleInfo := Def
+        .taskDyn {
+          JPMSUtils.compileModuleInfoInScope(
+            extraModulePath = (Test / modulePath).value,
+            scope           = ScopeFilter(configurations = inConfigurations(Test))
+          )
+        }
         .dependsOn(Test / compile)
         .value,
       (Test / patchModules) := {
         val modulesToPatchIntoRuntime: Seq[File] =
-        (LocalProject(
-          "runtime-instrument-common"
-        ) / Compile / productDirectories).value ++
-        (LocalProject(
-          "runtime-instrument-id-execution"
-        ) / Compile / productDirectories).value ++
-        (LocalProject(
-          "runtime-instrument-repl-debugger"
-        ) / Compile / productDirectories).value ++
-        (LocalProject(
-          "runtime-instrument-runtime-server"
-        ) / Compile / productDirectories).value ++
-        (LocalProject(
-          "runtime-language-epb"
-        ) / Compile / productDirectories).value ++
-         (LocalProject("runtime-compiler") / Compile / productDirectories).value
+          (LocalProject(
+            "runtime-instrument-common"
+          ) / Compile / productDirectories).value ++
+          (LocalProject(
+            "runtime-instrument-id-execution"
+          ) / Compile / productDirectories).value ++
+          (LocalProject(
+            "runtime-instrument-repl-debugger"
+          ) / Compile / productDirectories).value ++
+          (LocalProject(
+            "runtime-instrument-runtime-server"
+          ) / Compile / productDirectories).value ++
+          (LocalProject(
+            "runtime-language-epb"
+          ) / Compile / productDirectories).value ++
+          (LocalProject(
+            "runtime-compiler"
+          ) / Compile / productDirectories).value
 
         val testClassesDir = (Test / productDirectories).value.head
-        val runtimeModName =  (`runtime-fat-jar` / javaModuleName).value
+        val runtimeModName = (`runtime-fat-jar` / javaModuleName).value
         Map(
           runtimeModName -> modulesToPatchIntoRuntime
         )
       },
       (Test / addReads) := {
-         val runtimeModName = (`runtime-fat-jar` / javaModuleName).value
-          Map(
-            runtimeModName -> Seq(
-              "ALL-UNNAMED"
-            )
+        val runtimeModName = (`runtime-fat-jar` / javaModuleName).value
+        Map(
+          runtimeModName -> Seq(
+            "ALL-UNNAMED"
           )
+        )
       },
       (Test / javaOptions) ++= {
         // We can't use org.enso.logger.TestLogProvider (or anything from our own logging framework here) because it is not
