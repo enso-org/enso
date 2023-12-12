@@ -22,11 +22,32 @@ pub async fn install_html_fonts(
     Ok(())
 }
 
-pub async fn generate_css_file(
+pub fn generate_css_file_from_paths<AsRefPath>(
+    basepath: &str,
+    family: &str,
+    paths: impl Iterator<Item = AsRefPath>,
+) -> Result<String>
+where
+    AsRefPath: AsRef<Path>,
+{
+    let mut css = String::new();
+    for path in paths {
+        use std::fmt::Write;
+        let path = path.as_str();
+        writeln!(&mut css, "@font-face {{")?;
+        writeln!(&mut css, "  font-family: '{family}';")?;
+        writeln!(&mut css, "  src: url('{basepath}/{path}');")?;
+        writeln!(&mut css, "}}")?;
+        writeln!(&mut css)?;
+    }
+    Ok(css)
+}
+
+pub fn generate_css_file<'a>(
     basepath: &str,
     family: &str,
     definitions: &NonVariableDefinition,
-    fonts: impl Iterator<Item = &NonVariableFaceHeader>,
+    fonts: impl Iterator<Item = &'a NonVariableFaceHeader>,
 ) -> Result<String> {
     let mut css = String::new();
     for header in fonts {
@@ -70,14 +91,14 @@ pub fn filter_font(
 // === Install Fonts ===
 // =====================
 
-pub async fn make_css_file(
+pub async fn write_css_file_if_required(
     font_family: &str,
     font: &NonVariableDefinition,
     faces: &[NonVariableFaceHeader],
     css_output_info: Option<(&str, impl AsRef<Path>)>,
 ) -> Result {
     if let Some((css_basepath, css_output_path)) = css_output_info {
-        let contents = generate_css_file(css_basepath, font_family, &font, faces.iter()).await?;
+        let contents = generate_css_file(css_basepath, font_family, &font, faces.iter())?;
         ide_ci::fs::tokio::write(css_output_path, contents).await?;
         Ok(())
     } else {

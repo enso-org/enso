@@ -163,16 +163,11 @@ pub async fn install_with_css(
     css_output_path: impl AsRef<Path>,
 ) -> Result<Vec<PathBuf>> {
     let paths = install(cache, octocrab, family, output_path).await?;
-    let mut css = String::new();
-    use std::fmt::Write;
-    for path in &paths {
-        let file = path.try_file_name()?.as_str();
-        writeln!(&mut css, "@font-face {{")?;
-        writeln!(&mut css, "  font-family: '{css_family}';")?;
-        writeln!(&mut css, "  src: url('{css_basepath}/{file}');")?;
-        writeln!(&mut css, "}}")?;
-        writeln!(&mut css)?;
-    }
+    let css = crate::ide::web::fonts::generate_css_file_from_paths(
+        css_basepath,
+        css_family,
+        paths.iter(),
+    )?;
     ide_ci::fs::tokio::write(css_output_path, css).await?;
     Ok(paths)
 }

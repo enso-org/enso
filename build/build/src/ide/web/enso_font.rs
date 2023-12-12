@@ -79,8 +79,12 @@ pub async fn install_with_css(
     let package = download(cache, octocrab).await?;
     let get_font_files = enso_enso_font::extract_fonts(&font, package, output_path);
     let css_output_info = Some((css_basepath, css_output_path));
-    let make_css_file =
-        crate::ide::web::fonts::make_css_file(FONT_FAMILY, &font, &faces, css_output_info);
+    let make_css_file = crate::ide::web::fonts::write_css_file_if_required(
+        FONT_FAMILY,
+        &font,
+        &faces,
+        css_output_info,
+    );
     try_join!(get_font_files, make_css_file)?;
     Ok(())
 }

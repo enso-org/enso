@@ -42,8 +42,12 @@ pub async fn install_sans_mono_internal(
     let font = crate::ide::web::fonts::filter_font(&font, &faces);
     let package = download(cache, octocrab).await?;
     let get_font_files = extract_fonts(&font, package, output_path);
-    let make_css_file =
-        crate::ide::web::fonts::make_css_file(FONT_FAMILY, &font, &faces, css_output_info);
+    let make_css_file = crate::ide::web::fonts::write_css_file_if_required(
+        FONT_FAMILY,
+        &font,
+        &faces,
+        css_output_info,
+    );
     try_join!(get_font_files, make_css_file)?;
     Ok(())
 }
