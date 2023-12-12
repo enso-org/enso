@@ -12,6 +12,8 @@ export interface BackoffOptions<E> {
    * not provided, the backoff will always continue until the maximum number of retries is reached.
    */
   onBeforeRetry?: (error: E, retryCount: number, delay: number) => boolean | void
+  /** Called right before returning. */
+  onSuccess?: (retryCount: number) => void
 }
 
 const defaultBackoffOptions: Required<BackoffOptions<unknown>> = {
@@ -20,6 +22,7 @@ const defaultBackoffOptions: Required<BackoffOptions<unknown>> = {
   retryDelayMultiplier: 2,
   retryDelayMax: 10000,
   onBeforeRetry: () => {},
+  onSuccess: () => {},
 }
 
 /** Retry a failing promise function with exponential backoff. */
