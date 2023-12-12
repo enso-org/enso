@@ -15,6 +15,7 @@ if (process.env.CI === '1') process.exit(0)
 const WARNING_MESSAGE =
   '⚠️⚠️⚠️ Please use the buildscript (`./run`) to download fonts instead. ⚠️⚠️⚠️'
 let warningMessageAlreadyShown = false
+let exitCode = 0
 
 const ENSO_FONT_URL = 'https://github.com/enso-org/font/releases/download/1.0/enso-font-1.0.tar.gz'
 const MPLUS1_FONT_URL =
@@ -50,6 +51,21 @@ function get(options, callback) {
   })
 }
 
+/** @param {unknown} error */
+function errorCode(error) {
+  return typeof error === 'object' &&
+    error != null &&
+    'code' in error &&
+    typeof error.code === 'string'
+    ? error.code
+    : undefined
+}
+
+/** @param {unknown} error */
+function isFileNotFoundError(error) {
+  return errorCode(error) === 'ENOENT'
+}
+
 try {
   for (const weight of [
     'Thin',
@@ -65,71 +81,90 @@ try {
     await fs.access(`./public/font-enso/Enso-${weight}.ttf`)
   }
   console.info('Enso font already downloaded, skipping...')
-} catch {
-  if (!warningMessageAlreadyShown) console.warn(WARNING_MESSAGE)
-  warningMessageAlreadyShown = true
-  console.info('Downloading Enso font...')
-  await fs.rm('./public/font-enso/', { recursive: true, force: true })
-  await fs.mkdir('./public/font-enso/', { recursive: true })
-  await new Promise((resolve, reject) => {
-    get(ENSO_FONT_URL, (response) => {
-      response.pipe(
-        tar.extract({
-          cwd: './public/font-enso/',
-          strip: 1,
-          filter(path) {
-            // Reject files starting with `.`.
-            return !/[\\/][.]/.test(path)
-          },
-        }),
-      )
-      response.on('end', resolve)
-      response.on('error', reject)
+} catch (error) {
+  if (!isFileNotFoundError(error)) {
+    console.error('Unexpected error occurred when checking for Enso font:')
+    console.error(error)
+    exitCode = 1
+  } else {
+    if (!warningMessageAlreadyShown) console.warn(WARNING_MESSAGE)
+    warningMessageAlreadyShown = true
+    console.info('Downloading Enso font...')
+    await fs.rm('./public/font-enso/', { recursive: true, force: true })
+    await fs.mkdir('./public/font-enso/', { recursive: true })
+    await new Promise((resolve, reject) => {
+      get(ENSO_FONT_URL, (response) => {
+        response.pipe(
+          tar.extract({
+            cwd: './public/font-enso/',
+            strip: 1,
+            filter(path) {
+              // Reject files starting with `.`.
+              return !/[\\/][.]/.test(path)
+            },
+          }),
+        )
+        response.on('end', resolve)
+        response.on('error', reject)
+      })
     })
-  })
+  }
 }
 try {
   await fs.access(`./public/font-mplus1/MPLUS1[wght].ttf`)
   console.info('M PLUS 1 font already downloaded, skipping...')
-} catch {
-  if (!warningMessageAlreadyShown) console.warn(WARNING_MESSAGE)
-  warningMessageAlreadyShown = true
-  console.info('Downloading M PLUS 1 font...')
-  await fs.rm('./public/font-mplus1/', { recursive: true, force: true })
-  await fs.mkdir('./public/font-mplus1/', { recursive: true })
-  await new Promise((resolve, reject) => {
-    get(MPLUS1_FONT_URL, (response) => {
-      response.pipe(fsSync.createWriteStream('./public/font-mplus1/MPLUS1[wght].ttf'))
-      response.on('end', resolve)
-      response.on('error', reject)
+} catch (error) {
+  if (!isFileNotFoundError(error)) {
+    console.error('Unexpected error occurred when checking for M PLUS 1 font:')
+    console.error(error)
+    exitCode = 1
+  } else {
+    if (!warningMessageAlreadyShown) console.warn(WARNING_MESSAGE)
+    warningMessageAlreadyShown = true
+    console.info('Downloading M PLUS 1 font...')
+    await fs.rm('./public/font-mplus1/', { recursive: true, force: true })
+    await fs.mkdir('./public/font-mplus1/', { recursive: true })
+    await new Promise((resolve, reject) => {
+      get(MPLUS1_FONT_URL, (response) => {
+        response.pipe(fsSync.createWriteStream('./public/font-mplus1/MPLUS1[wght].ttf'))
+        response.on('end', resolve)
+        response.on('error', reject)
+      })
     })
-  })
+  }
 }
 try {
   for (const variant of ['', '-Bold']) {
     await fs.access(`./public/font-dejavu/DejaVuSansMono${variant}.ttf`)
   }
   console.info('DejaVu Sans Mono font already downloaded, skipping...')
-} catch {
-  if (!warningMessageAlreadyShown) console.warn(WARNING_MESSAGE)
-  warningMessageAlreadyShown = true
-  console.info('Downloading DejaVu Sans Mono font...')
-  await fs.rm('./public/font-dejavu/', { recursive: true, force: true })
-  await fs.mkdir('./public/font-dejavu/', { recursive: true })
-  await new Promise((resolve, reject) => {
-    get(DEJAVU_SANS_MONO_FONT_URL, (response) => {
-      response.pipe(bz2()).pipe(
-        tar.extract({
-          cwd: './public/font-dejavu/',
-          strip: 2,
-          filter(path) {
-            return /[\\/]DejaVuSansMono/.test(path) && !/Oblique[.]ttf$/.test(path)
-          },
-        }),
-      )
-      response.on('end', resolve)
-      response.on('error', reject)
+} catch (error) {
+  if (!isFileNotFoundError(error)) {
+    console.error('Unexpected error occurred when checking for DejaVu Sans Mono font:')
+    console.error(error)
+    exitCode = 1
+  } else {
+    if (!warningMessageAlreadyShown) console.warn(WARNING_MESSAGE)
+    warningMessageAlreadyShown = true
+    console.info('Downloading DejaVu Sans Mono font...')
+    await fs.rm('./public/font-dejavu/', { recursive: true, force: true })
+    await fs.mkdir('./public/font-dejavu/', { recursive: true })
+    await new Promise((resolve, reject) => {
+      get(DEJAVU_SANS_MONO_FONT_URL, (response) => {
+        response.pipe(bz2()).pipe(
+          tar.extract({
+            cwd: './public/font-dejavu/',
+            strip: 2,
+            filter(path) {
+              return /[\\/]DejaVuSansMono/.test(path) && !/Oblique[.]ttf$/.test(path)
+            },
+          }),
+        )
+        response.on('end', resolve)
+        response.on('error', reject)
+      })
     })
-  })
+  }
 }
 console.info('Done.')
+if (exitCode !== 0) process.exit(exitCode)
