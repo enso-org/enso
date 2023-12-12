@@ -65,7 +65,7 @@ public class ForeignEvalNode extends RootNode {
         }
         var toRet = foreign.execute(frame.getArguments());
         if (prev != null && toRet instanceof TruffleObject) {
-          toRet = new EpbProxyValue(toRet, ctx.getInnerContext());
+          toRet = EpbProxyValue.wrap(toRet, ctx.getInnerContext());
         }
         return toRet;
       } catch (InteropException ex) {
@@ -175,5 +175,4 @@ public class ForeignEvalNode extends RootNode {
     CallTarget ct = context.getEnv().parsePublic(source);
     foreign = insert(RForeignNodeGen.create(ct.call()));
   }
-
 }
