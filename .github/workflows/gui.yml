@@ -702,12 +702,6 @@ jobs:
       - run: ./run gui2 test
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/upload-artifact@v3
-        if: always()
-        with:
-          name: playwright-report
-          path: playwright-report/
-          retention-days: 30
       - if: failure() && runner.os == 'Windows'
         name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse
