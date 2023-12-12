@@ -2,11 +2,11 @@ import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
 import { unsafeKeys } from '@/util/record'
 
-type Matches<T> = Record<keyof T, Pattern[] | undefined>
+type Matches<T> = Record<keyof T, Ast.Ast[] | undefined>
 
 interface MatchResult<T> {
   innerExpr: Ast.Ast
-  matches: Record<keyof T, Ast.AstId[] | undefined>
+  matches: Record<keyof T, Ast.Ast[] | undefined>
 }
 
 export class Prefixes<T extends Record<keyof T, Pattern>> {
@@ -27,9 +27,12 @@ export class Prefixes<T extends Record<keyof T, Pattern>> {
   extractMatches(expression: Ast.Ast): MatchResult<T> {
     const matches = Object.fromEntries(
       Object.entries<Pattern>(this.prefixes).map(([name, pattern]) => {
-        const matches = pattern.match(expression)
+        const matchIds = pattern.match(expression)
+        const matches = matchIds
+          ? Array.from(matchIds, (id) => expression.module.get(id)!)
+          : undefined
         const lastMatch = matches != null ? matches[matches.length - 1] : undefined
-        if (lastMatch) expression = expression.module.get(lastMatch)!
+        if (lastMatch) expression = lastMatch
         return [name, matches]
       }),
     ) as Matches<T>
@@ -37,17 +40,20 @@ export class Prefixes<T extends Record<keyof T, Pattern>> {
   }
 
   modify(
+    edit: Ast.MutableModule,
     expression: Ast.Ast,
-    replacements: Partial<Record<keyof T, (Ast.Ast | string)[] | undefined>>,
+    replacements: Partial<Record<keyof T, Ast.Ast[] | undefined>>,
   ) {
     const matches = this.extractMatches(expression)
     let result = matches.innerExpr
     for (const key of unsafeKeys(this.prefixes).reverse()) {
       if (key in replacements && !replacements[key]) continue
-      const replacement: (Ast.Ast | string)[] | undefined =
-        replacements[key] ?? matches.matches[key]
+      const replacement: Ast.Ast[] | undefined = replacements[key] ?? matches.matches[key]
       if (!replacement) continue
-      result = replaceMatches(this.prefixes[key], [...replacement, result])
+      const pattern = this.prefixes[key]
+      const parts = [...replacement, result]
+      const partsIds = Array.from(parts, (ast) => ast.exprId)
+      result = pattern.instantiate(edit, partsIds)
     }
     return result
   }

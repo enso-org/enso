@@ -23,7 +23,11 @@ export class MutableModule implements Module {
   nodes: Map<AstId, Ast | null>
   astExtended: Map<AstId, RawAstExtended> | null
 
-  constructor(base: Module | null, nodes: Map<AstId, Ast | null>, astExtended: Map<AstId, RawAstExtended> | null) {
+  constructor(
+    base: Module | null,
+    nodes: Map<AstId, Ast | null>,
+    astExtended: Map<AstId, RawAstExtended> | null,
+  ) {
     this.base = base
     this.nodes = nodes
     this.astExtended = astExtended
@@ -137,10 +141,8 @@ export class Token {
   }
 
   typeName(): string {
-    if (this.tokenType_)
-      return RawAst.Token.typeNames[this.tokenType_]!
-    else
-      return 'Raw'
+    if (this.tokenType_) return RawAst.Token.typeNames[this.tokenType_]!
+    else return 'Raw'
   }
 }
 
@@ -191,8 +193,8 @@ export abstract class Ast {
   /** Returns child subtrees, including information about the whitespace between them. */
   abstract concreteChildren(): IterableIterator<NodeChild>
 
-  code(): string {
-    return print(this).code
+  code(module?: Module): string {
+    return print(this, module).code
   }
 
   repr(): string {
@@ -204,11 +206,11 @@ export abstract class Ast {
     return RawAst.Tree.typeNames[this.treeType]
   }
 
-  static parse(source: PrintedSource | string): Ast {
+  static parse(source: PrintedSource | string, inModule?: MutableModule): Ast {
     const code = typeof source === 'object' ? source.code : source
     const ids = typeof source === 'object' ? source.info : undefined
     const tree = parseEnso(code)
-    const module = MutableModule.Observable()
+    const module = inModule ?? MutableModule.Observable()
     const newRoot = abstract(module, tree, code, ids).node
     return module.get(newRoot)!
   }
@@ -241,14 +243,16 @@ export abstract class Ast {
     module.set(this._id, this)
   }
 
-  _print(info: InfoMap, offset: number, indent: string): string {
+  _print(
+    info: InfoMap,
+    offset: number,
+    indent: string,
+    moduleOverride?: Module | undefined,
+  ): string {
+    const module_ = moduleOverride ?? this.module
     let code = ''
     for (const child of this.concreteChildren()) {
-      if (
-        child.node != null &&
-        !(child.node instanceof Token) &&
-        this.module.get(child.node) === null
-      )
+      if (child.node != null && !(child.node instanceof Token) && module_.get(child.node) === null)
         continue
       if (child.whitespace != null) {
         code += child.whitespace
@@ -260,7 +264,9 @@ export abstract class Ast {
         if (child.node instanceof Token) {
           code += child.node.code()
         } else {
-          code += this.module.get(child.node)!._print(info, offset + code.length, indent)
+          code += module_
+            .get(child.node)!
+            ._print(info, offset + code.length, indent, moduleOverride)
         }
       }
     }
@@ -350,17 +356,7 @@ function positionalApp(
   func: NodeChild<AstId>,
   arg: NodeChild<AstId>,
 ): App {
-  return new App(
-    module,
-    id,
-    func,
-    null,
-    null,
-    null,
-    arg,
-    null,
-    RawAst.Tree.Type.App,
-  )
+  return new App(module, id, func, null, null, null, arg, null, RawAst.Tree.Type.App)
 }
 
 function namedApp(
@@ -485,7 +481,12 @@ export class PropertyAccess extends OprApp {
 export class Generic extends Ast {
   _children: NodeChild[]
 
-  constructor(module: MutableModule, id?: AstId, children?: NodeChild[], treeType?: RawAst.Tree.Type) {
+  constructor(
+    module: MutableModule,
+    id?: AstId,
+    children?: NodeChild[],
+    treeType?: RawAst.Tree.Type,
+  ) {
     super(module, id, treeType)
     this._children = children ?? []
   }
@@ -588,7 +589,9 @@ export class TextLiteral extends Ast {
   static new(rawText: string): TextLiteral {
     const module = MutableModule.Transient()
     const text = Token.new(escape(rawText))
-    return new TextLiteral(module, undefined, { node: Token.new("'")}, null, [{node: text}], { node: Token.new("'")})
+    return new TextLiteral(module, undefined, { node: Token.new("'") }, null, [{ node: text }], {
+      node: Token.new("'"),
+    })
   }
 
   *concreteChildren(): IterableIterator<NodeChild> {
@@ -789,16 +792,24 @@ export class BodyBlock extends Ast {
     }
   }
 
-  _print(info: InfoMap, offset: number, indent: string): string {
+  _print(
+    info: InfoMap,
+    offset: number,
+    indent: string,
+    moduleOverride?: Module | undefined,
+  ): string {
+    const module_ = moduleOverride ?? this.module
     let code = ''
     for (const line of this._lines) {
-      if (line.expression?.node != null && this.module.get(line.expression.node) === null) continue
+      if (line.expression?.node != null && module_.get(line.expression.node) === null) continue
       code += line.newline?.whitespace ?? ''
       code += line.newline?.node.code() ?? '\n'
       if (line.expression !== null) {
         code += line.expression.whitespace ?? indent
         if (line.expression.node !== null) {
-          code += this.module.get(line.expression.node)!._print(info, offset, indent + '    ')
+          code += module_
+            .get(line.expression.node)!
+            ._print(info, offset, indent + '    ', moduleOverride)
         }
       }
     }
@@ -1125,12 +1136,12 @@ interface PrintedSource {
 }
 
 /** Return stringification with associated ID map. This is only exported for testing. */
-export function print(ast: Ast): PrintedSource {
+export function print(ast: Ast, module?: Module | undefined): PrintedSource {
   const info: InfoMap = {
     nodes: new Map(),
     tokens: new Map(),
   }
-  const code = ast._print(info, 0, '')
+  const code = ast._print(info, 0, '', module)
   return { info, code }
 }
 

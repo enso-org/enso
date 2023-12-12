@@ -11,8 +11,8 @@ import { injectGraphSelection } from '@/providers/graphSelection'
 import { useGraphStore, type Node } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
 import { useApproach } from '@/util/animation'
+import { Ast } from '@/util/ast'
 import { Prefixes } from '@/util/ast/prefixes'
-import * as astText from '@/util/ast/text'
 import { usePointer, useResizeObserver } from '@/util/events'
 import { displayedIconOf } from '@/util/getIconName'
 import type { Opt } from '@/util/opt'
@@ -179,9 +179,11 @@ const isOutputContextOverridden = computed({
     const module = projectStore.module
     if (!module) return
     const replacements = shouldOverride
-      ? ["'" + astText.escape(projectStore.executionMode) + "'"]
+      ? [Ast.TextLiteral.new(projectStore.executionMode)]
       : undefined
+    const edit = props.node.rootSpan.module.edit()
     const newAst = prefixes.modify(
+      edit,
       props.node.rootSpan,
       projectStore.isOutputContextEnabled
         ? {

@@ -1,11 +1,11 @@
 import { Ast } from '@/util/ast'
-import { extractMatches, isMatch } from '@/util/ast/match'
+import { Pattern } from '@/util/ast/match'
 import { expect, test } from 'vitest'
 
 test.each([
+  { target: 'a.b', pattern: '__', extracted: ['a.b'] },
   { target: 'a.b', pattern: 'a.__', extracted: ['b'] },
   { target: 'a.b', pattern: '__.b', extracted: ['a'] },
-  { target: 'a.b', pattern: '__', extracted: ['a.b'] },
   { target: '1 + 1', pattern: '1  +  1', extracted: [] },
   { target: '1 + 2', pattern: '1 + __', extracted: ['2'] },
   { target: '1 + 2', pattern: '__ + 2', extracted: ['1'] },
@@ -80,13 +80,14 @@ test.each([
   },
 ])('`isMatch` and `extractMatches`', ({ target, pattern, extracted }) => {
   const targetAst = Ast.parseLine(target)
-  const patternAst = Ast.parseLine(pattern)
+  const module = targetAst.module
+  const patternAst = Pattern.parse(pattern)
   expect(
-    isMatch(targetAst, patternAst),
+    patternAst.match(targetAst) !== undefined,
     `'${target}' has CST ${extracted != null ? '' : 'not '}matching '${pattern}'`,
   ).toBe(extracted != null)
   expect(
-    extractMatches(targetAst, patternAst)?.map((match) => match.code()),
+    patternAst.match(targetAst)?.map((match) => module.get(match)?.code()),
     extracted != null
       ? `'${target}' matches '${pattern}' with '__'s corresponding to ${JSON.stringify(extracted)
           .slice(1, -1)

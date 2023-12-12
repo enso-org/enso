@@ -68,5 +68,12 @@ test.each([
 ])('modify', ({ prefixes: lines, modifications, source, target }) => {
   const prefixes = Prefixes.FromLines(lines as any)
   const sourceAst = Ast.parseLine(source)
-  expect(prefixes.modify(sourceAst, modifications).code()).toBe(target)
+  const edit = sourceAst.module.edit()
+  const modificationAsts = Object.fromEntries(
+    Object.entries(modifications).map(([k, v]) => [
+      k,
+      v ? Array.from(v, (mod) => Ast.parse(mod, edit)) : undefined,
+    ]),
+  )
+  expect(prefixes.modify(edit, sourceAst, modificationAsts).code(edit)).toBe(target)
 })
