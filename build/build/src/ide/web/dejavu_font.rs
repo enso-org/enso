@@ -37,33 +37,13 @@ pub async fn install_sans_mono_internal(
     css_output_info: Option<(&str, impl AsRef<Path>)>,
 ) -> Result {
     let output_path = output_path.as_ref();
-    let html_fonts: Vec<_> = [
-        NonVariableFaceHeader { weight: font::Weight::Normal, ..default() },
-        NonVariableFaceHeader { weight: font::Weight::Bold, ..default() },
-    ]
-    .into_iter()
-    .collect();
-    let html_font_definitions =
-        font().variations().filter(|v| html_fonts.contains(&v.header)).collect();
-    let get_font_files = async {
-        let package = download(cache, octocrab).await?;
-        extract_fonts(&html_font_definitions, package, output_path).await
-    };
-    let make_css_file = async {
-        if let Some((css_basepath, css_output_path)) = css_output_info {
-            let contents = crate::ide::web::fonts::generate_css_file(
-                css_basepath,
-                FONT_FAMILY,
-                &html_font_definitions,
-                html_fonts.iter(),
-            )
-            .await?;
-            ide_ci::fs::tokio::write(css_output_path, contents).await?;
-            Ok(())
-        } else {
-            Ok(())
-        }
-    };
+    let font = font();
+    let faces = faces();
+    let font = crate::ide::web::fonts::filter_font(&font, &faces);
+    let package = download(cache, octocrab).await?;
+    let get_font_files = extract_fonts(&font, package, output_path);
+    let make_css_file =
+        crate::ide::web::fonts::make_css_file(FONT_FAMILY, &font, &faces, css_output_info);
     try_join!(get_font_files, make_css_file)?;
     Ok(())
 }
@@ -87,7 +67,7 @@ pub async fn install_sans_mono_with_css(
         .await
 }
 
-/// Returns the DejaVu Sans Mono Font.
+/// DejaVu Sans Mono Font.
 pub fn font() -> NonVariableDefinition {
     SANS_MONO_FONT_FAMILY_FONTS
         .iter()
@@ -101,6 +81,14 @@ pub fn font() -> NonVariableDefinition {
             (header, file)
         })
         .collect()
+}
+
+/// All font faces contained in this font.
+pub fn faces() -> [NonVariableFaceHeader; 2] {
+    [NonVariableFaceHeader { weight: font::Weight::Normal, ..default() }, NonVariableFaceHeader {
+        weight: font::Weight::Bold,
+        ..default()
+    }]
 }
 
 /// Extract the fonts from the given archive file, and write them in the given directory.

@@ -3,6 +3,7 @@
 
 // === Features ===
 #![feature(let_chains)]
+#![feature(default_free_fn)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -81,6 +82,21 @@ pub fn font() -> NonVariableDefinition {
             (header, file)
         })
         .collect()
+}
+
+/// All font faces contained in this font.
+pub fn faces() -> [NonVariableFaceHeader; 9] {
+    [
+        NonVariableFaceHeader { weight: ttf::Weight::Thin, ..default() },
+        NonVariableFaceHeader { weight: ttf::Weight::ExtraLight, ..default() },
+        NonVariableFaceHeader { weight: ttf::Weight::Light, ..default() },
+        NonVariableFaceHeader { weight: ttf::Weight::Normal, ..default() },
+        NonVariableFaceHeader { weight: ttf::Weight::Medium, ..default() },
+        NonVariableFaceHeader { weight: ttf::Weight::SemiBold, ..default() },
+        NonVariableFaceHeader { weight: ttf::Weight::Bold, ..default() },
+        NonVariableFaceHeader { weight: ttf::Weight::ExtraBold, ..default() },
+        NonVariableFaceHeader { weight: ttf::Weight::Black, ..default() },
+    ]
 }
 
 /// Extract the fonts from the given archive file, and write them in the given directory.

@@ -53,6 +53,46 @@ pub async fn generate_css_file(
 
 
 
+// ===================
+// === Filter Font ===
+// ===================
+
+pub fn filter_font(
+    font: &NonVariableDefinition,
+    faces: &[NonVariableFaceHeader],
+) -> NonVariableDefinition {
+    font.variations().filter(|v| faces.contains(&v.header)).collect()
+}
+
+
+
+// =====================
+// === Install Fonts ===
+// =====================
+
+pub async fn make_css_file(
+    font_family: &str,
+    font: &NonVariableDefinition,
+    faces: &[NonVariableFaceHeader],
+    css_output_info: Option<(&str, impl AsRef<Path>)>,
+) -> Result {
+    if let Some((css_basepath, css_output_path)) = css_output_info {
+        let contents = generate_css_file(css_basepath, font_family, &font, faces.iter()).await?;
+        ide_ci::fs::tokio::write(css_output_path, contents).await?;
+        Ok(())
+    } else {
+        Ok(())
+    }
+}
+
+
+
+// =====================
+// === Make CSS File ===
+// =====================
+
+
+
 // =====================
 // === Extract Fonts ===
 // =====================

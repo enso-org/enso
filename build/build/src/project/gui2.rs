@@ -143,7 +143,7 @@ impl IsTarget for Gui2 {
                 &repo_root.app.gui_2.src.assets.font_dejavu_css,
             )
             .await?;
-            crate::ide::web::enso_font::install(
+            crate::ide::web::enso_font::install_with_css(
                 &context.cache,
                 &context.octocrab,
                 "/font-enso",

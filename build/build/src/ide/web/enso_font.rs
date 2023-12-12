@@ -65,7 +65,7 @@ pub async fn install_for_html(
     Ok(())
 }
 
-pub async fn install(
+pub async fn install_with_css(
     cache: &Cache,
     octocrab: &Octocrab,
     css_basepath: &str,
@@ -73,35 +73,14 @@ pub async fn install(
     css_output_path: impl AsRef<Path>,
 ) -> Result {
     let output_path = output_path.as_ref();
-    ide_ci::fs::tokio::create_dir_if_missing(output_path).await?;
-    let html_fonts = vec![
-        NonVariableFaceHeader { weight: ttf::Weight::Thin, ..default() },
-        NonVariableFaceHeader { weight: ttf::Weight::ExtraLight, ..default() },
-        NonVariableFaceHeader { weight: ttf::Weight::Light, ..default() },
-        NonVariableFaceHeader { weight: ttf::Weight::Normal, ..default() },
-        NonVariableFaceHeader { weight: ttf::Weight::Medium, ..default() },
-        NonVariableFaceHeader { weight: ttf::Weight::SemiBold, ..default() },
-        NonVariableFaceHeader { weight: ttf::Weight::Bold, ..default() },
-        NonVariableFaceHeader { weight: ttf::Weight::ExtraBold, ..default() },
-        NonVariableFaceHeader { weight: ttf::Weight::Black, ..default() },
-    ];
-    let html_font_definitions =
-        enso_enso_font::font().variations().filter(|v| html_fonts.contains(&v.header)).collect();
-    let get_font_files = async {
-        let package = download(cache, octocrab).await?;
-        enso_enso_font::extract_fonts(&html_font_definitions, package, output_path).await
-    };
-    let make_css_file = async {
-        let contents = crate::ide::web::fonts::generate_css_file(
-            css_basepath,
-            FONT_FAMILY,
-            &html_font_definitions,
-            html_fonts.iter(),
-        )
-        .await?;
-        ide_ci::fs::tokio::write(css_output_path, contents).await?;
-        Ok(())
-    };
+    let font = enso_enso_font::font();
+    let faces = enso_enso_font::faces();
+    let font = crate::ide::web::fonts::filter_font(&font, &faces);
+    let package = download(cache, octocrab).await?;
+    let get_font_files = enso_enso_font::extract_fonts(&font, package, output_path);
+    let css_output_info = Some((css_basepath, css_output_path));
+    let make_css_file =
+        crate::ide::web::fonts::make_css_file(FONT_FAMILY, &font, &faces, css_output_info);
     try_join!(get_font_files, make_css_file)?;
     Ok(())
 }
