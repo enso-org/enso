@@ -516,10 +516,10 @@ spec =
     Test.group "Match.to_display_text" <|
         pattern = Regex.compile "(.. .. )(?<letters>.+)()??(?<empty>)??"
         input = "aa ab abc a bc bcd"
+
         Test.specify "should not error" <|
             match = pattern.match input
             match . should_be_a Match
-
             match.to_display_text . should_equal "Match {aa ab abc a bc bcd}"
 
     Test.group "caching" <|
