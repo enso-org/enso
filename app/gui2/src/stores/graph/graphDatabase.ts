@@ -292,8 +292,10 @@ export class GraphDb {
     }
 
     const functionAst = functionAst_.astExtended
-    if (!functionAst?.isTree(RawAst.Tree.Type.Function)) return
-    this.bindings.readFunctionAst(functionAst)
+    if (functionAst?.isTree(RawAst.Tree.Type.Function)) {
+      this.bindings.readFunctionAst(functionAst)
+    }
+    return currentNodeIds
   }
 
   assignUpdatedMetadata(node: Node, meta: NodeMetadata) {
