@@ -54,7 +54,10 @@ export class LanguageServerSession extends ObservableV2<Events> {
     const requestManager = new RequestManager([transport])
     this.client = new Client(requestManager)
     console.log('new session with', url)
-    transport.connection.on('error', (error) => this.emit('error', [error]))
+    transport.connection.on('error', (error) => {
+      console.error('Language Server transport error:', error)
+      this.emit('error', [error])
+    })
     this.ls = new LanguageServer(this.client)
     this.indexDoc = new WSSharedDoc()
     this.docs.set('index', this.indexDoc)
