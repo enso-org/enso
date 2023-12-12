@@ -22,18 +22,18 @@ pub async fn install_html_fonts(
     Ok(())
 }
 
-pub fn generate_css_file_from_paths<AsRefPath>(
+pub fn generate_css_file_from_paths<AsRefStr>(
     basepath: &str,
     family: &str,
-    paths: impl Iterator<Item = AsRefPath>,
+    paths: impl Iterator<Item = AsRefStr>,
 ) -> Result<String>
 where
-    AsRefPath: AsRef<Path>,
+    AsRefStr: AsRef<str>,
 {
     let mut css = String::new();
     for path in paths {
         use std::fmt::Write;
-        let path = path.as_str();
+        let path = path.as_ref();
         writeln!(&mut css, "@font-face {{")?;
         writeln!(&mut css, "  font-family: '{family}';")?;
         writeln!(&mut css, "  src: url('{basepath}/{path}');")?;

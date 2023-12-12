@@ -166,7 +166,7 @@ pub async fn install_with_css(
     let css = crate::ide::web::fonts::generate_css_file_from_paths(
         css_basepath,
         css_family,
-        paths.iter(),
+        paths.iter().flat_map(|path| path.try_file_name().map(|name| name.as_str())),
     )?;
     ide_ci::fs::tokio::write(css_output_path, css).await?;
     Ok(paths)
