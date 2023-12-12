@@ -1,5 +1,6 @@
 package org.enso.interpreter.arrow.runtime;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
@@ -18,7 +19,7 @@ public class ArrowFixedArrayDate32 implements TruffleObject {
 
   public ArrowFixedArrayDate32(long size) {
     this.size = size;
-    this.buffer = ByteBuffer.allocate((int) size * elementSize);
+    this.buffer = allocateBuffer((int) size * elementSize);
   }
 
   @ExportMessage
@@ -30,7 +31,7 @@ public class ArrowFixedArrayDate32 implements TruffleObject {
   public Object readArrayElement(long index) throws UnsupportedMessageException {
     // TODO: Needs null bitmap
     var daysSinceEpoch = buffer.getInt((int) index * elementSize);
-    var localDate = LocalDate.ofEpochDay(daysSinceEpoch);
+    var localDate = localDateFromDays(daysSinceEpoch);
     return new ArrowDate(localDate);
   }
 
@@ -82,5 +83,15 @@ public class ArrowFixedArrayDate32 implements TruffleObject {
     public LocalDate asDate() {
       return date;
     }
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private ByteBuffer allocateBuffer(int size) {
+    return ByteBuffer.allocate(size);
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private LocalDate localDateFromDays(int daysSinceEpoch) {
+    return LocalDate.ofEpochDay(daysSinceEpoch);
   }
 }

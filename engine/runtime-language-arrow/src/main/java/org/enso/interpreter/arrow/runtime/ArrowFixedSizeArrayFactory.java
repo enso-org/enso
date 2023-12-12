@@ -33,17 +33,28 @@ public class ArrowFixedSizeArrayFactory implements TruffleObject {
   static class Instantiate {
     @Specialization(guards = "receiver.getLayout() == Date32")
     static Object doDate32(ArrowFixedSizeArrayFactory receiver, Object[] args) {
-      return new ArrowFixedArrayDate32((long) (args[0]));
+      return new ArrowFixedArrayDate32(arraySize(args));
     }
 
     @Specialization(guards = "receiver.getLayout() == Date64")
     static Object doDate64(ArrowFixedSizeArrayFactory receiver, Object[] args) {
-      return new ArrowFixedArrayDate64((long) (args[0]));
+      return new ArrowFixedArrayDate64(arraySize(args));
+    }
+
+    @CompilerDirectives.TruffleBoundary
+    private static long arraySize(Object[] args) {
+      assert args.length == 1;
+      return (long) args[0];
     }
 
     @Fallback
     static Object doOther(ArrowFixedSizeArrayFactory receiver, Object[] args) {
-      throw CompilerDirectives.shouldNotReachHere("unknown layout: " + receiver.getLayout());
+      throw CompilerDirectives.shouldNotReachHere(unknownLayoutMessage(receiver.getLayout()));
+    }
+
+    @CompilerDirectives.TruffleBoundary
+    private static String unknownLayoutMessage(ArrowParser.LogicalLayout layout) {
+      return "unknown layout: " + layout.toString();
     }
   }
 }

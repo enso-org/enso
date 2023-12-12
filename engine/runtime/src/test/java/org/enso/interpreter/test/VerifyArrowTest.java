@@ -71,6 +71,11 @@ public class VerifyArrowTest {
     var dayPlus2 = rawDayPlus2.asDate();
     assertFalse(rawDayPlus2.isTime() || rawDayPlus2.isTimeZone());
     assertEquals(startDate.plusDays(2), dayPlus2);
+
+    var startDateTime = ZonedDateTime.now();
+    populateArrayWithConsecutiveDays(date32Array, startDateTime);
+    rawDayPlus2 = date32Array.getArrayElement(2);
+    assertFalse(rawDayPlus2.isTime());
   }
 
   @Test

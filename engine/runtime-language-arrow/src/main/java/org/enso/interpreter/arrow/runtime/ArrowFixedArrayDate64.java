@@ -1,5 +1,6 @@
 package org.enso.interpreter.arrow.runtime;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
@@ -25,7 +26,7 @@ public class ArrowFixedArrayDate64 implements TruffleObject {
 
   public ArrowFixedArrayDate64(long size) {
     this.size = size;
-    this.buffer = ByteBuffer.allocate((int) size * elementSize);
+    this.buffer = allocateBuffer((int) size * elementSize);
   }
 
   @ExportMessage
@@ -39,7 +40,7 @@ public class ArrowFixedArrayDate64 implements TruffleObject {
     var secondsPlusNanoSinceEpoch = buffer.getLong((int) index * elementSize);
     var seconds = Math.floorDiv(secondsPlusNanoSinceEpoch, nanoDiv);
     var nano = Math.floorMod(secondsPlusNanoSinceEpoch, nanoDiv);
-    var zonedDateTime = Instant.ofEpochSecond(seconds, nano).atZone(utc);
+    var zonedDateTime = zonedDateTimeFromSeconds(seconds, nano, utc);
     return new ArrowZonedDate(zonedDateTime);
   }
 
@@ -51,14 +52,13 @@ public class ArrowFixedArrayDate64 implements TruffleObject {
 
     var at = index * elementSize;
     if (iop.isTimeZone(value)) {
-      var dateTime = iop.asDate(value).atTime(iop.asTime(value)).atZone(iop.asTimeZone(value));
-      var zoneDateTime = dateTime.withZoneSameLocal(utc);
-      var zoneDateTimeInstant = zoneDateTime.toInstant();
+      var zoneDateTimeInstant =
+          instantForZone(iop.asDate(value), iop.asTime(value), iop.asTimeZone(value), utc);
       var secondsPlusNano =
           zoneDateTimeInstant.getEpochSecond() * nanoDiv + zoneDateTimeInstant.getNano();
       buffer.putLong((int) at, secondsPlusNano);
     } else {
-      var dateTime = iop.asDate(value).atTime(iop.asTime(value)).toInstant(ZoneOffset.UTC);
+      var dateTime = instantForOffset(iop.asDate(value), iop.asTime(value), ZoneOffset.UTC);
       var secondsPlusNano = dateTime.getEpochSecond() * nanoDiv + dateTime.getNano();
       buffer.putLong((int) at, secondsPlusNano);
     }
@@ -122,5 +122,25 @@ public class ArrowFixedArrayDate64 implements TruffleObject {
     public ZoneId asTimeZone() {
       return dateTime.getZone();
     }
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private ByteBuffer allocateBuffer(int size) {
+    return ByteBuffer.allocate(size);
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private ZonedDateTime zonedDateTimeFromSeconds(long seconds, long nano, ZoneId zone) {
+    return Instant.ofEpochSecond(seconds, nano).atZone(zone);
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private Instant instantForZone(LocalDate date, LocalTime time, ZoneId zone, ZoneId target) {
+    return date.atTime(time).atZone(zone).withZoneSameLocal(target).toInstant();
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private Instant instantForOffset(LocalDate date, LocalTime time, ZoneOffset offset) {
+    return date.atTime(time).toInstant(offset);
   }
 }
