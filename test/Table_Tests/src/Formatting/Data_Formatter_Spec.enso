@@ -173,7 +173,7 @@ spec =
             c2 = c1.parse Value_Type.Date "dd.MM"
             current_year = Date.today.year
             c2.to_vector . should_equal [Date.new current_year 12 31, Date.new current_year 01 01]
-            Problems.expect_only_warning Suspicious_Date_Time_Format c2
+            Problems.expect_only_warning Suspicious_Date_Time_Format c2 unwrap_errors=True
 
             c3 = Column.from_vector "strs" ["04:24", "16:25"]
             t3 = c3.to_table

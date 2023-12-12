@@ -62,7 +62,7 @@ spec =
             w2.example_value . should_equal x+1
 
             t3 = Table.new [["X", [1, x, x+1, 1.5]]]
-            w3 = Problems.expect_only_warning Loss_Of_Integer_Precision t3
+            w3 = Problems.expect_only_warning Loss_Of_Integer_Precision t3 unwrap_errors=True
             w3.affected_rows_count . should_equal 1
 
             # Here, we start with DoubleBuilder straight away.
