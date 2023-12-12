@@ -1824,7 +1824,7 @@ lazy val `runtime-instrument-id-execution` =
       inConfig(Compile)(truffleRunOptionsSettings),
       instrumentationSettings
     )
-    .dependsOn(runtime)
+    .dependsOn(LocalProject("runtime"))
     .dependsOn(`runtime-instrument-common`)
 
 lazy val `runtime-instrument-repl-debugger` =
@@ -1833,7 +1833,7 @@ lazy val `runtime-instrument-repl-debugger` =
       inConfig(Compile)(truffleRunOptionsSettings),
       instrumentationSettings
     )
-    .dependsOn(runtime)
+    .dependsOn(LocalProject("runtime"))
     .dependsOn(`runtime-instrument-common`)
 
 lazy val `runtime-instrument-runtime-server` =
@@ -1842,7 +1842,7 @@ lazy val `runtime-instrument-runtime-server` =
       inConfig(Compile)(truffleRunOptionsSettings),
       instrumentationSettings
     )
-    .dependsOn(runtime)
+    .dependsOn(LocalProject("runtime"))
     .dependsOn(`runtime-instrument-common`)
 
 /** A "meta" project that exists solely to provide logic for assembling the `runtime.jar` fat Jar.
@@ -1942,7 +1942,7 @@ lazy val `runtime-fat-jar` =
     .dependsOn(`runtime-instrument-repl-debugger`)
     .dependsOn(`runtime-instrument-runtime-server`)
     .dependsOn(`runtime-language-epb`)
-    .dependsOn(runtime)
+    .dependsOn(LocalProject("runtime"))
 
 lazy val `runtime-with-instruments` =
   (project in file("engine/runtime-with-instruments"))
