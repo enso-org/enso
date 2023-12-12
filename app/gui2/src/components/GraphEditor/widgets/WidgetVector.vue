@@ -2,6 +2,8 @@
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import ListWidget from '@/components/widgets/ListWidget.vue'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
+import { ForcePort } from '@/providers/portInfo'
+import type { WidgetInput } from '@/providers/widgetRegistry'
 import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
 import { Ast, RawAst } from '@/util/ast'
@@ -26,6 +28,10 @@ const navigator = injectGraphNavigator(true)
 </script>
 
 <script lang="ts">
+function forcePort(item: WidgetInput) {
+  return item instanceof Ast.Ast ? new ForcePort(item) : item
+}
+
 export const widgetDefinition = defineWidget(Ast.Ast, {
   priority: 1000,
   score: (props) =>
@@ -47,7 +53,7 @@ export const widgetDefinition = defineWidget(Ast.Ast, {
     contenteditable="false"
   >
     <template #default="{ item }">
-      <NodeWidget :input="item" />
+      <NodeWidget :input="forcePort(item)" />
     </template>
   </ListWidget>
 </template>

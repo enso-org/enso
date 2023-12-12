@@ -3,6 +3,7 @@ import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { ForcePort, injectPortInfo, providePortInfo } from '@/providers/portInfo'
+import type { WidgetInput } from '@/providers/widgetRegistry'
 import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { injectWidgetTree } from '@/providers/widgetTree'
 import { useGraphStore } from '@/stores/graph'
@@ -25,8 +26,9 @@ import {
   watchEffect,
 } from 'vue'
 
+const props = defineProps(widgetProps<WidgetInput>(widgetDefinition))
+
 const graph = useGraphStore()
-const props = defineProps(widgetProps(widgetDefinition))
 
 const navigator = injectGraphNavigator()
 const tree = injectWidgetTree()
@@ -61,34 +63,29 @@ watchEffect((onCleanup) => {
 // TODO: This should part of the `WidgetPort` component. But first, we need to make sure that the
 // ports are always created when necessary.
 const portRect = shallowRef<Rect>()
-const rectUpdateIsUseful = computed(() => isHovered.value || hasConnection.value)
+const isRectUpdateUseful = computed(() => isHovered.value || hasConnection.value)
 
 const randomUuid = uuidv4() as ExprId
-const portId = computed(() => {
-  const ast =
-    props.input instanceof Ast.Ast
-      ? props.input
-      : props.input instanceof ArgumentAst || props.input instanceof ForcePort
-      ? props.input.ast
-      : undefined
-  return ast?.astId ?? randomUuid
-})
-
-providePortInfo(
-  proxyRefs({
-    portId,
-    connected: hasConnection,
-  }),
+const innerWidget = computed(() =>
+  props.input instanceof ForcePort ? props.input.ast : props.input,
 )
+const ast = computed(() =>
+  props.input instanceof Ast.Ast
+    ? props.input
+    : props.input instanceof ArgumentAst || props.input instanceof ForcePort
+    ? props.input.ast
+    : undefined,
+)
+const portId = computed(() => ast.value?.astId ?? randomUuid)
+
+providePortInfo(proxyRefs({ portId, connected: hasConnection }))
 
 watch(nodeSize, updateRect)
-onUpdated(() => {
-  nextTick(updateRect)
-})
+onUpdated(() => nextTick(updateRect))
 useRaf(toRef(tree, 'hasActiveAnimations'), updateRect)
 
 watch(
-  () => [portId.value, portRect.value, rectUpdateIsUseful.value] as const,
+  () => [portId.value, portRect.value, isRectUpdateUseful.value] as const,
   ([id, rect, updateUseful], _, onCleanup) => {
     if (id != null && rect != null && updateUseful) {
       graph.updateExprRect(id, rect)
@@ -112,13 +109,6 @@ function updateRect() {
   if (portRect.value != null && localRect.equals(portRect.value)) return
   portRect.value = localRect
 }
-const innerWidget = computed(() => {
-  if (props.input instanceof ForcePort) {
-    return props.input.ast
-  } else {
-    return props.input
-  }
-})
 </script>
 
 <script lang="ts">
