@@ -11,7 +11,7 @@ use ide_ci::cache::Cache;
 // === Constants ===
 // =================
 
-const FONT_FAMILY: &str = enso_enso_font::FONT_FAMILY;
+const FONT_FAMILY: &str = "Enso";
 
 
 
