@@ -202,13 +202,6 @@ export class DistributedModule {
         })
         this.doc.contents.delete(deleteStart, end - start)
       }
-      const newStart = Y.createRelativePositionFromTypeIndex(this.doc.contents, start, -1)
-      const newEnd = Y.createRelativePositionFromTypeIndex(
-        this.doc.contents,
-        start + content.length,
-        0,
-      )
-      this.doc.idMap.set(id, encodeRange([newStart, newEnd]))
     })
   }
 

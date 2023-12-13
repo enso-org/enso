@@ -6,8 +6,9 @@ import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { widgetConfigurationSchema } from '@/providers/widgetRegistry/configuration'
 import { useGraphStore } from '@/stores/graph'
 import { useProjectStore, type NodeVisualizationConfiguration } from '@/stores/project'
+import { assert, assertUnreachable } from '@/util/assert'
 import { Ast } from '@/util/ast'
-import { ArgumentApplication } from '@/util/callTree'
+import { ArgumentApplication, ArgumentAst, ArgumentPlaceholder } from '@/util/callTree'
 import type { Opt } from '@/util/opt'
 import type { ExprId } from 'shared/yjsModel'
 import { computed, proxyRefs } from 'vue'
@@ -97,23 +98,102 @@ const widgetConfiguration = computed(() => {
   return undefined
 })
 
+/**
+ * Process an argument value update. Takes care of inserting assigned placeholder values, as well as
+ * handling deletions of arguments and rewriting the applications to named as appropriate.
+ *
+ * FIXME: This method has to be rewritten usign AST manipulation instead of string concatenation
+ * once AST updates are implemented. Depends on #8367
+ */
 function handleArgUpdate(value: unknown, origin: PortId): boolean {
   const app = application.value
-  // TODO: placeholder argument update
-  console.log('handleArgUpdate', value, origin, app)
   if (app instanceof ArgumentApplication) {
-    const args = app.allArguments()
+    // Find the updated argument by matching origin port/expression with the appropriate argument.
+    // We are insterested only in updates at the top level of the argument AST. Updates from nested
+    // widgets do not need to be processed at the function application level.
+    const argApp = [...app.iterApplications()].find(
+      (app) => 'portId' in app.argument && app.argument.portId === origin,
+    )
 
-    // const arg = app.args.find((arg) => arg.argument.exprId === origin)
-    // if (arg != null) {
-    //   const newArg = { ...arg, argument: value }
-    //   const newCall = { ...app, args: app.args.map((arg) => (arg === newArg ? newArg : arg)) }
-    //   const newExpr = ArgumentApplication.ToAst(newCall)
-    //   if (newExpr != null) {
-    //     graph.db.updateExpr(props.input.exprId, newExpr)
-    //     return true
-    //   }
-    // }
+    // Perform appropriate AST update, either insertion or deletion.
+    if (value != null && argApp?.argument instanceof ArgumentPlaceholder) {
+      /* Case: Inserting value to a placeholder. */
+      const codeToInsert = value instanceof Ast.Ast ? value.repr() : value
+      const argCode = argApp.argument.insertAsNamed
+        ? `${argApp.argument.info.name}=${codeToInsert}`
+        : codeToInsert
+
+      // FIXME[#8367]: Create proper application AST instead of concatenating strings.
+      props.onUpdate(`${argApp.appTree.repr()} ${argCode}`, argApp.appTree.exprId)
+      return true
+    } else if (value == null && argApp?.argument instanceof ArgumentAst) {
+      /* Case: Removing existing argument. */
+
+      if (argApp.appTree instanceof Ast.App && argApp.appTree.argumentName != null) {
+        /* Case: Removing named prefix argument. */
+
+        // Named argument can always be removed immediately. Replace the whole application with its
+        // target, effectively removing the argument from the call.
+        props.onUpdate(argApp.appTree.function, argApp.appTree.exprId)
+        return true
+      } else if (value == null && argApp.appTree instanceof Ast.OprApp) {
+        /* Case: Removing infix application. */
+
+        // Infix application is removed as a whole. Only the target is kept.
+        if (argApp.appTree.lhs) {
+          props.onUpdate(argApp.appTree.lhs, argApp.appTree.exprId)
+        }
+        return true
+      } else if (argApp.appTree instanceof Ast.App && argApp.appTree.argumentName == null) {
+        /* Case: Removing positional prefix argument. */
+
+        // Since the update of this kind can affect following arguments, it is necessary to
+        // construct the new AST for the whole application in order to update it. Because we lack
+        // the ability to do AST manipulation directly, we are forced to do it by string operations.
+        // FIXME[#8367]: Edit application AST instead of concatenating strings.
+        let newRepr = ''
+
+        // Traverse the application chain, starting from the outermost application and going
+        // towards the innermost target.
+        for (let innerApp of app.iterApplications()) {
+          if (innerApp === argApp) {
+            // Found the application with the argument to remove. Skip the argument and use the
+            // application target's code. This is the final iteration of the loop.
+            newRepr = `${argApp.appTree.function.repr().trimEnd()} ${newRepr.trimStart()}`
+            // Perform the actual update, since we already have the whole new application code
+            // collected.
+            props.onUpdate(newRepr, app.appTree.exprId)
+            return true
+          } else {
+            // Process an argument to the right of the removed argument.
+            assert(innerApp.appTree instanceof Ast.App)
+            const argRepr = innerApp.appTree
+              .repr()
+              .substring(innerApp.appTree.function.repr().length)
+              .trim()
+            if (
+              innerApp.argument instanceof ArgumentAst &&
+              innerApp.appTree.argumentName == null &&
+              innerApp.argument.info != null
+            ) {
+              // Positional arguments following the deleted argument must all be rewritten to named.
+              newRepr = `${innerApp.argument.info.name}=${argRepr} ${newRepr.trimStart()}`
+            } else {
+              // All other arguments are copied as-is.
+              newRepr = `${argRepr} ${newRepr.trimStart()}`
+            }
+          }
+        }
+        assertUnreachable()
+      } else if (value == null && argApp.argument instanceof ArgumentPlaceholder) {
+        /* Case: Removing placeholder value. */
+        // Do nothing. The argument already doesn't exist, so there is nothing to update.
+        return true
+      } else {
+        // Any other case is handled by the default handler.
+        return false
+      }
+    }
   }
   return false
 }

@@ -584,7 +584,7 @@ function handleEdgeDrop(source: ExprId, position: Vec2) {
   position: absolute;
   top: 0;
   left: 0;
-  z-index: 1;
+  z-index: -1;
 }
 
 .htmlLayer {
@@ -593,6 +593,5 @@ function handleEdgeDrop(source: ExprId, position: Vec2) {
   left: 0;
   width: 0;
   height: 0;
-  z-index: 2;
 }
 </style>

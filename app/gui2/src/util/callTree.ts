@@ -19,6 +19,7 @@ export class ArgumentPlaceholder {
     public index: number,
     public info: SuggestionEntryArgument,
     public kind: ApplicationKind,
+    public insertAsNamed: boolean,
   ) {}
 
   get portId(): PortId {
@@ -63,7 +64,7 @@ interface FoundApplication {
 
 export class ArgumentApplication {
   private constructor(
-    public appTree: Ast.Ast | undefined,
+    public appTree: Ast.Ast,
     public target: ArgumentApplication | Ast.Ast | ArgumentPlaceholder | ArgumentAst,
     public infixOperator: Ast.Token | undefined,
     public argument: Ast.Ast | ArgumentAst | ArgumentPlaceholder,
@@ -123,7 +124,7 @@ export class ArgumentApplication {
           ? isAccess
             ? tree
             : new ArgumentAst(tree, index, info, ApplicationKind.Infix)
-          : new ArgumentPlaceholder(callId, index, info, ApplicationKind.Infix)
+          : new ArgumentPlaceholder(callId, index, info, ApplicationKind.Infix, false)
       }
       return new ArgumentApplication(
         interpreted.appTree,
@@ -160,21 +161,31 @@ export class ArgumentApplication {
     }> = []
 
     function insertPlaceholdersUpto(index: number, appTree: Ast.Ast) {
+      let canInsertPositional = true
       while (placeholdersToInsert[0] != null && placeholdersToInsert[0] < index) {
         const argIndex = placeholdersToInsert.shift()
         const argInfo = tryGetIndex(knownArguments, argIndex)
-        if (argIndex != null && argInfo != null)
+        if (argIndex != null && argInfo != null) {
           prefixArgsToDisplay.push({
             appTree,
-            argument: new ArgumentPlaceholder(callId, argIndex, argInfo, ApplicationKind.Prefix),
+            argument: new ArgumentPlaceholder(
+              callId,
+              argIndex,
+              argInfo,
+              ApplicationKind.Prefix,
+              !canInsertPositional,
+            ),
           })
+
+          canInsertPositional = false
+        }
       }
     }
 
     for (const realArg of interpreted.args) {
       if (realArg.argName == null) {
         const argIndex = argumentsLeftToMatch.shift()
-        if (argIndex != null) insertPlaceholdersUpto(argIndex, realArg.appTree)
+        if (argIndex != null) insertPlaceholdersUpto(argIndex, realArg.appTree.function)
         prefixArgsToDisplay.push({
           appTree: realArg.appTree,
           argument: new ArgumentAst(
@@ -192,7 +203,8 @@ export class ArgumentApplication {
         const name = realArg.argName
         const foundIdx = argumentsLeftToMatch.findIndex((i) => knownArguments?.[i]?.name === name)
         const argIndex = foundIdx === -1 ? undefined : argumentsLeftToMatch.splice(foundIdx, 1)[0]
-        if (argIndex != null && foundIdx === 0) insertPlaceholdersUpto(argIndex, realArg.appTree)
+        if (argIndex != null && foundIdx === 0)
+          insertPlaceholdersUpto(argIndex, realArg.appTree.function)
         prefixArgsToDisplay.push({
           appTree: realArg.appTree,
           argument: new ArgumentAst(
@@ -205,7 +217,8 @@ export class ArgumentApplication {
       }
     }
 
-    insertPlaceholdersUpto(Infinity, interpreted.func)
+    const outerApp = interpreted.args[interpreted.args.length - 1]?.appTree ?? interpreted.func
+    insertPlaceholdersUpto(Infinity, outerApp)
 
     return prefixArgsToDisplay.reduce(
       (target: ArgumentApplication | Ast.Ast, toDisplay) =>
@@ -214,11 +227,11 @@ export class ArgumentApplication {
     )
   }
 
-  allArguments(): Array<Ast.Ast | ArgumentAst | ArgumentPlaceholder> {
-    if (this.target instanceof ArgumentApplication) {
-      return [...this.target.allArguments(), this.argument]
-    } else {
-      return [this.argument]
+  *iterApplications(): IterableIterator<ArgumentApplication> {
+    let current: typeof this.target = this
+    while (current instanceof ArgumentApplication) {
+      yield current
+      current = current.target
     }
   }
 }
