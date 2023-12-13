@@ -202,6 +202,7 @@ const editorStyle = computed(() => {
     :style="editorStyle"
     @keydown.enter.stop
     @keydown.backspace.stop
+    @keydown.delete.stop
     @wheel.stop.passive
     @pointerdown.stop
     @contextmenu.stop

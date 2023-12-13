@@ -30,7 +30,7 @@ export { type Node } from '@/stores/graph/graphDatabase'
 
 export interface NodeEditInfo {
   id: ExprId
-  range: ContentRange
+  initialCursorPos: number
 }
 export const useGraphStore = defineStore('graph', () => {
   const proj = useProjectStore()
@@ -204,14 +204,6 @@ export const useGraphStore = defineStore('graph', () => {
     )
   }
 
-  // Create a node from a source expression, and insert it into the graph. The return value will be
-  // the new node's ID, or `null` if the node creation fails.
-  function createNodeFromSource(position: Vec2, source: ExprId): Opt<ExprId> {
-    const sourcePortName = db.getOutputPortIdentifier(source)
-    const sourcePortNameWithDot = sourcePortName ? sourcePortName + '.' : ''
-    return createNode(position, sourcePortNameWithDot)
-  }
-
   function deleteNode(id: ExprId) {
     const node = db.nodeIdToNode.get(id)
     if (!node) return
@@ -323,8 +315,7 @@ export const useGraphStore = defineStore('graph', () => {
       console.warn('setEditedNode: cursorPosition is null')
       return
     }
-    const range: ContentRange = [cursorPosition, cursorPosition]
-    editedNodeInfo.value = { id, range }
+    editedNodeInfo.value = { id, initialCursorPos: cursorPosition }
   }
 
   return {
@@ -357,7 +348,6 @@ export const useGraphStore = defineStore('graph', () => {
     updateVizRect,
     updateExprRect,
     setEditedNode,
-    createNodeFromSource,
     updateState,
   }
 })
