@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 use enso_font::NonVariableDefinition;
 use enso_font::NonVariableFaceHeader;
-use ide_ci::archive::archive::ExtractFiles;
+use ide_ci::archive::extract_files::ExtractFiles;
 use ide_ci::cache::Cache;
 
 

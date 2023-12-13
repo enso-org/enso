@@ -106,7 +106,7 @@ pub async fn extract_fonts(
     package: impl AsRef<Path>,
     out_dir: impl AsRef<Path>,
 ) -> Result {
-    use ide_ci::archive::archive::ExtractFiles;
+    use ide_ci::archive::extract_files::ExtractFiles;
     ide_ci::fs::tokio::create_dir_if_missing(out_dir.as_ref()).await?;
     let mut files_expected: HashSet<_> = fonts.files().collect();
     ide_ci::archive::tar::Archive::open_tar_gz(&package)

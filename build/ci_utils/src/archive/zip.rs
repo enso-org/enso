@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-use crate::archive::archive::ExtractFiles;
+use crate::archive::extract_files::ExtractFiles;
 use anyhow::Context;
 use std::io::Cursor;
 use zip::read::ZipFile;
