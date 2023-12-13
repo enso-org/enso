@@ -440,6 +440,8 @@ type_spec name alter = Test.group name <|
         input.find (Filter_Condition.Greater 5) . should_equal 6
         Test.expect_panic_with matcher=Type_Error (input.find "invalid arg")
 
+        alter ["b", "A", "c"] . find (Filter_Condition.Equal_Ignore_Case "a") . should_equal "A"
+
     Test.specify "should allow finding the index of a value" <|
         input = alter [1, 2, 3, 4, 1, 2, 3, 1, 2, 1]
         input.index_of 4 . should_equal 3
