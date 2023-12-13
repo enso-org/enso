@@ -1,4 +1,4 @@
-package org.enso.interpreter.epb.node;
+package org.enso.interpreter.epb;
 
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
@@ -16,7 +16,7 @@ import java.util.Arrays;
  * used in EPB because EPB is a dependency of runtime.
  */
 @ExportLibrary(InteropLibrary.class)
-public final class ReadOnlyArray implements TruffleObject {
+final class ReadOnlyArray implements TruffleObject {
 
   private final Object[] items;
 

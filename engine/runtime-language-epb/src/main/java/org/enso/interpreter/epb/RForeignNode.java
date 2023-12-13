@@ -1,4 +1,4 @@
-package org.enso.interpreter.epb.node;
+package org.enso.interpreter.epb;
 
 import com.oracle.truffle.api.dsl.NodeField;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -7,7 +7,7 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.library.CachedLibrary;
 
 @NodeField(name = "foreignFunction", type = Object.class)
-public abstract class RForeignNode extends ForeignFunctionCallNode {
+abstract class RForeignNode extends ForeignFunctionCallNode {
 
   private @Child CoercePrimitiveNode coercePrimitiveNode = CoercePrimitiveNode.build();
 

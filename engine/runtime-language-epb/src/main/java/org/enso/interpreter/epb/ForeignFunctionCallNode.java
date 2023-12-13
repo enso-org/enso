@@ -1,10 +1,10 @@
-package org.enso.interpreter.epb.node;
+package org.enso.interpreter.epb;
 
 import com.oracle.truffle.api.interop.InteropException;
 import com.oracle.truffle.api.nodes.Node;
 
 /** An interface for nodes responsible for calling into foreign languages. */
-public abstract class ForeignFunctionCallNode extends Node {
+abstract class ForeignFunctionCallNode extends Node {
   /**
    * Executes the foreign call.
    *

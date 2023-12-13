@@ -1,14 +1,8 @@
-package org.enso.interpreter.epb.node;
+package org.enso.interpreter.epb;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
-
-import org.enso.interpreter.epb.EpbContext;
-import org.enso.interpreter.epb.EpbLanguage;
-import org.enso.interpreter.epb.EpbParser;
-import org.enso.interpreter.epb.runtime.ForeignParsingException;
-import org.enso.interpreter.epb.runtime.GuardedTruffleContext;
 
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerDirectives;
@@ -19,7 +13,7 @@ import com.oracle.truffle.api.interop.InteropException;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.Source;
 
-public class ForeignEvalNode extends RootNode {
+class ForeignEvalNode extends RootNode {
   private final EpbParser.Result code;
   private @Child
   ForeignFunctionCallNode foreign;
@@ -36,7 +30,7 @@ public class ForeignEvalNode extends RootNode {
    * @param arguments argument names allowed in the function body
    * @return an instance of this node
    */
-  public static ForeignEvalNode build(
+  static ForeignEvalNode build(
           EpbLanguage language, EpbParser.Result code, List<String> arguments) {
     return new ForeignEvalNode(language, code, arguments);
   }

@@ -1,4 +1,4 @@
-package org.enso.interpreter.epb.runtime;
+package org.enso.interpreter.epb;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleContext;
@@ -10,7 +10,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 
 /** Wraps a {@link TruffleContext} by providing an optional GIL functionality. */
-public class GuardedTruffleContext {
+final class GuardedTruffleContext {
   private final TruffleContext context;
   private final Lock lock;
 
@@ -20,7 +20,7 @@ public class GuardedTruffleContext {
    * @param context the Truffle context to wrap
    * @param isSingleThreaded whether or not the context should be accessed through a GIL.
    */
-  public GuardedTruffleContext(TruffleContext context, boolean isSingleThreaded) {
+  GuardedTruffleContext(TruffleContext context, boolean isSingleThreaded) {
     this.context = context;
     if (isSingleThreaded) {
       this.lock = new ReentrantLock();

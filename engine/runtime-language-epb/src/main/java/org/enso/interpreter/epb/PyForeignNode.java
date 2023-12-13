@@ -1,4 +1,4 @@
-package org.enso.interpreter.epb.node;
+package org.enso.interpreter.epb;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -22,7 +22,7 @@ import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.source.Source;
 
 @NodeField(name = "foreignFunction", type = Object.class)
-public abstract class PyForeignNode extends ForeignFunctionCallNode {
+abstract class PyForeignNode extends ForeignFunctionCallNode {
   @Child
   private CoercePrimitiveNode coercePrimitiveNode = CoercePrimitiveNode.build();
   @CompilerDirectives.CompilationFinal

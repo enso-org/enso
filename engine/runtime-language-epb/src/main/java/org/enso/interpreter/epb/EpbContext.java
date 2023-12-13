@@ -8,13 +8,12 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import java.util.logging.Level;
-import org.enso.interpreter.epb.runtime.GuardedTruffleContext;
 
 /**
  * A context for {@link EpbLanguage}. Provides access to both isolated Truffle contexts used in
  * polyglot execution.
  */
-public class EpbContext {
+final class EpbContext {
 
   private static final TruffleLanguage.ContextReference<EpbContext> REFERENCE =
       TruffleLanguage.ContextReference.create(EpbLanguage.class);
@@ -30,7 +29,7 @@ public class EpbContext {
    *
    * @param env the current language environment.
    */
-  public EpbContext(TruffleLanguage.Env env) {
+  EpbContext(TruffleLanguage.Env env) {
     this.env = env;
     isInner = env.getConfig().get(INNER_OPTION) != null;
   }

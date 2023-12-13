@@ -1,4 +1,4 @@
-package org.enso.interpreter.epb.node;
+package org.enso.interpreter.epb;
 
 import com.oracle.truffle.api.dsl.NodeField;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -9,7 +9,7 @@ import com.oracle.truffle.api.library.CachedLibrary;
 /** A node responsible for performing foreign JS calls. */
 @NodeField(name = "foreignFunction", type = Object.class)
 @NodeField(name = "arity", type = int.class)
-public abstract class JsForeignNode extends ForeignFunctionCallNode {
+abstract class JsForeignNode extends ForeignFunctionCallNode {
 
   private @Child CoercePrimitiveNode coercePrimitiveNode = CoercePrimitiveNode.build();
 
@@ -25,7 +25,7 @@ public abstract class JsForeignNode extends ForeignFunctionCallNode {
    *     InteropLibrary#isExecutable(Object)})
    * @return a node able to call the JS function with given arguments
    */
-  public static JsForeignNode build(Object jsFunction, int argumentsCount) {
+  static JsForeignNode build(Object jsFunction, int argumentsCount) {
     return JsForeignNodeGen.create(jsFunction, argumentsCount);
   }
 

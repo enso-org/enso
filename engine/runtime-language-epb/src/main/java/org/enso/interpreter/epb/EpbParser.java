@@ -4,9 +4,9 @@ import com.oracle.truffle.api.source.Source;
 import org.enso.polyglot.ForeignLanguage;
 
 /** A class containing helpers for creating and parsing EPB code */
-public class EpbParser {
+class EpbParser {
   /** A parsing result. */
-  public static class Result {
+  static class Result {
     private final ForeignLanguage language;
     private final String foreignSource;
 
@@ -32,7 +32,7 @@ public class EpbParser {
    * @param source the source to parse
    * @return the result of parsing
    */
-  public static Result parse(Source source) {
+  static Result parse(Source source) {
     String src = source.getCharacters().toString();
     String[] langAndCode = src.split("#", 2);
     return new Result(ForeignLanguage.valueOf(langAndCode[0]), langAndCode[1]);

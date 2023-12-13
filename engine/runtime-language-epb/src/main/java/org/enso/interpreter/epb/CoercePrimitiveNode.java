@@ -1,4 +1,4 @@
-package org.enso.interpreter.epb.node;
+package org.enso.interpreter.epb;
 
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.GenerateUncached;
@@ -10,7 +10,7 @@ import com.oracle.truffle.api.strings.TruffleString;
 
 @GenerateUncached
 @ReportPolymorphism
-public abstract class CoercePrimitiveNode extends Node {
+abstract class CoercePrimitiveNode extends Node {
 
   /**
    * Create a new node responsible for coercing primitive values to Enso primitives at the polyglot
