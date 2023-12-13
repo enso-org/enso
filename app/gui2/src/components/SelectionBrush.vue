@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { useApproach } from '@/util/animation'
-import type { Vec2 } from '@/util/vec2'
+import { useApproach } from '@/composables/animation'
+import type { Vec2 } from '@/util/data/vec2'
 import { computed, watch, type Ref } from 'vue'
 
 const props = defineProps<{

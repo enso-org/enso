@@ -1,7 +1,9 @@
-import { useApproach } from '@/util/animation'
-import { PointerButtonMask, useEvent, usePointer, useResizeObserver } from '@/util/events'
-import { Rect } from '@/util/rect'
-import { Vec2 } from '@/util/vec2'
+/** @file A Vue composable for panning and zooming a DOM element. */
+
+import { useApproach } from '@/composables/animation'
+import { PointerButtonMask, useEvent, usePointer, useResizeObserver } from '@/composables/events'
+import { Rect } from '@/util/data/rect'
+import { Vec2 } from '@/util/data/vec2'
 import { computed, proxyRefs, ref, type Ref } from 'vue'
 
 function elemRect(target: Element | undefined): Rect {

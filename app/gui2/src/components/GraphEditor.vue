@@ -7,14 +7,15 @@ import {
   nonDictatedPlacement,
   previousNodeDictatedPlacement,
   type Environment,
-} from '@/components/ComponentBrowser/placement.ts'
+} from '@/components/ComponentBrowser/placement'
 import GraphEdges from '@/components/GraphEditor/GraphEdges.vue'
 import GraphNodes from '@/components/GraphEditor/GraphNodes.vue'
 import { Uploader, uploadedExpression } from '@/components/GraphEditor/upload'
 import GraphMouse from '@/components/GraphMouse.vue'
 import PlusButton from '@/components/PlusButton.vue'
 import TopBar from '@/components/TopBar.vue'
-import { useDoubleClick } from '@/composables/doubleClick.ts'
+import { useDoubleClick } from '@/composables/doubleClick'
+import { keyboardBusy, keyboardBusyExceptIn, useEvent } from '@/composables/events'
 import { provideGraphNavigator } from '@/providers/graphNavigator'
 import { provideGraphSelection } from '@/providers/graphSelection'
 import { provideInteractionHandler, type Interaction } from '@/providers/interactionHandler'
@@ -24,12 +25,11 @@ import type { RequiredImport } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { groupColorVar, useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { colorFromString } from '@/util/colors'
-import { keyboardBusy, keyboardBusyExceptIn, useEvent } from '@/util/events'
-import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName.ts'
-import { Rect } from '@/util/rect.ts'
-import { Vec2 } from '@/util/vec2'
+import { Rect } from '@/util/data/rect'
+import { Vec2 } from '@/util/data/vec2'
+import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
 import * as set from 'lib0/set'
-import type { ExprId, NodeMetadata } from 'shared/yjsModel.ts'
+import type { ExprId, NodeMetadata } from 'shared/yjsModel'
 import { computed, onMounted, ref, watch } from 'vue'
 import { type Usage } from './ComponentBrowser/input'
 
@@ -216,7 +216,7 @@ const graphBindingsHandler = graphBindings.handler({
 })
 
 const handleClick = useDoubleClick(
-  (e) => {
+  (e: MouseEvent) => {
     graphBindingsHandler(e)
   },
   () => {
