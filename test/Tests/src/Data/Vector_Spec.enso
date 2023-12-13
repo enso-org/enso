@@ -78,6 +78,8 @@ type_spec name alter = Test.group name <|
     pending_python_missing = if Polyglot.is_language_installed "python" then Nothing else
         "Can't run Python tests, Python is not installed."
 
+    pending_map_report_warning = "vector.map does not yet support report_warning"
+
     Test.specify "text bytes" <|
         "Lore".utf_8 . should_equal [76, 111, 114, 101]
 

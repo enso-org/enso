@@ -570,7 +570,6 @@ function handleEdgeDrop(source: ExprId, position: Vec2) {
   position: relative;
   contain: layout;
   overflow: clip;
-  cursor: none;
   --group-color-fallback: #006b8a;
   --node-color-no-type: #596b81;
 }
