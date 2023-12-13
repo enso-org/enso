@@ -50,9 +50,9 @@ export interface Group {
   project: QualifiedName
 }
 
-export function groupColorVar(groupName: string | undefined): string {
-  if (groupName) {
-    const name = groupName.replace(/\s/g, '-')
+export function groupColorVar(group: Group | undefined): string {
+  if (group) {
+    const name = `${group.project}-${group.name}`.replace(/[^\w]/g, '-')
     return `--group-color-${name}`
   } else {
     return '--group-color-fallback'
@@ -60,7 +60,7 @@ export function groupColorVar(groupName: string | undefined): string {
 }
 
 export function groupColorStyle(group: Group | undefined): string {
-  return `var(${groupColorVar(group?.name)})`
+  return `var(${groupColorVar(group)})`
 }
 
 class Synchronizer {

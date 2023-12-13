@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import DocsTag from '@/components/DocumentationPanel/DocsTag.vue'
-import { groupColorVar } from '@/stores/suggestionDatabase'
 import type { Doc } from '@/util/docParser'
 import { computed, ref, watch } from 'vue'
 
-const props = defineProps<{ tags: Doc.Section.Tag[] }>()
+const props = defineProps<{ tags: Doc.Section.Tag[]; groupColor: string }>()
 
 const skipTags: Doc.Tag[] = ['Icon', 'TextOnly']
 const tags = computed<Doc.Section.Tag[]>(() => {
@@ -63,9 +62,9 @@ const tagsMap: Partial<Record<Doc.Tag, (body: Doc.HtmlString) => View>> = {
     },
   }),
   Group: (body) => ({
-    label: body.toLowerCase(),
+    label: body.toLowerCase().replace('standard.base.', ''),
     style: {
-      'background-color': `var(${groupColorVar(body)})`,
+      'background-color': props.groupColor,
       color: '#fff',
     },
   }),

@@ -282,8 +282,7 @@ watch(
 const groupColors = computed(() => {
   const styles: { [key: string]: string } = {}
   for (let group of suggestionDb.groups) {
-    styles[groupColorVar(group.name)] =
-      group.color ?? colorFromString(group.name.replace(/\w/g, '-'))
+    styles[groupColorVar(group)] = group.color ?? colorFromString(group.name)
   }
   return styles
 })

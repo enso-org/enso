@@ -127,7 +127,12 @@ function handleBreadcrumbClick(index: number) {
       @forward="historyStack.forward()"
       @backward="historyStack.backward()"
     />
-    <DocsTags v-if="sections.tags.length > 0" class="tags" :tags="sections.tags" />
+    <DocsTags
+      v-if="sections.tags.length > 0"
+      class="tags"
+      :tags="sections.tags"
+      :groupColor="color"
+    />
     <div class="sections">
       <h2 v-if="documentation.kind === 'Placeholder'">{{ documentation.text }}</h2>
       <span v-if="sections.synopsis.length == 0">{{ 'No documentation available.' }}</span>
