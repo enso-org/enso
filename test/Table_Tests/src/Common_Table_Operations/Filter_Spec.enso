@@ -335,11 +335,11 @@ spec setup =
             check_problem <| t.filter "ix" Filter_Condition.Is_False
 
         Test.specify "should check types of numeric operations" <|
-            t = table_builder ["a", ["a", "b"]]
+            t = table_builder [["a", ["a", "b"]]]
             check_problem result =
                 result.should_fail_with Invalid_Value_Type
                 result.catch.expected . should_equal "a numeric"
-                result.catch.to_display_text "Expected a numeric type, but got a column [a] of type Char ?."
+                result.catch.to_display_text . should_start_with "Expected a numeric type, but got a column [a] of type Char"
 
             check_problem <| t.filter "a" Filter_Condition.Is_Finite
             check_problem <| t.filter "a" Filter_Condition.Is_Infinite

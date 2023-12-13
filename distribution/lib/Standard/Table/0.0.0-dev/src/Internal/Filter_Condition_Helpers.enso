@@ -38,6 +38,8 @@ make_filter_column source_column filter_condition on_problems = case filter_cond
     Greater value -> (source_column > value)
     Between lower upper -> source_column.between lower upper
     # Text
+    Equal_Ignore_Case value locale ->
+        source_column.equals_ignore_case value locale
     Starts_With prefix case_sensitivity ->
         source_column.starts_with prefix case_sensitivity
     Ends_With suffix case_sensitivity ->
@@ -54,6 +56,10 @@ make_filter_column source_column filter_condition on_problems = case filter_cond
         source_column.like pattern
     Not_Like pattern ->
         source_column.like pattern . not
+    # Numeric
+    Is_Nan -> source_column.is_nan
+    Is_Infinite -> source_column.is_infinite
+    Is_Finite -> (source_column.is_infinite || source_column.is_nan).not
     # Vector
     Is_In values -> source_column.is_in values
     Not_In values -> source_column.is_in values . not
