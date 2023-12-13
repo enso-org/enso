@@ -8,7 +8,10 @@ import { defineSetupVue3 } from '@histoire/plugin-vue'
 import * as random from 'lib0/random'
 import { createPinia } from 'pinia'
 import type { LibraryComponentGroup, Uuid, response } from 'shared/languageServerTypes'
-import type { SuggestionEntry, SuggestionsDatabaseUpdate } from 'shared/languageServerTypes/suggestions'
+import type {
+  SuggestionEntry,
+  SuggestionsDatabaseUpdate,
+} from 'shared/languageServerTypes/suggestions'
 import { ref } from 'vue'
 import mockDb from './mockSuggestions.json' assert { type: 'json' }
 import './story.css'
@@ -89,7 +92,7 @@ export const setupVue3 = defineSetupVue3(({ app }) => {
       scale: 1,
       width: 200,
       height: 150,
-      hide() { },
+      hide() {},
       isCircularMenuVisible: false,
       isBelowToolbar: false,
       nodeSize: new Vec2(200, 150),
@@ -112,7 +115,7 @@ export const setupVue3 = defineSetupVue3(({ app }) => {
           name: 'Here',
         },
       ],
-      updateType() { },
+      updateType() {},
     },
     app,
   )

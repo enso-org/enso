@@ -12,7 +12,7 @@ const groupColors = computed(() => {
     let color = group.color ?? colorFromString(name)
     styles[`--group-color-${name}`] = color
   }
-  styles[`--group-color-fallback`] = '#006b8a';
+  styles[`--group-color-fallback`] = '#006b8a'
   return styles
 })
 </script>
