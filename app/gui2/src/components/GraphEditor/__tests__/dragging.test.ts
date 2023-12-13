@@ -96,8 +96,8 @@ test.each`
     }
     const grid = new SnapGrid(computed(() => rects))
     const xSnapped = new Rect(new Vec2(snappedRectPosition, 0.0), new Vec2(10.0, 10.0))
-    expect(grid.snap(xSnapped, 15.0)[0]).toBeCloseTo(expectedSnap)
+    expect(grid.snap(xSnapped, 16.0).x).toBeCloseTo(expectedSnap)
     const ySnapped = new Rect(new Vec2(0.0, snappedRectPosition), new Vec2(10.0, 10.0))
-    expect(grid.snap(ySnapped, 15.0)[1]).toBeCloseTo(expectedSnap)
+    expect(grid.snap(ySnapped, 16.0).y).toBeCloseTo(expectedSnap)
   },
 )
