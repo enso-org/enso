@@ -7,12 +7,15 @@ import java.util.regex.Pattern;
 public class ArrowParser {
 
   public static class Result {
+
     private final PhysicalLayout physicalLayout;
     private final LogicalLayout logicalLayout;
+    private final Mode mode;
 
-    private Result(PhysicalLayout physicalLayout, LogicalLayout logicalLayout) {
+    private Result(PhysicalLayout physicalLayout, LogicalLayout logicalLayout, Mode mode) {
       this.physicalLayout = physicalLayout;
       this.logicalLayout = logicalLayout;
+      this.mode = mode;
     }
 
     public PhysicalLayout getPhysicalLayout() {
@@ -22,6 +25,10 @@ public class ArrowParser {
     public LogicalLayout getLogicalLayout() {
       return logicalLayout;
     }
+
+    public Mode getAction() {
+      return mode;
+    }
   }
 
   public static Result parse(Source source) {
@@ -30,7 +37,18 @@ public class ArrowParser {
     if (m.find()) {
       try {
         var layout = LogicalLayout.valueOf(m.group(1));
-        return new Result(PhysicalLayout.Primitive, layout);
+        return new Result(PhysicalLayout.Primitive, layout, Mode.Allocate);
+      } catch (IllegalArgumentException iae) {
+        // propagate warning
+        return null;
+      }
+    }
+
+    m = CastPattern.matcher(src);
+    if (m.find()) {
+      try {
+        var layout = LogicalLayout.valueOf(m.group(1));
+        return new Result(PhysicalLayout.Primitive, layout, Mode.Cast);
       } catch (IllegalArgumentException iae) {
         // propagate warning
         return null;
@@ -40,6 +58,7 @@ public class ArrowParser {
   }
 
   private static final Pattern ArrayPattern = Pattern.compile("new\\[(.+)\\]");
+  private static final Pattern CastPattern = Pattern.compile("cast\\[(.+)\\]");
 
   public enum PhysicalLayout {
     Primitive,
@@ -52,6 +71,15 @@ public class ArrowParser {
     Float8,
     Float16,
     Float32,
-    Float64
+    Float64,
+    Int8,
+    Int16,
+    Int32,
+    Int64
+  }
+
+  public enum Mode {
+    Allocate,
+    Cast
   }
 }

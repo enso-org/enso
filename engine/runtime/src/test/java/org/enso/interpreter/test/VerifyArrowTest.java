@@ -109,10 +109,32 @@ public class VerifyArrowTest {
     assertFalse(startDate2Pnf.plusDays(2).isEqual(dayPlus2));
   }
 
+  @Test
+  public void arrowInt8() {
+    var arrow = ctx.getEngine().getLanguages().get("arrow");
+    assertNotNull("Arrow is available", arrow);
+    var int8Constr = ctx.eval("arrow", "new[Int8]");
+    assertNotNull(int8Constr);
+
+    Value int8Array = int8Constr.newInstance((long) 10);
+    assertNotNull(int8Array);
+    populateIntArray(int8Array, (byte) 42);
+    var v = int8Array.getArrayElement(5);
+    assertEquals((byte) 47, v.asByte());
+  }
+
   private void populateArrayWithConsecutiveDays(Value arr, Temporal startDate) {
     var len = arr.getArraySize();
     for (int i = 0; i < len; i++) {
       arr.setArrayElement(i, startDate.plus(2, java.time.temporal.ChronoUnit.DAYS));
+    }
+  }
+
+  private void populateIntArray(Value arr, byte startValue) {
+    var len = arr.getArraySize();
+    for (int i = 0; i < len; i++) {
+      var v = startValue + i;
+      arr.setArrayElement(i, (byte) v);
     }
   }
 

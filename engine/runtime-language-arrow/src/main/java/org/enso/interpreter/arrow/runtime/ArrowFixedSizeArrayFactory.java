@@ -33,12 +33,32 @@ public class ArrowFixedSizeArrayFactory implements TruffleObject {
   static class Instantiate {
     @Specialization(guards = "receiver.getLayout() == Date32")
     static Object doDate32(ArrowFixedSizeArrayFactory receiver, Object[] args) {
-      return new ArrowFixedArrayDate32(arraySize(args));
+      return new ArrowFixedArrayDate(arraySize(args), ArrowFixedArrayDate.DateUnit.Day);
     }
 
     @Specialization(guards = "receiver.getLayout() == Date64")
     static Object doDate64(ArrowFixedSizeArrayFactory receiver, Object[] args) {
-      return new ArrowFixedArrayDate64(arraySize(args));
+      return new ArrowFixedArrayDate(arraySize(args), ArrowFixedArrayDate.DateUnit.Millisecond);
+    }
+
+    @Specialization(guards = "receiver.getLayout() == Int8")
+    static Object doInt8(ArrowFixedSizeArrayFactory receiver, Object[] args) {
+      return new ArrowFixedArrayInt(arraySize(args), ArrowFixedArrayInt.IntUnit.Byte1);
+    }
+
+    @Specialization(guards = "receiver.getLayout() == Int16")
+    static Object doInt16(ArrowFixedSizeArrayFactory receiver, Object[] args) {
+      return new ArrowFixedArrayInt(arraySize(args), ArrowFixedArrayInt.IntUnit.Byte2);
+    }
+
+    @Specialization(guards = "receiver.getLayout() == Int32")
+    static Object doInt32(ArrowFixedSizeArrayFactory receiver, Object[] args) {
+      return new ArrowFixedArrayInt(arraySize(args), ArrowFixedArrayInt.IntUnit.Byte4);
+    }
+
+    @Specialization(guards = "receiver.getLayout() == Int64")
+    static Object doInt64(ArrowFixedSizeArrayFactory receiver, Object[] args) {
+      return new ArrowFixedArrayInt(arraySize(args), ArrowFixedArrayInt.IntUnit.Byte8);
     }
 
     @CompilerDirectives.TruffleBoundary

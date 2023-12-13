@@ -1,5 +1,6 @@
 package org.enso.interpreter.arrow.node;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.RootNode;
@@ -21,6 +22,12 @@ public class ArrowEvalNode extends RootNode {
   }
 
   public Object execute(VirtualFrame frame) {
-    return fixedPhysicalLayout.execute(code.getLogicalLayout());
+    switch (code.getAction()) {
+      case Allocate:
+        return fixedPhysicalLayout.execute(code.getLogicalLayout());
+      case Cast:
+        return null; // TODO
+    }
+    throw CompilerDirectives.shouldNotReachHere("unknown mode");
   }
 }

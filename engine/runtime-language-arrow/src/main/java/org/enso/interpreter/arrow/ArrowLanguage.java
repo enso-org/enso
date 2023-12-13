@@ -1,7 +1,5 @@
 package org.enso.interpreter.arrow;
 
-import static org.enso.interpreter.arrow.ArrowParser.PhysicalLayout.Primitive;
-
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.TruffleLanguage;
 import org.enso.interpreter.arrow.node.ArrowEvalNode;
@@ -35,13 +33,8 @@ public class ArrowLanguage extends TruffleLanguage<ArrowContext> {
   protected CallTarget parse(ParsingRequest request) {
     ArrowParser.Result code = ArrowParser.parse(request.getSource());
     if (code != null) {
-      switch (code.getPhysicalLayout()) {
-        case Primitive:
-          ArrowEvalNode node = ArrowEvalNode.build(this, code);
-          return node.getCallTarget();
-        default:
-          return null;
-      }
+      ArrowEvalNode node = ArrowEvalNode.build(this, code);
+      return node.getCallTarget();
     } else {
       throw new IllegalArgumentException(
           "unable to parse the code: " + request.getSource().getCharacters().toString());
