@@ -90,7 +90,6 @@ final class Array implements EnsoObject {
     }
 
     var v = items[(int) index];
-    /*
     if (this.hasWarnings(warnings)) {
       hasWarningsProfile.enter();
       Warning[] extracted = this.getWarnings(null, warnings);
@@ -99,7 +98,6 @@ final class Array implements EnsoObject {
       }
       return WithWarnings.wrap(EnsoContext.get(warnings), v, extracted);
     }
-    */
 
     return v;
   }
@@ -185,6 +183,8 @@ final class Array implements EnsoObject {
   @CompilerDirectives.TruffleBoundary
   private EconomicSet<Warning> collectAllWarnings(WarningsLibrary warnings, Node location)
       throws UnsupportedMessageException {
+        return EconomicSet.create();
+        /*
     EnsoContext ctx = EnsoContext.get(location);
     long maxWarnings = ctx.getWarningsLimit();
     Builtins builtins = ctx.getBuiltins();
@@ -206,6 +206,7 @@ final class Array implements EnsoObject {
     EconomicSet<Warning> setOfWarnings = EconomicSet.create(new WithWarnings.WarningEquivalence());
     setOfWarnings.addAll(wrappedWarnings.stream().limit(maxWarnings).toList());
     return setOfWarnings;
+    */
   }
 
   @ExportMessage

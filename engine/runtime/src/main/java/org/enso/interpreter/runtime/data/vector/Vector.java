@@ -226,7 +226,6 @@ abstract class Vector implements EnsoObject {
         @Cached HostValueToEnsoNode toEnso)
         throws InvalidArrayIndexException, UnsupportedMessageException {
       var v = interop.readArrayElement(this.storage, index);
-      /*
       if (warnings.hasWarnings(this.storage)) {
         Warning[] extracted = warnings.getWarnings(this.storage, null);
         if (warnings.hasWarnings(v)) {
@@ -234,7 +233,6 @@ abstract class Vector implements EnsoObject {
         }
         return WithWarnings.wrap(EnsoContext.get(interop), toEnso.execute(v), extracted);
       }
-      */
       return toEnso.execute(v);
     }
 
