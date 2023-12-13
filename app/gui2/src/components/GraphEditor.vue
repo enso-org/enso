@@ -285,9 +285,13 @@ const groupColors = computed(() => {
 
 const editingNode: Interaction = {
   init: () => {
+    // component browser usage is set in `graphStore.editedNodeInfo` watch
     componentBrowserNodePosition.value = targetComponentBrowserNodePosition()
   },
-  cancel: () => (componentBrowserVisible.value = false),
+  cancel: () => {
+    hideComponentBrowser()
+    graphStore.editedNodeInfo = undefined
+  },
 }
 const nodeIsBeingEdited = computed(() => graphStore.editedNodeInfo != null)
 interaction.setWhen(nodeIsBeingEdited, editingNode)
@@ -298,6 +302,7 @@ const creatingNode: Interaction = {
     componentBrowserNodePosition.value = targetComponentBrowserNodePosition()
     componentBrowserVisible.value = true
   },
+  cancel: hideComponentBrowser,
 }
 
 const creatingNodeFromButton: Interaction = {
@@ -310,6 +315,7 @@ const creatingNodeFromButton: Interaction = {
     componentBrowserNodePosition.value = targetPos
     componentBrowserVisible.value = true
   },
+  cancel: hideComponentBrowser,
 }
 
 const creatingNodeFromPortDoubleClick: Interaction = {
@@ -317,6 +323,7 @@ const creatingNodeFromPortDoubleClick: Interaction = {
     // component browser usage is set in event handler
     componentBrowserVisible.value = true
   },
+  cancel: hideComponentBrowser,
 }
 
 const creatingNodeFromEdgeDrop: Interaction = {
@@ -324,12 +331,11 @@ const creatingNodeFromEdgeDrop: Interaction = {
     // component browser usage is set in event handler
     componentBrowserVisible.value = true
   },
+  cancel: hideComponentBrowser,
 }
 
-function resetComponentBrowserState() {
+function hideComponentBrowser() {
   componentBrowserVisible.value = false
-  graphStore.editedNodeInfo = undefined
-  interaction.setCurrent(undefined)
 }
 
 function onComponentBrowserCommit(content: string, requiredImports: RequiredImport[]) {
@@ -343,10 +349,14 @@ function onComponentBrowserCommit(content: string, requiredImports: RequiredImpo
       graphStore.createNode(componentBrowserNodePosition.value, content, metadata, requiredImports)
     }
   }
-  resetComponentBrowserState()
+  // Finish interaction. This should also hide component browser.
+  interaction.setCurrent(undefined)
 }
 
-const onComponentBrowserCancel = resetComponentBrowserState
+function onComponentBrowserCancel() {
+  // Finish interaction. This should also hide component browser.
+  interaction.setCurrent(undefined)
+}
 
 // Watch the `editedNode` in the graph store
 watch(

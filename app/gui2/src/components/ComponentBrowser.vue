@@ -42,7 +42,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   accepted: [searcherExpression: string, requiredImports: RequiredImport[]]
   closed: [searcherExpression: string, requiredImports: RequiredImport[]]
-  canceled: [searcherExpression: string, requiredImports: RequiredImport[]]
+  canceled: []
 }>()
 
 onMounted(() => {
@@ -350,7 +350,7 @@ const handler = componentBrowserBindings.handler({
     scrollToSelected()
   },
   cancelEditing() {
-    emit('canceled', input.code.value, input.importsToAdd())
+    emit('canceled')
   },
 })
 </script>
