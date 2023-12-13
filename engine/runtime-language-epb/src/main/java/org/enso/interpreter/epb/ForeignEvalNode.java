@@ -14,12 +14,9 @@ import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.Source;
 
 class ForeignEvalNode extends RootNode {
-  private final EpbParser.Result code;
-  private @Child
-  ForeignFunctionCallNode foreign;
-
-  private @CompilationFinal
-  ForeignParsingException parseException;
+  private final Source code;
+  private @Child ForeignFunctionCallNode foreign;
+  private @CompilationFinal ForeignParsingException parseException;
   private final String[] argNames;
 
   /**
@@ -31,11 +28,11 @@ class ForeignEvalNode extends RootNode {
    * @return an instance of this node
    */
   static ForeignEvalNode build(
-          EpbLanguage language, EpbParser.Result code, List<String> arguments) {
+          EpbLanguage language, Source code, List<String> arguments) {
     return new ForeignEvalNode(language, code, arguments);
   }
 
-  ForeignEvalNode(EpbLanguage language, EpbParser.Result code, List<String> arguments) {
+  ForeignEvalNode(EpbLanguage language, Source code, List<String> arguments) {
     super(language, new FrameDescriptor());
     this.code = code;
     argNames = arguments.toArray(new String[0]);
@@ -69,26 +66,16 @@ class ForeignEvalNode extends RootNode {
     try {
       if (foreign == null) {
         CompilerDirectives.transferToInterpreterAndInvalidate();
-        var foreignLang = code.getLanguage();
-        String truffleLangId = foreignLang.getTruffleId();
+        String truffleLangId = EpbLanguage.truffleId(code);
         var context = EpbContext.get(this);
         var installedLanguages = context.getEnv().getInternalLanguages();
         if (!installedLanguages.containsKey(truffleLangId)) {
-          this.parseException
-                  = new ForeignParsingException(truffleLangId, installedLanguages.keySet(), this);
+          this.parseException = new ForeignParsingException(truffleLangId, installedLanguages.keySet(), this);
         } else {
-          switch (foreignLang) {
-            case JS:
-              parseJs();
-              break;
-            case PY:
-              parsePy();
-              break;
-            case R:
-              parseR();
-              break;
-            default:
-              throw new IllegalStateException("Unsupported language resulted from EPB parsing");
+          switch (truffleLangId) {
+            case "js" -> parseJs();
+            case "nic" -> parsePy();
+            default -> parseGeneric(truffleLangId);
           }
         }
       }
@@ -105,9 +92,9 @@ class ForeignEvalNode extends RootNode {
             = "var poly_enso_eval=function("
             + args
             + "){\n"
-            + code.getForeignSource()
+            + EpbLanguage.foreignSource(code)
             + "\n};poly_enso_eval";
-    Source source = Source.newBuilder(code.getLanguage().getTruffleId(), wrappedSrc, "").build();
+    Source source = Source.newBuilder("js", wrappedSrc, "").build();
     var fn = inner.evalPublic(this, source);
     foreign = insert(JsForeignNode.build(fn, argNames.length));
   }
@@ -121,23 +108,19 @@ class ForeignEvalNode extends RootNode {
         def polyglot_enso_python_eval("""
             + args
             + "):\n";
-    String indentLines
-            = code.getForeignSource().lines().map(l -> "    " + l).collect(Collectors.joining("\n"));
-    Source source
-            = Source.newBuilder(code.getLanguage().getTruffleId(), head + indentLines, "").build();
+    String indentLines = EpbLanguage.foreignSource(code).lines().map(l -> "    " + l).collect(Collectors.joining("\n"));
+    Source source = Source.newBuilder("python", head + indentLines, code.getName()).build();
     EpbContext context = EpbContext.get(this);
-    CallTarget ct = context.getEnv().parsePublic(source);
+    CallTarget ct = context.getEnv().parsePublic(source, args);
     ct.call();
     Object fn = context.getEnv().importSymbol("polyglot_enso_python_eval");
     foreign = insert(PyForeignNodeGen.create(fn));
   }
 
-  private void parseR() {
-    EpbContext context = EpbContext.get(this);
-    String args = String.join(",", argNames);
-    String wrappedSrc = "function(" + args + "){\n" + code.getForeignSource() + "\n}";
-    Source source = Source.newBuilder(code.getLanguage().getTruffleId(), wrappedSrc, "").build();
-    CallTarget ct = context.getEnv().parsePublic(source);
-    foreign = insert(RForeignNodeGen.create(ct.call()));
+  private void parseGeneric(String language) {
+    var ctx = EpbContext.get(this);
+    Source source = Source.newBuilder(language, EpbLanguage.foreignSource(code), code.getName()).build();
+    CallTarget ct = ctx.getEnv().parsePublic(source, argNames);
+    foreign = insert(new GenericForeignNode(ct));
   }
 }
