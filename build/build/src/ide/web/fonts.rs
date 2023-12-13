@@ -84,7 +84,7 @@ where
     let mut css = String::new();
     for path in paths {
         use std::fmt::Write;
-        let path = format!("{basepath}{}", path.as_ref());
+        let path = format!("{basepath}/{}", path.as_ref());
         let font_face = FontFace {
             family: Cow::Borrowed(family),
             path:   Cow::Borrowed(path.as_str()),
