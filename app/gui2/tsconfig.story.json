@@ -12,7 +12,9 @@
     "public/**/*.vue",
     "stories/**/*",
     "stories/**/*.json",
-    "stories/**/*.vue"
+    "stories/**/*.vue",
+    "runner/**/*",
+    "runner/**/*.json"
   ],
   "exclude": ["src/**/__tests__/*"],
   "compilerOptions": {

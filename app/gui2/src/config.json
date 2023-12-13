@@ -1,0 +1,161 @@
+{
+  "options": {
+    "authentication": {
+      "value": true,
+      "description": "Determines whether user authentication is enabled. This option is always true when executed in the cloud."
+    }
+  },
+  "groups": {
+    "dataCollection": {
+      "description": "Controls the collection of anonymous usage data.",
+      "options": {
+        "usageStatistics": {
+          "value": "",
+          "description": "Determines whether anonymous usage statistics are to be collected.",
+          "primary": false
+        },
+        "crashReports": {
+          "value": "",
+          "description": "Determines whether anonymous crash reports are to be collected.",
+          "primary": false
+        }
+      }
+    },
+    "window": {
+      "description": "The visual and tactile configurations of the application window.",
+      "options": {
+        "frame": {
+          "value": true,
+          "defaultDescription": "false on MacOS, true otherwise",
+          "description": "Draw window frame."
+        },
+        "topBarOffset": {
+          "value": 0,
+          "description": "The offset of rust-rendered toolbar from window's left edge.",
+          "primary": false
+        }
+      }
+    },
+    "startup": {
+      "options": {
+        "project": {
+          "value": "",
+          "description": "The name of the project to open at startup. If the project does not exist, it will be created."
+        },
+        "displayedProjectName": {
+          "value": "",
+          "description": "The name of the project to be displayed to the user.",
+          "primary": false
+        },
+        "platform": {
+          "value": "web",
+          "defaultDescription": "'web' if run in the browser, operating system name otherwise`",
+          "description": "The host platform on which the application is running. This is used to adjust some user interface elements. For example, on macOS, the window close buttons are integrated into the top application panel.",
+          "primary": false
+        }
+      }
+    },
+    "engine": {
+      "description": "Options that control the Enso Engine, the data processing backend.",
+      "options": {
+        "projectManagerUrl": {
+          "value": "",
+          "description": "The address of the Project Manager service.",
+          "primary": false
+        },
+        "rpcUrl": {
+          "value": "",
+          "description": "The address of the Language Server RPC endpoint. This argument should be provided together with `dataUrl`, `namespace`, `project` and `displayedProjectName` options. They enable Enso to connect directly to an already-spawned Language Server of some project.",
+          "primary": false
+        },
+        "dataUrl": {
+          "value": "",
+          "description": "The address of the Language Server Data endpoint. This argument should be provided together with `rpcUrl`, `namespace`, `project` and `dislayedProjectName` options. They enable Enso to connect directly to an already-spawned Language Server of some project.",
+          "primary": false
+        },
+        "namespace": {
+          "value": "local",
+          "description": "The namespace of the opened project. It can be used when connecting to an existing Language Server process.",
+          "primary": false
+        },
+        "configUrl": {
+          "value": "https://raw.githubusercontent.com/enso-org/ide/develop/config.json",
+          "description": "The URL of the application configuration. Used to check for available updates.",
+          "primary": false
+        },
+        "skipMinVersionCheck": {
+          "value": false,
+          "valueEval": "scope.Version.isDev()",
+          "defaultDescription": "true in local builds, false otherwise.",
+          "description": "Determines whether the minimum engine version check should be performed.",
+          "primary": false
+        },
+        "preferredVersion": {
+          "value": "",
+          "valueEval": "String(scope.Version.ide)",
+          "description": "The preferred engine version.",
+          "primary": false
+        }
+      }
+    },
+    "style": {
+      "description": "The available visual and tactile configurations of the application.",
+      "options": {
+        "nodeLabels": {
+          "value": true,
+          "description": "Determines whether node labels should be visible."
+        }
+      }
+    },
+    "featurePreview": {
+      "description": "Options that enable experimental features that are not yet stable.",
+      "options": {
+        "skipAndFreeze": {
+          "value": false,
+          "description": "Enable possibility to skip and freeze nodes.",
+          "primary": false
+        },
+        "theme": {
+          "value": "light",
+          "description": "Color theme.",
+          "primary": false
+        },
+        "newDashboard": {
+          "value": true,
+          "description": "Determines whether the new dashboard with cloud integration is enabled."
+        },
+        "profiling": {
+          "value": false,
+          "description": "Enable the button to profile workflows.",
+          "primary": false
+        }
+      }
+    },
+    "authentication": {
+      "description": "Options to manage application authentication properties.",
+      "options": {
+        "email": {
+          "value": "",
+          "description": "The user email, if any.",
+          "primary": false
+        }
+      },
+      "primary": false
+    },
+    "profile": {
+      "description": "Options for diagnosing application performance problems.",
+      "options": {
+        "workflow": {
+          "value": "",
+          "description": "Specify a workflow for profiling. A workflow is a script of automated actions, such as adding nodes or opening visualizations. To view the list of available workflows, use '-profile.workflow=help'. This option must be used with '-startup.entry=profile'.",
+          "primary": false
+        },
+        "emitUserTimingMeasurements": {
+          "value": false,
+          "description": "When enabled, profiling measurements will be submitted continuously to the User Timing Web API, which can be viewed using standard developer tools. Note that this mode significantly affects performance.",
+          "primary": false
+        }
+      }
+    }
+  }
+}

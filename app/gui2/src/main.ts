@@ -1,21 +1,19 @@
+import CONFIG from '@/config.json' assert { type: 'json' }
+import { isDevMode } from '@/util/detect'
+import { run as runDashboard } from 'enso-authentication'
+import { isOnLinux } from 'enso-common/src/detect'
 import 'enso-dashboard/src/tailwind.css'
+import { decodeQueryParams } from 'lib0/url'
+import { options as cliOptions, objectToGroup } from 'runner/config'
+import { urlParams } from 'runner/host'
+import { version } from 'runner/version'
+
+const vueAppEntry = import('./createApp')
 
 const INITIAL_URL_KEY = `Enso-initial-url`
 
-import * as dashboard from 'enso-authentication'
-import { isMac } from 'lib0/environment'
-import { decodeQueryParams } from 'lib0/url'
-
 const params = decodeQueryParams(location.href)
-
-// Temporary hardcode
-const config = {
-  supportsLocalBackend: true,
-  supportsDeepLinks: isMac,
-  shouldUseAuthentication: false,
-  projectManagerUrl: PROJECT_MANAGER_URL,
-  initialProjectName: params.project ?? null,
-}
+const initialProjectName = params.project ?? null
 
 let unmount: null | (() => void) = null
 let runRequested = false
@@ -23,8 +21,6 @@ let runRequested = false
 export interface StringConfig {
   [key: string]: StringConfig | string
 }
-
-const vueAppEntry = import('./createApp')
 
 async function runApp(config: StringConfig | null, accessToken: string | null, metadata?: object) {
   runRequested = true
@@ -58,32 +54,40 @@ function main() {
   if (isInAuthenticationFlow) {
     history.replaceState(null, '', localStorage.getItem(INITIAL_URL_KEY))
   }
-  // const configOptions = OPTIONS.clone()
   if (isInAuthenticationFlow) {
     history.replaceState(null, '', authenticationUrl)
   } else {
     localStorage.setItem(INITIAL_URL_KEY, location.href)
   }
-  dashboard.run({
-    appRunner,
-    logger: console,
-    supportsLocalBackend: true, // TODO
-    supportsDeepLinks: false, // TODO
-    projectManagerUrl: config.projectManagerUrl,
-    isAuthenticationDisabled: !config.shouldUseAuthentication,
-    shouldShowDashboard: true,
-    initialProjectName: config.initialProjectName,
-    onAuthenticated() {
-      if (isInAuthenticationFlow) {
-        const initialUrl = localStorage.getItem(INITIAL_URL_KEY)
-        if (initialUrl != null) {
-          // This is not used past this point, however it is set to the initial URL
-          // to make refreshing work as expected.
-          history.replaceState(null, '', initialUrl)
+
+  const options = cliOptions.merge(objectToGroup(CONFIG, { Version: version }))
+  const parseOk = options.loadAllAndDisplayHelpIfUnsuccessful([urlParams()])
+  if (parseOk) {
+    const shouldUseAuthentication = options.options.authentication.value
+    const projectManagerUrl = options.groups.engine.options.projectManagerUrl.value || null
+
+    runDashboard({
+      appRunner,
+      logger: console,
+      // This entrypoint should never run in the cloud dashboard.
+      supportsLocalBackend: true,
+      supportsDeepLinks: !isDevMode && !isOnLinux(),
+      projectManagerUrl,
+      isAuthenticationDisabled: !shouldUseAuthentication,
+      shouldShowDashboard: true,
+      initialProjectName,
+      onAuthenticated() {
+        if (isInAuthenticationFlow) {
+          const initialUrl = localStorage.getItem(INITIAL_URL_KEY)
+          if (initialUrl != null) {
+            // This is not used past this point, however it is set to the initial URL
+            // to make refreshing work as expected.
+            history.replaceState(null, '', initialUrl)
+          }
         }
-      }
-    },
-  })
+      },
+    })
+  }
 }
 
 main()
