@@ -96,19 +96,3 @@ function placeholders(ast: Ast.Ast, placeholder: string, outIn?: Ast.NodeChild<A
   }
   return out
 }
-
-if (import.meta.vitest) {
-  const { test, expect } = import.meta.vitest
-  const patternAst = Ast.parse('a __ c')
-  test('placeholders', () => {
-    expect(placeholders(patternAst, '__').length).toBe(1)
-  })
-
-  test('instantiate', () => {
-    const pattern = Pattern.parse('a __ c')
-    const edit = MutableModule.Transient()
-    const intron = Ast.parse('b', edit)
-    const instantiated = pattern.instantiate(edit, [intron.exprId])
-    expect(instantiated.code(edit)).toBe('a b c')
-  })
-}

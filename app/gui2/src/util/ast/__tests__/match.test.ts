@@ -1,6 +1,7 @@
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
 import { expect, test } from 'vitest'
+import { MutableModule } from '../abstract'
 
 test.each([
   { target: 'a.b', pattern: '__', extracted: ['a.b'] },
@@ -94,4 +95,15 @@ test.each([
           .replace(/"/g, "'")}`
       : `'${target}' does not match '${pattern}'`,
   ).toStrictEqual(extracted)
+})
+
+test.each([
+  { template: 'a __ c', source: 'b', result: 'a b c' },
+  { template: 'a . __ . c', source: 'b', result: 'a . b . c' },
+])('instantiate', ({ template, source, result }) => {
+  const pattern = Pattern.parse(template)
+  const edit = MutableModule.Transient()
+  const intron = Ast.parse(source, edit)
+  const instantiated = pattern.instantiate(edit, [intron.exprId])
+  expect(instantiated.code(edit)).toBe(result)
 })
