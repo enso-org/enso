@@ -148,11 +148,6 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             pub arg:    Tree<'s>,
             pub close:  Option<token::CloseSymbol<'s>>,
         },
-        /// Application using the `default` keyword.
-        DefaultApp {
-            pub func:    Tree<'s>,
-            pub default: token::Ident<'s>,
-        },
         /// Application of an operator, like `a + b`. The left or right operands might be missing,
         /// thus creating an operator section like `a +`, `+ b`, or simply `+`. See the
         /// [`OprSectionBoundary`] variant to learn more about operator section scope.
@@ -216,6 +211,8 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             pub name: Tree<'s>,
             /// The argument patterns.
             pub args: Vec<ArgumentDefinition<'s>>,
+            /// An optional specification of return type, like `-> Integer`.
+            pub returns: Option<ReturnSpecification<'s>>,
             /// The `=` token.
             pub equals: token::Operator<'s>,
             /// The body, which will typically be an inline expression or a `BodyBlock` expression.
@@ -605,6 +602,22 @@ impl<'s> span::Builder<'s> for ArgumentType<'s> {
     }
 }
 
+/// A function return type specification.
+#[derive(Clone, Debug, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
+pub struct ReturnSpecification<'s> {
+    /// The `->` operator.
+    pub arrow:  token::Operator<'s>,
+    /// The function's return type.
+    #[reflect(rename = "type")]
+    pub r#type: Tree<'s>,
+}
+
+impl<'s> span::Builder<'s> for ReturnSpecification<'s> {
+    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
+        span.add(&mut self.arrow).add(&mut self.r#type)
+    }
+}
+
 
 // === CaseOf ===
 
@@ -810,11 +823,6 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
             let open = Some(open);
             let close = Some(close.clone());
             Tree::named_app(func, open, lhs.token.clone(), opr.clone(), rhs.clone(), close)
-        }
-        (_, Variant::Ident(Ident { token })) if token.is_default => {
-            let mut token = token.clone();
-            token.left_offset += arg.span.left_offset;
-            Tree::default_app(func, token)
         }
         _ => Tree::app(func, arg)
     }
