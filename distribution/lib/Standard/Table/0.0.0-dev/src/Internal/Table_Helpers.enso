@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
@@ -514,5 +515,5 @@ replace_columns_with_transformed_columns : Table -> Text | Integer | Regex | Vec
 replace_columns_with_transformed_columns table selectors transformer error_on_missing_columns=True on_problems=Report_Warning =
     internal_columns = table.columns_helper.select_columns selectors Case_Sensitivity.Default reorder=False error_on_missing_columns=error_on_missing_columns on_problems=on_problems
     columns = internal_columns.map table.columns_helper.make_column
-    new_columns = columns.map transformer
+    new_columns = columns.map on_problems=No_Wrap.Value transformer
     replace_columns_with_columns table columns new_columns

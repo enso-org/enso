@@ -1,0 +1,62 @@
+from Standard.Base import all
+
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+from Standard.Base.Data.Array_Proxy import Array_Proxy
+
+from Standard.Test import Bench
+
+import project.Vector.Utils
+
+polyglot java import java.util.ArrayList
+
+options = Bench.options . set_warmup (Bench.phase_conf 1 3) . set_measure (Bench.phase_conf 1 3)
+
+type Data
+    Value ~vec
+
+## Repeats 0..9
+create_vec = Vector.new 100000 (i-> i%10)
+
+id i = i
+
+id_one_error i = if i != 5 then i else
+    Error.throw (Illegal_Argument.Error "error")
+
+always_throw i =
+    _ = [i]
+    Error.throw (Illegal_Argument.Error "error")
+
+throw_ten_percent i = if i > 0 then i else
+    Error.throw (Illegal_Argument.Error "error")
+
+collect_benches = Bench.build builder->
+    unaltered_data = Data.Value create_vec
+
+    type_group vector_type alter =
+        data = Data.Value (alter unaltered_data.vec)
+
+        builder.group "Map_Error_Benchmark_"+vector_type options group_builder->
+            group_builder.specify "Map_Id_No_Errors" <|
+                data.vec.map id
+            group_builder.specify "Map_Id_One_Error" <|
+                data.vec.map id_one_error . catch
+            group_builder.specify "Map_Id_All_Errors_With_Ignore" <|
+                data.vec.map always_throw on_problems=Problem_Behavior.Ignore
+            group_builder.specify "Map_Id_Ten_Percent_Errors_With_Ignore" <|
+                data.vec.map throw_ten_percent on_problems=Problem_Behavior.Ignore
+
+    type_group "Vector" identity
+    type_group "Array" (v -> v.to_array)
+    type_group "JavaArrayList" v->
+        arr = ArrayList.new
+        v.each (x -> arr.add x)
+        arr
+    type_group "Array_Proxy" v->
+        Array_Proxy.new v.length (ix -> v.at ix)
+    type_group "Slice" v->
+        v2 = v+[Nothing]
+        sliced_vector = v2.slice 0 v.length
+        sliced_array = sliced_vector.to_array
+        sliced_array
+
+main = collect_benches . run_main
