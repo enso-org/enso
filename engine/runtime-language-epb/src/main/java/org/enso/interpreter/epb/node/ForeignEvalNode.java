@@ -1,28 +1,23 @@
 package org.enso.interpreter.epb.node;
 
-import com.oracle.truffle.api.CallTarget;
-import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
-import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.frame.FrameDescriptor;
-import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.interop.InteropException;
-import com.oracle.truffle.api.interop.TruffleObject;
-import com.oracle.truffle.api.library.CachedLibrary;
-import com.oracle.truffle.api.library.ExportLibrary;
-import com.oracle.truffle.api.library.ExportMessage;
-import com.oracle.truffle.api.library.Message;
-import com.oracle.truffle.api.library.ReflectionLibrary;
-import com.oracle.truffle.api.nodes.RootNode;
-import com.oracle.truffle.api.source.Source;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
+
 import org.enso.interpreter.epb.EpbContext;
 import org.enso.interpreter.epb.EpbLanguage;
 import org.enso.interpreter.epb.EpbParser;
 import org.enso.interpreter.epb.runtime.ForeignParsingException;
 import org.enso.interpreter.epb.runtime.GuardedTruffleContext;
+
+import com.oracle.truffle.api.CallTarget;
+import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
+import com.oracle.truffle.api.frame.FrameDescriptor;
+import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.interop.InteropException;
+import com.oracle.truffle.api.nodes.RootNode;
+import com.oracle.truffle.api.source.Source;
 
 public class ForeignEvalNode extends RootNode {
   private final EpbParser.Result code;
@@ -58,22 +53,12 @@ public class ForeignEvalNode extends RootNode {
       var ctx = EpbContext.get(this);
       var ctxLock = ctx.getLock();
       ctxLock.lock();
-      Object prev = null;
       try {
-        if (ctx.getInnerContext() != null) {
-          prev = ctx.getInnerContext().enter(this);
-        }
         var toRet = foreign.execute(frame.getArguments());
-        if (prev != null && toRet instanceof TruffleObject) {
-          toRet = new EpbProxyValue(toRet, ctx.getInnerContext());
-        }
         return toRet;
       } catch (InteropException ex) {
         throw new ForeignParsingException(ex.getMessage(), this);
       } finally {
-        if (ctx.getInnerContext() != null) {
-          ctx.getInnerContext().leave(this, prev);
-        }
         ctxLock.unlock();
       }
     } else {
@@ -126,25 +111,16 @@ public class ForeignEvalNode extends RootNode {
   private void parseJs() {
     EpbContext context = EpbContext.get(this);
     GuardedTruffleContext inner = context.getInnerContext();
-    Object p = inner.enter(this);
-    try {
-      String args = Arrays.stream(argNames).skip(1).collect(Collectors.joining(","));
-      String wrappedSrc
-              = "var poly_enso_eval=function("
-              + args
-              + "){\n"
-              + code.getForeignSource()
-              + "\n};poly_enso_eval";
-      Source source = Source.newBuilder(code.getLanguage().getTruffleId(), wrappedSrc, "").build();
-
-      // After calling inner.enter, operating in a different, isolated truffle instance so need to
-      // call one with the correct semantics.
-      CallTarget ct = EpbContext.get(this).getEnv().parsePublic(source);
-      Object fn = ct.call();
-      foreign = insert(JsForeignNode.build(fn, argNames.length));
-    } finally {
-      inner.leave(this, p);
-    }
+    String args = Arrays.stream(argNames).skip(1).collect(Collectors.joining(","));
+    String wrappedSrc
+            = "var poly_enso_eval=function("
+            + args
+            + "){\n"
+            + code.getForeignSource()
+            + "\n};poly_enso_eval";
+    Source source = Source.newBuilder(code.getLanguage().getTruffleId(), wrappedSrc, "").build();
+    var fn = inner.eval(this, source);
+    foreign = insert(JsForeignNode.build(fn, argNames.length));
   }
 
   private void parsePy() {

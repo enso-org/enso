@@ -4,6 +4,7 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleContext;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.source.Source;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
@@ -81,5 +82,9 @@ public class GuardedTruffleContext {
   @CompilerDirectives.TruffleBoundary
   private void unlock() {
     lock.unlock();
+  }
+
+  public final Object eval(Node node, Source source) {
+    return context.evalPublic(node, source);
   }
 }
