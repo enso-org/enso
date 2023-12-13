@@ -24,6 +24,9 @@ import {
 import * as fileFormat from './fileFormat'
 import { WSSharedDoc } from './ydoc'
 
+const SOURCE_DIR = 'src'
+const EXTENSION = '.enso'
+
 const DEBUG_LOG_SYNC = false
 
 function createOpenRPCClient(url: string) {
@@ -115,7 +118,7 @@ export class LanguageServerSession {
           }
           case 'Modified': {
             await exponentialBackoff(
-              async () => this.getModuleModelIfExists(event.path)?.reload(),
+              async () => this.tryGetExistingModuleModel(event.path)?.reload(),
               {
                 onBeforeRetry: onBeforeRetry('Could not reload file'),
                 onSuccess(retryCount) {
@@ -137,7 +140,7 @@ export class LanguageServerSession {
     })
     this.ls.on('text/fileModifiedOnDisk', async (event) => {
       try {
-        await exponentialBackoff(async () => this.getModuleModelIfExists(event.path)?.reload(), {
+        await exponentialBackoff(async () => this.tryGetExistingModuleModel(event.path)?.reload(), {
           onBeforeRetry: onBeforeRetry('Could not reload file'),
           onSuccess(retryCount) {
             if (retryCount === 0) return
@@ -177,18 +180,18 @@ export class LanguageServerSession {
 
   private async readInitialState() {
     try {
-      const { contentRoots } = await this.ls.initProtocolConnection(this.clientId)
-      const projectRoot = contentRoots.find((root) => root.type === 'Project') ?? null
+      const connection = await this.ls.initProtocolConnection(this.clientId)
+      const projectRoot = connection.contentRoots.find((root) => root.type === 'Project')
       if (!projectRoot) throw new Error('Missing project root')
       this.projectRootId = projectRoot.id
       await this.ls.acquireReceivesTreeUpdates({ rootId: this.projectRootId, segments: [] })
       const files = await this.scanSourceFiles()
-      const promises = this.indexDoc.doc.transact(
+      const moduleOpenPromises = this.indexDoc.doc.transact(
         () =>
           files.map((file) => this.getModuleModel(pushPathSegment(file.path, file.name)).open()),
         this,
       )
-      await Promise.all(promises)
+      await Promise.all(moduleOpenPromises)
     } catch (error) {
       console.error('LS initialization failed.')
       throw error
@@ -198,13 +201,14 @@ export class LanguageServerSession {
 
   async scanSourceFiles() {
     this.assertProjectRoot()
-    const srcModules = await this.ls.listFiles({ rootId: this.projectRootId, segments: ['src'] })
-    return srcModules.paths.filter((file) => file.type === 'File' && file.name.endsWith('.enso'))
+    const sourceDir: Path = { rootId: this.projectRootId, segments: [SOURCE_DIR] }
+    const srcModules = await this.ls.listFiles(sourceDir)
+    return srcModules.paths.filter((file) => file.type === 'File' && file.name.endsWith(EXTENSION))
   }
 
-  getModuleModelIfExists(path: Path): ModulePersistence | null {
+  tryGetExistingModuleModel(path: Path): ModulePersistence | undefined {
     const name = pathToModuleName(path)
-    return this.authoritativeModules.get(name) ?? null
+    return this.authoritativeModules.get(name)
   }
 
   getModuleModel(path: Path): ModulePersistence {
@@ -232,12 +236,12 @@ export class LanguageServerSession {
     this.retainCount -= 1
     if (this.retainCount !== 0) return
     const modules = this.authoritativeModules.values()
-    const promises = Array.from(modules, (mod) => mod.dispose())
+    const moduleDisposePromises = Array.from(modules, (mod) => mod.dispose())
     this.authoritativeModules.clear()
     this.model.doc.destroy()
     this.ls.dispose()
     LanguageServerSession.sessions.delete(this.url)
-    await Promise.all(promises)
+    await Promise.all(moduleDisposePromises)
   }
 
   getYDoc(guid: string): WSSharedDoc | undefined {
@@ -246,11 +250,13 @@ export class LanguageServerSession {
 }
 
 function isSourceFile(path: Path): boolean {
-  return path.segments[0] === 'src' && path.segments[path.segments.length - 1].endsWith('.enso')
+  return (
+    path.segments[0] === SOURCE_DIR && path.segments[path.segments.length - 1].endsWith(EXTENSION)
+  )
 }
 
 function pathToModuleName(path: Path): string {
-  if (path.segments[0] === 'src') return path.segments.slice(1).join('/')
+  if (path.segments[0] === SOURCE_DIR) return path.segments.slice(1).join('/')
   else return '//' + path.segments.join('/')
 }
 
@@ -318,7 +324,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
   private setState(state: LsSyncState) {
     if (this.state !== LsSyncState.Disposed) {
       if (DEBUG_LOG_SYNC) {
-        console.log('State change:', LsSyncState[this.state], '->', LsSyncState[state])
+        console.debug('State change:', LsSyncState[this.state], '->', LsSyncState[state])
       }
       this.state = state
       if (state === LsSyncState.Synchronized) {
@@ -329,6 +335,8 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
     }
   }
 
+  /** Set the current state to the given state while the callback is running.
+   * Set the current state back to {@link LsSyncState.Synchronized} when the callback finishes. */
   private async withState(state: LsSyncState, callback: () => void | Promise<void>) {
     this.setState(state)
     await callback()
@@ -370,7 +378,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
         return
       }
       default: {
-        const _: never = this.state
+        this.state satisfies never
         return
       }
     }
@@ -440,17 +448,17 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
     const newVersion = computeTextChecksum(newContent)
 
     if (DEBUG_LOG_SYNC) {
-      console.log(' === changes === ')
-      console.log('number of edits:', edits.length)
-      console.log('metadata:', metadataKeys)
-      console.log('content:', contentDelta)
-      console.log('idMap:', idMapKeys)
+      console.debug(' === changes === ')
+      console.debug('number of edits:', edits.length)
+      console.debug('metadata:', metadataKeys)
+      console.debug('content:', contentDelta)
+      console.debug('idMap:', idMapKeys)
       if (edits.length > 0) {
-        console.log('version:', this.syncedVersion, '->', newVersion)
-        console.log('Content diff:')
-        console.log(prettyPrintDiff(this.syncedContent, newContent))
+        console.debug('version:', this.syncedVersion, '->', newVersion)
+        console.debug('Content diff:')
+        console.debug(prettyPrintDiff(this.syncedContent, newContent))
       }
-      console.log(' =============== ')
+      console.debug(' =============== ')
     }
     if (edits.length === 0) {
       if (newVersion !== this.syncedVersion) {
@@ -500,12 +508,14 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
 
       const idMap = new IdMap(this.doc.idMap, this.doc.contents)
       for (const [{ index, size }, id] of idMapMeta) {
-        const range = [index.value, index.value + size.value]
-        if (typeof range[0] !== 'number' || typeof range[1] !== 'number') {
+        const start = index.value
+        const end = index.value + size.value
+        const range: [number, number] = [start, end]
+        if (typeof start !== 'number' || typeof end !== 'number') {
           console.error(`Invalid range for id ${id}:`, range)
           continue
         }
-        idMap.insertKnownId([index.value, index.value + size.value], id as ExprId)
+        idMap.insertKnownId(range, id as ExprId)
       }
 
       const keysToDelete = new Set(this.doc.metadata.keys())
@@ -562,7 +572,8 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
         return
       }
       default: {
-        const _: never = this.state
+        this.state satisfies never
+        return
       }
     }
   }
@@ -642,7 +653,8 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
         return
       }
       default: {
-        const _: never = this.state
+        this.state satisfies never
+        return
       }
     }
   }
