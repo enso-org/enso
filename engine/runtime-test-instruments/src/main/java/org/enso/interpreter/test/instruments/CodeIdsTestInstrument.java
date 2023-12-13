@@ -3,10 +3,10 @@ package org.enso.interpreter.test.instruments;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.*;
 import com.oracle.truffle.api.nodes.Node;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.LinkedHashMap;
 import java.util.Map;
+
+import org.openide.util.Lookup;
 
 import java.util.UUID;
 
@@ -21,22 +21,11 @@ import java.util.UUID;
     services = CodeIdsTestInstrument.class)
 public class CodeIdsTestInstrument extends TruffleInstrument {
   public static final String INSTRUMENT_ID = "ids-test";
-  private static final Class<?> exprNodeClass;
-  private static final Method exprNodeGetId;
-  private static final Class<?> tailCallExceptionClass;
+  private static final RuntimeTestService runtimeTestService;
   private Env env;
 
-  /**
-   * Use reflection to call methods from `runtime` project. We cannot use `runtime` as a dependency.
-   */
   static {
-    try {
-      exprNodeClass = Class.forName("org.enso.interpreter.node.ExpressionNode");
-      exprNodeGetId = exprNodeClass.getMethod("getId");
-      tailCallExceptionClass = Class.forName("org.enso.interpreter.runtime.control.TailCallException");
-    } catch (ClassNotFoundException | NoSuchMethodException e) {
-      throw new AssertionError(e);
-    }
+    runtimeTestService = Lookup.getDefault().lookup(RuntimeTestService.class);
   }
 
   /**
@@ -120,11 +109,11 @@ public class CodeIdsTestInstrument extends TruffleInstrument {
           return;
         }
         Node node = context.getInstrumentedNode();
-        if (!(isInstanceOf(node, exprNodeClass))) {
+        if (!runtimeTestService.isExpressionNode(node)) {
           return;
         }
         nodes.put(this, result);
-        UUID id = exprNodeGetId(node);
+        UUID id = runtimeTestService.getExpressionNodeID(node);
         if (id == null || !id.equals(expectedId)) {
           return;
         }
@@ -137,31 +126,21 @@ public class CodeIdsTestInstrument extends TruffleInstrument {
         return clazz.isInstance(obj);
       }
 
-      private UUID exprNodeGetId(Object exprNode) {
-        assert isInstanceOf(exprNode, exprNodeClass);
-        try {
-          return (UUID) exprNodeGetId.invoke(exprNode);
-        } catch (IllegalAccessException | InvocationTargetException e) {
-          throw new AssertionError(e);
-        }
-      }
-
       /**
        * Checks if the specified was called, if its execution triggered TCO.
        *
-       * @param context current execution context.
        * @param frame current execution frame.
        * @param exception the exception thrown from this node's execution.
        */
       @Override
       public void onReturnExceptional(VirtualFrame frame, Throwable exception) {
-        if (!isInstanceOf(exception, tailCallExceptionClass)) {
+        if (!runtimeTestService.isTailCallException(exception)) {
           return;
         }
-        if (!isInstanceOf(context.getInstrumentedNode(), exprNodeClass)) {
+        if (!runtimeTestService.isExpressionNode(context.getInstrumentedNode())) {
           return;
         }
-        UUID id = exprNodeGetId(context.getInstrumentedNode());
+        UUID id = runtimeTestService.getExpressionNodeID(context.getInstrumentedNode());
         if (expectedResult == null) {
           successful = true;
         }
@@ -171,8 +150,8 @@ public class CodeIdsTestInstrument extends TruffleInstrument {
       public String toString() {
         var sb = new StringBuilder();
         sb.append(context.getInstrumentedNode().getClass().getSimpleName());
-        if (isInstanceOf(context.getInstrumentedNode(), exprNodeClass)) {
-          UUID id = exprNodeGetId(context.getInstrumentedNode());
+        if (runtimeTestService.isExpressionNode(context.getInstrumentedNode())) {
+          UUID id = runtimeTestService.getExpressionNodeID(context.getInstrumentedNode());
           sb.append("@").append(id);
         }
         sb.append(" ");

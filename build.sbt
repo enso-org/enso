@@ -1522,12 +1522,17 @@ lazy val `runtime-test-instruments` =
       modulePath := {
         JPMSUtils.filterModulesFromUpdate(
           update.value,
-          GraalVM.modules,
+          GraalVM.modules ++ Seq(
+            "org.netbeans.api"     % "org-openide-util-lookup"  % netbeansApiVersion
+          ),
           streams.value.log,
           shouldContainAll = true
         )
       },
-      libraryDependencies ++= GraalVM.modules
+      libraryDependencies ++= GraalVM.modules,
+      libraryDependencies ++= Seq(
+        "org.netbeans.api"     % "org-openide-util-lookup"  % netbeansApiVersion    % "provided",
+      )
     )
 
 lazy val runtime = (project in file("engine/runtime"))
@@ -1596,7 +1601,8 @@ lazy val runtime = (project in file("engine/runtime"))
       val updateReport = (Test / update).value
       val requiredModIds =
         GraalVM.modules ++ GraalVM.langsPkgs ++ logbackPkg ++ Seq(
-          "org.slf4j" % "slf4j-api" % slf4jVersion
+          "org.slf4j" % "slf4j-api" % slf4jVersion,
+          "org.netbeans.api"     % "org-openide-util-lookup"  % netbeansApiVersion
         )
       val requiredMods = JPMSUtils.filterModulesFromUpdate(
         updateReport,
