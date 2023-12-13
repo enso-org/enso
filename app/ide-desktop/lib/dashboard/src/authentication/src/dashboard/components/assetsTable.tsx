@@ -1525,12 +1525,15 @@ export default function AssetsTable(props: AssetsTableProps) {
                                     }
                                 }
                                 const shouldAdd = labelsPresent * 2 < ids.size * payload.size
-                                dispatchAssetEvent({
-                                    type: shouldAdd
-                                        ? assetEventModule.AssetEventType.temporarilyAddLabels
-                                        : assetEventModule.AssetEventType.temporarilyRemoveLabels,
-                                    ids,
-                                    labelNames: payload,
+                                window.setTimeout(() => {
+                                    dispatchAssetEvent({
+                                        type: shouldAdd
+                                            ? assetEventModule.AssetEventType.temporarilyAddLabels
+                                            : assetEventModule.AssetEventType
+                                                  .temporarilyRemoveLabels,
+                                        ids,
+                                        labelNames: payload,
+                                    })
                                 })
                             }
                             return oldSelectedKeys
@@ -1538,10 +1541,12 @@ export default function AssetsTable(props: AssetsTableProps) {
                     }}
                     onRowDragEnd={() => {
                         setSelectedKeys(oldSelectedKeys => {
-                            dispatchAssetEvent({
-                                type: assetEventModule.AssetEventType.temporarilyAddLabels,
-                                ids: oldSelectedKeys,
-                                labelNames: set.EMPTY,
+                            window.setTimeout(() => {
+                                dispatchAssetEvent({
+                                    type: assetEventModule.AssetEventType.temporarilyAddLabels,
+                                    ids: oldSelectedKeys,
+                                    labelNames: set.EMPTY,
+                                })
                             })
                             return oldSelectedKeys
                         })
@@ -1565,18 +1570,22 @@ export default function AssetsTable(props: AssetsTableProps) {
                                     }
                                 }
                                 const shouldAdd = labelsPresent * 2 < ids.size * payload.size
-                                dispatchAssetEvent({
-                                    type: shouldAdd
-                                        ? assetEventModule.AssetEventType.addLabels
-                                        : assetEventModule.AssetEventType.removeLabels,
-                                    ids,
-                                    labelNames: payload,
+                                window.setTimeout(() => {
+                                    dispatchAssetEvent({
+                                        type: shouldAdd
+                                            ? assetEventModule.AssetEventType.addLabels
+                                            : assetEventModule.AssetEventType.removeLabels,
+                                        ids,
+                                        labelNames: payload,
+                                    })
                                 })
                             } else {
-                                dispatchAssetEvent({
-                                    type: assetEventModule.AssetEventType.temporarilyAddLabels,
-                                    ids,
-                                    labelNames: set.EMPTY,
+                                window.setTimeout(() => {
+                                    dispatchAssetEvent({
+                                        type: assetEventModule.AssetEventType.temporarilyAddLabels,
+                                        ids,
+                                        labelNames: set.EMPTY,
+                                    })
                                 })
                             }
                             return oldSelectedKeys
@@ -1590,7 +1599,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                             !event.currentTarget.contains(event.relatedTarget)
                         ) {
                             setSelectedKeys(oldSelectedKeys => {
-                                queueMicrotask(() => {
+                                window.setTimeout(() => {
                                     dispatchAssetEvent({
                                         type: assetEventModule.AssetEventType.temporarilyAddLabels,
                                         ids: oldSelectedKeys,
