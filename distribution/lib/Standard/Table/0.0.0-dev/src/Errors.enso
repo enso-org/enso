@@ -167,18 +167,6 @@ type Unquoted_Delimiter
     to_display_text self =
         "The "+self.column+" at rows "+self.rows.short_display_text+" contains the delimiter and there is no specified quote character."
 
-## Warning when additional warnings occurred.
-type Additional_Warnings
-    ## PRIVATE
-    Error (count:Integer)
-
-    ## PRIVATE
-
-       Create a human-readable version of the error.
-    to_display_text : Text
-    to_display_text self =
-        "There were "+self.count.to_text+" additional issues."
-
 ## Indicates that when loading a delimited file, a row was encountered which had
    too many or too few columns.
 

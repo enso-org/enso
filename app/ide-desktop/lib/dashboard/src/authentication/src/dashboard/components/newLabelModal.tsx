@@ -16,28 +16,32 @@ import Modal from './modal'
 
 /** Props for a {@link NewLabelModal}. */
 export interface NewLabelModalProps {
-    labelNames: Set<string>
+    labels: backend.Label[]
     eventTarget: HTMLElement
     doCreate: (value: string, color: backend.LChColor) => void
 }
 
 /** A modal for creating a new label. */
 export default function NewLabelModal(props: NewLabelModalProps) {
-    const { labelNames, eventTarget, doCreate } = props
+    const { labels, eventTarget, doCreate } = props
     const logger = loggerProvider.useLogger()
     const { unsetModal } = modalProvider.useSetModal()
     const position = React.useMemo(() => eventTarget.getBoundingClientRect(), [eventTarget])
 
+    const labelNames = React.useMemo(
+        () => new Set<string>(labels.map(label => label.value)),
+        [labels]
+    )
+    const leastUsedColor = React.useMemo(() => backend.leastUsedColor(labels), [labels])
+
     const [value, setName] = React.useState('')
     const [color, setColor] = React.useState<backend.LChColor | null>(null)
-    const canSubmit = Boolean(value && !labelNames.has(value) && color)
+    const canSubmit = Boolean(value && !labelNames.has(value))
 
     const onSubmit = () => {
         unsetModal()
         try {
-            if (color != null) {
-                doCreate(value, color)
-            }
+            doCreate(value, color ?? leastUsedColor)
         } catch (error) {
             const message = errorModule.getMessageOrToString(error)
             toastify.toast.error(message)

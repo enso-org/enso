@@ -299,6 +299,10 @@ class Main implements AppRunner {
             ideElement.style.top = '-100vh'
             ideElement.style.display = 'fixed'
         }
+        const ide2Element = document.getElementById('app')
+        if (ide2Element) {
+            ide2Element.style.display = 'none'
+        }
 
         /** TODO [NP]: https://github.com/enso-org/cloud-v2/issues/345
          * `content` and `dashboard` packages **MUST BE MERGED INTO ONE**. The IDE

@@ -258,10 +258,6 @@ export class AliasAnalyzer {
         // Intentionally omit name, as it is not a variable usage.
         this.processTree(node.arg)
         break
-      case RawAst.Tree.Type.DefaultApp:
-        this.processTree(node.func)
-        // Intentionally omit `default` keyword, because it is a keyword, not a variable usage.
-        break
       case RawAst.Tree.Type.OprApp: {
         const opr = node.opr.ok ? readAstOrTokenSpan(node.opr.value, this.code) : ''
         switch (opr) {

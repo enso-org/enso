@@ -1,4 +1,5 @@
 from Standard.Base import all hiding First, Last
+import Standard.Base.Data.Vector.No_Wrap
 from Standard.Base.Runtime import assert
 
 import project.Data.Aggregate_Column.Aggregate_Column
@@ -59,7 +60,7 @@ prepare_aggregate_columns naming_helper aggregates table error_on_missing_column
     keys_problem_builder.attach_problems_before Problem_Behavior.Report_Error <|
         assert (resolved_keys.contains Nothing . not)
         problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
-        valid_resolved_aggregate_columns = aggregates.map (resolve_aggregate table problem_builder) . filter x-> x.is_nothing.not
+        valid_resolved_aggregate_columns = aggregates.map on_problems=No_Wrap.Value (resolve_aggregate table problem_builder) . filter x-> x.is_nothing.not
 
         # Grouping Key
         key_columns = resolved_keys.map .column
@@ -71,7 +72,7 @@ prepare_aggregate_columns naming_helper aggregates table error_on_missing_column
            The second pass resolves the default names, ensuring that they do not
            clash with the user-specified names (ensuring that user-specified names
            take precedence).
-        pass_1 = valid_resolved_aggregate_columns.map c-> if c.new_name == "" then "" else
+        pass_1 = valid_resolved_aggregate_columns.map on_problems=No_Wrap.Value c-> if c.new_name == "" then "" else
             # Verify if the user-provided name is valid and if not, throw an error.
             naming_helper.ensure_name_is_valid c.new_name <|
                 unique.make_unique c.new_name

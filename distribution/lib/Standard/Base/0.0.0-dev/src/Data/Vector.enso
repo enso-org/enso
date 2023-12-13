@@ -16,6 +16,7 @@ import project.Errors.Common.Not_Found
 import project.Errors.Common.Type_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
+import project.Errors.Wrapped_Error.Wrapped_Error
 import project.Function.Function
 import project.Internal.Array_Like_Helpers
 import project.Math
@@ -23,7 +24,6 @@ import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Random.Random
-import project.Warning.Warning
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Filter_Condition import unify_condition_or_predicate, unify_condition_predicate_or_element
 from project.Data.Index_Sub_Range import drop_helper, Index_Sub_Range, take_helper
@@ -581,14 +581,37 @@ type Vector a
        Arguments:
        - function: A function that takes an element in the vector and returns
          some transformation of that element.
+       - on_problems: Specifies how to handle any problems that arise in
+         `function`.
+
+       ? Problem Handling
+
+         The result of Errors thrown when executing the function depend on
+         `on_problems`:
+         - Report_Error: The first error is thrown, and is wrapped in
+           `Map_Error`.
+         - No_Wrap: The first error is thrown, and is not wrapped in
+           `Map_Error`.
+         - Report_Warning: The result for that element is `Nothing`, 
+           the error is attached as a warning. Currently unimplemented.
+         - Ignore: The result is `Nothing`, and the error is
+           ignored.
+
+         Errors that are thrown when executing the supplied function are wrapped
+         in `Map_Error`, which contains the index at which the error occurred.
+
+         In the `Problem_Behavior.Report_Warning` case, only `MAX_MAP_WARNINGS`
+         warnings are attached to result values. After that, the warnings are
+         dropped, but a count of the additional warnings is attached in an
+         `Additional_Warnings` warning.
 
        > Example
          Add 1 to each element of the vector.
 
              [1, 2, 3] . map +1
-    map : (Any -> Any) -> Vector Any
-    map self function =
-        Vector.new self.length i-> function (self.at i)
+    map : (Any -> Any) -> Problem_Behavior | No_Wrap -> Vector Any
+    map self function on_problems=Problem_Behavior.Report_Error =
+        Array_Like_Helpers.vector_from_function self.length (function << self.at) on_problems
 
     ## Applies a function to each element of the vector, returning the `Vector`
        that contains all results concatenated.
@@ -596,14 +619,37 @@ type Vector a
        Arguments:
        - function: A function that takes an element in the vector, transforms
          it, and returns a `Vector`.
+       - on_problems: Specifies how to handle any problems that arise in
+         `function`.
+
+       ? Problem Handling
+
+         The result of Errors thrown when executing the function depend on
+         `on_problems`:
+         - Report_Error: The first error is thrown, and is wrapped in
+           `Map_Error`.
+         - No_Wrap: The first error is thrown, and is not wrapped in
+           `Map_Error`.
+         - Report_Warning: The result for that element is `Nothing`, 
+           the error is attached as a warning. Currently unimplemented.
+         - Ignore: The result is `Nothing`, and the error is
+           ignored.
+
+         Errors that are thrown when executing the supplied function are wrapped
+         in `Map_Error`, which contains the index at which the error occurred.
+
+         In the `Problem_Behavior.Report_Warning` case, only `MAX_MAP_WARNINGS`
+         warnings are attached to result values. After that, the warnings are
+         dropped, but a count of the additional warnings is attached in an
+         `Additional_Warnings` warning.
 
        > Example
          Replace each number `n` in the vector with itself repeated n times.
 
             [0, 1, 2] . flat_map (n -> Vector.fill n n)
-    flat_map : (Any -> Vector Any) -> Vector Any
-    flat_map self function =
-        self.map function . flatten
+    flat_map : (Any -> Vector Any) -> Problem_Behavior | No_Wrap -> Vector Any
+    flat_map self function on_problems=Problem_Behavior.Report_Error =
+        self.map function on_problems . flatten
 
     ## GROUP Calculations
        Transforms a vector of vectors into a `Vector` of inner elements - removes
@@ -622,16 +668,40 @@ type Vector a
        Arguments:
        - function: A function that takes an index and an item and calculates a
          new value for at that index.
+       - on_problems: Specifies how to handle any problems that arise in
+         `function`.
 
        The function is called with both the element index as well as the
        element itself.
+
+       ? Problem Handling
+
+         The result of Errors thrown when executing the function depend on
+         `on_problems`:
+         - Report_Error: The first error is thrown, and is wrapped in
+           `Map_Error`.
+         - No_Wrap: The first error is thrown, and is not wrapped in
+           `Map_Error`.
+         - Report_Warning: The result for that element is `Nothing`, 
+           the error is attached as a warning. Currently unimplemented.
+         - Ignore: The result is `Nothing`, and the error is
+           ignored.
+
+         Errors that are thrown when executing the supplied function are wrapped
+         in `Map_Error`, which contains the index at which the error occurred.
+
+         In the `Problem_Behavior.Report_Warning` case, only `MAX_MAP_WARNINGS`
+         warnings are attached to result values. After that, the warnings are
+         dropped, but a count of the additional warnings is attached in an
+         `Additional_Warnings` warning.
 
        > Example
          Sum numbers with their indices in a vector.
 
              [1, 2, 3].map_with_index (+)
-    map_with_index : (Integer -> Any -> Any) -> Vector Any
-    map_with_index self function = Vector.new self.length i-> function i (self.at i)
+    map_with_index : (Integer -> Any -> Any) -> Problem_Behavior | No_Wrap -> Vector Any
+    map_with_index self function on_problems=Problem_Behavior.Report_Error =
+        Array_Like_Helpers.vector_from_function self.length (i-> function i (self.at i)) on_problems
 
     ## PRIVATE
        ADVANCED
@@ -863,9 +933,32 @@ type Vector a
        - that: The vector to zip with `self`.
        - function: The function used to combine pairwise elements of `self` and
          `that`.
+       - on_problems: Specifies how to handle any problems that arise in
+         `function`.
 
        The result of this function is a `Vector` of length being the shorter of
        `self` and `that`, containing results of calling `function`.
+
+       ? Problem Handling
+
+         The result of Errors thrown when executing the function depend on
+         `on_problems`:
+         - Report_Error: The first error is thrown, and is wrapped in
+           `Map_Error`.
+         - No_Wrap: The first error is thrown, and is not wrapped in
+           `Map_Error`.
+         - Report_Warning: The result for that element is `Nothing`, 
+           the error is attached as a warning. Currently unimplemented.
+         - Ignore: The result is `Nothing`, and the error is
+           ignored.
+
+         Errors that are thrown when executing the supplied function are wrapped
+         in `Map_Error`, which contains the index at which the error occurred.
+
+         In the `Problem_Behavior.Report_Warning` case, only `MAX_MAP_WARNINGS`
+         warnings are attached to result values. After that, the warnings are
+         dropped, but a count of the additional warnings is attached in an
+         `Additional_Warnings` warning.
 
        > Example
          Calculate the pairwise sum of two vectors.
@@ -877,10 +970,10 @@ type Vector a
          of both elements.
 
              [1, 2, 3].zip [4, 5, 6] == [[1, 4], [2, 5], [3, 6]]
-    zip : Vector Any -> (Any -> Any -> Any) -> Vector Any
-    zip self that:Vector function=[_,_] =
+    zip : Vector Any -> (Any -> Any -> Any) -> Problem_Behavior | No_Wrap -> Vector Any
+    zip self that:Vector function=[_,_] on_problems=Problem_Behavior.Report_Error =
         len = self.length.min that.length
-        Vector.new len i-> function (self.at i) (that.at i)
+        Array_Like_Helpers.vector_from_function len (i-> function (self.at i) (that.at i)) on_problems
 
     ## GROUP Calculations
        Extend `self` vector to the length of `n` appending elements `elem` to
@@ -1259,6 +1352,26 @@ type Builder
         ## This creates a fresh copy of the builders storage, so any future
            changes to the builder will not affect the returned vector.
         Vector.from_polyglot_array self.java_builder.toArray
+
+## PRIVATE
+   Describes an error produced by a function mapped over a Vector. Includes the
+   funtion argument's position in the vector.
+
+   An error that is wrapped as a `Map_Error` can be caught as a `Map_Error`, or
+   as itself. In the latter case, the `Map_Error` wrapper is stripped off.
+type Map_Error
+    Error (index:Integer) inner_error
+
+    ## PRIVATE
+    to_display_text : Text
+    to_display_text self = "Error at index " + self.index.to_text + ": " + self.inner_error.to_display_text
+
+## PRIVATE
+   Indicates that a method should not wrap thrown errors in `Map_Error`.
+type No_Wrap
+    Value
+
+Wrapped_Error.from (that : Map_Error) = Wrapped_Error.Value that that.inner_error
 
 ## PRIVATE
    An error that indicates that the vector is empty.
