@@ -6,7 +6,7 @@ import * as random from 'lib0/random'
 import * as Y from 'yjs'
 import { LanguageServer, computeTextChecksum } from '../shared/languageServer'
 import { Checksum, Path } from '../shared/languageServerTypes'
-import { exponentialBackoff } from '../shared/retry'
+import { exponentialBackoff, onBeforeRetry } from '../shared/retry'
 import {
   DistributedProject,
   ExprId,
@@ -24,25 +24,18 @@ import {
 import * as fileFormat from './fileFormat'
 import { WSSharedDoc } from './ydoc'
 
-const sessions = new Map<string, LanguageServerSession>()
-
 const DEBUG_LOG_SYNC = false
 
-function createClient(url: string, onError?: (error: Error) => void) {
+function createOpenRPCClient(url: string) {
   const transport = new WebSocketTransport(url)
   const requestManager = new RequestManager([transport])
-  transport.connection.on('error', (error) => {
-    console.error('Language Server transport error:', error)
-    onError?.(error)
-  })
+  transport.connection.on('error', (error) =>
+    console.error('Language Server transport error:', error),
+  )
   return new Client(requestManager)
 }
 
-type Events = {
-  error: (error: Error) => void
-}
-
-export class LanguageServerSession extends ObservableV2<Events> {
+export class LanguageServerSession {
   clientId: Uuid
   indexDoc: WSSharedDoc
   docs: Map<string, WSSharedDoc>
@@ -55,7 +48,6 @@ export class LanguageServerSession extends ObservableV2<Events> {
   authoritativeModules: Map<string, ModulePersistence>
 
   constructor(url: string) {
-    super()
     this.clientId = random.uuidv4() as Uuid
     this.docs = new Map()
     this.retainCount = 0
@@ -78,10 +70,21 @@ export class LanguageServerSession extends ObservableV2<Events> {
     this.restartClient()
   }
 
+  static sessions = new Map<string, LanguageServerSession>()
+  static get(url: string): LanguageServerSession {
+    const session = map.setIfUndefined(
+      LanguageServerSession.sessions,
+      url,
+      () => new LanguageServerSession(url),
+    )
+    session.retain()
+    return session
+  }
+
   private restartClient() {
     // `this.client` WILL be undefined on the first call.
     this.client?.close()
-    this.client = createClient(this.url, (error) => this.emit('error', [error]))
+    this.client = createOpenRPCClient(this.url)
     // `this.ls` WILL be undefined on the first call.
     this.ls?.destroy()
     this.ls = new LanguageServer(this.client)
@@ -89,43 +92,83 @@ export class LanguageServerSession extends ObservableV2<Events> {
       if (DEBUG_LOG_SYNC) {
         console.log('file/event', event)
       }
-      switch (event.kind) {
-        case 'Added': {
-          if (isSourceFile(event.path)) {
-            const fileInfo = await this.ls.fileInfo(event.path)
-            if (fileInfo.attributes.kind.type == 'File') {
-              await this.getModuleModel(event.path).open()
+      try {
+        switch (event.kind) {
+          case 'Added': {
+            if (isSourceFile(event.path)) {
+              const fileInfo = await this.ls.fileInfo(event.path)
+              if (fileInfo.attributes.kind.type == 'File') {
+                await exponentialBackoff(() => this.getModuleModel(event.path).open(), {
+                  onBeforeRetry: onBeforeRetry('Could not open new file'),
+                  onSuccess(retryCount) {
+                    if (retryCount === 0) return
+                    console.info(
+                      `Successfully opened new file '${event.path.segments.join(
+                        '/',
+                      )}' after ${retryCount} failures.`,
+                    )
+                  },
+                })
+              }
             }
+            break
           }
-          break
+          case 'Modified': {
+            await exponentialBackoff(
+              async () => this.getModuleModelIfExists(event.path)?.reload(),
+              {
+                onBeforeRetry: onBeforeRetry('Could not reload file'),
+                onSuccess(retryCount) {
+                  if (retryCount === 0) return
+                  console.info(
+                    `Successfully reloaded file '${event.path.segments.join(
+                      '/',
+                    )}' after ${retryCount} failures.`,
+                  )
+                },
+              },
+            )
+            break
+          }
         }
-        case 'Modified': {
-          await this.getModuleModelIfExists(event.path)?.reload()
-          break
-        }
+      } catch {
+        this.restartClient()
       }
     })
-    this.ls.on(
-      'text/fileModifiedOnDisk',
-      async (event) => this.getModuleModelIfExists(event.path)?.reload(),
-    )
+    this.ls.on('text/fileModifiedOnDisk', async (event) => {
+      try {
+        await exponentialBackoff(async () => this.getModuleModelIfExists(event.path)?.reload(), {
+          onBeforeRetry: onBeforeRetry('Could not reload file'),
+          onSuccess(retryCount) {
+            if (retryCount === 0) return
+            console.info(
+              `Successfully reloaded file '${event.path.segments.join(
+                '/',
+              )}' after ${retryCount} failures.`,
+            )
+          },
+        })
+      } catch {
+        this.restartClient()
+      }
+    })
     exponentialBackoff(() => this.readInitialState(), {
+      onBeforeRetry: onBeforeRetry('Could not read initial state'),
       onSuccess(retryCount) {
         if (retryCount === 0) return
         console.info(`Successfully read initial state after ${retryCount} failures.`)
       },
-    }).then(
-      () => {},
-      (error) => {
-        console.error('Could not read initial state:', error)
-        exponentialBackoff(async () => this.restartClient(), {
-          onSuccess(retryCount) {
-            if (retryCount === 0) return
-            console.info(`Successfully restarted RPC client after ${retryCount} failures.`)
-          },
-        })
-      },
-    )
+    }).catch((error) => {
+      console.error('Could not read initial state.')
+      console.error(error)
+      exponentialBackoff(async () => this.restartClient(), {
+        onBeforeRetry: onBeforeRetry('Could not restart RPC client'),
+        onSuccess(retryCount) {
+          if (retryCount === 0) return
+          console.info(`Successfully restarted RPC client after ${retryCount} failures.`)
+        },
+      })
+    })
   }
 
   private assertProjectRoot(): asserts this is { projectRootId: Uuid } {
@@ -136,22 +179,18 @@ export class LanguageServerSession extends ObservableV2<Events> {
     try {
       const { contentRoots } = await this.ls.initProtocolConnection(this.clientId)
       const projectRoot = contentRoots.find((root) => root.type === 'Project') ?? null
-      if (projectRoot == null) throw new Error('Missing project root')
+      if (!projectRoot) throw new Error('Missing project root')
       this.projectRootId = projectRoot.id
       await this.ls.acquireReceivesTreeUpdates({ rootId: this.projectRootId, segments: [] })
-      const srcFiles = await this.scanSourceFiles()
-      await Promise.all(
-        this.indexDoc.doc.transact(
-          () =>
-            srcFiles.map((file) =>
-              this.getModuleModel(pushPathSegment(file.path, file.name)).open(),
-            ),
-          this,
-        ),
+      const files = await this.scanSourceFiles()
+      const promises = this.indexDoc.doc.transact(
+        () =>
+          files.map((file) => this.getModuleModel(pushPathSegment(file.path, file.name)).open()),
+        this,
       )
+      await Promise.all(promises)
     } catch (error) {
-      console.error('LS Initialization failed:', error)
-      if (error instanceof Error) this.emit('error', [error])
+      console.error('LS initialization failed.')
       throw error
     }
     console.log('LS connection initialized.')
@@ -185,28 +224,20 @@ export class LanguageServerSession extends ObservableV2<Events> {
     })
   }
 
-  static get(url: string): LanguageServerSession {
-    const session = map.setIfUndefined(sessions, url, () => new LanguageServerSession(url))
-    session.retain()
-    return session
-  }
-
   retain() {
-    this.retainCount++
+    this.retainCount += 1
   }
 
   async release(): Promise<void> {
-    this.retainCount--
-    if (this.retainCount === 0) {
-      const closing = Promise.all(
-        Array.from(this.authoritativeModules.values(), (mod) => mod.dispose()),
-      )
-      this.authoritativeModules.clear()
-      this.model.doc.destroy()
-      this.ls.dispose()
-      sessions.delete(this.url)
-      await closing
-    }
+    this.retainCount -= 1
+    if (this.retainCount !== 0) return
+    const modules = this.authoritativeModules.values()
+    const promises = Array.from(modules, (mod) => mod.dispose())
+    this.authoritativeModules.clear()
+    this.model.doc.destroy()
+    this.ls.dispose()
+    LanguageServerSession.sessions.delete(this.url)
+    await Promise.all(promises)
   }
 
   getYDoc(guid: string): WSSharedDoc | undefined {
@@ -214,23 +245,17 @@ export class LanguageServerSession extends ObservableV2<Events> {
   }
 }
 
-const isSourceFile = (path: Path): boolean => {
+function isSourceFile(path: Path): boolean {
   return path.segments[0] === 'src' && path.segments[path.segments.length - 1].endsWith('.enso')
 }
 
-const pathToModuleName = (path: Path): string => {
-  if (path.segments[0] === 'src') {
-    return path.segments.slice(1).join('/')
-  } else {
-    return '//' + path.segments.join('/')
-  }
+function pathToModuleName(path: Path): string {
+  if (path.segments[0] === 'src') return path.segments.slice(1).join('/')
+  else return '//' + path.segments.join('/')
 }
 
-const pushPathSegment = (path: Path, segment: string): Path => {
-  return {
-    rootId: path.rootId,
-    segments: [...path.segments, segment],
-  }
+function pushPathSegment(path: Path, segment: string): Path {
+  return { rootId: path.rootId, segments: [...path.segments, segment] }
 }
 
 enum LsSyncState {
@@ -576,38 +601,36 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
         this.withState(LsSyncState.Reloading, async () => {
           const reloading = this.ls
             .closeTextFile(this.path)
-            .then(
-              () => {},
-              (error) => {
-                console.error('Could not close file after write error:', error)
-              },
-            )
+            .catch((error) => {
+              console.error('Could not close file after write error:', error)
+            })
             .then(
               () =>
                 exponentialBackoff(
                   async () => {
                     const result = await this.ls.openTextFile(this.path)
                     if (!result.writeCapability) {
-                      console.error('Could not acquire write capability for module:', this.path)
-                      throw new Error(
-                        `Could not acquire write capability for module '${this.path.segments.join(
-                          '/',
-                        )}'`,
-                      )
+                      const message = `Could not acquire write capability for module '${this.path.segments.join(
+                        '/',
+                      )}'`
+                      console.error(message)
+                      throw new Error(message)
                     }
                     return result
                   },
                   {
+                    onBeforeRetry: onBeforeRetry('Could not open file for writing'),
                     onSuccess(retryCount) {
                       if (retryCount === 0) return
                       console.info(
-                        `Successfully acquired write capability after ${retryCount} failures.`,
+                        `Successfully opened file for writing after ${retryCount} failures.`,
                       )
                     },
                   },
                 ),
               (error) => {
-                console.error('Could not reopen file after write error:', error)
+                console.error('Could not reopen file after write error.')
+                console.error(error)
                 // This error is unrecoverable.
                 throw error
               },
