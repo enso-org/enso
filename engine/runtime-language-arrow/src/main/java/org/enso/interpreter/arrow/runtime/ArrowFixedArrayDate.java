@@ -20,15 +20,15 @@ import java.time.ZonedDateTime;
 
 @ExportLibrary(InteropLibrary.class)
 public final class ArrowFixedArrayDate implements TruffleObject {
-  private final long size;
+  private final int size;
   private final ByteBuffer buffer;
 
   private final DateUnit unit;
 
-  public ArrowFixedArrayDate(long size, DateUnit unit) {
+  public ArrowFixedArrayDate(int size, DateUnit unit) {
     this.size = size;
     this.unit = unit;
-    this.buffer = allocateBuffer((int) size * unit.sizeInBytes());
+    this.buffer = allocateBuffer(size * unit.sizeInBytes());
   }
 
   public DateUnit getUnit() {

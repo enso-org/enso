@@ -60,7 +60,7 @@ public class VerifyArrowTest {
     assertNotNull("Arrow is available", arrow);
     var date32Constr = ctx.eval("arrow", "new[Date32]");
 
-    Value date32Array = date32Constr.newInstance((long) 10);
+    Value date32Array = date32Constr.newInstance(10);
     assertNotNull("allocated value should not be null", date32Array);
     assertTrue("allocated value should be an array", date32Array.hasArrayElements());
     var startDate = LocalDate.now();
@@ -82,7 +82,7 @@ public class VerifyArrowTest {
     assertNotNull("Arrow is available", arrow);
     var date64Constr = ctx.eval("arrow", "new[Date64]");
 
-    Value date64Array = date64Constr.newInstance((long) 10);
+    Value date64Array = date64Constr.newInstance(10);
     assertNotNull("allocated value should not be null", date64Array);
     assertTrue("allocated value should be an array", date64Array.hasArrayElements());
     var startDate = ZonedDateTime.now(ZoneId.of("Europe/Paris"));
@@ -112,7 +112,7 @@ public class VerifyArrowTest {
     var int8Constr = ctx.eval("arrow", "new[Int8]");
     assertNotNull(int8Constr);
 
-    Value int8Array = int8Constr.newInstance((long) 10);
+    Value int8Array = int8Constr.newInstance(10);
     assertNotNull(int8Array);
     populateIntArray(int8Array, (byte) 42);
     var v = int8Array.getArrayElement(5);

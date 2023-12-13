@@ -14,15 +14,15 @@ import java.nio.ByteBuffer;
 
 @ExportLibrary(InteropLibrary.class)
 public final class ArrowFixedArrayInt implements TruffleObject {
-  private final long size;
+  private final int size;
   private final ByteBuffer buffer;
 
   private final IntUnit unit;
 
-  public ArrowFixedArrayInt(long size, IntUnit unit) {
+  public ArrowFixedArrayInt(int size, IntUnit unit) {
     this.size = size;
     this.unit = unit;
-    this.buffer = allocateBuffer((int) size * this.unit.sizeInBytes());
+    this.buffer = allocateBuffer(size * this.unit.sizeInBytes());
   }
 
   public IntUnit getUnit() {
