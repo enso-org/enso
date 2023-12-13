@@ -14,7 +14,7 @@ import org.enso.interpreter.arrow.node.ArrowEvalNode;
 public class ArrowLanguage extends TruffleLanguage<ArrowContext> {
 
   public static final String ID = "arrow";
-  public static final String MIME = "application/arrow";
+  public static final String MIME = "application/vnd.apache.arrow.file";
 
   public ArrowLanguage() {}
 

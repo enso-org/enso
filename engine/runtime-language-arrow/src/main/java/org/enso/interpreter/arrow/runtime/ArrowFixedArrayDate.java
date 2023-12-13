@@ -19,7 +19,7 @@ import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 
 @ExportLibrary(InteropLibrary.class)
-public class ArrowFixedArrayDate implements TruffleObject {
+public final class ArrowFixedArrayDate implements TruffleObject {
   private final long size;
   private final ByteBuffer buffer;
 
@@ -74,7 +74,9 @@ public class ArrowFixedArrayDate implements TruffleObject {
         @Cached.Shared("interop") @CachedLibrary(limit = "1") InteropLibrary iop)
         throws UnsupportedMessageException {
       // TODO: Needs null bitmap
-      assert iop.isDate(value);
+      if (!iop.isDate(value)) {
+        throw UnsupportedMessageException.create();
+      }
       var at = index * receiver.unit.sizeInBytes();
       var time = iop.asDate(value).toEpochDay();
       receiver.buffer.putInt((int) at, (int) time);
@@ -87,7 +89,9 @@ public class ArrowFixedArrayDate implements TruffleObject {
         Object value,
         @Cached.Shared("interop") @CachedLibrary(limit = "1") InteropLibrary iop)
         throws UnsupportedMessageException {
-      assert iop.isDate(value) && iop.isTime(value);
+      if (!iop.isDate(value) || !iop.isTime(value)) {
+        throw UnsupportedMessageException.create();
+      }
 
       var at = index * receiver.unit.sizeInBytes();
       if (iop.isTimeZone(value)) {

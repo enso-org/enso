@@ -4,7 +4,9 @@ import com.oracle.truffle.api.source.Source;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class ArrowParser {
+public final class ArrowParser {
+
+  private ArrowParser() {}
 
   public static class Result {
 
@@ -33,7 +35,7 @@ public class ArrowParser {
 
   public static Result parse(Source source) {
     String src = source.getCharacters().toString();
-    Matcher m = ArrayPattern.matcher(src);
+    Matcher m = ARRAY_PATTERN.matcher(src);
     if (m.find()) {
       try {
         var layout = LogicalLayout.valueOf(m.group(1));
@@ -44,7 +46,7 @@ public class ArrowParser {
       }
     }
 
-    m = CastPattern.matcher(src);
+    m = CAST_PATTERN.matcher(src);
     if (m.find()) {
       try {
         var layout = LogicalLayout.valueOf(m.group(1));
@@ -57,8 +59,8 @@ public class ArrowParser {
     return null;
   }
 
-  private static final Pattern ArrayPattern = Pattern.compile("new\\[(.+)\\]");
-  private static final Pattern CastPattern = Pattern.compile("cast\\[(.+)\\]");
+  private static final Pattern ARRAY_PATTERN = Pattern.compile("new\\[(.+)\\]");
+  private static final Pattern CAST_PATTERN = Pattern.compile("cast\\[(.+)\\]");
 
   public enum PhysicalLayout {
     Primitive,

@@ -13,7 +13,7 @@ import com.oracle.truffle.api.library.ExportMessage;
 import java.nio.ByteBuffer;
 
 @ExportLibrary(InteropLibrary.class)
-public class ArrowFixedArrayInt implements TruffleObject {
+public final class ArrowFixedArrayInt implements TruffleObject {
   private final long size;
   private final ByteBuffer buffer;
 
@@ -68,7 +68,9 @@ public class ArrowFixedArrayInt implements TruffleObject {
         Object value,
         @Cached.Shared("interop") @CachedLibrary(limit = "1") InteropLibrary iop)
         throws UnsupportedMessageException {
-      assert (iop.fitsInByte(value));
+      if (!iop.fitsInByte(value)) {
+        throw UnsupportedMessageException.create();
+      }
       receiver.buffer.put((int) index, (iop.asByte(value)));
     }
 
@@ -79,7 +81,9 @@ public class ArrowFixedArrayInt implements TruffleObject {
         Object value,
         @Cached.Shared("interop") @CachedLibrary(limit = "1") InteropLibrary iop)
         throws UnsupportedMessageException {
-      assert (iop.fitsInShort(value));
+      if (!iop.fitsInShort(value)) {
+        throw UnsupportedMessageException.create();
+      }
       receiver.buffer.putShort((int) index, (iop.asShort(value)));
     }
 
@@ -90,7 +94,9 @@ public class ArrowFixedArrayInt implements TruffleObject {
         Object value,
         @Cached.Shared("interop") @CachedLibrary(limit = "1") InteropLibrary iop)
         throws UnsupportedMessageException {
-      assert (iop.fitsInInt(value));
+      if (!iop.fitsInInt(value)) {
+        throw UnsupportedMessageException.create();
+      }
       receiver.buffer.putInt((int) index, (iop.asInt(value)));
     }
 
@@ -101,7 +107,9 @@ public class ArrowFixedArrayInt implements TruffleObject {
         Object value,
         @Cached.Shared("interop") @CachedLibrary(limit = "1") InteropLibrary iop)
         throws UnsupportedMessageException {
-      assert (iop.fitsInLong(value));
+      if (!iop.fitsInLong(value)) {
+        throw UnsupportedMessageException.create();
+      }
       receiver.buffer.putLong((int) index, (iop.asLong(value)));
     }
   }

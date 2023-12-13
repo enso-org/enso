@@ -1491,9 +1491,11 @@ lazy val `runtime-language-arrow` =
   (project in file("engine/runtime-language-arrow"))
     .settings(
       inConfig(Compile)(truffleRunOptionsSettings),
-      instrumentationSettings
+      instrumentationSettings,
+      libraryDependencies ++= Seq(
+        "org.graalvm.truffle" % "truffle-api" % graalMavenPackagesVersion % "provided",
+      )
     )
-    .dependsOn(`polyglot-api`)
 
 /** `runtime-test-instruments` project contains Truffle instruments that are used solely for testing.
   * It is compiled into an explicit Java module. Note that this project cannot have compile-time dependency on `runtime`

@@ -63,8 +63,6 @@ public class VerifyArrowTest {
     Value date32Array = date32Constr.newInstance((long) 10);
     assertNotNull("allocated value should not be null", date32Array);
     assertTrue("allocated value should be an array", date32Array.hasArrayElements());
-    // TODO false?
-    // assertTrue("allocated value should be an array", interop.hasArrayElements(date32Array));
     var startDate = LocalDate.now();
     populateArrayWithConsecutiveDays(date32Array, startDate);
     var rawDayPlus2 = date32Array.getArrayElement(2);
@@ -87,8 +85,6 @@ public class VerifyArrowTest {
     Value date64Array = date64Constr.newInstance((long) 10);
     assertNotNull("allocated value should not be null", date64Array);
     assertTrue("allocated value should be an array", date64Array.hasArrayElements());
-    // TODO false?
-    // assertTrue("allocated value should be an array", interop.hasArrayElements(date64Array));
     var startDate = ZonedDateTime.now(ZoneId.of("Europe/Paris"));
     var startDateZone = startDate.getZone();
     populateArrayWithConsecutiveDays(date64Array, startDate);
