@@ -4,6 +4,7 @@ import project.Data.Index_Sub_Range.Index_Sub_Range
 import project.Data.Maybe.Maybe
 import project.Data.Numbers.Integer
 import project.Data.Pair.Pair
+import project.Data.Vector.Map_Error
 import project.Data.Vector.No_Wrap
 import project.Data.Vector.Vector
 import project.Error.Error
@@ -14,6 +15,7 @@ import project.Runtime
 import project.Runtime.Source_Location.Source_Location
 import project.Runtime.Stack_Trace_Element
 from project.Data.Boolean import Boolean, False, True
+from project.Runtime import assert
 
 ## A representation of a dataflow warning attached to a value.
 @Builtin_Type
@@ -59,7 +61,25 @@ type Warning
        Gets all the warnings attached to the given value. Warnings are returned in the
        reverse-chronological order with respect to their attachment time.
     get_all : Any -> Vector Warning
-    get_all value = Vector.from_polyglot_array (get_all_array value)
+    get_all value =
+        child_warnings = case value of
+            _ : Vector -> Warning.get_all_vector value
+            _ -> []
+        (Vector.from_polyglot_array (get_all_array value)) + child_warnings
+
+    ## PRIVATE
+       ADVANCED
+       Gets all the warnings attached to the elements of the given vector and
+       wrap them in `Map_Error`. If an element is also a `Vector`, call
+       `get_all_vector` recursively.
+    get_all_vector : Any -> Vector Warning
+    get_all_vector value =
+        assert (value.is_a Vector)
+        warnings_nested = value.map_with_index i-> e->
+            direct_warnings = Warning.get_all e
+            recursive_warnings = if e.is_a Vector then Warning.get_all_vector e else []
+            (direct_warnings + recursive_warnings).map (w-> Map_Error.Error i w)
+        warnings_nested.flatten
 
     ## PRIVATE
        ADVANCED
