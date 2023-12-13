@@ -1,4 +1,5 @@
 import project.Any.Any
+import project.Data.Locale.Locale
 import project.Data.Set.Set
 import project.Data.Text.Case_Sensitivity.Case_Sensitivity
 import project.Data.Text.Regex.Regex
@@ -193,7 +194,7 @@ type Filter_Condition
         Not_Equal value -> !=value
         Between lower upper -> elem ->
             (lower <= elem) && (elem <= upper)
-        Equal_Ignore_Case value-> elem-> elem.equals_ignore_case value
+        Equal_Ignore_Case value locale -> elem-> elem.equals_ignore_case value locale
         Starts_With prefix case_sensitivity -> _.starts_with prefix case_sensitivity
         Ends_With suffix case_sensitivity -> _.ends_with suffix case_sensitivity
         Contains substring case_sensitivity -> _.contains substring case_sensitivity
@@ -245,7 +246,7 @@ type Filter_Condition
             Greater value -> ">" + value.to_display_text
             Not_Equal value -> "!=" + value.to_display_text
             Between lower upper -> "Between " + lower.to_display_text + " And " + upper.to_display_text
-            Equal_Ignore_Case value -> "Equal Ignore Case " + value.to_display_text
+            Equal_Ignore_Case value locale -> "Equal Ignore Case " + value.to_display_text
             Starts_With prefix case_sensitivity -> "Starts With " + prefix.to_display_text + (render_case case_sensitivity)
             Ends_With suffix case_sensitivity -> "Ends With " + suffix.to_display_text + (render_case case_sensitivity)
             Contains substring case_sensitivity -> "Contains " + substring.to_display_text + (render_case case_sensitivity)
