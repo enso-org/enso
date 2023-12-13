@@ -246,7 +246,9 @@ type Filter_Condition
             Greater value -> ">" + value.to_display_text
             Not_Equal value -> "!=" + value.to_display_text
             Between lower upper -> "Between " + lower.to_display_text + " And " + upper.to_display_text
-            Equal_Ignore_Case value locale -> "Equal Ignore Case " + value.to_display_text
+            Equal_Ignore_Case value locale ->
+                suffix = if locale == Locale.default then "" else " (within locale " + locale.to_display_text + ")"
+                "Equal Ignore Case " + value.to_display_text + suffix
             Starts_With prefix case_sensitivity -> "Starts With " + prefix.to_display_text + (render_case case_sensitivity)
             Ends_With suffix case_sensitivity -> "Ends With " + suffix.to_display_text + (render_case case_sensitivity)
             Contains substring case_sensitivity -> "Contains " + substring.to_display_text + (render_case case_sensitivity)
