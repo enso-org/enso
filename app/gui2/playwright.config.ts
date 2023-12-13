@@ -14,14 +14,14 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   ...(process.env.CI ? { workers: 1 } : {}),
-  reporter: 'html',
+  reporter: 'line',
   expect: {
     timeout: 5000,
     toHaveScreenshot: { threshold: 0 },
   },
   use: {
     headless: !DEBUG,
-    baseURL: 'http://localhost:5173',
+    baseURL: 'http://localhost:4173',
     trace: 'on-first-retry',
     ...(DEBUG
       ? {}
@@ -82,9 +82,9 @@ export default defineConfig({
   // },
   // ],
   webServer: {
-    // The command-line flag is required
-    command: process.env.CI ? 'E2E=true vite preview --port 5173' : 'E2E=true vite dev',
-    port: 5173,
-    reuseExistingServer: !process.env.CI,
+    command: 'E2E=true vite build && vite preview',
+    port: 4173,
+    // We use our special, mocked version of server, thus do not want to re-use user's one.
+    reuseExistingServer: false,
   },
 })

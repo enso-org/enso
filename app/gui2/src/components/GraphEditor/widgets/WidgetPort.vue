@@ -3,6 +3,7 @@ import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { ForcePort, injectPortInfo, providePortInfo, type PortId } from '@/providers/portInfo'
+import type { WidgetInput } from '@/providers/widgetRegistry'
 import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { injectWidgetTree } from '@/providers/widgetTree'
 import { PortViewInstance, useGraphStore } from '@/stores/graph'
@@ -17,8 +18,6 @@ import {
   computed,
   markRaw,
   nextTick,
-  onMounted,
-  onUnmounted,
   onUpdated,
   proxyRefs,
   ref,
@@ -28,8 +27,9 @@ import {
   watchEffect,
 } from 'vue'
 
+const props = defineProps(widgetProps<WidgetInput>(widgetDefinition))
+
 const graph = useGraphStore()
-const props = defineProps(widgetProps(widgetDefinition))
 
 const navigator = injectGraphNavigator()
 const tree = injectWidgetTree()
@@ -61,7 +61,6 @@ watchEffect((onCleanup) => {
 // 1. The expression can be connected to and is currently being hovered.
 // 2. The expression is already used as an existing edge endpoint.
 const portRect = shallowRef<Rect>()
-const portRegistrationIsUseful = computed(() => isHovered.value || hasConnection.value)
 
 const randomUuid = uuidv4() as PortId
 // Since the port ID computation has many dependencies but rarely changes its final output, store
@@ -71,17 +70,20 @@ const portId = cachedGetter<PortId>(() => {
   return portIdOfInput(props.input) ?? (`RAND-${randomUuid}` as PortId)
 })
 
+const innerWidget = computed(() =>
+  props.input instanceof ForcePort ? props.input.inner : props.input,
+)
+
 providePortInfo(
   proxyRefs({
     portId,
     connected: hasConnection,
   }),
 )
+providePortInfo(proxyRefs({ portId, connected: hasConnection }))
 
 watch(nodeSize, updateRect)
-onUpdated(() => {
-  nextTick(updateRect)
-})
+onUpdated(() => nextTick(updateRect))
 useRaf(toRef(tree, 'hasActiveAnimations'), updateRect)
 
 const randSlice = randomUuid.slice(0, 4)
@@ -109,13 +111,6 @@ function updateRect() {
   if (portRect.value != null && localRect.equals(portRect.value)) return
   portRect.value = localRect
 }
-const innerWidget = computed(() => {
-  if (props.input instanceof ForcePort) {
-    return props.input.inner
-  } else {
-    return props.input
-  }
-})
 </script>
 
 <script lang="ts">

@@ -16,6 +16,8 @@ const LOADER_ELEMENT_ID = 'loader'
 const TOP_BAR_X_OFFSET_PX = 96
 /** The `id` attribute of the element into which the IDE will be rendered. */
 const IDE_ELEMENT_ID = 'root'
+/** The `id` attribute of the element into which the new IDE will be rendered. */
+const IDE2_ELEMENT_ID = 'app'
 const IDE_CDN_BASE_URL = 'https://cdn.enso.org/ide'
 const JS_EXTENSION: Record<backendModule.BackendType, string> = {
     [backendModule.BackendType.remote]: '.js.gz',
@@ -50,6 +52,10 @@ export default function Editor(props: EditorProps) {
                 ideElement.style.top = ''
                 ideElement.style.display = 'absolute'
             }
+        }
+        const ide2Element = document.getElementById(IDE2_ELEMENT_ID)
+        if (ide2Element != null) {
+            ide2Element.style.display = hidden ? 'none' : ''
         }
     }, [hidden])
 

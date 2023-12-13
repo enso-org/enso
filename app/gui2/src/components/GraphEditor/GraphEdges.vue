@@ -13,6 +13,10 @@ const graph = useGraphStore()
 const selection = injectGraphSelection(true)
 const interaction = injectInteractionHandler()
 
+const emits = defineEmits<{
+  createNodeFromEdge: [source: ExprId, position: Vec2]
+}>()
+
 const editingEdge: Interaction = {
   cancel() {
     const target = graph.unconnectedEdge?.disconnectedEdgeTarget
@@ -31,7 +35,7 @@ const editingEdge: Interaction = {
         if (target == null) {
           if (graph.unconnectedEdge?.disconnectedEdgeTarget != null)
             disconnectEdge(graph.unconnectedEdge.disconnectedEdgeTarget)
-          createNodeFromEdgeDrop(source, graphNavigator)
+          emits('createNodeFromEdge', source, graphNavigator.sceneMousePos ?? Vec2.Zero)
         } else {
           createEdge(source, target)
         }
@@ -41,6 +45,7 @@ const editingEdge: Interaction = {
     return true
   },
 }
+
 interaction.setWhen(() => graph.unconnectedEdge != null, editingEdge)
 
 function disconnectEdge(target: PortId) {
@@ -52,15 +57,6 @@ function disconnectEdge(target: PortId) {
     } else {
       console.error(`Failed to disconnect edge from port ${target}, no fallback possible.`)
     }
-  }
-}
-
-function createNodeFromEdgeDrop(source: ExprId, graphNavigator: GraphNavigator) {
-  const node = graph.createNodeFromSource(graphNavigator.sceneMousePos ?? Vec2.Zero, source)
-  if (node != null) {
-    graph.setEditedNode(node, 0)
-  } else {
-    console.error('Failed to create node from edge drop.')
   }
 }
 

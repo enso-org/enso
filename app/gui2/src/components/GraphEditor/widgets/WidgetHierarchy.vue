@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
+import { ForcePort } from '@/providers/portInfo'
+import type { WidgetInput } from '@/providers/widgetRegistry'
 import { defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { Ast } from '@/util/ast'
 import { computed } from 'vue'
@@ -8,6 +10,22 @@ const props = defineProps(widgetProps(widgetDefinition))
 
 const spanClass = computed(() => props.input.typeName())
 const children = computed(() => [...props.input.children()])
+
+function transformChild(child: WidgetInput) {
+  if (!(props.input instanceof Ast.Ast)) return child
+  if (props.input instanceof Ast.PropertyAccess) {
+    if (child === props.input.lhs) {
+      return new ForcePort(child)
+    }
+  } else if (props.input instanceof Ast.OprApp) {
+    if (child === props.input.rhs || child === props.input.lhs) {
+      return new ForcePort(child)
+    }
+  } else if (props.input instanceof Ast.UnaryOprApp && child === props.input.argument) {
+    return new ForcePort(child)
+  }
+  return child
+}
 </script>
 
 <script lang="ts">
@@ -18,7 +36,11 @@ export const widgetDefinition = defineWidget(Ast.Ast, {
 
 <template>
   <div class="WidgetHierarchy" :class="spanClass">
-    <NodeWidget v-for="(child, index) in children" :key="child.exprId ?? index" :input="child" />
+    <NodeWidget
+      v-for="(child, index) in children"
+      :key="child.exprId ?? index"
+      :input="transformChild(child)"
+    />
   </div>
 </template>
 

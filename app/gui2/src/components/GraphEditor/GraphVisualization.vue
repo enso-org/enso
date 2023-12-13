@@ -19,7 +19,7 @@ import type { Result } from '@/util/result'
 import type { URLString } from '@/util/urlString'
 import { Vec2 } from '@/util/vec2'
 import { computedAsync } from '@vueuse/core'
-import type { ExprId, VisualizationIdentifier } from 'shared/yjsModel'
+import type { VisualizationIdentifier } from 'shared/yjsModel'
 import {
   computed,
   onErrorCaptured,
