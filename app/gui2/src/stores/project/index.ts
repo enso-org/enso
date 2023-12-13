@@ -142,6 +142,7 @@ type ExecutionContextNotification = {
   'executionFailed'(message: string): void
   'executionComplete'(): void
   'executionStatus'(diagnostics: Diagnostic[]): void
+  'newVisualizationConfiguration'(configs: Set<Uuid>): void
   'visualizationsConfigured'(configs: Set<Uuid>): void
 }
 
@@ -202,6 +203,7 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
     this.queue.pushTask(async (state) => {
       this.visSyncScheduled = false
       if (!state.created) return state
+      this.emit('newVisualizationConfiguration', [new Set(this.visualizationConfigs.keys())])
       const promises: Promise<void>[] = []
 
       const attach = (id: Uuid, config: NodeVisualizationConfiguration) => {
@@ -589,13 +591,11 @@ export const useProjectStore = defineStore('project', () => {
       if (!visResult.ok) {
         visResult.error.log('Dataflow Error visualization evaluation failed')
         return undefined
-      } else if (
-        'kind' in visResult.value &&
-        visResult.value.kind === 'Dataflow' &&
-        'message' in visResult.value &&
-        typeof visResult.value.message === 'string'
-      ) {
-        return { kind: visResult.value.kind, message: visResult.value.message }
+      } else if ('message' in visResult.value && typeof visResult.value.message === 'string') {
+        if ('kind' in visResult.value && visResult.value.kind === 'Dataflow')
+          return { kind: visResult.value.kind, message: visResult.value.message }
+        // Other kinds of error are not handled here
+        else return undefined
       } else {
         console.error('Invalid dataflow error payload:', visResult.value)
         return undefined

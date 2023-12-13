@@ -35,7 +35,7 @@ export class VisualizationDataRegistry {
     this.dataServer = dataServer
     this.visualizationValues = reactive(new Map())
 
-    this.executionContext.on('visualizationsConfigured', this.reconfiguredHandler)
+    this.executionContext.on('newVisualizationConfiguration', this.reconfiguredHandler)
     this.dataServer.then((data) => {
       data.on(`${OutboundPayload.VISUALIZATION_UPDATE}`, this.dataHandler)
     })

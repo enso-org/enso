@@ -146,6 +146,7 @@ const graphBindingsHandler = graphBindings.handler({
       for (const node of nodeSelection.selected) {
         graphStore.deleteNode(node)
       }
+      nodeSelection.selected.clear()
     })
   },
   zoomToSelected() {
@@ -155,7 +156,7 @@ const graphBindingsHandler = graphBindings.handler({
     let right = -Infinity
     let bottom = -Infinity
     const nodesToCenter =
-      nodeSelection.selected.size === 0 ? graphStore.nodeRects.keys() : nodeSelection.selected
+      nodeSelection.selected.size === 0 ? graphStore.currentNodeIds : nodeSelection.selected
     for (const id of nodesToCenter) {
       const rect = graphStore.nodeRects.get(id)
       if (!rect) continue

@@ -165,7 +165,8 @@ export interface AssetsTableState {
     doToggleDirectoryExpansion: (
         directoryId: backendModule.DirectoryId,
         key: backendModule.AssetId,
-        title?: string
+        title?: string | null,
+        override?: boolean
     ) => void
     /** Called when the project is opened via the `ProjectActionButton`. */
     doOpenManually: (projectId: backendModule.ProjectId) => void
@@ -670,9 +671,21 @@ export default function AssetsTable(props: AssetsTableProps) {
         new Map<backendModule.DirectoryId, AbortController>()
     )
     const doToggleDirectoryExpansion = React.useCallback(
-        (directoryId: backendModule.DirectoryId, key: backendModule.AssetId, title?: string) => {
+        (
+            directoryId: backendModule.DirectoryId,
+            key: backendModule.AssetId,
+            title?: string | null,
+            override?: boolean
+        ) => {
             const directory = nodeMapRef.current.get(key)
-            if (directory?.children != null) {
+            const isExpanded = directory?.children != null
+            const shouldExpand = override ?? !isExpanded
+            if (shouldExpand === isExpanded) {
+                // This is fine, as this is near the top of a very long function.
+                // eslint-disable-next-line no-restricted-syntax
+                return
+            }
+            if (!shouldExpand) {
                 const abortController = directoryListAbortControllersRef.current.get(directoryId)
                 if (abortController != null) {
                     abortController.abort()

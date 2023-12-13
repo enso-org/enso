@@ -347,7 +347,7 @@ export interface LChColor {
 }
 
 /** A pre-selected list of colors to be used in color pickers. */
-export const COLORS: readonly LChColor[] = [
+export const COLORS: readonly [LChColor, ...LChColor[]] = [
     /* eslint-disable @typescript-eslint/no-magic-numbers */
     // Red
     { lightness: 50, chroma: 66, hue: 7 },
@@ -377,6 +377,24 @@ export function lChColorToCssColor(color: LChColor): string {
     return 'alpha' in color
         ? `lcha(${color.lightness}% ${color.chroma} ${color.hue} / ${color.alpha})`
         : `lch(${color.lightness}% ${color.chroma} ${color.hue})`
+}
+
+export const COLOR_STRING_TO_COLOR = new Map(
+    COLORS.map(color => [lChColorToCssColor(color), color])
+)
+
+export const INITIAL_COLOR_COUNTS = new Map(COLORS.map(color => [lChColorToCssColor(color), 0]))
+
+/** The color that is used for the least labels. Ties are broken by order. */
+export function leastUsedColor(labels: Iterable<Label>) {
+    const colorCounts = new Map(INITIAL_COLOR_COUNTS)
+    for (const label of labels) {
+        const colorString = lChColorToCssColor(label.color)
+        colorCounts.set(colorString, (colorCounts.get(colorString) ?? 0) + 1)
+    }
+    const min = Math.min(...colorCounts.values())
+    const [minColor] = [...colorCounts.entries()].find(kv => kv[1] === min) ?? []
+    return minColor == null ? COLORS[0] : COLOR_STRING_TO_COLOR.get(minColor) ?? COLORS[0]
 }
 
 // =================

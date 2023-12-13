@@ -318,7 +318,7 @@ test(
 test(
   'Default argument application',
   runTestCase(`«1,main» =
-    »3,summarize_transaction« default`),
+    »3,summarize_transaction« »2,default«`),
 )
 
 test(
@@ -333,4 +333,12 @@ test(
     »2,x«
     «3,x» = 1
     »3,x«`),
+)
+
+test(
+  'Identifier called default',
+  runTestCase(`«1,main» =
+    »2,default«
+    «3,default» = 1
+    »3,default«`),
 )

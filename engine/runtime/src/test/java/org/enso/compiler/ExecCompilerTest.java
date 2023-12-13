@@ -14,6 +14,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class ExecCompilerTest {
@@ -126,6 +127,30 @@ public class ExecCompilerTest {
     assertTrue("The error value also represents null", error.isNull());
     assertEquals("(Error: Uninitialized value)", error.toString());
   }
+
+  @Ignore("Explicitly-default arguments will be implemented in #8480")
+  @Test
+  public void testDefault() throws Exception {
+    var module = ctx.eval("enso", """
+    f x=1 = x
+    value_from_default =
+      f default
+    """);
+    var result = module.invokeMember("eval_expression", "value_from_default");
+    assertEquals("Value obtained from default argument", 1, result.asInt());
+  }
+  @Test
+  public void testIdentCalledDefault() throws Exception {
+    var module = ctx.eval("enso", """
+    f x=1 = x
+    value_from_binding =
+      default = 2
+      f default
+    """);
+    var result = module.invokeMember("eval_expression", "value_from_binding");
+    assertEquals("Value obtained from binding", 2, result.asInt());
+  }
+
   @Test
   public void dotUnderscore() throws Exception {
     var module = ctx.eval("enso", """
@@ -172,6 +197,38 @@ public class ExecCompilerTest {
     var run = module.invokeMember("eval_expression", "nums");
     var result = run.execute(5);
     assertEquals("10 % 3 is one", 1, result.asInt());
+  }
+
+  @Test
+  public void inlineReturnSignature() throws Exception {
+    var module = ctx.eval("enso", """
+    foo (x : Integer) (y : Integer) -> Integer = 10*x + y
+    """);
+    var foo = module.invokeMember("eval_expression", "foo");
+    assertTrue("foo a function", foo.canExecute());
+    assertEquals(45, foo.execute(4, 5).asInt());
+  }
+
+  @Test
+  public void inlineReturnSignatureOnMemberMethod() throws Exception {
+    var module = ctx.eval("enso", """
+    type My_Type
+        Value x
+        
+        foo self (y : Integer) z -> Integer = 100*z + 10*y + self.x
+    """);
+    var instance = module.invokeMember("eval_expression", "My_Type.Value 1");
+    var result = instance.invokeMember("foo", 2, 3);
+    assertEquals(321, result.asInt());
+  }
+
+  @Test
+  public void inlineReturnSignatureWithoutArguments() throws Exception {
+    var module = ctx.eval("enso", """
+    the_number -> Integer = 23
+    """);
+    var result = module.invokeMember("eval_expression", "the_number");
+    assertEquals("Function-return syntax can be used with 0 arguments", 23, result.asInt());
   }
 
   @Test
