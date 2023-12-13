@@ -98,8 +98,8 @@ class ForeignEvalNode extends RootNode {
   }
 
   private void parseJs() {
-    EpbContext context = EpbContext.get(this);
-    GuardedTruffleContext inner = context.getInnerContext();
+    var context = EpbContext.get(this);
+    var inner = context.getInnerContext();
     String args = Arrays.stream(argNames).skip(1).collect(Collectors.joining(","));
     String wrappedSrc
             = "var poly_enso_eval=function("
@@ -108,7 +108,7 @@ class ForeignEvalNode extends RootNode {
             + code.getForeignSource()
             + "\n};poly_enso_eval";
     Source source = Source.newBuilder(code.getLanguage().getTruffleId(), wrappedSrc, "").build();
-    var fn = inner.eval(this, source);
+    var fn = inner.evalPublic(this, source);
     foreign = insert(JsForeignNode.build(fn, argNames.length));
   }
 

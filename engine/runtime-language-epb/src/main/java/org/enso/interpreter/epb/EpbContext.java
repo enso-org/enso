@@ -21,7 +21,7 @@ final class EpbContext {
   private static final String INNER_OPTION = "isEpbInner";
   private final boolean isInner;
   private final TruffleLanguage.Env env;
-  private @CompilationFinal GuardedTruffleContext innerContext;
+  private @CompilationFinal TruffleContext innerContext;
   private final ReentrantLock lock = new ReentrantLock();
 
   /**
@@ -44,20 +44,18 @@ final class EpbContext {
     if (!isInner) {
       if (innerContext == null) {
         innerContext =
-            new GuardedTruffleContext(
-                env.newInnerContextBuilder()
-                    .initializeCreatorContext(true)
-                    .inheritAllAccess(true)
-                    .config(INNER_OPTION, "yes")
-                    .build(),
-                true);
+            env.newInnerContextBuilder()
+                .initializeCreatorContext(true)
+                .inheritAllAccess(true)
+                .config(INNER_OPTION, "yes")
+                .build();
       }
       initializeLanguages(env, innerContext, preInitializeLanguages);
     }
   }
 
   private static void initializeLanguages(
-      TruffleLanguage.Env environment, GuardedTruffleContext innerContext, String langs) {
+      TruffleLanguage.Env environment, TruffleContext innerContext, String langs) {
     if (langs == null || langs.isEmpty()) {
       return;
     }
@@ -95,7 +93,13 @@ final class EpbContext {
                 innerContext.leave(null, beforeEnter);
               }
             };
-    var init = innerContext.createThread(environment, run);
+    var init =
+        environment
+            .newTruffleThreadBuilder(
+                () -> {
+                  run.accept(innerContext);
+                })
+            .build();
     log.log(Level.INFO, "Starting initialization thread '{0}'", init.getName());
     init.start();
     try {
@@ -124,7 +128,7 @@ final class EpbContext {
     return lock;
   }
 
-  public GuardedTruffleContext getInnerContext() {
+  public TruffleContext getInnerContext() {
     return innerContext;
   }
 }
