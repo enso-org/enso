@@ -78,7 +78,7 @@ const ENSO_FONT_VARIANTS = [
   { variant: 'Black', weight: 900 },
 ].map((variant) => ({ font: 'Enso', ...variant }))
 
-const MPLUS1_FONT_VARIANTS = [
+const DEJAVU_FONT_VARIANTS = [
   { variant: 'DejaVuSansMono', weight: 400 },
   { variant: 'DejaVuSansMono-Bold', weight: 700 },
 ].map((variant) => ({ font: 'DejaVu Sans Mono', ...variant }))
@@ -152,18 +152,13 @@ try {
         response.on('error', reject)
       })
     })
-    /** @type {string[]} */
-    let css = []
-    for (const { font, variant, weight } of MPLUS1_FONT_VARIANTS) {
-      css.push(`\
+    const css = `\
 @font-face {
-  font-family: '${font}';
-  src: url('/font-dejavu/${variant}.ttf');
-  font-weight: ${weight};
+  font-family: 'M PLUS 1';
+  src: url('/font-mplus1/MPLUS1[wght].ttf');
 }
-`)
-    }
-    await fs.writeFile('./src/assets/font-dejavu.css', css.join('\n'))
+`
+    await fs.writeFile('./src/assets/font-mplus1.css', css)
   }
 }
 try {
@@ -198,13 +193,18 @@ try {
         response.on('error', reject)
       })
     })
-    const css = `\
+    /** @type {string[]} */
+    let css = []
+    for (const { font, variant, weight } of DEJAVU_FONT_VARIANTS) {
+      css.push(`\
 @font-face {
-  font-family: 'M PLUS 1';
-  src: url('/font-mplus1/MPLUS1[wght].ttf');
+  font-family: '${font}';
+  src: url('/font-dejavu/${variant}.ttf');
+  font-weight: ${weight};
 }
-`
-    await fs.writeFile('./src/assets/font-dejavu.css', css)
+`)
+    }
+    await fs.writeFile('./src/assets/font-dejavu.css', css.join('\n'))
   }
 }
 console.info('Done.')
