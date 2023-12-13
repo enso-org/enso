@@ -1,4 +1,4 @@
-from Standard.Base import Any, Meta, Integer, True, False, Nothing
+from Standard.Base import Any, Meta, Integer, Boolean, True, False, Nothing
 
 type Gen
     Generator n:Integer
