@@ -6,7 +6,7 @@ import * as random from 'lib0/random'
 import * as Y from 'yjs'
 import { LanguageServer, computeTextChecksum } from '../shared/languageServer'
 import { Checksum, FileEdit, Path, response } from '../shared/languageServerTypes'
-import { exponentialBackoff, onBeforeRetry } from '../shared/retry'
+import { exponentialBackoff, exponentialBackoffMessages } from '../shared/retry'
 import {
   DistributedProject,
   ExprId,
@@ -98,23 +98,20 @@ export class LanguageServerSession {
       if (DEBUG_LOG_SYNC) {
         console.log('file/event', event)
       }
+      const path = event.path.segments.join('/')
       try {
         switch (event.kind) {
           case 'Added': {
             if (isSourceFile(event.path)) {
               const fileInfo = await this.ls.fileInfo(event.path)
               if (fileInfo.attributes.kind.type == 'File') {
-                await exponentialBackoff(() => this.getModuleModel(event.path).open(), {
-                  onBeforeRetry: onBeforeRetry('Could not open new file'),
-                  onSuccess(retryCount) {
-                    if (retryCount === 0) return
-                    console.info(
-                      `Successfully opened new file '${event.path.segments.join(
-                        '/',
-                      )}' after ${retryCount} failures.`,
-                    )
-                  },
-                })
+                await exponentialBackoff(
+                  () => this.getModuleModel(event.path).open(),
+                  exponentialBackoffMessages(
+                    `opened new file '${path}'`,
+                    `open new file '${path}'`,
+                  ),
+                )
               }
             }
             break
@@ -122,17 +119,7 @@ export class LanguageServerSession {
           case 'Modified': {
             await exponentialBackoff(
               async () => this.tryGetExistingModuleModel(event.path)?.reload(),
-              {
-                onBeforeRetry: onBeforeRetry('Could not reload file'),
-                onSuccess(retryCount) {
-                  if (retryCount === 0) return
-                  console.info(
-                    `Successfully reloaded file '${event.path.segments.join(
-                      '/',
-                    )}' after ${retryCount} failures.`,
-                  )
-                },
-              },
+              exponentialBackoffMessages(`reloaded file '${path}'`, `reload file '${path}'`),
             )
             break
           }
@@ -142,38 +129,26 @@ export class LanguageServerSession {
       }
     })
     this.ls.on('text/fileModifiedOnDisk', async (event) => {
+      const path = event.path.segments.join('/')
       try {
-        await exponentialBackoff(async () => this.tryGetExistingModuleModel(event.path)?.reload(), {
-          onBeforeRetry: onBeforeRetry('Could not reload file'),
-          onSuccess(retryCount) {
-            if (retryCount === 0) return
-            console.info(
-              `Successfully reloaded file '${event.path.segments.join(
-                '/',
-              )}' after ${retryCount} failures.`,
-            )
-          },
-        })
+        await exponentialBackoff(
+          async () => this.tryGetExistingModuleModel(event.path)?.reload(),
+          exponentialBackoffMessages(`reloaded file '${path}'`, `reload file '${path}'`),
+        )
       } catch {
         this.restartClient()
       }
     })
-    exponentialBackoff(() => this.readInitialState(), {
-      onBeforeRetry: onBeforeRetry('Could not read initial state'),
-      onSuccess(retryCount) {
-        if (retryCount === 0) return
-        console.info(`Successfully read initial state after ${retryCount} failures.`)
-      },
-    }).catch((error) => {
+    exponentialBackoff(
+      () => this.readInitialState(),
+      exponentialBackoffMessages('read initial state', 'read initial state'),
+    ).catch((error) => {
       console.error('Could not read initial state.')
       console.error(error)
-      exponentialBackoff(async () => this.restartClient(), {
-        onBeforeRetry: onBeforeRetry('Could not restart RPC client'),
-        onSuccess(retryCount) {
-          if (retryCount === 0) return
-          console.info(`Successfully restarted RPC client after ${retryCount} failures.`)
-        },
-      })
+      exponentialBackoff(
+        async () => this.restartClient(),
+        exponentialBackoffMessages('restarted RPC client', 'restart RPC client'),
+      )
     })
   }
 
@@ -619,6 +594,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
       }
       case LsSyncState.WriteError: {
         this.withState(LsSyncState.Reloading, async () => {
+          const path = this.path.segments.join('/')
           const reloading = this.ls
             .closeTextFile(this.path)
             .catch((error) => {
@@ -639,15 +615,10 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
                     }
                     return result
                   },
-                  {
-                    onBeforeRetry: onBeforeRetry('Could not open file for writing'),
-                    onSuccess(retryCount) {
-                      if (retryCount === 0) return
-                      console.info(
-                        `Successfully opened file for writing after ${retryCount} failures.`,
-                      )
-                    },
-                  },
+                  exponentialBackoffMessages(
+                    `opened file '${path}' for writing`,
+                    `open file '${path}' for writing`,
+                  ),
                 ),
               (error) => {
                 console.error('Could not reopen file after write error:')
