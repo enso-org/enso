@@ -151,5 +151,4 @@ public class ForeignEvalNode extends RootNode {
     CallTarget ct = context.getEnv().parsePublic(source);
     foreign = insert(RForeignNodeGen.create(ct.call()));
   }
-
 }
