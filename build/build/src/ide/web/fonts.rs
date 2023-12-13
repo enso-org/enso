@@ -22,6 +22,55 @@ pub async fn install_html_fonts(
     Ok(())
 }
 
+/// A CSS font style that is displayed as a CSS [`@font-face`] [`font-style`] value.
+///
+/// [`@font-face`]: https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face
+/// [`font-style`]: https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face/font-style
+#[derive(Debug, Display, Copy, Clone)]
+pub enum FontStyle {
+    #[display(fmt = "normal")]
+    Normal,
+    #[display(fmt = "italic")]
+    Italic,
+    #[display(fmt = "oblique")]
+    Oblique,
+    /// Angle is in degrees, between -90 and 90.
+    #[display(fmt = "oblique {}deg", "_0")]
+    ObliqueWithAngle(f64),
+    /// Angles are in degrees, between -90 and 90.
+    #[display(fmt = "oblique {}deg {}deg", "_0", "_1")]
+    ObliqueWithAngleRange(f64, f64),
+}
+
+/// A CSS font face that is displayed as a CSS [`@font-face`] declaration.
+///
+/// [`@font-face`]: https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face
+#[derive(Debug, Clone)]
+pub struct FontFace<'a> {
+    family: Cow<'a, str>,
+    path:   Cow<'a, str>,
+    weight: Option<u16>,
+    style:  Option<FontStyle>,
+}
+
+impl Display for FontFace<'_> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let family = &self.family;
+        let path = &self.path;
+        writeln!(f, "@font-face {{")?;
+        writeln!(f, "  font-family: '{family}';")?;
+        writeln!(f, "  src: url('{path}');")?;
+        if let Some(weight) = self.weight {
+            writeln!(f, "  font-weight: {weight};")?;
+        }
+        if let Some(style) = self.style {
+            writeln!(f, "  font-style: {style};")?;
+        }
+        writeln!(f, "}}")?;
+        Ok(())
+    }
+}
+
 /// Generate a CSS file containing the given font files. Does not include font-weight, so use this
 /// only if the font weights are not known - prefer [`generate_css_file`] in all other cases.
 pub fn generate_css_file_from_paths<AsRefStr>(
@@ -35,12 +84,14 @@ where
     let mut css = String::new();
     for path in paths {
         use std::fmt::Write;
-        let path = path.as_ref();
-        writeln!(&mut css, "@font-face {{")?;
-        writeln!(&mut css, "  font-family: '{family}';")?;
-        writeln!(&mut css, "  src: url('{basepath}/{path}');")?;
-        writeln!(&mut css, "}}")?;
-        writeln!(&mut css)?;
+        let path = format!("{basepath}{}", path.as_ref());
+        let font_face = FontFace {
+            family: Cow::Borrowed(family),
+            path:   Cow::Borrowed(path.as_str()),
+            weight: None,
+            style:  None,
+        };
+        writeln!(&mut css, "{}", font_face)?;
     }
     Ok(css)
 }
@@ -62,15 +113,15 @@ pub fn generate_css_file<'a>(
                     Expected a font matching: {header:?}."
             )
         })?;
-        let file = def.file;
+        let path = format!("{basepath}/{}", def.file);
         let weight = def.header.weight.to_number();
-        writeln!(&mut css, "@font-face {{")?;
-        writeln!(&mut css, "  font-family: '{family}';")?;
-        writeln!(&mut css, "  src: url('{basepath}/{file}');")?;
-        writeln!(&mut css, "  font-weight: {weight};")?;
-        writeln!(&mut css, "  font-style: normal;")?;
-        writeln!(&mut css, "}}")?;
-        writeln!(&mut css)?;
+        let font_face = FontFace {
+            family: Cow::Borrowed(family),
+            path:   Cow::Borrowed(path.as_str()),
+            weight: Some(weight),
+            style:  None,
+        };
+        writeln!(&mut css, "{}", font_face)?;
     }
     Ok(css)
 }
