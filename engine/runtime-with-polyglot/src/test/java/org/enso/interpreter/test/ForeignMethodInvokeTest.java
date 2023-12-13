@@ -1,10 +1,10 @@
 package org.enso.interpreter.test;
 
-import static org.junit.Assert.assertTrue;
-
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -13,7 +13,7 @@ public class ForeignMethodInvokeTest extends TestBase {
 
   @BeforeClass
   public static void prepareCtx() {
-    ctx = defaultContextBuilder("enso").build();
+    ctx = defaultContextBuilder("enso", "js").build();
   }
 
   @AfterClass
@@ -43,5 +43,25 @@ public class ForeignMethodInvokeTest extends TestBase {
       assertTrue("Wrong error message",
           e.getMessage().matches("Cannot parse foreign python method. Only available languages are .+"));
     }
+  }
+
+  @Test
+  public void testInteropWithJavaScript() {
+    String source = """
+        from Standard.Base import all
+
+        foreign js js_array t = \"\"\"
+            return [1, 2, t]
+
+        third t = js_array t
+        """;
+
+    Value module = ctx.eval("enso", source);
+    Value res = module.invokeMember("eval_expression", "third").execute(13);
+    assertTrue("It is an array", res.hasArrayElements());
+    assertEquals(3, res.getArraySize());
+    assertEquals(1, res.getArrayElement(0).asInt());
+    assertEquals(2, res.getArrayElement(1).asInt());
+    assertEquals(13, res.getArrayElement(2).asInt());
   }
 }
