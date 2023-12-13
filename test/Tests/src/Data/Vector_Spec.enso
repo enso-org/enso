@@ -297,7 +297,8 @@ type_spec name alter = Test.group name <|
         boolvec.filter Filter_Condition.Is_False . should_equal [False]
 
         numvec = [1, 2.5, Number.nan, Number.positive_infinity, Number.negative_infinity, 0]
-        numvec.filter Filter_Condition.Is_NaN . should_equal [Number.nan]
+        # We need to use to_text because NaN!=NaN
+        numvec.filter Filter_Condition.Is_Nan . map .to_text . should_equal ["NaN"]
         numvec.filter Filter_Condition.Is_Infinite . should_equal [Number.positive_infinity, Number.negative_infinity]
         numvec.filter Filter_Condition.Is_Finite . should_equal [1, 2.5, 0]
 
