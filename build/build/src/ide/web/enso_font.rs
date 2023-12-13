@@ -1,3 +1,5 @@
+//! Definitions for Enso Font, and functions for downloading and installing them.
+
 use crate::prelude::*;
 
 use enso_enso_font::ttf;
@@ -50,6 +52,8 @@ pub async fn install_for_html(
                 )
             })?;
             let file = &def.file;
+            // Note that this cannot use `generate_css_file`, as it specifies a different font
+            // family for each variant.
             writeln!(&mut css, "@font-face {{")?;
             writeln!(&mut css, "  font-family: '{FONT_FAMILY}{variant}';")?;
             writeln!(&mut css, "  src: url('{url}/{file}');")?;

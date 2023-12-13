@@ -22,6 +22,8 @@ pub async fn install_html_fonts(
     Ok(())
 }
 
+/// Generate a CSS file containing the given font files. Does not include font-weight, so use this
+/// only if the font weights are not known - prefer [`generate_css_file`] in all other cases.
 pub fn generate_css_file_from_paths<AsRefStr>(
     basepath: &str,
     family: &str,
@@ -43,6 +45,7 @@ where
     Ok(css)
 }
 
+/// Generate a CSS file containing the given font family, including only the given font variations.
 pub fn generate_css_file<'a>(
     basepath: &str,
     family: &str,

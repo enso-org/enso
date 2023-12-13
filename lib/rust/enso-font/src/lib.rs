@@ -68,7 +68,7 @@ pub mod feature {
 // === Enso Font ===
 // =================
 
-/// Returns the Enso Font.
+/// The Enso Font.
 pub fn font() -> NonVariableDefinition {
     FONTS
         .iter()

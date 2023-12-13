@@ -1,4 +1,4 @@
-//! Downloading Google Fonts.
+//! Functions for downloading and installing Google fonts.
 
 use crate::prelude::*;
 
@@ -137,6 +137,7 @@ impl Storable for DownloadFont {
 // === Entry Point ===
 // ===================
 
+/// Install a Google font, without an auto-generated CSS file.
 pub async fn install(
     cache: &Cache,
     octocrab: &Octocrab,
@@ -153,6 +154,7 @@ pub async fn install(
     Ok(result)
 }
 
+/// Install a Google font, including an auto-generated CSS file.
 pub async fn install_with_css(
     cache: &Cache,
     octocrab: &Octocrab,

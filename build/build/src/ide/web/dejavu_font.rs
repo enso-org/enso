@@ -1,4 +1,4 @@
-//! Downloading DejaVu Fonts.
+//! Definitions for DejaVu fonts, and functions for downloading and installing them.
 
 use crate::prelude::*;
 
@@ -30,7 +30,9 @@ const SANS_MONO_FONT_FAMILY_FONTS: &[(&str, font::Weight)] =
 // === DejaVu Font ===
 // ===================
 
-pub async fn install_sans_mono_internal(
+/// Internal helper function to download the DejaVu Sans Mono font. Exposed via thin wrapper
+/// functions.
+async fn install_sans_mono_internal(
     cache: &Cache,
     octocrab: &Octocrab,
     output_path: impl AsRef<Path>,
@@ -52,6 +54,7 @@ pub async fn install_sans_mono_internal(
     Ok(())
 }
 
+/// Install DejaVu Sans Mono, without an auto-generated CSS file.
 pub async fn install_sans_mono(
     cache: &Cache,
     octocrab: &Octocrab,
@@ -60,6 +63,7 @@ pub async fn install_sans_mono(
     install_sans_mono_internal(cache, octocrab, output_path, None::<(&str, &str)>).await
 }
 
+/// Install DejaVu Sans Mono, including an auto-generated CSS file.
 pub async fn install_sans_mono_with_css(
     cache: &Cache,
     octocrab: &Octocrab,
@@ -71,7 +75,7 @@ pub async fn install_sans_mono_with_css(
         .await
 }
 
-/// DejaVu Sans Mono Font.
+/// The DejaVu Sans Mono Font.
 pub fn font() -> NonVariableDefinition {
     SANS_MONO_FONT_FAMILY_FONTS
         .iter()
