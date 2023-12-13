@@ -35,10 +35,10 @@ pub enum FontStyle {
     #[display(fmt = "oblique")]
     Oblique,
     /// Angle is in degrees, between -90 and 90.
-    #[display(fmt = "oblique {}deg", "_0")]
+    #[display(fmt = "oblique {_0}deg")]
     ObliqueWithAngle(f64),
     /// Angles are in degrees, between -90 and 90.
-    #[display(fmt = "oblique {}deg {}deg", "_0", "_1")]
+    #[display(fmt = "oblique {_0}deg {_1}deg")]
     ObliqueWithAngleRange(f64, f64),
 }
 
@@ -91,7 +91,7 @@ where
             weight: None,
             style:  None,
         };
-        writeln!(&mut css, "{}", font_face)?;
+        writeln!(&mut css, "{font_face}")?;
     }
     Ok(css)
 }
@@ -121,7 +121,7 @@ pub fn generate_css_file<'a>(
             weight: Some(weight),
             style:  None,
         };
-        writeln!(&mut css, "{}", font_face)?;
+        writeln!(&mut css, "{font_face}")?;
     }
     Ok(css)
 }
@@ -152,7 +152,7 @@ pub async fn write_css_file_if_required(
     css_output_info: Option<(&str, impl AsRef<Path>)>,
 ) -> Result {
     if let Some((css_basepath, css_output_path)) = css_output_info {
-        let contents = generate_css_file(css_basepath, font_family, &font, faces.iter())?;
+        let contents = generate_css_file(css_basepath, font_family, font, faces.iter())?;
         ide_ci::fs::tokio::write(css_output_path, contents).await?;
         Ok(())
     } else {
