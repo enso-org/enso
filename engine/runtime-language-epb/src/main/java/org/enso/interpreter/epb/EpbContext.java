@@ -50,7 +50,7 @@ final class EpbContext {
                 .config(INNER_OPTION, "yes")
                 .build();
       }
-      initializeLanguages(env, innerContext, preInitializeLanguages);
+      // initializeLanguages(env, innerContext, preInitializeLanguages);
     }
   }
 
@@ -93,13 +93,7 @@ final class EpbContext {
                 innerContext.leave(null, beforeEnter);
               }
             };
-    var init =
-        environment
-            .newTruffleThreadBuilder(
-                () -> {
-                  run.accept(innerContext);
-                })
-            .build();
+    var init = environment.newTruffleThreadBuilder(() -> run.accept(innerContext)).build();
     log.log(Level.INFO, "Starting initialization thread '{0}'", init.getName());
     init.start();
     try {
