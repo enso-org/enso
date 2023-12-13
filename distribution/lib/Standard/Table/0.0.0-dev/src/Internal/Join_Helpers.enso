@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
@@ -53,7 +54,7 @@ type Join_Condition_Resolver
                     if left.name == right.name then
                         redundant_names.append right.name
                     self.make_equals problem_builder left right
-        converted = conditions_vector.map condition-> case condition of
+        converted = conditions_vector.map on_problems=No_Wrap.Value condition-> case condition of
             Join_Condition.Equals left_selector right_selector ->
                 handle_equals left_selector right_selector
             column_name : Text -> handle_equals column_name column_name

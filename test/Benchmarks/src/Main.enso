@@ -2,6 +2,7 @@ from Standard.Base import all hiding Range
 from Standard.Test import Bench
 import project.Vector.Array_Proxy_Bench
 import project.Vector.Distinct
+import project.Vector.Map_Error_Benchmark
 import project.Vector.Operations
 import project.Vector.Sort
 import project.Statistics.Count_Min_Max
@@ -42,6 +43,7 @@ all_benchmarks =
     # Vector
     builder.append Array_Proxy_Bench.collect_benches
     builder.append Distinct.collect_benches
+    builder.append Map_Error_Benchmark.collect_benches
     builder.append Operations.collect_benches
     builder.append Sort.collect_benches
 

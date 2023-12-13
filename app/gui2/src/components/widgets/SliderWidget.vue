@@ -131,7 +131,7 @@ function fixupInputValue() {
   padding: 0px 4px;
   appearance: textfield;
   -moz-appearance: textfield;
-  cursor: none;
+  cursor: default;
 }
 
 input {

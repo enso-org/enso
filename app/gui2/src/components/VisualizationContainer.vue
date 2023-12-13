@@ -211,7 +211,6 @@ const resizeBottomRight = usePointer((pos, _, type) => {
 }
 
 .VisualizationContainer.fullscreen {
-  cursor: auto;
   z-index: var(--z-fullscreen);
   position: fixed;
   padding-top: 0;
@@ -349,7 +348,6 @@ const resizeBottomRight = usePointer((pos, _, type) => {
 }
 
 :deep(.image-button) {
-  cursor: none;
   background: none;
   padding: 0;
   border: none;

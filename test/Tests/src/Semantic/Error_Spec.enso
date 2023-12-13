@@ -3,6 +3,7 @@ import Standard.Base.Errors.Common.Unsupported_Argument_Types
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
+import Standard.Base.Errors.Wrapped_Error.Wrapped_Error
 
 import Standard.Base.Runtime.Ref.Ref
 
@@ -19,6 +20,14 @@ type My_Type
     Value foo
     Multi_Value foo bar
     Default_Value foo=2 bar
+
+type My_Error
+    Error i:Integer
+
+type My_Error_Wrapper
+    Error inner_error
+
+Wrapped_Error.from (that : My_Error_Wrapper) = Wrapped_Error.Value that that.inner_error
 
 throw_a_bar = Error.throw "bar"
 throw_a_bar_panicking = Panic.throw "bar"
@@ -97,7 +106,7 @@ spec =
             error.catch . should_equal "bar"
             error.stack_trace.second.name . should_equal "Error_Spec.throw_a_bar"
             error.stack_trace.second.source_location.file.name . should_equal "Error_Spec.enso"
-            error.stack_trace.second.source_location.start_line . should_equal 23
+            error.stack_trace.second.source_location.start_line . should_equal 32
 
         Test.specify "should allow to inspect the stack trace of a recovered panic" <|
             error = Panic.recover Any <| throw_a_bar_panicking
@@ -413,7 +422,29 @@ spec =
             r . should_fail_with Type_Error
             r.to_display_text . should_contain "Try to apply a, b arguments"
 
+    Test.group "Wrapped errors" <|
+        Test.specify ".catch unwraps an error when the inner error is explicitly specified" <|
+            e = Error.throw (My_Error_Wrapper.Error (My_Error.Error 12)) . catch My_Error
+            e . should_equal (My_Error.Error 12)
 
+        Test.specify ".catch does not unwrap an error when the wrapper is explicitly specified" <|
+            e = Error.throw (My_Error_Wrapper.Error (My_Error.Error 12)) . catch My_Error_Wrapper
+            e . should_equal (My_Error_Wrapper.Error (My_Error.Error 12))
+
+        Test.specify ".catch does not unwrap an error when the wrapper is not specified" <|
+            e = Error.throw (My_Error_Wrapper.Error (My_Error.Error 12)) . catch
+            e . should_equal (My_Error_Wrapper.Error (My_Error.Error 12))
+
+        Test.specify "When unwrapping, .catch unwraps an error fully when it is wrapped multiple times" <|
+            wrap = My_Error_Wrapper.Error
+            error = My_Error.Error 12
+            [error, wrap error, wrap (wrap error), wrap (wrap (wrap error))].map err->
+                e = Error.throw err . catch My_Error
+                e . should_equal (My_Error.Error 12)
+
+        Test.specify "works with Nothing as an error" <|
+            e = Error.throw (My_Error_Wrapper.Error Nothing) . catch Nothing
+            e . should_equal Nothing
 
 type C
     Baz x

@@ -1,6 +1,7 @@
 from Standard.Base import all
 
 import Standard.Base.Data.Index_Sub_Range as Index_Sub_Range_Module
+import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 from Standard.Base.Data.Index_Sub_Range import normalize_ranges, resolve_ranges, sort_and_merge_ranges
@@ -32,7 +33,7 @@ take_drop_helper take_drop table selector =
             row_column_name = table.make_temp_column_name
             table_with_row_number = table.add_row_number name=row_column_name from=0
 
-            subqueries = ranges.map range->
+            subqueries = ranges.map on_problems=No_Wrap.Value range->
                 generate_subquery table_with_row_number row_column_name range
             combined = subqueries.reduce (a-> b-> a.union b)
             combined.remove_columns row_column_name
