@@ -247,6 +247,10 @@ const editorStyle = computed(() => {
   }
 }
 
+:deep(.ͼ1 .cm-scroller) {
+  font-family: var(--font-mono);
+}
+
 .resize-handle {
   position: absolute;
   top: -3px;
