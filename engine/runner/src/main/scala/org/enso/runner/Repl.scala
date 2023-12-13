@@ -100,7 +100,9 @@ case class TerminalIO(historyFilePath: Path) extends ReplIO {
   // load services. We need to override the context class loader to be `IsolatedClassLoader`
   // from the runner.jar class loader.
   private val prevClassLoader = Thread.currentThread().getContextClassLoader
-  Thread.currentThread().setContextClassLoader(classOf[TerminalIO].getClassLoader)
+  Thread
+    .currentThread()
+    .setContextClassLoader(classOf[TerminalIO].getClassLoader)
   private val terminal: Terminal =
     TerminalBuilder.builder().system(true).build()
   private val parser: DefaultParser = new DefaultParser()

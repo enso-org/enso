@@ -15,8 +15,7 @@ public class ClassLoaderConstants {
   public static final List<String> CLASS_DELEGATION_PATTERNS =
       List.of("org.graalvm", "java", "org.slf4j", "ch.qos");
 
-  public static final List<String> RESOURCE_DELEGATION_PATTERNS =
-      List.of("org.slf4j", "ch.qos");
+  public static final List<String> RESOURCE_DELEGATION_PATTERNS = List.of("org.slf4j", "ch.qos");
   /**
    * Path to the {@code runner.jar} fat jar. This must not be on the system's module-path, because
    * the JVM would not be able to boot.
