@@ -27,6 +27,7 @@ import * as pageSwitcher from './pageSwitcher'
 import type * as spinner from './spinner'
 import Chat, * as chat from './chat'
 import AssetSettingsPanel from './assetSettingsPanel'
+import ChatPlaceholder from './chatPlaceholder'
 import Drive from './drive'
 import Editor from './editor'
 import Home from './home'
@@ -472,8 +473,16 @@ export default function Dashboard(props: DashboardProps) {
                         appRunner={appRunner}
                     />
                     {/* `session.accessToken` MUST be present in order for the `Chat` component to work. */}
-                    {isHelpChatVisible && session.accessToken != null && (
+                    {isHelpChatVisible && session.accessToken != null ? (
                         <Chat
+                            page={page}
+                            isOpen={isHelpChatOpen}
+                            doClose={() => {
+                                setIsHelpChatOpen(false)
+                            }}
+                        />
+                    ) : (
+                        <ChatPlaceholder
                             page={page}
                             isOpen={isHelpChatOpen}
                             doClose={() => {

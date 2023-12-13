@@ -23,6 +23,7 @@ import SubmitButton from './submitButton'
 // =================
 
 const REGISTRATION_QUERY_PARAMS = {
+    email: 'email',
     organizationId: 'organization_id',
     redirectTo: 'redirect_to',
 } as const
@@ -36,11 +37,11 @@ export default function Registration() {
     const auth = authModule.useAuth()
     const location = router.useLocation()
     const { localStorage } = localStorageProvider.useLocalStorage()
-    const [email, setEmail] = React.useState('')
+    const { email: urlEmail, organizationId, redirectTo } = parseUrlSearchParams(location.search)
+    const [email, setEmail] = React.useState(urlEmail ?? '')
     const [password, setPassword] = React.useState('')
     const [confirmPassword, setConfirmPassword] = React.useState('')
     const [isSubmitting, setIsSubmitting] = React.useState(false)
-    const { organizationId, redirectTo } = parseUrlSearchParams(location.search)
 
     React.useEffect(() => {
         if (redirectTo != null) {
@@ -111,7 +112,8 @@ export default function Registration() {
 /** Return an object containing the query parameters, with keys renamed to `camelCase`. */
 function parseUrlSearchParams(search: string) {
     const query = new URLSearchParams(search)
+    const email = query.get(REGISTRATION_QUERY_PARAMS.email)
     const organizationId = query.get(REGISTRATION_QUERY_PARAMS.organizationId)
     const redirectTo = query.get(REGISTRATION_QUERY_PARAMS.redirectTo)
-    return { organizationId, redirectTo }
+    return { email, organizationId, redirectTo }
 }
