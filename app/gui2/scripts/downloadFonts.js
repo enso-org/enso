@@ -66,19 +66,27 @@ function isFileNotFoundError(error) {
   return errorCode(error) === 'ENOENT'
 }
 
+const ENSO_FONT_VARIANTS = [
+  { variant: 'Thin', weight: 100 },
+  { variant: 'ExtraLight', weight: 200 },
+  { variant: 'Light', weight: 300 },
+  { variant: 'Regular', weight: 400 },
+  { variant: 'Medium', weight: 500 },
+  { variant: 'SemiBold', weight: 600 },
+  { variant: 'Bold', weight: 700 },
+  { variant: 'ExtraBold', weight: 800 },
+  { variant: 'Black', weight: 900 },
+].map((variant) => ({ font: 'Enso', ...variant }))
+
+const MPLUS1_FONT_VARIANTS = [
+  { variant: 'DejaVuSansMono', weight: 400 },
+  { variant: 'DejaVuSansMono-Bold', weight: 700 },
+].map((variant) => ({ font: 'DejaVu Sans Mono', ...variant }))
+
 try {
-  for (const weight of [
-    'Thin',
-    'ExtraLight',
-    'Light',
-    'Regular',
-    'Medium',
-    'SemiBold',
-    'Bold',
-    'ExtraBold',
-    'Black',
-  ]) {
-    await fs.access(`./public/font-enso/Enso-${weight}.ttf`)
+  await fs.access(`./src/assets/font-enso.css`)
+  for (const { variant } of ENSO_FONT_VARIANTS) {
+    await fs.access(`./public/font-enso/Enso-${variant}.ttf`)
   }
   console.info('Enso font already downloaded, skipping...')
 } catch (error) {
@@ -108,9 +116,22 @@ try {
         response.on('error', reject)
       })
     })
+    /** @type {string[]} */
+    let css = []
+    for (const { font, variant, weight } of ENSO_FONT_VARIANTS) {
+      css.push(`\
+@font-face {
+  font-family: '${font}';
+  src: url('/font-enso/Enso-${variant}.ttf');
+  font-weight: ${weight};
+}
+`)
+    }
+    await fs.writeFile('./src/assets/font-enso.css', css.join('\n'))
   }
 }
 try {
+  await fs.access(`./src/assets/font-mplus1.css`)
   await fs.access(`./public/font-mplus1/MPLUS1[wght].ttf`)
   console.info('M PLUS 1 font already downloaded, skipping...')
 } catch (error) {
@@ -131,9 +152,22 @@ try {
         response.on('error', reject)
       })
     })
+    /** @type {string[]} */
+    let css = []
+    for (const { font, variant, weight } of MPLUS1_FONT_VARIANTS) {
+      css.push(`\
+@font-face {
+  font-family: '${font}';
+  src: url('/font-dejavu/${variant}.ttf');
+  font-weight: ${weight};
+}
+`)
+    }
+    await fs.writeFile('./src/assets/font-dejavu.css', css.join('\n'))
   }
 }
 try {
+  await fs.access(`./src/assets/font-dejavu.css`)
   for (const variant of ['', '-Bold']) {
     await fs.access(`./public/font-dejavu/DejaVuSansMono${variant}.ttf`)
   }
@@ -164,6 +198,13 @@ try {
         response.on('error', reject)
       })
     })
+    const css = `\
+@font-face {
+  font-family: 'M PLUS 1';
+  src: url('/font-mplus1/MPLUS1[wght].ttf');
+}
+`
+    await fs.writeFile('./src/assets/font-dejavu.css', css)
   }
 }
 console.info('Done.')
