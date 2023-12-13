@@ -36,7 +36,7 @@ function updateContent(updates: [range: ContentRange, content: string][]) {
   }
   nodeContent.value = content
 }
-const idMap = new IdMap(yIdMap, text)
+const idMap = new IdMap(yIdMap)
 
 const rootSpan = computed(() => RawAstExtended.parse(nodeContent.value, idMap))
 const pattern = computed(() => RawAstExtended.parse(nodeBinding.value, idMap))

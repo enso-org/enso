@@ -414,7 +414,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
       const metadata = fileFormat.tryParseMetadataOrFallback(metadataJson)
       const nodeMeta = metadata.ide.node
 
-      const idMap = new IdMap(this.doc.idMap, this.doc.contents)
+      const idMap = new IdMap(this.doc.idMap)
       for (const [{ index, size }, id] of idMapMeta) {
         const range = [index.value, index.value + size.value]
         if (typeof range[0] !== 'number' || typeof range[1] !== 'number') {

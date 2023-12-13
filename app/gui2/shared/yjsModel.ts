@@ -147,8 +147,8 @@ export class DistributedModule {
         this.doc.contents.insert(withImport.offset, withImport.str + '\n')
       }
       this.doc.contents.insert(offset, content + '\n')
-      const start = Y.createRelativePositionFromTypeIndex(this.doc.contents, range[0], -1)
-      const end = Y.createRelativePositionFromTypeIndex(this.doc.contents, range[1])
+      const start = range[0]
+      const end = range[1]
       this.doc.idMap.set(newId, encodeRange([start, end]))
       this.doc.metadata.set(newId, meta)
     })
@@ -159,8 +159,8 @@ export class DistributedModule {
     const rangeBuffer = this.doc.idMap.get(id)
     if (rangeBuffer == null) return
     const [relStart, relEnd] = decodeRange(rangeBuffer)
-    const start = Y.createAbsolutePositionFromRelativePosition(relStart, this.doc.ydoc)?.index
-    const end = Y.createAbsolutePositionFromRelativePosition(relEnd, this.doc.ydoc)?.index
+    const start = relStart
+    const end = relEnd
     if (start == null || end == null) return
     this.transact(() => {
       this.doc.idMap.delete(id)
@@ -173,8 +173,8 @@ export class DistributedModule {
     const rangeBuffer = this.doc.idMap.get(id)
     if (rangeBuffer == null) return
     const [relStart, relEnd] = decodeRange(rangeBuffer)
-    const exprStart = Y.createAbsolutePositionFromRelativePosition(relStart, this.doc.ydoc)?.index
-    const exprEnd = Y.createAbsolutePositionFromRelativePosition(relEnd, this.doc.ydoc)?.index
+    const exprStart = relStart
+    const exprEnd = relEnd
     if (exprStart == null || exprEnd == null) return
     const start = range == null ? exprStart : exprStart + range[0]
     const end = range == null ? exprEnd : exprStart + range[1]
@@ -207,7 +207,7 @@ export class DistributedModule {
   }
 
   getIdMap(): IdMap {
-    return new IdMap(this.doc.idMap, this.doc.contents)
+    return new IdMap(this.doc.idMap)
   }
 
   dispose(): void {
@@ -215,30 +215,15 @@ export class DistributedModule {
   }
 }
 
-export type RelativeRange = [Y.RelativePosition, Y.RelativePosition]
+export type RelativeRange = [number, number]
 
-/**
- * Accessor for the ID map stored in shared yjs map as relative ranges. Synchronizes the ranges
- * that were accessed during parsing, throws away stale ones. The text contents is used to translate
- * the relative ranges to absolute ranges, but it is not modified.
- */
 export class IdMap {
-  private contents: Y.Text
-  private doc: Y.Doc
   private yMap: Y.Map<Uint8Array>
   private rangeToExpr: Map<string, ExprId>
-  private accessed: Set<ExprId>
-  private finished: boolean
 
-  constructor(yMap: Y.Map<Uint8Array>, contents: Y.Text) {
-    if (yMap.doc == null) {
-      throw new Error('IdMap must be associated with a document')
-    }
-    this.doc = yMap.doc
-    this.contents = contents
+  constructor(yMap: Y.Map<Uint8Array>) {
     this.yMap = yMap
     this.rangeToExpr = new Map()
-    this.accessed = new Set()
 
     yMap.forEach((rangeBuffer, expr) => {
       if (!(isUuid(expr) && rangeBuffer instanceof Uint8Array)) return
@@ -249,15 +234,12 @@ export class IdMap {
         this.rangeToExpr.set(key, expr as ExprId)
       }
     })
-
-    this.finished = false
   }
 
   static Mock(): IdMap {
     const doc = new Y.Doc()
     const map = doc.getMap<Uint8Array>('idMap')
-    const text = doc.getText('contents')
-    return new IdMap(map, text)
+    return new IdMap(map)
   }
 
   public static keyForRange(range: readonly [number, number]): string {
@@ -270,20 +252,15 @@ export class IdMap {
 
   private modelToIndices(rangeBuffer: Uint8Array): [number, number] | null {
     const [relStart, relEnd] = decodeRange(rangeBuffer)
-    const start = Y.createAbsolutePositionFromRelativePosition(relStart, this.doc)
-    const end = Y.createAbsolutePositionFromRelativePosition(relEnd, this.doc)
+    const start = relStart
+    const end = relEnd
     if (start == null || end == null) return null
-    return [start.index, end.index]
+    return [start, end]
   }
 
   insertKnownId(range: [number, number], id: ExprId) {
-    if (this.finished) {
-      throw new Error('IdMap already finished')
-    }
-
     const key = IdMap.keyForRange(range)
     this.rangeToExpr.set(key, id)
-    this.accessed.add(id)
   }
 
   getIfExist(range: readonly [number, number]): ExprId | undefined {
@@ -292,25 +269,19 @@ export class IdMap {
   }
 
   getOrInsertUniqueId(range: readonly [number, number]): ExprId {
-    if (this.finished) {
-      throw new Error('IdMap already finished')
-    }
-
     const key = IdMap.keyForRange(range)
     const val = this.rangeToExpr.get(key)
     if (val !== undefined) {
-      this.accessed.add(val)
       return val
     } else {
       const newId = random.uuidv4() as ExprId
       this.rangeToExpr.set(key, newId)
-      this.accessed.add(newId)
       return newId
     }
   }
 
   accessedSoFar(): ReadonlySet<ExprId> {
-    return this.accessed
+    return new Set()
   }
 
   toRawRanges(): Record<string, [number, number]> {
@@ -321,62 +292,25 @@ export class IdMap {
     return ranges
   }
 
-  /**
-   * Finish accessing or modifying ID map. Synchronizes the accessed keys back to the shared map,
-   * removes keys that were present previously, but were not accessed.
-   *
-   * Can be called at most once. After calling this method, the ID map is no longer usable.
-   */
   finishAndSynchronize(): typeof this.yMap {
-    if (this.finished) {
-      throw new Error('IdMap already finished')
-    }
-    this.finished = true
-
-    const doc = this.doc
-
-    doc.transact(() => {
-      this.yMap.forEach((_, expr) => {
-        // Expressions that were accessed and present in the map are guaranteed to match. There is
-        // no mechanism for modifying them, so we don't need to check for equality. We only need to
-        // delete the expressions ones that are not used anymore.
-        if (!this.accessed.delete(expr as ExprId)) {
-          this.yMap.delete(expr)
-        }
-      })
-
-      this.rangeToExpr.forEach((expr, key) => {
-        // For all remaining expressions, we need to write them into the map.
-        if (!this.accessed.has(expr)) return
-        const range = IdMap.rangeForKey(key)
-        const start = Y.createRelativePositionFromTypeIndex(this.contents, range[0], -1)
-        const end = Y.createRelativePositionFromTypeIndex(this.contents, range[1])
-        const encoded = encodeRange([start, end])
-        this.yMap.set(expr, encoded)
-      })
-    })
     return this.yMap
   }
 }
 
 function encodeRange(range: RelativeRange): Uint8Array {
   const encoder = encoding.createEncoder()
-  const start = Y.encodeRelativePosition(range[0])
-  const end = Y.encodeRelativePosition(range[1])
-  encoding.writeUint8(encoder, start.length)
-  encoding.writeUint8Array(encoder, start)
-  encoding.writeUint8(encoder, end.length)
-  encoding.writeUint8Array(encoder, end)
+  const start = range[0]
+  const end = range[1]
+  encoding.writeUint32(encoder, start)
+  encoding.writeUint32(encoder, end)
   return encoding.toUint8Array(encoder)
 }
 
 export function decodeRange(buffer: Uint8Array): RelativeRange {
   const decoder = decoding.createDecoder(buffer)
-  const startLen = decoding.readUint8(decoder)
-  const start = decoding.readUint8Array(decoder, startLen)
-  const endLen = decoding.readUint8(decoder)
-  const end = decoding.readUint8Array(decoder, endLen)
-  return [Y.decodeRelativePosition(start), Y.decodeRelativePosition(end)]
+  const start = decoding.readUint32(decoder)
+  const end = decoding.readUint32(decoder)
+  return [start, end]
 }
 
 const uuidRegex = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/
