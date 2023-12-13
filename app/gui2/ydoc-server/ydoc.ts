@@ -130,9 +130,7 @@ class YjsConnection extends ObservableV2<{ close(): void }> {
     let pongReceived = true
     const pingInterval = setInterval(() => {
       if (!pongReceived) {
-        if (this.wsDoc.conns.has(this)) {
-          this.close()
-        }
+        if (this.wsDoc.conns.has(this)) this.close()
         clearInterval(pingInterval)
       } else if (this.wsDoc.conns.has(this)) {
         pongReceived = false
@@ -183,10 +181,9 @@ class YjsConnection extends ObservableV2<{ close(): void }> {
       const decoder = decoding.createDecoder(message)
       const messageType = decoding.readVarUint(decoder)
       switch (messageType) {
-        case messageSync:
+        case messageSync: {
           encoding.writeVarUint(encoder, messageSync)
           readSyncMessage(decoder, encoder, this.wsDoc.doc, this)
-
           // If the `encoder` only contains the type of reply message and no
           // message, there is no need to send the message. When `encoder` only
           // contains the type of reply, its length is 1.
@@ -194,6 +191,7 @@ class YjsConnection extends ObservableV2<{ close(): void }> {
             this.send(encoding.toUint8Array(encoder))
           }
           break
+        }
         case messageAwareness: {
           const update = decoding.readVarUint8Array(decoder)
           applyAwarenessUpdate(this.wsDoc.awareness, update, this)

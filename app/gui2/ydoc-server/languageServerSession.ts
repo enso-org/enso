@@ -5,13 +5,14 @@ import { ObservableV2 } from 'lib0/observable'
 import * as random from 'lib0/random'
 import * as Y from 'yjs'
 import { LanguageServer, computeTextChecksum } from '../shared/languageServer'
-import { Checksum, Path } from '../shared/languageServerTypes'
+import { Checksum, FileEdit, Path, response } from '../shared/languageServerTypes'
 import { exponentialBackoff, onBeforeRetry } from '../shared/retry'
 import {
   DistributedProject,
   ExprId,
   IdMap,
   ModuleDoc,
+  SourceRange,
   type NodeMetadata,
   type Uuid,
 } from '../shared/yjsModel'
@@ -46,6 +47,7 @@ export class LanguageServerSession {
   url: string
   client!: Client
   ls!: LanguageServer
+  connection: response.InitProtocolConnection | undefined
   model: DistributedProject
   projectRootId: Uuid | null
   authoritativeModules: Map<string, ModulePersistence>
@@ -91,6 +93,7 @@ export class LanguageServerSession {
     // `this.ls` WILL be undefined on the first call.
     this.ls?.destroy()
     this.ls = new LanguageServer(this.client)
+    this.connection = undefined
     this.ls.on('file/event', async (event) => {
       if (DEBUG_LOG_SYNC) {
         console.log('file/event', event)
@@ -179,14 +182,16 @@ export class LanguageServerSession {
   }
 
   private async readInitialState() {
+    let moduleOpenPromises: Promise<void>[] = []
     try {
-      const connection = await this.ls.initProtocolConnection(this.clientId)
+      const connection = this.connection ?? (await this.ls.initProtocolConnection(this.clientId))
+      this.connection = connection
       const projectRoot = connection.contentRoots.find((root) => root.type === 'Project')
       if (!projectRoot) throw new Error('Missing project root')
       this.projectRootId = projectRoot.id
       await this.ls.acquireReceivesTreeUpdates({ rootId: this.projectRootId, segments: [] })
       const files = await this.scanSourceFiles()
-      const moduleOpenPromises = this.indexDoc.doc.transact(
+      moduleOpenPromises = this.indexDoc.doc.transact(
         () =>
           files.map((file) => this.getModuleModel(pushPathSegment(file.path, file.name)).open()),
         this,
@@ -285,8 +290,8 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
   ls: LanguageServer
   path: Path
   doc: ModuleDoc = new ModuleDoc(new Y.Doc())
-  state: LsSyncState = LsSyncState.Closed
-  lastAction = Promise.resolve()
+  readonly state: LsSyncState = LsSyncState.Closed
+  readonly lastAction = Promise.resolve()
   updateToApply: Uint8Array | null = null
   syncedContent: string | null = null
   syncedVersion: Checksum | null = null
@@ -326,13 +331,25 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
       if (DEBUG_LOG_SYNC) {
         console.debug('State change:', LsSyncState[this.state], '->', LsSyncState[state])
       }
+      // This is SAFE. `this.state` is only `readonly` to ensure that this is the only place
+      // where it is mutated.
+      // @ts-expect-error
       this.state = state
-      if (state === LsSyncState.Synchronized) {
-        this.trySyncRemoveUpdates()
-      }
+      if (state === LsSyncState.Synchronized) this.trySyncRemoveUpdates()
     } else {
       throw new Error('LsSync disposed')
     }
+  }
+
+  private setLastAction<T>(lastAction: Promise<T>) {
+    // This is SAFE. `this.lastAction` is only `readonly` to ensure that this is the only place
+    // where it is mutated.
+    // @ts-expect-error
+    this.lastAction = lastAction.then(
+      () => {},
+      () => {},
+    )
+    return lastAction
   }
 
   /** Set the current state to the given state while the callback is running.
@@ -365,7 +382,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
       case LsSyncState.Closed: {
         await this.withState(LsSyncState.Opening, async () => {
           const promise = this.ls.openTextFile(this.path)
-          this.lastAction = promise.then()
+          this.setLastAction(promise.catch(() => this.setState(LsSyncState.Closed)))
           const result = await promise
           if (!result.writeCapability) {
             console.error('Could not acquire write capability for module:', this.path)
@@ -400,7 +417,6 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
     } else {
       this.updateToApply = update
     }
-
     this.trySyncRemoveUpdates()
   }
 
@@ -434,7 +450,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
     metadataKeys: Y.YMapEvent<NodeMetadata>['keys'] | null,
   ) {
     if (this.syncedContent == null || this.syncedVersion == null) return
-    if (contentDelta == null && idMapKeys == null && metadataKeys == null) return
+    if (!contentDelta && !idMapKeys && !metadataKeys) return
 
     const { edits, newContent, newMetadata } = applyDocumentUpdates(
       this.doc,
@@ -470,16 +486,9 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
     this.setState(LsSyncState.WritingFile)
 
     const execute = contentDelta != null || idMapKeys != null
-    const apply = this.ls.applyEdit(
-      {
-        path: this.path,
-        edits,
-        oldVersion: this.syncedVersion,
-        newVersion,
-      },
-      execute,
-    )
-    return (this.lastAction = apply.then(
+    const edit: FileEdit = { path: this.path, edits, oldVersion: this.syncedVersion, newVersion }
+    const apply = this.ls.applyEdit(edit, execute)
+    const promise = apply.then(
       () => {
         this.syncedContent = newContent
         this.syncedVersion = newVersion
@@ -488,15 +497,16 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
       },
       (error) => {
         console.error('Could not apply edit:', error)
-
-        // Try to recover by reloading the file. Drop the attempted updates, since applying them
-        // have failed.
+        // Try to recover by reloading the file.
+        // Drop the attempted updates, since applying them have failed.
         this.setState(LsSyncState.WriteError)
         this.syncedContent = null
         this.syncedVersion = null
         return this.reload()
       },
-    ))
+    )
+    this.setLastAction(promise)
+    return promise
   }
 
   private syncFileContents(content: string, version: Checksum) {
@@ -510,7 +520,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
       for (const [{ index, size }, id] of idMapMeta) {
         const start = index.value
         const end = index.value + size.value
-        const range: [number, number] = [start, end]
+        const range: SourceRange = [start, end]
         if (typeof start !== 'number' || typeof end !== 'number') {
           console.error(`Invalid range for id ${id}:`, range)
           continue
@@ -529,13 +539,10 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
         keysToDelete.delete(id)
         this.doc.metadata.set(id, formattedMeta)
       }
-      for (const id of keysToDelete) {
-        this.doc.metadata.delete(id)
-      }
+      for (const id of keysToDelete) this.doc.metadata.delete(id)
       this.syncedContent = content
       this.syncedVersion = version
       this.syncedMeta = metadata
-
       const codeDiff = simpleDiffString(this.doc.contents.toString(), code)
       this.doc.contents.delete(codeDiff.index, codeDiff.remove)
       this.doc.contents.insert(codeDiff.index, codeDiff.insert)
@@ -566,8 +573,10 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
       case LsSyncState.WriteError:
       case LsSyncState.Synchronized: {
         this.setState(LsSyncState.Closing)
-        const closing = (this.lastAction = this.ls.closeTextFile(this.path))
-        await closing
+        const promise = this.ls.closeTextFile(this.path)
+        const state = this.state
+        this.setLastAction(promise.catch(() => this.setState(state)))
+        await promise
         this.setState(LsSyncState.Closed)
         return
       }
@@ -602,7 +611,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
             this.ls.readFile(this.path),
             this.ls.fileChecksum(this.path),
           ])
-          this.lastAction = promise.then()
+          this.setLastAction(promise)
           const [contents, checksum] = await promise
           this.syncFileContents(contents.contents, checksum.checksum)
         })
@@ -613,7 +622,8 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
           const reloading = this.ls
             .closeTextFile(this.path)
             .catch((error) => {
-              console.error('Could not close file after write error:', error)
+              console.error('Could not close file after write error:')
+              console.error(error)
             })
             .then(
               () =>
@@ -640,13 +650,13 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
                   },
                 ),
               (error) => {
-                console.error('Could not reopen file after write error.')
+                console.error('Could not reopen file after write error:')
                 console.error(error)
                 // This error is unrecoverable.
                 throw error
               },
             )
-          this.lastAction = reloading.then()
+          this.setLastAction(reloading)
           const result = await reloading
           this.syncFileContents(result.content, result.currentVersion)
         })
