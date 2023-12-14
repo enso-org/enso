@@ -1,5 +1,4 @@
 import { Client, RequestManager, WebSocketTransport } from '@open-rpc/client-js'
-import { simpleDiffString } from 'lib0/diff'
 import * as map from 'lib0/map'
 import { ObservableV2 } from 'lib0/observable'
 import * as random from 'lib0/random'
@@ -25,7 +24,7 @@ import { WSSharedDoc } from './ydoc'
 
 const sessions = new Map<string, LanguageServerSession>()
 
-const DEBUG_LOG_SYNC = false
+const DEBUG_LOG_SYNC = true
 
 type Events = {
   error: (error: Error) => void
@@ -319,37 +318,31 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
     const update = this.updateToApply
     this.updateToApply = null
 
-    let contentDelta: Y.YTextEvent['delta'] | null = null
-    let idMapKeys: Y.YMapEvent<Uint8Array>['keys'] | null = null
+    let dataKeys: Y.YMapEvent<any>['keys'] | null = null
     let metadataKeys: Y.YMapEvent<NodeMetadata>['keys'] | null = null
-    const observeContent = (event: Y.YTextEvent) => (contentDelta = event.delta)
-    const observeIdMap = (event: Y.YMapEvent<Uint8Array>) => (idMapKeys = event.keys)
+    const observeData = (event: Y.YMapEvent<any>) => (dataKeys = event.keys)
     const observeMetadata = (event: Y.YMapEvent<NodeMetadata>) => (metadataKeys = event.keys)
 
-    this.doc.contents.observe(observeContent)
-    this.doc.idMap.observe(observeIdMap)
+    this.doc.data.observe(observeData)
     this.doc.metadata.observe(observeMetadata)
     Y.applyUpdate(this.doc.ydoc, update, 'remote')
-    this.doc.contents.unobserve(observeContent)
-    this.doc.idMap.unobserve(observeIdMap)
+    this.doc.data.unobserve(observeData)
     this.doc.metadata.unobserve(observeMetadata)
-    this.writeSyncedEvents(contentDelta, idMapKeys, metadataKeys)
+    this.writeSyncedEvents(dataKeys, metadataKeys)
   }
 
   private writeSyncedEvents(
-    contentDelta: Y.YTextEvent['delta'] | null,
-    idMapKeys: Y.YMapEvent<Uint8Array>['keys'] | null,
+    dataKeys: Y.YMapEvent<any>['keys'] | null,
     metadataKeys: Y.YMapEvent<NodeMetadata>['keys'] | null,
   ) {
     if (this.syncedContent == null || this.syncedVersion == null) return
-    if (contentDelta == null && idMapKeys == null && metadataKeys == null) return
+    if (dataKeys == null && metadataKeys == null) return
 
     const { edits, newContent, newMetadata } = applyDocumentUpdates(
       this.doc,
       this.syncedMeta,
       this.syncedContent,
-      contentDelta,
-      idMapKeys,
+      dataKeys,
       metadataKeys,
     )
 
@@ -357,27 +350,14 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
 
     if (DEBUG_LOG_SYNC) {
       console.log(' === changes === ')
-      console.log('number of edits:', edits.length)
       console.log('metadata:', metadataKeys)
-      console.log('content:', contentDelta)
-      console.log('idMap:', idMapKeys)
-      if (edits.length > 0) {
-        console.log('version:', this.syncedVersion, '->', newVersion)
-        console.log('Content diff:')
-        console.log(prettyPrintDiff(this.syncedContent, newContent))
-      }
+      console.log('data:', dataKeys)
       console.log(' =============== ')
-    }
-    if (edits.length === 0) {
-      if (newVersion !== this.syncedVersion) {
-        console.error('Version mismatch:', this.syncedVersion, '->', newVersion)
-      }
-      return
     }
 
     this.changeState(LsSyncState.WritingFile)
 
-    const execute = contentDelta != null || idMapKeys != null
+    const execute = dataKeys != null
     const apply = this.ls.applyEdit(
       {
         path: this.path,
@@ -409,12 +389,14 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
 
   private syncFileContents(content: string, version: Checksum) {
     this.doc.ydoc.transact(() => {
+      console.info(`syncFileContents`)
+
       const { code, idMapJson, metadataJson } = preParseContent(content)
       const idMapMeta = fileFormat.tryParseIdMapOrFallback(idMapJson)
       const metadata = fileFormat.tryParseMetadataOrFallback(metadataJson)
       const nodeMeta = metadata.ide.node
 
-      const idMap = new IdMap(this.doc.idMap)
+      const idMap = new IdMap()
       for (const [{ index, size }, id] of idMapMeta) {
         const range = [index.value, index.value + size.value]
         if (typeof range[0] !== 'number' || typeof range[1] !== 'number') {
@@ -423,6 +405,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
         }
         idMap.insertKnownId([index.value, index.value + size.value], id as ExprId)
       }
+      this.doc.setIdMap(idMap)
 
       const keysToDelete = new Set(this.doc.metadata.keys())
       for (const [id, meta] of Object.entries(nodeMeta)) {
@@ -442,10 +425,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
       this.syncedVersion = version
       this.syncedMeta = metadata
 
-      const codeDiff = simpleDiffString(this.doc.contents.toString(), code)
-      this.doc.contents.delete(codeDiff.index, codeDiff.remove)
-      this.doc.contents.insert(codeDiff.index, codeDiff.insert)
-      idMap.finishAndSynchronize()
+      this.doc.setCode(code)
     }, 'file')
   }
 

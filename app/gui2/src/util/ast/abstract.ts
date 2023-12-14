@@ -15,7 +15,8 @@ export interface Module {
   get(id: AstId): Ast | null
   getExtended(id: AstId): RawAstExtended | undefined
   edit(): MutableModule
-  apply(module: MutableModule): void
+  apply(module: Module): void
+  replace(editIn: Module, oldRoot: AstId, newRoot: AstId): void
 }
 
 export class MutableModule implements Module {
@@ -53,19 +54,39 @@ export class MutableModule implements Module {
     return this
   }
 
-  apply(edit: MutableModule) {
+  apply(editIn: Module) {
+    const edit = editIn.raw
+    if (edit.astExtended) {
+      const astExtended = this.astExtended ?? new Map()
+      for (const [id, ast] of edit.astExtended.entries()) {
+        astExtended.set(id, ast)
+      }
+      this.astExtended = astExtended
+    }
     for (const [id, ast] of edit.nodes.entries()) {
       if (ast === null) {
         this.nodes.delete(id)
+        this.astExtended?.delete(id)
       } else {
         this.nodes.set(id, ast)
       }
     }
-    if (edit.astExtended) {
-      if (this.astExtended)
-        console.error(`Merging astExtended not implemented, probably doesn't make sense`)
-      this.astExtended = edit.astExtended
+  }
+
+  // NB. oldRoot and newRoot are used only for debugging.
+  replace(editIn: Module, oldRoot: AstId | undefined, newRoot: AstId) {
+    const before = oldRoot ? tokenTreeWithIds(this.get(oldRoot)!) : null
+    const edit = editIn.raw
+    //console.info(`replace`, Array.from(this.nodes.entries()).sort(), Array.from(edit.nodes.entries()).sort())
+    for (const id of this.nodes.keys()) {
+      if (!edit.nodes.has(id)) {
+        this.nodes.delete(id)
+        this.astExtended?.delete(id)
+      }
     }
+    this.apply(edit)
+    const after = tokenTreeWithIds(this.get(newRoot)!)
+    if (before) console.info(`replace`, before, after)
   }
 
   /** Returns a syntax node representing the current committed state of the given ID. */
@@ -91,17 +112,13 @@ export class MutableModule implements Module {
   }
 }
 
-// TODO (#8367): Flatten overlay into input `committed`.
-/*
 export function normalize(rootIn: Ast): Ast {
   const printed = print(rootIn)
-  const module = new Module()
+  const module = MutableModule.Transient()
   const tree = parseEnso(printed.code)
   const rootOut = abstract(module, tree, printed.code, printed.info).node
-  module.syncCommittedFromEdited()
   return module.get(rootOut)!
 }
- */
 
 export type NodeChild<T = AstId | Token> = { whitespace?: string | undefined; node: T }
 
@@ -116,14 +133,18 @@ function newNodeId(): AstId {
 function newTokenId(): TokenId {
   return random.uuidv4() as TokenId
 }
+// Cast an ID which may be a tree or a token to a tree ID.
+export function asNodeId(expr: ExprId): AstId {
+  return expr as AstId
+}
 
 export class Token {
+  readonly exprId: TokenId
   code_: string
-  exprId: TokenId
   tokenType_: RawAst.Token.Type | undefined
   constructor(code: string, id: TokenId, type: RawAst.Token.Type | undefined) {
-    this.code_ = code
     this.exprId = id
+    this.code_ = code
     this.tokenType_ = type
   }
 
@@ -148,12 +169,12 @@ export class Token {
 
 export abstract class Ast {
   readonly treeType: RawAst.Tree.Type | undefined
-  _id: AstId
+  readonly exprId: AstId
   readonly module: Module
 
   // Deprecated interface for incremental integration of Ast API. Eliminate usages for #8367.
   get astExtended(): RawAstExtended | undefined {
-    return this.module.getExtended(this._id)
+    return this.module.getExtended(this.exprId)
   }
 
   serialize(): string {
@@ -164,18 +185,15 @@ export abstract class Ast {
     const parsed: SerializedPrintedSource = JSON.parse(serialized)
     const nodes = new Map(unsafeEntries(parsed.info.nodes))
     const tokens = new Map(unsafeEntries(parsed.info.tokens))
+    const tokensOut = new Map()
     const module = MutableModule.Transient()
     const tree = parseEnso(parsed.code)
-    const root = abstract(module, tree, parsed.code, { nodes, tokens }).node
+    const root = abstract(module, tree, parsed.code, { nodes, tokens, tokensOut }).node
     return module.get(root)!
   }
 
-  get exprId(): AstId {
-    return this._id
-  }
-
   get astId(): AstId {
-    return this._id
+    return this.exprId
   }
 
   /** Returns child subtrees, without information about the whitespace between them. */
@@ -210,7 +228,7 @@ export abstract class Ast {
     const code = typeof source === 'object' ? source.code : source
     const ids = typeof source === 'object' ? source.info : undefined
     const tree = parseEnso(code)
-    const module = inModule ?? MutableModule.Observable()
+    const module = inModule ?? MutableModule.Transient()
     const newRoot = abstract(module, tree, code, ids).node
     return module.get(newRoot)!
   }
@@ -238,9 +256,9 @@ export abstract class Ast {
 
   protected constructor(module: MutableModule, id?: AstId, treeType?: RawAst.Tree.Type) {
     this.module = module
-    this._id = id ?? newNodeId()
+    this.exprId = id ?? newNodeId()
     this.treeType = treeType
-    module.set(this._id, this)
+    module.set(this.exprId, this)
   }
 
   _print(
@@ -262,7 +280,11 @@ export abstract class Ast {
       }
       if (child.node != null) {
         if (child.node instanceof Token) {
-          code += child.node.code()
+          const token_start = offset + code.length
+          const token_code = child.node.code()
+          const span = tokenKey(token_start, token_code.length)
+          info.tokens.set(span, child.node.astId)
+          code += token_code
         } else {
           code += module_
             .get(child.node)!
@@ -273,9 +295,9 @@ export abstract class Ast {
     const span = nodeKey(offset, code.length, this.treeType)
     const infos = info.nodes.get(span)
     if (infos == null) {
-      info.nodes.set(span, [this._id])
+      info.nodes.set(span, [this.exprId])
     } else {
-      infos.push(this._id)
+      infos.unshift(this.exprId)
     }
     return code
   }
@@ -749,10 +771,10 @@ interface BlockLine {
 }
 
 export class BodyBlock extends Ast {
-  _lines: BlockLine[];
+  readonly lines: BlockLine[]
 
   *expressions(): IterableIterator<Ast> {
-    for (const line of this._lines) {
+    for (const line of this.lines) {
       if (line.expression) {
         const node = this.module.get(line.expression.node)
         if (node) {
@@ -766,7 +788,7 @@ export class BodyBlock extends Ast {
 
   constructor(module: MutableModule, id: AstId | undefined, lines: BlockLine[]) {
     super(module, id, RawAst.Tree.Type.BodyBlock)
-    this._lines = lines
+    this.lines = lines
   }
 
   // TODO: Edits (#8367)
@@ -786,7 +808,7 @@ export class BodyBlock extends Ast {
    */
 
   *concreteChildren(): IterableIterator<NodeChild> {
-    for (const line of this._lines) {
+    for (const line of this.lines) {
       yield line.newline
       if (line.expression !== null) yield line.expression
     }
@@ -800,7 +822,8 @@ export class BodyBlock extends Ast {
   ): string {
     const module_ = moduleOverride ?? this.module
     let code = ''
-    for (const line of this._lines) {
+    for (const line of this.lines) {
+      // Skip deleted lines (and associated whitespace).
       if (line.expression?.node != null && module_.get(line.expression.node) === null) continue
       code += line.newline?.whitespace ?? ''
       code += line.newline?.node.code() ?? '\n'
@@ -809,16 +832,16 @@ export class BodyBlock extends Ast {
         if (line.expression.node !== null) {
           code += module_
             .get(line.expression.node)!
-            ._print(info, offset, indent + '    ', moduleOverride)
+            ._print(info, offset + code.length, indent + '    ', moduleOverride)
         }
       }
     }
     const span = nodeKey(offset, code.length, this.treeType)
     const infos = info.nodes.get(span)
     if (infos == null) {
-      info.nodes.set(span, [this._id])
+      info.nodes.set(span, [this.exprId])
     } else {
-      infos.push(this._id)
+      infos.unshift(this.exprId)
     }
     return code
   }
@@ -873,13 +896,11 @@ export class RawCode extends Ast {
     this._code = code
   }
 
-  // TODO (#8367)
-  /*
-  static new(id: AstId | undefined, code: string): RawCode {
+  static new(code: string, moduleIn?: MutableModule, id?: AstId | undefined): RawCode {
     const token = new Token(code, newTokenId(), RawAst.Token.Type.Ident)
-    return new RawCode(new Module(), id, { node: token })
+    const module = moduleIn ?? MutableModule.Transient()
+    return new RawCode(module, id, { node: token })
   }
-   */
 
   *concreteChildren(): IterableIterator<NodeChild> {
     yield this._code
@@ -895,8 +916,9 @@ function abstract(
   const nodesExpected = new Map(
     Array.from(info?.nodes.entries() ?? [], ([span, ids]) => [span, [...ids]]),
   )
-  const tokenIds = info?.tokens ?? new Map()
-  return abstractTree(module, tree, code, nodesExpected, tokenIds)
+  const tokens = info?.tokens ?? new Map()
+  const tokensOut = info?.tokensOut ?? new Map()
+  return abstractTree(module, tree, code, nodesExpected, tokens, tokensOut)
 }
 
 function abstractTree(
@@ -904,11 +926,12 @@ function abstractTree(
   tree: RawAst.Tree,
   code: string,
   nodesExpected: NodeSpanMap,
-  tokenIds: TokenSpanMap,
+  tokens: TokenSpanMap,
+  tokensOut: TokenSpanMap,
 ): { whitespace: string | undefined; node: AstId } {
   const recurseTree = (tree: RawAst.Tree) =>
-    abstractTree(module, tree, code, nodesExpected, tokenIds)
-  const recurseToken = (token: RawAst.Token.Token) => abstractToken(token, code, tokenIds)
+    abstractTree(module, tree, code, nodesExpected, tokens, tokensOut)
+  const recurseToken = (token: RawAst.Token.Token) => abstractToken(token, code, tokens, tokensOut)
   const visitChildren = (tree: LazyObject) => {
     const children: NodeChild[] = []
     const visitor = (child: LazyObject) => {
@@ -1086,7 +1109,8 @@ function abstractTree(
 function abstractToken(
   token: RawAst.Token,
   code: string,
-  tokenIds: TokenSpanMap,
+  tokens: TokenSpanMap,
+  tokensOut: TokenSpanMap,
 ): { whitespace: string; node: Token } {
   const whitespaceStart = token.whitespaceStartInCodeBuffer
   const whitespaceEnd = whitespaceStart + token.whitespaceLengthInCodeBuffer
@@ -1095,8 +1119,9 @@ function abstractToken(
   const codeEnd = codeStart + token.lengthInCodeBuffer
   const tokenCode = code.substring(codeStart, codeEnd)
   const key = tokenKey(codeStart, codeEnd - codeStart)
-  const exprId = tokenIds.get(key) ?? newTokenId()
+  const exprId = tokens.get(key) ?? newTokenId()
   const node = new Token(tokenCode, exprId, token.type)
+  tokensOut.set(key, exprId)
   return { whitespace, node }
 }
 
@@ -1110,6 +1135,12 @@ function nodeKey(start: number, length: number, type: Opt<RawAst.Tree.Type>): No
 }
 function tokenKey(start: number, length: number): TokenKey {
   return `${start}:${length}` as TokenKey
+}
+export function keyToRange(key: NodeKey | TokenKey): { start: number, end: number } {
+  const parts = key.split(':')
+  const start = parseInt(parts[0]!, 10)
+  const length = parseInt(parts[1]!, 10)
+  return { start, end: start + length }
 }
 
 interface SerializedInfoMap {
@@ -1128,6 +1159,7 @@ type TokenSpanMap = Map<TokenKey, TokenId>
 export interface InfoMap {
   nodes: NodeSpanMap
   tokens: TokenSpanMap
+  tokensOut: TokenSpanMap
 }
 
 interface PrintedSource {
@@ -1140,13 +1172,13 @@ export function print(ast: Ast, module?: Module | undefined): PrintedSource {
   const info: InfoMap = {
     nodes: new Map(),
     tokens: new Map(),
+    tokensOut: new Map(),
   }
   const code = ast._print(info, 0, '', module)
   return { info, code }
 }
 
 export type TokenTree = (TokenTree | string)[]
-
 export function tokenTree(root: Ast): TokenTree {
   const module = root.module
   return Array.from(root.concreteChildren(), (child) => {
@@ -1157,6 +1189,18 @@ export function tokenTree(root: Ast): TokenTree {
       return node ? tokenTree(node) : '<missing>'
     }
   })
+}
+
+export function tokenTreeWithIds(root: Ast): TokenTree {
+  const module = root.module
+  return [root.exprId, ...Array.from(root.concreteChildren(), (child) => {
+    if (child.node instanceof Token) {
+      return child.node.code()
+    } else {
+      const node = module.get(child.node)
+      return node ? tokenTreeWithIds(node) : ['<missing>']
+    }
+  })]
 }
 
 // FIXME: We should use alias analysis to handle ambiguous names correctly.
@@ -1198,14 +1242,12 @@ export function replaceExpressionContentAST(id: AstId, code: string) {
 }
  */
 
-/** Parse using new AST types with old IdMap synchronization/editing. */
 export function parseTransitional(code: string, idMap: IdMap): Ast {
-  const legacyAst = RawAstExtended.parse(code, idMap)
-  idMap.finishAndSynchronize()
+  const rawAst = RawAstExtended.parse(code, idMap)
   const nodes = new Map<NodeKey, AstId[]>()
   const tokens = new Map<TokenKey, TokenId>()
-  const astExtended = reactive(new Map<AstId, RawAstExtended>())
-  legacyAst.visitRecursive((nodeOrToken: RawAstExtended<RawAst.Tree | RawAst.Token>) => {
+  const astExtended = new Map<AstId, RawAstExtended>()
+  rawAst.visitRecursive((nodeOrToken: RawAstExtended<RawAst.Tree | RawAst.Token>) => {
     const start = nodeOrToken.span()[0]
     const length = nodeOrToken.span()[1] - nodeOrToken.span()[0]
     if (nodeOrToken.isToken()) {
@@ -1226,7 +1268,7 @@ export function parseTransitional(code: string, idMap: IdMap): Ast {
         }
         id = newNodeId()
       }
-      astExtended.set(id, nodeOrToken)
+      astExtended.set(id, node)
       const key = nodeKey(start, length, node.inner.type)
       const ids = nodes.get(key)
       if (ids !== undefined) {
@@ -1237,8 +1279,29 @@ export function parseTransitional(code: string, idMap: IdMap): Ast {
     }
     return true
   })
-  const newRoot = Ast.parse({ info: { nodes, tokens }, code })
+  console.log(`Expected nodes: ${idMap.size}, found nodes: ${astExtended.size}`)
+  const tokensOut = new Map()
+  const newRoot = Ast.parse({ info: { nodes, tokens, tokensOut }, code })
   newRoot.module.raw.astExtended = astExtended
+  idMap.clear()
+  // TODO (optimization): Use ID-match info collected while abstracting.
+  /*
+  for (const [id, ast] of newRoot.module.raw.nodes.entries()) {
+    idMap.insertKnownId( ... )
+  }
+  for (const [key, id] of tokensOut) {
+    idMap.insertKnownId( ... )
+  }
+   */
+  const printed = print(newRoot)
+  for (const [key, ids] of printed.info.nodes) {
+    const range = keyToRange(key)
+    idMap.insertKnownId([range.start, range.end], ids[0]!)
+  }
+  for (const [key, id] of printed.info.tokens) {
+    const range = keyToRange(key)
+    idMap.insertKnownId([range.start, range.end], id)
+  }
   return newRoot
 }
 

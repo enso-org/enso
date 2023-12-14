@@ -41,7 +41,7 @@ useAutoBlur(rootElement)
 const executionContextDiagnostics = computed(() =>
   projectStore.module
     ? lsDiagnosticsToCMDiagnostics(
-        projectStore.module.doc.contents.toString(),
+        projectStore.module.doc.getCode(),
         projectStore.diagnostics,
       )
     : [],

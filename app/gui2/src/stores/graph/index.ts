@@ -22,9 +22,11 @@ import {
   type ExprId,
   type NodeMetadata,
   type VisualizationIdentifier,
-  type VisualizationMetadata,
+  type VisualizationMetadata, IdMap,
 } from 'shared/yjsModel'
 import { computed, markRaw, reactive, ref, toRef, watch } from 'vue'
+import type { AstId, Module } from '@/util/ast/abstract'
+import { MutableModule } from '@/util/ast/abstract'
 
 export { type Node } from '@/stores/graph/graphDatabase'
 
@@ -38,10 +40,21 @@ export const useGraphStore = defineStore('graph', () => {
 
   proj.setObservedFileName('Main.enso')
 
-  const text = computed(() => proj.module?.doc.contents)
+  const data = computed(() => proj.module?.doc.data)
   const metadata = computed(() => proj.module?.doc.metadata)
 
-  const textContent = ref('')
+  const textContent = ref<string>()
+  const idMap = ref<IdMap>()
+  const expressionGraph: Module = MutableModule.Observable()
+  const moduleRoot = ref<AstId>()
+  watch(() => proj.module, () => {
+    if (!textContent.value) {
+      console.info(`initializing textContent/idMap`)
+      textContent.value = proj.module?.doc.getCode()
+      idMap.value = proj.module?.doc.getIdMap()
+      updateState()
+    }
+  })
 
   const db = new GraphDb(
     suggestionDb.entries,
@@ -58,43 +71,32 @@ export const useGraphStore = defineStore('graph', () => {
 
   const unconnectedEdge = ref<UnconnectedEdge>()
 
-  useObserveYjs(text, (event) => {
-    const delta = event.changes.delta
-    if (delta.length === 0) return
-
-    let newContent = ''
-    let oldIdx = 0
-    for (const op of delta) {
-      if (op.retain) {
-        newContent += textContent.value.substring(oldIdx, oldIdx + op.retain)
-        oldIdx += op.retain
-      } else if (op.delete) {
-        oldIdx += op.delete
-      } else if (op.insert && typeof op.insert === 'string') {
-        newContent += op.insert
-      } else {
-        console.error('Unexpected Yjs operation:', op)
-      }
-    }
-    newContent += textContent.value.substring(oldIdx)
-    textContent.value = newContent
-    updateState()
-  })
-
-  watch(text, (value) => {
-    textContent.value = value?.toString() ?? ''
-    if (value) updateState()
+  useObserveYjs(data, (event) => {
+    if (!event.changes.keys.size) return
+    const code = proj.module?.doc.getCode()
+    if (code) textContent.value = code
+    const ids = proj.module?.doc.getIdMap()
+    if (ids) idMap.value = ids
+    console.info(`- useObserveYjs${JSON.stringify(event.changes.keys)}: ${!!code} && ${!!ids}`)
+    if (code && ids) updateState()
   })
 
   function updateState() {
     const module = proj.module
     if (!module) return
+    const idMap_ = idMap.value
+    if (!idMap_) return
     module.transact(() => {
-      const idMap = module.getIdMap()
       const meta = module.doc.metadata
       const textContentLocal = textContent.value
+      if (!textContentLocal) return
 
-      const newRoot = Ast.parseTransitional(textContentLocal, idMap)
+      console.info(`updateState: ${textContentLocal.length} bytes`)
+
+      const newRoot = Ast.parseTransitional(textContentLocal, idMap_)
+      expressionGraph.replace(newRoot.module, moduleRoot.value, newRoot.exprId)
+      moduleRoot.value = newRoot.exprId
+      module.doc.setIdMap(idMap_)
 
       imports.value = []
       newRoot.visitRecursive((node) => {
@@ -195,6 +197,8 @@ export const useGraphStore = defineStore('graph', () => {
       additionalOffset += str.length + 1
       importData = { str, offset: importOffset }
     }
+    throw new Error(`TODO: Update and replace the current function's block`)
+    /*
     return mod.insertNewNode(
       mod.doc.contents.length + additionalOffset,
       ident,
@@ -202,6 +206,7 @@ export const useGraphStore = defineStore('graph', () => {
       meta,
       importData,
     )
+     */
   }
 
   // Create a node from a source expression, and insert it into the graph. The return value will be
@@ -215,7 +220,8 @@ export const useGraphStore = defineStore('graph', () => {
   function deleteNode(id: ExprId) {
     const node = db.nodeIdToNode.get(id)
     if (!node) return
-    proj.module?.deleteExpression(node.outerExprId)
+    // TODO: commit edit
+    proj.module?.doc.metadata.delete(node.outerExprId)
     nodeRects.delete(id)
     node.pattern?.visitRecursive((ast) => exprRects.delete(ast.astId))
   }
@@ -227,7 +233,11 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   function setExpressionContent(id: ExprId, content: string) {
-    proj.module?.replaceExpressionContent(id, content)
+    const edit = expressionGraph.edit()
+    edit.set(Ast.asNodeId(id), Ast.RawCode.new(content, edit))
+    const root = moduleRoot.value
+    if (!root) return
+    commitEdit(edit, root)
   }
 
   function transact(fn: () => void) {
@@ -313,6 +323,26 @@ export const useGraphStore = defineStore('graph', () => {
     editedNodeInfo.value = { id, range }
   }
 
+  function commitEdit(module: Module, root: AstId) {
+    const ast = module.get(root)
+    if (!ast) return
+    const printed = Ast.print(ast, module)
+    const module_ = proj.module
+    if (!module_) return
+    console.info(`commitEdit`)
+    const idMap = new IdMap()
+    for (const [tokenKey, id] of printed.info.tokens) {
+      const range = Ast.keyToRange(tokenKey)
+      idMap.insertKnownId([range.start, range.end], id)
+    }
+    for (const [nodeKey, ids] of printed.info.nodes) {
+      const range = Ast.keyToRange(nodeKey)
+      idMap.insertKnownId([range.start, range.end], ids[0]!)
+    }
+    module_.doc.setIdMap(idMap)
+    module_.doc.setCode(printed.code)
+  }
+
   return {
     transact,
     db: markRaw(db),
@@ -343,6 +373,7 @@ export const useGraphStore = defineStore('graph', () => {
     updateExprRect,
     setEditedNode,
     updateState,
+    commitEdit,
   }
 })
 

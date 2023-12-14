@@ -104,14 +104,35 @@ export interface NodeMetadata {
 
 export class ModuleDoc {
   ydoc: Y.Doc
-  contents: Y.Text
-  idMap: Y.Map<Uint8Array>
   metadata: Y.Map<NodeMetadata>
+  data: Y.Map<any>
   constructor(ydoc: Y.Doc) {
     this.ydoc = ydoc
-    this.contents = ydoc.getText('contents')
-    this.idMap = ydoc.getMap('idMap')
     this.metadata = ydoc.getMap('metadata')
+    this.data = ydoc.getMap('data')
+  }
+
+  setIdMap(map: IdMap) {
+    const oldMap = new IdMap(this.data.get('idmap') ?? [])
+    if (oldMap.isEqual(map)) return
+    console.info(`setIdMap(${map.size} entries)`)
+    this.data.set('idmap', map.entries())
+  }
+
+  getIdMap(): IdMap {
+    const map = this.data.get('idmap')
+    return new IdMap(map ?? [])
+  }
+
+  setCode(code: string) {
+    console.info(`setCode(${code.length} bytes)`)
+    this.data.set('code', code)
+  }
+
+  getCode(): string {
+    const code = this.data.get('code') ?? ''
+    console.info(`getCode() -> ${code.length} bytes`)
+    return code
   }
 }
 
@@ -127,7 +148,7 @@ export class DistributedModule {
 
   constructor(ydoc: Y.Doc) {
     this.doc = new ModuleDoc(ydoc)
-    this.undoManager = new Y.UndoManager([this.doc.contents, this.doc.idMap, this.doc.metadata])
+    this.undoManager = new Y.UndoManager([this.doc.data, this.doc.metadata])
   }
 
   insertNewNode(
@@ -137,6 +158,8 @@ export class DistributedModule {
     meta: NodeMetadata,
     withImport?: { str: string; offset: number },
   ): ExprId {
+    throw new Error('TODO')
+    /*
     // Spaces at the beginning are needed to place the new node in scope of the `main` function with proper indentation.
     const lhs = `    ${pattern} = `
     const content = lhs + expression
@@ -153,44 +176,7 @@ export class DistributedModule {
       this.doc.metadata.set(newId, meta)
     })
     return newId
-  }
-
-  deleteExpression(id: ExprId): void {
-    const rangeBuffer = this.doc.idMap.get(id)
-    if (rangeBuffer == null) return
-    const [relStart, relEnd] = decodeRange(rangeBuffer)
-    const start = relStart
-    const end = relEnd
-    if (start == null || end == null) return
-    this.transact(() => {
-      this.doc.idMap.delete(id)
-      this.doc.metadata.delete(id)
-      this.doc.contents.delete(start, end - start)
-    })
-  }
-
-  replaceExpressionContent(id: ExprId, content: string, range?: ContentRange): void {
-    const rangeBuffer = this.doc.idMap.get(id)
-    if (rangeBuffer == null) return
-    const [relStart, relEnd] = decodeRange(rangeBuffer)
-    const exprStart = relStart
-    const exprEnd = relEnd
-    if (exprStart == null || exprEnd == null) return
-    const start = range == null ? exprStart : exprStart + range[0]
-    const end = range == null ? exprEnd : exprStart + range[1]
-    if (start > end) throw new Error('Invalid range')
-    if (start < exprStart || end > exprEnd)
-      throw new Error(
-        `Range out of bounds. Got [${start}, ${end}], bounds are [${exprStart}, ${exprEnd}]`,
-      )
-    this.transact(() => {
-      if (content.length > 0) {
-        this.doc.contents.insert(start, content)
-      }
-      if (start !== end) {
-        this.doc.contents.delete(start + content.length, end - start)
-      }
-    })
+     */
   }
 
   transact<T>(fn: () => T): T {
@@ -207,7 +193,7 @@ export class DistributedModule {
   }
 
   getIdMap(): IdMap {
-    return new IdMap(this.doc.idMap)
+    return new IdMap(this.doc.data.get('idmap') ?? [])
   }
 
   dispose(): void {
@@ -218,28 +204,14 @@ export class DistributedModule {
 export type RelativeRange = [number, number]
 
 export class IdMap {
-  private yMap: Y.Map<Uint8Array>
-  private rangeToExpr: Map<string, ExprId>
+  private readonly rangeToExpr: Map<string, ExprId>
 
-  constructor(yMap: Y.Map<Uint8Array>) {
-    this.yMap = yMap
-    this.rangeToExpr = new Map()
-
-    yMap.forEach((rangeBuffer, expr) => {
-      if (!(isUuid(expr) && rangeBuffer instanceof Uint8Array)) return
-      const indices = this.modelToIndices(rangeBuffer)
-      if (indices == null) return
-      const key = IdMap.keyForRange(indices)
-      if (!this.rangeToExpr.has(key)) {
-        this.rangeToExpr.set(key, expr as ExprId)
-      }
-    })
+  constructor(entries?: [string, ExprId][]) {
+    this.rangeToExpr = new Map(entries ?? [])
   }
 
   static Mock(): IdMap {
-    const doc = new Y.Doc()
-    const map = doc.getMap<Uint8Array>('idMap')
-    return new IdMap(map)
+    return new IdMap([])
   }
 
   public static keyForRange(range: readonly [number, number]): string {
@@ -248,14 +220,6 @@ export class IdMap {
 
   public static rangeForKey(key: string): [number, number] {
     return key.split(':').map((x) => parseInt(x, 16)) as [number, number]
-  }
-
-  private modelToIndices(rangeBuffer: Uint8Array): [number, number] | null {
-    const [relStart, relEnd] = decodeRange(rangeBuffer)
-    const start = relStart
-    const end = relEnd
-    if (start == null || end == null) return null
-    return [start, end]
   }
 
   insertKnownId(range: [number, number], id: ExprId) {
@@ -280,20 +244,29 @@ export class IdMap {
     }
   }
 
-  accessedSoFar(): ReadonlySet<ExprId> {
-    return new Set()
+  entries(): [string, ExprId][] {
+    return [...this.rangeToExpr]
   }
 
-  toRawRanges(): Record<string, [number, number]> {
-    const ranges: Record<string, [number, number]> = {}
-    for (const [key, expr] of this.rangeToExpr.entries()) {
-      ranges[expr] = IdMap.rangeForKey(key)
+  delete(id: ExprId) {
+    // TODO
+  }
+
+  get size(): number {
+    return this.rangeToExpr.size
+  }
+
+  clear(): void {
+    this.rangeToExpr.clear()
+  }
+
+  isEqual(other: IdMap): boolean {
+    if (other.size !== this.size) return false
+    for (const [key, value] of this.rangeToExpr.entries()) {
+      const oldValue = other.rangeToExpr.get(key)
+      if (oldValue !== value) return false
     }
-    return ranges
-  }
-
-  finishAndSynchronize(): typeof this.yMap {
-    return this.yMap
+    return true
   }
 }
 
