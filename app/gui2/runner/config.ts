@@ -2,7 +2,6 @@
 
 import CONFIG from 'runner/config.json' assert { type: 'json' }
 import { HelpScreen, HelpScreenEntry, HelpScreenSection } from 'runner/helpScreen'
-import { logger } from 'runner/logger'
 
 export const DEFAULT_ENTRY_POINT = 'ide'
 
@@ -141,7 +140,7 @@ export class Option<T> {
   }
 
   printValueUpdateError(input: string) {
-    logger.error(
+    console.error(
       `The provided value for '${this.qualifiedName()}' is invalid. Expected ${this.type}, ` +
         `got '${input}'. Using the default value '${String(this.default)}' instead.`,
     )
@@ -214,7 +213,7 @@ export class Group<Options extends OptionsRecord, Groups extends GroupsRecord> {
   addOption(name: string, option: AnyOption) {
     const existingOption = this.options[name]
     if (existingOption != null) {
-      logger.error(`Duplicate config option found '${existingOption.qualifiedName()}'.`)
+      console.error(`Duplicate config option found '${existingOption.qualifiedName()}'.`)
     }
     const options = this.options as OptionsRecord
     options[name] = option
@@ -276,7 +275,7 @@ export class Group<Options extends OptionsRecord, Groups extends GroupsRecord> {
       for (const [otherOptionName, otherOption] of Object.entries(other.options)) {
         const option = result.options[otherOptionName]
         if (option != null) {
-          logger.error(`Duplicate config option found '${option.qualifiedName()}'.`)
+          console.error(`Duplicate config option found '${option.qualifiedName()}'.`)
         }
         result.options[otherOptionName] = otherOption
       }
@@ -320,7 +319,7 @@ export class Group<Options extends OptionsRecord, Groups extends GroupsRecord> {
       }
     }
     if (unrecognized.length !== 0) {
-      logger.error(`Unrecognized configuration parameters: ${unrecognized.join(', ')}.`)
+      console.error(`Unrecognized configuration parameters: ${unrecognized.join(', ')}.`)
       this.showConfigOptions(unrecognized)
       return false
     } else {
@@ -384,7 +383,7 @@ export class Group<Options extends OptionsRecord, Groups extends GroupsRecord> {
 
   /** Show an error dialog with a list of options. */
   showConfigOptions(unknownOptions?: string[]) {
-    logger.log('Showing config options help screen.')
+    console.log('Showing config options help screen.')
     let msg = ''
     if (unknownOptions) {
       const optionLabel = unknownOptions.length > 1 ? 'options' : 'option'
@@ -479,7 +478,7 @@ export function objectToOption<T extends AnyOptionObject>(obj: T, scope: object)
     if (typeof value === typeof obj.value) {
       obj.value = value as OptionValue
     } else {
-      logger.error(`The value of eval option '${code}' did not resolve to '${expectedType}'.`)
+      console.error(`The value of eval option '${code}' did not resolve to '${expectedType}'.`)
     }
   }
   return new Option(obj)

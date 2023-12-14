@@ -1,7 +1,5 @@
 /** @file Package info. */
 
-import { logger } from 'runner/logger'
-
 // ===================
 // === PackageInfo ===
 // ===================
@@ -18,10 +16,10 @@ export class PackageInfo {
   display() {
     const entries = Object.entries(this)
     if (entries.length > 0) {
-      logger.group('Package info.', () => {
+      console.group('Package info.', () => {
         for (const [key, value] of Object.entries(this)) {
           if (value != null) {
-            logger.log(`${key}: ${value}`)
+            console.log(`${key}: ${value}`)
           }
         }
       })

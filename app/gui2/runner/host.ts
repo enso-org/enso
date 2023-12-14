@@ -1,7 +1,5 @@
 /** @file Utilities to work with the host environment, whether it is a browser of node. */
 
-import { logger } from 'runner/logger'
-
 // ======================
 // === Host Utilities ===
 // ======================
@@ -28,13 +26,13 @@ export function urlParams(): UrlParams {
       const path = name.split('.')
       const lastSegment = path.pop()
       if (lastSegment == null) {
-        logger.error(`Invalid URL parameter name: '${name}'`)
+        console.error(`Invalid URL parameter name: '${name}'`)
       } else {
         let segment = null
         while ((segment = path.shift()) != null) {
           const nextObj = obj[segment] ?? {}
           if (typeof nextObj === 'string') {
-            logger.error(`Duplicate URL parameter name: '${name}'`)
+            console.error(`Duplicate URL parameter name: '${name}'`)
           } else {
             obj[segment] = nextObj
             obj = nextObj
