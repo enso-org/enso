@@ -887,13 +887,13 @@ type_spec name alter = Test.group name <|
     Test.specify "multiple errors thrown inside map with on_problems=Problem_Behavior.Report_Warning should be attached as warnings" <|
         result = alter [10, 30, 20, 30, 40, 30] . map map_fun on_problems=Problem_Behavior.Report_Warning
         result . should_equal [11, Nothing, 21, Nothing, 41, Nothing]
-        Warning.get_all result . map .value . should_equal ([5, 3, 1].map i-> Map_Error.Error i (My_Error.Error 30))
+        Warning.get_all result . map .value . should_equal ([1, 3, 5].map i-> Map_Error.Error i (My_Error.Error 30))
 
     Test.specify "many errors thrown inside map with on_problems=Problem_Behavior.Report_Warning should be attached as warnings and an Additional_Warnings" <|
         result = alter ([10, 20] + (Vector.fill 12 30) + [40]) . map map_fun on_problems=Problem_Behavior.Report_Warning
         result . should_equal ([11, 21] + (Vector.fill 12 Nothing) + [41])
-        expected_warnings_regular = 11.down_to 1 . map i-> Map_Error.Error i (My_Error.Error 30)
-        expected_warnings = expected_warnings_regular + [(Additional_Warnings.Error 2)]
+        expected_warnings_regular = 2.up_to 12 . map i-> Map_Error.Error i (My_Error.Error 30)
+        expected_warnings = [(Additional_Warnings.Error 2)] + expected_warnings_regular
         Warning.get_all result . map .value . should_equal expected_warnings
 
     Test.specify "map on_problems=No_Wrap.Value does not do error wrapping" <|
