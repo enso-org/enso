@@ -67,7 +67,9 @@ spec setup =
 
             t.filter "X" (Filter_Condition.Is_Finite) . at "ix" . to_vector . should_equal [1, 2, 4, 5]
             t.filter "X" (Filter_Condition.Is_Infinite) . at "ix" . to_vector . should_equal []
-            t.filter "X" (Filter_Condition.Is_Nan) . at "ix" . to_vector . should_equal []
+
+            if test_selection.is_nan_and_nothing_distinct then
+                t.filter "X" (Filter_Condition.Is_Nan) . at "ix" . to_vector . should_equal []
 
         Test.specify "by float operations" <|
             t = table_builder [["ix", [1, 2, 3, 4, 5, 6]], ["X", [100.0, 2.5, Nothing, Number.nan, Number.positive_infinity, Number.negative_infinity]]]
@@ -78,9 +80,10 @@ spec setup =
             t.filter "X" (Filter_Condition.Equal to=Number.nan) . at "ix" . to_vector . should_equal []
             t.filter "X" (Filter_Condition.Equal to=Number.positive_infinity) . at "ix" . to_vector . should_equal [5]
 
-            t.filter "X" Filter_Condition.Is_Nan . at "ix" . to_vector . should_equal [4]
             t.filter "X" Filter_Condition.Is_Infinite . at "ix" . to_vector . should_equal [5, 6]
             t.filter "X" Filter_Condition.Is_Finite . at "ix" . to_vector . should_equal [1, 2]
+            if test_selection.is_nan_and_nothing_distinct then
+                t.filter "X" Filter_Condition.Is_Nan . at "ix" . to_vector . should_equal [4]
 
         Test.specify "Not_Equal test cases" pending="Specification needs clarifying, see: https://github.com/enso-org/enso/issues/5241#issuecomment-1480167927" <|
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", [100, 3, Nothing, 4, 12]], ["Y", [100, 4, 2, Nothing, 11]]]
@@ -343,7 +346,8 @@ spec setup =
 
             check_problem <| t.filter "a" Filter_Condition.Is_Finite
             check_problem <| t.filter "a" Filter_Condition.Is_Infinite
-            check_problem <| t.filter "a" Filter_Condition.Is_Nan
+            if test_selection.is_nan_and_nothing_distinct then
+                check_problem <| t.filter "a" Filter_Condition.Is_Nan
 
         Test.specify "by a custom expression built from table's columns" <|
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", [10, 20, 13, 4, 5]], ["Y", [0, -100, 8, 2, 5]]]
