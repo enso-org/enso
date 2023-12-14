@@ -16,7 +16,7 @@ import {
   makeStaticMethod,
   type SuggestionEntry,
 } from '@/stores/suggestionDatabase/entry'
-import { allRanges } from '@/util/range'
+import { allRanges } from '@/util/data/range'
 import shuffleSeed from 'shuffle-seed'
 
 test.each([

@@ -1,9 +1,9 @@
 <script setup lang="ts">
+import SelectionBrush from '@/components/SelectionBrush.vue'
+import { useEvent } from '@/composables/events'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
-import { useEvent } from '@/util/events'
 import { computed, ref } from 'vue'
-import SelectionBrush from './SelectionBrush.vue'
 
 const navigator = injectGraphNavigator(true)
 const nodeSelection = injectGraphSelection(true)

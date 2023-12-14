@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useAutoBlur } from '@/util/autoBlur'
+import type { URLString } from '@/util/data/urlString'
 import type { Icon } from '@/util/iconName'
-import type { URLString } from '@/util/urlString'
 import { computedAsync } from '@vueuse/core'
 import { visIdentifierEquals, type VisualizationIdentifier } from 'shared/yjsModel'
 import { onMounted, ref } from 'vue'
