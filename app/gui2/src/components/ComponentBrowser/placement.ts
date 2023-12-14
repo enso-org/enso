@@ -1,7 +1,7 @@
 import { bail } from '@/util/assert'
-import { Rect } from '@/util/rect'
+import { Rect } from '@/util/data/rect'
+import { Vec2 } from '@/util/data/vec2'
 import theme from '@/util/theme.json'
-import { Vec2 } from '@/util/vec2'
 
 export interface Environment {
   screenBounds: Rect

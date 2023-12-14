@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import SvgIcon from '@/components/SvgIcon.vue'
 import VisualizationSelector from '@/components/VisualizationSelector.vue'
+import { PointerButtonMask, isTriggeredByKeyboard, usePointer } from '@/composables/events'
 import { useVisualizationConfig } from '@/providers/visualizationConfig'
-import { PointerButtonMask, isTriggeredByKeyboard, usePointer } from '@/util/events'
 import { onMounted, ref, watchEffect } from 'vue'
 
 const props = defineProps<{

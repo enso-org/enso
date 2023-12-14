@@ -1,3 +1,5 @@
+/** @file Vue composables for running a callback on every frame, and smooth interpolation. */
+
 import { watchSourceToRef } from '@/util/reactivity'
 import { onScopeDispose, proxyRefs, ref, watch, type WatchSource } from 'vue'
 

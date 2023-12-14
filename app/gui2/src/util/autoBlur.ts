@@ -1,4 +1,4 @@
-import { useEvent } from '@/util/events'
+import { useEvent } from '@/composables/events'
 import type { Ref } from 'vue'
 
 export function useAutoBlur(root: Ref<HTMLElement | SVGElement | MathMLElement | undefined>) {

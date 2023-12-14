@@ -1,3 +1,5 @@
+/** Functions for querying {@link ObservableV2}s. */
+
 import type { ObservableV2 } from 'lib0/observable'
 
 export type Events<O extends ObservableV2<any>> = O extends ObservableV2<infer E> ? E : never

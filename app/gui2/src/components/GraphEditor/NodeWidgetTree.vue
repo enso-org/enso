@@ -1,11 +1,11 @@
 <script setup lang="ts">
+import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
+import { useTransitioning } from '@/composables/animation'
 import { ForcePort } from '@/providers/portInfo'
 import { provideWidgetTree } from '@/providers/widgetTree'
 import { useGraphStore } from '@/stores/graph'
-import { useTransitioning } from '@/util/animation'
 import { Ast } from '@/util/ast'
 import { computed, toRef } from 'vue'
-import NodeWidget from './NodeWidget.vue'
 
 const props = defineProps<{ ast: Ast.Ast }>()
 const graph = useGraphStore()

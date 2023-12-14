@@ -9,6 +9,7 @@ import {
   type SuggestionEntry,
 } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
+import { unwrap } from '@/util/data/result'
 import {
   identifierUnchecked,
   normalizeQualifiedName,
@@ -19,7 +20,6 @@ import {
   type Identifier,
   type QualifiedName,
 } from '@/util/qualifiedName'
-import { unwrap } from '@/util/result'
 
 // ========================
 // === Imports analysis ===
