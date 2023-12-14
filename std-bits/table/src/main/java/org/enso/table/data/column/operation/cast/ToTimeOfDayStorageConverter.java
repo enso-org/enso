@@ -1,14 +1,13 @@
 package org.enso.table.data.column.operation.cast;
 
+import java.time.LocalTime;
+import java.time.ZonedDateTime;
 import org.enso.table.data.column.builder.TimeOfDayBuilder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.datetime.DateTimeStorage;
 import org.enso.table.data.column.storage.datetime.TimeOfDayStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.graalvm.polyglot.Context;
-
-import java.time.LocalTime;
-import java.time.ZonedDateTime;
 
 public class ToTimeOfDayStorageConverter implements StorageConverter<LocalTime> {
   @Override
@@ -20,11 +19,13 @@ public class ToTimeOfDayStorageConverter implements StorageConverter<LocalTime> 
     } else if (storage.getType() instanceof AnyObjectType) {
       return castFromMixed(storage, problemAggregator);
     } else {
-      throw new IllegalStateException("No known strategy for casting storage " + storage + " to Time_Of_Day.");
+      throw new IllegalStateException(
+          "No known strategy for casting storage " + storage + " to Time_Of_Day.");
     }
   }
 
-  public Storage<LocalTime> castFromMixed(Storage<?> mixedStorage, CastProblemAggregator problemAggregator) {
+  public Storage<LocalTime> castFromMixed(
+      Storage<?> mixedStorage, CastProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     TimeOfDayBuilder builder = new TimeOfDayBuilder(mixedStorage.size());
     for (int i = 0; i < mixedStorage.size(); i++) {
@@ -49,7 +50,8 @@ public class ToTimeOfDayStorageConverter implements StorageConverter<LocalTime> 
     return dateTime.toLocalTime();
   }
 
-  private Storage<LocalTime> convertDateTimeStorage(DateTimeStorage dateTimeStorage, CastProblemAggregator problemAggregator) {
+  private Storage<LocalTime> convertDateTimeStorage(
+      DateTimeStorage dateTimeStorage, CastProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     TimeOfDayBuilder builder = new TimeOfDayBuilder(dateTimeStorage.size());
     for (int i = 0; i < dateTimeStorage.size(); i++) {

@@ -52,9 +52,11 @@ public abstract class GetAnnotationNode extends BaseNode {
         CompilerDirectives.transferToInterpreter();
         var ctx = EnsoContext.get(this);
         var err = ctx.getBuiltins().error();
-        var payload = err.makeUnsupportedArgumentsError(new Object[] { method }, "Use .name to specify name of function");
+        var payload =
+            err.makeUnsupportedArgumentsError(
+                new Object[] {method}, "Use .name to specify name of function");
         throw new PanicException(payload, this);
-       }
+      }
       if (methodFunction != null) {
         String parameterName = expectStringNode.execute(parameter);
         Annotation annotation = methodFunction.getSchema().getAnnotation(parameterName);

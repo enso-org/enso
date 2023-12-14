@@ -15,19 +15,29 @@ import java.lang.annotation.Target;
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.SOURCE)
 public @interface BuiltinMethod {
-  /** @return the language-level type of {@code self} argument. */
+  /**
+   * @return the language-level type of {@code self} argument.
+   */
   String type();
 
-  /** @return the language-level name of this method. */
+  /**
+   * @return the language-level name of this method.
+   */
   String name();
 
-  /** @return a short description of this method. */
+  /**
+   * @return a short description of this method.
+   */
   String description() default "";
 
-  /** @return a list of aliases (names) of this method */
+  /**
+   * @return a list of aliases (names) of this method
+   */
   String aliases() default "";
 
-  /** @return whether a method should be registered automatically with a type */
+  /**
+   * @return whether a method should be registered automatically with a type
+   */
   boolean autoRegister() default true;
 
   /**

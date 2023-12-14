@@ -7,25 +7,20 @@ import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.text.buffer.Rope;
 
-
-/** Keeps information about various kinds of sources associated with a {@link Module}.
- * All the record fields are immutable. They can only change by creating new instance
- * of the whole record - usually via methods {@link #newWith(org.enso.text.buffer.Rope)}
- * or {@link #newWith(com.oracle.truffle.api.TruffleFile)}. The creation of
- * cached Truffle {@link Source} is delayed and happens only
- * per {@link #ensureCachedSource(org.enso.pkg.QualifiedName) request}.
- *
+/**
+ * Keeps information about various kinds of sources associated with a {@link Module}. All the record
+ * fields are immutable. They can only change by creating new instance of the whole record - usually
+ * via methods {@link #newWith(org.enso.text.buffer.Rope)} or {@link
+ * #newWith(com.oracle.truffle.api.TruffleFile)}. The creation of cached Truffle {@link Source} is
+ * delayed and happens only per {@link #ensureCachedSource(org.enso.pkg.QualifiedName) request}.
  */
-record ModuleSources(
-          TruffleFile file,
-          Rope rope,
-          Source source) {
+record ModuleSources(TruffleFile file, Rope rope, Source source) {
 
-  /** Empty triple of sources. Continue with {@code newWith} methods.
-   */
+  /** Empty triple of sources. Continue with {@code newWith} methods. */
   static final ModuleSources NONE = new ModuleSources(null, null, null);
 
-  /** Creates sources instances associated with provided Truffle file.
+  /**
+   * Creates sources instances associated with provided Truffle file.
    *
    * @param f the file to associate the sources with
    * @return new sources triple
@@ -34,8 +29,9 @@ record ModuleSources(
     return new ModuleSources(f, null, null);
   }
 
-  /** Associates current sources with modified text content. The {@code file}
-   * is kept unchanged. The cached {@code source} is cleared.
+  /**
+   * Associates current sources with modified text content. The {@code file} is kept unchanged. The
+   * cached {@code source} is cleared.
    *
    * @param r the new text content to assign to the sources
    * @return new sources triple
@@ -44,8 +40,9 @@ record ModuleSources(
     return new ModuleSources(file(), r, null);
   }
 
-  /** Resets the contents of sources but retains the reference to the
-   * file. Continue with {@code newWith} methods.
+  /**
+   * Resets the contents of sources but retains the reference to the file. Continue with {@code
+   * newWith} methods.
    *
    * @return new sources triple
    */
@@ -53,10 +50,10 @@ record ModuleSources(
     return new ModuleSources(file(), null, null);
   }
 
-  /** Makes sure Truffle {@code Source} object is ready for the sources. If
-   * this triple already contains Truffle source, it just returns itself.
-   * Otherwise, if the {@link #rope() content} is set, it is used as chars
-   * for the Truffle source. If the file isn't in memory yet, it is read in
+  /**
+   * Makes sure Truffle {@code Source} object is ready for the sources. If this triple already
+   * contains Truffle source, it just returns itself. Otherwise, if the {@link #rope() content} is
+   * set, it is used as chars for the Truffle source. If the file isn't in memory yet, it is read in
    * and both {@link #source()} and {@link #rope()} are initialized.
    *
    * @param name the name of the associated module
@@ -78,7 +75,8 @@ record ModuleSources(
     throw new IllegalStateException();
   }
 
-  /** Path of the associated {@link #file()}.
+  /**
+   * Path of the associated {@link #file()}.
    *
    * @return path or {@code null}
    */

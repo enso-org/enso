@@ -20,9 +20,7 @@ public class DisabledAssertionsTest extends TestBase {
 
   @BeforeClass
   public static void setupCtx() {
-    ctx = TestBase.defaultContextBuilder()
-        .environment("ENSO_ENABLE_ASSERTIONS", "false")
-        .build();
+    ctx = TestBase.defaultContextBuilder().environment("ENSO_ENABLE_ASSERTIONS", "false").build();
   }
 
   @AfterClass
@@ -32,13 +30,17 @@ public class DisabledAssertionsTest extends TestBase {
 
   @Test
   public void assertionsCanBeDisabledWithEnvVar() {
-    EnsoContext ensoCtx = ctx.getBindings(LanguageInfo.ID).invokeMember(TopScope.LEAK_CONTEXT).asHostObject();
+    EnsoContext ensoCtx =
+        ctx.getBindings(LanguageInfo.ID).invokeMember(TopScope.LEAK_CONTEXT).asHostObject();
     assertFalse(ensoCtx.isAssertionsEnabled());
   }
 
   @Test
   public void actionInAssertIsNotComputedWhenAssertionsAreDisabled() {
-    Value res = TestBase.evalModule(ctx, """
+    Value res =
+        TestBase.evalModule(
+            ctx,
+            """
 from Standard.Base import Runtime
 import Standard.Base.Runtime.Ref.Ref
 

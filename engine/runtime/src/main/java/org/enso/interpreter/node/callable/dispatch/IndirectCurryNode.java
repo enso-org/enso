@@ -77,8 +77,9 @@ public abstract class IndirectCurryNode extends Node {
         var value =
             doCall(frame, function, callerInfo, state, arguments, isTail, directCall, loopingCall);
         if (defaultsExecutionMode.isExecute()
-            && (value instanceof Function || (value instanceof AtomConstructor cons
-              && cons.getConstructorFunction().getSchema().isFullyApplied()))) {
+            && (value instanceof Function
+                || (value instanceof AtomConstructor cons
+                    && cons.getConstructorFunction().getSchema().isFullyApplied()))) {
           return oversaturatedCallableNode.execute(
               value,
               frame,
@@ -92,7 +93,8 @@ public abstract class IndirectCurryNode extends Node {
           return value;
         }
       } else {
-        var evaluatedVal = loopingCall.executeDispatch(frame, function, callerInfo, state, arguments, null);
+        var evaluatedVal =
+            loopingCall.executeDispatch(frame, function, callerInfo, state, arguments, null);
 
         return oversaturatedCallableNode.execute(
             evaluatedVal,
@@ -106,11 +108,11 @@ public abstract class IndirectCurryNode extends Node {
       }
     } else {
       return new Function(
-              function.getCallTarget(),
-              function.getScope(),
-              postApplicationSchema,
-              arguments,
-              oversaturatedArguments);
+          function.getCallTarget(),
+          function.getScope(),
+          postApplicationSchema,
+          arguments,
+          oversaturatedArguments);
     }
   }
 

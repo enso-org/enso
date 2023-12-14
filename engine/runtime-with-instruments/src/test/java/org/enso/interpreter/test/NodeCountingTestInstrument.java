@@ -1,5 +1,7 @@
 package org.enso.interpreter.test;
 
+import static org.junit.Assert.fail;
+
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.EventContext;
 import com.oracle.truffle.api.instrumentation.ExecutionEventNode;
@@ -9,10 +11,6 @@ import com.oracle.truffle.api.instrumentation.TruffleInstrument;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.SourceSection;
-import org.enso.interpreter.node.MethodRootNode;
-import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
-import org.enso.pkg.QualifiedName;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -20,7 +18,9 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Function;
-import static org.junit.Assert.fail;
+import org.enso.interpreter.node.MethodRootNode;
+import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
+import org.enso.pkg.QualifiedName;
 
 /** Testing instrument to control newly created nodes. */
 @TruffleInstrument.Registration(
@@ -48,8 +48,8 @@ public class NodeCountingTestInstrument extends TruffleInstrument {
 
   public void enable(SourceSectionFilter filter) {
     this.env
-            .getInstrumenter()
-            .attachExecutionEventFactory(filter, new CountingAndFunctionCallFactory());
+        .getInstrumenter()
+        .attachExecutionEventFactory(filter, new CountingAndFunctionCallFactory());
   }
 
   public Map<UUID, FunctionCallInfo> registeredCalls() {
@@ -121,17 +121,17 @@ public class NodeCountingTestInstrument extends TruffleInstrument {
     public void onReturnValue(VirtualFrame frame, Object result) {
       Node node = context.getInstrumentedNode();
       if (node instanceof FunctionCallInstrumentationNode instrumentableNode
-              && result instanceof FunctionCallInstrumentationNode.FunctionCall functionCall) {
+          && result instanceof FunctionCallInstrumentationNode.FunctionCall functionCall) {
         onFunctionReturn(instrumentableNode, functionCall);
       }
     }
 
-    private void onFunctionReturn(FunctionCallInstrumentationNode node, FunctionCallInstrumentationNode.FunctionCall result) {
+    private void onFunctionReturn(
+        FunctionCallInstrumentationNode node, FunctionCallInstrumentationNode.FunctionCall result) {
       if (node.getId() != null) {
         calls.put(node.getId(), new FunctionCallInfo(result));
       }
     }
-
   }
 
   public static class FunctionCallInfo {
@@ -163,8 +163,8 @@ public class NodeCountingTestInstrument extends TruffleInstrument {
       }
       FunctionCallInfo that = (FunctionCallInfo) o;
       return Objects.equals(moduleName, that.moduleName)
-              && Objects.equals(typeName, that.typeName)
-              && Objects.equals(functionName, that.functionName);
+          && Objects.equals(typeName, that.typeName)
+          && Objects.equals(functionName, that.functionName);
     }
 
     @Override
