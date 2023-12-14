@@ -84,7 +84,7 @@ const views = computed<View[]>(() => sortedTags.value.map(view))
 
 // === Show/hide excess tags. ===
 
-const containerRef = ref<HTMLDivElement | null>(null)
+const containerRef = ref<HTMLDivElement>()
 const parentOffset = computed(() => containerRef.value?.offsetTop ?? 0)
 
 const hiddenTags = ref(0)
@@ -104,7 +104,7 @@ watch(
 
 <template>
   <div v-if="views.length > 0" ref="containerRef" class="Tags">
-    <template v-for="(v, _i) in views" :key="_i">
+    <template v-for="(v, i) in views" :key="i">
       <DocsTag
         class="Tag"
         :view="v"

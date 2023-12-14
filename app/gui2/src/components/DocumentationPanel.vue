@@ -135,7 +135,7 @@ function handleBreadcrumbClick(index: number) {
     />
     <div class="sections">
       <h2 v-if="documentation.kind === 'Placeholder'">{{ documentation.text }}</h2>
-      <span v-if="sections.synopsis.length == 0">{{ 'No documentation available.' }}</span>
+      <span v-if="sections.synopsis.length == 0">No documentation available.</span>
       <DocsSynopsis :sections="sections.synopsis" />
       <DocsHeader v-if="types.length > 0" kind="types" label="Types" />
       <DocsList

@@ -5,13 +5,13 @@ import type { View } from './DocsTags.vue'
 const props = defineProps<{ view: View; parentOffset: number; forceShow: boolean }>()
 const emit = defineEmits<{ hidden: [] }>()
 
-const tagRef = ref<HTMLDivElement | null>(null)
+const tagRef = ref<HTMLDivElement>()
 const shouldBeHidden = computed(() => {
   if (tagRef.value == null) return false
   return tagRef.value.offsetTop > props.parentOffset
 })
 
-watch(shouldBeHidden, (m) => (m ? emit('hidden') : undefined))
+watch(shouldBeHidden, (m) => m && emit('hidden'))
 </script>
 
 <template>
