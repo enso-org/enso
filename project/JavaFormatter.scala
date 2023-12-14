@@ -22,9 +22,9 @@ import sbt.util.{CacheStoreFactory, FileInfo, Logger}
 import scala.collection.immutable.Seq
 
 /** A local fork of https://github.com/sbt/sbt-java-formatter. The original plugin uses a very outdated version
- * of `google-java-format` dependency which does not support syntax > JDK8. It's unlikely we will see the
- * dependency upgraded any time soon, if ever, hence the almost one-to-one copy of the plugin.
- */
+  * of `google-java-format` dependency which does not support syntax > JDK8. It's unlikely we will see the
+  * dependency upgraded any time soon, if ever, hence the almost one-to-one copy of the plugin.
+  */
 object JavaFormatter {
 
   def apply(
