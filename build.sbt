@@ -302,7 +302,6 @@ lazy val enso = (project in file("."))
     `runtime-instrument-id-execution`,
     `runtime-instrument-repl-debugger`,
     `runtime-instrument-runtime-server`,
-    `runtime-with-polyglot`,
     `runtime-version-manager`,
     `runtime-version-manager-test`,
     editions,
@@ -1950,42 +1949,6 @@ lazy val `runtime-fat-jar` =
     .dependsOn(`runtime-language-epb`)
     .dependsOn(LocalProject("runtime"))
 
-
-/* runtime-with-polyglot
- * ~~~~~~~~~~~~~~~~~~~~~
- * Unlike `runtime`, this project includes the truffle language JARs on the
- * class-path.
- */
-
-lazy val `runtime-with-polyglot` =
-  (project in file("engine/runtime-with-polyglot"))
-    .configs(Benchmark)
-    .settings(
-      frgaalJavaCompilerSetting,
-      inConfig(Compile)(truffleRunOptionsNoAssertSettings),
-      inConfig(Benchmark)(Defaults.testSettings),
-      commands += WithDebugCommand.withDebug,
-      Benchmark / javacOptions --= Seq(
-        "-source",
-        frgaalSourceLevel,
-        "--enable-preview"
-      ),
-      Test / javaOptions ++= testLogProviderOptions ++ Seq(
-        "-Dpolyglotimpl.DisableClassPathIsolation=true"
-      ),
-      Test / fork := true,
-      Test / envVars ++= distributionEnvironmentOverrides ++ Map(
-        "ENSO_TEST_DISABLE_IR_CACHE" -> "false"
-      ),
-      libraryDependencies ++= GraalVM.langsPkgs ++ Seq(
-        "org.graalvm.polyglot" % "polyglot"     % graalMavenPackagesVersion % "provided",
-        "org.graalvm.tools"    % "insight-tool" % graalMavenPackagesVersion % "provided",
-        "org.scalatest"       %% "scalatest"    % scalatestVersion          % Test
-      ),
-      (Benchmark / javaOptions) :=
-        (LocalProject("std-benchmarks") / Benchmark / run / javaOptions).value
-    )
-    .dependsOn(runtime % "compile->compile;test->test;runtime->runtime")
 
 /* Note [Unmanaged Classpath]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~
