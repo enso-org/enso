@@ -70,16 +70,17 @@ type Warning
             IO.println 'AAA'
             IO.println child_warnings
         direct_warnings = (Vector.from_polyglot_array (get_all_array value))
-        IO.println 'AAA dir'
-        direct_warnings.map w->
-            IO.println w
-            IO.println (Meta.get_simple_type_name w)
-            IO.println (w.is_a Warning)
-        IO.println 'AAA ch'
-        child_warnings.map w->
-            IO.println w
-            IO.println (Meta.get_simple_type_name w)
-            IO.println (w.is_a Warning)
+        ##
+            IO.println 'AAA dir'
+            direct_warnings.map w->
+                IO.println w
+                IO.println (Meta.get_simple_type_name w)
+                IO.println (w.is_a Warning)
+            IO.println 'AAA ch'
+            child_warnings.map w->
+                IO.println w
+                IO.println (Meta.get_simple_type_name w)
+                IO.println (w.is_a Warning)
         direct_warnings + child_warnings
         #Vector.from_polyglot_array (get_all_array value)
 
@@ -105,18 +106,20 @@ type Warning
                 IO.println (Meta.get_simple_type_name e)
                 IO.println (Meta.type_of e)
                 IO.println (Meta.meta e)
-            isa = e.is_a Vector
+            #isa = e.is_a Vector
             ##
                 IO.println 'BBB4'
                 IO.println isa
-            recursive_warnings = if e.is_a Vector then Warning.get_all_vector e else []
+            #recursive_warnings = if e.is_a Vector then Warning.get_all_vector e else []
             ##
                 IO.println 'BBB3'
                 IO.println recursive_warnings.length
                 IO.println recursive_warnings
             #wrap = (w-> Map_Error.Error i w)
             wrap w = create (Map_Error.Error i w.value) w.origin
-            (direct_warnings + recursive_warnings).map wrap
+            ## This is redundant, the recursive warnings are handled by the recursive call to get_all for direct_warnings
+            #(direct_warnings + recursive_warnings).map wrap
+            direct_warnings.map wrap
             #[]
         warnings_nested.flatten
 
