@@ -14,7 +14,7 @@ import com.oracle.truffle.api.interop.InteropException;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.Source;
 
-class ForeignEvalNode extends RootNode {
+final class ForeignEvalNode extends RootNode {
   private final Source code;
   private @Child ForeignFunctionCallNode foreign;
   private @CompilationFinal ForeignParsingException parseException;
@@ -54,14 +54,7 @@ class ForeignEvalNode extends RootNode {
     }
   }
 
-  private void ensureParsed() {
-    if (foreign == null && parseException == null) {
-      lockAndParse();
-    }
-  }
-
-  @CompilerDirectives.TruffleBoundary
-  private void lockAndParse() throws IllegalStateException {
+  private void ensureParsed() throws IllegalStateException {
     if (foreign == null) {
       CompilerDirectives.transferToInterpreterAndInvalidate();
       String truffleLangId = EpbLanguage.truffleId(code);
@@ -72,7 +65,7 @@ class ForeignEvalNode extends RootNode {
       } else {
         switch (truffleLangId) {
           case "js" -> parseJs();
-          case "python" -> parseGeneric(truffleLangId, PyForeignNode::new);
+          case "python" -> parseGeneric("python", PyForeignNode::new);
           default -> parseGeneric(truffleLangId, GenericForeignNode::new);
         }
       }
