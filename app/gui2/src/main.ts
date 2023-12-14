@@ -1,8 +1,8 @@
 import CONFIG from '@/config.json' assert { type: 'json' }
-import { objectToGroup } from '@/entryPoint/config'
-import * as version from '@/entryPoint/version'
+import { objectToGroup } from '@/util/config'
 import { isDevMode } from '@/util/detect'
 import { urlParams } from '@/util/urlParams'
+import * as version from '@/util/version'
 import { run as runDashboard } from 'enso-authentication'
 import { isOnLinux } from 'enso-common/src/detect'
 import 'enso-dashboard/src/tailwind.css'

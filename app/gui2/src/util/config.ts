@@ -1,5 +1,5 @@
 /** @file Configuration options for an application. */
-import { HelpScreen, HelpScreenEntry, HelpScreenSection } from '@/entryPoint/helpScreen'
+import { HelpScreen, HelpScreenEntry, HelpScreenSection } from '@/util/helpScreen'
 
 export const DEFAULT_ENTRY_POINT = 'ide'
 
