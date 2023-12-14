@@ -3,6 +3,7 @@ package org.enso.interpreter.test.instrument;
 import java.nio.file.Paths;
 import java.util.logging.Level;
 
+import org.enso.interpreter.test.MockLogHandler;
 import org.enso.polyglot.MethodNames;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;

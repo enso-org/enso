@@ -5,8 +5,8 @@
  * It displays one group defined in `@/assets/icons.svg` file, specified by `variant` property.
  */
 import icons from '@/assets/icons.svg'
+import type { URLString } from '@/util/data/urlString'
 import type { Icon } from '@/util/iconName'
-import type { URLString } from '@/util/urlString'
 
 const props = defineProps<{ name: Icon | URLString; width?: number; height?: number }>()
 </script>
