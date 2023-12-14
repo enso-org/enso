@@ -6,7 +6,7 @@ import { isOnLinux } from 'enso-common/src/detect'
 import 'enso-dashboard/src/tailwind.css'
 import { decodeQueryParams } from 'lib0/url'
 import { options as cliOptions, objectToGroup } from 'runner/config'
-import { version } from 'runner/version'
+import * as version from 'runner/version'
 
 const vueAppEntry = import('./createApp')
 
