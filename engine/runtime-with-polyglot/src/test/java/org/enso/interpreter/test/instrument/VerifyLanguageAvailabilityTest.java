@@ -14,7 +14,7 @@ import static org.junit.Assert.assertNotNull;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class VerifyJavaScriptIsAvailableTest {
+public class VerifyLanguageAvailabilityTest {
   private static Context ctx;
   private static MockLogHandler handler;
 

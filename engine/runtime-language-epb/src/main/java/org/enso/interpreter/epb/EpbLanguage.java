@@ -2,7 +2,6 @@ package org.enso.interpreter.epb;
 
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.TruffleLanguage;
-import com.oracle.truffle.api.source.Source;
 import java.util.function.Consumer;
 
 /** An internal language that serves as a bridge between Enso and other supported languages. */
@@ -32,27 +31,8 @@ public final class EpbLanguage extends TruffleLanguage<EpbContext> {
 
   @Override
   protected CallTarget parse(ParsingRequest request) {
-    ForeignEvalNode foreignEvalNode =
-        ForeignEvalNode.build(this, request.getSource(), request.getArgumentNames());
-    return foreignEvalNode.getCallTarget();
-  }
-
-  static String truffleId(Source langAndCode) {
-    var seq = langAndCode.getCharacters();
-    return seq.subSequence(0, splitAt(seq)).toString().toLowerCase();
-  }
-
-  private static int splitAt(CharSequence seq) {
-    var at = 0;
-    while (seq.charAt(at) != '#') {
-      at++;
-    }
-    return at;
-  }
-
-  static String foreignSource(Source langAndCode) {
-    var seq = langAndCode.getCharacters();
-    return seq.toString().substring(splitAt(seq) + 1);
+    var node = ForeignEvalNode.parse(this, request.getSource(), request.getArgumentNames());
+    return node.getCallTarget();
   }
 
   @Override
