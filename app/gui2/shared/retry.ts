@@ -18,8 +18,9 @@ export interface BackoffOptions<E> {
   ) => boolean | void
   /** Called right before returning. */
   onSuccess?: (retryCount: number) => void
-  /** Called right before throwing an error. Note that `onBeforeRetry` is called for all tries
-   * before the last one. */
+  /** Called on the final retry, right before throwing an error.
+   * Note that `onBeforeRetry` is *not* called on the final retry, as there is nothing after the
+   * final retry. */
   onFailure?: (error: E, retryCount: number) => void
 }
 
@@ -104,7 +105,7 @@ export function onSuccess(description: string): NonNullable<BackoffOptions<any>[
 }
 
 /** @param successDescription Should be in past tense, without an initial capital letter.
- * @param successDescription Should be in present tense, without an initial capital letter. */
+ * @param errorDescription Should be in present tense, without an initial capital letter. */
 export function exponentialBackoffMessages(successDescription: string, errorDescription: string) {
   return {
     onBeforeRetry: onBeforeRetry(errorDescription),

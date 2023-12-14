@@ -45,8 +45,8 @@ export class LanguageServerSession {
   docs: Map<string, WSSharedDoc>
   retainCount: number
   url: string
-  client!: Client
-  ls!: LanguageServer
+  client: Client
+  ls: LanguageServer
   connection: response.InitProtocolConnection | undefined
   model: DistributedProject
   projectRootId: Uuid | null
@@ -72,7 +72,9 @@ export class LanguageServerSession {
         if (!persistence) continue
       }
     })
-    this.restartClient()
+    const { client, ls } = this.setupClient()
+    this.client = client
+    this.ls = ls
   }
 
   static sessions = new Map<string, LanguageServerSession>()
@@ -87,13 +89,15 @@ export class LanguageServerSession {
   }
 
   private restartClient() {
-    // `this.client` WILL be undefined on the first call.
-    this.client?.close()
-    this.client = createOpenRPCClient(this.url)
-    // `this.ls` WILL be undefined on the first call.
-    this.ls?.destroy()
-    this.ls = new LanguageServer(this.client)
+    this.client.close()
+    this.ls.destroy()
     this.connection = undefined
+    this.setupClient()
+  }
+
+  private setupClient() {
+    this.client = createOpenRPCClient(this.url)
+    this.ls = new LanguageServer(this.client)
     this.ls.on('file/event', async (event) => {
       if (DEBUG_LOG_SYNC) {
         console.log('file/event', event)
@@ -150,6 +154,7 @@ export class LanguageServerSession {
         exponentialBackoffMessages('restarted RPC client', 'restart RPC client'),
       )
     })
+    return { client: this.client, ls: this.ls }
   }
 
   private assertProjectRoot(): asserts this is { projectRootId: Uuid } {

@@ -181,11 +181,11 @@ export class Uploader {
   private async pickUniqueName(suggestedName: string): Promise<string> {
     const files = await this.rpc.listFiles(this.dataDirPath())
     const existingNames = new Set(files.paths.map((path) => path.name))
-    const { name, extension = '' } = splitFilename(suggestedName)
+    const { stem, extension = '' } = splitFilename(suggestedName)
     let candidate = suggestedName
     let num = 1
     while (existingNames.has(candidate)) {
-      candidate = `${name}_${num}.${extension}`
+      candidate = `${stem}_${num}.${extension}`
       num += 1
     }
     return candidate
@@ -195,12 +195,12 @@ export class Uploader {
 /**
  * Split filename into stem and (optional) extension.
  */
-function splitFilename(fileName: string): { name: string; extension?: string } {
+function splitFilename(fileName: string): { stem: string; extension?: string } {
   const dotIndex = fileName.lastIndexOf('.')
   if (dotIndex !== -1 && dotIndex !== 0) {
-    const name = fileName.substring(0, dotIndex)
+    const stem = fileName.substring(0, dotIndex)
     const extension = fileName.substring(dotIndex + 1)
-    return { name, extension }
+    return { stem, extension }
   }
-  return { name: fileName }
+  return { stem: fileName }
 }

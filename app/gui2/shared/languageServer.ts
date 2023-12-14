@@ -131,16 +131,15 @@ export class LanguageServer extends ObservableV2<Notifications> {
         console.log(`LS [${uuid}] ${method}:`)
         console.dir(params)
       }
-      const ret = await this.client.request({ method, params }, RPC_TIMEOUT_MS)
-      return ret
-    } catch (e) {
-      const remoteError = RemoteRpcErrorSchema.safeParse(e)
+      return await this.client.request({ method, params }, RPC_TIMEOUT_MS)
+    } catch (error) {
+      const remoteError = RemoteRpcErrorSchema.safeParse(error)
       if (remoteError.success) {
         throw new LsRpcError(new RemoteRpcError(remoteError.data), method, params)
-      } else if (e instanceof Error) {
-        throw new LsRpcError(e, method, params)
+      } else if (error instanceof Error) {
+        throw new LsRpcError(error, method, params)
       }
-      throw e
+      throw error
     } finally {
       if (DEBUG_LOG_RPC) {
         console.log(`LS [${uuid}] ${method} took ${performance.now() - now}ms`)
@@ -407,7 +406,7 @@ export class LanguageServer extends ObservableV2<Notifications> {
     return {
       promise: (async () => {
         self.on('file/event', callback)
-        await retry(() => self.acquireReceivesTreeUpdates({ rootId, segments }))
+        await retry(async () => running && self.acquireReceivesTreeUpdates({ rootId, segments }))
         await walkFs(self, { rootId, segments }, (type, path) => {
           if (
             !running ||
@@ -421,7 +420,6 @@ export class LanguageServer extends ObservableV2<Notifications> {
             kind: 'Added',
           })
         })
-        if (!running) return
       })(),
       unsubscribe() {
         running = false

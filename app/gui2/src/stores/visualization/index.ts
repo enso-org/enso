@@ -24,6 +24,7 @@ import type { VisualizationModule } from '@/stores/visualization/runtimeTypes'
 import { rpcWithRetries } from '@/util/net'
 import type { Opt } from '@/util/opt'
 import { defineStore } from 'pinia'
+import { ErrorCode, LsRpcError, RemoteRpcError } from 'shared/languageServer'
 import type { Event as LSEvent, VisualizationConfiguration } from 'shared/languageServerTypes'
 import type { ExprId, VisualizationIdentifier } from 'shared/yjsModel'
 import { computed, reactive } from 'vue'
@@ -214,9 +215,19 @@ export const useVisualizationStore = defineStore('visualization', () => {
     try {
       await ls.watchFiles(projectRoot, [customVisualizationsDirectory], onFileEvent, rpcWithRetries)
         .promise
-    } catch {
-      // Ignored. It is very likely that the `visualizations/` directory is not present, however
-      // there would be a race condition if the existence of `visualizations` is checked first.
+    } catch (error) {
+      if (
+        error instanceof LsRpcError &&
+        error.cause instanceof RemoteRpcError &&
+        error.cause.code === ErrorCode.FILE_NOT_FOUND
+      ) {
+        console.info(
+          "'visualizations/' folder not found in project directory. " +
+            "If you have custom visualizations, please put them under 'visualizations/'.",
+        )
+      } else {
+        throw error
+      }
     }
   })
 
