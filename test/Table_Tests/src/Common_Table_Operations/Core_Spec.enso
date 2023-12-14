@@ -165,6 +165,7 @@ spec setup =
                 problems2 = [Arithmetic_Error.Error "Division by zero (at rows [2])."]
                 Problems.test_problem_handling action2 problems2 tester2
 
+    Test.group prefix+"Table.set" <|
         Test.specify "should gracefully handle columns from different backends" <|
             t1 = table_builder [["A", [1, 2, 3]]]
             alternative_connection = Database.connect (SQLite In_Memory)

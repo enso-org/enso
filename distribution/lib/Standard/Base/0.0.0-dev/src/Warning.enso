@@ -81,7 +81,11 @@ type Warning
                 IO.println w
                 IO.println (Meta.get_simple_type_name w)
                 IO.println (w.is_a Warning)
-        direct_warnings + child_warnings
+        ##
+            IO.println 'AAA get_all 0 '+((value).to_text)
+            IO.println 'AAA get_all 1 '+((direct_warnings).to_text)
+            IO.println 'AAA get_all 2 '+((child_warnings).to_text)
+        Warning.clear (direct_warnings + child_warnings)
         #Vector.from_polyglot_array (get_all_array value)
 
     ## PRIVATE
