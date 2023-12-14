@@ -11,6 +11,7 @@ import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.SourceSection;
+import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Comparator;
 import org.enso.interpreter.dsl.Builtin;
@@ -20,6 +21,7 @@ import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.graalvm.collections.EconomicSet;
 
 @Builtin(pkg = "error", stdlibName = "Standard.Base.Warning.Warning")
@@ -163,6 +165,15 @@ public final class Warning implements EnsoObject {
   @Builtin.Specialize(fallback = true)
   public static Object set(EnsoContext ctx, Object value, Object warnings, InteropLibrary interop) {
     return setGeneric(ctx, value, interop, warnings);
+  }
+
+  @Builtin.Method(
+      name = "get_warnings_limit",
+      description = "Returns a maximal number of warnings that can be attached to a value.",
+      autoRegister = false)
+  @Builtin.Specialize
+  public static long getWarningsLimit(EnsoContext ctx) {
+    return ctx.getWarningsLimit();
   }
 
   private static Object setGeneric(

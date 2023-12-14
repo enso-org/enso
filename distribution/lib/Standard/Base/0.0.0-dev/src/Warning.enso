@@ -59,10 +59,25 @@ type Warning
 
     ## PRIVATE
        ADVANCED
-       Gets all the warnings attached to the given value. Warnings are returned in the
-       reverse-chronological order with respect to their attachment time.
+       Gets all the warnings attached to the given value.
+       Limits the number of warnings return to `EnsoContext.getWarningsLimit()`.
     get_all : Any -> Vector Warning
     get_all value =
+        warnings = Warning.get_all_value value
+        warnings_limit = get_warnings_limit
+        #_ = warnings_limit
+        warnings.take warnings_limit
+
+    ## PRIVATE
+       ADVANCED
+       Gets all the warnings attached to the given value.
+       Limits the number of warnings return to `EnsoContext.getWarningsLimit()`.
+
+       This is split out from `get_all` because it is recursive, but the step of
+       limiting the total number of warnings must only be applied at the top
+       level.
+    get_all_value : Any -> Vector Warning
+    get_all_value value =
         child_warnings = case value of
             _ : Vector -> Warning.get_all_vector value
             _ -> []
@@ -101,7 +116,7 @@ type Warning
                 IO.println 'BBB'
                 IO.println i
                 IO.println e
-            direct_warnings = Warning.get_all e
+            direct_warnings = Warning.get_all_value e
             ##
                 IO.println 'BBB2'
                 IO.println direct_warnings.length
@@ -121,7 +136,7 @@ type Warning
                 IO.println recursive_warnings
             #wrap = (w-> Map_Error.Error i w)
             wrap w = create (Map_Error.Error i w.value) w.origin
-            ## This is redundant, the recursive warnings are handled by the recursive call to get_all for direct_warnings
+            ## This is redundant, the recursive warnings are handled by the recursive call to get_all_value for direct_warnings
             #(direct_warnings + recursive_warnings).map wrap
             direct_warnings.map wrap
             #[]
@@ -343,6 +358,11 @@ type Warning
    - origin: stacktrace representing the location where the warning is being created at.
 create : Any -> Any -> Warning
 create payload origin = @Builtin_Method "Warning.create"
+
+## PRIVATE
+   Returns a maximal number of warnings that can be attached to a value.
+get_warnings_limit : Integer
+get_warnings_limit = @Builtin_Method "Warning.get_warnings_limit"
 
 ## PRIVATE
 

@@ -276,20 +276,20 @@ spec = Test.group "Dataflow Warnings" <|
         c = [a, b]
         d = Warning.attach "d" c
         c . should_equal [1, 2]
-        Warning.get_all c . map .value . should_equal [Map_Error.Error 1 "b", Map_Error.Error 0 "a"]
-        Warning.get_all d . map .value . should_equal [Map_Error.Error 1 "b", Map_Error.Error 0 "a", "d"]
+        Warning.get_all c . map .value . should_equal [(Map_Error.Error 0 'a'), (Map_Error.Error 1 'b')]
+        Warning.get_all d . map .value . should_equal ['d', (Map_Error.Error 0 'a'), (Map_Error.Error 1 'b')]
 
     Test.specify "should be preserved after operations on Vector" <|
         even x = (Warning.attach "warn"+x.to_text x) % 2
         res = [1,2,3,4].map even
 
         res . should_equal [1, 0, 1, 0]
-        Warning.get_all res . map .value . should_equal [(Map_Error.Error 3 "warn4"), (Map_Error.Error 2 "warn3"), (Map_Error.Error 1 "warn2"), (Map_Error.Error 0 "warn1")]
+        Warning.get_all res . map .value . should_equal [(Map_Error.Error 0 'warn1'), (Map_Error.Error 1 'warn2'), (Map_Error.Error 2 'warn3'), (Map_Error.Error 3 'warn4')]
         res.at 0 . should_equal 1
         Warning.get_all (res.at 0) . map .value . should_equal ["warn1"]
 
         slice = res.slice 1 4
-        Warning.get_all slice . map .value . should_equal [(Map_Error.Error 3 "warn4"), (Map_Error.Error 2 "warn3"), (Map_Error.Error 1 "warn2"), (Map_Error.Error 0 "warn1")]
+        Warning.get_all slice . map .value . should_equal [(Map_Error.Error 0 'warn2'), (Map_Error.Error 1 'warn3'), (Map_Error.Error 2 'warn4')]
 
         zero = even 0
         Warning.get_all zero . map .value . should_equal ["warn"+0.to_text]
@@ -306,8 +306,8 @@ spec = Test.group "Dataflow Warnings" <|
         res = [1, 2, 3, 4].map nested_range_even
 
         res . should_equal [[0], [0, 1], [0, 1, 0], [0, 1, 0, 1]]
-        Warning.get_all res . map .value . should_equal [(Map_Error.Error 3 (Map_Error.Error 3 3)), (Map_Error.Error 3 (Map_Error.Error 2 2)), (Map_Error.Error 3 (Map_Error.Error 1 1)), (Map_Error.Error 3 (Map_Error.Error 0 0)), (Map_Error.Error 2 (Map_Error.Error 2 2)), (Map_Error.Error 2 (Map_Error.Error 1 1)), (Map_Error.Error 2 (Map_Error.Error 0 0)), (Map_Error.Error 1 (Map_Error.Error 1 1)), (Map_Error.Error 1 (Map_Error.Error 0 0)), (Map_Error.Error 0 (Map_Error.Error 0 0))]
-        Warning.get_all (res.at 2) . map .value . should_equal [(Map_Error.Error 2 2), (Map_Error.Error 1 1), (Map_Error.Error 0 0)]
+        Warning.get_all res . map .value . should_equal [(Map_Error.Error 0 (Map_Error.Error 0 0)), (Map_Error.Error 1 (Map_Error.Error 0 0)), (Map_Error.Error 1 (Map_Error.Error 1 1)), (Map_Error.Error 2 (Map_Error.Error 0 0)), (Map_Error.Error 2 (Map_Error.Error 1 1)), (Map_Error.Error 2 (Map_Error.Error 2 2)), (Map_Error.Error 3 (Map_Error.Error 0 0)), (Map_Error.Error 3 (Map_Error.Error 1 1)), (Map_Error.Error 3 (Map_Error.Error 2 2)), (Map_Error.Error 3 (Map_Error.Error 3 3))]
+        Warning.get_all (res.at 2) . map .value . should_equal [(Map_Error.Error 0 0), (Map_Error.Error 1 1), (Map_Error.Error 2 2)]
 
     Test.specify "should be preserved over arbitrary dataflow dependencies between values introduced using `if_not_error`" <|
         a = Warning.attach "a" 1
