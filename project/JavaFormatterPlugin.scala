@@ -18,8 +18,9 @@ import com.google.googlejavaformat.java.JavaFormatterOptions
 import sbt.*
 import sbt.Keys.*
 
-/** A local fork of https://github.com/sbt/sbt-java-formatter. The original plugin is no longer
-  * maintained, so we keep a local fork.
+/** A local fork of https://github.com/sbt/sbt-java-formatter. The original plugin uses a very outdated version
+  * of `google-java-format` dependency which does not support syntax > JDK8. It's unlikely we will see the
+  * dependency upgraded any time soon, if ever, hence the almost one-to-one copy of the plugin.
   */
 object JavaFormatterPlugin extends AutoPlugin {
   object autoImport {
