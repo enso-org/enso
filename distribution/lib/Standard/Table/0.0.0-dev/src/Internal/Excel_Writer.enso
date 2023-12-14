@@ -70,7 +70,6 @@ write_file (file : File) (table : Table) (on_existing_file : Existing_File_Behav
             accompanying_files = [possible_backup_file, possible_dry_run_file].filter (!= Nothing) . filter (!= java_file)
 
             ExcelConnectionPool.INSTANCE.lockForWriting java_file file_format accompanying_files write_helper-> Context.Output.with_enabled <|
-                # TODO this should work with False, why?
                 temp_file = if is_dry_run then file.create_dry_run_file copy_original=False else
                     find_temp_file file
 
