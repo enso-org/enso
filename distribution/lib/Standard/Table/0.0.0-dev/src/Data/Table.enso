@@ -440,8 +440,7 @@ type Table
     select_blank_columns : Blank_Selector -> Boolean -> Table ! No_Output_Columns
     select_blank_columns self (when:Blank_Selector = Blank_Selector.All_Cells) (treat_nans_as_blank : Boolean = False) =
         new_columns = self.columns_helper.select_blank_columns_helper when treat_nans_as_blank
-        if new_columns.length == 0 then Error.throw (No_Output_Columns) else
-            Table.new new_columns
+        Table.new new_columns
 
     ## ALIAS drop_missing_columns, drop_na
        GROUP Standard.Base.Selections
@@ -467,8 +466,7 @@ type Table
     remove_blank_columns : Blank_Selector -> Boolean -> Table ! No_Output_Columns
     remove_blank_columns self (when:Blank_Selector = Blank_Selector.All_Cells) (treat_nans_as_blank : Boolean = False) =
         new_columns = self.columns_helper.select_blank_columns_helper when treat_nans_as_blank invert_selection=True
-        if new_columns.length == 0 then Error.throw (No_Output_Columns) else
-            Table.new new_columns
+        Table.new new_columns
 
     ## GROUP Standard.Base.Selections
        ICON select_column
@@ -2122,18 +2120,22 @@ type Table
             v : Vector -> [self] + (v.map t-> Table.from t)
             single_table -> [self, single_table]
         all_tables.if_not_error <|
-            problem_builder = Problem_Builder.new
-            matched_column_sets = Match_Columns_Helpers.match_columns all_tables match_columns keep_unmatched_columns problem_builder
+            ## We keep separate problem builders, because if we are reporting `No_Output_Columns`,
+               we only want to add a cause coming from unification; matching reports problems that would not fit this error.
+            problem_builder_for_matching = Problem_Builder.new
+            problem_builder_for_unification = Problem_Builder.new
+            matched_column_sets = Match_Columns_Helpers.match_columns all_tables match_columns keep_unmatched_columns problem_builder_for_matching
             result_row_count = all_tables.fold 0 c-> t-> c + t.row_count
             merged_columns = matched_column_sets.map column_set->
-                case Table_Helpers.unify_result_type_for_union column_set all_tables allow_type_widening problem_builder of
+                case Table_Helpers.unify_result_type_for_union column_set all_tables allow_type_widening problem_builder_for_unification of
                     Nothing -> Nothing
                     result_type : Value_Type ->
                         concat_columns column_set all_tables result_type result_row_count on_problems
             good_columns = merged_columns.filter Filter_Condition.Not_Nothing
-            if good_columns.is_empty then Error.throw No_Output_Columns else
-                problem_builder.attach_problems_before on_problems <|
-                    Table.new good_columns
+            problem_builder_for_matching.attach_problems_before on_problems <|
+                problem_builder_for_unification.attach_problems_before on_problems <|
+                    if good_columns.is_empty then problem_builder_for_unification.raise_no_output_columns_with_cause else
+                        Table.new good_columns
 
     ## ALIAS drop_missing_rows, dropna
        GROUP Standard.Base.Selections
