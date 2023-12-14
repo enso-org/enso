@@ -49,9 +49,9 @@ enso_bin =
     find_prefix dir prefix =
         vec = dir.list name_filter=prefix+"*"
         if vec.length == 1 then vec.at 0 else
-            msg = "Cannot find " + prefix + "* in" + dir.to_text + "\n"
+            msg = "Cannot find " + prefix + "* in " + dir.to_text + '\n'
             err = dir.list.fold msg t-> f->
-                t + f.to_text + "\n"
+                t + f.to_text + '\n'
             Panic.throw err
 
     project_root = File.new enso_project.root.to_text

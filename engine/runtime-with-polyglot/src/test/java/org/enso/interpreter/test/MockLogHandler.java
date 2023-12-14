@@ -1,4 +1,4 @@
-package org.enso.interpreter.test.instrument;
+package org.enso.interpreter.test;
 
 import static org.junit.Assert.fail;
 
@@ -9,10 +9,10 @@ import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.SimpleFormatter;
 
-final class MockLogHandler extends Handler {
+public final class MockLogHandler extends Handler {
   private final List<LogRecord> logs = new ArrayList<>();
 
-  MockLogHandler() {
+  public MockLogHandler() {
     setLevel(Level.ALL);
   }
 
@@ -27,7 +27,11 @@ final class MockLogHandler extends Handler {
   @Override
   public void close() throws SecurityException {}
 
-  synchronized Object[] assertMessage(String loggerName, String msgPrefix) {
+  public void reset() {
+    logs.clear();
+  }
+
+  public synchronized Object[] assertMessage(String loggerName, String msgPrefix) {
     var f = new SimpleFormatter();
     var sb = new StringBuilder();
     sb.append("Cannot find ").append(msgPrefix).append(" in ").append(loggerName);
