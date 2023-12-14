@@ -69,7 +69,7 @@ final class EpbContext {
         (Consumer<TruffleContext>)
             (context) -> {
               var epbCtx = EpbContext.get(null);
-              var lock = epbCtx.getLock();
+              var lock = epbCtx.lock;
               var beforeEnter = innerContext.enter(null);
               lock.lock();
               try {
@@ -116,10 +116,6 @@ final class EpbContext {
   /** @return the language environment associated with this context. */
   public TruffleLanguage.Env getEnv() {
     return env;
-  }
-
-  public ReentrantLock getLock() {
-    return lock;
   }
 
   public TruffleContext getInnerContext() {

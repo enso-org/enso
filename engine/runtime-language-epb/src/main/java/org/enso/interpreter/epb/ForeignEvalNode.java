@@ -2,6 +2,7 @@ package org.enso.interpreter.epb;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import com.oracle.truffle.api.CallTarget;
@@ -61,26 +62,20 @@ class ForeignEvalNode extends RootNode {
 
   @CompilerDirectives.TruffleBoundary
   private void lockAndParse() throws IllegalStateException {
-    var ctxLock = EpbContext.get(this).getLock();
-    ctxLock.lock();
-    try {
-      if (foreign == null) {
-        CompilerDirectives.transferToInterpreterAndInvalidate();
-        String truffleLangId = EpbLanguage.truffleId(code);
-        var context = EpbContext.get(this);
-        var installedLanguages = context.getEnv().getInternalLanguages();
-        if (!installedLanguages.containsKey(truffleLangId)) {
-          this.parseException = new ForeignParsingException(truffleLangId, installedLanguages.keySet(), this);
-        } else {
-          switch (truffleLangId) {
-            case "js" -> parseJs();
-            case "nic" -> parsePy();
-            default -> parseGeneric(truffleLangId);
-          }
+    if (foreign == null) {
+      CompilerDirectives.transferToInterpreterAndInvalidate();
+      String truffleLangId = EpbLanguage.truffleId(code);
+      var context = EpbContext.get(this);
+      var installedLanguages = context.getEnv().getInternalLanguages();
+      if (!installedLanguages.containsKey(truffleLangId)) {
+        this.parseException = new ForeignParsingException(truffleLangId, installedLanguages.keySet(), this);
+      } else {
+        switch (truffleLangId) {
+          case "js" -> parseJs();
+          case "python" -> parseGeneric(truffleLangId, PyForeignNode::new);
+          default -> parseGeneric(truffleLangId, GenericForeignNode::new);
         }
       }
-    } finally {
-      ctxLock.unlock();
     }
   }
 
@@ -99,28 +94,10 @@ class ForeignEvalNode extends RootNode {
     foreign = insert(JsForeignNode.build(fn, argNames.length));
   }
 
-  private void parsePy() {
-    String args = Arrays.stream(argNames).collect(Collectors.joining(","));
-    String head = """
-        import site
-        import polyglot
-        @polyglot.export_value
-        def polyglot_enso_python_eval("""
-            + args
-            + "):\n";
-    String indentLines = EpbLanguage.foreignSource(code).lines().map(l -> "    " + l).collect(Collectors.joining("\n"));
-    Source source = Source.newBuilder("python", head + indentLines, code.getName()).build();
-    EpbContext context = EpbContext.get(this);
-    CallTarget ct = context.getEnv().parsePublic(source, args);
-    ct.call();
-    Object fn = context.getEnv().importSymbol("polyglot_enso_python_eval");
-    foreign = insert(PyForeignNodeGen.create(fn));
-  }
-
-  private void parseGeneric(String language) {
+  private void parseGeneric(String language, Function<CallTarget,ForeignFunctionCallNode> nodeFactory) {
     var ctx = EpbContext.get(this);
     Source source = Source.newBuilder(language, EpbLanguage.foreignSource(code), code.getName()).build();
     CallTarget ct = ctx.getEnv().parsePublic(source, argNames);
-    foreign = insert(new GenericForeignNode(ct));
+    foreign = insert(nodeFactory.apply(ct));
   }
 }

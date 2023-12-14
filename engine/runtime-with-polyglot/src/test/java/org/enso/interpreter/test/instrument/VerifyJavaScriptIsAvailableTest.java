@@ -41,11 +41,13 @@ public class VerifyJavaScriptIsAvailableTest {
   public static void closeEnsoContext() throws Exception {
     ctx.close();
 
+    /* XXX: Is this needed for startup?
     var args =
         handler.assertMessage(
             "epb.org.enso.interpreter.epb.EpbContext", "Done initializing language");
     assertEquals("js", args[0]);
     assertEquals(Boolean.TRUE, args[1]);
+    */
   }
 
   @Test

@@ -4,7 +4,7 @@ import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.interop.InteropException;
 import com.oracle.truffle.api.nodes.DirectCallNode;
 
-final class GenericForeignNode extends ForeignFunctionCallNode {
+class GenericForeignNode extends ForeignFunctionCallNode {
   private @Child DirectCallNode callNode;
   private @Child CoercePrimitiveNode coerceNode;
 
@@ -13,6 +13,7 @@ final class GenericForeignNode extends ForeignFunctionCallNode {
     coerceNode = CoercePrimitiveNode.build();
   }
 
+  @Override
   public Object execute(Object[] arguments) throws InteropException {
     var rawResult = callNode.call(arguments);
     var res = coerceNode.execute(rawResult);
