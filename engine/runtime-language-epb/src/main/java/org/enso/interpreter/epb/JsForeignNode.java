@@ -14,25 +14,21 @@ import java.util.Arrays;
 
 /** A node responsible for performing foreign JS calls. */
 @NodeField(name = "foreignFunction", type = Object.class)
-@NodeField(name = "arity", type = int.class)
 abstract class JsForeignNode extends ForeignFunctionCallNode {
 
   private @Child CoercePrimitiveNode coercePrimitiveNode = CoercePrimitiveNode.build();
 
   abstract Object getForeignFunction();
 
-  abstract int getArity();
-
   /**
    * Creates a new instance of this node.
    *
-   * @param argumentsCount the number of arguments the function expects (including {@code this})
    * @param jsFunction the parsed JS object (required to be {@link
    *     InteropLibrary#isExecutable(Object)})
    * @return a node able to call the JS function with given arguments
    */
-  static JsForeignNode build(Object jsFunction, int argumentsCount) {
-    return JsForeignNodeGen.create(jsFunction, argumentsCount);
+  static JsForeignNode build(Object jsFunction) {
+    return JsForeignNodeGen.create(jsFunction);
   }
 
   @Specialization

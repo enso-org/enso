@@ -84,7 +84,7 @@ final class ForeignEvalNode extends RootNode {
             + "\n};poly_enso_eval";
     Source source = Source.newBuilder("js", wrappedSrc, "").build();
     var fn = inner.evalPublic(this, source);
-    foreign = insert(JsForeignNode.build(fn, argNames.length));
+    foreign = insert(JsForeignNode.build(fn));
   }
 
   private void parseGeneric(String language, Function<CallTarget,ForeignFunctionCallNode> nodeFactory) {
