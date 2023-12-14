@@ -1,6 +1,6 @@
 import { assert } from '@/util/assert'
 import { RawAst, RawAstExtended } from '@/util/ast'
-import { zip } from '@/util/iterable'
+import { zip } from '@/util/data/iterable'
 import { mapIterator } from 'lib0/iterator'
 
 /** An operand of one of the applications inside `GeneralOprApp` */

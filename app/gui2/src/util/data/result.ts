@@ -1,4 +1,7 @@
-import { isSome, type Opt } from '@/util/opt'
+/** @file A generic type that can either hold a value representing a successful result,
+ * or an error. */
+
+import { isSome, type Opt } from '@/util/data/opt'
 
 export type Result<T = undefined, E = string> =
   | { ok: true; value: T }

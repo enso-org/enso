@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import SvgIcon from '@/components/SvgIcon.vue'
-import { useEvent } from '@/util/events'
+import { useEvent } from '@/composables/events'
 import { ref } from 'vue'
 
 const props = defineProps<{ modes: string[]; modelValue: string }>()

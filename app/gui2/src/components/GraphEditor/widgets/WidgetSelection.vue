@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import DropdownWidget from '@/components/widgets/DropdownWidget.vue'
-import { widgetProps } from '@/providers/widgetRegistry'
+import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
-import { qnJoin, qnSegments, tryQualifiedName } from '@/util/qualifiedName.ts'
+import { ArgumentAst, ArgumentPlaceholder } from '@/util/callTree'
+import { qnJoin, qnSegments, tryQualifiedName } from '@/util/qualifiedName'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
@@ -89,9 +90,6 @@ watch(selectedIndex, (_index) => {
 </script>
 
 <script lang="ts">
-import { defineWidget, Score } from '@/providers/widgetRegistry.ts'
-import { ArgumentAst, ArgumentPlaceholder } from '@/util/callTree.ts'
-
 export const widgetDefinition = defineWidget([ArgumentPlaceholder, ArgumentAst], {
   priority: 999,
   score: (props) => {

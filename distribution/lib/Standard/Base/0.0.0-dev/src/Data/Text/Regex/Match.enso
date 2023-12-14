@@ -31,7 +31,7 @@ type Match
     ## PRIVATE
        Provides a human-readable representation of the `Match`.
     to_display_text : Text
-    to_display_text self = "Match {" + self.tet + "}"
+    to_display_text self = "Match {" + self.text + "}"
 
     ## PRIVATE
        Returns the start UTF16 character index of a group.

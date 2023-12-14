@@ -54,6 +54,7 @@ export default function Labels(props: LabelsProps) {
             <ul data-testid="labels-list" className="flex flex-col items-start gap-1">
                 {labels
                     .filter(label => !deletedLabelNames.has(label.value))
+                    .sort((a, b) => (a.value > b.value ? 1 : a.value < b.value ? -1 : 0))
                     .map(label => (
                         <li key={label.id} className="group flex items-center gap-1">
                             <Label
@@ -121,7 +122,7 @@ export default function Labels(props: LabelsProps) {
                             event.stopPropagation()
                             setModal(
                                 <NewLabelModal
-                                    labelNames={new Set(labels.map(label => label.value))}
+                                    labels={labels}
                                     eventTarget={event.currentTarget}
                                     doCreate={doCreateLabel}
                                 />

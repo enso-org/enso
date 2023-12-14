@@ -138,7 +138,18 @@ export function componentBrowserEntry(
   page: Locator | Page,
   filter?: (f: Filter) => { selector: string },
 ) {
-  return page.locator(`.ComponentBrowser .component${filter?.(new Filter()) ?? ''}`)
+  return page.locator(
+    `.ComponentBrowser .list-variant:not(.selected) .component${filter?.(new Filter()) ?? ''}`,
+  )
+}
+
+export function componentBrowserSelectedEntry(
+  page: Locator | Page,
+  filter?: (f: Filter) => { selector: string },
+) {
+  return page.locator(
+    `.ComponentBrowser .list-variant.selected .component${filter?.(new Filter()) ?? ''}`,
+  )
 }
 
 export const jsonVisualization = componentLocator('JSONVisualization')

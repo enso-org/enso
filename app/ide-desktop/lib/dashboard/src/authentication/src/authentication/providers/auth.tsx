@@ -35,6 +35,7 @@ const REQUEST_DELAY_MS = 200
 const MESSAGES = {
     signUpSuccess: 'We have sent you an email with further instructions!',
     confirmSignUpSuccess: 'Your account has been confirmed! Please log in.',
+    confirmSignUpFailure: 'Incorrect email or confirmation code.',
     setUsernameLoading: 'Setting username...',
     setUsernameSuccess: 'Your username has been set!',
     setUsernameFailure: 'Could not set your username.',
@@ -426,6 +427,10 @@ export function AuthProvider(props: AuthProviderProps) {
             switch (result.val.kind) {
                 case cognitoModule.ConfirmSignUpErrorKind.userAlreadyConfirmed:
                     break
+                case cognitoModule.ConfirmSignUpErrorKind.userNotFound:
+                    toastError(MESSAGES.confirmSignUpFailure)
+                    navigate(app.LOGIN_PATH)
+                    return false
                 default:
                     throw new errorModule.UnreachableCaseError(result.val.kind)
             }
@@ -442,7 +447,8 @@ export function AuthProvider(props: AuthProviderProps) {
             toastSuccess(MESSAGES.signInWithPasswordSuccess)
         } else {
             if (result.val.kind === cognitoModule.SignInWithPasswordErrorKind.userNotFound) {
-                navigate(app.REGISTRATION_PATH)
+                // It may not be safe to pass the user's password in the URL.
+                navigate(app.REGISTRATION_PATH + '?' + new URLSearchParams({ email }).toString())
             }
             toastError(result.val.message)
         }

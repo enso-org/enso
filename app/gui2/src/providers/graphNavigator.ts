@@ -1,5 +1,5 @@
-import { useNavigator } from '@/util/navigator'
-import { createContextStore } from '.'
+import { useNavigator } from '@/composables/navigator'
+import { createContextStore } from '@/providers'
 
 export type GraphNavigator = ReturnType<typeof injectFn>
 export { injectFn as injectGraphNavigator, provideFn as provideGraphNavigator }

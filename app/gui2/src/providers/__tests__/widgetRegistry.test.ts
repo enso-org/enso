@@ -1,8 +1,3 @@
-import { GraphDb } from '@/stores/graph/graphDatabase'
-import { Ast } from '@/util/ast'
-import { ApplicationKind, ArgumentPlaceholder } from '@/util/callTree'
-import { describe, expect, test } from 'vitest'
-import { defineComponent } from 'vue'
 import {
   Score,
   WidgetRegistry,
@@ -10,8 +5,13 @@ import {
   type WidgetDefinition,
   type WidgetInput,
   type WidgetModule,
-} from '../widgetRegistry'
-import { DisplayMode, widgetConfigurationSchema } from '../widgetRegistry/configuration'
+} from '@/providers/widgetRegistry'
+import { DisplayMode, widgetConfigurationSchema } from '@/providers/widgetRegistry/configuration'
+import { GraphDb } from '@/stores/graph/graphDatabase'
+import { Ast } from '@/util/ast'
+import { ApplicationKind, ArgumentPlaceholder } from '@/util/callTree'
+import { describe, expect, test } from 'vitest'
+import { defineComponent } from 'vue'
 
 describe('WidgetRegistry', () => {
   function makeMockWidget<T extends WidgetInput>(
