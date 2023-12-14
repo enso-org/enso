@@ -3,10 +3,9 @@ package org.enso.interpreter.epb;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.TruffleContext;
 import com.oracle.truffle.api.TruffleLanguage;
+import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.nodes.Node;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.Consumer;
 import java.util.logging.Level;
 
 /**
@@ -23,6 +22,7 @@ final class EpbContext {
   private final TruffleLanguage.Env env;
   private @CompilationFinal TruffleContext innerContext;
   private final ReentrantLock lock = new ReentrantLock();
+  private final TruffleLogger log;
 
   /**
    * Creates a new instance of this context.
@@ -32,6 +32,7 @@ final class EpbContext {
   EpbContext(TruffleLanguage.Env env) {
     this.env = env;
     isInner = env.getConfig().get(INNER_OPTION) != null;
+    this.log = env.getLogger(EpbContext.class);
   }
 
   /**
@@ -50,58 +51,7 @@ final class EpbContext {
                 .config(INNER_OPTION, "yes")
                 .build();
       }
-      // initializeLanguages(env, innerContext, preInitializeLanguages);
     }
-  }
-
-  private static void initializeLanguages(
-      TruffleLanguage.Env environment, TruffleContext innerContext, String langs) {
-    if (langs == null || langs.isEmpty()) {
-      return;
-    }
-    var log = environment.getLogger(EpbContext.class);
-    log.log(
-        Level.INFO,
-        "Initializing languages {0}. In thread {1}",
-        new Object[] {langs, Thread.currentThread().getName()});
-    var cdl = new CountDownLatch(1);
-    var run =
-        (Consumer<TruffleContext>)
-            (context) -> {
-              var epbCtx = EpbContext.get(null);
-              var lock = epbCtx.lock;
-              var beforeEnter = innerContext.enter(null);
-              lock.lock();
-              try {
-                log.log(
-                    Level.INFO,
-                    "Entering initialization thread '{0}'",
-                    Thread.currentThread().getName());
-                cdl.countDown();
-                for (var l : langs.split(",")) {
-                  log.log(Level.FINEST, "Initializing language {0}", l);
-                  long then = System.currentTimeMillis();
-                  var res = context.initializeInternal(null, l);
-                  long took = System.currentTimeMillis() - then;
-                  log.log(
-                      Level.FINE,
-                      "Done initializing language {0} with {1} in {2} ms",
-                      new Object[] {l, res, took});
-                }
-              } finally {
-                lock.unlock();
-                innerContext.leave(null, beforeEnter);
-              }
-            };
-    var init = environment.newTruffleThreadBuilder(() -> run.accept(innerContext)).build();
-    log.log(Level.INFO, "Starting initialization thread '{0}'", init.getName());
-    init.start();
-    try {
-      cdl.await();
-    } catch (InterruptedException ex) {
-      Thread.currentThread().interrupt();
-    }
-    log.log(Level.FINEST, "Initializing on background");
   }
 
   /**
@@ -120,5 +70,9 @@ final class EpbContext {
 
   public TruffleContext getInnerContext() {
     return innerContext;
+  }
+
+  public void log(Level level, String msg, Object... args) {
+    this.log.log(level, msg, args);
   }
 }

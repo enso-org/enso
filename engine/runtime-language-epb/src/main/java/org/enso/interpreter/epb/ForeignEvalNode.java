@@ -3,6 +3,7 @@ package org.enso.interpreter.epb;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 import com.oracle.truffle.api.CallTarget;
@@ -63,6 +64,7 @@ final class ForeignEvalNode extends RootNode {
       if (!installedLanguages.containsKey(truffleLangId)) {
         this.parseException = new ForeignParsingException(truffleLangId, installedLanguages.keySet(), this);
       } else {
+        context.log(Level.FINE, "Parsing foreign script {1} - language {0}", truffleLangId, code.getName());
         switch (truffleLangId) {
           case "js" -> parseJs();
           case "python" -> parseGeneric("python", PyForeignNode::new);
