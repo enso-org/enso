@@ -10,7 +10,7 @@ import org.enso.compiler.core.ir.Literal;
 import org.enso.interpreter.node.expression.literal.LiteralNode;
 import org.enso.interpreter.runtime.type.ConstantsGen;
 import org.enso.interpreter.test.Metadata;
-import org.enso.interpreter.test.NodeCountingTestInstrument;
+import org.enso.interpreter.test.instruments.NodeCountingTestInstrument;
 import org.enso.interpreter.test.instrument.RuntimeServerTest.TestContext;
 import org.enso.polyglot.runtime.Runtime$Api$CreateContextRequest;
 import org.enso.polyglot.runtime.Runtime$Api$CreateContextResponse;

@@ -5,12 +5,13 @@ import com.oracle.truffle.api.instrumentation.StandardTags;
 import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
 import org.enso.interpreter.test.Metadata;
-import org.enso.interpreter.test.NodeCountingTestInstrument;
+import org.enso.interpreter.test.instruments.NodeCountingTestInstrument;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Source;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import org.graalvm.polyglot.io.IOAccess;
 import org.junit.After;
@@ -18,7 +19,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.OutputStream;
 import java.nio.file.Paths;
 import java.util.Map;
 import java.util.logging.Level;
@@ -91,9 +91,9 @@ public class WarningInstrumentationTest {
         var calls = instrument.registeredCalls();
 
         assertEquals(calls.keySet().size(), 3);
-        assertEquals(calls.get(idOp1).getFunctionName(), "new");
-        assertEquals(calls.get(idOp2).getFunctionName(), "attach");
-        assertEquals(calls.get(idOp3).getTypeName().item(), "Table");
-        assertEquals(calls.get(idOp3).getFunctionName(), "get");
+        assertEquals(calls.get(idOp1).functionName(), "new");
+        assertEquals(calls.get(idOp2).functionName(), "attach");
+        assertTrue(calls.get(idOp3).typeName().contains("Table"));
+        assertEquals(calls.get(idOp3).functionName(), "get");
     }
 }

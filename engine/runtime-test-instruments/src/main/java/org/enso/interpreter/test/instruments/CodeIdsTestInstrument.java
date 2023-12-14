@@ -6,6 +6,7 @@ import com.oracle.truffle.api.nodes.Node;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import org.enso.interpreter.test.instruments.service.RuntimeTestService;
 import org.openide.util.Lookup;
 
 import java.util.UUID;
@@ -113,7 +114,7 @@ public class CodeIdsTestInstrument extends TruffleInstrument {
           return;
         }
         nodes.put(this, result);
-        UUID id = runtimeTestService.getExpressionNodeID(node);
+        UUID id = runtimeTestService.getNodeID(node);
         if (id == null || !id.equals(expectedId)) {
           return;
         }
@@ -140,7 +141,7 @@ public class CodeIdsTestInstrument extends TruffleInstrument {
         if (!runtimeTestService.isExpressionNode(context.getInstrumentedNode())) {
           return;
         }
-        UUID id = runtimeTestService.getExpressionNodeID(context.getInstrumentedNode());
+        UUID id = runtimeTestService.getNodeID(context.getInstrumentedNode());
         if (expectedResult == null) {
           successful = true;
         }
@@ -151,7 +152,7 @@ public class CodeIdsTestInstrument extends TruffleInstrument {
         var sb = new StringBuilder();
         sb.append(context.getInstrumentedNode().getClass().getSimpleName());
         if (runtimeTestService.isExpressionNode(context.getInstrumentedNode())) {
-          UUID id = runtimeTestService.getExpressionNodeID(context.getInstrumentedNode());
+          UUID id = runtimeTestService.getNodeID(context.getInstrumentedNode());
           sb.append("@").append(id);
         }
         sb.append(" ");

@@ -1,6 +1,9 @@
-package org.enso.interpreter.test.instruments;
+package org.enso.interpreter.test.instruments.service;
 
+import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.nodes.RootNode;
 import java.util.UUID;
+import org.enso.interpreter.test.instruments.service.FunctionCallInfo;
 
 /**
  * A service that provides information from the `runtime` project to the instruments in this project
@@ -8,7 +11,10 @@ import java.util.UUID;
  * `runtime`, thus, we need to use a service provider mechanism.
  */
 public interface RuntimeTestService {
-  UUID getExpressionNodeID(Object expressionNode);
+  UUID getNodeID(Node node);
   boolean isExpressionNode(Object node);
   boolean isTailCallException(Object obj);
+  boolean isFunctionCallInstrumentationNode(Object node);
+  boolean isFunctionCall(Object obj);
+  FunctionCallInfo extractFunctionCallInfo(Object functionCall);
 }

@@ -1,4 +1,4 @@
-package org.enso.interpreter.test;
+package org.enso.interpreter.test.instruments;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.EventContext;
@@ -7,20 +7,17 @@ import com.oracle.truffle.api.instrumentation.ExecutionEventNodeFactory;
 import com.oracle.truffle.api.instrumentation.SourceSectionFilter;
 import com.oracle.truffle.api.instrumentation.TruffleInstrument;
 import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.SourceSection;
-import org.enso.interpreter.node.MethodRootNode;
-import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
-import org.enso.pkg.QualifiedName;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Function;
-import static org.junit.Assert.fail;
+import org.enso.interpreter.test.instruments.service.FunctionCallInfo;
+import org.enso.interpreter.test.instruments.service.RuntimeTestService;
+import org.openide.util.Lookup;
 
 /** Testing instrument to control newly created nodes. */
 @TruffleInstrument.Registration(
@@ -28,11 +25,16 @@ import static org.junit.Assert.fail;
     services = NodeCountingTestInstrument.class)
 public class NodeCountingTestInstrument extends TruffleInstrument {
   public static final String INSTRUMENT_ID = "node-count-test";
+  private static final RuntimeTestService runtimeTestService;
   private final Map<Node, Node> all = new ConcurrentHashMap<>();
   private Map<Class, List<Node>> counter = new ConcurrentHashMap<>();
 
   private final Map<UUID, FunctionCallInfo> calls = new ConcurrentHashMap<>();
   private Env env;
+
+  static {
+    runtimeTestService = Lookup.getDefault().lookup(RuntimeTestService.class);
+  }
 
   @Override
   protected void onCreate(Env env) {
@@ -75,10 +77,10 @@ public class NodeCountingTestInstrument extends TruffleInstrument {
         };
 
     if (value < min) {
-      fail(dump.apply(msg + ". Minimal size should be " + min + ", but was: " + value + " in"));
+      throw new AssertionError(dump.apply(msg + ". Minimal size should be " + min + ", but was: " + value + " in"));
     }
     if (value > max) {
-      fail(dump.apply(msg + ". Maximal size should be " + max + ", but was: " + value + " in"));
+      throw new AssertionError(dump.apply(msg + ". Maximal size should be " + max + ", but was: " + value + " in"));
     }
     counter = new ConcurrentHashMap<>();
     return prev;
@@ -120,73 +122,16 @@ public class NodeCountingTestInstrument extends TruffleInstrument {
 
     public void onReturnValue(VirtualFrame frame, Object result) {
       Node node = context.getInstrumentedNode();
-      if (node instanceof FunctionCallInstrumentationNode instrumentableNode
-              && result instanceof FunctionCallInstrumentationNode.FunctionCall functionCall) {
-        onFunctionReturn(instrumentableNode, functionCall);
+
+      if (runtimeTestService.isFunctionCallInstrumentationNode(node)
+          && runtimeTestService.isFunctionCall(result)) {
+        UUID nodeId = runtimeTestService.getNodeID(node);
+        if (nodeId != null) {
+          var funcCallInfo = runtimeTestService.extractFunctionCallInfo(result);
+          calls.put(nodeId, funcCallInfo);
+        }
       }
-    }
 
-    private void onFunctionReturn(FunctionCallInstrumentationNode node, FunctionCallInstrumentationNode.FunctionCall result) {
-      if (node.getId() != null) {
-        calls.put(node.getId(), new FunctionCallInfo(result));
-      }
-    }
-
-  }
-
-  public static class FunctionCallInfo {
-
-    private final QualifiedName moduleName;
-    private final QualifiedName typeName;
-    private final String functionName;
-
-    public FunctionCallInfo(FunctionCallInstrumentationNode.FunctionCall call) {
-      RootNode rootNode = call.getFunction().getCallTarget().getRootNode();
-      if (rootNode instanceof MethodRootNode methodNode) {
-        moduleName = methodNode.getModuleScope().getModule().getName();
-        typeName = methodNode.getType().getQualifiedName();
-        functionName = methodNode.getMethodName();
-      } else {
-        moduleName = null;
-        typeName = null;
-        functionName = rootNode.getName();
-      }
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (this == o) {
-        return true;
-      }
-      if (o == null || getClass() != o.getClass()) {
-        return false;
-      }
-      FunctionCallInfo that = (FunctionCallInfo) o;
-      return Objects.equals(moduleName, that.moduleName)
-              && Objects.equals(typeName, that.typeName)
-              && Objects.equals(functionName, that.functionName);
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(moduleName, typeName, functionName);
-    }
-
-    @Override
-    public String toString() {
-      return moduleName + "::" + typeName + "::" + functionName;
-    }
-
-    public QualifiedName getModuleName() {
-      return moduleName;
-    }
-
-    public QualifiedName getTypeName() {
-      return typeName;
-    }
-
-    public String getFunctionName() {
-      return functionName;
     }
   }
 }
