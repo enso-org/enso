@@ -93,10 +93,12 @@ final class Array implements EnsoObject {
     if (this.hasWarnings(warnings)) {
       hasWarningsProfile.enter();
       Warning[] extracted = this.getWarnings(null, warnings);
-      if (warnings.hasWarnings(v)) {
-        v = warnings.removeWarnings(v);
+      if (extracted.length > 0) {
+        if (warnings.hasWarnings(v)) {
+          v = warnings.removeWarnings(v);
+        }
+        return WithWarnings.wrap(EnsoContext.get(warnings), v, extracted);
       }
-      return WithWarnings.wrap(EnsoContext.get(warnings), v, extracted);
     }
 
     return v;
@@ -154,11 +156,13 @@ final class Array implements EnsoObject {
   }
 
   private boolean hasWarningElements(Object[] items, WarningsLibrary warnings) {
+    /*
     for (Object item : items) {
       if (warnings.hasWarnings(item)) {
         return true;
       }
     }
+    */
     return false;
   }
 
@@ -184,7 +188,7 @@ final class Array implements EnsoObject {
   private EconomicSet<Warning> collectAllWarnings(WarningsLibrary warnings, Node location)
       throws UnsupportedMessageException {
         return EconomicSet.create();
-        /*
+    /*
     EnsoContext ctx = EnsoContext.get(location);
     long maxWarnings = ctx.getWarningsLimit();
     Builtins builtins = ctx.getBuiltins();

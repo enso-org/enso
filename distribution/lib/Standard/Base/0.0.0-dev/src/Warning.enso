@@ -9,6 +9,7 @@ import project.Data.Vector.No_Wrap
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Meta
+import project.IO
 import project.Nothing.Nothing
 import project.Polyglot.Polyglot
 import project.Runtime
@@ -65,7 +66,22 @@ type Warning
         child_warnings = case value of
             _ : Vector -> Warning.get_all_vector value
             _ -> []
-        (Vector.from_polyglot_array (get_all_array value)) + child_warnings
+        ##
+            IO.println 'AAA'
+            IO.println child_warnings
+        direct_warnings = (Vector.from_polyglot_array (get_all_array value))
+        IO.println 'AAA dir'
+        direct_warnings.map w->
+            IO.println w
+            IO.println (Meta.get_simple_type_name w)
+            IO.println (w.is_a Warning)
+        IO.println 'AAA ch'
+        child_warnings.map w->
+            IO.println w
+            IO.println (Meta.get_simple_type_name w)
+            IO.println (w.is_a Warning)
+        direct_warnings + child_warnings
+        #Vector.from_polyglot_array (get_all_array value)
 
     ## PRIVATE
        ADVANCED
@@ -76,9 +92,32 @@ type Warning
     get_all_vector value =
         assert (value.is_a Vector)
         warnings_nested = value.map_with_index i-> e->
+            ##
+                IO.println 'BBB'
+                IO.println i
+                IO.println e
             direct_warnings = Warning.get_all e
+            ##
+                IO.println 'BBB2'
+                IO.println direct_warnings.length
+                IO.println direct_warnings
+                IO.println 'BBB5'
+                IO.println (Meta.get_simple_type_name e)
+                IO.println (Meta.type_of e)
+                IO.println (Meta.meta e)
+            isa = e.is_a Vector
+            ##
+                IO.println 'BBB4'
+                IO.println isa
             recursive_warnings = if e.is_a Vector then Warning.get_all_vector e else []
-            (direct_warnings + recursive_warnings).map (w-> Map_Error.Error i w)
+            ##
+                IO.println 'BBB3'
+                IO.println recursive_warnings.length
+                IO.println recursive_warnings
+            #wrap = (w-> Map_Error.Error i w)
+            wrap w = create (Map_Error.Error i w.value) w.origin
+            (direct_warnings + recursive_warnings).map wrap
+            #[]
         warnings_nested.flatten
 
     ## PRIVATE

@@ -246,6 +246,6 @@ public final class WithWarnings implements EnsoObject {
 
   @Override
   public String toString() {
-    return "WithWarnings{" + value + " has " + warnings.size() + " warnings" + (limitReached ? " (warnings limit reached)}" : "}");
+    return "WithWarnings{" + value + " has " + warnings.size() + " warnings" + (limitReached ? " (warnings limit reached)}" : "} " + warnings);
   }
 }

@@ -228,10 +228,12 @@ abstract class Vector implements EnsoObject {
       var v = interop.readArrayElement(this.storage, index);
       if (warnings.hasWarnings(this.storage)) {
         Warning[] extracted = warnings.getWarnings(this.storage, null);
-        if (warnings.hasWarnings(v)) {
-          v = warnings.removeWarnings(v);
+        if (extracted.length > 0) {
+          if (warnings.hasWarnings(v)) {
+            v = warnings.removeWarnings(v);
+          }
+          return WithWarnings.wrap(EnsoContext.get(interop), toEnso.execute(v), extracted);
         }
-        return WithWarnings.wrap(EnsoContext.get(interop), toEnso.execute(v), extracted);
       }
       return toEnso.execute(v);
     }

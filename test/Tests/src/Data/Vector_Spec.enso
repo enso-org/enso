@@ -1008,6 +1008,12 @@ type Fib
         start = Fib.Number 1 <| Fib.Number 1 (sum_two start)
         start
 
-
+_spec = Test.group "asdfasdf" <|
+    map_fun a = if a == 30 then Error.throw (My_Error.Error a) else a+1
+    alter x = x
+    Test.specify "an error thrown inside map with on_problems=Problem_Behavior.Report_Warning should be attached as a warning" <|
+        result = alter [10, 20, 30, 40] . map map_fun on_problems=Problem_Behavior.Report_Warning
+        result . should_equal [11, 21, Nothing, 41]
+        Warning.get_all result . map .value . should_equal [Map_Error.Error 2 (My_Error.Error 30)]
 
 main = Test_Suite.run_main spec
