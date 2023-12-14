@@ -1,7 +1,7 @@
+import { createContextStore } from '@/providers'
+import { GetUsageKey } from '@/providers/widgetUsageInfo'
 import { Ast } from '@/util/ast'
 import { identity } from '@vueuse/core'
-import { createContextStore } from '.'
-import { GetUsageKey } from './widgetUsageInfo'
 
 interface PortInfo {
   portId: string

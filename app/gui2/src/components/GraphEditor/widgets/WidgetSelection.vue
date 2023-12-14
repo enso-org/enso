@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import DropdownWidget from '@/components/widgets/DropdownWidget.vue'
-import { widgetProps } from '@/providers/widgetRegistry'
+import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
-import { qnJoin, qnSegments, tryQualifiedName } from '@/util/qualifiedName.ts'
+import { ArgumentAst, ArgumentPlaceholder } from '@/util/callTree'
+import { qnJoin, qnSegments, tryQualifiedName } from '@/util/qualifiedName'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
@@ -77,7 +78,6 @@ const selectedLabel = computed(() => {
   return tagLabels.value[selectedIndex.value] ?? ''
 })
 const showDropdownWidget = ref(false)
-const showArgumentValue = ref(true)
 
 // When the selected index changes, we update the expression content.
 watch(selectedIndex, (_index) => {
@@ -90,9 +90,6 @@ watch(selectedIndex, (_index) => {
 </script>
 
 <script lang="ts">
-import { defineWidget, Score } from '@/providers/widgetRegistry.ts'
-import { ArgumentAst, ArgumentPlaceholder } from '@/util/callTree.ts'
-
 export const widgetDefinition = defineWidget([ArgumentPlaceholder, ArgumentAst], {
   priority: 999,
   score: (props) => {
@@ -107,13 +104,16 @@ export const widgetDefinition = defineWidget([ArgumentPlaceholder, ArgumentAst],
 
 <template>
   <div ref="rootElement" class="WidgetRoot">
-    <span class="WidgetArgumentName" @pointerdown="showDropdownWidget = !showDropdownWidget">
-      <template v-if="showArgumentValue">
-        <NodeWidget :input="props.input" /><span class="value"> {{ selectedValue }} </span>
+    <span
+      class="SelectionWidgetArgumentValue"
+      @pointerdown="showDropdownWidget = !showDropdownWidget"
+    >
+      <NodeWidget :input="props.input" />
+      <template v-if="props.input instanceof ArgumentPlaceholder">
+        <span class="SelectionWidgetArgumentValue"> {{ selectedValue }} </span>
       </template>
-      <template v-else><NodeWidget :input="props.input" /></template>
     </span>
-    <div class="WidgetSingleChoice">
+    <div class="SelectionWidgetSingleChoice">
       <DropdownWidget
         v-if="showDropdownWidget"
         :color="parentColor ?? 'white'"
@@ -125,10 +125,10 @@ export const widgetDefinition = defineWidget([ArgumentPlaceholder, ArgumentAst],
   </div>
 </template>
 <style scoped>
-.value {
+.SelectionWidgetArgumentValue {
   margin-left: 8px;
 }
-.WidgetSingleChoice {
+.SelectionWidgetSingleChoice {
   position: absolute;
   top: 100%;
   margin-top: 4px;

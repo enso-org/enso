@@ -1,9 +1,9 @@
 import '@/assets/base.css'
 import { provideGuiConfig } from '@/providers/guiConfig'
 import { provideVisualizationConfig } from '@/providers/visualizationConfig'
+import { Vec2 } from '@/util/data/vec2'
 import { MockTransport } from '@/util/net'
 import type { QualifiedName } from '@/util/qualifiedName'
-import { Vec2 } from '@/util/vec2'
 import { defineSetupVue3 } from '@histoire/plugin-vue'
 import * as random from 'lib0/random'
 import { createPinia } from 'pinia'
@@ -80,10 +80,12 @@ export const setupVue3 = defineSetupVue3(({ app }) => {
   provideVisualizationConfig._mock(
     {
       fullscreen: false,
+      scale: 1,
       width: 200,
       height: 150,
       hide() {},
       isCircularMenuVisible: false,
+      isBelowToolbar: false,
       nodeSize: new Vec2(200, 150),
       currentType: {
         module: { kind: 'Builtin' },

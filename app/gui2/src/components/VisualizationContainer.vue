@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import SvgIcon from '@/components/SvgIcon.vue'
 import VisualizationSelector from '@/components/VisualizationSelector.vue'
+import { PointerButtonMask, isTriggeredByKeyboard, usePointer } from '@/composables/events'
 import { useVisualizationConfig } from '@/providers/visualizationConfig'
-import { PointerButtonMask, isTriggeredByKeyboard, usePointer } from '@/util/events'
 import { onMounted, ref, watchEffect } from 'vue'
 
 const props = defineProps<{
@@ -211,7 +211,6 @@ const resizeBottomRight = usePointer((pos, _, type) => {
 }
 
 .VisualizationContainer.fullscreen {
-  cursor: auto;
   z-index: var(--z-fullscreen);
   position: fixed;
   padding-top: 0;
@@ -349,7 +348,6 @@ const resizeBottomRight = usePointer((pos, _, type) => {
 }
 
 :deep(.image-button) {
-  cursor: none;
   background: none;
   padding: 0;
   border: none;

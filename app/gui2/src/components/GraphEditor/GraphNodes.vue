@@ -7,7 +7,7 @@ import { injectGraphSelection } from '@/providers/graphSelection'
 import type { UploadingFile as File, FileName } from '@/stores/awareness'
 import { useGraphStore } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
-import type { Vec2 } from '@/util/vec2'
+import type { Vec2 } from '@/util/data/vec2'
 import { stackItemsEqual } from 'shared/languageServerTypes'
 import type { ContentRange, ExprId } from 'shared/yjsModel'
 import { computed, toRaw } from 'vue'
@@ -20,6 +20,7 @@ const navigator = injectGraphNavigator(true)
 
 const emit = defineEmits<{
   nodeOutputPortDoubleClick: [portId: ExprId]
+  nodeDoubleClick: [nodeId: ExprId]
 }>()
 
 function updateNodeContent(id: ExprId, updates: [ContentRange, string][]) {
@@ -60,6 +61,7 @@ const uploadingFiles = computed<[FileName, File][]>(() => {
     @draggingCommited="dragging.finishDrag()"
     @outputPortClick="graphStore.createEdgeFromOutput"
     @outputPortDoubleClick="emit('nodeOutputPortDoubleClick', $event)"
+    @doubleClick="emit('nodeDoubleClick', id)"
     @update:content="updateNodeContent(id, $event)"
     @update:edited="graphStore.setEditedNode(id, $event)"
     @update:rect="graphStore.updateNodeRect(id, $event)"

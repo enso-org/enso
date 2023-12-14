@@ -16,7 +16,6 @@ use ide_ci::programs::node::NpmCommand;
 use ide_ci::programs::Npm;
 
 
-
 // ===============
 // === Scripts ===
 // ===============
@@ -28,6 +27,7 @@ pub enum Scripts {
     Dev,
     Build,
     Preview,
+    Test,
     #[strum(serialize = "test:unit")]
     TestUnit,
     #[strum(serialize = "test:e2e")]
@@ -53,25 +53,38 @@ pub fn script(repo_root: impl AsRef<Path>, script: Scripts) -> Result<NpmCommand
 
 /// Run steps that should be done along with the "lint"
 pub fn lint(repo_root: impl AsRef<Path>) -> BoxFuture<'static, Result> {
-    let repo_root = repo_root.as_ref().to_owned();
-    async move {
-        crate::web::install(&repo_root).await?;
-        script(&repo_root, Scripts::Lint)?.run_ok().await
-    }
-    .boxed()
+    install_and_run_script(Scripts::Lint, repo_root)
+}
+
+pub fn tests(repo_root: impl AsRef<Path>) -> BoxFuture<'static, Result> {
+    install_and_run_script(Scripts::Test, repo_root)
 }
 
 /// Run unit tests.
 pub fn unit_tests(repo_root: impl AsRef<Path>) -> BoxFuture<'static, Result> {
+    install_and_run_script(Scripts::TestUnit, repo_root)
+}
+
+/// Run E2E tests.
+pub fn e2e_tests(repo_root: impl AsRef<Path>) -> BoxFuture<'static, Result> {
+    install_and_run_script(Scripts::TestE2e, repo_root)
+}
+
+pub fn watch(repo_root: impl AsRef<Path>) -> BoxFuture<'static, Result> {
+    install_and_run_script(Scripts::Dev, repo_root)
+}
+
+fn install_and_run_script(
+    script: Scripts,
+    repo_root: impl AsRef<Path>,
+) -> BoxFuture<'static, Result> {
     let repo_root = repo_root.as_ref().to_owned();
     async move {
         crate::web::install(&repo_root).await?;
-        script(&repo_root, Scripts::TestUnit)?.arg("run").run_ok().await
+        self::script(&repo_root, script)?.run_ok().await
     }
     .boxed()
 }
-
-
 
 // ================
 // === Artifact ===
@@ -125,6 +138,32 @@ impl IsTarget for Gui2 {
         let WithDestination { inner: _, destination } = job;
         async move {
             let repo_root = &context.repo_root;
+            crate::ide::web::google_font::install_with_css(
+                &context.cache,
+                &context.octocrab,
+                "mplus1",
+                "M PLUS 1",
+                "/font-mplus1",
+                &repo_root.app.gui_2.public.font_mplus_1,
+                &repo_root.app.gui_2.src.assets.font_mplus_1_css,
+            )
+            .await?;
+            crate::ide::web::dejavu_font::install_sans_mono_with_css(
+                &context.cache,
+                &context.octocrab,
+                "/font-dejavu",
+                &repo_root.app.gui_2.public.font_dejavu,
+                &repo_root.app.gui_2.src.assets.font_dejavu_css,
+            )
+            .await?;
+            crate::ide::web::enso_font::install_with_css(
+                &context.cache,
+                &context.octocrab,
+                "/font-enso",
+                &repo_root.app.gui_2.public.font_enso,
+                &repo_root.app.gui_2.src.assets.font_enso_css,
+            )
+            .await?;
             crate::web::install(repo_root).await?;
             script(repo_root, Scripts::Build)?.run_ok().await?;
             ide_ci::fs::mirror_directory(

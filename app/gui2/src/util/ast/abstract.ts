@@ -1,12 +1,11 @@
 import * as RawAst from '@/generated/ast'
 import { parseEnso } from '@/util/ast'
 import { AstExtended as RawAstExtended } from '@/util/ast/extended'
+import { Err, Ok, type Result } from '@/util/data/result'
 import type { LazyObject } from '@/util/parserSupport'
-import { Err, Ok, type Result } from '@/util/result'
 import * as random from 'lib0/random'
+import { IdMap, type ExprId } from 'shared/yjsModel'
 import { reactive } from 'vue'
-import type { ExprId } from '../../../shared/yjsModel'
-import { IdMap } from '../../../shared/yjsModel'
 
 interface Module {
   get(id: AstId): Ast | null
@@ -310,17 +309,7 @@ function positionalApp(
   func: NodeChild<AstId>,
   arg: NodeChild<AstId>,
 ): App {
-  return new App(
-    module,
-    id,
-    func,
-    null,
-    null,
-    null,
-    arg,
-    null,
-    module.get(arg.node)?.code() === 'default' ? RawAst.Tree.Type.DefaultApp : RawAst.Tree.Type.App,
-  )
+  return new App(module, id, func, null, null, null, arg, null, RawAst.Tree.Type.App)
 }
 
 function namedApp(
@@ -914,16 +903,6 @@ function abstractTree(
       const arg = recurseTree(tree.arg)
       const id = nodesExpected.get(spanKey)?.pop()
       node = positionalApp(module, id, func, arg).exprId
-      break
-    }
-    case RawAst.Tree.Type.DefaultApp: {
-      const func = recurseTree(tree.func)
-      const token = recurseToken(tree.default)
-      const argWhitespace = token.whitespace
-      token.whitespace = ''
-      const arg = new Ident(module, undefined, token).exprId
-      const id = nodesExpected.get(spanKey)?.pop()
-      node = positionalApp(module, id, func, { whitespace: argWhitespace, node: arg }).exprId
       break
     }
     case RawAst.Tree.Type.NamedApp: {

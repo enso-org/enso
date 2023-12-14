@@ -350,7 +350,8 @@ impl Processor {
         match gui.command {
             arg::gui2::Command::Build(job) => self.build(job),
             arg::gui2::Command::Get(source) => self.get(source).void_ok().boxed(),
-            arg::gui2::Command::Test => gui2::unit_tests(&self.repo_root),
+            arg::gui2::Command::Test => gui2::tests(&self.repo_root),
+            arg::gui2::Command::Watch => gui2::watch(&self.repo_root),
             arg::gui2::Command::Lint => gui2::lint(&self.repo_root),
         }
     }
@@ -924,7 +925,9 @@ pub async fn main_internal(config: Option<Config>) -> Result {
                 .await?;
 
             enso_build::web::install(&ctx.repo_root).await?;
-            enso_build::web::run_script(&ctx.repo_root, enso_build::web::Script::CiCheck).await?;
+            enso_build::web::run_script(&ctx.repo_root, enso_build::web::Script::Typecheck).await?;
+            enso_build::web::run_script(&ctx.repo_root, enso_build::web::Script::Lint).await?;
+            enso_build::web::run_script(&ctx.repo_root, enso_build::web::Script::Prettier).await?;
         }
         Target::Fmt => {
             enso_build::web::install(&ctx.repo_root).await?;

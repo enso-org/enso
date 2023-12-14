@@ -201,69 +201,95 @@ impl Default for Parser {
 /// interpreted as a variable assignment or method definition.
 fn expression_to_statement(mut tree: syntax::Tree<'_>) -> syntax::Tree<'_> {
     use syntax::tree::*;
-    if let Tree { variant: box Variant::Annotated(annotated), .. } = &mut tree {
-        annotated.expression = annotated.expression.take().map(expression_to_statement);
-        return tree;
-    }
-    if let Tree { variant: box Variant::AnnotatedBuiltin(annotated), .. } = &mut tree {
-        annotated.expression = annotated.expression.take().map(expression_to_statement);
-        return tree;
-    }
-    if let Tree { variant: box Variant::Documented(documented), .. } = &mut tree {
-        documented.expression = documented.expression.take().map(expression_to_statement);
-        return tree;
-    }
-    if let Tree { variant: box Variant::TypeAnnotated(annotated), .. } = tree {
-        let TypeAnnotated { expression, operator, type_ } = annotated;
-        tree.variant = Box::new(Variant::TypeSignature(TypeSignature {
-            variable: expression,
-            operator,
-            type_,
-        }));
-        return tree;
-    }
-    if matches!(&tree, Tree {
-        variant: box Variant::ArgumentBlockApplication(ArgumentBlockApplication { lhs: None, .. }),
-        ..
-    }) {
-        return tree.with_error("Expected expression before indented block.");
-    }
-    let mut left_offset = tree.span.left_offset.position_before();
-    let tree_ = &mut tree;
-    let opr_app = match tree_ {
-        Tree { variant: box Variant::OprApp(opr_app), span } => {
-            left_offset += &span.left_offset;
-            opr_app
+    match &mut *tree.variant {
+        Variant::Annotated(annotated) => {
+            annotated.expression = annotated.expression.take().map(expression_to_statement);
         }
-        _ => return tree,
-    };
-    if let OprApp { lhs: Some(lhs), opr: Ok(opr), rhs } = opr_app && opr.properties.is_assignment() {
-        let (leftmost, args) = collect_arguments(lhs.clone());
-        if let Some(rhs) = rhs {
-            if let Variant::Ident(ident) = &*leftmost.variant && ident.token.variant.is_type {
-                // If the LHS is a type, this is a (destructuring) assignment.
-                let lhs = expression_to_pattern(mem::take(lhs));
-                let mut result = Tree::assignment(lhs, mem::take(opr), mem::take(rhs));
-                result.span.left_offset += left_offset;
-                return result;
+        Variant::AnnotatedBuiltin(annotated) => {
+            annotated.expression = annotated.expression.take().map(expression_to_statement);
+        }
+        Variant::Documented(documented) => {
+            documented.expression = documented.expression.take().map(expression_to_statement);
+        }
+        Variant::ArgumentBlockApplication(ArgumentBlockApplication { lhs: None, .. }) => {
+            return tree.with_error("Expected expression before indented block.");
+        }
+        Variant::TypeAnnotated(typed) => {
+            tree.variant = Box::new(Variant::TypeSignature(TypeSignature {
+                variable: mem::take(&mut typed.expression),
+                operator: mem::take(&mut typed.operator),
+                type_:    mem::take(&mut typed.type_),
+            }));
+        }
+        Variant::OprApp(OprApp { lhs: Some(lhs), opr: Ok(opr), rhs })
+            if opr.properties.is_assignment() =>
+        {
+            let (lhs, return_spec) = match &mut *lhs.variant {
+                Variant::OprApp(OprApp { lhs: Some(lhs), opr: Ok(opr), rhs: Some(rhs) })
+                    if opr.properties.is_arrow() =>
+                    (
+                        lhs,
+                        Some(ReturnSpecification {
+                            arrow:  mem::take(opr),
+                            r#type: mem::take(rhs),
+                        }),
+                    ),
+                _ => (lhs, None),
+            };
+            let (leftmost, args) = collect_arguments(lhs.clone());
+            if return_spec.is_none() {
+                if let Some(rhs) = rhs {
+                    if let Variant::Ident(ident) = &*leftmost.variant && ident.token.variant.is_type {
+                        // If the LHS is a type, this is a (destructuring) assignment.
+                        let lhs = expression_to_pattern(mem::take(lhs));
+                        tree.variant = Box::new(Variant::Assignment(Assignment{
+                            pattern: lhs,
+                            equals: mem::take(opr),
+                            expr: mem::take(rhs),
+                        }));
+                        return tree;
+                    }
+                    if !is_invalid_pattern(&leftmost) && args.is_empty() && !is_body_block(rhs) {
+                        // If the LHS has no arguments, and there is a RHS, and the RHS is not a
+                        // body block, this is a variable assignment.
+                        tree.variant = Box::new(Variant::Assignment(Assignment {
+                            pattern: leftmost,
+                            equals:  mem::take(opr),
+                            expr:    mem::take(rhs),
+                        }));
+                        return tree;
+                    }
+                }
             }
-            if args.is_empty() && !is_body_block(rhs) {
-                // If the LHS has no arguments, and there is a RHS, and the RHS is not a body block,
-                // this is a variable assignment.
-                let mut result = Tree::assignment(leftmost, mem::take(opr), mem::take(rhs));
-                result.span.left_offset += left_offset;
-                return result;
+            if is_qualified_name(&leftmost) {
+                // If this is not a variable assignment, and the leftmost leaf of the `App` tree is
+                // a qualified name, this is a function definition.
+                tree.variant = Box::new(Variant::Function(Function {
+                    name: leftmost,
+                    args,
+                    returns: return_spec,
+                    equals: mem::take(opr),
+                    body: mem::take(rhs),
+                }));
+                return tree;
             }
+            return tree.with_error("Invalid use of assignment operator `=`.");
         }
-        if is_qualified_name(&leftmost) {
-            // If this is not a variable assignment, and the leftmost leaf of the `App` tree is
-            // a qualified name, this is a function definition.
-            let mut result = Tree::function(leftmost, args, mem::take(opr), mem::take(rhs));
-            result.span.left_offset += left_offset;
-            return result;
-        }
+        _ => (),
     }
     tree
+}
+
+/// If this function returns `true`, the input is not valid where a pattern is expected.
+fn is_invalid_pattern(tree: &syntax::Tree) -> bool {
+    use syntax::tree::*;
+    match &*tree.variant {
+        Variant::App(App { func: Tree { variant: box Variant::Ident(ident), .. }, arg }) =>
+            !ident.token.is_type || is_invalid_pattern(arg),
+        Variant::App(App { func, arg }) => is_invalid_pattern(func) || is_invalid_pattern(arg),
+        Variant::TypeAnnotated(TypeAnnotated { expression, .. }) => is_invalid_pattern(expression),
+        _ => false,
+    }
 }
 
 fn is_qualified_name(tree: &syntax::Tree) -> bool {
@@ -376,21 +402,6 @@ pub fn parse_argument_application<'s>(
                 close2,
                 type_,
                 close,
-            })
-        }
-        box Variant::DefaultApp(DefaultApp { func, default: default_ }) => {
-            let pattern = Tree::ident(default_.clone());
-            func.span.left_offset += expression.span.left_offset.take_as_prefix();
-            *expression = func.clone();
-            Some(ArgumentDefinition {
-                open: default(),
-                open2: default(),
-                suspension: default(),
-                pattern,
-                type_: default(),
-                close2: default(),
-                default: default(),
-                close: default(),
             })
         }
         _ => None,

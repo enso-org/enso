@@ -1,16 +1,16 @@
 <script setup lang="ts">
+import type { Diagnostic, Highlighter } from '@/components/CodeEditor/codemirror'
+import { usePointer } from '@/composables/events'
 import { useGraphStore } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { useAutoBlur } from '@/util/autoBlur'
-import type { Diagnostic, Highlighter } from '@/util/codemirror'
-import { usePointer } from '@/util/events'
-import { chain } from '@/util/iterable'
+import { chain } from '@/util/data/iterable'
+import { unwrap } from '@/util/data/result'
+import { qnJoin, tryQualifiedName } from '@/util/qualifiedName'
 import { useLocalStorage } from '@vueuse/core'
 import { rangeEncloses, type ExprId } from 'shared/yjsModel'
 import { computed, onMounted, ref, watch, watchEffect } from 'vue'
-import { qnJoin, tryQualifiedName } from '../util/qualifiedName'
-import { unwrap } from '../util/result'
 
 // Use dynamic imports to aid code splitting. The codemirror dependency is quite large.
 const {
@@ -30,7 +30,7 @@ const {
   forceLinting,
   lsDiagnosticsToCMDiagnostics,
   hoverTooltip,
-} = await import('@/util/codemirror')
+} = await import('@/components/CodeEditor/codemirror')
 
 const projectStore = useProjectStore()
 const graphStore = useGraphStore()
@@ -202,6 +202,7 @@ const editorStyle = computed(() => {
     :style="editorStyle"
     @keydown.enter.stop
     @keydown.backspace.stop
+    @keydown.delete.stop
     @wheel.stop.passive
     @pointerdown.stop
     @contextmenu.stop
@@ -230,6 +231,7 @@ const editorStyle = computed(() => {
   max-height: calc(100% - 10px);
   backdrop-filter: var(--blur-app-bg);
   border-radius: 7px;
+  font-family: var(--font-mono);
 
   &.v-enter-active,
   &.v-leave-active {
@@ -245,6 +247,10 @@ const editorStyle = computed(() => {
   }
 }
 
+:deep(.ͼ1 .cm-scroller) {
+  font-family: var(--font-mono);
+}
+
 .resize-handle {
   position: absolute;
   top: -3px;
@@ -252,7 +258,7 @@ const editorStyle = computed(() => {
   width: 20px;
   height: 20px;
   padding: 5px;
-  /* cursor: nesw-resize; */
+  cursor: nesw-resize;
 
   svg {
     fill: black;

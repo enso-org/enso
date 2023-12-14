@@ -5,17 +5,17 @@ import GraphNodeError from '@/components/GraphEditor/GraphNodeError.vue'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import NodeWidgetTree from '@/components/GraphEditor/NodeWidgetTree.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
+import { useApproach } from '@/composables/animation'
 import { useDoubleClick } from '@/composables/doubleClick'
+import { usePointer, useResizeObserver } from '@/composables/events'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { useGraphStore, type Node } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
-import { useApproach } from '@/util/animation'
-import { usePointer, useResizeObserver } from '@/util/events'
+import type { Opt } from '@/util/data/opt'
+import { Rect } from '@/util/data/rect'
+import { Vec2 } from '@/util/data/vec2'
 import { displayedIconOf } from '@/util/getIconName'
-import type { Opt } from '@/util/opt'
-import { Rect } from '@/util/rect'
-import { Vec2 } from '@/util/vec2'
 import { setIfUndefined } from 'lib0/map'
 import type { ContentRange, ExprId, VisualizationIdentifier } from 'shared/yjsModel'
 import { computed, ref, watch, watchEffect } from 'vue'
@@ -35,8 +35,10 @@ const emit = defineEmits<{
   draggingCommited: []
   delete: []
   replaceSelection: []
+  nodeDoubleClick: []
   outputPortClick: [portId: ExprId]
   outputPortDoubleClick: [portId: ExprId]
+  doubleClick: []
   'update:content': [updates: [range: ContentRange, content: string][]]
   'update:edited': [cursorPosition: number]
   'update:rect': [rect: Rect]
@@ -209,14 +211,17 @@ function getRelatedSpanOffset(domNode: globalThis.Node, domOffset: number): numb
     const offsetData = domNode.parentElement?.dataset.spanStart
     if (offsetData != null) return parseInt(offsetData) + domOffset
   }
-  return 0
+  return domOffset
 }
 
-const handlePortClick = useDoubleClick<[portId: ExprId]>(
-  (portId) => emit('outputPortClick', portId),
-  (portId) => {
-    emit('outputPortDoubleClick', portId)
-  },
+const handlePortClick = useDoubleClick(
+  (portId: ExprId) => emit('outputPortClick', portId),
+  (portId: ExprId) => emit('outputPortDoubleClick', portId),
+).handleClick
+
+const handleNodeClick = useDoubleClick(
+  (e: MouseEvent) => nodeEditHandler(e),
+  () => emit('doubleClick'),
 ).handleClick
 interface PortData {
   clipRange: [number, number]
@@ -229,7 +234,8 @@ const outputPorts = computed((): PortData[] => {
   const numPorts = ports.size
   return Array.from(ports, (portId, index) => {
     const labelIdent = numPorts > 1 ? graph.db.getOutputPortIdentifier(portId) + ': ' : ''
-    const labelType = graph.db.getExpressionInfo(portId)?.typename ?? 'Unknown'
+    const labelType =
+      graph.db.getExpressionInfo(numPorts > 1 ? portId : nodeId.value)?.typename ?? 'Unknown'
     return {
       clipRange: [index / numPorts, (index + 1) / numPorts],
       label: labelIdent + labelType,
@@ -311,7 +317,7 @@ function portGroupStyle(port: PortData) {
       @update:id="emit('update:visualizationId', $event)"
       @update:visible="emit('update:visualizationVisible', $event)"
     />
-    <div class="node" @pointerdown="nodeEditHandler" v-on="dragPointer.events">
+    <div class="node" @pointerdown="handleNodeClick" v-on="dragPointer.events">
       <SvgIcon class="icon grab-handle" :name="icon"></SvgIcon>
       <div ref="contentNode" class="widget-tree">
         <NodeWidgetTree :ast="node.rootSpan" />
@@ -447,6 +453,7 @@ function portGroupStyle(port: PortData) {
 }
 
 .node {
+  font-family: var(--font-code);
   position: relative;
   top: 0;
   left: 0;
@@ -501,6 +508,7 @@ function portGroupStyle(port: PortData) {
 }
 
 .binding {
+  font-family: var(--font-code);
   user-select: none;
   margin-right: 10px;
   color: black;

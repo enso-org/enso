@@ -11,8 +11,8 @@ import {
   makeStaticMethod,
   makeType,
 } from '@/stores/suggestionDatabase/entry'
+import { unwrap } from '@/util/data/result'
 import { tryQualifiedName, type QualifiedName } from '@/util/qualifiedName'
-import { unwrap } from '@/util/result'
 
 test.each([
   { ...makeModuleMethod('Standard.Base.Data.read'), groupIndex: 0 },

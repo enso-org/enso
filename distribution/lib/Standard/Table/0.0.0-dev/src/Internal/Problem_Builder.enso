@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Runtime.Ref.Ref
 
 import project.Internal.Vector_Builder.Vector_Builder
-from project.Errors import Duplicate_Output_Column_Names, Invalid_Aggregate_Column, Invalid_Column_Names, Missing_Input_Columns, Truncated_Column_Names
+from project.Errors import Duplicate_Output_Column_Names, Invalid_Aggregate_Column, Invalid_Column_Names, Missing_Input_Columns, Truncated_Column_Names, No_Output_Columns
 
 ## PRIVATE
 type Problem_Builder
@@ -77,6 +77,14 @@ type Problem_Builder
         case distinguished_problem of
             Nothing -> problems
             problem -> Error.throw problem
+
+    ## PRIVATE
+       Raises `No_Output_Columns` error, with cause set to the first problem
+       from this builder (if any were reported).
+    raise_no_output_columns_with_cause : Any ! No_Output_Columns
+    raise_no_output_columns_with_cause self =
+        first_problem = self.build_problemset.get 0 if_missing=Nothing
+        Error.throw (No_Output_Columns.Error first_problem)
 
     ## PRIVATE
        Creates a new helper object for aggregating problems to report.

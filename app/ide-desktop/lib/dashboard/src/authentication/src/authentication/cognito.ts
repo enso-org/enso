@@ -502,12 +502,20 @@ export function intoSignUpErrorOrThrow(error: AmplifyError): SignUpError {
 /** Internal IDs of errors that may occur when confirming registration. */
 export enum ConfirmSignUpErrorKind {
     userAlreadyConfirmed = 'UserAlreadyConfirmed',
+    userNotFound = 'UserNotFound',
 }
 
 const CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR = {
     internalCode: 'NotAuthorizedException',
     internalMessage: 'User cannot be confirmed. Current status is CONFIRMED',
     kind: ConfirmSignUpErrorKind.userAlreadyConfirmed,
+}
+
+const CONFIRM_SIGN_UP_USER_NOT_FOUND_ERROR = {
+    internalCode: 'UserNotFoundException',
+    internalMessage: 'Username/client id combination not found.',
+    kind: ConfirmSignUpErrorKind.userNotFound,
+    message: 'Incorrect email or confirmation code.',
 }
 
 /** An error that may occur when confirming registration. */
@@ -530,6 +538,17 @@ export function intoConfirmSignUpErrorOrThrow(error: AmplifyError): ConfirmSignU
              * ambiguity. */
             kind: CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR.kind,
             message: error.message,
+        }
+    } else if (
+        error.code === CONFIRM_SIGN_UP_USER_NOT_FOUND_ERROR.internalCode &&
+        error.message === CONFIRM_SIGN_UP_USER_NOT_FOUND_ERROR.internalMessage
+    ) {
+        return {
+            /** Don't re-use the original `error.code` here because Amplify overloads the same code
+             * for multiple kinds of errors. We replace it with a custom code that has no
+             * ambiguity. */
+            kind: CONFIRM_SIGN_UP_USER_NOT_FOUND_ERROR.kind,
+            message: CONFIRM_SIGN_UP_USER_NOT_FOUND_ERROR.message,
         }
     } else {
         throw error

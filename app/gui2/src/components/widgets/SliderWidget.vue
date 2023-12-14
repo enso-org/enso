@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { PointerButtonMask, usePointer, useResizeObserver } from '@/util/events'
+import { PointerButtonMask, usePointer, useResizeObserver } from '@/composables/events'
 import { getTextWidth } from '@/util/measurement'
 import { computed, ref, type StyleValue } from 'vue'
 
@@ -131,7 +131,7 @@ function fixupInputValue() {
   padding: 0px 4px;
   appearance: textfield;
   -moz-appearance: textfield;
-  cursor: none;
+  cursor: default;
 }
 
 input {
