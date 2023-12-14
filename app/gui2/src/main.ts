@@ -64,7 +64,8 @@ function main() {
   const parseOk = options.loadAllAndDisplayHelpIfUnsuccessful([urlParams()])
   if (parseOk) {
     const shouldUseAuthentication = options.options.authentication.value
-    const projectManagerUrl = options.groups.engine.options.projectManagerUrl.value || null
+    const projectManagerUrl =
+      options.groups.engine.options.projectManagerUrl.value || PROJECT_MANAGER_URL
 
     runDashboard({
       appRunner,
