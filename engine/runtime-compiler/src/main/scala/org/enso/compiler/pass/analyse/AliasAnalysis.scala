@@ -940,10 +940,9 @@ case object AliasAnalysis extends IRPass {
   sealed class Graph extends Serializable {
     var rootScope: Graph.Scope = new Graph.Scope()
     var links: Set[Graph.Link] = Set()
+    var nextIdCounter = 0
 
     private var globalSymbols: Map[Graph.Symbol, Occurrence.Global] = Map()
-
-    private var nextIdCounter = 0
 
     /** @return a deep structural copy of `this` */
     def deepCopy(

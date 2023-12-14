@@ -160,6 +160,10 @@ public final class PassPersistance {
       var links =
           (scala.collection.immutable.Set) in.readInline(scala.collection.immutable.Set.class);
       g.links_$eq(links);
+
+      var nextIdCounter = in.readInt();
+      g.nextIdCounter_$eq(nextIdCounter);
+
       return g;
     }
 
@@ -168,6 +172,7 @@ public final class PassPersistance {
     protected void writeObject(Graph obj, Output out) throws IOException {
       out.writeObject(obj.rootScope());
       out.writeInline(scala.collection.immutable.Set.class, obj.links());
+      out.writeInt(obj.nextIdCounter());
     }
 
     private static void assignParents(AliasAnalysis$Graph$Scope scope) {
