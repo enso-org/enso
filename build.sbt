@@ -1381,8 +1381,8 @@ lazy val `runtime-language-epb` =
       ),
       instrumentationSettings,
       libraryDependencies ++= Seq(
-        "junit"            % "junit"                   % junitVersion       % Test,
-        "com.github.sbt"   % "junit-interface"         % junitIfVersion     % Test,
+        "junit"               % "junit"                 % junitVersion              % Test,
+        "com.github.sbt"      % "junit-interface"       % junitIfVersion            % Test,
         "org.graalvm.truffle" % "truffle-api"           % graalMavenPackagesVersion % "provided",
         "org.graalvm.truffle" % "truffle-dsl-processor" % graalMavenPackagesVersion % "provided"
       )
