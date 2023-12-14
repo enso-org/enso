@@ -33,7 +33,6 @@ export default defineConfig({
         ? { '/src/main.ts': fileURLToPath(new URL('./e2e/main.ts', import.meta.url)) }
         : {}),
       shared: fileURLToPath(new URL('./shared', import.meta.url)),
-      runner: fileURLToPath(new URL('./runner', import.meta.url)),
       'rust-ffi': fileURLToPath(new URL('./rust-ffi', import.meta.url)),
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
