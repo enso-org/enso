@@ -46,6 +46,9 @@ final class PyForeignNode extends GenericForeignNode {
 
   @Override
   public Object execute(Object[] arguments) throws InteropException {
+    // initialize venv by importing site
+    none();
+
     for (int i = 0; i < arguments.length; i++) {
       var javaTime = iop.isTime(arguments[i]) ? iop.asTime(arguments[i]) : null;
       var time = javaTime != null ? wrapPythonTime(javaTime) : null;
@@ -84,6 +87,7 @@ final class PyForeignNode extends GenericForeignNode {
       CompilerDirectives.transferToInterpreterAndInvalidate();
       var ctx = EpbContext.get(this);
       var src = Source.newBuilder("python", """
+      import site
       def nothing():
         return None
       nothing
