@@ -252,7 +252,7 @@ type Filter_Condition
             Starts_With prefix case_sensitivity -> "Starts With " + prefix.to_display_text + (render_case case_sensitivity)
             Ends_With suffix case_sensitivity -> "Ends With " + suffix.to_display_text + (render_case case_sensitivity)
             Contains substring case_sensitivity -> "Contains " + substring.to_display_text + (render_case case_sensitivity)
-            Not_Contains substring case_sensitivity -> "Not Contains " + substring.to_display_text + (render_case case_sensitivity)
+            Not_Contains substring case_sensitivity -> "not Contains " + substring.to_display_text + (render_case case_sensitivity)
             Is_Nothing -> "is Nothing"
             Not_Nothing -> "is not Nothing"
             Is_Nan -> "is NaN"
@@ -263,7 +263,7 @@ type Filter_Condition
             Is_Empty -> "is Empty"
             Not_Empty -> "is not Empty"
             Like sql_pattern -> "Like " + sql_pattern.to_display_text
-            Not_Like sql_pattern -> "Not Like " + sql_pattern.to_display_text
+            Not_Like sql_pattern -> "not Like " + sql_pattern.to_display_text
             Is_In values -> "is in " + values.to_display_text
             Not_In values -> "is not in " + values.to_display_text
         "Filter Condition: " + condition
