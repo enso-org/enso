@@ -1,12 +1,12 @@
 import CONFIG from '@/config.json' assert { type: 'json' }
+import { objectToGroup } from '@/entryPoint/config'
+import * as version from '@/entryPoint/version'
 import { isDevMode } from '@/util/detect'
 import { urlParams } from '@/util/urlParams'
 import { run as runDashboard } from 'enso-authentication'
 import { isOnLinux } from 'enso-common/src/detect'
 import 'enso-dashboard/src/tailwind.css'
 import { decodeQueryParams } from 'lib0/url'
-import { options as cliOptions, objectToGroup } from 'runner/config'
-import * as version from 'runner/version'
 
 const vueAppEntry = import('./createApp')
 
@@ -60,7 +60,7 @@ function main() {
     localStorage.setItem(INITIAL_URL_KEY, location.href)
   }
 
-  const options = cliOptions.merge(objectToGroup(CONFIG, { Version: version }))
+  const options = objectToGroup(CONFIG, { Version: version })
   const parseOk = options.loadAllAndDisplayHelpIfUnsuccessful([urlParams()])
   if (parseOk) {
     const shouldUseAuthentication = options.options.authentication.value

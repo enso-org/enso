@@ -7,7 +7,6 @@
     "shared/**/*",
     "shared/**/*.vue",
     "src/util/theme.json",
-    "runner/**/*",
     "../../build.json"
   ],
   "exclude": ["src/**/__tests__/*", "shared/**/__tests__/*", "public/**/__tests__/*"],

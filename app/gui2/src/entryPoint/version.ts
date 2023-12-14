@@ -1,6 +1,6 @@
 import { SemVer } from 'semver'
 // @ts-ignore
-import BUILD_INFO from '../../../build.json' assert { type: 'json' }
+import BUILD_INFO from '../../../../build.json' assert { type: 'json' }
 
 /** Development version. */
 export const dev = new SemVer('0.0.0')

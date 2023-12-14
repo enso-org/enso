@@ -1,5 +1,5 @@
-/** @file Configuration options for the application. */
-import { HelpScreen, HelpScreenEntry, HelpScreenSection } from 'runner/helpScreen'
+/** @file Configuration options for an application. */
+import { HelpScreen, HelpScreenEntry, HelpScreenSection } from '@/entryPoint/helpScreen'
 
 export const DEFAULT_ENTRY_POINT = 'ide'
 
@@ -360,12 +360,7 @@ export class Group<Options extends OptionsRecord, Groups extends GroupsRecord> {
       }
     }
     entries.sort()
-    return (
-      entries
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        .map(([name, _, value]) => ' '.repeat(2 * indent) + name + ': ' + value)
-        .join('\n')
-    )
+    return entries.map(([name, , value]) => ' '.repeat(2 * indent) + name + ': ' + value).join('\n')
   }
 
   optionsRecursive(): AnyOption[] {
@@ -470,7 +465,6 @@ export function objectToGroup<T extends GroupObject>(obj: T, scope: object = {})
 export function objectToOption<T extends AnyOptionObject>(obj: T, scope: object): ToOption<T> {
   const code = obj.valueEval
   if (code != null) {
-    /* eslint @typescript-eslint/no-implied-eval: "off" */
     const value: unknown = new Function('scope', 'return ' + code)(scope)
     const expectedType = typeof obj.value
     if (typeof value === typeof obj.value) {
@@ -481,13 +475,3 @@ export function objectToOption<T extends AnyOptionObject>(obj: T, scope: object)
   }
   return new Option(obj)
 }
-
-/** The configuration of the application. The options can be overriden by the user. The
- * implementation automatically casts the values to the correct types. For example, if an option
- * override for type boolean was provided as `'true'`, it will be parsed automatically. Moreover,
- * it is possible to extend the provided option list with custom options. See the `extend` method
- * to learn more. */
-export const options = objectToGroup({})
-
-/** Type of configuration options. */
-export type Options = typeof options & AnyGroup
