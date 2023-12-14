@@ -11,12 +11,14 @@ from Standard.Table import Table, Match_Columns, Excel, Excel_Range, Data_Format
 
 from Standard.Table.Errors import Invalid_Column_Names, Duplicate_Output_Column_Names, Invalid_Location, Range_Exceeded, Existing_Data, Column_Count_Mismatch, Column_Name_Mismatch, Empty_Sheet_Error
 
-from Standard.Test import Test, Test_Suite, Problems, Faker
+from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
 
 import Standard.Examples
 
 import project.Util
+
+polyglot java import org.enso.table_test_helpers.RandomHelpers
 
 spec_fmt header file read_method sheet_count=5 =
     Test.group header <|
@@ -933,9 +935,9 @@ spec =
         Test.specify "should be able to write and read a big XLSX file (>110MB)" pending=ci_pending <|
             n = 10^6
             IO.println "Generating big XLSX file "+Time_Of_Day.now.to_text
-            faker = Faker.new 123
+            rng = RandomHelpers.new 123
             v = Vector.new n _->
-                faker.alpha_numeric 190
+                rng.makeRandomString 190
             table = Table.new [["X", v]]
             big_file = enso_project.data / "transient" / "big.xlsx"
             big_file.delete_if_exists
@@ -959,12 +961,12 @@ spec =
 
         Test.specify "should be able to write and read a big XLS file (>110MB)" pending=ci_pending <|
             IO.println "Generating big XLS file "+Time_Of_Day.now.to_text
-            faker = Faker.new 123
+            rng = RandomHelpers.new 123
             # Here we instead create a 2D table, because XLS has a limit of 65536 rows and 16k columns.
             rows = 65000
             cols = 20
             table = Table.new <| Vector.new cols i->
-                v = Vector.new rows _-> faker.alpha_numeric 100
+                v = Vector.new rows _-> rng.makeRandomString 100
                 ["col" + i.to_text, v]
             big_file = enso_project.data / "transient" / "big.xls"
             big_file.delete_if_exists
