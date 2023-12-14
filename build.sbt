@@ -1375,10 +1375,7 @@ lazy val `runtime-language-epb` =
       truffleDslSuppressWarnsSetting,
       commands += WithDebugCommand.withDebug,
       fork := true,
-      Test / javaOptions ++= Seq(
-        "-Dgraalvm.locatorDisabled=true",
-        s"--upgrade-module-path=${file("engine/runtime/build-cache/truffle-api.jar").absolutePath}"
-      ),
+      Test / javaOptions ++= Seq(),
       instrumentationSettings,
       libraryDependencies ++= Seq(
         "junit"               % "junit"                 % junitVersion              % Test,
