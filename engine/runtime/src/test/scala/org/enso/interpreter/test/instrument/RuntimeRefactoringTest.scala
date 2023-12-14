@@ -5,9 +5,9 @@ import org.enso.interpreter.runtime.`type`.ConstantsGen
 import org.enso.interpreter.test.Metadata
 import org.enso.polyglot._
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.text.{ContentBasedVersioning, Sha3_224VersionCalculator}
 import org.enso.text.editing.model
 import org.enso.text.editing.model.TextEdit
+import org.enso.text.{ContentBasedVersioning, Sha3_224VersionCalculator}
 import org.graalvm.polyglot.Context
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.flatspec.AnyFlatSpec

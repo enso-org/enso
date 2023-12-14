@@ -302,7 +302,6 @@ lazy val enso = (project in file("."))
     `runtime-instrument-id-execution`,
     `runtime-instrument-repl-debugger`,
     `runtime-instrument-runtime-server`,
-    `runtime-with-instruments`,
     `runtime-with-polyglot`,
     `runtime-version-manager`,
     `runtime-version-manager-test`,
@@ -1641,7 +1640,8 @@ lazy val runtime = (project in file("engine/runtime"))
         (LocalProject(
           "runtime-language-epb"
         ) / Compile / productDirectories).value ++
-        (LocalProject("runtime-compiler") / Compile / productDirectories).value
+        (LocalProject("runtime-compiler") / Compile / productDirectories).value ++
+        (LocalProject("refactoring-utils") / Compile / productDirectories).value
       // Patch test-classes into the runtime module. This is standard way to deal with the
       // split package problem in unit tests. For example, Maven's surefire plugin does this.
       val testClassesDir = (Test / productDirectories).value.head
@@ -1950,144 +1950,6 @@ lazy val `runtime-fat-jar` =
     .dependsOn(`runtime-language-epb`)
     .dependsOn(LocalProject("runtime"))
 
-lazy val `runtime-with-instruments` =
-  (project in file("engine/runtime-with-instruments"))
-    .enablePlugins(JPMSPlugin)
-    .configs(Benchmark)
-    .settings(
-      frgaalJavaCompilerSetting,
-      inConfig(Compile)(truffleRunOptionsSettings),
-      commands += WithDebugCommand.withDebug,
-      Test / fork := true,
-      Test / envVars ++= distributionEnvironmentOverrides ++ Map(
-        "ENSO_TEST_DISABLE_IR_CACHE" -> "false"
-      ),
-      libraryDependencies ++= Seq(
-        "org.scalatest"      %% "scalatest"             % scalatestVersion          % Test,
-        "org.graalvm.truffle" % "truffle-api"           % graalMavenPackagesVersion % Test,
-        "org.graalvm.truffle" % "truffle-dsl-processor" % graalMavenPackagesVersion % Test,
-        "org.slf4j"           % "slf4j-nop"             % slf4jVersion              % Benchmark
-      ),
-      // Note [Unmanaged Classpath]
-      Test / unmanagedClasspath += (baseDirectory.value / ".." / ".." / "app" / "gui" / "view" / "graph-editor" / "src" / "builtin" / "visualization" / "native" / "inc"),
-      assembly := {
-        streams.value.log.warn(
-          s"This is an empty task, use `runtime-fat-jar/assembly` instead."
-        )
-        // Return an empty file to satisfy the type checker (the assembly task expect File as a return type)
-        file("")
-      }
-    )
-    /** JPMS related settings
-      */
-    .settings(
-      Test / excludeFilter := "module-info.java",
-      Test / javaModuleName := "org.enso.runtime.with.instruments",
-      Test / modulePath := {
-        val runtimeMod =
-          (`runtime-fat-jar` / Compile / productDirectories).value.head
-        val updateReport = (Test / update).value
-        val requiredModIds =
-          GraalVM.modules ++ GraalVM.langsPkgs ++ logbackPkg ++ Seq(
-            "org.slf4j" % "slf4j-api" % slf4jVersion
-          )
-        val requiredMods = JPMSUtils.filterModulesFromUpdate(
-          updateReport,
-          requiredModIds,
-          streams.value.log,
-          shouldContainAll = true
-        )
-        requiredMods ++ Seq(
-          runtimeMod
-        )
-      },
-      Test / addModules := {
-        val runtimeModName = (`runtime-fat-jar` / javaModuleName).value
-        Seq(
-          runtimeModName
-        )
-      },
-      Test / compileModuleInfo := Def
-        .taskDyn {
-          JPMSUtils.compileModuleInfoInScope(
-            extraModulePath = (Test / modulePath).value,
-            scope           = ScopeFilter(configurations = inConfigurations(Test))
-          )
-        }
-        .dependsOn(Test / compile)
-        .value,
-      (Test / patchModules) := {
-        val modulesToPatchIntoRuntime: Seq[File] =
-          (LocalProject(
-            "runtime-instrument-common"
-          ) / Compile / productDirectories).value ++
-          (LocalProject(
-            "runtime-instrument-id-execution"
-          ) / Compile / productDirectories).value ++
-          (LocalProject(
-            "runtime-instrument-repl-debugger"
-          ) / Compile / productDirectories).value ++
-          (LocalProject(
-            "runtime-instrument-runtime-server"
-          ) / Compile / productDirectories).value ++
-          (LocalProject(
-            "runtime-language-epb"
-          ) / Compile / productDirectories).value ++
-          (LocalProject(
-            "runtime-compiler"
-          ) / Compile / productDirectories).value
-
-        val testClassesDir = (Test / productDirectories).value.head
-        val runtimeModName = (`runtime-fat-jar` / javaModuleName).value
-        Map(
-          runtimeModName -> modulesToPatchIntoRuntime
-        )
-      },
-      (Test / addReads) := {
-        val runtimeModName = (`runtime-fat-jar` / javaModuleName).value
-        Map(
-          runtimeModName -> Seq(
-            "ALL-UNNAMED"
-          )
-        )
-      },
-      (Test / javaOptions) ++= {
-        // We can't use org.enso.logger.TestLogProvider (or anything from our own logging framework here) because it is not
-        // in a module, and it cannot be simple wrapped inside a module.
-        // So we use plain ch.qos.logback with its configuration.
-        val testLogbackConf = (LocalProject(
-          "logging-service-logback"
-        ) / Test / sourceDirectory).value / "resources" / "logback-test.xml"
-        Seq(
-          "-Dslf4j.provider=ch.qos.logback.classic.spi.LogbackServiceProvider",
-          s"-Dlogback.configurationFile=${testLogbackConf.getAbsolutePath}"
-        )
-      },
-      Test / test := (Test / test)
-        .dependsOn(Test / compileModuleInfo)
-        .value,
-      Test / testOnly := (Test / testOnly)
-        .dependsOn(Test / compileModuleInfo)
-        .evaluated
-    )
-    /** Benchmark settings */
-    .settings(
-      inConfig(Benchmark)(Defaults.testSettings),
-      Benchmark / javacOptions --= Seq(
-        "-source",
-        frgaalSourceLevel,
-        "--enable-preview"
-      ),
-      (Benchmark / javaOptions) :=
-        (LocalProject("std-benchmarks") / Benchmark / run / javaOptions).value
-    )
-    .dependsOn(runtime % "compile->compile;test->test;runtime->runtime")
-    .dependsOn(`runtime-instrument-common`)
-    .dependsOn(`runtime-instrument-id-execution`)
-    .dependsOn(`runtime-instrument-repl-debugger`)
-    .dependsOn(`runtime-instrument-runtime-server`)
-    .dependsOn(`runtime-language-epb`)
-    .dependsOn(`logging-service-logback` % "test->test")
 
 /* runtime-with-polyglot
  * ~~~~~~~~~~~~~~~~~~~~~
@@ -2124,7 +1986,6 @@ lazy val `runtime-with-polyglot` =
         (LocalProject("std-benchmarks") / Benchmark / run / javaOptions).value
     )
     .dependsOn(runtime % "compile->compile;test->test;runtime->runtime")
-    .dependsOn(`runtime-with-instruments`)
 
 /* Note [Unmanaged Classpath]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~

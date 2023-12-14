@@ -3,15 +3,7 @@ package org.enso.interpreter.test.instrument
 import org.enso.editions.LibraryName
 import org.enso.interpreter.runtime
 import org.enso.interpreter.test.Metadata
-import org.enso.pkg.{
-  ComponentGroup,
-  ComponentGroups,
-  ExtendedComponentGroup,
-  GroupName,
-  GroupReference,
-  Package,
-  PackageManager
-}
+import org.enso.pkg.{ComponentGroup, ComponentGroups, ExtendedComponentGroup, GroupName, GroupReference, Package, PackageManager}
 import org.enso.polyglot._
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.testkit.OsSpec

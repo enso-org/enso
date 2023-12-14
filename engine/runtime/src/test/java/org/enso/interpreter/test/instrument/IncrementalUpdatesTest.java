@@ -35,6 +35,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import scala.Option;
@@ -76,7 +77,7 @@ public class IncrementalUpdatesTest {
     var m = context.languageContext().findModule(MODULE_NAME).orElse(null);
     assertNotNull("Module found", m);
     var numbers = m.getIr().preorder().filter((v1) -> v1 instanceof Literal.Number);
-    assertEquals("One number found: " + numbers, 1, numbers.size());
+    Assert.assertEquals("One number found: " + numbers, 1, numbers.size());
     if (numbers.head() instanceof Literal.Number n) {
       assertEquals("updated to 5", "5", n.value());
     }
@@ -96,10 +97,10 @@ public class IncrementalUpdatesTest {
   public void sendMultipleUpdates() {
     sendUpdatesWhenFunctionBodyIsChangedBySettingValue("4", ConstantsGen.INTEGER, "4", "1000", "1000", LiteralNode.class);
     sendExpressionValue("1000", "333");
-    assertEquals(List.newBuilder().addOne("333"), context.consumeOut());
+    Assert.assertEquals(List.newBuilder().addOne("333"), context.consumeOut());
     nodeCountingInstrument.assertNewNodes("No execution on 333, no nodes yet", 0, 0);
     sendExpressionValue("333", "22");
-    assertEquals(List.newBuilder().addOne("22"), context.consumeOut());
+    Assert.assertEquals(List.newBuilder().addOne("22"), context.consumeOut());
     nodeCountingInstrument.assertNewNodes("No execution on 22, no nodes yet", 0, 0);
   }
 
@@ -117,7 +118,7 @@ public class IncrementalUpdatesTest {
   public void sendNotANumberChange() {
     var result = sendUpdatesWhenFunctionBodyIsChangedBySettingValue("4", ConstantsGen.INTEGER, "4", "x", null, LiteralNode.class);
     assertTrue("Execution succeeds: " + result, result.head().payload() instanceof Runtime$Api$ExecutionComplete);
-    assertEquals("Error is printed as a result",
+    Assert.assertEquals("Error is printed as a result",
       List.newBuilder().addOne("(Error: Uninitialized value)"), context.consumeOut()
     );
   }
@@ -237,7 +238,7 @@ public class IncrementalUpdatesTest {
       TestMessages.update(contextId, mainRes, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
     );
-    assertEquals(List.newBuilder().addOne(originalOutput), context.consumeOut());
+    Assert.assertEquals(List.newBuilder().addOne(originalOutput), context.consumeOut());
 
     var allNodesAfterException = nodeCountingInstrument.assertNewNodes("Execution creates some nodes", 20, 35);
 
@@ -254,7 +255,7 @@ public class IncrementalUpdatesTest {
       TestMessages.update(contextId, fooRes, exprType),
       context.executionComplete(contextId)
     );
-    assertEquals(List.newBuilder().addOne(originalOutput), context.consumeOut());
+    Assert.assertEquals(List.newBuilder().addOne(originalOutput), context.consumeOut());
 
     nodeCountingInstrument.assertNewNodes("No new nodes created", 0, 0);
     var literalNode = findLiteralNode(truffleNodeType, allNodesAfterException);
@@ -263,7 +264,7 @@ public class IncrementalUpdatesTest {
     var executionCompleteEvents = sendEdit.apply(originalText, newText);
     if (executionOutput != null) {
       assertSameElements(executionCompleteEvents, context.executionComplete(contextId));
-      assertEquals(List.newBuilder().addOne(executionOutput), context.consumeOut());
+      Assert.assertEquals(List.newBuilder().addOne(executionOutput), context.consumeOut());
       nodeCountingInstrument.assertNewNodes("No new nodes created", 0, 0);
 
       assertEquals("Literal node has been updated in the source", newText, literalNode.getSourceSection().getCharacters().toString());

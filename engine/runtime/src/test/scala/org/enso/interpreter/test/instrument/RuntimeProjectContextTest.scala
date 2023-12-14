@@ -2,9 +2,9 @@ package org.enso.interpreter.test.instrument
 
 import org.enso.polyglot.{LanguageInfo, RuntimeOptions}
 import org.graalvm.polyglot.{Context, PolyglotException}
-import org.scalatest.{BeforeAndAfterEach, Suite}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import org.scalatest.{BeforeAndAfterEach, Suite}
 
 import java.nio.file.Paths
 import java.util.logging.Level

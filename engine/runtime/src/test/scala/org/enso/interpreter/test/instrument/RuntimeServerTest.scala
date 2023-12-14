@@ -1,7 +1,8 @@
 package org.enso.interpreter.test.instrument
 
-import org.enso.interpreter.runtime.`type`.{Constants, ConstantsGen, Types}
+import org.apache.commons.io.output.TeeOutputStream
 import org.enso.interpreter.runtime.EnsoContext
+import org.enso.interpreter.runtime.`type`.{Constants, ConstantsGen, Types}
 import org.enso.interpreter.test.Metadata
 import org.enso.polyglot._
 import org.enso.polyglot.data.TypeGraph
@@ -16,7 +17,6 @@ import org.scalatest.matchers.should.Matchers
 import java.io.{ByteArrayOutputStream, File}
 import java.nio.file.{Files, Paths}
 import java.util.UUID
-import org.apache.commons.io.output.TeeOutputStream
 
 @scala.annotation.nowarn("msg=multiarg infix syntax")
 class RuntimeServerTest
