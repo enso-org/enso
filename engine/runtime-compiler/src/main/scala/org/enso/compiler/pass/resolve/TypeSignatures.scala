@@ -322,7 +322,7 @@ case object TypeSignatures extends IRPass {
     *
     * @param signature the expression for the type signature
     */
-  case class Signature(signature: Expression) extends IRPass.IRMetadata {
+  case class Signature(signature: Expression, comment: Option[String] = None) extends IRPass.IRMetadata {
     override val metadataName: String = "TypeSignatures.Signature"
 
     /** @inheritdoc */

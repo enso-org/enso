@@ -713,7 +713,7 @@ class IrToTruffle(
   // ==========================================================================
 
   private def extractAscribedType(
-    name: Name,
+    name: String,
     t: Expression
   ): ReadArgumentCheckNode = t match {
     case u: `type`.Set.Union =>
@@ -768,7 +768,7 @@ class IrToTruffle(
   private def checkAsTypes(
     arg: DefinitionArgument
   ): ReadArgumentCheckNode = {
-    arg.ascribedType.map(extractAscribedType(arg.name, _)).getOrElse(null)
+    arg.ascribedType.map(extractAscribedType(arg.name.name, _)).getOrElse(null)
   }
 
   /** Checks if the expression has a @Builtin_Method annotation
@@ -1074,9 +1074,10 @@ class IrToTruffle(
       ir match {
         case _: Expression.Binding =>
         case _ =>
-          val types = ir.getMetadata(TypeSignatures)
+          val types: Option[TypeSignatures.Signature] = ir.getMetadata(TypeSignatures)
           types.foreach { tpe =>
-            val checkNode = extractAscribedType(null, tpe.signature);
+            // TODO ?
+            val checkNode = extractAscribedType(tpe.comment.orNull, tpe.signature);
             if (checkNode != null) {
               runtimeExpression =
                 ReadArgumentCheckNode.wrap(runtimeExpression, checkNode)

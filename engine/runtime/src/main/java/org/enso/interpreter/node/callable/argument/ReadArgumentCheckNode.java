@@ -94,7 +94,7 @@ public abstract class ReadArgumentCheckNode extends Node {
     throw new PanicException(err, this);
   }
 
-  public static ReadArgumentCheckNode allOf(Name argumentName, ReadArgumentCheckNode... checks) {
+  public static ReadArgumentCheckNode allOf(String argumentName, ReadArgumentCheckNode... checks) {
     var list = Arrays.asList(checks);
     var flatten =
         list.stream()
@@ -105,27 +105,25 @@ public abstract class ReadArgumentCheckNode extends Node {
     return switch (arr.length) {
       case 0 -> null;
       case 1 -> arr[0];
-      default -> new AllOfNode(argumentName.name(), arr);
+      default -> new AllOfNode(argumentName, arr);
     };
   }
 
-  public static ReadArgumentCheckNode oneOf(Name argumentName, List<ReadArgumentCheckNode> checks) {
+  public static ReadArgumentCheckNode oneOf(String argumentName, List<ReadArgumentCheckNode> checks) {
     var arr = toArray(checks);
     return switch (arr.length) {
       case 0 -> null;
       case 1 -> arr[0];
-      default -> new OneOfNode(argumentName.name(), arr);
+      default -> new OneOfNode(argumentName, arr);
     };
   }
 
-  public static ReadArgumentCheckNode build(Name argumentName, Type expectedType) {
-    var n = argumentName == null ? null : argumentName.name();
-    return ReadArgumentCheckNodeFactory.TypeCheckNodeGen.create(n, expectedType);
+  public static ReadArgumentCheckNode build(String argumentName, Type expectedType) {
+    return ReadArgumentCheckNodeFactory.TypeCheckNodeGen.create(argumentName, expectedType);
   }
 
-  public static ReadArgumentCheckNode meta(Name argumentName, Object metaObject) {
-    var n = argumentName == null ? null : argumentName.name();
-    return ReadArgumentCheckNodeFactory.MetaCheckNodeGen.create(n, metaObject);
+  public static ReadArgumentCheckNode meta(String argumentName, Object metaObject) {
+    return ReadArgumentCheckNodeFactory.MetaCheckNodeGen.create(argumentName, metaObject);
   }
 
   public static boolean isWrappedThunk(Function fn) {
