@@ -546,6 +546,11 @@ final class TreeToIr {
      return translateType(returnSignature.getType());
    }
 
+  /**
+   * Wraps a body expression in a type ascription that will ensure that the type of the body is checked to match the provided type.
+   * <p>
+   * If the type is {@code null}, the body is returned unchanged.
+   */
   private Expression addTypeAscription(Expression body, Expression type, Option<IdentifiedLocation> loc) {
      if (type == null) {
        return body;
