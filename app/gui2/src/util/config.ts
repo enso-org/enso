@@ -12,7 +12,7 @@ export const DEFAULT_ENTRY_POINT = 'ide'
  * returned. */
 // prettier-ignore
 function parseBoolean(value: any): boolean | null {
-    switch(value) {
+    switch (value) {
         case true: return true
         case false: return false
         case 'true': return true

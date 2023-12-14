@@ -1,8 +1,10 @@
-import CONFIG from '@/config.json' assert { type: 'json' }
-import { objectToGroup } from '@/util/config'
+import { options as appOptions } from '@/util/appOptions'
 import { isDevMode } from '@/util/detect'
 import { urlParams } from '@/util/urlParams'
-import * as version from '@/util/version'
+import {
+  checkMinSupportedVersion as checkMinimumSupportedVersion,
+  displayDeprecatedVersionDialog,
+} from '@/util/version'
 import { run as runDashboard } from 'enso-authentication'
 import { isOnLinux } from 'enso-common/src/detect'
 import 'enso-dashboard/src/tailwind.css'
@@ -27,8 +29,14 @@ async function runApp(config: StringConfig | null, accessToken: string | null, m
   const { mountProjectApp } = await vueAppEntry
   if (runRequested) {
     unmount?.()
-    const app = mountProjectApp({ config, accessToken, metadata })
-    unmount = () => app.unmount()
+    const options = appOptions.clone()
+    const didOptionsLoad = options.loadAllAndDisplayHelpIfUnsuccessful([urlParams()])
+    if (didOptionsLoad && !(await checkMinimumSupportedVersion(options))) {
+      displayDeprecatedVersionDialog()
+    } else {
+      const app = mountProjectApp({ config, accessToken, metadata })
+      unmount = () => app.unmount()
+    }
   }
 }
 
@@ -60,9 +68,9 @@ function main() {
     localStorage.setItem(INITIAL_URL_KEY, location.href)
   }
 
-  const options = objectToGroup(CONFIG, { Version: version })
-  const parseOk = options.loadAllAndDisplayHelpIfUnsuccessful([urlParams()])
-  if (parseOk) {
+  const options = appOptions.clone()
+  const didOptionsLoad = options.loadAllAndDisplayHelpIfUnsuccessful([urlParams()])
+  if (didOptionsLoad) {
     const shouldUseAuthentication = options.options.authentication.value
     const projectManagerUrl =
       options.groups.engine.options.projectManagerUrl.value || PROJECT_MANAGER_URL
