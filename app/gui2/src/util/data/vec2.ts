@@ -1,7 +1,8 @@
-/**
- * 2D vector, in no particular reference frame. The exact geometric interpretation of the vector
- * depends on the context where it is used.
- */
+/** @file 2D vector, in no particular reference frame. The exact geometric interpretation of the
+ * vector depends on the context where it is used. */
+
+/** 2D vector, in no particular reference frame. The exact geometric interpretation of the vector
+ * depends on the context where it is used. */
 export class Vec2 {
   constructor(
     readonly x: number,

@@ -1,4 +1,4 @@
-import { Err, Ok, unwrap, type Result } from '@/util/result'
+import { Err, Ok, unwrap, type Result } from '@/util/data/result'
 
 declare const identifierBrand: unique symbol
 declare const qualifiedNameBrand: unique symbol

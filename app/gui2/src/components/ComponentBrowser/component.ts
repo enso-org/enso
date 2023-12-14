@@ -6,11 +6,11 @@ import {
   type SuggestionId,
 } from '@/stores/suggestionDatabase/entry'
 import { compareOpt } from '@/util/compare'
+import { isSome } from '@/util/data/opt'
+import { Range } from '@/util/data/range'
 import { displayedIconOf } from '@/util/getIconName'
 import type { Icon } from '@/util/iconName'
-import { isSome } from '@/util/opt'
 import { qnIsTopElement, qnLastSegmentIndex } from '@/util/qualifiedName'
-import { Range } from '@/util/range'
 
 interface ComponentLabel {
   label: string

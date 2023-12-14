@@ -1,6 +1,8 @@
 from Standard.Base import all
 from Standard.Base.Data.Array_Proxy import Array_Proxy
 import Standard.Base.Data.Vector.Empty_Error
+import Standard.Base.Data.Vector.No_Wrap
+import Standard.Base.Errors.Common.Additional_Warnings
 import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Common.No_Such_Method
@@ -8,6 +10,7 @@ import Standard.Base.Errors.Common.Not_Found
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Common.Unsupported_Argument_Types
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.Runtime.Ref.Ref
 import Standard.Base.Runtime.State
 from Standard.Base.Data.Index_Sub_Range.Index_Sub_Range import While, By_Index, Sample, Every
@@ -37,7 +40,7 @@ type My_Nan_Comparator
 Comparable.from (_:My_Nan) = My_Nan_Comparator
 
 type My_Error
-    Value a
+    Error a
 
 type Foo
     Value vec
@@ -65,8 +68,17 @@ foreign python generate_nested_py_array = """
     return [[1, 2, 3], [4, 5]]
 
 type_spec name alter = Test.group name <|
+    map_fun a = if a == 30 then Error.throw (My_Error.Error a) else a+1
+    flat_map_fun a = if (a.at 0) == 30 then Error.throw (My_Error.Error a) else a+[100]
+    map_with_index_fun i a =
+        _ = i
+        if a == 30 then Error.throw (My_Error.Error a) else a+1
+    zip_fun a b = if a == 30 then Error.throw (My_Error.Error a) else a+b+1
+
     pending_python_missing = if Polyglot.is_language_installed "python" then Nothing else
         "Can't run Python tests, Python is not installed."
+
+    pending_map_report_warning = "vector.map does not yet support report_warning"
 
     Test.specify "text bytes" <|
         "Lore".utf_8 . should_equal [76, 111, 114, 101]
@@ -110,7 +122,7 @@ type_spec name alter = Test.group name <|
         alter [1,2,3] . at 2 . should_equal 3
 
     Test.specify "should allow to store dataflow errors and raise them on access" <|
-        vec = [Error.throw (My_Error.Value "foo"), "bar"]
+        vec = [Error.throw (My_Error.Error "foo"), "bar"]
         vec.at 1 . should_equal "bar"
         vec.at 0 . should_fail_with My_Error
         vec.get 1 . should_equal "bar"
@@ -191,7 +203,7 @@ type_spec name alter = Test.group name <|
         vec.filter (x -> x > 3) . should_equal [4, 5]
         vec.filter (x -> x == 1) . should_equal [1]
         vec.filter (x -> x < 0) . should_equal []
-        vec.filter (x -> if x == 2 then Error.throw <| My_Error.Value "foo" else True) . should_fail_with My_Error
+        vec.filter (x -> if x == 2 then Error.throw <| My_Error.Error "foo" else True) . should_fail_with My_Error
 
     Test.specify "should filter elements by Filter_Condition" <|
         vec = alter [1, 2, 3, 4, 5]
@@ -291,12 +303,12 @@ type_spec name alter = Test.group name <|
     Test.specify "should filter elements with indices" <|
         (alter [0, 10, 2, 2] . filter_with_index (==)) . should_equal [0, 2]
         (alter [1, 2, 3, 4] . filter_with_index ix-> _-> ix < 2) . should_equal [1, 2]
-        (alter [1, 2, 3, 4] . filter_with_index ix-> _-> if ix == 1 then Error.throw <| My_Error.Value "foo" else True) . should_fail_with My_Error
+        (alter [1, 2, 3, 4] . filter_with_index ix-> _-> if ix == 1 then Error.throw <| My_Error.Error "foo" else True) . should_fail_with My_Error
 
     Test.specify "should partition elements" <|
         vec = alter [1, 2, 3, 4, 5]
         vec.partition (x -> x % 2 == 0) . should_equal <| Pair.new [2, 4] [1, 3, 5]
-        (vec . partition x-> if x == 1 then Error.throw <| My_Error.Value "foo" else True) . should_fail_with My_Error
+        (vec . partition x-> if x == 1 then Error.throw <| My_Error.Error "foo" else True) . should_fail_with My_Error
 
         vec.partition (Filter_Condition.Between 2 4) . should_equal <| Pair.new [2, 3, 4] [1, 5]
 
@@ -304,7 +316,7 @@ type_spec name alter = Test.group name <|
 
     Test.specify "should partition elements with indices" <|
         alter ["a", "b", "c", "d"] . partition_with_index (ix -> _ -> ix % 2 == 0) == (Pair.new ["a", "c"] ["b", "d"])
-        alter ["a", "b", "c", "d"] . partition_with_index (ix -> _ -> if ix % 2 == 0 then Error.throw <| My_Error.Value "foo" else True) . should_fail_with My_Error
+        alter ["a", "b", "c", "d"] . partition_with_index (ix -> _ -> if ix % 2 == 0 then Error.throw <| My_Error.Error "foo" else True) . should_fail_with My_Error
 
     Test.specify "should allow to join a vector of text elements to form a single text" <|
         alter ["a", "b", "c"] . join . should_equal "abc"
@@ -315,6 +327,18 @@ type_spec name alter = Test.group name <|
         mapped = vec.map x-> x * x
         vec.to_text.should_equal "[1, 2, 3, 4]"
         mapped.to_text.should_equal "[1, 4, 9, 16]"
+
+    Test.specify "should allow map on_problems=No_Wrap.Value, returning a new vector" <|
+        vec = alter [1, 2, 3, 4]
+        mapped = vec.map on_problems=No_Wrap.Value x-> x * x
+        vec.to_text.should_equal "[1, 2, 3, 4]"
+        mapped.to_text.should_equal "[1, 4, 9, 16]"
+
+    Test.specify "should allow mapping an operation with index" <|
+        vec = alter [1, 2, 3, 4]
+        mapped = vec.map_with_index i-> x-> x * x * i
+        vec.to_text.should_equal "[1, 2, 3, 4]"
+        mapped.to_text.should_equal "[0, 4, 18, 48]"
 
     Test.specify "should allow flat_mapping an operation, returning a new vector" <|
         vec = alter [1, 2, 0, 3]
@@ -684,11 +708,6 @@ type_spec name alter = Test.group name <|
         small_expected = alter [T.Value 4 0, T.Value 1 3, T.Value 1 8, T.Value -1 10, T.Value -1 1, T.Value -20 0]
         small_vec.sort Sort_Direction.Descending . should_equal small_expected
 
-    Test.specify "should correctly propagate error through map" <|
-        alter [1, 2, 3] . map Error.throw . catch . should_equal 1
-        fun a = if a == 3 then Error.throw (My_Error.Value a) else a
-        alter [1, 2, 3, 4] . map fun . catch My_Error . should_equal (My_Error.Value 3)
-
     Test.specify "should correctly propagate state through each" <|
         v = State.run Number 77 <|
             b = Vector.new_builder
@@ -722,12 +741,26 @@ type_spec name alter = Test.group name <|
         alter [1, 2, 3] . zip [4, 5, 6, 7] (+) . should_equal [5, 7, 9]
         alter [] . zip [4, 5, 6] (+) . should_equal []
 
+    Test.specify "should zip elements with zip on_problems=No_Wrap.Value" <|
+        alter [1, 2, 3] . zip on_problems=No_Wrap.Value [] (+) . should_equal []
+        alter [1, 2, 3] . zip on_problems=No_Wrap.Value [4] (+) . should_equal [5]
+        alter [1, 2, 3] . zip on_problems=No_Wrap.Value [4, 5, 6] (+) . should_equal [5, 7, 9]
+        alter [1, 2, 3] . zip on_problems=No_Wrap.Value [4, 5, 6, 7] (+) . should_equal [5, 7, 9]
+        alter [] . zip on_problems=No_Wrap.Value [4, 5, 6] (+) . should_equal []
+
     Test.specify "should flat_map elements" <|
         alter [1, 2, 3] . flat_map (_ -> []) . should_equal []
         alter [1, 2, 3] . flat_map (_ -> [0, 1]) . should_equal [0, 1, 0, 1, 0, 1]
         alter [1, 2, 3] . flat_map (_ -> [0, [1]]) . should_equal [0, [1], 0, [1], 0, [1]]
         alter [0, 1, 0] . flat_map (i -> if i == 1 then [1, 1] else [i]) . should_equal [0, 1, 1, 0]
         alter [0, 0, 0] . flat_map (i -> [i]) . should_equal [0, 0, 0]
+
+    Test.specify "should flat_map elements with flat_map on_problems=No_Wrap.Value" <|
+        alter [1, 2, 3] . flat_map on_problems=No_Wrap.Value (_ -> []) . should_equal []
+        alter [1, 2, 3] . flat_map on_problems=No_Wrap.Value (_ -> [0, 1]) . should_equal [0, 1, 0, 1, 0, 1]
+        alter [1, 2, 3] . flat_map on_problems=No_Wrap.Value (_ -> [0, [1]]) . should_equal [0, [1], 0, [1], 0, [1]]
+        alter [0, 1, 0] . flat_map on_problems=No_Wrap.Value (i -> if i == 1 then [1, 1] else [i]) . should_equal [0, 1, 1, 0]
+        alter [0, 0, 0] . flat_map on_problems=No_Wrap.Value (i -> [i]) . should_equal [0, 0, 0]
 
     Test.specify "should allow inserting elements" <|
         alter [2, 3] . insert . should_equal [2, 3, Nothing]
@@ -804,6 +837,82 @@ type_spec name alter = Test.group name <|
         sorted = input.sort on_incomparable=Problem_Behavior.Report_Warning
         Warning.get_all sorted . length . should_equal 10
         Warning.limit_reached sorted . should_equal True
+
+    Test.specify "an error thrown inside map should be caught as a Map_Error" <|
+        alter [10, 20, 30, 40] . map map_fun . should_fail_with (Map_Error.Error 2 (My_Error.Error 30))
+
+    Test.specify "an error thrown inside map on_problems=No_Wrap.Value should be caught as a My_Error" <|
+        alter [10, 20, 30, 40] . map on_problems=No_Wrap.Value map_fun . should_fail_with My_Error
+
+    Test.specify "an error thrown inside map_with_index on_problems=No_Wrap.Value should be caught as a My_Error" <|
+        map_with_index_fun _ a = if a == 30 then Error.throw (My_Error.Error a) else a+1
+        alter [10, 20, 30, 40] . map_with_index on_problems=No_Wrap.Value map_with_index_fun . should_fail_with My_Error
+
+    Test.specify "an error thrown inside map and caught (without error parameter) should be caught as a Map_Error" <|
+        alter [10, 20, 30, 40] . map map_fun . catch . should_equal (Map_Error.Error 2 (My_Error.Error 30))
+
+    Test.specify "an error thrown inside map and caught (with error parameter My_Error) should be caught as a My_Error" <|
+        alter [10, 20, 30, 40] . map map_fun . catch My_Error . should_equal (My_Error.Error 30)
+
+    Test.specify "an error thrown inside map and caught (with error parameter Map_Error) should be caught as a Map_Error" <|
+        alter [10, 20, 30, 40] . map map_fun . catch Map_Error . should_equal (Map_Error.Error 2 (My_Error.Error 30))
+
+    Test.specify "an error thrown inside flat_map should be caught as a Map_Error" <|
+        vec = alter ([[10], [20], [30], [40]].map alter)
+        vec.flat_map flat_map_fun . should_fail_with (Map_Error.Error 2 (My_Error.Error [30]))
+
+    Test.specify "an error thrown inside map_with_index should be caught as a Map_Error" <|
+        alter [10, 20, 30, 40] . map_with_index map_with_index_fun . should_fail_with (Map_Error.Error 2 (My_Error.Error 30))
+
+    Test.specify "an error thrown inside zip should be caught as a Map_Error" <|
+        vec = alter [10, 20, 30, 40]
+        vec.zip [10, 20, 30, 40] zip_fun . should_fail_with (Map_Error.Error 2 (My_Error.Error 30))
+
+    Test.specify "an error thrown inside nested maps should be wrapped multiple times" <|
+        nested_vector = Vector.fill 5 (alter [10, 20, 30, 40])
+        nested_vector.map (_.map map_fun) . should_fail_with (Map_Error.Error 0 (Map_Error.Error 2 (My_Error.Error 30)))
+
+    Test.specify "a Nothing thrown inside map should be caught as Nothing" <|
+        map_fun a = if a == 30 then Error.throw Nothing else a+1
+        alter [10, 20, 30, 40] . map map_fun . should_fail_with (Map_Error.Error 2 Nothing)
+
+    Test.specify "an error thrown inside map with on_problems=Problem_Behavior.Ignore should be ignored" <|
+        results = alter [10, 20, 30, 40] . map map_fun on_problems=Problem_Behavior.Ignore
+        results . should_equal [11, 21, Nothing, 41]
+        Warning.get_all results . should_equal []
+
+    Test.specify "vector.map does not yet support report_warning"  <|
+        Test.expect_panic_with matcher=Unimplemented <|
+            alter [10, 20, 30, 40] . map map_fun on_problems=Problem_Behavior.Report_Warning
+
+    Test.specify "an error thrown inside map with on_problems=Problem_Behavior.Report_Warning should be attached as a warning" pending=pending_map_report_warning <|
+        result = alter [10, 20, 30, 40] . map map_fun on_problems=Problem_Behavior.Report_Warning
+        result . should_equal [11, 21, Nothing, 41]
+        Warning.get_all result . map .value . should_equal [Map_Error.Error 2 (My_Error.Error 30)]
+
+    Test.specify "multiple errors thrown inside map with on_problems=Problem_Behavior.Report_Warning should be attached as warnings" pending=pending_map_report_warning <|
+        result = alter [10, 30, 20, 30, 40, 30] . map map_fun on_problems=Problem_Behavior.Report_Warning
+        result . should_equal [11, Nothing, 21, Nothing, 41, Nothing]
+        Warning.get_all result . map .value . should_equal ([5, 3, 1].map i-> Map_Error.Error i (My_Error.Error 30))
+
+    Test.specify "many errors thrown inside map with on_problems=Problem_Behavior.Report_Warning should be attached as warnings and an Additional_Warnings" pending=pending_map_report_warning <|
+        result = alter ([10, 20] + (Vector.fill 12 30) + [40]) . map map_fun on_problems=Problem_Behavior.Report_Warning
+        result . should_equal ([11, 21] + (Vector.fill 12 Nothing) + [41])
+        expected_warnings_regular = 11.down_to 1 . map i-> Map_Error.Error i (My_Error.Error 30)
+        expected_warnings = [(Additional_Warnings.Error 2)] + expected_warnings_regular
+        Warning.get_all result . map .value . should_equal expected_warnings
+
+    Test.specify "map on_problems=No_Wrap.Value does not do error wrapping" <|
+        alter [10, 20, 30, 40] . map on_problems=No_Wrap.Value map_fun . catch . should_equal (My_Error.Error 30)
+
+    Test.specify "zip on_problems=No_Wrap.Value does not do error wrapping" <|
+        zip_fun a _ = if a == 30 then Error.throw (My_Error.Error a) else a+1
+        arr = alter [10, 20, 30, 40]
+        arr . zip on_problems=No_Wrap.Value arr zip_fun . catch . should_equal (My_Error.Error 30)
+
+    Test.specify "flat_map on_problems=No_Wrap.Value does not do error wrapping" <|
+        vec = alter [1, 2, 0, 3]
+        vec.flat_map on_problems=No_Wrap.Value (n-> Error.throw (My_Error.Error n)) . catch . should_equal (My_Error.Error 1)
 
 spec =
     Test.group "Vector builder" <|

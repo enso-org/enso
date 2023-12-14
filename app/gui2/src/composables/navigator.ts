@@ -1,7 +1,9 @@
-import { useApproach } from '@/util/animation'
-import { PointerButtonMask, useEvent, usePointer, useResizeObserver } from '@/util/events'
-import { Rect } from '@/util/rect'
-import { Vec2 } from '@/util/vec2'
+/** @file A Vue composable for panning and zooming a DOM element. */
+
+import { useApproach } from '@/composables/animation'
+import { PointerButtonMask, useEvent, usePointer, useResizeObserver } from '@/composables/events'
+import { Rect } from '@/util/data/rect'
+import { Vec2 } from '@/util/data/vec2'
 import { computed, proxyRefs, ref, type Ref } from 'vue'
 
 function elemRect(target: Element | undefined): Rect {
@@ -84,7 +86,11 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
         viewportNode.value.clientWidth / rect.width,
       ),
     )
-    targetCenter.value = new Vec2(rect.left + rect.width / 2, rect.top + rect.height / 2)
+    const centerX =
+      !Number.isFinite(rect.left) && !Number.isFinite(rect.width) ? 0 : rect.left + rect.width / 2
+    const centerY =
+      !Number.isFinite(rect.top) && !Number.isFinite(rect.height) ? 0 : rect.top + rect.height / 2
+    targetCenter.value = new Vec2(centerX, centerY)
   }
 
   let zoomPivot = Vec2.Zero
