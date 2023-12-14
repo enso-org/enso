@@ -1,11 +1,11 @@
 import CONFIG from '@/config.json' assert { type: 'json' }
 import { isDevMode } from '@/util/detect'
+import { urlParams } from '@/util/urlParams'
 import { run as runDashboard } from 'enso-authentication'
 import { isOnLinux } from 'enso-common/src/detect'
 import 'enso-dashboard/src/tailwind.css'
 import { decodeQueryParams } from 'lib0/url'
 import { options as cliOptions, objectToGroup } from 'runner/config'
-import { urlParams } from 'runner/host'
 import { version } from 'runner/version'
 
 const vueAppEntry = import('./createApp')
