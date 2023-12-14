@@ -547,7 +547,7 @@ function handleEdgeDrop(source: ExprId, position: Vec2) {
     />
     <TopBar
       v-model:mode="projectStore.executionMode"
-      :title="projectStore.name"
+      :title="projectStore.displayName"
       :modes="EXECUTION_MODES"
       :breadcrumbs="breadcrumbs"
       @breadcrumbClick="console.log(`breadcrumb #${$event + 1} clicked.`)"

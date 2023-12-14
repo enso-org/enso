@@ -1,6 +1,4 @@
 /** @file Configuration options for the application. */
-
-import CONFIG from 'runner/config.json' assert { type: 'json' }
 import { HelpScreen, HelpScreenEntry, HelpScreenSection } from 'runner/helpScreen'
 
 export const DEFAULT_ENTRY_POINT = 'ide'
@@ -484,12 +482,12 @@ export function objectToOption<T extends AnyOptionObject>(obj: T, scope: object)
   return new Option(obj)
 }
 
-/** The configuration of the EnsoGL application. The options can be overriden by the user. The
+/** The configuration of the application. The options can be overriden by the user. The
  * implementation automatically casts the values to the correct types. For example, if an option
  * override for type boolean was provided as `'true'`, it will be parsed automatically. Moreover,
  * it is possible to extend the provided option list with custom options. See the `extend` method
  * to learn more. */
-export const options = objectToGroup(CONFIG)
+export const options = objectToGroup({})
 
 /** Type of configuration options. */
 export type Options = typeof options & AnyGroup

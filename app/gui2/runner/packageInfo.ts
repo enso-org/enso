@@ -4,7 +4,7 @@
 // === PackageInfo ===
 // ===================
 
-/** Package info. It contains info provided by the user of EnsoGL. */
+/** Package info. It contains info provided by the user. */
 export class PackageInfo {
   /** Constructor. */
   constructor(userProvidedInfo?: Record<string, string>) {

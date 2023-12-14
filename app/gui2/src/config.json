@@ -31,7 +31,7 @@
         },
         "topBarOffset": {
           "value": 0,
-          "description": "The offset of rust-rendered toolbar from window's left edge.",
+          "description": "The offset of the IDE's toolbar from the window's left edge.",
           "primary": false
         }
       }
@@ -123,11 +123,6 @@
         "newDashboard": {
           "value": true,
           "description": "Determines whether the new dashboard with cloud integration is enabled."
-        },
-        "profiling": {
-          "value": false,
-          "description": "Enable the button to profile workflows.",
-          "primary": false
         }
       }
     },
@@ -141,21 +136,6 @@
         }
       },
       "primary": false
-    },
-    "profile": {
-      "description": "Options for diagnosing application performance problems.",
-      "options": {
-        "workflow": {
-          "value": "",
-          "description": "Specify a workflow for profiling. A workflow is a script of automated actions, such as adding nodes or opening visualizations. To view the list of available workflows, use '-profile.workflow=help'. This option must be used with '-startup.entry=profile'.",
-          "primary": false
-        },
-        "emitUserTimingMeasurements": {
-          "value": false,
-          "description": "When enabled, profiling measurements will be submitted continuously to the User Timing Web API, which can be viewed using standard developer tools. Note that this mode significantly affects performance.",
-          "primary": false
-        }
-      }
     }
   }
 }
