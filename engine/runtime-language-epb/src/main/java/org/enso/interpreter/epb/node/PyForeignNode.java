@@ -1,11 +1,5 @@
 package org.enso.interpreter.epb.node;
 
-import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.ZoneId;
-
-import org.enso.interpreter.epb.EpbContext;
-
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.NodeField;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -20,65 +14,77 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.source.Source;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import org.enso.interpreter.epb.EpbContext;
 
 @NodeField(name = "foreignFunction", type = Object.class)
 public abstract class PyForeignNode extends ForeignFunctionCallNode {
-  @Child
-  private CoercePrimitiveNode coercePrimitiveNode = CoercePrimitiveNode.build();
-  @CompilerDirectives.CompilationFinal
-  private Object fnPythonDate;
-  @Child
-  private InteropLibrary nodePythonDate;
-  @CompilerDirectives.CompilationFinal
-  private Object fnPythonTime;
-  @Child
-  private InteropLibrary nodePythonTime;
-  @CompilerDirectives.CompilationFinal
-  private Object fnPythonZone;
-  @Child
-  private InteropLibrary nodePythonZone;
-  @CompilerDirectives.CompilationFinal
-  private Object fnPythonCombine;
-  @Child
-  private InteropLibrary nodePythonCombine;
+  @Child private CoercePrimitiveNode coercePrimitiveNode = CoercePrimitiveNode.build();
+  @CompilerDirectives.CompilationFinal private Object fnPythonDate;
+  @Child private InteropLibrary nodePythonDate;
+  @CompilerDirectives.CompilationFinal private Object fnPythonTime;
+  @Child private InteropLibrary nodePythonTime;
+  @CompilerDirectives.CompilationFinal private Object fnPythonZone;
+  @Child private InteropLibrary nodePythonZone;
+  @CompilerDirectives.CompilationFinal private Object fnPythonCombine;
+  @Child private InteropLibrary nodePythonCombine;
 
   abstract Object getForeignFunction();
 
-  private Object wrapPythonDate(LocalDate date) throws UnsupportedTypeException, ArityException, UnsupportedMessageException {
+  private Object wrapPythonDate(LocalDate date)
+      throws UnsupportedTypeException, ArityException, UnsupportedMessageException {
     if (nodePythonDate == null) {
       CompilerDirectives.transferToInterpreterAndInvalidate();
       var ctx = EpbContext.get(this);
-      var src = Source.newBuilder("python", """
+      var src =
+          Source.newBuilder(
+                  "python",
+                  """
       from datetime import date
       date
-      """, "convert_date.py").build();
+      """,
+                  "convert_date.py")
+              .build();
 
       fnPythonDate = ctx.getEnv().parsePublic(src).call();
       nodePythonDate = insert(InteropLibrary.getFactory().create(fnPythonDate));
     }
-    return nodePythonDate.execute(fnPythonDate, date.getYear(), date.getMonthValue(), date.getDayOfMonth());
+    return nodePythonDate.execute(
+        fnPythonDate, date.getYear(), date.getMonthValue(), date.getDayOfMonth());
   }
 
-  private Object wrapPythonTime(LocalTime time) throws UnsupportedTypeException, ArityException, UnsupportedMessageException {
+  private Object wrapPythonTime(LocalTime time)
+      throws UnsupportedTypeException, ArityException, UnsupportedMessageException {
     if (nodePythonTime == null) {
       CompilerDirectives.transferToInterpreterAndInvalidate();
       var ctx = EpbContext.get(this);
-      var src = Source.newBuilder("python", """
+      var src =
+          Source.newBuilder(
+                  "python",
+                  """
       from datetime import time
       time
-      """, "convert_time.py").build();
+      """,
+                  "convert_time.py")
+              .build();
       fnPythonTime = ctx.getEnv().parsePublic(src).call();
       nodePythonTime = insert(InteropLibrary.getFactory().create(fnPythonTime));
     }
-    return nodePythonTime.execute(fnPythonTime, time.getHour(), time.getMinute(), time.getSecond(), time.getNano() / 1000);
+    return nodePythonTime.execute(
+        fnPythonTime, time.getHour(), time.getMinute(), time.getSecond(), time.getNano() / 1000);
   }
 
   private Object wrapPythonZone(ZoneId zone, LocalTime time, LocalDate date)
-          throws UnsupportedTypeException, ArityException, UnsupportedMessageException {
+      throws UnsupportedTypeException, ArityException, UnsupportedMessageException {
     var ctx = EpbContext.get(this);
     if (nodePythonZone == null) {
       CompilerDirectives.transferToInterpreterAndInvalidate();
-      var src = Source.newBuilder("python", """
+      var src =
+          Source.newBuilder(
+                  "python",
+                  """
       from datetime import timezone, timedelta, tzinfo
 
       class EnsoTzInfo(tzinfo):
@@ -100,7 +106,9 @@ public abstract class PyForeignNode extends ForeignFunctionCallNode {
           return EnsoTzInfo(rules)
 
       conv
-      """, "convert_time_zone.py").build();
+      """,
+                  "convert_time_zone.py")
+              .build();
 
       fnPythonZone = ctx.getEnv().parsePublic(src).call();
       nodePythonZone = insert(InteropLibrary.getFactory().create(fnPythonZone));
@@ -109,14 +117,19 @@ public abstract class PyForeignNode extends ForeignFunctionCallNode {
   }
 
   private Object combinePythonDateTimeZone(Object date, Object time, Object zone)
-          throws UnsupportedTypeException, ArityException, UnsupportedMessageException {
+      throws UnsupportedTypeException, ArityException, UnsupportedMessageException {
     if (nodePythonCombine == null) {
       CompilerDirectives.transferToInterpreterAndInvalidate();
       var ctx = EpbContext.get(this);
-      var src = Source.newBuilder("python", """
+      var src =
+          Source.newBuilder(
+                  "python",
+                  """
       from datetime import datetime
       datetime.combine
-      """, "convert_combine.py").build();
+      """,
+                  "convert_combine.py")
+              .build();
 
       fnPythonCombine = ctx.getEnv().parsePublic(src).call();
       nodePythonCombine = insert(InteropLibrary.getFactory().create(fnPythonCombine));
@@ -131,16 +144,19 @@ public abstract class PyForeignNode extends ForeignFunctionCallNode {
 
   @Specialization
   public Object doExecute(
-          Object[] arguments,
-          @CachedLibrary("foreignFunction") InteropLibrary interopLibrary,
-          @CachedLibrary(limit = "3") InteropLibrary iop
-  ) throws InteropException {
+      Object[] arguments,
+      @CachedLibrary("foreignFunction") InteropLibrary interopLibrary,
+      @CachedLibrary(limit = "3") InteropLibrary iop)
+      throws InteropException {
     for (int i = 0; i < arguments.length; i++) {
       var javaTime = iop.isTime(arguments[i]) ? iop.asTime(arguments[i]) : null;
       var time = javaTime != null ? wrapPythonTime(javaTime) : null;
       var javaDate = iop.isDate(arguments[i]) ? iop.asDate(arguments[i]) : null;
       var date = javaDate != null ? wrapPythonDate(javaDate) : null;
-      var zone = iop.isTimeZone(arguments[i]) ? wrapPythonZone(iop.asTimeZone(arguments[i]), javaTime, javaDate) : null;
+      var zone =
+          iop.isTimeZone(arguments[i])
+              ? wrapPythonZone(iop.asTimeZone(arguments[i]), javaTime, javaDate)
+              : null;
       if (date != null && time != null) {
         arguments[i] = combinePythonDateTimeZone(date, time, zone);
       } else if (date != null) {
@@ -177,10 +193,8 @@ public abstract class PyForeignNode extends ForeignFunctionCallNode {
     @ExportMessage
     boolean isMemberInvocable(String member) {
       return switch (member) {
-        case "dst", "name", "offset" ->
-          true;
-        default ->
-          false;
+        case "dst", "name", "offset" -> true;
+        default -> false;
       };
     }
 
@@ -191,10 +205,8 @@ public abstract class PyForeignNode extends ForeignFunctionCallNode {
 
     @ExportMessage
     @CompilerDirectives.TruffleBoundary
-    Object invokeMember(
-      String name, Object[] args,
-      @CachedLibrary(limit = "3") InteropLibrary iop
-    ) throws UnknownIdentifierException, UnsupportedMessageException {
+    Object invokeMember(String name, Object[] args, @CachedLibrary(limit = "3") InteropLibrary iop)
+        throws UnknownIdentifierException, UnsupportedMessageException {
       var date = iop.asDate(args[0]);
       var time = iop.asTime(args[0]);
       var when = date.atTime(time);
@@ -206,10 +218,8 @@ public abstract class PyForeignNode extends ForeignFunctionCallNode {
           yield now.getTotalSeconds() - std.getTotalSeconds();
         }
         case "name" -> zone.getId();
-        case "offset" ->
-          zone.getRules().getOffset(when).getTotalSeconds();
-        default ->
-          throw UnknownIdentifierException.create(name);
+        case "offset" -> zone.getRules().getOffset(when).getTotalSeconds();
+        default -> throw UnknownIdentifierException.create(name);
       };
     }
   }

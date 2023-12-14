@@ -15,12 +15,16 @@ public class EpbParser {
       this.foreignSource = foreignSource;
     }
 
-    /** @return the foreign language code to eval */
+    /**
+     * @return the foreign language code to eval
+     */
     public String getForeignSource() {
       return foreignSource;
     }
 
-    /** @return the foreign language in which the source is written */
+    /**
+     * @return the foreign language in which the source is written
+     */
     public ForeignLanguage getLanguage() {
       return language;
     }

@@ -25,7 +25,8 @@ public class ForeignMethodInvokeTest extends TestBase {
   public void testForeignFunctionParseFailure() {
     // python is not a permitted language, therefore, invoking `py_array` method
     // should fail with a Polyglot_Error, rather than crashing whole engine.
-    String source = """
+    String source =
+        """
         from Standard.Base import all
 
         foreign python py_array = \"\"\"
@@ -33,15 +34,18 @@ public class ForeignMethodInvokeTest extends TestBase {
 
         main =
             Panic.recover Any py_array
-        """.trim();
+        """
+            .trim();
     Value module = ctx.eval("enso", source);
     Value res = module.invokeMember("eval_expression", "main");
     assertTrue("Invoking non-installed foreign function should recover", res.isException());
     try {
       throw res.throwException();
     } catch (Exception e) {
-      assertTrue("Wrong error message",
-          e.getMessage().matches("Cannot parse foreign python method. Only available languages are .+"));
+      assertTrue(
+          "Wrong error message",
+          e.getMessage()
+              .matches("Cannot parse foreign python method. Only available languages are .+"));
     }
   }
 }

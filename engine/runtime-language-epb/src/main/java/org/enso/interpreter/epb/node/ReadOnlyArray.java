@@ -28,6 +28,7 @@ public final class ReadOnlyArray implements TruffleObject {
   public ReadOnlyArray(Object... items) {
     this.items = items;
   }
+
   /**
    * Marks the object as array-like for Polyglot APIs.
    *

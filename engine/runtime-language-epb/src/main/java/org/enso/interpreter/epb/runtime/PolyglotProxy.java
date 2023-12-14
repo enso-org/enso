@@ -48,17 +48,23 @@ public final class PolyglotProxy implements TruffleObject {
     this.target = target;
   }
 
-  /** @return the wrapped value */
+  /**
+   * @return the wrapped value
+   */
   public Object getDelegate() {
     return delegate;
   }
 
-  /** @return the context in which the wrapped value originates */
+  /**
+   * @return the context in which the wrapped value originates
+   */
   public GuardedTruffleContext getOrigin() {
     return origin;
   }
 
-  /** @return the context in which this wrapper is supposed to be used */
+  /**
+   * @return the context in which this wrapper is supposed to be used
+   */
   public GuardedTruffleContext getTarget() {
     return target;
   }
@@ -190,7 +196,9 @@ public final class PolyglotProxy implements TruffleObject {
       @Exclusive @Cached ContextRewrapExceptionNode contextRewrapExceptionNode,
       @Exclusive @Cached ContextRewrapNode contextRewrapNode,
       @Exclusive @Cached BranchProfile profile)
-      throws ArityException, UnknownIdentifierException, UnsupportedMessageException,
+      throws ArityException,
+          UnknownIdentifierException,
+          UnsupportedMessageException,
           UnsupportedTypeException {
     Object[] wrappedArgs = new Object[arguments.length];
     for (int i = 0; i < arguments.length; i++) {

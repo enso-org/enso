@@ -123,12 +123,16 @@ public class EpbContext {
     return innerContext;
   }
 
-  /** @return returns the currently entered Truffle context handle. */
+  /**
+   * @return returns the currently entered Truffle context handle.
+   */
   public GuardedTruffleContext getCurrentContext() {
     return currentContext;
   }
 
-  /** @return the language environment associated with this context. */
+  /**
+   * @return the language environment associated with this context.
+   */
   public TruffleLanguage.Env getEnv() {
     return env;
   }

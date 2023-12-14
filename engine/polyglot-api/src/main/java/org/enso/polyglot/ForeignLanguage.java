@@ -19,7 +19,9 @@ public enum ForeignLanguage {
     this.syntacticTag = syntacticTag;
   }
 
-  /** @return a Truffle language ID associated with this language */
+  /**
+   * @return a Truffle language ID associated with this language
+   */
   public String getTruffleId() {
     return truffleId;
   }
