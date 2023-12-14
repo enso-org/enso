@@ -71,7 +71,7 @@ export async function exponentialBackoff<T, E>(
   }
 }
 
-export function onBeforeRetry(
+export function defaultOnBeforeRetry(
   description: string,
 ): NonNullable<BackoffOptions<any>['onBeforeRetry']> {
   return (error, retryCount, maxRetries, delay) => {
@@ -84,7 +84,9 @@ export function onBeforeRetry(
   }
 }
 
-export function onFailure(description: string): NonNullable<BackoffOptions<any>['onFailure']> {
+export function defaultOnFailure(
+  description: string,
+): NonNullable<BackoffOptions<any>['onFailure']> {
   return (error, retryCount) => {
     console.error(
       'Could not ' + description + ` (${retryCount}/${retryCount} retries), throwing error.`,
@@ -93,7 +95,9 @@ export function onFailure(description: string): NonNullable<BackoffOptions<any>[
   }
 }
 
-export function onSuccess(description: string): NonNullable<BackoffOptions<any>['onSuccess']> {
+export function defaultOnSuccess(
+  description: string,
+): NonNullable<BackoffOptions<any>['onSuccess']> {
   return (retryCount) => {
     if (retryCount === 0) return
     console.info(
@@ -106,10 +110,10 @@ export function onSuccess(description: string): NonNullable<BackoffOptions<any>[
 
 /** @param successDescription Should be in past tense, without an initial capital letter.
  * @param errorDescription Should be in present tense, without an initial capital letter. */
-export function exponentialBackoffMessages(successDescription: string, errorDescription: string) {
+export function printingCallbacks(successDescription: string, errorDescription: string) {
   return {
-    onBeforeRetry: onBeforeRetry(errorDescription),
-    onSuccess: onSuccess(successDescription),
-    onFailure: onFailure(errorDescription),
+    onBeforeRetry: defaultOnBeforeRetry(errorDescription),
+    onSuccess: defaultOnSuccess(successDescription),
+    onFailure: defaultOnFailure(errorDescription),
   } satisfies BackoffOptions<unknown>
 }
