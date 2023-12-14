@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import GraphEdge from '@/components/GraphEditor/GraphEdge.vue'
-import type { GraphNavigator } from '@/providers/graphNavigator.ts'
-import { injectGraphSelection } from '@/providers/graphSelection.ts'
+import type { GraphNavigator } from '@/providers/graphNavigator'
+import { injectGraphSelection } from '@/providers/graphSelection'
 import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
 import { useGraphStore } from '@/stores/graph'
-import { Vec2 } from '@/util/vec2.ts'
-import type { ExprId } from 'shared/yjsModel.ts'
+import { Vec2 } from '@/util/data/vec2'
+import type { ExprId } from 'shared/yjsModel'
 
 const graph = useGraphStore()
 const selection = injectGraphSelection(true)

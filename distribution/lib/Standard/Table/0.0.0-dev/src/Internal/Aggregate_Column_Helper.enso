@@ -90,7 +90,7 @@ prepare_aggregate_columns naming_helper aggregates table error_on_missing_column
                     ## If none were found, we raise a generic error (this may
                        happen primarily when an empty list is provided to the
                        aggregate method).
-                    Error.throw No_Output_Columns
+                    Error.throw No_Output_Columns.Error
             False ->
                 problem_builder.report_unique_name_strategy unique
                 Validated_Aggregate_Columns.Value unique_key_columns renamed_columns problem_builder.get_problemset_throwing_distinguished_errors

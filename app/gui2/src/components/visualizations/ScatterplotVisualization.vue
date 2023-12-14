@@ -1,7 +1,7 @@
 <script lang="ts">
 import SvgIcon from '@/components/SvgIcon.vue'
+import { useEvent } from '@/composables/events'
 import { useVisualizationConfig } from '@/providers/visualizationConfig'
-import { useEvent } from '@/util/events'
 import { getTextWidth } from '@/util/measurement'
 import { VisualizationContainer, defineKeybinds } from '@/util/visualizationBuiltins'
 import { computed, ref, watch, watchEffect, watchPostEffect } from 'vue'

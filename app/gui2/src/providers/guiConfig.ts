@@ -1,6 +1,6 @@
+import { createContextStore } from '@/providers'
 import { identity } from '@vueuse/core'
 import { type Ref } from 'vue'
-import { createContextStore } from '.'
 
 export interface GuiConfig {
   engine?: {

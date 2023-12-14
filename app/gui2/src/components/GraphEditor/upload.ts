@@ -1,6 +1,6 @@
 import { Awareness } from '@/stores/awareness'
 import * as astText from '@/util/ast/text'
-import { Vec2 } from '@/util/vec2'
+import { Vec2 } from '@/util/data/vec2'
 import { Keccak, sha3_224 as SHA3 } from '@noble/hashes/sha3'
 import type { Hash } from '@noble/hashes/utils'
 import { bytesToHex } from '@noble/hashes/utils'

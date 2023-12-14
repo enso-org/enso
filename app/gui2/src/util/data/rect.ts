@@ -1,8 +1,8 @@
-import { Vec2 } from '@/util/vec2'
+/** @file Axis-aligned rectangle. Defined in terms of a top-left point and a size. */
 
-/**
- * Axis-aligned rectangle. Defined in terms of a top-left point and a size.
- */
+import { Vec2 } from '@/util/data/vec2'
+
+/** Axis-aligned rectangle. Defined in terms of a top-left point and a size. */
 export class Rect {
   constructor(
     readonly pos: Vec2,

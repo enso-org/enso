@@ -1,8 +1,8 @@
+import { GraphDb } from '@/stores/graph/graphDatabase'
 import { Ast } from '@/util/ast'
 import assert from 'assert'
 import { IdMap, type ExprId } from 'shared/yjsModel'
 import { expect, test } from 'vitest'
-import { GraphDb } from '../graphDatabase'
 
 test('Reading graph from definition', () => {
   const code = 'function a =\n    node1 = a + 4\n    node2 = node1 + 4'
