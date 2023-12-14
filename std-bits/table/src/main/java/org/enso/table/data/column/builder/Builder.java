@@ -38,7 +38,7 @@ public abstract class Builder {
       case BigIntegerType x -> new BigIntegerBuilder(size, problemAggregator);
       case null -> new InferredBuilder(size, problemAggregator);
     };
-    assert builder.getType().equals(type);
+    assert java.util.Objects.equals(builder.getType(), type);
     return builder;
   }
 
