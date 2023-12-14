@@ -5,6 +5,7 @@ import static org.junit.Assert.assertNotNull;
 
 import java.nio.file.Paths;
 import java.util.logging.Level;
+import org.enso.interpreter.test.MockLogHandler;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.io.IOAccess;
