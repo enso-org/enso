@@ -1653,6 +1653,9 @@ lazy val runtime = (project in file("engine/runtime"))
           "runtime-language-epb"
         ) / Compile / productDirectories).value ++
         (LocalProject(
+          "runtime-language-arrow"
+        ) / Compile / productDirectories).value ++
+        (LocalProject(
           "runtime-compiler"
         ) / Compile / productDirectories).value ++
         (LocalProject("refactoring-utils") / Compile / productDirectories).value
@@ -1959,6 +1962,7 @@ lazy val `runtime-fat-jar` =
     .dependsOn(`runtime-instrument-repl-debugger`)
     .dependsOn(`runtime-instrument-runtime-server`)
     .dependsOn(`runtime-language-epb`)
+    .dependsOn(`runtime-language-arrow`)
     .dependsOn(LocalProject("runtime"))
 
 /* Note [Unmanaged Classpath]

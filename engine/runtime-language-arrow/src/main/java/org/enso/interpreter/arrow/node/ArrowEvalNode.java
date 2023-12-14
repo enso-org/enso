@@ -11,6 +11,7 @@ public class ArrowEvalNode extends RootNode {
   private final ArrowParser.Result code;
 
   @Child private ArrowFixedSizeNode fixedPhysicalLayout = ArrowFixedSizeNode.build();
+  @Child private ArrowCastFixedSizeNode castToFixedPhysicalLayout = ArrowCastFixedSizeNode.build();
 
   public static ArrowEvalNode build(ArrowLanguage language, ArrowParser.Result code) {
     return new ArrowEvalNode(language, code);
@@ -26,7 +27,7 @@ public class ArrowEvalNode extends RootNode {
       case Allocate:
         return fixedPhysicalLayout.execute(code.getLogicalLayout());
       case Cast:
-        return null; // TODO
+        return castToFixedPhysicalLayout.execute(code.getLogicalLayout());
     }
     throw CompilerDirectives.shouldNotReachHere("unknown mode");
   }

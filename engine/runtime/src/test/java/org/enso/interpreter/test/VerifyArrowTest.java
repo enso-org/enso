@@ -10,7 +10,14 @@ import java.time.ZonedDateTime;
 import java.time.temporal.Temporal;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.*;
+import java.util.logging.Formatter;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
+import java.util.logging.SimpleFormatter;
+import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.memory.RootAllocator;
+import org.apache.arrow.vector.IntVector;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
@@ -117,6 +124,36 @@ public class VerifyArrowTest {
     populateIntArray(int8Array, (byte) 42);
     var v = int8Array.getArrayElement(5);
     assertEquals((byte) 47, v.asByte());
+    int8Array.setArrayElement(5, 21);
+    v = int8Array.getArrayElement(5);
+    assertEquals((byte) 21, v.asByte());
+    try {
+      int8Array.setArrayElement(5, 300);
+      fail("expected out of bounds exception");
+    } catch (UnsupportedOperationException e) {
+    }
+  }
+
+  @Test
+  public void castInt() {
+    try (BufferAllocator allocator = new RootAllocator();
+        IntVector intVector = new IntVector("fixed-size-primitive-layout", allocator); ) {
+      intVector.allocateNew(4);
+      intVector.set(0, 3);
+      // intVector.setNull(1);
+      intVector.set(1, 1);
+      intVector.set(2, 5);
+      intVector.set(3, 3);
+      intVector.setValueCount(4);
+
+      var int32Constr = ctx.eval("arrow", "cast[Int32]");
+      assertNotNull(int32Constr);
+      Value int32Array =
+          int32Constr.newInstance(intVector.getDataBufferAddress(), intVector.getValueCount());
+      assertNotNull(int32Array);
+      assertEquals(3, int32Array.getArrayElement(0).asInt());
+      assertEquals(5, int32Array.getArrayElement(2).asInt());
+    }
   }
 
   private void populateArrayWithConsecutiveDays(Value arr, Temporal startDate) {

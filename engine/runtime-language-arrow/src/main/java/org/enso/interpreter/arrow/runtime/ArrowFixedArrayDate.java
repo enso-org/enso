@@ -10,7 +10,6 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
-import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -21,14 +20,21 @@ import java.time.ZonedDateTime;
 @ExportLibrary(InteropLibrary.class)
 public final class ArrowFixedArrayDate implements TruffleObject {
   private final int size;
-  private final ByteBuffer buffer;
+  private final ByteBufferProxy buffer;
 
   private final DateUnit unit;
 
   public ArrowFixedArrayDate(int size, DateUnit unit) {
     this.size = size;
     this.unit = unit;
-    this.buffer = allocateBuffer(size * unit.sizeInBytes());
+    this.buffer = allocateBuffer(size * unit.sizeInBytes(), size);
+  }
+
+  public ArrowFixedArrayDate(ByteBufferProxy buffer, DateUnit unit)
+      throws UnsupportedMessageException {
+    this.size = buffer.capacity() / unit.sizeInBytes();
+    this.unit = unit;
+    this.buffer = buffer;
   }
 
   public DateUnit getUnit() {
@@ -44,18 +50,21 @@ public final class ArrowFixedArrayDate implements TruffleObject {
   @ImportStatic(ArrowFixedArrayDate.DateUnit.class)
   static class ReadArrayElement {
     @Specialization(guards = "receiver.getUnit() == Day")
-    static Object doDay(ArrowFixedArrayDate receiver, long index) {
+    static Object doDay(ArrowFixedArrayDate receiver, long index)
+        throws UnsupportedMessageException {
       // TODO: Needs null bitmap
-      var daysSinceEpoch = receiver.buffer.getInt((int) index * receiver.unit.sizeInBytes());
+      var at = typeAdjustedIndex(index, receiver.unit);
+      var daysSinceEpoch = receiver.buffer.getInt(at);
       var localDate = localDateFromDays(daysSinceEpoch);
       return new ArrowDate(localDate);
     }
 
     @Specialization(guards = "receiver.getUnit() == Millisecond")
-    static Object doMilliseconds(ArrowFixedArrayDate receiver, long index) {
+    static Object doMilliseconds(ArrowFixedArrayDate receiver, long index)
+        throws UnsupportedMessageException {
       // TODO: Needs null bitmap
-      var secondsPlusNanoSinceEpoch =
-          receiver.buffer.getLong((int) index * receiver.unit.sizeInBytes());
+      var at = typeAdjustedIndex(index, receiver.unit);
+      var secondsPlusNanoSinceEpoch = receiver.buffer.getLong(at);
       var seconds = Math.floorDiv(secondsPlusNanoSinceEpoch, nanoDiv);
       var nano = Math.floorMod(secondsPlusNanoSinceEpoch, nanoDiv);
       var zonedDateTime = zonedDateTimeFromSeconds(seconds, nano, utc);
@@ -77,9 +86,9 @@ public final class ArrowFixedArrayDate implements TruffleObject {
       if (!iop.isDate(value)) {
         throw UnsupportedMessageException.create();
       }
-      var at = index * receiver.unit.sizeInBytes();
+      var at = typeAdjustedIndex(index, receiver.unit);
       var time = iop.asDate(value).toEpochDay();
-      receiver.buffer.putInt((int) at, (int) time);
+      receiver.buffer.putInt(at, Math.toIntExact(time));
     }
 
     @Specialization(guards = "receiver.getUnit() == Millisecond")
@@ -93,17 +102,17 @@ public final class ArrowFixedArrayDate implements TruffleObject {
         throw UnsupportedMessageException.create();
       }
 
-      var at = index * receiver.unit.sizeInBytes();
+      var at = typeAdjustedIndex(index, receiver.unit);
       if (iop.isTimeZone(value)) {
         var zoneDateTimeInstant =
             instantForZone(iop.asDate(value), iop.asTime(value), iop.asTimeZone(value), utc);
         var secondsPlusNano =
             zoneDateTimeInstant.getEpochSecond() * nanoDiv + zoneDateTimeInstant.getNano();
-        receiver.buffer.putLong((int) at, secondsPlusNano);
+        receiver.buffer.putLong(at, secondsPlusNano);
       } else {
         var dateTime = instantForOffset(iop.asDate(value), iop.asTime(value), ZoneOffset.UTC);
         var secondsPlusNano = dateTime.getEpochSecond() * nanoDiv + dateTime.getNano();
-        receiver.buffer.putLong((int) at, secondsPlusNano);
+        receiver.buffer.putLong(at, secondsPlusNano);
       }
       // TODO: Update nulls bitmap
     }
@@ -188,8 +197,8 @@ public final class ArrowFixedArrayDate implements TruffleObject {
   }
 
   @CompilerDirectives.TruffleBoundary
-  private static ByteBuffer allocateBuffer(int size) {
-    return ByteBuffer.allocate(size);
+  private static ByteBufferProxy allocateBuffer(int sizeInBytes, int size) {
+    return new ByteBufferDirect(sizeInBytes, size);
   }
 
   @CompilerDirectives.TruffleBoundary
@@ -213,7 +222,7 @@ public final class ArrowFixedArrayDate implements TruffleObject {
     return date.atTime(time).toInstant(offset);
   }
 
-  public enum DateUnit {
+  public enum DateUnit implements SizeInBytes {
     Day(4),
     Millisecond(8);
 
@@ -223,7 +232,7 @@ public final class ArrowFixedArrayDate implements TruffleObject {
       this.bytes = bytes;
     }
 
-    int sizeInBytes() {
+    public int sizeInBytes() {
       return bytes;
     }
   }
@@ -231,4 +240,8 @@ public final class ArrowFixedArrayDate implements TruffleObject {
   private static final long nanoDiv = 1000000000L;
 
   private static final ZoneId utc = ZoneId.of("UTC");
+
+  private static int typeAdjustedIndex(long index, SizeInBytes unit) {
+    return Math.toIntExact(index * unit.sizeInBytes());
+  }
 }

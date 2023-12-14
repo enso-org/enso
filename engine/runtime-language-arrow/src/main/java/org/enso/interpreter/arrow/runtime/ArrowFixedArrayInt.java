@@ -10,19 +10,25 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
-import java.nio.ByteBuffer;
 
 @ExportLibrary(InteropLibrary.class)
 public final class ArrowFixedArrayInt implements TruffleObject {
   private final int size;
-  private final ByteBuffer buffer;
+  private final ByteBufferProxy buffer;
 
   private final IntUnit unit;
 
   public ArrowFixedArrayInt(int size, IntUnit unit) {
     this.size = size;
     this.unit = unit;
-    this.buffer = allocateBuffer(size * this.unit.sizeInBytes());
+    this.buffer = allocateBuffer(size * this.unit.sizeInBytes(), size);
+  }
+
+  public ArrowFixedArrayInt(ByteBufferProxy buffer, IntUnit unit)
+      throws UnsupportedMessageException {
+    this.size = buffer.capacity() / unit.sizeInBytes();
+    this.unit = unit;
+    this.buffer = buffer;
   }
 
   public IntUnit getUnit() {
@@ -38,23 +44,27 @@ public final class ArrowFixedArrayInt implements TruffleObject {
   @ImportStatic(IntUnit.class)
   static class ReadArrayElement {
     @Specialization(guards = "receiver.getUnit() == Byte1")
-    public static Object doByte(ArrowFixedArrayInt receiver, long index) {
-      return receiver.buffer.get((int) index);
+    public static Object doByte(ArrowFixedArrayInt receiver, long index)
+        throws UnsupportedMessageException {
+      return receiver.buffer.get(typeAdjustedIndex(index, receiver.unit));
     }
 
     @Specialization(guards = "receiver.getUnit() == Byte2")
-    public static Object doShort(ArrowFixedArrayInt receiver, long index) {
-      return receiver.buffer.getShort((int) index);
+    public static Object doShort(ArrowFixedArrayInt receiver, long index)
+        throws UnsupportedMessageException {
+      return receiver.buffer.getShort(typeAdjustedIndex(index, receiver.unit));
     }
 
     @Specialization(guards = "receiver.getUnit() == Byte4")
-    public static Object doInt(ArrowFixedArrayInt receiver, long index) {
-      return receiver.buffer.getInt((int) index);
+    public static Object doInt(ArrowFixedArrayInt receiver, long index)
+        throws UnsupportedMessageException {
+      return receiver.buffer.getInt(typeAdjustedIndex(index, receiver.unit));
     }
 
     @Specialization(guards = "receiver.getUnit() == Byte8")
-    public static Object doLong(ArrowFixedArrayInt receiver, long index) {
-      return receiver.buffer.getLong((int) index);
+    public static Object doLong(ArrowFixedArrayInt receiver, long index)
+        throws UnsupportedMessageException {
+      return receiver.buffer.getLong(typeAdjustedIndex(index, receiver.unit));
     }
   }
 
@@ -71,7 +81,7 @@ public final class ArrowFixedArrayInt implements TruffleObject {
       if (!iop.fitsInByte(value)) {
         throw UnsupportedMessageException.create();
       }
-      receiver.buffer.put((int) index, (iop.asByte(value)));
+      receiver.buffer.put(typeAdjustedIndex(index, receiver.unit), (iop.asByte(value)));
     }
 
     @Specialization(guards = "receiver.getUnit() == Byte2")
@@ -84,7 +94,7 @@ public final class ArrowFixedArrayInt implements TruffleObject {
       if (!iop.fitsInShort(value)) {
         throw UnsupportedMessageException.create();
       }
-      receiver.buffer.putShort((int) index, (iop.asShort(value)));
+      receiver.buffer.putShort(typeAdjustedIndex(index, receiver.unit), (iop.asShort(value)));
     }
 
     @Specialization(guards = "receiver.getUnit() == Byte4")
@@ -97,7 +107,7 @@ public final class ArrowFixedArrayInt implements TruffleObject {
       if (!iop.fitsInInt(value)) {
         throw UnsupportedMessageException.create();
       }
-      receiver.buffer.putInt((int) index, (iop.asInt(value)));
+      receiver.buffer.putInt(typeAdjustedIndex(index, receiver.unit), (iop.asInt(value)));
     }
 
     @Specialization(guards = "receiver.getUnit() == Byte8")
@@ -110,11 +120,11 @@ public final class ArrowFixedArrayInt implements TruffleObject {
       if (!iop.fitsInLong(value)) {
         throw UnsupportedMessageException.create();
       }
-      receiver.buffer.putLong((int) index, (iop.asLong(value)));
+      receiver.buffer.putLong(typeAdjustedIndex(index, receiver.unit), (iop.asLong(value)));
     }
   }
 
-  public enum IntUnit {
+  public enum IntUnit implements SizeInBytes {
     Byte1(8),
     Byte2(16),
     Byte4(32),
@@ -126,7 +136,7 @@ public final class ArrowFixedArrayInt implements TruffleObject {
       this.bits = bits;
     }
 
-    int sizeInBytes() {
+    public int sizeInBytes() {
       return bits / 8;
     }
   }
@@ -152,7 +162,11 @@ public final class ArrowFixedArrayInt implements TruffleObject {
   }
 
   @CompilerDirectives.TruffleBoundary
-  private ByteBuffer allocateBuffer(int size) {
-    return ByteBuffer.allocate(size);
+  private ByteBufferProxy allocateBuffer(int sizeInBytes, int size) {
+    return new ByteBufferDirect(sizeInBytes, size);
+  }
+
+  private static int typeAdjustedIndex(long index, SizeInBytes unit) {
+    return Math.toIntExact(index * unit.sizeInBytes());
   }
 }
