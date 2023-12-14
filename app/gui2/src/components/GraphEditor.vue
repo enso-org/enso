@@ -31,6 +31,7 @@ import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
 import * as set from 'lib0/set'
 import type { ExprId, NodeMetadata } from 'shared/yjsModel'
 import { computed, onMounted, ref, watch } from 'vue'
+import { toast, toastContainers } from 'vue3-toastify'
 import { type Usage } from './ComponentBrowser/input'
 
 const EXECUTION_MODES = ['design', 'live']
@@ -217,6 +218,7 @@ const graphBindingsHandler = graphBindings.handler({
 
 const handleClick = useDoubleClick(
   (e: MouseEvent) => {
+    toast.info('Double click to enter node')
     graphBindingsHandler(e)
   },
   () => {
@@ -526,6 +528,14 @@ function handleEdgeDrop(source: ExprId, position: Vec2) {
     @dragover.prevent
     @drop.prevent="handleFileDrop($event)"
   >
+    <ToastContainer
+      position="top-center"
+      theme="light"
+      closeOnClick="false"
+      draggable="false"
+      toastClassName="text-sm leading-170 bg-frame-selected rounded-2xl backdrop-blur-3xl"
+      transition="Vue-Toastification__bounce"
+    />
     <svg :viewBox="graphNavigator.viewBox">
       <GraphEdges @createNodeFromEdge="handleEdgeDrop" />
     </svg>
