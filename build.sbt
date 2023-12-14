@@ -1672,7 +1672,13 @@ lazy val runtime = (project in file("engine/runtime"))
         "-Dslf4j.provider=ch.qos.logback.classic.spi.LogbackServiceProvider",
         s"-Dlogback.configurationFile=${testLogbackConf.getAbsolutePath}"
       )
-    }
+    },
+    // TODO[pm] This is a workaround after `runtime-with-polyglot` was merged into `runtime`.
+    Test / javaOptions := {
+      val oldOpts = (Test / javaOptions).value
+      val newOpts = oldOpts.filterNot(_ == "-ea")
+      newOpts
+    },
   )
   .settings(
     Test / fork := true,
