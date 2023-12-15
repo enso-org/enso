@@ -34,11 +34,11 @@ function handleWidgetUpdates(value: unknown, origin: PortId) {
   if (!isUuid(origin)) {
     console.error(`[UPDATE ${origin}] Invalid top-level origin. Expected expression ID.`)
   } else if (typeof value === 'string') {
-    graph.replaceExpressionContent(origin, value)
+    graph.setExpressionContent(origin, value)
   } else if (value instanceof Ast.Ast) {
-    graph.replaceExpressionContent(origin, value.repr())
+    graph.setExpressionContent(origin, value.repr())
   } else if (value == null) {
-    graph.replaceExpressionContent(origin, '_')
+    graph.setExpressionContent(origin, '_')
   } else {
     console.error(`[UPDATE ${origin}] Invalid value:`, value)
   }

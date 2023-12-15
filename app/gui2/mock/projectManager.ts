@@ -1,11 +1,11 @@
 declare const projectIdBrand: unique symbol
-/** A name of a project. */
+/** An ID of a project. */
 export type ProjectId = string & { [projectIdBrand]: never }
 declare const projectNameBrand: unique symbol
 /** A name of a project. */
 export type ProjectName = string & { [projectNameBrand]: never }
 declare const utcDateTimeBrand: unique symbol
-/** A name of a project. */
+/** A UTC date and time. */
 export type UTCDateTime = string & { [utcDateTimeBrand]: never }
 
 /** A value specifying the hostname and port of a socket. */

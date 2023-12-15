@@ -1,19 +1,21 @@
 package org.enso.interpreter.test.instrument;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-
 import java.nio.file.Paths;
 import java.util.logging.Level;
+
 import org.enso.interpreter.test.MockLogHandler;
+import org.enso.polyglot.MethodNames;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.io.IOAccess;
 import org.junit.AfterClass;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class VerifyJavaScriptIsAvailableTest {
+public class VerifyLanguageAvailabilityTest {
   private static Context ctx;
   private static MockLogHandler handler;
 
@@ -44,16 +46,22 @@ public class VerifyJavaScriptIsAvailableTest {
 
     var args =
         handler.assertMessage(
-            "epb.org.enso.interpreter.epb.EpbContext", "Done initializing language");
+            "epb.org.enso.interpreter.epb.EpbContext", "Parsing foreign script");
     assertEquals("js", args[0]);
-    assertEquals(Boolean.TRUE, args[1]);
+    assertEquals("mul.mul", args[1]);
   }
 
   @Test
-  public void javaScriptIsPresent() {
+  public void javaScriptIsPresent() throws Exception {
     var js = ctx.getEngine().getLanguages().get("js");
     assertNotNull("JavaScript is available", js);
-    var fourtyTwo = ctx.eval("js", "6 * 7");
+    var src = Source.newBuilder("enso", """
+    foreign js mul a b = \"\"\"
+        return a * b
+
+    run = mul 6 7
+    """, "mul.enso").build();
+    var fourtyTwo = ctx.eval(src).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "run");
     assertEquals(42, fourtyTwo.asInt());
   }
 

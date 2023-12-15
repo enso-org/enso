@@ -1,11 +1,8 @@
 package org.enso.benchmarks.processor;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.net.URISyntaxException;
-import java.nio.file.Files;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -73,12 +70,11 @@ public class BenchProcessor extends AbstractProcessor {
           "import org.enso.benchmarks.Utils;");
 
   public BenchProcessor() {
-    ensoDir = Utils.findRepoRootDir();
+      ensoDir = Utils.findRepoRootDir();
 
-    // Note that ensoHomeOverride does not have to exist, only its parent directory
-    ensoHomeOverride = ensoDir.toPath().resolve("distribution").resolve("component").toFile();
+      // Note that ensoHomeOverride does not have to exist, only its parent directory
+      ensoHomeOverride = ensoDir.toPath().resolve("distribution").resolve("component").toFile();
   }
-
 
   @Override
   public SourceVersion getSupportedSourceVersion() {

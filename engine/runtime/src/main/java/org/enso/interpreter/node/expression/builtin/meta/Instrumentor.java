@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
+import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.instrument.Timer;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -8,8 +9,8 @@ import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.polyglot.debugger.IdExecutionService;
 
-import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.instrumentation.EventBinding;
 import com.oracle.truffle.api.interop.InteropException;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -17,7 +18,7 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 final class Instrumentor implements EnsoObject, IdExecutionService.Callbacks {
 
   private final IdExecutionService service;
-  private final CallTarget target;
+  private final RootCallTarget target;
   private final Module module;
   private final Object onEnter;
   private final Object onReturn;
@@ -25,7 +26,7 @@ final class Instrumentor implements EnsoObject, IdExecutionService.Callbacks {
   private final Object onCall;
   private final EventBinding<?> handle;
 
-  Instrumentor(Module module, IdExecutionService service, CallTarget target) {
+  Instrumentor(Module module, IdExecutionService service, RootCallTarget target) {
     this.module = module;
     this.service = service;
     this.target = target;
@@ -80,10 +81,12 @@ final class Instrumentor implements EnsoObject, IdExecutionService.Callbacks {
         var result = onReturnExpr == null || !iop.isString(onReturnExpr) ?
           info.getResult()
           :
-          InstrumentorEvalNode.asSuspendedEval(onReturnExpr, info);
+          InstrumentorEvalNode.asSuspendedEval(EnsoLanguage.get(target.getRootNode()), onReturnExpr, info);
         iop.execute(onReturn, info.getId().toString(), result);
       }
-    } catch (InteropException ignored) {
+    } catch (Throwable ignored) {
+      CompilerDirectives.transferToInterpreter();
+      ignored.printStackTrace();
     }
   }
 

@@ -167,13 +167,13 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   function disconnectSource(edge: Edge) {
-    if (edge.target)
-      unconnectedEdge.value = { target: edge.target, disconnectedEdgeTarget: edge.target }
+    if (!edge.target) return
+    unconnectedEdge.value = { target: edge.target, disconnectedEdgeTarget: edge.target }
   }
 
   function disconnectTarget(edge: Edge) {
-    if (edge.source && edge.target)
-      unconnectedEdge.value = { source: edge.source, disconnectedEdgeTarget: edge.target }
+    if (!edge.source || !edge.target) return
+    unconnectedEdge.value = { source: edge.source, disconnectedEdgeTarget: edge.target }
   }
 
   function clearUnconnected() {
@@ -238,20 +238,6 @@ export const useGraphStore = defineStore('graph', () => {
 
   function stopCapturingUndo() {
     proj.stopCapturingUndo()
-  }
-
-  function replaceNodeSubexpression(
-    nodeId: ExprId,
-    range: ContentRange | undefined,
-    content: string,
-  ) {
-    const node = db.nodeIdToNode.get(nodeId)
-    if (!node) return
-    proj.module?.replaceExpressionContent(node.rootSpan.exprId, content, range)
-  }
-
-  function replaceExpressionContent(exprId: ExprId, content: string) {
-    proj.module?.replaceExpressionContent(exprId, content)
   }
 
   function setNodePosition(nodeId: ExprId, position: Vec2) {
@@ -377,8 +363,6 @@ export const useGraphStore = defineStore('graph', () => {
     deleteNode,
     setNodeContent,
     setExpressionContent,
-    replaceNodeSubexpression,
-    replaceExpressionContent,
     setNodePosition,
     setNodeVisualizationId,
     setNodeVisualizationVisible,
