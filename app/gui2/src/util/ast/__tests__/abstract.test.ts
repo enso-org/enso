@@ -348,11 +348,11 @@ test.each(cases)('parse/print round trip: %s', (code) => {
   const root = Ast.parse(code)
   // Print AST back to source.
   const printed = Ast.print(root)
-  const info1 = printed.info
+  const _info1 = printed.info
   expect(printed.code).toEqual(code)
 
   // Re-parse.
-  const root1 = Ast.parse(printed)
+  const _root1 = Ast.parse(printed)
   // Check that Identities match original AST.
   // FIXME--Needed for AST edits (#8367).
   /*

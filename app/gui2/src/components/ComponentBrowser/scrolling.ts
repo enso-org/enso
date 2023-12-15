@@ -1,8 +1,5 @@
 import { useApproach } from '@/composables/animation'
-import { useResizeObserver } from '@/composables/events'
-import type { Opt } from '@/util/data/opt'
-import type { ShallowUnwrapRef } from '@vueuse/core'
-import { computed, ref, watch, type Ref, type WatchSource } from 'vue'
+import { computed, ref } from 'vue'
 
 export type ScrollTarget =
   | { type: 'bottom' }
@@ -25,6 +22,7 @@ export function useScrolling(
       case 'offset':
         return targetScroll.value.offset
     }
+    return 0.0
   })
   const scrollTransitionTarget = ref(0.0)
   const scrollTransition = useApproach(scrollTransitionTarget)
