@@ -71,10 +71,6 @@ public final class ArrowParser {
   public enum LogicalLayout implements SizeInBytes {
     Date32(32),
     Date64(64),
-    Float8(8),
-    Float16(16),
-    Float32(32),
-    Float64(64),
     Int8(8),
     Int16(16),
     Int32(32),
