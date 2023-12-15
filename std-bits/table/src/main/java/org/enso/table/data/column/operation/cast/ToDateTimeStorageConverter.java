@@ -1,15 +1,14 @@
 package org.enso.table.data.column.operation.cast;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import org.enso.table.data.column.builder.DateTimeBuilder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.datetime.DateStorage;
 import org.enso.table.data.column.storage.datetime.DateTimeStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.graalvm.polyglot.Context;
-
-import java.time.LocalDate;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
 
 public class ToDateTimeStorageConverter implements StorageConverter<ZonedDateTime> {
   @Override
@@ -21,11 +20,13 @@ public class ToDateTimeStorageConverter implements StorageConverter<ZonedDateTim
     } else if (storage.getType() instanceof AnyObjectType) {
       return castFromMixed(storage, problemAggregator);
     } else {
-      throw new IllegalStateException("No known strategy for casting storage " + storage + " to Date_Time.");
+      throw new IllegalStateException(
+          "No known strategy for casting storage " + storage + " to Date_Time.");
     }
   }
 
-  public Storage<ZonedDateTime> castFromMixed(Storage<?> mixedStorage, CastProblemAggregator problemAggregator) {
+  public Storage<ZonedDateTime> castFromMixed(
+      Storage<?> mixedStorage, CastProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     DateTimeBuilder builder = new DateTimeBuilder(mixedStorage.size());
     for (int i = 0; i < mixedStorage.size(); i++) {
@@ -50,7 +51,8 @@ public class ToDateTimeStorageConverter implements StorageConverter<ZonedDateTim
     return date.atStartOfDay().atZone(ZoneId.systemDefault());
   }
 
-  private Storage<ZonedDateTime> convertDateStorage(DateStorage dateStorage, CastProblemAggregator problemAggregator) {
+  private Storage<ZonedDateTime> convertDateStorage(
+      DateStorage dateStorage, CastProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     DateTimeBuilder builder = new DateTimeBuilder(dateStorage.size());
     for (int i = 0; i < dateStorage.size(); i++) {

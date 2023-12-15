@@ -77,6 +77,23 @@ type Existing_File_Behavior
                         action output_stream . catch Any dataflow_error->
                             Panic.throw (Internal_Write_Operation_Errored.Error dataflow_error)
 
+    ## PRIVATE
+       A counterpart of `write` that will also handle the dry-run mode if the
+       Output context is disabled. It relies on a default logic for handling the
+       dry runs, which may not always be the right choice, depending on the file
+       format.
+
+       The `action` takes 2 arguments - the effective file that will be written to
+       (the original file or the dry run file) and the output stream to write to.
+    write_handling_dry_run : File -> (File -> Output_Stream -> Any) -> Any ! File_Error
+    write_handling_dry_run self file action =
+        if Context.Output.is_enabled then self.write file (action file) else
+            effective_behavior = self.get_effective_behavior file is_enabled=False
+            needs_original = effective_behavior == Existing_File_Behavior.Append
+            dry_run_file = file.create_dry_run_file copy_original=needs_original
+            Context.Output.with_enabled <|
+                effective_behavior.write dry_run_file (action dry_run_file)
+
 ## PRIVATE
 write_file_backing_up_old_one : File -> (Output_Stream -> Nothing) -> Nothing ! File_Error
 write_file_backing_up_old_one file action = recover_io_and_not_found <|
@@ -100,7 +117,7 @@ write_file_backing_up_old_one file action = recover_io_and_not_found <|
         handle_internal_dataflow = Panic.catch Internal_Write_Operation_Errored handler=handle_write_failure_dataflow
         handle_internal_panic = Panic.catch Internal_Write_Operation_Panicked handler=handle_write_failure_panic
         handle_file_already_exists <| handle_internal_dataflow <| handle_internal_panic <|
-            Panic.rethrow <|
+            result = Panic.rethrow <|
                 new_file.with_output_stream [File_Access.Write, File_Access.Create_New] output_stream->
                     result = Panic.catch Any (action output_stream) caught_panic->
                         Panic.throw (Internal_Write_Operation_Panicked.Panic caught_panic)
@@ -118,6 +135,8 @@ write_file_backing_up_old_one file action = recover_io_and_not_found <|
             Panic.catch File_Error handler=not_found_handler <|
                 Panic.rethrow <| file.move_to bak_file replace_existing=True
             Panic.rethrow <| new_file.move_to file
+            result
+
     ## Here we manually check if the target file is writable. This is necessary,
        because the `Backup` scenario would go around the original file not being
        writable by moving it (which is permitted for read-only files too) and

@@ -5,7 +5,9 @@ import java.util.concurrent.CompletableFuture;
 /** A component that should be initialized. */
 public interface InitializationComponent {
 
-  /** @return `true` if the component is initialized */
+  /**
+   * @return `true` if the component is initialized
+   */
   boolean isInitialized();
 
   /** Initialize the component. */

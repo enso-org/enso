@@ -5,7 +5,7 @@ import { useGraphStore, type Edge } from '@/stores/graph'
 import { assert } from '@/util/assert'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
-import theme from '@/util/theme.json'
+import theme from '@/util/theme'
 import { clamp } from '@vueuse/core'
 import { computed, ref } from 'vue'
 
@@ -79,7 +79,7 @@ const edgeColor = computed(
 )
 
 /** The inputs to the edge state computation. */
-type Inputs = {
+interface Inputs {
   /** The width and height of the node that originates the edge, if any.
    *  The edge may begin anywhere around the bottom half of the node. */
   sourceSize: Vec2
@@ -93,41 +93,11 @@ type Inputs = {
   targetPortTopDistanceInNode: number | undefined
 }
 
-type JunctionPoints = {
+interface JunctionPoints {
   points: Vec2[]
   maxRadius: number
   targetAttachment: { target: Vec2; length: number } | undefined
 }
-
-/** Minimum height above the target the edge must approach it from. */
-const MIN_APPROACH_HEIGHT = 32
-/** The preferred arc radius. */
-const RADIUS_BASE = 20
-
-/** Constants configuring the 1-corner layout. */
-const SingleCorner = {
-  /** The y-allocation for the radius will be the full available height minus this value. */
-  RADIUS_Y_ADJUSTMENT: 29,
-  /** The base x-allocation for the radius. */
-  RADIUS_X_BASE: RADIUS_BASE,
-  /** Proportion (0-1) of extra x-distance allocated to the radius. */
-  RADIUS_X_FACTOR: 0.6,
-  /** Distance for the line to continue under the node, to ensure that there isn't a gap. */
-  SOURCE_NODE_OVERLAP: 4,
-  /** Minimum arc radius at which we offset the source end to exit normal to the node's curve. */
-  MINIMUM_TANGENT_EXIT_RADIUS: 2,
-} as const
-
-/** Constants configuring the 3-corner layouts. */
-const ThreeCorner = {
-  /** The maximum arc radius. */
-  RADIUS_MAX: RADIUS_BASE,
-  BACKWARD_EDGE_ARROW_THRESHOLD: 15,
-  /** The maximum radius reduction (from [`RADIUS_BASE`]) to allow when choosing whether to use
-   *  the three-corner layout that doesn't use a backward corner.
-   */
-  MAX_SQUEEZE: 2,
-} as const
 
 function circleIntersection(x: number, r1: number, r2: number): number {
   let xNorm = clamp(x, -r2, r1)
@@ -188,31 +158,26 @@ function junctionPoints(inputs: Inputs): JunctionPoints | null {
       : undefined
 
   const targetWellBelowSource =
-    inputs.targetOffset.y - (inputs.targetPortTopDistanceInNode ?? 0) >= MIN_APPROACH_HEIGHT
+    inputs.targetOffset.y - (inputs.targetPortTopDistanceInNode ?? 0) >=
+    theme.edge.min_approach_height
   const targetBelowSource = inputs.targetOffset.y > theme.node.height / 2.0
   const targetBeyondSource = Math.abs(inputs.targetOffset.x) > sourceMaxXOffset
   const horizontalRoomFor3Corners =
     targetBeyondSource &&
     Math.abs(inputs.targetOffset.x) - sourceMaxXOffset >=
-      3.0 * (RADIUS_BASE - ThreeCorner.MAX_SQUEEZE)
+      3.0 * (theme.edge.radius - theme.edge.three_corner.max_squeeze)
   if (targetWellBelowSource || (targetBelowSource && !horizontalRoomFor3Corners)) {
-    const {
-      RADIUS_Y_ADJUSTMENT,
-      RADIUS_X_BASE,
-      RADIUS_X_FACTOR,
-      SOURCE_NODE_OVERLAP,
-      MINIMUM_TANGENT_EXIT_RADIUS,
-    } = SingleCorner
+    const innerTheme = theme.edge.one_corner
     // The edge can originate anywhere along the length of the node.
     const sourceX = clamp(inputs.targetOffset.x, -sourceMaxXOffset, sourceMaxXOffset)
     const distanceX = Math.max(Math.abs(inputs.targetOffset.x) - halfSourceSize.x, 0)
-    const radiusX = RADIUS_X_BASE + distanceX * RADIUS_X_FACTOR
+    const radiusX = innerTheme.radius_x_base + distanceX * innerTheme.radius_x_factor
     // The minimum length of straight line there should be at the target end of the edge. This
     // is a fixed value, except it is reduced when the target is horizontally very close to the
     // edge of the source, so that very short edges are less sharp.
     const yAdjustment = Math.min(
-      Math.abs(inputs.targetOffset.x) - halfSourceSize.x + RADIUS_Y_ADJUSTMENT / 2.0,
-      RADIUS_Y_ADJUSTMENT,
+      Math.abs(inputs.targetOffset.x) - halfSourceSize.x + innerTheme.radius_y_adjustment / 2.0,
+      innerTheme.radius_y_adjustment,
     )
     const radiusY = Math.max(Math.abs(inputs.targetOffset.y) - yAdjustment, 0.0)
     const maxRadius = Math.min(radiusX, radiusY)
@@ -222,7 +187,7 @@ function junctionPoints(inputs: Inputs): JunctionPoints | null {
       Math.abs(inputs.targetOffset.y),
     )
     let sourceDY = 0
-    if (naturalRadius > MINIMUM_TANGENT_EXIT_RADIUS) {
+    if (naturalRadius > innerTheme.minimum_tangent_exit_radius) {
       // Offset the beginning of the edge so that it is normal to the curve of the source node
       // at the point that it exits the node.
       const radius = Math.min(naturalRadius, maxRadius)
@@ -232,7 +197,7 @@ function junctionPoints(inputs: Inputs): JunctionPoints | null {
       const intersection = circleIntersection(circleOffset, theme.node.corner_radius, radius)
       sourceDY = -Math.abs(radius - intersection)
     } else if (halfSourceSize.y != 0) {
-      sourceDY = -SOURCE_NODE_OVERLAP + halfSourceSize.y
+      sourceDY = -innerTheme.source_node_overlap + halfSourceSize.y
     }
     const source = new Vec2(sourceX, sourceDY)
     // The target attachment will extend as far toward the edge of the node as it can without
@@ -249,7 +214,7 @@ function junctionPoints(inputs: Inputs): JunctionPoints | null {
       targetAttachment: attachment,
     }
   } else {
-    const { RADIUS_MAX } = ThreeCorner
+    const radiusMax = theme.edge.three_corner.radius_max
     // The edge originates from either side of the node.
     const signX = Math.sign(inputs.targetOffset.x)
     const sourceX = Math.abs(sourceMaxXOffset) * signX
@@ -265,11 +230,11 @@ function junctionPoints(inputs: Inputs): JunctionPoints | null {
       // ╰─────╯────╯\
       //             J0
       // Junctions (J0, J1) are in between source and target.
-      const j0Dx = Math.min(2 * RADIUS_MAX, distanceX / 2)
-      const j1Dx = Math.min(RADIUS_MAX, (distanceX - j0Dx) / 2)
+      const j0Dx = Math.min(2 * radiusMax, distanceX / 2)
+      const j1Dx = Math.min(radiusMax, (distanceX - j0Dx) / 2)
       j0x = sourceX + Math.abs(j0Dx) * signX
       j1x = j0x + Math.abs(j1Dx) * signX
-      heightAdjustment = RADIUS_MAX - j1Dx
+      heightAdjustment = radiusMax - j1Dx
     } else {
       //            J1
       //           /
@@ -278,16 +243,16 @@ function junctionPoints(inputs: Inputs): JunctionPoints | null {
       // ╭─────╮    │
       // ╰─────╯────╯
       // J0 > source; J0 > J1; J1 > target.
-      j1x = inputs.targetOffset.x + Math.abs(RADIUS_MAX) * signX
-      const j0BeyondSource = Math.abs(inputs.targetOffset.x) + RADIUS_MAX * 2
-      const j0BeyondTarget = Math.abs(sourceX) + RADIUS_MAX
+      j1x = inputs.targetOffset.x + Math.abs(radiusMax) * signX
+      const j0BeyondSource = Math.abs(inputs.targetOffset.x) + radiusMax * 2
+      const j0BeyondTarget = Math.abs(sourceX) + radiusMax
       j0x = Math.abs(Math.max(j0BeyondTarget, j0BeyondSource)) * signX
       heightAdjustment = 0
     }
     if (j0x == null || j1x == null || heightAdjustment == null) return null
     const attachmentHeight = inputs.targetPortTopDistanceInNode ?? 0
     const top = Math.min(
-      inputs.targetOffset.y - MIN_APPROACH_HEIGHT - attachmentHeight + heightAdjustment,
+      inputs.targetOffset.y - theme.edge.min_approach_height - attachmentHeight + heightAdjustment,
       0,
     )
     const source = new Vec2(sourceX, 0)
@@ -297,7 +262,7 @@ function junctionPoints(inputs: Inputs): JunctionPoints | null {
     const attachmentTarget = attachment?.target ?? inputs.targetOffset
     return {
       points: [source, j0, j1, attachmentTarget],
-      maxRadius: RADIUS_MAX,
+      maxRadius: radiusMax,
       targetAttachment: attachment,
     }
   }
@@ -440,12 +405,12 @@ const activeStyle = computed(() => {
 
 const baseStyle = computed(() => ({ '--node-base-color': edgeColor.value ?? 'tan' }))
 
-function click(_e: PointerEvent) {
-  if (base.value == null) return {}
-  if (navigator?.sceneMousePos == null) return {}
+function click() {
+  if (base.value == null) return
+  if (navigator?.sceneMousePos == null) return
   const length = base.value.getTotalLength()
   let offset = lengthTo(navigator?.sceneMousePos)
-  if (offset == null) return {}
+  if (offset == null) return
   if (offset < length / 2) graph.disconnectTarget(props.edge)
   else graph.disconnectSource(props.edge)
 }
@@ -457,7 +422,7 @@ function arrowPosition(): Vec2 | undefined {
   const target = targetRect.value
   const source = sourceRect.value
   if (target == null || source == null) return
-  if (target.pos.y > source.pos.y - ThreeCorner.BACKWARD_EDGE_ARROW_THRESHOLD) return
+  if (target.pos.y > source.pos.y - theme.edge.three_corner.backward_edge_arrow_threshold) return
   if (points[1] == null) return
   return source.center().add(points[1])
 }

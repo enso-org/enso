@@ -80,8 +80,7 @@ public class CreateFunctionNode extends ExpressionNode {
     return schema.getArgumentInfos();
   }
 
-  /** Optionally offers {@link AvoidIdInstrumentationTag}.
-   */
+  /** Optionally offers {@link AvoidIdInstrumentationTag}. */
   @Override
   public boolean hasTag(Class<? extends Tag> tag) {
     if (AvoidIdInstrumentationTag.class == tag) {

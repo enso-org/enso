@@ -56,13 +56,17 @@ public final class LongStorage extends AbstractLongStorage {
     this(data, data.length, new BitSet(), type);
   }
 
-  /** @inheritDoc */
+  /**
+   * @inheritDoc
+   */
   @Override
   public int size() {
     return size;
   }
 
-  /** @inheritDoc */
+  /**
+   * @inheritDoc
+   */
   @Override
   public int countMissing() {
     return isMissing.cardinality();
@@ -81,13 +85,17 @@ public final class LongStorage extends AbstractLongStorage {
     return isMissing.get(idx) ? null : data[idx];
   }
 
-  /** @inheritDoc */
+  /**
+   * @inheritDoc
+   */
   @Override
   public IntegerType getType() {
     return type;
   }
 
-  /** @inheritDoc */
+  /**
+   * @inheritDoc
+   */
   @Override
   public boolean isNa(long idx) {
     return isMissing.get((int) idx);

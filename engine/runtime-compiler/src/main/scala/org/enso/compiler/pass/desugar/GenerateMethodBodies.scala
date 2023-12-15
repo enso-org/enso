@@ -22,7 +22,6 @@ import org.enso.compiler.pass.analyse.{
 }
 import org.enso.compiler.pass.lint.UnusedBindings
 import org.enso.compiler.pass.optimise.LambdaConsolidate
-import org.enso.polyglot.ForeignLanguage
 
 import scala.annotation.tailrec
 
@@ -161,7 +160,7 @@ case object GenerateMethodBodies extends IRPass {
           case lam @ Function.Lambda(_, body, _, _, _, _)
               if findForeignDefinition(
                 body,
-                lang = Some(ForeignLanguage.JS)
+                lang = Some("js")
               ).isDefined =>
             val thisArgs = chainedFunctionArgs.collect {
               case (arg, idx) if arg.name.name == "this" =>
@@ -308,7 +307,7 @@ case object GenerateMethodBodies extends IRPass {
   @tailrec
   private def findForeignDefinition(
     body: Expression,
-    lang: Option[ForeignLanguage]
+    lang: Option[String]
   ): Option[Foreign.Definition] = {
     body match {
       case foreignDef: Foreign.Definition =>

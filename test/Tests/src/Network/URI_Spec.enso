@@ -1,10 +1,20 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Syntax_Error
+import Standard.Base.Network.URI_With_Query.URI_With_Query
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
 spec =
+    ## To run this test locally:
+       $ sbt 'simple-httpbin/run localhost 8080'
+       $ export ENSO_HTTP_TEST_HTTPBIN_URL=http://localhost:8080/
+    base_url = case Environment.get "ENSO_HTTP_TEST_HTTPBIN_URL" of
+        Nothing -> Nothing
+        str -> if str.ends_with "/" then str else str + "/"
+    pending_has_url = if base_url != Nothing then Nothing else
+        "The HTTP tests only run when the `ENSO_HTTP_TEST_HTTPBIN_URL` environment variable is set to URL of the httpbin server"
+
     Test.group "URI" <|
         Test.specify "should parse URI from string" <|
             addr = URI.parse "http://user:pass@example.com/foo/bar?key=val"
@@ -16,6 +26,30 @@ spec =
             addr.path.should_equal "/foo/bar"
             addr.query.should_equal "key=val"
             addr.fragment.should_equal Nothing
+
+        Test.specify "should allow to convert a text to URI" <|
+            addr2 = URI.from "https://example.org:1234/?a=b&c=d+e#line=10,20"
+            addr2.should_be_a URI
+            addr2.scheme.should_equal "https"
+            addr2.user_info.should_equal Nothing
+            addr2.host.should_equal "example.org"
+            addr2.authority.should_equal "example.org:1234"
+            addr2.port.should_equal 1234
+            addr2.path.should_equal "/"
+            addr2.query.should_equal "a=b&c=d+e"
+            addr2.fragment.should_equal "line=10,20"
+
+            addr3 = "ftp://example.com:21/" . to URI
+            addr3.should_be_a URI
+            addr3.scheme.should_equal "ftp"
+            addr3.user_info.should_equal Nothing
+            addr3.host.should_equal "example.com"
+            addr3.authority.should_equal "example.com:21"
+            addr3.port.should_equal 21
+            addr3.path.should_equal "/"
+            addr3.query.should_equal Nothing
+            addr3.fragment.should_equal Nothing
+
         Test.specify "should escape URI" <|
             addr = URI.parse "https://%D0%9B%D0%B8%D0%BD%D1%83%D1%81:pass@ru.wikipedia.org/wiki/%D0%AF%D0%B4%D1%80%D0%BE_Linux?%D0%9A%D0%BE%D0%B4"
             addr.user_info.should_equal "Линус:pass"
@@ -28,11 +62,133 @@ spec =
             addr.raw_path.should_equal "/wiki/%D0%AF%D0%B4%D1%80%D0%BE_Linux"
             addr.raw_query.should_equal "%D0%9A%D0%BE%D0%B4"
             addr.raw_fragment.should_equal Nothing
+
         Test.specify "should return Syntax_Error when parsing invalid URI" <|
-            URI.parse "a b c" . should_fail_with Syntax_Error
+            r = URI.parse "a b c"
+            r.should_fail_with Syntax_Error
+            r.catch.to_display_text . should_contain "a b c"
+            URI.from "a b c" . should_fail_with Syntax_Error
 
         Test.specify "should compare two URIs for equality" <|
             (URI.parse "http://google.com").should_equal (URI.parse "http://google.com")
             (URI.parse "http://google.com").should_not_equal (URI.parse "http://amazon.com")
 
+    Test.group "URI_With_Query" <|
+        Test.specify "will convert to URI_With_Query if a query argument is added" <|
+            base_uri = URI.parse "http://a_user@example.com"
+            uri = base_uri . add_query_argument "foo" "bar"
+
+            uri.should_be_a URI_With_Query
+            # The URI_With_Query should have the same fields as the URI:
+            uri.scheme.should_equal "http"
+            uri.user_info.should_equal "a_user"
+            uri.host.should_equal "example.com"
+            uri.authority.should_equal "a_user@example.com"
+            uri.port.should_equal Nothing
+            uri.path.should_equal ""
+            uri.query.should_equal "foo=bar"
+            uri.fragment.should_equal Nothing
+
+        Test.specify "should be able to add multiple query arguments" <|
+            base_uri = URI.parse "https://example.com/path?a=b"
+            uri = base_uri . add_query_argument "c" "d" . add_query_argument "e" "f"
+
+            uri.should_be_a URI_With_Query
+            uri.query.should_equal "a=b&c=d&e=f"
+            uri.scheme.should_equal "https"
+            uri.user_info.should_equal Nothing
+            uri.host.should_equal "example.com"
+            uri.authority.should_equal "example.com"
+            uri.port.should_equal Nothing
+            uri.path.should_equal "/path"
+            uri.fragment.should_equal Nothing
+
+        Test.specify "should be able to convert back to URI" <|
+            base_uri = URI.parse "https://example.com/path?a=b"
+            uri1 = base_uri . add_query_argument "c" "d" . add_query_argument "e" "f"
+
+            uri2 = uri1.to_uri
+            uri2.should_be_a URI
+            uri2.scheme.should_equal "https"
+            uri2.host.should_equal "example.com"
+            uri2.path.should_equal "/path"
+            uri2.query.should_equal "a=b&c=d&e=f"
+            uri2.should_equal (URI.parse "https://example.com/path?a=b&c=d&e=f")
+
+            uri3 = uri2 . add_query_argument "g" "h"
+            uri3.should_be_a URI_With_Query
+            uri3.query.should_equal "a=b&c=d&e=f&g=h"
+            uri3.scheme.should_equal "https"
+            uri3.user_info.should_equal Nothing
+            uri3.host.should_equal "example.com"
+            uri3.port.should_equal Nothing
+            uri3.path.should_equal "/path"
+            uri3.fragment.should_equal Nothing
+            uri3.to_uri . should_equal (URI.parse "https://example.com/path?a=b&c=d&e=f&g=h")
+
+        Test.specify "will not convert back to URI if secrets are present in the query arguments" pending="TODO testing secrets is for later" <|
+            Error.throw "TODO: secrets tests"
+
+        # We rely on the simple-httpbin server for these tests, to ensure that the encoding is indeed correctly interpreted by a real-life server:
+        Test.specify "should correctly handle various characters within the key and value of arguments" pending=pending_has_url <|
+            base_uri = URI.parse base_url+"get"
+
+            uri1 = base_uri . add_query_argument "a" "b"
+            uri1.should_be_a URI_With_Query
+            r1 = uri1.fetch
+            decode_query_params r1 . should_equal [["a", "b"]]
+
+            # Also check that after converting back to normal URI, we also get the same result:
+            decode_query_params (uri1.to_uri.fetch) . should_equal (decode_query_params r1)
+
+            uri2 = base_uri
+                . add_query_argument "q1" "b c"
+                . add_query_argument "q2" "e+f"
+                . add_query_argument "q3" "e%20f"
+            r2 = uri2.fetch
+            # All values should be encoded and decoded correctly so that they retain the original symbols:
+            decode_query_params r2 . should_equal [["q1", "b c"], ["q2", "e+f"], ["q3", "e%20f"]]
+            decode_query_params (uri2.to_uri.fetch) . should_equal (decode_query_params r2)
+
+            s1 = '"f"\'\' ; 🚀🚧a'
+            s2 = "[a=b]:[b=c][d=e], ]]] ==> <br>a"
+            uri3 = base_uri
+                . add_query_argument "q4" "śnieżnobiały"
+                . add_query_argument "q5" s1
+                . add_query_argument "q6" s2
+                . add_query_argument "q7" ""
+                . add_query_argument "q8" " "
+                . add_query_argument "q9" "%%%"
+            r3 = uri3.fetch
+            decode_query_params r3 . should_equal [["q4", "śnieżnobiały"], ["q5", s1], ["q6", s2], ["q7", ""], ["q8", " "], ["q9", "%%%"]]
+            decode_query_params (uri3.to_uri.fetch) . should_equal (decode_query_params r3)
+
+            uri4 = base_uri
+                . add_query_argument "p+r" "b c"
+                . add_query_argument "p r" "b c"
+                . add_query_argument "🚀"  "🚧"
+                . add_query_argument "śnieżnobiałą" "łąkę"
+                . add_query_argument s2 "zzz"
+            r4 = uri4.fetch
+            decode_query_params r4 . should_equal [["p+r", "b c"], ["p r", "b c"], ["🚀", "🚧"], ["śnieżnobiałą", "łąkę"], [s2, "zzz"]]
+            decode_query_params (uri4.to_uri.fetch) . should_equal (decode_query_params r4)
+
+        Test.specify "may allow duplicate keys in query parameters" <|
+            uri = URI.parse base_url+"get"
+                . add_query_argument "a" "b"
+                . add_query_argument "a" "c"
+                . add_query_argument "a" "d"
+            r = uri.fetch
+            decode_query_params r . should_equal [["a", "b"], ["a", "c"], ["a", "d"]]
+            decode_query_params (uri.to_uri.fetch) . should_equal (decode_query_params r)
+
+        Test.specify "should correctly handle various characters within the key and value of arguments" pending=("TODO testing secrets is for later".if_nothing pending_has_url) <|
+            Error.throw "TODO: test various characters inside of the secret value, like in the raw test above"
+
 main = Test_Suite.run_main spec
+
+decode_query_params : Json -> Vector (Pair Text Text)
+decode_query_params json_response =
+    params = json_response.at "queryParameters"
+    params.map pair->
+        [pair.at "name", pair.at "value"]
