@@ -43,20 +43,15 @@ type URI
        Represents a Uniform Resource Identifier (URI) reference.
 
        Arguments:
-       - internal_uri: The internal representation of the URI.
-    Value internal_uri
+       - internal_builder: A Java URIBuilder that contains parsed URI data.
+       - query_parameters: A list of query parameters to add to the URI.
+       - authority: The authority part of the URI.
+    Value internal_builder
 
     ## PRIVATE
-       Convert this to URI.
-
-       > Examples
-         Convert a URI to a URI (a no op).
-
-             import Standard.Examples
-
-             example_to_uri = Examples.uri.to_uri
-    to_uri : URI
-    to_uri self = self
+       Convert this to a raw Java URI.
+    to_java_uri : Java_URI
+    to_java_uri self = "TODO"
 
     ## GROUP Metadata
        Get the scheme part of this URI.
@@ -130,6 +125,11 @@ type URI
     path : Text | Nothing
     path self = self.internal_uri.getPath
 
+    ## GROUP Calculations
+       Extends the path of this URI with an additional segment.
+    / : Text -> URI
+    / self segment:Text = "TODO"
+
     ## GROUP Metadata
        Get the query part of this URI.
 
@@ -151,6 +151,11 @@ type URI
     add_query_argument : Text -> Text | Enso_Secret -> URI
     add_query_argument self key:Text value:(Text | Enso_Secret) =
         URI_With_Query.Value self [Pair.new key value]
+
+    ## GROUP Calculations
+       Returns this query with all query parameters removed.
+    discard_query_arguments : URI
+    discard_query_arguments self = "TODO"
 
     ## Get the fragment part of this URI.
 
