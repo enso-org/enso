@@ -1,5 +1,23 @@
 package org.enso.interpreter.node.callable;
 
+import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.Bind;
+import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Shared;
+import com.oracle.truffle.api.dsl.ImportStatic;
+import com.oracle.truffle.api.dsl.NonIdempotent;
+import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.UnknownIdentifierException;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.library.CachedLibrary;
+import com.oracle.truffle.api.nodes.ExplodeLoop;
+import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.nodes.RootNode;
+import com.oracle.truffle.api.profiles.BranchProfile;
+import com.oracle.truffle.api.profiles.CountingConditionProfile;
+import com.oracle.truffle.api.source.SourceSection;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
@@ -8,7 +26,6 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.locks.Lock;
-
 import org.enso.interpreter.Constants.Names;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.MethodRootNode;
@@ -44,29 +61,11 @@ import org.enso.interpreter.runtime.error.WithWarnings;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.state.State;
 
-import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.dsl.Bind;
-import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.Cached.Shared;
-import com.oracle.truffle.api.dsl.ImportStatic;
-import com.oracle.truffle.api.dsl.NonIdempotent;
-import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.UnknownIdentifierException;
-import com.oracle.truffle.api.interop.UnsupportedMessageException;
-import com.oracle.truffle.api.library.CachedLibrary;
-import com.oracle.truffle.api.nodes.ExplodeLoop;
-import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.nodes.RootNode;
-import com.oracle.truffle.api.profiles.BranchProfile;
-import com.oracle.truffle.api.profiles.CountingConditionProfile;
-import com.oracle.truffle.api.source.SourceSection;
-
 @ImportStatic({HostMethodCallNode.PolyglotCallType.class, HostMethodCallNode.class})
 public abstract class InvokeMethodNode extends BaseNode {
   protected static final int CACHE_SIZE = 10;
   private @Child InvokeFunctionNode invokeFunctionNode;
+
   /**
    * A node that is created specifically for cases when a static method is called on {@code Any}. In
    * such cases, we need to modify the number of passed arguments, therefore, a new {@link
@@ -88,14 +87,16 @@ public abstract class InvokeMethodNode extends BaseNode {
    * @param defaultsExecutionMode the defaulted arguments handling mode for this call
    * @param argumentsExecutionMode the arguments execution mode for this call
    * @param thisArgumentPosition position
-   * @param onBoundary shall we emit plain {@code PanicException} or also attach {@code UnknownIdentifierException} cause
+   * @param onBoundary shall we emit plain {@code PanicException} or also attach {@code
+   *     UnknownIdentifierException} cause
    * @return a new invoke method node
    */
   public static InvokeMethodNode build(
       CallArgumentInfo[] schema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
-      int thisArgumentPosition, boolean onBoundary) {
+      int thisArgumentPosition,
+      boolean onBoundary) {
     return InvokeMethodNodeGen.create(
         schema, defaultsExecutionMode, argumentsExecutionMode, thisArgumentPosition, onBoundary);
   }
@@ -104,8 +105,8 @@ public abstract class InvokeMethodNode extends BaseNode {
       CallArgumentInfo[] schema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
-      int thisArgumentPosition, boolean onBoundary
-  ) {
+      int thisArgumentPosition,
+      boolean onBoundary) {
     this.invokeFunctionNode =
         InvokeFunctionNode.build(schema, defaultsExecutionMode, argumentsExecutionMode);
     this.argumentCount = schema.length;
@@ -219,17 +220,20 @@ public abstract class InvokeMethodNode extends BaseNode {
         argsWithDefaultValCount++;
       }
     }
-    // Static method calls on Any are resolved to `Any.type.method`. Such methods take one additional
+    // Static method calls on Any are resolved to `Any.type.method`. Such methods take one
+    // additional
     // self argument (with Any.type) as opposed to static method calls resolved on any other
     // types. This case is handled in the following block.
-    boolean shouldPrependSyntheticSelfArg = resolvedFuncArgCount - argsWithDefaultValCount == arguments.length + 1;
+    boolean shouldPrependSyntheticSelfArg =
+        resolvedFuncArgCount - argsWithDefaultValCount == arguments.length + 1;
     if (isAnyEigenType(selfTpe) && shouldPrependSyntheticSelfArg) {
       // function is a static method on Any, so the first two arguments in `invokeFuncSchema`
       // represent self arguments.
       boolean selfArgSpecified = false;
       if (invokeFuncSchema.length > 1) {
         selfArgSpecified =
-            invokeFuncSchema[1].getName() != null && invokeFuncSchema[1].getName().equals(Names.SELF_ARGUMENT);
+            invokeFuncSchema[1].getName() != null
+                && invokeFuncSchema[1].getName().equals(Names.SELF_ARGUMENT);
       }
 
       if (selfArgSpecified) {
@@ -270,7 +274,8 @@ public abstract class InvokeMethodNode extends BaseNode {
     return invokeFunctionNode.execute(function, frame, state, arguments);
   }
 
-  private PanicException methodNotFound(UnresolvedSymbol symbol, Object self) throws PanicException {
+  private PanicException methodNotFound(UnresolvedSymbol symbol, Object self)
+      throws PanicException {
     var cause = onBoundary ? UnknownIdentifierException.create(symbol.getName()) : null;
     var payload = EnsoContext.get(this).getBuiltins().error().makeNoSuchMethod(self, symbol);
     throw new PanicException(payload, cause, this);
@@ -283,8 +288,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       UnresolvedSymbol symbol,
       EnsoMultiValue self,
       Object[] arguments,
-      @Shared("methodResolverNode") @Cached MethodResolverNode methodResolverNode
-  ) {
+      @Shared("methodResolverNode") @Cached MethodResolverNode methodResolverNode) {
     var fnAndType = self.resolveSymbol(methodResolverNode, symbol);
     if (fnAndType != null) {
       var unwrapSelf = self.castTo(fnAndType.getRight());
@@ -306,7 +310,8 @@ public abstract class InvokeMethodNode extends BaseNode {
       Object[] arguments,
       @Shared("methodResolverNode") @Cached MethodResolverNode methodResolverNode) {
     Function function =
-        methodResolverNode.executeResolution(EnsoContext.get(this).getBuiltins().dataflowError(), symbol);
+        methodResolverNode.executeResolution(
+            EnsoContext.get(this).getBuiltins().dataflowError(), symbol);
     if (errorReceiverProfile.profile(function == null)) {
       return self;
     } else {
@@ -444,7 +449,8 @@ public abstract class InvokeMethodNode extends BaseNode {
                       invokeFunctionNode.getSchema(),
                       invokeFunctionNode.getDefaultsExecutionMode(),
                       invokeFunctionNode.getArgumentsExecutionMode(),
-                      thisArgumentPosition, false));
+                      thisArgumentPosition,
+                      false));
           childDispatch.setTailStatus(getTailStatus());
           childDispatch.setId(invokeFunctionNode.getId());
           notifyInserted(childDispatch);

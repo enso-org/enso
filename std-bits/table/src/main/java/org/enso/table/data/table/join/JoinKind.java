@@ -7,7 +7,7 @@ public enum JoinKind {
   RIGHT_OUTER,
   LEFT_ANTI,
   RIGHT_ANTI;
-  
+
   public static JoinResult.BuilderSettings makeSettings(JoinKind joinKind) {
     return switch (joinKind) {
       case INNER -> new JoinResult.BuilderSettings(true, false, false);

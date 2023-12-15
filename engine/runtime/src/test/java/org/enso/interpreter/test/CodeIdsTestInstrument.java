@@ -5,10 +5,9 @@ import com.oracle.truffle.api.instrumentation.*;
 import com.oracle.truffle.api.nodes.Node;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.UUID;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.control.TailCallException;
-
-import java.util.UUID;
 
 /**
  * A debug instrument used to test code locations.
@@ -70,7 +69,7 @@ public class CodeIdsTestInstrument extends TruffleInstrument {
     public String dumpNodes() {
       var sb = new StringBuilder();
       for (var n : nodes.entrySet()) {
-        sb.append("\nvalue ").append(n.getValue()).append("  for " ).append(n.getKey().toString());
+        sb.append("\nvalue ").append(n.getValue()).append("  for ").append(n.getKey().toString());
       }
       return sb.toString();
     }
@@ -144,7 +143,7 @@ public class CodeIdsTestInstrument extends TruffleInstrument {
         var sb = new StringBuilder();
         sb.append(context.getInstrumentedNode().getClass().getSimpleName());
         if (context.getInstrumentedNode() instanceof ExpressionNode expr) {
-            sb.append("@").append(expr.getId());
+          sb.append("@").append(expr.getId());
         }
         sb.append(" ");
         sb.append(context.getInstrumentedSourceSection());
@@ -163,10 +162,7 @@ public class CodeIdsTestInstrument extends TruffleInstrument {
    */
   public EventBinding<IdEventListener> bindTo(UUID id, String expectedResult) {
     var testSource = SourceFilter.newBuilder().sourceIs((t) -> t.getName().equals("Test")).build();
-    var eventFilter =
-        SourceSectionFilter.newBuilder()
-            .sourceFilter(testSource)
-            .build();
+    var eventFilter = SourceSectionFilter.newBuilder().sourceFilter(testSource).build();
     var factory = new IdEventListener(id, expectedResult);
     return env.getInstrumenter().attachExecutionEventFactory(eventFilter, factory);
   }

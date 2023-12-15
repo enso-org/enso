@@ -10,7 +10,6 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
-
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.EnsoObject;
@@ -33,7 +32,9 @@ final class ArraySlice implements EnsoObject {
     } else {
       if (CompilerDirectives.inInterpreter()) {
         if (!InteropLibrary.getUncached().hasArrayElements(storage)) {
-          throw EnsoContext.get(null).raiseAssertionPanic(null, "ArraySlice needs array-like delegate, but got: " + storage, null);
+          throw EnsoContext.get(null)
+              .raiseAssertionPanic(
+                  null, "ArraySlice needs array-like delegate, but got: " + storage, null);
         }
       }
 
@@ -68,8 +69,7 @@ final class ArraySlice implements EnsoObject {
   }
 
   @ExportMessage
-  public long getArraySize(
-      @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop)
+  public long getArraySize(@Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop)
       throws UnsupportedMessageException {
     long storageSize = interop.getArraySize(storage);
     return Math.max(0, Math.min(storageSize, end) - start);
@@ -112,8 +112,7 @@ final class ArraySlice implements EnsoObject {
    */
   @ExportMessage
   boolean isArrayElementReadable(
-      long index,
-      @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop) {
+      long index, @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop) {
     try {
       return index >= 0 && index < getArraySize(interop);
     } catch (UnsupportedMessageException e) {
@@ -127,8 +126,7 @@ final class ArraySlice implements EnsoObject {
   }
 
   @ExportMessage
-  final void writeArrayElement(long index, Object value)
-      throws UnsupportedMessageException {
+  final void writeArrayElement(long index, Object value) throws UnsupportedMessageException {
     throw UnsupportedMessageException.create();
   }
 
@@ -153,12 +151,15 @@ final class ArraySlice implements EnsoObject {
   }
 
   @ExportMessage
-  Warning[] getWarnings(Node location, @Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings) throws UnsupportedMessageException {
+  Warning[] getWarnings(
+      Node location, @Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings)
+      throws UnsupportedMessageException {
     return warnings.getWarnings(this.storage, location);
   }
 
   @ExportMessage
-  Object removeWarnings(@Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings) throws UnsupportedMessageException {
+  Object removeWarnings(@Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings)
+      throws UnsupportedMessageException {
     Object newStorage = warnings.removeWarnings(this.storage);
     return new ArraySlice(newStorage, start, end);
   }
@@ -167,5 +168,4 @@ final class ArraySlice implements EnsoObject {
   boolean isLimitReached(@Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings) {
     return warnings.isLimitReached(this.storage);
   }
-
 }

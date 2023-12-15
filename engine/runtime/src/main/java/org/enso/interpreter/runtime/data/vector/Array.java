@@ -60,7 +60,9 @@ final class Array implements EnsoObject {
     return true;
   }
 
-  /** @return the elements of this array as a java array. */
+  /**
+   * @return the elements of this array as a java array.
+   */
   final Object[] getItems() {
     return items;
   }

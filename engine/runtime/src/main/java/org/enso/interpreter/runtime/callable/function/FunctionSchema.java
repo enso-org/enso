@@ -219,7 +219,9 @@ public final class FunctionSchema {
     return callerFrameAccess;
   }
 
-  /** @return annotations defined on this function. */
+  /**
+   * @return annotations defined on this function.
+   */
   public Annotation[] getAnnotations() {
     return annotations;
   }

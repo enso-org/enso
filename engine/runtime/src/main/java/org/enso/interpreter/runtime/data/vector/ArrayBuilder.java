@@ -1,9 +1,5 @@
 package org.enso.interpreter.runtime.data.vector;
 
-import java.util.Arrays;
-
-import org.enso.interpreter.runtime.data.EnsoObject;
-
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
@@ -14,10 +10,13 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
+import java.util.Arrays;
+import org.enso.interpreter.runtime.data.EnsoObject;
 
 @ExportLibrary(InteropLibrary.class)
 final class ArrayBuilder implements EnsoObject {
-  private static final String[] MEMBERS = new String[] { "isEmpty", "add", "appendTo", "get", "getSize", "toArray" };
+  private static final String[] MEMBERS =
+      new String[] {"isEmpty", "add", "appendTo", "get", "getSize", "toArray"};
   private static final Object[] EMPTY_ARRAY = new Object[0];
   private final int initialCapacity;
   private int size;
@@ -28,16 +27,12 @@ final class ArrayBuilder implements EnsoObject {
     this.initialCapacity = Math.max(1, initialCapacity);
   }
 
-  /**
-   * Creates new builder
-   */
+  /** Creates new builder */
   static ArrayBuilder newBuilder(int capacity) {
     return new ArrayBuilder(capacity);
   }
 
-  /**
-   * Is the builder empty?
-   */
+  /** Is the builder empty? */
   boolean isEmpty() {
     return size == 0;
   }
@@ -107,9 +102,7 @@ final class ArrayBuilder implements EnsoObject {
     }
   }
 
-  /**
-   * Obtains an element from the builder
-   */
+  /** Obtains an element from the builder */
   private Object get(int index, Node node) {
     try {
       if (index >= 0 && index < size) {
@@ -127,9 +120,7 @@ final class ArrayBuilder implements EnsoObject {
     }
   }
 
-  /**
-   * Returns the current array of the builder.
-   */
+  /** Returns the current array of the builder. */
   Object toArray() {
     if (objectArray != null) {
       return objectArray.length == size ? objectArray : Arrays.copyOf(objectArray, size);
@@ -147,10 +138,8 @@ final class ArrayBuilder implements EnsoObject {
   }
 
   @ExportMessage
-  Object invokeMember(
-    String name, Object[] args,
-    @CachedLibrary(limit="3") InteropLibrary iop
-  ) throws UnknownIdentifierException, UnsupportedTypeException, UnsupportedMessageException {
+  Object invokeMember(String name, Object[] args, @CachedLibrary(limit = "3") InteropLibrary iop)
+      throws UnknownIdentifierException, UnsupportedTypeException, UnsupportedMessageException {
     return switch (name) {
       case "isEmpty" -> isEmpty();
       case "add" -> {
@@ -188,7 +177,7 @@ final class ArrayBuilder implements EnsoObject {
         if (arr instanceof double[] doubles) {
           yield Vector.fromDoubleArray(doubles);
         }
-        yield Vector.fromInteropArray(Array.wrap((Object[])arr));
+        yield Vector.fromInteropArray(Array.wrap((Object[]) arr));
       }
       default -> throw UnknownIdentifierException.create(name);
     };
@@ -198,6 +187,7 @@ final class ArrayBuilder implements EnsoObject {
   boolean hasMembers() {
     return true;
   }
+
   @ExportMessage
   boolean isMemberInvocable(String member) {
     for (var m : MEMBERS) {

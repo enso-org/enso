@@ -21,13 +21,19 @@ import org.graalvm.polyglot.Value;
 
 /** An abstract representation of a data column. */
 public abstract class Storage<T> {
-  /** @return the number of elements in this column (including NAs) */
+  /**
+   * @return the number of elements in this column (including NAs)
+   */
   public abstract int size();
 
-  /** @return the number of NA elements in this column */
+  /**
+   * @return the number of NA elements in this column
+   */
   public abstract int countMissing();
 
-  /** @return the type tag of this column's storage. */
+  /**
+   * @return the type tag of this column's storage.
+   */
   public abstract StorageType getType();
 
   /**
@@ -378,7 +384,8 @@ public abstract class Storage<T> {
     if (fallback == null) {
       if (operationName == null) {
         throw new IllegalArgumentException(
-            "A function or name of vectorized operation must be specified. This is a bug in the Table library.");
+            "A function or name of vectorized operation must be specified. This is a bug in the"
+                + " Table library.");
       } else {
         String className = this.getClass().getName();
         throw new IllegalArgumentException(
@@ -392,8 +399,8 @@ public abstract class Storage<T> {
 
     if (storageType == null) {
       throw new IllegalArgumentException(
-          "The expected result type must be specified if a fallback function is used. This is a bug in the Table "
-              + "library.");
+          "The expected result type must be specified if a fallback function is used. This is a bug"
+              + " in the Table library.");
     }
   }
 
@@ -492,7 +499,9 @@ public abstract class Storage<T> {
    */
   public abstract Storage<T> countMask(int[] counts, int total);
 
-  /** @return a copy of the storage containing a slice of the original data */
+  /**
+   * @return a copy of the storage containing a slice of the original data
+   */
   public abstract Storage<T> slice(int offset, int limit);
 
   /**
@@ -501,7 +510,9 @@ public abstract class Storage<T> {
    */
   public abstract Storage<?> appendNulls(int count);
 
-  /** @return a copy of the storage consisting of slices of the original data */
+  /**
+   * @return a copy of the storage consisting of slices of the original data
+   */
   public abstract Storage<T> slice(List<SliceRange> ranges);
 
   public List<Object> toList() {

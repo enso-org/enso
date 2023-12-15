@@ -180,20 +180,26 @@ public final class Builtins {
       Map<String, LoadedBuiltinMethod> methods = builtinMethodNodes.get(tpeName);
       if (methods != null) {
         // Register a builtin method iff it is marked as auto-register.
-        // Methods can only register under a type or, if we deal with a static method, it's eigen-type.
-        // Such builtins are available on certain types without importing the whole stdlib, e.g. Any or Number.
-        methods.forEach((key, value) -> {
-          Type tpe = value.isAutoRegister ? (!value.isStatic() ? type : type.getEigentype()) : null;
-          if (tpe != null) {
-            Optional<BuiltinFunction> fun = value.toFunction(language, false);
-            fun.ifPresent(f -> scope.registerMethod(tpe, key, f.getFunction()));
-          }
-        });
+        // Methods can only register under a type or, if we deal with a static method, it's
+        // eigen-type.
+        // Such builtins are available on certain types without importing the whole stdlib, e.g. Any
+        // or Number.
+        methods.forEach(
+            (key, value) -> {
+              Type tpe =
+                  value.isAutoRegister ? (!value.isStatic() ? type : type.getEigentype()) : null;
+              if (tpe != null) {
+                Optional<BuiltinFunction> fun = value.toFunction(language, false);
+                fun.ifPresent(f -> scope.registerMethod(tpe, key, f.getFunction()));
+              }
+            });
       }
     }
   }
 
-  /** @return {@code true} if the IR has been initialized, otherwise {@code false} */
+  /**
+   * @return {@code true} if the IR has been initialized, otherwise {@code false}
+   */
   public boolean isIrInitialized() {
     return this.module.getIr() != null;
   }
@@ -211,7 +217,8 @@ public final class Builtins {
    * @param passes the passes manager for the compiler
    */
   @CompilerDirectives.TruffleBoundary
-  public void initializeBuiltinsIr(CompilerContext context, FreshNameSupply freshNameSupply, Passes passes) {
+  public void initializeBuiltinsIr(
+      CompilerContext context, FreshNameSupply freshNameSupply, Passes passes) {
     try {
       if (module.getSource() == null) {
         initializeBuiltinsSource();
@@ -308,7 +315,8 @@ public final class Builtins {
           Optional.ofNullable(scope.getTypes().get(builtinMethodOwner))
               .ifPresentOrElse(
                   constr -> {
-                    Map<String, LoadedBuiltinMethod> atomNodes = methodNodes.get(builtinMethodOwner);
+                    Map<String, LoadedBuiltinMethod> atomNodes =
+                        methodNodes.get(builtinMethodOwner);
                     if (atomNodes == null) {
                       atomNodes = new HashMap<>();
                       // TODO: move away from String Map once Builtins are gone
@@ -317,7 +325,8 @@ public final class Builtins {
                     atomNodes.put(builtinMethodName, builtin);
                   },
                   () -> {
-                    Map<String, LoadedBuiltinMethod> atomNodes = methodNodes.get(builtinMethodOwner);
+                    Map<String, LoadedBuiltinMethod> atomNodes =
+                        methodNodes.get(builtinMethodOwner);
                     if (atomNodes == null) {
                       atomNodes = new HashMap<>();
                       // TODO: move away from String Map once Builtins are gone
@@ -352,32 +361,33 @@ public final class Builtins {
     }
 
     return lines.stream()
-            .map(
-                line -> {
-                  String[] builtinMeta = line.split(":");
-                  if (builtinMeta.length != 4) {
-                    throw new CompilerError("Invalid builtin metadata in: " + line);
-                  }
-                  String[] builtinName = builtinMeta[0].split("\\.");
-                  if (builtinName.length != 2) {
-                    throw new CompilerError("Invalid builtin metadata in : " + line);
-                  }
-                  boolean isStatic = java.lang.Boolean.valueOf(builtinMeta[2]);
-                  boolean isAutoRegister = java.lang.Boolean.valueOf(builtinMeta[3]);
+        .map(
+            line -> {
+              String[] builtinMeta = line.split(":");
+              if (builtinMeta.length != 4) {
+                throw new CompilerError("Invalid builtin metadata in: " + line);
+              }
+              String[] builtinName = builtinMeta[0].split("\\.");
+              if (builtinName.length != 2) {
+                throw new CompilerError("Invalid builtin metadata in : " + line);
+              }
+              boolean isStatic = java.lang.Boolean.valueOf(builtinMeta[2]);
+              boolean isAutoRegister = java.lang.Boolean.valueOf(builtinMeta[3]);
 
-                  try {
-                    @SuppressWarnings("unchecked")
-                    Class<BuiltinRootNode> clazz =
-                            (Class<BuiltinRootNode>) Class.forName(builtinMeta[1]);
-                    Method meth = clazz.getMethod("makeFunction", EnsoLanguage.class, boolean.class);
-                    LoadedBuiltinMethod meta = new LoadedBuiltinMethod(meth, isStatic, isAutoRegister);
-                    return new AbstractMap.SimpleEntry<String, LoadedBuiltinMethod>(builtinMeta[0], meta);
-                  } catch (ClassNotFoundException | NoSuchMethodException e) {
-                    e.printStackTrace();
-                    throw new CompilerError("Invalid builtin method " + line);
-                  }
-                })
-           .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+              try {
+                @SuppressWarnings("unchecked")
+                Class<BuiltinRootNode> clazz =
+                    (Class<BuiltinRootNode>) Class.forName(builtinMeta[1]);
+                Method meth = clazz.getMethod("makeFunction", EnsoLanguage.class, boolean.class);
+                LoadedBuiltinMethod meta = new LoadedBuiltinMethod(meth, isStatic, isAutoRegister);
+                return new AbstractMap.SimpleEntry<String, LoadedBuiltinMethod>(
+                    builtinMeta[0], meta);
+              } catch (ClassNotFoundException | NoSuchMethodException e) {
+                e.printStackTrace();
+                throw new CompilerError("Invalid builtin method " + line);
+              }
+            })
+        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
   }
 
   /**
@@ -389,7 +399,8 @@ public final class Builtins {
    * @return A non-empty function under the given name, if it exists. An empty value if no such
    *     builtin method was ever registerd
    */
-  public Optional<BuiltinFunction> getBuiltinFunction(String type, String methodName, EnsoLanguage language, boolean isStaticInstance) {
+  public Optional<BuiltinFunction> getBuiltinFunction(
+      String type, String methodName, EnsoLanguage language, boolean isStaticInstance) {
     // TODO: move away from String mapping once Builtins is gone
     Map<String, LoadedBuiltinMethod> atomNodes = builtinMethodNodes.get(type);
     if (atomNodes == null) return Optional.empty();
@@ -398,7 +409,8 @@ public final class Builtins {
     return builtin.toFunction(language, isStaticInstance);
   }
 
-  public Optional<BuiltinFunction> getBuiltinFunction(Type type, String methodName, EnsoLanguage language) {
+  public Optional<BuiltinFunction> getBuiltinFunction(
+      Type type, String methodName, EnsoLanguage language) {
     return getBuiltinFunction(type.getName(), methodName, language, false);
   }
 
@@ -448,23 +460,30 @@ public final class Builtins {
     return number;
   }
 
-
-  /** @return the builtin Context type */
+  /**
+   * @return the builtin Context type
+   */
   public Context context() {
     return contexts;
   }
 
-  /** @return the container for boolean constructors. */
+  /**
+   * @return the container for boolean constructors.
+   */
   public Boolean bool() {
     return bool;
   }
 
-  /** @return the ManagedResource constructor. */
+  /**
+   * @return the ManagedResource constructor.
+   */
   public Type managedResource() {
     return managedResource.getType();
   }
 
-  /** @return the builtin Error types container. */
+  /**
+   * @return the builtin Error types container.
+   */
   public Error error() {
     return error;
   }
@@ -551,17 +570,23 @@ public final class Builtins {
     return debug.getType();
   }
 
-  /** @return the {@code Project_Description} atom constructor */
+  /**
+   * @return the {@code Project_Description} atom constructor
+   */
   public ProjectDescription getProjectDescription() {
     return projectDescription;
   }
 
-  /** @return the {@code System} atom constructor. */
+  /**
+   * @return the {@code System} atom constructor.
+   */
   public System system() {
     return system;
   }
 
-  /** @return the Array constructor. */
+  /**
+   * @return the Array constructor.
+   */
   public Type array() {
     return array.getType();
   }
@@ -574,27 +599,37 @@ public final class Builtins {
     return map.getType();
   }
 
-  /** @return the Ref constructor. */
+  /**
+   * @return the Ref constructor.
+   */
   public Type ref() {
     return ref.getType();
   }
 
-  /** @return the container for polyglot-related builtins. */
+  /**
+   * @return the container for polyglot-related builtins.
+   */
   public Type polyglot() {
     return polyglot.getType();
   }
 
-  /** @return the {@code Caught_Panic} atom constructor */
+  /**
+   * @return the {@code Caught_Panic} atom constructor
+   */
   public CaughtPanic caughtPanic() {
     return this.error.caughtPanic();
   }
 
-  /** @return the {@code Panic} atom constructor */
+  /**
+   * @return the {@code Panic} atom constructor
+   */
   public Type panic() {
     return this.error.panic();
   }
 
-  /** @return the container for ordering-related builtins */
+  /**
+   * @return the container for ordering-related builtins
+   */
   public Ordering ordering() {
     return ordering;
   }
@@ -607,7 +642,9 @@ public final class Builtins {
     return defaultComparator;
   }
 
-  /** @return the container for the dataflow error-related builtins */
+  /**
+   * @return the container for the dataflow error-related builtins
+   */
   public Type dataflowError() {
     return dataflowError.getType();
   }
@@ -632,12 +669,12 @@ public final class Builtins {
   private record LoadedBuiltinMethod(Method meth, boolean isStatic, boolean isAutoRegister) {
     Optional<BuiltinFunction> toFunction(EnsoLanguage language, boolean isStaticInstance) {
       try {
-        return Optional.ofNullable((Function) meth.invoke(null, language, isStaticInstance)).map(f-> new BuiltinFunction(f, isAutoRegister));
+        return Optional.ofNullable((Function) meth.invoke(null, language, isStaticInstance))
+            .map(f -> new BuiltinFunction(f, isAutoRegister));
       } catch (Exception e) {
         e.printStackTrace();
         return Optional.empty();
       }
     }
   }
-
 }
