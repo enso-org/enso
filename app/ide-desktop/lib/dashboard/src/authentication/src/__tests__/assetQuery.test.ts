@@ -63,12 +63,39 @@ v.test.each([{ query: 'a', updates: { keywords: [['b']] }, newQuery: 'a b' }])(
 v.test.each([
     { query: 'a b', updates: { keywords: [['b']] }, newQuery: 'a' },
     { query: 'a', updates: { keywords: [['a']] }, newQuery: '' },
-    // Edge cases
-    { query: 'a a', updates: { keywords: [['a']] }, newQuery: 'a' },
+    // Edge cases. The exact result should not matter, as long as it is reasonable.
+    { query: 'a a', updates: { keywords: [['a']] }, newQuery: '' },
 ])('AssetQuery#delete', ({ query, updates, newQuery }) => {
     const parsed = assetQuery.AssetQuery.fromString(query)
     v.expect(
         parsed.delete(updates).toString(),
+        `'${query}' with ${JSON.stringify(updates)} deleted should be '${newQuery}'`
+    ).toBe(newQuery)
+})
+
+v.test.each([{ query: 'a', updates: { keywords: ['b'] }, newQuery: 'a,b' }])(
+    'AssetQuery#addToLastTerm',
+    ({ query, updates, newQuery }) => {
+        const parsed = assetQuery.AssetQuery.fromString(query)
+        v.expect(
+            parsed.addToLastTerm(updates).toString(),
+            `'${query}' with ${JSON.stringify(updates)} added should be '${newQuery}'`
+        ).toBe(newQuery)
+    }
+)
+
+v.test.each([
+    { query: 'a b', updates: { keywords: ['b'] }, newQuery: 'a' },
+    { query: 'a b', updates: { keywords: ['a'] }, newQuery: 'a b' },
+    { query: 'a b,c', updates: { keywords: ['c'] }, newQuery: 'a b' },
+    { query: 'a b,c', updates: { keywords: ['b', 'd', 'e', 'f'] }, newQuery: 'a c' },
+    { query: 'a b,c', updates: { keywords: ['b', 'c'] }, newQuery: 'a' },
+    { query: 'a', updates: { keywords: ['a'] }, newQuery: '' },
+    { query: 'a b c', updates: { keywords: ['b', 'c'] }, newQuery: 'a b' },
+])('AssetQuery#deleteFromLastTerm', ({ query, updates, newQuery }) => {
+    const parsed = assetQuery.AssetQuery.fromString(query)
+    v.expect(
+        parsed.deleteFromLastTerm(updates).toString(),
         `'${query}' with ${JSON.stringify(updates)} deleted should be '${newQuery}'`
     ).toBe(newQuery)
 })

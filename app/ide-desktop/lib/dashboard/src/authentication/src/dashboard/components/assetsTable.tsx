@@ -2,7 +2,7 @@
 import * as React from 'react'
 import * as toast from 'react-toastify'
 
-import * as array from '../array'
+import * as array from '../../array'
 import * as assetEventModule from '../events/assetEvent'
 import * as assetListEventModule from '../events/assetListEvent'
 import type * as assetQuery from '../../assetQuery'

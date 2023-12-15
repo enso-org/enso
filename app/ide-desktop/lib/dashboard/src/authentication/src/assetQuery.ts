@@ -1,4 +1,5 @@
 /** @file Parsing and representation of the search query. */
+import * as array from './array'
 
 // =====================
 // === Regex Helpers ===
@@ -22,7 +23,13 @@ function interpolateRegex(regex: RegExp) {
 type Mutable<T> = { -readonly [K in keyof T]: T[K] }
 
 /** An {@link AssetQuery}, without the query and methods. */
-interface AssetQueryData extends Mutable<Omit<AssetQuery, 'add' | 'delete' | 'query'>> {}
+interface AssetQueryData
+    extends Mutable<Omit<AssetQuery, 'add' | 'delete' | 'query' | 'toString'>> {}
+
+/** An {@link AssetQuery}, without the query and methods, and with all the values being `string[]`s
+ * instead of `string[][]`s, representing the last term rather than all terms. */
+interface AssetQueryLastTermData
+    extends Record<Exclude<keyof AssetQuery, 'add' | 'delete' | 'query' | 'toString'>, string[]> {}
 
 /** An individual segment of a query string input to {@link AssetQuery}. */
 interface AssetQueryTerm {
@@ -153,8 +160,36 @@ export class AssetQuery {
         if (toAdd == null && (toRemove == null || original.length === 0)) {
             return null
         } else {
-            // FIXME:
-            return original
+            let changed = false
+            let terms = original
+            if (toAdd != null) {
+                const termsAfterAdditions = [
+                    ...terms,
+                    ...toAdd.filter(otherTerm =>
+                        terms.every(
+                            term => !array.shallowEqual([...term].sort(), [...otherTerm].sort())
+                        )
+                    ),
+                ]
+                if (termsAfterAdditions.length !== terms.length) {
+                    terms = termsAfterAdditions
+                    changed = true
+                }
+            }
+            if (toRemove != null) {
+                const termsAfterRemovals = terms.filter(
+                    term =>
+                        toRemove?.every(
+                            otherTerm =>
+                                !array.shallowEqual([...term].sort(), [...otherTerm].sort())
+                        )
+                )
+                if (termsAfterRemovals.length !== terms.length) {
+                    terms = termsAfterRemovals
+                    changed = true
+                }
+            }
+            return !changed ? null : terms
         }
     }
 
@@ -230,6 +265,56 @@ export class AssetQuery {
         const updates: Partial<AssetQueryData> = {}
         for (const key of AssetQuery.dataKeys) {
             const update = AssetQuery.updatedTerms(this[key], null, values[key] ?? null)
+            if (update != null) {
+                updates[key] = update
+            }
+        }
+        if (Object.keys(updates).length === 0) {
+            return this
+        } else {
+            return new AssetQuery(
+                null,
+                updates.keywords ?? this.keywords,
+                updates.negativeKeywords ?? this.negativeKeywords,
+                updates.labels ?? this.labels,
+                updates.negativeLabels ?? this.negativeLabels,
+                updates.owners ?? this.owners,
+                updates.negativeOwners ?? this.negativeOwners
+            )
+        }
+    }
+
+    /** Return a new {@link AssetQuery} with the specified terms added,
+     * or itself if there are no terms to add. */
+    addToLastTerm(values: Partial<AssetQueryLastTermData>): AssetQuery {
+        const updates: Partial<AssetQueryData> = {}
+        for (const key of AssetQuery.dataKeys) {
+            const update = AssetQuery.updatedLastTerm(this[key], values[key] ?? null, null)
+            if (update != null) {
+                updates[key] = update
+            }
+        }
+        if (Object.keys(updates).length === 0) {
+            return this
+        } else {
+            return new AssetQuery(
+                null,
+                updates.keywords ?? this.keywords,
+                updates.negativeKeywords ?? this.negativeKeywords,
+                updates.labels ?? this.labels,
+                updates.negativeLabels ?? this.negativeLabels,
+                updates.owners ?? this.owners,
+                updates.negativeOwners ?? this.negativeOwners
+            )
+        }
+    }
+
+    /** Return a new {@link AssetQuery} with the specified terms deleted,
+     * or itself if there are no terms to delete. */
+    deleteFromLastTerm(values: Partial<AssetQueryLastTermData>): AssetQuery {
+        const updates: Partial<AssetQueryData> = {}
+        for (const key of AssetQuery.dataKeys) {
+            const update = AssetQuery.updatedLastTerm(this[key], null, values[key] ?? null)
             if (update != null) {
                 updates[key] = update
             }
