@@ -188,7 +188,7 @@ final class ArrayBuilder implements EnsoObject {
         if (arr instanceof double[] doubles) {
           yield Vector.fromDoubleArray(doubles);
         }
-        yield Vector.fromInteropArray(new Array((Object[])arr));
+        yield Vector.fromInteropArray(Array.wrap((Object[])arr));
       }
       default -> throw UnknownIdentifierException.create(name);
     };

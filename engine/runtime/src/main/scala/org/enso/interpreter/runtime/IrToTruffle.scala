@@ -62,7 +62,6 @@ import org.enso.compiler.pass.resolve.{
   TypeNames,
   TypeSignatures
 }
-import org.enso.polyglot.ForeignLanguage
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode
 import org.enso.interpreter.node.callable.argument.ReadArgumentCheckNode
 import org.enso.interpreter.node.callable.function.{
@@ -1897,7 +1896,7 @@ class IrToTruffle(
         val bodyExpr = body match {
           case Foreign.Definition(lang, code, _, _, _) =>
             buildForeignBody(
-              ForeignLanguage.getBySyntacticTag(lang),
+              lang,
               code,
               arguments.map(_.name.name),
               argSlotIdxs
@@ -1958,12 +1957,13 @@ class IrToTruffle(
     }
 
     private def buildForeignBody(
-      language: ForeignLanguage,
+      language: String,
       code: String,
       argumentNames: List[String],
       argumentSlotIdxs: List[Int]
     ): RuntimeExpression = {
-      val src       = language.buildSource(code, scopeName)
+      val src =
+        Source.newBuilder("epb", language + "#" + code, scopeName).build()
       val foreignCt = context.parseInternal(src, argumentNames: _*)
       val argumentReaders = argumentSlotIdxs
         .map(slotIdx =>

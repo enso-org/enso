@@ -8,7 +8,8 @@
     "histoire.config.ts",
     "e2e/**/*",
     "parser-codegen/**/*",
-    "node.env.d.ts"
+    "node.env.d.ts",
+    "mock/engine.ts"
   ],
   "compilerOptions": {
     "baseUrl": ".",

@@ -16,6 +16,7 @@ import project.Network.URI.URI
 import project.Nothing.Nothing
 import project.Runtime.Context
 import project.Runtime.Managed_Resource.Managed_Resource
+import project.System.File.Advanced.Temporary_File.Temporary_File
 import project.System.File.Existing_File_Behavior.Existing_File_Behavior
 import project.System.File.File
 import project.System.File.File_Access.File_Access
@@ -23,6 +24,7 @@ import project.System.File.Write_Extensions
 import project.System.File_Format.Auto_Detect
 import project.System.File_Format.Bytes
 import project.System.File_Format.File_Format
+import project.System.File_Format.File_Format_Metadata
 import project.System.File_Format.Plain_Text_Format
 import project.System.Input_Stream.Input_Stream
 from project.Data.Boolean import Boolean, False, True
@@ -58,23 +60,23 @@ type Response_Body
     Raw_Stream (raw_stream:Input_Stream) (content_type:Text|Nothing) uri:URI
 
     ## PRIVATE
-    Byte_Array (bytes:Vector) (content_type:Text|Nothing) uri:URI
+    Materialized_Byte_Array (bytes:Vector) (content_type:Text|Nothing) uri:URI
 
     ## PRIVATE
-    Temporary_File (file_resource:Managed_Resource) (content_type:Text|Nothing) uri:URI
+    Materialized_Temporary_File (temporary_file:Temporary_File) (content_type:Text|Nothing) uri:URI
 
     ## PRIVATE
     with_stream : (Input_Stream -> Any ! HTTP_Error) -> Any ! HTTP_Error
     with_stream self action = case self of
         Response_Body.Raw_Stream raw_stream _ _ ->
             Managed_Resource.bracket raw_stream (_.close) action
-        Response_Body.Byte_Array bytes _ _ ->
+        Response_Body.Materialized_Byte_Array bytes _ _ ->
             byte_stream = Input_Stream.new (ByteArrayInputStream.new bytes) (HTTP_Error.handle_java_exceptions self.uri)
             Managed_Resource.bracket byte_stream (_.close) action
-        Response_Body.Temporary_File file_resource _ _ -> file_resource.with file->
+        Response_Body.Materialized_Temporary_File temporary_file _ _ -> temporary_file.with_file file->
             opts = [File_Access.Read.to_java]
             stream = HTTP_Error.handle_java_exceptions self.uri (file.input_stream_builtin opts)
-            file_stream = Input_Stream.new stream (HTTP_Error.handle_java_exceptions self.uri)
+            file_stream = Input_Stream.new stream (HTTP_Error.handle_java_exceptions self.uri) associated_file=temporary_file
             Managed_Resource.bracket (file_stream) (_.close) action
 
     ## PRIVATE
@@ -88,23 +90,19 @@ type Response_Body
                 body_stream.with_java_stream body_java_stream->
                     first_block = body_java_stream.readNBytes maximum_body_in_memory
                     case first_block.length < maximum_body_in_memory of
-                        True -> Response_Body.Byte_Array (Vector.from_polyglot_array first_block) self.content_type self.uri
-                        False ->
-                            file = File.create_temporary_file self.uri.host
-
-                            ## Write contents to temporary file
-                            Context.Output.with_enabled <|
+                        True -> Response_Body.Materialized_Byte_Array (Vector.from_polyglot_array first_block) self.content_type self.uri
+                        False -> Context.Output.with_enabled <|
+                            ## Write contents to a temporary file
+                            temp_file = Temporary_File.new self.uri.host
+                            r = temp_file.with_file file->
                                 file.with_output_stream [File_Access.Write, File_Access.Create, File_Access.Truncate_Existing] output_stream->
                                     output_stream.with_java_stream java_output_stream->
                                         java_output_stream.write first_block
                                         body_java_stream.transferTo java_output_stream
                                         java_output_stream.flush
                                         Nothing
-                                    output_stream.close
-
-                            ## Have a file with the correct set up
-                            resource = Managed_Resource.register file delete_file
-                            Response_Body.Temporary_File resource self.content_type self.uri
+                            r.if_not_error <|
+                                Response_Body.Materialized_Temporary_File temp_file self.content_type self.uri
         _ -> self
 
     ## ALIAS parse
@@ -128,7 +126,9 @@ type Response_Body
             _ ->
                 type_obj = Meta.type_of format
                 if can_decode type_obj . not then Error.throw (Illegal_Argument.Error type_obj.to_text+" cannot be used to decode from a stream. It must be saved to a file first.") else
-                    self.with_stream format.read_stream
+                    metadata = File_Format_Metadata.Value content_type=self.content_type
+                    self.with_stream stream->
+                        format.read_stream stream metadata
 
     ## ALIAS bytes
        GROUP Input

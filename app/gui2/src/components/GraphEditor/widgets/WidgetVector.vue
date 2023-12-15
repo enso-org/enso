@@ -20,7 +20,7 @@ const value = computed({
   },
   set(value) {
     const newCode = `[${value.map((item) => item.code()).join(', ')}]`
-    graph.replaceExpressionContent(props.input.astId, newCode)
+    graph.setExpressionContent(props.input.astId, newCode)
   },
 })
 

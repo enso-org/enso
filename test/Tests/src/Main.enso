@@ -81,6 +81,7 @@ import project.System.Process_Spec
 import project.System.Reporting_Stream_Decoder_Spec
 import project.System.Reporting_Stream_Encoder_Spec
 import project.System.System_Spec
+import project.System.Temporary_File_Spec
 
 import project.Random_Spec
 
@@ -97,6 +98,7 @@ main = Test_Suite.run_main <|
     Error_Spec.spec
     Environment_Spec.spec
     File_Spec.spec
+    Temporary_File_Spec.spec
     File_Read_Spec.spec
     Reporting_Stream_Decoder_Spec.spec
     Reporting_Stream_Encoder_Spec.spec

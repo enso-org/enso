@@ -7,6 +7,7 @@ import java.util.Objects;
 
 import org.enso.compiler.Compiler;
 import org.enso.compiler.context.InlineContext;
+import org.enso.compiler.context.LocalScope;
 import org.enso.compiler.context.ModuleContext;
 import org.enso.compiler.data.CompilerConfig;
 import org.enso.compiler.exception.CompilationAbortedException;
@@ -24,7 +25,6 @@ import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.ProgramRootNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.IrToTruffle;
-import org.enso.compiler.context.LocalScope;
 import org.enso.interpreter.runtime.state.ExecutionEnvironment;
 import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
@@ -32,7 +32,6 @@ import org.enso.interpreter.runtime.tag.Patchable;
 import org.enso.interpreter.util.FileDetector;
 import org.enso.lockmanager.client.ConnectedLockManager;
 import org.enso.logger.masking.MaskingFactory;
-import org.enso.polyglot.ForeignLanguage;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.RuntimeOptions;
 import org.enso.syntax2.Line;
@@ -71,7 +70,7 @@ import com.oracle.truffle.api.nodes.RootNode;
     defaultMimeType = LanguageInfo.MIME_TYPE,
     characterMimeTypes = {LanguageInfo.MIME_TYPE},
     contextPolicy = TruffleLanguage.ContextPolicy.EXCLUSIVE,
-    dependentLanguages = {ForeignLanguage.ID},
+    dependentLanguages = {"epb"},
     fileTypeDetectors = FileDetector.class,
     services= { Timer.class, NotificationHandler.Forwarder.class, LockManager.class }
 )
