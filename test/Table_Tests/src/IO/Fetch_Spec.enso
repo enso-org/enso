@@ -29,9 +29,16 @@ spec =
             r.to Table . should_equal expected_table
 
         Test.specify "fetching csv" <|
-            r = Data.fetch base_url_with_slash+"testfiles/table.csv"
+            url = base_url_with_slash+"testfiles/table.csv"
+            r = Data.fetch url
             expected_table  = Table.from_rows ["A", "B"] [[1, "x"], [3, "y"]]
-            r.to Table . should_equal expected_table
+
+            r.should_be_a Table
+            r.should_equal expected_table
+
+            r2 = url.to_uri.fetch
+            r2.should_be_a Table
+            r2.should_equal expected_table
 
         Test.specify "fetching xls" <|
             url = base_url_with_slash+"testfiles/table.xls"
@@ -44,7 +51,7 @@ spec =
 
             r2 = Data.fetch url try_auto_parse_response=False . decode (Excel (Excel_Section.Worksheet "MyTestSheet"))
             r2.should_be_a Table
-            r2 . should_equal expected_table
+            r2.should_equal expected_table
 
         Test.specify "fetching xlsx" <|
             url = base_url_with_slash+"testfiles/table.xlsx"
@@ -57,4 +64,8 @@ spec =
 
             r2 = Data.fetch url try_auto_parse_response=False . decode (Excel (Excel_Section.Worksheet "MyTestSheet"))
             r2.should_be_a Table
-            r2 . should_equal expected_table
+            r2.should_equal expected_table
+
+            r3 = url.to_uri.fetch try_auto_parse_response=False . decode (Excel (Excel_Section.Worksheet "MyTestSheet"))
+            r3.should_be_a Table
+            r3.should_equal expected_table

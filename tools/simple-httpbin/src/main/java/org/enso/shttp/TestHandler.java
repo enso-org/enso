@@ -1,70 +1,69 @@
 package org.enso.shttp;
 
 import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpHandler;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.apache.commons.text.StringEscapeUtils;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.utils.URIBuilder;
 
-public class TestHandler implements HttpHandler {
+public class TestHandler extends SimpleHttpHandler {
+  private final HttpMethod expectedMethod;
   private static final Set<String> ignoredHeaders = Set.of("Host");
 
   private static final Pattern textEncodingRegex = Pattern.compile(".*; charset=([^;]+).*");
-  private final boolean logRequests = false;
 
-  @Override
-  public void handle(HttpExchange exchange) throws IOException {
-    try {
-      if (logRequests) {
-        System.out.println(
-            "Handling request: " + exchange.getRequestMethod() + " " + exchange.getRequestURI());
-      }
-
-      doHandle(exchange);
-    } catch (IOException e) {
-      e.printStackTrace();
-      throw e;
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
+  public TestHandler(HttpMethod expectedMethod) {
+    this.expectedMethod = expectedMethod;
   }
 
   public void doHandle(HttpExchange exchange) throws IOException {
     boolean first = true;
     String contentType = null;
     String textEncoding = "UTF-8";
-    HttpMethod meth = HttpMethod.valueOf(exchange.getRequestMethod());
+    HttpMethod method;
+    try {
+      method = HttpMethod.valueOf(exchange.getRequestMethod());
+    } catch (IllegalArgumentException e) {
+      exchange.sendResponseHeaders(400, -1);
+      return;
+    }
 
-    String response;
-    if (meth == HttpMethod.HEAD || meth == HttpMethod.OPTIONS) {
-      response = "";
+    StringBuilder response;
+    if (method == HttpMethod.HEAD || method == HttpMethod.OPTIONS) {
+      response = new StringBuilder();
       exchange.sendResponseHeaders(200, -1);
     } else {
+      if (method != expectedMethod) {
+        exchange.sendResponseHeaders(405, -1);
+        return;
+      }
+
       exchange.getResponseHeaders().put("Content-Type", List.of("application/json"));
-      response = "{\n";
-      response += "  \"headers\": {\n";
+      response = new StringBuilder("{\n");
+      response.append("  \"headers\": {\n");
       for (Map.Entry<String, List<String>> entry : exchange.getRequestHeaders().entrySet()) {
         if (!ignoredHeaders.contains(entry.getKey())) {
           if (!first) {
-            response += ",\n";
+            response.append(",\n");
           } else {
             first = false;
           }
-          response +=
-              "    \""
-                  + formatHeaderKey(entry.getKey())
-                  + "\": \""
-                  + entry.getValue().get(0)
-                  + "\"";
+          response
+              .append("    \"")
+              .append(formatHeaderKey(entry.getKey()))
+              .append("\": ")
+              .append(formatHeaderValues(entry.getValue()));
         }
         if (entry.getKey().equals("Content-type")) {
           contentType = entry.getValue().get(0);
@@ -74,29 +73,58 @@ public class TestHandler implements HttpHandler {
           }
         }
       }
-      response += "\n";
-      response += "  },\n";
-      response += "  \"origin\": \"127.0.0.1\",\n";
-      response += "  \"url\": \"\",\n";
-      response += "  \"method\": \"" + meth + "\",\n";
-      if (meth == HttpMethod.POST
-          || meth == HttpMethod.DELETE
-          || meth == HttpMethod.PUT
-          || meth == HttpMethod.PATCH) {
-        boolean isJson = contentType != null && contentType.equals("application/json");
-        response += "  \"form\": null,\n";
-        response += "  \"files\": null,\n";
-        String value = readBody(exchange.getRequestBody(), textEncoding);
-        response +=
-            "  \"data\": \"" + (value == null ? "" : StringEscapeUtils.escapeJson(value)) + "\",\n";
+
+      URI uri = exchange.getRequestURI();
+
+      response.append("\n");
+      response.append("  },\n");
+      response.append(
+          "  \"origin\": \"" + exchange.getRemoteAddress().getAddress().getHostAddress() + "\",\n");
+      response.append("  \"path\": \"" + StringEscapeUtils.escapeJson(uri.getPath()) + "\",\n");
+      if (uri.getQuery() != null) {
+        URIBuilder builder = new URIBuilder(uri);
+        List<NameValuePair> params = builder.getQueryParams();
+        response.append("  \"queryParameters\": [\n");
+        for (int i = 0; i < params.size(); i++) {
+          NameValuePair param = params.get(i);
+          String key = StringEscapeUtils.escapeJson(param.getName());
+          String value = StringEscapeUtils.escapeJson(param.getValue());
+          response
+              .append("    {\"name\": \"")
+              .append(key)
+              .append("\", \"value\": \"")
+              .append(value)
+              .append("\"}");
+          boolean isLast = i == params.size() - 1;
+          if (!isLast) {
+            response.append(",\n");
+          } else {
+            response.append("\n");
+          }
+        }
+        response.append("  ],\n");
       }
-      response += "  \"args\": {}\n";
-      response += "}";
-      exchange.sendResponseHeaders(200, response.getBytes().length);
+
+      response.append("  \"method\": \"").append(method).append("\",\n");
+      if (method == HttpMethod.POST
+          || method == HttpMethod.DELETE
+          || method == HttpMethod.PUT
+          || method == HttpMethod.PATCH) {
+        response.append("  \"form\": null,\n");
+        response.append("  \"files\": null,\n");
+        String value = readBody(exchange.getRequestBody(), textEncoding);
+        response
+            .append("  \"data\": \"")
+            .append(value == null ? "" : StringEscapeUtils.escapeJson(value))
+            .append("\",\n");
+      }
+      response.append("  \"args\": {}\n");
+      response.append("}");
+      exchange.sendResponseHeaders(200, response.toString().getBytes().length);
+      try (OutputStream os = exchange.getResponseBody()) {
+        os.write(response.toString().getBytes());
+      }
     }
-    OutputStream os = exchange.getResponseBody();
-    os.write(response.getBytes());
-    os.close();
   }
 
   private String readBody(InputStream inputStream, String encoding) {
@@ -137,5 +165,10 @@ public class TestHandler implements HttpHandler {
     } else {
       return key;
     }
+  }
+
+  private String formatHeaderValues(List<String> key) {
+    String merged = key.stream().reduce((a, b) -> a + ", " + b).orElse("");
+    return "\"" + StringEscapeUtils.escapeJson(merged) + "\"";
   }
 }
