@@ -1,17 +1,19 @@
 <script setup lang="ts">
 import DeprecatedVersionDialog from '@/components/DeprecatedVersionDialog.vue'
 import HelpScreen from '@/components/HelpScreen.vue'
-import type { HelpInfo } from '@/components/HelpScreen/types'
 import { provideAppClassSet } from '@/providers/appClass'
 import { provideGuiConfig, type GuiConfig } from '@/providers/guiConfig'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
+import type { ApplicationConfig } from '@/util/config'
 import ProjectView from '@/views/ProjectView.vue'
 import { onMounted, toRef } from 'vue'
 
 const props = defineProps<{
   config: GuiConfig
+  accessToken: string
   metadata: object
-  helpInfo: HelpInfo
+  unrecognizedOptions: string[]
+  applicationConfig: ApplicationConfig
 }>()
 
 const classSet = provideAppClassSet()
@@ -24,7 +26,11 @@ onMounted(() => useSuggestionDbStore())
 
 <template>
   <DeprecatedVersionDialog v-if="config.isVersionDeprecated === 'true'" />
-  <HelpScreen v-if="props.helpInfo" v-bind="props.helpInfo" />
+  <HelpScreen
+    v-if="unrecognizedOptions.length"
+    :unrecognizedOptions="props.unrecognizedOptions"
+    :applicationConfig="props.applicationConfig"
+  />
   <ProjectView v-else class="App" :class="[...classSet.keys()]" />
 </template>
 

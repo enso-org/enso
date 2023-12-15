@@ -1,4 +1,4 @@
-import { options as appOptions } from '@/util/appOptions'
+import { baseConfig, mergeConfig } from '@/util/config'
 import { isDevMode } from '@/util/detect'
 import { urlParams } from '@/util/urlParams'
 import { checkMinimumSupportedVersion } from '@/util/version'
@@ -10,7 +10,7 @@ const INITIAL_URL_KEY = `Enso-initial-url`
 const SCAM_WARNING_TIMEOUT = 1000
 
 let unmount: null | (() => void) = null
-let runRequested = false
+let running = false
 
 function printScamWarning() {
   if (isDevMode) return
@@ -51,25 +51,29 @@ export interface StringConfig {
 }
 
 async function runApp(config: StringConfig | null, accessToken: string | null, metadata?: object) {
-  runRequested = true
+  running = true
   const { mountProjectApp } = await import('./createApp')
-  if (runRequested) {
-    unmount?.()
-    const options = appOptions.clone()
-    const helpInfo = options.loadAllAndReturnHelpInfo([urlParams()])
-    const isVersionDeprecated = String(!(await checkMinimumSupportedVersion(options)))
-    const app = mountProjectApp({
-      config: { ...config, isVersionDeprecated },
-      accessToken,
-      metadata,
-      helpInfo,
-    })
-    unmount = () => app.unmount()
+  if (!running) return
+  unmount?.()
+  const unrecognizedOptions: string[] = []
+  function onUnrecognizedOption(path: string[]) {
+    unrecognizedOptions.push(path.join('.'))
   }
+  const applicationConfig = mergeConfig(baseConfig, urlParams(), { onUnrecognizedOption })
+  const isVersionDeprecated = String(!(await checkMinimumSupportedVersion(applicationConfig)))
+  if (!running) return
+  const app = mountProjectApp({
+    config: { ...config, isVersionDeprecated },
+    accessToken,
+    metadata,
+    unrecognizedOptions,
+    applicationConfig,
+  })
+  unmount = () => app.unmount()
 }
 
 function stopApp() {
-  runRequested = false
+  running = false
   unmount?.()
   unmount = null
 }
@@ -96,36 +100,33 @@ function main() {
     localStorage.setItem(INITIAL_URL_KEY, location.href)
   }
 
-  const options = appOptions.clone()
-  const didOptionsLoad = options.loadAllAndReturnHelpInfo([urlParams()])
-  if (didOptionsLoad) {
-    const shouldUseAuthentication = options.options.authentication.value
-    const projectManagerUrl =
-      options.groups.engine.options.projectManagerUrl.value || PROJECT_MANAGER_URL
-    const initialProjectName = options.groups.startup.options.project.value || null
+  const config = mergeConfig(baseConfig, urlParams())
+  const shouldUseAuthentication = config.options.authentication.value
+  const projectManagerUrl =
+    config.groups.engine.options.projectManagerUrl.value || PROJECT_MANAGER_URL
+  const initialProjectName = config.groups.startup.options.project.value || null
 
-    runDashboard({
-      appRunner,
-      logger: console,
-      // This entrypoint should never run in the cloud dashboard.
-      supportsLocalBackend: true,
-      supportsDeepLinks: !isDevMode && !isOnLinux(),
-      projectManagerUrl,
-      isAuthenticationDisabled: !shouldUseAuthentication,
-      shouldShowDashboard: true,
-      initialProjectName,
-      onAuthenticated() {
-        if (isInAuthenticationFlow) {
-          const initialUrl = localStorage.getItem(INITIAL_URL_KEY)
-          if (initialUrl != null) {
-            // This is not used past this point, however it is set to the initial URL
-            // to make refreshing work as expected.
-            history.replaceState(null, '', initialUrl)
-          }
+  runDashboard({
+    appRunner,
+    logger: console,
+    // This entrypoint should never run in the cloud dashboard.
+    supportsLocalBackend: true,
+    supportsDeepLinks: !isDevMode && !isOnLinux(),
+    projectManagerUrl,
+    isAuthenticationDisabled: !shouldUseAuthentication,
+    shouldShowDashboard: true,
+    initialProjectName,
+    onAuthenticated() {
+      if (isInAuthenticationFlow) {
+        const initialUrl = localStorage.getItem(INITIAL_URL_KEY)
+        if (initialUrl != null) {
+          // This is not used past this point, however it is set to the initial URL
+          // to make refreshing work as expected.
+          history.replaceState(null, '', initialUrl)
         }
-      },
-    })
-  }
+      }
+    },
+  })
 }
 
 main()

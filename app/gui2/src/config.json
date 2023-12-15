@@ -1,8 +1,8 @@
 {
   "options": {
     "authentication": {
-      "value": true,
-      "description": "Determines whether user authentication is enabled. This option is always true when executed in the cloud."
+      "description": "Determines whether user authentication is enabled. This option is always true when executed in the cloud.",
+      "value": true
     }
   },
   "groups": {
@@ -10,8 +10,8 @@
       "description": "The visual and tactile configurations of the application window.",
       "options": {
         "topBarOffset": {
-          "value": 0,
           "description": "The offset of the IDE's toolbar from the window's left edge.",
+          "value": 0,
           "primary": false
         }
       }
@@ -19,12 +19,12 @@
     "startup": {
       "options": {
         "project": {
-          "value": "",
-          "description": "The name of the project to open at startup. If the project does not exist, it will be created."
+          "description": "The name of the project to open at startup. If the project does not exist, it will be created.",
+          "value": ""
         },
         "displayedProjectName": {
-          "value": "",
           "description": "The name of the project to be displayed to the user.",
+          "value": "",
           "primary": false
         }
       }
@@ -33,35 +33,35 @@
       "description": "Options that control the Enso Engine, the data processing backend.",
       "options": {
         "projectManagerUrl": {
-          "value": "",
           "description": "The address of the Project Manager service.",
+          "value": "",
           "primary": false
         },
         "rpcUrl": {
-          "value": "",
           "description": "The address of the Language Server RPC endpoint. This argument should be provided together with `dataUrl`, `namespace`, `project` and `displayedProjectName` options. They enable Enso to connect directly to an already-spawned Language Server of some project.",
+          "value": "",
           "primary": false
         },
         "dataUrl": {
-          "value": "",
           "description": "The address of the Language Server Data endpoint. This argument should be provided together with `rpcUrl`, `namespace`, `project` and `dislayedProjectName` options. They enable Enso to connect directly to an already-spawned Language Server of some project.",
+          "value": "",
           "primary": false
         },
         "namespace": {
-          "value": "local",
           "description": "The namespace of the opened project. It can be used when connecting to an existing Language Server process.",
+          "value": "local",
           "primary": false
         },
         "configUrl": {
-          "value": "https://raw.githubusercontent.com/enso-org/ide/develop/config.json",
           "description": "The URL of the application configuration. Used to check for available updates.",
+          "value": "https://raw.githubusercontent.com/enso-org/ide/develop/config.json",
           "primary": false
         },
         "skipMinVersionCheck": {
+          "description": "Determines whether the minimum engine version check should be performed.",
+          "defaultDescription": "true in local builds, false otherwise.",
           "value": false,
           "valueEval": "scope.Version.isDev()",
-          "defaultDescription": "true in local builds, false otherwise.",
-          "description": "Determines whether the minimum engine version check should be performed.",
           "primary": false
         }
       }
@@ -80,7 +80,7 @@
       "options": {
         "email": {
           "value": "",
-          "description": "The user email, if any.",
+          "description": "The user email, if the user is logged in.",
           "primary": false
         }
       },

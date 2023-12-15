@@ -1,29 +1,131 @@
 <script setup lang="ts">
-import type { HelpScreenSection } from '@/components/HelpScreen/types'
+import { baseConfig, type ApplicationConfig, type Group, type Option } from '@/util/config'
+import { computed } from 'vue'
 
 const props = defineProps<{
-  title: string
-  headers: string[]
-  sections: HelpScreenSection[]
+  // headers: string[]
+  // sections: HelpScreenSection[]
+  unrecognizedOptions: string[]
+  applicationConfig: ApplicationConfig
 }>()
+
+export interface HelpScreenSection {
+  description?: string | undefined
+  name: string
+  entries: HelpScreenEntry[]
+}
+
+export interface HelpScreenEntry {
+  name: string
+  values: string[]
+  href?: string | undefined
+}
+
+const headers = ['Name', 'Description', 'Default']
+
+const title = computed(() => {
+  if (props.unrecognizedOptions.length === 0) {
+    return
+  } else {
+    const optionLabel = props.unrecognizedOptions.length > 1 ? 'options' : 'option'
+    return `Unknown config ${optionLabel}: ${props.unrecognizedOptions
+      .map((t) => `'${t}'`)
+      .join(', ')}. Available options:`
+  }
+})
+
+function optionValueToString(value: unknown) {
+  return Array.isArray(value) ? JSON.stringify(value) : String(value ?? '')
+}
+
+function recursiveOptions<T extends Group>(
+  group: T,
+  path: string[] = [],
+): { option: Option; path: string[] }[] {
+  return [
+    Object.entries<Option>(group.options).map(([k, v]) => ({ option: v, path: [k] })),
+    ...Object.entries<Group>(group.groups).map(([k, v]) =>
+      recursiveOptions(v as Group, [...path, k]),
+    ),
+  ].flat()
+}
+
+const sections = computed(() => {
+  const sectionsData: [name: string, description: string, def: HelpScreenEntry[]][] =
+    Object.entries(props.applicationConfig.groups).map(([groupName, group]) => {
+      const groupOptions = recursiveOptions(group as Group)
+      const originalGroupOptions = recursiveOptions((baseConfig.groups as any)[groupName] as Group)
+      const entriesData: [string, string, string][] = groupOptions.map(({ option, path }, i) => [
+        path.join('.'),
+        option.description,
+        optionValueToString(originalGroupOptions[i]!.option.value ?? ''),
+      ])
+      entriesData.sort()
+      const entries = entriesData.map(
+        ([name, description, def]): HelpScreenEntry => ({
+          name,
+          values: [description, def],
+        }),
+      )
+      const option = (props.applicationConfig.options as any)[groupName] as Option | undefined
+      if (option != null) {
+        entries.unshift({
+          name: groupName,
+          values: [
+            option.description,
+            optionValueToString(((baseConfig.options as any)[groupName] as Option).value),
+          ],
+        })
+      }
+      const name =
+        groupName.charAt(0).toUpperCase() +
+        groupName.slice(1).replace(/([A-Z])/g, ' $1') +
+        ' Options'
+      const description = group.description
+      return [name, description, entries]
+    })
+  sectionsData.sort()
+  const sections = sectionsData.map(
+    ([name, description, entries]): HelpScreenSection => ({ name, description, entries }),
+  )
+
+  const rootEntries = Object.entries(props.applicationConfig.options).flatMap(([name, option]) => {
+    if (name in props.applicationConfig.groups) return []
+    const entry = {
+      name,
+      values: [
+        option.description,
+        optionValueToString(((baseConfig.options as any)[name] as Option).value),
+      ],
+    }
+    return [entry]
+  })
+
+  if (rootEntries.length > 0) {
+    const name = 'Other Options'
+    sections.push({ name, entries: rootEntries })
+  }
+
+  return sections
+})
 </script>
 
 <template>
   <div class="HelpScreen">
     <div class="help-container">
-      <div class="title-container">{{ props.title }}</div>
+      <div class="title-container">{{ title }}</div>
       <section v-for="section in sections" :key="section.name" class="section">
         <div class="section-title">{{ section.name }}</div>
         <div v-if="section.description" class="section-description">{{ section.description }}</div>
         <table class="section-table">
           <thead>
             <tr>
-              <th v-for="header in props.headers" :key="header">{{ header }}</th>
+              <th v-for="header in headers" :key="header">{{ header }}</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="entry in section.entries" :key="entry.name">
-              <td v-for="(header, i) in props.headers" :key="header">
+              <td v-for="(header, i) in headers" :key="header">
                 <template v-if="i === 0">{{ entry.name }}</template>
                 <template v-else>{{ entry.values[i - 1] ?? '' }}</template>
               </td>
