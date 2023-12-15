@@ -449,14 +449,20 @@ export class AssetQuery {
 export function toggleLabel(query: AssetQuery, label: string, fromLastTerm = false) {
     let newQuery = query
     if (fromLastTerm) {
-        newQuery = newQuery.deleteFromLastTerm({ labels: [label] })
+        newQuery = newQuery.deleteFromLastTerm({ negativeLabels: [label] })
         if (newQuery === query) {
-            newQuery = newQuery.addToLastTerm({ labels: [label] })
+            newQuery = newQuery.deleteFromLastTerm({ labels: [label] })
+            newQuery = newQuery.addToLastTerm(
+                newQuery === query ? { labels: [label] } : { negativeLabels: [label] }
+            )
         }
     } else {
-        newQuery = newQuery.delete({ labels: [[label]] })
+        newQuery = newQuery.delete({ negativeLabels: [[label]] })
         if (newQuery === query) {
-            newQuery = newQuery.add({ labels: [[label]] })
+            newQuery = newQuery.delete({ labels: [[label]] })
+            newQuery = newQuery.add(
+                newQuery === query ? { labels: [[label]] } : { negativeLabels: [[label]] }
+            )
         }
     }
     return newQuery
