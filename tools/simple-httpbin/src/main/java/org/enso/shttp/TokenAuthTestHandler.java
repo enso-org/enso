@@ -2,7 +2,6 @@ package org.enso.shttp;
 
 import com.sun.net.httpserver.HttpExchange;
 import java.io.IOException;
-import java.util.List;
 
 public class TokenAuthTestHandler extends HandlerWithTokenAuth {
 

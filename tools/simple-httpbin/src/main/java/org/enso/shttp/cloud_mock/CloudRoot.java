@@ -1,10 +1,9 @@
 package org.enso.shttp.cloud_mock;
 
 import com.sun.net.httpserver.HttpExchange;
-import org.enso.shttp.HandlerWithTokenAuth;
-
 import java.io.IOException;
 import java.net.URI;
+import org.enso.shttp.HandlerWithTokenAuth;
 
 public class CloudRoot extends HandlerWithTokenAuth {
   public final String prefix = "/enso-cloud-mock/";
@@ -14,9 +13,7 @@ public class CloudRoot extends HandlerWithTokenAuth {
     return "TEST-ENSO-TOKEN-caffee";
   }
 
-  private final CloudHandler[] handlers = new CloudHandler[]{
-      new UsersHandler()
-  };
+  private final CloudHandler[] handlers = new CloudHandler[] {new UsersHandler()};
 
   @Override
   protected void handleAuthorized(HttpExchange exchange) throws IOException {

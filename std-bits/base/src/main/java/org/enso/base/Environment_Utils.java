@@ -1,7 +1,6 @@
 package org.enso.base;
 
 import java.util.HashMap;
-import java.util.function.Function;
 
 public class Environment_Utils {
   /** Gets the environment variable, including any overrides. */

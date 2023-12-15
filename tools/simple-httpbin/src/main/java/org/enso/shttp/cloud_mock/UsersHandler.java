@@ -1,7 +1,5 @@
 package org.enso.shttp.cloud_mock;
 
-import com.sun.net.httpserver.HttpExchange;
-
 import java.io.IOException;
 
 public class UsersHandler implements CloudHandler {
@@ -30,18 +28,21 @@ public class UsersHandler implements CloudHandler {
   }
 
   private void sendUserList(CloudExchange exchange) throws IOException {
-    String response = """
+    String response =
+        """
         {
             "users": [
                 %s,
                 %s
             ]
         }
-        """.formatted(currentUser, otherUser);
+        """
+            .formatted(currentUser, otherUser);
     exchange.sendResponse(200, response);
   }
 
-  private final String currentUser = """
+  private final String currentUser =
+      """
       {
           "id": "organization-27xJM00p8jWoL2qByTo6tQfciWC",
           "name": "My test User 1",
@@ -51,7 +52,8 @@ public class UsersHandler implements CloudHandler {
       }
       """;
 
-  private final String otherUser = """
+  private final String otherUser =
+      """
       {
           "id": "organization-44AAA00A8AAAA2AAAAA6AAAAAAA",
           "name": "My test User 2",

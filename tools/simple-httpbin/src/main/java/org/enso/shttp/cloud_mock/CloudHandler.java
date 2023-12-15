@@ -1,7 +1,6 @@
 package org.enso.shttp.cloud_mock;
 
 import com.sun.net.httpserver.HttpExchange;
-
 import java.io.IOException;
 
 public interface CloudHandler {
@@ -11,7 +10,9 @@ public interface CloudHandler {
 
   interface CloudExchange {
     HttpExchange getHttpExchange();
+
     String subPath();
+
     void sendResponse(int code, String response) throws IOException;
   }
 }
