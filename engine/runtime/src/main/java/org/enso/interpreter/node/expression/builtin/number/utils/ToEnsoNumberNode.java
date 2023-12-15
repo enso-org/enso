@@ -19,7 +19,9 @@ public class ToEnsoNumberNode extends Node {
     this.fitsProfile = fitsProfile;
   }
 
-  /** @return a new instance of this node. */
+  /**
+   * @return a new instance of this node.
+   */
   @NeverDefault
   public static ToEnsoNumberNode create() {
     return new ToEnsoNumberNode(CountingConditionProfile.create());

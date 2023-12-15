@@ -114,7 +114,8 @@ public abstract class EvalNode extends BaseNode {
       @Cached("toJavaStringNode.execute(expression)") String expressionStr,
       @Cached("callerInfo") CallerInfo cachedCallerInfo,
       @Cached(
-              "parseExpression(callerInfo.getLocalScope(), callerInfo.getModuleScope(), expressionStr)")
+              "parseExpression(callerInfo.getLocalScope(), callerInfo.getModuleScope(),"
+                  + " expressionStr)")
           RootCallTarget cachedCallTarget,
       @Shared("thunkExecutorNode") @Cached("build()") ThunkExecutorNode thunkExecutorNode) {
     Function thunk = Function.thunk(cachedCallTarget, callerInfo.getFrame());

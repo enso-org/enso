@@ -1,5 +1,7 @@
 package org.enso.interpreter.test.instruments;
 
+import static org.junit.Assert.fail;
+
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.EventContext;
 import com.oracle.truffle.api.instrumentation.ExecutionEventNode;
@@ -50,8 +52,8 @@ public class NodeCountingTestInstrument extends TruffleInstrument {
 
   public void enable(SourceSectionFilter filter) {
     this.env
-            .getInstrumenter()
-            .attachExecutionEventFactory(filter, new CountingAndFunctionCallFactory());
+        .getInstrumenter()
+        .attachExecutionEventFactory(filter, new CountingAndFunctionCallFactory());
   }
 
   public Map<UUID, FunctionCallInfo> registeredCalls() {

@@ -52,7 +52,7 @@ export interface Group {
 
 export function groupColorVar(group: Group | undefined): string {
   if (group) {
-    const name = group.name.replace(/\s/g, '-')
+    const name = `${group.project}-${group.name}`.replace(/[^\w]/g, '-')
     return `--group-color-${name}`
   } else {
     return '--group-color-fallback'

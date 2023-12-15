@@ -28,25 +28,30 @@ public abstract class CustomComparatorNode extends Node {
   }
 
   /**
-   * Returns the given atom's comparator if it is a comparator that is different
-   * than the default (internal) one.
+   * Returns the given atom's comparator if it is a comparator that is different than the default
+   * (internal) one.
    *
    * @param atom Atom for which we check whether it has custom comparator
-   * @return {@code null} if the atom has default comparator. Otherwise it returns the real comparator type.
+   * @return {@code null} if the atom has default comparator. Otherwise it returns the real
+   *     comparator type.
    */
   public abstract Type execute(Atom atom);
 
   @Specialization
   Type hasCustomComparatorCached(
       Atom atom,
-      @Cached(value = "buildConvertionNode()", allowUncached = true) InvokeConversionNode convertNode,
-      @Cached(value = "createConversion()", allowUncached = true) UnresolvedConversion conversion
-  ) {
+      @Cached(value = "buildConvertionNode()", allowUncached = true)
+          InvokeConversionNode convertNode,
+      @Cached(value = "createConversion()", allowUncached = true) UnresolvedConversion conversion) {
     var ctx = EnsoContext.get(this);
     var comparableType = ctx.getBuiltins().comparable().getType();
     var state = State.create(ctx);
-    Object res = convertNode.execute(null, state, conversion, comparableType, atom, new Object[] { comparableType, atom });
-    return res instanceof Type result && result != ctx.getBuiltins().defaultComparator().getType() ? result : null;
+    Object res =
+        convertNode.execute(
+            null, state, conversion, comparableType, atom, new Object[] {comparableType, atom});
+    return res instanceof Type result && result != ctx.getBuiltins().defaultComparator().getType()
+        ? result
+        : null;
   }
 
   @NeverDefault
@@ -61,6 +66,7 @@ public abstract class CustomComparatorNode extends Node {
     CallArgumentInfo[] argSchema = new CallArgumentInfo[2];
     argSchema[0] = new CallArgumentInfo();
     argSchema[1] = new CallArgumentInfo();
-    return InvokeConversionNode.build(argSchema, DefaultsExecutionMode.EXECUTE, ArgumentsExecutionMode.EXECUTE, 1);
+    return InvokeConversionNode.build(
+        argSchema, DefaultsExecutionMode.EXECUTE, ArgumentsExecutionMode.EXECUTE, 1);
   }
 }

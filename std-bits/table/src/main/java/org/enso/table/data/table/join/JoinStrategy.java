@@ -1,5 +1,6 @@
 package org.enso.table.data.table.join;
 
+import java.util.List;
 import org.enso.table.data.table.join.between.SortJoin;
 import org.enso.table.data.table.join.conditions.Between;
 import org.enso.table.data.table.join.conditions.Equals;
@@ -9,11 +10,7 @@ import org.enso.table.data.table.join.conditions.JoinCondition;
 import org.enso.table.data.table.join.hashing.HashJoin;
 import org.enso.table.problems.ProblemAggregator;
 
-import java.util.List;
-
-/**
- * A strategy used for performing a join of two tables.
- */
+/** A strategy used for performing a join of two tables. */
 public interface JoinStrategy {
   JoinResult join(ProblemAggregator problemAggregator);
 
@@ -24,14 +21,13 @@ public interface JoinStrategy {
 
     JoinResult.BuilderSettings builderSettings = JoinKind.makeSettings(joinKind);
 
-    List<HashableCondition> hashableConditions = conditions.stream()
-        .filter(c -> c instanceof HashableCondition)
-        .map(c -> (HashableCondition) c)
-        .toList();
-    List<Between> betweenConditions = conditions.stream()
-        .filter(c -> c instanceof Between)
-        .map(c -> (Between) c)
-        .toList();
+    List<HashableCondition> hashableConditions =
+        conditions.stream()
+            .filter(c -> c instanceof HashableCondition)
+            .map(c -> (HashableCondition) c)
+            .toList();
+    List<Between> betweenConditions =
+        conditions.stream().filter(c -> c instanceof Between).map(c -> (Between) c).toList();
 
     if (hashableConditions.size() + betweenConditions.size() != conditions.size()) {
       throw new IllegalArgumentException("Unsupported join condition.");
@@ -43,7 +39,8 @@ public interface JoinStrategy {
     } else if (betweenConditions.isEmpty()) {
       return new HashJoin(hashableConditions, new MatchAllStrategy(), builderSettings);
     } else {
-      return new HashJoin(hashableConditions, new SortJoin(betweenConditions, builderSettings), builderSettings);
+      return new HashJoin(
+          hashableConditions, new SortJoin(betweenConditions, builderSettings), builderSettings);
     }
   }
 

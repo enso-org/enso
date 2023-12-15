@@ -116,7 +116,7 @@ public class Text_Utils {
    * @return the result of comparison
    */
   public static boolean equals(String str1, String str2) {
-      return Core_Text_Utils.equals(str1, str2);
+    return Core_Text_Utils.equals(str1, str2);
   }
 
   /** Computes a hashcode of a string that is insensitive to Unicode normalization. */
@@ -184,7 +184,10 @@ public class Text_Utils {
    *     positive value if {@code a} is after {@code b}
    */
   public static int compare(String a, String b, boolean isNormalized) {
-    int options = isNormalized ? Normalizer.FOLD_CASE_DEFAULT | Normalizer.INPUT_IS_FCD : Normalizer.FOLD_CASE_DEFAULT;
+    int options =
+        isNormalized
+            ? Normalizer.FOLD_CASE_DEFAULT | Normalizer.INPUT_IS_FCD
+            : Normalizer.FOLD_CASE_DEFAULT;
     return Normalizer.compare(a, b, options);
   }
 
@@ -219,17 +222,13 @@ public class Text_Utils {
     return searcher.first() != StringSearch.DONE;
   }
 
-  /**
-   * Checks if {@code string} starts with {@code prefix}.
-   */
+  /** Checks if {@code string} starts with {@code prefix}. */
   public static boolean starts_with(String string, String prefix) {
     String beginning = take_prefix(string, grapheme_length(prefix));
     return equals(beginning, prefix);
   }
 
-  /**
-   * Checks if {@code string} ends with {@code suffix}.
-   */
+  /** Checks if {@code string} ends with {@code suffix}. */
   public static boolean ends_with(String string, String suffix) {
     String ending = take_suffix(string, grapheme_length(suffix));
     return equals(ending, suffix);
@@ -349,7 +348,7 @@ public class Text_Utils {
   public static List<Utf16Span> span_of_all(String haystack, String needle) {
     if (needle.isEmpty())
       throw new IllegalArgumentException(
-              "The operation `span_of_all` does not support searching for an empty term.");
+          "The operation `span_of_all` does not support searching for an empty term.");
     if (haystack.isEmpty()) return List.of();
 
     StringSearch search = new StringSearch(needle, haystack);
@@ -373,10 +372,11 @@ public class Text_Utils {
   public static List<Utf16Span> span_of_all_multiple(String haystack, List<String> needles) {
     if (needles.isEmpty() || needles.stream().anyMatch(String::isEmpty))
       throw new IllegalArgumentException(
-              "The operation `span_of_all_multiple` does not support searching for an empty term.");
+          "The operation `span_of_all_multiple` does not support searching for an empty term.");
     if (haystack.isEmpty()) return List.of();
 
-    StringSearch stringSearches[] = IntStream.range(0, needles.size())
+    StringSearch stringSearches[] =
+        IntStream.range(0, needles.size())
             .mapToObj(i -> new StringSearch(needles.get(i), haystack))
             .toArray(StringSearch[]::new);
     List<Utf16Span> occurrences = new ArrayList<>();
@@ -518,10 +518,11 @@ public class Text_Utils {
    * @return a list of extended-grapheme-cluster spans at which the needle occurs in the haystack
    */
   public static List<GraphemeSpan> span_of_all_case_insensitive(
-          String haystack, String needle, Locale locale) {
+      String haystack, String needle, Locale locale) {
     if (needle.isEmpty())
       throw new IllegalArgumentException(
-              "The operation `span_of_all_case_insensitive` does not support searching for an empty term.");
+          "The operation `span_of_all_case_insensitive` does not support searching for an empty"
+              + " term.");
     if (haystack.isEmpty()) return List.of();
 
     CaseFoldedString foldedHaystack = CaseFoldedString.fold(haystack, locale);
@@ -541,8 +542,7 @@ public class Text_Utils {
   }
 
   /**
-   * Find spans of all occurrences of a set of needles within the haystack,
-   * case-insensitively.
+   * Find spans of all occurrences of a set of needles within the haystack, case-insensitively.
    *
    * @param haystack the string to search
    * @param needle the substring that is searched for
@@ -550,16 +550,22 @@ public class Text_Utils {
    * @return a list of extended-grapheme-cluster spans at which the needle occurs in the haystack
    */
   public static List<GraphemeSpan> span_of_all_case_insensitive_multiple(
-          String haystack, List<String> needles, Locale locale) {
+      String haystack, List<String> needles, Locale locale) {
     CaseFoldedString foldedHaystack = CaseFoldedString.fold(haystack, locale);
-    List<String> foldedNeedles = IntStream.range(0, needles.size())
+    List<String> foldedNeedles =
+        IntStream.range(0, needles.size())
             .mapToObj(i -> CaseFoldedString.simpleFold(needles.get(i), locale))
             .collect(Collectors.toList());
     var foldedSpans = span_of_all_multiple(foldedHaystack.getFoldedString(), foldedNeedles);
     List<GraphemeSpan> occurrences =
-            foldedSpans.stream()
-                    .map(span -> findExtendedSpan(foldedHaystack, span.codeunit_start, span.codeunit_end-span.codeunit_start))
-                    .collect(Collectors.toList());
+        foldedSpans.stream()
+            .map(
+                span ->
+                    findExtendedSpan(
+                        foldedHaystack,
+                        span.codeunit_start,
+                        span.codeunit_end - span.codeunit_start))
+            .collect(Collectors.toList());
     return occurrences;
   }
 
@@ -616,8 +622,8 @@ public class Text_Utils {
    * Normalizes the string to its canonical Unicode form using the specified name and mode.
    *
    * @see https://unicode-org.github.io/icu-docs/apidoc/dev/icu4j/com/ibm/icu/text/Normalizer2.html
-   * @see https://unicode-org.github.io/icu-docs/apidoc/dev/icu4j/com/ibm/icu/text/Normalizer2.Mode.html
-   *
+   * @see
+   *     https://unicode-org.github.io/icu-docs/apidoc/dev/icu4j/com/ibm/icu/text/Normalizer2.Mode.html
    * @param name the normalization name, must be "nfc", "nfkc", or "nfkc_cf"
    * @param mode the normalization mode
    */
@@ -635,9 +641,7 @@ public class Text_Utils {
     return text.codePoints().allMatch(UCharacter::isUWhiteSpace);
   }
 
-  /**
-   * Checks if the given string consists only of letters.
-   */
+  /** Checks if the given string consists only of letters. */
   public static boolean is_all_letters(String text) {
     return text.codePoints().allMatch(UCharacter::isLetter);
   }

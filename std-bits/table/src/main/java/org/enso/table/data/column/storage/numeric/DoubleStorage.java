@@ -60,13 +60,17 @@ public final class DoubleStorage extends NumericStorage<Double> implements Doubl
     return new DoubleStorage(new long[0], size, isMissing);
   }
 
-  /** @inheritDoc */
+  /**
+   * @inheritDoc
+   */
   @Override
   public int size() {
     return size;
   }
 
-  /** @inheritDoc */
+  /**
+   * @inheritDoc
+   */
   @Override
   public int countMissing() {
     return isMissing.cardinality();
@@ -96,13 +100,17 @@ public final class DoubleStorage extends NumericStorage<Double> implements Doubl
     return ops.runUnaryMap(name, this, problemAggregator);
   }
 
-  /** @inheritDoc */
+  /**
+   * @inheritDoc
+   */
   @Override
   public StorageType getType() {
     return FloatType.FLOAT_64;
   }
 
-  /** @inheritDoc */
+  /**
+   * @inheritDoc
+   */
   @Override
   public boolean isNa(long idx) {
     return isMissing.get((int) idx);

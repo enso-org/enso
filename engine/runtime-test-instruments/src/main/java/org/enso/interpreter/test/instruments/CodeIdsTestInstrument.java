@@ -6,10 +6,9 @@ import com.oracle.truffle.api.nodes.Node;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import java.util.UUID;
 import org.enso.interpreter.test.instruments.service.RuntimeTestService;
 import org.openide.util.Lookup;
-
-import java.util.UUID;
 
 /**
  * A debug instrument used to test code locations.
@@ -76,7 +75,7 @@ public class CodeIdsTestInstrument extends TruffleInstrument {
     public String dumpNodes() {
       var sb = new StringBuilder();
       for (var n : nodes.entrySet()) {
-        sb.append("\nvalue ").append(n.getValue()).append("  for " ).append(n.getKey().toString());
+        sb.append("\nvalue ").append(n.getValue()).append("  for ").append(n.getKey().toString());
       }
       return sb.toString();
     }
@@ -172,10 +171,7 @@ public class CodeIdsTestInstrument extends TruffleInstrument {
    */
   public EventBinding<IdEventListener> bindTo(UUID id, String expectedResult) {
     var testSource = SourceFilter.newBuilder().sourceIs((t) -> t.getName().equals("Test")).build();
-    var eventFilter =
-        SourceSectionFilter.newBuilder()
-            .sourceFilter(testSource)
-            .build();
+    var eventFilter = SourceSectionFilter.newBuilder().sourceFilter(testSource).build();
     var factory = new IdEventListener(id, expectedResult);
     return env.getInstrumenter().attachExecutionEventFactory(eventFilter, factory);
   }

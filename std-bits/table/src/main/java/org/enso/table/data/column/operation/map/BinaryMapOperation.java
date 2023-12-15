@@ -41,7 +41,9 @@ public abstract class BinaryMapOperation<T, I extends Storage<? super T>> {
   public abstract Storage<?> runZip(
       I storage, Storage<?> arg, MapOperationProblemAggregator problemAggregator);
 
-  /** @return the name of this operation */
+  /**
+   * @return the name of this operation
+   */
   public String getName() {
     return name;
   }

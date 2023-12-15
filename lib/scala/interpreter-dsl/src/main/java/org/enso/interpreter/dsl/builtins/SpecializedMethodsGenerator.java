@@ -201,7 +201,8 @@ public final class SpecializedMethodsGenerator extends MethodGenerator {
         return new SpecializationMeta(fallbackExecParams, Optional.empty());
       }
       throw new RuntimeException(
-          "Implementation limitation: Builtins DSL infers specialization on a single parameter. Write Node specialization manually instead");
+          "Implementation limitation: Builtins DSL infers specialization on a single parameter."
+              + " Write Node specialization manually instead");
     }
     return new SpecializationMeta(execParams, Optional.of(diffParams.get(0)));
   }

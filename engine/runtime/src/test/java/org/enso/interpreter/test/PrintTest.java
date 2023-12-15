@@ -1,5 +1,11 @@
 package org.enso.interpreter.test;
 
+import static org.junit.Assert.*;
+
+import java.io.ByteArrayOutputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import org.enso.polyglot.MethodNames;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
@@ -7,13 +13,6 @@ import org.graalvm.polyglot.Value;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.io.ByteArrayOutputStream;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
-
-import static org.junit.Assert.*;
 
 public class PrintTest extends TestBase {
   private static final ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -40,16 +39,15 @@ public class PrintTest extends TestBase {
   private Value evalCode(final String code, final String methodName) throws URISyntaxException {
     final var testName = "test.enso";
     final URI testUri = new URI("memory://" + testName);
-    final Source src = Source.newBuilder("enso", code, testName)
-        .uri(testUri)
-        .buildLiteral();
+    final Source src = Source.newBuilder("enso", code, testName).uri(testUri).buildLiteral();
     var module = ctx.eval(src);
     return module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, methodName);
   }
 
   @Test
   public void testPrintText() throws Exception {
-    final String code = """
+    final String code =
+        """
     import Standard.Base.IO
 
     test =
@@ -73,12 +71,13 @@ public class PrintTest extends TestBase {
 
   @Test
   public void testPrintToText() throws Exception {
-    final String code = """
+    final String code =
+        """
     import Standard.Base.IO
 
     type My_Object
         Value x
-        
+
         to_text self = "MyObj{" + self.x.to_text + "}"
 
     test =
@@ -90,7 +89,8 @@ public class PrintTest extends TestBase {
 
   @Test
   public void testPrintError() throws Exception {
-    final String code = """
+    final String code =
+        """
     import Standard.Base.IO
     import Standard.Base.Error.Error
 
@@ -107,7 +107,8 @@ public class PrintTest extends TestBase {
 
   @Test
   public void testPrintToTextHasWarnings() throws Exception {
-    final String code = """
+    final String code =
+        """
     import Standard.Base.IO
     from Standard.Base.Warning import Warning
 
@@ -121,7 +122,8 @@ public class PrintTest extends TestBase {
 
   @Test
   public void testPrintToTextHasWarnings2() throws Exception {
-    final String code = """
+    final String code =
+        """
     import Standard.Base.IO
     from Standard.Base.Warning import Warning
 
@@ -135,13 +137,14 @@ public class PrintTest extends TestBase {
 
   @Test
   public void testPrintToTextHasWarnings3() throws Exception {
-    final String code = """
+    final String code =
+        """
     import Standard.Base.IO
     from Standard.Base.Warning import Warning
 
     type My_Object
         Value x
-        
+
         to_text self = "MyObj{" + self.x.to_text + "}"
 
     test =
@@ -154,13 +157,14 @@ public class PrintTest extends TestBase {
 
   @Test
   public void testPrintToTextHasWarnings4() throws Exception {
-    final String code = """
+    final String code =
+        """
     import Standard.Base.IO
     from Standard.Base.Warning import Warning
 
     type My_Object
         Value x
-        
+
         to_text self =
             res = "MyObj{" + self.x.to_text + "}"
             Warning.attach "Warning2" res
@@ -175,12 +179,13 @@ public class PrintTest extends TestBase {
 
   @Test
   public void testPrintToTextTypeError() throws Exception {
-    final String code = """
+    final String code =
+        """
     import Standard.Base.IO
 
     type My_Object
         Value x
-        
+
         to_text self = 100
 
     test =
@@ -193,13 +198,14 @@ public class PrintTest extends TestBase {
 
   @Test
   public void testPrintToTextTypeErrorAndWarnings() throws Exception {
-    final String code = """
+    final String code =
+        """
     import Standard.Base.IO
     from Standard.Base.Warning import Warning
 
     type My_Object
         Value x
-        
+
         to_text self =
             res = 100
             Warning.attach "Warning2" res
@@ -214,12 +220,13 @@ public class PrintTest extends TestBase {
 
   @Test
   public void testPrintToTextStaticMethod() throws Exception {
-    final String code = """
+    final String code =
+        """
     import Standard.Base.IO
 
     type My_Object
         Value x
-        
+
         to_text self = "MyObj{" + self.x.to_text + "}"
 
     test =

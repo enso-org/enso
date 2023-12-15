@@ -29,32 +29,44 @@ public class Ordering extends Builtin {
     }
   }
 
-  /** @return the Less constructor */
+  /**
+   * @return the Less constructor
+   */
   public AtomConstructor less() {
     return getConstructors()[0];
   }
 
-  /** @return the Equal constructor */
+  /**
+   * @return the Equal constructor
+   */
   public AtomConstructor equal() {
     return getConstructors()[1];
   }
 
-  /** @return the Greater constructor */
+  /**
+   * @return the Greater constructor
+   */
   public AtomConstructor greater() {
     return getConstructors()[2];
   }
 
-  /** @return a new instance of Less */
+  /**
+   * @return a new instance of Less
+   */
   public Atom newLess() {
     return less().newInstance();
   }
 
-  /** @return a new instance of Equal */
+  /**
+   * @return a new instance of Equal
+   */
   public Atom newEqual() {
     return equal().newInstance();
   }
 
-  /** @return a new instance of Greater */
+  /**
+   * @return a new instance of Greater
+   */
   public Atom newGreater() {
     return greater().newInstance();
   }

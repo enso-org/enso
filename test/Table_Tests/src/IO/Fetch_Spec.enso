@@ -1,0 +1,60 @@
+from Standard.Base import all
+import Standard.Base.Errors.File_Error.File_Error
+import Standard.Base.Runtime.Context
+
+from Standard.Table import all
+import Standard.Table.Errors.Invalid_JSON_Format
+
+from Standard.Test import Test, Test_Suite
+import Standard.Test.Extensions
+
+import project.Util
+
+main = Test_Suite.run_main spec
+
+spec =
+    ## To run this test locally:
+       $ sbt 'simple-httpbin/run localhost 8080'
+       $ export ENSO_HTTP_TEST_HTTPBIN_URL=http://localhost:8080/
+    base_url = Environment.get "ENSO_HTTP_TEST_HTTPBIN_URL"
+    base_url_with_slash = base_url.if_not_nothing <|
+        if base_url.ends_with "/" then base_url else base_url + "/"
+    pending_has_url = if base_url != Nothing then Nothing else
+        "The HTTP tests only run when the `ENSO_HTTP_TEST_HTTPBIN_URL` environment variable is set to URL of the httpbin server"
+
+    Test.group "fetching files using HTTP" pending=pending_has_url <|
+        Test.specify "fetching json" <|
+            r = Data.fetch base_url_with_slash+"testfiles/table.json"
+            expected_table  = Table.from_rows ["A", "B"] [[1, "x"], [3, "y"]]
+            r.to Table . should_equal expected_table
+
+        Test.specify "fetching csv" <|
+            r = Data.fetch base_url_with_slash+"testfiles/table.csv"
+            expected_table  = Table.from_rows ["A", "B"] [[1, "x"], [3, "y"]]
+            r.to Table . should_equal expected_table
+
+        Test.specify "fetching xls" <|
+            url = base_url_with_slash+"testfiles/table.xls"
+            r = Data.fetch url
+            expected_table  = Table.from_rows ["A", "B"] [[1, "x"], [3, "y"]]
+
+            r.should_be_a Excel_Workbook
+            r.sheet_names . should_equal ["MyTestSheet"]
+            r.read "MyTestSheet" . should_equal expected_table
+
+            r2 = Data.fetch url try_auto_parse_response=False . decode (Excel (Excel_Section.Worksheet "MyTestSheet"))
+            r2.should_be_a Table
+            r2 . should_equal expected_table
+
+        Test.specify "fetching xlsx" <|
+            url = base_url_with_slash+"testfiles/table.xlsx"
+            r = Data.fetch url
+            expected_table  = Table.from_rows ["A", "B"] [[1, "x"], [3, "y"]]
+
+            r.should_be_a Excel_Workbook
+            r.sheet_names . should_equal ["MyTestSheet"]
+            r.read "MyTestSheet" . should_equal expected_table
+
+            r2 = Data.fetch url try_auto_parse_response=False . decode (Excel (Excel_Section.Worksheet "MyTestSheet"))
+            r2.should_be_a Table
+            r2 . should_equal expected_table

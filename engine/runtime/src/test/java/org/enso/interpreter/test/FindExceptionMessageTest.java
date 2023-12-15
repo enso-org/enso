@@ -1,15 +1,15 @@
 package org.enso.interpreter.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import org.enso.interpreter.instrument.job.VisualizationResult;
 import org.enso.polyglot.HostEnsoUtils;
-import static org.junit.Assert.assertEquals;
-
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -29,7 +29,8 @@ public class FindExceptionMessageTest extends TestBase {
 
   @Test
   public void testThrowNPE() {
-    String src = """
+    String src =
+        """
     from Standard.Base import Panic
     polyglot java import java.lang.NullPointerException
 
@@ -48,7 +49,8 @@ public class FindExceptionMessageTest extends TestBase {
 
   @Test
   public void testThrowNPEWithName() {
-    String src = """
+    String src =
+        """
     from Standard.Base import Panic
     polyglot java import java.lang.NullPointerException
 
@@ -67,7 +69,8 @@ public class FindExceptionMessageTest extends TestBase {
 
   @Test
   public void testPanic() {
-    String src = """
+    String src =
+        """
     from Standard.Base import Panic
     import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
@@ -87,12 +90,14 @@ public class FindExceptionMessageTest extends TestBase {
     var msg = HostEnsoUtils.findExceptionMessage(ex);
     assertEquals(exp, msg);
 
-    executeInContext(ctx, () -> {
-      var guestException = extractHostException(ex);
-      var guestMsg = VisualizationResult.findExceptionMessage(guestException);
-      assertEquals(exp, guestMsg);
-      return null;
-    });
+    executeInContext(
+        ctx,
+        () -> {
+          var guestException = extractHostException(ex);
+          var guestMsg = VisualizationResult.findExceptionMessage(guestException);
+          assertEquals(exp, guestMsg);
+          return null;
+        });
   }
 
   static Throwable extractHostException(PolyglotException ex) {

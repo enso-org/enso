@@ -13,7 +13,8 @@ public record JoinResult(int[] matchedRowsLeftIndices, int[] matchedRowsRightInd
     return new OrderMask(matchedRowsRightIndices);
   }
 
-  public record BuilderSettings(boolean wantsCommon, boolean wantsLeftUnmatched, boolean wantsRightUnmatched) {}
+  public record BuilderSettings(
+      boolean wantsCommon, boolean wantsLeftUnmatched, boolean wantsRightUnmatched) {}
 
   public static class Builder {
     IntArrayBuilder leftIndices;

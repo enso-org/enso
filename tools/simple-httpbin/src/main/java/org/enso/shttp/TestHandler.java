@@ -19,9 +19,26 @@ public class TestHandler implements HttpHandler {
   private static final Set<String> ignoredHeaders = Set.of("Host");
 
   private static final Pattern textEncodingRegex = Pattern.compile(".*; charset=([^;]+).*");
+  private final boolean logRequests = false;
 
   @Override
   public void handle(HttpExchange exchange) throws IOException {
+    try {
+      if (logRequests) {
+        System.out.println(
+            "Handling request: " + exchange.getRequestMethod() + " " + exchange.getRequestURI());
+      }
+
+      doHandle(exchange);
+    } catch (IOException e) {
+      e.printStackTrace();
+      throw e;
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+  }
+
+  public void doHandle(HttpExchange exchange) throws IOException {
     boolean first = true;
     String contentType = null;
     String textEncoding = "UTF-8";

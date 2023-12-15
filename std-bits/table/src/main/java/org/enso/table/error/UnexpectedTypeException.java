@@ -19,7 +19,9 @@ public class UnexpectedTypeException extends RuntimeException {
     this.expected = expected;
   }
 
-  /** @return the expected type descriptor */
+  /**
+   * @return the expected type descriptor
+   */
   public String getExpected() {
     return expected;
   }
