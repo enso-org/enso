@@ -1370,6 +1370,7 @@ lazy val `polyglot-api` = project
   .dependsOn(testkit % Test)
 
 lazy val `language-server` = (project in file("engine/language-server"))
+  .enablePlugins(JPMSPlugin)
   .settings(
     commands += WithDebugCommand.withDebug,
     frgaalJavaCompilerSetting,
@@ -1406,28 +1407,34 @@ lazy val `language-server` = (project in file("engine/language-server"))
     )
   )
   .settings(
-    // These settings are needed by language-server tests that create a runtime context.
     Test / fork := true,
-    Test / javaOptions ++= testLogProviderOptions ++ {
-      val runtimeJar = (LocalProject(
-        "runtime-fat-jar"
-      ) / assembly / assemblyOutputPath).value
-      val log = streams.value.log
-      val requiredModules =
-        (Test / internalDependencyClasspath).value ++ (Test / unmanagedClasspath).value
-      val allModules = requiredModules.map(_.data.getAbsolutePath) ++ Seq(
-        runtimeJar.getAbsolutePath
-      )
-      Seq(
-        "--module-path",
-        allModules.mkString(File.pathSeparator),
-        "--add-modules",
-        // TODO: Use JPMSModule name
-        "org.enso.runtime"
-      )
+    // These dependencies are here so that we can use them in `--module-path` later on.
+    libraryDependencies ++= {
+      val necessaryModules =
+        GraalVM.modules.map(_.withConfigurations(Some(Test.name)))
+      necessaryModules
     },
-    // Append enso language on the class-path
-    Test / unmanagedClasspath := componentModulesPaths.value,
+    Test / addModules := Seq(
+      (`runtime-fat-jar` / javaModuleName).value
+    ),
+    Test / modulePath := {
+      val updateReport = (Test / update).value
+      val requiredModIds =
+        GraalVM.modules ++ logbackPkg ++ Seq(
+          "org.slf4j"        % "slf4j-api"               % slf4jVersion,
+        )
+      val requiredMods = JPMSUtils.filterModulesFromUpdate(
+        updateReport,
+        requiredModIds,
+        streams.value.log,
+        shouldContainAll = true
+      )
+      val runtimeMod =
+        (`runtime-fat-jar` / Compile / productDirectories).value.head
+      requiredMods ++ Seq(runtimeMod)
+    },
+  )
+  .settings(
     Test / compile := (Test / compile)
       .dependsOn(LocalProject("enso") / updateLibraryManifests)
       .value,
