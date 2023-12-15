@@ -234,6 +234,50 @@ export class AssetQuery {
         }
     }
 
+    /** Return a new array of terms, after applying the given updates to the last term. */
+    static updatedEveryTerm(
+        original: string[][],
+        toAdd: string[] | null,
+        toRemove: string[] | null
+    ) {
+        toAdd = toAdd?.filter(term => term.length !== 0) ?? null
+        toRemove = toRemove?.filter(term => term.length !== 0) ?? null
+        toAdd = toAdd?.length === 0 ? null : toAdd
+        toRemove = toRemove?.length === 0 ? null : toRemove
+        if (toAdd == null && (toRemove == null || original.length === 0)) {
+            return null
+        } else {
+            const newTerms: string[][] = []
+            let changed = false
+            for (const term of original) {
+                let newTerm = term
+                if (toAdd != null) {
+                    const termAfterAdditions = [
+                        ...newTerm,
+                        ...toAdd.filter(word => newTerm.includes(word) === false),
+                    ]
+                    if (termAfterAdditions.length !== newTerm.length) {
+                        newTerm = termAfterAdditions
+                        changed = true
+                    }
+                }
+                if (toRemove != null) {
+                    const termAfterRemovals = newTerm.filter(
+                        word => toRemove?.includes(word) === false
+                    )
+                    if (termAfterRemovals.length !== newTerm.length) {
+                        newTerm = termAfterRemovals
+                        changed = true
+                    }
+                }
+                if (newTerm.length !== 0) {
+                    newTerms.push(newTerm)
+                }
+            }
+            return !changed ? null : newTerms
+        }
+    }
+
     /** Return a new {@link AssetQuery} with the specified terms added,
      * or itself if there are no terms to add. */
     add(values: Partial<AssetQueryData>): AssetQuery {
@@ -284,8 +328,8 @@ export class AssetQuery {
         }
     }
 
-    /** Return a new {@link AssetQuery} with the specified terms added,
-     * or itself if there are no terms to add. */
+    /** Return a new {@link AssetQuery} with the specified words added to the last term
+     * with the matching tag, or itself if there are no terms to add. */
     addToLastTerm(values: Partial<AssetQueryLastTermData>): AssetQuery {
         const updates: Partial<AssetQueryData> = {}
         for (const key of AssetQuery.dataKeys) {
@@ -309,12 +353,64 @@ export class AssetQuery {
         }
     }
 
-    /** Return a new {@link AssetQuery} with the specified terms deleted,
-     * or itself if there are no terms to delete. */
+    /** Return a new {@link AssetQuery} with the specified terms deleted from the last term
+     * with the matching tag, or itself if there are no terms to delete. */
     deleteFromLastTerm(values: Partial<AssetQueryLastTermData>): AssetQuery {
         const updates: Partial<AssetQueryData> = {}
         for (const key of AssetQuery.dataKeys) {
             const update = AssetQuery.updatedLastTerm(this[key], null, values[key] ?? null)
+            if (update != null) {
+                updates[key] = update
+            }
+        }
+        if (Object.keys(updates).length === 0) {
+            return this
+        } else {
+            return new AssetQuery(
+                null,
+                updates.keywords ?? this.keywords,
+                updates.negativeKeywords ?? this.negativeKeywords,
+                updates.labels ?? this.labels,
+                updates.negativeLabels ?? this.negativeLabels,
+                updates.owners ?? this.owners,
+                updates.negativeOwners ?? this.negativeOwners
+            )
+        }
+    }
+
+    /** Return a new {@link AssetQuery} with the specified words added to every term
+     * with the matching tag, or itself if there are no terms to add.
+     * Note that this makes little sense to use, but is added for symmetry with
+     * {@link AssetQuery.deleteFromEveryTerm}. */
+    addToEveryTerm(values: Partial<AssetQueryLastTermData>): AssetQuery {
+        const updates: Partial<AssetQueryData> = {}
+        for (const key of AssetQuery.dataKeys) {
+            const update = AssetQuery.updatedEveryTerm(this[key], values[key] ?? null, null)
+            if (update != null) {
+                updates[key] = update
+            }
+        }
+        if (Object.keys(updates).length === 0) {
+            return this
+        } else {
+            return new AssetQuery(
+                null,
+                updates.keywords ?? this.keywords,
+                updates.negativeKeywords ?? this.negativeKeywords,
+                updates.labels ?? this.labels,
+                updates.negativeLabels ?? this.negativeLabels,
+                updates.owners ?? this.owners,
+                updates.negativeOwners ?? this.negativeOwners
+            )
+        }
+    }
+
+    /** Return a new {@link AssetQuery} with the specified terms deleted from the last term
+     * with the matching tag, or itself if there are no terms to delete. */
+    deleteFromEveryTerm(values: Partial<AssetQueryLastTermData>): AssetQuery {
+        const updates: Partial<AssetQueryData> = {}
+        for (const key of AssetQuery.dataKeys) {
+            const update = AssetQuery.updatedEveryTerm(this[key], null, values[key] ?? null)
             if (update != null) {
                 updates[key] = update
             }
@@ -344,4 +440,21 @@ export class AssetQuery {
         }
         return segments.join(' ')
     }
+}
+
+/** Tries to delete the given label. If no changes were made, tries to add it instead. */
+export function toggleLabel(query: AssetQuery, label: string, fromLastTerm = false) {
+    let newQuery = query
+    if (fromLastTerm) {
+        newQuery = newQuery.deleteFromLastTerm({ labels: [label] })
+        if (newQuery === query) {
+            newQuery = newQuery.addToLastTerm({ labels: [label] })
+        }
+    } else {
+        newQuery = newQuery.delete({ labels: [[label]] })
+        if (newQuery === query) {
+            newQuery = newQuery.add({ labels: [[label]] })
+        }
+    }
+    return newQuery
 }

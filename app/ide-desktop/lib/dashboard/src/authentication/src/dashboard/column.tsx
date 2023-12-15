@@ -12,6 +12,7 @@ import TagIcon from 'enso-assets/tag.svg'
 import TimeIcon from 'enso-assets/time.svg'
 
 import * as assetEvent from './events/assetEvent'
+import * as assetQuery from '../assetQuery'
 import type * as assetTreeNode from './assetTreeNode'
 import * as authProvider from '../authentication/providers/auth'
 import * as backendModule from './backend'
@@ -357,9 +358,7 @@ function LabelsColumn(props: AssetColumnProps) {
                             event.preventDefault()
                             event.stopPropagation()
                             setQuery(oldQuery =>
-                                oldQuery.labels.includes(label)
-                                    ? oldQuery.delete({ labels: [label] })
-                                    : oldQuery.add({ labels: [label] })
+                                assetQuery.toggleLabel(oldQuery, label, event.shiftKey)
                             )
                         }}
                     >

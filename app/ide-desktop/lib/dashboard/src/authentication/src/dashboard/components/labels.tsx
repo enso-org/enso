@@ -4,7 +4,8 @@ import * as React from 'react'
 import PlusIcon from 'enso-assets/plus.svg'
 import Trash2Icon from 'enso-assets/trash2.svg'
 
-import type * as assetQuery from '../../assetQuery'
+import * as array from '../../array'
+import * as assetQuery from '../../assetQuery'
 import type * as backend from '../backend'
 import * as drag from '../drag'
 import * as modalProvider from '../../providers/modal'
@@ -60,13 +61,17 @@ export default function Labels(props: LabelsProps) {
                             <Label
                                 draggable
                                 color={label.color}
-                                active={currentLabels.includes(label.value)}
+                                active={currentLabels.some(term =>
+                                    array.shallowEqual(term, [label.value])
+                                )}
                                 disabled={newLabelNames.has(label.value)}
-                                onClick={() => {
+                                onClick={event => {
                                     setQuery(oldQuery =>
-                                        oldQuery.labels.includes(label.value)
-                                            ? oldQuery.delete({ labels: [label.value] })
-                                            : oldQuery.add({ labels: [label.value] })
+                                        assetQuery.toggleLabel(
+                                            oldQuery,
+                                            label.value,
+                                            event.shiftKey
+                                        )
                                     )
                                 }}
                                 onDragStart={event => {

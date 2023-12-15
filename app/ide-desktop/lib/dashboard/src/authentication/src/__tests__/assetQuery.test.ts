@@ -99,3 +99,20 @@ v.test.each([
         `'${query}' with ${JSON.stringify(updates)} deleted should be '${newQuery}'`
     ).toBe(newQuery)
 })
+
+v.test.each([
+    { query: 'a b a', updates: { keywords: ['b'] }, newQuery: 'a a' },
+    { query: 'a b a', updates: { keywords: ['a'] }, newQuery: 'b' },
+    { query: 'a b,c', updates: { keywords: ['c'] }, newQuery: 'a b' },
+    { query: 'a b,c', updates: { keywords: ['b', 'd', 'e', 'f'] }, newQuery: 'a c' },
+    { query: 'a b,c', updates: { keywords: ['b', 'c'] }, newQuery: 'a' },
+    { query: 'b,c a', updates: { keywords: ['b', 'c'] }, newQuery: 'a' },
+    { query: 'a', updates: { keywords: ['a'] }, newQuery: '' },
+    { query: 'a b c', updates: { keywords: ['b', 'c'] }, newQuery: 'a' },
+])('AssetQuery#deleteFromEveryTerm', ({ query, updates, newQuery }) => {
+    const parsed = assetQuery.AssetQuery.fromString(query)
+    v.expect(
+        parsed.deleteFromEveryTerm(updates).toString(),
+        `'${query}' with ${JSON.stringify(updates)} deleted should be '${newQuery}'`
+    ).toBe(newQuery)
+})

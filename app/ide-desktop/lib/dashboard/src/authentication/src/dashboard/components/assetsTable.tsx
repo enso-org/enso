@@ -294,9 +294,34 @@ export default function AssetsTable(props: AssetsTableProps) {
             return (node: assetTreeNode.AssetTreeNode) => {
                 const labels: string[] = node.item.labels ?? []
                 const lowercaseName = node.item.title.toLowerCase()
+                const owners =
+                    node.item.permissions
+                        ?.filter(
+                            permission => permission.permission === permissions.PermissionAction.own
+                        )
+                        .map(owner => owner.user.user_name) ?? []
                 return (
-                    query.labels.every(label => labels.includes(label)) &&
-                    query.keywords.every(keyword => lowercaseName.includes(keyword.toLowerCase()))
+                    query.keywords.every(keywordSet =>
+                        keywordSet.some(keyword => lowercaseName.includes(keyword.toLowerCase()))
+                    ) &&
+                    query.negativeKeywords.every(
+                        keywordSet =>
+                            !keywordSet.some(keyword =>
+                                lowercaseName.includes(keyword.toLowerCase())
+                            )
+                    ) &&
+                    query.labels.every(labelSet =>
+                        labelSet.some(label => labels.includes(label))
+                    ) &&
+                    query.negativeLabels.every(
+                        labelSet => !labelSet.some(label => labels.includes(label))
+                    ) &&
+                    query.owners.every(ownerSet =>
+                        ownerSet.some(owner => owners.includes(owner))
+                    ) &&
+                    query.negativeOwners.every(
+                        ownerSet => !ownerSet.some(owner => owners.includes(owner))
+                    )
                 )
             }
         }
