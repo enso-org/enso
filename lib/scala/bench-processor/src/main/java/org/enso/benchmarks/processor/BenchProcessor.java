@@ -70,10 +70,10 @@ public class BenchProcessor extends AbstractProcessor {
           "import org.enso.benchmarks.Utils;");
 
   public BenchProcessor() {
-    ensoDir = Utils.findRepoRootDir();
+      ensoDir = Utils.findRepoRootDir();
 
-    // Note that ensoHomeOverride does not have to exist, only its parent directory
-    ensoHomeOverride = ensoDir.toPath().resolve("distribution").resolve("component").toFile();
+      // Note that ensoHomeOverride does not have to exist, only its parent directory
+      ensoHomeOverride = ensoDir.toPath().resolve("distribution").resolve("component").toFile();
   }
 
   @Override

@@ -181,8 +181,15 @@ public class FunctionCallInstrumentationNode extends Node implements Instrumenta
    */
   @Override
   public SourceSection getSourceSection() {
-    Node parent = getParent();
-    return parent == null ? null : parent.getSourceSection();
+    var parent = getParent();
+    while (parent != null) {
+      var ss = parent.getSourceSection();
+      if (ss != null) {
+        return ss;
+      }
+      parent = parent.getParent();
+    }
+    return null;
   }
 
   /**

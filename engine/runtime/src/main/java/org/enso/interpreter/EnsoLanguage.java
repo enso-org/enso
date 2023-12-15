@@ -42,7 +42,6 @@ import org.enso.interpreter.runtime.tag.Patchable;
 import org.enso.interpreter.util.FileDetector;
 import org.enso.lockmanager.client.ConnectedLockManager;
 import org.enso.logger.masking.MaskingFactory;
-import org.enso.polyglot.ForeignLanguage;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.RuntimeOptions;
 import org.enso.syntax2.Line;
@@ -69,7 +68,7 @@ import org.graalvm.options.OptionType;
     defaultMimeType = LanguageInfo.MIME_TYPE,
     characterMimeTypes = {LanguageInfo.MIME_TYPE},
     contextPolicy = TruffleLanguage.ContextPolicy.EXCLUSIVE,
-    dependentLanguages = {ForeignLanguage.ID},
+    dependentLanguages = {"epb"},
     fileTypeDetectors = FileDetector.class,
     services = {Timer.class, NotificationHandler.Forwarder.class, LockManager.class})
 @ProvidedTags({

@@ -2,8 +2,11 @@ package org.enso.interpreter.runtime.data.vector;
 
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.library.CachedLibrary;
+
 import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.List;
+
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -11,6 +14,9 @@ import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.state.State;
+
+import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.library.CachedLibrary;
 
 /** Publicly available operations on array-like classes. */
 @Builtin(pkg = "immutable", stdlibName = "Standard.Base.Internal.Array_Like_Helpers")
@@ -25,9 +31,9 @@ public final class ArrayLikeHelpers {
     return ArrayProxy.create(length, at);
   }
 
-  /**
-   * Checks whether an array like object is considered immutable. Immutable objects are instances of
-   * {@link EnsoObject} and can be safely cast to that interface.
+  /** Checks whether an array like object is considered immutable.
+   * Immutable objects are instances of {@link EnsoObject} and can be safely cast
+   * to that interface.
    *
    * @param obj the object to check
    * @return if the {@code obj} is already seen as immutable
@@ -58,8 +64,7 @@ public final class ArrayLikeHelpers {
    * @return the array instance
    */
   public static EnsoObject allocate(long size) {
-    var arr = new Object[Math.toIntExact(size)];
-    return new Array(arr);
+    return Array.allocate(size);
   }
 
   @Builtin.Method(
@@ -73,7 +78,8 @@ public final class ArrayLikeHelpers {
       Function fun,
       State state,
       @Cached("buildWithArity(1)") InvokeFunctionNode invokeFunctionNode,
-      @CachedLibrary(limit = "3") WarningsLibrary warnings) {
+      @CachedLibrary(limit="3") WarningsLibrary warnings
+    ) {
     var len = Math.toIntExact(length);
     var target = ArrayBuilder.newBuilder(len);
     boolean nonTrivialEnsoValue = false;
@@ -85,8 +91,7 @@ public final class ArrayLikeHelpers {
       if (warnings.hasWarnings(value)) {
         nonTrivialEnsoValue = true;
       } else {
-        var isEnsoValue =
-            value instanceof EnsoObject || value instanceof Long || value instanceof Double;
+        var isEnsoValue = value instanceof EnsoObject || value instanceof Long || value instanceof Double;
         if (!isEnsoValue) {
           nonTrivialEnsoValue = true;
         }
@@ -101,9 +106,9 @@ public final class ArrayLikeHelpers {
       return Vector.fromDoubleArray(doubles);
     }
     if (nonTrivialEnsoValue) {
-      return Vector.fromInteropArray(new Array((Object[]) res));
+      return Vector.fromInteropArray(Array.wrap((Object[])res));
     } else {
-      return Vector.fromEnsoOnlyArray((Object[]) res);
+      return Vector.fromEnsoOnlyArray((Object[])res);
     }
   }
 
@@ -118,9 +123,11 @@ public final class ArrayLikeHelpers {
     }
   }
 
-  @Builtin.Method(name = "new_vector_builder", description = "Returns new vector builder.")
+  @Builtin.Method(
+      name = "new_vector_builder",
+      description = "Returns new vector builder.")
   public static Object newVectorBuilder(long capacity) {
-    return ArrayBuilder.newBuilder((int) Math.min(Math.abs(capacity), Integer.MAX_VALUE));
+    return ArrayBuilder.newBuilder((int)Math.min(Math.abs(capacity),Integer.MAX_VALUE));
   }
 
   public static EnsoObject wrapBuffer(ByteBuffer buffer) {
@@ -128,15 +135,15 @@ public final class ArrayLikeHelpers {
   }
 
   public static EnsoObject wrapEnsoObjects(EnsoObject... arr) {
-    return new Array((Object[]) arr);
+    return Array.wrap((Object[]) arr);
   }
 
   public static EnsoObject wrapStrings(String... arr) {
-    return new Array((Object[]) arr);
+    return Array.wrap((Object[]) arr);
   }
 
   public static EnsoObject wrapObjectsWithCheckAt(Object... arr) {
-    return new Array((Object[]) arr);
+    return Array.wrap((Object[]) arr);
   }
 
   public static EnsoObject empty() {
@@ -144,7 +151,7 @@ public final class ArrayLikeHelpers {
   }
 
   public static EnsoObject asVectorWithCheckAt(Object... arr) {
-    return Vector.fromInteropArray(new Array((Object[]) arr));
+    return Vector.fromInteropArray(Array.wrap((Object[]) arr));
   }
 
   public static EnsoObject asVectorFromArray(Object storage) {
