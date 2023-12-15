@@ -2,6 +2,7 @@ import com.sandinh.javamodule.moduleinfo.ModuleInfoPlugin.autoImport.moduleInfos
 import sbt.*
 import sbt.Keys.*
 import sbt.internal.inc.{CompileOutput, PlainVirtualFile}
+import JPMSPlugin.autoImport.javaModuleName
 import sbt.util.CacheStore
 import sbtassembly.Assembly.{Dependency, JarEntry, Project}
 import sbtassembly.{CustomMergeStrategy, MergeStrategy}
@@ -176,12 +177,15 @@ object JPMSUtils {
     * @param modulePath IDs of dependencies that should be put on the module path. The modules
     *                   put into `modulePath` are filtered away from class-path, so that module-path
     *                   and class-path passed to the `javac` are exclusive.
+    * @param modulePathExtra More directories that should be added on `--module-path`. This parameter is of
+    *                        type [[File]], because this is how inter project dependencies are gathered.
     *
     * @see https://users.scala-lang.org/t/scala-jdk-11-and-jpms/6102/19
     */
   def compileModuleInfo(
     copyDepsFilter: ScopeFilter,
-    modulePath: Seq[ModuleID] = Seq()
+    modulePath: Seq[ModuleID]  = Seq(),
+    modulePathExtra: Seq[File] = Seq()
   ): Def.Initialize[Task[Unit]] =
     Def
       .task {
@@ -244,12 +248,13 @@ object JPMSUtils {
                 mod.revision == moduleID.revision
               })
             })
+            val allDirsOnMp = mp.map(_.data) ++ modulePathExtra
 
             val allOpts = baseJavacOpts ++ Seq(
               "--class-path",
               cp.map(_.data.getAbsolutePath).mkString(File.pathSeparator),
               "--module-path",
-              mp.map(_.data.getAbsolutePath).mkString(File.pathSeparator),
+              allDirsOnMp.map(_.getAbsolutePath).mkString(File.pathSeparator),
               "-d",
               outputPath.toAbsolutePath.toString
             )
