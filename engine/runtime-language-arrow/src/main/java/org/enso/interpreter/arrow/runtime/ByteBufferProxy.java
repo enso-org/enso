@@ -42,4 +42,6 @@ public abstract class ByteBufferProxy {
   public abstract int capacity() throws UnsupportedMessageException;
 
   public abstract boolean isNull(int index);
+
+  public abstract void setNull(int index);
 }

@@ -12,6 +12,7 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import java.nio.*;
+import java.util.BitSet;
 import org.apache.arrow.memory.util.MemoryUtil;
 import org.enso.interpreter.arrow.ArrowParser;
 
@@ -99,7 +100,7 @@ public class ArrowCastToFixedSizeArrayFactory implements TruffleObject {
     @CompilerDirectives.TruffleBoundary
     private static ByteBufferProxy pointer(Object[] args, InteropLibrary interop, SizeInBytes unit)
         throws UnsupportedMessageException {
-      if (args.length != 2
+      if (args.length < 2
           || !interop.isNumber(args[0])
           || !interop.fitsInLong(args[0])
           || !interop.isNumber(args[1])
@@ -110,7 +111,14 @@ public class ArrowCastToFixedSizeArrayFactory implements TruffleObject {
       var targetSize = size * unit.sizeInBytes();
       ByteBuffer buffer = MemoryUtil.directBuffer(interop.asLong(args[0]), targetSize);
       buffer.order(ByteOrder.LITTLE_ENDIAN);
-      return new ByteBufferDirect(buffer, size);
+      if (args.length == 3) {
+        ByteBuffer validityMap =
+            MemoryUtil.directBuffer(interop.asLong(args[2]), (int) Math.ceil((size + 7) / 8));
+        // TODO avoid copying
+        return new ByteBufferDirect(buffer, BitSet.valueOf(validityMap));
+      } else {
+        return new ByteBufferDirect(buffer, size);
+      }
     }
 
     @Fallback

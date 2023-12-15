@@ -2,21 +2,31 @@ package org.enso.interpreter.arrow.runtime;
 
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import java.nio.ByteBuffer;
+import java.util.BitSet;
 
-public class ByteBufferDirect extends ByteBufferProxy {
+final class ByteBufferDirect extends ByteBufferProxy {
   private final ByteBuffer buffer;
+  private final BitSet validityMap;
 
   public ByteBufferDirect(int sizeInBytes, int size) {
     this.buffer = ByteBuffer.allocate(sizeInBytes);
+    this.validityMap = new BitSet(size);
+  }
+
+  public ByteBufferDirect(ByteBuffer buffer, BitSet validityMap) {
+    this.buffer = buffer;
+    this.validityMap = validityMap;
   }
 
   public ByteBufferDirect(ByteBuffer buffer, int size) {
     this.buffer = buffer;
+    this.validityMap = new BitSet(size);
+    validityMap.set(0, validityMap.size() - 1, true);
   }
 
   @Override
   public void put(byte b) throws UnsupportedMessageException {
-    setValidityBitmap(0);
+    setValidityBitmap(0, 1);
     buffer.put(b);
   }
 
@@ -27,13 +37,13 @@ public class ByteBufferDirect extends ByteBufferProxy {
 
   @Override
   public void put(int index, byte b) throws UnsupportedMessageException {
-    setValidityBitmap(index);
+    setValidityBitmap(index, 1);
     buffer.put(index, b);
   }
 
   @Override
   public void putShort(short value) throws UnsupportedMessageException {
-    setValidityBitmap(0);
+    setValidityBitmap(0, 2);
     buffer.putShort(value);
   }
 
@@ -44,13 +54,13 @@ public class ByteBufferDirect extends ByteBufferProxy {
 
   @Override
   public void putShort(int index, short value) throws UnsupportedMessageException {
-    setValidityBitmap(index);
+    setValidityBitmap(index, 2);
     buffer.putShort(index, value);
   }
 
   @Override
   public void putInt(int value) throws UnsupportedMessageException {
-    setValidityBitmap(0);
+    setValidityBitmap(0, 4);
     buffer.putInt(value);
   }
 
@@ -61,13 +71,13 @@ public class ByteBufferDirect extends ByteBufferProxy {
 
   @Override
   public void putInt(int index, int value) throws UnsupportedMessageException {
-    setValidityBitmap(index);
+    setValidityBitmap(index, 4);
     buffer.putInt(index, value);
   }
 
   @Override
   public void putLong(long value) throws UnsupportedMessageException {
-    setValidityBitmap(0);
+    setValidityBitmap(0, 8);
     buffer.putLong(value);
   }
 
@@ -78,13 +88,13 @@ public class ByteBufferDirect extends ByteBufferProxy {
 
   @Override
   public void putLong(int index, long value) throws UnsupportedMessageException {
-    setValidityBitmap(index);
+    setValidityBitmap(index, 8);
     buffer.putLong(index, value);
   }
 
   @Override
   public void putFloat(float value) throws UnsupportedMessageException {
-    setValidityBitmap(0);
+    setValidityBitmap(0, 4);
     buffer.putFloat(value);
   }
 
@@ -95,13 +105,13 @@ public class ByteBufferDirect extends ByteBufferProxy {
 
   @Override
   public void putFloat(int index, float value) throws UnsupportedMessageException {
-    setValidityBitmap(index);
+    setValidityBitmap(index, 4);
     buffer.putFloat(index, value);
   }
 
   @Override
   public void putDouble(double value) throws UnsupportedMessageException {
-    setValidityBitmap(0);
+    setValidityBitmap(0, 8);
     buffer.putDouble(value);
   }
 
@@ -112,7 +122,7 @@ public class ByteBufferDirect extends ByteBufferProxy {
 
   @Override
   public void putDouble(int index, double value) throws UnsupportedMessageException {
-    setValidityBitmap(index);
+    setValidityBitmap(index, 8);
     buffer.putDouble(index, value);
   }
 
@@ -123,11 +133,15 @@ public class ByteBufferDirect extends ByteBufferProxy {
 
   @Override
   public boolean isNull(int index) {
-    // TODO
-    return false;
+    return !validityMap.get(index);
   }
 
-  private void setValidityBitmap(int index) {
-    // TODO
+  @Override
+  public void setNull(int index) {
+    validityMap.set(index, false);
+  }
+
+  private void setValidityBitmap(int index, int unitSize) {
+    validityMap.set(index / unitSize);
   }
 }

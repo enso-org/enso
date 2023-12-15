@@ -52,7 +52,9 @@ public final class ArrowFixedArrayDate implements TruffleObject {
     @Specialization(guards = "receiver.getUnit() == Day")
     static Object doDay(ArrowFixedArrayDate receiver, long index)
         throws UnsupportedMessageException {
-      // TODO: Needs null bitmap
+      if (receiver.buffer.isNull((int) index)) {
+        return NullValue.get();
+      }
       var at = typeAdjustedIndex(index, receiver.unit);
       var daysSinceEpoch = receiver.buffer.getInt(at);
       var localDate = localDateFromDays(daysSinceEpoch);
@@ -62,7 +64,9 @@ public final class ArrowFixedArrayDate implements TruffleObject {
     @Specialization(guards = "receiver.getUnit() == Millisecond")
     static Object doMilliseconds(ArrowFixedArrayDate receiver, long index)
         throws UnsupportedMessageException {
-      // TODO: Needs null bitmap
+      if (receiver.buffer.isNull((int) index)) {
+        return NullValue.get();
+      }
       var at = typeAdjustedIndex(index, receiver.unit);
       var secondsPlusNanoSinceEpoch = receiver.buffer.getLong(at);
       var seconds = Math.floorDiv(secondsPlusNanoSinceEpoch, nanoDiv);
@@ -82,7 +86,6 @@ public final class ArrowFixedArrayDate implements TruffleObject {
         Object value,
         @Cached.Shared("interop") @CachedLibrary(limit = "1") InteropLibrary iop)
         throws UnsupportedMessageException {
-      // TODO: Needs null bitmap
       if (!iop.isDate(value)) {
         throw UnsupportedMessageException.create();
       }
@@ -91,7 +94,7 @@ public final class ArrowFixedArrayDate implements TruffleObject {
       receiver.buffer.putInt(at, Math.toIntExact(time));
     }
 
-    @Specialization(guards = "receiver.getUnit() == Millisecond")
+    @Specialization(guards = {"receiver.getUnit() == Millisecond", "!iop.isNull(value)"})
     static void doMilliseconds(
         ArrowFixedArrayDate receiver,
         long index,
@@ -114,27 +117,35 @@ public final class ArrowFixedArrayDate implements TruffleObject {
         var secondsPlusNano = dateTime.getEpochSecond() * nanoDiv + dateTime.getNano();
         receiver.buffer.putLong(at, secondsPlusNano);
       }
-      // TODO: Update nulls bitmap
+    }
+
+    @Specialization(guards = "iop.isNull(value)")
+    static void doNull(
+        ArrowFixedArrayDate receiver,
+        long index,
+        Object value,
+        @Cached.Shared("interop") @CachedLibrary(limit = "1") InteropLibrary iop) {
+      receiver.buffer.setNull((int) index);
     }
   }
 
   @ExportMessage
-  final long getArraySize() {
+  long getArraySize() {
     return size;
   }
 
   @ExportMessage
-  final boolean isArrayElementReadable(long index) {
+  boolean isArrayElementReadable(long index) {
+    return index >= 0 && index < size && !buffer.isNull((int) index);
+  }
+
+  @ExportMessage
+  boolean isArrayElementModifiable(long index) {
     return index >= 0 && index < size;
   }
 
   @ExportMessage
-  final boolean isArrayElementModifiable(long index) {
-    return index >= 0 && index < size;
-  }
-
-  @ExportMessage
-  final boolean isArrayElementInsertable(long index) {
+  boolean isArrayElementInsertable(long index) {
     return index >= 0 && index < size;
   }
 

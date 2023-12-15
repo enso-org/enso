@@ -44,27 +44,56 @@ public final class ArrowFixedArrayInt implements TruffleObject {
   @ImportStatic(IntUnit.class)
   static class ReadArrayElement {
     @Specialization(guards = "receiver.getUnit() == Byte1")
-    public static Object doByte(ArrowFixedArrayInt receiver, long index)
+    public static Object doByte(
+        ArrowFixedArrayInt receiver,
+        long index,
+        @Cached.Shared("interop") @CachedLibrary(limit = "1") InteropLibrary iop)
         throws UnsupportedMessageException {
-      return receiver.buffer.get(typeAdjustedIndex(index, receiver.unit));
+      if (receiver.buffer.isNull((int) index)) {
+        return NullValue.get();
+      }
+      var at = typeAdjustedIndex(index, receiver.unit);
+      return receiver.buffer.get(at);
     }
 
     @Specialization(guards = "receiver.getUnit() == Byte2")
-    public static Object doShort(ArrowFixedArrayInt receiver, long index)
+    public static Object doShort(
+        ArrowFixedArrayInt receiver,
+        long index,
+        @Cached.Shared("interop") @CachedLibrary(limit = "1") InteropLibrary iop)
         throws UnsupportedMessageException {
-      return receiver.buffer.getShort(typeAdjustedIndex(index, receiver.unit));
+      if (receiver.buffer.isNull((int) index)) {
+        return NullValue.get();
+      }
+      var at = typeAdjustedIndex(index, receiver.unit);
+      return receiver.buffer.getShort(at);
     }
 
     @Specialization(guards = "receiver.getUnit() == Byte4")
-    public static Object doInt(ArrowFixedArrayInt receiver, long index)
+    public static Object doInt(
+        ArrowFixedArrayInt receiver,
+        long index,
+        @Cached.Shared("interop") @CachedLibrary(limit = "1") InteropLibrary iop)
         throws UnsupportedMessageException {
-      return receiver.buffer.getInt(typeAdjustedIndex(index, receiver.unit));
+
+      if (receiver.buffer.isNull((int) index)) {
+        return NullValue.get();
+      }
+      var at = typeAdjustedIndex(index, receiver.unit);
+      return receiver.buffer.getInt(at);
     }
 
     @Specialization(guards = "receiver.getUnit() == Byte8")
-    public static Object doLong(ArrowFixedArrayInt receiver, long index)
+    public static Object doLong(
+        ArrowFixedArrayInt receiver,
+        long index,
+        @Cached.Shared("interop") @CachedLibrary(limit = "1") InteropLibrary iop)
         throws UnsupportedMessageException {
-      return receiver.buffer.getLong(typeAdjustedIndex(index, receiver.unit));
+      if (receiver.buffer.isNull((int) index)) {
+        return NullValue.get();
+      }
+      var at = typeAdjustedIndex(index, receiver.unit);
+      return receiver.buffer.getLong(at);
     }
   }
 
@@ -142,22 +171,22 @@ public final class ArrowFixedArrayInt implements TruffleObject {
   }
 
   @ExportMessage
-  final long getArraySize() {
+  long getArraySize() {
     return size;
   }
 
   @ExportMessage
-  final boolean isArrayElementReadable(long index) {
+  boolean isArrayElementReadable(long index) {
+    return index >= 0 && index < size && !buffer.isNull((int) index);
+  }
+
+  @ExportMessage
+  boolean isArrayElementModifiable(long index) {
     return index >= 0 && index < size;
   }
 
   @ExportMessage
-  final boolean isArrayElementModifiable(long index) {
-    return index >= 0 && index < size;
-  }
-
-  @ExportMessage
-  final boolean isArrayElementInsertable(long index) {
+  boolean isArrayElementInsertable(long index) {
     return index >= 0 && index < size;
   }
 

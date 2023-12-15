@@ -110,6 +110,10 @@ public class VerifyArrowTest {
     dayPlus2 = rawZonedDateTime.asDate().atTime(rawZonedDateTime.asTime()).atZone(startDate2Zone);
     assertTrue(startDate2.plusDays(2).isEqual(dayPlus2));
     assertFalse(startDate2Pnf.plusDays(2).isEqual(dayPlus2));
+
+    date64Array.setArrayElement(5, null);
+    assertFalse(date64Array.getArrayElement(4).isNull());
+    assertTrue(date64Array.getArrayElement(5).isNull());
   }
 
   @Test
@@ -140,7 +144,7 @@ public class VerifyArrowTest {
         IntVector intVector = new IntVector("fixed-size-primitive-layout", allocator); ) {
       intVector.allocateNew(4);
       intVector.set(0, 3);
-      // intVector.setNull(1);
+      intVector.setNull(1);
       intVector.set(1, 1);
       intVector.set(2, 5);
       intVector.set(3, 3);
@@ -153,6 +157,29 @@ public class VerifyArrowTest {
       assertNotNull(int32Array);
       assertEquals(3, int32Array.getArrayElement(0).asInt());
       assertEquals(5, int32Array.getArrayElement(2).asInt());
+    }
+
+    try (BufferAllocator allocator = new RootAllocator();
+        IntVector intVector = new IntVector("fixed-size-primitive-layout", allocator); ) {
+      intVector.allocateNew(4);
+      intVector.set(0, 3);
+      intVector.setNull(1);
+      intVector.set(2, 5);
+      intVector.set(3, 3);
+      intVector.setValueCount(4);
+
+      var int32Constr = ctx.eval("arrow", "cast[Int32]");
+      assertNotNull(int32Constr);
+      Value int32Array =
+          int32Constr.newInstance(
+              intVector.getDataBufferAddress(),
+              intVector.getValueCount(),
+              intVector.getValidityBufferAddress());
+      assertNotNull(int32Array);
+      assertEquals(3, int32Array.getArrayElement(0).asInt());
+      assertTrue(int32Array.getArrayElement(1).isNull());
+      assertEquals(5, int32Array.getArrayElement(2).asInt());
+      assertEquals(3, int32Array.getArrayElement(3).asInt());
     }
   }
 
