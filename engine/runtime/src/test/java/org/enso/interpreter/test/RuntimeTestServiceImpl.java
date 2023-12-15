@@ -12,15 +12,13 @@ import org.enso.interpreter.test.instruments.service.FunctionCallInfo;
 import org.enso.interpreter.test.instruments.service.RuntimeTestService;
 import org.openide.util.lookup.ServiceProvider;
 
-@ServiceProvider(
-    service = RuntimeTestService.class
-)
+@ServiceProvider(service = RuntimeTestService.class)
 public class RuntimeTestServiceImpl implements RuntimeTestService {
   @Override
   public UUID getNodeID(Node node) {
     if (node instanceof ExpressionNode exprNode) {
       return exprNode.getId();
-    } else if (node instanceof FunctionCallInstrumentationNode funcNode){
+    } else if (node instanceof FunctionCallInstrumentationNode funcNode) {
       return funcNode.getId();
     }
     return null;

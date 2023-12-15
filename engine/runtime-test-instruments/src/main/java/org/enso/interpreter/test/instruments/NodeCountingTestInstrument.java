@@ -1,7 +1,5 @@
 package org.enso.interpreter.test.instruments;
 
-import static org.junit.Assert.fail;
-
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.EventContext;
 import com.oracle.truffle.api.instrumentation.ExecutionEventNode;
