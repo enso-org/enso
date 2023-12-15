@@ -288,7 +288,8 @@ export default function AssetsTable(props: AssetsTableProps) {
         [backend, organization]
     )
     const filter = React.useMemo(() => {
-        if (query.query === '') {
+        const globCache: Record<string, RegExp> = {}
+        if (/^\s*$/.test(query.query)) {
             return null
         } else {
             return (node: assetTreeNode.AssetTreeNode) => {
@@ -300,6 +301,15 @@ export default function AssetsTable(props: AssetsTableProps) {
                             permission => permission.permission === permissions.PermissionAction.own
                         )
                         .map(owner => owner.user.user_name) ?? []
+                const globMatch = (glob: string, match: string) => {
+                    const regex = (globCache[glob] =
+                        globCache[glob] ??
+                        new RegExp(
+                            '^' + string.regexEscape(glob).replace(/(?:\\\*)+/g, '.*') + '$',
+                            'i'
+                        ))
+                    return regex.test(match)
+                }
                 const isAbsent = (type: string) => {
                     switch (type) {
                         case 'label':
@@ -323,6 +333,12 @@ export default function AssetsTable(props: AssetsTableProps) {
                             !keywordSet.some(keyword =>
                                 lowercaseName.includes(keyword.toLowerCase())
                             )
+                    ) &&
+                    query.names.every(nameSet =>
+                        nameSet.some(name => globMatch(name, lowercaseName))
+                    ) &&
+                    query.negativeNames.every(
+                        nameSet => !nameSet.some(name => globMatch(name, lowercaseName))
                     ) &&
                     query.labels.every(labelSet =>
                         labelSet.some(label => labels.includes(label))

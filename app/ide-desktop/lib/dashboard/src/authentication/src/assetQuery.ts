@@ -59,7 +59,9 @@ export class AssetQuery {
     // eslint-disable-next-line no-restricted-syntax
     static tagNames = [
         ['keywords', null],
-        ['negativeKeywords', '-name'],
+        ['negativeKeywords', '-'],
+        ['names', 'name'],
+        ['negativeNames', '-name'],
         ['labels', 'label'],
         ['negativeLabels', '-label'],
         ['owners', 'owner'],
@@ -75,6 +77,8 @@ export class AssetQuery {
         query: string | null,
         readonly keywords: string[][],
         readonly negativeKeywords: string[][],
+        readonly names: string[][],
+        readonly negativeNames: string[][],
         readonly labels: string[][],
         readonly negativeLabels: string[][],
         readonly owners: string[][],
@@ -122,6 +126,8 @@ export class AssetQuery {
         const terms = AssetQuery.terms(query)
         const keywords: string[][] = []
         const negativeKeywords: string[][] = []
+        const names: string[][] = []
+        const negativeNames: string[][] = []
         const labels: string[][] = []
         const negativeLabels: string[][] = []
         const owners: string[][] = []
@@ -132,8 +138,9 @@ export class AssetQuery {
             // This is a dictionary, not an object.
             /* eslint-disable @typescript-eslint/naming-convention */
             '': keywords,
-            name: keywords,
-            '-name': negativeKeywords,
+            '-': negativeKeywords,
+            name: names,
+            '-name': negativeNames,
             label: labels,
             '-label': negativeLabels,
             owner: owners,
@@ -152,6 +159,8 @@ export class AssetQuery {
             query,
             keywords,
             negativeKeywords,
+            names,
+            negativeNames,
             labels,
             negativeLabels,
             owners,
@@ -302,6 +311,8 @@ export class AssetQuery {
                 null,
                 updates.keywords ?? this.keywords,
                 updates.negativeKeywords ?? this.negativeKeywords,
+                updates.names ?? this.names,
+                updates.negativeNames ?? this.negativeNames,
                 updates.labels ?? this.labels,
                 updates.negativeLabels ?? this.negativeLabels,
                 updates.owners ?? this.owners,
