@@ -1428,6 +1428,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
         (`runtime-fat-jar` / Compile / productDirectories).value.head
       requiredMods ++ Seq(runtimeMod)
     },
+    Test / javaOptions ++= testLogProviderOptions,
   )
   .settings(
     Test / compile := (Test / compile)
