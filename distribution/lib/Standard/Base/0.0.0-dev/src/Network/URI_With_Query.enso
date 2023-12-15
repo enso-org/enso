@@ -22,7 +22,7 @@ polyglot java import org.enso.base.net.URIHelpers
 ## Represents a URI with a set of query parameters
 type URI_With_Query
     ## PRIVATE
-    Value uri:URI (parameters : Vector (Pair Text (Text | Enso_Secret)))
+    Value uri:URI (query_parameters : Vector (Pair Text (Text | Enso_Secret)))
 
     ## PRIVATE
        Convert this to URI.

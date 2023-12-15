@@ -3,6 +3,7 @@ import project.Data.Json.JS_Object
 import project.Data.Numbers.Integer
 import project.Data.Pair.Pair
 import project.Data.Text.Text
+import project.Data.Vector.No_Wrap
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Common.Syntax_Error
@@ -12,6 +13,7 @@ import project.Panic.Panic
 
 polyglot java import java.net.URI as Java_URI
 polyglot java import java.net.URISyntaxException
+polyglot java import org.apache.http.client.utils.URIBuilder as Java_URIBuilder
 
 type URI
     ## ALIAS get uri
@@ -45,13 +47,19 @@ type URI
        Arguments:
        - internal_builder: A Java URIBuilder that contains parsed URI data.
        - query_parameters: A list of query parameters to add to the URI.
-       - authority: The authority part of the URI.
-    Value internal_builder
+       - user_info: The user and password for the authority part of the URL, if provided.
+    Value (internal_uri : Java_URI) (query_parameters : Vector (Pair Text (Text | Enso_Secret))) (user_info : User_Info | Nothing)
 
     ## PRIVATE
        Convert this to a raw Java URI.
     to_java_uri : Java_URI
-    to_java_uri self = "TODO"
+    to_java_uri self = Panic.recover Enso_Secret_Error <|
+        builder = Java_URIBuilder.new self.internal_uri
+        Panic.rethrow <| self.user_info.if_not_nothing <|
+            builder.setUserInfo (unwrap_secret self.user_info.username) (unwrap_secret self.user_info.password)
+        self.query_parameters.map p->
+
+
 
     ## GROUP Metadata
        Get the scheme part of this URI.
@@ -226,3 +234,14 @@ type URI
 
 ## PRIVATE
 URI.from (that:Text) = URI.parse that
+
+## PRIVATE
+type User_Info
+    ## PRIVATE
+    Value (username : Text | Enso_Secret) (password : Text | Enso_Secret)
+
+## PRIVATE
+unwrap_secret : Text | Enso_Secret -> Text ! Enso_Secret_Error
+unwrap_secret (value : Text | Enso_Secret) = case value of
+    text : Text -> text
+    _ : Enso_Secret -> Error.throw Enso_Secret_Error.Access_Denied
