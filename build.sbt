@@ -1521,7 +1521,7 @@ lazy val `runtime-test-instruments` =
         JPMSUtils.filterModulesFromUpdate(
           update.value,
           GraalVM.modules ++ Seq(
-            "org.netbeans.api"     % "org-openide-util-lookup"  % netbeansApiVersion
+            "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion
           ),
           streams.value.log,
           shouldContainAll = true
@@ -1529,7 +1529,7 @@ lazy val `runtime-test-instruments` =
       },
       libraryDependencies ++= GraalVM.modules,
       libraryDependencies ++= Seq(
-        "org.netbeans.api"     % "org-openide-util-lookup"  % netbeansApiVersion    % "provided",
+        "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided"
       )
     )
 
@@ -1598,9 +1598,9 @@ lazy val runtime = (project in file("engine/runtime"))
     Test / modulePath := {
       val updateReport = (Test / update).value
       val requiredModIds =
-        GraalVM.modules ++ GraalVM.langsPkgs ++ logbackPkg ++ Seq(
-          "org.slf4j" % "slf4j-api" % slf4jVersion,
-          "org.netbeans.api"     % "org-openide-util-lookup"  % netbeansApiVersion
+        GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.insightPkgs ++ logbackPkg ++ Seq(
+          "org.slf4j"        % "slf4j-api"               % slf4jVersion,
+          "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion
         )
       val requiredMods = JPMSUtils.filterModulesFromUpdate(
         updateReport,
@@ -1639,7 +1639,9 @@ lazy val runtime = (project in file("engine/runtime"))
         (LocalProject(
           "runtime-language-epb"
         ) / Compile / productDirectories).value ++
-        (LocalProject("runtime-compiler") / Compile / productDirectories).value ++
+        (LocalProject(
+          "runtime-compiler"
+        ) / Compile / productDirectories).value ++
         (LocalProject("refactoring-utils") / Compile / productDirectories).value
       // Patch test-classes into the runtime module. This is standard way to deal with the
       // split package problem in unit tests. For example, Maven's surefire plugin does this.
@@ -1678,7 +1680,7 @@ lazy val runtime = (project in file("engine/runtime"))
       val oldOpts = (Test / javaOptions).value
       val newOpts = oldOpts.filterNot(_ == "-ea")
       newOpts
-    },
+    }
   )
   .settings(
     Test / fork := true,
@@ -1954,7 +1956,6 @@ lazy val `runtime-fat-jar` =
     .dependsOn(`runtime-instrument-runtime-server`)
     .dependsOn(`runtime-language-epb`)
     .dependsOn(LocalProject("runtime"))
-
 
 /* Note [Unmanaged Classpath]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~
