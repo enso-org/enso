@@ -39,7 +39,6 @@ import org.enso.librarymanager.resolved.LibraryRoot;
 import org.enso.pkg.Package;
 import org.enso.pkg.PackageManager;
 import org.enso.pkg.QualifiedName;
-import org.enso.polyglot.ForeignLanguage;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.RuntimeOptions;
 import org.enso.polyglot.debugger.IdExecutionService;
@@ -50,7 +49,6 @@ import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
-import com.oracle.truffle.api.InstrumentInfo;
 import com.oracle.truffle.api.ThreadLocalAction;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleFile;
@@ -210,7 +208,7 @@ public final class EnsoContext {
 
     var preinit = environment.getOptions().get(RuntimeOptions.PREINITIALIZE_KEY);
     if (preinit != null && preinit.length() > 0) {
-      var epb = environment.getInternalLanguages().get(ForeignLanguage.ID);
+      var epb = environment.getInternalLanguages().get("epb");
       @SuppressWarnings("unchecked")
       var run = (Consumer<String>) environment.lookup(epb, Consumer.class);
       if (run != null) {

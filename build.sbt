@@ -1178,11 +1178,6 @@ val truffleRunOpts = Seq(
   "-Dpolyglot.compiler.BackgroundCompilation=false"
 )
 
-val truffleRunOptionsNoAssertSettings = Seq(
-  fork := true,
-  javaOptions ++= benchOnlyOptions
-)
-
 val truffleRunOptionsSettings = Seq(
   fork := true,
   javaOptions ++= "-ea" +: benchOnlyOptions
@@ -1378,11 +1373,20 @@ lazy val instrumentationSettings = frgaalJavaCompilerSetting ++ Seq(
 lazy val `runtime-language-epb` =
   (project in file("engine/runtime-language-epb"))
     .settings(
+      frgaalJavaCompilerSetting,
       inConfig(Compile)(truffleRunOptionsSettings),
       truffleDslSuppressWarnsSetting,
-      instrumentationSettings
+      commands += WithDebugCommand.withDebug,
+      fork := true,
+      Test / javaOptions ++= Seq(),
+      instrumentationSettings,
+      libraryDependencies ++= Seq(
+        "junit"               % "junit"                 % junitVersion              % Test,
+        "com.github.sbt"      % "junit-interface"       % junitIfVersion            % Test,
+        "org.graalvm.truffle" % "truffle-api"           % graalMavenPackagesVersion % "provided",
+        "org.graalvm.truffle" % "truffle-dsl-processor" % graalMavenPackagesVersion % "provided"
+      )
     )
-    .dependsOn(`polyglot-api`)
 
 lazy val runtime = (project in file("engine/runtime"))
   .configs(Benchmark)
@@ -1730,7 +1734,7 @@ lazy val `runtime-with-polyglot` =
     .configs(Benchmark)
     .settings(
       frgaalJavaCompilerSetting,
-      inConfig(Compile)(truffleRunOptionsNoAssertSettings),
+      inConfig(Compile)(truffleRunOptionsSettings),
       inConfig(Benchmark)(Defaults.testSettings),
       commands += WithDebugCommand.withDebug,
       Benchmark / javacOptions --= Seq(

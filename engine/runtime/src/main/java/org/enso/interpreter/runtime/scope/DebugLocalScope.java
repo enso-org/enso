@@ -187,7 +187,11 @@ public class DebugLocalScope implements EnsoObject {
 
   @ExportMessage
   @TruffleBoundary
-  Object readMember(String member, @CachedLibrary("this") InteropLibrary interop) {
+  Object readMember(String member, @CachedLibrary("this") InteropLibrary interop)
+      throws UnknownIdentifierException {
+    if (!allBindings.containsKey(member)) {
+      throw UnknownIdentifierException.create(member);
+    }
     FramePointer framePtr = allBindings.get(member);
     var value = getValue(frame, framePtr);
     return value != null ? value : DataflowError.UNINITIALIZED;
