@@ -146,7 +146,7 @@ public final class PassPersistance {
   @org.openide.util.lookup.ServiceProvider(service = Persistance.class)
   public static final class PersistAliasAnalysisGraph extends Persistance<Graph> {
     public PersistAliasAnalysisGraph() {
-      super(Graph.class, false, 1119);
+      super(Graph.class, false, 1131);
     }
 
     @SuppressWarnings("unchecked")
