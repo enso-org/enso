@@ -29,7 +29,7 @@ export function isDev() {
  * and compares it with the version of the `client` js package. When the function is unable to
  * download the application config, or one of the compared versions does not match the semver
  * scheme, it returns `true`. */
-export async function checkMinSupportedVersion(config: typeof options) {
+export async function checkMinimumSupportedVersion(config: typeof options) {
   let supported = false
   if (config.groups.engine.options.skipMinVersionCheck.value) {
     supported = true
@@ -60,23 +60,4 @@ export async function checkMinSupportedVersion(config: typeof options) {
     }
   }
   return supported
-}
-
-/** Display information that the current app version is deprecated. */
-export function displayDeprecatedVersionDialog() {
-  const root = document.getElementById('root')
-  if (root == null) {
-    console.error('Cannot find the root DOM element.')
-  } else {
-    const versionCheckDiv = root.appendChild(document.createElement('div'))
-    versionCheckDiv.style.textAlign = 'center'
-    versionCheckDiv.style.fontFamily = 'sans-serif'
-    versionCheckDiv.style.color = '#454545'
-    versionCheckDiv.style.margin = '24px auto'
-    versionCheckDiv.style.display = 'none'
-    versionCheckDiv.style.display = 'block'
-    versionCheckDiv.appendChild(
-      document.createTextNode('This version is no longer supported. Please download a new one.'),
-    )
-  }
 }

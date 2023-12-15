@@ -1,5 +1,5 @@
 /** @file Configuration options for an application. */
-import { HelpScreen, HelpScreenEntry, HelpScreenSection } from '@/util/helpScreen'
+import type { HelpInfo, HelpScreenEntry, HelpScreenSection } from '@/components/HelpScreen/types'
 
 export const DEFAULT_ENTRY_POINT = 'ide'
 
@@ -7,24 +7,26 @@ export const DEFAULT_ENTRY_POINT = 'ide'
 // === Utils ===
 // =============
 
+const STRING_TO_BOOLEAN: Record<string, boolean> = {
+  true: true,
+  false: false,
+  enabled: true,
+  disabled: false,
+  yes: true,
+  no: false,
+  1: true,
+  0: false,
+}
+
 /** Parses the provided value as boolean. If it was a boolean value, it is left intact. If it was
  * a string 'true', 'false', '1', or '0', it is converted to a boolean value. Otherwise, null is
  * returned. */
-// prettier-ignore
-function parseBoolean(value: any): boolean | null {
-    switch (value) {
-        case true: return true
-        case false: return false
-        case 'true': return true
-        case 'false': return false
-        case 'enabled': return true
-        case 'disabled': return false
-        case 'yes': return true
-        case 'no': return false
-        case '1': return true
-        case '0': return false
-        default: return null
-    }
+function parseBoolean(value: unknown): boolean | null {
+  return typeof value === 'boolean'
+    ? value
+    : typeof value === 'string'
+    ? STRING_TO_BOOLEAN[value] ?? null
+    : null
 }
 
 // ==============
@@ -75,6 +77,7 @@ export class Option<T> {
   /** Controls whether this option should be visible by default in the help message. Non-primary
    * options will be displayed on-demand only. */
   primary = true
+
   constructor(cfg: OptionObject<T>) {
     this.default = cfg.value
     this.value = cfg.value
@@ -102,16 +105,6 @@ export class Option<T> {
   /** Names of all parent groups and name of this option intercalated with dots. */
   qualifiedName(): string {
     return this.path.concat([this.name]).join('.')
-  }
-
-  /** Just like `qualifiedName`, but also contains names of 'groups' and 'options' fields. */
-  structuralName(): string {
-    const lastSegment = 'options.' + this.name
-    if (this.path.length === 0) {
-      return lastSegment
-    } else {
-      return 'groups.' + this.path.join('.groups.') + '.' + lastSegment
-    }
   }
 
   load(input: string) {
@@ -174,10 +167,7 @@ export interface AnyGroup {
   groups: GroupsRecord
   setPath(path: string[]): void
   clone(): this
-  merge<Other extends AnyGroup>(other: Other): this & Other
   load(config: StringConfig, stack?: string[]): string[]
-  stringify(): StringConfig
-  prettyPrint(indent: number): string
   optionsRecursive(): AnyOption[]
 }
 
@@ -185,26 +175,21 @@ export interface AnyGroup {
  * to infer the types of its children and thus allow accessing them in a type-safe way. */
 export class Group<Options extends OptionsRecord, Groups extends GroupsRecord> {
   name = 'unnamed'
-  description: string
-  options: Options = {} as Options
-  groups: Groups = {} as Groups
+  description
+  options = {} as Options
+  groups = {} as Groups
+
   constructor(cfg?: {
     description?: string | undefined
     options?: Options | undefined
     groups?: Groups | undefined
   }) {
     this.description = cfg?.description ?? 'No description.'
-    const options = cfg?.options
-    if (options != null) {
-      for (const [name, option] of Object.entries(options)) {
-        this.addOption(name, option)
-      }
+    for (const [name, option] of Object.entries(cfg?.options ?? {})) {
+      this.addOption(name, option)
     }
-    const groups = cfg?.groups
-    if (groups != null) {
-      for (const [name, group] of Object.entries(groups)) {
-        this.addGroup(name, group)
-      }
+    for (const [name, group] of Object.entries(cfg?.groups ?? {})) {
+      this.addGroup(name, group)
     }
   }
 
@@ -219,14 +204,9 @@ export class Group<Options extends OptionsRecord, Groups extends GroupsRecord> {
   }
 
   addGroup(name: string, group: AnyGroup) {
-    const existingGroup = this.groups[name]
-    if (existingGroup != null) {
-      existingGroup.merge(group)
-    } else {
-      const groups = this.groups as GroupsRecord
-      groups[name] = group
-      group.name = name
-    }
+    const groups = this.groups as GroupsRecord
+    groups[name] = group
+    group.name = name
     group.setPath([name])
   }
 
@@ -253,129 +233,47 @@ export class Group<Options extends OptionsRecord, Groups extends GroupsRecord> {
     return result as this
   }
 
-  /** Merge this group definition with another group definition. Returns a deeply merged group. In
-   * case the argument will override some options, errors will be logged. */
-  merge<Other extends AnyGroup>(other?: Other | null): this & Other {
-    if (other == null) {
-      return this as this & Other
-    } else {
-      const result: AnyGroup = new Group()
-      Object.assign(result.groups, this.groups)
-      for (const [otherGroupName, otherGroup] of Object.entries(other.groups)) {
-        const group = result.groups[otherGroupName]
-        if (group == null) {
-          result.groups[otherGroupName] = otherGroup
-        } else {
-          result.groups[otherGroupName] = group.merge(otherGroup)
-        }
-      }
-      Object.assign(result.options, this.options)
-      for (const [otherOptionName, otherOption] of Object.entries(other.options)) {
-        const option = result.options[otherOptionName]
-        if (option != null) {
-          console.error(`Duplicate config option found '${option.qualifiedName()}'.`)
-        }
-        result.options[otherOptionName] = otherOption
-      }
-      result.name = this.name
-      result.description = this.description
-      return result as this & Other
-    }
-  }
-
-  load(config: StringConfig, stack: string[] = []): string[] {
-    let unrecognized: string[] = []
+  load(config: StringConfig, stack: string[] = []): [...unrecognizedOptions: string[]] {
+    const unrecognized: string[] = []
     const addUnrecognized = (name: string) => {
-      unrecognized.push(stack.concat([name]).join('.'))
+      unrecognized.push([...stack, name].join('.'))
     }
     for (const [key, value] of Object.entries(config)) {
       if (typeof value === 'string') {
         const option = this.options[key]
-        if (option == null) {
+        if (!option) {
           addUnrecognized(key)
         } else {
           option.load(value)
         }
       } else {
         const group = this.groups[key]
-        if (group == null) {
+        if (!group) {
           addUnrecognized(key)
         } else {
-          const subStack = stack.concat([key])
-          unrecognized = unrecognized.concat(group.load(value, subStack))
+          unrecognized.push(...group.load(value, [...stack, key]))
         }
       }
     }
     return unrecognized
   }
 
-  loadAllAndDisplayHelpIfUnsuccessful(configs: (StringConfig | null | undefined)[]): boolean {
-    let unrecognized: string[] = []
-    for (const config of configs) {
-      if (config != null) {
-        unrecognized = unrecognized.concat(this.load(config))
-      }
-    }
-    if (unrecognized.length !== 0) {
-      console.error(`Unrecognized configuration parameters: ${unrecognized.join(', ')}.`)
-      this.showConfigOptions(unrecognized)
-      return false
-    } else {
-      return true
-    }
-  }
-
-  stringify(): StringConfig {
-    const config: StringConfig = {}
-    const groupsEntries = Object.entries(this.groups)
-    if (groupsEntries.length > 0) {
-      config.groups = {}
-      for (const [name, group] of groupsEntries) {
-        config.groups[name] = group.stringify()
-      }
-    }
-    const optionsEntries = Object.entries(this.options)
-    if (optionsEntries.length > 0) {
-      config.options = {}
-      for (const [name, option] of optionsEntries) {
-        config.options[name] = option.value.toString()
-      }
-    }
-    return config
-  }
-
-  prettyPrint(indent = 0): string {
-    // The number is used for sorting in ordering to put options before groups.
-    const entries: [string, number, string][] = []
-    const optionsEntries = Object.entries(this.options)
-    if (optionsEntries.length > 0) {
-      for (const [name, option] of optionsEntries) {
-        entries.push([name, 0, option.value.toString()])
-      }
-    }
-    const groupsEntries = Object.entries(this.groups)
-    if (groupsEntries.length > 0) {
-      for (const [name, group] of groupsEntries) {
-        entries.push([name, 1, '\n' + group.prettyPrint(indent + 1)])
-      }
-    }
-    entries.sort()
-    return entries.map(([name, , value]) => ' '.repeat(2 * indent) + name + ': ' + value).join('\n')
+  loadAllAndReturnHelpInfo(configs: (StringConfig | null | undefined)[]): HelpInfo | undefined {
+    const unrecognized = configs.flatMap((config) => (config != null ? this.load(config) : []))
+    if (unrecognized.length === 0) return
+    console.error(`Unrecognized configuration parameters: ${unrecognized.join(', ')}.`)
+    return this.helpInfo(unrecognized)
   }
 
   optionsRecursive(): AnyOption[] {
-    const options: AnyOption[] = []
-    for (const option of Object.values(this.options)) {
-      options.push(option)
-    }
-    for (const group of Object.values(this.groups)) {
-      options.push(...group.optionsRecursive())
-    }
-    return options
+    return [
+      Object.values(this.options),
+      ...Object.values(this.groups).map((group) => group.optionsRecursive()),
+    ].flat()
   }
 
-  /** Show an error dialog with a list of options. */
-  showConfigOptions(unknownOptions?: string[]) {
+  /** Error details returned when invalid options are encountered. */
+  helpInfo(unknownOptions?: string[]): HelpInfo {
     console.log('Showing config options help screen.')
     let msg = ''
     if (unknownOptions) {
@@ -390,14 +288,13 @@ export class Group<Options extends OptionsRecord, Groups extends GroupsRecord> {
           opt.description,
           String(opt.default),
         ])
-        entriesData.sort()
-        const entries = entriesData.map(([name, description, def]) => {
-          return new HelpScreenEntry(name, [description, def])
-        })
+        entriesData.sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+        const entries = entriesData.map(
+          ([name, description, def]): HelpScreenEntry => ({ name, values: [description, def] }),
+        )
         const option = this.options[groupName]
         if (option != null) {
-          const entry = new HelpScreenEntry(groupName, [option.description, String(option.default)])
-          entries.unshift(entry)
+          entries.unshift({ name: groupName, values: [option.description, String(option.default)] })
         }
         const name =
           groupName.charAt(0).toUpperCase() +
@@ -409,24 +306,23 @@ export class Group<Options extends OptionsRecord, Groups extends GroupsRecord> {
     )
     sectionsData.sort()
     const sections = sectionsData.map(
-      ([name, description, entries]) => new HelpScreenSection({ name, description, entries }),
+      ([name, description, entries]): HelpScreenSection => ({ name, description, entries }),
     )
 
-    const rootEntries = Object.entries(this.options).flatMap(([optionName, option]) => {
-      if (optionName in this.groups) {
-        return []
-      }
-      const entry = new HelpScreenEntry(optionName, [option.description, String(option.default)])
-      return [entry]
-    })
+    const rootEntries = Object.entries(this.options).flatMap(
+      ([optionName, option]): HelpScreenEntry[] => {
+        if (optionName in this.groups) return []
+        return [{ name: optionName, values: [option.description, String(option.default)] }]
+      },
+    )
     if (rootEntries.length > 0) {
       const name = 'Other Options'
-      sections.push(new HelpScreenSection({ name, entries: rootEntries }))
+      sections.push({ name, entries: rootEntries })
     }
 
     const title = msg + 'Available options:'
     const headers = ['Name', 'Description', 'Default']
-    new HelpScreen().display({ title, headers, sections })
+    return { title, headers, sections }
   }
 }
 

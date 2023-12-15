@@ -1,27 +1,19 @@
 import { options as appOptions } from '@/util/appOptions'
 import { isDevMode } from '@/util/detect'
 import { urlParams } from '@/util/urlParams'
-import {
-  checkMinSupportedVersion as checkMinimumSupportedVersion,
-  displayDeprecatedVersionDialog,
-} from '@/util/version'
+import { checkMinimumSupportedVersion } from '@/util/version'
 import { run as runDashboard } from 'enso-authentication'
 import { isOnLinux } from 'enso-common/src/detect'
 import 'enso-dashboard/src/tailwind.css'
-import { decodeQueryParams } from 'lib0/url'
-
-const vueAppEntry = import('./createApp')
 
 const INITIAL_URL_KEY = `Enso-initial-url`
 const SCAM_WARNING_TIMEOUT = 1000
-
-const params = decodeQueryParams(location.href)
-const initialProjectName = params.project ?? null
 
 let unmount: null | (() => void) = null
 let runRequested = false
 
 function printScamWarning() {
+  if (isDevMode) return
   const headerCss = `
     color: white;
     background: crimson;
@@ -60,17 +52,19 @@ export interface StringConfig {
 
 async function runApp(config: StringConfig | null, accessToken: string | null, metadata?: object) {
   runRequested = true
-  const { mountProjectApp } = await vueAppEntry
+  const { mountProjectApp } = await import('./createApp')
   if (runRequested) {
     unmount?.()
     const options = appOptions.clone()
-    const didOptionsLoad = options.loadAllAndDisplayHelpIfUnsuccessful([urlParams()])
-    if (didOptionsLoad && !(await checkMinimumSupportedVersion(options))) {
-      displayDeprecatedVersionDialog()
-    } else {
-      const app = mountProjectApp({ config, accessToken, metadata })
-      unmount = () => app.unmount()
-    }
+    const helpInfo = options.loadAllAndReturnHelpInfo([urlParams()])
+    const isVersionDeprecated = String(!(await checkMinimumSupportedVersion(options)))
+    const app = mountProjectApp({
+      config: { ...config, isVersionDeprecated },
+      accessToken,
+      metadata,
+      helpInfo,
+    })
+    unmount = () => app.unmount()
   }
 }
 
@@ -103,11 +97,12 @@ function main() {
   }
 
   const options = appOptions.clone()
-  const didOptionsLoad = options.loadAllAndDisplayHelpIfUnsuccessful([urlParams()])
+  const didOptionsLoad = options.loadAllAndReturnHelpInfo([urlParams()])
   if (didOptionsLoad) {
     const shouldUseAuthentication = options.options.authentication.value
     const projectManagerUrl =
       options.groups.engine.options.projectManagerUrl.value || PROJECT_MANAGER_URL
+    const initialProjectName = options.groups.startup.options.project.value || null
 
     runDashboard({
       appRunner,
