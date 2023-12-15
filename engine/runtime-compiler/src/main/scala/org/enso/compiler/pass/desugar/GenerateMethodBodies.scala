@@ -137,7 +137,13 @@ case object GenerateMethodBodies extends IRPass {
 
     selfArgs match {
       case _ :: (redefined, _) :: _ =>
-        errors.Redefined.SelfArg(location = redefined.location)
+        val errorBody = errors.Redefined.SelfArg(location = redefined.location)
+        fun match {
+          case functionBinding: Function.Binding =>
+            functionBinding.copy(body = errorBody)
+          case functionLambda: Function.Lambda =>
+            functionLambda.copy(body = errorBody)
+        }
       case (_, parameterPosition) :: Nil =>
         fun match {
           case lam @ Function.Lambda(_ :: _, _, _, _, _, _)
