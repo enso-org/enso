@@ -992,6 +992,7 @@ lazy val `refactoring-utils` = project
   .dependsOn(testkit % Test)
 
 lazy val `project-manager` = (project in file("lib/scala/project-manager"))
+  .enablePlugins(JPMSPlugin)
   .settings(
     (Compile / mainClass) := Some("org.enso.projectmanager.boot.ProjectManager")
   )
@@ -1020,6 +1021,9 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
       "org.typelevel" %% "kind-projector" % kindProjectorVersion cross CrossVersion.full
     )
   )
+  /**
+  * Fat jar assembly settings
+  */
   .settings(
     assembly / assemblyJarName := "project-manager.jar",
     assembly / test := {},
@@ -1048,25 +1052,53 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
       case "reference.conf"   => MergeStrategy.concat
       case _                  => MergeStrategy.first
     },
-    Test / javaOptions ++=
+  )
+  /**
+  * JPMS related settings for tests
+  */
+  .settings(
+    Test / fork := true,
+    // These dependencies are here so that we can use them in `--module-path` later on.
+    libraryDependencies ++= {
+      val necessaryModules =
+        GraalVM.modules.map(_.withConfigurations(Some(Test.name))) ++
+        GraalVM.langsPkgs.map(_.withConfigurations(Some(Test.name)))
+      necessaryModules
+    },
+    Test / addModules := Seq(
+      (`runtime-fat-jar` / javaModuleName).value
+    ),
+    Test / modulePath := {
+      val updateReport = (Test / update).value
+      val requiredModIds =
+        GraalVM.modules ++ GraalVM.langsPkgs ++ logbackPkg ++ Seq(
+          "org.slf4j"        % "slf4j-api"               % slf4jVersion,
+        )
+      val requiredMods = JPMSUtils.filterModulesFromUpdate(
+        updateReport,
+        requiredModIds,
+        streams.value.log,
+        shouldContainAll = true
+      )
+      val runtimeMod =
+        (`runtime-fat-jar` / Compile / productDirectories).value.head
+
+      requiredMods ++ Seq(runtimeMod)
+    },
+    Test / javaOptions ++= {
+      // We can't use org.enso.logger.TestLogProvider (or anything from our own logging framework here) because it is not
+      // in a module, and it cannot be simple wrapped inside a module.
+      // So we use plain ch.qos.logback with its configuration.
+      val testLogbackConf = (LocalProject(
+        "logging-service-logback"
+      ) / Test / sourceDirectory).value / "resources" / "logback-test.xml"
       Seq(
-        "-Dpolyglot.engine.WarnInterpreterOnly=false",
-        "-Dpolyglotimpl.DisableClassPathIsolation=true",
-        s"-Dconfig.file=${sourceDirectory.value}/test/resources/application.conf",
-        "-Dslf4j.provider=ch.qos.logback.classic.spi.LogbackServiceProvider"
-      ),
-    // Append enso language on the class-path
-    Test / unmanagedClasspath :=
-      (LocalProject(
-        "runtime-fat-jar"
-      ) / Compile / fullClasspath).value,
-    // In project-manager tests, we test installing projects and for that, we need
-    // to launch engine-runner properly. For that, we need all the JARs that we
-    // normally use in engine distribution. That is why there is dependency on
-    // `buildEngineDistributionNoIndex`.
-    (Test / test) := (Test / test)
-      .dependsOn(buildEngineDistributionNoIndex)
-      .value,
+        "-Dslf4j.provider=ch.qos.logback.classic.spi.LogbackServiceProvider",
+        s"-Dlogback.configurationFile=${testLogbackConf.getAbsolutePath}"
+      )
+    },
+  )
+  .settings(
     rebuildNativeImage := NativeImage
       .buildNativeImage(
         "project-manager",
