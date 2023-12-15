@@ -52,6 +52,8 @@ export class AssetQuery {
         'negativeLabels',
         'owners',
         'negativeOwners',
+        'nos',
+        'negativeNos',
     ] as const
     // `key` MUST be a string literal type.
     // eslint-disable-next-line no-restricted-syntax
@@ -62,6 +64,8 @@ export class AssetQuery {
         ['negativeLabels', '-label'],
         ['owners', 'owner'],
         ['negativeOwners', '-owner'],
+        ['nos', 'no'],
+        ['negativeNos', 'has'],
     ] as const
 
     query
@@ -74,7 +78,9 @@ export class AssetQuery {
         readonly labels: string[][],
         readonly negativeLabels: string[][],
         readonly owners: string[][],
-        readonly negativeOwners: string[][]
+        readonly negativeOwners: string[][],
+        readonly nos: string[][],
+        readonly negativeNos: string[][]
     ) {
         this.query = query ?? ''
         if (query == null) {
@@ -120,6 +126,8 @@ export class AssetQuery {
         const negativeLabels: string[][] = []
         const owners: string[][] = []
         const negativeOwners: string[][] = []
+        const nos: string[][] = []
+        const negativeNos: string[][] = []
         const tagNameToSet: Record<string, string[][]> = {
             // This is a dictionary, not an object.
             /* eslint-disable @typescript-eslint/naming-convention */
@@ -130,6 +138,10 @@ export class AssetQuery {
             '-label': negativeLabels,
             owner: owners,
             '-owner': negativeOwners,
+            no: nos,
+            '-no': negativeNos,
+            has: negativeNos,
+            '-has': nos,
             /* eslint-enable @typescript-eslint/naming-convention */
         }
         for (const term of terms) {
@@ -143,7 +155,9 @@ export class AssetQuery {
             labels,
             negativeLabels,
             owners,
-            negativeOwners
+            negativeOwners,
+            nos,
+            negativeNos
         )
     }
 
@@ -278,16 +292,9 @@ export class AssetQuery {
         }
     }
 
-    /** Return a new {@link AssetQuery} with the specified terms added,
-     * or itself if there are no terms to add. */
-    add(values: Partial<AssetQueryData>): AssetQuery {
-        const updates: Partial<AssetQueryData> = {}
-        for (const key of AssetQuery.dataKeys) {
-            const update = AssetQuery.updatedTerms(this[key], values[key] ?? null, null)
-            if (update != null) {
-                updates[key] = update
-            }
-        }
+    /** Return a new {@link AssetQuery} with the specified keys overwritten,
+     * or itself if there are no keys to overwrite. */
+    withUpdates(updates: Partial<AssetQueryData>) {
         if (Object.keys(updates).length === 0) {
             return this
         } else {
@@ -298,9 +305,24 @@ export class AssetQuery {
                 updates.labels ?? this.labels,
                 updates.negativeLabels ?? this.negativeLabels,
                 updates.owners ?? this.owners,
-                updates.negativeOwners ?? this.negativeOwners
+                updates.negativeOwners ?? this.negativeOwners,
+                updates.nos ?? this.nos,
+                updates.negativeNos ?? this.negativeNos
             )
         }
+    }
+
+    /** Return a new {@link AssetQuery} with the specified terms added,
+     * or itself if there are no terms to add. */
+    add(values: Partial<AssetQueryData>): AssetQuery {
+        const updates: Partial<AssetQueryData> = {}
+        for (const key of AssetQuery.dataKeys) {
+            const update = AssetQuery.updatedTerms(this[key], values[key] ?? null, null)
+            if (update != null) {
+                updates[key] = update
+            }
+        }
+        return this.withUpdates(updates)
     }
 
     /** Return a new {@link AssetQuery} with the specified terms deleted,
@@ -313,19 +335,7 @@ export class AssetQuery {
                 updates[key] = update
             }
         }
-        if (Object.keys(updates).length === 0) {
-            return this
-        } else {
-            return new AssetQuery(
-                null,
-                updates.keywords ?? this.keywords,
-                updates.negativeKeywords ?? this.negativeKeywords,
-                updates.labels ?? this.labels,
-                updates.negativeLabels ?? this.negativeLabels,
-                updates.owners ?? this.owners,
-                updates.negativeOwners ?? this.negativeOwners
-            )
-        }
+        return this.withUpdates(updates)
     }
 
     /** Return a new {@link AssetQuery} with the specified words added to the last term
@@ -338,19 +348,7 @@ export class AssetQuery {
                 updates[key] = update
             }
         }
-        if (Object.keys(updates).length === 0) {
-            return this
-        } else {
-            return new AssetQuery(
-                null,
-                updates.keywords ?? this.keywords,
-                updates.negativeKeywords ?? this.negativeKeywords,
-                updates.labels ?? this.labels,
-                updates.negativeLabels ?? this.negativeLabels,
-                updates.owners ?? this.owners,
-                updates.negativeOwners ?? this.negativeOwners
-            )
-        }
+        return this.withUpdates(updates)
     }
 
     /** Return a new {@link AssetQuery} with the specified terms deleted from the last term
@@ -363,19 +361,7 @@ export class AssetQuery {
                 updates[key] = update
             }
         }
-        if (Object.keys(updates).length === 0) {
-            return this
-        } else {
-            return new AssetQuery(
-                null,
-                updates.keywords ?? this.keywords,
-                updates.negativeKeywords ?? this.negativeKeywords,
-                updates.labels ?? this.labels,
-                updates.negativeLabels ?? this.negativeLabels,
-                updates.owners ?? this.owners,
-                updates.negativeOwners ?? this.negativeOwners
-            )
-        }
+        return this.withUpdates(updates)
     }
 
     /** Return a new {@link AssetQuery} with the specified words added to every term
@@ -390,19 +376,7 @@ export class AssetQuery {
                 updates[key] = update
             }
         }
-        if (Object.keys(updates).length === 0) {
-            return this
-        } else {
-            return new AssetQuery(
-                null,
-                updates.keywords ?? this.keywords,
-                updates.negativeKeywords ?? this.negativeKeywords,
-                updates.labels ?? this.labels,
-                updates.negativeLabels ?? this.negativeLabels,
-                updates.owners ?? this.owners,
-                updates.negativeOwners ?? this.negativeOwners
-            )
-        }
+        return this.withUpdates(updates)
     }
 
     /** Return a new {@link AssetQuery} with the specified terms deleted from the last term
@@ -415,19 +389,7 @@ export class AssetQuery {
                 updates[key] = update
             }
         }
-        if (Object.keys(updates).length === 0) {
-            return this
-        } else {
-            return new AssetQuery(
-                null,
-                updates.keywords ?? this.keywords,
-                updates.negativeKeywords ?? this.negativeKeywords,
-                updates.labels ?? this.labels,
-                updates.negativeLabels ?? this.negativeLabels,
-                updates.owners ?? this.owners,
-                updates.negativeOwners ?? this.negativeOwners
-            )
-        }
+        return this.withUpdates(updates)
     }
 
     /** Returns a string representation usable in the search bar. */

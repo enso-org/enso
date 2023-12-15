@@ -300,7 +300,21 @@ export default function AssetsTable(props: AssetsTableProps) {
                             permission => permission.permission === permissions.PermissionAction.own
                         )
                         .map(owner => owner.user.user_name) ?? []
+                const isAbsent = (type: string) => {
+                    switch (type) {
+                        case 'label':
+                        case 'labels': {
+                            return labels.length === 0
+                        }
+                    }
+                    // Things like `no:name` and `no:owner` are never true.
+                    return false
+                }
                 return (
+                    query.nos.every(noSet => noSet.some(no => isAbsent(no.toLowerCase()))) &&
+                    query.negativeNos.every(
+                        noSet => !noSet.some(no => isAbsent(no.toLowerCase()))
+                    ) &&
                     query.keywords.every(keywordSet =>
                         keywordSet.some(keyword => lowercaseName.includes(keyword.toLowerCase()))
                     ) &&
