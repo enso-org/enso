@@ -1,7 +1,5 @@
 package org.enso.interpreter.dsl;
 
-import org.enso.interpreter.dsl.builtins.*;
-
 import com.google.common.base.CaseFormat;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -12,15 +10,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import org.openide.util.lookup.ServiceProvider;
-
+import java.util.stream.IntStream;
 import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.*;
 import javax.tools.Diagnostic;
 import javax.tools.JavaFileObject;
-
-import java.util.stream.IntStream;
+import org.enso.interpreter.dsl.builtins.*;
+import org.openide.util.lookup.ServiceProvider;
 
 /**
  * The processor used to generate code from the methods of the runtime representations annotated
@@ -95,7 +92,11 @@ public class BuiltinsProcessor extends AbstractProcessor {
   }
 
   private void generateBuiltinType(
-      JavaFileObject gen, ClassName builtinType, Optional<String> stdLibName, String underlyingTypeName) throws IOException {
+      JavaFileObject gen,
+      ClassName builtinType,
+      Optional<String> stdLibName,
+      String underlyingTypeName)
+      throws IOException {
     try (PrintWriter out = new PrintWriter(gen.openWriter())) {
       out.println("package " + builtinType.pkg() + ";");
       out.println();
@@ -103,10 +104,16 @@ public class BuiltinsProcessor extends AbstractProcessor {
         out.println("import " + importPkg + ";");
       }
       out.println();
-      String builtinTypeAnnotation = "@BuiltinType(" + stdLibName.map(n -> "name = \"" + n + "\", ").orElse("") + "underlyingTypeName = \"" + underlyingTypeName + "\")";
+      String builtinTypeAnnotation =
+          "@BuiltinType("
+              + stdLibName.map(n -> "name = \"" + n + "\", ").orElse("")
+              + "underlyingTypeName = \""
+              + underlyingTypeName
+              + "\")";
       out.println(builtinTypeAnnotation);
       out.println("public class " + builtinType.name() + " extends Builtin {");
-      out.println("""
+      out.println(
+          """
         @Override
         public boolean containsValues() {
           return true;
@@ -178,13 +185,19 @@ public class BuiltinsProcessor extends AbstractProcessor {
                   try {
                     MethodNodeClassGenerator classGenerator =
                         new NoSpecializationClassGenerator(
-                            processingEnv, method, builtinMethodNode, ownerClass, stdLibOwnerClass, i);
+                            processingEnv,
+                            method,
+                            builtinMethodNode,
+                            ownerClass,
+                            stdLibOwnerClass,
+                            i);
                     classGenerator.generate(
                         processingEnv,
                         methodName,
                         annotation.description(),
                         method.getSimpleName().toString(),
-                        annotation.autoRegister(), needsFrame);
+                        annotation.autoRegister(),
+                        needsFrame);
                   } catch (IOException ioe) {
                     throw new RuntimeException(ioe);
                   }
@@ -238,7 +251,8 @@ public class BuiltinsProcessor extends AbstractProcessor {
                 builtinMethodName,
                 annotation.description(),
                 method.getSimpleName().toString(),
-                annotation.autoRegister(), needsFrame);
+                annotation.autoRegister(),
+                needsFrame);
           }
         } else {
           MethodNodeClassGenerator classGenerator =
@@ -249,7 +263,8 @@ public class BuiltinsProcessor extends AbstractProcessor {
               builtinMethodName,
               annotation.description(),
               method.getSimpleName().toString(),
-              annotation.autoRegister(), needsFrame);
+              annotation.autoRegister(),
+              needsFrame);
         }
       }
     } else {

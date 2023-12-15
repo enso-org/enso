@@ -7,43 +7,39 @@ import java.io.IOException;
 import java.util.*;
 import java.util.function.Predicate;
 import org.enso.compiler.context.SimpleUpdate;
-import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.tag.Patchable;
 
 /**
- * Keeps patched values for expression in  module. Also keeps mapping of
- * original source offset and new {@link #findDelta(int, boolean) deltas}.
+ * Keeps patched values for expression in module. Also keeps mapping of original source offset and
+ * new {@link #findDelta(int, boolean) deltas}.
  */
 final class PatchedModuleValues {
   private final Module module;
-  private final TreeMap<Integer,int[]> deltas = new TreeMap<>();
+  private final TreeMap<Integer, int[]> deltas = new TreeMap<>();
   private Map<Node, Predicate<Expression>> values;
 
   PatchedModuleValues(Module module) {
     this.module = module;
   }
 
-  /** Disposes the binding. No-op currently.
-   */
-  void dispose() {
-  }
+  /** Disposes the binding. No-op currently. */
+  void dispose() {}
 
-  /** Keeps "deltas" for each {@code offset} where a modification happened.
-   * Edits are always deleting few characters and inserting another few characters
-   * at a given location. The idea here is to use {@code SortedMap} to keep
-   * information about "deltas" at each offset of modification. Whenever new
-   * edit is made, the delta at its offset is recorded and all deltas after
-   * the offset adjusted as they shift too.
+  /**
+   * Keeps "deltas" for each {@code offset} where a modification happened. Edits are always deleting
+   * few characters and inserting another few characters at a given location. The idea here is to
+   * use {@code SortedMap} to keep information about "deltas" at each offset of modification.
+   * Whenever new edit is made, the delta at its offset is recorded and all deltas after the offset
+   * adjusted as they shift too.
    *
    * @param collect {@link Node} to value map of the values to use
    * @param offset location when a modification happened
    * @param delta positive or negative change at the offset location
    */
   private synchronized void performUpdates(
-    Map<Node, Predicate<Expression>> collect, int offset, int delta
-  ) {
+      Map<Node, Predicate<Expression>> collect, int offset, int delta) {
     if (values == null) {
       var scope = module.getScope();
       values = new HashMap<>();
@@ -58,22 +54,23 @@ final class PatchedModuleValues {
     }
     Map.Entry<Integer, int[]> previous = deltas.floorEntry(offset);
     if (previous == null) {
-      deltas.put(offset, new int[] { delta });
+      deltas.put(offset, new int[] {delta});
     } else if (previous.getKey() == offset) {
       previous.getValue()[0] += delta;
     } else {
-      deltas.put(offset, new int[] { previous.getValue()[0] + delta });
+      deltas.put(offset, new int[] {previous.getValue()[0] + delta});
     }
     for (int[] after : deltas.tailMap(offset, false).values()) {
       after[0] += delta;
     }
   }
 
-  /** Checks whether a simple edit is applicable and performs it if so.
+  /**
+   * Checks whether a simple edit is applicable and performs it if so.
    *
    * @param update information about the edit to be done
-   * @return {@code true} if the edit was applied, {@code false} to proceed with
-   *   full re-parse of the source
+   * @return {@code true} if the edit was applied, {@code false} to proceed with full re-parse of
+   *     the source
    */
   boolean simpleUpdate(SimpleUpdate update) {
     var scope = module.getScope();
@@ -110,13 +107,15 @@ final class PatchedModuleValues {
     return true;
   }
 
-  private static void updateFunctionsMap(SimpleUpdate edit, List<Function> values, Map<Node, Predicate<Expression>> nodeValues) {
+  private static void updateFunctionsMap(
+      SimpleUpdate edit, List<Function> values, Map<Node, Predicate<Expression>> nodeValues) {
     for (Function f : values) {
       updateNode(edit, f.getCallTarget().getRootNode(), nodeValues);
     }
   }
 
-  private static void updateNode(SimpleUpdate update, Node root, Map<Node, Predicate<Expression>> nodeValues) {
+  private static void updateNode(
+      SimpleUpdate update, Node root, Map<Node, Predicate<Expression>> nodeValues) {
     LinkedList<Node> queue = new LinkedList<>();
     queue.add(root);
     while (!queue.isEmpty()) {
@@ -140,12 +139,10 @@ final class PatchedModuleValues {
             continue;
           }
           if (n instanceof Patchable node) {
-            if (
-              at.getStartLine() - 1 == edit.range().start().line() &&
-              at.getStartColumn() - 1 == edit.range().start().character() &&
-              at.getEndLine() - 1 == edit.range().end().line() &&
-              at.getEndColumn() == edit.range().end().character()
-            ) {
+            if (at.getStartLine() - 1 == edit.range().start().line()
+                && at.getStartColumn() - 1 == edit.range().start().character()
+                && at.getEndLine() - 1 == edit.range().end().line()
+                && at.getEndColumn() == edit.range().end().character()) {
               var patchableNode = node.asPatchableNode();
               if (patchableNode.test(update.newIr())) {
                 nodeValues.put(patchableNode, patchableNode);
@@ -164,12 +161,13 @@ final class PatchedModuleValues {
    * Finds difference against location in the original source code.
    *
    * @param offset the original location
-   * @param inclusive are modifications at the same location going to count or not
-   *   - they count for section ends, but do not count for section starts
+   * @param inclusive are modifications at the same location going to count or not - they count for
+   *     section ends, but do not count for section starts
    * @return positive or negative delta to apply at given offset
    */
   int findDelta(int offset, boolean inclusive) {
-    Map.Entry<Integer, int[]> previous = inclusive ? deltas.floorEntry(offset) : deltas.lowerEntry(offset);
+    Map.Entry<Integer, int[]> previous =
+        inclusive ? deltas.floorEntry(offset) : deltas.lowerEntry(offset);
     return previous == null ? 0 : previous.getValue()[0];
   }
 }

@@ -79,7 +79,8 @@ public class DelimitedWriter {
     if (quoteEscape != null) {
       if (quoteEscape.isEmpty()) {
         throw new IllegalArgumentException(
-            "Empty quote escapes are not supported. Set the escape to `Nothing` to disable escaping quotes.");
+            "Empty quote escapes are not supported. Set the escape to `Nothing` to disable escaping"
+                + " quotes.");
       }
       if (quoteEscape.length() > 1) {
         throw new IllegalArgumentException(

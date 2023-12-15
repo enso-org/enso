@@ -10,7 +10,8 @@ import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.error.UnexpectedTypeException;
 import org.graalvm.polyglot.Context;
 
-public abstract class StringStringOp extends BinaryMapOperation<String, SpecializedStorage<String>> {
+public abstract class StringStringOp
+    extends BinaryMapOperation<String, SpecializedStorage<String>> {
   public StringStringOp(String name) {
     super(name);
   }
@@ -20,7 +21,10 @@ public abstract class StringStringOp extends BinaryMapOperation<String, Speciali
   protected abstract TextType computeResultType(TextType a, TextType b);
 
   @Override
-  public Storage<?> runBinaryMap(SpecializedStorage<String> storage, Object arg, MapOperationProblemAggregator problemAggregator) {
+  public Storage<?> runBinaryMap(
+      SpecializedStorage<String> storage,
+      Object arg,
+      MapOperationProblemAggregator problemAggregator) {
     int size = storage.size();
     if (arg == null) {
       StringBuilder builder = new StringBuilder(size, TextType.VARIABLE_LENGTH);
@@ -48,8 +52,10 @@ public abstract class StringStringOp extends BinaryMapOperation<String, Speciali
   }
 
   @Override
-  public Storage<?> runZip(SpecializedStorage<String> storage, Storage<?> arg,
-                           MapOperationProblemAggregator problemAggregator) {
+  public Storage<?> runZip(
+      SpecializedStorage<String> storage,
+      Storage<?> arg,
+      MapOperationProblemAggregator problemAggregator) {
     if (arg instanceof StringStorage v) {
       int size = storage.size();
       String[] newVals = new String[size];

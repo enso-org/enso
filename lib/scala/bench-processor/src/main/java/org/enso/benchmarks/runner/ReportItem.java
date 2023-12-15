@@ -53,7 +53,9 @@ public class ReportItem {
     getScores().add(score);
   }
 
-  /** @return The best (lowest) historic result for this benchmark. */
+  /**
+   * @return The best (lowest) historic result for this benchmark.
+   */
   @XmlTransient
   public Optional<Double> getBestScore() {
     OptionalDouble min = getScores().stream().mapToDouble(s -> s).min();

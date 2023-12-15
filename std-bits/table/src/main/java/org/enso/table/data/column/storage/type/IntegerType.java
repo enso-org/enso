@@ -55,7 +55,8 @@ public record IntegerType(Bits bits) implements StorageType {
   }
 
   /**
-   * Checks if this type can hold values of otherType - i.e. if otherType has the same or smaller number of bits.
+   * Checks if this type can hold values of otherType - i.e. if otherType has the same or smaller
+   * number of bits.
    */
   public boolean fits(IntegerType otherType) {
     return bits.toInteger() >= otherType.bits.toInteger();

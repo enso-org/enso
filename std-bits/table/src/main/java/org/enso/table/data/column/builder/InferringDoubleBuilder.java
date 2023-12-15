@@ -1,16 +1,13 @@
 package org.enso.table.data.column.builder;
 
+import java.math.BigInteger;
+import java.util.BitSet;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.error.ValueTypeMismatchException;
 import org.enso.table.problems.ProblemAggregator;
 
-import java.math.BigInteger;
-import java.util.BitSet;
-
-/**
- * A double builder variant that preserves types and can be retyped to Mixed.
- */
+/** A double builder variant that preserves types and can be retyped to Mixed. */
 public class InferringDoubleBuilder extends DoubleBuilder {
   /**
    * Converts the provided LongBuilder to a DoubleBuilder.
@@ -21,7 +18,8 @@ public class InferringDoubleBuilder extends DoubleBuilder {
   static InferringDoubleBuilder retypeFromLongBuilder(LongBuilder longBuilder) {
     int currentSize = longBuilder.currentSize;
     InferringDoubleBuilder newBuilder =
-        new InferringDoubleBuilder(longBuilder.isMissing, longBuilder.data, currentSize, longBuilder.problemAggregator);
+        new InferringDoubleBuilder(
+            longBuilder.isMissing, longBuilder.data, currentSize, longBuilder.problemAggregator);
 
     // Invalidate the old builder.
     longBuilder.data = null;
@@ -40,7 +38,8 @@ public class InferringDoubleBuilder extends DoubleBuilder {
         if (isLossy) {
           // Save it raw for recovery.
           newBuilder.setRaw(i, currentIntegerValue);
-          newBuilder.precisionLossAggregator.reportPrecisionLoss(currentIntegerValue, convertedFloatValue);
+          newBuilder.precisionLossAggregator.reportPrecisionLoss(
+              currentIntegerValue, convertedFloatValue);
           // Unmark the long that did not fit:
           newBuilder.isLongCompactedAsDouble.set(i, false);
         }
@@ -52,27 +51,29 @@ public class InferringDoubleBuilder extends DoubleBuilder {
     return newBuilder;
   }
 
-  InferringDoubleBuilder(BitSet isMissing, long[] doubleData, int currentSize, ProblemAggregator problemAggregator) {
+  InferringDoubleBuilder(
+      BitSet isMissing, long[] doubleData, int currentSize, ProblemAggregator problemAggregator) {
     super(isMissing, doubleData, currentSize, problemAggregator);
     rawData = null;
     isLongCompactedAsDouble = new BitSet();
   }
 
   /**
-   * Stores the raw data as passed to append, in order to be able to reconstruct the original values when retyping to
-   * mixed.
+   * Stores the raw data as passed to append, in order to be able to reconstruct the original values
+   * when retyping to mixed.
    */
   private Number[] rawData;
 
   /**
-   * Specifies at which indices we encountered integers that can be reconstructed from double without loss of
-   * precision.
-   * <p>
-   * This is used for reconstructing the original values when retyping to mixed. Integers that are small enough can be
-   * reconstructed from their double values, so we do not need to store them as `rawData`, instead we only mark that
-   * they need to be converted back into integers when retyping. This allows us to completely avoid allocating the
-   * `rawData` array for most practical scenarios when the integers are not too large. The cost of allocating this
-   * BitSet should be significantly lower than allocating the `rawData` array.
+   * Specifies at which indices we encountered integers that can be reconstructed from double
+   * without loss of precision.
+   *
+   * <p>This is used for reconstructing the original values when retyping to mixed. Integers that
+   * are small enough can be reconstructed from their double values, so we do not need to store them
+   * as `rawData`, instead we only mark that they need to be converted back into integers when
+   * retyping. This allows us to completely avoid allocating the `rawData` array for most practical
+   * scenarios when the integers are not too large. The cost of allocating this BitSet should be
+   * significantly lower than allocating the `rawData` array.
    */
   private final BitSet isLongCompactedAsDouble;
 
@@ -96,14 +97,16 @@ public class InferringDoubleBuilder extends DoubleBuilder {
       }
     }
 
-    // Since we are retyping to Mixed, the precision loss warnings should not be inherited - thus we discard them.
+    // Since we are retyping to Mixed, the precision loss warnings should not be inherited - thus we
+    // discard them.
     precisionLossAggregator.detachFromParent();
   }
 
   @Override
   public void appendBulkStorage(Storage<?> storage) {
-    throw new UnsupportedOperationException("appendBulkStorage is not supported on InferringDoubleBuilder. " +
-        "A DoubleBuilder or MixedBuilder should be used instead. This is a bug in the Table library.");
+    throw new UnsupportedOperationException(
+        "appendBulkStorage is not supported on InferringDoubleBuilder. A DoubleBuilder or"
+            + " MixedBuilder should be used instead. This is a bug in the Table library.");
   }
 
   @Override
@@ -172,8 +175,9 @@ public class InferringDoubleBuilder extends DoubleBuilder {
 
   @Override
   public void appendRawNoGrow(long rawData) {
-    throw new UnsupportedOperationException("appendRawNoGrow is not supported on InferringDoubleBuilder. " +
-        "A DoubleBuilder should be used instead. This is a bug in the Table library.");
+    throw new UnsupportedOperationException(
+        "appendRawNoGrow is not supported on InferringDoubleBuilder. "
+            + "A DoubleBuilder should be used instead. This is a bug in the Table library.");
   }
 
   private void setRaw(int ix, Number o) {

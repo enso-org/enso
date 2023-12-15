@@ -47,8 +47,18 @@ public abstract class CompilerTest {
       var home = new File(System.getProperty("java.io.tmpdir")).toPath();
       var file1 = home.resolve(name + ".1");
       var file2 = home.resolve(name + ".2");
-      Files.writeString(file1, ir1, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
-      Files.writeString(file2, ir2, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+      Files.writeString(
+          file1,
+          ir1,
+          StandardOpenOption.TRUNCATE_EXISTING,
+          StandardOpenOption.CREATE,
+          StandardOpenOption.WRITE);
+      Files.writeString(
+          file2,
+          ir2,
+          StandardOpenOption.TRUNCATE_EXISTING,
+          StandardOpenOption.CREATE,
+          StandardOpenOption.WRITE);
       assertEquals(msg, file1, file2);
     }
   }
@@ -62,27 +72,29 @@ public abstract class CompilerTest {
     throw new IllegalStateException();
   }
 
-  /** Takes an {@link IR} and converts it to text representation suitable for
-   * "diffing" while "simplifying" it.
+  /**
+   * Takes an {@link IR} and converts it to text representation suitable for "diffing" while
+   * "simplifying" it.
    *
    * @param ir the intermediate representation
-   * @param noIds remove all UUIDs or keep them? Multiple runs usually assign
-   *   random/different UUIDs to various IR elements. Removing them is a best
-   *   way to make the converted text comparable
-   * @param noLocations locations may slightly differ. Usually off-by-one.
-   *   Especially when running old and new parser in parallel - removing them
-   *   may be useful
-   * @param lessDocs documentation often isn't an essential part of the IR
-   *   one can easily remove it by specifying {@code false}
+   * @param noIds remove all UUIDs or keep them? Multiple runs usually assign random/different UUIDs
+   *     to various IR elements. Removing them is a best way to make the converted text comparable
+   * @param noLocations locations may slightly differ. Usually off-by-one. Especially when running
+   *     old and new parser in parallel - removing them may be useful
+   * @param lessDocs documentation often isn't an essential part of the IR one can easily remove it
+   *     by specifying {@code false}
    * @return string representation of the IR
    */
   private static String simplifyIR(IR ir, boolean noIds, boolean noLocations, boolean lessDocs) {
     String txt = ir.pretty();
     if (noIds) {
-      txt = txt.replaceAll("[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]\\-[0-9a-f][0-9a-f][0-9a-f][0-9a-f]\\-[0-9a-f][0-9a-f][0-9a-f][0-9a-f]\\-[0-9a-f][0-9a-f][0-9a-f][0-9a-f]\\-[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]", "_");
+      txt =
+          txt.replaceAll(
+              "[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]\\-[0-9a-f][0-9a-f][0-9a-f][0-9a-f]\\-[0-9a-f][0-9a-f][0-9a-f][0-9a-f]\\-[0-9a-f][0-9a-f][0-9a-f][0-9a-f]\\-[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]",
+              "_");
     }
     if (noLocations) {
-      for (;;) {
+      for (; ; ) {
         final String pref = " Location(";
         int at = txt.indexOf(pref);
         if (at == -1) {
@@ -101,7 +113,7 @@ public abstract class CompilerTest {
       }
     }
     if (lessDocs) {
-      for (;;) {
+      for (; ; ) {
         final String pref = "Comment.Documentation(";
         int at = txt.indexOf(pref);
         if (at == -1) {
@@ -110,7 +122,7 @@ public abstract class CompilerTest {
         int to = txt.indexOf("location =", at + pref.length());
         txt = txt.substring(0, at) + "Comment.Doc(" + txt.substring(to);
       }
-      for (;;) {
+      for (; ; ) {
         final String pref = "Case.Pattern.Doc(";
         int at = txt.indexOf(pref);
         if (at == -1) {
@@ -120,7 +132,7 @@ public abstract class CompilerTest {
         txt = txt.substring(0, at) + "Comment.CaseDoc(" + txt.substring(to);
       }
     }
-    for (;;) {
+    for (; ; ) {
       final String pref = "errors.Syntax(";
       int at = txt.indexOf(pref);
       if (at == -1) {
@@ -129,7 +141,7 @@ public abstract class CompilerTest {
       int to = txt.indexOf("reason =", at + pref.length());
       txt = txt.substring(0, at) + "errors.Syntax (" + txt.substring(to);
     }
-    for (;;) {
+    for (; ; ) {
       final String pref = "List(";
       int at = txt.indexOf(pref);
       if (at == -1) {
