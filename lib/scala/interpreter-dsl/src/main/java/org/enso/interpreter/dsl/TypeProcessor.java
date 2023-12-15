@@ -1,16 +1,15 @@
 package org.enso.interpreter.dsl;
 
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.Writer;
+import java.util.*;
 import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
 import javax.tools.Diagnostic;
 import javax.tools.JavaFileObject;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.Writer;
-import java.util.*;
-
 import org.openide.util.lookup.ServiceProvider;
 
 @SupportedAnnotationTypes("org.enso.interpreter.dsl.BuiltinType")
@@ -96,7 +95,8 @@ public class TypeProcessor extends BuiltinsMetadataProcessor<TypeProcessor.TypeM
    * @throws IOException - if an I/O error occurred
    */
   @Override
-  protected void storeMetadata(Writer writer, Map<String, TypeMetadataEntry> pastEntries) throws IOException {
+  protected void storeMetadata(Writer writer, Map<String, TypeMetadataEntry> pastEntries)
+      throws IOException {
     for (Filer f : builtinTypes.keySet()) {
       for (Map.Entry<String, BuiltinTypeConstr> entry : builtinTypes.get(f).entrySet()) {
         BuiltinTypeConstr constr = entry.getValue();
@@ -134,11 +134,12 @@ public class TypeProcessor extends BuiltinsMetadataProcessor<TypeProcessor.TypeM
         }
       }
 
-      pastEntries
-        .forEach((k, v) -> {
-          v.stdlibName().ifPresent(name -> generateEntry(v.ensoName().toUpperCase(), name, out));
-          v.builtinTypeName().ifPresent(builtinTypeName -> lookup.put(builtinTypeName, k.toUpperCase()));
-        });
+      pastEntries.forEach(
+          (k, v) -> {
+            v.stdlibName().ifPresent(name -> generateEntry(v.ensoName().toUpperCase(), name, out));
+            v.builtinTypeName()
+                .ifPresent(builtinTypeName -> lookup.put(builtinTypeName, k.toUpperCase()));
+          });
 
       out.println();
 
@@ -147,9 +148,9 @@ public class TypeProcessor extends BuiltinsMetadataProcessor<TypeProcessor.TypeM
       out.println("      case \"Long\" -> " + ConstantsGenClass + ".INTEGER;");
       out.println("      case \"Double\" -> " + ConstantsGenClass + ".FLOAT;");
       out.println("      case \"Text\" -> " + ConstantsGenClass + ".TEXT;");
-      lookup.forEach((k, v) ->
-          out.println("      case \"" + k + "\" -> " + ConstantsGenClass + "." + v + ";")
-      );
+      lookup.forEach(
+          (k, v) ->
+              out.println("      case \"" + k + "\" -> " + ConstantsGenClass + "." + v + ";"));
       out.println("      default -> null;");
       out.println("    };");
       out.println("  }");
@@ -160,18 +161,9 @@ public class TypeProcessor extends BuiltinsMetadataProcessor<TypeProcessor.TypeM
   }
 
   public void generateEntry(String name, String value, PrintWriter out) {
+    out.println("  public static final String " + name + " = \"" + value + "\";");
     out.println(
-            "  public static final String "
-                    + name
-                    + " = \""
-                    + value
-                    + "\";");
-    out.println(
-            "  public static final String "
-                    + name + "_BUILTIN"
-                    + " = "
-                    + toBuiltinName(value)
-                    + ";");
+        "  public static final String " + name + "_BUILTIN" + " = " + toBuiltinName(value) + ";");
   }
 
   private String toBuiltinName(String name) {
@@ -207,11 +199,22 @@ public class TypeProcessor extends BuiltinsMetadataProcessor<TypeProcessor.TypeM
     return SourceVersion.latest();
   }
 
-  public record TypeMetadataEntry(String ensoName, String clazzName, Optional<String> stdlibName, Optional<String> builtinTypeName) implements MetadataEntry {
+  public record TypeMetadataEntry(
+      String ensoName,
+      String clazzName,
+      Optional<String> stdlibName,
+      Optional<String> builtinTypeName)
+      implements MetadataEntry {
 
     @Override
     public String toString() {
-      return ensoName + ":" + clazzName + ":" + stdlibName.orElse("") + ":" + builtinTypeName.orElse("");
+      return ensoName
+          + ":"
+          + clazzName
+          + ":"
+          + stdlibName.orElse("")
+          + ":"
+          + builtinTypeName.orElse("");
     }
 
     @Override
@@ -228,8 +231,10 @@ public class TypeProcessor extends BuiltinsMetadataProcessor<TypeProcessor.TypeM
   public static TypeMetadataEntry fromStringToMetadataEntry(String line) {
     String[] elements = line.split(":");
     if (elements.length < 2) throw new RuntimeException("invalid builtin metadata entry: " + line);
-    Optional<String> stdLibName = elements.length >= 3 ? Optional.of(elements[2]) : Optional.empty();
-    Optional<String> builtinTypeName = elements.length == 4 ? Optional.of(elements[3]) : Optional.empty();
+    Optional<String> stdLibName =
+        elements.length >= 3 ? Optional.of(elements[2]) : Optional.empty();
+    Optional<String> builtinTypeName =
+        elements.length == 4 ? Optional.of(elements[3]) : Optional.empty();
     return new TypeMetadataEntry(elements[0], elements[1], stdLibName, builtinTypeName);
   }
 }

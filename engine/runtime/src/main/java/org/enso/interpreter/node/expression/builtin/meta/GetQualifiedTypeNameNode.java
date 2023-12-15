@@ -16,10 +16,11 @@ public class GetQualifiedTypeNameNode extends Node {
   private @Child TypeOfNode typeOfNode = TypeOfNode.build();
 
   Object execute(@AcceptsError Object value) {
-    var maybeType = switch (value) {
-      case Type type -> type;
-      default -> typeOfNode.execute(value);
-    };
+    var maybeType =
+        switch (value) {
+          case Type type -> type;
+          default -> typeOfNode.execute(value);
+        };
     if (maybeType instanceof Type type) {
       return Text.create(type.getQualifiedName().toString());
     }

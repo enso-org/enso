@@ -273,7 +273,8 @@ export function usePointer(
         trackedPointer.value = e.pointerId
         // This is mostly SAFE, as virtually all `Element`s also extend `GlobalEventHandlers`.
         trackedElement = e.currentTarget as Element & GlobalEventHandlers
-        trackedElement.setPointerCapture(e.pointerId)
+        // `setPointerCapture` is not defined in tests.
+        trackedElement.setPointerCapture?.(e.pointerId)
         initialGrabPos = new Vec2(e.clientX, e.clientY)
         lastPos = initialGrabPos
         handler(computePosition(e, initialGrabPos, lastPos), e, 'start')

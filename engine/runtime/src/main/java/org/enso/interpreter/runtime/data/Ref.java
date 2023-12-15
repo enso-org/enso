@@ -26,7 +26,9 @@ public final class Ref implements EnsoObject {
     this.value = value;
   }
 
-  /** @return the current value of the reference. */
+  /**
+   * @return the current value of the reference.
+   */
   @Builtin.Method(name = "get", description = "Gets the value stored in the reference")
   public Object getValue() {
     return value;

@@ -14,7 +14,7 @@ const props = withDefaults(defineProps<{ icon: Icon; modelValue?: boolean }>(), 
   modelValue: false,
 })
 const emit = defineEmits<{
-  (e: 'update:modelValue', toggledOn: boolean): void
+  'update:modelValue': [toggledOn: boolean]
 }>()
 </script>
 

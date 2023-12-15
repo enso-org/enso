@@ -1178,11 +1178,6 @@ val truffleRunOpts = Seq(
   "-Dpolyglot.compiler.BackgroundCompilation=false"
 )
 
-val truffleRunOptionsNoAssertSettings = Seq(
-  fork := true,
-  javaOptions ++= benchOnlyOptions
-)
-
 val truffleRunOptionsSettings = Seq(
   fork := true,
   javaOptions ++= "-ea" +: benchOnlyOptions
@@ -1330,13 +1325,16 @@ lazy val truffleDslSuppressWarnsSetting = Seq(
 )
 
 /** A setting to replace javac with Frgaal compiler, allowing to use latest Java features in the code
-  * and still compile down to JDK 11
+  * and still compile down to JDK 17
   */
-lazy val frgaalJavaCompilerSetting = Seq(
+lazy val frgaalJavaCompilerSetting =
+  customFrgaalJavaCompilerSettings(targetJavaVersion)
+
+def customFrgaalJavaCompilerSettings(targetJdk: String) = Seq(
   Compile / compile / compilers := FrgaalJavaCompiler.compilers(
     (Compile / dependencyClasspath).value,
     compilers.value,
-    targetJavaVersion
+    targetJdk
   ),
   // This dependency is needed only so that developers don't download Frgaal manually.
   // Sadly it cannot be placed under plugins either because meta dependencies are not easily
@@ -1375,11 +1373,20 @@ lazy val instrumentationSettings = frgaalJavaCompilerSetting ++ Seq(
 lazy val `runtime-language-epb` =
   (project in file("engine/runtime-language-epb"))
     .settings(
+      frgaalJavaCompilerSetting,
       inConfig(Compile)(truffleRunOptionsSettings),
       truffleDslSuppressWarnsSetting,
-      instrumentationSettings
+      commands += WithDebugCommand.withDebug,
+      fork := true,
+      Test / javaOptions ++= Seq(),
+      instrumentationSettings,
+      libraryDependencies ++= Seq(
+        "junit"               % "junit"                 % junitVersion              % Test,
+        "com.github.sbt"      % "junit-interface"       % junitIfVersion            % Test,
+        "org.graalvm.truffle" % "truffle-api"           % graalMavenPackagesVersion % "provided",
+        "org.graalvm.truffle" % "truffle-dsl-processor" % graalMavenPackagesVersion % "provided"
+      )
     )
-    .dependsOn(`polyglot-api`)
 
 lazy val runtime = (project in file("engine/runtime"))
   .configs(Benchmark)
@@ -1727,7 +1734,7 @@ lazy val `runtime-with-polyglot` =
     .configs(Benchmark)
     .settings(
       frgaalJavaCompilerSetting,
-      inConfig(Compile)(truffleRunOptionsNoAssertSettings),
+      inConfig(Compile)(truffleRunOptionsSettings),
       inConfig(Benchmark)(Defaults.testSettings),
       commands += WithDebugCommand.withDebug,
       Benchmark / javacOptions --= Seq(
@@ -2731,11 +2738,16 @@ val allStdBits: Parser[String] =
 lazy val `simple-httpbin` = project
   .in(file("tools") / "simple-httpbin")
   .settings(
-    frgaalJavaCompilerSetting,
+    customFrgaalJavaCompilerSettings(targetJdk = "21"),
+    autoScalaLibrary := false,
     Compile / javacOptions ++= Seq("-Xlint:all"),
+    Compile / run / mainClass := Some("org.enso.shttp.SimpleHTTPBin"),
+    assembly / mainClass := (Compile / run / mainClass).value,
     libraryDependencies ++= Seq(
       "org.apache.commons" % "commons-text" % commonsTextVersion
-    )
+    ),
+    (Compile / run / fork) := true,
+    (Compile / run / connectInput) := true
   )
   .configs(Test)
 

@@ -367,7 +367,7 @@ const parseCases = [
 ]
 test.each(parseCases)('parse: %s', (testCase) => {
   const root = Ast.parse(testCase.code)
-  expect(Ast.debug(root)).toEqual(testCase.tree)
+  expect(Ast.tokenTree(root)).toEqual(testCase.tree)
 })
 
 // TODO: Edits (#8367).

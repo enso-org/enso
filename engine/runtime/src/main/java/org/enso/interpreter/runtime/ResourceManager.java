@@ -21,7 +21,8 @@ public class ResourceManager {
   private volatile Thread workerThread;
   private final Runner worker = new Runner();
   private final ReferenceQueue<ManagedResource> referenceQueue = new ReferenceQueue<>();
-  private final ConcurrentMap<PhantomReference<ManagedResource>, Item> items = new ConcurrentHashMap<>();
+  private final ConcurrentMap<PhantomReference<ManagedResource>, Item> items =
+      new ConcurrentHashMap<>();
 
   /**
    * Creates a new instance of Resource Manager.
@@ -128,8 +129,9 @@ public class ResourceManager {
   @CompilerDirectives.TruffleBoundary
   public ManagedResource register(Object object, Object function) {
     if (isClosed) {
-      throw EnsoContext.get(null).raiseAssertionPanic(null,
-          "Can't register new resources after resource manager is closed.", null);
+      throw EnsoContext.get(null)
+          .raiseAssertionPanic(
+              null, "Can't register new resources after resource manager is closed.", null);
     }
     if (workerThread == null || !workerThread.isAlive()) {
       worker.setKilled(false);
@@ -227,7 +229,11 @@ public class ResourceManager {
      * @param reference a phantom reference used for tracking the reachability status of the
      *     resource.
      */
-    public Item(ManagedResource referent, Object underlying, Object finalizer, ReferenceQueue<ManagedResource> queue) {
+    public Item(
+        ManagedResource referent,
+        Object underlying,
+        Object finalizer,
+        ReferenceQueue<ManagedResource> queue) {
       super(referent, queue);
       this.underlying = underlying;
       this.finalizer = finalizer;

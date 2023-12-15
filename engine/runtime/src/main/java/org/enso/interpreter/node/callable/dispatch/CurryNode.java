@@ -4,6 +4,7 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.BranchProfile;
+import java.util.concurrent.locks.Lock;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.ExecuteCallNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
@@ -15,8 +16,6 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.control.TailCallException;
 import org.enso.interpreter.runtime.state.State;
-
-import java.util.concurrent.locks.Lock;
 
 /** Handles runtime function currying and oversaturated (eta-expanded) calls. */
 @NodeInfo(description = "Handles runtime currying and eta-expansion")
@@ -107,8 +106,9 @@ public class CurryNode extends BaseNode {
       if (!postApplicationSchema.hasOversaturatedArgs()) {
         var value = doCall(frame, function, callerInfo, state, arguments);
         if (defaultsExecutionMode.isExecute()
-            && (value instanceof Function || (value instanceof AtomConstructor cons
-              && cons.getConstructorFunction().getSchema().isFullyApplied()))) {
+            && (value instanceof Function
+                || (value instanceof AtomConstructor cons
+                    && cons.getConstructorFunction().getSchema().isFullyApplied()))) {
           keepExecutingProfile.enter();
           if (oversaturatedCallableNode == null) {
             CompilerDirectives.transferToInterpreterAndInvalidate();
@@ -133,24 +133,28 @@ public class CurryNode extends BaseNode {
           return value;
         }
       } else {
-        var evaluatedVal = loopingCall.executeDispatch(frame, function, callerInfo, state, arguments, null);
+        var evaluatedVal =
+            loopingCall.executeDispatch(frame, function, callerInfo, state, arguments, null);
 
         return this.oversaturatedCallableNode.execute(
             evaluatedVal, frame, state, oversaturatedArguments);
       }
     } else {
-      return
-          new Function(
-              function.getCallTarget(),
-              function.getScope(),
-              postApplicationSchema,
-              arguments,
-              oversaturatedArguments);
+      return new Function(
+          function.getCallTarget(),
+          function.getScope(),
+          postApplicationSchema,
+          arguments,
+          oversaturatedArguments);
     }
   }
 
   private Object doCall(
-      VirtualFrame frame, Function function, CallerInfo callerInfo, State state, Object[] arguments) {
+      VirtualFrame frame,
+      Function function,
+      CallerInfo callerInfo,
+      State state,
+      Object[] arguments) {
     return switch (getTailStatus()) {
       case TAIL_DIRECT -> directCall.executeCall(frame, function, callerInfo, state, arguments);
       case TAIL_LOOP -> throw new TailCallException(function, callerInfo, arguments);

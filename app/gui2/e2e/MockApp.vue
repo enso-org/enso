@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { getMainFile, setMainFile } from '../mock/engine'
 import App from '../src/App.vue'
 import MockProjectStoreWrapper from '../stories/MockProjectStoreWrapper.vue'
-import { getMainFile, setMainFile } from './mockEngine'
 
 const mainFile = computed({
   get() {

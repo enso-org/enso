@@ -35,13 +35,17 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
   protected final int size;
   private final MapOperationStorage<T, SpecializedStorage<T>> ops;
 
-  /** @inheritDoc */
+  /**
+   * @inheritDoc
+   */
   @Override
   public int size() {
     return size;
   }
 
-  /** @inheritDoc */
+  /**
+   * @inheritDoc
+   */
   @Override
   public int countMissing() {
     Context context = Context.getCurrent();
@@ -69,7 +73,9 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
     return data[idx];
   }
 
-  /** @inheritDoc */
+  /**
+   * @inheritDoc
+   */
   @Override
   public boolean isNa(long idx) {
     return data[(int) idx] == null;
