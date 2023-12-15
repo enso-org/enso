@@ -103,7 +103,11 @@ export class AssetQuery {
                     tag: tag ?? null,
                     values: values.map(value =>
                         AssetQuery.jsonValueRegex.test(value)
-                            ? String(JSON.parse(value.endsWith('"') ? value : value + '"'))
+                            ? String(
+                                  JSON.parse(
+                                      value.endsWith('"') && value.length > 1 ? value : value + '"'
+                                  )
+                              )
                             : value
                     ),
                 })

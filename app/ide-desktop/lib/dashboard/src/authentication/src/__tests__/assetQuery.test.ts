@@ -11,18 +11,26 @@ v.test.each([
     { query: '-label:' },
     { query: 'owner:' },
     { query: '-owner:' },
+    { query: '"', keywords: [['']] },
+    { query: '""', keywords: [['']] },
     { query: 'a', keywords: [['a']] },
     { query: 'a b', keywords: [['a'], ['b']] },
     { query: '"a" "b"', keywords: [['a'], ['b']] },
     { query: 'a,b', keywords: [['a', 'b']] },
     { query: '"a","b"', keywords: [['a', 'b']] },
-    { query: 'name:a,b', keywords: [['a', 'b']] },
-    { query: '-name:a', negativeKeywords: [['a']] },
-    { query: '-name:a,b', negativeKeywords: [['a', 'b']] },
+    { query: '-:a', negativeKeywords: [['a']] },
+    { query: '-:a,b', negativeKeywords: [['a', 'b']] },
+    { query: 'name:a,b', names: [['a', 'b']] },
+    { query: '-name:a', negativeNames: [['a']] },
+    { query: '-name:a,b', negativeNames: [['a', 'b']] },
     { query: 'label:a', labels: [['a']] },
     { query: '-label:a', negativeLabels: [['a']] },
     { query: 'owner:a', owners: [['a']] },
     { query: '-owner:a', negativeOwners: [['a']] },
+    { query: 'no:a', nos: [['a']] },
+    { query: '-no:a', negativeNos: [['a']] },
+    { query: 'has:a', negativeNos: [['a']] },
+    { query: '-has:a', nos: [['a']] },
     // Ensure that invalid queries are parsed reasonably
     { query: '-label', keywords: [['-label']] },
     { query: '"a" "b', keywords: [['a'], ['b']] },
@@ -32,12 +40,26 @@ v.test.each([
     { query: '"a"b"', keywords: [['a', 'b"']] },
 ])(
     'AssetQuery.fromString',
-    ({ query, keywords, negativeKeywords, labels, negativeLabels, owners, negativeOwners }) => {
+    ({
+        query,
+        keywords,
+        negativeKeywords,
+        names,
+        negativeNames,
+        labels,
+        negativeLabels,
+        owners,
+        negativeOwners,
+        nos,
+        negativeNos,
+    }) => {
         const parsed = assetQuery.AssetQuery.fromString(query)
         v.expect(parsed.keywords, `Keywords in '${query}'`).toEqual(keywords ?? [])
         v.expect(parsed.negativeKeywords, `Negative keywords in '${query}'`).toEqual(
             negativeKeywords ?? []
         )
+        v.expect(parsed.names, `Names in '${query}'`).toEqual(names ?? [])
+        v.expect(parsed.negativeNames, `Negative names in '${query}'`).toEqual(negativeNames ?? [])
         v.expect(parsed.labels, `Labels in '${query}'`).toEqual(labels ?? [])
         v.expect(parsed.negativeLabels, `Negative labels in '${query}'`).toEqual(
             negativeLabels ?? []
@@ -46,6 +68,8 @@ v.test.each([
         v.expect(parsed.negativeOwners, `Negative owners in '${query}'`).toEqual(
             negativeOwners ?? []
         )
+        v.expect(parsed.nos, `Nos in '${query}'`).toEqual(nos ?? [])
+        v.expect(parsed.negativeNos, `Negative nos in '${query}'`).toEqual(negativeNos ?? [])
     }
 )
 
