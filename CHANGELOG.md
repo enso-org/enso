@@ -594,6 +594,7 @@
 - [Implemented truncate `Date_Time` for database backend (Postgres only).][8235]
 - [Initial Enso Cloud APIs.][8006]
 - [Errors thrown inside `map` are wrapped in `Map_Error`.][8307]
+- [Support for loading big Excel files.][8403]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -850,6 +851,7 @@
 [8150]: https://github.com/enso-org/enso/pull/8150
 [8235]: https://github.com/enso-org/enso/pull/8235
 [8307]: https://github.com/enso-org/enso/pull/8307
+[8403]: https://github.com/enso-org/enso/pull/8403
 
 #### Enso Compiler
 
