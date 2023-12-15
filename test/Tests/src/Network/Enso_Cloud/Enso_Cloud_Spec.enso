@@ -14,7 +14,6 @@ polyglot java import org.enso.base.enso_cloud.AuthenticationProvider
 reset_token =
     AuthenticationProvider.setToken Nothing
 
-## TODO [RW] not sure if this should be part of AWS_Tests or rather most likely it should be moved to a separate suite...
 spec =
     ## To run this test locally:
        $ sbt 'simple-httpbin/run localhost 8080'

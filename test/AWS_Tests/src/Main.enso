@@ -2,9 +2,7 @@ from Standard.Base import all
 
 from Standard.Test import Test_Suite
 
-import project.Enso_Cloud_Spec
 import project.S3_Spec
 
 main = Test_Suite.run_main <|
-    Enso_Cloud_Spec.spec
     S3_Spec.spec
