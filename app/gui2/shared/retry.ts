@@ -5,11 +5,10 @@ export interface BackoffOptions<E> {
   retryDelay?: number
   retryDelayMultiplier?: number
   retryDelayMax?: number
-  /**
-   * Called when the promise return an error result, and the next retry is about to be attempted.
-   * When this function returns `false`, the backoff is immediately aborted. When this function is
-   * not provided, the backoff will always continue until the maximum number of retries is reached.
-   */
+  /** Called when the promise throws an error, and the next retry is about to be attempted.
+   * When this function returns `false`, the backoff is immediately aborted. When this function
+   * is not provided, the backoff will always continue until the maximum number of retries
+   * is reached. * */
   onBeforeRetry?: (
     error: E,
     retryCount: number,
@@ -18,7 +17,7 @@ export interface BackoffOptions<E> {
   ) => boolean | void
   /** Called right before returning. */
   onSuccess?: (retryCount: number) => void
-  /** Called on the final retry, right before throwing an error.
+  /** Called after the final retry, right before throwing an error.
    * Note that `onBeforeRetry` is *not* called on the final retry, as there is nothing after the
    * final retry. */
   onFailure?: (error: E, retryCount: number) => void

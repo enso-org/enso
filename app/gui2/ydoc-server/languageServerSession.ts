@@ -6,7 +6,7 @@ import * as random from 'lib0/random'
 import * as Y from 'yjs'
 import { LanguageServer, computeTextChecksum } from '../shared/languageServer'
 import { Checksum, FileEdit, Path, response } from '../shared/languageServerTypes'
-import { exponentialBackoff, exponentialBackoffMessages } from '../shared/retry'
+import { exponentialBackoff, printingCallbacks } from '../shared/retry'
 import {
   DistributedProject,
   ExprId,
@@ -111,10 +111,7 @@ export class LanguageServerSession {
               if (fileInfo.attributes.kind.type == 'File') {
                 await exponentialBackoff(
                   () => this.getModuleModel(event.path).open(),
-                  exponentialBackoffMessages(
-                    `opened new file '${path}'`,
-                    `open new file '${path}'`,
-                  ),
+                  printingCallbacks(`opened new file '${path}'`, `open new file '${path}'`),
                 )
               }
             }
@@ -123,7 +120,7 @@ export class LanguageServerSession {
           case 'Modified': {
             await exponentialBackoff(
               async () => this.tryGetExistingModuleModel(event.path)?.reload(),
-              exponentialBackoffMessages(`reloaded file '${path}'`, `reload file '${path}'`),
+              printingCallbacks(`reloaded file '${path}'`, `reload file '${path}'`),
             )
             break
           }
@@ -137,7 +134,7 @@ export class LanguageServerSession {
       try {
         await exponentialBackoff(
           async () => this.tryGetExistingModuleModel(event.path)?.reload(),
-          exponentialBackoffMessages(`reloaded file '${path}'`, `reload file '${path}'`),
+          printingCallbacks(`reloaded file '${path}'`, `reload file '${path}'`),
         )
       } catch {
         this.restartClient()
@@ -145,13 +142,13 @@ export class LanguageServerSession {
     })
     exponentialBackoff(
       () => this.readInitialState(),
-      exponentialBackoffMessages('read initial state', 'read initial state'),
+      printingCallbacks('read initial state', 'read initial state'),
     ).catch((error) => {
       console.error('Could not read initial state.')
       console.error(error)
       exponentialBackoff(
         async () => this.restartClient(),
-        exponentialBackoffMessages('restarted RPC client', 'restart RPC client'),
+        printingCallbacks('restarted RPC client', 'restart RPC client'),
       )
     })
     return { client: this.client, ls: this.ls }
@@ -620,7 +617,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
                     }
                     return result
                   },
-                  exponentialBackoffMessages(
+                  printingCallbacks(
                     `opened file '${path}' for writing`,
                     `open file '${path}' for writing`,
                   ),
