@@ -1,4 +1,4 @@
-package org.enso.interpreter.epb.runtime;
+package org.enso.interpreter.epb;
 
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.exception.AbstractTruffleException;
@@ -13,7 +13,7 @@ import java.util.Set;
  * language is not installed, or enabled, in the Truffle engine.
  */
 @ExportLibrary(InteropLibrary.class)
-public class ForeignParsingException extends AbstractTruffleException {
+class ForeignParsingException extends AbstractTruffleException {
   private final String message;
 
   /**

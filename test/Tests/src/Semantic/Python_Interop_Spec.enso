@@ -173,6 +173,14 @@ spec =
                 _ -> False
             num_double_match.should_be_true
 
+        Test.specify "should make Python number values equal to Enso ints" <|
+            py_10 = make_int
+            py_10 . should_equal 10
+
+        Test.specify "should make Python number values equal to Enso doubles" <|
+            py_d = make_double
+            py_d . should_equal 10.5
+
         Test.specify "should make Python None values equal to Nothing" <|
             py_null = make_null
             py_null . should_equal Nothing

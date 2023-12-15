@@ -1,14 +1,11 @@
-package org.enso.interpreter.epb.node;
+package org.enso.interpreter.epb;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 
-import org.enso.interpreter.epb.EpbContext;
-
+import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.dsl.NodeField;
-import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropException;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -21,10 +18,7 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.source.Source;
 
-@NodeField(name = "foreignFunction", type = Object.class)
-public abstract class PyForeignNode extends ForeignFunctionCallNode {
-  @Child
-  private CoercePrimitiveNode coercePrimitiveNode = CoercePrimitiveNode.build();
+final class PyForeignNode extends GenericForeignNode {
   @CompilerDirectives.CompilationFinal
   private Object fnPythonDate;
   @Child
@@ -39,10 +33,72 @@ public abstract class PyForeignNode extends ForeignFunctionCallNode {
   private InteropLibrary nodePythonZone;
   @CompilerDirectives.CompilationFinal
   private Object fnPythonCombine;
+  @CompilerDirectives.CompilationFinal
+  private Object none;
   @Child
   private InteropLibrary nodePythonCombine;
+  @Child
+  private InteropLibrary iop = InteropLibrary.getFactory().createDispatched(3);
 
-  abstract Object getForeignFunction();
+  PyForeignNode(CallTarget ct) {
+    super(ct);
+  }
+
+  @Override
+  public Object execute(Object[] arguments) throws InteropException {
+    // initialize venv by importing site
+    none();
+
+    for (int i = 0; i < arguments.length; i++) {
+      var javaTime = iop.isTime(arguments[i]) ? iop.asTime(arguments[i]) : null;
+      var time = javaTime != null ? wrapPythonTime(javaTime) : null;
+      var javaDate = iop.isDate(arguments[i]) ? iop.asDate(arguments[i]) : null;
+      var date = javaDate != null ? wrapPythonDate(javaDate) : null;
+      var zone = iop.isTimeZone(arguments[i]) ? wrapPythonZone(iop.asTimeZone(arguments[i]), javaTime, javaDate) : null;
+      if (date != null && time != null) {
+        arguments[i] = combinePythonDateTimeZone(date, time, zone);
+      } else if (date != null) {
+        arguments[i] = date;
+      } else if (time != null) {
+        arguments[i] = time;
+      } else if (zone != null) {
+        arguments[i] = zone;
+      }
+      // Enso's Text type should be converted to TruffleString before sent to python, because
+      // python does not tend to use InteropLibrary, so any Text object would be treated as
+      // a foreign object, rather than 'str' type.
+      if (iop.isString(arguments[i])) {
+        arguments[i] = iop.asTruffleString(arguments[i]);
+      }
+    }
+    var res = super.execute(arguments);
+    if (iop.hasMetaObject(res)) {
+      var meta = iop.getMetaObject(res);
+      var name = iop.getMetaQualifiedName(meta);
+      if ("module".equals(name)) {
+        return none();
+      }
+    }
+    return res;
+  }
+
+  private Object none() throws UnsupportedTypeException, ArityException, UnsupportedMessageException {
+    if (none == null) {
+      CompilerDirectives.transferToInterpreterAndInvalidate();
+      var ctx = EpbContext.get(this);
+      var src = Source.newBuilder("python", """
+      import site
+      def nothing():
+        return None
+      nothing
+      """, "nothing.py").build();
+      var nothingFn = ctx.getEnv().parsePublic(src).call();
+      assert InteropLibrary.getUncached().isExecutable(nothingFn);
+      none = InteropLibrary.getUncached().execute(nothingFn);
+      assert InteropLibrary.getUncached().isNull(none);
+    }
+    return none;
+  }
 
   private Object wrapPythonDate(LocalDate date) throws UnsupportedTypeException, ArityException, UnsupportedMessageException {
     if (nodePythonDate == null) {
@@ -127,37 +183,6 @@ public abstract class PyForeignNode extends ForeignFunctionCallNode {
     } else {
       return nodePythonCombine.execute(fnPythonCombine, date, time);
     }
-  }
-
-  @Specialization
-  public Object doExecute(
-          Object[] arguments,
-          @CachedLibrary("foreignFunction") InteropLibrary interopLibrary,
-          @CachedLibrary(limit = "3") InteropLibrary iop
-  ) throws InteropException {
-    for (int i = 0; i < arguments.length; i++) {
-      var javaTime = iop.isTime(arguments[i]) ? iop.asTime(arguments[i]) : null;
-      var time = javaTime != null ? wrapPythonTime(javaTime) : null;
-      var javaDate = iop.isDate(arguments[i]) ? iop.asDate(arguments[i]) : null;
-      var date = javaDate != null ? wrapPythonDate(javaDate) : null;
-      var zone = iop.isTimeZone(arguments[i]) ? wrapPythonZone(iop.asTimeZone(arguments[i]), javaTime, javaDate) : null;
-      if (date != null && time != null) {
-        arguments[i] = combinePythonDateTimeZone(date, time, zone);
-      } else if (date != null) {
-        arguments[i] = date;
-      } else if (time != null) {
-        arguments[i] = time;
-      } else if (zone != null) {
-        arguments[i] = zone;
-      }
-      // Enso's Text type should be converted to TruffleString before sent to python, because
-      // python does not tend to use InteropLibrary, so any Text object would be treated as
-      // a foreign object, rather than 'str' type.
-      if (iop.isString(arguments[i])) {
-        arguments[i] = iop.asTruffleString(arguments[i]);
-      }
-    }
-    return coercePrimitiveNode.execute(interopLibrary.execute(getForeignFunction(), arguments));
   }
 
   @ExportLibrary(InteropLibrary.class)
