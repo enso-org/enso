@@ -17,6 +17,7 @@ import project.Network.HTTP.HTTP_Method.HTTP_Method
 import project.Nothing.Nothing
 import project.System.File.File_Access.File_Access
 import project.System.File_Format.File_For_Read
+import project.System.File_Format.File_Format_Metadata
 import project.System.Input_Stream.Input_Stream
 import project.System.Output_Stream.Output_Stream
 from project.Data.Boolean import Boolean, False, True
@@ -129,7 +130,9 @@ type Enso_File
                 real_format = Auto_Detect.get_reading_format self
                 if real_format == Nothing then Error.throw (File_Error.Unsupported_Type self) else
                     self.read real_format on_problems
-            _ -> self.with_input_stream [File_Access.Read] format.read_stream
+            _ ->
+                metadata = File_Format_Metadata.Value file_name=self.name
+                self.with_input_stream [File_Access.Read] (stream-> format.read_stream stream metadata)
 
     ## ALIAS load bytes, open bytes
        ICON data_input

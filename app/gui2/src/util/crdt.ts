@@ -1,4 +1,4 @@
-import type { Opt } from '@/util/opt'
+import type { Opt } from '@/util/data/opt'
 import { watchEffect, type Ref } from 'vue'
 import type { Awareness } from 'y-protocols/awareness'
 import { WebsocketProvider } from 'y-websocket'

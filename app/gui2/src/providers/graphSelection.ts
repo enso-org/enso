@@ -1,8 +1,8 @@
-import type { NavigatorComposable } from '@/util/navigator'
-import type { Rect } from '@/util/rect'
-import { useSelection } from '@/util/selection'
+import type { NavigatorComposable } from '@/composables/navigator'
+import { useSelection } from '@/composables/selection'
+import { createContextStore } from '@/providers'
+import type { Rect } from '@/util/data/rect'
 import type { ExprId } from 'shared/yjsModel'
-import { createContextStore } from '.'
 
 const SELECTION_BRUSH_MARGIN_PX = 6
 

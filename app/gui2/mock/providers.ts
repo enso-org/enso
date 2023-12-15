@@ -1,7 +1,7 @@
 import type { GraphSelection } from '@/providers/graphSelection'
 import type { GraphNavigator } from '../src/providers/graphNavigator'
-import { Rect } from '../src/util/rect'
-import { Vec2 } from '../src/util/vec2'
+import { Rect } from '../src/util/data/rect'
+import { Vec2 } from '../src/util/data/vec2'
 
 export const graphNavigator: GraphNavigator = {
   events: {} as any,

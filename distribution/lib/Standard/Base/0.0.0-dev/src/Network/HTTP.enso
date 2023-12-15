@@ -98,7 +98,10 @@ type HTTP
             if fetch_methods.contains req.method || Context.Output.is_enabled then action else
                 Error.throw (Forbidden_Operation.Error ("Method " + req.method.to_text + " requests are forbidden as the Output context is disabled."))
         handle_request_error =
-            Panic.catch JException handler=(cause-> Error.throw (Request_Error.Error 'IllegalArgumentException' cause.payload.getMessage))
+            handler caught_panic =
+                exception = caught_panic.payload
+                Error.throw (Request_Error.Error (Meta.type_of exception . to_text) exception.getMessage)
+            Panic.catch JException handler=handler
 
         Panic.recover Any <| handle_request_error <| check_output_context <|
             headers = resolve_headers req

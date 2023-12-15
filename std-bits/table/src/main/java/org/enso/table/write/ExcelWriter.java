@@ -145,15 +145,6 @@ public class ExcelWriter {
     }
   }
 
-  /**
-   * Creates an empty workbook.
-   * @param xls_format specifies whether the file is in Excel Binary Format (95-2003 format).
-   * @return a {@link Workbook} containing the specified data.
-   */
-  public static Workbook createWorkbook(boolean xls_format) {
-    return xls_format ? new HSSFWorkbook() : new XSSFWorkbook();
-  }
-
   private static void appendRangeWithTable(Workbook workbook, ExcelRange range, ExistingDataMode existingDataMode, Table table, Long rowLimit, ExcelHeaders.HeaderBehavior headers, ExcelSheet sheet, ExcelRange expanded)
       throws RangeExceededException, ExistingDataException, ColumnNameMismatchException, ColumnCountMismatchException {
     Table mappedTable = switch (existingDataMode) {

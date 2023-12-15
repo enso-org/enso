@@ -1,10 +1,12 @@
+/** @file A Vue composable for keeping track of selected DOM elements. */
+
 import { selectionMouseBindings } from '@/bindings'
-import { usePointer } from '@/util/events'
-import type { NavigatorComposable } from '@/util/navigator'
-import type { Rect } from '@/util/rect'
-import type { Vec2 } from '@/util/vec2'
+import { usePointer } from '@/composables/events'
+import type { NavigatorComposable } from '@/composables/navigator'
+import type { Rect } from '@/util/data/rect'
+import type { Vec2 } from '@/util/data/vec2'
+import { type ExprId } from 'shared/yjsModel'
 import { computed, proxyRefs, reactive, ref, shallowRef } from 'vue'
-import { type ExprId } from '../../shared/yjsModel.ts'
 
 export type SelectionComposable<T> = ReturnType<typeof useSelection<T>>
 export function useSelection<T>(

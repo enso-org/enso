@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Data.Vector.No_Wrap
 
 import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.Internal_Column.Internal_Column
@@ -162,8 +163,8 @@ type Context
         rewrite_internal_column column =
             Internal_Column.Value column.name column.sql_type_reference (SQL_Expression.Column alias column.name)
 
-        new_columns = column_lists.map columns->
-            columns.map rewrite_internal_column
+        new_columns = column_lists.map on_problems=No_Wrap.Value columns->
+            columns.map on_problems=No_Wrap.Value rewrite_internal_column
 
         encapsulated_columns = column_lists.flat_map columns->
             columns.map column-> [column.name, column.expression]

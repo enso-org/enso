@@ -1330,13 +1330,16 @@ lazy val truffleDslSuppressWarnsSetting = Seq(
 )
 
 /** A setting to replace javac with Frgaal compiler, allowing to use latest Java features in the code
-  * and still compile down to JDK 11
+  * and still compile down to JDK 17
   */
-lazy val frgaalJavaCompilerSetting = Seq(
+lazy val frgaalJavaCompilerSetting =
+  customFrgaalJavaCompilerSettings(targetJavaVersion)
+
+def customFrgaalJavaCompilerSettings(targetJdk: String) = Seq(
   Compile / compile / compilers := FrgaalJavaCompiler.compilers(
     (Compile / dependencyClasspath).value,
     compilers.value,
-    targetJavaVersion
+    targetJdk
   ),
   // This dependency is needed only so that developers don't download Frgaal manually.
   // Sadly it cannot be placed under plugins either because meta dependencies are not easily
@@ -2731,11 +2734,16 @@ val allStdBits: Parser[String] =
 lazy val `simple-httpbin` = project
   .in(file("tools") / "simple-httpbin")
   .settings(
-    frgaalJavaCompilerSetting,
+    customFrgaalJavaCompilerSettings(targetJdk = "21"),
+    autoScalaLibrary := false,
     Compile / javacOptions ++= Seq("-Xlint:all"),
+    Compile / run / mainClass := Some("org.enso.shttp.SimpleHTTPBin"),
+    assembly / mainClass := (Compile / run / mainClass).value,
     libraryDependencies ++= Seq(
       "org.apache.commons" % "commons-text" % commonsTextVersion
-    )
+    ),
+    (Compile / run / fork) := true,
+    (Compile / run / connectInput) := true
   )
   .configs(Test)
 

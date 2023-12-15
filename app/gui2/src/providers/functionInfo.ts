@@ -1,6 +1,6 @@
+import { createContextStore } from '@/providers'
 import { identity } from '@vueuse/core'
 import type { ExprId } from 'shared/yjsModel'
-import { createContextStore } from '.'
 
 interface FunctionInfo {
   callId: ExprId | undefined

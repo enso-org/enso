@@ -1,3 +1,4 @@
+import { useComponentBrowserInput } from '@/components/ComponentBrowser/input'
 import { GraphDb } from '@/stores/graph/graphDatabase'
 import type { RequiredImport } from '@/stores/graph/imports'
 import { ComputedValueRegistry } from '@/stores/project/computedValueRegistry'
@@ -13,11 +14,10 @@ import {
   makeType,
   type SuggestionEntry,
 } from '@/stores/suggestionDatabase/entry'
+import { unwrap } from '@/util/data/result'
 import { tryIdentifier, tryQualifiedName } from '@/util/qualifiedName'
-import { unwrap } from '@/util/result'
 import type { ExprId } from 'shared/yjsModel'
 import { expect, test } from 'vitest'
-import { useComponentBrowserInput } from '../input'
 
 test.each([
   ['', 0, { type: 'insert', position: 0 }, {}],

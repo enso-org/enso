@@ -40,8 +40,9 @@ write_file table format file on_existing_file match_columns on_problems =
         Existing_File_Behavior.Append ->
             append_to_file table format file match_columns on_problems
         _ ->
-            on_existing_file.write file stream->
-                write_to_stream table format stream on_problems related_file=file
+            on_existing_file.write_handling_dry_run file effective_file-> stream->
+                r = write_to_stream table format stream on_problems related_file=effective_file
+                r.if_not_error effective_file
 
 ## PRIVATE
    Handles appending to an existing file, ensuring that the columns are matched
@@ -85,8 +86,9 @@ append_to_file table format file match_columns on_problems =
             False -> format.without_headers
         needs_leading_newline =
             metadata.has_any_content && metadata.ends_with_newline.not
-        Existing_File_Behavior.Append.write file stream->
-            write_to_stream reordered_table amended_format stream on_problems related_file=file separator_override=effective_line_separator needs_leading_newline=needs_leading_newline
+        Existing_File_Behavior.Append.write_handling_dry_run file effective_file->  stream->
+            r = write_to_stream reordered_table amended_format stream on_problems related_file=effective_file separator_override=effective_line_separator needs_leading_newline=needs_leading_newline
+            r.if_not_error effective_file
 
 ## PRIVATE
    Returns a Text value representing the table in the delimited format.

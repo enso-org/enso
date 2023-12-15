@@ -131,9 +131,15 @@ spec setup =
             [Problem_Behavior.Ignore, Problem_Behavior.Report_Warning, Problem_Behavior.Report_Error].each pb->
                 t = table.select_columns [] on_problems=pb
                 t.should_fail_with No_Output_Columns
+                # Just selecting [] means the No_Output_Columns does not have an additional cause.
+                t.catch.cause . should_equal Nothing
+                t.catch.to_display_text . should_equal "The result would contain no columns."
 
             table.select_columns ["hmmm"] . should_fail_with Missing_Input_Columns
-            table.select_columns ["hmmm"] error_on_missing_columns=False . should_fail_with No_Output_Columns
+            r2 = table.select_columns ["hmmm"] error_on_missing_columns=False
+            r2.should_fail_with No_Output_Columns
+            r2.catch.cause . should_be_a Missing_Input_Columns
+            r2.catch.to_display_text . should_equal "No columns in the result, because of another problem: The criteria 'hmmm' did not match any columns."
 
     Test.group prefix+"Table.remove_columns" <|
         Test.specify "should work as shown in the doc examples" <|
@@ -215,6 +221,8 @@ spec setup =
             selector_2 = [".*".to_regex, "hmmm".to_regex]
             t1 = table.remove_columns selector_2
             t1.should_fail_with No_Output_Columns
+            # No cause specified - even if some criteria were unmatched, that is not the reason for the No_Output_Columns (the reason is all other columns got deleted, by other criteria that _did_ match).
+            t1.catch.cause . should_equal Nothing
 
     Test.group prefix+"Table.reorder_columns" <|
         Test.specify "should work as shown in the doc examples" <|

@@ -173,6 +173,19 @@ spec =
                 f.copy_to g . should_fail_with Forbidden_Operation
                 g.exists.should_be_false
 
+            "A".write f on_existing_file=Existing_File_Behavior.Overwrite
+            "B".write g on_existing_file=Existing_File_Behavior.Overwrite
+
+            r = f.copy_to g
+            r.should_fail_with File_Error
+            r.catch.should_be_a File_Error.Already_Exists
+            f.read . should_equal "A"
+            g.read . should_equal "B"
+
+            f.copy_to g replace_existing=True . should_succeed
+            f.read . should_equal "A"
+            g.read . should_equal "A"
+
             f.delete_if_exists
             g.delete_if_exists
 
@@ -192,6 +205,20 @@ spec =
             f.move_to g . should_succeed
             f.exists.should_be_false
             g.exists.should_be_true
+
+            "A".write f on_existing_file=Existing_File_Behavior.Overwrite
+            "B".write g on_existing_file=Existing_File_Behavior.Overwrite
+            r = f.move_to g
+            r.should_fail_with File_Error
+            r.catch.should_be_a File_Error.Already_Exists
+            f.exists.should_be_true
+            g.exists.should_be_true
+            g.read . should_equal "B"
+
+            f.move_to g replace_existing=True . should_succeed
+            f.exists.should_be_false
+            g.exists.should_be_true
+            g.read . should_equal "A"
 
             f.delete_if_exists
             g.delete_if_exists
@@ -448,7 +475,7 @@ spec =
 
                 Context.Output.with_enabled <| r.delete_if_exists
 
-        Test.specify "should perform a dry run creating and appending text to a file if Context.Output is disabled" <|
+        Test.specify "if Context.Output is disabled, will always start from the file given - so the effects of previous dry run are not visible" <|
             f = transient / "dry_append.txt"
             f.delete_if_exists
 
@@ -461,12 +488,38 @@ spec =
                 Problems.expect_only_warning Dry_Run_Operation s
                 s.exists.should_be_true
 
-                s.read_text.should_equal 'line 1!\nline 2!'
+                # We only see the second line, because the base file `f` was not updated and the second append still starts from an empty file.
+                s.read_text.should_equal '\nline 2!'
+
+                # But the dry run file for the same `f` target should be kept the same:
                 s.should_equal r
 
                 f.exists.should_be_false
 
-                Context.Output.with_enabled <| r.delete_if_exists
+                Context.Output.with_enabled r.delete_if_exists
+
+        Test.specify "if Context.Output is disabled, will append to the dry run file if the dry run file descriptor is passed as the write target" <|
+            f = transient / "dry_append.txt"
+            f.delete_if_exists
+
+            Context.Output.with_disabled <|
+                dry_run_file = "line 1!".write f on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error
+                Problems.expect_only_warning Dry_Run_Operation dry_run_file
+                dry_run_file.exists.should_be_true
+
+                # Contrary to example above, we write to the returned file, not just `f`.
+                s = '\nline 2!'.write dry_run_file on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error
+                Problems.expect_only_warning Dry_Run_Operation s
+                s.exists.should_be_true
+
+                # We see both updates, because we've thread through the resulting dry run file descriptor:
+                s.read_text.should_equal 'line 1!\nline 2!'
+                # The returned file is also the same:
+                s.should_equal dry_run_file
+
+                f.exists.should_be_false
+
+                Context.Output.with_enabled dry_run_file.delete_if_exists
 
         Test.specify "should allow to overwrite files" <|
             f = transient / "work.txt"

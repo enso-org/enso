@@ -5,19 +5,19 @@ import GraphNodeError from '@/components/GraphEditor/GraphNodeError.vue'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import NodeWidgetTree from '@/components/GraphEditor/NodeWidgetTree.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
+import { useApproach } from '@/composables/animation'
 import { useDoubleClick } from '@/composables/doubleClick'
+import { usePointer, useResizeObserver } from '@/composables/events'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { useGraphStore, type Node } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
-import { useApproach } from '@/util/animation'
 import { Ast } from '@/util/ast'
 import { Prefixes } from '@/util/ast/prefixes'
-import { usePointer, useResizeObserver } from '@/util/events'
+import type { Opt } from '@/util/data/opt'
+import { Rect } from '@/util/data/rect'
+import { Vec2 } from '@/util/data/vec2'
 import { displayedIconOf } from '@/util/getIconName'
-import type { Opt } from '@/util/opt'
-import { Rect } from '@/util/rect'
-import { Vec2 } from '@/util/vec2'
 import { setIfUndefined } from 'lib0/map'
 import { type ExprId, type VisualizationIdentifier } from 'shared/yjsModel'
 import { computed, ref, watch, watchEffect } from 'vue'
@@ -267,23 +267,17 @@ function getRelatedSpanOffset(domNode: globalThis.Node, domOffset: number): numb
     const offsetData = domNode.parentElement?.dataset.spanStart
     if (offsetData != null) return parseInt(offsetData) + domOffset
   }
-  return 0
+  return domOffset
 }
 
-const handlePortClick = useDoubleClick<[portId: ExprId]>(
-  (_e, portId) => emit('outputPortClick', portId),
-  (portId) => {
-    emit('outputPortDoubleClick', portId)
-  },
+const handlePortClick = useDoubleClick(
+  (portId: ExprId) => emit('outputPortClick', portId),
+  (portId: ExprId) => emit('outputPortDoubleClick', portId),
 ).handleClick
 
 const handleNodeClick = useDoubleClick(
-  (e) => {
-    nodeEditHandler(e)
-  },
-  () => {
-    emit('doubleClick')
-  },
+  (e: MouseEvent) => nodeEditHandler(e),
+  () => emit('doubleClick'),
 ).handleClick
 
 interface PortData {
@@ -295,7 +289,7 @@ interface PortData {
 const outputPorts = computed((): PortData[] => {
   const ports = outputPortsSet.value
   const numPorts = ports.size
-  return Array.from(ports, (portId, index) => {
+  return Array.from(ports, (portId, index): PortData => {
     const labelIdent = numPorts > 1 ? graph.db.getOutputPortIdentifier(portId) + ': ' : ''
     const labelType =
       graph.db.getExpressionInfo(numPorts > 1 ? portId : nodeId.value)?.typename ?? 'Unknown'
@@ -397,7 +391,7 @@ function portGroupStyle(port: PortData) {
               class="outputPortHoverArea"
               @pointerenter="outputHovered = port.portId"
               @pointerleave="outputHovered = undefined"
-              @pointerdown.stop.prevent="handlePortClick($event, port.portId)"
+              @pointerdown.stop.prevent="handlePortClick(port.portId)"
             />
             <rect class="outputPort" />
           </g>
