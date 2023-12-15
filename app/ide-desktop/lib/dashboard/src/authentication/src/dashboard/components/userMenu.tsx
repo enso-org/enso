@@ -98,7 +98,7 @@ export default function UserMenu(props: UserMenuProps) {
                 ) : (
                     <>
                         <div className="flex items-center h-7">
-                            <span className="leading-170 h-6 py-px">You are not signed in.</span>
+                            <span className="leading-170 h-6 py-px">You are not logged in.</span>
                         </div>
                         <div className="flex flex-col">
                             <MenuEntry
