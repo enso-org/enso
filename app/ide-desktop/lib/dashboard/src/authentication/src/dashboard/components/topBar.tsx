@@ -96,7 +96,7 @@ export default function TopBar(props: TopBarProps) {
                         </label>
                         <input
                             ref={searchRef}
-                            type="text"
+                            type="search"
                             size={1}
                             id="search"
                             placeholder="Type to search for projects, data connectors, users, and more."
@@ -104,6 +104,7 @@ export default function TopBar(props: TopBarProps) {
                             onChange={event => {
                                 setQuery(assetQuery.AssetQuery.fromString(event.target.value))
                             }}
+                            autoComplete="off"
                             className="grow bg-transparent leading-5 h-6 py-px"
                         />
                     </div>
