@@ -17,7 +17,10 @@ import java.util.logging.LogRecord;
 import java.util.logging.SimpleFormatter;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.memory.RootAllocator;
+import org.apache.arrow.vector.BaseFixedWidthVector;
+import org.apache.arrow.vector.BigIntVector;
 import org.apache.arrow.vector.IntVector;
+import org.enso.interpreter.arrow.ArrowParser;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
@@ -140,46 +143,106 @@ public class VerifyArrowTest {
 
   @Test
   public void castInt() {
+    var typeLength = ArrowParser.LogicalLayout.Int32;
+    var testValues = new Object[] {3, 1, 5, 3};
     try (BufferAllocator allocator = new RootAllocator();
-        IntVector intVector = new IntVector("fixed-size-primitive-layout", allocator); ) {
-      intVector.allocateNew(4);
-      intVector.set(0, 3);
-      intVector.setNull(1);
-      intVector.set(1, 1);
-      intVector.set(2, 5);
-      intVector.set(3, 3);
-      intVector.setValueCount(4);
-
-      var int32Constr = ctx.eval("arrow", "cast[Int32]");
-      assertNotNull(int32Constr);
-      Value int32Array =
-          int32Constr.newInstance(intVector.getDataBufferAddress(), intVector.getValueCount());
-      assertNotNull(int32Array);
-      assertEquals(3, int32Array.getArrayElement(0).asInt());
-      assertEquals(5, int32Array.getArrayElement(2).asInt());
-    }
-
-    try (BufferAllocator allocator = new RootAllocator();
-        IntVector intVector = new IntVector("fixed-size-primitive-layout", allocator); ) {
-      intVector.allocateNew(4);
-      intVector.set(0, 3);
-      intVector.setNull(1);
-      intVector.set(2, 5);
-      intVector.set(3, 3);
-      intVector.setValueCount(4);
-
-      var int32Constr = ctx.eval("arrow", "cast[Int32]");
+        BaseFixedWidthVector intVector =
+            allocateFixedLengthVector(allocator, testValues, typeLength); ) {
+      var int32Constr = ctx.eval("arrow", "cast[" + typeLength + "]");
       assertNotNull(int32Constr);
       Value int32Array =
           int32Constr.newInstance(
               intVector.getDataBufferAddress(),
-              intVector.getValueCount(),
-              intVector.getValidityBufferAddress());
+              intVector.getDataBuffer().capacity() / typeLength.sizeInBytes());
+
       assertNotNull(int32Array);
-      assertEquals(3, int32Array.getArrayElement(0).asInt());
-      assertTrue(int32Array.getArrayElement(1).isNull());
-      assertEquals(5, int32Array.getArrayElement(2).asInt());
-      assertEquals(3, int32Array.getArrayElement(3).asInt());
+      for (int i = 0; i < testValues.length; i++) {
+        if (testValues[i] != null) {
+          assertEquals(testValues[i], int32Array.getArrayElement(i).asInt());
+        } else {
+          assertTrue(int32Array.getArrayElement(i).isNull());
+        }
+      }
+    }
+
+    testValues = new Object[] {3, null, 5, 3};
+    try (BufferAllocator allocator = new RootAllocator();
+        BaseFixedWidthVector intVector =
+            allocateFixedLengthVector(allocator, testValues, typeLength); ) {
+      var int32Constr = ctx.eval("arrow", "cast[" + typeLength + "]");
+      assertNotNull(int32Constr);
+      Value int32Array =
+          int32Constr.newInstance(
+              intVector.getDataBufferAddress(),
+              intVector.getDataBuffer().capacity() / typeLength.sizeInBytes(),
+              intVector.getValidityBufferAddress());
+
+      assertNotNull(int32Array);
+      for (int i = 0; i < testValues.length; i++) {
+        if (testValues[i] != null) {
+          assertEquals(testValues[i], int32Array.getArrayElement(i).asInt());
+        } else {
+          assertTrue(int32Array.getArrayElement(i).isNull());
+        }
+      }
+    }
+
+    typeLength = ArrowParser.LogicalLayout.Int64;
+    testValues = new Object[] {(long) 3, null, (long) 5, (long) 3};
+    try (BufferAllocator allocator = new RootAllocator();
+        BaseFixedWidthVector vector =
+            allocateFixedLengthVector(allocator, testValues, typeLength); ) {
+      var int32Constr = ctx.eval("arrow", "cast[" + typeLength + "]");
+      assertNotNull(int32Constr);
+      Value int32Array =
+          int32Constr.newInstance(
+              vector.getDataBufferAddress(),
+              vector.getDataBuffer().capacity() / typeLength.sizeInBytes(),
+              vector.getValidityBufferAddress());
+
+      assertNotNull(int32Array);
+      for (int i = 0; i < testValues.length; i++) {
+        if (testValues[i] != null) {
+          assertEquals(testValues[i], int32Array.getArrayElement(i).asLong());
+        } else {
+          assertTrue(int32Array.getArrayElement(i).isNull());
+        }
+      }
+    }
+  }
+
+  private BaseFixedWidthVector allocateFixedLengthVector(
+      BufferAllocator allocator, Object[] testValues, ArrowParser.LogicalLayout unit) {
+    var valueCount = 0;
+    switch (unit) {
+      case Int32:
+        var intVector = new IntVector("fixed-size-primitive-layout", allocator);
+        intVector.allocateNew(testValues.length);
+        for (int i = 0; i < testValues.length; i++) {
+          if (testValues[i] != null) {
+            intVector.set(i, (int) testValues[i]);
+            valueCount++;
+          } else {
+            intVector.setNull(i);
+          }
+        }
+        intVector.setValueCount(valueCount);
+        return intVector;
+      case Int64:
+        var bigIntVector = new BigIntVector("fixed-size-primitive-layout", allocator);
+        bigIntVector.allocateNew(testValues.length);
+        for (int i = 0; i < testValues.length; i++) {
+          if (testValues[i] != null) {
+            bigIntVector.set(i, (long) testValues[i]);
+            valueCount++;
+          } else {
+            bigIntVector.setNull(i);
+          }
+        }
+        bigIntVector.setValueCount(valueCount);
+        return bigIntVector;
+      default:
+        throw new RuntimeException("unable to create a vector for " + unit);
     }
   }
 
