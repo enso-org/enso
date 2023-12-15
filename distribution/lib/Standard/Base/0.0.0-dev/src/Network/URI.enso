@@ -1,4 +1,5 @@
 import project.Data.Enso_Cloud.Enso_Secret.Enso_Secret
+import project.Data.Enso_Cloud.Enso_Secret.Enso_Secret_Error
 import project.Data.Json.JS_Object
 import project.Data.Numbers.Integer
 import project.Data.Pair.Pair
