@@ -1,5 +1,14 @@
 package org.enso.table.data.table;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.BitSet;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.enso.base.Text_Utils;
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.aggregations.Aggregator;
@@ -19,29 +28,16 @@ import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.enso.table.data.table.join.CrossJoin;
 import org.enso.table.data.table.join.JoinKind;
-import org.enso.table.data.table.join.conditions.JoinCondition;
 import org.enso.table.data.table.join.JoinResult;
 import org.enso.table.data.table.join.JoinStrategy;
+import org.enso.table.data.table.join.conditions.JoinCondition;
 import org.enso.table.error.UnexpectedColumnTypeException;
 import org.enso.table.operations.Distinct;
 import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.NameDeduplicator;
 import org.graalvm.polyglot.Context;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.BitSet;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-
-/**
- * A representation of a table structure.
- */
+/** A representation of a table structure. */
 public class Table {
 
   private final Column[] columns;
@@ -105,7 +101,8 @@ public class Table {
   }
 
   /**
-   * Returns a table resulting from selecting only the rows corresponding to true entries in the provided column.
+   * Returns a table resulting from selecting only the rows corresponding to true entries in the
+   * provided column.
    *
    * @param maskCol the masking column
    * @return the result of masking this table with the provided column
@@ -177,13 +174,15 @@ public class Table {
    * @param columns set of columns to use as an Index
    * @return a table indexed by the proper column
    */
-  public MultiValueIndex<?> indexFromColumns(Column[] columns, ProblemAggregator problemAggregator) {
+  public MultiValueIndex<?> indexFromColumns(
+      Column[] columns, ProblemAggregator problemAggregator) {
     return MultiValueIndex.makeUnorderedIndex(
         columns, this.rowCount(), TextFoldingStrategy.unicodeNormalizedFold, problemAggregator);
   }
 
   /**
-   * Build a cross-tab table on the given grouping and naming columns, aggregating across the aggregate columns.
+   * Build a cross-tab table on the given grouping and naming columns, aggregating across the
+   * aggregate columns.
    *
    * @param groupingColumns specifies the rows of the cross-tab table
    * @param nameColumn specifies the values of the columns of the cross-tab table
@@ -198,8 +197,9 @@ public class Table {
       Aggregator[] aggregates,
       String[] aggregateNames,
       ProblemAggregator problemAggregator) {
-    CrossTabIndex index = new CrossTabIndex(new Column[]{nameColumn}, groupingColumns, this.rowCount(),
-        problemAggregator);
+    CrossTabIndex index =
+        new CrossTabIndex(
+            new Column[] {nameColumn}, groupingColumns, this.rowCount(), problemAggregator);
     return index.makeCrossTabTable(aggregates, aggregateNames);
   }
 
@@ -214,7 +214,8 @@ public class Table {
     int[] directionInts = Arrays.stream(directions).mapToInt(Long::intValue).toArray();
     int n = rowCount();
     Context context = Context.getCurrent();
-    final Storage<?>[] storages = Arrays.stream(columns).map(Column::getStorage).toArray(Storage[]::new);
+    final Storage<?>[] storages =
+        Arrays.stream(columns).map(Column::getStorage).toArray(Storage[]::new);
     OrderedMultiValueKey[] keys = new OrderedMultiValueKey[n];
     for (int i = 0; i < n; i++) {
       keys[i] = new OrderedMultiValueKey(storages, i, directionInts, objectComparator);
@@ -234,9 +235,13 @@ public class Table {
    * @param problemAggregator an aggregator for problems
    * @return a table where duplicate rows with the same key are removed
    */
-  public Table distinct(Column[] keyColumns, TextFoldingStrategy textFoldingStrategy,
-                        ProblemAggregator problemAggregator) {
-    var rowsToKeep = Distinct.buildDistinctRowsMask(rowCount(), keyColumns, textFoldingStrategy, problemAggregator);
+  public Table distinct(
+      Column[] keyColumns,
+      TextFoldingStrategy textFoldingStrategy,
+      ProblemAggregator problemAggregator) {
+    var rowsToKeep =
+        Distinct.buildDistinctRowsMask(
+            rowCount(), keyColumns, textFoldingStrategy, problemAggregator);
     int cardinality = rowsToKeep.cardinality();
     Column[] newColumns = new Column[this.columns.length];
     for (int i = 0; i < this.columns.length; i++) {
@@ -262,16 +267,24 @@ public class Table {
   }
 
   /**
-   * Performs a join of this table with the right table, based on the provided conditions. The parameters
-   * {@code keepLeftUnmatched}, {@code keepMatched} and {@code keepRightUnmatched} control which rows should be
-   * returned. They can all be set to {@code false} to emulate an empty result in erroneous conditions. The parameters
-   * {@code includeLeftColumns} and {@code includeRightColumns} control which columns should be included in the result.
-   * In most cases they will both be set to true. They allow to easily implement exclusive joins which only keep columns
-   * form one table. {@code rightColumnsToDrop} allows to drop columns from the right table that are redundant when
-   * joining on equality of equally named columns.
+   * Performs a join of this table with the right table, based on the provided conditions. The
+   * parameters {@code keepLeftUnmatched}, {@code keepMatched} and {@code keepRightUnmatched}
+   * control which rows should be returned. They can all be set to {@code false} to emulate an empty
+   * result in erroneous conditions. The parameters {@code includeLeftColumns} and {@code
+   * includeRightColumns} control which columns should be included in the result. In most cases they
+   * will both be set to true. They allow to easily implement exclusive joins which only keep
+   * columns form one table. {@code rightColumnsToDrop} allows to drop columns from the right table
+   * that are redundant when joining on equality of equally named columns.
    */
-  public Table join(Table right, List<JoinCondition> conditions, JoinKind joinKind, boolean includeLeftColumns, boolean includeRightColumns,
-                    List<String> rightColumnsToDrop, String right_prefix, ProblemAggregator problemAggregator) {
+  public Table join(
+      Table right,
+      List<JoinCondition> conditions,
+      JoinKind joinKind,
+      boolean includeLeftColumns,
+      boolean includeRightColumns,
+      List<String> rightColumnsToDrop,
+      String right_prefix,
+      ProblemAggregator problemAggregator) {
     NameDeduplicator nameDeduplicator = NameDeduplicator.createDefault(problemAggregator);
 
     JoinStrategy strategy = JoinStrategy.createStrategy(conditions, joinKind);
@@ -296,8 +309,8 @@ public class Table {
           Arrays.stream(right.getColumns()).filter(col -> !toDrop.contains(col.getName())).toList();
       List<String> rightColumNames = rightColumnsToKeep.stream().map(Column::getName).toList();
 
-      List<String> newRightColumnNames = nameDeduplicator.combineWithPrefix(leftColumnNames, rightColumNames,
-          right_prefix);
+      List<String> newRightColumnNames =
+          nameDeduplicator.combineWithPrefix(leftColumnNames, rightColumNames, right_prefix);
 
       for (int i = 0; i < rightColumnsToKeep.size(); ++i) {
         Column column = rightColumnsToKeep.get(i);
@@ -310,17 +323,17 @@ public class Table {
     return new Table(newColumns.toArray(new Column[0]));
   }
 
-  /**
-   * Performs a cross-join of this table with the right table.
-   */
+  /** Performs a cross-join of this table with the right table. */
   public Table crossJoin(Table right, String rightPrefix, ProblemAggregator problemAggregator) {
     NameDeduplicator nameDeduplicator = NameDeduplicator.createDefault(problemAggregator);
 
-    List<String> leftColumnNames = Arrays.stream(this.columns).map(Column::getName).collect(Collectors.toList());
-    List<String> rightColumNames = Arrays.stream(right.columns).map(Column::getName).collect(Collectors.toList());
+    List<String> leftColumnNames =
+        Arrays.stream(this.columns).map(Column::getName).collect(Collectors.toList());
+    List<String> rightColumNames =
+        Arrays.stream(right.columns).map(Column::getName).collect(Collectors.toList());
 
-    List<String> newRightColumnNames = nameDeduplicator.combineWithPrefix(leftColumnNames, rightColumNames,
-        rightPrefix);
+    List<String> newRightColumnNames =
+        nameDeduplicator.combineWithPrefix(leftColumnNames, rightColumNames, rightPrefix);
 
     JoinResult joinResult = CrossJoin.perform(this.rowCount(), right.rowCount());
     OrderMask leftMask = joinResult.getLeftOrderMask();
@@ -334,26 +347,31 @@ public class Table {
       newColumns[i] = this.columns[i].applyMask(leftMask);
     }
     for (int i = 0; i < rightColumnCount; i++) {
-      newColumns[leftColumnCount + i] = right.columns[i].applyMask(rightMask).rename(newRightColumnNames.get(i));
+      newColumns[leftColumnCount + i] =
+          right.columns[i].applyMask(rightMask).rename(newRightColumnNames.get(i));
     }
 
     return new Table(newColumns);
   }
 
-  /**
-   * Zips rows of this table with rows of the right table.
-   */
-  public Table zip(Table right, boolean keepUnmatched, String rightPrefix, ProblemAggregator problemAggregator) {
+  /** Zips rows of this table with rows of the right table. */
+  public Table zip(
+      Table right, boolean keepUnmatched, String rightPrefix, ProblemAggregator problemAggregator) {
     NameDeduplicator nameDeduplicator = NameDeduplicator.createDefault(problemAggregator);
 
     int leftRowCount = this.rowCount();
     int rightRowCount = right.rowCount();
-    int resultRowCount = keepUnmatched ? Math.max(leftRowCount, rightRowCount) : Math.min(leftRowCount, rightRowCount);
+    int resultRowCount =
+        keepUnmatched
+            ? Math.max(leftRowCount, rightRowCount)
+            : Math.min(leftRowCount, rightRowCount);
 
-    List<String> leftColumnNames = Arrays.stream(this.columns).map(Column::getName).collect(Collectors.toList());
-    List<String> rightColumNames = Arrays.stream(right.columns).map(Column::getName).collect(Collectors.toList());
-    List<String> newRightColumnNames = nameDeduplicator.combineWithPrefix(leftColumnNames, rightColumNames,
-        rightPrefix);
+    List<String> leftColumnNames =
+        Arrays.stream(this.columns).map(Column::getName).collect(Collectors.toList());
+    List<String> rightColumNames =
+        Arrays.stream(right.columns).map(Column::getName).collect(Collectors.toList());
+    List<String> newRightColumnNames =
+        nameDeduplicator.combineWithPrefix(leftColumnNames, rightColumNames, rightPrefix);
 
     Column[] newColumns = new Column[this.columns.length + right.columns.length];
 
@@ -363,7 +381,8 @@ public class Table {
       newColumns[i] = this.columns[i].resize(resultRowCount);
     }
     for (int i = 0; i < rightColumnCount; i++) {
-      newColumns[leftColumnCount + i] = right.columns[i].resize(resultRowCount).rename(newRightColumnNames.get(i));
+      newColumns[leftColumnCount + i] =
+          right.columns[i].resize(resultRowCount).rename(newRightColumnNames.get(i));
     }
 
     return new Table(newColumns);
@@ -396,8 +415,12 @@ public class Table {
    * @param value_field the name of the Value field in the output.
    * @return a table result from transposing the specified columns.
    */
-  public static Table transpose(Column[] id_columns, Column[] to_transpose, String name_field, String value_field,
-                                ProblemAggregator problemAggregator) {
+  public static Table transpose(
+      Column[] id_columns,
+      Column[] to_transpose,
+      String name_field,
+      String value_field,
+      ProblemAggregator problemAggregator) {
     if (to_transpose.length == 0) {
       // Nothing to transpose, add two null columns to the existing set.
       Column[] newColumns = new Column[id_columns.length + 2];
@@ -418,8 +441,12 @@ public class Table {
 
     // Create Storage
     Builder[] storage = new Builder[id_columns.length + 2];
-    IntStream.range(0, id_columns.length).forEach(i -> storage[i] =
-        Builder.getForType(id_columns[i].getStorage().getType(), new_count, problemAggregator));
+    IntStream.range(0, id_columns.length)
+        .forEach(
+            i ->
+                storage[i] =
+                    Builder.getForType(
+                        id_columns[i].getStorage().getType(), new_count, problemAggregator));
     storage[id_columns.length] = new StringBuilder(new_count, TextType.VARIABLE_LENGTH);
     storage[id_columns.length + 1] = new InferredBuilder(new_count, problemAggregator);
 
@@ -440,10 +467,11 @@ public class Table {
 
     // Create Table
     Column[] new_columns = new Column[id_columns.length + 2];
-    IntStream.range(0, id_columns.length).forEach(i -> new_columns[i] = new Column(id_columns[i].getName(),
-        storage[i].seal()));
+    IntStream.range(0, id_columns.length)
+        .forEach(i -> new_columns[i] = new Column(id_columns[i].getName(), storage[i].seal()));
     new_columns[id_columns.length] = new Column(name_field, storage[id_columns.length].seal());
-    new_columns[id_columns.length + 1] = new Column(value_field, storage[id_columns.length + 1].seal());
+    new_columns[id_columns.length + 1] =
+        new Column(value_field, storage[id_columns.length + 1].seal());
     return new Table(new_columns);
   }
 

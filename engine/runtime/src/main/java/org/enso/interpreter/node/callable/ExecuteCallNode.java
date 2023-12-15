@@ -9,15 +9,17 @@ import com.oracle.truffle.api.nodes.DirectCallNode;
 import com.oracle.truffle.api.nodes.IndirectCallNode;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import org.enso.interpreter.node.InlineableNode;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.node.InlineableNode;
 
 /**
- * This node is responsible for optimising function calls. Where possible, it will handle the call via:
+ * This node is responsible for optimising function calls. Where possible, it will handle the call
+ * via:
+ *
  * <ul>
- *  <li>{@link InlineableNode} to force inlining</li>
- *  <li>{@link DirectCallNode} with potential for inlining</li>
+ *   <li>{@link InlineableNode} to force inlining
+ *   <li>{@link DirectCallNode} with potential for inlining
  * </ul>
  */
 @NodeInfo(shortName = "ExecCall", description = "Optimises function calls")
@@ -47,10 +49,9 @@ public abstract class ExecuteCallNode extends Node {
    * @param callNode the cached call node for {@code cachedTarget}
    * @return the result of executing {@code function} on {@code arguments}
    */
-  @Specialization(guards = {
-    "function.getCallTarget() == cachedTarget",
-    "callNode != null"
-  }, limit = "3")
+  @Specialization(
+      guards = {"function.getCallTarget() == cachedTarget", "callNode != null"},
+      limit = "3")
   protected Object callInlineable(
       VirtualFrame frame,
       Function function,
@@ -77,9 +78,11 @@ public abstract class ExecuteCallNode extends Node {
    * @param callNode the cached call node for {@code cachedTarget}
    * @return the result of executing {@code function} on {@code arguments}
    */
-  @Specialization(guards = {
-    "function.getCallTarget() == cachedTarget",
-  }, limit = "3")
+  @Specialization(
+      guards = {
+        "function.getCallTarget() == cachedTarget",
+      },
+      limit = "3")
   protected Object callDirect(
       Function function,
       CallerInfo callerInfo,
@@ -115,7 +118,7 @@ public abstract class ExecuteCallNode extends Node {
    * @param callNode the cached call node for making indirect calls
    * @return the result of executing {@code function} on {@code arguments}
    */
-  @Specialization(replaces = { "callDirect", "callInlineable" })
+  @Specialization(replaces = {"callDirect", "callInlineable"})
   protected Object callIndirect(
       Function function,
       CallerInfo callerInfo,
@@ -138,5 +141,9 @@ public abstract class ExecuteCallNode extends Node {
    * @return the result of executing {@code function} on {@code arguments}
    */
   public abstract Object executeCall(
-      VirtualFrame frame, Function function, CallerInfo callerInfo, Object state, Object[] arguments);
+      VirtualFrame frame,
+      Function function,
+      CallerInfo callerInfo,
+      Object state,
+      Object[] arguments);
 }

@@ -82,8 +82,7 @@ public abstract class AssertNode extends Node {
     } catch (UnsupportedMessageException e) {
       if (actionRes instanceof DataflowError dataflowError) {
         var txt = Text.create("Result of assert action is a dataflow error: " + dataflowError);
-        throw new PanicException(
-            builtins.error().makeAssertionError(txt), this);
+        throw new PanicException(builtins.error().makeAssertionError(txt), this);
       } else {
         var typeError =
             builtins

@@ -329,19 +329,25 @@ public final class AtomConstructor implements EnsoObject {
     return sb.toString();
   }
 
-  /** @return the fully qualified name of this constructor. */
+  /**
+   * @return the fully qualified name of this constructor.
+   */
   @TruffleBoundary
   public QualifiedName getQualifiedName() {
     return type.getQualifiedName().createChild(getName());
   }
 
-  /** @return the fully qualified name of constructor type. */
+  /**
+   * @return the fully qualified name of constructor type.
+   */
   @CompilerDirectives.TruffleBoundary
   public QualifiedName getQualifiedTypeName() {
     return type.getQualifiedName();
   }
 
-  /** @return the fields defined by this constructor. */
+  /**
+   * @return the fields defined by this constructor.
+   */
   public ArgumentDefinition[] getFields() {
     return constructorFunction.getSchema().getArgumentInfos();
   }
