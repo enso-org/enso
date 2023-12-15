@@ -102,12 +102,10 @@ final class Array implements EnsoObject {
     if (this.hasWarnings(warnings)) {
       hasWarningsProfile.enter();
       Warning[] extracted = this.getWarnings(null, warnings);
-      if (extracted.length > 0) {
-        if (warnings.hasWarnings(v)) {
-          v = warnings.removeWarnings(v);
-        }
-        return WithWarnings.wrap(EnsoContext.get(warnings), v, extracted);
+      if (warnings.hasWarnings(v)) {
+        v = warnings.removeWarnings(v);
       }
+      return WithWarnings.wrap(EnsoContext.get(warnings), v, extracted);
     }
 
     return v;
@@ -165,13 +163,11 @@ final class Array implements EnsoObject {
   }
 
   private boolean hasWarningElements(Object[] items, WarningsLibrary warnings) {
-    /*
     for (Object item : items) {
       if (warnings.hasWarnings(item)) {
         return true;
       }
     }
-    */
     return false;
   }
 
@@ -196,30 +192,13 @@ final class Array implements EnsoObject {
   @CompilerDirectives.TruffleBoundary
   private EconomicSet<Warning> collectAllWarnings(WarningsLibrary warnings, Node location)
       throws UnsupportedMessageException {
-        return EconomicSet.create();
-    /*
-    EnsoContext ctx = EnsoContext.get(location);
-    long maxWarnings = ctx.getWarningsLimit();
-    Builtins builtins = ctx.getBuiltins();
-    List<Warning> wrappedWarnings = new ArrayList<>();
-    for (int i = 0; i < items.length; ++i) {
-      final long index = i;
-      Object item = items[i];
+    EconomicSet<Warning> setOfWarnings = EconomicSet.create(new WithWarnings.WarningEquivalence());
+    for (Object item : items) {
       if (warnings.hasWarnings(item)) {
-        var origWarnings = warnings.getWarnings(item, location);
-        List<Warning> someWrappedWarnings = Arrays.stream(origWarnings).map(warning -> {
-          var error = warning.getValue();
-          var wrappedError = builtins.error().makeMapError(index, error);
-          var wrappedWarning = Warning.create(ctx, wrappedError, warning.getOrigin());
-          return wrappedWarning;
-        }).limit(maxWarnings).collect(Collectors.toList());
-        wrappedWarnings.addAll(someWrappedWarnings );
+        setOfWarnings.addAll(Arrays.asList(warnings.getWarnings(item, location)));
       }
     }
-    EconomicSet<Warning> setOfWarnings = EconomicSet.create(new WithWarnings.WarningEquivalence());
-    setOfWarnings.addAll(wrappedWarnings.stream().limit(maxWarnings).toList());
     return setOfWarnings;
-    */
   }
 
   @ExportMessage

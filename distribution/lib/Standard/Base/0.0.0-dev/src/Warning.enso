@@ -62,7 +62,9 @@ type Warning
        Gets all the warnings attached to the given value.
        Limits the number of warnings return to `EnsoContext.getWarningsLimit()`.
     get_all : Any -> Vector Warning
-    get_all value =
+    get_all value = Vector.from_polyglot_array (get_all_array value)
+
+    _get_all value =
         warnings = Warning.get_all_value value
         warnings_limit = get_warnings_limit
         #_ = warnings_limit
@@ -145,16 +147,16 @@ type Warning
     ## PRIVATE
        ADVANCED
        Returns `True` if the maximal number of reported warnings for a value has been reached, `False` otherwise.
-    limit_reached : Any -> Boolean
-    limit_reached value =
+    _limit_reached : Any -> Boolean
+    _limit_reached value =
         warnings = Warning.get_all_value value
         warnings_limit = get_warnings_limit
         is_limit_reached_direct = warnings.length >= warnings_limit
         is_limit_reached_withwarnings = Warning.limit_reached_primitive value
         is_limit_reached_direct || is_limit_reached_withwarnings
 
-    limit_reached_primitive : Any -> Boolean
-    limit_reached_primitive value = @Builtin_Method "Warning.limit_reached"
+    limit_reached : Any -> Boolean
+    limit_reached value = @Builtin_Method "Warning.limit_reached"
 
     ## PRIVATE
        ADVANCED
