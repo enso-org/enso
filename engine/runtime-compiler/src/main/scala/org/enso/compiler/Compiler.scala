@@ -840,19 +840,19 @@ class Compiler(
     ir: Expression,
     source: Source,
     inlineContext: InlineContext
-  ): Unit =
-    if (inlineContext.compilerConfig.isStrictErrors) {
-      val errors = GatherDiagnostics
-        .runExpression(ir, inlineContext)
-        .unsafeGetMetadata(
-          GatherDiagnostics,
-          "No diagnostics metadata right after the gathering pass."
-        )
-        .diagnostics
-      if (reportDiagnostics(errors, source)) {
-        throw new CompilationAbortedException
-      }
+  ): Unit = {
+    val errors = GatherDiagnostics
+      .runExpression(ir, inlineContext)
+      .unsafeGetMetadata(
+        GatherDiagnostics,
+        "No diagnostics metadata right after the gathering pass."
+      )
+      .diagnostics
+    val hasErrors = reportDiagnostics(errors, source)
+    if (hasErrors && inlineContext.compilerConfig.isStrictErrors) {
+      throw new CompilationAbortedException
     }
+  }
 
   /** Runs the strict error handling mechanism (if enabled in the language
     * context) for the module-level compiler flow.
@@ -862,23 +862,23 @@ class Compiler(
   private def runErrorHandling(
     modules: List[Module]
   ): Unit = {
-    if (config.isStrictErrors) {
-      val diagnostics = modules.flatMap { module =>
-        val errors =
-          if (context.wasLoadedFromCache(module)) List()
-          else gatherDiagnostics(module)
-        List((module, errors))
-      }
-      if (reportDiagnostics(diagnostics)) {
-        val count =
-          diagnostics.map(_._2.collect { case e: Error => e }.length).sum
-        val warnCount =
-          diagnostics.map(_._2.collect { case e: Warning => e }.length).sum
-        context.getErr.println(
-          s"Aborting due to ${count} errors and ${warnCount} warnings."
-        )
-        throw new CompilationAbortedException
-      }
+    val diagnostics = modules.flatMap { module =>
+      val errors =
+        if (context.wasLoadedFromCache(module)) List()
+        else gatherDiagnostics(module)
+      List((module, errors))
+    }
+
+    val hasErrors = reportDiagnostics(diagnostics)
+    if (hasErrors && config.isStrictErrors) {
+      val count =
+        diagnostics.map(_._2.collect { case e: Error => e }.length).sum
+      val warnCount =
+        diagnostics.map(_._2.collect { case e: Warning => e }.length).sum
+      context.getErr.println(
+        s"Aborting due to ${count} errors and ${warnCount} warnings."
+      )
+      throw new CompilationAbortedException
     }
   }
 
@@ -907,24 +907,25 @@ class Compiler(
     }
 
   private def reportCycle(exception: ExportCycleException): Nothing = {
+    printDiagnostic("Compiler encountered errors:")
+    printDiagnostic("Export statements form a cycle:")
+    exception.modules match {
+      case List(mod) =>
+        printDiagnostic(s"    ${mod.getName} exports itself.")
+      case first :: second :: rest =>
+        printDiagnostic(
+          s"    ${first.getName} exports ${second.getName}"
+        )
+        rest.foreach { mod =>
+          printDiagnostic(s"    which exports ${mod.getName}")
+        }
+        printDiagnostic(
+          s"    which exports ${first.getName}, forming a cycle."
+        )
+      case _ =>
+    }
+
     if (config.isStrictErrors) {
-      output.println("Compiler encountered errors:")
-      output.println("Export statements form a cycle:")
-      exception.modules match {
-        case List(mod) =>
-          output.println(s"    ${mod.getName} exports itself.")
-        case first :: second :: rest =>
-          output.println(
-            s"    ${first.getName} exports ${second.getName}"
-          )
-          rest.foreach { mod =>
-            output.println(s"    which exports ${mod.getName}")
-          }
-          output.println(
-            s"    which exports ${first.getName}, forming a cycle."
-          )
-        case _ =>
-      }
       throw new CompilationAbortedException
     } else {
       throw exception
@@ -932,9 +933,10 @@ class Compiler(
   }
 
   private def reportExportConflicts(exception: Throwable): Nothing = {
+    printDiagnostic("Compiler encountered errors:")
+    printDiagnostic(exception.getMessage)
+
     if (config.isStrictErrors) {
-      output.println("Compiler encountered errors:")
-      output.println(exception.getMessage)
       throw new CompilationAbortedException
     } else {
       throw exception
@@ -946,11 +948,11 @@ class Compiler(
     * @param err the package repository error
     */
   private def reportPackageError(err: PackageRepository.Error): Unit = {
-    output.println(
+    printDiagnostic(
       s"In package description ${org.enso.pkg.Package.configFileName}:"
     )
-    output.println("Compiler encountered warnings:")
-    output.println(err.toString)
+    printDiagnostic("Compiler encountered warnings:")
+    printDiagnostic(err.toString)
   }
 
   /** Reports diagnostics from multiple modules.
@@ -986,7 +988,7 @@ class Compiler(
     source: Source
   ): Boolean = {
     diagnostics.foreach(diag =>
-      output.println(new DiagnosticFormatter(diag, source).format())
+      printDiagnostic(new DiagnosticFormatter(diag, source).format())
     )
     diagnostics.exists(_.isInstanceOf[Error])
   }
@@ -1102,8 +1104,10 @@ class Compiler(
           val fileLocation = diagnostic.location match {
             case Some(_) =>
               fileLocationFromSectionOption(diagnostic.location, source)
-            case None => source.getPath
+            case None =>
+              Option(source.getPath).getOrElse("<Unknown source>")
           }
+
           str ++= fansi
             .Str(fileLocation)
             .overlay(fansi.Bold.On)
@@ -1248,6 +1252,10 @@ class Compiler(
   def updateMetadata(sourceIr: IRModule, copyOfIr: IRModule): IRModule = {
     passManager.runMetadataUpdate(sourceIr, copyOfIr)
   }
+
+  private def printDiagnostic(message: String): Unit =
+    if (config.isStrictErrors) output.println(message)
+    else context.log(Level.WARNING, message)
 }
 object Compiler {
 

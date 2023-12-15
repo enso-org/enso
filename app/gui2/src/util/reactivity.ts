@@ -1,3 +1,5 @@
+/** @file Functions for manipulating Vue reactive objects. */
+
 import { nop } from 'lib0/function'
 import {
   callWithErrorHandling,

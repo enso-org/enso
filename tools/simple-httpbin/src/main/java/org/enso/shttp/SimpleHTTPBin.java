@@ -2,9 +2,14 @@ package org.enso.shttp;
 
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
+import com.sun.net.httpserver.SimpleFileServer;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
+import java.util.stream.Stream;
 import sun.misc.Signal;
 import sun.misc.SignalHandler;
 
@@ -31,7 +36,9 @@ public class SimpleHTTPBin {
     } catch (InterruptedException e) {
       e.printStackTrace();
     } finally {
-      server.stop(0);
+      System.out.println("Finalizing server...");
+      server.stop(3);
+      System.out.println("Server stopped.");
     }
   }
 
@@ -59,17 +66,19 @@ public class SimpleHTTPBin {
         server.addHandler(path, new TestHandler());
       }
 
+      setupFileServer(server);
+
       final SimpleHTTPBin server1 = server;
       SignalHandler stopServerHandler =
           (Signal sig) -> {
-            System.out.println("Stopping server...");
+            System.out.println("Stopping server... (interrupt)");
             server1.stop();
           };
       for (String signalName : List.of("TERM", "INT")) {
         Signal.handle(new Signal(signalName), stopServerHandler);
       }
       server.start();
-    } catch (IOException e) {
+    } catch (IOException | URISyntaxException e) {
       e.printStackTrace();
     } finally {
       if (server != null) {
@@ -92,5 +101,35 @@ public class SimpleHTTPBin {
     boolean isRunning() {
       return running;
     }
+  }
+
+  private static void setupFileServer(SimpleHTTPBin server) throws URISyntaxException {
+    Path myRuntimeJar =
+        Path.of(SimpleHTTPBin.class.getProtectionDomain().getCodeSource().getLocation().toURI())
+            .toAbsolutePath();
+    Path projectRoot = findProjectRoot(myRuntimeJar);
+    Path testFilesRoot = projectRoot.resolve(pathToWWW);
+    System.out.println("Serving files from directory " + testFilesRoot);
+    server.addHandler("/testfiles", SimpleFileServer.createFileHandler(testFilesRoot));
+  }
+
+  private static Path findProjectRoot(Path startingPoint) {
+    if (looksLikeProjectRoot(startingPoint)) {
+      return startingPoint;
+    } else {
+      Path parent = startingPoint.getParent();
+      if (parent == null) {
+        throw new RuntimeException("Could not find project root");
+      }
+
+      return findProjectRoot(parent);
+    }
+  }
+
+  private static final String pathToWWW = "tools/simple-httpbin/www-files";
+
+  private static boolean looksLikeProjectRoot(Path path) {
+    return Stream.of("build.sbt", "tools", "project", pathToWWW)
+        .allMatch(p -> Files.exists(path.resolve(p)));
   }
 }

@@ -1,3 +1,5 @@
+/** @file Functions for manipulating {@link Iterable}s. */
+
 export function* empty(): Generator<never> {}
 
 export function* range(start: number, stop: number, step = start <= stop ? 1 : -1) {

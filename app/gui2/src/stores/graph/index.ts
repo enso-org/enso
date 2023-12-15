@@ -12,9 +12,9 @@ import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { Ast } from '@/util/ast'
 import { useObserveYjs } from '@/util/crdt'
-import type { Opt } from '@/util/opt'
-import { Rect } from '@/util/rect'
-import { Vec2 } from '@/util/vec2'
+import type { Opt } from '@/util/data/opt'
+import { Rect } from '@/util/data/rect'
+import { Vec2 } from '@/util/data/vec2'
 import { map, set } from 'lib0'
 import { defineStore } from 'pinia'
 import type { StackItem } from 'shared/languageServerTypes'
@@ -220,7 +220,6 @@ export const useGraphStore = defineStore('graph', () => {
     if (!node) return
     proj.module?.deleteExpression(node.outerExprId)
     nodeRects.delete(id)
-    node.pattern?.visitRecursive((ast) => exprRects.delete(ast.astId))
   }
 
   function setNodeContent(id: ExprId, content: string) {

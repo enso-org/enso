@@ -1,8 +1,8 @@
+import { createContextStore } from '@/providers'
+import { GetUsageKey } from '@/providers/widgetUsageInfo'
 import { Ast } from '@/util/ast'
 import { identity } from '@vueuse/core'
 import type { ExprId } from 'shared/yjsModel'
-import { createContextStore } from '.'
-import { GetUsageKey } from './widgetUsageInfo'
 
 declare const portIdBrand: unique symbol
 export type PortId = ExprId | (string & { [portIdBrand]: never })

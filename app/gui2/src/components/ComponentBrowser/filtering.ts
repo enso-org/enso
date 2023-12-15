@@ -3,9 +3,9 @@ import {
   type SuggestionEntry,
   type Typename,
 } from '@/stores/suggestionDatabase/entry'
-import type { Opt } from '@/util/opt'
+import type { Opt } from '@/util/data/opt'
+import { Range } from '@/util/data/range'
 import { qnIsTopElement, qnParent, type QualifiedName } from '@/util/qualifiedName'
-import { Range } from '@/util/range'
 
 export type SelfArg =
   | {

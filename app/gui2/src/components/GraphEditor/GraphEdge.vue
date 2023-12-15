@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { injectGraphNavigator } from '@/providers/graphNavigator.ts'
-import { injectGraphSelection } from '@/providers/graphSelection.ts'
+import { injectGraphNavigator } from '@/providers/graphNavigator'
+import { injectGraphSelection } from '@/providers/graphSelection'
 import { useGraphStore, type Edge } from '@/stores/graph'
 import { assert } from '@/util/assert'
-import { Rect } from '@/util/rect'
+import { Rect } from '@/util/data/rect'
+import { Vec2 } from '@/util/data/vec2'
 import theme from '@/util/theme.json'
-import { Vec2 } from '@/util/vec2'
 import { clamp } from '@vueuse/core'
 import { computed, ref } from 'vue'
 

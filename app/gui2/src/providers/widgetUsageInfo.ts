@@ -1,7 +1,7 @@
+import { createContextStore } from '@/providers'
+import type { PortId } from '@/providers/portInfo'
+import type { WidgetComponent, WidgetInput } from '@/providers/widgetRegistry'
 import { identity } from '@vueuse/core'
-import { createContextStore } from '.'
-import type { PortId } from './portInfo'
-import type { WidgetComponent, WidgetInput } from './widgetRegistry'
 
 export { injectFn as injectWidgetUsageInfo, provideFn as provideWidgetUsageInfo }
 const { provideFn, injectFn } = createContextStore('Widget usage info', identity<WidgetUsageInfo>)

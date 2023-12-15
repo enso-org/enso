@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import GraphEdge from '@/components/GraphEditor/GraphEdge.vue'
-import type { GraphNavigator } from '@/providers/graphNavigator.ts'
-import { injectGraphSelection } from '@/providers/graphSelection.ts'
+import type { GraphNavigator } from '@/providers/graphNavigator'
+import { injectGraphSelection } from '@/providers/graphSelection'
 import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
 import type { PortId } from '@/providers/portInfo'
 import { useGraphStore } from '@/stores/graph'
 import { Ast } from '@/util/ast'
-import { Vec2 } from '@/util/vec2.ts'
+import { Vec2 } from '@/util/data/vec2'
 import { isUuid, type ExprId } from 'shared/yjsModel.ts'
 
 const graph = useGraphStore()

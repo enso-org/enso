@@ -9,7 +9,6 @@ import {
   usageKeyForInput,
 } from '@/providers/widgetUsageInfo'
 import { Ast } from '@/util/ast'
-import type { ExprId } from 'shared/yjsModel'
 import { computed, proxyRefs } from 'vue'
 
 const props = defineProps<{

@@ -9,7 +9,7 @@ import { useProjectStore, type NodeVisualizationConfiguration } from '@/stores/p
 import { assert, assertUnreachable } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { ArgumentApplication, ArgumentAst, ArgumentPlaceholder } from '@/util/callTree'
-import type { Opt } from '@/util/opt'
+import type { Opt } from '@/util/data/opt'
 import type { ExprId } from 'shared/yjsModel'
 import { computed, proxyRefs } from 'vue'
 

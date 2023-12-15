@@ -119,9 +119,11 @@ impl CodeGenerator {
 // =================
 
 pub async fn load_enso_font(out_dir: impl AsRef<Path>, code_gen: &mut CodeGenerator) -> Result {
-    let family_name = enso_enso_font::ENSO_FONT_FAMILY_NAME;
-    let font_family = enso_enso_font::enso_font();
-    let package = enso_build::ide::web::fonts::get_enso_font_package().await?;
+    let family_name = enso_enso_font::FONT_FAMILY;
+    let font_family = enso_enso_font::font();
+    let cache = ide_ci::cache::Cache::new_default().await?;
+    let octocrab = ide_ci::github::setup_octocrab().await?;
+    let package = enso_build::ide::web::enso_font::download(&cache, &octocrab).await?;
     enso_enso_font::extract_fonts(&font_family, package, &out_dir).await?;
     code_gen.add_non_variable_font_definition(family_name, &font_family);
     for file in font_family.files() {
@@ -142,8 +144,6 @@ pub async fn load_enso_font(out_dir: impl AsRef<Path>, code_gen: &mut CodeGenera
 mod google_fonts {
     use super::*;
     use crate::CodeGenerator;
-
-    use enso_build::ide::web::google_font::download_google_font;
 
     #[derive(Debug)]
     pub struct FaceDefinition {
@@ -175,7 +175,9 @@ mod google_fonts {
     ) -> Result<Vec<DownloadedFile>> {
         let octocrab = ide_ci::github::setup_octocrab().await?;
         let cache = ide_ci::cache::Cache::new_default().await?;
-        let result = download_google_font(&cache, &octocrab, name.as_ref(), out_dir).await?;
+        let result =
+            enso_build::ide::web::google_font::install(&cache, &octocrab, name.as_ref(), out_dir)
+                .await?;
         result
             .into_iter()
             .map(|font| Ok(DownloadedFile { name: font.try_file_name()?.as_str().into() }))

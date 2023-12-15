@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
+import { useRaf } from '@/composables/animation'
+import { useResizeObserver } from '@/composables/events'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { ForcePort, injectPortInfo, providePortInfo, type PortId } from '@/providers/portInfo'
@@ -7,12 +9,10 @@ import type { WidgetInput } from '@/providers/widgetRegistry'
 import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { injectWidgetTree } from '@/providers/widgetTree'
 import { PortViewInstance, useGraphStore } from '@/stores/graph'
-import { useRaf } from '@/util/animation'
 import { Ast } from '@/util/ast'
 import { ArgumentAst, ArgumentPlaceholder } from '@/util/callTree'
-import { useResizeObserver } from '@/util/events'
+import { Rect } from '@/util/data/rect'
 import { cachedGetter } from '@/util/reactivity'
-import { Rect } from '@/util/rect'
 import { uuidv4 } from 'lib0/random'
 import {
   computed,
