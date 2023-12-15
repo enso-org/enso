@@ -90,24 +90,20 @@ export default function TopBar(props: TopBarProps) {
             <div className="grow" />
             {page !== pageSwitcher.Page.editor && (
                 <>
-                    <div className="search-bar absolute flex items-center text-primary bg-frame rounded-full -translate-x-1/2 gap-2.5 left-1/2 h-8 w-98.25 min-w-31.5 px-2">
-                        <label htmlFor="search">
-                            <img src={FindIcon} className="opacity-80" />
-                        </label>
+                    <label className="search-bar absolute flex items-center text-primary bg-frame rounded-full -translate-x-1/2 gap-2.5 left-1/2 h-8 w-98.25 min-w-31.5 px-2">
+                        <img src={FindIcon} className="opacity-80" />
                         <input
                             ref={searchRef}
                             type="search"
                             size={1}
-                            id="search"
                             placeholder="Type to search for projects, data connectors, users, and more."
                             value={query.query}
                             onChange={event => {
                                 setQuery(assetQuery.AssetQuery.fromString(event.target.value))
                             }}
-                            autoComplete="off"
                             className="grow bg-transparent leading-5 h-6 py-px"
                         />
-                    </div>
+                    </label>
                     <div className="grow" />
                 </>
             )}

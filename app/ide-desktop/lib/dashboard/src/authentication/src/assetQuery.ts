@@ -442,7 +442,10 @@ export class AssetQuery {
     }
 }
 
-/** Tries to delete the given label. If no changes were made, tries to add it instead. */
+/** Tries to cycle the label between:
+ * - not present
+ * - present as a positive search, and
+ * - present as a negative search. */
 export function toggleLabel(query: AssetQuery, label: string, fromLastTerm = false) {
     let newQuery = query
     if (fromLastTerm) {
