@@ -115,8 +115,10 @@ public class VerifyArrowTest {
     assertFalse(startDate2Pnf.plusDays(2).isEqual(dayPlus2));
 
     date64Array.setArrayElement(5, null);
+    date64Array.setArrayElement(9, null);
     assertFalse(date64Array.getArrayElement(4).isNull());
     assertTrue(date64Array.getArrayElement(5).isNull());
+    assertTrue(date64Array.getArrayElement(9).isNull());
   }
 
   @Test
@@ -165,7 +167,7 @@ public class VerifyArrowTest {
       }
     }
 
-    testValues = new Object[] {3, null, 5, 3};
+    testValues = new Object[] {3, null, 5, 3, 7, 18, null, 9, 7, null, null, 100};
     try (BufferAllocator allocator = new RootAllocator();
         BaseFixedWidthVector intVector =
             allocateFixedLengthVector(allocator, testValues, typeLength); ) {
@@ -185,6 +187,12 @@ public class VerifyArrowTest {
           assertTrue(int32Array.getArrayElement(i).isNull());
         }
       }
+
+      // Verify vector is memory-mapped, not copied
+      assertTrue(int32Array.getArrayElement(10).isNull());
+      ((IntVector) intVector).set(10, 12);
+      assertFalse(int32Array.getArrayElement(10).isNull());
+      assertEquals(12, int32Array.getArrayElement(10).asInt());
     }
 
     typeLength = ArrowParser.LogicalLayout.Int64;

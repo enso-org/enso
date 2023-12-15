@@ -2,26 +2,50 @@ package org.enso.interpreter.arrow.runtime;
 
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import java.nio.ByteBuffer;
-import java.util.BitSet;
 
 final class ByteBufferDirect extends ByteBufferProxy {
   private final ByteBuffer buffer;
-  private final BitSet validityMap;
+  private final ByteBuffer nonNullBitmap;
 
+  /**
+   * Creates a fresh buffer with an empty non-null bitmap..
+   *
+   * @param sizeInBytes size of the new buffer in bytes
+   * @param size size of the new buffer for the elements of the requested type
+   */
   public ByteBufferDirect(int sizeInBytes, int size) {
     this.buffer = ByteBuffer.allocate(sizeInBytes);
-    this.validityMap = new BitSet(size);
+    this.nonNullBitmap = ByteBuffer.allocate((int) Math.ceil(size / 8) + 1);
+    for (int i = 0; i < nonNullBitmap.capacity(); i++) {
+      nonNullBitmap.put(i, (byte) 0);
+    }
   }
 
-  public ByteBufferDirect(ByteBuffer buffer, BitSet validityMap) {
+  /**
+   * Creates a new buffer from memory-mapped buffer and a corresponding memory-mapped non-null
+   * bitmap.
+   *
+   * @param buffer memory-mapped buffer
+   * @param nonNullBitmap memory-mapped buffer representing non-null bitmap
+   */
+  public ByteBufferDirect(ByteBuffer buffer, ByteBuffer nonNullBitmap) {
     this.buffer = buffer;
-    this.validityMap = validityMap;
+    this.nonNullBitmap = nonNullBitmap;
   }
 
+  /**
+   * Creates a new buffer from memory-mapped buffer of a given size assuming it has only non-null
+   * values.
+   *
+   * @param buffer memory-mapped buffer
+   * @param size size of the buffer (in bytes)
+   */
   public ByteBufferDirect(ByteBuffer buffer, int size) {
     this.buffer = buffer;
-    this.validityMap = new BitSet(size);
-    validityMap.set(0, validityMap.size() - 1, true);
+    this.nonNullBitmap = ByteBuffer.allocate((int) Math.ceil(size / 8) + 1);
+    for (int i = 0; i < nonNullBitmap.capacity(); i++) {
+      nonNullBitmap.put(i, (byte) 255);
+    }
   }
 
   @Override
@@ -133,15 +157,29 @@ final class ByteBufferDirect extends ByteBufferProxy {
 
   @Override
   public boolean isNull(int index) {
-    return !validityMap.get(index);
+    var bufferIndex = index >> 3;
+    var byteIndex = index & ~(1 << 3);
+    var slot = nonNullBitmap.get(bufferIndex);
+    var mask = 1 << byteIndex;
+    return (slot & mask) == 0;
   }
 
   @Override
   public void setNull(int index) {
-    validityMap.set(index, false);
+    var bufferIndex = index >> 3;
+    var byteIndex = index & ~(1 << 3);
+    var slot = nonNullBitmap.get(bufferIndex);
+    var mask = ~(1 << byteIndex);
+    nonNullBitmap.put(bufferIndex, (byte) (slot & mask));
   }
 
-  private void setValidityBitmap(int index, int unitSize) {
-    validityMap.set(index / unitSize);
+  private void setValidityBitmap(int index0, int unitSize) {
+    var index = index0 / unitSize;
+    var bufferIndex = index >> 3;
+    var byteIndex = index & ~(1 << 3);
+    var slot = nonNullBitmap.get(bufferIndex);
+    var mask = 1 << byteIndex;
+    var updated = (slot | mask);
+    nonNullBitmap.put(bufferIndex, (byte) (updated));
   }
 }

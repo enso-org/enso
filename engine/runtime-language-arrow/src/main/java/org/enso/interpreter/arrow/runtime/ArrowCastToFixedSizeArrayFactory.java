@@ -13,7 +13,6 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.BitSet;
 import org.enso.interpreter.arrow.ArrowParser;
 import org.enso.interpreter.arrow.util.MemoryUtil;
 
@@ -115,8 +114,7 @@ public class ArrowCastToFixedSizeArrayFactory implements TruffleObject {
       if (args.length == 3) {
         ByteBuffer validityMap =
             MemoryUtil.directBuffer(interop.asLong(args[2]), (int) Math.ceil((size + 7) / 8));
-        // TODO avoid copying
-        return new ByteBufferDirect(buffer, BitSet.valueOf(validityMap));
+        return new ByteBufferDirect(buffer, validityMap);
       } else {
         return new ByteBufferDirect(buffer, size);
       }
