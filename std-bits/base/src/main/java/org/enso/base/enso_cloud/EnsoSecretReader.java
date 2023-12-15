@@ -56,6 +56,7 @@ class EnsoSecretReader {
 
   private static String readValueFromString(String json) {
     var base64 = json.substring(1, json.length() - 1).translateEscapes();
-    return new String(java.util.Base64.getDecoder().decode(base64), java.nio.charset.StandardCharsets.UTF_8);
+    return new String(
+        java.util.Base64.getDecoder().decode(base64), java.nio.charset.StandardCharsets.UTF_8);
   }
 }
