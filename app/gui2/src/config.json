@@ -6,29 +6,9 @@
     }
   },
   "groups": {
-    "dataCollection": {
-      "description": "Controls the collection of anonymous usage data.",
-      "options": {
-        "usageStatistics": {
-          "value": "",
-          "description": "Determines whether anonymous usage statistics are to be collected.",
-          "primary": false
-        },
-        "crashReports": {
-          "value": "",
-          "description": "Determines whether anonymous crash reports are to be collected.",
-          "primary": false
-        }
-      }
-    },
     "window": {
       "description": "The visual and tactile configurations of the application window.",
       "options": {
-        "frame": {
-          "value": true,
-          "defaultDescription": "false on MacOS, true otherwise",
-          "description": "Draw window frame."
-        },
         "topBarOffset": {
           "value": 0,
           "description": "The offset of the IDE's toolbar from the window's left edge.",
@@ -45,12 +25,6 @@
         "displayedProjectName": {
           "value": "",
           "description": "The name of the project to be displayed to the user.",
-          "primary": false
-        },
-        "platform": {
-          "value": "web",
-          "defaultDescription": "'web' if run in the browser, operating system name otherwise`",
-          "description": "The host platform on which the application is running. This is used to adjust some user interface elements. For example, on macOS, the window close buttons are integrated into the top application panel.",
           "primary": false
         }
       }
@@ -89,37 +63,12 @@
           "defaultDescription": "true in local builds, false otherwise.",
           "description": "Determines whether the minimum engine version check should be performed.",
           "primary": false
-        },
-        "preferredVersion": {
-          "value": "",
-          "valueEval": "String(scope.Version.ide)",
-          "description": "The preferred engine version.",
-          "primary": false
-        }
-      }
-    },
-    "style": {
-      "description": "The available visual and tactile configurations of the application.",
-      "options": {
-        "nodeLabels": {
-          "value": true,
-          "description": "Determines whether node labels should be visible."
         }
       }
     },
     "featurePreview": {
       "description": "Options that enable experimental features that are not yet stable.",
       "options": {
-        "skipAndFreeze": {
-          "value": false,
-          "description": "Enable possibility to skip and freeze nodes.",
-          "primary": false
-        },
-        "theme": {
-          "value": "light",
-          "description": "Color theme.",
-          "primary": false
-        },
         "newDashboard": {
           "value": true,
           "description": "Determines whether the new dashboard with cloud integration is enabled."
