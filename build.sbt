@@ -1383,7 +1383,11 @@ lazy val `language-server` = (project in file("engine/language-server"))
       "org.scalatest"              %% "scalatest"            % scalatestVersion          % Test,
       "org.scalacheck"             %% "scalacheck"           % scalacheckVersion         % Test,
       "org.graalvm.sdk"             % "polyglot-tck"         % graalMavenPackagesVersion % "provided",
-      "org.eclipse.jgit"            % "org.eclipse.jgit"     % jgitVersion
+      "org.eclipse.jgit"            % "org.eclipse.jgit"     % jgitVersion,
+      "org.bouncycastle"     % "bcutil-jdk18on"     % "1.76" % Test,
+      "org.bouncycastle"     % "bcpkix-jdk18on"     % "1.76" % Test,
+      "org.bouncycastle"     % "bcprov-jdk18on"     % "1.76" % Test,
+
     ),
     Test / testOptions += Tests
       .Argument(TestFrameworks.ScalaCheck, "-minSuccessfulTests", "1000"),
@@ -1414,9 +1418,13 @@ lazy val `language-server` = (project in file("engine/language-server"))
     ),
     Test / modulePath := {
       val updateReport = (Test / update).value
+      // org.bouncycastle is a module required by `org.enso.runtime` module.
       val requiredModIds =
         GraalVM.modules ++ logbackPkg ++ Seq(
           "org.slf4j"        % "slf4j-api"               % slf4jVersion,
+          "org.bouncycastle"     % "bcutil-jdk18on"     % "1.76",
+          "org.bouncycastle"     % "bcpkix-jdk18on"     % "1.76",
+          "org.bouncycastle"     % "bcprov-jdk18on"     % "1.76",
         )
       val requiredMods = JPMSUtils.filterModulesFromUpdate(
         updateReport,
