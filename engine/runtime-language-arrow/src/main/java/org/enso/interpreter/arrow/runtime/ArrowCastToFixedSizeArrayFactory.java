@@ -11,10 +11,11 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
-import java.nio.*;
 import java.util.BitSet;
-import org.apache.arrow.memory.util.MemoryUtil;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import org.enso.interpreter.arrow.ArrowParser;
+import org.enso.interpreter.arrow.util.MemoryUtil;
 
 @ExportLibrary(InteropLibrary.class)
 public class ArrowCastToFixedSizeArrayFactory implements TruffleObject {

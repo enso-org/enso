@@ -2073,7 +2073,7 @@ lazy val `engine-runner` = project
             "com.sun.jna.internal.Cleaner",
             "com.sun.jna.Structure$FFIType",
             "akka.http",
-            "org.apache.arrow.memory.util.MemoryUtil"
+            "org.enso.interpreter.arrow.util.MemoryUtil"
           )
         )
         .dependsOn(assembly)
