@@ -54,6 +54,12 @@ public abstract class WarningsLibrary extends Library {
     throw UnsupportedMessageException.create();
   }
 
+  @GenerateLibrary.Abstract(ifExported = {"hasWarnings"})
+  public Warning[] getElementWarnings(Object receiver, Node location) throws UnsupportedMessageException {
+    throw UnsupportedMessageException.create();
+  }
+
+
   /**
    * Returns the object with all warnings removed.
    *

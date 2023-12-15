@@ -157,6 +157,8 @@ final class ArraySlice implements EnsoObject {
     return warnings.getWarnings(this.storage, location);
   }
 
+  @ExportMessage Warning[] getElementWarnings(Node location) throws UnsupportedMessageException { return null; }
+
   @ExportMessage
   Object removeWarnings(@Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings) throws UnsupportedMessageException {
     Object newStorage = warnings.removeWarnings(this.storage);

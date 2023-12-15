@@ -189,6 +189,8 @@ final class Array implements EnsoObject {
     return cachedWarnings;
   }
 
+  @ExportMessage Warning[] getElementWarnings(Node location) throws UnsupportedMessageException { return null; }
+
   @CompilerDirectives.TruffleBoundary
   private EconomicSet<Warning> collectAllWarnings(WarningsLibrary warnings, Node location)
       throws UnsupportedMessageException {

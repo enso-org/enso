@@ -94,10 +94,15 @@ public final class Warning implements EnsoObject {
       autoRegister = false)
   @Builtin.Specialize
   @CompilerDirectives.TruffleBoundary
-  public static EnsoObject getAll(WithWarnings value, WarningsLibrary warningsLib) {
-    Warning[] warnings = value.getWarningsArray(warningsLib);
-    sortArray(warnings);
-    return ArrayLikeHelpers.wrapEnsoObjects(warnings);
+  public static EnsoObject getAll(WithWarnings value, WarningsLibrary warningsLib, InteropLibrary interop) {
+    if (value.getValue() instanceof org.enso.interpreter.runtime.data.vector.Vector) {
+      getElementWarnings(value.getValue(), warningsLib, interop);
+    } else {
+      System.out.println("AAA getAll ww " + value.getClass() + " " + value.getValue().getClass());
+      Warning[] warnings = value.getWarningsArray(warningsLib);
+      sortArray(warnings);
+      return ArrayLikeHelpers.wrapEnsoObjects(warnings);
+    }
   }
 
   @Builtin.Method(
@@ -105,17 +110,36 @@ public final class Warning implements EnsoObject {
       description = "Gets all the warnings associated with the value.",
       autoRegister = false)
   @Builtin.Specialize(fallback = true)
-  public static EnsoObject getAll(Object value, WarningsLibrary warnings) {
-    if (warnings.hasWarnings(value)) {
-      try {
-        Warning[] arr = warnings.getWarnings(value, null);
-        sortArray(arr);
-        return ArrayLikeHelpers.wrapEnsoObjects(arr);
-      } catch (UnsupportedMessageException e) {
-        throw EnsoContext.get(warnings).raiseAssertionPanic(warnings, null, e);
-      }
+  public static EnsoObject getAll(Object value, WarningsLibrary warnings, InteropLibrary interop) {
+    System.out.println("AAA getAll obj " + value.getClass() + " " + (value instanceof org.enso.interpreter.runtime.data.vector.Vector));
+    if (value instanceof org.enso.interpreter.runtime.data.vector.Vector) {
+      getElementWarnings(value, warnings, interop);
     } else {
-      return ArrayLikeHelpers.empty();
+      if (warnings.hasWarnings(value)) {
+        try {
+          Warning[] arr = warnings.getWarnings(value, null);
+          sortArray(arr);
+          return ArrayLikeHelpers.wrapEnsoObjects(arr);
+        } catch (UnsupportedMessageException e) {
+          throw EnsoContext.get(warnings).raiseAssertionPanic(warnings, null, e);
+        }
+      } else {
+        return ArrayLikeHelpers.empty();
+      }
+    }
+  }
+
+  private static EnsoObject getElementWarnings(Object value, WarningsLibrary warnings, InteropLibrary interop) {
+    if (value instanceof org.enso.interpreter.runtime.data.vector.Vector.Generic v) {
+      return warnings.getElementWarnings(value, null);
+    } else if (value instanceof org.enso.interpreter.runtime.data.vector.Vector$EnsoOnly v) {
+      return v.getElementWarnings(warnings,  interop);
+    } else if (value instanceof org.enso.interpreter.runtime.data.vector.Vector$Double v) {
+      return v.getElementWarnings(warnings,  interop);
+    } else if (value instanceof org.enso.interpreter.runtime.data.vector.Vector$Long v) {
+      return v.getElementWarnings(warnings,  interop);
+    } else {
+      CompilerDirectives.shouldNotReachHere();
     }
   }
 

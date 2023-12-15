@@ -172,6 +172,8 @@ public final class WithWarnings implements EnsoObject {
     }
   }
 
+  @ExportMessage Warning[] getElementWarnings(Node location) throws UnsupportedMessageException { return null; }
+
   @ExportMessage
   Object removeWarnings(
       @Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings)
