@@ -1,8 +1,12 @@
 from Standard.Base import all
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Metadata.Display
+import Standard.Base.Runtime.Managed_Resource.Managed_Resource
+import Standard.Base.Runtime.Ref.Ref
 import Standard.Base.System.Input_Stream.Input_Stream
+import Standard.Base.System.File.Advanced.Temporary_File.Temporary_File
 from Standard.Base.Data.Filter_Condition import sql_like_to_regex
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Single_Choice
@@ -13,8 +17,12 @@ import project.Excel.Excel_Section.Excel_Section
 import project.Internal.Excel_Reader
 import project.Internal.Java_Problems
 
+polyglot java import java.io.File as Java_File
 polyglot java import org.apache.poi.ss.usermodel.Workbook
 polyglot java import org.enso.table.read.ExcelReader
+polyglot java import org.enso.table.excel.ExcelConnectionPool
+polyglot java import org.enso.table.excel.ExcelFileFormat
+polyglot java import org.enso.table.excel.ReadOnlyExcelConnection
 
 type Excel_Workbook
     ## PRIVATE
@@ -25,12 +33,24 @@ type Excel_Workbook
        - file: The file to load.
        - xls_format: Whether to use the old XLS format (default is XLSX).
        - headers: Whether to use the first row as headers (default is to infer).
-    new : File | Text -> Boolean -> Boolean | Infer -> Excel_Workbook
+    new : File | Text | Temporary_File -> Boolean -> Boolean | Infer -> Excel_Workbook
     new file xls_format=False headers=Infer =
-        file_obj = File.new file . normalize
-        File_Error.handle_java_exceptions file_obj <| Excel_Reader.handle_bad_format file_obj <|
-            file_obj.with_input_stream [File_Access.Read] stream->
-                Excel_Workbook.from_stream stream xls_format headers file_obj
+        file_obj = case file of
+            tmp : Temporary_File -> tmp
+            other -> File.new other
+        file_for_errors = if file_obj.is_a Temporary_File then Nothing else file_obj
+
+        continuation raw_file =
+            format = if xls_format then ExcelFileFormat.XLS else ExcelFileFormat.XLSX
+            File_Error.handle_java_exceptions raw_file <| Excel_Reader.handle_bad_format file_for_errors <| Illegal_State.handle_java_exception <|
+                # The `java_file` depends on the liveness of the possible `Temporary_File` but that is ensured by storing the `file_obj` in the resulting workbook instance.
+                java_file = Java_File.new raw_file.absolute.normalize.path
+                excel_connection_resource = Managed_Resource.register (ExcelConnectionPool.INSTANCE.openReadOnlyConnection java_file format) close_connection
+                Excel_Workbook.Value (Ref.new excel_connection_resource) file_obj xls_format headers
+
+        case file_obj of
+            tmp : Temporary_File -> tmp.with_file continuation
+            f : File -> continuation f
 
     ## PRIVATE
        ADVANCED
@@ -43,13 +63,12 @@ type Excel_Workbook
        - file: Optional file reference.
     from_stream : Input_Stream -> Boolean -> Boolean | Infer -> File | Nothing -> Excel_Workbook
     from_stream stream xls_format=False headers=Infer file=Nothing = Excel_Reader.handle_bad_format file <|
-        stream.with_java_stream java_stream->
-            workbook = ExcelReader.readWorkbook java_stream xls_format
-            Excel_Workbook.Value workbook file xls_format headers
+        temp_file = Temporary_File.from_stream_light stream
+        Excel_Workbook.new temp_file xls_format headers
 
     ## PRIVATE
        Creates an Excel_Workbook connection.
-    Value workbook:Workbook (file:(File|Nothing)) xls_format:Boolean headers:(Boolean|Infer)
+    Value (excel_connection_resource_ref : Ref (Managed_Resource ReadOnlyExcelConnection)) (file:(File|Temporary_File|Nothing)) xls_format:Boolean headers:(Boolean|Infer)
 
     ## Returns the list of databases (or catalogs) for the connection.
     databases : Nothing
@@ -57,7 +76,11 @@ type Excel_Workbook
 
     ## Returns the name of the current database (or catalog).
     database : Text
-    database self = if self.file.is_nothing then "" else self.file.path
+    database self = case self.file of
+        regular_file : File -> regular_file.path
+        ## A Temporary_File is still visualized as no path, because the fact that the workbook is stored as a file is
+           just an implementation detail - it is coming form a stream so there is no logical file it is associated with.
+        _ -> ""
 
     ## Returns a new Connection with the specified database set as default.
 
@@ -92,22 +115,24 @@ type Excel_Workbook
     ## GROUP Standard.Base.Metadata
        Gets the number of sheets.
     sheet_count : Integer
-    sheet_count self = self.workbook.getNumberOfSheets
+    sheet_count self = self.with_java_workbook .getNumberOfSheets
 
     ## GROUP Standard.Base.Metadata
        Gets the names of all the sheets.
     sheet_names : Vector Text
-    sheet_names self = Vector.from_polyglot_array (ExcelReader.readSheetNames self.workbook)
+    sheet_names self = self.with_java_workbook java_workbook->
+        Vector.from_polyglot_array (ExcelReader.readSheetNames java_workbook)
 
     ## GROUP Standard.Base.Metadata
        Gets the number of named ranges.
     named_ranges_count : Integer
-    named_ranges_count self = self.workbook.getNumberOfNames
+    named_ranges_count self = self.with_java_workbook .getNumberOfNames
 
     ## GROUP Standard.Base.Metadata
        Gets the names of all the named ranges.
     named_ranges : Vector Text
-    named_ranges self = Vector.from_polyglot_array (ExcelReader.readRangeNames self.workbook)
+    named_ranges self = self.with_java_workbook java_workbook->
+        Vector.from_polyglot_array (ExcelReader.readRangeNames java_workbook)
 
     ## Gets a list of the table types.
     table_types : Vector Text
@@ -167,9 +192,9 @@ type Excel_Workbook
     read self query (limit : Integer | Nothing = Nothing) =
         java_headers = Excel_Reader.make_java_headers self.headers
         java_table = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
-            case query of
-                _ : Excel_Range -> ExcelReader.readRange self.workbook query.java_range java_headers 0 limit java_problem_aggregator
-                _ : Text -> ExcelReader.readRangeByName self.workbook query java_headers 0 limit java_problem_aggregator
+            self.with_java_workbook java_workbook-> case query of
+                _ : Excel_Range -> ExcelReader.readRange java_workbook query.java_range java_headers 0 limit java_problem_aggregator
+                _ : Text -> ExcelReader.readRangeByName java_workbook query java_headers 0 limit java_problem_aggregator
         Table.Value java_table
 
     ## GROUP Standard.Base.Input
@@ -194,13 +219,14 @@ type Excel_Workbook
                             names.at (sheet - 1)
                     _ -> Error.throw (Illegal_Argument.Error "Worksheet must be either Text or an Integer.")
                 java_table = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
-                    ExcelReader.readRangeByName self.workbook sheet_name java_headers skip_rows row_limit java_problem_aggregator
+                    self.with_java_workbook java_workbook->
+                        ExcelReader.readRangeByName java_workbook sheet_name java_headers skip_rows row_limit java_problem_aggregator
                 Table.Value java_table
             Excel_Section.Cell_Range address skip_rows row_limit ->
                 java_table = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
-                    case address of
-                        _ : Excel_Range -> ExcelReader.readRange self.workbook address.java_range java_headers skip_rows row_limit java_problem_aggregator
-                        _ : Text -> ExcelReader.readRangeByName self.workbook address java_headers skip_rows row_limit java_problem_aggregator
+                    self.with_java_workbook java_workbook-> case address of
+                        _ : Excel_Range -> ExcelReader.readRange java_workbook address.java_range java_headers skip_rows row_limit java_problem_aggregator
+                        _ : Text -> ExcelReader.readRangeByName java_workbook address java_headers skip_rows row_limit java_problem_aggregator
                 Table.Value java_table
 
     ## ALIAS get, worksheet
@@ -213,3 +239,51 @@ type Excel_Workbook
     sheet : Text | Integer -> Table
     sheet self name:(Text | Integer) =
         self.read_section (Excel_Section.Worksheet name 0 Nothing)
+
+    ## ADVANCED
+       Closes the workbook, releasing any resources it holds.
+
+       This method may be used to release the underlying workbook file,
+       e.g. to be able to delete it.
+
+       After this method is called, this instance is not usable any more - any
+       operation on it will throw an `Illegal_State` error.
+    close : Nothing
+    close self =
+        case self.excel_connection_resource_ref.get of
+            Nothing -> Nothing
+            resource ->
+                resource.finalize
+                self.excel_connection_resource_ref.put Nothing
+        Nothing
+
+    ## Returns a simple text description of the workbook.
+    to_text : Text
+    to_text self =
+        associated_regular_file = case self.file of
+            regular_file : File -> " (" + regular_file.name + ")"
+            _ -> ""
+        "Excel_Workbook"+associated_regular_file
+
+    ## PRIVATE
+       Provides a JS object representation for use in visualizations.
+    to_js_object : JS_Object
+    to_js_object self =
+        headers = if self.headers == Infer then "Infer" else self.headers
+        additional_fields = case self.file of
+            regular_file : File -> [["file", regular_file.path]]
+            _ -> []
+        JS_Object.from_pairs <|
+            [["type", "Excel_Workbook"], ["headers", headers], ["xls_format", self.xls_format]] + additional_fields
+
+    ## PRIVATE
+    with_java_workbook : (Workbook -> Any) -> Any ! Illegal_State
+    with_java_workbook self f = Illegal_State.handle_java_exception <|
+        case self.excel_connection_resource_ref.get of
+            Nothing ->
+                Error.throw (Illegal_State.Error "The workbook is being used after it was closed.")
+            resource -> resource.with connection->
+                connection.withWorkbook f
+
+## PRIVATE
+close_connection c = c.close

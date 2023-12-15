@@ -7,6 +7,7 @@ import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Errors.Common.Additional_Warnings
 import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
+import Standard.Base.Errors.Common.No_Such_Method
 import Standard.Base.Errors.Common.Out_Of_Memory
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.File_Error.File_Error
@@ -2492,16 +2493,13 @@ type Table
                 if base_format == Nothing then Error.throw (File_Error.Unsupported_Output_Type file Table) else
                     self.write file format=base_format on_existing_file match_columns on_problems
             _ ->
-                methods = if format == JSON_Format then ["write_table"] else Meta.meta (Meta.type_of format) . methods
-                if methods.contains "write_table" . not then Error.throw (File_Error.Unsupported_Output_Type format Table) else
-                    effective_existing_behaviour = on_existing_file.get_effective_behavior file
-                    tgt_file = if Context.Output.is_enabled then file else
-                        should_copy_file = on_existing_file==Existing_File_Behavior.Append
-                        file.create_dry_run_file copy_original=should_copy_file
-
+                handle_no_write_method caught_panic =
+                    is_write = caught_panic.payload.method_name == "write_table"
+                    if is_write.not then Panic.throw caught_panic else
+                        Error.throw (File_Error.Unsupported_Output_Type format Table)
+                Panic.catch No_Such_Method handler=handle_no_write_method <|
                     to_write = if Context.Output.is_enabled then self else self.take 1000
-                    Context.Output.with_enabled <|
-                        format.write_table tgt_file to_write effective_existing_behaviour match_columns on_problems
+                    format.write_table file to_write on_existing_file match_columns on_problems
 
     ## Creates a text representation of the table using the CSV format.
     to_csv : Text

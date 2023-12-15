@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Network.HTTP.Response.Response
 import Standard.Base.System.File_Format.File_For_Read
+import Standard.Base.System.File_Format.File_Format_Metadata
 import Standard.Base.System.Input_Stream.Input_Stream
 from Standard.Base.Widget_Helpers import make_delimiter_selector
 
@@ -98,9 +99,10 @@ type Delimited_Format
         Delimited_Reader.read_file self file on_problems
 
     ## PRIVATE
-       Implements the `Data.parse` for this `File_Format`
-    read_stream : Input_Stream -> Any
-    read_stream self stream:Input_Stream =
+       Implements decoding the format from a stream.
+    read_stream : Input_Stream -> File_Format_Metadata -> Any
+    read_stream self stream:Input_Stream (metadata : File_Format_Metadata = File_Format_Metadata.no_information) =
+        _ = metadata
         Delimited_Reader.read_stream self stream on_problems=Report_Warning
 
     ## PRIVATE
@@ -108,8 +110,7 @@ type Delimited_Format
        Implements the `Table.write` for this `File_Format`.
     write_table : File -> Table -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> File
     write_table self file table on_existing_file match_columns on_problems =
-        r = Delimited_Writer.write_file table self file on_existing_file match_columns on_problems
-        r.if_not_error file
+        Delimited_Writer.write_file table self file on_existing_file match_columns on_problems
 
     ## PRIVATE
        Clone the instance with some properties overridden.

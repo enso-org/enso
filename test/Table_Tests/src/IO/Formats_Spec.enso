@@ -10,109 +10,155 @@ import Standard.Test.Extensions
 
 import project.Util
 
-spec = Test.group 'Various File Format support on Table' <|
-    t1 = Table.new [["X", [1, 2, 3]]]
+spec =
     transient = enso_project.data / "transient"
-    simple_empty = enso_project.data/'simple_empty.csv' . read
-
-    Test.specify "should be able to be written as CSV, Excel" <|
-        f1 = transient / "test2.csv"
-        f2 = transient / "test3.xlsx"
-        [f1, f2].each f->
-            f.delete_if_exists
-            t1.write f . should_succeed
-            f.exists.should_be_true
-            f.delete
-
-    Test.specify "should be able to be written as JSON using Table.write" <|
-        f1 = transient / "test1.json"
-        f1.delete_if_exists
-        t1.write f1 . should_succeed
-        f1.exists.should_be_true
-        f1.delete
-
-    Test.specify 'should write JSON tables' <|
+    Test.group 'Various File Format support on Table' <|
+        t1 = Table.new [["X", [1, 2, 3]]]
         simple_empty = enso_project.data/'simple_empty.csv' . read
-        out = transient / 'out.json'
-        out.delete_if_exists
-        simple_empty.write out . should_equal out
-        Table.from_objects (Json.parse out.read_text) ['a', 'b', 'c'] . should_equal simple_empty
-        out.delete_if_exists
 
-    Test.specify 'should append to JSON tables' <|
-        out = transient / 'out.json'
-        out.delete_if_exists
-        simple_empty.write out . should_equal out
-        simple_empty.write out on_existing_file=Existing_File_Behavior.Append . should_equal out
-        Table.from_objects (Json.parse out.read_text) ['a', 'b', 'c'] . row_count . should_equal 2*simple_empty.row_count
-        out.delete_if_exists
+        Test.specify "should be able to be written as CSV, Excel" <|
+            f1 = transient / "test2.csv"
+            f2 = transient / "test3.xlsx"
+            [f1, f2].each f->
+                f.delete_if_exists
+                t1.write f . should_succeed
+                f.exists.should_be_true
+                f.delete
 
-    Test.specify 'should fail to append to JSON non-arrays' <|
-        out = transient / 'out.json'
-        out.delete_if_exists
-        '1'.write out
-        simple_empty.write out on_existing_file=Existing_File_Behavior.Append . should_fail_with Invalid_JSON_Format
-        out.delete_if_exists
+        Test.specify "should be able to be written as JSON using Table.write" <|
+            f1 = transient / "test1.json"
+            f1.delete_if_exists
+            t1.write f1 . should_succeed
+            f1.exists.should_be_true
+            f1.delete
 
-        '"Hello World"'.write out
-        simple_empty.write out on_existing_file=Existing_File_Behavior.Append . should_fail_with Invalid_JSON_Format
-        out.delete_if_exists
+        Test.specify 'should write JSON tables' <|
+            simple_empty = enso_project.data/'simple_empty.csv' . read
+            out = transient / 'out.json'
+            out.delete_if_exists
+            simple_empty.write out . should_equal out
+            Table.from_objects (Json.parse out.read_text) ['a', 'b', 'c'] . should_equal simple_empty
+            out.delete_if_exists
 
-        '{}'.write out
-        simple_empty.write out on_existing_file=Existing_File_Behavior.Append . should_fail_with Invalid_JSON_Format
-        out.delete_if_exists
+        Test.specify 'should append to JSON tables' <|
+            out = transient / 'out.json'
+            out.delete_if_exists
+            simple_empty.write out . should_equal out
+            simple_empty.write out on_existing_file=Existing_File_Behavior.Append . should_equal out
+            Table.from_objects (Json.parse out.read_text) ['a', 'b', 'c'] . row_count . should_equal 2*simple_empty.row_count
+            out.delete_if_exists
 
-    Test.specify "should fail gracefully when provided with an unsupported format" <|
-        f1 = (transient / "test4.unknown-format")
-        f1.delete_if_exists
-        r1 = t1.write f1
-        r1.should_fail_with File_Error
-        r1.catch.should_be_a File_Error.Unsupported_Output_Type
-        r1.catch.format . should_equal f1
-        r1.catch.to_display_text . should_equal "Values of type Table cannot be written as format test4.unknown-format."
+        Test.specify 'should fail to append to JSON non-arrays' <|
+            out = transient / 'out.json'
+            out.delete_if_exists
+            '1'.write out
+            simple_empty.write out on_existing_file=Existing_File_Behavior.Append . should_fail_with Invalid_JSON_Format
+            out.delete_if_exists
 
-        f2 = (transient / "test5.txt")
-        f2.delete_if_exists
-        my_format = Plain_Text Encoding.ascii
-        r2 = t1.write f2 my_format
-        r2.should_fail_with File_Error
-        r2.catch.should_be_a File_Error.Unsupported_Output_Type
-        r2.catch.format . should_equal my_format
+            '"Hello World"'.write out
+            simple_empty.write out on_existing_file=Existing_File_Behavior.Append . should_fail_with Invalid_JSON_Format
+            out.delete_if_exists
 
-    write_test extension =
-        f = transient / ("big." + extension)
-        f.delete_if_exists
-        f_bak = transient / ("big." + extension + ".bak")
-        f_bak.delete_if_exists
+            '{}'.write out
+            simple_empty.write out on_existing_file=Existing_File_Behavior.Append . should_fail_with Invalid_JSON_Format
+            out.delete_if_exists
 
-        big_table = Table.new [["a", 1.up_to 2000 . to_vector]]
-        big_table.write f
+        Test.specify "should fail gracefully when provided with an unsupported format" <|
+            f1 = (transient / "test4.unknown-format")
+            f1.delete_if_exists
+            r1 = t1.write f1
+            r1.should_fail_with File_Error
+            r1.catch.should_be_a File_Error.Unsupported_Output_Type
+            r1.catch.format . should_equal f1
+            r1.catch.to_display_text . should_equal "Values of type Table cannot be written as format test4.unknown-format."
 
-        new_table = Table.new [["a", 2000.up_to 4000 . to_vector]]
-        r = Context.Output.with_disabled <|
-            s = new_table.write f
-            s.exists.should_be_true
+            f2 = (transient / "test5.txt")
+            f2.delete_if_exists
+            my_format = Plain_Text Encoding.ascii
+            r2 = t1.write f2 my_format
+            r2.should_fail_with File_Error
+            r2.catch.should_be_a File_Error.Unsupported_Output_Type
+            r2.catch.format . should_equal my_format
 
-            r_data = s.read
-            row_count = if r_data . is_a Table then r_data.row_count else r_data.length
-            row_count . should_equal 1000
-            s
+    write_tests extension = Test.group 'Writing to '+extension+' files' <|
+        count result =
+            if result . is_a Table then result.row_count else result.length
 
-        f_bak.exists.should_be_false
+        Test.specify "should write to a temporary "+extension+" file part of the data if context is disabled" <|
+            f = transient / ("big." + extension)
+            f.delete_if_exists
+            f_bak = transient / ("big." + extension + ".bak")
+            f_bak.delete_if_exists
 
-        f.exists.should_be_true
-        f_data = f.read
-        f_row_count = if f_data . is_a Table then f_data.row_count else f_data.length
-        f_row_count . should_equal 1999
+            big_table = Table.new [["a", 1.up_to 2000 . to_vector]]
+            big_table.write f
 
-        f.delete_if_exists
-        f_bak.delete_if_exists
-        r.delete_if_exists
+            new_table = Table.new [["a", 2000.up_to 4000 . to_vector]]
+            r = Context.Output.with_disabled <|
+                s = new_table.write f
+                s.exists.should_be_true
 
-    Test.specify "should write to a temporary CSV file part of the data if context disabled" <|
-        write_test "csv"
+                r_data = s.read
+                count r_data . should_equal 1000
+                s
 
-    Test.specify "should write to a temporary JSON file part of the data if context disabled" <|
-        write_test "json"
+            f_bak.exists.should_be_false
+
+            f.exists.should_be_true
+            f_data = f.read
+            count f_data . should_equal 1999
+
+            f.delete_if_exists
+            f_bak.delete_if_exists
+            r.delete_if_exists
+
+        Test.specify "should create a backup file if overwriting" <|
+            f = transient / ("test." + extension)
+            f.delete_if_exists
+            f_bak = transient / ("test." + extension + ".bak")
+            f_bak.delete_if_exists
+
+            t1 = Table.new [["a", 0.up_to 10 . to_vector]]
+            t1.write f . should_succeed . should_equal f
+            f.exists.should_be_true
+            f_bak.exists.should_be_false
+
+            t2 = Table.new [["a", 0.up_to 30 . to_vector]]
+            t2.write f . should_succeed . should_equal f
+            f.exists.should_be_true
+            f_bak.exists.should_be_true
+
+            count f.read . should_equal 30
+
+            # ensure correct format is used for reading the .bak file
+            format = Auto_Detect.get_reading_format f
+            count (f_bak.read format) . should_equal 10
+
+            f.delete_if_exists
+            f_bak.delete_if_exists
+
+
+        Test.specify "should support appending" <|
+            f = transient / ("test." + extension)
+            f.delete_if_exists
+            f_bak = transient / ("test." + extension + ".bak")
+            f_bak.delete_if_exists
+
+            t1 = Table.new [["a", 0.up_to 10 . to_vector]]
+            t1.write f on_existing_file=Existing_File_Behavior.Append . should_succeed . should_equal f
+            f.exists.should_be_true
+            f_bak.exists.should_be_false
+
+            t2 = Table.new [["a", 0.up_to 30 . to_vector]]
+            t2.write f on_existing_file=Existing_File_Behavior.Append . should_succeed . should_equal f
+            f.exists.should_be_true
+            f_bak.exists.should_be_false
+
+            count f.read . should_equal 40
+
+            f.delete_if_exists
+
+    write_tests "csv"
+    write_tests "json"
 
 main = Test_Suite.run_main spec
