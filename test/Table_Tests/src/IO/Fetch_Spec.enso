@@ -66,6 +66,6 @@ spec =
             r2.should_be_a Table
             r2.should_equal expected_table
 
-            r3 = url.fetch try_auto_parse_response=False . decode (Excel (Excel_Section.Worksheet "MyTestSheet"))
+            r3 = url.to_uri.fetch try_auto_parse_response=False . decode (Excel (Excel_Section.Worksheet "MyTestSheet"))
             r3.should_be_a Table
             r3.should_equal expected_table
