@@ -19,7 +19,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.enso.compiler.core.ir.Name;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.node.BaseNode.TailStatus;
 import org.enso.interpreter.node.EnsoRootNode;
@@ -109,7 +108,8 @@ public abstract class ReadArgumentCheckNode extends Node {
     };
   }
 
-  public static ReadArgumentCheckNode oneOf(String argumentName, List<ReadArgumentCheckNode> checks) {
+  public static ReadArgumentCheckNode oneOf(
+      String argumentName, List<ReadArgumentCheckNode> checks) {
     var arr = toArray(checks);
     return switch (arr.length) {
       case 0 -> null;
