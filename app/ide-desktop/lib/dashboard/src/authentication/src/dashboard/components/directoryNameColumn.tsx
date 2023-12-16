@@ -96,6 +96,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
             case assetEventModule.AssetEventType.move:
             case assetEventModule.AssetEventType.delete:
             case assetEventModule.AssetEventType.restore:
+            case assetEventModule.AssetEventType.download:
             case assetEventModule.AssetEventType.downloadSelected:
             case assetEventModule.AssetEventType.removeSelf:
             case assetEventModule.AssetEventType.temporarilyAddLabels:
@@ -104,8 +105,8 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
             case assetEventModule.AssetEventType.removeLabels:
             case assetEventModule.AssetEventType.deleteLabel: {
                 // Ignored. These events should all be unrelated to directories.
-                // `deleteMultiple`, `restoreMultiple` and `downloadSelected` are handled by
-                // `AssetRow`.
+                // `deleteMultiple`, `restoreMultiple`, `download`,
+                // and `downloadSelected` are handled by `AssetRow`.
                 break
             }
             case assetEventModule.AssetEventType.newFolder: {

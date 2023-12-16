@@ -1,5 +1,7 @@
 package org.enso.interpreter.test;
 
+import static org.junit.Assert.assertEquals;
+
 import java.io.ByteArrayOutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -9,8 +11,6 @@ import org.enso.polyglot.MethodNames;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
-import static org.junit.Assert.assertEquals;
-
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -37,7 +37,8 @@ public class LazyAtomFieldTest extends TestBase {
 
   @Test
   public void evaluation() throws Exception {
-    final String code = """
+    final String code =
+        """
     from Standard.Base import IO
 
     type Lazy
@@ -77,7 +78,8 @@ public class LazyAtomFieldTest extends TestBase {
     assertEquals(42, meanings.asInt());
 
     String log = out.toString(StandardCharsets.UTF_8);
-    var lazyReadyAndThen = log.lines().dropWhile(l -> l.contains("Lazy value ready")).collect(Collectors.toList());
+    var lazyReadyAndThen =
+        log.lines().dropWhile(l -> l.contains("Lazy value ready")).collect(Collectors.toList());
     var computingX = lazyReadyAndThen.stream().filter(l -> l.contains("Computing x done")).count();
     assertEquals(log, 1, computingX);
     var computingY = lazyReadyAndThen.stream().filter(l -> l.contains("Computing y done")).count();
@@ -88,7 +90,8 @@ public class LazyAtomFieldTest extends TestBase {
 
   @Test
   public void testInfiniteListGenerator() throws Exception {
-    final String code = """
+    final String code =
+        """
     import Standard.Base.IO
 
     type Lazy
@@ -122,9 +125,7 @@ public class LazyAtomFieldTest extends TestBase {
   private Value evalCode(final String code, final String methodName) throws URISyntaxException {
     final var testName = "test.enso";
     final URI testUri = new URI("memory://" + testName);
-    final Source src = Source.newBuilder("enso", code, testName)
-            .uri(testUri)
-            .buildLiteral();
+    final Source src = Source.newBuilder("enso", code, testName).uri(testUri).buildLiteral();
     var module = ctx.eval(src);
     return module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, methodName);
   }

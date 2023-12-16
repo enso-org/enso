@@ -1,8 +1,8 @@
 /** This file supports the module in `../generated/ast.ts` that is produced by `parser-codegen`. */
 
-export { type Result } from '@/util/result'
+export { type Result } from '@/util/data/result'
 import { bail } from '@/util/assert'
-import { Err, Ok, type Result } from '@/util/result'
+import { Err, Ok, type Result } from '@/util/data/result'
 
 export type ObjectVisitor = (object: LazyObject) => boolean | void
 export type ObjectAddressVisitor = (view: DataView, address: number) => boolean | void

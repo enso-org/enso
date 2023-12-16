@@ -24,6 +24,7 @@
 #![feature(pin_macro)]
 #![feature(result_option_inspect)]
 #![feature(extend_one)]
+#![feature(async_fn_in_trait)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -35,6 +36,7 @@
 #![warn(trivial_numeric_casts)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
+#![allow(incomplete_features)]
 
 
 // ==============

@@ -116,7 +116,6 @@ export default function Login(props: LoginProps) {
                         label="Password"
                         icon={LockIcon}
                         placeholder="Enter your password"
-                        pattern={validation.PASSWORD_PATTERN}
                         error={validation.PASSWORD_ERROR}
                         value={password}
                         setValue={setPassword}

@@ -1,6 +1,6 @@
 <script lang="ts">
 import SvgIcon from '@/components/SvgIcon.vue'
-import { useEvent } from '@/util/events'
+import { useEvent } from '@/composables/events'
 import { getTextWidth } from '@/util/measurement'
 import { defineKeybinds } from '@/util/shortcuts'
 import { VisualizationContainer, useVisualizationConfig } from '@/util/visualizationBuiltins'

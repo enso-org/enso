@@ -3,6 +3,9 @@ import { Awareness } from '@/stores/awareness'
 import { ComputedValueRegistry } from '@/stores/project/computedValueRegistry'
 import { VisualizationDataRegistry } from '@/stores/project/visualizationDataRegistry'
 import { attachProvider, useObserveYjs } from '@/util/crdt'
+import { nextEvent } from '@/util/data/observable'
+import { isSome, type Opt } from '@/util/data/opt'
+import { Err, Ok, type Result } from '@/util/data/result'
 import { ReactiveMapping } from '@/util/database/reactiveDb'
 import {
   AsyncQueue,
@@ -10,10 +13,7 @@ import {
   createWebsocketClient,
   rpcWithRetries as lsRpcWithRetries,
 } from '@/util/net'
-import { nextEvent } from '@/util/observable'
-import { isSome, type Opt } from '@/util/opt'
 import { tryQualifiedName } from '@/util/qualifiedName'
-import { Err, Ok, type Result } from '@/util/result'
 import { Client, RequestManager } from '@open-rpc/client-js'
 import { computedAsync } from '@vueuse/core'
 import * as array from 'lib0/array'
@@ -85,6 +85,9 @@ async function initializeLsRpcConnection(
         error,
       )
     },
+  }).catch((error) => {
+    console.error('Error initializing Language Server RPC:', error)
+    throw error
   })
   const contentRoots = initialization.contentRoots
   return { connection, contentRoots }
@@ -93,7 +96,10 @@ async function initializeLsRpcConnection(
 async function initializeDataConnection(clientId: Uuid, url: string) {
   const client = createWebsocketClient(url, { binaryType: 'arraybuffer', sendPings: false })
   const connection = new DataServer(client)
-  await connection.initialize(clientId)
+  await connection.initialize(clientId).catch((error) => {
+    console.error('Error initializing data connection:', error)
+    throw error
+  })
   return connection
 }
 
@@ -142,6 +148,7 @@ type ExecutionContextNotification = {
   'executionFailed'(message: string): void
   'executionComplete'(): void
   'executionStatus'(diagnostics: Diagnostic[]): void
+  'newVisualizationConfiguration'(configs: Set<Uuid>): void
   'visualizationsConfigured'(configs: Set<Uuid>): void
 }
 
@@ -202,6 +209,7 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
     this.queue.pushTask(async (state) => {
       this.visSyncScheduled = false
       if (!state.created) return state
+      this.emit('newVisualizationConfiguration', [new Set(this.visualizationConfigs.keys())])
       const promises: Promise<void>[] = []
 
       const attach = (id: Uuid, config: NodeVisualizationConfiguration) => {
@@ -437,8 +445,20 @@ export const useProjectStore = defineStore('project', () => {
   const clientId = random.uuidv4() as Uuid
   const lsUrls = resolveLsUrl(config.value)
   const initializedConnection = initializeLsRpcConnection(clientId, lsUrls.rpcUrl)
-  const lsRpcConnection = initializedConnection.then(({ connection }) => connection)
-  const contentRoots = initializedConnection.then(({ contentRoots }) => contentRoots)
+  const lsRpcConnection = initializedConnection.then(
+    ({ connection }) => connection,
+    (error) => {
+      console.error('Error getting Language Server connection:', error)
+      throw error
+    },
+  )
+  const contentRoots = initializedConnection.then(
+    ({ contentRoots }) => contentRoots,
+    (error) => {
+      console.error('Error getting content roots:', error)
+      throw error
+    },
+  )
   const dataConnection = initializeDataConnection(clientId, lsUrls.dataUrl)
 
   const rpcUrl = new URL(lsUrls.rpcUrl)
@@ -512,7 +532,7 @@ export const useProjectStore = defineStore('project', () => {
     moduleDocGuid.value = guid
   }
 
-  projectModel.modules.observe((_) => tryReadDocGuid())
+  projectModel.modules.observe(tryReadDocGuid)
   watchEffect(tryReadDocGuid)
 
   const module = computedAsync(async () => {
@@ -535,8 +555,16 @@ export const useProjectStore = defineStore('project', () => {
     })
   }
 
-  const firstExecution = lsRpcConnection.then((lsRpc) =>
-    nextEvent(lsRpc, 'executionContext/executionComplete'),
+  const firstExecution = lsRpcConnection.then(
+    (lsRpc) =>
+      nextEvent(lsRpc, 'executionContext/executionComplete').catch((error) => {
+        console.error('First execution failed:', error)
+        throw error
+      }),
+    (error) => {
+      console.error('Could not get Language Server for first execution:', error)
+      throw error
+    },
   )
   const executionContext = createExecutionContextForMain()
   const visualizationDataRegistry = new VisualizationDataRegistry(executionContext, dataConnection)
@@ -589,19 +617,19 @@ export const useProjectStore = defineStore('project', () => {
       if (!visResult.ok) {
         visResult.error.log('Dataflow Error visualization evaluation failed')
         return undefined
-      } else if (
-        'kind' in visResult.value &&
-        visResult.value.kind === 'Dataflow' &&
-        'message' in visResult.value &&
-        typeof visResult.value.message === 'string'
-      ) {
-        return { kind: visResult.value.kind, message: visResult.value.message }
+      } else if ('message' in visResult.value && typeof visResult.value.message === 'string') {
+        if ('kind' in visResult.value && visResult.value.kind === 'Dataflow')
+          return { kind: visResult.value.kind, message: visResult.value.message }
+        // Other kinds of error are not handled here
+        else return undefined
       } else {
         console.error('Invalid dataflow error payload:', visResult.value)
         return undefined
       }
     })
   })
+
+  const isOutputContextEnabled = computed(() => executionMode.value === 'live')
 
   function stopCapturingUndo() {
     module.value?.undoManager.stopCapturing()
@@ -661,6 +689,7 @@ export const useProjectStore = defineStore('project', () => {
     lsRpcConnection: markRaw(lsRpcConnection),
     dataConnection: markRaw(dataConnection),
     useVisualizationData,
+    isOutputContextEnabled,
     stopCapturingUndo,
     executionMode,
     dataflowErrors,

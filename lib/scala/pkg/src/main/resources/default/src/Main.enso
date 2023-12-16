@@ -2,6 +2,7 @@ from Standard.Base import all
 from Standard.Table import all
 from Standard.Database import all
 from Standard.AWS import all
+import Standard.Visualization
 
 main =
     operator1 = "Press ENTER key to create a new node"

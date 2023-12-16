@@ -1,13 +1,13 @@
 package org.enso.interpreter.test;
 
-import org.enso.polyglot.HostEnsoUtils;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
+import org.enso.polyglot.HostEnsoUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
-import static org.junit.Assert.fail;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -26,7 +26,8 @@ public class PolyglotFindExceptionMessageTest extends TestBase {
 
   @Test
   public void testJavaScriptException() {
-    String src = """
+    String src =
+        """
     main = err
 
     foreign js err = \"""

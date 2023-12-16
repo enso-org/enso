@@ -1,7 +1,7 @@
 import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
 import { ArgumentApplication, ArgumentPlaceholder } from '@/util/callTree'
-import { isSome } from '@/util/opt'
+import { isSome } from '@/util/data/opt'
 import { type Identifier, type QualifiedName } from '@/util/qualifiedName'
 import type { MethodCall } from 'shared/languageServerTypes'
 import { assert, expect, test } from 'vitest'

@@ -177,7 +177,8 @@ public final class ExecuteMethodImplGenerator extends MethodGenerator {
     if (needsContext(params)) {
       method.add("  EnsoContext context = EnsoContext.get(this);");
     }
-    if (wrapsExceptions) {;
+    if (wrapsExceptions) {
+      ;
       method.add("  try {");
       params.stream()
           .forEach(

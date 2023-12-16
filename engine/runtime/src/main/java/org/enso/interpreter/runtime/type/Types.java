@@ -172,7 +172,9 @@ public class Types {
     return new Pair<>((A) arguments[0], (B) arguments[1]);
   }
 
-  /** @return the language type hierarchy */
+  /**
+   * @return the language type hierarchy
+   */
   public static TypeGraph getTypeHierarchy() {
     return typeHierarchy;
   }

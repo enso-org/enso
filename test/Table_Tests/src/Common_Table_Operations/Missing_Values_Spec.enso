@@ -152,7 +152,13 @@ spec setup =
             no_rows.at "X" . to_vector . should_equal []
 
             no_rows.select_blank_columns . columns . map .name . should_equal ["X"]
-            no_rows.remove_blank_columns . columns . map .name . should_fail_with No_Output_Columns
+            r2 = no_rows.remove_blank_columns
+            r2.should_fail_with No_Output_Columns
+            r2.catch.to_display_text . should_equal "No columns in the result, because of another problem: All columns were blank."
+
+            r3 = t.select_blank_columns
+            r3.should_fail_with No_Output_Columns
+            r3.catch.to_display_text . should_equal "No columns in the result, because of another problem: No columns were blank."
 
     Test.group prefix+"Filling Missing Values" <|
         Test.specify "should coerce long and double types to double" <|

@@ -163,7 +163,8 @@ public class RepoInitialization implements InitializationComponent {
       return CompletableFuture.completedFuture(null);
     } else if (error instanceof FileSystemException) {
       logger.error(
-          "Failed to delete the database file. Attempt #{}. The file will be removed during the shutdown.",
+          "Failed to delete the database file. Attempt #{}. The file will be removed during the"
+              + " shutdown.",
           retries + 1,
           error);
       Runtime.getRuntime()

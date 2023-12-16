@@ -21,5 +21,8 @@ body {
   flex-direction: column;
   flex: 1;
   font-weight: 500;
-  cursor: default;
+  /* FIXME [ao]: https://github.com/enso-org/cloud-v2/issues/777 
+   The cursor is set to none as workaround for GUI1, here we bring it back. 
+   Should be removed once GUI1 will be gone (with all workarounds */
+  cursor: auto;
 }

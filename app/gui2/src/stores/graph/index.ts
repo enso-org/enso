@@ -11,9 +11,9 @@ import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { Ast } from '@/util/ast'
 import { useObserveYjs } from '@/util/crdt'
-import type { Opt } from '@/util/opt'
-import { Rect } from '@/util/rect'
-import { Vec2 } from '@/util/vec2'
+import type { Opt } from '@/util/data/opt'
+import { Rect } from '@/util/data/rect'
+import { Vec2 } from '@/util/data/vec2'
 import { defineStore } from 'pinia'
 import type { StackItem } from 'shared/languageServerTypes'
 import {
@@ -30,7 +30,7 @@ export { type Node } from '@/stores/graph/graphDatabase'
 
 export interface NodeEditInfo {
   id: ExprId
-  range: ContentRange
+  initialCursorPos: number
 }
 export const useGraphStore = defineStore('graph', () => {
   const proj = useProjectStore()
@@ -54,6 +54,7 @@ export const useGraphStore = defineStore('graph', () => {
   const editedNodeInfo = ref<NodeEditInfo>()
   const imports = ref<{ import: Import; span: ContentRange }[]>([])
   const methodAst = ref<Ast.Function>()
+  const currentNodeIds = ref(new Set<ExprId>())
 
   const unconnectedEdge = ref<UnconnectedEdge>()
 
@@ -109,7 +110,7 @@ export const useGraphStore = defineStore('graph', () => {
 
       methodAst.value = getExecutedMethodAst(newRoot, proj.executionContext.getStackTop(), db)
       if (methodAst.value) {
-        db.readFunctionAst(methodAst.value, (id) => meta.get(id))
+        currentNodeIds.value = db.readFunctionAst(methodAst.value, (id) => meta.get(id))
       }
     })
   }
@@ -155,13 +156,13 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   function disconnectSource(edge: Edge) {
-    if (edge.target)
-      unconnectedEdge.value = { target: edge.target, disconnectedEdgeTarget: edge.target }
+    if (!edge.target) return
+    unconnectedEdge.value = { target: edge.target, disconnectedEdgeTarget: edge.target }
   }
 
   function disconnectTarget(edge: Edge) {
-    if (edge.source && edge.target)
-      unconnectedEdge.value = { source: edge.source, disconnectedEdgeTarget: edge.target }
+    if (!edge.source || !edge.target) return
+    unconnectedEdge.value = { source: edge.source, disconnectedEdgeTarget: edge.target }
   }
 
   function clearUnconnected() {
@@ -203,18 +204,12 @@ export const useGraphStore = defineStore('graph', () => {
     )
   }
 
-  // Create a node from a source expression, and insert it into the graph. The return value will be
-  // the new node's ID, or `null` if the node creation fails.
-  function createNodeFromSource(position: Vec2, source: ExprId): Opt<ExprId> {
-    const sourcePortName = db.getOutputPortIdentifier(source)
-    const sourcePortNameWithDot = sourcePortName ? sourcePortName + '.' : ''
-    return createNode(position, sourcePortNameWithDot)
-  }
-
   function deleteNode(id: ExprId) {
     const node = db.nodeIdToNode.get(id)
     if (!node) return
     proj.module?.deleteExpression(node.outerExprId)
+    nodeRects.delete(id)
+    node.pattern?.visitRecursive((ast) => exprRects.delete(ast.astId))
   }
 
   function setNodeContent(id: ExprId, content: string) {
@@ -233,20 +228,6 @@ export const useGraphStore = defineStore('graph', () => {
 
   function stopCapturingUndo() {
     proj.stopCapturingUndo()
-  }
-
-  function replaceNodeSubexpression(
-    nodeId: ExprId,
-    range: ContentRange | undefined,
-    content: string,
-  ) {
-    const node = db.nodeIdToNode.get(nodeId)
-    if (!node) return
-    proj.module?.replaceExpressionContent(node.rootSpan.astId, content, range)
-  }
-
-  function replaceExpressionContent(exprId: ExprId, content: string) {
-    proj.module?.replaceExpressionContent(exprId, content)
   }
 
   function setNodePosition(nodeId: ExprId, position: Vec2) {
@@ -320,8 +301,7 @@ export const useGraphStore = defineStore('graph', () => {
       console.warn('setEditedNode: cursorPosition is null')
       return
     }
-    const range: ContentRange = [cursorPosition, cursorPosition]
-    editedNodeInfo.value = { id, range }
+    editedNodeInfo.value = { id, initialCursorPos: cursorPosition }
   }
 
   return {
@@ -331,6 +311,7 @@ export const useGraphStore = defineStore('graph', () => {
     editedNodeInfo,
     unconnectedEdge,
     edges,
+    currentNodeIds,
     nodeRects,
     vizRects,
     exprRects,
@@ -343,8 +324,6 @@ export const useGraphStore = defineStore('graph', () => {
     deleteNode,
     setNodeContent,
     setExpressionContent,
-    replaceNodeSubexpression,
-    replaceExpressionContent,
     setNodePosition,
     setNodeVisualizationId,
     setNodeVisualizationVisible,
@@ -353,7 +332,6 @@ export const useGraphStore = defineStore('graph', () => {
     updateVizRect,
     updateExprRect,
     setEditedNode,
-    createNodeFromSource,
     updateState,
   }
 })

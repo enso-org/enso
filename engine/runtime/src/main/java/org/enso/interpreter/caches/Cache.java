@@ -32,6 +32,7 @@ public abstract class Cache<T, M extends Cache.Metadata> {
 
   /** Returns a default level of logging for this Cache. */
   protected final Level logLevel;
+
   /** Log name to use in log messages */
   private final String logName;
 

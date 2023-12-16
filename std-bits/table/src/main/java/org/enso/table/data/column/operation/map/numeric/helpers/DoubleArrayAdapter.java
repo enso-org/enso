@@ -1,11 +1,10 @@
 package org.enso.table.data.column.operation.map.numeric.helpers;
 
+import java.math.BigInteger;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
-
-import java.math.BigInteger;
 
 public interface DoubleArrayAdapter {
   double getItemAsDouble(int i);
@@ -31,7 +30,8 @@ public interface DoubleArrayAdapter {
       case DoubleStorage s -> fromStorage(s);
       case AbstractLongStorage s -> fromStorage(s);
       case BigIntegerStorage s -> fromStorage(s);
-      default -> throw new IllegalStateException("Unsupported storage: " + storage.getClass().getCanonicalName());
+      default -> throw new IllegalStateException(
+          "Unsupported storage: " + storage.getClass().getCanonicalName());
     };
   }
 

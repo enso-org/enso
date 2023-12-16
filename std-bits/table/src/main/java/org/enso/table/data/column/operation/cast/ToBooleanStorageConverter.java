@@ -14,11 +14,13 @@ public class ToBooleanStorageConverter implements StorageConverter<Boolean> {
     } else if (storage.getType() instanceof AnyObjectType) {
       return castFromMixed(storage, problemAggregator);
     } else {
-      throw new IllegalStateException("No known strategy for casting storage " + storage + " to Boolean.");
+      throw new IllegalStateException(
+          "No known strategy for casting storage " + storage + " to Boolean.");
     }
   }
 
-  public Storage<Boolean> castFromMixed(Storage<?> mixedStorage, CastProblemAggregator problemAggregator) {
+  public Storage<Boolean> castFromMixed(
+      Storage<?> mixedStorage, CastProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     BoolBuilder builder = new BoolBuilder(mixedStorage.size());
     for (int i = 0; i < mixedStorage.size(); i++) {

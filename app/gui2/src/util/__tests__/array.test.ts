@@ -1,4 +1,4 @@
-import { partitionPoint } from '@/util/array'
+import { partitionPoint } from '@/util/data/array'
 import { fc, test as fcTest } from '@fast-check/vitest'
 import { expect } from 'vitest'
 

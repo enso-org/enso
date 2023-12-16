@@ -1,9 +1,8 @@
 package org.enso.table.data.index;
 
+import java.util.Comparator;
 import org.enso.base.ObjectComparator;
 import org.enso.table.data.column.storage.Storage;
-
-import java.util.Comparator;
 
 /**
  * A multi-value key for ordered operations like sorting.
@@ -21,8 +20,7 @@ public class OrderedMultiValueKey extends MultiValueKeyBase
 
   private final int[] directions;
 
-  public OrderedMultiValueKey(
-          Storage<?>[] storages, int rowIndex, int[] directions) {
+  public OrderedMultiValueKey(Storage<?>[] storages, int rowIndex, int[] directions) {
     this(storages, rowIndex, directions, ObjectComparator.DEFAULT);
   }
 
@@ -76,12 +74,10 @@ public class OrderedMultiValueKey extends MultiValueKeyBase
 
   @Override
   public String toString() {
-    return "OrderedMultiValueKey{row="+rowIndex+"}";
+    return "OrderedMultiValueKey{row=" + rowIndex + "}";
   }
 
-  /**
-   * A comparator that uses only one dimension of the key.
-   */
+  /** A comparator that uses only one dimension of the key. */
   public static class ProjectionComparator implements Comparator<OrderedMultiValueKey> {
     private final int ix;
 
