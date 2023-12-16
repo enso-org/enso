@@ -9,7 +9,6 @@ import static org.junit.Assert.fail;
 import java.net.URI;
 import java.nio.file.Paths;
 import java.util.logging.Level;
-
 import org.enso.polyglot.MethodNames;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
@@ -249,7 +248,10 @@ public class ExecCompilerTest {
 
   @Test
   public void inlineReturnSignatureOnLocalFunction() throws Exception {
-    var module = ctx.eval("enso", """
+    var module =
+        ctx.eval(
+            "enso",
+            """
     foo x y =
         inner_foo (z : Integer) -> Integer = 100*z + 10*y + x
         a = 3
@@ -271,19 +273,24 @@ public class ExecCompilerTest {
   }
 
   /**
-   * This test demonstrates a slightly un-intuitive, but apparently needed by our rules, behaviour of `->` with ascriptions:
-   * 1. for `foo a:Integer -> Integer` it is interpreted as foo (a:Integer) -> Integer - i.e. a function taking an Integer and returning an Integer.
-   * 2. for `foo a : Integer -> Integer`, this results in a compile error currently.
+   * This test demonstrates a slightly un-intuitive, but apparently needed by our rules, behaviour
+   * of `->` with ascriptions: 1. for `foo a:Integer -> Integer` it is interpreted as foo
+   * (a:Integer) -> Integer - i.e. a function taking an Integer and returning an Integer. 2. for
+   * `foo a : Integer -> Integer`, this results in a compile error currently.
    */
   @Test
   public void weirdReturnTypeSignature1() throws Exception {
     final URI uri = new URI("memory://rts.enso");
-    final Source src = Source.newBuilder("enso", """
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
     from Standard.Base import Integer
     foo a:Integer -> Integer = a+10
-    """,uri.getAuthority())
-        .uri(uri)
-        .buildLiteral();
+    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
 
     var module = ctx.eval(src);
     var foo = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo");
@@ -293,12 +300,16 @@ public class ExecCompilerTest {
   @Test
   public void weirdReturnTypeSignature2() throws Exception {
     final URI uri = new URI("memory://rts.enso");
-    final Source src = Source.newBuilder("enso", """
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
     from Standard.Base import Integer
     foo a : Integer -> Integer = a+10
-    """,uri.getAuthority())
-        .uri(uri)
-        .buildLiteral();
+    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
 
     try {
       var module = ctx.eval(src);

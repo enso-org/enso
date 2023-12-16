@@ -811,11 +811,12 @@ public class SignatureTest extends TestBase {
   @Test
   public void unresolvedReturnTypeSignature() throws Exception {
     final URI uri = new URI("memory://neg.enso");
-    final Source src = Source.newBuilder("enso", """
+    final Source src =
+        Source.newBuilder("enso", """
     neg a -> Xyz = 0 - a
-    """,uri.getAuthority())
-        .uri(uri)
-        .buildLiteral();
+    """, uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
 
     try {
       var module = ctx.eval(src);
@@ -830,13 +831,17 @@ public class SignatureTest extends TestBase {
   @Test
   public void validReturnTypeSignature() throws Exception {
     final URI uri = new URI("memory://rts.enso");
-    final Source src = Source.newBuilder("enso", """
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
     from Standard.Base import Integer
     add1 a b -> Integer = a+b
     add2 (a : Integer) (b : Integer) -> Integer = a+b
-    """,uri.getAuthority())
-        .uri(uri)
-        .buildLiteral();
+    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
 
     var module = ctx.eval(src);
     var add1 = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "add1");
@@ -849,12 +854,16 @@ public class SignatureTest extends TestBase {
   @Test
   public void returnTypeCheckOptInError() throws Exception {
     final URI uri = new URI("memory://rts.enso");
-    final Source src = Source.newBuilder("enso", """
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
     from Standard.Base import Integer
     plusChecked a b -> Integer = b+a
-    """,uri.getAuthority())
-        .uri(uri)
-        .buildLiteral();
+    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
 
     var module = ctx.eval(src);
     var plusChecked = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "plusChecked");
@@ -867,17 +876,24 @@ public class SignatureTest extends TestBase {
     }
   }
 
-  /** Similar scenario to {@code returnTypeCheckOptInError}, but with the opt out signature the check is not currently performed. */
+  /**
+   * Similar scenario to {@code returnTypeCheckOptInError}, but with the opt out signature the check
+   * is not currently performed.
+   */
   @Test
   public void returnTypeCheckOptOut() throws Exception {
     final URI uri = new URI("memory://rts.enso");
-    final Source src = Source.newBuilder("enso", """
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
     from Standard.Base import Integer
     plusUnchecked : Integer -> Integer -> Integer
     plusUnchecked a b = b+a
-    """,uri.getAuthority())
-        .uri(uri)
-        .buildLiteral();
+    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
 
     var module = ctx.eval(src);
     var plusChecked = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "plusUnchecked");
@@ -889,13 +905,17 @@ public class SignatureTest extends TestBase {
   @Test
   public void returnTypeCheckOptInErrorZeroArguments() throws Exception {
     final URI uri = new URI("memory://rts.enso");
-    final Source src = Source.newBuilder("enso", """
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
     from Standard.Base import Integer
     constant -> Integer = "foo"
     foo a b = a + constant + b
-    """,uri.getAuthority())
-        .uri(uri)
-        .buildLiteral();
+    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
 
     var module = ctx.eval(src);
     var plusChecked = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo");
@@ -907,18 +927,21 @@ public class SignatureTest extends TestBase {
     }
   }
 
-
   @Test
   public void returnTypeCheckOptInErrorZeroArgumentsExpression() throws Exception {
     final URI uri = new URI("memory://rts.enso");
-    final Source src = Source.newBuilder("enso", """
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
     from Standard.Base import Integer
     foo a =
         x -> Integer = a+a
         x+x
-    """,uri.getAuthority())
-        .uri(uri)
-        .buildLiteral();
+    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
 
     var module = ctx.eval(src);
     var plusChecked = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo");
@@ -934,15 +957,19 @@ public class SignatureTest extends TestBase {
   @Test
   public void returnTypeCheckOptInErrorZeroArgumentsBlock() throws Exception {
     final URI uri = new URI("memory://rts.enso");
-    final Source src = Source.newBuilder("enso", """
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
     from Standard.Base import Integer, IO
     foo a =
         x -> Integer =
             a+a
         x+x
-    """,uri.getAuthority())
-        .uri(uri)
-        .buildLiteral();
+    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
 
     var module = ctx.eval(src);
     var plusChecked = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo");
@@ -958,16 +985,20 @@ public class SignatureTest extends TestBase {
   @Test
   public void returnTypeCheckOptInAllowDataflowErrors() throws Exception {
     final URI uri = new URI("memory://rts.enso");
-    final Source src = Source.newBuilder("enso", """
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
     from Standard.Base import Integer, Error
     foo x -> Integer = case x of
         1 -> 100
         2 -> "TWO"
         3 -> Error.throw "My error"
         _ -> x+1
-    """,uri.getAuthority())
-        .uri(uri)
-        .buildLiteral();
+    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
 
     var module = ctx.eval(src);
     var foo = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo");
@@ -988,7 +1019,10 @@ public class SignatureTest extends TestBase {
   @Test
   public void returnTypeCheckOptInTailRec() throws Exception {
     final URI uri = new URI("memory://rts.enso");
-    final Source src = Source.newBuilder("enso", """
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
     from Standard.Base import Integer, Error
     factorial (x : Integer) -> Integer =
         go n acc -> Integer =
@@ -996,9 +1030,10 @@ public class SignatureTest extends TestBase {
                 if n == 10 then "TEN :)" else
                     @Tail_Call go (n-1) (acc*n)
         go x 1
-    """,uri.getAuthority())
-        .uri(uri)
-        .buildLiteral();
+    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
 
     var module = ctx.eval(src);
     var factorial = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "factorial");
@@ -1014,13 +1049,17 @@ public class SignatureTest extends TestBase {
   }
 
   /**
-   * An additional test to ensure that the way the return type check is implemented does not break the TCO. We execute a
-   * recursive computation that goes 100k frames deep - if TCO did not kick in here, we'd get a stack overflow.
+   * An additional test to ensure that the way the return type check is implemented does not break
+   * the TCO. We execute a recursive computation that goes 100k frames deep - if TCO did not kick in
+   * here, we'd get a stack overflow.
    */
   @Test
   public void returnTypeCheckOptInTCO() throws Exception {
     final URI uri = new URI("memory://rts.enso");
-    final Source src = Source.newBuilder("enso", """
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
     from Standard.Base import Integer, Error
     foo (counter : Integer) (trap : Integer) -> Integer =
         go i acc -> Integer =
@@ -1028,9 +1067,10 @@ public class SignatureTest extends TestBase {
                 if i == trap then "TRAP!" else
                     @Tail_Call go (i-1) (acc+1)
         go counter 1
-    """,uri.getAuthority())
-        .uri(uri)
-        .buildLiteral();
+    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
 
     var module = ctx.eval(src);
     var foo = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo");
@@ -1047,7 +1087,10 @@ public class SignatureTest extends TestBase {
   @Test
   public void returnTypeCheckOptInTCO2() throws Exception {
     final URI uri = new URI("memory://rts.enso");
-    final Source src = Source.newBuilder("enso", """
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
     from Standard.Base import Integer, Error
     foo_ok counter -> Integer =
         if counter == 0 then 0 else
@@ -1055,9 +1098,10 @@ public class SignatureTest extends TestBase {
     foo_bad counter -> Integer =
         if counter == 0 then "ZERO" else
             @Tail_Call foo_bad (counter-1)
-    """,uri.getAuthority())
-        .uri(uri)
-        .buildLiteral();
+    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
 
     var module = ctx.eval(src);
     var foo_ok = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo_ok");
