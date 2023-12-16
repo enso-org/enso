@@ -80,7 +80,9 @@ spec setup =
             t.filter "X" (Filter_Condition.Greater than=10.0) . at "ix" . to_vector . should_equal <|
                 if prefix.contains "PostgreSQL" . not then [1, 5] else [1, 4, 5]
 
-            t.filter "X" (Filter_Condition.Equal to=Number.nan) . at "ix" . to_vector . should_equal []
+            # Similarly, PostgreSQL treats NaN==NaN
+            t.filter "X" (Filter_Condition.Equal to=Number.nan) . at "ix" . to_vector . should_equal <|
+                if prefix.contains "PostgreSQL" . not then [] else [4]
             t.filter "X" (Filter_Condition.Equal to=Number.positive_infinity) . at "ix" . to_vector . should_equal [5]
 
             t.filter "X" Filter_Condition.Is_Infinite . at "ix" . to_vector . should_equal [5, 6]
