@@ -712,7 +712,10 @@ class IrToTruffle(
   // === Utility Functions ====================================================
   // ==========================================================================
 
-  private def extractAscribedType(comment: String, t: Expression): ReadArgumentCheckNode = t match {
+  private def extractAscribedType(
+    comment: String,
+    t: Expression
+  ): ReadArgumentCheckNode = t match {
     case u: `type`.Set.Union =>
       ReadArgumentCheckNode.oneOf(
         comment,
@@ -1072,9 +1075,11 @@ class IrToTruffle(
       ir match {
         case _: Expression.Binding =>
         case _ =>
-          val types: Option[TypeSignatures.Signature] = ir.getMetadata(TypeSignatures)
+          val types: Option[TypeSignatures.Signature] =
+            ir.getMetadata(TypeSignatures)
           types.foreach { tpe =>
-            val checkNode = extractAscribedType(tpe.comment.orNull, tpe.signature);
+            val checkNode =
+              extractAscribedType(tpe.comment.orNull, tpe.signature);
             if (checkNode != null) {
               runtimeExpression =
                 ReadArgumentCheckNode.wrap(runtimeExpression, checkNode)

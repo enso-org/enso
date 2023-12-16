@@ -119,24 +119,24 @@ object Type {
   }
 
   /** The ascription of a type to a value.
-   *
-   * @param typed       the expression being ascribed a type
-   * @param signature   the signature being ascribed to `typed`
-   * @param comment     a comment that may be used to add context to the type error
-   * @param location    the source location that the node corresponds to
-   * @param passData    the pass metadata associated with this node
-   * @param diagnostics compiler diagnostics for this node
-   */
+    *
+    * @param typed       the expression being ascribed a type
+    * @param signature   the signature being ascribed to `typed`
+    * @param comment     a comment that may be used to add context to the type error
+    * @param location    the source location that the node corresponds to
+    * @param passData    the pass metadata associated with this node
+    * @param diagnostics compiler diagnostics for this node
+    */
   sealed case class Ascription(
     typed: Expression,
     signature: Expression,
     comment: Option[String],
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage = new MetadataStorage(),
+    override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Type
-    with module.scope.Definition
-    with IRKind.Primitive {
+      with module.scope.Definition
+      with IRKind.Primitive {
     var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
@@ -153,13 +153,14 @@ object Type {
     def copy(
       typed: Expression                    = typed,
       signature: Expression                = signature,
-      comment: Option[String] = comment,
+      comment: Option[String]              = comment,
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Ascription = {
-      val res = Ascription(typed, signature, comment, location, passData, diagnostics)
+      val res =
+        Ascription(typed, signature, comment, location, passData, diagnostics)
       res.id = id
       res
     }
