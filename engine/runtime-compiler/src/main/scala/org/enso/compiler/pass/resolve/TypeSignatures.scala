@@ -345,6 +345,6 @@ case object TypeSignatures extends IRPass {
 
     /** @inheritdoc */
     override def duplicate(): Option[IRPass.IRMetadata] =
-      Some(this.copy(signature = signature.duplicate()))
+      Some(this.copy(signature = signature.duplicate(), comment = comment))
   }
 }

@@ -250,7 +250,8 @@ final class TreeToIr {
             yield join(error, appendTo);
         }
 
-        var ascribedBody = addTypeAscription(body, returnSignature, loc);
+        String functionName = fn.getName().codeRepr();
+        var ascribedBody = addTypeAscription(functionName, body, returnSignature, loc);
         var binding = new Method.Binding(
           methodRef,
           args,
@@ -507,6 +508,7 @@ final class TreeToIr {
 
       var loc = getIdentifiedLocation(fun);
       var body = translateExpression(treeBody);
+      String functionName = name.name();
       if (args.isEmpty()) {
         if (body instanceof Expression.Block block) {
           // suspended block has a name and no arguments
@@ -524,14 +526,14 @@ final class TreeToIr {
           body = translateSyntaxError(fun, Syntax.UnexpectedExpression$.MODULE$);
         }
 
-        var ascribedBody = addTypeAscription(body, returnType, loc);
+        var ascribedBody = addTypeAscription(functionName, body, returnType, loc);
         return new Expression.Binding(name, ascribedBody, loc, meta(), diag());
       } else {
         if (body == null) {
           return translateSyntaxError(fun, Syntax.UnexpectedDeclarationInType$.MODULE$);
         }
 
-        var ascribedBody = addTypeAscription(body, returnType, loc);
+        var ascribedBody = addTypeAscription(functionName, body, returnType, loc);
         return new Function.Binding(name, args, ascribedBody, loc, true, meta(), diag());
       }
    }
@@ -551,13 +553,14 @@ final class TreeToIr {
    * <p>
    * If the type is {@code null}, the body is returned unchanged.
    */
-  private Expression addTypeAscription(Expression body, Expression type, Option<IdentifiedLocation> loc) {
+  private Expression addTypeAscription(String functionName, Expression body, Expression type, Option<IdentifiedLocation> loc) {
      if (type == null) {
        return body;
      }
 
-     // TODO
-     return new Type.Ascription(body, type, Option.empty(), loc, meta(), diag());
+     String comment = "`" + functionName + "` result";
+     System.out.println("Creating ascription with comment: " + comment);
+     return new Type.Ascription(body, type, Option.apply(comment), loc, meta(), diag());
   }
 
   private Type.Ascription translateTypeSignature(Tree sig, Tree type, Expression typeName) {

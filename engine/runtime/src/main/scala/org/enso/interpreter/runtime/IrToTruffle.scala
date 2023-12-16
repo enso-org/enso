@@ -1074,6 +1074,7 @@ class IrToTruffle(
         case _ =>
           val types: Option[TypeSignatures.Signature] = ir.getMetadata(TypeSignatures)
           types.foreach { tpe =>
+            System.out.println(tpe.signature.showCode() + " --> " + tpe.comment.orNull)
             val checkNode = extractAscribedType(tpe.comment.orNull, tpe.signature);
             if (checkNode != null) {
               runtimeExpression =
