@@ -6,7 +6,6 @@ type Gen
     next : Gen
     next self -> Gen = Gen.Generator self.n+1
 
-natural : Gen
 natural -> Gen =
     gen n = Gen.Generator n
     gen 2
