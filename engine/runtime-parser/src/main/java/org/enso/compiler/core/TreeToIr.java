@@ -96,7 +96,7 @@ final class TreeToIr {
                 methodReference = translateExpression(sig.getVariable());
               }
               var signature = translateType(sig.getType());
-              var ascription = new Type.Ascription(methodReference, signature, getIdentifiedLocation(sig), meta(), diag());
+              var ascription = new Type.Ascription(methodReference, signature, Option.empty(), getIdentifiedLocation(sig), meta(), diag());
               yield ascription;
             }
             default -> translateExpression(exprTree);
@@ -317,7 +317,7 @@ final class TreeToIr {
       case Tree.TypeSignature sig -> {
         var methodReference = translateMethodReference(sig.getVariable(), true);
         var signature = translateType(sig.getType());
-        var ascription = new Type.Ascription(methodReference, signature, getIdentifiedLocation(sig), meta(), diag());
+        var ascription = new Type.Ascription(methodReference, signature, Option.empty(), getIdentifiedLocation(sig), meta(), diag());
         yield join(ascription, appendTo);
       }
 
@@ -556,12 +556,13 @@ final class TreeToIr {
        return body;
      }
 
-     return new Type.Ascription(body, type, loc, meta(), diag());
+     // TODO
+     return new Type.Ascription(body, type, Option.empty(), loc, meta(), diag());
   }
 
   private Type.Ascription translateTypeSignature(Tree sig, Tree type, Expression typeName) {
     var fn = translateType(type);
-    return new Type.Ascription(typeName, fn, getIdentifiedLocation(sig), meta(), diag());
+    return new Type.Ascription(typeName, fn, Option.empty(), getIdentifiedLocation(sig), meta(), diag());
   }
 
 

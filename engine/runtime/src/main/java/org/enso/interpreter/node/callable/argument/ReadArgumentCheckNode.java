@@ -48,11 +48,11 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.graalvm.collections.Pair;
 
 public abstract class ReadArgumentCheckNode extends Node {
-  private final String name;
+  private final String comment;
   @CompilerDirectives.CompilationFinal private String expectedTypeMessage;
 
-  ReadArgumentCheckNode(String name) {
-    this.name = name;
+  ReadArgumentCheckNode(String comment) {
+    this.comment = comment;
   }
 
   /** */
@@ -61,7 +61,7 @@ public abstract class ReadArgumentCheckNode extends Node {
   }
 
   /**
-   * Executes check or conversion of the value.abstract
+   * Executes check or conversion of the value.
    *
    * @param frame frame requesting the conversion
    * @param value the value to convert
@@ -88,7 +88,7 @@ public abstract class ReadArgumentCheckNode extends Node {
       expectedTypeMessage = expectedTypeMessage();
     }
     var ctx = EnsoContext.get(this);
-    var msg = name == null ? "expression" : name;
+    var msg = comment == null ? "expression" : comment;
     var err = ctx.getBuiltins().error().makeTypeError(expectedTypeMessage, v, msg);
     throw new PanicException(err, this);
   }
@@ -108,22 +108,21 @@ public abstract class ReadArgumentCheckNode extends Node {
     };
   }
 
-  public static ReadArgumentCheckNode oneOf(
-      String argumentName, List<ReadArgumentCheckNode> checks) {
+  public static ReadArgumentCheckNode oneOf(String comment, List<ReadArgumentCheckNode> checks) {
     var arr = toArray(checks);
     return switch (arr.length) {
       case 0 -> null;
       case 1 -> arr[0];
-      default -> new OneOfNode(argumentName, arr);
+      default -> new OneOfNode(comment, arr);
     };
   }
 
-  public static ReadArgumentCheckNode build(String argumentName, Type expectedType) {
-    return ReadArgumentCheckNodeFactory.TypeCheckNodeGen.create(argumentName, expectedType);
+  public static ReadArgumentCheckNode build(String comment, Type expectedType) {
+    return ReadArgumentCheckNodeFactory.TypeCheckNodeGen.create(comment, expectedType);
   }
 
-  public static ReadArgumentCheckNode meta(String argumentName, Object metaObject) {
-    return ReadArgumentCheckNodeFactory.MetaCheckNodeGen.create(argumentName, metaObject);
+  public static ReadArgumentCheckNode meta(String comment, Object metaObject) {
+    return ReadArgumentCheckNodeFactory.MetaCheckNodeGen.create(comment, metaObject);
   }
 
   public static boolean isWrappedThunk(Function fn) {

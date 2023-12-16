@@ -97,7 +97,7 @@ case object TypeSignatures extends IRPass {
           case _            =>
         }
         val res = lastSignature match {
-          case Some(asc @ Type.Ascription(typed, sig, _, _, _)) =>
+          case Some(asc @ Type.Ascription(typed, sig, comment, _, _, _)) =>
             val methodRef = meth.methodReference
             val newMethodWithDoc = asc
               .getMetadata(DocumentationComments)
@@ -121,7 +121,7 @@ case object TypeSignatures extends IRPass {
                 if (ref isSameReferenceAs methodRef) {
                   Some(
                     newMethodWithAnnotations.updateMetadata(
-                      new MetadataPair(this, Signature(sig))
+                      new MetadataPair(this, Signature(sig, comment))
                     )
                   )
                 } else {
@@ -246,7 +246,7 @@ case object TypeSignatures extends IRPass {
   private def resolveAscription(sig: Type.Ascription): Expression = {
     val newTyped = sig.typed.mapExpressions(resolveExpression)
     val newSig   = sig.signature.mapExpressions(resolveExpression)
-    newTyped.updateMetadata(new MetadataPair(this, Signature(newSig)))
+    newTyped.updateMetadata(new MetadataPair(this, Signature(newSig, sig.comment)))
   }
 
   /** Resolves type signatures in a block.
@@ -271,7 +271,7 @@ case object TypeSignatures extends IRPass {
       case binding: Expression.Binding =>
         val newBinding = binding.mapExpressions(resolveExpression)
         val res = lastSignature match {
-          case Some(asc @ Type.Ascription(typed, sig, _, _, _)) =>
+          case Some(asc @ Type.Ascription(typed, sig, comment, _, _, _)) =>
             val name = binding.name
             val newBindingWithDoc = asc
               .getMetadata(DocumentationComments)
@@ -287,7 +287,7 @@ case object TypeSignatures extends IRPass {
                 if (typedName.name == name.name) {
                   Some(
                     newBindingWithDoc.updateMetadata(
-                      new MetadataPair(this, Signature(sig))
+                      new MetadataPair(this, Signature(sig, comment))
                     )
                   )
                 } else {

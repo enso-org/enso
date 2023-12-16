@@ -176,11 +176,11 @@ public final class Error {
    *
    * @param expected the expected type
    * @param actual the actual type
-   * @param name the name of the variable that is a type error
+   * @param comment description of the value that was being checked
    * @return a runtime representation of the error.
    */
-  public Atom makeTypeError(Object expected, Object actual, String name) {
-    return typeError.newInstance(expected, actual, Text.create(name));
+  public Atom makeTypeError(Object expected, Object actual, String comment) {
+    return typeError.newInstance(expected, actual, Text.create(comment));
   }
 
   /**
