@@ -224,6 +224,7 @@ type Column
        - other: The value to compare `self` against. If `other` is a column, the
          comparison is performed pairwise between corresponding elements of
          `self` and `other`.
+       - locale: The locale to use for the case-insensitive comparison.
 
        Returns a column with results of comparing this column's elements against
        `other`.

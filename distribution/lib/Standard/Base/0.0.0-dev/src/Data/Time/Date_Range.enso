@@ -562,7 +562,7 @@ unify_condition_for_index_of (condition : Date | Filter_Condition | Function) =
 
 ## PRIVATE
 date_range_default_filter_condition_widget =
-    Filter_Condition.default_widget include_text=False include_boolean=False include_nullable=False
+    Filter_Condition.default_widget include_text=False include_boolean=False include_numeric=False include_nullable=False
 
 ## PRIVATE
 Vector.from (that:Date_Range) = that.to_vector
