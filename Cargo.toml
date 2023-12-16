@@ -14,7 +14,9 @@ members = [
   "build/cli",
   "build/macros/proc-macro",
   "build/ci-gen",
-  "build/installer",
+  "build/install",
+  "build/install/installer",
+  "build/install/uninstaller",
   "build/intellij-run-config-gen",
   "build/deprecated/rust-scripts",
   "build/shader-tools",
@@ -44,7 +46,7 @@ console_error_panic_hook = { git = 'https://github.com/enso-org/console_error_pa
 [profile.dev]
 opt-level = 0
 lto = false
-debug = 2
+debug = true
 debug-assertions = true
 
 [profile.release]
@@ -84,7 +86,10 @@ debug-assertions = true
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # We are tryingto maintain minimum set of dependencies. Before adding a new dependency, consult it
 # with the core development team. Thank you!
+
+chrono = { version = "0.4.31", features = ["serde"] }
 console-subscriber = "0.1.8"
+directories = { version = "5.0.1" }
 dirs = { version = "5.0.1" }
 flate2 = { version = "1.0.28" }
 indicatif = { version = "0.17.7", features = ["tokio"] }
@@ -103,8 +108,10 @@ tar = { version = "0.4.40" }
 tokio = { version = "1.23.0", features = ["full", "tracing"] }
 tokio-stream = { version = "0.1.12", features = ["fs"] }
 tokio-util = { version = "0.7.4", features = ["full"] }
+tracing = { version = "0.1.40" }
 wasm-bindgen = { version = "0.2.87", features = [] }
 wasm-bindgen-test = { version = "0.3.34" }
+windows =  { version = "0.52.0", features = ["Win32", "Win32_UI", "Win32_UI_Shell", "Win32_System", "Win32_System_LibraryLoader", "Win32_Foundation", "Win32_System_Com"] }
 winreg = { version = "0.52.0" }
 anyhow = { version = "1.0.66" }
 failure = { version = "0.1.8" }

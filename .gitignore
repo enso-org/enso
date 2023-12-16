@@ -158,3 +158,4 @@ test-results
 *.ir
 *.meta
 .enso/
+/build/install/installer/archive.rc
