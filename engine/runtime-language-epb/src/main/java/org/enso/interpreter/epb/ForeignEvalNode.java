@@ -1,11 +1,5 @@
 package org.enso.interpreter.epb;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.function.Function;
-import java.util.logging.Level;
-import java.util.stream.Collectors;
-
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.FrameDescriptor;
@@ -13,6 +7,11 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropException;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.Source;
+import java.util.Arrays;
+import java.util.List;
+import java.util.function.Function;
+import java.util.logging.Level;
+import java.util.stream.Collectors;
 
 final class ForeignEvalNode extends RootNode {
   private final Source langAndCode;
@@ -58,20 +57,25 @@ final class ForeignEvalNode extends RootNode {
       var id = truffleId(langAndCode);
       var context = EpbContext.get(this);
       var installedLanguages = context.getEnv().getInternalLanguages();
-      var node = switch (installedLanguages.containsKey(id) ? 1 : 0) {
-        case 0 -> {
-          var ex = new ForeignParsingException(id, installedLanguages.keySet(), this);
-          yield new ExceptionForeignNode(ex);
-        }
-        default -> {
-          context.log(Level.FINE, "Parsing foreign script {1} - language {0}", id, langAndCode.getName());
-          yield switch (id) {
-            case "js" -> parseJs();
-            case "python" -> parseGeneric("python", PyForeignNode::new);
-            default -> parseGeneric(id, GenericForeignNode::new);
+      var node =
+          switch (installedLanguages.containsKey(id) ? 1 : 0) {
+            case 0 -> {
+              var ex = new ForeignParsingException(id, installedLanguages.keySet(), this);
+              yield new ExceptionForeignNode(ex);
+            }
+            default -> {
+              context.log(
+                  Level.FINE,
+                  "Parsing foreign script {1} - language {0}",
+                  id,
+                  langAndCode.getName());
+              yield switch (id) {
+                case "js" -> parseJs();
+                case "python" -> parseGeneric("python", PyForeignNode::new);
+                default -> parseGeneric(id, GenericForeignNode::new);
+              };
+            }
           };
-        }
-      };
       foreign = insert(node);
     }
     try {
@@ -87,20 +91,17 @@ final class ForeignEvalNode extends RootNode {
     var inner = context.getInnerContext();
     var code = foreignSource(langAndCode);
     var args = Arrays.stream(argNames).skip(1).collect(Collectors.joining(","));
-    var wrappedSrc
-            = "var poly_enso_eval=function("
-            + args
-            + "){\n"
-            + code
-            + "\n};poly_enso_eval";
+    var wrappedSrc = "var poly_enso_eval=function(" + args + "){\n" + code + "\n};poly_enso_eval";
     Source source = Source.newBuilder("js", wrappedSrc, "").build();
     var fn = inner.evalPublic(this, source);
     return JsForeignNode.build(fn);
   }
 
-  private ForeignFunctionCallNode parseGeneric(String language, Function<CallTarget,ForeignFunctionCallNode> nodeFactory) {
+  private ForeignFunctionCallNode parseGeneric(
+      String language, Function<CallTarget, ForeignFunctionCallNode> nodeFactory) {
     var ctx = EpbContext.get(this);
-    Source source = Source.newBuilder(language, foreignSource(langAndCode), langAndCode.getName()).build();
+    Source source =
+        Source.newBuilder(language, foreignSource(langAndCode), langAndCode.getName()).build();
     CallTarget ct = ctx.getEnv().parsePublic(source, argNames);
     return nodeFactory.apply(ct);
   }

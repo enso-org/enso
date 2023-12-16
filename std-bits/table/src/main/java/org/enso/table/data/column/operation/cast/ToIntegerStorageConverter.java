@@ -1,5 +1,7 @@
 package org.enso.table.data.column.operation.cast;
 
+import java.math.BigInteger;
+import java.util.BitSet;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.LongBuilder;
 import org.enso.table.data.column.builder.NumericBuilder;
@@ -13,9 +15,6 @@ import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.util.BitSets;
 import org.graalvm.polyglot.Context;
-
-import java.math.BigInteger;
-import java.util.BitSet;
 
 public class ToIntegerStorageConverter implements StorageConverter<Long> {
   private final IntegerType targetType;
@@ -41,13 +40,16 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
     } else if (storage.getType() instanceof AnyObjectType) {
       return castFromMixed(storage, problemAggregator);
     } else {
-      throw new IllegalStateException("No known strategy for casting storage " + storage + " to Integer.");
+      throw new IllegalStateException(
+          "No known strategy for casting storage " + storage + " to Integer.");
     }
   }
 
-  public Storage<Long> castFromMixed(Storage<?> mixedStorage, CastProblemAggregator problemAggregator) {
+  public Storage<Long> castFromMixed(
+      Storage<?> mixedStorage, CastProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
-    LongBuilder builder = NumericBuilder.createLongBuilder(mixedStorage.size(), targetType, problemAggregator);
+    LongBuilder builder =
+        NumericBuilder.createLongBuilder(mixedStorage.size(), targetType, problemAggregator);
     for (int i = 0; i < mixedStorage.size(); i++) {
       Object o = mixedStorage.getItemBoxed(i);
       if (o == null) {
@@ -89,7 +91,8 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
     return builder.seal();
   }
 
-  private Storage<Long> convertBoolStorage(BoolStorage boolStorage, CastProblemAggregator problemAggregator) {
+  private Storage<Long> convertBoolStorage(
+      BoolStorage boolStorage, CastProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     int n = boolStorage.size();
     LongBuilder builder = NumericBuilder.createLongBuilder(n, targetType, problemAggregator);
@@ -107,7 +110,8 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
     return builder.seal();
   }
 
-  private Storage<Long> convertDoubleStorage(DoubleStorage doubleStorage, CastProblemAggregator problemAggregator) {
+  private Storage<Long> convertDoubleStorage(
+      DoubleStorage doubleStorage, CastProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     int n = doubleStorage.size();
     LongBuilder builder = NumericBuilder.createLongBuilder(n, targetType, problemAggregator);
@@ -131,10 +135,12 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
     return builder.seal();
   }
 
-  private Storage<Long> convertLongStorage(AbstractLongStorage longStorage, CastProblemAggregator problemAggregator) {
+  private Storage<Long> convertLongStorage(
+      AbstractLongStorage longStorage, CastProblemAggregator problemAggregator) {
     boolean isWidening = targetType.fits(longStorage.getType());
     if (isWidening) {
-      // If the target type is larger than the source type, we can just widen the storage without doing any checks.
+      // If the target type is larger than the source type, we can just widen the storage without
+      // doing any checks.
       return longStorage.widen(targetType);
     } else {
       // Otherwise we have to check for elements that may not fit.
@@ -160,7 +166,8 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
     }
   }
 
-  private Storage<Long> convertBigIntegerStorage(Storage<BigInteger> storage, CastProblemAggregator problemAggregator) {
+  private Storage<Long> convertBigIntegerStorage(
+      Storage<BigInteger> storage, CastProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     int n = storage.size();
     long[] data = new long[n];

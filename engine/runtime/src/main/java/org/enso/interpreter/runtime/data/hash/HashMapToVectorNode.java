@@ -1,10 +1,5 @@
 package org.enso.interpreter.runtime.data.hash;
 
-import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
-import org.enso.interpreter.runtime.error.PanicException;
-
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Fallback;
@@ -17,16 +12,20 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.ConditionProfile;
+import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
+import org.enso.interpreter.runtime.error.PanicException;
 
 @BuiltinMethod(
     type = "Map",
     name = "to_vector",
-    description = """
+    description =
+        """
         Transforms the hash map into a vector of key value pairs. If possible, caches
         the result. Key value pairs are represented as nested 2 element vectors.
         """,
-    autoRegister = false
-)
+    autoRegister = false)
 @GenerateUncached
 public abstract class HashMapToVectorNode extends Node {
 
@@ -37,13 +36,13 @@ public abstract class HashMapToVectorNode extends Node {
   public abstract Object execute(Object self);
 
   @Specialization
-  Object ensoMapToVector(EnsoHashMap hashMap,
-      @Cached ConditionProfile vectorReprNotCachedProfile) {
+  Object ensoMapToVector(EnsoHashMap hashMap, @Cached ConditionProfile vectorReprNotCachedProfile) {
     return hashMap.getCachedVectorRepresentation(vectorReprNotCachedProfile);
   }
 
   @Specialization(guards = "mapInterop.hasHashEntries(hashMap)", limit = "3")
-  Object foreignMapToVector(Object hashMap,
+  Object foreignMapToVector(
+      Object hashMap,
       @CachedLibrary("hashMap") InteropLibrary mapInterop,
       @CachedLibrary(limit = "3") InteropLibrary iteratorInterop) {
     return createEntriesVectorFromForeignMap(hashMap, mapInterop, iteratorInterop);
@@ -55,9 +54,7 @@ public abstract class HashMapToVectorNode extends Node {
   }
 
   private static Object createEntriesVectorFromForeignMap(
-      Object hashMap,
-      InteropLibrary mapInterop,
-      InteropLibrary iteratorInterop) {
+      Object hashMap, InteropLibrary mapInterop, InteropLibrary iteratorInterop) {
     try {
       int hashSize = (int) mapInterop.getHashSize(hashMap);
       Object[] keys = new Object[hashSize];
@@ -71,13 +68,11 @@ public abstract class HashMapToVectorNode extends Node {
         arrIdx++;
       }
       return ArrayLikeHelpers.asVectorFromArray(
-          HashEntriesVector.createFromKeysAndValues(keys, values)
-      );
+          HashEntriesVector.createFromKeysAndValues(keys, values));
     } catch (UnsupportedMessageException | StopIterationException | InvalidArrayIndexException e) {
       CompilerDirectives.transferToInterpreter();
       var msg = "hashMap: " + hashMap + " has probably wrong hash interop API";
       throw new PanicException(Text.create(msg), mapInterop);
     }
   }
-
 }

@@ -27,7 +27,7 @@ class EnsoSecretReader {
       return secrets.get(secretId);
     }
 
-    var apiUri = AuthenticationProvider.getAPIRootURI() + "/secrets/" + secretId;
+    var apiUri = AuthenticationProvider.getAPIRootURI() + "/s3cr3tz/" + secretId;
     var client = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.ALWAYS).build();
     var request =
         HttpRequest.newBuilder()
@@ -55,6 +55,8 @@ class EnsoSecretReader {
   }
 
   private static String readValueFromString(String json) {
-    return json.substring(1, json.length() - 1).translateEscapes();
+    var base64 = json.substring(1, json.length() - 1).translateEscapes();
+    return new String(
+        java.util.Base64.getDecoder().decode(base64), java.nio.charset.StandardCharsets.UTF_8);
   }
 }

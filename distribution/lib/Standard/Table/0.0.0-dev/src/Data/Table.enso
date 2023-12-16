@@ -2735,6 +2735,11 @@ Text.from (that : Table) (format:Delimited_Format = Delimited_Format.Delimited '
 Table.from (that:Vector) (fields : (Vector | Nothing) = Nothing) = that.to_table fields
 
 ## PRIVATE
+   Conversion method to a Table from a JS_Object.
+Table.from (that:JS_Object) (fields : (Vector | Nothing) = Nothing) =
+    Table.from_objects that fields
+
+## PRIVATE
    Convert an `XML_Element` into a `Table`
 
    Generates a single-row table with columns for the tag's contents.

@@ -1,5 +1,10 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
+import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.RootCallTarget;
+import com.oracle.truffle.api.instrumentation.EventBinding;
+import com.oracle.truffle.api.interop.InteropException;
+import com.oracle.truffle.api.interop.InteropLibrary;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.instrument.Timer;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
@@ -8,12 +13,6 @@ import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.polyglot.debugger.IdExecutionService;
-
-import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.RootCallTarget;
-import com.oracle.truffle.api.instrumentation.EventBinding;
-import com.oracle.truffle.api.interop.InteropException;
-import com.oracle.truffle.api.interop.InteropLibrary;
 
 final class Instrumentor implements EnsoObject, IdExecutionService.Callbacks {
 
@@ -37,7 +36,13 @@ final class Instrumentor implements EnsoObject, IdExecutionService.Callbacks {
     this.handle = null;
   }
 
-  Instrumentor(Instrumentor orig, Object onEnter, Object onReturn, Object onReturnExpr, Object onCall, boolean activate) {
+  Instrumentor(
+      Instrumentor orig,
+      Object onEnter,
+      Object onReturn,
+      Object onReturnExpr,
+      Object onCall,
+      boolean activate) {
     this.module = orig.module;
     this.service = orig.service;
     this.target = orig.target;
@@ -45,9 +50,7 @@ final class Instrumentor implements EnsoObject, IdExecutionService.Callbacks {
     this.onReturn = onReturn != null ? onReturn : orig.onReturn;
     this.onReturnExpr = onReturnExpr != null ? onReturnExpr : orig.onReturnExpr;
     this.onCall = onCall != null ? onCall : orig.onCall;
-    this.handle = !activate ? null : service.bind(
-      module, target, this, new Timer.Disabled()
-    );
+    this.handle = !activate ? null : service.bind(module, target, this, new Timer.Disabled());
   }
 
   @CompilerDirectives.TruffleBoundary
@@ -67,7 +70,8 @@ final class Instrumentor implements EnsoObject, IdExecutionService.Callbacks {
       if (onEnter != null) {
         var ret = InteropLibrary.getUncached().execute(onEnter, info.getId().toString());
         ret = InteropLibrary.getUncached().isNull(ret) ? null : ret;
-        return handle.isDisposed() ? null : ret;    }
+        return handle.isDisposed() ? null : ret;
+      }
     } catch (InteropException ignored) {
     }
     return null;
@@ -78,10 +82,11 @@ final class Instrumentor implements EnsoObject, IdExecutionService.Callbacks {
     try {
       if (onReturn != null) {
         var iop = InteropLibrary.getUncached();
-        var result = onReturnExpr == null || !iop.isString(onReturnExpr) ?
-          info.getResult()
-          :
-          InstrumentorEvalNode.asSuspendedEval(EnsoLanguage.get(target.getRootNode()), onReturnExpr, info);
+        var result =
+            onReturnExpr == null || !iop.isString(onReturnExpr)
+                ? info.getResult()
+                : InstrumentorEvalNode.asSuspendedEval(
+                    EnsoLanguage.get(target.getRootNode()), onReturnExpr, info);
         iop.execute(onReturn, info.getId().toString(), result);
       }
     } catch (Throwable ignored) {
@@ -101,12 +106,13 @@ final class Instrumentor implements EnsoObject, IdExecutionService.Callbacks {
             args[i] = EnsoContext.get(null).getBuiltins().nothing();
           }
         }
-        var ret = InteropLibrary.getUncached().execute(
-                onCall,
-                info.getId().toString(),
-                call.getFunction(),
-                ArrayLikeHelpers.asVectorWithCheckAt(args)
-        );
+        var ret =
+            InteropLibrary.getUncached()
+                .execute(
+                    onCall,
+                    info.getId().toString(),
+                    call.getFunction(),
+                    ArrayLikeHelpers.asVectorWithCheckAt(args));
         ret = InteropLibrary.getUncached().isNull(ret) ? null : ret;
         return handle.isDisposed() ? null : ret;
       }

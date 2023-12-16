@@ -13,7 +13,9 @@ public class System {
     systemProcessResult = builtins.getBuiltinType(SystemProcessResult.class);
   }
 
-  /** @return the atom constructor for {@code Process_Result}. */
+  /**
+   * @return the atom constructor for {@code Process_Result}.
+   */
   public Atom makeSystemResult(Object exitCode, Object stdout, Object stderr) {
     return systemProcessResult.newInstance(exitCode, stdout, stderr);
   }

@@ -1,5 +1,7 @@
 package org.enso.table.data.column.builder;
 
+import java.math.BigInteger;
+import java.util.Arrays;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
@@ -13,13 +15,11 @@ import org.enso.table.error.ValueTypeMismatchException;
 import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 
-import java.math.BigInteger;
-import java.util.Arrays;
-
 // For now the BigInteger builder is just a stub, reusing the ObjectBuilder and adding a warning.
 public class BigIntegerBuilder extends TypedBuilderImpl<BigInteger> {
   // The problem aggregator is only used so that when we are retyping, we can pass it on.
   private final ProblemAggregator problemAggregator;
+
   @Override
   protected BigInteger[] newArray(int size) {
     return new BigInteger[size];
@@ -43,7 +43,8 @@ public class BigIntegerBuilder extends TypedBuilderImpl<BigInteger> {
   @Override
   public TypedBuilder retypeTo(StorageType type) {
     if (type instanceof FloatType) {
-      DoubleBuilder res = NumericBuilder.createInferringDoubleBuilder(currentSize, problemAggregator);
+      DoubleBuilder res =
+          NumericBuilder.createInferringDoubleBuilder(currentSize, problemAggregator);
       for (int i = 0; i < currentSize; i++) {
         if (data[i] == null) {
           res.appendNulls(1);
@@ -95,7 +96,8 @@ public class BigIntegerBuilder extends TypedBuilderImpl<BigInteger> {
   }
 
   public static BigIntegerBuilder retypeFromLongBuilder(LongBuilder longBuilder) {
-    BigIntegerBuilder res = new BigIntegerBuilder(longBuilder.data.length, longBuilder.problemAggregator);
+    BigIntegerBuilder res =
+        new BigIntegerBuilder(longBuilder.data.length, longBuilder.problemAggregator);
     int n = longBuilder.currentSize;
     Context context = Context.getCurrent();
     for (int i = 0; i < n; i++) {

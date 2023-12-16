@@ -75,17 +75,23 @@ public final class ModuleScope implements EnsoObject {
     types.put(type.getName(), type);
   }
 
-  /** @return the associated type of this module. */
+  /**
+   * @return the associated type of this module.
+   */
   public Type getAssociatedType() {
     return associatedType;
   }
 
-  /** @return the module associated with this scope. */
+  /**
+   * @return the module associated with this scope.
+   */
   public Module getModule() {
     return module;
   }
 
-  /** @return the set of modules imported by this module. */
+  /**
+   * @return the set of modules imported by this module.
+   */
   public Set<ModuleScope> getImports() {
     return imports;
   }
@@ -321,7 +327,9 @@ public final class ModuleScope implements EnsoObject {
     return Optional.ofNullable(types.get(name));
   }
 
-  /** @return a method for the given type */
+  /**
+   * @return a method for the given type
+   */
   public Function getMethodForType(Type tpe, String name) {
     Type tpeKey = tpe == null ? noTypeKey : tpe;
     var allTpeMethods = methods.get(tpeKey);
@@ -358,7 +366,9 @@ public final class ModuleScope implements EnsoObject {
     }
   }
 
-  /** @return methods for all registered types */
+  /**
+   * @return methods for all registered types
+   */
   public List<Function> getAllMethods() {
     return methods.values().stream()
         .flatMap(e -> e.values().stream())
@@ -366,14 +376,18 @@ public final class ModuleScope implements EnsoObject {
         .collect(Collectors.toList());
   }
 
-  /** @return the raw conversions held by this module */
+  /**
+   * @return the raw conversions held by this module
+   */
   public List<Function> getConversions() {
     return conversions.values().stream()
         .flatMap(e -> e.values().stream())
         .collect(Collectors.toList());
   }
 
-  /** @return the polyglot symbol imported into this scope. */
+  /**
+   * @return the polyglot symbol imported into this scope.
+   */
   public Object getPolyglotSymbol(String symbolName) {
     return polyglotSymbols.get(symbolName);
   }
