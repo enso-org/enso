@@ -559,7 +559,6 @@ final class TreeToIr {
      }
 
      String comment = "`" + functionName + "` result";
-     System.out.println("Creating ascription with comment: " + comment);
      return new Type.Ascription(body, type, Option.apply(comment), loc, meta(), diag());
   }
 
