@@ -58,7 +58,6 @@ export default function ChangePasswordModal() {
                     label="Old password"
                     icon={LockIcon}
                     placeholder="Enter your old password"
-                    pattern={validation.PASSWORD_PATTERN}
                     error={validation.PASSWORD_ERROR}
                     value={oldPassword}
                     setValue={setOldPassword}
