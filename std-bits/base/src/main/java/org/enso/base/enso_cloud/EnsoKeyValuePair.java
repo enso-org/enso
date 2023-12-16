@@ -1,5 +1,6 @@
 package org.enso.base.enso_cloud;
 
+// TODO this may be obsoleted by HideableValue
 record EnsoKeySecretPair(String key, String secretId) implements EnsoKeyValuePair {}
 
 record EnsoKeyStringPair(String key, String value) implements EnsoKeyValuePair {}

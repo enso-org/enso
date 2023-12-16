@@ -1,8 +1,9 @@
 package org.enso.base.net;
 
-import java.net.URI;
+import org.enso.base.enso_cloud.EnsoKeyValuePair;
 
-public class URIWithSecrets {
-    private final URI baseUri;
-    private final
+import java.net.URI;
+import java.util.List;
+
+public record URIWithSecrets(URI baseUri, List<EnsoKeyValuePair> queryParameters, UserInfoWithSecrets userInfo) {
 }

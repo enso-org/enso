@@ -233,6 +233,15 @@ type URI
         cons_pair = ["constructor", "parse"]
         JS_Object.from_pairs [type_pair, cons_pair, ["uri", self.to_text]]
 
+    ## PRIVATE
+       Creates a schematic that can be used to render this URL with secrets hidden or shown.
+    to_java_schematic : URIWithSecrets
+    to_java_schematic self =
+        parameters = self.query_parameters.map p->
+            ...
+
+        URIWithSecrets.new self.internal_uri
+
 ## PRIVATE
 URI.from (that:Text) = URI.parse that
 
