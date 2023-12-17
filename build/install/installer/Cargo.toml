@@ -19,7 +19,7 @@ ide-ci = { path = "../../ci_utils" }
 #strum = { workspace = true }
 tar = { workspace = true }
 tokio = { workspace = true }
-#tracing = { workspace = true }
+tracing = { workspace = true }
 windows =  { workspace = true }
 winreg = { workspace = true }
 

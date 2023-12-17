@@ -11,8 +11,6 @@ use std::sync::Mutex;
 use std::time::Duration;
 use tokio::task::JoinHandle;
 
-pub mod temp;
-
 
 /// Turns given text into a static string.
 ///

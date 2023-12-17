@@ -20,10 +20,11 @@ pub mod config {
     /// `HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Uninstall`.
     pub const APPLICATION_UNINSTALL_KEY: &str = "Enso";
 
+    /// The name of the application as it appears in the Add/Remove Programs dialog.
     pub const APPLICATION_PRETTY_NAME: &str = "Enso";
 
 
-
+    /// The name of shortcut that will be created in the Start Menu and on the Desktop.
     pub const APPLICATION_SHORTCUT_NAME: &str = APPLICATION_PRETTY_NAME;
 
     /// The [programmatic identifier](https://docs.microsoft.com/en-us/windows/win32/shell/fa-progids) of the Enso Source File.

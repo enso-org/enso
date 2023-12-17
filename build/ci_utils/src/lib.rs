@@ -69,7 +69,6 @@ pub mod program;
 pub mod programs;
 pub mod reqwest;
 pub mod serde;
-pub mod temp;
 
 
 pub mod prelude {

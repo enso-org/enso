@@ -137,8 +137,8 @@ impl IsTarget for Gui {
             crate::web::install(&ide.repo_root).await?;
 
             let wasm = Wasm.get(context, inner.wasm);
-            ide.build_content(wasm, &inner.build_info.await?, destination.clone()).await?;
-            Ok(Artifact::new(destination))
+            ide.build_content(wasm, &inner.build_info.await?, &destination).await?;
+            Ok(Artifact::new(destination.clone()))
         }
         .boxed()
     }
