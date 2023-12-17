@@ -40,6 +40,7 @@ export const widgetDefinition = defineWidget((expression) => expression instance
       v-for="(child, index) in children"
       :key="child.astId ?? index"
       :input="transformChild(child)"
+      :dynamicConfig="props.config"
     />
   </span>
 </template>

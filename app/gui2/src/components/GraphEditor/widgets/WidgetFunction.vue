@@ -6,10 +6,10 @@ import { widgetConfigurationSchema } from '@/providers/widgetRegistry/configurat
 import { useGraphStore } from '@/stores/graph'
 import { useProjectStore, type NodeVisualizationConfiguration } from '@/stores/project'
 import { Ast } from '@/util/ast'
-import { ArgumentApplication } from '@/util/callTree'
+import { ArgumentApplication, getAccessOprSubject } from '@/util/callTree'
 import type { Opt } from '@/util/data/opt'
 import type { ExprId } from 'shared/yjsModel'
-import { computed, proxyRefs } from 'vue'
+import { computed, proxyRefs, watch } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()
@@ -58,8 +58,15 @@ const selfArgumentAstId = computed<Opt<ExprId>>(() => {
   const analyzed = ArgumentApplication.Interpret(props.input, true)
   if (analyzed.kind === 'infix') {
     return analyzed.lhs?.astId
+  } else if (analyzed.kind === 'prefix') {
+    const knownArguments = methodCallInfo.value?.suggestion?.arguments
+    const selfArgument =
+      knownArguments?.[0]?.name === 'self'
+        ? getAccessOprSubject(analyzed.func)
+        : analyzed.args[0]?.argument
+    return selfArgument?.astId
   } else {
-    return analyzed.args[0]?.argument.astId
+    return null
   }
 })
 
@@ -82,6 +89,12 @@ const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => 
       name: 'get_widget_json',
     },
     positionalArgumentsExpressions: [`.${name}`, makeArgsList(args)],
+  }
+})
+
+watch(visualizationConfig, (c) => {
+  if (c) {
+    console.log(`Requesting dynamic widget config for ${c.positionalArgumentsExpressions}`, c)
   }
 })
 

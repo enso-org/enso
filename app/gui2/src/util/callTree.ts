@@ -210,7 +210,7 @@ const unknownArgInfoNamed = (name: string) => ({
   hasDefault: false,
 })
 
-function getAccessOprSubject(app: Ast.Ast): Ast.Ast | undefined {
+export function getAccessOprSubject(app: Ast.Ast): Ast.Ast | undefined {
   if (app instanceof Ast.PropertyAccess) return app.lhs ?? undefined
 }
 

@@ -2,10 +2,12 @@
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import DropdownWidget from '@/components/widgets/DropdownWidget.vue'
 import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import type { Choice } from '@/providers/widgetRegistry/configuration'
 import { useGraphStore } from '@/stores/graph'
 import { ArgumentAst, ArgumentPlaceholder } from '@/util/callTree'
 import { qnJoin, qnSegments, tryQualifiedName } from '@/util/qualifiedName'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { VectorItem } from './WidgetVector.vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()
@@ -25,6 +27,7 @@ interface DynamicTag {
 type Tag = StaticTag | DynamicTag
 
 const staticTags = computed<Tag[]>(() => {
+  if (props.input instanceof VectorItem) return []
   const tags = props.input.info?.tagValues
   if (tags == null) return []
   return tags.map((tag) => {
@@ -41,15 +44,24 @@ const dynamicTags = computed<Tag[]>(() => {
   const config = props.config
   if (config == null) return []
   const [_, widgetConfig] = config.find(([name]) => name === props.input.info?.name) ?? []
-  if (widgetConfig && widgetConfig.kind == 'Single_Choice') {
-    return widgetConfig.values.map((value) => ({
-      kind: 'Dynamic',
-      label: value.label || value.value,
-      value: value.value,
-    }))
+  if (widgetConfig == null) return []
+  let values: Choice[]
+  if (
+    props.input instanceof VectorItem &&
+    widgetConfig.kind === 'Vector_Editor' &&
+    widgetConfig.item_editor.kind === 'Single_Choice'
+  ) {
+    values = widgetConfig.item_editor.values
+  } else if (widgetConfig.kind === 'Single_Choice') {
+    values = widgetConfig.values
   } else {
     return []
   }
+  return values.map((value) => ({
+    kind: 'Dynamic',
+    label: value.label || value.value,
+    value: value.value,
+  }))
 })
 
 const tags = computed(() => (dynamicTags.value.length > 0 ? dynamicTags.value : staticTags.value))
@@ -90,14 +102,25 @@ watch(selectedIndex, (_index) => {
 </script>
 
 <script lang="ts">
-export const widgetDefinition = defineWidget([ArgumentPlaceholder, ArgumentAst], {
+export const widgetDefinition = defineWidget([ArgumentPlaceholder, ArgumentAst, VectorItem], {
   priority: 999,
   score: (props) => {
-    const tags = props.input.info?.tagValues
-    const [_, dynamicConfig] = props.config?.find(([name]) => name === props.input.info?.name) ?? []
-    const isSuitableDynamicConfig = dynamicConfig && dynamicConfig.kind === 'Single_Choice'
-    if (tags == null && !isSuitableDynamicConfig) return Score.Mismatch
-    return Score.Perfect
+    if (props.input instanceof VectorItem) {
+      const [_, dynamicConfig] =
+        props.config?.find(([name]) => name === props.input.info?.name) ?? []
+      const isSuitable =
+        dynamicConfig &&
+        dynamicConfig.kind === 'Vector_Editor' &&
+        dynamicConfig.item_editor.kind === 'Single_Choice'
+      return isSuitable ? Score.Perfect : Score.Mismatch
+    } else {
+      const input = props.input as ArgumentPlaceholder | ArgumentAst
+      const tags = input.info?.tagValues
+      const [_, dynamicConfig] = props.config?.find(([name]) => name === input.info?.name) ?? []
+      const isSuitableDynamicConfig = dynamicConfig && dynamicConfig.kind === 'Single_Choice'
+      if (tags == null && !isSuitableDynamicConfig) return Score.Mismatch
+      return Score.Perfect
+    }
   },
 })
 </script>
