@@ -17,6 +17,15 @@
     gui/:
     gui2/: # The new, Vue-based GUI.
       dist/:
+      public/:
+        font-enso/:
+        font-mplus1/:
+        font-dejavu/:
+      src/:
+        assets/:
+          font-enso.css:
+          font-mplus1.css:
+          font-dejavu.css:
     ide-desktop/:
       lib/:
         client/:

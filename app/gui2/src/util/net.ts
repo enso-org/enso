@@ -1,3 +1,4 @@
+import { Err, Ok, ResultError, rejectionToResult, type Result } from '@/util/data/result'
 import { WebSocketTransport } from '@open-rpc/client-js'
 import type {
   IJSONRPCNotificationResponse,
@@ -9,7 +10,6 @@ import { wait } from 'lib0/promise'
 import { LsRpcError } from 'shared/languageServer'
 import type { Notifications } from 'shared/languageServerTypes'
 import { WebsocketClient } from 'shared/websocket'
-import { Err, Ok, ResultError, rejectionToResult, type Result } from './result'
 
 export interface BackoffOptions<E> {
   maxRetries?: number
@@ -211,7 +211,16 @@ export class AsyncQueue<State> {
     if (task == null) return
     this.taskRunning = true
     this.lastTask = this.lastTask
-      .then((state) => task(state))
+      .then(
+        (state) => task(state),
+        (error) => {
+          console.error(
+            "AsyncQueue failed to run task '" + task.toString() + "' with error:",
+            error,
+          )
+          throw error
+        },
+      )
       .finally(() => {
         this.taskRunning = false
         this.run()

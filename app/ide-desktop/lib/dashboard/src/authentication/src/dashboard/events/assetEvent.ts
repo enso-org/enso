@@ -30,6 +30,7 @@ export enum AssetEventType {
     move = 'move',
     delete = 'delete',
     restore = 'restore',
+    download = 'download',
     downloadSelected = 'download-selected',
     removeSelf = 'remove-self',
     temporarilyAddLabels = 'temporarily-add-labels',
@@ -58,6 +59,7 @@ interface AssetEvents {
     move: AssetMoveEvent
     delete: AssetDeleteEvent
     restore: AssetRestoreEvent
+    download: AssetDownloadEvent
     downloadSelected: AssetDownloadSelectedEvent
     removeSelf: AssetRemoveSelfEvent
     temporarilyAddLabels: AssetTemporarilyAddLabelsEvent
@@ -134,13 +136,18 @@ export interface AssetMoveEvent extends AssetBaseEvent<AssetEventType.move> {
     ids: Set<backendModule.AssetId>
 }
 
-/** A signal to delete multiple assets. */
+/** A signal to delete assets. */
 export interface AssetDeleteEvent extends AssetBaseEvent<AssetEventType.delete> {
     ids: Set<backendModule.AssetId>
 }
 
-/** A signal to restore multiple assets from trash. */
+/** A signal to restore assets from trash. */
 export interface AssetRestoreEvent extends AssetBaseEvent<AssetEventType.restore> {
+    ids: Set<backendModule.AssetId>
+}
+
+/** A signal to download assets. */
+export interface AssetDownloadEvent extends AssetBaseEvent<AssetEventType.download> {
     ids: Set<backendModule.AssetId>
 }
 

@@ -27,22 +27,23 @@ type Filter
             pair = Meta.atom_with_hole (h -> Filter.Item n h)
             newLast = pair.value
             set_last newLast
-            Filter.Head head.first pair.fill
+            [True, Filter.Head head.first pair.fill]
 
         case self of
             Filter.Empty ->
                 pair = Meta.atom_with_hole (h -> Filter.Item n h)
-                Filter.Head pair.value pair.fill
-            Filter.Head _ _ -> if iterate self.first then appendN self self.set_last else self
+                [True, Filter.Head pair.value pair.fill]
+            Filter.Head _ _ -> if iterate self.first then appendN self self.set_last else [False, Nothing]
 
 type Primes
     Alg generator filter
 
 Primes.next self = case self of
     Primes.Alg g f ->
-        filter = f.acceptAndAdd g.n
-        new_primes = Primes.Alg g.next filter
-        if Meta.is_same_object filter f then @Tail_Call new_primes.next else new_primes
+        found_new = f.acceptAndAdd g.n
+        if found_new.first then Primes.Alg g.next found_new.last else
+            new_primes = Primes.Alg g.next f
+            @Tail_Call new_primes.next
 
 Primes.last_prime self = case self of
     Primes.Alg g _ -> g.n - 1

@@ -37,6 +37,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
     const { backend } = backendProvider.useBackend()
     const { setModal, unsetModal } = modalProvider.useSetModal()
     const filesInputRef = React.useRef<HTMLInputElement>(null)
+    const isCloud = backend.type === backendModule.BackendType.remote
     return (
         <ContextMenu hidden={hidden}>
             {!hidden && (
@@ -93,21 +94,23 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
                     }
                 }}
             />
-            <MenuEntry
-                hidden={hidden}
-                action={shortcuts.KeyboardAction.newProject}
-                doAction={() => {
-                    unsetModal()
-                    dispatchAssetListEvent({
-                        type: assetListEventModule.AssetListEventType.newProject,
-                        parentKey: directoryKey,
-                        parentId: directoryId,
-                        templateId: null,
-                        onSpinnerStateChange: null,
-                    })
-                }}
-            />
-            {backend.type !== backendModule.BackendType.local && (
+            {isCloud && (
+                <MenuEntry
+                    hidden={hidden}
+                    action={shortcuts.KeyboardAction.newProject}
+                    doAction={() => {
+                        unsetModal()
+                        dispatchAssetListEvent({
+                            type: assetListEventModule.AssetListEventType.newProject,
+                            parentKey: directoryKey,
+                            parentId: directoryId,
+                            templateId: null,
+                            onSpinnerStateChange: null,
+                        })
+                    }}
+                />
+            )}
+            {isCloud && (
                 <MenuEntry
                     hidden={hidden}
                     action={shortcuts.KeyboardAction.newFolder}
@@ -121,7 +124,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
                     }}
                 />
             )}
-            {backend.type !== backendModule.BackendType.local && (
+            {isCloud && (
                 <MenuEntry
                     hidden={hidden}
                     action={shortcuts.KeyboardAction.newDataConnector}
@@ -143,7 +146,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
                     }}
                 />
             )}
-            {directoryKey == null && hasCopyData && (
+            {isCloud && directoryKey == null && hasCopyData && (
                 <MenuEntry
                     hidden={hidden}
                     action={shortcuts.KeyboardAction.paste}

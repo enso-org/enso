@@ -36,9 +36,9 @@ const MessageId = newtype.newtypeConstructor<chat.MessageId>()
 // The project shouldn't be jumped to automatically, since it may take a long time
 // to switch projects, and undo history may be lost.
 
-const HELP_CHAT_ID = 'enso-chat'
+export const HELP_CHAT_ID = 'enso-chat'
 export const ANIMATION_DURATION_MS = 200
-const WIDTH_PX = 336
+export const WIDTH_PX = 336
 /** The size (both width and height) of each reaction button. */
 const REACTION_BUTTON_SIZE = 20
 /** The size (both width and height) of each reaction on a message. */

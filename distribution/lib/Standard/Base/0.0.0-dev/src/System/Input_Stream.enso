@@ -6,6 +6,9 @@ import project.Errors.Encoding_Error.Encoding_Error
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Nothing.Nothing
 import project.Runtime.Managed_Resource.Managed_Resource
+import project.System.File.Advanced.Temporary_File.Temporary_File
+import project.System.File.File
+import project.System.File.File_Access.File_Access
 
 polyglot java import java.io.InputStream as Java_Input_Stream
 polyglot java import org.enso.base.encoding.ReportingStreamDecoder
@@ -19,10 +22,10 @@ type Input_Stream
 
        Given a Java InputStream, wraps as a Managed_Resource and returns a new
        Input_Stream.
-    new : Java_Input_Stream -> Any -> Input_Stream
-    new java_stream error_handler =
+    new : Java_Input_Stream -> Any -> (Nothing | File | Temporary_File) -> Input_Stream
+    new java_stream error_handler associated_file=Nothing =
         resource = Managed_Resource.register java_stream close_stream
-        Input_Stream.Value resource error_handler
+        Input_Stream.Value resource error_handler associated_file
 
     ## PRIVATE
        An input stream, allowing for interactive reading of contents.
@@ -31,7 +34,8 @@ type Input_Stream
        - stream_resource: The internal resource that represents the underlying
          stream.
        - error_handler: An error handler for IOExceptions thrown when reading.
-    Value stream_resource error_handler
+       - associated_file: The file associated with this stream, if any.
+    Value stream_resource error_handler (associated_file:Nothing|File|Temporary_File)
 
     ## PRIVATE
        ADVANCED
@@ -99,6 +103,16 @@ type Input_Stream
         results = Encoding_Utils.with_stream_decoder java_stream java_charset action
         problems = Vector.from_polyglot_array results.problems . map Encoding_Error.Error
         on_problems.attach_problems_after results.result problems
+
+    ## PRIVATE
+       Reads the contents of this stream into a given file.
+    write_to_file : File -> File
+    write_to_file self file =
+        result = self.with_java_stream java_input_stream->
+            file.with_output_stream [File_Access.Create, File_Access.Truncate_Existing, File_Access.Write] output_stream->
+                output_stream.with_java_stream java_output_stream->
+                    java_input_stream.transferTo java_output_stream
+        result.if_not_error file
 
 ## PRIVATE
    Utility method for closing primitive Java streams. Provided to avoid

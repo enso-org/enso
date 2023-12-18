@@ -4,6 +4,7 @@ import Standard.Base.Data.Text as Text_Module
 import Standard.Base.Data.Vector as Vector_Module
 
 polyglot java import java.lang.Class
+polyglot java import java.lang.Long as Java_Long
 polyglot java import java.lang.Object as Java_Object
 polyglot java import java.util.Random as Java_Random
 polyglot java import java.util.AbstractList
@@ -47,6 +48,27 @@ spec = Test.group "Pattern Matches" <|
         case Float of
             Float -> Nothing
             _ -> Test.fail "Expected the Float constructor to match."
+    Test.specify "match on the Number literal" <|
+        foo x = case x of
+            1 -> "ONE"
+            1.0 -> "one"
+            2 -> "TWO"
+            3.14 -> "PI"
+            200 -> "TWO HUNDRED"
+            9999 -> "NINE THOUSAND NINE HUNDRED NINETY NINE"
+            123456789012345678901234567890 ->
+                x>Java_Long.MAX_VALUE . should_be_true
+                "a lot"
+            _ -> Test.fail "OTHER - "+x.to_text
+
+        foo 1 . should_equal "ONE"
+        foo 1.0 . should_equal "one"
+        foo 2 . should_equal "TWO"
+        foo 3.14 . should_equal "PI"
+        foo 200 . should_equal "TWO HUNDRED"
+        foo 9999 . should_equal "NINE THOUSAND NINE HUNDRED NINETY NINE"
+        foo 12345678901234567890123456789*10 . should_equal "a lot"
+
     Test.specify "should be able to match on the Number type" <|
         case 1 of
             _ : Number -> Nothing

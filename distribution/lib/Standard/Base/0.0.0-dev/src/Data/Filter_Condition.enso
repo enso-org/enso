@@ -1,4 +1,5 @@
 import project.Any.Any
+import project.Data.Locale.Locale
 import project.Data.Set.Set
 import project.Data.Text.Case_Sensitivity.Case_Sensitivity
 import project.Data.Text.Regex.Regex
@@ -38,6 +39,21 @@ type Filter_Condition
     ## Is between (inclusive) two values (or columns, in case of Table operations)?
     Between lower:Any upper:Any
 
+    ## Is equal to another value, ignoring case (Text only)?
+
+       ? Table Operations
+         It accepts a Text value to check if the value equals to it. In case of
+         Table operations, it can accept another column - then the corresponding
+         values from the source column and the provided column are checked.
+
+       ! Unicode Equality
+         The definition of equality includes Unicode canonicalization. I.e. two
+         texts are equal if they are identical after canonical decomposition.
+         This ensures that different ways of expressing the same character in
+         the underlying binary representation are considered equal.
+    @locale Locale.default_widget
+    Equal_Ignore_Case (to : Text | Any) (locale:Locale=Locale.default)
+
     ## Does the value start with a prefix (Text only)?
 
        ? Table Operations
@@ -75,6 +91,17 @@ type Filter_Condition
 
     ## Is not equal to Nothing?
     Not_Nothing
+
+    ## Is the value a NaN (Number only)?
+    Is_Nan
+
+    ## Is the value infinite (Number only)?
+    Is_Infinite
+
+    ## Is the value finite (Number only)?
+
+       Finite numbers are ones that are not infinite nor NaN.
+    Is_Finite
 
     ## Is the value equal to True (Boolean only)?
     Is_True
@@ -167,6 +194,7 @@ type Filter_Condition
         Not_Equal value -> !=value
         Between lower upper -> elem ->
             (lower <= elem) && (elem <= upper)
+        Equal_Ignore_Case value locale -> elem-> elem.equals_ignore_case value locale
         Starts_With prefix case_sensitivity -> _.starts_with prefix case_sensitivity
         Ends_With suffix case_sensitivity -> _.ends_with suffix case_sensitivity
         Contains substring case_sensitivity -> _.contains substring case_sensitivity
@@ -177,6 +205,9 @@ type Filter_Condition
         Not_Nothing -> elem -> case elem of
             Nothing -> False
             _ -> True
+        Is_Nan -> .is_nan
+        Is_Infinite -> .is_infinite
+        Is_Finite -> .is_finite
         Is_True -> ==True
         Is_False -> ==False
         Is_Empty -> elem -> case elem of
@@ -215,26 +246,32 @@ type Filter_Condition
             Greater value -> ">" + value.to_display_text
             Not_Equal value -> "!=" + value.to_display_text
             Between lower upper -> "Between " + lower.to_display_text + " And " + upper.to_display_text
+            Equal_Ignore_Case value locale ->
+                suffix = if locale == Locale.default then "" else " (within locale " + locale.to_display_text + ")"
+                "Equal Ignore Case " + value.to_display_text + suffix
             Starts_With prefix case_sensitivity -> "Starts With " + prefix.to_display_text + (render_case case_sensitivity)
             Ends_With suffix case_sensitivity -> "Ends With " + suffix.to_display_text + (render_case case_sensitivity)
             Contains substring case_sensitivity -> "Contains " + substring.to_display_text + (render_case case_sensitivity)
-            Not_Contains substring case_sensitivity -> "Not Contains " + substring.to_display_text + (render_case case_sensitivity)
+            Not_Contains substring case_sensitivity -> "not Contains " + substring.to_display_text + (render_case case_sensitivity)
             Is_Nothing -> "is Nothing"
-            Not_Nothing -> "is Not Nothing"
+            Not_Nothing -> "is not Nothing"
+            Is_Nan -> "is NaN"
+            Is_Infinite -> "is Infinite"
+            Is_Finite -> "is Finite"
             Is_True -> "is True"
             Is_False -> "is False"
             Is_Empty -> "is Empty"
-            Not_Empty -> "is Not Empty"
+            Not_Empty -> "is not Empty"
             Like sql_pattern -> "Like " + sql_pattern.to_display_text
-            Not_Like sql_pattern -> "Not Like " + sql_pattern.to_display_text
+            Not_Like sql_pattern -> "not Like " + sql_pattern.to_display_text
             Is_In values -> "is in " + values.to_display_text
             Not_In values -> "is not in " + values.to_display_text
         "Filter Condition: " + condition
 
     ## PRIVATE
        Creates a Single_Choice Widget for delimiters.
-    default_widget : Boolean -> Boolean -> Boolean -> Boolean -> Widget
-    default_widget include_comparable=True include_text=True include_boolean=True include_nullable=True =
+    default_widget : Boolean -> Boolean -> Boolean -> Boolean -> Boolean -> Widget
+    default_widget include_comparable=True include_text=True include_boolean=True include_nullable=True include_numeric=True =
         options_builder = Vector.new_builder
         if include_comparable then
             options_builder.append "Less"
@@ -244,6 +281,10 @@ type Filter_Condition
             options_builder.append "Greater"
             options_builder.append "Not_Equal"
             options_builder.append "Between"
+        if include_numeric then
+            options_builder.append "Is_Nan"
+            options_builder.append "Is_Infinite"
+            options_builder.append "Is_Finite"
         if include_boolean then
             options_builder.append "Is_True"
             options_builder.append "Is_False"
@@ -253,6 +294,7 @@ type Filter_Condition
         if include_text then
             options_builder.append "Is_Empty"
             options_builder.append "Not_Empty"
+            options_builder.append "Equal_Ignore_Case"
             options_builder.append "Starts_With"
             options_builder.append "Ends_With"
             options_builder.append "Contains"

@@ -53,7 +53,14 @@ public abstract class PowNode extends IntegerNode {
 
   @Specialization
   Object doBigInteger(long self, EnsoBigInteger that) {
-    return doBigInteger(toBigInteger(self), that);
+    var thatValue = that.getValue();
+    if (thatValue.signum() > 0) {
+      return Math.pow((double) self, BigIntegerOps.toDouble(thatValue));
+    } else if (thatValue.signum() == 0) {
+      return 1.0D;
+    } else {
+      return 0.0D;
+    }
   }
 
   @Specialization
@@ -69,10 +76,11 @@ public abstract class PowNode extends IntegerNode {
 
   @Specialization
   Object doBigInteger(EnsoBigInteger self, EnsoBigInteger that) {
-    if (that.getValue().signum() > 0) {
-      return Math.pow(
-          BigIntegerOps.toDouble(self.getValue()), BigIntegerOps.toDouble(that.getValue()));
-    } else if (that.getValue().signum() == 0) {
+    var thatValue = that.getValue();
+    if (thatValue.signum() > 0) {
+      var selfValue = self.getValue();
+      return Math.pow(BigIntegerOps.toDouble(selfValue), BigIntegerOps.toDouble(thatValue));
+    } else if (thatValue.signum() == 0) {
       return 1.0D;
     } else {
       return 0.0D;

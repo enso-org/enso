@@ -11,7 +11,7 @@
     "dev": "vite",
     "build": "npm --workspace enso-authentication run compile && run-p typecheck build-only",
     "preview": "vite preview",
-    "test": "vitest run",
+    "test": "vitest run && playwright test --reporter=html",
     "test:unit": "vitest",
     "test:e2e": "playwright test",
     "story:dev": "histoire dev",
@@ -26,6 +26,7 @@
     "generate-ast-schema": "cargo run -p enso-parser-schema > src/generated/ast-schema.json",
     "generate-ast-types": "tsx ./parser-codegen/index.ts src/generated/ast-schema.json src/generated/ast.ts",
     "preinstall": "npm run build-rust-ffi && npm run generate-ast-schema && npm run generate-ast-types && npm run generate-metadata && npm run download-fonts",
+    "postinstall": "playwright install",
     "generate-metadata": "node scripts/generateIconMetadata.js",
     "download-fonts": "node scripts/downloadFonts.js"
   },

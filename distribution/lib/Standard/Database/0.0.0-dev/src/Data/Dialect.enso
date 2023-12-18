@@ -133,7 +133,7 @@ type Dialect
         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
-       Specifies if the Database distinguishes a seprarate `NaN` value for
+       Specifies if the Database distinguishes a separate `NaN` value for
        floating point columns. Some databases will not be able to distinguish
        NaN from NULL.
     supports_separate_nan : Boolean

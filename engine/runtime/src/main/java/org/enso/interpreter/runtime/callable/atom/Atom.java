@@ -1,22 +1,5 @@
 package org.enso.interpreter.runtime.callable.atom;
 
-
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-
-import org.enso.interpreter.EnsoLanguage;
-import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
-import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.data.EnsoObject;
-import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
-import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.interpreter.runtime.error.WarningsLibrary;
-import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
-import org.enso.interpreter.runtime.type.TypesGen;
-
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -31,10 +14,21 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.profiles.BranchProfile;
+import java.util.HashSet;
+import java.util.Set;
+import org.enso.interpreter.EnsoLanguage;
+import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
+import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.data.EnsoObject;
+import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
+import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.error.WarningsLibrary;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.enso.interpreter.runtime.type.TypesGen;
 
-/**
- * A runtime representation of an Atom in Enso.
- */
+/** A runtime representation of an Atom in Enso. */
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
 public abstract class Atom implements EnsoObject {
@@ -116,10 +110,11 @@ public abstract class Atom implements EnsoObject {
       sb.append(suffix);
     }
     if (obj != null) {
-      var errorMessage = switch (obj) {
-        case Function fn -> fn.toString(false);
-        default -> InteropLibrary.getUncached().toDisplayString(obj);
-      };
+      var errorMessage =
+          switch (obj) {
+            case Function fn -> fn.toString(false);
+            default -> InteropLibrary.getUncached().toDisplayString(obj);
+          };
       if (errorMessage != null) {
         sb.append(errorMessage);
       } else {
@@ -144,12 +139,14 @@ public abstract class Atom implements EnsoObject {
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
   public EnsoObject getMembers(boolean includeInternal) {
-    Set<String> members = constructor.getDefinitionScope().getMethodNamesForType(constructor.getType());
+    Set<String> members =
+        constructor.getDefinitionScope().getMethodNamesForType(constructor.getType());
     Set<String> allMembers = new HashSet<>();
     if (members != null) {
       allMembers.addAll(members);
     }
-    members = constructor.getType().getDefinitionScope().getMethodNamesForType(constructor.getType());
+    members =
+        constructor.getType().getDefinitionScope().getMethodNamesForType(constructor.getType());
     if (members != null) {
       allMembers.addAll(members);
     }
@@ -160,11 +157,13 @@ public abstract class Atom implements EnsoObject {
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
   public boolean isMemberInvocable(String member) {
-    Set<String> members = constructor.getDefinitionScope().getMethodNamesForType(constructor.getType());
+    Set<String> members =
+        constructor.getDefinitionScope().getMethodNamesForType(constructor.getType());
     if (members != null && members.contains(member)) {
       return true;
     }
-    members = constructor.getType().getDefinitionScope().getMethodNamesForType(constructor.getType());
+    members =
+        constructor.getType().getDefinitionScope().getMethodNamesForType(constructor.getType());
     return members != null && members.contains(member);
   }
 
@@ -199,7 +198,7 @@ public abstract class Atom implements EnsoObject {
 
     @Specialization(
         guards = {"receiver.getConstructor() == cachedConstructor", "member.equals(cachedMember)"},
-    limit = "3")
+        limit = "3")
     static Object doCached(
         Atom receiver,
         String member,
@@ -208,7 +207,10 @@ public abstract class Atom implements EnsoObject {
         @Cached(value = "member") String cachedMember,
         @Cached(value = "buildSym(cachedConstructor, cachedMember)") UnresolvedSymbol cachedSym,
         @CachedLibrary("cachedSym") InteropLibrary symbols)
-        throws UnsupportedMessageException, ArityException, UnsupportedTypeException, UnknownIdentifierException {
+        throws UnsupportedMessageException,
+            ArityException,
+            UnsupportedTypeException,
+            UnknownIdentifierException {
       Object[] args = new Object[arguments.length + 1];
       args[0] = receiver;
       System.arraycopy(arguments, 0, args, 1, arguments.length);
@@ -229,12 +231,14 @@ public abstract class Atom implements EnsoObject {
         String member,
         Object[] arguments,
         @CachedLibrary(limit = "1") InteropLibrary symbols)
-        throws UnsupportedMessageException, ArityException, UnsupportedTypeException, UnknownIdentifierException {
+        throws UnsupportedMessageException,
+            ArityException,
+            UnsupportedTypeException,
+            UnknownIdentifierException {
       UnresolvedSymbol symbol = buildSym(receiver.getConstructor(), member);
       return doCached(
           receiver, member, arguments, receiver.getConstructor(), member, symbol, symbols);
     }
-
   }
 
   @ExportMessage
@@ -243,8 +247,7 @@ public abstract class Atom implements EnsoObject {
       @CachedLibrary("this") InteropLibrary atoms,
       @CachedLibrary(limit = "3") WarningsLibrary warnings,
       @CachedLibrary(limit = "3") InteropLibrary interop,
-      @Cached BranchProfile handleError
-  ) {
+      @Cached BranchProfile handleError) {
     Object result = null;
     String msg;
     try {
@@ -259,10 +262,15 @@ public abstract class Atom implements EnsoObject {
       } else if (interop.isString(result)) {
         return Text.create(interop.asString(result));
       } else {
-        msg = this.toString("Error in method `to_text` of [", 10, "]: Expected Text but got ", result);
+        msg =
+            this.toString(
+                "Error in method `to_text` of [", 10, "]: Expected Text but got ", result);
       }
-    } catch (AbstractTruffleException | UnsupportedMessageException | ArityException | UnknownIdentifierException |
-             UnsupportedTypeException panic) {
+    } catch (AbstractTruffleException
+        | UnsupportedMessageException
+        | ArityException
+        | UnknownIdentifierException
+        | UnsupportedTypeException panic) {
       handleError.enter();
       msg = this.toString("Panic in method `to_text` of [", 10, "]: ", panic);
     }

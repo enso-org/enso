@@ -1,6 +1,6 @@
-import type { GraphNavigator } from '@/providers/graphNavigator.ts'
+import { createContextStore } from '@/providers'
+import type { GraphNavigator } from '@/providers/graphNavigator'
 import { watch, type WatchSource } from 'vue'
-import { createContextStore } from '.'
 
 export { injectFn as injectInteractionHandler, provideFn as provideInteractionHandler }
 const { provideFn, injectFn } = createContextStore(

@@ -1,4 +1,4 @@
-import { MultiRange, Range } from '@/util/range'
+import { MultiRange, Range } from '@/util/data/range'
 import { expect, test } from 'vitest'
 
 function r(...r: [start: number, end: number][]) {

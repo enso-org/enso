@@ -20,6 +20,7 @@ import * as dateTime from './dateTime'
 import * as hooks from '../hooks'
 import * as modalProvider from '../providers/modal'
 import * as permissions from './permissions'
+import * as shortcuts from './shortcuts'
 import * as sorting from './sorting'
 import type * as tableColumn from './components/tableColumn'
 import * as uniqueString from '../uniqueString'
@@ -28,8 +29,11 @@ import type * as assetsTable from './components/assetsTable'
 import * as categorySwitcher from './components/categorySwitcher'
 import Label, * as labelModule from './components/label'
 import AssetNameColumn from './components/assetNameColumn'
+import ContextMenu from './components/contextMenu'
+import ContextMenus from './components/contextMenus'
 import ManageLabelsModal from './components/manageLabelsModal'
 import ManagePermissionsModal from './components/managePermissionsModal'
+import MenuEntry from './components/menuEntry'
 import PermissionDisplay from './components/permissionDisplay'
 import SvgMask from '../authentication/components/svgMask'
 
@@ -258,7 +262,7 @@ function LabelsColumn(props: AssetColumnProps) {
         rowState: { temporarilyAddedLabels, temporarilyRemovedLabels },
     } = props
     const session = authProvider.useNonPartialUserSession()
-    const { setModal } = modalProvider.useSetModal()
+    const { setModal, unsetModal } = modalProvider.useSetModal()
     const { backend } = backendProvider.useBackend()
     const toastAndLog = hooks.useToastAndLog()
     const [isHovered, setIsHovered] = React.useState(false)
@@ -308,29 +312,46 @@ function LabelsColumn(props: AssetColumnProps) {
                         onContextMenu={event => {
                             event.preventDefault()
                             event.stopPropagation()
-                            setAsset(oldAsset => {
-                                const newLabels =
-                                    oldAsset.labels?.filter(oldLabel => oldLabel !== label) ?? []
-                                void backend
-                                    .associateTag(asset.id, newLabels, asset.title)
-                                    .catch(error => {
-                                        toastAndLog(null, error)
-                                        setAsset(oldAsset2 =>
-                                            oldAsset2.labels?.some(
-                                                oldLabel => oldLabel === label
-                                            ) === true
-                                                ? oldAsset2
-                                                : {
-                                                      ...oldAsset2,
-                                                      labels: [...(oldAsset2.labels ?? []), label],
-                                                  }
-                                        )
-                                    })
-                                return {
-                                    ...oldAsset,
-                                    labels: newLabels,
-                                }
-                            })
+                            const doDelete = () => {
+                                unsetModal()
+                                setAsset(oldAsset => {
+                                    const newLabels =
+                                        oldAsset.labels?.filter(oldLabel => oldLabel !== label) ??
+                                        []
+                                    void backend
+                                        .associateTag(asset.id, newLabels, asset.title)
+                                        .catch(error => {
+                                            toastAndLog(null, error)
+                                            setAsset(oldAsset2 =>
+                                                oldAsset2.labels?.some(
+                                                    oldLabel => oldLabel === label
+                                                ) === true
+                                                    ? oldAsset2
+                                                    : {
+                                                          ...oldAsset2,
+                                                          labels: [
+                                                              ...(oldAsset2.labels ?? []),
+                                                              label,
+                                                          ],
+                                                      }
+                                            )
+                                        })
+                                    return {
+                                        ...oldAsset,
+                                        labels: newLabels,
+                                    }
+                                })
+                            }
+                            setModal(
+                                <ContextMenus key={`label-${label}`} event={event}>
+                                    <ContextMenu>
+                                        <MenuEntry
+                                            action={shortcuts.KeyboardAction.delete}
+                                            doAction={doDelete}
+                                        />
+                                    </ContextMenu>
+                                </ContextMenus>
+                            )
                         }}
                         onClick={event => {
                             event.preventDefault()

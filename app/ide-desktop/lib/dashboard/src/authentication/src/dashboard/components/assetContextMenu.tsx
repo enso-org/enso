@@ -74,6 +74,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     const self = asset.permissions?.find(
         permission => permission.user.user_email === organization?.email
     )
+    const isCloud = backend.type === backendModule.BackendType.remote
     const ownsThisAsset =
         backend.type === backendModule.BackendType.local ||
         self?.permission === permissions.PermissionAction.own
@@ -144,22 +145,21 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                             }}
                         />
                     )}
-                {asset.type === backendModule.AssetType.project &&
-                    backend.type === backendModule.BackendType.remote && (
-                        <MenuEntry
-                            hidden={hidden}
-                            action={shortcuts.KeyboardAction.run}
-                            doAction={() => {
-                                unsetModal()
-                                dispatchAssetEvent({
-                                    type: assetEventModule.AssetEventType.openProject,
-                                    id: asset.id,
-                                    shouldAutomaticallySwitchPage: false,
-                                    runInBackground: true,
-                                })
-                            }}
-                        />
-                    )}
+                {asset.type === backendModule.AssetType.project && isCloud && (
+                    <MenuEntry
+                        hidden={hidden}
+                        action={shortcuts.KeyboardAction.run}
+                        doAction={() => {
+                            unsetModal()
+                            dispatchAssetEvent({
+                                type: assetEventModule.AssetEventType.openProject,
+                                id: asset.id,
+                                shouldAutomaticallySwitchPage: false,
+                                runInBackground: true,
+                            })
+                        }}
+                    />
+                )}
                 {asset.type === backendModule.AssetType.project &&
                     canExecute &&
                     isRunningProject &&
@@ -176,54 +176,50 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                             }}
                         />
                     )}
-                {asset.type === backendModule.AssetType.project &&
-                    backend.type === backendModule.BackendType.local && (
-                        <MenuEntry
-                            hidden={hidden}
-                            action={shortcuts.KeyboardAction.uploadToCloud}
-                            doAction={async () => {
-                                unsetModal()
-                                if (accessToken == null) {
-                                    toastAndLog('Cannot upload to cloud in offline mode')
-                                } else {
-                                    try {
-                                        const headers = new Headers([
-                                            ['Authorization', `Bearer ${accessToken}`],
-                                        ])
-                                        const client = new http.Client(headers)
-                                        const remoteBackend = new remoteBackendModule.RemoteBackend(
-                                            client,
-                                            logger
-                                        )
-                                        const projectResponse = await fetch(
-                                            `./api/project-manager/projects/${asset.id}/enso-project`
-                                        )
-                                        // This DOES NOT update the cloud assets list when it
-                                        // completes, as the current backend is not the remote
-                                        // (cloud) backend. The user may change to the cloud backend
-                                        // while this request is in progress, however this is
-                                        // uncommon enough that it is not worth the added complexity.
-                                        await remoteBackend.uploadFile(
-                                            {
-                                                fileName: `${asset.title}.enso-project`,
-                                                fileId: null,
-                                                parentDirectoryId: null,
-                                            },
-                                            await projectResponse.blob()
-                                        )
-                                        toast.toast.success(
-                                            'Successfully uploaded local project to cloud!'
-                                        )
-                                    } catch (error) {
-                                        toastAndLog(
-                                            'Could not upload local project to cloud',
-                                            error
-                                        )
-                                    }
+                {asset.type === backendModule.AssetType.project && !isCloud && (
+                    <MenuEntry
+                        hidden={hidden}
+                        action={shortcuts.KeyboardAction.uploadToCloud}
+                        doAction={async () => {
+                            unsetModal()
+                            if (accessToken == null) {
+                                toastAndLog('Cannot upload to cloud in offline mode')
+                            } else {
+                                try {
+                                    const headers = new Headers([
+                                        ['Authorization', `Bearer ${accessToken}`],
+                                    ])
+                                    const client = new http.Client(headers)
+                                    const remoteBackend = new remoteBackendModule.RemoteBackend(
+                                        client,
+                                        logger
+                                    )
+                                    const projectResponse = await fetch(
+                                        `./api/project-manager/projects/${asset.id}/enso-project`
+                                    )
+                                    // This DOES NOT update the cloud assets list when it
+                                    // completes, as the current backend is not the remote
+                                    // (cloud) backend. The user may change to the cloud backend
+                                    // while this request is in progress, however this is
+                                    // uncommon enough that it is not worth the added complexity.
+                                    await remoteBackend.uploadFile(
+                                        {
+                                            fileName: `${asset.title}.enso-project`,
+                                            fileId: null,
+                                            parentDirectoryId: null,
+                                        },
+                                        await projectResponse.blob()
+                                    )
+                                    toast.toast.success(
+                                        'Successfully uploaded local project to cloud!'
+                                    )
+                                } catch (error) {
+                                    toastAndLog('Could not upload local project to cloud', error)
                                 }
-                            }}
-                        />
-                    )}
+                            }
+                        }}
+                    />
+                )}
                 {canExecute && !isRunningProject && !isOtherUserUsingProject && (
                     <MenuEntry
                         hidden={hidden}
@@ -241,14 +237,16 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                         }}
                     />
                 )}
-                <MenuEntry
-                    hidden={hidden}
-                    disabled
-                    action={shortcuts.KeyboardAction.snapshot}
-                    doAction={() => {
-                        // No backend support yet.
-                    }}
-                />
+                {isCloud && (
+                    <MenuEntry
+                        hidden={hidden}
+                        disabled
+                        action={shortcuts.KeyboardAction.snapshot}
+                        doAction={() => {
+                            // No backend support yet.
+                        }}
+                    />
+                )}
                 {ownsThisAsset && !isRunningProject && !isOtherUserUsingProject && (
                     <MenuEntry
                         hidden={hidden}
@@ -272,8 +270,8 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                         }}
                     />
                 )}
-                <ContextMenuSeparator hidden={hidden} />
-                {managesThisAsset && self != null && (
+                {isCloud && <ContextMenuSeparator hidden={hidden} />}
+                {isCloud && managesThisAsset && self != null && (
                     <MenuEntry
                         hidden={hidden}
                         action={shortcuts.KeyboardAction.share}
@@ -295,7 +293,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                         }}
                     />
                 )}
-                {backend.type !== backendModule.BackendType.local && (
+                {isCloud && (
                     <MenuEntry
                         hidden={hidden}
                         disabled
@@ -305,8 +303,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                         }}
                     />
                 )}
-                {((managesThisAsset && self != null) ||
-                    backend.type !== backendModule.BackendType.local) && (
+                {isCloud && managesThisAsset && self != null && (
                     <ContextMenuSeparator hidden={hidden} />
                 )}
                 <MenuEntry
@@ -314,18 +311,21 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                     disabled
                     action={shortcuts.KeyboardAction.duplicate}
                     doAction={() => {
+                        // TODO: Add server endpoint for local backend.
                         // No backend support yet.
                     }}
                 />
-                <MenuEntry
-                    hidden={hidden}
-                    disabled
-                    action={shortcuts.KeyboardAction.copy}
-                    doAction={() => {
-                        // No backend support yet.
-                    }}
-                />
-                {!isOtherUserUsingProject && (
+                {isCloud && (
+                    <MenuEntry
+                        hidden={hidden}
+                        disabled
+                        action={shortcuts.KeyboardAction.copy}
+                        doAction={() => {
+                            // No backend support yet.
+                        }}
+                    />
+                )}
+                {isCloud && !isOtherUserUsingProject && (
                     <MenuEntry
                         hidden={hidden}
                         action={shortcuts.KeyboardAction.cut}
@@ -337,10 +337,12 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 )}
                 <MenuEntry
                     hidden={hidden}
-                    disabled
                     action={shortcuts.KeyboardAction.download}
                     doAction={() => {
-                        // No backend support yet.
+                        dispatchAssetEvent({
+                            type: assetEventModule.AssetEventType.download,
+                            ids: new Set([asset.id]),
+                        })
                     }}
                 />
                 {asset.type === backendModule.AssetType.directory && hasCopyData && (

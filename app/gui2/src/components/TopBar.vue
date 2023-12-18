@@ -63,4 +63,3 @@ const barStyle = computed(() => {
   left: 9px;
 }
 </style>
-@/providers/guiConfig

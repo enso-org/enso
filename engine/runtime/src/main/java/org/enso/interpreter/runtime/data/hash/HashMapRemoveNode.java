@@ -1,11 +1,5 @@
 package org.enso.interpreter.runtime.data.hash;
 
-import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
-import org.enso.interpreter.node.expression.builtin.meta.HashCodeNode;
-import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.error.DataflowError;
-
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
@@ -17,14 +11,18 @@ import com.oracle.truffle.api.interop.StopIterationException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
+import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
+import org.enso.interpreter.node.expression.builtin.meta.HashCodeNode;
+import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.error.DataflowError;
 
 @BuiltinMethod(
     type = "Map",
     name = "remove_builtin",
     description = """
         Removes an entry from this map specified with the key.
-        """
-)
+        """)
 @GenerateUncached
 public abstract class HashMapRemoveNode extends Node {
   public static HashMapRemoveNode build() {
@@ -35,10 +33,10 @@ public abstract class HashMapRemoveNode extends Node {
 
   @Specialization
   EnsoHashMap removeFromEnsoMap(
-    EnsoHashMap ensoMap, Object key,
-    @Shared("hash") @Cached HashCodeNode hashCodeNode,
-    @Shared("equals") @Cached EqualsNode equalsNode
-  ) {
+      EnsoHashMap ensoMap,
+      Object key,
+      @Shared("hash") @Cached HashCodeNode hashCodeNode,
+      @Shared("equals") @Cached EqualsNode equalsNode) {
     var mapBuilder = ensoMap.getMapBuilder(false, hashCodeNode, equalsNode);
     if (mapBuilder.remove(key, hashCodeNode, equalsNode)) {
       return mapBuilder.build();
@@ -47,10 +45,10 @@ public abstract class HashMapRemoveNode extends Node {
     }
   }
 
-  @Specialization(
-      guards = "interop.hasHashEntries(map)"
-  )
-  EnsoHashMap removeFromInteropMap(Object map, Object keyToRemove,
+  @Specialization(guards = "interop.hasHashEntries(map)")
+  EnsoHashMap removeFromInteropMap(
+      Object map,
+      Object keyToRemove,
       @CachedLibrary(limit = "5") InteropLibrary interop,
       @Shared("hash") @Cached HashCodeNode hashCodeNode,
       @Shared("equals") @Cached EqualsNode equalsNode) {
@@ -80,7 +78,8 @@ public abstract class HashMapRemoveNode extends Node {
       }
     } catch (UnsupportedMessageException | StopIterationException | InvalidArrayIndexException e) {
       CompilerDirectives.transferToInterpreter();
-      var msg = "Polyglot hash map " + map + " has wrongly specified Interop API (hash entries iterator)";
+      var msg =
+          "Polyglot hash map " + map + " has wrongly specified Interop API (hash entries iterator)";
       var ctx = EnsoContext.get(this);
       throw ctx.raiseAssertionPanic(this, msg, e);
     }
