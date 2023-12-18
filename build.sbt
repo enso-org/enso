@@ -1770,18 +1770,7 @@ lazy val runtime = (project in file("engine/runtime"))
         testInstrumentsModName -> Seq(runtimeModName)
       )
     },
-    Test / javaOptions ++= {
-      // We can't use org.enso.logger.TestLogProvider (or anything from our own logging framework here) because it is not
-      // in a module, and it cannot be simple wrapped inside a module.
-      // So we use plain ch.qos.logback with its configuration.
-      val testLogbackConf = (LocalProject(
-        "logging-service-logback"
-      ) / Test / sourceDirectory).value / "resources" / "logback-test.xml"
-      Seq(
-        "-Dslf4j.provider=ch.qos.logback.classic.spi.LogbackServiceProvider",
-        s"-Dlogback.configurationFile=${testLogbackConf.getAbsolutePath}"
-      )
-    },
+    Test / javaOptions ++= testLogProviderOptions,
     // TODO[pm] This is a workaround after `runtime-with-polyglot` was merged into `runtime`.
     Test / javaOptions := {
       val oldOpts = (Test / javaOptions).value
