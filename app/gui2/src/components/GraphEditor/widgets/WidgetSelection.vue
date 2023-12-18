@@ -3,7 +3,7 @@ import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import DropdownWidget from '@/components/widgets/DropdownWidget.vue'
 import { widgetProps } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
-import { qnJoin, qnSegments, tryQualifiedName } from '@/util/qualifiedName.ts'
+import { qnJoin, qnSegments, tryQualifiedName } from '@/util/qualifiedName'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))

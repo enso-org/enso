@@ -1,10 +1,10 @@
 import type { BreadcrumbItem } from '@/components/NavBreadcrumbs.vue'
 import { useGraphStore } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
-import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName.ts'
+import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
+import type { StackItem } from 'shared/languageServerTypes.ts'
+import type { ExprId } from 'shared/yjsModel.ts'
 import { computed, onMounted, ref } from 'vue'
-import type { StackItem } from '../../shared/languageServerTypes.ts'
-import type { ExprId } from '../../shared/yjsModel.ts'
 
 export function useStackNavigator() {
   const projectStore = useProjectStore()
@@ -17,7 +17,7 @@ export function useStackNavigator() {
     return breadcrumbs.value.map((item, index) => {
       const label = stackItemToLabel(item)
       const isActive = index < activeStackLength
-      return { label, active: isActive } as BreadcrumbItem
+      return { label, active: isActive } satisfies BreadcrumbItem
     })
   })
 
@@ -31,8 +31,9 @@ export function useStackNavigator() {
 
   function stackItemToLabel(item: StackItem): string {
     switch (item.type) {
-      case 'ExplicitCall':
+      case 'ExplicitCall': {
         return item.methodPointer.name
+      }
       case 'LocalCall': {
         const exprId = item.expressionId
         const info = graphStore.db.getExpressionInfo(exprId)
@@ -65,7 +66,7 @@ export function useStackNavigator() {
 
   function enterNode(id: ExprId) {
     const expressionInfo = graphStore.db.getExpressionInfo(id)
-    if (expressionInfo == undefined || expressionInfo.methodCall == undefined) {
+    if (expressionInfo == null || expressionInfo.methodCall == null) {
       console.debug('Cannot enter node that has no method call.')
       return
     }
@@ -75,7 +76,7 @@ export function useStackNavigator() {
       return
     }
     const openModuleName = qnLastSegment(projectStore.modulePath.value)
-    if (definedOnType.ok && qnLastSegment(definedOnType.value) != openModuleName) {
+    if (definedOnType.ok && qnLastSegment(definedOnType.value) !== openModuleName) {
       console.debug('Cannot enter node that is not defined on current module.')
       return
     }
@@ -93,12 +94,12 @@ export function useStackNavigator() {
   function enterNextNodeFromHistory() {
     const nextNodeIndex = projectStore.executionContext.desiredStack.length
     const nextNode = breadcrumbs.value[nextNodeIndex]
-    if (nextNode?.type === 'LocalCall') {
-      projectStore.executionContext.push(nextNode.expressionId)
-      graphStore.updateState()
-    } else {
+    if (nextNode?.type !== 'LocalCall') {
       console.warn('Cannot enter non-local call.')
+      return
     }
+    projectStore.executionContext.push(nextNode.expressionId)
+    graphStore.updateState()
   }
 
   onMounted(() => {
