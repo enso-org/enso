@@ -29,3 +29,4 @@ src/util/iconList.json
 src/util/iconName.ts
 src/stores/visualization/metadata.json
 public/font-*/
+src/assets/font-*.css

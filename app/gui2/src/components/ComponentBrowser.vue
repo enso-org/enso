@@ -19,16 +19,15 @@ import type { Opt } from '@/util/opt'
 import { allRanges } from '@/util/range'
 import { Vec2 } from '@/util/vec2'
 import type { SuggestionId } from 'shared/languageServerTypes/suggestions'
-import type { ContentRange, ExprId } from 'shared/yjsModel.ts'
 import { computed, nextTick, onMounted, ref, watch, type ComputedRef, type Ref } from 'vue'
-import { useComponentBrowserInput } from './ComponentBrowser/input'
+import { useComponentBrowserInput, type Usage } from './ComponentBrowser/input'
 import GraphVisualization from './GraphEditor/GraphVisualization.vue'
 
 const ITEM_SIZE = 32
 const TOP_BAR_HEIGHT = 32
 // Difference in position between the component browser and a node for the input of the component browser to
 // be placed at the same position as the node.
-const COMPONENT_BROWSER_TO_NODE_OFFSET = new Vec2(20, 35)
+const COMPONENT_BROWSER_TO_NODE_OFFSET = new Vec2(-4, -4)
 
 const projectStore = useProjectStore()
 const suggestionDbStore = useSuggestionDbStore()
@@ -37,42 +36,24 @@ const graphStore = useGraphStore()
 const props = defineProps<{
   nodePosition: Vec2
   navigator: ReturnType<typeof useNavigator>
-  initialContent: string
-  initialCaretPosition: ContentRange
-  sourcePort: Opt<ExprId>
+  usage: Usage
 }>()
 
 const emit = defineEmits<{
   accepted: [searcherExpression: string, requiredImports: RequiredImport[]]
-  closed: [searcherExpression: string]
+  closed: [searcherExpression: string, requiredImports: RequiredImport[]]
   canceled: []
 }>()
 
-function getInitialContent(): string {
-  if (props.sourcePort == null) return props.initialContent
-  const sourceNodeName = graphStore.db.getOutputPortIdentifier(props.sourcePort)
-  const sourceNodeNameWithDot = sourceNodeName ? sourceNodeName + '.' : ''
-  return sourceNodeNameWithDot + props.initialContent
-}
-
-function getInitialCaret(): ContentRange {
-  if (props.sourcePort == null) return props.initialCaretPosition
-  const sourceNodeName = graphStore.db.getOutputPortIdentifier(props.sourcePort)
-  const sourceNodeNameWithDot = sourceNodeName ? sourceNodeName + '.' : ''
-  return [
-    props.initialCaretPosition[0] + sourceNodeNameWithDot.length,
-    props.initialCaretPosition[1] + sourceNodeNameWithDot.length,
-  ]
-}
-
 onMounted(() => {
   nextTick(() => {
-    input.code.value = getInitialContent()
-    const caret = getInitialCaret()
+    input.reset(props.usage)
     if (inputField.value != null) {
       inputField.value.focus({ preventScroll: true })
-      input.selection.value = { start: caret[0], end: caret[1] }
-      selectLastAfterRefresh()
+    } else {
+      console.warn(
+        'Component Browser input element was not mounted. This is not expected and may break the Component Browser',
+      )
     }
   })
 })
@@ -108,7 +89,15 @@ const currentFiltering = computed(() => {
   )
 })
 
-watch(currentFiltering, selectLastAfterRefresh)
+watch(currentFiltering, () => {
+  selected.value = input.autoSelectFirstComponent.value ? 0 : null
+  nextTick(() => {
+    scrollToBottom()
+    animatedScrollPosition.skip()
+    animatedHighlightPosition.skip()
+    animatedHighlightHeight.skip()
+  })
+})
 
 function readInputFieldSelection() {
   if (
@@ -159,9 +148,10 @@ useEvent(
   window,
   'pointerdown',
   (event) => {
+    if (event.button !== 0) return
     if (!(event.target instanceof Element)) return
     if (!cbRoot.value?.contains(event.target)) {
-      emit('closed', input.code.value)
+      emit('closed', input.code.value, input.importsToAdd())
     }
   },
   { capture: true },
@@ -263,21 +253,6 @@ const highlightClipPath = computed(() => {
   return `inset(${top}px 0px ${bottom}px 0px round 16px)`
 })
 
-/**
- * Select the last element after updating component list.
- *
- * As the list changes the scroller's content, we need to wait a frame so the scroller
- * recalculates its height and setting scrollTop will work properly.
- */
-function selectLastAfterRefresh() {
-  selected.value = 0
-  nextTick(() => {
-    scrollToSelected()
-    animatedScrollPosition.skip()
-    animatedHighlightPosition.skip()
-  })
-}
-
 // === Scrolling ===
 
 const scroller = ref<HTMLElement>()
@@ -295,6 +270,10 @@ const listContentHeightPx = computed(() => `${listContentHeight.value}px`)
 function scrollToSelected() {
   if (selectedPosition.value == null) return
   scrollPosition.value = Math.max(selectedPosition.value - scrollerSize.value.y + ITEM_SIZE, 0)
+}
+
+function scrollToBottom() {
+  scrollPosition.value = listContentHeight.value - scrollerSize.value.y
 }
 
 function updateScroll() {
@@ -385,6 +364,9 @@ const handler = componentBrowserBindings.handler({
     @focusout="handleDefocus"
     @keydown="handler"
     @pointerdown.stop
+    @keydown.enter.stop
+    @keydown.backspace.stop
+    @keydown.delete.stop
   >
     <div class="panels">
       <div class="panel components">
@@ -490,8 +472,7 @@ const handler = componentBrowserBindings.handler({
           v-model="input.code.value"
           name="cb-input"
           autocomplete="off"
-          @keydown.backspace.stop
-          @keyup="readInputFieldSelection"
+          @input="readInputFieldSelection"
         />
       </div>
     </div>

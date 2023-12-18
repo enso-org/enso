@@ -202,6 +202,7 @@ const editorStyle = computed(() => {
     :style="editorStyle"
     @keydown.enter.stop
     @keydown.backspace.stop
+    @keydown.delete.stop
     @wheel.stop.passive
     @pointerdown.stop
     @contextmenu.stop
@@ -246,6 +247,10 @@ const editorStyle = computed(() => {
   }
 }
 
+:deep(.ͼ1 .cm-scroller) {
+  font-family: var(--font-mono);
+}
+
 .resize-handle {
   position: absolute;
   top: -3px;
@@ -253,7 +258,7 @@ const editorStyle = computed(() => {
   width: 20px;
   height: 20px;
   padding: 5px;
-  /* cursor: nesw-resize; */
+  cursor: nesw-resize;
 
   svg {
     fill: black;

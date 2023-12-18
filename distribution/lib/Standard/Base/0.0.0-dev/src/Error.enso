@@ -1,7 +1,12 @@
 import project.Any.Any
+import project.Data.Maybe.Maybe
 import project.Data.Text.Text
 import project.Data.Vector.Vector
+import project.Errors.Common.No_Such_Conversion
+import project.Errors.Wrapped_Error.Wrapped_Error
 import project.Meta
+import project.Nothing.Nothing
+import project.Data.Pair.Pair
 import project.Panic.Panic
 import project.Runtime.Stack_Trace_Element
 from project.Data.Boolean import Boolean, False, True
@@ -75,6 +80,23 @@ type Error
        - handler: The function to call on this if it is an error value of a
          matching type. By default this is identity.
 
+       ! Wrapped Errors
+
+         A wrapped error is one that has been wrapped inside another error. For
+         example, an error thrown in a `Vector.map operation` at index 3 would
+         look like this:
+
+             `(Map_Error.Error 3 (Some_Error.Error "an error occurred"))`
+
+          A wrapped error can be caught either as as the inner error, or as the
+          outer error, by using the `error_type` parameter. If it is caught as
+          the inner error, the outer wrapping error is removed. If
+          `error_wrapper` is unspecified or `Any`, the error is caught as the
+          outer error.
+
+          A wrapping error must implement a conversion to `Wrapped_Error` to be
+          treated properly as a wrapping error.
+
        > Example
          Catching an `Illegal_Argument` and returning its message.
 
@@ -92,12 +114,49 @@ type Error
              example_catch =
                  error = Error.throw 42
                  error.catch == 42
+
+       > Example
+         Catch a wrapped error in various ways.
+
+             map_fun a = if a == 30 then Error.throw (Some_Error.Error a) else a+1
+
+             # Catch an error as the inner error
+             [10, 20, 30, 40] . map map_fun . catch Some_Error
+             # => (Some_Error.Error 30)
+
+             # Catch an error as the outer error
+             [10, 20, 30, 40] . map map_fun . catch Map_Error
+             # => (Map_Error.Error 2 (Some_Error.Error 30))
+
+             # Catch an error without specifying an error type
+             [10, 20, 30, 40] . map map_fun . catch
+             # => (Map_Error.Error 2 (Some_Error.Error 30))
     catch : Any -> (Error -> Any) -> Any
     catch self (error_type = Any) (handler = x->x) =
         self.catch_primitive error_value->
             case error_value.is_a error_type of
                 True -> handler error_value
-                False -> self
+                False ->
+                    case look_for_wrapped_error error_type error_value of
+                        Maybe.None -> self
+                        Maybe.Some inner_error -> handler inner_error
+
+    ## PRIVATE
+       Convert a wrapped error to a Wrapped_Error. If the argument is not a
+       wrapped error, Nothing is returned.
+    as_wrapped_error : Any -> Wrapped_Error | Nothing
+    as_wrapped_error error_value =
+        Panic.catch No_Such_Conversion (Wrapped_Error.from error_value) _->Nothing
+
+    ## PRIVATE
+       Determines if this is the specified error wrapper, and, if so, returns
+       the inner error. This only unwraps once.
+    unwrap_error : Any -> Any -> Maybe Any
+    unwrap_error wrapper_error_type error_value =
+        case Error.as_wrapped_error error_value of
+            Wrapped_Error.Value wrapping_error inner_error ->
+                if wrapping_error.is_a wrapper_error_type then Maybe.Some inner_error else Maybe.None
+            Nothing -> Maybe.None
 
     ## Transforms an error.
 
@@ -161,3 +220,17 @@ type Error
     if_not_error : Any -> Any
     if_not_error self ~other =
         const self other
+
+## PRIVATE
+   Unwrap a wrapped error 0 or more times until the specified type is found.
+   Returns None if it is not found.
+look_for_wrapped_error : Any -> Any -> Maybe Any
+look_for_wrapped_error error_type=Any error_value =
+    if error_value.is_a error_type then Maybe.Some error_value else
+        inner_error_maybe =
+            Panic.catch No_Such_Conversion handler=(_->Maybe.None) <|
+                Maybe.Some (Wrapped_Error.from error_value . inner_error)
+        case inner_error_maybe of
+            Maybe.None -> Maybe.None
+            Maybe.Some inner_error ->
+                @Tail_Call look_for_wrapped_error error_type inner_error

@@ -138,6 +138,32 @@ impl IsTarget for Gui2 {
         let WithDestination { inner: _, destination } = job;
         async move {
             let repo_root = &context.repo_root;
+            crate::ide::web::google_font::install_with_css(
+                &context.cache,
+                &context.octocrab,
+                "mplus1",
+                "M PLUS 1",
+                "/font-mplus1",
+                &repo_root.app.gui_2.public.font_mplus_1,
+                &repo_root.app.gui_2.src.assets.font_mplus_1_css,
+            )
+            .await?;
+            crate::ide::web::dejavu_font::install_sans_mono_with_css(
+                &context.cache,
+                &context.octocrab,
+                "/font-dejavu",
+                &repo_root.app.gui_2.public.font_dejavu,
+                &repo_root.app.gui_2.src.assets.font_dejavu_css,
+            )
+            .await?;
+            crate::ide::web::enso_font::install_with_css(
+                &context.cache,
+                &context.octocrab,
+                "/font-enso",
+                &repo_root.app.gui_2.public.font_enso,
+                &repo_root.app.gui_2.src.assets.font_enso_css,
+            )
+            .await?;
             crate::web::install(repo_root).await?;
             script(repo_root, Scripts::Build)?.run_ok().await?;
             ide_ci::fs::mirror_directory(
