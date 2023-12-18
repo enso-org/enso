@@ -479,7 +479,7 @@ spec setup =
                 t = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]], ["C", [True, False, True]]]
                 r1 = t.at "A" . year
                 r1.should_fail_with Invalid_Value_Type
-                r1.catch . to_display_text . should_start_with "Expected type Date or Date_Time, but got a column [A] of type Integer"
+                r1.catch . to_display_text . should_start_with "Expected Date or Date_Time type, but got a column [A] of type Integer"
                 t.at "B" . month . should_fail_with Invalid_Value_Type
                 t.at "C" . day . should_fail_with Invalid_Value_Type
 

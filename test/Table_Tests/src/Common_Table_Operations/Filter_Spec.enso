@@ -65,6 +65,31 @@ spec setup =
             t.filter "X" (Filter_Condition.Greater than=(Column_Ref.Name "Y")) . at "X" . to_vector . should_equal [12]
             t.filter "Y" (Filter_Condition.Between (Column_Ref.Name "ix") 100) . at "Y" . to_vector . should_equal [100, 4, 11]
 
+            t.filter "X" (Filter_Condition.Is_Finite) . at "ix" . to_vector . should_equal [1, 2, 4, 5]
+            t.filter "X" (Filter_Condition.Is_Infinite) . at "ix" . to_vector . should_equal []
+
+            if test_selection.is_nan_and_nothing_distinct then
+                t.filter "X" (Filter_Condition.Is_Nan) . at "ix" . to_vector . should_equal []
+
+        Test.specify "by float operations" <|
+            t = table_builder [["ix", [1, 2, 3, 4, 5, 6]], ["X", [100.0, 2.5, Nothing, Number.nan, Number.positive_infinity, Number.negative_infinity]]]
+
+            t.filter "X" (Filter_Condition.Less than=10.0) . at "X" . to_vector . should_equal [2.5, Number.negative_infinity]
+
+            # In PostgreSQL, NaN is greater than any other value, so it is > 10.0; in other implementations it is usually not greater nor smaller, so it gets filtered out.
+            t.filter "X" (Filter_Condition.Greater than=10.0) . at "ix" . to_vector . should_equal <|
+                if prefix.contains "PostgreSQL" . not then [1, 5] else [1, 4, 5]
+
+            # Similarly, PostgreSQL treats NaN==NaN
+            t.filter "X" (Filter_Condition.Equal to=Number.nan) . at "ix" . to_vector . should_equal <|
+                if prefix.contains "PostgreSQL" . not then [] else [4]
+            t.filter "X" (Filter_Condition.Equal to=Number.positive_infinity) . at "ix" . to_vector . should_equal [5]
+
+            t.filter "X" Filter_Condition.Is_Infinite . at "ix" . to_vector . should_equal [5, 6]
+            t.filter "X" Filter_Condition.Is_Finite . at "ix" . to_vector . should_equal [1, 2]
+            if test_selection.is_nan_and_nothing_distinct then
+                t.filter "X" Filter_Condition.Is_Nan . at "ix" . to_vector . should_equal [4]
+
         Test.specify "Not_Equal test cases" pending="Specification needs clarifying, see: https://github.com/enso-org/enso/issues/5241#issuecomment-1480167927" <|
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", [100, 3, Nothing, 4, 12]], ["Y", [100, 4, 2, Nothing, 11]]]
             t3 = t.filter "X" (Filter_Condition.Not_Equal to=100)
@@ -101,6 +126,11 @@ spec setup =
             t.filter "X" (Filter_Condition.Less than=(Column_Ref.Name "Y")) . at "X" . to_vector . should_equal []
             t.filter "X" (Filter_Condition.Equal to=(Column_Ref.Name "Y")) . at "X" . to_vector . should_equal ["b", "c"]
             t.filter "X" (Filter_Condition.Between (Column_Ref.Name "Y") "bzzzz") . at "X" . to_vector . should_equal ["abb", "baca", "b"]
+
+            t2 = table_builder [["X", ["A", "a", "b"]], ["Y", ["a", "B", "b"]]]
+            t2.filter "X" (Filter_Condition.Equal to="a") . at "X" . to_vector . should_equal ["a"]
+            t2.filter "X" (Filter_Condition.Equal_Ignore_Case to="a") . at "X" . to_vector . should_equal ["A", "a"]
+            t2.filter "X" (Filter_Condition.Equal_Ignore_Case to=(Column_Ref.Name "Y")) . at "X" . to_vector . should_equal ["A", "b"]
 
         Test.specify "by text search (contains, starts_with, ends_with, not_contains)" <|
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", ["abb", "bacb", "banana", Nothing, "nana"]], ["Y", ["a", "B", "d", "c", "a"]], ["Z", ["aaaaa", "bbbbb", "[ab]", "[ab]aaaa", "[ab]ccc"]]]
@@ -188,6 +218,7 @@ spec setup =
                 result.should_fail_with Invalid_Value_Type
                 result.catch.expected . should_equal "Char"
 
+            check_problem (t.filter "X" (Filter_Condition.Equal_Ignore_Case (t.at "ix")))
             check_problem (t.filter "X" (Filter_Condition.Starts_With (t.at "ix")))
             check_problem (t.filter "X" (Filter_Condition.Ends_With (t.at "ix")))
             check_problem (t.filter "X" (Filter_Condition.Contains (t.at "ix")))
@@ -195,6 +226,7 @@ spec setup =
             check_problem (t.filter "X" (Filter_Condition.Not_Like (t.at "ix")))
             check_problem (t.filter "X" (Filter_Condition.Not_Contains (t.at "ix")))
 
+            check_problem (t.filter "X" (Filter_Condition.Equal_Ignore_Case (Column_Ref.Name "ix")))
             check_problem (t.filter "X" (Filter_Condition.Starts_With (Column_Ref.Name "ix")))
             check_problem (t.filter "X" (Filter_Condition.Ends_With (Column_Ref.Name "ix")))
             check_problem (t.filter "X" (Filter_Condition.Contains (Column_Ref.Name "ix")))
@@ -202,6 +234,7 @@ spec setup =
             check_problem (t.filter "X" (Filter_Condition.Not_Like (Column_Ref.Name "ix")))
             check_problem (t.filter "X" (Filter_Condition.Not_Contains (Column_Ref.Name "ix")))
 
+            check_problem (t.filter "ix" (Filter_Condition.Equal_Ignore_Case "A"))
             check_problem (t.filter "ix" (Filter_Condition.Starts_With "A"))
             check_problem (t.filter "ix" (Filter_Condition.Ends_With "A"))
             check_problem (t.filter "ix" (Filter_Condition.Contains "A"))
@@ -308,7 +341,19 @@ spec setup =
 
             check_problem <| t.filter "ix" Filter_Condition.Is_True
             check_problem <| t.filter "ix" Filter_Condition.Is_False
-            
+
+        Test.specify "should check types of numeric operations" <|
+            t = table_builder [["a", ["a", "b"]]]
+            check_problem result =
+                result.should_fail_with Invalid_Value_Type
+                result.catch.expected . should_equal "a numeric"
+                result.catch.to_display_text . should_start_with "Expected a numeric type, but got a column [a] of type Char"
+
+            check_problem <| t.filter "a" Filter_Condition.Is_Finite
+            check_problem <| t.filter "a" Filter_Condition.Is_Infinite
+            if test_selection.is_nan_and_nothing_distinct then
+                check_problem <| t.filter "a" Filter_Condition.Is_Nan
+
         Test.specify "by a custom expression built from table's columns" <|
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", [10, 20, 13, 4, 5]], ["Y", [0, -100, 8, 2, 5]]]
             t.filter (t.at "X" + t.at "Y" > 9) . at "ix" . to_vector . should_equal [1, 3, 5]
