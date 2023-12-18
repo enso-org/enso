@@ -105,15 +105,20 @@ public class ArrowCastToFixedSizeArrayFactory implements TruffleObject {
           || !interop.fitsInLong(args[0])
           || !interop.isNumber(args[1])
           || !interop.fitsInInt(args[1])) {
-        throw UnsupportedMessageException.create();
+        throw UnsupportedMessageException.create(
+            new RuntimeException("Address of Arrow vector or its size is invalid"));
       }
       var size = interop.asInt(args[1]);
       var targetSize = size * unit.sizeInBytes();
       ByteBuffer buffer = MemoryUtil.directBuffer(interop.asLong(args[0]), targetSize);
       buffer.order(ByteOrder.LITTLE_ENDIAN);
       if (args.length == 3) {
+        if (!interop.isNumber(args[2]) || !interop.fitsInLong(args[2])) {
+          throw UnsupportedMessageException.create(
+              new RuntimeException("Address of non-null bitmap is invalid"));
+        }
         ByteBuffer validityMap =
-            MemoryUtil.directBuffer(interop.asLong(args[2]), (int) Math.ceil((size + 7) / 8));
+            MemoryUtil.directBuffer(interop.asLong(args[2]), (int) Math.ceil(size / 8) + 1);
         return new ByteBufferDirect(buffer, validityMap);
       } else {
         return new ByteBufferDirect(buffer, size);

@@ -29,7 +29,7 @@ public final class ArrowParser {
       return logicalLayout;
     }
 
-    public Mode getAction() {
+    public Mode getMode() {
       return mode;
     }
   }

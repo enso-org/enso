@@ -23,11 +23,14 @@ public class ArrowEvalNode extends RootNode {
   }
 
   public Object execute(VirtualFrame frame) {
-    switch (code.getAction()) {
-      case Allocate:
-        return fixedPhysicalLayout.execute(code.getLogicalLayout());
-      case Cast:
-        return castToFixedPhysicalLayout.execute(code.getLogicalLayout());
+    switch (code.getPhysicalLayout()) {
+      case Primitive:
+        switch (code.getMode()) {
+          case Allocate:
+            return fixedPhysicalLayout.execute(code.getLogicalLayout());
+          case Cast:
+            return castToFixedPhysicalLayout.execute(code.getLogicalLayout());
+        }
     }
     throw CompilerDirectives.shouldNotReachHere("unknown mode");
   }
