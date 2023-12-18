@@ -1770,7 +1770,7 @@ lazy val runtime = (project in file("engine/runtime"))
         testInstrumentsModName -> Seq(runtimeModName)
       )
     },
-    Test / javaOptions ++= testLogProviderOptions,
+    Test / javaOptions ++= testLogProviderOptions
   )
   .settings(
     Test / fork := true,
