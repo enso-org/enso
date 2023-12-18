@@ -1415,8 +1415,8 @@ type Table
     @key_columns Widget_Helpers.make_column_name_vector_selector
     merge : Table -> (Vector (Integer | Text | Regex) | Text | Integer | Regex) -> Boolean -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
     merge self lookup_table:Table key_columns:(Vector (Integer | Text | Regex) | Text | Integer | Regex) add_new_columns:Boolean=False allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
-        _ = [lookup_table, key_columns, add_new_columns, allow_unmatched_rows, on_problems]
-        Error.throw (Unsupported_Database_Operation.Error "Table.merge is not implemented yet for the Database backends.")
+        Helpers.ensure_same_connection "table" [self, lookup_table] <|
+            Lookup_Query_Helper.build_lookup_query self lookup_table key_columns add_new_columns allow_unmatched_rows on_problems
 
     ## ALIAS join by row position
        GROUP Standard.Base.Calculations
