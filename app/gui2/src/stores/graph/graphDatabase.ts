@@ -3,12 +3,14 @@ import { SuggestionDb, groupColorStyle, type Group } from '@/stores/suggestionDa
 import type { SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import { Ast, RawAst, RawAstExtended } from '@/util/ast'
 import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
+import { nodeFromAst } from '@/util/ast/node'
 import { colorFromString } from '@/util/colors'
 import { MappedKeyMap, MappedSet } from '@/util/containers'
 import { arrayEquals, byteArraysEqual, tryGetIndex } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
 import { Vec2 } from '@/util/data/vec2'
 import { ReactiveDb, ReactiveIndex, ReactiveMapping } from '@/util/database/reactiveDb'
+import * as random from 'lib0/random'
 import * as set from 'lib0/set'
 import { methodPointerEquals, type MethodCall } from 'shared/languageServerTypes'
 import {
@@ -310,17 +312,19 @@ export class GraphDb {
     return new GraphDb(db, ref([]), registry)
   }
 
-  mockNode(binding: string, id: ExprId, code?: string) {
-    const node = {
+  mockNode(binding: string, id: ExprId, code?: string): Node {
+    const pattern = Ast.parse(binding)
+    const node: Node = {
       outerExprId: id,
-      pattern: Ast.parse(binding),
+      pattern,
       rootSpan: Ast.parse(code ?? '0'),
       position: Vec2.Zero,
       vis: undefined,
     }
-    const bidingId = node.pattern.astId
+    const bindingId = pattern.astId
     this.nodeIdToNode.set(id, node)
-    this.bindings.bindings.set(bidingId, { identifier: binding, usages: new Set() })
+    this.bindings.bindings.set(bindingId, { identifier: binding, usages: new Set() })
+    return node
   }
 }
 
@@ -332,24 +336,15 @@ export interface Node {
   vis: Opt<VisualizationMetadata>
 }
 
-function nodeFromAst(ast: Ast.Ast): Node {
-  const common = {
-    outerExprId: ast.exprId,
+/** This should only be used for supplying as initial props when testing.
+ * Please do {@link GraphDb.mockNode} with a `useGraphStore().db` after mount. */
+export function mockNode(exprId?: ExprId): Node {
+  return {
+    outerExprId: exprId ?? (random.uuidv4() as ExprId),
+    pattern: undefined,
+    rootSpan: Ast.parse('0'),
     position: Vec2.Zero,
     vis: undefined,
-  }
-  if (ast instanceof Ast.Assignment && ast.expression) {
-    return {
-      ...common,
-      pattern: ast.pattern ?? undefined,
-      rootSpan: ast.expression,
-    }
-  } else {
-    return {
-      ...common,
-      pattern: undefined,
-      rootSpan: ast,
-    }
   }
 }
 

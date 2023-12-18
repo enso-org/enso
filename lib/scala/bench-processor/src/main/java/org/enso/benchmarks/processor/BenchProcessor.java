@@ -1,11 +1,8 @@
 package org.enso.benchmarks.processor;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.net.URISyntaxException;
-import java.nio.file.Files;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -79,7 +76,6 @@ public class BenchProcessor extends AbstractProcessor {
     ensoHomeOverride = ensoDir.toPath().resolve("distribution").resolve("component").toFile();
   }
 
-
   @Override
   public SourceVersion getSupportedSourceVersion() {
     return SourceVersion.latest();
@@ -102,10 +98,7 @@ public class BenchProcessor extends AbstractProcessor {
               .allowExperimentalOptions(true)
               .allowIO(IOAccess.ALL)
               .allowAllAccess(true)
-              .option(
-                      RuntimeOptions.LOG_LEVEL,
-                      Level.WARNING.getName()
-              )
+              .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
               .logHandler(System.err)
               .option(RuntimeOptions.PROJECT_ROOT, projectRootDir.getAbsolutePath())
               .option(RuntimeOptions.LANGUAGE_HOME_OVERRIDE, ensoHomeOverride.getAbsolutePath())
@@ -156,12 +149,17 @@ public class BenchProcessor extends AbstractProcessor {
   }
 
   private boolean validateGroup(BenchGroup group) {
-    List<String> specNames = group.specs().stream().map(BenchSpec::name).collect(Collectors.toList());
+    List<String> specNames =
+        group.specs().stream().map(BenchSpec::name).collect(Collectors.toList());
     long distinctNamesCount = specNames.stream().distinct().count();
     List<String> sortedSpecNames = specNames.stream().sorted().collect(Collectors.toList());
     if (specNames.size() != distinctNamesCount) {
-      failWithMessage("All benchmark suite names in group '" + group.name() + "' must be unique."
-          + " Found names of the bench suites: " + sortedSpecNames);
+      failWithMessage(
+          "All benchmark suite names in group '"
+              + group.name()
+              + "' must be unique."
+              + " Found names of the bench suites: "
+              + sortedSpecNames);
       return false;
     } else {
       return true;
@@ -220,15 +218,19 @@ public class BenchProcessor extends AbstractProcessor {
     out.println("  @Setup");
     out.println("  public void setup(BenchmarkParams params) throws Exception {");
     // Workaround for compilation failures on Windows.
-    String projectRootDirPath = projectRootDir.getPath().contains("\\") ? projectRootDir.getPath().replace("\\", "\\\\") : projectRootDir.getPath();
-    out
-        .append("    File projectRootDir = Utils.findRepoRootDir().toPath().resolve(\"")
+    String projectRootDirPath =
+        projectRootDir.getPath().contains("\\")
+            ? projectRootDir.getPath().replace("\\", "\\\\")
+            : projectRootDir.getPath();
+    out.append("    File projectRootDir = Utils.findRepoRootDir().toPath().resolve(\"")
         .append(projectRootDirPath)
         .append("\").toFile();\n");
     out.println(
-        "    if (projectRootDir == null || !projectRootDir.exists() || !projectRootDir.canRead()) {");
+        "    if (projectRootDir == null || !projectRootDir.exists() || !projectRootDir.canRead())"
+            + " {");
     out.println(
-        "      throw new IllegalStateException(\"Project root directory does not exist or cannot be read: \" + Objects.toString(projectRootDir));");
+        "      throw new IllegalStateException(\"Project root directory does not exist or cannot be"
+            + " read: \" + Objects.toString(projectRootDir));");
     out.println("    }");
     out.println("    File languageHomeOverride = Utils.findLanguageHomeOverride();");
     out.println("    var ctx = Context.newBuilder()");
@@ -299,9 +301,9 @@ public class BenchProcessor extends AbstractProcessor {
       timeUnit = TimeUnit.SECONDS
     )
     """
-      .strip()
-      .replace("$1", Long.toString(warmupConf.iterations()))
-      .replace("$2", Long.toString(warmupConf.seconds()));
+        .strip()
+        .replace("$1", Long.toString(warmupConf.iterations()))
+        .replace("$2", Long.toString(warmupConf.seconds()));
   }
 
   private String getMeasureAnnotationForGroup(BenchGroup group) {
@@ -313,9 +315,9 @@ public class BenchProcessor extends AbstractProcessor {
       timeUnit = TimeUnit.SECONDS
     )
     """
-      .strip()
-      .replace("$1", Long.toString(measureConf.iterations()))
-      .replace("$2", Long.toString(measureConf.seconds()));
+        .strip()
+        .replace("$1", Long.toString(measureConf.iterations()))
+        .replace("$2", Long.toString(measureConf.seconds()));
   }
 
   /**

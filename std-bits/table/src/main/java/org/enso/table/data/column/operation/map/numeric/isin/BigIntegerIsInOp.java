@@ -1,15 +1,15 @@
 package org.enso.table.data.column.operation.map.numeric.isin;
 
+import java.math.BigInteger;
+import java.util.HashSet;
+import java.util.List;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.operation.map.SpecializedIsInOp;
 import org.enso.table.data.column.storage.Storage;
 import org.graalvm.polyglot.Context;
 
-import java.math.BigInteger;
-import java.util.HashSet;
-import java.util.List;
-
-public class BigIntegerIsInOp<S extends Storage<BigInteger>> extends SpecializedIsInOp<BigInteger, S> {
+public class BigIntegerIsInOp<S extends Storage<BigInteger>>
+    extends SpecializedIsInOp<BigInteger, S> {
   @Override
   protected CompactRepresentation<BigInteger> prepareList(List<?> list) {
     Context context = Context.getCurrent();

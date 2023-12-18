@@ -1,7 +1,9 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.System.File_Format.File_For_Read
+import Standard.Base.System.File_Format.File_Format_Metadata
 import Standard.Base.System.Input_Stream.Input_Stream
+from Standard.Base.System.File import find_extension_from_name
 
 import project.Data.Match_Columns.Match_Columns
 import project.Data.Table.Table
@@ -15,12 +17,9 @@ import project.Internal.Excel_Writer
 should_treat_as_xls_format : (Boolean|Infer) -> File -> Boolean ! Illegal_Argument
 should_treat_as_xls_format xls_format file =
     if xls_format != Infer then xls_format else
-        case file.extension of
-            ".xlsx" -> False
-            ".xlsm" -> False
-            ".xls" -> True
-            ".xlt" -> True
-            _ -> Error.throw (Illegal_Argument.Error ("Unknown file extension for Excel file (" + file.extension + ")"))
+        inferred_xls_format = xls_format_from_file_extension file.extension
+        inferred_xls_format.if_nothing <|
+            Error.throw (Illegal_Argument.Error ("Unknown file extension for Excel file (" + file.extension + ")"))
 
 ## Read the file to a `Table` from an Excel file
 type Excel_Format
@@ -67,11 +66,9 @@ type Excel_Format
     for_web : Text -> URI -> Excel_Format | Nothing
     for_web content_type uri =
         _ = [uri]
-        parts = content_type.split ";" . map .trim
-        case parts.first of
-            "application/vnd.ms-excel" -> Excel_Format.Excel xls_format=True
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" -> Excel_Format.Excel xls_format=False
-            _ -> Nothing
+        inferred_xls_format = xls_format_from_content_type content_type
+        inferred_xls_format.if_not_nothing <|
+            Excel_Format.Excel xls_format=inferred_xls_format
 
     ## PRIVATE
        ADVANCED
@@ -84,10 +81,13 @@ type Excel_Format
             _ -> Excel_Reader.read_file file self.section self.headers on_problems format
 
     ## PRIVATE
-       Implements the `Data.parse` for this `File_Format`
-    read_stream : Input_Stream -> Any
-    read_stream self stream:Input_Stream =
-        xls_format = if self.xls_format == Infer then False else self.xls_format
+       Implements decoding the format from a stream.
+    read_stream : Input_Stream -> File_Format_Metadata -> Any
+    read_stream self stream:Input_Stream (metadata : File_Format_Metadata = File_Format_Metadata.no_information) =
+        xls_format = if self.xls_format != Infer then self.xls_format else
+            inferred_xls_format = xls_format_from_metadata metadata
+            # If still unable to infer it, we default to False
+            inferred_xls_format.if_nothing False
 
         bad_format _ =
             message = case self.xls_format of
@@ -124,10 +124,41 @@ type Excel_Format
     write_table self file table on_existing_file match_columns on_problems =
         format = should_treat_as_xls_format self.xls_format file
 
-        r = case self.section of
+        case self.section of
             Excel_Section.Sheet_Names -> Error.throw (Illegal_Argument.Error "Sheet_Names cannot be used for `write`.")
             Excel_Section.Range_Names -> Error.throw (Illegal_Argument.Error "Range_Names cannot be used for `write`.")
             Excel_Section.Workbook ->
                 Excel_Writer.write_file file table on_existing_file (Excel_Section.Worksheet self.default_sheet) True match_columns on_problems format
             _ -> Excel_Writer.write_file file table on_existing_file self.section self.headers match_columns on_problems format
-        r.if_not_error file
+
+## PRIVATE
+   Infers the xls format from the Content-Type.
+   Returns Nothing if the content type is not a known Excel format.
+xls_format_from_content_type : Text -> Boolean | Nothing
+xls_format_from_content_type content_type =
+    parts = content_type.split ";" . map .trim
+    case parts.first of
+        "application/vnd.ms-excel" -> True
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" -> False
+        _ -> Nothing
+
+## PRIVATE
+    Infers the xls format from the file extension.
+    Returns Nothing if the content type is not a known Excel format.
+xls_format_from_file_extension : Text -> Boolean | Nothing
+xls_format_from_file_extension extension =
+    case extension of
+        ".xlsx" -> False
+        ".xlsm" -> False
+        ".xls" -> True
+        ".xlt" -> True
+        _ -> Nothing
+
+## PRIVATE
+xls_format_from_metadata : File_Format_Metadata -> Boolean | Nothing
+xls_format_from_metadata metadata =
+    from_content_type = metadata.content_type.if_not_nothing (xls_format_from_content_type metadata.content_type)
+    from_content_type.if_nothing <|
+        metadata.file_name.if_not_nothing <|
+            extension = find_extension_from_name metadata.file_name
+            xls_format_from_file_extension extension

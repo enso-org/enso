@@ -1,6 +1,5 @@
 package org.enso.interpreter.test.asserts;
 
-
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayOutputStream;
@@ -24,14 +23,14 @@ public class SuccessfulAssertionExpressionTest extends TestBase {
 
   private static final ByteArrayOutputStream out = new ByteArrayOutputStream();
 
-
   @BeforeClass
   public static void setupCtx() {
-    ctx = TestBase.defaultContextBuilder(LanguageInfo.ID)
-        .environment("ENSO_ENABLE_ASSERTIONS", "true")
-        .out(out)
-        .err(out)
-        .build();
+    ctx =
+        TestBase.defaultContextBuilder(LanguageInfo.ID)
+            .environment("ENSO_ENABLE_ASSERTIONS", "true")
+            .out(out)
+            .err(out)
+            .build();
   }
 
   @AfterClass
@@ -44,7 +43,8 @@ public class SuccessfulAssertionExpressionTest extends TestBase {
     out.reset();
   }
 
-  private static final String imports = """
+  private static final String imports =
+      """
 from Standard.Base import all
 polyglot java import java.lang.System as Java_System
 
@@ -58,21 +58,16 @@ eq_method x y =
         "True",
         "1 == 1",
         "eq_method 23 23",
-        "(Java_System.getenv '__NON_EXISTING_ENV_VAR__') == Nothing"
-    );
+        "(Java_System.getenv '__NON_EXISTING_ENV_VAR__') == Nothing");
   }
 
-  @Parameter
-  public String succExpr;
+  @Parameter public String succExpr;
 
   @Test
   public void assertTakesAnyExpression() {
     var sb = new StringBuilder();
     sb.append(imports).append("\n");
-    sb
-        .append("main = Runtime.assert (")
-        .append(succExpr)
-        .append(")\n");
+    sb.append("main = Runtime.assert (").append(succExpr).append(")\n");
     var code = sb.toString();
     var res = TestBase.evalModule(ctx, code);
     assertTrue(res.isNull());

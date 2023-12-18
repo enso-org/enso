@@ -1,12 +1,10 @@
 package org.enso.persist.impl;
 
 import java.io.IOException;
-import java.lang.module.ModuleDescriptor;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
-
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.Processor;
 import javax.annotation.processing.RoundEnvironment;
@@ -24,22 +22,17 @@ import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.SimpleAnnotationValueVisitor9;
 import javax.tools.Diagnostic.Kind;
-
 import org.openide.util.lookup.ServiceProvider;
 
 /**
- * Processes the {@code Persistable} annotation. See its javadoc for
- * proper usage. A new subclass of {@code Persistance} class is generated per each
- * {@code Persistable} annotation.
+ * Processes the {@code Persistable} annotation. See its javadoc for proper usage. A new subclass of
+ * {@code Persistance} class is generated per each {@code Persistable} annotation.
  */
-@SupportedAnnotationTypes({
-  "org.enso.persist.Persistable",
-  "org.enso.persist.Persistable.Group"
-})
-@ServiceProvider(service=Processor.class)
+@SupportedAnnotationTypes({"org.enso.persist.Persistable", "org.enso.persist.Persistable.Group"})
+@ServiceProvider(service = Processor.class)
 public class PersistableProcessor extends AbstractProcessor {
   @Override
-   public SourceVersion getSupportedSourceVersion() {
+  public SourceVersion getSupportedSourceVersion() {
     return SourceVersion.latest();
   }
 
@@ -57,7 +50,7 @@ public class PersistableProcessor extends AbstractProcessor {
       for (var elem : roundEnv.getElementsAnnotatedWith(PersistableGroup)) {
         var group = getAnnotation(elem, PersistableGroup);
         for (var anno : readAnnoArray(group, "value")) {
-           ok &= generatePersistance(elem, anno);
+          ok &= generatePersistance(elem, anno);
         }
       }
     } catch (IOException e) {
@@ -97,36 +90,46 @@ public class PersistableProcessor extends AbstractProcessor {
       processingEnv.getMessager().printMessage(Kind.ERROR, "Cannot find type for " + typeElemName);
       return false;
     }
-    var richerConstructor = new Comparator<Object>() {
-      @Override
-      public int compare(Object a, Object b) {
-        var ea = (ExecutableElement)a;
-        var eb = (ExecutableElement)b;
+    var richerConstructor =
+        new Comparator<Object>() {
+          @Override
+          public int compare(Object a, Object b) {
+            var ea = (ExecutableElement) a;
+            var eb = (ExecutableElement) b;
 
-        var diff = eb.getParameters().size() - ea.getParameters().size();
-        if (diff == 0) {
-          diff = countSeq(eb.getParameters()) - countSeq(ea.getParameters());
-        }
-        return diff;
-      }
-    };
-    var constructors = typeElem.getEnclosedElements().stream()
-      .filter(
-        e -> e.getModifiers().contains(Modifier.PUBLIC) && e.getKind() == ElementKind.CONSTRUCTOR
-      )
-      .sorted(richerConstructor)
-      .toList();
+            var diff = eb.getParameters().size() - ea.getParameters().size();
+            if (diff == 0) {
+              diff = countSeq(eb.getParameters()) - countSeq(ea.getParameters());
+            }
+            return diff;
+          }
+        };
+    var constructors =
+        typeElem.getEnclosedElements().stream()
+            .filter(
+                e ->
+                    e.getModifiers().contains(Modifier.PUBLIC)
+                        && e.getKind() == ElementKind.CONSTRUCTOR)
+            .sorted(richerConstructor)
+            .toList();
 
     ExecutableElement cons;
     Element singleton;
     if (constructors.isEmpty()) {
-      var singletonFields = typeElem.getEnclosedElements().stream().filter(
-        e -> e.getKind() == ElementKind.FIELD && e.getModifiers().contains(Modifier.STATIC) && e.getModifiers().contains(Modifier.PUBLIC)
-      ).filter(
-        e -> tu.isSameType(e.asType(), typeElem.asType())
-      ).toList();
+      var singletonFields =
+          typeElem.getEnclosedElements().stream()
+              .filter(
+                  e ->
+                      e.getKind() == ElementKind.FIELD
+                          && e.getModifiers().contains(Modifier.STATIC)
+                          && e.getModifiers().contains(Modifier.PUBLIC))
+              .filter(e -> tu.isSameType(e.asType(), typeElem.asType()))
+              .toList();
       if (singletonFields.isEmpty()) {
-        processingEnv.getMessager().printMessage(Kind.ERROR, "There should be exactly one constructor in " + typeElem, orig);
+        processingEnv
+            .getMessager()
+            .printMessage(
+                Kind.ERROR, "There should be exactly one constructor in " + typeElem, orig);
         return false;
       }
       singleton = singletonFields.get(0);
@@ -137,7 +140,12 @@ public class PersistableProcessor extends AbstractProcessor {
       if (constructors.size() > 1) {
         var snd = (ExecutableElement) constructors.get(1);
         if (richerConstructor.compare(cons, snd) == 0) {
-          processingEnv.getMessager().printMessage(Kind.ERROR, "There should be exactly one 'richest' constructor in " + typeElem, orig);
+          processingEnv
+              .getMessager()
+              .printMessage(
+                  Kind.ERROR,
+                  "There should be exactly one 'richest' constructor in " + typeElem,
+                  orig);
           return false;
         }
       }
@@ -150,14 +158,24 @@ public class PersistableProcessor extends AbstractProcessor {
       w.append("import java.io.IOException;\n");
       w.append("import org.enso.persist.Persistance;\n");
       w.append("@org.openide.util.lookup.ServiceProvider(service=Persistance.class)\n");
-      w.append("public final class ").append(className).append(" extends Persistance<").append(typeElemName).append("> {\n");
+      w.append("public final class ")
+          .append(className)
+          .append(" extends Persistance<")
+          .append(typeElemName)
+          .append("> {\n");
       w.append("  public ").append(className).append("() {\n");
       var id = readAnnoValue(anno, "id");
-      w.append("    super(").append(typeElemName).append(".class, false, ").append(id).append(");\n");
+      w.append("    super(")
+          .append(typeElemName)
+          .append(".class, false, ")
+          .append(id)
+          .append(");\n");
       w.append("  }\n");
       w.append("  @SuppressWarnings(\"unchecked\")\n");
       w.append("  @Override\n");
-      w.append("  protected ").append(typeElemName).append(" readObject(Input in) throws IOException {\n");
+      w.append("  protected ")
+          .append(typeElemName)
+          .append(" readObject(Input in) throws IOException {\n");
 
       if (cons != null) {
         for (var v : cons.getParameters()) {
@@ -168,18 +186,30 @@ public class PersistableProcessor extends AbstractProcessor {
             var elem = (TypeElement) tu.asElement(type);
             var name = findFqn(elem);
             if (shouldInline(elem)) {
-              w.append("    var ").append(v.getSimpleName()).append(" = in.readInline(").append(name).append(".class);\n");
+              w.append("    var ")
+                  .append(v.getSimpleName())
+                  .append(" = in.readInline(")
+                  .append(name)
+                  .append(".class);\n");
             } else {
-              w.append("    var ").append(v.getSimpleName()).append(" = (").append(name).append(") in.readObject();\n");
+              w.append("    var ")
+                  .append(v.getSimpleName())
+                  .append(" = (")
+                  .append(name)
+                  .append(") in.readObject();\n");
             }
-          } else switch (v.asType().getKind()) {
-            case BOOLEAN ->
-              w.append("    var ").append(v.getSimpleName()).append(" = in.readBoolean();\n");
-            case INT ->
-              w.append("    var ").append(v.getSimpleName()).append(" = in.readInt();\n");
-            default ->
-              processingEnv.getMessager().printMessage(Kind.ERROR, "Unsupported primitive type: " + v.asType().getKind());
-          }
+          } else
+            switch (v.asType().getKind()) {
+              case BOOLEAN -> w.append("    var ")
+                  .append(v.getSimpleName())
+                  .append(" = in.readBoolean();\n");
+              case INT -> w.append("    var ")
+                  .append(v.getSimpleName())
+                  .append(" = in.readInt();\n");
+              default -> processingEnv
+                  .getMessager()
+                  .printMessage(Kind.ERROR, "Unsupported primitive type: " + v.asType().getKind());
+            }
         }
         w.append("    return new ").append(typeElemName).append("(\n");
         w.append("      ");
@@ -194,12 +224,18 @@ public class PersistableProcessor extends AbstractProcessor {
         w.append("\n");
         w.append("    );\n");
       } else {
-        w.append("    return ").append(typeElemName).append(".").append(singleton.getSimpleName()).append(";\n");
+        w.append("    return ")
+            .append(typeElemName)
+            .append(".")
+            .append(singleton.getSimpleName())
+            .append(";\n");
       }
       w.append("  }\n");
       w.append("  @SuppressWarnings(\"unchecked\")\n");
       w.append("  @Override\n");
-      w.append("  protected void writeObject(").append(typeElemName).append(" obj, Output out) throws IOException {\n");
+      w.append("  protected void writeObject(")
+          .append(typeElemName)
+          .append(" obj, Output out) throws IOException {\n");
       if (cons != null) {
         for (var v : cons.getParameters()) {
           if (tu.isSameType(eu.getTypeElement("java.lang.String").asType(), v.asType())) {
@@ -209,18 +245,26 @@ public class PersistableProcessor extends AbstractProcessor {
             var elem = (TypeElement) tu.asElement(type);
             var name = findFqn(elem);
             if (shouldInline(elem)) {
-              w.append("    out.writeInline(").append(name).append(".class, obj.").append(v.getSimpleName()).append("());\n");
+              w.append("    out.writeInline(")
+                  .append(name)
+                  .append(".class, obj.")
+                  .append(v.getSimpleName())
+                  .append("());\n");
             } else {
               w.append("    out.writeObject(obj.").append(v.getSimpleName()).append("());\n");
             }
-          } else switch (v.asType().getKind()) {
-            case BOOLEAN ->
-              w.append("    out.writeBoolean(obj.").append(v.getSimpleName()).append("());\n");
-            case INT ->
-              w.append("    out.writeInt(obj.").append(v.getSimpleName()).append("());\n");
-            default ->
-              processingEnv.getMessager().printMessage(Kind.ERROR, "Unsupported primitive type: " + v.asType().getKind());
-          }
+          } else
+            switch (v.asType().getKind()) {
+              case BOOLEAN -> w.append("    out.writeBoolean(obj.")
+                  .append(v.getSimpleName())
+                  .append("());\n");
+              case INT -> w.append("    out.writeInt(obj.")
+                  .append(v.getSimpleName())
+                  .append("());\n");
+              default -> processingEnv
+                  .getMessager()
+                  .printMessage(Kind.ERROR, "Unsupported primitive type: " + v.asType().getKind());
+            }
         }
       }
       w.append("  }\n");
@@ -241,11 +285,13 @@ public class PersistableProcessor extends AbstractProcessor {
     return cnt;
   }
 
-  private  boolean shouldInline(TypeElement elem) {
-    var inline = switch (findFqn(elem)) {
-      case "scala.collection.immutable.Seq" -> true;
-      default -> false;
-    } || !elem.getKind().isInterface();
+  private boolean shouldInline(TypeElement elem) {
+    var inline =
+        switch (findFqn(elem)) {
+              case "scala.collection.immutable.Seq" -> true;
+              default -> false;
+            }
+            || !elem.getKind().isInterface();
     return inline;
   }
 
@@ -263,17 +309,22 @@ public class PersistableProcessor extends AbstractProcessor {
   private String readAnnoValue(AnnotationMirror mirror, String name) {
     for (var entry : mirror.getElementValues().entrySet()) {
       if (name.equals(entry.getKey().getSimpleName().toString())) {
-        return entry.getValue().accept(new SimpleAnnotationValueVisitor9<String, Object>() {
-            @Override
-            public String visitInt(int i, Object p) {
-              return Integer.toString(i);
-            }
-            @Override
-            public String visitType(TypeMirror t, Object p) {
-              var e = (TypeElement) processingEnv.getTypeUtils().asElement(t);
-              return e.getQualifiedName().toString();
-            }
-        }, null);
+        return entry
+            .getValue()
+            .accept(
+                new SimpleAnnotationValueVisitor9<String, Object>() {
+                  @Override
+                  public String visitInt(int i, Object p) {
+                    return Integer.toString(i);
+                  }
+
+                  @Override
+                  public String visitType(TypeMirror t, Object p) {
+                    var e = (TypeElement) processingEnv.getTypeUtils().asElement(t);
+                    return e.getQualifiedName().toString();
+                  }
+                },
+                null);
       }
     }
     return null;
@@ -282,21 +333,28 @@ public class PersistableProcessor extends AbstractProcessor {
   private List<AnnotationMirror> readAnnoArray(AnnotationMirror mirror, String name) {
     for (var entry : mirror.getElementValues().entrySet()) {
       if (name.equals(entry.getKey().getSimpleName().toString())) {
-        return entry.getValue().accept(new SimpleAnnotationValueVisitor9<List<AnnotationMirror>, List<AnnotationMirror>>() {
-          @Override
-          public List<AnnotationMirror> visitArray(List<? extends AnnotationValue> vals, List<AnnotationMirror> p) {
-            for (var v : vals) {
-              v.accept(this, p);
-            }
-            return p;
-          }
+        return entry
+            .getValue()
+            .accept(
+                new SimpleAnnotationValueVisitor9<
+                    List<AnnotationMirror>, List<AnnotationMirror>>() {
+                  @Override
+                  public List<AnnotationMirror> visitArray(
+                      List<? extends AnnotationValue> vals, List<AnnotationMirror> p) {
+                    for (var v : vals) {
+                      v.accept(this, p);
+                    }
+                    return p;
+                  }
 
-          @Override
-          public List<AnnotationMirror> visitAnnotation(AnnotationMirror a, List<AnnotationMirror> p) {
-            p.add(a);
-            return p;
-          }
-        }, new ArrayList<>());
+                  @Override
+                  public List<AnnotationMirror> visitAnnotation(
+                      AnnotationMirror a, List<AnnotationMirror> p) {
+                    p.add(a);
+                    return p;
+                  }
+                },
+                new ArrayList<>());
       }
     }
     throw new IllegalArgumentException();

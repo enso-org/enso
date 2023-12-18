@@ -8,7 +8,10 @@ import { defineSetupVue3 } from '@histoire/plugin-vue'
 import * as random from 'lib0/random'
 import { createPinia } from 'pinia'
 import type { LibraryComponentGroup, Uuid, response } from 'shared/languageServerTypes'
-import type { SuggestionEntry } from 'shared/languageServerTypes/suggestions'
+import type {
+  SuggestionEntry,
+  SuggestionsDatabaseUpdate,
+} from 'shared/languageServerTypes/suggestions'
 import { ref } from 'vue'
 import mockDb from './mockSuggestions.json' assert { type: 'json' }
 import './story.css'
@@ -43,11 +46,17 @@ MockTransport.addMock('engine', async (method, data, transport) => {
         contextId: data.contextId,
       }
     case 'search/getSuggestionsDatabase':
-      return {
-        entries: mockDb.map((suggestion, id) => ({
+      // We first send the empty database, and then update it 200 ms later, mimicking the real LS.
+      setTimeout(() => {
+        const updates: SuggestionsDatabaseUpdate[] = mockDb.map((suggestion, id) => ({
+          type: 'Add',
           id,
           suggestion: suggestion as SuggestionEntry,
-        })),
+        }))
+        transport.emit('search/suggestionsDatabaseUpdates', { updates, currentVersion: 2 })
+      }, 200)
+      return {
+        entries: [],
         currentVersion: 1,
       } satisfies response.GetSuggestionsDatabase
     case 'runtime/getComponentGroups':

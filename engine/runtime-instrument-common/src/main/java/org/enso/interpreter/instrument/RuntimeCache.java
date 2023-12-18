@@ -45,7 +45,9 @@ public final class RuntimeCache {
     return ref == null ? null : ref.get();
   }
 
-  /** @return all cache keys. */
+  /**
+   * @return all cache keys.
+   */
   public Set<UUID> getKeys() {
     return cache.keySet();
   }
@@ -65,7 +67,9 @@ public final class RuntimeCache {
     return types.put(key, typeName);
   }
 
-  /** @return the cached type of the expression */
+  /**
+   * @return the cached type of the expression
+   */
   @CompilerDirectives.TruffleBoundary
   public String getType(UUID key) {
     return types.get(key);
@@ -87,13 +91,17 @@ public final class RuntimeCache {
     return calls.put(key, call);
   }
 
-  /** @return the cached function call associated with the expression. */
+  /**
+   * @return the cached function call associated with the expression.
+   */
   @CompilerDirectives.TruffleBoundary
   public ExecutionService.FunctionCallInfo getCall(UUID key) {
     return calls.get(key);
   }
 
-  /** @return the cached method calls. */
+  /**
+   * @return the cached method calls.
+   */
   public Set<UUID> getCalls() {
     return calls.keySet();
   }
@@ -122,7 +130,9 @@ public final class RuntimeCache {
     types.clear();
   }
 
-  /** @return the weights of this cache. */
+  /**
+   * @return the weights of this cache.
+   */
   public Map<UUID, Double> getWeights() {
     return weights;
   }

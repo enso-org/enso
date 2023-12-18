@@ -1,11 +1,10 @@
 package org.enso.interpreter.test;
 
-import java.lang.reflect.Method;
-
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.lang.reflect.Method;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -23,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
-
 import org.enso.polyglot.MethodNames;
 import org.enso.polyglot.MethodNames.Module;
 import org.graalvm.polyglot.Context;
@@ -31,10 +29,10 @@ import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
 
 /**
- * The purpose of this class is to generate various values needed for other
- * tests. Users of this support class can configure what kind of values they
- * need - Enso, Java, JavaScript, etc. and then call appropriate methods to
- * obtain such values. It's up to the tests to use these values meaningfully.
+ * The purpose of this class is to generate various values needed for other tests. Users of this
+ * support class can configure what kind of values they need - Enso, Java, JavaScript, etc. and then
+ * call appropriate methods to obtain such values. It's up to the tests to use these values
+ * meaningfully.
  */
 class ValuesGenerator {
   private final Context ctx;
@@ -48,12 +46,13 @@ class ValuesGenerator {
     this.languages = languages;
   }
 
-  private record ValueInfo(Value type, Value check) {
-  }
+  private record ValueInfo(Value type, Value check) {}
 
   public static ValuesGenerator create(Context ctx, Language... langs) {
-    var set = langs == null || langs.length == 0 ? EnumSet.allOf(Language.class)
-      : EnumSet.copyOf(Arrays.asList(langs));
+    var set =
+        langs == null || langs.length == 0
+            ? EnumSet.allOf(Language.class)
+            : EnumSet.copyOf(Arrays.asList(langs));
     return new ValuesGenerator(ctx, set);
   }
 
@@ -71,15 +70,19 @@ class ValuesGenerator {
       var f = ctx.eval("enso", code);
       var value = f.invokeMember("eval_expression", "n");
       if (typeCheck != null) {
-        var c = ctx.eval("enso", """
+        var c =
+            ctx.eval(
+                "enso",
+                """
         {import}
 
         check x = case x of
             _ : {type} -> 1
             _ -> 0
 
-        """.replace("{type}", typeCheck).replace("{import}", prelude)
-        );
+        """
+                    .replace("{type}", typeCheck)
+                    .replace("{import}", prelude));
         var check = c.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "check");
         assertTrue("Can execute the check", check.canExecute());
         v = new ValueInfo(value, check);
@@ -95,14 +98,16 @@ class ValuesGenerator {
    * Converts expressions into values date type described by {@code typeDefs} by concatenating
    * everything into a single source.
    *
-   * This method exists so that there are no multiple definitions of a single type.
+   * <p>This method exists so that there are no multiple definitions of a single type.
    *
    * @param typeDefs Type definitions.
-   * @param expressions List date expressions - every expression will be converted to a {@link Value}.
+   * @param expressions List date expressions - every expression will be converted to a {@link
+   *     Value}.
    * @param checks list date names (with {@code null}) to define checks for
    * @return List date values converted from the given expressions.
    */
-  private List<Value> createValuesOfCustomType(String typeDefs, List<String> expressions, List<String> checks) {
+  private List<Value> createValuesOfCustomType(
+      String typeDefs, List<String> expressions, List<String> checks) {
     var prev = multiValues.get(typeDefs);
     if (prev != null) {
       return prev;
@@ -119,12 +124,15 @@ class ValuesGenerator {
       if (c == null) {
         continue;
       }
-      sb.append("""
+      sb.append(
+          """
       check_{i} x = case x of
           _ : {type} -> 1
           _ -> 0
 
-      """.replace("{type}", c).replace("{i}", "" + i));
+      """
+              .replace("{type}", c)
+              .replace("{i}", "" + i));
     }
     Value module = ctx.eval("enso", sb.toString());
     List<Value> values = new ArrayList<>(expressions.size());
@@ -155,33 +163,50 @@ class ValuesGenerator {
   }
 
   public Value typeNumber() {
-    return v("typeNumber", """
+    return v(
+            "typeNumber",
+            """
     from Standard.Base import Nothing, Vector, Number, Float, Integer
-    """, "Number").type();
+    """,
+            "Number")
+        .type();
   }
 
   public Value typeInteger() {
-    return v("typeInteger", """
+    return v(
+            "typeInteger",
+            """
     from Standard.Base import Nothing, Vector, Number, Float, Integer
-    """, "Integer").type();
+    """,
+            "Integer")
+        .type();
   }
 
   public Value typeFloat() {
-    return v("typeFloat", """
+    return v(
+            "typeFloat",
+            """
     from Standard.Base import Nothing, Vector, Number, Float, Integer
-    """, "Float").type();
+    """,
+            "Float")
+        .type();
   }
 
   public Value typeBoolean() {
     return v("typeBoolean", """
     import Standard.Base.Data.Boolean.Boolean
-    """, "Boolean").type();
+    """, "Boolean")
+        .type();
   }
 
   public Value typeArrayProxy() {
-    return v("typeArrayProxy", """
+    return v(
+            "typeArrayProxy",
+            """
     import Standard.Base.Data.Array_Proxy.Array_Proxy
-    """, "Array_Proxy").type();
+    """,
+            "Array_Proxy")
+        .type();
   }
 
   public Value typeText() {
@@ -197,45 +222,70 @@ class ValuesGenerator {
   }
 
   public Value typeDatePeriod() {
-    return v("typeDate_Period", """
+    return v(
+            "typeDate_Period",
+            """
     import Standard.Base.Data.Time.Date_Period.Date_Period
-    """, "Date_Period").type();
+    """,
+            "Date_Period")
+        .type();
   }
 
   public Value typeDateTime() {
-    return v("typeDate_Time", """
+    return v(
+            "typeDate_Time",
+            """
     import Standard.Base.Data.Time.Date_Time.Date_Time
-    """, "Date_Time").type();
+    """,
+            "Date_Time")
+        .type();
   }
 
   public Value typeTimeOfDay() {
-    return v("typeTimeOfDay", """
+    return v(
+            "typeTimeOfDay",
+            """
     import Standard.Base.Data.Time.Time_Of_Day.Time_Of_Day
-    """, "Time_Of_Day").type();
+    """,
+            "Time_Of_Day")
+        .type();
   }
 
   public Value typeDuration() {
-    return v("typeDuration", """
+    return v(
+            "typeDuration",
+            """
     import Standard.Base.Data.Time.Duration.Duration
-    """, "Duration").type();
+    """,
+            "Duration")
+        .type();
   }
 
   public Value typePeriod() {
     return v("typePeriod", """
     import Standard.Base.Data.Time.Period.Period
-    """, "Period").type();
+    """, "Period")
+        .type();
   }
 
   public Value typeTimePeriod() {
-    return v("typeTimePeriod", """
+    return v(
+            "typeTimePeriod",
+            """
     import Standard.Base.Data.Time.Time_Period.Time_Period
-    """, "Time_Period").type();
+    """,
+            "Time_Period")
+        .type();
   }
 
   public Value typeTimeZone() {
-    return v("typeTimeZone", """
+    return v(
+            "typeTimeZone",
+            """
     import Standard.Base.Data.Time.Time_Zone.Time_Zone
-    """, "Time_Zone").type();
+    """,
+            "Time_Zone")
+        .type();
   }
 
   public Value typeArray() {
@@ -247,7 +297,8 @@ class ValuesGenerator {
   public Value typeVector() {
     return v("typeVector", """
     import Standard.Base.Data.Vector.Vector
-    """, "Vector").type();
+    """, "Vector")
+        .type();
   }
 
   public Value typeMap() {
@@ -277,7 +328,8 @@ class ValuesGenerator {
   public Value typeFunction() {
     return v("typeFunction", """
     import Standard.Base.Function.Function
-    """, "Function").type();
+    """, "Function")
+        .type();
   }
 
   public Value typeError() {
@@ -293,9 +345,13 @@ class ValuesGenerator {
   }
 
   public Value typeManagedResource() {
-    return v("typeManaged_Resource", """
+    return v(
+            "typeManaged_Resource",
+            """
     import Standard.Base.Runtime.Managed_Resource.Managed_Resource
-    """, "Managed_Resource").type();
+    """,
+            "Managed_Resource")
+        .type();
   }
 
   public Value withType(Value type) {
@@ -350,15 +406,20 @@ class ValuesGenerator {
     var collect = new ArrayList<Value>();
     if (languages.contains(Language.ENSO)) {
       // TODO: Add once PR #3956 is merged
-      //collect.add(v(null, "", "''").type());
+      // collect.add(v(null, "", "''").type());
       collect.add(v(null, "", "'fourty two'").type());
       collect.add(v(null, "", "'?'").type());
-      collect.add(v(null, "", """
+      collect.add(
+          v(
+                  null,
+                  "",
+                  """
       '''
           block of
           multi-line
           texts
-      """).type());
+      """)
+              .type());
     }
 
     if (languages.contains(Language.JAVA)) {
@@ -383,8 +444,10 @@ class ValuesGenerator {
   public List<Value> booleans() {
     var collect = new ArrayList<Value>();
     if (languages.contains(Language.ENSO)) {
-      collect.add(v(null, "from Standard.Base.Data.Boolean.Boolean import True, False", "True").type());
-      collect.add(v(null, "from Standard.Base.Data.Boolean.Boolean import True, False", "False").type());
+      collect.add(
+          v(null, "from Standard.Base.Data.Boolean.Boolean import True, False", "True").type());
+      collect.add(
+          v(null, "from Standard.Base.Data.Boolean.Boolean import True, False", "False").type());
     }
 
     if (languages.contains(Language.JAVA)) {
@@ -403,16 +466,32 @@ class ValuesGenerator {
     if (languages.contains(Language.ENSO)) {
       collect.add(v(null, "import Standard.Base.Data.Time.Date.Date", "Date.today").type());
       collect.add(v(null, "import Standard.Base.Data.Time.Date.Date", "Date.new 1999 3 23").type());
-      collect.add(v(null, "import Standard.Base.Data.Time.Date_Time.Date_Time", "Date_Time.now").type());
-      collect.add(v(null, "import Standard.Base.Data.Time.Date_Time.Date_Time", "Date_Time.parse '2021-01-01T00:30:12.7102[UTC]'").type());
-      collect.add(v(null, "import Standard.Base.Data.Time.Time_Of_Day.Time_Of_Day", "Time_Of_Day.now").type());
-      collect.add(v(null, "import Standard.Base.Data.Time.Duration.Duration", "Duration.new").type());
+      collect.add(
+          v(null, "import Standard.Base.Data.Time.Date_Time.Date_Time", "Date_Time.now").type());
+      collect.add(
+          v(
+                  null,
+                  "import Standard.Base.Data.Time.Date_Time.Date_Time",
+                  "Date_Time.parse '2021-01-01T00:30:12.7102[UTC]'")
+              .type());
+      collect.add(
+          v(null, "import Standard.Base.Data.Time.Time_Of_Day.Time_Of_Day", "Time_Of_Day.now")
+              .type());
+      collect.add(
+          v(null, "import Standard.Base.Data.Time.Duration.Duration", "Duration.new").type());
       for (var v : collect) {
-        assertTrue("It is a time like value " + v, v.isDate() || v.isTime() || v.isTimeZone() || v.isDuration());
+        assertTrue(
+            "It is a time like value " + v,
+            v.isDate() || v.isTime() || v.isTimeZone() || v.isDuration());
       }
-      collect.add(v(null, "import Standard.Base.Data.Time.Date_Period.Date_Period", "Date_Period.Year").type());
-      collect.add(v(null, "import Standard.Base.Data.Time.Time_Period.Time_Period", "Time_Period.Day").type());
-      collect.add(v(null, "import Standard.Base.Data.Time.Period.Period", "Period.new 1 2 3").type());
+      collect.add(
+          v(null, "import Standard.Base.Data.Time.Date_Period.Date_Period", "Date_Period.Year")
+              .type());
+      collect.add(
+          v(null, "import Standard.Base.Data.Time.Time_Period.Time_Period", "Time_Period.Day")
+              .type());
+      collect.add(
+          v(null, "import Standard.Base.Data.Time.Period.Period", "Period.new 1 2 3").type());
     }
 
     if (languages.contains(Language.JAVA)) {
@@ -431,27 +510,33 @@ class ValuesGenerator {
   public List<Value> timeZones() {
     var collect = new ArrayList<Value>();
     if (languages.contains(Language.ENSO)) {
-      for (var expr : List.of(
-          "Time_Zone.new",
-          "Time_Zone.system",
-          "Time_Zone.local",
-          "Time_Zone.utc",
-          "Time_Zone.new 1 2 3",
-          "Time_Zone.parse 'Europe/Moscow'",
-          "Time_Zone.parse 'Europe/London'",
-          "Time_Zone.parse 'CET'"
-      )) {
-        collect.add(v("timeZones-" + expr, "import Standard.Base.Data.Time.Time_Zone.Time_Zone", expr, "Time_Zone").type());
+      for (var expr :
+          List.of(
+              "Time_Zone.new",
+              "Time_Zone.system",
+              "Time_Zone.local",
+              "Time_Zone.utc",
+              "Time_Zone.new 1 2 3",
+              "Time_Zone.parse 'Europe/Moscow'",
+              "Time_Zone.parse 'Europe/London'",
+              "Time_Zone.parse 'CET'")) {
+        collect.add(
+            v(
+                    "timeZones-" + expr,
+                    "import Standard.Base.Data.Time.Time_Zone.Time_Zone",
+                    expr,
+                    "Time_Zone")
+                .type());
       }
     }
     if (languages.contains(Language.JAVA)) {
-      for (var javaValue : List.of(
-          TimeZone.getTimeZone("America/Los_Angeles"),
-          TimeZone.getTimeZone(ZoneId.systemDefault()),
-          TimeZone.getTimeZone(ZoneId.ofOffset("GMT", ZoneOffset.ofHours(2))),
-          TimeZone.getTimeZone(ZoneId.ofOffset("GMT", ZoneOffset.ofHoursMinutes(14, 45))),
-          TimeZone.getTimeZone(ZoneId.ofOffset("UTC", ZoneOffset.ofHours(-15)))
-      )) {
+      for (var javaValue :
+          List.of(
+              TimeZone.getTimeZone("America/Los_Angeles"),
+              TimeZone.getTimeZone(ZoneId.systemDefault()),
+              TimeZone.getTimeZone(ZoneId.ofOffset("GMT", ZoneOffset.ofHours(2))),
+              TimeZone.getTimeZone(ZoneId.ofOffset("GMT", ZoneOffset.ofHoursMinutes(14, 45))),
+              TimeZone.getTimeZone(ZoneId.ofOffset("UTC", ZoneOffset.ofHours(-15))))) {
         collect.add(ctx.asValue(javaValue.toZoneId()));
       }
     }
@@ -461,30 +546,36 @@ class ValuesGenerator {
   public List<Value> durations() {
     var collect = new ArrayList<Value>();
     if (languages.contains(Language.ENSO)) {
-      for (var expr : List.of(
-          "Duration.zero",
-          "Duration.new 1",
-          "Duration.new 1 1",
-          "Duration.new nanoseconds=900",
-          "Duration.new minutes=900",
-          "Duration.between (Date_Time.new 2022 01 01) (Date_Time.new 2022 02 02)",
-          "Duration.between (Date_Time.new 2022 01 01) (Date_Time.new 2022 02 02) timezone_aware=False"
-      )) {
-        collect.add(v(null, """
+      for (var expr :
+          List.of(
+              "Duration.zero",
+              "Duration.new 1",
+              "Duration.new 1 1",
+              "Duration.new nanoseconds=900",
+              "Duration.new minutes=900",
+              "Duration.between (Date_Time.new 2022 01 01) (Date_Time.new 2022 02 02)",
+              "Duration.between (Date_Time.new 2022 01 01) (Date_Time.new 2022 02 02)"
+                  + " timezone_aware=False")) {
+        collect.add(
+            v(
+                    null,
+                    """
                                   import Standard.Base.Data.Time.Duration.Duration
                                   import Standard.Base.Data.Time.Date_Time.Date_Time
                                   from Standard.Base.Data.Boolean.Boolean import False
-                                  """, expr).type());
+                                  """,
+                    expr)
+                .type());
       }
     }
     if (languages.contains(Language.JAVA)) {
-      for (var javaValue : List.of(
-          Duration.ofHours(1),
-          Duration.ofHours(0),
-          Duration.ofSeconds(600),
-          Duration.ofNanos(9784),
-          Duration.ZERO
-      )) {
+      for (var javaValue :
+          List.of(
+              Duration.ofHours(1),
+              Duration.ofHours(0),
+              Duration.ofSeconds(600),
+              Duration.ofNanos(9784),
+              Duration.ZERO)) {
         collect.add(ctx.asValue(javaValue));
       }
     }
@@ -495,25 +586,25 @@ class ValuesGenerator {
   public List<Value> periods() {
     var collect = new ArrayList<Value>();
     if (languages.contains(Language.ENSO)) {
-      for (var expr : List.of(
-          "Period.new",
-          "Period.new 1",
-          "Period.new 1 14",
-          "Period.new days=568",
-          "Period.new years=23451"
-      )) {
+      for (var expr :
+          List.of(
+              "Period.new",
+              "Period.new 1",
+              "Period.new 1 14",
+              "Period.new days=568",
+              "Period.new years=23451")) {
         collect.add(v(null, "import Standard.Base.Data.Time.Period.Period", expr).type());
       }
     }
     if (languages.contains(Language.JAVA)) {
-      for (var javaValue : List.of(
-          Period.ZERO,
-          Period.ofDays(12),
-          Period.ofDays(65),
-          Period.ofMonths(13),
-          Period.of(12, 4, 60),
-          Period.ofYears(23410)
-      )) {
+      for (var javaValue :
+          List.of(
+              Period.ZERO,
+              Period.ofDays(12),
+              Period.ofDays(65),
+              Period.ofMonths(13),
+              Period.of(12, 4, 60),
+              Period.ofYears(23410))) {
         collect.add(ctx.asValue(javaValue));
       }
     }
@@ -530,14 +621,19 @@ class ValuesGenerator {
       collect.add(v(null, im, "[1, 2, 3].to_array").type());
       collect.add(v(null, im, "['a', 'b'].to_array").type());
       collect.add(v(null, im, "[].to_array").type());
-      collect.add(v(null, """
+      collect.add(
+          v(
+                  null,
+                  """
       import Standard.Base.Data.Array_Proxy.Array_Proxy
-      """, "Array_Proxy.new 10 (x -> 2 * x)").type());
+      """,
+                  "Array_Proxy.new 10 (x -> 2 * x)")
+              .type());
     }
 
     if (languages.contains(Language.JAVA)) {
-      collect.add(ctx.asValue(new String[] { "Hello", "World!" }));
-      collect.add(ctx.asValue(new int[] { 6, 7, 42 }));
+      collect.add(ctx.asValue(new String[] {"Hello", "World!"}));
+      collect.add(ctx.asValue(new int[] {6, 7, 42}));
       collect.add(ctx.asValue(List.of(1, 2, 3)));
     }
 
@@ -554,8 +650,11 @@ class ValuesGenerator {
       collect.add(v(null, "", "[]").type());
       collect.add(v(null, "", "['a', 2, 0]").type());
       collect.add(v(null, "", "['a', 'b', 'c']").type());
-      collect.add(v(null, "from Standard.Base.Nothing import Nothing", "[Nothing, Nothing]").type());
-      collect.add(v(null, "from Standard.Base.Nothing import Nothing", "[Nothing, 'fff', 0, Nothing]").type());
+      collect.add(
+          v(null, "from Standard.Base.Nothing import Nothing", "[Nothing, Nothing]").type());
+      collect.add(
+          v(null, "from Standard.Base.Nothing import Nothing", "[Nothing, 'fff', 0, Nothing]")
+              .type());
     }
     return collect;
   }
@@ -563,42 +662,46 @@ class ValuesGenerator {
   public List<Value> maps() {
     var collect = new ArrayList<Value>();
     if (languages.contains(Language.ENSO)) {
-      var imports = """
+      var imports =
+          """
           import Standard.Base.Data.Map.Map
           import Standard.Base.Nothing.Nothing
           """;
-      for (var expr : List.of(
-          "Map.empty",
-          "Map.singleton Nothing Nothing",
-          "Map.singleton Nothing 'my_value'",
-          "Map.singleton 'my_value' Nothing",
-          "Map.singleton 1 1",
-          "Map.singleton 'C' 3",
-          "Map.singleton 'C' 43",
-          "Map.empty.insert 'A' 10 . insert 'B' 20",
-          // ((int) 'A') + ((int) 'B') = 131 ; codePoint(131) = \203
-          "Map.singleton '\203' 30",
-          "Map.singleton Map.empty 1",
-          "Map.singleton Map.empty Map.empty",
-          "Map.empty.insert 1 1 . insert 2 2",
-          "Map.empty.insert Nothing 'val' . insert 'key' 42",
-          "Map.empty.insert 'A' 1 . insert 'B' 2 . insert 'C' 3",
-          "Map.empty.insert 'C' 3 . insert 'B' 2 . insert 'A' 1"
-      )) {
+      for (var expr :
+          List.of(
+              "Map.empty",
+              "Map.singleton Nothing Nothing",
+              "Map.singleton Nothing 'my_value'",
+              "Map.singleton 'my_value' Nothing",
+              "Map.singleton 1 1",
+              "Map.singleton 'C' 3",
+              "Map.singleton 'C' 43",
+              "Map.empty.insert 'A' 10 . insert 'B' 20",
+              // ((int) 'A') + ((int) 'B') = 131 ; codePoint(131) = \203
+              "Map.singleton '\203' 30",
+              "Map.singleton Map.empty 1",
+              "Map.singleton Map.empty Map.empty",
+              "Map.empty.insert 1 1 . insert 2 2",
+              "Map.empty.insert Nothing 'val' . insert 'key' 42",
+              "Map.empty.insert 'A' 1 . insert 'B' 2 . insert 'C' 3",
+              "Map.empty.insert 'C' 3 . insert 'B' 2 . insert 'A' 1")) {
         collect.add(v("maps-" + expr, imports, expr, "Map").type());
       }
     }
     if (languages.contains(Language.JAVA)) {
       collect.add(ctx.asValue(Collections.emptyMap()));
       collect.add(ctx.asValue(Collections.singletonMap("A", 1)));
-      var map = new HashMap<String,Integer>();
+      var map = new HashMap<String, Integer>();
       map.put("A", 1);
       map.put("B", 2);
       map.put("C", 3);
       collect.add(ctx.asValue(map));
     }
     if (languages.contains(Language.JAVASCRIPT)) {
-      var fn = ctx.eval("js", """
+      var fn =
+          ctx.eval(
+              "js",
+              """
       (function() {
         var map = new Map();
         map.set('A', 1);
@@ -614,7 +717,8 @@ class ValuesGenerator {
   public List<Value> multiLevelAtoms() {
     var collect = new ArrayList<Value>();
     if (languages.contains(Language.ENSO)) {
-      var nodeTypeDef = """
+      var nodeTypeDef =
+          """
           type Node
               C1 f1
               C2 f1 f2
@@ -622,22 +726,25 @@ class ValuesGenerator {
               Nil
               Value value
           """;
-      var exprs = List.of(
-          "Node.C2 Node.Nil (Node.Value 42)",
-          "Node.C2 (Node.Value 42) Node.Nil",
-          "Node.Nil",
-          "Node.Value 42",
-          "Node.Value 2",
-          "Node.Value 2.0",
-          "Node.C1 (Node.Value 42)",
-          "Node.C1 Node.Nil",
-          "Node.C3 Node.Nil (Node.Value 42) Node.Nil",
-          "Node.C3 (Node.Value 42) Node.Nil Node.Nil",
-          "Node.C3 Node.Nil Node.Nil Node.Nil",
-          "Node.C2 (Node.C2 (Node.C1 Node.Nil) (Node.C1 (Node.C1 Node.Nil))) (Node.C2 (Node.C3 (Node.Nil) (Node.Value 22) (Node.Nil)) (Node.C2 (Node.Value 22) (Node.Nil)))",
-          "Node.C2 (Node.C2 (Node.C1 Node.Nil) (Node.C1 Node.Nil)) (Node.C2 (Node.C3 (Node.Nil) (Node.Value 22) (Node.Nil)) (Node.C2 (Node.Value 22) (Node.Nil)))",
-          "Node.C2 (Node.C2 (Node.C1 Node.Nil) (Node.C1 Node.Nil)) (Node.C2 (Node.C3 (Node.Nil) (Node.Nil) (Node.Value 22)) (Node.C2 (Node.Value 22) (Node.Nil)))"
-      );
+      var exprs =
+          List.of(
+              "Node.C2 Node.Nil (Node.Value 42)",
+              "Node.C2 (Node.Value 42) Node.Nil",
+              "Node.Nil",
+              "Node.Value 42",
+              "Node.Value 2",
+              "Node.Value 2.0",
+              "Node.C1 (Node.Value 42)",
+              "Node.C1 Node.Nil",
+              "Node.C3 Node.Nil (Node.Value 42) Node.Nil",
+              "Node.C3 (Node.Value 42) Node.Nil Node.Nil",
+              "Node.C3 Node.Nil Node.Nil Node.Nil",
+              "Node.C2 (Node.C2 (Node.C1 Node.Nil) (Node.C1 (Node.C1 Node.Nil))) (Node.C2 (Node.C3"
+                  + " (Node.Nil) (Node.Value 22) (Node.Nil)) (Node.C2 (Node.Value 22) (Node.Nil)))",
+              "Node.C2 (Node.C2 (Node.C1 Node.Nil) (Node.C1 Node.Nil)) (Node.C2 (Node.C3 (Node.Nil)"
+                  + " (Node.Value 22) (Node.Nil)) (Node.C2 (Node.Value 22) (Node.Nil)))",
+              "Node.C2 (Node.C2 (Node.C1 Node.Nil) (Node.C1 Node.Nil)) (Node.C2 (Node.C3 (Node.Nil)"
+                  + " (Node.Nil) (Node.Value 22)) (Node.C2 (Node.Value 22) (Node.Nil)))");
       collect.addAll(createValuesOfCustomType(nodeTypeDef, exprs, null));
     }
     return collect;
@@ -649,8 +756,7 @@ class ValuesGenerator {
       collect.add(v(null, "mul x = x * 2", "mul").type());
     }
 
-    if (languages.contains(Language.JAVA)) {
-    }
+    if (languages.contains(Language.JAVA)) {}
 
     for (var v : collect) {
       assertTrue("It can be executed " + v, v.canExecute());
@@ -665,25 +771,20 @@ class ValuesGenerator {
   public List<Value> constructorsAndValuesAndSumType() {
     var collect = new ArrayList<Value>();
     if (languages.contains(Language.ENSO)) {
-      var code = """
+      var code =
+          """
         type Sum_Type
             Variant_A x
             Variant_B y
           """;
-      var constructors = List.of(
-          "Sum_Type",
-          "Sum_Type.Variant_A",
-          "Sum_Type.Variant_B",
-          "Sum_Type.Variant_A 'A'",
-          "Sum_Type.Variant_B 'B'"
-      );
-      var constructorTypes = Arrays.asList(new String[] {
-          "Sum_Type",
-          null,
-          null,
-          null,
-          null
-      });
+      var constructors =
+          List.of(
+              "Sum_Type",
+              "Sum_Type.Variant_A",
+              "Sum_Type.Variant_B",
+              "Sum_Type.Variant_A 'A'",
+              "Sum_Type.Variant_B 'B'");
+      var constructorTypes = Arrays.asList(new String[] {"Sum_Type", null, null, null, null});
       collect.addAll(createValuesOfCustomType(code, constructors, constructorTypes));
     }
     return collect;
@@ -694,12 +795,16 @@ class ValuesGenerator {
     if (languages.contains(Language.ENSO)) {
       collect.add(v(null, "import Standard.Base.Runtime.Ref.Ref", "Ref.new 10").type());
       collect.add(v(null, "import Standard.Base.System.File.File", "File.new '/'").type());
-      collect.add(v(null, "import Standard.Base.Runtime.Managed_Resource.Managed_Resource", "Managed_Resource.register '/' (x -> x)").type());
+      collect.add(
+          v(
+                  null,
+                  "import Standard.Base.Runtime.Managed_Resource.Managed_Resource",
+                  "Managed_Resource.register '/' (x -> x)")
+              .type());
       collect.add(typeNothing());
     }
 
-    if (languages.contains(Language.JAVA)) {
-    }
+    if (languages.contains(Language.JAVA)) {}
 
     return collect;
   }
@@ -707,16 +812,26 @@ class ValuesGenerator {
   public List<Value> errors() {
     var collect = new ArrayList<Value>();
     if (languages.contains(Language.ENSO)) {
-      collect.add(v(null, """
+      collect.add(
+          v(
+                  null,
+                  """
       import Standard.Base.Any.Any
       import Standard.Base.Error.Error
-      """, "Error.throw 'In error'").type());
+      """,
+                  "Error.throw 'In error'")
+              .type());
 
       try {
-        var noValue = v(null, """
+        var noValue =
+            v(
+                    null,
+                    """
         import Standard.Base.Any.Any
         import Standard.Base.Panic.Panic
-        """, "Panic.throw 'In panic'").type();
+        """,
+                    "Panic.throw 'In panic'")
+                .type();
         assertNull("Exception thrown instead", noValue);
       } catch (PolyglotException ex) {
         var panic = ex.getGuestObject();
@@ -735,13 +850,17 @@ class ValuesGenerator {
   public List<Value> warnings() {
     var collect = new ArrayList<Value>();
     if (languages.contains(Language.ENSO)) {
-      collect.add(v(null, """
+      collect.add(
+          v(
+                  null,
+                  """
       import Standard.Base.Warning.Warning
-      """, "Warning.attach 'err' 'value'").type());
+      """,
+                  "Warning.attach 'err' 'value'")
+              .type());
     }
 
-    if (languages.contains(Language.JAVA)) {
-    }
+    if (languages.contains(Language.JAVA)) {}
 
     return collect;
   }
@@ -793,6 +912,9 @@ class ValuesGenerator {
   }
 
   public enum Language {
-    ENSO, JAVASCRIPT, PYTHON, JAVA
+    ENSO,
+    JAVASCRIPT,
+    PYTHON,
+    JAVA
   }
 }

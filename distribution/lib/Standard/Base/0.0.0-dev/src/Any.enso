@@ -299,7 +299,7 @@ type Any
     is_nothing self = False
 
     ## GROUP Logical
-       If `self` is Nothing then returns `function`.
+       If `self` is Nothing then returns `other`.
 
        > Example
          If the value "Hello" is nothing return "".
@@ -308,6 +308,16 @@ type Any
     if_nothing : Any -> Any
     if_nothing self ~other =
         const self other
+
+    ## If `self` is Nothing then returns Nothing, otherwise returns the result
+       of running the provided `action`.
+
+       > Example
+         Transform a value only if it is not nothing.
+
+             my_result.if_not_nothing <| my_result + 1
+    if_not_nothing : Any -> Any
+    if_not_nothing self ~action = action
 
     ## GROUP Errors
        Executes the provided handler on an error, or returns the value unchanged.

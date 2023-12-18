@@ -22,7 +22,9 @@ public abstract class BackgroundJob<A> extends Job<A> {
     this.priority = priority;
   }
 
-  /** @return the job priority. */
+  /**
+   * @return the job priority.
+   */
   public int getPriority() {
     return priority;
   }
