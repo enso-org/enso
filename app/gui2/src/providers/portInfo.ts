@@ -1,7 +1,7 @@
-import type { AstExtended } from '@/util/ast'
+import { createContextStore } from '@/providers'
+import { GetUsageKey } from '@/providers/widgetUsageInfo'
+import { Ast } from '@/util/ast'
 import { identity } from '@vueuse/core'
-import { createContextStore } from '.'
-import { GetUsageKey } from './widgetUsageInfo'
 
 interface PortInfo {
   portId: string
@@ -16,7 +16,7 @@ const { provideFn, injectFn } = createContextStore('Port info', identity<PortInf
  * even if it wouldn't normally be rendered as such.
  */
 export class ForcePort {
-  constructor(public ast: AstExtended) {
+  constructor(public ast: Ast.Ast) {
     if (ast instanceof ForcePort) throw new Error('ForcePort cannot be nested')
   }
   [GetUsageKey]() {

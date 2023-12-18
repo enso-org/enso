@@ -26,6 +26,7 @@ import org.enso.compiler.core.ir.expression.{
   Operator,
   Section
 }
+import org.enso.compiler.core.ir.expression.errors.Redefined
 import org.enso.compiler.core.ir.`type`
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Occurrence, Scope}
@@ -68,7 +69,7 @@ import scala.reflect.ClassTag
   *
   * - A [[org.enso.compiler.pass.PassConfiguration]] containing an instance of
   *   [[AliasAnalysis.Configuration]].
-  * - A [[LocalScope]], where relevant.
+  * - A [[org.enso.compiler.context.LocalScope]], where relevant.
   */
 case object AliasAnalysis extends IRPass {
 
@@ -573,12 +574,16 @@ case object AliasAnalysis extends IRPass {
               new MetadataPair(this, Info.Occurrence(graph, occurrenceId))
             )
         } else {
-          throw new CompilerError(
-            s"""
-                Arguments should never be redefined. This is a bug.
-                ${}
-                """
-          )
+          val f = scope.occurrences.collectFirst {
+            case x if x.symbol == name.name => x
+          }
+          arg
+            .copy(
+              ascribedType = Some(new Redefined.Arg(name, arg.location))
+            )
+            .updateMetadata(
+              new MetadataPair(this, Info.Occurrence(graph, f.get.id))
+            )
         }
     }
   }
@@ -935,10 +940,9 @@ case object AliasAnalysis extends IRPass {
   sealed class Graph extends Serializable {
     var rootScope: Graph.Scope = new Graph.Scope()
     var links: Set[Graph.Link] = Set()
+    var nextIdCounter          = 0
 
     private var globalSymbols: Map[Graph.Symbol, Occurrence.Global] = Map()
-
-    private var nextIdCounter = 0
 
     /** @return a deep structural copy of `this` */
     def deepCopy(

@@ -11,24 +11,23 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.Serializable;
+import java.util.List;
+import java.util.Optional;
+import java.util.logging.Level;
 import org.apache.commons.lang3.StringUtils;
 import org.enso.editions.LibraryName;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.pkg.SourceFile;
 import org.enso.polyglot.Suggestion;
 
-import java.io.Serializable;
-import java.util.List;
-import java.util.Optional;
-import java.util.logging.Level;
-
 public final class SuggestionsCache
     extends Cache<SuggestionsCache.CachedSuggestions, SuggestionsCache.Metadata> {
 
   private static final String SUGGESTIONS_CACHE_DATA_EXTENSION = ".suggestions";
-  private static final String SUGGESTIONS_CACHE_METADATA_EXTENSION =".suggestions.meta";
+  private static final String SUGGESTIONS_CACHE_METADATA_EXTENSION = ".suggestions.meta";
 
-  private final static ObjectMapper objectMapper = new ObjectMapper();
+  private static final ObjectMapper objectMapper = new ObjectMapper();
 
   final LibraryName libraryName;
 
@@ -43,20 +42,24 @@ public final class SuggestionsCache
   @Override
   protected byte[] metadata(String sourceDigest, String blobDigest, CachedSuggestions entry) {
     try {
-      return objectMapper.writeValueAsString(new Metadata(sourceDigest, blobDigest)).getBytes(metadataCharset);
+      return objectMapper
+          .writeValueAsString(new Metadata(sourceDigest, blobDigest))
+          .getBytes(metadataCharset);
     } catch (JsonProcessingException e) {
       throw new RuntimeException(e);
     }
   }
 
   @Override
-  protected CachedSuggestions deserialize(EnsoContext context, byte[] data, Metadata meta, TruffleLogger logger)
-  throws ClassNotFoundException, ClassNotFoundException, IOException {
+  protected CachedSuggestions deserialize(
+      EnsoContext context, byte[] data, Metadata meta, TruffleLogger logger)
+      throws ClassNotFoundException, ClassNotFoundException, IOException {
     try (var stream = new ObjectInputStream(new ByteArrayInputStream(data))) {
       if (stream.readObject() instanceof Suggestions suggestions) {
         return new CachedSuggestions(libraryName, suggestions, Optional.empty());
       } else {
-        throw new ClassNotFoundException("Expected SuggestionsCache.Suggestions, got " + data.getClass());
+        throw new ClassNotFoundException(
+            "Expected SuggestionsCache.Suggestions, got " + data.getClass());
       }
     }
   }
@@ -87,22 +90,29 @@ public final class SuggestionsCache
 
   @Override
   protected Optional<Roots> getCacheRoots(EnsoContext context) {
-    return context.getPackageRepository().getPackageForLibraryJava(libraryName).map(pkg -> {
-      var bindingsCacheRoot = pkg.getSuggestionsCacheRootForPackage(Info.ensoVersion());
-      var localCacheRoot = bindingsCacheRoot.resolve(libraryName.namespace());
-      var distribution = context.getDistributionManager();
-      var pathSegments = new String[]{
-              pkg.namespace(),
-              pkg.normalizedName(),
-              pkg.getConfig().version(),
-              Info.ensoVersion(),
-              libraryName.namespace()
-      };
-      var path = distribution.LocallyInstalledDirectories().irCacheDirectory()
-              .resolve(StringUtils.join(pathSegments, "/"));
-      var globalCacheRoot = context.getTruffleFile(path.toFile());
-      return new Cache.Roots(localCacheRoot, globalCacheRoot);
-    });
+    return context
+        .getPackageRepository()
+        .getPackageForLibraryJava(libraryName)
+        .map(
+            pkg -> {
+              var bindingsCacheRoot = pkg.getSuggestionsCacheRootForPackage(Info.ensoVersion());
+              var localCacheRoot = bindingsCacheRoot.resolve(libraryName.namespace());
+              var distribution = context.getDistributionManager();
+              var pathSegments =
+                  new String[] {
+                    pkg.namespace(),
+                    pkg.normalizedName(),
+                    pkg.getConfig().version(),
+                    Info.ensoVersion(),
+                    libraryName.namespace()
+                  };
+              var path =
+                  distribution.LocallyInstalledDirectories()
+                      .irCacheDirectory()
+                      .resolve(StringUtils.join(pathSegments, "/"));
+              var globalCacheRoot = context.getTruffleFile(path.toFile());
+              return new Cache.Roots(localCacheRoot, globalCacheRoot);
+            });
   }
 
   @Override
@@ -115,11 +125,11 @@ public final class SuggestionsCache
   }
 
   // Suggestions class is not a record because of a Frgaal bug leading to invalid compilation error.
-  public final static class Suggestions implements Serializable {
+  public static final class Suggestions implements Serializable {
 
     private final List<Suggestion> suggestions;
 
-    public Suggestions(List<Suggestion> suggestions)  {
+    public Suggestions(List<Suggestion> suggestions) {
       this.suggestions = suggestions;
     }
 
@@ -128,15 +138,19 @@ public final class SuggestionsCache
     }
   }
 
-  // CachedSuggestions class is not a record because of a Frgaal bug leading to invalid compilation error.
-  public final static class CachedSuggestions {
+  // CachedSuggestions class is not a record because of a Frgaal bug leading to invalid compilation
+  // error.
+  public static final class CachedSuggestions {
 
     private final LibraryName libraryName;
     private final Suggestions suggestions;
 
     private final Optional<List<SourceFile<TruffleFile>>> sources;
 
-    public CachedSuggestions(LibraryName libraryName, Suggestions suggestions, Optional<List<SourceFile<TruffleFile>>> sources) {
+    public CachedSuggestions(
+        LibraryName libraryName,
+        Suggestions suggestions,
+        Optional<List<SourceFile<TruffleFile>>> sources) {
       this.libraryName = libraryName;
       this.suggestions = suggestions;
       this.sources = sources;
@@ -160,7 +174,6 @@ public final class SuggestionsCache
   }
 
   record Metadata(
-      @JsonProperty("source_hash") String sourceHash,
-      @JsonProperty("blob_hash") String blobHash
-  ) implements Cache.Metadata { }
+      @JsonProperty("source_hash") String sourceHash, @JsonProperty("blob_hash") String blobHash)
+      implements Cache.Metadata {}
 }

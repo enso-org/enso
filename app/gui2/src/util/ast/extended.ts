@@ -1,11 +1,6 @@
 import * as Ast from '@/generated/ast'
 import { Token, Tree } from '@/generated/ast'
 import { assert } from '@/util/assert'
-import * as encoding from 'lib0/encoding'
-import { digest } from 'lib0/hash/sha256'
-import * as map from 'lib0/map'
-import type { ContentRange, ExprId, IdMap } from 'shared/yjsModel'
-import { markRaw } from 'vue'
 import {
   childrenAstNodesOrTokens,
   debugAst,
@@ -15,8 +10,13 @@ import {
   visitGenerator,
   visitRecursive,
   walkRecursive,
-} from '.'
-import type { Opt } from '../opt'
+} from '@/util/ast'
+import type { Opt } from '@/util/data/opt'
+import * as encoding from 'lib0/encoding'
+import * as sha256 from 'lib0/hash/sha256'
+import * as map from 'lib0/map'
+import type { ContentRange, ExprId, IdMap } from 'shared/yjsModel'
+import { markRaw } from 'vue'
 
 type ExtractType<V, T> = T extends ReadonlyArray<infer Ts>
   ? Extract<V, { type: Ts }>
@@ -218,7 +218,7 @@ class AstExtendedCtx<HasIdMap extends boolean> {
   getHash(ast: AstExtended<Tree | Token, boolean>) {
     const key = AstExtendedCtx.getHashKey(ast)
     return map.setIfUndefined(this.contentHashes, key, () =>
-      digest(
+      sha256.digest(
         encoding.encode((encoder) => {
           const whitespace = ast.whitespaceLength()
           encoding.writeUint32(encoder, whitespace)

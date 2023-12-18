@@ -33,6 +33,7 @@ public abstract class HostValueToEnsoNode extends Node {
   public static HostValueToEnsoNode getUncached() {
     return HostValueToEnsoNodeGen.getUncached();
   }
+
   /**
    * Converts an arbitrary value to a value usable within Enso code.
    *

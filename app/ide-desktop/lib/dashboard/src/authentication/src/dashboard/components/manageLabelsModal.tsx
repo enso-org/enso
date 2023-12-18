@@ -39,9 +39,13 @@ export default function ManageLabelsModal<
     const { backend } = backendProvider.useBackend()
     const { unsetModal } = modalProvider.useSetModal()
     const toastAndLog = hooks.useToastAndLog()
-    const [labels, setLabels] = React.useState(item.labels ?? [])
+    const [labels, setLabelsRaw] = React.useState(item.labels ?? [])
     const [query, setQuery] = React.useState('')
     const [color, setColor] = React.useState<backendModule.LChColor | null>(null)
+    const leastUsedColor = React.useMemo(
+        () => backendModule.leastUsedColor(allLabels.values()),
+        [allLabels]
+    )
     const position = React.useMemo(() => eventTarget?.getBoundingClientRect(), [eventTarget])
     const labelNames = React.useMemo(() => new Set(labels), [labels])
     const regex = React.useMemo(() => new RegExp(string.regexEscape(query), 'i'), [query])
@@ -51,11 +55,21 @@ export default function ManageLabelsModal<
             Array.from(allLabels.keys()).filter(label => regex.test(label)).length === 0,
         [allLabels, query, regex]
     )
-    const canCreateNewLabel = canSelectColor && color != null
+    const canCreateNewLabel = canSelectColor
 
-    React.useEffect(() => {
-        setItem(oldItem => ({ ...oldItem, labels }))
-    }, [labels, /* should never change */ setItem])
+    const setLabels = React.useCallback(
+        (valueOrUpdater: React.SetStateAction<backendModule.LabelName[]>) => {
+            setLabelsRaw(valueOrUpdater)
+            setItem(oldItem => {
+                if (typeof valueOrUpdater === 'function') {
+                    return { ...oldItem, labels: valueOrUpdater(oldItem.labels ?? []) }
+                } else {
+                    return { ...oldItem, labels: valueOrUpdater }
+                }
+            })
+        },
+        [/* should never change */ setItem]
+    )
 
     if (backend.type === backendModule.BackendType.local || organization == null) {
         // This should never happen - the local backend does not have the "labels" column,
@@ -83,6 +97,7 @@ export default function ManageLabelsModal<
                 item.id,
                 item.title,
                 backend,
+                /* should never change */ setLabels,
                 /* should never change */ toastAndLog,
             ]
         )
@@ -118,21 +133,23 @@ export default function ManageLabelsModal<
                 >
                     <div className="absolute bg-frame-selected backdrop-blur-3xl rounded-2xl h-full w-full" />
                     <form
-                        className="relative flex flex-col gap-1 rounded-2xl gap-2 p-2"
+                        className="relative flex flex-col rounded-2xl gap-2 p-2"
                         onSubmit={async event => {
                             event.preventDefault()
                             setLabels(oldLabels => [...oldLabels, backendModule.LabelName(query)])
+                            unsetModal()
                             try {
-                                if (color != null) {
-                                    await doCreateLabel(query, color)
-                                }
+                                await doCreateLabel(query, color ?? leastUsedColor)
+                                setLabels(newLabels => {
+                                    void backend.associateTag(item.id, newLabels, item.title)
+                                    return newLabels
+                                })
                             } catch (error) {
                                 toastAndLog(null, error)
                                 setLabels(oldLabels =>
                                     oldLabels.filter(oldLabel => oldLabel !== query)
                                 )
                             }
-                            unsetModal()
                         }}
                     >
                         <div>
@@ -140,7 +157,7 @@ export default function ManageLabelsModal<
                             {/* Space reserved for other tabs. */}
                         </div>
                         <div
-                            className={`flex items-center grow rounded-full border border-black-a10 gap-2 px-1 ${
+                            className={`flex items-center grow rounded-full border border-black/10 gap-2 px-1 ${
                                 // eslint-disable-next-line @typescript-eslint/no-magic-numbers
                                 canSelectColor && color != null && color.lightness <= 50
                                     ? 'text-tag-text placeholder-tag-text'
@@ -172,7 +189,7 @@ export default function ManageLabelsModal<
                             <div className="h-6 py-0.5">Create</div>
                         </button>
                         {canSelectColor && (
-                            <div className="flex gap-1">
+                            <div className="flex flex-col items-center">
                                 <div className="grow flex items-center gap-1">
                                     <ColorPicker setColor={setColor} />
                                 </div>
@@ -186,7 +203,9 @@ export default function ManageLabelsModal<
                                         <Label
                                             active={labels.includes(label.value)}
                                             color={label.color}
-                                            onClick={async () => {
+                                            onClick={async event => {
+                                                event.preventDefault()
+                                                event.stopPropagation()
                                                 await doToggleLabel(label.value)
                                             }}
                                         >

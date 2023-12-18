@@ -111,7 +111,7 @@ fn else_block() {
 fn plain_comments() {
     test!("# a b c", ()());
     test!("main = # define main\n 4",
-        (Function (Ident main) #() "=" (BodyBlock #(() (Number () "4" ())))));
+        (Function (Ident main) #() () "=" (BodyBlock #(() (Number () "4" ())))));
 }
 
 #[test]
@@ -132,7 +132,7 @@ fn doc_comments() {
            (Section "Arguments:") (Newline)
            (Section "- x: value to do nothing to"))
          #(()))
-         (Function (Ident id) #((() (Ident x) () ())) "=" (Ident x)))]);
+         (Function (Ident id) #((() (Ident x) () ())) () "=" (Ident x)))]);
     #[rustfmt::skip]
     let lines = vec![
         "type Foo",
@@ -207,8 +207,8 @@ fn type_methods() {
     #[rustfmt::skip]
     let expected = block![
         (TypeDef type Geo #()
-         #((Function (Ident number) #() "=" (BodyBlock #((Ident x))))
-           (Function (Ident area) #((() (Ident self) () ()))
+         #((Function (Ident number) #() () "=" (BodyBlock #((Ident x))))
+           (Function (Ident area) #((() (Ident self) () ())) ()
                      "=" (OprApp (Ident x) (Ok "+") (Ident x)))))];
     test(&code.join("\n"), expected);
     let code = [
@@ -224,7 +224,7 @@ fn type_methods() {
          (Documented
           (#((Section " Returns a vector containing all reported problems, aggregated.")) #(()))
           (TypeSignature (Ident build_problemset) ":" (Ident Vector)))
-         (Function (Ident build_problemset) #((() (Ident self) () ()))
+         (Function (Ident build_problemset) #((() (Ident self) () ())) ()
                    "=" (BodyBlock #((Ident self))))))
     ];
     test(&code.join("\n"), expected);
@@ -245,10 +245,10 @@ fn type_operator_methods() {
         (TypeDef type Foo #()
          #((TypeSignature (Ident #"+") ":"
             (OprApp (Ident Foo) (Ok "->") (OprApp (Ident Foo) (Ok "->") (Ident Foo))))
-           (Function (Ident #"+") #((() (Ident self) () ()) (() (Ident b) () ())) "=" (Ident b))
+           (Function (Ident #"+") #((() (Ident self) () ()) (() (Ident b) () ())) () "=" (Ident b))
            (TypeSignature (OprApp (Ident Foo) (Ok ".") (Ident #"+")) ":" (Ident Foo))
            (Function (OprApp (Ident Foo) (Ok ".") (Ident #"+"))
-                     #((() (Ident self) () ()) (() (Ident b) () ())) "=" (Ident b))))];
+                     #((() (Ident self) () ()) (() (Ident b) () ())) () "=" (Ident b))))];
     test(&code.join("\n"), expected);
 }
 
@@ -276,8 +276,8 @@ fn type_def_full() {
              Rectangle #((() (Ident width) () ()) (() (Ident height) () ())) #())
            (ConstructorDefinition Point #() #())
            ()
-           (Function (Ident number) #() "=" (BodyBlock #((Ident x))))
-           (Function (Ident area) #((() (Ident self) () ()))
+           (Function (Ident number) #() () "=" (BodyBlock #((Ident x))))
+           (Function (Ident area) #((() (Ident self) () ())) ()
                       "=" (OprApp (Ident x) (Ok "+") (Ident x)))))];
     test(&code.join("\n"), expected);
 }
@@ -324,46 +324,50 @@ fn assignment_simple() {
 
 #[test]
 fn function_inline_simple_args() {
-    test("foo a = x", block![(Function (Ident foo) #((() (Ident a) () ())) "=" (Ident x))]);
+    test!("foo a = x", (Function (Ident foo) #((() (Ident a) () ())) () "=" (Ident x)));
+    test!("foo a b = x",
+        (Function (Ident foo) #((() (Ident a) () ()) (() (Ident b) () ())) () "=" (Ident x)));
     #[rustfmt::skip]
-    test("foo a b = x",
-         block![(Function (Ident foo) #((() (Ident a) () ()) (() (Ident b) () ())) "=" (Ident x))]);
-    #[rustfmt::skip]
-    test(
-        "foo a b c = x", block![
+    test!(
+        "foo a b c = x",
             (Function (Ident foo)
              #((() (Ident a) () ()) (() (Ident b) () ()) (() (Ident c) () ()))
-             "=" (Ident x))],
+             () "=" (Ident x))
     );
-    test("foo _ = x", block![(Function (Ident foo) #((() (Wildcard -1) () ())) "=" (Ident x))]);
+    test!("foo _ = x", (Function (Ident foo) #((() (Wildcard -1) () ())) () "=" (Ident x)));
 }
 
 #[test]
 fn function_block_noargs() {
-    test("foo =", block![(Function (Ident foo) #() "=" ())]);
+    test("foo =", block![(Function (Ident foo) #() () "=" ())]);
 }
 
 #[test]
 fn function_block_simple_args() {
-    test("foo a =", block![(Function (Ident foo) #((() (Ident a) () ())) "=" ())]);
+    test("foo a =", block![(Function (Ident foo) #((() (Ident a) () ())) () "=" ())]);
     #[rustfmt::skip]
     test("foo a b =", block![(Function (Ident foo) #((() (Ident a) () ())
-                                                     (() (Ident b) () ())) "=" ())]);
+                                                     (() (Ident b) () ())) () "=" ())]);
     #[rustfmt::skip]
-    test("foo a b c =", block![
-        (Function (Ident foo) #((() (Ident a) () ()) (() (Ident b) () ()) (() (Ident c) () ())) "="
-         ())]);
+    test!("foo a b c =",
+        (Function (Ident foo)
+                  #((() (Ident a) () ()) (() (Ident b) () ()) (() (Ident c) () ()))
+                  ()
+                  "="
+                  ()));
 }
 
 #[test]
 fn function_qualified() {
-    test("Id.id x = x", block![
-        (Function (OprApp (Ident Id) (Ok ".") (Ident id)) #((() (Ident x) () ())) "=" (Ident x))]);
+    test!("Id.id x = x",
+        (Function (OprApp (Ident Id) (Ok ".") (Ident id))
+                  #((() (Ident x) () ()))
+                  () "=" (Ident x)));
 }
 
 #[test]
 fn ignored_arguments() {
-    test!("f ~_ = x", (Function (Ident f) #(("~" (Wildcard -1) () ())) "=" (Ident x)));
+    test!("f ~_ = x", (Function (Ident f) #(("~" (Wildcard -1) () ())) () "=" (Ident x)));
 }
 
 #[test]
@@ -373,6 +377,23 @@ fn foreign_functions() {
             #((() (Ident a) () ()) (() (Ident b) () ()))
             "="
             (TextLiteral #((Section "42")))));
+}
+
+#[test]
+fn function_inline_return_specification() {
+    // Typical usage
+    test!("id self that:Integer -> Integer = that",
+        (Function (Ident id)
+                  #((() (Ident self) () ()) (() (Ident that) (":" (Ident Integer)) ()))
+                  ("->" (Ident Integer))
+                  "=" (Ident that)));
+    // Edge case
+    test!("number -> Integer = 23",
+        (Function (Ident number) #()
+                  ("->" (Ident Integer))
+                  "=" (Number () "23" ())));
+    // Edge case: Not an inline return specification
+    expect_invalid_node("f x : Integer -> Integer = 23");
 }
 
 
@@ -392,15 +413,15 @@ fn named_arguments() {
 
 #[test]
 fn default_app() {
-    test!("f default", (DefaultApp (Ident f) default));
+    test!("f default", (App (Ident f) (Ident default)));
 }
 
 #[test]
 fn argument_named_default() {
     test!("f default x = x",
-        (Function (Ident f) #((() (Ident default) () ()) (() (Ident x) () ())) "=" (Ident x)));
+        (Function (Ident f) #((() (Ident default) () ()) (() (Ident x) () ())) () "=" (Ident x)));
     test!("f x default = x",
-        (Function (Ident f) #((() (Ident x) () ()) (() (Ident default) () ())) "=" (Ident x)));
+        (Function (Ident f) #((() (Ident x) () ()) (() (Ident default) () ())) () "=" (Ident x)));
 }
 
 #[test]
@@ -408,17 +429,19 @@ fn default_arguments() {
     #[rustfmt::skip]
     let cases = [
         ("f x=1 = x", block![
-            (Function (Ident f) #((() (Ident x) () ("=" (Number () "1" ())))) "=" (Ident x))]),
+            (Function (Ident f) #((() (Ident x) () ("=" (Number () "1" ())))) () "=" (Ident x))]),
         ("f (x = 1) = x", block![
-            (Function (Ident f) #((() (Ident x) () ("=" (Number () "1" ())))) "=" (Ident x))]),
+            (Function (Ident f) #((() (Ident x) () ("=" (Number () "1" ())))) () "=" (Ident x))]),
         // Pattern in LHS:
         ("f ~x=1 = x", block![
             (Function (Ident f)
              #(("~" (Ident x) () ("=" (Number () "1" ()))))
+             ()
              "=" (Ident x))]),
         ("f (~x = 1) = x", block![
             (Function (Ident f)
              #(("~" (Ident x) () ("=" (Number () "1" ()))))
+             ()
              "=" (Ident x))]),
     ];
     cases.into_iter().for_each(|(code, expected)| test(code, expected));
@@ -430,15 +453,15 @@ fn default_arguments() {
 #[test]
 fn code_block_body() {
     let code = ["main =", "    x"];
-    test(&code.join("\n"), block![(Function (Ident main) #() "=" (BodyBlock #((Ident x))))]);
+    test(&code.join("\n"), block![(Function (Ident main) #() () "=" (BodyBlock #((Ident x))))]);
     let code = ["main =", "      ", "    x"];
-    test(&code.join("\n"), block![(Function (Ident main) #() "=" (BodyBlock #(() (Ident x))))]);
+    test(&code.join("\n"), block![(Function (Ident main) #() () "=" (BodyBlock #(() (Ident x))))]);
     let code = ["main =", "    ", "    x"];
-    test(&code.join("\n"), block![(Function (Ident main) #() "=" (BodyBlock #(() (Ident x))))]);
+    test(&code.join("\n"), block![(Function (Ident main) #() () "=" (BodyBlock #(() (Ident x))))]);
     let code = ["main =", "  ", "    x"];
-    test(&code.join("\n"), block![(Function (Ident main) #() "=" (BodyBlock #(() (Ident x))))]);
+    test(&code.join("\n"), block![(Function (Ident main) #() () "=" (BodyBlock #(() (Ident x))))]);
     let code = ["main =", "", "    x"];
-    test(&code.join("\n"), block![(Function (Ident main) #() "=" (BodyBlock #(() (Ident x))))]);
+    test(&code.join("\n"), block![(Function (Ident main) #() () "=" (BodyBlock #(() (Ident x))))]);
 
     #[rustfmt::skip]
     let code = [
@@ -448,7 +471,7 @@ fn code_block_body() {
     ];
     #[rustfmt::skip]
     let expect = block![
-        (Function (Ident main) #() "=" (BodyBlock #(
+        (Function (Ident main) #() () "=" (BodyBlock #(
          (OprSectionBoundary 1 (OprApp () (Ok "+") (Ident x)))
          (App (Ident print) (Ident x)))))
     ];
@@ -521,18 +544,18 @@ fn code_block_empty() {
     // No input would parse as an empty `ArgumentBlock` or `OperatorBlock`, because those types are
     // distinguished from a body continuation by the presence of non-empty indented lines.
     let code = ["foo =", "bar"];
-    test(&code.join("\n"), block![(Function (Ident foo) #() "=" ()) (Ident bar)]);
+    test(&code.join("\n"), block![(Function (Ident foo) #() () "=" ()) (Ident bar)]);
     // This parses similarly to above; a line with no non-whitespace content does not create a code
     // block.
     let code = ["foo =", "    ", "bar"];
-    test(&code.join("\n"), block![(Function (Ident foo) #() "=" ()) () (Ident bar)]);
+    test(&code.join("\n"), block![(Function (Ident foo) #() () "=" ()) () (Ident bar)]);
 }
 
 #[test]
 fn code_block_bad_indents1() {
     let code = ["main =", "  foo", " bar", "  baz"];
     let expected = block![
-        (Function (Ident main) #() "=" (BodyBlock #((Ident foo) (Ident bar) (Ident baz))))
+        (Function (Ident main) #() () "=" (BodyBlock #((Ident foo) (Ident bar) (Ident baz))))
     ];
     test(&code.join("\n"), expected);
 }
@@ -541,7 +564,7 @@ fn code_block_bad_indents1() {
 fn code_block_bad_indents2() {
     let code = ["main =", "  foo", " bar", "baz"];
     let expected = block![
-        (Function (Ident main) #() "=" (BodyBlock #((Ident foo) (Ident bar))))
+        (Function (Ident main) #() () "=" (BodyBlock #((Ident foo) (Ident bar))))
         (Ident baz)
     ];
     test(&code.join("\n"), expected);
@@ -551,7 +574,7 @@ fn code_block_bad_indents2() {
 fn code_block_with_following_statement() {
     let code = ["main =", "    foo", "bar"];
     let expected = block![
-        (Function (Ident main) #() "=" (BodyBlock #((Ident foo))))
+        (Function (Ident main) #() () "=" (BodyBlock #((Ident foo))))
         (Ident bar)
     ];
     test(&code.join("\n"), expected);
@@ -699,7 +722,7 @@ fn template_functions() {
 fn unevaluated_argument() {
     let code = ["main ~foo = x"];
     let expected = block![
-        (Function (Ident main) #(("~" (Ident foo) () ())) "=" (Ident x))
+        (Function (Ident main) #(("~" (Ident foo) () ())) () "=" (Ident x))
     ];
     test(&code.join("\n"), expected);
 }
@@ -1004,7 +1027,7 @@ x"#;
     let code = "x =\n x = '''\n  x\nx";
     #[rustfmt::skip]
     let expected = block![
-        (Function (Ident x) #() "="
+        (Function (Ident x) #() () "="
          (BodyBlock #((Assignment (Ident x) "=" (TextLiteral #((Section "x")))))))
         (Ident x)
     ];
@@ -1315,7 +1338,7 @@ fn trailing_whitespace() {
     let cases = [
         ("a ", block![(Ident a) ()]),
         ("a \n", block![(Ident a) ()]),
-        ("a = \n x", block![(Function (Ident a) #() "=" (BodyBlock #((Ident x))))]),
+        ("a = \n x", block![(Function (Ident a) #() () "=" (BodyBlock #((Ident x))))]),
     ];
     cases.into_iter().for_each(|(code, expected)| test(code, expected));
 }

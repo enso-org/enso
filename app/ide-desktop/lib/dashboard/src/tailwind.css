@@ -13,7 +13,7 @@ body {
 }
 
 .Toastify--animate {
-  animation-duration: 0.2s;
+  animation-duration: 200ms;
 }
 
 .enso-dashboard {
@@ -21,6 +21,7 @@ body {
   pointer-events: none;
   width: 100%;
   height: 100%;
+  overflow: hidden;
 }
 
 .enso-dashboard > * {
@@ -149,6 +150,10 @@ body {
       @media screen and (max-width: 40.5625rem) {
         grid-column: span 1 / span 1;
       }
+    }
+
+    .container-size {
+      container-type: size;
     }
   }
 

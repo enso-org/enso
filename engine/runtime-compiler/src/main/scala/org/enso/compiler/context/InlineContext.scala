@@ -37,19 +37,23 @@ object InlineContext {
     * @param module the module defining the context
     * @param isInTailPosition whether or not the inline expression occurs in a
     *                         tail position
+    * @param compilerConfig the compiler configuration
+    * @param pkgRepo the compiler's package repository
     * @return the [[InlineContext]] instance corresponding to the arguments
     */
   def fromJava(
     localScope: LocalScope,
     module: CompilerContext.Module,
     isInTailPosition: Option[Boolean],
-    compilerConfig: CompilerConfig
+    compilerConfig: CompilerConfig,
+    pkgRepo: Option[PackageRepository]
   ): InlineContext = {
     InlineContext(
       localScope       = Option(localScope),
       module           = ModuleContext(module, compilerConfig),
       isInTailPosition = isInTailPosition,
-      compilerConfig   = compilerConfig
+      compilerConfig   = compilerConfig,
+      pkgRepo          = pkgRepo
     )
   }
 

@@ -1178,11 +1178,6 @@ val truffleRunOpts = Seq(
   "-Dpolyglot.compiler.BackgroundCompilation=false"
 )
 
-val truffleRunOptionsNoAssertSettings = Seq(
-  fork := true,
-  javaOptions ++= benchOnlyOptions
-)
-
 val truffleRunOptionsSettings = Seq(
   fork := true,
   javaOptions ++= "-ea" +: benchOnlyOptions
@@ -1330,13 +1325,16 @@ lazy val truffleDslSuppressWarnsSetting = Seq(
 )
 
 /** A setting to replace javac with Frgaal compiler, allowing to use latest Java features in the code
-  * and still compile down to JDK 11
+  * and still compile down to JDK 17
   */
-lazy val frgaalJavaCompilerSetting = Seq(
+lazy val frgaalJavaCompilerSetting =
+  customFrgaalJavaCompilerSettings(targetJavaVersion)
+
+def customFrgaalJavaCompilerSettings(targetJdk: String) = Seq(
   Compile / compile / compilers := FrgaalJavaCompiler.compilers(
     (Compile / dependencyClasspath).value,
     compilers.value,
-    targetJavaVersion
+    targetJdk
   ),
   // This dependency is needed only so that developers don't download Frgaal manually.
   // Sadly it cannot be placed under plugins either because meta dependencies are not easily
@@ -1375,11 +1373,20 @@ lazy val instrumentationSettings = frgaalJavaCompilerSetting ++ Seq(
 lazy val `runtime-language-epb` =
   (project in file("engine/runtime-language-epb"))
     .settings(
+      frgaalJavaCompilerSetting,
       inConfig(Compile)(truffleRunOptionsSettings),
       truffleDslSuppressWarnsSetting,
-      instrumentationSettings
+      commands += WithDebugCommand.withDebug,
+      fork := true,
+      Test / javaOptions ++= Seq(),
+      instrumentationSettings,
+      libraryDependencies ++= Seq(
+        "junit"               % "junit"                 % junitVersion              % Test,
+        "com.github.sbt"      % "junit-interface"       % junitIfVersion            % Test,
+        "org.graalvm.truffle" % "truffle-api"           % graalMavenPackagesVersion % "provided",
+        "org.graalvm.truffle" % "truffle-dsl-processor" % graalMavenPackagesVersion % "provided"
+      )
     )
-    .dependsOn(`polyglot-api`)
 
 lazy val runtime = (project in file("engine/runtime"))
   .configs(Benchmark)
@@ -1517,7 +1524,6 @@ lazy val `runtime-parser` =
   (project in file("engine/runtime-parser"))
     .settings(
       frgaalJavaCompilerSetting,
-      instrumentationSettings,
       commands += WithDebugCommand.withDebug,
       fork := true,
       Test / javaOptions ++= Seq(
@@ -1628,6 +1634,15 @@ lazy val `runtime-with-instruments` =
         "org.graalvm.truffle" % "truffle-dsl-processor" % graalMavenPackagesVersion % Test,
         "org.slf4j"           % "slf4j-nop"             % slf4jVersion              % Benchmark
       ),
+      // Add all GraalVM packages with Runtime scope - we don't need them for compilation,
+      // just provide them at runtime (in module-path).
+      libraryDependencies ++= {
+        val necessaryModules =
+          GraalVM.modules.map(_.withConfigurations(Some(Runtime.name)))
+        val langs =
+          GraalVM.langsPkgs.map(_.withConfigurations(Some(Runtime.name)))
+        necessaryModules ++ langs
+      },
       // Note [Unmanaged Classpath]
       Test / unmanagedClasspath += (baseDirectory.value / ".." / ".." / "app" / "gui" / "view" / "graph-editor" / "src" / "builtin" / "visualization" / "native" / "inc"),
       // Filter module-info.java from the compilation
@@ -1659,9 +1674,15 @@ lazy val `runtime-with-instruments` =
       assembly / assemblyJarName := "runtime.jar",
       assembly / test := {},
       assembly / assemblyOutputPath := file("runtime.jar"),
-      // Exclude all the Truffle/Graal related artifacts from the Uber jar
       assembly / assemblyExcludedJars := {
-        val pkgsToExclude = JPMSUtils.componentModules
+        // bouncycastle jdk5 needs to be excluded from the Uber jar, as otherwise its packages would
+        // clash with packages in org.bouncycastle.jdk18 modules
+        val bouncyCastleJdk5 = Seq(
+          "org.bouncycastle" % "bcutil-jdk15on" % bcpkixJdk15Version,
+          "org.bouncycastle" % "bcpkix-jdk15on" % bcpkixJdk15Version,
+          "org.bouncycastle" % "bcprov-jdk15on" % bcpkixJdk15Version
+        )
+        val pkgsToExclude = JPMSUtils.componentModules ++ bouncyCastleJdk5
         val ourFullCp     = (Runtime / fullClasspath).value
         JPMSUtils.filterModulesFromClasspath(
           ourFullCp,
@@ -1713,7 +1734,7 @@ lazy val `runtime-with-polyglot` =
     .configs(Benchmark)
     .settings(
       frgaalJavaCompilerSetting,
-      inConfig(Compile)(truffleRunOptionsNoAssertSettings),
+      inConfig(Compile)(truffleRunOptionsSettings),
       inConfig(Benchmark)(Defaults.testSettings),
       commands += WithDebugCommand.withDebug,
       Benchmark / javacOptions --= Seq(
@@ -2305,8 +2326,9 @@ lazy val `std-base` = project
     Compile / packageBin / artifactPath :=
       `base-polyglot-root` / "std-base.jar",
     libraryDependencies ++= Seq(
-      "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion,
-      "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion % "provided"
+      "org.graalvm.polyglot"      % "polyglot"                % graalMavenPackagesVersion,
+      "org.apache.httpcomponents" % "httpclient"              % httpComponentsVersion,
+      "org.netbeans.api"          % "org-openide-util-lookup" % netbeansApiVersion % "provided"
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
@@ -2623,7 +2645,7 @@ buildEngineDistribution := {
     log                 = log,
     jarModulesToCopy    = modulesToCopy ++ engineModules,
     graalVersion        = graalMavenPackagesVersion,
-    javaVersion         = javaVersion,
+    javaVersion         = graalVersion,
     ensoVersion         = ensoVersion,
     editionName         = currentEdition,
     sourceStdlibVersion = stdLibVersion,
@@ -2656,7 +2678,7 @@ buildEngineDistributionNoIndex := {
     log                 = log,
     jarModulesToCopy    = modulesToCopy ++ engineModules,
     graalVersion        = graalMavenPackagesVersion,
-    javaVersion         = javaVersion,
+    javaVersion         = graalVersion,
     ensoVersion         = ensoVersion,
     editionName         = currentEdition,
     sourceStdlibVersion = stdLibVersion,
@@ -2717,11 +2739,17 @@ val allStdBits: Parser[String] =
 lazy val `simple-httpbin` = project
   .in(file("tools") / "simple-httpbin")
   .settings(
-    frgaalJavaCompilerSetting,
+    customFrgaalJavaCompilerSettings(targetJdk = "21"),
+    autoScalaLibrary := false,
     Compile / javacOptions ++= Seq("-Xlint:all"),
+    Compile / run / mainClass := Some("org.enso.shttp.SimpleHTTPBin"),
+    assembly / mainClass := (Compile / run / mainClass).value,
     libraryDependencies ++= Seq(
-      "org.apache.commons" % "commons-text" % commonsTextVersion
-    )
+      "org.apache.commons"        % "commons-text" % commonsTextVersion,
+      "org.apache.httpcomponents" % "httpclient"   % httpComponentsVersion
+    ),
+    (Compile / run / fork) := true,
+    (Compile / run / connectInput) := true
   )
   .configs(Test)
 
@@ -2832,9 +2860,11 @@ buildProjectManagerDistribution := {
 lazy val buildGraalDistribution =
   taskKey[Unit]("Builds the GraalVM distribution")
 buildGraalDistribution := {
-  val log    = streams.value.log
-  val distOs = "DIST_OS"
-  val osName = "os.name"
+  val log      = streams.value.log
+  val distOs   = "DIST_OS"
+  val distArch = "DIST_ARCH"
+  val osName   = "os.name"
+  val archName = "os.arch"
   val distName = sys.env.get(distOs).getOrElse {
     val name = sys.props(osName).takeWhile(!_.isWhitespace)
     if (sys.env.contains("CI")) {
@@ -2844,13 +2874,14 @@ buildGraalDistribution := {
     }
     name
   }
-  val os = DistributionPackage.OS(distName).getOrElse {
+  val arch = sys.env.get(distArch).orElse(sys.env.get(archName))
+  val os = DistributionPackage.OS(distName, arch).getOrElse {
     throw new RuntimeException(s"Failed to determine OS: $distName.")
   }
   packageBuilder.createGraalPackage(
     log,
     os,
-    DistributionPackage.Architecture.X64
+    os.archs.head
   )
 }
 

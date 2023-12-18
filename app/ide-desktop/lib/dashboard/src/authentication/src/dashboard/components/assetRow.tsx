@@ -25,6 +25,14 @@ import StatelessSpinner, * as statelessSpinner from './statelessSpinner'
 import AssetContextMenu from './assetContextMenu'
 import TableRow from './tableRow'
 
+// =================
+// === Constants ===
+// =================
+
+/** The amount of time (in milliseconds) the drag item must be held over this component
+ * to make a directory row expand. */
+const DRAG_EXPAND_DELAY_MS = 500
+
 // ================
 // === AssetRow ===
 // ================
@@ -46,13 +54,22 @@ export default function AssetRow(props: AssetRowProps) {
         initialRowState,
         hidden,
         selected,
+        isSoleSelectedItem,
         setSelected,
         allowContextMenu,
         onContextMenu,
         state,
         columns,
     } = props
-    const { assetEvents, dispatchAssetEvent, dispatchAssetListEvent, doCut, doPaste } = state
+    const {
+        assetEvents,
+        dispatchAssetEvent,
+        dispatchAssetListEvent,
+        setAssetSettingsPanelProps,
+        doToggleDirectoryExpansion,
+        doCut,
+        doPaste,
+    } = state
     const { organization } = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
     const { setModal, unsetModal } = modalProvider.useSetModal()
@@ -60,12 +77,14 @@ export default function AssetRow(props: AssetRowProps) {
     const toastAndLog = hooks.useToastAndLog()
     const [isDraggedOver, setIsDraggedOver] = React.useState(false)
     const [item, setItem] = React.useState(rawItem)
+    const dragOverTimeoutHandle = React.useRef<number | null>(null)
     const asset = item.item
     const [visibility, setVisibility] = React.useState(visibilityModule.Visibility.visible)
     const [rowState, setRowState] = React.useState<assetsTable.AssetRowState>(() => ({
         ...initialRowState,
         setVisibility,
     }))
+
     React.useEffect(() => {
         setItem(rawItem)
     }, [rawItem])
@@ -104,7 +123,10 @@ export default function AssetRow(props: AssetRowProps) {
                 }))
                 await backend.updateAsset(
                     asset.id,
-                    { parentDirectoryId: newParentId ?? backend.rootDirectoryId(organization) },
+                    {
+                        parentDirectoryId: newParentId ?? backend.rootDirectoryId(organization),
+                        description: null,
+                    },
                     asset.title
                 )
             } catch (error) {
@@ -135,6 +157,12 @@ export default function AssetRow(props: AssetRowProps) {
             /* should never change */ dispatchAssetListEvent,
         ]
     )
+
+    React.useEffect(() => {
+        if (isSoleSelectedItem) {
+            setAssetSettingsPanelProps({ item, setItem })
+        }
+    }, [item, isSoleSelectedItem, /* should never change */ setAssetSettingsPanelProps])
 
     const doDelete = React.useCallback(async () => {
         setVisibility(visibilityModule.Visibility.hidden)
@@ -252,10 +280,19 @@ export default function AssetRow(props: AssetRowProps) {
                 }
                 break
             }
+            case assetEventModule.AssetEventType.download: {
+                if (event.ids.has(item.key)) {
+                    download.download(
+                        `./api/project-manager/projects/${asset.id}/enso-project`,
+                        `${asset.title}.enso-project`
+                    )
+                }
+                break
+            }
             case assetEventModule.AssetEventType.downloadSelected: {
                 if (selected) {
                     download.download(
-                        './api/project-manager/' + `projects/${asset.id}/enso-project`,
+                        `./api/project-manager/projects/${asset.id}/enso-project`,
                         `${asset.title}.enso-project`
                     )
                 }
@@ -426,6 +463,21 @@ export default function AssetRow(props: AssetRowProps) {
                         setItem={setItem}
                         initialRowState={rowState}
                         setRowState={setRowState}
+                        onDragEnter={() => {
+                            if (dragOverTimeoutHandle.current != null) {
+                                window.clearTimeout(dragOverTimeoutHandle.current)
+                            }
+                            if (backendModule.assetIsDirectory(asset)) {
+                                dragOverTimeoutHandle.current = window.setTimeout(() => {
+                                    doToggleDirectoryExpansion(
+                                        asset.id,
+                                        item.key,
+                                        asset.title,
+                                        true
+                                    )
+                                }, DRAG_EXPAND_DELAY_MS)
+                            }
+                        }}
                         onDragOver={event => {
                             props.onDragOver?.(event)
                             if (item.item.type === backendModule.AssetType.directory) {
@@ -444,6 +496,13 @@ export default function AssetRow(props: AssetRowProps) {
                             props.onDragEnd?.(event)
                         }}
                         onDragLeave={event => {
+                            if (
+                                dragOverTimeoutHandle.current != null &&
+                                (!(event.relatedTarget instanceof Node) ||
+                                    !event.currentTarget.contains(event.relatedTarget))
+                            ) {
+                                window.clearTimeout(dragOverTimeoutHandle.current)
+                            }
                             clearDragState()
                             props.onDragLeave?.(event)
                         }}

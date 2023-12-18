@@ -6,17 +6,18 @@ import * as common from 'enso-common'
 import * as appInfo from '../../appInfo'
 import * as assetEventModule from '../events/assetEvent'
 import * as assetListEventModule from '../events/assetListEvent'
+import type * as assetQuery from '../../assetQuery'
 import * as authProvider from '../../authentication/providers/auth'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as hooks from '../../hooks'
-import * as identity from '../identity'
 import * as localStorageModule from '../localStorage'
 import * as localStorageProvider from '../../providers/localStorage'
 import * as modalProvider from '../../providers/modal'
 import * as uniqueString from '../../uniqueString'
 
 import * as app from '../../components/app'
+import type * as assetSettingsPanel from './assetSettingsPanel'
 import * as pageSwitcher from './pageSwitcher'
 import type * as spinner from './spinner'
 import CategorySwitcher, * as categorySwitcher from './categorySwitcher'
@@ -41,8 +42,12 @@ export interface DriveProps {
     dispatchAssetListEvent: (directoryEvent: assetListEventModule.AssetListEvent) => void
     assetEvents: assetEventModule.AssetEvent[]
     dispatchAssetEvent: (directoryEvent: assetEventModule.AssetEvent) => void
-    query: string
+    query: assetQuery.AssetQuery
+    setQuery: React.Dispatch<React.SetStateAction<assetQuery.AssetQuery>>
     projectStartupInfo: backendModule.ProjectStartupInfo | null
+    setAssetSettingsPanelProps: React.Dispatch<
+        React.SetStateAction<assetSettingsPanel.AssetSettingsPanelRequiredProps | null>
+    >
     doCreateProject: (templateId: string | null) => void
     doOpenEditor: (
         project: backendModule.ProjectAsset,
@@ -65,11 +70,13 @@ export default function Drive(props: DriveProps) {
         initialProjectName,
         queuedAssetEvents,
         query,
+        setQuery,
         projectStartupInfo,
         assetListEvents,
         dispatchAssetListEvent,
         assetEvents,
         dispatchAssetEvent,
+        setAssetSettingsPanelProps,
         doOpenEditor,
         doCloseEditor,
         loadingProjectManagerDidFail,
@@ -91,7 +98,7 @@ export default function Drive(props: DriveProps) {
             categorySwitcher.Category.home
     )
     const [labels, setLabels] = React.useState<backendModule.Label[]>([])
-    const [currentLabels, setCurrentLabels] = React.useState<backendModule.LabelName[] | null>(null)
+    // const [currentLabels, setCurrentLabels] = React.useState<backendModule.LabelName[] | null>(null)
     const [newLabelNames, setNewLabelNames] = React.useState(new Set<backendModule.LabelName>())
     const [deletedLabelNames, setDeletedLabelNames] = React.useState(
         new Set<backendModule.LabelName>()
@@ -186,36 +193,11 @@ export default function Drive(props: DriveProps) {
                         oldLabel.id === placeholderLabel.id ? newLabel : oldLabel
                     )
                 )
-                setCurrentLabels(oldLabels => {
-                    let found = identity.identity<boolean>(false)
-                    const newLabels =
-                        oldLabels?.map(oldLabel => {
-                            if (oldLabel === placeholderLabel.value) {
-                                found = true
-                                return newLabel.value
-                            } else {
-                                return oldLabel
-                            }
-                        }) ?? null
-                    return found ? newLabels : oldLabels
-                })
             } catch (error) {
                 toastAndLog(null, error)
                 setLabels(oldLabels =>
                     oldLabels.filter(oldLabel => oldLabel.id !== placeholderLabel.id)
                 )
-                setCurrentLabels(oldLabels => {
-                    let found = identity.identity<boolean>(false)
-                    const newLabels = (oldLabels ?? []).filter(oldLabel => {
-                        if (oldLabel === placeholderLabel.value) {
-                            found = true
-                            return false
-                        } else {
-                            return true
-                        }
-                    })
-                    return found ? (newLabels.length === 0 ? null : newLabels) : oldLabels
-                })
             }
             setNewLabelNames(
                 labelNames =>
@@ -228,22 +210,7 @@ export default function Drive(props: DriveProps) {
     const doDeleteLabel = React.useCallback(
         async (id: backendModule.TagId, value: backendModule.LabelName) => {
             setDeletedLabelNames(oldNames => new Set([...oldNames, value]))
-            setCurrentLabels(oldLabels => {
-                let found = identity.identity<boolean>(false)
-                const newLabels = oldLabels?.filter(oldLabel => {
-                    if (oldLabel === value) {
-                        found = true
-                        return false
-                    } else {
-                        return true
-                    }
-                })
-                return newLabels != null && newLabels.length > 0
-                    ? found
-                        ? newLabels
-                        : oldLabels
-                    : null
-            })
+            setQuery(oldQuery => oldQuery.delete({ labels: [value] }))
             try {
                 await backend.deleteTag(id, value)
                 dispatchAssetEvent({
@@ -260,6 +227,7 @@ export default function Drive(props: DriveProps) {
         },
         [
             backend,
+            /* should never change */ setQuery,
             /* should never change */ dispatchAssetEvent,
             /* should never change */ toastAndLog,
         ]
@@ -298,7 +266,7 @@ export default function Drive(props: DriveProps) {
     return isListingRemoteDirectoryWhileOffline ? (
         <div className={`grow grid place-items-center mx-2 ${hidden ? 'hidden' : ''}`}>
             <div className="flex flex-col gap-4">
-                <div className="text-base text-center">You are not signed in.</div>
+                <div className="text-base text-center">You are not logged in.</div>
                 <button
                     className="text-base text-white bg-help rounded-full self-center leading-170 h-8 py-px w-16"
                     onClick={() => {
@@ -321,14 +289,14 @@ export default function Drive(props: DriveProps) {
             <div className="flex flex-col gap-4 text-base text-center">
                 Upgrade your plan to use {common.PRODUCT_NAME} Cloud.
                 <a
-                    className="block self-center whitespace-nowrap text-base text-white bg-help rounded-full self-center leading-170 h-8 py-px px-2 w-min"
+                    className="block self-center whitespace-nowrap text-base text-white bg-help rounded-full leading-170 h-8 py-px px-2 w-min"
                     href="https://enso.org/pricing"
                 >
                     Upgrade
                 </a>
                 {!supportsLocalBackend && (
                     <button
-                        className="block self-center whitespace-nowrap text-base text-white bg-help rounded-full self-center leading-170 h-8 py-px px-2 w-min"
+                        className="block self-center whitespace-nowrap text-base text-white bg-help rounded-full leading-170 h-8 py-px px-2 w-min"
                         onClick={async () => {
                             const downloadUrl = await appInfo.getDownloadUrl()
                             if (downloadUrl == null) {
@@ -375,8 +343,8 @@ export default function Drive(props: DriveProps) {
                         />
                         <Labels
                             labels={labels}
-                            currentLabels={currentLabels}
-                            setCurrentLabels={setCurrentLabels}
+                            query={query}
+                            setQuery={setQuery}
                             doCreateLabel={doCreateLabel}
                             doDeleteLabel={doDeleteLabel}
                             newLabelNames={newLabelNames}
@@ -386,9 +354,9 @@ export default function Drive(props: DriveProps) {
                 )}
                 <AssetsTable
                     query={query}
+                    setQuery={setQuery}
                     category={category}
                     allLabels={allLabels}
-                    currentLabels={currentLabels}
                     initialProjectName={initialProjectName}
                     projectStartupInfo={projectStartupInfo}
                     deletedLabelNames={deletedLabelNames}
@@ -397,6 +365,7 @@ export default function Drive(props: DriveProps) {
                     dispatchAssetEvent={dispatchAssetEvent}
                     assetListEvents={assetListEvents}
                     dispatchAssetListEvent={dispatchAssetListEvent}
+                    setAssetSettingsPanelProps={setAssetSettingsPanelProps}
                     doOpenIde={doOpenEditor}
                     doCloseIde={doCloseEditor}
                     doCreateLabel={doCreateLabel}

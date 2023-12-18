@@ -120,7 +120,7 @@ public abstract class EqualsComplexNode extends Node {
               : otherWithWarnings;
       return equalsNode.execute(self, other);
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException(e);
+      throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
   }
 
@@ -149,7 +149,7 @@ public abstract class EqualsComplexNode extends Node {
     try {
       return selfInterop.asBoolean(selfBoolean) == otherInterop.asBoolean(otherBoolean);
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException(e);
+      throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
   }
 
@@ -167,7 +167,7 @@ public abstract class EqualsComplexNode extends Node {
     try {
       return selfInterop.asTimeZone(selfTimeZone).equals(otherInterop.asTimeZone(otherTimeZone));
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException(e);
+      throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
   }
 
@@ -197,7 +197,7 @@ public abstract class EqualsComplexNode extends Node {
       // We cannot use self.isEqual(other), because that does not include timezone.
       return self.compareTo(other) == 0;
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException(e);
+      throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
   }
 
@@ -219,7 +219,7 @@ public abstract class EqualsComplexNode extends Node {
           LocalDateTime.of(otherInterop.asDate(otherDateTime), otherInterop.asTime(otherDateTime));
       return self.isEqual(other);
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException(e);
+      throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
   }
 
@@ -237,7 +237,7 @@ public abstract class EqualsComplexNode extends Node {
     try {
       return selfInterop.asDate(selfDate).isEqual(otherInterop.asDate(otherDate));
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException(e);
+      throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
   }
 
@@ -255,7 +255,7 @@ public abstract class EqualsComplexNode extends Node {
     try {
       return selfInterop.asTime(selfTime).equals(otherInterop.asTime(otherTime));
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException(e);
+      throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
   }
 
@@ -270,7 +270,7 @@ public abstract class EqualsComplexNode extends Node {
     try {
       return selfInterop.asDuration(selfDuration).equals(otherInterop.asDuration(otherDuration));
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException(e);
+      throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
   }
 
@@ -305,7 +305,7 @@ public abstract class EqualsComplexNode extends Node {
       }
       return true;
     } catch (UnsupportedMessageException | InvalidArrayIndexException e) {
-      throw new IllegalStateException(e);
+      throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
   }
 
@@ -354,7 +354,7 @@ public abstract class EqualsComplexNode extends Node {
         | StopIterationException
         | UnknownKeyException
         | InvalidArrayIndexException e) {
-      throw new IllegalStateException(e);
+      throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
   }
 
@@ -388,7 +388,7 @@ public abstract class EqualsComplexNode extends Node {
         | ArityException
         | UnknownIdentifierException
         | UnsupportedTypeException e) {
-      throw new IllegalStateException(e);
+      throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
   }
 

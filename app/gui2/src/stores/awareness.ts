@@ -1,4 +1,4 @@
-import { Vec2 } from '@/util/vec2'
+import { Vec2 } from '@/util/data/vec2'
 import type { StackItem } from 'shared/languageServerTypes'
 import { reactive } from 'vue'
 import { Awareness as YjsAwareness } from 'y-protocols/awareness'

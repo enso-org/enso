@@ -5,7 +5,7 @@ export const inputType = 'Any'
 </script>
 
 <script setup lang="ts">
-import VisualizationContainer from '@/components/VisualizationContainer.vue'
+import { VisualizationContainer } from '@/util/visualizationBuiltins'
 
 const props = defineProps<{ data: unknown }>()
 </script>
@@ -18,7 +18,7 @@ const props = defineProps<{ data: unknown }>()
 
 <style scoped>
 .JSONVisualization {
-  font-family: 'DejaVu Sans Mono', monospace;
+  font-family: var(--font-mono);
   white-space: pre;
   padding: 8px;
 }

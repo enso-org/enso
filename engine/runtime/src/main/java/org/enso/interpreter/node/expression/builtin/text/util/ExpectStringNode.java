@@ -40,7 +40,7 @@ public abstract class ExpectStringNode extends Node {
     try {
       return execute(warnings.removeWarnings(warning));
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException(e);
+      throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
   }
 

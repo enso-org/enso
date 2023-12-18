@@ -110,12 +110,12 @@ export default function Login(props: LoginProps) {
                     <Input
                         required
                         validate
+                        allowShowingPassword
                         type="password"
                         autoComplete="current-password"
                         label="Password"
                         icon={LockIcon}
                         placeholder="Enter your password"
-                        pattern={validation.PASSWORD_PATTERN}
                         error={validation.PASSWORD_ERROR}
                         value={password}
                         setValue={setPassword}

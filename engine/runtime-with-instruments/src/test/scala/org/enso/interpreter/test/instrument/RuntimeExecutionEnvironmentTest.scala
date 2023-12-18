@@ -1,7 +1,5 @@
 package org.enso.interpreter.test.instrument
 
-import org.enso.distribution.FileSystem
-import org.enso.distribution.locking.ThreadSafeFileLockManager
 import org.enso.interpreter.runtime.EnsoContext
 import org.enso.interpreter.runtime.`type`.ConstantsGen
 import org.enso.interpreter.test.Metadata
@@ -16,7 +14,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 
 import java.io.{ByteArrayOutputStream, File}
-import java.nio.file.{Files, Path, Paths}
+import java.nio.file.{Files, Paths}
 import java.util.UUID
 import java.util.logging.Level
 import scala.concurrent.duration._
@@ -39,20 +37,16 @@ class RuntimeExecutionEnvironmentTest
 
   var context: TestContext = _
 
-  class TestContext(packageName: String) extends InstrumentTestContext {
+  class TestContext(packageName: String)
+      extends InstrumentTestContext(packageName) {
 
-    val tmpDir: Path = Files.createTempDirectory("enso-test-packages")
-    sys.addShutdownHook(FileSystem.removeDirectoryIfExists(tmpDir))
     val distributionHome: File =
       Paths.get("../../distribution/component").toFile.getAbsoluteFile
     val editionHome: File =
       Paths.get("../../distribution/lib").toRealPath().toFile.getAbsoluteFile
-    val edition     = TestEdition.readStdlib(editionHome)
-    val lockManager = new ThreadSafeFileLockManager(tmpDir.resolve("locks"))
-    val runtimeServerEmulator =
-      new RuntimeServerEmulator(messageQueue, lockManager)
+    val edition = TestEdition.readStdlib(editionHome)
 
-    val pkg: Package[File] =
+    override val pkg: Package[File] =
       PackageManager.Default.create(
         tmpDir.toFile,
         packageName,
@@ -60,7 +54,7 @@ class RuntimeExecutionEnvironmentTest
         edition = Some(edition)
       )
     val out: ByteArrayOutputStream = new ByteArrayOutputStream()
-    val executionContext = new PolyglotContext(
+    val context =
       Context
         .newBuilder(LanguageInfo.ID)
         .allowExperimentalOptions(true)
@@ -85,10 +79,8 @@ class RuntimeExecutionEnvironmentTest
         .out(out)
         .serverTransport(runtimeServerEmulator.makeServerTransport)
         .build()
-    )
-    executionContext.context.initialize(LanguageInfo.ID)
 
-    val languageContext = executionContext.context
+    lazy val languageContext = executionContext.context
       .getBindings(LanguageInfo.ID)
       .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
       .asHostObject[EnsoContext]
@@ -125,12 +117,16 @@ class RuntimeExecutionEnvironmentTest
 
   override protected def beforeEach(): Unit = {
     context = new TestContext("Test")
+    context.init()
     val Some(Api.Response(_, Api.InitializedNotification())) = context.receive
   }
 
   override protected def afterEach(): Unit = {
-    context.executionContext.context.close()
-    context.runtimeServerEmulator.terminate()
+    if (context != null) {
+      context.close()
+      context.out.reset()
+      context = null
+    }
   }
 
   it should "panic when output context is not enabled" in {

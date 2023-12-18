@@ -1,6 +1,6 @@
 minimum-launcher-version: 0.0.0-dev
 minimum-project-manager-version: 0.0.0-dev
 graal-vm-version: 23.2.0
-graal-java-version: 21
+graal-java-version: 21.0.0
 jvm-options:
   - value: "-Denso.version.override=0.0.1"

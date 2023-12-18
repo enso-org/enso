@@ -62,7 +62,6 @@ import org.enso.compiler.pass.resolve.{
   TypeNames,
   TypeSignatures
 }
-import org.enso.polyglot.ForeignLanguage
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode
 import org.enso.interpreter.node.callable.argument.ReadArgumentCheckNode
 import org.enso.interpreter.node.callable.function.{
@@ -80,6 +79,7 @@ import org.enso.interpreter.node.expression.atom.{
   ConstantNode,
   QualifiedAccessorNode
 }
+import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode
 import org.enso.interpreter.node.expression.builtin.BuiltinRootNode
 import org.enso.interpreter.node.expression.constant._
 import org.enso.interpreter.node.expression.foreign.ForeignMethodCallNode
@@ -1375,7 +1375,10 @@ class IrToTruffle(
                               BadPatternMatch.NonConstantPolyglotSymbol(symbol)
                             )
                           } else {
-                            Right(iop.readMember(polyClass, symbol))
+                            val value = iop.readMember(polyClass, symbol);
+                            val ensoValue =
+                              HostValueToEnsoNode.getUncached().execute(value)
+                            Right(ensoValue)
                           }
                         }
                       } catch {
@@ -1792,6 +1795,15 @@ class IrToTruffle(
           setLocation(LiteralNode.build(text), location)
       }
 
+    private def fileLocationFromSection(loc: IdentifiedLocation) = {
+      val section =
+        source.createSection(loc.location().start(), loc.location().length());
+      val locStr = "" + section.getStartLine() + ":" + section
+        .getStartColumn() + "-" + section.getEndLine() + ":" + section
+        .getEndColumn()
+      source.getName() + "[" + locStr + "]";
+    }
+
     /** Generates a runtime implementation for compile error nodes.
       *
       * @param error the IR representing a compile error.
@@ -1804,43 +1816,47 @@ class IrToTruffle(
         case err: errors.Syntax =>
           context.getBuiltins
             .error()
-            .makeSyntaxError(Text.create(err.message(source)))
+            .makeSyntaxError(Text.create(err.message(fileLocationFromSection)))
         case err: errors.Redefined.Binding =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message(source)))
+            .makeCompileError(Text.create(err.message(fileLocationFromSection)))
         case err: errors.Redefined.Method =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message(source)))
+            .makeCompileError(Text.create(err.message(fileLocationFromSection)))
         case err: errors.Redefined.MethodClashWithAtom =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message(source)))
+            .makeCompileError(Text.create(err.message(fileLocationFromSection)))
         case err: errors.Redefined.Conversion =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message(source)))
+            .makeCompileError(Text.create(err.message(fileLocationFromSection)))
         case err: errors.Redefined.Type =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message(source)))
+            .makeCompileError(Text.create(err.message(fileLocationFromSection)))
         case err: errors.Redefined.SelfArg =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message(source)))
+            .makeCompileError(Text.create(err.message(fileLocationFromSection)))
+        case err: errors.Redefined.Arg =>
+          context.getBuiltins
+            .error()
+            .makeCompileError(Text.create(err.message(fileLocationFromSection)))
         case err: errors.Unexpected.TypeSignature =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message(source)))
+            .makeCompileError(Text.create(err.message(fileLocationFromSection)))
         case err: errors.Resolution =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message(source)))
+            .makeCompileError(Text.create(err.message(fileLocationFromSection)))
         case err: errors.Conversion =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message(source)))
+            .makeCompileError(Text.create(err.message(fileLocationFromSection)))
         case _: errors.Pattern =>
           throw new CompilerError(
             "Impossible here, should be handled in the pattern match."
@@ -1880,7 +1896,7 @@ class IrToTruffle(
         val bodyExpr = body match {
           case Foreign.Definition(lang, code, _, _, _) =>
             buildForeignBody(
-              ForeignLanguage.getBySyntacticTag(lang),
+              lang,
               code,
               arguments.map(_.name.name),
               argSlotIdxs
@@ -1941,12 +1957,13 @@ class IrToTruffle(
     }
 
     private def buildForeignBody(
-      language: ForeignLanguage,
+      language: String,
       code: String,
       argumentNames: List[String],
       argumentSlotIdxs: List[Int]
     ): RuntimeExpression = {
-      val src       = language.buildSource(code, scopeName)
+      val src =
+        Source.newBuilder("epb", language + "#" + code, scopeName).build()
       val foreignCt = context.parseInternal(src, argumentNames: _*)
       val argumentReaders = argumentSlotIdxs
         .map(slotIdx =>

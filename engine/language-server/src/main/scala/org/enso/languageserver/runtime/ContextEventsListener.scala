@@ -63,7 +63,6 @@ final class ContextEventsListener(
     oneshotVisualizations: Set[Api.VisualizationContext],
     expressionUpdates: Vector[Api.ExpressionUpdate]
   ): Receive = {
-
     case RegisterOneshotVisualization(
           contextId,
           visualizationId,
@@ -145,7 +144,11 @@ final class ContextEventsListener(
       message.pipeTo(sessionRouter)
 
     case Api.VisualizationEvaluationFailed(
-          Api.VisualizationContext(visualizationId, contextId, expressionId),
+          ctx @ Api.VisualizationContext(
+            visualizationId,
+            contextId,
+            expressionId
+          ),
           message,
           diagnostic
         ) =>
@@ -160,6 +163,21 @@ final class ContextEventsListener(
             diagnostic
           )
       } yield DeliverToJsonController(rpcSession.clientId, payload)
+
+      if (oneshotVisualizations.contains(ctx)) {
+        context.parent ! DetachVisualization(
+          rpcSession.clientId,
+          contextId,
+          ctx.visualizationId,
+          ctx.expressionId
+        )
+        context.become(
+          withState(
+            oneshotVisualizations - ctx,
+            expressionUpdates
+          )
+        )
+      }
 
       response.pipeTo(sessionRouter)
 

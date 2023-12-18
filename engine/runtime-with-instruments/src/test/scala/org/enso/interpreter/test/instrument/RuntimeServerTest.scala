@@ -1,11 +1,8 @@
 package org.enso.interpreter.test.instrument
 
-import org.enso.distribution.FileSystem
-import org.enso.distribution.locking.ThreadSafeFileLockManager
 import org.enso.interpreter.runtime.`type`.{Constants, ConstantsGen, Types}
 import org.enso.interpreter.runtime.EnsoContext
 import org.enso.interpreter.test.Metadata
-import org.enso.pkg.{Package, PackageManager}
 import org.enso.polyglot._
 import org.enso.polyglot.data.TypeGraph
 import org.enso.polyglot.runtime.Runtime.Api
@@ -17,7 +14,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import java.io.{ByteArrayOutputStream, File}
-import java.nio.file.{Files, Path, Paths}
+import java.nio.file.{Files, Paths}
 import java.util.UUID
 import org.apache.commons.io.output.TeeOutputStream
 
@@ -31,19 +28,12 @@ class RuntimeServerTest
 
   var context: TestContext = _
 
-  class TestContext(packageName: String) extends InstrumentTestContext {
+  class TestContext(packageName: String)
+      extends InstrumentTestContext(packageName) {
 
-    val tmpDir: Path = Files.createTempDirectory("enso-test-packages")
-    sys.addShutdownHook(FileSystem.removeDirectoryIfExists(tmpDir))
-    val lockManager = new ThreadSafeFileLockManager(tmpDir.resolve("locks"))
-    val runtimeServerEmulator =
-      new RuntimeServerEmulator(messageQueue, lockManager)
-
-    val pkg: Package[File] =
-      PackageManager.Default.create(tmpDir.toFile, packageName, "Enso_Test")
     val out: ByteArrayOutputStream    = new ByteArrayOutputStream()
     val logOut: ByteArrayOutputStream = new ByteArrayOutputStream()
-    val executionContext = new PolyglotContext(
+    val context =
       Context
         .newBuilder(LanguageInfo.ID)
         .allowExperimentalOptions(true)
@@ -75,10 +65,8 @@ class RuntimeServerTest
         .out(new TeeOutputStream(out, System.err))
         .serverTransport(runtimeServerEmulator.makeServerTransport)
         .build()
-    )
-    executionContext.context.initialize(LanguageInfo.ID)
 
-    val languageContext = executionContext.context
+    lazy val languageContext = executionContext.context
       .getBindings(LanguageInfo.ID)
       .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
       .asHostObject[EnsoContext]
@@ -364,12 +352,16 @@ class RuntimeServerTest
 
   override protected def beforeEach(): Unit = {
     context = new TestContext("Test")
+    context.init()
     val Some(Api.Response(_, Api.InitializedNotification())) = context.receive
   }
 
   override protected def afterEach(): Unit = {
-    context.executionContext.context.close()
-    context.runtimeServerEmulator.terminate()
+    if (context != null) {
+      context.close()
+      context.out.reset()
+      context = null
+    }
   }
 
   "RuntimeServer" should "push and pop functions on the stack" in {

@@ -197,15 +197,14 @@ function ProjectTile(props: InternalProjectTileProps) {
                     <SvgMask src={Logo} />
                     <span className="font-bold leading-144.5 pb-px">{author}</span>
                 </div>
-                <div className="flex gap-3">
-                    {/* Opens */}
-                    <div className="flex gap-1.5">
-                        <SvgMask src={OpenCountIcon} />
+                {/* Normally `flex` */}
+                <div className="gap-3 hidden">
+                    <div title="Views" className="flex gap-1.5">
+                        <SvgMask alt="Views" src={OpenCountIcon} />
                         <span className="font-bold leading-144.5 pb-px">{opens}</span>
                     </div>
-                    {/* Likes */}
-                    <div className="flex gap-1.5">
-                        <SvgMask src={HeartIcon} />
+                    <div title="Likes" className="flex gap-1.5">
+                        <SvgMask alt="Likes" src={HeartIcon} />
                         <span className="font-bold leading-144.5 pb-px">{likes}</span>
                     </div>
                 </div>

@@ -1,14 +1,16 @@
+import { ComputedValueRegistry, type ExpressionInfo } from '@/stores/project/computedValueRegistry'
 import { SuggestionDb, groupColorStyle, type Group } from '@/stores/suggestionDatabase'
 import type { SuggestionEntry } from '@/stores/suggestionDatabase/entry'
-import { arrayEquals, byteArraysEqual, tryGetIndex } from '@/util/array'
-import { Ast, AstExtended } from '@/util/ast'
+import { Ast, RawAst, RawAstExtended } from '@/util/ast'
 import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
+import { nodeFromAst } from '@/util/ast/node'
 import { colorFromString } from '@/util/colors'
-import { ComputedValueRegistry, type ExpressionInfo } from '@/util/computedValueRegistry'
 import { MappedKeyMap, MappedSet } from '@/util/containers'
+import { arrayEquals, byteArraysEqual, tryGetIndex } from '@/util/data/array'
+import type { Opt } from '@/util/data/opt'
+import { Vec2 } from '@/util/data/vec2'
 import { ReactiveDb, ReactiveIndex, ReactiveMapping } from '@/util/database/reactiveDb'
-import type { Opt } from '@/util/opt'
-import { Vec2 } from '@/util/vec2'
+import * as random from 'lib0/random'
 import * as set from 'lib0/set'
 import { methodPointerEquals, type MethodCall } from 'shared/languageServerTypes'
 import {
@@ -30,7 +32,7 @@ export class BindingsDb {
   bindings = new ReactiveDb<ExprId, BindingInfo>()
   identifierToBindingId = new ReactiveIndex(this.bindings, (id, info) => [[info.identifier, id]])
 
-  readFunctionAst(ast: AstExtended<Ast.Tree.Function>) {
+  readFunctionAst(ast: RawAstExtended<RawAst.Tree.Function>) {
     // TODO[ao]: Rename 'alias' to 'binding' in AliasAnalyzer and it's more accurate term.
     const analyzer = new AliasAnalyzer(ast.parsedCode, ast.inner)
     analyzer.process()
@@ -82,13 +84,13 @@ export class BindingsDb {
    *
    * The AliasAnalyzer is general and returns ranges, but we're interested in AST nodes. This
    * method creates mappings in both ways. For given range, only the shallowest AST node will be
-   * assigned (Ast.Tree.Identifier, not Ast.Token.Identifier).
+   * assigned (RawAst.Tree.Identifier, not RawAst.Token.Identifier).
    */
   private static rangeMappings(
-    ast: AstExtended,
+    ast: RawAstExtended,
     analyzer: AliasAnalyzer,
-  ): [MappedKeyMap<ContentRange, AstExtended>, Map<ExprId, ContentRange>] {
-    const bindingRangeToTree = new MappedKeyMap<ContentRange, AstExtended>(IdMap.keyForRange)
+  ): [MappedKeyMap<ContentRange, RawAstExtended>, Map<ExprId, ContentRange>] {
+    const bindingRangeToTree = new MappedKeyMap<ContentRange, RawAstExtended>(IdMap.keyForRange)
     const bindingIdToRange = new Map<ExprId, ContentRange>()
     const bindingRanges = new MappedSet(IdMap.keyForRange)
     for (const [binding, usages] of analyzer.aliases) {
@@ -120,17 +122,13 @@ export class GraphDb {
   private nodeIdToPatternExprIds = new ReactiveIndex(this.nodeIdToNode, (id, entry) => {
     if (entry.pattern == null) return []
     const exprs = new Set<ExprId>()
-    for (const ast of entry.pattern.walkRecursive()) {
-      exprs.add(ast.astId)
-    }
+    entry.pattern.visitRecursive((astOrToken) => exprs.add(astOrToken.exprId))
     return Array.from(exprs, (expr) => [id, expr])
   })
 
   private nodeIdToExprIds = new ReactiveIndex(this.nodeIdToNode, (id, entry) => {
     const exprs = new Set<ExprId>()
-    for (const ast of entry.rootSpan.walkRecursive()) {
-      exprs.add(ast.astId)
-    }
+    entry.rootSpan.visitRecursive((astOrToken) => exprs.add(astOrToken.exprId))
     return Array.from(exprs, (expr) => [id, expr])
   })
 
@@ -251,34 +249,39 @@ export class GraphDb {
     this.nodeIdToNode.moveToLast(id)
   }
 
-  readFunctionAst(
-    functionAst: AstExtended<Ast.Tree.Function>,
-    getMeta: (id: ExprId) => NodeMetadata | undefined,
-  ) {
+  readFunctionAst(functionAst_: Ast.Function, getMeta: (id: ExprId) => NodeMetadata | undefined) {
     const currentNodeIds = new Set<ExprId>()
-    if (functionAst) {
-      for (const nodeAst of functionAst.visit(getFunctionNodeExpressions)) {
-        const newNode = nodeFromAst(nodeAst)
-        const nodeId = newNode.rootSpan.astId
-        const node = this.nodeIdToNode.get(nodeId)
-        const nodeMeta = getMeta(nodeId)
-        currentNodeIds.add(nodeId)
-        if (node == null) {
-          this.nodeIdToNode.set(nodeId, newNode)
-        } else {
-          if (!byteArraysEqual(node.pattern?.contentHash(), newNode.pattern?.contentHash())) {
-            node.pattern = newNode.pattern
-          }
-          if (node.outerExprId !== newNode.outerExprId) {
-            node.outerExprId = newNode.outerExprId
-          }
-          if (!byteArraysEqual(node.rootSpan.contentHash(), newNode.rootSpan.contentHash())) {
-            node.rootSpan = newNode.rootSpan
-          }
+    for (const nodeAst of functionAst_.bodyExpressions()) {
+      const newNode = nodeFromAst(nodeAst)
+      const nodeId = newNode.rootSpan.astId
+      const node = this.nodeIdToNode.get(nodeId)
+      const nodeMeta = getMeta(nodeId)
+      currentNodeIds.add(nodeId)
+      if (node == null) {
+        this.nodeIdToNode.set(nodeId, newNode)
+      } else {
+        if (
+          !byteArraysEqual(
+            node.pattern?.astExtended?.contentHash(),
+            newNode.pattern?.astExtended?.contentHash(),
+          )
+        ) {
+          node.pattern = newNode.pattern
         }
-        if (nodeMeta) {
-          this.assignUpdatedMetadata(node ?? newNode, nodeMeta)
+        if (node.outerExprId !== newNode.outerExprId) {
+          node.outerExprId = newNode.outerExprId
         }
+        if (
+          !byteArraysEqual(
+            node.rootSpan.astExtended?.contentHash(),
+            newNode.rootSpan.astExtended?.contentHash(),
+          )
+        ) {
+          node.rootSpan = newNode.rootSpan
+        }
+      }
+      if (nodeMeta) {
+        this.assignUpdatedMetadata(node ?? newNode, nodeMeta)
       }
     }
 
@@ -288,7 +291,11 @@ export class GraphDb {
       }
     }
 
-    this.bindings.readFunctionAst(functionAst)
+    const functionAst = functionAst_.astExtended
+    if (functionAst?.isTree(RawAst.Tree.Type.Function)) {
+      this.bindings.readFunctionAst(functionAst)
+    }
+    return currentNodeIds
   }
 
   assignUpdatedMetadata(node: Node, meta: NodeMetadata) {
@@ -305,59 +312,39 @@ export class GraphDb {
     return new GraphDb(db, ref([]), registry)
   }
 
-  mockNode(binding: string, id: ExprId, code?: string) {
-    const node = {
+  mockNode(binding: string, id: ExprId, code?: string): Node {
+    const pattern = Ast.parse(binding)
+    const node: Node = {
       outerExprId: id,
-      pattern: AstExtended.parse(binding, IdMap.Mock()),
-      rootSpan: AstExtended.parse(code ?? '0', IdMap.Mock()),
+      pattern,
+      rootSpan: Ast.parse(code ?? '0'),
       position: Vec2.Zero,
       vis: undefined,
     }
-    const bidingId = node.pattern.astId
+    const bindingId = pattern.astId
     this.nodeIdToNode.set(id, node)
-    this.bindings.bindings.set(bidingId, { identifier: binding, usages: new Set() })
+    this.bindings.bindings.set(bindingId, { identifier: binding, usages: new Set() })
+    return node
   }
 }
 
 export interface Node {
   outerExprId: ExprId
-  pattern: AstExtended<Ast.Tree> | undefined
-  rootSpan: AstExtended<Ast.Tree>
+  pattern: Ast.Ast | undefined
+  rootSpan: Ast.Ast
   position: Vec2
   vis: Opt<VisualizationMetadata>
 }
 
-function nodeFromAst(ast: AstExtended<Ast.Tree>): Node {
-  if (ast.isTree(Ast.Tree.Type.Assignment)) {
-    return {
-      outerExprId: ast.astId,
-      pattern: ast.map((t) => t.pattern),
-      rootSpan: ast.map((t) => t.expr),
-      position: Vec2.Zero,
-      vis: undefined,
-    }
-  } else {
-    return {
-      outerExprId: ast.astId,
-      pattern: undefined,
-      rootSpan: ast,
-      position: Vec2.Zero,
-      vis: undefined,
-    }
-  }
-}
-
-function* getFunctionNodeExpressions(func: Ast.Tree.Function): Generator<Ast.Tree> {
-  if (func.body) {
-    if (func.body.type === Ast.Tree.Type.BodyBlock) {
-      for (const stmt of func.body.statements) {
-        if (stmt.expression && stmt.expression.type !== Ast.Tree.Type.Function) {
-          yield stmt.expression
-        }
-      }
-    } else {
-      yield func.body
-    }
+/** This should only be used for supplying as initial props when testing.
+ * Please do {@link GraphDb.mockNode} with a `useGraphStore().db` after mount. */
+export function mockNode(exprId?: ExprId): Node {
+  return {
+    outerExprId: exprId ?? (random.uuidv4() as ExprId),
+    pattern: undefined,
+    rootSpan: Ast.parse('0'),
+    position: Vec2.Zero,
+    vis: undefined,
   }
 }
 

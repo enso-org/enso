@@ -1,0 +1,35 @@
+from Standard.Base import all
+
+from Standard.Test import Bench
+
+import project.Sieve.Sieve_Original
+import project.Sieve.Sieve_Ascribed
+import project.Sieve.Sieve_Without_Types
+import project.Sieve.Sieve_Java_Script
+
+# execute as
+# sbt:enso> runEngineDistribution --run test/Benchmarks Sieve
+# or as
+# sbt:enso> std-benchmarks/benchOnly Sieve
+
+options = Bench.options . set_warmup (Bench.phase_conf 3 5) . set_measure (Bench.phase_conf 3 3)
+
+collect_benches = Bench.build builder->
+    assert_prime nth =
+        if nth==1299709 . not then Panic.throw "Wrong prime number: "+nth.to_text
+
+    builder.group "Sieve" options group_builder->
+        group_builder.specify "Original" <|
+            assert_prime <| Sieve_Original.compute_nth_prime 100000
+        group_builder.specify "Ascribed" <|
+            assert_prime <| Sieve_Ascribed.compute_nth_prime 100000
+        group_builder.specify "Without_Types" <|
+            assert_prime <| Sieve_Without_Types.compute_nth_prime 100000
+        group_builder.specify "Java_Script_File" <|
+            assert_prime <| Sieve_Java_Script.compute_nth_prime_from_js_file 100000
+        group_builder.specify "Java_Script_All" <|
+            assert_prime <| Sieve_Java_Script.all_in_java_script 100000
+        group_builder.specify "Java_Script_Natural" <|
+            assert_prime <| Sieve_Java_Script.compute_nth_prime_natural_in_js 100000
+        group_builder.specify "Java_Script_Filter" <|
+            assert_prime <| Sieve_Java_Script.compute_nth_prime_filter_in_js 100000

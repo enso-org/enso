@@ -1,32 +1,30 @@
 package org.enso.interpreter.test;
 
+import static org.enso.interpreter.test.SignatureTest.assertTypeError;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+
 import java.io.OutputStream;
 import java.net.URI;
-
+import java.time.format.DateTimeFormatter;
 import org.enso.polyglot.MethodNames;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.junit.AfterClass;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import java.time.format.DateTimeFormatter;
-
-import static org.enso.interpreter.test.SignatureTest.assertTypeError;
 
 public class SignaturePolyglotTest extends TestBase {
   private static Context ctx;
 
   @BeforeClass
   public static void prepareCtx() {
-    ctx = defaultContextBuilder()
-        .out(OutputStream.nullOutputStream())
-        .err(OutputStream.nullOutputStream())
-        .build();
+    ctx =
+        defaultContextBuilder()
+            .out(OutputStream.nullOutputStream())
+            .err(OutputStream.nullOutputStream())
+            .build();
   }
 
   @AfterClass
@@ -37,20 +35,25 @@ public class SignaturePolyglotTest extends TestBase {
   @Test
   public void polyglotDataTimeFormatter() throws Exception {
     final URI uri = new URI("memory://formatter.enso");
-    final Source src = Source.newBuilder("enso", """
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
     from Standard.Base import all
 
     polyglot java import java.time.format.DateTimeFormatter
 
     fn (x : DateTimeFormatter) = x.to_text
-    """,uri.getAuthority())
+    """,
+                uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
     var module = ctx.eval(src);
     var fn = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "fn");
 
-    assertStartsWith("ParseCaseSensitive(false)(Value", fn.execute(DateTimeFormatter.ISO_DATE).asString());
+    assertStartsWith(
+        "ParseCaseSensitive(false)(Value", fn.execute(DateTimeFormatter.ISO_DATE).asString());
 
     try {
       var ret = fn.execute("Hi");
@@ -70,13 +73,17 @@ public class SignaturePolyglotTest extends TestBase {
   @Test
   public void polyglotDataTimeFormatterAndText() throws Exception {
     final URI uri = new URI("memory://formatter.enso");
-    final Source src = Source.newBuilder("enso", """
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
     from Standard.Base import all
 
     polyglot java import java.time.format.DateTimeFormatter
 
     fn x:(DateTimeFormatter | Text) = x.to_text
-    """,uri.getAuthority())
+    """,
+                uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -86,7 +93,8 @@ public class SignaturePolyglotTest extends TestBase {
     var ret = fn.execute("Hi");
     assertEquals("Hi", ret.asString());
 
-    assertStartsWith("ParseCaseSensitive(false)(Value", fn.execute(DateTimeFormatter.ISO_DATE).asString());
+    assertStartsWith(
+        "ParseCaseSensitive(false)(Value", fn.execute(DateTimeFormatter.ISO_DATE).asString());
   }
 
   private static void assertStartsWith(String exp, String real) {
@@ -94,6 +102,4 @@ public class SignaturePolyglotTest extends TestBase {
       fail("Expecting something that starts with '" + exp + "', but got '" + real + "'");
     }
   }
-
-
 }

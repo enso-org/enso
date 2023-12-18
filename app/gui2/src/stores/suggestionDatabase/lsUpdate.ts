@@ -11,9 +11,10 @@ import {
   type Typename,
 } from '@/stores/suggestionDatabase/entry'
 import { assert, assertNever } from '@/util/assert'
+import { type Opt } from '@/util/data/opt'
+import { Err, Ok, withContext, type Result } from '@/util/data/result'
 import type { Doc } from '@/util/docParser'
 import type { Icon } from '@/util/iconName'
-import { type Opt } from '@/util/opt'
 import {
   normalizeQualifiedName,
   qnJoin,
@@ -23,7 +24,6 @@ import {
   type Identifier,
   type QualifiedName,
 } from '@/util/qualifiedName'
-import { Err, Ok, withContext, type Result } from '@/util/result'
 import * as lsTypes from 'shared/languageServerTypes/suggestions'
 
 interface UnfinishedEntry {
@@ -42,6 +42,7 @@ interface UnfinishedEntry {
   scope?: SuggestionEntryScope
   iconName?: Icon
   groupIndex?: number | undefined
+  annotations?: string[]
 }
 
 function setLsName(
@@ -130,7 +131,10 @@ export function entryFromLs(
     () => {
       switch (lsEntry.type) {
         case 'function': {
-          const entry = { kind: SuggestionKind.Function }
+          const entry = {
+            kind: SuggestionKind.Function,
+            annotations: [],
+          }
           if (!setLsName(entry, lsEntry.name)) return Err('Invalid name')
           if (!setLsModule(entry, lsEntry.module)) return Err('Invalid module name')
           setLsReturnType(entry, lsEntry.returnType)
@@ -147,6 +151,7 @@ export function entryFromLs(
             name: 'MODULE' as Identifier,
             arguments: [],
             returnType: '',
+            annotations: [],
           }
           if (!setLsModule(entry, lsEntry.module)) return Err('Invalid module name')
           if (lsEntry.reexport != null && !setLsReexported(entry, lsEntry.reexport))
@@ -156,7 +161,11 @@ export function entryFromLs(
           return Ok(entry)
         }
         case 'type': {
-          const entry = { kind: SuggestionKind.Type, returnType: '' }
+          const entry = {
+            kind: SuggestionKind.Type,
+            returnType: '',
+            annotations: [],
+          }
           if (!setLsName(entry, lsEntry.name)) return Err('Invalid name')
           if (!setLsModule(entry, lsEntry.module)) return Err('Invalid module name')
           if (lsEntry.reexport != null && !setLsReexported(entry, lsEntry.reexport))
@@ -178,6 +187,7 @@ export function entryFromLs(
           setLsReturnType(entry, lsEntry.returnType)
           return Ok({
             arguments: lsEntry.arguments,
+            annotations: lsEntry.annotations,
             ...entry,
           })
         }
@@ -192,11 +202,16 @@ export function entryFromLs(
           setLsReturnType(entry, lsEntry.returnType)
           return Ok({
             arguments: lsEntry.arguments,
+            annotations: lsEntry.annotations,
             ...entry,
           })
         }
         case 'local': {
-          const entry = { kind: SuggestionKind.Local, arguments: [] }
+          const entry = {
+            kind: SuggestionKind.Local,
+            arguments: [],
+            annotations: [],
+          }
           if (!setLsName(entry, lsEntry.name)) return Err('Invalid name')
           if (!setLsModule(entry, lsEntry.module)) return Err('Invalid module name')
           setLsReturnType(entry, lsEntry.returnType)

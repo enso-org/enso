@@ -1,16 +1,16 @@
 <script setup lang="ts">
+import type { Diagnostic, Highlighter } from '@/components/CodeEditor/codemirror'
+import { usePointer } from '@/composables/events'
 import { useGraphStore } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { useAutoBlur } from '@/util/autoBlur'
-import type { Diagnostic, Highlighter } from '@/util/codemirror'
-import { usePointer } from '@/util/events'
-import { chain } from '@/util/iterable'
+import { chain } from '@/util/data/iterable'
+import { unwrap } from '@/util/data/result'
+import { qnJoin, tryQualifiedName } from '@/util/qualifiedName'
 import { useLocalStorage } from '@vueuse/core'
 import { rangeEncloses, type ExprId } from 'shared/yjsModel'
-import { computed, onMounted, ref, watchEffect } from 'vue'
-import { qnJoin, tryQualifiedName } from '../util/qualifiedName'
-import { unwrap } from '../util/result'
+import { computed, onMounted, ref, watch, watchEffect } from 'vue'
 
 // Use dynamic imports to aid code splitting. The codemirror dependency is quite large.
 const {
@@ -27,9 +27,10 @@ const {
   tooltips,
   enso,
   linter,
+  forceLinting,
   lsDiagnosticsToCMDiagnostics,
   hoverTooltip,
-} = await import('@/util/codemirror')
+} = await import('@/components/CodeEditor/codemirror')
 
 const projectStore = useProjectStore()
 const graphStore = useGraphStore()
@@ -57,14 +58,18 @@ const expressionUpdatesDiagnostics = computed(() => {
     if (!update) continue
     const node = nodeMap.get(id)
     if (!node) continue
-    const [from, to] = node.rootSpan.span()
+    if (!node.rootSpan.astExtended) continue
+    const [from, to] = node.rootSpan.astExtended.span()
     switch (update.payload.type) {
       case 'Panic': {
         diagnostics.push({ from, to, message: update.payload.message, severity: 'error' })
         break
       }
       case 'DataflowError': {
-        diagnostics.push({ from, to, message: 'Unknown data flow error', severity: 'error' })
+        const error = projectStore.dataflowErrors.lookup(id)
+        if (error?.value?.message) {
+          diagnostics.push({ from, to, message: error.value.message, severity: 'error' })
+        }
         break
       }
     }
@@ -98,7 +103,10 @@ watchEffect(() => {
           const astSpan = ast.span()
           let foundNode: ExprId | undefined
           for (const [id, node] of graphStore.db.nodeIdToNode.entries()) {
-            if (rangeEncloses(node.rootSpan.span(), astSpan)) {
+            if (
+              node.rootSpan.astExtended &&
+              rangeEncloses(node.rootSpan.astExtended.span(), astSpan)
+            ) {
               foundNode = id
               break
             }
@@ -115,6 +123,14 @@ watchEffect(() => {
             dom
               .appendChild(document.createElement('div'))
               .appendChild(document.createTextNode(`Type: ${expressionInfo.typename ?? 'Unknown'}`))
+          }
+          if (expressionInfo?.profilingInfo[0] != null) {
+            const profile = expressionInfo.profilingInfo[0]
+            const executionTime = (profile.ExecutionTime.nanoTime / 1_000_000).toFixed(3)
+            const text = `Execution Time: ${executionTime}ms`
+            dom
+              .appendChild(document.createElement('div'))
+              .appendChild(document.createTextNode(text))
           }
 
           dom
@@ -145,6 +161,8 @@ watchEffect(() => {
     }),
   )
 })
+
+watch([executionContextDiagnostics, expressionUpdatesDiagnostics], () => forceLinting(editorView))
 
 onMounted(() => {
   editorView.focus()
@@ -183,6 +201,8 @@ const editorStyle = computed(() => {
     class="CodeEditor"
     :style="editorStyle"
     @keydown.enter.stop
+    @keydown.backspace.stop
+    @keydown.delete.stop
     @wheel.stop.passive
     @pointerdown.stop
     @contextmenu.stop
@@ -211,6 +231,7 @@ const editorStyle = computed(() => {
   max-height: calc(100% - 10px);
   backdrop-filter: var(--blur-app-bg);
   border-radius: 7px;
+  font-family: var(--font-mono);
 
   &.v-enter-active,
   &.v-leave-active {
@@ -226,6 +247,10 @@ const editorStyle = computed(() => {
   }
 }
 
+:deep(.ͼ1 .cm-scroller) {
+  font-family: var(--font-mono);
+}
+
 .resize-handle {
   position: absolute;
   top: -3px;
@@ -233,7 +258,7 @@ const editorStyle = computed(() => {
   width: 20px;
   height: 20px;
   padding: 5px;
-  /* cursor: nesw-resize; */
+  cursor: nesw-resize;
 
   svg {
     fill: black;

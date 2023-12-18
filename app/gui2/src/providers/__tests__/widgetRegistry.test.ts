@@ -1,9 +1,3 @@
-import { GraphDb } from '@/stores/graph/graphDatabase'
-import { AstExtended } from '@/util/ast'
-import { ApplicationKind, ArgumentPlaceholder } from '@/util/callTree'
-import { IdMap } from 'shared/yjsModel'
-import { describe, expect, test } from 'vitest'
-import { defineComponent } from 'vue'
 import {
   Score,
   WidgetRegistry,
@@ -11,7 +5,13 @@ import {
   type WidgetDefinition,
   type WidgetInput,
   type WidgetModule,
-} from '../widgetRegistry'
+} from '@/providers/widgetRegistry'
+import { DisplayMode, widgetConfigurationSchema } from '@/providers/widgetRegistry/configuration'
+import { GraphDb } from '@/stores/graph/graphDatabase'
+import { Ast } from '@/util/ast'
+import { ApplicationKind, ArgumentPlaceholder } from '@/util/callTree'
+import { describe, expect, test } from 'vitest'
+import { defineComponent } from 'vue'
 
 describe('WidgetRegistry', () => {
   function makeMockWidget<T extends WidgetInput>(
@@ -26,7 +26,7 @@ describe('WidgetRegistry', () => {
 
   const widgetA = makeMockWidget(
     'A',
-    defineWidget(AstExtended, {
+    defineWidget(Ast.Ast, {
       priority: 1,
     }),
   )
@@ -48,14 +48,14 @@ describe('WidgetRegistry', () => {
 
   const widgetD = makeMockWidget(
     'D',
-    defineWidget(AstExtended, {
+    defineWidget(Ast.Ast, {
       priority: 20,
-      score: (props) => (props.input.repr() === '_' ? Score.Perfect : Score.Mismatch),
+      score: (props) => (props.input.code() === '_' ? Score.Perfect : Score.Mismatch),
     }),
   )
 
-  const someAst = AstExtended.parse('foo', IdMap.Mock())
-  const blankAst = AstExtended.parse('_', IdMap.Mock())
+  const someAst = Ast.parse('foo')
+  const blankAst = Ast.parse('_')
   const somePlaceholder = new ArgumentPlaceholder(
     0,
     {
@@ -115,3 +115,72 @@ describe('WidgetRegistry', () => {
     expect(selectedNext).toStrictEqual(widgetC)
   })
 })
+
+/* eslint-disable camelcase */
+describe('Engine-provided configuration', () => {
+  const singleChoiceData = [
+    'range',
+    {
+      type: 'Widget',
+      constructor: 'Single_Choice',
+      values: [
+        {
+          type: 'Choice',
+          constructor: 'Option',
+          label: 'First',
+          value: '(Index_Sub_Range.First 1)',
+          parameters: [],
+          icon: '',
+        },
+      ],
+      label: null,
+      display: {
+        type: 'Display',
+        constructor: 'Always',
+      },
+      allow_custom: true,
+    },
+  ]
+  const vectorEditorData = [
+    'list',
+    {
+      type: 'Widget',
+      constructor: 'Vector_Editor',
+      item_editor: singleChoiceData[1],
+      item_default: 'Text',
+      display: {
+        type: 'Display',
+        constructor: 'Always',
+      },
+    },
+  ]
+
+  const singleChoiceExpected = [
+    'range',
+    {
+      kind: 'Single_Choice',
+      values: [{ label: 'First', value: '(Index_Sub_Range.First 1)', parameters: [] }],
+      label: null,
+      display: DisplayMode.Always,
+    },
+  ]
+
+  const vectorEditorExpected = [
+    'list',
+    {
+      kind: 'Vector_Editor',
+      item_editor: singleChoiceExpected[1],
+      item_default: 'Text',
+    },
+  ]
+
+  test.each([
+    { input: [['self', null]], expected: [['self', null]] },
+    { input: [singleChoiceData], expected: [singleChoiceExpected] },
+    { input: [vectorEditorData], expected: [vectorEditorExpected] },
+  ])('Testing engine configuration', ({ input, expected }) => {
+    const res = widgetConfigurationSchema.safeParse(input)
+    expect(res).toMatchObject({ success: true, data: expected })
+  })
+})
+/* eslint-enable camelcase */

@@ -64,13 +64,15 @@ public abstract class EvalNode extends BaseNode {
   RootCallTarget parseExpression(LocalScope scope, ModuleScope moduleScope, String expression) {
     EnsoContext context = EnsoContext.get(this);
     LocalScope localScope = scope.createChild();
+    var compiler = context.getCompiler();
     InlineContext inlineContext =
         InlineContext.fromJava(
             localScope,
             moduleScope.getModule().asCompilerModule(),
             scala.Option.apply(getTailStatus() != TailStatus.NOT_TAIL),
-            context.getCompilerConfig());
-    var compiler = context.getCompiler();
+            context.getCompilerConfig(),
+            scala.Option.apply(compiler.packageRepository()));
+
     var tuppleOption = compiler.runInline(expression, inlineContext);
     if (tuppleOption.isEmpty()) {
       throw new RuntimeException("Invalid code passed to `eval`: " + expression);
@@ -112,7 +114,8 @@ public abstract class EvalNode extends BaseNode {
       @Cached("toJavaStringNode.execute(expression)") String expressionStr,
       @Cached("callerInfo") CallerInfo cachedCallerInfo,
       @Cached(
-              "parseExpression(callerInfo.getLocalScope(), callerInfo.getModuleScope(), expressionStr)")
+              "parseExpression(callerInfo.getLocalScope(), callerInfo.getModuleScope(),"
+                  + " expressionStr)")
           RootCallTarget cachedCallTarget,
       @Shared("thunkExecutorNode") @Cached("build()") ThunkExecutorNode thunkExecutorNode) {
     Function thunk = Function.thunk(cachedCallTarget, callerInfo.getFrame());

@@ -50,6 +50,7 @@ export default function ChangePasswordModal() {
                     autoFocus
                     required
                     validate
+                    allowShowingPassword
                     id="old_password"
                     type="password"
                     name="old_password"
@@ -57,7 +58,6 @@ export default function ChangePasswordModal() {
                     label="Old password"
                     icon={LockIcon}
                     placeholder="Enter your old password"
-                    pattern={validation.PASSWORD_PATTERN}
                     error={validation.PASSWORD_ERROR}
                     value={oldPassword}
                     setValue={setOldPassword}
@@ -66,6 +66,7 @@ export default function ChangePasswordModal() {
                 <Input
                     required
                     validate
+                    allowShowingPassword
                     type="password"
                     autoComplete="new-password"
                     label="New password"
@@ -80,6 +81,7 @@ export default function ChangePasswordModal() {
                 <Input
                     required
                     validate
+                    allowShowingPassword
                     type="password"
                     autoComplete="new-password"
                     label="Confirm new password"

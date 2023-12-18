@@ -16,28 +16,32 @@ import Modal from './modal'
 
 /** Props for a {@link NewLabelModal}. */
 export interface NewLabelModalProps {
-    labelNames: Set<string>
+    labels: backend.Label[]
     eventTarget: HTMLElement
     doCreate: (value: string, color: backend.LChColor) => void
 }
 
 /** A modal for creating a new label. */
 export default function NewLabelModal(props: NewLabelModalProps) {
-    const { labelNames, eventTarget, doCreate } = props
+    const { labels, eventTarget, doCreate } = props
     const logger = loggerProvider.useLogger()
     const { unsetModal } = modalProvider.useSetModal()
     const position = React.useMemo(() => eventTarget.getBoundingClientRect(), [eventTarget])
 
+    const labelNames = React.useMemo(
+        () => new Set<string>(labels.map(label => label.value)),
+        [labels]
+    )
+    const leastUsedColor = React.useMemo(() => backend.leastUsedColor(labels), [labels])
+
     const [value, setName] = React.useState('')
     const [color, setColor] = React.useState<backend.LChColor | null>(null)
-    const canSubmit = Boolean(value && !labelNames.has(value) && color)
+    const canSubmit = Boolean(value && !labelNames.has(value))
 
     const onSubmit = () => {
         unsetModal()
         try {
-            if (color != null) {
-                doCreate(value, color)
-            }
+            doCreate(value, color ?? leastUsedColor)
         } catch (error) {
             const message = errorModule.getMessageOrToString(error)
             toastify.toast.error(message)
@@ -75,8 +79,9 @@ export default function NewLabelModal(props: NewLabelModalProps) {
                     <div className="w-12 h-6 py-1">Name</div>
                     <input
                         autoFocus
+                        size={1}
                         placeholder="Enter the name of the label"
-                        className={`grow bg-transparent border border-black-a10 rounded-full leading-170 h-6 px-4 py-px ${
+                        className={`grow bg-transparent border border-black/10 rounded-full leading-170 h-6 px-4 py-px ${
                             // eslint-disable-next-line @typescript-eslint/no-magic-numbers
                             color != null && color.lightness <= 50
                                 ? 'text-tag-text placeholder-frame-selected'

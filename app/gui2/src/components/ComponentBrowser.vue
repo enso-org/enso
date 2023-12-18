@@ -2,73 +2,58 @@
 import { componentBrowserBindings } from '@/bindings'
 import { makeComponentList, type Component } from '@/components/ComponentBrowser/component'
 import { Filtering } from '@/components/ComponentBrowser/filtering'
+import { useComponentBrowserInput, type Usage } from '@/components/ComponentBrowser/input'
 import { default as DocumentationPanel } from '@/components/DocumentationPanel.vue'
+import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
+import { useApproach } from '@/composables/animation'
+import { useEvent, useResizeObserver } from '@/composables/events'
+import type { useNavigator } from '@/composables/navigator'
 import { useGraphStore } from '@/stores/graph'
 import type { RequiredImport } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { groupColorStyle, useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
-import { useApproach } from '@/util/animation'
-import { tryGetIndex } from '@/util/array'
-import { useEvent, useResizeObserver } from '@/util/events'
-import type { useNavigator } from '@/util/navigator'
-import type { Opt } from '@/util/opt'
-import { allRanges } from '@/util/range'
-import { Vec2 } from '@/util/vec2'
+import type { VisualizationDataSource } from '@/stores/visualization'
+import { tryGetIndex } from '@/util/data/array'
+import type { Opt } from '@/util/data/opt'
+import { allRanges } from '@/util/data/range'
+import { Vec2 } from '@/util/data/vec2'
 import type { SuggestionId } from 'shared/languageServerTypes/suggestions'
-import type { ContentRange, ExprId } from 'shared/yjsModel.ts'
-import { computed, nextTick, onMounted, ref, watch, type Ref } from 'vue'
-import { useComponentBrowserInput } from './ComponentBrowser/input'
+import { computed, nextTick, onMounted, ref, watch, type ComputedRef, type Ref } from 'vue'
 
 const ITEM_SIZE = 32
 const TOP_BAR_HEIGHT = 32
+// Difference in position between the component browser and a node for the input of the component browser to
+// be placed at the same position as the node.
+const COMPONENT_BROWSER_TO_NODE_OFFSET = new Vec2(-4, -4)
 
 const projectStore = useProjectStore()
 const suggestionDbStore = useSuggestionDbStore()
 const graphStore = useGraphStore()
 
 const props = defineProps<{
-  position: Vec2
+  nodePosition: Vec2
   navigator: ReturnType<typeof useNavigator>
-  initialContent: string
-  initialCaretPosition: ContentRange
-  sourcePort: Opt<ExprId>
+  usage: Usage
 }>()
 
 const emit = defineEmits<{
   accepted: [searcherExpression: string, requiredImports: RequiredImport[]]
-  closed: [searcherExpression: string]
+  closed: [searcherExpression: string, requiredImports: RequiredImport[]]
   canceled: []
 }>()
 
-function getInitialContent(): string {
-  if (props.sourcePort == null) return props.initialContent
-  const sourceNodeName = graphStore.db.getOutputPortIdentifier(props.sourcePort)
-  const sourceNodeNameWithDot = sourceNodeName ? sourceNodeName + '.' : ''
-  return sourceNodeNameWithDot + props.initialContent
-}
-
-function getInitialCaret(): ContentRange {
-  if (props.sourcePort == null) return props.initialCaretPosition
-  const sourceNodeName = graphStore.db.getOutputPortIdentifier(props.sourcePort)
-  const sourceNodeNameWithDot = sourceNodeName ? sourceNodeName + '.' : ''
-  return [
-    props.initialCaretPosition[0] + sourceNodeNameWithDot.length,
-    props.initialCaretPosition[1] + sourceNodeNameWithDot.length,
-  ]
-}
-
 onMounted(() => {
   nextTick(() => {
-    input.code.value = getInitialContent()
-    const caret = getInitialCaret()
+    input.reset(props.usage)
     if (inputField.value != null) {
-      inputField.value.selectionStart = caret[0]
-      inputField.value.selectionEnd = caret[1]
       inputField.value.focus({ preventScroll: true })
-      selectLastAfterRefresh()
+    } else {
+      console.warn(
+        'Component Browser input element was not mounted. This is not expected and may break the Component Browser',
+      )
     }
   })
 })
@@ -78,9 +63,10 @@ onMounted(() => {
 const transform = computed(() => {
   const nav = props.navigator
   const translate = nav.translate
-  const position = translate.add(props.position).scale(nav.scale)
-  const x = Math.round(position.x)
-  const y = Math.round(position.y)
+  const position = props.nodePosition.add(COMPONENT_BROWSER_TO_NODE_OFFSET)
+  const screenPosition = translate.add(position).scale(nav.scale)
+  const x = Math.round(screenPosition.x)
+  const y = Math.round(screenPosition.y)
 
   return `translate(${x}px, ${y}px) translateY(-100%)`
 })
@@ -103,7 +89,15 @@ const currentFiltering = computed(() => {
   )
 })
 
-watch(currentFiltering, selectLastAfterRefresh)
+watch(currentFiltering, () => {
+  selected.value = input.autoSelectFirstComponent.value ? 0 : null
+  nextTick(() => {
+    scrollToBottom()
+    animatedScrollPosition.skip()
+    animatedHighlightPosition.skip()
+    animatedHighlightHeight.skip()
+  })
+})
 
 function readInputFieldSelection() {
   if (
@@ -143,14 +137,48 @@ function handleDefocus(e: FocusEvent) {
     cbRoot.value != null &&
     e.relatedTarget instanceof Node &&
     cbRoot.value.contains(e.relatedTarget)
-  if (stillInside) {
-    if (inputField.value != null) {
-      inputField.value.focus({ preventScroll: true })
-    }
-  } else {
-    emit('closed', input.code.value)
+  // We want to focus input even when relatedTarget == null, because sometimes defocus event is
+  // caused by focused item being removed, for example an entry in visualization chooser.
+  if (stillInside || e.relatedTarget == null) {
+    inputField.value?.focus({ preventScroll: true })
   }
 }
+
+useEvent(
+  window,
+  'pointerdown',
+  (event) => {
+    if (event.button !== 0) return
+    if (!(event.target instanceof Element)) return
+    if (!cbRoot.value?.contains(event.target)) {
+      emit('closed', input.code.value, input.importsToAdd())
+    }
+  },
+  { capture: true },
+)
+
+// === Preview ===
+
+const inputElement = ref<HTMLElement>()
+const inputSize = useResizeObserver(inputElement, false)
+
+const previewedExpression = computed(() => {
+  if (selectedSuggestion.value == null) return input.code.value
+  else return input.inputAfterApplyingSuggestion(selectedSuggestion.value).newCode
+})
+
+const previewDataSource: ComputedRef<VisualizationDataSource | undefined> = computed(() => {
+  if (!previewedExpression.value.trim()) return
+  if (!graphStore.methodAst) return
+  const body = graphStore.methodAst.body
+  if (!body) return
+
+  return {
+    type: 'expression',
+    expression: previewedExpression.value,
+    contextId: body.astId,
+  }
+})
 
 // === Components List and Positions ===
 
@@ -225,21 +253,6 @@ const highlightClipPath = computed(() => {
   return `inset(${top}px 0px ${bottom}px 0px round 16px)`
 })
 
-/**
- * Select the last element after updating component list.
- *
- * As the list changes the scroller's content, we need to wait a frame so the scroller
- * recalculates its height and setting scrollTop will work properly.
- */
-function selectLastAfterRefresh() {
-  selected.value = 0
-  nextTick(() => {
-    scrollToSelected()
-    animatedScrollPosition.skip()
-    animatedHighlightPosition.skip()
-  })
-}
-
 // === Scrolling ===
 
 const scroller = ref<HTMLElement>()
@@ -257,6 +270,10 @@ const listContentHeightPx = computed(() => `${listContentHeight.value}px`)
 function scrollToSelected() {
   if (selectedPosition.value == null) return
   scrollPosition.value = Math.max(selectedPosition.value - scrollerSize.value.y + ITEM_SIZE, 0)
+}
+
+function scrollToBottom() {
+  scrollPosition.value = listContentHeight.value - scrollerSize.value.y
 }
 
 function updateScroll() {
@@ -347,6 +364,9 @@ const handler = componentBrowserBindings.handler({
     @focusout="handleDefocus"
     @keydown="handler"
     @pointerdown.stop
+    @keydown.enter.stop
+    @keydown.backspace.stop
+    @keydown.delete.stop
   >
     <div class="panels">
       <div class="panel components">
@@ -437,14 +457,24 @@ const handler = componentBrowserBindings.handler({
         <DocumentationPanel v-model:selectedEntry="docEntry" />
       </div>
     </div>
-    <div class="CBInput">
-      <input
-        ref="inputField"
-        v-model="input.code.value"
-        name="cb-input"
-        autocomplete="off"
-        @keyup="readInputFieldSelection"
+    <div class="bottom-panel">
+      <GraphVisualization
+        class="visualization-preview"
+        :nodeSize="inputSize"
+        :nodePosition="nodePosition"
+        :scale="1"
+        :isCircularMenuVisible="false"
+        :dataSource="previewDataSource"
       />
+      <div ref="inputElement" class="CBInput">
+        <input
+          ref="inputField"
+          v-model="input.code.value"
+          name="cb-input"
+          autocomplete="off"
+          @input="readInputFieldSelection"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -452,6 +482,7 @@ const handler = componentBrowserBindings.handler({
 <style scoped>
 .ComponentBrowser {
   --list-height: 0px;
+  --radius-default: 20px;
   width: fit-content;
   color: rgba(0, 0, 0, 0.6);
   font-size: 11.5px;
@@ -469,7 +500,7 @@ const handler = componentBrowserBindings.handler({
 .panel {
   height: 380px;
   border: none;
-  border-radius: 20px;
+  border-radius: var(--radius-default);
   background-color: #eaeaea;
 }
 
@@ -488,17 +519,17 @@ const handler = componentBrowserBindings.handler({
 
 .docs {
   width: 406px;
-  clip-path: inset(0 0 0 0 round 20px);
+  clip-path: inset(0 0 0 0 round var(--radius-default));
   transition: clip-path 0.2s;
 }
 .docs.hidden {
-  clip-path: inset(0 100% 0 0 round 20px);
+  clip-path: inset(0 100% 0 0 round var(--radius-default));
 }
 
 .list {
-  top: 20px;
+  top: var(--radius-default);
   width: 100%;
-  height: calc(100% - 20px);
+  height: calc(100% - var(--radius-default));
   overflow-x: hidden;
   overflow-y: auto;
   position: relative;
@@ -521,7 +552,9 @@ const handler = componentBrowserBindings.handler({
   display: flex;
   position: absolute;
   line-height: 1;
+  font-family: var(--font-code);
 }
+
 .selected {
   color: white;
   & svg {
@@ -538,7 +571,7 @@ const handler = componentBrowserBindings.handler({
   height: 40px;
   padding: 4px;
   background-color: #eaeaea;
-  border-radius: 20px;
+  border-radius: var(--radius-default);
   position: absolute;
   top: 0px;
   z-index: 1;
@@ -570,13 +603,18 @@ const handler = componentBrowserBindings.handler({
   }
 }
 
+.bottom-panel {
+  position: relative;
+}
 .CBInput {
-  border-radius: 20px;
+  border-radius: var(--radius-default);
   background-color: #eaeaea;
+  width: 100%;
   height: 40px;
   padding: 12px;
   display: flex;
   flex-direction: row;
+  position: absolute;
 
   & input {
     border: none;
@@ -586,5 +624,9 @@ const handler = componentBrowserBindings.handler({
     background: none;
     font: inherit;
   }
+}
+
+.visualization-preview {
+  position: absolute;
 }
 </style>

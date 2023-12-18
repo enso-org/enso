@@ -12,18 +12,12 @@ import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
 
-/**
- * A strategy for converting storages to a specific target type.
- */
+/** A strategy for converting storages to a specific target type. */
 public interface StorageConverter<T> {
-  /**
-   * Convert a given storage to the target type of this converter, reporting any problems.
-   */
+  /** Convert a given storage to the target type of this converter, reporting any problems. */
   Storage<T> cast(Storage<?> storage, CastProblemAggregator problemAggregator);
 
-  /**
-   * Construct a StorageConverter for the given target type.
-   */
+  /** Construct a StorageConverter for the given target type. */
   static StorageConverter<?> fromStorageType(StorageType storageType) {
     return switch (storageType) {
       case AnyObjectType anyObjectType -> new ToMixedStorageConverter();

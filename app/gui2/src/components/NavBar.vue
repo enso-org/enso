@@ -14,11 +14,19 @@ const emit = defineEmits<{ back: []; forward: []; breadcrumbClick: [index: numbe
         name="arrow_left"
         draggable="false"
         class="icon button inactive"
-        @click="emit('back')"
+        @pointerdown="emit('back')"
       />
-      <SvgIcon name="arrow_right" draggable="false" class="icon button" @click="emit('forward')" />
+      <SvgIcon
+        name="arrow_right"
+        draggable="false"
+        class="icon button"
+        @pointerdown="emit('forward')"
+      />
     </div>
-    <NavBreadcrumbs :breadcrumbs="props.breadcrumbs" @click="emit('breadcrumbClick', $event)" />
+    <NavBreadcrumbs
+      :breadcrumbs="props.breadcrumbs"
+      @pointerdown="emit('breadcrumbClick', $event)"
+    />
   </div>
 </template>
 

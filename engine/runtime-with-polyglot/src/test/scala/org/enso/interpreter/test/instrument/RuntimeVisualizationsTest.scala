@@ -1,10 +1,8 @@
 package org.enso.interpreter.test.instrument
 
-import org.apache.commons.io.FileUtils
-import org.enso.distribution.locking.ThreadSafeFileLockManager
 import org.enso.interpreter.runtime.`type`.ConstantsGen
 import org.enso.interpreter.test.Metadata
-import org.enso.pkg.{Package, PackageManager, QualifiedName}
+import org.enso.pkg.QualifiedName
 import org.enso.polyglot._
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.text.editing.model
@@ -16,7 +14,7 @@ import org.scalatest.matchers.should.Matchers
 
 import java.io.{ByteArrayOutputStream, File}
 import java.nio.charset.StandardCharsets
-import java.nio.file.{Files, Path, Paths}
+import java.nio.file.{Files, Paths}
 import java.util.UUID
 import java.util.logging.Level
 
@@ -30,17 +28,11 @@ class RuntimeVisualizationsTest
 
   var context: TestContext = _
 
-  class TestContext(packageName: String) extends InstrumentTestContext {
-    val tmpDir: Path = Files.createTempDirectory("enso-test-packages")
-    sys.addShutdownHook(FileUtils.deleteQuietly(tmpDir.toFile))
-    val lockManager = new ThreadSafeFileLockManager(tmpDir.resolve("locks"))
-    val runtimeServerEmulator =
-      new RuntimeServerEmulator(messageQueue, lockManager)
+  class TestContext(packageName: String)
+      extends InstrumentTestContext(packageName) {
 
-    val pkg: Package[File] =
-      PackageManager.Default.create(tmpDir.toFile, packageName, "Enso_Test")
     val out: ByteArrayOutputStream = new ByteArrayOutputStream()
-    val executionContext = new PolyglotContext(
+    val context =
       Context
         .newBuilder()
         .allowExperimentalOptions(true)
@@ -66,8 +58,6 @@ class RuntimeVisualizationsTest
         .out(out)
         .serverTransport(runtimeServerEmulator.makeServerTransport)
         .build()
-    )
-    executionContext.context.initialize(LanguageInfo.ID)
 
     def writeMain(contents: String): File =
       Files.write(pkg.mainFile.toPath, contents.getBytes).toFile
@@ -313,7 +303,16 @@ class RuntimeVisualizationsTest
 
   override protected def beforeEach(): Unit = {
     context = new TestContext("Test")
+    context.init()
     val Some(Api.Response(_, Api.InitializedNotification())) = context.receive
+  }
+
+  override protected def afterEach(): Unit = {
+    if (context != null) {
+      context.close()
+      context.out.reset()
+      context = null
+    }
   }
 
   it should "emit visualization update when expression is computed" in {
@@ -2267,7 +2266,7 @@ class RuntimeVisualizationsTest
             "throw"
           )
         ),
-        Api.ExpressionUpdate.Payload.Panic("42 (Integer)", Seq(idMain)),
+        Api.ExpressionUpdate.Payload.Panic("Integer", Seq(idMain)),
         Some("Standard.Base.Panic.Panic")
       ),
       context.executionComplete(contextId)
@@ -2305,7 +2304,7 @@ class RuntimeVisualizationsTest
             "throw"
           )
         ),
-        Api.ExpressionUpdate.Payload.Panic("42 (Integer)", Seq(idMain)),
+        Api.ExpressionUpdate.Payload.Panic("Integer", Seq(idMain)),
         builtin = false
       ),
       Api.Response(
@@ -3881,4 +3880,184 @@ class RuntimeVisualizationsTest
     }
     new String(data) shouldEqual "85"
   }
+
+  it should "execute default visualization preprocessor" in {
+    val contextId       = UUID.randomUUID()
+    val requestId       = UUID.randomUUID()
+    val visualizationId = UUID.randomUUID()
+    val moduleName      = "Enso_Test.Test.Main"
+    val metadata        = new Metadata
+
+    val idMain = metadata.addItem(60, 6)
+
+    val code =
+      """import Standard.Visualization.Preprocessor
+        |
+        |main =
+        |    fn = x -> x
+        |    fn
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(moduleName, moduleName, "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+    context.receiveNIgnorePendingExpressionUpdates(
+      3
+    ) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(
+        contextId,
+        idMain,
+        ConstantsGen.FUNCTION
+      ),
+      context.executionComplete(contextId)
+    )
+
+    // execute expression
+    context.send(
+      Api.Request(
+        requestId,
+        Api.ExecuteExpression(
+          contextId,
+          visualizationId,
+          idMain,
+          "Preprocessor.default_preprocessor 85"
+        )
+      )
+    )
+    val executeExpressionResponses =
+      context.receiveNIgnoreExpressionUpdates(3)
+    executeExpressionResponses should contain allOf (
+      Api.Response(requestId, Api.VisualizationAttached()),
+      context.executionComplete(contextId)
+    )
+    val Some(data) = executeExpressionResponses.collectFirst {
+      case Api.Response(
+            None,
+            Api.VisualizationUpdate(
+              Api.VisualizationContext(
+                `visualizationId`,
+                `contextId`,
+                `idMain`
+              ),
+              data
+            )
+          ) =>
+        data
+    }
+    new String(data) shouldEqual "85"
+  }
+
+  it should "execute default visualization preprocessor with a FQN" in {
+    val contextId       = UUID.randomUUID()
+    val requestId       = UUID.randomUUID()
+    val visualizationId = UUID.randomUUID()
+    val moduleName      = "Enso_Test.Test.Main"
+    val metadata        = new Metadata
+
+    val idMain = metadata.addItem(90, 6)
+
+    val code =
+      """import Standard.Visualization
+        |import Standard.Visualization.Preprocessor
+        |
+        |main =
+        |    fn = x -> x
+        |    fn
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(moduleName, moduleName, "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+    context.receiveNIgnorePendingExpressionUpdates(
+      3
+    ) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(
+        contextId,
+        idMain,
+        ConstantsGen.FUNCTION
+      ),
+      context.executionComplete(contextId)
+    )
+
+    // execute expression
+    context.send(
+      Api.Request(
+        requestId,
+        Api.ExecuteExpression(
+          contextId,
+          visualizationId,
+          idMain,
+          "Standard.Visualization.Preprocessor.default_preprocessor 85"
+        )
+      )
+    )
+    val executeExpressionResponses =
+      context.receiveNIgnoreExpressionUpdates(3)
+    executeExpressionResponses should contain allOf (
+      Api.Response(requestId, Api.VisualizationAttached()),
+      context.executionComplete(contextId)
+    )
+    val Some(data) = executeExpressionResponses.collectFirst {
+      case Api.Response(
+            None,
+            Api.VisualizationUpdate(
+              Api.VisualizationContext(
+                `visualizationId`,
+                `contextId`,
+                `idMain`
+              ),
+              data
+            )
+          ) =>
+        data
+    }
+    new String(data) shouldEqual "85"
+  }
+
 }

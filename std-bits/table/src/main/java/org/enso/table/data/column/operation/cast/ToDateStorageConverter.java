@@ -1,14 +1,13 @@
 package org.enso.table.data.column.operation.cast;
 
+import java.time.LocalDate;
+import java.time.ZonedDateTime;
 import org.enso.table.data.column.builder.DateBuilder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.datetime.DateStorage;
 import org.enso.table.data.column.storage.datetime.DateTimeStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.graalvm.polyglot.Context;
-
-import java.time.LocalDate;
-import java.time.ZonedDateTime;
 
 public class ToDateStorageConverter implements StorageConverter<LocalDate> {
   @Override
@@ -20,11 +19,13 @@ public class ToDateStorageConverter implements StorageConverter<LocalDate> {
     } else if (storage.getType() instanceof AnyObjectType) {
       return castFromMixed(storage, problemAggregator);
     } else {
-      throw new IllegalStateException("No known strategy for casting storage " + storage + " to Date.");
+      throw new IllegalStateException(
+          "No known strategy for casting storage " + storage + " to Date.");
     }
   }
 
-  public Storage<LocalDate> castFromMixed(Storage<?> mixedStorage, CastProblemAggregator problemAggregator) {
+  public Storage<LocalDate> castFromMixed(
+      Storage<?> mixedStorage, CastProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     DateBuilder builder = new DateBuilder(mixedStorage.size());
     for (int i = 0; i < mixedStorage.size(); i++) {
@@ -49,7 +50,8 @@ public class ToDateStorageConverter implements StorageConverter<LocalDate> {
     return dateTime.toLocalDate();
   }
 
-  private Storage<LocalDate> convertDateTimeStorage(DateTimeStorage dateTimeStorage, CastProblemAggregator problemAggregator) {
+  private Storage<LocalDate> convertDateTimeStorage(
+      DateTimeStorage dateTimeStorage, CastProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     DateBuilder builder = new DateBuilder(dateTimeStorage.size());
     for (int i = 0; i < dateTimeStorage.size(); i++) {

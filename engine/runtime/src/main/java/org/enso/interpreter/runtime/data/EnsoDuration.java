@@ -69,7 +69,8 @@ public final class EnsoDuration implements EnsoObject {
   @Builtin.Method(
       name = "between_builtin",
       description =
-          "Construct a new Duration that is between the given start date inclusive, and end date exclusive",
+          "Construct a new Duration that is between the given start date inclusive, and end date"
+              + " exclusive",
       autoRegister = false)
   @Builtin.Specialize
   @TruffleBoundary
@@ -118,7 +119,7 @@ public final class EnsoDuration implements EnsoObject {
         return LocalDateTime.of(date, time);
       }
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException(e);
+      throw EnsoContext.get(interop).raiseAssertionPanic(interop, null, e);
     }
   }
 

@@ -1,19 +1,21 @@
 <script setup lang="ts">
-import {
-  injectWidgetRegistry,
-  type WidgetConfiguration,
-  type WidgetInput,
-} from '@/providers/widgetRegistry'
+import { injectWidgetRegistry, type WidgetInput } from '@/providers/widgetRegistry'
+import type { WidgetConfiguration } from '@/providers/widgetRegistry/configuration'
 import { injectWidgetTree } from '@/providers/widgetTree'
 import {
   injectWidgetUsageInfo,
   provideWidgetUsageInfo,
   usageKeyForInput,
 } from '@/providers/widgetUsageInfo'
-import { AstExtended } from '@/util/ast'
-import { computed, proxyRefs, ref } from 'vue'
+import { Ast } from '@/util/ast'
+import type { Opt } from '@/util/data/opt'
+import { computed, proxyRefs } from 'vue'
 
-const props = defineProps<{ input: WidgetInput; nest?: boolean }>()
+const props = defineProps<{
+  input: WidgetInput
+  nest?: boolean
+  dynamicConfig?: Opt<WidgetConfiguration>
+}>()
 defineOptions({
   inheritAttrs: false,
 })
@@ -25,13 +27,11 @@ const usageKey = computed(() => usageKeyForInput(props.input))
 const sameInputAsParent = computed(() => parentUsageInfo?.usageKey === usageKey.value)
 
 const whitespace = computed(() =>
-  !sameInputAsParent.value && props.input instanceof AstExtended
-    ? ' '.repeat(props.input.whitespaceLength() ?? 0)
+  !sameInputAsParent.value && props.input instanceof Ast.Ast
+    ? ' '.repeat(props.input.astExtended?.whitespaceLength() ?? 0)
     : '',
 )
 
-// TODO: Fetch dynamic widget config from engine. [#8260]
-const dynamicConfig = ref<WidgetConfiguration>()
 const sameInputParentWidgets = computed(() =>
   sameInputAsParent.value ? parentUsageInfo?.previouslyUsed : undefined,
 )
@@ -41,7 +41,7 @@ const selectedWidget = computed(() => {
   return registry.select(
     {
       input: props.input,
-      config: dynamicConfig.value,
+      config: props.dynamicConfig ?? undefined,
       nesting: nesting.value,
     },
     sameInputParentWidgets.value,
@@ -65,8 +65,9 @@ provideWidgetUsageInfo(
   }),
 )
 const spanStart = computed(() => {
-  if (!(props.input instanceof AstExtended)) return undefined
-  return props.input.span()[0] - tree.nodeSpanStart - whitespace.value.length
+  if (!(props.input instanceof Ast.Ast)) return undefined
+  if (props.input.astExtended == null) return undefined
+  return props.input.astExtended.span()[0] - tree.nodeSpanStart - whitespace.value.length
 })
 </script>
 

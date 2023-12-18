@@ -20,6 +20,7 @@ import * as dateTime from './dateTime'
 import * as hooks from '../hooks'
 import * as modalProvider from '../providers/modal'
 import * as permissions from './permissions'
+import * as shortcuts from './shortcuts'
 import * as sorting from './sorting'
 import type * as tableColumn from './components/tableColumn'
 import * as uniqueString from '../uniqueString'
@@ -28,8 +29,11 @@ import type * as assetsTable from './components/assetsTable'
 import * as categorySwitcher from './components/categorySwitcher'
 import Label, * as labelModule from './components/label'
 import AssetNameColumn from './components/assetNameColumn'
+import ContextMenu from './components/contextMenu'
+import ContextMenus from './components/contextMenus'
 import ManageLabelsModal from './components/manageLabelsModal'
 import ManagePermissionsModal from './components/managePermissionsModal'
+import MenuEntry from './components/menuEntry'
 import PermissionDisplay from './components/permissionDisplay'
 import SvgMask from '../authentication/components/svgMask'
 
@@ -160,8 +164,19 @@ function LastModifiedColumn(props: AssetColumnProps) {
 // === SharedWithColumn ===
 // ========================
 
+/** The type of the `state` prop of a {@link SharedWithColumn}. */
+interface SharedWithColumnStateProp {
+    category: AssetColumnProps['state']['category']
+    dispatchAssetEvent: AssetColumnProps['state']['dispatchAssetEvent']
+}
+
+/** Props for a {@link SharedWithColumn}. */
+export interface SharedWithColumnProps extends Pick<AssetColumnProps, 'item' | 'setItem'> {
+    state: SharedWithColumnStateProp
+}
+
 /** A column listing the users with which this asset is shared. */
-function SharedWithColumn(props: AssetColumnProps) {
+export function SharedWithColumn(props: SharedWithColumnProps) {
     const {
         item: { item: asset },
         setItem,
@@ -243,11 +258,11 @@ function LabelsColumn(props: AssetColumnProps) {
     const {
         item: { item: asset },
         setItem,
-        state: { category, labels, deletedLabelNames, doCreateLabel },
+        state: { category, labels, setQuery, deletedLabelNames, doCreateLabel },
         rowState: { temporarilyAddedLabels, temporarilyRemovedLabels },
     } = props
     const session = authProvider.useNonPartialUserSession()
-    const { setModal } = modalProvider.useSetModal()
+    const { setModal, unsetModal } = modalProvider.useSetModal()
     const { backend } = backendProvider.useBackend()
     const toastAndLog = hooks.useToastAndLog()
     const [isHovered, setIsHovered] = React.useState(false)
@@ -294,30 +309,58 @@ function LabelsColumn(props: AssetColumnProps) {
                                 ? 'relative before:absolute before:rounded-full before:border-2 before:border-delete before:inset-0 before:w-full before:h-full'
                                 : ''
                         }
-                        onClick={() => {
-                            setAsset(oldAsset => {
-                                const newLabels =
-                                    oldAsset.labels?.filter(oldLabel => oldLabel !== label) ?? []
-                                void backend
-                                    .associateTag(asset.id, newLabels, asset.title)
-                                    .catch(error => {
-                                        toastAndLog(null, error)
-                                        setAsset(oldAsset2 =>
-                                            oldAsset2.labels?.some(
-                                                oldLabel => oldLabel === label
-                                            ) === true
-                                                ? oldAsset2
-                                                : {
-                                                      ...oldAsset2,
-                                                      labels: [...(oldAsset2.labels ?? []), label],
-                                                  }
-                                        )
-                                    })
-                                return {
-                                    ...oldAsset,
-                                    labels: newLabels,
-                                }
-                            })
+                        onContextMenu={event => {
+                            event.preventDefault()
+                            event.stopPropagation()
+                            const doDelete = () => {
+                                unsetModal()
+                                setAsset(oldAsset => {
+                                    const newLabels =
+                                        oldAsset.labels?.filter(oldLabel => oldLabel !== label) ??
+                                        []
+                                    void backend
+                                        .associateTag(asset.id, newLabels, asset.title)
+                                        .catch(error => {
+                                            toastAndLog(null, error)
+                                            setAsset(oldAsset2 =>
+                                                oldAsset2.labels?.some(
+                                                    oldLabel => oldLabel === label
+                                                ) === true
+                                                    ? oldAsset2
+                                                    : {
+                                                          ...oldAsset2,
+                                                          labels: [
+                                                              ...(oldAsset2.labels ?? []),
+                                                              label,
+                                                          ],
+                                                      }
+                                            )
+                                        })
+                                    return {
+                                        ...oldAsset,
+                                        labels: newLabels,
+                                    }
+                                })
+                            }
+                            setModal(
+                                <ContextMenus key={`label-${label}`} event={event}>
+                                    <ContextMenu>
+                                        <MenuEntry
+                                            action={shortcuts.KeyboardAction.delete}
+                                            doAction={doDelete}
+                                        />
+                                    </ContextMenu>
+                                </ContextMenus>
+                            )
+                        }}
+                        onClick={event => {
+                            event.preventDefault()
+                            event.stopPropagation()
+                            setQuery(oldQuery =>
+                                oldQuery.labels.includes(label)
+                                    ? oldQuery.delete({ labels: [label] })
+                                    : oldQuery.add({ labels: [label] })
+                            )
                         }}
                     >
                         {label}
@@ -360,6 +403,14 @@ function LabelsColumn(props: AssetColumnProps) {
     )
 }
 
+/** A column listing the users with which this asset is shared. */
+export function DocsColumn(props: AssetColumnProps) {
+    const {
+        item: { item: asset },
+    } = props
+    return <div className="flex items-center gap-1">{asset.description}</div>
+}
+
 // =========================
 // === PlaceholderColumn ===
 // =========================
@@ -398,7 +449,8 @@ export const COLUMN_HEADING: Record<
                 onMouseLeave={() => {
                     setIsHovered(false)
                 }}
-                onClick={() => {
+                onClick={event => {
+                    event.stopPropagation()
                     if (sortColumn === Column.name) {
                         setSortDirection(sorting.NEXT_SORT_DIRECTION[sortDirection ?? 'null'])
                     } else {
@@ -430,7 +482,8 @@ export const COLUMN_HEADING: Record<
                 onMouseLeave={() => {
                     setIsHovered(false)
                 }}
-                onClick={() => {
+                onClick={event => {
+                    event.stopPropagation()
                     if (sortColumn === Column.modified) {
                         setSortDirection(sorting.NEXT_SORT_DIRECTION[sortDirection ?? 'null'])
                     } else {
@@ -492,5 +545,5 @@ export const COLUMN_RENDERER: Record<Column, (props: AssetColumnProps) => JSX.El
     [Column.labels]: LabelsColumn,
     [Column.accessedByProjects]: PlaceholderColumn,
     [Column.accessedData]: PlaceholderColumn,
-    [Column.docs]: PlaceholderColumn,
+    [Column.docs]: DocsColumn,
 }
