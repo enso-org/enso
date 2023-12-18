@@ -14,6 +14,7 @@ import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Illegal_State.Illegal_State
 import project.Nothing.Nothing
 import project.Panic.Panic
+from project.Data.Boolean.Boolean import False, True
 
 polyglot java import java.net.URI as Java_URI
 polyglot java import java.net.URISyntaxException
@@ -297,15 +298,21 @@ handle_resolve_errors ~action =
 type URI_Comparator
     ## PRIVATE
     compare x y =
-        Standard.Base.IO.println <| "Comparing " + x.to_text + " and " + y.to_text
-        if x.to_text != y.to_text then Nothing else
-            eq = (x.additional_query_parameters == y.additional_query_parameters) && (x.user_info_override == y.user_info_override)
-            if eq then Ordering.Equal else Nothing
+        java_uri_x = x.to_java_uri.catch Enso_Secret_Error
+        java_uri_y = y.to_java_uri.catch Enso_Secret_Error
+
+        eq = case java_uri_x.is_error || java_uri_y.is_error of
+            # If the URIs contain secrets, they are considered equal only if they yield the same text and have the same internal structure.
+            True -> if x.to_text != y.to_text then False else
+                (x.additional_query_parameters == y.additional_query_parameters) && (x.user_info_override == y.user_info_override)
+            # If the URIs do not contain secrets, they are considered equal if the effective URI they denote is the same.
+            False -> java_uri_x == java_uri_y
+        if eq then Ordering.Equal else Nothing
 
     ## PRIVATE
     hash x =
-        v = [x.text, x.additional_query_parameters, x.user_info_override]
-        Comparable.from v . hash v
+        txt = x.text
+        Comparable.from txt . hash txt
 
 ## PRIVATE
 Comparable.from (_:URI) = URI_Comparator
