@@ -4,6 +4,7 @@ import project.Data.Index_Sub_Range.Index_Sub_Range
 import project.Data.Maybe.Maybe
 import project.Data.Numbers.Integer
 import project.Data.Pair.Pair
+import project.Data.Set.Set
 import project.Data.Vector.Map_Error
 import project.Data.Vector.No_Wrap
 import project.Data.Vector.Vector
@@ -400,11 +401,25 @@ get_all_from_vector_elements  value = @Builtin_Method "Warning.get_all_from_vect
 
    Get warnings from a Vector. The warnings attached to individual elements are
    wrapped in Map_Error.
+   
+   We also request warnings that are attached directly to the vector, but remove
+   those that are identical to warnings attached to elements. We are unable to
+   determine if the directly-attached warnings are truly redundant; they might
+   be identical warnings attached directly to the vector, but this is a very
+   unlikely case.
 get_all_from_vector : Vector -> Vector Warning
 get_all_from_vector v =
     from_elements = get_all_from_vector_elements v
+    from_elements_unwrapped = from_elements.map .value . map w->
+        case w of
+            Map_Error.Error _ e -> e
+            _ -> Runtime.assert False "Element warnings must be wrapped in Map_Error"
+    from_elements_unwrapped_set = Set.from_vector from_elements_unwrapped
     direct = Vector.from_polyglot_array (get_all_array v)
-    from_elements + direct
+    #direct_set = Set.from_vector direct
+    #direct_deduped = direct_set.difference from_elements_unwrapped_set . to_vector
+    direct_deduped = direct.filter w-> from_elements_unwrapped_set.contains w.value . not
+    from_elements + direct_deduped
 
 ## PRIVATE
 
