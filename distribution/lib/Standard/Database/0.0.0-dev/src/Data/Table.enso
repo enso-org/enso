@@ -1361,7 +1361,7 @@ type Table
 
     ## GROUP Standard.Base.Calculations
        ICON join
-       Merges this table with a lookup table
+       Merges this table with a lookup table.
        New values are looked up in the lookup table based on the `key_columns`.
        Columns found in the lookup table values are replaced by values from the
        lookup. Columns not found are left unchanged.
