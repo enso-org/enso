@@ -112,6 +112,8 @@ final class EnsureCompiledJob(
         applyEdits(new File(module.getPath)).map { changeset =>
           compile(module)
             .map { _ =>
+              // Side-effect: ensures that module's source is correctly initialized.
+              module.getSource()
               invalidateCaches(module, changeset)
               if (module.isIndexed) {
                 ctx.jobProcessor.runBackground(
