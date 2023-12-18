@@ -1358,7 +1358,8 @@ type Table
         on_problems.attach_problems_before limit_problems <|
             self.join_or_cross_join right join_kind=Join_Kind_Cross.Cross on=[] right_prefix on_problems
 
-    ## GROUP Standard.Base.Calculations
+    ## ALIAS lookup
+       GROUP Standard.Base.Calculations
        ICON join
        Merges this table with a lookup table.
        New values are looked up in the lookup table based on the `key_columns`.

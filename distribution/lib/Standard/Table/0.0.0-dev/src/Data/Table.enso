@@ -1869,7 +1869,8 @@ type Table
                 self.java_table.crossJoin right.java_table right_prefix java_aggregator
             Table.Value new_java_table
 
-    ## GROUP Standard.Base.Calculations
+    ## ALIAS lookup
+       GROUP Standard.Base.Calculations
        ICON join
        Merges this table with a lookup table
        New values are looked up in the lookup table based on the `key_columns`.
