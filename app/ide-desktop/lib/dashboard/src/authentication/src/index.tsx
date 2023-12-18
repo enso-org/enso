@@ -12,7 +12,6 @@ import * as detect from 'enso-common/src/detect'
 import type * as app from './components/app'
 import * as config from './config'
 import App from './components/app'
-import { toast } from 'react-toastify'
 
 // =================
 // === Constants ===

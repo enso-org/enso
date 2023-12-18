@@ -30,8 +30,8 @@ import { Vec2 } from '@/util/data/vec2'
 import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
 import * as set from 'lib0/set'
 import type { ExprId, NodeMetadata } from 'shared/yjsModel'
-import { computed, onMounted, ref, watch } from 'vue'
-import { toast, toastContainers } from 'vue3-toastify'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { toast } from 'vue3-toastify'
 import { type Usage } from './ComponentBrowser/input'
 
 const EXECUTION_MODES = ['design', 'live']
@@ -50,6 +50,26 @@ const componentBrowserNodePosition = ref<Vec2>(Vec2.Zero)
 const componentBrowserUsage = ref<Usage>({ type: 'newNode' })
 const suggestionDb = useSuggestionDbStore()
 const interaction = provideInteractionHandler()
+
+function initStartupToast() {
+  const startupToast = toast.info('Compiling standard library. It can take up to 1 minute.', {
+    autoClose: false,
+  })
+  projectStore.firstExecution.then(() => {
+    if (startupToast != null) {
+      toast.remove(startupToast)
+    }
+  })
+  onUnmounted(() => {
+    if (startupToast != null) {
+      toast.remove(startupToast)
+    }
+  })
+}
+
+onMounted(() => {
+  initStartupToast()
+})
 
 const nodeSelection = provideGraphSelection(graphNavigator, graphStore.nodeRects, {
   onSelected(id) {
@@ -218,7 +238,6 @@ const graphBindingsHandler = graphBindings.handler({
 
 const handleClick = useDoubleClick(
   (e: MouseEvent) => {
-    toast.info('Double click to enter node')
     graphBindingsHandler(e)
   },
   () => {
