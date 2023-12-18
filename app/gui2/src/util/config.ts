@@ -2,6 +2,10 @@
 import CONFIG from '@/config.json' assert { type: 'json' }
 import * as version from '@/util/version'
 
+export type ApplicationConfig = typeof baseConfig
+export type ApplicationConfigValue = ConfigValue<typeof baseConfig>
+export const baseConfig = loadConfig(CONFIG, { Version: version })
+
 const STRING_TO_BOOLEAN: Record<string, boolean> = {
   true: true,
   false: false,
@@ -28,8 +32,13 @@ export interface StringConfig {
   [key: string]: StringConfig | string
 }
 
+type AnyOptionValue = string | boolean | number | string[]
+
 /** A valid configuration option value. */
-export type OptionValue = string | boolean | number | string[]
+export type OptionValue<T extends { value: unknown } = { value: AnyOptionValue }> = Extract<
+  T['value'],
+  AnyOptionValue
+>
 
 export interface RawOption {
   description?: string
@@ -50,18 +59,18 @@ export interface RawConfig {
   groups?: Record<string, RawGroup>
 }
 
-export interface Option<T = RawOption> {
+export interface Option<T = Required<RawOption>> {
   description: string
   defaultDescription: T extends { defaultDescription: string } ? string : string | undefined
-  value: T extends { value: infer Value extends OptionValue } ? Value : string
+  value: T extends { value: infer Value } ? Extract<Value, OptionValue> : string
   primary: boolean
 }
 
-export interface Group<T = RawGroup> extends Config<T> {
+export interface Group<T = Required<RawGroup>> extends Config<T> {
   description: string
 }
 
-export interface Config<T = RawConfig> {
+export interface Config<T = Required<RawConfig>> {
   options: T extends { options: infer Options extends object }
     ? { [K in keyof Options]: Option<Options[K]> }
     : {}
@@ -97,7 +106,7 @@ function loadOption<T>(option: T, scope: Record<string, any> = {}): Option<T> {
         ? value
         : '',
     primary: Boolean(obj.primary ?? true),
-  } satisfies Option as any
+  } satisfies Option<RawOption> as any
 }
 
 function loadGroup<T>(group: T, scope: Record<string, any> = {}): Group<T> {
@@ -105,7 +114,7 @@ function loadGroup<T>(group: T, scope: Record<string, any> = {}): Group<T> {
   return {
     ...loadConfig(group, scope),
     description: String(obj.description ?? ''),
-  } satisfies Group as any
+  } satisfies Group<RawGroup> as any
 }
 
 export function loadConfig<T>(config: T, scope: Record<string, any> = {}): Config<T> {
@@ -126,6 +135,34 @@ export function loadConfig<T>(config: T, scope: Record<string, any> = {}): Confi
           )
         : {},
   } satisfies Config as any
+}
+
+export function optionValue<T extends Option<any>>(option: T): OptionValue<T> {
+  return option.value as any
+}
+
+export type GroupValue<T extends Group<any> = Group> = ConfigValue<T>
+
+export function groupValue<T extends Group<any>>(group: T): GroupValue<T> {
+  return configValue(group)
+}
+
+type ConfigOptionValues<T extends Config> = {
+  [K in keyof T['options']]: OptionValue<Extract<T['options'][K], Option<any>>>
+}
+
+type ConfigGroupValues<T extends Config> = {
+  [K in keyof T['groups']]: GroupValue<Extract<T['groups'][K], Group<any>>>
+}
+
+export type ConfigValue<T extends Config<any> = Config> = ConfigOptionValues<T> &
+  ConfigGroupValues<T>
+
+export function configValue<T extends Config<any>>(config: T): ConfigValue<T> {
+  return Object.fromEntries([
+    ...Object.entries(config.options).map(([k, v]) => [k, optionValue(v as Option)]),
+    ...Object.entries(config.groups).map(([k, v]) => [k, groupValue(v as Group)]),
+  ]) satisfies ConfigValue as any
 }
 
 interface MergeOptions {
@@ -191,6 +228,3 @@ export function mergeConfig<T extends Config<any>>(
     groups: newOptions,
   } as any
 }
-
-export const baseConfig = loadConfig(CONFIG, { Version: version })
-export type ApplicationConfig = typeof baseConfig

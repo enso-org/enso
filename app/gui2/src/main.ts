@@ -1,4 +1,4 @@
-import { baseConfig, mergeConfig } from '@/util/config'
+import { baseConfig, configValue, mergeConfig } from '@/util/config'
 import { isDevMode } from '@/util/detect'
 import { urlParams } from '@/util/urlParams'
 import { checkMinimumSupportedVersion } from '@/util/version'
@@ -59,15 +59,16 @@ async function runApp(config: StringConfig | null, accessToken: string | null, m
   function onUnrecognizedOption(path: string[]) {
     unrecognizedOptions.push(path.join('.'))
   }
-  const applicationConfig = mergeConfig(baseConfig, urlParams(), { onUnrecognizedOption })
-  const isVersionDeprecated = String(!(await checkMinimumSupportedVersion(applicationConfig)))
+  const appConfig = mergeConfig(baseConfig, urlParams(), { onUnrecognizedOption })
+  const appConfigValue = configValue(appConfig)
+  const isVersionDeprecated = String(!(await checkMinimumSupportedVersion(appConfigValue)))
   if (!running) return
   const app = mountProjectApp({
     config: { ...config, isVersionDeprecated },
     accessToken,
     metadata,
     unrecognizedOptions,
-    applicationConfig,
+    appConfig: appConfig,
   })
   unmount = () => app.unmount()
 }
@@ -100,11 +101,10 @@ function main() {
     localStorage.setItem(INITIAL_URL_KEY, location.href)
   }
 
-  const config = mergeConfig(baseConfig, urlParams())
-  const shouldUseAuthentication = config.options.authentication.value
-  const projectManagerUrl =
-    config.groups.engine.options.projectManagerUrl.value || PROJECT_MANAGER_URL
-  const initialProjectName = config.groups.startup.options.project.value || null
+  const config = configValue(mergeConfig(baseConfig, urlParams()))
+  const shouldUseAuthentication = config.authentication.enabled
+  const projectManagerUrl = config.engine.projectManagerUrl || PROJECT_MANAGER_URL
+  const initialProjectName = config.startup.project || null
 
   runDashboard({
     appRunner,

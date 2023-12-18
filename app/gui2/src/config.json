@@ -1,10 +1,4 @@
 {
-  "options": {
-    "authentication": {
-      "description": "Determines whether user authentication is enabled. This option is always true when executed in the cloud.",
-      "value": true
-    }
-  },
   "groups": {
     "window": {
       "description": "The visual and tactile configurations of the application window.",
@@ -66,18 +60,13 @@
         }
       }
     },
-    "featurePreview": {
-      "description": "Options that enable experimental features that are not yet stable.",
-      "options": {
-        "newDashboard": {
-          "value": true,
-          "description": "Determines whether the new dashboard with cloud integration is enabled."
-        }
-      }
-    },
     "authentication": {
       "description": "Options to manage application authentication properties.",
       "options": {
+        "enabled": {
+          "value": true,
+          "description": "Determines whether user authentication is enabled. This option is always true when executed in the cloud."
+        },
         "email": {
           "value": "",
           "description": "The user email, if the user is logged in.",

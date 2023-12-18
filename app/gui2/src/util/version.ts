@@ -1,4 +1,4 @@
-import type { ApplicationConfig } from '@/util/config'
+import type { ApplicationConfigValue } from '@/util/config'
 import { fetchTimeout } from '@/util/fetchTimeout'
 import { Comparator, SemVer } from 'semver'
 // @ts-ignore
@@ -29,16 +29,13 @@ export function isDev() {
  * and compares it with the version of the `client` js package. When the function is unable to
  * download the application config, or one of the compared versions does not match the semver
  * scheme, it returns `true`. */
-export async function checkMinimumSupportedVersion(config: ApplicationConfig) {
+export async function checkMinimumSupportedVersion(config: ApplicationConfigValue) {
   let supported = false
-  if (config.groups.engine.options.skipMinVersionCheck.value) {
+  if (config.engine.skipMinVersionCheck) {
     supported = true
   } else {
     try {
-      const appConfig = await fetchTimeout(
-        config.groups.engine.options.configUrl.value,
-        FETCH_TIMEOUT,
-      )
+      const appConfig = await fetchTimeout(config.engine.configUrl, FETCH_TIMEOUT)
       if (
         typeof appConfig === 'object' &&
         appConfig != null &&

@@ -13,7 +13,7 @@ const props = defineProps<{
   accessToken: string
   metadata: object
   unrecognizedOptions: string[]
-  applicationConfig: ApplicationConfig
+  appConfig: ApplicationConfig
 }>()
 
 const classSet = provideAppClassSet()
@@ -29,7 +29,7 @@ onMounted(() => useSuggestionDbStore())
   <HelpScreen
     v-if="unrecognizedOptions.length"
     :unrecognizedOptions="props.unrecognizedOptions"
-    :applicationConfig="props.applicationConfig"
+    :appConfig="props.appConfig"
   />
   <ProjectView v-else class="App" :class="[...classSet.keys()]" />
 </template>
