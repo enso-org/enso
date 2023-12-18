@@ -96,9 +96,10 @@ public final class Warning implements EnsoObject {
   @CompilerDirectives.TruffleBoundary
   public static EnsoObject getAll(WithWarnings value, WarningsLibrary warningsLib, InteropLibrary interop) {
     if (value.getValue() instanceof org.enso.interpreter.runtime.data.vector.Vector) {
-      getElementWarnings(value.getValue(), warningsLib, interop);
+      Warning[] warnings = getElementWarnings(value.getValue(), warningsLib, interop);
+      return ArrayLikeHelpers.wrapEnsoObjects(warnings);
     } else {
-      System.out.println("AAA getAll ww " + value.getClass() + " " + value.getValue().getClass());
+      //System.out.println("AAA getAll ww " + value.getClass() + " " + value.getValue().getClass());
       Warning[] warnings = value.getWarningsArray(warningsLib);
       sortArray(warnings);
       return ArrayLikeHelpers.wrapEnsoObjects(warnings);
@@ -110,18 +111,19 @@ public final class Warning implements EnsoObject {
       description = "Gets all the warnings associated with the value.",
       autoRegister = false)
   @Builtin.Specialize(fallback = true)
-  public static EnsoObject getAll(Object value, WarningsLibrary warnings, InteropLibrary interop) {
-    System.out.println("AAA getAll obj " + value.getClass() + " " + (value instanceof org.enso.interpreter.runtime.data.vector.Vector));
+  public static EnsoObject getAll(Object value, WarningsLibrary warningsLib, InteropLibrary interop) {
+    //System.out.println("AAA getAll obj " + value.getClass() + " " + (value instanceof org.enso.interpreter.runtime.data.vector.Vector));
     if (value instanceof org.enso.interpreter.runtime.data.vector.Vector) {
-      getElementWarnings(value, warnings, interop);
+      Warning[] warnings = getElementWarnings(value, warningsLib, interop);
+      return ArrayLikeHelpers.wrapEnsoObjects(warnings);
     } else {
-      if (warnings.hasWarnings(value)) {
+      if (warningsLib.hasWarnings(value)) {
         try {
-          Warning[] arr = warnings.getWarnings(value, null);
-          sortArray(arr);
-          return ArrayLikeHelpers.wrapEnsoObjects(arr);
+          Warning[] warnings = warningsLib.getWarnings(value, null);
+          sortArray(warnings);
+          return ArrayLikeHelpers.wrapEnsoObjects(warnings);
         } catch (UnsupportedMessageException e) {
-          throw EnsoContext.get(warnings).raiseAssertionPanic(warnings, null, e);
+          throw EnsoContext.get(warningsLib).raiseAssertionPanic(warningsLib, null, e);
         }
       } else {
         return ArrayLikeHelpers.empty();
@@ -129,17 +131,11 @@ public final class Warning implements EnsoObject {
     }
   }
 
-  private static EnsoObject getElementWarnings(Object value, WarningsLibrary warnings, InteropLibrary interop) {
-    if (value instanceof org.enso.interpreter.runtime.data.vector.Vector.Generic v) {
+  private static Warning[] getElementWarnings(Object value, WarningsLibrary warnings, InteropLibrary interop) {
+    try {
       return warnings.getElementWarnings(value, null);
-    } else if (value instanceof org.enso.interpreter.runtime.data.vector.Vector$EnsoOnly v) {
-      return v.getElementWarnings(warnings,  interop);
-    } else if (value instanceof org.enso.interpreter.runtime.data.vector.Vector$Double v) {
-      return v.getElementWarnings(warnings,  interop);
-    } else if (value instanceof org.enso.interpreter.runtime.data.vector.Vector$Long v) {
-      return v.getElementWarnings(warnings,  interop);
-    } else {
-      CompilerDirectives.shouldNotReachHere();
+    } catch (UnsupportedMessageException e) {
+      throw EnsoContext.get(warnings).raiseAssertionPanic(warnings, null, e);
     }
   }
 

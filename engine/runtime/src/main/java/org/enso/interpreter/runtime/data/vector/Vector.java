@@ -235,9 +235,18 @@ public abstract class Vector implements EnsoObject {
         @Cached HostValueToEnsoNode toEnso)
         throws InvalidArrayIndexException, UnsupportedMessageException {
       var v = interop.readArrayElement(this.storage, index);
+      //System.out.println("AAA rae " + index + " " + v + " " + warnings.hasWarnings(this.storage));
       if (warnings.hasWarnings(this.storage)) {
         Warning[] extracted = warnings.getWarnings(this.storage, null);
+        //System.out.println("AAA rae ws " + extracted + " " + extracted.length);
+        for (Warning warning : extracted) {
+         //System.out.println("AAA rae w " + warning);
+        }
         if (warnings.hasWarnings(v)) {
+          //System.out.println("AAA rae e orig " + warnings.getWarnings(v, null));
+          for (Warning warning : warnings.getWarnings(v, null)) {
+            //System.out.println("AAA rae e w " + warning);
+          }
           v = warnings.removeWarnings(v);
         }
         return WithWarnings.wrap(EnsoContext.get(interop), toEnso.execute(v), extracted);
@@ -283,11 +292,27 @@ public abstract class Vector implements EnsoObject {
         /*@Cached.Shared(value = "interop")*/ @CachedLibrary(limit = "3") InteropLibrary interop,
         @Cached.Shared(value = "warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings)
         throws UnsupportedMessageException {
+      EnsoContext ctx = EnsoContext.get(warnings);
       EconomicSet<Warning> setOfWarnings = EconomicSet.create(new WithWarnings.WarningEquivalence());
-      for (int index = 0; i < getArraySize(); ++i) {
-        var v = interop.readArrayElement(this.storage, index);
-        Warning elementWarnings[] = warnings.getWarnings(v, location);
-        setOfWarnings.addAll(Arrays.asList(elementWarnings));
+      for (int index = 0; index < getArraySize(interop); ++index) {
+        try {
+          final int finalIndex = index;
+          //var v = interop.readArrayElement(this.storage, index);
+          var v = ((Array)this.storage).readArrayElementNoWarningPropagation(index);
+          //System.out.println("AAA gew " + index + " " + v.getClass() + " " + v);
+          if (warnings.hasWarnings(v)) {
+            Warning elementWarnings[] = warnings.getWarnings(v, location);
+            Warning wrapped[] = Arrays.stream(elementWarnings).map(warning -> {
+              var error = warning.getValue();
+              var wrappedError = ctx.getBuiltins().error().makeMapError(finalIndex, error);
+              var wrappedWarning = Warning.create(ctx, wrappedError, warning.getOrigin());
+              return wrappedWarning;
+            }).toArray(Warning[]::new);
+            setOfWarnings.addAll(Arrays.asList(wrapped));
+          }
+        } catch (InvalidArrayIndexException e) {
+          throw ctx.raiseAssertionPanic(warnings, null, e);
+        }
       }
       return Warning.fromSetToArray(setOfWarnings);
     }
@@ -361,7 +386,7 @@ public abstract class Vector implements EnsoObject {
     @ExportMessage
     Warning[] getElementWarnings(
         Node location)
-        throws InvalidArrayIndexException, UnsupportedMessageException {
+        throws UnsupportedMessageException {
       return new Warning[0];
     }
 
@@ -418,7 +443,7 @@ public abstract class Vector implements EnsoObject {
     @ExportMessage
     Warning[] getElementWarnings(
         Node location)
-        throws InvalidArrayIndexException, UnsupportedMessageException {
+        throws UnsupportedMessageException {
       return new Warning[0];
     }
 
