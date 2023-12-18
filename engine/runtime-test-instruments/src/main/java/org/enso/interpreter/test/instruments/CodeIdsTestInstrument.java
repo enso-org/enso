@@ -122,10 +122,6 @@ public class CodeIdsTestInstrument extends TruffleInstrument {
         }
       }
 
-      private boolean isInstanceOf(Object obj, Class<?> clazz) {
-        return clazz.isInstance(obj);
-      }
-
       /**
        * Checks if the specified was called, if its execution triggered TCO.
        *
