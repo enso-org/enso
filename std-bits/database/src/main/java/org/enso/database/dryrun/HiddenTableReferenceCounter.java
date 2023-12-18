@@ -44,8 +44,8 @@ public class HiddenTableReferenceCounter {
             throw new IllegalStateException(
                 "The table "
                     + name
-                    + " was not found in the hidden table registry. Reference counter decrement without a paired "
-                    + "increment?");
+                    + " was not found in the hidden table registry. Reference counter decrement"
+                    + " without a paired increment?");
           }
 
           int newCount = c - 1;

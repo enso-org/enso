@@ -10,13 +10,12 @@ public class ThrowBuiltinNode extends Node {
   public Object execute(Text type, long exceptionIdx) {
     switch (type.toString()) {
       case "exception" -> {
-          Supplier<RuntimeException> exceptionSupplier =
-              ThrowableCatchTest.exceptionSuppliers.get((int) exceptionIdx);
+        Supplier<RuntimeException> exceptionSupplier =
+            ThrowableCatchTest.exceptionSuppliers.get((int) exceptionIdx);
         throw exceptionSupplier.get();
       }
       case "error" -> {
-        Supplier<Error> errorSupplier =
-            ThrowableCatchTest.errorSuppliers.get((int) exceptionIdx);
+        Supplier<Error> errorSupplier = ThrowableCatchTest.errorSuppliers.get((int) exceptionIdx);
         throw errorSupplier.get();
       }
       default -> throw new AssertionError("Unknown type: " + type);

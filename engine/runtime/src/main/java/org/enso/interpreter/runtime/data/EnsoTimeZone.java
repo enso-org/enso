@@ -63,7 +63,8 @@ public final class EnsoTimeZone implements EnsoObject {
   @Builtin.Method(
       name = "new_builtin",
       description =
-          "Obtains an instance of `Time_Zone` using an offset in hours, minutes and seconds from the UTC zone.",
+          "Obtains an instance of `Time_Zone` using an offset in hours, minutes and seconds from"
+              + " the UTC zone.",
       autoRegister = false)
   @Builtin.WrapException(from = DateTimeException.class)
   @CompilerDirectives.TruffleBoundary

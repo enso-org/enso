@@ -1,15 +1,14 @@
 package org.enso.table.data.index;
 
-import org.enso.base.polyglot.EnsoObjectWrapper;
-import org.enso.base.polyglot.NumericConverter;
-import org.enso.base.text.TextFoldingStrategy;
-import org.enso.table.data.column.storage.Storage;
-
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import org.enso.base.polyglot.EnsoObjectWrapper;
+import org.enso.base.polyglot.NumericConverter;
+import org.enso.base.text.TextFoldingStrategy;
+import org.enso.table.data.column.storage.Storage;
 
 /**
  * A multi-value key for unordered operations like group-by or distinct.
@@ -60,12 +59,14 @@ public class UnorderedMultiValueKey extends MultiValueKeyBase {
 
   /**
    * Create an UnorderedMultiValueKey using a subset of the storages in this key.
-   * @param storageIndices a list of indices into the storages array describing
-   *                       which storages to keep.
+   *
+   * @param storageIndices a list of indices into the storages array describing which storages to
+   *     keep.
    * @return a new key with only the selected storages.
    */
   public UnorderedMultiValueKey subKey(int[] storageIndices) {
-    Storage<?>[] newStorages = Arrays.stream(storageIndices).mapToObj(i -> storages[i]).toArray(Storage<?>[]::new);
+    Storage<?>[] newStorages =
+        Arrays.stream(storageIndices).mapToObj(i -> storages[i]).toArray(Storage<?>[]::new);
     return new UnorderedMultiValueKey(newStorages, rowIndex, textFoldingStrategy);
   }
 

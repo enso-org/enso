@@ -1,10 +1,31 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
+import com.google.common.base.Objects;
+import com.oracle.truffle.api.CompilerAsserts;
+import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Shared;
+import com.oracle.truffle.api.dsl.Fallback;
+import com.oracle.truffle.api.dsl.GenerateUncached;
+import com.oracle.truffle.api.dsl.NeverDefault;
+import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.interop.ArityException;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.InvalidArrayIndexException;
+import com.oracle.truffle.api.interop.StopIterationException;
+import com.oracle.truffle.api.interop.UnknownIdentifierException;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.interop.UnsupportedTypeException;
+import com.oracle.truffle.api.library.CachedLibrary;
+import com.oracle.truffle.api.nodes.ExplodeLoop;
+import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.profiles.ConditionProfile;
+import com.oracle.truffle.api.profiles.LoopConditionProfile;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
-
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionMode;
@@ -33,29 +54,6 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.polyglot.common_utils.Core_Text_Utils;
 
-import com.google.common.base.Objects;
-import com.oracle.truffle.api.CompilerAsserts;
-import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
-import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.Cached.Shared;
-import com.oracle.truffle.api.dsl.Fallback;
-import com.oracle.truffle.api.dsl.GenerateUncached;
-import com.oracle.truffle.api.dsl.NeverDefault;
-import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.interop.ArityException;
-import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.InvalidArrayIndexException;
-import com.oracle.truffle.api.interop.StopIterationException;
-import com.oracle.truffle.api.interop.UnknownIdentifierException;
-import com.oracle.truffle.api.interop.UnsupportedMessageException;
-import com.oracle.truffle.api.interop.UnsupportedTypeException;
-import com.oracle.truffle.api.library.CachedLibrary;
-import com.oracle.truffle.api.nodes.ExplodeLoop;
-import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.profiles.ConditionProfile;
-import com.oracle.truffle.api.profiles.LoopConditionProfile;
-
 /**
  * Implements {@code hash_code} functionality.
  *
@@ -75,10 +73,10 @@ import com.oracle.truffle.api.profiles.LoopConditionProfile;
 @BuiltinMethod(
     type = "Comparable",
     name = "hash_builtin",
-    description = """
-        Returns hash code of this atom. Use only for overriding default Comparator.
+    description =
         """
-)
+        Returns hash code of this atom. Use only for overriding default Comparator.
+        """)
 public abstract class HashCodeNode extends Node {
 
   public static HashCodeNode build() {
@@ -149,7 +147,8 @@ public abstract class HashCodeNode extends Node {
 
   @Specialization
   @TruffleBoundary
-  long hashCodeForUnresolvedSymbol(UnresolvedSymbol unresolvedSymbol,
+  long hashCodeForUnresolvedSymbol(
+      UnresolvedSymbol unresolvedSymbol,
       @Shared("hashCodeNode") @Cached HashCodeNode hashCodeNode) {
     long nameHash = hashCodeNode.execute(unresolvedSymbol.getName());
     long scopeHash = hashCodeNode.execute(unresolvedSymbol.getScope());
@@ -157,39 +156,39 @@ public abstract class HashCodeNode extends Node {
   }
 
   @Specialization
-  long hashCodeForUnresolvedConversion(UnresolvedConversion unresolvedConversion,
+  long hashCodeForUnresolvedConversion(
+      UnresolvedConversion unresolvedConversion,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
     return hashCodeForModuleScope(unresolvedConversion.getScope(), interop);
   }
 
   @Specialization
-  long hashCodeForModuleScope(ModuleScope moduleScope,
+  long hashCodeForModuleScope(
+      ModuleScope moduleScope,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
     return hashCodeForModule(moduleScope.getModule(), interop);
   }
 
   @Specialization
   @TruffleBoundary
-  long hashCodeForModule(Module module,
-      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
+  long hashCodeForModule(
+      Module module, @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
     return hashCodeForString(module.toString(), interop);
   }
 
   @Specialization
-  long hashCodeForFile(EnsoFile file,
-      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
+  long hashCodeForFile(
+      EnsoFile file, @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
     return hashCodeForString(file.getPath(), interop);
   }
 
   /**
-   * There is no specialization for {@link TypesLibrary#hasType(Object)}, because also
-   * primitive values would fall into that specialization and it would be too complicated
-   * to make that specialization disjunctive. So we rather specialize directly for
-   * {@link Type}.
+   * There is no specialization for {@link TypesLibrary#hasType(Object)}, because also primitive
+   * values would fall into that specialization and it would be too complicated to make that
+   * specialization disjunctive. So we rather specialize directly for {@link Type}.
    */
   @Specialization
-  long hashCodeForType(Type type,
-      @Shared("hashCodeNode") @Cached HashCodeNode hashCodeNode) {
+  long hashCodeForType(Type type, @Shared("hashCodeNode") @Cached HashCodeNode hashCodeNode) {
     if (EnsoContext.get(this).getNothing() == type) {
       // Nothing should be equal to `null`
       return 0;
@@ -205,10 +204,12 @@ public abstract class HashCodeNode extends Node {
     return nodes;
   }
 
-  @Specialization(guards = {
-      "atomCtorCached == atom.getConstructor()",
-      "customComparatorNode.execute(atom) == null",
-  }, limit = "5")
+  @Specialization(
+      guards = {
+        "atomCtorCached == atom.getConstructor()",
+        "customComparatorNode.execute(atom) == null",
+      },
+      limit = "5")
   @ExplodeLoop
   long hashCodeForAtomWithDefaultComparator(
       Atom atom,
@@ -247,12 +248,8 @@ public abstract class HashCodeNode extends Node {
   }
 
   @Specialization(
-      guards = {
-        "atomCtorCached == atom.getConstructor()",
-        "cachedComparator != null"
-      },
-      limit = "5"
-  )
+      guards = {"atomCtorCached == atom.getConstructor()", "cachedComparator != null"},
+      limit = "5")
   long hashCodeForAtomWithCustomComparator(
       Atom atom,
       @Cached("atom.getConstructor()") AtomConstructor atomCtorCached,
@@ -260,11 +257,10 @@ public abstract class HashCodeNode extends Node {
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
       @Cached(value = "customComparatorNode.execute(atom)") Type cachedComparator,
       @Cached(value = "findHashMethod(cachedComparator)", allowUncached = true)
-        Function compareMethod,
-      @Cached(value = "createInvokeNode(compareMethod)") InvokeFunctionNode invokeFunctionNode
-  ) {
+          Function compareMethod,
+      @Cached(value = "createInvokeNode(compareMethod)") InvokeFunctionNode invokeFunctionNode) {
     var ctx = EnsoContext.get(this);
-    var args = new Object[] { cachedComparator, atom};
+    var args = new Object[] {cachedComparator, atom};
     var result = invokeFunctionNode.execute(compareMethod, null, State.create(ctx), args);
     if (!interop.isNumber(result)) {
       throw ctx.raiseAssertionPanic(this, "Custom comparator must return a number", null);
@@ -298,7 +294,8 @@ public abstract class HashCodeNode extends Node {
   }
 
   @TruffleBoundary
-  @Specialization(replaces = {"hashCodeForAtomWithDefaultComparator", "hashCodeForAtomWithCustomComparator"})
+  @Specialization(
+      replaces = {"hashCodeForAtomWithDefaultComparator", "hashCodeForAtomWithCustomComparator"})
   long hashCodeForAtomUncached(Atom atom) {
     if (atom.getHashCode() != null) {
       return atom.getHashCode();
@@ -314,8 +311,7 @@ public abstract class HashCodeNode extends Node {
           InteropLibrary.getFactory().getUncached(),
           customComparator,
           compareMethod,
-          createInvokeNode(compareMethod)
-      );
+          createInvokeNode(compareMethod));
     }
 
     Object[] fields = StructsLibrary.getUncached().getFields(atom);
@@ -465,8 +461,7 @@ public abstract class HashCodeNode extends Node {
 
   @Specialization
   long hashCodeForText(
-      Text text,
-      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
+      Text text, @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
     if (text.is_normalized()) {
       return text.toString().hashCode();
     } else {
@@ -478,9 +473,7 @@ public abstract class HashCodeNode extends Node {
   @Specialization(
       guards = {"interop.isString(selfStr)"},
       limit = "3")
-  long hashCodeForString(
-      Object selfStr,
-      @CachedLibrary("selfStr") InteropLibrary interop) {
+  long hashCodeForString(Object selfStr, @CachedLibrary("selfStr") InteropLibrary interop) {
     String str;
     try {
       str = interop.asString(selfStr);
@@ -491,10 +484,7 @@ public abstract class HashCodeNode extends Node {
   }
 
   @Specialization(
-      guards = {
-          "interop.hasArrayElements(selfArray)",
-          "!interop.hasHashEntries(selfArray)"
-      },
+      guards = {"interop.hasArrayElements(selfArray)", "!interop.hasHashEntries(selfArray)"},
       limit = "3")
   long hashCodeForArray(
       Object selfArray,
@@ -527,10 +517,11 @@ public abstract class HashCodeNode extends Node {
    * Two maps are considered equal, if they have the same entries. Note that we do not care about
    * ordering.
    */
-  @Specialization(guards = {
-      "interop.hasHashEntries(selfMap)",
-      "!interop.hasArrayElements(selfMap)",
-  })
+  @Specialization(
+      guards = {
+        "interop.hasHashEntries(selfMap)",
+        "!interop.hasArrayElements(selfMap)",
+      })
   long hashCodeForMap(
       Object selfMap,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
@@ -555,17 +546,19 @@ public abstract class HashCodeNode extends Node {
     return Arrays.hashCode(new long[] {keysHashCode, valuesHashCode, mapSize});
   }
 
-  @Specialization(guards = {
-      "!isAtom(objectWithMembers)",
-      "!isJavaObject(objectWithMembers)",
-      "interop.hasMembers(objectWithMembers)",
-      "!interop.hasArrayElements(objectWithMembers)",
-      "!interop.isTime(objectWithMembers)",
-      "!interop.isDate(objectWithMembers)",
-      "!interop.isTimeZone(objectWithMembers)",
-      "!typesLib.hasType(objectWithMembers)",
-  })
-  long hashCodeForInteropObjectWithMembers(Object objectWithMembers,
+  @Specialization(
+      guards = {
+        "!isAtom(objectWithMembers)",
+        "!isJavaObject(objectWithMembers)",
+        "interop.hasMembers(objectWithMembers)",
+        "!interop.hasArrayElements(objectWithMembers)",
+        "!interop.isTime(objectWithMembers)",
+        "!interop.isDate(objectWithMembers)",
+        "!interop.isTimeZone(objectWithMembers)",
+        "!typesLib.hasType(objectWithMembers)",
+      })
+  long hashCodeForInteropObjectWithMembers(
+      Object objectWithMembers,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
       @CachedLibrary(limit = "5") TypesLibrary typesLib,
       @Shared("hashCodeNode") @Cached HashCodeNode hashCodeNode) {
@@ -587,12 +580,18 @@ public abstract class HashCodeNode extends Node {
         }
       }
       return Arrays.hashCode(hashCodes);
-    } catch (UnsupportedMessageException | InvalidArrayIndexException | UnknownIdentifierException e) {
+    } catch (UnsupportedMessageException
+        | InvalidArrayIndexException
+        | UnknownIdentifierException e) {
       CompilerDirectives.transferToInterpreter();
-      throw EnsoContext.get(this).raiseAssertionPanic(this, String.format("An interop object (%s) has probably wrongly specified interop API"
-              + " for members.", objectWithMembers),
-          e
-      );
+      throw EnsoContext.get(this)
+          .raiseAssertionPanic(
+              this,
+              String.format(
+                  "An interop object (%s) has probably wrongly specified interop API"
+                      + " for members.",
+                  objectWithMembers),
+              e);
     }
   }
 
@@ -605,8 +604,7 @@ public abstract class HashCodeNode extends Node {
 
   @Specialization(guards = "isJavaObject(hostObject)")
   long hashCodeForHostObject(
-      Object hostObject,
-      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
+      Object hostObject, @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
     try {
       Object hashCodeRes = interop.invokeMember(hostObject, "hashCode");
       assert interop.fitsInInt(hashCodeRes);
@@ -620,12 +618,13 @@ public abstract class HashCodeNode extends Node {
   }
 
   /**
-   * Every host function has a unique fully qualified name, it is not a lambda.
-   * We get the hashcode from the qualified name.
+   * Every host function has a unique fully qualified name, it is not a lambda. We get the hashcode
+   * from the qualified name.
    */
   @TruffleBoundary
   @Specialization(guards = "isJavaFunction(hostFunction)")
-  long hashCodeForHostFunction(Object hostFunction,
+  long hashCodeForHostFunction(
+      Object hostFunction,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
       @Shared("hashCodeNode") @Cached HashCodeNode hashCodeNode) {
     return hashCodeNode.execute(interop.toDisplayString(hostFunction));

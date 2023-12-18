@@ -63,7 +63,9 @@ final class EpbContext {
     return REFERENCE.get(node);
   }
 
-  /** @return the language environment associated with this context. */
+  /**
+   * @return the language environment associated with this context.
+   */
   public TruffleLanguage.Env getEnv() {
     return env;
   }

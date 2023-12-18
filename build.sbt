@@ -2326,8 +2326,9 @@ lazy val `std-base` = project
     Compile / packageBin / artifactPath :=
       `base-polyglot-root` / "std-base.jar",
     libraryDependencies ++= Seq(
-      "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion,
-      "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion % "provided"
+      "org.graalvm.polyglot"      % "polyglot"                % graalMavenPackagesVersion,
+      "org.apache.httpcomponents" % "httpclient"              % httpComponentsVersion,
+      "org.netbeans.api"          % "org-openide-util-lookup" % netbeansApiVersion % "provided"
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
@@ -2744,7 +2745,8 @@ lazy val `simple-httpbin` = project
     Compile / run / mainClass := Some("org.enso.shttp.SimpleHTTPBin"),
     assembly / mainClass := (Compile / run / mainClass).value,
     libraryDependencies ++= Seq(
-      "org.apache.commons" % "commons-text" % commonsTextVersion
+      "org.apache.commons"        % "commons-text" % commonsTextVersion,
+      "org.apache.httpcomponents" % "httpclient"   % httpComponentsVersion
     ),
     (Compile / run / fork) := true,
     (Compile / run / connectInput) := true

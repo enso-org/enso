@@ -6,6 +6,26 @@ The license information can be found along with the copyright notices.
 Copyright notices related to this dependency can be found in the directory `com.ibm.icu.icu4j-73.1`.
 
 
+'commons-codec', licensed under the The Apache Software License, Version 2.0, is distributed with the Base.
+The license information can be found along with the copyright notices.
+Copyright notices related to this dependency can be found in the directory `commons-codec.commons-codec-1.9`.
+
+
+'commons-logging', licensed under the The Apache Software License, Version 2.0, is distributed with the Base.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `commons-logging.commons-logging-1.2`.
+
+
+'httpclient', licensed under the Apache License, Version 2.0, is distributed with the Base.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `org.apache.httpcomponents.httpclient-4.4.1`.
+
+
+'httpcore', licensed under the Apache License, Version 2.0, is distributed with the Base.
+The license information can be found along with the copyright notices.
+Copyright notices related to this dependency can be found in the directory `org.apache.httpcomponents.httpcore-4.4.1`.
+
+
 'polyglot', licensed under the Universal Permissive License, Version 1.0, is distributed with the Base.
 The license file can be found at `licenses/Universal_Permissive_License__Version_1.0`.
 Copyright notices related to this dependency can be found in the directory `org.graalvm.polyglot.polyglot-23.1.0`.

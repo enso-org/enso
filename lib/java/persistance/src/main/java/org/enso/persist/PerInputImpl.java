@@ -1,13 +1,13 @@
 package org.enso.persist;
 
+import static org.enso.persist.PerUtils.raise;
+
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
-
-import static org.enso.persist.PerUtils.raise;
 import org.enso.persist.Persistance.Input;
 import org.enso.persist.Persistance.Reference;
 
@@ -22,7 +22,8 @@ final class PerInputImpl implements Input {
     this.at = at;
   }
 
-  static <T> Reference<T> readObject(byte[] arr, Function<Object, Object> readResolve) throws IOException {
+  static <T> Reference<T> readObject(byte[] arr, Function<Object, Object> readResolve)
+      throws IOException {
     for (var i = 0; i < PerGenerator.HEADER.length; i++) {
       if (arr[i] != PerGenerator.HEADER[i]) {
         throw new IOException("Wrong header");
@@ -31,7 +32,11 @@ final class PerInputImpl implements Input {
     var buf = ByteBuffer.wrap(arr);
     var version = buf.getInt(4);
     if (version != PerMap.DEFAULT.versionStamp) {
-      throw new IOException("Incompatible version " + Integer.toHexString(version) + " != " + Integer.toHexString(PerMap.DEFAULT.versionStamp));
+      throw new IOException(
+          "Incompatible version "
+              + Integer.toHexString(version)
+              + " != "
+              + Integer.toHexString(PerMap.DEFAULT.versionStamp));
     }
     var at = buf.getInt(8);
     var cache = new InputCache(buf, readResolve);
@@ -84,8 +89,7 @@ final class PerInputImpl implements Input {
     return buf.limit() - at;
   }
 
-  public void close() throws IOException {
-  }
+  public void close() throws IOException {}
 
   @Override
   public void readFully(byte[] b) throws IOException {
@@ -198,13 +202,22 @@ final class PerInputImpl implements Input {
     res = cache.readResolve().apply(res);
     var prev = cache.cache().put(at, res);
     if (prev != null) {
-      throw raise(RuntimeException.class, new IOException("Adding at " + at + " object: " + res.getClass().getName() + " but there already is " + prev.getClass().getName()));
+      throw raise(
+          RuntimeException.class,
+          new IOException(
+              "Adding at "
+                  + at
+                  + " object: "
+                  + res.getClass().getName()
+                  + " but there already is "
+                  + prev.getClass().getName()));
     }
     return res;
   }
 
   @SuppressWarnings("unchecked")
-  static <T> Reference<T> readIndirectAsReference(InputCache buffer, PerMap map, Input in, Class<T> clazz) throws IOException {
+  static <T> Reference<T> readIndirectAsReference(
+      InputCache buffer, PerMap map, Input in, Class<T> clazz) throws IOException {
     var at = in.readInt();
     if (at < 0) {
       return null;
@@ -219,10 +232,7 @@ final class PerInputImpl implements Input {
   }
 
   static final record InputCache(
-    ByteBuffer buf,
-    Function<Object, Object> readResolve,
-    Map<Integer, Object> cache
-  ) {
+      ByteBuffer buf, Function<Object, Object> readResolve, Map<Integer, Object> cache) {
     InputCache(ByteBuffer buf, Function<Object, Object> readResolve) {
       this(buf, readResolve == null ? Function.identity() : readResolve, new HashMap<>());
     }

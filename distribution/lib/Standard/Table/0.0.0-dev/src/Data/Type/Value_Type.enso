@@ -277,8 +277,10 @@ type Value_Type
             _ -> False
         Value_Type.Char self_size self_variable_length -> case target_type of
             Value_Type.Char target_size target_variable_length ->
-                fits_variability = if target_variable_length then True else self_variable_length == target_variable_length
-                fits_variability && (target_size >= self_size)
+                ## If the source is variable_length, lets try and load it and warn about truncation.
+                if self_variable_length then True else
+                    fits_variability = if target_variable_length then True else self_variable_length == target_variable_length
+                    fits_variability && (target_size >= self_size)
             _ -> False
         Value_Type.Binary self_size self_variable_length -> case target_type of
             Value_Type.Binary target_size target_variable_length ->

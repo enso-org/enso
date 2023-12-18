@@ -1,5 +1,7 @@
 package org.enso.table.data.column.builder;
 
+import java.util.BitSet;
+import java.util.Objects;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.operation.cast.ToIntegerStorageConverter;
 import org.enso.table.data.column.storage.BoolStorage;
@@ -14,15 +16,12 @@ import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.BitSets;
 
-import java.util.BitSet;
-import java.util.Objects;
-
-/**
- * A builder for integer columns.
- */
+/** A builder for integer columns. */
 public abstract class LongBuilder extends NumericBuilder {
   protected final ProblemAggregator problemAggregator;
-  protected LongBuilder(BitSet isMissing, long[] data, int currentSize, ProblemAggregator problemAggregator) {
+
+  protected LongBuilder(
+      BitSet isMissing, long[] data, int currentSize, ProblemAggregator problemAggregator) {
     super(isMissing, data, currentSize);
     this.problemAggregator = problemAggregator;
   }
@@ -50,7 +49,8 @@ public abstract class LongBuilder extends NumericBuilder {
 
   @Override
   public boolean canRetypeTo(StorageType type) {
-    return Objects.equals(type, FloatType.FLOAT_64) || Objects.equals(type, BigIntegerType.INSTANCE);
+    return Objects.equals(type, FloatType.FLOAT_64)
+        || Objects.equals(type, BigIntegerType.INSTANCE);
   }
 
   @Override
@@ -74,7 +74,8 @@ public abstract class LongBuilder extends NumericBuilder {
 
   @Override
   public void appendBulkStorage(Storage<?> storage) {
-    if (Objects.equals(storage.getType(), getType()) && storage instanceof LongStorage longStorage) {
+    if (Objects.equals(storage.getType(), getType())
+        && storage instanceof LongStorage longStorage) {
       // A fast path for the same type - no conversions/checks needed.
       int n = longStorage.size();
       ensureFreeSpaceFor(n);
@@ -135,9 +136,10 @@ public abstract class LongBuilder extends NumericBuilder {
 
   public abstract void appendLongNoGrow(long data);
 
-  /** Append a new integer to this builder, without checking for overflows.
-   * <p>
-   * Used if the range has already been checked by the caller.
+  /**
+   * Append a new integer to this builder, without checking for overflows.
+   *
+   * <p>Used if the range has already been checked by the caller.
    */
   public void appendLongUnchecked(long data) {
     appendRawNoGrow(data);

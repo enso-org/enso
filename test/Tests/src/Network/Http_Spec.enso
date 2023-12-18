@@ -3,18 +3,19 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Forbidden_Operation
 import Standard.Base.Errors.Common.Syntax_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Network.HTTP.HTTP_Error.HTTP_Error
 import Standard.Base.Network.HTTP.Request.Request
+import Standard.Base.Network.HTTP.Response.Response
 import Standard.Base.Network.HTTP.Request_Body.Request_Body
 import Standard.Base.Network.HTTP.Request_Error
 import Standard.Base.Network.Proxy.Proxy
+import Standard.Base.Network.URI_With_Query.URI_With_Query
 import Standard.Base.Runtime.Context
 from Standard.Base.Network.HTTP import resolve_headers
 
 import Standard.Test.Extensions
 from Standard.Test import Test, Test_Suite
 from Standard.Test.Execution_Context_Helpers import run_with_and_without_output
-
-polyglot java import java.lang.System as Java_System
 
 type Test_Type
     Aaa (s:Text)
@@ -28,9 +29,11 @@ spec =
     ## To run this test locally:
        $ sbt 'simple-httpbin/run localhost 8080'
        $ export ENSO_HTTP_TEST_HTTPBIN_URL=http://localhost:8080/
-    base_url = Java_System.getenv "ENSO_HTTP_TEST_HTTPBIN_URL"
+    base_url = Environment.get "ENSO_HTTP_TEST_HTTPBIN_URL"
     pending_has_url = if base_url != Nothing then Nothing else
         "The HTTP tests only run when the `ENSO_HTTP_TEST_HTTPBIN_URL` environment variable is set to URL of the httpbin server"
+    base_url_with_slash = base_url.if_not_nothing <|
+        if base_url.ends_with "/" then base_url else base_url + "/"
 
     Test.group "HTTP_Method parse" <|
         Test.specify "should be able to parse a string value into a method" <|
@@ -47,6 +50,18 @@ spec =
 
         Test.specify "should make a custom method" <|
             "CUSTOM" . to HTTP_Method . should_equal (HTTP_Method.Custom "CUSTOM")
+
+    Test.group "HTTP_Status_Code" <|
+        Test.specify "should have a nice text representation" <|
+            s1 = HTTP_Status_Code.ok
+            s1.code . should_equal 200
+            s1.to_text . should_equal "200 OK"
+            s1.to_display_text . should_equal "OK"
+
+            s2 = HTTP_Status_Code.not_found
+            s2.code . should_equal 404
+            s2.to_text . should_equal "404 Not Found"
+            s2.to_display_text . should_equal "Not Found"
 
     Test.group "HTTP client" pending=pending_has_url <|
         Test.specify "should create HTTP client with timeout setting" <|
@@ -68,7 +83,6 @@ spec =
             http.version.should_equal version_setting
 
     Test.group "fetch" pending=pending_has_url <|
-        base_url_with_slash = if base_url.ends_with "/" then base_url else base_url + "/"
         url_get = base_url_with_slash + "get"
         url_head = base_url_with_slash + "head"
         url_options = base_url_with_slash + "options"
@@ -85,13 +99,13 @@ spec =
                     "Content-Length": "0"
                   },
                   "origin": "127.0.0.1",
-                  "url": "",
+                  "path": "/get",
                   "method": "GET",
                   "args": {}
                 }
             response . should_equal expected_response
 
-            uri_response = url_get.to_uri.fetch
+            uri_response = url_get.to URI . fetch
             uri_response . should_equal expected_response
 
         Test.specify "Can perform a HEAD" <|
@@ -116,6 +130,9 @@ spec =
             response = Data.fetch url_get
             response.at "headers" . at "Content-Length" . should_equal "0"
 
+            uri_response = url_get.to_uri.fetch
+            uri_response.at "headers" . at "Content-Length" . should_equal "0"
+
         Test.specify "Can skip auto-parse" <|
             response = Data.fetch url_get try_auto_parse_response=False
             response.code.code . should_equal 200
@@ -129,7 +146,7 @@ spec =
                     "Content-Length": "0"
                   },
                   "origin": "127.0.0.1",
-                  "url": "",
+                  "path": "/get",
                   "method": "GET",
                   "args": {}
                 }
@@ -147,11 +164,11 @@ spec =
 
         Test.specify "Unsupported method" <|
             err = Data.fetch url_get method=HTTP_Method.Post
-            err.catch.should_equal (Illegal_Argument.Error "Unsupported method Post")
+            err.catch.should_equal (Illegal_Argument.Error "Unsupported method POST")
 
         Test.specify "Cannot DELETE through fetch" <|
             err = Data.fetch url_get method=HTTP_Method.Delete
-            err.catch.should_equal (Illegal_Argument.Error "Unsupported method Delete")
+            err.catch.should_equal (Illegal_Argument.Error "Unsupported method DELETE")
 
         Test.specify "unknown host" <|
             Data.fetch "http://undefined_host.invalid" . should_fail_with Request_Error
@@ -160,8 +177,19 @@ spec =
             Data.fetch "zxcv://bad.scheme" . should_fail_with Request_Error
             Data.fetch "" . should_fail_with Request_Error
 
+        Test.specify "can select the version" <|
+            req = Request.get url_get
+            r2 = HTTP.new version=HTTP_Version.HTTP_2 . request req . decode_as_json
+            r2.at "headers" . at "Connection" . should_equal "Upgrade, HTTP2-Settings"
+            r2.at "headers" . at "Http2-Settings" . should_contain "AA"
+
+            r1 = HTTP.new version=HTTP_Version.HTTP_1_1 . request req . decode_as_json
+            header_names = r1.at "headers" . field_names . map (s-> s.to_case Case.Lower)
+            header_names.should_not_contain "connection"
+            header_names.should_not_contain "http2-settings"
+            header_names.should_not_contain "upgrade"
+
     Test.group "post" pending=pending_has_url <|
-        base_url_with_slash = if base_url.ends_with "/" then base_url else base_url + "/"
         url_post = base_url_with_slash + "post"
         url_put = base_url_with_slash + "put"
         url_patch = base_url_with_slash + "patch"
@@ -169,24 +197,7 @@ spec =
 
         Test.specify "Can perform a Request_Body.Text POST" <|
             response = Data.post url_post (Request_Body.Text "hello world")
-            expected_response = Json.parse <| '''
-                {
-                  "headers": {
-                    "Connection": "Upgrade, HTTP2-Settings",
-                    "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
-                    "User-Agent": "Java-http-client/21.0.1",
-                    "Upgrade": "h2c",
-                    "Content-Type": "text/plain; charset=UTF-8",
-                    "Content-Length": "11"
-                  },
-                  "origin": "127.0.0.1",
-                  "url": "",
-                  "method": "POST",
-                  "form": null,
-                  "files": null,
-                  "data": "hello world",
-                  "args": {}
-                }
+            expected_response = echo_response_template "POST" "/post" "hello world" content_type="text/plain; charset=UTF-8"
             response . should_equal expected_response
 
             url_response = url_post.to_uri.post (Request_Body.Text "hello world")
@@ -195,92 +206,27 @@ spec =
         Test.specify "Can perform a Request_Body.Json JSON POST" <|
             json = Json.parse '{"a": "asdf", "b": 123}'
             response = Data.post url_post (Request_Body.Json json)
-            expected_response = Json.parse <| '''
-                {
-                  "headers": {
-                    "Connection": "Upgrade, HTTP2-Settings",
-                    "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
-                    "User-Agent": "Java-http-client/21.0.1",
-                    "Upgrade": "h2c",
-                    "Content-Type": "application/json",
-                    "Content-Length": "20"
-                  },
-                  "origin": "127.0.0.1",
-                  "url": "",
-                  "method": "POST",
-                  "form": null,
-                  "files": null,
-                  "data": "{\\"a\\":\\"asdf\\",\\"b\\":123}",
-                  "args": {}
-                }
+            expected_response = echo_response_template "POST" "/post" '{"a":"asdf","b":123}' content_type="application/json"
             response . should_equal expected_response
 
         Test.specify "Can perform a JSON POST" <|
             json = Json.parse '{"a": "asdf", "b": 123}'
             response = Data.post url_post json
-            expected_response = Json.parse <| '''
-                {
-                  "headers": {
-                    "Connection": "Upgrade, HTTP2-Settings",
-                    "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
-                    "User-Agent": "Java-http-client/21.0.1",
-                    "Upgrade": "h2c",
-                    "Content-Type": "application/json",
-                    "Content-Length": "20"
-                  },
-                  "origin": "127.0.0.1",
-                  "url": "",
-                  "method": "POST",
-                  "form": null,
-                  "files": null,
-                  "data": "{\\"a\\":\\"asdf\\",\\"b\\":123}",
-                  "args": {}
-                }
+            expected_response = echo_response_template "POST" "/post" '{"a":"asdf","b":123}' content_type="application/json"
             response . should_equal expected_response
 
         Test.specify "Can perform an object Request_Body.Json POST" <|
             response = Data.post url_post (Request_Body.Json (Test_Type.Aaa "abc"))
-            expected_response = Json.parse <| '''
-                {
-                  "headers": {
-                    "Connection": "Upgrade, HTTP2-Settings",
-                    "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
-                    "User-Agent": "Java-http-client/21.0.1",
-                    "Upgrade": "h2c",
-                    "Content-Type": "application/json",
-                    "Content-Length": "50"
-                  },
-                  "origin": "127.0.0.1",
-                  "url": "",
-                  "method": "POST",
-                  "form": null,
-                  "files": null,
-                  "data": "{\\"type\\":\\"Test_Type\\",\\"constructor\\":\\"Aaa\\",\\"s\\":\\"abc\\"}",
-                  "args": {}
-                }
+            expected_response = echo_response_template "POST" "/post" '{"type":"Test_Type","constructor":"Aaa","s":"abc"}' content_type="application/json"
             response . should_equal expected_response
 
         Test.specify "Can perform an object JSON POST" <|
             response = Data.post url_post (Test_Type.Bbb 12)
-            expected_response = Json.parse <| '''
-                {
-                  "headers": {
-                    "Connection": "Upgrade, HTTP2-Settings",
-                    "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
-                    "User-Agent": "Java-http-client/21.0.1",
-                    "Upgrade": "h2c",
-                    "Content-Type": "application/json",
-                    "Content-Length": "47"
-                  },
-                  "origin": "127.0.0.1",
-                  "url": "",
-                  "method": "POST",
-                  "form": null,
-                  "files": null,
-                  "data": "{\\"type\\":\\"Test_Type\\",\\"constructor\\":\\"Bbb\\",\\"i\\":12}",
-                  "args": {}
-                }
+            expected_response = echo_response_template "POST" "/post" '{"type":"Test_Type","constructor":"Bbb","i":12}' content_type="application/json"
             response . should_equal expected_response
+
+            uri_response = url_post.to_uri.post (Test_Type.Bbb 12)
+            uri_response . should_equal expected_response
 
         Test.specify "can handle a bad .to_json" <|
             Data.post url_post (Bad_To_Json.Aaa "abcd") . should_fail_with Illegal_Argument
@@ -288,46 +234,16 @@ spec =
         Test.specify "Can perform a Text POST with explicit encoding" <|
             body = Request_Body.Text 'Hello World!' encoding=Encoding.utf_16_le
             response = Data.post url_post body
-            expected_response = Json.parse <| '''
-                {
-                  "headers": {
-                    "Connection": "Upgrade, HTTP2-Settings",
-                    "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
-                    "User-Agent": "Java-http-client/21.0.1",
-                    "Upgrade": "h2c",
-                    "Content-Type": "text/plain; charset=UTF-16LE",
-                    "Content-Length": "24"
-                  },
-                  "origin": "127.0.0.1",
-                  "url": "",
-                  "method": "POST",
-                  "form": null,
-                  "files": null,
-                  "data": "Hello World!",
-                  "args": {}
-                }
+            expected_response = echo_response_template "POST" "/post" "Hello World!" content_type="text/plain; charset=UTF-16LE" content_length=24
             response . should_equal expected_response
+
+            uri_response = url_post.to_uri.post body
+            uri_response . should_equal expected_response
 
         Test.specify "Can perform a Text POST with explicit content type" <|
             response = Data.post url_post (Request_Body.Text 'a,b,c\n' content_type="text/csv")
-            expected_response = Json.parse <| '''
-                {
-                  "headers": {
-                    "Connection": "Upgrade, HTTP2-Settings",
-                    "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
-                    "User-Agent": "Java-http-client/21.0.1",
-                    "Upgrade": "h2c",
-                    "Content-Type": "text/csv; charset=UTF-8",
-                    "Content-Length": "6"
-                  },
-                  "origin": "127.0.0.1",
-                  "url": "",
-                  "method": "POST",
-                  "form": null,
-                  "files": null,
-                  "data": "a,b,c\\n",
-                  "args": {}
-                }
+
+            expected_response = echo_response_template "POST" "/post" 'a,b,c\n' content_type="text/csv; charset=UTF-8"
             response . should_equal expected_response
 
         Test.specify "Can perform a File POST" <|
@@ -341,6 +257,7 @@ spec =
             test_file = enso_project.data / "sample.png"
             response = Data.post url_post (Request_Body.Binary test_file)
             response.at "headers" . at "Content-Type" . should_equal "application/octet-stream"
+            response.at "headers" . at "Content-Length" . should_equal test_file.size.to_text
             response.at "data" . should_start_with '\uFFFDPNG'
 
         Test.specify "Can perform a url-encoded form POST" <|
@@ -367,68 +284,17 @@ spec =
 
         Test.specify "Can perform a Text POST with auto-conversion" <|
             response = Data.post url_post "hello world"
-            expected_response = Json.parse <| '''
-                {
-                  "headers": {
-                    "Connection": "Upgrade, HTTP2-Settings",
-                    "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
-                    "User-Agent": "Java-http-client/21.0.1",
-                    "Upgrade": "h2c",
-                    "Content-Type": "text/plain; charset=UTF-8",
-                    "Content-Length": "11"
-                  },
-                  "origin": "127.0.0.1",
-                  "url": "",
-                  "method": "POST",
-                  "form": null,
-                  "files": null,
-                  "data": "hello world",
-                  "args": {}
-                }
+            expected_response = echo_response_template "POST" "/post" "hello world" content_type="text/plain; charset=UTF-8"
             response . should_equal expected_response
 
         Test.specify "Can perform a Request_Body.Text PUT" <|
             response = Data.post url_put (Request_Body.Text "hello world") method=HTTP_Method.Put
-            expected_response = Json.parse <| '''
-                {
-                  "headers": {
-                    "Connection": "Upgrade, HTTP2-Settings",
-                    "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
-                    "User-Agent": "Java-http-client/21.0.1",
-                    "Upgrade": "h2c",
-                    "Content-Type": "text/plain; charset=UTF-8",
-                    "Content-Length": "11"
-                  },
-                  "origin": "127.0.0.1",
-                  "url": "",
-                  "method": "PUT",
-                  "form": null,
-                  "files": null,
-                  "data": "hello world",
-                  "args": {}
-                }
+            expected_response = echo_response_template "PUT" "/put" "hello world" content_type="text/plain; charset=UTF-8"
             response . should_equal expected_response
 
         Test.specify "Can perform a Request_Body.Text PATCH" <|
             response = Data.post url_patch (Request_Body.Text "hello world" content_type="application/diff") method=HTTP_Method.Patch
-            expected_response = Json.parse <| '''
-                {
-                  "headers": {
-                    "Connection": "Upgrade, HTTP2-Settings",
-                    "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
-                    "User-Agent": "Java-http-client/21.0.1",
-                    "Upgrade": "h2c",
-                    "Content-Type": "application/diff; charset=UTF-8",
-                    "Content-Length": "11"
-                  },
-                  "origin": "127.0.0.1",
-                  "url": "",
-                  "method": "PATCH",
-                  "form": null,
-                  "files": null,
-                  "data": "hello world",
-                  "args": {}
-                }
+            expected_response = echo_response_template "PATCH" "/patch" "hello world" content_type="application/diff; charset=UTF-8"
             response . should_equal expected_response
 
         Test.specify "Can perform a DELETE" <|
@@ -443,7 +309,7 @@ spec =
                     "Content-Length": "0"
                   },
                   "origin": "127.0.0.1",
-                  "url": "",
+                  "path": "/delete",
                   "method": "DELETE",
                   "form": null,
                   "files": null,
@@ -454,28 +320,11 @@ spec =
 
         Test.specify "Can skip auto-parse" <|
             response = Data.post url_post (Request_Body.Text "hello world") try_auto_parse_response=False
-            expected_response = Json.parse <| '''
-                {
-                  "headers": {
-                    "Connection": "Upgrade, HTTP2-Settings",
-                    "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
-                    "User-Agent": "Java-http-client/21.0.1",
-                    "Upgrade": "h2c",
-                    "Content-Type": "text/plain; charset=UTF-8",
-                    "Content-Length": "11"
-                  },
-                  "origin": "127.0.0.1",
-                  "url": "",
-                  "method": "POST",
-                  "form": null,
-                  "files": null,
-                  "data": "hello world",
-                  "args": {}
-                }
+            expected_response = echo_response_template "POST" "/post" "hello world" content_type="text/plain; charset=UTF-8"
             response.decode_as_json . should_equal expected_response
 
         Test.specify "Can send a custom header" <|
-            response = Data.post url_post (Request_Body.Text "hello world") headers=[Header.new "Custom" "asdf"]
+            response = Data.post url_post (Request_Body.Text "hello world") headers=[Header.new "Custom" "asdf", Header.new "Another" 'a:b: c - "ddd"']
             expected_response = Json.parse <| '''
                 {
                   "headers": {
@@ -485,10 +334,11 @@ spec =
                     "Upgrade": "h2c",
                     "Content-Type": "text/plain; charset=UTF-8",
                     "Content-Length": "11",
-                    "Custom": "asdf"
+                    "Custom": "asdf",
+                    "Another": "a:b: c - \\"ddd\\""
                   },
                   "origin": "127.0.0.1",
-                  "url": "",
+                  "path": "/post",
                   "method": "POST",
                   "form": null,
                   "files": null,
@@ -496,6 +346,37 @@ spec =
                   "args": {}
                 }
             response . should_equal expected_response
+
+        Test.specify "can handle HTTP errors" <|
+            # This should give us 405 method not allowed
+            r1 = Data.post url_delete
+            r1.should_fail_with HTTP_Error
+            r1.catch.should_be_a HTTP_Error.Status_Error
+            r1.catch.status_code.code . should_equal 405
+            r1.catch.to_display_text . should_contain "status 405"
+
+            uri2 = URI.from (base_url_with_slash + "some/unknown/path")
+            r2 = Data.post uri2
+            r2.should_fail_with HTTP_Error
+            r2.catch.should_be_a HTTP_Error.Status_Error
+            r2.catch.status_code.code . should_equal 404
+            r2.catch.message . should_contain "<h1>404 Not Found</h1>"
+            r2.catch.uri . should_equal uri2
+
+            r3 = HTTP.new.request (Request.new (HTTP_Method.Custom "BREW_COFFEE") (base_url_with_slash + "get"))
+            r3.should_fail_with HTTP_Error
+            r3.catch.should_be_a HTTP_Error.Status_Error
+            r3.catch.status_code.code . should_equal 400
+
+            # Also test the URI_With_Query variant
+            uri4 = uri2.add_query_argument "a" "b" . add_query_argument "c" "d"
+            uri4.should_be_a URI_With_Query
+            r4 = uri4.fetch
+            r4.should_fail_with HTTP_Error
+            r4.catch.should_be_a HTTP_Error.Status_Error
+            r4.catch.status_code.code . should_equal 404
+            # The error may not necessarily store the URI_With_Query but a raw URI:
+            r4.catch.uri . should_equal (URI.from uri4)
 
         Test.specify "Cannot perform POST when output context is disabled" <|
             Context.Output.with_disabled <|
@@ -510,7 +391,10 @@ spec =
 
         Test.specify "Unsupported method" <|
             err = Data.post url_post (Request_Body.Text "hello world") method=HTTP_Method.Get
-            err.catch.should_equal (Illegal_Argument.Error "Unsupported method Get")
+            err.catch.should_equal (Illegal_Argument.Error "Unsupported method GET")
+
+            err2 = Data.post url_post (Request_Body.Text "hello world") method=(HTTP_Method.Custom "BREW_COFFEE")
+            err2.catch.should_equal (Illegal_Argument.Error "Unsupported method Custom: BREW_COFFEE")
 
         Test.specify "unknown host" <|
             Data.post "http://undefined_host.invalid" (Request_Body.Text "hello world") . should_fail_with Request_Error
@@ -520,7 +404,6 @@ spec =
             Data.post url_post (Request_Body.Binary test_file) . should_fail_with Request_Error
 
     Test.group "Headers" pending=pending_has_url <|
-        base_url_with_slash = if base_url.ends_with "/" then base_url else base_url + "/"
         url_post = base_url_with_slash + "post"
 
         Test.specify "Content-type in the body is respected" <|
@@ -536,7 +419,7 @@ spec =
                     "Content-Length": "23"
                   },
                   "origin": "127.0.0.1",
-                  "url": "",
+                  "path": "/post",
                   "method": "POST",
                   "form": null,
                   "files": null,
@@ -558,7 +441,7 @@ spec =
                     "Content-Length": "23"
                   },
                   "origin": "127.0.0.1",
-                  "url": "",
+                  "path": "/post",
                   "method": "POST",
                   "form": null,
                   "files": null,
@@ -569,6 +452,8 @@ spec =
 
         Test.specify "Multiple content types in the header list are respected" <|
             response = Data.post url_post (Request_Body.Text '{"a": "asdf", "b": 123}') headers=[Header.content_type "application/json", Header.content_type "text/plain"]
+            ## Our simple-httpbin server gets 2 Content-Type headers and merges them in the response.
+               How this is interpreted in practice depends on the server.
             expected_response = Json.parse <| '''
                 {
                   "headers": {
@@ -576,11 +461,11 @@ spec =
                     "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
                     "User-Agent": "Java-http-client/21.0.1",
                     "Upgrade": "h2c",
-                    "Content-Type": "application/json",
+                    "Content-Type": "application/json, text/plain",
                     "Content-Length": "23"
                   },
                   "origin": "127.0.0.1",
-                  "url": "",
+                  "path": "/post",
                   "method": "POST",
                   "form": null,
                   "files": null,
@@ -602,7 +487,7 @@ spec =
                     "Content-Length": "23"
                   },
                   "origin": "127.0.0.1",
-                  "url": "",
+                  "path": "/post",
                   "method": "POST",
                   "form": null,
                   "files": null,
@@ -616,6 +501,30 @@ spec =
 
         Test.specify "Cannot specify content type (implicitly via explicit text encoding) in both body and headers" <|
             Data.post url_post (Request_Body.Text "hello world" encoding=Encoding.utf_8) headers=[Header.content_type "application/json"] . should_fail_with Illegal_Argument
+
+        Test.specify "can also read headers from a response, when returning a raw response" <|
+            r1 = Data.post url_post (Request_Body.Text "hello world") try_auto_parse_response=False
+            r1.should_be_a Response
+            # The result is JSON data:
+            r1.headers.find (p-> p.name.equals_ignore_case "Content-Type") . value . should_equal "application/json"
+
+            uri = URI.from (base_url_with_slash + "test_headers")
+                . add_query_argument "test-header" "test-value"
+                . add_query_argument "Other-Header" "some other value"
+            r2 = Data.fetch uri try_auto_parse_response=False
+            r2.should_be_a Response
+            r2.headers.find (p-> p.name.equals_ignore_case "Test-Header") . value . should_equal "test-value"
+            r2.headers.find (p-> p.name.equals_ignore_case "Other-Header") . value . should_equal "some other value"
+
+        Test.specify "is capable of handling aliasing headers" <|
+            uri = URI.from (base_url_with_slash + "test_headers")
+                . add_query_argument "my-header" "value-1"
+                . add_query_argument "my-header" "value-2"
+                . add_query_argument "my-header" "value-44"
+            r1 = Data.fetch uri try_auto_parse_response=False
+            r1.should_be_a Response
+            my_headers = r1.headers.filter (p-> p.name.equals_ignore_case "my-header") . map .value
+            my_headers.sort . should_equal ["value-1", "value-2", "value-44"]
 
     Test.group "Header resolution" <|
         Test.specify "Default content type and encoding" <|
@@ -645,4 +554,97 @@ spec =
             expected = [Header.content_type "application/json", Header.content_type "text/plain"]
             resolve_headers (Request.new HTTP_Method.Get "" [Header.content_type "application/json", Header.content_type "text/plain"] (Request_Body.Text "")) . should_contain_the_same_elements_as expected
 
+    Test.group "Http Error handling" <|
+        Test.specify "should be able to handle request errors" <|
+            err = Data.fetch "http://0.0.0.0:1/"
+            err.should_fail_with Request_Error
+
+        ## Checking this error partially as a warning - I spent a lot of time debugging why I'm getting such an error.
+           Apparently it happens when the httpbin server was crashing without sending any response.
+        Test.specify "should be able to handle server crash resulting in no response" <|
+            err = Data.fetch (base_url_with_slash+"crash")
+            err.should_fail_with Request_Error
+            err.catch.error_type . should_equal "java.io.IOException"
+            ## TODO I'm wondering if we should detect this particular error and add some explanation to it -
+               i.e. "The server did not send back any data."
+               I think it may be worth adding, because it may be really quite confusing for end users who get that kind of error.
+            err.catch.message . should_equal "HTTP/1.1 header parser received no bytes"
+
+        Test.specify "should be able to handle IO errors" pending="TODO: Currently I was unable to figure out a way to test such errors" <|
+            # how to trigger this error???
+            err = Data.fetch "TODO"
+            err.should_fail_with HTTP_Error
+
+    Test.group "Http Auth" <|
+        Test.specify "should support Basic user+password authentication" <|
+            url = base_url_with_slash + "test_basic_auth"
+
+            # Correct user and password
+            r1 = Data.fetch url headers=[Header.authorization_basic "enso-test-user" "my secret password: 1234@#; ść + 😎"]
+            r1.should_succeed
+            r1.should_be_a Text
+            r1.should_equal "Authorization successful, welcome enso-test-user!"
+
+            # No auth data
+            r2 = Data.fetch url
+            r2.should_fail_with HTTP_Error
+            r2.catch.status_code.code . should_equal 401
+
+            # Incorrect credentials
+            r3 = Data.fetch url headers=[Header.authorization_basic "other user" "1234"]
+            r3.should_fail_with HTTP_Error
+            r3.catch.status_code.code . should_equal 403
+
+            # Correct user, incorrect password
+            r4 = Data.fetch url headers=[Header.authorization_basic "enso-test-user" "1234"]
+            r4.should_fail_with HTTP_Error
+            r4.catch.status_code.code . should_equal 403
+
+        Test.specify "should support Bearer token authentication" <|
+            url = base_url_with_slash + "test_token_auth"
+
+            # Correct token
+            r1 = Data.fetch url headers=[Header.authorization_bearer "deadbeef-coffee-1234"]
+            r1.should_succeed
+            r1.should_be_a Text
+            r1.should_equal "Authorization successful."
+
+            # No auth data
+            r2 = Data.fetch url
+            r2.should_fail_with HTTP_Error
+            r2.catch.status_code.code . should_equal 401
+
+            # Invalid token
+            r3 = Data.fetch url headers=[Header.authorization_bearer "invalid-token"]
+            r3.should_fail_with HTTP_Error
+            r3.catch.status_code.code . should_equal 403
+
 main = Test_Suite.run_main spec
+
+echo_response_template method path data content_type content_length=data.length =
+    template = '''
+        {
+          "headers": {
+            "Connection": "Upgrade, HTTP2-Settings",
+            "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
+            "User-Agent": "Java-http-client/21.0.1",
+            "Upgrade": "h2c",
+            "Content-Type": "<$CONTENT_TYPE>",
+            "Content-Length": "<$CONTENT_LENGTH>"
+          },
+          "origin": "127.0.0.1",
+          "path": "<$PATH>",
+          "method": "<$METHOD>",
+          "form": null,
+          "files": null,
+          "data": <$DATA>,
+          "args": {}
+        }
+
+    replaced = template
+        . replace "<$CONTENT_TYPE>" content_type
+        . replace "<$CONTENT_LENGTH>" content_length.to_text
+        . replace "<$METHOD>" method
+        . replace "<$PATH>" path
+        . replace "<$DATA>" data.to_json
+    Json.parse replaced

@@ -1,6 +1,8 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
-
+import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.interop.InvalidArrayIndexException;
+import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
@@ -10,18 +12,13 @@ import org.enso.interpreter.runtime.data.vector.ArrayLikeAtNode;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeLengthNode;
 import org.enso.interpreter.runtime.error.PanicException;
 
-import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.interop.InvalidArrayIndexException;
-import com.oracle.truffle.api.nodes.Node;
-
 @BuiltinMethod(
     type = "Meta",
     name = "instrumentor_builtin",
     description = "Handles instrumentation operations.",
     autoRegister = false)
 public class InstrumentorBuiltin extends Node {
-  @Child
-  private ArrayLikeAtNode atNode = ArrayLikeAtNode.create();
+  @Child private ArrayLikeAtNode atNode = ArrayLikeAtNode.create();
 
   Object execute(Text operation, Object args) {
     var ctx = EnsoContext.get(this);
@@ -29,14 +26,15 @@ public class InstrumentorBuiltin extends Node {
     try {
       Object ret = "newBuilder".equals(op) ? newBuilder(ctx, atNode.executeAt(args, 0)) : null;
       if (atNode.executeAt(args, 0) instanceof Instrumentor b) {
-        ret = switch (op) {
-          case "onEnter" -> onEnter(b, atNode.executeAt(args, 1));
-          case "onReturn" -> onReturn(b, atNode.executeAt(args, 1), atNode.executeAt(args, 2));
-          case "onCall" -> onCall(b, atNode.executeAt(args, 1));
-          case "activate" -> activate(b, atNode.executeAt(args, 1));
-          case "deactivate" -> b.deactivate();
-          default -> null;
-        };
+        ret =
+            switch (op) {
+              case "onEnter" -> onEnter(b, atNode.executeAt(args, 1));
+              case "onReturn" -> onReturn(b, atNode.executeAt(args, 1), atNode.executeAt(args, 2));
+              case "onCall" -> onCall(b, atNode.executeAt(args, 1));
+              case "activate" -> activate(b, atNode.executeAt(args, 1));
+              case "deactivate" -> b.deactivate();
+              default -> null;
+            };
       }
       if (ret == null) {
         var err = ctx.getBuiltins().error().makeUnimplemented(operation.toString());
@@ -58,7 +56,8 @@ public class InstrumentorBuiltin extends Node {
       if (fnAndType != null) {
         var service = ctx.getIdValueExtractor();
         if (service != null) {
-          return new Instrumentor(symbol.getScope().getModule(), service, fnAndType.getLeft().getCallTarget());
+          return new Instrumentor(
+              symbol.getScope().getModule(), service, fnAndType.getLeft().getCallTarget());
         }
       }
     }

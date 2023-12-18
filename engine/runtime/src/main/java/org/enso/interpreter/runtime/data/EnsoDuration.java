@@ -69,7 +69,8 @@ public final class EnsoDuration implements EnsoObject {
   @Builtin.Method(
       name = "between_builtin",
       description =
-          "Construct a new Duration that is between the given start date inclusive, and end date exclusive",
+          "Construct a new Duration that is between the given start date inclusive, and end date"
+              + " exclusive",
       autoRegister = false)
   @Builtin.Specialize
   @TruffleBoundary
