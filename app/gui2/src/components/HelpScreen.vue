@@ -143,9 +143,8 @@ const sections = computed(() => {
   flex-flow: column;
   align-items: center;
   font-family: var(--font-sans);
-  font-size: 14px;
   overflow: scroll;
-  color: #000000c9;
+  color: var(--color-primary);
 }
 
 .help-container {
@@ -155,10 +154,10 @@ const sections = computed(() => {
 
 .title-container {
   font-weight: bold;
-  padding: 8px 12px;
-  font-size: 16px;
+  padding: 4px 10px;
+  font-size: 13px;
   color: white;
-  background: #d5461e;
+  background: lch(60% 100 60);
   border-radius: 9999px;
   max-width: 800px;
 }
@@ -166,14 +165,14 @@ const sections = computed(() => {
 .section {
   margin-top: 16px;
   padding: 8px;
-  border: 3px solid #000000c9;
-  border-radius: 18px;
+  background: var(--color-frame-bg);
+  border-radius: var(--radius-default);
   max-width: 800px;
 }
 
 .section-title {
   font-weight: bold;
-  font-size: 16px;
+  font-size: 13px;
   margin-bottom: 6px;
   margin-left: 2px;
 }
@@ -187,13 +186,13 @@ const sections = computed(() => {
   padding-top: 20px;
   border-collapse: collapse;
 
-  th {
-    text-align: left;
-    padding: 8px;
+  th,
+  td {
+    padding: 4px 6px;
   }
 
-  td {
-    padding: 8px;
+  th {
+    text-align: left;
   }
 
   tr:nth-child(odd) > td {

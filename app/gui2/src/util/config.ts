@@ -1,10 +1,9 @@
 /** @file Configuration options for an application. */
 import CONFIG from '@/config.json' assert { type: 'json' }
-import * as version from '@/util/version'
 
 export type ApplicationConfig = typeof baseConfig
 export type ApplicationConfigValue = ConfigValue<typeof baseConfig>
-export const baseConfig = loadConfig(CONFIG, { Version: version })
+export const baseConfig = loadConfig(CONFIG)
 
 const STRING_TO_BOOLEAN: Record<string, boolean> = {
   true: true,
@@ -44,7 +43,6 @@ export interface RawOption {
   description?: string
   defaultDescription?: string
   value: OptionValue
-  valueEval?: string | undefined
   primary?: boolean
 }
 
@@ -79,22 +77,12 @@ export interface Config<T = Required<RawConfig>> {
     : {}
 }
 
-function loadOption<T>(option: T, scope: Record<string, any> = {}): Option<T> {
+function loadOption<T>(option: T): Option<T> {
   const obj = (typeof option !== 'object' || option == null ? {} : option) as Record<
     string,
     unknown
   >
-  let value = obj.value ?? ''
-  if (typeof obj.valueEval === 'string') {
-    const newValue = new Function('scope', 'return ' + obj.valueEval)(scope)
-    if (typeof newValue === typeof value) {
-      value = newValue
-    } else {
-      console.error(
-        `The value of eval option '${obj.valueEval}' did not resolve to '${typeof value}'.`,
-      )
-    }
-  }
+  const value = obj.value ?? ''
   return {
     description: String(obj.description ?? ''),
     defaultDescription: obj.defaultDescription != null ? String(obj.defaultDescription) : undefined,
@@ -109,30 +97,26 @@ function loadOption<T>(option: T, scope: Record<string, any> = {}): Option<T> {
   } satisfies Option<RawOption> as any
 }
 
-function loadGroup<T>(group: T, scope: Record<string, any> = {}): Group<T> {
+function loadGroup<T>(group: T): Group<T> {
   const obj = (typeof group !== 'object' || group == null ? {} : group) as Record<string, unknown>
   return {
-    ...loadConfig(group, scope),
+    ...loadConfig(group),
     description: String(obj.description ?? ''),
   } satisfies Group<RawGroup> as any
 }
 
-export function loadConfig<T>(config: T, scope: Record<string, any> = {}): Config<T> {
+export function loadConfig<T>(config: T): Config<T> {
   if (typeof config !== 'object' || config == null) {
     return { options: {}, groups: {} } satisfies Config as any
   }
   return {
     options:
       'options' in config && typeof config.options === 'object' && config.options != null
-        ? Object.fromEntries(
-            Object.entries(config.options).map(([k, v]) => [k, loadOption(v, scope)]),
-          )
+        ? Object.fromEntries(Object.entries(config.options).map(([k, v]) => [k, loadOption(v)]))
         : {},
     groups:
       'groups' in config && typeof config.groups === 'object' && config.groups != null
-        ? Object.fromEntries(
-            Object.entries(config.groups).map(([k, v]) => [k, loadGroup(v, scope)]),
-          )
+        ? Object.fromEntries(Object.entries(config.groups).map(([k, v]) => [k, loadGroup(v)]))
         : {},
   } satisfies Config as any
 }
