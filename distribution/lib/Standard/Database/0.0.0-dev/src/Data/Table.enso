@@ -1419,9 +1419,6 @@ type Table
         _ = [lookup_table, key_columns, add_new_columns, allow_unmatched_rows, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "Table.merge is not implemented yet for the Database backends.")
 
-
-
-
     ## ALIAS join by row position
        GROUP Standard.Base.Calculations
        ICON dataframes_join
