@@ -114,9 +114,7 @@ useEvent(window, 'keydown', (event) => {
 })
 useEvent(window, 'pointerdown', interactionBindingsHandler, { capture: true })
 
-onMounted(() => {
-  viewportNode.value?.focus()
-})
+onMounted(() => viewportNode.value?.focus())
 
 const graphBindingsHandler = graphBindings.handler({
   undo() {
