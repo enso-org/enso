@@ -62,7 +62,10 @@ type Warning
        Gets all the warnings attached to the given value.
        Limits the number of warnings return to `EnsoContext.getWarningsLimit()`.
     get_all : Any -> Vector Warning
-    get_all value = Vector.from_polyglot_array (get_all_array value)
+    get_all value =
+        case value of
+            _ : Vector -> get_all_from_vector value
+            _ -> Vector.from_polyglot_array (get_all_array value)
 
     _get_all value =
         warnings = Warning.get_all_value value
@@ -386,6 +389,22 @@ attach_with_stacktrace value warning origin = @Builtin_Method "Warning.attach_wi
    Builtin function that gets all the warnings attached to the given value.
 get_all_array : Any -> Array Warning
 get_all_array value = @Builtin_Method "Warning.get_all_array"
+
+## PRIVATE
+
+   Builtin function that gets all the warnings attached to the elements of the given vector.
+get_all_from_vector_elements : Any -> Array Warning
+get_all_from_vector_elements  value = @Builtin_Method "Warning.get_all_from_vector_elements"
+
+## PRIVATE
+
+   Get warnings from a Vector. The warnings attached to individual elements are
+   wrapped in Map_Error.
+get_all_from_vector : Vector -> Vector Warning
+get_all_from_vector v =
+    from_elements = get_all_from_vector_elements v
+    direct = Vector.from_polyglot_array (get_all_array v)
+    from_elements + direct
 
 ## PRIVATE
 
