@@ -387,6 +387,13 @@ type Number
         _ -> False
 
     ## GROUP Math
+       Checks if the given number is finite, i.e. not infinite nor NaN.
+    is_finite : Boolean
+    is_finite self = case self of
+        _ : Float -> (Double.isInfinite self).not && (Double.isNaN self).not
+        _ -> True
+
+    ## GROUP Math
        Returns the sign of the number.
     signum : Integer
     signum self =

@@ -1,7 +1,7 @@
 import { defineKeybinds } from '@/util/shortcuts'
 
 export const codeEditorBindings = defineKeybinds('code-editor', {
-  toggle: ['`'],
+  toggle: ['Mod+`'],
 })
 
 export const interactionBindings = defineKeybinds('current-interaction', {
@@ -34,6 +34,8 @@ export const graphBindings = defineKeybinds('graph-editor', {
   collapse: ['Mod+G'],
   startProfiling: ['Mod+Alt+,'],
   stopProfiling: ['Mod+Alt+.'],
+  enterNode: ['Mod+E'],
+  exitNode: ['Mod+Shift+E'],
 })
 
 export const selectionMouseBindings = defineKeybinds('selection', {

@@ -18,7 +18,7 @@ const props = defineProps<{ data: unknown }>()
 
 <style scoped>
 .JSONVisualization {
-  font-family: 'DejaVu Sans Mono', monospace;
+  font-family: var(--font-mono);
   white-space: pre;
   padding: 8px;
 }

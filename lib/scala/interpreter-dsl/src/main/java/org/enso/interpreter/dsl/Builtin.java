@@ -37,13 +37,19 @@ import java.lang.annotation.*;
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.SOURCE)
 public @interface Builtin {
-  /** @return the name of the subpackage for the generated method node. */
+  /**
+   * @return the name of the subpackage for the generated method node.
+   */
   String pkg() default "";
 
-  /** @return A fully qualified name of the corresponding Enso type in standard library. */
+  /**
+   * @return A fully qualified name of the corresponding Enso type in standard library.
+   */
   String stdlibName() default "";
 
-  /** @return A custom name of the builtin type * */
+  /**
+   * @return A custom name of the builtin type *
+   */
   String name() default "";
 
   /**
@@ -116,7 +122,9 @@ public @interface Builtin {
      */
     String name() default "";
 
-    /** @return a short description for the generated builtin method. */
+    /**
+     * @return a short description for the generated builtin method.
+     */
     String description() default "";
 
     /**
@@ -248,8 +256,11 @@ public @interface Builtin {
    */
   @Repeatable(WrapExceptions.class)
   @interface WrapException {
-    /** @return Class of the potential exception to be caught during the execution of the method. */
+    /**
+     * @return Class of the potential exception to be caught during the execution of the method.
+     */
     Class<? extends Exception> from();
+
     /**
      * @return Class of Enso's builtin (error) type to throw instead. If omitted, will default to
      *     PanicException.

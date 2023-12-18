@@ -260,7 +260,7 @@ type Bench
         stddev_fmt = time_stddev.format "#.###"
         IO.println <| phase_name + " duration:    " + (phase_duration.total_milliseconds.format "#.##") + " ms"
         IO.println <| phase_name + " invocations: " + invocations.to_text
-        IO.println <| phase_name + " avg time:    " + avg_fmt + " ms (+-" + stddev_fmt + "))"
+        IO.println <| phase_name + " avg time:    " + avg_fmt + " ms (+-" + stddev_fmt + ")"
 
         case get_benchmark_report_path of
             Nothing -> Nothing

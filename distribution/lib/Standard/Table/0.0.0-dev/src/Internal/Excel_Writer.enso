@@ -1,6 +1,9 @@
 from Standard.Base import all
+import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
+import Standard.Base.Runtime.Context
+import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 
 import project.Data.Match_Columns.Match_Columns
 import project.Data.Table.Table
@@ -9,23 +12,27 @@ import project.Excel.Excel_Section.Excel_Section
 import project.Internal.Excel_Reader
 from project.Errors import Column_Count_Mismatch, Column_Name_Mismatch, Existing_Data, Invalid_Location, Range_Exceeded
 
+polyglot java import java.io.File as Java_File
 polyglot java import java.lang.IllegalStateException
+polyglot java import org.apache.poi.ss.usermodel.Workbook
+polyglot java import org.enso.base.DryRunFileManager
 polyglot java import org.enso.table.error.ExistingDataException
 polyglot java import org.enso.table.error.InvalidLocationException
 polyglot java import org.enso.table.error.RangeExceededException
+polyglot java import org.enso.table.excel.ExcelConnectionPool
+polyglot java import org.enso.table.excel.ExcelFileFormat
 polyglot java import org.enso.table.read.ExcelReader
 polyglot java import org.enso.table.write.ExcelWriter
 polyglot java import org.enso.table.write.ExistingDataMode
+polyglot java import org.enso.table.write.ExistingFileBehavior
 
 ## PRIVATE
-make_java_existing_data_mode : Existing_File_Behavior -> Match_Columns -> ExistingDataMode
-make_java_existing_data_mode on_existing_file match_columns = case on_existing_file of
-    Existing_File_Behavior.Error -> ExistingDataMode.ERROR
-    Existing_File_Behavior.Overwrite -> ExistingDataMode.REPLACE
-    Existing_File_Behavior.Backup -> ExistingDataMode.REPLACE
-    Existing_File_Behavior.Append -> case match_columns of
-        Match_Columns.By_Name -> ExistingDataMode.APPEND_BY_NAME
-        Match_Columns.By_Position -> ExistingDataMode.APPEND_BY_INDEX
+make_java_existing_file_behavior : Existing_File_Behavior -> ExistingFileBehavior
+make_java_existing_file_behavior on_existing_file = case on_existing_file of
+    Existing_File_Behavior.Error     -> ExistingFileBehavior.ERROR
+    Existing_File_Behavior.Overwrite -> ExistingFileBehavior.OVERWRITE
+    Existing_File_Behavior.Backup    -> ExistingFileBehavior.BACKUP
+    Existing_File_Behavior.Append    -> ExistingFileBehavior.APPEND
 
 ## PRIVATE
    Writes a Table to an Excel file.
@@ -44,31 +51,81 @@ make_java_existing_data_mode on_existing_file match_columns = case on_existing_f
    - xls_format: If `true`, the file is written in the legacy XLS format.
      Otherwise, the file is written in the modern XLSX format.
 write_file : File -> Table -> Existing_File_Behavior -> Excel_Section -> (Boolean|Infer) -> Match_Columns -> Problem_Behavior -> Boolean -> File
-write_file file table on_existing_file section headers match_columns on_problems xls_format=False =
-    _ = [on_problems]
-    ## If file does not exist or is empty then create a new workbook.
-    workbook = if file.exists.not || (file.size == 0) then ExcelWriter.createWorkbook xls_format else
-        Excel_Reader.handle_reader file stream->(ExcelReader.getWorkbook stream xls_format)
+write_file (file : File) (table : Table) (on_existing_file : Existing_File_Behavior) (section : Excel_Section) (headers : Boolean|Infer) (match_columns:Match_Columns) (on_problems:Problem_Behavior) (xls_format:Boolean) =
+    _ = on_problems
+    if (on_existing_file == Existing_File_Behavior.Error) && file.exists then Error.throw (File_Error.Already_Exists file) else
+        java_file = file_as_java file
+        file_format = if xls_format then ExcelFileFormat.XLS else ExcelFileFormat.XLSX
 
+        ExcelWriter.setEnsoToTextCallbackIfUnset (.to_text)
+        modification_strategy = prepare_file_modification_strategy table section headers on_existing_file match_columns
+        is_dry_run = Context.Output.is_enabled.not
+
+        modification_strategy.if_not_error <| Panic.recover File_Error <| File_Error.handle_java_exceptions file <| handle_writer <|
+            possible_backup_file = if on_existing_file == Existing_File_Behavior.Backup then file_as_java (find_bak_file file) else Nothing
+            possible_dry_run_file = if is_dry_run.not then Nothing else
+                preexisting_dry_run_file = DryRunFileManager.preExistingTemporaryFile file.absolute.normalize.path
+                preexisting_dry_run_file.if_not_nothing <|
+                    Java_File.new preexisting_dry_run_file
+            accompanying_files = [possible_backup_file, possible_dry_run_file].filter (!= Nothing) . filter (!= java_file)
+
+            ExcelConnectionPool.INSTANCE.lockForWriting java_file file_format accompanying_files write_helper-> Context.Output.with_enabled <|
+                temp_file = if is_dry_run then file.create_dry_run_file copy_original=False else
+                    find_temp_file file
+
+                ## We 'sync' the temp_file to reflect the original target file - if it exists we copy the contents, if the source
+                   doesn't exist we also ensure that the temp file is not polluted with data from previous (dry-run) writes.
+                Panic.rethrow <|
+                    if file.exists then (file.copy_to temp_file replace_existing=True) else (temp_file.delete_if_exists)
+                write_helper.writeWorkbook (file_as_java temp_file) modification_strategy
+                result_file = if is_dry_run then temp_file else
+                    needs_backup = on_existing_file == Existing_File_Behavior.Backup
+                    if needs_backup && file.exists then
+                        backup_file = find_bak_file file
+                        ## We can move instead of copying because right in next line we will overwrite the original file
+                          anyway. And move should be more efficient.
+                        Panic.rethrow <| file.move_to backup_file replace_existing=True
+
+                    Panic.rethrow <| temp_file.move_to file replace_existing=True
+                    file
+                result_file
+
+## PRIVATE
+find_temp_file : File -> File
+find_temp_file base_file =
+    parent = base_file.absolute.normalize.parent
+    name = base_file.name
+    go i =
+        temp_file = parent / (name + ".temp." + System.nano_time.to_text)
+        if temp_file.exists then go (i + 1) else temp_file
+    go 0
+
+## PRIVATE
+find_bak_file : File -> File
+find_bak_file base_file =
+    parent = base_file.absolute.normalize.parent
+    parent / (base_file.name + ".bak")
+
+## PRIVATE
+file_as_java : File -> Java_File
+file_as_java file =
+    Java_File.new file.absolute.normalize.path
+
+## PRIVATE
+prepare_file_modification_strategy : Table -> Excel_Section -> Boolean|Infer -> Existing_File_Behavior -> Match_Columns -> (Workbook -> Nothing)
+prepare_file_modification_strategy table section headers on_existing_file match_columns =
     existing_data_mode = make_java_existing_data_mode on_existing_file match_columns
     java_headers = Excel_Reader.make_java_headers headers
-    ExcelWriter.setEnsoToTextCallbackIfUnset (.to_text)
-    result = handle_writer <| case section of
+    case section of
         Excel_Section.Worksheet sheet skip_rows row_limit ->
-            ExcelWriter.writeTableToSheet workbook sheet existing_data_mode skip_rows table.java_table row_limit java_headers
-        Excel_Section.Cell_Range address skip_rows row_limit -> case address of
-            Excel_Range.Value java_range -> ExcelWriter.writeTableToRange workbook java_range existing_data_mode skip_rows table.java_table row_limit java_headers
-            _ : Text -> ExcelWriter.writeTableToRange workbook address existing_data_mode skip_rows table.java_table row_limit java_headers
-        _ : Excel_Section -> Error.throw (Illegal_Argument.Error "Only a Worksheet or Cell_Range is allowed in write_file")
-
-    if result.is_error then result else
-        write_stream stream = stream.with_java_stream java_stream->
-            workbook.write java_stream
-        case on_existing_file of
-            Existing_File_Behavior.Append ->
-                ## Special handling - have successfully added the extra sheet/range so now overwrite file with backup.
-                Existing_File_Behavior.Backup.write file write_stream
-            _ -> on_existing_file.write file write_stream
+            workbook_to_modify->
+                ExcelWriter.writeTableToSheet workbook_to_modify sheet existing_data_mode skip_rows table.java_table row_limit java_headers
+        Excel_Section.Cell_Range address skip_rows row_limit ->
+            java_range = case address of
+                Excel_Range.Value java_range -> java_range
+                text : Text -> text
+            workbook_to_modify->
+                ExcelWriter.writeTableToRange workbook_to_modify java_range existing_data_mode skip_rows table.java_table row_limit java_headers
 
 ## PRIVATE
    Handle and map the Java errors when writing an Excel file
@@ -90,3 +147,13 @@ handle_writer ~writer =
         Column_Count_Mismatch.handle_java_exception <| handle_bad_location <|
             Illegal_Argument.handle_java_exception <| handle_range_exceeded <| handle_existing_data <|
                 writer
+
+## PRIVATE
+make_java_existing_data_mode : Existing_File_Behavior -> Match_Columns -> ExistingDataMode
+make_java_existing_data_mode on_existing_file match_columns = case on_existing_file of
+    Existing_File_Behavior.Error -> ExistingDataMode.ERROR
+    Existing_File_Behavior.Overwrite -> ExistingDataMode.REPLACE
+    Existing_File_Behavior.Backup -> ExistingDataMode.REPLACE
+    Existing_File_Behavior.Append -> case match_columns of
+        Match_Columns.By_Name -> ExistingDataMode.APPEND_BY_NAME
+        Match_Columns.By_Position -> ExistingDataMode.APPEND_BY_INDEX

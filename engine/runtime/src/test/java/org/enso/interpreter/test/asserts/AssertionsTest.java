@@ -28,7 +28,6 @@ public class AssertionsTest extends TestBase {
 
   private static final ByteArrayOutputStream out = new ByteArrayOutputStream();
 
-
   @BeforeClass
   public static void setupCtx() {
     ctx =
@@ -51,14 +50,19 @@ public class AssertionsTest extends TestBase {
 
   @Test
   public void assertionsAreEnabled() {
-    EnsoContext ensoCtx = ctx.getBindings(LanguageInfo.ID).invokeMember(MethodNames.TopScope.LEAK_CONTEXT).asHostObject();
+    EnsoContext ensoCtx =
+        ctx.getBindings(LanguageInfo.ID)
+            .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
+            .asHostObject();
     assertTrue(ensoCtx.isAssertionsEnabled());
   }
 
   @Test
   public void simpleAssertionFailureWithMessage() {
     try {
-      TestBase.evalModule(ctx, """
+      TestBase.evalModule(
+          ctx,
+          """
       from Standard.Base import False, Runtime
       main = Runtime.assert False
       """);
@@ -71,25 +75,26 @@ public class AssertionsTest extends TestBase {
   @Test
   public void assertionFailureDisplaysMessage() {
     try {
-      TestBase.evalModule(ctx, """
+      TestBase.evalModule(
+          ctx,
+          """
       from Standard.Base import False, Runtime
       main = Runtime.assert False 'My fail message'
       """);
       fail("Should throw Assertion_Error");
     } catch (PolyglotException e) {
-      assertThat(e.getMessage(),
-          allOf(
-              containsString("Assertion Error"),
-              containsString("My fail message")
-          )
-      );
+      assertThat(
+          e.getMessage(),
+          allOf(containsString("Assertion Error"), containsString("My fail message")));
     }
   }
 
   @Test
   public void assertionFailureDisplaysStackTrace() {
     try {
-      TestBase.evalModule(ctx, """
+      TestBase.evalModule(
+          ctx,
+          """
       from Standard.Base import False, Runtime
       foo = Runtime.assert False 'My fail message'
       main = foo
@@ -106,7 +111,10 @@ public class AssertionsTest extends TestBase {
 
   @Test
   public void assertionSuccessReturnsNothing() {
-    Value res = TestBase.evalModule(ctx, """
+    Value res =
+        TestBase.evalModule(
+            ctx,
+            """
       from Standard.Base import Runtime, True
       main = Runtime.assert True
       """);
@@ -116,7 +124,9 @@ public class AssertionsTest extends TestBase {
   @Test
   public void assertChecksTypeOfReturnValue() {
     try {
-      TestBase.evalModule(ctx, """
+      TestBase.evalModule(
+          ctx,
+          """
         from Standard.Base import Runtime
         main = Runtime.assert [1,2,3]
         """);
@@ -128,10 +138,13 @@ public class AssertionsTest extends TestBase {
 
   @Test
   public void actionInAssertIsComputedWhenAssertionsAreEnabled() {
-    Value res = TestBase.evalModule(ctx, """
+    Value res =
+        TestBase.evalModule(
+            ctx,
+            """
 from Standard.Base import Runtime
 import Standard.Base.Runtime.Ref.Ref
-    
+
 main =
     ref = Ref.new 10
     Runtime.assert (ref.put 23 . is_nothing . not)

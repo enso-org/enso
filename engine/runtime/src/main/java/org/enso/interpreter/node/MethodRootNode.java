@@ -1,22 +1,20 @@
 package org.enso.interpreter.node;
 
-import java.util.function.Supplier;
-
-import org.enso.compiler.core.CompilerError;
-import org.enso.compiler.context.LocalScope;
-import org.enso.interpreter.EnsoLanguage;
-import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.interpreter.runtime.scope.ModuleScope;
-
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.source.SourceSection;
+import java.util.function.Supplier;
+import org.enso.compiler.context.LocalScope;
+import org.enso.compiler.core.CompilerError;
+import org.enso.interpreter.EnsoLanguage;
+import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.scope.ModuleScope;
 
 @ReportPolymorphism
 @NodeInfo(shortName = "Method", description = "A root node for Enso methods.")
@@ -33,12 +31,15 @@ public class MethodRootNode extends ClosureRootNode {
       SourceSection section,
       Type type,
       String methodName) {
-    super(language,
+    super(
+        language,
         localScope,
         moduleScope,
         body,
         section,
-        shortName(type.getName(), methodName), null, false);
+        shortName(type.getName(), methodName),
+        null,
+        false);
     this.type = type;
     this.methodName = methodName;
   }
@@ -68,13 +69,7 @@ public class MethodRootNode extends ClosureRootNode {
       Type type,
       String methodName) {
     return build(
-        language,
-        localScope,
-        moduleScope,
-        new LazyBodyNode(body),
-        section,
-        type,
-        methodName);
+        language, localScope, moduleScope, new LazyBodyNode(body), section, type, methodName);
   }
 
   public static MethodRootNode build(
@@ -85,8 +80,7 @@ public class MethodRootNode extends ClosureRootNode {
       SourceSection section,
       Type type,
       String methodName) {
-    return new MethodRootNode(
-        language, localScope, moduleScope, body, section, type, methodName);
+    return new MethodRootNode(language, localScope, moduleScope, body, section, type, methodName);
   }
 
   /**
@@ -105,12 +99,16 @@ public class MethodRootNode extends ClosureRootNode {
         + methodName;
   }
 
-  /** @return the constructor this method was defined for */
+  /**
+   * @return the constructor this method was defined for
+   */
   public Type getType() {
     return type;
   }
 
-  /** @return the method name */
+  /**
+   * @return the method name
+   */
   public String getMethodName() {
     return methodName;
   }
@@ -160,6 +158,7 @@ public class MethodRootNode extends ClosureRootNode {
       }
     }
   }
+
   public boolean isSubjectToInstrumentation() {
     return true;
   }

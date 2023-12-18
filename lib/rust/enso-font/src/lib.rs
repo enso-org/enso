@@ -3,6 +3,7 @@
 
 // === Features ===
 #![feature(let_chains)]
+#![feature(default_free_fn)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -36,9 +37,9 @@ pub use owned_ttf_parser as ttf;
 // =================
 
 /// The name of the Enso font family.
-pub const ENSO_FONT_FAMILY_NAME: &str = "enso";
+pub const FONT_FAMILY: &str = "enso";
 
-const ENSO_FONT_FAMILY_FONTS: &[(&str, ttf::Weight)] = &[
+const FONTS: &[(&str, ttf::Weight)] = &[
     ("Black", ttf::Weight::Black),
     ("Bold", ttf::Weight::Bold),
     ("ExtraBold", ttf::Weight::ExtraBold),
@@ -67,9 +68,9 @@ pub mod feature {
 // === Enso Font ===
 // =================
 
-/// Returns the Enso Font.
-pub fn enso_font() -> NonVariableDefinition {
-    ENSO_FONT_FAMILY_FONTS
+/// The Enso Font.
+pub fn font() -> NonVariableDefinition {
+    FONTS
         .iter()
         .map(|(name, weight)| {
             let file = format!("Enso-{name}.ttf");
@@ -83,13 +84,30 @@ pub fn enso_font() -> NonVariableDefinition {
         .collect()
 }
 
+/// All font faces contained in this font.
+pub fn faces() -> [NonVariableFaceHeader; 9] {
+    [
+        NonVariableFaceHeader { weight: ttf::Weight::Thin, ..default() },
+        NonVariableFaceHeader { weight: ttf::Weight::ExtraLight, ..default() },
+        NonVariableFaceHeader { weight: ttf::Weight::Light, ..default() },
+        NonVariableFaceHeader { weight: ttf::Weight::Normal, ..default() },
+        NonVariableFaceHeader { weight: ttf::Weight::Medium, ..default() },
+        NonVariableFaceHeader { weight: ttf::Weight::SemiBold, ..default() },
+        NonVariableFaceHeader { weight: ttf::Weight::Bold, ..default() },
+        NonVariableFaceHeader { weight: ttf::Weight::ExtraBold, ..default() },
+        NonVariableFaceHeader { weight: ttf::Weight::Black, ..default() },
+    ]
+}
+
 /// Extract the fonts from the given archive file, and write them in the given directory.
-#[context("Failed to extract fonts from archive: {}", package.as_ref().display())]
+#[context("Failed to extract fonts from archive {}", package.as_ref().display())]
 pub async fn extract_fonts(
     fonts: &NonVariableDefinition,
     package: impl AsRef<Path>,
     out_dir: impl AsRef<Path>,
 ) -> Result {
+    use ide_ci::archive::extract_files::ExtractFiles;
+    ide_ci::fs::tokio::create_dir_if_missing(out_dir.as_ref()).await?;
     let mut files_expected: HashSet<_> = fonts.files().collect();
     ide_ci::archive::tar::Archive::open_tar_gz(&package)
         .await?

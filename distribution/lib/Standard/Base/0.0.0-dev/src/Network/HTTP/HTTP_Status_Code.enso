@@ -1,5 +1,7 @@
 import project.Data.Boolean.Boolean
+import project.Data.Numbers.Integer
 import project.Data.Text.Text
+from project.Data.Text.Extensions import all
 
 type HTTP_Status_Code
     ## 100 Continue.
@@ -166,11 +168,18 @@ type HTTP_Status_Code
 
        Arguments:
        - code: The numeric representation of the code.
-    Value code
+    Value code:Integer
 
     ## Does the status code represent a successful response?
     is_success : Boolean
     is_success self = self.code >= 200 && self.code < 300
+
+    ## PRIVATE
+    to_text : Text
+    to_text self =
+        text_repr = self.to_display_text
+        if text_repr.starts_with "HTTP Status Code" then text_repr else
+            self.code.to_text + " " + text_repr
 
     ## PRIVATE
        Convert to a display representation of this HTTP_Status_Code.

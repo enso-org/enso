@@ -10,6 +10,7 @@ import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Meta
 import project.Network.HTTP.Header.Header
 import project.Network.HTTP.HTTP
+import project.Network.HTTP.HTTP_Error.HTTP_Error
 import project.Network.HTTP.HTTP_Method.HTTP_Method
 import project.Network.HTTP.Request.Request
 import project.Network.HTTP.Request_Body.Request_Body
@@ -176,10 +177,14 @@ list_directory directory name_filter=Nothing recursive=False =
          import Standard.Base.Data
          file = enso_project.data / "spreadsheet.xls"
          Data.fetch URL . body . to_file file
-fetch : (URI | URI_With_Query | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
+fetch : (URI | URI_With_Query | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any ! Request_Error | HTTP_Error
 fetch (uri:(URI | URI_With_Query | Text)) (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (Header | Pair Text Text))=[]) (try_auto_parse_response:Boolean=True) =
     response = HTTP.fetch uri method headers
     if try_auto_parse_response.not then response.with_materialized_body else
+        ## We cannot catch decoding errors here and fall-back to the raw response
+           body, because as soon as decoding is started, at least part of the
+           input stream may already be consumed, so we cannot easily reconstruct
+           the whole stream.
         response.decode if_unsupported=response.with_materialized_body
 
 ## ALIAS http post, upload
@@ -300,7 +305,7 @@ fetch (uri:(URI | URI_With_Query | Text)) (method:HTTP_Method=HTTP_Method.Get) (
          test_file = enso_project.data / "sample.txt"
          form_data = Map.from_vector [["key", "val"], ["a_file", test_file]]
          response = Data.post url_post (Request_Body.Form_Data form_data url_encoded=True)
-post : (URI | URI_With_Query | Text) -> Request_Body -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
+post : (URI | URI_With_Query | Text) -> Request_Body -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any ! Request_Error | HTTP_Error
 post (uri:(URI | URI_With_Query | Text)) (body:Request_Body=Request_Body.Empty) (method:HTTP_Method=HTTP_Method.Post) (headers:(Vector (Header | Pair Text Text))=[]) (try_auto_parse_response:Boolean=True) =
     response = HTTP.post uri body method headers
     if try_auto_parse_response.not then response.with_materialized_body else

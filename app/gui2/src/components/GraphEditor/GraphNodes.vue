@@ -7,9 +7,9 @@ import { injectGraphSelection } from '@/providers/graphSelection'
 import type { UploadingFile as File, FileName } from '@/stores/awareness'
 import { useGraphStore } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
-import type { Vec2 } from '@/util/vec2'
+import type { Vec2 } from '@/util/data/vec2'
 import { stackItemsEqual } from 'shared/languageServerTypes'
-import type { ContentRange, ExprId } from 'shared/yjsModel'
+import type { ExprId } from 'shared/yjsModel'
 import { computed, toRaw } from 'vue'
 
 const projectStore = useProjectStore()
@@ -20,15 +20,8 @@ const navigator = injectGraphNavigator(true)
 
 const emit = defineEmits<{
   nodeOutputPortDoubleClick: [portId: ExprId]
+  nodeDoubleClick: [nodeId: ExprId]
 }>()
-
-function updateNodeContent(id: ExprId, updates: [ContentRange, string][]) {
-  graphStore.transact(() => {
-    for (const [range, content] of updates) {
-      graphStore.replaceNodeSubexpression(id, range, content)
-    }
-  })
-}
 
 function nodeIsDragged(movedId: ExprId, offset: Vec2) {
   const scaledOffset = offset.scale(1 / (navigator?.scale ?? 1))
@@ -41,7 +34,7 @@ function hoverNode(id: ExprId | undefined) {
 
 const uploadingFiles = computed<[FileName, File][]>(() => {
   const currentStackItem = projectStore.executionContext.getStackTop()
-  return [...projectStore.awareness.allUploads()].filter(([_name, file]) =>
+  return [...projectStore.awareness.allUploads()].filter(([, file]) =>
     stackItemsEqual(file.stackItem, toRaw(currentStackItem)),
   )
 })
@@ -53,14 +46,13 @@ const uploadingFiles = computed<[FileName, File][]>(() => {
     :key="id"
     :node="node"
     :edited="id === graphStore.editedNodeInfo?.id"
-    @delete="graphStore.deleteNode(id)"
     @pointerenter="hoverNode(id)"
     @pointerleave="hoverNode(undefined)"
     @dragging="nodeIsDragged(id, $event)"
     @draggingCommited="dragging.finishDrag()"
-    @outputPortClick="graphStore.createEdgeFromOutput"
+    @outputPortClick="graphStore.createEdgeFromOutput($event)"
     @outputPortDoubleClick="emit('nodeOutputPortDoubleClick', $event)"
-    @update:content="updateNodeContent(id, $event)"
+    @doubleClick="emit('nodeDoubleClick', id)"
     @update:edited="graphStore.setEditedNode(id, $event)"
     @update:rect="graphStore.updateNodeRect(id, $event)"
     @update:visualizationId="graphStore.setNodeVisualizationId(id, $event)"

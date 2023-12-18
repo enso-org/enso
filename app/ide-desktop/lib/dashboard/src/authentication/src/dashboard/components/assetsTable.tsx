@@ -165,7 +165,8 @@ export interface AssetsTableState {
     doToggleDirectoryExpansion: (
         directoryId: backendModule.DirectoryId,
         key: backendModule.AssetId,
-        title?: string
+        title?: string | null,
+        override?: boolean
     ) => void
     /** Called when the project is opened via the `ProjectActionButton`. */
     doOpenManually: (projectId: backendModule.ProjectId) => void
@@ -670,9 +671,21 @@ export default function AssetsTable(props: AssetsTableProps) {
         new Map<backendModule.DirectoryId, AbortController>()
     )
     const doToggleDirectoryExpansion = React.useCallback(
-        (directoryId: backendModule.DirectoryId, key: backendModule.AssetId, title?: string) => {
+        (
+            directoryId: backendModule.DirectoryId,
+            key: backendModule.AssetId,
+            title?: string | null,
+            override?: boolean
+        ) => {
             const directory = nodeMapRef.current.get(key)
-            if (directory?.children != null) {
+            const isExpanded = directory?.children != null
+            const shouldExpand = override ?? !isExpanded
+            if (shouldExpand === isExpanded) {
+                // This is fine, as this is near the top of a very long function.
+                // eslint-disable-next-line no-restricted-syntax
+                return
+            }
+            if (!shouldExpand) {
                 const abortController = directoryListAbortControllersRef.current.get(directoryId)
                 if (abortController != null) {
                     abortController.abort()
@@ -1512,12 +1525,15 @@ export default function AssetsTable(props: AssetsTableProps) {
                                     }
                                 }
                                 const shouldAdd = labelsPresent * 2 < ids.size * payload.size
-                                dispatchAssetEvent({
-                                    type: shouldAdd
-                                        ? assetEventModule.AssetEventType.temporarilyAddLabels
-                                        : assetEventModule.AssetEventType.temporarilyRemoveLabels,
-                                    ids,
-                                    labelNames: payload,
+                                window.setTimeout(() => {
+                                    dispatchAssetEvent({
+                                        type: shouldAdd
+                                            ? assetEventModule.AssetEventType.temporarilyAddLabels
+                                            : assetEventModule.AssetEventType
+                                                  .temporarilyRemoveLabels,
+                                        ids,
+                                        labelNames: payload,
+                                    })
                                 })
                             }
                             return oldSelectedKeys
@@ -1525,10 +1541,12 @@ export default function AssetsTable(props: AssetsTableProps) {
                     }}
                     onRowDragEnd={() => {
                         setSelectedKeys(oldSelectedKeys => {
-                            dispatchAssetEvent({
-                                type: assetEventModule.AssetEventType.temporarilyAddLabels,
-                                ids: oldSelectedKeys,
-                                labelNames: set.EMPTY,
+                            window.setTimeout(() => {
+                                dispatchAssetEvent({
+                                    type: assetEventModule.AssetEventType.temporarilyAddLabels,
+                                    ids: oldSelectedKeys,
+                                    labelNames: set.EMPTY,
+                                })
                             })
                             return oldSelectedKeys
                         })
@@ -1552,18 +1570,22 @@ export default function AssetsTable(props: AssetsTableProps) {
                                     }
                                 }
                                 const shouldAdd = labelsPresent * 2 < ids.size * payload.size
-                                dispatchAssetEvent({
-                                    type: shouldAdd
-                                        ? assetEventModule.AssetEventType.addLabels
-                                        : assetEventModule.AssetEventType.removeLabels,
-                                    ids,
-                                    labelNames: payload,
+                                window.setTimeout(() => {
+                                    dispatchAssetEvent({
+                                        type: shouldAdd
+                                            ? assetEventModule.AssetEventType.addLabels
+                                            : assetEventModule.AssetEventType.removeLabels,
+                                        ids,
+                                        labelNames: payload,
+                                    })
                                 })
                             } else {
-                                dispatchAssetEvent({
-                                    type: assetEventModule.AssetEventType.temporarilyAddLabels,
-                                    ids,
-                                    labelNames: set.EMPTY,
+                                window.setTimeout(() => {
+                                    dispatchAssetEvent({
+                                        type: assetEventModule.AssetEventType.temporarilyAddLabels,
+                                        ids,
+                                        labelNames: set.EMPTY,
+                                    })
                                 })
                             }
                             return oldSelectedKeys
@@ -1577,7 +1599,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                             !event.currentTarget.contains(event.relatedTarget)
                         ) {
                             setSelectedKeys(oldSelectedKeys => {
-                                queueMicrotask(() => {
+                                window.setTimeout(() => {
                                     dispatchAssetEvent({
                                         type: assetEventModule.AssetEventType.temporarilyAddLabels,
                                         ids: oldSelectedKeys,
