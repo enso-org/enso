@@ -53,7 +53,7 @@ object Warning {
   }
 
   /** A warning raised when a method is defined with a `self` parameter defined
-    * not in the first position in the parameters' list.`
+    * not in the first position in the parameters' list.
     *
     * @param ir            the annotated application
     * @param paramPosition the reason why the annotation cannot be obeyed
