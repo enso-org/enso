@@ -3,12 +3,6 @@ package org.enso.interpreter.test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.TruffleObject;
-import com.oracle.truffle.api.interop.UnsupportedMessageException;
-import com.oracle.truffle.api.library.ExportLibrary;
-import com.oracle.truffle.api.library.ExportMessage;
-
 import java.math.BigInteger;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -17,7 +11,6 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
-
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
 import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
 import org.enso.interpreter.node.expression.builtin.meta.EqualsNodeGen;
@@ -121,7 +114,8 @@ public class EqualsTest extends TestBase {
           Object uncachedRes = EqualsNodeGen.getUncached().execute(firstVal, secondVal);
           Object cachedRes = equalsNode.execute(firstVal, secondVal);
           assertEquals(
-              "Result from uncached EqualsNode should be the same as result from its cached variant",
+              "Result from uncached EqualsNode should be the same as result from its cached"
+                  + " variant",
               uncachedRes,
               cachedRes);
           return null;
@@ -272,13 +266,17 @@ public class EqualsTest extends TestBase {
 
   @Test
   public void testTruffleNumberPlus() {
-    var plus100 = context.eval("enso", """
+    var plus100 =
+        context
+            .eval("enso", """
     plus100 x = 100+x
-    """).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "plus100");
+    """)
+            .invokeMember(MethodNames.Module.EVAL_EXPRESSION, "plus100");
     assertTrue("plus100 can be executed", plus100.canExecute());
     var foreignNumber = context.asValue(new WrappedPrimitive(42));
     var hundred42 = unwrapValue(context, plus100.execute(foreignNumber));
-    executeInContext(context,
+    executeInContext(
+        context,
         () -> {
           assertTrue(equalsNode.execute(142L, hundred42));
           assertTrue(equalsNode.execute(hundred42, 142L));

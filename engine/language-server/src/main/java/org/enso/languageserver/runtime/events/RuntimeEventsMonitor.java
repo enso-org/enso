@@ -8,7 +8,6 @@ import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.XMLFormatter;
-
 import org.enso.languageserver.runtime.RuntimeConnector;
 import org.enso.polyglot.runtime.Runtime;
 import org.enso.polyglot.runtime.Runtime$Api$Request;
@@ -55,9 +54,7 @@ public final class RuntimeEventsMonitor implements EventsMonitor {
     this(out, Clock.systemUTC());
   }
 
-  /**
-   * Direction of the message.
-   */
+  /** Direction of the message. */
   private enum Direction {
     REQUEST,
     RESPONSE

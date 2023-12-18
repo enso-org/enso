@@ -85,7 +85,7 @@ case object GenerateMethodBodies extends IRPass {
     * @return `ir` potentially with alterations to ensure that it's in the
     *         correct format
     */
-  def processMethodDef(
+  private def processMethodDef(
     ir: definition.Method
   ): definition.Method = {
     ir match {
@@ -123,10 +123,9 @@ case object GenerateMethodBodies extends IRPass {
     *
     * @param fun the body function
     * @param funName a name of the function being processed
-    * @param moduleName a name of the module that is being processed
     * @return the body function with the `self` argument
     */
-  def processBodyFunction(
+  private def processBodyFunction(
     fun: Function,
     funName: Name
   ): Expression = {
@@ -138,7 +137,13 @@ case object GenerateMethodBodies extends IRPass {
 
     selfArgs match {
       case _ :: (redefined, _) :: _ =>
-        errors.Redefined.SelfArg(location = redefined.location)
+        val errorBody = errors.Redefined.SelfArg(location = redefined.location)
+        fun match {
+          case functionBinding: Function.Binding =>
+            functionBinding.copy(body = errorBody)
+          case functionLambda: Function.Lambda =>
+            functionLambda.copy(body = errorBody)
+        }
       case (_, parameterPosition) :: Nil =>
         fun match {
           case lam @ Function.Lambda(_ :: _, _, _, _, _, _)
@@ -239,7 +244,7 @@ case object GenerateMethodBodies extends IRPass {
     * @param expr the body expression
     * @return `expr` converted to a function taking the `self` argument
     */
-  def processBodyExpression(
+  private def processBodyExpression(
     expr: Expression,
     funName: Name
   ): Expression = {
@@ -256,7 +261,7 @@ case object GenerateMethodBodies extends IRPass {
     *
     * @return the `self` argument
     */
-  def genSyntheticSelf(): DefinitionArgument.Specified = {
+  private def genSyntheticSelf(): DefinitionArgument.Specified = {
     DefinitionArgument.Specified(
       Name.Self(None, synthetic = true),
       None,

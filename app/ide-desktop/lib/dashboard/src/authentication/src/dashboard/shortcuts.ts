@@ -498,8 +498,8 @@ const DEFAULT_KEYBOARD_SHORTCUT_INFO: Record<KeyboardAction, ShortcutInfo> = {
     [KeyboardAction.closeModal]: { name: 'Close', icon: BlankIcon },
     [KeyboardAction.cancelEditName]: { name: 'Cancel Editing', icon: BlankIcon },
     [KeyboardAction.changeYourPassword]: { name: 'Change Your Password', icon: ChangePasswordIcon },
-    [KeyboardAction.signIn]: { name: 'Sign In', icon: SignInIcon },
-    [KeyboardAction.signOut]: { name: 'Sign Out', icon: SignOutIcon, colorClass: 'text-delete' },
+    [KeyboardAction.signIn]: { name: 'Login', icon: SignInIcon },
+    [KeyboardAction.signOut]: { name: 'Logout', icon: SignOutIcon, colorClass: 'text-delete' },
     [KeyboardAction.downloadApp]: { name: 'Download App', icon: AppDownloadIcon },
     [KeyboardAction.cancelCut]: { name: 'Cancel Cut', icon: BlankIcon },
 }

@@ -19,7 +19,7 @@ public class JsInteropTest extends TestBase {
     ctx = createDefaultContext(out);
     out.reset();
   }
-  
+
   @After
   public void disposeCtx() {
     ctx.close();
@@ -27,7 +27,8 @@ public class JsInteropTest extends TestBase {
 
   @Test
   public void testDefaultJSPrint() {
-    var src = """
+    var src =
+        """
       from Standard.Base import Json
 
       main =

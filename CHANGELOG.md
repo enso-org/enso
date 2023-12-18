@@ -595,6 +595,8 @@
 - [Initial Enso Cloud APIs.][8006]
 - [Errors thrown inside `map` are wrapped in `Map_Error`.][8307]
 - [Support for loading big Excel files.][8403]
+- [Added new `Filter_Condition`s - `Equal_Ignore_Case`, `Is_Nan`, `Is_Infinite`
+  and `Is_Finite`.][8539]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -852,6 +854,7 @@
 [8235]: https://github.com/enso-org/enso/pull/8235
 [8307]: https://github.com/enso-org/enso/pull/8307
 [8403]: https://github.com/enso-org/enso/pull/8403
+[8539]: https://github.com/enso-org/enso/pull/8539
 
 #### Enso Compiler
 

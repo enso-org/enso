@@ -38,8 +38,8 @@ public class ProblemAggregator {
   protected void checkNotFinished() {
     if (isFinished) {
       throw new IllegalStateException(
-          "This ProblemAggregator instance has already been summarized. Using "
-              + "ProblemAggregator after it has been summarized is a bug, because the problems will be lost.");
+          "This ProblemAggregator instance has already been summarized. Using ProblemAggregator"
+              + " after it has been summarized is a bug, because the problems will be lost.");
     }
   }
 

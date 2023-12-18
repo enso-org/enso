@@ -19,7 +19,9 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 public class BenchRunner {
   public static final File REPORT_FILE = new File("./bench-report.xml");
 
-  /** @return A list of qualified names of all benchmarks visible to JMH. */
+  /**
+   * @return A list of qualified names of all benchmarks visible to JMH.
+   */
   public List<String> getAvailable() {
     return BenchmarkList.defaultList().getAll(null, new ArrayList<>()).stream()
         .map(BenchmarkListEntry::getUsername)

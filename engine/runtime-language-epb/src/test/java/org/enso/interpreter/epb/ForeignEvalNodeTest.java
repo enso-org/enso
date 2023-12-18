@@ -1,16 +1,14 @@
 package org.enso.interpreter.epb;
 
-import java.util.Collections;
-
-import org.junit.Test;
 import static org.junit.Assert.*;
 
 import com.oracle.truffle.api.source.Source;
+import java.util.Collections;
+import org.junit.Test;
 
 public class ForeignEvalNodeTest {
 
-  public ForeignEvalNodeTest() {
-  }
+  public ForeignEvalNodeTest() {}
 
   @Test
   public void sourceWithoutHash() throws Exception {

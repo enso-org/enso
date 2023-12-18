@@ -1,16 +1,15 @@
 package org.enso.interpreter.node.expression.builtin;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.IntStream;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.scope.ModuleScope;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.IntStream;
 
 /** A base class for all classes annotated with @BuiltinType */
 public abstract class Builtin {
@@ -20,8 +19,10 @@ public abstract class Builtin {
     }
 
     private AtomConstructor build(EnsoLanguage language, ModuleScope scope, Type type) {
-      var res = new AtomConstructor(name, scope, type,true);
-      res.initializeFields(language, IntStream.range(0, params.size())
+      var res = new AtomConstructor(name, scope, type, true);
+      res.initializeFields(
+          language,
+          IntStream.range(0, params.size())
               .mapToObj(
                   i ->
                       new ArgumentDefinition(
@@ -35,7 +36,6 @@ public abstract class Builtin {
 
   public Builtin() {
     name = this.getClass().getSimpleName().replaceAll("([^_A-Z])([A-Z])", "$1_$2");
-
   }
 
   private @CompilerDirectives.CompilationFinal Type type;
@@ -49,7 +49,8 @@ public abstract class Builtin {
     return List.of();
   }
 
-  public final void initialize(EnsoLanguage language, ModuleScope scope, Map<Class<? extends Builtin>, Builtin> builtins) {
+  public final void initialize(
+      EnsoLanguage language, ModuleScope scope, Map<Class<? extends Builtin>, Builtin> builtins) {
     if (type == null) {
       Type supertype = null;
       if (getSuperType() != null) {
@@ -57,9 +58,10 @@ public abstract class Builtin {
         s.initialize(language, scope, builtins);
         supertype = s.getType();
       }
-      type = containsValues() ?
-          Type.create(name, scope, supertype, builtins.get(Any.class).getType(), true) :
-          Type.createSingleton(name, scope, supertype, true);
+      type =
+          containsValues()
+              ? Type.create(name, scope, supertype, builtins.get(Any.class).getType(), true)
+              : Type.createSingleton(name, scope, supertype, true);
     }
     if (constructors == null) {
       var conses = getDeclaredConstructors();
@@ -91,5 +93,4 @@ public abstract class Builtin {
   public final AtomConstructor[] getConstructors() {
     return constructors;
   }
-
 }

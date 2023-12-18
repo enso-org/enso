@@ -5,7 +5,8 @@ import org.enso.base.Text_Utils;
 public record TextType(long maxLength, boolean fixedLength) implements StorageType {
   public TextType {
     if (maxLength == 0) {
-      throw new IllegalArgumentException("The maxLength of a text type must be positive or -1 to indicate unlimited length.");
+      throw new IllegalArgumentException(
+          "The maxLength of a text type must be positive or -1 to indicate unlimited length.");
     }
   }
 
@@ -56,9 +57,9 @@ public record TextType(long maxLength, boolean fixedLength) implements StorageTy
 
   /**
    * Checks if values of otherType can be transferred to this type without any conversions.
-   * <p>
-   * For example, values of type TextType(3, false) will fit TextType(3, true), but they need to be padded to fit the
-   * target type. So this function will return false for such a case.
+   *
+   * <p>For example, values of type TextType(3, false) will fit TextType(3, true), but they need to
+   * be padded to fit the target type. So this function will return false for such a case.
    */
   public boolean fitsExactly(TextType otherType) {
     if (fixedLength) {
