@@ -389,8 +389,6 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
 
   private syncFileContents(content: string, version: Checksum) {
     this.doc.ydoc.transact(() => {
-      console.info(`syncFileContents`)
-
       const { code, idMapJson, metadataJson } = preParseContent(content)
       const idMapMeta = fileFormat.tryParseIdMapOrFallback(idMapJson)
       const metadata = fileFormat.tryParseMetadataOrFallback(metadataJson)

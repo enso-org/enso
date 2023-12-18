@@ -16,7 +16,7 @@ export interface Module {
   getExtended(id: AstId): RawAstExtended | undefined
   edit(): MutableModule
   apply(module: Module): void
-  replace(editIn: Module, oldRoot: AstId, newRoot: AstId): void
+  replace(editIn: Module, oldRoot: AstId | undefined, newRoot: AstId): void
 }
 
 export class MutableModule implements Module {
@@ -73,11 +73,8 @@ export class MutableModule implements Module {
     }
   }
 
-  // NB. oldRoot and newRoot are used only for debugging.
-  replace(editIn: Module, oldRoot: AstId | undefined, newRoot: AstId) {
-    const before = oldRoot ? tokenTreeWithIds(this.get(oldRoot)!) : null
+  replace(editIn: Module) {
     const edit = editIn.raw
-    //console.info(`replace`, Array.from(this.nodes.entries()).sort(), Array.from(edit.nodes.entries()).sort())
     for (const id of this.nodes.keys()) {
       if (!edit.nodes.has(id)) {
         this.nodes.delete(id)
@@ -85,8 +82,6 @@ export class MutableModule implements Module {
       }
     }
     this.apply(edit)
-    const after = tokenTreeWithIds(this.get(newRoot)!)
-    if (before) console.info(`replace`, before, after)
   }
 
   /** Returns a syntax node representing the current committed state of the given ID. */
@@ -208,6 +203,11 @@ export abstract class Ast {
     }
   }
 
+  innerExpression(): Ast {
+    // TODO: Override this in `Documented`, `Annotated`, `AnnotatedBuiltin`
+    return this
+  }
+
   /** Returns child subtrees, including information about the whitespace between them. */
   abstract concreteChildren(): IterableIterator<NodeChild>
 
@@ -224,23 +224,21 @@ export abstract class Ast {
     return RawAst.Tree.typeNames[this.treeType]
   }
 
-  static parse(source: PrintedSource | string, inModule?: MutableModule): Ast {
+  static parse(source: PrintedSource | string, inModule?: MutableModule | undefined): BodyBlock {
     const code = typeof source === 'object' ? source.code : source
     const ids = typeof source === 'object' ? source.info : undefined
     const tree = parseEnso(code)
     const module = inModule ?? MutableModule.Transient()
     const newRoot = abstract(module, tree, code, ids).node
-    return module.get(newRoot)!
+    const ast = module.get(newRoot)
+    // The root of the tree produced by the parser is always a `BodyBlock`.
+    return ast as BodyBlock
   }
 
-  static parseLine(source: PrintedSource | string): Ast {
-    const ast = Ast.parse(source)
-    if (ast instanceof BodyBlock) {
-      const [expr] = ast.expressions()
-      return expr instanceof Ast ? expr : ast
-    } else {
-      return ast
-    }
+  static parseExpression(source: PrintedSource | string, module?: MutableModule): Ast {
+    const ast = Ast.parse(source, module)
+    const [expr] = ast.expressions()
+    return expr instanceof Ast ? expr : ast
   }
 
   visitRecursive(visit: (node: Ast | Token) => void) {
@@ -723,50 +721,48 @@ export class Function extends Ast {
 }
 
 export class Assignment extends Ast {
-  _pattern: NodeChild<AstId>
-  _equals: NodeChild<Token>
-  _expression: NodeChild<AstId>
+  private pattern_: NodeChild<AstId>
+  private equals_: NodeChild<Token>
+  private expression_: NodeChild<AstId>
   get pattern(): Ast | null {
-    return this.module.get(this._pattern.node)
+    return this.module.get(this.pattern_.node)
   }
   get expression(): Ast | null {
-    return this.module.get(this._expression.node)
+    return this.module.get(this.expression_.node)
   }
   constructor(
     module: MutableModule,
     id: AstId | undefined,
     pattern: NodeChild<AstId>,
-    equals: NodeChild<Token>, // TODO: Edits (#8367): Allow undefined
+    equals: NodeChild<Token> | undefined,
     expression: NodeChild<AstId>,
   ) {
     super(module, id, RawAst.Tree.Type.Assignment)
-    this._pattern = pattern
-    this._equals = equals
-    this._expression = expression
+    this.pattern_ = pattern
+    this.equals_ = equals ?? { node: new Token('=', newTokenId(), RawAst.Token.Type.Operator) }
+    this.expression_ = expression
   }
-  // TODO: Edits (#8367)
-  /*
+
   static new(
-    id: AstId | undefined,
+    module: MutableModule,
     ident: string,
-    equals: WithWhitespace<Tok> | undefined,
-    expression: WithWhitespace<AstId>,
+    expression: Ast,
   ): Assignment {
-    const pattern = { node: Ident.new(ident)._id }
-    return new Assignment(id, pattern, equals, expression)
+    const pattern = { node: Ident.new(module, ident).exprId }
+    return new Assignment(module, undefined, pattern, undefined, { whitespace: ' ', node: expression.exprId })
   }
-   */
+
   *concreteChildren(): IterableIterator<NodeChild> {
-    yield this._pattern
-    yield { whitespace: this._equals.whitespace ?? ' ', node: this._equals.node }
-    if (this._expression !== null) {
-      yield this._expression
+    yield this.pattern_
+    yield { whitespace: this.equals_.whitespace ?? this.expression_.whitespace ?? ' ', node: this.equals_.node }
+    if (this.expression_ !== null) {
+      yield this.expression_
     }
   }
 }
 
 interface BlockLine {
-  newline: NodeChild<Token> // Edits (#8367): Allow undefined
+  newline?: NodeChild<Token>
   expression: NodeChild<AstId> | null
 }
 
@@ -799,17 +795,23 @@ export class BodyBlock extends Ast {
       expressions.map((e) => ({ expression: { node: e._id } })),
     )
   }
-
-  pushExpression(node: Ast) {
-    if (!edited.has(this._id)) edited.set(this._id, new Block(this._id, [...this._lines]))
-    const cow = edited.get(this._id) as Block
-    cow._lines.push({ expression: { node: node._id } })
-  }
    */
+
+  push(module: MutableModule, node: Ast) {
+    new BodyBlock(module, this.exprId, [...this.lines, { expression: { node: node.exprId } }])
+  }
+
+  /** Insert the given expression(s) starting at the specified line index. */
+  insert(module: MutableModule, index: number, ...nodes: Ast[]) {
+    const before = this.lines.slice(0, index)
+    const insertions = Array.from(nodes, (node) => ({ expression: { node: node.exprId } }))
+    const after = this.lines.slice(index)
+    new BodyBlock(module, this.exprId, [...before, ...insertions, ...after])
+  }
 
   *concreteChildren(): IterableIterator<NodeChild> {
     for (const line of this.lines) {
-      yield line.newline
+      yield line.newline ?? { node: new Token('\n', newTokenId(), RawAst.Token.Type.Newline) }
       if (line.expression !== null) yield line.expression
     }
   }
@@ -855,12 +857,9 @@ export class Ident extends Ast {
     this.token = token
   }
 
-  // TODO: Edits (#8367)
-  /*
-  static new(id: AstId | undefined, code: string): Ident {
-    return Ident.fromToken(id, { node: token(code, RawAst.Token.Type.Ident) })
+  static new(module: MutableModule, code: string): Ident {
+    return new Ident(module, undefined, { node: new Token(code, newTokenId(), RawAst.Token.Type.Ident) })
   }
-   */
 
   *concreteChildren(): IterableIterator<NodeChild> {
     yield this.token
@@ -1306,7 +1305,7 @@ export function parseTransitional(code: string, idMap: IdMap): Ast {
 }
 
 export const parse = Ast.parse
-export const parseLine = Ast.parseLine
+export const parseExpression = Ast.parseExpression
 
 export function deserialize(serialized: string): Ast {
   return Ast.deserialize(serialized)

@@ -48,7 +48,6 @@ export function applyDocumentUpdates(
       }
     }
   }
-  console.info(`applyDocumentUpdates codeUpdated=${codeUpdated} idMapUpdated=${idMapUpdated}`)
 
   let newContent = ''
 

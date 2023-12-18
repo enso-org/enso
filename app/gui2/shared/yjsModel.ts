@@ -115,7 +115,6 @@ export class ModuleDoc {
   setIdMap(map: IdMap) {
     const oldMap = new IdMap(this.data.get('idmap') ?? [])
     if (oldMap.isEqual(map)) return
-    console.info(`setIdMap(${map.size} entries)`)
     this.data.set('idmap', map.entries())
   }
 
@@ -125,14 +124,11 @@ export class ModuleDoc {
   }
 
   setCode(code: string) {
-    console.info(`setCode(${code.length} bytes)`)
     this.data.set('code', code)
   }
 
   getCode(): string {
-    const code = this.data.get('code') ?? ''
-    console.info(`getCode() -> ${code.length} bytes`)
-    return code
+    return this.data.get('code') ?? ''
   }
 }
 
@@ -149,34 +145,6 @@ export class DistributedModule {
   constructor(ydoc: Y.Doc) {
     this.doc = new ModuleDoc(ydoc)
     this.undoManager = new Y.UndoManager([this.doc.data, this.doc.metadata])
-  }
-
-  insertNewNode(
-    offset: number,
-    pattern: string,
-    expression: string,
-    meta: NodeMetadata,
-    withImport?: { str: string; offset: number },
-  ): ExprId {
-    throw new Error('TODO')
-    /*
-    // Spaces at the beginning are needed to place the new node in scope of the `main` function with proper indentation.
-    const lhs = `    ${pattern} = `
-    const content = lhs + expression
-    const range = [offset + lhs.length, offset + content.length] as const
-    const newId = random.uuidv4() as ExprId
-    this.transact(() => {
-      if (withImport) {
-        this.doc.contents.insert(withImport.offset, withImport.str + '\n')
-      }
-      this.doc.contents.insert(offset, content + '\n')
-      const start = range[0]
-      const end = range[1]
-      this.doc.idMap.set(newId, encodeRange([start, end]))
-      this.doc.metadata.set(newId, meta)
-    })
-    return newId
-     */
   }
 
   transact<T>(fn: () => T): T {
