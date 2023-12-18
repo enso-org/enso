@@ -58,11 +58,11 @@ methods and constructors.
 Modules can be specified as private. Private modules cannot be imported from
 other projects. Private modules can be imported from the same project.
 
-A hierarchy of submodules cannot mix public and private modules. In other words,
-if a module is public, its whole subtree must be public as well. For example,
-having a public module `A` and private submodule `A.B` is forbidden and shall be
-reported as an error during compilation. But having a private module `A` as well
-as private module `A.B` is OK.
+A hierarchy of submodules can mix public and private modules. By _hierarchy_, we
+mean a parent-child relationship between modules. It does not make sense to
+create a public submodule of a private module and export it, but it is allowed.
+Note that this is because of current limitations of the implementation, this
+might be more strict in the future.
 
 ### Types
 
