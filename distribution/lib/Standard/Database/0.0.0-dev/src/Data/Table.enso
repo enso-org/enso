@@ -2604,7 +2604,7 @@ type Table
        > Example
          Replace texts in quotes with parentheses.
 
-             column.text_replace ["col0"] '"(.*?)"'.to_regex '($1)'
+             column.replace ["col0"] '"(.*?)"'.to_regex '($1)'
     @columns Widget_Helpers.make_column_name_vector_selector
     @term Widget_Helpers.make_column_ref_or_text_value_selector
     @new_text Widget_Helpers.make_column_ref_or_text_value_selector
@@ -2613,7 +2613,7 @@ type Table
         table_ref = Table_Ref.from self
         resolved_term = table_ref.resolve term
         resolved_new_text = table_ref.resolve new_text
-        transformer col = col.replace_text resolved_term resolved_new_text case_sensitivity only_first
+        transformer col = col.replace resolved_term resolved_new_text case_sensitivity only_first
         Table_Helpers.replace_columns_with_transformed_columns self columns transformer
 
 ## PRIVATE
