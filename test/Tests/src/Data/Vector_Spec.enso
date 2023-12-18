@@ -281,6 +281,11 @@ type_spec name alter = Test.group name <|
         # This should be replaced with the disabled test above, once the related bug is fixed.
         txt3.filter (Filter_Condition.Like 'ś%') . should_equal ['śnieg']
 
+        txt4 = alter ['a', 'A', 'ś', 'Ś', 'ﬃ']
+        txt4.filter (Filter_Condition.Equal_Ignore_Case 'a') . should_equal ['a', 'A']
+        txt4.filter (Filter_Condition.Equal_Ignore_Case 's\u0301') . should_equal ['ś', 'Ś']
+        txt4.filter (Filter_Condition.Equal_Ignore_Case 'FFI') . should_equal ['ﬃ']
+
         mixed = alter [1, Nothing, "b"]
         mixed.filter Filter_Condition.Is_Nothing . should_equal [Nothing]
         mixed.filter Filter_Condition.Not_Nothing . should_equal [1, "b"]
@@ -290,6 +295,12 @@ type_spec name alter = Test.group name <|
         boolvec = [True, False, Nothing, True]
         boolvec.filter Filter_Condition.Is_True . should_equal [True, True]
         boolvec.filter Filter_Condition.Is_False . should_equal [False]
+
+        numvec = [1, 2.5, Number.nan, Number.positive_infinity, Number.negative_infinity, 0]
+        # We need to use to_text because NaN!=NaN
+        numvec.filter Filter_Condition.Is_Nan . map .to_text . should_equal ["NaN"]
+        numvec.filter Filter_Condition.Is_Infinite . should_equal [Number.positive_infinity, Number.negative_infinity]
+        numvec.filter Filter_Condition.Is_Finite . should_equal [1, 2.5, 0]
 
     Test.specify "should have a friendly error when missing Filter_Condition arguments" <|
         v = alter [0, 1, 2]
@@ -429,6 +440,8 @@ type_spec name alter = Test.group name <|
 
         input.find (Filter_Condition.Greater 5) . should_equal 6
         Test.expect_panic_with matcher=Type_Error (input.find "invalid arg")
+
+        alter ["b", "A", "c"] . find (Filter_Condition.Equal_Ignore_Case "a") . should_equal "A"
 
     Test.specify "should allow finding the index of a value" <|
         input = alter [1, 2, 3, 4, 1, 2, 3, 1, 2, 1]
