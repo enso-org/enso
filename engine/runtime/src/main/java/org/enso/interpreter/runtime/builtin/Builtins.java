@@ -17,6 +17,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
+import com.oracle.truffle.api.TruffleOptions;
 import org.enso.compiler.Passes;
 import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.context.FreshNameSupply;
@@ -55,12 +57,14 @@ import org.enso.pkg.QualifiedName;
 /** Container class for static predefined atoms, methods, and their containing scope. */
 public final class Builtins {
 
-  private static final List<Constructor<? extends Builtin>> loadedBuiltinConstructors;
-  private static final Map<String, LoadedBuiltinMethod> loadedBuiltinMethods;
+  private static List<Constructor<? extends Builtin>> loadedBuiltinConstructors;
+  private static Map<String, LoadedBuiltinMethod> loadedBuiltinMethods;
 
   static {
-    loadedBuiltinConstructors = readBuiltinTypes();
-    loadedBuiltinMethods = readBuiltinMethodsMethods();
+    if (TruffleOptions.AOT) {
+      loadedBuiltinConstructors = readBuiltinTypes();
+      loadedBuiltinMethods = readBuiltinMethodsMethods();
+    }
   }
 
   public static final String PACKAGE_NAME = "Builtins";
@@ -123,6 +127,10 @@ public final class Builtins {
     module = Module.empty(QualifiedName.fromString(MODULE_NAME), null);
     scope = module.compileScope(context);
 
+    if (!TruffleOptions.AOT) {
+      loadedBuiltinConstructors = readBuiltinTypes();
+      loadedBuiltinMethods = readBuiltinMethodsMethods();
+    }
     builtins = initializeBuiltinTypes(loadedBuiltinConstructors, language, scope);
     builtinsByName =
         builtins.values().stream()
