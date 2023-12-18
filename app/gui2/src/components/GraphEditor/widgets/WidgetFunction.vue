@@ -9,7 +9,7 @@ import { Ast } from '@/util/ast'
 import { ArgumentApplication, getAccessOprSubject } from '@/util/callTree'
 import type { Opt } from '@/util/data/opt'
 import type { ExprId } from 'shared/yjsModel'
-import { computed, proxyRefs, watch } from 'vue'
+import { computed, proxyRefs } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()
@@ -89,12 +89,6 @@ const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => 
       name: 'get_widget_json',
     },
     positionalArgumentsExpressions: [`.${name}`, makeArgsList(args)],
-  }
-})
-
-watch(visualizationConfig, (c) => {
-  if (c) {
-    console.log(`Requesting dynamic widget config for ${c.positionalArgumentsExpressions}`, c)
   }
 })
 
