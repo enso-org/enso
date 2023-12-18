@@ -1,5 +1,19 @@
 package org.enso.interpreter.service;
 
+import com.oracle.truffle.api.CallTarget;
+import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.TruffleLogger;
+import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.instrumentation.EventBinding;
+import com.oracle.truffle.api.instrumentation.ExecutionEventNodeFactory;
+import com.oracle.truffle.api.interop.ArityException;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.UnknownIdentifierException;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.interop.UnsupportedTypeException;
+import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.nodes.RootNode;
+import com.oracle.truffle.api.source.SourceSection;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
@@ -8,7 +22,6 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.logging.Level;
-
 import org.enso.compiler.context.SimpleUpdate;
 import org.enso.interpreter.instrument.Endpoint;
 import org.enso.interpreter.instrument.MethodCallsCache;
@@ -47,21 +60,6 @@ import org.enso.polyglot.debugger.IdExecutionService;
 import org.enso.text.editing.JavaEditorAdapter;
 import org.enso.text.editing.model;
 
-import com.oracle.truffle.api.CallTarget;
-import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.TruffleLogger;
-import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.instrumentation.EventBinding;
-import com.oracle.truffle.api.instrumentation.ExecutionEventNodeFactory;
-import com.oracle.truffle.api.interop.ArityException;
-import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.UnknownIdentifierException;
-import com.oracle.truffle.api.interop.UnsupportedMessageException;
-import com.oracle.truffle.api.interop.UnsupportedTypeException;
-import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.nodes.RootNode;
-import com.oracle.truffle.api.source.SourceSection;
-
 /**
  * A service allowing externally-triggered code execution, registered by an instance of the
  * language.
@@ -72,7 +70,8 @@ public final class ExecutionService {
   private final EnsoContext context;
   private final Optional<IdExecutionService> idExecutionInstrument;
   private final NotificationHandler.Forwarder notificationForwarder;
-  private final TruffleLogger logger = TruffleLogger.getLogger(LanguageInfo.ID, ExecutionService.class);
+  private final TruffleLogger logger =
+      TruffleLogger.getLogger(LanguageInfo.ID, ExecutionService.class);
   private final ConnectedLockManager connectedLockManager;
   private final ExecuteRootNode execute = new ExecuteRootNode();
   private final CallRootNode call = new CallRootNode();
@@ -103,12 +102,16 @@ public final class ExecutionService {
     this.timer = timer;
   }
 
-  /** @return the language context. */
+  /**
+   * @return the language context.
+   */
   public EnsoContext getContext() {
     return context;
   }
 
-  /** @return the execution service logger. */
+  /**
+   * @return the execution service logger.
+   */
   public TruffleLogger getLogger() {
     return logger;
   }
@@ -138,8 +141,8 @@ public final class ExecutionService {
       connectedLockManager.connect(endpoint);
     } else {
       logger.warning(
-          "ConnectedLockManager was not initialized, even though a Language Server connection has been established. "
-              + "This may result in synchronization errors.");
+          "ConnectedLockManager was not initialized, even though a Language Server connection has"
+              + " been established. This may result in synchronization errors.");
     }
   }
 
@@ -190,8 +193,7 @@ public final class ExecutionService {
     Optional<EventBinding<ExecutionEventNodeFactory>> eventNodeFactory =
         idExecutionInstrument.map(
             service ->
-                service.bind(
-                    module, call.getFunction().getCallTarget(), callbacks, this.timer));
+                service.bind(module, call.getFunction().getCallTarget(), callbacks, this.timer));
     Object p = context.getThreadManager().enter();
     try {
       execute.getCallTarget().call(call);
@@ -402,7 +404,13 @@ public final class ExecutionService {
                     module.getName(), edits, failure, module.getLiteralSource());
               },
               rope -> {
-                logger.log(Level.FINE, "Applied edits. Source has {} lines, last line has {} characters", new Object[]{rope.lines().length(), rope.lines().drop(rope.lines().length() - 1).characters().length()});
+                logger.log(
+                    Level.FINE,
+                    "Applied edits. Source has {} lines, last line has {} characters",
+                    new Object[] {
+                      rope.lines().length(),
+                      rope.lines().drop(rope.lines().length() - 1).characters().length()
+                    });
                 module.setLiteralSource(rope, simpleUpdate);
                 return new Object();
               });
@@ -459,7 +467,8 @@ public final class ExecutionService {
     var iop = InteropLibrary.getUncached();
     var p = context.getThreadManager().enter();
     try {
-      // Invoking a member on an Atom that does not have a method `to_display_text` will not contrary to what is
+      // Invoking a member on an Atom that does not have a method `to_display_text` will not
+      // contrary to what is
       // expected from the documentation, throw an `UnsupportedMessageException`.
       // Instead it will crash with some internal assertion deep inside runtime. Hence the check.
       if (iop.isMemberInvocable(panic.getPayload(), "to_display_text")) {
@@ -487,8 +496,7 @@ public final class ExecutionService {
   }
 
   private static final class ExecuteRootNode extends RootNode {
-    @Node.Child
-    private InteropLibrary iop = InteropLibrary.getFactory().createDispatched(5);
+    @Node.Child private InteropLibrary iop = InteropLibrary.getFactory().createDispatched(5);
 
     ExecuteRootNode() {
       super(null);
@@ -508,8 +516,7 @@ public final class ExecutionService {
   }
 
   private static final class CallRootNode extends RootNode {
-    @Node.Child
-    private InteropLibrary iop = InteropLibrary.getFactory().createDispatched(5);
+    @Node.Child private InteropLibrary iop = InteropLibrary.getFactory().createDispatched(5);
 
     CallRootNode() {
       super(null);
@@ -528,8 +535,7 @@ public final class ExecutionService {
   }
 
   private static final class InvokeMemberRootNode extends RootNode {
-    @Node.Child
-    private InteropLibrary iop = InteropLibrary.getFactory().createDispatched(5);
+    @Node.Child private InteropLibrary iop = InteropLibrary.getFactory().createDispatched(5);
 
     InvokeMemberRootNode() {
       super(null);
@@ -567,12 +573,16 @@ public final class ExecutionService {
       this.call = call;
     }
 
-    /** @return the id of the node performing the function call. */
+    /**
+     * @return the id of the node performing the function call.
+     */
     public UUID getExpressionId() {
       return expressionId;
     }
 
-    /** @return the function call metadata. */
+    /**
+     * @return the function call metadata.
+     */
     public FunctionCallInstrumentationNode.FunctionCall getCall() {
       return call;
     }
@@ -645,52 +655,72 @@ public final class ExecutionService {
           + '}';
     }
 
-    /** @return the id of the expression computed. */
+    /**
+     * @return the id of the expression computed.
+     */
     public UUID getExpressionId() {
       return expressionId;
     }
 
-    /** @return the type of the returned value. */
+    /**
+     * @return the type of the returned value.
+     */
     public String getType() {
       return type;
     }
 
-    /** @return the cached type of the value. */
+    /**
+     * @return the cached type of the value.
+     */
     public String getCachedType() {
       return cachedType;
     }
 
-    /** @return the computed value of the expression. */
+    /**
+     * @return the computed value of the expression.
+     */
     public Object getValue() {
       return value;
     }
 
-    /** @return the function call data. */
+    /**
+     * @return the function call data.
+     */
     public FunctionCallInfo getCallInfo() {
       return callInfo;
     }
 
-    /** @return the function call data previously associated with the expression. */
+    /**
+     * @return the function call data previously associated with the expression.
+     */
     public FunctionCallInfo getCachedCallInfo() {
       return cachedCallInfo;
     }
 
-    /** @return the profiling information associated with this expression */
+    /**
+     * @return the profiling information associated with this expression
+     */
     public ProfilingInfo[] getProfilingInfo() {
       return profilingInfo;
     }
 
-    /** @return whether or not the expression result was obtained from the cache */
+    /**
+     * @return whether or not the expression result was obtained from the cache
+     */
     public boolean wasCached() {
       return wasCached;
     }
 
-    /** @return {@code true} when the type differs from the cached value. */
+    /**
+     * @return {@code true} when the type differs from the cached value.
+     */
     public boolean isTypeChanged() {
       return !Objects.equals(type, cachedType);
     }
 
-    /** @return {@code true} when the function call differs from the cached value. */
+    /**
+     * @return {@code true} when the function call differs from the cached value.
+     */
     public boolean isFunctionCallChanged() {
       return !Objects.equals(callInfo, cachedCallInfo);
     }

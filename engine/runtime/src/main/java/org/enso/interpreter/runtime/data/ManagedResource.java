@@ -32,19 +32,24 @@ public final class ManagedResource implements EnsoObject {
     this.phantomReference = factory.apply(this);
   }
 
-  /** @return the underlying resource */
+  /**
+   * @return the underlying resource
+   */
   public Object getResource() {
     return resource;
   }
 
-  /** @return the phantom reference tracking this managed resource */
+  /**
+   * @return the phantom reference tracking this managed resource
+   */
   public PhantomReference<ManagedResource> getPhantomReference() {
     return phantomReference;
   }
 
   @Builtin.Method(
       description =
-          "Makes an object into a managed resource, automatically finalized when the returned object is garbage collected.")
+          "Makes an object into a managed resource, automatically finalized when the returned"
+              + " object is garbage collected.")
   @Builtin.Specialize
   public static ManagedResource register(EnsoContext context, Object resource, Function function) {
     return context.getResourceManager().register(resource, function);

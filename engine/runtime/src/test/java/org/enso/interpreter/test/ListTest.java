@@ -1,5 +1,9 @@
 package org.enso.interpreter.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import java.math.BigInteger;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -7,10 +11,6 @@ import java.util.ArrayList;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -30,7 +30,8 @@ public class ListTest extends TestBase {
   public void prepareCtx() throws Exception {
     this.ctx = createDefaultContext();
 
-    final String code = """
+    final String code =
+        """
     from Standard.Base.Data.List.List import Cons, Nil
 
     init list = list.init
@@ -152,9 +153,7 @@ public class ListTest extends TestBase {
   private Value evalCode(final String code, final String methodName) throws URISyntaxException {
     final var testName = "test.enso";
     final URI testUri = new URI("memory://" + testName);
-    final Source src = Source.newBuilder("enso", code, testName)
-            .uri(testUri)
-            .buildLiteral();
+    final Source src = Source.newBuilder("enso", code, testName).uri(testUri).buildLiteral();
     var module = ctx.eval(src);
     var powers = module.invokeMember("eval_expression", methodName);
     return powers;

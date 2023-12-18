@@ -1,13 +1,12 @@
 package org.enso.table.data.column.builder;
 
+import java.util.BitSet;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.error.ValueTypeMismatchException;
 import org.enso.table.util.BitSets;
-
-import java.util.BitSet;
 
 /** A builder for boolean columns. */
 public class BoolBuilder extends TypedBuilder {
@@ -77,7 +76,10 @@ public class BoolBuilder extends TypedBuilder {
         BitSets.copy(boolStorage.getIsMissing(), isNa, size, boolStorage.size());
         size += boolStorage.size();
       } else {
-        throw new IllegalStateException("Unexpected storage implementation for type BOOLEAN: " + storage + ". This is a bug in the Table library.");
+        throw new IllegalStateException(
+            "Unexpected storage implementation for type BOOLEAN: "
+                + storage
+                + ". This is a bug in the Table library.");
       }
     } else {
       throw new StorageTypeMismatchException(getType(), storage.getType());

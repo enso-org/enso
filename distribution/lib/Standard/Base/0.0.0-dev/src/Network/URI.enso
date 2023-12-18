@@ -1,5 +1,6 @@
 import project.Data.Enso_Cloud.Enso_Secret.Enso_Secret
 import project.Data.Json.JS_Object
+import project.Data.Numbers.Integer
 import project.Data.Pair.Pair
 import project.Data.Text.Text
 import project.Data.Vector.Vector
@@ -9,8 +10,8 @@ import project.Network.URI_With_Query.URI_With_Query
 import project.Nothing.Nothing
 import project.Panic.Panic
 
-polyglot java import java.lang.Exception
 polyglot java import java.net.URI as Java_URI
+polyglot java import java.net.URISyntaxException
 
 type URI
     ## ALIAS get uri
@@ -31,7 +32,7 @@ type URI
              example_parse = URI.parse "http://example.com"
     parse : Text -> URI ! Syntax_Error
     parse uri:Text =
-        Panic.catch Exception (URI.Value (Java_URI.create uri)) caught_panic->
+        Panic.catch URISyntaxException (URI.Value (Java_URI.new uri)) caught_panic->
             message = caught_panic.payload.getMessage
             truncated = if message.is_nothing || message.length > 100 then "Invalid URI '" + uri.to_display_text + "'" else
                 "URI syntax error: " + message
@@ -112,10 +113,10 @@ type URI
              import Standard.Examples
 
              example_port = Examples.uri.port
-    port : Text | Nothing
+    port : Integer | Nothing
     port self =
         port_number = self.internal_uri.getPort
-        if port_number == -1 then Nothing else port_number.to_text
+        if port_number == -1 then Nothing else port_number
 
     ## GROUP Metadata
        Get the path part of this URI.

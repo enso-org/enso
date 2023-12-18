@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
-
 import org.enso.persist.Persistable;
 import org.enso.persist.Persistance;
 import org.junit.Test;
@@ -37,14 +36,16 @@ public class PersistanceTest {
     var plain = Persistance.read(arr, (Function<Object, Object>) null);
     assertEquals("Remains five", 5, plain.get(Service.class).value());
 
-    var multiOnRead = Persistance.read(arr, (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
+    var multiOnRead =
+        Persistance.read(arr, (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
     assertEquals("Multiplied on read", 15, multiOnRead.get(Service.class).value());
   }
 
   @Test
   public void writeReplace() throws Exception {
     var in = new Service(5);
-    var arr = Persistance.write(in, (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
+    var arr =
+        Persistance.write(in, (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
 
     var plain = Persistance.read(arr, (Function<Object, Object>) null);
     assertEquals("Multiplied on write", 15, plain.get(Service.class).value());
@@ -58,14 +59,16 @@ public class PersistanceTest {
     var plain = Persistance.read(arr, (Function<Object, Object>) null);
     assertEquals("Remains five", 5, plain.get(ServiceSupply.class).supply().value());
 
-    var multiOnRead = Persistance.read(arr, (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
+    var multiOnRead =
+        Persistance.read(arr, (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
     assertEquals("Multiplied on read", 15, multiOnRead.get(ServiceSupply.class).supply().value());
   }
 
   @Test
   public void writeReplaceInline() throws Exception {
     var in = new ServiceSupply(new Service(5));
-    var arr = Persistance.write(in, (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
+    var arr =
+        Persistance.write(in, (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
 
     var plain = Persistance.read(arr, (Function<Object, Object>) null);
     assertEquals("Multiplied on write", 15, plain.get(ServiceSupply.class).supply().value());
@@ -80,14 +83,17 @@ public class PersistanceTest {
     assertEquals("Remains five", 5, (int) plain.get(IntegerSupply.class).supply().get());
     assertEquals("Remains five 2", 5, (int) plain.get(IntegerSupply.class).supply().get());
 
-    var multiOnRead = Persistance.read(arr, (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
-    assertEquals("Multiplied on read", 15, (int) multiOnRead.get(IntegerSupply.class).supply().get());
+    var multiOnRead =
+        Persistance.read(arr, (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
+    assertEquals(
+        "Multiplied on read", 15, (int) multiOnRead.get(IntegerSupply.class).supply().get());
   }
 
   @Test
   public void writeReplaceReference() throws Exception {
     var in = new IntegerSupply(new Service(5));
-    var arr = Persistance.write(in, (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
+    var arr =
+        Persistance.write(in, (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
 
     var plain = Persistance.read(arr, (Function<Object, Object>) null);
     assertEquals("Multiplied on write", 15, (int) plain.get(IntegerSupply.class).supply().get());
@@ -123,8 +129,8 @@ public class PersistanceTest {
       return new UUID(most, least);
     }
   }
-  // @end region="manual"
 
+  // @end region="manual"
 
   public static final class Singleton {
     public static final Singleton INSTANCE = new Singleton();
@@ -149,19 +155,21 @@ public class PersistanceTest {
   }
 
   // @start region="annotation"
-  @Persistable(clazz=Service.class, id=432434)
-  @Persistable(clazz=IntegerSupply.class, id=432435)
+  @Persistable(clazz = Service.class, id = 432434)
+  @Persistable(clazz = IntegerSupply.class, id = 432435)
   public record Service(int value) implements Supplier<Integer> {
     @Override
     public Integer get() {
       return value;
     }
   }
+
   public record IntegerSupply(Supplier<Integer> supply) {}
+
   // @end region="annotation"
 
   // @start region="self-annotation"
-  @Persistable(id=432436)
+  @Persistable(id = 432436)
   public record ServiceSupply(Service supply) {}
   // @end region="self-annotation"
 }

@@ -1,5 +1,6 @@
 package org.enso.table.data.column.storage;
 
+import java.util.BitSet;
 import org.enso.base.Text_Utils;
 import org.enso.table.data.column.builder.StringBuilder;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
@@ -16,11 +17,7 @@ import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
-import java.util.BitSet;
-
-/**
- * A column storing strings.
- */
+/** A column storing strings. */
 public final class StringStorage extends SpecializedStorage<String> {
 
   private final TextType type;
@@ -51,7 +48,8 @@ public final class StringStorage extends SpecializedStorage<String> {
   }
 
   @Override
-  public Storage<?> fillMissing(Value arg, StorageType commonType, ProblemAggregator problemAggregator) {
+  public Storage<?> fillMissing(
+      Value arg, StorageType commonType, ProblemAggregator problemAggregator) {
     if (arg.isString()) {
       TextType newType = TextType.maxType(type, TextType.preciseTypeForValue(arg.asString()));
       return fillMissingHelper(arg, new StringBuilder(size(), newType));
@@ -108,8 +106,8 @@ public final class StringStorage extends SpecializedStorage<String> {
     t.add(
         new UnaryMapOperation<>(Maps.IS_EMPTY) {
           @Override
-          protected BoolStorage runUnaryMap(SpecializedStorage<String> storage,
-                                            MapOperationProblemAggregator problemAggregator) {
+          protected BoolStorage runUnaryMap(
+              SpecializedStorage<String> storage, MapOperationProblemAggregator problemAggregator) {
             BitSet r = new BitSet();
             Context context = Context.getCurrent();
             for (int i = 0; i < storage.size; i++) {
@@ -178,7 +176,8 @@ public final class StringStorage extends SpecializedStorage<String> {
       }
     }
 
-    // maxLength will be <0 if all values were null and will be ==0 if all values were empty strings.
+    // maxLength will be <0 if all values were null and will be ==0 if all values were empty
+    // strings.
     // In both of these cases, we avoid shrinking the type and return the original type instead.
     if (maxLength <= 0) {
       return getType();
@@ -187,11 +186,13 @@ public final class StringStorage extends SpecializedStorage<String> {
     final long SHORT_LENGTH_THRESHOLD = 255;
     if (minLength == maxLength) {
       return TextType.fixedLength(minLength);
-    } else if (maxLength <= SHORT_LENGTH_THRESHOLD && (type.maxLength() < 0 || SHORT_LENGTH_THRESHOLD < type.maxLength())) {
+    } else if (maxLength <= SHORT_LENGTH_THRESHOLD
+        && (type.maxLength() < 0 || SHORT_LENGTH_THRESHOLD < type.maxLength())) {
       // If the string was unbounded or the bound was larger than 255, we shrink it to 255.
       return TextType.variableLengthWithLimit(SHORT_LENGTH_THRESHOLD);
     } else {
-      // Otherwise, we return the original type (because it was either smaller than the proposed 255 bound, or the
+      // Otherwise, we return the original type (because it was either smaller than the proposed 255
+      // bound, or the
       // existing elements to do not fit into the 255 bound).
       return getType();
     }

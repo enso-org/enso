@@ -42,7 +42,9 @@ public abstract class Index {
    */
   public abstract Index unique();
 
-  /** @return the name of this index */
+  /**
+   * @return the name of this index
+   */
   public abstract String getName();
 
   /**
@@ -80,12 +82,18 @@ public abstract class Index {
    */
   public abstract Index applyMask(OrderMask mask);
 
-  /** @return the number of elements in this index. */
+  /**
+   * @return the number of elements in this index.
+   */
   public abstract int size();
 
-  /** @return a copy of the index containing a slice of the original data */
+  /**
+   * @return a copy of the index containing a slice of the original data
+   */
   public abstract Index slice(int offset, int limit);
 
-  /** @return a copy of the index consisting of slices of the original data */
+  /**
+   * @return a copy of the index consisting of slices of the original data
+   */
   public abstract Index slice(List<SliceRange> ranges);
 }

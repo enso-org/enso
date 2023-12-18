@@ -27,8 +27,11 @@ const position = new Vec2(-329.5, 0)
       <template #default="{ navigator }">
         <GroupColorsWrapper>
           <ComponentBrowser
-            :position="position"
+            :nodePosition="position"
             :navigator="navigator"
+            :initialContent="''"
+            :sourcePort="null"
+            :initialCaretPosition="[0, 0]"
             @finished="logEvent('finished', [])"
           />
         </GroupColorsWrapper>

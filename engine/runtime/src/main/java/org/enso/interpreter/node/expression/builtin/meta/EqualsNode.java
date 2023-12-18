@@ -1,7 +1,16 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Shared;
+import com.oracle.truffle.api.dsl.GenerateUncached;
+import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.library.CachedLibrary;
+import com.oracle.truffle.api.nodes.Node;
 import java.math.BigInteger;
-
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
@@ -13,17 +22,6 @@ import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.enso.polyglot.common_utils.Core_Text_Utils;
-
-import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
-import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.Cached.Shared;
-import com.oracle.truffle.api.dsl.GenerateUncached;
-import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.TruffleObject;
-import com.oracle.truffle.api.interop.UnsupportedMessageException;
-import com.oracle.truffle.api.library.CachedLibrary;
-import com.oracle.truffle.api.nodes.Node;
 
 @BuiltinMethod(
     type = "Any",
@@ -76,11 +74,11 @@ public abstract class EqualsNode extends Node {
     return false;
   }
 
-  @Specialization(guards="interop.isBoolean(other)")
+  @Specialization(guards = "interop.isBoolean(other)")
   boolean equalsBoolInterop(
-    boolean self, Object other,
-    @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop
-  ) {
+      boolean self,
+      Object other,
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
     try {
       return self == interop.asBoolean(other);
     } catch (UnsupportedMessageException ex) {
@@ -108,11 +106,11 @@ public abstract class EqualsNode extends Node {
     return false;
   }
 
-  @Specialization(guards="interop.fitsInLong(other)")
+  @Specialization(guards = "interop.fitsInLong(other)")
   boolean equalsLongInterop(
-    long self, Object other,
-    @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop
-  ) {
+      long self,
+      Object other,
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
     try {
       return self == interop.asLong(other);
     } catch (UnsupportedMessageException ex) {
@@ -145,11 +143,11 @@ public abstract class EqualsNode extends Node {
     return self == other.getValue().doubleValue();
   }
 
-  @Specialization(guards="interop.fitsInDouble(other)")
+  @Specialization(guards = "interop.fitsInDouble(other)")
   boolean equalsDoubleInterop(
-    double self, Object other,
-    @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop
-  ) {
+      double self,
+      Object other,
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
     try {
       return self == interop.asDouble(other);
     } catch (UnsupportedMessageException ex) {
@@ -195,14 +193,11 @@ public abstract class EqualsNode extends Node {
   }
 
   @TruffleBoundary
-  @Specialization(guards={
-    "!isPrimitiveValue(other)",
-    "interop.fitsInBigInteger(other)"
-  })
+  @Specialization(guards = {"!isPrimitiveValue(other)", "interop.fitsInBigInteger(other)"})
   boolean equalsBigIntInterop(
-    EnsoBigInteger self, Object other,
-    @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop
-  ) {
+      EnsoBigInteger self,
+      Object other,
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
     try {
       var otherBigInteger = InteropLibrary.getUncached().asBigInteger(other);
       return self.asBigInteger().equals(otherBigInteger);
@@ -293,40 +288,39 @@ public abstract class EqualsNode extends Node {
     return isSameObjectNode.execute(self, other) || equalsAtomNode.execute(self, other);
   }
 
-
   @Specialization
   boolean equalsReverseBoolean(
-    TruffleObject self, boolean other,
-    @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
-    @Shared("reverse") @Cached EqualsNode reverse
-  ) {
+      TruffleObject self,
+      boolean other,
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
+      @Shared("reverse") @Cached EqualsNode reverse) {
     return reverse.execute(other, self);
   }
 
   @Specialization
   boolean equalsReverseLong(
-    TruffleObject self, long other,
-    @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
-    @Shared("reverse") @Cached EqualsNode reverse
-  ) {
+      TruffleObject self,
+      long other,
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
+      @Shared("reverse") @Cached EqualsNode reverse) {
     return reverse.execute(other, self);
   }
 
   @Specialization
   boolean equalsReverseDouble(
-    TruffleObject self, double other,
-    @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
-    @Shared("reverse") @Cached EqualsNode reverse
-  ) {
+      TruffleObject self,
+      double other,
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
+      @Shared("reverse") @Cached EqualsNode reverse) {
     return reverse.execute(other, self);
   }
 
   @Specialization
   boolean equalsReverseBigInt(
-    TruffleObject self, EnsoBigInteger other,
-    @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
-    @Shared("reverse") @Cached EqualsNode reverse
-  ) {
+      TruffleObject self,
+      EnsoBigInteger other,
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
+      @Shared("reverse") @Cached EqualsNode reverse) {
     return reverse.execute(other, self);
   }
 
@@ -375,8 +369,6 @@ public abstract class EqualsNode extends Node {
   }
 
   static boolean isPrimitiveValue(Object object) {
-    return object instanceof Boolean
-            || object instanceof Long
-            || object instanceof Double;
+    return object instanceof Boolean || object instanceof Long || object instanceof Double;
   }
 }

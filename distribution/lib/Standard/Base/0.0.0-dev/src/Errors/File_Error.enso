@@ -8,6 +8,7 @@ import project.System.File.File
 import project.System.File_Format.File_For_Read
 import project.System.File_Format.File_Format
 
+polyglot java import java.io.FileNotFoundException
 polyglot java import java.io.IOException
 polyglot java import java.nio.file.AccessDeniedException
 polyglot java import java.nio.file.FileAlreadyExistsException
@@ -33,7 +34,7 @@ type File_Error
        Arguments:
        - file: The file that couldn't be read.
        - message: The message for the error.
-    IO_Error (file : File) (message : Text)
+    IO_Error (file : File | Nothing) (message : Text)
 
     ## Indicates that the given file's type is not supported.
     Unsupported_Type (file : File_For_Read)
@@ -51,7 +52,9 @@ type File_Error
     to_display_text : Text
     to_display_text self = case self of
         File_Error.Not_Found  file -> "The file at " + file.path + " does not exist."
-        File_Error.IO_Error file msg -> msg + " (" + file.path + ")."
+        File_Error.IO_Error file msg ->
+            suffix = if file.is_nothing then "" else " (" + file.path + ")."
+            msg + suffix
         File_Error.Already_Exists file -> "The file at "+file.path+" already exists."
         File_Error.Access_Denied file -> "Insufficient permissions to perform the desired operation on the file at "+file.path+"."
         File_Error.Unsupported_Type file -> "The "+file.path+" has a type that is not supported."
@@ -65,7 +68,7 @@ type File_Error
     ## PRIVATE
 
        Utility method for running an action with Java exceptions mapping.
-    handle_java_exceptions file ~action =
+    handle_java_exceptions (file : File | Nothing) ~action =
         Panic.catch IOException action caught_panic->
             File_Error.wrap_io_exception file caught_panic.payload
 
@@ -78,8 +81,14 @@ type File_Error
     ## PRIVATE
 
        Converts a Java `IOException` into its Enso counterpart.
-    wrap_io_exception file io_exception = case io_exception of
-        _ : NoSuchFileException -> Error.throw (File_Error.Not_Found file)
-        _ : FileAlreadyExistsException -> Error.throw (File_Error.Already_Exists file)
-        _ : AccessDeniedException -> File_Error.access_denied file
-        _ -> Error.throw (File_Error.IO_Error file "An IO error has occurred: "+io_exception.to_text)
+    wrap_io_exception (file : File | Nothing) io_exception =
+        ## If the file is not known, all we can do is throw a generic IO error.
+           This will only usually matter on stream operations, where there is no relevant file -
+           and so the exceptions like `NoSuchFileException` should not occur in such context.
+           But instead of risking a Type_Error, we just throw the more generic IO_Error.
+        if file.is_nothing then Error.throw (File_Error.IO_Error Nothing "An IO error has occurred: "+io_exception.to_text) else case io_exception of
+            _ : NoSuchFileException -> Error.throw (File_Error.Not_Found file)
+            _ : FileNotFoundException -> Error.throw (File_Error.Not_Found file)
+            _ : FileAlreadyExistsException -> Error.throw (File_Error.Already_Exists file)
+            _ : AccessDeniedException -> File_Error.access_denied file
+            _ -> Error.throw (File_Error.IO_Error file "An IO error has occurred: "+io_exception.to_text)

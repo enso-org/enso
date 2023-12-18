@@ -1,14 +1,14 @@
 package org.enso.interpreter.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.util.ArrayList;
 import java.util.List;
-
 import org.enso.interpreter.test.ValuesGenerator.Language;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.experimental.theories.DataPoints;
@@ -39,8 +39,7 @@ public class VectorSortTest extends TestBase {
     equalsFunc = getMethodFromModule(context, code, "equals");
 
     values = new ArrayList<>();
-    var valuesGenerator =
-        ValuesGenerator.create(context, Language.ENSO, Language.JAVA);
+    var valuesGenerator = ValuesGenerator.create(context, Language.ENSO, Language.JAVA);
     values.addAll(valuesGenerator.numbers());
     values.addAll(valuesGenerator.vectors());
     values.addAll(valuesGenerator.arrayLike());

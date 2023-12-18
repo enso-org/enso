@@ -5,7 +5,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
@@ -16,7 +15,6 @@ import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.tools.Diagnostic;
 import javax.tools.Diagnostic.Kind;
-
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.AcceptsWarning;
 import org.enso.interpreter.dsl.BuiltinMethod;
@@ -174,10 +172,7 @@ public class MethodDefinition {
     if (!executeMethod.getThrownTypes().isEmpty()) {
       processingEnvironment
           .getMessager()
-          .printMessage(
-              Kind.ERROR,
-              "Builtin methods cannot throw exceptions",
-              executeMethod);
+          .printMessage(Kind.ERROR, "Builtin methods cannot throw exceptions", executeMethod);
       return false;
     }
 
@@ -186,57 +181,79 @@ public class MethodDefinition {
     return argsValid;
   }
 
-  /** @return the package name this method was declared in. */
+  /**
+   * @return the package name this method was declared in.
+   */
   public String getPackageName() {
     return packageName;
   }
 
-  /** @return the original class name of this method. */
+  /**
+   * @return the original class name of this method.
+   */
   public String getOriginalClassName() {
     return originalClassName;
   }
 
-  /** @return the simple class name of generated method wrapper. */
+  /**
+   * @return the simple class name of generated method wrapper.
+   */
   public String getClassName() {
     return className;
   }
 
-  /** @return full name (with package) of the generated wrapper. */
+  /**
+   * @return full name (with package) of the generated wrapper.
+   */
   public String getQualifiedName() {
     return qualifiedName;
   }
 
-  /** @return the language-level name of this method. */
+  /**
+   * @return the language-level name of this method.
+   */
   public String getDeclaredName() {
     return annotation.type() + "." + annotation.name();
   }
 
-  /** @return the language-level owner type of this method. */
+  /**
+   * @return the language-level owner type of this method.
+   */
   public String getType() {
     return annotation.type();
   }
 
-  /** @return get the description of this method. */
+  /**
+   * @return get the description of this method.
+   */
   public String getDescription() {
     return annotation.description().replace("\n", "\\n");
   }
 
-  /** @return the arguments this method declares. */
+  /**
+   * @return the arguments this method declares.
+   */
   public List<ArgumentDefinition> getArguments() {
     return arguments;
   }
 
-  /** @return the additional imports this method definition requires. */
+  /**
+   * @return the additional imports this method definition requires.
+   */
   public Set<String> getImports() {
     return imports;
   }
 
-  /** @return whether this method requires caller info to work properly. */
+  /**
+   * @return whether this method requires caller info to work properly.
+   */
   public boolean needsCallerInfo() {
     return needsCallerInfo;
   }
 
-  /** @return whether this method requires virtual frame. */
+  /**
+   * @return whether this method requires virtual frame.
+   */
   public boolean needsFrame() {
     return needsFrame;
   }
@@ -261,39 +278,61 @@ public class MethodDefinition {
 
     boolean validate(ProcessingEnvironment processingEnvironment);
 
-    /** @return whether this argument should be passed the monadic state. */
+    /**
+     * @return whether this argument should be passed the monadic state.
+     */
     boolean isState();
 
-    /** @return whether this argument should be passed the execution frame. */
+    /**
+     * @return whether this argument should be passed the execution frame.
+     */
     boolean isFrame();
 
-    /** @return whether this argument should be passed the caller info. */
+    /**
+     * @return whether this argument should be passed the caller info.
+     */
     boolean isCallerInfo();
 
-    /** @return whether this argument should be passed the next positional function argument. */
+    /**
+     * @return whether this argument should be passed the next positional function argument.
+     */
     boolean isPositional();
 
-    /** @return the position of this argument in the positional arguments list. */
+    /**
+     * @return the position of this argument in the positional arguments list.
+     */
     int getPosition();
 
-    /** @return any import this argument requires. */
+    /**
+     * @return any import this argument requires.
+     */
     Optional<String> getImport();
 
-    /** @return whether this argument needs to be type-casted on read. */
+    /**
+     * @return whether this argument needs to be type-casted on read.
+     */
     boolean requiresCast();
 
     boolean isArray();
 
-    /** @return the name of the type of this argument. */
+    /**
+     * @return the name of the type of this argument.
+     */
     String getTypeName();
 
-    /** @return the name of this argument. */
+    /**
+     * @return the name of this argument.
+     */
     String getName();
 
-    /** @return whether this argument is expected to be passed suspended. */
+    /**
+     * @return whether this argument is expected to be passed suspended.
+     */
     boolean isSuspended();
 
-    /** @return whether this argument accepts a dataflow error. */
+    /**
+     * @return whether this argument accepts a dataflow error.
+     */
     boolean acceptsError();
 
     boolean acceptsWarning();
@@ -507,27 +546,37 @@ public class MethodDefinition {
       return true;
     }
 
-    /** @return whether this argument should be passed the monadic state. */
+    /**
+     * @return whether this argument should be passed the monadic state.
+     */
     public boolean isState() {
       return isState;
     }
 
-    /** @return whether this argument should be passed the execution frame. */
+    /**
+     * @return whether this argument should be passed the execution frame.
+     */
     public boolean isFrame() {
       return isFrame;
     }
 
-    /** @return whether this argument should be passed the caller info. */
+    /**
+     * @return whether this argument should be passed the caller info.
+     */
     public boolean isCallerInfo() {
       return isCallerInfo;
     }
 
-    /** @return whether this argument should be passed the next positional function argument. */
+    /**
+     * @return whether this argument should be passed the next positional function argument.
+     */
     public boolean isPositional() {
       return !isFrame() && !isState() && !isCallerInfo();
     }
 
-    /** @return the position of this argument in the positional arguments list. */
+    /**
+     * @return the position of this argument in the positional arguments list.
+     */
     public int getPosition() {
       return position;
     }
@@ -536,7 +585,9 @@ public class MethodDefinition {
       position = position + 1;
     }
 
-    /** @return any import this argument requires. */
+    /**
+     * @return any import this argument requires.
+     */
     public Optional<String> getImport() {
       if (type.getKind() == TypeKind.DECLARED) {
         if (!type.toString().equals(OBJECT)) {
@@ -546,7 +597,9 @@ public class MethodDefinition {
       return Optional.empty();
     }
 
-    /** @return whether this argument needs to be type-casted on read. */
+    /**
+     * @return whether this argument needs to be type-casted on read.
+     */
     public boolean requiresCast() {
       return !type.toString().equals(OBJECT);
     }
@@ -555,22 +608,30 @@ public class MethodDefinition {
       return type.toString().endsWith("[]");
     }
 
-    /** @return the name of the type of this argument. */
+    /**
+     * @return the name of the type of this argument.
+     */
     public String getTypeName() {
       return typeName;
     }
 
-    /** @return the name of this argument. */
+    /**
+     * @return the name of this argument.
+     */
     public String getName() {
       return name;
     }
 
-    /** @return whether this argument is expected to be passed suspended. */
+    /**
+     * @return whether this argument is expected to be passed suspended.
+     */
     public boolean isSuspended() {
       return isSuspended;
     }
 
-    /** @return whether thsi argument accepts a dataflow error. */
+    /**
+     * @return whether thsi argument accepts a dataflow error.
+     */
     public boolean acceptsError() {
       return acceptsError;
     }

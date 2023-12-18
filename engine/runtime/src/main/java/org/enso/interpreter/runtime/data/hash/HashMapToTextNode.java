@@ -1,8 +1,5 @@
 package org.enso.interpreter.runtime.data.hash;
 
-import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.runtime.EnsoContext;
-
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -12,6 +9,8 @@ import com.oracle.truffle.api.interop.StopIterationException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
+import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.runtime.EnsoContext;
 
 @BuiltinMethod(
     type = "Map",
@@ -19,8 +18,7 @@ import com.oracle.truffle.api.nodes.Node;
     description = """
         Returns text representation of this hash map
         """,
-    autoRegister = false
-)
+    autoRegister = false)
 public abstract class HashMapToTextNode extends Node {
 
   public static HashMapToTextNode build() {
@@ -31,8 +29,7 @@ public abstract class HashMapToTextNode extends Node {
 
   @TruffleBoundary
   @Specialization(guards = "interop.hasHashEntries(hashMap)")
-  Object hashMapToText(Object hashMap,
-      @CachedLibrary(limit = "5") InteropLibrary interop) {
+  Object hashMapToText(Object hashMap, @CachedLibrary(limit = "5") InteropLibrary interop) {
     var sb = new StringBuilder();
     sb.append("{");
     try {
@@ -57,4 +54,3 @@ public abstract class HashMapToTextNode extends Node {
     return sb.toString();
   }
 }
-

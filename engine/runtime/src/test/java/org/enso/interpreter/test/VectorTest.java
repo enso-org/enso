@@ -1,5 +1,8 @@
 package org.enso.interpreter.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.net.URI;
 import java.util.BitSet;
 import java.util.List;
@@ -8,9 +11,6 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.proxy.ProxyArray;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -31,7 +31,10 @@ public class VectorTest extends TestBase {
   @Test
   public void evaluation() throws Exception {
     final URI facUri = new URI("memory://choose.enso");
-    final Source facSrc = Source.newBuilder("enso", """
+    final Source facSrc =
+        Source.newBuilder(
+                "enso",
+                """
     import Standard.Base.Data.Vector
 
     choose x = case x of
@@ -40,7 +43,8 @@ public class VectorTest extends TestBase {
         _ -> "nothing"
 
     check = choose [1, 2, 3]
-    """, "choose.enso")
+    """,
+                "choose.enso")
             .uri(facUri)
             .buildLiteral();
 
@@ -52,7 +56,8 @@ public class VectorTest extends TestBase {
   @Test
   public void vectorToString() throws Exception {
     final URI facUri = new URI("memory://vector.enso");
-    final Source src = Source.newBuilder("enso", """
+    final Source src =
+        Source.newBuilder("enso", """
     check = [1, 2, 3]
     """, "vector.enso")
             .uri(facUri)
@@ -66,7 +71,8 @@ public class VectorTest extends TestBase {
   @Test
   public void arrayToString() throws Exception {
     final URI facUri = new URI("memory://vector.enso");
-    final Source src = Source.newBuilder("enso", """
+    final Source src =
+        Source.newBuilder("enso", """
     check = [1, 2, 3].to_array
     """, "vector.enso")
             .uri(facUri)
@@ -80,11 +86,15 @@ public class VectorTest extends TestBase {
   @Test
   public void passingVectorDirectlyIntoJava() throws Exception {
     final URI uri = new URI("memory://callback.enso");
-    final Source src = Source.newBuilder("enso", """
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
     import Standard.Base.Data.Vector
 
     callback f = f.accept ([1, 2, 3].map +5)
-    """, "callback.enso")
+    """,
+                "callback.enso")
             .uri(uri)
             .buildLiteral();
 
@@ -93,15 +103,14 @@ public class VectorTest extends TestBase {
     class ConsumeList implements Consumer<List<Long>> {
       boolean called;
 
-      ConsumeList() {
-      }
+      ConsumeList() {}
 
       @Override
       public void accept(List<Long> c) {
         assertEquals(3, c.size());
-        assertEquals(6L, (long)c.get(0));
-        assertEquals(7L, (long)c.get(1));
-        assertEquals(8L, (long)c.get(2));
+        assertEquals(6L, (long) c.get(0));
+        assertEquals(7L, (long) c.get(1));
+        assertEquals(8L, (long) c.get(2));
         called = true;
       }
     }
@@ -116,18 +125,21 @@ public class VectorTest extends TestBase {
   @Test
   public void passingListOrArrayToEnsoAsArray() throws Exception {
     final URI uri = new URI("memory://how_long.enso");
-    final Source src = Source.newBuilder("enso", """
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
     import Standard.Base.Data.Array.Array
 
     how_long array = case array of
         arr : Array -> arr.length
         _ -> -1
-    """, "how_long.enso")
+    """,
+                "how_long.enso")
             .uri(uri)
             .buildLiteral();
 
     var module = ctx.eval(src);
-
 
     var callback = module.invokeMember("eval_expression", "how_long");
 
@@ -139,6 +151,7 @@ public class VectorTest extends TestBase {
   }
 
   private static final BitSet QUERIED = new BitSet();
+
   public static List<String> lazyList() {
     return new java.util.AbstractList<String>() {
       @Override
@@ -186,7 +199,10 @@ public class VectorTest extends TestBase {
 
   private void noCopyTest(String factoryName) throws Exception {
     final URI uri = new URI("memory://how_long.enso");
-    final Source src = Source.newBuilder("enso", """
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
     import Standard.Base.Data.Vector.Vector
     polyglot java import org.enso.interpreter.test.VectorTest
 
@@ -194,7 +210,9 @@ public class VectorTest extends TestBase {
     copy = Vector.from_array VectorTest.${call}
     lazy = Vector.from_polyglot_array VectorTest.${call}
 
-    """.replace("${call}", factoryName), "vectors.enso")
+    """
+                    .replace("${call}", factoryName),
+                "vectors.enso")
             .uri(uri)
             .buildLiteral();
 
@@ -224,8 +242,6 @@ public class VectorTest extends TestBase {
       assertEquals("at0", copy.getArrayElement(0).asString());
       assertEquals("at7", copy.getArrayElement(7).asString());
     }
-
-
 
     {
       QUERIED.clear();
