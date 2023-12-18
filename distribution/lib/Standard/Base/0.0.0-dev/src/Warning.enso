@@ -401,7 +401,7 @@ get_all_from_vector_elements  value = @Builtin_Method "Warning.get_all_from_vect
 
    Get warnings from a Vector. The warnings attached to individual elements are
    wrapped in Map_Error.
-   
+
    We also request warnings that are attached directly to the vector, but remove
    those that are identical to warnings attached to elements. We are unable to
    determine if the directly-attached warnings are truly redundant; they might
