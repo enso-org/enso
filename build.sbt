@@ -12,8 +12,6 @@ import src.main.scala.licenses.{
   DistributionDescription,
   SBTDistributionComponent
 }
-import com.sandinh.javamodule.moduleinfo.JpmsModule
-import com.sandinh.javamodule.moduleinfo.AutomaticModule
 import sbt.librarymanagement.DependencyFilter
 
 // This import is unnecessary, but bit adds a proper code completion features
@@ -560,7 +558,7 @@ lazy val modulePathTestOptions =
   val updateReport = (LocalProject("runtime-fat-jar") / Runtime / update).value
   val runtimeModName = (LocalProject(
     "runtime-fat-jar"
-  ) / moduleInfos).value.head.moduleName
+  ) / javaModuleName).value
   val runtimeMod = (LocalProject(
     "runtime-fat-jar"
   ) / Compile / productDirectories).value
@@ -1980,9 +1978,6 @@ lazy val `runtime-fat-jar` =
       // Filter module-info.java from the compilation
       excludeFilter := excludeFilter.value || "module-info.java",
       javaModuleName := "org.enso.runtime",
-      moduleInfos := Seq(
-        JpmsModule("org.enso.runtime")
-      ),
       compileOrder := CompileOrder.JavaThenScala
     )
     /** The following libraryDependencies are provided in Runtime scope.
@@ -2376,7 +2371,7 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
       val runtimeModuleName =
         (LocalProject(
           "runtime-fat-jar"
-        ) / moduleInfos).value.head.moduleName
+        ) / javaModuleName).value
       Seq(
         // To enable logging in benchmarks, add ch.qos.logback module on the modulePath
         "-Dslf4j.provider=org.slf4j.nop.NOPServiceProvider",

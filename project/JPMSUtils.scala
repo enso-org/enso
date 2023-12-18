@@ -1,8 +1,7 @@
-import com.sandinh.javamodule.moduleinfo.ModuleInfoPlugin.autoImport.moduleInfos
+import JPMSPlugin.autoImport.javaModuleName
 import sbt.*
 import sbt.Keys.*
 import sbt.internal.inc.{CompileOutput, PlainVirtualFile}
-import JPMSPlugin.autoImport.javaModuleName
 import sbt.util.CacheStore
 import sbtassembly.Assembly.{Dependency, JarEntry, Project}
 import sbtassembly.{CustomMergeStrategy, MergeStrategy}
@@ -42,8 +41,9 @@ object JPMSUtils {
     )
 
   /** Filters modules by their IDs from the given classpath.
-    * @param cp The classpath to filter
-    * @param modules These modules are looked for in the class path, can be duplicated.
+    *
+    * @param cp               The classpath to filter
+    * @param modules          These modules are looked for in the class path, can be duplicated.
     * @param shouldContainAll If true, the method will throw an exception if not all modules were found
     *                         in the classpath.
     * @return The classpath with only the provided modules searched by their IDs.
@@ -202,7 +202,7 @@ object JPMSUtils {
         val sourceProducts =
           productDirectories.all(copyDepsFilter).value.flatten
 
-        val moduleName     = moduleInfos.value.head.moduleName
+        val moduleName     = javaModuleName.value
         val cacheStore     = streams.value.cacheStoreFactory
         val repoRootDir    = (LocalProject("enso") / baseDirectory).value
         var someDepChanged = false
