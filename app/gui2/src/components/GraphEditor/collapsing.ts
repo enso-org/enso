@@ -1,7 +1,7 @@
 import { GraphDb } from '@/stores/graph/graphDatabase'
 import { Ast } from '@/util/ast'
+import { unwrap } from '@/util/data/result'
 import { tryIdentifier, type Identifier } from '@/util/qualifiedName'
-import { unwrap } from '@/util/result'
 import assert from 'assert'
 import * as set from 'lib0/set'
 import { IdMap, type ExprId } from 'shared/yjsModel'
