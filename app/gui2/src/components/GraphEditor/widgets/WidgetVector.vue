@@ -17,17 +17,18 @@ const inputAst = computed(() =>
 )
 const argInfo = computed(() => (props.input instanceof ArgumentAst ? props.input.info : undefined))
 
+const itemConfiguration = computed(() => {
+  if (props.config?.kind === 'Vector_Editor') {
+    return props.config.item_editor
+  }
+  return undefined
+})
+
 const defaultConstructor = computed(() => {
   const fallback = Ast.Wildcard.new
   const config = props.config
-  if (config == null) return fallback
-  const [_, widgetConfig] = config.find(([name]) => name === argInfo.value?.name) ?? []
-  if (
-    widgetConfig &&
-    widgetConfig.kind == 'Vector_Editor' &&
-    widgetConfig.item_editor.kind === 'Single_Choice'
-  ) {
-    return () => Ast.parse(widgetConfig.item_default)
+  if (config?.kind === 'Vector_Editor') {
+    return () => Ast.parse(config.item_default)
   } else {
     return fallback
   }
@@ -57,8 +58,11 @@ function forcePort(item: WidgetInput) {
 export const widgetDefinition = defineWidget([Ast.Ast, ArgumentAst], {
   priority: 1000,
   score: (props) => {
-    const ast = props.input instanceof ArgumentAst ? props.input.ast : props.input
-    return ast.treeType === RawAst.Tree.Type.Array ? Score.Perfect : Score.Mismatch
+    if (props.config?.kind === 'Vector_Editor') return Score.Perfect
+    else {
+      const ast = props.input instanceof ArgumentAst ? props.input.ast : props.input
+      return ast.treeType === RawAst.Tree.Type.Array ? Score.Perfect : Score.Mismatch
+    }
   },
 })
 
@@ -97,7 +101,7 @@ declare module '@/providers/widgetRegistry' {
     contenteditable="false"
   >
     <template #default="{ item }">
-      <NodeWidget :input="makeItem(item, argInfo)" :dynamicConfig="props.config" />
+      <NodeWidget :input="makeItem(item, argInfo)" :dynamicConfig="itemConfiguration" />
     </template>
   </ListWidget>
 </template>

@@ -105,22 +105,10 @@ watch(selectedIndex, (_index) => {
 export const widgetDefinition = defineWidget([ArgumentPlaceholder, ArgumentAst, VectorItem], {
   priority: 999,
   score: (props) => {
-    if (props.input instanceof VectorItem) {
-      const [_, dynamicConfig] =
-        props.config?.find(([name]) => name === props.input.info?.name) ?? []
-      const isSuitable =
-        dynamicConfig &&
-        dynamicConfig.kind === 'Vector_Editor' &&
-        dynamicConfig.item_editor.kind === 'Single_Choice'
-      return isSuitable ? Score.Perfect : Score.Mismatch
-    } else {
-      const input = props.input as ArgumentPlaceholder | ArgumentAst
-      const tags = input.info?.tagValues
-      const [_, dynamicConfig] = props.config?.find(([name]) => name === input.info?.name) ?? []
-      const isSuitableDynamicConfig = dynamicConfig && dynamicConfig.kind === 'Single_Choice'
-      if (tags == null && !isSuitableDynamicConfig) return Score.Mismatch
-      return Score.Perfect
-    }
+    const input = props.input as ArgumentPlaceholder | ArgumentAst
+    const tags = input.info?.tagValues
+    if (tags == null && props.config?.kind !== 'Single_Choice') return Score.Mismatch
+    return Score.Perfect
   },
 })
 </script>
