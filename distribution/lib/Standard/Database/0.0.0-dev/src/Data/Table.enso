@@ -1416,7 +1416,7 @@ type Table
     merge : Table -> (Vector (Integer | Text | Regex) | Text | Integer | Regex) -> Boolean -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
     merge self lookup_table:Table key_columns:(Vector (Integer | Text | Regex) | Text | Integer | Regex) add_new_columns:Boolean=False allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
         _ = [lookup_table, key_columns, add_new_columns, allow_unmatched_rows, on_problems]
-        Error.throw (Unsupported_Database_Operation.Error "Table.match is not implemented yet for the Database backends.")
+        Error.throw (Unsupported_Database_Operation.Error "Table.merge is not implemented yet for the Database backends.")
 
 
 
