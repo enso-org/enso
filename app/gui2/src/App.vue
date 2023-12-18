@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import DeprecatedVersionDialog from '@/components/DeprecatedVersionDialog.vue'
 import HelpScreen from '@/components/HelpScreen.vue'
 import { provideAppClassSet } from '@/providers/appClass'
 import { provideGuiConfig, type GuiConfig } from '@/providers/guiConfig'
@@ -25,7 +24,6 @@ onMounted(() => useSuggestionDbStore())
 </script>
 
 <template>
-  <DeprecatedVersionDialog v-if="config.isVersionDeprecated === 'true'" />
   <HelpScreen
     v-if="unrecognizedOptions.length"
     :unrecognizedOptions="props.unrecognizedOptions"

@@ -45,18 +45,6 @@
           "description": "The namespace of the opened project. It can be used when connecting to an existing Language Server process.",
           "value": "local",
           "primary": false
-        },
-        "configUrl": {
-          "description": "The URL of the application configuration. Used to check for available updates.",
-          "value": "https://raw.githubusercontent.com/enso-org/ide/develop/config.json",
-          "primary": false
-        },
-        "skipMinVersionCheck": {
-          "description": "Determines whether the minimum engine version check should be performed.",
-          "defaultDescription": "true in local builds, false otherwise.",
-          "value": false,
-          "valueEval": "scope.Version.isDev()",
-          "primary": false
         }
       }
     },

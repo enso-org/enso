@@ -15,7 +15,6 @@ export interface GuiConfig {
     displayedProjectName: string
   }
   window?: { topBarOffset?: string }
-  isVersionDeprecated?: string
 }
 export { injectFn as injectGuiConfig, provideFn as provideGuiConfig }
 const { provideFn, injectFn } = createContextStore('GUI config', identity<Ref<GuiConfig>>)

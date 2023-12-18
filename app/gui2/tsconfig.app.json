@@ -7,7 +7,6 @@
     "shared/**/*",
     "shared/**/*.vue",
     "src/util/theme.json",
-    "../../build.json",
     "stories/mockSuggestions.json",
     "mock/**/*"
   ],

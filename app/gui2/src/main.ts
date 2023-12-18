@@ -1,7 +1,6 @@
 import { baseConfig, configValue, mergeConfig } from '@/util/config'
 import { isDevMode } from '@/util/detect'
 import { urlParams } from '@/util/urlParams'
-import { checkMinimumSupportedVersion } from '@/util/version'
 import { run as runDashboard } from 'enso-authentication'
 import { isOnLinux } from 'enso-common/src/detect'
 import 'enso-dashboard/src/tailwind.css'
@@ -60,11 +59,9 @@ async function runApp(config: StringConfig | null, accessToken: string | null, m
     unrecognizedOptions.push(path.join('.'))
   }
   const appConfig = mergeConfig(baseConfig, urlParams(), { onUnrecognizedOption })
-  const appConfigValue = configValue(appConfig)
-  const isVersionDeprecated = String(!(await checkMinimumSupportedVersion(appConfigValue)))
   if (!running) return
   const app = mountProjectApp({
-    config: { ...config, isVersionDeprecated },
+    config,
     accessToken,
     metadata,
     unrecognizedOptions,
