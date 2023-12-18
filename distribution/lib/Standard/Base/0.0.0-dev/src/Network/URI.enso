@@ -2,13 +2,16 @@ import project.Data.Enso_Cloud.Enso_Secret.Enso_Secret
 import project.Data.Enso_Cloud.Enso_Secret.Enso_Secret_Error
 import project.Data.Json.JS_Object
 import project.Data.Numbers.Integer
+import project.Data.Ordering.Comparable
+import project.Data.Ordering.Ordering
 import project.Data.Pair.Pair
 import project.Data.Text.Text
 import project.Data.Vector.No_Wrap
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Common.Syntax_Error
-import project.Network.URI_With_Query.URI_With_Query
+import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Errors.Illegal_State.Illegal_State
 import project.Nothing.Nothing
 import project.Panic.Panic
 
@@ -16,8 +19,9 @@ polyglot java import java.net.URI as Java_URI
 polyglot java import java.net.URISyntaxException
 polyglot java import org.graalvm.collections.Pair as Java_Pair
 
-polyglot java import org.enso.base.enso_cloud.HideableValue
+polyglot java import org.enso.base.enso_cloud.EnsoSecretAccessDenied
 polyglot java import org.enso.base.net.URIWithSecrets
+polyglot java import org.enso.base.net.UserInfoWithSecrets
 
 ## Represents a Uniform Resource Identifier (URI) reference.
 type URI
@@ -141,14 +145,24 @@ type URI
         self.to_java_schematic.getQuery
 
     ## GROUP Calculations
-       Adds a query parameter to the URI
+       Adds a query parameter to the URI.
 
        Arguments:
        - key: The key of the query parameter.
        - value: The value of the query parameter.
     add_query_argument : Text -> Text | Enso_Secret -> URI
     add_query_argument self key:Text value:(Text | Enso_Secret) =
-        URI_With_Query.Value self [Pair.new key value]
+        URI.Value self.internal_uri self.additional_query_parameters+[Pair.new key value] self.user_info_override
+
+    ## GROUP Calculations
+       Sets the user info for the URI.
+
+       Arguments:
+       - username: The username.
+       - password: The password.
+    set_user_info : Text | Enso_Secret -> Text | Enso_Secret -> URI
+    set_user_info self (username : Text | Enso_Secret) (password : Text | Enso_Secret) =
+        URI.Value self.internal_uri self.additional_query_parameters (User_Info.Value username password)
 
     ## Get the fragment part of this URI.
 
@@ -209,6 +223,10 @@ type URI
     to_display_text self = self.to_text.to_display_text
 
     ## PRIVATE
+    pretty : Text
+    pretty self = self.to_text
+
+    ## PRIVATE
 
        Represents a Uniform Resource Identifier (URI) reference.
 
@@ -240,9 +258,10 @@ type URI
     to_java_schematic : URIWithSecrets
     to_java_schematic self =
         parameters = self.additional_query_parameters.map p->
-            Java_Pair.create p.first (to_java_hideable_value p.second)
-        java_user_info = self.user_info.if_not_nothing <|
-            self.user_info.to_java
+            Java_Pair.create p.first (Enso_Secret.to_java_value p.second)
+        java_user_info = self.user_info_override.if_not_nothing <|
+            self.user_info_override.to_java
+
         URIWithSecrets.new self.internal_uri parameters java_user_info
 
     ## PRIVATE
@@ -262,14 +281,9 @@ type User_Info
     ## PRIVATE
     to_java : UserInfoWithSecrets
     to_java self =
-        username = to_java_hideable_value self.username
-        password = to_java_hideable_value self.password
+        username = Enso_Secret.to_java_value self.username
+        password = Enso_Secret.to_java_value self.password
         UserInfoWithSecrets.new username password
-
-## PRIVATE
-to_java_hideable_value (value : Text | Enso_Secret) = case value of
-    text : Text -> HideableValue.PlainValue text
-    secret : Enso_Secret -> HideableValue.SecretValue secret.id
 
 ## PRIVATE
 handle_resolve_errors ~action =
@@ -278,3 +292,20 @@ handle_resolve_errors ~action =
     Illegal_Argument.handle_java_exception <| Illegal_State.handle_java_exception <|
         Panic.catch EnsoSecretAccessDenied handler=handle_access_denied <|
             action
+
+## PRIVATE
+type URI_Comparator
+    ## PRIVATE
+    compare x y =
+        Standard.Base.IO.println <| "Comparing " + x.to_text + " and " + y.to_text
+        if x.to_text != y.to_text then Nothing else
+            eq = (x.additional_query_parameters == y.additional_query_parameters) && (x.user_info_override == y.user_info_override)
+            if eq then Ordering.Equal else Nothing
+
+    ## PRIVATE
+    hash x =
+        v = [x.text, x.additional_query_parameters, x.user_info_override]
+        Comparable.from v . hash v
+
+## PRIVATE
+Comparable.from (_:URI) = URI_Comparator

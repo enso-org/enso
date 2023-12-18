@@ -70,12 +70,7 @@ public class EnsoSecretHelper {
 
     // Build a new URI with the query arguments.
     URI resolvedURI = resolveURI(uri);
-    URI renderedURI;
-    try {
-      renderedURI = uri.render();
-    } catch (URISyntaxException e) {
-      throw new IllegalArgumentException("Unable to render the URI (" + uri + "): " + e.getMessage(), e);
-    }
+    URI renderedURI = uri.render();
 
     builder.uri(resolvedURI);
 

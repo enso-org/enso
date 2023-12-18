@@ -10,7 +10,6 @@ import project.Network.HTTP.Header.Header
 import project.Network.HTTP.HTTP_Method.HTTP_Method
 import project.Network.HTTP.Request_Body.Request_Body
 import project.Network.URI.URI
-import project.Network.URI_With_Query.URI_With_Query
 import project.Nothing.Nothing
 import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
@@ -144,7 +143,7 @@ type Request
        - uri: The URI for the request.
        - headers: A vector containing headers for the request.
        - body: The body of the request.
-    Value method uri headers body
+    Value (method : HTTP_Method) (uri : URI) (headers : Vector) (body : Request_Body)
 
     ## Sets the header for the request.
 

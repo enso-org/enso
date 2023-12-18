@@ -53,34 +53,34 @@ public record URIWithSecrets(
     return baseUri.getScheme();
   }
 
-  private URIWithSecrets forAuthorityPart() {
+  private URI forAuthorityPart() {
     // We can ignore secrets in the query part, because they are not used for resolving the authority.
-    return new URIWithSecrets(baseUri, List.of(), userInfo);
+    return new URIWithSecrets(baseUri, List.of(), userInfo).safeResolve();
   }
 
   public String getUserInfo() {
-    return this.forAuthorityPart().safeResolve().getUserInfo();
+    return this.forAuthorityPart().getUserInfo();
   }
 
   public String getRawUserInfo() {
-    return this.forAuthorityPart().safeResolve().getRawUserInfo();
+    return this.forAuthorityPart().getRawUserInfo();
   }
 
   public String getHost() {
     // This is not affected by secrets at all, so we can rely on the baseUri.
-    return this.baseUri.getHost();
+    return baseUri.getHost();
   }
 
   public int getPort() {
-    return this.baseUri.getPort();
+    return baseUri.getPort();
   }
 
   public String getAuthority() {
-    return this.forAuthorityPart().safeResolve().getAuthority();
+    return this.forAuthorityPart().getAuthority();
   }
 
   public String getRawAuthority() {
-    return this.forAuthorityPart().safeResolve().getRawAuthority();
+    return this.forAuthorityPart().getRawAuthority();
   }
 
   public String getPath() {
@@ -91,17 +91,17 @@ public record URIWithSecrets(
     return baseUri.getRawPath();
   }
 
-  private URIWithSecrets forQueryPart() {
+  private URI forQueryPart() {
     // We can ignore secrets in the authority part, because they are not used for resolving the query.
-    return new URIWithSecrets(baseUri, queryParameters, null);
+    return new URIWithSecrets(baseUri, queryParameters, null).safeResolve();
   }
 
   public String getQuery() {
-    return this.forQueryPart().safeResolve().getQuery();
+    return this.forQueryPart().getQuery();
   }
 
   public String getRawQuery() {
-    return this.forQueryPart().safeResolve().getRawQuery();
+    return this.forQueryPart().getRawQuery();
   }
 
   public String getFragment() {

@@ -16,7 +16,6 @@ import project.Network.HTTP.Request.Request
 import project.Network.HTTP.Request_Body.Request_Body
 import project.Network.HTTP.Request_Error
 import project.Network.URI.URI
-import project.Network.URI_With_Query.URI_With_Query
 import project.Nothing.Nothing
 import project.System.File.File
 from project.Data.Boolean import Boolean, False, True
