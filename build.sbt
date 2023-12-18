@@ -1771,12 +1771,6 @@ lazy val runtime = (project in file("engine/runtime"))
       )
     },
     Test / javaOptions ++= testLogProviderOptions,
-    // TODO[pm] This is a workaround after `runtime-with-polyglot` was merged into `runtime`.
-    Test / javaOptions := {
-      val oldOpts = (Test / javaOptions).value
-      val newOpts = oldOpts.filterNot(_ == "-ea")
-      newOpts
-    }
   )
   .settings(
     Test / fork := true,
