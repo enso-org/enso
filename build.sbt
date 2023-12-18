@@ -1021,9 +1021,8 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
       "org.typelevel" %% "kind-projector" % kindProjectorVersion cross CrossVersion.full
     )
   )
-  /**
-  * Fat jar assembly settings
-  */
+  /** Fat jar assembly settings
+    */
   .settings(
     assembly / assemblyJarName := "project-manager.jar",
     assembly / test := {},
@@ -1051,11 +1050,10 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
       case "application.conf" => MergeStrategy.concat
       case "reference.conf"   => MergeStrategy.concat
       case _                  => MergeStrategy.first
-    },
+    }
   )
-  /**
-  * JPMS related settings for tests
-  */
+  /** JPMS related settings for tests
+    */
   .settings(
     Test / fork := true,
     // These dependencies are here so that we can use them in `--module-path` later on.
@@ -1072,7 +1070,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
       val updateReport = (Test / update).value
       val requiredModIds =
         GraalVM.modules ++ GraalVM.langsPkgs ++ logbackPkg ++ Seq(
-          "org.slf4j"        % "slf4j-api"               % slf4jVersion,
+          "org.slf4j" % "slf4j-api" % slf4jVersion
         )
       val requiredMods = JPMSUtils.filterModulesFromUpdate(
         updateReport,
@@ -1096,7 +1094,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
         "-Dslf4j.provider=ch.qos.logback.classic.spi.LogbackServiceProvider",
         s"-Dlogback.configurationFile=${testLogbackConf.getAbsolutePath}"
       )
-    },
+    }
   )
   .settings(
     rebuildNativeImage := NativeImage
@@ -1384,10 +1382,10 @@ lazy val `language-server` = (project in file("engine/language-server"))
       "org.scalacheck"             %% "scalacheck"           % scalacheckVersion         % Test,
       "org.graalvm.sdk"             % "polyglot-tck"         % graalMavenPackagesVersion % "provided",
       "org.eclipse.jgit"            % "org.eclipse.jgit"     % jgitVersion,
-      "org.bouncycastle"     % "bcutil-jdk18on"     % "1.76" % Test,
-      "org.bouncycastle"     % "bcpkix-jdk18on"     % "1.76" % Test,
-      "org.bouncycastle"     % "bcprov-jdk18on"     % "1.76" % Test,
-
+      "org.bouncycastle"            % "bcutil-jdk18on"       % "1.76"                    % Test,
+      "org.bouncycastle"            % "bcpkix-jdk18on"       % "1.76"                    % Test,
+      "org.bouncycastle"            % "bcprov-jdk18on"       % "1.76"                    % Test,
+      "org.apache.tika"             % "tika-core"            % tikaVersion               % Test
     ),
     Test / testOptions += Tests
       .Argument(TestFrameworks.ScalaCheck, "-minSuccessfulTests", "1000"),
@@ -1410,7 +1408,8 @@ lazy val `language-server` = (project in file("engine/language-server"))
     // These dependencies are here so that we can use them in `--module-path` later on.
     libraryDependencies ++= {
       val necessaryModules =
-        GraalVM.modules.map(_.withConfigurations(Some(Test.name)))
+        GraalVM.modules.map(_.withConfigurations(Some(Test.name))) ++
+        GraalVM.langsPkgs.map(_.withConfigurations(Some(Test.name)))
       necessaryModules
     },
     Test / addModules := Seq(
@@ -1420,11 +1419,11 @@ lazy val `language-server` = (project in file("engine/language-server"))
       val updateReport = (Test / update).value
       // org.bouncycastle is a module required by `org.enso.runtime` module.
       val requiredModIds =
-        GraalVM.modules ++ logbackPkg ++ Seq(
-          "org.slf4j"        % "slf4j-api"               % slf4jVersion,
-          "org.bouncycastle"     % "bcutil-jdk18on"     % "1.76",
-          "org.bouncycastle"     % "bcpkix-jdk18on"     % "1.76",
-          "org.bouncycastle"     % "bcprov-jdk18on"     % "1.76",
+        GraalVM.modules ++ GraalVM.langsPkgs ++ logbackPkg ++ Seq(
+          "org.slf4j"        % "slf4j-api"      % slf4jVersion,
+          "org.bouncycastle" % "bcutil-jdk18on" % "1.76",
+          "org.bouncycastle" % "bcpkix-jdk18on" % "1.76",
+          "org.bouncycastle" % "bcprov-jdk18on" % "1.76"
         )
       val requiredMods = JPMSUtils.filterModulesFromUpdate(
         updateReport,
@@ -1437,6 +1436,59 @@ lazy val `language-server` = (project in file("engine/language-server"))
       requiredMods ++ Seq(runtimeMod)
     },
     Test / javaOptions ++= testLogProviderOptions,
+    Test / patchModules := {
+
+      /** All these modules will be in --patch-module cmdline option to java, which means that
+        * for the JVM, it will appear that all the classes contained in these sbt projects are contained
+        * in the `org.enso.runtime` module. In this way, we do not have to assembly the `runtime.jar`
+        * fat jar.
+        */
+      val modulesToPatchIntoRuntime: Seq[File] =
+        (LocalProject(
+          "runtime-instrument-common"
+        ) / Compile / productDirectories).value ++
+        (LocalProject(
+          "runtime-instrument-id-execution"
+        ) / Compile / productDirectories).value ++
+        (LocalProject(
+          "runtime-instrument-repl-debugger"
+        ) / Compile / productDirectories).value ++
+        (LocalProject(
+          "runtime-instrument-runtime-server"
+        ) / Compile / productDirectories).value ++
+        (LocalProject(
+          "runtime-language-epb"
+        ) / Compile / productDirectories).value ++
+        (LocalProject(
+          "runtime-compiler"
+        ) / Compile / productDirectories).value ++
+        (LocalProject("runtime-parser") / Compile / productDirectories).value ++
+        (LocalProject(
+          "interpreter-dsl"
+        ) / Compile / productDirectories).value ++
+        // We have to patch the `runtime` project as well, as it contains BuiltinTypes.metadata in
+        // runtime/target/classes/META-INF directory
+        (LocalProject("runtime") / Compile / productDirectories).value ++
+        (LocalProject(
+          "syntax-rust-definition"
+        ) / Compile / productDirectories).value
+      val extraModsToPatch = JPMSUtils.filterModulesFromUpdate(
+        (Test / update).value,
+        Seq(
+          "org.apache.tika" % "tika-core" % tikaVersion
+        ),
+        streams.value.log,
+        shouldContainAll = true
+      )
+      Map(
+        (`runtime-fat-jar` / javaModuleName).value -> (modulesToPatchIntoRuntime ++ extraModsToPatch)
+      )
+    },
+    Test / addReads := {
+      Map(
+        (`runtime-fat-jar` / javaModuleName).value -> Seq("ALL-UNNAMED")
+      )
+    }
   )
   .settings(
     Test / compile := (Test / compile)
