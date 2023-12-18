@@ -24,7 +24,7 @@ import { WSSharedDoc } from './ydoc'
 
 const sessions = new Map<string, LanguageServerSession>()
 
-const DEBUG_LOG_SYNC = true
+const DEBUG_LOG_SYNC = false
 
 type Events = {
   error: (error: Error) => void
