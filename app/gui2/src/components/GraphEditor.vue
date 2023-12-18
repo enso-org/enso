@@ -52,7 +52,7 @@ const suggestionDb = useSuggestionDbStore()
 const interaction = provideInteractionHandler()
 
 function initStartupToast() {
-  const startupToast = toast.info('Compiling standard library. It can take up to 1 minute.', {
+  const startupToast = toast.info('Initialising project, It can take up to one minute.', {
     autoClose: false,
   })
   projectStore.firstExecution.then(() => {
