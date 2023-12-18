@@ -1285,7 +1285,6 @@ export function parseTransitional(code: string, idMap: IdMap): Ast {
     }
     return true
   })
-  console.log(`Expected nodes: ${idMap.size}, found nodes: ${astExtended.size}`)
   const tokensOut = new Map()
   const newRoot = Ast.parse({ info: { nodes, tokens, tokensOut }, code })
   newRoot.module.raw.astExtended = astExtended
