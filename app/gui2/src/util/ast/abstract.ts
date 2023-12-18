@@ -16,7 +16,7 @@ export interface Module {
   getExtended(id: AstId): RawAstExtended | undefined
   edit(): MutableModule
   apply(module: Module): void
-  replace(editIn: Module, oldRoot: AstId | undefined, newRoot: AstId): void
+  replace(editIn: Module): void
 }
 
 export class MutableModule implements Module {
