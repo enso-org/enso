@@ -135,7 +135,7 @@ export function graphNodeByBinding(page: Locator | Page, binding: string) {
 // @ts-expect-error
 export const anyVisualization = componentLocator('GraphVisualization > *')
 export const circularMenu = componentLocator('CircularMenu')
-export const addNewNodeButton = componentLocator('circle-plus')
+export const addNewNodeButton = componentLocator('PlusButton')
 export const componentBrowser = componentLocator('ComponentBrowser')
 
 export function componentBrowserEntry(

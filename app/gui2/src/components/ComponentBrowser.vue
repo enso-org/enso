@@ -3,6 +3,7 @@ import { componentBrowserBindings } from '@/bindings'
 import { makeComponentList, type Component } from '@/components/ComponentBrowser/component'
 import { Filtering } from '@/components/ComponentBrowser/filtering'
 import { useComponentBrowserInput, type Usage } from '@/components/ComponentBrowser/input'
+import { useScrolling } from '@/components/ComponentBrowser/scrolling'
 import { default as DocumentationPanel } from '@/components/DocumentationPanel.vue'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
@@ -22,7 +23,6 @@ import { allRanges } from '@/util/data/range'
 import { Vec2 } from '@/util/data/vec2'
 import type { SuggestionId } from 'shared/languageServerTypes/suggestions'
 import { computed, onMounted, ref, watch, type ComputedRef, type Ref } from 'vue'
-import { useScrolling } from './ComponentBrowser/scrolling'
 
 const ITEM_SIZE = 32
 const TOP_BAR_HEIGHT = 32
@@ -242,7 +242,7 @@ watch(
       animatedHighlightPosition.skip()
     }
   },
-  // Needs to by synchronous to make skipping highlight animation working.
+  // Needs to be synchronous to make skipping highlight animation work.
   { flush: 'sync' },
 )
 
