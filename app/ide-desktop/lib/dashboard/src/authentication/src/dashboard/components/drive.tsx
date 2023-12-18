@@ -266,7 +266,7 @@ export default function Drive(props: DriveProps) {
     return isListingRemoteDirectoryWhileOffline ? (
         <div className={`grow grid place-items-center mx-2 ${hidden ? 'hidden' : ''}`}>
             <div className="flex flex-col gap-4">
-                <div className="text-base text-center">You are not signed in.</div>
+                <div className="text-base text-center">You are not logged in.</div>
                 <button
                     className="text-base text-white bg-help rounded-full self-center leading-170 h-8 py-px w-16"
                     onClick={() => {

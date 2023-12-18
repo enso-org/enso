@@ -1,7 +1,7 @@
 import { createContextStore } from '@/providers'
+import type { URLString } from '@/util/data/urlString'
+import { Vec2 } from '@/util/data/vec2'
 import type { Icon } from '@/util/iconName'
-import type { URLString } from '@/util/urlString'
-import { Vec2 } from '@/util/vec2'
 import type { VisualizationIdentifier } from 'shared/yjsModel'
 import { reactive } from 'vue'
 

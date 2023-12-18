@@ -3,7 +3,7 @@ import { computed, ref, shallowRef } from 'vue'
 
 import { usePointer } from '@/util/events'
 import { useNavigator } from '@/util/navigator'
-import type { Vec2 } from '@/util/vec2'
+import type { Vec2 } from '@/util/data/vec2'
 
 const viewportNode = ref<HTMLElement>()
 

@@ -1,7 +1,7 @@
+import { createContextStore } from '@/providers'
 import { type WidgetConfiguration } from '@/providers/widgetRegistry/configuration'
 import type { GraphDb } from '@/stores/graph/graphDatabase'
 import { computed, shallowReactive, type Component, type PropType } from 'vue'
-import { createContextStore } from '.'
 
 export type WidgetComponent<T extends WidgetInput> = Component<WidgetProps<T>>
 

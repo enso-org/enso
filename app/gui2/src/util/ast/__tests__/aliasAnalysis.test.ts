@@ -28,7 +28,6 @@
 import { assertDefined } from '@/util/assert'
 import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
 import { MappedKeyMap, MappedSet } from '@/util/containers'
-import type { Opt } from '@/util/opt'
 import { IdMap, type ContentRange } from 'shared/yjsModel'
 import { expect, test } from 'vitest'
 
@@ -71,10 +70,10 @@ function parseAnnotations(annotatedCode: string): {
     annotationRegex,
     (
       match,
-      bindingPrefix: Opt<string>,
-      bindingName: Opt<string>,
-      usagePrefix: Opt<string>,
-      usageName: Opt<string>,
+      bindingPrefix: string | undefined,
+      bindingName: string | undefined,
+      usagePrefix: string | undefined,
+      usageName: string | undefined,
       offset: number,
     ) => {
       console.log(`Processing annotated identifier ${match}.`)
@@ -85,7 +84,7 @@ function parseAnnotations(annotatedCode: string): {
       expect(usagePrefix != null).toBe(usageName != null)
       expect(bindingPrefix != null).not.toBe(usagePrefix != null)
 
-      const id = parseInt(bindingPrefix ?? usagePrefix ?? '', 10)
+      const id = parseInt(bindingPrefix ?? usagePrefix ?? '0', 10)
       const name = bindingName ?? usageName ?? ''
       const kind = bindingPrefix != null ? AnnotationType.Binding : AnnotationType.Usage
 

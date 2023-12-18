@@ -1272,6 +1272,14 @@ spec setup =
                 problems = [Unsupported_Database_Operation.Error "`First` aggregation requires at least one `order_by` column.", Unsupported_Database_Operation.Error "`Last` aggregation requires at least one `order_by` column."]
                 Problems.test_problem_handling action problems tester
 
+            Test.specify "will include unsupported feature problem in No_Output_Columns" <|
+                table = table_builder [["A", [1,2,Nothing,3]]]
+                r1 = table.aggregate [First "A"]
+                r1.should_fail_with No_Output_Columns
+                r1.catch.cause . should_be_a Unsupported_Database_Operation
+                r1.to_display_text . should_contain "No columns in the result"
+                r1.to_display_text . should_contain "`First`"
+
     Test.group prefix+"Table.aggregate+Expressions" <|
         ## TODO we probably should check all kinds of aggregate columns
            to verify that  all of them correctly support expressions.
@@ -1317,11 +1325,11 @@ spec setup =
                 t1.should_fail_with No_Output_Columns
 
             t2 = table.aggregate [Sum "MISSING"]
-            t2 . should_fail_with Invalid_Aggregate_Column
+            t2.should_fail_with Invalid_Aggregate_Column
             t2.catch.name.should_equal "MISSING"
 
             t3 = table.aggregate [Sum 42]
-            t3 . should_fail_with Missing_Input_Columns
+            t3.should_fail_with Missing_Input_Columns
             t3.catch.criteria.should_equal [42]
 
         Test.specify "should raise a warning when can't find a column by name, but a hard error if the missing column is in a Group_By" <|

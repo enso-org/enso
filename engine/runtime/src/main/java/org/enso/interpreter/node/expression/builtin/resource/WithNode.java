@@ -15,7 +15,8 @@ import org.enso.interpreter.runtime.state.State;
     type = "Managed_Resource",
     name = "with",
     description =
-        "Applies the passed action to the underlying resource managed by the passed Managed_Resource object.")
+        "Applies the passed action to the underlying resource managed by the passed"
+            + " Managed_Resource object.")
 public abstract class WithNode extends Node {
 
   private @Child InvokeCallableNode invokeCallableNode =

@@ -3,6 +3,9 @@ import { Awareness } from '@/stores/awareness'
 import { ComputedValueRegistry } from '@/stores/project/computedValueRegistry'
 import { VisualizationDataRegistry } from '@/stores/project/visualizationDataRegistry'
 import { attachProvider, useObserveYjs } from '@/util/crdt'
+import { nextEvent } from '@/util/data/observable'
+import { isSome, type Opt } from '@/util/data/opt'
+import { Err, Ok, type Result } from '@/util/data/result'
 import { ReactiveMapping } from '@/util/database/reactiveDb'
 import {
   AsyncQueue,
@@ -10,10 +13,7 @@ import {
   createWebsocketClient,
   rpcWithRetries as lsRpcWithRetries,
 } from '@/util/net'
-import { nextEvent } from '@/util/observable'
-import { isSome, type Opt } from '@/util/opt'
 import { tryQualifiedName } from '@/util/qualifiedName'
-import { Err, Ok, type Result } from '@/util/result'
 import { Client, RequestManager } from '@open-rpc/client-js'
 import { computedAsync } from '@vueuse/core'
 import * as array from 'lib0/array'

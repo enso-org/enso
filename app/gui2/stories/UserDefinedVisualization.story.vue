@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
-import { Vec2 } from '@/util/vec2'
+import { Vec2 } from '@/util/data/vec2'
 import type { VisualizationIdentifier } from 'shared/yjsModel'
 import { computed, ref } from 'vue'
 import MockFSWrapper from './MockFSWrapper.vue'

@@ -5,8 +5,8 @@ import { mockDataHandler, mockLSHandler } from '../mock/engine'
 import '../src/assets/base.css'
 import { provideGuiConfig } from '../src/providers/guiConfig'
 import { provideVisualizationConfig } from '../src/providers/visualizationConfig'
+import { Vec2 } from '../src/util/data/vec2'
 import { MockTransport, MockWebSocket } from '../src/util/net'
-import { Vec2 } from '../src/util/vec2'
 import MockApp from './MockApp.vue'
 
 MockTransport.addMock('engine', mockLSHandler)

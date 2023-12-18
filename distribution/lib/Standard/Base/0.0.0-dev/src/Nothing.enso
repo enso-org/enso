@@ -2,6 +2,7 @@ import project.Any.Any
 import project.Data.Numbers.Integer
 import project.Data.Text.Text
 from project.Data.Boolean import Boolean, False, True
+from project.Function import const
 
 ## The type that has only a singleton value. Nothing in Enso is used as an
    universal value to indicate the lack of presence of a value.
@@ -29,6 +30,16 @@ type Nothing
              "Hello".if_nothing ""
     if_nothing : Any -> Any
     if_nothing self ~function = function
+
+    ## If `self` is Nothing then returns Nothing, otherwise returns the result
+       of running the provided `action`.
+
+       > Example
+         Transform a value only if it is not nothing.
+
+             my_result.if_not_nothing <| my_result + 1
+    if_not_nothing : Any -> Any
+    if_not_nothing self ~action = const Nothing action
 
     ## Get a value for the key of the object.
        As `Nothing` has no keys, returns `if_missing`.

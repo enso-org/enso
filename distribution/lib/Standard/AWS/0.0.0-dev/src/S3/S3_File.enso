@@ -4,8 +4,10 @@ import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.System.File_Format.File_For_Read
+import Standard.Base.System.File_Format.File_Format_Metadata
 import Standard.Base.System.Input_Stream.Input_Stream
 import Standard.Base.System.Output_Stream.Output_Stream
+from Standard.Base.System.File import find_extension_from_name
 
 import project.AWS_Credential.AWS_Credential
 import project.Errors.S3_Error
@@ -117,7 +119,9 @@ type S3_File
             Auto_Detect -> if self.is_directory then format.read self on_problems else
                 response = S3.get_object self.bucket self.prefix self.credentials
                 response.decode Auto_Detect
-            _ -> self.with_input_stream [File_Access.Read] format.read_stream
+            _ ->
+                metadata = File_Format_Metadata.Value file_name=self.name
+                self.with_input_stream [File_Access.Read] (stream-> format.read_stream stream metadata)
 
     ## ALIAS load bytes, open bytes
        ICON data_input
@@ -187,11 +191,7 @@ type S3_File
        Returns the extension of the file.
     extension : Text
     extension self = if self.is_directory then Error.throw (S3_Error.Error "Directories do not have extensions." self.uri) else
-        name = self.name
-        last_dot = name.locate "." mode=Matching_Mode.Last
-        if last_dot.is_nothing then "" else
-            extension = name.drop (Index_Sub_Range.First last_dot.start)
-            if extension == "." then "" else extension
+        find_extension_from_name self.name
 
     ## GROUP Standard.Base.Input
        Lists files contained in the directory denoted by this file.

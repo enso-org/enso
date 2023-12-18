@@ -1,12 +1,12 @@
 import * as RawAst from '@/generated/ast'
 import { assert } from '@/util/assert'
 import * as Ast from '@/util/ast/abstract'
+import { AstExtended as RawAstExtended } from '@/util/ast/extended'
+import { isResult, mapOk } from '@/util/data/result'
 import { parse } from '@/util/ffi'
 import { LazyObject, LazySequence } from '@/util/parserSupport'
-import { isResult, mapOk } from '@/util/result'
 import * as map from 'lib0/map'
 import type { ContentRange } from 'shared/yjsModel'
-import { AstExtended as RawAstExtended } from './extended'
 
 export { Ast, RawAst, RawAstExtended }
 

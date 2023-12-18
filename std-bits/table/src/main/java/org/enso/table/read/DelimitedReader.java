@@ -3,6 +3,13 @@ package org.enso.table.read;
 import com.univocity.parsers.csv.CsvFormat;
 import com.univocity.parsers.csv.CsvParser;
 import com.univocity.parsers.csv.CsvParserSettings;
+import java.io.Reader;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Queue;
+import java.util.stream.Collectors;
 import org.enso.table.data.column.builder.StringBuilder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.TextType;
@@ -11,35 +18,29 @@ import org.enso.table.data.table.Table;
 import org.enso.table.error.EmptyFileException;
 import org.enso.table.parsing.DatatypeParser;
 import org.enso.table.parsing.TypeInferringParser;
+import org.enso.table.parsing.problems.CommonParseProblemAggregator;
 import org.enso.table.parsing.problems.NoOpParseProblemAggregator;
 import org.enso.table.parsing.problems.ParseProblemAggregator;
-import org.enso.table.parsing.problems.CommonParseProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.NameDeduplicator;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
-import java.io.Reader;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Queue;
-import java.util.stream.Collectors;
-
 /** A helper for reading delimited (CSV-like) files. */
 public class DelimitedReader {
 
   /**
-   * Due to limitations of our CSV parser, we cannot truly disable the comment parsing, so if we want to ensure that a
-   * CSV file is parsed without comments enabled we need to set it to some obscure character.
-   * <p>
-   * The default is to set it to '\0' but that will cause this character (which is not that uncommon, and valid) to act
-   * as a start of a comment. However, other parts of the parser may not be dealing best with '\0' anyway, so for now we
-   * can keep it. If we want to improve the support for the NULL character, we can select something else here.
-   * <p>
-   * I considered to  choose `\u0F8EE` which comes from the Private Use Area of the Basic Multilingual Plane. Is has no
-   * meaning designated by the Unicode standard.
+   * Due to limitations of our CSV parser, we cannot truly disable the comment parsing, so if we
+   * want to ensure that a CSV file is parsed without comments enabled we need to set it to some
+   * obscure character.
+   *
+   * <p>The default is to set it to '\0' but that will cause this character (which is not that
+   * uncommon, and valid) to act as a start of a comment. However, other parts of the parser may not
+   * be dealing best with '\0' anyway, so for now we can keep it. If we want to improve the support
+   * for the NULL character, we can select something else here.
+   *
+   * <p>I considered to choose `\u0F8EE` which comes from the Private Use Area of the Basic
+   * Multilingual Plane. Is has no meaning designated by the Unicode standard.
    */
   public static final char UNUSED_CHARACTER = '\0';
 
@@ -60,8 +61,10 @@ public class DelimitedReader {
   private String newlineSetting;
   private final NoOpParseProblemAggregator noOpProblemAggregator = new NoOpParseProblemAggregator();
   private long targetTableIndex = 0;
+
   /** The line number of the start of the current row in the input file. */
   private long currentLine = 0;
+
   private StringBuilder[] builders = null;
   private final DelimitedReaderProblemAggregator problemAggregator;
 
@@ -86,8 +89,10 @@ public class DelimitedReader {
    * @param cellTypeGuesser a helper used to guess cell types, used for the purpose of inferring the
    *     headers, it must not be null if {@code headerBehavior} is set to {@code INFER}.
    * @param keepInvalidRows specifies whether to keep rows that had an unexpected number of columns
-   * @param newline specifies what newline character to assume; if set to null, the newline character is autodetected
-   * @param commentCharacter specifies what character indicates start of comments; if set to null, comments are disabled
+   * @param newline specifies what newline character to assume; if set to null, the newline
+   *     character is autodetected
+   * @param commentCharacter specifies what character indicates start of comments; if set to null,
+   *     comments are disabled
    * @param warningsAsErrors specifies if the first warning should be immediately raised as an error
    *     (used as a fast-path for the error-reporting mode to avoid computing a value that is going
    *     to be discarded anyway)
@@ -139,7 +144,8 @@ public class DelimitedReader {
     if (quoteEscape != null) {
       if (quoteEscape.isEmpty()) {
         throw new IllegalArgumentException(
-            "Empty quote escapes are not supported. Set the escape to `Nothing` to disable escaping quotes.");
+            "Empty quote escapes are not supported. Set the escape to `Nothing` to disable escaping"
+                + " quotes.");
       }
       if (quoteEscape.length() > 1) {
         throw new IllegalArgumentException(
@@ -160,7 +166,9 @@ public class DelimitedReader {
     this.valueParser = valueParser;
     this.cellTypeGuesser = cellTypeGuesser;
     this.newlineSetting = newline;
-    this.problemAggregator = new DelimitedReaderProblemAggregator(problemAggregator, warningsAsErrors, quoteCharacter, invalidRowsLimit);
+    this.problemAggregator =
+        new DelimitedReaderProblemAggregator(
+            problemAggregator, warningsAsErrors, quoteCharacter, invalidRowsLimit);
     this.parser = setupCsvParser(commentCharacter);
   }
 
@@ -181,7 +189,9 @@ public class DelimitedReader {
       settings.setLineSeparatorDetectionEnabled(true);
     } else {
       if (newlineSetting.length() > 2 || newlineSetting.isEmpty()) {
-        throw new IllegalArgumentException("The newline sequence should consist of at least 1 and at most 2 characters (codepoints).");
+        throw new IllegalArgumentException(
+            "The newline sequence should consist of at least 1 and at most 2 characters"
+                + " (codepoints).");
       }
       settings.setLineSeparatorDetectionEnabled(false);
       format.setLineSeparator(newlineSetting);
@@ -191,7 +201,9 @@ public class DelimitedReader {
       format.setComment(UNUSED_CHARACTER);
     } else {
       if (commentCharacter.length() != 1) {
-        throw new IllegalArgumentException("The comment character should be set to Nothing or consist of exactly one character (codepoint).");
+        throw new IllegalArgumentException(
+            "The comment character should be set to Nothing or consist of exactly one character"
+                + " (codepoint).");
       }
 
       format.setComment(commentCharacter.charAt(0));
@@ -249,7 +261,8 @@ public class DelimitedReader {
     assert canFitMoreRows();
 
     if (row.length != builders.length) {
-      problemAggregator.reportInvalidRow(currentLine, keepInvalidRows ? targetTableIndex : null, row, builders.length);
+      problemAggregator.reportInvalidRow(
+          currentLine, keepInvalidRows ? targetTableIndex : null, row, builders.length);
 
       if (keepInvalidRows) {
         for (int i = 0; i < builders.length && i < row.length; i++) {
@@ -315,9 +328,12 @@ public class DelimitedReader {
   /** The column names as defined in the input (if applicable, otherwise null). */
   private String[] definedColumnNames = null;
 
-  /** The effective column names.
+  /**
+   * The effective column names.
    *
-   * If {@code GENERATE_HEADERS} is used or if {@code INFER} is used and no headers are found, this will be populated with automatically generated column names. */
+   * <p>If {@code GENERATE_HEADERS} is used or if {@code INFER} is used and no headers are found,
+   * this will be populated with automatically generated column names.
+   */
   private String[] effectiveColumnNames;
 
   private int getColumnCount() {
@@ -326,8 +342,8 @@ public class DelimitedReader {
 
   /**
    * Tries to infer some metadata about the input.
-   * <p>
-   * The input is used after this call, but not necessarily read until the end.
+   *
+   * <p>The input is used after this call, but not necessarily read until the end.
    */
   public DelimitedFileMetadata readMetadata(Reader input) {
     markUsed();
@@ -336,21 +352,18 @@ public class DelimitedReader {
       detectHeaders();
       boolean hasAnyContent = getVisitedCharactersCount() > 0;
       return new DelimitedFileMetadata(
-          getColumnCount(),
-          definedColumnNames,
-          hasAnyContent,
-          getEffectiveLineSeparator()
-      );
+          getColumnCount(), definedColumnNames, hasAnyContent, getEffectiveLineSeparator());
     } finally {
       parser.stopParsing();
     }
   }
 
-  /** Returns the line separator.
-   * <p>
-   * If it was provided explicitly at construction, the selected separator is used.
-   * If the initial separator was set to {@code null}, the reader tries to detect
-   * the separator from file contents.
+  /**
+   * Returns the line separator.
+   *
+   * <p>If it was provided explicitly at construction, the selected separator is used. If the
+   * initial separator was set to {@code null}, the reader tries to detect the separator from file
+   * contents.
    */
   private String getEffectiveLineSeparator() {
     return newlineSetting;
@@ -388,7 +401,7 @@ public class DelimitedReader {
         } else {
           assert cellTypeGuesser != null;
           boolean firstAllText = Arrays.stream(firstRow.cells).allMatch(this::isPlainText);
-          boolean secondAllText = Arrays.stream(secondRow.cells).allMatch(this ::isPlainText);
+          boolean secondAllText = Arrays.stream(secondRow.cells).allMatch(this::isPlainText);
           boolean useFirstRowAsHeader = firstAllText && !secondAllText;
           if (useFirstRowAsHeader) {
             headerNames = headersFromRow(firstRow.cells);
@@ -420,8 +433,8 @@ public class DelimitedReader {
 
   /**
    * Reads the input stream and returns a Table.
-   * <p>
-   * It should only be called once.
+   *
+   * <p>It should only be called once.
    */
   public Table read(Reader input) {
     markUsed();
@@ -430,7 +443,7 @@ public class DelimitedReader {
       parser.beginParsing(input);
       detectHeaders();
       int columnCount = getColumnCount();
-      if  (columnCount == 0) {
+      if (columnCount == 0) {
         throw new EmptyFileException();
       }
 
@@ -453,7 +466,8 @@ public class DelimitedReader {
       String columnName = effectiveColumnNames[i];
       Storage<String> col = builders[i].seal();
 
-      // We don't expect InvalidFormat to be propagated back to Enso, there is no particular type that we expect, so it can safely be null.
+      // We don't expect InvalidFormat to be propagated back to Enso, there is no particular type
+      // that we expect, so it can safely be null.
       Value expectedEnsoValueType = Value.asValue(null);
       CommonParseProblemAggregator parseProblemAggregator =
           ParseProblemAggregator.make(problemAggregator, columnName, expectedEnsoValueType);
@@ -466,9 +480,12 @@ public class DelimitedReader {
   }
 
   private boolean wasAlreadyUsed = false;
+
   private void markUsed() {
     if (wasAlreadyUsed) {
-      throw new IllegalStateException("The `read` on the DelimitedReader may be called only once. Please create a new instance of the reader.");
+      throw new IllegalStateException(
+          "The `read` on the DelimitedReader may be called only once. Please create a new instance"
+              + " of the reader.");
     }
     wasAlreadyUsed = true;
   }

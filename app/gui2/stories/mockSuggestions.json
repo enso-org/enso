@@ -48,6 +48,17 @@
   {
     "type": "method",
     "module": "Standard.Base.Data",
+    "name": "every_tag",
+    "arguments": [],
+    "selfType": "Standard.Base.Data",
+    "returnType": "Standard.Base.Any.Any",
+    "isStatic": true,
+    "documentation": " ADDED 0.1\nADVANCED\nALIAS alias1, alias2\nDEPRECATED\nICON select_row\nGROUP Output\nMODIFIED 0.9\nREMOVED 1.2\nTEXT_ONLY\nUNSTABLE\nUPCOMING\nThis is a test entry that has every tag set, except for `PRIVATE` (as it would hide the entry from the documentation).",
+    "annotations": ["format"]
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data",
     "name": "read_text",
     "arguments": [
       {
@@ -179,7 +190,7 @@
     "selfType": "Standard.Base.Data",
     "returnType": "Standard.Base.Any.Any",
     "isStatic": true,
-    "documentation": " ALIAS download, http get\nGROUP Input\nFetches from the provided URI and returns the response, parsing the body if\nthe content-type is recognised. Returns an  error if the status code does not\nrepresent a successful response.\n\nArguments:\n- uri: The URI to fetch.\n- method: The HTTP method to use. Must be one of `HTTP_Method.Get`,\n `HTTP_Method.Head`, `HTTP_Method.Delete`, `HTTP_Method.Options`.\n Defaults to `HTTP_Method.Get`.\n- headers: The headers to send with the request. Defaults to an empty vector.\n- try_auto_parse_response:  If successful should the body be attempted to be\n parsed to an Enso native object.\n\n> Example\n Read from an HTTP endpoint.\n\n     import Standard.Base.Data\n     response = Data.fetch URL\n\n> Example\n Read from an HTTP endpoint and write the results to a file.\n\n     import Standard.Base.Data\n     file = enso_project.data / \"spreadsheet.xls\"\n     Data.fetch URL . body . to_file file",
+    "documentation": " ALIAS download, http get\nGROUP Input\nUNSTABLE\nFetches from the provided URI and returns the response, parsing the body if\nthe content-type is recognised. Returns an  error if the status code does not\nrepresent a successful response.\n\nArguments:\n- uri: The URI to fetch.\n- method: The HTTP method to use. Must be one of `HTTP_Method.Get`,\n `HTTP_Method.Head`, `HTTP_Method.Delete`, `HTTP_Method.Options`.\n Defaults to `HTTP_Method.Get`.\n- headers: The headers to send with the request. Defaults to an empty vector.\n- try_auto_parse_response:  If successful should the body be attempted to be\n parsed to an Enso native object.\n\n> Example\n Read from an HTTP endpoint.\n\n     import Standard.Base.Data\n     response = Data.fetch URL\n\n> Example\n Read from an HTTP endpoint and write the results to a file.\n\n     import Standard.Base.Data\n     file = enso_project.data / \"spreadsheet.xls\"\n     Data.fetch URL . body . to_file file",
     "annotations": []
   },
   {
@@ -252,64 +263,6 @@
     "returnType": "Standard.Base.Any.Any",
     "isStatic": true,
     "documentation": " ALIAS http post, upload\nGROUP Input\nWrites the provided data to the provided URI. Returns the response,\nparsing the body if the content-type is recognised. Returns an  error if the\nstatus code does not represent a successful response.\n\nArguments:\n- uri: The URI to fetch.\n- body: The data to write. See `Supported Body Types` below.\n- method: The HTTP method to use. Must be one of `HTTP_Method.Post`,\n `HTTP_Method.Put`, `HTTP_Method.Patch`. Defaults to `HTTP_Method.Post`.\n- headers: The headers to send with the request. Defaults to an empty vector.\n- try_auto_parse:  If successful should the body be attempted to be parsed to\n an Enso native object.\n\n! Supported Body Types\n\n - Request_Body.Text: Sends a text string, with optional encoding and content\n   type.\n - Request_Body.Json: Sends an Enso object, after converting it to JSON.\n - Request_Body.Binary: Sends a file.\n - Request_Body.Form_Data: Sends a form encoded as key/value pairs. The keys\n   must be `Text`, and the values must be `Text` or `File`.\n - Request_Body.Empty: Sends an empty body.\n\n Additionally, the following types are allowed as the `body` parameter:\n\n - Text: shorthand for `Request_Body.Text that_text`.\n - File: shorthand for `Request_Body.Binary that_file`.\n - Any other Enso object: shorthand for `Request_Body.Json that_object`.\n\n! Specifying Content Types\n\n If the `body` parameter specifies an explicit content type, then it is an\n error to also specify additional `Content-Type` headers in the `headers`\n parameter. (It is not an error to specify multiple `Content-Type` values in\n `headers`, however.)\n\n! Default Content Types\n\n The following specifies the default content type for each `Request_Body`\n type.\n\n - Request_Body.Text: `text/plain`\n - Request_Body.Json: `application/json`\n - Request_Body.Binary: `application/octet-stream`\n - Request_Body.Form_Data:\n       If `url_encoded` is True: `application/x-www-form-urlencoded`\n       If `url_encoded` is False: `multipart/form-data`\n - Request_Body.Empty: No content type is sent\n - Text: `text/plain`\n - File: `application/octet-stream`\n - Any other Enso object: `application/json`\n\n! Specifying Text Encodings\n\n Text encoding can be specified in the `encoding` parameter to the\n `Request_Body.Text` constructor. This value will be added to the\n `Content-Type` header.\n\n If a value for `encoding` is specified, but no value for `content_type` is\n specified, then `\"text/plain\"` is used as the content type.\n\n> Example\n Write a text string to an HTTP endpoint.\n\n     import Standard.Base.Data\n     response = Data.post url_post (Request_Body.Text \"hello world\")\n\n> Example\n Write JSON to an HTTP endpoint.\n\n     import Standard.Base.Data\n     json = Json.parse '{\"a\": \"asdf\", \"b\": 123}'\n     response = Data.post url_post json\n\n> Example\n Write an Enso object to an HTTP endpoint.\n\n     import Standard.Base.Data\n     response = Data.post url_post (My_Type.Value 12)\n\n> Example\n Write a text string to an HTTP endpoint, with a specific text encoding.\n\n     import Standard.Base.Data\n     body = Request_Body.Text 'Hello World!' encoding=Encoding.utf_16_le\n     response = Data.post url_post body\n\n> Example\n Write a text string to an HTTP endpoint, with a specific content type.\n\n     import Standard.Base.Data\n     body = Request_Body.Text 'a,b,c\\n' content_type=\"text/csv\"\n     response = Data.post url_post body\n\n> Example\n Write the contents of a file to an HTTP endpoint.\n\n     import Standard.Base.Data\n     test_file = enso_project.data / \"sample.png\"\n     response = Data.post url_post (Request_Body.Binary test_file)\n\n> Example\n Write a multipart form to an HTTP endpoint.\n\n     import Standard.Base.Data\n     test_file = enso_project.data / \"sample.png\"\n     form_data = Map.from_vector [[\"key\", \"val\"], [\"a_file\", test_file]]\n     response = Data.post url_post (Request_Body.Form_Data form_data)\n\n> Example\n Write a URL-encoded form to an HTTP endpoint.\n\n     import Standard.Base.Data\n     test_file = enso_project.data / \"sample.txt\"\n     form_data = Map.from_vector [[\"key\", \"val\"], [\"a_file\", test_file]]\n     response = Data.post url_post (Request_Body.Form_Data form_data url_encoded=True)",
-    "annotations": []
-  },
-  {
-    "type": "method",
-    "module": "Standard.Base.Data",
-    "name": "fetch",
-    "arguments": [
-      {
-        "name": "uri",
-        "reprType": "Standard.Base.Network.URI.URI | Standard.Base.Data.Text.Text",
-        "isSuspended": false,
-        "hasDefault": false,
-        "defaultValue": null,
-        "tagValues": null
-      },
-      {
-        "name": "method",
-        "reprType": "Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method",
-        "isSuspended": false,
-        "hasDefault": true,
-        "defaultValue": "HTTP_Method.Get",
-        "tagValues": [
-          "Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method.Options",
-          "Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method.Get",
-          "Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method.Head",
-          "Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method.Post",
-          "Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method.Put",
-          "Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method.Patch",
-          "Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method.Delete",
-          "Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method.Trace",
-          "Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method.Connect",
-          "Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method.Custom"
-        ]
-      },
-      {
-        "name": "headers",
-        "reprType": "Standard.Base.Data.Vector.Vector Standard.Base.Network.HTTP.Header.Header | (Standard.Base.Data.Pair.Pair Standard.Base.Data.Text.Text Standard.Base.Data.Text.Text)",
-        "isSuspended": false,
-        "hasDefault": true,
-        "defaultValue": "[]",
-        "tagValues": null
-      },
-      {
-        "name": "try_auto_parse_response",
-        "reprType": "Standard.Base.Data.Boolean.Boolean",
-        "isSuspended": false,
-        "hasDefault": true,
-        "defaultValue": "True",
-        "tagValues": [
-          "Standard.Base.Data.Boolean.Boolean.True",
-          "Standard.Base.Data.Boolean.Boolean.False"
-        ]
-      }
-    ],
-    "selfType": "Standard.Base.Data",
-    "returnType": "Standard.Base.Any.Any",
-    "isStatic": true,
-    "documentation": " ALIAS download, http get\nGROUP Input\nFetches from the provided URI and returns the response, parsing the body if\nthe content-type is recognised. Returns an  error if the status code does not\nrepresent a successful response.\n\nArguments:\n- uri: The URI to fetch.\n- method: The HTTP method to use. Must be one of `HTTP_Method.Get`,\n `HTTP_Method.Head`, `HTTP_Method.Delete`, `HTTP_Method.Options`.\n Defaults to `HTTP_Method.Get`.\n- headers: The headers to send with the request. Defaults to an empty vector.\n- try_auto_parse_response:  If successful should the body be attempted to be\n parsed to an Enso native object.\n\n> Example\n Read from an HTTP endpoint.\n\n     import Standard.Base.Data\n     response = Data.fetch URL\n\n> Example\n Read from an HTTP endpoint and write the results to a file.\n\n     import Standard.Base.Data\n     file = enso_project.data / \"spreadsheet.xls\"\n     Data.fetch URL . body . to_file file",
     "annotations": []
   },
   {
