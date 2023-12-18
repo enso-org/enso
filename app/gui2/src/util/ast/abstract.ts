@@ -2,9 +2,9 @@ import * as RawAst from '@/generated/ast'
 import { parseEnso } from '@/util/ast'
 import { AstExtended as RawAstExtended } from '@/util/ast/extended'
 import type { Opt } from '@/util/data/opt'
+import { Err, Ok, type Result } from '@/util/data/result'
 import type { LazyObject } from '@/util/parserSupport'
 import { unsafeEntries } from '@/util/record'
-import { Err, Ok, type Result } from '@/util/data/result'
 import * as random from 'lib0/random'
 import { reactive } from 'vue'
 import type { ExprId } from '../../../shared/yjsModel'
@@ -743,18 +743,20 @@ export class Assignment extends Ast {
     this.expression_ = expression
   }
 
-  static new(
-    module: MutableModule,
-    ident: string,
-    expression: Ast,
-  ): Assignment {
+  static new(module: MutableModule, ident: string, expression: Ast): Assignment {
     const pattern = { node: Ident.new(module, ident).exprId }
-    return new Assignment(module, undefined, pattern, undefined, { whitespace: ' ', node: expression.exprId })
+    return new Assignment(module, undefined, pattern, undefined, {
+      whitespace: ' ',
+      node: expression.exprId,
+    })
   }
 
   *concreteChildren(): IterableIterator<NodeChild> {
     yield this.pattern_
-    yield { whitespace: this.equals_.whitespace ?? this.expression_.whitespace ?? ' ', node: this.equals_.node }
+    yield {
+      whitespace: this.equals_.whitespace ?? this.expression_.whitespace ?? ' ',
+      node: this.equals_.node,
+    }
     if (this.expression_ !== null) {
       yield this.expression_
     }
@@ -767,7 +769,7 @@ interface BlockLine {
 }
 
 export class BodyBlock extends Ast {
-  readonly lines: BlockLine[]
+  readonly lines: BlockLine[];
 
   *expressions(): IterableIterator<Ast> {
     for (const line of this.lines) {
@@ -858,7 +860,9 @@ export class Ident extends Ast {
   }
 
   static new(module: MutableModule, code: string): Ident {
-    return new Ident(module, undefined, { node: new Token(code, newTokenId(), RawAst.Token.Type.Ident) })
+    return new Ident(module, undefined, {
+      node: new Token(code, newTokenId(), RawAst.Token.Type.Ident),
+    })
   }
 
   *concreteChildren(): IterableIterator<NodeChild> {
@@ -1135,7 +1139,7 @@ function nodeKey(start: number, length: number, type: Opt<RawAst.Tree.Type>): No
 function tokenKey(start: number, length: number): TokenKey {
   return `${start}:${length}` as TokenKey
 }
-export function keyToRange(key: NodeKey | TokenKey): { start: number, end: number } {
+export function keyToRange(key: NodeKey | TokenKey): { start: number; end: number } {
   const parts = key.split(':')
   const start = parseInt(parts[0]!, 10)
   const length = parseInt(parts[1]!, 10)
@@ -1192,14 +1196,17 @@ export function tokenTree(root: Ast): TokenTree {
 
 export function tokenTreeWithIds(root: Ast): TokenTree {
   const module = root.module
-  return [root.exprId, ...Array.from(root.concreteChildren(), (child) => {
-    if (child.node instanceof Token) {
-      return child.node.code()
-    } else {
-      const node = module.get(child.node)
-      return node ? tokenTreeWithIds(node) : ['<missing>']
-    }
-  })]
+  return [
+    root.exprId,
+    ...Array.from(root.concreteChildren(), (child) => {
+      if (child.node instanceof Token) {
+        return child.node.code()
+      } else {
+        const node = module.get(child.node)
+        return node ? tokenTreeWithIds(node) : ['<missing>']
+      }
+    }),
+  ]
 }
 
 // FIXME: We should use alias analysis to handle ambiguous names correctly.

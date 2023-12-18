@@ -1,9 +1,9 @@
 import { Ast } from '@/util/ast'
+import * as json from 'lib0/json'
 import { expect, test } from 'vitest'
+import { IdMap, type ExprId } from '../../../../shared/yjsModel'
 import { preParseContent } from '../../../../ydoc-server/edits'
 import * as fileFormat from '../../../../ydoc-server/fileFormat'
-import { type ExprId, IdMap } from '../../../../shared/yjsModel'
-import * as json from 'lib0/json'
 
 //const disabledCases = [
 //  ' a',
@@ -445,7 +445,11 @@ main =
   const META_TAG = '\n\n\n#### METADATA ####'
   let metaContent = META_TAG + '\n'
   metaContent += idMapJson2 + '\n'
-  const { code: code_, idMapJson: idMapJson_, metadataJson: __ } = preParseContent(code + metaContent)
+  const {
+    code: code_,
+    idMapJson: idMapJson_,
+    metadataJson: __,
+  } = preParseContent(code + metaContent)
   const idMap_ = deserializeIdMap(idMapJson_!)
   const ast3 = Ast.parseTransitional(code_, idMap_)
   expect(Ast.tokenTreeWithIds(ast3), 'Print/parse with serialized IdMap').toStrictEqual(astTT)

@@ -10,6 +10,8 @@ import {
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { Ast } from '@/util/ast'
+import type { AstId, Module } from '@/util/ast/abstract'
+import { MutableModule } from '@/util/ast/abstract'
 import { useObserveYjs } from '@/util/crdt'
 import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
@@ -17,16 +19,15 @@ import { Vec2 } from '@/util/data/vec2'
 import { defineStore } from 'pinia'
 import type { StackItem } from 'shared/languageServerTypes'
 import {
+  IdMap,
   visMetadataEquals,
   type ContentRange,
   type ExprId,
   type NodeMetadata,
   type VisualizationIdentifier,
-  type VisualizationMetadata, IdMap,
+  type VisualizationMetadata,
 } from 'shared/yjsModel'
 import { computed, markRaw, reactive, ref, toRef, watch } from 'vue'
-import type { AstId, Module } from '@/util/ast/abstract'
-import { MutableModule } from '@/util/ast/abstract'
 
 export { type Node } from '@/stores/graph/graphDatabase'
 
@@ -47,13 +48,16 @@ export const useGraphStore = defineStore('graph', () => {
   const idMap = ref<IdMap>()
   const expressionGraph: Module = MutableModule.Observable()
   const moduleRoot = ref<AstId>()
-  watch(() => proj.module, () => {
-    if (!textContent.value) {
-      textContent.value = proj.module?.doc.getCode()
-      idMap.value = proj.module?.doc.getIdMap()
-      updateState()
-    }
-  })
+  watch(
+    () => proj.module,
+    () => {
+      if (!textContent.value) {
+        textContent.value = proj.module?.doc.getCode()
+        idMap.value = proj.module?.doc.getIdMap()
+        updateState()
+      }
+    },
+  )
 
   const db = new GraphDb(
     suggestionDb.entries,
@@ -191,11 +195,13 @@ export const useGraphStore = defineStore('graph', () => {
     const edit = expressionGraph.edit()
     const importsToAdd = withImports ? filterOutRedundantImports(imports.value, withImports) : []
     if (importsToAdd.length > 0) {
-      const imports = importsToAdd.map((info) => Ast.parseExpression(requiredImportToText(info), edit))
+      const imports = importsToAdd.map((info) =>
+        Ast.parseExpression(requiredImportToText(info), edit),
+      )
       let lastImport
       // The top level of the module is always a block.
       const topLevel = expressionGraph.get(root)! as Ast.BodyBlock
-      for (let i=0; i<topLevel.lines.length; i++) {
+      for (let i = 0; i < topLevel.lines.length; i++) {
         const line = topLevel.lines[i]!
         if (line.expression) {
           if (expressionGraph.get(line.expression.node)?.innerExpression() instanceof Ast.Import) {
@@ -205,7 +211,7 @@ export const useGraphStore = defineStore('graph', () => {
           }
         }
       }
-      const position = (lastImport === undefined) ? 0 : lastImport + 1
+      const position = lastImport === undefined ? 0 : lastImport + 1
       topLevel.insert(edit, position, ...imports)
     }
     const currentFunc = 'main'
@@ -332,7 +338,11 @@ export const useGraphStore = defineStore('graph', () => {
     editedNodeInfo.value = { id, initialCursorPos: cursorPosition }
   }
 
-  function commitEdit(module: Module, root: AstId, metadataUpdates?: Map<AstId, Partial<NodeMetadata>>) {
+  function commitEdit(
+    module: Module,
+    root: AstId,
+    metadataUpdates?: Map<AstId, Partial<NodeMetadata>>,
+  ) {
     const ast = module.get(root)
     if (!ast) return
     const printed = Ast.print(ast, module)

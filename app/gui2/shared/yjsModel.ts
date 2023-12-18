@@ -216,10 +216,6 @@ export class IdMap {
     return [...this.rangeToExpr]
   }
 
-  delete(id: ExprId) {
-    // TODO
-  }
-
   get size(): number {
     return this.rangeToExpr.size
   }
