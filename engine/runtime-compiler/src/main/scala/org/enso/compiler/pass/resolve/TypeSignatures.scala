@@ -323,6 +323,7 @@ case object TypeSignatures extends IRPass {
   /** A representation of a type signature.
     *
     * @param signature the expression for the type signature
+    * @param comment an optional comment from which the potential error message will be derived
     */
   case class Signature(signature: Expression, comment: Option[String] = None)
       extends IRPass.IRMetadata {
