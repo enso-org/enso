@@ -128,7 +128,7 @@ final class ArrayProxy implements EnsoObject {
     /* @Cached.Shared(value = "warnsLib") */ @CachedLibrary(limit = "3") WarningsLibrary warnings)
       throws InvalidArrayIndexException, UnsupportedMessageException {
     try {
-          System.out.println("AAA gew call ap");
+          //System.out.println("AAA gew call ap");
       if (index >= length || index < 0) {
         arrayIndexHasHappened.enter();
         throw InvalidArrayIndexException.create(index);

@@ -64,9 +64,13 @@ type Warning
        Limits the number of warnings return to `EnsoContext.getWarningsLimit()`.
     get_all : Any -> Vector Warning
     get_all value =
-        case value of
+        warnings = case value of
             _ : Vector -> get_all_from_vector value
             _ -> Vector.from_polyglot_array (get_all_array value)
+        ## Passing a value with warnings to a helper means the result gets the
+           warnings too, so the warnings have themselves attached, which we
+           don't want.
+        Warning.clear warnings
 
     _get_all value =
         warnings = Warning.get_all_value value

@@ -209,7 +209,7 @@ final class Array implements EnsoObject {
       @Cached BranchProfile errProfile,
       @Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings)
         throws InvalidArrayIndexException, UnsupportedMessageException {
-          System.out.println("AAA gew call a");
+          //System.out.println("AAA gew call a");
     if (index >= items.length || index < 0) {
       errProfile.enter();
       throw InvalidArrayIndexException.create(index);
