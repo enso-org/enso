@@ -1,10 +1,18 @@
 <script setup lang="ts">
 import NavBar from '@/components/NavBar.vue'
+import type { BreadcrumbItem } from '@/components/NavBreadcrumbs.vue'
 import ProjectTitle from '@/components/ProjectTitle.vue'
 import { injectGuiConfig } from '@/providers/guiConfig'
 import { computed } from 'vue'
 
-const props = defineProps<{ title: string; breadcrumbs: string[]; modes: string[]; mode: string }>()
+const props = defineProps<{
+  title: string
+  breadcrumbs: BreadcrumbItem[]
+  modes: string[]
+  mode: string
+  allowNavigationLeft: boolean
+  allowNavigationRight: boolean
+}>()
 const emit = defineEmits<{
   execute: []
   back: []
@@ -36,6 +44,8 @@ const barStyle = computed(() => {
     />
     <NavBar
       :breadcrumbs="props.breadcrumbs"
+      :allowNavigationLeft="props.allowNavigationLeft"
+      :allowNavigationRight="props.allowNavigationRight"
       @back="emit('back')"
       @forward="emit('forward')"
       @breadcrumbClick="emit('breadcrumbClick', $event)"

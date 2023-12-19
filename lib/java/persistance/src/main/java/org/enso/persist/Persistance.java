@@ -93,7 +93,7 @@ public abstract class Persistance<T> {
     public abstract <T> void writeInline(Class<T> clazz, T obj) throws IOException;
 
     /**
-     * Writes an object as a "reference". Objects written by by this method are shared - each {@code
+     * Writes an object as a "reference". Objects written by this method are shared - each {@code
      * obj} is stored only once and referenced from all the locations it is used.
      *
      * @param obj the object to write down
@@ -123,9 +123,9 @@ public abstract class Persistance<T> {
     public abstract Object readObject() throws IOException;
 
     /**
-     * * Reads a reference to an object written down by {@link Output#writeObject(Object)} but
-     * without reading the object itself. The object can then be obtained <em>"later"</em> via the
-     * {@link Reference#get(Class)} method.
+     * Reads a reference to an object written down by {@link Output#writeObject(Object)} but without
+     * reading the object itself. The object can then be obtained <em>"later"</em> via the {@link
+     * Reference#get(Class)} method.
      *
      * @param <T> the type to read
      * @param clazz the expected type of the object to read
