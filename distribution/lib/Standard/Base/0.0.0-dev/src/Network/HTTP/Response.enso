@@ -46,6 +46,9 @@ type Response
     ## GROUP Metadata
        Get the response headers.
 
+       It returns a vector of Header objects and not a mapping, because the
+       response may contain multiple headers with the same name.
+
        > Example
          Getting the headers from a response.
          Note: This example will make a network request.
@@ -53,10 +56,22 @@ type Response
              import Standard.Examples
 
              example_headers = Examples.get_response.headers
-    headers : Vector
+
+       > Example
+         Creating a mapping from the headers, throwing an error if there are duplicates.
+         Note: This example will make a network request.
+
+             import Standard.Examples
+
+             example_headers = Map.from_vector error_on_duplicates=True (Examples.get_response.headers.map h-> [h.name, h.value])
+    headers : Vector Header
     headers self =
-        header_keys = self.internal_http_response.headerNames
-        header_keys.flat_map k-> (self.internal_http_response.headers.allValues k).map v-> Header.new k v
+        # This is a mapping that maps a header name to a list of values (since headers may be duplicated).
+        multi_map = self.internal_http_response.headers.map
+        multi_map.to_vector.flat_map p->
+            key = p.first
+            values = p.second
+            values.map v-> Header.new key v
 
     ## Get the response content type.
     content_type : Text | Nothing

@@ -1,5 +1,6 @@
 package org.enso.table.data.column.operation.map.text;
 
+import java.util.BitSet;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.BoolStorage;
@@ -9,9 +10,8 @@ import org.enso.table.data.column.storage.StringStorage;
 import org.enso.table.error.UnexpectedTypeException;
 import org.graalvm.polyglot.Context;
 
-import java.util.BitSet;
-
-public abstract class StringBooleanOp extends BinaryMapOperation<String, SpecializedStorage<String>> {
+public abstract class StringBooleanOp
+    extends BinaryMapOperation<String, SpecializedStorage<String>> {
   public StringBooleanOp(String name) {
     super(name);
   }
@@ -23,7 +23,10 @@ public abstract class StringBooleanOp extends BinaryMapOperation<String, Special
   }
 
   @Override
-  public BoolStorage runBinaryMap(SpecializedStorage<String> storage, Object arg, MapOperationProblemAggregator problemAggregator) {
+  public BoolStorage runBinaryMap(
+      SpecializedStorage<String> storage,
+      Object arg,
+      MapOperationProblemAggregator problemAggregator) {
     if (arg == null) {
       BitSet newVals = new BitSet();
       BitSet newMissing = new BitSet();
@@ -61,7 +64,10 @@ public abstract class StringBooleanOp extends BinaryMapOperation<String, Special
   }
 
   @Override
-  public BoolStorage runZip(SpecializedStorage<String> storage, Storage<?> arg, MapOperationProblemAggregator problemAggregator) {
+  public BoolStorage runZip(
+      SpecializedStorage<String> storage,
+      Storage<?> arg,
+      MapOperationProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     if (arg instanceof StringStorage v) {
       BitSet newVals = new BitSet();

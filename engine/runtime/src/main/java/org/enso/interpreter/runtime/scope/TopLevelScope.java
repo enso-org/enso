@@ -44,7 +44,9 @@ public final class TopLevelScope implements EnsoObject {
     this.packageRepository = packageRepository;
   }
 
-  /** @return the list of modules in the scope. */
+  /**
+   * @return the list of modules in the scope.
+   */
   @SuppressWarnings("unchecked")
   public Collection<Module> getModules() {
     var filtered = packageRepository.getLoadedModules().map(Module::fromCompilerModule);

@@ -14,14 +14,15 @@ import project.Nothing.Nothing
 import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
 
-polyglot java import java.lang.Exception
 polyglot java import java.net.URI as Java_URI
+polyglot java import java.net.URISyntaxException
 polyglot java import org.enso.base.enso_cloud.EnsoSecretHelper
+polyglot java import org.enso.base.net.URIHelpers
 
 ## Represents a URI with a set of query parameters
 type URI_With_Query
     ## PRIVATE
-    Value uri:URI parameters:Vector
+    Value uri:URI (parameters : Vector (Pair Text (Text | Enso_Secret)))
 
     ## PRIVATE
        Convert this to URI.
@@ -29,19 +30,13 @@ type URI_With_Query
        are used.
     to_uri : URI ! Enso_Secret_Error
     to_uri self =
-        Panic.catch Exception (URI.Value (EnsoSecretHelper.replaceQuery self.uri.internal_uri self.query)) caught_panic->
-            message = caught_panic.payload.getMessage
-            Error.throw (Syntax_Error.Error "Unable to collapse to a URI:"+message)
+        java_params = make_java_parameters self.get_raw_parameters
+        URI.Value (build_java_uri_with_parameters self.uri.internal_uri java_params)
 
     ## GROUP Metadata
        Get the query part of this URI, but will error if any secrets are used.
     query : Text | Nothing ! Enso_Secret_Error
-    query self =
-        base_query = self.uri.query.if_nothing ""
-        query_params = self.parameters.map p->
-            if p.second.is_a Enso_Secret then Error.throw Enso_Secret_Error.Access_Denied else
-                (EnsoSecretHelper.encodeArg p.first True) + "=" + (EnsoSecretHelper.encodeArg p.second False)
-        (if base_query == "" then "" else base_query + "&") + (query_params.join "&")
+    query self = self.to_uri.query
 
     ## GROUP Calculations
        Adds a query parameter to the URI
@@ -54,18 +49,24 @@ type URI_With_Query
         URI_With_Query.Value self.uri self.parameters+[Pair.new key value]
 
     ## PRIVATE
+       Returns a list of parameters as name-value pairs.
+       It will fail if any secrets are used.
+    get_raw_parameters : Vector (Pair Text Text) ! Enso_Secret_Error
+    get_raw_parameters self =
+        self.parameters.map p-> case p.second of
+            _ : Enso_Secret -> Error.throw Enso_Secret_Error.Access_Denied
+            _ : Text -> p
+
+    ## PRIVATE
        Convert this URI to text.
     to_text : Text
     to_text self =
-        base_query = self.uri.query.if_nothing ""
-        query_params = self.parameters.map p->
-            if p.second.is_a Enso_Secret then p.first + "=__SECRET__" else
-                p.first + "=" + p.second
-        new_query = "?" + (if base_query == "" then "" else base_query + "&") + (query_params.join "&")
-
-        Panic.catch Exception (EnsoSecretHelper.replaceQuery self.uri.internal_uri new_query . toString) caught_panic->
-            message = caught_panic.payload.getMessage
-            Error.throw (Syntax_Error.Error "Unable to render URI_With_Query:"+message)
+        masked_parameters = self.parameters.map p-> case p.second of
+            _ : Enso_Secret -> Pair.new p.first "__SECRET__"
+            _ : Text -> p
+        java_params = make_java_parameters masked_parameters
+        java_uri = build_java_uri_with_parameters self.uri.internal_uri java_params
+        java_uri.to_text
 
     ## PRIVATE
        Convert to a display representation of this URI.
@@ -114,3 +115,16 @@ type URI_With_Query
        Get the fragment part of this URI.
     fragment : Text | Nothing
     fragment self = self.uri.fragment
+
+## PRIVATE
+make_java_parameters params = params.map p->
+    URIHelpers.NameValuePair.new p.first p.second
+
+## PRIVATE
+build_java_uri_with_parameters java_uri java_params =
+    Panic.catch URISyntaxException (URIHelpers.addQueryParameters java_uri java_params) caught_panic->
+        message = caught_panic.payload.getMessage
+        Error.throw (Syntax_Error.Error "Unable to collapse to a URI: "+message)
+
+## PRIVATE
+URI.from (that : URI_With_Query) = that.to_uri

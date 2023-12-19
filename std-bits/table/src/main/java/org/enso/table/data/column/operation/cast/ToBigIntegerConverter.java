@@ -1,5 +1,7 @@
 package org.enso.table.data.column.operation.cast;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import org.enso.table.data.column.builder.BigIntegerBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
@@ -7,9 +9,6 @@ import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
-
-import java.math.BigDecimal;
-import java.math.BigInteger;
 
 public class ToBigIntegerConverter implements StorageConverter<BigInteger> {
   @Override
@@ -24,12 +23,14 @@ public class ToBigIntegerConverter implements StorageConverter<BigInteger> {
       return convertBoolStorage(boolStorage, problemAggregator);
     } else if (storage.getType() instanceof AnyObjectType) {
       return castFromMixed(storage, problemAggregator);
-    }else {
-      throw new IllegalStateException("No known strategy for casting storage " + storage + " to BigInteger.");
+    } else {
+      throw new IllegalStateException(
+          "No known strategy for casting storage " + storage + " to BigInteger.");
     }
   }
 
-  private Storage<BigInteger> convertDoubleStorage(DoubleStorage doubleStorage, CastProblemAggregator problemAggregator) {
+  private Storage<BigInteger> convertDoubleStorage(
+      DoubleStorage doubleStorage, CastProblemAggregator problemAggregator) {
     int n = doubleStorage.size();
     BigIntegerBuilder builder = new BigIntegerBuilder(n, problemAggregator);
     for (int i = 0; i < n; i++) {
@@ -44,7 +45,8 @@ public class ToBigIntegerConverter implements StorageConverter<BigInteger> {
     return builder.seal();
   }
 
-  private Storage<BigInteger> convertLongStorage(AbstractLongStorage longStorage, CastProblemAggregator problemAggregator) {
+  private Storage<BigInteger> convertLongStorage(
+      AbstractLongStorage longStorage, CastProblemAggregator problemAggregator) {
     int n = longStorage.size();
     BigIntegerBuilder builder = new BigIntegerBuilder(n, problemAggregator);
     for (int i = 0; i < n; i++) {
@@ -59,7 +61,8 @@ public class ToBigIntegerConverter implements StorageConverter<BigInteger> {
     return builder.seal();
   }
 
-  private Storage<BigInteger> convertBoolStorage(BoolStorage boolStorage, CastProblemAggregator problemAggregator) {
+  private Storage<BigInteger> convertBoolStorage(
+      BoolStorage boolStorage, CastProblemAggregator problemAggregator) {
     int n = boolStorage.size();
     BigIntegerBuilder builder = new BigIntegerBuilder(n, problemAggregator);
     for (int i = 0; i < n; i++) {
@@ -74,7 +77,8 @@ public class ToBigIntegerConverter implements StorageConverter<BigInteger> {
     return builder.seal();
   }
 
-  private Storage<BigInteger> castFromMixed(Storage<?> storage, CastProblemAggregator problemAggregator) {
+  private Storage<BigInteger> castFromMixed(
+      Storage<?> storage, CastProblemAggregator problemAggregator) {
     int n = storage.size();
     BigIntegerBuilder builder = new BigIntegerBuilder(n, problemAggregator);
     for (int i = 0; i < n; i++) {

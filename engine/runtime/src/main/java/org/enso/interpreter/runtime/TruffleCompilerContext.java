@@ -1,5 +1,8 @@
 package org.enso.interpreter.runtime;
 
+import com.oracle.truffle.api.TruffleFile;
+import com.oracle.truffle.api.TruffleLogger;
+import com.oracle.truffle.api.source.Source;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.List;
@@ -8,7 +11,6 @@ import java.util.Optional;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.logging.Level;
-
 import org.enso.compiler.Compiler;
 import org.enso.compiler.PackageRepository;
 import org.enso.compiler.Passes;
@@ -26,11 +28,6 @@ import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.CompilationStage;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.data.TypeGraph;
-
-import com.oracle.truffle.api.TruffleFile;
-import com.oracle.truffle.api.TruffleLogger;
-import com.oracle.truffle.api.source.Source;
-
 import scala.Option;
 
 final class TruffleCompilerContext implements CompilerContext {
@@ -124,7 +121,8 @@ final class TruffleCompilerContext implements CompilerContext {
   }
 
   @Override
-  public void truffleRunCodegen(CompilerContext.Module module, CompilerConfig config) throws IOException {
+  public void truffleRunCodegen(CompilerContext.Module module, CompilerConfig config)
+      throws IOException {
     var m = org.enso.interpreter.runtime.Module.fromCompilerModule(module);
     new IrToTruffle(context, module.getSource(), m.getScope(), config).run(module.getIr());
   }
@@ -147,12 +145,12 @@ final class TruffleCompilerContext implements CompilerContext {
 
   @Override
   public boolean isInteractive(CompilerContext.Module module) {
-    return ((Module)module).unsafeModule().isInteractive();
+    return ((Module) module).unsafeModule().isInteractive();
   }
 
   @Override
   public boolean wasLoadedFromCache(CompilerContext.Module module) {
-    return ((Module)module).unsafeModule().wasLoadedFromCache();
+    return ((Module) module).unsafeModule().wasLoadedFromCache();
   }
 
   @Override
@@ -172,7 +170,7 @@ final class TruffleCompilerContext implements CompilerContext {
 
   @Override
   public void updateModule(CompilerContext.Module module, Consumer<Updater> callback) {
-    try (var u = new ModuleUpdater((Module)module)) {
+    try (var u = new ModuleUpdater((Module) module)) {
       callback.accept(u);
     }
   }
@@ -182,7 +180,7 @@ final class TruffleCompilerContext implements CompilerContext {
   }
 
   public <T> Optional<TruffleFile> saveCache(
-          Cache<T, ?> cache, T entry, boolean useGlobalCacheLocations) {
+      Cache<T, ?> cache, T entry, boolean useGlobalCacheLocations) {
     return cache.save(entry, context, useGlobalCacheLocations);
   }
 
@@ -192,37 +190,24 @@ final class TruffleCompilerContext implements CompilerContext {
     return type != null && type.containsValues();
   }
 
-  /**
-   * Lazy-initializes the IR for the builtins module.
-   */
+  /** Lazy-initializes the IR for the builtins module. */
   @Override
   public void initializeBuiltinsIr(
-    Compiler compiler,
-    boolean irCachingEnabled,
-    FreshNameSupply freshNameSupply, Passes passes
-  ) {
+      Compiler compiler, boolean irCachingEnabled, FreshNameSupply freshNameSupply, Passes passes) {
     var builtins = context.getBuiltins();
     var builtinsModule = builtins.getModule().asCompilerModule();
     if (!builtins.isIrInitialized()) {
-      log(
-              Level.FINE,
-              "Initialising IR for [{0}].",
-              builtinsModule.getName()
-      );
+      log(Level.FINE, "Initialising IR for [{0}].", builtinsModule.getName());
 
       builtins.initializeBuiltinsSource();
 
       if (irCachingEnabled) {
-        if (
-          serializationManager.deserialize(compiler, builtinsModule) instanceof Option<?> op &&
-          op.isDefined() &&
-          op.get() instanceof Boolean b && b
-        ) {
+        if (serializationManager.deserialize(compiler, builtinsModule) instanceof Option<?> op
+            && op.isDefined()
+            && op.get() instanceof Boolean b
+            && b) {
           // Ensure that builtins doesn't try and have codegen run on it.
-          updateModule(
-            builtinsModule,
-            u -> u.compilationStage(CompilationStage.AFTER_CODEGEN)
-          );
+          updateModule(builtinsModule, u -> u.compilationStage(CompilationStage.AFTER_CODEGEN));
         } else {
           builtins.initializeBuiltinsIr(this, freshNameSupply, passes);
         }
@@ -231,16 +216,14 @@ final class TruffleCompilerContext implements CompilerContext {
       }
 
       if (irCachingEnabled && !wasLoadedFromCache(builtinsModule)) {
-        serializationManager.serializeModule(
-          compiler, builtinsModule, true, true
-        );
+        serializationManager.serializeModule(compiler, builtinsModule, true, true);
       }
     }
   }
 
   @Override
   public void runStubsGenerator(CompilerContext.Module module) {
-    stubsGenerator.run(((Module)module).unsafeModule());
+    stubsGenerator.run(((Module) module).unsafeModule());
   }
 
   @Override
@@ -251,15 +234,19 @@ final class TruffleCompilerContext implements CompilerContext {
 
   @SuppressWarnings("unchecked")
   @Override
-  public Future<Boolean> serializeLibrary(Compiler compiler, LibraryName libraryName, boolean useGlobalCacheLocations) {
-    Object res = serializationManager.serializeLibrary(compiler, libraryName, useGlobalCacheLocations);
+  public Future<Boolean> serializeLibrary(
+      Compiler compiler, LibraryName libraryName, boolean useGlobalCacheLocations) {
+    Object res =
+        serializationManager.serializeLibrary(compiler, libraryName, useGlobalCacheLocations);
     return (Future<Boolean>) res;
   }
 
   @SuppressWarnings("unchecked")
   @Override
-  public Future<Boolean> serializeModule(Compiler compiler, CompilerContext.Module module, boolean useGlobalCacheLocations) {
-    Object res = serializationManager.serializeModule(compiler, module, useGlobalCacheLocations, true);
+  public Future<Boolean> serializeModule(
+      Compiler compiler, CompilerContext.Module module, boolean useGlobalCacheLocations) {
+    Object res =
+        serializationManager.serializeModule(compiler, module, useGlobalCacheLocations, true);
     return (Future<Boolean>) res;
   }
 
@@ -289,12 +276,12 @@ final class TruffleCompilerContext implements CompilerContext {
 
     @Override
     public void bindingsMap(BindingsMap map) {
-      this.map = new BindingsMap[] { map };
+      this.map = new BindingsMap[] {map};
     }
 
     @Override
     public void ir(org.enso.compiler.core.ir.Module ir) {
-      this.ir = new org.enso.compiler.core.ir.Module[] { ir };
+      this.ir = new org.enso.compiler.core.ir.Module[] {ir};
     }
 
     @Override
@@ -386,7 +373,8 @@ final class TruffleCompilerContext implements CompilerContext {
           emitIOException();
           return (BindingsMap) pass.get();
         } catch (IOException ex) {
-          var logger = TruffleLogger.getLogger(LanguageInfo.ID, org.enso.interpreter.runtime.Module.class);
+          var logger =
+              TruffleLogger.getLogger(LanguageInfo.ID, org.enso.interpreter.runtime.Module.class);
           var msg = "Cannot read BindingsMap for " + getName() + ": " + ex.getMessage();
           logger.log(Level.SEVERE, msg);
           logger.log(Level.FINE, msg, ex);
@@ -461,6 +449,5 @@ final class TruffleCompilerContext implements CompilerContext {
     }
   }
 
-  private static void emitIOException() throws IOException {
-  }
+  private static void emitIOException() throws IOException {}
 }

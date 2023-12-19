@@ -58,12 +58,16 @@ public class Histogram {
     return new Histogram(binData, channel);
   }
 
-  /** @return the channel number. */
+  /**
+   * @return the channel number.
+   */
   public int get_channel() {
     return channel;
   }
 
-  /** @return the histogram data. */
+  /**
+   * @return the histogram data.
+   */
   public int[] get_data() {
     return data;
   }

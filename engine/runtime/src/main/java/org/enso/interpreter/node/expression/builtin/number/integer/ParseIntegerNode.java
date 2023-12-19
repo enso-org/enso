@@ -10,11 +10,14 @@ import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
-@BuiltinMethod(type = "Integer", name = "parse", description = """
-Parse integer number""", autoRegister = false)
+@BuiltinMethod(
+    type = "Integer",
+    name = "parse",
+    description = """
+Parse integer number""",
+    autoRegister = false)
 public final class ParseIntegerNode extends IntegerNode {
-  @Child
-  ToJavaStringNode toJavaString = ToJavaStringNode.build();
+  @Child ToJavaStringNode toJavaString = ToJavaStringNode.build();
   private final BranchProfile noEx1 = BranchProfile.create();
   private final BranchProfile noEx2 = BranchProfile.create();
 
@@ -37,4 +40,3 @@ public final class ParseIntegerNode extends IntegerNode {
     }
   }
 }
-

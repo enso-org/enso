@@ -1,10 +1,20 @@
 package org.enso.interpreter;
 
+import com.oracle.truffle.api.CallTarget;
+import com.oracle.truffle.api.Option;
+import com.oracle.truffle.api.TruffleLanguage;
+import com.oracle.truffle.api.TruffleLogger;
+import com.oracle.truffle.api.debug.DebuggerTags;
+import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.instrumentation.ProvidedTags;
+import com.oracle.truffle.api.instrumentation.StandardTags;
+import com.oracle.truffle.api.nodes.ExecutableNode;
+import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.nodes.RootNode;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.util.List;
 import java.util.Objects;
-
 import org.enso.compiler.Compiler;
 import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.context.LocalScope;
@@ -41,18 +51,6 @@ import org.graalvm.options.OptionDescriptors;
 import org.graalvm.options.OptionKey;
 import org.graalvm.options.OptionType;
 
-import com.oracle.truffle.api.CallTarget;
-import com.oracle.truffle.api.Option;
-import com.oracle.truffle.api.TruffleLanguage;
-import com.oracle.truffle.api.TruffleLogger;
-import com.oracle.truffle.api.debug.DebuggerTags;
-import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.instrumentation.ProvidedTags;
-import com.oracle.truffle.api.instrumentation.StandardTags;
-import com.oracle.truffle.api.nodes.ExecutableNode;
-import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.nodes.RootNode;
-
 /**
  * The root of the Enso implementation.
  *
@@ -72,8 +70,7 @@ import com.oracle.truffle.api.nodes.RootNode;
     contextPolicy = TruffleLanguage.ContextPolicy.EXCLUSIVE,
     dependentLanguages = {"epb"},
     fileTypeDetectors = FileDetector.class,
-    services= { Timer.class, NotificationHandler.Forwarder.class, LockManager.class }
-)
+    services = {Timer.class, NotificationHandler.Forwarder.class, LockManager.class})
 @ProvidedTags({
   DebuggerTags.AlwaysHalt.class,
   StandardTags.CallTag.class,
@@ -134,7 +131,6 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
       lockManager = new ThreadSafeFileLockManager(distributionManager.paths().locks());
       env.registerService(lockManager);
     }
-
 
     boolean isExecutionTimerEnabled =
         env.getOptions().get(RuntimeOptions.ENABLE_EXECUTION_TIMER_KEY);
@@ -200,30 +196,28 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
 
   /**
    * Parses the given Enso source code snippet in {@code request}.
-   * <p>
-   * Inline parsing does not handle the following expressions:
+   *
+   * <p>Inline parsing does not handle the following expressions:
+   *
    * <ul>
-   *     <li>Assignments</li>
-   *     <li>Imports and exports</li>
+   *   <li>Assignments
+   *   <li>Imports and exports
    * </ul>
-   * When given the aforementioned expressions in the request, {@code null}
-   * will be returned.
+   *
+   * When given the aforementioned expressions in the request, {@code null} will be returned.
    *
    * @param request request for inline parsing
    * @throws InlineParsingException if the compiler failed to parse
    * @return An {@link ExecutableNode} representing an AST fragment if the request contains
-   *   syntactically correct Enso source, {@code null} otherwise.
+   *     syntactically correct Enso source, {@code null} otherwise.
    */
   @Override
   protected ExecutableNode parse(InlineParsingRequest request) throws InlineParsingException {
     if (request.getLocation().getRootNode() instanceof EnsoRootNode ensoRootNode) {
       var context = EnsoContext.get(request.getLocation());
       Tree inlineExpr = context.getCompiler().parseInline(request.getSource());
-      var undesirableExprTypes = List.of(
-          Tree.Assignment.class,
-          Tree.Import.class,
-          Tree.Export.class
-      );
+      var undesirableExprTypes =
+          List.of(Tree.Assignment.class, Tree.Import.class, Tree.Export.class);
       if (astContainsExprTypes(inlineExpr, undesirableExprTypes)) {
         throw new InlineParsingException(
             "Inline parsing request contains some of undesirable expression types: "
@@ -231,50 +225,47 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
                 + "\n"
                 + "Parsed expression: \n"
                 + inlineExpr.codeRepr(),
-            null
-        );
+            null);
       }
 
       var module = ensoRootNode.getModuleScope().getModule();
       var localScope = ensoRootNode.getLocalScope();
       var outputRedirect = new ByteArrayOutputStream();
-      var redirectConfigWithStrictErrors = new CompilerConfig(
-          false,
-          false,
-          true,
-          true,
-          scala.Option.apply(new PrintStream(outputRedirect))
-      );
-      var moduleContext = new ModuleContext(
-        module.asCompilerModule(), redirectConfigWithStrictErrors,
-        scala.Option.empty(),
-        scala.Option.empty(),
-        false,
-        scala.Option.empty()
-      );
-      var inlineContext = new InlineContext(
-          moduleContext,
-          redirectConfigWithStrictErrors,
-          scala.Some.apply(localScope),
-          scala.Some.apply(false),
-          scala.Option.empty(),
-          scala.Option.empty(),
-          scala.Option.empty()
-      );
-      Compiler silentCompiler = context.getCompiler().duplicateWithConfig(redirectConfigWithStrictErrors);
+      var redirectConfigWithStrictErrors =
+          new CompilerConfig(
+              false, false, true, true, scala.Option.apply(new PrintStream(outputRedirect)));
+      var moduleContext =
+          new ModuleContext(
+              module.asCompilerModule(),
+              redirectConfigWithStrictErrors,
+              scala.Option.empty(),
+              scala.Option.empty(),
+              false,
+              scala.Option.empty());
+      var inlineContext =
+          new InlineContext(
+              moduleContext,
+              redirectConfigWithStrictErrors,
+              scala.Some.apply(localScope),
+              scala.Some.apply(false),
+              scala.Option.empty(),
+              scala.Option.empty(),
+              scala.Option.empty());
+      Compiler silentCompiler =
+          context.getCompiler().duplicateWithConfig(redirectConfigWithStrictErrors);
       ExpressionNode exprNode;
       try {
-        var optionTupple = silentCompiler.runInline(
-          request.getSource().getCharacters().toString(),
-          inlineContext
-        );
+        var optionTupple =
+            silentCompiler.runInline(request.getSource().getCharacters().toString(), inlineContext);
         if (optionTupple.nonEmpty()) {
           var newInlineContext = optionTupple.get()._1();
           var ir = optionTupple.get()._2();
           var sco = newInlineContext.localScope().getOrElse(LocalScope::root);
           var mod = newInlineContext.module$access$0().module$access$0();
           var m = org.enso.interpreter.runtime.Module.fromCompilerModule(mod);
-          var toTruffle = new IrToTruffle(context, request.getSource(), m.getScope(), redirectConfigWithStrictErrors);
+          var toTruffle =
+              new IrToTruffle(
+                  context, request.getSource(), m.getScope(), redirectConfigWithStrictErrors);
           exprNode = toTruffle.runInline(ir, sco, "<inline_source>");
         } else {
           exprNode = null;
@@ -282,7 +273,8 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
       } catch (UnhandledEntity e) {
         throw new InlineParsingException("Unhandled entity: " + e.entity(), e);
       } catch (CompilationAbortedException e) {
-        assert outputRedirect.toString().lines().count() > 1 : "Expected a header line from the compiler";
+        assert outputRedirect.toString().lines().count() > 1
+            : "Expected a header line from the compiler";
         String compilerErrOutput = outputRedirect.toString();
         throw new InlineParsingException(compilerErrOutput, e);
       } finally {
@@ -292,8 +284,7 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
       if (exprNode != null) {
         var language = EnsoLanguage.get(exprNode);
         return new ExecutableNode(language) {
-          @Child
-          private ExpressionNode expr;
+          @Child private ExpressionNode expr;
 
           @Override
           public Object execute(VirtualFrame frame) {
@@ -314,19 +305,14 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
     }
   }
 
-  /**
-   * Returns true if the given ast transitively contains any of {@code exprTypes}.
-   */
+  /** Returns true if the given ast transitively contains any of {@code exprTypes}. */
   private boolean astContainsExprTypes(Tree ast, List<Class<? extends Tree>> exprTypes) {
-    boolean astMatchesExprType = exprTypes
-          .stream()
-          .anyMatch(exprType -> exprType.equals(ast.getClass()));
+    boolean astMatchesExprType =
+        exprTypes.stream().anyMatch(exprType -> exprType.equals(ast.getClass()));
     if (astMatchesExprType) {
       return true;
     } else if (ast instanceof Tree.BodyBlock block) {
-      return block
-          .getStatements()
-          .stream()
+      return block.getStatements().stream()
           .map(Line::getExpression)
           .filter(Objects::nonNull)
           .anyMatch((Tree expr) -> astContainsExprTypes(expr, exprTypes));
@@ -336,13 +322,13 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
   }
 
   @Option(
-          name = "ExecutionEnvironment",
-          category = OptionCategory.USER,
-          help = "The environment for program execution. Defaults to `design`.")
+      name = "ExecutionEnvironment",
+      category = OptionCategory.USER,
+      help = "The environment for program execution. Defaults to `design`.")
   public static final OptionKey<ExecutionEnvironment> EXECUTION_ENVIRONMENT =
-          new OptionKey<>(
-                  ExecutionEnvironment.DESIGN, new OptionType<>("ExecutionEnvironment", ExecutionEnvironment::forName));
-
+      new OptionKey<>(
+          ExecutionEnvironment.DESIGN,
+          new OptionType<>("ExecutionEnvironment", ExecutionEnvironment::forName));
 
   private static final OptionDescriptors OPTIONS =
       OptionDescriptors.createUnion(
@@ -367,7 +353,7 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
 
   /** Conversions of primitive values */
   protected Object getLanguageView(EnsoContext context, Object value) {
-    if (value instanceof Boolean b ) {
+    if (value instanceof Boolean b) {
       var bool = context.getBuiltins().bool();
       return b ? bool.getTrue().newInstance() : bool.getFalse().newInstance();
     }

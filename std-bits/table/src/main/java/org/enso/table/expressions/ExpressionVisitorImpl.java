@@ -1,5 +1,13 @@
 package org.enso.table.expressions;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.format.DateTimeParseException;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.regex.Pattern;
 import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -9,15 +17,6 @@ import org.enso.base.time.EnsoDateTimeFormatter;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
-
-import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.format.DateTimeParseException;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.regex.Pattern;
 
 public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
   private static class ThrowOnErrorListener extends BaseErrorListener {
@@ -108,7 +107,9 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     }
 
     var metaObject = value.getMetaObject();
-    return metaObject != null && metaObject.isHostObject() && metaObject.asHostObject() instanceof Class<?>
+    return metaObject != null
+            && metaObject.isHostObject()
+            && metaObject.asHostObject() instanceof Class<?>
         ? makeConstantColumn.apply(value)
         : value;
   }
@@ -249,7 +250,9 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     return Value.asValue(text.substring(1, text.length() - 1).replace("\"\"", "\""));
   }
 
-  private static final Pattern pythonRegex = Pattern.compile("(\\\\[abtnfrv\"'\\\\])|(\\\\(x[0-9a-fA-F]{2}|u[0-9a-fA-F]{4}|U[0-9a-fA-F]{4}))|\\\\|([^\\\\]+)");
+  private static final Pattern pythonRegex =
+      Pattern.compile(
+          "(\\\\[abtnfrv\"'\\\\])|(\\\\(x[0-9a-fA-F]{2}|u[0-9a-fA-F]{4}|U[0-9a-fA-F]{4}))|\\\\|([^\\\\]+)");
 
   private static String unescapePython(String text) {
     var matcher = pythonRegex.matcher(text);
@@ -257,19 +260,20 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     Context context = Context.getCurrent();
     while (matcher.find()) {
       if (matcher.group(1) != null) {
-        builder.append(switch (matcher.group(1).charAt(1)) {
-          case 'a' -> (char) 0x07;
-          case 'f' -> (char) 0x0c;
-          case 'b' -> '\b';
-          case 't' -> '\t';
-          case 'r' -> '\r';
-          case 'n' -> '\n';
-          case 'v' -> (char) 0x0b;
-          case '\\' -> '\\';
-          case '\'' -> '\'';
-          case '"' -> '"';
-          default -> throw new IllegalArgumentException("Unknown Python escape sequence.");
-        });
+        builder.append(
+            switch (matcher.group(1).charAt(1)) {
+              case 'a' -> (char) 0x07;
+              case 'f' -> (char) 0x0c;
+              case 'b' -> '\b';
+              case 't' -> '\t';
+              case 'r' -> '\r';
+              case 'n' -> '\n';
+              case 'v' -> (char) 0x0b;
+              case '\\' -> '\\';
+              case '\'' -> '\'';
+              case '"' -> '"';
+              default -> throw new IllegalArgumentException("Unknown Python escape sequence.");
+            });
       } else if (matcher.group(2) != null) {
         builder.append((char) Integer.parseInt(matcher.group(2).substring(2), 16));
       } else {
@@ -313,7 +317,8 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     }
   }
 
-  private static final EnsoDateTimeFormatter dateTimeFormatter = EnsoDateTimeFormatter.default_enso_zoned_date_time_formatter();
+  private static final EnsoDateTimeFormatter dateTimeFormatter =
+      EnsoDateTimeFormatter.default_enso_zoned_date_time_formatter();
 
   @Override
   public Value visitDatetime(ExpressionParser.DatetimeContext ctx) {
@@ -326,9 +331,9 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     }
 
     throw new SyntaxErrorException(
-            "Invalid Date_Time format: " + text,
-            ctx.getStart().getLine(),
-            ctx.getStart().getCharPositionInLine());
+        "Invalid Date_Time format: " + text,
+        ctx.getStart().getLine(),
+        ctx.getStart().getCharPositionInLine());
   }
 
   @Override
@@ -349,7 +354,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
   public Value visitIn(ExpressionParser.InContext ctx) {
     var args = ctx.expr().stream().map(this::visit).toArray(Value[]::new);
     var condition = executeMethod("is_in", args);
-    return  ctx.NOT_IN() != null ? executeMethod("not", condition) : condition;
+    return ctx.NOT_IN() != null ? executeMethod("not", condition) : condition;
   }
 
   @Override

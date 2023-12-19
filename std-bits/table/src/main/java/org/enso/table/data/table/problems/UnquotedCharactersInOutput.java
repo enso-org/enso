@@ -11,7 +11,8 @@ public class UnquotedCharactersInOutput extends ColumnAggregatedProblem {
         + getLocationName()
         + " at rows "
         + makeTruncatedRowsString()
-        + " contains characters that need quoting, but quoting is disabled. The generated file may be corrupted.";
+        + " contains characters that need quoting, but quoting is disabled. The generated file may"
+        + " be corrupted.";
   }
 
   @Override

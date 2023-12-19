@@ -10,6 +10,7 @@ import org.enso.table.error.ValueTypeMismatchException;
 /** A builder for string columns. */
 public class StringBuilder extends TypedBuilderImpl<String> {
   private final TextType type;
+
   @Override
   protected String[] newArray(int size) {
     return new String[size];
@@ -53,7 +54,8 @@ public class StringBuilder extends TypedBuilderImpl<String> {
     if (storage.getType() instanceof TextType gotType) {
       if (type.fitsExactly(gotType)) {
         if (storage instanceof SpecializedStorage<?>) {
-          // This cast is safe, because storage.getType() == this.getType() == TextType iff storage.T == String
+          // This cast is safe, because storage.getType() == this.getType() == TextType iff
+          // storage.T == String
           @SuppressWarnings("unchecked")
           SpecializedStorage<String> specializedStorage = (SpecializedStorage<String>) storage;
           System.arraycopy(specializedStorage.getData(), 0, data, currentSize, storage.size());
@@ -65,8 +67,6 @@ public class StringBuilder extends TypedBuilderImpl<String> {
 
     super.appendBulkStorage(storage);
   }
-
-
 
   @Override
   protected Storage<String> doSeal() {

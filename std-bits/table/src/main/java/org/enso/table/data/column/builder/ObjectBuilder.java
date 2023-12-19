@@ -1,12 +1,11 @@
 package org.enso.table.data.column.builder;
 
+import java.util.Arrays;
 import org.enso.table.data.column.storage.ObjectStorage;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.StorageType;
-
-import java.util.Arrays;
 
 /** A builder for boxed object columns. */
 public class ObjectBuilder extends TypedBuilder {
@@ -103,9 +102,10 @@ public class ObjectBuilder extends TypedBuilder {
 
   /**
    * Grows the underlying array.
-   * <p>
-   * The method grows the array by 50% by default to amortize the re-allocation time over appends.
-   * It tries to keep the invariant that after calling `grow` the array has at least one free slot.
+   *
+   * <p>The method grows the array by 50% by default to amortize the re-allocation time over
+   * appends. It tries to keep the invariant that after calling `grow` the array has at least one
+   * free slot.
    */
   private void grow() {
     int desiredCapacity = 3;

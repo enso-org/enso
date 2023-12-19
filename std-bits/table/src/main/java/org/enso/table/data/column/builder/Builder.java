@@ -13,31 +13,34 @@ import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.enso.table.problems.ProblemAggregator;
 
-/**
- * A builder for creating columns dynamically.
- */
+/** A builder for creating columns dynamically. */
 public abstract class Builder {
   /**
    * Constructs a builder accepting values of a specific type.
-   * <p>
-   * If {@code type} is {@code null}, it will return an {@link InferredBuilder} that will infer the type from the data.
+   *
+   * <p>If {@code type} is {@code null}, it will return an {@link InferredBuilder} that will infer
+   * the type from the data.
    */
-  public static Builder getForType(StorageType type, int size, ProblemAggregator problemAggregator) {
-    Builder builder = switch (type) {
-      case AnyObjectType x -> new MixedBuilder(size);
-      case BooleanType x -> new BoolBuilder(size);
-      case DateType x -> new DateBuilder(size);
-      case DateTimeType x -> new DateTimeBuilder(size);
-      case TimeOfDayType x -> new TimeOfDayBuilder(size);
-      case FloatType floatType -> switch (floatType.bits()) {
-        case BITS_64 -> NumericBuilder.createDoubleBuilder(size, problemAggregator);
-        default -> throw new IllegalArgumentException("Only 64-bit floats are currently supported.");
-      };
-      case IntegerType integerType -> NumericBuilder.createLongBuilder(size, integerType, problemAggregator);
-      case TextType textType -> new StringBuilder(size, textType);
-      case BigIntegerType x -> new BigIntegerBuilder(size, problemAggregator);
-      case null -> new InferredBuilder(size, problemAggregator);
-    };
+  public static Builder getForType(
+      StorageType type, int size, ProblemAggregator problemAggregator) {
+    Builder builder =
+        switch (type) {
+          case AnyObjectType x -> new MixedBuilder(size);
+          case BooleanType x -> new BoolBuilder(size);
+          case DateType x -> new DateBuilder(size);
+          case DateTimeType x -> new DateTimeBuilder(size);
+          case TimeOfDayType x -> new TimeOfDayBuilder(size);
+          case FloatType floatType -> switch (floatType.bits()) {
+            case BITS_64 -> NumericBuilder.createDoubleBuilder(size, problemAggregator);
+            default -> throw new IllegalArgumentException(
+                "Only 64-bit floats are currently supported.");
+          };
+          case IntegerType integerType -> NumericBuilder.createLongBuilder(
+              size, integerType, problemAggregator);
+          case TextType textType -> new StringBuilder(size, textType);
+          case BigIntegerType x -> new BigIntegerBuilder(size, problemAggregator);
+          case null -> new InferredBuilder(size, problemAggregator);
+        };
     assert java.util.Objects.equals(builder.getType(), type);
     return builder;
   }
@@ -63,7 +66,8 @@ public abstract class Builder {
    * Appends a specified number of missing values into the builder.
    *
    * <p>This operation should be equivalent to calling {@link #append(Object)} with {@code null} as
-   * an argument, {@code count} times, however it may be implemented more efficiently by the builder.
+   * an argument, {@code count} times, however it may be implemented more efficiently by the
+   * builder.
    *
    * @param count the number of missing values to append.
    */
@@ -95,13 +99,16 @@ public abstract class Builder {
    */
   public abstract StorageType getType();
 
-  /**
-   * Adds nulls to the builder to ensure that it reaches the size specified.
-   */
+  /** Adds nulls to the builder to ensure that it reaches the size specified. */
   public void fillUpToSize(int size) {
     int currentSize = getCurrentSize();
     if (currentSize > size) {
-      throw new IllegalArgumentException("fillUpToSize(" + size + ") called on a builder that already has " + currentSize + " elements.");
+      throw new IllegalArgumentException(
+          "fillUpToSize("
+              + size
+              + ") called on a builder that already has "
+              + currentSize
+              + " elements.");
     }
 
     if (currentSize < size) {

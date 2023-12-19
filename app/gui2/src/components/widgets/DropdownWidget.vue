@@ -92,11 +92,10 @@ const NEXT_SORT_DIRECTION: Record<SortDirection, SortDirection> = {
 
 li {
   text-align: left;
-  transition: transform 0.2s ease;
 }
 
 .selectable-item:hover {
-  transform: translateX(8px);
+  color: white;
 }
 
 .list span {
@@ -165,5 +164,6 @@ li {
 
 .selectable-item {
   margin-right: 16px;
+  padding-left: 8px;
 }
 </style>
