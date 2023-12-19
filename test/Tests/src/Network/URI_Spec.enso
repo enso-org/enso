@@ -132,7 +132,7 @@ spec =
             decode_query_params r2 . should_equal [["q1", "b c"], ["q2", "e+f"], ["q3", "e%20f"]]
 
             s1 = '"f"\'\' ; 🚀🚧a'
-            s2 = "[a=b]:[b=c][d=e], ]]] ==> <br>a"
+            s2 = "[a=b]:[b=c][d=e]++++!?&->#...__(){}@///\\\|%%%100*^, ]]] ==> <br>a"
             uri3 = base_uri
                 . add_query_argument "q4" "śnieżnobiały"
                 . add_query_argument "q5" s1
@@ -140,8 +140,9 @@ spec =
                 . add_query_argument "q7" ""
                 . add_query_argument "q8" " "
                 . add_query_argument "q9" "%%%"
+                . add_query_argument "q10" '\n\n\t'
             r3 = uri3.fetch
-            decode_query_params r3 . should_equal [["q4", "śnieżnobiały"], ["q5", s1], ["q6", s2], ["q7", ""], ["q8", " "], ["q9", "%%%"]]
+            decode_query_params r3 . should_equal [["q4", "śnieżnobiały"], ["q5", s1], ["q6", s2], ["q7", ""], ["q8", " "], ["q9", "%%%"], ["q10", '\n\n\t']]
 
             uri4 = base_uri
                 . add_query_argument "p+r" "b c"
@@ -159,7 +160,7 @@ spec =
                 . add_query_argument "a" "d"
             decode_query_params uri.fetch . should_equal [["a", "b"], ["a", "c"], ["a", "d"]]
 
-        Test.specify "should correctly handle various characters within the key and value of arguments" pending=("TODO testing secrets is for later".if_nothing pending_has_url) <|
+        Test.specify "should correctly handle various characters within the value of secrets" pending=("TODO testing secrets is for later".if_nothing pending_has_url) <|
             Error.throw "TODO: test various characters inside of the secret value, like in the raw test above"
 
 main = Test_Suite.run_main spec
