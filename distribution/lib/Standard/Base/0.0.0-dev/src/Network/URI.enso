@@ -158,6 +158,13 @@ type URI
         URI.Value self.internal_uri self.additional_query_parameters+[Pair.new key value] self.user_info_override
 
     ## GROUP Calculations
+       Removes any query parameters within the URI.
+    reset_query_arguments : URI
+    reset_query_arguments =
+        # TODO
+        URI.Value self.internal_uri [] self.user_info_override
+
+    ## GROUP Calculations
        Sets the user info for the URI.
 
        Arguments:
@@ -179,6 +186,17 @@ type URI
     fragment : Text | Nothing
     fragment self = handle_resolve_errors <|
         self.to_java_representation.getFragment
+
+    ## GROUP Calculations
+       Sets the fragment for the URI.
+
+       Arguments:
+       - fragment: The fragment to set. It will override any existing fragment.
+         If the fragment is `Nothing`, any existing fragment will be removed.
+    set_fragment : Text|Nothing -> URI
+    set_fragment self (fragment : Text | Nothing) =
+        # TODO
+        URI.Value self.internal_uri self.additional_query_parameters self.user_info_override
 
     ## PRIVATE
        ADVANCED
