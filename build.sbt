@@ -1751,7 +1751,12 @@ lazy val `runtime-parser` =
         "com.github.sbt"   % "junit-interface"         % junitIfVersion     % Test,
         "org.scalatest"   %% "scalatest"               % scalatestVersion   % Test,
         "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided"
-      )
+      ),
+      (Compile / logManager) :=
+        sbt.internal.util.CustomLogManager.excludeMsg(
+          "Could not determine source for class ",
+          Level.Warn
+        )
     )
     .dependsOn(syntax)
     .dependsOn(`syntax-rust-definition`)
