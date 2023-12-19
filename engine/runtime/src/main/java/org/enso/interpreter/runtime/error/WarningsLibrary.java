@@ -1,5 +1,6 @@
 package org.enso.interpreter.runtime.error;
 
+import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.GenerateLibrary;
 import com.oracle.truffle.api.library.Library;
@@ -55,10 +56,10 @@ public abstract class WarningsLibrary extends Library {
   }
 
   @GenerateLibrary.Abstract(ifExported = {"hasWarnings"})
-  public Warning[] getElementWarnings(Object receiver, Node location) throws UnsupportedMessageException {
+  public Warning[] getElementWarnings(Object receiver, Node location, long index)
+      throws InvalidArrayIndexException, UnsupportedMessageException {
     throw UnsupportedMessageException.create();
   }
-
 
   /**
    * Returns the object with all warnings removed.

@@ -203,7 +203,24 @@ final class Array implements EnsoObject {
     return cachedWarnings;
   }
 
-  @ExportMessage Warning[] getElementWarnings(Node location) throws UnsupportedMessageException { return null; }
+  @ExportMessage Warning[] getElementWarnings(
+      Node location,
+      long index,
+      @Cached BranchProfile errProfile,
+      @Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings)
+        throws InvalidArrayIndexException, UnsupportedMessageException {
+    if (index >= items.length || index < 0) {
+      errProfile.enter();
+      throw InvalidArrayIndexException.create(index);
+    }
+
+    Object item = items[(int) index];
+    if (warnings.hasWarnings(item)) {
+      return warnings.getWarnings(item, location);
+    } else {
+      return new Warning[0];
+    }
+  }
 
   @CompilerDirectives.TruffleBoundary
   private EconomicSet<Warning> collectAllWarnings(WarningsLibrary warnings, Node location)

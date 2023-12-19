@@ -129,7 +129,7 @@ public final class Warning implements EnsoObject {
   @CompilerDirectives.TruffleBoundary
   public static EnsoObject getAllFromVectorElements(WithWarnings value, WarningsLibrary warningsLib, InteropLibrary interop) {
     if (value.getValue() instanceof org.enso.interpreter.runtime.data.vector.Vector) {
-      Warning[] warnings = getElementWarnings(value.getValue(), warningsLib, interop);
+      Warning[] warnings = getAllElementWarnings(value.getValue(), warningsLib, interop);
       return ArrayLikeHelpers.wrapEnsoObjects(warnings);
     } else {
       throw EnsoContext.get(warningsLib).raiseAssertionPanic(warningsLib, null, null);
@@ -144,18 +144,37 @@ public final class Warning implements EnsoObject {
   public static EnsoObject getAllFromVectorElements(Object value, WarningsLibrary warningsLib, InteropLibrary interop) {
     //System.out.println("AAA getAll obj " + value.getClass() + " " + (value instanceof org.enso.interpreter.runtime.data.vector.Vector));
     if (value instanceof org.enso.interpreter.runtime.data.vector.Vector) {
-      Warning[] warnings = getElementWarnings(value, warningsLib, interop);
+      Warning[] warnings = getAllElementWarnings(value, warningsLib, interop);
       return ArrayLikeHelpers.wrapEnsoObjects(warnings);
     } else {
       throw EnsoContext.get(warningsLib).raiseAssertionPanic(warningsLib, null, null);
     }
   }
 
-  private static Warning[] getElementWarnings(Object value, WarningsLibrary warnings, InteropLibrary interop) {
+  private static Warning[] getAllElementWarnings(Object value, WarningsLibrary warnings, InteropLibrary interop) {
+    EconomicSet<Warning> warningsSet = EconomicSet.create(new WithWarnings.WarningEquivalence());
+    var ctx = EnsoContext.get(warnings);
+
     try {
-      return warnings.getElementWarnings(value, null);
+      long size = interop.getArraySize(value);
+
+      for (long index = 0; index < size; ++index) {
+        final long finalIndex = index;
+        Warning[] elementWarnings = warnings.getElementWarnings(value, null, index);
+        Warning wrapped[] = Arrays.stream(elementWarnings).map(warning -> {
+          var error = warning.getValue();
+          var wrappedError = ctx.getBuiltins().error().makeMapError(finalIndex, error);
+          var wrappedWarning = Warning.create(ctx, wrappedError, warning.getOrigin());
+          return wrappedWarning;
+        }).toArray(Warning[]::new);
+        warningsSet.addAll(Arrays.asList(wrapped));
+      }
+
+      return Warning.fromSetToArray(warningsSet);
+    } catch (InvalidArrayIndexException e) {
+      throw ctx.raiseAssertionPanic(warnings, null, e);
     } catch (UnsupportedMessageException e) {
-      throw EnsoContext.get(warnings).raiseAssertionPanic(warnings, null, e);
+      throw ctx.raiseAssertionPanic(warnings, null, e);
     }
   }
 
