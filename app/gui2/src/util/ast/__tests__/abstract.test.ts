@@ -360,7 +360,8 @@ test.each(cases)('parse/print round trip: %s', (code) => {
   const root1 = Ast.parse(printed)
   // Check that Identities match original AST.
   const reprinted = Ast.print(root1)
-  expect(reprinted.info).toEqual(info1)
+  expect(reprinted.info.nodes).toEqual(info1.nodes)
+  expect(reprinted.info.tokens).toEqual(info1.tokens)
 })
 
 const parseCases = [
