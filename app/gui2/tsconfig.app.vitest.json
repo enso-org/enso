@@ -1,8 +1,6 @@
 {
   "extends": "./tsconfig.app.json",
   "exclude": [],
-  // FIXME: App tests currently depending on ydoc-server should be integration tests.
-  "include": ["ydoc-server/**/*"],
   "compilerOptions": {
     "lib": [],
     "types": ["node", "jsdom", "vitest/importMeta"]
