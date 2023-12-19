@@ -116,7 +116,12 @@ public class HTTPTestHelperServer {
 
   private static void setupFileServer(HTTPTestHelperServer server) throws URISyntaxException {
     Path myRuntimeJar =
-        Path.of(HTTPTestHelperServer.class.getProtectionDomain().getCodeSource().getLocation().toURI())
+        Path.of(
+                HTTPTestHelperServer.class
+                    .getProtectionDomain()
+                    .getCodeSource()
+                    .getLocation()
+                    .toURI())
             .toAbsolutePath();
     Path projectRoot = findProjectRoot(myRuntimeJar);
     Path testFilesRoot = projectRoot.resolve(pathToWWW);
