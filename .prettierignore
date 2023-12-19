@@ -35,6 +35,7 @@ app/ide-desktop/lib/dashboard/playwright-report/
 app/ide-desktop/lib/dashboard/playwright/.cache/
 app/gui/view/documentation/assets/stylesheet.css
 app/gui2/rust-ffi/pkg
+app/gui2/src/assets/font-*.css
 Cargo.lock
 build.json
 app/gui2/playwright-report/
