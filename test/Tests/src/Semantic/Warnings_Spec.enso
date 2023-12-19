@@ -277,7 +277,7 @@ spec = Test.group "Dataflow Warnings" <|
         d = Warning.attach "d" c
         c . should_equal [1, 2]
         Warning.get_all c . map .value . should_equal [(Map_Error.Error 0 'a'), (Map_Error.Error 1 'b')]
-        Warning.get_all d . map .value . should_equal ['d', (Map_Error.Error 0 'a'), (Map_Error.Error 1 'b')]
+        Warning.get_all d . map .value . should_equal [(Map_Error.Error 0 'a'), (Map_Error.Error 1 'b'), 'd']
 
     Test.specify "should be preserved after operations on Vector" <|
         even x = (Warning.attach "warn"+x.to_text x) % 2
@@ -286,7 +286,7 @@ spec = Test.group "Dataflow Warnings" <|
         res . should_equal [1, 0, 1, 0]
         Warning.get_all res . map .value . should_equal [(Map_Error.Error 0 'warn1'), (Map_Error.Error 1 'warn2'), (Map_Error.Error 2 'warn3'), (Map_Error.Error 3 'warn4')]
         res.at 0 . should_equal 1
-        Warning.get_all (res.at 0) . map .value . should_equal ["warn1"]
+        Warning.get_all (res.at 0) . map .value . should_equal ['warn4', 'warn3', 'warn2', 'warn1']
 
         slice = res.slice 1 4
         Warning.get_all slice . map .value . should_equal [(Map_Error.Error 0 'warn2'), (Map_Error.Error 1 'warn3'), (Map_Error.Error 2 'warn4')]
