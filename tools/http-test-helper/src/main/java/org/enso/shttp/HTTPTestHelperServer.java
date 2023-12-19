@@ -14,12 +14,12 @@ import org.enso.shttp.cloud_mock.CloudRoot;
 import sun.misc.Signal;
 import sun.misc.SignalHandler;
 
-public class SimpleHTTPBin {
+public class HTTPTestHelperServer {
 
   private final HttpServer server;
   private final State state;
 
-  public SimpleHTTPBin(String hostname, int port) throws IOException {
+  public HTTPTestHelperServer(String hostname, int port) throws IOException {
     InetSocketAddress address = new InetSocketAddress(hostname, port);
     server = HttpServer.create(address, 0);
     server.setExecutor(null);
@@ -53,18 +53,18 @@ public class SimpleHTTPBin {
 
   public static void main(String[] args) {
     if (args.length != 2) {
-      System.err.println("Usage: SimpleHTTPBin <host> <port>");
+      System.err.println("Usage: http-test-helper <host> <port>");
       System.exit(1);
     }
 
     String host = args[0];
-    SimpleHTTPBin server = null;
+    HTTPTestHelperServer server = null;
     try {
       int port = Integer.valueOf(args[1]);
-      server = new SimpleHTTPBin(host, port);
+      server = new HTTPTestHelperServer(host, port);
       setupEndpoints(server);
 
-      final SimpleHTTPBin server1 = server;
+      final HTTPTestHelperServer server1 = server;
       SignalHandler stopServerHandler =
           (Signal sig) -> {
             System.out.println("Stopping server... (interrupt)");
@@ -99,7 +99,7 @@ public class SimpleHTTPBin {
     }
   }
 
-  private static void setupEndpoints(SimpleHTTPBin server) throws URISyntaxException {
+  private static void setupEndpoints(HTTPTestHelperServer server) throws URISyntaxException {
     for (HttpMethod method : HttpMethod.values()) {
       String path = "/" + method.toString().toLowerCase();
       server.addHandler(path, new TestHandler(method));
@@ -114,9 +114,9 @@ public class SimpleHTTPBin {
     setupFileServer(server);
   }
 
-  private static void setupFileServer(SimpleHTTPBin server) throws URISyntaxException {
+  private static void setupFileServer(HTTPTestHelperServer server) throws URISyntaxException {
     Path myRuntimeJar =
-        Path.of(SimpleHTTPBin.class.getProtectionDomain().getCodeSource().getLocation().toURI())
+        Path.of(HTTPTestHelperServer.class.getProtectionDomain().getCodeSource().getLocation().toURI())
             .toAbsolutePath();
     Path projectRoot = findProjectRoot(myRuntimeJar);
     Path testFilesRoot = projectRoot.resolve(pathToWWW);
@@ -137,7 +137,7 @@ public class SimpleHTTPBin {
     }
   }
 
-  private static final String pathToWWW = "tools/simple-httpbin/www-files";
+  private static final String pathToWWW = "tools/http-test-helper/www-files";
 
   private static boolean looksLikeProjectRoot(Path path) {
     return Stream.of("build.sbt", "tools", "project", pathToWWW)

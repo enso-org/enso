@@ -16,11 +16,11 @@ reset_token =
 
 spec =
     ## To run this test locally:
-       $ sbt 'simple-httpbin/run localhost 8080'
+       $ sbt 'http-test-helper/run localhost 8080'
        $ export ENSO_HTTP_TEST_HTTPBIN_URL=http://localhost:8080/
     base_url = Environment.get "ENSO_HTTP_TEST_HTTPBIN_URL"
     pending_has_url = if base_url != Nothing then Nothing else
-        "The Cloud mock tests only run when the `ENSO_HTTP_TEST_HTTPBIN_URL` environment variable is set to URL of the simple-httpbin server"
+        "The Cloud mock tests only run when the `ENSO_HTTP_TEST_HTTPBIN_URL` environment variable is set to URL of the http-test-helper server"
     enso_cloud_url = base_url.if_not_nothing <|
         with_slash = if base_url.ends_with "/" then base_url else base_url + "/"
         with_slash + "enso-cloud-mock/"
@@ -76,7 +76,7 @@ spec =
                 Enso_User.from invalid_json . should_fail_with Illegal_Argument
                 Test.expect_panic No_Such_Conversion (Enso_User.from (Json.parse "[]"))
 
-            # These tests should be kept in sync with tools/simple-httpbin/src/main/java/org/enso/shttp/?
+            # These tests should be kept in sync with tools/http-test-helper/src/main/java/org/enso/shttp/?
             Test.specify "current user can be fetched from mock API" <|
                 current = Enso_User.current
                 current.id.should_equal "organization-27xJM00p8jWoL2qByTo6tQfciWC"
