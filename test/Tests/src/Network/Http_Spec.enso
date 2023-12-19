@@ -27,7 +27,7 @@ type Bad_To_Json
 
 spec =
     ## To run this test locally:
-       $ sbt 'simple-httpbin/run localhost 8080'
+       $ sbt 'http-test-helper/run localhost 8080'
        $ export ENSO_HTTP_TEST_HTTPBIN_URL=http://localhost:8080/
     base_url = Environment.get "ENSO_HTTP_TEST_HTTPBIN_URL"
     pending_has_url = if base_url != Nothing then Nothing else
@@ -452,7 +452,7 @@ spec =
 
         Test.specify "Multiple content types in the header list are respected" <|
             response = Data.post url_post (Request_Body.Text '{"a": "asdf", "b": 123}') headers=[Header.content_type "application/json", Header.content_type "text/plain"]
-            ## Our simple-httpbin server gets 2 Content-Type headers and merges them in the response.
+            ## Our http-test-helper gets 2 Content-Type headers and merges them in the response.
                How this is interpreted in practice depends on the server.
             expected_response = Json.parse <| '''
                 {

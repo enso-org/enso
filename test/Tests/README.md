@@ -5,5 +5,6 @@ the localhost. If it is present, the port it listens to should be provided by
 setting the `ENSO_HTTP_TEST_HTTPBIN_URL` environment variable to a value like
 `http://localhost:8080`. The URL may contain a trailing slash.
 
-`tools/simple-httpbin` provides a simple implementation of `httpbin` server. See
-its README for instructions on how to run it.
+`tools/http-test-helper` provides a simple implementation of `httpbin` server,
+extended with some mock APIs allowing testing basic Enso Cloud functionality.
+See its README for instructions on how to run it.

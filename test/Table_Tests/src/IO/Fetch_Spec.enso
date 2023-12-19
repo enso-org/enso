@@ -14,7 +14,7 @@ main = Test_Suite.run_main spec
 
 spec =
     ## To run this test locally:
-       $ sbt 'simple-httpbin/run localhost 8080'
+       $ sbt 'http-test-helper/run localhost 8080'
        $ export ENSO_HTTP_TEST_HTTPBIN_URL=http://localhost:8080/
     base_url = Environment.get "ENSO_HTTP_TEST_HTTPBIN_URL"
     base_url_with_slash = base_url.if_not_nothing <|

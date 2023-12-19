@@ -97,6 +97,7 @@ type Header
 
        Arguments:
        - token: The token.
+    authorization_bearer : Text -> Header
     authorization_bearer token:Text =
         Header.authorization ("Bearer " + token)
 

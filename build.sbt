@@ -318,7 +318,7 @@ lazy val enso = (project in file("."))
     `std-image`,
     `std-table`,
     `std-aws`,
-    `simple-httpbin`,
+    `http-test-helper`,
     `enso-test-java-helpers`,
     `exploratory-benchmark-java-helpers`,
     `benchmark-java-helpers`,
@@ -2909,13 +2909,13 @@ val stdBitsProjects =
 val allStdBits: Parser[String] =
   stdBitsProjects.map(v => v: Parser[String]).reduce(_ | _)
 
-lazy val `simple-httpbin` = project
-  .in(file("tools") / "simple-httpbin")
+lazy val `http-test-helper` = project
+  .in(file("tools") / "http-test-helper")
   .settings(
     customFrgaalJavaCompilerSettings(targetJdk = "21"),
     autoScalaLibrary := false,
     Compile / javacOptions ++= Seq("-Xlint:all"),
-    Compile / run / mainClass := Some("org.enso.shttp.SimpleHTTPBin"),
+    Compile / run / mainClass := Some("org.enso.shttp.HTTPTestHelperServer"),
     assembly / mainClass := (Compile / run / mainClass).value,
     libraryDependencies ++= Seq(
       "org.apache.commons"        % "commons-text" % commonsTextVersion,
