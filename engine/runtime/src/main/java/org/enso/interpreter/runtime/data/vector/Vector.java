@@ -298,7 +298,18 @@ public abstract class Vector implements EnsoObject {
         try {
           final int finalIndex = index;
           //var v = interop.readArrayElement(this.storage, index);
-          var v = ((Array)this.storage).readArrayElementNoWarningPropagation(index);
+          /*
+          if (this.storage instanceof ArrayProxy ap) {
+            Object o = interop.readArrayElement(this.storage, index);
+            System.out.println("AAAo " + o);
+          }
+          */
+          Object v = null;
+          if (this.storage instanceof Array arr) {
+            v = arr.readArrayElementNoWarningPropagation(index);
+          } else {
+            v = interop.readArrayElement(this.storage, index);
+          }
           //System.out.println("AAA gew " + index + " " + v.getClass() + " " + v);
           if (warnings.hasWarnings(v)) {
             Warning elementWarnings[] = warnings.getWarnings(v, location);
