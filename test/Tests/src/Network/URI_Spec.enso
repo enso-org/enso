@@ -183,11 +183,11 @@ spec =
         Test.specify "should allow non-standard characters in the user info" <|
             uri1 = URI.parse "http://X:Y@example.com"
             uri2 = uri1.set_user_info "ąęć@x" "ś🚧: @"
-            uri2.to_text . should_equal "http://%C4%85%C4%99%C4%87%20%40x:%C5%9B%F0%9F%9A%A7%3A%40@example.com"
+            uri2.to_text . should_equal "http://%C4%85%C4%99%C4%87%40x:%C5%9B%F0%9F%9A%A7%3A%20%40@example.com"
             uri2.user_info . should_equal "ąęć@x:ś🚧: @"
-            uri2.raw_user_info . should_equal "%C4%85%C4%99%C4%87%20%40x:%C5%9B%F0%9F%9A%A7%3A%40"
+            uri2.raw_user_info . should_equal "%C4%85%C4%99%C4%87%40x:%C5%9B%F0%9F%9A%A7%3A%20%40"
             uri2.authority . should_equal "ąęć@x:ś🚧: @@example.com"
-            uri2.raw_authority . should_equal "%C4%85%C4%99%C4%87%20%40x:%C5%9B%F0%9F%9A%A7%3A%40@example.com"
+            uri2.raw_authority . should_equal "%C4%85%C4%99%C4%87%40x:%C5%9B%F0%9F%9A%A7%3A%20%40@example.com"
 
         Test.specify "will not allow to set username containing a colon" <|
             uri1 = URI.parse "http://example.com"
@@ -231,12 +231,17 @@ spec =
 
             # Weirdly, the spaces are presented as + even in the not-raw path.
             # But inspecting the raw path shows that they are indeed distinguished.
-            uri1.path . should_equal "/get/a+b+c/d+e/f%20g/ś🚧:@"
-            uri1.raw_path . should_equal "/get/a+b+c/d%2Be/f%2520g/%C5%9B%F0%9F%9A%A7%3A%40"
-            uri1.to_text . should_equal base_url+"get/a+b+c/d%2Be/f%2520g/%C5%9B%F0%9F%9A%A7%3A%40"
+            uri1.path . should_equal "/get/a b c/d+e/f%20g/ś🚧:@"
+            uri1.raw_path . should_equal "/get/a%20b%20c/d%2Be/f%2520g/%C5%9B%F0%9F%9A%A7%3A%40"
+            uri1.to_text . should_equal base_url+"get/a%20b%20c/d%2Be/f%2520g/%C5%9B%F0%9F%9A%A7%3A%40"
 
             r = uri1.fetch
             r.at "path" . should_equal "/get/a b c/d+e/f%20g/ś🚧:@"
+
+            ext = "a [!who puts that into URI??!!] ; --- ### a:=b"
+            uri3 = uri0 / ext
+            r2 = uri3.fetch
+            r2.at "path" . should_equal "/get/"+ext
 
         Test.specify "should allow slashes within path" <|
             uri0 = URI.parse "https://example.com/"
