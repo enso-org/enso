@@ -386,9 +386,7 @@ export namespace response {
     contentRoots: ContentRoot[]
   }
 
-  export interface FileContents {
-    contents: TextFileContents
-  }
+  export interface FileContents extends TextFileContents {}
 
   export interface FileExists {
     exists: boolean

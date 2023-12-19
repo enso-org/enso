@@ -163,6 +163,7 @@ class GenerateMethodBodiesTest extends CompilerTest {
         |Unit.bar self = self + 1
         |Unit.baz a self = self + 1 + a
         |qux self a self = a
+        |Unit.quux self a self = a
         |""".stripMargin.preprocessModule
 
     val irMethod =
@@ -192,6 +193,7 @@ class GenerateMethodBodiesTest extends CompilerTest {
     val irResultBar    = irResult.bindings(2).asInstanceOf[definition.Method]
     val irResultBaz    = irResult.bindings(3).asInstanceOf[definition.Method]
     val irResultQux    = irResult.bindings(4).asInstanceOf[definition.Method]
+    val irResultQuux   = irResult.bindings(5).asInstanceOf[definition.Method]
 
     "not generate an auxiliary self parameter" in {
       val resultArgs = irResultMethod.body
@@ -248,7 +250,15 @@ class GenerateMethodBodiesTest extends CompilerTest {
     }
 
     "return an error when redefining `self` parameter" in {
-      irResultQux.body shouldBe an[errors.Redefined.SelfArg]
+      irResultQux.body shouldBe a[Function]
+      irResultQux.body
+        .asInstanceOf[Function]
+        .body shouldBe an[errors.Redefined.SelfArg]
+
+      irResultQuux.body shouldBe an[Function]
+      irResultQuux.body
+        .asInstanceOf[Function]
+        .body shouldBe an[errors.Redefined.SelfArg]
     }
   }
 

@@ -61,11 +61,13 @@ object WithDebugCommand {
       val (debugFlags, prefixedRunArgs) = args.span(_ != argSeparator)
       val runArgs                       = " " + prefixedRunArgs.drop(1).mkString(" ")
 
-      val taskKey =
-        if (debugFlags.contains(benchOnlyCommandName)) BenchTasks.benchOnly
-        else if (debugFlags.contains(runCommandName)) Compile / Keys.run
-        else if (debugFlags.contains(testOnlyCommandName)) Test / Keys.testOnly
-        else throw new IllegalArgumentException("Invalid command name.")
+      val taskKeyOpt =
+        if (debugFlags.contains(benchOnlyCommandName))
+          Some(BenchTasks.benchOnly)
+        else if (debugFlags.contains(runCommandName)) Some(Compile / Keys.run)
+        else if (debugFlags.contains(testOnlyCommandName))
+          Some(Test / Keys.testOnly)
+        else None
 
       val dumpGraphsOpts =
         if (debugFlags.contains(dumpGraphsOption)) truffleDumpGraphsOptions
@@ -90,14 +92,22 @@ object WithDebugCommand {
         debuggerOpts
       ).flatten
 
-      val extracted = Project.extract(state)
-      val withJavaOpts = extracted.appendWithoutSession(
-        Seq(Compile / Keys.javaOptions ++= javaOpts),
-        state
-      )
-      Project
-        .extract(withJavaOpts)
-        .runInputTask(taskKey, runArgs, withJavaOpts)
-      state
+      taskKeyOpt match {
+        case None =>
+          state.log.error(
+            s"Invalid command name. Expected one of $benchOnlyCommandName, $runCommandName, or $testOnlyCommandName"
+          )
+          state.fail
+        case Some(taskKey) =>
+          val extracted = Project.extract(state)
+          val withJavaOpts = extracted.appendWithoutSession(
+            Seq(Compile / Keys.javaOptions ++= javaOpts),
+            state
+          )
+          Project
+            .extract(withJavaOpts)
+            .runInputTask(taskKey, runArgs, withJavaOpts)
+          state
+      }
     }
 }
