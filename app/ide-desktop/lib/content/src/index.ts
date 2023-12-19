@@ -49,7 +49,10 @@ if (detect.IS_DEV_MODE && !detect.isOnElectron()) {
     })
 }
 void (async () => {
-    const registration = await navigator.serviceWorker.getRegistration()
+    // `navigator.serviceWorker` may be disabled in certainsituations, for example in Private mode
+    // on Safari.
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    const registration = await navigator.serviceWorker?.getRegistration()
     await registration?.unregister()
     await navigator.serviceWorker.register(SERVICE_WORKER_PATH)
 })()
