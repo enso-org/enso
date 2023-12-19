@@ -7,6 +7,11 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
 
+/**
+ * A structure representing a URI that contains parts which may need to be updated once data from secrets is resolved.
+ * <p>
+ * The query parameters and user info are stored separately, because they may contain secrets and will only be resolved to plain values within {@link org.enso.base.enso_cloud.EnsoSecretHelper}.
+ */
 public record URIWithSecrets(
     URI baseUri,
     List<Pair<String, HideableValue>> queryParameters,
@@ -32,7 +37,9 @@ public record URIWithSecrets(
     }
   }
 
-  /** Resolves to a proper URI if it does not contain any secrets. If there was a secret, it throws an exception. */
+  /**
+   * Resolves to a proper URI if it does not contain any secrets. If there was a secret, it throws an exception.
+   */
   public URI safeResolve() {
     try {
       return makeSchematicForSafeResolve().build();

@@ -5,11 +5,15 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
+/** Utilities for building and transforming URIs. */
 public class URITransformer {
+
+  /** Removes query parameters from the given URI. */
   public static URI removeQueryParameters(URI uri) {
     return buildUriFromParts(uri.getScheme(), uri.getRawAuthority(), uri.getRawPath(), null, uri.getRawFragment());
   }
 
+  /** Extends the path within a URI with a list of segments. */
   public static URI extendPath(URI uri, List<String> segments) {
     StringBuilder newPath = new StringBuilder();
     String basePath = uri.getRawPath();
@@ -32,6 +36,7 @@ public class URITransformer {
     return buildUriFromParts(uri.getScheme(), uri.getRawAuthority(), newPath.toString(), uri.getRawQuery(), uri.getRawFragment());
   }
 
+  /** Builds a URI from raw parts, allowing some of them to be missing. */
   public static URI buildUriFromParts(String scheme, String authority, String path, String query, String fragment) {
     StringBuilder sb = new StringBuilder();
     if (scheme != null) {
