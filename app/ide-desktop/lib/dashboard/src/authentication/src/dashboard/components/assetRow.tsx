@@ -62,6 +62,7 @@ export default function AssetRow(props: AssetRowProps) {
         columns,
     } = props
     const {
+        doRefresh,
         assetEvents,
         dispatchAssetEvent,
         dispatchAssetListEvent,
@@ -92,7 +93,13 @@ export default function AssetRow(props: AssetRowProps) {
         // Mutation is HIGHLY INADVISABLE in React, however it is useful here as we want to avoid re-rendering the
         // parent.
         rawItem.item = asset
-    }, [asset, rawItem])
+    }, [asset, rawItem, /* should never change */ doRefresh])
+    React.useEffect(() => {
+        // Mutation is HIGHLY INADVISABLE in React, however it is useful here as we want to avoid re-rendering the
+        // parent.
+        rawItem.isProjectExpanded = item.isProjectExpanded
+        doRefresh()
+    }, [item.isProjectExpanded, rawItem, /* should never change */ doRefresh])
     const setAsset = assetTreeNode.useSetAsset(asset, setItem)
 
     React.useEffect(() => {

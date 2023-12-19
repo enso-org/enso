@@ -14,7 +14,7 @@ interface StateProp<State> {
     state: State
 }
 
-/** `tablerowState` and `setTableRowState`. */
+/** `rowState` and `setRowState`. */
 interface InternalTableRowStateProps<TableRowState> {
     rowState: TableRowState
     setRowState: React.Dispatch<React.SetStateAction<TableRowState>>

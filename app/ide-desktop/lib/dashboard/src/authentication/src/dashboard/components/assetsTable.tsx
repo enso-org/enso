@@ -21,6 +21,7 @@ import * as shortcutsProvider from '../../providers/shortcuts'
 import * as sorting from '../sorting'
 import * as string from '../../string'
 import * as uniqueString from '../../uniqueString'
+import * as useRefresh from '../../useRefresh'
 import type * as visibilityModule from '../visibility'
 
 import * as authProvider from '../../authentication/providers/auth'
@@ -141,6 +142,7 @@ const CATEGORY_TO_FILTER_BY: Record<categorySwitcher.Category, backendModule.Fil
 
 /** State passed through from a {@link AssetsTable} to every cell. */
 export interface AssetsTableState {
+    doRefresh: () => void
     numberOfSelectedItems: number
     category: categorySwitcher.Category
     labels: Map<backendModule.LabelName, backendModule.Label>
@@ -263,6 +265,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     const { setModal, unsetModal } = modalProvider.useSetModal()
     const { localStorage } = localStorageProvider.useLocalStorage()
     const { shortcuts } = shortcutsProvider.useShortcuts()
+    const [refresh, doRefresh] = useRefresh.useRefresh()
     const toastAndLog = hooks.useToastAndLog()
     const [initialized, setInitialized] = React.useState(false)
     const [assetTree, setAssetTree] = React.useState<assetTreeNode.AssetTreeNode[]>([])
@@ -275,7 +278,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     const [selectedKeys, setSelectedKeys] = React.useState(() => new Set<backendModule.AssetId>())
     const [copyData, setCopyData] = React.useState<Set<backendModule.AssetId> | null>(null)
     const [, setQueuedAssetEvents] = React.useState<assetEventModule.AssetEvent[]>([])
-    const [, setNameOfProjectToImmediatelyOpen] = React.useState(initialProjectName)
+    const queuedProjectNameOrId = React.useRef(initialProjectName)
     const scrollContainerRef = React.useRef<HTMLDivElement>(null)
     const headerRowRef = React.useRef<HTMLTableRowElement>(null)
     const assetTreeRef = React.useRef<assetTreeNode.AssetTreeNode[]>([])
@@ -302,6 +305,10 @@ export default function AssetsTable(props: AssetsTableProps) {
         }
     }, [query])
     const displayItems = React.useMemo(() => {
+        // `refresh` is required to be used, in order to avoid having to completely disable the
+        // `react-hooks/exhaustive-deps` lint.
+        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+        refresh
         if (sortColumn == null || sortDirection == null) {
             return assetTreeNode.assetTreePreorderTraversal(assetTree, (tree, parent) =>
                 parent != null &&
@@ -344,7 +351,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     : Array.from(tree).sort(compare)
             )
         }
-    }, [assetTree, sortColumn, sortDirection])
+    }, [assetTree, sortColumn, sortDirection, refresh])
 
     React.useEffect(() => {
         if (rawQueuedAssetEvents.length !== 0) {
@@ -392,7 +399,7 @@ export default function AssetsTable(props: AssetsTableProps) {
 
     React.useEffect(() => {
         if (isLoading) {
-            setNameOfProjectToImmediatelyOpen(initialProjectName)
+            queuedProjectNameOrId.current = initialProjectName
         } else {
             // The project name here might also be a string with project id, e.g. when opening
             // a project file from explorer on Windows.
@@ -421,57 +428,51 @@ export default function AssetsTable(props: AssetsTableProps) {
         (newAssets: backendModule.AnyAsset[]) => {
             // This is required, otherwise we are using an outdated
             // `nameOfProjectToImmediatelyOpen`.
-            setNameOfProjectToImmediatelyOpen(oldNameOfProjectToImmediatelyOpen => {
-                setInitialized(true)
-                setAssetTree(
-                    newAssets.map(asset => ({
-                        key: asset.id,
-                        item: asset,
-                        directoryKey: null,
-                        directoryId: null,
-                        children: null,
-                        depth: 0,
-                        isProjectExpanded: false,
-                    }))
-                )
-                // The project name here might also be a string with project id, e.g.
-                // when opening a project file from explorer on Windows.
-                const isInitialProject = (asset: backendModule.AnyAsset) =>
-                    asset.title === oldNameOfProjectToImmediatelyOpen ||
-                    asset.id === oldNameOfProjectToImmediatelyOpen
-                if (oldNameOfProjectToImmediatelyOpen != null) {
-                    const projectToLoad = newAssets
-                        .filter(backendModule.assetIsProject)
-                        .find(isInitialProject)
-                    if (projectToLoad != null) {
-                        dispatchAssetEvent({
-                            type: assetEventModule.AssetEventType.openProject,
-                            id: projectToLoad.id,
-                            shouldAutomaticallySwitchPage: true,
-                            runInBackground: false,
-                        })
-                    } else {
-                        toastAndLog(`Could not find project '${oldNameOfProjectToImmediatelyOpen}'`)
-                    }
+            setInitialized(true)
+            setAssetTree(
+                newAssets.map(asset => ({
+                    key: asset.id,
+                    item: asset,
+                    directoryKey: null,
+                    directoryId: null,
+                    children: null,
+                    depth: 0,
+                    isProjectExpanded: false,
+                }))
+            )
+            // The project name here might also be a string with project id, e.g.
+            // when opening a project file from explorer on Windows.
+            const isInitialProject = (asset: backendModule.AnyAsset) =>
+                asset.title === queuedProjectNameOrId.current ||
+                asset.id === queuedProjectNameOrId.current
+            if (queuedProjectNameOrId.current != null) {
+                const projectToLoad = newAssets
+                    .filter(backendModule.assetIsProject)
+                    .find(isInitialProject)
+                if (projectToLoad != null) {
+                    dispatchAssetEvent({
+                        type: assetEventModule.AssetEventType.openProject,
+                        id: projectToLoad.id,
+                        shouldAutomaticallySwitchPage: true,
+                        runInBackground: false,
+                    })
+                } else {
+                    toastAndLog(`Could not find project '${queuedProjectNameOrId.current}'`)
                 }
-                setQueuedAssetEvents(oldQueuedAssetEvents => {
-                    if (oldQueuedAssetEvents.length !== 0) {
-                        queueMicrotask(() => {
-                            for (const event of oldQueuedAssetEvents) {
-                                dispatchAssetEvent(event)
-                            }
-                        })
-                    }
-                    return []
-                })
-                return null
+            }
+            setQueuedAssetEvents(oldQueuedAssetEvents => {
+                if (oldQueuedAssetEvents.length !== 0) {
+                    queueMicrotask(() => {
+                        for (const event of oldQueuedAssetEvents) {
+                            dispatchAssetEvent(event)
+                        }
+                    })
+                }
+                return []
             })
+            queuedProjectNameOrId.current = null
         },
-        [
-            /* should never change */ setNameOfProjectToImmediatelyOpen,
-            /* should never change */ dispatchAssetEvent,
-            /* should never change */ toastAndLog,
-        ]
+        [/* should never change */ dispatchAssetEvent, /* should never change */ toastAndLog]
     )
 
     React.useEffect(() => {
@@ -617,9 +618,15 @@ export default function AssetsTable(props: AssetsTableProps) {
                                 asset => asset.projectState?.parentProjectId != null
                             )
                             setAssetTree(oldTree => {
+                                let newTree = oldTree
                                 for (const childProject of childProjects) {
-                                    oldTree = assetTreeNode.assetTreeMap(oldTree, node =>
-                                        node.item.id !== childProject.projectState?.parentProjectId
+                                    const parentProjectId =
+                                        childProject.projectState?.parentProjectId
+                                    if (!parentProjectId) {
+                                        continue
+                                    }
+                                    newTree = assetTreeNode.assetTreeMap(newTree, node =>
+                                        node.item.id !== parentProjectId
                                             ? node
                                             : insertAssetTreeNodeChildren(
                                                   node,
@@ -629,7 +636,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                                               )
                                     )
                                 }
-                                return oldTree
+                                return newTree
                             })
                         }
                     } else {
@@ -1376,6 +1383,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     const state = React.useMemo(
         // The type MUST be here to trigger excess property errors at typecheck time.
         (): AssetsTableState => ({
+            doRefresh,
             numberOfSelectedItems: selectedKeys.size,
             category,
             labels: allLabels,
@@ -1418,6 +1426,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             doCreateLabel,
             doCut,
             doPaste,
+            /* should never change */ doRefresh,
             /* should never change */ setAssetSettingsPanelProps,
             /* should never change */ setQuery,
             /* should never change */ setSortColumn,
