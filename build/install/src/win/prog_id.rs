@@ -11,7 +11,9 @@
 //! `HKEY_CLASSES_ROOT` is a merged view of these two keys.
 
 use crate::prelude::*;
+
 use crate::win::registry::create_subkey;
+
 
 
 /// The file extension description.

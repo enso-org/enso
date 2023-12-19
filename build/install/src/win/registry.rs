@@ -4,6 +4,8 @@ use crate::prelude::*;
 
 use winreg::types::ToRegValue;
 
+
+
 /// Wrapper around [`RegKey::delete_subkey_all`] that provides better error messages.
 pub fn delete_subkey_all(key: &RegKey, subkey: &str) -> Result {
     key.delete_subkey_all(subkey)

@@ -1,6 +1,7 @@
 use crate::prelude::*;
 
 use crate::archive::extract_files::ExtractFiles;
+
 use flate2::read::GzDecoder;
 use std::fs::File;
 
@@ -66,15 +67,9 @@ impl Archive {
     }
 
     /// Synchronous version of [`extract_files`].
-    pub fn extract_files_sync(
-        self,
-        filter: impl FnMut(&Path) -> Option<PathBuf>,
-    ) -> Result {
+    pub fn extract_files_sync(self, filter: impl FnMut(&Path) -> Option<PathBuf>) -> Result {
         extract_files_sync(self.file, filter).with_context(|| {
-            format!(
-                "Failed to extract files from archive {}",
-                self.path.display()
-            )
+            format!("Failed to extract files from archive {}", self.path.display())
         })
     }
 

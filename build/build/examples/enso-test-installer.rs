@@ -1,5 +1,7 @@
 use enso_build::prelude::*;
 
+
+
 const INSTALLER_PATH: &str = r"H:\NBO\enso2\dist\ide\enso-win-2023.2.1-dev.exe";
 
 /// Path to the NSIS-generated uninstaller executable.

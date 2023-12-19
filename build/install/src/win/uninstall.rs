@@ -1,5 +1,7 @@
 use crate::prelude::*;
 
+
+
 /// The path to the Uninstall subkey of the registry.
 const UNINSTALL_KEY_PATH: &str = "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall";
 

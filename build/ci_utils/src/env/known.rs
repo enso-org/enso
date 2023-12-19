@@ -6,6 +6,7 @@ use crate::define_env_var;
 use crate::env::accessor::PathLike;
 
 
+
 /// PATH environment variable.
 ///
 /// It is a special variable that contains a list of paths, that define the search path for

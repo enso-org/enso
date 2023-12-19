@@ -3,9 +3,10 @@
 use crate::prelude::*;
 
 use windows::core::HSTRING;
-
 use windows::Win32::Foundation;
 use windows::Win32::System::LibraryLoader;
+
+
 
 /// Get binary resource embedded in the current executable.
 ///

@@ -1,14 +1,18 @@
 //! Windows-specific code for the Enso installer.
 
 use crate::prelude::*;
+
 use std::ffi::c_void;
 use std::os::windows::ffi::OsStringExt;
-
-
 use windows::core::PCWSTR;
 use windows::Win32::UI::Shell;
 use winreg::RegKey;
 use winreg::RegValue;
+
+
+// ==============
+// === Export ===
+// ==============
 
 pub mod app_paths;
 pub mod prog_id;
@@ -16,6 +20,8 @@ pub mod registry;
 pub mod resource;
 pub mod shortcut;
 pub mod uninstall;
+
+
 
 /// Open the `HKEY_CURRENT_USER\Software\Classes` key for reading and writing.
 ///

@@ -1,7 +1,10 @@
 //! Utilities for managing start menu and desktop shortcuts.
 
 use crate::prelude::*;
+
 use ide_ci::env::consts::SHORTCUT_SUFFIX;
+
+
 
 /// Location of the shortcut.
 #[derive(Copy, Clone, Debug, Display)]

@@ -12,6 +12,7 @@ use std::time::Duration;
 use tokio::task::JoinHandle;
 
 
+
 /// Turns given text into a static string.
 ///
 /// This can be useful for passing runtime-generated strings to APIs that expect static lifetime

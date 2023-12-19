@@ -7,6 +7,8 @@
 
 use crate::prelude::*;
 
+
+
 /// The registry key path for the `App Paths` in Windows, relative to `HKEY_CURRENT_USER`.
 pub const APP_PATHS: &str = r"Software\Microsoft\Windows\CurrentVersion\App Paths";
 

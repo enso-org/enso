@@ -1,4 +1,5 @@
 // === Features ===
+#![allow(incomplete_features)]
 #![feature(try_blocks)]
 #![feature(result_flattening)]
 #![feature(const_fmt_arguments_new)]
@@ -36,7 +37,6 @@
 #![warn(trivial_numeric_casts)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-#![allow(incomplete_features)]
 
 
 // ==============
@@ -69,6 +69,7 @@ pub mod program;
 pub mod programs;
 pub mod reqwest;
 pub mod serde;
+
 
 
 pub mod prelude {

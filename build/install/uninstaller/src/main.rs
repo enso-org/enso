@@ -1,6 +1,14 @@
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
+#![allow(clippy::let_and_return)]
+
 use enso_install::prelude::*;
 
 use enso_install::config::APPLICATION_SHORTCUT_NAME;
+
+
 
 pub const FAILED_TO_ACQUIRE_LOCK: &str =
     "Failed to acquire file lock. Is another instance of the installer or uninstaller running?";
