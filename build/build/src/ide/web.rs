@@ -364,6 +364,8 @@ impl IdeDesktop {
         target_os: OS,
         target: Option<String>,
     ) -> Result {
+        let output_path = output_path.as_ref();
+        let build_windows_enso_install = TARGET_OS == OS::Windows;
         if TARGET_OS == OS::MacOS && CSC_KEY_PASSWORD.is_set() {
             // This means that we will be doing code signing on MacOS. This requires JDK environment
             // to be set up.
@@ -378,7 +380,7 @@ impl IdeDesktop {
         let client_build = self
             .npm()?
             .set_env(env::ENSO_BUILD_GUI, gui.as_ref())?
-            .set_env(env::ENSO_BUILD_IDE, output_path.as_ref())?
+            .set_env(env::ENSO_BUILD_IDE, output_path)?
             .try_applying(&pm_bundle)?
             .workspace(Workspaces::Enso)
             .run("build")
@@ -389,17 +391,20 @@ impl IdeDesktop {
         let icons_build = self.build_icons(&icons_dist);
         let icons = icons_build.await?;
 
-        let uninstaller_build = Cargo
-            .cmd()?
-            .current_dir(&self.repo_root)
-            .apply(&cargo::Command::Build)
-            .try_applying(&icons)?
-            .arg("--release")
-            .arg("--package")
-            .arg("enso-uninstaller")
-            .run_ok();
-
-        let (_uninstaller_build, _content) = try_join(uninstaller_build, client_build).await?;
+        if build_windows_enso_install {
+            let uninstaller_build = Cargo
+                .cmd()?
+                .current_dir(&self.repo_root)
+                .apply(&cargo::Command::Build)
+                .try_applying(&icons)?
+                .arg("--release")
+                .arg("--package")
+                .arg("enso-uninstaller")
+                .run_ok();
+            try_join(uninstaller_build, client_build).await?;
+        } else {
+            client_build.await?;
+        }
 
         let python_path = if TARGET_OS == OS::MacOS && !env::PYTHON_PATH.is_set() {
             // On macOS electron-builder will fail during DMG creation if there is no python2
@@ -428,7 +433,7 @@ impl IdeDesktop {
             .try_applying(&icons)?
             // .env("DEBUG", "electron-builder")
             .set_env(env::ENSO_BUILD_GUI, gui.as_ref())?
-            .set_env(env::ENSO_BUILD_IDE, output_path.as_ref())?
+            .set_env(env::ENSO_BUILD_IDE, output_path)?
             .set_env(env::ENSO_BUILD_PROJECT_MANAGER, project_manager.as_ref())?
             .set_env_opt(env::PYTHON_PATH, python_path.as_ref())?
             .workspace(Workspaces::Enso)
@@ -440,29 +445,36 @@ impl IdeDesktop {
             .run_ok()
             .await?;
 
-        let release_artifacts = self.repo_root.target.join_iter(["rust", "release"]);
-        let unpacked_dir = output_path.as_ref().join("win-unpacked");
-        ide_ci::fs::tokio::copy_to(release_artifacts.join("enso-uninstaller.exe"), &unpacked_dir)
+        if build_windows_enso_install {
+            let release_artifacts = self.repo_root.target.join_iter(["rust", "release"]);
+            let unpacked_dir = output_path.join("win-unpacked");
+            ide_ci::fs::tokio::copy_to(
+                release_artifacts.join("enso-uninstaller.exe"),
+                &unpacked_dir,
+            )
             .await?;
-
-        let archive_path = output_path.as_ref().join("enso-win.tar.gz");
-        ide_ci::archive::compress_directory_contents(&archive_path, &unpacked_dir).await?;
-
-        Cargo
-            .cmd()?
-            .current_dir(&self.repo_root)
-            .apply(&cargo::Command::Build)
-            .try_applying(&icons)?
-            .env("ENSO_INSTALL_ARCHIVE_PATH", &archive_path)
-            .arg("--release")
-            .arg("--package")
-            .arg("enso-installer")
-            .arg("-Z")
-            .arg("unstable-options")
-            .arg("--out-dir")
-            .arg(output_path.as_ref())
-            .run_ok()
-            .await?;
+            let archive_path = output_path.join("enso-win.tar.gz");
+            ide_ci::archive::compress_directory_contents(&archive_path, &unpacked_dir).await?;
+            Cargo
+                .cmd()?
+                .current_dir(&self.repo_root)
+                .apply(&cargo::Command::Build)
+                .try_applying(&icons)?
+                .env("ENSO_INSTALL_ARCHIVE_PATH", &archive_path)
+                .arg("--release")
+                .arg("--package")
+                .arg("enso-installer")
+                .arg("-Z")
+                .arg("unstable-options")
+                .arg("--out-dir")
+                .arg(output_path)
+                .run_ok()
+                .await?;
+            let installer_path = output_path.join("enso-installer.exe");
+            let out_dirname = output_path.try_file_name()?;
+            let artifact_name = format!("enso-{}-installer.exe", out_dirname.to_string_lossy());
+            ide_ci::actions::artifacts::upload_single_file(&installer_path, artifact_name).await?;
+        }
 
 
 
