@@ -52,7 +52,7 @@ const suggestionDb = useSuggestionDbStore()
 const interaction = provideInteractionHandler()
 
 function initStartupToast() {
-  const startupToast = toast.info('Initialising project, It can take up to one minute.', {
+  const startupToast = toast.info('Initializing the project. This can take up to one minute.', {
     autoClose: false,
   })
   projectStore.firstExecution.then(() => {
