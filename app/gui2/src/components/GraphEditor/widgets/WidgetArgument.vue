@@ -13,5 +13,5 @@ export const widgetDefinition = defineWidget(ArgumentAst, {
 </script>
 
 <template>
-  <NodeWidget :input="props.input.ast" :dynamicConfig="props.config" nest />
+  <NodeWidget :input="props.input.ast" nest />
 </template>

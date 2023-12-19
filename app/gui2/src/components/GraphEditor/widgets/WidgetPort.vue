@@ -157,7 +157,7 @@ export const widgetDefinition = defineWidget(
     }"
     @pointerenter="isHovered = true"
     @pointerleave="isHovered = false"
-    ><NodeWidget :input="innerWidget" :dynamicConfig="props.config"
+    ><NodeWidget :input="innerWidget"
   /></span>
 </template>
 

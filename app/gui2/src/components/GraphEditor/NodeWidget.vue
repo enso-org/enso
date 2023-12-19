@@ -14,7 +14,6 @@ import { computed, proxyRefs } from 'vue'
 const props = defineProps<{
   input: WidgetInput
   nest?: boolean
-  dynamicConfig?: Opt<WidgetConfiguration>
 }>()
 defineOptions({
   inheritAttrs: false,
@@ -41,7 +40,6 @@ const selectedWidget = computed(() => {
   return registry.select(
     {
       input: props.input,
-      config: props.dynamicConfig ?? undefined,
       nesting: nesting.value,
     },
     sameInputParentWidgets.value,
@@ -78,7 +76,6 @@ const spanStart = computed(() => {
     v-if="selectedWidget"
     ref="rootNode"
     :input="props.input"
-    :config="dynamicConfig"
     :nesting="nesting"
     :data-span-start="spanStart"
     :data-nesting="nesting"

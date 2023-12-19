@@ -1,4 +1,5 @@
 import type { ForcePort } from '@/providers/portInfo'
+import type { WidgetConfiguration } from '@/providers/widgetRegistry/configuration'
 import type { SuggestionEntry, SuggestionEntryArgument } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
 import { tryGetIndex } from '@/util/data/array'
@@ -9,24 +10,17 @@ export const enum ApplicationKind {
   Infix,
 }
 
-/**
- * Information about an argument that doesn't have an assigned value yet, therefore are not
- * represented in the AST.
- */
-export class ArgumentPlaceholder {
-  constructor(
-    public index: number,
-    public info: SuggestionEntryArgument,
-    public kind: ApplicationKind,
-  ) {}
+export interface Argument {
+  index: number
+  info: SuggestionEntryArgument
+  appKind: ApplicationKind
 }
 
-export class ArgumentAst {
+export class SoCalledExpression {
   constructor(
-    public ast: Ast.Ast,
-    public index: number | undefined,
-    public info: SuggestionEntryArgument | undefined,
-    public kind: ApplicationKind,
+    public ast: Ast.Ast | undefined,
+    public widgetConfig?: WidgetConfiguration | undefined,
+    public arg?: Argument | undefined,
   ) {}
 }
 
@@ -55,9 +49,9 @@ interface FoundApplication {
 export class ArgumentApplication {
   private constructor(
     public appTree: Ast.Ast | undefined,
-    public target: ArgumentApplication | Ast.Ast | ArgumentPlaceholder | ArgumentAst,
+    public target: ArgumentApplication | SoCalledExpression,
     public infixOperator: Ast.Token | undefined,
-    public argument: Ast.Ast | ArgumentAst | ArgumentPlaceholder,
+    public argument: SoCalledExpression,
   ) {}
 
   static Interpret(callRoot: Ast.Ast, allowInterpretAsInfix: boolean): InterpretedCall {
@@ -107,11 +101,12 @@ export class ArgumentApplication {
       const argFor = (key: 'lhs' | 'rhs', index: number) => {
         const tree = interpreted[key]
         const info = tryGetIndex(knownArguments, index) ?? unknownArgInfoNamed(key)
+        const argument = { index: 0, info, appKind: ApplicationKind.Infix }
         return tree != null
           ? isAccess
-            ? tree
-            : new ArgumentAst(tree, 0, info, ApplicationKind.Infix)
-          : new ArgumentPlaceholder(0, info, ApplicationKind.Infix)
+            ? new SoCalledExpression(undefined)
+            : new SoCalledExpression(tree, undefined, argument)
+          : new SoCalledExpression(undefined, undefined, argument)
       }
       return new ArgumentApplication(
         interpreted.appTree,
@@ -144,7 +139,7 @@ export class ArgumentApplication {
 
     const prefixArgsToDisplay: Array<{
       appTree: Ast.Ast
-      argument: ArgumentAst | ArgumentPlaceholder
+      argument: SoCalledExpression
     }> = []
 
     function insertPlaceholdersUpto(index: number, appTree: Ast.Ast) {
@@ -154,7 +149,11 @@ export class ArgumentApplication {
         if (argIndex != null && argInfo != null)
           prefixArgsToDisplay.push({
             appTree,
-            argument: new ArgumentPlaceholder(argIndex, argInfo, ApplicationKind.Prefix),
+            argument: new SoCalledExpression(undefined, undefined, {
+              index: argIndex,
+              info: argInfo,
+              appKind: ApplicationKind.Prefix,
+            }),
           })
       }
     }
@@ -163,15 +162,21 @@ export class ArgumentApplication {
       if (realArg.argName == null) {
         const argIndex = argumentsLeftToMatch.shift()
         if (argIndex != null) insertPlaceholdersUpto(argIndex, realArg.appTree)
+        const info = tryGetIndex(knownArguments, argIndex)
         prefixArgsToDisplay.push({
           appTree: realArg.appTree,
-          argument: new ArgumentAst(
+          argument: new SoCalledExpression(
             realArg.argument,
-            argIndex,
-            // If we have more arguments applied than we know about, display that argument anyway, but
-            // mark it as unknown.
-            tryGetIndex(knownArguments, argIndex),
-            ApplicationKind.Prefix,
+            undefined,
+            argIndex != null && info
+              ? {
+                  index: argIndex,
+                  info,
+                  appKind: ApplicationKind.Prefix,
+                }
+              : // If we have more arguments applied than we know about, display that argument anyway, but
+                // mark it as unknown.
+                undefined,
           ),
         })
       } else {
@@ -181,13 +186,19 @@ export class ArgumentApplication {
         const foundIdx = argumentsLeftToMatch.findIndex((i) => knownArguments?.[i]?.name === name)
         const argIndex = foundIdx === -1 ? undefined : argumentsLeftToMatch.splice(foundIdx, 1)[0]
         if (argIndex != null && foundIdx === 0) insertPlaceholdersUpto(argIndex, realArg.appTree)
+        const info = tryGetIndex(knownArguments, argIndex) ?? unknownArgInfoNamed(name)
         prefixArgsToDisplay.push({
           appTree: realArg.appTree,
-          argument: new ArgumentAst(
+          argument: new SoCalledExpression(
             realArg.argument,
-            argIndex,
-            tryGetIndex(knownArguments, argIndex) ?? unknownArgInfoNamed(name),
-            ApplicationKind.Prefix,
+            undefined,
+            argIndex != null && info
+              ? {
+                  index: argIndex,
+                  info,
+                  appKind: ApplicationKind.Prefix,
+                }
+              : undefined,
           ),
         })
       }
@@ -197,7 +208,12 @@ export class ArgumentApplication {
 
     return prefixArgsToDisplay.reduce(
       (target: ArgumentApplication | Ast.Ast, toDisplay) =>
-        new ArgumentApplication(toDisplay.appTree, target, undefined, toDisplay.argument),
+        new ArgumentApplication(
+          toDisplay.appTree,
+          target instanceof ArgumentApplication ? target : new SoCalledExpression(target),
+          undefined,
+          toDisplay.argument,
+        ),
       interpreted.func,
     )
   }
@@ -219,14 +235,12 @@ function isAccessOperator(opr: Ast.Token | undefined): boolean {
 }
 
 declare const ArgumentApplicationKey: unique symbol
-declare const ArgumentPlaceholderKey: unique symbol
 declare const ArgumentAstKey: unique symbol
 declare const ForcePortKey: unique symbol
 declare module '@/providers/widgetRegistry' {
   export interface WidgetInputTypes {
     [ArgumentApplicationKey]: ArgumentApplication
-    [ArgumentPlaceholderKey]: ArgumentPlaceholder
-    [ArgumentAstKey]: ArgumentAst
+    [ArgumentAstKey]: SoCalledExpression
     [ForcePortKey]: ForcePort
   }
 }

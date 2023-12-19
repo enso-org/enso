@@ -2,7 +2,7 @@
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import DropdownWidget from '@/components/widgets/DropdownWidget.vue'
 import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
-import type { Choice } from '@/providers/widgetRegistry/configuration'
+import { Configured, type Choice } from '@/providers/widgetRegistry/configuration'
 import { useGraphStore } from '@/stores/graph'
 import { ArgumentAst, ArgumentPlaceholder } from '@/util/callTree'
 import { qnJoin, qnSegments, tryQualifiedName } from '@/util/qualifiedName'
@@ -102,9 +102,10 @@ watch(selectedIndex, (_index) => {
 </script>
 
 <script lang="ts">
-export const widgetDefinition = defineWidget([ArgumentPlaceholder, ArgumentAst, VectorItem], {
+export const widgetDefinition = defineWidget([ArgumentPlaceholder, ArgumentAst, VectorItem, Configured], {
   priority: 999,
   score: (props) => {
+    if ()
     const input = props.input as ArgumentPlaceholder | ArgumentAst
     const tags = input.info?.tagValues
     if (tags == null && props.config?.kind !== 'Single_Choice') return Score.Mismatch

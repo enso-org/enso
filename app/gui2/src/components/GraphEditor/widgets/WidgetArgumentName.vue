@@ -35,7 +35,7 @@ export const widgetDefinition = defineWidget([ArgumentPlaceholder, ArgumentAst],
   <span class="WidgetArgumentName" :class="{ placeholder, primary }">
     <template v-if="showArgumentValue">
       <span class="value">{{ props.input.info!.name }}</span
-      ><NodeWidget :input="props.input" :dynamicConfig="props.config" />
+      ><NodeWidget :input="props.input" />
     </template>
     <template v-else>{{ props.input.info!.name }}</template>
   </span>

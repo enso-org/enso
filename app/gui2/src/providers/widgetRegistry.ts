@@ -59,7 +59,6 @@ export enum Score {
 
 export interface WidgetProps<T> {
   input: T
-  config?: WidgetConfiguration | undefined
   nesting: number
 }
 
@@ -75,7 +74,6 @@ export function widgetProps<T extends WidgetInput>(_def: WidgetDefinition<T>) {
       type: Object as PropType<T>,
       required: true,
     },
-    config: { type: Object as PropType<WidgetConfiguration | undefined>, required: false },
     nesting: { type: Number, required: true },
   } as const
 }

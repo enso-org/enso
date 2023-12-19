@@ -2,48 +2,48 @@
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import ListWidget from '@/components/widgets/ListWidget.vue'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
-import { ForcePort } from '@/providers/portInfo'
-import type { WidgetInput } from '@/providers/widgetRegistry'
 import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import type { WidgetConfiguration } from '@/providers/widgetRegistry/configuration'
 import { useGraphStore } from '@/stores/graph'
-import type { SuggestionEntryArgument } from '@/stores/suggestionDatabase/entry'
 import { Ast, RawAst } from '@/util/ast'
-import { ArgumentAst } from '@/util/callTree'
+import { SoCalledExpression } from '@/util/callTree'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
-const inputAst = computed(() =>
-  props.input instanceof ArgumentAst ? props.input.ast : props.input,
+
+interface ItemModel {
+  ast: Ast.Ast
+  config?: WidgetConfiguration | undefined
+}
+
+const itemConfig = computed(() =>
+  props.input.widgetConfig?.kind === 'Vector_Editor'
+    ? props.input.widgetConfig.item_editor
+    : undefined,
 )
-const argInfo = computed(() => (props.input instanceof ArgumentAst ? props.input.info : undefined))
 
-const itemConfiguration = computed(() => {
-  if (props.config?.kind === 'Vector_Editor') {
-    return props.config.item_editor
-  }
-  return undefined
-})
-
-const defaultConstructor = computed(() => {
-  const fallback = Ast.Wildcard.new
-  const config = props.config
+const defaultItem = computed(() => {
+  const config = props.input.widgetConfig
   if (config?.kind === 'Vector_Editor') {
-    return () => Ast.parse(config.item_default)
+    return Ast.parse(config.item_default)
   } else {
-    return fallback
+    return Ast.Wildcard.new()
   }
 })
 
 const graph = useGraphStore()
 const value = computed({
   get() {
-    return Array.from(inputAst.value.children()).filter(
+    if (props.input.ast == null) return []
+    return Array.from(props.input.ast.children()).filter(
       (child): child is Ast.Ast => child instanceof Ast.Ast,
     )
   },
   set(value) {
+    // TODO[ao]: Handle placeholders instead of returning.
+    if (!props.input.ast) return
     const newCode = `[${value.map((item) => item.code()).join(', ')}]`
-    graph.setExpressionContent(inputAst.value.astId, newCode)
+    graph.setExpressionContent(props.input.ast.astId, newCode)
   },
 })
 
@@ -51,49 +51,24 @@ const navigator = injectGraphNavigator(true)
 </script>
 
 <script lang="ts">
-function forcePort(item: WidgetInput) {
-  return item instanceof Ast.Ast ? new ForcePort(item) : item
-}
-
-export const widgetDefinition = defineWidget([Ast.Ast, ArgumentAst], {
+export const widgetDefinition = defineWidget(SoCalledExpression, {
   priority: 1000,
   score: (props) => {
-    if (props.config?.kind === 'Vector_Editor') return Score.Perfect
-    else {
-      const ast = props.input instanceof ArgumentAst ? props.input.ast : props.input
-      return ast.treeType === RawAst.Tree.Type.Array ? Score.Perfect : Score.Mismatch
-    }
+    if (props.input.widgetConfig?.kind === 'Vector_Editor') return Score.Perfect
+    else if (props.input.arg?.info.type === 'Standard.Base.Data.Vector') return Score.Good
+    else
+      return props.input.ast?.treeType === RawAst.Tree.Type.Array ? Score.Perfect : Score.Mismatch
   },
 })
-
-// === VectorItem ===
-
-export class VectorItem {
-  constructor(
-    public inner: WidgetInput,
-    public info: SuggestionEntryArgument | undefined,
-  ) {}
-}
-
-function makeItem(item: WidgetInput, info: SuggestionEntryArgument | undefined) {
-  return new VectorItem(forcePort(item), info)
-}
-
-declare const VectorItemKey: unique symbol
-declare module '@/providers/widgetRegistry' {
-  export interface WidgetInputTypes {
-    [VectorItemKey]: VectorItem
-  }
-}
 </script>
 
 <template>
   <ListWidget
     v-model="value"
-    :default="defaultConstructor"
-    :getKey="(item: Ast.Ast) => item.astId"
+    :default="() => defaultItem"
+    :getKey="(ast: Ast.Ast) => ast.astId"
     dragMimeType="application/x-enso-ast-node"
-    :toPlainText="(item: Ast.Ast) => item.code()"
+    :toPlainText="(ast: Ast.Ast) => ast.code()"
     :toDragPayload="(ast: Ast.Ast) => ast.serialize()"
     :fromDragPayload="Ast.deserialize"
     :toDragPosition="(p) => navigator?.clientToScenePos(p) ?? p"
@@ -101,7 +76,7 @@ declare module '@/providers/widgetRegistry' {
     contenteditable="false"
   >
     <template #default="{ item }">
-      <NodeWidget :input="makeItem(item, argInfo)" :dynamicConfig="itemConfiguration" />
+      <NodeWidget :input="new SoCalledExpression(item, itemConfig)" />
     </template>
   </ListWidget>
 </template>

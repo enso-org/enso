@@ -139,5 +139,5 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <NodeWidget :input="application" :dynamicConfig="widgetConfiguration" />
+  <NodeWidget :input="application" />
 </template>
