@@ -1,5 +1,3 @@
-import * as decoding from 'lib0/decoding'
-import * as encoding from 'lib0/encoding'
 import * as object from 'lib0/object'
 import * as random from 'lib0/random'
 import * as Y from 'yjs'
@@ -232,22 +230,6 @@ export class IdMap {
     }
     return true
   }
-}
-
-function encodeRange(range: RelativeRange): Uint8Array {
-  const encoder = encoding.createEncoder()
-  const start = range[0]
-  const end = range[1]
-  encoding.writeUint32(encoder, start)
-  encoding.writeUint32(encoder, end)
-  return encoding.toUint8Array(encoder)
-}
-
-export function decodeRange(buffer: Uint8Array): RelativeRange {
-  const decoder = decoding.createDecoder(buffer)
-  const start = decoding.readUint32(decoder)
-  const end = decoding.readUint32(decoder)
-  return [start, end]
 }
 
 const uuidRegex = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/

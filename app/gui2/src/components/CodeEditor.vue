@@ -21,7 +21,6 @@ const {
   minimalSetup,
   EditorState,
   EditorView,
-  yCollab,
   syntaxHighlighting,
   defaultHighlightStyle,
   tooltips,

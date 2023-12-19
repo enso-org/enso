@@ -278,11 +278,11 @@ export abstract class Ast {
       }
       if (child.node != null) {
         if (child.node instanceof Token) {
-          const token_start = offset + code.length
-          const token_code = child.node.code()
-          const span = tokenKey(token_start, token_code.length)
+          const tokenStart = offset + code.length
+          const tokenCode = child.node.code()
+          const span = tokenKey(tokenStart, tokenCode.length)
           info.tokens.set(span, child.node.astId)
-          code += token_code
+          code += tokenCode
         } else {
           code += module_
             .get(child.node)!
