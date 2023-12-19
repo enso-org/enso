@@ -144,7 +144,8 @@ type URI
         has_question_mark = if segment.contains "?" then [Illegal_Argument.Error "The requested path contained a '?' symbol which has been URL-encoded. If you want to modify the query, use the `add_query_argument` method instead."] else []
         has_hash = if segment.contains "#" then [Illegal_Argument.Error "The requested path contained a '#' symbol which has been URL-encoded. The `/` is not meant to be used to set a fragment for the URI."] else []
 
-        segments = segment.split "/"
+        segments = if segment == "" then ["", ""] else
+            segment.split "/"
         result = URI.Value (URITransformer.extendPath self.internal_uri segments) self.additional_query_parameters self.user_info_override
         Problem_Behavior.Report_Warning.attach_problems_before (has_question_mark+has_hash) result
 

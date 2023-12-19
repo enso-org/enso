@@ -238,10 +238,23 @@ spec =
             r = uri1.fetch
             r.at "path" . should_equal "/get/a b c/d+e/f%20g/ś🚧:@"
 
-            ext = "a [!who puts that into URI??!!] ; --- ### a:=b"
+            ext = "a [!who puts that//// into URI??!!] ; --- ### a:=b"
             uri3 = uri0 / ext
             r2 = uri3.fetch
             r2.at "path" . should_equal "/get/"+ext
+
+            uri4 = uri0 / "///0" / "a///b" / "c///"
+            uri4.path . should_equal "/get////0/a///b/c///"
+
+            uri5 = uri0 / "a" / ""
+            uri5.path . should_equal "/get/a//"
+            uri6 = uri5 / "b"
+            uri6.path . should_equal "/get/a//b"
+
+            uri7 = uri0 / "a" / "/"
+            uri7.path . should_equal "/get/a//"
+            uri8 = uri7 / "b"
+            uri8.path . should_equal "/get/a//b"
 
         Test.specify "should allow slashes within path" <|
             uri0 = URI.parse "https://example.com/"
