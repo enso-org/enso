@@ -1,6 +1,6 @@
 /** @file This module defines paths within the client distribution's resources. */
 
-import * as utils from '../../utils'
+import * as utils from 'utils'
 
 // ==========================
 // === Paths to resources ===

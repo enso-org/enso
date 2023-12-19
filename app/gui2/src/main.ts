@@ -2,7 +2,7 @@ import 'enso-dashboard/src/tailwind.css'
 
 const INITIAL_URL_KEY = `Enso-initial-url`
 
-import * as dashboard from 'enso-authentication'
+import * as dashboard from 'enso-dashboard'
 import { isMac } from 'lib0/environment'
 import { decodeQueryParams } from 'lib0/url'
 

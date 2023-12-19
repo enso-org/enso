@@ -1,12 +1,12 @@
 /** @file The mock API. */
 import type * as test from '@playwright/test'
 
-import * as backend from '../src/authentication/src/dashboard/backend'
-import * as config from '../src/authentication/src/config'
-import * as dateTime from '../src/authentication/src/dashboard/dateTime'
-import type * as remoteBackend from '../src/authentication/src/dashboard/remoteBackend'
-import * as remoteBackendPaths from '../src/authentication/src/dashboard/remoteBackendPaths'
-import * as uniqueString from '../src/authentication/src/uniqueString'
+import * as backend from '../src/util/backend'
+import * as config from '../src/util/config'
+import * as dateTime from '../src/util/dateTime'
+import type * as remoteBackend from '../src/util/remoteBackend'
+import * as remoteBackendPaths from '../src/util/remoteBackendPaths'
+import * as uniqueString from '../src/util/uniqueString'
 
 // =================
 // === Constants ===

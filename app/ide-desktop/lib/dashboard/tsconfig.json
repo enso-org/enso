@@ -4,6 +4,7 @@
   "compilerOptions": {
     "composite": true,
     "noEmit": false,
-    "outDir": "../../../../node_modules/.cache/tsc"
+    "outDir": "../../../../node_modules/.cache/tsc",
+    "paths": { "@/*": ["./src/*"] }
   }
 }

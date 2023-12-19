@@ -1,5 +1,8 @@
 /** @file Configuration for vite. */
+import * as url from 'node:url'
+
 import * as vite from 'vite'
+import vitePluginReact from '@vitejs/plugin-react'
 import vitePluginYaml from '@modyfi/vite-plugin-yaml'
 
 // =================
@@ -16,7 +19,12 @@ const SERVER_PORT = 8080
 
 export default vite.defineConfig({
     server: { port: SERVER_PORT },
-    plugins: [vitePluginYaml()],
+    plugins: [vitePluginReact({ include: '**/*.tsx' }), vitePluginYaml()],
+    resolve: {
+        alias: {
+            '@': url.fileURLToPath(new URL('./src', import.meta.url)),
+        },
+    },
     define: {
         IS_VITE: JSON.stringify(true),
         REDIRECT_OVERRIDE: JSON.stringify(`http://localhost:${SERVER_PORT}`),
