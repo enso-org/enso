@@ -215,7 +215,8 @@ export class DistributedModule {
   }
 }
 
-export type RelativeRange = [Y.RelativePosition, Y.RelativePosition]
+export type SourceRange = readonly [start: number, end: number]
+export type RelativeRange = [start: Y.RelativePosition, end: Y.RelativePosition]
 
 /**
  * Accessor for the ID map stored in shared yjs map as relative ranges. Synchronizes the ranges
@@ -260,45 +261,39 @@ export class IdMap {
     return new IdMap(map, text)
   }
 
-  public static keyForRange(range: readonly [number, number]): string {
+  public static keyForRange(range: SourceRange): string {
     return `${range[0].toString(16)}:${range[1].toString(16)}`
   }
 
-  public static rangeForKey(key: string): [number, number] {
+  public static rangeForKey(key: string): SourceRange {
     return key.split(':').map((x) => parseInt(x, 16)) as [number, number]
   }
 
-  private modelToIndices(rangeBuffer: Uint8Array): [number, number] | null {
-    const [relStart, relEnd] = decodeRange(rangeBuffer)
-    const start = Y.createAbsolutePositionFromRelativePosition(relStart, this.doc)
-    const end = Y.createAbsolutePositionFromRelativePosition(relEnd, this.doc)
-    if (start == null || end == null) return null
+  private modelToIndices(rangeBuffer: Uint8Array): SourceRange | null {
+    const [relativeStart, relativeEnd] = decodeRange(rangeBuffer)
+    const start = Y.createAbsolutePositionFromRelativePosition(relativeStart, this.doc)
+    const end = Y.createAbsolutePositionFromRelativePosition(relativeEnd, this.doc)
+    if (!start || !end) return null
     return [start.index, end.index]
   }
 
-  insertKnownId(range: [number, number], id: ExprId) {
-    if (this.finished) {
-      throw new Error('IdMap already finished')
-    }
-
+  insertKnownId(range: SourceRange, id: ExprId) {
+    if (this.finished) throw new Error('IdMap already finished')
     const key = IdMap.keyForRange(range)
     this.rangeToExpr.set(key, id)
     this.accessed.add(id)
   }
 
-  getIfExist(range: readonly [number, number]): ExprId | undefined {
+  getIfExist(range: SourceRange): ExprId | undefined {
     const key = IdMap.keyForRange(range)
     return this.rangeToExpr.get(key)
   }
 
-  getOrInsertUniqueId(range: readonly [number, number]): ExprId {
-    if (this.finished) {
-      throw new Error('IdMap already finished')
-    }
-
+  getOrInsertUniqueId(range: SourceRange): ExprId {
+    if (this.finished) throw new Error('IdMap already finished')
     const key = IdMap.keyForRange(range)
     const val = this.rangeToExpr.get(key)
-    if (val !== undefined) {
+    if (val) {
       this.accessed.add(val)
       return val
     } else {
@@ -313,8 +308,8 @@ export class IdMap {
     return this.accessed
   }
 
-  toRawRanges(): Record<string, [number, number]> {
-    const ranges: Record<string, [number, number]> = {}
+  toRawRanges(): Record<string, SourceRange> {
+    const ranges: Record<string, SourceRange> = {}
     for (const [key, expr] of this.rangeToExpr.entries()) {
       ranges[expr] = IdMap.rangeForKey(key)
     }
@@ -328,14 +323,9 @@ export class IdMap {
    * Can be called at most once. After calling this method, the ID map is no longer usable.
    */
   finishAndSynchronize(): typeof this.yMap {
-    if (this.finished) {
-      throw new Error('IdMap already finished')
-    }
+    if (this.finished) throw new Error('IdMap already finished')
     this.finished = true
-
-    const doc = this.doc
-
-    doc.transact(() => {
+    this.doc.transact(() => {
       this.yMap.forEach((_, expr) => {
         // Expressions that were accessed and present in the map are guaranteed to match. There is
         // no mechanism for modifying them, so we don't need to check for equality. We only need to
@@ -385,7 +375,7 @@ export function isUuid(x: unknown): x is Uuid {
 }
 
 /** A range represented as start and end indices. */
-export type ContentRange = [number, number]
+export type ContentRange = [start: number, end: number]
 
 export function rangeEquals(a: ContentRange, b: ContentRange): boolean {
   return a[0] == b[0] && a[1] == b[1]
@@ -402,59 +392,4 @@ export function rangeIntersects(a: ContentRange, b: ContentRange): boolean {
 /** Whether the given range is before the other range. */
 export function rangeIsBefore(a: ContentRange, b: ContentRange): boolean {
   return a[1] <= b[0]
-}
-
-if (import.meta.vitest) {
-  const { test, expect } = import.meta.vitest
-  type RangeTest = { a: ContentRange; b: ContentRange }
-
-  const equalRanges: RangeTest[] = [
-    { a: [0, 0], b: [0, 0] },
-    { a: [0, 1], b: [0, 1] },
-    { a: [-5, 5], b: [-5, 5] },
-  ]
-
-  const totalOverlap: RangeTest[] = [
-    { a: [0, 1], b: [0, 0] },
-    { a: [0, 2], b: [2, 2] },
-    { a: [-1, 1], b: [1, 1] },
-    { a: [0, 2], b: [0, 1] },
-    { a: [-10, 10], b: [-3, 7] },
-    { a: [0, 5], b: [1, 2] },
-    { a: [3, 5], b: [3, 4] },
-  ]
-
-  const reverseTotalOverlap: RangeTest[] = totalOverlap.map(({ a, b }) => ({ a: b, b: a }))
-
-  const noOverlap: RangeTest[] = [
-    { a: [0, 1], b: [2, 3] },
-    { a: [0, 1], b: [-1, -1] },
-    { a: [5, 6], b: [2, 3] },
-    { a: [0, 2], b: [-2, -1] },
-    { a: [-5, -3], b: [9, 10] },
-    { a: [-3, 2], b: [3, 4] },
-  ]
-
-  const partialOverlap: RangeTest[] = [
-    { a: [0, 3], b: [-1, 1] },
-    { a: [0, 1], b: [-1, 0] },
-    { a: [0, 0], b: [-1, 0] },
-    { a: [0, 2], b: [1, 4] },
-    { a: [-8, 0], b: [0, 10] },
-  ]
-
-  test.each([...equalRanges, ...totalOverlap])('Range $a should enclose $b', ({ a, b }) =>
-    expect(rangeEncloses(a, b)).toBe(true),
-  )
-  test.each([...noOverlap, ...partialOverlap, ...reverseTotalOverlap])(
-    'Range $a should not enclose $b',
-    ({ a, b }) => expect(rangeEncloses(a, b)).toBe(false),
-  )
-  test.each([...equalRanges, ...totalOverlap, ...reverseTotalOverlap, ...partialOverlap])(
-    'Range $a should intersect $b',
-    ({ a, b }) => expect(rangeIntersects(a, b)).toBe(true),
-  )
-  test.each([...noOverlap])('Range $a should not intersect $b', ({ a, b }) =>
-    expect(rangeIntersects(a, b)).toBe(false),
-  )
 }
