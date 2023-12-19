@@ -1,5 +1,0 @@
-from Standard.Base import all
-
-main =
-  vec = [1,2,3]
-  vec
