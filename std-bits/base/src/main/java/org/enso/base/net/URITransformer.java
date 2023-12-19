@@ -10,7 +10,8 @@ public class URITransformer {
 
   /** Removes query parameters from the given URI. */
   public static URI removeQueryParameters(URI uri) {
-    return buildUriFromParts(uri.getScheme(), uri.getRawAuthority(), uri.getRawPath(), null, uri.getRawFragment());
+    return buildUriFromParts(
+        uri.getScheme(), uri.getRawAuthority(), uri.getRawPath(), null, uri.getRawFragment());
   }
 
   /** Extends the path within a URI with a list of segments. */
@@ -33,11 +34,17 @@ public class URITransformer {
       newPath.append(encode(segments.get(i)));
     }
 
-    return buildUriFromParts(uri.getScheme(), uri.getRawAuthority(), newPath.toString(), uri.getRawQuery(), uri.getRawFragment());
+    return buildUriFromParts(
+        uri.getScheme(),
+        uri.getRawAuthority(),
+        newPath.toString(),
+        uri.getRawQuery(),
+        uri.getRawFragment());
   }
 
   /** Builds a URI from raw parts, allowing some of them to be missing. */
-  public static URI buildUriFromParts(String scheme, String authority, String path, String query, String fragment) {
+  public static URI buildUriFromParts(
+      String scheme, String authority, String path, String query, String fragment) {
     StringBuilder sb = new StringBuilder();
     if (scheme != null) {
       sb.append(scheme);
@@ -51,7 +58,8 @@ public class URITransformer {
     if (path != null && !path.isEmpty()) {
       sb.append(path);
     } else if (query != null || fragment != null) {
-      // If we had no path, but we do have a query or a fragment, we need to add a / to precede the ? or #.
+      // If we had no path, but we do have a query or a fragment, we need to add a / to precede the
+      // ? or #.
       sb.append("/");
     }
 

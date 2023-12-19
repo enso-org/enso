@@ -1,31 +1,29 @@
 package org.enso.base.net;
 
-import org.enso.base.enso_cloud.HideableValue;
-import org.graalvm.collections.Pair;
-
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
+import org.enso.base.enso_cloud.HideableValue;
+import org.graalvm.collections.Pair;
 
 /**
- * A structure representing a URI that contains parts which may need to be updated once data from secrets is resolved.
- * <p>
- * The query parameters and user info are stored separately, because they may contain secrets and will only be resolved to plain values within {@link org.enso.base.enso_cloud.EnsoSecretHelper}.
+ * A structure representing a URI that contains parts which may need to be updated once data from
+ * secrets is resolved.
+ *
+ * <p>The query parameters and user info are stored separately, because they may contain secrets and
+ * will only be resolved to plain values within {@link org.enso.base.enso_cloud.EnsoSecretHelper}.
  */
 public record URIWithSecrets(
-    URI baseUri,
-    List<Pair<String, HideableValue>> queryParameters,
-    UserInfoWithSecrets userInfo
-) {
+    URI baseUri, List<Pair<String, HideableValue>> queryParameters, UserInfoWithSecrets userInfo) {
 
-  /**
-   * Creates a schematic that does not disclose secret values and can be returned to the user.
-   */
+  /** Creates a schematic that does not disclose secret values and can be returned to the user. */
   public URISchematic makeSchematicForRender() {
-    List<Pair<String, String>> renderedParameters = queryParameters.stream()
-        .map(p -> Pair.create(p.getLeft(), p.getRight().render()))
-        .toList();
-    Pair<String, String> renderedUserInfo = userInfo == null ? null : Pair.create(userInfo.username().render(), userInfo.password().render());
+    List<Pair<String, String>> renderedParameters =
+        queryParameters.stream().map(p -> Pair.create(p.getLeft(), p.getRight().render())).toList();
+    Pair<String, String> renderedUserInfo =
+        userInfo == null
+            ? null
+            : Pair.create(userInfo.username().render(), userInfo.password().render());
     return new URISchematic(baseUri, renderedParameters, renderedUserInfo);
   }
 
@@ -38,7 +36,8 @@ public record URIWithSecrets(
   }
 
   /**
-   * Resolves to a proper URI if it does not contain any secrets. If there was a secret, it throws an exception.
+   * Resolves to a proper URI if it does not contain any secrets. If there was a secret, it throws
+   * an exception.
    */
   public URI safeResolve() {
     try {
@@ -49,10 +48,14 @@ public record URIWithSecrets(
   }
 
   private URISchematic makeSchematicForSafeResolve() {
-    List<Pair<String, String>> resolvedParameters = queryParameters.stream()
-        .map(p -> Pair.create(p.getLeft(), p.getRight().safeResolve()))
-        .toList();
-    Pair<String, String> resolvedUserInfo = userInfo == null ? null : Pair.create(userInfo.username().safeResolve(), userInfo.password().safeResolve());
+    List<Pair<String, String>> resolvedParameters =
+        queryParameters.stream()
+            .map(p -> Pair.create(p.getLeft(), p.getRight().safeResolve()))
+            .toList();
+    Pair<String, String> resolvedUserInfo =
+        userInfo == null
+            ? null
+            : Pair.create(userInfo.username().safeResolve(), userInfo.password().safeResolve());
     return new URISchematic(baseUri, resolvedParameters, resolvedUserInfo);
   }
 
@@ -61,7 +64,8 @@ public record URIWithSecrets(
   }
 
   private URI forAuthorityPart() {
-    // We can ignore secrets in the query part, because they are not used for resolving the authority.
+    // We can ignore secrets in the query part, because they are not used for resolving the
+    // authority.
     return new URIWithSecrets(baseUri, List.of(), userInfo).safeResolve();
   }
 
@@ -99,7 +103,8 @@ public record URIWithSecrets(
   }
 
   private URI forQueryPart() {
-    // We can ignore secrets in the authority part, because they are not used for resolving the query.
+    // We can ignore secrets in the authority part, because they are not used for resolving the
+    // query.
     return new URIWithSecrets(baseUri, queryParameters, null).safeResolve();
   }
 

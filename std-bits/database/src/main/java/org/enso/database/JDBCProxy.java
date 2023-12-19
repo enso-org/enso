@@ -1,13 +1,12 @@
 package org.enso.database;
 
-import org.enso.base.enso_cloud.EnsoSecretHelper;
-import org.enso.base.enso_cloud.HideableValue;
-import org.graalvm.collections.Pair;
-
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.ServiceLoader;
+import org.enso.base.enso_cloud.EnsoSecretHelper;
+import org.enso.base.enso_cloud.HideableValue;
+import org.graalvm.collections.Pair;
 
 /**
  * A helper class for accessing the JDBC components.

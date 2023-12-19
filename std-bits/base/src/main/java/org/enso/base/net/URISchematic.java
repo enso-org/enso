@@ -1,20 +1,21 @@
 package org.enso.base.net;
 
-import org.graalvm.collections.Pair;
-
 import java.net.IDN;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
+import org.graalvm.collections.Pair;
 
 /**
  * A raw schematic that may be used to build a URI.
- * <p>
- * It describes how a base URI gets overridden with added query parameters or other options like user-info.
- * <p>
- * This is the common entry point for building a URI with or without secrets.
+ *
+ * <p>It describes how a base URI gets overridden with added query parameters or other options like
+ * user-info.
+ *
+ * <p>This is the common entry point for building a URI with or without secrets.
  */
-public record URISchematic(URI baseUri, List<Pair<String, String>> queryParameters, Pair<String, String> userInfo) {
+public record URISchematic(
+    URI baseUri, List<Pair<String, String>> queryParameters, Pair<String, String> userInfo) {
   public URI build() throws URISyntaxException {
     StringBuilder authorityBuilder = new StringBuilder();
     if (userInfo != null) {
@@ -24,7 +25,11 @@ public record URISchematic(URI baseUri, List<Pair<String, String>> queryParamete
         throw new IllegalArgumentException("Username within an URI cannot contain ':'.");
       }
 
-      authorityBuilder.append(URITransformer.encode(username)).append(":").append(URITransformer.encode(password)).append("@");
+      authorityBuilder
+          .append(URITransformer.encode(username))
+          .append(":")
+          .append(URITransformer.encode(password))
+          .append("@");
     } else if (baseUri.getRawUserInfo() != null) {
       authorityBuilder.append(baseUri.getRawUserInfo()).append("@");
     }
@@ -37,7 +42,8 @@ public record URISchematic(URI baseUri, List<Pair<String, String>> queryParamete
     } else {
       boolean hasUserInfo = !authorityBuilder.isEmpty();
       if (hasUserInfo) {
-        throw new IllegalArgumentException("Cannot build an URI with user-info, but without authority.");
+        throw new IllegalArgumentException(
+            "Cannot build an URI with user-info, but without authority.");
       }
     }
 
@@ -46,8 +52,7 @@ public record URISchematic(URI baseUri, List<Pair<String, String>> queryParamete
         authorityBuilder.toString(),
         baseUri.getRawPath(),
         buildQueryPart(),
-        baseUri.getRawFragment()
-    );
+        baseUri.getRawFragment());
   }
 
   private String buildQueryPart() {
@@ -63,7 +68,10 @@ public record URISchematic(URI baseUri, List<Pair<String, String>> queryParamete
 
       String name = param.getLeft();
       String value = param.getRight();
-      queryBuilder.append(URITransformer.encodeForQuery(name)).append("=").append(URITransformer.encodeForQuery(value));
+      queryBuilder
+          .append(URITransformer.encodeForQuery(name))
+          .append("=")
+          .append(URITransformer.encodeForQuery(value));
     }
 
     if (queryBuilder.isEmpty()) {
