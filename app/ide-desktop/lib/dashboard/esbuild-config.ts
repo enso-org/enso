@@ -117,6 +117,9 @@ export function bundlerOptions(args: Arguments) {
             esbuildPluginYaml.yamlPlugin({}),
             esbuildPluginGenerateTailwind(),
         ],
+        alias: {
+            '@': './src',
+        },
         define: {
             // We are defining constants, so it should be `CONSTANT_CASE`.
             /* eslint-disable @typescript-eslint/naming-convention */

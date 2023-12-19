@@ -24,14 +24,13 @@ const OPTS = bundler.bundlerOptions({ outputPath: '/', devMode: process.env.DEV_
 OPTS.define['REDIRECT_OVERRIDE'] = JSON.stringify(`http://localhost:${PORT}`)
 OPTS.entryPoints.push(
     path.resolve(THIS_PATH, 'src', 'index.html'),
-    path.resolve(THIS_PATH, 'src', 'index.ts'),
+    path.resolve(THIS_PATH, 'src', 'entrypoint.ts'),
     path.resolve(THIS_PATH, 'src', 'serviceWorker.ts')
 )
 OPTS.minify = false
 OPTS.write = false
 OPTS.loader['.html'] = 'copy'
 OPTS.pure.splice(OPTS.pure.indexOf('assert'), 1)
-;(OPTS.inject = OPTS.inject ?? []).push(path.resolve(THIS_PATH, '..', '..', 'debugGlobals.ts'))
 const REQUIRE = module.default.createRequire(import.meta.url)
 OPTS.plugins.push({
     name: 'react-dom-profiling',

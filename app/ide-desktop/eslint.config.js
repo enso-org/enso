@@ -516,10 +516,6 @@ export default [
                     property: 'useDebugCallback',
                     message: 'Avoid leaving debugging statements when committing code',
                 },
-                {
-                    property: '$d$',
-                    message: 'Avoid leaving debugging statements when committing code',
-                },
             ],
         },
     },
@@ -557,10 +553,6 @@ export default [
                 {
                     object: 'hooks',
                     property: 'useDebugCallback',
-                    message: 'Avoid leaving debugging statements when committing code',
-                },
-                {
-                    property: '$d$',
                     message: 'Avoid leaving debugging statements when committing code',
                 },
                 {

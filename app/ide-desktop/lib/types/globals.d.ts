@@ -67,13 +67,6 @@ declare global {
         authenticationApi: AuthenticationApi
     }
 
-    // Documentation is already inherited.
-    /** */
-    interface Object {
-        /** Log self and return self. Only available in development mode. */
-        $d$: <T>(this: T, message?: string) => T
-    }
-
     namespace NodeJS {
         /** Environment variables. */
         interface ProcessEnv {
