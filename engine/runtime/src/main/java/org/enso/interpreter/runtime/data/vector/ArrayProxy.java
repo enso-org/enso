@@ -11,10 +11,13 @@ import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.error.Warning;
+import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 /**
@@ -25,6 +28,7 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
  */
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
+@ExportLibrary(WarningsLibrary.class)
 @ImportStatic(BranchProfile.class)
 final class ArrayProxy implements EnsoObject {
   private final long length;
@@ -113,5 +117,30 @@ final class ArrayProxy implements EnsoObject {
   @ExportMessage
   Type getType(@CachedLibrary("this") TypesLibrary thisLib, @Cached("1") int ignore) {
     return EnsoContext.get(thisLib).getBuiltins().array();
+  }
+
+  @ExportMessage
+  Warning[] getElementWarnings(
+    Node location,
+    long index,
+    @Cached("create()") BranchProfile arrayIndexHasHappened,
+    @CachedLibrary(limit = "3") InteropLibrary interop,
+    /* @Cached.Shared(value = "warnsLib") */ @CachedLibrary(limit = "3") WarningsLibrary warnings)
+      throws InvalidArrayIndexException, UnsupportedMessageException {
+    try {
+          System.out.println("AAA gew call ap");
+      if (index >= length || index < 0) {
+        arrayIndexHasHappened.enter();
+        throw InvalidArrayIndexException.create(index);
+      }
+      Object item = interop.execute(at, index);
+      if (warnings.hasWarnings(item)) {
+        return warnings.getWarnings(item, location);
+      } else {
+        return new Warning[0];
+      }
+    } catch (UnsupportedTypeException | ArityException e) {
+      throw UnsupportedMessageException.create(e);
+    }
   }
 }

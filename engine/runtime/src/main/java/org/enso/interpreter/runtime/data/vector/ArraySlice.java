@@ -163,6 +163,7 @@ final class ArraySlice implements EnsoObject {
       long index,
       @Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings)
         throws InvalidArrayIndexException, UnsupportedMessageException {
+          System.out.println("AAA gew call as");
     return warnings.getElementWarnings(this.storage, location, index);
   }
 

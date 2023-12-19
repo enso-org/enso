@@ -153,6 +153,7 @@ public final class Warning implements EnsoObject {
 
   private static Warning[] getAllElementWarnings(Object value, WarningsLibrary warnings, InteropLibrary interop) {
     EconomicSet<Warning> warningsSet = EconomicSet.create(new WithWarnings.WarningEquivalence());
+      System.out.println("AAA " + value);
     var ctx = EnsoContext.get(warnings);
 
     try {
@@ -174,6 +175,7 @@ public final class Warning implements EnsoObject {
     } catch (InvalidArrayIndexException e) {
       throw ctx.raiseAssertionPanic(warnings, null, e);
     } catch (UnsupportedMessageException e) {
+      System.out.println("AAA ume " + e + " " + value);
       throw ctx.raiseAssertionPanic(warnings, null, e);
     }
   }

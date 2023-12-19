@@ -185,6 +185,7 @@ public final class WithWarnings implements EnsoObject {
 
   @ExportMessage Warning[] getElementWarnings(Node location, long index)
       throws InvalidArrayIndexException, UnsupportedMessageException {
+          System.out.println("AAA gew call ww");
     return new Warning[0];
   }
 
