@@ -167,19 +167,13 @@ export class LanguageServer extends ObservableV2<Notifications> {
   }
 
   /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#textopenfile) */
-  async openTextFile(path: Path): Promise<response.OpenTextFile> {
-    console.log('opening', path)
-    const res = await this.request<response.OpenTextFile>('text/openFile', { path })
-    console.log('opened', path)
-    return res
+  openTextFile(path: Path): Promise<response.OpenTextFile> {
+    return this.request<response.OpenTextFile>('text/openFile', { path })
   }
 
   /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#textclosefile) */
-  async closeTextFile(path: Path): Promise<void> {
-    console.log('closing', path)
-    await this.request('text/closeFile', { path })
-    console.log('closed', path)
-    return
+  closeTextFile(path: Path): Promise<void> {
+    return this.request('text/closeFile', { path })
   }
 
   /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#textsave) */

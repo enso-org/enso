@@ -143,7 +143,7 @@ export class GraphDb {
         const targetNode = db.getExpressionNodeId(usage)
         // Display only connections to existing targets and different than source node
         if (targetNode == null || targetNode === srcNode) continue
-        yield [alias, usage as string as PortId]
+        yield [alias, usage]
       }
     }
     return Array.from(allTargets(this))

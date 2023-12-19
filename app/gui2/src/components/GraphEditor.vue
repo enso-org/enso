@@ -498,12 +498,8 @@ function handleEdgeDrop(source: ExprId, position: Vec2) {
         @nodeDoubleClick="(id) => stackNavigator.enterNode(id)"
       />
     </div>
-    <svg
-      :viewBox="graphNavigator.viewBox"
-      class="svgBackdropLayer"
-      @createNodeFromEdge="handleEdgeDrop"
-    >
-      <GraphEdges />
+    <svg :viewBox="graphNavigator.viewBox" class="svgBackdropLayer">
+      <GraphEdges @createNodeFromEdge="handleEdgeDrop" />
     </svg>
 
     <ComponentBrowser
