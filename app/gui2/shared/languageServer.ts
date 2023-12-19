@@ -132,14 +132,14 @@ export class LanguageServer extends ObservableV2<Notifications> {
         console.dir(params)
       }
       return await this.client.request({ method, params }, RPC_TIMEOUT_MS)
-    } catch (e) {
-      const remoteError = RemoteRpcErrorSchema.safeParse(e)
+    } catch (error) {
+      const remoteError = RemoteRpcErrorSchema.safeParse(error)
       if (remoteError.success) {
         throw new LsRpcError(new RemoteRpcError(remoteError.data), method, params)
-      } else if (e instanceof Error) {
-        throw new LsRpcError(e, method, params)
+      } else if (error instanceof Error) {
+        throw new LsRpcError(error, method, params)
       }
-      throw e
+      throw error
     } finally {
       if (DEBUG_LOG_RPC) {
         console.log(`LS [${uuid}] ${method} took ${performance.now() - now}ms`)
@@ -402,27 +402,29 @@ export class LanguageServer extends ObservableV2<Notifications> {
     retry: <T>(cb: () => Promise<T>) => Promise<T> = (f) => f(),
   ) {
     let running = true
-    ;(async () => {
-      this.on('file/event', callback)
-      walkFs(this, { rootId, segments }, (type, path) => {
-        if (
-          !running ||
-          type !== 'File' ||
-          path.segments.length < segments.length ||
-          segments.some((seg, i) => seg !== path.segments[i])
-        )
-          return
-        callback({
-          path: { rootId: path.rootId, segments: path.segments.slice(segments.length) },
-          kind: 'Added',
+    const self = this
+    return {
+      promise: (async () => {
+        self.on('file/event', callback)
+        await retry(async () => running && self.acquireReceivesTreeUpdates({ rootId, segments }))
+        await walkFs(self, { rootId, segments }, (type, path) => {
+          if (
+            !running ||
+            type !== 'File' ||
+            path.segments.length < segments.length ||
+            segments.some((segment, i) => segment !== path.segments[i])
+          )
+            return
+          callback({
+            path: { rootId: path.rootId, segments: path.segments.slice(segments.length) },
+            kind: 'Added',
+          })
         })
-      })
-      await retry(() => this.acquireReceivesTreeUpdates({ rootId, segments }))
-      if (!running) return
-    })()
-    return () => {
-      running = false
-      this.off('file/event', callback)
+      })(),
+      unsubscribe() {
+        running = false
+        self.off('file/event', callback)
+      },
     }
   }
 
