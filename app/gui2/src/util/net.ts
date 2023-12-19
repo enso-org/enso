@@ -40,12 +40,12 @@ export async function exponentialBackoff<T, E>(
   backoffOptions?: BackoffOptions<E>,
 ): Promise<Result<T, E>> {
   const options = { ...defaultBackoffOptions, ...backoffOptions }
-  for (let retries = 0; ; retries += 1) {
+  for (
+    let retries = 0, delay = options.retryDelay;
+    ;
+    retries += 1, delay = Math.min(options.retryDelayMax, delay * options.retryDelayMultiplier)
+  ) {
     const result = await f()
-    const delay = Math.min(
-      options.retryDelayMax,
-      options.retryDelay * options.retryDelayMultiplier ** retries,
-    )
     if (
       result.ok ||
       retries >= options.maxRetries ||

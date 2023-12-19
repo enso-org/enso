@@ -42,7 +42,6 @@ import org.graalvm.polyglot.io.IOAccess;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class DebuggingEnsoTest {
@@ -58,7 +57,7 @@ public class DebuggingEnsoTest {
             .option(
                 RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
                 Paths.get("../../distribution/component").toFile().getAbsolutePath())
-            .option(RuntimeOptions.LOG_LEVEL, Level.FINEST.getName())
+            .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
             .logHandler(System.err)
             .build();
 
@@ -504,9 +503,7 @@ public class DebuggingEnsoTest {
             bar 42       # 6
             end = 0      # 7
         """);
-    // Steps into line 2 - declaration of the method, which is fine.
-    // (5, 6, 7) would be better.
-    List<Integer> expectedLineNumbers = List.of(5, 6, 2, 7);
+    List<Integer> expectedLineNumbers = List.of(5, 6, 7);
     Queue<SuspendedCallback> steps = createStepOverEvents(expectedLineNumbers.size());
     testStepping(src, "foo", new Object[] {0}, steps, expectedLineNumbers);
   }
@@ -514,12 +511,7 @@ public class DebuggingEnsoTest {
   /**
    * Use some methods from Vector in stdlib. Stepping over methods from different modules might be
    * problematic.
-   *
-   * <p>TODO[pm] This test is ignored, because the current behavior of step over is that it first
-   * steps into the declaration (name) of the method that is being stepped over and then steps back.
-   * So there would be weird line numbers from std lib.
    */
-  @Ignore
   @Test
   public void testSteppingOverUseStdLib() {
     Source src =
@@ -562,7 +554,7 @@ public class DebuggingEnsoTest {
             bar 42      # 4
             end = 0     # 5
         """);
-    List<Integer> expectedLineNumbers = List.of(3, 4, 2, 1, 5);
+    List<Integer> expectedLineNumbers = List.of(3, 4, 2, 1, 2, 4, 5);
     Queue<SuspendedCallback> steps =
         new ArrayDeque<>(
             Collections.nCopies(expectedLineNumbers.size(), (event) -> event.prepareStepInto(1)));
@@ -581,7 +573,7 @@ public class DebuggingEnsoTest {
             bar (baz x)  # 4
             end = 0      # 5
         """);
-    List<Integer> expectedLineNumbers = List.of(3, 4, 1, 2, 5);
+    List<Integer> expectedLineNumbers = List.of(3, 4, 1, 4, 2, 4, 5);
     Queue<SuspendedCallback> steps =
         new ArrayDeque<>(
             Collections.nCopies(expectedLineNumbers.size(), (event) -> event.prepareStepInto(1)));
