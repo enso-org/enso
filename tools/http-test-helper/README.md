@@ -1,7 +1,8 @@
 # HTTP Test Helper
 
-A simple HTTP Request/Response clone of [httpbin](http://httpbin.org) for testing purposes,
-extended with additional functionality allowing for testing Enso Cloud features.
+A simple HTTP Request/Response clone of [httpbin](http://httpbin.org) for
+testing purposes, extended with additional functionality allowing for testing
+Enso Cloud features.
 
 ## Usage
 
