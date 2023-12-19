@@ -45,7 +45,7 @@ spec setup =
 
             lookup2 = table_builder [["is_X", [True, False]], ["X", ["Yes", "No"]]]
             my_table2 = table_builder [["A", [1, 2, 3, 4]], ["is_X", [True, True, False, True]]]
-            t3 = my_table2.merge lookup2 key_columns="is_X"
+            t3 = my_table2.merge lookup2 key_columns="is_X" add_new_columns=True
             t3.column_names . should_equal ["A", "is_X", "X"]
             m3 = t3 |> materialize |> _.order_by "A"
             m3.at "A" . to_vector . should_equal [1, 2, 3, 4]
@@ -98,7 +98,7 @@ spec setup =
             lookup = table_builder [["X", [1, 2]], ["Y", ["A", "B"]], ["W", [1.5, 2.0]]]
             my_table = table_builder [["X", [1, 2, 3, 2]], ["Y", ["Z", "ZZ", "ZZZ", "ZZZZ"]], ["Z", [10, 20, 30, 40]]]
 
-            t2 = my_table.merge lookup key_columns=["X"] allow_unmatched_rows=True
+            t2 = my_table.merge lookup key_columns=["X"] allow_unmatched_rows=True add_new_columns=True
             t2.column_names . should_equal ["X", "Y", "Z", "W"]
             m2 = t2 |> materialize |> _.order_by "Z"
             m2.at "Z" . to_vector . should_equal [10, 20, 30, 40]
@@ -110,7 +110,7 @@ spec setup =
             lookup = table_builder [["X", [1, 2]], ["Y", ["A", "B"]]]
             my_table = table_builder [["X", [1, 2, 3, 2]], ["Y", ["Z", "ZZ", "ZZZ", "ZZZZ"]], ["Z", [10, 20, 30, 40]]]
 
-            r2 = my_table.merge lookup key_columns=["X"] allow_unmatched_rows=False
+            r2 = my_table.merge lookup key_columns=["X"] allow_unmatched_rows=False add_new_columns=True
             r2.should_fail_with Unmatched_Rows_In_Lookup
             r2.catch.to_display_text . should_contain "failed to find a corresponding row in the lookup table"
             r2.catch.to_display_text . should_contain "[3]"
@@ -118,7 +118,7 @@ spec setup =
             # But lookup table containing other keys that are not present in source is NOT a problem.
             lookup2 = table_builder [["X", [1, 2, 3]], ["Y", ["A", "B", "C"]]]
             my_table2 = table_builder [["X", [1, 2, 1, 1]], ["Y", ["Z", "ZZ", "ZZZ", "ZZZZ"]], ["Z", [10, 20, 30, 40]]]
-            t3 = my_table2.merge lookup2 key_columns=["X"]
+            t3 = my_table2.merge lookup2 key_columns=["X"] add_new_columns=True
             m3 = t3 |> materialize |> _.order_by "Z"
             m3.at "X" . to_vector . should_equal [1, 2, 1, 1]
             m3.at "Y" . to_vector . should_equal ["A", "B", "A", "A"]
@@ -205,7 +205,7 @@ spec setup =
                 table_prepared = if allow_unmatched_rows then table else
                     # If we don't allow unmatched rows, we filter the input to only contain the matching row - this test is not about matching, but about the types.
                     table.filter "key1" (Filter_Condition.Equal to=0)
-                t2 = table_prepared.merge lookup key_columns=["key1", "key2"] allow_unmatched_rows=allow_unmatched_rows
+                t2 = table_prepared.merge lookup key_columns=["key1", "key2"] allow_unmatched_rows=allow_unmatched_rows add_new_columns=True
                 t2.column_names . should_equal ["key1", "key2", "X", "Y", "Z", "W", "A", "B", "C", "D", "X2", "Y2", "Z2", "W2"]
 
                 t2.at "key1" . value_type . should_be_a (Value_Type.Integer ...)
@@ -239,7 +239,7 @@ spec setup =
             lookup2.at "A" . value_type . should_equal (Value_Type.Char size=4 variable_length=False)
 
             [True, False].each allow_unmatched_rows->
-                t3 = table2.merge lookup2 key_columns=["key"] allow_unmatched_rows=allow_unmatched_rows
+                t3 = table2.merge lookup2 key_columns=["key"] allow_unmatched_rows=allow_unmatched_rows add_new_columns=True
                 t3.column_names . should_equal ["key", "X", "A", "X2"]
 
                 # The key column keeps its original type
@@ -296,27 +296,27 @@ spec setup =
         Test.specify "will fail if key columns of the lookup table contain Nothing" <|
             lookup1 = table_builder [["X", [1, 2, Nothing]], ["Y", ["A", "B", "C"]]]
             my_table1 = table_builder [["X", [2, 3, 2, 3]], ["Z", [10, 20, 30, 40]]]
-            r1 = my_table1.merge lookup1 key_columns="X"
+            r1 = my_table1.merge lookup1 key_columns="X" add_new_columns=True
             r1.should_fail_with Null_Values_In_Key_Columns
 
             # But NULLs in source table key are OK
             lookup2 = table_builder [["X", [1, 2]], ["Y", ["A", "B"]]]
             my_table2 = table_builder [["X", [2, 3, Nothing, 3]], ["Z", [10, 20, 30, 40]]]
-            t2 = my_table2.merge lookup2 key_columns="X" allow_unmatched_rows=True
+            t2 = my_table2.merge lookup2 key_columns="X" allow_unmatched_rows=True add_new_columns=True
             m2 = t2 |> materialize |> _.order_by "Z"
             m2.at "X" . to_vector . should_equal [2, 3, Nothing, 3]
             m2.at "Y" . to_vector . should_equal ["B", Nothing, Nothing, Nothing]
             m2.at "Z" . to_vector . should_equal [10, 20, 30, 40]
 
             # But NULLs in source are ok, but mean such rows will never match:
-            r3 = my_table2.merge lookup2 key_columns="X" allow_unmatched_rows=False
+            r3 = my_table2.merge lookup2 key_columns="X" allow_unmatched_rows=False add_new_columns=True
             r3.should_fail_with Unmatched_Rows_In_Lookup
 
         Test.specify "will not allow providing no key_columns" <|
             lookup = table_builder [["X", [1, 2]], ["Y", ["A", "B"]]]
             my_table = table_builder [["X", [2, 1]], ["Z", [10, 20]]]
 
-            r2 = my_table.merge lookup key_columns=[]
+            r2 = my_table.merge lookup key_columns=[] add_new_columns=True
             r2.should_fail_with Illegal_Argument
 
         if setup.is_database.not then Test.specify "(in-memory only) will preserve the order of rows from the original table" <|
