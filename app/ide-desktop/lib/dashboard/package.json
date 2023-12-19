@@ -27,6 +27,7 @@
   },
   "devDependencies": {
     "@esbuild-plugins/node-modules-polyfill": "^0.2.2",
+    "@fast-check/vitest": "^0.0.8",
     "@modyfi/vite-plugin-yaml": "^1.0.4",
     "@playwright/experimental-ct-react": "^1.40.0",
     "@playwright/test": "^1.40.0",
@@ -44,6 +45,7 @@
     "eslint": "^8.49.0",
     "eslint-plugin-jsdoc": "^46.8.1",
     "eslint-plugin-react": "^7.32.1",
+    "fast-check": "^3.15.0",
     "playwright": "^1.38.0",
     "postcss": "^8.4.29",
     "react-toastify": "^9.1.3",

@@ -65,11 +65,26 @@ v.test.each([
             }
         )
     )
+    const eventString =
+        (event.ctrlKey ? 'Ctrl+' : '') +
+        (event.shiftKey ? 'Shift+' : '') +
+        (event.altKey ? 'Alt+' : '') +
+        (event.metaKey ? 'Cmd+' : '') +
+        event.key
     if (action != null) {
-        v.expect(registry.handleKeyboardEvent(event)).toBe(true)
-        v.expect(matchedAction).toBeCalledWith(action)
+        v.expect(
+            registry.handleKeyboardEvent(event),
+            `'${eventString}' should match a keyboard action`
+        ).toBe(true)
+        v.expect(
+            matchedAction,
+            `'${eventString}' should match the keyboard action '${action}'`
+        ).toBeCalledWith(action)
     } else {
-        v.expect(registry.handleKeyboardEvent(event)).toBe(false)
+        v.expect(
+            registry.handleKeyboardEvent(event),
+            `'${eventString}' should not match any keyboard action`
+        ).toBe(false)
     }
 })
 
