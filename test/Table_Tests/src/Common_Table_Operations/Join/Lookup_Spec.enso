@@ -190,7 +190,7 @@ spec setup =
             lookup = table_builder [["X", [1, 2]], ["Y", ["A", "B"]]]
             my_table = table_builder [["X", [1, 2, 2, 2, 1]], ["Z", [10, 20, 20, 20, 50]]]
 
-            t2 = my_table.merge lookup key_columns=["X"]
+            t2 = my_table.merge lookup key_columns=["X"] add_new_columns=True
             t2.column_names . should_equal ["X", "Z", "Y"]
             m2 = t2 |> materialize |> _.order_by "Z"
             m2.at "X" . to_vector . should_equal [1, 2, 2, 2, 1]
@@ -325,7 +325,7 @@ spec setup =
             ys = xs.map x-> x%2
             my_table = table_builder [["X", xs], ["Y", ys]]
 
-            t2 = my_table.merge lookup key_columns="Y"
+            t2 = my_table.merge lookup key_columns="Y" add_new_columns=True
             t2.column_names . should_equal ["X", "Y", "V"]
 
             t2.at "X" . to_vector . should_equal xs
