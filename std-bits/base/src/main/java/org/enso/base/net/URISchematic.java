@@ -5,8 +5,6 @@ import org.graalvm.collections.Pair;
 import java.net.IDN;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 /**
@@ -18,9 +16,7 @@ import java.util.List;
  */
 public record URISchematic(URI baseUri, List<Pair<String, String>> queryParameters, Pair<String, String> userInfo) {
   public URI build() throws URISyntaxException {
-    StringBuilder uriBuilder = new StringBuilder();
-    uriBuilder.append(baseUri.getScheme()).append("://");
-
+    StringBuilder authorityBuilder = new StringBuilder();
     if (userInfo != null) {
       var username = userInfo.getLeft();
       var password = userInfo.getRight();
@@ -28,40 +24,30 @@ public record URISchematic(URI baseUri, List<Pair<String, String>> queryParamete
         throw new IllegalArgumentException("Username within an URI cannot contain ':'.");
       }
 
-      uriBuilder.append(encode(username)).append(":").append(encode(password)).append("@");
+      authorityBuilder.append(URITransformer.encode(username)).append(":").append(URITransformer.encode(password)).append("@");
     } else if (baseUri.getRawUserInfo() != null) {
-      uriBuilder.append(baseUri.getRawUserInfo()).append("@");
+      authorityBuilder.append(baseUri.getRawUserInfo()).append("@");
     }
 
     String rawAuthority = baseUri.getRawAuthority();
-    if (rawAuthority == null) {
-      throw new IllegalArgumentException("URI must have an authority.");
+    if (rawAuthority != null) {
+      int atLocation = rawAuthority.indexOf('@');
+      String hostAndPort = atLocation < 0 ? rawAuthority : rawAuthority.substring(atLocation + 1);
+      authorityBuilder.append(IDN.toASCII(hostAndPort));
+    } else {
+      boolean hasUserInfo = !authorityBuilder.isEmpty();
+      if (hasUserInfo) {
+        throw new IllegalArgumentException("Cannot build an URI with user-info, but without authority.");
+      }
     }
 
-    int atLocation = rawAuthority.indexOf('@');
-    String hostAndPort = atLocation < 0 ? rawAuthority : rawAuthority.substring(atLocation + 1);
-    uriBuilder.append(IDN.toASCII(hostAndPort));
-
-    String path = baseUri.getRawPath();
-    String queryPart = buildQueryPart();
-    String fragment = baseUri.getRawFragment();
-
-    if (path != null && !path.isEmpty()) {
-      uriBuilder.append(path);
-    } else if (queryPart != null || fragment != null) {
-      // If we had no path, but we do have a query or a fragment, we need to add a / to precede the ? or #.
-      uriBuilder.append("/");
-    }
-
-    if (queryPart != null) {
-      uriBuilder.append("?").append(queryPart);
-    }
-
-    if (fragment != null) {
-      uriBuilder.append("#").append(fragment);
-    }
-
-    return new URI(uriBuilder.toString());
+    return URITransformer.buildUriFromParts(
+        baseUri.getScheme(),
+        authorityBuilder.toString(),
+        baseUri.getRawPath(),
+        buildQueryPart(),
+        baseUri.getRawFragment()
+    );
   }
 
   private String buildQueryPart() {
@@ -77,7 +63,7 @@ public record URISchematic(URI baseUri, List<Pair<String, String>> queryParamete
 
       String name = param.getLeft();
       String value = param.getRight();
-      queryBuilder.append(encode(name)).append("=").append(encode(value));
+      queryBuilder.append(URITransformer.encodeForQuery(name)).append("=").append(URITransformer.encodeForQuery(value));
     }
 
     if (queryBuilder.isEmpty()) {
@@ -85,9 +71,5 @@ public record URISchematic(URI baseUri, List<Pair<String, String>> queryParamete
     } else {
       return queryBuilder.toString();
     }
-  }
-
-  private static String encode(String value) {
-    return URLEncoder.encode(value, StandardCharsets.UTF_8);
   }
 }
