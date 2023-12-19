@@ -1,0 +1,29 @@
+from Standard.Base import all
+
+from project.Util import all
+
+import Standard.Table.Internal.Fan_Out
+from Standard.Table import Table
+
+import Standard.Test.Extensions
+from Standard.Test import Test, Test_Suite, Problems
+
+spec =
+    Test.group "Fan_Out" <|
+        Test.specify "can do fan_out_to_columns " <|
+            cols = [["foo", [0, 1, 2]], ["bar", ["abc", "cbdbef", "ghbijbu"]]]
+            t = Table.new cols
+            expected_rows = [[0, "a", "c", Nothing], [1, "c", "d", "ef"], [2, "gh", "ij", "u"]]
+            expected = Table.from_rows ["foo", "bar 1", "bar 2", "bar 3"] expected_rows
+            t2 = Fan_Out.fan_out_to_columns t "bar" (_.split "b")
+            t2.should_equal expected
+
+        Test.specify "can do fan_out_to_rows" <|
+            cols = [["foo", [0, 1, 2]], ["bar", ["abc", "cbdbef", "ghbijbu"]]]
+            t = Table.new cols
+            expected_rows = [[0, "a"], [0, "c"], [1, "c"], [1, "d"], [1, "ef"], [2, "gh"], [2, "ij"], [2, "u"]]
+            expected = Table.from_rows ["foo", "bar"] expected_rows
+            t2 = Fan_Out.fan_out_to_rows t "bar" (_.split "b")
+            t2.should_equal expected
+
+main = Test_Suite.run_main spec

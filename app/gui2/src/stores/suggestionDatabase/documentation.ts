@@ -1,14 +1,15 @@
 import type { Group } from '@/stores/suggestionDatabase'
-import { findIndexOpt } from '@/util/array'
+import { findIndexOpt } from '@/util/data/array'
+import { isSome, type Opt } from '@/util/data/opt'
+import { unwrap } from '@/util/data/result'
 import { parseDocs, type Doc } from '@/util/docParser'
-import { isSome, type Opt } from '@/util/opt'
+import type { Icon } from '@/util/iconName'
 import { tryQualifiedName, type QualifiedName } from '@/util/qualifiedName'
-import { unwrap } from '@/util/result'
 
 export interface DocumentationData {
   documentation: Doc.Section[]
   aliases: string[]
-  iconName?: string
+  iconName?: Icon
   groupIndex?: number
   isPrivate: boolean
   isUnstable: boolean
@@ -50,7 +51,7 @@ export function documentationData(
   const parsed = documentation != null ? parseDocs(documentation) : []
   const groupName = tagValue(parsed, 'Group')
   const groupIndex = groupName ? getGroupIndex(groupName, definedIn, groups) : null
-  const iconName = tagValue(parsed, 'Icon')
+  const iconName = tagValue(parsed, 'Icon') as Opt<Icon>
 
   return {
     documentation: parsed,

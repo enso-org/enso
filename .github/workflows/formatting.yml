@@ -8,9 +8,9 @@ on:
 
 env:
   # Please ensure that this is in sync with graalVersion in build.sbt
-  javaVersion: 17.0.7
+  javaVersion: 21.0.1
   # Please ensure that this is in sync with project/build.properties
-  sbtVersion: 1.9.0
+  sbtVersion: 1.9.7
 
 jobs:
   test_formatting:

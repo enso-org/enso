@@ -3,6 +3,7 @@ package org.enso.tools.enso4igv;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
@@ -17,6 +18,7 @@ import org.netbeans.spi.project.SubprojectProvider;
 import org.netbeans.spi.project.ui.LogicalViewProvider;
 import org.netbeans.spi.project.ui.support.CommonProjectActions;
 import org.openide.filesystems.FileObject;
+import org.openide.filesystems.FileUtil;
 import org.openide.loaders.DataObject;
 import org.openide.loaders.DataObjectNotFoundException;
 import org.openide.nodes.AbstractNode;
@@ -77,8 +79,7 @@ final class EnsoRootProject implements Project {
     @Override
     public Set<? extends Project> getSubprojects() {
       var found = new TreeSet<Project>(this);
-      searchForProjects(getProjectDirectory(), found, 3);
-      System.err.println("subprojects: " + found);
+      searchForProjects(getProjectDirectory(), found, 4);
       return found;
     }
 
@@ -123,16 +124,41 @@ final class EnsoRootProject implements Project {
     }
     
     private final class Factory extends ChildFactory<FileObject>  {
+      private final String[] prepend;
+      private final FileObject under;
+
+      Factory(FileObject under, String... prepend) {
+        this.prepend = prepend;
+        this.under = under;
+      }
+        
       @Override
       protected boolean createKeys(List<FileObject> list) {
-        list.add(getProjectDirectory().getFileObject("README.md"));
-        list.add(getProjectDirectory().getFileObject("build.sbt"));
+        for (String fileName : prepend) {
+          FileObject file = under.getFileObject(fileName);
+          if (file != null) {
+            list.add(file);
+          }
+        }
+        Set<FileObject> alreadyAdded = new HashSet<>();
         for (var p : getSubprojects()) {
-          list.add(p.getProjectDirectory());
+          if (under == p.getProjectDirectory()) {
+            continue;
+          }
+          if (FileUtil.isParentOf(under, p.getProjectDirectory())) {
+            FileObject fo = p.getProjectDirectory();
+            while (!fo.getParent().equals(under)) {
+              fo = fo.getParent();
+            }
+            if (alreadyAdded.add(fo)) {
+              list.add(fo);
+            }
+          }
         }
         return true;
       }
 
+      @Override
       protected Node createNodeForKey(FileObject key) {
         try {
           try {
@@ -142,7 +168,14 @@ final class EnsoRootProject implements Project {
             }
           } catch (IOException | IllegalArgumentException ex) {
           }
-          return DataObject.find(key).getNodeDelegate();
+          if (key.isFolder()) {
+            Factory f = new Factory(key);
+            ContainerNode node = new ContainerNode(Children.create(f, true), getLookup());
+            node.setName(key.getNameExt());
+            return node;
+          } else {
+            return DataObject.find(key).getNodeDelegate();
+          }
         } catch (DataObjectNotFoundException ex) {
           return null;
         }
@@ -150,22 +183,13 @@ final class EnsoRootProject implements Project {
     }
 
   }
-
-  private static final class MainNode extends AbstractNode {
-
-    private final EnsoRootProject project;
-
-    private MainNode(EnsoRootProject p) {
-      super(Children.create(p.getLookup().lookup(Subprojects.class).new Factory(), true), Lookups.fixed(p));
-      this.project = p;
-      setDisplayName();
+  
+  private static class ContainerNode extends AbstractNode {
+    ContainerNode(Children ch, Lookup l) {
+      super(ch, l);
       setIconBaseWithExtension("org/enso/tools/enso4igv/enso.svg");
     }
-
-    private void setDisplayName() {
-      setDisplayName(ProjectUtils.getInformation(project).getDisplayName());
-    }
-
+      
     @Override
     public String getHtmlDisplayName() {
       return null;
@@ -174,6 +198,17 @@ final class EnsoRootProject implements Project {
     @Override
     public Action[] getActions(boolean context) {
       return CommonProjectActions.forType("ensosbtprj"); // NOI18N
+    }
+  }
+
+  private static final class MainNode extends ContainerNode {
+    private final EnsoRootProject project;
+
+    private MainNode(EnsoRootProject p) {
+      super(Children.create(p.getLookup().lookup(Subprojects.class).new Factory(p.getProjectDirectory(), "README.md", "build.sbt"), true), Lookups.fixed(p));
+      this.project = p;
+      setName(p.getProjectDirectory().getNameExt());
+      setDisplayName(ProjectUtils.getInformation(project).getDisplayName());
     }
   }
 }

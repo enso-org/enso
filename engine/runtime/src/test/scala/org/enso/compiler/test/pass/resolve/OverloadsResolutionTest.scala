@@ -96,16 +96,22 @@ class OverloadsResolutionTest extends CompilerTest {
     }
 
     "raise an error if there are multiple definitions with the same source type" in {
-      val ir =
+      val sourceCode =
         """Unit.from (that : Integer) = undefined
           |Unit.from (that : Boolean) = undefined
           |Unit.from (that : Boolean) = undefined
-          |""".stripMargin.preprocessModule.resolve
+          |""".stripMargin
+      val ir = sourceCode.preprocessModule.resolve
 
       ir.bindings.length shouldEqual 3
       ir.bindings.head shouldBe a[definition.Method.Conversion]
       ir.bindings(1) shouldBe a[definition.Method.Conversion]
       ir.bindings(2) shouldBe an[errors.Redefined.Conversion]
+
+      val errLoc = ir.bindings(2).location().get
+      val code   = sourceCode.substring(errLoc.start, errLoc.end)
+      // The code should be the whole line, but without ending newlines.
+      code shouldEqual "Unit.from (that : Boolean) = undefined"
     }
   }
 

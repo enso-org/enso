@@ -7,6 +7,8 @@ import org.enso.languageserver.runtime.{
   VisualizationExpression
 }
 
+import java.util.UUID
+
 object ExecutionContextJsonMessages {
 
   def localCall(expressionId: Api.ExpressionId) =
@@ -109,67 +111,23 @@ object ExecutionContextJsonMessages {
 
   def executionContextExecuteExpressionRequest(
     reqId: Int,
+    executionContextId: UUID,
     visualizationId: Api.VisualizationId,
     expressionId: Api.ExpressionId,
-    configuration: VisualizationConfiguration
+    expression: String
   ) =
-    configuration.expression match {
-      case VisualizationExpression.Text(module, expression) =>
-        json"""
-              { "jsonrpc": "2.0",
-                "method": "executionContext/executeExpression",
-                "id": $reqId,
-                "params": {
-                  "visualizationId": $visualizationId,
-                  "expressionId": $expressionId,
-                  "visualizationConfig": {
-                    "executionContextId": ${configuration.executionContextId},
-                    "visualizationModule": $module,
-                    "expression": $expression
-                  }
-                }
-              }
-              """
-      case VisualizationExpression.ModuleMethod(methodPointer, Vector()) =>
-        json"""
-          { "jsonrpc": "2.0",
-            "method": "executionContext/executeExpression",
-            "id": $reqId,
-            "params": {
-              "visualizationId": $visualizationId,
-              "expressionId": $expressionId,
-              "visualizationConfig": {
-                "executionContextId": ${configuration.executionContextId},
-                "expression": {
-                  "module": ${methodPointer.module},
-                  "definedOnType": ${methodPointer.definedOnType},
-                  "name": ${methodPointer.name}
-                }
-              }
-            }
-          }
-          """
-      case VisualizationExpression.ModuleMethod(methodPointer, arguments) =>
-        json"""
-          { "jsonrpc": "2.0",
-            "method": "executionContext/executeExpression",
-            "id": $reqId,
-            "params": {
-              "visualizationId": $visualizationId,
-              "expressionId": $expressionId,
-              "visualizationConfig": {
-                "executionContextId": ${configuration.executionContextId},
-                "expression": {
-                  "module": ${methodPointer.module},
-                  "definedOnType": ${methodPointer.definedOnType},
-                  "name": ${methodPointer.name}
-                },
-                "positionalArgumentsExpressions": $arguments
-              }
-            }
-          }
-          """
-    }
+    json"""
+      { "jsonrpc": "2.0",
+        "method": "executionContext/executeExpression",
+        "id": $reqId,
+        "params": {
+          "executionContextId": $executionContextId,
+          "visualizationId": $visualizationId,
+          "expressionId": $expressionId,
+          "expression": $expression
+        }
+      }
+      """
 
   def executionContextAttachVisualizationRequest(
     reqId: Int,

@@ -158,19 +158,24 @@ object TestMessages {
     * @param contextId an identifier of the context
     * @param expressionId an identifier of the expression
     * @param payload the error payload
+    * @param fromCache whether or not the value for this expression came
+    * from the cache
+    * @param typeChanged a flag indicating whether the the type of expression has changed
     * @return the expression update response
     */
   def error(
     contextId: UUID,
     expressionId: UUID,
-    payload: Api.ExpressionUpdate.Payload
+    payload: Api.ExpressionUpdate.Payload,
+    fromCache: Boolean   = false,
+    typeChanged: Boolean = true
   ): Api.Response =
     errorBuilder(
       contextId,
       expressionId,
       None,
-      false,
-      true,
+      fromCache,
+      typeChanged,
       payload
     )
 

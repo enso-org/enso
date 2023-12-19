@@ -88,9 +88,7 @@ class ExecuteJob(
         Level.FINEST,
         s"Kept context lock [ExecuteJob] for ${contextId} for ${System.currentTimeMillis() - acquiredLock} milliseconds"
       )
-
     }
-    StartBackgroundProcessingJob.startBackgroundJobs()
   }
 
   override def toString(): String = {

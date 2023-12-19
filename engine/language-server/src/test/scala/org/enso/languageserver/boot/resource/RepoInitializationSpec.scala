@@ -8,7 +8,7 @@ import org.enso.languageserver.data._
 import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.filemanager.{ContentRoot, ContentRootWithFile}
 import org.enso.searcher.sql.{SchemaVersion, SqlDatabase, SqlSuggestionsRepo}
-import org.enso.testkit.FlakySpec
+import org.enso.testkit.{FlakySpec, ToScalaFutureConversions}
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -16,6 +16,7 @@ import org.sqlite.SQLiteException
 
 import java.nio.file.{Files, StandardOpenOption}
 import java.util.UUID
+
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
@@ -25,6 +26,7 @@ class RepoInitializationSpec
     with AnyWordSpecLike
     with Matchers
     with BeforeAndAfterAll
+    with ToScalaFutureConversions
     with FlakySpec {
 
   import system.dispatcher
@@ -43,6 +45,7 @@ class RepoInitializationSpec
 
         val component =
           new RepoInitialization(
+            system.dispatcher,
             config.directories,
             system.eventStream,
             sqlDatabase,
@@ -68,6 +71,7 @@ class RepoInitializationSpec
         val testSchemaVersion = Long.MaxValue
         val component =
           new RepoInitialization(
+            system.dispatcher,
             config.directories,
             system.eventStream,
             sqlDatabase,
@@ -96,6 +100,7 @@ class RepoInitializationSpec
 
         val component =
           new RepoInitialization(
+            system.dispatcher,
             config.directories,
             system.eventStream,
             sqlDatabase,
@@ -132,6 +137,7 @@ class RepoInitializationSpec
         withRepos(config) { (sqlDatabase, suggestionsRepo) =>
           val component =
             new RepoInitialization(
+              system.dispatcher,
               config.directories,
               system.eventStream,
               sqlDatabase,
@@ -168,6 +174,7 @@ class RepoInitializationSpec
         withRepos(config) { (sqlDatabase, suggestionsRepo) =>
           val component =
             new RepoInitialization(
+              system.dispatcher,
               config.directories,
               system.eventStream,
               sqlDatabase,

@@ -1,10 +1,12 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
-from Standard.Table import all hiding Table
+from Standard.Table import all
 from Standard.Table.Errors import all
 
-from Standard.Database.Errors import Unsupported_Database_Operation
+from Standard.Database import all
+from Standard.Database.Errors import Unsupported_Database_Operation, Integrity_Error
 
 from Standard.Test import Test, Problems
 import Standard.Test.Extensions
@@ -236,3 +238,12 @@ spec setup =
                 padded.at "times" . value_type . should_equal Value_Type.Time
                 padded.at "datetimes" . value_type . should_equal Value_Type.Date_Time
                 padded.at "mixed" . value_type . should_equal Value_Type.Mixed
+
+        Test.specify "should gracefully handle tables from different backends" <|
+            t1 = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
+
+            alternative_connection = Database.connect (SQLite In_Memory)
+            t0 = (Table.new [["W", [1, 2, 4]]]).select_into_database_table alternative_connection "T0" temporary=True
+
+            r1 = t1.zip t0
+            r1.should_fail_with Illegal_Argument

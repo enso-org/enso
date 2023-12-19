@@ -82,22 +82,25 @@ final class Handler {
   val endpoint       = new Endpoint(this)
   val contextManager = new ExecutionContextManager
 
-  var executionService: ExecutionService = _
-  var truffleContext: TruffleContext     = _
-  var commandProcessor: CommandProcessor = _
+  private case class HandlersContext(
+    executionService: ExecutionService,
+    sequentialExecutionService: ExecutionService,
+    truffleContext: TruffleContext,
+    commandProcessor: CommandProcessor
+  )
+
+  @volatile private var ctx: HandlersContext = _
 
   /** Initializes the handler with relevant Truffle objects, allowing it to
     * perform code execution.
     *
-    * @param service the language execution service instance.
-    * @param context the current Truffle context.
+    * @param executionService the language execution service instance.
+    * @param truffleContext the current Truffle context.
     */
   def initializeExecutionService(
-    service: ExecutionService,
-    context: TruffleContext
+    executionService: ExecutionService,
+    truffleContext: TruffleContext
   ): Unit = {
-    executionService = service
-    truffleContext   = context
     val interpreterCtx =
       InterpreterContext(
         executionService,
@@ -105,7 +108,13 @@ final class Handler {
         endpoint,
         truffleContext
       )
-    commandProcessor = new CommandExecutionEngine(interpreterCtx)
+    val commandProcessor = new CommandExecutionEngine(interpreterCtx)
+    ctx = HandlersContext(
+      executionService,
+      executionService,
+      truffleContext,
+      commandProcessor
+    )
     executionService.initializeLanguageServerConnection(endpoint)
     endpoint.sendToClient(Api.Response(Api.InitializedNotification()))
   }
@@ -114,17 +123,26 @@ final class Handler {
     *
     * @param request the message to handle.
     */
-  def onMessage(request: Api.Request): Unit = request match {
-    case Api.Request(requestId, Api.ShutDownRuntimeServer()) =>
-      if (commandProcessor ne null) {
-        commandProcessor.stop()
-      }
-      endpoint.sendToClient(
-        Api.Response(requestId, Api.RuntimeServerShutDown())
-      )
+  def onMessage(request: Api.Request): Unit = {
+    val localCtx = ctx
+    request match {
+      case Api.Request(requestId, Api.ShutDownRuntimeServer()) =>
+        if (localCtx != null) {
+          localCtx.commandProcessor.stop()
+        }
+        endpoint.sendToClient(
+          Api.Response(requestId, Api.RuntimeServerShutDown())
+        )
 
-    case request: Api.Request =>
-      val cmd = CommandFactory.createCommand(request)
-      commandProcessor.invoke(cmd)
+      case request: Api.Request =>
+        if (localCtx != null) {
+          val cmd = CommandFactory.createCommand(request)
+          localCtx.commandProcessor.invoke(cmd)
+        } else {
+          throw new IllegalStateException(
+            "received a request to handle with interpreter context not being initialized"
+          )
+        }
+    }
   }
 }

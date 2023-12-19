@@ -23,7 +23,8 @@ object Unreachable {
         ""
       }
 
-    override def message: String = s"Unreachable case branches$atLocation."
+    override def message(source: (IdentifiedLocation => String)): String =
+      s"Unreachable case branches$atLocation."
 
     override def diagnosticKeys(): Array[Any] = Array(atLocation)
   }

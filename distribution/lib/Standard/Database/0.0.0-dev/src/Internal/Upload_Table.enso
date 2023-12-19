@@ -1,9 +1,11 @@
 from Standard.Base import all
+import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Errors.Common.Dry_Run_Operation
 import Standard.Base.Errors.Common.Forbidden_Operation
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Context
+from Standard.Base.Runtime import assert
 
 import Standard.Table.Data.Table.Table as In_Memory_Table
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
@@ -72,12 +74,25 @@ internal_create_table_structure connection table_name structure primary_key temp
 ## PRIVATE
    A helper that can upload a table from any backend to a database.
    It should be run within a transaction and wrapped in `handle_upload_errors`.
-internal_upload_table source_table connection table_name primary_key temporary on_problems=Problem_Behavior.Report_Error row_limit=Nothing =
+
+   Arguments:
+   - source_table: the table to be uploaded.
+     If it's a `Database_Table`, the query will be materialized as a new table.
+     If it's an `In_Memory_Table`, the data will be uploaded to the newly created table.
+   - connection: the connection to the database.
+   - table_name: the name of the table to be created.
+   - primary_key: the primary key of the table to be created. Can be `Nothing` to set no key.
+   - temporary: if `True`, the table will be created as temporary.
+   - structure_hint: If set, it can be used to hint what types should be used for the columns of the table. Useful if the types slightly differ from the in-memory source types.
+   - on_problems: the behavior to be used when reporting problems.
+   - row_limit: if set, only the first `row_limit` rows will be uploaded.
+internal_upload_table : Database_Table | In_Memory_Table -> Connection -> Text -> Nothing | Vector Text -> Boolean -> Vector Column_Description ->  Problem_Behavior -> Integer|Nothing -> Database_Table
+internal_upload_table source_table connection table_name primary_key temporary structure_hint=Nothing on_problems=Problem_Behavior.Report_Error row_limit=Nothing =
     case source_table of
         _ : In_Memory_Table ->
-            internal_upload_in_memory_table source_table connection table_name primary_key temporary on_problems row_limit
+            internal_upload_in_memory_table source_table connection table_name primary_key temporary structure_hint on_problems row_limit
         _ : Database_Table ->
-            internal_upload_database_table source_table connection table_name primary_key temporary on_problems row_limit
+            internal_upload_database_table source_table connection table_name primary_key temporary structure_hint on_problems row_limit
         _ ->
             Panic.throw <| Illegal_Argument.Error ("Unsupported table type: " + Meta.get_qualified_type_name source_table)
 
@@ -110,9 +125,11 @@ select_into_table_implementation source_table connection table_name primary_key 
 
 ## PRIVATE
    It should be run within a transaction and wrapped in `handle_upload_errors`.
-internal_upload_in_memory_table source_table connection table_name primary_key temporary on_problems row_limit =
+internal_upload_in_memory_table source_table connection table_name primary_key temporary structure_hint on_problems row_limit =
     In_Transaction.ensure_in_transaction <|
-        created_table_name = internal_create_table_structure connection table_name structure=source_table primary_key=primary_key temporary=temporary on_problems=on_problems
+        verify_structure_hint structure_hint source_table.column_names
+        structure = structure_hint.if_nothing source_table
+        created_table_name = internal_create_table_structure connection table_name structure=structure primary_key=primary_key temporary=temporary on_problems=on_problems
         column_names = source_table.column_names
 
         ## `created_table_name.if_not_error` is used to ensure that if there are
@@ -124,21 +141,24 @@ internal_upload_in_memory_table source_table connection table_name primary_key t
                 insert_template = make_batched_insert_template connection created_table_name column_names
                 statement_setter = connection.dialect.get_statement_setter
                 Panic.rethrow <|
-                    connection.jdbc_connection.batch_insert insert_template statement_setter source_table batch_size=default_batch_size row_limit=row_limit
+                    expected_type_hints = align_structure connection structure . map .value_type
+                    connection.jdbc_connection.batch_insert insert_template statement_setter source_table batch_size=default_batch_size expected_type_hints=expected_type_hints row_limit=row_limit
 
         upload_status.if_not_error <|
             connection.query (SQL_Query.Table_Name created_table_name)
 
 ## PRIVATE
    It should be run within a transaction and wrapped in `handle_upload_errors`.
-internal_upload_database_table source_table connection table_name primary_key temporary on_problems row_limit =
+internal_upload_database_table source_table connection table_name primary_key temporary structure_hint on_problems row_limit =
     In_Transaction.ensure_in_transaction <|
         connection_check = if source_table.connection.jdbc_connection == connection.jdbc_connection then True else
             Error.throw (Unsupported_Database_Operation.Error "The Database table to be uploaded must be coming from the same connection as the connection on which the new table is being created. Cross-connection uploads are currently not supported. To work around this, you can first `.read` the table into memory and then upload it from memory to a different connection.")
 
+        verify_structure_hint structure_hint source_table.column_names
+        structure = structure_hint.if_nothing source_table
         connection_check.if_not_error <|
             # Warning: in some DBs, calling a DDL query in a transaction may commit it. We may have to have some special handling for this.
-            created_table_name = internal_create_table_structure connection table_name structure=source_table primary_key=primary_key temporary=temporary on_problems=on_problems
+            created_table_name = internal_create_table_structure connection table_name structure=structure primary_key=primary_key temporary=temporary on_problems=on_problems
             upload_status = created_table_name.if_not_error <|
                 internal_translate_known_upload_errors source_table connection primary_key <|
                     effective_source_table = case row_limit of
@@ -156,12 +176,19 @@ internal_upload_database_table source_table connection table_name primary_key te
                 connection.query (SQL_Query.Table_Name created_table_name)
 
 ## PRIVATE
+verify_structure_hint structure_hint column_names =
+    if structure_hint.is_nothing.not then
+        column_names.zip structure_hint expected_name-> column_description->
+            if column_description.name != expected_name then
+                Panic.throw (Illegal_State.Error ("The provided structure hint does not match the column names of the source table. Expected: "+column_names.to_display_text+", got: "+(structure_hint.map .name . to_display_text)+". This is a bug in the Database library."))
+
+## PRIVATE
    Ensures that provided primary key columns are present in the table and that
    there are no duplicates.
 resolve_primary_key structure primary_key = case primary_key of
     Nothing -> Nothing
     _ : Vector -> if primary_key.is_empty then Nothing else
-        validated = primary_key.map key->
+        validated = primary_key.map on_problems=No_Wrap.Value key->
             if key.is_a Text then key else
                 Error.throw (Illegal_Argument.Error ("Primary key must be a vector of column names, instead got a " + (Meta.type_of key . to_display_text)))
         validated.if_not_error <|
@@ -203,7 +230,7 @@ type Non_Unique_Key_Recipe
 raise_duplicated_primary_key_error source_table primary_key original_panic =
     agg = source_table.aggregate [Aggregate_Column.Count]+(primary_key.map Aggregate_Column.Group_By)
     filtered = agg.filter column=0 (Filter_Condition.Greater than=1)
-    materialized = filtered.read max_rows=1
+    materialized = filtered.read max_rows=1 warn_if_more_rows=False
     case materialized.row_count == 0 of
         ## If we couldn't find a duplicated key, we give up the translation and
            rethrow the original panic containing the SQL error. This could
@@ -276,7 +303,7 @@ first_column_name_in_structure structure = case structure of
 prepare_create_table_statement : Connection -> Text -> Vector Column_Description -> Vector Text -> Boolean -> Problem_Behavior -> SQL_Statement
 prepare_create_table_statement connection table_name columns primary_key temporary on_problems =
     type_mapping = connection.dialect.get_type_mapping
-    column_descriptors = columns.map def->
+    column_descriptors = columns.map on_problems=No_Wrap.Value def->
         sql_type = type_mapping.value_type_to_sql def.value_type on_problems
         sql_type_text = type_mapping.sql_type_to_text sql_type
         Create_Column_Descriptor.Value def.name sql_type_text def.constraints
@@ -309,7 +336,9 @@ common_update_table (source_table : Database_Table | In_Memory_Table) (target_ta
                     dry_run = Context.Output.is_enabled.not
                     row_limit = if dry_run then dry_run_row_limit else Nothing
                     check_for_null_keys_if_any_keys_set source_table effective_key_columns <| Context.Output.with_enabled <|
-                        tmp_table = internal_upload_table source_table connection tmp_table_name primary_key=effective_key_columns temporary=True on_problems=Problem_Behavior.Report_Error row_limit=row_limit
+                        structure_hint = target_table.select_columns source_table.column_names reorder=True . columns . map c->
+                            Column_Description.Value c.name c.value_type
+                        tmp_table = internal_upload_table source_table connection tmp_table_name primary_key=effective_key_columns structure_hint=structure_hint temporary=True on_problems=Problem_Behavior.Report_Error row_limit=row_limit
                         tmp_table.if_not_error <|
                             resulting_table = append_to_existing_table tmp_table target_table update_action effective_key_columns dry_run=dry_run
                             ## We don't need to drop the table if append panics, because
@@ -412,7 +441,7 @@ type Append_Helper
 
     ## PRIVATE
     check_rows_unmatched_in_target self ~continuation =
-        # assert key_columns.not_empty
+        assert self.key_columns.not_empty
         unmatched_rows = self.new_source_rows
         count = unmatched_rows.row_count
         if count != 0 then Error.throw (Unmatched_Rows.Error count) else continuation
@@ -440,7 +469,7 @@ check_update_arguments_structure_match source_table target_table key_columns upd
         source_type = source_column.value_type
         target_type = target_column.value_type
         if source_type == target_type then [] else
-            if source_type.can_be_widened_to target_type then [Inexact_Type_Coercion.Warning source_type target_type] else
+            if source_type.can_be_widened_to target_type then [Inexact_Type_Coercion.Warning source_type target_type unavailable=False] else
                 Error.throw (Column_Type_Mismatch.Error source_column.name target_type source_type)
 
     source_columns = Set.from_vector source_table.column_names
@@ -456,7 +485,7 @@ check_update_arguments_structure_match source_table target_table key_columns upd
                 if missing_target_key_columns.not_empty then Error.throw (Missing_Input_Columns.Error missing_target_key_columns.to_vector "the target table") else
                     if (update_action != Update_Action.Insert) && key_columns.is_empty then Error.throw (Illegal_Argument.Error "For the `update_action = "+update_action.to_text+"`, the `key_columns` must be specified to define how to match the records.") else
                         # Verify type matching
-                        problems = source_table.columns.flat_map check_source_column
+                        problems = source_table.columns.flat_map on_problems=No_Wrap.Value check_source_column
                         problems.if_not_error <|
                             on_problems.attach_problems_before problems action
 
@@ -544,7 +573,7 @@ prepare_source_table_for_delete_matching (key_values_to_delete : Database_Table 
                     Delete_Rows_Source.Value prepared_table Nothing
                 _ : In_Memory_Table ->
                     tmp_table_name = connection.base_connection.table_naming_helper.generate_random_table_name "enso-temp-keys-table-"
-                    uploaded_table = internal_upload_in_memory_table prepared_table connection tmp_table_name primary_key=key_columns temporary=True on_problems=Problem_Behavior.Report_Error row_limit=dry_run_row_limit
+                    uploaded_table = internal_upload_in_memory_table prepared_table connection tmp_table_name primary_key=key_columns temporary=True structure_hint=Nothing on_problems=Problem_Behavior.Report_Error row_limit=dry_run_row_limit
 
                     row_limit_exceeded = prepared_table.row_count > dry_run_row_limit
                     dry_run_message_suffix = case row_limit_exceeded of
@@ -592,7 +621,7 @@ check_multiple_rows_match left_table right_table key_columns ~continuation =
     joined = left_table.join right_table on=key_columns join_kind=Join_Kind.Inner
     counted = joined.aggregate [Aggregate_Column.Count]+(key_columns.map (Aggregate_Column.Group_By _))
     duplicates = counted.filter 0 (Filter_Condition.Greater than=1)
-    example = duplicates.read max_rows=1
+    example = duplicates.read max_rows=1 warn_if_more_rows=False
     case example.row_count == 0 of
         True -> continuation
         False ->
@@ -606,7 +635,7 @@ check_for_null_keys table key_columns ~continuation =
     keys = table.select_columns key_columns
     is_any_key_blank = keys.columns.map (_.is_nothing) . reduce (||)
     null_keys = table.filter is_any_key_blank Filter_Condition.Is_True
-    example = null_keys.read max_rows=1
+    example = null_keys.read max_rows=1 warn_if_more_rows=False
     case example.row_count == 0 of
         True -> continuation
         False ->

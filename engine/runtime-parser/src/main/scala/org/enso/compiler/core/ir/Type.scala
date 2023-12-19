@@ -1,13 +1,19 @@
 package org.enso.compiler.core.ir
 
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{randomId, Identifier, ToStringHelper}
+import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
+import org.enso.compiler.core.{IR, Identifier}
+import org.enso.compiler.core.IR.randomId
+
+import java.util.UUID
+import scala.jdk.FunctionConverters.enrichAsScalaFromFunction
 
 /** Constructs that operate on types. */
 trait Type extends Expression {
 
   /** @inheritdoc */
-  override def mapExpressions(fn: Expression => Expression): Type
+  override def mapExpressions(
+    fn: java.util.function.Function[Expression, Expression]
+  ): Type
 
   /** @inheritdoc */
   override def setLocation(location: Option[IdentifiedLocation]): Type
@@ -32,10 +38,10 @@ object Type {
     args: List[Expression],
     result: Expression,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
+    override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Type {
-    override protected var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     def copy(
       args: List[Expression]               = args,
@@ -43,7 +49,7 @@ object Type {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Function = {
       val res = Function(args, result, location, passData, diagnostics)
       res.id = id
@@ -73,7 +79,8 @@ object Type {
           keepIdentifiers
         ),
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId
@@ -85,8 +92,10 @@ object Type {
     ): Function = copy(location = location)
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Function = {
-      copy(args = args.map(fn), result = fn(result))
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Function = {
+      copy(args = args.map(fn.asScala), result = fn(result))
     }
 
     /** @inheritdoc */
@@ -121,12 +130,12 @@ object Type {
     typed: Expression,
     signature: Expression,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
+    override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Type
       with module.scope.Definition
       with IRKind.Primitive {
-    override protected var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -144,7 +153,7 @@ object Type {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Ascription = {
       val res = Ascription(typed, signature, location, passData, diagnostics)
       res.id = id
@@ -172,7 +181,8 @@ object Type {
           keepIdentifiers
         ),
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId
@@ -184,7 +194,9 @@ object Type {
     ): Ascription = copy(location = location)
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Ascription = {
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Ascription = {
       copy(typed = fn(typed), signature = fn(signature))
     }
 
@@ -225,11 +237,11 @@ object Type {
     typed: Expression,
     context: Expression,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
+    override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Type
       with IRKind.Primitive {
-    override protected var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates ac opy of `this`.
       *
@@ -247,7 +259,7 @@ object Type {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Context = {
       val res = Context(typed, context, location, passData, diagnostics)
       res.id = id
@@ -275,7 +287,8 @@ object Type {
           keepIdentifiers
         ),
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId
@@ -286,7 +299,9 @@ object Type {
       copy(location = location)
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Context = {
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Context = {
       copy(typed = fn(typed), context = fn(context))
     }
 
@@ -326,11 +341,11 @@ object Type {
     typed: Expression,
     error: Expression,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
+    override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Type
       with IRKind.Primitive {
-    override protected var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -348,7 +363,7 @@ object Type {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Error = {
       val res = Error(typed, error, location, passData, diagnostics)
       res.id = id
@@ -376,7 +391,8 @@ object Type {
           keepLocations
         ),
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId
@@ -387,7 +403,9 @@ object Type {
       copy(location = location)
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Error =
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Error =
       copy(typed = fn(typed), error = fn(error))
 
     /** @inheritdoc */

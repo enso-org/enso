@@ -1,0 +1,102 @@
+from Standard.Base import all
+import Standard.Base.Data.Text.Regex.Regex_Syntax_Error
+import Standard.Base.Errors.Common.Type_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Unimplemented.Unimplemented
+from Standard.Base.Metadata import make_single_choice
+
+import project.Data.Match_Columns.Match_Columns
+import project.Data.Table.Table
+import project.Errors.Invalid_JSON_Format
+import project.Internal.Expand_Objects_Helpers
+import project.Internal.Parse_To_Table
+import project.Internal.Widget_Helpers
+
+## GROUP Standard.Base.Conversions
+   ICON convert
+   Converts this `Vector` into a `Table`.
+
+   Arguments:
+   - fields: a Vector of Text representing the names of fields to look up.
+     If `Nothing` then all fields found are added.
+Vector.to_table : Vector | Nothing -> Table ! Type_Error
+Vector.to_table self fields=Nothing =
+    Table.from_objects self fields
+
+## GROUP Standard.Base.Constants
+   ICON data_input
+   Converts an object or a Vector of object into a Table, by looking up the
+   requested fields from each item.
+
+   Arguments:
+   - value: The object or Vector of objects to convert to a table.
+     If a Vector or Array, then each item is added as a row.
+     Otherwise, treated as a single row.
+   - fields: a Vector of Text representing the names of fields to look up.
+     If `Nothing` then all fields found are added.
+
+   > Example Converts a set of objects into a table using the provided headers.
+
+         from Standard.Table import Table
+         import Standard.Examples
+
+         example_to_table =
+             json = Examples.simple_table_json
+             headers = Examples.simple_table_json_headers
+             Table.from_objects json headers
+Table.from_objects : Any -> Vector | Nothing -> Table
+Table.from_objects value (fields : Vector | Nothing = Nothing) =
+    Expand_Objects_Helpers.create_table_from_objects value fields
+
+## GROUP Standard.Base.Conversions
+   Converts a Text into a Table using a regular expression pattern.
+
+   Each match becomes a row in the table.
+
+   If there are no marked groups, there will be a single column with the
+   whole content of the match. Otherwise, each group becomes a column
+   (with the column name taken from the group name if the group is named in the
+   regex).
+
+   Arguments:
+   - pattern: The regular expression as either `Text` or `Regex` to search within the text.
+   - case_sensitivity: Specifies if the text values should be compared case
+     sensitively.
+   - parse_values: Parse any values using the default value parser.
+
+   ? Column Names
+
+   If there are no marked groups, the new column will be named `Column`.
+   If the marked groups are named, the names will be used otherwise the column
+   will be named `Column <N>` where `N` is the number of the marked group.
+   (Group 0 is not included.)
+Text.parse_to_table : Text | Regex -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! Type_Error | Regex_Syntax_Error | Illegal_Argument
+Text.parse_to_table self (pattern : Text | Regex) case_sensitivity=Case_Sensitivity.Sensitive parse_values=True on_problems=Report_Warning =
+    Parse_To_Table.parse_text_to_table self pattern case_sensitivity parse_values on_problems
+
+## PRIVATE
+   ADVANCED
+   Implements the `Table.write` for this `JSON_File`.
+
+    Arguments:
+    - file: The file to write to.
+    - table: The table to write.
+    - on_existing_file: What to do if the file already exists.
+    - match_columns: How to match columns between the table and the file.
+      Not used for JSON.
+    - on_problems: What to do if there are problems reading the file.
+JSON_Format.write_table : File -> Table -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> File
+JSON_Format.write_table self file table on_existing_file match_columns on_problems =
+    _ = [match_columns, on_problems]
+    if file.exists.not then table.to_json.write file else
+        case on_existing_file of
+            Existing_File_Behavior.Append ->
+                ## Special handling - Need to remove the closing bracket and append.
+                old_text = file.read_text.trim
+                case old_text.ends_with "]" && old_text.starts_with "[" of
+                    True ->
+                        new_text = old_text.drop (Last 1) + "," + table.to_json.drop (First 1)
+                        new_text.write file on_existing_file=Existing_File_Behavior.Overwrite on_problems=on_problems
+                    False ->
+                        Error.throw (Invalid_JSON_Format.Error old_text "File already exists and is not a JSON array.")
+            _ -> table.to_json.write file on_existing_file=on_existing_file on_problems=on_problems

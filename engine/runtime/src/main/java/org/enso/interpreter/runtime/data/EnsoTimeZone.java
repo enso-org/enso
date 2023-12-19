@@ -15,6 +15,7 @@ import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.enso.polyglot.common_utils.Core_Date_Utils;
 
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
@@ -62,7 +63,8 @@ public final class EnsoTimeZone implements EnsoObject {
   @Builtin.Method(
       name = "new_builtin",
       description =
-          "Obtains an instance of `Time_Zone` using an offset in hours, minutes and seconds from the UTC zone.",
+          "Obtains an instance of `Time_Zone` using an offset in hours, minutes and seconds from"
+              + " the UTC zone.",
       autoRegister = false)
   @Builtin.WrapException(from = DateTimeException.class)
   @CompilerDirectives.TruffleBoundary
@@ -78,7 +80,7 @@ public final class EnsoTimeZone implements EnsoObject {
       autoRegister = false)
   @CompilerDirectives.TruffleBoundary
   public static EnsoTimeZone system() {
-    return new EnsoTimeZone(ZoneId.systemDefault());
+    return new EnsoTimeZone(Core_Date_Utils.defaultSystemZone());
   }
 
   @ExportMessage

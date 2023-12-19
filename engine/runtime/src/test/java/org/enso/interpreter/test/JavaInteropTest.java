@@ -1,17 +1,17 @@
 package org.enso.interpreter.test;
 
-import java.io.ByteArrayOutputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-
-import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.PolyglotException;
-import org.graalvm.polyglot.Value;
-import org.junit.AfterClass;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+
+import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.PolyglotException;
+import org.graalvm.polyglot.Value;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -37,10 +37,7 @@ public class JavaInteropTest extends TestBase {
   }
 
   private String[] getStdOutLines() {
-    return out
-        .toString(StandardCharsets.UTF_8)
-        .trim()
-        .split(System.lineSeparator());
+    return out.toString(StandardCharsets.UTF_8).trim().split(System.lineSeparator());
   }
 
   private void checkPrint(String code, List<String> expected) {
@@ -51,7 +48,8 @@ public class JavaInteropTest extends TestBase {
 
   @Test
   public void testClassImport() {
-    var code = """
+    var code =
+        """
         polyglot java import org.enso.example.TestClass
         main = TestClass.add 1 2
         """;
@@ -61,7 +59,8 @@ public class JavaInteropTest extends TestBase {
 
   @Test
   public void testClassImportAndMethodCall() {
-    var code = """
+    var code =
+        """
         polyglot java import org.enso.example.TestClass
         main =
             instance = TestClass.new (x -> x * 2)
@@ -73,7 +72,8 @@ public class JavaInteropTest extends TestBase {
 
   @Test
   public void testImportStaticInnerClass() {
-    var code = """
+    var code =
+        """
         polyglot java import org.enso.example.TestClass.StaticInnerClass
 
         main =
@@ -86,7 +86,8 @@ public class JavaInteropTest extends TestBase {
 
   @Test
   public void testImportInnerEnum() {
-    var code = """
+    var code =
+        """
         from Standard.Base import IO
         polyglot java import org.enso.example.TestClass
         polyglot java import org.enso.example.TestClass.InnerEnum
@@ -100,7 +101,8 @@ public class JavaInteropTest extends TestBase {
 
   @Test
   public void testCaseOnEnum() {
-    var code = """
+    var code =
+        """
         from Standard.Base import IO
         polyglot java import org.enso.example.TestClass
         polyglot java import org.enso.example.TestClass.InnerEnum
@@ -119,7 +121,8 @@ public class JavaInteropTest extends TestBase {
 
   @Test
   public void testCaseNonFinal() {
-    var code = """
+    var code =
+        """
         from Standard.Base import IO
         polyglot java import org.enso.example.TestClass
 
@@ -141,8 +144,31 @@ public class JavaInteropTest extends TestBase {
   }
 
   @Test
+  public void testShortConstant() {
+    var code =
+        """
+        from Standard.Base import IO
+        polyglot java import org.enso.example.TestClass
+
+        to_string x = case x of
+          TestClass.FINAL_ONE -> "int"
+          TestClass.SHORT_ONE -> "short"
+          TestClass.LONG_ONE -> "long"
+          _ -> "none"
+
+        main =
+            IO.println <| to_string 1
+            IO.println <| to_string 2
+            IO.println <| to_string 3
+            IO.println <| to_string 4
+        """;
+    checkPrint(code, List.of("int", "none", "short", "long"));
+  }
+
+  @Test
   public void testImportOuterClassAndReferenceInner() {
-    var code = """
+    var code =
+        """
         polyglot java import org.enso.example.TestClass
 
         main =
@@ -155,7 +181,8 @@ public class JavaInteropTest extends TestBase {
 
   @Test
   public void testImportBothInnerAndOuterClass() {
-    var code = """
+    var code =
+        """
         from Standard.Base import IO
         polyglot java import org.enso.example.TestClass
         polyglot java import org.enso.example.TestClass.StaticInnerClass
@@ -171,7 +198,8 @@ public class JavaInteropTest extends TestBase {
 
   @Test
   public void testImportNestedInnerClass() {
-    var code = """
+    var code =
+        """
         polyglot java import org.enso.example.TestClass.StaticInnerClass.StaticInnerInnerClass
 
         main =
@@ -184,29 +212,34 @@ public class JavaInteropTest extends TestBase {
 
   @Test
   public void testImportNonExistingInnerClass() {
-    var code = """
+    var code =
+        """
         polyglot java import org.enso.example.TestClass.StaticInnerClass.Non_Existing_Class
         """;
     try {
       evalModule(ctx, code);
       fail("Should throw exception");
-    } catch (Exception ignored) {}
+    } catch (Exception ignored) {
+    }
   }
 
   @Test
   public void testImportNonExistingInnerNestedClass() {
-    var code = """
+    var code =
+        """
         polyglot java import org.enso.example.TestClass.Non_Existing_Class.Another_Non_ExistingClass
         """;
     try {
       evalModule(ctx, code);
       fail("Should throw exception");
-    } catch (Exception ignored) {}
+    } catch (Exception ignored) {
+    }
   }
 
   @Test
   public void testImportOuterClassAndAccessNestedInnerClass() {
-    var code = """
+    var code =
+        """
         polyglot java import org.enso.example.TestClass
 
         main =
@@ -219,7 +252,8 @@ public class JavaInteropTest extends TestBase {
 
   @Test
   public void testToStringBehavior() {
-    var code = """
+    var code =
+        """
     from Standard.Base import all
 
     polyglot java import org.enso.example.ToString as Foo
@@ -269,7 +303,8 @@ public class JavaInteropTest extends TestBase {
   }
 
   private Value evalInterfaceProxyFailures(String methodToEval) {
-    var code = """
+    var code =
+        """
         from Standard.Base import all
         import Standard.Base.Errors.Common.No_Such_Method
 

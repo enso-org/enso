@@ -50,12 +50,12 @@ const GITHUB_PROVIDER = 'Github'
 
 const MESSAGES = {
     signInWithPassword: {
-        userNotFound: 'Username not found. Please register first.',
+        userNotFound: 'User not found. Please sign up first.',
         userNotConfirmed: 'User is not confirmed. Please check your email for a confirmation link.',
         incorrectUsernameOrPassword: 'Incorrect username or password.',
     },
     forgotPassword: {
-        userNotFound: 'Username not found. Please register first.',
+        userNotFound: 'Cannot reset password as user not found.',
         userNotConfirmed: `Cannot reset password for user with an unverified email. \
 Please verify your email first.`,
     },
@@ -181,8 +181,8 @@ export class Cognito {
     }
 
     /** Save the access token to a file for further reuse. */
-    saveAccessToken(accessToken: string) {
-        this.amplifyConfig.accessTokenSaver?.(accessToken)
+    saveAccessToken(accessToken: string | null) {
+        this.amplifyConfig.saveAccessToken?.(accessToken)
     }
 
     /** Return the current {@link UserSession}, or `None` if the user is not logged in.
@@ -398,7 +398,6 @@ export const CURRENT_SESSION_NO_CURRENT_USER_ERROR = {
 /**
  * Convert an {@link AmplifyError} into a {@link CurrentSessionErrorKind} if it is a known error,
  * else re-throws the error.
- *
  * @throws {Error} If the error is not recognized.
  */
 export function intoCurrentSessionErrorKind(error: unknown): CurrentSessionErrorKind {
@@ -473,7 +472,6 @@ export interface SignUpError extends CognitoError {
 /**
  * Convert an {@link AmplifyError} into a {@link SignUpError} if it is a known error,
  * else re-throws the error.
- *
  * @throws {Error} If the error is not recognized.
  */
 export function intoSignUpErrorOrThrow(error: AmplifyError): SignUpError {
@@ -504,12 +502,20 @@ export function intoSignUpErrorOrThrow(error: AmplifyError): SignUpError {
 /** Internal IDs of errors that may occur when confirming registration. */
 export enum ConfirmSignUpErrorKind {
     userAlreadyConfirmed = 'UserAlreadyConfirmed',
+    userNotFound = 'UserNotFound',
 }
 
 const CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR = {
     internalCode: 'NotAuthorizedException',
     internalMessage: 'User cannot be confirmed. Current status is CONFIRMED',
     kind: ConfirmSignUpErrorKind.userAlreadyConfirmed,
+}
+
+const CONFIRM_SIGN_UP_USER_NOT_FOUND_ERROR = {
+    internalCode: 'UserNotFoundException',
+    internalMessage: 'Username/client id combination not found.',
+    kind: ConfirmSignUpErrorKind.userNotFound,
+    message: 'Incorrect email or confirmation code.',
 }
 
 /** An error that may occur when confirming registration. */
@@ -532,6 +538,17 @@ export function intoConfirmSignUpErrorOrThrow(error: AmplifyError): ConfirmSignU
              * ambiguity. */
             kind: CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR.kind,
             message: error.message,
+        }
+    } else if (
+        error.code === CONFIRM_SIGN_UP_USER_NOT_FOUND_ERROR.internalCode &&
+        error.message === CONFIRM_SIGN_UP_USER_NOT_FOUND_ERROR.internalMessage
+    ) {
+        return {
+            /** Don't re-use the original `error.code` here because Amplify overloads the same code
+             * for multiple kinds of errors. We replace it with a custom code that has no
+             * ambiguity. */
+            kind: CONFIRM_SIGN_UP_USER_NOT_FOUND_ERROR.kind,
+            message: CONFIRM_SIGN_UP_USER_NOT_FOUND_ERROR.message,
         }
     } else {
         throw error

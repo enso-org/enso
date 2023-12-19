@@ -26,7 +26,6 @@ use ide_ci::actions::workflow::MessageLevel;
 use ide_ci::cache;
 use ide_ci::github::release::IsReleaseExt;
 use ide_ci::platform::DEFAULT_SHELL;
-use ide_ci::programs::graal;
 use ide_ci::programs::sbt;
 use ide_ci::programs::Flatc;
 use ide_ci::programs::Sbt;
@@ -194,16 +193,23 @@ impl RunContext {
 
         // Setup GraalVM
         let graalvm =
-            crate::engine::deduce_graal(self.octocrab.clone(), &self.repo_root.build_sbt).await?;
+            engine::deduce_graal(self.octocrab.clone(), &self.repo_root.build_sbt).await?;
         graalvm.install_if_missing(&self.cache).await?;
-        graal::Gu.require_present().await?;
+        let graal_version = engine::deduce_graal_bundle(&self.repo_root.build_sbt).await?;
+        let graalpy_version = graal_version.packages;
 
-        let required_components = [graal::ComponentId::NativeImage, graal::ComponentId::JS];
-        // Some GraalVM components depend on Sulong and are not available on all platforms (like
-        // Windows or M1 macOS). Thus, we treat them as optional. See e.g.
-        // https://github.com/oracle/graalpython/issues/156
-        let optional_components = [graal::ComponentId::Python];
-        graal::install_missing_components(required_components, optional_components).await?;
+        // Install GraalPy standalone distribution
+        // GraalPy has a version that corresponds to the `graalMavenPackagesVersion` variable in
+        // build.sbt
+        let graalpy = cache::goodie::graalpy::GraalPy {
+            client:  self.octocrab.clone(),
+            version: graalpy_version,
+            os:      self.paths.triple.os,
+            arch:    self.paths.triple.arch,
+        };
+        graalpy.install_if_missing(&self.cache).await?;
+        ide_ci::programs::graalpy::GraalPy.require_present().await?;
+
         prepare_simple_library_server.await??;
         Ok(())
     }
@@ -222,16 +228,29 @@ impl RunContext {
             ide_ci::fs::remove_if_exists(&self.paths.repo_root.engine.runtime.bench_report_xml)?;
         }
 
-        let test_results_dir = if self.config.test_standard_library {
-            // If we run tests, make sure that old and new results won't end up mixed together.
-            let test_results_dir = ENSO_TEST_JUNIT_DIR
-                .get()
-                .unwrap_or_else(|_| self.paths.repo_root.target.test_results.path.clone());
-            ide_ci::fs::reset_dir(&test_results_dir)?;
-            Some(test_results_dir)
-        } else {
-            None
-        };
+
+        let _test_results_upload_guard =
+            if self.config.test_scala || self.config.test_standard_library {
+                // If we run tests, make sure that old and new results won't end up mixed together.
+                let test_results_dir = ENSO_TEST_JUNIT_DIR
+                    .get()
+                    .unwrap_or_else(|_| self.paths.repo_root.target.test_results.path.clone());
+                ide_ci::fs::reset_dir(&test_results_dir)?;
+
+                // If we are run in CI conditions and we prepared some test results, we want to
+                // upload them as a separate artifact to ease debugging. And we do want to do that
+                // even if the tests fail and we are leaving the scope with an error.
+                is_in_env().then(|| {
+                    scopeguard::guard(test_results_dir, |test_results_dir| {
+                        ide_ci::global::spawn(
+                            "Upload test results",
+                            upload_test_results(test_results_dir),
+                        );
+                    })
+                })
+            } else {
+                None
+            };
 
         // Workaround for incremental compilation issue, as suggested by kustosz.
         // We target files like
@@ -271,8 +290,6 @@ impl RunContext {
                 self.config.execute_benchmarks_once.to_string(),
             )],
         };
-
-        sbt.call_arg("bootstrap").await?;
 
         perhaps_generate_java_from_rust_job.await.transpose()?;
         let perhaps_test_java_generated_from_rust_job =
@@ -378,23 +395,16 @@ impl RunContext {
         // === Unit tests and Enso tests ===
         debug!("Running unit tests and Enso tests.");
         if self.config.test_scala {
+            // Make sure that `sbt buildEngineDistributionNoIndex` is run before
+            // `project-manager/test`. Note that we do not have to run
+            // `buildEngineDistribution` (with indexing), because it is unnecessary.
+            sbt.call_arg("buildEngineDistributionNoIndex").await?;
+
             // Run unit tests
             sbt.call_arg("set Global / parallelExecution := false; test").await?;
         }
         if self.config.test_standard_library {
             enso.run_tests(IrCaches::No, &sbt, PARALLEL_ENSO_TESTS).await?;
-        }
-        // If we are run in CI conditions and we prepared some test results, we want to upload
-        // them as a separate artifact to ease debugging.
-        if let Some(test_results_dir) = test_results_dir && is_in_env() {
-            // Each platform gets its own log results, so we need to generate unique names.
-            let name = format!("Test_Results_{TARGET_OS}");
-            if let Err(err) = ide_ci::actions::artifacts::upload_compressed_directory(&test_results_dir, name)
-                .await {
-                // We wouldn't want to fail the whole build if we can't upload the test results.
-                // Still, it should be somehow visible in the build summary.
-                ide_ci::actions::workflow::message(MessageLevel::Warning, format!("Failed to upload test results: {err}"));
-            }
         }
 
         perhaps_test_java_generated_from_rust_job.await.transpose()?;
@@ -638,4 +648,26 @@ impl RunContext {
 
         Ok(())
     }
+}
+
+/// Upload the directory with Enso-generated test results.
+///
+/// This is meant to ease debugging, it does not really affect the build.
+#[context("Failed to upload test results.")]
+pub async fn upload_test_results(test_results_dir: PathBuf) -> Result {
+    // Each platform gets its own log results, so we need to generate unique
+    // names.
+    let name = format!("Test_Results_{TARGET_OS}");
+    let upload_result =
+        ide_ci::actions::artifacts::upload_compressed_directory(&test_results_dir, name).await;
+    if let Err(err) = &upload_result {
+        // We wouldn't want to fail the whole build if we can't upload the test
+        // results. Still, it should be somehow
+        // visible in the build summary.
+        ide_ci::actions::workflow::message(
+            MessageLevel::Warning,
+            format!("Failed to upload test results: {err}"),
+        );
+    }
+    upload_result
 }

@@ -3,7 +3,6 @@ package org.enso.table.data.column.operation.map;
 import java.util.BitSet;
 import java.util.HashSet;
 import java.util.List;
-
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.graalvm.polyglot.Context;
@@ -43,7 +42,8 @@ public abstract class SpecializedIsInOp<T, S extends Storage<T>> extends BinaryM
   }
 
   @Override
-  public Storage<?> runBinaryMap(S storage, Object arg, MapOperationProblemBuilder problemBuilder) {
+  public Storage<?> runBinaryMap(
+      S storage, Object arg, MapOperationProblemAggregator problemAggregator) {
     if (arg instanceof List) {
       return runMap(storage, (List<?>) arg);
     } else {
@@ -68,7 +68,8 @@ public abstract class SpecializedIsInOp<T, S extends Storage<T>> extends BinaryM
   }
 
   @Override
-  public Storage<?> runZip(S storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
+  public Storage<?> runZip(
+      S storage, Storage<?> arg, MapOperationProblemAggregator problemAggregator) {
     return runMap(storage, arg.toList());
   }
 

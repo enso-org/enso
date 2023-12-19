@@ -31,7 +31,7 @@ class IRUtilsTest extends AnyWordSpecLike with Matchers with OptionValues {
         null,
         code.stripMargin.linesIterator.mkString("\n")
       )
-      langCtx.getCompiler.run(module)
+      langCtx.getCompiler.run(module.asCompilerModule())
       module.getIr
     }
 

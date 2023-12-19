@@ -2,6 +2,7 @@
   "name": "enso4vscode",
   "displayName": "Enso Tools for VSCode",
   "description": "Support for Enso programming and development",
+  "icon": "dist/enso.png",
   "version": "0.1.0",
   "preview": true,
   "license": "SEE LICENSE IN dist/LICENSE",

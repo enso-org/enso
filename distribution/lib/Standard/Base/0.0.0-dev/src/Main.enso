@@ -2,6 +2,9 @@ import project.Any.Any
 import project.Data
 import project.Data.Array.Array
 import project.Data.Boolean
+import project.Data.Enso_Cloud.Enso_File.Enso_File
+import project.Data.Enso_Cloud.Enso_Secret.Enso_Secret
+import project.Data.Enso_Cloud.Enso_User.Enso_User
 import project.Data.Filter_Condition.Filter_Condition
 import project.Data.Index_Sub_Range.Index_Sub_Range
 import project.Data.Interval.Bound
@@ -13,7 +16,6 @@ import project.Data.List.List
 import project.Data.Locale.Locale
 import project.Data.Map.Map
 import project.Data.Maybe.Maybe
-import project.Data.Noise
 import project.Data.Numbers
 import project.Data.Ordering.Comparable
 import project.Data.Ordering.Default_Comparator
@@ -47,8 +49,10 @@ import project.Data.Time.Period.Period
 import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Data.Time.Time_Period.Time_Period
 import project.Data.Time.Time_Zone.Time_Zone
+import project.Data.Vector.Map_Error
 import project.Data.Vector.Vector
 import project.Data.XML.XML_Document
+import project.Data.XML.XML_Element
 import project.Data.XML.XML_Error
 import project.Data.XML.XML_Format.XML_Format
 import project.Error.Error
@@ -69,7 +73,7 @@ import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Polyglot.Java
 import project.Polyglot.Polyglot
-import project.Random
+import project.Random.Random
 import project.Runtime
 import project.System
 import project.System.Environment
@@ -96,6 +100,9 @@ from project.System.File_Format.Plain_Text_Format import Plain_Text
 export project.Any.Any
 export project.Data
 export project.Data.Array.Array
+export project.Data.Enso_Cloud.Enso_File.Enso_File
+export project.Data.Enso_Cloud.Enso_Secret.Enso_Secret
+export project.Data.Enso_Cloud.Enso_User.Enso_User
 export project.Data.Filter_Condition.Filter_Condition
 export project.Data.Index_Sub_Range.Index_Sub_Range
 export project.Data.Interval.Bound
@@ -138,8 +145,10 @@ export project.Data.Time.Period.Period
 export project.Data.Time.Time_Of_Day.Time_Of_Day
 export project.Data.Time.Time_Period.Time_Period
 export project.Data.Time.Time_Zone.Time_Zone
+export project.Data.Vector.Map_Error
 export project.Data.Vector.Vector
 export project.Data.XML.XML_Document
+export project.Data.XML.XML_Element
 export project.Data.XML.XML_Error
 export project.Data.XML.XML_Format.XML_Format
 export project.Error.Error
@@ -159,7 +168,7 @@ export project.Nothing.Nothing
 export project.Panic.Panic
 export project.Polyglot.Java
 export project.Polyglot.Polyglot
-export project.Random
+export project.Random.Random
 export project.Runtime
 export project.System
 export project.System.Environment
@@ -176,7 +185,6 @@ export project.Warning.Warning
 from project.Data.Boolean export Boolean, False, True
 from project.Data.Index_Sub_Range.Index_Sub_Range export First, Last
 from project.Data.Json.Extensions export all
-from project.Data.Noise export all hiding Deterministic_Random, Generator, Long, Noise, Random
 from project.Data.Numbers export Float, Integer, Number
 from project.Data.Range.Extensions export all
 from project.Data.Statistics export all hiding to_moment_statistic, wrap_java_call, calculate_correlation_statistics, calculate_spearman_rank, calculate_correlation_statistics_matrix, compute_fold, empty_value, is_valid

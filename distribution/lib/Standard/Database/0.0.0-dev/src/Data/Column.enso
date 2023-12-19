@@ -5,6 +5,7 @@ import Standard.Base.Internal.Rounding_Helpers
 from Standard.Base.Widget_Helpers import make_regex_text_widget
 
 import Standard.Table.Data.Column.Column as Materialized_Column
+import Standard.Table.Data.Constants.Previous_Value
 import Standard.Table.Data.Type.Enso_Types
 import Standard.Table.Data.Type.Value_Type_Helpers
 import Standard.Table.Internal.Column_Naming_Helper.Column_Naming_Helper
@@ -13,6 +14,7 @@ import Standard.Table.Internal.Java_Problems
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 import Standard.Table.Internal.Widget_Helpers
 from Standard.Table import Auto, Data_Formatter, Sort_Column, Value_Type
+from Standard.Table.Data.Column import default_date_period
 from Standard.Table.Errors import Conversion_Failure, Floating_Point_Equality, Inexact_Type_Coercion, Invalid_Value_Type
 from Standard.Table.Internal.Cast_Helpers import check_cast_compatibility
 
@@ -28,8 +30,6 @@ import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.Replace_Params.Replace_Params
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 from project.Errors import Integrity_Error, Unsupported_Database_Operation
-
-polyglot java import org.enso.table.data.column.operation.map.MapOperationProblemBuilder
 
 type Column
     ## PRIVATE
@@ -78,7 +78,8 @@ type Column
     to_js_object : JS_Object
     to_js_object self = self.to_sql.to_js_object
 
-    ## Converts this column into a single-column table.
+    ## ICON data_input
+       Converts this column into a single-column table.
     to_table : Table
     to_table self =
         Table.Value self.name self.connection [self.as_internal] self.context
@@ -92,20 +93,23 @@ type Column
     info self = self.to_table.info
 
     ## GROUP Standard.Base.Input
+       ICON data_input
        Returns a materialized column containing rows of this column.
 
        Arguments:
-       - max_rows: specifies a maximum amount of rows to fetch; if not set, all
-         available rows are fetched.
-    read : (Nothing | Integer) -> Materialized_Column
-    read self max_rows=Nothing =
-        self.to_table.read max_rows . at self.name
+       - max_rows: specifies the maximum number of rows to read.
+         If `Nothing`, all available rows are returned.
+       - warn_if_more_rows: if set to `True`, a warning is attached to the
+         result if the number of rows returned by the query exceeds `max_rows`.
+    read : (Nothing | Integer) -> Boolean -> Materialized_Column
+    read self (max_rows : Nothing | Integer = 1000) (warn_if_more_rows:Boolean = True) =
+        self.to_table.read max_rows warn_if_more_rows . at 0
 
     ## GROUP Standard.Base.Conversions
+       ICON convert
        Returns a vector containing all the elements in this column.
     to_vector : Vector Any
-    to_vector self =
-        self.to_table.read . at 0 . to_vector
+    to_vector self = self.read max_rows=Nothing . to_vector
 
     ## GROUP Standard.Base.Metadata
        Returns the `Value_Type` associated with that column.
@@ -251,6 +255,7 @@ type Column
        - other: The value to compare `self` against. If `other` is a column, the
          comparison is performed pairwise between corresponding elements of
          `self` and `other`.
+       - locale: The locale to use for the case-insensitive comparison.
 
        Returns a column with results of comparing this column's elements against
        `other`.
@@ -809,9 +814,21 @@ type Column
              example_truncate = Examples.decimal_column.truncate
     truncate : Column ! Invalid_Value_Type
     truncate self =
-        Value_Type.expect_numeric self <| self.short_circuit_special_floating_point <|
-            new_name = self.naming_helper.function_name "truncate" [self]
-            self.make_unary_op "TRUNCATE" new_name
+        new_name = self.naming_helper.function_name "truncate" [self]
+        precise_value_type = self.inferred_precise_value_type
+        case precise_value_type.is_numeric of
+            True ->
+                self.short_circuit_special_floating_point <|
+                    self.make_unary_op "TRUNCATE" new_name
+            False -> case precise_value_type == Value_Type.Date_Time of
+                True ->
+                    op = "date_trunc_to_day"
+                    case self.connection.dialect.is_supported op of
+                        True ->
+                            self.make_unary_op op new_name
+                        False ->
+                            Error.throw (Unsupported_Database_Operation.Error ("`Column.truncate` for `Date_Time` is not supported by this connection."))
+                False -> Error.throw <| Invalid_Value_Type.Column "Numeric or Date_Time" self.value_type self.name
 
     ## GROUP Standard.Base.Rounding
        Takes the ceiling of floating-point values, returning integer values.
@@ -825,7 +842,7 @@ type Column
 
              import Standard.Examples
 
-             example_truncate = Examples.decimal_column.ceil
+             example_ceil = Examples.decimal_column.ceil
     ceil : Column ! Invalid_Value_Type
     ceil self =
         Value_Type.expect_numeric self <| self.short_circuit_special_floating_point <|
@@ -844,7 +861,7 @@ type Column
 
              import Standard.Examples
 
-             example_truncate = Examples.decimal_column.floor
+             example_floor = Examples.decimal_column.floor
     floor : Column ! Invalid_Value_Type
     floor self =
         Value_Type.expect_numeric self <| self.short_circuit_special_floating_point <|
@@ -868,6 +885,7 @@ type Column
             self.make_binary_op "DECIMAL_MOD" other new_name
 
     ## GROUP Standard.Base.Logical
+       ICON preparation
        Returns a column of first non-`Nothing` value on each row of `self` and
        `values` list.
 
@@ -1002,6 +1020,7 @@ type Column
 
     ## ALIAS fill missing, if_nothing
        GROUP Standard.Base.Values
+       ICON dataframe_map_column
 
        Returns a new column where missing values have been replaced with the
        provided default.
@@ -1009,7 +1028,10 @@ type Column
        Arguments:
        - default: The value to replace missing values with. If this argument
          is a column, the value from `default` at the corresponding position
-         will be used.
+         will be used. If this argument is `Previous_Value`, the missing values
+         will be replaced with the previous value in the column. Note that the
+         first rows may stay `Nothing` if they do not have a previous value to
+         use.
 
        > Example
          Fill missing values in a column with the value 20.5.
@@ -1017,15 +1039,18 @@ type Column
              import Standard.Examples
 
              example_fill_nothing = Examples.decimal_column.fill_nothing 20.5
-    fill_nothing : Column | Any -> Column
+    @default (Widget_Helpers.make_fill_default_value_selector include_custom_text=False)
+    fill_nothing : Column | Previous_Value | Any -> Column
     fill_nothing self default =
-        common_type = Value_Type_Helpers.find_common_type_for_arguments [self, default]
-        common_type.if_not_error <|
-            op_result = self.make_binary_op "FILL_NULL" default self.name
-            adapt_unified_column op_result common_type
+        if Previous_Value == default then Error.throw (Unsupported_Database_Operation.Error "The Previous_Value argument is currently not supported in the database backend.") else
+            common_type = Value_Type_Helpers.find_common_type_for_arguments [self, default]
+            common_type.if_not_error <|
+                op_result = self.make_binary_op "FILL_NULL" default self.name
+                adapt_unified_column op_result common_type
 
     ## ALIAS fill empty, if_empty
        GROUP Standard.Base.Values
+       ICON dataframe_map_column
 
        Returns a new column where empty Text values have been replaced with the
        provided default.
@@ -1033,7 +1058,9 @@ type Column
        Arguments:
        - default: The value to replace empty values with. If this argument
          is a column, the value from `default` at the corresponding position
-         will be used.
+         will be used. If this argument is `Previous_Value`, the empty values
+         will be replaced with the previous value in the column. Note that the
+         first rows may stay empty if they do not have a previous value to use.
 
        > Example
          Fill empty values in a column with the value "hello".
@@ -1041,14 +1068,16 @@ type Column
              import Standard.Examples
 
              example_fill_empty = Examples.text_column_1.fill_empty "hello"
-    fill_empty : Column | Any -> Column
+    @default (Widget_Helpers.make_fill_default_value_selector include_custom_text=True)
+    fill_empty : Column | Previous_Value | Any -> Column
     fill_empty self default =
-        Value_Type.expect_text self <|
-            Value_Type.expect_text default <|
+        if Previous_Value == default then Error.throw (Unsupported_Database_Operation.Error "The Previous_Value argument is currently not supported in the database backend.") else
+            Value_Type.expect_text self <| Value_Type.expect_text default <|
                 result = self.is_empty.iif default self
                 result.rename self.name
 
     ## GROUP Standard.Base.Metadata
+       ICON text_input
        Returns a new column, containing the same elements as `self`, but with
        the given name.
 
@@ -1087,8 +1116,9 @@ type Column
     sort self order=Sort_Direction.Ascending =
         self.to_table.order_by [Sort_Column.Index 0 order] . at 0
 
-    ## ALIAS first, last, slice, sample
+    ## ALIAS first, last, sample, slice
        GROUP Standard.Base.Selections
+       ICON select_row
        Creates a new Column with the specified range of rows from the input
        Column.
 
@@ -1099,6 +1129,7 @@ type Column
     take self range=(First 1) = self.to_table.take range . at 0
 
     ## GROUP Standard.Base.Selections
+       ICON select_row
        Creates a new Column from the input with the specified range of rows
        removed.
 
@@ -1109,6 +1140,7 @@ type Column
     drop self range=(First 1) = self.to_table.drop range . at 0
 
     ## GROUP Standard.Base.Text
+       ICON preparation
        Checks for each element of the column if it starts with `other`.
 
        Arguments:
@@ -1126,6 +1158,7 @@ type Column
         make_text_case_op self "starts_with" other case_sensitivity new_name
 
     ## GROUP Standard.Base.Text
+       ICON preparation
        Checks for each element of the column if it ends with `other`.
 
        Arguments:
@@ -1183,6 +1216,7 @@ type Column
                 self.make_binary_op "LIKE" pattern new_name
 
     ## GROUP Standard.Base.Text
+       ICON dataframe_map_column
        This function removes the specified characters, by default any
        whitespace, from the start, the end, or both ends of the input.
 
@@ -1204,6 +1238,7 @@ type Column
                     Error.throw (Unsupported_Database_Operation.Error ("`Column.trim "+where.to_text+"` is not supported by this connection."))
 
     ## GROUP Standard.Base.Text
+       ICON dataframe_map_column
        Replaces the first, or all occurrences of `term` with `new_text` in each
        row. If `term` is empty, the function returns the table unchanged.
 
@@ -1325,6 +1360,7 @@ type Column
         simple_unary_op self "minute"
 
     ## GROUP Standard.Base.Selections
+       ICON select_row
        Gets the second as an integer (0-60) from the time stored in the column.
 
        Applies only to columns that hold the `Time_Of_Day` or `Date_Time` types.
@@ -1385,7 +1421,8 @@ type Column
          shift each date.
        - period: The period by which to shift. For `Date` columns it should be a
          `Date_Period` and for `Time` columns it should be a `Time_Period`. For
-         `Date_Time` columns it can be either.
+         `Date_Time` columns it can be either. It defaults to `Day` where
+         possible and `Hour` for `Time` columns.
 
        ? Time Zone handling
 
@@ -1395,7 +1432,7 @@ type Column
          unusual events like DST.
     @period Date_Time_Helpers.make_period_selector_for_column
     date_add : (Column | Integer) -> Date_Period | Time_Period -> Column ! Invalid_Value_Type | Illegal_Argument
-    date_add self amount (period : Date_Period | Time_Period) =
+    date_add self amount (period : Date_Period | Time_Period = default_date_period self) =
         Value_Type.expect_type self .is_date_or_time "date/time" <|
             my_type = self.inferred_precise_value_type
             Value_Type.expect_integer amount <|
@@ -1470,6 +1507,7 @@ type Column
                 Column.Value new_name self.connection new_type_ref new_expr self.context
 
     ## GROUP Standard.Base.Conversions
+       ICON convert
        Parses a text column into values.
 
        In the Database backends, the default formatting settings of the
@@ -1521,6 +1559,7 @@ type Column
                 self.internal_do_cast type on_problems
 
     ## GROUP Standard.Base.Conversions
+       ICON convert
        Formatting values is not supported in database columns.
     @locale Locale.default_widget
     format : Text | Date_Time_Formatter | Column | Nothing -> Locale -> Column ! Illegal_Argument
@@ -1529,6 +1568,7 @@ type Column
         Error.throw <| Unsupported_Database_Operation.Error "`Column.format` is not implemented yet for the Database backends."
 
     ## GROUP Standard.Base.Conversions
+       ICON convert
        Cast the column to a specific type.
 
        Arguments:
@@ -1580,7 +1620,8 @@ type Column
         check_cast_compatibility self.value_type value_type <|
             self.internal_do_cast value_type on_problems
 
-    ## Change the value type of the column to a more specific one, based on its
+    ## GROUP Standard.Base.Conversions
+       Change the value type of the column to a more specific one, based on its
        contents.
 
        This operation is currently not available in the Database backend.
@@ -1603,6 +1644,7 @@ type Column
             Column.Value new_column.name self.connection new_column.sql_type_reference new_column.expression self.context
 
     ## ALIAS transform column
+       ICON dataframe_map_column
 
        Applies `function` to each item in this column and returns the column
        of results.
@@ -1635,7 +1677,8 @@ type Column
         _ = [function, skip_nothing, expected_value_type]
         Error.throw <| Unsupported_Database_Operation.Error "`Column.map` is not supported in the Database backends."
 
-    ## ALIAS combine, merge, join by row position
+    ## ALIAS combine, join by row position, merge
+       ICON dataframes_join
 
        Applies `function` to consecutive pairs of elements of `self` and `that`
        and returns a column of results.
@@ -1728,19 +1771,17 @@ make_equality_check_with_floating_point_handling column other op =
         other_column : Column -> "["+other_column.name+"]"
         _ -> other.to_text
     location = "["+column.name+"] "+op+" "+other_name
-    problem_builder = MapOperationProblemBuilder.new location
-    if column.value_type.is_floating_point then
-        problem_builder.reportFloatingPointEquality -1
-    case other of
-        other_column : Column ->
-            if other_column.value_type.is_floating_point then
-                problem_builder.reportFloatingPointEquality -1
-        _ : Float ->
+    Java_Problems.with_map_operation_problem_aggregator location Problem_Behavior.Report_Warning problem_builder->
+        if column.value_type.is_floating_point then
             problem_builder.reportFloatingPointEquality -1
-        _ -> Nothing
-    result = column.make_binary_op op other
-    Problem_Behavior.Report_Warning.attach_problems_after result <|
-        Java_Problems.parse_aggregated_problems problem_builder.getProblems
+        case other of
+            other_column : Column ->
+                if other_column.value_type.is_floating_point then
+                    problem_builder.reportFloatingPointEquality -1
+            _ : Float ->
+                problem_builder.reportFloatingPointEquality -1
+            _ -> Nothing
+        column.make_binary_op op other
 
 ## PRIVATE
 adapt_unified_column : Column -> Value_Type -> Column
@@ -1760,3 +1801,9 @@ simple_unary_op column op_kind = column.make_unary_op op_kind
 Materialized_Column.from (that:Column) =
     _ = [that]
     Error.throw (Illegal_Argument.Error "Currently cross-backend operations are not supported. Materialize the column using `.read` before mixing it with an in-memory Table.")
+
+## PRIVATE
+   Conversion method to a Column to a Vector.
+Vector.from (that:Column) =
+    _ = [that]
+    Error.throw (Illegal_Argument.Error "To convert from a Database column to a vector you must first call `read` on the column.")

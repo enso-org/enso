@@ -1,5 +1,6 @@
 {
   "recommendations": [
+    "Enso.enso4vscode",
     "Vue.volar",
     "Vue.vscode-typescript-vue-plugin",
     "ms-playwright.playwright",

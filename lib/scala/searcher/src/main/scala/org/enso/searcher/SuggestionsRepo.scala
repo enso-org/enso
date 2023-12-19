@@ -116,7 +116,7 @@ trait SuggestionsRepo[F[_]] {
     */
   def update(
     suggestion: Suggestion,
-    externalId: Option[Option[Suggestion.ExternalId]],
+    externalId: Option[Option[Suggestion.ExternalID]],
     returnType: Option[String],
     documentation: Option[Option[String]],
     scope: Option[Suggestion.Scope],
@@ -129,7 +129,7 @@ trait SuggestionsRepo[F[_]] {
     * @return the current database version and a list of updated suggestion ids
     */
   def updateAll(
-    expressions: Seq[(Suggestion.ExternalId, String)]
+    expressions: Seq[(Suggestion.ExternalID, String)]
   ): F[(Long, Seq[Option[Long]])]
 
   /** Cleans the repo resetting the version. */

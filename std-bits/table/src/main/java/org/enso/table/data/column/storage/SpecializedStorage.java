@@ -3,7 +3,7 @@ package org.enso.table.data.column.storage;
 import java.util.AbstractList;
 import java.util.BitSet;
 import java.util.List;
-import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
+import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.index.Index;
@@ -35,13 +35,17 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
   protected final int size;
   private final MapOperationStorage<T, SpecializedStorage<T>> ops;
 
-  /** @inheritDoc */
+  /**
+   * @inheritDoc
+   */
   @Override
   public int size() {
     return size;
   }
 
-  /** @inheritDoc */
+  /**
+   * @inheritDoc
+   */
   @Override
   public int countMissing() {
     Context context = Context.getCurrent();
@@ -69,7 +73,9 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
     return data[idx];
   }
 
-  /** @inheritDoc */
+  /**
+   * @inheritDoc
+   */
   @Override
   public boolean isNa(long idx) {
     return data[(int) idx] == null;
@@ -81,8 +87,9 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
   }
 
   @Override
-  public Storage<?> runVectorizedUnaryMap(String name, MapOperationProblemBuilder problemBuilder) {
-    return ops.runUnaryMap(name, this, problemBuilder);
+  public Storage<?> runVectorizedUnaryMap(
+      String name, MapOperationProblemAggregator problemAggregator) {
+    return ops.runUnaryMap(name, this, problemAggregator);
   }
 
   @Override
@@ -92,14 +99,14 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
 
   @Override
   public Storage<?> runVectorizedBinaryMap(
-      String name, Object argument, MapOperationProblemBuilder problemBuilder) {
-    return ops.runBinaryMap(name, this, argument, problemBuilder);
+      String name, Object argument, MapOperationProblemAggregator problemAggregator) {
+    return ops.runBinaryMap(name, this, argument, problemAggregator);
   }
 
   @Override
   public Storage<?> runVectorizedZip(
-      String name, Storage<?> argument, MapOperationProblemBuilder problemBuilder) {
-    return ops.runZip(name, this, argument, problemBuilder);
+      String name, Storage<?> argument, MapOperationProblemAggregator problemAggregator) {
+    return ops.runZip(name, this, argument, problemAggregator);
   }
 
   @Override
@@ -177,11 +184,45 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
   }
 
   @Override
+  public Storage<?> appendNulls(int count) {
+    T[] newData = newUnderlyingArray(size + count);
+    System.arraycopy(data, 0, newData, 0, size);
+    return newInstance(newData, size + count);
+  }
+
+  @Override
+  public Storage<T> fillMissingFromPrevious(BoolStorage missingIndicator) {
+    if (missingIndicator != null && missingIndicator.countMissing() > 0) {
+      throw new IllegalArgumentException(
+          "Missing indicator must not contain missing values itself.");
+    }
+
+    T[] newData = newUnderlyingArray(size);
+    T previous = null;
+    boolean hasPrevious = false;
+
+    Context context = Context.getCurrent();
+    for (int i = 0; i < size; i++) {
+      boolean isCurrentValueMissing =
+          missingIndicator == null ? isNa(i) : missingIndicator.getItem(i);
+      if (!isCurrentValueMissing) {
+        previous = data[i];
+        hasPrevious = true;
+      }
+
+      newData[i] = hasPrevious ? previous : data[i];
+      context.safepoint();
+    }
+
+    return newInstance(newData, size);
+  }
+
+  @Override
   public List<Object> toList() {
     return new ReadOnlyList<>(this);
   }
 
-  private class ReadOnlyList<S> extends AbstractList<Object> {
+  private static class ReadOnlyList<S> extends AbstractList<Object> {
     private final SpecializedStorage<S> storage;
 
     public ReadOnlyList(SpecializedStorage<S> storage) {

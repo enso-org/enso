@@ -239,8 +239,7 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
                 )}
             </div>
             <div className={`h-0 ${optionsClassName ?? ''}`}>
-                <div className="relative w-full h-max">
-                    <div className="absolute bg-frame-selected rounded-2xl backdrop-blur-3xl top-0 w-full h-full" />
+                <div className="relative w-full h-max before:absolute before:bg-frame before:rounded-2xl before:backdrop-blur-3xl before:top-0 before:w-full before:h-full">
                     <div
                         className={`relative rounded-2xl overflow-auto w-full max-h-10lh ${
                             isDropdownVisible ? '' : 'h-0'
@@ -249,11 +248,11 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
                         {matchingItems.map((item, index) => (
                             <div
                                 key={itemToKey(item)}
-                                className={`relative cursor-pointer first:rounded-t-2xl last:rounded-b-2xl hover:bg-black-a5 p-1 z-1 ${
+                                className={`relative cursor-pointer first:rounded-t-2xl last:rounded-b-2xl hover:bg-black/5 p-1 z-1 ${
                                     index === selectedIndex
-                                        ? 'bg-black-a5'
+                                        ? 'bg-black/5'
                                         : valuesSet.has(item)
-                                        ? 'bg-black-a10'
+                                        ? 'bg-black/10'
                                         : ''
                                 }`}
                                 onMouseDown={event => {

@@ -1,36 +1,47 @@
 package org.enso.table.data.column.builder;
 
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.type.*;
+import org.enso.table.data.column.storage.type.AnyObjectType;
+import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.BooleanType;
+import org.enso.table.data.column.storage.type.DateTimeType;
+import org.enso.table.data.column.storage.type.DateType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
-import org.enso.table.problems.AggregatedProblems;
-import org.enso.table.problems.WithAggregatedProblems;
+import org.enso.table.data.column.storage.type.StorageType;
+import org.enso.table.data.column.storage.type.TextType;
+import org.enso.table.data.column.storage.type.TimeOfDayType;
+import org.enso.table.problems.ProblemAggregator;
 
 /** A builder for creating columns dynamically. */
 public abstract class Builder {
-  /** Constructs a builder accepting values of a specific type.
-   * <p>
-   * If {@code type} is {@code null}, it will return an {@link InferredBuilder} that will infer the type from the data.
+  /**
+   * Constructs a builder accepting values of a specific type.
+   *
+   * <p>If {@code type} is {@code null}, it will return an {@link InferredBuilder} that will infer
+   * the type from the data.
    */
-  public static Builder getForType(StorageType type, int size) {
-    Builder builder = switch (type) {
-      case AnyObjectType x -> new MixedBuilder(size);
-      case BooleanType x -> new BoolBuilder(size);
-      case DateType x -> new DateBuilder(size);
-      case DateTimeType x -> new DateTimeBuilder(size);
-      case TimeOfDayType x -> new TimeOfDayBuilder(size);
-      case FloatType floatType -> switch (floatType.bits()) {
-        case BITS_64 -> NumericBuilder.createDoubleBuilder(size);
-        default -> throw new IllegalArgumentException("Only 64-bit floats are currently supported.");
-      };
-      case IntegerType integerType -> NumericBuilder.createLongBuilder(size, integerType);
-      case TextType textType -> new StringBuilder(size, textType);
-      case BigIntegerType x -> new BigIntegerBuilder(size);
-      case null -> new InferredBuilder(size);
-    };
-    assert builder.getType().equals(type);
+  public static Builder getForType(
+      StorageType type, int size, ProblemAggregator problemAggregator) {
+    Builder builder =
+        switch (type) {
+          case AnyObjectType x -> new MixedBuilder(size);
+          case BooleanType x -> new BoolBuilder(size);
+          case DateType x -> new DateBuilder(size);
+          case DateTimeType x -> new DateTimeBuilder(size);
+          case TimeOfDayType x -> new TimeOfDayBuilder(size);
+          case FloatType floatType -> switch (floatType.bits()) {
+            case BITS_64 -> NumericBuilder.createDoubleBuilder(size, problemAggregator);
+            default -> throw new IllegalArgumentException(
+                "Only 64-bit floats are currently supported.");
+          };
+          case IntegerType integerType -> NumericBuilder.createLongBuilder(
+              size, integerType, problemAggregator);
+          case TextType textType -> new StringBuilder(size, textType);
+          case BigIntegerType x -> new BigIntegerBuilder(size, problemAggregator);
+          case null -> new InferredBuilder(size, problemAggregator);
+        };
+    assert java.util.Objects.equals(builder.getType(), type);
     return builder;
   }
 
@@ -83,23 +94,21 @@ public abstract class Builder {
    */
   public abstract Storage<?> seal();
 
-  /** @return the current storage type of this builder */
+  /**
+   * @return the current storage type of this builder
+   */
   public abstract StorageType getType();
-
-  /** @return any problems that occurred when building the Storage. */
-  public AggregatedProblems getProblems() {
-    return AggregatedProblems.of();
-  }
-
-  public WithAggregatedProblems<Storage<?>> sealWithProblems() {
-    return new WithAggregatedProblems<>(seal(), getProblems());
-  }
 
   /** Adds nulls to the builder to ensure that it reaches the size specified. */
   public void fillUpToSize(int size) {
     int currentSize = getCurrentSize();
     if (currentSize > size) {
-      throw new IllegalArgumentException("fillUpToSize("+size+") called on a builder that already has "+currentSize+" elements.");
+      throw new IllegalArgumentException(
+          "fillUpToSize("
+              + size
+              + ") called on a builder that already has "
+              + currentSize
+              + " elements.");
     }
 
     if (currentSize < size) {

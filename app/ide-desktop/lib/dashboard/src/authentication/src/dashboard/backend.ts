@@ -45,7 +45,11 @@ export const SecretId = newtype.newtypeConstructor<SecretId>()
 /** Unique identifier for an arbitrary asset. */
 export type AssetId = IdType[keyof IdType]
 
-/** Unique identifier for a file tag or project tag. */
+/** The name of an asset label. */
+export type LabelName = newtype.Newtype<string, 'LabelName'>
+export const LabelName = newtype.newtypeConstructor<LabelName>()
+
+/** Unique identifier for a label. */
 export type TagId = newtype.Newtype<string, 'TagId'>
 export const TagId = newtype.newtypeConstructor<TagId>()
 
@@ -241,29 +245,11 @@ export interface SecretInfo {
     id: SecretId
 }
 
-/** The type of asset a specific tag can be applied to. */
-export enum TagObjectType {
-    file = 'File',
-    project = 'Project',
-}
-
-/** A file tag or project tag. */
-export interface Tag {
-    /* eslint-disable @typescript-eslint/naming-convention */
-    organization_id: UserOrOrganizationId
+/** A label. */
+export interface Label {
     id: TagId
-    name: string
-    value: string
-    object_type: TagObjectType
-    object_id: string
-    /* eslint-enable @typescript-eslint/naming-convention */
-}
-
-/** Metadata uniquely identifying a file tag or project tag. */
-export interface TagInfo {
-    id: TagId
-    name: string
-    value: string
+    value: LabelName
+    color: LChColor
 }
 
 /** Type of application that a {@link Version} applies to.
@@ -353,6 +339,65 @@ export enum FilterBy {
     trashed = 'Trashed',
 }
 
+/** A color in the LCh colorspace. */
+export interface LChColor {
+    readonly lightness: number
+    readonly chroma: number
+    readonly hue: number
+    readonly alpha?: number
+}
+
+/** A pre-selected list of colors to be used in color pickers. */
+export const COLORS: readonly [LChColor, ...LChColor[]] = [
+    /* eslint-disable @typescript-eslint/no-magic-numbers */
+    // Red
+    { lightness: 50, chroma: 66, hue: 7 },
+    // Orange
+    { lightness: 50, chroma: 66, hue: 34 },
+    // Yellow
+    { lightness: 50, chroma: 66, hue: 80 },
+    // Turquoise
+    { lightness: 50, chroma: 66, hue: 139 },
+    // Teal
+    { lightness: 50, chroma: 66, hue: 172 },
+    // Blue
+    { lightness: 50, chroma: 66, hue: 271 },
+    // Lavender
+    { lightness: 50, chroma: 66, hue: 295 },
+    // Pink
+    { lightness: 50, chroma: 66, hue: 332 },
+    // Light blue
+    { lightness: 50, chroma: 22, hue: 252 },
+    // Dark blue
+    { lightness: 22, chroma: 13, hue: 252 },
+    /* eslint-enable @typescript-eslint/no-magic-numbers */
+]
+
+/** Converts a {@link LChColor} to a CSS color string. */
+export function lChColorToCssColor(color: LChColor): string {
+    return 'alpha' in color
+        ? `lcha(${color.lightness}% ${color.chroma} ${color.hue} / ${color.alpha})`
+        : `lch(${color.lightness}% ${color.chroma} ${color.hue})`
+}
+
+export const COLOR_STRING_TO_COLOR = new Map(
+    COLORS.map(color => [lChColorToCssColor(color), color])
+)
+
+export const INITIAL_COLOR_COUNTS = new Map(COLORS.map(color => [lChColorToCssColor(color), 0]))
+
+/** The color that is used for the least labels. Ties are broken by order. */
+export function leastUsedColor(labels: Iterable<Label>) {
+    const colorCounts = new Map(INITIAL_COLOR_COUNTS)
+    for (const label of labels) {
+        const colorString = lChColorToCssColor(label.color)
+        colorCounts.set(colorString, (colorCounts.get(colorString) ?? 0) + 1)
+    }
+    const min = Math.min(...colorCounts.values())
+    const [minColor] = [...colorCounts.entries()].find(kv => kv[1] === min) ?? []
+    return minColor == null ? COLORS[0] : COLOR_STRING_TO_COLOR.get(minColor) ?? COLORS[0]
+}
+
 // =================
 // === AssetType ===
 // =================
@@ -419,6 +464,8 @@ export interface BaseAsset {
      * (and currently safe) to assume it is always a {@link DirectoryId}. */
     parentId: DirectoryId
     permissions: UserPermission[] | null
+    labels: LabelName[] | null
+    description: string | null
 }
 
 /** Metadata uniquely identifying a directory entry.
@@ -455,6 +502,8 @@ export function createSpecialLoadingAsset(directoryId: DirectoryId): SpecialLoad
         parentId: directoryId,
         permissions: [],
         projectState: null,
+        labels: [],
+        description: null,
     }
 }
 
@@ -472,6 +521,8 @@ export function createSpecialEmptyAsset(directoryId: DirectoryId): SpecialEmptyA
         parentId: directoryId,
         permissions: [],
         projectState: null,
+        labels: [],
+        description: null,
     }
 }
 
@@ -569,6 +620,12 @@ export interface UpdateDirectoryRequestBody {
     title: string
 }
 
+/** HTTP request body for the "update asset" endpoint. */
+export interface UpdateAssetRequestBody {
+    parentDirectoryId: DirectoryId | null
+    description: string | null
+}
+
 /** HTTP request body for the "create project" endpoint. */
 export interface CreateProjectRequestBody {
     projectName: string
@@ -599,16 +656,15 @@ export interface CreateSecretRequestBody {
 
 /** HTTP request body for the "create tag" endpoint. */
 export interface CreateTagRequestBody {
-    name: string
     value: string
-    objectType: TagObjectType
-    objectId: string
+    color: LChColor
 }
 
 /** URL query string parameters for the "list directory" endpoint. */
 export interface ListDirectoryRequestParams {
     parentId: string | null
     filterBy: FilterBy | null
+    labels: LabelName[] | null
     recentProjects: boolean
 }
 
@@ -617,11 +673,6 @@ export interface UploadFileRequestParams {
     fileId: string | null
     fileName: string | null
     parentDirectoryId: DirectoryId | null
-}
-
-/** URL query string parameters for the "list tags" endpoint. */
-export interface ListTagsRequestParams {
-    tagType: TagObjectType
 }
 
 /** URL query string parameters for the "list versions" endpoint. */
@@ -737,6 +788,12 @@ export abstract class Backend {
         body: UpdateDirectoryRequestBody,
         title: string | null
     ): Promise<UpdatedDirectory>
+    /** Change the parent directory of an asset. */
+    abstract updateAsset(
+        assetId: AssetId,
+        body: UpdateAssetRequestBody,
+        title: string | null
+    ): Promise<void>
     /** Delete an arbitrary asset. */
     abstract deleteAsset(assetId: AssetId, title: string | null): Promise<void>
     /** Restore an arbitrary asset from the trash. */
@@ -774,12 +831,18 @@ export abstract class Backend {
     abstract getSecret(secretId: SecretId, title: string | null): Promise<Secret>
     /** Return the secret environment variables accessible by the user. */
     abstract listSecrets(): Promise<SecretInfo[]>
-    /** Create a file tag or project tag. */
-    abstract createTag(body: CreateTagRequestBody): Promise<TagInfo>
-    /** Return file tags or project tags accessible by the user. */
-    abstract listTags(params: ListTagsRequestParams): Promise<Tag[]>
-    /** Delete a file tag or project tag. */
-    abstract deleteTag(tagId: TagId): Promise<void>
+    /** Create a label used for categorizing assets. */
+    abstract createTag(body: CreateTagRequestBody): Promise<Label>
+    /** Return all labels accessible by the user. */
+    abstract listTags(): Promise<Label[]>
+    /** Set the full list of labels for a specific asset. */
+    abstract associateTag(
+        assetId: AssetId,
+        tagIds: LabelName[],
+        title: string | null
+    ): Promise<void>
+    /** Delete a label. */
+    abstract deleteTag(tagId: TagId, value: LabelName): Promise<void>
     /** Return a list of backend or IDE versions. */
     abstract listVersions(params: ListVersionsRequestParams): Promise<Version[]>
 }

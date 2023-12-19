@@ -8,6 +8,7 @@ import DefaultUserIcon from 'enso-assets/default_user.svg'
 import TriangleDownIcon from 'enso-assets/triangle_down.svg'
 
 import * as chat from 'enso-chat/chat'
+import * as gtag from 'enso-common/src/gtag'
 
 import * as animations from '../../animations'
 import * as authProvider from '../../authentication/providers/auth'
@@ -16,6 +17,7 @@ import * as dateTime from '../dateTime'
 import * as loggerProvider from '../../providers/logger'
 import * as newtype from '../../newtype'
 
+import * as pageSwitcher from './pageSwitcher'
 import Twemoji from './twemoji'
 
 // ================
@@ -34,9 +36,9 @@ const MessageId = newtype.newtypeConstructor<chat.MessageId>()
 // The project shouldn't be jumped to automatically, since it may take a long time
 // to switch projects, and undo history may be lost.
 
-const HELP_CHAT_ID = 'enso-chat'
+export const HELP_CHAT_ID = 'enso-chat'
 export const ANIMATION_DURATION_MS = 200
-const WIDTH_PX = 336
+export const WIDTH_PX = 336
 /** The size (both width and height) of each reaction button. */
 const REACTION_BUTTON_SIZE = 20
 /** The size (both width and height) of each reaction on a message. */
@@ -263,8 +265,10 @@ function ChatHeader(props: InternalChatHeaderProps) {
             setIsThreadListVisible(false)
         }
         document.addEventListener('click', onClick)
+        gtag.event('cloud_open_chat')
         return () => {
             document.removeEventListener('click', onClick)
+            gtag.event('cloud_close_chat')
         }
     }, [])
 
@@ -333,7 +337,7 @@ function ChatHeader(props: InternalChatHeaderProps) {
             </div>
             <div className="relative text-sm font-semibold">
                 <div
-                    className={`grid absolute w-full bg-ide-bg shadow-soft clip-path-bottom-shadow overflow-hidden transition-grid-template-rows z-1 ${
+                    className={`grid absolute shadow-soft clip-path-bottom-shadow bg-ide-bg backdrop-blur-3xl overflow-hidden transition-grid-template-rows w-full z-1 ${
                         isThreadListVisible ? 'grid-rows-1fr' : 'grid-rows-0fr'
                     }`}
                 >
@@ -373,6 +377,7 @@ function ChatHeader(props: InternalChatHeaderProps) {
 
 /** Props for a {@link Chat}. */
 export interface ChatProps {
+    page: pageSwitcher.Page
     /** This should only be false when the panel is closing. */
     isOpen: boolean
     doClose: () => void
@@ -380,7 +385,7 @@ export interface ChatProps {
 
 /** Chat sidebar. */
 export default function Chat(props: ChatProps) {
-    const { isOpen, doClose } = props
+    const { page, isOpen, doClose } = props
     const { accessToken: rawAccessToken } = authProvider.useNonPartialUserSession()
     const logger = loggerProvider.useLogger()
 
@@ -693,7 +698,9 @@ export default function Chat(props: ChatProps) {
         return reactDom.createPortal(
             <div
                 style={{ right }}
-                className="text-xs text-chat flex flex-col fixed top-0 right-0 h-screen bg-ide-bg border-ide-bg-dark border-l-2 w-83.5 py-1 z-1"
+                className={`text-xs text-chat flex flex-col fixed top-0 right-0 backdrop-blur-3xl h-screen border-ide-bg-dark border-l-2 w-83.5 py-1 z-1 ${
+                    page === pageSwitcher.Page.editor ? 'bg-ide-bg' : 'bg-frame-selected'
+                }`}
             >
                 <ChatHeader
                     threads={threads}
@@ -777,71 +784,67 @@ export default function Chat(props: ChatProps) {
                         />
                     ))}
                 </div>
-                <div className="rounded-2xl bg-white p-1 mx-2 my-1">
-                    <form onSubmit={sendCurrentMessage}>
-                        <div>
-                            <textarea
-                                ref={messageInputRef}
-                                rows={1}
-                                autoFocus
-                                required
-                                placeholder="Type your message ..."
-                                className="w-full rounded-lg resize-none p-1"
-                                onKeyDown={event => {
-                                    switch (event.key) {
-                                        case 'Enter': {
-                                            // If the shift key is not pressed, submit the form.
-                                            // If the shift key is pressed, keep the default
-                                            // behavior of adding a newline.
-                                            if (!event.shiftKey) {
-                                                event.preventDefault()
-                                                event.currentTarget.form?.requestSubmit()
-                                            }
-                                        }
+                <form className="rounded-2xl bg-white p-1 mx-2 my-1" onSubmit={sendCurrentMessage}>
+                    <textarea
+                        ref={messageInputRef}
+                        rows={1}
+                        autoFocus
+                        required
+                        placeholder="Type your message ..."
+                        className="w-full rounded-lg resize-none p-1"
+                        onKeyDown={event => {
+                            switch (event.key) {
+                                case 'Enter': {
+                                    // If the shift key is not pressed, submit the form.
+                                    // If the shift key is pressed, keep the default
+                                    // behavior of adding a newline.
+                                    if (!event.shiftKey) {
+                                        event.preventDefault()
+                                        event.currentTarget.form?.requestSubmit()
                                     }
-                                }}
-                                onInput={event => {
-                                    const element = event.currentTarget
-                                    element.style.height = '0px'
-                                    element.style.height =
-                                        `min(${MAX_MESSAGE_INPUT_LINES}lh,` +
-                                        `${element.scrollHeight + 1}px)`
-                                    const newIsReplyEnabled = NON_WHITESPACE_CHARACTER_REGEX.test(
-                                        element.value
-                                    )
-                                    if (newIsReplyEnabled !== isReplyEnabled) {
-                                        setIsReplyEnabled(newIsReplyEnabled)
-                                    }
-                                }}
-                            />
-                            <div className="flex">
-                                <button
-                                    type="button"
-                                    disabled={!isReplyEnabled}
-                                    className={`text-xxs text-white rounded-full grow text-left px-1.5 py-1 ${
-                                        isReplyEnabled ? 'bg-gray-400' : 'bg-gray-300'
-                                    }`}
-                                    onClick={event => {
-                                        sendCurrentMessage(event, true)
-                                    }}
-                                >
-                                    New question? Click to start a new thread!
-                                </button>
-                                {/* Spacing. */}
-                                <div className="w-0.5" />
-                                <button
-                                    type="submit"
-                                    disabled={!isReplyEnabled}
-                                    className={`text-white bg-blue-600 rounded-full px-1.5 py-1 ${
-                                        isReplyEnabled ? '' : 'opacity-50'
-                                    }`}
-                                >
-                                    Reply!
-                                </button>
-                            </div>
-                        </div>
-                    </form>
-                </div>
+                                }
+                            }
+                        }}
+                        onInput={event => {
+                            const element = event.currentTarget
+                            element.style.height = '0px'
+                            element.style.height =
+                                `min(${MAX_MESSAGE_INPUT_LINES}lh,` +
+                                `${element.scrollHeight + 1}px)`
+                            const newIsReplyEnabled = NON_WHITESPACE_CHARACTER_REGEX.test(
+                                element.value
+                            )
+                            if (newIsReplyEnabled !== isReplyEnabled) {
+                                setIsReplyEnabled(newIsReplyEnabled)
+                            }
+                        }}
+                    />
+                    <div className="flex">
+                        <button
+                            type="button"
+                            disabled={!isReplyEnabled}
+                            className={`text-xxs text-white rounded-full grow text-left px-1.5 py-1 ${
+                                isReplyEnabled ? 'bg-gray-400' : 'bg-gray-300'
+                            }`}
+                            onClick={event => {
+                                sendCurrentMessage(event, true)
+                            }}
+                        >
+                            New question? Click to start a new thread!
+                        </button>
+                        {/* Spacing. */}
+                        <div className="w-0.5" />
+                        <button
+                            type="submit"
+                            disabled={!isReplyEnabled}
+                            className={`text-white bg-blue-600 rounded-full px-1.5 py-1 ${
+                                isReplyEnabled ? '' : 'opacity-50'
+                            }`}
+                        >
+                            Reply!
+                        </button>
+                    </div>
+                </form>
                 {!isPaidUser && (
                     <button
                         className="text-left leading-5 rounded-2xl bg-call-to-action text-white p-2 mx-2 my-1"

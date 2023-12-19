@@ -35,7 +35,7 @@ const ICON_SIZE_PX = 24
 const ICON_CLASSES = 'w-6 h-6'
 const LOADING_MESSAGE =
     'Your environment is being created. It will take some time, please be patient.'
-/** The corresponding {@link SpinnerState} for each {@link backendModule.ProjectState},
+/** The corresponding {@link spinner.SpinnerState} for each {@link backendModule.ProjectState},
  * when using the remote backend. */
 const REMOTE_SPINNER_STATE: Record<backendModule.ProjectState, spinner.SpinnerState> = {
     [backendModule.ProjectState.closed]: spinner.SpinnerState.initial,
@@ -48,7 +48,7 @@ const REMOTE_SPINNER_STATE: Record<backendModule.ProjectState, spinner.SpinnerSt
     [backendModule.ProjectState.cloning]: spinner.SpinnerState.loadingSlow,
     [backendModule.ProjectState.opened]: spinner.SpinnerState.done,
 }
-/** The corresponding {@link SpinnerState} for each {@link backendModule.ProjectState},
+/** The corresponding {@link spinner.SpinnerState} for each {@link backendModule.ProjectState},
  * when using the local backend. */
 const LOCAL_SPINNER_STATE: Record<backendModule.ProjectState, spinner.SpinnerState> = {
     [backendModule.ProjectState.closed]: spinner.SpinnerState.initial,
@@ -170,8 +170,10 @@ export default function ProjectIcon(props: ProjectIconProps) {
             try {
                 switch (backend.type) {
                     case backendModule.BackendType.remote: {
-                        if (!backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[state]) {
-                            setToastId(toast.toast.loading(LOADING_MESSAGE))
+                        if (state !== backendModule.ProjectState.opened) {
+                            if (!shouldRunInBackground) {
+                                setToastId(toast.toast.loading(LOADING_MESSAGE))
+                            }
                             await backend.openProject(
                                 asset.id,
                                 {
@@ -278,13 +280,22 @@ export default function ProjectIcon(props: ProjectIconProps) {
             case assetEventModule.AssetEventType.newFolder:
             case assetEventModule.AssetEventType.uploadFiles:
             case assetEventModule.AssetEventType.newDataConnector:
-            case assetEventModule.AssetEventType.deleteMultiple:
-            case assetEventModule.AssetEventType.restoreMultiple:
+            case assetEventModule.AssetEventType.cut:
+            case assetEventModule.AssetEventType.cancelCut:
+            case assetEventModule.AssetEventType.move:
+            case assetEventModule.AssetEventType.delete:
+            case assetEventModule.AssetEventType.restore:
+            case assetEventModule.AssetEventType.download:
             case assetEventModule.AssetEventType.downloadSelected:
-            case assetEventModule.AssetEventType.removeSelf: {
+            case assetEventModule.AssetEventType.removeSelf:
+            case assetEventModule.AssetEventType.temporarilyAddLabels:
+            case assetEventModule.AssetEventType.temporarilyRemoveLabels:
+            case assetEventModule.AssetEventType.addLabels:
+            case assetEventModule.AssetEventType.removeLabels:
+            case assetEventModule.AssetEventType.deleteLabel: {
                 // Ignored. Any missing project-related events should be handled by
-                // `ProjectNameColumn`. `deleteMultiple`, `restoreMultiple` and `downloadSelected`
-                // are handled by `AssetRow`.
+                // `ProjectNameColumn`. `deleteMultiple`, `restoreMultiple`, `download`,
+                // and`downloadSelected` are handled by `AssetRow`.
                 break
             }
             case assetEventModule.AssetEventType.openProject: {

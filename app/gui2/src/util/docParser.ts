@@ -1,4 +1,4 @@
-import { parse_doc_to_json } from './ffi'
+import { parse_doc_to_json } from '@/util/ffi'
 
 export function parseDocs(docs: string): Doc.Section[] {
   const json = parse_doc_to_json(docs)

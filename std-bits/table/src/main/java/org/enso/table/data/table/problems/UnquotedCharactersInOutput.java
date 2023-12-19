@@ -1,6 +1,6 @@
 package org.enso.table.data.table.problems;
 
-public class UnquotedCharactersInOutput extends ColumnAggregatedProblems {
+public class UnquotedCharactersInOutput extends ColumnAggregatedProblem {
   public UnquotedCharactersInOutput(String columnName, int row) {
     super(columnName, row);
   }
@@ -11,11 +11,12 @@ public class UnquotedCharactersInOutput extends ColumnAggregatedProblems {
         + getLocationName()
         + " at rows "
         + makeTruncatedRowsString()
-        + " contains characters that need quoting, but quoting is disabled. The generated file may be corrupted.";
+        + " contains characters that need quoting, but quoting is disabled. The generated file may"
+        + " be corrupted.";
   }
 
   @Override
-  public boolean merge(ColumnAggregatedProblems another) {
+  public boolean merge(ColumnAggregatedProblem another) {
     if (another instanceof UnquotedCharactersInOutput
         && this.getLocationName().equals(another.getLocationName())) {
       this.rows.addAll(another.rows);

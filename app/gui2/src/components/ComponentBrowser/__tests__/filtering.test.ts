@@ -1,5 +1,6 @@
 import { expect, test } from 'vitest'
 
+import { Filtering, type MatchResult } from '@/components/ComponentBrowser/filtering'
 import {
   makeCon,
   makeFunction,
@@ -10,8 +11,8 @@ import {
   makeStaticMethod,
   makeType,
 } from '@/stores/suggestionDatabase/entry'
-import type { QualifiedName } from '@/util/qualifiedName'
-import { Filtering } from '../filtering'
+import { unwrap } from '@/util/data/result'
+import { tryQualifiedName, type QualifiedName } from '@/util/qualifiedName'
 
 test.each([
   { ...makeModuleMethod('Standard.Base.Data.read'), groupIndex: 0 },
@@ -19,15 +20,21 @@ test.each([
   { ...makeStaticMethod('Standard.Base.Data.Vector.Vector.new'), groupIndex: 1 },
   makeModule('local.New_Project'),
   makeModule('Standard.Base.Data'),
+  makeModuleMethod('Standard.Base.Data.read_text'),
+  makeStaticMethod('local.Project.Foo.new'),
+  makeStaticMethod('local.Project.Internalization.internalize'),
 ])('$name entry is in the CB main view', (entry) => {
   const filtering = new Filtering({})
   expect(filtering.filter(entry)).not.toBeNull()
 })
 
 test.each([
-  makeModuleMethod('Standard.Base.Data.convert'), // not in group
+  makeModuleMethod('Standard.Base.Data.Vector.some_method'), // not in top group
   { ...makeMethod('Standard.Base.Data.Vector.Vector.get'), groupIndex: 1 }, // not static method
   makeModule('Standard.Base.Data.Vector'), // Not top module
+  makeStaticMethod('Standard.Base.Internal.Foo.bar'), // Internal method
+  makeModule('Standard.Base.Internal'), // Internal module
+  makeModule('Standard.Internal.Foo'), // Internal project
 ])('$name entry is not in the CB main view', (entry) => {
   const filtering = new Filtering({})
   expect(filtering.filter(entry)).toBeNull()
@@ -60,6 +67,18 @@ test.each([
   const substringFiltering = new Filtering({ qualifiedNamePattern: 'local.Proj.Mod' })
   expect(filtering.filter(entry)).toBeNull()
   expect(substringFiltering.filter(entry)).toBeNull()
+})
+
+test('Internal entry is not in the Standard.Base.Data content', () => {
+  const entry = makeModule('Standard.Base.Data.Internal')
+  const filtering = new Filtering({ qualifiedNamePattern: 'Standard.Base.Data' })
+  expect(filtering.filter(entry)).toBeNull()
+})
+
+test('The content of an internal module is displayed', () => {
+  const entry = makeModuleMethod('Standard.Base.Data.Internal.foo')
+  const filtering = new Filtering({ qualifiedNamePattern: 'Standard.Base.Data.Internal' })
+  expect(filtering.filter(entry)).not.toBeNull()
 })
 
 test.each([
@@ -126,14 +145,22 @@ test.each([
   expect(filtering.filter(entry)).toBeNull()
 })
 
-test('An Instance method is shown when self type matches', () => {
-  const entry = makeMethod('Standard.Base.Data.Vector.Vector.get')
+test('An Instance method is shown when self arg matches', () => {
+  const entry1 = makeMethod('Standard.Base.Data.Vector.Vector.get')
+  const entry2 = makeMethod('Standard.Base.Data.Table.get')
   const filteringWithSelfType = new Filtering({
-    selfType: 'Standard.Base.Data.Vector.Vector' as QualifiedName,
+    selfArg: { type: 'known', typename: 'Standard.Base.Data.Vector.Vector' },
   })
-  expect(filteringWithSelfType.filter(entry)).not.toBeNull()
+  expect(filteringWithSelfType.filter(entry1)).not.toBeNull()
+  expect(filteringWithSelfType.filter(entry2)).toBeNull()
+  const filteringWithAnySelfType = new Filtering({
+    selfArg: { type: 'unknown' },
+  })
+  expect(filteringWithAnySelfType.filter(entry1)).not.toBeNull()
+  expect(filteringWithAnySelfType.filter(entry2)).not.toBeNull()
   const filteringWithoutSelfType = new Filtering({ pattern: 'get' })
-  expect(filteringWithoutSelfType.filter(entry)).toBeNull()
+  expect(filteringWithoutSelfType.filter(entry1)).toBeNull()
+  expect(filteringWithoutSelfType.filter(entry2)).toBeNull()
 })
 
 test.each([
@@ -146,7 +173,7 @@ test.each([
   makeMethod('Standard.Base.Data.Vector.Vector2.get'),
 ])('$name is filtered out when Vector self type is specified', (entry) => {
   const filtering = new Filtering({
-    selfType: 'Standard.Base.Data.Vector.Vector' as QualifiedName,
+    selfArg: { type: 'known', typename: 'Standard.Base.Data.Vector.Vector' },
   })
   expect(filtering.filter(entry)).toBeNull()
 })
@@ -157,6 +184,19 @@ test.each(['bar', 'barfoo', 'fo', 'bar_fo_bar'])("%s is not matched by pattern '
   const filtering = new Filtering({ pattern })
   expect(filtering.filter(entry)).toBeNull()
 })
+
+function matchedText(text: string, matchResult: MatchResult) {
+  text = matchResult.matchedAlias ?? text
+  const parts: string[] = []
+  for (const range of [
+    ...(matchResult.definedInRanges ?? []),
+    ...(matchResult.memberOfRanges ?? []),
+    ...(matchResult.nameRanges ?? []),
+  ]) {
+    parts.push(text.slice(range.start, range.end))
+  }
+  return parts.join('')
+}
 
 test('Matching pattern without underscores', () => {
   const pattern = 'foo'
@@ -178,9 +218,23 @@ test('Matching pattern without underscores', () => {
     return filtering.filter(entry)
   })
   expect(matchResults[0]).not.toBeNull()
+  expect(
+    matchedText(matchedSorted[0]!.name, matchResults[0]!),
+    `matchedText('${matchedSorted[0]!.name}')`,
+  ).toEqual(pattern)
   for (let i = 1; i < matchResults.length; i++) {
-    expect(matchResults[i]).not.toBeNull()
-    expect(matchResults[i]?.score).toBeGreaterThan(matchResults[i - 1]?.score ?? Infinity)
+    expect(
+      matchResults[i],
+      `\`matchResults\` for ${JSON.stringify(matchedSorted[i]!)}`,
+    ).not.toBeNull()
+    expect(
+      matchResults[i]!.score,
+      `score('${matchedSorted[i]!.name}') > score('${matchedSorted[i - 1]!.name}')`,
+    ).toBeGreaterThan(matchResults[i - 1]!.score)
+    expect(
+      matchedText(matchedSorted[i]!.name, matchResults[i]!),
+      `matchedText('${matchedSorted[i]!.name}')`,
+    ).toEqual(pattern)
   }
 })
 
@@ -204,9 +258,23 @@ test('Matching pattern with underscores', () => {
     return filtering.filter(entry)
   })
   expect(matchResults[0]).not.toBeNull()
+  expect(
+    matchedText(matchedSorted[0]!.name, matchResults[0]!),
+    `matchedText('${matchedSorted[0]!.name}')`,
+  ).toEqual(pattern)
   for (let i = 1; i < matchResults.length; i++) {
-    expect(matchResults[i]).not.toBeNull()
-    expect(matchResults[i]?.score).toBeGreaterThan(matchResults[i - 1]?.score ?? Infinity)
+    expect(
+      matchResults[i],
+      `\`matchResults\` for ${JSON.stringify(matchedSorted[i]!)}`,
+    ).not.toBeNull()
+    expect(
+      matchResults[i]!.score,
+      `score('${matchedSorted[i]!.name}') > score('${matchedSorted[i - 1]!.name}')`,
+    ).toBeGreaterThan(matchResults[i - 1]!.score)
+    expect(
+      matchedText(matchedSorted[i]!.name, matchResults[i]!),
+      `matchedText('${matchedSorted[i]!.name}')`,
+    ).toEqual(pattern)
   }
 })
 
@@ -225,4 +293,31 @@ test('Unstable filtering', () => {
   })
   expect(unstableFiltering.filter(stableEntry)).not.toBeNull()
   expect(unstableFiltering.filter(unstableEntry)).not.toBeNull()
+})
+
+test.each([
+  makeModuleMethod('local.Project.Module.func1'),
+  makeType('local.Project.Module.Type'),
+  makeCon('local.Project.Module.Type.Con'),
+  makeStaticMethod('local.Project.Module.Type.method'),
+  makeLocal('local.Project.Module', 'operator1'),
+  makeFunction('local.Project.Module', 'func2'),
+])('$name entry is in Local Scope view', (entry) => {
+  const filtering = new Filtering(
+    { showLocal: true },
+    unwrap(tryQualifiedName('local.Project.Module')),
+  )
+  expect(filtering.filter(entry)).not.toBeNull()
+})
+
+test.each([
+  makeModuleMethod('Standard.Base.Data.read'),
+  makeLocal('local.Project.Another_Module', 'local_in_another_module'),
+  makeFunction('local.Project.Another_Module', 'function_in_another_module'),
+])('$name entry is not in Local Scope View', (entry) => {
+  const filtering = new Filtering(
+    { showLocal: true },
+    unwrap(tryQualifiedName('local.Project.Module')),
+  )
+  expect(filtering.filter(entry)).toBeNull()
 })

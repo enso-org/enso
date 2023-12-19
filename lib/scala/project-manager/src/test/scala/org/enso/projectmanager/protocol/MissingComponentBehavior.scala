@@ -59,13 +59,13 @@ trait MissingComponentBehavior {
   }
 
   /** This behaviour should be tested in a separate test suite, as it affects
-    *  the test environment and if run together with other tests it could affect
-    *  their results.
+    * the test environment and if run together with other tests it could affect
+    * their results.
     */
   def correctlyHandleMissingRuntimeInPresenceOfEngine(): Unit = {
     "make sure to check if the runtime is installed even if the engine was " +
     "already installed" in {
-      uninstallRuntime(GraalVMVersion("2.0.0", "11"))
+      uninstallRuntime(GraalVMVersion("23.2.0", "21.0.0"))
 
       val client = new WsTestClient(address)
       client.send(

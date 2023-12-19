@@ -138,31 +138,9 @@ pub fn locate_graal() -> Result<PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::cache;
-    use crate::log::setup_logging;
-    use crate::programs::graal::Gu;
     use crate::programs::Java;
     use semver::BuildMetadata;
     use semver::Prerelease;
-
-    #[tokio::test]
-    #[ignore]
-    async fn test_is_enabled() -> Result {
-        setup_logging()?;
-        let graal_version = Version::parse("17.0.7+7.1").unwrap();
-        let os = TARGET_OS;
-        let arch = Arch::X86_64;
-        let client = Octocrab::default();
-        let graalvm = GraalVM { graal_version, os, arch, client };
-
-        graalvm.install_if_missing(&cache::Cache::new_default().await?).await?;
-
-        Gu.require_present().await?;
-
-        // let graalvm = graalvm.is_active().await?;
-        // assert!(graalvm);
-        Ok(())
-    }
 
     /// Check that we correctly recognize both the GraalVM version and the Java version.
     #[test]

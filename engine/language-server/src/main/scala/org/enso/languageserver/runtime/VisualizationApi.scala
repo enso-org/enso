@@ -14,9 +14,10 @@ object VisualizationApi {
       extends Method("executionContext/executeExpression") {
 
     case class Params(
+      executionContextId: UUID,
       visualizationId: UUID,
       expressionId: UUID,
-      visualizationConfig: VisualizationConfiguration
+      expression: String
     )
 
     implicit val hasParams: HasParams.Aux[this.type, ExecuteExpression.Params] =

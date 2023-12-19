@@ -1,5 +1,9 @@
 package org.enso.table.data.column.builder;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.BitSet;
+import java.util.Objects;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.operation.cast.ToFloatStorageConverter;
 import org.enso.table.data.column.storage.BoolStorage;
@@ -13,27 +17,24 @@ import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.error.ValueTypeMismatchException;
-import org.enso.table.problems.AggregatedProblems;
+import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.BitSets;
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.util.BitSet;
-import java.util.Objects;
-
-/**
- * A builder for floating point columns.
- */
+/** A builder for floating point columns. */
 public class DoubleBuilder extends NumericBuilder {
-  DoubleBuilder(BitSet isMissing, long[] data, int currentSize) {
+  DoubleBuilder(
+      BitSet isMissing, long[] data, int currentSize, ProblemAggregator problemAggregator) {
     super(isMissing, data, currentSize);
+    precisionLossAggregator = new PrecisionLossAggregator(problemAggregator);
   }
 
   @Override
   public void retypeToMixed(Object[] items) {
-    throw new IllegalStateException("The DoubleBuilder cannot be retyped to the Mixed type, because it would lose " +
-        "type information about integers that were converted to doubles. If recasting is needed, " +
-        "InferringDoubleBuilder should be used instead. This error leaking is a bug in the Table library.");
+    throw new IllegalStateException(
+        "The DoubleBuilder cannot be retyped to the Mixed type, because it would lose type"
+            + " information about integers that were converted to doubles. If recasting is needed,"
+            + " InferringDoubleBuilder should be used instead. This error leaking is a bug in the"
+            + " Table library.");
   }
 
   @Override
@@ -159,8 +160,8 @@ public class DoubleBuilder extends NumericBuilder {
 
   /**
    * Append a new integer value to this builder, converting it to a double value.
-   * <p>
-   * It ensures that any loss of precision is reported.
+   *
+   * <p>It ensures that any loss of precision is reported.
    */
   public void appendLong(long integer) {
     if (currentSize >= this.data.length) {
@@ -187,14 +188,15 @@ public class DoubleBuilder extends NumericBuilder {
 
   /**
    * Converts and `long` value into `double`.
-   * <p>
-   * It verifies if the integer can be exactly represented in a double, and if not, it reports a warning.
+   *
+   * <p>It verifies if the integer can be exactly represented in a double, and if not, it reports a
+   * warning.
    */
   protected double convertIntegerToDouble(long integer) {
     double floatingPointValue = (double) integer;
     boolean isLosingPrecision = (long) floatingPointValue != integer;
     if (isLosingPrecision) {
-      reportPrecisionLoss(integer, floatingPointValue);
+      precisionLossAggregator.reportPrecisionLoss(integer, floatingPointValue);
     }
     return floatingPointValue;
   }
@@ -204,27 +206,35 @@ public class DoubleBuilder extends NumericBuilder {
     BigInteger reconstructed = BigDecimal.valueOf(floatingPointValue).toBigInteger();
     boolean isLosingPrecision = !bigInteger.equals(reconstructed);
     if (isLosingPrecision) {
-      reportPrecisionLoss(bigInteger, floatingPointValue);
+      precisionLossAggregator.reportPrecisionLoss(bigInteger, floatingPointValue);
     }
     return floatingPointValue;
   }
 
-  protected final void reportPrecisionLoss(Number number, double approximation) {
-    if (precisionLoss == null) {
-      precisionLoss = new LossOfIntegerPrecision(number, approximation);
-    } else {
-      precisionLoss.incrementAffectedRows();
+  protected static class PrecisionLossAggregator extends ProblemAggregator {
+    protected PrecisionLossAggregator(ProblemAggregator parent) {
+      super(parent);
+    }
+
+    private LossOfIntegerPrecision instance = null;
+
+    @Override
+    public ProblemSummary summarize() {
+      ProblemSummary summary = super.summarize();
+      if (instance != null) {
+        summary.add(instance);
+      }
+      return summary;
+    }
+
+    final void reportPrecisionLoss(Number number, double approximation) {
+      if (instance == null) {
+        instance = new LossOfIntegerPrecision(number, approximation);
+      } else {
+        instance.incrementAffectedRows();
+      }
     }
   }
 
-  protected LossOfIntegerPrecision precisionLoss = null;
-
-  @Override
-  public AggregatedProblems getProblems() {
-    AggregatedProblems problems = new AggregatedProblems(1);
-    if (precisionLoss != null) {
-      problems.add(precisionLoss);
-    }
-    return problems;
-  }
+  protected final PrecisionLossAggregator precisionLossAggregator;
 }

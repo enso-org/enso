@@ -7,7 +7,6 @@ import project.Internal.Java_Problems
 import project.Internal.Parse_Values_Helper
 from project.Errors import Conversion_Failure
 
-polyglot java import org.enso.table.data.column.operation.cast.CastProblemBuilder
 polyglot java import org.enso.table.data.column.storage.type.StorageType
 
 ## PRIVATE
@@ -36,19 +35,3 @@ is_a_valid_parse_target target_type =
         atom : Meta.Atom ->
             Parse_Values_Helper.valid_parse_targets.contains atom.constructor.name
         _ -> False
-
-## PRIVATE
-type Cast_Problem_Builder
-    ## PRIVATE
-    Value to_java
-
-    ## PRIVATE
-       Returns a vector of all reported problems.
-    get_problems : Vector
-    get_problems self =
-        Java_Problems.parse_aggregated_problems self.to_java.getAggregatedProblems
-
-## PRIVATE
-new_java_problem_builder : Text -> StorageType -> Cast_Problem_Builder
-new_java_problem_builder column_name target_storage_type =
-    Cast_Problem_Builder.Value (CastProblemBuilder.new column_name target_storage_type)

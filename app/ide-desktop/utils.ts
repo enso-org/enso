@@ -15,7 +15,6 @@ export const INDENT_SIZE = 4
 // ===================
 
 /** Get the environment variable value.
- *
  * @param name - The name of the environment variable.
  * @returns The value of the environment variable.
  * @throws {Error} If the environment variable is not set. */
@@ -29,7 +28,6 @@ export function requireEnv(name: string) {
 }
 
 /** Read the path from environment variable and resolve it.
- *
  * @param name - The name of the environment variable.
  * @returns The resolved path.
  * @throws {Error} If the environment variable is not set. */
@@ -38,7 +36,6 @@ export function requireEnvResolvedPath(name: string) {
 }
 
 /** Read the path from environment variable and resolve it. Verify that it exists.
- *
  * @param name - The name of the environment variable.
  * @returns The resolved path.
  * @throws {Error} If the environment variable is not set or path does not exist. */

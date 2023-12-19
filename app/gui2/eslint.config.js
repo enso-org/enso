@@ -9,7 +9,7 @@ const DIR_NAME = path.dirname(url.fileURLToPath(import.meta.url))
 
 const conf = [
   {
-    ignores: ['rust-ffi/pkg', 'dist', 'src/generated'],
+    ignores: ['rust-ffi/pkg', 'dist', 'src/generated', 'templates'],
   },
   ...compat.extends('plugin:vue/vue3-recommended'),
   eslintJs.configs.recommended,
@@ -26,7 +26,7 @@ const conf = [
           './tsconfig.server.json',
           './tsconfig.app.vitest.json',
           './tsconfig.server.vitest.json',
-          './parser-codegen/tsconfig.json',
+          './tsconfig.story.json',
         ],
       },
     },
@@ -42,6 +42,12 @@ const conf = [
           argsIgnorePattern: '^_',
         },
       ],
+    },
+  },
+  {
+    files: ['stories/*.vue'],
+    rules: {
+      'vue/multi-word-component-names': 0,
     },
   },
 ]

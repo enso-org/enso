@@ -17,6 +17,7 @@ import java.net.URI;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import org.enso.compiler.context.FramePointer;
 import org.enso.interpreter.node.expression.builtin.debug.DebugBreakpointNode;
 import org.enso.interpreter.node.expression.builtin.text.util.ToJavaStringNode;
 import org.enso.interpreter.node.expression.debug.CaptureResultScopeNode;
@@ -25,7 +26,6 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.scope.FramePointer;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.polyglot.debugger.DebugServerInfo;
 import org.graalvm.options.OptionDescriptor;
@@ -105,12 +105,12 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
     }
 
     private Object getValue(MaterializedFrame frame, FramePointer ptr) {
-      return getProperFrame(frame, ptr).getValue(ptr.getFrameSlotIdx());
+      return getProperFrame(frame, ptr).getValue(ptr.frameSlotIdx());
     }
 
     private MaterializedFrame getProperFrame(MaterializedFrame frame, FramePointer ptr) {
       MaterializedFrame currentFrame = frame;
-      for (int i = 0; i < ptr.getParentLevel(); i++) {
+      for (int i = 0; i < ptr.parentLevel(); i++) {
         currentFrame = Function.ArgumentsHelper.getLocalScope(currentFrame.getArguments());
       }
       return currentFrame;

@@ -5,6 +5,7 @@ import java.util.UUID;
 import java.util.logging.Level;
 import org.enso.interpreter.instrument.execution.RuntimeContext;
 import org.enso.interpreter.instrument.job.DeserializeLibrarySuggestionsJob;
+import org.enso.interpreter.instrument.job.StartBackgroundProcessingJob;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.polyglot.runtime.Runtime$Api$InvalidateModulesIndexResponse;
 import scala.Option;
@@ -25,17 +26,17 @@ public final class InvalidateModulesIndexCommand extends AsynchronousCommand {
   }
 
   @Override
+  @SuppressWarnings("unchecked")
   public Future<BoxedUnit> executeAsynchronously(RuntimeContext ctx, ExecutionContext ec) {
     return Future.apply(
         () -> {
           TruffleLogger logger = ctx.executionService().getLogger();
           long writeCompilationLockTimestamp = ctx.locking().acquireWriteCompilationLock();
           try {
-            ctx.jobControlPlane().abortAllJobs();
+            ctx.jobControlPlane().abortBackgroundJobs(DeserializeLibrarySuggestionsJob.class);
 
             EnsoContext context = ctx.executionService().getContext();
             context.getTopScope().getModules().forEach(module -> module.setIndexed(false));
-            ctx.jobControlPlane().stopBackgroundJobs();
 
             context
                 .getPackageRepository()
@@ -47,6 +48,7 @@ public final class InvalidateModulesIndexCommand extends AsynchronousCommand {
                       return BoxedUnit.UNIT;
                     });
 
+            StartBackgroundProcessingJob.startBackgroundJobs(ctx);
             reply(new Runtime$Api$InvalidateModulesIndexResponse(), ctx);
           } finally {
             ctx.locking().releaseWriteCompilationLock();

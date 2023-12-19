@@ -82,7 +82,10 @@ fn import_body<'s>(
         let field = match header.code.as_ref() {
             "polyglot" => {
                 body = Some(
-                    precedence.resolve(tokens).map(expect_ident).unwrap_or_else(expected_nonempty),
+                    precedence
+                        .resolve(tokens)
+                        .map(expect_ident)
+                        .unwrap_or_else(|| expected_nonempty(header.code.position_after())),
                 );
                 &mut polyglot
             }
@@ -91,7 +94,7 @@ fn import_body<'s>(
                     precedence
                         .resolve(tokens)
                         .map(expect_qualified)
-                        .unwrap_or_else(expected_nonempty),
+                        .unwrap_or_else(|| expected_nonempty(header.code.position_after())),
                 );
                 &mut from
             }
@@ -112,14 +115,17 @@ fn import_body<'s>(
             }
             "as" => {
                 body = Some(
-                    precedence.resolve(tokens).map(expect_ident).unwrap_or_else(expected_nonempty),
+                    precedence
+                        .resolve(tokens)
+                        .map(expect_ident)
+                        .unwrap_or_else(|| expected_nonempty(header.code.position_after())),
                 );
                 &mut as_
             }
             "hiding" => {
                 body = Some(
                     sequence_tree(precedence, tokens, expect_ident)
-                        .unwrap_or_else(expected_nonempty),
+                        .unwrap_or_else(|| expected_nonempty(header.code.position_after())),
                 );
                 &mut hiding
             }
@@ -175,7 +181,7 @@ fn export_body<'s>(
                     precedence
                         .resolve(tokens)
                         .map(expect_qualified)
-                        .unwrap_or_else(expected_nonempty),
+                        .unwrap_or_else(|| expected_nonempty(header.code.position_after())),
                 );
                 &mut from
             }
@@ -196,14 +202,17 @@ fn export_body<'s>(
             }
             "as" => {
                 body = Some(
-                    precedence.resolve(tokens).map(expect_ident).unwrap_or_else(expected_nonempty),
+                    precedence
+                        .resolve(tokens)
+                        .map(expect_ident)
+                        .unwrap_or_else(|| expected_nonempty(header.code.position_after())),
                 );
                 &mut as_
             }
             "hiding" => {
                 body = Some(
                     sequence_tree(precedence, tokens, expect_ident)
-                        .unwrap_or_else(expected_nonempty),
+                        .unwrap_or_else(|| expected_nonempty(header.code.position_after())),
                 );
                 &mut hiding
             }
@@ -438,10 +447,9 @@ fn case_body<'s>(
             _ => initial_case.push(item),
         }
     }
-    if let Some(_first) = initial_case.first() {
-        // FIXME: Create 0-length span at offset preceding `_first`.
-        let newline =
-            syntax::token::newline(Code::empty_without_offset(), Code::empty_without_offset());
+    if !initial_case.is_empty() {
+        let location = of_.code.position_after();
+        let newline = syntax::token::newline(location.clone(), location);
         case_builder.push(syntax::item::Line { newline, items: initial_case });
     }
     block.into_iter().for_each(|line| case_builder.push(line));
@@ -825,10 +833,10 @@ fn expect_qualified(tree: syntax::Tree) -> syntax::Tree {
     }
 }
 
-fn expected_nonempty<'s>() -> syntax::Tree<'s> {
+fn expected_nonempty(location: Code) -> syntax::Tree {
     let empty = syntax::Tree::ident(syntax::token::ident(
-        Code::empty_without_offset(),
-        Code::empty_without_offset(),
+        location.clone(),
+        location,
         false,
         0,
         false,

@@ -1,6 +1,9 @@
 package org.enso.table.data.index;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.enso.base.text.TextFoldingStrategy;
@@ -9,13 +12,14 @@ import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
 import org.enso.table.error.TooManyColumnsException;
-import org.enso.table.problems.AggregatedProblems;
+import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.NameDeduplicator;
 import org.graalvm.polyglot.Context;
 
 public class CrossTabIndex {
   private static final int MAXIMUM_CROSS_TAB_COLUMN_COUNT = 10000;
 
+  private final ProblemAggregator problemAggregator;
   private Column[] xColumns;
 
   private Column[] yColumns;
@@ -28,7 +32,9 @@ public class CrossTabIndex {
 
   private UnorderedMultiValueKey[][] grid;
 
-  public CrossTabIndex(Column[] xColumns, Column[] yColumns, int tableSize) {
+  public CrossTabIndex(
+      Column[] xColumns, Column[] yColumns, int tableSize, ProblemAggregator problemAggregator) {
+    this.problemAggregator = problemAggregator;
     this.xColumns = xColumns;
     this.yColumns = yColumns;
 
@@ -37,7 +43,10 @@ public class CrossTabIndex {
         Stream.concat(Arrays.stream(xColumns), Arrays.stream(yColumns)).toArray(Column[]::new);
     combinedIndex =
         MultiValueIndex.makeUnorderedIndex(
-            combinedColumns, tableSize, TextFoldingStrategy.unicodeNormalizedFold);
+            combinedColumns,
+            tableSize,
+            TextFoldingStrategy.unicodeNormalizedFold,
+            problemAggregator);
 
     // Generate lists of combined keys and subkeys
     List<UnorderedMultiValueKey> combinedKeys = new ArrayList<>(combinedIndex.keys());
@@ -105,7 +114,8 @@ public class CrossTabIndex {
 
   public Table makeCrossTabTable(Aggregator[] aggregates, String[] aggregateNames) {
     Context context = Context.getCurrent();
-    NameDeduplicator outputTableNameDeduplicator = new NameDeduplicator();
+    NameDeduplicator outputTableNameDeduplicator =
+        NameDeduplicator.createDefault(problemAggregator);
 
     final int columnCount = yColumns.length + xKeysCount() * aggregates.length;
     if (columnCount > MAXIMUM_CROSS_TAB_COLUMN_COUNT) {
@@ -122,14 +132,16 @@ public class CrossTabIndex {
     // Create the storage
     Builder[] storage = new Builder[columnCount];
     for (int i = 0; i < yColumns.length; i++) {
-      storage[i] = Builder.getForType(yColumns[i].getStorage().getType(), yKeysCount());
+      storage[i] =
+          Builder.getForType(yColumns[i].getStorage().getType(), yKeysCount(), problemAggregator);
       context.safepoint();
     }
 
     for (int i = 0; i < xKeysCount(); i++) {
       int offset = yColumns.length + i * aggregates.length;
       for (int j = 0; j < aggregates.length; j++) {
-        storage[offset + j] = Builder.getForType(aggregates[j].getType(), yKeysCount());
+        storage[offset + j] =
+            Builder.getForType(aggregates[j].getType(), yKeysCount(), problemAggregator);
         context.safepoint();
       }
     }
@@ -150,7 +162,7 @@ public class CrossTabIndex {
         }
 
         for (int i = 0; i < aggregates.length; i++) {
-          storage[offset + i].appendNoGrow(aggregates[i].aggregate(rowIds));
+          storage[offset + i].appendNoGrow(aggregates[i].aggregate(rowIds, problemAggregator));
         }
 
         offset += aggregates.length;
@@ -198,16 +210,6 @@ public class CrossTabIndex {
       offset += aggregates.length;
     }
 
-    // Merge Problems
-    AggregatedProblems[] problems = new AggregatedProblems[aggregates.length + 2];
-    problems[0] = combinedIndex.getProblems();
-    problems[1] = AggregatedProblems.of(outputTableNameDeduplicator.getProblems());
-    for (int i = 0; i < aggregates.length; i++) {
-      problems[i + 2] = aggregates[i].getProblems();
-      context.safepoint();
-    }
-    AggregatedProblems merged = AggregatedProblems.merge(problems);
-
-    return new Table(output, merged);
+    return new Table(output);
   }
 }

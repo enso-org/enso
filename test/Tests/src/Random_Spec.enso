@@ -1,79 +1,161 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Random.Random_Generator
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
 spec = Test.group "Random" <|
-    ## Random number generator seeded to make the test deterministic
-
-    Test.specify "should allow generating random booleans" <|
-        rng = Random.new 0
-        0.up_to 3 . map _->rng.boolean . should_equal [True, True, False]
-
     Test.specify "should allow generating random integers" <|
-        rng = Random.new 12345
-        rng.integer . should_equal 51
-        rng.integer 0 10000 . should_equal 9080
-        rng.integer 0 100000000000000 . should_fail_with Illegal_Argument
+        Random.set_seed 12345
+        Random.integer 0 100 . should_equal 51
+        Random.integer 0 10000 . should_equal 9080
 
-        random_range = 0.up_to 1000 . map _->rng.integer . compute_bulk [Statistic.Minimum, Statistic.Maximum]
+        random_range = 0.up_to 1000 . map (_-> Random.integer 0 100) . compute_bulk [Statistic.Minimum, Statistic.Maximum]
         (random_range.at 0 >= 0) . should_equal True
         (random_range.at 1 <= 100) . should_equal True
 
     Test.specify "should allow generating random floats" <|
-        rng = Random.new 12345
-        rng.float . should_equal 0.3618031071604718 epsilon=0.00000001
-        rng.float . should_equal 0.932993485288541 epsilon=0.00000001
+        Random.set_seed 12345
+        Random.float . should_equal 0.3618031071604718 epsilon=0.00000001
+        Random.float . should_equal 0.932993485288541 epsilon=0.00000001
 
-        random_range = 0.up_to 1000 . map _->rng.float . compute_bulk [Statistic.Minimum, Statistic.Maximum]
+        random_range = 0.up_to 1000 . map _->Random.float . compute_bulk [Statistic.Minimum, Statistic.Maximum]
         (random_range.at 0 >= 0) . should_equal True
         (random_range.at 1 <= 1) . should_equal True
 
+    Test.specify "should allow generating random booleans" <|
+        Random.set_seed 0
+        0.up_to 3 . map _->Random.boolean . should_equal [True, True, False]
+
     Test.specify "should allow generating random gaussian floats" <|
-        rng = Random.new 12345
-        rng.gaussian . should_equal -0.187808989658912 epsilon=0.00000001
-        rng.gaussian . should_equal 0.5884363051154796 epsilon=0.00000001
+        Random.set_seed 12345
+        Random.gaussian . should_equal -0.187808989658912 epsilon=0.00000001
+        Random.gaussian . should_equal 0.5884363051154796 epsilon=0.00000001
+        Random.gaussian standard_deviation=2 . should_equal 1.8976095608800851
+        Random.gaussian mean=5 . should_equal 4.505719279373956
+        Random.gaussian standard_deviation=2 mean=5 . should_equal 2.55317612563977
+
+        0.up_to 100 . map (_-> Random.gaussian standard_deviation=10) . any (_ > 3.0) . should_be_true
+        0.up_to 100 . map (_-> Random.gaussian mean=1000000) . any (_ > 1000000) . should_be_true
+        0.up_to 100 . map (_-> Random.gaussian) . any (_ > 1000000) . should_be_false
 
     Test.specify "should allow to generate random indices" <|
-        rng = Random.new 0
+        Random.set_seed 0
+
         two_out_of_three = 0.up_to 100 . map _->
-            Random.random_indices 3 2 rng
-        permutations = 0.up_to 100 . map _->
-            Random.random_indices 3 3 rng
-        permutations_2 = 0.up_to 100 . map _->
-            Random.random_indices 3 100 rng
+            Random.indices 3 2
+        two_out_of_four = 0.up_to 10000 . map seed->
+            Random.set_seed seed
+            Random.indices 4 2
+
         two_out_of_three . should_contain_the_same_elements_as [[0, 1], [0, 2], [1, 2], [1, 0], [2, 0], [2, 1]]
+        two_out_of_four . should_contain_the_same_elements_as <|
+            [[0, 1], [0, 2], [1, 2], [1, 0], [2, 0], [2, 1], [0, 3], [1, 3], [2, 3], [3, 0], [3, 1], [3, 2]]
+
+        permutations = 0.up_to 100 . map _->
+            Random.indices 3 3
+        permutations_2 = 0.up_to 100 . map _->
+            Random.indices 3 100
 
         all_permutations = [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0]]
         permutations . should_contain_the_same_elements_as all_permutations
         permutations_2 . should_contain_the_same_elements_as all_permutations
 
-        Random.random_indices 0 0 rng . should_equal []
-        Random.random_indices 0 100 rng . should_equal []
-        Random.random_indices 1 1 rng . should_equal [0]
-        Random.random_indices 1 100 rng . should_equal [0]
-        Random.random_indices 100 0 rng . should_equal []
+        Random.indices 0 0 . should_equal []
+        Random.indices 0 100 . should_equal []
+        Random.indices 1 1 . should_equal [0]
+        Random.indices 1 . should_equal [0]
+        Random.indices 1 100 . should_equal [0]
+        Random.indices 100 0 . should_equal []
 
-        two_out_of_four = 0.up_to 10000 . map seed->
-            Random.random_indices 4 2 (Random.new seed)
-        two_out_of_four . should_contain_the_same_elements_as <|
-            [[0, 1], [0, 2], [1, 2], [1, 0], [2, 0], [2, 1], [0, 3], [1, 3], [2, 3], [3, 0], [3, 1], [3, 2]]
+    Test.specify "should allow generating random dates" <|
+        Random.set_seed 4000
+        Random.date (Date.new 2023 03 01) (Date.new 2023 10 15) . should_equal (Date.new 2023 6 9)
+        Random.date (Date.new 2023 03 01) (Date.new 2023 10 15) . should_equal (Date.new 2023 7 16)
+        Random.date (Date.new 2023 03 01) (Date.new 2023 10 15) . should_equal (Date.new 2023 10 12)
 
-    Test.specify "should allow to select a random sample from a vector" <|
-        rng = Random.new 0
+        all_from_small_range = [Date.new 2023 03 01, Date.new 2023 03 02, Date.new 2023 03 03]
+        dates = 0.up_to 100 . map (_-> Random.date (Date.new 2023 03 01) (Date.new 2023 03 04))
+        dates.should_contain_the_same_elements_as all_from_small_range
+
+    Test.specify "should allow generating random dates, with end_exclusive=False" <|
+        all_from_small_range = [Date.new 2023 03 01, Date.new 2023 03 02, Date.new 2023 03 03, Date.new 2023 03 04]
+        dates = 0.up_to 100 . map (_-> Random.date (Date.new 2023 03 01) (Date.new 2023 03 04) end_exclusive=False)
+        dates.should_contain_the_same_elements_as all_from_small_range
+
+    Test.specify "should allow generating random times" <|
+        Random.set_seed 12345
+        start = Time_Of_Day.new 8 12 15
+        end = Time_Of_Day.new 9 40 2
+        Random.time start end . should_equal (Time_Of_Day.new 9 31 10)
+        Random.time start end . should_equal (Time_Of_Day.new 8 34 31)
+        Random.time start end . should_equal (Time_Of_Day.new 9 27 48)
+        Random.time . should_equal (Time_Of_Day.new 0 13 48)
+        Random.time . should_equal (Time_Of_Day.new 14 20 55)
+        Random.time . should_equal (Time_Of_Day.new 8 48 4)
+
+        small_range_start = Time_Of_Day.new 8 12 15
+        small_range_end = Time_Of_Day.new 8 12 18
+        all_from_small_range = [Time_Of_Day.new 8 12 15, Time_Of_Day.new 8 12 16, Time_Of_Day.new 8 12 17, Time_Of_Day.new 8 12 18]
+        times = 0.up_to 100 . map (_-> Random.time small_range_start small_range_end)
+        times.should_contain_the_same_elements_as all_from_small_range
+
+    Test.specify "should allow generating random UUIDs" <|
+        Random.uuid . should_only_contain_elements_in "0123456789abcdef-"
+
+    Test.specify "should allow to select random items from a vector, without replacement" <|
+        Random.set_seed 0
         vector = ["A", "B", "C"]
         shuffles = 0.up_to 100 . map _->
-            Random.sample vector 2 rng
+            Random.items vector 2
         shuffles . should_contain_the_same_elements_as [["A", "B"], ["A", "C"], ["B", "A"], ["B", "C"], ["C", "A"], ["C", "B"]]
 
-        overflow = Random.sample vector 100 rng
-        overflow.length . should_equal 3
-        overflow.should_contain_the_same_elements_as vector
+        Random.items ["A", "A", "A"] 2 . should_equal ["A", "A"]
+        Random.items ["A", "A", "A"] 0 . should_equal []
+        Random.items ["A", "A", "A"] 3 . should_equal ["A", "A", "A"]
 
-        Random.sample ["A", "A", "A"] 2 rng . should_equal ["A", "A"]
-        Random.sample ["A", "A", "A"] 0 rng . should_equal []
-        Random.sample ["A", "A", "A"] 3 rng . should_equal ["A", "A", "A"]
-        Random.sample ["A", "A", "A"] 100 rng . should_equal ["A", "A", "A"]
+    Test.specify "should allow to select random items from a vector, with replacement" <|
+        Random.set_seed 0
+        vector = 0.up_to 10 . to_vector
+
+        Random.items vector with_replacement=True . length . should_equal 1
+        Random.items vector 4 with_replacement=True . length . should_equal 4
+        Random.items vector 10 with_replacement=True . length . should_equal 10
+        Random.items vector 11 with_replacement=True . length . should_equal 11
+        Random.items vector 100 with_replacement=True . length . should_equal 100
+
+        0.up_to 20 . map _->
+            items = Random.items vector 5 with_replacement=True
+            items.should_only_contain_elements_in vector
+            items.length . should_equal 5
+
+    Test.specify "should not allow to select more items than the vector has, without replacement" <|
+        vector = 0.up_to 10 . to_vector
+        Random.items vector 11 . should_fail_with Illegal_Argument
+        Random.items vector 100 . should_fail_with Illegal_Argument
+
+    Test.specify "should allow to generate random permutations" <|
+        Random.set_seed 0
+        list = [0, 1, 2]
+        permutations = 0.up_to 100 . map _->
+            Random.permute list
+        permutations_2 = 0.up_to 100 . map _->
+            Random.permute list
+
+        all_permutations = [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0]]
+        permutations . should_contain_the_same_elements_as all_permutations
+        permutations_2 . should_contain_the_same_elements_as all_permutations
+
+    Test.specify "should not allow using a too-large integer range" <|
+        high = 9223372036854775807000
+        Random.integer 0 high . should_fail_with Illegal_Argument
+
+    Test.specify "Can call an instance directly" <|
+        Random.new_generator . should_be_a Random_Generator
+        Random.new_generator 12345 . should_be_a Random_Generator
+        Random.new_generator 12345 . integer 0 100 . should_equal 51
+        Random.new_generator 12345 . float . should_equal 0.3618031071604718 epsilon=0.00000001
+        Random.new_generator 12345 . gaussian . should_equal -0.187808989658912 epsilon=0.00000001
 
 main = Test_Suite.run_main spec

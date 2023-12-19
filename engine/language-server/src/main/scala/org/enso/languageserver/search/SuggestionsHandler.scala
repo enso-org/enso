@@ -331,17 +331,14 @@ final class SuggestionsHandler(
 
       handlerAction.pipeTo(handler)
 
-      if (state.shouldStartBackgroundProcessing) {
-        runtimeConnector ! Api.Request(Api.StartBackgroundProcessing())
-        context.become(
-          initialized(
-            projectName,
-            graph,
-            clients,
-            state.backgroundProcessingStarted()
-          )
+      context.become(
+        initialized(
+          projectName,
+          graph,
+          clients,
+          state.backgroundProcessingStarted()
         )
-      }
+      )
 
     case Completion(path, pos, selfType, returnType, tags, isStatic) =>
       val selfTypes = selfType.toList.flatMap(ty => ty :: graph.getParents(ty))
@@ -426,14 +423,7 @@ final class SuggestionsHandler(
         )
       )
       action.pipeTo(handler)(sender())
-      context.become(
-        initialized(
-          projectName,
-          graph,
-          clients,
-          state.backgroundProcessingStopped()
-        )
-      )
+      context.become(initialized(projectName, graph, clients, state))
 
     case ProjectNameUpdated(name, updates) =>
       updates.foreach(sessionRouter ! _)

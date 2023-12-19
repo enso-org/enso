@@ -178,7 +178,7 @@ spec =
                 "The Column \"Name\"","B","C","D","E"
                 "foo",1.0,"foo",1,
                 "'bar'","1\"000\"000.5","[[[My Type :: 44]]]",2,13:55:00
-                "\"baz\"",2.2,"Tue, 21 Jun 2022",3,
+                "\"baz\"",2.2,"Tuesday, 21 Jun 2022",3,
             expected_text = expected_text1 + '"one, two, three",-1.5,42,"4\\"000",\n'
             text = Data.read_text file
             text.should_equal expected_text

@@ -2,11 +2,9 @@ package org.enso.table.parsing;
 
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.parsing.problems.ProblemAggregator;
-import org.enso.table.parsing.problems.ProblemAggregatorImpl;
-import org.enso.table.parsing.problems.SimplifiedProblemAggregator;
-import org.enso.table.problems.AggregatedProblems;
-import org.enso.table.problems.WithAggregatedProblems;
+import org.enso.table.parsing.problems.CommonParseProblemAggregator;
+import org.enso.table.parsing.problems.ParseProblemAggregator;
+import org.enso.table.parsing.problems.ShortCircuitParseProblemAggregator;
 import org.graalvm.polyglot.Context;
 
 /**
@@ -28,9 +26,9 @@ public class TypeInferringParser extends DatatypeParser {
   }
 
   @Override
-  public Object parseSingleValue(String text, ProblemAggregator problemAggregator) {
+  public Object parseSingleValue(String text, ParseProblemAggregator problemAggregator) {
     for (IncrementalDatatypeParser parser : baseParsers) {
-      SimplifiedProblemAggregator internal = new SimplifiedProblemAggregator();
+      ShortCircuitParseProblemAggregator internal = new ShortCircuitParseProblemAggregator();
       Object result = parser.parseSingleValue(text, internal);
       if (!internal.hasProblems()) {
         return result;
@@ -41,27 +39,30 @@ public class TypeInferringParser extends DatatypeParser {
   }
 
   @Override
-  public WithAggregatedProblems<Storage<?>> parseColumn(
-      String columnName, Storage<String> sourceStorage) {
+  public Storage<?> parseColumn(
+      Storage<String> sourceStorage, CommonParseProblemAggregator problemAggregator) {
     // If there are no values, the Auto parser would guess some random type (the first one that is
     // checked). Instead, we just return the empty column unchanged.
     boolean hasNoValues =
         (sourceStorage.size() == 0) || (sourceStorage.countMissing() == sourceStorage.size());
     if (hasNoValues) {
-      return fallbackParser.parseColumn(columnName, sourceStorage);
+      return fallbackParser.parseColumn(sourceStorage, problemAggregator);
     }
 
     Context context = Context.getCurrent();
     parsers:
     for (IncrementalDatatypeParser parser : baseParsers) {
-      Builder builder = parser.makeBuilderWithCapacity(sourceStorage.size());
-      var aggregator = new ProblemAggregatorImpl(columnName);
+      CommonParseProblemAggregator innerAggregator = problemAggregator.createContextAwareChild();
+      Builder builder = parser.makeBuilderWithCapacity(sourceStorage.size(), innerAggregator);
 
       for (int i = 0; i < sourceStorage.size(); ++i) {
         String cell = sourceStorage.getItemBoxed(i);
         if (cell != null) {
-          Object parsed = parser.parseSingleValue(cell, aggregator);
-          if (aggregator.hasProblems()) {
+          Object parsed = parser.parseSingleValue(cell, innerAggregator);
+          if (innerAggregator.hasProblems()) {
+            // We continue parsing with the next parser, so we discard currently accumulated parse
+            // problems.
+            innerAggregator.detachFromParent();
             continue parsers;
           }
           builder.appendNoGrow(parsed);
@@ -72,11 +73,9 @@ public class TypeInferringParser extends DatatypeParser {
         context.safepoint();
       }
 
-      return new WithAggregatedProblems<>(
-          builder.seal(),
-          AggregatedProblems.merge(aggregator.getAggregatedProblems(), builder.getProblems()));
+      return builder.seal();
     }
 
-    return fallbackParser.parseColumn(columnName, sourceStorage);
+    return fallbackParser.parseColumn(sourceStorage, problemAggregator);
   }
 }

@@ -1,6 +1,6 @@
 package org.enso.table.data.table.problems;
 
-public class UnquotedDelimiter extends ColumnAggregatedProblems {
+public class UnquotedDelimiter extends ColumnAggregatedProblem {
   private final String message;
 
   public UnquotedDelimiter(String columnName, int row, String message) {
@@ -14,7 +14,7 @@ public class UnquotedDelimiter extends ColumnAggregatedProblems {
   }
 
   @Override
-  public boolean merge(ColumnAggregatedProblems another) {
+  public boolean merge(ColumnAggregatedProblem another) {
     if (another instanceof UnquotedDelimiter
         && this.getLocationName().equals(another.getLocationName())
         && this.message.equals(((UnquotedDelimiter) another).message)) {

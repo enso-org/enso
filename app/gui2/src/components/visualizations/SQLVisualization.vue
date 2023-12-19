@@ -1,5 +1,6 @@
 <script lang="ts">
 export const name = 'SQL Query'
+export const icon = 'braces'
 export const inputType = 'Standard.Database.Data.Table.Table | Standard.Database.Data.Column.Column'
 export const defaultPreprocessor = [
   'Standard.Visualization.SQL.Visualization',
@@ -15,9 +16,9 @@ type Data = SQLData | Error
 
 interface SQLData {
   error: undefined
-  dialect: string
+  dialect: string | undefined
   code: string
-  interpolations: SQLInterpolation[]
+  interpolations: SQLInterpolation[] | undefined
 }
 
 interface SQLInterpolation {
@@ -31,19 +32,13 @@ interface Error {
   code: undefined
   interpolations: undefined
 }
-
-declare const sqlFormatter: typeof import('sql-formatter')
 </script>
 
 <script setup lang="ts">
+import { DEFAULT_THEME, type RGBA, type Theme } from '@/components/visualizations/builtins'
+import { VisualizationContainer } from '@/util/visualizationBuiltins'
 import { computed } from 'vue'
-
-// @ts-expect-error
-// eslint-disable-next-line no-redeclare
-import * as sqlFormatter from 'https://cdn.jsdelivr.net/npm/sql-formatter@13.0.0/+esm'
-
-import VisualizationContainer from '@/components/VisualizationContainer.vue'
-import { DEFAULT_THEME, type RGBA, type Theme } from './builtins.ts'
+const sqlFormatter = await import('sql-formatter')
 
 const props = defineProps<{ data: Data }>()
 
@@ -55,10 +50,10 @@ const language = computed(() =>
     : 'sql',
 )
 const formatted = computed(() => {
-  if (props.data.error != null) {
+  if (props.data.error != null || props.data.code == null) {
     return undefined
   }
-  const params = props.data.interpolations.map((param) =>
+  const params = (props.data.interpolations ?? []).map((param) =>
     renderInterpolationParameter(theme, param),
   )
 
@@ -137,8 +132,6 @@ function renderRegularInterpolation(value: string, fgColor: RGBA, bgColor: RGBA)
 </template>
 
 <style scoped>
-@import url('https://fonts.cdnfonts.com/css/dejavu-sans-mono');
-
 .SQLVisualization {
   padding: 4px;
 }
@@ -146,7 +139,7 @@ function renderRegularInterpolation(value: string, fgColor: RGBA, bgColor: RGBA)
 
 <style>
 .SQLVisualization .sql {
-  font-family: 'DejaVu Sans Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
   margin-left: 7px;
   margin-top: 5px;

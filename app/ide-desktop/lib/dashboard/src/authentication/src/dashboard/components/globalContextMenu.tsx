@@ -14,17 +14,30 @@ import NewDataConnectorModal from './newDataConnectorModal'
 /** Props for a {@link GlobalContextMenu}. */
 export interface GlobalContextMenuProps {
     hidden?: boolean
+    hasCopyData: boolean
     directoryKey: backendModule.DirectoryId | null
     directoryId: backendModule.DirectoryId | null
     dispatchAssetListEvent: (event: assetListEventModule.AssetListEvent) => void
+    doPaste: (
+        newParentKey: backendModule.AssetId | null,
+        newParentId: backendModule.DirectoryId | null
+    ) => void
 }
 
 /** A context menu available everywhere in the directory. */
 export default function GlobalContextMenu(props: GlobalContextMenuProps) {
-    const { hidden = false, directoryKey, directoryId, dispatchAssetListEvent } = props
+    const {
+        hidden = false,
+        hasCopyData,
+        directoryKey,
+        directoryId,
+        dispatchAssetListEvent,
+        doPaste,
+    } = props
     const { backend } = backendProvider.useBackend()
     const { setModal, unsetModal } = modalProvider.useSetModal()
     const filesInputRef = React.useRef<HTMLInputElement>(null)
+    const isCloud = backend.type === backendModule.BackendType.remote
     return (
         <ContextMenu hidden={hidden}>
             {!hidden && (
@@ -81,21 +94,23 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
                     }
                 }}
             />
-            <MenuEntry
-                hidden={hidden}
-                action={shortcuts.KeyboardAction.newProject}
-                doAction={() => {
-                    unsetModal()
-                    dispatchAssetListEvent({
-                        type: assetListEventModule.AssetListEventType.newProject,
-                        parentKey: directoryKey,
-                        parentId: directoryId,
-                        templateId: null,
-                        onSpinnerStateChange: null,
-                    })
-                }}
-            />
-            {backend.type !== backendModule.BackendType.local && (
+            {isCloud && (
+                <MenuEntry
+                    hidden={hidden}
+                    action={shortcuts.KeyboardAction.newProject}
+                    doAction={() => {
+                        unsetModal()
+                        dispatchAssetListEvent({
+                            type: assetListEventModule.AssetListEventType.newProject,
+                            parentKey: directoryKey,
+                            parentId: directoryId,
+                            templateId: null,
+                            onSpinnerStateChange: null,
+                        })
+                    }}
+                />
+            )}
+            {isCloud && (
                 <MenuEntry
                     hidden={hidden}
                     action={shortcuts.KeyboardAction.newFolder}
@@ -109,7 +124,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
                     }}
                 />
             )}
-            {backend.type !== backendModule.BackendType.local && (
+            {isCloud && (
                 <MenuEntry
                     hidden={hidden}
                     action={shortcuts.KeyboardAction.newDataConnector}
@@ -128,6 +143,16 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
                                 }}
                             />
                         )
+                    }}
+                />
+            )}
+            {isCloud && directoryKey == null && hasCopyData && (
+                <MenuEntry
+                    hidden={hidden}
+                    action={shortcuts.KeyboardAction.paste}
+                    doAction={() => {
+                        unsetModal()
+                        doPaste(null, null)
                     }}
                 />
             )}

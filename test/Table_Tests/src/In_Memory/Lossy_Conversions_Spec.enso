@@ -78,10 +78,6 @@ spec =
             Problems.assume_no_problems c6
             c6.to_vector.map .to_text . should_equal ([x+1, 1.0, x+2, "a", x+3].map .to_text)
 
-            # It should also work for from_vector_repeated:
-            c7 = Column.from_vector_repeated "X" [1.5, x+2, 100] 10
-            Problems.expect_only_warning Loss_Of_Integer_Precision c7
-
         Test.specify "should not be reported when numeric operation mixes Float and Integer" <|
             t = table_builder [["A", [y]], ["B", [1.0]]]
             a = t.at "A"

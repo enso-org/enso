@@ -1,10 +1,14 @@
+import { sha3_224 as SHA3 } from '@noble/hashes/sha3'
+import { bytesToHex } from '@noble/hashes/utils'
 import { Client } from '@open-rpc/client-js'
 import { ObservableV2 } from 'lib0/observable'
 import { uuidv4 } from 'lib0/random'
-import { SHA3 } from 'sha3'
+import { z } from 'zod'
+import { walkFs } from './languageServer/files'
 import type {
   Checksum,
   ContextId,
+  Event,
   ExecutionEnvironment,
   ExpressionId,
   FileEdit,
@@ -22,11 +26,76 @@ import type { Uuid } from './yjsModel'
 const DEBUG_LOG_RPC = false
 const RPC_TIMEOUT_MS = 15000
 
+export enum ErrorCode {
+  ACCESS_DENIED = 100,
+  FILE_SYSTEM_ERROR = 1000,
+  CONTENT_ROOT_NOT_FOUND = 1001,
+  FILE_NOT_FOUND = 1003,
+  FILE_EXISTS = 1004,
+  OPERATION_TIMEOUT = 1005,
+  NOT_DIRECTORY = 1006,
+  NOT_FILE = 1007,
+  CANNOT_OVERWRITE = 1008,
+  READ_OUT_OF_BOUNDS = 1009,
+  CANNOT_DECODE = 1010,
+  STACK_ITEM_NOT_FOUND = 2001,
+  CONTEXT_NOT_FOUND = 2002,
+  EMPTY_STACK = 2003,
+  INVALID_STACK_ITEM = 2004,
+  MODULE_NOT_FOUND = 2005,
+  VISUALIZATION_NOT_FOUND = 2006,
+  VISUALIZATION_EXPRESSION_ERROR = 2007,
+  FILE_NOT_OPENED = 3001,
+  TEXT_EDIT_VALIDATION_ERROR = 3002,
+  INVALID_VERSION = 3003,
+  WRITE_DENIED = 3004,
+  CAPABILITY_NOT_ACQUIRED = 5001,
+  SESSION_NOT_INITIALIZED = 6001,
+  SESSION_ALREADY_INITIALIZED = 6002,
+  RESOURCES_INITIALIZATION_ERROR = 6003,
+  SUGGESTION_DATABASE_ERROR = 7001,
+  PROJECT_NOT_FOUND = 7002,
+  MODULE_NAME_NOT_RESOLVED = 7003,
+  SUGGESTION_NOT_FOUND = 7004,
+  EDITION_NOT_FOUND = 8001,
+  LIBRARY_ALREADY_EXISTS = 8002,
+  LIBRARY_REPOSITORY_AUTHENTICATION_ERROR = 8003,
+  LIBRARY_PUBLISH_ERROR = 8004,
+  LIBRARY_UPLOAD_ERROR = 8005,
+  LIBRARY_DOWNLOAD_ERROR = 8006,
+  LOCAL_LIBRARY_NOT_FOUND = 8007,
+  LIBRARY_NOT_RESOLVED = 8008,
+  INVALID_LIBRARY_NAME = 8009,
+  DEPENDENCY_DISCOVERY_ERROR = 8010,
+  INVALID_SEMVER_VERSION = 8011,
+  EXPRESSION_NOT_FOUND = 9001,
+  FAILED_TO_APPLY_EDITS = 9002,
+  REFACTORING_NOT_SUPPORTED = 9003,
+}
+
+const RemoteRpcErrorSchema = z.object({
+  code: z.nativeEnum(ErrorCode),
+  message: z.string(),
+  data: z.optional(z.any()),
+})
+type RemoteRpcErrorParsed = z.infer<typeof RemoteRpcErrorSchema>
+
+export class RemoteRpcError {
+  code: ErrorCode
+  message: string
+  data?: any
+  constructor(error: RemoteRpcErrorParsed) {
+    this.code = error.code
+    this.message = error.message
+    this.data = error.data
+  }
+}
+
 export class LsRpcError extends Error {
-  cause: Error
+  cause: RemoteRpcError | Error
   request: string
   params: object
-  constructor(cause: Error, request: string, params: object) {
+  constructor(cause: RemoteRpcError | Error, request: string, params: object) {
     super(`Language server request '${request}' failed.`)
     this.cause = cause
     this.request = request
@@ -64,7 +133,10 @@ export class LanguageServer extends ObservableV2<Notifications> {
       }
       return await this.client.request({ method, params }, RPC_TIMEOUT_MS)
     } catch (e) {
-      if (e instanceof Error) {
+      const remoteError = RemoteRpcErrorSchema.safeParse(e)
+      if (remoteError.success) {
+        throw new LsRpcError(new RemoteRpcError(remoteError.data), method, params)
+      } else if (e instanceof Error) {
         throw new LsRpcError(e, method, params)
       }
       throw e
@@ -83,6 +155,10 @@ export class LanguageServer extends ObservableV2<Notifications> {
   /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#filereceivestreeupdates) */
   acquireReceivesTreeUpdates(path: Path): Promise<void> {
     return this.acquireCapability('file/receivesTreeUpdates', { path })
+  }
+
+  acquireExecutionContextCanModify(contextId: ContextId): Promise<void> {
+    return this.acquireCapability('executionContext/canModify', { contextId })
   }
 
   /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#sessioninitprotocolconnection) */
@@ -246,14 +322,16 @@ export class LanguageServer extends ObservableV2<Notifications> {
 
   /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#executioncontextexecuteexpression) */
   executeExpression(
+    executionContextId: Uuid,
     visualizationId: Uuid,
     expressionId: ExpressionId,
-    visualizationConfig: VisualizationConfiguration,
+    expression: string,
   ): Promise<void> {
     return this.request('executionContext/executeExpression', {
+      executionContextId,
       visualizationId,
       expressionId,
-      visualizationConfig,
+      expression,
     })
   }
 
@@ -304,11 +382,55 @@ export class LanguageServer extends ObservableV2<Notifications> {
     return this.request('runtime/getComponentGroups', {})
   }
 
+  /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#profilingstart) */
+  profilingStart(memorySnapshot?: boolean): Promise<void> {
+    return this.request('profiling/start', { memorySnapshot })
+  }
+
+  /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#profilingstop) */
+  profilingStop(): Promise<void> {
+    return this.request('profiling/stop', {})
+  }
+
+  /** A helper function to subscribe to file updates.
+   * Please use `ls.on('file/event')` directly if the initial `'Added'` notifications are not
+   * needed. */
+  watchFiles(
+    rootId: Uuid,
+    segments: string[],
+    callback: (event: Event<'file/event'>) => void,
+    retry: <T>(cb: () => Promise<T>) => Promise<T> = (f) => f(),
+  ) {
+    let running = true
+    ;(async () => {
+      this.on('file/event', callback)
+      walkFs(this, { rootId, segments }, (type, path) => {
+        if (
+          !running ||
+          type !== 'File' ||
+          path.segments.length < segments.length ||
+          segments.some((seg, i) => seg !== path.segments[i])
+        )
+          return
+        callback({
+          path: { rootId: path.rootId, segments: path.segments.slice(segments.length) },
+          kind: 'Added',
+        })
+      })
+      await retry(() => this.acquireReceivesTreeUpdates({ rootId, segments }))
+      if (!running) return
+    })()
+    return () => {
+      running = false
+      this.off('file/event', callback)
+    }
+  }
+
   dispose() {
     this.client.close()
   }
 }
 
 export function computeTextChecksum(text: string): Checksum {
-  return new SHA3(224).update(text).digest('hex') as Checksum
+  return bytesToHex(SHA3.create().update(text).digest()) as Checksum
 }

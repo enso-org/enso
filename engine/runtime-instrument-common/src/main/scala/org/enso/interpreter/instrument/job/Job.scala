@@ -25,17 +25,16 @@ abstract class Job[+A](
   def run(implicit ctx: RuntimeContext): A
 }
 
-/** The job queue can contain only one job of this type with the same `key`.
-  * When a job of this type is added to the job queue, previous duplicate jobs
-  * are cancelled.
-  *
-  * @param key a unique job key
-  * @param contextIds affected executions contests' ids
-  * @param mayInterruptIfRunning determines if the job may be interruptd when
-  *                              running
+/** The job queue can contain only one job of this type decided by the
+  * `equalsTo` method. When a job of this type is added to the job queue,
+  * previous duplicate jobs are cancelled.
   */
-abstract class UniqueJob[+A](
-  val key: UUID,
-  contextIds: List[UUID],
-  mayInterruptIfRunning: Boolean
-) extends Job[A](contextIds, isCancellable = false, mayInterruptIfRunning)
+trait UniqueJob[A] { self: Job[A] =>
+
+  /** Decide if this job is the same as the other job.
+    *
+    * @param that the other job to compare with
+    * @return `true` if `this` job is considered the same as `that` job
+    */
+  def equalsTo(that: UniqueJob[_]): Boolean
+}

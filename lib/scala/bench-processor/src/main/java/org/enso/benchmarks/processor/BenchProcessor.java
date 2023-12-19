@@ -1,12 +1,11 @@
 package org.enso.benchmarks.processor;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.FilerException;
@@ -19,6 +18,7 @@ import javax.tools.Diagnostic.Kind;
 import org.enso.benchmarks.BenchGroup;
 import org.enso.benchmarks.BenchSpec;
 import org.enso.benchmarks.ModuleBenchSuite;
+import org.enso.benchmarks.Utils;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.MethodNames.TopScope;
 import org.enso.polyglot.RuntimeOptions;
@@ -44,6 +44,7 @@ public class BenchProcessor extends AbstractProcessor {
           "import java.util.List;",
           "import java.util.Objects;",
           "import java.util.concurrent.TimeUnit;",
+          "import java.util.logging.Level;",
           "import org.openjdk.jmh.annotations.Benchmark;",
           "import org.openjdk.jmh.annotations.BenchmarkMode;",
           "import org.openjdk.jmh.annotations.Mode;",
@@ -69,23 +70,7 @@ public class BenchProcessor extends AbstractProcessor {
           "import org.enso.benchmarks.Utils;");
 
   public BenchProcessor() {
-    File currentDir = null;
-    try {
-      currentDir =
-          new File(
-              BenchProcessor.class.getProtectionDomain().getCodeSource().getLocation().toURI());
-    } catch (URISyntaxException e) {
-      failWithMessage("ensoDir not found: " + e.getMessage());
-    }
-    for (; currentDir != null; currentDir = currentDir.getParentFile()) {
-      if (currentDir.getName().equals("enso")) {
-        break;
-      }
-    }
-    if (currentDir == null) {
-      failWithMessage("Unreachable: Could not find Enso root directory");
-    }
-    ensoDir = currentDir;
+    ensoDir = Utils.findRepoRootDir();
 
     // Note that ensoHomeOverride does not have to exist, only its parent directory
     ensoHomeOverride = ensoDir.toPath().resolve("distribution").resolve("component").toFile();
@@ -113,7 +98,8 @@ public class BenchProcessor extends AbstractProcessor {
               .allowExperimentalOptions(true)
               .allowIO(IOAccess.ALL)
               .allowAllAccess(true)
-              .logHandler(new ByteArrayOutputStream())
+              .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
+              .logHandler(System.err)
               .option(RuntimeOptions.PROJECT_ROOT, projectRootDir.getAbsolutePath())
               .option(RuntimeOptions.LANGUAGE_HOME_OVERRIDE, ensoHomeOverride.getAbsolutePath())
               .build()) {
@@ -163,12 +149,17 @@ public class BenchProcessor extends AbstractProcessor {
   }
 
   private boolean validateGroup(BenchGroup group) {
-    List<String> specNames = group.specs().stream().map(BenchSpec::name).collect(Collectors.toList());
+    List<String> specNames =
+        group.specs().stream().map(BenchSpec::name).collect(Collectors.toList());
     long distinctNamesCount = specNames.stream().distinct().count();
     List<String> sortedSpecNames = specNames.stream().sorted().collect(Collectors.toList());
     if (specNames.size() != distinctNamesCount) {
-      failWithMessage("All benchmark suite names in group '" + group.name() + "' must be unique."
-          + " Found names of the bench suites: " + sortedSpecNames);
+      failWithMessage(
+          "All benchmark suite names in group '"
+              + group.name()
+              + "' must be unique."
+              + " Found names of the bench suites: "
+              + sortedSpecNames);
       return false;
     } else {
       return true;
@@ -227,22 +218,27 @@ public class BenchProcessor extends AbstractProcessor {
     out.println("  @Setup");
     out.println("  public void setup(BenchmarkParams params) throws Exception {");
     // Workaround for compilation failures on Windows.
-    String projectRootDirPath = projectRootDir.getPath().contains("\\") ? projectRootDir.getPath().replace("\\", "\\\\") : projectRootDir.getPath();
-    out
-        .append("    File projectRootDir = Utils.findRepoRootDir().toPath().resolve(\"")
+    String projectRootDirPath =
+        projectRootDir.getPath().contains("\\")
+            ? projectRootDir.getPath().replace("\\", "\\\\")
+            : projectRootDir.getPath();
+    out.append("    File projectRootDir = Utils.findRepoRootDir().toPath().resolve(\"")
         .append(projectRootDirPath)
         .append("\").toFile();\n");
     out.println(
-        "    if (projectRootDir == null || !projectRootDir.exists() || !projectRootDir.canRead()) {");
+        "    if (projectRootDir == null || !projectRootDir.exists() || !projectRootDir.canRead())"
+            + " {");
     out.println(
-        "      throw new IllegalStateException(\"Project root directory does not exist or cannot be read: \" + Objects.toString(projectRootDir));");
+        "      throw new IllegalStateException(\"Project root directory does not exist or cannot be"
+            + " read: \" + Objects.toString(projectRootDir));");
     out.println("    }");
     out.println("    File languageHomeOverride = Utils.findLanguageHomeOverride();");
-    out.println("    var ctx = Context.newBuilder(LanguageInfo.ID)");
+    out.println("    var ctx = Context.newBuilder()");
     out.println("      .allowExperimentalOptions(true)");
     out.println("      .allowIO(IOAccess.ALL)");
     out.println("      .allowAllAccess(true)");
-    out.println("      .logHandler(new ByteArrayOutputStream())");
+    out.println("      .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())");
+    out.println("      .logHandler(System.err)");
     out.println("      .option(");
     out.println("        RuntimeOptions.LANGUAGE_HOME_OVERRIDE,");
     out.println("        languageHomeOverride.getAbsolutePath()");
@@ -305,9 +301,9 @@ public class BenchProcessor extends AbstractProcessor {
       timeUnit = TimeUnit.SECONDS
     )
     """
-      .strip()
-      .replace("$1", Long.toString(warmupConf.iterations()))
-      .replace("$2", Long.toString(warmupConf.seconds()));
+        .strip()
+        .replace("$1", Long.toString(warmupConf.iterations()))
+        .replace("$2", Long.toString(warmupConf.seconds()));
   }
 
   private String getMeasureAnnotationForGroup(BenchGroup group) {
@@ -319,9 +315,9 @@ public class BenchProcessor extends AbstractProcessor {
       timeUnit = TimeUnit.SECONDS
     )
     """
-      .strip()
-      .replace("$1", Long.toString(measureConf.iterations()))
-      .replace("$2", Long.toString(measureConf.seconds()));
+        .strip()
+        .replace("$1", Long.toString(measureConf.iterations()))
+        .replace("$2", Long.toString(measureConf.seconds()));
   }
 
   /**

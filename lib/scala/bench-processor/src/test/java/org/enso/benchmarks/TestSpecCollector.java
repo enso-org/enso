@@ -8,6 +8,7 @@ import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.net.URISyntaxException;
+import java.nio.file.Files;
 import java.util.List;
 import org.enso.benchmarks.processor.SpecCollector;
 import org.enso.pkg.PackageManager;
@@ -30,18 +31,7 @@ public class TestSpecCollector {
 
   @Before
   public void setup() {
-    try {
-      ensoDir =
-          new File(
-              TestSpecCollector.class.getProtectionDomain().getCodeSource().getLocation().toURI());
-    } catch (URISyntaxException e) {
-      fail("ensoDir not found: " + e.getMessage());
-    }
-    for (; ensoDir != null; ensoDir = ensoDir.getParentFile()) {
-      if (ensoDir.getName().equals("enso")) {
-        break;
-      }
-    }
+    ensoDir = locateRootDirectory();
     assertNotNull("Could not find Enso root directory", ensoDir);
     assertTrue(ensoDir.exists());
     assertTrue(ensoDir.isDirectory());
@@ -71,19 +61,47 @@ public class TestSpecCollector {
     ctx.close();
   }
 
+  /**
+   * Locates the root of the Enso repository. Heuristic: we just keep going up the directory tree
+   * until we are in a directory containing ".git" subdirectory. Note that we cannot use the "enso"
+   * name, as users are free to name their cloned directories however they like.
+   */
+  private File locateRootDirectory() {
+    File rootDir = null;
+    try {
+      rootDir =
+          new File(
+              TestSpecCollector.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+    } catch (URISyntaxException e) {
+      fail("repository root directory not found: " + e.getMessage());
+    }
+    for (; rootDir != null; rootDir = rootDir.getParentFile()) {
+      // Check if rootDir contains ".git" subdirectory
+      if (Files.exists(rootDir.toPath().resolve(".git"))) {
+        break;
+      }
+    }
+    return rootDir;
+  }
+
   @Test
   public void testCollectAllSuitesFromMainModule() {
     List<ModuleBenchSuite> moduleBenchSuites =
         SpecCollector.collectBenchSpecsFromModule(testCollectorMainModule, "group_1");
     for (ModuleBenchSuite moduleBenchSuite : moduleBenchSuites) {
       assertEquals(1, moduleBenchSuite.getGroups().size());
-      assertEquals("Test Group", moduleBenchSuite.getGroups().get(0).name());
+      assertEquals("Test_Group", moduleBenchSuite.getGroups().get(0).name());
       List<BenchSpec> specs = moduleBenchSuite.getGroups().get(0).specs();
       assertEquals(1, specs.size());
-      assertEquals("Test Spec", specs.get(0).name());
+      assertEquals("Test_Spec", specs.get(0).name());
       Value code = specs.get(0).code();
       Value res = code.execute(Value.asValue(null));
       assertEquals(2, res.asInt());
+      var group = moduleBenchSuite.getGroups().get(0);
+      assertEquals(11, group.configuration().warmup().iterations());
+      assertEquals(12, group.configuration().warmup().seconds());
+      assertEquals(13, group.configuration().measure().iterations());
+      assertEquals(14, group.configuration().measure().seconds());
     }
     assertFalse(moduleBenchSuites.isEmpty());
   }

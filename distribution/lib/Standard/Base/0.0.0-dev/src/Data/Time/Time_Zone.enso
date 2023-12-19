@@ -159,7 +159,8 @@ type Time_Zone
     zone_id : Text
     zone_id self = @Builtin_Method "Time_Zone.zone_id"
 
-    ## Get the offset in seconds at given date time.
+    ## GROUP DateTime
+       Get the offset in seconds at given date time.
        Arguments:
        - at: The date to compute offset at.
 

@@ -32,6 +32,10 @@ import org.enso.languageserver.filemanager._
 import org.enso.languageserver.io._
 import org.enso.languageserver.libraries._
 import org.enso.languageserver.monitoring.IdlenessMonitor
+import org.enso.languageserver.profiling.{
+  ProfilingManager,
+  TestProfilingSnapshot
+}
 import org.enso.languageserver.protocol.json.{
   JsonConnectionControllerFactory,
   JsonRpcProtocolFactory
@@ -45,7 +49,6 @@ import org.enso.languageserver.vcsmanager.{Git, VcsManager}
 import org.enso.librarymanager.LibraryLocations
 import org.enso.librarymanager.local.DefaultLocalLibraryProvider
 import org.enso.librarymanager.published.PublishedLibraryCache
-import org.enso.logger.LoggerSetup
 import org.enso.pkg.PackageManager
 import org.enso.polyglot.data.TypeGraph
 import org.enso.polyglot.runtime.Runtime.Api
@@ -56,12 +59,15 @@ import org.enso.runtimeversionmanager.test.{
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo}
 import org.enso.testkit.{EitherValue, WithTemporaryDirectory}
 import org.enso.text.Sha3_224VersionCalculator
+import org.scalactic.source
 import org.scalatest.OptionValues
 import org.slf4j.event.Level
 
+import java.io.File
+import java.net.URISyntaxException
 import java.nio.file.{Files, Path}
 import java.util.UUID
-import scala.concurrent.Await
+
 import scala.concurrent.duration._
 
 class BaseServerTest
@@ -71,11 +77,7 @@ class BaseServerTest
     with WithTemporaryDirectory
     with FakeEnvironment {
 
-  import system.dispatcher
-
   val timeout: FiniteDuration = 10.seconds
-
-  LoggerSetup.get().setup()
 
   def isFileWatcherEnabled: Boolean = false
 
@@ -88,6 +90,7 @@ class BaseServerTest
   val runtimeConnectorProbe = TestProbe()
   val versionCalculator     = Sha3_224VersionCalculator
   val clock                 = TestClock()
+  val profilingSnapshot     = new TestProfilingSnapshot
 
   val typeGraph: TypeGraph = {
     val graph = TypeGraph("Any")
@@ -144,16 +147,23 @@ class BaseServerTest
   val sqlDatabase     = SqlDatabase(config.directories.suggestionsDatabaseFile)
   val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)(system.dispatcher)
 
-  val initializationComponent = SequentialResourcesInitialization(
-    new DirectoriesInitialization(config.directories),
-    new ZioRuntimeInitialization(zioRuntime, system.eventStream),
-    new RepoInitialization(
-      config.directories,
-      system.eventStream,
-      sqlDatabase,
-      suggestionsRepo
+  private def initializationComponent =
+    new SequentialResourcesInitialization(
+      system.dispatcher,
+      new DirectoriesInitialization(system.dispatcher, config.directories),
+      new ZioRuntimeInitialization(
+        system.dispatcher,
+        zioRuntime,
+        system.eventStream
+      ),
+      new RepoInitialization(
+        system.dispatcher,
+        config.directories,
+        system.eventStream,
+        sqlDatabase,
+        suggestionsRepo
+      )
     )
-  )
 
   val contentRootManagerActor =
     system.actorOf(ContentRootManagerActor.props(config))
@@ -167,6 +177,31 @@ class BaseServerTest
     cleanupCallbacks = Nil
     timingsConfig    = TimingsConfig.default()
     super.afterEach()
+  }
+
+  /** Locates the root of the Enso repository. Heuristic: we just keep going up the directory tree
+    * until we are in a directory containing ".git" subdirectory. Note that we cannot use the "enso"
+    * name, as users are free to name their cloned directories however they like.
+    */
+  protected def locateRootDirectory(): File = {
+    var rootDir: File = null
+    try {
+      rootDir = new File(
+        classOf[
+          BaseServerTest
+        ].getProtectionDomain.getCodeSource.getLocation.toURI
+      )
+    } catch {
+      case e: URISyntaxException =>
+        fail("repository root directory not found: " + e.getMessage)
+    }
+    while (rootDir != null && !Files.exists(rootDir.toPath.resolve(".git"))) {
+      rootDir = rootDir.getParentFile
+    }
+    if (rootDir == null) {
+      fail("repository root directory not found")
+    }
+    rootDir
   }
 
   override def clientControllerFactory: ClientControllerFactory = {
@@ -265,11 +300,14 @@ class BaseServerTest
       UUID.randomUUID(),
       Api.GetTypeGraphResponse(typeGraph)
     )
-    Await.ready(initializationComponent.init(), timeout)
+    initializationComponent.init().get(timeout.length, timeout.unit)
     suggestionsHandler ! ProjectNameUpdated("Test")
 
-    val environment         = fakeInstalledEnvironment()
-    val languageHome        = LanguageHome.detectFromExecutableLocation(environment)
+    val environment = fakeInstalledEnvironment()
+    val languageHomePath =
+      locateRootDirectory().toPath.resolve("distribution").resolve("component")
+    val languageHome = LanguageHome(languageHomePath)
+    languageHome.rootPath.toFile.exists() shouldBe true
     val distributionManager = new DistributionManager(environment)
     val lockManager: TestableThreadSafeFileLockManager =
       new TestableThreadSafeFileLockManager(distributionManager.paths.locks)
@@ -313,6 +351,15 @@ class BaseServerTest
       )
     )
 
+    val profilingManager = system.actorOf(
+      ProfilingManager.props(
+        runtimeConnectorProbe.ref,
+        distributionManager,
+        profilingSnapshot,
+        clock
+      )
+    )
+
     val libraryConfig = LibraryConfig(
       localLibraryManager      = localLibraryManager,
       editionReferenceResolver = editionReferenceResolver,
@@ -343,6 +390,7 @@ class BaseServerTest
       runtimeConnector       = runtimeConnectorProbe.ref,
       idlenessMonitor        = idlenessMonitor,
       projectSettingsManager = projectSettingsManager,
+      profilingManager       = profilingManager,
       libraryConfig          = libraryConfig,
       config                 = config
     )
@@ -353,7 +401,7 @@ class BaseServerTest
     * was more suited towards testing the launcher.
     */
   override def fakeExecutablePath(portable: Boolean): Path =
-    Path.of("distribution/component/runner.jar")
+    Path.of("distribution/component/runner/runner.jar")
 
   /** Specifies if the `package.yaml` at project root should be auto-created. */
   protected def initializeProjectPackage: Boolean = true
@@ -413,5 +461,41 @@ class BaseServerTest
           """
     )
     clientId
+  }
+
+  def receiveAndReplyToOpenFile()(implicit pos: source.Position): Unit = {
+    receiveAndReplyToOpenFile(None)
+  }
+  def receiveAndReplyToOpenFile(
+    fileName: String
+  )(implicit pos: source.Position): Unit = {
+    receiveAndReplyToOpenFile(Some(fileName))
+  }
+  private def receiveAndReplyToOpenFile(
+    fileName: Option[String]
+  )(implicit pos: source.Position): Unit = {
+    runtimeConnectorProbe.receiveN(1).head match {
+      case Api.Request(requestId, Api.OpenFileRequest(file, _)) =>
+        fileName match {
+          case Some(f) if f != file.getName =>
+            fail(
+              "expected OpenFile notification for `" + f + "`, got it for `" + file.getName + "`"
+            )
+          case _ =>
+        }
+        runtimeConnectorProbe.lastSender ! Api.Response(
+          requestId,
+          Api.OpenFileResponse
+        )
+      case Api.Request(
+            _,
+            _: Api.GetTypeGraphRequest | _: Api.EditFileNotification |
+            _: Api.CloseFileNotification
+          ) =>
+        // ignore
+        receiveAndReplyToOpenFile(fileName)
+      case msg =>
+        fail("expected OpenFile notification got " + msg)
+    }
   }
 }

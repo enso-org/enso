@@ -1,4 +1,5 @@
 package org.enso.projectmanager.protocol
+
 import nl.gn0s1s.bump.SemVer
 import org.enso.runtimeversionmanager.test.OverrideTestVersionSuite
 

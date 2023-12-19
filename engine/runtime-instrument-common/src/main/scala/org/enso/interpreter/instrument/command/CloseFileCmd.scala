@@ -4,6 +4,7 @@ import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.polyglot.runtime.Runtime.Api
 
 import java.util.logging.Level
+import scala.concurrent.ExecutionContext
 
 /** A command that closes a file.
   *
@@ -12,7 +13,10 @@ import java.util.logging.Level
 class CloseFileCmd(request: Api.CloseFileNotification)
     extends SynchronousCommand(None) {
 
-  override def executeSynchronously(implicit ctx: RuntimeContext): Unit = {
+  override def executeSynchronously(implicit
+    ctx: RuntimeContext,
+    ec: ExecutionContext
+  ): Unit = {
     val logger                    = ctx.executionService.getLogger
     val readLockTimestamp         = ctx.locking.acquireReadCompilationLock()
     val fileLockTimestamp         = ctx.locking.acquireFileLock(request.path)

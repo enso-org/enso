@@ -1,7 +1,8 @@
 package org.enso.compiler.core.ir.module.scope
 
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{randomId, Identifier, ToStringHelper}
+import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
+import org.enso.compiler.core.{IR, Identifier}
+import org.enso.compiler.core.IR.randomId
 import org.enso.compiler.core.ir.module.Scope
 import org.enso.compiler.core.ir.{
   DiagnosticStorage,
@@ -12,11 +13,15 @@ import org.enso.compiler.core.ir.{
   Name
 }
 
+import java.util.UUID
+
 /** An export statement */
 trait Export extends Scope {
 
   /** @inheritdoc */
-  override def mapExpressions(fn: Expression => Expression): Export
+  override def mapExpressions(
+    fn: java.util.function.Function[Expression, Expression]
+  ): Export
 
   /** @inheritdoc */
   override def setLocation(location: Option[IdentifiedLocation]): Export
@@ -52,12 +57,12 @@ object Export {
     hiddenNames: Option[List[Name.Literal]],
     override val location: Option[IdentifiedLocation],
     isSynthetic: Boolean                        = false,
-    override val passData: MetadataStorage      = MetadataStorage(),
+    override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends IR
       with IRKind.Primitive
       with Export {
-    override protected var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -83,7 +88,7 @@ object Export {
       isSynthetic: Boolean                    = isSynthetic,
       passData: MetadataStorage               = passData,
       diagnostics: DiagnosticStorage          = diagnostics,
-      id: Identifier                          = id
+      id: UUID @Identifier                    = id
     ): Module = {
       val res = Module(
         name,
@@ -109,7 +114,8 @@ object Export {
     ): Module =
       copy(
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId
@@ -123,7 +129,7 @@ object Export {
 
     /** @inheritdoc */
     override def mapExpressions(
-      fn: Expression => Expression
+      fn: java.util.function.Function[Expression, Expression]
     ): Module = this
 
     /** @inheritdoc */

@@ -1,0 +1,48 @@
+from Standard.Base import all
+from Standard.Base.Runtime import assert
+
+from Standard.Table import all
+
+from Standard.Test import Bench
+
+from project.Config import extended_tests
+
+options = Bench.options . set_warmup (Bench.phase_conf 1 2) . set_measure (Bench.phase_conf 2 3)
+
+type Scenario
+    Value table ints_vec dates_vec bool_vec
+
+create_scenario =
+    t = Table.new [["X", (200.up_to 10000 . to_vector)]]
+    ints_vec = 40000.up_to 130000 . to_vector
+    first_day = Date_Time.new 2000 1 1
+    make_date x = first_day + (Duration.new seconds=x)
+    dates_vec = ints_vec.map make_date
+    bool_vec = Vector.fill 7000 True
+
+    t2 = t.set (t.at "X" . map make_date) "dates"
+    t3 = t2.set (t.at "X" % 2 == 0) "bools"
+    Scenario.Value t3 ints_vec dates_vec bool_vec
+
+type Data
+    Value ~scenario
+
+    create = Data.Value create_scenario
+
+collect_benches = Bench.build builder->
+    data = Data.create
+
+    builder.group ("Filter_Is_In") options group_builder->
+        group_builder.specify "integers" <|
+            scenario = data.scenario
+            scenario.table.filter "X" (Filter_Condition.Is_In scenario.ints_vec)
+
+        group_builder.specify "dates" <|
+            scenario = data.scenario
+            scenario.table.filter "dates" (Filter_Condition.Is_In scenario.dates_vec)
+
+        group_builder.specify "bools" <|
+            scenario = data.scenario
+            scenario.table.filter "bools" (Filter_Condition.Is_In scenario.bool_vec)
+
+main = collect_benches . run_main

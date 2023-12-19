@@ -31,6 +31,31 @@
                 </configuration>
             </plugin>
             <plugin>
+                <groupId>uk.co.bithatch</groupId>
+                <artifactId>svg-rasterizer-maven-plugin</artifactId>
+                <version>1.2</version>
+                <executions>
+                    <execution>
+                        <id>Rasterize</id>
+                        <goals>
+                            <goal>rasterize-image</goal>
+                        </goals>
+                        <configuration>
+                            <inputFile>src/main/resources/org/enso/tools/enso4igv/enso.svg</inputFile>
+                            <destDir>dist/</destDir>
+                            <outputs>
+                                <output>
+                                    <path>enso.png</path>
+                                    <width>128</width>
+                                    <height>128</height>
+                                    <format>png</format>
+                                </output>
+                            </outputs>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.8.1</version>

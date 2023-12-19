@@ -1,5 +1,6 @@
 package org.enso.interpreter.runtime.data.hash;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -9,6 +10,7 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.runtime.EnsoContext;
 
 @BuiltinMethod(
     type = "Map",
@@ -16,8 +18,7 @@ import org.enso.interpreter.dsl.BuiltinMethod;
     description = """
         Returns text representation of this hash map
         """,
-    autoRegister = false
-)
+    autoRegister = false)
 public abstract class HashMapToTextNode extends Node {
 
   public static HashMapToTextNode build() {
@@ -28,8 +29,7 @@ public abstract class HashMapToTextNode extends Node {
 
   @TruffleBoundary
   @Specialization(guards = "interop.hasHashEntries(hashMap)")
-  Object hashMapToText(Object hashMap,
-      @CachedLibrary(limit = "5") InteropLibrary interop) {
+  Object hashMapToText(Object hashMap, @CachedLibrary(limit = "5") InteropLibrary interop) {
     var sb = new StringBuilder();
     sb.append("{");
     try {
@@ -45,13 +45,12 @@ public abstract class HashMapToTextNode extends Node {
         sb.delete(sb.length() - 2, sb.length());
       }
     } catch (UnsupportedMessageException | StopIterationException | InvalidArrayIndexException e) {
-      throw new IllegalStateException(
-          "hashMap " + hashMap + " probably implements interop API incorrectly",
-          e
-      );
+      CompilerDirectives.transferToInterpreter();
+      var ctx = EnsoContext.get(this);
+      var msg = "hashMap " + hashMap + " probably implements interop API incorrectly";
+      throw ctx.raiseAssertionPanic(this, msg, e);
     }
     sb.append("}");
     return sb.toString();
   }
 }
-

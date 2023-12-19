@@ -1,98 +1,186 @@
 <script setup lang="ts">
+import { componentBrowserBindings } from '@/bindings'
 import { makeComponentList, type Component } from '@/components/ComponentBrowser/component'
 import { Filtering } from '@/components/ComponentBrowser/filtering'
-import { Input } from '@/components/ComponentBrowser/input'
+import { useComponentBrowserInput, type Usage } from '@/components/ComponentBrowser/input'
+import { default as DocumentationPanel } from '@/components/DocumentationPanel.vue'
+import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
-import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
-import { useApproach } from '@/util/animation'
-import { useResizeObserver } from '@/util/events'
-import type { useNavigator } from '@/util/navigator'
-import { Vec2 } from '@/util/vec2'
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { useApproach } from '@/composables/animation'
+import { useEvent, useResizeObserver } from '@/composables/events'
+import type { useNavigator } from '@/composables/navigator'
+import { useGraphStore } from '@/stores/graph'
+import type { RequiredImport } from '@/stores/graph/imports'
+import { useProjectStore } from '@/stores/project'
+import { groupColorStyle, useSuggestionDbStore } from '@/stores/suggestionDatabase'
+import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
+import type { VisualizationDataSource } from '@/stores/visualization'
+import { tryGetIndex } from '@/util/data/array'
+import type { Opt } from '@/util/data/opt'
+import { allRanges } from '@/util/data/range'
+import { Vec2 } from '@/util/data/vec2'
+import type { SuggestionId } from 'shared/languageServerTypes/suggestions'
+import { computed, nextTick, onMounted, ref, watch, type ComputedRef, type Ref } from 'vue'
 
 const ITEM_SIZE = 32
 const TOP_BAR_HEIGHT = 32
+// Difference in position between the component browser and a node for the input of the component browser to
+// be placed at the same position as the node.
+const COMPONENT_BROWSER_TO_NODE_OFFSET = new Vec2(-4, -4)
+
+const projectStore = useProjectStore()
+const suggestionDbStore = useSuggestionDbStore()
+const graphStore = useGraphStore()
 
 const props = defineProps<{
-  position: Vec2
+  nodePosition: Vec2
   navigator: ReturnType<typeof useNavigator>
+  usage: Usage
 }>()
 
 const emit = defineEmits<{
-  (e: 'finished'): void
+  accepted: [searcherExpression: string, requiredImports: RequiredImport[]]
+  closed: [searcherExpression: string, requiredImports: RequiredImport[]]
+  canceled: []
 }>()
 
 onMounted(() => {
-  if (inputField.value != null) {
-    inputField.value.focus({ preventScroll: true })
-    selectLastAfterRefresh()
-  }
+  nextTick(() => {
+    input.reset(props.usage)
+    if (inputField.value != null) {
+      inputField.value.focus({ preventScroll: true })
+    } else {
+      console.warn(
+        'Component Browser input element was not mounted. This is not expected and may break the Component Browser',
+      )
+    }
+  })
 })
 
 // === Position ===
 
 const transform = computed(() => {
   const nav = props.navigator
-  const pos = props.position
-  return `${nav.transform} translate(${pos.x}px, ${pos.y}px) scale(${
-    1 / nav.scale
-  }) translateY(-100%)`
+  const translate = nav.translate
+  const position = props.nodePosition.add(COMPONENT_BROWSER_TO_NODE_OFFSET)
+  const screenPosition = translate.add(position).scale(nav.scale)
+  const x = Math.round(screenPosition.x)
+  const y = Math.round(screenPosition.y)
+
+  return `translate(${x}px, ${y}px) translateY(-100%)`
 })
 
 // === Input and Filtering ===
 
 const cbRoot = ref<HTMLElement>()
 const inputField = ref<HTMLInputElement>()
-const input = new Input()
+const input = useComponentBrowserInput()
 const filterFlags = ref({ showUnstable: false, showLocal: false })
 
 const currentFiltering = computed(() => {
-  return new Filtering({
-    ...input.filter.value,
-    ...filterFlags.value,
+  const currentModule = projectStore.modulePath
+  return new Filtering(
+    {
+      ...input.filter.value,
+      ...filterFlags.value,
+    },
+    currentModule?.ok ? currentModule.value : undefined,
+  )
+})
+
+watch(currentFiltering, () => {
+  selected.value = input.autoSelectFirstComponent.value ? 0 : null
+  nextTick(() => {
+    scrollToBottom()
+    animatedScrollPosition.skip()
+    animatedHighlightPosition.skip()
+    animatedHighlightHeight.skip()
   })
 })
 
-watch(currentFiltering, selectLastAfterRefresh)
-
 function readInputFieldSelection() {
-  if (inputField.value != null) {
-    input.selection.value = {
-      start: inputField.value.selectionStart ?? 0,
-      end: inputField.value.selectionEnd ?? 0,
-    }
+  if (
+    inputField.value != null &&
+    inputField.value.selectionStart != null &&
+    inputField.value.selectionEnd != null
+  ) {
+    input.selection.value.start = inputField.value.selectionStart
+    input.selection.value.end = inputField.value.selectionEnd
   }
 }
+// HTMLInputElement's same event is not supported in chrome yet. We just react for any
+// selectionchange in the document and check if the input selection changed.
+// BUT some operations like deleting does not emit 'selectionChange':
+// https://bugs.chromium.org/p/chromium/issues/detail?id=725890
+// Therefore we must also refresh selection after changing input.
+useEvent(document, 'selectionchange', readInputFieldSelection)
 
-watch(input.selection, (newPos) => {
-  if (inputField.value == null) return
-  // Do nothing if boundaries didn't change. We don't want to affect selection dir.
-  if (
-    inputField.value.selectionStart == newPos.start &&
-    inputField.value.selectionEnd == newPos.end
-  )
-    return
-  inputField.value.setSelectionRange(newPos.start, newPos.end)
-})
+watch(
+  input.selection,
+  (newPos) => {
+    if (inputField.value == null) return
+    // Do nothing if boundaries didn't change. We don't want to affect selection dir.
+    if (
+      inputField.value.selectionStart == newPos.start &&
+      inputField.value.selectionEnd == newPos.end
+    )
+      return
+    inputField.value.setSelectionRange(newPos.start, newPos.end)
+  },
+  // This update should be after any possible inputField content update.
+  { flush: 'post' },
+)
 
 function handleDefocus(e: FocusEvent) {
   const stillInside =
     cbRoot.value != null &&
     e.relatedTarget instanceof Node &&
     cbRoot.value.contains(e.relatedTarget)
-  if (stillInside) {
-    if (inputField.value != null) {
-      inputField.value.focus({ preventScroll: true })
-    }
-  } else {
-    emit('finished')
+  // We want to focus input even when relatedTarget == null, because sometimes defocus event is
+  // caused by focused item being removed, for example an entry in visualization chooser.
+  if (stillInside || e.relatedTarget == null) {
+    inputField.value?.focus({ preventScroll: true })
   }
 }
 
-// === Components List and Positions ===
+useEvent(
+  window,
+  'pointerdown',
+  (event) => {
+    if (event.button !== 0) return
+    if (!(event.target instanceof Element)) return
+    if (!cbRoot.value?.contains(event.target)) {
+      emit('closed', input.code.value, input.importsToAdd())
+    }
+  },
+  { capture: true },
+)
 
-const suggestionDbStore = useSuggestionDbStore()
+// === Preview ===
+
+const inputElement = ref<HTMLElement>()
+const inputSize = useResizeObserver(inputElement, false)
+
+const previewedExpression = computed(() => {
+  if (selectedSuggestion.value == null) return input.code.value
+  else return input.inputAfterApplyingSuggestion(selectedSuggestion.value).newCode
+})
+
+const previewDataSource: ComputedRef<VisualizationDataSource | undefined> = computed(() => {
+  if (!previewedExpression.value.trim()) return
+  if (!graphStore.methodAst) return
+  const body = graphStore.methodAst.body
+  if (!body) return
+
+  return {
+    type: 'expression',
+    expression: previewedExpression.value,
+    contextId: body.astId,
+  }
+})
+
+// === Components List and Positions ===
 
 const components = computed(() => {
   return makeComponentList(suggestionDbStore.entries, currentFiltering.value)
@@ -102,10 +190,7 @@ const visibleComponents = computed(() => {
   if (scroller.value == null) return []
   const scrollPosition = animatedScrollPosition.value
   const topmostVisible = componentAtY(scrollPosition)
-  const bottommostVisible = Math.max(
-    0,
-    componentAtY(animatedScrollPosition.value + scrollerSize.value.y),
-  )
+  const bottommostVisible = Math.max(0, componentAtY(scrollPosition + scrollerSize.value.y))
   return components.value.slice(bottommostVisible, topmostVisible + 1).map((component, i) => {
     return { component, index: i + bottommostVisible }
   })
@@ -127,13 +212,7 @@ function componentStyle(index: number) {
  * Group colors are populated in `GraphEditor`, and for each group in suggestion database a CSS variable is created.
  */
 function componentColor(component: Component): string {
-  const group = suggestionDbStore.groups[component.group ?? -1]
-  if (group) {
-    const name = group.name.replace(/\s/g, '-')
-    return `var(--group-color-${name})`
-  } else {
-    return 'var(--group-color-fallback)'
-  }
+  return groupColorStyle(tryGetIndex(suggestionDbStore.groups, component.group))
 }
 
 // === Highlight ===
@@ -146,6 +225,17 @@ const selectedPosition = computed(() =>
 const highlightHeight = computed(() => (selected.value != null ? ITEM_SIZE : 0))
 const animatedHighlightPosition = useApproach(highlightPosition)
 const animatedHighlightHeight = useApproach(highlightHeight)
+
+const selectedSuggestionId = computed(() => {
+  if (selected.value === null) return null
+  return components.value[selected.value]?.suggestionId ?? null
+})
+
+const selectedSuggestion = computed(() => {
+  const id = selectedSuggestionId.value
+  if (id == null) return null
+  return suggestionDbStore.entries.get(id) ?? null
+})
 
 watch(selectedPosition, (newPos) => {
   if (newPos == null) return
@@ -162,37 +252,6 @@ const highlightClipPath = computed(() => {
   let bottom = listContentHeight.value - position - ITEM_SIZE
   return `inset(${top}px 0px ${bottom}px 0px round 16px)`
 })
-
-function navigateUp() {
-  if (selected.value != null && selected.value < components.value.length - 1) {
-    selected.value += 1
-  }
-  scrollToSelected()
-}
-
-function navigateDown() {
-  if (selected.value == null) {
-    selected.value = components.value.length - 1
-  } else if (selected.value > 0) {
-    selected.value -= 1
-  }
-  scrollToSelected()
-}
-
-/**
- * Select the last element after updating component list.
- *
- * As the list changes the scroller's content, we need to wait a frame so the scroller
- * recalculates its height and setting scrollTop will work properly.
- */
-function selectLastAfterRefresh() {
-  selected.value = 0
-  nextTick(() => {
-    scrollToSelected()
-    animatedScrollPosition.skip()
-    animatedHighlightPosition.skip()
-  })
-}
 
 // === Scrolling ===
 
@@ -213,6 +272,10 @@ function scrollToSelected() {
   scrollPosition.value = Math.max(selectedPosition.value - scrollerSize.value.y + ITEM_SIZE, 0)
 }
 
+function scrollToBottom() {
+  scrollPosition.value = listContentHeight.value - scrollerSize.value.y
+}
+
 function updateScroll() {
   if (scroller.value && Math.abs(scroller.value.scrollTop - animatedScrollPosition.value) > 1.0) {
     scrollPosition.value = scroller.value.scrollTop
@@ -224,28 +287,72 @@ function updateScroll() {
 
 const docsVisible = ref(true)
 
+const displayedDocs: Ref<Opt<SuggestionId>> = ref(null)
+const docEntry = computed({
+  get() {
+    return displayedDocs.value
+  },
+  set(value) {
+    displayedDocs.value = value
+  },
+})
+
+watch(selectedSuggestionId, (id) => {
+  docEntry.value = id
+})
+
+// === Accepting Entry ===
+
+function applySuggestion(component: Opt<Component> = null): SuggestionEntry | null {
+  const providedSuggestion =
+    component != null ? suggestionDbStore.entries.get(component.suggestionId) : null
+  const suggestion = providedSuggestion ?? selectedSuggestion.value
+  if (suggestion == null) return null
+  input.applySuggestion(suggestion)
+  return suggestion
+}
+
+function acceptSuggestion(index: Opt<Component> = null) {
+  const applied = applySuggestion(index)
+  const shouldFinish = applied != null && applied.kind !== SuggestionKind.Module
+  if (shouldFinish) acceptInput()
+}
+
+function acceptInput() {
+  emit('accepted', input.code.value, input.importsToAdd())
+}
+
 // === Key Events Handler ===
 
-function handleKeydown(e: KeyboardEvent) {
-  switch (e.key) {
-    case 'Enter':
-      e.stopPropagation()
-      emit('finished')
-      break
-    case 'ArrowUp':
-      e.preventDefault()
-      navigateUp()
-      break
-    case 'ArrowDown':
-      e.preventDefault()
-      navigateDown()
-      break
-    case 'Escape':
-      e.preventDefault()
-      selected.value = null
-      break
-  }
-}
+const handler = componentBrowserBindings.handler({
+  applySuggestion() {
+    applySuggestion()
+  },
+  acceptSuggestion() {
+    applySuggestion()
+    acceptInput()
+  },
+  acceptInput() {
+    acceptInput()
+  },
+  moveUp() {
+    if (selected.value != null && selected.value < components.value.length - 1) {
+      selected.value += 1
+    }
+    scrollToSelected()
+  },
+  moveDown() {
+    if (selected.value == null) {
+      selected.value = components.value.length - 1
+    } else if (selected.value > 0) {
+      selected.value -= 1
+    }
+    scrollToSelected()
+  },
+  cancelEditing() {
+    emit('canceled')
+  },
+})
 </script>
 
 <template>
@@ -255,14 +362,18 @@ function handleKeydown(e: KeyboardEvent) {
     :style="{ transform, '--list-height': listContentHeightPx }"
     tabindex="-1"
     @focusout="handleDefocus"
-    @keydown="handleKeydown"
+    @keydown="handler"
+    @pointerdown.stop
+    @keydown.enter.stop
+    @keydown.backspace.stop
+    @keydown.delete.stop
   >
     <div class="panels">
       <div class="panel components">
         <div class="top-bar">
           <div class="top-bar-inner">
             <ToggleIcon v-model="filterFlags.showLocal" icon="local_scope2" />
-            <ToggleIcon icon="command_key3" />
+            <ToggleIcon icon="command3" />
             <ToggleIcon v-model="filterFlags.showUnstable" icon="unstable2" />
             <ToggleIcon icon="marketplace" />
             <ToggleIcon v-model="docsVisible" icon="right_side_panel" class="first-on-right" />
@@ -276,19 +387,36 @@ function handleKeydown(e: KeyboardEvent) {
             @wheel.stop.passive
             @scroll="updateScroll"
           >
-            <div class="list-variant" style="">
+            <div class="list-variant">
               <div
                 v-for="item in visibleComponents"
                 :key="item.component.suggestionId"
                 class="component"
                 :style="componentStyle(item.index)"
                 @mousemove="selected = item.index"
+                @click="acceptSuggestion(item.component)"
               >
                 <SvgIcon
                   :name="item.component.icon"
                   :style="{ color: componentColor(item.component) }"
                 />
-                {{ item.component.label }}
+                <span>
+                  <span
+                    v-if="!item.component.matchedRanges || item.component.matchedAlias"
+                    v-text="item.component.label"
+                  ></span>
+                  <span
+                    v-for="range in allRanges(
+                      item.component.matchedRanges,
+                      item.component.label.length,
+                    )"
+                    v-else
+                    :key="`${range.start},${range.end}`"
+                    class="component-label-segment"
+                    :class="{ match: range.isMatch }"
+                    v-text="item.component.label.slice(range.start, range.end)"
+                  ></span>
+                </span>
               </div>
             </div>
             <div class="list-variant selected" :style="{ clipPath: highlightClipPath }">
@@ -300,18 +428,53 @@ function handleKeydown(e: KeyboardEvent) {
                   backgroundColor: componentColor(item.component),
                   ...componentStyle(item.index),
                 }"
+                @click="acceptSuggestion(item.component)"
               >
                 <SvgIcon :name="item.component.icon" />
-                {{ item.component.label }}
+                <span>
+                  <span
+                    v-if="!item.component.matchedRanges || item.component.matchedAlias"
+                    v-text="item.component.label"
+                  ></span>
+                  <span
+                    v-for="range in allRanges(
+                      item.component.matchedRanges,
+                      item.component.label.length,
+                    )"
+                    v-else
+                    :key="`${range.start},${range.end}`"
+                    class="component-label-segment"
+                    :class="{ match: range.isMatch }"
+                    v-text="item.component.label.slice(range.start, range.end)"
+                  ></span>
+                </span>
               </div>
             </div>
           </div>
         </div>
       </div>
-      <div class="panel docs" :class="{ hidden: !docsVisible }">DOCS</div>
+      <div class="panel docs" :class="{ hidden: !docsVisible }">
+        <DocumentationPanel v-model:selectedEntry="docEntry" />
+      </div>
     </div>
-    <div class="CBInput">
-      <input ref="inputField" v-model="input.code.value" @keyup="readInputFieldSelection" />
+    <div class="bottom-panel">
+      <GraphVisualization
+        class="visualization-preview"
+        :nodeSize="inputSize"
+        :nodePosition="nodePosition"
+        :scale="1"
+        :isCircularMenuVisible="false"
+        :dataSource="previewDataSource"
+      />
+      <div ref="inputElement" class="CBInput">
+        <input
+          ref="inputField"
+          v-model="input.code.value"
+          name="cb-input"
+          autocomplete="off"
+          @input="readInputFieldSelection"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -319,6 +482,7 @@ function handleKeydown(e: KeyboardEvent) {
 <style scoped>
 .ComponentBrowser {
   --list-height: 0px;
+  --radius-default: 20px;
   width: fit-content;
   color: rgba(0, 0, 0, 0.6);
   font-size: 11.5px;
@@ -336,7 +500,7 @@ function handleKeydown(e: KeyboardEvent) {
 .panel {
   height: 380px;
   border: none;
-  border-radius: 20px;
+  border-radius: var(--radius-default);
   background-color: #eaeaea;
 }
 
@@ -355,17 +519,17 @@ function handleKeydown(e: KeyboardEvent) {
 
 .docs {
   width: 406px;
-  clip-path: inset(0 0 0 0 round 20px);
+  clip-path: inset(0 0 0 0 round var(--radius-default));
   transition: clip-path 0.2s;
 }
 .docs.hidden {
-  clip-path: inset(0 100% 0 0 round 20px);
+  clip-path: inset(0 100% 0 0 round var(--radius-default));
 }
 
 .list {
-  top: 20px;
+  top: var(--radius-default);
   width: 100%;
-  height: calc(100% - 20px);
+  height: calc(100% - var(--radius-default));
   overflow-x: hidden;
   overflow-y: auto;
   position: relative;
@@ -388,7 +552,9 @@ function handleKeydown(e: KeyboardEvent) {
   display: flex;
   position: absolute;
   line-height: 1;
+  font-family: var(--font-code);
 }
+
 .selected {
   color: white;
   & svg {
@@ -396,12 +562,16 @@ function handleKeydown(e: KeyboardEvent) {
   }
 }
 
+.component-label-segment.match {
+  font-weight: bold;
+}
+
 .top-bar {
   width: 100%;
   height: 40px;
   padding: 4px;
   background-color: #eaeaea;
-  border-radius: 20px;
+  border-radius: var(--radius-default);
   position: absolute;
   top: 0px;
   z-index: 1;
@@ -433,13 +603,18 @@ function handleKeydown(e: KeyboardEvent) {
   }
 }
 
+.bottom-panel {
+  position: relative;
+}
 .CBInput {
-  border-radius: 20px;
+  border-radius: var(--radius-default);
   background-color: #eaeaea;
+  width: 100%;
   height: 40px;
   padding: 12px;
   display: flex;
   flex-direction: row;
+  position: absolute;
 
   & input {
     border: none;
@@ -449,5 +624,9 @@ function handleKeydown(e: KeyboardEvent) {
     background: none;
     font: inherit;
   }
+}
+
+.visualization-preview {
+  position: absolute;
 }
 </style>

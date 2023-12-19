@@ -25,7 +25,9 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 @ImportStatic({HostMethodCallNode.PolyglotCallType.class, HostMethodCallNode.class})
 public abstract class IndirectInvokeConversionNode extends Node {
 
-  /** @return a new indirect method invocation node */
+  /**
+   * @return a new indirect method invocation node
+   */
   public static IndirectInvokeConversionNode build() {
     return IndirectInvokeConversionNodeGen.create();
   }
@@ -195,7 +197,7 @@ public abstract class IndirectInvokeConversionNode extends Node {
           argumentsExecutionMode,
           isTail);
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException("Impossible, that is guaranteed to be a string.");
+      throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
   }
 

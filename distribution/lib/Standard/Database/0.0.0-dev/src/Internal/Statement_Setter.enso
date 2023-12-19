@@ -1,6 +1,8 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
+import Standard.Table.Data.Type.Value_Type.Value_Type
+
 polyglot java import java.math.BigDecimal as Java_Big_Decimal
 polyglot java import java.sql.PreparedStatement
 polyglot java import java.sql.Types as Java_Types
@@ -11,7 +13,7 @@ polyglot java import org.enso.database.JDBCUtils
 type Statement_Setter
     ## PRIVATE
        Encapsulates the logic for filling a hole in a prepared statement.
-    Value (fill_hole : PreparedStatement -> Integer -> Any -> Nothing)
+    Value (fill_hole : PreparedStatement -> Integer -> Value_Type|Nothing -> Any -> Nothing)
 
     ## PRIVATE
        The default setter that is handling simple commonly supported types.
@@ -25,12 +27,13 @@ type Statement_Setter
        It will panic if called.
     null : Statement_Setter
     null =
-        fill_hole_unexpected _ _ _ =
+        fill_hole_unexpected _ _ _ _ =
             Panic.throw (Illegal_State.Error "The associated statement does not expect any values to be set. This is a bug in the Database library.")
         Statement_Setter.Value fill_hole_unexpected
 
 ## PRIVATE
-fill_hole_default stmt i value = case value of
+fill_hole_default : PreparedStatement -> Integer -> Value_Type|Nothing -> Any -> Nothing
+fill_hole_default stmt i type_hint value = case value of
     Nothing       -> stmt.setNull i Java_Types.NULL
     _ : Boolean   -> stmt.setBoolean i value
     _ : Integer   -> case NumericConverter.isBigInteger value of
@@ -40,7 +43,16 @@ fill_hole_default stmt i value = case value of
         False -> stmt.setLong i value
     _ : Float   -> stmt.setDouble i value
     _ : Text      -> stmt.setString i value
-    _ : Date_Time -> JDBCUtils.setZonedDateTime stmt i value
+    _ : Date_Time ->
+        has_timezone = case type_hint of
+            Value_Type.Date_Time with_timezone -> with_timezone
+            # We include the timezone by default
+            _ -> True
+        case has_timezone of
+            True ->
+                JDBCUtils.setZonedDateTime stmt i value
+            False ->
+                JDBCUtils.setLocalDateTime stmt i value
     ## Time_Of_Day and Date sometimes work ok, but sometimes are passed as
        `org.graalvm.polyglot.Value` to the JDBC driver which is then unable to
        infer the correct type for them. Instead, we use these helper functions

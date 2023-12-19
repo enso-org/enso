@@ -2,7 +2,7 @@ package org.enso.table.parsing;
 
 import java.time.format.DateTimeParseException;
 import org.enso.base.time.EnsoDateTimeFormatter;
-import org.enso.table.parsing.problems.ProblemAggregator;
+import org.enso.table.parsing.problems.ParseProblemAggregator;
 
 public abstract class BaseTimeParser extends IncrementalDatatypeParser {
   protected interface ParseStrategy {
@@ -18,7 +18,7 @@ public abstract class BaseTimeParser extends IncrementalDatatypeParser {
   }
 
   @Override
-  protected Object parseSingleValue(String text, ProblemAggregator problemAggregator) {
+  public Object parseSingleValue(String text, ParseProblemAggregator problemAggregator) {
     for (EnsoDateTimeFormatter formatter : formatters) {
       try {
         return parseStrategy.parse(text, formatter);

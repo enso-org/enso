@@ -18,6 +18,12 @@
     },
     {
       "path": "./tsconfig.server.vitest.json"
+    },
+    {
+      "path": "./tsconfig.story.json"
+    },
+    {
+      "path": "./tsconfig.scripts.json"
     }
   ]
 }

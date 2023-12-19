@@ -1,7 +1,10 @@
 package org.enso.compiler.core.ir
 
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{randomId, Identifier, ToStringHelper}
+import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
+import org.enso.compiler.core.{IR, Identifier}
+import org.enso.compiler.core.IR.randomId
+
+import java.util.UUID
 
 /** Functions in Enso. */
 sealed trait Function extends Expression {
@@ -23,19 +26,6 @@ sealed trait Function extends Expression {
     */
   val canBeTCO: Boolean
 
-  /** @inheritdoc */
-  override def mapExpressions(fn: Expression => Expression): Function
-
-  /** @inheritdoc */
-  override def setLocation(location: Option[IdentifiedLocation]): Function
-
-  /** @inheritdoc */
-  override def duplicate(
-    keepLocations: Boolean   = true,
-    keepMetadata: Boolean    = true,
-    keepDiagnostics: Boolean = true,
-    keepIdentifiers: Boolean = false
-  ): Function
 }
 
 object Function {
@@ -55,14 +45,25 @@ object Function {
     */
   sealed case class Lambda(
     override val arguments: List[DefinitionArgument],
-    override val body: Expression,
-    override val location: Option[IdentifiedLocation],
-    override val canBeTCO: Boolean              = true,
-    override val passData: MetadataStorage      = MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    bodySeq: Seq[Expression],
+    location: Option[IdentifiedLocation],
+    override val canBeTCO: Boolean,
+    passData: MetadataStorage,
+    diagnostics: DiagnosticStorage
   ) extends Function
       with IRKind.Primitive {
-    override protected var id: Identifier = randomId
+    def this(
+      arguments: List[DefinitionArgument],
+      body: Expression,
+      location: Option[IdentifiedLocation],
+      canBeTCO: Boolean              = true,
+      passData: MetadataStorage      = new MetadataStorage(),
+      diagnostics: DiagnosticStorage = new DiagnosticStorage()
+    ) = {
+      this(arguments, Seq(body), location, canBeTCO, passData, diagnostics)
+    }
+    var id: UUID @Identifier = randomId
+    override lazy val body   = bodySeq.head
 
     /** Creates a copy of `this`.
       *
@@ -82,10 +83,10 @@ object Function {
       canBeTCO: Boolean                    = canBeTCO,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Lambda = {
       val res =
-        Lambda(arguments, body, location, canBeTCO, passData, diagnostics)
+        Lambda(arguments, Seq(body), location, canBeTCO, passData, diagnostics)
       res.id = id
       res
     }
@@ -113,7 +114,8 @@ object Function {
           keepIdentifiers
         ),
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId
@@ -124,7 +126,9 @@ object Function {
       copy(location = location)
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Lambda = {
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Lambda = {
       copy(arguments = arguments.map(_.mapExpressions(fn)), body = fn(body))
     }
 
@@ -158,6 +162,29 @@ object Function {
     }
   }
 
+  object Lambda {
+    def unapply(l: Lambda): Some[
+      (
+        List[DefinitionArgument],
+        Expression,
+        Option[IdentifiedLocation],
+        Boolean,
+        MetadataStorage,
+        DiagnosticStorage
+      )
+    ] =
+      Some(
+        (
+          l.arguments,
+          l.body,
+          l.location,
+          l.canBeTCO,
+          l.passData,
+          l.diagnostics
+        )
+      )
+  }
+
   /** A representation of the syntactic sugar for defining functions.
     *
     * @param name        the name of the function
@@ -172,13 +199,13 @@ object Function {
     name: Name,
     override val arguments: List[DefinitionArgument],
     override val body: Expression,
-    override val location: Option[IdentifiedLocation],
-    override val canBeTCO: Boolean              = true,
-    override val passData: MetadataStorage      = MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    location: Option[IdentifiedLocation],
+    override val canBeTCO: Boolean = true,
+    passData: MetadataStorage      = new MetadataStorage(),
+    diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Function
       with IRKind.Sugar {
-    override protected var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -200,7 +227,7 @@ object Function {
       canBeTCO: Boolean                    = canBeTCO,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Binding = {
       val res =
         Binding(
@@ -245,7 +272,8 @@ object Function {
           keepIdentifiers
         ),
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId
@@ -256,7 +284,9 @@ object Function {
       copy(location = location)
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Binding =
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Binding =
       copy(
         name      = name.mapExpressions(fn),
         arguments = arguments.map(_.mapExpressions(fn)),

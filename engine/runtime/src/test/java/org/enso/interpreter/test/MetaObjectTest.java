@@ -1,25 +1,25 @@
 package org.enso.interpreter.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.URI;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
-
 import org.enso.interpreter.runtime.type.ConstantsGen;
 import org.enso.interpreter.test.ValuesGenerator.Language;
+import org.enso.polyglot.MethodNames;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 import org.junit.AfterClass;
-import static org.junit.Assert.assertNotEquals;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -34,14 +34,19 @@ public class MetaObjectTest extends TestBase {
 
   @AfterClass
   public static void disposeCtx() {
+    if (generator != null) {
+      generator.dispose();
+      generator = null;
+    }
     ctx.close();
   }
 
-  /** Override to create different values generator.
-  *
-  * @param context the context to allocate values in
-  * @return an instance of values generator
-  */
+  /**
+   * Override to create different values generator.
+   *
+   * @param context the context to allocate values in
+   * @return an instance of values generator
+   */
   ValuesGenerator createGenerator(Context context) {
     return ValuesGenerator.create(context, Language.ENSO, Language.JAVA);
   }
@@ -56,14 +61,18 @@ public class MetaObjectTest extends TestBase {
   @Test
   public void checkingAtomMetaObject() throws Exception {
     final URI uri = new URI("memory://callback.enso");
-    final Source src = Source.newBuilder("enso", """
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
     type Atm
         Data x
         End
 
     data = Atm.Data 5
     end = Atm.End
-    """, "atom_test.enso")
+    """,
+                "atom_test.enso")
             .uri(uri)
             .buildLiteral();
 
@@ -151,7 +160,15 @@ public class MetaObjectTest extends TestBase {
     for (var v : g.arrayLike()) {
       var isVector = v.getMetaObject().equals(g.typeVector());
       var isArray = v.getMetaObject().equals(g.typeArray());
-      assertTrue("Value " + v + " of type " + v.getMetaObject() + " should either be array or vector (" + isVector + ")", isArray ^ isVector);
+      assertTrue(
+          "Value "
+              + v
+              + " of type "
+              + v.getMetaObject()
+              + " should either be array or vector ("
+              + isVector
+              + ")",
+          isArray ^ isVector);
     }
   }
 
@@ -179,6 +196,145 @@ public class MetaObjectTest extends TestBase {
     }
   }
 
+  @Test
+  public void typesOfConstructors() throws Exception {
+    var g = generator();
+    var types = new java.util.HashSet<Value>();
+    for (var c : g.constructorsAndValuesAndSumType()) {
+      if (c.isMetaObject()) {
+        types.add(c);
+      }
+    }
+    for (var c : g.constructorsAndValuesAndSumType()) {
+      if (c.isMetaObject() || types.contains(c.getMetaObject())) {
+        continue;
+      }
+      assertNotNull("c " + c + " has a type", c.getMetaObject());
+      assertEquals("c " + c + " is function", "Function", c.getMetaObject().getMetaSimpleName());
+      assertEquals("c " + c + " is function", g.typeFunction(), c.getMetaObject());
+    }
+  }
+
+  @Test
+  public void compareQualifiedAndSimpleTypeName() throws Exception {
+    var g = generator();
+    var sn =
+        ctx.eval(
+                "enso",
+                """
+    from Standard.Base import Meta
+
+    sn v = Meta.get_simple_type_name v
+    """)
+            .invokeMember(MethodNames.Module.EVAL_EXPRESSION, "sn");
+    var sb = new StringBuilder();
+    for (var v : g.allValues()) {
+      var simpleName = sn.execute(v).asString();
+      if (v.isNumber()) {
+        var ok =
+            switch (simpleName) {
+              case "Integer", "Float" -> true;
+              default -> false;
+            };
+        assertTrue("Unexpected simple name for number: " + simpleName, ok);
+        continue;
+      }
+      var meta = v.getMetaObject();
+      var metaName = meta != null ? meta.getMetaSimpleName() : "null";
+      if (!simpleName.equals(metaName)) {
+        if (v.isHostObject()) {
+          if (v.hasArrayElements()) {
+            assertEquals("Array", simpleName);
+            continue;
+          }
+          if (v.hasHashEntries()) {
+            assertEquals("Map", simpleName);
+            continue;
+          }
+        }
+        if (v.isString()) {
+          assertEquals("Text", simpleName);
+          continue;
+        }
+        if (v.isDuration()) {
+          assertEquals("Duration", simpleName);
+          continue;
+        }
+        if (v.isDate() && v.isTime()) {
+          assertEquals("Date_Time", simpleName);
+          continue;
+        }
+        if (v.isTimeZone()) {
+          assertEquals("Time_Zone", simpleName);
+          continue;
+        }
+        if (v.isDate()) {
+          assertEquals("Date", simpleName);
+          continue;
+        }
+        if (v.isTime()) {
+          assertEquals("Time_Of_Day", simpleName);
+          continue;
+        }
+        if (v.isNull()) {
+          assertEquals("Nothing", simpleName);
+          continue;
+        }
+
+        sb.append("\n")
+            .append("Simple names shall be the same for ")
+            .append(v)
+            .append(" get_simple_type_name: ")
+            .append(simpleName)
+            .append(" getMetaSimpleName: ")
+            .append(metaName);
+      }
+    }
+    if (!sb.isEmpty()) {
+      var lines = sb.toString().lines().count() - 1;
+      sb.insert(0, "There is " + lines + " differences:");
+      fail(sb.toString());
+    }
+  }
+
+  @Test
+  public void compareQualifiedAndSimpleTypeNameForTypes() throws Exception {
+    var g = generator();
+    var sn =
+        ctx.eval(
+                "enso",
+                """
+    from Standard.Base import Meta
+
+    sn v = Meta.get_simple_type_name v
+    """)
+            .invokeMember(MethodNames.Module.EVAL_EXPRESSION, "sn");
+    var sb = new StringBuilder();
+    for (var typ : g.allTypes()) {
+      if (!typ.isMetaObject()) {
+        // skip Nothing
+        continue;
+      }
+
+      var simpleName = sn.execute(typ).asString();
+      var metaName = typ.getMetaSimpleName() + ".type";
+      if (!simpleName.equals(metaName)) {
+        sb.append("\n")
+            .append("Simple names shall be the same for ")
+            .append(typ)
+            .append(" get_simple_type_name: ")
+            .append(simpleName)
+            .append(" getMetaSimpleName: ")
+            .append(metaName);
+      }
+    }
+    if (!sb.isEmpty()) {
+      var lines = sb.toString().lines().count() - 1;
+      sb.insert(0, "There is " + lines + " differences:");
+      fail(sb.toString());
+    }
+  }
+
   private void checkAllTypesSatisfy(Check check) throws Exception {
     var g = generator();
     var expecting = new LinkedHashSet<Value>();
@@ -187,11 +343,11 @@ public class MetaObjectTest extends TestBase {
         continue;
       }
       switch (t.getMetaSimpleName()) {
-        // represented as primitive values without meta object
+          // represented as primitive values without meta object
         case "Float" -> {}
-        // has no instances
+          // has no instances
         case "Array_Proxy" -> {}
-        // Warning is transparent and invisible
+          // Warning is transparent and invisible
         case "Warning" -> {}
         default -> expecting.add(t);
       }
@@ -208,10 +364,12 @@ public class MetaObjectTest extends TestBase {
 
   @FunctionalInterface
   interface Check {
-    void check(Value v, Value type, Set<Value> expecting, Set<Value> successfullyRemoved, StringBuilder w);
+    void check(
+        Value v, Value type, Set<Value> expecting, Set<Value> successfullyRemoved, StringBuilder w);
   }
 
-  private static void checkValue(Value v, Value type, Set<Value> expecting, Set<Value> successfullyRemoved, StringBuilder w) {
+  private static void checkValue(
+      Value v, Value type, Set<Value> expecting, Set<Value> successfullyRemoved, StringBuilder w) {
     var t = type == null ? v.getMetaObject() : type;
     if (t == null) {
       return;
@@ -230,7 +388,8 @@ public class MetaObjectTest extends TestBase {
     }
   }
 
-  private static void checkIsInstance(Value v, Value nullT, Set<Value> expecting, Set<Value> successfullyRemoved, StringBuilder w) {
+  private static void checkIsInstance(
+      Value v, Value nullT, Set<Value> expecting, Set<Value> successfullyRemoved, StringBuilder w) {
     for (var type : new LinkedHashSet<>(expecting)) {
       if (!type.isMetaInstance(v)) {
         continue;

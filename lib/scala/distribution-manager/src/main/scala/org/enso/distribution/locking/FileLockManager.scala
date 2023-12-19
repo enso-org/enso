@@ -7,7 +7,7 @@ import com.typesafe.scalalogging.Logger
 
 import scala.util.control.NonFatal
 
-/** [[LockManager]] using file-based locks - allowing to synchornize locks
+/** [[LockManager]] using file-based locks - allowing to synchronize locks
   * between different processes.
   *
   * Under the hood, it uses the [[FileLock]] mechanism. This mechanism specifies

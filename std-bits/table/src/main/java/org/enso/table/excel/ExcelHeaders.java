@@ -3,26 +3,32 @@ package org.enso.table.excel;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.util.CellReference;
-import org.enso.table.problems.Problem;
+import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.NameDeduplicator;
 import org.graalvm.polyglot.Context;
-
-import java.util.List;
 
 public class ExcelHeaders {
   private final NameDeduplicator deduplicator;
   private final int startCol;
   private final String[] names;
 
-  public ExcelHeaders(HeaderBehavior headers, ExcelRow startRow, ExcelRow nextRow, int startCol, int endCol) {
-    deduplicator = new NameDeduplicator();
+  public ExcelHeaders(
+      HeaderBehavior headers,
+      ExcelRow startRow,
+      ExcelRow nextRow,
+      int startCol,
+      int endCol,
+      ProblemAggregator problemAggregator) {
+    deduplicator = NameDeduplicator.createDefault(problemAggregator);
 
     this.startCol = startCol;
-    names = switch (headers) {
-      case EXCEL_COLUMN_NAMES -> null;
-      case USE_FIRST_ROW_AS_HEADERS -> readRowAsHeaders(startRow, startCol, endCol, deduplicator);
-      case INFER -> inferHeaders(startRow, nextRow, startCol, endCol, deduplicator);
-    };
+    names =
+        switch (headers) {
+          case EXCEL_COLUMN_NAMES -> null;
+          case USE_FIRST_ROW_AS_HEADERS -> readRowAsHeaders(
+              startRow, startCol, endCol, deduplicator);
+          case INFER -> inferHeaders(startRow, nextRow, startCol, endCol, deduplicator);
+        };
   }
 
   public String get(int column) {
@@ -42,11 +48,8 @@ public class ExcelHeaders {
     return this.names == null ? 0 : 1;
   }
 
-  public List<Problem> getProblems() {
-    return deduplicator.getProblems();
-  }
-
-  private static String[] readRowAsHeaders(ExcelRow row, int startCol, int endCol, NameDeduplicator deduplicator) {
+  private static String[] readRowAsHeaders(
+      ExcelRow row, int startCol, int endCol, NameDeduplicator deduplicator) {
     Context context = Context.getCurrent();
     if (row == null) {
       return null;
@@ -78,7 +81,8 @@ public class ExcelHeaders {
     return output;
   }
 
-  private static String[] inferHeaders(ExcelRow row, ExcelRow nextRow, int startCol, int endCol, NameDeduplicator deduplicator) {
+  private static String[] inferHeaders(
+      ExcelRow row, ExcelRow nextRow, int startCol, int endCol, NameDeduplicator deduplicator) {
     if (row == null || nextRow == null) {
       return null;
     }

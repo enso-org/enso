@@ -1,6 +1,7 @@
 from Standard.Base import all
 
 from Standard.Base.Errors.Common import Assertion_Error
+from Standard.Base.Errors.Common import Type_Error
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
@@ -20,8 +21,20 @@ spec = Test.group "Asserts" pending=on_ci <|
         ret = Runtime.assert js_check
         ret . should_be_a Nothing
 
-    Test.specify "should be able to take lambdas as expressions" <|
-        Runtime.assert <|
+    Test.specify "should be able to take a block as expressions" <|
+        ret = Runtime.assert <|
             4 == 2 + 2
+        ret . should_be_a Nothing
+
+    Test.specify "should fail with type error when given dataflow error as expression" <|
+        p = Panic.catch Assertion_Error (Runtime.assert (Error.throw "foo")) err->
+            err.payload
+        Meta.type_of p . should_be_a Assertion_Error
+        p.message . should_start_with "Result of assert action is a dataflow error"
+
+    Test.specify "should be able to take values with warnings" <|
+        foo x = Warning.attach "My warning" (x+2)
+        Runtime.assert (foo 2 > 2) . should_be_a Nothing
+
 
 main = Test_Suite.run_main spec

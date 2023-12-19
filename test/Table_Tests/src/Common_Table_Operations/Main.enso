@@ -10,6 +10,7 @@ import project.Common_Table_Operations.Core_Spec
 import project.Common_Table_Operations.Cross_Tab_Spec
 import project.Common_Table_Operations.Conversion_Spec
 import project.Common_Table_Operations.Date_Time_Spec
+import project.Common_Table_Operations.Derived_Columns_Spec
 import project.Common_Table_Operations.Distinct_Spec
 import project.Common_Table_Operations.Expression_Spec
 import project.Common_Table_Operations.Filter_Spec
@@ -117,6 +118,7 @@ spec setup =
     Select_Columns_Spec.spec setup
     Column_Name_Edge_Cases_Spec.spec setup
     Column_Operations_Spec.spec setup
+    Derived_Columns_Spec.spec setup
     Date_Time_Spec.spec setup
     Conversion_Spec.spec setup
     Aggregate_Spec.spec setup

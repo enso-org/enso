@@ -1,13 +1,15 @@
 //! Run the parser from the command line, and output the raw binary serialization of the AST for
 //! debugging.
 
-// === Features ===
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
-// === Non-Standard Linter Configuration ===
+#![allow(clippy::bool_to_int_with_if)]
+#![allow(clippy::let_and_return)]
 
 use std::io::Write;
+
+
 
 fn main() {
     use std::io::Read;

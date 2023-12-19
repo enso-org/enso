@@ -2,6 +2,8 @@
 import * as React from 'react'
 import * as toast from 'react-toastify'
 
+import isEmail from 'validator/es/lib/isEmail'
+
 import * as auth from '../../authentication/providers/auth'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
@@ -18,7 +20,7 @@ import UserPermissions from './userPermissions'
 // === Constants ===
 // =================
 
-/** The vertical offset of the {@link PermissionTypeSelector} from its parent element, for the
+/** The vertical offset of the `PermissionTypeSelector` from its parent element, for the
  * input to invite new users. */
 const TYPE_SELECTOR_Y_OFFSET_PX = 32
 
@@ -55,7 +57,6 @@ export default function ManagePermissionsModal<
     const [users, setUsers] = React.useState<backendModule.SimpleUser[]>([])
     const [email, setEmail] = React.useState<string | null>(null)
     const [action, setAction] = React.useState(permissionsModule.PermissionAction.view)
-    const emailValidityRef = React.useRef<HTMLInputElement>(null)
     const position = React.useMemo(() => eventTarget?.getBoundingClientRect(), [eventTarget])
     const editablePermissions = React.useMemo(
         () =>
@@ -97,7 +98,7 @@ export default function ManagePermissionsModal<
         // and `organization` is absent only when offline - in which case the user should only
         // be able to access the local backend.
         // This MUST be an error, otherwise the hooks below are considered as conditionally called.
-        throw new Error('Cannot share projects on the local backend.')
+        throw new Error('Cannot share assets on the local backend.')
     } else {
         const listedUsers = hooks.useAsyncEffect([], () => backend.listUsers(), [])
         const allUsers = React.useMemo(
@@ -110,10 +111,8 @@ export default function ManagePermissionsModal<
             [emailsOfUsersWithPermission, usernamesOfUsersWithPermission, listedUsers]
         )
         const willInviteNewUser = React.useMemo(() => {
-            if (users.length !== 0) {
+            if (users.length !== 0 || email == null || email === '') {
                 return false
-            } else if (email == null || email === '') {
-                return true
             } else {
                 const lowercase = email.toLowerCase()
                 return (
@@ -139,6 +138,7 @@ export default function ManagePermissionsModal<
             if (willInviteNewUser) {
                 try {
                     setUsers([])
+                    setEmail('')
                     if (email != null) {
                         await backend.inviteUser({
                             organizationId: organization.id,
@@ -247,7 +247,7 @@ export default function ManagePermissionsModal<
                               }
                             : {}
                     }
-                    className="sticky w-115.25"
+                    className="sticky w-115.25 rounded-2xl before:absolute before:bg-frame-selected before:backdrop-blur-3xl before:rounded-2xl before:w-full before:h-full"
                     onClick={mouseEvent => {
                         mouseEvent.stopPropagation()
                     }}
@@ -261,7 +261,6 @@ export default function ManagePermissionsModal<
                         }
                     }}
                 >
-                    <div className="absolute bg-frame-selected backdrop-blur-3xl rounded-2xl h-full w-full" />
                     <div className="relative flex flex-col rounded-2xl gap-2 p-2">
                         <div>
                             <h2 className="text-sm font-bold">Invite</h2>
@@ -274,7 +273,7 @@ export default function ManagePermissionsModal<
                                 void doSubmit()
                             }}
                         >
-                            <div className="flex items-center grow rounded-full border border-black-a10 gap-2 px-1">
+                            <div className="flex items-center grow rounded-full border border-black/10 gap-2 px-1">
                                 <PermissionSelector
                                     disabled={willInviteNewUser}
                                     selfPermission={self.permission}
@@ -282,14 +281,6 @@ export default function ManagePermissionsModal<
                                     action={permissionsModule.PermissionAction.view}
                                     assetType={item.type}
                                     onChange={setAction}
-                                />
-                                <input
-                                    readOnly
-                                    hidden
-                                    ref={emailValidityRef}
-                                    type="email"
-                                    className="hidden"
-                                    value={email ?? ''}
                                 />
                                 <Autocomplete
                                     multiple
@@ -319,10 +310,10 @@ export default function ManagePermissionsModal<
                             <button
                                 type="submit"
                                 disabled={
-                                    users.length === 0 ||
-                                    (email != null && emailsOfUsersWithPermission.has(email)) ||
-                                    (willInviteNewUser &&
-                                        emailValidityRef.current?.validity.valid !== true)
+                                    willInviteNewUser
+                                        ? email == null || !isEmail(email)
+                                        : users.length === 0 ||
+                                          (email != null && emailsOfUsersWithPermission.has(email))
                                 }
                                 className="text-tag-text bg-invite rounded-full px-2 py-1 disabled:opacity-30"
                             >

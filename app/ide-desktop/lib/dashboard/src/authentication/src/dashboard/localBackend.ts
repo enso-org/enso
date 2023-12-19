@@ -47,7 +47,6 @@ export class LocalBackend extends backend.Backend {
         return backend.DirectoryId('')
     }
     /** Return a list of assets in a directory.
-     *
      * @throws An error if the JSON-RPC call fails. */
     override async listDirectory(): Promise<backend.AnyAsset[]> {
         const result = await this.projectManager.listProjects({})
@@ -67,11 +66,12 @@ export class LocalBackend extends backend.Backend {
                 // eslint-disable-next-line @typescript-eslint/naming-convention
                 volume_id: '',
             },
+            labels: [],
+            description: null,
         }))
     }
 
     /** Return a list of projects belonging to the current user.
-     *
      * @throws An error if the JSON-RPC call fails. */
     override async listProjects(): Promise<backend.ListedProject[]> {
         const result = await this.projectManager.listProjects({})
@@ -91,7 +91,6 @@ export class LocalBackend extends backend.Backend {
     }
 
     /** Create a project.
-     *
      * @throws An error if the JSON-RPC call fails. */
     override async createProject(
         body: backend.CreateProjectRequestBody
@@ -117,7 +116,6 @@ export class LocalBackend extends backend.Backend {
     }
 
     /** Close the project identified by the given project ID.
-     *
      * @throws An error if the JSON-RPC call fails. */
     override async closeProject(projectId: backend.ProjectId, title: string | null): Promise<void> {
         if (LocalBackend.currentlyOpeningProjectId === projectId) {
@@ -137,7 +135,6 @@ export class LocalBackend extends backend.Backend {
     }
 
     /** Close the project identified by the given project ID.
-     *
      * @throws An error if the JSON-RPC call fails. */
     override async getProjectDetails(
         projectId: backend.ProjectId,
@@ -208,7 +205,6 @@ export class LocalBackend extends backend.Backend {
     }
 
     /** Prepare a project for execution.
-     *
      * @throws An error if the JSON-RPC call fails. */
     override async openProject(
         projectId: backend.ProjectId,
@@ -237,7 +233,6 @@ export class LocalBackend extends backend.Backend {
     }
 
     /** Change the name of a project.
-     *
      * @throws An error if the JSON-RPC call fails. */
     override async projectUpdate(
         projectId: backend.ProjectId,
@@ -277,7 +272,6 @@ export class LocalBackend extends backend.Backend {
     }
 
     /** Delete an arbitrary asset.
-     *
      * @throws An error if the JSON-RPC call fails. */
     override async deleteAsset(assetId: backend.AssetId, title: string | null): Promise<void> {
         // This is SAFE, as the only asset type on the local backend is projects.
@@ -320,10 +314,13 @@ export class LocalBackend extends backend.Backend {
 
     // === Endpoints that intentionally do not work on the Local Backend ===
 
-    /** @throws An error stating that the operation is intentionally unavailable on the local
+    /** Called for any function that does not make sense in the Local Backend.
+     * @throws An error stating that the operation is intentionally unavailable on the local
      * backend. */
     invalidOperation(): never {
-        throw new Error('Cannot manage users, folders, files, and secrets on the local backend.')
+        throw new Error(
+            'Cannot manage users, folders, files, tags, and secrets on the local backend.'
+        )
     }
 
     /** Do nothing. This function should never need to be called. */
@@ -364,6 +361,11 @@ export class LocalBackend extends backend.Backend {
     /** Invalid operation. */
     override updateDirectory() {
         return this.invalidOperation()
+    }
+
+    /** Return `void`. This function should never need to be called. */
+    override updateAsset() {
+        return Promise.resolve()
     }
 
     /** Invalid operation. */
@@ -410,6 +412,11 @@ export class LocalBackend extends backend.Backend {
     /** Return an empty array. This function should never need to be called. */
     override listTags() {
         return Promise.resolve([])
+    }
+
+    /** Do nothing. This function should never need to be called. */
+    override associateTag() {
+        return Promise.resolve()
     }
 
     /** Do nothing. This function should never need to be called. */

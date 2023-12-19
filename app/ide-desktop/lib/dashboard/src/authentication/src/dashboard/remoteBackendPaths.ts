@@ -39,6 +39,10 @@ export const CREATE_TAG_PATH = 'tags'
 export const LIST_TAGS_PATH = 'tags'
 /** Relative HTTP path to the "list versions" endpoint of the Cloud backend API. */
 export const LIST_VERSIONS_PATH = 'versions'
+/** Relative HTTP path to the "update asset" endpoint of the Cloud backend API. */
+export function updateAssetPath(assetId: backend.AssetId) {
+    return `assets/${assetId}`
+}
 /** Relative HTTP path to the "delete asset" endpoint of the Cloud backend API. */
 export function deleteAssetPath(assetId: backend.AssetId) {
     return `assets/${assetId}`
@@ -75,7 +79,11 @@ export function getLogsPath(projectId: backend.ProjectId) {
 export function getSecretPath(secretId: backend.SecretId) {
     return `secrets/${secretId}`
 }
+/** Relative HTTP path to the "associate tag" endpoint of the Cloud backend API. */
+export function associateTagPath(assetId: backend.AssetId) {
+    return `assets/${assetId}/labels`
+}
 /** Relative HTTP path to the "delete tag" endpoint of the Cloud backend API. */
 export function deleteTagPath(tagId: backend.TagId) {
-    return `secrets/${tagId}`
+    return `tags/${tagId}`
 }

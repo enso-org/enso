@@ -88,7 +88,7 @@ where I: Iterator<Item = Line<'s>>
             match line.expression.map(Prefix::try_from) {
                 Some(Ok(prefix)) => {
                     match self.prefixes.last_mut() {
-                        Some(prefix) => prefix.newlines().push(line.newline),
+                        Some(prefix) => prefix.push_newline(line.newline),
                         None => self.newline = Some(line.newline),
                     };
                     self.prefixes.push(prefix);
@@ -96,7 +96,7 @@ where I: Iterator<Item = Line<'s>>
                 Some(Err(mut statement)) => {
                     return Some(match self.prefixes.last_mut() {
                         Some(prefix) => {
-                            prefix.newlines().push(line.newline);
+                            prefix.push_newline(line.newline);
                             for prefix in self.prefixes.drain(..).rev() {
                                 statement = prefix.apply_to(statement);
                             }
@@ -108,7 +108,7 @@ where I: Iterator<Item = Line<'s>>
                 }
                 None => {
                     match self.prefixes.last_mut() {
-                        Some(prefix) => prefix.newlines().push(line.newline),
+                        Some(prefix) => prefix.push_newline(line.newline),
                         None => return Some(line.newline.into()),
                     };
                 }
@@ -154,23 +154,27 @@ impl<'s> TryFrom<Tree<'s>> for Prefix<'s> {
 }
 
 impl<'s> Prefix<'s> {
-    fn newlines(&mut self) -> &mut Vec<token::Newline<'s>> {
-        match self {
-            Prefix::Annotation { node: Annotated { newlines, .. }, .. }
-            | Prefix::BuiltinAnnotation { node: AnnotatedBuiltin { newlines, .. }, .. }
+    fn push_newline(&mut self, newline: token::Newline<'s>) {
+        let (newlines, span) = match self {
+            Prefix::Annotation { node: Annotated { newlines, .. }, span }
+            | Prefix::BuiltinAnnotation { node: AnnotatedBuiltin { newlines, .. }, span }
             | Prefix::Documentation {
                 node: Documented { documentation: DocComment { newlines, .. }, .. },
-                ..
-            } => newlines,
-        }
+                span,
+            } => (newlines, span),
+        };
+        span.code_length += newline.left_offset.code.length() + newline.code.length();
+        newlines.push(newline);
     }
 
     fn apply_to(mut self, expression: Tree<'s>) -> Tree<'s> {
-        *(match &mut self {
-            Prefix::Annotation { node, .. } => &mut node.expression,
-            Prefix::BuiltinAnnotation { node, .. } => &mut node.expression,
-            Prefix::Documentation { node, .. } => &mut node.expression,
-        }) = Some(expression);
+        let (expr, span) = match &mut self {
+            Prefix::Annotation { node, span } => (&mut node.expression, span),
+            Prefix::BuiltinAnnotation { node, span } => (&mut node.expression, span),
+            Prefix::Documentation { node, span } => (&mut node.expression, span),
+        };
+        span.code_length += expression.span.left_offset.code.length() + expression.span.code_length;
+        *expr = Some(expression);
         self.into()
     }
 }

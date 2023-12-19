@@ -13,6 +13,7 @@ import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.SourceSection;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import org.enso.compiler.context.LocalScope;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.ExpressionNode;
@@ -29,7 +30,6 @@ import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
-import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.pkg.QualifiedName;
 
@@ -202,6 +202,7 @@ public final class AtomConstructor implements EnsoObject {
    *
    * @return the name to display of the Atom constructor
    */
+  @TruffleBoundary
   public String getDisplayName() {
     return name.equals("Value") || name.equals("Error") ? type.getName() + "." + name : name;
   }
@@ -328,19 +329,25 @@ public final class AtomConstructor implements EnsoObject {
     return sb.toString();
   }
 
-  /** @return the fully qualified name of this constructor. */
+  /**
+   * @return the fully qualified name of this constructor.
+   */
   @TruffleBoundary
   public QualifiedName getQualifiedName() {
     return type.getQualifiedName().createChild(getName());
   }
 
-  /** @return the fully qualified name of constructor type. */
+  /**
+   * @return the fully qualified name of constructor type.
+   */
   @CompilerDirectives.TruffleBoundary
   public QualifiedName getQualifiedTypeName() {
     return type.getQualifiedName();
   }
 
-  /** @return the fields defined by this constructor. */
+  /**
+   * @return the fields defined by this constructor.
+   */
   public ArgumentDefinition[] getFields() {
     return constructorFunction.getSchema().getArgumentInfos();
   }
@@ -357,6 +364,16 @@ public final class AtomConstructor implements EnsoObject {
 
   @ExportMessage
   Type getType(@CachedLibrary("this") TypesLibrary thisLib, @Cached("1") int ignore) {
+    return EnsoContext.get(thisLib).getBuiltins().function();
+  }
+
+  @ExportMessage
+  boolean hasMetaObject() {
+    return true;
+  }
+
+  @ExportMessage
+  Type getMetaObject(@CachedLibrary("this") InteropLibrary thisLib, @Cached("1") int ignore) {
     return EnsoContext.get(thisLib).getBuiltins().function();
   }
 }

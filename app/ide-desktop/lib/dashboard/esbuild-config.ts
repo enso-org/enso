@@ -56,17 +56,18 @@ export function esbuildPluginGenerateTailwind(): esbuild.Plugin {
     return {
         name: 'enso-generate-tailwind',
         setup: build => {
-            const cssProcessor = postcss([
+            const cssProcessor = postcss(
                 tailwindcss({
-                    config: tailwindConfig,
+                    ...tailwindConfig.default,
+                    content: tailwindConfig.default.content.map(glob =>
+                        glob.replace(/^[.][/]/, THIS_PATH + '/')
+                    ),
                 }),
-                tailwindcssNesting(),
-            ])
+                tailwindcssNesting()
+            )
             build.onLoad({ filter: /tailwind\.css$/ }, async loadArgs => {
-                // console.log(`Processing CSS file '${loadArgs.path}'.`)
                 const content = await fs.readFile(loadArgs.path, 'utf8')
                 const result = await cssProcessor.process(content, { from: loadArgs.path })
-                // console.log(`Processed CSS file '${loadArgs.path}'.`)
                 return {
                     contents: result.content,
                     loader: 'css',
@@ -97,6 +98,7 @@ export function bundlerOptions(args: Arguments) {
             /* eslint-disable @typescript-eslint/naming-convention */
             // The `file` loader copies the file, and replaces the import with the path to the file.
             '.png': 'file',
+            '.jpg': 'file',
             /* eslint-enable @typescript-eslint/naming-convention */
         },
         plugins: [

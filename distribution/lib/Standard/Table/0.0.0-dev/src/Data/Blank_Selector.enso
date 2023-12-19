@@ -1,0 +1,7 @@
+## Specifies the condition for selecting blank cells.
+type Blank_Selector
+    ## Select when any cell is blank or Nothing.
+    Any_Cell
+
+    ## Select when all the cells are blank or Nothing.
+    All_Cells

@@ -9,7 +9,7 @@ import org.enso.languageserver.filemanager.{FileSystemFailure, Path}
 import org.enso.languageserver.libraries.LibraryComponentGroup
 import org.enso.languageserver.runtime.ExecutionApi.ContextId
 import org.enso.languageserver.session.JsonSession
-import org.enso.logger.masking.ToLogString
+import org.enso.logger.masking.{MaskedString, ToLogString}
 import org.enso.text.editing.model
 
 import java.util.UUID
@@ -422,14 +422,14 @@ object ContextRegistryProtocol {
     * @param clientId the requester id
     * @param visualizationId an identifier of a visualization
     * @param expressionId an identifier of an expression which is visualised
-    * @param visualizationConfig a configuration object for properties of the
-    * visualization
+    * @param expression the expression to execute
     */
   case class ExecuteExpression(
     clientId: ClientId,
+    executionContextId: UUID,
     visualizationId: UUID,
     expressionId: UUID,
-    visualizationConfig: VisualizationConfiguration
+    expression: String
   ) extends ToLogString {
 
     /** @inheritdoc */
@@ -437,8 +437,8 @@ object ContextRegistryProtocol {
       "ExecuteExpression(" +
       s"clientId=$clientId," +
       s"visualizationId=$visualizationId," +
-      s"expressionId=$expressionId,visualizationConfig=" +
-      visualizationConfig.toLogString(shouldMask) +
+      s"expressionId=$expressionId,expression=" +
+      MaskedString(expression).toLogString(shouldMask) +
       ")"
   }
 
@@ -568,6 +568,7 @@ object ContextRegistryProtocol {
     * @param diagnostic the detailed information about the failure
     */
   case class VisualizationExpressionFailed(
+    ctx: VisualizationContext,
     message: String,
     diagnostic: Option[ExecutionDiagnostic]
   ) extends Failure
@@ -575,16 +576,12 @@ object ContextRegistryProtocol {
   /** Signals that an evaluation of a code responsible for generating
     * visualization data failed.
     *
-    * @param contextId a context identifier
-    * @param visualizationId a visualization identifier
-    * @param expressionId an identifier of a visualised expression
+    * @param ctx a visualization context
     * @param message the reason of the failure
     * @param diagnostic the detailed information about the error
     */
   case class VisualizationEvaluationFailed(
-    contextId: UUID,
-    visualizationId: UUID,
-    expressionId: UUID,
+    ctx: VisualizationContext,
     message: String,
     diagnostic: Option[ExecutionDiagnostic]
   )

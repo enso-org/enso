@@ -4,6 +4,7 @@ import * as React from 'react'
 import DefaultUserIcon from 'enso-assets/default_user.svg'
 
 import * as app from '../../components/app'
+import * as appInfo from '../../appInfo'
 import * as auth from '../../authentication/providers/auth'
 import * as hooks from '../../hooks'
 import * as modalProvider from '../../providers/modal'
@@ -19,16 +20,18 @@ import Modal from './modal'
 
 /** Props for a {@link UserMenu}. */
 export interface UserMenuProps {
+    supportsLocalBackend: boolean
     onSignOut: () => void
 }
 
 /** Handling the UserMenuItem click event logic and displaying its content. */
 export default function UserMenu(props: UserMenuProps) {
-    const { onSignOut } = props
+    const { supportsLocalBackend, onSignOut } = props
     const navigate = hooks.useNavigate()
     const { signOut } = auth.useAuth()
     const { accessToken, organization } = auth.useNonPartialUserSession()
-    const { setModal } = modalProvider.useSetModal()
+    const { setModal, unsetModal } = modalProvider.useSetModal()
+    const toastAndLog = hooks.useToastAndLog()
 
     // The shape of the JWT payload is statically known.
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -62,6 +65,23 @@ export default function UserMenu(props: UserMenuProps) {
                                     }}
                                 />
                             )}
+                            {!supportsLocalBackend && (
+                                <MenuEntry
+                                    action={shortcuts.KeyboardAction.downloadApp}
+                                    paddingClassName="p-1"
+                                    doAction={async () => {
+                                        unsetModal()
+                                        const downloadUrl = await appInfo.getDownloadUrl()
+                                        if (downloadUrl == null) {
+                                            toastAndLog(
+                                                'Could not find a download link for the current OS'
+                                            )
+                                        } else {
+                                            window.open(downloadUrl, '_blank')
+                                        }
+                                    }}
+                                />
+                            )}
                             <MenuEntry
                                 action={shortcuts.KeyboardAction.signOut}
                                 paddingClassName="p-1"
@@ -78,7 +98,7 @@ export default function UserMenu(props: UserMenuProps) {
                 ) : (
                     <>
                         <div className="flex items-center h-7">
-                            <span className="leading-170 h-6 py-px">You are not signed in.</span>
+                            <span className="leading-170 h-6 py-px">You are not logged in.</span>
                         </div>
                         <div className="flex flex-col">
                             <MenuEntry

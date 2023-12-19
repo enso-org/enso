@@ -1,12 +1,12 @@
 package org.enso.compiler.test
 
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
-import org.enso.compiler.core.EnsoParser
-import org.enso.compiler.core.IR
+import org.enso.compiler.core.{EnsoParser, IR, Identifier}
+import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.{DefinitionArgument, Expression, Module, Name}
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
-import org.enso.compiler.core.ir.MetadataStorage.ToPair
+import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
 import org.enso.compiler.data.BindingsMap.ModuleReference
 import org.enso.compiler.data.{BindingsMap, CompilerConfig}
 import org.enso.compiler.pass.analyse.BindingAnalysis
@@ -15,9 +15,11 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 import org.enso.interpreter.runtime
 import org.enso.interpreter.runtime.ModuleTestUtils
-import org.enso.interpreter.runtime.scope.LocalScope
+import org.enso.compiler.context.LocalScope
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.CompilationStage
+
+import java.util.UUID
 
 trait CompilerTest extends AnyWordSpecLike with Matchers with CompilerRunner
 trait CompilerRunner {
@@ -133,7 +135,7 @@ trait CompilerRunner {
     *
     * @return a random identifier
     */
-  def genId: IR.Identifier = IR.randomId
+  def genId: UUID @Identifier = IR.randomId
 
   // === IR Testing Utils =====================================================
 
@@ -148,7 +150,7 @@ trait CompilerRunner {
       * @return a method containing `ir` as its body
       */
     def asMethod: definition.Method = {
-      definition.Method.Explicit(
+      new definition.Method.Explicit(
         Name.MethodReference(
           Some(
             Name.Qualified(
@@ -229,7 +231,7 @@ trait CompilerRunner {
   ): (ModuleContext, runtime.Module) = {
     val mod = runtime.Module.empty(moduleName, null)
     val ctx = ModuleContext(
-      module            = mod,
+      module            = mod.asCompilerModule(),
       freshNameSupply   = freshNameSupply,
       passConfiguration = passConfiguration,
       compilerConfig    = compilerConfig,
@@ -260,9 +262,12 @@ trait CompilerRunner {
       mod,
       Module(List(), List(), List(), false, None)
         .updateMetadata(
-          BindingAnalysis -->> BindingsMap(
-            List(),
-            ModuleReference.Concrete(mod)
+          new MetadataPair(
+            BindingAnalysis,
+            BindingsMap(
+              List(),
+              ModuleReference.Concrete(mod.asCompilerModule())
+            )
           )
         )
     )
@@ -271,7 +276,7 @@ trait CompilerRunner {
       CompilationStage.AFTER_CODEGEN
     )
     val mc = ModuleContext(
-      module         = mod,
+      module         = mod.asCompilerModule(),
       compilerConfig = compilerConfig
     )
     InlineContext(

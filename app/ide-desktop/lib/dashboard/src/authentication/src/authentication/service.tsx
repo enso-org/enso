@@ -1,4 +1,4 @@
-/** @file Provides an {@link AuthService} which consists of an underyling {@link Cognito} API
+/** @file Provides an {@link AuthService} which consists of an underyling `Cognito` API
  * wrapper, along with some convenience callbacks to make URL redirects for the authentication flows
  * work with Electron. */
 import * as amplify from '@aws-amplify/auth'
@@ -137,7 +137,7 @@ function loadAmplifyConfig(
     /** Load the environment-specific Amplify configuration. */
     const baseConfig = AMPLIFY_CONFIGS[config.ENVIRONMENT]
     let urlOpener: ((url: string) => void) | null = null
-    let accessTokenSaver: ((accessToken: string) => void) | null = null
+    let accessTokenSaver: ((accessToken: string | null) => void) | null = null
     if ('authenticationApi' in window) {
         /** When running on destop we want to have option to save access token to a file,
          * so it can be later reuse when issuing requests to Cloud API. */
@@ -164,7 +164,7 @@ function loadAmplifyConfig(
         ...baseConfig,
         ...platformConfig,
         urlOpener,
-        accessTokenSaver,
+        saveAccessToken: accessTokenSaver,
     }
 }
 
@@ -174,7 +174,7 @@ function openUrlWithExternalBrowser(url: string) {
 }
 
 /** Save the access token to a file. */
-function saveAccessToken(accessToken: string) {
+function saveAccessToken(accessToken: string | null) {
     window.authenticationApi.saveAccessToken(accessToken)
 }
 
@@ -193,7 +193,7 @@ function saveAccessToken(accessToken: string) {
  * handle the redirect for us. On the desktop however, we need to handle the redirect ourselves,
  * because it's a deep link into the app, and Amplify doesn't handle deep links.
  *
- * All URLs that don't have a pathname that starts with {@link AUTHENTICATION_PATHNAME_BASE} will be
+ * All URLs that don't have a pathname that starts with `AUTHENTICATION_PATHNAME_BASE` will be
  * ignored by this handler. */
 function setDeepLinkHandler(logger: loggerProvider.Logger, navigate: (url: string) => void) {
     const onDeepLink = (url: string) => {
@@ -234,7 +234,7 @@ function setDeepLinkHandler(logger: loggerProvider.Logger, navigate: (url: strin
              * the password reset page, with the verification code and email passed in the URL s-o they can
              * be filled in automatically. */
             case app.RESET_PASSWORD_PATH: {
-                const resetPasswordRedirectUrl = `${app.RESET_PASSWORD_PATH}${parsedUrl.search}`
+                const resetPasswordRedirectUrl = app.RESET_PASSWORD_PATH + parsedUrl.search
                 navigate(resetPasswordRedirectUrl)
                 break
             }

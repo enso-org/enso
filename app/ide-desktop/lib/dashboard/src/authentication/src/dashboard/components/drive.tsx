@@ -3,21 +3,27 @@ import * as React from 'react'
 
 import * as common from 'enso-common'
 
-import type * as assetEventModule from '../events/assetEvent'
+import * as appInfo from '../../appInfo'
+import * as assetEventModule from '../events/assetEvent'
 import * as assetListEventModule from '../events/assetListEvent'
+import type * as assetQuery from '../../assetQuery'
 import * as authProvider from '../../authentication/providers/auth'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as hooks from '../../hooks'
 import * as localStorageModule from '../localStorage'
 import * as localStorageProvider from '../../providers/localStorage'
+import * as modalProvider from '../../providers/modal'
+import * as uniqueString from '../../uniqueString'
 
 import * as app from '../../components/app'
+import type * as assetSettingsPanel from './assetSettingsPanel'
 import * as pageSwitcher from './pageSwitcher'
 import type * as spinner from './spinner'
 import CategorySwitcher, * as categorySwitcher from './categorySwitcher'
 import AssetsTable from './assetsTable'
 import DriveBar from './driveBar'
+import Labels from './labels'
 
 // =============
 // === Drive ===
@@ -25,8 +31,9 @@ import DriveBar from './driveBar'
 
 /** Props for a {@link Drive}. */
 export interface DriveProps {
-    page: pageSwitcher.Page
+    supportsLocalBackend: boolean
     hidden: boolean
+    page: pageSwitcher.Page
     initialProjectName: string | null
     /** These events will be dispatched the next time the assets list is refreshed, rather than
      * immediately. */
@@ -35,8 +42,12 @@ export interface DriveProps {
     dispatchAssetListEvent: (directoryEvent: assetListEventModule.AssetListEvent) => void
     assetEvents: assetEventModule.AssetEvent[]
     dispatchAssetEvent: (directoryEvent: assetEventModule.AssetEvent) => void
-    query: string
+    query: assetQuery.AssetQuery
+    setQuery: React.Dispatch<React.SetStateAction<assetQuery.AssetQuery>>
     projectStartupInfo: backendModule.ProjectStartupInfo | null
+    setAssetSettingsPanelProps: React.Dispatch<
+        React.SetStateAction<assetSettingsPanel.AssetSettingsPanelRequiredProps | null>
+    >
     doCreateProject: (templateId: string | null) => void
     doOpenEditor: (
         project: backendModule.ProjectAsset,
@@ -53,16 +64,19 @@ export interface DriveProps {
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
 export default function Drive(props: DriveProps) {
     const {
-        page,
+        supportsLocalBackend,
         hidden,
+        page,
         initialProjectName,
         queuedAssetEvents,
         query,
+        setQuery,
         projectStartupInfo,
         assetListEvents,
         dispatchAssetListEvent,
         assetEvents,
         dispatchAssetEvent,
+        setAssetSettingsPanelProps,
         doOpenEditor,
         doCloseEditor,
         loadingProjectManagerDidFail,
@@ -74,6 +88,8 @@ export default function Drive(props: DriveProps) {
     const { organization } = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
     const { localStorage } = localStorageProvider.useLocalStorage()
+    const { modal } = modalProvider.useModal()
+    const { modalRef } = modalProvider.useModalRef()
     const toastAndLog = hooks.useToastAndLog()
     const [isFileBeingDragged, setIsFileBeingDragged] = React.useState(false)
     const [category, setCategory] = React.useState(
@@ -81,6 +97,22 @@ export default function Drive(props: DriveProps) {
             localStorage.get(localStorageModule.LocalStorageKey.driveCategory) ??
             categorySwitcher.Category.home
     )
+    const [labels, setLabels] = React.useState<backendModule.Label[]>([])
+    // const [currentLabels, setCurrentLabels] = React.useState<backendModule.LabelName[] | null>(null)
+    const [newLabelNames, setNewLabelNames] = React.useState(new Set<backendModule.LabelName>())
+    const [deletedLabelNames, setDeletedLabelNames] = React.useState(
+        new Set<backendModule.LabelName>()
+    )
+    const allLabels = React.useMemo(
+        () => new Map(labels.map(label => [label.value, label])),
+        [labels]
+    )
+
+    React.useEffect(() => {
+        if (modal != null) {
+            setIsFileBeingDragged(false)
+        }
+    }, [modal])
 
     React.useEffect(() => {
         const onBlur = () => {
@@ -91,6 +123,17 @@ export default function Drive(props: DriveProps) {
             window.removeEventListener('blur', onBlur)
         }
     }, [])
+
+    React.useEffect(() => {
+        void (async () => {
+            if (
+                backend.type !== backendModule.BackendType.local &&
+                organization?.isEnabled === true
+            ) {
+                setLabels(await backend.listTags())
+            }
+        })()
+    }, [backend, organization?.isEnabled])
 
     const doUploadFiles = React.useCallback(
         (files: File[]) => {
@@ -133,6 +176,63 @@ export default function Drive(props: DriveProps) {
         })
     }, [/* should never change */ dispatchAssetListEvent])
 
+    const doCreateLabel = React.useCallback(
+        async (value: string, color: backendModule.LChColor) => {
+            const newLabelName = backendModule.LabelName(value)
+            const placeholderLabel: backendModule.Label = {
+                id: backendModule.TagId(uniqueString.uniqueString()),
+                value: newLabelName,
+                color,
+            }
+            setNewLabelNames(labelNames => new Set([...labelNames, newLabelName]))
+            setLabels(oldLabels => [...oldLabels, placeholderLabel])
+            try {
+                const newLabel = await backend.createTag({ value, color })
+                setLabels(oldLabels =>
+                    oldLabels.map(oldLabel =>
+                        oldLabel.id === placeholderLabel.id ? newLabel : oldLabel
+                    )
+                )
+            } catch (error) {
+                toastAndLog(null, error)
+                setLabels(oldLabels =>
+                    oldLabels.filter(oldLabel => oldLabel.id !== placeholderLabel.id)
+                )
+            }
+            setNewLabelNames(
+                labelNames =>
+                    new Set([...labelNames].filter(labelName => labelName !== newLabelName))
+            )
+        },
+        [backend, /* should never change */ toastAndLog]
+    )
+
+    const doDeleteLabel = React.useCallback(
+        async (id: backendModule.TagId, value: backendModule.LabelName) => {
+            setDeletedLabelNames(oldNames => new Set([...oldNames, value]))
+            setQuery(oldQuery => oldQuery.delete({ labels: [value] }))
+            try {
+                await backend.deleteTag(id, value)
+                dispatchAssetEvent({
+                    type: assetEventModule.AssetEventType.deleteLabel,
+                    labelName: value,
+                })
+                setLabels(oldLabels => oldLabels.filter(oldLabel => oldLabel.id !== id))
+            } catch (error) {
+                toastAndLog(null, error)
+            }
+            setDeletedLabelNames(
+                oldNames => new Set([...oldNames].filter(oldValue => oldValue !== value))
+            )
+        },
+        [
+            backend,
+            /* should never change */ setQuery,
+            /* should never change */ dispatchAssetEvent,
+            /* should never change */ toastAndLog,
+        ]
+    )
+
     const doCreateDataConnector = React.useCallback(
         (name: string, value: string) => {
             dispatchAssetListEvent({
@@ -149,7 +249,9 @@ export default function Drive(props: DriveProps) {
     React.useEffect(() => {
         const onDragEnter = (event: DragEvent) => {
             if (
+                modalRef.current == null &&
                 page === pageSwitcher.Page.drive &&
+                category === categorySwitcher.Category.home &&
                 event.dataTransfer?.types.includes('Files') === true
             ) {
                 setIsFileBeingDragged(true)
@@ -159,12 +261,12 @@ export default function Drive(props: DriveProps) {
         return () => {
             document.body.removeEventListener('dragenter', onDragEnter)
         }
-    }, [page])
+    }, [page, category, /* should never change */ modalRef])
 
     return isListingRemoteDirectoryWhileOffline ? (
         <div className={`grow grid place-items-center mx-2 ${hidden ? 'hidden' : ''}`}>
             <div className="flex flex-col gap-4">
-                <div className="text-base text-center">You are not signed in.</div>
+                <div className="text-base text-center">You are not logged in.</div>
                 <button
                     className="text-base text-white bg-help rounded-full self-center leading-170 h-8 py-px w-16"
                     onClick={() => {
@@ -184,8 +286,29 @@ export default function Drive(props: DriveProps) {
         </div>
     ) : isListingRemoteDirectoryAndWillFail ? (
         <div className={`grow grid place-items-center mx-2 ${hidden ? 'hidden' : ''}`}>
-            <div className="text-base text-center">
-                We will review your user details and enable the cloud experience for you shortly.
+            <div className="flex flex-col gap-4 text-base text-center">
+                Upgrade your plan to use {common.PRODUCT_NAME} Cloud.
+                <a
+                    className="block self-center whitespace-nowrap text-base text-white bg-help rounded-full leading-170 h-8 py-px px-2 w-min"
+                    href="https://enso.org/pricing"
+                >
+                    Upgrade
+                </a>
+                {!supportsLocalBackend && (
+                    <button
+                        className="block self-center whitespace-nowrap text-base text-white bg-help rounded-full leading-170 h-8 py-px px-2 w-min"
+                        onClick={async () => {
+                            const downloadUrl = await appInfo.getDownloadUrl()
+                            if (downloadUrl == null) {
+                                toastAndLog('Could not find a download link for the current OS')
+                            } else {
+                                window.open(downloadUrl, '_blank')
+                            }
+                        }}
+                    >
+                        Download Free Edition
+                    </button>
+                )}
             </div>
         </div>
     ) : (
@@ -213,21 +336,39 @@ export default function Drive(props: DriveProps) {
             <div className="flex flex-1 gap-3 overflow-hidden">
                 {backend.type === backendModule.BackendType.remote && (
                     <div className="flex flex-col gap-4 py-1">
-                        <CategorySwitcher category={category} setCategory={setCategory} />
+                        <CategorySwitcher
+                            category={category}
+                            setCategory={setCategory}
+                            dispatchAssetEvent={dispatchAssetEvent}
+                        />
+                        <Labels
+                            labels={labels}
+                            query={query}
+                            setQuery={setQuery}
+                            doCreateLabel={doCreateLabel}
+                            doDeleteLabel={doDeleteLabel}
+                            newLabelNames={newLabelNames}
+                            deletedLabelNames={deletedLabelNames}
+                        />
                     </div>
                 )}
                 <AssetsTable
                     query={query}
+                    setQuery={setQuery}
                     category={category}
+                    allLabels={allLabels}
                     initialProjectName={initialProjectName}
                     projectStartupInfo={projectStartupInfo}
+                    deletedLabelNames={deletedLabelNames}
                     queuedAssetEvents={queuedAssetEvents}
                     assetEvents={assetEvents}
                     dispatchAssetEvent={dispatchAssetEvent}
                     assetListEvents={assetListEvents}
                     dispatchAssetListEvent={dispatchAssetListEvent}
+                    setAssetSettingsPanelProps={setAssetSettingsPanelProps}
                     doOpenIde={doOpenEditor}
                     doCloseIde={doCloseEditor}
+                    doCreateLabel={doCreateLabel}
                     loadingProjectManagerDidFail={loadingProjectManagerDidFail}
                     isListingRemoteDirectoryWhileOffline={isListingRemoteDirectoryWhileOffline}
                     isListingLocalDirectoryAndWillFail={isListingLocalDirectoryAndWillFail}
@@ -238,7 +379,7 @@ export default function Drive(props: DriveProps) {
             organization != null &&
             backend.type === backendModule.BackendType.remote ? (
                 <div
-                    className="text-white text-lg fixed w-screen h-screen inset-0 opacity-0 hover:opacity-100 bg-primary bg-opacity-75 backdrop-blur-none hover:backdrop-blur-xs transition-all grid place-items-center"
+                    className="text-white text-lg fixed w-screen h-screen inset-0 bg-primary bg-opacity-75 backdrop-blur-xs grid place-items-center z-3"
                     onDragLeave={() => {
                         setIsFileBeingDragged(false)
                     }}

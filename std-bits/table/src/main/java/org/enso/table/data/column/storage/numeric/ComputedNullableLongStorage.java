@@ -194,4 +194,19 @@ public abstract class ComputedNullableLongStorage extends AbstractLongStorage {
     assert getType().equals(IntegerType.INT_64);
     return this;
   }
+
+  @Override
+  public Storage<Long> appendNulls(int count) {
+    final ComputedNullableLongStorage parent = this;
+    return new ComputedNullableLongStorage(parent.size + count) {
+      @Override
+      protected Long computeItem(int idx) {
+        if (idx < parent.size) {
+          return parent.computeItem(idx);
+        }
+
+        return null;
+      }
+    };
+  }
 }

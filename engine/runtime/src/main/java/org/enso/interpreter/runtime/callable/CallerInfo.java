@@ -1,7 +1,7 @@
 package org.enso.interpreter.runtime.callable;
 
 import com.oracle.truffle.api.frame.MaterializedFrame;
-import org.enso.interpreter.runtime.scope.LocalScope;
+import org.enso.compiler.context.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 
 /**

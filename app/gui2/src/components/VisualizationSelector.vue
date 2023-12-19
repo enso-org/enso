@@ -1,14 +1,36 @@
 <script setup lang="ts">
+import SvgIcon from '@/components/SvgIcon.vue'
+import { useAutoBlur } from '@/util/autoBlur'
+import type { URLString } from '@/util/data/urlString'
+import type { Icon } from '@/util/iconName'
+import { computedAsync } from '@vueuse/core'
 import { visIdentifierEquals, type VisualizationIdentifier } from 'shared/yjsModel'
 import { onMounted, ref } from 'vue'
 
 const props = defineProps<{
-  types: readonly VisualizationIdentifier[]
+  types: Iterable<VisualizationIdentifier>
   modelValue: VisualizationIdentifier
 }>()
 const emit = defineEmits<{ hide: []; 'update:modelValue': [type: VisualizationIdentifier] }>()
 
+// This dynamic import is required to break the circular import chain:
+// `VisualizationSelector.vue` -> `compilerMessaging.ts` -> `VisualizationContainer.vue` ->
+// `VisualizationSelector.vue`
+const visualizationStore = computedAsync<{
+  icon: (type: VisualizationIdentifier) => Icon | URLString | undefined
+}>(
+  async () => {
+    return (await import('@/stores/visualization')).useVisualizationStore()
+  },
+  {
+    icon() {
+      return 'columns_increasing'
+    },
+  },
+)
+
 const rootNode = ref<HTMLElement>()
+useAutoBlur(rootNode)
 
 function visIdLabel(id: VisualizationIdentifier) {
   switch (id.module.kind) {
@@ -26,13 +48,15 @@ function visIdKey(id: VisualizationIdentifier) {
   return `${kindKey}::${id.name}`
 }
 
-onMounted(() => {
-  setTimeout(() => rootNode.value?.focus(), 0)
-})
+onMounted(() => setTimeout(() => rootNode.value?.querySelector('button')?.focus(), 1))
 </script>
 
 <template>
-  <div ref="rootNode" :tabindex="-1" class="VisualizationSelector" @blur="emit('hide')">
+  <div
+    ref="rootNode"
+    class="VisualizationSelector"
+    @focusout="$event.relatedTarget == null && emit('hide')"
+  >
     <div class="background"></div>
     <ul>
       <li
@@ -40,8 +64,12 @@ onMounted(() => {
         :key="visIdKey(type_)"
         :class="{ selected: visIdentifierEquals(props.modelValue, type_) }"
         @pointerdown.stop="emit('update:modelValue', type_)"
-        v-text="visIdLabel(type_)"
-      ></li>
+      >
+        <button>
+          <SvgIcon class="icon" :name="visualizationStore.icon(type_) ?? 'columns_increasing'" />
+          <span v-text="visIdLabel(type_)"></span>
+        </button>
+      </li>
     </ul>
   </div>
 </template>
@@ -56,29 +84,35 @@ onMounted(() => {
   top: 100%;
   margin-top: 12px;
   left: -12px;
+
+  &:before {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 16px;
+    background: var(--color-app-bg);
+    backdrop-filter: var(--blur-app-bg);
+  }
 }
 
 .VisualizationSelector > * {
   position: relative;
 }
 
-.VisualizationSelector > .background {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  border-radius: 16px;
-  background: var(--color-app-bg);
-  backdrop-filter: var(--blur-app-bg);
-}
-
 ul {
   display: flex;
   flex-flow: column;
+  gap: 2px;
   list-style-type: none;
   padding: 4px;
 }
 
-li {
+button {
+  width: 100%;
+  display: flex;
+  gap: 4px;
+  align-items: center;
   cursor: pointer;
   padding: 0 8px;
   border-radius: 12px;

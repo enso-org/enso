@@ -1,14 +1,19 @@
 package org.enso.compiler.core.ir
 package expression
 
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{randomId, Identifier, ToStringHelper}
+import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
+import org.enso.compiler.core.{IR, Identifier}
+import org.enso.compiler.core.IR.randomId
+
+import java.util.UUID
 
 /** Enso comment entities. */
 sealed trait Comment extends Expression with module.scope.Definition {
 
   /** @inheritdoc */
-  override def mapExpressions(fn: Expression => Expression): Comment
+  override def mapExpressions(
+    fn: java.util.function.Function[Expression, Expression]
+  ): Comment
 
   /** @inheritdoc */
   override def setLocation(location: Option[IdentifiedLocation]): Comment
@@ -34,11 +39,11 @@ object Comment {
   sealed case class Documentation(
     doc: String,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
+    override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Comment
       with IRKind.Primitive {
-    override protected var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -54,7 +59,7 @@ object Comment {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Documentation = {
       val res = Documentation(doc, location, passData, diagnostics)
       res.id = id
@@ -70,7 +75,8 @@ object Comment {
     ): Documentation =
       copy(
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
         id = if (keepIdentifiers) id else randomId
@@ -83,7 +89,7 @@ object Comment {
 
     /** @inheritdoc */
     override def mapExpressions(
-      fn: Expression => Expression
+      fn: java.util.function.Function[Expression, Expression]
     ): Documentation = this
 
     /** @inheritdoc */

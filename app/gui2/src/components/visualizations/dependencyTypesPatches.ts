@@ -1,9 +1,11 @@
 // Fixes and extensions for dependencies' type definitions.
 
+import type { BaseType, Selection } from 'd3'
+
 declare module 'd3' {
-  function select<GElement extends import('d3').BaseType, OldDatum>(
+  function select<GElement extends BaseType, OldDatum>(
     node: GElement | null | undefined,
-  ): import('d3').Selection<GElement, OldDatum, null, undefined>
+  ): Selection<GElement, OldDatum, null, undefined>
 
   // These type parameters are defined on the original interface.
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -12,16 +14,9 @@ declare module 'd3' {
   }
 }
 
-import {} from 'ag-grid-community'
+import '@ag-grid-community/core'
 
-declare module 'ag-grid-community' {
-  // These type parameters are defined on the original interface.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  interface ColDef<TData, TValue> {
-    /** Custom user-defined value. */
-    manuallySized: boolean
-  }
-
+declare module '@ag-grid-community/core' {
   // These type parameters are defined on the original interface.
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   interface AbstractColDef<TData, TValue> {

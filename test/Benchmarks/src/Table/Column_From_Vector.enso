@@ -5,6 +5,8 @@ import Standard.Table.Data.Type.Value_Type.Bits
 
 from Standard.Test import Bench
 
+from project.Config import extended_tests
+
 options = Bench.options . set_warmup (Bench.phase_conf 2 3) . set_measure (Bench.phase_conf 2 3)
 
 type Data
@@ -33,16 +35,6 @@ type Data
                     2 -> 2^100 + (i % 100)
 
         Data.Value ints floats floats_and_small_ints floats_and_large_ints
-
-## A flag allowing to run some additional benchmarks.
-   They were used when analyzing performance of an optimization of Mixed
-   handler. They are disabled on the CI to avoid increasing the time of the
-   build, but they can be manually re-enabled in case this needs testing in the
-   future.
-
-   When set to `False`, only the core measurements checking the most common
-   cases are run.
-extended_tests = False
 
 collect_benches = Bench.build builder->
     num_rows = 1000000

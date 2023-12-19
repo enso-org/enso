@@ -4,25 +4,26 @@ import org.enso.editions.Editions
 import org.enso.librarymanager.published.cache.DownloadingLibraryCache
 import org.enso.logger.TestLogMessage
 import org.enso.pkg.PackageManager
-import org.enso.testkit.WithTemporaryDirectory
+import org.enso.testkit.{RetrySpec, WithTemporaryDirectory}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.slf4j.event.Level
 import org.enso.logger.TestLogger
 
-import java.nio.file.Files
+import java.nio.file.{Files, Path}
 
 class LibraryDownloadTest
     extends AnyWordSpec
     with Matchers
     with WithTemporaryDirectory
-    with DownloaderTest {
+    with DownloaderTest
+    with RetrySpec {
 
   val port: Int = 47306
 
   "DownloadingLibraryCache" should {
-    "be able to download and install libraries from a repository" in {
-      val repo = new ExampleRepository
+    "be able to download and install libraries from a repository" taggedAs Retry in {
+      val repo = new ExampleRepository(Path.of("../../../"))
 
       val repoRoot = getTestDirectory.resolve("repo")
       repo.createRepository(repoRoot)

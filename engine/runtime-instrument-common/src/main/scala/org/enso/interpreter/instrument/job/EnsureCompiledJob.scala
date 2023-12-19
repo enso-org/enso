@@ -4,8 +4,9 @@ import cats.implicits._
 import com.oracle.truffle.api.TruffleLogger
 import org.enso.compiler.CompilerResult
 import org.enso.compiler.context._
+import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.CompilerError
-import org.enso.compiler.core.ir.{Diagnostic, Warning}
+import org.enso.compiler.core.ir.{Diagnostic, IdentifiedLocation, Warning}
 import org.enso.compiler.core.ir.expression.Error
 import org.enso.compiler.pass.analyse.{
   CachePreferenceAnalysis,
@@ -98,19 +99,31 @@ final class EnsureCompiledJob(
     ctx: RuntimeContext,
     logger: TruffleLogger
   ): Option[CompilationStatus] = {
-    compile(module)
-    applyEdits(new File(module.getPath)).map { changeset =>
-      compile(module)
-        .map { _ =>
-          invalidateCaches(module, changeset)
-          if (module.isIndexed) {
-            ctx.jobProcessor.runBackground(AnalyzeModuleJob(module, changeset))
-          } else {
-            AnalyzeModuleJob.analyzeModule(module, changeset)
-          }
-          runCompilationDiagnostics(module)
+    val result = compile(module)
+    result match {
+      case Left(ex) =>
+        logger.log(
+          Level.WARNING,
+          s"Error while ensureCompiledModule ${module.getName}",
+          ex
+        )
+        Some(CompilationStatus.Failure)
+      case _ =>
+        applyEdits(new File(module.getPath)).map { changeset =>
+          compile(module)
+            .map { _ =>
+              invalidateCaches(module, changeset)
+              if (module.isIndexed) {
+                ctx.jobProcessor.runBackground(
+                  AnalyzeModuleJob(module, changeset)
+                )
+              } else {
+                AnalyzeModuleJob.analyzeModule(module, changeset)
+              }
+              runCompilationDiagnostics(module)
+            }
+            .getOrElse(CompilationStatus.Failure)
         }
-        .getOrElse(CompilationStatus.Failure)
     }
   }
 
@@ -140,7 +153,12 @@ final class EnsureCompiledJob(
           case Right(compilerResult) =>
             val status = runCompilationDiagnostics(module)
             (
-              modules.addAll(compilerResult.compiledModules).addOne(module),
+              modules
+                .addAll(
+                  compilerResult.compiledModules
+                    .map(Module.fromCompilerModule(_))
+                )
+                .addOne(module),
               statuses += status
             )
         }
@@ -168,7 +186,7 @@ final class EnsureCompiledJob(
       .runModule(
         module.getIr,
         ModuleContext(
-          module,
+          module.asCompilerModule(),
           compilerConfig = ctx.executionService.getContext.getCompilerConfig
         )
       )
@@ -199,14 +217,24 @@ final class EnsureCompiledJob(
     module: Module,
     diagnostic: Diagnostic
   ): Api.ExecutionResult.Diagnostic = {
+    val source = module.getSource
+
+    def fileLocationFromSection(loc: IdentifiedLocation) = {
+      val section =
+        source.createSection(loc.location().start(), loc.location().length());
+      val locStr = "" + section.getStartLine() + ":" + section
+        .getStartColumn() + "-" + section.getEndLine() + ":" + section
+        .getEndColumn()
+      source.getName() + "[" + locStr + "]";
+    }
     Api.ExecutionResult.Diagnostic(
       kind,
-      Option(diagnostic.formattedMessage),
+      Option(diagnostic.formattedMessage(fileLocationFromSection)),
       Option(module.getPath).map(new File(_)),
       diagnostic.location
         .map(loc =>
           LocationResolver
-            .locationToRange(loc.location, module.getSource.getCharacters)
+            .locationToRange(loc.location, source.getCharacters)
         ),
       diagnostic.location
         .flatMap(LocationResolver.getExpressionId(module.getIr, _))
@@ -229,7 +257,8 @@ final class EnsureCompiledJob(
       if (!compilationStage.isAtLeast(CompilationStage.AFTER_CODEGEN)) {
         ctx.executionService.getLogger
           .log(Level.FINEST, s"Compiling ${module.getName}.")
-        val result = ctx.executionService.getContext.getCompiler.run(module)
+        val result = ctx.executionService.getContext.getCompiler
+          .run(module.asCompilerModule())
         result.copy(compiledModules =
           result.compiledModules.filter(_.getName != module.getName)
         )
@@ -268,7 +297,8 @@ final class EnsureCompiledJob(
       ctx.executionService.modifyModuleSources(
         module,
         edits,
-        changeset.simpleUpdate.orNull
+        changeset.simpleUpdate.orNull,
+        logger
       )
       Option.when(shouldExecute)(changeset)
     } finally {
@@ -297,7 +327,9 @@ final class EnsureCompiledJob(
     source: CharSequence
   ): Seq[CacheInvalidation] = {
     val invalidateExpressionsCommand =
-      CacheInvalidation.Command.InvalidateKeys(changeset.invalidated)
+      CacheInvalidation.Command.InvalidateKeys(
+        changeset.invalidated
+      )
     val scopeIds = splitMeta(source.toString)._2.map(_._2)
     val invalidateStaleCommand =
       CacheInvalidation.Command.InvalidateStale(scopeIds)
@@ -355,7 +387,7 @@ final class EnsureCompiledJob(
   private def invalidateCaches(
     module: Module,
     changeset: Changeset[_]
-  )(implicit ctx: RuntimeContext, logger: TruffleLogger): Unit = {
+  )(implicit ctx: RuntimeContext): Unit = {
     val invalidationCommands =
       buildCacheInvalidationCommands(
         changeset,
@@ -485,10 +517,14 @@ final class EnsureCompiledJob(
 
   private def getCacheMetadata(
     visualization: Visualization
-  ): Option[CachePreferenceAnalysis.Metadata] = {
-    val module = visualization.module
-    module.getIr.getMetadata(CachePreferenceAnalysis)
-  }
+  ): Option[CachePreferenceAnalysis.Metadata] =
+    visualization match {
+      case visualization: Visualization.AttachedVisualization =>
+        val module = visualization.module
+        module.getIr.getMetadata(CachePreferenceAnalysis)
+      case _: Visualization.OneshotExpression =>
+        None
+    }
 
   /** Get all project modules in the current compiler scope. */
   private def getProjectModulesInScope(implicit
@@ -497,7 +533,11 @@ final class EnsureCompiledJob(
     val packageRepository =
       ctx.executionService.getContext.getCompiler.packageRepository
     packageRepository.getMainProjectPackage
-      .map(pkg => packageRepository.getModulesForLibrary(pkg.libraryName))
+      .map(pkg =>
+        packageRepository
+          .getModulesForLibrary(pkg.libraryName)
+          .map(Module.fromCompilerModule(_))
+      )
       .getOrElse(Seq())
   }
 

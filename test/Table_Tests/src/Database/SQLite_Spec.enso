@@ -222,6 +222,11 @@ sqlite_specific_spec prefix connection setup =
             do_round 231 . should_be_a Float
             do_round 231 -1 . should_be_a Float
 
+    Test.group prefix+"Column.const" <|
+        Test.specify "Does not support making a constant column from a Date" <|
+            t = table_builder [["x", ["1", "2", "3"]]]
+            t.at "x" . const (Date.new 12 4 12) . should_fail_with Unsupported_Database_Operation
+
 sqlite_spec connection prefix =
     name_counter = Ref.new 0
     table_builder columns =

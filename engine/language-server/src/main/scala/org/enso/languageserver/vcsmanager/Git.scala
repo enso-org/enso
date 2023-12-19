@@ -27,12 +27,14 @@ import org.enso.languageserver.vcsmanager.Git.{
 }
 
 import scala.jdk.CollectionConverters._
-
 import java.time.Instant
 import zio.ZIO.attemptBlocking
 
-private class Git(ensoDataDirectory: Option[Path], asyncInit: Boolean)
-    extends VcsApi[BlockingIO] {
+private class Git(
+  srcDirectory: Path,
+  ensoDataDirectory: Option[Path],
+  asyncInit: Boolean
+) extends VcsApi[BlockingIO] {
 
   private val gitDir = ensoDataDirectory
     .map(_.resolve(VcsApi.DefaultRepoDir))
@@ -92,18 +94,24 @@ private class Git(ensoDataDirectory: Option[Path], asyncInit: Boolean)
           dotGit.delete()
         }
       }
-
-      val isDataDir =
-        ensoDataDirectory.contains _
+      val isDataDir = ensoDataDirectory.contains _
       val filesToAdd =
         listDirectoryFiles(root, Set(gitDir))
           .filterNot(isDataDir)
+          .filter(p =>
+            ensoDataDirectory
+              .map(ensoDir => p.startsWith(ensoDir))
+              .getOrElse(p.startsWith(srcDirectory)) || p.startsWith(
+              srcDirectory
+            )
+          )
           .map(ensureUnixPathSeparator)
       if (filesToAdd.nonEmpty) {
         filesToAdd
           .foldLeft(jgit.add()) { case (cmd, filePath) =>
             cmd.addFilepattern(filePath)
           }
+          .setRenormalize(false)
           .call()
       }
 
@@ -140,6 +148,7 @@ private class Git(ensoDataDirectory: Option[Path], asyncInit: Boolean)
       // Include files that already are/were in the index
       jgit
         .add()
+        .setRenormalize(false)
         .addFilepattern(".")
         .setUpdate(true)
         .call()
@@ -151,12 +160,16 @@ private class Git(ensoDataDirectory: Option[Path], asyncInit: Boolean)
       val isDataDir =
         (x: String) => unixDataDir.map(dataDir => dataDir == x).getOrElse(false)
       val filesToAdd = untracked.flatMap { file =>
-        if (!file.startsWith(unixGitDir) && !isDataDir(file)) {
+        if (
+          !file.startsWith(unixGitDir) && !isDataDir(file) && Path
+            .of(file)
+            .startsWith(srcDirectory)
+        ) {
           Some(file)
         } else None
       }
       if (!filesToAdd.isEmpty) {
-        val addCmd = jgit.add()
+        val addCmd = jgit.add().setRenormalize(false)
         filesToAdd.foreach(filePath =>
           addCmd.addFilepattern(ensureUnixPathSeparator(filePath))
         )
@@ -345,9 +358,10 @@ private class Git(ensoDataDirectory: Option[Path], asyncInit: Boolean)
 }
 
 object Git {
-  private val HeadRef     = "HEAD"
-  private val AuthorName  = "Enso VCS"
-  private val AuthorEmail = "vcs@enso.org"
+  private val HeadRef      = "HEAD"
+  private val AuthorName   = "Enso VCS"
+  private val AuthorEmail  = "vcs@enso.org"
+  private val SrcDirectory = Path.of("src")
 
   private class RepoExists extends Exception
 
@@ -359,6 +373,6 @@ object Git {
     asyncInit: Boolean
   ): VcsApi[BlockingIO] = {
     SystemReader.setInstance(new EmptyUserConfigReader)
-    new Git(dataDir, asyncInit)
+    new Git(SrcDirectory, dataDir, asyncInit)
   }
 }

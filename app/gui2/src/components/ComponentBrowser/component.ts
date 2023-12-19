@@ -1,3 +1,4 @@
+import { Filtering, type MatchResult } from '@/components/ComponentBrowser/filtering'
 import { SuggestionDb } from '@/stores/suggestionDatabase'
 import {
   SuggestionKind,
@@ -5,24 +6,67 @@ import {
   type SuggestionId,
 } from '@/stores/suggestionDatabase/entry'
 import { compareOpt } from '@/util/compare'
-import { isSome } from '@/util/opt'
-import { qnIsTopElement, qnLastSegment } from '@/util/qualifiedName'
-import { Filtering, type MatchResult } from './filtering'
+import { isSome } from '@/util/data/opt'
+import { Range } from '@/util/data/range'
+import { displayedIconOf } from '@/util/getIconName'
+import type { Icon } from '@/util/iconName'
+import { qnIsTopElement, qnLastSegmentIndex } from '@/util/qualifiedName'
 
-export interface Component {
-  suggestionId: SuggestionId
-  icon: string
+interface ComponentLabel {
   label: string
-  match: MatchResult
+  matchedAlias?: string | undefined
+  matchedRanges?: Range[] | undefined
+}
+
+export interface Component extends ComponentLabel {
+  suggestionId: SuggestionId
+  icon: Icon
   group?: number | undefined
 }
 
-export function labelOfEntry(entry: SuggestionEntry, filtering: Filtering) {
+export function labelOfEntry(
+  entry: SuggestionEntry,
+  filtering: Filtering,
+  match: MatchResult,
+): ComponentLabel {
   const isTopModule = entry.kind == SuggestionKind.Module && qnIsTopElement(entry.definedIn)
-  if (filtering.isMainView() && isTopModule) return entry.definedIn
-  else if (entry.memberOf && entry.selfType == null)
-    return `${qnLastSegment(entry.memberOf)}.${entry.name}`
-  else return entry.name
+  if (filtering.isMainView() && isTopModule) return { label: entry.definedIn }
+  else if (entry.memberOf && entry.selfType == null) {
+    const lastSegmentStart = qnLastSegmentIndex(entry.memberOf) + 1
+    const parentModule = entry.memberOf.substring(lastSegmentStart)
+    const nameOffset = parentModule.length + 1
+    if (
+      (!match.memberOfRanges && !match.definedInRanges && !match.nameRanges) ||
+      match.matchedAlias
+    )
+      return {
+        label: `${parentModule}.${entry.name}`,
+        matchedAlias: match.matchedAlias,
+        matchedRanges: match.nameRanges,
+      }
+    return {
+      label: `${parentModule}.${entry.name}`,
+      matchedAlias: match.matchedAlias,
+      matchedRanges: [
+        ...(match.memberOfRanges ?? match.definedInRanges ?? []).flatMap((range) =>
+          range.end <= lastSegmentStart
+            ? []
+            : [
+                new Range(
+                  Math.max(0, range.start - lastSegmentStart),
+                  range.end - lastSegmentStart,
+                ),
+              ],
+        ),
+        ...(match.nameRanges ?? []).map(
+          (range) => new Range(range.start + nameOffset, range.end + nameOffset),
+        ),
+      ],
+    }
+  } else
+    return match.nameRanges
+      ? { label: entry.name, matchedAlias: match.matchedAlias, matchedRanges: match.nameRanges }
+      : { label: entry.name, matchedAlias: match.matchedAlias }
 }
 
 export interface MatchedSuggestion {
@@ -44,6 +88,24 @@ export function compareSuggestions(a: MatchedSuggestion, b: MatchedSuggestion): 
   return a.id - b.id
 }
 
+export interface ComponentInfo {
+  id: number
+  entry: SuggestionEntry
+  match: MatchResult
+}
+
+export function makeComponent(
+  { id, entry, match }: ComponentInfo,
+  filtering: Filtering,
+): Component {
+  return {
+    ...labelOfEntry(entry, filtering, match),
+    suggestionId: id,
+    icon: displayedIconOf(entry),
+    group: entry.groupIndex,
+  }
+}
+
 export function makeComponentList(db: SuggestionDb, filtering: Filtering): Component[] {
   function* matchSuggestions() {
     for (const [id, entry] of db.entries()) {
@@ -53,15 +115,6 @@ export function makeComponentList(db: SuggestionDb, filtering: Filtering): Compo
       }
     }
   }
-  const matched: MatchedSuggestion[] = Array.from(matchSuggestions())
-  matched.sort(compareSuggestions)
-  return Array.from(matched, ({ id, entry, match }): Component => {
-    return {
-      suggestionId: id,
-      icon: entry.iconName ?? 'marketplace',
-      label: labelOfEntry(entry, filtering),
-      match,
-      group: entry.groupIndex,
-    }
-  })
+  const matched = Array.from(matchSuggestions()).sort(compareSuggestions)
+  return Array.from(matched, (info) => makeComponent(info, filtering))
 }

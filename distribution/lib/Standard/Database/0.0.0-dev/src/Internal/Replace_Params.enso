@@ -1,7 +1,4 @@
-import Standard.Base.Data.Boolean.Boolean
-import Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity
-import Standard.Base.Error.Error
-import Standard.Base.Nothing.Nothing
+from Standard.Base import all
 
 from project.Errors import Unsupported_Database_Operation
 
@@ -13,7 +10,7 @@ type Replace_Params
 
     ## PRIVATE
        Raise an exception for an unsupported combination of parameters
-    throw_unsupported : Nothing ! Unsupported_Database_Operation
-    throw_unsupported self =
-        msg = "The REPLACE operation is not supported on PostgreSQL for the following options: argument type " + self.input_type.to_text + ", case_sensitivity " + self.case_sensitivity.to_display_text + ", only_first " + self.only_first.to_text
+    throw_unsupported : Text -> Nothing ! Unsupported_Database_Operation
+    throw_unsupported self name =
+        msg = "The REPLACE operation is not supported on "+name+" for the following options: argument type " + self.input_type.to_text + ", case_sensitivity " + self.case_sensitivity.to_display_text + ", only_first " + self.only_first.to_text
         Error.throw (Unsupported_Database_Operation.Error msg)

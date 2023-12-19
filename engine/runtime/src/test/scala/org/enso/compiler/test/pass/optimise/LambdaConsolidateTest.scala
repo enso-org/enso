@@ -17,7 +17,7 @@ import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.optimise.LambdaConsolidate
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
-import org.enso.interpreter.runtime.scope.LocalScope
+import org.enso.compiler.context.LocalScope
 
 class LambdaConsolidateTest extends CompilerTest {
 
@@ -226,42 +226,41 @@ class LambdaConsolidateTest extends CompilerTest {
     "collapse lambdas with multiple parameters" in {
       implicit val inlineContext: InlineContext = mkContext
 
-      val ir: Function.Lambda = Function
-        .Lambda(
+      val ir: Function.Lambda = new Function.Lambda(
+        List(
+          DefinitionArgument
+            .Specified(
+              Name
+                .Literal("a", isMethod = false, None),
+              None,
+              None,
+              suspended = false,
+              None
+            ),
+          DefinitionArgument.Specified(
+            Name.Literal("b", isMethod = false, None),
+            None,
+            None,
+            suspended = false,
+            None
+          )
+        ),
+        new Function.Lambda(
           List(
-            DefinitionArgument
-              .Specified(
-                Name
-                  .Literal("a", isMethod = false, None),
-                None,
-                None,
-                suspended = false,
-                None
-              ),
             DefinitionArgument.Specified(
-              Name.Literal("b", isMethod = false, None),
+              Name
+                .Literal("c", isMethod = false, None),
               None,
               None,
               suspended = false,
               None
             )
           ),
-          Function.Lambda(
-            List(
-              DefinitionArgument.Specified(
-                Name
-                  .Literal("c", isMethod = false, None),
-                None,
-                None,
-                suspended = false,
-                None
-              )
-            ),
-            Name.Literal("c", isMethod = false, None),
-            None
-          ),
+          Name.Literal("c", isMethod = false, None),
           None
-        )
+        ),
+        None
+      )
         .runPasses(passManager, inlineContext)
         .optimise
         .asInstanceOf[Function.Lambda]
@@ -297,6 +296,9 @@ class LambdaConsolidateTest extends CompilerTest {
       ws should not be empty
       ws.head.shadowedName shouldEqual "x"
       ws.head.shadower shouldBe ir.arguments(1)
+      ws.head.message(
+        null
+      ) shouldBe "The argument 'x' is shadowed by another one with the same name."
     }
 
     "consolidate chained lambdas if the chaining occurs via a single-lined block" in {

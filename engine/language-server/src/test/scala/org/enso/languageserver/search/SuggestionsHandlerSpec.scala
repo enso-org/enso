@@ -13,7 +13,6 @@ import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.filemanager._
 import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.session.SessionRouter.DeliverToJsonController
-import org.enso.logger.LoggerSetup
 import org.enso.polyglot.data.{Tree, TypeGraph}
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.{ExportedSymbol, ModuleExports, Suggestion}
@@ -43,7 +42,6 @@ class SuggestionsHandlerSpec
   import system.dispatcher
 
   val Timeout: FiniteDuration = 10.seconds
-  LoggerSetup.get().setup()
 
   override def afterAll(): Unit = {
     TestKit.shutdownActorSystem(system)

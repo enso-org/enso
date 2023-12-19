@@ -1,14 +1,81 @@
 <script setup lang="ts">
+import type { Diagnostic, Highlighter } from '@/components/CodeEditor/codemirror'
+import { usePointer } from '@/composables/events'
+import { useGraphStore } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
-import { usePointer } from '@/util/events'
+import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
+import { useAutoBlur } from '@/util/autoBlur'
+import { chain } from '@/util/data/iterable'
+import { unwrap } from '@/util/data/result'
+import { qnJoin, tryQualifiedName } from '@/util/qualifiedName'
 import { useLocalStorage } from '@vueuse/core'
-import { computed, onMounted, ref, watchEffect } from 'vue'
+import { rangeEncloses, type ExprId } from 'shared/yjsModel'
+import { computed, onMounted, ref, watch, watchEffect } from 'vue'
 
 // Use dynamic imports to aid code splitting. The codemirror dependency is quite large.
-const { minimalSetup, EditorState, EditorView, yCollab } = await import('@/util/codemirror')
+const {
+  bracketMatching,
+  foldGutter,
+  lintGutter,
+  highlightSelectionMatches,
+  minimalSetup,
+  EditorState,
+  EditorView,
+  yCollab,
+  syntaxHighlighting,
+  defaultHighlightStyle,
+  tooltips,
+  enso,
+  linter,
+  forceLinting,
+  lsDiagnosticsToCMDiagnostics,
+  hoverTooltip,
+} = await import('@/components/CodeEditor/codemirror')
 
 const projectStore = useProjectStore()
+const graphStore = useGraphStore()
+const suggestionDbStore = useSuggestionDbStore()
 const rootElement = ref<HTMLElement>()
+useAutoBlur(rootElement)
+
+const executionContextDiagnostics = computed(() =>
+  projectStore.module
+    ? lsDiagnosticsToCMDiagnostics(
+        projectStore.module.doc.contents.toString(),
+        projectStore.diagnostics,
+      )
+    : [],
+)
+
+const expressionUpdatesDiagnostics = computed(() => {
+  const nodeMap = graphStore.db.nodeIdToNode
+  const updates = projectStore.computedValueRegistry.db
+  const panics = updates.type.reverseLookup('Panic')
+  const errors = updates.type.reverseLookup('DataflowError')
+  const diagnostics: Diagnostic[] = []
+  for (const id of chain(panics, errors)) {
+    const update = updates.get(id)
+    if (!update) continue
+    const node = nodeMap.get(id)
+    if (!node) continue
+    if (!node.rootSpan.astExtended) continue
+    const [from, to] = node.rootSpan.astExtended.span()
+    switch (update.payload.type) {
+      case 'Panic': {
+        diagnostics.push({ from, to, message: update.payload.message, severity: 'error' })
+        break
+      }
+      case 'DataflowError': {
+        const error = projectStore.dataflowErrors.lookup(id)
+        if (error?.value?.message) {
+          diagnostics.push({ from, to, message: error.value.message, severity: 'error' })
+        }
+        break
+      }
+    }
+  }
+  return diagnostics
+})
 
 // == CodeMirror editor setup  ==
 
@@ -18,14 +85,84 @@ watchEffect(() => {
   if (!module) return
   const yText = module.doc.contents
   const undoManager = module.undoManager
-  const awareness = projectStore.awareness
+  const awareness = projectStore.awareness.internal
   editorView.setState(
     EditorState.create({
       doc: yText.toString(),
-      extensions: [minimalSetup, yCollab(yText, awareness, { undoManager })],
+      extensions: [
+        minimalSetup,
+        yCollab(yText, awareness, { undoManager }),
+        syntaxHighlighting(defaultHighlightStyle as Highlighter),
+        bracketMatching(),
+        foldGutter(),
+        lintGutter(),
+        highlightSelectionMatches(),
+        tooltips({ position: 'absolute' }),
+        hoverTooltip((ast, syn) => {
+          const dom = document.createElement('div')
+          const astSpan = ast.span()
+          let foundNode: ExprId | undefined
+          for (const [id, node] of graphStore.db.nodeIdToNode.entries()) {
+            if (
+              node.rootSpan.astExtended &&
+              rangeEncloses(node.rootSpan.astExtended.span(), astSpan)
+            ) {
+              foundNode = id
+              break
+            }
+          }
+          const expressionInfo = foundNode && graphStore.db.getExpressionInfo(foundNode)
+          const nodeColor = foundNode && graphStore.db.getNodeColorStyle(foundNode)
+
+          if (foundNode != null) {
+            dom
+              .appendChild(document.createElement('div'))
+              .appendChild(document.createTextNode(`AST ID: ${foundNode}`))
+          }
+          if (expressionInfo != null) {
+            dom
+              .appendChild(document.createElement('div'))
+              .appendChild(document.createTextNode(`Type: ${expressionInfo.typename ?? 'Unknown'}`))
+          }
+          if (expressionInfo?.profilingInfo[0] != null) {
+            const profile = expressionInfo.profilingInfo[0]
+            const executionTime = (profile.ExecutionTime.nanoTime / 1_000_000).toFixed(3)
+            const text = `Execution Time: ${executionTime}ms`
+            dom
+              .appendChild(document.createElement('div'))
+              .appendChild(document.createTextNode(text))
+          }
+
+          dom
+            .appendChild(document.createElement('div'))
+            .appendChild(document.createTextNode(`Syntax: ${syn.toString()}`))
+          const method = expressionInfo?.methodCall?.methodPointer
+          if (method != null) {
+            const moduleName = tryQualifiedName(method.module)
+            const methodName = tryQualifiedName(method.name)
+            const qualifiedName = qnJoin(unwrap(moduleName), unwrap(methodName))
+            const [id] = suggestionDbStore.entries.nameToId.lookup(qualifiedName)
+            const suggestionEntry = id != null ? suggestionDbStore.entries.get(id) : undefined
+            if (suggestionEntry != null) {
+              const groupNode = dom.appendChild(document.createElement('div'))
+              groupNode.appendChild(document.createTextNode('Group: '))
+              const groupNameNode = groupNode.appendChild(document.createElement('span'))
+              groupNameNode.appendChild(document.createTextNode(`${method.module}.${method.name}`))
+              if (nodeColor) {
+                groupNameNode.style.color = nodeColor
+              }
+            }
+          }
+          return { dom }
+        }),
+        enso(),
+        linter(() => [...executionContextDiagnostics.value, ...expressionUpdatesDiagnostics.value]),
+      ],
     }),
   )
 })
+
+watch([executionContextDiagnostics, expressionUpdatesDiagnostics], () => forceLinting(editorView))
 
 onMounted(() => {
   editorView.focus()
@@ -64,8 +201,11 @@ const editorStyle = computed(() => {
     class="CodeEditor"
     :style="editorStyle"
     @keydown.enter.stop
+    @keydown.backspace.stop
+    @keydown.delete.stop
     @wheel.stop.passive
     @pointerdown.stop
+    @contextmenu.stop
   >
     <div class="resize-handle" v-on="resize.events" @dblclick="resetSize">
       <svg viewBox="0 0 16 16">
@@ -80,7 +220,7 @@ const editorStyle = computed(() => {
   </div>
 </template>
 
-<style>
+<style scoped>
 .CodeEditor {
   position: absolute;
   bottom: 5px;
@@ -89,7 +229,9 @@ const editorStyle = computed(() => {
   height: 30%;
   max-width: calc(100% - 10px);
   max-height: calc(100% - 10px);
-  backdrop-filter: blur(16px);
+  backdrop-filter: var(--blur-app-bg);
+  border-radius: 7px;
+  font-family: var(--font-mono);
 
   &.v-enter-active,
   &.v-leave-active {
@@ -105,6 +247,10 @@ const editorStyle = computed(() => {
   }
 }
 
+:deep(.ͼ1 .cm-scroller) {
+  font-family: var(--font-mono);
+}
+
 .resize-handle {
   position: absolute;
   top: -3px;
@@ -112,7 +258,7 @@ const editorStyle = computed(() => {
   width: 20px;
   height: 20px;
   padding: 5px;
-  /* cursor: nesw-resize; */
+  cursor: nesw-resize;
 
   svg {
     fill: black;
@@ -128,6 +274,7 @@ const editorStyle = computed(() => {
 }
 
 .CodeEditor :is(.cm-editor) {
+  position: relative;
   color: white;
   width: 100%;
   height: 100%;
@@ -142,7 +289,26 @@ const editorStyle = computed(() => {
   outline: 1px solid transparent;
   transition: outline 0.1s ease-in-out;
 }
+
 .CodeEditor :is(.cm-focused) {
   outline: 1px solid rgba(0, 0, 0, 0.5);
+}
+
+.CodeEditor :is(.cm-tooltip-hover) {
+  padding: 4px;
+  border-radius: 4px;
+  border: 1px solid rgba(0, 0, 0, 0.4);
+  text-shadow: 0 0 2px rgba(255, 255, 255, 0.4);
+
+  &::before {
+    content: '';
+    background-color: rgba(255, 255, 255, 0.35);
+    backdrop-filter: blur(64px);
+    border-radius: 4px;
+  }
+}
+
+.CodeEditor :is(.cm-gutters) {
+  border-radius: 3px 0 0 3px;
 }
 </style>

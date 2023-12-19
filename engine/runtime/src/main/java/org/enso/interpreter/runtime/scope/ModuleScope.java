@@ -10,6 +10,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -24,7 +25,7 @@ public final class ModuleScope implements EnsoObject {
   private final Module module;
   private Map<String, Object> polyglotSymbols;
   private Map<String, Type> types;
-  private Map<Type, Map<String, Function>> methods;
+  private Map<Type, Map<String, Supplier<Function>>> methods;
   private Map<Type, Map<Type, Function>> conversions;
   private Set<ModuleScope> imports;
   private Set<ModuleScope> exports;
@@ -56,7 +57,7 @@ public final class ModuleScope implements EnsoObject {
       Type associatedType,
       Map<String, Object> polyglotSymbols,
       Map<String, Type> types,
-      Map<Type, Map<String, Function>> methods,
+      Map<Type, Map<String, Supplier<Function>>> methods,
       Map<Type, Map<Type, Function>> conversions,
       Set<ModuleScope> imports,
       Set<ModuleScope> exports) {
@@ -74,17 +75,23 @@ public final class ModuleScope implements EnsoObject {
     types.put(type.getName(), type);
   }
 
-  /** @return the associated type of this module. */
+  /**
+   * @return the associated type of this module.
+   */
   public Type getAssociatedType() {
     return associatedType;
   }
 
-  /** @return the module associated with this scope. */
+  /**
+   * @return the module associated with this scope.
+   */
   public Module getModule() {
     return module;
   }
 
-  /** @return the set of modules imported by this module. */
+  /**
+   * @return the set of modules imported by this module.
+   */
   public Set<ModuleScope> getImports() {
     return imports;
   }
@@ -95,14 +102,14 @@ public final class ModuleScope implements EnsoObject {
    * @param type the type for which method map is requested
    * @return a map containing all the defined methods by name
    */
-  private Map<String, Function> ensureMethodMapFor(Type type) {
+  private Map<String, Supplier<Function>> ensureMethodMapFor(Type type) {
     Type tpeKey = type == null ? noTypeKey : type;
     return methods.computeIfAbsent(tpeKey, k -> new HashMap<>());
   }
 
-  private Map<String, Function> getMethodMapFor(Type type) {
+  private Map<String, Supplier<Function>> getMethodMapFor(Type type) {
     Type tpeKey = type == null ? noTypeKey : type;
-    Map<String, Function> result = methods.get(type);
+    Map<String, Supplier<Function>> result = methods.get(type);
     if (result == null) {
       return new HashMap<>();
     }
@@ -117,14 +124,55 @@ public final class ModuleScope implements EnsoObject {
    * @param function the {@link Function} associated with this definition
    */
   public void registerMethod(Type type, String method, Function function) {
-    Map<String, Function> methodMap = ensureMethodMapFor(type);
+    Map<String, Supplier<Function>> methodMap = ensureMethodMapFor(type);
 
     // Builtin types will have double definition because of
     // BuiltinMethod and that's OK
     if (methodMap.containsKey(method) && !type.isBuiltin()) {
       throw new RedefinedMethodException(type.getName(), method);
     } else {
-      methodMap.put(method, function);
+      methodMap.put(method, new CachingSupplier<>(function));
+    }
+  }
+
+  /**
+   * Registers a lazily constructed method defined for a given type.
+   *
+   * @param type the type the method was defined for
+   * @param method method name
+   * @param supply provider of the {@link Function} associated with this definition
+   */
+  public void registerMethod(Type type, String method, Supplier<Function> supply) {
+    Map<String, Supplier<Function>> methodMap = ensureMethodMapFor(type);
+
+    // Builtin types will have double definition because of
+    // BuiltinMethod and that's OK
+    if (methodMap.containsKey(method) && !type.isBuiltin()) {
+      throw new RedefinedMethodException(type.getName(), method);
+    } else {
+      methodMap.put(method, new CachingSupplier<>(supply));
+    }
+  }
+
+  private static final class CachingSupplier<T> implements Supplier<T> {
+    private final Supplier<T> supply;
+    private T memo;
+
+    CachingSupplier(Supplier<T> supply) {
+      this.supply = supply;
+    }
+
+    CachingSupplier(T memo) {
+      this.supply = null;
+      this.memo = memo;
+    }
+
+    @Override
+    public T get() {
+      if (memo == null) {
+        memo = supply.get();
+      }
+      return memo;
     }
   }
 
@@ -185,14 +233,14 @@ public final class ModuleScope implements EnsoObject {
    */
   @TruffleBoundary
   public Function lookupMethodDefinition(Type type, String name) {
-    Function definedWithAtom = type.getDefinitionScope().getMethodMapFor(type).get(name);
+    var definedWithAtom = type.getDefinitionScope().getMethodMapFor(type).get(name);
     if (definedWithAtom != null) {
-      return definedWithAtom;
+      return definedWithAtom.get();
     }
 
-    Function definedHere = getMethodMapFor(type).get(name);
+    var definedHere = getMethodMapFor(type).get(name);
     if (definedHere != null) {
-      return definedHere;
+      return definedHere.get();
     }
 
     return imports.stream()
@@ -226,13 +274,14 @@ public final class ModuleScope implements EnsoObject {
   }
 
   private Function getExportedMethod(Type type, String name) {
-    Function here = getMethodMapFor(type).get(name);
+    var here = getMethodMapFor(type).get(name);
     if (here != null) {
-      return here;
+      return here.get();
     }
     return exports.stream()
         .map(scope -> scope.getMethodMapFor(type).get(name))
         .filter(Objects::nonNull)
+        .map(s -> s.get())
         .findFirst()
         .orElse(null);
   }
@@ -278,11 +327,17 @@ public final class ModuleScope implements EnsoObject {
     return Optional.ofNullable(types.get(name));
   }
 
-  /** @return a method for the given type */
+  /**
+   * @return a method for the given type
+   */
   public Function getMethodForType(Type tpe, String name) {
     Type tpeKey = tpe == null ? noTypeKey : tpe;
-    Map<String, Function> allTpeMethods = methods.get(tpeKey);
-    return allTpeMethods == null ? null : allTpeMethods.get(name);
+    var allTpeMethods = methods.get(tpeKey);
+    if (allTpeMethods == null) {
+      return null;
+    }
+    var supply = allTpeMethods.get(name);
+    return supply == null ? null : supply.get();
   }
 
   /**
@@ -293,7 +348,7 @@ public final class ModuleScope implements EnsoObject {
    */
   public Set<String> getMethodNamesForType(Type tpe) {
     Type tpeKey = tpe == null ? noTypeKey : tpe;
-    Map<String, Function> allTpeMethods = methods.get(tpeKey);
+    var allTpeMethods = methods.get(tpeKey);
     return allTpeMethods == null ? null : allTpeMethods.keySet();
   }
 
@@ -305,25 +360,34 @@ public final class ModuleScope implements EnsoObject {
    */
   public void registerAllMethodsOfTypeToScope(Type tpe, ModuleScope scope) {
     Type tpeKey = tpe == null ? noTypeKey : tpe;
-    Map<String, Function> allTypeMethods = methods.get(tpeKey);
+    var allTypeMethods = methods.get(tpeKey);
     if (allTypeMethods != null) {
       allTypeMethods.forEach((name, fun) -> scope.registerMethod(tpeKey, name, fun));
     }
   }
 
-  /** @return methods for all registered types */
+  /**
+   * @return methods for all registered types
+   */
   public List<Function> getAllMethods() {
-    return methods.values().stream().flatMap(e -> e.values().stream()).collect(Collectors.toList());
+    return methods.values().stream()
+        .flatMap(e -> e.values().stream())
+        .map(s -> s.get())
+        .collect(Collectors.toList());
   }
 
-  /** @return the raw conversions held by this module */
+  /**
+   * @return the raw conversions held by this module
+   */
   public List<Function> getConversions() {
     return conversions.values().stream()
         .flatMap(e -> e.values().stream())
         .collect(Collectors.toList());
   }
 
-  /** @return the polyglot symbol imported into this scope. */
+  /**
+   * @return the polyglot symbol imported into this scope.
+   */
   public Object getPolyglotSymbol(String symbolName) {
     return polyglotSymbols.get(symbolName);
   }
@@ -346,7 +410,7 @@ public final class ModuleScope implements EnsoObject {
   public ModuleScope withTypes(List<String> typeNames) {
     Map<String, Object> polyglotSymbols = new HashMap<>(this.polyglotSymbols);
     Map<String, Type> requestedTypes = new HashMap<>(this.types);
-    Map<Type, Map<String, Function>> methods = new ConcurrentHashMap<>();
+    Map<Type, Map<String, Supplier<Function>>> methods = new ConcurrentHashMap<>();
     Map<Type, Map<Type, Function>> conversions = new ConcurrentHashMap<>();
     Set<ModuleScope> imports = new HashSet<>(this.imports);
     Set<ModuleScope> exports = new HashSet<>(this.exports);

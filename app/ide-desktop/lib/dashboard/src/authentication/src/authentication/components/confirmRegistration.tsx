@@ -18,9 +18,9 @@ const REGISTRATION_QUERY_PARAMS = {
     email: 'email',
 } as const
 
-// ============================
-// === Confirm Registration ===
-// ============================
+// ===========================
+// === ConfirmRegistration ===
+// ===========================
 
 /** An empty component redirecting users based on the backend response to user registration. */
 export default function ConfirmRegistration() {

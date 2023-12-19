@@ -1,8 +1,8 @@
+import AppRoot from '@/App.vue'
+import '@/assets/main.css'
+import type { StringConfig } from '@/main'
 import { createPinia } from 'pinia'
 import { createApp } from 'vue'
-import AppRoot from './App.vue'
-import './assets/main.css'
-import type { StringConfig } from './main'
 
 export function mountProjectApp(rootProps: {
   config: StringConfig | null

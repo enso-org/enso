@@ -27,6 +27,11 @@ class EditFileCmd(request: Api.EditFileNotification)
     val fileLockTimestamp         = ctx.locking.acquireFileLock(request.path)
     val pendingEditsLockTimestamp = ctx.locking.acquirePendingEditsLock()
     try {
+      logger.log(
+        Level.FINE,
+        "Adding pending file edits: {}",
+        request.edits.map(e => (e.range, e.text.length))
+      )
       val edits =
         request.edits.map(edit => PendingEdit.ApplyEdit(edit, request.execute))
       ctx.state.pendingEdits.enqueue(request.path, edits)

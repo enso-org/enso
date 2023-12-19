@@ -1,148 +1,120 @@
-<script lang="ts">
-import { codeEditorBindings, graphBindings, nodeSelectionBindings } from '@/bindings'
+<script setup lang="ts">
+import { codeEditorBindings, graphBindings, interactionBindings } from '@/bindings'
 import CodeEditor from '@/components/CodeEditor.vue'
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
-import GraphEdge from '@/components/GraphEdge.vue'
-import GraphNode from '@/components/GraphNode.vue'
-import SelectionBrush from '@/components/SelectionBrush.vue'
+import {
+  mouseDictatedPlacement,
+  nonDictatedPlacement,
+  previousNodeDictatedPlacement,
+  type Environment,
+} from '@/components/ComponentBrowser/placement'
+import GraphEdges from '@/components/GraphEditor/GraphEdges.vue'
+import GraphNodes from '@/components/GraphEditor/GraphNodes.vue'
+import { Uploader, uploadedExpression } from '@/components/GraphEditor/upload'
+import GraphMouse from '@/components/GraphMouse.vue'
+import PlusButton from '@/components/PlusButton.vue'
 import TopBar from '@/components/TopBar.vue'
+import { useDoubleClick } from '@/composables/doubleClick'
+import { keyboardBusy, keyboardBusyExceptIn, useEvent } from '@/composables/events'
+import { provideGraphNavigator } from '@/providers/graphNavigator'
+import { provideGraphSelection } from '@/providers/graphSelection'
+import { provideInteractionHandler, type Interaction } from '@/providers/interactionHandler'
+import { provideWidgetRegistry } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
+import type { RequiredImport } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
-import type { Rect } from '@/stores/rect'
-import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
+import { groupColorVar, useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { colorFromString } from '@/util/colors'
-import { keyboardBusy, keyboardBusyExceptIn, usePointer, useWindowEvent } from '@/util/events'
-import { useNavigator } from '@/util/navigator'
-import { Vec2 } from '@/util/vec2'
+import { Rect } from '@/util/data/rect'
+import { Vec2 } from '@/util/data/vec2'
+import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
 import * as set from 'lib0/set'
-import type { ContentRange, ExprId } from 'shared/yjsModel'
-import { computed, onMounted, reactive, ref, shallowRef, watch } from 'vue'
-</script>
-<script setup lang="ts">
-const EXECUTION_MODES = ['design', 'live']
-const SELECTION_BRUSH_MARGIN_PX = 6
+import type { ExprId, NodeMetadata } from 'shared/yjsModel'
+import { computed, onMounted, ref, watch } from 'vue'
+import { type Usage } from './ComponentBrowser/input'
 
-const mode = ref('design')
+const EXECUTION_MODES = ['design', 'live']
+// Assumed size of a newly created node. This is used to place the component browser.
+const DEFAULT_NODE_SIZE = new Vec2(0, 24)
+const gapBetweenNodes = 48.0
+
 const viewportNode = ref<HTMLElement>()
-const navigator = useNavigator(viewportNode)
+const graphNavigator = provideGraphNavigator(viewportNode)
 const graphStore = useGraphStore()
+const widgetRegistry = provideWidgetRegistry(graphStore.db)
+widgetRegistry.loadBuiltins()
 const projectStore = useProjectStore()
 const componentBrowserVisible = ref(false)
-const componentBrowserPosition = ref(Vec2.Zero())
+const componentBrowserNodePosition = ref<Vec2>(Vec2.Zero)
+const componentBrowserUsage = ref<Usage>({ type: 'newNode' })
 const suggestionDb = useSuggestionDbStore()
+const interaction = provideInteractionHandler()
 
-const nodeRects = reactive(new Map<ExprId, Rect>())
-const exprRects = reactive(new Map<ExprId, Rect>())
-const selectedNodes = ref(new Set<ExprId>())
-const latestSelectedNode = ref<ExprId>()
-
-function updateNodeRect(id: ExprId, rect: Rect) {
-  nodeRects.set(id, rect)
-}
-
-function updateExprRect(id: ExprId, rect: Rect) {
-  exprRects.set(id, rect)
-}
-
-useWindowEvent('keydown', (event) => {
-  graphBindingsHandler(event) || nodeSelectionHandler(event) || codeEditorHandler(event)
+const nodeSelection = provideGraphSelection(graphNavigator, graphStore.nodeRects, {
+  onSelected(id) {
+    graphStore.db.moveNodeToTop(id)
+  },
 })
+
+const interactionBindingsHandler = interactionBindings.handler({
+  cancel: () => interaction.handleCancel(),
+  click: (e) => (e instanceof MouseEvent ? interaction.handleClick(e, graphNavigator) : false),
+})
+
+// Return the environment for the placement of a new node. The passed nodes should be the nodes that are
+// used as the source of the placement. This means, for example, the selected nodes when creating from a selection
+// or the node that is being edited when creating from a port double click.
+function environmentForNodes(nodeIds: IterableIterator<ExprId>): Environment {
+  const nodeRects = [...graphStore.nodeRects.values()]
+  const selectedNodeRects = [...nodeIds]
+    .map((id) => graphStore.nodeRects.get(id))
+    .filter((item): item is Rect => item !== undefined)
+  const screenBounds = graphNavigator.viewport
+  const mousePosition = graphNavigator.sceneMousePos
+  return { nodeRects, selectedNodeRects, screenBounds, mousePosition } as Environment
+}
+
+const placementEnvironment = computed(() => environmentForNodes(nodeSelection.selected.values()))
+
+/** Return the position for a new node, assuming there are currently nodes selected. If there are no nodes
+ * selected, return `undefined`. */
+function placementPositionForSelection() {
+  const hasNodeSelected = nodeSelection.selected.size > 0
+  if (!hasNodeSelected) return
+  const gapBetweenNodes = 48.0
+  return previousNodeDictatedPlacement(DEFAULT_NODE_SIZE, placementEnvironment.value, {
+    horizontalGap: gapBetweenNodes,
+    verticalGap: gapBetweenNodes,
+  }).position
+}
+
+/** Where the component browser should be placed when it is opened. */
+function targetComponentBrowserNodePosition() {
+  const editedInfo = graphStore.editedNodeInfo
+  const isEditingNode = editedInfo != null
+  if (isEditingNode) {
+    const targetNode = graphStore.db.nodeIdToNode.get(editedInfo.id)
+    return targetNode?.position ?? Vec2.Zero
+  } else {
+    return (
+      placementPositionForSelection() ??
+      mouseDictatedPlacement(DEFAULT_NODE_SIZE, placementEnvironment.value).position
+    )
+  }
+}
+
+function sourcePortForSelection() {
+  if (graphStore.editedNodeInfo != null) return undefined
+  const firstSelectedNode = set.first(nodeSelection.selected)
+  return graphStore.db.getNodeFirstOutputPort(firstSelectedNode)
+}
+
+useEvent(window, 'keydown', (event) => {
+  interactionBindingsHandler(event) || graphBindingsHandler(event) || codeEditorHandler(event)
+})
+useEvent(window, 'pointerdown', interactionBindingsHandler, { capture: true })
 
 onMounted(() => viewportNode.value?.focus())
-
-function updateNodeContent(id: ExprId, updates: [ContentRange, string][]) {
-  graphStore.transact(() => {
-    for (const [range, content] of updates) {
-      graphStore.replaceNodeSubexpression(id, range, content)
-    }
-  })
-}
-
-function moveNode(id: ExprId, delta: Vec2) {
-  const scaledDelta = delta.scale(1 / navigator.scale)
-  graphStore.transact(() => {
-    for (const id_ of selectedNodes.value.has(id) ? selectedNodes.value : [id]) {
-      const node = graphStore.nodes.get(id_)
-      if (node == null) {
-        continue
-      }
-      graphStore.setNodePosition(id_, node.position.add(scaledDelta))
-    }
-  })
-}
-
-const selectionAnchor = shallowRef<Vec2>()
-const initiallySelectedNodes = ref(new Set(selectedNodes.value))
-
-const selection = usePointer((pos, _, eventType) => {
-  if (selection.dragging && selectionAnchor.value == null) {
-    selectionAnchor.value = navigator.sceneMousePos?.copy()
-  } else if (eventType === 'stop') {
-    selectionAnchor.value = undefined
-  }
-})
-
-const intersectingNodes = computed<Set<ExprId>>(() => {
-  if (!selection.dragging || selectionAnchor.value == null || navigator.sceneMousePos == null) {
-    return new Set()
-  }
-  const margin = SELECTION_BRUSH_MARGIN_PX / navigator.scale
-
-  const a = navigator.sceneMousePos
-  const b = selectionAnchor.value
-
-  const left = Math.min(a.x, b.x) - margin
-  const right = Math.max(a.x, b.x) + margin
-  const top = Math.min(a.y, b.y) - margin
-  const bottom = Math.max(a.y, b.y) + margin
-  const intersectingNodes = new Set<ExprId>()
-  for (const [id, rect] of nodeRects) {
-    const rectLeft = rect.pos.x
-    const rectRight = rectLeft + rect.size.x
-    const rectTop = rect.pos.y
-    const rectBottom = rectTop + rect.size.y
-    if (left <= rectRight && right >= rectLeft && top <= rectBottom && bottom >= rectTop) {
-      intersectingNodes.add(id)
-    }
-  }
-  return intersectingNodes
-})
-
-watch(
-  () => selection.dragging,
-  (dragging) => {
-    if (dragging) {
-      initiallySelectedNodes.value = new Set(selectedNodes.value)
-    } else {
-      initiallySelectedNodes.value = new Set()
-    }
-  },
-)
-
-function setSelected(id: ExprId, selected: boolean) {
-  if (selection.dragging) {
-    if (selected) {
-      initiallySelectedNodes.value.add(id)
-    } else {
-      initiallySelectedNodes.value.delete(id)
-    }
-  } else {
-    if (selected) {
-      selectedNodes.value.add(id)
-    } else {
-      selectedNodes.value.delete(id)
-    }
-  }
-}
-
-function updateLatestSelectedNode(id: ExprId) {
-  latestSelectedNode.value = id
-  const node = graphStore.nodes.get(id)!
-  // The node MUST be deleted first, in order for it to be moved to the end of the map's iteration
-  // order.
-  graphStore.nodes.delete(id)
-  graphStore.nodes.set(id, node)
-}
 
 const graphBindingsHandler = graphBindings.handler({
   undo() {
@@ -151,21 +123,106 @@ const graphBindingsHandler = graphBindings.handler({
   redo() {
     projectStore.module?.undoManager.redo()
   },
+  startProfiling() {
+    projectStore.lsRpcConnection.then((ls) => ls.profilingStart(true))
+  },
+  stopProfiling() {
+    projectStore.lsRpcConnection.then((ls) => ls.profilingStop())
+  },
   openComponentBrowser() {
     if (keyboardBusy()) return false
-    if (navigator.sceneMousePos != null && !componentBrowserVisible.value) {
-      componentBrowserPosition.value = navigator.sceneMousePos
-      componentBrowserVisible.value = true
+    if (graphNavigator.sceneMousePos != null && !componentBrowserVisible.value) {
+      interaction.setCurrent(creatingNode)
     }
   },
   newNode() {
     if (keyboardBusy()) return false
-    if (navigator.sceneMousePos != null) {
-      graphStore.createNode(navigator.sceneMousePos, 'hello "world"! 123 + x')
+    if (graphNavigator.sceneMousePos != null) {
+      graphStore.createNode(graphNavigator.sceneMousePos, 'hello "world"! 123 + x')
     }
+  },
+  deleteSelected() {
+    graphStore.transact(() => {
+      for (const node of nodeSelection.selected) {
+        graphStore.deleteNode(node)
+      }
+      nodeSelection.selected.clear()
+    })
+  },
+  zoomToSelected() {
+    if (!viewportNode.value) return
+    let left = Infinity
+    let top = Infinity
+    let right = -Infinity
+    let bottom = -Infinity
+    const nodesToCenter =
+      nodeSelection.selected.size === 0 ? graphStore.currentNodeIds : nodeSelection.selected
+    for (const id of nodesToCenter) {
+      const rect = graphStore.nodeRects.get(id)
+      if (!rect) continue
+      left = Math.min(left, rect.left)
+      right = Math.max(right, rect.right)
+      top = Math.min(top, rect.top)
+      bottom = Math.max(bottom, rect.bottom)
+    }
+    graphNavigator.panAndZoomTo(
+      Rect.FromBounds(left, top, right, bottom),
+      0.1,
+      Math.max(1, graphNavigator.scale),
+    )
+  },
+  selectAll() {
+    if (keyboardBusy()) return
+    nodeSelection.selectAll()
+  },
+  deselectAll() {
+    nodeSelection.deselectAll()
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur()
+    }
+    graphStore.stopCapturingUndo()
+  },
+  toggleVisualization() {
+    if (keyboardBusy()) return false
+    graphStore.transact(() => {
+      const allVisible = set
+        .toArray(nodeSelection.selected)
+        .every((id) => !(graphStore.db.nodeIdToNode.get(id)?.vis?.visible !== true))
+
+      for (const nodeId of nodeSelection.selected) {
+        graphStore.setNodeVisualizationVisible(nodeId, !allVisible)
+      }
+    })
+  },
+  copyNode() {
+    if (keyboardBusy()) return false
+    copyNodeContent()
+  },
+  pasteNode() {
+    if (keyboardBusy()) return false
+    readNodeFromClipboard()
+  },
+  enterNode() {
+    if (keyboardBusy()) return false
+    const selectedNode = set.first(nodeSelection.selected)
+    if (selectedNode) {
+      enterNode(selectedNode)
+    }
+  },
+  exitNode() {
+    if (keyboardBusy()) return false
+    exitNode()
   },
 })
 
+const handleClick = useDoubleClick(
+  (e: MouseEvent) => {
+    graphBindingsHandler(e)
+  },
+  () => {
+    exitNode()
+  },
+).handleClick
 const codeEditorArea = ref<HTMLElement>()
 const showCodeEditor = ref(false)
 const codeEditorHandler = codeEditorBindings.handler({
@@ -175,189 +232,346 @@ const codeEditorHandler = codeEditorBindings.handler({
   },
 })
 
-const nodeSelectionHandler = nodeSelectionBindings.handler({
-  deleteSelected() {
-    graphStore.transact(() => {
-      for (const node of selectedNodes.value) {
-        graphStore.deleteNode(node)
-      }
-    })
-  },
-  selectAll() {
-    if (keyboardBusy()) return
-    for (const id of graphStore.nodes.keys()) {
-      selectedNodes.value.add(id)
-    }
-  },
-  deselectAll() {
-    clearSelection()
-    selectedNodes.value.clear()
-    graphStore.stopCapturingUndo()
-  },
-  toggleVisualization() {
-    if (keyboardBusy()) return false
-    graphStore.transact(() => {
-      const allHidden = set
-        .toArray(selectedNodes.value)
-        .every((id) => graphStore.nodes.get(id)?.vis?.visible !== true)
-
-      for (const nodeId of selectedNodes.value) {
-        graphStore.setNodeVisualizationVisible(nodeId, allHidden)
-      }
-    })
-  },
-})
-
-const mouseHandler = nodeSelectionBindings.handler({
-  replace() {
-    selectedNodes.value = new Set(intersectingNodes.value)
-  },
-  add() {
-    selectedNodes.value = new Set([...initiallySelectedNodes.value, ...intersectingNodes.value])
-  },
-  remove() {
-    const newSelectedNodes = new Set(initiallySelectedNodes.value)
-    for (const id of intersectingNodes.value) {
-      newSelectedNodes.delete(id)
-    }
-    selectedNodes.value = newSelectedNodes
-  },
-  toggle() {
-    const initiallySelectedNodes_ = initiallySelectedNodes.value
-    const newSelectedNodes = new Set(initiallySelectedNodes_)
-    let count = 0
-    for (const id of intersectingNodes.value) {
-      if (initiallySelectedNodes_.has(id)) {
-        count += 1
-      }
-    }
-    if (count * 2 <= intersectingNodes.value.size) {
-      for (const id of intersectingNodes.value) {
-        newSelectedNodes.add(id)
-      }
-    } else {
-      for (const id of intersectingNodes.value) {
-        newSelectedNodes.delete(id)
-      }
-    }
-    selectedNodes.value = newSelectedNodes
-  },
-  invert() {
-    const initiallySelectedNodes_ = initiallySelectedNodes.value
-    const newSelectedNodes = new Set(initiallySelectedNodes_)
-    for (const id of intersectingNodes.value) {
-      if (initiallySelectedNodes_.has(id)) {
-        newSelectedNodes.delete(id)
-      } else {
-        newSelectedNodes.add(id)
-      }
-    }
-    selectedNodes.value = newSelectedNodes
-  },
-})
-
-const scaledMousePos = computed(() => navigator.sceneMousePos?.scale(navigator.scale))
-const scaledSelectionAnchor = computed(() => selectionAnchor.value?.scale(navigator.scale))
-
-function clearSelection() {
-  selectedNodes.value.clear()
-  latestSelectedNode.value = undefined
-  if (document.activeElement instanceof HTMLElement) {
-    document.activeElement.blur()
+function enterNode(id: ExprId) {
+  const expressionInfo = graphStore.db.getExpressionInfo(id)
+  if (expressionInfo == undefined || expressionInfo.methodCall == undefined) {
+    console.debug('Cannot enter node that has no method call.')
+    return
   }
+  const definedOnType = tryQualifiedName(expressionInfo.methodCall.methodPointer.definedOnType)
+  if (!projectStore.modulePath?.ok) {
+    console.warn('Cannot enter node while no module is open.')
+    return
+  }
+  const openModuleName = qnLastSegment(projectStore.modulePath.value)
+  if (definedOnType.ok && qnLastSegment(definedOnType.value) != openModuleName) {
+    console.debug('Cannot enter node that is not defined on current module.')
+    return
+  }
+  projectStore.executionContext.push(id)
+  graphStore.updateState()
 }
+
+function exitNode() {
+  projectStore.executionContext.pop()
+  graphStore.updateState()
+}
+
+/** Track play button presses. */
+function onPlayButtonPress() {
+  projectStore.lsRpcConnection.then(async () => {
+    const modeValue = projectStore.executionMode
+    if (modeValue == undefined) {
+      return
+    }
+    projectStore.executionContext.recompute('all', modeValue === 'live' ? 'Live' : 'Design')
+  })
+}
+
+// Watch for changes in the execution mode.
+watch(
+  () => projectStore.executionMode,
+  (modeValue) => {
+    projectStore.executionContext.setExecutionEnvironment(modeValue === 'live' ? 'Live' : 'Design')
+  },
+)
 
 const groupColors = computed(() => {
   const styles: { [key: string]: string } = {}
   for (let group of suggestionDb.groups) {
-    const name = group.name.replace(/\s/g, '-')
-    let color = group.color ?? colorFromString(name)
-    styles[`--group-color-${name}`] = color
+    styles[groupColorVar(group)] = group.color ?? colorFromString(group.name)
   }
   return styles
 })
+
+const editingNode: Interaction = {
+  init: () => {
+    // component browser usage is set in `graphStore.editedNodeInfo` watch
+    componentBrowserNodePosition.value = targetComponentBrowserNodePosition()
+  },
+  cancel: () => {
+    hideComponentBrowser()
+    graphStore.editedNodeInfo = undefined
+  },
+}
+const nodeIsBeingEdited = computed(() => graphStore.editedNodeInfo != null)
+interaction.setWhen(nodeIsBeingEdited, editingNode)
+
+const creatingNode: Interaction = {
+  init: () => {
+    componentBrowserUsage.value = { type: 'newNode', sourcePort: sourcePortForSelection() }
+    componentBrowserNodePosition.value = targetComponentBrowserNodePosition()
+    componentBrowserVisible.value = true
+  },
+  cancel: hideComponentBrowser,
+}
+
+const creatingNodeFromButton: Interaction = {
+  init: () => {
+    componentBrowserUsage.value = { type: 'newNode', sourcePort: sourcePortForSelection() }
+    let targetPos = placementPositionForSelection()
+    if (targetPos == undefined) {
+      targetPos = nonDictatedPlacement(DEFAULT_NODE_SIZE, placementEnvironment.value).position
+    }
+    componentBrowserNodePosition.value = targetPos
+    componentBrowserVisible.value = true
+  },
+  cancel: hideComponentBrowser,
+}
+
+const creatingNodeFromPortDoubleClick: Interaction = {
+  init: () => {
+    // component browser usage is set in event handler
+    componentBrowserVisible.value = true
+  },
+  cancel: hideComponentBrowser,
+}
+
+const creatingNodeFromEdgeDrop: Interaction = {
+  init: () => {
+    // component browser usage is set in event handler
+    componentBrowserVisible.value = true
+  },
+  cancel: hideComponentBrowser,
+}
+
+function hideComponentBrowser() {
+  componentBrowserVisible.value = false
+}
+
+function onComponentBrowserCommit(content: string, requiredImports: RequiredImport[]) {
+  if (content != null) {
+    if (graphStore.editedNodeInfo) {
+      // We finish editing a node.
+      graphStore.setNodeContent(graphStore.editedNodeInfo.id, content)
+    } else {
+      // We finish creating a new node.
+      const metadata = undefined
+      graphStore.createNode(componentBrowserNodePosition.value, content, metadata, requiredImports)
+    }
+  }
+  // Finish interaction. This should also hide component browser.
+  interaction.setCurrent(undefined)
+}
+
+function onComponentBrowserCancel() {
+  // Finish interaction. This should also hide component browser.
+  interaction.setCurrent(undefined)
+}
+
+// Watch the `editedNode` in the graph store
+watch(
+  () => graphStore.editedNodeInfo,
+  (editedInfo) => {
+    if (editedInfo) {
+      componentBrowserNodePosition.value = targetComponentBrowserNodePosition()
+      componentBrowserUsage.value = {
+        type: 'editNode',
+        node: editedInfo.id,
+        cursorPos: editedInfo.initialCursorPos,
+      }
+      componentBrowserVisible.value = true
+    } else {
+      componentBrowserVisible.value = false
+    }
+  },
+)
+
+async function handleFileDrop(event: DragEvent) {
+  // A vertical gap between created nodes when multiple files were dropped together.
+  const MULTIPLE_FILES_GAP = 50
+
+  if (!event.dataTransfer?.items) return
+  ;[...event.dataTransfer.items].forEach(async (item, index) => {
+    try {
+      if (item.kind === 'file') {
+        const file = item.getAsFile()
+        if (!file) return
+        const clientPos = new Vec2(event.clientX, event.clientY)
+        const offset = new Vec2(0, index * -MULTIPLE_FILES_GAP)
+        const pos = graphNavigator.clientToScenePos(clientPos).add(offset)
+        const uploader = await Uploader.Create(
+          projectStore.lsRpcConnection,
+          projectStore.dataConnection,
+          projectStore.contentRoots,
+          projectStore.awareness,
+          file,
+          pos,
+          projectStore.isOnLocalBackend,
+          event.shiftKey,
+          projectStore.executionContext.getStackTop(),
+        )
+        const uploadResult = await uploader.upload()
+        graphStore.createNode(pos, uploadedExpression(uploadResult))
+      }
+    } catch (err) {
+      console.error(`Uploading file failed. ${err}`)
+    }
+  })
+}
+
+const breadcrumbs = computed(() =>
+  projectStore.executionContext.desiredStack.map((frame) => {
+    switch (frame.type) {
+      case 'ExplicitCall':
+        return frame.methodPointer.name
+      case 'LocalCall':
+        return frame.expressionId
+    }
+  }),
+)
+
+// === Clipboard ===
+
+const ENSO_MIME_TYPE = 'web application/enso'
+
+/** The data that is copied to the clipboard. */
+interface ClipboardData {
+  nodes: CopiedNode[]
+}
+
+/** Node data that is copied to the clipboard. Used for serializing and deserializing the node information. */
+interface CopiedNode {
+  expression: string
+  metadata: NodeMetadata | undefined
+}
+
+/** Copy the content of the selected node to the clipboard. */
+function copyNodeContent() {
+  const id = nodeSelection.selected.values().next().value
+  const node = graphStore.db.nodeIdToNode.get(id)
+  if (!node) return
+  const content = node.rootSpan.repr()
+  const metadata = projectStore.module?.getNodeMetadata(id) ?? undefined
+  const copiedNode: CopiedNode = { expression: content, metadata }
+  const clipboardData: ClipboardData = { nodes: [copiedNode] }
+  const jsonItem = new Blob([JSON.stringify(clipboardData)], { type: ENSO_MIME_TYPE })
+  const textItem = new Blob([content], { type: 'text/plain' })
+  const clipboardItem = new ClipboardItem({ [jsonItem.type]: jsonItem, [textItem.type]: textItem })
+  navigator.clipboard.write([clipboardItem])
+}
+
+async function retrieveDataFromClipboard(): Promise<ClipboardData | undefined> {
+  const clipboardItems = await navigator.clipboard.read()
+  let fallback = undefined
+  for (const clipboardItem of clipboardItems) {
+    for (const type of clipboardItem.types) {
+      if (type === ENSO_MIME_TYPE) {
+        const blob = await clipboardItem.getType(type)
+        return JSON.parse(await blob.text())
+      }
+      if (type === 'text/plain') {
+        const blob = await clipboardItem.getType(type)
+        const fallbackExpression = await blob.text()
+        const fallbackNode = { expression: fallbackExpression, metadata: undefined } as CopiedNode
+        fallback = { nodes: [fallbackNode] } as ClipboardData
+      }
+    }
+  }
+  return fallback
+}
+
+/// Read the clipboard and if it contains valid data, create a node from the content.
+async function readNodeFromClipboard() {
+  let clipboardData = await retrieveDataFromClipboard()
+  if (!clipboardData) {
+    console.warn('No valid data in clipboard.')
+    return
+  }
+  const copiedNode = clipboardData.nodes[0]
+  if (!copiedNode) {
+    console.warn('No valid node in clipboard.')
+    return
+  }
+  if (copiedNode.expression == null) {
+    console.warn('No valid expression in clipboard.')
+  }
+  graphStore.createNode(
+    graphNavigator.sceneMousePos ?? Vec2.Zero,
+    copiedNode.expression,
+    copiedNode.metadata,
+  )
+}
+
+function handleNodeOutputPortDoubleClick(id: ExprId) {
+  componentBrowserUsage.value = { type: 'newNode', sourcePort: id }
+  const placementEnvironment = environmentForNodes([id].values())
+  componentBrowserNodePosition.value = previousNodeDictatedPlacement(
+    DEFAULT_NODE_SIZE,
+    placementEnvironment,
+    {
+      horizontalGap: gapBetweenNodes,
+      verticalGap: gapBetweenNodes,
+    },
+  ).position
+  interaction.setCurrent(creatingNodeFromPortDoubleClick)
+}
+
+function handleEdgeDrop(source: ExprId, position: Vec2) {
+  componentBrowserUsage.value = { type: 'newNode', sourcePort: source }
+  componentBrowserNodePosition.value = position
+  interaction.setCurrent(creatingNodeFromEdgeDrop)
+}
 </script>
 
 <template>
   <div
     ref="viewportNode"
-    class="viewport"
-    v-on.="navigator.events"
-    v-on..="selection.events"
+    class="GraphEditor viewport"
+    :class="{ draggingEdge: graphStore.unconnectedEdge != null }"
     :style="groupColors"
-    @pointerdown="nodeSelectionHandler"
-    @pointermove="selection.dragging && mouseHandler($event)"
+    v-on.="graphNavigator.events"
+    v-on..="nodeSelection.events"
+    @click="handleClick"
+    @dragover.prevent
+    @drop.prevent="handleFileDrop($event)"
   >
-    <svg :viewBox="navigator.viewBox">
-      <GraphEdge
-        v-for="(edge, index) in graphStore.edges"
-        :key="index"
-        :edge="edge"
-        :nodeRects="nodeRects"
-        :exprRects="exprRects"
-        :exprNodes="graphStore.exprNodes"
-      />
+    <svg :viewBox="graphNavigator.viewBox">
+      <GraphEdges @createNodeFromEdge="handleEdgeDrop" />
     </svg>
-    <div :style="{ transform: navigator.transform }" class="htmlLayer">
-      <GraphNode
-        v-for="[id, node] in graphStore.nodes"
-        :key="id"
-        :node="node"
-        :selected="selectedNodes.has(id)"
-        :isLatestSelected="id === latestSelectedNode"
-        :fullscreenVis="false"
-        @update:selected="setSelected(id, $event), $event && updateLatestSelectedNode(id)"
-        @replaceSelection="
-          selectedNodes.clear(), selectedNodes.add(id), updateLatestSelectedNode(id)
-        "
-        @updateRect="updateNodeRect(id, $event)"
-        @delete="graphStore.deleteNode(id)"
-        @updateExprRect="updateExprRect"
-        @updateContent="updateNodeContent(id, $event)"
-        @setVisualizationId="graphStore.setNodeVisualizationId(id, $event)"
-        @setVisualizationVisible="graphStore.setNodeVisualizationVisible(id, $event)"
-        @movePosition="moveNode(id, $event)"
+    <div :style="{ transform: graphNavigator.transform }" class="htmlLayer">
+      <GraphNodes
+        @nodeOutputPortDoubleClick="handleNodeOutputPortDoubleClick"
+        @nodeDoubleClick="enterNode"
       />
     </div>
     <ComponentBrowser
       v-if="componentBrowserVisible"
-      :navigator="navigator"
-      :position="componentBrowserPosition"
-      @finished="componentBrowserVisible = false"
+      ref="componentBrowser"
+      :navigator="graphNavigator"
+      :nodePosition="componentBrowserNodePosition"
+      :usage="componentBrowserUsage"
+      @accepted="onComponentBrowserCommit"
+      @closed="onComponentBrowserCommit"
+      @canceled="onComponentBrowserCancel"
     />
     <TopBar
-      v-model:mode="mode"
+      v-model:mode="projectStore.executionMode"
       :title="projectStore.name"
       :modes="EXECUTION_MODES"
-      :breadcrumbs="['main', 'ad_analytics']"
+      :breadcrumbs="breadcrumbs"
       @breadcrumbClick="console.log(`breadcrumb #${$event + 1} clicked.`)"
-      @back="console.log('breadcrumbs \'back\' button clicked.')"
+      @back="exitNode"
       @forward="console.log('breadcrumbs \'forward\' button clicked.')"
-      @execute="console.log('\'execute\' button clicked.')"
+      @execute="onPlayButtonPress()"
     />
-    <div ref="codeEditorArea">
-      <Suspense>
-        <Transition>
-          <CodeEditor v-if="showCodeEditor" />
-        </Transition>
+    <PlusButton @pointerdown="interaction.setCurrent(creatingNodeFromButton)" />
+    <Transition>
+      <Suspense ref="codeEditorArea">
+        <CodeEditor v-if="showCodeEditor" />
       </Suspense>
-    </div>
-    <SelectionBrush
-      v-if="scaledMousePos"
-      :position="scaledMousePos"
-      :anchor="scaledSelectionAnchor"
-      :style="{ transform: navigator.prescaledTransform }"
-    />
+    </Transition>
+    <GraphMouse />
   </div>
 </template>
 
 <style scoped>
-.viewport {
+.GraphEditor {
   position: relative;
   contain: layout;
   overflow: clip;
-  cursor: none;
   --group-color-fallback: #006b8a;
+  --node-color-no-type: #596b81;
 }
 
 svg {

@@ -27,6 +27,8 @@ pub trait IsBundle: AsRef<Path> + IsArtifact {
     }
 
     /// Path to the directory where GraalVM is placed.
+    ///
+    /// This will be the JAVA_HOME for the bundled component.
     fn graalvm_dir(&self) -> PathBuf;
 
     /// Path to the directory where Engine package is placed.

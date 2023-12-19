@@ -85,6 +85,7 @@ use ide_ci::actions::workflow::is_in_env;
 use ide_ci::cache::Cache;
 use ide_ci::define_env_var;
 use ide_ci::fs::remove_if_exists;
+use ide_ci::github::release;
 use ide_ci::github::setup_octocrab;
 use ide_ci::global;
 use ide_ci::ok_ready_boxed;
@@ -93,6 +94,7 @@ use ide_ci::programs::git;
 use ide_ci::programs::git::clean;
 use ide_ci::programs::rustc;
 use ide_ci::programs::Cargo;
+use octocrab::models::ReleaseId;
 use std::time::Duration;
 use tempfile::tempdir;
 use tokio::process::Child;
@@ -348,7 +350,8 @@ impl Processor {
         match gui.command {
             arg::gui2::Command::Build(job) => self.build(job),
             arg::gui2::Command::Get(source) => self.get(source).void_ok().boxed(),
-            arg::gui2::Command::Test => gui2::unit_tests(&self.repo_root),
+            arg::gui2::Command::Test => gui2::tests(&self.repo_root),
+            arg::gui2::Command::Watch => gui2::watch(&self.repo_root),
             arg::gui2::Command::Lint => gui2::lint(&self.repo_root),
         }
     }
@@ -483,23 +486,45 @@ impl Processor {
         .boxed()
     }
 
+    /// Get a handle to the release by its identifier.
+    pub fn release(&self, id: ReleaseId) -> release::Handle {
+        ide_ci::github::release::Handle::new(&self.octocrab, self.remote_repo.clone(), id)
+    }
+
+    /// Upload IDE assets from the build job to the given release.
+    pub fn upload_ide_assets(
+        &self,
+        build_job: BoxFuture<'static, Result<ide::Artifact>>,
+        release_id: ReleaseId,
+        name_prefix: Option<String>,
+    ) -> BoxFuture<'static, Result> {
+        let release = self.release(release_id);
+        let add_prefix = move |name: String| {
+            if let Some(prefix) = name_prefix.clone() {
+                format!("{prefix}-{name}")
+            } else {
+                name
+            }
+        };
+        async move {
+            let artifacts = build_job.await?;
+            release
+                .upload_asset_file_with_custom_name(&artifacts.image, add_prefix.clone())
+                .await?;
+            release
+                .upload_asset_file_with_custom_name(&artifacts.image_checksum, add_prefix)
+                .await?;
+            Ok(())
+        }
+        .boxed()
+    }
+
     pub fn handle_ide(&self, ide: arg::ide::Target) -> BoxFuture<'static, Result> {
         match ide.command {
             arg::ide::Command::Build { params } => self.build_old_ide(params).void_ok().boxed(),
             arg::ide::Command::Upload { params, release_id } => {
                 let build_job = self.build_old_ide(params);
-                let release = ide_ci::github::release::Handle::new(
-                    &self.octocrab,
-                    self.remote_repo.clone(),
-                    release_id,
-                );
-                async move {
-                    let artifacts = build_job.await?;
-                    release.upload_asset_file(&artifacts.image).await?;
-                    release.upload_asset_file(&artifacts.image_checksum).await?;
-                    Ok(())
-                }
-                .boxed()
+                self.upload_ide_assets(build_job, release_id, None)
             }
             arg::ide::Command::Start { params, ide_option } => {
                 let build_job = self.build_old_ide(params);
@@ -563,6 +588,10 @@ impl Processor {
     pub fn handle_ide2(&self, ide: arg::ide2::Target) -> BoxFuture<'static, Result> {
         match ide.command {
             arg::ide2::Command::Build { params } => self.build_new_ide(params).void_ok().boxed(),
+            arg::ide2::Command::Upload { params, release_id } => {
+                let build_job = self.build_new_ide(params);
+                self.upload_ide_assets(build_job, release_id, Some("ide2".into()))
+            }
         }
     }
 
@@ -588,7 +617,7 @@ impl Processor {
     pub fn build_ide(
         &self,
         input: ide::BuildInput<impl IsArtifact>,
-        output_path: OutputPath<arg::ide::Target>,
+        output_path: OutputPath<impl IsTargetSource + Send + Sync + 'static>,
     ) -> BoxFuture<'static, Result<ide::Artifact>> {
         let target = Ide { target_os: self.triple.os, target_arch: self.triple.arch };
         let artifact_name_prefix = input.artifact_name.clone();
@@ -850,7 +879,7 @@ pub async fn main_internal(config: Option<Config>) -> Result {
             let crate::arg::git_clean::Options { dry_run, cache, build_script } = options;
             let mut exclusions = vec![".idea"];
             if !build_script {
-                exclusions.push("target/enso-build");
+                exclusions.push("target/rust/buildscript");
             }
 
             if !dry_run {
@@ -896,7 +925,9 @@ pub async fn main_internal(config: Option<Config>) -> Result {
                 .await?;
 
             enso_build::web::install(&ctx.repo_root).await?;
-            enso_build::web::run_script(&ctx.repo_root, enso_build::web::Script::CiCheck).await?;
+            enso_build::web::run_script(&ctx.repo_root, enso_build::web::Script::Typecheck).await?;
+            enso_build::web::run_script(&ctx.repo_root, enso_build::web::Script::Lint).await?;
+            enso_build::web::run_script(&ctx.repo_root, enso_build::web::Script::Prettier).await?;
         }
         Target::Fmt => {
             enso_build::web::install(&ctx.repo_root).await?;

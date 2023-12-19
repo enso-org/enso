@@ -103,7 +103,7 @@ export interface ListSecretsResponseBody {
 
 /** HTTP response body for the "list tag" endpoint. */
 export interface ListTagsResponseBody {
-    tags: backendModule.Tag[]
+    tags: backendModule.Label[]
 }
 
 /** HTTP response body for the "list versions" endpoint. */
@@ -127,7 +127,6 @@ export class RemoteBackend extends backendModule.Backend {
     protected defaultVersions: Partial<Record<backendModule.VersionType, DefaultVersionInfo>> = {}
 
     /** Create a new instance of the {@link RemoteBackend} API client.
-     *
      * @throws An error if the `Authorization` header is not set on the given `client`. */
     constructor(
         private readonly client: http.Client,
@@ -219,7 +218,6 @@ export class RemoteBackend extends backendModule.Backend {
     }
 
     /** Return organization info for the current user.
-     *
      * @returns `null` if a non-successful status code (not 200-299) was received. */
     override async usersMe(): Promise<backendModule.UserOrOrganization | null> {
         const response = await this.get<backendModule.UserOrOrganization>(
@@ -233,7 +231,6 @@ export class RemoteBackend extends backendModule.Backend {
     }
 
     /** Return a list of assets in a directory.
-     *
      * @throws An error if a non-successful status code (not 200-299) was received. */
     override async listDirectory(
         query: backendModule.ListDirectoryRequestParams,
@@ -242,14 +239,12 @@ export class RemoteBackend extends backendModule.Backend {
         const response = await this.get<ListDirectoryResponseBody>(
             remoteBackendPaths.LIST_DIRECTORY_PATH +
                 '?' +
-                new URLSearchParams({
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
-                    ...(query.parentId != null ? { parent_id: query.parentId } : {}),
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
-                    ...(query.filterBy != null ? { filter_by: query.filterBy } : {}),
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
-                    ...(query.recentProjects ? { recent_projects: String(true) } : {}),
-                }).toString()
+                new URLSearchParams([
+                    ...(query.parentId != null ? [['parent_id', query.parentId]] : []),
+                    ...(query.filterBy != null ? [['filter_by', query.filterBy]] : []),
+                    ...(query.recentProjects ? [['recent_projects', String(true)]] : []),
+                    ...(query.labels != null ? query.labels.map(label => ['label', label]) : []),
+                ]).toString()
         )
         if (!responseIsSuccessful(response)) {
             if (response.status === STATUS_SERVER_ERROR) {
@@ -286,7 +281,6 @@ export class RemoteBackend extends backendModule.Backend {
     }
 
     /** Create a directory.
-     *
      * @throws An error if a non-successful status code (not 200-299) was received. */
     override async createDirectory(
         body: backendModule.CreateDirectoryRequestBody
@@ -303,7 +297,6 @@ export class RemoteBackend extends backendModule.Backend {
     }
 
     /** Change the name of a directory.
-     *
      * @throws An error if a non-successful status code (not 200-299) was received. */
     override async updateDirectory(
         directoryId: backendModule.DirectoryId,
@@ -325,8 +318,24 @@ export class RemoteBackend extends backendModule.Backend {
         }
     }
 
+    /** Change the parent directory of an asset.
+     * @throws An error if a non-successful status code (not 200-299) was received. */
+    override async updateAsset(
+        assetId: backendModule.AssetId,
+        body: backendModule.UpdateAssetRequestBody,
+        title: string | null
+    ) {
+        const response = await this.patch(remoteBackendPaths.updateAssetPath(assetId), body)
+        if (!responseIsSuccessful(response)) {
+            return this.throw(
+                `Could not update ${title != null ? `'${title}'` : `asset with ID '${assetId}'`}.`
+            )
+        } else {
+            return
+        }
+    }
+
     /** Delete an arbitrary asset.
-     *
      * @throws An error if a non-successful status code (not 200-299) was received. */
     override async deleteAsset(assetId: backendModule.AssetId, title: string | null) {
         const response = await this.delete(remoteBackendPaths.deleteAssetPath(assetId))
@@ -340,7 +349,6 @@ export class RemoteBackend extends backendModule.Backend {
     }
 
     /** Restore an arbitrary asset from the trash.
-     *
      * @throws An error if a non-successful status code (not 200-299) was received. */
     override async undoDeleteAsset(
         assetId: backendModule.AssetId,
@@ -359,7 +367,6 @@ export class RemoteBackend extends backendModule.Backend {
     }
 
     /** Return a list of projects belonging to the current user.
-     *
      * @throws An error if a non-successful status code (not 200-299) was received. */
     override async listProjects(): Promise<backendModule.ListedProject[]> {
         const response = await this.get<ListProjectsResponseBody>(
@@ -383,7 +390,6 @@ export class RemoteBackend extends backendModule.Backend {
     }
 
     /** Create a project.
-     *
      * @throws An error if a non-successful status code (not 200-299) was received. */
     override async createProject(
         body: backendModule.CreateProjectRequestBody
@@ -400,7 +406,6 @@ export class RemoteBackend extends backendModule.Backend {
     }
 
     /** Close a project.
-     *
      * @throws An error if a non-successful status code (not 200-299) was received. */
     override async closeProject(
         projectId: backendModule.ProjectId,
@@ -419,7 +424,6 @@ export class RemoteBackend extends backendModule.Backend {
     }
 
     /** Return details for a project.
-     *
      * @throws An error if a non-successful status code (not 200-299) was received. */
     override async getProjectDetails(
         projectId: backendModule.ProjectId,
@@ -455,7 +459,6 @@ export class RemoteBackend extends backendModule.Backend {
     }
 
     /** Prepare a project for execution.
-     *
      * @throws An error if a non-successful status code (not 200-299) was received. */
     override async openProject(
         projectId: backendModule.ProjectId,
@@ -476,7 +479,6 @@ export class RemoteBackend extends backendModule.Backend {
     }
 
     /** Update the name or AMI of a project.
-     *
      * @throws An error if a non-successful status code (not 200-299) was received. */
     override async projectUpdate(
         projectId: backendModule.ProjectId,
@@ -499,7 +501,6 @@ export class RemoteBackend extends backendModule.Backend {
     }
 
     /** Return the resource usage of a project.
-     *
      * @throws An error if a non-successful status code (not 200-299) was received. */
     override async checkResources(
         projectId: backendModule.ProjectId,
@@ -539,7 +540,6 @@ export class RemoteBackend extends backendModule.Backend {
     }
 
     /** Return a list of files accessible by the current user.
-     *
      * @throws An error if a non-successful status code (not 200-299) was received. */
     override async listFiles(): Promise<backendModule.File[]> {
         const response = await this.get<ListFilesResponseBody>(remoteBackendPaths.LIST_FILES_PATH)
@@ -551,7 +551,6 @@ export class RemoteBackend extends backendModule.Backend {
     }
 
     /** Upload a file.
-     *
      * @throws An error if a non-successful status code (not 200-299) was received. */
     override async uploadFile(
         params: backendModule.UploadFileRequestParams,
@@ -594,7 +593,6 @@ export class RemoteBackend extends backendModule.Backend {
     }
 
     /** Create a secret environment variable.
-     *
      * @throws An error if a non-successful status code (not 200-299) was received. */
     override async createSecret(
         body: backendModule.CreateSecretRequestBody
@@ -611,7 +609,6 @@ export class RemoteBackend extends backendModule.Backend {
     }
 
     /** Return a secret environment variable.
-     *
      * @throws An error if a non-successful status code (not 200-299) was received. */
     override async getSecret(
         secretId: backendModule.SecretId,
@@ -630,7 +627,6 @@ export class RemoteBackend extends backendModule.Backend {
     }
 
     /** Return the secret environment variables accessible by the user.
-     *
      * @throws An error if a non-successful status code (not 200-299) was received. */
     override async listSecrets(): Promise<backendModule.SecretInfo[]> {
         const response = await this.get<ListSecretsResponseBody>(
@@ -643,65 +639,72 @@ export class RemoteBackend extends backendModule.Backend {
         }
     }
 
-    /** Create a file tag or project tag.
-     *
+    /** Create a label used for categorizing assets.
      * @throws An error if a non-successful status code (not 200-299) was received. */
     override async createTag(
         body: backendModule.CreateTagRequestBody
-    ): Promise<backendModule.TagInfo> {
-        const response = await this.post<backendModule.TagInfo>(
+    ): Promise<backendModule.Label> {
+        const response = await this.post<backendModule.Label>(
             remoteBackendPaths.CREATE_TAG_PATH,
-            {
-                /* eslint-disable @typescript-eslint/naming-convention */
-                tag_name: body.name,
-                tag_value: body.value,
-                object_type: body.objectType,
-                object_id: body.objectId,
-                /* eslint-enable @typescript-eslint/naming-convention */
-            }
+            body
         )
         if (!responseIsSuccessful(response)) {
-            return this.throw(`Could not create create tag with name '${body.name}'.`)
+            return this.throw(`Could not create label '${body.value}'.`)
         } else {
             return await response.json()
         }
     }
 
-    /** Return file tags or project tags accessible by the user.
-     *
+    /** Return all labels accessible by the user.
      * @throws An error if a non-successful status code (not 200-299) was received. */
-    override async listTags(
-        params: backendModule.ListTagsRequestParams
-    ): Promise<backendModule.Tag[]> {
-        const response = await this.get<ListTagsResponseBody>(
-            remoteBackendPaths.LIST_TAGS_PATH +
-                '?' +
-                new URLSearchParams({
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
-                    tag_type: params.tagType,
-                }).toString()
-        )
+    override async listTags(): Promise<backendModule.Label[]> {
+        const response = await this.get<ListTagsResponseBody>(remoteBackendPaths.LIST_TAGS_PATH)
         if (!responseIsSuccessful(response)) {
-            return this.throw(`Could not list tags of type '${params.tagType}'.`)
+            return this.throw(`Could not list labels.`)
         } else {
             return (await response.json()).tags
         }
     }
 
-    /** Delete a secret environment variable.
-     *
+    /** Set the full list of labels for a specific asset.
      * @throws An error if a non-successful status code (not 200-299) was received. */
-    override async deleteTag(tagId: backendModule.TagId): Promise<void> {
+    override async associateTag(
+        assetId: backendModule.AssetId,
+        labels: backendModule.LabelName[],
+        title: string | null
+    ) {
+        const response = await this.patch<ListTagsResponseBody>(
+            remoteBackendPaths.associateTagPath(assetId),
+            {
+                labels,
+            }
+        )
+        if (!responseIsSuccessful(response)) {
+            return this.throw(
+                `Could not set labels for asset ${
+                    title != null ? `'${title}'` : `with ID '${assetId}'`
+                }.`
+            )
+        } else {
+            return
+        }
+    }
+
+    /** Delete a label.
+     * @throws An error if a non-successful status code (not 200-299) was received. */
+    override async deleteTag(
+        tagId: backendModule.TagId,
+        value: backendModule.LabelName
+    ): Promise<void> {
         const response = await this.delete(remoteBackendPaths.deleteTagPath(tagId))
         if (!responseIsSuccessful(response)) {
-            return this.throw(`Could not delete tag with ID '${tagId}'.`)
+            return this.throw(`Could not delete label '${value}'.`)
         } else {
             return
         }
     }
 
     /** Return a list of backend or IDE versions.
-     *
      * @throws An error if a non-successful status code (not 200-299) was received. */
     override async listVersions(
         params: backendModule.ListVersionsRequestParams

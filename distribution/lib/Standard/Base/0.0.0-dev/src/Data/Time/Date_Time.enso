@@ -749,9 +749,9 @@ type Date_Time
        Convert to a display representation of this Date_Time.
     to_display_text : Text
     to_display_text self =
-        # TODO note that we are using a format that will not be parsed by our default formatters and needs custom formatter to be parsed. Is that OK?
-        time_format = if self.nanosecond include_milliseconds=True == 0 then "HH:mm:ss" else "HH:mm:ss.n"
-        self.format "yyyy-MM-dd "+time_format+" TT"
+        time_format = if self.nanosecond include_milliseconds=True == 0 then "HH:mm:ss" else "HH:mm:ss.fff"
+        zone_format = if self.zone == Time_Zone.system then "" else "'['TT']'"
+        self.format "yyyy-MM-dd "+time_format+zone_format
 
     ## PRIVATE
        Convert to a JavaScript Object representing a Date_Time.

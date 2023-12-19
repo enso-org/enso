@@ -47,10 +47,10 @@ interface AuthenticationApi {
     /** Open a URL in the system browser. */
     openUrlInSystemBrowser: (url: string) => void
     /** Set the callback to be called when the system browser redirects back to a URL in the app,
-     * via a deep link. See {@link setDeepLinkHandler} for details. */
+     * via a deep link. See `setDeepLinkHandler` for details. */
     setDeepLinkHandler: (callback: (url: string) => void) => void
     /** Saves the access token to a file. */
-    saveAccessToken: (access_token: string) => void
+    saveAccessToken: (accessToken: string | null) => void
 }
 
 // =====================================
@@ -81,6 +81,7 @@ declare global {
             /* eslint-disable @typescript-eslint/naming-convention */
             APPLEID?: string
             APPLEIDPASS?: string
+            APPLETEAMID?: string
             /* eslint-enable @typescript-eslint/naming-convention */
         }
     }
@@ -90,10 +91,10 @@ declare global {
     const BUNDLED_ENGINE_VERSION: string
     const BUILD_INFO: buildJson.BuildInfo
     const PROJECT_MANAGER_IN_BUNDLE_PATH: string
-    const IS_DEV_MODE: boolean
     // This will be `undefined` when it is not defined by esbuild.
     // eslint-disable-next-line no-restricted-syntax
     const REDIRECT_OVERRIDE: string | undefined
+    const IS_VITE: boolean
     // eslint-disable-next-line no-restricted-syntax
     const CLOUD_ENV: 'npekin' | 'pbuchu' | 'production' | undefined
     /* eslint-disable @typescript-eslint/naming-convention */

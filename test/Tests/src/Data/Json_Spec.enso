@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
+import Standard.Base.Errors.Common.No_Such_Method
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.No_Such_Key.No_Such_Key
 from Standard.Base.Data.Json import Invalid_JSON
@@ -68,6 +69,7 @@ spec =
 
         Test.specify "should be able to deserialize using into via conversion" <|
             Json.parse '{"type":"Time_Zone","constructor":"parse","id":"Europe/Moscow"}' . into Time_Zone . should_equal (Time_Zone.parse "Europe/Moscow")
+            Json.parse '{}' . into Time_Zone . should_fail_with Illegal_Argument
 
         Test.specify "should be able to deserialize using into for single constructor" <|
             Json.parse '{"first": 1, "second": 2}' . into Pair . should_equal (Pair.Value 1 2)
@@ -77,6 +79,14 @@ spec =
             Json.parse '{"than": 2}' . into Filter_Condition . should_fail_with Illegal_Argument
             Json.parse '{"constructor": "Less", "than": 2}' . into Filter_Condition . should_equal (Filter_Condition.Less 2)
             Json.parse '{"constructor": "NotARealOne", "than": 2}' . into Filter_Condition . should_fail_with Illegal_Argument
+
+        Test.specify "should be able to convert a JS_Object into a Map using into" <|
+            Json.parse '{"a": 15, "b": 20, "c": "X", "d": null}' . into Map . should_equal (Map.from_vector [["a", 15], ["b", 20], ["c", "X"], ["d", Nothing]])
+            Json.parse '{}' . into Map . should_equal Map.empty
+
+            # [] parses as a vector/array which does not have the `into` method, that only works for {} objects:
+            Test.expect_panic No_Such_Method <|
+                Json.parse '[]' . into Map
 
         Test.specify "should be able to deserialize Date" <|
             '{"type": "Date", "constructor": "new", "year": 2018, "month": 7, "day": 3}'.should_parse_as (Date.new 2018 7 3)

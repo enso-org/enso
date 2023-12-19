@@ -2,8 +2,10 @@ package org.enso.compiler.core.ir
 package expression
 package errors
 
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{randomId, Identifier}
+import org.enso.compiler.core.{IR, Identifier}
+import org.enso.compiler.core.IR.randomId
+
+import java.util.UUID
 
 /** An error resulting from processing conversion methods.
   *
@@ -15,7 +17,7 @@ import org.enso.compiler.core.IR.{randomId, Identifier}
 sealed case class Conversion(
   storedIr: IR,
   reason: Conversion.Reason,
-  override val passData: MetadataStorage      = MetadataStorage(),
+  override val passData: MetadataStorage      = new MetadataStorage(),
   override val diagnostics: DiagnosticStorage = DiagnosticStorage()
 ) extends Error
     with Diagnostic.Kind.Interactive
@@ -23,7 +25,9 @@ sealed case class Conversion(
     with Name {
   override val name: String = "conversion_error"
 
-  override def mapExpressions(fn: Expression => Expression): Conversion =
+  override def mapExpressions(
+    fn: java.util.function.Function[Expression, Expression]
+  ): Conversion =
     this
 
   override def setLocation(
@@ -46,7 +50,7 @@ sealed case class Conversion(
     reason: Conversion.Reason      = reason,
     passData: MetadataStorage      = passData,
     diagnostics: DiagnosticStorage = diagnostics,
-    id: Identifier                 = id
+    id: UUID @Identifier           = id
   ): Conversion = {
     val res = Conversion(storedIr, reason, passData, diagnostics)
     res.id = id
@@ -67,7 +71,8 @@ sealed case class Conversion(
         keepDiagnostics,
         keepIdentifiers
       ),
-      passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+      passData =
+        if (keepMetadata) passData.duplicate else new MetadataStorage(),
       diagnostics =
         if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
       id = if (keepIdentifiers) id else randomId
@@ -78,14 +83,15 @@ sealed case class Conversion(
   override def children: List[IR] = List(storedIr)
 
   /** @inheritdoc */
-  override protected var id: Identifier = randomId
+  var id: UUID @Identifier = randomId
 
   /** @inheritdoc */
   override def showCode(indent: Int): String =
     s"(Error: ${storedIr.showCode(indent)})"
 
   /** @inheritdoc */
-  override def message: String = reason.explain
+  override def message(source: (IdentifiedLocation => String)): String =
+    reason.explain
 
   override def diagnosticKeys(): Array[Any] = Array(reason.explain)
 

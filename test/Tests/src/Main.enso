@@ -34,8 +34,6 @@ import project.Data.List_Spec
 import project.Data.Locale_Spec
 import project.Data.Map_Spec
 import project.Data.Maybe_Spec
-import project.Data.Noise.Generator_Spec as Noise_Generator_Spec
-import project.Data.Noise_Spec
 import project.Data.Numbers_Spec
 import project.Data.Ordering_Spec
 import project.Data.Ordering.Comparator_Spec
@@ -71,6 +69,7 @@ import project.Runtime.Asserts_Spec
 import project.Runtime.Lazy_Spec
 import project.Runtime.Lazy_Generator_Spec
 import project.Runtime.Managed_Resource_Spec
+import project.Runtime.Missing_Required_Arguments_Spec
 import project.Runtime.Ref_Spec
 import project.Runtime.State_Spec
 import project.Runtime.Stack_Traces_Spec
@@ -82,6 +81,7 @@ import project.System.Process_Spec
 import project.System.Reporting_Stream_Decoder_Spec
 import project.System.Reporting_Stream_Encoder_Spec
 import project.System.System_Spec
+import project.System.Temporary_File_Spec
 
 import project.Random_Spec
 
@@ -98,6 +98,7 @@ main = Test_Suite.run_main <|
     Error_Spec.spec
     Environment_Spec.spec
     File_Spec.spec
+    Temporary_File_Spec.spec
     File_Read_Spec.spec
     Reporting_Stream_Decoder_Spec.spec
     Reporting_Stream_Encoder_Spec.spec
@@ -119,8 +120,6 @@ main = Test_Suite.run_main <|
     Meta_Location_Spec.spec
     Names_Spec.spec
     Equals_Spec.spec
-    Noise_Generator_Spec.spec
-    Noise_Spec.spec
     Numbers_Spec.spec
     Ordering_Spec.spec
     Comparator_Spec.spec
@@ -145,6 +144,7 @@ main = Test_Suite.run_main <|
     Encoding_Spec.spec
     Text_Sub_Range_Spec.spec
     Managed_Resource_Spec.spec
+    Missing_Required_Arguments_Spec.spec
     Lazy_Generator_Spec.spec
     Stack_Traces_Spec.spec
     Utils_Spec.spec

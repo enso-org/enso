@@ -2,6 +2,7 @@ package org.enso.compiler.test.pass.desugar
 
 import org.enso.compiler.Passes
 import org.enso.compiler.context.ModuleContext
+import org.enso.compiler.core.ConstantsNames
 import org.enso.compiler.core.ir.{
   DefinitionArgument,
   Function,
@@ -15,7 +16,6 @@ import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.pass.desugar.{FunctionBinding, GenerateMethodBodies}
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
-import org.enso.interpreter.Constants
 
 class GenerateMethodBodiesTest extends CompilerTest {
 
@@ -163,6 +163,7 @@ class GenerateMethodBodiesTest extends CompilerTest {
         |Unit.bar self = self + 1
         |Unit.baz a self = self + 1 + a
         |qux self a self = a
+        |Unit.quux self a self = a
         |""".stripMargin.preprocessModule
 
     val irMethod =
@@ -192,6 +193,7 @@ class GenerateMethodBodiesTest extends CompilerTest {
     val irResultBar    = irResult.bindings(2).asInstanceOf[definition.Method]
     val irResultBaz    = irResult.bindings(3).asInstanceOf[definition.Method]
     val irResultQux    = irResult.bindings(4).asInstanceOf[definition.Method]
+    val irResultQuux   = irResult.bindings(5).asInstanceOf[definition.Method]
 
     "not generate an auxiliary self parameter" in {
       val resultArgs = irResultMethod.body
@@ -248,7 +250,15 @@ class GenerateMethodBodiesTest extends CompilerTest {
     }
 
     "return an error when redefining `self` parameter" in {
-      irResultQux.body shouldBe an[errors.Redefined.SelfArg]
+      irResultQux.body shouldBe a[Function]
+      irResultQux.body
+        .asInstanceOf[Function]
+        .body shouldBe an[errors.Redefined.SelfArg]
+
+      irResultQuux.body shouldBe an[Function]
+      irResultQuux.body
+        .asInstanceOf[Function]
+        .body shouldBe an[errors.Redefined.SelfArg]
     }
   }
 
@@ -338,7 +348,7 @@ class GenerateMethodBodiesTest extends CompilerTest {
       val nestedBody = body.body.asInstanceOf[Function.Lambda]
       nestedBody.arguments.length shouldEqual 1
       nestedBody.arguments.head.name shouldBe an[Name.Literal]
-      nestedBody.arguments.head.name.name shouldEqual Constants.Names.THAT_ARGUMENT
+      nestedBody.arguments.head.name.name shouldEqual ConstantsNames.THAT_ARGUMENT
     }
 
     "have report a warning when defining `self` at a wrong position" in {
@@ -352,7 +362,7 @@ class GenerateMethodBodiesTest extends CompilerTest {
       val body = conversion.body.asInstanceOf[Function.Lambda]
       body.arguments.length shouldEqual 1
       body.arguments.head.name shouldBe an[Name.Literal]
-      body.arguments.head.name.name shouldBe Constants.Names.THAT_ARGUMENT
+      body.arguments.head.name.name shouldBe ConstantsNames.THAT_ARGUMENT
 
       conversion.body.diagnostics.collect { case w: Warning =>
         w
@@ -370,7 +380,7 @@ class GenerateMethodBodiesTest extends CompilerTest {
       val body = conversion.body.asInstanceOf[Function.Lambda]
       body.arguments.length shouldEqual 1
       body.arguments.head.name shouldBe an[Name.Literal]
-      body.arguments.head.name.name shouldBe Constants.Names.THAT_ARGUMENT
+      body.arguments.head.name.name shouldBe ConstantsNames.THAT_ARGUMENT
 
       conversion.body.diagnostics.collect { case w: Warning =>
         w
