@@ -1,13 +1,12 @@
-from Standard.Base import Any, Meta, Integer, True, False, Nothing
+from Standard.Base import Any, Meta, Integer, Boolean, True, False, Nothing
 
 type Gen
     Generator n:Integer
 
     next : Gen
-    next self = Gen.Generator self.n+1
+    next self -> Gen = Gen.Generator self.n+1
 
-natural : Gen
-natural =
+natural -> Gen =
     gen n = Gen.Generator n
     gen 2
 
@@ -17,8 +16,8 @@ type Filter
     Head first:Filter set_last:Filter->Nothing
 
     acceptAndAdd : Integer -> Filter
-    acceptAndAdd self (n:Integer) =
-        iterate (f : Filter) = case f of
+    acceptAndAdd self (n:Integer) -> Filter =
+        iterate (f : Filter) -> Boolean = case f of
             Filter.Item p next -> if n % p == 0 then False else
                 if p * p > n then True else @Tail_Call iterate next
             Filter.Empty -> True
@@ -27,30 +26,29 @@ type Filter
             pair = Meta.atom_with_hole (h -> Filter.Item n h)
             newLast = pair.value
             set_last newLast
-            [True, Filter.Head head.first pair.fill]
+            Filter.Head head.first pair.fill
 
         case self of
             Filter.Empty ->
                 pair = Meta.atom_with_hole (h -> Filter.Item n h)
-                [True, Filter.Head pair.value pair.fill]
-            Filter.Head _ _ -> if iterate self.first then appendN self self.set_last else [False, Nothing]
+                Filter.Head pair.value pair.fill
+            Filter.Head _ _ -> if iterate self.first then appendN self self.set_last else self
 
 type Primes
     Alg (generator : Gen) (filter : Filter)
 
-Primes.next self = case self of
+Primes.next self -> Primes = case self of
     Primes.Alg g f ->
-        found_new = f.acceptAndAdd g.n
-        if found_new.first then Primes.Alg g.next found_new.last else
-            new_primes = Primes.Alg g.next f
-            @Tail_Call new_primes.next
+        filter = f.acceptAndAdd g.n
+        new_primes = Primes.Alg g.next filter
+        if Meta.is_same_object filter f then @Tail_Call new_primes.next else new_primes
 
-Primes.last_prime self = case self of
+Primes.last_prime self -> Integer = case self of
     Primes.Alg g _ -> g.n - 1
 
 
-compute_nth_prime (n : Integer) =
-    loop (p : Primes) (n : Integer) = if n == 0 then p else
+compute_nth_prime (n : Integer) -> Integer =
+    loop (p : Primes) (n : Integer) -> Primes = if n == 0 then p else
         pn = p.next
         @Tail_Call loop pn n-1
     p = Primes.Alg natural Filter.Empty

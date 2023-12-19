@@ -808,6 +808,315 @@ public class SignatureTest extends TestBase {
     assertFalse("false & false", compute.execute(false, false).asBoolean());
   }
 
+  @Test
+  public void unresolvedReturnTypeSignature() throws Exception {
+    final URI uri = new URI("memory://neg.enso");
+    final Source src =
+        Source.newBuilder("enso", """
+    neg a -> Xyz = 0 - a
+    """, uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    try {
+      var module = ctx.eval(src);
+      var neg = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "neg");
+      fail("Expecting an exception from compilation, not: " + neg);
+    } catch (PolyglotException e) {
+      System.out.println(e);
+      assertTrue("It is a syntax error exception", e.isSyntaxError());
+    }
+  }
+
+  @Test
+  public void validReturnTypeSignature() throws Exception {
+    final URI uri = new URI("memory://rts.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+    from Standard.Base import Integer
+    add1 a b -> Integer = a+b
+    add2 (a : Integer) (b : Integer) -> Integer = a+b
+    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var add1 = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "add1");
+    assertEquals(3, add1.execute(1, 2).asInt());
+
+    var add2 = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "add2");
+    assertEquals(3, add2.execute(1, 2).asInt());
+  }
+
+  @Test
+  public void returnTypeCheckOptInError() throws Exception {
+    final URI uri = new URI("memory://rts.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+    from Standard.Base import Integer
+    plusChecked a b -> Integer = b+a
+    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var plusChecked = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "plusChecked");
+    assertEquals(5, plusChecked.execute(2, 3).asInt());
+    try {
+      var res = plusChecked.execute("a", "b");
+      fail("Expecting an exception, not: " + res);
+    } catch (PolyglotException e) {
+      assertContains("expected `expression` to be Integer, but got Text", e.getMessage());
+    }
+  }
+
+  /**
+   * Similar scenario to {@code returnTypeCheckOptInError}, but with the opt out signature the check
+   * is not currently performed.
+   */
+  @Test
+  public void returnTypeCheckOptOut() throws Exception {
+    final URI uri = new URI("memory://rts.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+    from Standard.Base import Integer
+    plusUnchecked : Integer -> Integer -> Integer
+    plusUnchecked a b = b+a
+    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var plusChecked = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "plusUnchecked");
+    assertEquals(5, plusChecked.execute(2, 3).asInt());
+    // This variant does allow other types, because the signature remains unchecked:
+    assertEquals("ba", plusChecked.execute("a", "b").asString());
+  }
+
+  @Test
+  public void returnTypeCheckOptInErrorZeroArguments() throws Exception {
+    final URI uri = new URI("memory://rts.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+    from Standard.Base import Integer
+    constant -> Integer = "foo"
+    foo a b = a + constant + b
+    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var plusChecked = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo");
+    try {
+      var res = plusChecked.execute(2, 3);
+      fail("Expecting an exception, not: " + res);
+    } catch (PolyglotException e) {
+      assertContains("expected `expression` to be Integer, but got Text", e.getMessage());
+    }
+  }
+
+  @Test
+  public void returnTypeCheckOptInErrorZeroArgumentsExpression() throws Exception {
+    final URI uri = new URI("memory://rts.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+    from Standard.Base import Integer
+    foo a =
+        x -> Integer = a+a
+        x+x
+    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var plusChecked = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo");
+    assertEquals(8, plusChecked.execute(2).asInt());
+    try {
+      var res = plusChecked.execute(".");
+      fail("Expecting an exception, not: " + res);
+    } catch (PolyglotException e) {
+      assertContains("expected `expression` to be Integer, but got Text", e.getMessage());
+    }
+  }
+
+  @Test
+  public void returnTypeCheckOptInErrorZeroArgumentsBlock() throws Exception {
+    final URI uri = new URI("memory://rts.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+    from Standard.Base import Integer, IO
+    foo a =
+        x -> Integer =
+            a+a
+        x+x
+    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var plusChecked = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo");
+    assertEquals(8, plusChecked.execute(2).asInt());
+    try {
+      var res = plusChecked.execute(".");
+      fail("Expecting an exception, not: " + res);
+    } catch (PolyglotException e) {
+      assertContains("expected `expression` to be Integer, but got Text", e.getMessage());
+    }
+  }
+
+  @Test
+  public void returnTypeCheckOptInAllowDataflowErrors() throws Exception {
+    final URI uri = new URI("memory://rts.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+    from Standard.Base import Integer, Error
+    foo x -> Integer = case x of
+        1 -> 100
+        2 -> "TWO"
+        3 -> Error.throw "My error"
+        _ -> x+1
+    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var foo = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo");
+    assertEquals(100, foo.execute(1).asInt());
+
+    try {
+      var res = foo.execute(2);
+      fail("Expecting an exception, not: " + res);
+    } catch (PolyglotException e) {
+      assertContains("expected `expression` to be Integer, but got Text", e.getMessage());
+    }
+
+    var res = foo.execute(3);
+    assertTrue(res.isException());
+    assertContains("My error", res.toString());
+  }
+
+  @Test
+  public void returnTypeCheckOptInTailRec() throws Exception {
+    final URI uri = new URI("memory://rts.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+    from Standard.Base import Integer, Error
+    factorial (x : Integer) -> Integer =
+        go n acc -> Integer =
+            if n == 0 then acc else
+                if n == 10 then "TEN :)" else
+                    @Tail_Call go (n-1) (acc*n)
+        go x 1
+    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var factorial = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "factorial");
+    assertEquals(120, factorial.execute(5).asInt());
+    assertEquals(1, factorial.execute(0).asInt());
+    try {
+      var res = factorial.execute(20);
+      fail("Expecting an exception, not: " + res);
+    } catch (PolyglotException e) {
+      // TODO we may want to change `expression` to 'the return type' or something
+      assertContains("expected `expression` to be Integer, but got Text", e.getMessage());
+    }
+  }
+
+  /**
+   * An additional test to ensure that the way the return type check is implemented does not break
+   * the TCO. We execute a recursive computation that goes 100k frames deep - if TCO did not kick in
+   * here, we'd get a stack overflow.
+   */
+  @Test
+  public void returnTypeCheckOptInTCO() throws Exception {
+    final URI uri = new URI("memory://rts.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+    from Standard.Base import Integer, Error
+    foo (counter : Integer) (trap : Integer) -> Integer =
+        go i acc -> Integer =
+            if i == 0 then acc else
+                if i == trap then "TRAP!" else
+                    @Tail_Call go (i-1) (acc+1)
+        go counter 1
+    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var foo = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo");
+    long n = 100000;
+    assertEquals(n + 1, foo.execute(n, -1).asInt());
+    try {
+      var res = foo.execute(n, 1);
+      fail("Expecting an exception, not: " + res);
+    } catch (PolyglotException e) {
+      assertContains("expected `expression` to be Integer, but got Text", e.getMessage());
+    }
+  }
+
+  @Test
+  public void returnTypeCheckOptInTCO2() throws Exception {
+    final URI uri = new URI("memory://rts.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+    from Standard.Base import Integer, Error
+    foo_ok counter -> Integer =
+        if counter == 0 then 0 else
+            @Tail_Call foo_ok (counter-1)
+    foo_bad counter -> Integer =
+        if counter == 0 then "ZERO" else
+            @Tail_Call foo_bad (counter-1)
+    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var foo_ok = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo_ok");
+    long n = 100000;
+    assertEquals(0, foo_ok.execute(n).asInt());
+
+    try {
+      var foo_bad = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo_bad");
+      var res = foo_bad.execute(n);
+      fail("Expecting an exception, not: " + res);
+    } catch (PolyglotException e) {
+      assertContains("expected `expression` to be Integer, but got Text", e.getMessage());
+    }
+  }
+
   static void assertTypeError(String expArg, String expType, String realType, String msg) {
     if (!msg.contains(expArg)) {
       fail("Expecting value " + expArg + " in " + msg);
