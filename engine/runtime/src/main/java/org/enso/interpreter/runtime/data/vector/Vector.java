@@ -294,7 +294,14 @@ public abstract class Vector implements EnsoObject {
         // /*@Cached.Shared(value = "interop")*/ @CachedLibrary(limit = "3") InteropLibrary interop,
         @Cached.Shared(value = "warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings)
         throws InvalidArrayIndexException, UnsupportedMessageException {
-          //System.out.println("AAA gew call v.g " + this.storage + " " + this.storage.getClass());
+          EnsoContext ctx = EnsoContext.get(warnings);
+
+          if (ctx.isJavaPolyglotObject(this.storage)) {
+            Object polyglotObject = ctx.asJavaPolyglotObject(this.storage);
+            System.out.println("AAA gew got " + polyglotObject + " " + polyglotObject.getClass());
+            return new Warning[0];
+          }
+
           return warnings.getElementWarnings(this.storage, location, index);
       // EnsoContext ctx = EnsoContext.get(warnings);
       // EconomicSet<Warning> setOfWarnings = EconomicSet.create(new WithWarnings.WarningEquivalence());
