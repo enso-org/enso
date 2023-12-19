@@ -225,6 +225,22 @@ spec =
             uri4.path . should_equal "/path/2"
             uri4.to_text . should_equal "https://example.com/path/2"
 
+        Test.specify "should work fine with / characters and empty segments" <|
+            uri0 = URI.parse "http://example.com/get/"
+
+            uri1 = uri0 / "///0" / "a///b" / "c///"
+            uri1.path . should_equal "/get////0/a///b/c///"
+
+            uri2 = uri0 / "a" / ""
+            uri2.path . should_equal "/get/a//"
+            uri3 = uri2 / "b"
+            uri3.path . should_equal "/get/a//b"
+
+            uri4 = uri0 / "a" / "/"
+            uri4.path . should_equal "/get/a//"
+            uri5 = uri4 / "b"
+            uri5.path . should_equal "/get/a//b"
+
         Test.specify "should allow various characters in the path" pending=pending_has_url <|
             uri0 = URI.parse base_url+"get"
             uri1 = uri0 / "a b c" / "d+e" / "f%20g" / "ś🚧:@"
@@ -242,19 +258,6 @@ spec =
             uri3 = uri0 / ext
             r2 = uri3.fetch
             r2.at "path" . should_equal "/get/"+ext
-
-            uri4 = uri0 / "///0" / "a///b" / "c///"
-            uri4.path . should_equal "/get////0/a///b/c///"
-
-            uri5 = uri0 / "a" / ""
-            uri5.path . should_equal "/get/a//"
-            uri6 = uri5 / "b"
-            uri6.path . should_equal "/get/a//b"
-
-            uri7 = uri0 / "a" / "/"
-            uri7.path . should_equal "/get/a//"
-            uri8 = uri7 / "b"
-            uri8.path . should_equal "/get/a//b"
 
         Test.specify "should allow slashes within path" <|
             uri0 = URI.parse "https://example.com/"
