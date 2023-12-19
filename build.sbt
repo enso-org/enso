@@ -272,7 +272,6 @@ lazy val enso = (project in file("."))
     `syntax-definition`,
     `syntax-rust-definition`,
     `text-buffer`,
-    logger,
     pkg,
     cli,
     `task-progress-notifications`,
@@ -527,13 +526,6 @@ lazy val compileModuleInfo = taskKey[Unit]("Compiles `module-info.java`")
 // ============================================================================
 // === Internal Libraries =====================================================
 // ============================================================================
-
-lazy val logger = (project in file("lib/scala/logger"))
-  .settings(
-    frgaalJavaCompilerSetting,
-    version := "0.1",
-    libraryDependencies ++= scalaCompiler
-  )
 
 lazy val `syntax-definition` =
   project in file("lib/scala/syntax/definition")
