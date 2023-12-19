@@ -872,7 +872,7 @@ public class SignatureTest extends TestBase {
       var res = plusChecked.execute("a", "b");
       fail("Expecting an exception, not: " + res);
     } catch (PolyglotException e) {
-      assertContains("expected `plusChecked` result to be Integer, but got Text", e.getMessage());
+      assertContains("expected the result of `plusChecked` to be Integer, but got Text", e.getMessage());
     }
   }
 
@@ -923,7 +923,7 @@ public class SignatureTest extends TestBase {
       var res = plusChecked.execute(2, 3);
       fail("Expecting an exception, not: " + res);
     } catch (PolyglotException e) {
-      assertContains("expected `constant` result to be Integer, but got Text", e.getMessage());
+      assertContains("expected the result of `constant` to be Integer, but got Text", e.getMessage());
     }
   }
 
@@ -950,7 +950,7 @@ public class SignatureTest extends TestBase {
       var res = foo.execute(".");
       fail("Expecting an exception, not: " + res);
     } catch (PolyglotException e) {
-      assertContains("expected `x` result to be Integer, but got Text", e.getMessage());
+      assertContains("expected the result of `x` to be Integer, but got Text", e.getMessage());
     }
   }
 
@@ -978,7 +978,7 @@ public class SignatureTest extends TestBase {
       var res = plusChecked.execute(".");
       fail("Expecting an exception, not: " + res);
     } catch (PolyglotException e) {
-      assertContains("expected `x` result to be Integer, but got Text", e.getMessage());
+      assertContains("expected the result of `x` to be Integer, but got Text", e.getMessage());
     }
   }
 
@@ -1008,7 +1008,7 @@ public class SignatureTest extends TestBase {
       var res = foo.execute(2);
       fail("Expecting an exception, not: " + res);
     } catch (PolyglotException e) {
-      assertContains("expected `foo` result to be Integer, but got Text", e.getMessage());
+      assertContains("expected the result of `foo` to be Integer, but got Text", e.getMessage());
     }
 
     var res = foo.execute(3);
@@ -1043,7 +1043,7 @@ public class SignatureTest extends TestBase {
       var res = factorial.execute(20);
       fail("Expecting an exception, not: " + res);
     } catch (PolyglotException e) {
-      assertContains("expected `go` result to be Integer, but got Text", e.getMessage());
+      assertContains("expected the result of `go` to be Integer, but got Text", e.getMessage());
     }
   }
 
@@ -1079,7 +1079,7 @@ public class SignatureTest extends TestBase {
       var res = foo.execute(n, 1);
       fail("Expecting an exception, not: " + res);
     } catch (PolyglotException e) {
-      assertContains("expected `go` result to be Integer, but got Text", e.getMessage());
+      assertContains("expected the result of `go` to be Integer, but got Text", e.getMessage());
     }
   }
 
@@ -1112,7 +1112,7 @@ public class SignatureTest extends TestBase {
       var res = foo_bad.execute(n);
       fail("Expecting an exception, not: " + res);
     } catch (PolyglotException e) {
-      assertContains("expected `foo_bad` result to be Integer, but got Text", e.getMessage());
+      assertContains("expected the result of `foo_bad` to be Integer, but got Text", e.getMessage());
     }
   }
 

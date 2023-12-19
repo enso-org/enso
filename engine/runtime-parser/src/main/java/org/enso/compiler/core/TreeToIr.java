@@ -558,7 +558,7 @@ final class TreeToIr {
        return body;
      }
 
-     String comment = "`" + functionName + "` result";
+     String comment = "the result of `" + functionName + "`";
      return new Type.Ascription(body, type, Option.apply(comment), loc, meta(), diag());
   }
 
