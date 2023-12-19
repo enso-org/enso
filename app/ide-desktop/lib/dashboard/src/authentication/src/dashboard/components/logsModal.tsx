@@ -23,7 +23,7 @@ export default function LogsModal(props: LogsModalProps) {
                 className="relative flex flex-col gap-2 rounded-2xl pointer-events-auto w-4/5 h-4/5 p-4 before:absolute before:rounded-2xl before:bg-frame-selected before:backdrop-blur-3xl before:inset-0 before:w-full before:h-full"
             >
                 <h2 className="relative text-sm font-bold">Logs</h2>
-                <pre className="relative">
+                <pre className="relative overflow-auto">
                     <code>{logs}</code>
                 </pre>
             </div>
