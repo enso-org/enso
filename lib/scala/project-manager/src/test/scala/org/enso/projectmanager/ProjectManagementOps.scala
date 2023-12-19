@@ -10,6 +10,7 @@ import io.circe.parser.parse
 import nl.gn0s1s.bump.SemVer
 import org.enso.projectmanager.data.{MissingComponentAction, Socket}
 import org.enso.projectmanager.protocol.ProjectManagementApi.ProjectOpen
+import org.scalactic.source.Position
 
 import scala.concurrent.duration._
 
@@ -20,7 +21,7 @@ trait ProjectManagementOps { this: BaseServerSpec =>
     nameSuffix: Option[Int]                                = None,
     projectTemplate: Option[String]                        = None,
     missingComponentAction: Option[MissingComponentAction] = None
-  )(implicit client: WsTestClient): UUID = {
+  )(implicit client: WsTestClient, pos: Position): UUID = {
     val fields = Seq("name" -> name.asJson) ++
       missingComponentAction
         .map(a => "missingComponentAction" -> a.asJson)
@@ -55,7 +56,7 @@ trait ProjectManagementOps { this: BaseServerSpec =>
 
   def openProject(
     projectId: UUID
-  )(implicit client: WsTestClient): Socket = {
+  )(implicit client: WsTestClient, pos: Position): Socket = {
     client.send(json"""
             { "jsonrpc": "2.0",
               "method": "project/open",
@@ -76,7 +77,10 @@ trait ProjectManagementOps { this: BaseServerSpec =>
     socket.fold(fail(s"Failed to decode json: $openReply", _), identity)
   }
 
-  def openProjectData(implicit client: WsTestClient): ProjectOpen.Result = {
+  def openProjectData(implicit
+    client: WsTestClient,
+    pos: Position
+  ): ProjectOpen.Result = {
     val Right(openReply) = parse(client.expectMessage(20.seconds.dilated))
     val openResult = for {
       result         <- openReply.hcursor.downExpectedField("result")
@@ -104,12 +108,12 @@ trait ProjectManagementOps { this: BaseServerSpec =>
         namespace
       )
     }
-    openResult.getOrElse(throw new Exception("Should have worked."))
+    openResult.getOrElse(fail("Should have worked."))
   }
 
   def closeProject(
     projectId: UUID
-  )(implicit client: WsTestClient): Unit = {
+  )(implicit client: WsTestClient, pos: Position): Unit = {
     client.send(json"""
             { "jsonrpc": "2.0",
               "method": "project/close",
@@ -133,7 +137,7 @@ trait ProjectManagementOps { this: BaseServerSpec =>
 
   def deleteProject(
     projectId: UUID
-  )(implicit client: WsTestClient): Unit = {
+  )(implicit client: WsTestClient, pos: Position): Unit = {
     client.send(json"""
             { "jsonrpc": "2.0",
               "method": "project/delete",
