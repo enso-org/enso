@@ -1011,7 +1011,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
   .dependsOn(`json-rpc-server-test` % Test)
   .dependsOn(testkit % Test)
   .dependsOn(`runtime-version-manager-test` % Test)
-  .dependsOn(`logging-service-logback` % Test)
+  .dependsOn(`logging-service-logback` % "test->test")
 
 /* Note [Classpath Separation]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~
