@@ -14,7 +14,7 @@ import java.util.List;
  * <p>
  * It describes how a base URI gets overridden with added query parameters or other options like user-info.
  * <p>
- * This is the common entry point for building an URI with or without secrets.
+ * This is the common entry point for building a URI with or without secrets.
  */
 public record URISchematic(URI baseUri, List<Pair<String, String>> queryParameters, Pair<String, String> userInfo) {
   public URI build() throws URISyntaxException {
@@ -42,15 +42,23 @@ public record URISchematic(URI baseUri, List<Pair<String, String>> queryParamete
     String hostAndPort = atLocation < 0 ? rawAuthority : rawAuthority.substring(atLocation + 1);
     uriBuilder.append(IDN.toASCII(hostAndPort));
 
-    uriBuilder.append(baseUri.getRawPath());
-
+    String path = baseUri.getRawPath();
     String queryPart = buildQueryPart();
+    String fragment = baseUri.getRawFragment();
+
+    if (path != null && !path.isEmpty()) {
+      uriBuilder.append(path);
+    } else if (queryPart != null || fragment != null) {
+      // If we had no path, but we do have a query or a fragment, we need to add a / to precede the ? or #.
+      uriBuilder.append("/");
+    }
+
     if (queryPart != null) {
       uriBuilder.append("?").append(queryPart);
     }
 
-    if (baseUri.getRawFragment() != null) {
-      uriBuilder.append("#").append(baseUri.getRawFragment());
+    if (fragment != null) {
+      uriBuilder.append("#").append(fragment);
     }
 
     return new URI(uriBuilder.toString());

@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Syntax_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
@@ -85,6 +86,7 @@ spec =
             uri.path.should_equal ""
             uri.query.should_equal "foo=bar"
             uri.fragment.should_equal Nothing
+            uri.to_text . should_equal "http://a_user@example.com/?foo=bar"
 
         Test.specify "should be able to add multiple query arguments" <|
             base_uri = URI.parse "https://example.com/path?a=b"
@@ -101,7 +103,7 @@ spec =
             uri.fragment.should_equal Nothing
 
         Test.specify "should allow to get properties of a URI with added query arguments" <|
-            base_uri = URI.parse "https://example.com/path?a=b"
+            base_uri = URI.parse "https://example.com/path?a=b#FRAG"
             uri1 = base_uri . add_query_argument "c" "d" . add_query_argument "e" "f"
 
             uri1.should_be_a URI
@@ -109,7 +111,8 @@ spec =
             uri1.host.should_equal "example.com"
             uri1.path.should_equal "/path"
             uri1.query.should_equal "a=b&c=d&e=f"
-            uri1.should_equal (URI.parse "https://example.com/path?a=b&c=d&e=f")
+            uri1.fragment.should_equal "FRAG"
+            uri1.should_equal (URI.parse "https://example.com/path?a=b&c=d&e=f#FRAG")
 
         Test.specify "will not convert back to URI if secrets are present in the query arguments" pending="TODO testing secrets is for later" <|
             Error.throw "TODO: secrets tests"
@@ -160,8 +163,42 @@ spec =
                 . add_query_argument "a" "d"
             decode_query_params uri.fetch . should_equal [["a", "b"], ["a", "c"], ["a", "d"]]
 
+        Test.specify "should allow to set user info for the authority part of the URI" <|
+            uri1 = URI.parse "http://example.com"
+            uri2 = uri1.set_user_info "my_user" "my_password"
+
+            uri2.to_text . should_equal "http://my_user:my_password@example.com"
+            uri2.user_info . should_equal "my_user:my_password"
+            uri2.authority . should_equal "my_user:my_password@example.com"
+
+            uri3 = URI.parse "https://start:pass@example.org:1234/path"
+            uri4 = uri3.set_user_info "new_user" "new_password"
+            uri4.to_text . should_equal "https://new_user:new_password@example.org:1234/path"
+            uri4.user_info . should_equal "new_user:new_password"
+            uri4.raw_user_info . should_equal "new_user:new_password"
+            uri4.authority . should_equal "new_user:new_password@example.org:1234"
+            uri4.raw_authority . should_equal "new_user:new_password@example.org:1234"
+            uri4.path . should_equal "/path"
+
+        Test.specify "should allow non-standard characters in the user info" <|
+            uri1 = URI.parse "http://X:Y@example.com"
+            uri2 = uri1.set_user_info "ąęć@x" "ś🚧:@"
+            uri2.to_text . should_equal "http://%C4%85%C4%99%C4%87%40x:%C5%9B%F0%9F%9A%A7%3A%40@example.com"
+            uri2.user_info . should_equal "ąęć@x:ś🚧:@"
+            uri2.raw_user_info . should_equal "%C4%85%C4%99%C4%87%40x:%C5%9B%F0%9F%9A%A7%3A%40"
+            uri2.authority . should_equal "ąęć@x:ś🚧:@@example.com"
+            uri2.raw_authority . should_equal "%C4%85%C4%99%C4%87%40x:%C5%9B%F0%9F%9A%A7%3A%40@example.com"
+
+        Test.specify "will not allow to set username containing a colon" <|
+            uri1 = URI.parse "http://example.com"
+            uri2 = uri1.set_user_info "a:b" "c"
+            uri2.should_fail_with Illegal_Argument
+
         Test.specify "should correctly handle various characters within the value of secrets" pending=("TODO testing secrets is for later".if_nothing pending_has_url) <|
             Error.throw "TODO: test various characters inside of the secret value, like in the raw test above"
+
+        Test.specify "should correctly handle user/password set as secret" pending=("TODO testing secrets is for later".if_nothing pending_has_url) <|
+            Error.throw "TODO: test user/password set as secret"
 
 main = Test_Suite.run_main spec
 

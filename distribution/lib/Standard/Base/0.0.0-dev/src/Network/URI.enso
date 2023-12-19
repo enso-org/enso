@@ -12,9 +12,11 @@ import project.Error.Error
 import project.Errors.Common.Syntax_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Illegal_State.Illegal_State
+import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
 from project.Data.Boolean.Boolean import False, True
+from project.Data.Text.Extensions import all
 
 polyglot java import java.net.URI as Java_URI
 polyglot java import java.net.URISyntaxException
@@ -163,7 +165,8 @@ type URI
        - password: The password.
     set_user_info : Text | Enso_Secret -> Text | Enso_Secret -> URI
     set_user_info self (username : Text | Enso_Secret) (password : Text | Enso_Secret) =
-        URI.Value self.internal_uri self.additional_query_parameters (User_Info.Value username password)
+        if username.is_a Text && username.contains ":" then Error.throw (Illegal_Argument.Error "The username cannot contain a ':' character.") else
+            URI.Value self.internal_uri self.additional_query_parameters (User_Info.Value username password)
 
     ## Get the fragment part of this URI.
 
