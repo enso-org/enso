@@ -49,8 +49,5 @@ pub fn lock() -> Result<named_lock::NamedLock> {
     let name = env!("CARGO_PKG_NAME");
     let lock = named_lock::NamedLock::create(name)
         .with_context(|| format!("Failed to create a named file lock for '{name}'."))?;
-    // lock.lock()
-    //     .with_context(|| format!("Failed to acquire a lock on the named file lock for
-    // '{name}'."))
     Ok(lock)
 }

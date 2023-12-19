@@ -4,6 +4,7 @@
 
 use enso_build::prelude::*;
 
+use enso_install::config::APPLICATION_EXECUTABLE;
 use enso_install::config::APPLICATION_SHORTCUT_NAME;
 use enso_install::config::APPLICATION_UNINSTALL_KEY;
 
@@ -23,7 +24,7 @@ pub fn register_file_association(executable_path: impl AsRef<Path>) -> Result {
     enso_extension.register()?;
     enso_file_type.register()?;
 
-    let enso_bundle_type = enso_install::win::prog_id::FileType {
+    let enso_bundle_file_type = enso_install::win::prog_id::FileType {
         application_path: executable_path.as_ref().to_path_buf(),
         prog_id:          enso_install::config::PROJECT_BUNDLE_PROG_ID.to_string(),
         friendly_name:    "Enso Project Bundle".to_string(),
@@ -36,7 +37,7 @@ pub fn register_file_association(executable_path: impl AsRef<Path>) -> Result {
         perceived_type: enso_install::win::prog_id::PerceivedType::Text,
     };
     enso_bundle_extension.register()?;
-    enso_bundle_type.register()?;
+    enso_bundle_file_type.register()?;
 
     info!("Refreshing file associations in the shell.");
     enso_install::win::refresh_file_associations();
@@ -81,7 +82,7 @@ pub fn install(install_location: impl AsRef<Path>, archive_payload: &[u8]) -> Re
     let to_our_path = |path_in_archive: &Path| -> Option<PathBuf> {
         Some(install_location.join(path_in_archive))
     };
-    let executable_location = install_location.join("Enso.exe");
+    let executable_location = install_location.join(APPLICATION_EXECUTABLE);
 
     // Extract the files.
     let decoder = flate2::read::GzDecoder::new(archive_payload);
