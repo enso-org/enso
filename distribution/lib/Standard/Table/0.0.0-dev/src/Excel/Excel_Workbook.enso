@@ -5,8 +5,8 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Metadata.Display
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 import Standard.Base.Runtime.Ref.Ref
-import Standard.Base.System.Input_Stream.Input_Stream
 import Standard.Base.System.File.Advanced.Temporary_File.Temporary_File
+import Standard.Base.System.Input_Stream.Input_Stream
 from Standard.Base.Data.Filter_Condition import sql_like_to_regex
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Single_Choice
@@ -19,10 +19,10 @@ import project.Internal.Java_Problems
 
 polyglot java import java.io.File as Java_File
 polyglot java import org.apache.poi.ss.usermodel.Workbook
-polyglot java import org.enso.table.read.ExcelReader
 polyglot java import org.enso.table.excel.ExcelConnectionPool
 polyglot java import org.enso.table.excel.ExcelFileFormat
 polyglot java import org.enso.table.excel.ReadOnlyExcelConnection
+polyglot java import org.enso.table.read.ExcelReader
 
 type Excel_Workbook
     ## PRIVATE
@@ -240,7 +240,8 @@ type Excel_Workbook
     sheet self name:(Text | Integer) =
         self.read_section (Excel_Section.Worksheet name 0 Nothing)
 
-    ## ADVANCED
+    ## PRIVATE
+       ADVANCED
        Closes the workbook, releasing any resources it holds.
 
        This method may be used to release the underlying workbook file,
@@ -257,7 +258,8 @@ type Excel_Workbook
                 self.excel_connection_resource_ref.put Nothing
         Nothing
 
-    ## Returns a simple text description of the workbook.
+    ## PRIVATE
+       Returns a simple text description of the workbook.
     to_text : Text
     to_text self =
         associated_regular_file = case self.file of

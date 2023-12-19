@@ -1,3 +1,5 @@
+import Standard.Base.System.File_Format.File_Format_Metadata
+
 import project.Any.Any
 import project.Data.Text.Text
 import project.Data.XML.XML_Document
@@ -6,7 +8,6 @@ import project.Network.URI.URI
 import project.Nothing.Nothing
 import project.System.File.File
 import project.System.File_Format.File_For_Read
-import Standard.Base.System.File_Format.File_Format_Metadata
 import project.System.Input_Stream.Input_Stream
 from project.Data.Text.Extensions import all
 
