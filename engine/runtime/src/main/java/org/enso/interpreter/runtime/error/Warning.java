@@ -11,7 +11,6 @@ import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.SourceSection;
-import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Comparator;
 import org.enso.interpreter.dsl.Builtin;
@@ -21,7 +20,6 @@ import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
-import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.graalvm.collections.EconomicSet;
 
 @Builtin(pkg = "error", stdlibName = "Standard.Base.Warning.Warning")
@@ -94,8 +92,9 @@ public final class Warning implements EnsoObject {
       autoRegister = false)
   @Builtin.Specialize
   @CompilerDirectives.TruffleBoundary
-  public static EnsoObject getAll(WithWarnings value, WarningsLibrary warningsLib, InteropLibrary interop) {
-    //System.out.println("AAA getAll ww " + value.getClass() + " " + value.getValue().getClass());
+  public static EnsoObject getAll(
+      WithWarnings value, WarningsLibrary warningsLib, InteropLibrary interop) {
+    // System.out.println("AAA getAll ww " + value.getClass() + " " + value.getValue().getClass());
     Warning[] warnings = value.getWarningsArray(warningsLib);
     sortArray(warnings);
     return ArrayLikeHelpers.wrapEnsoObjects(warnings);
@@ -106,8 +105,10 @@ public final class Warning implements EnsoObject {
       description = "Gets all the warnings associated with the value.",
       autoRegister = false)
   @Builtin.Specialize(fallback = true)
-  public static EnsoObject getAll(Object value, WarningsLibrary warningsLib, InteropLibrary interop) {
-    //System.out.println("AAA getAll obj " + value.getClass() + " " + (value instanceof org.enso.interpreter.runtime.data.vector.Vector));
+  public static EnsoObject getAll(
+      Object value, WarningsLibrary warningsLib, InteropLibrary interop) {
+    // System.out.println("AAA getAll obj " + value.getClass() + " " + (value instanceof
+    // org.enso.interpreter.runtime.data.vector.Vector));
     if (warningsLib.hasWarnings(value)) {
       try {
         Warning[] warnings = warningsLib.getWarnings(value, null);
@@ -127,7 +128,8 @@ public final class Warning implements EnsoObject {
       autoRegister = false)
   @Builtin.Specialize
   @CompilerDirectives.TruffleBoundary
-  public static EnsoObject getAllFromVectorElements(WithWarnings value, WarningsLibrary warningsLib, InteropLibrary interop) {
+  public static EnsoObject getAllFromVectorElements(
+      WithWarnings value, WarningsLibrary warningsLib, InteropLibrary interop) {
     if (value.getValue() instanceof org.enso.interpreter.runtime.data.vector.Vector) {
       Warning[] warnings = getAllElementWarnings(value.getValue(), warningsLib, interop);
       return ArrayLikeHelpers.wrapEnsoObjects(warnings);
@@ -141,8 +143,10 @@ public final class Warning implements EnsoObject {
       description = "Gets all the warnings associated with the value.",
       autoRegister = false)
   @Builtin.Specialize(fallback = true)
-  public static EnsoObject getAllFromVectorElements(Object value, WarningsLibrary warningsLib, InteropLibrary interop) {
-    //System.out.println("AAA getAll obj " + value.getClass() + " " + (value instanceof org.enso.interpreter.runtime.data.vector.Vector));
+  public static EnsoObject getAllFromVectorElements(
+      Object value, WarningsLibrary warningsLib, InteropLibrary interop) {
+    // System.out.println("AAA getAll obj " + value.getClass() + " " + (value instanceof
+    // org.enso.interpreter.runtime.data.vector.Vector));
     if (value instanceof org.enso.interpreter.runtime.data.vector.Vector) {
       Warning[] warnings = getAllElementWarnings(value, warningsLib, interop);
       return ArrayLikeHelpers.wrapEnsoObjects(warnings);
@@ -151,9 +155,10 @@ public final class Warning implements EnsoObject {
     }
   }
 
-  private static Warning[] getAllElementWarnings(Object value, WarningsLibrary warnings, InteropLibrary interop) {
+  private static Warning[] getAllElementWarnings(
+      Object value, WarningsLibrary warnings, InteropLibrary interop) {
     EconomicSet<Warning> warningsSet = EconomicSet.create(new WithWarnings.WarningEquivalence());
-      //System.out.println("AAA " + value);
+    // System.out.println("AAA " + value);
     var ctx = EnsoContext.get(warnings);
 
     try {
@@ -162,12 +167,16 @@ public final class Warning implements EnsoObject {
       for (long index = 0; index < size; ++index) {
         final long finalIndex = index;
         Warning[] elementWarnings = warnings.getElementWarnings(value, null, index);
-        Warning wrapped[] = Arrays.stream(elementWarnings).map(warning -> {
-          var error = warning.getValue();
-          var wrappedError = ctx.getBuiltins().error().makeMapError(finalIndex, error);
-          var wrappedWarning = Warning.create(ctx, wrappedError, warning.getOrigin());
-          return wrappedWarning;
-        }).toArray(Warning[]::new);
+        Warning wrapped[] =
+            Arrays.stream(elementWarnings)
+                .map(
+                    warning -> {
+                      var error = warning.getValue();
+                      var wrappedError = ctx.getBuiltins().error().makeMapError(finalIndex, error);
+                      var wrappedWarning = Warning.create(ctx, wrappedError, warning.getOrigin());
+                      return wrappedWarning;
+                    })
+                .toArray(Warning[]::new);
         warningsSet.addAll(Arrays.asList(wrapped));
       }
 

@@ -121,14 +121,14 @@ final class ArrayProxy implements EnsoObject {
 
   @ExportMessage
   Warning[] getElementWarnings(
-    Node location,
-    long index,
-    @Cached("create()") BranchProfile arrayIndexHasHappened,
-    @CachedLibrary(limit = "3") InteropLibrary interop,
-    /* @Cached.Shared(value = "warnsLib") */ @CachedLibrary(limit = "3") WarningsLibrary warnings)
+      Node location,
+      long index,
+      @Cached("create()") BranchProfile arrayIndexHasHappened,
+      @CachedLibrary(limit = "3") InteropLibrary interop,
+      /* @Cached.Shared(value = "warnsLib") */ @CachedLibrary(limit = "3") WarningsLibrary warnings)
       throws InvalidArrayIndexException, UnsupportedMessageException {
     try {
-          //System.out.println("AAA gew call ap");
+      // System.out.println("AAA gew call ap");
       if (index >= length || index < 0) {
         arrayIndexHasHappened.enter();
         throw InvalidArrayIndexException.create(index);

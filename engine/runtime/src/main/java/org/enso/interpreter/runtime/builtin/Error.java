@@ -1,5 +1,8 @@
 package org.enso.interpreter.runtime.builtin;
 
+import static com.oracle.truffle.api.CompilerDirectives.transferToInterpreterAndInvalidate;
+
+import com.oracle.truffle.api.CompilerDirectives;
 import org.enso.interpreter.node.expression.builtin.error.ArithmeticError;
 import org.enso.interpreter.node.expression.builtin.error.ArityError;
 import org.enso.interpreter.node.expression.builtin.error.AssertionError;
@@ -33,9 +36,6 @@ import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
-
-import com.oracle.truffle.api.CompilerDirectives;
-import static com.oracle.truffle.api.CompilerDirectives.transferToInterpreterAndInvalidate;
 
 /** Container for builtin Error types */
 public final class Error {

@@ -11,13 +11,9 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.BranchProfile;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.error.Warning;
@@ -113,9 +109,7 @@ final class Array implements EnsoObject {
     return v;
   }
 
-  Object readArrayElementNoWarningPropagation(
-      long index)
-      throws InvalidArrayIndexException {
+  Object readArrayElementNoWarningPropagation(long index) throws InvalidArrayIndexException {
     if (index >= items.length || index < 0) {
       // TODO: need to do this
       // errProfile.enter();
@@ -203,13 +197,14 @@ final class Array implements EnsoObject {
     return cachedWarnings;
   }
 
-  @ExportMessage Warning[] getElementWarnings(
+  @ExportMessage
+  Warning[] getElementWarnings(
       Node location,
       long index,
       @Cached BranchProfile errProfile,
       @Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings)
-        throws InvalidArrayIndexException, UnsupportedMessageException {
-          //System.out.println("AAA gew call a");
+      throws InvalidArrayIndexException, UnsupportedMessageException {
+    // System.out.println("AAA gew call a");
     if (index >= items.length || index < 0) {
       errProfile.enter();
       throw InvalidArrayIndexException.create(index);
