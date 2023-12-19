@@ -1,5 +1,8 @@
 use crate::prelude::*;
 
+/// The path to the Uninstall subkey of the registry.
+const UNINSTALL_KEY_PATH: &str = "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall";
+
 /// Struct representing the uninstall information stored in the `Uninstall` key.
 pub struct UninstallInfo {
     /// The name of the application as it appears in the Add/Remove Programs dialog.
@@ -54,12 +57,9 @@ impl UninstallInfo {
         }
     }
 
+    #[context("Failed to write '{app_key}' uninstall information to the registry.")]
     pub fn write_to_registry(&self, app_key: &str) -> Result {
-        // Open the registry key where uninstall information is stored
-        let uninstall_key = RegKey::predef(HKEY_CURRENT_USER).open_subkey_with_flags(
-            "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall",
-            KEY_READ | KEY_WRITE,
-        )?;
+        let uninstall_key = open_uninstall_key()?;
 
         // Create a new key for our application
         let (app_uninstall_key, _) = uninstall_key.create_subkey(app_key)?;
@@ -98,4 +98,25 @@ impl UninstallInfo {
 
         Ok(())
     }
+}
+
+/// Open the `Uninstall` key in the registry.
+pub fn open_uninstall_key() -> Result<RegKey> {
+    RegKey::predef(HKEY_CURRENT_USER)
+        .open_subkey_with_flags(UNINSTALL_KEY_PATH, KEY_READ | KEY_WRITE)
+        .with_context(|| {
+            format!("Failed to open the uninstall key in the registry: {}", UNINSTALL_KEY_PATH)
+        })
+}
+
+/// Removes the uninstall information from the registry.
+#[context("Failed to remove '{app_key}' uninstall information from the registry.")]
+pub fn remove_from_registry(app_key: &str) -> Result {
+    let uninstall_key = open_uninstall_key()?;
+    uninstall_key.delete_subkey_all(app_key).with_context(|| {
+        format!(
+            "Failed to delete the '{}' subkey from the '{}' in the registry.",
+            app_key, UNINSTALL_KEY_PATH
+        )
+    })
 }

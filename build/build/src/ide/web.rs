@@ -387,7 +387,19 @@ impl IdeDesktop {
         let icons_dist = TempDir::new()?;
         let icons_dist = icons_dist.into_path();
         let icons_build = self.build_icons(&icons_dist);
-        let (icons, _content) = try_join(icons_build, client_build).await?;
+        let icons = icons_build.await?;
+
+        let uninstaller_build = Cargo
+            .cmd()?
+            .current_dir(&self.repo_root)
+            .apply(&cargo::Command::Build)
+            .try_applying(&icons)?
+            .arg("--release")
+            .arg("--package")
+            .arg("enso-uninstaller")
+            .run_ok();
+
+        let (_uninstaller_build, _content) = try_join(uninstaller_build, client_build).await?;
 
         let python_path = if TARGET_OS == OS::MacOS && !env::PYTHON_PATH.is_set() {
             // On macOS electron-builder will fail during DMG creation if there is no python2
@@ -427,6 +439,32 @@ impl IdeDesktop {
             .args(target_args)
             .run_ok()
             .await?;
+
+        let release_artifacts = self.repo_root.target.join_iter(["rust", "release"]);
+        let unpacked_dir = output_path.as_ref().join("win-unpacked");
+        ide_ci::fs::tokio::copy_to(release_artifacts.join("enso-uninstaller.exe"), &unpacked_dir)
+            .await?;
+
+        let archive_path = output_path.as_ref().join("enso-win.tar.gz");
+        ide_ci::archive::compress_directory_contents(&archive_path, &unpacked_dir).await?;
+
+        Cargo
+            .cmd()?
+            .current_dir(&self.repo_root)
+            .apply(&cargo::Command::Build)
+            .try_applying(&icons)?
+            .env("ENSO_INSTALL_ARCHIVE_PATH", &archive_path)
+            .arg("--release")
+            .arg("--package")
+            .arg("enso-installer")
+            .arg("-Z")
+            .arg("unstable-options")
+            .arg("--out-dir")
+            .arg(output_path.as_ref())
+            .run_ok()
+            .await?;
+
+
 
         Ok(())
     }

@@ -11,6 +11,7 @@
 //! `HKEY_CLASSES_ROOT` is a merged view of these two keys.
 
 use crate::prelude::*;
+use crate::win::registry::create_subkey;
 
 
 /// The file extension description.
@@ -110,5 +111,68 @@ pub fn delete(prog_id: &str) -> Result {
     ensure!(!prog_id.is_empty(), "Programmatic identifier must not be empty.");
     let classes = crate::win::classes_key()?;
     classes.delete_subkey_all(prog_id)?;
+    Ok(())
+}
+
+/// Information about a URL protocol.
+pub struct ProtocolInfo {
+    /// The protocol sheme name, e.g. `enso`.
+    pub protocol:     String,
+    /// The icon for the protocol.
+    pub icon:         crate::win::Icon,
+    /// The command to run when opening the protocol's URL.
+    pub command:      crate::win::PlainOpenCommand,
+    /// Display name of the protocol.
+    pub display_name: Option<String>,
+}
+
+impl ProtocolInfo {
+    pub fn new(protocol: impl Into<String>, executable_path: impl Into<PathBuf>) -> Self {
+        let protocol = protocol.into();
+        let display_name = Some(format!("URL:{protocol} protocol"));
+        let executable_path = executable_path.into();
+        Self {
+            protocol,
+            icon: crate::win::Icon::new(&executable_path),
+            command: crate::win::PlainOpenCommand::new(executable_path),
+            display_name,
+        }
+    }
+
+    /// Write information about the protocol to the Windows registry.
+    pub fn register(&self) -> Result {
+        let classes = crate::win::classes_key()?;
+        let (protocol_key, _) = create_subkey(&classes, &self.protocol)?;
+        protocol_key.set_value("URL Protocol", &"")?;
+        if let Some(display_name) = &self.display_name {
+            protocol_key.set_value("", display_name)?;
+        }
+        self.icon.write_default_icon_subkey(&protocol_key)?;
+        self.command.set_as_shell_open_command(&protocol_key)?;
+        Ok(())
+    }
+}
+
+/// Set application as the default handler for the given URL protocol, e.g. `enso://`.
+///
+/// This is necessary for the deep linking to work.
+pub fn register_url_protocol(executable_path: &Path, protocol: &str) -> Result {
+    // See https://learn.microsoft.com/en-us/windows/win32/shell/app-registration
+
+    // Register the URL protocol.
+    let (url_key, _) = RegKey::predef(HKEY_CURRENT_USER)
+        .open_subkey_with_flags(r"Software\Classes", KEY_READ | KEY_WRITE)
+        .with_context(|| format!(r#"Failed to open `HKEY_CURRENT_USER\Software\Classes` key."#))?
+        .create_subkey(&protocol)
+        .with_context(|| format!(r#"Failed to create subkey for protocol `{protocol}`"#))?;
+
+    url_key.set_value("", &format!("URL:{protocol}"))?;
+    url_key.set_value("URL Protocol", &"")?;
+
+    let (command_key, _) = url_key
+        .create_subkey(r"shell\open\command")
+        .with_context(|| format!(r#"Failed to create subkey for protocol: {protocol}"#))?;
+    command_key.set_value("", &format!(r#""{}" "%1""#, executable_path.display()))?;
+
     Ok(())
 }

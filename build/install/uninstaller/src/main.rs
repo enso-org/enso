@@ -2,6 +2,7 @@ use enso_install::config::APPLICATION_SHORTCUT_NAME;
 use enso_install::prelude::*;
 
 
+
 /// The parent directory of this (uninstaller) executable.
 ///
 /// This is a good candidate for the install directory of Enso.
@@ -30,7 +31,11 @@ fn self_delete(parent_path: &Path) -> Result {
 
 #[tokio::main]
 async fn main() -> Result {
+    // let mut errors = vec![];
+
     setup_logging()?;
+    let lock = enso_install::lock()?;
+    let _guard = lock.lock()?;
     let install_dir = parent_directory()?;
 
     // Make sure that Enso.exe is in the same directory as this installer.
@@ -38,6 +43,11 @@ async fn main() -> Result {
         install_dir.join(enso_install::config::APPLICATION_EXECUTABLE).exists(),
         "Enso.exe not found in the same directory as this installer."
     );
+
+    info!("Remove Add/Remove Programs entry.");
+    enso_install::win::uninstall::remove_from_registry(
+        enso_install::config::APPLICATION_UNINSTALL_KEY,
+    )?;
 
     info!("Removing self (uninstaller) executable.");
     self_delete(&install_dir)?;

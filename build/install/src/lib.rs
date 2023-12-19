@@ -1,5 +1,6 @@
 #![feature(default_free_fn)]
 
+
 pub mod prelude {
     pub use enso_build::prelude::*;
 
@@ -7,7 +8,8 @@ pub mod prelude {
     pub use winreg::RegKey;
 }
 
-// use prelude::*;
+use prelude::*;
+
 pub mod win;
 
 pub mod config {
@@ -41,4 +43,14 @@ pub mod config {
 
     /// The version of the installed application.
     pub const VERSION: &str = "2023.2.1-dev";
+}
+
+pub fn lock() -> Result<named_lock::NamedLock> {
+    let name = env!("CARGO_PKG_NAME");
+    let lock = named_lock::NamedLock::create(name)
+        .with_context(|| format!("Failed to create a named file lock for '{name}'."))?;
+    // lock.lock()
+    //     .with_context(|| format!("Failed to acquire a lock on the named file lock for
+    // '{name}'."))
+    Ok(lock)
 }
