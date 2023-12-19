@@ -262,8 +262,10 @@ public abstract class SortVectorNode extends Node {
           }
         }
         case REPORT_WARNING -> {
-          return attachDifferentComparatorsWarning(
-              attachWarnings(sortedVector, gatheredWarnings), groups);
+          return gatheredWarnings.isEmpty()
+              ? sortedVector
+              : attachDifferentComparatorsWarning(
+                  attachWarnings(sortedVector, gatheredWarnings), groups);
         }
         case IGNORE -> {
           return sortedVector;

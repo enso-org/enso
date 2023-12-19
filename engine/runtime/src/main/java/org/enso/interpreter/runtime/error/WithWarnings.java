@@ -39,8 +39,8 @@ public final class WithWarnings implements EnsoObject {
    */
   private WithWarnings(Object value, int maxWarnings, boolean limitReached, Warning... warnings) {
     assert !(value instanceof WithWarnings);
-    assert warnings.length > 0;
     this.warnings = createSetFromArray(maxWarnings, warnings);
+    assert this.warnings.size() > 0;
     this.value = value;
     this.limitReached = limitReached || this.warnings.size() >= maxWarnings;
     this.maxWarnings = maxWarnings;
