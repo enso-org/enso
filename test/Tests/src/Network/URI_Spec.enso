@@ -195,6 +195,100 @@ spec =
             uri1.fragment.should_equal "FRAG"
             uri1.should_equal (URI.parse "https://U:P@example.com/path?a=b&c=d&e=f#FRAG")
 
+        Test.specify "should allow the / syntax for extending the path on an URI" <|
+            uri0 = URI.parse "https://example.com"
+            uri1 = uri0 / "path"
+            uri1.path . should_equal "/path"
+            uri1.to_text . should_equal "https://example.com/path"
+
+            uri2 = uri0 / "path/"
+            uri2.path . should_equal "/path/"
+            uri2.to_text . should_equal "https://example.com/path/"
+
+            uri3 = uri1 / "2"
+            uri3.path . should_equal "/path/2"
+            uri3.to_text . should_equal "https://example.com/path/2"
+
+            uri4 = uri2 / "2"
+            uri4.path . should_equal "/path/2"
+            uri4.to_text . should_equal "https://example.com/path/2"
+
+        Test.specify "should allow various characters in the path" <|
+            uri0 = URI.parse "https://example.com/"
+            uri1 = uri0 / "a b c" / "d+e" / "f%20g" / "ś🚧:@"
+            uri1.path . should_equal "/a%20b%20c/d+e/f%20g/%C5%9B%F0%9F%9A%A7%3A%40"
+            uri1.to_text . should_equal "https://example.com/a%20b%20c/d+e/f%20g/%C5%9B%F0%9F%9A%A7%3A%40"
+
+        Test.specify "should allow slashes within path" <|
+            uri0 = URI.parse "https://example.com/"
+            uri1 = uri0 / "a" / "b" / "c/d/e" / "f////g"
+            uri1.path . should_equal "/a/b/c/d/e/f////g"
+            uri1.to_text . should_equal "https://example.com/a/b/c/d/e/f////g"
+
+        Test.specify "will warn about ? or # being encoded in path" <|
+            uri0 = URI.parse "https://example.com/a/b/c"
+
+            uri1 = uri0 / "x?y"
+            uri1.path . should_equal "/a/b/c/x%3Fy"
+            uri1.to_text . should_equal "https://example.com/a/b/c/x%3Fy"
+            w1 = Problems.expect_only_warning Illegal_Argument uri1
+            w1.message . should_contain "The requested path contained a '?' symbol which has been URL-encoded. If you want to modify the query, use the `add_query_argument` method instead."
+
+            uri2 = uri0 / "x#y"
+            uri2.path . should_equal "/a/b/c/x%23y"
+            uri2.to_text . should_equal "https://example.com/a/b/c/x%23y"
+            w2 = Problems.expect_only_warning Illegal_Argument uri2
+            w2.message . should_contain "The requested path contained a '#' symbol which has been URL-encoded. If you want to modify the fragment, use the `set_fragment` method instead."
+
+        Test.specify "should keep existing query arguments intact when extending the path" <|
+            uri0 = URI.parse "https://example.com/path?a=b&c=d"
+            uri1 = uri0 / "x" / "y"
+            uri2 = uri1 . add_query_argument "e" "f"
+            uri3 = uri2 / "z"
+
+            uri3.path . should_equal "/path/x/y/z"
+            uri3.query . should_equal "a=b&c=d&e=f"
+            uri3.to_text . should_equal "https://example.com/path/x/y/z?a=b&c=d&e=f"
+
+        Test.specify "should allow to reset query arguments" <|
+            uri0 = URI.parse "https://example.com/path?a=b&c=d#FRAG"
+            uri1 = uri0 . add_query_argument "e" "f"
+
+            uri2 = uri1 . reset_query_arguments
+            uri2.path . should_equal "/path"
+            uri2.query . should_equal Nothing
+            uri2.fragment . should_equal "FRAG"
+            uri2.to_text . should_equal "https://example.com/path#FRAG"
+
+        Test.specify "should allow to set fragment" <|
+            uri0 = URI.parse "https://example.com"
+
+            uri1 = uri0 . set_fragment "fragment_123"
+            uri1.path . should_equal "/"
+            uri1.query . should_equal Nothing
+            uri1.fragment . should_equal "fragment_123"
+            uri1.to_text . should_equal "https://example.com/#fragment_123"
+
+            uri2 = uri1 . set_fragment Nothing
+            uri2.path . should_equal "/"
+            uri2.query . should_equal Nothing
+            uri2.fragment . should_equal Nothing
+            uri2.to_text . should_equal "https://example.com/"
+
+            uri3 = URI.parse "https://example.com/path?a=b&c=d#FRAG"
+            uri4 = uri3 . set_fragment "fragment with special + ąęć characters"
+            uri4.path . should_equal "/path"
+            uri4.query . should_equal "a=b&c=d"
+            uri4.fragment . should_equal "fragment with special + ąęć characters"
+            uri4.raw_fragment . should_equal "fragment%20with%20special%20+%20%C4%85%C4%99%C4%87%20characters"
+            uri4.to_text . should_equal "https://example.com/path?a=b&c=d#fragment%20with%20special%20+%20%C4%85%C4%99%C4%87%20characters"
+
+            uri5 = uri4 . set_fragment Nothing
+            uri5.path . should_equal "/path"
+            uri5.query . should_equal "a=b&c=d"
+            uri5.fragment . should_equal Nothing
+            uri5.to_text . should_equal "https://example.com/path?a=b&c=d"
+
         Test.specify "should correctly handle various characters within the value of secrets" pending=("TODO testing secrets is for later".if_nothing pending_has_url) <|
             Error.throw "TODO: test various characters inside of the secret value, like in the raw test above"
 
