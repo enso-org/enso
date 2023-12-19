@@ -102,18 +102,6 @@ spec =
             uri.path.should_equal "/path"
             uri.fragment.should_equal Nothing
 
-        Test.specify "should allow to get properties of a URI with added query arguments" <|
-            base_uri = URI.parse "https://example.com/path?a=b#FRAG"
-            uri1 = base_uri . add_query_argument "c" "d" . add_query_argument "e" "f"
-
-            uri1.should_be_a URI
-            uri1.scheme.should_equal "https"
-            uri1.host.should_equal "example.com"
-            uri1.path.should_equal "/path"
-            uri1.query.should_equal "a=b&c=d&e=f"
-            uri1.fragment.should_equal "FRAG"
-            uri1.should_equal (URI.parse "https://example.com/path?a=b&c=d&e=f#FRAG")
-
         Test.specify "will not convert back to URI if secrets are present in the query arguments" pending="TODO testing secrets is for later" <|
             Error.throw "TODO: secrets tests"
 
@@ -193,6 +181,19 @@ spec =
             uri1 = URI.parse "http://example.com"
             uri2 = uri1.set_user_info "a:b" "c"
             uri2.should_fail_with Illegal_Argument
+
+        Test.specify "should allow to get properties of a URI with added query arguments and user info" <|
+            base_uri = URI.parse "https://example.com/path?a=b#FRAG"
+            uri1 = base_uri . add_query_argument "c" "d" . set_user_info "U" "P" . add_query_argument "e" "f"
+
+            uri1.should_be_a URI
+            uri1.scheme.should_equal "https"
+            uri1.user_info.should_equal "U:P"
+            uri1.host.should_equal "example.com"
+            uri1.path.should_equal "/path"
+            uri1.query.should_equal "a=b&c=d&e=f"
+            uri1.fragment.should_equal "FRAG"
+            uri1.should_equal (URI.parse "https://U:P@example.com/path?a=b&c=d&e=f#FRAG")
 
         Test.specify "should correctly handle various characters within the value of secrets" pending=("TODO testing secrets is for later".if_nothing pending_has_url) <|
             Error.throw "TODO: test various characters inside of the secret value, like in the raw test above"
