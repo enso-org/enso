@@ -49,7 +49,7 @@ export const useGraphStore = defineStore('graph', () => {
   const expressionGraph: Module = MutableModule.Observable()
   const moduleRoot = ref<AstId>()
   watch(
-    () => proj.module,
+    () => data,
     () => {
       if (!textContent.value) {
         textContent.value = proj.module?.doc.getCode()
