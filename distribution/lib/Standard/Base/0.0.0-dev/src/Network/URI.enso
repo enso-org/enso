@@ -61,7 +61,7 @@ type URI
              example_scheme = Examples.uri.scheme
     scheme : Text | Nothing
     scheme self = handle_resolve_errors <|
-        self.to_java_schematic.getScheme
+        self.to_java_representation.getScheme
 
     ## GROUP Metadata
        Get the user info part of this URI.
@@ -74,7 +74,7 @@ type URI
              example_user_info = Examples.uri.user_info
     user_info : Text | Nothing ! Enso_Secret_Error
     user_info self = handle_resolve_errors <|
-        self.to_java_schematic.getUserInfo
+        self.to_java_representation.getUserInfo
 
     ## GROUP Metadata
        Get the host part of this URI.
@@ -87,7 +87,7 @@ type URI
              example_host = Examples.uri.host
     host : Text | Nothing
     host self = handle_resolve_errors <|
-        self.to_java_schematic.getHost
+        self.to_java_representation.getHost
 
     ## Get the authority (user info and host) part of this URI.
 
@@ -99,7 +99,7 @@ type URI
              example_authority = Examples.uri.authority
     authority : Text | Nothing ! Enso_Secret_Error
     authority self = handle_resolve_errors <|
-        self.to_java_schematic.getAuthority
+        self.to_java_representation.getAuthority
 
     ## Get the port part of this URI.
 
@@ -111,7 +111,7 @@ type URI
              example_port = Examples.uri.port
     port : Integer | Nothing
     port self = handle_resolve_errors <|
-        port_number = self.to_java_schematic.getPort
+        port_number = self.to_java_representation.getPort
         if port_number == -1 then Nothing else port_number
 
     ## GROUP Metadata
@@ -125,7 +125,7 @@ type URI
              example_path = Examples.uri.path
     path : Text | Nothing
     path self = handle_resolve_errors <|
-        self.to_java_schematic.getPath
+        self.to_java_representation.getPath
 
     ## GROUP Calculations
        Extends the path of this URI with an additional segment.
@@ -143,7 +143,7 @@ type URI
              example_query = Examples.uri.query
     query : Text | Nothing ! Enso_Secret_Error
     query self = handle_resolve_errors <|
-        self.to_java_schematic.getQuery
+        self.to_java_representation.getQuery
 
     ## GROUP Calculations
        Adds a query parameter to the URI.
@@ -175,48 +175,48 @@ type URI
              example_fragment = Examples.uri.fragment
     fragment : Text | Nothing
     fragment self = handle_resolve_errors <|
-        self.to_java_schematic.getFragment
+        self.to_java_representation.getFragment
 
     ## PRIVATE
        ADVANCED
        Get the unescaped user info part of this URI.
     raw_user_info : Text | Nothing ! Enso_Secret_Error
     raw_user_info self = handle_resolve_errors <|
-        self.to_java_schematic.getRawUserInfo
+        self.to_java_representation.getRawUserInfo
 
     ## PRIVATE
        ADVANCED
        Get the unescaped authority part of this URI.
     raw_authority : Text | Nothing ! Enso_Secret_Error
     raw_authority self = handle_resolve_errors <|
-        self.to_java_schematic.getRawAuthority
+        self.to_java_representation.getRawAuthority
 
     ## PRIVATE
        ADVANCED
        Get the unescaped path part of this URI.
     raw_path : Text | Nothing
     raw_path self = handle_resolve_errors <|
-        self.to_java_schematic.getRawPath
+        self.to_java_representation.getRawPath
 
     ## PRIVATE
        ADVANCED
        Get the unescaped query part of this URI.
     raw_query : Text | Nothing ! Enso_Secret_Error
     raw_query self = handle_resolve_errors <|
-        self.to_java_schematic.getRawQuery
+        self.to_java_representation.getRawQuery
 
     ## PRIVATE
        ADVANCED
        Get the unescaped fragment part of this URI.
     raw_fragment : Text | Nothing
     raw_fragment self = handle_resolve_errors <|
-        self.to_java_schematic.getRawFragment
+        self.to_java_representation.getRawFragment
 
     ## PRIVATE
        Convert this URI to text.
     to_text : Text
     to_text self = handle_resolve_errors <|
-        self.to_java_schematic.render.toString
+        self.to_java_representation.render.toString
 
     ## PRIVATE
        Convert to a display representation of this URI.
@@ -255,9 +255,10 @@ type URI
         JS_Object.from_pairs [type_pair, cons_pair, ["uri", self.to_text]]
 
     ## PRIVATE
-       Creates a schematic that can be used to render this URL with secrets hidden or shown.
-    to_java_schematic : URIWithSecrets
-    to_java_schematic self =
+       Creates a Java representation that can be used to render this URL with
+       secrets hidden or processed by trusted operations.
+    to_java_representation : URIWithSecrets
+    to_java_representation self =
         parameters = self.additional_query_parameters.map p->
             Java_Pair.create p.first (Enso_Secret.to_java_value p.second)
         java_user_info = self.user_info_override.if_not_nothing <|
@@ -269,7 +270,7 @@ type URI
        Convert this to a raw Java URI.
     to_java_uri : Java_URI ! Enso_Secret_Error
     to_java_uri self = handle_resolve_errors <|
-        self.to_java_schematic.safeResolve
+        self.to_java_representation.safeResolve
 
 ## PRIVATE
 URI.from (that:Text) = URI.parse that
