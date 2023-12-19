@@ -1657,7 +1657,10 @@ lazy val runtime = (project in file("engine/runtime"))
     Test / fork := true,
     Test / envVars ++= distributionEnvironmentOverrides ++ Map(
       "ENSO_TEST_DISABLE_IR_CACHE" -> "false"
-    )
+    ),
+    Test / compile := (Test / compile)
+      .dependsOn(`runtime-fat-jar` / Compile / compileModuleInfo)
+      .value
   )
   .settings(
     (Compile / javacOptions) ++= Seq(
