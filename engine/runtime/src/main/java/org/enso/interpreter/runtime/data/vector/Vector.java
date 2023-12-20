@@ -165,14 +165,7 @@ public abstract class Vector implements EnsoObject {
     }
 
     @ExportMessage
-    Warning[] getWarnings(Node location) throws UnsupportedMessageException {
-      return new Warning[0];
-    }
-
-    @ExportMessage
-    Warning[] getElementWarnings(Node location, long index)
-        throws InvalidArrayIndexException, UnsupportedMessageException {
-      // System.out.println("AAA gew call v.v");
+    Warning[] getWarnings(Node location, boolean shouldWrap) throws UnsupportedMessageException {
       return new Warning[0];
     }
 
@@ -236,14 +229,14 @@ public abstract class Vector implements EnsoObject {
       // System.out.println("AAA rae " + index + " " + v + " " +
       // warnings.hasWarnings(this.storage));
       if (warnings.hasWarnings(this.storage)) {
-        Warning[] extracted = warnings.getWarnings(this.storage, null);
+        Warning[] extracted = warnings.getWarnings(this.storage, null, false);
         // System.out.println("AAA rae ws " + extracted + " " + extracted.length);
         for (Warning warning : extracted) {
           // System.out.println("AAA rae w " + warning);
         }
         if (warnings.hasWarnings(v)) {
           // System.out.println("AAA rae e orig " + warnings.getWarnings(v, null));
-          for (Warning warning : warnings.getWarnings(v, null)) {
+          for (Warning warning : warnings.getWarnings(v, null, false)) {
             // System.out.println("AAA rae e w " + warning);
           }
           v = warnings.removeWarnings(v);
@@ -280,27 +273,10 @@ public abstract class Vector implements EnsoObject {
     @ExportMessage
     Warning[] getWarnings(
         Node location,
+        boolean shouldWrap,
         @Cached.Shared(value = "warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings)
         throws UnsupportedMessageException {
-      return warnings.getWarnings(this.storage, location);
-    }
-
-    @ExportMessage
-    Warning[] getElementWarnings(
-        Node location,
-        long index,
-        // /*@Cached.Shared(value = "interop")*/ @CachedLibrary(limit = "3") InteropLibrary interop,
-        @Cached.Shared(value = "warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings)
-        throws InvalidArrayIndexException, UnsupportedMessageException {
-      EnsoContext ctx = EnsoContext.get(warnings);
-
-      if (ctx.isJavaPolyglotObject(this.storage)) {
-        Object polyglotObject = ctx.asJavaPolyglotObject(this.storage);
-        System.out.println("AAA gew got " + polyglotObject + " " + polyglotObject.getClass());
-        return new Warning[0];
-      }
-
-      return warnings.getElementWarnings(this.storage, location, index);
+      return warnings.getWarnings(this.storage, location, shouldWrap);
     }
 
     @ExportMessage
@@ -365,14 +341,7 @@ public abstract class Vector implements EnsoObject {
     }
 
     @ExportMessage
-    Warning[] getWarnings(Node location) throws UnsupportedMessageException {
-      return new Warning[0];
-    }
-
-    @ExportMessage
-    Warning[] getElementWarnings(Node location, long index)
-        throws InvalidArrayIndexException, UnsupportedMessageException {
-      // System.out.println("AAA gew call v.d");
+    Warning[] getWarnings(Node location, boolean shouldWrap) throws UnsupportedMessageException {
       return new Warning[0];
     }
 
@@ -422,14 +391,7 @@ public abstract class Vector implements EnsoObject {
     }
 
     @ExportMessage
-    Warning[] getWarnings(Node location) throws UnsupportedMessageException {
-      return new Warning[0];
-    }
-
-    @ExportMessage
-    Warning[] getElementWarnings(Node location, long index)
-        throws InvalidArrayIndexException, UnsupportedMessageException {
-      // System.out.println("AAA gew call v.l");
+    Warning[] getWarnings(Node location, boolean shouldWrap) throws UnsupportedMessageException {
       return new Warning[0];
     }
 

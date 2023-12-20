@@ -107,11 +107,11 @@ public final class WithWarnings implements EnsoObject {
         value, ctx.getWarningsLimit(), warnings, newWarnings.toArray(Warning[]::new));
   }
 
-  public Warning[] getWarningsArray(WarningsLibrary warningsLibrary) {
+  public Warning[] getWarningsArray(WarningsLibrary warningsLibrary, boolean shouldWrap) {
     Warning[] allWarnings;
     if (warningsLibrary != null && warningsLibrary.hasWarnings(value)) {
       try {
-        Warning[] valueWarnings = warningsLibrary.getWarnings(value, null);
+        Warning[] valueWarnings = warningsLibrary.getWarnings(value, null, shouldWrap);
         EconomicSet<Warning> tmp = cloneSetAndAppend(maxWarnings, warnings, valueWarnings);
         allWarnings = Warning.fromSetToArray(tmp);
       } catch (UnsupportedMessageException e) {
@@ -130,12 +130,12 @@ public final class WithWarnings implements EnsoObject {
     return warnings.size();
   }
 
-  public ArrayRope<Warning> getReassignedWarningsAsRope(Node location) {
-    return new ArrayRope<>(getReassignedWarnings(location, null));
+  public ArrayRope<Warning> getReassignedWarningsAsRope(Node location, boolean shouldWrap) {
+    return new ArrayRope<>(getReassignedWarnings(location, shouldWrap, null));
   }
 
-  public Warning[] getReassignedWarnings(Node location, WarningsLibrary warningsLibrary) {
-    Warning[] warnings = getWarningsArray(warningsLibrary);
+  public Warning[] getReassignedWarnings(Node location, boolean shouldWrap, WarningsLibrary warningsLibrary) {
+    Warning[] warnings = getWarningsArray(warningsLibrary, shouldWrap);
     for (int i = 0; i < warnings.length; i++) {
       warnings[i] = warnings[i].reassign(location);
     }
@@ -177,19 +177,13 @@ public final class WithWarnings implements EnsoObject {
   @ExportMessage
   Warning[] getWarnings(
       Node location,
+      boolean shouldWrap,
       @Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warningsLibrary) {
     if (location != null) {
-      return getReassignedWarnings(location, warningsLibrary);
+      return getReassignedWarnings(location, shouldWrap, warningsLibrary);
     } else {
       return Warning.fromSetToArray(warnings);
     }
-  }
-
-  @ExportMessage
-  Warning[] getElementWarnings(Node location, long index)
-      throws InvalidArrayIndexException, UnsupportedMessageException {
-    // System.out.println("AAA gew call ww");
-    return new Warning[0];
   }
 
   @ExportMessage

@@ -48,16 +48,11 @@ public abstract class WarningsLibrary extends Library {
    * @param receiver the receiver to analyze
    * @param location optional parameter specifying the node to which the warnings should be
    *     reassigned to
+   * @param shouldWrap if true, warnings attached to elements in array-likes are wrapped in Map_Error
    * @return the associated warnings
    */
   @GenerateLibrary.Abstract(ifExported = {"hasWarnings"})
-  public Warning[] getWarnings(Object receiver, Node location) throws UnsupportedMessageException {
-    throw UnsupportedMessageException.create();
-  }
-
-  @GenerateLibrary.Abstract(ifExported = {"hasWarnings"})
-  public Warning[] getElementWarnings(Object receiver, Node location, long index)
-      throws InvalidArrayIndexException, UnsupportedMessageException {
+  public Warning[] getWarnings(Object receiver, Node location, boolean shouldWrap) throws UnsupportedMessageException {
     throw UnsupportedMessageException.create();
   }
 

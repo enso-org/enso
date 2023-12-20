@@ -276,7 +276,7 @@ public abstract class InvokeCallableNode extends BaseNode {
     Warning[] extracted;
     Object callable;
     try {
-      extracted = warnings.getWarnings(warning, null);
+      extracted = warnings.getWarnings(warning, null, false);
       callable = warnings.removeWarnings(warning);
     } catch (UnsupportedMessageException e) {
       throw CompilerDirectives.shouldNotReachHere(e);

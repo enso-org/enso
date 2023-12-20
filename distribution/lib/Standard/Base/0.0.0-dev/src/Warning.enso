@@ -63,106 +63,19 @@ type Warning
        Gets all the warnings attached to the given value.
        Limits the number of warnings return to `EnsoContext.getWarningsLimit()`.
     get_all : Any -> Vector Warning
-    get_all value =
-        warnings = case value of
-            _ : Vector -> get_all_from_vector value
-            _ -> Vector.from_polyglot_array (get_all_array value)
-        ## Passing a value with warnings to a helper means the result gets the
-           warnings too, so the warnings have themselves attached, which we
-           don't want.
-        Warning.clear warnings
-
-    _get_all value =
-        warnings = Warning.get_all_value value
-        warnings_limit = get_warnings_limit
-        #_ = warnings_limit
-        warnings.take warnings_limit
+    get_all value = Vector.from_polyglot_array (get_all_array value False)
 
     ## PRIVATE
        ADVANCED
        Gets all the warnings attached to the given value.
+       Warnings attached to elements in array-likes are wrapped in Map_Error.
        Limits the number of warnings return to `EnsoContext.getWarningsLimit()`.
-
-       This is split out from `get_all` because it is recursive, but the step of
-       limiting the total number of warnings must only be applied at the top
-       level.
-    get_all_value : Any -> Vector Warning
-    get_all_value value =
-        child_warnings = case value of
-            _ : Vector -> Warning.get_all_vector value
-            _ -> []
-        ##
-            IO.println 'AAA'
-            IO.println child_warnings
-        direct_warnings = (Vector.from_polyglot_array (get_all_array value))
-        ##
-            IO.println 'AAA dir'
-            direct_warnings.map w->
-                IO.println w
-                IO.println (Meta.get_simple_type_name w)
-                IO.println (w.is_a Warning)
-            IO.println 'AAA ch'
-            child_warnings.map w->
-                IO.println w
-                IO.println (Meta.get_simple_type_name w)
-                IO.println (w.is_a Warning)
-        ##
-            IO.println 'AAA get_all 0 '+((value).to_text)
-            IO.println 'AAA get_all 1 '+((direct_warnings).to_text)
-            IO.println 'AAA get_all 2 '+((child_warnings).to_text)
-        Warning.clear (direct_warnings + child_warnings)
-        #Vector.from_polyglot_array (get_all_array value)
-
-    ## PRIVATE
-       ADVANCED
-       Gets all the warnings attached to the elements of the given vector and
-       wrap them in `Map_Error`. If an element is also a `Vector`, call
-       `get_all_vector` recursively.
-    get_all_vector : Any -> Vector Warning
-    get_all_vector value =
-        assert (value.is_a Vector)
-        warnings_nested = value.map_with_index i-> e->
-            ##
-                IO.println 'BBB'
-                IO.println i
-                IO.println e
-            direct_warnings = Warning.get_all_value e
-            ##
-                IO.println 'BBB2'
-                IO.println direct_warnings.length
-                IO.println direct_warnings
-                IO.println 'BBB5'
-                IO.println (Meta.get_simple_type_name e)
-                IO.println (Meta.type_of e)
-                IO.println (Meta.meta e)
-            #isa = e.is_a Vector
-            ##
-                IO.println 'BBB4'
-                IO.println isa
-            #recursive_warnings = if e.is_a Vector then Warning.get_all_vector e else []
-            ##
-                IO.println 'BBB3'
-                IO.println recursive_warnings.length
-                IO.println recursive_warnings
-            #wrap = (w-> Map_Error.Error i w)
-            wrap w = create (Map_Error.Error i w.value) w.origin
-            ## This is redundant, the recursive warnings are handled by the recursive call to get_all_value for direct_warnings
-            #(direct_warnings + recursive_warnings).map wrap
-            direct_warnings.map wrap
-            #[]
-        warnings_nested.flatten
+    get_all_wrapped : Any -> Vector Warning
+    get_all_wrapped value = Vector.from_polyglot_array (get_all_array value True)
 
     ## PRIVATE
        ADVANCED
        Returns `True` if the maximal number of reported warnings for a value has been reached, `False` otherwise.
-    _limit_reached : Any -> Boolean
-    _limit_reached value =
-        warnings = Warning.get_all_value value
-        warnings_limit = get_warnings_limit
-        is_limit_reached_direct = warnings.length >= warnings_limit
-        is_limit_reached_withwarnings = Warning.limit_reached_primitive value
-        is_limit_reached_direct || is_limit_reached_withwarnings
-
     limit_reached : Any -> Boolean
     limit_reached value = @Builtin_Method "Warning.limit_reached"
 
@@ -392,38 +305,8 @@ attach_with_stacktrace value warning origin = @Builtin_Method "Warning.attach_wi
 ## PRIVATE
 
    Builtin function that gets all the warnings attached to the given value.
-get_all_array : Any -> Array Warning
-get_all_array value = @Builtin_Method "Warning.get_all_array"
-
-## PRIVATE
-
-   Builtin function that gets all the warnings attached to the elements of the given vector.
-get_all_from_vector_elements : Any -> Array Warning
-get_all_from_vector_elements  value = @Builtin_Method "Warning.get_all_from_vector_elements"
-
-## PRIVATE
-
-   Get warnings from a Vector. The warnings attached to individual elements are
-   wrapped in Map_Error.
-
-   We also request warnings that are attached directly to the vector, but remove
-   those that are identical to warnings attached to elements. We are unable to
-   determine if the directly-attached warnings are truly redundant; they might
-   be identical warnings attached directly to the vector, but this is a very
-   unlikely case.
-get_all_from_vector : Vector -> Vector Warning
-get_all_from_vector v =
-    from_elements = get_all_from_vector_elements v
-    from_elements_unwrapped = from_elements.map .value . map w->
-        case w of
-            Map_Error.Error _ e -> e
-            _ -> Runtime.assert False "Element warnings must be wrapped in Map_Error"
-    from_elements_unwrapped_set = Set.from_vector from_elements_unwrapped
-    direct = Vector.from_polyglot_array (get_all_array v)
-    #direct_set = Set.from_vector direct
-    #direct_deduped = direct_set.difference from_elements_unwrapped_set . to_vector
-    direct_deduped = direct.filter w-> from_elements_unwrapped_set.contains w.value . not
-    from_elements + direct_deduped
+get_all_array : Any -> Boolean -> Array Warning
+get_all_array value should_wrap = @Builtin_Method "Warning.get_all_array"
 
 ## PRIVATE
 

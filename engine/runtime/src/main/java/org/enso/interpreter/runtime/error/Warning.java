@@ -93,9 +93,8 @@ public final class Warning implements EnsoObject {
   @Builtin.Specialize
   @CompilerDirectives.TruffleBoundary
   public static EnsoObject getAll(
-      WithWarnings value, WarningsLibrary warningsLib, InteropLibrary interop) {
-    // System.out.println("AAA getAll ww " + value.getClass() + " " + value.getValue().getClass());
-    Warning[] warnings = value.getWarningsArray(warningsLib);
+      WithWarnings value, boolean shouldWrap, WarningsLibrary warningsLib, InteropLibrary interop) {
+    Warning[] warnings = value.getWarningsArray(warningsLib, shouldWrap);
     sortArray(warnings);
     return ArrayLikeHelpers.wrapEnsoObjects(warnings);
   }
@@ -106,12 +105,10 @@ public final class Warning implements EnsoObject {
       autoRegister = false)
   @Builtin.Specialize(fallback = true)
   public static EnsoObject getAll(
-      Object value, WarningsLibrary warningsLib, InteropLibrary interop) {
-    // System.out.println("AAA getAll obj " + value.getClass() + " " + (value instanceof
-    // org.enso.interpreter.runtime.data.vector.Vector));
+      Object value, boolean shouldWrap, WarningsLibrary warningsLib, InteropLibrary interop) {
     if (warningsLib.hasWarnings(value)) {
       try {
-        Warning[] warnings = warningsLib.getWarnings(value, null);
+        Warning[] warnings = warningsLib.getWarnings(value, null, shouldWrap);
         sortArray(warnings);
         return ArrayLikeHelpers.wrapEnsoObjects(warnings);
       } catch (UnsupportedMessageException e) {
@@ -119,73 +116,6 @@ public final class Warning implements EnsoObject {
       }
     } else {
       return ArrayLikeHelpers.empty();
-    }
-  }
-
-  @Builtin.Method(
-      name = "get_all_from_vector_elements",
-      description = "Gets all the warnings associated with the value.",
-      autoRegister = false)
-  @Builtin.Specialize
-  @CompilerDirectives.TruffleBoundary
-  public static EnsoObject getAllFromVectorElements(
-      WithWarnings value, WarningsLibrary warningsLib, InteropLibrary interop) {
-    if (value.getValue() instanceof org.enso.interpreter.runtime.data.vector.Vector) {
-      Warning[] warnings = getAllElementWarnings(value.getValue(), warningsLib, interop);
-      return ArrayLikeHelpers.wrapEnsoObjects(warnings);
-    } else {
-      throw EnsoContext.get(warningsLib).raiseAssertionPanic(warningsLib, null, null);
-    }
-  }
-
-  @Builtin.Method(
-      name = "get_all_from_vector_elements",
-      description = "Gets all the warnings associated with the value.",
-      autoRegister = false)
-  @Builtin.Specialize(fallback = true)
-  public static EnsoObject getAllFromVectorElements(
-      Object value, WarningsLibrary warningsLib, InteropLibrary interop) {
-    // System.out.println("AAA getAll obj " + value.getClass() + " " + (value instanceof
-    // org.enso.interpreter.runtime.data.vector.Vector));
-    if (value instanceof org.enso.interpreter.runtime.data.vector.Vector) {
-      Warning[] warnings = getAllElementWarnings(value, warningsLib, interop);
-      return ArrayLikeHelpers.wrapEnsoObjects(warnings);
-    } else {
-      throw EnsoContext.get(warningsLib).raiseAssertionPanic(warningsLib, null, null);
-    }
-  }
-
-  private static Warning[] getAllElementWarnings(
-      Object value, WarningsLibrary warnings, InteropLibrary interop) {
-    EconomicSet<Warning> warningsSet = EconomicSet.create(new WithWarnings.WarningEquivalence());
-    // System.out.println("AAA " + value);
-    var ctx = EnsoContext.get(warnings);
-
-    try {
-      long size = interop.getArraySize(value);
-
-      for (long index = 0; index < size; ++index) {
-        final long finalIndex = index;
-        Warning[] elementWarnings = warnings.getElementWarnings(value, null, index);
-        Warning wrapped[] =
-            Arrays.stream(elementWarnings)
-                .map(
-                    warning -> {
-                      var error = warning.getValue();
-                      var wrappedError = ctx.getBuiltins().error().makeMapError(finalIndex, error);
-                      var wrappedWarning = Warning.create(ctx, wrappedError, warning.getOrigin());
-                      return wrappedWarning;
-                    })
-                .toArray(Warning[]::new);
-        warningsSet.addAll(Arrays.asList(wrapped));
-      }
-
-      return Warning.fromSetToArray(warningsSet);
-    } catch (InvalidArrayIndexException e) {
-      throw ctx.raiseAssertionPanic(warnings, null, e);
-    } catch (UnsupportedMessageException e) {
-      System.out.println("AAA ume " + e + " " + value);
-      throw ctx.raiseAssertionPanic(warnings, null, e);
     }
   }
 
@@ -323,5 +253,13 @@ public final class Warning implements EnsoObject {
   @ExportMessage
   Type getType(@CachedLibrary("this") TypesLibrary thisLib, @Cached("1") int ignore) {
     return EnsoContext.get(thisLib).getBuiltins().warning();
+  }
+
+  public static Warning wrapMapError(WarningsLibrary warningsLib, Warning warning, long index) {
+    var ctx = EnsoContext.get(warningsLib);
+    var error = warning.getValue();
+    var wrappedError = ctx.getBuiltins().error().makeMapError(index, error);
+    var wrappedWarning = Warning.create(ctx, wrappedError, warning.getOrigin());
+    return wrappedWarning;
   }
 }
