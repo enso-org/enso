@@ -85,8 +85,18 @@ pub fn upload_single_file(
     artifact_name: impl AsRef<str>,
 ) -> impl Future<Output = Result> {
     let file = file.into();
-    let files = single_file_provider(file);
-    (async move || -> Result { upload(files?, artifact_name, default()).await })()
+    let files = single_file_provider(file.clone());
+    let span = info_span!("upload_single_file", artifact_name = %artifact_name.as_ref(), file = %file.display());
+    async move {
+        upload(files?, &artifact_name, default()).await.with_context(|| {
+            format!(
+                "Failed to upload file {} as artifact {}.",
+                file.display(),
+                artifact_name.as_ref()
+            )
+        })
+    }
+    .instrument(span)
 }
 
 pub fn upload_directory(

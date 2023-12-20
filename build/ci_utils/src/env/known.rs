@@ -3,6 +3,7 @@
 use crate::prelude::*;
 
 use crate::define_env_var;
+use crate::env::accessor::PathBufVariable;
 use crate::env::accessor::PathLike;
 
 
@@ -27,9 +28,20 @@ pub mod win {
         /// when the user roams.
         LOCALAPPDATA, PathBuf;
 
+        /// Directory where all programs can store their global data.
+        PROGRAMDATA, PathBuf;
+
+        /// Directory where programs are installed (native architecture).
+        PROGRAMFILES, PathBuf;
+
         /// The user's home directory.
         USERPROFILE, PathBuf;
     }
+
+    /// Directory where 32-bit programs are installed.
+    pub const PROGRAMFILES_X86: PathBufVariable = PathBufVariable("ProgramFiles(x86)");
+
+
 
     /// Directory containing user's Start menu programs shortcuts.
     pub fn start_menu_programs() -> Result<PathBuf> {

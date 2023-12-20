@@ -27,6 +27,7 @@ pub mod sbt;
 pub mod seven_zip;
 pub mod sh;
 pub mod shaderc;
+pub mod signtool;
 pub mod spirv_cross;
 pub mod strip;
 pub mod tar;

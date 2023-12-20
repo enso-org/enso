@@ -66,6 +66,11 @@ walkdir = "2.3.2"
 which = "5.0.0"
 zip = { version = "0.6.2", default-features = false, features = ["deflate"] }
 
+## `winreg` is only used on Windows, as it doesn't compile on other platforms.
+#[target.'cfg(windows)'.dependencies]
+#winreg = { workspace = true }
+
+
 [dev-dependencies]
 warp = "0.3.2"
 wiremock = "0.5.10"

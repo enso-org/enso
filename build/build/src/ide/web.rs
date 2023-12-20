@@ -2,7 +2,6 @@
 
 use crate::prelude::*;
 
-use crate::ide::web::env::CSC_KEY_PASSWORD;
 use crate::paths::generated;
 use crate::project::gui::BuildInfo;
 use crate::project::wasm;
@@ -19,6 +18,7 @@ use ide_ci::programs::cargo;
 use ide_ci::programs::node::NpmCommand;
 use ide_ci::programs::Cargo;
 use ide_ci::programs::Npm;
+use std::io::Write;
 use std::process::Stdio;
 use tempfile::TempDir;
 use tokio::process::Child;
@@ -366,7 +366,7 @@ impl IdeDesktop {
     ) -> Result {
         let output_path = output_path.as_ref();
         let build_windows_enso_install = TARGET_OS == OS::Windows;
-        if TARGET_OS == OS::MacOS && CSC_KEY_PASSWORD.is_set() {
+        if TARGET_OS == OS::MacOS && env::CSC_KEY_PASSWORD.is_set() {
             // This means that we will be doing code signing on MacOS. This requires JDK environment
             // to be set up.
             let graalvm =
@@ -446,13 +446,20 @@ impl IdeDesktop {
             .await?;
 
         if build_windows_enso_install {
+            let code_signing_certificate =
+                WindowsSigningCredentials::new_from_env().await.inspect_err(|e| {
+                    warn!("Failed to create code signing certificate from the environment: {e:?}");
+                });
+
             let release_artifacts = self.repo_root.target.join_iter(["rust", "release"]);
+            let uninstaller_source = release_artifacts.join("enso-uninstaller.exe");
+            if let Ok(certificate) = code_signing_certificate.as_ref() {
+                certificate.sign(&uninstaller_source).await?;
+            }
+
             let unpacked_dir = output_path.join("win-unpacked");
-            ide_ci::fs::tokio::copy_to(
-                release_artifacts.join("enso-uninstaller.exe"),
-                &unpacked_dir,
-            )
-            .await?;
+            ide_ci::fs::tokio::copy_to(&uninstaller_source, &unpacked_dir).await?;
+
             let archive_path = output_path.join("enso-win.tar.gz");
             ide_ci::archive::compress_directory_contents(&archive_path, &unpacked_dir).await?;
             Cargo
@@ -471,12 +478,13 @@ impl IdeDesktop {
                 .run_ok()
                 .await?;
             let installer_path = output_path.join("enso-installer.exe");
+            if let Ok(certificate) = code_signing_certificate.as_ref() {
+                certificate.sign(&installer_path).await?;
+            }
             let out_dirname = output_path.try_file_name()?;
-            let artifact_name = format!("enso-{}-installer.exe", out_dirname.to_string_lossy());
+            let artifact_name = format!("enso-win-{}-installer.exe", out_dirname.to_string_lossy());
             ide_ci::actions::artifacts::upload_single_file(&installer_path, artifact_name).await?;
         }
-
-
 
         Ok(())
     }
@@ -541,6 +549,112 @@ pub struct Watcher {
 impl ProcessWrapper for Watcher {
     fn inner(&mut self) -> &mut Child {
         &mut self.child_process
+    }
+}
+
+/// CSC (Code Signing Certificate) link.
+#[derive(Clone, Debug)]
+pub enum CscLink {
+    /// Local path to the certificate file.
+    FilePath(PathBuf),
+    /// HTTPS link to the certificate file.
+    Url(Url),
+    /// The certificate file contents.
+    Data(Vec<u8>),
+}
+
+impl std::str::FromStr for CscLink {
+    type Err = anyhow::Error;
+
+    #[context("Failed to parse CSC link from '{csc_link}'.")]
+    fn from_str(csc_link: &str) -> Result<Self> {
+        let csc_link = csc_link.trim();
+        if let Some(file_path) = csc_link.strip_prefix("file://") {
+            Ok(Self::FilePath(file_path.into()))
+        } else if let Some(url) = csc_link.strip_prefix("https://") {
+            Ok(Self::Url(url.parse()?))
+        } else if csc_link.len() > 2048 {
+            let contents =
+                base64::decode(csc_link).context("Failed to decode base64-encoded CSC link.")?;
+            Ok(Self::Data(contents))
+        } else {
+            Ok(Self::FilePath(csc_link.into()))
+        }
+    }
+}
+
+impl CscLink {
+    /// Create a new certificate file from the environment variable.
+    pub fn new_from_env() -> Result<Self> {
+        let csc_link = env::CSC_LINK.get()?;
+        Self::from_str(&csc_link)
+    }
+}
+
+/// CSC certificate file to be used for signing the Windows build.
+#[derive(Debug)]
+pub enum CodeSigningCertificate {
+    /// Local certificate file.
+    FilePath(PathBuf),
+    /// Temporarily created certificate file.
+    TempFile(tempfile::TempPath),
+}
+
+impl AsRef<Path> for CodeSigningCertificate {
+    fn as_ref(&self) -> &Path {
+        match self {
+            Self::FilePath(path) => path.as_ref(),
+            Self::TempFile(path) => path.as_ref(),
+        }
+    }
+}
+
+impl CodeSigningCertificate {
+    /// Create a new certificate file from the given link.
+    pub async fn new(link: CscLink) -> Result<Self> {
+        let ret = match link {
+            CscLink::FilePath(path) => Self::FilePath(path),
+            CscLink::Url(url) => {
+                let temp_file = tempfile::NamedTempFile::new()?.into_temp_path();
+                ide_ci::io::web::download_file(url, &temp_file).await?;
+                Self::TempFile(temp_file)
+            }
+            CscLink::Data(contents) => {
+                let temp_file = tempfile::NamedTempFile::new()?;
+                temp_file.as_file().write_all(&contents)?;
+                // temp_file.write_all(&contents)?;
+                Self::TempFile(temp_file.into_temp_path())
+            }
+        };
+        Ok(ret)
+    }
+
+    /// Create a new certificate file from the environment variable.
+    pub async fn new_from_env() -> Result<Self> {
+        let csc_link = env::CSC_LINK.get()?;
+        let csc_link = CscLink::from_str(&csc_link)?;
+        Self::new(csc_link).await
+    }
+}
+
+/// Data needed to sign the binaries on Windows.
+#[derive(Debug)]
+pub struct WindowsSigningCredentials {
+    pub certificate: CodeSigningCertificate,
+    pub password:    String,
+}
+
+impl WindowsSigningCredentials {
+    /// Create a new certificate file from the environment variable.
+    pub async fn new_from_env() -> Result<Self> {
+        let certificate = CodeSigningCertificate::new_from_env().await?;
+        let password = env::CSC_KEY_PASSWORD.get()?;
+        Ok(Self { certificate, password })
+    }
+
+    /// Sign the given binary.
+    pub async fn sign(&self, exe: impl AsRef<Path>) -> Result {
+        ide_ci::programs::signtool::sign(exe, self.certificate.as_ref(), &self.password).await
     }
 }
 

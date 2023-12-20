@@ -165,7 +165,7 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
         win: {
             // Compression is not used as the build time is huge and file size saving
             // almost zero.
-            target: passedArgs.target ?? 'nsis',
+            target: passedArgs.target ?? 'dir',
             icon: `${passedArgs.iconsDist}/icon.ico`,
         },
         linux: {
