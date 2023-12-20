@@ -905,7 +905,7 @@ type_spec name alter = Test.group name <|
     Test.specify "many errors thrown inside map with on_problems=Problem_Behavior.Report_Warning should be attached as warnings and an Additional_Warnings" <|
         result = alter ([10, 20] + (Vector.fill 12 30) + [40]) . map map_fun on_problems=Problem_Behavior.Report_Warning
         result . should_equal ([11, 21] + (Vector.fill 12 Nothing) + [41])
-        expected_warnings_regular = 2.up_to 12 . map i-> Map_Error.Error i (My_Error.Error 30)
+        expected_warnings_regular = 11.down_to 1 . map i-> Map_Error.Error i (My_Error.Error 30)
         expected_warnings = expected_warnings_regular + [(Additional_Warnings.Error 2)]
         Warning.get_all_wrapped result . map .value . should_equal expected_warnings
 
@@ -1022,9 +1022,11 @@ type Fib
 _spec = Test.group "asdfasdf" <|
     map_fun a = if a == 30 then Error.throw (My_Error.Error a) else a+1
     alter x = x
-    Test.specify "an error thrown inside map with on_problems=Problem_Behavior.Report_Warning should be attached as a warning" <|
-        result = alter [10, 20, 30, 40] . map map_fun on_problems=Problem_Behavior.Report_Warning
-        result . should_equal [11, 21, Nothing, 41]
-        Warning.get_all result . map .value . should_equal [Map_Error.Error 2 (My_Error.Error 30)]
+    Test.specify "many errors thrown inside map with on_problems=Problem_Behavior.Report_Warning should be attached as warnings and an Additional_Warnings" <|
+        result = alter ([10, 20] + (Vector.fill 12 30) + [40]) . map map_fun on_problems=Problem_Behavior.Report_Warning
+        result . should_equal ([11, 21] + (Vector.fill 12 Nothing) + [41])
+        expected_warnings_regular = 2.up_to 12 . map i-> Map_Error.Error i (My_Error.Error 30)
+        expected_warnings = expected_warnings_regular + [(Additional_Warnings.Error 2)]
+        Warning.get_all_wrapped result . map .value . should_equal expected_warnings
 
 main = Test_Suite.run_main spec
