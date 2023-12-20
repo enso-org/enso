@@ -355,7 +355,11 @@ handle_constructor_missing_arguments function ~continuation =
            We rely on its text representation being of the form `Filter_Condition.Between[Filter_Condition.enso:41-343]`.
         _ : Meta.Primitive ->
             text = function.to_text
-            text.starts_with "Filter_Condition." && text.contains "[Filter_Condition.enso:"
+            prefix = "Filter_Condition."
+            if (text.starts_with prefix && text.contains "[Filter_Condition.enso:") . not then False else
+                constructor_letter = text.get prefix.length ""
+                constructor_letter >= "A" && constructor_letter <= "Z"
+
         _ -> False
     if is_filter_condition_constructor.not then continuation else
         message = "Got a Filter_Condition constructor without all required arguments provided. Please provide the missing arguments."
