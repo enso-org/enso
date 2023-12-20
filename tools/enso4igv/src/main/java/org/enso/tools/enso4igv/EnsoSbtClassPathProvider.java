@@ -9,6 +9,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.Icon;
 import javax.swing.event.ChangeListener;
 import org.netbeans.api.java.classpath.ClassPath;
@@ -35,6 +37,7 @@ import org.openide.util.ImageUtilities;
 final class EnsoSbtClassPathProvider extends ProjectOpenedHook
 implements ClassPathProvider, SourceLevelQueryImplementation2, CompilerOptionsQueryImplementation,
 Sources, BinaryForSourceQueryImplementation2<EnsoSbtClassPathProvider.EnsoSources>, SourceForBinaryQueryImplementation2 {
+    private static final Logger LOG = Logger.getLogger(EnsoSources.class.getName());
     private static final String BOOT = "classpath/boot";
     private static final String SOURCE = "classpath/source";
     private static final String COMPILE = "classpath/compile";
@@ -349,7 +352,12 @@ Sources, BinaryForSourceQueryImplementation2<EnsoSbtClassPathProvider.EnsoSource
     ) implements SourceGroup {
         @Override
         public FileObject getRootFolder() {
-            return srcCp.getRoots()[0];
+            var arr = srcCp.getRoots();
+            if (arr.length == 0) {
+                LOG.log(Level.SEVERE, "Source classpath is empty for {0}", this);
+                return output;
+            }
+            return arr[0];
         }
 
         private FileObject[] getRoots() {

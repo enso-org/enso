@@ -51,6 +51,7 @@ type Table_Ref
         Filter_Condition.Greater value -> Filter_Condition.Greater (self.resolve value)
         Filter_Condition.Equal_Or_Greater value -> Filter_Condition.Equal_Or_Greater (self.resolve value)
         Filter_Condition.Between lower upper -> Filter_Condition.Between (self.resolve lower) (self.resolve upper)
+        Filter_Condition.Equal_Ignore_Case value locale -> Filter_Condition.Equal_Ignore_Case (self.resolve value) locale
         Filter_Condition.Starts_With prefix case_sensitivity -> Filter_Condition.Starts_With (self.resolve prefix) case_sensitivity
         Filter_Condition.Ends_With prefix case_sensitivity -> Filter_Condition.Ends_With (self.resolve prefix) case_sensitivity
         Filter_Condition.Contains prefix case_sensitivity -> Filter_Condition.Contains (self.resolve prefix) case_sensitivity

@@ -127,6 +127,7 @@ spec setup =
             t2.set (Column_Operation.If (Column_Ref.Name "A") (Filter_Condition.Greater than=(Column_Ref.Name "B"))) "Z" . at "Z" . to_vector . should_equal [False, True]
             t2.set (Column_Operation.If (Column_Ref.Name "A") (Filter_Condition.Greater than=(Column_Ref.Name "B")) (Column_Ref.Name "C") 0) "Z" . at "Z" . to_vector . should_equal [0, 55]
             t2.set (Column_Operation.If "A" (Filter_Condition.Greater than="B") (Column_Ref.Name "C") 0) "Z" . at "Z" . to_vector . should_equal [0, 0]
+            t2.set (Column_Operation.If (Column_Ref.Name "A") (Filter_Condition.Equal_Ignore_Case "C") "==" "!=") "Z" . at "Z" . to_vector . should_equal ["!=", "=="]
 
             t2.set (Column_Operation.If (Column_Ref.Name "A") (Filter_Condition.Is_In ["x", "a", "dd"]) "TT" "FF") "Z" . at "Z" . to_vector . should_equal ["TT", "FF"]
             t2.set (Column_Operation.If (Column_Ref.Name "A") (Filter_Condition.Not_In ["x", "a", "dd"]) "TT" "FF") "Z" . at "Z" . to_vector . should_equal ["FF", "TT"]

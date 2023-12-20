@@ -12,35 +12,14 @@ const mod = projectStore.projectModel.createNewModule('Main.enso')
 mod.doc.ydoc.emit('load', [])
 
 function applyEdits(module: NonNullable<typeof projectStore.module>, newText: string) {
-  const contents = projectStore.module?.doc.contents
-  if (!contents) return
-  const edits = diff(contents.toString(), newText)
-  if (edits.length === 0) return
-
   module.transact(() => {
-    let i = 0
-    for (const [type, string] of edits) {
-      switch (type) {
-        case -1: {
-          contents.delete(i, string.length)
-          break
-        }
-        case 0: {
-          i += string.length
-          break
-        }
-        case 1: {
-          contents.insert(i, string)
-          break
-        }
-      }
-    }
+    projectStore.module?.doc.setCode(newText)
   })
 }
 
 watchEffect(() => projectStore.module && applyEdits(projectStore.module, props.modelValue))
 
-const text = computed(() => projectStore.module?.doc.contents)
+const text = computed(() => projectStore.module?.doc.getCode())
 
 useObserveYjs(text, () => {
   if (text.value) {
