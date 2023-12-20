@@ -1,5 +1,6 @@
 import project.Any.Any
 import project.Data.Locale.Locale
+import project.Data.Numbers.Number
 import project.Data.Set.Set
 import project.Data.Text.Case_Sensitivity.Case_Sensitivity
 import project.Data.Text.Regex.Regex
@@ -199,24 +200,24 @@ type Filter_Condition
         Between lower upper -> handle_nothing <| elem->
             (lower <= elem) && (elem <= upper)
         Equal_Ignore_Case value locale ->
-            handle_nothing <| (txt : Text)-> txt.equals_ignore_case value locale
+            handle_nothing <| txt-> (txt : Text).equals_ignore_case value locale
         Starts_With prefix case_sensitivity ->
-            handle_nothing <| (txt : Text)-> txt.starts_with prefix case_sensitivity
+            handle_nothing <| txt-> (txt : Text).starts_with prefix case_sensitivity
         Ends_With suffix case_sensitivity ->
-            handle_nothing <| (txt : Text)-> txt.ends_with suffix case_sensitivity
+            handle_nothing <| txt-> (txt : Text).ends_with suffix case_sensitivity
         Contains substring case_sensitivity ->
-            handle_nothing <| (txt : Text)-> txt.contains substring case_sensitivity
+            handle_nothing <| txt-> (txt : Text).contains substring case_sensitivity
         Not_Contains substring case_sensitivity ->
-            handle_nothing <| (txt : Text)-> txt.contains substring case_sensitivity . not
+            handle_nothing <| txt-> (txt : Text).contains substring case_sensitivity . not
         Is_Nothing -> elem -> case elem of
             Nothing -> True
             _ -> False
         Not_Nothing -> elem -> case elem of
             Nothing -> False
             _ -> True
-        Is_Nan -> handle_nothing (x:Number)-> x.is_nan
-        Is_Infinite -> handle_nothing (x:Number)-> x.is_infinite
-        Is_Finite -> handle_nothing (x:Number)-> x.is_finite
+        Is_Nan -> handle_nothing x-> (x:Number).is_nan
+        Is_Infinite -> handle_nothing x-> (x:Number).is_infinite
+        Is_Finite -> handle_nothing x-> (x:Number).is_finite
         Is_True -> ==True
         Is_False -> ==False
         Is_Empty -> elem -> case elem of
