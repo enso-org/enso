@@ -3,11 +3,10 @@
 use crate::prelude::*;
 
 use std::ffi::c_void;
+#[cfg(windows)]
 use std::os::windows::ffi::OsStringExt;
 use windows::core::PCWSTR;
 use windows::Win32::UI::Shell;
-use winreg::RegKey;
-use winreg::RegValue;
 
 
 // ==============
@@ -49,11 +48,14 @@ pub fn start_menu_programs() -> Result<PathBuf> {
 }
 
 /// Query WinAPI for the path of a known folder.
-#[context("Failed to get the path of a known folder by GUID {folder_id:?}.")]
+// #[context("Failed to get the path of a known folder by GUID {folder_id:?}.")]
 pub fn known_folder(folder_id: windows::core::GUID) -> Result<PathBuf> {
     unsafe {
         let path = Shell::SHGetKnownFolderPath(&folder_id, default(), None)?;
+        #[cfg(windows)]
         let ret = OsString::from_wide(path.as_wide());
+        #[cfg(not(windows))]
+        let ret: OsString = panic!("Not implemented on non-Windows platforms.");
         windows::Win32::System::Com::CoTaskMemFree(Some(path.0 as *mut c_void));
         Ok(ret.into())
     }
@@ -93,7 +95,7 @@ impl Display for Icon {
     }
 }
 
-impl winreg::types::ToRegValue for Icon {
+impl ToRegValue for Icon {
     fn to_reg_value(&self) -> RegValue {
         self.to_string().to_reg_value()
     }
@@ -129,7 +131,7 @@ impl Display for PlainOpenCommand {
     }
 }
 
-impl winreg::types::ToRegValue for PlainOpenCommand {
+impl ToRegValue for PlainOpenCommand {
     fn to_reg_value(&self) -> RegValue {
         self.to_string().to_reg_value()
     }

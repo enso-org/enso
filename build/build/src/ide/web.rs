@@ -586,7 +586,7 @@ impl std::str::FromStr for CscLink {
 impl CscLink {
     /// Create a new certificate file from the environment variable.
     pub fn new_from_env() -> Result<Self> {
-        let csc_link = env::CSC_LINK.get()?;
+        let csc_link = env::WIN_CSC_LINK.get().or_else(|_| env::CSC_LINK.get())?;
         Self::from_str(&csc_link)
     }
 }
@@ -631,8 +631,7 @@ impl CodeSigningCertificate {
 
     /// Create a new certificate file from the environment variable.
     pub async fn new_from_env() -> Result<Self> {
-        let csc_link = env::CSC_LINK.get()?;
-        let csc_link = CscLink::from_str(&csc_link)?;
+        let csc_link = CscLink::new_from_env()?;
         Self::new(csc_link).await
     }
 }
@@ -648,7 +647,7 @@ impl WindowsSigningCredentials {
     /// Create a new certificate file from the environment variable.
     pub async fn new_from_env() -> Result<Self> {
         let certificate = CodeSigningCertificate::new_from_env().await?;
-        let password = env::CSC_KEY_PASSWORD.get()?;
+        let password = env::WIN_CSC_KEY_PASSWORD.get().or_else(|_| env::CSC_KEY_PASSWORD.get())?;
         Ok(Self { certificate, password })
     }
 

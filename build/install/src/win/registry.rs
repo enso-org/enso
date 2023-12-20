@@ -2,8 +2,6 @@
 
 use crate::prelude::*;
 
-use winreg::types::ToRegValue;
-
 
 
 /// Wrapper around [`RegKey::delete_subkey_all`] that provides better error messages.
