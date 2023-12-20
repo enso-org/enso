@@ -10,6 +10,7 @@
   "scripts": {
     "dev": "vite",
     "build": "npm --workspace enso-authentication run compile && run-p typecheck build-only",
+    "build:cloud": "CLOUD_BUILD=true npm run build",
     "preview": "vite preview",
     "test": "vitest run && playwright test --reporter=html",
     "test:unit": "vitest",

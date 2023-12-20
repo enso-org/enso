@@ -106,8 +106,7 @@ function main() {
   runDashboard({
     appRunner,
     logger: console,
-    // This entrypoint should never run in the cloud dashboard.
-    supportsLocalBackend: true,
+    supportsLocalBackend: !IS_CLOUD_BUILD,
     supportsDeepLinks: !isDevMode && !isOnLinux(),
     projectManagerUrl,
     isAuthenticationDisabled: !shouldUseAuthentication,
