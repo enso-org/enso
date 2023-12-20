@@ -1,8 +1,12 @@
 <script setup lang="ts">
-import NavBreadcrumbs from '@/components/NavBreadcrumbs.vue'
+import NavBreadcrumbs, { type BreadcrumbItem } from '@/components/NavBreadcrumbs.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 
-const props = defineProps<{ breadcrumbs: string[] }>()
+const props = defineProps<{
+  breadcrumbs: BreadcrumbItem[]
+  allowNavigationLeft: boolean
+  allowNavigationRight: boolean
+}>()
 const emit = defineEmits<{ back: []; forward: []; breadcrumbClick: [index: number] }>()
 </script>
 
@@ -13,20 +17,19 @@ const emit = defineEmits<{ back: []; forward: []; breadcrumbClick: [index: numbe
       <SvgIcon
         name="arrow_left"
         draggable="false"
-        class="icon button inactive"
+        class="icon button"
+        :class="{ inactive: !props.allowNavigationLeft }"
         @pointerdown="emit('back')"
       />
       <SvgIcon
         name="arrow_right"
         draggable="false"
         class="icon button"
+        :class="{ inactive: !props.allowNavigationRight }"
         @pointerdown="emit('forward')"
       />
     </div>
-    <NavBreadcrumbs
-      :breadcrumbs="props.breadcrumbs"
-      @pointerdown="emit('breadcrumbClick', $event)"
-    />
+    <NavBreadcrumbs :breadcrumbs="props.breadcrumbs" @selected="emit('breadcrumbClick', $event)" />
   </div>
 </template>
 

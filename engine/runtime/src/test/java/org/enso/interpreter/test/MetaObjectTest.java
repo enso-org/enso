@@ -36,6 +36,7 @@ public class MetaObjectTest extends TestBase {
   public static void disposeCtx() {
     if (generator != null) {
       generator.dispose();
+      generator = null;
     }
     ctx.close();
   }

@@ -1,10 +1,12 @@
 <script setup lang="ts">
-const props = defineProps<{ text: string }>()
+const props = defineProps<{ text: string; active: boolean }>()
 const emit = defineEmits<{ click: [] }>()
 </script>
 
 <template>
-  <div class="NavBreadcrumb"><span @click="emit('click')" v-text="props.text"></span></div>
+  <div :class="['NavBreadcrumb', { inactive: !props.active }]">
+    <span @click="emit('click')" v-text="props.text"></span>
+  </div>
 </template>
 
 <style scoped>
@@ -24,5 +26,9 @@ span {
     background-color: var(--color-frame-bg);
     backdrop-filter: var(--backdrop-blur);
   }
+}
+
+.inactive {
+  opacity: 0.4;
 }
 </style>
