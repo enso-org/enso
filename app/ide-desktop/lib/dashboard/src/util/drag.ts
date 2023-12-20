@@ -1,7 +1,7 @@
 /** @file Various types of drag event payloads. */
 import type * as React from 'react'
 
-import type * as backend from '@/util/backend'
+import type * as backend from '@/services/backend'
 import * as uniqueString from '@/util/uniqueString'
 
 // ===========================

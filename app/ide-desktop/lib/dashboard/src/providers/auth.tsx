@@ -13,19 +13,19 @@ import * as gtag from 'enso-common/src/gtag'
 
 import * as app from '@/app'
 import type * as authServiceModule from '@/authentication/service'
-import * as backendModule from '@/util/backend'
+import * as backendModule from '@/services/backend'
 import * as backendProvider from '@/providers/backend'
 import * as cognitoModule from '@/authentication/cognito'
 import * as errorModule from '@/util/error'
 import * as http from '@/util/http'
-import * as localBackend from '@/util/localBackend'
+import * as localBackend from '@/services/localBackend'
 import * as localStorageModule from '@/util/localStorage'
 import * as localStorageProvider from '@/providers/localStorage'
 import * as loggerProvider from '@/providers/logger'
-import * as remoteBackend from '@/util/remoteBackend'
+import * as remoteBackend from '@/services/remoteBackend'
 import * as sessionProvider from '@/providers/session'
 
-import LoadingScreen from '@/authentication/loadingScreen'
+import LoadingScreen from '@/pages/authentication/loadingScreen'
 
 // =================
 // === Constants ===
@@ -215,7 +215,7 @@ export function AuthProvider(props: AuthProviderProps) {
         } else {
             // Provide dummy headers to avoid errors. This `Backend` will never be called as
             // the entire UI will be disabled.
-            const client = new http.Client(new Headers([['Authorization', '']]))
+            const client = new http.Client([['Authorization', '']])
             setBackendWithoutSavingType(new remoteBackend.RemoteBackend(client, logger))
         }
     }, [
@@ -265,8 +265,7 @@ export function AuthProvider(props: AuthProviderProps) {
                     setUserSession(null)
                 }
             } else {
-                const headers = new Headers([['Authorization', `Bearer ${session.accessToken}`]])
-                const client = new http.Client(headers)
+                const client = new http.Client([['Authorization', `Bearer ${session.accessToken}`]])
                 const backend = new remoteBackend.RemoteBackend(client, logger)
                 // The backend MUST be the remote backend before login is finished.
                 // This is because the "set username" flow requires the remote backend.

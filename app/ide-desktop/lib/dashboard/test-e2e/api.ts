@@ -1,11 +1,11 @@
 /** @file The mock API. */
 import type * as test from '@playwright/test'
 
-import * as backend from '../src/util/backend'
+import * as backend from '../src/services/backend'
 import * as config from '../src/util/config'
 import * as dateTime from '../src/util/dateTime'
-import type * as remoteBackend from '../src/util/remoteBackend'
-import * as remoteBackendPaths from '../src/util/remoteBackendPaths'
+import type * as remoteBackend from '../src/services/remoteBackend'
+import * as remoteBackendPaths from '../src/services/remoteBackendPaths'
 import * as uniqueString from '../src/util/uniqueString'
 
 // =================

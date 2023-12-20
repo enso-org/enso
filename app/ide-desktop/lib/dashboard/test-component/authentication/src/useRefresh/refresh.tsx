@@ -1,7 +1,7 @@
 /** @file A component for testing the `useRefresh` hook. */
 import * as React from 'react'
 
-import * as useRefresh from '../../../../src/util/useRefresh'
+import * as useRefresh from '../../../../src/hooks/useRefresh'
 
 // ===============
 // === Refresh ===

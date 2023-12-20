@@ -1,5 +1,5 @@
 /** @file Utilities for working with permissions. */
-import * as backend from './backend'
+import * as backend from '../services/backend'
 
 /** This file MUST be `.tsx` even though it does not contain JSX, in order for Tailwind to include
  * the classes in this file. */

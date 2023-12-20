@@ -41,10 +41,10 @@ import * as toastify from 'react-toastify'
 import * as detect from 'enso-common/src/detect'
 
 import * as authServiceModule from '@/authentication/service'
-import type * as backend from '@/util/backend'
-import * as hooks from '@/util/hooks'
-import * as localBackend from '@/util/localBackend'
+import type * as backend from '@/services/backend'
+import * as localBackend from '@/services/localBackend'
 import * as shortcutsModule from '@/util/shortcuts'
+import * as useNavigate from '@/hooks/useNavigate'
 
 import * as authProvider from '@/providers/auth'
 import * as backendProvider from '@/providers/backend'
@@ -54,14 +54,14 @@ import * as modalProvider from '@/providers/modal'
 import * as sessionProvider from '@/providers/session'
 import * as shortcutsProvider from '@/providers/shortcuts'
 
-import ConfirmRegistration from '@/authentication/confirmRegistration'
-import Dashboard from '@/dashboard/dashboard'
-import EnterOfflineMode from '@/authentication/enterOfflineMode'
-import ForgotPassword from '@/authentication/forgotPassword'
-import Login from '@/authentication/login'
-import Registration from '@/authentication/registration'
-import ResetPassword from '@/authentication/resetPassword'
-import SetUsername from '@/authentication/setUsername'
+import ConfirmRegistration from '@/pages/authentication/confirmRegistration'
+import Dashboard from '@/pages/dashboard/dashboard'
+import EnterOfflineMode from '@/pages/authentication/enterOfflineMode'
+import ForgotPassword from '@/pages/authentication/forgotPassword'
+import Login from '@/pages/authentication/login'
+import Registration from '@/pages/authentication/registration'
+import ResetPassword from '@/pages/authentication/resetPassword'
+import SetUsername from '@/pages/authentication/setUsername'
 
 // =================
 // === Constants ===
@@ -169,7 +169,7 @@ function AppRouter(props: AppProps) {
         onAuthenticated,
         projectManagerUrl,
     } = props
-    const navigate = hooks.useNavigate()
+    const navigate = useNavigate.useNavigate()
     if (detect.IS_DEV_MODE) {
         // @ts-expect-error This is used exclusively for debugging.
         window.navigate = navigate

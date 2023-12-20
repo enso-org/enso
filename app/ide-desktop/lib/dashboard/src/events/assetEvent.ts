@@ -1,11 +1,11 @@
 /** @file Events related to changes in asset state. */
-import type * as backendModule from '@/util/backend'
+import type * as backendModule from '@/services/backend'
 
-import type * as spinner from '@/dashboard/spinner'
+import type * as spinner from '@/components/spinner'
 
 // This is required, to whitelist this event.
 // eslint-disable-next-line no-restricted-syntax
-declare module 'util/hooks' {
+declare module '@/hooks/useEvent' {
     /** A map containing all known event types. */
     export interface KnownEventsMap {
         assetEvent: AssetEvent

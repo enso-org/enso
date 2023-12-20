@@ -4,9 +4,9 @@ import * as React from 'react'
 
 import type * as cognito from '@/authentication/cognito'
 import * as error from '@/util/error'
-import * as hooks from '@/util/hooks'
 import * as listen from '@/authentication/listen'
-import * as useRefresh from '@/util/useRefresh'
+import * as useAsyncEffect from '@/hooks/useAsyncEffect'
+import * as useRefresh from '@/hooks/useRefresh'
 
 // ======================
 // === SessionContext ===
@@ -61,7 +61,7 @@ export function SessionProvider(props: SessionProviderProps) {
     /** Register an async effect that will fetch the user's session whenever the `refresh` state is
      * set. This is useful when a user has just logged in (as their cached credentials are
      * out of date, so this will update them). */
-    const session = hooks.useAsyncEffect(
+    const session = useAsyncEffect.useAsyncEffect(
         null,
         async () => {
             const innerSession = await userSession()

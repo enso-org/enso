@@ -2,7 +2,7 @@
  * provider via the shared React context. */
 import * as React from 'react'
 
-import type * as backendModule from '@/util/backend'
+import type * as backendModule from '@/services/backend'
 import * as localStorageModule from '@/util/localStorage'
 import * as localStorageProvider from '@/providers/localStorage'
 

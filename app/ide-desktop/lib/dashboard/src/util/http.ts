@@ -1,6 +1,4 @@
-/** @file HTTP client definition that includes default HTTP headers for all sent requests.
- *
- * Used to build authenticated clients for external APIs, like our Cloud backend API. */
+/** @file HTTP client definition that includes default HTTP headers for all sent requests. */
 
 // ==================
 // === HttpMethod ===
@@ -27,7 +25,7 @@ export class Client {
          *
          * This is useful for setting headers that are required for every request, like
          * authentication tokens. */
-        public defaultHeaders: Headers
+        public defaultHeaders: HeadersInit
     ) {}
 
     /** Send an HTTP GET request to the specified URL. */
