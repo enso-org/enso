@@ -7,7 +7,7 @@ import Standard.Test.Extensions
 
 spec =
     ## To run this test locally:
-       $ sbt 'simple-httpbin/run localhost 8080'
+       $ sbt 'http-test-helper/run localhost 8080'
        $ export ENSO_HTTP_TEST_HTTPBIN_URL=http://localhost:8080/
     base_url = case Environment.get "ENSO_HTTP_TEST_HTTPBIN_URL" of
         Nothing -> Nothing
@@ -129,7 +129,7 @@ spec =
         Test.specify "will not convert back to URI if secrets are present in the query arguments" pending="TODO testing secrets is for later" <|
             Error.throw "TODO: secrets tests"
 
-        # We rely on the simple-httpbin server for these tests, to ensure that the encoding is indeed correctly interpreted by a real-life server:
+        # We rely on the http-test-helper for these tests, to ensure that the encoding is indeed correctly interpreted by a real-life server:
         Test.specify "should correctly handle various characters within the key and value of arguments" pending=pending_has_url <|
             base_uri = URI.parse base_url+"get"
 

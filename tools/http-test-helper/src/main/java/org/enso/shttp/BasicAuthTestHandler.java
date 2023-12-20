@@ -12,7 +12,7 @@ public class BasicAuthTestHandler extends SimpleHttpHandler {
   private final String password = "my secret password: 1234@#; ść + \uD83D\uDE0E";
 
   @Override
-  public void doHandle(HttpExchange exchange) throws IOException {
+  protected void doHandle(HttpExchange exchange) throws IOException {
     List<String> authHeaders = exchange.getRequestHeaders().get("Authorization");
     if (authHeaders == null || authHeaders.isEmpty()) {
       sendResponse(401, "Not authorized.", exchange);

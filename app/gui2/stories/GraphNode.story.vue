@@ -1,23 +1,17 @@
 <script setup lang="ts">
-import { logEvent } from 'histoire/client'
-import { computed, ref } from 'vue'
-
-import * as Y from 'yjs'
-
 import GraphNode from '@/components/GraphEditor/GraphNode.vue'
+import { useNavigator } from '@/composables/navigator'
 import { provideGraphSelection } from '@/providers/graphSelection'
 import type { Node } from '@/stores/graph'
 import { Ast } from '@/util/ast'
-import { useNavigator } from '@/util/navigator'
-import { Rect } from '@/util/rect'
-import { Vec2 } from '@/util/vec2'
-import { reactive, watchEffect } from 'vue'
+import { Rect } from '@/util/data/rect'
+import { Vec2 } from '@/util/data/vec2'
+import { logEvent } from 'histoire/client'
+import { computed, reactive, ref, watchEffect } from 'vue'
 import { IdMap, type ContentRange } from '../shared/yjsModel'
 import { createSetupComponent } from './histoire/utils'
 
-const doc = new Y.Doc()
-const text = doc.getText('content')
-const yIdMap = doc.getMap<Uint8Array>('idMap')
+const idMap = new IdMap()
 
 const nodeBinding = ref('binding')
 const nodeContent = ref('content')
@@ -36,7 +30,6 @@ function updateContent(updates: [range: ContentRange, content: string][]) {
   }
   nodeContent.value = content
 }
-const idMap = new IdMap(yIdMap, text)
 
 const rootSpan = computed(() => Ast.parseTransitional(nodeContent.value, idMap))
 const pattern = computed(() => Ast.parseTransitional(nodeBinding.value, idMap))

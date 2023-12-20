@@ -27,7 +27,7 @@ public class TestHandler extends SimpleHttpHandler {
     this.expectedMethod = expectedMethod;
   }
 
-  public void doHandle(HttpExchange exchange) throws IOException {
+  protected void doHandle(HttpExchange exchange) throws IOException {
     boolean first = true;
     String contentType = null;
     String textEncoding = "UTF-8";

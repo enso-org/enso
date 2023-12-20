@@ -180,6 +180,24 @@ class WrappedProcess(command: Seq[String], process: Process) {
       case e @ (_: InterruptedException | _: TimeoutException) =>
         if (process.isAlive) {
           println(s"Killing the timed-out process: ${command.mkString(" ")}")
+          val sb = new StringBuilder(
+            "Thread dump before forcefully killing the process:\n"
+          )
+          Thread.getAllStackTraces.entrySet.forEach { entry =>
+            sb.append(entry.getKey.getName).append("\n")
+            entry.getValue.foreach { e =>
+              sb.append("    ")
+                .append(e.getClassName)
+                .append(".")
+                .append(e.getMethodName)
+                .append("(")
+                .append(e.getFileName)
+                .append(":")
+                .append(e.getLineNumber)
+                .append(")\n")
+            }
+          }
+          println(sb.toString())
           process.destroyForcibly()
         }
         for (processHandle <- descendants) {

@@ -65,6 +65,7 @@ public final class PrivateModuleAnalysis implements IRPass {
     List<Import> importErrors = new ArrayList<>();
     List<Export> exportErrors = new ArrayList<>();
     var isCurrentModulePrivate = moduleIr.isPrivate();
+    var isCurrentModuleSynthetic = moduleContext.isSynthetic();
 
     // Ensure that imported modules from a different project are not private.
     bindingsMap
@@ -97,38 +98,21 @@ public final class PrivateModuleAnalysis implements IRPass {
               ImportExport.apply$default$4()));
     }
 
-    // Ensure that private modules are not exported and that the hierarchy of submodules
-    // does not mix public and private modules.
+    // Ensure that private modules are not exported
     bindingsMap
         .getDirectlyExportedModules()
         .foreach(
             expModule -> {
               var expModuleRef = expModule.target().module().unsafeAsModule("should succeed");
-              if (expModuleRef.isPrivate()) {
+              if (expModuleRef.isPrivate() && !isCurrentModuleSynthetic) {
                 var associatedExportIR = findExportIRByName(moduleIr, expModuleRef.getName());
                 assert associatedExportIR.isDefined();
-                if (isSubmoduleName(moduleContext.getName(), expModuleRef.getName())) {
-                  var haveSameVisibility = isCurrentModulePrivate == expModuleRef.isPrivate();
-                  if (!haveSameVisibility) {
-                    exportErrors.add(
-                        ImportExport.apply(
-                            associatedExportIR.get(),
-                            new ImportExport.SubmoduleVisibilityMismatch(
-                                moduleContext.getName().toString(),
-                                expModuleRef.getName().toString(),
-                                isCurrentModulePrivate ? "private" : "public",
-                                expModuleRef.isPrivate() ? "private" : "public"),
-                            ImportExport.apply$default$3(),
-                            ImportExport.apply$default$4()));
-                  }
-                } else {
-                  exportErrors.add(
-                      ImportExport.apply(
-                          associatedExportIR.get(),
-                          new ImportExport.ExportPrivateModule(expModuleRef.getName().toString()),
-                          ImportExport.apply$default$3(),
-                          ImportExport.apply$default$4()));
-                }
+                exportErrors.add(
+                    ImportExport.apply(
+                        associatedExportIR.get(),
+                        new ImportExport.ExportPrivateModule(expModuleRef.getName().toString()),
+                        ImportExport.apply$default$3(),
+                        ImportExport.apply$default$4()));
               }
               return null;
             });
@@ -150,14 +134,6 @@ public final class PrivateModuleAnalysis implements IRPass {
         moduleIr.passData(),
         moduleIr.diagnostics(),
         moduleIr.id());
-  }
-
-  private boolean isSubmoduleName(QualifiedName parentModName, QualifiedName subModName) {
-    if (subModName.getParent().isDefined()) {
-      return parentModName.item().equals(subModName.getParent().get().item());
-    } else {
-      return false;
-    }
   }
 
   @Override
