@@ -208,7 +208,7 @@ export function mergeConfig<T extends Config<any>>(
   }
   if (newOptions == null && newGroups == null) return config
   return {
-    options: newOptions,
-    groups: newOptions,
+    options: newOptions ?? config.options,
+    groups: newGroups ?? config.groups,
   } as any
 }
