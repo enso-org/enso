@@ -179,6 +179,7 @@ public final class Error {
    * @param name name of the argument that was being checked
    * @return a runtime representation of the error.
    */
+  @CompilerDirectives.TruffleBoundary
   public Atom makeTypeError(Object expected, Object actual, String name) {
     return typeError.newInstance(expected, actual, Text.create("`" + name + "`"));
   }
