@@ -191,12 +191,13 @@ type Filter_Condition
        predicate will raise an error if the value is not of the expected type.
     to_predicate : (Any -> Boolean)
     to_predicate self = case self of
+        # == does not need special handling for Nothing
+        Equal value -> ==value
+        Not_Equal value -> !=value
         Less value -> handle_nothing (<value)
         Equal_Or_Less value -> handle_nothing (<=value)
-        Equal value -> ==value
         Equal_Or_Greater value -> handle_nothing (>=value)
         Greater value -> handle_nothing (>value)
-        Not_Equal value -> !=value
         Between lower upper -> handle_nothing <| elem->
             (lower <= elem) && (elem <= upper)
         Equal_Ignore_Case value locale ->
