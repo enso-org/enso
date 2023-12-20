@@ -26,9 +26,10 @@ public class URIHelpers {
 
     StringBuilder uriBuilder = new StringBuilder();
     uriBuilder
-            .append(uri.getScheme()).append("://")
-            .append(uri.getRawAuthority())
-            .append(uri.getRawPath());
+        .append(uri.getScheme())
+        .append("://")
+        .append(uri.getRawAuthority())
+        .append(uri.getRawPath());
     if (!query.isEmpty()) {
       uriBuilder.append("?").append(query);
     }
