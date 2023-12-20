@@ -96,7 +96,7 @@ final class TreeToIr {
                 methodReference = translateExpression(sig.getVariable());
               }
               var signature = translateType(sig.getType());
-              var ascription = new Type.Ascription(methodReference, signature, getIdentifiedLocation(sig), meta(), diag());
+              var ascription = new Type.Ascription(methodReference, signature, Option.empty(), getIdentifiedLocation(sig), meta(), diag());
               yield ascription;
             }
             default -> translateExpression(exprTree);
@@ -250,7 +250,8 @@ final class TreeToIr {
             yield join(error, appendTo);
         }
 
-        var ascribedBody = addTypeAscription(body, returnSignature, loc);
+        String functionName = fn.getName().codeRepr();
+        var ascribedBody = addTypeAscription(functionName, body, returnSignature, loc);
         var binding = new Method.Binding(
           methodRef,
           args,
@@ -317,7 +318,7 @@ final class TreeToIr {
       case Tree.TypeSignature sig -> {
         var methodReference = translateMethodReference(sig.getVariable(), true);
         var signature = translateType(sig.getType());
-        var ascription = new Type.Ascription(methodReference, signature, getIdentifiedLocation(sig), meta(), diag());
+        var ascription = new Type.Ascription(methodReference, signature, Option.empty(), getIdentifiedLocation(sig), meta(), diag());
         yield join(ascription, appendTo);
       }
 
@@ -507,6 +508,7 @@ final class TreeToIr {
 
       var loc = getIdentifiedLocation(fun);
       var body = translateExpression(treeBody);
+      String functionName = name.name();
       if (args.isEmpty()) {
         if (body instanceof Expression.Block block) {
           // suspended block has a name and no arguments
@@ -524,14 +526,14 @@ final class TreeToIr {
           body = translateSyntaxError(fun, Syntax.UnexpectedExpression$.MODULE$);
         }
 
-        var ascribedBody = addTypeAscription(body, returnType, loc);
+        var ascribedBody = addTypeAscription(functionName, body, returnType, loc);
         return new Expression.Binding(name, ascribedBody, loc, meta(), diag());
       } else {
         if (body == null) {
           return translateSyntaxError(fun, Syntax.UnexpectedDeclarationInType$.MODULE$);
         }
 
-        var ascribedBody = addTypeAscription(body, returnType, loc);
+        var ascribedBody = addTypeAscription(functionName, body, returnType, loc);
         return new Function.Binding(name, args, ascribedBody, loc, true, meta(), diag());
       }
    }
@@ -551,17 +553,18 @@ final class TreeToIr {
    * <p>
    * If the type is {@code null}, the body is returned unchanged.
    */
-  private Expression addTypeAscription(Expression body, Expression type, Option<IdentifiedLocation> loc) {
+  private Expression addTypeAscription(String functionName, Expression body, Expression type, Option<IdentifiedLocation> loc) {
      if (type == null) {
        return body;
      }
 
-     return new Type.Ascription(body, type, loc, meta(), diag());
+     String comment = "the result of `" + functionName + "`";
+     return new Type.Ascription(body, type, Option.apply(comment), loc, meta(), diag());
   }
 
   private Type.Ascription translateTypeSignature(Tree sig, Tree type, Expression typeName) {
     var fn = translateType(type);
-    return new Type.Ascription(typeName, fn, getIdentifiedLocation(sig), meta(), diag());
+    return new Type.Ascription(typeName, fn, Option.empty(), getIdentifiedLocation(sig), meta(), diag());
   }
 
 

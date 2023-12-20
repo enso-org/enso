@@ -488,7 +488,7 @@ final class SuggestionBuilder[A: IndexedSource](
     typeSignature: Option[TypeSignatures.Metadata]
   ): Vector[TypeArg] =
     typeSignature match {
-      case Some(TypeSignatures.Signature(typeExpr)) =>
+      case Some(TypeSignatures.Signature(typeExpr, _)) =>
         buildTypeSignature(typeExpr)
       case _ =>
         Vector()
