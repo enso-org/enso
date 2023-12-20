@@ -79,7 +79,6 @@ pub async fn sign(
         .arg("/fd")
         .arg(HashAlgorithm::SHA256)
         .arg(exe.as_ref())
-        .arg("/debug")
         .run_ok()
         .await
 }
