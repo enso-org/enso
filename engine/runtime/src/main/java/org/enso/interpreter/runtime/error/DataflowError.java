@@ -2,6 +2,7 @@ package org.enso.interpreter.runtime.error;
 
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.TruffleStackTrace;
+import com.oracle.truffle.api.TruffleStackTraceElement;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -13,6 +14,7 @@ import com.oracle.truffle.api.nodes.Node;
 import java.util.Objects;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 /**
@@ -28,6 +30,7 @@ public final class DataflowError extends AbstractTruffleException {
   public static final DataflowError UNINITIALIZED = new DataflowError(null, (Node) null);
 
   private final Object payload;
+  private final boolean without;
 
   /**
    * Construct a new dataflow error with the default stack trace.
@@ -40,8 +43,7 @@ public final class DataflowError extends AbstractTruffleException {
    */
   public static DataflowError withoutTrace(Object payload, Node location) {
     assert payload != null;
-    DataflowError result = new DataflowError(payload, location);
-    TruffleStackTrace.fillIn(result);
+    var result = new DataflowError(payload, location);
     return result;
   }
 
@@ -57,17 +59,21 @@ public final class DataflowError extends AbstractTruffleException {
    */
   public static DataflowError withTrace(Object payload, AbstractTruffleException prototype) {
     assert payload != null;
-    return new DataflowError(payload, prototype);
+    var result = new DataflowError(payload, prototype);
+    TruffleStackTrace.fillIn(result);
+    return result;
   }
 
   DataflowError(Object payload, Node location) {
-    super(location);
+    super(null, null, 1, location);
     this.payload = payload;
+    this.without = true;
   }
 
   DataflowError(Object payload, AbstractTruffleException prototype) {
     super(prototype);
     this.payload = payload;
+    this.without = false;
   }
 
   /**
@@ -114,6 +120,22 @@ public final class DataflowError extends AbstractTruffleException {
   @ExportMessage
   boolean isException() {
     return true;
+  }
+
+  @ExportMessage
+  boolean hasExceptionStackTrace() {
+    var node = this.getLocation();
+    return node != null && node.getRootNode() != null && without;
+  }
+
+  @ExportMessage
+  Object getExceptionStackTrace() throws UnsupportedMessageException {
+    var node = this.getLocation();
+    if (node == null || node.getRootNode() == null || !without) {
+      throw UnsupportedMessageException.create();
+    }
+    var frame = TruffleStackTraceElement.create(node, node.getRootNode().getCallTarget(), null);
+    return ArrayLikeHelpers.asVectorWithCheckAt(frame.getGuestObject());
   }
 
   @ExportMessage
