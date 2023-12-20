@@ -7,7 +7,7 @@ export class Pattern {
   private readonly placeholder: string
 
   constructor(template: string, placeholder: string) {
-    this.tokenTree = Ast.tokenTree(Ast.parseLine(template))
+    this.tokenTree = Ast.tokenTree(Ast.parseExpression(template))
     this.template = template
     this.placeholder = placeholder
   }
