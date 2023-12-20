@@ -303,7 +303,6 @@ type_spec name alter = Test.group name <|
         (alter [1, 2, Nothing, 3]).filter (Filter_Condition.Equal_Or_Less 2) . should_equal [1, 2]
         (alter ["a", 2, Nothing, 2]).filter (Filter_Condition.Equal 2) . should_equal [2, 2]
         (alter ["a", 2, Nothing, "a", "a"]).filter (Filter_Condition.Equal "a") . should_equal ["a", "a", "a"]
-        (alter ["a", 2, Nothing, "A"]).filter (Filter_Condition.Equal_Ignore_Case "a") . should_equal ["a", "A"]
 
         (alter [1, Nothing, (1/0), (0.log 0)]).filter Filter_Condition.Is_Nan . map .to_text . should_equal ["NaN"]
         (alter [1, Nothing, (1/0), (0.log 0)]).filter Filter_Condition.Is_Infinite . should_equal [Number.positive_infinity]
@@ -313,13 +312,14 @@ type_spec name alter = Test.group name <|
         boolvec.filter Filter_Condition.Is_True . should_equal [True, True]
         boolvec.filter Filter_Condition.Is_False . should_equal [False]
 
-        txtvec = alter ["abab", "baaa", Nothing, "cccc"]
+        txtvec = alter ["abab", "baaa", Nothing, "cccc", "BAAA"]
+        txtvec.filter (Filter_Condition.Equal_Ignore_Case "baaA") . should_equal ["baaa", "BAAA"]
         txtvec.filter (Filter_Condition.Contains "a") . should_equal ["abab", "baaa"]
         txtvec.filter (Filter_Condition.Starts_With "a") . should_equal ["abab"]
         txtvec.filter (Filter_Condition.Ends_With "a") . should_equal ["baaa"]
         txtvec.filter (Filter_Condition.Like "b%a") . should_equal ["baaa"]
         # Nothing is not included in the negation either
-        txtvec.filter (Filter_Condition.Not_Like "b%a") . should_equal ["abab", "cccc"]
+        txtvec.filter (Filter_Condition.Not_Like "b%a") . should_equal ["abab", "cccc", "BAAA"]
 
     Test.specify "should have a friendly error when missing Filter_Condition arguments" <|
         v = alter [0, 1, 2]

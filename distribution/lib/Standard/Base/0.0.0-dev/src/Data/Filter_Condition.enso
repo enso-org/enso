@@ -186,28 +186,33 @@ type Filter_Condition
        accepted by the filter.
     to_predicate : (Any -> Boolean)
     to_predicate self = case self of
-        Less value -> <value
-        Equal_Or_Less value -> <=value
+        Less value -> handle_nothing (<value)
+        Equal_Or_Less value -> handle_nothing (<=value)
         Equal value -> ==value
-        Equal_Or_Greater value -> >=value
-        Greater value -> >value
+        Equal_Or_Greater value -> handle_nothing (>=value)
+        Greater value -> handle_nothing (>value)
         Not_Equal value -> !=value
-        Between lower upper -> elem ->
+        Between lower upper -> handle_nothing <| elem->
             (lower <= elem) && (elem <= upper)
-        Equal_Ignore_Case value locale -> elem-> elem.equals_ignore_case value locale
-        Starts_With prefix case_sensitivity -> _.starts_with prefix case_sensitivity
-        Ends_With suffix case_sensitivity -> _.ends_with suffix case_sensitivity
-        Contains substring case_sensitivity -> _.contains substring case_sensitivity
-        Not_Contains substring case_sensitivity -> v-> v.contains substring case_sensitivity . not
+        Equal_Ignore_Case value locale ->
+            handle_nothing <| elem-> elem.equals_ignore_case value locale
+        Starts_With prefix case_sensitivity ->
+            handle_nothing <| _.starts_with prefix case_sensitivity
+        Ends_With suffix case_sensitivity ->
+            handle_nothing <| _.ends_with suffix case_sensitivity
+        Contains substring case_sensitivity ->
+            handle_nothing <| _.contains substring case_sensitivity
+        Not_Contains substring case_sensitivity ->
+            handle_nothing <| elem-> elem.contains substring case_sensitivity . not
         Is_Nothing -> elem -> case elem of
             Nothing -> True
             _ -> False
         Not_Nothing -> elem -> case elem of
             Nothing -> False
             _ -> True
-        Is_Nan -> .is_nan
-        Is_Infinite -> .is_infinite
-        Is_Finite -> .is_finite
+        Is_Nan -> handle_nothing .is_nan
+        Is_Infinite -> handle_nothing .is_infinite
+        Is_Finite -> handle_nothing .is_finite
         Is_True -> ==True
         Is_False -> ==False
         Is_Empty -> elem -> case elem of
@@ -220,16 +225,16 @@ type Filter_Condition
             _ -> True
         Like sql_pattern ->
             regex = sql_like_to_regex sql_pattern
-            regex.matches
+            handle_nothing <| regex.matches
         Not_Like sql_pattern ->
             regex = sql_like_to_regex sql_pattern
-            elem -> regex.matches elem . not
+            handle_nothing <| elem-> regex.matches elem . not
         Is_In values ->
             set = Set.from_vector values
-            set.contains
+            handle_nothing <| set.contains
         Not_In values ->
             set = Set.from_vector values
-            elem -> set.contains elem . not
+            handle_nothing <| elem-> set.contains elem . not
 
     ## PRIVATE
        Convert to a display representation of this Filter_Condition.
@@ -350,3 +355,11 @@ handle_constructor_missing_arguments function ~continuation =
     if is_filter_condition_constructor.not then continuation else
         message = "Got a Filter_Condition constructor without all required arguments provided. Please provide the missing arguments."
         Error.throw (Illegal_Argument.Error message)
+
+## PRIVATE
+   Extends the provided predicate to handle `Nothing` values without error.
+   The new predicate will return `False` for `Nothing`.
+handle_nothing : (Any -> Boolean) -> (Any -> Boolean)
+handle_nothing f = elem-> case elem of
+    Nothing -> False
+    _ -> f elem
