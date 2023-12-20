@@ -1,7 +1,7 @@
 /** @file A node in the drive's item tree. */
 import * as React from 'react'
 
-import * as backendModule from '@/services/backend'
+import * as backendModule from '#/services/backend'
 
 // =====================
 // === AssetTreeNode ===

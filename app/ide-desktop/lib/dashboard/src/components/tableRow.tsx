@@ -1,9 +1,9 @@
 /** @file A row in a `Table`. */
 import * as React from 'react'
 
-import * as modalProvider from '@/providers/modal'
+import * as modalProvider from '#/providers/modal'
 
-import type * as tableColumn from '@/components/tableColumn'
+import type * as tableColumn from '#/components/tableColumn'
 
 // =============================
 // === Partial `Props` types ===

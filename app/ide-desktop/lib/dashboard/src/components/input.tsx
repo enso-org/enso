@@ -4,9 +4,9 @@ import * as React from 'react'
 import EyeCrossedIcon from 'enso-assets/eye_crossed.svg'
 import EyeIcon from 'enso-assets/eye.svg'
 
-import type * as controlledInput from '@/components/controlledInput'
-import ControlledInput from '@/components/controlledInput'
-import SvgIcon from '@/components/svgIcon'
+import type * as controlledInput from '#/components/controlledInput'
+import ControlledInput from '#/components/controlledInput'
+import SvgIcon from '#/components/svgIcon'
 
 // =============
 // === Input ===

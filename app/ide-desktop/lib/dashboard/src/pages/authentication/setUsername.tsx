@@ -5,11 +5,11 @@ import * as React from 'react'
 import ArrowRightIcon from 'enso-assets/arrow_right.svg'
 import AtIcon from 'enso-assets/at.svg'
 
-import * as auth from '@/providers/auth'
-import * as backendProvider from '@/providers/backend'
+import * as auth from '#/providers/auth'
+import * as backendProvider from '#/providers/backend'
 
-import Input from '@/components/input'
-import SubmitButton from '@/components/submitButton'
+import Input from '#/components/input'
+import SubmitButton from '#/components/submitButton'
 
 // ===================
 // === SetUsername ===

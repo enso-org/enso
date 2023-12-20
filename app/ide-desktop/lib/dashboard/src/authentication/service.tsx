@@ -5,12 +5,12 @@ import * as amplify from '@aws-amplify/auth'
 
 import * as common from 'enso-common'
 
-import * as app from '@/app'
-import * as auth from '@/authentication/config'
-import * as cognito from '@/authentication/cognito'
-import * as config from '@/util/config'
-import * as listen from '@/authentication/listen'
-import type * as loggerProvider from '@/providers/logger'
+import * as app from '#/app'
+import * as auth from '#/authentication/config'
+import * as cognito from '#/authentication/cognito'
+import * as config from '#/util/config'
+import * as listen from '#/authentication/listen'
+import type * as loggerProvider from '#/providers/logger'
 
 // =============
 // === Types ===

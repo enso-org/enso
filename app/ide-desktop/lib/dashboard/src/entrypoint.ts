@@ -1,8 +1,8 @@
 /** @file Entry point into the cloud dashboard. */
 import * as detect from 'enso-common/src/detect'
 
-import '@/tailwind.css'
-import * as authentication from '@/index'
+import '#/tailwind.css'
+import * as authentication from '#/index'
 
 // =================
 // === Constants ===

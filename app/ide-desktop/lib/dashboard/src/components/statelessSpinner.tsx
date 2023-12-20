@@ -1,7 +1,7 @@
 /** @file A spinner that does not expose its {@link spinner.SpinnerState}. */
 import * as React from 'react'
 
-import Spinner, * as spinner from '@/components/spinner'
+import Spinner, * as spinner from '#/components/spinner'
 
 // ========================
 // === StatelessSpinner ===

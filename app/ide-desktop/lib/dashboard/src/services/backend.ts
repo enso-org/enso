@@ -1,10 +1,10 @@
 /** @file Type definitions common between all backends. */
 import type * as React from 'react'
 
-import * as dateTime from '@/util/dateTime'
-import * as newtype from '@/util/newtype'
-import * as permissions from '@/util/permissions'
-import * as uniqueString from '@/util/uniqueString'
+import * as dateTime from '#/util/dateTime'
+import * as newtype from '#/util/newtype'
+import * as permissions from '#/util/permissions'
+import * as uniqueString from '#/util/uniqueString'
 
 // ================
 // === Newtypes ===

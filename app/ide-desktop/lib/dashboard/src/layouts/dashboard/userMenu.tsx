@@ -3,17 +3,17 @@ import * as React from 'react'
 
 import DefaultUserIcon from 'enso-assets/default_user.svg'
 
-import * as app from '@/app'
-import * as auth from '@/providers/auth'
-import * as github from '@/util/github'
-import * as modalProvider from '@/providers/modal'
-import * as shortcuts from '@/util/shortcuts'
-import * as useNavigate from '@/hooks/useNavigate'
-import * as useToastAndLog from '@/hooks/useToastAndLog'
+import * as app from '#/app'
+import * as auth from '#/providers/auth'
+import * as github from '#/util/github'
+import * as modalProvider from '#/providers/modal'
+import * as shortcuts from '#/util/shortcuts'
+import * as useNavigate from '#/hooks/useNavigate'
+import * as useToastAndLog from '#/hooks/useToastAndLog'
 
-import ChangePasswordModal from '@/layouts/dashboard/changePasswordModal'
-import MenuEntry from '@/components/menuEntry'
-import Modal from '@/components/modal'
+import ChangePasswordModal from '#/layouts/dashboard/changePasswordModal'
+import MenuEntry from '#/components/menuEntry'
+import Modal from '#/components/modal'
 
 // ================
 // === UserMenu ===

@@ -10,8 +10,8 @@ import Logo from 'enso-assets/enso_logo.svg'
 import OpenCountIcon from 'enso-assets/open_count.svg'
 import ProjectIcon from 'enso-assets/project_icon.svg'
 
-import Spinner, * as spinner from '@/components/spinner'
-import SvgMask from '@/components/svgMask'
+import Spinner, * as spinner from '#/components/spinner'
+import SvgMask from '#/components/svgMask'
 
 // =================
 // === Constants ===

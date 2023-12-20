@@ -1,5 +1,5 @@
 /** @file Utilities for manipulating and displaying dates and times. */
-import * as newtype from '@/util/newtype'
+import * as newtype from '#/util/newtype'
 
 // =================
 // === Constants ===

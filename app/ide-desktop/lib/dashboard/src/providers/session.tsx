@@ -2,11 +2,11 @@
  * currently authenticated user's session. */
 import * as React from 'react'
 
-import type * as cognito from '@/authentication/cognito'
-import * as error from '@/util/error'
-import * as listen from '@/authentication/listen'
-import * as useAsyncEffect from '@/hooks/useAsyncEffect'
-import * as useRefresh from '@/hooks/useRefresh'
+import type * as cognito from '#/authentication/cognito'
+import * as error from '#/util/error'
+import * as listen from '#/authentication/listen'
+import * as useAsyncEffect from '#/hooks/useAsyncEffect'
+import * as useRefresh from '#/hooks/useRefresh'
 
 // ======================
 // === SessionContext ===

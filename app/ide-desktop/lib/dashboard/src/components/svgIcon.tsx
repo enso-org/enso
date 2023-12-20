@@ -1,7 +1,7 @@
 /** @file Styled wrapper around SVG images. */
 import * as React from 'react'
 
-import SvgMask from '@/components/svgMask'
+import SvgMask from '#/components/svgMask'
 
 // ===============
 // === SvgIcon ===

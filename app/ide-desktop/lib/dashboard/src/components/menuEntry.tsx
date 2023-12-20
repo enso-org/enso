@@ -1,11 +1,11 @@
 /** @file An entry in a menu. */
 import * as React from 'react'
 
-import * as shortcutsModule from '@/util/shortcuts'
-import * as shortcutsProvider from '@/providers/shortcuts'
+import * as shortcutsModule from '#/util/shortcuts'
+import * as shortcutsProvider from '#/providers/shortcuts'
 
-import KeyboardShortcut from '@/components/dashboard/keyboardShortcut'
-import SvgMask from '@/components/svgMask'
+import KeyboardShortcut from '#/components/dashboard/keyboardShortcut'
+import SvgMask from '#/components/svgMask'
 
 // =================
 // === MenuEntry ===

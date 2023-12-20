@@ -1,7 +1,7 @@
 /** @file Colored border around icons and text indicating permissions. */
 import * as React from 'react'
 
-import * as permissionsModule from '@/util/permissions'
+import * as permissionsModule from '#/util/permissions'
 
 // =================
 // === Component ===

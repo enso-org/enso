@@ -1,7 +1,7 @@
 /** @file A styled button. */
 import * as React from 'react'
 
-import SvgMask from '@/components/svgMask'
+import SvgMask from '#/components/svgMask'
 
 /** Props for a {@link Button}. */
 export interface ButtonProps {

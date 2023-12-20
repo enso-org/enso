@@ -10,7 +10,7 @@
  * pools, Amplify must be configured prior to use. This file defines all the information needed to
  * connect to and use these pools. */
 
-import * as newtype from '@/util/newtype'
+import * as newtype from '#/util/newtype'
 
 // =============
 // === Types ===

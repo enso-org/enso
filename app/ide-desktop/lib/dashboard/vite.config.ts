@@ -22,7 +22,7 @@ export default vite.defineConfig({
     plugins: [vitePluginReact({ include: '**/*.tsx' }), vitePluginYaml()],
     resolve: {
         alias: {
-            '@': url.fileURLToPath(new URL('./src', import.meta.url)),
+            '#': url.fileURLToPath(new URL('./src', import.meta.url)),
         },
     },
     define: {

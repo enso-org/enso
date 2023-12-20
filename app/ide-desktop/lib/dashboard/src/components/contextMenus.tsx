@@ -1,7 +1,7 @@
 /** @file A context menu. */
 import * as React from 'react'
 
-import Modal from '@/components/modal'
+import Modal from '#/components/modal'
 
 // ===================
 // === ContextMenu ===

@@ -9,9 +9,9 @@ import * as sentry from '@sentry/react'
 
 import * as detect from 'enso-common/src/detect'
 
-import type * as app from '@/app'
-import * as config from '@/util/config'
-import App from '@/app'
+import type * as app from '#/app'
+import * as config from '#/util/config'
+import App from '#/app'
 
 // =================
 // === Constants ===

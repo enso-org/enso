@@ -6,12 +6,12 @@ import ArrowRightIcon from 'enso-assets/arrow_right.svg'
 import AtIcon from 'enso-assets/at.svg'
 import GoBackIcon from 'enso-assets/go_back.svg'
 
-import * as app from '@/app'
-import * as auth from '@/providers/auth'
+import * as app from '#/app'
+import * as auth from '#/providers/auth'
 
-import Input from '@/components/input'
-import Link from '@/components/link'
-import SubmitButton from '@/components/submitButton'
+import Input from '#/components/input'
+import Link from '#/components/link'
+import SubmitButton from '#/components/submitButton'
 
 // ======================
 // === ForgotPassword ===

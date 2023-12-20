@@ -1,15 +1,15 @@
 /** @file A context menu available everywhere in the directory. */
 import * as React from 'react'
 
-import * as assetListEventModule from '@/events/assetListEvent'
-import * as backendModule from '@/services/backend'
-import * as backendProvider from '@/providers/backend'
-import * as modalProvider from '@/providers/modal'
-import * as shortcuts from '@/util/shortcuts'
+import * as assetListEventModule from '#/events/assetListEvent'
+import * as backendModule from '#/services/backend'
+import * as backendProvider from '#/providers/backend'
+import * as modalProvider from '#/providers/modal'
+import * as shortcuts from '#/util/shortcuts'
 
-import ContextMenu from '@/components/contextMenu'
-import MenuEntry from '@/components/menuEntry'
-import NewDataConnectorModal from '@/layouts/dashboard/newDataConnectorModal'
+import ContextMenu from '#/components/contextMenu'
+import MenuEntry from '#/components/menuEntry'
+import NewDataConnectorModal from '#/layouts/dashboard/newDataConnectorModal'
 
 /** Props for a {@link GlobalContextMenu}. */
 export interface GlobalContextMenuProps {

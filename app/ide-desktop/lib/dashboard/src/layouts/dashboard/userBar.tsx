@@ -4,15 +4,15 @@ import * as React from 'react'
 import ChatIcon from 'enso-assets/chat.svg'
 import DefaultUserIcon from 'enso-assets/default_user.svg'
 
-import * as authProvider from '@/providers/auth'
-import * as backendModule from '@/services/backend'
-import * as backendProvider from '@/providers/backend'
-import * as modalProvider from '@/providers/modal'
+import * as authProvider from '#/providers/auth'
+import * as backendModule from '#/services/backend'
+import * as backendProvider from '#/providers/backend'
+import * as modalProvider from '#/providers/modal'
 
-import * as pageSwitcher from '@/layouts/dashboard/pageSwitcher'
-import Button from '@/components/button'
-import ManagePermissionsModal from '@/layouts/dashboard/managePermissionsModal'
-import UserMenu from '@/layouts/dashboard/userMenu'
+import * as pageSwitcher from '#/layouts/dashboard/pageSwitcher'
+import Button from '#/components/button'
+import ManagePermissionsModal from '#/layouts/dashboard/managePermissionsModal'
+import UserMenu from '#/layouts/dashboard/userMenu'
 
 // ===============
 // === UserBar ===

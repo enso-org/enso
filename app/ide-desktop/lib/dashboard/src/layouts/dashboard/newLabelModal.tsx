@@ -2,13 +2,13 @@
 import * as React from 'react'
 import * as toastify from 'react-toastify'
 
-import * as backend from '@/services/backend'
-import * as errorModule from '@/util/error'
-import * as loggerProvider from '@/providers/logger'
-import * as modalProvider from '@/providers/modal'
+import * as backend from '#/services/backend'
+import * as errorModule from '#/util/error'
+import * as loggerProvider from '#/providers/logger'
+import * as modalProvider from '#/providers/modal'
 
-import ColorPicker from '@/components/colorPicker'
-import Modal from '@/components/modal'
+import ColorPicker from '#/components/colorPicker'
+import Modal from '#/components/modal'
 
 // =====================
 // === NewLabelModal ===

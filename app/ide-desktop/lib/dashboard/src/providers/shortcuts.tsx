@@ -2,7 +2,7 @@
  * via the shared React context. */
 import * as React from 'react'
 
-import * as shortcutsModule from '@/util/shortcuts'
+import * as shortcutsModule from '#/util/shortcuts'
 
 // ========================
 // === ShortcutsContext ===

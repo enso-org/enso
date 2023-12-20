@@ -2,8 +2,8 @@
  * offline. */
 import * as router from 'react-router'
 
-import * as app from '@/app'
-import * as auth from '@/providers/auth'
+import * as app from '#/app'
+import * as auth from '#/providers/auth'
 
 // ===================
 // === useNavigate ===

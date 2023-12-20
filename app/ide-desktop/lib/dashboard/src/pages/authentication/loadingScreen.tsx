@@ -3,7 +3,7 @@ import * as React from 'react'
 
 import * as common from 'enso-common'
 
-import StatelessSpinner, * as statelessSpinner from '@/components/statelessSpinner'
+import StatelessSpinner, * as statelessSpinner from '#/components/statelessSpinner'
 
 // =================
 // === Constants ===

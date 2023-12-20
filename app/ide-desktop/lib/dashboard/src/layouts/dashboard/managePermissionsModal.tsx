@@ -4,18 +4,18 @@ import * as toast from 'react-toastify'
 
 import isEmail from 'validator/es/lib/isEmail'
 
-import * as auth from '@/providers/auth'
-import * as backendModule from '@/services/backend'
-import * as backendProvider from '@/providers/backend'
-import * as modalProvider from '@/providers/modal'
-import * as permissionsModule from '@/util/permissions'
-import * as useAsyncEffect from '@/hooks/useAsyncEffect'
-import * as useToastAndLog from '@/hooks/useToastAndLog'
+import * as auth from '#/providers/auth'
+import * as backendModule from '#/services/backend'
+import * as backendProvider from '#/providers/backend'
+import * as modalProvider from '#/providers/modal'
+import * as permissionsModule from '#/util/permissions'
+import * as useAsyncEffect from '#/hooks/useAsyncEffect'
+import * as useToastAndLog from '#/hooks/useToastAndLog'
 
-import Autocomplete from '@/components/autocomplete'
-import Modal from '@/components/modal'
-import PermissionSelector from '@/components/dashboard/permissionSelector'
-import UserPermissions from '@/components/dashboard/userPermissions'
+import Autocomplete from '#/components/autocomplete'
+import Modal from '#/components/modal'
+import PermissionSelector from '#/components/dashboard/permissionSelector'
+import UserPermissions from '#/components/dashboard/userPermissions'
 
 // =================
 // === Constants ===

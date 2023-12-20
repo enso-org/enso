@@ -118,7 +118,7 @@ export function bundlerOptions(args: Arguments) {
             esbuildPluginGenerateTailwind(),
         ],
         alias: {
-            '@': './src',
+            '#': './src',
         },
         define: {
             // We are defining constants, so it should be `CONSTANT_CASE`.

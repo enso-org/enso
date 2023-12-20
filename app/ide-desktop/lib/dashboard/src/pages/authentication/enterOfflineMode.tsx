@@ -1,9 +1,9 @@
 /** @file Page to enter offlin mode and redirect to dashboard. */
 import * as React from 'react'
 
-import * as app from '@/app'
-import * as authProvider from '@/providers/auth'
-import * as useNavigate from '@/hooks/useNavigate'
+import * as app from '#/app'
+import * as authProvider from '#/providers/auth'
+import * as useNavigate from '#/hooks/useNavigate'
 
 // ========================
 // === EnterOfflineMode ===

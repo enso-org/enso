@@ -5,7 +5,7 @@ import DriveIcon from 'enso-assets/drive.svg'
 import HomeIcon from 'enso-assets/home.svg'
 import NetworkIcon from 'enso-assets/network.svg'
 
-import Button from '@/components/button'
+import Button from '#/components/button'
 
 // ====================
 // === PageSwitcher ===

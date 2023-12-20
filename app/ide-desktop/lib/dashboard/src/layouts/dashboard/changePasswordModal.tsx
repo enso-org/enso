@@ -4,14 +4,14 @@ import * as React from 'react'
 import ArrowRightIcon from 'enso-assets/arrow_right.svg'
 import LockIcon from 'enso-assets/lock.svg'
 
-import * as auth from '@/providers/auth'
-import * as modalProvider from '@/providers/modal'
-import * as string from '@/util/string'
-import * as validation from '@/util/validation'
+import * as auth from '#/providers/auth'
+import * as modalProvider from '#/providers/modal'
+import * as string from '#/util/string'
+import * as validation from '#/util/validation'
 
-import Input from '@/components/input'
-import Modal from '@/components/modal'
-import SubmitButton from '@/components/submitButton'
+import Input from '#/components/input'
+import Modal from '#/components/modal'
+import SubmitButton from '#/components/submitButton'
 
 // ===========================
 // === ChangePasswordModal ===

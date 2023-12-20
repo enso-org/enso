@@ -7,16 +7,16 @@ import CreateAccountIcon from 'enso-assets/create_account.svg'
 import GoBackIcon from 'enso-assets/go_back.svg'
 import LockIcon from 'enso-assets/lock.svg'
 
-import * as authModule from '@/providers/auth'
-import * as localStorageModule from '@/util/localStorage'
-import * as localStorageProvider from '@/providers/localStorage'
-import * as string from '@/util/string'
-import * as validation from '@/util/validation'
+import * as authModule from '#/providers/auth'
+import * as localStorageModule from '#/util/localStorage'
+import * as localStorageProvider from '#/providers/localStorage'
+import * as string from '#/util/string'
+import * as validation from '#/util/validation'
 
-import * as app from '@/app'
-import Input from '@/components/input'
-import Link from '@/components/link'
-import SubmitButton from '@/components/submitButton'
+import * as app from '#/app'
+import Input from '#/components/input'
+import Link from '#/components/link'
+import SubmitButton from '#/components/submitButton'
 
 // =================
 // === Constants ===

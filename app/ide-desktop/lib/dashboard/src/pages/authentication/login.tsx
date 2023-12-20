@@ -9,14 +9,14 @@ import AtIcon from 'enso-assets/at.svg'
 import CreateAccountIcon from 'enso-assets/create_account.svg'
 import LockIcon from 'enso-assets/lock.svg'
 
-import * as auth from '@/providers/auth'
-import * as validation from '@/util/validation'
+import * as auth from '#/providers/auth'
+import * as validation from '#/util/validation'
 
-import * as app from '@/app'
-import FontAwesomeIcon from '@/components/fontAwesomeIcon'
-import Input from '@/components/input'
-import Link from '@/components/link'
-import SubmitButton from '@/components/submitButton'
+import * as app from '#/app'
+import FontAwesomeIcon from '#/components/fontAwesomeIcon'
+import Input from '#/components/input'
+import Link from '#/components/link'
+import SubmitButton from '#/components/submitButton'
 
 // =================
 // === Constants ===

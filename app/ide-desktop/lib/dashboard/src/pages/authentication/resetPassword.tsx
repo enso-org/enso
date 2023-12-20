@@ -8,15 +8,15 @@ import ArrowRightIcon from 'enso-assets/arrow_right.svg'
 import GoBackIcon from 'enso-assets/go_back.svg'
 import LockIcon from 'enso-assets/lock.svg'
 
-import * as app from '@/app'
-import * as auth from '@/providers/auth'
-import * as string from '@/util/string'
-import * as useNavigate from '@/hooks/useNavigate'
-import * as validation from '@/util/validation'
+import * as app from '#/app'
+import * as auth from '#/providers/auth'
+import * as string from '#/util/string'
+import * as useNavigate from '#/hooks/useNavigate'
+import * as validation from '#/util/validation'
 
-import Input from '@/components/input'
-import Link from '@/components/link'
-import SubmitButton from '@/components/submitButton'
+import Input from '#/components/input'
+import Link from '#/components/link'
+import SubmitButton from '#/components/submitButton'
 
 // =================
 // === Constants ===

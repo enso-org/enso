@@ -3,20 +3,20 @@ import * as React from 'react'
 
 import PenIcon from 'enso-assets/pen.svg'
 
-import type * as assetEvent from '@/events/assetEvent'
-import type * as assetTreeNode from '@/util/assetTreeNode'
-import * as authProvider from '@/providers/auth'
-import type * as backendModule from '@/services/backend'
-import * as backendProvider from '@/providers/backend'
-import * as permissions from '@/util/permissions'
-import * as useToastAndLog from '@/hooks/useToastAndLog'
+import type * as assetEvent from '#/events/assetEvent'
+import type * as assetTreeNode from '#/util/assetTreeNode'
+import * as authProvider from '#/providers/auth'
+import type * as backendModule from '#/services/backend'
+import * as backendProvider from '#/providers/backend'
+import * as permissions from '#/util/permissions'
+import * as useToastAndLog from '#/hooks/useToastAndLog'
 
-import type * as categorySwitcher from '@/layouts/dashboard/categorySwitcher'
-import * as column from '@/components/dashboard/column'
-import type * as pageSwitcher from '@/layouts/dashboard/pageSwitcher'
-import AssetInfoBar from '@/components/dashboard/assetInfoBar'
-import Button from '@/components/button'
-import UserBar from '@/layouts/dashboard/userBar'
+import type * as categorySwitcher from '#/layouts/dashboard/categorySwitcher'
+import * as column from '#/components/dashboard/column'
+import type * as pageSwitcher from '#/layouts/dashboard/pageSwitcher'
+import AssetInfoBar from '#/components/dashboard/assetInfoBar'
+import Button from '#/components/button'
+import UserBar from '#/layouts/dashboard/userBar'
 
 // ==========================
 // === AssetSettingsPanel ===

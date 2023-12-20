@@ -4,13 +4,13 @@ import * as reactDom from 'react-dom'
 
 import CloseLargeIcon from 'enso-assets/close_large.svg'
 
-import * as animations from '@/util/animations'
-import * as app from '@/app'
-import * as loggerProvider from '@/providers/logger'
-import * as useNavigate from '@/hooks/useNavigate'
+import * as animations from '#/util/animations'
+import * as app from '#/app'
+import * as loggerProvider from '#/providers/logger'
+import * as useNavigate from '#/hooks/useNavigate'
 
-import * as chat from '@/layouts/dashboard/chat'
-import * as pageSwitcher from '@/layouts/dashboard/pageSwitcher'
+import * as chat from '#/layouts/dashboard/chat'
+import * as pageSwitcher from '#/layouts/dashboard/pageSwitcher'
 
 /** Props for a {@link ChatPlaceholder}. */
 export interface ChatPlaceholderProps {

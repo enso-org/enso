@@ -1,7 +1,7 @@
 /** @file Asynchronous wrapper for {@link React.useEffect}. */
 import * as React from 'react'
 
-import * as useToastAndLog from '@/hooks/useToastAndLog'
+import * as useToastAndLog from '#/hooks/useToastAndLog'
 
 // ======================
 // === useAsyncEffect ===

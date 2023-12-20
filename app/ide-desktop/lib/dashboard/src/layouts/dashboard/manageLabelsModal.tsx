@@ -1,16 +1,16 @@
 /** @file A modal to select labels for an asset. */
 import * as React from 'react'
 
-import * as auth from '@/providers/auth'
-import * as backendModule from '@/services/backend'
-import * as backendProvider from '@/providers/backend'
-import * as modalProvider from '@/providers/modal'
-import * as string from '@/util/string'
-import * as useToastAndLog from '@/hooks/useToastAndLog'
+import * as auth from '#/providers/auth'
+import * as backendModule from '#/services/backend'
+import * as backendProvider from '#/providers/backend'
+import * as modalProvider from '#/providers/modal'
+import * as string from '#/util/string'
+import * as useToastAndLog from '#/hooks/useToastAndLog'
 
-import ColorPicker from '@/components/colorPicker'
-import Label from '@/components/dashboard/label'
-import Modal from '@/components/modal'
+import ColorPicker from '#/components/colorPicker'
+import Label from '#/components/dashboard/label'
+import Modal from '#/components/modal'
 
 // =========================
 // === ManageLabelsModal ===

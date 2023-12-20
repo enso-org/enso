@@ -4,10 +4,13 @@
   "type": "module",
   "main": "./src/index.tsx",
   "private": true,
+  "imports": {
+    "#/*": "./src/*"
+  },
   "exports": {
     ".": "./src/index.tsx",
     "./src/platform": "./src/platform.ts",
-    "./tailwind.css": "./tailwind.css"
+    "./src/tailwind.css": "./src/tailwind.css"
   },
   "scripts": {
     "compile": "tsc",

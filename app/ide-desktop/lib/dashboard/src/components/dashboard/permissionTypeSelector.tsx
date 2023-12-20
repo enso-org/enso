@@ -1,8 +1,8 @@
 /** @file A selector for all possible permission types. */
 import * as React from 'react'
 
-import * as backend from '@/services/backend'
-import * as permissions from '@/util/permissions'
+import * as backend from '#/services/backend'
+import * as permissions from '#/util/permissions'
 
 // =================
 // === Constants ===

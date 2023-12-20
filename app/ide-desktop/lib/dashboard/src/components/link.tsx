@@ -2,7 +2,7 @@
 import * as React from 'react'
 import * as router from 'react-router-dom'
 
-import SvgMask from '@/components/svgMask'
+import SvgMask from '#/components/svgMask'
 
 // ============
 // === Link ===

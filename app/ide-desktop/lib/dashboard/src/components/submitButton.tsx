@@ -1,7 +1,7 @@
 /** @file A styled submit button. */
 import * as React from 'react'
 
-import SvgMask from '@/components/svgMask'
+import SvgMask from '#/components/svgMask'
 
 // ====================
 // === SubmitButton ===

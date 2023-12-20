@@ -1,7 +1,7 @@
 /** @file An label that can be applied to an asset. */
 import * as React from 'react'
 
-import * as backend from '@/services/backend'
+import * as backend from '#/services/backend'
 
 // =================
 // === Constants ===

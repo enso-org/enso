@@ -3,14 +3,14 @@
  * being used directly. */
 import * as React from 'react'
 
-import * as set from '@/util/set'
-import * as shortcutsModule from '@/util/shortcuts'
-import * as shortcutsProvider from '@/providers/shortcuts'
+import * as set from '#/util/set'
+import * as shortcutsModule from '#/util/shortcuts'
+import * as shortcutsProvider from '#/providers/shortcuts'
 
-import type * as tableColumn from '@/components/tableColumn'
-import type * as tableRow from '@/components/tableRow'
-import Spinner, * as spinner from '@/components/spinner'
-import TableRow from '@/components/tableRow'
+import type * as tableColumn from '#/components/tableColumn'
+import type * as tableRow from '#/components/tableRow'
+import Spinner, * as spinner from '#/components/spinner'
+import TableRow from '#/components/tableRow'
 
 // =================
 // === Constants ===

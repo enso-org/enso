@@ -1,13 +1,13 @@
 /** @file The icon and name of an {@link backendModule.Asset}. */
 import * as React from 'react'
 
-import * as backendModule from '@/services/backend'
+import * as backendModule from '#/services/backend'
 
-import type * as column from '@/components/dashboard/column'
-import ConnectorNameColumn from '@/components/dashboard/connectorNameColumn'
-import DirectoryNameColumn from '@/components/dashboard/directoryNameColumn'
-import FileNameColumn from '@/components/dashboard/fileNameColumn'
-import ProjectNameColumn from '@/components/dashboard/projectNameColumn'
+import type * as column from '#/components/dashboard/column'
+import ConnectorNameColumn from '#/components/dashboard/connectorNameColumn'
+import DirectoryNameColumn from '#/components/dashboard/directoryNameColumn'
+import FileNameColumn from '#/components/dashboard/fileNameColumn'
+import ProjectNameColumn from '#/components/dashboard/projectNameColumn'
 
 // =================
 // === AssetName ===

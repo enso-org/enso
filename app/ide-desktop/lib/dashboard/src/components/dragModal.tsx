@@ -1,9 +1,9 @@
 /** @file Modal for confirming delete of any type of asset. */
 import * as React from 'react'
 
-import * as modalProvider from '@/providers/modal'
+import * as modalProvider from '#/providers/modal'
 
-import Modal from '@/components/modal'
+import Modal from '#/components/modal'
 
 // =================
 // === Constants ===

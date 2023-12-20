@@ -2,7 +2,7 @@
  * via the shared React context. */
 import * as React from 'react'
 
-import * as localStorageModule from '@/util/localStorage'
+import * as localStorageModule from '#/util/localStorage'
 
 // ===========================
 // === LocalStorageContext ===

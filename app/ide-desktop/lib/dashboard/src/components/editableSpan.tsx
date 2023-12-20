@@ -4,8 +4,8 @@ import * as React from 'react'
 import CrossIcon from 'enso-assets/cross.svg'
 import TickIcon from 'enso-assets/tick.svg'
 
-import * as shortcutsModule from '@/util/shortcuts'
-import * as shortcutsProvider from '@/providers/shortcuts'
+import * as shortcutsModule from '#/util/shortcuts'
+import * as shortcutsProvider from '#/providers/shortcuts'
 
 // ====================
 // === EditableSpan ===

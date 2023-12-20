@@ -7,16 +7,16 @@ import AddFolderIcon from 'enso-assets/add_folder.svg'
 import DataDownloadIcon from 'enso-assets/data_download.svg'
 import DataUploadIcon from 'enso-assets/data_upload.svg'
 
-import * as assetEventModule from '@/events/assetEvent'
-import * as backendModule from '@/services/backend'
-import * as backendProvider from '@/providers/backend'
-import * as modalProvider from '@/providers/modal'
-import * as shortcutsModule from '@/util/shortcuts'
-import * as shortcutsProvider from '@/providers/shortcuts'
+import * as assetEventModule from '#/events/assetEvent'
+import * as backendModule from '#/services/backend'
+import * as backendProvider from '#/providers/backend'
+import * as modalProvider from '#/providers/modal'
+import * as shortcutsModule from '#/util/shortcuts'
+import * as shortcutsProvider from '#/providers/shortcuts'
 
-import * as categorySwitcher from '@/layouts/dashboard/categorySwitcher'
-import Button from '@/components/button'
-import NewDataConnectorModal from '@/layouts/dashboard/newDataConnectorModal'
+import * as categorySwitcher from '#/layouts/dashboard/categorySwitcher'
+import Button from '#/components/button'
+import NewDataConnectorModal from '#/layouts/dashboard/newDataConnectorModal'
 
 // ================
 // === DriveBar ===

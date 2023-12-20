@@ -2,11 +2,11 @@
 import * as React from 'react'
 import * as toastify from 'react-toastify'
 
-import * as errorModule from '@/util/error'
-import * as loggerProvider from '@/providers/logger'
-import * as modalProvider from '@/providers/modal'
+import * as errorModule from '#/util/error'
+import * as loggerProvider from '#/providers/logger'
+import * as modalProvider from '#/providers/modal'
 
-import Modal from '@/components/modal'
+import Modal from '#/components/modal'
 
 // =============================
 // === NewDataConnectorModal ===

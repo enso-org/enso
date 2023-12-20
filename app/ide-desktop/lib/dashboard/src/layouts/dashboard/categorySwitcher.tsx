@@ -7,13 +7,13 @@ import RootIcon from 'enso-assets/root.svg'
 import TempIcon from 'enso-assets/temp.svg'
 import Trash2Icon from 'enso-assets/trash2.svg'
 
-import * as assetEvent from '@/events/assetEvent'
-import * as drag from '@/util/drag'
-import * as localStorageModule from '@/util/localStorage'
-import * as localStorageProvider from '@/providers/localStorage'
-import * as modalProvider from '@/providers/modal'
+import * as assetEvent from '#/events/assetEvent'
+import * as drag from '#/util/drag'
+import * as localStorageModule from '#/util/localStorage'
+import * as localStorageProvider from '#/providers/localStorage'
+import * as modalProvider from '#/providers/modal'
 
-import SvgMask from '@/components/svgMask'
+import SvgMask from '#/components/svgMask'
 
 // ============================
 // === CategorySwitcherItem ===

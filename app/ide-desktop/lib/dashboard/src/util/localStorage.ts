@@ -1,12 +1,12 @@
 /** @file A LocalStorage data manager. */
 import * as common from 'enso-common'
 
-import * as array from '@/util/array'
-import * as backend from '@/services/backend'
-import * as column from '@/components/dashboard/column'
+import * as array from '#/util/array'
+import * as backend from '#/services/backend'
+import * as column from '#/components/dashboard/column'
 
-import * as categorySwitcher from '@/layouts/dashboard/categorySwitcher'
-import * as pageSwitcher from '@/layouts/dashboard/pageSwitcher'
+import * as categorySwitcher from '#/layouts/dashboard/categorySwitcher'
+import * as pageSwitcher from '#/layouts/dashboard/pageSwitcher'
 
 // ====================
 // === LocalStorage ===
