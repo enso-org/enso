@@ -27,7 +27,7 @@ import {
   type VisualizationIdentifier,
   type VisualizationMetadata,
 } from 'shared/yjsModel'
-import { computed, markRaw, reactive, ref, toRef, watch } from 'vue'
+import { computed, markRaw, reactive, ref, toRef, watch, type Ref } from 'vue'
 
 export { type Node } from '@/stores/graph/graphDatabase'
 
@@ -46,7 +46,9 @@ export const useGraphStore = defineStore('graph', () => {
   const metadata = computed(() => proj.module?.doc.metadata)
 
   const textContent = ref(proj.module?.doc.getCode())
-  const idMap = ref(proj.module?.doc.getIdMap())
+  // We need casting here, as type changes in Ref when class has private fields.
+  // see https://github.com/vuejs/core/issues/2557
+  const idMap = ref(proj.module?.doc.getIdMap()) as Ref<IdMap | undefined>
   const expressionGraph: Module = MutableModule.Observable()
   const moduleRoot = ref<AstId>()
 
