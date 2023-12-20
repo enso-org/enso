@@ -20,7 +20,7 @@ import esbuildPluginCopyDirectories from 'esbuild-plugin-copy-directories'
 import esbuildPluginTime from 'esbuild-plugin-time'
 import esbuildPluginYaml from 'esbuild-plugin-yaml'
 
-import * as utils from 'utils'
+import * as utils from '../../utils'
 import BUILD_INFO from '../../../../build.json' assert { type: 'json' }
 
 // =================
