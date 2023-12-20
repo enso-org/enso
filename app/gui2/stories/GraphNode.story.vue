@@ -12,7 +12,7 @@ import { Vec2 } from '@/util/data/vec2'
 import { useNavigator } from '@/util/navigator'
 import { Rect } from '@/util/rect'
 import { reactive, watchEffect } from 'vue'
-import { IdMap, type ContentRange } from '../shared/yjsModel'
+import { IdMap, type SourceRange } from '../shared/yjsModel'
 import { createSetupComponent } from './histoire/utils'
 
 const doc = new Y.Doc()
@@ -29,7 +29,7 @@ const fullscreenVis = ref(false)
 
 const position = computed(() => new Vec2(nodeX.value, nodeY.value))
 
-function updateContent(updates: [range: ContentRange, content: string][]) {
+function updateContent(updates: [range: SourceRange, content: string][]) {
   let content = nodeContent.value
   for (const [[start, end], replacement] of updates) {
     content = content.slice(0, start) + replacement + content.slice(end)
@@ -53,7 +53,7 @@ const node = computed((): Node => {
 const mockRects = reactive(new Map())
 
 watchEffect((onCleanup) => {
-  const id = node.value.rootSpan.astId
+  const id = node.value.rootSpan.exprId
   mockRects.set(id, Rect.Zero)
   onCleanup(() => {
     mockRects.delete(id)

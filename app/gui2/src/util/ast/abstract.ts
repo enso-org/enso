@@ -7,7 +7,7 @@ import type { LazyObject } from '@/util/parserSupport'
 import { unsafeEntries } from '@/util/record'
 import * as random from 'lib0/random'
 import { reactive } from 'vue'
-import type { ExprId } from '../../../shared/yjsModel'
+import type { ExprId, SourceRange } from '../../../shared/yjsModel'
 import { IdMap } from '../../../shared/yjsModel'
 
 export interface Module {
@@ -20,34 +20,37 @@ export interface Module {
 }
 
 export class MutableModule implements Module {
-  base: Module | null
-  nodes: Map<AstId, Ast | null>
+  readonly base: Module | null
+  readonly nodes: Map<AstId, Ast | null>
   astExtended: Map<AstId, RawAstExtended> | null
+  spans: Map<AstId, SourceRange> | null
 
   constructor(
     base: Module | null,
     nodes: Map<AstId, Ast | null>,
     astExtended: Map<AstId, RawAstExtended> | null,
+    spans: Map<AstId, SourceRange> | null,
   ) {
     this.base = base
     this.nodes = nodes
     this.astExtended = astExtended
+    this.spans = spans
   }
 
   static Observable(): MutableModule {
-    const nodes = reactive(new Map<AstId, Ast>())
-    const astExtended = reactive(new Map<AstId, RawAstExtended>())
-    return new MutableModule(null, nodes, astExtended)
+    const nodes = reactive(new Map())
+    const astExtended = reactive(new Map())
+    const spans = reactive(new Map())
+    return new MutableModule(null, nodes, astExtended, spans)
   }
 
-  static Transient(): MutableModule {
+  static Transient(base?: Module): MutableModule {
     const nodes = new Map<AstId, Ast>()
-    return new MutableModule(null, nodes, null)
+    return new MutableModule(base ?? null, nodes, null, null)
   }
 
   edit(): MutableModule {
-    const nodes = new Map<AstId, Ast>()
-    return new MutableModule(this, nodes, null)
+    return MutableModule.Transient(this)
   }
 
   get raw(): MutableModule {
@@ -63,10 +66,18 @@ export class MutableModule implements Module {
       }
       this.astExtended = astExtended
     }
+    if (edit.spans) {
+      const spans = this.spans ?? new Map()
+      for (const [id, ast] of edit.spans.entries()) {
+        spans.set(id, ast)
+      }
+      this.spans = spans
+    }
     for (const [id, ast] of edit.nodes.entries()) {
       if (ast === null) {
         this.nodes.delete(id)
         this.astExtended?.delete(id)
+        this.spans?.delete(id)
       } else {
         this.nodes.set(id, ast)
       }
@@ -79,6 +90,7 @@ export class MutableModule implements Module {
       if (!edit.nodes.has(id)) {
         this.nodes.delete(id)
         this.astExtended?.delete(id)
+        this.spans?.delete(id)
       }
     }
     this.apply(edit)
@@ -191,6 +203,12 @@ export abstract class Ast {
     return this.exprId
   }
 
+  /** Return this node's span, if it belongs to a module with an associated span map. */
+  get span(): SourceRange | undefined {
+    const spans = this.module.raw.spans
+    if (spans) return spans.get(this.astId)
+  }
+
   /** Returns child subtrees, without information about the whitespace between them. */
   *children(): IterableIterator<Ast | Token> {
     for (const child of this.concreteChildren()) {
@@ -268,26 +286,23 @@ export abstract class Ast {
     const module_ = moduleOverride ?? this.module
     let code = ''
     for (const child of this.concreteChildren()) {
-      if (child.node != null && !(child.node instanceof Token) && module_.get(child.node) === null)
+      if (!(child.node instanceof Token) && module_.get(child.node) === null)
         continue
       if (child.whitespace != null) {
         code += child.whitespace
       } else if (code.length != 0) {
-        // TODO for #8367: Identify cases where a space should not be inserted.
         code += ' '
       }
-      if (child.node != null) {
-        if (child.node instanceof Token) {
-          const tokenStart = offset + code.length
-          const tokenCode = child.node.code()
-          const span = tokenKey(tokenStart, tokenCode.length)
-          info.tokens.set(span, child.node.astId)
-          code += tokenCode
-        } else {
-          code += module_
-            .get(child.node)!
-            ._print(info, offset + code.length, indent, moduleOverride)
-        }
+      if (child.node instanceof Token) {
+        const tokenStart = offset + code.length
+        const tokenCode = child.node.code()
+        const span = tokenKey(tokenStart, tokenCode.length)
+        info.tokens.set(span, child.node.exprId)
+        code += tokenCode
+      } else {
+        code += module_
+          .get(child.node)!
+          ._print(info, offset + code.length, indent, moduleOverride)
       }
     }
     const span = nodeKey(offset, code.length, this.treeType)
@@ -490,10 +505,35 @@ export class PropertyAccess extends OprApp {
     module: MutableModule,
     id: AstId | undefined,
     lhs: NodeChild<AstId> | null,
-    opr: NodeChild<Token>,
+    opr: NodeChild<Token> | undefined,
     rhs: NodeChild<AstId> | null,
   ) {
-    super(module, id, lhs, [opr], rhs)
+    const oprs = [opr ?? { whitespace: '', node: new Token('.', newTokenId(), RawAst.Token.Type.Operator) }]
+    super(module, id, lhs, oprs, rhs)
+  }
+
+  static new(
+    module: MutableModule,
+    lhs: Ast | null,
+    rhs: Token | null,
+  ): PropertyAccess {
+    const lhs_ = lhs ? { node: lhs.exprId } : null
+    const rhs_ = rhs ? { whitespace: '', node: (new Ident(module, undefined, { whitespace: '', node: rhs })).exprId } : null
+    return new PropertyAccess(module, undefined, lhs_, undefined, rhs_)
+  }
+
+  static Sequence(segments: string[], module?: MutableModule): PropertyAccess | Ident | undefined {
+    const module_ = module ?? MutableModule.Transient()
+    let path
+    for (const s of segments) {
+      const t = new Token(s, newTokenId(), RawAst.Token.Type.Ident)
+      if (!path) {
+        path = Ident.new(module_, s)
+        continue
+      }
+      path = PropertyAccess.new(module_, path, t)
+    }
+    return path
   }
 }
 
@@ -517,6 +557,12 @@ export class Generic extends Ast {
 }
 
 type MultiSegmentAppSegment = { header: NodeChild<Token>; body: NodeChild<AstId> | null }
+function multiSegmentAppSegment(header: string, body: Ast): MultiSegmentAppSegment {
+  return {
+    header: { node: new Token(header, newTokenId(), RawAst.Token.Type.Ident) },
+    body: { node: body.exprId },
+  }
+}
 
 export class Import extends Ast {
   _polyglot: MultiSegmentAppSegment | null
@@ -569,6 +615,24 @@ export class Import extends Ast {
     this._hiding = hiding
   }
 
+  static Qualified(path: string[], module?: MutableModule): Import | undefined {
+    const module_ = module ?? MutableModule.Transient()
+    const path_ = PropertyAccess.Sequence(path, module)
+    if (!path_) return
+    const import_ = multiSegmentAppSegment('import', path_)
+    return new Import(module_, undefined, null, null, import_, null, null, null)
+  }
+
+  static Unqualified(path: string[], name: string, module?: MutableModule): Import | undefined {
+    const module_ = module ?? MutableModule.Transient()
+    const path_ = PropertyAccess.Sequence(path, module)
+    if (!path_) return
+    const name_ = Ident.new(module_, name)
+    const from = multiSegmentAppSegment('from', path_)
+    const import_ = multiSegmentAppSegment('import', name_)
+    return new Import(module_, undefined, null, from, import_, null, null, null)
+  }
+
   *concreteChildren(): IterableIterator<NodeChild> {
     const segment = (segment: MultiSegmentAppSegment | null) => {
       const parts = []
@@ -606,12 +670,12 @@ export class TextLiteral extends Ast {
     this._close = close
   }
 
-  static new(rawText: string): TextLiteral {
-    const module = MutableModule.Transient()
-    const text = Token.new(escape(rawText))
-    return new TextLiteral(module, undefined, { node: Token.new("'") }, null, [{ node: text }], {
-      node: Token.new("'"),
-    })
+  static new(rawText: string, moduleIn?: MutableModule): TextLiteral {
+    const module = moduleIn ?? MutableModule.Transient()
+    const open = { node: Token.new("'") }
+    const elements = [{ whitespace: '', node: Token.new(escape(rawText)) }]
+    const close = { whitespace: '', node: Token.new("'") }
+    return new TextLiteral(module, undefined, open, null, elements, close)
   }
 
   *concreteChildren(): IterableIterator<NodeChild> {
@@ -1227,32 +1291,12 @@ export function functionBlock(module: Module, name: string): BodyBlock | null {
   return method.body
 }
 
-/*
-export function insertNewNodeAST(
-  block: BodyBlock,
-  ident: string,
-  expression: string,
-): { assignment: AstId; value: AstId } {
-  const value = RawCode.new(undefined, expression)._id
-  const assignment = Assignment.new(undefined, ident, undefined, { node: value })
-  block.pushExpression(assignment)
-  return { assignment: assignment._id, value }
-}
-
-export function deleteExpressionAST(ast: Ast) {
-  ast.delete()
-}
-
-export function replaceExpressionContentAST(id: AstId, code: string) {
-  return RawCode.new(id, code)
-}
- */
-
 export function parseTransitional(code: string, idMap: IdMap): Ast {
   const rawAst = RawAstExtended.parse(code, idMap)
   const nodes = new Map<NodeKey, AstId[]>()
   const tokens = new Map<TokenKey, TokenId>()
   const astExtended = new Map<AstId, RawAstExtended>()
+  const spans = new Map<AstId, SourceRange>()
   rawAst.visitRecursive((nodeOrToken: RawAstExtended<RawAst.Tree | RawAst.Token>) => {
     const start = nodeOrToken.span()[0]
     const length = nodeOrToken.span()[1] - nodeOrToken.span()[0]
@@ -1275,6 +1319,7 @@ export function parseTransitional(code: string, idMap: IdMap): Ast {
         id = newNodeId()
       }
       astExtended.set(id, node)
+      spans.set(id, node.span())
       const key = nodeKey(start, length, node.inner.type)
       const ids = nodes.get(key)
       if (ids !== undefined) {
@@ -1288,6 +1333,7 @@ export function parseTransitional(code: string, idMap: IdMap): Ast {
   const tokensOut = new Map()
   const newRoot = Ast.parse({ info: { nodes, tokens, tokensOut }, code })
   newRoot.module.raw.astExtended = astExtended
+  newRoot.module.raw.spans = spans
   idMap.clear()
   // TODO (optimization): Use ID-match info collected while abstracting.
   /*

@@ -15,7 +15,7 @@ import type { Opt } from '@/util/data/opt'
 import * as encoding from 'lib0/encoding'
 import * as sha256 from 'lib0/hash/sha256'
 import * as map from 'lib0/map'
-import type { ContentRange, ExprId, IdMap } from 'shared/yjsModel'
+import type { ExprId, IdMap, SourceRange } from 'shared/yjsModel'
 import { markRaw } from 'vue'
 
 type ExtractType<V, T> = T extends ReadonlyArray<infer Ts>
@@ -147,7 +147,7 @@ export class AstExtended<T extends Tree | Token = Tree | Token, HasIdMap extends
     return readAstOrTokenSpan(this.inner, this.ctx.parsedCode)
   }
 
-  span(): ContentRange {
+  span(): SourceRange {
     return parsedTreeOrTokenRange(this.inner)
   }
 

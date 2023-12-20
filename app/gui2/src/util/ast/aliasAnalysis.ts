@@ -9,7 +9,7 @@ import {
 } from '@/util/ast'
 import { MappedKeyMap, MappedSet, NonEmptyStack } from '@/util/containers'
 import type { LazyObject } from '@/util/parserSupport'
-import { IdMap, rangeIsBefore, type ContentRange } from 'shared/yjsModel'
+import { IdMap, rangeIsBefore, type SourceRange } from 'shared/yjsModel'
 
 const ACCESSOR_OPERATOR = '.'
 
@@ -32,7 +32,7 @@ class Scope {
    * @param parent The parent scope.
    */
   constructor(
-    public range?: ContentRange,
+    public range?: SourceRange,
     public parent?: Scope,
   ) {}
 
@@ -43,7 +43,7 @@ class Scope {
    * scope, so the variables are not visible before they are defined. If not provided, the lookup will include all
    * symbols from the scope.
    */
-  resolve(identifier: string, location?: ContentRange): RawAst.Token | undefined {
+  resolve(identifier: string, location?: SourceRange): RawAst.Token | undefined {
     const localBinding = this.bindings.get(identifier)
     if (
       localBinding != null &&
@@ -94,7 +94,7 @@ export function identifierKind(identifier: string): IdentifierType {
 
 export class AliasAnalyzer {
   /** All symbols that are not yet resolved (i.e. that were not bound in the analyzed tree). */
-  readonly unresolvedSymbols = new MappedSet<ContentRange>(IdMap.keyForRange)
+  readonly unresolvedSymbols = new MappedSet<SourceRange>(IdMap.keyForRange)
 
   /** The AST representation of the code. */
   readonly ast: RawAst.Tree
@@ -108,9 +108,7 @@ export class AliasAnalyzer {
   /** The stack for keeping track whether we are in a pattern or expression context. */
   private readonly contexts: NonEmptyStack<Context> = new NonEmptyStack(Context.Expression)
 
-  public readonly aliases = new MappedKeyMap<ContentRange, MappedSet<ContentRange>>(
-    IdMap.keyForRange,
-  )
+  public readonly aliases = new MappedKeyMap<SourceRange, MappedSet<SourceRange>>(IdMap.keyForRange)
 
   /**
    * @param code text representation of the code.
@@ -126,7 +124,7 @@ export class AliasAnalyzer {
   }
 
   /** Invoke the given function in a new temporary scope. */
-  withNewScopeOver(nodeOrRange: ContentRange | RawAst.Tree | RawAst.Token, f: () => undefined) {
+  withNewScopeOver(nodeOrRange: SourceRange | RawAst.Tree | RawAst.Token, f: () => undefined) {
     const range = parsedTreeOrTokenRange(nodeOrRange)
     const scope = new Scope(range, this.scopes.top)
     this.scopes.withPushed(scope, f)
@@ -145,7 +143,7 @@ export class AliasAnalyzer {
     log(() => `Binding ${identifier}@[${range}]`)
     scope.bindings.set(identifier, token)
     assert(!this.aliases.has(range), `Token at ${range} is already bound.`)
-    this.aliases.set(range, new MappedSet<ContentRange>(IdMap.keyForRange))
+    this.aliases.set(range, new MappedSet<SourceRange>(IdMap.keyForRange))
   }
 
   addConnection(source: RawAst.Token, target: RawAst.Token) {
@@ -320,7 +318,7 @@ export class AliasAnalyzer {
               ? parsedTreeOrTokenRange(arrow)[1]
               : parsedTreeOrTokenRange(pattern)[1]
 
-            const armRange: ContentRange = [armStart, armEnd]
+            const armRange: SourceRange = [armStart, armEnd]
             this.withNewScopeOver(armRange, () => {
               this.withContext(Context.Pattern, () => {
                 this.processTree(caseLine.case?.pattern)

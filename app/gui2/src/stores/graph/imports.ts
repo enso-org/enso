@@ -18,8 +18,9 @@ import {
   tryIdentifier,
   tryQualifiedName,
   type Identifier,
-  type QualifiedName,
+  type QualifiedName, qnSegments
 } from '@/util/qualifiedName'
+import type { MutableModule } from '@/util/ast/abstract'
 
 // ========================
 // === Imports analysis ===
@@ -142,13 +143,13 @@ export interface UnqualifiedImport {
   import: Identifier
 }
 
-/** Get the string representation of the required import statement. */
-export function requiredImportToText(value: RequiredImport): string {
+/** Get an AST representing the required import statement. */
+export function requiredImportToAst(module: MutableModule, value: RequiredImport): Ast.Import {
   switch (value.kind) {
     case 'Qualified':
-      return `import ${value.module}`
+      return Ast.Import.Qualified(qnSegments(value.module), module)!
     case 'Unqualified':
-      return `from ${value.from} import ${value.import}`
+      return Ast.Import.Unqualified(qnSegments(value.from), value.import, module)!
   }
 }
 

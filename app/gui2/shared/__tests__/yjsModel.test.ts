@@ -1,7 +1,7 @@
-import { rangeEncloses, rangeIntersects, type ContentRange } from 'shared/yjsModel'
+import { rangeEncloses, rangeIntersects, type SourceRange } from 'shared/yjsModel'
 import { expect, test } from 'vitest'
 
-type RangeTest = { a: ContentRange; b: ContentRange }
+type RangeTest = { a: SourceRange; b: SourceRange }
 
 const equalRanges: RangeTest[] = [
   { a: [0, 0], b: [0, 0] },

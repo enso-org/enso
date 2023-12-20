@@ -245,6 +245,20 @@ function pushPathSegment(path: Path, segment: string): Path {
   return { rootId: path.rootId, segments: [...path.segments, segment] }
 }
 
+export function deserializeIdMap(idMapJson: string) {
+  const idMapMeta = fileFormat.tryParseIdMapOrFallback(idMapJson)
+  const idMap = new IdMap()
+  for (const [{ index, size }, id] of idMapMeta) {
+    const range = [index.value, index.value + size.value]
+    if (typeof range[0] !== 'number' || typeof range[1] !== 'number') {
+      console.error(`Invalid range for id ${id}:`, range)
+      continue
+    }
+    idMap.insertKnownId([index.value, index.value + size.value], id as ExprId)
+  }
+  return idMap
+}
+
 enum LsSyncState {
   Closed,
   Opening,
@@ -475,21 +489,10 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
   private syncFileContents(content: string, version: Checksum) {
     this.doc.ydoc.transact(() => {
       const { code, idMapJson, metadataJson } = preParseContent(content)
-      const idMapMeta = fileFormat.tryParseIdMapOrFallback(idMapJson)
       const metadata = fileFormat.tryParseMetadataOrFallback(metadataJson)
       const nodeMeta = metadata.ide.node
 
-      const idMap = new IdMap()
-      for (const [{ index, size }, id] of idMapMeta) {
-        const start = index.value
-        const end = index.value + size.value
-        const range: SourceRange = [start, end]
-        if (typeof start !== 'number' || typeof end !== 'number') {
-          console.error(`Invalid range for id ${id}:`, range)
-          continue
-        }
-        idMap.insertKnownId(range, id as ExprId)
-      }
+      const idMap = idMapJson ? deserializeIdMap(idMapJson) : new IdMap()
       this.doc.setIdMap(idMap)
 
       const keysToDelete = new Set(this.doc.metadata.keys())

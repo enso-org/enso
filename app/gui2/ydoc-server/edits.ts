@@ -60,7 +60,7 @@ export function applyDocumentUpdates(
   let metaContent = META_TAG + '\n'
 
   if (idMapUpdated || synced.idMapJson == null) {
-    const idMapJson = json.stringify(idMapToArray(doc.getIdMap()))
+    const idMapJson = serializeIdMap(doc.getIdMap())
     metaContent += idMapJson + '\n'
   } else {
     metaContent += (synced.idMapJson ?? '[]') + '\n'
@@ -181,6 +181,10 @@ export function preParseContent(content: string): PreParsedContent {
   const idMapJson = metaLines[0] ?? null
   const metadataJson = metaLines[1] ?? null
   return { code, idMapJson, metadataJson }
+}
+
+export function serializeIdMap(map: IdMap): string {
+  return json.stringify(idMapToArray(map))
 }
 
 function idMapToArray(map: IdMap): fileFormat.IdMapEntry[] {

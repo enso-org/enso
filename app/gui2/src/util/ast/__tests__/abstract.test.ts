@@ -1,10 +1,8 @@
 import { Ast } from '@/util/ast'
 import * as fs from 'fs'
-import * as json from 'lib0/json'
 import { expect, test } from 'vitest'
-import { IdMap, type ExprId } from '../../../../shared/yjsModel'
-import { preParseContent } from '../../../../ydoc-server/edits'
-import * as fileFormat from '../../../../ydoc-server/fileFormat'
+import { preParseContent, serializeIdMap } from '../../../../ydoc-server/edits'
+import { deserializeIdMap } from '../../../../ydoc-server/languageServerSession'
 
 //const disabledCases = [
 //  ' a',
@@ -373,57 +371,62 @@ test.each(parseCases)('parse: %s', (testCase) => {
   expect(Ast.tokenTree(root)).toEqual(testCase.tree)
 })
 
-// TODO: Edits (#8367).
-/*
-if (false) {
-  test('insert new node', () => {
-    const code = 'main =\n    text1 = "foo"\n'
-    const root = Ast.parse(code)
-    const main = Ast.functionBlock('main')
-    expect(main).not.toBeNull()
-    insertNewNodeAST(main!, 'baz', '42')
-    const printed = root.print()
-    expect(printed.code).toEqual('main =\n    text1 = "foo"\n    baz = 42\n')
-  })
+test('insert new node', () => {
+  const code = 'main =\n    text1 = "foo"\n'
+  const root = Ast.parse(code)
+  const main = Ast.functionBlock(root.module, 'main')!
+  expect(main).not.toBeNull()
+  const edit = root.module.edit()
+  const rhs = Ast.parseExpression('42', edit)
+  const assignment = Ast.Assignment.new(edit, 'baz', rhs)
+  main.push(edit, assignment)
+  const printed = root.code(edit)
+  expect(printed).toEqual('main =\n    text1 = "foo"\n    baz = 42\n')
+})
 
-  test('replace expression content', () => {
-    const code = 'main =\n    text1 = "foo"\n'
-    const root = Ast.parse(code)
-    const main = Ast.functionBlock('main')
-    expect(main).not.toBeNull()
-    const newAssignment = insertNewNodeAST(main!, 'baz', '42')
-    replaceExpressionContentAST(newAssignment.value, '23')
-    const printed = root.print()
-    expect(printed.code).toEqual('main =\n    text1 = "foo"\n    baz = 23\n')
-  })
+test('replace expression content', () => {
+  const code = 'main =\n    text1 = "foo"\n'
+  const root = Ast.parse(code)
+  const main = Ast.functionBlock(root.module, 'main')!
+  expect(main).not.toBeNull()
+  const assignment: Ast.Assignment = main.expressions().next().value
+  expect(assignment).toBeInstanceOf(Ast.Assignment)
+  expect(assignment.expression).not.toBeNull()
+  const edit = root.module.edit()
+  const newValue = Ast.TextLiteral.new('bar', edit)
+  edit.set(assignment.expression!.exprId, newValue)
+  const printed = root.code(edit)
+  expect(printed).toEqual("main =\n    text1 = 'bar'\n")
+})
 
-  test('delete expression', () => {
-    const originalCode = 'main =\n    text1 = "foo"\n'
-    const root = Ast.parse(originalCode)
-    const main = Ast.functionBlock('main')
-    expect(main).not.toBeNull()
-    const newAssignment = insertNewNodeAST(main!, 'baz', '42')
-    deleteExpressionAST(newAssignment.assignment)
-    const printed = root.print()
-    expect(printed.code).toEqual(originalCode)
-  })
-}
- */
+test('delete expression', () => {
+  const originalCode = 'main =\n    text1 = "foo"\n    text2 = "bar"\n'
+  const root = Ast.parse(originalCode)
+  const main = Ast.functionBlock(root.module, 'main')!
+  expect(main).not.toBeNull()
+  const iter = main.expressions()
+  const _assignment1 = iter.next()
+  const assignment2: Ast.Assignment = iter.next().value
+  const edit = root.module.edit()
+  edit.delete(assignment2.exprId)
+  const printed = root.code(edit)
+  expect(printed).toEqual('main =\n    text1 = "foo"\n')
+})
 
 test('full file IdMap round trip', () => {
   const content = fs.readFileSync(__dirname + '/fixtures/stargazers.enso').toString()
   const { code, idMapJson, metadataJson: _ } = preParseContent(content)
   const idMap = deserializeIdMap(idMapJson!)
   const ast = Ast.parseTransitional(code, idMap)
-  const ast_ = Ast.parseTransitional(code, idMap)
+  const ast_ = Ast.parseTransitional(code, deserializeIdMap(idMapJson!))
   const ast2 = Ast.normalize(ast)
   const astTT = Ast.tokenTreeWithIds(ast)
   expect(ast2.code()).toBe(ast.code())
   expect(Ast.tokenTreeWithIds(ast2), 'Print/parse preserves IDs').toStrictEqual(astTT)
   expect(Ast.tokenTreeWithIds(ast_), 'All node IDs come from IdMap').toStrictEqual(astTT)
 
-  const idMapJson2 = json.stringify(idMapToArray(idMap))
-  //expect(idMapJson2).toBe(idMapJson)
+  const idMapJson2 = serializeIdMap(idMap)
+  expect(idMapJson2).toBe(idMapJson)
   const META_TAG = '\n\n\n#### METADATA ####'
   let metaContent = META_TAG + '\n'
   metaContent += idMapJson2 + '\n'
@@ -436,42 +439,3 @@ test('full file IdMap round trip', () => {
   const ast3 = Ast.parseTransitional(code_, idMap_)
   expect(Ast.tokenTreeWithIds(ast3), 'Print/parse with serialized IdMap').toStrictEqual(astTT)
 })
-
-function deserializeIdMap(idMapJson: string) {
-  const idMapMeta = fileFormat.tryParseIdMapOrFallback(idMapJson)
-  const idMap = new IdMap()
-  for (const [{ index, size }, id] of idMapMeta) {
-    const range = [index.value, index.value + size.value]
-    if (typeof range[0] !== 'number' || typeof range[1] !== 'number') {
-      console.error(`Invalid range for id ${id}:`, range)
-      continue
-    }
-    idMap.insertKnownId([index.value, index.value + size.value], id as ExprId)
-  }
-  return idMap
-}
-
-function idMapToArray(map: IdMap): fileFormat.IdMapEntry[] {
-  const entries: fileFormat.IdMapEntry[] = []
-  map.entries().forEach(([key, id]) => {
-    const decoded = IdMap.rangeForKey(key)
-    const index = decoded[0]
-    const endIndex = decoded[1]
-    if (index == null || endIndex == null) return
-    const size = endIndex - index
-    entries.push([{ index: { value: index }, size: { value: size } }, id])
-  })
-  entries.sort(idMapCmp)
-  return entries
-}
-
-function idMapCmp(a: fileFormat.IdMapEntry, b: fileFormat.IdMapEntry) {
-  const val1 = a[0]?.index?.value ?? 0
-  const val2 = b[0]?.index?.value ?? 0
-  if (val1 === val2) {
-    const size1 = a[0]?.size.value ?? 0
-    const size2 = b[0]?.size.value ?? 0
-    return size1 - size2
-  }
-  return val1 - val2
-}

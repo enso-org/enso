@@ -3,7 +3,7 @@ import { GraphDb } from '@/stores/graph/graphDatabase'
 import {
   filterOutRedundantImports,
   recognizeImport,
-  requiredImportToText,
+  requiredImportToAst,
   type Import,
   type RequiredImport,
 } from '@/stores/graph/imports'
@@ -21,9 +21,9 @@ import type { StackItem } from 'shared/languageServerTypes'
 import {
   IdMap,
   visMetadataEquals,
-  type ContentRange,
   type ExprId,
   type NodeMetadata,
+  type SourceRange,
   type VisualizationIdentifier,
   type VisualizationMetadata,
 } from 'shared/yjsModel'
@@ -45,7 +45,7 @@ export const useGraphStore = defineStore('graph', () => {
   watch(data, console.log)
   const metadata = computed(() => proj.module?.doc.metadata)
 
-  const textContent = ref(proj.module?.doc.getCode())
+  const moduleCode = ref(proj.module?.doc.getCode())
   // We need casting here, as type changes in Ref when class has private fields.
   // see https://github.com/vuejs/core/issues/2557
   const idMap = ref(proj.module?.doc.getIdMap()) as Ref<IdMap | undefined>
@@ -54,8 +54,8 @@ export const useGraphStore = defineStore('graph', () => {
 
   // Initialize text and idmap once module is loaded (data != null)
   watch(data, () => {
-    if (!textContent.value) {
-      textContent.value = proj.module?.doc.getCode()
+    if (!moduleCode.value) {
+      moduleCode.value = proj.module?.doc.getCode()
       idMap.value = proj.module?.doc.getIdMap()
       updateState()
     }
@@ -70,7 +70,7 @@ export const useGraphStore = defineStore('graph', () => {
   const vizRects = reactive(new Map<ExprId, Rect>())
   const exprRects = reactive(new Map<ExprId, Rect>())
   const editedNodeInfo = ref<NodeEditInfo>()
-  const imports = ref<{ import: Import; span: ContentRange }[]>([])
+  const imports = ref<{ import: Import; span: SourceRange }[]>([])
   const methodAst = ref<Ast.Function>()
   const currentNodeIds = ref(new Set<ExprId>())
 
@@ -79,7 +79,7 @@ export const useGraphStore = defineStore('graph', () => {
   useObserveYjs(data, (event) => {
     if (!event.changes.keys.size) return
     const code = proj.module?.doc.getCode()
-    if (code) textContent.value = code
+    if (code) moduleCode.value = code
     const ids = proj.module?.doc.getIdMap()
     if (ids) idMap.value = ids
     if (code && ids) updateState()
@@ -92,7 +92,7 @@ export const useGraphStore = defineStore('graph', () => {
     if (!idMap_) return
     module.transact(() => {
       const meta = module.doc.metadata
-      const textContentLocal = textContent.value
+      const textContentLocal = moduleCode.value
       if (!textContentLocal) return
 
       const newRoot = Ast.parseTransitional(textContentLocal, idMap_)
@@ -105,7 +105,7 @@ export const useGraphStore = defineStore('graph', () => {
         if (node instanceof Ast.Import) {
           const recognized = recognizeImport(node)
           if (recognized) {
-            imports.value.push({ import: recognized, span: node.astExtended!.span() })
+            imports.value.push({ import: recognized, span: node.span! })
           }
           return false
         }
@@ -196,26 +196,9 @@ export const useGraphStore = defineStore('graph', () => {
     }
     const edit = expressionGraph.edit()
     const importsToAdd = withImports ? filterOutRedundantImports(imports.value, withImports) : []
-    if (importsToAdd.length > 0) {
-      const imports = importsToAdd.map((info) =>
-        Ast.parseExpression(requiredImportToText(info), edit),
-      )
-      let lastImport
-      // The top level of the module is always a block.
-      const topLevel = expressionGraph.get(root)! as Ast.BodyBlock
-      for (let i = 0; i < topLevel.lines.length; i++) {
-        const line = topLevel.lines[i]!
-        if (line.expression) {
-          if (expressionGraph.get(line.expression.node)?.innerExpression() instanceof Ast.Import) {
-            lastImport = i
-          } else {
-            break
-          }
-        }
-      }
-      const position = lastImport === undefined ? 0 : lastImport + 1
-      topLevel.insert(edit, position, ...imports)
-    }
+    // The top level of the module is always a block.
+    const topLevel = expressionGraph.get(root)! as Ast.BodyBlock
+    addImports(edit, topLevel, importsToAdd)
     const currentFunc = 'main'
     const functionBlock = Ast.functionBlock(expressionGraph, currentFunc)
     if (!functionBlock) {
@@ -226,6 +209,24 @@ export const useGraphStore = defineStore('graph', () => {
     const assignment = Ast.Assignment.new(edit, ident, rhs)
     functionBlock.push(edit, assignment)
     commitEdit(edit, root, new Map([[rhs.exprId, meta]]))
+  }
+
+  function addImports(edit: MutableModule, scope: Ast.BodyBlock, importsToAdd: RequiredImport[]) {
+    if (!importsToAdd.length) return
+    const imports = importsToAdd.map((info) => requiredImportToAst(edit, info))
+    let lastImport
+    for (let i = 0; i < scope.lines.length; i++) {
+      const line = scope.lines[i]!
+      if (line.expression) {
+        if (expressionGraph.get(line.expression.node)?.innerExpression() instanceof Ast.Import) {
+          lastImport = i
+        } else {
+          break
+        }
+      }
+    }
+    const position = lastImport === undefined ? 0 : lastImport + 1
+    scope.insert(edit, position, ...imports)
   }
 
   function deleteNode(id: ExprId) {
@@ -378,6 +379,7 @@ export const useGraphStore = defineStore('graph', () => {
     unconnectedEdge,
     edges,
     currentNodeIds,
+    moduleCode,
     nodeRects,
     vizRects,
     exprRects,
