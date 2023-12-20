@@ -8,7 +8,7 @@ import * as toastify from 'react-toastify'
 import * as app from 'ensogl-runner/src/runner'
 import * as common from 'enso-common'
 import * as contentConfig from 'enso-content-config'
-import * as dashboard from 'enso-authentication'
+import * as dashboard from 'enso-dashboard'
 import * as detect from 'enso-common/src/detect'
 import * as gtag from 'enso-common/src/gtag'
 
