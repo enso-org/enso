@@ -483,7 +483,10 @@ impl IdeDesktop {
             }
             let out_dirname = output_path.try_file_name()?;
             let artifact_name = format!("enso-win-{}-installer.exe", out_dirname.to_string_lossy());
-            ide_ci::actions::artifacts::upload_single_file(&installer_path, artifact_name).await?;
+            if ide_ci::actions::workflow::is_in_env() {
+                ide_ci::actions::artifacts::upload_single_file(&installer_path, artifact_name)
+                    .await?;
+            }
         }
 
         Ok(())
