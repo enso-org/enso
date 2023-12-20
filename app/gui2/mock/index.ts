@@ -55,7 +55,7 @@ export function projectStore() {
   const projectStore = useProjectStore(getActivePinia())
   const mod = projectStore.projectModel.createNewModule('Main.enso')
   mod.doc.ydoc.emit('load', [])
-  mod.doc.contents.insert(0, 'main =\n')
+  mod.doc.setCode('main =\n')
   return projectStore
 }
 

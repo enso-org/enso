@@ -6,11 +6,14 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.net.URI;
 import java.nio.file.Paths;
 import java.util.logging.Level;
+import org.enso.polyglot.MethodNames;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
+import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.io.IOAccess;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -236,11 +239,28 @@ public class ExecCompilerTest {
     type My_Type
         Value x
 
-        foo self (y : Integer) z -> Integer = 100*z + 10*y + self.x
+        member_foo self (y : Integer) z -> Integer = 100*z + 10*y + self.x
     """);
     var instance = module.invokeMember("eval_expression", "My_Type.Value 1");
-    var result = instance.invokeMember("foo", 2, 3);
+    var result = instance.invokeMember("member_foo", 2, 3);
     assertEquals(321, result.asInt());
+  }
+
+  @Test
+  public void inlineReturnSignatureOnLocalFunction() throws Exception {
+    var module =
+        ctx.eval(
+            "enso",
+            """
+    foo x y =
+        inner_foo (z : Integer) -> Integer = 100*z + 10*y + x
+        a = 3
+        r = inner_foo a
+        r + 50000
+    """);
+    var instance = module.invokeMember("eval_expression", "foo");
+    var result = instance.execute(1, 2);
+    assertEquals(50321, result.asInt());
   }
 
   @Test
@@ -250,6 +270,54 @@ public class ExecCompilerTest {
     """);
     var result = module.invokeMember("eval_expression", "the_number");
     assertEquals("Function-return syntax can be used with 0 arguments", 23, result.asInt());
+  }
+
+  /**
+   * This test demonstrates a slightly un-intuitive, but apparently needed by our rules, behaviour
+   * of `->` with ascriptions: 1. for `foo a:Integer -> Integer` it is interpreted as foo
+   * (a:Integer) -> Integer - i.e. a function taking an Integer and returning an Integer. 2. for
+   * `foo a : Integer -> Integer`, this results in a compile error currently.
+   */
+  @Test
+  public void weirdReturnTypeSignature1() throws Exception {
+    final URI uri = new URI("memory://rts.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+    from Standard.Base import Integer
+    foo a:Integer -> Integer = a+10
+    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var foo = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo");
+    assertEquals(11, foo.execute(1).asInt());
+  }
+
+  @Test
+  public void weirdReturnTypeSignature2() throws Exception {
+    final URI uri = new URI("memory://rts.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+    from Standard.Base import Integer
+    foo a : Integer -> Integer = a+10
+    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    try {
+      var module = ctx.eval(src);
+      var foo = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo");
+      fail("Compiler error was expected, but foo evaluated successfully as: " + foo);
+    } catch (PolyglotException ex) {
+      assertEquals("Compile error: The name `foo` could not be found.", ex.getMessage());
+    }
   }
 
   @Test
