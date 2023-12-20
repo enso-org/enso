@@ -1449,6 +1449,8 @@ def customFrgaalJavaCompilerSettings(targetJdk: String) = Seq(
   Compile / javacOptions ++= Seq(
     "-source",
     frgaalSourceLevel,
+    "-target",
+    "11",
     "--enable-preview"
   )
 )

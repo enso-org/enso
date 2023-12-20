@@ -12,12 +12,23 @@
                 <groupId>org.apache.netbeans.utilities</groupId>
                 <artifactId>nbm-maven-plugin</artifactId>
                 <extensions>true</extensions>
-                <version>4.7</version>
+                <version>4.8</version>
                 <configuration>
                     <useOSGiDependencies>true</useOSGiDependencies>
                     <author>Enso.org</author>
                     <licenseName>Apache 2.0</licenseName>
                     <licenseFile>../../LICENSE</licenseFile>
+                    <nbmResources>
+                        <nbmResource>
+                      <directory>../../lib/rust/parser/target/scala-2.13/classes/</directory>
+                      <targetPath>modules/ext/org.enso.tools.enso4igv/org-enso-engine/</targetPath>
+                      <includes>
+                        <include>*.dll</include>
+                        <include>*.so</include>
+                        <include>*.dylib</include>
+                      </includes>
+                        </nbmResource>
+                    </nbmResources>
                 </configuration>
             </plugin>
             <plugin>
@@ -214,6 +225,25 @@
         </dependency>
         <dependency>
             <groupId>org.netbeans.api</groupId>
+            <artifactId>org-netbeans-api-lsp</artifactId>
+            <version>RELEASE160</version>
+            <type>jar</type>
+        </dependency>
+        <dependency>
+            <!--
+                $ sbt runtime-parser/assembly
+                $ mvn install:install-file
+                    -Dfile=engine/runtime-parser/target/scala-2.13/runtime-parser-assembly-0.0.0-dev.jar
+                    -DgroupId=org.enso.engine -DartifactId=runtime-parser
+                    -Dpackaging=jar -Dversion=1.0-SNAPSHOT
+            -->
+            <groupId>org.enso.engine</groupId>
+            <artifactId>runtime-parser</artifactId>
+            <version>1.0-SNAPSHOT</version>
+            <type>jar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.netbeans.api</groupId>
             <artifactId>org-netbeans-modules-nbjunit</artifactId>
             <version>${netbeans.version}</version>
             <scope>test</scope>
@@ -231,6 +261,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <netbeans.version>RELEASE113</netbeans.version>
         <netbeans.compile.on.save>none</netbeans.compile.on.save>
+        <enso.root>${basedir}/../../</enso.root>
     </properties>
     <profiles>
         <profile>

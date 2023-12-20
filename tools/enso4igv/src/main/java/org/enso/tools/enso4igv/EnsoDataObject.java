@@ -23,7 +23,8 @@ import org.openide.windows.TopComponent;
 @MIMEResolver.ExtensionRegistration(
         displayName = "#LBL_Enso_LOADER",
         mimeType = "application/x-enso",
-        extension = {"enso"}
+        extension = {"enso"},
+        position = 300
 )
 @GrammarRegistration(mimeType = "application/x-enso", grammar = "enso.tmLanguage.json")
 @DataObject.Registration(

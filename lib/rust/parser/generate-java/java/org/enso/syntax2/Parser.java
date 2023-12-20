@@ -1,10 +1,14 @@
 package org.enso.syntax2;
 
 import java.io.File;
+import java.io.IOException;
+import java.net.JarURLConnection;
 import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public final class Parser implements AutoCloseable {
   static {
@@ -21,10 +25,17 @@ public final class Parser implements AutoCloseable {
     File parser = null;
     try {
       var whereAmI = Parser.class.getProtectionDomain().getCodeSource().getLocation();
+        try {
+          if ("jar".equals(whereAmI.getProtocol()) && whereAmI.openConnection() instanceof JarURLConnection jar) {
+            whereAmI = jar.getJarFileURL();
+          }
+        } catch (IOException ex) {
+          // go on
+        }
       File dir = new File(whereAmI.toURI()).getParentFile();
       parser = new File(dir, name);
       System.load(parser.getAbsolutePath());
-    } catch (URISyntaxException | LinkageError e) {
+    } catch (IllegalArgumentException | URISyntaxException | LinkageError e) {
       File root = new File(".").getAbsoluteFile();
       if (!searchFromDirToTop(e, root, "target", "rust", "debug", name)) {
         throw new IllegalStateException("Cannot load parser from " + parser, e);
