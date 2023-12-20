@@ -29,9 +29,10 @@ import { colorFromString } from '@/util/colors'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import * as set from 'lib0/set'
+import { toast } from 'react-toastify'
 import type { ExprId, NodeMetadata } from 'shared/yjsModel'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
-import { toast } from 'vue3-toastify'
+import { ProjectManagerEvents } from '../../../ide-desktop/lib/dashboard/src/authentication/src/dashboard/projectManager'
 import { type Usage } from './ComponentBrowser/input'
 
 const EXECUTION_MODES = ['design', 'live']
@@ -51,24 +52,53 @@ const componentBrowserUsage = ref<Usage>({ type: 'newNode' })
 const suggestionDb = useSuggestionDbStore()
 const interaction = provideInteractionHandler()
 
+/// === UI Messages and Errors ===
 function initStartupToast() {
   const startupToast = toast.info('Initializing the project. This can take up to one minute.', {
     autoClose: false,
   })
   projectStore.firstExecution.then(() => {
-    if (startupToast != null) {
-      toast.remove(startupToast)
-    }
+    toast.dismiss(startupToast)
   })
   onUnmounted(() => {
-    if (startupToast != null) {
-      toast.remove(startupToast)
-    }
+    toast.dismiss(startupToast)
   })
 }
 
+function initiConnectionLostToast() {
+  let connectionLostToast = 'connectionLostToast'
+  document.addEventListener(
+    ProjectManagerEvents.loadingFailed,
+    () => {
+      toast.error('Lost connection to Language Server.', {
+        autoClose: false,
+        toastId: connectionLostToast,
+      })
+    },
+    { once: true },
+  )
+  onUnmounted(() => {
+    toast.dismiss(connectionLostToast)
+  })
+}
+
+projectStore.lsRpcConnection.catch((err) => {
+  toast.error(`Connection to language server failed: ${err}`)
+})
+
+projectStore.lsRpcConnection.then((ls) => {
+  ls.client.onError((err) => {
+    toast.error(`Language server error: ${err}`)
+  })
+})
+
+projectStore.executionContext.on('executionFailed', (err) => {
+  toast.error(`Execution Failed: ${err}`, {})
+})
+
 onMounted(() => {
   initStartupToast()
+  initiConnectionLostToast()
 })
 
 const nodeSelection = provideGraphSelection(graphNavigator, graphStore.nodeRects, {
@@ -543,14 +573,6 @@ function handleEdgeDrop(source: ExprId, position: Vec2) {
     @dragover.prevent
     @drop.prevent="handleFileDrop($event)"
   >
-    <ToastContainer
-      position="top-center"
-      theme="light"
-      closeOnClick="false"
-      draggable="false"
-      toastClassName="text-sm leading-170 bg-frame-selected rounded-2xl backdrop-blur-3xl"
-      transition="Vue-Toastification__bounce"
-    />
     <div :style="{ transform: graphNavigator.transform }" class="htmlLayer">
       <GraphNodes
         @nodeOutputPortDoubleClick="handleNodeOutputPortDoubleClick"
