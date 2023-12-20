@@ -42,22 +42,22 @@ export const useGraphStore = defineStore('graph', () => {
   proj.setObservedFileName('Main.enso')
 
   const data = computed(() => proj.module?.doc.data)
+  watch(data, console.log)
   const metadata = computed(() => proj.module?.doc.metadata)
 
-  const textContent = ref<string>()
-  const idMap = ref<IdMap>()
+  const textContent = ref(proj.module?.doc.getCode())
+  const idMap = ref(proj.module?.doc.getIdMap())
   const expressionGraph: Module = MutableModule.Observable()
   const moduleRoot = ref<AstId>()
-  watch(
-    () => data,
-    () => {
-      if (!textContent.value) {
-        textContent.value = proj.module?.doc.getCode()
-        idMap.value = proj.module?.doc.getIdMap()
-        updateState()
-      }
-    },
-  )
+
+  // Initialize text and idmap once module is loaded (data != null)
+  watch(data, () => {
+    if (!textContent.value) {
+      textContent.value = proj.module?.doc.getCode()
+      idMap.value = proj.module?.doc.getIdMap()
+      updateState()
+    }
+  })
 
   const db = new GraphDb(
     suggestionDb.entries,
