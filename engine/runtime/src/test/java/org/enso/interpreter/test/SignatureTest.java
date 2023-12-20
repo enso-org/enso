@@ -1114,12 +1114,16 @@ public class SignatureTest extends TestBase {
       var res = foo_bad.execute(n);
       fail("Expecting an exception, not: " + res);
     } catch (PolyglotException e) {
-      assertEquals("Type error: expected the result of `foo_bad` to be Integer, but got Text.", e.getMessage());
+      assertEquals(
+          "Type error: expected the result of `foo_bad` to be Integer, but got Text.",
+          e.getMessage());
     }
   }
 
   static void assertTypeError(String expArg, String expType, String realType, String msg) {
-    assertEquals("Type error: expected " + expArg + " to be " + expType + ", but got " + realType + ".", msg);
+    assertEquals(
+        "Type error: expected " + expArg + " to be " + expType + ", but got " + realType + ".",
+        msg);
   }
 
   private static void assertContains(String exp, String msg) {
