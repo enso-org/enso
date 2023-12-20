@@ -5,7 +5,6 @@ import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Errors.Common.Additional_Warnings
 import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
-import Standard.Base.Errors.Common.No_Such_Method
 import Standard.Base.Errors.Common.Not_Found
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Common.Unsupported_Argument_Types
@@ -221,7 +220,7 @@ type_spec name alter = Test.group name <|
         vec.filter (Filter_Condition.Is_In []) . should_equal []
         vec.filter (Filter_Condition.Not_In [7, 3, 2, 2]) . should_equal [1, 4, 5]
 
-        Test.expect_panic_with (vec.filter (Filter_Condition.Starts_With "a")) No_Such_Method
+        Test.expect_panic_with (vec.filter (Filter_Condition.Starts_With "a")) Type_Error
         vec.filter Filter_Condition.Is_True . should_equal []
         vec.filter Filter_Condition.Is_False . should_equal []
         vec.filter Filter_Condition.Is_Nothing . should_equal []
@@ -297,6 +296,10 @@ type_spec name alter = Test.group name <|
         numvec.filter Filter_Condition.Is_Nan . map .to_text . should_equal ["NaN"]
         numvec.filter Filter_Condition.Is_Infinite . should_equal [Number.positive_infinity, Number.negative_infinity]
         numvec.filter Filter_Condition.Is_Finite . should_equal [1, 2.5, 0]
+
+        Test.expect_panic Type_Error (txtvec.filter Filter_Condition.Is_Finite)
+
+        (alter [2, "a"]).filter (Filter_Condition.Greater 1) . should_fail_with Incomparable_Values
 
     Test.specify "should allow Nothing when filtering by Filter_Condition" <|
         (alter [1, 2, Nothing, 3]).filter (Filter_Condition.Greater 2) . should_equal [3]
