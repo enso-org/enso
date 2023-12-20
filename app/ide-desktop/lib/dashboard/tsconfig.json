@@ -5,6 +5,6 @@
     "composite": true,
     "noEmit": false,
     "outDir": "../../../../node_modules/.cache/tsc",
-    "paths": { "@/*": ["./src/*"] }
+    "paths": { "#/*": ["./src/*"] }
   }
 }
