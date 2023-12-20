@@ -7,21 +7,15 @@ edition = "2021"
 
 [dependencies]
 chrono = { workspace = true }
-#dirs = { wor   kspace = true }
-#dirs-sys = "0.4.1"
 enso-build-base = { path = "../../base" }
 enso-build = { path = "../../build" }
 enso-install = { path = ".." }
 flate2 = { workspace = true }
 ide-ci = { path = "../../ci_utils" }
-#indicatif = { workspace = true }
-#mslnk = "0.1.8"
-#strum = { workspace = true }
 tar = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
-windows =  { workspace = true }
-winreg = { workspace = true }
+windows = { workspace = true }
 
 [build-dependencies]
 embed-resource = "2.4.0"
