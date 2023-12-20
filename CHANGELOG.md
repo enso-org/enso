@@ -593,6 +593,8 @@
 - [Added `Table.format` for the in-memory backend.][8150]
 - [Implemented truncate `Date_Time` for database backend (Postgres only).][8235]
 - [Initial Enso Cloud APIs.][8006]
+- [Renamed `replace` to `text_replace` and renamed `lookup_and_replace` to
+  `merge` on `Table`.][8564]
 - [Errors thrown inside `map` are wrapped in `Map_Error`.][8307]
 - [Support for loading big Excel files.][8403]
 - [Added new `Filter_Condition`s - `Equal_Ignore_Case`, `Is_Nan`, `Is_Infinite`
@@ -855,6 +857,7 @@
 [8307]: https://github.com/enso-org/enso/pull/8307
 [8403]: https://github.com/enso-org/enso/pull/8403
 [8539]: https://github.com/enso-org/enso/pull/8539
+[8564]: https://github.com/enso-org/enso/pull/8564
 
 #### Enso Compiler
 
