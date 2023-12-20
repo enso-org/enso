@@ -354,7 +354,7 @@ Sources, BinaryForSourceQueryImplementation2<EnsoSbtClassPathProvider.EnsoSource
         public FileObject getRootFolder() {
             var arr = srcCp.getRoots();
             if (arr.length == 0) {
-                LOG.log(Level.SEVERE, "srcCp is empty for {0}", this);
+                LOG.log(Level.SEVERE, "Source classpath is empty for {0}", this);
                 return output;
             }
             return arr[0];
