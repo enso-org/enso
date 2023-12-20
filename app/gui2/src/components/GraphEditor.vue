@@ -433,7 +433,7 @@ async function retrieveDataFromClipboard(): Promise<ClipboardData | undefined> {
           return excelPayload
         }
       }
-      
+
       if (type === 'text/plain') {
         const blob = await clipboardItem.getType(type)
         const fallbackExpression = await blob.text()
@@ -467,15 +467,22 @@ async function readNodeFromClipboard() {
   )
 }
 
-async function readNodeFromExcelClipboard(htmlContent: string, clipboardItem: ClipboardItem): Promise<ClipboardData | undefined> {
+async function readNodeFromExcelClipboard(
+  htmlContent: string,
+  clipboardItem: ClipboardItem,
+): Promise<ClipboardData | undefined> {
   // Check we have a valid HTML table
   // If it is Excel, we should have a plain-text version of the table with tab separators.
-  if (clipboardItem.types.includes("text/plain") && htmlContent.startsWith("<table ") && htmlContent.endsWith("</table>")) {
-    const textData = await clipboardItem.getType("text/plain")
+  if (
+    clipboardItem.types.includes('text/plain') &&
+    htmlContent.startsWith('<table ') &&
+    htmlContent.endsWith('</table>')
+  ) {
+    const textData = await clipboardItem.getType('text/plain')
     const text = await textData.text()
-    const payload = JSON.stringify(text).replaceAll(/^"|"$/g, "").replaceAll("'", "\\'")
+    const payload = JSON.stringify(text).replaceAll(/^"|"$/g, '').replaceAll("'", "\\'")
     const expression = `'${payload}'.to Table`
-    return { nodes: [ {expression: expression, metadata: undefined } ] } as ClipboardData
+    return { nodes: [{ expression: expression, metadata: undefined }] } as ClipboardData
   }
   return undefined
 }
