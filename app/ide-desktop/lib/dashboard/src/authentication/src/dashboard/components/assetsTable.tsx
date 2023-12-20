@@ -11,6 +11,7 @@ import * as backendModule from '../backend'
 import * as columnModule from '../column'
 import * as dateTime from '../dateTime'
 import * as drag from '../drag'
+import * as fileInfo from '../../fileInfo'
 import * as hooks from '../../hooks'
 import * as localStorageModule from '../localStorage'
 import * as localStorageProvider from '../../providers/localStorage'
@@ -293,8 +294,15 @@ export default function AssetsTable(props: AssetsTableProps) {
             return null
         } else {
             return (node: assetTreeNode.AssetTreeNode) => {
+                const assetType =
+                    node.item.type === backendModule.AssetType.directory
+                        ? 'folder'
+                        : String(node.item.type)
+                const assetExtension = fileInfo.fileExtension(node.item.title)
+                const assetModifiedAt = new Date(node.item.modifiedAt)
                 const labels: string[] = node.item.labels ?? []
                 const lowercaseName = node.item.title.toLowerCase()
+                const lowercaseDescription = node.item.description?.toLowerCase() ?? ''
                 const owners =
                     node.item.permissions
                         ?.filter(
@@ -316,9 +324,37 @@ export default function AssetsTable(props: AssetsTableProps) {
                         case 'labels': {
                             return labels.length === 0
                         }
+                        case 'name': {
+                            // Should never be true, but handle it just in case.
+                            return lowercaseName === ''
+                        }
+                        case 'description': {
+                            return lowercaseDescription === ''
+                        }
+                        case 'extension': {
+                            // Should never be true, but handle it just in case.
+                            return assetExtension === ''
+                        }
                     }
                     // Things like `no:name` and `no:owner` are never true.
                     return false
+                }
+                const parseDate = (date: string) => {
+                    const lowercase = date.toLowerCase()
+                    switch (lowercase) {
+                        case 'today': {
+                            return new Date()
+                        }
+                    }
+                    return new Date(date)
+                }
+                const matchesDate = (date: string) => {
+                    const parsed = parseDate(date)
+                    return (
+                        parsed.getFullYear() === assetModifiedAt.getFullYear() &&
+                        parsed.getMonth() === assetModifiedAt.getMonth() &&
+                        parsed.getDate() === assetModifiedAt.getDate()
+                    )
                 }
                 return (
                     query.nos.every(noSet => noSet.some(no => isAbsent(no.toLowerCase()))) &&
@@ -343,6 +379,30 @@ export default function AssetsTable(props: AssetsTableProps) {
                     query.labels.every(labelSet =>
                         labelSet.some(label => labels.includes(label))
                     ) &&
+                    query.types.every(typeSet => typeSet.some(type => type === assetType)) &&
+                    query.negativeTypes.every(
+                        typeSet => !typeSet.some(type => type === assetType)
+                    ) &&
+                    query.extensions.every(extensionSet =>
+                        extensionSet.some(extension => extension === assetExtension)
+                    ) &&
+                    query.negativeExtensions.every(
+                        extensionSet =>
+                            !extensionSet.some(extension => extension === assetExtension)
+                    ) &&
+                    query.descriptions.every(descriptionSet =>
+                        descriptionSet.some(description =>
+                            lowercaseDescription.includes(description.toLowerCase())
+                        )
+                    ) &&
+                    query.negativeDescriptions.every(
+                        descriptionSet =>
+                            !descriptionSet.some(description =>
+                                lowercaseDescription.includes(description.toLowerCase())
+                            )
+                    ) &&
+                    query.modifieds.every(modifiedSet => modifiedSet.some(matchesDate)) &&
+                    query.negativeModifieds.every(modifiedSet => !modifiedSet.some(matchesDate)) &&
                     query.negativeLabels.every(
                         labelSet => !labelSet.some(label => labels.includes(label))
                     ) &&

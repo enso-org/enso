@@ -23,13 +23,12 @@ function interpolateRegex(regex: RegExp) {
 type Mutable<T> = { -readonly [K in keyof T]: T[K] }
 
 /** An {@link AssetQuery}, without the query and methods. */
-interface AssetQueryData
-    extends Mutable<Omit<AssetQuery, 'add' | 'delete' | 'query' | 'toString'>> {}
+interface AssetQueryData extends Mutable<Pick<AssetQuery, keyof AssetQuery & `${string}s`>> {}
 
 /** An {@link AssetQuery}, without the query and methods, and with all the values being `string[]`s
  * instead of `string[][]`s, representing the last term rather than all terms. */
 interface AssetQueryLastTermData
-    extends Record<Exclude<keyof AssetQuery, 'add' | 'delete' | 'query' | 'toString'>, string[]> {}
+    extends Record<Extract<keyof AssetQuery, `${string}s`>, string[]> {}
 
 /** An individual segment of a query string input to {@link AssetQuery}. */
 interface AssetQueryTerm {
@@ -50,11 +49,19 @@ export class AssetQuery {
         'negativeKeywords',
         'labels',
         'negativeLabels',
+        'types',
+        'negativeTypes',
+        'extensions',
+        'negativeExtensions',
+        'descriptions',
+        'negativeDescriptions',
+        'modifieds',
+        'negativeModifieds',
         'owners',
         'negativeOwners',
         'nos',
         'negativeNos',
-    ] as const
+    ] as const satisfies readonly (keyof AssetQueryData)[]
     // `key` MUST be a string literal type.
     // eslint-disable-next-line no-restricted-syntax
     static tagNames = [
@@ -62,13 +69,21 @@ export class AssetQuery {
         ['negativeKeywords', '-'],
         ['names', 'name'],
         ['negativeNames', '-name'],
+        ['types', 'type'],
+        ['negativeTypes', '-type'],
+        ['extensions', 'extension'],
+        ['negativeExtensions', '-extension'],
+        ['descriptions', 'description'],
+        ['negativeDescriptions', '-description'],
+        ['modifieds', 'modified'],
+        ['negativeModifieds', '-modified'],
         ['labels', 'label'],
         ['negativeLabels', '-label'],
         ['owners', 'owner'],
         ['negativeOwners', '-owner'],
         ['nos', 'no'],
         ['negativeNos', 'has'],
-    ] as const
+    ] as const satisfies readonly (readonly [keyof AssetQueryData, string | null])[]
 
     query
 
@@ -81,6 +96,14 @@ export class AssetQuery {
         readonly negativeNames: string[][],
         readonly labels: string[][],
         readonly negativeLabels: string[][],
+        readonly types: string[][],
+        readonly negativeTypes: string[][],
+        readonly extensions: string[][],
+        readonly negativeExtensions: string[][],
+        readonly descriptions: string[][],
+        readonly negativeDescriptions: string[][],
+        readonly modifieds: string[][],
+        readonly negativeModifieds: string[][],
         readonly owners: string[][],
         readonly negativeOwners: string[][],
         readonly nos: string[][],
@@ -134,6 +157,14 @@ export class AssetQuery {
         const negativeNames: string[][] = []
         const labels: string[][] = []
         const negativeLabels: string[][] = []
+        const types: string[][] = []
+        const negativeTypes: string[][] = []
+        const extensions: string[][] = []
+        const negativeExtensions: string[][] = []
+        const descriptions: string[][] = []
+        const negativeDescriptions: string[][] = []
+        const modifieds: string[][] = []
+        const negativeModifieds: string[][] = []
         const owners: string[][] = []
         const negativeOwners: string[][] = []
         const nos: string[][] = []
@@ -147,6 +178,18 @@ export class AssetQuery {
             '-name': negativeNames,
             label: labels,
             '-label': negativeLabels,
+            type: types,
+            '-type': negativeTypes,
+            extension: extensions,
+            '-extension': negativeExtensions,
+            ext: extensions,
+            '-ext': negativeExtensions,
+            description: descriptions,
+            '-description': negativeDescriptions,
+            desc: descriptions,
+            '-desc': negativeDescriptions,
+            modified: modifieds,
+            '-modified': negativeModifieds,
             owner: owners,
             '-owner': negativeOwners,
             no: nos,
@@ -167,6 +210,14 @@ export class AssetQuery {
             negativeNames,
             labels,
             negativeLabels,
+            types,
+            negativeTypes,
+            extensions,
+            negativeExtensions,
+            descriptions,
+            negativeDescriptions,
+            modifieds,
+            negativeModifieds,
             owners,
             negativeOwners,
             nos,
@@ -319,6 +370,14 @@ export class AssetQuery {
                 updates.negativeNames ?? this.negativeNames,
                 updates.labels ?? this.labels,
                 updates.negativeLabels ?? this.negativeLabels,
+                updates.types ?? this.types,
+                updates.negativeTypes ?? this.negativeTypes,
+                updates.extensions ?? this.extensions,
+                updates.negativeExtensions ?? this.negativeExtensions,
+                updates.descriptions ?? this.descriptions,
+                updates.negativeDescriptions ?? this.negativeDescriptions,
+                updates.modifieds ?? this.modifieds,
+                updates.negativeModifieds ?? this.negativeModifieds,
                 updates.owners ?? this.owners,
                 updates.negativeOwners ?? this.negativeOwners,
                 updates.nos ?? this.nos,
