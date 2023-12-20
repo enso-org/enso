@@ -43,7 +43,7 @@ type Lookup_Column
    It also reports any errors or warnings related to selecting these columns.
 prepare_columns_for_lookup base_table lookup_table key_columns_selector add_new_columns allow_unmatched_rows on_problems =
     key_columns = base_table.select_columns key_columns_selector . column_names . catch No_Output_Columns _->
-        Error.throw (Illegal_Argument.Error "At least one key column must be provided for `lookup_and_replace`.")
+        Error.throw (Illegal_Argument.Error "At least one key column must be provided for `merge`.")
     lookup_table_key_columns = lookup_table.select_columns key_columns . catch Missing_Input_Columns error->
         Error.throw (Missing_Input_Columns.Error error.criteria "the lookup table")
 
