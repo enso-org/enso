@@ -66,6 +66,7 @@ export type WidgetConfiguration =
   | TextInput
   | FolderBrowse
   | FileBrowse
+  | FunctionCall
 
 export interface VectorEditor {
   kind: 'Vector_Editor'
@@ -107,6 +108,11 @@ export interface SingleChoice {
   values: Choice[]
 }
 
+export interface FunctionCall {
+  kind: 'FunctionCall'
+  parameters: Map<string, (WidgetConfiguration & WithDisplay) | null>
+}
+
 export const widgetConfigurationSchema: z.ZodType<
   WidgetConfiguration & WithDisplay,
   z.ZodTypeDef,
@@ -145,3 +151,10 @@ export type ArgumentWidgetConfiguration = z.infer<typeof argumentSchema>
 
 export const argsWidgetConfigurationSchema = z.array(argumentSchema)
 export type ArgsWidgetConfiguration = z.infer<typeof argsWidgetConfigurationSchema>
+
+export function functionCallConfiguration(parameters: ArgumentWidgetConfiguration[]): FunctionCall {
+  return {
+    kind: 'FunctionCall',
+    parameters: new Map(parameters),
+  }
+}

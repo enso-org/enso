@@ -2,7 +2,7 @@
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { injectPortInfo } from '@/providers/portInfo'
 import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
-import { ApplicationKind, ArgumentAst, ArgumentPlaceholder } from '@/util/callTree'
+import { ApplicationKind, SoCalledExpression } from '@/util/callTree'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
@@ -10,22 +10,22 @@ const props = defineProps(widgetProps(widgetDefinition))
 const portInfo = injectPortInfo(true)
 const showArgumentValue = computed(() => {
   return (
-    props.input instanceof ArgumentAst &&
+    props.input.ast &&
     (portInfo == null || !portInfo.connected || portInfo.portId !== props.input.ast.astId)
   )
 })
 
-const placeholder = computed(() => props.input instanceof ArgumentPlaceholder)
+const placeholder = computed(() => props.input.isPlaceholder())
 const primary = computed(() => props.nesting < 2)
 </script>
 
 <script lang="ts">
-export const widgetDefinition = defineWidget([ArgumentPlaceholder, ArgumentAst], {
+export const widgetDefinition = defineWidget(SoCalledExpression, {
   priority: 1000,
   score: (props) =>
-    props.input.info != null &&
-    (props.input instanceof ArgumentPlaceholder ||
-      (props.nesting < 2 && props.input.kind === ApplicationKind.Prefix))
+    props.input.arg?.info != null &&
+    (props.input.isPlaceholder() ||
+      (props.nesting < 2 && props.input.arg.appKind === ApplicationKind.Prefix))
       ? Score.Perfect
       : Score.Mismatch,
 })
@@ -34,10 +34,10 @@ export const widgetDefinition = defineWidget([ArgumentPlaceholder, ArgumentAst],
 <template>
   <span class="WidgetArgumentName" :class="{ placeholder, primary }">
     <template v-if="showArgumentValue">
-      <span class="value">{{ props.input.info!.name }}</span
+      <span class="value">{{ props.input.arg?.info.name }}</span
       ><NodeWidget :input="props.input" />
     </template>
-    <template v-else>{{ props.input.info!.name }}</template>
+    <template v-else>{{ props.input.arg?.info.name }}</template>
   </span>
 </template>
 

@@ -1,5 +1,4 @@
 import { createContextStore } from '@/providers'
-import { type WidgetConfiguration } from '@/providers/widgetRegistry/configuration'
 import type { GraphDb } from '@/stores/graph/graphDatabase'
 import { computed, shallowReactive, type Component, type PropType } from 'vue'
 
@@ -284,6 +283,9 @@ export class WidgetRegistry {
       }
     }
     // Once we've checked all widgets, return the best match found, if any.
+    if (best == null) {
+      console.warn(props.input)
+    }
     return best
   }
 }

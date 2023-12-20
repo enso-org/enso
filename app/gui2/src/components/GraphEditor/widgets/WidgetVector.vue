@@ -3,18 +3,12 @@ import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import ListWidget from '@/components/widgets/ListWidget.vue'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
-import type { WidgetConfiguration } from '@/providers/widgetRegistry/configuration'
 import { useGraphStore } from '@/stores/graph'
 import { Ast, RawAst } from '@/util/ast'
 import { SoCalledExpression } from '@/util/callTree'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
-
-interface ItemModel {
-  ast: Ast.Ast
-  config?: WidgetConfiguration | undefined
-}
 
 const itemConfig = computed(() =>
   props.input.widgetConfig?.kind === 'Vector_Editor'

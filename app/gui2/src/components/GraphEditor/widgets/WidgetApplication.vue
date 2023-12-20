@@ -10,6 +10,7 @@ const props = defineProps(widgetProps(widgetDefinition))
 const targetMaybePort = computed(() =>
   props.input.target instanceof Ast.Ast ? new ForcePort(props.input.target) : props.input.target,
 )
+Ast
 </script>
 
 <script lang="ts">

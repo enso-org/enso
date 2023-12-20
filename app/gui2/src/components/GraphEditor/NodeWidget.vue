@@ -8,6 +8,7 @@ import {
   usageKeyForInput,
 } from '@/providers/widgetUsageInfo'
 import { Ast } from '@/util/ast'
+import { SoCalledExpression } from '@/util/callTree'
 import type { Opt } from '@/util/data/opt'
 import { computed, proxyRefs } from 'vue'
 
@@ -37,13 +38,14 @@ const sameInputParentWidgets = computed(() =>
 const nesting = computed(() => (parentUsageInfo?.nesting ?? 0) + (props.nest === true ? 1 : 0))
 
 const selectedWidget = computed(() => {
-  return registry.select(
+  const selected = registry.select(
     {
       input: props.input,
       nesting: nesting.value,
     },
     sameInputParentWidgets.value,
   )
+  return selected
 })
 provideWidgetUsageInfo(
   proxyRefs({

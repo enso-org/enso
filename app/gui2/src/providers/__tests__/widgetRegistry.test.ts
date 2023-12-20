@@ -6,12 +6,12 @@ import {
   type WidgetInput,
   type WidgetModule,
 } from '@/providers/widgetRegistry'
-import { DisplayMode, widgetConfigurationSchema } from '@/providers/widgetRegistry/configuration'
 import { GraphDb } from '@/stores/graph/graphDatabase'
 import { Ast } from '@/util/ast'
-import { ApplicationKind, ArgumentPlaceholder } from '@/util/callTree'
+import { ApplicationKind, SoCalledExpression } from '@/util/callTree'
 import { describe, expect, test } from 'vitest'
 import { defineComponent } from 'vue'
+import { DisplayMode, argsWidgetConfigurationSchema } from '../widgetRegistry/configuration'
 
 describe('WidgetRegistry', () => {
   function makeMockWidget<T extends WidgetInput>(
@@ -33,7 +33,7 @@ describe('WidgetRegistry', () => {
 
   const widgetB = makeMockWidget(
     'B',
-    defineWidget(ArgumentPlaceholder, {
+    defineWidget(SoCalledExpression, {
       priority: 2,
     }),
   )
@@ -56,16 +56,16 @@ describe('WidgetRegistry', () => {
 
   const someAst = Ast.parse('foo')
   const blankAst = Ast.parse('_')
-  const somePlaceholder = new ArgumentPlaceholder(
-    0,
-    {
+  const somePlaceholder = new SoCalledExpression(undefined, undefined, {
+    index: 0,
+    info: {
       name: 'foo',
       type: 'Any',
       isSuspended: false,
       hasDefault: false,
     },
-    ApplicationKind.Prefix,
-  )
+    appKind: ApplicationKind.Prefix,
+  })
 
   const mockGraphDb = GraphDb.Mock()
   const registry = new WidgetRegistry(mockGraphDb)
@@ -75,19 +75,16 @@ describe('WidgetRegistry', () => {
   registry.registerWidgetModule(widgetD)
 
   test('selects a widget based on the input type', () => {
-    const forAst = registry.select({ input: someAst, config: undefined, nesting: 0 })
-    const forArg = registry.select({ input: somePlaceholder, config: undefined, nesting: 0 })
+    const forAst = registry.select({ input: someAst, nesting: 0 })
+    const forArg = registry.select({ input: somePlaceholder, nesting: 0 })
     expect(forAst).toStrictEqual(widgetA)
     expect(forArg).toStrictEqual(widgetB)
   })
 
   test('selects a widget outside of the excluded set', () => {
-    const forAst = registry.select(
-      { input: someAst, config: undefined, nesting: 0 },
-      new Set([widgetA.default]),
-    )
+    const forAst = registry.select({ input: someAst, nesting: 0 }, new Set([widgetA.default]))
     const forArg = registry.select(
-      { input: somePlaceholder, config: undefined, nesting: 0 },
+      { input: somePlaceholder, nesting: 0 },
       new Set([widgetB.default]),
     )
     expect(forAst).toStrictEqual(widgetC)
@@ -96,7 +93,7 @@ describe('WidgetRegistry', () => {
 
   test('returns undefined when all options are exhausted', () => {
     const selected = registry.select(
-      { input: someAst, config: undefined, nesting: 0 },
+      { input: someAst, nesting: 0 },
       new Set([widgetA.default, widgetC.default]),
     )
     expect(selected).to.be.undefined
@@ -104,11 +101,11 @@ describe('WidgetRegistry', () => {
 
   test('prefers low priority perfect over good high priority', () => {
     const selectedFirst = registry.select(
-      { input: blankAst, config: undefined, nesting: 0 },
+      { input: blankAst, nesting: 0 },
       new Set([widgetA.default]),
     )
     const selectedNext = registry.select(
-      { input: blankAst, config: undefined, nesting: 0 },
+      { input: blankAst, nesting: 0 },
       new Set([widgetA.default, widgetD.default]),
     )
     expect(selectedFirst).toStrictEqual(widgetD)
@@ -179,7 +176,7 @@ describe('Engine-provided configuration', () => {
     { input: [singleChoiceData], expected: [singleChoiceExpected] },
     { input: [vectorEditorData], expected: [vectorEditorExpected] },
   ])('Testing engine configuration', ({ input, expected }) => {
-    const res = widgetConfigurationSchema.safeParse(input)
+    const res = argsWidgetConfigurationSchema.safeParse(input)
     expect(res).toMatchObject({ success: true, data: expected })
   })
 })

@@ -10,7 +10,7 @@ import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { injectWidgetTree } from '@/providers/widgetTree'
 import { useGraphStore } from '@/stores/graph'
 import { Ast } from '@/util/ast'
-import { ArgumentAst, ArgumentPlaceholder } from '@/util/callTree'
+import { SoCalledExpression } from '@/util/callTree'
 import { Rect } from '@/util/data/rect'
 import { uuidv4 } from 'lib0/random'
 import type { ExprId } from 'shared/yjsModel'
@@ -72,7 +72,7 @@ const innerWidget = computed(() =>
 const ast = computed(() =>
   props.input instanceof Ast.Ast
     ? props.input
-    : props.input instanceof ArgumentAst || props.input instanceof ForcePort
+    : props.input instanceof SoCalledExpression || props.input instanceof ForcePort
     ? props.input.ast
     : undefined,
 )
@@ -115,8 +115,7 @@ function updateRect() {
 export const widgetDefinition = defineWidget(
   [
     ForcePort,
-    ArgumentAst,
-    ArgumentPlaceholder,
+    SoCalledExpression,
     (ast) =>
       ast instanceof Ast.Invalid ||
       ast instanceof Ast.BodyBlock ||
