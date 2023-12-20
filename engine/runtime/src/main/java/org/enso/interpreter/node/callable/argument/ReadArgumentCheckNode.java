@@ -89,7 +89,7 @@ public abstract class ReadArgumentCheckNode extends Node {
     }
     var ctx = EnsoContext.get(this);
     var msg = comment == null ? "expression" : comment;
-    var err = ctx.getBuiltins().error().makeTypeError(expectedTypeMessage, v, msg);
+    var err = ctx.getBuiltins().error().makeTypeErrorOfComment(expectedTypeMessage, v, msg);
     throw new PanicException(err, this);
   }
 
