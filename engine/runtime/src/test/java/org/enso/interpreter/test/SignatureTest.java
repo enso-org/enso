@@ -506,7 +506,7 @@ public class SignatureTest extends TestBase {
       var v = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "Bin.Zero One");
       fail("Expecting an error, not " + v);
     } catch (PolyglotException ex) {
-      assertTypeError("`v`", "Zero", "Zero", ex.getMessage());
+      assertTypeError("`v`", "Zero", "One", ex.getMessage());
     }
   }
 
@@ -639,7 +639,7 @@ public class SignatureTest extends TestBase {
       var v = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "Bin.Vec 'Hi'");
       fail("Expecting an error, not " + v);
     } catch (PolyglotException ex) {
-      assertTypeError("`v`", "Integer | Range | Vector", "Integer", ex.getMessage());
+      assertTypeError("`v`", "Integer | Range | Vector", "Text", ex.getMessage());
     }
     var ok2 = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "Bin.Either Zero");
     assertEquals("binary.Bin", ok2.getMetaObject().getMetaQualifiedName());
@@ -1114,21 +1114,12 @@ public class SignatureTest extends TestBase {
       var res = foo_bad.execute(n);
       fail("Expecting an exception, not: " + res);
     } catch (PolyglotException e) {
-      assertContains(
-          "expected the result of `foo_bad` to be Integer, but got Text", e.getMessage());
+      assertEquals("Type error: expected the result of `foo_bad` to be Integer, but got Text.", e.getMessage());
     }
   }
 
   static void assertTypeError(String expArg, String expType, String realType, String msg) {
-    if (!msg.contains(expArg)) {
-      fail("Expecting value " + expArg + " in " + msg);
-    }
-    if (!msg.contains(expType)) {
-      fail("Expecting value " + expType + " in " + msg);
-    }
-    if (!msg.contains(realType)) {
-      fail("Expecting value " + realType + " in " + msg);
-    }
+    assertEquals("Type error: expected " + expArg + " to be " + expType + ", but got " + realType + ".", msg);
   }
 
   private static void assertContains(String exp, String msg) {
