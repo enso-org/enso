@@ -3,7 +3,7 @@ import HelpScreen from '@/components/HelpScreen.vue'
 import { provideAppClassSet } from '@/providers/appClass'
 import { provideGuiConfig } from '@/providers/guiConfig'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
-import { configValue, type ApplicationConfig } from '@/util/config'
+import { configValue, type ApplicationConfig, type ApplicationConfigValue } from '@/util/config'
 import ProjectView from '@/views/ProjectView.vue'
 import { computed, onMounted } from 'vue'
 
@@ -16,7 +16,7 @@ const props = defineProps<{
 
 const classSet = provideAppClassSet()
 
-provideGuiConfig(computed(() => configValue(props.config)))
+provideGuiConfig(computed((): ApplicationConfigValue => configValue(props.config)))
 
 // Initialize suggestion db immediately, so it will be ready when user needs it.
 onMounted(() => useSuggestionDbStore())
