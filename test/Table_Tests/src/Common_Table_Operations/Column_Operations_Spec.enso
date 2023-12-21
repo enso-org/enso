@@ -827,6 +827,21 @@ spec setup =
                 s1.like (s2+"%r") . to_vector . should_equal [True, False, False, False, Nothing]
                 s1.like "%r%" . to_vector . should_equal [True, True, False, False, Nothing]
 
+        Test.specify "should handle operation text_length" <|
+            with_mixed_columns_if_supported [["strings", ["foobar", "", Nothing, "👩‍🔬", "café", "It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness, it was the epoch of belief, it was the epoch of incredulity, it was the season of light, it was the season of darkness, it was the spring of hope, it was the winter of despair."]]] t->
+                col = t.at "strings"
+                res = col.text_length
+                res.name . should_equal "text_length([strings])"
+
+                case setup.is_database of
+                    False -> res . to_vector . should_equal [6, 0, Nothing, 1, 4, 286] # Grapheme Length
+                    True -> res . to_vector . should_equal [6, 0, Nothing, 3, 4, 286]  # Storage Length
+
+        Test.specify "text_length should error on non-string columns" <|
+            t = table_builder [["numbers", [1, 2, 3]]]
+            col = t.at "numbers"
+            col.text_length . should_fail_with Invalid_Value_Type
+
         Test.specify "should handle operations like is_empty, is_blank, fill_empty" <|
             with_mixed_columns_if_supported [["s", ["", " ", "  ", Nothing, "foo"]], ["letters", ["a", "b", "c", "d", "e"]]] t->
                 s = t.at "s"

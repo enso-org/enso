@@ -424,6 +424,16 @@ async function retrieveDataFromClipboard(): Promise<ClipboardData | undefined> {
         const blob = await clipboardItem.getType(type)
         return JSON.parse(await blob.text())
       }
+
+      if (type === 'text/html') {
+        const blob = await clipboardItem.getType(type)
+        const htmlContent = await blob.text()
+        const excelPayload = await readNodeFromExcelClipboard(htmlContent, clipboardItem)
+        if (excelPayload) {
+          return excelPayload
+        }
+      }
+
       if (type === 'text/plain') {
         const blob = await clipboardItem.getType(type)
         const fallbackExpression = await blob.text()
@@ -455,6 +465,26 @@ async function readNodeFromClipboard() {
     copiedNode.expression,
     copiedNode.metadata,
   )
+}
+
+async function readNodeFromExcelClipboard(
+  htmlContent: string,
+  clipboardItem: ClipboardItem,
+): Promise<ClipboardData | undefined> {
+  // Check we have a valid HTML table
+  // If it is Excel, we should have a plain-text version of the table with tab separators.
+  if (
+    clipboardItem.types.includes('text/plain') &&
+    htmlContent.startsWith('<table ') &&
+    htmlContent.endsWith('</table>')
+  ) {
+    const textData = await clipboardItem.getType('text/plain')
+    const text = await textData.text()
+    const payload = JSON.stringify(text).replaceAll(/^"|"$/g, '').replaceAll("'", "\\'")
+    const expression = `'${payload}'.to Table`
+    return { nodes: [{ expression: expression, metadata: undefined }] } as ClipboardData
+  }
+  return undefined
 }
 
 function handleNodeOutputPortDoubleClick(id: ExprId) {
