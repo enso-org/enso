@@ -90,17 +90,21 @@ public class GetStackTraceNode extends Node {
   }
 
   public static EnsoObject stackTraceToArray(InteropLibrary iop, Object exception) {
-    try {
-      assert iop.hasExceptionStackTrace(exception);
-      var elements = iop.getExceptionStackTrace(exception);
-      return filterStackTraceVector(iop, elements);
-    } catch (UnsupportedMessageException ex) {
-      return ArrayLikeHelpers.empty();
+    if (iop.hasExceptionStackTrace(exception)) {
+      try {
+        var elements = iop.getExceptionStackTrace(exception);
+        return filterStackTraceVector(iop, elements);
+      } catch (UnsupportedMessageException ex) {
+        // return empty
+      }
+    } else if (exception instanceof Throwable t) {
+      return stackTraceToArray(t);
     }
+    return ArrayLikeHelpers.empty();
   }
 
   @CompilerDirectives.TruffleBoundary
-  public static EnsoObject stackTraceToArray(Throwable exception) {
+  private static EnsoObject stackTraceToArray(Throwable exception) {
     var elements = TruffleStackTrace.getStackTrace(exception);
     if (elements == null) {
       return ArrayLikeHelpers.empty();

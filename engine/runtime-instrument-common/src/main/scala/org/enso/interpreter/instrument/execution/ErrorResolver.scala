@@ -20,11 +20,7 @@ object ErrorResolver {
     throwable: Throwable
   )(implicit ctx: RuntimeContext): Vector[Api.StackTraceElement] = {
     val iop = InteropLibrary.getUncached
-    val arr = if (iop.hasExceptionStackTrace(throwable)) {
-      GetStackTraceNode.stackTraceToArray(iop, throwable)
-    } else {
-      GetStackTraceNode.stackTraceToArray(throwable)
-    }
+    val arr = GetStackTraceNode.stackTraceToArray(iop, throwable)
     val len = iop.getArraySize(arr)
     val stackWithOptions = for (i <- 0L until len) yield {
       val elem = iop.readArrayElement(arr, i)
