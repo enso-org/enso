@@ -233,8 +233,8 @@ export function covers(existing: Import, required: RequiredImport): boolean {
     required.kind === 'Qualified'
       ? qnSplit(required.module)
       : required.kind === 'Unqualified'
-      ? [required.from, required.import]
-      : [undefined, '']
+        ? [required.from, required.import]
+        : [undefined, '']
   const directlyImported =
     required.kind === 'Qualified' &&
     existing.imported.kind === 'Module' &&

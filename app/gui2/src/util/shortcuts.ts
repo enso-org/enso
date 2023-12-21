@@ -190,22 +190,22 @@ type SuggestedKeybindSegment = ModifierPlus | Pointer | Key
 type AutocompleteKeybind<T extends string, Key extends string = never> = T extends '+'
   ? T
   : T extends `${infer First}+${infer Rest}`
-  ? Lowercase<First> extends LowercaseModifier
-    ? `${NormalizeKeybindSegment[Lowercase<First>] & string}+${AutocompleteKeybind<Rest>}`
-    : Lowercase<First> extends LowercasePointer | LowercaseKey
-    ? AutocompleteKeybind<Rest, NormalizeKeybindSegment[Lowercase<First>] & string>
-    : `${Modifier}+${AutocompleteKeybind<Rest>}`
-  : T extends ''
-  ? SuggestedKeybindSegment
-  : Lowercase<T> extends LowercasePointer | LowercaseKey
-  ? NormalizeKeybindSegment[Lowercase<T>]
-  : Lowercase<T> extends LowercaseModifier
-  ? [Key] extends [never]
-    ? `${NormalizeKeybindSegment[Lowercase<T>] & string}+${SuggestedKeybindSegment}`
-    : `${NormalizeKeybindSegment[Lowercase<T>] & string}+${Key}`
-  : [Key] extends [never]
-  ? SuggestedKeybindSegment
-  : Key
+    ? Lowercase<First> extends LowercaseModifier
+      ? `${NormalizeKeybindSegment[Lowercase<First>] & string}+${AutocompleteKeybind<Rest>}`
+      : Lowercase<First> extends LowercasePointer | LowercaseKey
+        ? AutocompleteKeybind<Rest, NormalizeKeybindSegment[Lowercase<First>] & string>
+        : `${Modifier}+${AutocompleteKeybind<Rest>}`
+    : T extends ''
+      ? SuggestedKeybindSegment
+      : Lowercase<T> extends LowercasePointer | LowercaseKey
+        ? NormalizeKeybindSegment[Lowercase<T>]
+        : Lowercase<T> extends LowercaseModifier
+          ? [Key] extends [never]
+            ? `${NormalizeKeybindSegment[Lowercase<T>] & string}+${SuggestedKeybindSegment}`
+            : `${NormalizeKeybindSegment[Lowercase<T>] & string}+${Key}`
+          : [Key] extends [never]
+            ? SuggestedKeybindSegment
+            : Key
 
 type AutocompleteKeybinds<T extends string[]> = {
   [K in keyof T]: AutocompleteKeybind<T[K]>

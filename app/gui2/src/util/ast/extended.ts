@@ -197,8 +197,8 @@ export class AstExtended<T extends Tree | Token = Tree | Token, HasIdMap extends
 type CondType<T, Cond extends boolean> = Cond extends true
   ? T
   : Cond extends false
-  ? undefined
-  : T | undefined
+    ? undefined
+    : T | undefined
 
 class AstExtendedCtx<HasIdMap extends boolean> {
   parsedCode: string

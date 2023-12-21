@@ -252,8 +252,8 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
                                     index === selectedIndex
                                         ? 'bg-black/5'
                                         : valuesSet.has(item)
-                                        ? 'bg-black/10'
-                                        : ''
+                                          ? 'bg-black/10'
+                                          : ''
                                 }`}
                                 onMouseDown={event => {
                                     event.preventDefault()

@@ -318,8 +318,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                         (a.item.title > b.item.title
                             ? 1
                             : a.item.title < b.item.title
-                            ? COMPARE_LESS_THAN
-                            : 0)
+                              ? COMPARE_LESS_THAN
+                              : 0)
 
                     break
                 }
@@ -773,11 +773,11 @@ export default function AssetsTable(props: AssetsTableProps) {
                                                   ),
                                               ]
                                             : initialChildren == null ||
-                                              initialChildren.length === 0
-                                            ? childAssetNodes
-                                            : [...initialChildren, ...childAssetNodes].sort(
-                                                  assetTreeNode.compareAssetTreeNodes
-                                              )
+                                                initialChildren.length === 0
+                                              ? childAssetNodes
+                                              : [...initialChildren, ...childAssetNodes].sort(
+                                                    assetTreeNode.compareAssetTreeNodes
+                                                )
                                     return {
                                         ...item,
                                         children,
@@ -1439,8 +1439,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                         category === categorySwitcher.Category.trash
                             ? TRASH_PLACEHOLDER
                             : query.query !== ''
-                            ? QUERY_PLACEHOLDER
-                            : PLACEHOLDER
+                              ? QUERY_PLACEHOLDER
+                              : PLACEHOLDER
                     }
                     columns={columnModule.getColumnList(backend.type, extraColumns).map(column => ({
                         id: column,

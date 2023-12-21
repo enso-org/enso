@@ -73,8 +73,8 @@ const ast = computed(() =>
   props.input instanceof Ast.Ast
     ? props.input
     : props.input instanceof ArgumentAst || props.input instanceof ForcePort
-    ? props.input.ast
-    : undefined,
+      ? props.input.ast
+      : undefined,
 )
 const portId = computed(() => ast.value?.astId ?? randomUuid)
 
