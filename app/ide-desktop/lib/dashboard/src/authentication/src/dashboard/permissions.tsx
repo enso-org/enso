@@ -160,8 +160,8 @@ export function toPermissionAction(permissions: Permissions): PermissionAction {
                       PermissionAction.readAndExec
                     : PermissionAction.readAndExec
                 : permissions.docs
-                  ? PermissionAction.readAndDocs
-                  : PermissionAction.read
+                ? PermissionAction.readAndDocs
+                : PermissionAction.read
         }
         case Permission.view: {
             return permissions.execute
@@ -170,8 +170,8 @@ export function toPermissionAction(permissions: Permissions): PermissionAction {
                       PermissionAction.viewAndExec
                     : PermissionAction.viewAndExec
                 : permissions.docs
-                  ? PermissionAction.viewAndDocs
-                  : PermissionAction.view
+                ? PermissionAction.viewAndDocs
+                : PermissionAction.view
         }
     }
 }

@@ -80,8 +80,8 @@ function printArgPattern(application: ArgumentApplication | Ast.Ast) {
       current.argument instanceof ArgumentPlaceholder
         ? '?'
         : current.appTree instanceof Ast.App && current.appTree.argumentName
-          ? '='
-          : '@'
+        ? '='
+        : '@'
     const argInfo = 'info' in current.argument ? current.argument.info : undefined
     parts.push(sigil + (argInfo?.name ?? '_'))
     current = current.target

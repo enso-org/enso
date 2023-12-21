@@ -317,8 +317,8 @@ export class AliasAnalyzer {
             const armEnd = expression
               ? parsedTreeOrTokenRange(expression)[1]
               : arrow
-                ? parsedTreeOrTokenRange(arrow)[1]
-                : parsedTreeOrTokenRange(pattern)[1]
+              ? parsedTreeOrTokenRange(arrow)[1]
+              : parsedTreeOrTokenRange(pattern)[1]
 
             const armRange: ContentRange = [armStart, armEnd]
             this.withNewScopeOver(armRange, () => {

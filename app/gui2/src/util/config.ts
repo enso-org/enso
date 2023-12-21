@@ -23,8 +23,8 @@ function parseBoolean(value: unknown): boolean | null {
   return typeof value === 'boolean'
     ? value
     : typeof value === 'string'
-      ? STRING_TO_BOOLEAN[value] ?? null
-      : null
+    ? STRING_TO_BOOLEAN[value] ?? null
+    : null
 }
 
 export interface StringConfig {

@@ -22,7 +22,7 @@
     "compile-server": "tsc -p tsconfig.server.json",
     "typecheck": "vue-tsc --noEmit -p tsconfig.app.json --composite false",
     "lint": "eslint .",
-    "format": "prettier --write src/ && eslint . --fix",
+    "format": "prettier --version && prettier --write src/ && eslint . --fix",
     "build-rust-ffi": "wasm-pack build ./rust-ffi --release --target web",
     "generate-ast-schema": "cargo run -p enso-parser-schema > src/generated/ast-schema.json",
     "generate-ast-types": "tsx ./parser-codegen/index.ts src/generated/ast-schema.json src/generated/ast.ts",

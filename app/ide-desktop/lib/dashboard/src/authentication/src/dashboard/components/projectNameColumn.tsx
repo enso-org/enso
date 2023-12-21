@@ -344,8 +344,8 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                     rowState.isEditingName
                         ? 'cursor-text'
                         : canExecute && !isOtherUserUsingProject
-                          ? 'cursor-pointer'
-                          : ''
+                        ? 'cursor-pointer'
+                        : ''
                 }`}
             >
                 {asset.title}

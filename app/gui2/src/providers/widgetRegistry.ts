@@ -91,10 +91,10 @@ type InputMatcher<T extends WidgetInput> = InputMatcherFn<T> | Class<T>
 type InputTy<M> = M extends (infer T)[]
   ? InputTy<T>
   : M extends InputMatcherFn<infer T>
-    ? T
-    : M extends Class<infer T>
-      ? T
-      : never
+  ? T
+  : M extends Class<infer T>
+  ? T
+  : never
 
 export interface WidgetOptions<T extends WidgetInput> {
   /** The priority number determining the order in which the widgets are matched. Smaller numbers
