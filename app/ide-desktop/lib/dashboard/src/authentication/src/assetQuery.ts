@@ -19,16 +19,15 @@ function interpolateRegex(regex: RegExp) {
 // === AssetQuery ===
 // ==================
 
-/** Removes the `readonly` modifier from all keys in the given type. */
-type Mutable<T> = { -readonly [K in keyof T]: T[K] }
+/** Keys of an {@Link AssetQuery} which correspond to tags. */
+export type AssetQueryKey = Exclude<keyof AssetQuery & `${string}s`, 'withUpdates'>
 
 /** An {@link AssetQuery}, without the query and methods. */
-interface AssetQueryData extends Mutable<Pick<AssetQuery, keyof AssetQuery & `${string}s`>> {}
+interface AssetQueryData extends Record<AssetQueryKey, string[][]> {}
 
 /** An {@link AssetQuery}, without the query and methods, and with all the values being `string[]`s
  * instead of `string[][]`s, representing the last term rather than all terms. */
-interface AssetQueryLastTermData
-    extends Record<Extract<keyof AssetQuery, `${string}s`>, string[]> {}
+interface AssetQueryLastTermData extends Record<AssetQueryKey, string[]> {}
 
 /** An individual segment of a query string input to {@link AssetQuery}. */
 interface AssetQueryTerm {
@@ -98,21 +97,26 @@ export class AssetQuery {
     /** Return a list of {@link AssetQueryTerm}s found in the raw user input string. */
     static terms(query: string): AssetQueryTerm[] {
         const terms: AssetQueryTerm[] = []
-        for (const [, tag, valuesRaw] of query.trim().matchAll(this.termsRegex)) {
+        for (const [, tag, valuesRaw = ''] of query.trim().matchAll(this.termsRegex)) {
             // Ignore values with a tag but without a value.
-            if (valuesRaw != null && valuesRaw !== '') {
+            if (tag != null || valuesRaw !== '') {
                 const values = valuesRaw.match(AssetQuery.valuesRegex) ?? []
                 terms.push({
                     tag: tag ?? null,
-                    values: values.map(value =>
-                        AssetQuery.jsonValueRegex.test(value)
-                            ? String(
-                                  JSON.parse(
-                                      value.endsWith('"') && value.length > 1 ? value : value + '"'
-                                  )
-                              )
-                            : value
-                    ),
+                    values:
+                        valuesRaw === ''
+                            ? []
+                            : values.map(value =>
+                                  AssetQuery.jsonValueRegex.test(value)
+                                      ? String(
+                                            JSON.parse(
+                                                value.endsWith('"') && value.length > 1
+                                                    ? value
+                                                    : value + '"'
+                                            )
+                                        )
+                                      : value
+                              ),
                 })
             }
         }
@@ -266,6 +270,9 @@ export class AssetQuery {
             return null
         } else {
             lastTerm ??= []
+            if (lastTerm[lastTerm.length - 1] === '') {
+                lastTerm.pop()
+            }
             let changed = false
             if (toAdd != null) {
                 const lastTermAfterAdditions = [

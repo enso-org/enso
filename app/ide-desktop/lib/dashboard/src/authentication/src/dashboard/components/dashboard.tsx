@@ -22,6 +22,7 @@ import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
 import * as shortcutsProvider from '../../providers/shortcuts'
 
+import type * as assetSearchBar from './assetSearchBar'
 import type * as assetSettingsPanel from './assetSettingsPanel'
 import * as pageSwitcher from './pageSwitcher'
 import type * as spinner from './spinner'
@@ -64,7 +65,6 @@ export default function Dashboard(props: DashboardProps) {
     const { localStorage } = localStorageProvider.useLocalStorage()
     const { shortcuts } = shortcutsProvider.useShortcuts()
     const [initialized, setInitialized] = React.useState(false)
-    const [query, setQuery] = React.useState(() => assetQuery.AssetQuery.fromString(''))
     const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
     const [isHelpChatVisible, setIsHelpChatVisible] = React.useState(false)
     const [loadingProjectManagerDidFail, setLoadingProjectManagerDidFail] = React.useState(false)
@@ -74,7 +74,9 @@ export default function Dashboard(props: DashboardProps) {
     const [queuedAssetEvents, setQueuedAssetEvents] = React.useState<assetEventModule.AssetEvent[]>(
         []
     )
+    const [query, setQuery] = React.useState(() => assetQuery.AssetQuery.fromString(''))
     const [labels, setLabels] = React.useState<backendModule.Label[]>([])
+    const [suggestions, setSuggestions] = React.useState<assetSearchBar.Suggestion[]>([])
     const [projectStartupInfo, setProjectStartupInfo] =
         React.useState<backendModule.ProjectStartupInfo | null>(null)
     const [openProjectAbortController, setOpenProjectAbortController] =
@@ -429,6 +431,7 @@ export default function Dashboard(props: DashboardProps) {
                         query={query}
                         setQuery={setQuery}
                         labels={labels}
+                        suggestions={suggestions}
                         canToggleSettingsPanel={assetSettingsPanelProps != null}
                         isSettingsPanelVisible={
                             isAssetSettingsPanelVisible && assetSettingsPanelProps != null
@@ -455,6 +458,7 @@ export default function Dashboard(props: DashboardProps) {
                         setQuery={setQuery}
                         labels={labels}
                         setLabels={setLabels}
+                        setSuggestions={setSuggestions}
                         projectStartupInfo={projectStartupInfo}
                         queuedAssetEvents={queuedAssetEvents}
                         assetListEvents={assetListEvents}

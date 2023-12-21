@@ -4,6 +4,7 @@ import * as React from 'react'
 import type * as assetQuery from '../../assetQuery'
 import type * as backendModule from '../backend'
 
+import type * as assetSearchBar from './assetSearchBar'
 import PageSwitcher, * as pageSwitcher from './pageSwitcher'
 import AssetInfoBar from './assetInfoBar'
 import AssetSearchBar from './assetSearchBar'
@@ -29,6 +30,7 @@ export interface TopBarProps {
     query: assetQuery.AssetQuery
     setQuery: React.Dispatch<React.SetStateAction<assetQuery.AssetQuery>>
     labels: backendModule.Label[]
+    suggestions: assetSearchBar.Suggestion[]
     canToggleSettingsPanel: boolean
     isSettingsPanelVisible: boolean
     setIsSettingsPanelVisible: React.Dispatch<React.SetStateAction<boolean>>
@@ -52,6 +54,7 @@ export default function TopBar(props: TopBarProps) {
         query,
         setQuery,
         labels,
+        suggestions,
         canToggleSettingsPanel,
         isSettingsPanelVisible,
         setIsSettingsPanelVisible,
@@ -76,7 +79,7 @@ export default function TopBar(props: TopBarProps) {
                         query={query}
                         setQuery={setQuery}
                         labels={labels}
-                        suggestions={[]}
+                        suggestions={suggestions}
                     />
                     <div className="grow" />
                 </>

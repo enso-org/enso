@@ -13,7 +13,8 @@ import Label from './label'
 /** A suggested query based on */
 export interface Suggestion {
     render: () => React.ReactNode
-    onClick: () => void
+    // eslint-disable-next-line no-restricted-syntax
+    newQuery: (query: assetQuery.AssetQuery) => assetQuery.AssetQuery
 }
 
 /** Props for a {@link AssetSearchBar}. */
@@ -89,10 +90,10 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                     setQuery(assetQuery.AssetQuery.fromString(event.target.value))
                 }}
             />
-            <div className="absolute flex flex-col top-0 left-0 overflow-hidden w-full bg-frame rounded-2xl pointer-events-none transition-all duration-300">
-                <div className="padding h-8"></div>
+            <div className="absolute flex flex-col top-0 left-0 overflow-hidden w-full before:absolute before:bg-frame before:inset-0 before:backdrop-blur-3xl rounded-2xl pointer-events-none transition-all duration-300">
+                <div className="relative padding h-8"></div>
                 {areSuggestionsVisible && (
-                    <div className="flex flex-col gap-2">
+                    <div className="relative flex flex-col gap-2">
                         {/* Tags (`name:`, `modified:`) */}
                         <div className="flex flex-wrap gap-2 whitespace-nowrap px-2 pointer-events-auto">
                             {assetQuery.AssetQuery.tagNames.flatMap(entry => {
@@ -146,13 +147,20 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                                 )
                             })}
                         </div>
-                        {/* TODO: Suggestions */}
-                        {suggestions.map((_, index) => (
-                            <div
-                                key={index}
-                                className="h-6 pointer-events-auto last:rounded-b-2xl"
-                            ></div>
-                        ))}
+                        {/* Suggestions */}
+                        <div className="flex flex-col">
+                            {suggestions.map((suggestion, index) => (
+                                <div
+                                    key={index}
+                                    className="cursor-pointer px-2 py-1 mx-1 rounded-2xl text-left hover:bg-frame-selected last:mb-1 transition-colors pointer-events-auto"
+                                    onClick={() => {
+                                        setQuery(suggestion.newQuery(query))
+                                    }}
+                                >
+                                    {suggestion.render()}
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 )}
             </div>

@@ -5,7 +5,7 @@ import * as toast from 'react-toastify'
 import * as array from '../../array'
 import * as assetEventModule from '../events/assetEvent'
 import * as assetListEventModule from '../events/assetListEvent'
-import type * as assetQuery from '../../assetQuery'
+import * as assetQuery from '../../assetQuery'
 import * as assetTreeNode from '../assetTreeNode'
 import * as backendModule from '../backend'
 import * as columnModule from '../column'
@@ -28,6 +28,7 @@ import * as authProvider from '../../authentication/providers/auth'
 import * as backendProvider from '../../providers/backend'
 import * as modalProvider from '../../providers/modal'
 
+import type * as assetSearchBar from './assetSearchBar'
 import type * as assetSettingsPanel from './assetSettingsPanel'
 import * as categorySwitcher from './categorySwitcher'
 import AssetNameColumn from './assetNameColumn'
@@ -40,6 +41,7 @@ import DragModal from './dragModal'
 import GlobalContextMenu from './globalContextMenu'
 import MenuEntry from './menuEntry'
 import Table from './table'
+import Label from './label'
 
 // =================
 // === Constants ===
@@ -210,6 +212,7 @@ export interface AssetsTableProps {
     setQuery: React.Dispatch<React.SetStateAction<assetQuery.AssetQuery>>
     category: categorySwitcher.Category
     allLabels: Map<backendModule.LabelName, backendModule.Label>
+    setSuggestions: (suggestions: assetSearchBar.Suggestion[]) => void
     initialProjectName: string | null
     projectStartupInfo: backendModule.ProjectStartupInfo | null
     deletedLabelNames: Set<backendModule.LabelName>
@@ -243,6 +246,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         setQuery,
         category,
         allLabels,
+        setSuggestions,
         deletedLabelNames,
         initialProjectName,
         projectStartupInfo,
@@ -444,8 +448,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                         (a.item.title > b.item.title
                             ? 1
                             : a.item.title < b.item.title
-                              ? COMPARE_LESS_THAN
-                              : 0)
+                            ? COMPARE_LESS_THAN
+                            : 0)
 
                     break
                 }
@@ -487,6 +491,82 @@ export default function AssetsTable(props: AssetsTableProps) {
         }
         return map
     }, [assetTree, filter])
+
+    React.useEffect(() => {
+        const nodeToSuggestion = (
+            node: assetTreeNode.AssetTreeNode,
+            key: assetQuery.AssetQueryKey = 'names'
+        ): assetSearchBar.Suggestion => ({
+            render: () => node.item.title,
+            newQuery: oldQuery => oldQuery.add({ [key]: [[node.item.title]] }),
+        })
+        const allSuggestions = () =>
+            assetTreeNode.assetTreePreorderTraversal(assetTree).map(node => nodeToSuggestion(node))
+        const terms = assetQuery.AssetQuery.terms(query.query)
+        const lastTerm = terms[terms.length - 1]
+        const lastTermValues = lastTerm?.values ?? []
+        if (lastTermValues.length !== 0) {
+            setSuggestions(allSuggestions())
+        } else {
+            const negative = lastTerm?.tag?.startsWith('-') ?? false
+            switch (lastTerm?.tag) {
+                case null:
+                case '':
+                case '-':
+                case 'name':
+                case '-name': {
+                    setSuggestions(
+                        assetTreeNode
+                            .assetTreePreorderTraversal(assetTree, children =>
+                                children.filter(
+                                    child =>
+                                        visibilities.get(child.key) !==
+                                        visibilityModule.Visibility.hidden
+                                )
+                            )
+                            .filter(
+                                node =>
+                                    visibilities.get(node.key) ===
+                                        visibilityModule.Visibility.visible &&
+                                    node.item.type !== backendModule.AssetType.specialEmpty &&
+                                    node.item.type !== backendModule.AssetType.specialLoading
+                            )
+                            .map(node =>
+                                nodeToSuggestion(node, negative ? 'negativeNames' : 'names')
+                            )
+                    )
+                    break
+                }
+                case 'label':
+                case '-label': {
+                    setSuggestions(
+                        Array.from(
+                            allLabels.values(),
+                            (label): assetSearchBar.Suggestion => ({
+                                render: () => (
+                                    <Label active color={label.color} onClick={() => {}}>
+                                        {label.value}
+                                    </Label>
+                                ),
+                                newQuery: oldQuery =>
+                                    oldQuery.addToLastTerm(
+                                        negative
+                                            ? { negativeLabels: [label.value] }
+                                            : { labels: [label.value] }
+                                    ),
+                            })
+                        )
+                    )
+
+                    break
+                }
+                default: {
+                    setSuggestions(allSuggestions())
+                    break
+                }
+            }
+        }
+    }, [assetTree, query, visibilities, allLabels, /* should never change */ setSuggestions])
 
     React.useEffect(() => {
         if (rawQueuedAssetEvents.length !== 0) {
@@ -925,11 +1005,11 @@ export default function AssetsTable(props: AssetsTableProps) {
                                                   ),
                                               ]
                                             : initialChildren == null ||
-                                                initialChildren.length === 0
-                                              ? childAssetNodes
-                                              : [...initialChildren, ...childAssetNodes].sort(
-                                                    assetTreeNode.compareAssetTreeNodes
-                                                )
+                                              initialChildren.length === 0
+                                            ? childAssetNodes
+                                            : [...initialChildren, ...childAssetNodes].sort(
+                                                  assetTreeNode.compareAssetTreeNodes
+                                              )
                                     return {
                                         ...item,
                                         children,
@@ -1595,8 +1675,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                         category === categorySwitcher.Category.trash
                             ? TRASH_PLACEHOLDER
                             : query.query !== ''
-                              ? QUERY_PLACEHOLDER
-                              : PLACEHOLDER
+                            ? QUERY_PLACEHOLDER
+                            : PLACEHOLDER
                     }
                     columns={columnModule.getColumnList(backend.type, extraColumns).map(column => ({
                         id: column,

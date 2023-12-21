@@ -17,6 +17,7 @@ import * as modalProvider from '../../providers/modal'
 import * as uniqueString from '../../uniqueString'
 
 import * as app from '../../components/app'
+import type * as assetSearchBar from './assetSearchBar'
 import type * as assetSettingsPanel from './assetSettingsPanel'
 import * as pageSwitcher from './pageSwitcher'
 import type * as spinner from './spinner'
@@ -46,6 +47,7 @@ export interface DriveProps {
     setQuery: React.Dispatch<React.SetStateAction<assetQuery.AssetQuery>>
     labels: backendModule.Label[]
     setLabels: React.Dispatch<React.SetStateAction<backendModule.Label[]>>
+    setSuggestions: (suggestions: assetSearchBar.Suggestion[]) => void
     projectStartupInfo: backendModule.ProjectStartupInfo | null
     setAssetSettingsPanelProps: React.Dispatch<
         React.SetStateAction<assetSettingsPanel.AssetSettingsPanelRequiredProps | null>
@@ -75,6 +77,7 @@ export default function Drive(props: DriveProps) {
         setQuery,
         labels,
         setLabels,
+        setSuggestions,
         projectStartupInfo,
         assetListEvents,
         dispatchAssetListEvent,
@@ -361,6 +364,7 @@ export default function Drive(props: DriveProps) {
                     setQuery={setQuery}
                     category={category}
                     allLabels={allLabels}
+                    setSuggestions={setSuggestions}
                     initialProjectName={initialProjectName}
                     projectStartupInfo={projectStartupInfo}
                     deletedLabelNames={deletedLabelNames}
