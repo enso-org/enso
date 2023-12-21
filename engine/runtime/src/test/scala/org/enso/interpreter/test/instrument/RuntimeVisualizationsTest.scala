@@ -1877,8 +1877,9 @@ class RuntimeVisualizationsTest
               message =
                 "Method `does_not_exist` of type Main could not be found.",
               stack = Vector(
-                Api.StackTraceElement("<eval>", None, None, None),
-                Api.StackTraceElement("Debug.eval", None, None, None)
+// empty stack for now
+//                Api.StackTraceElement("<eval>", None, None, None),
+//                Api.StackTraceElement("Debug.eval", None, None, None)
               )
             )
           )
