@@ -38,7 +38,6 @@ polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.error.ValueTypeMismatchException
 polyglot java import org.enso.table.operations.OrderBuilder
 polyglot java import org.enso.table.parsing.problems.ParseProblemAggregator
-polyglot java import org.enso.base.Text_Utils
 
 type Column
     ## GROUP Standard.Base.Input
