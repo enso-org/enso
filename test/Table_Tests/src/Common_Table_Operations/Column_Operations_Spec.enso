@@ -833,9 +833,9 @@ spec setup =
                 res = col.text_length
                 res.name . should_equal "text_length([strings])"
 
-            case setup.is_database of
-                False -> res . to_vector . should_equal [6, 0, Nothing, 1, 4, 286] # Grapheme Length
-                True -> res . to_vector . should_equal [6, 0, Nothing, 3, 4, 286]  # Storage Length
+                case setup.is_database of
+                    False -> res . to_vector . should_equal [6, 0, Nothing, 1, 4, 286] # Grapheme Length
+                    True -> res . to_vector . should_equal [6, 0, Nothing, 3, 4, 286]  # Storage Length
 
         Test.specify "text_length should error on non-string columns" <|
             t = table_builder [["numbers", [1, 2, 3]]]
