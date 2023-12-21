@@ -16,7 +16,7 @@ const mainFile = computed({
 
 <template>
   <MockProjectStoreWrapper v-model="mainFile">
-    <App :config="{}" :metadata="{}" />
+    <App :config="{}" :accessToken="''" :metadata="{}" :unrecognizedOptions="[]" />
   </MockProjectStoreWrapper>
 </template>
 
