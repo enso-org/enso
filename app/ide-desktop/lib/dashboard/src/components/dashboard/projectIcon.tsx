@@ -6,9 +6,9 @@ import ArrowUpIcon from 'enso-assets/arrow_up.svg'
 import PlayIcon from 'enso-assets/play.svg'
 import StopIcon from 'enso-assets/stop.svg'
 
-import * as assetEventModule from '#/events/assetEvent'
 import * as backendModule from '#/services/backend'
 import * as errorModule from '#/util/error'
+import * as events from '#/events'
 import * as hooks from '#/hooks'
 import * as localStorageModule from '#/util/localStorage'
 import * as providers from '#/providers'
@@ -61,7 +61,7 @@ export interface ProjectIconProps {
     keyProp: string
     item: backendModule.ProjectAsset
     setItem: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>
-    assetEvents: assetEventModule.AssetEvent[]
+    assetEvents: events.AssetEvent[]
     /** Called when the project is opened via the {@link ProjectIcon}. */
     doOpenManually: (projectId: backendModule.ProjectId) => void
     onClose: () => void
@@ -236,28 +236,28 @@ export default function ProjectIcon(props: ProjectIconProps) {
 
     hooks.useEventHandler(assetEvents, event => {
         switch (event.type) {
-            case assetEventModule.AssetEventType.newFolder:
-            case assetEventModule.AssetEventType.uploadFiles:
-            case assetEventModule.AssetEventType.newDataConnector:
-            case assetEventModule.AssetEventType.cut:
-            case assetEventModule.AssetEventType.cancelCut:
-            case assetEventModule.AssetEventType.move:
-            case assetEventModule.AssetEventType.delete:
-            case assetEventModule.AssetEventType.restore:
-            case assetEventModule.AssetEventType.download:
-            case assetEventModule.AssetEventType.downloadSelected:
-            case assetEventModule.AssetEventType.removeSelf:
-            case assetEventModule.AssetEventType.temporarilyAddLabels:
-            case assetEventModule.AssetEventType.temporarilyRemoveLabels:
-            case assetEventModule.AssetEventType.addLabels:
-            case assetEventModule.AssetEventType.removeLabels:
-            case assetEventModule.AssetEventType.deleteLabel: {
+            case events.AssetEventType.newFolder:
+            case events.AssetEventType.uploadFiles:
+            case events.AssetEventType.newDataConnector:
+            case events.AssetEventType.cut:
+            case events.AssetEventType.cancelCut:
+            case events.AssetEventType.move:
+            case events.AssetEventType.delete:
+            case events.AssetEventType.restore:
+            case events.AssetEventType.download:
+            case events.AssetEventType.downloadSelected:
+            case events.AssetEventType.removeSelf:
+            case events.AssetEventType.temporarilyAddLabels:
+            case events.AssetEventType.temporarilyRemoveLabels:
+            case events.AssetEventType.addLabels:
+            case events.AssetEventType.removeLabels:
+            case events.AssetEventType.deleteLabel: {
                 // Ignored. Any missing project-related events should be handled by
                 // `ProjectNameColumn`. `deleteMultiple`, `restoreMultiple`, `download`,
                 // and`downloadSelected` are handled by `AssetRow`.
                 break
             }
-            case assetEventModule.AssetEventType.openProject: {
+            case events.AssetEventType.openProject: {
                 if (event.id !== item.id) {
                     if (!event.runInBackground && !isRunningInBackground) {
                         setShouldOpenWhenReady(false)
@@ -273,14 +273,14 @@ export default function ProjectIcon(props: ProjectIconProps) {
                 }
                 break
             }
-            case assetEventModule.AssetEventType.closeProject: {
+            case events.AssetEventType.closeProject: {
                 if (event.id === item.id) {
                     setShouldOpenWhenReady(false)
                     void closeProject(false)
                 }
                 break
             }
-            case assetEventModule.AssetEventType.cancelOpeningAllProjects: {
+            case events.AssetEventType.cancelOpeningAllProjects: {
                 if (!isRunningInBackground) {
                     setShouldOpenWhenReady(false)
                     onSpinnerStateChange?.(null)
@@ -293,7 +293,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
                 }
                 break
             }
-            case assetEventModule.AssetEventType.newProject: {
+            case events.AssetEventType.newProject: {
                 if (event.placeholderId === key) {
                     setOnSpinnerStateChange(() => event.onSpinnerStateChange)
                 } else if (event.onSpinnerStateChange === onSpinnerStateChange) {

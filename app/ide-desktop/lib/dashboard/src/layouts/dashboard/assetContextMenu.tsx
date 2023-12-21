@@ -2,9 +2,9 @@
 import * as React from 'react'
 import * as toast from 'react-toastify'
 
-import * as assetEventModule from '#/events/assetEvent'
 import type * as assetTreeNode from '#/util/assetTreeNode'
 import * as backendModule from '#/services/backend'
+import * as events from '#/events'
 import * as hooks from '#/hooks'
 import * as http from '#/util/http'
 import * as permissions from '#/util/permissions'
@@ -112,7 +112,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                         doAction={() => {
                             unsetModal()
                             dispatchAssetEvent({
-                                type: assetEventModule.AssetEventType.restore,
+                                type: events.AssetEventType.restore,
                                 ids: new Set([asset.id]),
                             })
                         }}
@@ -133,7 +133,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                             doAction={() => {
                                 unsetModal()
                                 dispatchAssetEvent({
-                                    type: assetEventModule.AssetEventType.openProject,
+                                    type: events.AssetEventType.openProject,
                                     id: asset.id,
                                     shouldAutomaticallySwitchPage: true,
                                     runInBackground: false,
@@ -148,7 +148,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                         doAction={() => {
                             unsetModal()
                             dispatchAssetEvent({
-                                type: assetEventModule.AssetEventType.openProject,
+                                type: events.AssetEventType.openProject,
                                 id: asset.id,
                                 shouldAutomaticallySwitchPage: false,
                                 runInBackground: true,
@@ -166,7 +166,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                             doAction={() => {
                                 unsetModal()
                                 dispatchAssetEvent({
-                                    type: assetEventModule.AssetEventType.closeProject,
+                                    type: events.AssetEventType.closeProject,
                                     id: asset.id,
                                 })
                             }}
@@ -279,7 +279,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                                     eventTarget={eventTarget}
                                     doRemoveSelf={() => {
                                         dispatchAssetEvent({
-                                            type: assetEventModule.AssetEventType.removeSelf,
+                                            type: events.AssetEventType.removeSelf,
                                             id: asset.id,
                                         })
                                     }}
@@ -335,7 +335,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                     action={shortcuts.KeyboardAction.download}
                     doAction={() => {
                         dispatchAssetEvent({
-                            type: assetEventModule.AssetEventType.download,
+                            type: events.AssetEventType.download,
                             ids: new Set([asset.id]),
                         })
                     }}

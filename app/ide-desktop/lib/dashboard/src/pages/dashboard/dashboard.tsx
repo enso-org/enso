@@ -2,10 +2,9 @@
  * interactive components. */
 import * as React from 'react'
 
-import * as assetEventModule from '#/events/assetEvent'
-import * as assetListEventModule from '#/events/assetListEvent'
 import * as assetQuery from '#/util/assetQuery'
 import * as backendModule from '#/services/backend'
+import * as events from '#/events'
 import * as hooks from '#/hooks'
 import * as http from '#/util/http'
 import * as localBackendModule from '#/services/localBackend'
@@ -65,16 +64,13 @@ export default function Dashboard(props: DashboardProps) {
     const [page, setPage] = React.useState(
         () => localStorage.get(localStorageModule.LocalStorageKey.page) ?? pageSwitcher.Page.drive
     )
-    const [queuedAssetEvents, setQueuedAssetEvents] = React.useState<assetEventModule.AssetEvent[]>(
-        []
-    )
+    const [queuedAssetEvents, setQueuedAssetEvents] = React.useState<events.AssetEvent[]>([])
     const [projectStartupInfo, setProjectStartupInfo] =
         React.useState<backendModule.ProjectStartupInfo | null>(null)
     const [openProjectAbortController, setOpenProjectAbortController] =
         React.useState<AbortController | null>(null)
-    const [assetListEvents, dispatchAssetListEvent] =
-        hooks.useEvent<assetListEventModule.AssetListEvent>()
-    const [assetEvents, dispatchAssetEvent] = hooks.useEvent<assetEventModule.AssetEvent>()
+    const [assetListEvents, dispatchAssetListEvent] = hooks.useEvent<events.AssetListEvent>()
+    const [assetEvents, dispatchAssetEvent] = hooks.useEvent<events.AssetEvent>()
     const [assetSettingsPanelProps, setAssetSettingsPanelProps] =
         React.useState<assetSettingsPanel.AssetSettingsPanelRequiredProps | null>(null)
     const [isAssetSettingsPanelVisible, setIsAssetSettingsPanelVisible] = React.useState(
@@ -139,7 +135,7 @@ export default function Dashboard(props: DashboardProps) {
                         setPage(pageSwitcher.Page.drive)
                         setQueuedAssetEvents([
                             {
-                                type: assetEventModule.AssetEventType.openProject,
+                                type: events.AssetEventType.openProject,
                                 id: savedProjectStartupInfo.project.projectId,
                                 shouldAutomaticallySwitchPage: page === pageSwitcher.Page.editor,
                                 runInBackground: false,
@@ -214,7 +210,7 @@ export default function Dashboard(props: DashboardProps) {
 
     hooks.useEventHandler(assetEvents, event => {
         switch (event.type) {
-            case assetEventModule.AssetEventType.openProject: {
+            case events.AssetEventType.openProject: {
                 openProjectAbortController?.abort()
                 setOpenProjectAbortController(null)
                 break
@@ -340,7 +336,7 @@ export default function Dashboard(props: DashboardProps) {
             onSpinnerStateChange?: (state: spinner.SpinnerState) => void
         ) => {
             dispatchAssetListEvent({
-                type: assetListEventModule.AssetListEventType.newProject,
+                type: events.AssetListEventType.newProject,
                 parentKey: null,
                 parentId: null,
                 templateId: templateId ?? null,
@@ -381,7 +377,7 @@ export default function Dashboard(props: DashboardProps) {
     const doRemoveSelf = React.useCallback(() => {
         if (projectStartupInfo?.projectAsset != null) {
             dispatchAssetListEvent({
-                type: assetListEventModule.AssetListEventType.removeSelf,
+                type: events.AssetListEventType.removeSelf,
                 id: projectStartupInfo.projectAsset.id,
             })
             setProjectStartupInfo(null)

@@ -3,13 +3,12 @@ import * as React from 'react'
 
 import BlankIcon from 'enso-assets/blank.svg'
 
-import * as assetEventModule from '#/events/assetEvent'
-import * as assetListEventModule from '#/events/assetListEvent'
 import * as assetTreeNode from '#/util/assetTreeNode'
 import * as backendModule from '#/services/backend'
 import * as download from '#/util/download'
 import * as drag from '#/util/drag'
 import * as errorModule from '#/util/error'
+import * as events from '#/events'
 import * as hooks from '#/hooks'
 import * as identity from '#/util/identity'
 import * as indent from '#/util/indent'
@@ -107,7 +106,7 @@ export default function AssetRow(props: AssetRowProps) {
             // position, from the viewpoint of the asset list.
             try {
                 dispatchAssetListEvent({
-                    type: assetListEventModule.AssetListEventType.move,
+                    type: events.AssetListEventType.move,
                     newParentKey,
                     newParentId,
                     key: item.key,
@@ -135,7 +134,7 @@ export default function AssetRow(props: AssetRowProps) {
                 }))
                 // Move the asset back to its original position.
                 dispatchAssetListEvent({
-                    type: assetListEventModule.AssetListEventType.move,
+                    type: events.AssetListEventType.move,
                     newParentKey: item.directoryKey,
                     newParentId: item.directoryId,
                     key: item.key,
@@ -165,7 +164,7 @@ export default function AssetRow(props: AssetRowProps) {
         setVisibility(visibilityModule.Visibility.hidden)
         if (asset.type === backendModule.AssetType.directory) {
             dispatchAssetListEvent({
-                type: assetListEventModule.AssetListEventType.closeFolder,
+                type: events.AssetListEventType.closeFolder,
                 id: asset.id,
                 // This is SAFE, as this asset is already known to be a directory.
                 // eslint-disable-next-line no-restricted-syntax
@@ -174,7 +173,7 @@ export default function AssetRow(props: AssetRowProps) {
         }
         try {
             dispatchAssetListEvent({
-                type: assetListEventModule.AssetListEventType.willDelete,
+                type: events.AssetListEventType.willDelete,
                 key: item.key,
             })
             if (
@@ -195,7 +194,7 @@ export default function AssetRow(props: AssetRowProps) {
             }
             await backend.deleteAsset(asset.id, asset.title)
             dispatchAssetListEvent({
-                type: assetListEventModule.AssetListEventType.delete,
+                type: events.AssetListEventType.delete,
                 key: item.key,
             })
         } catch (error) {
@@ -219,7 +218,7 @@ export default function AssetRow(props: AssetRowProps) {
         try {
             await backend.undoDeleteAsset(asset.id, asset.title)
             dispatchAssetListEvent({
-                type: assetListEventModule.AssetListEventType.delete,
+                type: events.AssetListEventType.delete,
                 key: item.key,
             })
         } catch (error) {
@@ -237,47 +236,47 @@ export default function AssetRow(props: AssetRowProps) {
     hooks.useEventHandler(assetEvents, async event => {
         switch (event.type) {
             // These events are handled in the specific `NameColumn` files.
-            case assetEventModule.AssetEventType.newProject:
-            case assetEventModule.AssetEventType.newFolder:
-            case assetEventModule.AssetEventType.uploadFiles:
-            case assetEventModule.AssetEventType.newDataConnector:
-            case assetEventModule.AssetEventType.openProject:
-            case assetEventModule.AssetEventType.closeProject:
-            case assetEventModule.AssetEventType.cancelOpeningAllProjects: {
+            case events.AssetEventType.newProject:
+            case events.AssetEventType.newFolder:
+            case events.AssetEventType.uploadFiles:
+            case events.AssetEventType.newDataConnector:
+            case events.AssetEventType.openProject:
+            case events.AssetEventType.closeProject:
+            case events.AssetEventType.cancelOpeningAllProjects: {
                 break
             }
-            case assetEventModule.AssetEventType.cut: {
+            case events.AssetEventType.cut: {
                 if (event.ids.has(item.key)) {
                     setVisibility(visibilityModule.Visibility.faded)
                 }
                 break
             }
-            case assetEventModule.AssetEventType.cancelCut: {
+            case events.AssetEventType.cancelCut: {
                 if (event.ids.has(item.key)) {
                     setVisibility(visibilityModule.Visibility.visible)
                 }
                 break
             }
-            case assetEventModule.AssetEventType.move: {
+            case events.AssetEventType.move: {
                 if (event.ids.has(item.key)) {
                     setVisibility(visibilityModule.Visibility.visible)
                     await doMove(event.newParentKey, event.newParentId)
                 }
                 break
             }
-            case assetEventModule.AssetEventType.delete: {
+            case events.AssetEventType.delete: {
                 if (event.ids.has(item.key)) {
                     await doDelete()
                 }
                 break
             }
-            case assetEventModule.AssetEventType.restore: {
+            case events.AssetEventType.restore: {
                 if (event.ids.has(item.key)) {
                     await doRestore()
                 }
                 break
             }
-            case assetEventModule.AssetEventType.download: {
+            case events.AssetEventType.download: {
                 if (event.ids.has(item.key)) {
                     download.download(
                         `./api/project-manager/projects/${asset.id}/enso-project`,
@@ -286,7 +285,7 @@ export default function AssetRow(props: AssetRowProps) {
                 }
                 break
             }
-            case assetEventModule.AssetEventType.downloadSelected: {
+            case events.AssetEventType.downloadSelected: {
                 if (selected) {
                     download.download(
                         `./api/project-manager/projects/${asset.id}/enso-project`,
@@ -295,7 +294,7 @@ export default function AssetRow(props: AssetRowProps) {
                 }
                 break
             }
-            case assetEventModule.AssetEventType.removeSelf: {
+            case events.AssetEventType.removeSelf: {
                 // This is not triggered from the asset list, so it uses `item.id` instead of `key`.
                 if (event.id === asset.id && user != null) {
                     setVisibility(visibilityModule.Visibility.hidden)
@@ -306,7 +305,7 @@ export default function AssetRow(props: AssetRowProps) {
                             userSubjects: [user.id],
                         })
                         dispatchAssetListEvent({
-                            type: assetListEventModule.AssetListEventType.delete,
+                            type: events.AssetListEventType.delete,
                             key: item.key,
                         })
                     } catch (error) {
@@ -316,7 +315,7 @@ export default function AssetRow(props: AssetRowProps) {
                 }
                 break
             }
-            case assetEventModule.AssetEventType.temporarilyAddLabels: {
+            case events.AssetEventType.temporarilyAddLabels: {
                 const labels = event.ids.has(item.key) ? event.labelNames : set.EMPTY
                 setRowState(oldRowState =>
                     oldRowState.temporarilyAddedLabels === labels &&
@@ -330,7 +329,7 @@ export default function AssetRow(props: AssetRowProps) {
                 )
                 break
             }
-            case assetEventModule.AssetEventType.temporarilyRemoveLabels: {
+            case events.AssetEventType.temporarilyRemoveLabels: {
                 const labels = event.ids.has(item.key) ? event.labelNames : set.EMPTY
                 setRowState(oldRowState =>
                     oldRowState.temporarilyAddedLabels === set.EMPTY &&
@@ -344,7 +343,7 @@ export default function AssetRow(props: AssetRowProps) {
                 )
                 break
             }
-            case assetEventModule.AssetEventType.addLabels: {
+            case events.AssetEventType.addLabels: {
                 setRowState(oldRowState =>
                     oldRowState.temporarilyAddedLabels === set.EMPTY
                         ? oldRowState
@@ -369,7 +368,7 @@ export default function AssetRow(props: AssetRowProps) {
                 }
                 break
             }
-            case assetEventModule.AssetEventType.removeLabels: {
+            case events.AssetEventType.removeLabels: {
                 setRowState(oldRowState =>
                     oldRowState.temporarilyAddedLabels === set.EMPTY
                         ? oldRowState
@@ -392,7 +391,7 @@ export default function AssetRow(props: AssetRowProps) {
                 }
                 break
             }
-            case assetEventModule.AssetEventType.deleteLabel: {
+            case events.AssetEventType.deleteLabel: {
                 setAsset(oldAsset => {
                     let found = identity.identity<boolean>(false)
                     const labels =
@@ -516,7 +515,7 @@ export default function AssetRow(props: AssetRowProps) {
                                     event.stopPropagation()
                                     unsetModal()
                                     dispatchAssetEvent({
-                                        type: assetEventModule.AssetEventType.move,
+                                        type: events.AssetEventType.move,
                                         newParentKey: item.key,
                                         newParentId: item.item.id,
                                         ids: new Set(payload.map(dragItem => dragItem.key)),

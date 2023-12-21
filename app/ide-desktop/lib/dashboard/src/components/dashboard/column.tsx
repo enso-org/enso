@@ -11,10 +11,10 @@ import SortDescendingIcon from 'enso-assets/sort_descending.svg'
 import TagIcon from 'enso-assets/tag.svg'
 import TimeIcon from 'enso-assets/time.svg'
 
-import * as assetEvent from '#/events/assetEvent'
 import type * as assetTreeNode from '#/util/assetTreeNode'
 import * as backendModule from '#/services/backend'
 import * as dateTime from '#/util/dateTime'
+import * as events from '#/events'
 import * as hooks from '#/hooks'
 import * as permissions from '#/util/permissions'
 import * as providers from '#/providers'
@@ -232,7 +232,7 @@ export function SharedWithColumn(props: SharedWithColumnProps) {
                                 eventTarget={event.currentTarget}
                                 doRemoveSelf={() => {
                                     dispatchAssetEvent({
-                                        type: assetEvent.AssetEventType.removeSelf,
+                                        type: events.AssetEventType.removeSelf,
                                         id: asset.id,
                                     })
                                 }}

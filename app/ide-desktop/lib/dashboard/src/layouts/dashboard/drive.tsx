@@ -3,10 +3,9 @@ import * as React from 'react'
 
 import * as common from 'enso-common'
 
-import * as assetEventModule from '#/events/assetEvent'
-import * as assetListEventModule from '#/events/assetListEvent'
 import type * as assetQuery from '#/util/assetQuery'
 import * as backendModule from '#/services/backend'
+import * as events from '#/events'
 import * as github from '#/util/github'
 import * as hooks from '#/hooks'
 import * as localStorageModule from '#/util/localStorage'
@@ -34,11 +33,11 @@ export interface DriveProps {
     initialProjectName: string | null
     /** These events will be dispatched the next time the assets list is refreshed, rather than
      * immediately. */
-    queuedAssetEvents: assetEventModule.AssetEvent[]
-    assetListEvents: assetListEventModule.AssetListEvent[]
-    dispatchAssetListEvent: (directoryEvent: assetListEventModule.AssetListEvent) => void
-    assetEvents: assetEventModule.AssetEvent[]
-    dispatchAssetEvent: (directoryEvent: assetEventModule.AssetEvent) => void
+    queuedAssetEvents: events.AssetEvent[]
+    assetListEvents: events.AssetListEvent[]
+    dispatchAssetListEvent: (directoryEvent: events.AssetListEvent) => void
+    assetEvents: events.AssetEvent[]
+    dispatchAssetEvent: (directoryEvent: events.AssetEvent) => void
     query: assetQuery.AssetQuery
     setQuery: React.Dispatch<React.SetStateAction<assetQuery.AssetQuery>>
     projectStartupInfo: backendModule.ProjectStartupInfo | null
@@ -139,7 +138,7 @@ export default function Drive(props: DriveProps) {
                 toastAndLog('Files cannot be uploaded while offline')
             } else {
                 dispatchAssetListEvent({
-                    type: assetListEventModule.AssetListEventType.uploadFiles,
+                    type: events.AssetListEventType.uploadFiles,
                     parentKey: null,
                     parentId: null,
                     files,
@@ -155,7 +154,7 @@ export default function Drive(props: DriveProps) {
             onSpinnerStateChange?: (state: spinner.SpinnerState) => void
         ) => {
             dispatchAssetListEvent({
-                type: assetListEventModule.AssetListEventType.newProject,
+                type: events.AssetListEventType.newProject,
                 parentKey: null,
                 parentId: null,
                 templateId: templateId ?? null,
@@ -167,7 +166,7 @@ export default function Drive(props: DriveProps) {
 
     const doCreateDirectory = React.useCallback(() => {
         dispatchAssetListEvent({
-            type: assetListEventModule.AssetListEventType.newFolder,
+            type: events.AssetListEventType.newFolder,
             parentKey: null,
             parentId: null,
         })
@@ -211,7 +210,7 @@ export default function Drive(props: DriveProps) {
             try {
                 await backend.deleteTag(id, value)
                 dispatchAssetEvent({
-                    type: assetEventModule.AssetEventType.deleteLabel,
+                    type: events.AssetEventType.deleteLabel,
                     labelName: value,
                 })
                 setLabels(oldLabels => oldLabels.filter(oldLabel => oldLabel.id !== id))
@@ -233,7 +232,7 @@ export default function Drive(props: DriveProps) {
     const doCreateDataConnector = React.useCallback(
         (name: string, value: string) => {
             dispatchAssetListEvent({
-                type: assetListEventModule.AssetListEventType.newDataConnector,
+                type: events.AssetListEventType.newDataConnector,
                 parentKey: null,
                 parentId: null,
                 name,
@@ -387,7 +386,7 @@ export default function Drive(props: DriveProps) {
                         event.preventDefault()
                         setIsFileBeingDragged(false)
                         dispatchAssetListEvent({
-                            type: assetListEventModule.AssetListEventType.uploadFiles,
+                            type: events.AssetListEventType.uploadFiles,
                             parentKey: null,
                             parentId: null,
                             files: Array.from(event.dataTransfer.files),

@@ -1,11 +1,10 @@
 /** @file The icon and name of a {@link backendModule.FileAsset}. */
 import * as React from 'react'
 
-import * as assetEventModule from '#/events/assetEvent'
-import * as assetListEventModule from '#/events/assetListEvent'
 import * as assetTreeNode from '#/util/assetTreeNode'
 import * as backendModule from '#/services/backend'
 import * as eventModule from '#/util/event'
+import * as events from '#/events'
 import * as fileIcon from '#/util/fileIcon'
 import * as hooks from '#/hooks'
 import * as indent from '#/util/indent'
@@ -55,31 +54,31 @@ export default function FileNameColumn(props: FileNameColumnProps) {
 
     hooks.useEventHandler(assetEvents, async event => {
         switch (event.type) {
-            case assetEventModule.AssetEventType.newProject:
-            case assetEventModule.AssetEventType.newFolder:
-            case assetEventModule.AssetEventType.newDataConnector:
-            case assetEventModule.AssetEventType.openProject:
-            case assetEventModule.AssetEventType.closeProject:
-            case assetEventModule.AssetEventType.cancelOpeningAllProjects:
-            case assetEventModule.AssetEventType.cut:
-            case assetEventModule.AssetEventType.cancelCut:
-            case assetEventModule.AssetEventType.move:
-            case assetEventModule.AssetEventType.delete:
-            case assetEventModule.AssetEventType.restore:
-            case assetEventModule.AssetEventType.download:
-            case assetEventModule.AssetEventType.downloadSelected:
-            case assetEventModule.AssetEventType.removeSelf:
-            case assetEventModule.AssetEventType.temporarilyAddLabels:
-            case assetEventModule.AssetEventType.temporarilyRemoveLabels:
-            case assetEventModule.AssetEventType.addLabels:
-            case assetEventModule.AssetEventType.removeLabels:
-            case assetEventModule.AssetEventType.deleteLabel: {
+            case events.AssetEventType.newProject:
+            case events.AssetEventType.newFolder:
+            case events.AssetEventType.newDataConnector:
+            case events.AssetEventType.openProject:
+            case events.AssetEventType.closeProject:
+            case events.AssetEventType.cancelOpeningAllProjects:
+            case events.AssetEventType.cut:
+            case events.AssetEventType.cancelCut:
+            case events.AssetEventType.move:
+            case events.AssetEventType.delete:
+            case events.AssetEventType.restore:
+            case events.AssetEventType.download:
+            case events.AssetEventType.downloadSelected:
+            case events.AssetEventType.removeSelf:
+            case events.AssetEventType.temporarilyAddLabels:
+            case events.AssetEventType.temporarilyRemoveLabels:
+            case events.AssetEventType.addLabels:
+            case events.AssetEventType.removeLabels:
+            case events.AssetEventType.deleteLabel: {
                 // Ignored. These events should all be unrelated to projects.
                 // `deleteMultiple`, `restoreMultiple`, `download`, and `downloadSelected`
                 // are handled by `AssetRow`.
                 break
             }
-            case assetEventModule.AssetEventType.uploadFiles: {
+            case events.AssetEventType.uploadFiles: {
                 const file = event.files.get(item.key)
                 if (file != null) {
                     rowState.setVisibility(visibility.Visibility.faded)
@@ -99,7 +98,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
                         })
                     } catch (error) {
                         dispatchAssetListEvent({
-                            type: assetListEventModule.AssetListEventType.delete,
+                            type: events.AssetListEventType.delete,
                             key: item.key,
                         })
                         toastAndLog('Could not upload file', error)

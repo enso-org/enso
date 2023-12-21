@@ -3,9 +3,9 @@ import * as React from 'react'
 
 import PenIcon from 'enso-assets/pen.svg'
 
-import type * as assetEvent from '#/events/assetEvent'
 import type * as assetTreeNode from '#/util/assetTreeNode'
 import type * as backendModule from '#/services/backend'
+import type * as events from '#/events'
 import * as hooks from '#/hooks'
 import * as permissions from '#/util/permissions'
 import * as providers from '#/providers'
@@ -35,7 +35,7 @@ export interface AssetSettingsPanelProps extends AssetSettingsPanelRequiredProps
     isHelpChatOpen: boolean
     setIsHelpChatOpen: React.Dispatch<React.SetStateAction<boolean>>
     setIsSettingsPanelVisible: React.Dispatch<React.SetStateAction<boolean>>
-    dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
+    dispatchAssetEvent: (event: events.AssetEvent) => void
     projectAsset: backendModule.ProjectAsset | null
     setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>> | null
     doRemoveSelf: () => void

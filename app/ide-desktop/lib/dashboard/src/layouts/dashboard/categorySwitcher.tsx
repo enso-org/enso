@@ -7,8 +7,8 @@ import RootIcon from 'enso-assets/root.svg'
 import TempIcon from 'enso-assets/temp.svg'
 import Trash2Icon from 'enso-assets/trash2.svg'
 
-import * as assetEvent from '#/events/assetEvent'
 import * as drag from '#/util/drag'
+import * as events from '#/events'
 import * as localStorageModule from '#/util/localStorage'
 import * as providers from '#/providers'
 
@@ -118,7 +118,7 @@ const CATEGORY_CLASS_NAMES: Record<Category, string> = {
 export interface CategorySwitcherProps {
     category: Category
     setCategory: (category: Category) => void
-    dispatchAssetEvent: (directoryEvent: assetEvent.AssetEvent) => void
+    dispatchAssetEvent: (directoryEvent: events.AssetEvent) => void
 }
 
 /** A switcher to choose the currently visible assets table category. */
@@ -171,8 +171,8 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                                 dispatchAssetEvent({
                                     type:
                                         category === Category.trash
-                                            ? assetEvent.AssetEventType.restore
-                                            : assetEvent.AssetEventType.delete,
+                                            ? events.AssetEventType.restore
+                                            : events.AssetEventType.delete,
                                     ids: new Set(payload.map(item => item.asset.id)),
                                 })
                             }

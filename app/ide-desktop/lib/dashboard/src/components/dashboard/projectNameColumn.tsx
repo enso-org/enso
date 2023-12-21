@@ -3,12 +3,11 @@ import * as React from 'react'
 
 import NetworkIcon from 'enso-assets/network.svg'
 
-import * as assetEventModule from '#/events/assetEvent'
-import * as assetListEventModule from '#/events/assetListEvent'
 import * as assetTreeNode from '#/util/assetTreeNode'
 import * as backendModule from '#/services/backend'
 import * as errorModule from '#/util/error'
 import * as eventModule from '#/util/event'
+import * as events from '#/events'
 import * as hooks from '#/hooks'
 import * as indent from '#/util/indent'
 import * as permissions from '#/util/permissions'
@@ -98,30 +97,30 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
 
     hooks.useEventHandler(assetEvents, async event => {
         switch (event.type) {
-            case assetEventModule.AssetEventType.newFolder:
-            case assetEventModule.AssetEventType.newDataConnector:
-            case assetEventModule.AssetEventType.openProject:
-            case assetEventModule.AssetEventType.closeProject:
-            case assetEventModule.AssetEventType.cancelOpeningAllProjects:
-            case assetEventModule.AssetEventType.cut:
-            case assetEventModule.AssetEventType.cancelCut:
-            case assetEventModule.AssetEventType.move:
-            case assetEventModule.AssetEventType.delete:
-            case assetEventModule.AssetEventType.restore:
-            case assetEventModule.AssetEventType.download:
-            case assetEventModule.AssetEventType.downloadSelected:
-            case assetEventModule.AssetEventType.removeSelf:
-            case assetEventModule.AssetEventType.temporarilyAddLabels:
-            case assetEventModule.AssetEventType.temporarilyRemoveLabels:
-            case assetEventModule.AssetEventType.addLabels:
-            case assetEventModule.AssetEventType.removeLabels:
-            case assetEventModule.AssetEventType.deleteLabel: {
+            case events.AssetEventType.newFolder:
+            case events.AssetEventType.newDataConnector:
+            case events.AssetEventType.openProject:
+            case events.AssetEventType.closeProject:
+            case events.AssetEventType.cancelOpeningAllProjects:
+            case events.AssetEventType.cut:
+            case events.AssetEventType.cancelCut:
+            case events.AssetEventType.move:
+            case events.AssetEventType.delete:
+            case events.AssetEventType.restore:
+            case events.AssetEventType.download:
+            case events.AssetEventType.downloadSelected:
+            case events.AssetEventType.removeSelf:
+            case events.AssetEventType.temporarilyAddLabels:
+            case events.AssetEventType.temporarilyRemoveLabels:
+            case events.AssetEventType.addLabels:
+            case events.AssetEventType.removeLabels:
+            case events.AssetEventType.deleteLabel: {
                 // Ignored. Any missing project-related events should be handled by `ProjectIcon`.
                 // `deleteMultiple`, `restoreMultiple`, `download`, and `downloadSelected`
                 // are handled by `AssetRow`.
                 break
             }
-            case assetEventModule.AssetEventType.newProject: {
+            case events.AssetEventType.newProject: {
                 // This should only run before this project gets replaced with the actual project
                 // by this event handler. In both cases `key` will match, so using `key` here
                 // is a mistake.
@@ -143,14 +142,14 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                             },
                         })
                         dispatchAssetEvent({
-                            type: assetEventModule.AssetEventType.openProject,
+                            type: events.AssetEventType.openProject,
                             id: createdProject.projectId,
                             shouldAutomaticallySwitchPage: true,
                             runInBackground: false,
                         })
                     } catch (error) {
                         dispatchAssetListEvent({
-                            type: assetListEventModule.AssetListEventType.delete,
+                            type: events.AssetListEventType.delete,
                             key: item.key,
                         })
                         toastAndLog('Error creating new project', error)
@@ -158,7 +157,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                 }
                 break
             }
-            case assetEventModule.AssetEventType.uploadFiles: {
+            case events.AssetEventType.uploadFiles: {
                 const file = event.files.get(item.key)
                 if (file != null) {
                     rowState.setVisibility(visibility.Visibility.faded)
@@ -224,7 +223,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                         }
                     } catch (error) {
                         dispatchAssetListEvent({
-                            type: assetListEventModule.AssetListEventType.delete,
+                            type: events.AssetListEventType.delete,
                             key: item.key,
                         })
                         toastAndLog('Could not upload project', error)
@@ -251,14 +250,14 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                 } else if (shortcuts.matchesMouseAction(shortcutsModule.MouseAction.open, event)) {
                     // It is a double click; open the project.
                     dispatchAssetEvent({
-                        type: assetEventModule.AssetEventType.openProject,
+                        type: events.AssetEventType.openProject,
                         id: asset.id,
                         shouldAutomaticallySwitchPage: true,
                         runInBackground: false,
                     })
                 } else if (shortcuts.matchesMouseAction(shortcutsModule.MouseAction.run, event)) {
                     dispatchAssetEvent({
-                        type: assetEventModule.AssetEventType.openProject,
+                        type: events.AssetEventType.openProject,
                         id: asset.id,
                         shouldAutomaticallySwitchPage: false,
                         runInBackground: true,

@@ -7,8 +7,8 @@ import AddFolderIcon from 'enso-assets/add_folder.svg'
 import DataDownloadIcon from 'enso-assets/data_download.svg'
 import DataUploadIcon from 'enso-assets/data_upload.svg'
 
-import * as assetEventModule from '#/events/assetEvent'
 import * as backendModule from '#/services/backend'
+import * as events from '#/events'
 import * as providers from '#/providers'
 import * as shortcutsModule from '#/util/shortcuts'
 
@@ -27,7 +27,7 @@ export interface DriveBarProps {
     doCreateDirectory: () => void
     doCreateDataConnector: (name: string, value: string) => void
     doUploadFiles: (files: File[]) => void
-    dispatchAssetEvent: (event: assetEventModule.AssetEvent) => void
+    dispatchAssetEvent: (event: events.AssetEvent) => void
 }
 
 /** Displays the current directory path and permissions, upload and download buttons,
@@ -168,7 +168,7 @@ export default function DriveBar(props: DriveBarProps) {
                             event.stopPropagation()
                             unsetModal()
                             dispatchAssetEvent({
-                                type: assetEventModule.AssetEventType.downloadSelected,
+                                type: events.AssetEventType.downloadSelected,
                             })
                         }}
                     />
