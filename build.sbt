@@ -272,7 +272,6 @@ lazy val enso = (project in file("."))
     `syntax-definition`,
     `syntax-rust-definition`,
     `text-buffer`,
-    logger,
     pkg,
     cli,
     `task-progress-notifications`,
@@ -527,13 +526,6 @@ lazy val compileModuleInfo = taskKey[Unit]("Compiles `module-info.java`")
 // ============================================================================
 // === Internal Libraries =====================================================
 // ============================================================================
-
-lazy val logger = (project in file("lib/scala/logger"))
-  .settings(
-    frgaalJavaCompilerSetting,
-    version := "0.1",
-    libraryDependencies ++= scalaCompiler
-  )
 
 lazy val `syntax-definition` =
   project in file("lib/scala/syntax/definition")
@@ -907,7 +899,10 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
       "org.apache.commons"          % "commons-lang3"       % commonsLangVersion,
       "com.beachape"               %% "enumeratum-circe"    % enumeratumCirceVersion,
       "com.miguno.akka"            %% "akka-mock-scheduler" % akkaMockSchedulerVersion % Test,
-      "org.mockito"                %% "mockito-scala"       % mockitoScalaVersion      % Test
+      "org.mockito"                %% "mockito-scala"       % mockitoScalaVersion      % Test,
+      "junit"                       % "junit"               % junitVersion             % Test,
+      "com.github.sbt"              % "junit-interface"     % junitIfVersion           % Test,
+      "org.hamcrest"                % "hamcrest-all"        % hamcrestVersion          % Test
     ),
     addCompilerPlugin(
       "org.typelevel" %% "kind-projector" % kindProjectorVersion cross CrossVersion.full
@@ -1016,7 +1011,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
   .dependsOn(`json-rpc-server-test` % Test)
   .dependsOn(testkit % Test)
   .dependsOn(`runtime-version-manager-test` % Test)
-  .dependsOn(`logging-service-logback` % Test)
+  .dependsOn(`logging-service-logback` % "test->test")
 
 /* Note [Classpath Separation]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1207,8 +1202,13 @@ val truffleRunOptionsSettings = Seq(
   javaOptions ++= "-ea" +: benchOnlyOptions
 )
 
+/** Explicitly provide `application-test.conf` as the resource that should be used for
+  * parsing the logging configuration. Explicitly setting `config.resource` prevents
+  * the potential conflicts with other *.conf files.
+  */
 val testLogProviderOptions = Seq(
-  "-Dslf4j.provider=org.enso.logger.TestLogProvider"
+  "-Dslf4j.provider=org.enso.logger.TestLogProvider",
+  "-Dconfig.resource=application-test.conf"
 )
 
 lazy val `polyglot-api` = project
@@ -2126,8 +2126,7 @@ lazy val launcher = project
       .dependsOn(buildNativeImage)
       .dependsOn(LauncherShimsForTest.prepare())
       .evaluated,
-    Test / fork := true,
-    Test / javaOptions += s"-Dconfig.file=${sourceDirectory.value}/test/resources/application.conf"
+    Test / fork := true
   )
   .dependsOn(cli)
   .dependsOn(`runtime-version-manager`)
