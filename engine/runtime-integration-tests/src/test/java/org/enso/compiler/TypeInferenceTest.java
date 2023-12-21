@@ -51,6 +51,8 @@ public class TypeInferenceTest extends TestBase {
             .buildLiteral();
 
     var module = ctx.eval(src);
+    // TODO can we get compiler to fire without eval??
+    module.invokeMember("eval_expression", "bar");
     // TODO checking what is inferred
   }
 
