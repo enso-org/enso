@@ -110,16 +110,6 @@ final class Array implements EnsoObject {
     return v;
   }
 
-  Object readArrayElementNoWarningPropagation(long index) throws InvalidArrayIndexException {
-    if (index >= items.length || index < 0) {
-      // TODO: need to do this
-      // errProfile.enter();
-      throw InvalidArrayIndexException.create(index);
-    }
-
-    return items[(int) index];
-  }
-
   long length() {
     return items.length;
   }

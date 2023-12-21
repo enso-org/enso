@@ -1666,31 +1666,6 @@ type Table
         result = new_column.rename (self.column_naming_helper.sanitize_name expression)
         on_problems.attach_problems_before problems <|
             Warning.set result []
-        ##
-            IO.println 'AAA'
-            IO.println result
-            IO.println (Meta.get_simple_type_name result)
-            ws = (Warning.get_all result)
-            IO.println ws
-            IO.println (Meta.get_simple_type_name (ws.at 0 . value))
-            IO.println (Meta.get_simple_type_name (ws.at 1 . value))
-            q = on_problems.attach_problems_before problems <|
-                j = Warning.set result []
-                IO.println 'AAA j'
-                IO.println 'AAA j'+((j).to_text)
-                IO.println 'AAA j'+(((Warning.get_all j)).to_text)
-                j
-            IO.println 'AAAq'
-            IO.println q
-            IO.println (Meta.get_simple_type_name q)
-            ws2 = (Warning.get_all q)
-            IO.println ws2
-            IO.println (Meta.get_simple_type_name (ws2.at 0 . value))
-            IO.println (Meta.get_simple_type_name (ws2.at 1 . value))
-            IO.println 'AAAp'
-            IO.println problems
-            IO.println on_problems
-            q
 
     ## PRIVATE
 

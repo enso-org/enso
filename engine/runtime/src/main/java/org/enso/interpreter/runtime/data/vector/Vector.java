@@ -22,7 +22,7 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
 @Builtin(pkg = "immutable", stdlibName = "Standard.Base.Data.Vector.Vector")
-public abstract class Vector implements EnsoObject {
+abstract class Vector implements EnsoObject {
   @ExportMessage
   boolean hasArrayElements() {
     return true;
@@ -128,7 +128,7 @@ public abstract class Vector implements EnsoObject {
 
   @ExportLibrary(InteropLibrary.class)
   @ExportLibrary(WarningsLibrary.class)
-  public static final class EnsoOnly extends Vector {
+  static final class EnsoOnly extends Vector {
     private final Object[] storage;
 
     private EnsoOnly(Object[] storage) {
@@ -182,7 +182,7 @@ public abstract class Vector implements EnsoObject {
 
   @ExportLibrary(InteropLibrary.class)
   @ExportLibrary(WarningsLibrary.class)
-  public static final class Generic extends Vector {
+  static final class Generic extends Vector {
     private final Object storage;
 
     private Generic(Object storage) {
@@ -226,19 +226,9 @@ public abstract class Vector implements EnsoObject {
         @Cached HostValueToEnsoNode toEnso)
         throws InvalidArrayIndexException, UnsupportedMessageException {
       var v = interop.readArrayElement(this.storage, index);
-      // System.out.println("AAA rae " + index + " " + v + " " +
-      // warnings.hasWarnings(this.storage));
       if (warnings.hasWarnings(this.storage)) {
         Warning[] extracted = warnings.getWarnings(this.storage, null, false);
-        // System.out.println("AAA rae ws " + extracted + " " + extracted.length);
-        for (Warning warning : extracted) {
-          // System.out.println("AAA rae w " + warning);
-        }
         if (warnings.hasWarnings(v)) {
-          // System.out.println("AAA rae e orig " + warnings.getWarnings(v, null));
-          for (Warning warning : warnings.getWarnings(v, null, false)) {
-            // System.out.println("AAA rae e w " + warning);
-          }
           v = warnings.removeWarnings(v);
         }
         return WithWarnings.wrap(EnsoContext.get(interop), toEnso.execute(v), extracted);
@@ -295,7 +285,7 @@ public abstract class Vector implements EnsoObject {
 
   @ExportLibrary(value = InteropLibrary.class)
   @ExportLibrary(value = WarningsLibrary.class)
-  public static final class Double extends Vector {
+  static final class Double extends Vector {
     private final double[] storage;
 
     private Double(double[] storage) {
@@ -358,7 +348,7 @@ public abstract class Vector implements EnsoObject {
 
   @ExportLibrary(value = InteropLibrary.class)
   @ExportLibrary(value = WarningsLibrary.class)
-  public static final class Long extends Vector {
+  static final class Long extends Vector {
     private final long[] storage;
 
     private Long(long[] storage) {

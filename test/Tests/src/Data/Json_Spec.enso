@@ -37,10 +37,6 @@ Text.should_render_itself self =
     Json.parse self . to_json . should_equal self
 
 spec =
-    Test.group "asdfasdf" <|
-        Test.specify "should print JSON structures to valid json" <|
-            "[null,null,true,false]".should_render_itself
-
     Test.group "JSON Deserialization" <|
         Test.specify "should parse JSON structures" <|
             "0    ".should_parse_as 0

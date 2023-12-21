@@ -93,7 +93,7 @@ public final class Warning implements EnsoObject {
   @Builtin.Specialize
   @CompilerDirectives.TruffleBoundary
   public static EnsoObject getAll(
-      WithWarnings value, boolean shouldWrap, WarningsLibrary warningsLib, InteropLibrary interop) {
+      WithWarnings value, boolean shouldWrap, WarningsLibrary warningsLib) {
     Warning[] warnings = value.getWarningsArray(warningsLib, shouldWrap);
     sortArray(warnings);
     return ArrayLikeHelpers.wrapEnsoObjects(warnings);
@@ -105,7 +105,7 @@ public final class Warning implements EnsoObject {
       autoRegister = false)
   @Builtin.Specialize(fallback = true)
   public static EnsoObject getAll(
-      Object value, boolean shouldWrap, WarningsLibrary warningsLib, InteropLibrary interop) {
+      Object value, boolean shouldWrap, WarningsLibrary warningsLib) {
     if (warningsLib.hasWarnings(value)) {
       try {
         Warning[] warnings = warningsLib.getWarnings(value, null, shouldWrap);
@@ -165,15 +165,6 @@ public final class Warning implements EnsoObject {
   @Builtin.Specialize(fallback = true)
   public static Object set(EnsoContext ctx, Object value, Object warnings, InteropLibrary interop) {
     return setGeneric(ctx, value, interop, warnings);
-  }
-
-  @Builtin.Method(
-      name = "get_warnings_limit",
-      description = "Returns a maximal number of warnings that can be attached to a value.",
-      autoRegister = false)
-  @Builtin.Specialize
-  public static long getWarningsLimit(EnsoContext ctx) {
-    return ctx.getWarningsLimit();
   }
 
   private static Object setGeneric(

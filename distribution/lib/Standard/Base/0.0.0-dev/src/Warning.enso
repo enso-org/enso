@@ -62,7 +62,6 @@ type Warning
        ADVANCED
        Gets all the warnings attached to the given value. Warnings are returned in the
        reverse-chronological order with respect to their attachment time.
-       Limits the number of warnings return to `EnsoContext.getWarningsLimit()`.
     get_all : Any -> Vector Warning
     get_all value = Vector.from_polyglot_array (get_all_array value False)
 
@@ -70,7 +69,6 @@ type Warning
        ADVANCED
        Gets all the warnings attached to the given value.
        Warnings attached to elements in array-likes are wrapped in Map_Error.
-       Limits the number of warnings return to `EnsoContext.getWarningsLimit()`.
     get_all_wrapped : Any -> Vector Warning
     get_all_wrapped value = Vector.from_polyglot_array (get_all_array value True)
 
@@ -290,11 +288,6 @@ type Warning
    - origin: stacktrace representing the location where the warning is being created at.
 create : Any -> Any -> Warning
 create payload origin = @Builtin_Method "Warning.create"
-
-## PRIVATE
-   Returns a maximal number of warnings that can be attached to a value.
-get_warnings_limit : Integer
-get_warnings_limit = @Builtin_Method "Warning.get_warnings_limit"
 
 ## PRIVATE
 
