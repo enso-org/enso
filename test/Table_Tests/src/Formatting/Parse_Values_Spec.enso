@@ -221,7 +221,7 @@ spec =
             t3 = Table.new [["xs", ["1,2", "1.3", "_0", "0_", "1_0_0", "1_000"]]]
             t4 = t3.parse format=opts type=Value_Type.Float
             t4.at "xs" . to_vector . should_equal [1.2, Nothing, Nothing, Nothing, Nothing, 1000]
-            Problems.get_attached_warnings t4 . should_equal [Map_Error.Error 0 (Invalid_Format.Error "xs" Value_Type.Float ["1.3", "_0", "0_", "1_0_0"])]
+            Problems.get_attached_warnings t4 . should_equal [(Invalid_Format.Error "xs" Value_Type.Float ["1.3", "_0", "0_", "1_0_0"])]
             t5 = t3.parse format=opts type=Value_Type.Integer
             t5.at "xs" . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing, 1000]
             Problems.get_attached_warnings t5 . should_equal [Invalid_Format.Error "xs" Value_Type.Integer ["1,2", "1.3", "_0", "0_", "1_0_0"]]
@@ -235,7 +235,7 @@ spec =
             t3 = Table.new [["bools", ["1", "NO", "False", "True", "YES", "no", "oui", "0"]]]
             t4 = t3.parse format=opts_1 type=Value_Type.Boolean
             t4.at "bools" . to_vector . should_equal [True, Nothing, Nothing, Nothing, True, Nothing, Nothing, False]
-            Problems.get_attached_warnings t4 . should_equal [Map_Error.Error 0 (Invalid_Format.Error "bools" Value_Type.Boolean ["NO", "False", "True", "no", "oui"])]
+            Problems.get_attached_warnings t4 . should_equal [(Invalid_Format.Error "bools" Value_Type.Boolean ["NO", "False", "True", "no", "oui"])]
 
         whitespace_table =
             ints = ["ints", ["0", "1 ", "0 1", "     2"]]
