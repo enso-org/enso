@@ -17,13 +17,13 @@ type Arithmetic_Error
 
 @Builtin_Type
 type Type_Error
-    Error expected actual name
+    Error expected actual comment
 
     type_of_actual self =
         tpe = Meta.type_of self.actual
         if tpe.is_error then self.actual.to_display_text else tpe.to_display_text
 
-    to_display_text self = "Type error: expected `"+self.name+"` to be "+self.expected.to_display_text+", but got "+self.type_of_actual+"."
+    to_display_text self = "Type error: expected "+self.comment+" to be "+self.expected.to_display_text+", but got "+self.type_of_actual+"."
 
 @Builtin_Type
 type Not_Invokable

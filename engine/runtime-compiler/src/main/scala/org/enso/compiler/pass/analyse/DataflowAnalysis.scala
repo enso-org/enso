@@ -393,7 +393,7 @@ case object DataflowAnalysis extends IRPass {
     */
   def analyseType(typ: Type, info: DependencyInfo): Type = {
     typ match {
-      case asc @ Type.Ascription(typed, signature, _, _, _) =>
+      case asc @ Type.Ascription(typed, signature, _, _, _, _) =>
         val ascrDep  = asStatic(asc)
         val typedDep = asStatic(typed)
         val sigDep   = asStatic(signature)
