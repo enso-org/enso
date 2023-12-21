@@ -1,0 +1,63 @@
+from Standard.Base import all
+from Standard.Base.Runtime import assert
+
+type Test_Options
+
+
+type Test_Builder
+    ## PRIVATE
+    Impl builder
+
+    ## Add a group to the builder.
+    group : Text -> (Group_Builder -> Any) -> Nothing
+    group self (name:Text) fn =
+        b = Vector.new_builder
+        fn (Group_Builder.Impl b)
+        self.builder.append <| Test.Group name b.to_vector
+
+
+## Builder to create a group of tests.
+type Group_Builder
+    ## PRIVATE
+    Impl builder
+
+    specify : Text -> (Nothing -> Any) -> Nothing
+    specify self (name:Text) ~code =
+        self.builder.append <| Test.Spec name (_ -> code)
+        Nothing
+
+
+type Test
+    All (groups : Vector Test)
+    Group (name : Text) (specs : Vector Test)
+    Spec (name : Text) (code : Any -> Any)
+
+    ## Construct a Test object
+    build : (Test_Builder -> Any) -> Test
+    build fn =
+        b = Vector.new_builder
+        fn (Test_Builder.Impl b)
+        groups_vec = b.to_vector
+        Test.All groups_vec
+
+    run_main self =
+        IO.println "Test.run_main"
+        self.groups.each group->
+            self.run_group group
+
+    ## PRIVATE
+    run_group self group =
+        case group of
+            Test.Group name specs ->
+                IO.println <| "Running group '" + group.name + "'"
+                group.specs.each spec->
+                    self.run_spec spec
+            _ -> Error.throw "Unreachable"
+
+    ## PRIVATE
+    run_spec self spec =
+        case spec of
+            Test.Spec spec_name code ->
+                IO.println <| "  Running spec '" + spec.name + "'"
+                spec.code Nothing
+            _ -> Error.throw "Unreachable"
