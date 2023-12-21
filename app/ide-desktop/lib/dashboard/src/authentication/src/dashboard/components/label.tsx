@@ -55,14 +55,14 @@ export default function Label(props: InternalLabelProps) {
     const textColorClassName = /\btext-/.test(className)
         ? '' // eslint-disable-next-line @typescript-eslint/no-magic-numbers
         : color.lightness <= 50
-          ? 'text-tag-text'
-          : active
-            ? 'text-primary'
-            : 'text-not-selected'
+        ? 'text-tag-text'
+        : active
+        ? 'text-primary'
+        : 'text-not-selected'
     return (
         <button
             disabled={disabled}
-            className={`flex items-center rounded-full gap-1.5 h-6 px-2.25 ${className} ${
+            className={`flex items-center rounded-full gap-1.5 h-6 px-2.25 transition-all ${className} ${
                 negated
                     ? 'relative before:absolute before:rounded-full before:border-2 before:border-delete before:inset-0 before:w-full before:h-full'
                     : ''
