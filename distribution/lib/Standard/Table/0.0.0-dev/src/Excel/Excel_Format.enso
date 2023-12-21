@@ -1,7 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.System.File_Format.File_For_Read
-import Standard.Base.System.File_Format.File_Format_Metadata
 import Standard.Base.System.Input_Stream.Input_Stream
 from Standard.Base.System.File import find_extension_from_name
 
@@ -82,8 +81,8 @@ type Excel_Format
 
     ## PRIVATE
        Implements decoding the format from a stream.
-    read_stream : Input_Stream -> File_Format_Metadata -> Any
-    read_stream self stream:Input_Stream (metadata : File_Format_Metadata = File_Format_Metadata.no_information) =
+    read_stream : Input_Stream -> File_For_Read -> Any
+    read_stream self stream:Input_Stream (metadata : File_For_Read = File_For_Read.no_information) =
         xls_format = if self.xls_format != Infer then self.xls_format else
             inferred_xls_format = xls_format_from_metadata metadata
             # If still unable to infer it, we default to False
@@ -155,7 +154,7 @@ xls_format_from_file_extension extension =
         _ -> Nothing
 
 ## PRIVATE
-xls_format_from_metadata : File_Format_Metadata -> Boolean | Nothing
+xls_format_from_metadata : File_For_Read -> Boolean | Nothing
 xls_format_from_metadata metadata =
     from_content_type = metadata.content_type.if_not_nothing (xls_format_from_content_type metadata.content_type)
     from_content_type.if_nothing <|

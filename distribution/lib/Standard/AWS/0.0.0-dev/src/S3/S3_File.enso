@@ -4,7 +4,6 @@ import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.System.File_Format.File_For_Read
-import Standard.Base.System.File_Format.File_Format_Metadata
 import Standard.Base.System.Input_Stream.Input_Stream
 import Standard.Base.System.Output_Stream.Output_Stream
 from Standard.Base.System.File import find_extension_from_name
@@ -120,7 +119,7 @@ type S3_File
                 response = S3.get_object self.bucket self.prefix self.credentials
                 response.decode Auto_Detect
             _ ->
-                metadata = File_Format_Metadata.Value file_name=self.name
+                metadata = File_For_Read.Value file_name=self.name
                 self.with_input_stream [File_Access.Read] (stream-> format.read_stream stream metadata)
 
     ## ALIAS load bytes, open bytes

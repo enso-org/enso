@@ -1,4 +1,4 @@
-import Standard.Base.System.File_Format.File_Format_Metadata
+import Standard.Base.System.File_Format.File_For_Read
 
 import project.Any.Any
 import project.Data.Text.Text
@@ -48,7 +48,7 @@ type XML_Format
 
     ## PRIVATE
        Implements decoding the format from a stream.
-    read_stream : Input_Stream -> File_Format_Metadata -> Any
-    read_stream self stream:Input_Stream (metadata : File_Format_Metadata = File_Format_Metadata.no_information) =
+    read_stream : Input_Stream -> File_For_Read -> Any
+    read_stream self stream:Input_Stream (metadata : File_For_Read = File_For_Read.no_information) =
         _ = metadata
         XML_Document.from_stream stream
