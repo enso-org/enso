@@ -1,4 +1,4 @@
-import Standard.Base.System.File_Format.File_For_Read
+import Standard.Base.System.File_Format.File_Format_Metadata
 
 import project.Any.Any
 import project.Data.Text.Text
@@ -7,7 +7,7 @@ import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Network.URI.URI
 import project.Nothing.Nothing
 import project.System.File.File
-import project.System.File_Format.File_For_Read
+import project.System.File_Format.File_Format_Metadata
 import project.System.Input_Stream.Input_Stream
 from project.Data.Text.Extensions import all
 
@@ -15,8 +15,8 @@ from project.Data.Text.Extensions import all
 type XML_Format
     ## PRIVATE
        If the File_Format supports reading from the file, return a configured instance.
-    for_file_read : File_For_Read -> XML_Format | Nothing
-    for_file_read file:File_For_Read =
+    for_file_read : File_Format_Metadata -> XML_Format | Nothing
+    for_file_read file:File_Format_Metadata =
         case file.extension of
             ".xml" -> XML_Format
             _ -> Nothing
@@ -48,7 +48,7 @@ type XML_Format
 
     ## PRIVATE
        Implements decoding the format from a stream.
-    read_stream : Input_Stream -> File_For_Read -> Any
-    read_stream self stream:Input_Stream (metadata : File_For_Read = File_For_Read.no_information) =
+    read_stream : Input_Stream -> File_Format_Metadata -> Any
+    read_stream self stream:Input_Stream (metadata : File_Format_Metadata = File_Format_Metadata.no_information) =
         _ = metadata
         XML_Document.from_stream stream

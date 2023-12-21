@@ -55,8 +55,8 @@ type Auto_Detect
        Finds a matching format for reading the file.
 
        It assumes that `file` already exists.
-    get_reading_format : File_For_Read -> Any | Nothing
-    get_reading_format file:File_For_Read =
+    get_reading_format : File_Format_Metadata -> Any | Nothing
+    get_reading_format file:File_Format_Metadata =
         get_format f-> f.for_file_read file
 
     ## PRIVATE
@@ -122,8 +122,8 @@ type Plain_Text_Format
 
     ## PRIVATE
        If the File_Format supports reading from the file, return a configured instance.
-    for_file_read : File_For_Read -> Plain_Text_Format | Nothing
-    for_file_read file:File_For_Read =
+    for_file_read : File_Format_Metadata -> Plain_Text_Format | Nothing
+    for_file_read file:File_Format_Metadata =
         case file.extension of
             ".txt" -> Plain_Text_Format.Plain_Text
             ".log" -> Plain_Text_Format.Plain_Text
@@ -157,8 +157,8 @@ type Plain_Text_Format
 
     ## PRIVATE
        Implements decoding the format from a stream.
-    read_stream : Input_Stream -> File_For_Read -> Any
-    read_stream self stream:Input_Stream (metadata : File_For_Read = File_For_Read.no_information) =
+    read_stream : Input_Stream -> File_Format_Metadata -> Any
+    read_stream self stream:Input_Stream (metadata : File_Format_Metadata = File_Format_Metadata.no_information) =
         _ = metadata
         Text.from_bytes (stream.read_all_bytes) self.encoding
 
@@ -166,8 +166,8 @@ type Plain_Text_Format
 type Bytes
     ## PRIVATE
        If the File_Format supports reading from the file, return a configured instance.
-    for_file_read : File_For_Read -> Bytes | Nothing
-    for_file_read file:File_For_Read =
+    for_file_read : File_Format_Metadata -> Bytes | Nothing
+    for_file_read file:File_Format_Metadata =
         case file.extension of
             ".dat" -> Bytes
             _ -> Nothing
@@ -194,8 +194,8 @@ type Bytes
 
     ## PRIVATE
        Implements decoding the format from a stream.
-    read_stream : Input_Stream -> File_For_Read -> Any
-    read_stream self stream:Input_Stream (metadata : File_For_Read = File_For_Read.no_information) =
+    read_stream : Input_Stream -> File_Format_Metadata -> Any
+    read_stream self stream:Input_Stream (metadata : File_Format_Metadata = File_Format_Metadata.no_information) =
         _ = metadata
         stream.read_all_bytes
 
@@ -203,8 +203,8 @@ type Bytes
 type JSON_Format
     ## PRIVATE
        If the File_Format supports reading from the file, return a configured instance.
-    for_file_read : File_For_Read -> JSON_Format | Nothing
-    for_file_read file:File_For_Read =
+    for_file_read : File_Format_Metadata -> JSON_Format | Nothing
+    for_file_read file:File_Format_Metadata =
         case file.extension of
             ".json" -> JSON_Format
             ".geojson" -> JSON_Format
@@ -236,8 +236,8 @@ type JSON_Format
 
     ## PRIVATE
        Implements decoding the format from a stream.
-    read_stream : Input_Stream -> File_For_Read -> Any
-    read_stream self stream:Input_Stream (metadata : File_For_Read) =
+    read_stream : Input_Stream -> File_Format_Metadata -> Any
+    read_stream self stream:Input_Stream (metadata : File_Format_Metadata) =
         _ = metadata
         Text.from_bytes (stream.read_all_bytes) Encoding.utf_8 . parse_json
 
@@ -246,7 +246,7 @@ type Infer
 
 ## PRIVATE
    A minimal interface allowing for_file_read
-type File_For_Read
+type File_Format_Metadata
     ## PRIVATE
        Arguments:
        - path: the path or the URI of the file.
@@ -257,8 +257,8 @@ type File_For_Read
     Value path:Text|Nothing name:Text|Nothing extension:Text|Nothing (read_first_bytes:(Integer -> Nothing | Vector Integer)=(_->Nothing)) (content_type:Text|Nothing = Nothing)
 
     ## PRIVATE
-    no_information : File_For_Read
-    no_information = File_For_Read.Value Nothing Nothing Nothing (_->Nothing) Nothing
+    no_information : File_Format_Metadata
+    no_information = File_Format_Metadata.Value Nothing Nothing Nothing (_->Nothing) Nothing
 
 ## PRIVATE
-File_For_Read.from (that:File) = File_For_Read.Value that.path that.name that.extension that.read_first_bytes
+File_Format_Metadata.from (that:File) = File_Format_Metadata.Value that.path that.name that.extension that.read_first_bytes

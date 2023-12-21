@@ -1,6 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Network.HTTP.Response.Response
-import Standard.Base.System.File_Format.File_For_Read
+import Standard.Base.System.File_Format.File_Format_Metadata
 import Standard.Base.System.Input_Stream.Input_Stream
 from Standard.Base.Widget_Helpers import make_delimiter_selector
 
@@ -59,8 +59,8 @@ type Delimited_Format
     ## PRIVATE
        ADVANCED
        If the File_Format supports reading from the file, return a configured instance.
-    for_file_read : File_For_Read -> Delimited_Format | Nothing
-    for_file_read file:File_For_Read =
+    for_file_read : File_Format_Metadata -> Delimited_Format | Nothing
+    for_file_read file:File_Format_Metadata =
         case file.extension of
             ".csv" -> Delimited_Format.Delimited ','
             ".tab" -> Delimited_Format.Delimited '\t'
@@ -99,8 +99,8 @@ type Delimited_Format
 
     ## PRIVATE
        Implements decoding the format from a stream.
-    read_stream : Input_Stream -> File_For_Read -> Any
-    read_stream self stream:Input_Stream (metadata : File_For_Read = File_For_Read.no_information) =
+    read_stream : Input_Stream -> File_Format_Metadata -> Any
+    read_stream self stream:Input_Stream (metadata : File_Format_Metadata = File_Format_Metadata.no_information) =
         _ = metadata
         Delimited_Reader.read_stream self stream on_problems=Report_Warning
 

@@ -24,7 +24,7 @@ import project.System.File.Write_Extensions
 import project.System.File_Format.Auto_Detect
 import project.System.File_Format.Bytes
 import project.System.File_Format.File_Format
-import project.System.File_Format.File_For_Read
+import project.System.File_Format.File_Format_Metadata
 import project.System.File_Format.Plain_Text_Format
 import project.System.Input_Stream.Input_Stream
 from project.Data.Boolean import Boolean, False, True
@@ -126,7 +126,7 @@ type Response_Body
             _ ->
                 type_obj = Meta.type_of format
                 if can_decode type_obj . not then Error.throw (Illegal_Argument.Error type_obj.to_text+" cannot be used to decode from a stream. It must be saved to a file first.") else
-                    metadata = File_For_Read.Value content_type=self.content_type
+                    metadata = File_Format_Metadata.Value content_type=self.content_type
                     self.with_stream stream->
                         format.read_stream stream metadata
 
