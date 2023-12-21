@@ -377,7 +377,15 @@ export default function AssetsTable(props: AssetsTableProps) {
                         nameSet => !nameSet.some(name => globMatch(name, lowercaseName))
                     ) &&
                     query.labels.every(labelSet =>
-                        labelSet.some(label => labels.includes(label))
+                        labelSet.some(label =>
+                            labels.some(assetLabel => globMatch(label, assetLabel))
+                        )
+                    ) &&
+                    query.negativeLabels.every(
+                        labelSet =>
+                            !labelSet.some(label =>
+                                labels.some(assetLabel => globMatch(label, assetLabel))
+                            )
                     ) &&
                     query.types.every(typeSet => typeSet.some(type => type === assetType)) &&
                     query.negativeTypes.every(
@@ -403,14 +411,16 @@ export default function AssetsTable(props: AssetsTableProps) {
                     ) &&
                     query.modifieds.every(modifiedSet => modifiedSet.some(matchesDate)) &&
                     query.negativeModifieds.every(modifiedSet => !modifiedSet.some(matchesDate)) &&
-                    query.negativeLabels.every(
-                        labelSet => !labelSet.some(label => labels.includes(label))
-                    ) &&
                     query.owners.every(ownerSet =>
-                        ownerSet.some(owner => owners.includes(owner))
+                        ownerSet.some(owner =>
+                            owners.some(assetOwner => globMatch(owner, assetOwner))
+                        )
                     ) &&
                     query.negativeOwners.every(
-                        ownerSet => !ownerSet.some(owner => owners.includes(owner))
+                        ownerSet =>
+                            !ownerSet.some(owner =>
+                                owners.some(assetOwner => globMatch(owner, assetOwner))
+                            )
                     )
                 )
             }
@@ -433,8 +443,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                         (a.item.title > b.item.title
                             ? 1
                             : a.item.title < b.item.title
-                            ? COMPARE_LESS_THAN
-                            : 0)
+                              ? COMPARE_LESS_THAN
+                              : 0)
 
                     break
                 }
@@ -888,11 +898,11 @@ export default function AssetsTable(props: AssetsTableProps) {
                                                   ),
                                               ]
                                             : initialChildren == null ||
-                                              initialChildren.length === 0
-                                            ? childAssetNodes
-                                            : [...initialChildren, ...childAssetNodes].sort(
-                                                  assetTreeNode.compareAssetTreeNodes
-                                              )
+                                                initialChildren.length === 0
+                                              ? childAssetNodes
+                                              : [...initialChildren, ...childAssetNodes].sort(
+                                                    assetTreeNode.compareAssetTreeNodes
+                                                )
                                     return {
                                         ...item,
                                         children,
@@ -1554,8 +1564,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                         category === categorySwitcher.Category.trash
                             ? TRASH_PLACEHOLDER
                             : query.query !== ''
-                            ? QUERY_PLACEHOLDER
-                            : PLACEHOLDER
+                              ? QUERY_PLACEHOLDER
+                              : PLACEHOLDER
                     }
                     columns={columnModule.getColumnList(backend.type, extraColumns).map(column => ({
                         id: column,
