@@ -4,8 +4,7 @@ import * as toastify from 'react-toastify'
 
 import * as backend from '#/services/backend'
 import * as errorModule from '#/util/error'
-import * as loggerProvider from '#/providers/logger'
-import * as modalProvider from '#/providers/modal'
+import * as providers from '#/providers'
 
 import ColorPicker from '#/components/colorPicker'
 import Modal from '#/components/modal'
@@ -24,8 +23,8 @@ export interface NewLabelModalProps {
 /** A modal for creating a new label. */
 export default function NewLabelModal(props: NewLabelModalProps) {
     const { labels, eventTarget, doCreate } = props
-    const logger = loggerProvider.useLogger()
-    const { unsetModal } = modalProvider.useSetModal()
+    const logger = providers.useLogger()
+    const { unsetModal } = providers.useSetModal()
     const position = React.useMemo(() => eventTarget.getBoundingClientRect(), [eventTarget])
 
     const labelNames = React.useMemo(

@@ -8,12 +8,12 @@
  * notifications to the user. These global components are defined at the top of the {@link App} so
  * that they are available to all of the child components.
  *
- * The {@link App} also defines various providers (e.g., {@link authProvider.AuthProvider}).
+ * The {@link App} also defines various providers (e.g., {@link providers.AuthProvider}).
  * Providers are a React-specific concept that allows components to access global state without
  * having to pass it down through the component tree. For example, the
- * {@link authProvider.AuthProvider} wraps the entire application, and provides the context
- * necessary for child components to use the {@link authProvider.useAuth} hook. The
- * {@link authProvider.useAuth} hook lets child components access the user's authentication session
+ * {@link providers.AuthProvider} wraps the entire application, and provides the context
+ * necessary for child components to use the {@link providers.useAuth} hook. The
+ * {@link providers.useAuth} hook lets child components access the user's authentication session
  * (i.e., email, username, etc.) and it also provides methods for signing the user in, etc.
  *
  * Providers consist of a provider component that wraps the application, a context object defined
@@ -29,10 +29,10 @@
  *
  * The {@link router.Route}s are grouped by authorization level. Some routes are
  * accessed by unauthenticated (i.e., not signed in) users. Some routes are accessed by partially
- * authenticated users (c.f. {@link authProvider.PartialUserSession}). That is, users who have
+ * authenticated users (c.f. {@link providers.PartialUserSession}). That is, users who have
  * signed up but who have not completed email verification or set a username. The remaining
  * {@link router.Route}s require fully authenticated users (c.f.
- * {@link authProvider.FullUserSession}). */
+ * {@link providers.FullUserSession}). */
 
 import * as React from 'react'
 import * as router from 'react-router-dom'
@@ -42,17 +42,10 @@ import * as detect from 'enso-common/src/detect'
 
 import * as authServiceModule from '#/authentication/service'
 import type * as backend from '#/services/backend'
+import * as hooks from '#/hooks'
 import * as localBackend from '#/services/localBackend'
+import * as providers from '#/providers'
 import * as shortcutsModule from '#/util/shortcuts'
-import * as useNavigate from '#/hooks/useNavigate'
-
-import * as authProvider from '#/providers/auth'
-import * as backendProvider from '#/providers/backend'
-import * as localStorageProvider from '#/providers/localStorage'
-import * as loggerProvider from '#/providers/logger'
-import * as modalProvider from '#/providers/modal'
-import * as sessionProvider from '#/providers/session'
-import * as shortcutsProvider from '#/providers/shortcuts'
 
 import ConfirmRegistration from '#/pages/authentication/confirmRegistration'
 import Dashboard from '#/pages/dashboard/dashboard'
@@ -106,7 +99,7 @@ function getMainPageUrl() {
 
 /** Global configuration for the `App` component. */
 export interface AppProps {
-    logger: loggerProvider.Logger
+    logger: providers.Logger
     /** Whether the application may have the local backend running. */
     supportsLocalBackend: boolean
     /** If true, the app can only be used in offline mode. */
@@ -169,7 +162,7 @@ function AppRouter(props: AppProps) {
         onAuthenticated,
         projectManagerUrl,
     } = props
-    const navigate = useNavigate.useNavigate()
+    const navigate = hooks.useNavigate()
     if (detect.IS_DEV_MODE) {
         // @ts-expect-error This is used exclusively for debugging.
         window.navigate = navigate
@@ -211,7 +204,7 @@ function AppRouter(props: AppProps) {
         <router.Routes>
             <React.Fragment>
                 {/* Login & registration pages are visible to unauthenticated users. */}
-                <router.Route element={<authProvider.GuestLayout />}>
+                <router.Route element={<providers.GuestLayout />}>
                     <router.Route path={REGISTRATION_PATH} element={<Registration />} />
                     <router.Route
                         path={LOGIN_PATH}
@@ -219,14 +212,14 @@ function AppRouter(props: AppProps) {
                     />
                 </router.Route>
                 {/* Protected pages are visible to authenticated users. */}
-                <router.Route element={<authProvider.ProtectedLayout />}>
+                <router.Route element={<providers.ProtectedLayout />}>
                     <router.Route
                         path={DASHBOARD_PATH}
                         element={shouldShowDashboard && <Dashboard {...props} />}
                     />
                 </router.Route>
                 {/* Semi-protected pages are visible to users currently registering. */}
-                <router.Route element={<authProvider.SemiProtectedLayout />}>
+                <router.Route element={<providers.SemiProtectedLayout />}>
                     <router.Route path={SET_USERNAME_PATH} element={<SetUsername />} />
                 </router.Route>
                 {/* Other pages are visible to unauthenticated and authenticated users. */}
@@ -237,33 +230,32 @@ function AppRouter(props: AppProps) {
             </React.Fragment>
         </router.Routes>
     )
-    /** {@link backendProvider.BackendProvider} depends on
-     * {@link localStorageProvider.LocalStorageProvider}. */
+    /** {@link providers.BackendProvider} depends on {@link providers.LocalStorageProvider}. */
     return (
-        <loggerProvider.LoggerProvider logger={logger}>
-            <sessionProvider.SessionProvider
+        <providers.LoggerProvider logger={logger}>
+            <providers.SessionProvider
                 mainPageUrl={mainPageUrl}
                 userSession={userSession}
                 registerAuthEventListener={registerAuthEventListener}
             >
-                <localStorageProvider.LocalStorageProvider>
-                    <backendProvider.BackendProvider initialBackend={initialBackend}>
-                        <authProvider.AuthProvider
+                <providers.LocalStorageProvider>
+                    <providers.BackendProvider initialBackend={initialBackend}>
+                        <providers.AuthProvider
                             shouldStartInOfflineMode={isAuthenticationDisabled}
                             supportsLocalBackend={supportsLocalBackend}
                             authService={authService}
                             onAuthenticated={onAuthenticated}
                             projectManagerUrl={projectManagerUrl}
                         >
-                            <modalProvider.ModalProvider>
-                                <shortcutsProvider.ShortcutsProvider shortcuts={shortcuts}>
+                            <providers.ModalProvider>
+                                <providers.ShortcutsProvider shortcuts={shortcuts}>
                                     {routes}
-                                </shortcutsProvider.ShortcutsProvider>
-                            </modalProvider.ModalProvider>
-                        </authProvider.AuthProvider>
-                    </backendProvider.BackendProvider>
-                </localStorageProvider.LocalStorageProvider>
-            </sessionProvider.SessionProvider>
-        </loggerProvider.LoggerProvider>
+                                </providers.ShortcutsProvider>
+                            </providers.ModalProvider>
+                        </providers.AuthProvider>
+                    </providers.BackendProvider>
+                </providers.LocalStorageProvider>
+            </providers.SessionProvider>
+        </providers.LoggerProvider>
     )
 }

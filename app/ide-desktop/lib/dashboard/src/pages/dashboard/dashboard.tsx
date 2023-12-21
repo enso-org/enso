@@ -6,20 +6,14 @@ import * as assetEventModule from '#/events/assetEvent'
 import * as assetListEventModule from '#/events/assetListEvent'
 import * as assetQuery from '#/util/assetQuery'
 import * as backendModule from '#/services/backend'
+import * as hooks from '#/hooks'
 import * as http from '#/util/http'
 import * as localBackendModule from '#/services/localBackend'
 import * as localStorageModule from '#/util/localStorage'
 import * as projectManager from '#/util/projectManager'
+import * as providers from '#/providers'
 import * as remoteBackendModule from '#/services/remoteBackend'
 import * as shortcutsModule from '#/util/shortcuts'
-import * as useEvent from '#/hooks/useEvent'
-
-import * as authProvider from '#/providers/auth'
-import * as backendProvider from '#/providers/backend'
-import * as localStorageProvider from '#/providers/localStorage'
-import * as loggerProvider from '#/providers/logger'
-import * as modalProvider from '#/providers/modal'
-import * as shortcutsProvider from '#/providers/shortcuts'
 
 import type * as assetSettingsPanel from '#/layouts/dashboard/assetSettingsPanel'
 import * as categorySwitcher from '#/layouts/dashboard/categorySwitcher'
@@ -55,14 +49,14 @@ export default function Dashboard(props: DashboardProps) {
         initialProjectName: rawInitialProjectName,
         projectManagerUrl,
     } = props
-    const logger = loggerProvider.useLogger()
-    const session = authProvider.useNonPartialUserSession()
-    const { backend } = backendProvider.useBackend()
-    const { setBackend } = backendProvider.useSetBackend()
-    const { modalRef } = modalProvider.useModalRef()
-    const { unsetModal } = modalProvider.useSetModal()
-    const { localStorage } = localStorageProvider.useLocalStorage()
-    const { shortcuts } = shortcutsProvider.useShortcuts()
+    const logger = providers.useLogger()
+    const session = providers.useNonPartialUserSession()
+    const { backend } = providers.useBackend()
+    const { setBackend } = providers.useSetBackend()
+    const { modalRef } = providers.useModalRef()
+    const { unsetModal } = providers.useSetModal()
+    const { localStorage } = providers.useLocalStorage()
+    const { shortcuts } = providers.useShortcuts()
     const [initialized, setInitialized] = React.useState(false)
     const [query, setQuery] = React.useState(() => assetQuery.AssetQuery.fromString(''))
     const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
@@ -79,8 +73,8 @@ export default function Dashboard(props: DashboardProps) {
     const [openProjectAbortController, setOpenProjectAbortController] =
         React.useState<AbortController | null>(null)
     const [assetListEvents, dispatchAssetListEvent] =
-        useEvent.useEvent<assetListEventModule.AssetListEvent>()
-    const [assetEvents, dispatchAssetEvent] = useEvent.useEvent<assetEventModule.AssetEvent>()
+        hooks.useEvent<assetListEventModule.AssetListEvent>()
+    const [assetEvents, dispatchAssetEvent] = hooks.useEvent<assetEventModule.AssetEvent>()
     const [assetSettingsPanelProps, setAssetSettingsPanelProps] =
         React.useState<assetSettingsPanel.AssetSettingsPanelRequiredProps | null>(null)
     const [isAssetSettingsPanelVisible, setIsAssetSettingsPanelVisible] = React.useState(
@@ -96,7 +90,7 @@ export default function Dashboard(props: DashboardProps) {
         backend.type === backendModule.BackendType.remote &&
         session.organization?.isEnabled !== true
     const isListingRemoteDirectoryWhileOffline =
-        session.type === authProvider.UserSessionType.offline &&
+        session.type === providers.UserSessionType.offline &&
         backend.type === backendModule.BackendType.remote
 
     React.useEffect(() => {
@@ -218,7 +212,7 @@ export default function Dashboard(props: DashboardProps) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
-    useEvent.useEventHandler(assetEvents, event => {
+    hooks.useEventHandler(assetEvents, event => {
         switch (event.type) {
             case assetEventModule.AssetEventType.openProject: {
                 openProjectAbortController?.abort()

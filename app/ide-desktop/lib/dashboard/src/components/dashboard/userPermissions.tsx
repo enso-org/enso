@@ -2,8 +2,8 @@
 import * as React from 'react'
 
 import * as backendModule from '#/services/backend'
-import * as backendProvider from '#/providers/backend'
-import * as useToastAndLog from '#/hooks/useToastAndLog'
+import * as hooks from '#/hooks'
+import * as providers from '#/providers'
 
 import PermissionSelector from '#/components/dashboard/permissionSelector'
 
@@ -27,8 +27,8 @@ export default function UserPermissions(props: UserPermissionsProps) {
         setUserPermission: outerSetUserPermission,
         doDelete,
     } = props
-    const { backend } = backendProvider.useBackend()
-    const toastAndLog = useToastAndLog.useToastAndLog()
+    const { backend } = providers.useBackend()
+    const toastAndLog = hooks.useToastAndLog()
     const [userPermissions, setUserPermissions] = React.useState(initialUserPermission)
 
     React.useEffect(() => {

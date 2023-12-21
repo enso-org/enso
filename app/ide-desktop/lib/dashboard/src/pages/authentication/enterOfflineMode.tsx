@@ -2,8 +2,8 @@
 import * as React from 'react'
 
 import * as app from '#/app'
-import * as authProvider from '#/providers/auth'
-import * as useNavigate from '#/hooks/useNavigate'
+import * as hooks from '#/hooks'
+import * as providers from '#/providers'
 
 // ========================
 // === EnterOfflineMode ===
@@ -11,8 +11,8 @@ import * as useNavigate from '#/hooks/useNavigate'
 
 /** An empty component redirecting users based on the backend response to user registration. */
 export default function EnterOfflineMode() {
-    const { goOffline } = authProvider.useAuth()
-    const navigate = useNavigate.useNavigate()
+    const { goOffline } = providers.useAuth()
+    const navigate = hooks.useNavigate()
 
     React.useEffect(() => {
         void (async () => {

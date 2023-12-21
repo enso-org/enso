@@ -5,16 +5,12 @@ import * as toast from 'react-toastify'
 import * as assetEventModule from '#/events/assetEvent'
 import type * as assetTreeNode from '#/util/assetTreeNode'
 import * as backendModule from '#/services/backend'
+import * as hooks from '#/hooks'
 import * as http from '#/util/http'
 import * as permissions from '#/util/permissions'
+import * as providers from '#/providers'
 import * as remoteBackendModule from '#/services/remoteBackend'
 import * as shortcuts from '#/util/shortcuts'
-import * as useToastAndLog from '#/hooks/useToastAndLog'
-
-import * as authProvider from '#/providers/auth'
-import * as backendProvider from '#/providers/backend'
-import * as loggerProvider from '#/providers/logger'
-import * as modalProvider from '#/providers/modal'
 
 import type * as assetsTable from '#/layouts/dashboard/assetsTable'
 import * as categorySwitcher from '#/layouts/dashboard/categorySwitcher'
@@ -65,11 +61,11 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         doPaste,
         doDelete,
     } = props
-    const logger = loggerProvider.useLogger()
-    const { organization, accessToken } = authProvider.useNonPartialUserSession()
-    const { setModal, unsetModal } = modalProvider.useSetModal()
-    const { backend } = backendProvider.useBackend()
-    const toastAndLog = useToastAndLog.useToastAndLog()
+    const logger = providers.useLogger()
+    const { organization, accessToken } = providers.useNonPartialUserSession()
+    const { setModal, unsetModal } = providers.useSetModal()
+    const { backend } = providers.useBackend()
+    const toastAndLog = hooks.useToastAndLog()
     const asset = item.item
     const self = asset.permissions?.find(
         permission => permission.user.user_email === organization?.email

@@ -1,7 +1,7 @@
 /** @file A row in a `Table`. */
 import * as React from 'react'
 
-import * as modalProvider from '#/providers/modal'
+import * as providers from '#/providers'
 
 import type * as tableColumn from '#/components/tableColumn'
 
@@ -106,7 +106,7 @@ export default function TableRow<T, State = never, RowState = never, Key extends
         className,
         ...passthrough
     } = props
-    const { unsetModal } = modalProvider.useSetModal()
+    const { unsetModal } = providers.useSetModal()
 
     const [fallbackItem, fallbackSetItem] = React.useState(rawItem)
     /** The item represented by this row. This may change as backend requests are sent. */

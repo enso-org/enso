@@ -7,7 +7,7 @@ import AtIcon from 'enso-assets/at.svg'
 import GoBackIcon from 'enso-assets/go_back.svg'
 
 import * as app from '#/app'
-import * as auth from '#/providers/auth'
+import * as providers from '#/providers'
 
 import Input from '#/components/input'
 import Link from '#/components/link'
@@ -19,7 +19,7 @@ import SubmitButton from '#/components/submitButton'
 
 /** A form for users to request for their password to be reset. */
 export default function ForgotPassword() {
-    const { forgotPassword } = auth.useAuth()
+    const { forgotPassword } = providers.useAuth()
 
     const [email, setEmail] = React.useState('')
 

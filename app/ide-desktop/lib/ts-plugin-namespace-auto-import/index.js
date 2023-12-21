@@ -4,8 +4,10 @@
 module.exports = function init() {
     /** Turn a module name into a valid identifier.
      * @param {string} name - module name */
-    const normalizeModuleName = name =>
-        name.replace(/^\W+|\W+(.?)/g, (_, a) => String(a ?? '').toUpperCase())
+    const normalizeModuleName = name => {
+        const result = name.replace(/^\W+|\W+(.?)/g, (_, a) => String(a ?? '').toUpperCase())
+        return NON_CONTEXTUAL_KEYWORDS.has(result) ? '_' + result : result
+    }
 
     /** Create the plugin.
      * @param {import('typescript/lib/tsserverlibrary').server.PluginCreateInfo} info - Plugin utilities. */
@@ -30,7 +32,9 @@ module.exports = function init() {
                 if (completion.hasAction && /\bexport\b/.test(completion.kindModifiers ?? '')) {
                     const moduleName = completion.data?.moduleSpecifier?.match(/[^/]+$/)?.[0] ?? ''
                     if (moduleName) {
-                        completion.name = `${normalizeModuleName(moduleName)}.${completion.name}`
+                        completion.insertText = `${normalizeModuleName(moduleName)}.${
+                            completion.name
+                        }`
                     }
                 }
             }
@@ -49,7 +53,7 @@ module.exports = function init() {
             const result = info.languageService.getCompletionEntryDetails(
                 fileName,
                 position,
-                entryName.replace(/^.+[.]/, ''),
+                entryName,
                 formatOptions,
                 source,
                 preferences,
@@ -68,6 +72,13 @@ module.exports = function init() {
                             )
                         }
                     }
+                    // "Change 'foo' to 'module.foo'"
+                } else if (/^Change '(.*)' to '.*[.]\1'$/.test(action.description)) {
+                    for (const change of action.changes) {
+                        for (const textChange of change.textChanges) {
+                            textChange.newText = ''
+                        }
+                    }
                 }
             }
             return result
@@ -78,3 +89,51 @@ module.exports = function init() {
 
     return { create }
 }
+
+const NON_CONTEXTUAL_KEYWORDS = new Set([
+    'break',
+    'case',
+    'catch',
+    'class',
+    'const',
+    'continue',
+    'debugger',
+    'default',
+    'delete',
+    'do',
+    'else',
+    'enum',
+    'export',
+    'extends',
+    'false',
+    'finally',
+    'for',
+    'function',
+    'if',
+    'import',
+    'in',
+    'instanceof',
+    'new',
+    'null',
+    'return',
+    'super',
+    'switch',
+    'this',
+    'throw',
+    'true',
+    'try',
+    'typeof',
+    'var',
+    'void',
+    'while',
+    'with',
+    'implements',
+    'interface',
+    'let',
+    'package',
+    'private',
+    'protected',
+    'public',
+    'static',
+    'yield',
+])

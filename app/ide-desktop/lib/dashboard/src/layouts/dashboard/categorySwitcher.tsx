@@ -10,8 +10,7 @@ import Trash2Icon from 'enso-assets/trash2.svg'
 import * as assetEvent from '#/events/assetEvent'
 import * as drag from '#/util/drag'
 import * as localStorageModule from '#/util/localStorage'
-import * as localStorageProvider from '#/providers/localStorage'
-import * as modalProvider from '#/providers/modal'
+import * as providers from '#/providers'
 
 import SvgMask from '#/components/svgMask'
 
@@ -125,8 +124,8 @@ export interface CategorySwitcherProps {
 /** A switcher to choose the currently visible assets table category. */
 export default function CategorySwitcher(props: CategorySwitcherProps) {
     const { category, setCategory, dispatchAssetEvent } = props
-    const { unsetModal } = modalProvider.useSetModal()
-    const { localStorage } = localStorageProvider.useLocalStorage()
+    const { unsetModal } = providers.useSetModal()
+    const { localStorage } = providers.useLocalStorage()
 
     React.useEffect(() => {
         localStorage.set(localStorageModule.LocalStorageKey.driveCategory, category)

@@ -4,8 +4,7 @@ import * as React from 'react'
 import ArrowRightIcon from 'enso-assets/arrow_right.svg'
 import LockIcon from 'enso-assets/lock.svg'
 
-import * as auth from '#/providers/auth'
-import * as modalProvider from '#/providers/modal'
+import * as providers from '#/providers'
 import * as string from '#/util/string'
 import * as validation from '#/util/validation'
 
@@ -19,8 +18,8 @@ import SubmitButton from '#/components/submitButton'
 
 /** A modal for changing the user's password. */
 export default function ChangePasswordModal() {
-    const { changePassword } = auth.useAuth()
-    const { unsetModal } = modalProvider.useSetModal()
+    const { changePassword } = providers.useAuth()
+    const { unsetModal } = providers.useSetModal()
 
     const [oldPassword, setOldPassword] = React.useState('')
     const [newPassword, setNewPassword] = React.useState('')

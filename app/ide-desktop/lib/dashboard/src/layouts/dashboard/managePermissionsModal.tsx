@@ -4,13 +4,10 @@ import * as toast from 'react-toastify'
 
 import isEmail from 'validator/es/lib/isEmail'
 
-import * as auth from '#/providers/auth'
 import * as backendModule from '#/services/backend'
-import * as backendProvider from '#/providers/backend'
-import * as modalProvider from '#/providers/modal'
+import * as hooks from '#/hooks'
 import * as permissionsModule from '#/util/permissions'
-import * as useAsyncEffect from '#/hooks/useAsyncEffect'
-import * as useToastAndLog from '#/hooks/useToastAndLog'
+import * as providers from '#/providers'
 
 import Autocomplete from '#/components/autocomplete'
 import Modal from '#/components/modal'
@@ -50,10 +47,10 @@ export default function ManagePermissionsModal<
     Asset extends backendModule.AnyAsset = backendModule.AnyAsset,
 >(props: ManagePermissionsModalProps<Asset>) {
     const { item, setItem, self, doRemoveSelf, eventTarget } = props
-    const { organization } = auth.useNonPartialUserSession()
-    const { backend } = backendProvider.useBackend()
-    const { unsetModal } = modalProvider.useSetModal()
-    const toastAndLog = useToastAndLog.useToastAndLog()
+    const { organization } = providers.useNonPartialUserSession()
+    const { backend } = providers.useBackend()
+    const { unsetModal } = providers.useSetModal()
+    const toastAndLog = hooks.useToastAndLog()
     const [permissions, setPermissions] = React.useState(item.permissions ?? [])
     const [users, setUsers] = React.useState<backendModule.SimpleUser[]>([])
     const [email, setEmail] = React.useState<string | null>(null)
@@ -101,7 +98,7 @@ export default function ManagePermissionsModal<
         // This MUST be an error, otherwise the hooks below are considered as conditionally called.
         throw new Error('Cannot share assets on the local backend.')
     } else {
-        const listedUsers = useAsyncEffect.useAsyncEffect([], () => backend.listUsers(), [])
+        const listedUsers = hooks.useAsyncEffect([], () => backend.listUsers(), [])
         const allUsers = React.useMemo(
             () =>
                 listedUsers.filter(

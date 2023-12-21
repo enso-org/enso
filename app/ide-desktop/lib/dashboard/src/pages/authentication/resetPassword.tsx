@@ -9,9 +9,9 @@ import GoBackIcon from 'enso-assets/go_back.svg'
 import LockIcon from 'enso-assets/lock.svg'
 
 import * as app from '#/app'
-import * as auth from '#/providers/auth'
+import * as hooks from '#/hooks'
+import * as providers from '#/providers'
 import * as string from '#/util/string'
-import * as useNavigate from '#/hooks/useNavigate'
 import * as validation from '#/util/validation'
 
 import Input from '#/components/input'
@@ -33,9 +33,9 @@ const RESET_PASSWORD_QUERY_PARAMS = {
 
 /** A form for users to reset their password. */
 export default function ResetPassword() {
-    const { resetPassword } = auth.useAuth()
+    const { resetPassword } = providers.useAuth()
     const { search } = router.useLocation()
-    const navigate = useNavigate.useNavigate()
+    const navigate = hooks.useNavigate()
 
     const { verificationCode, email } = parseUrlSearchParams(search)
 

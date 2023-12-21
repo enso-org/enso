@@ -6,18 +6,15 @@ import BlankIcon from 'enso-assets/blank.svg'
 import * as assetEventModule from '#/events/assetEvent'
 import * as assetListEventModule from '#/events/assetListEvent'
 import * as assetTreeNode from '#/util/assetTreeNode'
-import * as authProvider from '#/providers/auth'
 import * as backendModule from '#/services/backend'
-import * as backendProvider from '#/providers/backend'
 import * as download from '#/util/download'
 import * as drag from '#/util/drag'
 import * as errorModule from '#/util/error'
+import * as hooks from '#/hooks'
 import * as identity from '#/util/identity'
 import * as indent from '#/util/indent'
-import * as modalProvider from '#/providers/modal'
+import * as providers from '#/providers'
 import * as set from '#/util/set'
-import * as useEvent from '#/hooks/useEvent'
-import * as useToastAndLog from '#/hooks/useToastAndLog'
 import * as visibilityModule from '#/util/visibility'
 
 import * as assetsTable from '#/layouts/dashboard/assetsTable'
@@ -71,11 +68,10 @@ export default function AssetRow(props: AssetRowProps) {
         doCut,
         doPaste,
     } = state
-    const { organization } = authProvider.useNonPartialUserSession()
-    const { backend } = backendProvider.useBackend()
-    const { setModal, unsetModal } = modalProvider.useSetModal()
-    const { user } = authProvider.useNonPartialUserSession()
-    const toastAndLog = useToastAndLog.useToastAndLog()
+    const { organization, user } = providers.useNonPartialUserSession()
+    const { backend } = providers.useBackend()
+    const { setModal, unsetModal } = providers.useSetModal()
+    const toastAndLog = hooks.useToastAndLog()
     const [isDraggedOver, setIsDraggedOver] = React.useState(false)
     const [item, setItem] = React.useState(rawItem)
     const dragOverTimeoutHandle = React.useRef<number | null>(null)
@@ -238,7 +234,7 @@ export default function AssetRow(props: AssetRowProps) {
         /* should never change */ toastAndLog,
     ])
 
-    useEvent.useEventHandler(assetEvents, async event => {
+    hooks.useEventHandler(assetEvents, async event => {
         switch (event.type) {
             // These events are handled in the specific `NameColumn` files.
             case assetEventModule.AssetEventType.newProject:

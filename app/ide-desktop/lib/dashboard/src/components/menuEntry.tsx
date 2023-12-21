@@ -1,8 +1,8 @@
 /** @file An entry in a menu. */
 import * as React from 'react'
 
+import * as providers from '#/providers'
 import * as shortcutsModule from '#/util/shortcuts'
-import * as shortcutsProvider from '#/providers/shortcuts'
 
 import KeyboardShortcut from '#/components/dashboard/keyboardShortcut'
 import SvgMask from '#/components/svgMask'
@@ -25,7 +25,7 @@ export interface MenuEntryProps {
 /** An item in a menu. */
 export default function MenuEntry(props: MenuEntryProps) {
     const { hidden = false, action, disabled = false, title, paddingClassName, doAction } = props
-    const { shortcuts } = shortcutsProvider.useShortcuts()
+    const { shortcuts } = providers.useShortcuts()
     const info = shortcuts.keyboardShortcutInfo[action]
     React.useEffect(() => {
         // This is slower than registering every shortcut in the context menu at once.

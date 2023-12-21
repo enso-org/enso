@@ -5,14 +5,12 @@ import * as assetEventModule from '#/events/assetEvent'
 import * as assetListEventModule from '#/events/assetListEvent'
 import * as assetTreeNode from '#/util/assetTreeNode'
 import * as backendModule from '#/services/backend'
-import * as backendProvider from '#/providers/backend'
 import * as eventModule from '#/util/event'
 import * as fileIcon from '#/util/fileIcon'
+import * as hooks from '#/hooks'
 import * as indent from '#/util/indent'
+import * as providers from '#/providers'
 import * as shortcutsModule from '#/util/shortcuts'
-import * as shortcutsProvider from '#/providers/shortcuts'
-import * as useEvent from '#/hooks/useEvent'
-import * as useToastAndLog from '#/hooks/useToastAndLog'
 import * as visibility from '#/util/visibility'
 
 import type * as column from '#/components/dashboard/column'
@@ -38,9 +36,9 @@ export default function FileNameColumn(props: FileNameColumnProps) {
         rowState,
         setRowState,
     } = props
-    const toastAndLog = useToastAndLog.useToastAndLog()
-    const { backend } = backendProvider.useBackend()
-    const { shortcuts } = shortcutsProvider.useShortcuts()
+    const toastAndLog = hooks.useToastAndLog()
+    const { backend } = providers.useBackend()
+    const { shortcuts } = providers.useShortcuts()
     const asset = item.item
     if (asset.type !== backendModule.AssetType.file) {
         // eslint-disable-next-line no-restricted-syntax
@@ -55,7 +53,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
         return await Promise.resolve(null)
     }
 
-    useEvent.useEventHandler(assetEvents, async event => {
+    hooks.useEventHandler(assetEvents, async event => {
         switch (event.type) {
             case assetEventModule.AssetEventType.newProject:
             case assetEventModule.AssetEventType.newFolder:

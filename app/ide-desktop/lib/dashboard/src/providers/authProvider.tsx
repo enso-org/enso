@@ -14,16 +14,17 @@ import * as gtag from 'enso-common/src/gtag'
 import * as app from '#/app'
 import type * as authServiceModule from '#/authentication/service'
 import * as backendModule from '#/services/backend'
-import * as backendProvider from '#/providers/backend'
+import * as backendProvider from '#/providers/backendProvider'
 import * as cognitoModule from '#/authentication/cognito'
 import * as errorModule from '#/util/error'
+import * as hooks from '#/hooks'
 import * as http from '#/util/http'
 import * as localBackend from '#/services/localBackend'
 import * as localStorageModule from '#/util/localStorage'
-import * as localStorageProvider from '#/providers/localStorage'
-import * as loggerProvider from '#/providers/logger'
+import * as localStorageProvider from '#/providers/localStorageProvider'
+import * as loggerProvider from '#/providers/loggerProvider'
 import * as remoteBackend from '#/services/remoteBackend'
-import * as sessionProvider from '#/providers/session'
+import * as sessionProvider from '#/providers/sessionProvider'
 
 import LoadingScreen from '#/pages/authentication/loadingScreen'
 
@@ -696,7 +697,7 @@ export function GuestLayout() {
 /** A React context hook returning the user session
  * for a user that has not yet completed registration. */
 export function usePartialUserSession() {
-    return router.useOutletContext<PartialUserSession>()
+    return hooks.useOutletContext<PartialUserSession>()
 }
 
 // ================================
@@ -705,5 +706,5 @@ export function usePartialUserSession() {
 
 /** A React context hook returning the user session for a user that can perform actions. */
 export function useNonPartialUserSession() {
-    return router.useOutletContext<Exclude<UserSession, PartialUserSession>>()
+    return hooks.useOutletContext<Exclude<UserSession, PartialUserSession>>()
 }

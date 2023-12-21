@@ -7,16 +7,12 @@ import PlayIcon from 'enso-assets/play.svg'
 import StopIcon from 'enso-assets/stop.svg'
 
 import * as assetEventModule from '#/events/assetEvent'
-import * as authProvider from '#/providers/auth'
 import * as backendModule from '#/services/backend'
-import * as backendProvider from '#/providers/backend'
 import * as errorModule from '#/util/error'
+import * as hooks from '#/hooks'
 import * as localStorageModule from '#/util/localStorage'
-import * as localStorageProvider from '#/providers/localStorage'
-import * as modalProvider from '#/providers/modal'
+import * as providers from '#/providers'
 import * as remoteBackend from '#/services/remoteBackend'
-import * as useEvent from '#/hooks/useEvent'
-import * as useToastAndLog from '#/hooks/useToastAndLog'
 
 import Spinner, * as spinner from '#/components/spinner'
 import SvgMask from '#/components/svgMask'
@@ -75,11 +71,11 @@ export interface ProjectIconProps {
 /** An interactive icon indicating the status of a project. */
 export default function ProjectIcon(props: ProjectIconProps) {
     const { keyProp: key, item, setItem, assetEvents, doOpenManually, onClose, openIde } = props
-    const { backend } = backendProvider.useBackend()
-    const { organization } = authProvider.useNonPartialUserSession()
-    const { unsetModal } = modalProvider.useSetModal()
-    const { localStorage } = localStorageProvider.useLocalStorage()
-    const toastAndLog = useToastAndLog.useToastAndLog()
+    const { backend } = providers.useBackend()
+    const { organization } = providers.useNonPartialUserSession()
+    const { unsetModal } = providers.useSetModal()
+    const { localStorage } = providers.useLocalStorage()
+    const toastAndLog = hooks.useToastAndLog()
     const state = item.projectState.type
     const setState = React.useCallback(
         (stateOrUpdater: React.SetStateAction<backendModule.ProjectState>) => {
@@ -238,7 +234,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
         }
     }, [onSpinnerStateChange])
 
-    useEvent.useEventHandler(assetEvents, event => {
+    hooks.useEventHandler(assetEvents, event => {
         switch (event.type) {
             case assetEventModule.AssetEventType.newFolder:
             case assetEventModule.AssetEventType.uploadFiles:

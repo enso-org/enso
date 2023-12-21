@@ -1,13 +1,11 @@
 /** @file Registration confirmation page for when a user clicks the confirmation link set to their
  * email address. */
 import * as React from 'react'
-import * as router from 'react-router-dom'
 import * as toastify from 'react-toastify'
 
 import * as app from '#/app'
-import * as authModule from '#/providers/auth'
-import * as loggerProvider from '#/providers/logger'
-import * as useNavigate from '#/hooks/useNavigate'
+import * as hooks from '#/hooks'
+import * as providers from '#/providers'
 
 // =================
 // === Constants ===
@@ -24,10 +22,10 @@ const REGISTRATION_QUERY_PARAMS = {
 
 /** An empty component redirecting users based on the backend response to user registration. */
 export default function ConfirmRegistration() {
-    const logger = loggerProvider.useLogger()
-    const auth = authModule.useAuth()
-    const location = router.useLocation()
-    const navigate = useNavigate.useNavigate()
+    const logger = providers.useLogger()
+    const auth = providers.useAuth()
+    const location = hooks.useLocation()
+    const navigate = hooks.useNavigate()
 
     const { verificationCode, email } = parseUrlSearchParams(location.search)
 

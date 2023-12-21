@@ -4,12 +4,10 @@ import * as React from 'react'
 import DefaultUserIcon from 'enso-assets/default_user.svg'
 
 import * as app from '#/app'
-import * as auth from '#/providers/auth'
 import * as github from '#/util/github'
-import * as modalProvider from '#/providers/modal'
+import * as hooks from '#/hooks'
+import * as providers from '#/providers'
 import * as shortcuts from '#/util/shortcuts'
-import * as useNavigate from '#/hooks/useNavigate'
-import * as useToastAndLog from '#/hooks/useToastAndLog'
 
 import ChangePasswordModal from '#/layouts/dashboard/changePasswordModal'
 import MenuEntry from '#/components/menuEntry'
@@ -28,11 +26,11 @@ export interface UserMenuProps {
 /** Handling the UserMenuItem click event logic and displaying its content. */
 export default function UserMenu(props: UserMenuProps) {
     const { supportsLocalBackend, onSignOut } = props
-    const navigate = useNavigate.useNavigate()
-    const { signOut } = auth.useAuth()
-    const { accessToken, organization } = auth.useNonPartialUserSession()
-    const { setModal, unsetModal } = modalProvider.useSetModal()
-    const toastAndLog = useToastAndLog.useToastAndLog()
+    const navigate = hooks.useNavigate()
+    const { signOut } = providers.useAuth()
+    const { accessToken, organization } = providers.useNonPartialUserSession()
+    const { setModal, unsetModal } = providers.useSetModal()
+    const toastAndLog = hooks.useToastAndLog()
 
     // The shape of the JWT payload is statically known.
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment

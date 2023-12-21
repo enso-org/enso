@@ -6,17 +6,14 @@ import NetworkIcon from 'enso-assets/network.svg'
 import * as assetEventModule from '#/events/assetEvent'
 import * as assetListEventModule from '#/events/assetListEvent'
 import * as assetTreeNode from '#/util/assetTreeNode'
-import * as authProvider from '#/providers/auth'
 import * as backendModule from '#/services/backend'
-import * as backendProvider from '#/providers/backend'
 import * as errorModule from '#/util/error'
 import * as eventModule from '#/util/event'
+import * as hooks from '#/hooks'
 import * as indent from '#/util/indent'
 import * as permissions from '#/util/permissions'
+import * as providers from '#/providers'
 import * as shortcutsModule from '#/util/shortcuts'
-import * as shortcutsProvider from '#/providers/shortcuts'
-import * as useEvent from '#/hooks/useEvent'
-import * as useToastAndLog from '#/hooks/useToastAndLog'
 import * as validation from '#/util/validation'
 import * as visibility from '#/util/visibility'
 
@@ -54,10 +51,10 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
             doCloseIde,
         },
     } = props
-    const toastAndLog = useToastAndLog.useToastAndLog()
-    const { backend } = backendProvider.useBackend()
-    const { organization } = authProvider.useNonPartialUserSession()
-    const { shortcuts } = shortcutsProvider.useShortcuts()
+    const toastAndLog = hooks.useToastAndLog()
+    const { backend } = providers.useBackend()
+    const { organization } = providers.useNonPartialUserSession()
+    const { shortcuts } = providers.useShortcuts()
     const asset = item.item
     if (asset.type !== backendModule.AssetType.project) {
         // eslint-disable-next-line no-restricted-syntax
@@ -99,7 +96,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         }
     }
 
-    useEvent.useEventHandler(assetEvents, async event => {
+    hooks.useEventHandler(assetEvents, async event => {
         switch (event.type) {
             case assetEventModule.AssetEventType.newFolder:
             case assetEventModule.AssetEventType.newDataConnector:

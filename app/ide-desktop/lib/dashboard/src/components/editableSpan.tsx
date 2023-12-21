@@ -4,8 +4,8 @@ import * as React from 'react'
 import CrossIcon from 'enso-assets/cross.svg'
 import TickIcon from 'enso-assets/tick.svg'
 
+import * as providers from '#/providers'
 import * as shortcutsModule from '#/util/shortcuts'
-import * as shortcutsProvider from '#/providers/shortcuts'
 
 // ====================
 // === EditableSpan ===
@@ -37,7 +37,7 @@ export default function EditableSpan(props: EditableSpanProps) {
         inputTitle,
         ...passthroughProps
     } = props
-    const { shortcuts } = shortcutsProvider.useShortcuts()
+    const { shortcuts } = providers.useShortcuts()
     const [isSubmittable, setIsSubmittable] = React.useState(true)
     const inputRef = React.useRef<HTMLInputElement>(null)
 

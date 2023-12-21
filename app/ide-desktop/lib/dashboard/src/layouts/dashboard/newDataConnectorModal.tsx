@@ -3,8 +3,7 @@ import * as React from 'react'
 import * as toastify from 'react-toastify'
 
 import * as errorModule from '#/util/error'
-import * as loggerProvider from '#/providers/logger'
-import * as modalProvider from '#/providers/modal'
+import * as providers from '#/providers'
 
 import Modal from '#/components/modal'
 
@@ -20,8 +19,8 @@ export interface NewDataConnectorModalProps {
 /** A modal for confirming the deletion of an asset. */
 export default function NewDataConnectorModal(props: NewDataConnectorModalProps) {
     const { doCreate } = props
-    const logger = loggerProvider.useLogger()
-    const { unsetModal } = modalProvider.useSetModal()
+    const logger = providers.useLogger()
+    const { unsetModal } = providers.useSetModal()
 
     const [name, setName] = React.useState('')
     const [value, setValue] = React.useState('')

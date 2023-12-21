@@ -5,11 +5,10 @@ import PenIcon from 'enso-assets/pen.svg'
 
 import type * as assetEvent from '#/events/assetEvent'
 import type * as assetTreeNode from '#/util/assetTreeNode'
-import * as authProvider from '#/providers/auth'
 import type * as backendModule from '#/services/backend'
-import * as backendProvider from '#/providers/backend'
+import * as hooks from '#/hooks'
 import * as permissions from '#/util/permissions'
-import * as useToastAndLog from '#/hooks/useToastAndLog'
+import * as providers from '#/providers'
 
 import type * as categorySwitcher from '#/layouts/dashboard/categorySwitcher'
 import * as column from '#/components/dashboard/column'
@@ -64,9 +63,9 @@ export default function AssetSettingsPanel(props: AssetSettingsPanelProps) {
     const [isEditingDescription, setIsEditingDescription] = React.useState(false)
     const [queuedDescription, setQueuedDescripion] = React.useState<string | null>(null)
     const [description, setDescription] = React.useState('')
-    const { organization } = authProvider.useNonPartialUserSession()
-    const { backend } = backendProvider.useBackend()
-    const toastAndLog = useToastAndLog.useToastAndLog()
+    const { organization } = providers.useNonPartialUserSession()
+    const { backend } = providers.useBackend()
+    const toastAndLog = hooks.useToastAndLog()
     const setItem = React.useCallback(
         (valueOrUpdater: React.SetStateAction<assetTreeNode.AssetTreeNode>) => {
             innerSetItem(valueOrUpdater)

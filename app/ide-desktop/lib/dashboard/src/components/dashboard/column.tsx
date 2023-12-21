@@ -13,16 +13,14 @@ import TimeIcon from 'enso-assets/time.svg'
 
 import * as assetEvent from '#/events/assetEvent'
 import type * as assetTreeNode from '#/util/assetTreeNode'
-import * as authProvider from '#/providers/auth'
 import * as backendModule from '#/services/backend'
-import * as backendProvider from '#/providers/backend'
 import * as dateTime from '#/util/dateTime'
-import * as modalProvider from '#/providers/modal'
+import * as hooks from '#/hooks'
 import * as permissions from '#/util/permissions'
+import * as providers from '#/providers'
 import * as shortcuts from '#/util/shortcuts'
 import * as sorting from '#/util/sorting'
 import * as uniqueString from '#/util/uniqueString'
-import * as useToastAndLog from '#/hooks/useToastAndLog'
 
 import type * as assetsTable from '#/layouts/dashboard/assetsTable'
 import * as categorySwitcher from '#/layouts/dashboard/categorySwitcher'
@@ -182,8 +180,8 @@ export function SharedWithColumn(props: SharedWithColumnProps) {
         setItem,
         state: { category, dispatchAssetEvent },
     } = props
-    const session = authProvider.useNonPartialUserSession()
-    const { setModal } = modalProvider.useSetModal()
+    const session = providers.useNonPartialUserSession()
+    const { setModal } = providers.useSetModal()
     const [isHovered, setIsHovered] = React.useState(false)
     const self = asset.permissions?.find(
         permission => permission.user.user_email === session.organization?.email
@@ -261,10 +259,10 @@ function LabelsColumn(props: AssetColumnProps) {
         state: { category, labels, setQuery, deletedLabelNames, doCreateLabel },
         rowState: { temporarilyAddedLabels, temporarilyRemovedLabels },
     } = props
-    const session = authProvider.useNonPartialUserSession()
-    const { setModal, unsetModal } = modalProvider.useSetModal()
-    const { backend } = backendProvider.useBackend()
-    const toastAndLog = useToastAndLog.useToastAndLog()
+    const session = providers.useNonPartialUserSession()
+    const { setModal, unsetModal } = providers.useSetModal()
+    const { backend } = providers.useBackend()
+    const toastAndLog = hooks.useToastAndLog()
     const [isHovered, setIsHovered] = React.useState(false)
     const self = asset.permissions?.find(
         permission => permission.user.user_email === session.organization?.email

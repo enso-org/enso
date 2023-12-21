@@ -3,8 +3,7 @@ import * as React from 'react'
 import * as toastify from 'react-toastify'
 
 import * as errorModule from '#/util/error'
-import * as loggerProvider from '#/providers/logger'
-import * as modalProvider from '#/providers/modal'
+import * as providers from '#/providers'
 
 import Modal from '#/components/modal'
 
@@ -22,8 +21,8 @@ export interface ConfirmDeleteModalProps {
 /** A modal for confirming the deletion of an asset. */
 export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
     const { description, doDelete } = props
-    const logger = loggerProvider.useLogger()
-    const { unsetModal } = modalProvider.useSetModal()
+    const logger = providers.useLogger()
+    const { unsetModal } = providers.useSetModal()
 
     const onSubmit = () => {
         unsetModal()

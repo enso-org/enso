@@ -90,10 +90,6 @@ const RESTRICTED_SYNTAXES = [
         message: `Don't prefix modules with \`${NAME}\``,
     },
     {
-        selector: 'ExportAllDeclaration',
-        message: 'No re-exports',
-    },
-    {
         selector: 'TSTypeLiteral',
         message: 'No object types - use interfaces instead',
     },

@@ -3,7 +3,7 @@
 import * as router from 'react-router'
 
 import * as app from '#/app'
-import * as auth from '#/providers/auth'
+import * as authProvider from '#/providers/authProvider'
 
 // ===================
 // === useNavigate ===
@@ -12,7 +12,7 @@ import * as auth from '#/providers/auth'
 /** A wrapper around {@link router.useNavigate} that goes into offline mode when
  * offline. */
 export function useNavigate() {
-    const { goOffline } = auth.useAuth()
+    const { goOffline } = authProvider.useAuth()
     // This function is a wrapper around `router.useNavigate`. It shouldbe the only place where
     // `router.useNavigate` is used.
     // eslint-disable-next-line no-restricted-properties

@@ -9,7 +9,7 @@ import * as backendModule from '#/services/backend'
 import * as config from '#/util/config'
 import * as errorModule from '#/util/error'
 import type * as http from '#/util/http'
-import type * as loggerProvider from '#/providers/logger'
+import type * as loggerProvider from '#/providers/loggerProvider'
 import * as remoteBackendPaths from '#/services/remoteBackendPaths'
 
 // =================

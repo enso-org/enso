@@ -1,7 +1,7 @@
 /** @file Asynchronous wrapper for {@link React.useEffect}. */
 import * as React from 'react'
 
-import * as useToastAndLog from '#/hooks/useToastAndLog'
+import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 // ======================
 // === useAsyncEffect ===
@@ -26,7 +26,7 @@ export function useAsyncEffect<T>(
     asyncEffect: (signal: AbortSignal) => Promise<T>,
     deps?: React.DependencyList
 ): T {
-    const toastAndLog = useToastAndLog.useToastAndLog()
+    const toastAndLog = toastAndLogHooks.useToastAndLog()
     const [value, setValue] = React.useState<T>(initialValue)
 
     React.useEffect(() => {

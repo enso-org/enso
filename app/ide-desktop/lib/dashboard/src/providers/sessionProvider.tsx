@@ -4,9 +4,8 @@ import * as React from 'react'
 
 import type * as cognito from '#/authentication/cognito'
 import * as error from '#/util/error'
+import * as hooks from '#/hooks'
 import * as listen from '#/authentication/listen'
-import * as useAsyncEffect from '#/hooks/useAsyncEffect'
-import * as useRefresh from '#/hooks/useRefresh'
 
 // ======================
 // === SessionContext ===
@@ -52,7 +51,7 @@ export interface SessionProviderProps {
 export function SessionProvider(props: SessionProviderProps) {
     const { mainPageUrl, children, userSession, registerAuthEventListener } = props
 
-    const [refresh, doRefresh] = useRefresh.useRefresh()
+    const [refresh, doRefresh] = hooks.useRefresh()
 
     /** Flag used to avoid rendering child components until we've fetched the user's session at least
      * once. Avoids flash of the login screen when the user is already logged in. */
@@ -61,7 +60,7 @@ export function SessionProvider(props: SessionProviderProps) {
     /** Register an async effect that will fetch the user's session whenever the `refresh` state is
      * set. This is useful when a user has just logged in (as their cached credentials are
      * out of date, so this will update them). */
-    const session = useAsyncEffect.useAsyncEffect(
+    const session = hooks.useAsyncEffect(
         null,
         async () => {
             const innerSession = await userSession()

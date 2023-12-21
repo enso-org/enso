@@ -6,8 +6,8 @@ import CloseLargeIcon from 'enso-assets/close_large.svg'
 
 import * as animations from '#/util/animations'
 import * as app from '#/app'
-import * as loggerProvider from '#/providers/logger'
-import * as useNavigate from '#/hooks/useNavigate'
+import * as hooks from '#/hooks'
+import * as providers from '#/providers'
 
 import * as chat from '#/layouts/dashboard/chat'
 import * as pageSwitcher from '#/layouts/dashboard/pageSwitcher'
@@ -23,8 +23,8 @@ export interface ChatPlaceholderProps {
 /** A placeholder component replacing `Chat` when a user is not logged in. */
 export default function ChatPlaceholder(props: ChatPlaceholderProps) {
     const { page, isOpen, doClose } = props
-    const logger = loggerProvider.useLogger()
-    const navigate = useNavigate.useNavigate()
+    const logger = providers.useLogger()
+    const navigate = hooks.useNavigate()
     const [right, setTargetRight] = animations.useInterpolateOverTime(
         animations.interpolationFunctionEaseInOut,
         chat.ANIMATION_DURATION_MS,

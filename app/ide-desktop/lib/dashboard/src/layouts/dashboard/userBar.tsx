@@ -4,10 +4,8 @@ import * as React from 'react'
 import ChatIcon from 'enso-assets/chat.svg'
 import DefaultUserIcon from 'enso-assets/default_user.svg'
 
-import * as authProvider from '#/providers/auth'
 import * as backendModule from '#/services/backend'
-import * as backendProvider from '#/providers/backend'
-import * as modalProvider from '#/providers/modal'
+import * as providers from '#/providers'
 
 import * as pageSwitcher from '#/layouts/dashboard/pageSwitcher'
 import Button from '#/components/button'
@@ -42,10 +40,10 @@ export default function UserBar(props: UserBarProps) {
         doRemoveSelf,
         onSignOut,
     } = props
-    const { organization } = authProvider.useNonPartialUserSession()
-    const { updateModal } = modalProvider.useSetModal()
-    const { backend } = backendProvider.useBackend()
-    const { setModal } = modalProvider.useSetModal()
+    const { organization } = providers.useNonPartialUserSession()
+    const { updateModal } = providers.useSetModal()
+    const { backend } = providers.useBackend()
+    const { setModal } = providers.useSetModal()
     const self =
         organization != null
             ? projectAsset?.permissions?.find(

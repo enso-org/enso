@@ -9,10 +9,8 @@ import DataUploadIcon from 'enso-assets/data_upload.svg'
 
 import * as assetEventModule from '#/events/assetEvent'
 import * as backendModule from '#/services/backend'
-import * as backendProvider from '#/providers/backend'
-import * as modalProvider from '#/providers/modal'
+import * as providers from '#/providers'
 import * as shortcutsModule from '#/util/shortcuts'
-import * as shortcutsProvider from '#/providers/shortcuts'
 
 import * as categorySwitcher from '#/layouts/dashboard/categorySwitcher'
 import Button from '#/components/button'
@@ -43,9 +41,9 @@ export default function DriveBar(props: DriveBarProps) {
         doUploadFiles,
         dispatchAssetEvent,
     } = props
-    const { backend } = backendProvider.useBackend()
-    const { setModal, unsetModal } = modalProvider.useSetModal()
-    const { shortcuts } = shortcutsProvider.useShortcuts()
+    const { backend } = providers.useBackend()
+    const { setModal, unsetModal } = providers.useSetModal()
+    const { shortcuts } = providers.useShortcuts()
     const uploadFilesRef = React.useRef<HTMLInputElement>(null)
     const isHomeCategory =
         category === categorySwitcher.Category.home ||

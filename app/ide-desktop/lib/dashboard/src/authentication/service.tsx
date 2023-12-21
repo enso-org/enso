@@ -10,7 +10,7 @@ import * as auth from '#/authentication/config'
 import * as cognito from '#/authentication/cognito'
 import * as config from '#/util/config'
 import * as listen from '#/authentication/listen'
-import type * as loggerProvider from '#/providers/logger'
+import type * as providers from '#/providers'
 
 // =============
 // === Types ===
@@ -89,7 +89,7 @@ const AMPLIFY_CONFIGS = {
 /** Configuration for the authentication service. */
 export interface AuthConfig {
     /** Logger for the authentication service. */
-    logger: loggerProvider.Logger
+    logger: providers.Logger
     /** Whether the application supports deep links. This is only true when using
      * the installed app on macOS and Windows. */
     supportsDeepLinks: boolean
@@ -130,7 +130,7 @@ export function initAuthService(authConfig: AuthConfig): AuthService {
 
 /** Return the appropriate Amplify configuration for the current platform. */
 function loadAmplifyConfig(
-    logger: loggerProvider.Logger,
+    logger: providers.Logger,
     supportsDeepLinks: boolean,
     navigate: (url: string) => void
 ): auth.AmplifyConfig {
@@ -195,7 +195,7 @@ function saveAccessToken(accessToken: string | null) {
  *
  * All URLs that don't have a pathname that starts with `AUTHENTICATION_PATHNAME_BASE` will be
  * ignored by this handler. */
-function setDeepLinkHandler(logger: loggerProvider.Logger, navigate: (url: string) => void) {
+function setDeepLinkHandler(logger: providers.Logger, navigate: (url: string) => void) {
     const onDeepLink = (url: string) => {
         const parsedUrl = new URL(url)
         logger.log(`Parsed pathname: ${parsedUrl.pathname}`)

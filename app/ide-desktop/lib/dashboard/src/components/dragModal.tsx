@@ -1,7 +1,7 @@
 /** @file Modal for confirming delete of any type of asset. */
 import * as React from 'react'
 
-import * as modalProvider from '#/providers/modal'
+import * as providers from '#/providers'
 
 import Modal from '#/components/modal'
 
@@ -38,7 +38,7 @@ export default function DragModal(props: DragModalProps) {
         doCleanup,
         ...passthrough
     } = props
-    const { unsetModal } = modalProvider.useSetModal()
+    const { unsetModal } = providers.useSetModal()
     const [left, setLeft] = React.useState(event.pageX - (offsetPx ?? offsetXPx))
     const [top, setTop] = React.useState(event.pageY - (offsetPx ?? offsetYPx))
 

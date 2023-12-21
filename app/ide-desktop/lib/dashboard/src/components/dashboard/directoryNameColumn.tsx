@@ -8,14 +8,12 @@ import * as assetEventModule from '#/events/assetEvent'
 import * as assetListEventModule from '#/events/assetListEvent'
 import * as assetTreeNode from '#/util/assetTreeNode'
 import * as backendModule from '#/services/backend'
-import * as backendProvider from '#/providers/backend'
 import type * as column from '#/components/dashboard/column'
 import * as eventModule from '#/util/event'
+import * as hooks from '#/hooks'
 import * as indent from '#/util/indent'
+import * as providers from '#/providers'
 import * as shortcutsModule from '#/util/shortcuts'
-import * as shortcutsProvider from '#/providers/shortcuts'
-import * as useEvent from '#/hooks/useEvent'
-import * as useToastAndLog from '#/hooks/useToastAndLog'
 import * as visibility from '#/util/visibility'
 
 import EditableSpan from '#/components/editableSpan'
@@ -48,9 +46,9 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         rowState,
         setRowState,
     } = props
-    const toastAndLog = useToastAndLog.useToastAndLog()
-    const { backend } = backendProvider.useBackend()
-    const { shortcuts } = shortcutsProvider.useShortcuts()
+    const toastAndLog = hooks.useToastAndLog()
+    const { backend } = providers.useBackend()
+    const { shortcuts } = providers.useShortcuts()
     const [isHovered, setIsHovered] = React.useState(false)
     const [shouldAnimate, setShouldAnimate] = React.useState(false)
     const asset = item.item
@@ -84,7 +82,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         }
     }
 
-    useEvent.useEventHandler(assetEvents, async event => {
+    hooks.useEventHandler(assetEvents, async event => {
         switch (event.type) {
             case assetEventModule.AssetEventType.newProject:
             case assetEventModule.AssetEventType.uploadFiles:

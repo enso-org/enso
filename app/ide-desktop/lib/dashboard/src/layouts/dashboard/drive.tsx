@@ -6,16 +6,12 @@ import * as common from 'enso-common'
 import * as assetEventModule from '#/events/assetEvent'
 import * as assetListEventModule from '#/events/assetListEvent'
 import type * as assetQuery from '#/util/assetQuery'
-import * as authProvider from '#/providers/auth'
 import * as backendModule from '#/services/backend'
-import * as backendProvider from '#/providers/backend'
 import * as github from '#/util/github'
+import * as hooks from '#/hooks'
 import * as localStorageModule from '#/util/localStorage'
-import * as localStorageProvider from '#/providers/localStorage'
-import * as modalProvider from '#/providers/modal'
+import * as providers from '#/providers'
 import * as uniqueString from '#/util/uniqueString'
-import * as useNavigate from '#/hooks/useNavigate'
-import * as useToastAndLog from '#/hooks/useToastAndLog'
 
 import * as app from '#/app'
 import type * as assetSettingsPanel from '#/layouts/dashboard/assetSettingsPanel'
@@ -85,13 +81,13 @@ export default function Drive(props: DriveProps) {
         isListingLocalDirectoryAndWillFail,
         isListingRemoteDirectoryAndWillFail,
     } = props
-    const navigate = useNavigate.useNavigate()
-    const { organization } = authProvider.useNonPartialUserSession()
-    const { backend } = backendProvider.useBackend()
-    const { localStorage } = localStorageProvider.useLocalStorage()
-    const { modal } = modalProvider.useModal()
-    const { modalRef } = modalProvider.useModalRef()
-    const toastAndLog = useToastAndLog.useToastAndLog()
+    const navigate = hooks.useNavigate()
+    const { organization } = providers.useNonPartialUserSession()
+    const { backend } = providers.useBackend()
+    const { localStorage } = providers.useLocalStorage()
+    const { modal } = providers.useModal()
+    const { modalRef } = providers.useModalRef()
+    const toastAndLog = hooks.useToastAndLog()
     const [isFileBeingDragged, setIsFileBeingDragged] = React.useState(false)
     const [category, setCategory] = React.useState(
         () =>

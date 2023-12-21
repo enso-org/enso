@@ -10,23 +10,16 @@ import * as assetTreeNode from '#/util/assetTreeNode'
 import * as backendModule from '#/services/backend'
 import * as dateTime from '#/util/dateTime'
 import * as drag from '#/util/drag'
+import * as hooks from '#/hooks'
 import * as localStorageModule from '#/util/localStorage'
-import * as localStorageProvider from '#/providers/localStorage'
 import * as permissions from '#/util/permissions'
+import * as providers from '#/providers'
 import * as set from '#/util/set'
 import * as shortcutsModule from '#/util/shortcuts'
-import * as shortcutsProvider from '#/providers/shortcuts'
 import * as sorting from '#/util/sorting'
 import * as string from '#/util/string'
 import * as uniqueString from '#/util/uniqueString'
-import * as useAsyncEffect from '#/hooks/useAsyncEffect'
-import * as useEvent from '#/hooks/useEvent'
-import * as useToastAndLog from '#/hooks/useToastAndLog'
 import type * as visibilityModule from '#/util/visibility'
-
-import * as authProvider from '#/providers/auth'
-import * as backendProvider from '#/providers/backend'
-import * as modalProvider from '#/providers/modal'
 
 import type * as assetSettingsPanel from '#/layouts/dashboard/assetSettingsPanel'
 import * as categorySwitcher from '#/layouts/dashboard/categorySwitcher'
@@ -260,12 +253,12 @@ export default function AssetsTable(props: AssetsTableProps) {
         isListingLocalDirectoryAndWillFail,
         isListingRemoteDirectoryAndWillFail,
     } = props
-    const { organization, user, accessToken } = authProvider.useNonPartialUserSession()
-    const { backend } = backendProvider.useBackend()
-    const { setModal, unsetModal } = modalProvider.useSetModal()
-    const { localStorage } = localStorageProvider.useLocalStorage()
-    const { shortcuts } = shortcutsProvider.useShortcuts()
-    const toastAndLog = useToastAndLog.useToastAndLog()
+    const { organization, user, accessToken } = providers.useNonPartialUserSession()
+    const { backend } = providers.useBackend()
+    const { setModal, unsetModal } = providers.useSetModal()
+    const { localStorage } = providers.useLocalStorage()
+    const { shortcuts } = providers.useShortcuts()
+    const toastAndLog = hooks.useToastAndLog()
     const [initialized, setInitialized] = React.useState(false)
     const [assetTree, setAssetTree] = React.useState<assetTreeNode.AssetTreeNode[]>([])
     const [isLoading, setIsLoading] = React.useState(true)
@@ -475,7 +468,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [backend, category])
 
-    useAsyncEffect.useAsyncEffect(
+    hooks.useAsyncEffect(
         null,
         async signal => {
             switch (backend.type) {
@@ -811,7 +804,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         [assetTree, nodeMapRef]
     )
 
-    useEvent.useEventHandler(assetListEvents, event => {
+    hooks.useEventHandler(assetListEvents, event => {
         switch (event.type) {
             case assetListEventModule.AssetListEventType.newFolder: {
                 const siblings =
