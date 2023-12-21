@@ -34,13 +34,14 @@ public class TypeInferenceTest extends TestBase {
     final URI uri = new URI("memory://zeroAryCheck.enso");
     final Source src =
         Source.newBuilder("enso", """
-                from Standard.Base import Integer
+                type My_Type
+                    Value x
                     
-                const -> Integer = 42
+                const -> My_Type = My_Type.Value 42
                     
                 foo =
                     x = const
-                    y = 42
+                    y = My_Type.Value 23
                     x
                     
                 bar =
@@ -61,12 +62,13 @@ public class TypeInferenceTest extends TestBase {
     final URI uri = new URI("memory://functionReturnCheck.enso");
     final Source src =
         Source.newBuilder("enso", """
-                from Standard.Base import Integer
+                type My_Type
+                    Value x
                     
-                add x y -> Integer = x+y
+                add x y -> My_Type = My_Type.Value (x.x+y.x)
                     
                 foo z =
-                    a = 42
+                    a = My_Type.Value 42
                     b = add a z
                     b
                 """, uri.getAuthority())
