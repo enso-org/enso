@@ -20,13 +20,18 @@ object ErrorResolver {
     throwable: Throwable
   )(implicit ctx: RuntimeContext): Vector[Api.StackTraceElement] = {
     val iop = InteropLibrary.getUncached
-    val arr = GetStackTraceNode.stackTraceToArray(iop, throwable)
+    val arr = if (iop.hasExceptionStackTrace(throwable)) {
+      GetStackTraceNode.stackTraceToArray(iop, throwable)
+    } else {
+      GetStackTraceNode.stackTraceToArray(throwable)
+    }
     val len = iop.getArraySize(arr)
-    val stack = for (i <- 0L until len) yield {
+    val stackWithOptions = for (i <- 0L until len) yield {
       val elem = iop.readArrayElement(arr, i)
       toStackElement(iop, elem)
     }
-    stack.map(op => op.get).toVector
+    val stack = stackWithOptions.map(op => op.get)
+    stack.toVector
   }
 
   /** Convert from the truffle stack element to the runtime API representation.
