@@ -1240,7 +1240,7 @@ type Column
 
     ## GROUP Standard.Base.Text
        ICON preparation
-       Calulates the text length for each element of the column
+       Calculates the text length for each element of the column.
 
        In the Database backends, the default text length method of the
        particular database is used.
@@ -1255,8 +1255,7 @@ type Column
     text_length : Column
     text_length self =
         Value_Type.expect_text self <|
-          new_name = naming_helper.function_name "text_length" [self]
-          run_vectorized_unary_op self Java_Storage.Maps.TEXT_LENGTH new_name expected_result_type=Value_Type.Integer
+            simple_unary_op self Java_Storage.Maps.TEXT_LENGTH
 
     ## GROUP Standard.Base.Logical
        Checks for each element of the column if it contains `other`.

@@ -369,7 +369,7 @@ fold_case = lift_unary_op "FOLD_CASE" arg->
     Builder.code "LOWER(UPPER(" ++ arg ++ "))"
 
 ## PRIVATE
-length = Base_Generator.lift_unary_op "LENGTH" str->
+length = lift_unary_op "LENGTH" str->
     Builder.code "length(" ++ str ++ ")"
 
 ## PRIVATE

@@ -1177,7 +1177,7 @@ type Column
 
     ## GROUP Standard.Base.Text
        ICON preparation
-       Calulates the text length for each element of the column
+       Calculates the text length for each element of the column.
 
        In the Database backends, the default text length method of the
        particular database is used.
@@ -1192,8 +1192,8 @@ type Column
     text_length : Column
     text_length self =
         Value_Type.expect_text self <|
-          new_name = self.naming_helper.function_name "text_length" [self]
-          self.make_unary_op "length" new_name
+            new_name = self.naming_helper.function_name "text_length" [self]
+            self.make_unary_op "LENGTH" new_name
 
     ## GROUP Standard.Base.Logical
        Checks for each element of the column if it contains `other`.

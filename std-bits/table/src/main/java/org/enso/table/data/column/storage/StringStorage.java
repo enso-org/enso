@@ -1,7 +1,6 @@
 package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
-
 import org.enso.base.Text_Utils;
 import org.enso.table.data.column.builder.StringBuilder;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
