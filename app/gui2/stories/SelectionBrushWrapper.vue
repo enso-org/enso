@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed, ref, shallowRef } from 'vue'
 
+import type { Vec2 } from '@/util/data/vec2'
 import { usePointer } from '@/util/events'
 import { useNavigator } from '@/util/navigator'
-import type { Vec2 } from '@/util/vec2'
 
 const viewportNode = ref<HTMLElement>()
 

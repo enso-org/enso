@@ -16,6 +16,7 @@ import PlusButton from '@/components/PlusButton.vue'
 import TopBar from '@/components/TopBar.vue'
 import { useDoubleClick } from '@/composables/doubleClick'
 import { keyboardBusy, keyboardBusyExceptIn, useEvent } from '@/composables/events'
+import { useStackNavigator } from '@/composables/stackNavigator'
 import { provideGraphNavigator } from '@/providers/graphNavigator'
 import { provideGraphSelection } from '@/providers/graphSelection'
 import { provideInteractionHandler, type Interaction } from '@/providers/interactionHandler'
@@ -27,7 +28,6 @@ import { groupColorVar, useSuggestionDbStore } from '@/stores/suggestionDatabase
 import { colorFromString } from '@/util/colors'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
-import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
 import * as set from 'lib0/set'
 import type { ExprId, NodeMetadata } from 'shared/yjsModel'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
@@ -227,12 +227,12 @@ const graphBindingsHandler = graphBindings.handler({
     if (keyboardBusy()) return false
     const selectedNode = set.first(nodeSelection.selected)
     if (selectedNode) {
-      enterNode(selectedNode)
+      stackNavigator.enterNode(selectedNode)
     }
   },
   exitNode() {
     if (keyboardBusy()) return false
-    exitNode()
+    stackNavigator.exitNode()
   },
 })
 
@@ -241,7 +241,7 @@ const handleClick = useDoubleClick(
     graphBindingsHandler(e)
   },
   () => {
-    exitNode()
+    stackNavigator.exitNode()
   },
 ).handleClick
 const codeEditorArea = ref<HTMLElement>()
@@ -252,31 +252,6 @@ const codeEditorHandler = codeEditorBindings.handler({
     showCodeEditor.value = !showCodeEditor.value
   },
 })
-
-function enterNode(id: ExprId) {
-  const expressionInfo = graphStore.db.getExpressionInfo(id)
-  if (expressionInfo == undefined || expressionInfo.methodCall == undefined) {
-    console.debug('Cannot enter node that has no method call.')
-    return
-  }
-  const definedOnType = tryQualifiedName(expressionInfo.methodCall.methodPointer.definedOnType)
-  if (!projectStore.modulePath?.ok) {
-    console.warn('Cannot enter node while no module is open.')
-    return
-  }
-  const openModuleName = qnLastSegment(projectStore.modulePath.value)
-  if (definedOnType.ok && qnLastSegment(definedOnType.value) != openModuleName) {
-    console.debug('Cannot enter node that is not defined on current module.')
-    return
-  }
-  projectStore.executionContext.push(id)
-  graphStore.updateState()
-}
-
-function exitNode() {
-  projectStore.executionContext.pop()
-  graphStore.updateState()
-}
 
 /** Track play button presses. */
 function onPlayButtonPress() {
@@ -431,17 +406,6 @@ async function handleFileDrop(event: DragEvent) {
   })
 }
 
-const breadcrumbs = computed(() =>
-  projectStore.executionContext.desiredStack.map((frame) => {
-    switch (frame.type) {
-      case 'ExplicitCall':
-        return frame.methodPointer.name
-      case 'LocalCall':
-        return frame.expressionId
-    }
-  }),
-)
-
 // === Clipboard ===
 
 const ENSO_MIME_TYPE = 'web application/enso'
@@ -481,6 +445,16 @@ async function retrieveDataFromClipboard(): Promise<ClipboardData | undefined> {
         const blob = await clipboardItem.getType(type)
         return JSON.parse(await blob.text())
       }
+
+      if (type === 'text/html') {
+        const blob = await clipboardItem.getType(type)
+        const htmlContent = await blob.text()
+        const excelPayload = await readNodeFromExcelClipboard(htmlContent, clipboardItem)
+        if (excelPayload) {
+          return excelPayload
+        }
+      }
+
       if (type === 'text/plain') {
         const blob = await clipboardItem.getType(type)
         const fallbackExpression = await blob.text()
@@ -514,6 +488,26 @@ async function readNodeFromClipboard() {
   )
 }
 
+async function readNodeFromExcelClipboard(
+  htmlContent: string,
+  clipboardItem: ClipboardItem,
+): Promise<ClipboardData | undefined> {
+  // Check we have a valid HTML table
+  // If it is Excel, we should have a plain-text version of the table with tab separators.
+  if (
+    clipboardItem.types.includes('text/plain') &&
+    htmlContent.startsWith('<table ') &&
+    htmlContent.endsWith('</table>')
+  ) {
+    const textData = await clipboardItem.getType('text/plain')
+    const text = await textData.text()
+    const payload = JSON.stringify(text).replaceAll(/^"|"$/g, '').replaceAll("'", "\\'")
+    const expression = `'${payload}'.to Table`
+    return { nodes: [{ expression: expression, metadata: undefined }] } as ClipboardData
+  }
+  return undefined
+}
+
 function handleNodeOutputPortDoubleClick(id: ExprId) {
   componentBrowserUsage.value = { type: 'newNode', sourcePort: id }
   const placementEnvironment = environmentForNodes([id].values())
@@ -527,6 +521,8 @@ function handleNodeOutputPortDoubleClick(id: ExprId) {
   ).position
   interaction.setCurrent(creatingNodeFromPortDoubleClick)
 }
+
+const stackNavigator = useStackNavigator()
 
 function handleEdgeDrop(source: ExprId, position: Vec2) {
   componentBrowserUsage.value = { type: 'newNode', sourcePort: source }
@@ -561,7 +557,7 @@ function handleEdgeDrop(source: ExprId, position: Vec2) {
     <div :style="{ transform: graphNavigator.transform }" class="htmlLayer">
       <GraphNodes
         @nodeOutputPortDoubleClick="handleNodeOutputPortDoubleClick"
-        @nodeDoubleClick="enterNode"
+        @nodeDoubleClick="(id) => stackNavigator.enterNode(id)"
       />
     </div>
     <ComponentBrowser
@@ -578,10 +574,12 @@ function handleEdgeDrop(source: ExprId, position: Vec2) {
       v-model:mode="projectStore.executionMode"
       :title="projectStore.name"
       :modes="EXECUTION_MODES"
-      :breadcrumbs="breadcrumbs"
-      @breadcrumbClick="console.log(`breadcrumb #${$event + 1} clicked.`)"
-      @back="exitNode"
-      @forward="console.log('breadcrumbs \'forward\' button clicked.')"
+      :breadcrumbs="stackNavigator.breadcrumbLabels.value"
+      :allowNavigationLeft="stackNavigator.allowNavigationLeft.value"
+      :allowNavigationRight="stackNavigator.allowNavigationRight.value"
+      @breadcrumbClick="stackNavigator.handleBreadcrumbClick"
+      @back="stackNavigator.exitNode"
+      @forward="stackNavigator.enterNextNodeFromHistory"
       @execute="onPlayButtonPress()"
     />
     <PlusButton @pointerdown="interaction.setCurrent(creatingNodeFromButton)" />

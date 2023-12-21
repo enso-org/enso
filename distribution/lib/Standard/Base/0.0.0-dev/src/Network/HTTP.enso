@@ -6,6 +6,7 @@ import project.Data.Set.Set
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
 import project.Data.Time.Duration.Duration
+import project.Data.Vector.No_Wrap
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Common.Forbidden_Operation
@@ -117,7 +118,7 @@ type HTTP
                     boundary = body_publisher_and_boundary.second
                     boundary_header_list = if boundary.is_nothing then [] else [Header.multipart_form_data boundary]
                     all_headers = headers + boundary_header_list
-                    mapped_headers = all_headers.map h-> case h.value of
+                    mapped_headers = all_headers.map on_problems=No_Wrap.Value h-> case h.value of
                         _ : Enso_Secret -> EnsoKeyValuePair.ofSecret h.name h.value.id
                         _ -> EnsoKeyValuePair.ofText h.name h.value
 
@@ -178,7 +179,7 @@ type HTTP
 ## PRIVATE
 parse_headers : Vector (Header | Pair Text Text) -> Vector Header
 parse_headers headers =
-    headers . map h-> case h of
+    headers . map on_problems=No_Wrap.Value h-> case h of
         _ : Vector -> Header.new (h.at 0) (h.at 1)
         _ : Pair -> Header.new (h.at 0) (h.at 1)
         _ : Header -> h

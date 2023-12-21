@@ -80,7 +80,7 @@ test.each([
     extracted: ['with_enabled_context', "'current_context_name'", 'a + b'],
   },
 ])('`isMatch` and `extractMatches`', ({ target, pattern, extracted }) => {
-  const targetAst = Ast.parseLine(target)
+  const targetAst = Ast.parseExpression(target)
   const module = targetAst.module
   const patternAst = Pattern.parse(pattern)
   expect(

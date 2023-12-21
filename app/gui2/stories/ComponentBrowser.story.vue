@@ -3,7 +3,7 @@ import { logEvent } from 'histoire/client'
 
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
-import { Vec2 } from '@/util/vec2'
+import { Vec2 } from '@/util/data/vec2'
 import GroupColorsWrapper from './GroupColorsWrapper.vue'
 import NavigatorWrapper from './NavigatorWrapper.vue'
 
