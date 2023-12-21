@@ -44,26 +44,6 @@ export class AssetQuery {
     static valuesRegex = interpolateRegex(/(?:<json>)|(?:[^,\s"][^,\s]*)/g)
     // `key` MUST be a string literal type.
     // eslint-disable-next-line no-restricted-syntax
-    static dataKeys = [
-        'keywords',
-        'negativeKeywords',
-        'labels',
-        'negativeLabels',
-        'types',
-        'negativeTypes',
-        'extensions',
-        'negativeExtensions',
-        'descriptions',
-        'negativeDescriptions',
-        'modifieds',
-        'negativeModifieds',
-        'owners',
-        'negativeOwners',
-        'nos',
-        'negativeNos',
-    ] as const satisfies readonly (keyof AssetQueryData)[]
-    // `key` MUST be a string literal type.
-    // eslint-disable-next-line no-restricted-syntax
     static tagNames = [
         ['keywords', null],
         ['negativeKeywords', '-'],
@@ -390,7 +370,7 @@ export class AssetQuery {
      * or itself if there are no terms to add. */
     add(values: Partial<AssetQueryData>): AssetQuery {
         const updates: Partial<AssetQueryData> = {}
-        for (const key of AssetQuery.dataKeys) {
+        for (const [key] of AssetQuery.tagNames) {
             const update = AssetQuery.updatedTerms(this[key], values[key] ?? null, null)
             if (update != null) {
                 updates[key] = update
@@ -403,7 +383,7 @@ export class AssetQuery {
      * or itself if there are no terms to delete. */
     delete(values: Partial<AssetQueryData>): AssetQuery {
         const updates: Partial<AssetQueryData> = {}
-        for (const key of AssetQuery.dataKeys) {
+        for (const [key] of AssetQuery.tagNames) {
             const update = AssetQuery.updatedTerms(this[key], null, values[key] ?? null)
             if (update != null) {
                 updates[key] = update
@@ -416,7 +396,7 @@ export class AssetQuery {
      * with the matching tag, or itself if there are no terms to add. */
     addToLastTerm(values: Partial<AssetQueryLastTermData>): AssetQuery {
         const updates: Partial<AssetQueryData> = {}
-        for (const key of AssetQuery.dataKeys) {
+        for (const [key] of AssetQuery.tagNames) {
             const update = AssetQuery.updatedLastTerm(this[key], values[key] ?? null, null)
             if (update != null) {
                 updates[key] = update
@@ -429,7 +409,7 @@ export class AssetQuery {
      * with the matching tag, or itself if there are no terms to delete. */
     deleteFromLastTerm(values: Partial<AssetQueryLastTermData>): AssetQuery {
         const updates: Partial<AssetQueryData> = {}
-        for (const key of AssetQuery.dataKeys) {
+        for (const [key] of AssetQuery.tagNames) {
             const update = AssetQuery.updatedLastTerm(this[key], null, values[key] ?? null)
             if (update != null) {
                 updates[key] = update
@@ -444,7 +424,7 @@ export class AssetQuery {
      * {@link AssetQuery.deleteFromEveryTerm}. */
     addToEveryTerm(values: Partial<AssetQueryLastTermData>): AssetQuery {
         const updates: Partial<AssetQueryData> = {}
-        for (const key of AssetQuery.dataKeys) {
+        for (const [key] of AssetQuery.tagNames) {
             const update = AssetQuery.updatedEveryTerm(this[key], values[key] ?? null, null)
             if (update != null) {
                 updates[key] = update
@@ -457,7 +437,7 @@ export class AssetQuery {
      * with the matching tag, or itself if there are no terms to delete. */
     deleteFromEveryTerm(values: Partial<AssetQueryLastTermData>): AssetQuery {
         const updates: Partial<AssetQueryData> = {}
-        for (const key of AssetQuery.dataKeys) {
+        for (const [key] of AssetQuery.tagNames) {
             const update = AssetQuery.updatedEveryTerm(this[key], null, values[key] ?? null)
             if (update != null) {
                 updates[key] = update

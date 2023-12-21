@@ -44,6 +44,8 @@ export interface DriveProps {
     dispatchAssetEvent: (directoryEvent: assetEventModule.AssetEvent) => void
     query: assetQuery.AssetQuery
     setQuery: React.Dispatch<React.SetStateAction<assetQuery.AssetQuery>>
+    labels: backendModule.Label[]
+    setLabels: React.Dispatch<React.SetStateAction<backendModule.Label[]>>
     projectStartupInfo: backendModule.ProjectStartupInfo | null
     setAssetSettingsPanelProps: React.Dispatch<
         React.SetStateAction<assetSettingsPanel.AssetSettingsPanelRequiredProps | null>
@@ -71,6 +73,8 @@ export default function Drive(props: DriveProps) {
         queuedAssetEvents,
         query,
         setQuery,
+        labels,
+        setLabels,
         projectStartupInfo,
         assetListEvents,
         dispatchAssetListEvent,
@@ -97,7 +101,6 @@ export default function Drive(props: DriveProps) {
             localStorage.get(localStorageModule.LocalStorageKey.driveCategory) ??
             categorySwitcher.Category.home
     )
-    const [labels, setLabels] = React.useState<backendModule.Label[]>([])
     // const [currentLabels, setCurrentLabels] = React.useState<backendModule.LabelName[] | null>(null)
     const [newLabelNames, setNewLabelNames] = React.useState(new Set<backendModule.LabelName>())
     const [deletedLabelNames, setDeletedLabelNames] = React.useState(
@@ -133,7 +136,7 @@ export default function Drive(props: DriveProps) {
                 setLabels(await backend.listTags())
             }
         })()
-    }, [backend, organization?.isEnabled])
+    }, [backend, organization?.isEnabled, /* should never change */ setLabels])
 
     const doUploadFiles = React.useCallback(
         (files: File[]) => {
@@ -204,7 +207,7 @@ export default function Drive(props: DriveProps) {
                     new Set([...labelNames].filter(labelName => labelName !== newLabelName))
             )
         },
-        [backend, /* should never change */ toastAndLog]
+        [backend, /* should never change */ toastAndLog, /* should never change */ setLabels]
     )
 
     const doDeleteLabel = React.useCallback(
@@ -230,6 +233,7 @@ export default function Drive(props: DriveProps) {
             /* should never change */ setQuery,
             /* should never change */ dispatchAssetEvent,
             /* should never change */ toastAndLog,
+            /* should never change */ setLabels,
         ]
     )
 

@@ -74,6 +74,7 @@ export default function Dashboard(props: DashboardProps) {
     const [queuedAssetEvents, setQueuedAssetEvents] = React.useState<assetEventModule.AssetEvent[]>(
         []
     )
+    const [labels, setLabels] = React.useState<backendModule.Label[]>([])
     const [projectStartupInfo, setProjectStartupInfo] =
         React.useState<backendModule.ProjectStartupInfo | null>(null)
     const [openProjectAbortController, setOpenProjectAbortController] =
@@ -427,6 +428,7 @@ export default function Dashboard(props: DashboardProps) {
                         setBackendType={setBackendType}
                         query={query}
                         setQuery={setQuery}
+                        labels={labels}
                         canToggleSettingsPanel={assetSettingsPanelProps != null}
                         isSettingsPanelVisible={
                             isAssetSettingsPanelVisible && assetSettingsPanelProps != null
@@ -451,6 +453,8 @@ export default function Dashboard(props: DashboardProps) {
                         initialProjectName={initialProjectName}
                         query={query}
                         setQuery={setQuery}
+                        labels={labels}
+                        setLabels={setLabels}
                         projectStartupInfo={projectStartupInfo}
                         queuedAssetEvents={queuedAssetEvents}
                         assetListEvents={assetListEvents}
