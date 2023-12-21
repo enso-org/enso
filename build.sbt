@@ -2499,9 +2499,8 @@ lazy val `std-base` = project
     Compile / packageBin / artifactPath :=
       `base-polyglot-root` / "std-base.jar",
     libraryDependencies ++= Seq(
-      "org.graalvm.polyglot"      % "polyglot"                % graalMavenPackagesVersion,
-      "org.apache.httpcomponents" % "httpclient"              % httpComponentsVersion,
-      "org.netbeans.api"          % "org-openide-util-lookup" % netbeansApiVersion % "provided"
+      "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion,
+      "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion % "provided"
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value

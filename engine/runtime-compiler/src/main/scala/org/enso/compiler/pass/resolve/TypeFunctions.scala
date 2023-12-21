@@ -186,7 +186,7 @@ case object TypeFunctions extends IRPass {
 
       name.name match {
         case Type.Ascription.name =>
-          Type.Ascription(leftArg, rightArg, location)
+          Type.Ascription(leftArg, rightArg, None, location)
         case Type.Context.name =>
           Type.Context(leftArg, rightArg, location)
         case Type.Error.name =>

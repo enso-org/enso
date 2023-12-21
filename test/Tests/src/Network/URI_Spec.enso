@@ -173,7 +173,7 @@ spec =
             decode_query_params r4 . should_equal [["p+r", "b c"], ["p r", "b c"], ["🚀", "🚧"], ["śnieżnobiałą", "łąkę"], [s2, "zzz"]]
             decode_query_params (uri4.to_uri.fetch) . should_equal (decode_query_params r4)
 
-        Test.specify "may allow duplicate keys in query parameters" <|
+        Test.specify "may allow duplicate keys in query parameters" pending=pending_has_url <|
             uri = URI.parse base_url+"get"
                 . add_query_argument "a" "b"
                 . add_query_argument "a" "c"
