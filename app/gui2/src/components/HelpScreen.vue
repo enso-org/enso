@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { HelpScreenEntry, HelpScreenSection } from '@/components/HelpScreen/types'
 import { baseConfig, type ApplicationConfig, type Group, type Option } from '@/util/config'
 import { computed } from 'vue'
 
@@ -6,18 +7,6 @@ const props = defineProps<{
   unrecognizedOptions: string[]
   appConfig: ApplicationConfig
 }>()
-
-export interface HelpScreenSection {
-  description?: string | undefined
-  name: string
-  entries: HelpScreenEntry[]
-}
-
-export interface HelpScreenEntry {
-  name: string
-  values: string[]
-  href?: string | undefined
-}
 
 const headers = ['Name', 'Description', 'Default']
 

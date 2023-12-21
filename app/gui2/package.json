@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "vite",
     "build": "npm --workspace enso-authentication run compile && run-p typecheck build-only",
-    "build:cloud": "CLOUD_BUILD=true npm run build",
+    "build:cloud": "cross-env CLOUD_BUILD=true npm run build",
     "preview": "vite preview",
     "test": "vitest run && playwright test --reporter=html",
     "test:unit": "vitest",
@@ -99,6 +99,7 @@
     "@vue/test-utils": "^2.4.1",
     "@vue/tsconfig": "^0.4.0",
     "change-case": "^4.1.2",
+    "cross-env": "^7.0.3",
     "css.escape": "^1.5.1",
     "d3": "^7.4.0",
     "esbuild": "^0.19.3",
