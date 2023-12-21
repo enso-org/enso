@@ -1891,6 +1891,10 @@ class RuntimeErrorsTest
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
 
+    metadata.assertInCode(xId, code, "foo")
+    metadata.assertInCode(yId, code, "x + 1")
+    metadata.assertInCode(mainResId, code, "IO.println y")
+
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
     context.receive shouldEqual Some(
@@ -1927,12 +1931,12 @@ class RuntimeErrorsTest
         contextId,
         xId,
         Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "foo")),
-        Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
+        Api.ExpressionUpdate.Payload.DataflowError(Seq())
       ),
       TestMessages.error(
         contextId,
         yId,
-        Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
+        Api.ExpressionUpdate.Payload.DataflowError(Seq())
       ),
       TestMessages.update(
         contextId,
