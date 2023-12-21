@@ -17,7 +17,6 @@ import src.main.scala.licenses.{
 // to IntelliJ.
 import JPMSPlugin.autoImport.*
 
-
 import java.io.File
 
 // ============================================================================
