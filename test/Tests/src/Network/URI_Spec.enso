@@ -1,8 +1,8 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Syntax_Error
-import Standard.Base.Network.URI_With_Query.URI_With_Query
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from Standard.Test import Test, Test_Suite
+from Standard.Test import Problems, Test, Test_Suite
 import Standard.Test.Extensions
 
 spec =
@@ -69,17 +69,27 @@ spec =
             r.catch.to_display_text . should_contain "a b c"
             URI.from "a b c" . should_fail_with Syntax_Error
 
+        Test.specify "should allow a URI without scheme or authority" <|
+            uri = URI.parse "//a/b/c"
+            uri.scheme.should_equal Nothing
+            uri.authority.should_equal "a"
+            uri.path.should_equal "/b/c"
+            uri.to_text . should_equal "//a/b/c"
+
+            uri2 = URI.parse "///a/b/c"
+            uri2.scheme.should_equal Nothing
+            uri2.authority.should_equal Nothing
+            uri2.path.should_equal "/a/b/c"
+
         Test.specify "should compare two URIs for equality" <|
             (URI.parse "http://google.com").should_equal (URI.parse "http://google.com")
             (URI.parse "http://google.com").should_not_equal (URI.parse "http://amazon.com")
 
-    Test.group "URI_With_Query" <|
-        Test.specify "will convert to URI_With_Query if a query argument is added" <|
+        Test.specify "allows adding query arguments" <|
             base_uri = URI.parse "http://a_user@example.com"
             uri = base_uri . add_query_argument "foo" "bar"
 
-            uri.should_be_a URI_With_Query
-            # The URI_With_Query should have the same fields as the URI:
+            uri.should_be_a URI
             uri.scheme.should_equal "http"
             uri.user_info.should_equal "a_user"
             uri.host.should_equal "example.com"
@@ -88,12 +98,13 @@ spec =
             uri.path.should_equal ""
             uri.query.should_equal "foo=bar"
             uri.fragment.should_equal Nothing
+            uri.to_text . should_equal "http://a_user@example.com/?foo=bar"
 
         Test.specify "should be able to add multiple query arguments" <|
             base_uri = URI.parse "https://example.com/path?a=b"
             uri = base_uri . add_query_argument "c" "d" . add_query_argument "e" "f"
 
-            uri.should_be_a URI_With_Query
+            uri.should_be_a URI
             uri.query.should_equal "a=b&c=d&e=f"
             uri.scheme.should_equal "https"
             uri.user_info.should_equal Nothing
@@ -103,29 +114,6 @@ spec =
             uri.path.should_equal "/path"
             uri.fragment.should_equal Nothing
 
-        Test.specify "should be able to convert back to URI" <|
-            base_uri = URI.parse "https://example.com/path?a=b"
-            uri1 = base_uri . add_query_argument "c" "d" . add_query_argument "e" "f"
-
-            uri2 = uri1.to_uri
-            uri2.should_be_a URI
-            uri2.scheme.should_equal "https"
-            uri2.host.should_equal "example.com"
-            uri2.path.should_equal "/path"
-            uri2.query.should_equal "a=b&c=d&e=f"
-            uri2.should_equal (URI.parse "https://example.com/path?a=b&c=d&e=f")
-
-            uri3 = uri2 . add_query_argument "g" "h"
-            uri3.should_be_a URI_With_Query
-            uri3.query.should_equal "a=b&c=d&e=f&g=h"
-            uri3.scheme.should_equal "https"
-            uri3.user_info.should_equal Nothing
-            uri3.host.should_equal "example.com"
-            uri3.port.should_equal Nothing
-            uri3.path.should_equal "/path"
-            uri3.fragment.should_equal Nothing
-            uri3.to_uri . should_equal (URI.parse "https://example.com/path?a=b&c=d&e=f&g=h")
-
         Test.specify "will not convert back to URI if secrets are present in the query arguments" pending="TODO testing secrets is for later" <|
             Error.throw "TODO: secrets tests"
 
@@ -134,12 +122,9 @@ spec =
             base_uri = URI.parse base_url+"get"
 
             uri1 = base_uri . add_query_argument "a" "b"
-            uri1.should_be_a URI_With_Query
+            uri1.should_be_a URI
             r1 = uri1.fetch
             decode_query_params r1 . should_equal [["a", "b"]]
-
-            # Also check that after converting back to normal URI, we also get the same result:
-            decode_query_params (uri1.to_uri.fetch) . should_equal (decode_query_params r1)
 
             uri2 = base_uri
                 . add_query_argument "q1" "b c"
@@ -148,10 +133,9 @@ spec =
             r2 = uri2.fetch
             # All values should be encoded and decoded correctly so that they retain the original symbols:
             decode_query_params r2 . should_equal [["q1", "b c"], ["q2", "e+f"], ["q3", "e%20f"]]
-            decode_query_params (uri2.to_uri.fetch) . should_equal (decode_query_params r2)
 
             s1 = '"f"\'\' ; 🚀🚧a'
-            s2 = "[a=b]:[b=c][d=e], ]]] ==> <br>a"
+            s2 = "[a=b]:[b=c][d=e]++++!?&->#...__(){}@///\\\|%%%100*^, ]]] ==> <br>a"
             uri3 = base_uri
                 . add_query_argument "q4" "śnieżnobiały"
                 . add_query_argument "q5" s1
@@ -159,9 +143,9 @@ spec =
                 . add_query_argument "q7" ""
                 . add_query_argument "q8" " "
                 . add_query_argument "q9" "%%%"
+                . add_query_argument "q10" '\n\n\t'
             r3 = uri3.fetch
-            decode_query_params r3 . should_equal [["q4", "śnieżnobiały"], ["q5", s1], ["q6", s2], ["q7", ""], ["q8", " "], ["q9", "%%%"]]
-            decode_query_params (uri3.to_uri.fetch) . should_equal (decode_query_params r3)
+            decode_query_params r3 . should_equal [["q4", "śnieżnobiały"], ["q5", s1], ["q6", s2], ["q7", ""], ["q8", " "], ["q9", "%%%"], ["q10", '\n\n\t']]
 
             uri4 = base_uri
                 . add_query_argument "p+r" "b c"
@@ -171,19 +155,166 @@ spec =
                 . add_query_argument s2 "zzz"
             r4 = uri4.fetch
             decode_query_params r4 . should_equal [["p+r", "b c"], ["p r", "b c"], ["🚀", "🚧"], ["śnieżnobiałą", "łąkę"], [s2, "zzz"]]
-            decode_query_params (uri4.to_uri.fetch) . should_equal (decode_query_params r4)
 
         Test.specify "may allow duplicate keys in query parameters" pending=pending_has_url <|
             uri = URI.parse base_url+"get"
                 . add_query_argument "a" "b"
                 . add_query_argument "a" "c"
                 . add_query_argument "a" "d"
-            r = uri.fetch
-            decode_query_params r . should_equal [["a", "b"], ["a", "c"], ["a", "d"]]
-            decode_query_params (uri.to_uri.fetch) . should_equal (decode_query_params r)
+            decode_query_params uri.fetch . should_equal [["a", "b"], ["a", "c"], ["a", "d"]]
 
-        Test.specify "should correctly handle various characters within the key and value of arguments" pending=("TODO testing secrets is for later".if_nothing pending_has_url) <|
+        Test.specify "should allow to set user info for the authority part of the URI" <|
+            uri1 = URI.parse "http://example.com"
+            uri2 = uri1.set_user_info "my_user" "my_password"
+
+            uri2.to_text . should_equal "http://my_user:my_password@example.com"
+            uri2.user_info . should_equal "my_user:my_password"
+            uri2.authority . should_equal "my_user:my_password@example.com"
+
+            uri3 = URI.parse "https://start:pass@example.org:1234/path"
+            uri4 = uri3.set_user_info "new_user" "new_password"
+            uri4.to_text . should_equal "https://new_user:new_password@example.org:1234/path"
+            uri4.user_info . should_equal "new_user:new_password"
+            uri4.raw_user_info . should_equal "new_user:new_password"
+            uri4.authority . should_equal "new_user:new_password@example.org:1234"
+            uri4.raw_authority . should_equal "new_user:new_password@example.org:1234"
+            uri4.path . should_equal "/path"
+
+        Test.specify "should allow non-standard characters in the user info" <|
+            uri1 = URI.parse "http://X:Y@example.com"
+            uri2 = uri1.set_user_info "ąęć@x" "ś🚧: @"
+            uri2.to_text . should_equal "http://%C4%85%C4%99%C4%87%40x:%C5%9B%F0%9F%9A%A7%3A%20%40@example.com"
+            uri2.user_info . should_equal "ąęć@x:ś🚧: @"
+            uri2.raw_user_info . should_equal "%C4%85%C4%99%C4%87%40x:%C5%9B%F0%9F%9A%A7%3A%20%40"
+            uri2.authority . should_equal "ąęć@x:ś🚧: @@example.com"
+            uri2.raw_authority . should_equal "%C4%85%C4%99%C4%87%40x:%C5%9B%F0%9F%9A%A7%3A%20%40@example.com"
+
+        Test.specify "will not allow to set username containing a colon" <|
+            uri1 = URI.parse "http://example.com"
+            uri2 = uri1.set_user_info "a:b" "c"
+            uri2.should_fail_with Illegal_Argument
+
+        Test.specify "should allow to get properties of a URI with added query arguments and user info" <|
+            base_uri = URI.parse "https://example.com/path?a=b#FRAG"
+            uri1 = base_uri . add_query_argument "c" "d" . set_user_info "U" "P" . add_query_argument "e" "f"
+
+            uri1.should_be_a URI
+            uri1.scheme.should_equal "https"
+            uri1.user_info.should_equal "U:P"
+            uri1.host.should_equal "example.com"
+            uri1.path.should_equal "/path"
+            uri1.query.should_equal "a=b&c=d&e=f"
+            uri1.fragment.should_equal "FRAG"
+            uri1.should_equal (URI.parse "https://U:P@example.com/path?a=b&c=d&e=f#FRAG")
+
+        Test.specify "should allow the / syntax for extending the path on an URI" <|
+            uri0 = URI.parse "https://example.com"
+            uri1 = uri0 / "path"
+            uri1.path . should_equal "/path"
+            uri1.to_text . should_equal "https://example.com/path"
+
+            uri2 = uri0 / "path/"
+            uri2.path . should_equal "/path/"
+            uri2.to_text . should_equal "https://example.com/path/"
+
+            uri3 = uri1 / "2"
+            uri3.path . should_equal "/path/2"
+            uri3.to_text . should_equal "https://example.com/path/2"
+
+            uri4 = uri2 / "2"
+            uri4.path . should_equal "/path/2"
+            uri4.to_text . should_equal "https://example.com/path/2"
+
+        Test.specify "should work fine with / characters and empty segments" <|
+            uri0 = URI.parse "http://example.com/get/"
+
+            uri1 = uri0 / "///0" / "a///b" / "c///"
+            uri1.path . should_equal "/get////0/a///b/c///"
+
+            uri2 = uri0 / "a" / ""
+            uri2.path . should_equal "/get/a//"
+            uri3 = uri2 / "b"
+            uri3.path . should_equal "/get/a//b"
+
+            uri4 = uri0 / "a" / "/"
+            uri4.path . should_equal "/get/a//"
+            uri5 = uri4 / "b"
+            uri5.path . should_equal "/get/a//b"
+
+        Test.specify "should allow various characters in the path" pending=pending_has_url <|
+            uri0 = URI.parse base_url+"get"
+            uri1 = uri0 / "a b c" / "d+e" / "f%20g" / "ś🚧:@"
+
+            # Weirdly, the spaces are presented as + even in the not-raw path.
+            # But inspecting the raw path shows that they are indeed distinguished.
+            uri1.path . should_equal "/get/a b c/d+e/f%20g/ś🚧:@"
+            uri1.raw_path . should_equal "/get/a%20b%20c/d%2Be/f%2520g/%C5%9B%F0%9F%9A%A7%3A%40"
+            uri1.to_text . should_equal base_url+"get/a%20b%20c/d%2Be/f%2520g/%C5%9B%F0%9F%9A%A7%3A%40"
+
+            r = uri1.fetch
+            r.at "path" . should_equal "/get/a b c/d+e/f%20g/ś🚧:@"
+
+            ext = "a [!who puts that//// into URI??!!] ; --- ### a:=b"
+            uri3 = uri0 / ext
+            r2 = uri3.fetch
+            r2.at "path" . should_equal "/get/"+ext
+
+        Test.specify "should allow slashes within path" <|
+            uri0 = URI.parse "https://example.com/"
+            uri1 = uri0 / "a" / "b" / "c/d/e" / "f////g"
+            uri1.path . should_equal "/a/b/c/d/e/f////g"
+            uri1.to_text . should_equal "https://example.com/a/b/c/d/e/f////g"
+
+        Test.specify "will warn about ? or # being encoded in path" <|
+            uri0 = URI.parse "https://example.com/a/b/c"
+
+            uri1 = uri0 / "x?y"
+            uri1.path . should_equal "/a/b/c/x?y"
+            uri1.raw_path . should_equal "/a/b/c/x%3Fy"
+            uri1.to_text . should_equal "https://example.com/a/b/c/x%3Fy"
+            w1 = Problems.expect_only_warning Illegal_Argument uri1
+            w1.message . should_contain "The requested path contained a '?' symbol which has been URL-encoded. If you want to modify the query, use the `add_query_argument` method instead."
+
+            uri2 = uri0 / "x#y"
+            uri2.path . should_equal "/a/b/c/x#y"
+            uri2.raw_path . should_equal "/a/b/c/x%23y"
+            uri2.to_text . should_equal "https://example.com/a/b/c/x%23y"
+            w2 = Problems.expect_only_warning Illegal_Argument uri2
+            w2.message . should_contain "The requested path contained a '#' symbol which has been URL-encoded. The `/` is not meant to be used to set a fragment for the URI."
+
+            uri3 = URI.parse "https://example.com/a?b=c#d"
+            uri4 = uri3 / "x?y" / "z#w"
+            uri4.path . should_equal "/a/x?y/z#w"
+            uri4.raw_path . should_equal "/a/x%3Fy/z%23w"
+            uri4.query . should_equal "b=c"
+            uri4.fragment . should_equal "d"
+            uri4.to_text . should_equal "https://example.com/a/x%3Fy/z%23w?b=c#d"
+
+        Test.specify "should keep existing query arguments intact when extending the path" <|
+            uri0 = URI.parse "https://example.com/path?a=b&c=d"
+            uri1 = uri0 / "x" / "y"
+            uri2 = uri1 . add_query_argument "e" "f"
+            uri3 = uri2 / "z"
+
+            uri3.path . should_equal "/path/x/y/z"
+            uri3.query . should_equal "a=b&c=d&e=f"
+            uri3.to_text . should_equal "https://example.com/path/x/y/z?a=b&c=d&e=f"
+
+        Test.specify "should allow to reset query arguments" <|
+            uri0 = URI.parse "https://example.com/path?a=b&c=d#FRAG"
+            uri1 = uri0 . add_query_argument "e" "f"
+
+            uri2 = uri1 . reset_query_arguments
+            uri2.path . should_equal "/path"
+            uri2.query . should_equal Nothing
+            uri2.fragment . should_equal "FRAG"
+            uri2.to_text . should_equal "https://example.com/path#FRAG"
+
+        Test.specify "should correctly handle various characters within the value of secrets" pending=("TODO testing secrets is for later".if_nothing pending_has_url) <|
             Error.throw "TODO: test various characters inside of the secret value, like in the raw test above"
+
+        Test.specify "should correctly handle user/password set as secret" pending=("TODO testing secrets is for later".if_nothing pending_has_url) <|
+            Error.throw "TODO: test user/password set as secret"
 
 main = Test_Suite.run_main spec
 

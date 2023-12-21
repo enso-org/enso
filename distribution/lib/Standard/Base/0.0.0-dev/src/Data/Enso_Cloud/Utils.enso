@@ -1,3 +1,4 @@
+import project.Data.Enso_Cloud.Enso_Secret.Enso_Secret
 import project.Data.Pair.Pair
 import project.Data.Text.Text
 import project.Error.Error
@@ -8,6 +9,7 @@ import project.System.Environment
 import project.System.File.File
 
 polyglot java import org.enso.base.enso_cloud.AuthenticationProvider
+polyglot java import org.enso.base.enso_cloud.HideableValue
 
 ## PRIVATE
 cloud_root_uri = "" + AuthenticationProvider.getAPIRootURI
@@ -50,3 +52,9 @@ type Not_Logged_In
     ## PRIVATE
     to_display_text : Text
     to_display_text self = "Not logged into Enso cloud. Please log in and restart."
+
+## PRIVATE
+as_hideable_value : Text | Enso_Secret | Nothing -> HideableValue
+as_hideable_value (value : Text | Enso_Secret) = case value of
+    text : Text -> HideableValue.PlainValue.new text
+    secret : Enso_Secret -> HideableValue.SecretValue.new secret.id
