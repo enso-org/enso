@@ -237,10 +237,10 @@ type Filter_Condition
             handle_nothing <| elem-> regex.matches elem . not
         Is_In values ->
             set = Set.from_vector values
-            handle_nothing <| set.contains
+            set.contains
         Not_In values ->
             set = Set.from_vector values
-            handle_nothing <| elem-> set.contains elem . not
+            elem-> set.contains elem . not
 
     ## PRIVATE
        Convert to a display representation of this Filter_Condition.
