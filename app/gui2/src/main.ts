@@ -58,14 +58,14 @@ async function runApp(config: StringConfig | null, accessToken: string | null, m
   function onUnrecognizedOption(path: string[]) {
     unrecognizedOptions.push(path.join('.'))
   }
-  const appConfig = mergeConfig(baseConfig, urlParams(), { onUnrecognizedOption })
+  const intermediateConfig = mergeConfig(baseConfig, urlParams(), { onUnrecognizedOption })
+  const appConfig = mergeConfig(intermediateConfig, config ?? {})
   if (!running) return
   const app = mountProjectApp({
-    config,
+    config: appConfig,
     accessToken,
     metadata,
     unrecognizedOptions,
-    appConfig: appConfig,
   })
   unmount = () => app.unmount()
 }

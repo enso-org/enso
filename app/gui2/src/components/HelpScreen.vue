@@ -5,7 +5,7 @@ import { computed } from 'vue'
 
 const props = defineProps<{
   unrecognizedOptions: string[]
-  appConfig: ApplicationConfig
+  config: ApplicationConfig
 }>()
 
 const headers = ['Name', 'Description', 'Default']
@@ -39,7 +39,7 @@ function recursiveOptions<T extends Group>(
 
 const sections = computed(() => {
   const sectionsData: [name: string, description: string, def: HelpScreenEntry[]][] =
-    Object.entries(props.appConfig.groups).map(([groupName, group]) => {
+    Object.entries(props.config.groups).map(([groupName, group]) => {
       const groupOptions = recursiveOptions(group as Group<any>)
       const originalGroupOptions = recursiveOptions((baseConfig.groups as any)[groupName] as Group)
       const entriesData: [string, string, string][] = groupOptions.map(({ option, path }, i) => [
@@ -54,7 +54,7 @@ const sections = computed(() => {
           values: [description, def],
         }),
       )
-      const option = (props.appConfig.options as any)[groupName] as Option | undefined
+      const option = (props.config.options as any)[groupName] as Option | undefined
       if (option != null) {
         entries.unshift({
           name: groupName,
@@ -76,8 +76,8 @@ const sections = computed(() => {
     ([name, description, entries]): HelpScreenSection => ({ name, description, entries }),
   )
 
-  const rootEntries = Object.entries<Option>(props.appConfig.options).flatMap(([name, option]) => {
-    if (name in props.appConfig.groups) return []
+  const rootEntries = Object.entries<Option>(props.config.options).flatMap(([name, option]) => {
+    if (name in props.config.groups) return []
     const entry = {
       name,
       values: [

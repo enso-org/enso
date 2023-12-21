@@ -1,23 +1,22 @@
 <script setup lang="ts">
 import HelpScreen from '@/components/HelpScreen.vue'
 import { provideAppClassSet } from '@/providers/appClass'
-import { provideGuiConfig, type GuiConfig } from '@/providers/guiConfig'
+import { provideGuiConfig } from '@/providers/guiConfig'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
-import type { ApplicationConfig } from '@/util/config'
+import { configValue, type ApplicationConfig } from '@/util/config'
 import ProjectView from '@/views/ProjectView.vue'
-import { onMounted, toRef } from 'vue'
+import { computed, onMounted } from 'vue'
 
 const props = defineProps<{
-  config: GuiConfig
+  config: ApplicationConfig
   accessToken: string
   metadata: object
   unrecognizedOptions: string[]
-  appConfig: ApplicationConfig
 }>()
 
 const classSet = provideAppClassSet()
 
-provideGuiConfig(toRef(props, 'config'))
+provideGuiConfig(computed(() => configValue(props.config)))
 
 // Initialize suggestion db immediately, so it will be ready when user needs it.
 onMounted(() => useSuggestionDbStore())
@@ -27,7 +26,7 @@ onMounted(() => useSuggestionDbStore())
   <HelpScreen
     v-if="unrecognizedOptions.length"
     :unrecognizedOptions="props.unrecognizedOptions"
-    :appConfig="props.appConfig"
+    :config="props.config"
   />
   <ProjectView v-else class="App" :class="[...classSet.keys()]" />
 </template>
