@@ -829,9 +829,9 @@ spec setup =
 
         Test.specify "should handle operation text_length" <|
             with_mixed_columns_if_supported [["strings", ["foobar", "", Nothing, "👩‍🔬", "café", "It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness, it was the epoch of belief, it was the epoch of incredulity, it was the season of light, it was the season of darkness, it was the spring of hope, it was the winter of despair."]]] t->
-            col = t.at "strings"
-            res = col.text_length
-            res.name . should_equal "text_length([strings])"
+                col = t.at "strings"
+                res = col.text_length
+                res.name . should_equal "text_length([strings])"
 
             case setup.is_database of
                 False -> res . to_vector . should_equal [6, 0, Nothing, 1, 4, 286] # Grapheme Length
