@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { injectWidgetRegistry, type WidgetInput } from '@/providers/widgetRegistry'
-import type { WidgetConfiguration } from '@/providers/widgetRegistry/configuration'
 import { injectWidgetTree } from '@/providers/widgetTree'
 import {
   injectWidgetUsageInfo,
@@ -8,8 +7,6 @@ import {
   usageKeyForInput,
 } from '@/providers/widgetUsageInfo'
 import { Ast } from '@/util/ast'
-import { SoCalledExpression } from '@/util/callTree'
-import type { Opt } from '@/util/data/opt'
 import { computed, proxyRefs } from 'vue'
 
 const props = defineProps<{

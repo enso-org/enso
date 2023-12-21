@@ -8,7 +8,7 @@ import {
 } from '@/providers/widgetRegistry'
 import { GraphDb } from '@/stores/graph/graphDatabase'
 import { Ast } from '@/util/ast'
-import { ApplicationKind, SoCalledExpression } from '@/util/callTree'
+import { AnyWidget, ApplicationKind } from '@/util/callTree'
 import { describe, expect, test } from 'vitest'
 import { defineComponent } from 'vue'
 import { DisplayMode, argsWidgetConfigurationSchema } from '../widgetRegistry/configuration'
@@ -33,7 +33,7 @@ describe('WidgetRegistry', () => {
 
   const widgetB = makeMockWidget(
     'B',
-    defineWidget(SoCalledExpression, {
+    defineWidget(AnyWidget, {
       priority: 2,
     }),
   )
@@ -56,7 +56,7 @@ describe('WidgetRegistry', () => {
 
   const someAst = Ast.parse('foo')
   const blankAst = Ast.parse('_')
-  const somePlaceholder = new SoCalledExpression(undefined, undefined, {
+  const somePlaceholder = new AnyWidget(undefined, undefined, {
     index: 0,
     info: {
       name: 'foo',

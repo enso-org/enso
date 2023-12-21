@@ -2,47 +2,37 @@
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { injectFunctionInfo, provideFunctionInfo } from '@/providers/functionInfo'
 import type { WidgetInput } from '@/providers/widgetRegistry'
-import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import { AnyWidget, Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import {
   argsWidgetConfigurationSchema,
   functionCallConfiguration,
-  type FunctionCall,
 } from '@/providers/widgetRegistry/configuration'
 import { useGraphStore } from '@/stores/graph'
 import { useProjectStore, type NodeVisualizationConfiguration } from '@/stores/project'
 import { Ast } from '@/util/ast'
-import {
-  ArgumentApplication,
-  SoCalledExpression,
-  getAccessOprSubject,
-  interpretCall,
-} from '@/util/callTree'
+import { ArgumentApplication, getAccessOprSubject, interpretCall } from '@/util/callTree'
 import type { Opt } from '@/util/data/opt'
 import type { ExprId } from 'shared/yjsModel'
-import { computed, proxyRefs } from 'vue'
+import { computed, proxyRefs, watch } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()
 const project = useProjectStore()
 
-const inputAst = computed(() =>
-  props.input instanceof SoCalledExpression ? props.input.ast : props.input,
-)
-
 provideFunctionInfo(
   proxyRefs({
-    callId: computed(() => inputAst.value.astId),
+    callId: computed(() => props.input.ast.astId),
   }),
 )
 
 const methodCallInfo = computed(() => {
-  const astId = inputAst.value.astId
+  const astId = props.input.ast.astId
   if (astId == null) return null
   return graph.db.getMethodCallInfo(astId)
 })
 
 const interpreted = computed(() => {
-  return interpretCall(inputAst.value, methodCallInfo.value == null)
+  return interpretCall(props.input.ast, methodCallInfo.value == null)
 })
 
 const application = computed(() => {
@@ -52,7 +42,7 @@ const application = computed(() => {
     analyzed.kind === 'prefix' ? graph.db.getMethodCall(analyzed.func.astId) : undefined
 
   const info = methodCallInfo.value
-  return ArgumentApplication.FromInterpretedWithInfo(
+  const application = ArgumentApplication.FromInterpretedWithInfo(
     analyzed,
     {
       noArgsCall,
@@ -62,11 +52,10 @@ const application = computed(() => {
     },
     !info?.staticallyApplied,
   )
+  return application instanceof ArgumentApplication
+    ? application
+    : new AnyWidget(application, props.input.dynamicConfig, props.input.argInfo)
 })
-
-const inheritedCfg = computed(() =>
-  props.input instanceof SoCalledExpression ? props.input.widgetConfig : undefined,
-)
 
 const escapeString = (str: string): string => {
   const escaped = str.replaceAll(/([\\'])/g, '\\$1')
@@ -75,7 +64,7 @@ const escapeString = (str: string): string => {
 const makeArgsList = (args: string[]) => '[' + args.map(escapeString).join(', ') + ']'
 
 const selfArgumentAstId = computed<Opt<ExprId>>(() => {
-  const analyzed = interpretCall(inputAst.value, true)
+  const analyzed = interpretCall(props.input.ast, true)
   if (analyzed.kind === 'infix') {
     return analyzed.lhs?.astId
   } else if (analyzed.kind === 'prefix') {
@@ -92,9 +81,12 @@ const selfArgumentAstId = computed<Opt<ExprId>>(() => {
 
 const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => {
   // If we inherit dynamic config, there is no point in attaching visualization.
-  if (inheritedCfg.value) return null
+  if (props.input.dynamicConfig) {
+    console.log('INHERITED CFG: ', props.input.dynamicConfig)
+    return null
+  }
   const expressionId = selfArgumentAstId.value
-  const astId = inputAst.value.astId
+  const astId = props.input.ast.astId
   if (astId == null || expressionId == null) return null
   const info = graph.db.getMethodCallInfo(astId)
   if (!info) return null
@@ -112,10 +104,11 @@ const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => 
     positionalArgumentsExpressions: [`.${name}`, makeArgsList(args)],
   }
 })
+watch(visualizationConfig, console.log)
 
 const visualizationData = project.useVisualizationData(visualizationConfig)
 const widgetConfiguration = computed(() => {
-  if (inheritedCfg.value) return inheritedCfg.value
+  if (props.input.dynamicConfig?.kind === 'FunctionCall') return props.input.dynamicConfig
   const data = visualizationData.value
   if (data != null && data.ok) {
     const parseResult = argsWidgetConfigurationSchema.safeParse(data.value)
@@ -131,14 +124,8 @@ const widgetConfiguration = computed(() => {
 <script lang="ts">
 function isFunctionCall(
   input: WidgetInput,
-): input is
-  | (SoCalledExpression & { ast: Ast.App | Ast.Ident | Ast.OprApp; widgetConfig: FunctionCall })
-  | Ast.App
-  | Ast.Ident
-  | Ast.OprApp {
-  if (input instanceof Ast.App || input instanceof Ast.Ident || input instanceof Ast.OprApp)
-    return true
-  if (input instanceof SoCalledExpression && input.widgetConfig?.kind === 'FunctionCall')
+): input is AnyWidget & { ast: Ast.App | Ast.Ident | Ast.OprApp } {
+  if (input instanceof AnyWidget)
     return (
       input.ast instanceof Ast.App ||
       input.ast instanceof Ast.Ident ||
@@ -150,7 +137,7 @@ function isFunctionCall(
 export const widgetDefinition = defineWidget(isFunctionCall, {
   priority: -10,
   score: (props, db) => {
-    const ast = props.input instanceof SoCalledExpression ? props.input.ast : props.input
+    const ast = props.input.ast
     const prevFunctionState = injectFunctionInfo(true)
 
     // It is possible to try to render the same function application twice, e.g. when detected an

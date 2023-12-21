@@ -238,10 +238,3 @@ class AstExtendedCtx<HasIdMap extends boolean> {
     )
   }
 }
-
-declare const AstExtendedKey: unique symbol
-declare module '@/providers/widgetRegistry' {
-  export interface WidgetInputTypes {
-    [AstExtendedKey]: AstExtended
-  }
-}

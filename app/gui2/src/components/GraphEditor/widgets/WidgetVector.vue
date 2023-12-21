@@ -2,24 +2,22 @@
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import ListWidget from '@/components/widgets/ListWidget.vue'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
-import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import { AnyWidget, Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
 import { Ast, RawAst } from '@/util/ast'
-import { SoCalledExpression } from '@/util/callTree'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 
 const itemConfig = computed(() =>
-  props.input.widgetConfig?.kind === 'Vector_Editor'
-    ? props.input.widgetConfig.item_editor
+  props.input.dynamicConfig?.kind === 'Vector_Editor'
+    ? props.input.dynamicConfig.item_editor
     : undefined,
 )
 
 const defaultItem = computed(() => {
-  const config = props.input.widgetConfig
-  if (config?.kind === 'Vector_Editor') {
-    return Ast.parse(config.item_default)
+  if (props.input.dynamicConfig?.kind === 'Vector_Editor') {
+    return Ast.parse(props.input.dynamicConfig.item_default)
   } else {
     return Ast.Wildcard.new()
   }
@@ -45,11 +43,11 @@ const navigator = injectGraphNavigator(true)
 </script>
 
 <script lang="ts">
-export const widgetDefinition = defineWidget(SoCalledExpression, {
+export const widgetDefinition = defineWidget(AnyWidget, {
   priority: 1000,
   score: (props) => {
-    if (props.input.widgetConfig?.kind === 'Vector_Editor') return Score.Perfect
-    else if (props.input.arg?.info.type === 'Standard.Base.Data.Vector') return Score.Good
+    if (props.input.dynamicConfig?.kind === 'Vector_Editor') return Score.Perfect
+    else if (props.input.argInfo?.type === 'Standard.Base.Data.Vector') return Score.Good
     else
       return props.input.ast?.treeType === RawAst.Tree.Type.Array ? Score.Perfect : Score.Mismatch
   },
@@ -70,7 +68,7 @@ export const widgetDefinition = defineWidget(SoCalledExpression, {
     contenteditable="false"
   >
     <template #default="{ item }">
-      <NodeWidget :input="new SoCalledExpression(item, itemConfig)" />
+      <NodeWidget :input="new AnyWidget(item, itemConfig)" />
     </template>
   </ListWidget>
 </template>

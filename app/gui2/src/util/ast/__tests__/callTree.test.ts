@@ -1,12 +1,7 @@
 import * as widgetCfg from '@/providers/widgetRegistry/configuration'
-import {
-  makeArgument,
-  makeMethod,
-  makeModuleMethod,
-  type SuggestionEntry,
-} from '@/stores/suggestionDatabase/entry'
+import { makeArgument, makeMethod, makeModuleMethod } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
-import { ArgumentApplication, interpretCall, SoCalledExpression } from '@/util/callTree'
+import { Argument, ArgumentApplication, interpretCall } from '@/util/callTree'
 import { isSome } from '@/util/data/opt'
 import type { MethodCall } from 'shared/languageServerTypes'
 import { assert, expect, test } from 'vitest'
@@ -118,7 +113,7 @@ test.each`
   },
 )
 
-function printArgPattern(application: ArgumentApplication | SoCalledExpression) {
+function printArgPattern(application: ArgumentApplication | Ast.Ast) {
   const parts: string[] = []
   let current: ArgumentApplication['target'] = application
 
@@ -128,24 +123,24 @@ function printArgPattern(application: ArgumentApplication | SoCalledExpression) 
       : current.appTree instanceof Ast.App && current.appTree.argumentName
       ? '='
       : '@'
-    parts.push(sigil + (current.argument.arg?.info.name ?? '_'))
+    parts.push(sigil + (current.argument.argInfo?.name ?? '_'))
     current = current.target
   }
-  if (current.arg) {
-    parts.push(`${current.isPlaceholder() ? '?' : '@'}${current.arg.info.name}`)
+  if (current instanceof Argument) {
+    parts.push(`${current.isPlaceholder() ? '?' : '@'}${current.argInfo?.name}`)
   }
   return parts.reverse().join(' ')
 }
 
 function checkArgsConfig(
-  application: ArgumentApplication | SoCalledExpression,
+  application: ArgumentApplication | Ast.Ast,
   argConfig: Map<string, widgetCfg.WidgetConfiguration | widgetCfg.WithDisplay>,
 ) {
   let current: ArgumentApplication['target'] = application
   while (current instanceof ArgumentApplication) {
-    const argName = current.argument.arg?.info.name
+    const argName = current.argument.argInfo?.name
     const expected = argName ? argConfig.get(argName) : undefined
-    expect(current.argument.widgetConfig).toEqual(expected)
+    expect(current.argument.dynamicConfig).toEqual(expected)
     current = current.target
   }
 }

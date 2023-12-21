@@ -5,12 +5,10 @@ import { useResizeObserver } from '@/composables/events'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { ForcePort, injectPortInfo, providePortInfo } from '@/providers/portInfo'
-import type { WidgetInput } from '@/providers/widgetRegistry'
-import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import { AnyWidget, Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { injectWidgetTree } from '@/providers/widgetTree'
 import { useGraphStore } from '@/stores/graph'
 import { Ast } from '@/util/ast'
-import { SoCalledExpression } from '@/util/callTree'
 import { Rect } from '@/util/data/rect'
 import { uuidv4 } from 'lib0/random'
 import type { ExprId } from 'shared/yjsModel'
@@ -26,7 +24,7 @@ import {
   watchEffect,
 } from 'vue'
 
-const props = defineProps(widgetProps<WidgetInput>(widgetDefinition))
+const props = defineProps(widgetProps(widgetDefinition))
 
 const graph = useGraphStore()
 
@@ -67,15 +65,12 @@ const isRectUpdateUseful = computed(() => isHovered.value || hasConnection.value
 
 const randomUuid = uuidv4() as ExprId
 const innerWidget = computed(() =>
-  props.input instanceof ForcePort ? props.input.ast : props.input,
+  props.input instanceof ForcePort ? props.input.input : props.input,
 )
-const ast = computed(() =>
-  props.input instanceof Ast.Ast
-    ? props.input
-    : props.input instanceof SoCalledExpression || props.input instanceof ForcePort
-    ? props.input.ast
-    : undefined,
-)
+const ast = computed(() => {
+  const anyWidget = props.input instanceof ForcePort ? props.input.input : props.input
+  return anyWidget.ast
+})
 const portId = computed(() => ast.value?.astId ?? randomUuid)
 
 providePortInfo(proxyRefs({ portId, connected: hasConnection }))
@@ -112,36 +107,31 @@ function updateRect() {
 </script>
 
 <script lang="ts">
-export const widgetDefinition = defineWidget(
-  [
-    ForcePort,
-    SoCalledExpression,
-    (ast) =>
-      ast instanceof Ast.Invalid ||
-      ast instanceof Ast.BodyBlock ||
-      ast instanceof Ast.Group ||
-      ast instanceof Ast.NumericLiteral ||
-      ast instanceof Ast.OprApp ||
-      ast instanceof Ast.UnaryOprApp ||
-      ast instanceof Ast.Wildcard ||
-      ast instanceof Ast.TextLiteral,
-  ],
-  {
-    priority: 0,
-    score: (props, _db) => {
-      const portInfo = injectPortInfo(true)
-      if (
-        portInfo != null &&
-        props.input instanceof Ast.Ast &&
-        portInfo.portId === props.input.astId
-      ) {
-        return Score.Mismatch
-      } else {
-        return Score.Perfect
-      }
-    },
+export const widgetDefinition = defineWidget([ForcePort, AnyWidget], {
+  priority: 0,
+  score: (props, _db) => {
+    if (props.input instanceof ForcePort) return Score.Perfect
+
+    const portInfo = injectPortInfo(true)
+    if (portInfo != null && portInfo.portId === props.input.ast?.astId) {
+      return Score.Mismatch
+    }
+
+    if (
+      props.input.ast instanceof Ast.Invalid ||
+      props.input.ast instanceof Ast.BodyBlock ||
+      props.input.ast instanceof Ast.Group ||
+      props.input.ast instanceof Ast.NumericLiteral ||
+      props.input.ast instanceof Ast.OprApp ||
+      props.input.ast instanceof Ast.UnaryOprApp ||
+      props.input.ast instanceof Ast.Wildcard ||
+      props.input.ast instanceof Ast.TextLiteral
+    )
+      return Score.Perfect
+
+    return Score.Mismatch
   },
-)
+})
 </script>
 
 <template>

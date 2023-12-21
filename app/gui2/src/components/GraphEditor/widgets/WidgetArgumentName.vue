@@ -2,7 +2,7 @@
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { injectPortInfo } from '@/providers/portInfo'
 import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
-import { ApplicationKind, SoCalledExpression } from '@/util/callTree'
+import { ApplicationKind, Argument } from '@/util/callTree'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
@@ -20,24 +20,23 @@ const primary = computed(() => props.nesting < 2)
 </script>
 
 <script lang="ts">
-export const widgetDefinition = defineWidget(SoCalledExpression, {
+export const widgetDefinition = defineWidget(Argument, {
   priority: 1000,
-  score: (props) =>
-    props.input.arg?.info != null &&
-    (props.input.isPlaceholder() ||
-      (props.nesting < 2 && props.input.arg.appKind === ApplicationKind.Prefix))
-      ? Score.Perfect
-      : Score.Mismatch,
+  score: (props) => {
+    const isPlaceholderName = props.input.argInfo != null && props.input.isPlaceholder()
+    const isTopName = props.nesting < 2 && props.input.kind === ApplicationKind.Prefix
+    return isPlaceholderName || isTopName ? Score.Perfect : Score.Mismatch
+  },
 })
 </script>
 
 <template>
   <span class="WidgetArgumentName" :class="{ placeholder, primary }">
     <template v-if="showArgumentValue">
-      <span class="value">{{ props.input.arg?.info.name }}</span
+      <span class="value">{{ props.input.argInfo?.name }}</span
       ><NodeWidget :input="props.input" />
     </template>
-    <template v-else>{{ props.input.arg?.info.name }}</template>
+    <template v-else>{{ props.input.argInfo?.name }}</template>
   </span>
 </template>
 

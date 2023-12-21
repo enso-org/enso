@@ -1,8 +1,47 @@
 import { createContextStore } from '@/providers'
 import type { GraphDb } from '@/stores/graph/graphDatabase'
+import type { SuggestionEntryArgument } from '@/stores/suggestionDatabase/entry'
+import type { Ast } from '@/util/ast'
 import { computed, shallowReactive, type Component, type PropType } from 'vue'
+import type { WidgetConfiguration } from './widgetRegistry/configuration'
 
 export type WidgetComponent<T extends WidgetInput> = Component<WidgetProps<T>>
+
+/**
+ * A WidgetInput variant meant to match wide range of "general" widgets.
+ *
+ * Any widget which want's to work in different contexts (inside function calls, constructors,
+ * list elements) should match with this, using provided information.
+ *
+ * When your widget want to display some non-specific subwidget (like WidgetVector which displays
+ * elements of any type), this should be provided as their input, passing as much information as
+ * possible.
+ */
+export class AnyWidget {
+  constructor(
+    /** Ast represented by widget. May be not defined if widget is a placeholder for
+     * not-yet-written argument
+     */
+    public ast: Ast.Ast | undefined,
+    /** Configuration retrieved from the backend */
+    public dynamicConfig?: WidgetConfiguration | undefined,
+    /** The information about argument of some function call, which this widget is setting (if any) */
+    public argInfo?: SuggestionEntryArgument | undefined,
+  ) {}
+
+  isPlaceholder() {
+    return this.ast == null
+  }
+
+  static MatchPlaceholder(input: WidgetInput): input is AnyWidget & { ast: undefined } {
+    return input instanceof AnyWidget && input.isPlaceholder()
+  }
+
+  static MatchAst(input: WidgetInput): input is AnyWidget & { ast: Ast.Ast } {
+    return input instanceof AnyWidget && !input.isPlaceholder()
+  }
+}
+declare const AnyWidgetKey: unique symbol
 
 /**
  * A type representing any kind of input that can have a widget attached to it. It is defined as an
@@ -25,7 +64,9 @@ export type WidgetComponent<T extends WidgetInput> = Component<WidgetProps<T>>
  * All declared widget input types must have unique symbols, and all values must be objects.
  * Declarations that do not follow these rules will be ignored or will cause type errors.
  */
-export interface WidgetInputTypes {}
+export interface WidgetInputTypes {
+  [AnyWidgetKey]: AnyWidget
+}
 
 /**
  * An union of all possible widget input types. A collection of all correctly declared value types

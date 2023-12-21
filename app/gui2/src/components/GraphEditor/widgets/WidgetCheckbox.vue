@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import CheckboxWidget from '@/components/widgets/CheckboxWidget.vue'
-import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import { AnyWidget, Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
 import { Ast } from '@/util/ast'
 import { computed } from 'vue'
@@ -10,10 +10,11 @@ const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()
 const value = computed({
   get() {
-    return props.input.code().endsWith('True') ?? false
+    return props.input.ast?.code().endsWith('True') ?? false
   },
   set(value) {
-    const node = getRawBoolNode(props.input)
+    if (props.input.ast == null) return // TODO[ao] set value on placeholder here.
+    const node = getRawBoolNode(props.input.ast)
     if (node != null) {
       graph.setExpressionContent(node.astId, value ? 'True' : 'False')
     }
@@ -31,18 +32,15 @@ function getRawBoolNode(ast: Ast.Ast) {
   return null
 }
 
-export const widgetDefinition = defineWidget(
-  (input) => input instanceof Ast.PropertyAccess || input instanceof Ast.Ident,
-  {
-    priority: 10,
-    score: (props) => {
-      if (getRawBoolNode(props.input) != null) {
-        return Score.Perfect
-      }
-      return Score.Mismatch
-    },
+export const widgetDefinition = defineWidget(AnyWidget, {
+  priority: 10,
+  score: (props) => {
+    if (props.input.ast == null)
+      return props.input.argInfo?.type === 'Standard.Base.Bool' ? Score.Good : Score.Mismatch
+    if (getRawBoolNode(props.input.ast) != null) return Score.Perfect
+    return Score.Mismatch
   },
-)
+})
 </script>
 
 <template>

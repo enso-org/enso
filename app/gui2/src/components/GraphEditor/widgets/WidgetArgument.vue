@@ -3,14 +3,14 @@ import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import type { WidgetInput } from '@/providers/widgetRegistry'
 import { defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import type { Ast } from '@/util/ast'
-import { SoCalledExpression } from '@/util/callTree'
+import { Argument } from '@/util/callTree'
 
 const props = defineProps(widgetProps(widgetDefinition))
 </script>
 
 <script lang="ts">
-function isExistingArg(input: WidgetInput): input is SoCalledExpression & { ast: Ast.Ast } {
-  return input instanceof SoCalledExpression && input.ast != null
+function isExistingArg(input: WidgetInput): input is Argument & { ast: Ast.Ast } {
+  return input instanceof Argument && input.ast != null
 }
 
 export const widgetDefinition = defineWidget(isExistingArg, {
@@ -19,5 +19,5 @@ export const widgetDefinition = defineWidget(isExistingArg, {
 </script>
 
 <template>
-  <NodeWidget :input="props.input.ast" nest />
+  <NodeWidget :input="props.input.toAnyWidget()" nest />
 </template>
