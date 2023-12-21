@@ -139,7 +139,11 @@ function isFunctionCall(
   if (input instanceof Ast.App || input instanceof Ast.Ident || input instanceof Ast.OprApp)
     return true
   if (input instanceof SoCalledExpression && input.widgetConfig?.kind === 'FunctionCall')
-    return true
+    return (
+      input.ast instanceof Ast.App ||
+      input.ast instanceof Ast.Ident ||
+      input.ast instanceof Ast.OprApp
+    )
   return false
 }
 
@@ -147,7 +151,6 @@ export const widgetDefinition = defineWidget(isFunctionCall, {
   priority: -10,
   score: (props, db) => {
     const ast = props.input instanceof SoCalledExpression ? props.input.ast : props.input
-    if (ast.astId == null) return Score.Mismatch
     const prevFunctionState = injectFunctionInfo(true)
 
     // It is possible to try to render the same function application twice, e.g. when detected an
