@@ -465,12 +465,18 @@ export default function AssetsTable(props: AssetsTableProps) {
         const map = new Map<backendModule.AssetId, visibilityModule.Visibility>()
         const processNode = (node: assetTreeNode.AssetTreeNode) => {
             let displayState = visibilityModule.Visibility.hidden
+            const visible = filter?.(node) ?? true
             for (const child of node.children ?? []) {
+                if (visible && child.item.type === backendModule.AssetType.specialEmpty) {
+                    map.set(child.key, visibilityModule.Visibility.visible)
+                } else {
+                    processNode(child)
+                }
                 if (map.get(child.key) !== visibilityModule.Visibility.hidden) {
                     displayState = visibilityModule.Visibility.faded
                 }
             }
-            if (filter?.(node) ?? true) {
+            if (visible) {
                 displayState = visibilityModule.Visibility.visible
             }
             map.set(node.key, displayState)
