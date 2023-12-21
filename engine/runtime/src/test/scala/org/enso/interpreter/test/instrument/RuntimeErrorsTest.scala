@@ -1147,12 +1147,12 @@ class RuntimeErrorsTest
         contextId,
         xId,
         Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "foo")),
-        Api.ExpressionUpdate.Payload.DataflowError(Seq(fooThrowId, xId))
+        Api.ExpressionUpdate.Payload.DataflowError(Seq(fooThrowId))
       ),
       TestMessages.error(
         contextId,
         yId,
-        Api.ExpressionUpdate.Payload.DataflowError(Seq(fooThrowId, xId))
+        Api.ExpressionUpdate.Payload.DataflowError(Seq(fooThrowId))
       ),
       TestMessages.update(contextId, mainResId, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
@@ -1183,12 +1183,12 @@ class RuntimeErrorsTest
         Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "foo")),
         fromCache   = false,
         typeChanged = false,
-        Api.ExpressionUpdate.Payload.DataflowError(Seq(fooThrowId, xId))
+        Api.ExpressionUpdate.Payload.DataflowError(Seq(fooThrowId))
       ),
       TestMessages.error(
         contextId,
         yId,
-        Api.ExpressionUpdate.Payload.DataflowError(Seq(fooThrowId, xId)),
+        Api.ExpressionUpdate.Payload.DataflowError(Seq(fooThrowId)),
         typeChanged = false
       ),
       TestMessages.update(
@@ -1303,6 +1303,8 @@ class RuntimeErrorsTest
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
+
+    metadata.assertInCode(mainResId, code, "IO.println y")
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
