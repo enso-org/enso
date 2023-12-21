@@ -1175,6 +1175,26 @@ type Column
         new_name = self.naming_helper.function_name "ends_with" [self, other]
         make_text_case_op self "ends_with" other case_sensitivity new_name
 
+    ## GROUP Standard.Base.Text
+       ICON preparation
+       Calculates the text length for each element of the column.
+
+       In the Database backends, the default text length method of the
+       particular database is used.
+
+       In the in-memory backend, this will give you the grapheme length of the string.
+
+       > Example
+             import Standard.Examples
+
+             example_text_length =
+                Examples.text_column_1.text_length
+    text_length : Column
+    text_length self =
+        Value_Type.expect_text self <|
+            new_name = self.naming_helper.function_name "text_length" [self]
+            self.make_unary_op "LENGTH" new_name
+
     ## GROUP Standard.Base.Logical
        Checks for each element of the column if it contains `other`.
 
