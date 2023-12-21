@@ -22,7 +22,7 @@ import * as shortcutsProvider from '../../providers/shortcuts'
 import * as sorting from '../sorting'
 import * as string from '../../string'
 import * as uniqueString from '../../uniqueString'
-import type * as visibilityModule from '../visibility'
+import * as visibilityModule from '../visibility'
 
 import * as authProvider from '../../authentication/providers/auth'
 import * as backendProvider from '../../providers/backend'
@@ -143,6 +143,7 @@ const CATEGORY_TO_FILTER_BY: Record<categorySwitcher.Category, backendModule.Fil
 /** State passed through from a {@link AssetsTable} to every cell. */
 export interface AssetsTableState {
     numberOfSelectedItems: number
+    visibilities: ReadonlyMap<backendModule.AssetId, visibilityModule.Visibility>
     category: categorySwitcher.Category
     labels: Map<backendModule.LabelName, backendModule.Label>
     deletedLabelNames: Set<backendModule.LabelName>
@@ -460,6 +461,26 @@ export default function AssetsTable(props: AssetsTableProps) {
             )
         }
     }, [assetTree, sortColumn, sortDirection])
+    const visibilities = React.useMemo(() => {
+        const map = new Map<backendModule.AssetId, visibilityModule.Visibility>()
+        const processNode = (node: assetTreeNode.AssetTreeNode) => {
+            let displayState = visibilityModule.Visibility.hidden
+            for (const child of node.children ?? []) {
+                if (map.get(child.key) !== visibilityModule.Visibility.hidden) {
+                    displayState = visibilityModule.Visibility.faded
+                }
+            }
+            if (filter?.(node) ?? true) {
+                displayState = visibilityModule.Visibility.visible
+            }
+            map.set(node.key, displayState)
+            return displayState
+        }
+        for (const topLevelNode of assetTree) {
+            processNode(topLevelNode)
+        }
+        return map
+    }, [assetTree, filter])
 
     React.useEffect(() => {
         if (rawQueuedAssetEvents.length !== 0) {
@@ -1432,6 +1453,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     const state = React.useMemo(
         // The type MUST be here to trigger excess property errors at typecheck time.
         (): AssetsTableState => ({
+            visibilities,
             numberOfSelectedItems: selectedKeys.size,
             category,
             labels: allLabels,
@@ -1458,6 +1480,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             doPaste,
         }),
         [
+            visibilities,
             selectedKeys.size,
             category,
             allLabels,
@@ -1553,7 +1576,9 @@ export default function AssetsTable(props: AssetsTableProps) {
                     }
                     rowComponent={AssetRow}
                     items={displayItems}
-                    filter={filter}
+                    filter={node =>
+                        visibilities.get(node.key) !== visibilityModule.Visibility.hidden
+                    }
                     isLoading={isLoading}
                     state={state}
                     initialRowState={INITIAL_ROW_STATE}
