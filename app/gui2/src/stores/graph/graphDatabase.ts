@@ -312,7 +312,7 @@ export class GraphDb {
     return new GraphDb(db, ref([]), registry)
   }
 
-  mockNode(binding: string, id: ExprId, code?: string): Node {
+  mockNode(binding: string, id: Ast.AstId, code?: string): Node {
     const pattern = Ast.parse(binding)
     const node: Node = {
       outerExprId: id,
@@ -329,7 +329,7 @@ export class GraphDb {
 }
 
 export interface Node {
-  outerExprId: ExprId
+  outerExprId: Ast.AstId
   pattern: Ast.Ast | undefined
   rootSpan: Ast.Ast
   position: Vec2
@@ -338,9 +338,9 @@ export interface Node {
 
 /** This should only be used for supplying as initial props when testing.
  * Please do {@link GraphDb.mockNode} with a `useGraphStore().db` after mount. */
-export function mockNode(exprId?: ExprId): Node {
+export function mockNode(exprId?: Ast.AstId): Node {
   return {
-    outerExprId: exprId ?? (random.uuidv4() as ExprId),
+    outerExprId: exprId ?? (random.uuidv4() as Ast.AstId),
     pattern: undefined,
     rootSpan: Ast.parse('0'),
     position: Vec2.Zero,

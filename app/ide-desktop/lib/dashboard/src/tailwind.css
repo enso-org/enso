@@ -5,11 +5,17 @@ body {
   overflow: hidden;
   height: 100vh;
   margin: 0;
-  background:
-    url("enso-assets/background.jpg") 0 0,
-    linear-gradient(rgba(255 255 255 / 80%), rgba(255 255 255 / 80%));
+  background: url("enso-assets/background.jpg") 0 0;
   background-size: cover;
   background-blend-mode: lighten;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  width: 100vw;
+  height: 100vh;
+  background: linear-gradient(rgba(255 255 255 / 80%), rgba(255 255 255 / 80%));
 }
 
 .Toastify--animate {

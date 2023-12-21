@@ -21,7 +21,6 @@ const {
   minimalSetup,
   EditorState,
   EditorView,
-  yCollab,
   syntaxHighlighting,
   defaultHighlightStyle,
   tooltips,
@@ -40,10 +39,7 @@ useAutoBlur(rootElement)
 
 const executionContextDiagnostics = computed(() =>
   projectStore.module
-    ? lsDiagnosticsToCMDiagnostics(
-        projectStore.module.doc.contents.toString(),
-        projectStore.diagnostics,
-      )
+    ? lsDiagnosticsToCMDiagnostics(projectStore.module.doc.getCode(), projectStore.diagnostics)
     : [],
 )
 
@@ -83,15 +79,17 @@ const editorView = new EditorView()
 watchEffect(() => {
   const module = projectStore.module
   if (!module) return
+  /*
   const yText = module.doc.contents
   const undoManager = module.undoManager
   const awareness = projectStore.awareness.internal
+  extensions: [yCollab(yText, awareness, { undoManager }), ...]
+   */
   editorView.setState(
     EditorState.create({
-      doc: yText.toString(),
+      doc: module.doc.getCode(),
       extensions: [
         minimalSetup,
-        yCollab(yText, awareness, { undoManager }),
         syntaxHighlighting(defaultHighlightStyle as Highlighter),
         bracketMatching(),
         foldGutter(),

@@ -1869,12 +1869,14 @@ type Table
                 self.java_table.crossJoin right.java_table right_prefix java_aggregator
             Table.Value new_java_table
 
-    ## GROUP Standard.Base.Calculations
+    ## ALIAS lookup
+       GROUP Standard.Base.Calculations
        ICON join
-       Replaces values in this table by values from a lookup table.
+       Merges this table with a lookup table
        New values are looked up in the lookup table based on the `key_columns`.
-       Columns found in the lookup table values are replaced by values from the
-       lookup. Columns not found are left unchanged.
+       Columns that exist in the lookup table where a match was found are
+       replaced by values from the lookup table. Columns not found are left
+       unchanged.
        This operation is similar to `Table.update_rows`, but just returns a new
        `Table` instance, instead of updating the table in-place (which is only
        possible for Database tables).
@@ -1923,8 +1925,8 @@ type Table
            - If `add_new_columns` is `False` and the lookup table has columns
              that are not present in this table, an `Unexpected_Extra_Columns`.
     @key_columns Widget_Helpers.make_column_name_vector_selector
-    lookup_and_replace : Table -> (Vector (Integer | Text | Regex) | Text | Integer | Regex) -> Boolean -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
-    lookup_and_replace self lookup_table:Table key_columns:(Vector (Integer | Text | Regex) | Text | Integer | Regex) add_new_columns:Boolean=True allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
+    merge : Table -> (Vector (Integer | Text | Regex) | Text | Integer | Regex) -> Boolean -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
+    merge self lookup_table:Table key_columns:(Vector (Integer | Text | Regex) | Text | Integer | Regex) add_new_columns:Boolean=False allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
         lookup_columns = Lookup_Helpers.prepare_columns_for_lookup self lookup_table key_columns add_new_columns allow_unmatched_rows on_problems
 
         java_descriptions = lookup_columns.map make_java_lookup_column_description
@@ -2588,7 +2590,7 @@ type Table
        > Example
          Replace dashes with underscores.
 
-             table.replace "-" "_"
+             table.text_replace "-" "_"
 
        > Example
          Remove leading and trailing spaces from cells.
@@ -2602,8 +2604,8 @@ type Table
     @columns Widget_Helpers.make_column_name_vector_selector
     @term Widget_Helpers.make_column_ref_or_text_value_selector
     @new_text Widget_Helpers.make_column_ref_or_text_value_selector
-    replace : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Text | Column | Column_Ref | Regex -> Text | Column | Column_Ref -> Case_Sensitivity -> Boolean -> Column
-    replace self columns (term : Text | Column | Column_Ref | Regex = "") (new_text : Text | Column | Column_Ref = "") case_sensitivity=Case_Sensitivity.Sensitive only_first=False =
+    text_replace : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Text | Column | Column_Ref | Regex -> Text | Column | Column_Ref -> Case_Sensitivity -> Boolean -> Column
+    text_replace self columns (term : Text | Column | Column_Ref | Regex = "") (new_text : Text | Column | Column_Ref = "") case_sensitivity=Case_Sensitivity.Sensitive only_first=False =
         table_ref = Table_Ref.from self
         resolved_term = table_ref.resolve term
         resolved_new_text = table_ref.resolve new_text

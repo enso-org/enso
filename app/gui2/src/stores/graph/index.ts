@@ -10,6 +10,8 @@ import {
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { Ast } from '@/util/ast'
+import type { AstId, Module } from '@/util/ast/abstract'
+import { MutableModule } from '@/util/ast/abstract'
 import { useObserveYjs } from '@/util/crdt'
 import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
@@ -17,6 +19,7 @@ import { Vec2 } from '@/util/data/vec2'
 import { defineStore } from 'pinia'
 import type { StackItem } from 'shared/languageServerTypes'
 import {
+  IdMap,
   visMetadataEquals,
   type ContentRange,
   type ExprId,
@@ -24,7 +27,7 @@ import {
   type VisualizationIdentifier,
   type VisualizationMetadata,
 } from 'shared/yjsModel'
-import { computed, markRaw, reactive, ref, toRef, watch } from 'vue'
+import { computed, markRaw, reactive, ref, toRef, watch, type Ref } from 'vue'
 
 export { type Node } from '@/stores/graph/graphDatabase'
 
@@ -38,10 +41,25 @@ export const useGraphStore = defineStore('graph', () => {
 
   proj.setObservedFileName('Main.enso')
 
-  const text = computed(() => proj.module?.doc.contents)
+  const data = computed(() => proj.module?.doc.data)
+  watch(data, console.log)
   const metadata = computed(() => proj.module?.doc.metadata)
 
-  const textContent = ref('')
+  const textContent = ref(proj.module?.doc.getCode())
+  // We need casting here, as type changes in Ref when class has private fields.
+  // see https://github.com/vuejs/core/issues/2557
+  const idMap = ref(proj.module?.doc.getIdMap()) as Ref<IdMap | undefined>
+  const expressionGraph: Module = MutableModule.Observable()
+  const moduleRoot = ref<AstId>()
+
+  // Initialize text and idmap once module is loaded (data != null)
+  watch(data, () => {
+    if (!textContent.value) {
+      textContent.value = proj.module?.doc.getCode()
+      idMap.value = proj.module?.doc.getIdMap()
+      updateState()
+    }
+  })
 
   const db = new GraphDb(
     suggestionDb.entries,
@@ -58,43 +76,29 @@ export const useGraphStore = defineStore('graph', () => {
 
   const unconnectedEdge = ref<UnconnectedEdge>()
 
-  useObserveYjs(text, (event) => {
-    const delta = event.changes.delta
-    if (delta.length === 0) return
-
-    let newContent = ''
-    let oldIdx = 0
-    for (const op of delta) {
-      if (op.retain) {
-        newContent += textContent.value.substring(oldIdx, oldIdx + op.retain)
-        oldIdx += op.retain
-      } else if (op.delete) {
-        oldIdx += op.delete
-      } else if (op.insert && typeof op.insert === 'string') {
-        newContent += op.insert
-      } else {
-        console.error('Unexpected Yjs operation:', op)
-      }
-    }
-    newContent += textContent.value.substring(oldIdx)
-    textContent.value = newContent
-    updateState()
-  })
-
-  watch(text, (value) => {
-    textContent.value = value?.toString() ?? ''
-    if (value) updateState()
+  useObserveYjs(data, (event) => {
+    if (!event.changes.keys.size) return
+    const code = proj.module?.doc.getCode()
+    if (code) textContent.value = code
+    const ids = proj.module?.doc.getIdMap()
+    if (ids) idMap.value = ids
+    if (code && ids) updateState()
   })
 
   function updateState() {
     const module = proj.module
     if (!module) return
+    const idMap_ = idMap.value
+    if (!idMap_) return
     module.transact(() => {
-      const idMap = module.getIdMap()
       const meta = module.doc.metadata
       const textContentLocal = textContent.value
+      if (!textContentLocal) return
 
-      const newRoot = Ast.parseTransitional(textContentLocal, idMap)
+      const newRoot = Ast.parseTransitional(textContentLocal, idMap_)
+      expressionGraph.replace(newRoot.module)
+      moduleRoot.value = newRoot.exprId
+      module.doc.setIdMap(idMap_)
 
       imports.value = []
       newRoot.visitRecursive((node) => {
@@ -185,31 +189,59 @@ export const useGraphStore = defineStore('graph', () => {
     meta.x = position.x
     meta.y = -position.y
     const ident = generateUniqueIdent()
-    let importData = undefined
-    let additionalOffset = 0
+    const root = moduleRoot.value
+    if (!root) {
+      console.error(`BUG: Cannot add node: No module root.`)
+      return
+    }
+    const edit = expressionGraph.edit()
     const importsToAdd = withImports ? filterOutRedundantImports(imports.value, withImports) : []
     if (importsToAdd.length > 0) {
-      const lastImport = imports.value[imports.value.length - 1]
-      const importOffset = lastImport ? lastImport.span[1] + 1 : 0
-      const str = importsToAdd.map((info) => requiredImportToText(info)).join('\n')
-      additionalOffset += str.length + 1
-      importData = { str, offset: importOffset }
+      const imports = importsToAdd.map((info) =>
+        Ast.parseExpression(requiredImportToText(info), edit),
+      )
+      let lastImport
+      // The top level of the module is always a block.
+      const topLevel = expressionGraph.get(root)! as Ast.BodyBlock
+      for (let i = 0; i < topLevel.lines.length; i++) {
+        const line = topLevel.lines[i]!
+        if (line.expression) {
+          if (expressionGraph.get(line.expression.node)?.innerExpression() instanceof Ast.Import) {
+            lastImport = i
+          } else {
+            break
+          }
+        }
+      }
+      const position = lastImport === undefined ? 0 : lastImport + 1
+      topLevel.insert(edit, position, ...imports)
     }
-    return mod.insertNewNode(
-      mod.doc.contents.length + additionalOffset,
-      ident,
-      expression,
-      meta,
-      importData,
-    )
+    const currentFunc = 'main'
+    const functionBlock = Ast.functionBlock(expressionGraph, currentFunc)
+    if (!functionBlock) {
+      console.error(`BUG: Cannot add node: No current function.`)
+      return
+    }
+    const rhs = Ast.parseExpression(expression, edit)
+    const assignment = Ast.Assignment.new(edit, ident, rhs)
+    functionBlock.push(edit, assignment)
+    commitEdit(edit, root, new Map([[rhs.exprId, meta]]))
   }
 
   function deleteNode(id: ExprId) {
     const node = db.nodeIdToNode.get(id)
     if (!node) return
-    proj.module?.deleteExpression(node.outerExprId)
+    proj.module?.doc.metadata.delete(node.outerExprId)
     nodeRects.delete(id)
     node.pattern?.visitRecursive((ast) => exprRects.delete(ast.astId))
+    const root = moduleRoot.value
+    if (!root) {
+      console.error(`BUG: Cannot delete node: No module root.`)
+      return
+    }
+    const edit = expressionGraph.edit()
+    edit.delete(node.outerExprId)
+    commitEdit(edit, root)
   }
 
   function setNodeContent(id: ExprId, content: string) {
@@ -219,7 +251,11 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   function setExpressionContent(id: ExprId, content: string) {
-    proj.module?.replaceExpressionContent(id, content)
+    const edit = expressionGraph.edit()
+    edit.set(Ast.asNodeId(id), Ast.RawCode.new(content, edit))
+    const root = moduleRoot.value
+    if (!root) return
+    commitEdit(edit, root)
   }
 
   function transact(fn: () => void) {
@@ -304,6 +340,36 @@ export const useGraphStore = defineStore('graph', () => {
     editedNodeInfo.value = { id, initialCursorPos: cursorPosition }
   }
 
+  function commitEdit(
+    module: Module,
+    root: AstId,
+    metadataUpdates?: Map<AstId, Partial<NodeMetadata>>,
+  ) {
+    const ast = module.get(root)
+    if (!ast) return
+    const printed = Ast.print(ast, module)
+    const module_ = proj.module
+    if (!module_) return
+    const idMap = new IdMap()
+    for (const [tokenKey, id] of printed.info.tokens) {
+      const range = Ast.keyToRange(tokenKey)
+      idMap.insertKnownId([range.start, range.end], id)
+    }
+    for (const [nodeKey, ids] of printed.info.nodes) {
+      const range = Ast.keyToRange(nodeKey)
+      idMap.insertKnownId([range.start, range.end], ids[0]!)
+    }
+    module_.transact(() => {
+      module_.doc.setIdMap(idMap)
+      module_.doc.setCode(printed.code)
+      if (metadataUpdates) {
+        for (const [id, meta] of metadataUpdates) {
+          module_.updateNodeMetadata(id, meta)
+        }
+      }
+    })
+  }
+
   return {
     transact,
     db: markRaw(db),
@@ -333,6 +399,7 @@ export const useGraphStore = defineStore('graph', () => {
     updateExprRect,
     setEditedNode,
     updateState,
+    commitEdit,
   }
 })
 
