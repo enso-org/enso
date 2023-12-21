@@ -7,7 +7,6 @@ import * as authentication from '#/index'
 // =================
 // === Constants ===
 // =================
-
 /** Path to the SSE endpoint over which esbuild sends events. */
 const ESBUILD_PATH = './esbuild'
 /** SSE event indicating a build has finished. */
