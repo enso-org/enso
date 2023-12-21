@@ -1,4 +1,5 @@
 import project.Data.Enso_Cloud.Enso_Secret.Enso_Secret
+import project.Data.Enso_Cloud.Utils as Cloud_Utils
 import project.Data.Numbers.Integer
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
@@ -195,7 +196,7 @@ type Header
     ## PRIVATE
     to_java_pair : Java_Pair
     to_java_pair self =
-        Java_Pair.create self.name (Enso_Secret.to_java_value self.value)
+        Java_Pair.create self.name (Cloud_Utils.as_hideable_value self.value)
 
 ## PRIVATE
 type Header_Comparator
