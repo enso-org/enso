@@ -1216,11 +1216,15 @@ class RuntimeErrorsTest
         |
         |main =
         |    x = [1, 2, 3]
-        |    y = Warning.attach_with_stacktrace x "foo" Runtime.primitive_get_stack_trace
+        |    y = Warning.attach_with_stacktrace x 'foo' Runtime.primitive_get_stack_trace
         |    y.at 10
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
+
+    metadata.assertInCode(xId, code, "[1, 2, 3]")
+    metadata.assertInCode(yId, code, "Warning.attach_with_stacktrace x 'foo' Runtime.primitive_get_stack_trace")
+    metadata.assertInCode(mainResId, code, "y.at 10")
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
