@@ -96,7 +96,11 @@ class Passes(
       UnusedBindings,
       NoSelfInStatic,
       GenericAnnotations
-    )
+    ) ++ (if (config.typeInferenceEnabled) {
+            List(
+              TypeInference.INSTANCE
+            )
+          } else List())
   )
 
   /** A list of the compiler phases, in the order they should be run.
