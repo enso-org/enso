@@ -1202,8 +1202,13 @@ val truffleRunOptionsSettings = Seq(
   javaOptions ++= "-ea" +: benchOnlyOptions
 )
 
+/** Explicitly provide `application-test.conf` as the resource that should be used for
+  * parsing the logging configuration. Explicitly setting `config.resource` prevents
+  * the potential conflicts with other *.conf files.
+  */
 val testLogProviderOptions = Seq(
-  "-Dslf4j.provider=org.enso.logger.TestLogProvider"
+  "-Dslf4j.provider=org.enso.logger.TestLogProvider",
+  "-Dconfig.resource=application-test.conf"
 )
 
 lazy val `polyglot-api` = project
