@@ -35,26 +35,26 @@
  * {@link providers.FullUserSession}). */
 
 import * as React from 'react'
+
 import * as router from 'react-router-dom'
 import * as toastify from 'react-toastify'
 
 import * as detect from 'enso-common/src/detect'
 
 import * as authServiceModule from '#/authentication/service'
-import type * as backend from '#/services/backend'
 import * as hooks from '#/hooks'
-import * as localBackend from '#/services/localBackend'
-import * as providers from '#/providers'
-import * as shortcutsModule from '#/util/shortcuts'
-
 import ConfirmRegistration from '#/pages/authentication/confirmRegistration'
-import Dashboard from '#/pages/dashboard/dashboard'
 import EnterOfflineMode from '#/pages/authentication/enterOfflineMode'
 import ForgotPassword from '#/pages/authentication/forgotPassword'
 import Login from '#/pages/authentication/login'
 import Registration from '#/pages/authentication/registration'
 import ResetPassword from '#/pages/authentication/resetPassword'
 import SetUsername from '#/pages/authentication/setUsername'
+import Dashboard from '#/pages/dashboard/dashboard'
+import * as providers from '#/providers'
+import type * as backend from '#/services/backend'
+import * as localBackend from '#/services/localBackend'
+import * as shortcutsModule from '#/util/shortcuts'
 
 // =================
 // === Constants ===

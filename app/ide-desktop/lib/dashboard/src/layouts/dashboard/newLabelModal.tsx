@@ -1,10 +1,11 @@
 /** @file A modal for creating a new label. */
 import * as React from 'react'
+
 import * as toastify from 'react-toastify'
 
+import * as providers from '#/providers'
 import * as backend from '#/services/backend'
 import * as errorModule from '#/util/error'
-import * as providers from '#/providers'
 
 import ColorPicker from '#/components/colorPicker'
 import Modal from '#/components/modal'

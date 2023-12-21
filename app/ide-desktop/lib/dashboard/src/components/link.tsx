@@ -1,5 +1,6 @@
 /** @file A styled colored link with an icon. */
 import * as React from 'react'
+
 import * as router from 'react-router-dom'
 
 import SvgMask from '#/components/svgMask'

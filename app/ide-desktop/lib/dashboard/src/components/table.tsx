@@ -7,9 +7,9 @@ import * as providers from '#/providers'
 import * as set from '#/util/set'
 import * as shortcutsModule from '#/util/shortcuts'
 
+import Spinner, * as spinner from '#/components/spinner'
 import type * as tableColumn from '#/components/tableColumn'
 import type * as tableRow from '#/components/tableRow'
-import Spinner, * as spinner from '#/components/spinner'
 import TableRow from '#/components/tableRow'
 
 // =================

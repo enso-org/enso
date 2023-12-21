@@ -3,22 +3,22 @@ import * as React from 'react'
 
 import NetworkIcon from 'enso-assets/network.svg'
 
-import * as assetTreeNode from '#/util/assetTreeNode'
-import * as backendModule from '#/services/backend'
-import * as errorModule from '#/util/error'
-import * as eventModule from '#/util/event'
 import * as events from '#/events'
 import * as hooks from '#/hooks'
+import * as providers from '#/providers'
+import * as backendModule from '#/services/backend'
+import * as assetTreeNode from '#/util/assetTreeNode'
+import * as errorModule from '#/util/error'
+import * as eventModule from '#/util/event'
 import * as indent from '#/util/indent'
 import * as permissions from '#/util/permissions'
-import * as providers from '#/providers'
 import * as shortcutsModule from '#/util/shortcuts'
 import * as validation from '#/util/validation'
 import * as visibility from '#/util/visibility'
 
 import type * as column from '#/components/dashboard/column'
-import EditableSpan from '#/components/editableSpan'
 import ProjectIcon from '#/components/dashboard/projectIcon'
+import EditableSpan from '#/components/editableSpan'
 import SvgMask from '#/components/svgMask'
 
 // ===================
@@ -66,7 +66,9 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     // This is a workaround for a temporary bad state in the backend causing the `projectState` key
     // to be absent.
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    const projectState = asset.projectState ?? { type: backendModule.ProjectState.closed }
+    const projectState = asset.projectState ?? {
+        type: backendModule.ProjectState.closed,
+    }
     const isRunning = backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[projectState.type]
     const canExecute =
         backend.type === backendModule.BackendType.local ||

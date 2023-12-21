@@ -1,5 +1,6 @@
 /** @file Reactive events. */
 import * as React from 'react'
+
 import * as detect from 'enso-common/src/detect'
 
 // =======================

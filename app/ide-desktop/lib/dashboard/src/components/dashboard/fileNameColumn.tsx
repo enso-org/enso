@@ -1,14 +1,14 @@
 /** @file The icon and name of a {@link backendModule.FileAsset}. */
 import * as React from 'react'
 
-import * as assetTreeNode from '#/util/assetTreeNode'
-import * as backendModule from '#/services/backend'
-import * as eventModule from '#/util/event'
 import * as events from '#/events'
-import * as fileIcon from '#/util/fileIcon'
 import * as hooks from '#/hooks'
-import * as indent from '#/util/indent'
 import * as providers from '#/providers'
+import * as backendModule from '#/services/backend'
+import * as assetTreeNode from '#/util/assetTreeNode'
+import * as eventModule from '#/util/event'
+import * as fileIcon from '#/util/fileIcon'
+import * as indent from '#/util/indent'
 import * as shortcutsModule from '#/util/shortcuts'
 import * as visibility from '#/util/visibility'
 

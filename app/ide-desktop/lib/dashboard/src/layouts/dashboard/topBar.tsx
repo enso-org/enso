@@ -3,14 +3,14 @@ import * as React from 'react'
 
 import FindIcon from 'enso-assets/find.svg'
 
-import * as assetQuery from '#/util/assetQuery'
+import BackendSwitcher from '#/layouts/dashboard/backendSwitcher'
+import PageSwitcher, * as pageSwitcher from '#/layouts/dashboard/pageSwitcher'
+import UserBar from '#/layouts/dashboard/userBar'
 import type * as backendModule from '#/services/backend'
+import * as assetQuery from '#/util/assetQuery'
 import * as shortcuts from '#/util/shortcuts'
 
-import PageSwitcher, * as pageSwitcher from '#/layouts/dashboard/pageSwitcher'
 import AssetInfoBar from '#/components/dashboard/assetInfoBar'
-import BackendSwitcher from '#/layouts/dashboard/backendSwitcher'
-import UserBar from '#/layouts/dashboard/userBar'
 
 // ==============
 // === TopBar ===

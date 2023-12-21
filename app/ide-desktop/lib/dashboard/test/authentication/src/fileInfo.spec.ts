@@ -1,7 +1,6 @@
 /** @file Tests for `fileInfo.ts`. */
-import * as test from '@playwright/test'
-
 import * as fileInfo from '../../../src/util/fileInfo'
+import * as test from '@playwright/test'
 
 // =============
 // === Tests ===

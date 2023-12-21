@@ -1,8 +1,7 @@
 /** @file Test the drive view. */
-import * as test from '@playwright/test'
-
 import * as actions from './actions'
 import * as api from './api'
+import * as test from '@playwright/test'
 
 test.test('drive view', async ({ page }) => {
     await api.mockApi(page)

@@ -1,9 +1,10 @@
 /** @file Home screen. */
 import * as React from 'react'
 
-import type * as spinner from '#/components/spinner'
 import Samples from '#/layouts/dashboard/samples'
 import WhatsNew from '#/layouts/dashboard/whatsNew'
+
+import type * as spinner from '#/components/spinner'
 
 // ============
 // === Home ===

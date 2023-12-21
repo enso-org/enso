@@ -1,8 +1,8 @@
 /** @file The container that launches the IDE. */
 import * as React from 'react'
 
-import * as backendModule from '#/services/backend'
 import * as hooks from '#/hooks'
+import * as backendModule from '#/services/backend'
 import * as load from '#/util/load'
 
 // =================

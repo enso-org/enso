@@ -4,12 +4,12 @@ import * as React from 'react'
 import DefaultUserIcon from 'enso-assets/default_user.svg'
 
 import * as app from '#/app'
-import * as github from '#/util/github'
 import * as hooks from '#/hooks'
+import ChangePasswordModal from '#/layouts/dashboard/changePasswordModal'
 import * as providers from '#/providers'
+import * as github from '#/util/github'
 import * as shortcuts from '#/util/shortcuts'
 
-import ChangePasswordModal from '#/layouts/dashboard/changePasswordModal'
 import MenuEntry from '#/components/menuEntry'
 import Modal from '#/components/modal'
 

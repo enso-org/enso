@@ -3,23 +3,23 @@ import * as React from 'react'
 
 import * as common from 'enso-common'
 
-import type * as assetQuery from '#/util/assetQuery'
-import * as backendModule from '#/services/backend'
-import * as events from '#/events'
-import * as github from '#/util/github'
-import * as hooks from '#/hooks'
-import * as localStorageModule from '#/util/localStorage'
-import * as providers from '#/providers'
-import * as uniqueString from '#/util/uniqueString'
-
 import * as app from '#/app'
+import * as events from '#/events'
+import * as hooks from '#/hooks'
 import type * as assetSettingsPanel from '#/layouts/dashboard/assetSettingsPanel'
-import * as pageSwitcher from '#/layouts/dashboard/pageSwitcher'
-import type * as spinner from '#/components/spinner'
-import CategorySwitcher, * as categorySwitcher from '#/layouts/dashboard/categorySwitcher'
 import AssetsTable from '#/layouts/dashboard/assetsTable'
+import CategorySwitcher, * as categorySwitcher from '#/layouts/dashboard/categorySwitcher'
 import DriveBar from '#/layouts/dashboard/driveBar'
 import Labels from '#/layouts/dashboard/labels'
+import * as pageSwitcher from '#/layouts/dashboard/pageSwitcher'
+import * as providers from '#/providers'
+import * as backendModule from '#/services/backend'
+import type * as assetQuery from '#/util/assetQuery'
+import * as github from '#/util/github'
+import * as localStorageModule from '#/util/localStorage'
+import * as uniqueString from '#/util/uniqueString'
+
+import type * as spinner from '#/components/spinner'
 
 // =============
 // === Drive ===

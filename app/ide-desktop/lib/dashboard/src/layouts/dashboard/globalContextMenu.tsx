@@ -2,13 +2,13 @@
 import * as React from 'react'
 
 import * as assetListEventModule from '#/events/assetListEvent'
-import * as backendModule from '#/services/backend'
+import NewDataConnectorModal from '#/layouts/dashboard/newDataConnectorModal'
 import * as providers from '#/providers'
+import * as backendModule from '#/services/backend'
 import * as shortcuts from '#/util/shortcuts'
 
 import ContextMenu from '#/components/contextMenu'
 import MenuEntry from '#/components/menuEntry'
-import NewDataConnectorModal from '#/layouts/dashboard/newDataConnectorModal'
 
 /** Props for a {@link GlobalContextMenu}. */
 export interface GlobalContextMenuProps {

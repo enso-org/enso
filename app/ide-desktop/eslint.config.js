@@ -295,7 +295,6 @@ export default [
                     ],
                 },
             ],
-            'sort-imports': ['error', { allowSeparatedGroups: true }],
             'no-constant-condition': ['error', { checkLoops: false }],
             'no-restricted-properties': [
                 'error',

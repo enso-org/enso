@@ -2,6 +2,7 @@
 import * as detect from 'enso-common/src/detect'
 
 import '#/tailwind.css'
+
 import * as authentication from '#/index'
 
 // =================

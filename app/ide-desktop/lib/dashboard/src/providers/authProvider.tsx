@@ -4,29 +4,28 @@
  * can be used from any React component to access the currently logged-in user's session data. The
  * hook also provides methods for registering a user, logging in, logging out, etc. */
 import * as React from 'react'
-import * as router from 'react-router-dom'
-import * as toast from 'react-toastify'
 
 import * as sentry from '@sentry/react'
+import * as router from 'react-router-dom'
+import * as toast from 'react-toastify'
 
 import * as gtag from 'enso-common/src/gtag'
 
 import * as app from '#/app'
-import type * as authServiceModule from '#/authentication/service'
-import * as backendModule from '#/services/backend'
-import * as backendProvider from '#/providers/backendProvider'
 import * as cognitoModule from '#/authentication/cognito'
-import * as errorModule from '#/util/error'
+import type * as authServiceModule from '#/authentication/service'
 import * as hooks from '#/hooks'
-import * as http from '#/util/http'
-import * as localBackend from '#/services/localBackend'
-import * as localStorageModule from '#/util/localStorage'
+import LoadingScreen from '#/pages/authentication/loadingScreen'
+import * as backendProvider from '#/providers/backendProvider'
 import * as localStorageProvider from '#/providers/localStorageProvider'
 import * as loggerProvider from '#/providers/loggerProvider'
-import * as remoteBackend from '#/services/remoteBackend'
 import * as sessionProvider from '#/providers/sessionProvider'
-
-import LoadingScreen from '#/pages/authentication/loadingScreen'
+import * as backendModule from '#/services/backend'
+import * as localBackend from '#/services/localBackend'
+import * as remoteBackend from '#/services/remoteBackend'
+import * as errorModule from '#/util/error'
+import * as http from '#/util/http'
+import * as localStorageModule from '#/util/localStorage'
 
 // =================
 // === Constants ===

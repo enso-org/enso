@@ -3,19 +3,19 @@ import * as React from 'react'
 
 import PenIcon from 'enso-assets/pen.svg'
 
-import type * as assetTreeNode from '#/util/assetTreeNode'
-import type * as backendModule from '#/services/backend'
 import type * as events from '#/events'
 import * as hooks from '#/hooks'
-import * as permissions from '#/util/permissions'
-import * as providers from '#/providers'
-
 import type * as categorySwitcher from '#/layouts/dashboard/categorySwitcher'
-import * as column from '#/components/dashboard/column'
 import type * as pageSwitcher from '#/layouts/dashboard/pageSwitcher'
-import AssetInfoBar from '#/components/dashboard/assetInfoBar'
-import Button from '#/components/button'
 import UserBar from '#/layouts/dashboard/userBar'
+import * as providers from '#/providers'
+import type * as backendModule from '#/services/backend'
+import type * as assetTreeNode from '#/util/assetTreeNode'
+import * as permissions from '#/util/permissions'
+
+import Button from '#/components/button'
+import AssetInfoBar from '#/components/dashboard/assetInfoBar'
+import * as column from '#/components/dashboard/column'
 
 // ==========================
 // === AssetSettingsPanel ===
@@ -86,7 +86,10 @@ export default function AssetSettingsPanel(props: AssetSettingsPanelProps) {
         setIsEditingDescription(false)
         if (description !== item.item.description) {
             const oldDescription = item.item.description
-            setItem(oldItem => ({ ...oldItem, item: { ...oldItem.item, description } }))
+            setItem(oldItem => ({
+                ...oldItem,
+                item: { ...oldItem.item, description },
+            }))
             try {
                 await backend.updateAsset(
                     item.item.id,

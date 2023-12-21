@@ -1,16 +1,16 @@
 /** @file A placeholder component replacing `Chat` when a user is not logged in. */
 import * as React from 'react'
+
 import * as reactDom from 'react-dom'
 
 import CloseLargeIcon from 'enso-assets/close_large.svg'
 
-import * as animations from '#/util/animations'
 import * as app from '#/app'
 import * as hooks from '#/hooks'
-import * as providers from '#/providers'
-
 import * as chat from '#/layouts/dashboard/chat'
 import * as pageSwitcher from '#/layouts/dashboard/pageSwitcher'
+import * as providers from '#/providers'
+import * as animations from '#/util/animations'
 
 /** Props for a {@link ChatPlaceholder}. */
 export interface ChatPlaceholderProps {

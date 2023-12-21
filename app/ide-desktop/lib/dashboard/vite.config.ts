@@ -1,9 +1,9 @@
 /** @file Configuration for vite. */
 import * as url from 'node:url'
 
-import * as vite from 'vite'
-import vitePluginReact from '@vitejs/plugin-react'
 import vitePluginYaml from '@modyfi/vite-plugin-yaml'
+import vitePluginReact from '@vitejs/plugin-react'
+import * as vite from 'vite'
 
 // =================
 // === Constants ===

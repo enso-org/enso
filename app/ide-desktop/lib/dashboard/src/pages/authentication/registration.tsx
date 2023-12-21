@@ -1,5 +1,6 @@
 /** @file Registration container responsible for rendering and interactions in sign up flow. */
 import * as React from 'react'
+
 import * as router from 'react-router-dom'
 
 import AtIcon from 'enso-assets/at.svg'
@@ -7,12 +8,12 @@ import CreateAccountIcon from 'enso-assets/create_account.svg'
 import GoBackIcon from 'enso-assets/go_back.svg'
 import LockIcon from 'enso-assets/lock.svg'
 
-import * as localStorageModule from '#/util/localStorage'
+import * as app from '#/app'
 import * as providers from '#/providers'
+import * as localStorageModule from '#/util/localStorage'
 import * as string from '#/util/string'
 import * as validation from '#/util/validation'
 
-import * as app from '#/app'
 import Input from '#/components/input'
 import Link from '#/components/link'
 import SubmitButton from '#/components/submitButton'

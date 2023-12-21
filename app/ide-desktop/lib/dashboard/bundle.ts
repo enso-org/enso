@@ -3,9 +3,8 @@ import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import * as url from 'node:url'
 
-import * as esbuild from 'esbuild'
-
 import * as bundler from './esbuild-config'
+import * as esbuild from 'esbuild'
 
 // =================
 // === Constants ===

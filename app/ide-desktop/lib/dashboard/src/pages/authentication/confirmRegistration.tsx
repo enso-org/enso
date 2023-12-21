@@ -1,6 +1,7 @@
 /** @file Registration confirmation page for when a user clicks the confirmation link set to their
  * email address. */
 import * as React from 'react'
+
 import * as toastify from 'react-toastify'
 
 import * as app from '#/app'

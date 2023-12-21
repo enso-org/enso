@@ -1,12 +1,11 @@
 /** @file The mock API. */
-import type * as test from '@playwright/test'
-
 import * as backend from '../src/services/backend'
-import * as config from '../src/util/config'
-import * as dateTime from '../src/util/dateTime'
 import type * as remoteBackend from '../src/services/remoteBackend'
 import * as remoteBackendPaths from '../src/services/remoteBackendPaths'
+import * as config from '../src/util/config'
+import * as dateTime from '../src/util/dateTime'
 import * as uniqueString from '../src/util/uniqueString'
+import type * as test from '@playwright/test'
 
 // =================
 // === Constants ===

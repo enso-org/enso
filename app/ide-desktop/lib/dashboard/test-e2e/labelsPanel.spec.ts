@@ -1,8 +1,7 @@
 /** @file Test the labels sidebar panel. */
-import * as test from '@playwright/test'
-
 import * as actions from './actions'
 import * as api from './api'
+import * as test from '@playwright/test'
 
 test.test('labels', async ({ page }) => {
     await api.mockApi(page)

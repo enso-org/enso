@@ -7,10 +7,10 @@ import RootIcon from 'enso-assets/root.svg'
 import TempIcon from 'enso-assets/temp.svg'
 import Trash2Icon from 'enso-assets/trash2.svg'
 
-import * as drag from '#/util/drag'
 import * as events from '#/events'
-import * as localStorageModule from '#/util/localStorage'
 import * as providers from '#/providers'
+import * as drag from '#/util/drag'
+import * as localStorageModule from '#/util/localStorage'
 
 import SvgMask from '#/components/svgMask'
 

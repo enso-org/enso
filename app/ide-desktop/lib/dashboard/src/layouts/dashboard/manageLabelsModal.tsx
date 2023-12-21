@@ -1,9 +1,9 @@
 /** @file A modal to select labels for an asset. */
 import * as React from 'react'
 
-import * as backendModule from '#/services/backend'
 import * as hooks from '#/hooks'
 import * as providers from '#/providers'
+import * as backendModule from '#/services/backend'
 import * as string from '#/util/string'
 
 import ColorPicker from '#/components/colorPicker'

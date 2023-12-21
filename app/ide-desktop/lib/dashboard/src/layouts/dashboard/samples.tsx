@@ -1,14 +1,13 @@
 /** @file Renders the list of templates from which a project can be created. */
 import * as React from 'react'
 
-import GeoImage from 'enso-assets/geo.svg'
-import SpreadsheetsImage from 'enso-assets/spreadsheets.svg'
-import VisualizeImage from 'enso-assets/visualize.png'
-
-import HeartIcon from 'enso-assets/heart.svg'
 import Logo from 'enso-assets/enso_logo.svg'
+import GeoImage from 'enso-assets/geo.svg'
+import HeartIcon from 'enso-assets/heart.svg'
 import OpenCountIcon from 'enso-assets/open_count.svg'
 import ProjectIcon from 'enso-assets/project_icon.svg'
+import SpreadsheetsImage from 'enso-assets/spreadsheets.svg'
+import VisualizeImage from 'enso-assets/visualize.png'
 
 import Spinner, * as spinner from '#/components/spinner'
 import SvgMask from '#/components/svgMask'

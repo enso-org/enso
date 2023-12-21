@@ -4,15 +4,15 @@ import * as React from 'react'
 import PlusIcon from 'enso-assets/plus.svg'
 import Trash2Icon from 'enso-assets/trash2.svg'
 
-import type * as assetQuery from '#/util/assetQuery'
-import type * as backend from '#/services/backend'
-import * as drag from '#/util/drag'
-import * as providers from '#/providers'
-
-import Label, * as labelModule from '#/components/dashboard/label'
-import ConfirmDeleteModal from '#/components/dashboard/confirmDeleteModal'
-import DragModal from '#/components/dragModal'
 import NewLabelModal from '#/layouts/dashboard/newLabelModal'
+import * as providers from '#/providers'
+import type * as backend from '#/services/backend'
+import type * as assetQuery from '#/util/assetQuery'
+import * as drag from '#/util/drag'
+
+import ConfirmDeleteModal from '#/components/dashboard/confirmDeleteModal'
+import Label, * as labelModule from '#/components/dashboard/label'
+import DragModal from '#/components/dragModal'
 import SvgMask from '#/components/svgMask'
 
 // ==============

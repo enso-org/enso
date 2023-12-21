@@ -1,9 +1,9 @@
 /** @file A user and their permissions for a specific asset. */
 import * as React from 'react'
 
-import * as backendModule from '#/services/backend'
 import * as hooks from '#/hooks'
 import * as providers from '#/providers'
+import * as backendModule from '#/services/backend'
 
 import PermissionSelector from '#/components/dashboard/permissionSelector'
 

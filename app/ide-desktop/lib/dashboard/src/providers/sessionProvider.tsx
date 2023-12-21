@@ -3,9 +3,9 @@
 import * as React from 'react'
 
 import type * as cognito from '#/authentication/cognito'
-import * as error from '#/util/error'
-import * as hooks from '#/hooks'
 import * as listen from '#/authentication/listen'
+import * as hooks from '#/hooks'
+import * as error from '#/util/error'
 
 // ======================
 // === SessionContext ===

@@ -1,18 +1,19 @@
 /** @file An interactive button indicating the status of a project. */
 import * as React from 'react'
+
 import * as toast from 'react-toastify'
 
 import ArrowUpIcon from 'enso-assets/arrow_up.svg'
 import PlayIcon from 'enso-assets/play.svg'
 import StopIcon from 'enso-assets/stop.svg'
 
-import * as backendModule from '#/services/backend'
-import * as errorModule from '#/util/error'
 import * as events from '#/events'
 import * as hooks from '#/hooks'
-import * as localStorageModule from '#/util/localStorage'
 import * as providers from '#/providers'
+import * as backendModule from '#/services/backend'
 import * as remoteBackend from '#/services/remoteBackend'
+import * as errorModule from '#/util/error'
+import * as localStorageModule from '#/util/localStorage'
 
 import Spinner, * as spinner from '#/components/spinner'
 import SvgMask from '#/components/svgMask'
@@ -96,7 +97,10 @@ export default function ProjectIcon(props: ProjectIconProps) {
                     newProjectState = newProjectState2
                 } else if (organization != null) {
                     // eslint-disable-next-line @typescript-eslint/naming-convention
-                    newProjectState = { ...newProjectState, opened_by: organization.email }
+                    newProjectState = {
+                        ...newProjectState,
+                        opened_by: organization.email,
+                    }
                 }
                 return {
                     ...oldItem,
@@ -200,7 +204,10 @@ export default function ProjectIcon(props: ProjectIconProps) {
     )
 
     React.useEffect(() => {
-        setItem(oldItem => ({ ...oldItem, projectState: { ...oldItem.projectState, type: state } }))
+        setItem(oldItem => ({
+            ...oldItem,
+            projectState: { ...oldItem.projectState, type: state },
+        }))
     }, [state, /* should never change */ setItem])
 
     React.useEffect(() => {

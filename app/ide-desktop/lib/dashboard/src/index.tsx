@@ -2,16 +2,16 @@
  *
  * This module declares the main DOM structure for the authentication/dashboard app. */
 import * as React from 'react'
-import * as reactDOM from 'react-dom/client'
-import * as reactRouter from 'react-router-dom'
 
 import * as sentry from '@sentry/react'
+import * as reactDOM from 'react-dom/client'
+import * as reactRouter from 'react-router-dom'
 
 import * as detect from 'enso-common/src/detect'
 
 import type * as app from '#/app'
-import * as config from '#/util/config'
 import App from '#/app'
+import * as config from '#/util/config'
 
 // =================
 // === Constants ===

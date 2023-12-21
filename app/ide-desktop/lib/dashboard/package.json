@@ -43,6 +43,7 @@
   },
   "devDependencies": {
     "@esbuild-plugins/node-modules-polyfill": "^0.2.2",
+    "@ianvs/prettier-plugin-sort-imports": "^4.1.1",
     "@modyfi/vite-plugin-yaml": "^1.0.4",
     "@playwright/experimental-ct-react": "^1.40.0",
     "@playwright/test": "^1.40.0",

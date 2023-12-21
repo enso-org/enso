@@ -31,14 +31,16 @@
  * `internalCode`, when rethrowing the error. */
 // These SHOULD NOT import any runtime code.
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
+import * as original from '../../src/authentication/cognito'
+import type * as config from '../../src/authentication/config'
+import type * as loggerProvider from '../../src/providers/loggerProvider'
+/* eslint-enable no-restricted-syntax */
+
+import * as listen from './listen'
 import type * as amplify from '@aws-amplify/auth'
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
 import type * as cognito from 'amazon-cognito-identity-js'
 import * as results from 'ts-results'
-
-import type * as config from '../../src/authentication/config'
-import type * as loggerProvider from '../../src/providers/loggerProvider'
-import * as original from '../../src/authentication/cognito'
 
 // This file exports a subset of the values from the original file.
 /* eslint-disable no-restricted-syntax */
@@ -50,9 +52,6 @@ export {
     SignInWithPasswordErrorKind,
     SignUpErrorKind,
 } from '../../src/authentication/cognito'
-/* eslint-enable no-restricted-syntax */
-
-import * as listen from './listen'
 
 // There are unused function parameters in this file.
 /* eslint-disable @typescript-eslint/no-unused-vars */

@@ -2,30 +2,30 @@
  * interactive components. */
 import * as React from 'react'
 
-import * as assetQuery from '#/util/assetQuery'
-import * as backendModule from '#/services/backend'
 import * as events from '#/events'
 import * as hooks from '#/hooks'
-import * as http from '#/util/http'
-import * as localBackendModule from '#/services/localBackend'
-import * as localStorageModule from '#/util/localStorage'
-import * as projectManager from '#/util/projectManager'
-import * as providers from '#/providers'
-import * as remoteBackendModule from '#/services/remoteBackend'
-import * as shortcutsModule from '#/util/shortcuts'
-
 import type * as assetSettingsPanel from '#/layouts/dashboard/assetSettingsPanel'
-import * as categorySwitcher from '#/layouts/dashboard/categorySwitcher'
-import * as pageSwitcher from '#/layouts/dashboard/pageSwitcher'
-import type * as spinner from '#/components/spinner'
-import Chat, * as chat from '#/layouts/dashboard/chat'
 import AssetSettingsPanel from '#/layouts/dashboard/assetSettingsPanel'
+import * as categorySwitcher from '#/layouts/dashboard/categorySwitcher'
+import Chat, * as chat from '#/layouts/dashboard/chat'
 import ChatPlaceholder from '#/layouts/dashboard/chatPlaceholder'
 import Drive from '#/layouts/dashboard/drive'
 import Editor from '#/layouts/dashboard/editor'
 import Home from '#/layouts/dashboard/home'
-import TheModal from '#/components/dashboard/theModal'
+import * as pageSwitcher from '#/layouts/dashboard/pageSwitcher'
 import TopBar from '#/layouts/dashboard/topBar'
+import * as providers from '#/providers'
+import * as backendModule from '#/services/backend'
+import * as localBackendModule from '#/services/localBackend'
+import * as remoteBackendModule from '#/services/remoteBackend'
+import * as assetQuery from '#/util/assetQuery'
+import * as http from '#/util/http'
+import * as localStorageModule from '#/util/localStorage'
+import * as projectManager from '#/util/projectManager'
+import * as shortcutsModule from '#/util/shortcuts'
+
+import TheModal from '#/components/dashboard/theModal'
+import type * as spinner from '#/components/spinner'
 
 // =================
 // === Dashboard ===
@@ -172,7 +172,10 @@ export default function Dashboard(props: DashboardProps) {
                                         savedProjectStartupInfo.projectAsset.id,
                                         savedProjectStartupInfo.projectAsset.title
                                     )
-                                    setProjectStartupInfo({ ...savedProjectStartupInfo, project })
+                                    setProjectStartupInfo({
+                                        ...savedProjectStartupInfo,
+                                        project,
+                                    })
                                     if (page === pageSwitcher.Page.editor) {
                                         setPage(page)
                                     }

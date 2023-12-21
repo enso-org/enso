@@ -1,8 +1,8 @@
 /** @file A fixed-size container for a {@link fontawesome.FontAwesomeIcon FontAwesomeIcon}. */
 import * as React from 'react'
 
-import * as fontawesome from '@fortawesome/react-fontawesome'
 import type * as fontawesomeIcons from '@fortawesome/free-brands-svg-icons'
+import * as fontawesome from '@fortawesome/react-fontawesome'
 
 // =======================
 // === FontAwesomeIcon ===

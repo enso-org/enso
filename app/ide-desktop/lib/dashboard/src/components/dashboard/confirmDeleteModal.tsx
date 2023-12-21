@@ -1,9 +1,10 @@
 /** @file Modal for confirming delete of any type of asset. */
 import * as React from 'react'
+
 import * as toastify from 'react-toastify'
 
-import * as errorModule from '#/util/error'
 import * as providers from '#/providers'
+import * as errorModule from '#/util/error'
 
 import Modal from '#/components/modal'
 
