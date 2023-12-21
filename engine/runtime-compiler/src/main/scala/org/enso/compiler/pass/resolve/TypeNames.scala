@@ -111,7 +111,8 @@ case object TypeNames extends IRPass {
           new MetadataPair(
             TypeSignatures,
             TypeSignatures.Signature(
-              resolveSignature(typeParams, bindingsMap, s.signature)
+              resolveSignature(typeParams, bindingsMap, s.signature),
+              s.comment
             )
           )
         )

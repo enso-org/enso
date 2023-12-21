@@ -9,6 +9,7 @@ import org.enso.projectmanager.{BaseServerSpec, ProjectManagementOps}
 import org.enso.runtimeversionmanager.CurrentVersion
 import org.enso.runtimeversionmanager.test.OverrideTestVersionSuite
 import org.enso.testkit.FlakySpec
+import org.scalactic.source.Position
 
 import java.io.File
 import java.nio.file.{Files, Paths}
@@ -548,11 +549,11 @@ class ProjectManagementApiSpec
 
     "not start new Language Server if one is running" taggedAs Flaky in {
       val client1   = new WsTestClient(address)
-      val projectId = createProject("Foo")(client1)
+      val projectId = createProject("Foo")(client1, implicitly[Position])
       //when
-      val socket1 = openProject(projectId)(client1)
+      val socket1 = openProject(projectId)(client1, implicitly[Position])
       val client2 = new WsTestClient(address)
-      val socket2 = openProject(projectId)(client2)
+      val socket2 = openProject(projectId)(client2, implicitly[Position])
       //then
       socket2 shouldBe socket1
       //teardown
@@ -575,8 +576,8 @@ class ProjectManagementApiSpec
              }
           }
           """)
-      closeProject(projectId)(client2)
-      deleteProject(projectId)(client1)
+      closeProject(projectId)(client2, implicitly[Position])
+      deleteProject(projectId)(client1, implicitly[Position])
     }
 
     "start the Language Server after moving the directory" taggedAs Flaky in {

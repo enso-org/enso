@@ -318,7 +318,7 @@ lazy val enso = (project in file("."))
     `std-image`,
     `std-table`,
     `std-aws`,
-    `simple-httpbin`,
+    `http-test-helper`,
     `enso-test-java-helpers`,
     `exploratory-benchmark-java-helpers`,
     `benchmark-java-helpers`,
@@ -1657,7 +1657,10 @@ lazy val runtime = (project in file("engine/runtime"))
     Test / fork := true,
     Test / envVars ++= distributionEnvironmentOverrides ++ Map(
       "ENSO_TEST_DISABLE_IR_CACHE" -> "false"
-    )
+    ),
+    Test / compile := (Test / compile)
+      .dependsOn(`runtime-fat-jar` / Compile / compileModuleInfo)
+      .value
   )
   .settings(
     (Compile / javacOptions) ++= Seq(
@@ -1748,7 +1751,12 @@ lazy val `runtime-parser` =
         "com.github.sbt"   % "junit-interface"         % junitIfVersion     % Test,
         "org.scalatest"   %% "scalatest"               % scalatestVersion   % Test,
         "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided"
-      )
+      ),
+      (Compile / logManager) :=
+        sbt.internal.util.CustomLogManager.excludeMsg(
+          "Could not determine source for class ",
+          Level.Warn
+        )
     )
     .dependsOn(syntax)
     .dependsOn(`syntax-rust-definition`)
@@ -2491,9 +2499,8 @@ lazy val `std-base` = project
     Compile / packageBin / artifactPath :=
       `base-polyglot-root` / "std-base.jar",
     libraryDependencies ++= Seq(
-      "org.graalvm.polyglot"      % "polyglot"                % graalMavenPackagesVersion,
-      "org.apache.httpcomponents" % "httpclient"              % httpComponentsVersion,
-      "org.netbeans.api"          % "org-openide-util-lookup" % netbeansApiVersion % "provided"
+      "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion,
+      "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion % "provided"
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
@@ -2901,13 +2908,13 @@ val stdBitsProjects =
 val allStdBits: Parser[String] =
   stdBitsProjects.map(v => v: Parser[String]).reduce(_ | _)
 
-lazy val `simple-httpbin` = project
-  .in(file("tools") / "simple-httpbin")
+lazy val `http-test-helper` = project
+  .in(file("tools") / "http-test-helper")
   .settings(
     customFrgaalJavaCompilerSettings(targetJdk = "21"),
     autoScalaLibrary := false,
     Compile / javacOptions ++= Seq("-Xlint:all"),
-    Compile / run / mainClass := Some("org.enso.shttp.SimpleHTTPBin"),
+    Compile / run / mainClass := Some("org.enso.shttp.HTTPTestHelperServer"),
     assembly / mainClass := (Compile / run / mainClass).value,
     libraryDependencies ++= Seq(
       "org.apache.commons"        % "commons-text" % commonsTextVersion,

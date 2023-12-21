@@ -1,5 +1,10 @@
 import { Ast } from '@/util/ast'
+import * as fs from 'fs'
+import * as json from 'lib0/json'
 import { expect, test } from 'vitest'
+import { IdMap, type ExprId } from '../../../../shared/yjsModel'
+import { preParseContent } from '../../../../ydoc-server/edits'
+import * as fileFormat from '../../../../ydoc-server/fileFormat'
 
 //const disabledCases = [
 //  ' a',
@@ -354,11 +359,9 @@ test.each(cases)('parse/print round trip: %s', (code) => {
   // Re-parse.
   const root1 = Ast.parse(printed)
   // Check that Identities match original AST.
-  // FIXME--Needed for AST edits (#8367).
-  /*
-  const reprinted = root1.print()
-  expect(reprinted.info).toEqual(info1)
-   */
+  const reprinted = Ast.print(root1)
+  expect(reprinted.info.nodes).toEqual(info1.nodes)
+  expect(reprinted.info.tokens).toEqual(info1.tokens)
 })
 
 const parseCases = [
@@ -406,3 +409,69 @@ if (false) {
   })
 }
  */
+
+test('full file IdMap round trip', () => {
+  const content = fs.readFileSync(__dirname + '/fixtures/stargazers.enso').toString()
+  const { code, idMapJson, metadataJson: _ } = preParseContent(content)
+  const idMap = deserializeIdMap(idMapJson!)
+  const ast = Ast.parseTransitional(code, idMap)
+  const ast_ = Ast.parseTransitional(code, idMap)
+  const ast2 = Ast.normalize(ast)
+  const astTT = Ast.tokenTreeWithIds(ast)
+  expect(ast2.code()).toBe(ast.code())
+  expect(Ast.tokenTreeWithIds(ast2), 'Print/parse preserves IDs').toStrictEqual(astTT)
+  expect(Ast.tokenTreeWithIds(ast_), 'All node IDs come from IdMap').toStrictEqual(astTT)
+
+  const idMapJson2 = json.stringify(idMapToArray(idMap))
+  //expect(idMapJson2).toBe(idMapJson)
+  const META_TAG = '\n\n\n#### METADATA ####'
+  let metaContent = META_TAG + '\n'
+  metaContent += idMapJson2 + '\n'
+  const {
+    code: code_,
+    idMapJson: idMapJson_,
+    metadataJson: __,
+  } = preParseContent(code + metaContent)
+  const idMap_ = deserializeIdMap(idMapJson_!)
+  const ast3 = Ast.parseTransitional(code_, idMap_)
+  expect(Ast.tokenTreeWithIds(ast3), 'Print/parse with serialized IdMap').toStrictEqual(astTT)
+})
+
+function deserializeIdMap(idMapJson: string) {
+  const idMapMeta = fileFormat.tryParseIdMapOrFallback(idMapJson)
+  const idMap = new IdMap()
+  for (const [{ index, size }, id] of idMapMeta) {
+    const range = [index.value, index.value + size.value]
+    if (typeof range[0] !== 'number' || typeof range[1] !== 'number') {
+      console.error(`Invalid range for id ${id}:`, range)
+      continue
+    }
+    idMap.insertKnownId([index.value, index.value + size.value], id as ExprId)
+  }
+  return idMap
+}
+
+function idMapToArray(map: IdMap): fileFormat.IdMapEntry[] {
+  const entries: fileFormat.IdMapEntry[] = []
+  map.entries().forEach(([key, id]) => {
+    const decoded = IdMap.rangeForKey(key)
+    const index = decoded[0]
+    const endIndex = decoded[1]
+    if (index == null || endIndex == null) return
+    const size = endIndex - index
+    entries.push([{ index: { value: index }, size: { value: size } }, id])
+  })
+  entries.sort(idMapCmp)
+  return entries
+}
+
+function idMapCmp(a: fileFormat.IdMapEntry, b: fileFormat.IdMapEntry) {
+  const val1 = a[0]?.index?.value ?? 0
+  const val2 = b[0]?.index?.value ?? 0
+  if (val1 === val2) {
+    const size1 = a[0]?.size.value ?? 0
+    const size2 = b[0]?.size.value ?? 0
+    return size1 - size2
+  }
+  return val1 - val2
+}

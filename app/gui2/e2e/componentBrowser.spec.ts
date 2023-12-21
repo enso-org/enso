@@ -10,7 +10,7 @@ test('component browser shows entries, and creates a new node', async ({ page })
   await customExpect.toExist(locate.componentBrowser(page))
   await customExpect.toExist(locate.componentBrowserEntry(page))
   let nodeCount = await locate.graphNode(page).count()
-  await locate.componentBrowserEntry(page).last().click()
+  await locate.componentBrowserEntry(page).nth(1).click()
   await expect(locate.componentBrowser(page)).not.toBeVisible()
   await expect(locate.graphNode(page)).toHaveCount(nodeCount + 1)
 

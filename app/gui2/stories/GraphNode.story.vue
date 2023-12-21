@@ -8,16 +8,16 @@ import GraphNode from '@/components/GraphEditor/GraphNode.vue'
 import { provideGraphSelection } from '@/providers/graphSelection'
 import type { Node } from '@/stores/graph'
 import { RawAstExtended } from '@/util/ast'
+import { Vec2 } from '@/util/data/vec2'
 import { useNavigator } from '@/util/navigator'
 import { Rect } from '@/util/rect'
-import { Vec2 } from '@/util/vec2'
 import { reactive, watchEffect } from 'vue'
 import { IdMap, type ContentRange } from '../shared/yjsModel'
 import { createSetupComponent } from './histoire/utils'
 
 const doc = new Y.Doc()
 const text = doc.getText('content')
-const yIdMap = doc.getMap<Uint8Array>('idMap')
+const idMap = doc.getMap<Uint8Array>('idMap')
 
 const nodeBinding = ref('binding')
 const nodeContent = ref('content')
@@ -36,7 +36,6 @@ function updateContent(updates: [range: ContentRange, content: string][]) {
   }
   nodeContent.value = content
 }
-const idMap = new IdMap(yIdMap, text)
 
 const rootSpan = computed(() => RawAstExtended.parse(nodeContent.value, idMap))
 const pattern = computed(() => RawAstExtended.parse(nodeBinding.value, idMap))
