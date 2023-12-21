@@ -9,18 +9,19 @@ import {
   type SuggestionEntry,
 } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
+import { MutableModule } from '@/util/ast/abstract'
 import { unwrap } from '@/util/data/result'
 import {
   identifierUnchecked,
   normalizeQualifiedName,
   qnFromSegments,
+  qnSegments,
   qnSplit,
   tryIdentifier,
   tryQualifiedName,
   type Identifier,
-  type QualifiedName, qnSegments
+  type QualifiedName,
 } from '@/util/qualifiedName'
-import type { MutableModule } from '@/util/ast/abstract'
 
 // ========================
 // === Imports analysis ===
@@ -68,8 +69,8 @@ export function recognizeImport(ast: Ast.Import): Import | null {
   const import_ = ast.import_
   const all = ast.all
   const hiding = ast.hiding
-  const module =
-    from != null ? parseQualifiedName(from) : import_ != null ? parseQualifiedName(import_) : null
+  const moduleAst = from ?? import_
+  const module = moduleAst ? parseQualifiedName(moduleAst) : null
   if (!module) return null
   if (all) {
     const except = (hiding != null ? parseIdents(hiding) : []) ?? []
@@ -143,13 +144,45 @@ export interface UnqualifiedImport {
   import: Identifier
 }
 
-/** Get an AST representing the required import statement. */
-export function requiredImportToAst(module: MutableModule, value: RequiredImport): Ast.Import {
+/** Insert the given imports into the given block at an appropriate location. */
+export function addImports(
+  edit: MutableModule,
+  scope: Ast.BodyBlock,
+  importsToAdd: RequiredImport[],
+) {
+  const imports = importsToAdd.map((info) => requiredImportToAst(info, edit))
+  const position = newImportsLocation(edit, scope)
+  scope.insert(edit, position, ...imports)
+}
+
+/** Return a suitable location in the given block to insert an import statement.
+ *
+ *  The location chosen will be before the first non-import line, and after all preexisting imports.
+ *  If there are any blank lines in that range, it will be before them.
+ */
+function newImportsLocation(module: Ast.Module, scope: Ast.BodyBlock): number {
+  let lastImport
+  for (let i = 0; i < scope.lines.length; i++) {
+    const line = scope.lines[i]!
+    if (line.expression) {
+      if (module.get(line.expression.node)?.innerExpression() instanceof Ast.Import) {
+        lastImport = i
+      } else {
+        break
+      }
+    }
+  }
+  return lastImport === undefined ? 0 : lastImport + 1
+}
+
+/** Create an AST representing the required import statement. */
+function requiredImportToAst(value: RequiredImport, module?: MutableModule): Ast.Import {
+  const module_ = module ?? MutableModule.Transient()
   switch (value.kind) {
     case 'Qualified':
-      return Ast.Import.Qualified(qnSegments(value.module), module)!
+      return Ast.Import.Qualified(qnSegments(value.module), module_)!
     case 'Unqualified':
-      return Ast.Import.Unqualified(qnSegments(value.from), value.import, module)!
+      return Ast.Import.Unqualified(qnSegments(value.from), value.import, module_)!
   }
 }
 
@@ -569,5 +602,32 @@ if (import.meta.vitest) {
     },
   ])('Recognizing import $code', ({ code, expected }) => {
     expect(parseImport(code)).toStrictEqual(expected)
+  })
+
+  test.each([
+    {
+      import: {
+        kind: 'Unqualified',
+        from: unwrap(tryQualifiedName('Standard.Base.Table')),
+        import: unwrap(tryIdentifier('Table')),
+      } satisfies RequiredImport,
+      expected: 'from Standard.Base.Table import Table',
+    },
+    {
+      import: {
+        kind: 'Qualified',
+        module: unwrap(tryQualifiedName('Standard.Base.Data')),
+      } satisfies RequiredImport,
+      expected: 'import Standard.Base.Data',
+    },
+    {
+      import: {
+        kind: 'Qualified',
+        module: unwrap(tryQualifiedName('local')),
+      } satisfies RequiredImport,
+      expected: 'import local',
+    },
+  ])('Generating import $expected', ({ import: import_, expected }) => {
+    expect(requiredImportToAst(import_).code()).toStrictEqual(expected)
   })
 }
