@@ -185,7 +185,7 @@ operations_map =
     always_boolean_ops = ["==", "!=", "equals_ignore_case", ">=", "<=", "<", ">", "BETWEEN", "AND", "OR", "NOT", "IS_NULL", "IS_EMPTY", "LIKE", "IS_IN", "IS_IN_COLUMN", "starts_with", "ends_with", "contains", "BOOL_OR", "IS_INF"]
     always_floating_ops = ["/", "mod", "AVG", "STDDEV_POP", "STDDEV_SAMP", "ROUND"]
     always_text_ops = ["ADD_TEXT", "CONCAT", "CONCAT_QUOTE_IF_NEEDED", "MAKE_CASE_SENSITIVE", "FOLD_CASE", "TRIM", "LTRIM", "RTRIM", "REPLACE"]
-    always_integer_ops = ["COUNT", "COUNT_IS_NULL", "COUNT_DISTINCT", "COUNT_DISTINCT_INCLUDE_NULL", "COUNT_EMPTY", "COUNT_NOT_EMPTY", "COUNT_ROWS", "ROW_NUMBER", "ROW_NUMBER_IN_GROUP"]
+    always_integer_ops = ["COUNT", "COUNT_IS_NULL", "COUNT_DISTINCT", "COUNT_DISTINCT_INCLUDE_NULL", "COUNT_EMPTY", "COUNT_NOT_EMPTY", "COUNT_ROWS", "ROW_NUMBER", "ROW_NUMBER_IN_GROUP", "LENGTH"]
     same_as_first = ["TRUNCATE", "CEIL", "FLOOR"]
     arithmetic_ops = ["ADD_NUMBER", "-", "*", "^", "%", "SUM"]
     merge_input_types_ops = ["ROW_MAX", "ROW_MIN", "MAX", "MIN", "FILL_NULL", "COALESCE"]

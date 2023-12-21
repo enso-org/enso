@@ -6,10 +6,10 @@ import project.Data.Text.Text
 
    See `Error.catch` for details about error wrapping.
 type Wrapped_Error
+    ## PRIVATE
     Value wrapping_error inner_error
 
     ## PRIVATE
-
        Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self =

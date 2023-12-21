@@ -7,8 +7,8 @@ import project.Data.Numbers.Integer
 import project.Data.Vector.Map_Error
 import project.Data.Vector.No_Wrap
 import project.Data.Vector.Vector
-import project.Errors.Common.Additional_Warnings
 import project.Error.Error
+import project.Errors.Common.Additional_Warnings
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Errors.Unimplemented.Unimplemented
 import project.Nothing.Nothing

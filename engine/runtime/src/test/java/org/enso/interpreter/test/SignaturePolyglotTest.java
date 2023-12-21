@@ -66,7 +66,8 @@ public class SignaturePolyglotTest extends TestBase {
       var ret = fn.execute(new StringBuilder("Hi"));
       fail("Should fail, but got: " + ret);
     } catch (PolyglotException e) {
-      assertTypeError("`x`", "java.time.format.DateTimeFormatter", "StringBuilder", e.getMessage());
+      assertTypeError(
+          "`x`", "java.time.format.DateTimeFormatter", "java.lang.StringBuilder", e.getMessage());
     }
   }
 
