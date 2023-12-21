@@ -358,6 +358,9 @@ handle_constructor_missing_arguments function ~continuation =
             text = function.to_text
             prefix = "Filter_Condition."
             if (text.starts_with prefix && text.contains "[Filter_Condition.enso:") . not then False else
+                ## The additional check for capital letter is needed, because otherwise, we get false positives:
+                   `(Filter_Condition.Greater 1).to_predicate` evaluates to function whose text representation
+                   may start with `Filter_Condition.handle_nothing`. Such functions are not constructors.
                 constructor_letter = text.get prefix.length ""
                 constructor_letter >= "A" && constructor_letter <= "Z"
 
