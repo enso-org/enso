@@ -3,6 +3,7 @@ package org.enso.interpreter.test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -93,6 +94,44 @@ public class FindExceptionMessageTest extends TestBase {
       assertNotNull("Has source location", ex.getSourceLocation());
       var throwCode = ex.getSourceLocation().getCharacters().toString();
       assertNotEquals("Throw code found in the source code: " + throwCode, src.indexOf(throwCode));
+    }
+  }
+
+  @Test
+  public void panicThrowDeepRecoverError() {
+    var src =
+        """
+    from Standard.Base import all
+    import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+    deep_panic n = if n <= 0 then Panic.throw (Illegal_Argument.Error "Problem") else
+        deep_panic n-1
+
+    main =
+        d = Panic.recover Any
+            deep_panic 10
+        d
+    """;
+
+    var res = evalModule(ctx, src);
+    assertTrue("Expecting recovered error: " + res, res.isException());
+    assertEquals(
+        "Panic was converted to error",
+        "Standard.Base.Error.Error",
+        res.getMetaObject().getMetaQualifiedName());
+
+    try {
+      throw res.throwException();
+    } catch (PolyglotException ex) {
+      assertNull("No source location...", ex.getSourceLocation());
+      assertNotNull("... but stacktrace is fine", ex.getPolyglotStackTrace());
+      var cnt = 0;
+      for (var f : ex.getPolyglotStackTrace()) {
+        if ("Unnamed.deep_panic".equals(f.getRootName())) {
+          cnt++;
+        }
+      }
+      assertEquals("Contains proper amount of deep_panic invocations", 11, cnt);
     }
   }
 
