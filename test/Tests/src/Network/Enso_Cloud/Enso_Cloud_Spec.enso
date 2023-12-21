@@ -77,14 +77,14 @@ spec =
                 Test.expect_panic No_Such_Conversion (Enso_User.from (Json.parse "[]"))
 
             # These tests should be kept in sync with tools/http-test-helper/src/main/java/org/enso/shttp/?
-            Test.specify "current user can be fetched from mock API" <|
+            Test.specify "current user can be fetched from mock API" pending=pending_has_url <|
                 current = Enso_User.current
                 current.id.should_equal "organization-27xJM00p8jWoL2qByTo6tQfciWC"
                 current.name.should_equal "My test User 1"
                 current.email.should_equal "enso-test-user-1@example.com"
                 current.is_enabled.should_be_true
 
-            Test.specify "user list can be fetched from mock API" <|
+            Test.specify "user list can be fetched from mock API" pending=pending_has_url <|
                 users = Enso_User.list
 
                 users.length.should_equal 2
@@ -100,7 +100,7 @@ spec =
                     Enso_User.current
                 r.should_fail_with Cloud_Utils.Not_Logged_In
 
-            Test.specify "will fail if the token is invalid" <|
+            Test.specify "will fail if the token is invalid" pending=pending_has_url <|
                 invalid_token_file = File.create_temporary_file "enso-test-credentials" "-invalid.txt"
                 "invalid-token".write invalid_token_file . should_succeed
                 reset_token
