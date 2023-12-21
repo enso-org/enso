@@ -152,7 +152,9 @@ final class ArraySlice implements EnsoObject {
 
   @ExportMessage
   Warning[] getWarnings(
-      Node location, boolean shouldWrap, @Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings)
+      Node location,
+      boolean shouldWrap,
+      @Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings)
       throws UnsupportedMessageException {
     return warnings.getWarnings(this.storage, location, shouldWrap);
   }

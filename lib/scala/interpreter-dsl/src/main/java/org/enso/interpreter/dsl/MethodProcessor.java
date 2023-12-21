@@ -617,7 +617,8 @@ public class MethodProcessor
                 + " = withWarnings.getValue();");
         out.println(
             "      gatheredWarnings ="
-                + " gatheredWarnings.prepend(withWarnings.getReassignedWarningsAsRope(bodyNode, false));");
+                + " gatheredWarnings.prepend(withWarnings.getReassignedWarningsAsRope(bodyNode,"
+                + " false));");
         out.println("    }");
       }
       return true;

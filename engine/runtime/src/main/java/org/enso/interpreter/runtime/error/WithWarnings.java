@@ -2,7 +2,6 @@ package org.enso.interpreter.runtime.error;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached.Shared;
-import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
@@ -134,7 +133,8 @@ public final class WithWarnings implements EnsoObject {
     return new ArrayRope<>(getReassignedWarnings(location, shouldWrap, null));
   }
 
-  public Warning[] getReassignedWarnings(Node location, boolean shouldWrap, WarningsLibrary warningsLibrary) {
+  public Warning[] getReassignedWarnings(
+      Node location, boolean shouldWrap, WarningsLibrary warningsLibrary) {
     Warning[] warnings = getWarningsArray(warningsLibrary, shouldWrap);
     for (int i = 0; i < warnings.length; i++) {
       warnings[i] = warnings[i].reassign(location);

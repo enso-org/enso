@@ -104,8 +104,7 @@ public final class Warning implements EnsoObject {
       description = "Gets all the warnings associated with the value.",
       autoRegister = false)
   @Builtin.Specialize(fallback = true)
-  public static EnsoObject getAll(
-      Object value, boolean shouldWrap, WarningsLibrary warningsLib) {
+  public static EnsoObject getAll(Object value, boolean shouldWrap, WarningsLibrary warningsLib) {
     if (warningsLib.hasWarnings(value)) {
       try {
         Warning[] warnings = warningsLib.getWarnings(value, null, shouldWrap);
