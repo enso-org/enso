@@ -1,6 +1,8 @@
 package org.enso.interpreter.test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -64,6 +66,33 @@ public class FindExceptionMessageTest extends TestBase {
       fail("No result expected: " + res);
     } catch (PolyglotException ex) {
       assertExceptionMessage("Hello World!", ex);
+    }
+  }
+
+  @Test
+  public void errorThrowDeep() {
+    var src =
+        """
+    from Standard.Base import all
+    import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+    deep n = if n <= 0 then Error.throw (Illegal_Argument.Error "Problem"+n.to_text) else deep n-1
+
+    main =
+        d = deep 10
+        d
+    """;
+
+    var res = evalModule(ctx, src);
+    assertTrue("Expecting error: " + res, res.isException());
+    assertEquals("Standard.Base.Error.Error", res.getMetaObject().getMetaQualifiedName());
+
+    try {
+      throw res.throwException();
+    } catch (PolyglotException ex) {
+      assertNotNull("Has source location", ex.getSourceLocation());
+      var throwCode = ex.getSourceLocation().getCharacters().toString();
+      assertNotEquals("Throw code found in the source code: " + throwCode, src.indexOf(throwCode));
     }
   }
 
