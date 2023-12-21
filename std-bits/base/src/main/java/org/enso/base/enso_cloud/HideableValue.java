@@ -27,7 +27,14 @@ public sealed interface HideableValue permits HideableValue.SecretValue, Hideabl
     }
   }
 
+  /**
+   * Returns a display-oriented representation of the value, replacing secrets with a placeholder.
+   */
   String render();
 
+  /**
+   * Returns the plain text representation of the value, throwing an exception if it contained a
+   * secret.
+   */
   String safeResolve() throws EnsoSecretAccessDenied;
 }
