@@ -196,7 +196,9 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                                               className="bg-frame rounded-full h-6 px-2 hover:bg-frame-selected transition-all"
                                               onClick={() => {
                                                   setWasQueryModified(true)
-                                                  const newQuery = query.add({ [key]: [['']] })
+                                                  const newQuery = assetQuery.AssetQuery.fromString(
+                                                      `${query.toString()} ${tag}:`
+                                                  )
                                                   setQuery(newQuery)
                                                   setRawQuery(newQuery)
                                               }}
