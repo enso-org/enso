@@ -30,7 +30,7 @@ public final class DataflowError extends AbstractTruffleException {
   public static final DataflowError UNINITIALIZED = new DataflowError(null, (Node) null);
 
   private final Object payload;
-  private final boolean without;
+  private final boolean ownTrace;
 
   /**
    * Construct a new dataflow error with the default stack trace.
@@ -67,13 +67,13 @@ public final class DataflowError extends AbstractTruffleException {
   DataflowError(Object payload, Node location) {
     super(null, null, 1, location);
     this.payload = payload;
-    this.without = true;
+    this.ownTrace = false;
   }
 
   DataflowError(Object payload, AbstractTruffleException prototype) {
     super(prototype);
     this.payload = payload;
-    this.without = false;
+    this.ownTrace = true;
   }
 
   /**
@@ -125,13 +125,13 @@ public final class DataflowError extends AbstractTruffleException {
   @ExportMessage
   boolean hasExceptionStackTrace() {
     var node = this.getLocation();
-    return node != null && node.getRootNode() != null && without;
+    return node != null && node.getRootNode() != null && !ownTrace;
   }
 
   @ExportMessage
   Object getExceptionStackTrace() throws UnsupportedMessageException {
     var node = this.getLocation();
-    if (node == null || node.getRootNode() == null || !without) {
+    if (node == null || node.getRootNode() == null || ownTrace) {
       throw UnsupportedMessageException.create();
     }
     var frame = TruffleStackTraceElement.create(node, node.getRootNode().getCallTarget(), null);
