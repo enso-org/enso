@@ -122,14 +122,18 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
 
     React.useEffect(() => {
         const onKeyDown = (event: KeyboardEvent) => {
-            if (areSuggestionsVisibleRef.current && event.key === 'Enter') {
-                setBaseQuery(query)
-                setIsTabbing(false)
-                setSelectedIndex(null)
-                setAreSuggestionsVisible(false)
-                searchRef.current?.focus()
-                const end = searchRef.current?.value.length ?? 0
-                searchRef.current?.setSelectionRange(end, end)
+            if (areSuggestionsVisibleRef.current) {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    setBaseQuery(query)
+                    setIsTabbing(false)
+                    setSelectedIndex(null)
+                    searchRef.current?.focus()
+                    const end = searchRef.current?.value.length ?? 0
+                    searchRef.current?.setSelectionRange(end, end)
+                }
+                if (event.key === 'Enter') {
+                    setAreSuggestionsVisible(false)
+                }
             }
         }
         document.addEventListener('keydown', onKeyDown)
