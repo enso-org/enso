@@ -11,14 +11,17 @@
 pub mod prelude {
     pub use enso_build::prelude::*;
 
-    pub use winreg::enums::*;
-    pub use winreg::types::ToRegValue;
+    #[cfg(windows)]
     pub use winreg::RegKey;
+    #[cfg(windows)]
     pub use winreg::RegValue;
+    #[cfg(windows)]
+    pub use winreg::ToRegValue;
 }
 
 use prelude::*;
 
+#[cfg(windows)]
 pub mod win;
 
 pub mod config {

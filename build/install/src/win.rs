@@ -14,6 +14,7 @@ use windows::Win32::UI::Shell;
 // ==============
 
 pub mod app_paths;
+pub mod faux;
 pub mod prog_id;
 pub mod registry;
 pub mod resource;
@@ -48,17 +49,21 @@ pub fn start_menu_programs() -> Result<PathBuf> {
 }
 
 /// Query WinAPI for the path of a known folder.
-// #[context("Failed to get the path of a known folder by GUID {folder_id:?}.")]
+#[cfg(windows)]
+#[context("Failed to get the path of a known folder by GUID {folder_id:?}.")]
 pub fn known_folder(folder_id: windows::core::GUID) -> Result<PathBuf> {
     unsafe {
         let path = Shell::SHGetKnownFolderPath(&folder_id, default(), None)?;
-        #[cfg(windows)]
         let ret = OsString::from_wide(path.as_wide());
-        #[cfg(not(windows))]
-        let ret: OsString = panic!("Not implemented on non-Windows platforms.");
         windows::Win32::System::Com::CoTaskMemFree(Some(path.0 as *mut c_void));
         Ok(ret.into())
     }
+}
+
+/// Query WinAPI for the path of a known folder.
+#[cfg(not(windows))]
+pub fn known_folder(folder_id: windows::core::GUID) -> Result<PathBuf> {
+    panic!("Not supported on non-Windows platforms.")
 }
 
 /// Notify shell that file associations have changed.
