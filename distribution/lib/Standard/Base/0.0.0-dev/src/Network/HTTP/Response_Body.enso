@@ -24,7 +24,7 @@ import project.System.File.Write_Extensions
 import project.System.File_Format.Auto_Detect
 import project.System.File_Format.Bytes
 import project.System.File_Format.File_Format
-import project.System.File_Format.File_Format_Metadata
+import project.System.File_Format_Metadata.File_Format_Metadata
 import project.System.File_Format.Plain_Text_Format
 import project.System.Input_Stream.Input_Stream
 from project.Data.Boolean import Boolean, False, True

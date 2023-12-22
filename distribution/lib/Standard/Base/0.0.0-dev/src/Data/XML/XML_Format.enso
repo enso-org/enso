@@ -5,7 +5,7 @@ import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Network.URI.URI
 import project.Nothing.Nothing
 import project.System.File.File
-import project.System.File_Format.File_Format_Metadata
+import project.System.File_Format_Metadata.File_Format_Metadata
 import project.System.Input_Stream.Input_Stream
 from project.Data.Text.Extensions import all
 
