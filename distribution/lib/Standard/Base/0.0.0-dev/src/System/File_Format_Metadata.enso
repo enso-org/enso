@@ -4,6 +4,7 @@ import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Nothing.Nothing
 import project.System.File.File
+from Standard.Base.System.File import find_extension_from_name
 
 ## PRIVATE
    A description of file metadata that may be used to detect or refine the file
@@ -47,9 +48,8 @@ type File_Format_Metadata
     guess_extension : Text | Nothing
     guess_extension self = self.extension.if_nothing <|
         self.name.if_not_nothing <|
-            last_dot = self.name.last_index_of "."
-            last_dot.if_not_nothing <|
-                self.name.drop last_dot
+            guessed = find_extension_from_name self.name
+            if guessed = "" then Nothing else guessed
 
 ## PRIVATE
 File_Format_Metadata.from (that:File) = File_Format_Metadata.Value that.path that.name that.extension that.read_first_bytes
