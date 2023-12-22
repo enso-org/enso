@@ -67,13 +67,13 @@ public final class DataflowError extends AbstractTruffleException {
   DataflowError(Object payload, Node location) {
     super(null, null, 1, location);
     this.payload = payload;
-    this.ownTrace = false;
+    this.ownTrace = location != null && location.getRootNode() != null;
   }
 
   DataflowError(Object payload, AbstractTruffleException prototype) {
     super(prototype);
     this.payload = payload;
-    this.ownTrace = true;
+    this.ownTrace = false;
   }
 
   /**
@@ -124,16 +124,15 @@ public final class DataflowError extends AbstractTruffleException {
 
   @ExportMessage
   boolean hasExceptionStackTrace() {
-    var node = this.getLocation();
-    return node != null && node.getRootNode() != null && !ownTrace;
+    return ownTrace;
   }
 
   @ExportMessage
   Object getExceptionStackTrace() throws UnsupportedMessageException {
-    var node = this.getLocation();
-    if (node == null || node.getRootNode() == null || ownTrace) {
+    if (!ownTrace) {
       throw UnsupportedMessageException.create();
     }
+    var node = this.getLocation();
     var frame = TruffleStackTraceElement.create(node, node.getRootNode().getCallTarget(), null);
     return ArrayLikeHelpers.asVectorWithCheckAt(frame.getGuestObject());
   }
