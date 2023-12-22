@@ -29,38 +29,30 @@ function transformChild(child: WidgetInput) {
 </script>
 
 <script lang="ts">
-export const widgetDefinition = defineWidget((expression) => expression instanceof Ast.Ast, {
+export const widgetDefinition = defineWidget(Ast.Ast, {
   priority: 1001,
 })
 </script>
 
 <template>
-  <span :class="['Tree', spanClass]"
-    ><NodeWidget
+  <div class="WidgetHierarchy" :class="spanClass">
+    <NodeWidget
       v-for="(child, index) in children"
-      :key="child.astId ?? index"
+      :key="child.exprId ?? index"
       :input="transformChild(child)"
     />
-  </span>
+  </div>
 </template>
 
 <style scoped>
-.Tree {
-  white-space: pre;
+.WidgetHierarchy {
+  display: flex;
+  flex-direction: row;
   align-items: center;
   transition: background 0.2s ease;
-  min-height: 24px;
-  display: inline-block;
 
   &.Literal {
     font-weight: bold;
-  }
-
-  &.port {
-    background-color: var(--node-color-port);
-    border-radius: var(--node-border-radius);
-    margin: -2px -4px;
-    padding: 2px 4px;
   }
 }
 </style>

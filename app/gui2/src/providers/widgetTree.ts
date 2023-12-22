@@ -6,7 +6,7 @@ export { injectFn as injectWidgetTree, provideFn as provideWidgetTree }
 const { provideFn, injectFn } = createContextStore(
   'Widget tree',
   (astRoot: Ref<Ast.Ast>, hasActiveAnimations: Ref<boolean>) => {
-    const nodeId = computed(() => astRoot.value.astId)
+    const nodeId = computed(() => astRoot.value.exprId)
     const nodeSpanStart = computed(() => astRoot.value.astExtended!.span()[0])
     return proxyRefs({ astRoot, nodeId, nodeSpanStart, hasActiveAnimations })
   },

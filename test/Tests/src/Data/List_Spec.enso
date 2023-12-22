@@ -1,7 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Data.List.Empty_Error
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
-import Standard.Base.Errors.Common.No_Such_Method
 import Standard.Base.Errors.Common.Not_Found
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Common.Unsupported_Argument_Types
@@ -139,7 +138,7 @@ spec = Test.group "List" <|
         list.filter (Filter_Condition.Is_In [7, 3, 2]) . should_equal [2, 3].to_list
         list.filter (Filter_Condition.Not_In [7, 3, 2]) . should_equal [1, 4, 5].to_list
 
-        Test.expect_panic_with (list.filter (Filter_Condition.Starts_With "a")) No_Such_Method
+        Test.expect_panic Type_Error (list.filter (Filter_Condition.Starts_With "a"))
         list.filter Filter_Condition.Is_True . should_equal List.Nil
         list.filter Filter_Condition.Is_False . should_equal List.Nil
         list.filter Filter_Condition.Is_Nothing . should_equal List.Nil

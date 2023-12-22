@@ -11,7 +11,9 @@ const portInfo = injectPortInfo(true)
 const showArgumentValue = computed(() => {
   return (
     props.input instanceof ArgumentAst &&
-    (portInfo == null || !portInfo.connected || portInfo.portId !== props.input.ast.astId)
+    (portInfo == null ||
+      !portInfo.connected ||
+      (portInfo.portId as string) !== (props.input.ast.exprId as string))
   )
 })
 
@@ -32,16 +34,22 @@ export const widgetDefinition = defineWidget([ArgumentPlaceholder, ArgumentAst],
 </script>
 
 <template>
-  <span class="WidgetArgumentName" :class="{ placeholder, primary }">
+  <div class="WidgetArgumentName" :class="{ placeholder, primary }">
     <template v-if="showArgumentValue">
       <span class="value">{{ props.input.info!.name }}</span
       ><NodeWidget :input="props.input" />
     </template>
     <template v-else>{{ props.input.info!.name }}</template>
-  </span>
+  </div>
 </template>
 
 <style scoped>
+.WidgetArgumentName {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
 .placeholder,
 .value {
   color: rgb(255 255 255 / 0.5);

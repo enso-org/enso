@@ -865,11 +865,12 @@ spec =
                             expected_vector = column_vector.filter (Filter_Condition.Is_In in_vector)
                             expected_neg_vector = negated_column_vector.filter (Filter_Condition.Is_In in_vector)
 
-                            t.filter "X" (Filter_Condition.Is_In in_vector) . at "X" . to_vector . should_equal expected_vector
-                            t.filter "X" (Filter_Condition.Is_In in_column) . at "X" . to_vector . should_equal expected_vector
-                            t2 = t.set (t.at "X" . not) new_name="Y"
-                            t2.filter "Y" (Filter_Condition.Is_In in_vector) . at "Y" . to_vector . should_equal expected_neg_vector
-                            t2.filter "Y" (Filter_Condition.Is_In in_column) . at "Y" . to_vector . should_equal expected_neg_vector
+                            Test.with_clue "(Is_In "+in_vector.to_text+"): " <|
+                                t.filter "X" (Filter_Condition.Is_In in_vector) . at "X" . to_vector . should_equal expected_vector
+                                t.filter "X" (Filter_Condition.Is_In in_column) . at "X" . to_vector . should_equal expected_vector
+                                t2 = t.set (t.at "X" . not) new_name="Y"
+                                t2.filter "Y" (Filter_Condition.Is_In in_vector) . at "Y" . to_vector . should_equal expected_neg_vector
+                                t2.filter "Y" (Filter_Condition.Is_In in_column) . at "Y" . to_vector . should_equal expected_neg_vector
 
     Test.group "[In-Memory-specific] Table.join" <|
         Test.specify "should correctly report unsupported cross-backend joins" <|

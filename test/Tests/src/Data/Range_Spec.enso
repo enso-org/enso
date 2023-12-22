@@ -148,8 +148,8 @@ spec = Test.group "Range" <|
         range.filter (Filter_Condition.Is_In [7, 3, 2]) . should_equal [2, 3]
         range.filter (Filter_Condition.Not_In [7, 3, 2]) . should_equal [1, 4, 5]
 
-        Test.expect_panic_with (range.filter (Filter_Condition.Starts_With "a")) No_Such_Method
-        Test.expect_panic_with (range.filter (Filter_Condition.Equal_Ignore_Case "a")) No_Such_Method
+        Test.expect_panic Type_Error (range.filter (Filter_Condition.Starts_With "a"))
+        Test.expect_panic Type_Error (range.filter (Filter_Condition.Equal_Ignore_Case "a"))
         range.filter (Filter_Condition.Like "a%") . should_fail_with Type_Error
         range.filter (Filter_Condition.Not_Like "a_") . should_fail_with Type_Error
         range.filter Filter_Condition.Is_Nan . should_equal []
