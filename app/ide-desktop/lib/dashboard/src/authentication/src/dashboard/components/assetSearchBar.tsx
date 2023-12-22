@@ -148,7 +148,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                             })}
                         </div>
                         {/* Suggestions */}
-                        <div className="flex flex-col">
+                        <div className="flex flex-col max-h-[16rem] overflow-y-auto">
                             {suggestions.map((suggestion, index) => (
                                 <div
                                     key={index}

@@ -80,6 +80,57 @@ const DIRECTORY_NAME_REGEX = /^New_Folder_(?<directoryIndex>\d+)$/
 /** The default prefix of an automatically generated directory. */
 const DIRECTORY_NAME_DEFAULT_PREFIX = 'New_Folder_'
 
+const SUGGESTIONS_FOR_NO: assetSearchBar.Suggestion[] = [
+    { render: () => 'no:label', newQuery: query => query.addToLastTerm({ nos: ['label'] }) },
+    {
+        render: () => 'no:description',
+        newQuery: query => query.addToLastTerm({ nos: ['description'] }),
+    },
+]
+const SUGGESTIONS_FOR_HAS: assetSearchBar.Suggestion[] = [
+    {
+        render: () => 'has:label',
+        newQuery: query => query.addToLastTerm({ negativeNos: ['label'] }),
+    },
+    {
+        render: () => 'has:description',
+        newQuery: query => query.addToLastTerm({ negativeNos: ['description'] }),
+    },
+]
+const SUGGESTIONS_FOR_TYPE: assetSearchBar.Suggestion[] = [
+    {
+        render: () => 'type:project',
+        newQuery: query => query.addToLastTerm({ types: ['project'] }),
+    },
+    {
+        render: () => 'type:folder',
+        newQuery: query => query.addToLastTerm({ types: ['folder'] }),
+    },
+    { render: () => 'type:file', newQuery: query => query.addToLastTerm({ types: ['file'] }) },
+    {
+        render: () => 'type:connector',
+        newQuery: query => query.addToLastTerm({ types: ['connector'] }),
+    },
+]
+const SUGGESTIONS_FOR_NEGATIVE_TYPE: assetSearchBar.Suggestion[] = [
+    {
+        render: () => 'type:project',
+        newQuery: query => query.addToLastTerm({ negativeTypes: ['project'] }),
+    },
+    {
+        render: () => 'type:folder',
+        newQuery: query => query.addToLastTerm({ negativeTypes: ['folder'] }),
+    },
+    {
+        render: () => 'type:file',
+        newQuery: query => query.addToLastTerm({ negativeTypes: ['file'] }),
+    },
+    {
+        render: () => 'type:connector',
+        newQuery: query => query.addToLastTerm({ negativeTypes: ['connector'] }),
+    },
+]
+
 // ===================================
 // === insertAssetTreeNodeChildren ===
 // ===================================
@@ -302,8 +353,13 @@ export default function AssetsTable(props: AssetsTableProps) {
                 const assetType =
                     node.item.type === backendModule.AssetType.directory
                         ? 'folder'
+                        : node.item.type === backendModule.AssetType.secret
+                        ? 'connector'
                         : String(node.item.type)
-                const assetExtension = fileInfo.fileExtension(node.item.title)
+                const assetExtension =
+                    node.item.type !== backendModule.AssetType.file
+                        ? null
+                        : fileInfo.fileExtension(node.item.title).toLowerCase()
                 const assetModifiedAt = new Date(node.item.modifiedAt)
                 const labels: string[] = node.item.labels ?? []
                 const lowercaseName = node.item.title.toLowerCase()
@@ -397,11 +453,13 @@ export default function AssetsTable(props: AssetsTableProps) {
                         typeSet => !typeSet.some(type => type === assetType)
                     ) &&
                     query.extensions.every(extensionSet =>
-                        extensionSet.some(extension => extension === assetExtension)
+                        extensionSet.some(extension => extension.toLowerCase() === assetExtension)
                     ) &&
                     query.negativeExtensions.every(
                         extensionSet =>
-                            !extensionSet.some(extension => extension === assetExtension)
+                            !extensionSet.some(
+                                extension => extension.toLowerCase() === assetExtension
+                            )
                     ) &&
                     query.descriptions.every(descriptionSet =>
                         descriptionSet.some(description =>
@@ -497,10 +555,10 @@ export default function AssetsTable(props: AssetsTableProps) {
             node: assetTreeNode.AssetTreeNode,
             key: assetQuery.AssetQueryKey = 'names'
         ): assetSearchBar.Suggestion => ({
-            render: () => node.item.title,
+            render: () => `${key === 'names' ? '' : '-:'}${node.item.title}`,
             newQuery: oldQuery => oldQuery.add({ [key]: [[node.item.title]] }),
         })
-        const allVisible = (negative = false) =>
+        const allVisibleNodes = () =>
             assetTreeNode
                 .assetTreePreorderTraversal(assetTree, children =>
                     children.filter(
@@ -513,12 +571,16 @@ export default function AssetsTable(props: AssetsTableProps) {
                         node.item.type !== backendModule.AssetType.specialEmpty &&
                         node.item.type !== backendModule.AssetType.specialLoading
                 )
-                .map(node => nodeToSuggestion(node, negative ? 'negativeNames' : 'names'))
+        const allVisible = (negative = false) =>
+            allVisibleNodes().map(node =>
+                nodeToSuggestion(node, negative ? 'negativeNames' : 'names')
+            )
         const terms = assetQuery.AssetQuery.terms(query.query)
         const lastTerm = terms[terms.length - 1]
         const lastTermValues = lastTerm?.values ?? []
+        const shouldOmitNames = terms.some(term => term.tag === 'name')
         if (lastTermValues.length !== 0) {
-            setSuggestions(allVisible())
+            setSuggestions(shouldOmitNames ? [] : allVisible())
         } else {
             const negative = lastTerm?.tag?.startsWith('-') ?? false
             switch (lastTerm?.tag) {
@@ -528,6 +590,110 @@ export default function AssetsTable(props: AssetsTableProps) {
                 case 'name':
                 case '-name': {
                     setSuggestions(allVisible(negative))
+                    break
+                }
+                case 'no':
+                case '-has': {
+                    setSuggestions(SUGGESTIONS_FOR_NO)
+                    break
+                }
+                case 'has':
+                case '-no': {
+                    setSuggestions(SUGGESTIONS_FOR_HAS)
+                    break
+                }
+                case 'type': {
+                    setSuggestions(SUGGESTIONS_FOR_TYPE)
+                    break
+                }
+                case '-type': {
+                    setSuggestions(SUGGESTIONS_FOR_NEGATIVE_TYPE)
+                    break
+                }
+                case 'ext':
+                case '-ext':
+                case 'extension':
+                case '-extension': {
+                    const extensions = assetTreeNode
+                        .assetTreePreorderTraversal(assetTree)
+                        .filter(node => node.item.type === backendModule.AssetType.file)
+                        .map(node => fileInfo.fileExtension(node.item.title))
+                    setSuggestions(
+                        Array.from(
+                            new Set(extensions),
+                            (extension): assetSearchBar.Suggestion => ({
+                                render: () =>
+                                    assetQuery.AssetQuery.termToString({
+                                        tag: `${negative ? '-' : ''}extension`,
+                                        values: [extension],
+                                    }),
+                                newQuery: oldQuery =>
+                                    oldQuery.addToLastTerm(
+                                        negative
+                                            ? { negativeExtensions: [extension] }
+                                            : { extensions: [extension] }
+                                    ),
+                            })
+                        )
+                    )
+                    break
+                }
+                case 'modified':
+                case '-modified': {
+                    const modifieds = assetTreeNode
+                        .assetTreePreorderTraversal(assetTree)
+                        .map(node => {
+                            const date = new Date(node.item.modifiedAt)
+                            return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
+                        })
+                    setSuggestions(
+                        Array.from(
+                            new Set(['today', ...modifieds]),
+                            (modified): assetSearchBar.Suggestion => ({
+                                render: () =>
+                                    assetQuery.AssetQuery.termToString({
+                                        tag: `${negative ? '-' : ''}modified`,
+                                        values: [modified],
+                                    }),
+                                newQuery: oldQuery =>
+                                    oldQuery.addToLastTerm(
+                                        negative
+                                            ? { negativeModifieds: [modified] }
+                                            : { modifieds: [modified] }
+                                    ),
+                            })
+                        )
+                    )
+                    break
+                }
+                case 'owner':
+                case '-owner': {
+                    const owners = assetTreeNode
+                        .assetTreePreorderTraversal(assetTree)
+                        .flatMap(node =>
+                            (node.item.permissions ?? [])
+                                .filter(
+                                    permission =>
+                                        permission.permission === permissions.PermissionAction.own
+                                )
+                                .map(permission => permission.user.user_name)
+                        )
+                    setSuggestions(
+                        Array.from(
+                            new Set(owners),
+                            (owner): assetSearchBar.Suggestion => ({
+                                render: () =>
+                                    assetQuery.AssetQuery.termToString({
+                                        tag: `${negative ? '-' : ''}owner`,
+                                        values: [owner],
+                                    }),
+                                newQuery: oldQuery =>
+                                    oldQuery.addToLastTerm(
+                                        negative ? { negativeOwners: [owner] } : { owners: [owner] }
+                                    ),
+                            })
+                        )
+                    )
                     break
                 }
                 case 'label':
@@ -554,7 +720,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     break
                 }
                 default: {
-                    setSuggestions(allVisible())
+                    setSuggestions(shouldOmitNames ? [] : allVisible())
                     break
                 }
             }
