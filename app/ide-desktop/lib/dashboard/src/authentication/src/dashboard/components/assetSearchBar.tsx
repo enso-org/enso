@@ -111,6 +111,9 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                     setWasQueryModified(true)
                 }
             }
+            if (event.key === 'Escape') {
+                searchRef.current?.blur()
+            }
             // Allow `alt` key to be pressed in case it is being used to enter special characters.
             if (
                 !(event.target instanceof HTMLInputElement) &&
