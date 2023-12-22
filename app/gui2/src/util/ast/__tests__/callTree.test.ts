@@ -1,7 +1,12 @@
 import * as widgetCfg from '@/providers/widgetRegistry/configuration'
 import { makeArgument, makeMethod, makeModuleMethod } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
-import { Argument, ArgumentApplication, interpretCall } from '@/util/callTree'
+import {
+  ArgumentApplication,
+  ArgumentAst,
+  ArgumentPlaceholder,
+  interpretCall,
+} from '@/util/callTree'
 import { isSome } from '@/util/data/opt'
 import type { MethodCall } from 'shared/languageServerTypes'
 import { assert, expect, test } from 'vitest'
@@ -118,17 +123,17 @@ function printArgPattern(application: ArgumentApplication | Ast.Ast) {
   let current: ArgumentApplication['target'] = application
 
   while (current instanceof ArgumentApplication) {
-    const sigil = current.argument.isPlaceholder()
-      ? '?'
-      : current.appTree instanceof Ast.App && current.appTree.argumentName
-      ? '='
-      : '@'
+    const sigil =
+      current.argument instanceof ArgumentPlaceholder
+        ? '?'
+        : current.appTree instanceof Ast.App && current.appTree.argumentName
+        ? '='
+        : '@'
     parts.push(sigil + (current.argument.argInfo?.name ?? '_'))
     current = current.target
   }
-  if (current instanceof Argument) {
-    parts.push(`${current.isPlaceholder() ? '?' : '@'}${current.argInfo?.name}`)
-  }
+  if (current instanceof ArgumentPlaceholder) parts.push(`?${current.argInfo.name}`)
+  if (current instanceof ArgumentAst) parts.push(`@${current.argInfo?.name}`)
   return parts.reverse().join(' ')
 }
 
