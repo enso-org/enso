@@ -66,7 +66,7 @@ export class Uploader {
   ): Promise<Uploader> {
     const roots = await contentRoots
     const projectRootId = roots.find((root) => root.type == 'Project')
-    if (!projectRootId) throw new Error('Unable to find project root, uploading not possible.')
+    if (!projectRootId) throw new Error('Could not find project root, uploading not possible.')
     const instance = new Uploader(
       await rpc,
       await binary,
@@ -149,34 +149,39 @@ export class Uploader {
 
   private async ensureDataDirExists() {
     const exists = await this.dataDirExists()
-    if (!exists) {
-      await this.rpc.createFile({
-        type: 'Directory',
-        name: DATA_DIR_NAME,
-        path: { rootId: this.projectRootId, segments: [] },
-      })
-    }
+    if (exists) return
+    await this.rpc.createFile({
+      type: 'Directory',
+      name: DATA_DIR_NAME,
+      path: { rootId: this.projectRootId, segments: [] },
+    })
   }
 
   private async dataDirExists(): Promise<boolean> {
     try {
       const info = await this.rpc.fileInfo(this.dataDirPath())
       return info.attributes.kind.type == 'Directory'
-    } catch (err: any) {
-      if (err.cause && err.cause instanceof RemoteRpcError) {
-        if ([ErrorCode.FILE_NOT_FOUND, ErrorCode.CONTENT_ROOT_NOT_FOUND].includes(err.cause.code)) {
+    } catch (error) {
+      if (
+        typeof error === 'object' &&
+        error &&
+        'cause' in error &&
+        error.cause instanceof RemoteRpcError
+      ) {
+        if (
+          error.cause.code === ErrorCode.FILE_NOT_FOUND ||
+          error.cause.code === ErrorCode.CONTENT_ROOT_NOT_FOUND
+        )
           return false
-        }
       }
-      throw err
+      throw error
     }
   }
 
   private async pickUniqueName(suggestedName: string): Promise<string> {
     const files = await this.rpc.listFiles(this.dataDirPath())
     const existingNames = new Set(files.paths.map((path) => path.name))
-    const [stem, maybeExtension] = splitFilename(suggestedName)
-    const extension = maybeExtension ?? ''
+    const { stem, extension = '' } = splitFilename(suggestedName)
     let candidate = suggestedName
     let num = 1
     while (existingNames.has(candidate)) {
@@ -190,14 +195,12 @@ export class Uploader {
 /**
  * Split filename into stem and (optional) extension.
  */
-function splitFilename(filename: string): [string, string | null] {
-  const dotIndex = filename.lastIndexOf('.')
-
+function splitFilename(fileName: string): { stem: string; extension?: string } {
+  const dotIndex = fileName.lastIndexOf('.')
   if (dotIndex !== -1 && dotIndex !== 0) {
-    const stem = filename.substring(0, dotIndex)
-    const extension = filename.substring(dotIndex + 1)
-    return [stem, extension]
+    const stem = fileName.substring(0, dotIndex)
+    const extension = fileName.substring(dotIndex + 1)
+    return { stem, extension }
   }
-
-  return [filename, null]
+  return { stem: fileName }
 }

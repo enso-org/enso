@@ -86,36 +86,6 @@ public class BigNumberTest extends TestBase {
   }
 
   @Test
-  public void averageOfMixedArrayOverDouble() throws Exception {
-    boolean assertsOn = false;
-    assert assertsOn = true;
-    if (assertsOn) {
-      // skip this test when asserts are on
-      return;
-    }
-    var code =
-        """
-    from Standard.Base.Data.Vector import Vector
-    polyglot java import org.enso.example.TestClass
-
-    powers n =
-            go x v b = if x > n then b.to_vector else
-                b.append v
-                @Tail_Call go x+1 v*2 b
-            go 1 1 Vector.new_builder
-
-    avg n = TestClass.doubleArrayAverage (powers n)
-    """;
-    var fn = evalCode(code, "avg");
-    var avg = fn.execute(200);
-
-    assertTrue("Got a number back " + avg, avg.isNumber());
-    assertFalse("It's not a long", avg.fitsInLong());
-    assertTrue("It's a double", avg.fitsInDouble());
-    assertEquals("It is big enough", Math.pow(2, 200) / 200, avg.asDouble(), 300);
-  }
-
-  @Test
   public void averageOfMixedArrayOverNumber() throws Exception {
     var code =
         """

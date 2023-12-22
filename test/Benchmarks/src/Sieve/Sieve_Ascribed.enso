@@ -16,9 +16,9 @@ type Filter
     Item n:Integer next:Filter
     Head first:Filter set_last:Filter->Nothing
 
-    acceptAndAdd : Integer
-    acceptAndAdd self n =
-        iterate f = case f of
+    acceptAndAdd : Integer -> Filter
+    acceptAndAdd self (n:Integer) =
+        iterate (f : Filter) = case f of
             Filter.Item p next -> if n % p == 0 then False else
                 if p * p > n then True else @Tail_Call iterate next
             Filter.Empty -> True
@@ -36,7 +36,7 @@ type Filter
             Filter.Head _ _ -> if iterate self.first then appendN self self.set_last else [False, Nothing]
 
 type Primes
-    Alg generator filter
+    Alg (generator : Gen) (filter : Filter)
 
 Primes.next self = case self of
     Primes.Alg g f ->
@@ -49,8 +49,8 @@ Primes.last_prime self = case self of
     Primes.Alg g _ -> g.n - 1
 
 
-compute_nth_prime n =
-    loop p n = if n == 0 then p else
+compute_nth_prime (n : Integer) =
+    loop (p : Primes) (n : Integer) = if n == 0 then p else
         pn = p.next
         @Tail_Call loop pn n-1
     p = Primes.Alg natural Filter.Empty

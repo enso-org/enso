@@ -19,7 +19,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.enso.compiler.core.ir.Name;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.node.BaseNode.TailStatus;
 import org.enso.interpreter.node.EnsoRootNode;
@@ -49,11 +48,11 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.graalvm.collections.Pair;
 
 public abstract class ReadArgumentCheckNode extends Node {
-  private final String name;
+  private final String comment;
   @CompilerDirectives.CompilationFinal private String expectedTypeMessage;
 
-  ReadArgumentCheckNode(String name) {
-    this.name = name;
+  ReadArgumentCheckNode(String comment) {
+    this.comment = comment;
   }
 
   /** */
@@ -62,7 +61,7 @@ public abstract class ReadArgumentCheckNode extends Node {
   }
 
   /**
-   * Executes check or conversion of the value.abstract
+   * Executes check or conversion of the value.
    *
    * @param frame frame requesting the conversion
    * @param value the value to convert
@@ -89,12 +88,12 @@ public abstract class ReadArgumentCheckNode extends Node {
       expectedTypeMessage = expectedTypeMessage();
     }
     var ctx = EnsoContext.get(this);
-    var msg = name == null ? "expression" : name;
-    var err = ctx.getBuiltins().error().makeTypeError(expectedTypeMessage, v, msg);
+    var msg = comment == null ? "expression" : comment;
+    var err = ctx.getBuiltins().error().makeTypeErrorOfComment(expectedTypeMessage, v, msg);
     throw new PanicException(err, this);
   }
 
-  public static ReadArgumentCheckNode allOf(Name argumentName, ReadArgumentCheckNode... checks) {
+  public static ReadArgumentCheckNode allOf(String argumentName, ReadArgumentCheckNode... checks) {
     var list = Arrays.asList(checks);
     var flatten =
         list.stream()
@@ -105,27 +104,25 @@ public abstract class ReadArgumentCheckNode extends Node {
     return switch (arr.length) {
       case 0 -> null;
       case 1 -> arr[0];
-      default -> new AllOfNode(argumentName.name(), arr);
+      default -> new AllOfNode(argumentName, arr);
     };
   }
 
-  public static ReadArgumentCheckNode oneOf(Name argumentName, List<ReadArgumentCheckNode> checks) {
+  public static ReadArgumentCheckNode oneOf(String comment, List<ReadArgumentCheckNode> checks) {
     var arr = toArray(checks);
     return switch (arr.length) {
       case 0 -> null;
       case 1 -> arr[0];
-      default -> new OneOfNode(argumentName.name(), arr);
+      default -> new OneOfNode(comment, arr);
     };
   }
 
-  public static ReadArgumentCheckNode build(Name argumentName, Type expectedType) {
-    var n = argumentName == null ? null : argumentName.name();
-    return ReadArgumentCheckNodeFactory.TypeCheckNodeGen.create(n, expectedType);
+  public static ReadArgumentCheckNode build(String comment, Type expectedType) {
+    return ReadArgumentCheckNodeFactory.TypeCheckNodeGen.create(comment, expectedType);
   }
 
-  public static ReadArgumentCheckNode meta(Name argumentName, Object metaObject) {
-    var n = argumentName == null ? null : argumentName.name();
-    return ReadArgumentCheckNodeFactory.MetaCheckNodeGen.create(n, metaObject);
+  public static ReadArgumentCheckNode meta(String comment, Object metaObject) {
+    return ReadArgumentCheckNodeFactory.MetaCheckNodeGen.create(comment, metaObject);
   }
 
   public static boolean isWrappedThunk(Function fn) {

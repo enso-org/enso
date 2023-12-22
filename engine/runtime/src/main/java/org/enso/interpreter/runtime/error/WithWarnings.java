@@ -35,11 +35,12 @@ public final class WithWarnings implements EnsoObject {
    * @param maxWarnings maximal number of warnings allowed to be attached to the value
    * @param limitReached if `true`, indicates that `warnings` have already been limited for a
    *     custom-method, `false` otherwise
-   * @param warnings warnings to be attached to a value
+   * @param warnings non-empty warnings to be attached to a value
    */
   private WithWarnings(Object value, int maxWarnings, boolean limitReached, Warning... warnings) {
     assert !(value instanceof WithWarnings);
     this.warnings = createSetFromArray(maxWarnings, warnings);
+    assert this.warnings.size() > 0;
     this.value = value;
     this.limitReached = limitReached || this.warnings.size() >= maxWarnings;
     this.maxWarnings = maxWarnings;
@@ -69,6 +70,7 @@ public final class WithWarnings implements EnsoObject {
       Warning... additionalWarnings) {
     assert !(value instanceof WithWarnings);
     this.warnings = cloneSetAndAppend(maxWarnings, warnings, additionalWarnings);
+    assert this.warnings.size() > 0;
     this.value = value;
     this.limitReached = limitReached || this.warnings.size() >= maxWarnings;
     this.maxWarnings = maxWarnings;
@@ -168,7 +170,7 @@ public final class WithWarnings implements EnsoObject {
 
   @ExportMessage
   boolean hasWarnings() {
-    return warnings.size() > 0;
+    return true;
   }
 
   @ExportMessage

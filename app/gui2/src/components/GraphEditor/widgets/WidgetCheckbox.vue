@@ -1,13 +1,11 @@
 <script setup lang="ts">
 import CheckboxWidget from '@/components/widgets/CheckboxWidget.vue'
 import { AnyWidget, Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
-import { useGraphStore } from '@/stores/graph'
 import { Ast } from '@/util/ast'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 
-const graph = useGraphStore()
 const value = computed({
   get() {
     return props.input.ast?.code().endsWith('True') ?? false
@@ -16,7 +14,7 @@ const value = computed({
     if (props.input.ast == null) return // TODO[ao] set value on placeholder here.
     const node = getRawBoolNode(props.input.ast)
     if (node != null) {
-      graph.setExpressionContent(node.astId, value ? 'True' : 'False')
+      props.onUpdate(value ? 'True' : 'False', node.exprId)
     }
   },
 })

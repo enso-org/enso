@@ -2,8 +2,8 @@
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import ListWidget from '@/components/widgets/ListWidget.vue'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
+import { ForcePort } from '@/providers/portInfo'
 import { AnyWidget, Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
-import { useGraphStore } from '@/stores/graph'
 import { Ast, RawAst } from '@/util/ast'
 import { computed } from 'vue'
 
@@ -23,7 +23,6 @@ const defaultItem = computed(() => {
   }
 })
 
-const graph = useGraphStore()
 const value = computed({
   get() {
     if (props.input.ast == null) return []
@@ -32,10 +31,8 @@ const value = computed({
     )
   },
   set(value) {
-    // TODO[ao]: Handle placeholders instead of returning.
-    if (!props.input.ast) return
     const newCode = `[${value.map((item) => item.code()).join(', ')}]`
-    graph.setExpressionContent(props.input.ast.astId, newCode)
+    props.onUpdate(newCode, props.input.portId)
   },
 })
 
@@ -59,7 +56,7 @@ export const widgetDefinition = defineWidget(AnyWidget, {
   <ListWidget
     v-model="value"
     :default="() => defaultItem"
-    :getKey="(ast: Ast.Ast) => ast.astId"
+    :getKey="(ast: Ast.Ast) => ast.exprId"
     dragMimeType="application/x-enso-ast-node"
     :toPlainText="(ast: Ast.Ast) => ast.code()"
     :toDragPayload="(ast: Ast.Ast) => ast.serialize()"
@@ -69,15 +66,7 @@ export const widgetDefinition = defineWidget(AnyWidget, {
     contenteditable="false"
   >
     <template #default="{ item }">
-      <NodeWidget :input="new AnyWidget(item, itemConfig)" />
+      <NodeWidget :input="new ForcePort(AnyWidget.Ast(item, itemConfig))" />
     </template>
   </ListWidget>
 </template>
-
-<style scoped>
-.drag-preview {
-  position: fixed;
-  background-color: var(--node-color-primary);
-  border-radius: var(--node-border-radius);
-}
-</style>

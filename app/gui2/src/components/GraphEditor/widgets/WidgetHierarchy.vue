@@ -12,7 +12,7 @@ const children = computed(() => [...props.input.ast.children()])
 
 function transformChild(child: Ast.Ast | Ast.Token) {
   if (child instanceof Ast.Token) return child
-  const childInput = new AnyWidget(child)
+  const childInput = AnyWidget.Ast(child)
   if (props.input.ast instanceof Ast.PropertyAccess) {
     if (child === props.input.ast.lhs) {
       return new ForcePort(childInput)
@@ -35,32 +35,24 @@ export const widgetDefinition = defineWidget(AnyWidget.MatchAst, {
 </script>
 
 <template>
-  <span :class="['Tree', spanClass]"
-    ><NodeWidget
+  <div class="WidgetHierarchy" :class="spanClass">
+    <NodeWidget
       v-for="(child, index) in children"
-      :key="child.astId ?? index"
+      :key="child.exprId ?? index"
       :input="transformChild(child)"
     />
-  </span>
+  </div>
 </template>
 
 <style scoped>
-.Tree {
-  white-space: pre;
+.WidgetHierarchy {
+  display: flex;
+  flex-direction: row;
   align-items: center;
   transition: background 0.2s ease;
-  min-height: 24px;
-  display: inline-block;
 
   &.Literal {
     font-weight: bold;
-  }
-
-  &.port {
-    background-color: var(--node-color-port);
-    border-radius: var(--node-border-radius);
-    margin: -2px -4px;
-    padding: 2px 4px;
   }
 }
 </style>

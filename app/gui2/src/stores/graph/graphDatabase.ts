@@ -1,3 +1,4 @@
+import type { PortId } from '@/providers/portInfo'
 import { ComputedValueRegistry, type ExpressionInfo } from '@/stores/project/computedValueRegistry'
 import { SuggestionDb, groupColorStyle, type Group } from '@/stores/suggestionDatabase'
 import type { SuggestionEntry } from '@/stores/suggestionDatabase/entry'
@@ -137,7 +138,7 @@ export class GraphDb {
     // Display connection starting from existing node.
     //TODO[ao]: When implementing input nodes, they should be taken into account here.
     if (srcNode == null) return []
-    function* allTargets(db: GraphDb): Generator<[ExprId, ExprId]> {
+    function* allTargets(db: GraphDb): Generator<[ExprId, PortId]> {
       for (const usage of info.usages) {
         const targetNode = db.getExpressionNodeId(usage)
         // Display only connections to existing targets and different than source node
@@ -153,8 +154,8 @@ export class GraphDb {
     if (entry.pattern == null) return []
     const ports = new Set<ExprId>()
     entry.pattern.visitRecursive((ast) => {
-      if (this.bindings.bindings.has(ast.astId)) {
-        ports.add(ast.astId)
+      if (this.bindings.bindings.has(ast.exprId)) {
+        ports.add(ast.exprId)
         return false
       }
       return true
@@ -253,7 +254,7 @@ export class GraphDb {
     const currentNodeIds = new Set<ExprId>()
     for (const nodeAst of functionAst_.bodyExpressions()) {
       const newNode = nodeFromAst(nodeAst)
-      const nodeId = newNode.rootSpan.astId
+      const nodeId = newNode.rootSpan.exprId
       const node = this.nodeIdToNode.get(nodeId)
       const nodeMeta = getMeta(nodeId)
       currentNodeIds.add(nodeId)
@@ -312,7 +313,7 @@ export class GraphDb {
     return new GraphDb(db, ref([]), registry)
   }
 
-  mockNode(binding: string, id: ExprId, code?: string): Node {
+  mockNode(binding: string, id: Ast.AstId, code?: string): Node {
     const pattern = Ast.parse(binding)
     const node: Node = {
       outerExprId: id,
@@ -321,7 +322,7 @@ export class GraphDb {
       position: Vec2.Zero,
       vis: undefined,
     }
-    const bindingId = pattern.astId
+    const bindingId = pattern.exprId
     this.nodeIdToNode.set(id, node)
     this.bindings.bindings.set(bindingId, { identifier: binding, usages: new Set() })
     return node
@@ -329,7 +330,7 @@ export class GraphDb {
 }
 
 export interface Node {
-  outerExprId: ExprId
+  outerExprId: Ast.AstId
   pattern: Ast.Ast | undefined
   rootSpan: Ast.Ast
   position: Vec2
@@ -338,9 +339,9 @@ export interface Node {
 
 /** This should only be used for supplying as initial props when testing.
  * Please do {@link GraphDb.mockNode} with a `useGraphStore().db` after mount. */
-export function mockNode(exprId?: ExprId): Node {
+export function mockNode(exprId?: Ast.AstId): Node {
   return {
-    outerExprId: exprId ?? (random.uuidv4() as ExprId),
+    outerExprId: exprId ?? (random.uuidv4() as Ast.AstId),
     pattern: undefined,
     rootSpan: Ast.parse('0'),
     position: Vec2.Zero,

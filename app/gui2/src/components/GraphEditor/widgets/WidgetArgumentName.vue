@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { injectPortInfo } from '@/providers/portInfo'
-import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
-import { ApplicationKind, Argument } from '@/util/callTree'
+import { Score,defineWidget,widgetProps } from '@/providers/widgetRegistry'
+import { ApplicationKind,ArgumentAst,ArgumentPlaceholder } from '@/util/callTree'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
@@ -10,20 +10,22 @@ const props = defineProps(widgetProps(widgetDefinition))
 const portInfo = injectPortInfo(true)
 const showArgumentValue = computed(() => {
   return (
-    props.input.ast &&
-    (portInfo == null || !portInfo.connected || portInfo.portId !== props.input.ast.astId)
+    !(props.input instanceof  &&
+    (portInfo == null ||
+      !portInfo.connected ||
+      (portInfo.portId as string) !== (props.input.ast.exprId as string))
   )
 })
 
-const placeholder = computed(() => props.input.isPlaceholder())
+const placeholder = computed(() => props.input instanceof ArgumentPlaceholder || )
 const primary = computed(() => props.nesting < 2)
 </script>
 
 <script lang="ts">
-export const widgetDefinition = defineWidget(Argument, {
+export const widgetDefinition = defineWidget([ArgumentAst, ArgumentPlaceholder], {
   priority: 1000,
   score: (props) => {
-    const isPlaceholder = props.input.argInfo != null && props.input.isPlaceholder()
+    const isPlaceholder = props.input.argInfo != null && props.input instanceof ArgumentPlaceholder
     const isTopArg = props.nesting < 2 && props.input.kind === ApplicationKind.Prefix
     return isPlaceholder || isTopArg ? Score.Perfect : Score.Mismatch
   },
@@ -31,16 +33,22 @@ export const widgetDefinition = defineWidget(Argument, {
 </script>
 
 <template>
-  <span class="WidgetArgumentName" :class="{ placeholder, primary }">
+  <div class="WidgetArgumentName" :class="{ placeholder, primary }">
     <template v-if="showArgumentValue">
       <span class="value">{{ props.input.argInfo?.name }}</span
       ><NodeWidget :input="props.input" />
     </template>
-    <template v-else>{{ props.input.argInfo?.name }}</template>
-  </span>
+    <template v-else>{{ props.input.argInfo!.name }}</template>
+  </div>
 </template>
 
 <style scoped>
+.WidgetArgumentName {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
 .placeholder,
 .value {
   color: rgb(255 255 255 / 0.5);

@@ -1,4 +1,4 @@
-import type { ForcePort } from '@/providers/portInfo'
+import type { PortId } from '@/providers/portInfo'
 import { AnyWidget } from '@/providers/widgetRegistry'
 import type { WidgetConfiguration } from '@/providers/widgetRegistry/configuration'
 import * as widgetCfg from '@/providers/widgetRegistry/configuration'
@@ -12,39 +12,71 @@ export const enum ApplicationKind {
   Infix,
 }
 
-export class Argument {
+export class ArgumentPlaceholder {
   constructor(
+    public callId: string,
+    public index: number,
+    public argInfo: SuggestionEntryArgument,
     public kind: ApplicationKind,
-    public ast: Ast.Ast | undefined,
-    public index?: number | undefined,
-    public argInfo?: SuggestionEntryArgument | undefined,
+    public insertAsNamed: boolean,
     public dynamicConfig?: WidgetConfiguration | undefined,
   ) {}
 
   static WithRetrievedConfig(
+    callId: string,
+    index: number,
+    info: SuggestionEntryArgument,
     kind: ApplicationKind,
-    ast: Ast.Ast | undefined,
-    index: number | undefined,
-    info: SuggestionEntryArgument | undefined,
+    insertAsNamed: boolean,
     functionCallConfig: widgetCfg.FunctionCall | undefined,
   ) {
     const cfg =
       info != null ? functionCallConfig?.parameters.get(info.name) ?? undefined : undefined
-    return new Argument(kind, ast, index, info, cfg)
+    return new ArgumentPlaceholder(callId, index, info, kind, insertAsNamed, cfg)
   }
 
   toAnyWidget(): AnyWidget {
-    return new AnyWidget(this.ast, this.dynamicConfig, this.argInfo)
+    return new AnyWidget(this.portId, undefined, this.dynamicConfig, this.argInfo)
   }
 
-  isPlaceholder() {
-    return this.ast == null
+  get portId(): PortId {
+    return `${this.callId}[${this.index}]` as PortId
   }
 }
 
-type InterpretedCall = AnalyzedInfix | AnalyzedPrefix
+export class ArgumentAst {
+  constructor(
+    public ast: Ast.Ast,
+    public index: number | undefined,
+    public argInfo: SuggestionEntryArgument | undefined,
+    public kind: ApplicationKind,
+    public dynamicConfig?: WidgetConfiguration | undefined,
+  ) {}
 
-interface AnalyzedInfix {
+  static WithRetrievedConfig(
+    ast: Ast.Ast,
+    index: number | undefined,
+    info: SuggestionEntryArgument | undefined,
+    kind: ApplicationKind,
+    functionCallConfig: widgetCfg.FunctionCall | undefined,
+  ) {
+    const cfg =
+      info != null ? functionCallConfig?.parameters.get(info.name) ?? undefined : undefined
+    return new ArgumentAst(ast, index, info, kind, cfg)
+  }
+
+  toAnyWidget(): AnyWidget {
+    return new AnyWidget(this.portId, this.ast, this.dynamicConfig, this.argInfo)
+  }
+
+  get portId(): PortId {
+    return this.ast.exprId
+  }
+}
+
+type InterpretedCall = InterpretedInfix | InterpretedPrefix
+
+interface InterpretedInfix {
   kind: 'infix'
   appTree: Ast.OprApp
   operator: Ast.Token | undefined
@@ -52,7 +84,7 @@ interface AnalyzedInfix {
   rhs: Ast.Ast | undefined
 }
 
-interface AnalyzedPrefix {
+interface InterpretedPrefix {
   kind: 'prefix'
   func: Ast.Ast
   args: FoundApplication[]
@@ -107,23 +139,25 @@ interface CallInfo {
 export class ArgumentApplication {
   private constructor(
     public appTree: Ast.Ast | undefined,
-    public target: ArgumentApplication | Argument | Ast.Ast,
+    public target: ArgumentApplication | Ast.Ast | ArgumentPlaceholder | ArgumentAst,
     public infixOperator: Ast.Token | undefined,
-    public argument: Argument,
+    public argument: ArgumentAst | ArgumentPlaceholder,
   ) {}
 
-  private static FromInterpretedInfix(interpreted: AnalyzedInfix, callInfo: CallInfo) {
+  private static FromInterpretedInfix(interpreted: InterpretedInfix, callInfo: CallInfo) {
     // Access infixes are not real infix calls.
     if (isAccessOperator(interpreted.operator)) return interpreted.appTree
     const { suggestion, widgetCfg } = callInfo
 
     const kind = ApplicationKind.Infix
+    const callId = interpreted.appTree.exprId
+
     const argFor = (key: 'lhs' | 'rhs', index: number) => {
       const tree = interpreted[key]
       const info = tryGetIndex(suggestion?.arguments, index) ?? unknownArgInfoNamed(key)
       return tree != null
-        ? Argument.WithRetrievedConfig(kind, tree, index, info, widgetCfg)
-        : Argument.WithRetrievedConfig(kind, undefined, index, info, widgetCfg)
+        ? ArgumentAst.WithRetrievedConfig(tree, index, info, kind, widgetCfg)
+        : ArgumentPlaceholder.WithRetrievedConfig(callId, index, info, kind, false, widgetCfg)
     }
     return new ArgumentApplication(
       interpreted.appTree,
@@ -134,12 +168,13 @@ export class ArgumentApplication {
   }
 
   private static FromInterpretedPrefix(
-    interpreted: AnalyzedPrefix,
+    interpreted: InterpretedPrefix,
     callInfo: CallInfo,
     stripSelfArgument: boolean,
   ) {
     const { noArgsCall, appMethodCall, suggestion, widgetCfg } = callInfo
     const kind = ApplicationKind.Prefix
+    const callId = interpreted.func.exprId
 
     const knownArguments = suggestion?.arguments
     const notAppliedArguments = appMethodCall?.notAppliedArguments ?? []
@@ -165,29 +200,46 @@ export class ArgumentApplication {
 
     const prefixArgsToDisplay: Array<{
       appTree: Ast.Ast
-      argument: Argument
+      argument: ArgumentAst | ArgumentPlaceholder
     }> = []
 
     function insertPlaceholdersUpto(index: number, appTree: Ast.Ast) {
+      let canInsertPositional = true
       while (placeholdersToInsert[0] != null && placeholdersToInsert[0] < index) {
         const argIndex = placeholdersToInsert.shift()
         const argInfo = tryGetIndex(knownArguments, argIndex)
-        if (argIndex != null && argInfo != null)
+        if (argIndex != null && argInfo != null) {
           prefixArgsToDisplay.push({
             appTree,
-            argument: Argument.WithRetrievedConfig(kind, undefined, argIndex, argInfo, widgetCfg),
+            argument: ArgumentPlaceholder.WithRetrievedConfig(
+              callId,
+              argIndex,
+              argInfo,
+              ApplicationKind.Prefix,
+              !canInsertPositional,
+              widgetCfg,
+            ),
           })
+
+          canInsertPositional = false
+        }
       }
     }
 
     for (const realArg of interpreted.args) {
       if (realArg.argName == null) {
         const argIndex = argumentsLeftToMatch.shift()
-        if (argIndex != null) insertPlaceholdersUpto(argIndex, realArg.appTree)
+        if (argIndex != null) insertPlaceholdersUpto(argIndex, realArg.appTree.function)
         const info = tryGetIndex(knownArguments, argIndex)
         prefixArgsToDisplay.push({
           appTree: realArg.appTree,
-          argument: Argument.WithRetrievedConfig(kind, realArg.argument, argIndex, info, widgetCfg),
+          argument: ArgumentAst.WithRetrievedConfig(
+            realArg.argument,
+            argIndex,
+            info,
+            kind,
+            widgetCfg,
+          ),
         })
       } else {
         // When name is present, we need to find the argument with the same name in the list of
@@ -195,16 +247,26 @@ export class ArgumentApplication {
         const name = realArg.argName
         const foundIdx = argumentsLeftToMatch.findIndex((i) => knownArguments?.[i]?.name === name)
         const argIndex = foundIdx === -1 ? undefined : argumentsLeftToMatch.splice(foundIdx, 1)[0]
+
         if (argIndex != null && foundIdx === 0) insertPlaceholdersUpto(argIndex, realArg.appTree)
         const info = tryGetIndex(knownArguments, argIndex) ?? unknownArgInfoNamed(name)
+        if (argIndex != null && foundIdx === 0)
+          insertPlaceholdersUpto(argIndex, realArg.appTree.function)
         prefixArgsToDisplay.push({
           appTree: realArg.appTree,
-          argument: Argument.WithRetrievedConfig(kind, realArg.argument, argIndex, info, widgetCfg),
+          argument: ArgumentAst.WithRetrievedConfig(
+            realArg.argument,
+            argIndex,
+            info,
+            kind,
+            widgetCfg,
+          ),
         })
       }
     }
 
-    insertPlaceholdersUpto(Infinity, interpreted.func)
+    const outerApp = interpreted.args[interpreted.args.length - 1]?.appTree ?? interpreted.func
+    insertPlaceholdersUpto(Infinity, outerApp)
 
     return prefixArgsToDisplay.reduce(
       (target: ArgumentApplication | Ast.Ast, toDisplay) =>
@@ -222,6 +284,14 @@ export class ArgumentApplication {
       return ArgumentApplication.FromInterpretedInfix(interpreted, callInfo)
     } else {
       return ArgumentApplication.FromInterpretedPrefix(interpreted, callInfo, stripSelfArgument)
+    }
+  }
+
+  *iterApplications(): IterableIterator<ArgumentApplication> {
+    let current: typeof this.target = this
+    while (current instanceof ArgumentApplication) {
+      yield current
+      current = current.target
     }
   }
 }
@@ -243,11 +313,11 @@ function isAccessOperator(opr: Ast.Token | undefined): boolean {
 
 declare const ArgumentApplicationKey: unique symbol
 declare const ArgumentAstKey: unique symbol
-declare const ForcePortKey: unique symbol
+declare const ArgumentPlaceholderKey: unique symbol
 declare module '@/providers/widgetRegistry' {
   export interface WidgetInputTypes {
     [ArgumentApplicationKey]: ArgumentApplication
-    [ArgumentAstKey]: Argument
-    [ForcePortKey]: ForcePort
+    [ArgumentPlaceholderKey]: ArgumentPlaceholder
+    [ArgumentAstKey]: ArgumentAst
   }
 }

@@ -1,9 +1,10 @@
 import { createContextStore } from '@/providers'
+import type { PortId } from '@/providers/portInfo'
+import type { WidgetConfiguration } from '@/providers/widgetRegistry/configuration'
 import type { GraphDb } from '@/stores/graph/graphDatabase'
 import type { SuggestionEntryArgument } from '@/stores/suggestionDatabase/entry'
 import type { Ast } from '@/util/ast'
 import { computed, shallowReactive, type Component, type PropType } from 'vue'
-import type { WidgetConfiguration } from './widgetRegistry/configuration'
 
 export type WidgetComponent<T extends WidgetInput> = Component<WidgetProps<T>>
 
@@ -19,7 +20,10 @@ export type WidgetComponent<T extends WidgetInput> = Component<WidgetProps<T>>
  */
 export class AnyWidget {
   constructor(
-    /** Ast represented by widget. May be not defined if widget is a placeholder for
+    /** A port id to refer when updating changes */
+    public portId: PortId,
+    /**
+     * Ast represented by widget. May be not defined if widget is a placeholder for
      * not-yet-written argument
      */
     public ast: Ast.Ast | undefined,
@@ -28,6 +32,14 @@ export class AnyWidget {
     /** The information about argument of some function call, which this widget is setting (if any) */
     public argInfo?: SuggestionEntryArgument | undefined,
   ) {}
+
+  static Ast(
+    ast: Ast.Ast,
+    dynamicConfig?: WidgetConfiguration | undefined,
+    argInfo?: SuggestionEntryArgument | undefined,
+  ) {
+    return new AnyWidget(ast.exprId, ast, dynamicConfig, argInfo)
+  }
 
   isPlaceholder() {
     return this.ast == null
@@ -115,6 +127,10 @@ export function widgetProps<T extends WidgetInput>(_def: WidgetDefinition<T>) {
       required: true,
     },
     nesting: { type: Number, required: true },
+    onUpdate: {
+      type: Function as PropType<(value: unknown | undefined, origin: PortId) => void>,
+      required: true,
+    },
   } as const
 }
 

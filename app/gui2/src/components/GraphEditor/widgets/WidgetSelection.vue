@@ -6,13 +6,11 @@ import {
   functionCallConfiguration,
   type ArgumentWidgetConfiguration,
 } from '@/providers/widgetRegistry/configuration'
-import { useGraphStore } from '@/stores/graph'
-import { Argument } from '@/util/callTree'
+import { ArgumentAst, ArgumentPlaceholder } from '@/util/callTree'
 import { qnJoin, qnSegments, tryQualifiedName } from '@/util/qualifiedName'
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
-const graph = useGraphStore()
 
 interface Tag {
   label: string
@@ -47,16 +45,6 @@ const dynamicTags = computed<Tag[]>(() => {
 const tags = computed(() => (dynamicTags.value.length > 0 ? dynamicTags.value : staticTags.value))
 const tagLabels = computed(() => tags.value.map((tag) => tag.label))
 
-const rootElement = ref<HTMLElement>()
-const parentColor = ref<string>()
-
-onMounted(async () => {
-  await nextTick()
-  if (rootElement.value != null) {
-    parentColor.value = getComputedStyle(rootElement.value).getPropertyValue('--node-color-primary')
-  }
-})
-
 const selectedIndex = ref<number>()
 const selectedTag = computed(() =>
   selectedIndex.value != null ? tags.value[selectedIndex.value] : undefined,
@@ -65,40 +53,46 @@ const selectedValue = computed(() => {
   if (selectedTag.value == null) return props.input.argInfo?.defaultValue ?? ''
   return selectedTag.value.value ?? selectedTag.value.label
 })
-const selectedLabel = computed(() => {
-  if (selectedTag.value == null) return props.input.argInfo?.defaultValue ?? ''
-  return selectedTag.value.label
-})
 const innerWidgetInput = computed(() => {
   if (selectedTag.value == null) return props.input
   const parameters = selectedTag.value.parameters
   if (!parameters) return props.input
   const config = functionCallConfiguration(parameters)
   if (props.input instanceof AnyWidget)
-    return new AnyWidget(props.input.ast, config, props.input.argInfo)
-  else
-    return new Argument(
-      props.input.kind,
+    return new AnyWidget(props.input.portId, props.input.ast, config, props.input.argInfo)
+  else if (props.input instanceof ArgumentAst)
+    return new ArgumentAst(
       props.input.ast,
       props.input.index,
       props.input.argInfo,
+      props.input.kind,
+      config,
+    )
+  else
+    return new ArgumentPlaceholder(
+      props.input.callId,
+      props.input.index,
+      props.input.argInfo,
+      props.input.kind,
+      props.input.insertAsNamed,
       config,
     )
 })
 const showDropdownWidget = ref(false)
 
+function toggleDropdownWidget() {
+  showDropdownWidget.value = !showDropdownWidget.value
+}
+
 // When the selected index changes, we update the expression content.
 watch(selectedIndex, (_index) => {
-  // TODO: Handle the case for ArgumentPlaceholder once the AST has been updated,
-  const id = props.input.ast?.astId
-  const expression = selectedValue.value
-  if (id) graph.setExpressionContent(id, expression)
+  props.onUpdate(selectedValue.value, props.input.portId)
   showDropdownWidget.value = false
 })
 </script>
 
 <script lang="ts">
-export const widgetDefinition = defineWidget([AnyWidget, Argument], {
+export const widgetDefinition = defineWidget([AnyWidget, ArgumentAst, ArgumentPlaceholder], {
   priority: 999,
   score: (props) => {
     if (props.input.dynamicConfig?.kind === 'Single_Choice') return Score.Perfect
@@ -109,34 +103,23 @@ export const widgetDefinition = defineWidget([AnyWidget, Argument], {
 </script>
 
 <template>
-  <div ref="rootElement" class="WidgetRoot">
-    <span
-      class="SelectionWidgetArgumentValue"
-      @pointerdown="showDropdownWidget = !showDropdownWidget"
-    >
-      <NodeWidget :input="innerWidgetInput" />
-      <template v-if="props.input.isPlaceholder()">
-        <span class="SelectionWidgetArgumentValue"> {{ selectedValue }} </span>
-      </template>
-    </span>
-    <div class="SelectionWidgetSingleChoice">
-      <DropdownWidget
-        v-if="showDropdownWidget"
-        :color="parentColor ?? 'white'"
-        :values="tagLabels"
-        :selectedValue="selectedLabel"
-        @click="selectedIndex = $event"
-      />
-    </div>
+  <div class="WidgetSelection" @pointerdown="toggleDropdownWidget">
+    <NodeWidget :input="innerWidgetInput" />
+    <DropdownWidget
+      v-if="showDropdownWidget"
+      class="dropdownContainer"
+      :color="'var(--node-color-primary)'"
+      :values="tagLabels"
+      :selectedValue="selectedValue"
+      @pointerdown.stop
+      @click="selectedIndex = $event"
+    />
   </div>
 </template>
+
 <style scoped>
-.SelectionWidgetArgumentValue {
-  margin-left: 8px;
-}
-.SelectionWidgetSingleChoice {
-  position: absolute;
-  top: 100%;
-  margin-top: 4px;
+.WidgetSelection {
+  display: flex;
+  flex-direction: row;
 }
 </style>

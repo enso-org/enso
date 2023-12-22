@@ -1,20 +1,16 @@
 <script setup lang="ts">
 import SliderWidget from '@/components/widgets/SliderWidget.vue'
 import { AnyWidget, Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
-import { useGraphStore } from '@/stores/graph'
 import { Ast } from '@/util/ast'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
-const graph = useGraphStore()
 const value = computed({
   get() {
     return parseFloat(props.input.ast?.code() ?? '')
   },
   set(value) {
-    const id = props.input.ast?.astId
-    if (id) graph.setExpressionContent(id, value.toString())
-    // TODO[ao] set number on placeholder.
+    props.onUpdate(value.toString(), props.input.portId)
   },
 })
 </script>
