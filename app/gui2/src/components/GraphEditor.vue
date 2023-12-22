@@ -30,7 +30,8 @@ import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import * as set from 'lib0/set'
 import type { ExprId, NodeMetadata } from 'shared/yjsModel'
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { toast } from 'vue3-toastify'
 import { type Usage } from './ComponentBrowser/input'
 
 const EXECUTION_MODES = ['design', 'live']
@@ -49,6 +50,26 @@ const componentBrowserNodePosition = ref<Vec2>(Vec2.Zero)
 const componentBrowserUsage = ref<Usage>({ type: 'newNode' })
 const suggestionDb = useSuggestionDbStore()
 const interaction = provideInteractionHandler()
+
+function initStartupToast() {
+  const startupToast = toast.info('Initializing the project. This can take up to one minute.', {
+    autoClose: false,
+  })
+  projectStore.firstExecution.then(() => {
+    if (startupToast != null) {
+      toast.remove(startupToast)
+    }
+  })
+  onUnmounted(() => {
+    if (startupToast != null) {
+      toast.remove(startupToast)
+    }
+  })
+}
+
+onMounted(() => {
+  initStartupToast()
+})
 
 const nodeSelection = provideGraphSelection(graphNavigator, graphStore.nodeRects, {
   onSelected(id) {
@@ -424,6 +445,16 @@ async function retrieveDataFromClipboard(): Promise<ClipboardData | undefined> {
         const blob = await clipboardItem.getType(type)
         return JSON.parse(await blob.text())
       }
+
+      if (type === 'text/html') {
+        const blob = await clipboardItem.getType(type)
+        const htmlContent = await blob.text()
+        const excelPayload = await readNodeFromExcelClipboard(htmlContent, clipboardItem)
+        if (excelPayload) {
+          return excelPayload
+        }
+      }
+
       if (type === 'text/plain') {
         const blob = await clipboardItem.getType(type)
         const fallbackExpression = await blob.text()
@@ -455,6 +486,26 @@ async function readNodeFromClipboard() {
     copiedNode.expression,
     copiedNode.metadata,
   )
+}
+
+async function readNodeFromExcelClipboard(
+  htmlContent: string,
+  clipboardItem: ClipboardItem,
+): Promise<ClipboardData | undefined> {
+  // Check we have a valid HTML table
+  // If it is Excel, we should have a plain-text version of the table with tab separators.
+  if (
+    clipboardItem.types.includes('text/plain') &&
+    htmlContent.startsWith('<table ') &&
+    htmlContent.endsWith('</table>')
+  ) {
+    const textData = await clipboardItem.getType('text/plain')
+    const text = await textData.text()
+    const payload = JSON.stringify(text).replaceAll(/^"|"$/g, '').replaceAll("'", "\\'")
+    const expression = `'${payload}'.to Table`
+    return { nodes: [{ expression: expression, metadata: undefined }] } as ClipboardData
+  }
+  return undefined
 }
 
 function handleNodeOutputPortDoubleClick(id: ExprId) {
@@ -492,6 +543,14 @@ function handleEdgeDrop(source: ExprId, position: Vec2) {
     @dragover.prevent
     @drop.prevent="handleFileDrop($event)"
   >
+    <ToastContainer
+      position="top-center"
+      theme="light"
+      closeOnClick="false"
+      draggable="false"
+      toastClassName="text-sm leading-170 bg-frame-selected rounded-2xl backdrop-blur-3xl"
+      transition="Vue-Toastification__bounce"
+    />
     <div :style="{ transform: graphNavigator.transform }" class="htmlLayer">
       <GraphNodes
         @nodeOutputPortDoubleClick="handleNodeOutputPortDoubleClick"
@@ -514,7 +573,7 @@ function handleEdgeDrop(source: ExprId, position: Vec2) {
     />
     <TopBar
       v-model:mode="projectStore.executionMode"
-      :title="projectStore.name"
+      :title="projectStore.displayName"
       :modes="EXECUTION_MODES"
       :breadcrumbs="stackNavigator.breadcrumbLabels.value"
       :allowNavigationLeft="stackNavigator.allowNavigationLeft.value"

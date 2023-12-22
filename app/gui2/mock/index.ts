@@ -1,4 +1,4 @@
-import { provideGuiConfig } from '@/providers/guiConfig'
+import { provideGuiConfig, type GuiConfig } from '@/providers/guiConfig'
 import { provideWidgetRegistry } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
 import { GraphDb, mockNode } from '@/stores/graph/graphDatabase'
@@ -23,12 +23,24 @@ export function dataServer() {
 
 export function guiConfig(app: App) {
   return provideGuiConfig._mock(
-    ref({
+    ref<GuiConfig>({
       startup: {
         project: 'Mock Project',
         displayedProjectName: 'Mock Project',
       },
-      engine: { rpcUrl: 'mock://engine', dataUrl: 'mock://data' },
+      engine: {
+        rpcUrl: 'mock://engine',
+        dataUrl: 'mock://data',
+        namespace: 'local',
+        projectManagerUrl: '',
+      },
+      window: {
+        topBarOffset: 96,
+      },
+      authentication: {
+        enabled: true,
+        email: '',
+      },
     }),
     app,
   )
