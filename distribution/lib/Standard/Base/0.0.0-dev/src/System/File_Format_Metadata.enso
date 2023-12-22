@@ -1,7 +1,9 @@
 import project.Data.Numbers.Integer
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
+import project.Data.Vector.Vector
 import project.Nothing.Nothing
+import project.System.File.File
 
 ## PRIVATE
    A description of file metadata that may be used to detect or refine the file
@@ -34,7 +36,7 @@ type File_Format_Metadata
        A helper method that encapsulates the common logic of trying to interpret
        the content type.
     interpret_content_type : Content_Type_Metadata | Nothing
-    interpret_content_type = self.content_type.if_not_nothing <|
+    interpret_content_type self = self.content_type.if_not_nothing <|
         segments = self.content_type.split ";"
         if segments.length == 0 then Nothing else
             Content_Type_Metadata.Value segments
@@ -43,7 +45,7 @@ type File_Format_Metadata
        Uses the provided extension or if it is not present, tries to guess one
        based on the filename.
     guess_extension : Text | Nothing
-    guess_extension = self.extension.if_nothing <|
+    guess_extension self = self.extension.if_nothing <|
         self.name.if_not_nothing <|
             last_dot = self.name.last_index_of "."
             last_dot.if_not_nothing <|
@@ -59,19 +61,19 @@ type Content_Type_Metadata
 
     ## PRIVATE
     base_type : Text
-    base_type = self.segments.first
+    base_type self = self.segments.first
 
     ## PRIVATE
        Finds for a segment that starts with the given prefix.
     find_segment : Text -> Text | Nothing
-    find_segment name:Text =
+    find_segment self name:Text =
         found = self.segments.find if_missing=Nothing (x->x.starts_with prefix)
         found.if_not_nothing <| found.drop prefix.length
 
     ## PRIVATE
        Returns the name of the charset as reported by the content type.
     raw_charset : Text | Nothing
-    raw_charset = self.find_segment "charset="
+    raw_charset self = self.find_segment "charset="
 
     ## PRIVATE
        Returns an `Encoding` instance that represents the charset as reported by
@@ -81,7 +83,7 @@ type Content_Type_Metadata
        charset is not recognized. In that case this function will return
        `Nothing`.
     encoding : Encoding | Nothing
-    encoding =
+    encoding self =
         raw_charset = self.raw_charset
         raw_charset.if_not_nothing <|
             enc = Encoding.from_name raw_charset
