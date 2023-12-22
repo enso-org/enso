@@ -73,7 +73,17 @@ const innerWidgetInput = computed(() => {
   if (selectedTag.value == null) return props.input
   const parameters = selectedTag.value.parameters
   if (!parameters) return props.input
-  return new AnyWidget(props.input.ast, functionCallConfiguration(parameters), props.input.argInfo)
+  const config = functionCallConfiguration(parameters)
+  if (props.input instanceof AnyWidget)
+    return new AnyWidget(props.input.ast, config, props.input.argInfo)
+  else
+    return new Argument(
+      props.input.kind,
+      props.input.ast,
+      props.input.index,
+      props.input.argInfo,
+      config,
+    )
 })
 const showDropdownWidget = ref(false)
 
