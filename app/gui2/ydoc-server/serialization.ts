@@ -1,8 +1,8 @@
 /** Translation of `yjsModel` types to and from the `fileFormat` representation. */
 
-import * as fileFormat from './fileFormat'
-import { ExprId, IdMap } from '../shared/yjsModel'
 import * as json from 'lib0/json'
+import { ExprId, IdMap } from '../shared/yjsModel'
+import * as fileFormat from './fileFormat'
 
 export function deserializeIdMap(idMapJson: string) {
   const idMapMeta = fileFormat.tryParseIdMapOrFallback(idMapJson)

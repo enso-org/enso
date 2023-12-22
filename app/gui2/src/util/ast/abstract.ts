@@ -236,7 +236,10 @@ export abstract class Ast {
   }
 
   /** Parse the input as a block. */
-  static parseBlock(source: PrintedSource | string, inModule?: MutableModule | undefined): BodyBlock {
+  static parseBlock(
+    source: PrintedSource | string,
+    inModule?: MutableModule | undefined,
+  ): BodyBlock {
     const code = typeof source === 'object' ? source.code : source
     const ids = typeof source === 'object' ? source.info : undefined
     const tree = parseEnso(code)
@@ -294,7 +297,9 @@ export abstract class Ast {
         info.tokens.set(span, child.node.exprId)
         code += tokenCode
       } else {
-        code += module_.get(child.node)!.printSubtree(info, offset + code.length, indent, moduleOverride)
+        code += module_
+          .get(child.node)!
+          .printSubtree(info, offset + code.length, indent, moduleOverride)
       }
     }
     const span = nodeKey(offset, code.length, this.treeType)

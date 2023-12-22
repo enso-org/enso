@@ -20,8 +20,8 @@ import {
   translateVisualizationFromFile,
 } from './edits'
 import * as fileFormat from './fileFormat'
-import { WSSharedDoc } from './ydoc'
 import { deserializeIdMap } from './serialization'
+import { WSSharedDoc } from './ydoc'
 
 const SOURCE_DIR = 'src'
 const EXTENSION = '.enso'
