@@ -138,7 +138,7 @@ interface CallInfo {
 
 export class ArgumentApplication {
   private constructor(
-    public appTree: Ast.Ast | undefined,
+    public appTree: Ast.Ast,
     public target: ArgumentApplication | Ast.Ast | ArgumentPlaceholder | ArgumentAst,
     public infixOperator: Ast.Token | undefined,
     public argument: ArgumentAst | ArgumentPlaceholder,

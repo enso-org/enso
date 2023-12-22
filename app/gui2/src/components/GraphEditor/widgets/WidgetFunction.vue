@@ -12,7 +12,13 @@ import { useGraphStore } from '@/stores/graph'
 import { useProjectStore, type NodeVisualizationConfiguration } from '@/stores/project'
 import { assert, assertUnreachable } from '@/util/assert'
 import { Ast } from '@/util/ast'
-import { ArgumentApplication, getAccessOprSubject, interpretCall } from '@/util/callTree'
+import {
+  ArgumentApplication,
+  ArgumentAst,
+  ArgumentPlaceholder,
+  getAccessOprSubject,
+  interpretCall,
+} from '@/util/callTree'
 import type { Opt } from '@/util/data/opt'
 import type { ExprId } from 'shared/yjsModel'
 import { computed, proxyRefs, watch } from 'vue'
@@ -53,7 +59,7 @@ const application = computed(() => {
   )
   return application instanceof ArgumentApplication
     ? application
-    : new AnyWidget(application, props.input.dynamicConfig, props.input.argInfo)
+    : AnyWidget.Ast(application, props.input.dynamicConfig, props.input.argInfo)
 })
 
 const escapeString = (str: string): string => {
@@ -138,7 +144,7 @@ function handleArgUpdate(value: unknown, origin: PortId): boolean {
       /* Case: Inserting value to a placeholder. */
       const codeToInsert = value instanceof Ast.Ast ? value.repr() : value
       const argCode = argApp.argument.insertAsNamed
-        ? `${argApp.argument.info.name}=${codeToInsert}`
+        ? `${argApp.argument.argInfo.name}=${codeToInsert}`
         : codeToInsert
 
       // FIXME[#8367]: Create proper application AST instead of concatenating strings.
@@ -192,10 +198,10 @@ function handleArgUpdate(value: unknown, origin: PortId): boolean {
             if (
               innerApp.argument instanceof ArgumentAst &&
               innerApp.appTree.argumentName == null &&
-              innerApp.argument.info != null
+              innerApp.argument.argInfo != null
             ) {
               // Positional arguments following the deleted argument must all be rewritten to named.
-              newRepr = `${innerApp.argument.info.name}=${argRepr} ${newRepr.trimStart()}`
+              newRepr = `${innerApp.argument.argInfo.name}=${argRepr} ${newRepr.trimStart()}`
             } else {
               // All other arguments are copied as-is.
               newRepr = `${argRepr} ${newRepr.trimStart()}`

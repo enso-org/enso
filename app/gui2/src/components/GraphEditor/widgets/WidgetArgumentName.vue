@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { injectPortInfo } from '@/providers/portInfo'
-import { Score,defineWidget,widgetProps } from '@/providers/widgetRegistry'
-import { ApplicationKind,ArgumentAst,ArgumentPlaceholder } from '@/util/callTree'
+import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import { ApplicationKind, ArgumentAst, ArgumentPlaceholder } from '@/util/callTree'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
@@ -10,14 +10,14 @@ const props = defineProps(widgetProps(widgetDefinition))
 const portInfo = injectPortInfo(true)
 const showArgumentValue = computed(() => {
   return (
-    !(props.input instanceof  &&
+    props.input instanceof ArgumentAst &&
     (portInfo == null ||
       !portInfo.connected ||
       (portInfo.portId as string) !== (props.input.ast.exprId as string))
   )
 })
 
-const placeholder = computed(() => props.input instanceof ArgumentPlaceholder || )
+const placeholder = computed(() => props.input instanceof ArgumentPlaceholder)
 const primary = computed(() => props.nesting < 2)
 </script>
 
