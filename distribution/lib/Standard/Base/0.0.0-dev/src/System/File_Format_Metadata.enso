@@ -4,7 +4,8 @@ import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Nothing.Nothing
 import project.System.File.File
-from Standard.Base.System.File import find_extension_from_name
+from project.Data.Text.Extensions import all
+from project.System.File import find_extension_from_name
 
 ## PRIVATE
    A description of file metadata that may be used to detect or refine the file

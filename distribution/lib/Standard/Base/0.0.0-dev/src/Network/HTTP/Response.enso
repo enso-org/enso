@@ -5,6 +5,7 @@ import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
+import project.Data.Text.Text_Sub_Range.Text_Sub_Range
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Network.HTTP.Header.Header
@@ -173,7 +174,7 @@ resolve_file_metadata_for_response : Response -> File_Format_Metadata
 resolve_file_metadata_for_response response =
     uri_as_text = response.uri.to_text
     guessed_filename = filename_from_content_disposition response . if_nothing <|
-        last_path_segment = uri_as_text.split "/" . last
+        last_path_segment = uri_as_text.take (Text_Sub_Range.After_Last "/")
         ## Heuristic: If the last path segment contains a dot, it is likely a filename,
            otherwise it is too unlikely + lack of extension will not help our guessing anyway,
            so we can discard it.
