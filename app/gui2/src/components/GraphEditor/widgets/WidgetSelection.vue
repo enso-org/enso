@@ -2,13 +2,11 @@
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import DropdownWidget from '@/components/widgets/DropdownWidget.vue'
 import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
-import { useGraphStore } from '@/stores/graph'
 import { ArgumentAst, ArgumentPlaceholder } from '@/util/callTree'
 import { qnJoin, qnSegments, tryQualifiedName } from '@/util/qualifiedName'
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
-const graph = useGraphStore()
 
 /** Static selection entry, label and value are the same. */
 interface StaticTag {
@@ -58,33 +56,23 @@ const tagValues = computed(() => {
   return tags.value.map((tag) => (tag.kind == 'Static' ? tag.label : tag.value))
 })
 
-const rootElement = ref<HTMLElement>()
-const parentColor = ref<string>()
-
-onMounted(async () => {
-  await nextTick()
-  if (rootElement.value != null) {
-    parentColor.value = getComputedStyle(rootElement.value).getPropertyValue('--node-color-primary')
-  }
-})
-
 const selectedIndex = ref<number>()
 const selectedValue = computed(() => {
   if (selectedIndex.value == null) return props.input.info?.defaultValue ?? ''
   return tagValues.value[selectedIndex.value] ?? ''
 })
-const selectedLabel = computed(() => {
-  if (selectedIndex.value == null) return props.input.info?.defaultValue ?? ''
-  return tagLabels.value[selectedIndex.value] ?? ''
-})
 const showDropdownWidget = ref(false)
+
+function toggleDropdownWidget() {
+  showDropdownWidget.value = !showDropdownWidget.value
+}
 
 // When the selected index changes, we update the expression content.
 watch(selectedIndex, (_index) => {
   // TODO: Handle the case for ArgumentPlaceholder once the AST has been updated,
-  const id = props.input instanceof ArgumentAst ? props.input.ast.astId : undefined
+  const id = props.input instanceof ArgumentAst ? props.input.ast.exprId : undefined
   const expression = selectedValue.value ?? ''
-  if (id) graph.setExpressionContent(id, expression)
+  if (id) props.onUpdate(expression, id)
   showDropdownWidget.value = false
 })
 </script>
@@ -103,34 +91,23 @@ export const widgetDefinition = defineWidget([ArgumentPlaceholder, ArgumentAst],
 </script>
 
 <template>
-  <div ref="rootElement" class="WidgetRoot">
-    <span
-      class="SelectionWidgetArgumentValue"
-      @pointerdown="showDropdownWidget = !showDropdownWidget"
-    >
-      <NodeWidget :input="props.input" />
-      <template v-if="props.input instanceof ArgumentPlaceholder">
-        <span class="SelectionWidgetArgumentValue"> {{ selectedValue }} </span>
-      </template>
-    </span>
-    <div class="SelectionWidgetSingleChoice">
-      <DropdownWidget
-        v-if="showDropdownWidget"
-        :color="parentColor ?? 'white'"
-        :values="tagLabels"
-        :selectedValue="selectedLabel"
-        @click="selectedIndex = $event"
-      />
-    </div>
+  <div class="WidgetSelection" @pointerdown="toggleDropdownWidget">
+    <NodeWidget :input="props.input" />
+    <DropdownWidget
+      v-if="showDropdownWidget"
+      class="dropdownContainer"
+      :color="'var(--node-color-primary)'"
+      :values="tagLabels"
+      :selectedValue="selectedValue"
+      @pointerdown.stop
+      @click="selectedIndex = $event"
+    />
   </div>
 </template>
+
 <style scoped>
-.SelectionWidgetArgumentValue {
-  margin-left: 8px;
-}
-.SelectionWidgetSingleChoice {
-  position: absolute;
-  top: 100%;
-  margin-top: 4px;
+.WidgetSelection {
+  display: flex;
+  flex-direction: row;
 }
 </style>

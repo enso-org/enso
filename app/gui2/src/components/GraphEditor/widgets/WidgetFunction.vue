@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { injectFunctionInfo, provideFunctionInfo } from '@/providers/functionInfo'
+import type { PortId } from '@/providers/portInfo'
 import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { widgetConfigurationSchema } from '@/providers/widgetRegistry/configuration'
 import { useGraphStore } from '@/stores/graph'
 import { useProjectStore, type NodeVisualizationConfiguration } from '@/stores/project'
+import { assert, assertUnreachable } from '@/util/assert'
 import { Ast } from '@/util/ast'
-import { ArgumentApplication } from '@/util/callTree'
+import { ArgumentApplication, ArgumentAst, ArgumentPlaceholder } from '@/util/callTree'
 import type { Opt } from '@/util/data/opt'
 import type { ExprId } from 'shared/yjsModel'
 import { computed, proxyRefs } from 'vue'
@@ -17,15 +19,13 @@ const project = useProjectStore()
 
 provideFunctionInfo(
   proxyRefs({
-    callId: computed(() => props.input.astId),
+    callId: computed(() => props.input.exprId),
   }),
 )
 
 const methodCallInfo = computed(() => {
   const input: Ast.Ast = props.input
-  const astId = input.astId
-  if (astId == null) return null
-  return graph.db.getMethodCallInfo(astId)
+  return graph.db.getMethodCallInfo(input.exprId)
 })
 
 const interpreted = computed(() => {
@@ -33,14 +33,13 @@ const interpreted = computed(() => {
 })
 
 const application = computed(() => {
-  const analyzed = interpreted.value
-  if (!analyzed) return props.input
-  const noArgsCall =
-    analyzed.kind === 'prefix' ? graph.db.getMethodCall(analyzed.func.astId) : undefined
+  const call = interpreted.value
+  if (!call) return props.input
+  const noArgsCall = call.kind === 'prefix' ? graph.db.getMethodCall(call.func.exprId) : undefined
 
   const info = methodCallInfo.value
   return ArgumentApplication.FromInterpretedWithInfo(
-    analyzed,
+    call,
     noArgsCall,
     info?.methodCall,
     info?.suggestion,
@@ -54,19 +53,19 @@ const escapeString = (str: string): string => {
 }
 const makeArgsList = (args: string[]) => '[' + args.map(escapeString).join(', ') + ']'
 
-const selfArgumentAstId = computed<Opt<ExprId>>(() => {
+const selfArgumentExprId = computed<Opt<ExprId>>(() => {
   const analyzed = ArgumentApplication.Interpret(props.input, true)
   if (analyzed.kind === 'infix') {
-    return analyzed.lhs?.astId
+    return analyzed.lhs?.exprId
   } else {
-    return analyzed.args[0]?.argument.astId
+    return analyzed.args[0]?.argument.exprId
   }
 })
 
 const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => {
   const tree = props.input
-  const expressionId = selfArgumentAstId.value
-  const astId = tree.astId
+  const expressionId = selfArgumentExprId.value
+  const astId = tree.exprId
   if (astId == null || expressionId == null) return null
   const info = graph.db.getMethodCallInfo(astId)
   if (!info) return null
@@ -96,41 +95,134 @@ const widgetConfiguration = computed(() => {
       console.error('Unable to parse widget configuration.', data, parseResult.error)
     }
   }
-  return null
+  return undefined
 })
+
+/**
+ * Process an argument value update. Takes care of inserting assigned placeholder values, as well as
+ * handling deletions of arguments and rewriting the applications to named as appropriate.
+ *
+ * FIXME: This method has to be rewritten usign AST manipulation instead of string concatenation
+ * once AST updates are implemented. Depends on #8367
+ */
+function handleArgUpdate(value: unknown, origin: PortId): boolean {
+  const app = application.value
+  if (app instanceof ArgumentApplication) {
+    // Find the updated argument by matching origin port/expression with the appropriate argument.
+    // We are insterested only in updates at the top level of the argument AST. Updates from nested
+    // widgets do not need to be processed at the function application level.
+    const argApp = [...app.iterApplications()].find(
+      (app) => 'portId' in app.argument && app.argument.portId === origin,
+    )
+
+    // Perform appropriate AST update, either insertion or deletion.
+    if (value != null && argApp?.argument instanceof ArgumentPlaceholder) {
+      /* Case: Inserting value to a placeholder. */
+      const codeToInsert = value instanceof Ast.Ast ? value.repr() : value
+      const argCode = argApp.argument.insertAsNamed
+        ? `${argApp.argument.info.name}=${codeToInsert}`
+        : codeToInsert
+
+      // FIXME[#8367]: Create proper application AST instead of concatenating strings.
+      props.onUpdate(`${argApp.appTree.repr()} ${argCode}`, argApp.appTree.exprId)
+      return true
+    } else if (value == null && argApp?.argument instanceof ArgumentAst) {
+      /* Case: Removing existing argument. */
+
+      if (argApp.appTree instanceof Ast.App && argApp.appTree.argumentName != null) {
+        /* Case: Removing named prefix argument. */
+
+        // Named argument can always be removed immediately. Replace the whole application with its
+        // target, effectively removing the argument from the call.
+        props.onUpdate(argApp.appTree.function, argApp.appTree.exprId)
+        return true
+      } else if (value == null && argApp.appTree instanceof Ast.OprApp) {
+        /* Case: Removing infix application. */
+
+        // Infix application is removed as a whole. Only the target is kept.
+        if (argApp.appTree.lhs) {
+          props.onUpdate(argApp.appTree.lhs, argApp.appTree.exprId)
+        }
+        return true
+      } else if (argApp.appTree instanceof Ast.App && argApp.appTree.argumentName == null) {
+        /* Case: Removing positional prefix argument. */
+
+        // Since the update of this kind can affect following arguments, it is necessary to
+        // construct the new AST for the whole application in order to update it. Because we lack
+        // the ability to do AST manipulation directly, we are forced to do it by string operations.
+        // FIXME[#8367]: Edit application AST instead of concatenating strings.
+        let newRepr = ''
+
+        // Traverse the application chain, starting from the outermost application and going
+        // towards the innermost target.
+        for (let innerApp of app.iterApplications()) {
+          if (innerApp === argApp) {
+            // Found the application with the argument to remove. Skip the argument and use the
+            // application target's code. This is the final iteration of the loop.
+            newRepr = `${argApp.appTree.function.repr().trimEnd()} ${newRepr.trimStart()}`
+            // Perform the actual update, since we already have the whole new application code
+            // collected.
+            props.onUpdate(newRepr, app.appTree.exprId)
+            return true
+          } else {
+            // Process an argument to the right of the removed argument.
+            assert(innerApp.appTree instanceof Ast.App)
+            const argRepr = innerApp.appTree
+              .repr()
+              .substring(innerApp.appTree.function.repr().length)
+              .trim()
+            if (
+              innerApp.argument instanceof ArgumentAst &&
+              innerApp.appTree.argumentName == null &&
+              innerApp.argument.info != null
+            ) {
+              // Positional arguments following the deleted argument must all be rewritten to named.
+              newRepr = `${innerApp.argument.info.name}=${argRepr} ${newRepr.trimStart()}`
+            } else {
+              // All other arguments are copied as-is.
+              newRepr = `${argRepr} ${newRepr.trimStart()}`
+            }
+          }
+        }
+        assertUnreachable()
+      } else if (value == null && argApp.argument instanceof ArgumentPlaceholder) {
+        /* Case: Removing placeholder value. */
+        // Do nothing. The argument already doesn't exist, so there is nothing to update.
+        return true
+      } else {
+        // Any other case is handled by the default handler.
+        return false
+      }
+    }
+  }
+  return false
+}
 </script>
 <script lang="ts">
-export const widgetDefinition = defineWidget(
-  (ast) => ast instanceof Ast.App || ast instanceof Ast.Ident || ast instanceof Ast.OprApp,
-  {
-    priority: -10,
-    score: (props, db) => {
-      const ast = props.input
-      if (ast.astId == null) return Score.Mismatch
-      const prevFunctionState = injectFunctionInfo(true)
+export const widgetDefinition = defineWidget([Ast.App, Ast.Ident, Ast.OprApp], {
+  priority: -10,
+  score: (props, db) => {
+    const ast = props.input
+    if (ast.exprId == null) return Score.Mismatch
+    const prevFunctionState = injectFunctionInfo(true)
 
-      // It is possible to try to render the same function application twice, e.g. when detected an
-      // application with no arguments applied yet, but the application target is also an infix call.
-      // In that case, the reentrant call method info must be ignored to not create an infinite loop,
-      // and to resolve the infix call as its own application.
-      if (prevFunctionState?.callId === ast.astId) return Score.Mismatch
+    // It is possible to try to render the same function application twice, e.g. when detected an
+    // application with no arguments applied yet, but the application target is also an infix call.
+    // In that case, the reentrant call method info must be ignored to not create an infinite loop,
+    // and to resolve the infix call as its own application.
+    if (prevFunctionState?.callId === ast.exprId) return Score.Mismatch
 
-      if (ast instanceof Ast.App || ast instanceof Ast.OprApp) return Score.Perfect
+    if (ast instanceof Ast.App || ast instanceof Ast.OprApp) return Score.Perfect
 
-      const info = db.getMethodCallInfo(ast.astId)
-      if (
-        prevFunctionState != null &&
-        info?.staticallyApplied === true &&
-        ast instanceof Ast.Ident
-      ) {
-        return Score.Mismatch
-      }
-      return info != null ? Score.Perfect : Score.Mismatch
-    },
+    const info = db.getMethodCallInfo(ast.exprId)
+    if (prevFunctionState != null && info?.staticallyApplied === true && ast instanceof Ast.Ident) {
+      return Score.Mismatch
+    }
+    return info != null ? Score.Perfect : Score.Mismatch
   },
-)
+})
 </script>
 
 <template>
-  <NodeWidget :input="application" :dynamicConfig="widgetConfiguration" />
+  <NodeWidget :input="application" :dynamicConfig="widgetConfiguration" @update="handleArgUpdate" />
 </template>

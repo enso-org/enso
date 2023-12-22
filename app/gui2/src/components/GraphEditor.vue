@@ -551,15 +551,16 @@ function handleEdgeDrop(source: ExprId, position: Vec2) {
       toastClassName="text-sm leading-170 bg-frame-selected rounded-2xl backdrop-blur-3xl"
       transition="Vue-Toastification__bounce"
     />
-    <svg :viewBox="graphNavigator.viewBox">
-      <GraphEdges @createNodeFromEdge="handleEdgeDrop" />
-    </svg>
     <div :style="{ transform: graphNavigator.transform }" class="htmlLayer">
       <GraphNodes
         @nodeOutputPortDoubleClick="handleNodeOutputPortDoubleClick"
         @nodeDoubleClick="(id) => stackNavigator.enterNode(id)"
       />
     </div>
+    <svg :viewBox="graphNavigator.viewBox" class="svgBackdropLayer">
+      <GraphEdges @createNodeFromEdge="handleEdgeDrop" />
+    </svg>
+
     <ComponentBrowser
       v-if="componentBrowserVisible"
       ref="componentBrowser"
@@ -601,10 +602,11 @@ function handleEdgeDrop(source: ExprId, position: Vec2) {
   --node-color-no-type: #596b81;
 }
 
-svg {
+.svgBackdropLayer {
   position: absolute;
   top: 0;
   left: 0;
+  z-index: -1;
 }
 
 .htmlLayer {

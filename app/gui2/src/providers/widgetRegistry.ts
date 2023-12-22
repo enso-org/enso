@@ -1,4 +1,5 @@
 import { createContextStore } from '@/providers'
+import type { PortId } from '@/providers/portInfo'
 import { type WidgetConfiguration } from '@/providers/widgetRegistry/configuration'
 import type { GraphDb } from '@/stores/graph/graphDatabase'
 import { computed, shallowReactive, type Component, type PropType } from 'vue'
@@ -77,6 +78,10 @@ export function widgetProps<T extends WidgetInput>(_def: WidgetDefinition<T>) {
     },
     config: { type: Object as PropType<WidgetConfiguration | undefined>, required: false },
     nesting: { type: Number, required: true },
+    onUpdate: {
+      type: Function as PropType<(value: unknown | undefined, origin: PortId) => void>,
+      required: true,
+    },
   } as const
 }
 

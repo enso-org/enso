@@ -8,6 +8,8 @@ import {
   effectScope,
   isRef,
   queuePostFlushCb,
+  shallowRef,
+  watch,
   type Ref,
   type WatchSource,
 } from 'vue'
@@ -95,4 +97,38 @@ export class LazySyncEffectSet {
   stop() {
     this._scope.stop()
   }
+}
+
+function defaultEquality(a: unknown, b: unknown): boolean {
+  return a === b
+}
+
+/**
+ * Create a ref that is updated whenever the given function's return value changes. Similar to
+ * `computed`, but differs in significant ways:
+ * - The dependencies of the `getter` will not be propagated to any effects that access the result.
+ * - The `getter` will run even if the ref is not actively observed by any effects (i.e. it is
+ * effectively an **always-active watcher**),
+ * - The `ref` will only be updated only when the derived value actually changed (as determined by
+ *   the `equalFn` equality test).
+ *
+ * This is most useful for derived values that are accessed often and recompute frequently, but the
+ * actual derived result changes very rarely. When in doubt, use `computed` instead.
+ */
+export function cachedGetter<T>(
+  getter: () => T,
+  equalFn: (a: T, b: T) => boolean = defaultEquality,
+): Ref<T> {
+  const valueRef = shallowRef<T>()
+  watch(
+    getter,
+    (newValue) => {
+      const oldValue = valueRef.value
+      if (oldValue === undefined || !equalFn(oldValue, newValue)) valueRef.value = newValue
+    },
+    { immediate: true, flush: 'sync' },
+  )
+
+  // Since the watch is immediate, the value is guaranteed to be assigned at least once this point.
+  return valueRef as Ref<T>
 }
