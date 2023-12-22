@@ -5,6 +5,7 @@ import type { Opt } from '@/util/data/opt'
 import { Err, Ok, type Result } from '@/util/data/result'
 import type { LazyObject } from '@/util/parserSupport'
 import { unsafeEntries } from '@/util/record'
+import * as map from 'lib0/map'
 import * as random from 'lib0/random'
 import { reactive } from 'vue'
 import type { ExprId, SourceRange } from '../../../shared/yjsModel'
@@ -199,10 +200,6 @@ export abstract class Ast {
     return module.get(root)!
   }
 
-  get astId(): AstId {
-    return this.exprId
-  }
-
   /** Return this node's span, if it belongs to a module with an associated span map. */
   get span(): SourceRange | undefined {
     const spans = this.module.raw.spans
@@ -301,12 +298,8 @@ export abstract class Ast {
       }
     }
     const span = nodeKey(offset, code.length, this.treeType)
-    const infos = info.nodes.get(span)
-    if (infos == null) {
-      info.nodes.set(span, [this.exprId])
-    } else {
-      infos.unshift(this.exprId)
-    }
+    const infos = map.setIfUndefined(info.nodes, span, (): AstId[] => [])
+    infos.unshift(this.exprId)
     return code
   }
 }

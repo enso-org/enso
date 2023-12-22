@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Data.Enso_Cloud.Utils as Cloud_Utils
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Errors.Unimplemented.Unimplemented
@@ -23,7 +24,7 @@ polyglot java import java.sql.DatabaseMetaData
 polyglot java import java.sql.PreparedStatement
 polyglot java import java.sql.SQLException
 polyglot java import java.sql.SQLTimeoutException
-polyglot java import org.enso.base.enso_cloud.EnsoKeyValuePair
+polyglot java import org.graalvm.collections.Pair as Java_Pair
 polyglot java import org.enso.database.dryrun.OperationSynchronizer
 polyglot java import org.enso.database.JDBCProxy
 
@@ -259,10 +260,8 @@ type JDBC_Connection
    - properties: A vector of properties for the connection.
 create : Text -> Vector -> JDBC_Connection
 create url properties = handle_sql_errors <|
-    java_props = properties.map pair-> case pair.second of
-        Nothing -> EnsoKeyValuePair.ofNothing pair.first
-        _ : Enso_Secret -> EnsoKeyValuePair.ofSecret pair.first pair.second.id
-        _ : Text -> EnsoKeyValuePair.ofText pair.first pair.second
+    java_props = properties.map pair->
+        Java_Pair.create pair.first (Cloud_Utils.as_hideable_value pair.second)
     java_connection = JDBCProxy.getConnection url java_props
 
     resource = Managed_Resource.register java_connection close_connection

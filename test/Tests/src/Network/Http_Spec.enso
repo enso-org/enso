@@ -9,7 +9,6 @@ import Standard.Base.Network.HTTP.Response.Response
 import Standard.Base.Network.HTTP.Request_Body.Request_Body
 import Standard.Base.Network.HTTP.Request_Error
 import Standard.Base.Network.Proxy.Proxy
-import Standard.Base.Network.URI_With_Query.URI_With_Query
 import Standard.Base.Runtime.Context
 from Standard.Base.Network.HTTP import resolve_headers
 
@@ -368,14 +367,13 @@ spec =
             r3.catch.should_be_a HTTP_Error.Status_Error
             r3.catch.status_code.code . should_equal 400
 
-            # Also test the URI_With_Query variant
+            # Also ensure it works when arguments were added
             uri4 = uri2.add_query_argument "a" "b" . add_query_argument "c" "d"
-            uri4.should_be_a URI_With_Query
+            uri4.should_be_a URI
             r4 = uri4.fetch
             r4.should_fail_with HTTP_Error
             r4.catch.should_be_a HTTP_Error.Status_Error
             r4.catch.status_code.code . should_equal 404
-            # The error may not necessarily store the URI_With_Query but a raw URI:
             r4.catch.uri . should_equal (URI.from uri4)
 
         Test.specify "Cannot perform POST when output context is disabled" <|

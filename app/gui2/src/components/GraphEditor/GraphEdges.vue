@@ -3,9 +3,11 @@ import GraphEdge from '@/components/GraphEditor/GraphEdge.vue'
 import type { GraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
+import type { PortId } from '@/providers/portInfo'
 import { useGraphStore } from '@/stores/graph'
+import { Ast } from '@/util/ast'
 import { Vec2 } from '@/util/data/vec2'
-import type { ExprId } from 'shared/yjsModel'
+import { isUuid, type ExprId } from 'shared/yjsModel.ts'
 
 const graph = useGraphStore()
 const selection = injectGraphSelection(true)
@@ -27,7 +29,7 @@ const editingEdge: Interaction = {
     if (graph.unconnectedEdge == null) return false
     const source = graph.unconnectedEdge.source ?? selection?.hoveredNode
     const target = graph.unconnectedEdge.target ?? selection?.hoveredPort
-    const targetNode = target && graph.db.getExpressionNodeId(target)
+    const targetNode = target && graph.getPortNodeId(target)
     graph.transact(() => {
       if (source != null && source != targetNode) {
         if (target == null) {
@@ -43,18 +45,34 @@ const editingEdge: Interaction = {
     return true
   },
 }
+
 interaction.setWhen(() => graph.unconnectedEdge != null, editingEdge)
 
-function disconnectEdge(target: ExprId) {
-  graph.setExpressionContent(target, '_')
+function disconnectEdge(target: PortId) {
+  if (!graph.updatePortValue(target, undefined)) {
+    const targetStr: string = target
+    if (isUuid(targetStr)) {
+      console.warn(`Failed to disconnect edge from port ${target}, falling back to direct edit.`)
+      graph.setExpressionContent(targetStr as ExprId, '_')
+    } else {
+      console.error(`Failed to disconnect edge from port ${target}, no fallback possible.`)
+    }
+  }
 }
 
-function createEdge(source: ExprId, target: ExprId) {
+function createEdge(source: ExprId, target: PortId) {
   const ident = graph.db.getOutputPortIdentifier(source)
   if (ident == null) return
-  // TODO: Check alias analysis to see if the binding is shadowed.
-  graph.setExpressionContent(target, ident)
-  // TODO: Use alias analysis to ensure declarations are in a dependency order.
+  const identAst = Ast.parse(ident)
+  if (!graph.updatePortValue(target, identAst)) {
+    const targetStr: string = target
+    if (isUuid(targetStr)) {
+      console.warn(`Failed to connect edge to port ${target}, falling back to direct edit.`)
+      graph.setExpressionContent(targetStr as ExprId, ident)
+    } else {
+      console.error(`Failed to connect edge to port ${target}, no fallback possible.`)
+    }
+  }
 }
 </script>
 

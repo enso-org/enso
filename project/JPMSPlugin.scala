@@ -1,10 +1,5 @@
 import sbt.*
 import sbt.Keys.*
-import sbt.internal.inc.{CompileOutput, PlainVirtualFile}
-import sbt.util.CacheStore
-import sbtassembly.Assembly.{Dependency, JarEntry, Project}
-import sbtassembly.{CustomMergeStrategy, MergeStrategy}
-import xsbti.compile.IncToolOptionsUtil
 
 import java.io.File
 
@@ -50,10 +45,6 @@ object JPMSPlugin extends AutoPlugin {
         |""".stripMargin
     )
     val compileModuleInfo = taskKey[Unit]("Compile module-info.java")
-    val modulePathTestOptions_ = taskKey[Seq[String]](
-      "Assembles options for the JVM for running tests with all the required modules. " +
-      "Including truffle-compiler and org.enso.runtime modules and all their dependencies."
-    )
   }
 
   import autoImport.*
