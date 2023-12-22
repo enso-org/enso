@@ -23,11 +23,11 @@ function interpolateRegex(regex: RegExp) {
 export type AssetQueryKey = Exclude<keyof AssetQuery & `${string}s`, 'withUpdates'>
 
 /** An {@link AssetQuery}, without the query and methods. */
-interface AssetQueryData extends Record<AssetQueryKey, string[][]> {}
+export interface AssetQueryData extends Record<AssetQueryKey, string[][]> {}
 
 /** An {@link AssetQuery}, without the query and methods, and with all the values being `string[]`s
  * instead of `string[][]`s, representing the last term rather than all terms. */
-interface AssetQueryLastTermData extends Record<AssetQueryKey, string[]> {}
+export interface AssetQueryLastTermData extends Record<AssetQueryKey, string[]> {}
 
 /** An individual segment of a query string input to {@link AssetQuery}. */
 interface AssetQueryTerm {

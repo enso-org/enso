@@ -13,8 +13,8 @@ import Label from './label'
 /** A suggested query based on */
 export interface Suggestion {
     render: () => React.ReactNode
-    // eslint-disable-next-line no-restricted-syntax
-    newQuery: (query: assetQuery.AssetQuery) => assetQuery.AssetQuery
+    addToQuery: (query: assetQuery.AssetQuery) => assetQuery.AssetQuery
+    deleteFromQuery: (query: assetQuery.AssetQuery) => assetQuery.AssetQuery
 }
 
 /** Props for a {@link AssetSearchBar}. */
@@ -33,6 +33,9 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
     const baseQuery = React.useRef(query)
     const [suggestions, setSuggestions] = React.useState(rawSuggestions)
     const suggestionsRef = React.useRef(rawSuggestions)
+    const [selectedIndices, setSelectedIndices] = React.useState<ReadonlySet<number>>(
+        new Set<number>()
+    )
     const [selectedIndex, setSelectedIndex] = React.useState<number | null>(null)
     const [areSuggestionsVisible, setAreSuggestionsVisible] = React.useState(false)
     const areSuggestionsVisibleRef = React.useRef(areSuggestionsVisible)
@@ -69,7 +72,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
         if (wasQueryModified) {
             const suggestion = selectedIndex == null ? null : suggestions[selectedIndex]
             if (suggestion != null) {
-                newQuery = suggestion.newQuery(baseQuery.current)
+                newQuery = suggestion.addToQuery(baseQuery.current)
                 setQuery(newQuery)
             }
             searchRef.current?.focus()
@@ -273,15 +276,34 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                                     }}
                                     tabIndex={-1}
                                     className={`cursor-pointer px-2 py-1 mx-1 rounded-2xl text-left hover:bg-frame-selected last:mb-1 transition-colors pointer-events-auto ${
-                                        index === selectedIndex ? 'bg-frame-selected' : ''
+                                        index === selectedIndex
+                                            ? 'bg-frame-selected'
+                                            : selectedIndices.has(index)
+                                            ? 'bg-frame'
+                                            : ''
                                     }`}
                                     onClick={event => {
                                         setWasQueryModified(true)
                                         setQuery(
-                                            suggestion.newQuery(
-                                                event.shiftKey ? query : baseQuery.current
-                                            )
+                                            selectedIndices.has(index)
+                                                ? suggestion.deleteFromQuery(
+                                                      event.shiftKey ? query : baseQuery.current
+                                                  )
+                                                : suggestion.addToQuery(
+                                                      event.shiftKey ? query : baseQuery.current
+                                                  )
                                         )
+                                        if (event.shiftKey) {
+                                            setSelectedIndices(
+                                                new Set(
+                                                    selectedIndices.has(index)
+                                                        ? [...selectedIndices].filter(
+                                                              otherIndex => otherIndex !== index
+                                                          )
+                                                        : [...selectedIndices, index]
+                                                )
+                                            )
+                                        }
                                     }}
                                 >
                                     {suggestion.render()}

@@ -81,53 +81,71 @@ const DIRECTORY_NAME_REGEX = /^New_Folder_(?<directoryIndex>\d+)$/
 const DIRECTORY_NAME_DEFAULT_PREFIX = 'New_Folder_'
 
 const SUGGESTIONS_FOR_NO: assetSearchBar.Suggestion[] = [
-    { render: () => 'no:label', newQuery: query => query.addToLastTerm({ nos: ['label'] }) },
+    {
+        render: () => 'no:label',
+        addToQuery: query => query.addToLastTerm({ nos: ['label'] }),
+        deleteFromQuery: query => query.deleteFromLastTerm({ nos: ['label'] }),
+    },
     {
         render: () => 'no:description',
-        newQuery: query => query.addToLastTerm({ nos: ['description'] }),
+        addToQuery: query => query.addToLastTerm({ nos: ['description'] }),
+        deleteFromQuery: query => query.deleteFromLastTerm({ nos: ['description'] }),
     },
 ]
 const SUGGESTIONS_FOR_HAS: assetSearchBar.Suggestion[] = [
     {
         render: () => 'has:label',
-        newQuery: query => query.addToLastTerm({ negativeNos: ['label'] }),
+        addToQuery: query => query.addToLastTerm({ negativeNos: ['label'] }),
+        deleteFromQuery: query => query.deleteFromLastTerm({ negativeNos: ['label'] }),
     },
     {
         render: () => 'has:description',
-        newQuery: query => query.addToLastTerm({ negativeNos: ['description'] }),
+        addToQuery: query => query.addToLastTerm({ negativeNos: ['description'] }),
+        deleteFromQuery: query => query.deleteFromLastTerm({ negativeNos: ['description'] }),
     },
 ]
 const SUGGESTIONS_FOR_TYPE: assetSearchBar.Suggestion[] = [
     {
         render: () => 'type:project',
-        newQuery: query => query.addToLastTerm({ types: ['project'] }),
+        addToQuery: query => query.addToLastTerm({ types: ['project'] }),
+        deleteFromQuery: query => query.deleteFromLastTerm({ types: ['project'] }),
     },
     {
         render: () => 'type:folder',
-        newQuery: query => query.addToLastTerm({ types: ['folder'] }),
+        addToQuery: query => query.addToLastTerm({ types: ['folder'] }),
+        deleteFromQuery: query => query.deleteFromLastTerm({ types: ['folder'] }),
     },
-    { render: () => 'type:file', newQuery: query => query.addToLastTerm({ types: ['file'] }) },
+    {
+        render: () => 'type:file',
+        addToQuery: query => query.addToLastTerm({ types: ['file'] }),
+        deleteFromQuery: query => query.deleteFromLastTerm({ types: ['file'] }),
+    },
     {
         render: () => 'type:connector',
-        newQuery: query => query.addToLastTerm({ types: ['connector'] }),
+        addToQuery: query => query.addToLastTerm({ types: ['connector'] }),
+        deleteFromQuery: query => query.deleteFromLastTerm({ types: ['connector'] }),
     },
 ]
 const SUGGESTIONS_FOR_NEGATIVE_TYPE: assetSearchBar.Suggestion[] = [
     {
         render: () => 'type:project',
-        newQuery: query => query.addToLastTerm({ negativeTypes: ['project'] }),
+        addToQuery: query => query.addToLastTerm({ negativeTypes: ['project'] }),
+        deleteFromQuery: query => query.deleteFromLastTerm({ negativeTypes: ['project'] }),
     },
     {
         render: () => 'type:folder',
-        newQuery: query => query.addToLastTerm({ negativeTypes: ['folder'] }),
+        addToQuery: query => query.addToLastTerm({ negativeTypes: ['folder'] }),
+        deleteFromQuery: query => query.deleteFromLastTerm({ negativeTypes: ['folder'] }),
     },
     {
         render: () => 'type:file',
-        newQuery: query => query.addToLastTerm({ negativeTypes: ['file'] }),
+        addToQuery: query => query.addToLastTerm({ negativeTypes: ['file'] }),
+        deleteFromQuery: query => query.deleteFromLastTerm({ negativeTypes: ['file'] }),
     },
     {
         render: () => 'type:connector',
-        newQuery: query => query.addToLastTerm({ negativeTypes: ['connector'] }),
+        addToQuery: query => query.addToLastTerm({ negativeTypes: ['connector'] }),
+        deleteFromQuery: query => query.deleteFromLastTerm({ negativeTypes: ['connector'] }),
     },
 ]
 
@@ -521,7 +539,8 @@ export default function AssetsTable(props: AssetsTableProps) {
             key: assetQuery.AssetQueryKey = 'names'
         ): assetSearchBar.Suggestion => ({
             render: () => `${key === 'names' ? '' : '-:'}${node.item.title}`,
-            newQuery: oldQuery => oldQuery.addToLastTerm({ [key]: [node.item.title] }),
+            addToQuery: oldQuery => oldQuery.addToLastTerm({ [key]: [node.item.title] }),
+            deleteFromQuery: oldQuery => oldQuery.deleteFromLastTerm({ [key]: [node.item.title] }),
         })
         const allVisibleNodes = () =>
             assetTreeNode
@@ -591,8 +610,14 @@ export default function AssetsTable(props: AssetsTableProps) {
                                         tag: `${negative ? '-' : ''}extension`,
                                         values: [extension],
                                     }),
-                                newQuery: oldQuery =>
+                                addToQuery: oldQuery =>
                                     oldQuery.addToLastTerm(
+                                        negative
+                                            ? { negativeExtensions: [extension] }
+                                            : { extensions: [extension] }
+                                    ),
+                                deleteFromQuery: oldQuery =>
+                                    oldQuery.deleteFromLastTerm(
                                         negative
                                             ? { negativeExtensions: [extension] }
                                             : { extensions: [extension] }
@@ -619,8 +644,14 @@ export default function AssetsTable(props: AssetsTableProps) {
                                         tag: `${negative ? '-' : ''}modified`,
                                         values: [modified],
                                     }),
-                                newQuery: oldQuery =>
+                                addToQuery: oldQuery =>
                                     oldQuery.addToLastTerm(
+                                        negative
+                                            ? { negativeModifieds: [modified] }
+                                            : { modifieds: [modified] }
+                                    ),
+                                deleteFromQuery: oldQuery =>
+                                    oldQuery.deleteFromLastTerm(
                                         negative
                                             ? { negativeModifieds: [modified] }
                                             : { modifieds: [modified] }
@@ -651,8 +682,12 @@ export default function AssetsTable(props: AssetsTableProps) {
                                         tag: `${negative ? '-' : ''}owner`,
                                         values: [owner],
                                     }),
-                                newQuery: oldQuery =>
+                                addToQuery: oldQuery =>
                                     oldQuery.addToLastTerm(
+                                        negative ? { negativeOwners: [owner] } : { owners: [owner] }
+                                    ),
+                                deleteFromQuery: oldQuery =>
+                                    oldQuery.deleteFromLastTerm(
                                         negative ? { negativeOwners: [owner] } : { owners: [owner] }
                                     ),
                             })
@@ -671,8 +706,14 @@ export default function AssetsTable(props: AssetsTableProps) {
                                         {label.value}
                                     </Label>
                                 ),
-                                newQuery: oldQuery =>
+                                addToQuery: oldQuery =>
                                     oldQuery.addToLastTerm(
+                                        negative
+                                            ? { negativeLabels: [label.value] }
+                                            : { labels: [label.value] }
+                                    ),
+                                deleteFromQuery: oldQuery =>
+                                    oldQuery.deleteFromLastTerm(
                                         negative
                                             ? { negativeLabels: [label.value] }
                                             : { labels: [label.value] }
