@@ -39,9 +39,9 @@ import ContextMenu from './contextMenu'
 import ContextMenus from './contextMenus'
 import DragModal from './dragModal'
 import GlobalContextMenu from './globalContextMenu'
+import Label from './label'
 import MenuEntry from './menuEntry'
 import Table from './table'
-import Label from './label'
 
 // =================
 // === Constants ===
@@ -500,13 +500,25 @@ export default function AssetsTable(props: AssetsTableProps) {
             render: () => node.item.title,
             newQuery: oldQuery => oldQuery.add({ [key]: [[node.item.title]] }),
         })
-        const allSuggestions = () =>
-            assetTreeNode.assetTreePreorderTraversal(assetTree).map(node => nodeToSuggestion(node))
+        const allVisible = (negative = false) =>
+            assetTreeNode
+                .assetTreePreorderTraversal(assetTree, children =>
+                    children.filter(
+                        child => visibilities.get(child.key) !== visibilityModule.Visibility.hidden
+                    )
+                )
+                .filter(
+                    node =>
+                        visibilities.get(node.key) === visibilityModule.Visibility.visible &&
+                        node.item.type !== backendModule.AssetType.specialEmpty &&
+                        node.item.type !== backendModule.AssetType.specialLoading
+                )
+                .map(node => nodeToSuggestion(node, negative ? 'negativeNames' : 'names'))
         const terms = assetQuery.AssetQuery.terms(query.query)
         const lastTerm = terms[terms.length - 1]
         const lastTermValues = lastTerm?.values ?? []
         if (lastTermValues.length !== 0) {
-            setSuggestions(allSuggestions())
+            setSuggestions(allVisible())
         } else {
             const negative = lastTerm?.tag?.startsWith('-') ?? false
             switch (lastTerm?.tag) {
@@ -515,26 +527,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 case '-':
                 case 'name':
                 case '-name': {
-                    setSuggestions(
-                        assetTreeNode
-                            .assetTreePreorderTraversal(assetTree, children =>
-                                children.filter(
-                                    child =>
-                                        visibilities.get(child.key) !==
-                                        visibilityModule.Visibility.hidden
-                                )
-                            )
-                            .filter(
-                                node =>
-                                    visibilities.get(node.key) ===
-                                        visibilityModule.Visibility.visible &&
-                                    node.item.type !== backendModule.AssetType.specialEmpty &&
-                                    node.item.type !== backendModule.AssetType.specialLoading
-                            )
-                            .map(node =>
-                                nodeToSuggestion(node, negative ? 'negativeNames' : 'names')
-                            )
-                    )
+                    setSuggestions(allVisible(negative))
                     break
                 }
                 case 'label':
@@ -561,7 +554,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     break
                 }
                 default: {
-                    setSuggestions(allSuggestions())
+                    setSuggestions(allVisible())
                     break
                 }
             }
