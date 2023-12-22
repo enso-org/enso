@@ -12,8 +12,8 @@ type SQLite_Format
 
     ## PRIVATE
        If the File_Format supports reading from the file, return a configured instance.
-    for_file_read : File_Format_Metadata -> SQLite_Format | Nothing
-    for_file_read file:File_Format_Metadata =
+    for_read : File_Format_Metadata -> SQLite_Format | Nothing
+    for_read file:File_Format_Metadata =
         expected_header = magic_header_string
         got_header = file.read_first_bytes expected_header.length
         if got_header == expected_header then SQLite_Format.For_File else

@@ -75,9 +75,7 @@ type Response
 
     ## Get the response content type.
     content_type : Text | Nothing
-    content_type self =
-        content_type_optional = self.internal_http_response.headers.firstValue "Content-Type"
-        if content_type_optional.isPresent then content_type_optional.get else Nothing
+    content_type self = self.get_header "Content-Type"
 
     ## GROUP Metadata
        Get the response content length in bytes.
@@ -85,10 +83,8 @@ type Response
        If the header is not present will return Nothing.
     content_length : Integer | Nothing
     content_length self =
-        content_length_optional = self.internal_http_response.headers.firstValue "Content-Length"
-        if content_length_optional.isPresent.not then Nothing else
-            length_text = content_length_optional.get
-            Integer.parse length_text
+        length_text = self.get_header "Content-Length"
+        length_text.if_not_nothing <| Integer.parse length_text
 
     ## Get the response body.
 
@@ -162,3 +158,9 @@ type Response
         type_pair = ["type", "Response"]
         cons_pair = ["constructor", "Value"]
         JS_Object.from_pairs [type_pair, cons_pair, ["headers", self.headers], ["body", self.body], ["code", self.code]]
+
+    ## PRIVATE
+    get_header : Text -> Text | Nothing
+    get_header self name:Text =
+        java_optional = self.internal_http_response.headers.firstValue name
+        if java_optional.isPresent then java_optional.get else Nothing

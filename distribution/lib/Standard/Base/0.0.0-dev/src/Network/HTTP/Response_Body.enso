@@ -121,6 +121,7 @@ type Response_Body
             Auto_Detect ->
                 content_type = self.content_type
                 content_type_format = if content_type.is_nothing then Nothing else
+                    # TODO use get_reading_format
                     Auto_Detect.get_web_parser content_type (self.uri.to_text)
                 if content_type_format.is_nothing then if_unsupported else self.decode content_type_format
             _ ->

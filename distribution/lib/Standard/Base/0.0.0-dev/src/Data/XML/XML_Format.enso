@@ -13,8 +13,8 @@ from project.Data.Text.Extensions import all
 type XML_Format
     ## PRIVATE
        If the File_Format supports reading from the file, return a configured instance.
-    for_file_read : File_Format_Metadata -> XML_Format | Nothing
-    for_file_read file:File_Format_Metadata =
+    for_read : File_Format_Metadata -> XML_Format | Nothing
+    for_read file:File_Format_Metadata =
         case file.extension of
             ".xml" -> XML_Format
             _ -> Nothing

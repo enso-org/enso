@@ -221,4 +221,4 @@ type S3_File
                 sub_folders + files
 
 ## PRIVATE
-File_Format_Metadata.from (that:S3_File) = File_Format_Metadata.Value that.uri that.name that.extension
+File_Format_Metadata.from (that:S3_File) = File_Format_Metadata.Value that.uri that.name (that.extension.catch _->Nothing)

@@ -218,4 +218,4 @@ Enso_Asset_Type.from (that:Text) = case that of
     _ -> Error.throw (Illegal_Argument.Error "Invalid asset type.")
 
 ## PRIVATE
-File_Format_Metadata.from (that:Enso_File) = File_Format_Metadata.Value that.uri that.name that.extension
+File_Format_Metadata.from (that:Enso_File) = File_Format_Metadata.Value Nothing that.name (that.extension.catch _->Nothing)
