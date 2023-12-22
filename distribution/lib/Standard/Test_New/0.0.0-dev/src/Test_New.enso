@@ -1,5 +1,6 @@
 from Standard.Base import all
 from Standard.Base.Runtime import assert
+import project.Test_Result.Test_Result
 
 type Test_Options
 
@@ -45,6 +46,22 @@ type Test
         self.groups.each group->
             self.run_group group
 
+    run_with_filter : (Text|Regex|Nothing) -> (Text|Regex|Nothing) -> Test_Result
+    run_with_filter self group_filter=Nothing spec_filter=Nothing =
+        convert_filter filter =
+            case filter of
+                Nothing -> Regex.compile ".*"
+                txt : Text -> Regex.compile txt
+                rgx : Regex -> rgx
+        grp_filter  = convert_filter group_filter
+        spc_filter  = convert_filter spec_filter
+        IO.println "Test.run_with_filter"
+        groups_to_run = self.groups.filter (group-> grp_filter.matches group.name)
+        IO.println <| "Will run groups: " + groups_to_run.to_text
+        groups_to_run.each group->
+            # TODO: Filter specs
+            self.run_group group
+
     ## PRIVATE
     run_group self group =
         case group of
@@ -52,12 +69,40 @@ type Test
                 IO.println <| "Running group '" + group.name + "'"
                 group.specs.each spec->
                     self.run_spec spec
-            _ -> Error.throw "Unreachable"
+            _ -> Panic.throw "Unreachable"
 
     ## PRIVATE
     run_spec self spec =
         case spec of
             Test.Spec spec_name code ->
-                IO.println <| "  Running spec '" + spec.name + "'"
-                spec.code Nothing
-            _ -> Error.throw "Unreachable"
+                IO.println <| "  Running spec '" + spec_name + "'"
+                pair = Duration.time_execution (code Nothing)
+                res = pair.first
+                duration = pair.second
+                IO.println <| "  Spec '" + spec_name + "' finished in " + duration.to_text + ", result: " + res.to_text
+            _ -> Panic.throw "Unreachable"
+
+    ## Fail a test with the given message.
+
+       Arguments:
+       - message: The message printed when failing the test.
+
+       > Example
+         Failing a test manually.
+
+             from Standard.Test import Test
+
+             example_fail = Test.fail "Something went wrong."
+    fail : Text -> Nothing|Text -> Test_Result
+    fail message details=Nothing =
+        failure = Test_Result.Failure message details
+        Panic.throw failure
+
+    ## PRIVATE
+       Reports an unexpected dataflow error has occurred.
+    fail_match_on_unexpected_error : Error -> Integer -> Nothing
+    fail_match_on_unexpected_error error frames_to_skip =
+        payload = error.catch
+        loc = Meta.get_source_location 1+frames_to_skip
+        msg = "An unexpected dataflow error (" + payload.to_text + ") has been matched (at " + loc + ")."
+        Test.fail msg+'\n'+error.get_stack_trace_text
