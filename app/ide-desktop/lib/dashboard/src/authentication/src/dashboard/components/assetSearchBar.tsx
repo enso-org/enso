@@ -30,7 +30,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
     const { query, setQuery, labels, suggestions: rawSuggestions } = props
     const [isTabbing, setIsTabbing] = React.useState(false)
     /** A cached query as of the start of tabbing. */
-    const [baseQuery, setBaseQuery] = React.useState(query)
+    const baseQuery = React.useRef(query)
     const [suggestions, setSuggestions] = React.useState(rawSuggestions)
     const suggestionsRef = React.useRef(rawSuggestions)
     const [selectedIndex, setSelectedIndex] = React.useState<number | null>(null)
@@ -43,7 +43,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
 
     React.useEffect(() => {
         if (!isTabbing && !isShiftPressed) {
-            setBaseQuery(query)
+            baseQuery.current = query
         }
     }, [isTabbing, isShiftPressed, query])
 
@@ -59,10 +59,19 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
     }, [areSuggestionsVisible])
 
     React.useEffect(() => {
-        const suggestion = selectedIndex == null ? null : suggestions[selectedIndex]
-        const newQuery = suggestion == null ? baseQuery : suggestion.newQuery(baseQuery)
-        setQuery(newQuery)
+        if (selectedIndex == null) {
+            setQuery(baseQuery.current)
+        }
+    }, [selectedIndex, /* should never change */ setQuery])
+
+    React.useEffect(() => {
+        let newQuery = query
         if (wasQueryModified) {
+            const suggestion = selectedIndex == null ? null : suggestions[selectedIndex]
+            if (suggestion != null) {
+                newQuery = suggestion.newQuery(baseQuery.current)
+                setQuery(newQuery)
+            }
             searchRef.current?.focus()
             const end = searchRef.current?.value.length ?? 0
             searchRef.current?.setSelectionRange(end, end)
@@ -73,6 +82,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
         setWasQueryModified(false)
     }, [
         wasQueryModified,
+        query,
         baseQuery,
         selectedIndex,
         suggestions,
@@ -134,7 +144,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
         const onKeyDown = (event: KeyboardEvent) => {
             if (areSuggestionsVisibleRef.current) {
                 if (event.key === 'Enter' || event.key === ' ') {
-                    setBaseQuery(query)
+                    baseQuery.current = query
                     setIsTabbing(false)
                     setSelectedIndex(null)
                     searchRef.current?.focus()
@@ -202,10 +212,11 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                                               className="bg-frame rounded-full h-6 px-2 hover:bg-frame-selected transition-all"
                                               onClick={() => {
                                                   setWasQueryModified(true)
-                                                  const newQuery = assetQuery.AssetQuery.fromString(
-                                                      `${query.toString()} ${tag}:`
+                                                  setQuery(
+                                                      assetQuery.AssetQuery.fromString(
+                                                          `${query.toString()} ${tag}:`
+                                                      )
                                                   )
-                                                  setQuery(newQuery)
                                               }}
                                           >
                                               {tag}:
@@ -232,6 +243,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                                         }
                                         negated={negated}
                                         onClick={event => {
+                                            setWasQueryModified(true)
                                             setQuery(oldQuery =>
                                                 assetQuery.toggleLabel(
                                                     oldQuery,
@@ -261,12 +273,12 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                                         index === selectedIndex ? 'bg-frame-selected' : ''
                                     }`}
                                     onClick={event => {
-                                        const newQuery = suggestion.newQuery(query)
                                         setWasQueryModified(true)
-                                        if (event.shiftKey) {
-                                            setQuery(newQuery)
-                                        }
-                                        setQuery(newQuery)
+                                        setQuery(
+                                            suggestion.newQuery(
+                                                event.shiftKey ? query : baseQuery.current
+                                            )
+                                        )
                                     }}
                                 >
                                     {suggestion.render()}
