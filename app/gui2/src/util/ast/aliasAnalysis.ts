@@ -71,21 +71,15 @@ export enum IdentifierType {
   Variable = 'Variable',
 }
 
-/** Check, what kind of identifier the given string is.
- *
- *  Note that the results should not be relied upon for ill-formed identifiers.
- */
-export function identifierKind(identifier: string): IdentifierType {
+/** Check what kind of identifier the given token is. */
+export function identifierKind(token: RawAst.Token.Ident): IdentifierType {
   // Identifier kinds, as per draft Enso spec:
   // https://github.com/enso-org/design/blob/wip/wd/enso-spec/epics/enso-spec-1.0/03.%20Code%20format%20and%20layout.md
-  // Regex that matches any character that is allowed as part of operator identifier.
-  const operatorCharacter = /[!$%&*+\-/<>^~|:\\=.]/
-  const firstCharacter = identifier.charAt(0)
-  if (firstCharacter.match(operatorCharacter)) {
+  if (token.isOperatorLexically) {
     return IdentifierType.Operator
-  } else if (firstCharacter === '_') {
+  } else if (token.liftLevel > 0) {
     return IdentifierType.TypeVariable
-  } else if (firstCharacter === firstCharacter.toUpperCase()) {
+  } else if (token.isTypeOrConstructor) {
     return IdentifierType.Type
   } else {
     return IdentifierType.Variable
@@ -183,12 +177,8 @@ export class AliasAnalyzer {
   }
 
   processToken(token?: RawAst.Token): void {
-    if (token == null) {
-      return
-    }
-
-    const repr = readTokenSpan(token, this.code)
-    if (identifierKind(repr) === IdentifierType.Variable) {
+    if (token?.type !== RawAst.Token.Type.Ident) return
+    if (identifierKind(token) === IdentifierType.Variable) {
       if (this.contexts.top === Context.Pattern) {
         this.bind(token)
       } else {

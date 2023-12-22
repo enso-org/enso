@@ -242,6 +242,7 @@ export const useGraphStore = defineStore('graph', () => {
     setExpressionContent(node.rootSpan.exprId, content)
   }
 
+  /** Deprecated; use `commitEdit` */
   function setExpressionContent(id: ExprId, content: string) {
     const edit = astModule.edit()
     edit.set(Ast.asNodeId(id), Ast.RawCode.new(content, edit))
