@@ -230,6 +230,32 @@ export class IdMap {
     }
     return true
   }
+
+  validate() {
+    const uniqueValues = new Set(this.rangeToExpr.values())
+    if (uniqueValues.size < this.rangeToExpr.size) {
+      console.warn(`Duplicate UUID in IdMap`)
+    }
+  }
+
+  clone(): IdMap {
+    return new IdMap(this.entries())
+  }
+
+  // Debugging.
+  compare(other: IdMap) {
+    console.info(`IdMap.compare -------`)
+    const allKeys = new Set<string>()
+    for (const key of this.rangeToExpr.keys()) allKeys.add(key)
+    for (const key of other.rangeToExpr.keys()) allKeys.add(key)
+    for (const key of allKeys) {
+      const mine = this.rangeToExpr.get(key)
+      const yours = other.rangeToExpr.get(key)
+      if (mine !== yours) {
+        console.info(`IdMap.compare[${key}]: ${mine} -> ${yours}`)
+      }
+    }
+  }
 }
 
 const uuidRegex = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/

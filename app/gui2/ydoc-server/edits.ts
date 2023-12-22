@@ -9,6 +9,7 @@ import * as Y from 'yjs'
 import { TextEdit } from '../shared/languageServerTypes'
 import { IdMap, ModuleDoc, type NodeMetadata, type VisualizationMetadata } from '../shared/yjsModel'
 import * as fileFormat from './fileFormat'
+import { serializeIdMap } from './serialization'
 
 interface AppliedUpdates {
   edits: TextEdit[]
@@ -181,35 +182,6 @@ export function preParseContent(content: string): PreParsedContent {
   const idMapJson = metaLines[0] ?? null
   const metadataJson = metaLines[1] ?? null
   return { code, idMapJson, metadataJson }
-}
-
-export function serializeIdMap(map: IdMap): string {
-  return json.stringify(idMapToArray(map))
-}
-
-function idMapToArray(map: IdMap): fileFormat.IdMapEntry[] {
-  const entries: fileFormat.IdMapEntry[] = []
-  map.entries().forEach(([rangeBuffer, id]) => {
-    const decoded = IdMap.rangeForKey(rangeBuffer)
-    const index = decoded[0]
-    const endIndex = decoded[1]
-    if (index == null || endIndex == null) return
-    const size = endIndex - index
-    entries.push([{ index: { value: index }, size: { value: size } }, id])
-  })
-  entries.sort(idMapCmp)
-  return entries
-}
-
-function idMapCmp(a: fileFormat.IdMapEntry, b: fileFormat.IdMapEntry) {
-  const val1 = a[0]?.index?.value ?? 0
-  const val2 = b[0]?.index?.value ?? 0
-  if (val1 === val2) {
-    const size1 = a[0]?.size.value ?? 0
-    const size2 = b[0]?.size.value ?? 0
-    return size1 - size2
-  }
-  return val1 - val2
 }
 
 export function applyDiffAsTextEdits(

@@ -8,10 +8,8 @@ import { Checksum, FileEdit, Path, response } from '../shared/languageServerType
 import { exponentialBackoff, printingCallbacks } from '../shared/retry'
 import {
   DistributedProject,
-  ExprId,
   IdMap,
   ModuleDoc,
-  SourceRange,
   type NodeMetadata,
   type Uuid,
 } from '../shared/yjsModel'
@@ -23,6 +21,7 @@ import {
 } from './edits'
 import * as fileFormat from './fileFormat'
 import { WSSharedDoc } from './ydoc'
+import { deserializeIdMap } from './serialization'
 
 const SOURCE_DIR = 'src'
 const EXTENSION = '.enso'
@@ -243,20 +242,6 @@ function pathToModuleName(path: Path): string {
 
 function pushPathSegment(path: Path, segment: string): Path {
   return { rootId: path.rootId, segments: [...path.segments, segment] }
-}
-
-export function deserializeIdMap(idMapJson: string) {
-  const idMapMeta = fileFormat.tryParseIdMapOrFallback(idMapJson)
-  const idMap = new IdMap()
-  for (const [{ index, size }, id] of idMapMeta) {
-    const range = [index.value, index.value + size.value]
-    if (typeof range[0] !== 'number' || typeof range[1] !== 'number') {
-      console.error(`Invalid range for id ${id}:`, range)
-      continue
-    }
-    idMap.insertKnownId([index.value, index.value + size.value], id as ExprId)
-  }
-  return idMap
 }
 
 enum LsSyncState {

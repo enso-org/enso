@@ -42,7 +42,6 @@ export const useGraphStore = defineStore('graph', () => {
   proj.setObservedFileName('Main.enso')
 
   const data = computed(() => proj.module?.doc.data)
-  watch(data, console.log)
   const metadata = computed(() => proj.module?.doc.metadata)
 
   const moduleCode = ref(proj.module?.doc.getCode())
@@ -57,7 +56,7 @@ export const useGraphStore = defineStore('graph', () => {
     if (!moduleCode.value) {
       moduleCode.value = proj.module?.doc.getCode()
       idMap.value = proj.module?.doc.getIdMap()
-      updateState()
+      if (moduleCode.value && idMap.value) updateState()
     }
   })
 
@@ -205,7 +204,7 @@ export const useGraphStore = defineStore('graph', () => {
       console.error(`BUG: Cannot add node: No current function.`)
       return
     }
-    const rhs = Ast.parseExpression(expression, edit)
+    const rhs = Ast.parse(expression, edit)
     const assignment = Ast.Assignment.new(edit, ident, rhs)
     functionBlock.push(edit, assignment)
     commitEdit(edit, root, new Map([[rhs.exprId, meta]]))
@@ -330,7 +329,7 @@ export const useGraphStore = defineStore('graph', () => {
   ) {
     const ast = module.get(root)
     if (!ast) return
-    const printed = Ast.print(ast, module)
+    const printed = Ast.print(ast.exprId, module)
     const module_ = proj.module
     if (!module_) return
     const idMap = new IdMap()

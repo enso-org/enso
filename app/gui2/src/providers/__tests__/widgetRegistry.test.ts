@@ -54,8 +54,8 @@ describe('WidgetRegistry', () => {
     }),
   )
 
-  const someAst = Ast.parse('foo')
-  const blankAst = Ast.parse('_')
+  const someAst = Ast.parseBlock('foo')
+  const blankAst = Ast.parseBlock('_')
   const somePlaceholder = new ArgumentPlaceholder(
     0,
     {

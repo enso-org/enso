@@ -501,7 +501,7 @@ if (import.meta.vitest) {
 
   const parseImport = (code: string): Import | null => {
     let ast = null
-    Ast.parse(code).visitRecursive((node) => {
+    Ast.parseBlock(code).visitRecursive((node) => {
       if (node instanceof Ast.Import) {
         ast = node
         return false
@@ -629,5 +629,19 @@ if (import.meta.vitest) {
     },
   ])('Generating import $expected', ({ import: import_, expected }) => {
     expect(requiredImportToAst(import_).code()).toStrictEqual(expected)
+  })
+
+  test('Insert after other imports in module', () => {
+    const module_ = Ast.parseBlock('from Standard.Base import all\n\nmain = 42\n')
+    const edit = module_.module.edit()
+    addImports(edit, module_, [{ kind: 'Qualified', module: unwrap(tryQualifiedName('Standard.Visualization')) }])
+    expect(module_.code(edit)).toBe('from Standard.Base import all\nimport Standard.Visualization\n\nmain = 42\n')
+  })
+
+  test('Insert import in module with no other imports', () => {
+    const module_ = Ast.parseBlock('main = 42\n')
+    const edit = module_.module.edit()
+    addImports(edit, module_, [{ kind: 'Qualified', module: unwrap(tryQualifiedName('Standard.Visualization')) }])
+    expect(module_.code(edit)).toBe('import Standard.Visualization\nmain = 42\n')
   })
 }

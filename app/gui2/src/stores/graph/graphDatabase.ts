@@ -153,8 +153,8 @@ export class GraphDb {
     if (entry.pattern == null) return []
     const ports = new Set<ExprId>()
     entry.pattern.visitRecursive((ast) => {
-      if (this.bindings.bindings.has(ast.astId)) {
-        ports.add(ast.astId)
+      if (this.bindings.bindings.has(ast.exprId)) {
+        ports.add(ast.exprId)
         return false
       }
       return true
@@ -313,11 +313,11 @@ export class GraphDb {
   }
 
   mockNode(binding: string, id: Ast.AstId, code?: string): Node {
-    const pattern = Ast.parse(binding)
+    const pattern = Ast.parseBlock(binding)
     const node: Node = {
       outerExprId: id,
       pattern,
-      rootSpan: Ast.parse(code ?? '0'),
+      rootSpan: Ast.parseBlock(code ?? '0'),
       position: Vec2.Zero,
       vis: undefined,
     }
@@ -342,7 +342,7 @@ export function mockNode(exprId?: Ast.AstId): Node {
   return {
     outerExprId: exprId ?? (random.uuidv4() as Ast.AstId),
     pattern: undefined,
-    rootSpan: Ast.parse('0'),
+    rootSpan: Ast.parseBlock('0'),
     position: Vec2.Zero,
     vis: undefined,
   }

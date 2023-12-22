@@ -120,7 +120,7 @@ export class MutableModule implements Module {
 }
 
 export function normalize(rootIn: Ast): Ast {
-  const printed = print(rootIn)
+  const printed = print(rootIn.exprId, rootIn.module)
   const module = MutableModule.Transient()
   const tree = parseEnso(printed.code)
   const rootOut = abstract(module, tree, printed.code, printed.info).node
@@ -185,7 +185,7 @@ export abstract class Ast {
   }
 
   serialize(): string {
-    return JSON.stringify(print(this))
+    return JSON.stringify(print(this.exprId, this.module))
   }
 
   static deserialize(serialized: string): Ast {
@@ -230,11 +230,7 @@ export abstract class Ast {
   abstract concreteChildren(): IterableIterator<NodeChild>
 
   code(module?: Module): string {
-    return print(this, module).code
-  }
-
-  repr(): string {
-    return this.code()
+    return print(this.exprId, module ?? this.module).code
   }
 
   typeName(): string | undefined {
@@ -242,7 +238,8 @@ export abstract class Ast {
     return RawAst.Tree.typeNames[this.treeType]
   }
 
-  static parse(source: PrintedSource | string, inModule?: MutableModule | undefined): BodyBlock {
+  /** Parse the input as a block. */
+  static parseBlock(source: PrintedSource | string, inModule?: MutableModule | undefined): BodyBlock {
     const code = typeof source === 'object' ? source.code : source
     const ids = typeof source === 'object' ? source.info : undefined
     const tree = parseEnso(code)
@@ -253,8 +250,9 @@ export abstract class Ast {
     return ast as BodyBlock
   }
 
-  static parseExpression(source: PrintedSource | string, module?: MutableModule): Ast {
-    const ast = Ast.parse(source, module)
+  /** Parse the input. If it contains a single expression at the top level, return it; otherwise, return a block. */
+  static parse(source: PrintedSource | string, module?: MutableModule): Ast {
+    const ast = Ast.parseBlock(source, module)
     const [expr] = ast.expressions()
     return expr instanceof Ast ? expr : ast
   }
@@ -277,7 +275,7 @@ export abstract class Ast {
     module.set(this.exprId, this)
   }
 
-  _print(
+  printSubtree(
     info: InfoMap,
     offset: number,
     indent: string,
@@ -299,7 +297,7 @@ export abstract class Ast {
         info.tokens.set(span, child.node.exprId)
         code += tokenCode
       } else {
-        code += module_.get(child.node)!._print(info, offset + code.length, indent, moduleOverride)
+        code += module_.get(child.node)!.printSubtree(info, offset + code.length, indent, moduleOverride)
       }
     }
     const span = nodeKey(offset, code.length, this.treeType)
@@ -908,7 +906,7 @@ export class BodyBlock extends Ast {
     }
   }
 
-  _print(
+  printSubtree(
     info: InfoMap,
     offset: number,
     indent: string,
@@ -920,14 +918,18 @@ export class BodyBlock extends Ast {
       // Skip deleted lines (and associated whitespace).
       if (line.expression?.node != null && module_.get(line.expression.node) === null) continue
       code += line.newline?.whitespace ?? ''
-      code += line.newline?.node.code() ?? '\n'
+      const newlineCode = line.newline?.node.code()
+      // Only print a newline if this isn't the first line in the output, or it's a comment.
+      if (offset || code || newlineCode?.startsWith('#')) {
+        // If this isn't the first line in the output, but there is a concrete newline token:
+        // if it's a zero-length newline, ignore it and print a normal newline.
+        code += newlineCode || '\n'
+      }
       if (line.expression !== null) {
         code += line.expression.whitespace ?? indent
-        if (line.expression.node !== null) {
-          code += module_
-            .get(line.expression.node)!
-            ._print(info, offset + code.length, indent + '    ', moduleOverride)
-        }
+        code += module_
+          .get(line.expression.node)!
+          .printSubtree(info, offset + code.length, indent + '    ', moduleOverride)
       }
     }
     const span = nodeKey(offset, code.length, this.treeType)
@@ -1272,13 +1274,13 @@ interface PrintedSource {
 }
 
 /** Return stringification with associated ID map. This is only exported for testing. */
-export function print(ast: Ast, module?: Module | undefined): PrintedSource {
+export function print(ast: AstId, module: Module): PrintedSource {
   const info: InfoMap = {
     nodes: new Map(),
     tokens: new Map(),
     tokensOut: new Map(),
   }
-  const code = ast._print(info, 0, '', module)
+  const code = module.get(ast)!.printSubtree(info, 0, '', module)
   return { info, code }
 }
 
@@ -1329,7 +1331,7 @@ export function functionBlock(module: Module, name: string): BodyBlock | null {
 }
 
 export function parseTransitional(code: string, idMap: IdMap): Ast {
-  const rawAst = RawAstExtended.parse(code, idMap)
+  const rawAst = RawAstExtended.parse(code, idMap.clone())
   const nodes = new Map<NodeKey, AstId[]>()
   const tokens = new Map<TokenKey, TokenId>()
   const astExtended = new Map<AstId, RawAstExtended>()
@@ -1368,7 +1370,7 @@ export function parseTransitional(code: string, idMap: IdMap): Ast {
     return true
   })
   const tokensOut = new Map()
-  const newRoot = Ast.parse({ info: { nodes, tokens, tokensOut }, code })
+  const newRoot = Ast.parseBlock({ info: { nodes, tokens, tokensOut }, code })
   newRoot.module.raw.astExtended = astExtended
   newRoot.module.raw.spans = spans
   idMap.clear()
@@ -1381,7 +1383,7 @@ export function parseTransitional(code: string, idMap: IdMap): Ast {
     idMap.insertKnownId( ... )
   }
    */
-  const printed = print(newRoot)
+  const printed = print(newRoot.exprId, newRoot.module)
   for (const [key, ids] of printed.info.nodes) {
     const range = keyToRange(key)
     idMap.insertKnownId([range.start, range.end], ids[0]!)
@@ -1393,8 +1395,8 @@ export function parseTransitional(code: string, idMap: IdMap): Ast {
   return newRoot
 }
 
+export const parseBlock = Ast.parseBlock
 export const parse = Ast.parse
-export const parseExpression = Ast.parseExpression
 
 export function deserialize(serialized: string): Ast {
   return Ast.deserialize(serialized)
