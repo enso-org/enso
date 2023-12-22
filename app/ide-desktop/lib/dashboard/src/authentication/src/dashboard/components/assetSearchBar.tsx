@@ -39,21 +39,21 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
     const [areSuggestionsVisible, setAreSuggestionsVisible] = React.useState(false)
     const areSuggestionsVisibleRef = React.useRef(areSuggestionsVisible)
     const [wasQueryModified, setWasQueryModified] = React.useState(false)
-    const [showNegatedTags, setShowNegatedTags] = React.useState(false)
+    const [isShiftPressed, setIsShiftPressed] = React.useState(false)
     const searchRef = React.useRef<HTMLInputElement>(null)
 
     React.useEffect(() => {
-        if (!isTabbing) {
+        if (!isTabbing && !isShiftPressed) {
             setBaseQuery(rawQuery)
         }
-    }, [isTabbing, rawQuery])
+    }, [isTabbing, isShiftPressed, rawQuery])
 
     React.useEffect(() => {
-        if (!isTabbing) {
+        if (!isTabbing && !isShiftPressed) {
             setSuggestions(rawSuggestions)
             suggestionsRef.current = rawSuggestions
         }
-    }, [isTabbing, rawSuggestions])
+    }, [isTabbing, isShiftPressed, rawSuggestions])
 
     React.useEffect(() => {
         areSuggestionsVisibleRef.current = areSuggestionsVisible
@@ -80,7 +80,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
 
     React.useEffect(() => {
         const onKeyDown = (event: KeyboardEvent) => {
-            setShowNegatedTags(event.shiftKey)
+            setIsShiftPressed(event.shiftKey)
             if (areSuggestionsVisibleRef.current) {
                 if (event.key === 'Tab') {
                     event.preventDefault()
@@ -110,7 +110,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
             }
         }
         const onKeyUp = (event: KeyboardEvent) => {
-            setShowNegatedTags(event.shiftKey)
+            setIsShiftPressed(event.shiftKey)
         }
         document.addEventListener('keydown', onKeyDown)
         document.addEventListener('keyup', onKeyUp)
@@ -180,7 +180,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                         <div className="flex flex-wrap gap-2 whitespace-nowrap px-2 pointer-events-auto">
                             {assetQuery.AssetQuery.tagNames.flatMap(entry => {
                                 const [key, tag] = entry
-                                return tag == null || showNegatedTags !== tag.startsWith('-')
+                                return tag == null || isShiftPressed !== tag.startsWith('-')
                                     ? []
                                     : [
                                           <button
@@ -243,8 +243,12 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                                     className={`cursor-pointer px-2 py-1 mx-1 rounded-2xl text-left hover:bg-frame-selected last:mb-1 transition-colors pointer-events-auto ${
                                         index === selectedIndex ? 'bg-frame-selected' : ''
                                     }`}
-                                    onClick={() => {
-                                        setRawQuery(suggestion.newQuery(baseQuery))
+                                    onClick={event => {
+                                        const newQuery = suggestion.newQuery(query)
+                                        if (event.shiftKey) {
+                                            setQuery(newQuery)
+                                        }
+                                        setRawQuery(newQuery)
                                     }}
                                 >
                                     {suggestion.render()}

@@ -417,73 +417,38 @@ export default function AssetsTable(props: AssetsTableProps) {
                         parsed.getDate() === assetModifiedAt.getDate()
                     )
                 }
+                const isEmpty = (values: string[]) =>
+                    values.length === 0 || (values.length === 1 && values[0] === '')
+                const filterTag = (
+                    positive: string[][],
+                    negative: string[][],
+                    predicate: (value: string) => boolean
+                ) =>
+                    positive.every(values => isEmpty(values) || values.some(predicate)) &&
+                    negative.every(values => !values.some(predicate))
                 return (
-                    query.nos.every(noSet => noSet.some(no => isAbsent(no.toLowerCase()))) &&
-                    query.negativeNos.every(
-                        noSet => !noSet.some(no => isAbsent(no.toLowerCase()))
+                    filterTag(query.nos, query.negativeNos, no => isAbsent(no.toLowerCase())) &&
+                    filterTag(query.keywords, query.negativeKeywords, keyword =>
+                        lowercaseName.includes(keyword.toLowerCase())
                     ) &&
-                    query.keywords.every(keywordSet =>
-                        keywordSet.some(keyword => lowercaseName.includes(keyword.toLowerCase()))
+                    filterTag(query.names, query.negativeNames, name =>
+                        globMatch(name, lowercaseName)
                     ) &&
-                    query.negativeKeywords.every(
-                        keywordSet =>
-                            !keywordSet.some(keyword =>
-                                lowercaseName.includes(keyword.toLowerCase())
-                            )
+                    filterTag(query.labels, query.negativeLabels, label =>
+                        labels.some(assetLabel => globMatch(label, assetLabel))
                     ) &&
-                    query.names.every(nameSet =>
-                        nameSet.some(name => globMatch(name, lowercaseName))
+                    filterTag(query.types, query.negativeTypes, type => type === assetType) &&
+                    filterTag(
+                        query.extensions,
+                        query.negativeExtensions,
+                        extension => extension.toLowerCase() === assetExtension
                     ) &&
-                    query.negativeNames.every(
-                        nameSet => !nameSet.some(name => globMatch(name, lowercaseName))
+                    filterTag(query.descriptions, query.negativeDescriptions, description =>
+                        lowercaseDescription.includes(description.toLowerCase())
                     ) &&
-                    query.labels.every(labelSet =>
-                        labelSet.some(label =>
-                            labels.some(assetLabel => globMatch(label, assetLabel))
-                        )
-                    ) &&
-                    query.negativeLabels.every(
-                        labelSet =>
-                            !labelSet.some(label =>
-                                labels.some(assetLabel => globMatch(label, assetLabel))
-                            )
-                    ) &&
-                    query.types.every(typeSet => typeSet.some(type => type === assetType)) &&
-                    query.negativeTypes.every(
-                        typeSet => !typeSet.some(type => type === assetType)
-                    ) &&
-                    query.extensions.every(extensionSet =>
-                        extensionSet.some(extension => extension.toLowerCase() === assetExtension)
-                    ) &&
-                    query.negativeExtensions.every(
-                        extensionSet =>
-                            !extensionSet.some(
-                                extension => extension.toLowerCase() === assetExtension
-                            )
-                    ) &&
-                    query.descriptions.every(descriptionSet =>
-                        descriptionSet.some(description =>
-                            lowercaseDescription.includes(description.toLowerCase())
-                        )
-                    ) &&
-                    query.negativeDescriptions.every(
-                        descriptionSet =>
-                            !descriptionSet.some(description =>
-                                lowercaseDescription.includes(description.toLowerCase())
-                            )
-                    ) &&
-                    query.modifieds.every(modifiedSet => modifiedSet.some(matchesDate)) &&
-                    query.negativeModifieds.every(modifiedSet => !modifiedSet.some(matchesDate)) &&
-                    query.owners.every(ownerSet =>
-                        ownerSet.some(owner =>
-                            owners.some(assetOwner => globMatch(owner, assetOwner))
-                        )
-                    ) &&
-                    query.negativeOwners.every(
-                        ownerSet =>
-                            !ownerSet.some(owner =>
-                                owners.some(assetOwner => globMatch(owner, assetOwner))
-                            )
+                    filterTag(query.modifieds, query.negativeModifieds, matchesDate) &&
+                    filterTag(query.owners, query.negativeOwners, owner =>
+                        owners.some(assetOwner => globMatch(owner, assetOwner))
                     )
                 )
             }
@@ -556,7 +521,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             key: assetQuery.AssetQueryKey = 'names'
         ): assetSearchBar.Suggestion => ({
             render: () => `${key === 'names' ? '' : '-:'}${node.item.title}`,
-            newQuery: oldQuery => oldQuery.add({ [key]: [[node.item.title]] }),
+            newQuery: oldQuery => oldQuery.addToLastTerm({ [key]: [node.item.title] }),
         })
         const allVisibleNodes = () =>
             assetTreeNode
@@ -583,7 +548,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             setSuggestions(shouldOmitNames ? [] : allVisible())
         } else {
             const negative = lastTerm?.tag?.startsWith('-') ?? false
-            switch (lastTerm?.tag) {
+            switch (lastTerm?.tag ?? null) {
                 case null:
                 case '':
                 case '-':
