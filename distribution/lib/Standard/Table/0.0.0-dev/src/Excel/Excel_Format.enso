@@ -127,7 +127,7 @@ type Excel_Format
    - `False` if the file is an XLSX format,
    - `Nothing` if the file is not an Excel format.
 xls_format_from_metadata : File_Format_Metadata -> Boolean | Nothing
-xls_format_from_metadata metadata =
+xls_format_from_metadata (metadata : File_Format_Metadata) =
     content_type = metadata.interpret_content_type
     from_content_type = content_type.if_not_nothing <|
         case content_type.base_type of
