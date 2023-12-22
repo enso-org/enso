@@ -29,6 +29,14 @@ public final class DataflowError extends AbstractTruffleException {
   /** Signals (local) values that haven't yet been initialized */
   public static final DataflowError UNINITIALIZED = new DataflowError(null, (Node) null);
 
+  private static final boolean assertsOn;
+
+  static {
+    var b = false;
+    assert b = true;
+    assertsOn = b;
+  }
+
   private final Object payload;
   private final boolean ownTrace;
 
@@ -43,8 +51,15 @@ public final class DataflowError extends AbstractTruffleException {
    */
   public static DataflowError withoutTrace(Object payload, Node location) {
     assert payload != null;
-    var result = new DataflowError(payload, location);
-    return result;
+    if (assertsOn) {
+      var ex = new PanicException(payload, location);
+      TruffleStackTrace.fillIn(ex);
+      var result = new DataflowError(payload, ex);
+      return result;
+    } else {
+      var result = new DataflowError(payload, location);
+      return result;
+    }
   }
 
   /**
