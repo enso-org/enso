@@ -17,21 +17,13 @@ type Image_File_Format
        If the File_Format supports reading from the file, return a configured instance.
     for_read : File_Format_Metadata -> Image_File_Format | Nothing
     for_read file:File_Format_Metadata =
-        extension = file.extension
+        extension = file.guess_extension
         if supported.contains extension then Image_File_Format.For_File else Nothing
 
     ## PRIVATE
        If this File_Format should be used for writing to that file, return a configured instance.
     for_file_write : File -> Image_File_Format | Nothing
     for_file_write file = Image_File_Format.for_read file
-
-    ## PRIVATE
-       If the File_Format supports reading from the web response, return a configured instance.
-    for_web : Text -> URI -> Image_File_Format | Nothing
-    for_web content_type uri =
-        ## Currently not loading Image files automatically. This should be supported later.
-        _ = [content_type, uri]
-        Nothing
 
     ## PRIVATE
        Implements the `File.read` for this `File_Format`
