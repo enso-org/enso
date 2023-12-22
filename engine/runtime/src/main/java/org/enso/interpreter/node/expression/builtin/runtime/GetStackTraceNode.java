@@ -39,6 +39,7 @@ public class GetStackTraceNode extends Node {
     try {
       return filterStackTraceVector(InteropLibrary.getUncached(), vector);
     } catch (UnsupportedMessageException ex) {
+      assert raise(RuntimeException.class, ex);
       return ArrayLikeHelpers.empty();
     }
   }
@@ -67,6 +68,7 @@ public class GetStackTraceNode extends Node {
           count++;
         }
       } catch (InvalidArrayIndexException ex) {
+        assert raise(RuntimeException.class, ex);
       }
     }
     var arr = new Object[count];
@@ -78,6 +80,7 @@ public class GetStackTraceNode extends Node {
           arr[at++] = element;
         }
       } catch (InvalidArrayIndexException ex) {
+        assert raise(RuntimeException.class, ex);
       }
     }
     return ArrayLikeHelpers.wrapObjectsWithCheckAt(arr);
@@ -95,6 +98,7 @@ public class GetStackTraceNode extends Node {
         var elements = iop.getExceptionStackTrace(exception);
         return filterStackTraceVector(iop, elements);
       } catch (UnsupportedMessageException ex) {
+        assert raise(RuntimeException.class, ex);
         // return empty
       }
     } else if (exception instanceof Throwable t) {
@@ -110,5 +114,10 @@ public class GetStackTraceNode extends Node {
       return ArrayLikeHelpers.empty();
     }
     return wrapStackTraceElements(elements);
+  }
+
+  @SuppressWarnings("unchecked")
+  private static <E extends Exception> boolean raise(Class<E> type, Throwable t) throws E {
+    throw (E) t;
   }
 }
