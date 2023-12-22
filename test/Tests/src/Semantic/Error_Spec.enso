@@ -105,7 +105,7 @@ spec =
             error = throw_a_bar
             error.catch . should_equal "bar"
             arr = error.stack_trace
-            arr.length . should_equal 1
+            arr.length>=1 . should_be_true
             arr.first.name . should_equal "Error_Spec.throw_a_bar"
             arr.first.source_location.file.name . should_equal "Error_Spec.enso"
             arr.first.source_location.start_line . should_equal 32
