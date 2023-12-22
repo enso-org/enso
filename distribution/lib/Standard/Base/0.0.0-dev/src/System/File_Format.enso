@@ -15,6 +15,7 @@ import project.Metadata.Widget
 import project.Network.URI.URI
 import project.Nothing.Nothing
 import project.System.File.File
+import project.System.File_Format_Metadata.File_Format_Metadata
 import project.System.Input_Stream.Input_Stream
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Json import Invalid_JSON
@@ -118,7 +119,14 @@ type Plain_Text_Format
        If the File_Format supports reading from the file, return a configured instance.
     for_read : File_Format_Metadata -> Plain_Text_Format | Nothing
     for_read file:File_Format_Metadata =
-        case file.extension of
+        content_type = file.interpret_content_type
+        from_content_type = content_type.if_not_nothing <|
+            case content_type.base_type of
+                "text/plain" ->
+                    effective_encoding = content_type.encoding.if_nothing Encoding.utf_8
+                    Plain_Text_Format.Plain_Text effective_encoding
+                _ -> Nothing
+        from_content_type.if_nothing <| case file.guess_extension of
             ".txt" -> Plain_Text_Format.Plain_Text
             ".log" -> Plain_Text_Format.Plain_Text
             _ -> Nothing
@@ -127,21 +135,6 @@ type Plain_Text_Format
        If this File_Format should be used for writing to that file, return a configured instance.
     for_file_write : File -> Plain_Text_Format | Nothing
     for_file_write file = Plain_Text_Format.for_read file
-
-    ## PRIVATE
-       If the File_Format supports reading from the web response, return a configured instance.
-    for_web : Text -> URI -> Plain_Text_Format | Nothing
-    for_web content_type uri =
-        _ = [uri]
-        parts = content_type.split ";" . map .trim
-        case parts.first of
-            "text/plain" ->
-                charset_part = parts.find if_missing=Nothing (x->x.starts_with "charset=")
-                encoding = if charset_part.is_nothing then Encoding.utf_8 else
-                    parsed = Encoding.from_name (charset_part.drop 8)
-                    if parsed.is_error then Encoding.utf_8 else parsed
-                Plain_Text_Format.Plain_Text encoding
-            _ -> Nothing
 
     ## PRIVATE
        Implements the `File.read` for this `File_Format`
@@ -162,7 +155,7 @@ type Bytes
        If the File_Format supports reading from the file, return a configured instance.
     for_read : File_Format_Metadata -> Bytes | Nothing
     for_read file:File_Format_Metadata =
-        case file.extension of
+        case file.guess_extension of
             ".dat" -> Bytes
             _ -> Nothing
 
@@ -170,14 +163,6 @@ type Bytes
        If this File_Format should be used for writing to that file, return a configured instance.
     for_file_write : File -> Bytes | Nothing
     for_file_write file = Bytes.for_read file
-
-    ## PRIVATE
-       If the File_Format supports reading from the web response, return a configured instance.
-       As `Bytes`, does not support reading from the web returns `Nothing`.
-    for_web : Text -> URI -> Bytes | Nothing
-    for_web content_type uri =
-        _ = [content_type, uri]
-        Nothing
 
     ## PRIVATE
        Implements the `File.read` for this `File_Format`
@@ -199,7 +184,12 @@ type JSON_Format
        If the File_Format supports reading from the file, return a configured instance.
     for_read : File_Format_Metadata -> JSON_Format | Nothing
     for_read file:File_Format_Metadata =
-        case file.extension of
+        content_type = file.interpret_content_type
+        from_content_type = content_type.if_not_nothing <|
+            case content_type.base_type of
+                "application/json" -> JSON_Format
+                _ -> Nothing
+        from_content_type.if_nothing <| case file.guess_extension of
             ".json" -> JSON_Format
             ".geojson" -> JSON_Format
             _ -> Nothing
@@ -208,16 +198,6 @@ type JSON_Format
        If this File_Format should be used for writing to that file, return a configured instance.
     for_file_write : File -> JSON_Format | Nothing
     for_file_write file = JSON_Format.for_read file
-
-    ## PRIVATE
-       If the File_Format supports reading from the web response, return a configured instance.
-    for_web : Text -> URI -> JSON_Format | Nothing
-    for_web content_type uri =
-        _ = [uri]
-        first = content_type.split ';' . first . trim
-        case first of
-            "application/json" -> JSON_Format
-            _ -> Nothing
 
     ## PRIVATE
        Implements the `File.read` for this `File_Format`
