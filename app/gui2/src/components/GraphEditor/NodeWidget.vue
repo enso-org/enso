@@ -35,14 +35,13 @@ const sameInputParentWidgets = computed(() =>
 const nesting = computed(() => (parentUsageInfo?.nesting ?? 0) + (props.nest === true ? 1 : 0))
 
 const selectedWidget = computed(() => {
-  const selected = registry.select(
+  return registry.select(
     {
       input: props.input,
       nesting: nesting.value,
     },
     sameInputParentWidgets.value,
   )
-  return selected
 })
 provideWidgetUsageInfo(
   proxyRefs({

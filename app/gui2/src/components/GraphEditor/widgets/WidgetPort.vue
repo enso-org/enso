@@ -68,8 +68,7 @@ const innerWidget = computed(() =>
   props.input instanceof ForcePort ? props.input.input : props.input,
 )
 const ast = computed(() => {
-  const anyWidget = props.input instanceof ForcePort ? props.input.input : props.input
-  return anyWidget.ast
+  return innerWidget.value.ast
 })
 const portId = computed(() => ast.value?.astId ?? randomUuid)
 

@@ -67,24 +67,20 @@ const selfArgumentAstId = computed<Opt<ExprId>>(() => {
   const analyzed = interpretCall(props.input.ast, true)
   if (analyzed.kind === 'infix') {
     return analyzed.lhs?.astId
-  } else if (analyzed.kind === 'prefix') {
+  } else {
     const knownArguments = methodCallInfo.value?.suggestion?.arguments
     const selfArgument =
       knownArguments?.[0]?.name === 'self'
         ? getAccessOprSubject(analyzed.func)
         : analyzed.args[0]?.argument
     return selfArgument?.astId
-  } else {
-    return null
   }
 })
 
 const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => {
   // If we inherit dynamic config, there is no point in attaching visualization.
-  if (props.input.dynamicConfig) {
-    console.log('INHERITED CFG: ', props.input.dynamicConfig)
-    return null
-  }
+  if (props.input.dynamicConfig) return null
+
   const expressionId = selfArgumentAstId.value
   const astId = props.input.ast.astId
   if (astId == null || expressionId == null) return null

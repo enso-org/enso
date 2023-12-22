@@ -23,9 +23,9 @@ const primary = computed(() => props.nesting < 2)
 export const widgetDefinition = defineWidget(Argument, {
   priority: 1000,
   score: (props) => {
-    const isPlaceholderName = props.input.argInfo != null && props.input.isPlaceholder()
-    const isTopName = props.nesting < 2 && props.input.kind === ApplicationKind.Prefix
-    return isPlaceholderName || isTopName ? Score.Perfect : Score.Mismatch
+    const isPlaceholder = props.input.argInfo != null && props.input.isPlaceholder()
+    const isTopArg = props.nesting < 2 && props.input.kind === ApplicationKind.Prefix
+    return isPlaceholder || isTopArg ? Score.Perfect : Score.Mismatch
   },
 })
 </script>

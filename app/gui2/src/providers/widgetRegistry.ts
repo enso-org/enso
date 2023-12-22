@@ -323,10 +323,6 @@ export class WidgetRegistry {
         best = widgetModule
       }
     }
-    // Once we've checked all widgets, return the best match found, if any.
-    if (best == null) {
-      console.warn(props.input)
-    }
     return best
   }
 }
