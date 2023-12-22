@@ -49,6 +49,10 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
     }, [isTabbing, isShiftPressed, rawQuery])
 
     React.useEffect(() => {
+        setQuery(baseQuery)
+    }, [baseQuery])
+
+    React.useEffect(() => {
         if (!isTabbing && !isShiftPressed) {
             setSuggestions(rawSuggestions)
             suggestionsRef.current = rawSuggestions
@@ -192,7 +196,9 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                                               className="bg-frame rounded-full h-6 px-2 hover:bg-frame-selected transition-all"
                                               onClick={() => {
                                                   setWasQueryModified(true)
-                                                  setRawQuery(baseQuery.add({ [key]: [['']] }))
+                                                  const newQuery = query.add({ [key]: [['']] })
+                                                  setQuery(newQuery)
+                                                  setRawQuery(newQuery)
                                               }}
                                           >
                                               {tag}:

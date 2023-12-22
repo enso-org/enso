@@ -579,8 +579,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 case '-ext':
                 case 'extension':
                 case '-extension': {
-                    const extensions = assetTreeNode
-                        .assetTreePreorderTraversal(assetTree)
+                    const extensions = allVisibleNodes()
                         .filter(node => node.item.type === backendModule.AssetType.file)
                         .map(node => fileInfo.fileExtension(node.item.title))
                     setSuggestions(
