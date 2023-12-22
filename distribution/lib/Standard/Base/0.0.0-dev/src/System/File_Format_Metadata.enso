@@ -66,7 +66,7 @@ type Content_Type_Metadata
     ## PRIVATE
        Finds for a segment that starts with the given prefix.
     find_segment : Text -> Text | Nothing
-    find_segment self name:Text =
+    find_segment self prefix:Text =
         found = self.segments.find if_missing=Nothing (x->x.starts_with prefix)
         found.if_not_nothing <| found.drop prefix.length
 
