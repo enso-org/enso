@@ -15,6 +15,7 @@ import project.Network.URI.URI
 import project.Nothing.Nothing
 import project.System.File_Format.Auto_Detect
 import project.System.File_Format.File_Format
+import project.System.File_Format_Metadata.File_Format_Metadata
 from project.Data.Text.Extensions import all
 from project.Network.HTTP.Response_Body import decode_format_selector
 
@@ -96,7 +97,9 @@ type Response
 
              example_body = Examples.get_response.body
     body : Response_Body
-    body self = self.body_object.if_nothing (Response_Body.new self.internal_http_response.body self.content_type self.uri)
+    body self = self.body_object.if_nothing <|
+        metadata = resolve_file_metadata_for_response self
+        Response_Body.new self.internal_http_response.body metadata self.uri
 
     ## Get the response status code.
 
@@ -164,3 +167,23 @@ type Response
     get_header self name:Text =
         java_optional = self.internal_http_response.headers.firstValue name
         if java_optional.isPresent then java_optional.get else Nothing
+
+## PRIVATE
+resolve_file_metadata_for_response : Response -> File_Format_Metadata
+resolve_file_metadata_for_response response =
+    uri_as_text = response.uri.to_text
+    guessed_filename = filename_from_content_disposition response . if_nothing <|
+        last_path_segment = uri_as_text.split "/" . last
+        ## Heuristic: If the last path segment contains a dot, it is likely a filename,
+           otherwise it is too unlikely + lack of extension will not help our guessing anyway,
+           so we can discard it.
+        if last_path_segment.contains "." then last_path_segment else Nothing
+    File_Format_Metadata.Value path=uri_as_text name=guessed_filename content_type=response.content_type
+
+## PRIVATE
+filename_from_content_disposition : Response -> Text | Nothing
+filename_from_content_disposition response =
+    content_disposition = response.get_header "Content-Disposition"
+    content_disposition.if_not_nothing <|
+        match = 'filename="(.*)"'.to_regex.match content_disposition
+        match.if_not_nothing <| match.get 1
