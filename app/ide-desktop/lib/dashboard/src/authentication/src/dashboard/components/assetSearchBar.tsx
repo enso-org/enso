@@ -27,11 +27,47 @@ export interface AssetSearchBarProps {
 
 /** A search bar containing a text input, and a list of suggestions. */
 export default function AssetSearchBar(props: AssetSearchBarProps) {
-    const { query, setQuery, labels, suggestions } = props
+    const { query: rawQuery, setQuery: setRawQuery, labels, suggestions: rawSuggestions } = props
+    const [isTabbing, setIsTabbing] = React.useState(false)
+    /** A cached query as of the start of tabbing. */
+    const [baseQuery, setBaseQuery] = React.useState(rawQuery)
+    /** The query that is actually displayed. */
+    const [query, setQuery] = React.useState(baseQuery)
+    const [suggestions, setSuggestions] = React.useState(rawSuggestions)
+    const suggestionsRef = React.useRef(rawSuggestions)
+    const [selectedIndex, setSelectedIndex] = React.useState<number | null>(null)
     const [areSuggestionsVisible, setAreSuggestionsVisible] = React.useState(false)
+    const areSuggestionsVisibleRef = React.useRef(areSuggestionsVisible)
     const [wasQueryModified, setWasQueryModified] = React.useState(false)
     const [showNegatedTags, setShowNegatedTags] = React.useState(false)
     const searchRef = React.useRef<HTMLInputElement>(null)
+
+    React.useEffect(() => {
+        if (!isTabbing) {
+            setBaseQuery(rawQuery)
+        }
+    }, [isTabbing, rawQuery])
+
+    React.useEffect(() => {
+        if (!isTabbing) {
+            setSuggestions(rawSuggestions)
+            suggestionsRef.current = rawSuggestions
+        }
+    }, [isTabbing, rawSuggestions])
+
+    React.useEffect(() => {
+        areSuggestionsVisibleRef.current = areSuggestionsVisible
+    }, [areSuggestionsVisible])
+
+    React.useEffect(() => {
+        const suggestion = selectedIndex == null ? null : suggestions[selectedIndex]
+        if (suggestion == null) {
+            setQuery(baseQuery)
+        } else {
+            setQuery(suggestion.newQuery(baseQuery))
+            setRawQuery(suggestion.newQuery(baseQuery))
+        }
+    }, [baseQuery, selectedIndex, suggestions, /* should never change */ setRawQuery])
 
     React.useEffect(() => {
         if (wasQueryModified) {
@@ -45,6 +81,25 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
     React.useEffect(() => {
         const onKeyDown = (event: KeyboardEvent) => {
             setShowNegatedTags(event.shiftKey)
+            if (areSuggestionsVisibleRef.current) {
+                if (event.key === 'Tab') {
+                    event.preventDefault()
+                    setIsTabbing(true)
+                    setSelectedIndex(oldIndex => {
+                        if (event.shiftKey) {
+                            return oldIndex == null
+                                ? suggestionsRef.current.length - 1
+                                : (oldIndex + suggestionsRef.current.length - 1) %
+                                      suggestionsRef.current.length
+                        } else {
+                            return oldIndex == null
+                                ? 0
+                                : (oldIndex + 1) % suggestionsRef.current.length
+                        }
+                    })
+                    setWasQueryModified(true)
+                }
+            }
             // Allow `alt` key to be pressed in case it is being used to enter special characters.
             if (
                 !(event.target instanceof HTMLInputElement) &&
@@ -65,6 +120,24 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
         }
     }, [])
 
+    React.useEffect(() => {
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (areSuggestionsVisibleRef.current && event.key === 'Enter') {
+                setBaseQuery(query)
+                setIsTabbing(false)
+                setSelectedIndex(null)
+                setAreSuggestionsVisible(false)
+                searchRef.current?.focus()
+                const end = searchRef.current?.value.length ?? 0
+                searchRef.current?.setSelectionRange(end, end)
+            }
+        }
+        document.addEventListener('keydown', onKeyDown)
+        return () => {
+            document.removeEventListener('keydown', onKeyDown)
+        }
+    }, [query, setRawQuery])
+
     return (
         <label
             tabIndex={-1}
@@ -73,6 +146,8 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
             }}
             onBlur={event => {
                 if (!event.currentTarget.contains(event.relatedTarget)) {
+                    setIsTabbing(false)
+                    setSelectedIndex(null)
                     setAreSuggestionsVisible(false)
                 }
             }}
@@ -86,8 +161,15 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                 placeholder="Type to search for projects, data connectors, users, and more."
                 value={query.query}
                 className="peer relative z-1 grow bg-transparent leading-5 h-6 py-px"
+                onFocus={() => {
+                    if (!wasQueryModified) {
+                        setSelectedIndex(null)
+                    }
+                }}
                 onChange={event => {
-                    setQuery(assetQuery.AssetQuery.fromString(event.target.value))
+                    if (!wasQueryModified) {
+                        setRawQuery(assetQuery.AssetQuery.fromString(event.target.value))
+                    }
                 }}
             />
             <div className="absolute flex flex-col top-0 left-0 overflow-hidden w-full before:absolute before:bg-frame before:inset-0 before:backdrop-blur-3xl rounded-2xl pointer-events-none transition-all duration-300">
@@ -106,7 +188,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                                               className="bg-frame rounded-full h-6 px-2 hover:bg-frame-selected transition-all"
                                               onClick={() => {
                                                   setWasQueryModified(true)
-                                                  setQuery(query.add({ [key]: [['']] }))
+                                                  setRawQuery(baseQuery.add({ [key]: [['']] }))
                                               }}
                                           >
                                               {tag}:
@@ -133,7 +215,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                                         }
                                         negated={negated}
                                         onClick={event => {
-                                            setQuery(oldQuery =>
+                                            setRawQuery(oldQuery =>
                                                 assetQuery.toggleLabel(
                                                     oldQuery,
                                                     label.value,
@@ -152,9 +234,17 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                             {suggestions.map((suggestion, index) => (
                                 <div
                                     key={index}
-                                    className="cursor-pointer px-2 py-1 mx-1 rounded-2xl text-left hover:bg-frame-selected last:mb-1 transition-colors pointer-events-auto"
+                                    ref={el => {
+                                        if (index === selectedIndex) {
+                                            el?.focus()
+                                        }
+                                    }}
+                                    tabIndex={-1}
+                                    className={`cursor-pointer px-2 py-1 mx-1 rounded-2xl text-left hover:bg-frame-selected last:mb-1 transition-colors pointer-events-auto ${
+                                        index === selectedIndex ? 'bg-frame-selected' : ''
+                                    }`}
                                     onClick={() => {
-                                        setQuery(suggestion.newQuery(query))
+                                        setRawQuery(suggestion.newQuery(baseQuery))
                                     }}
                                 >
                                     {suggestion.render()}
