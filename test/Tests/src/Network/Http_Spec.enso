@@ -24,6 +24,11 @@ type Bad_To_Json
     Aaa (s:Text)
     to_json self = Error.throw (Illegal_Argument.Error "test")
 
+# Clear out fields that we want to ignore
+remove_fields json =
+    json.set_value  "headers" (json.at "headers" . set_value "User-Agent" "")
+compare_responses a b = (remove_fields a).should_equal (remove_fields b)
+
 spec =
     ## To run this test locally:
        $ sbt 'http-test-helper/run localhost 8080'
@@ -102,10 +107,10 @@ spec =
                   "method": "GET",
                   "args": {}
                 }
-            response . should_equal expected_response
+            compare_responses response expected_response
 
             uri_response = url_get.to URI . fetch
-            uri_response . should_equal expected_response
+            compare_responses uri_response expected_response
 
         Test.specify "Can perform a HEAD" <|
             response = Data.fetch url_head method=HTTP_Method.Head
@@ -149,11 +154,11 @@ spec =
                   "method": "GET",
                   "args": {}
                 }
-            response.decode_as_json . should_equal expected_response
+            compare_responses response.decode_as_json expected_response
 
             uri_response = url_get.to_uri.fetch try_auto_parse_response=False
             uri_response.code.code . should_equal 200
-            uri_response.decode_as_json . should_equal expected_response
+            compare_responses uri_response.decode_as_json expected_response
 
         Test.specify "Can still perform request when output context is disabled" <|
             run_with_and_without_output <|
@@ -197,35 +202,35 @@ spec =
         Test.specify "Can perform a Request_Body.Text POST" <|
             response = Data.post url_post (Request_Body.Text "hello world")
             expected_response = echo_response_template "POST" "/post" "hello world" content_type="text/plain; charset=UTF-8"
-            response . should_equal expected_response
+            compare_responses response expected_response
 
             url_response = url_post.to_uri.post (Request_Body.Text "hello world")
-            url_response . should_equal expected_response
+            compare_responses url_response expected_response
 
         Test.specify "Can perform a Request_Body.Json JSON POST" <|
             json = Json.parse '{"a": "asdf", "b": 123}'
             response = Data.post url_post (Request_Body.Json json)
             expected_response = echo_response_template "POST" "/post" '{"a":"asdf","b":123}' content_type="application/json"
-            response . should_equal expected_response
+            compare_responses response expected_response
 
         Test.specify "Can perform a JSON POST" <|
             json = Json.parse '{"a": "asdf", "b": 123}'
             response = Data.post url_post json
             expected_response = echo_response_template "POST" "/post" '{"a":"asdf","b":123}' content_type="application/json"
-            response . should_equal expected_response
+            compare_responses response expected_response
 
         Test.specify "Can perform an object Request_Body.Json POST" <|
             response = Data.post url_post (Request_Body.Json (Test_Type.Aaa "abc"))
             expected_response = echo_response_template "POST" "/post" '{"type":"Test_Type","constructor":"Aaa","s":"abc"}' content_type="application/json"
-            response . should_equal expected_response
+            compare_responses response expected_response
 
         Test.specify "Can perform an object JSON POST" <|
             response = Data.post url_post (Test_Type.Bbb 12)
             expected_response = echo_response_template "POST" "/post" '{"type":"Test_Type","constructor":"Bbb","i":12}' content_type="application/json"
-            response . should_equal expected_response
+            compare_responses response expected_response
 
             uri_response = url_post.to_uri.post (Test_Type.Bbb 12)
-            uri_response . should_equal expected_response
+            compare_responses uri_response expected_response
 
         Test.specify "can handle a bad .to_json" <|
             Data.post url_post (Bad_To_Json.Aaa "abcd") . should_fail_with Illegal_Argument
@@ -234,16 +239,16 @@ spec =
             body = Request_Body.Text 'Hello World!' encoding=Encoding.utf_16_le
             response = Data.post url_post body
             expected_response = echo_response_template "POST" "/post" "Hello World!" content_type="text/plain; charset=UTF-16LE" content_length=24
-            response . should_equal expected_response
+            compare_responses response expected_response
 
             uri_response = url_post.to_uri.post body
-            uri_response . should_equal expected_response
+            compare_responses uri_response expected_response
 
         Test.specify "Can perform a Text POST with explicit content type" <|
             response = Data.post url_post (Request_Body.Text 'a,b,c\n' content_type="text/csv")
 
             expected_response = echo_response_template "POST" "/post" 'a,b,c\n' content_type="text/csv; charset=UTF-8"
-            response . should_equal expected_response
+            compare_responses response expected_response
 
         Test.specify "Can perform a File POST" <|
             test_file = enso_project.data / "sample.txt"
@@ -284,17 +289,17 @@ spec =
         Test.specify "Can perform a Text POST with auto-conversion" <|
             response = Data.post url_post "hello world"
             expected_response = echo_response_template "POST" "/post" "hello world" content_type="text/plain; charset=UTF-8"
-            response . should_equal expected_response
+            compare_responses response expected_response
 
         Test.specify "Can perform a Request_Body.Text PUT" <|
             response = Data.post url_put (Request_Body.Text "hello world") method=HTTP_Method.Put
             expected_response = echo_response_template "PUT" "/put" "hello world" content_type="text/plain; charset=UTF-8"
-            response . should_equal expected_response
+            compare_responses response expected_response
 
         Test.specify "Can perform a Request_Body.Text PATCH" <|
             response = Data.post url_patch (Request_Body.Text "hello world" content_type="application/diff") method=HTTP_Method.Patch
             expected_response = echo_response_template "PATCH" "/patch" "hello world" content_type="application/diff; charset=UTF-8"
-            response . should_equal expected_response
+            compare_responses response expected_response
 
         Test.specify "Can perform a DELETE" <|
             response = Data.post url_delete method=HTTP_Method.Delete
@@ -315,12 +320,12 @@ spec =
                   "data": "",
                   "args": {}
                 }
-            response . should_equal expected_response
+            compare_responses response expected_response
 
         Test.specify "Can skip auto-parse" <|
             response = Data.post url_post (Request_Body.Text "hello world") try_auto_parse_response=False
             expected_response = echo_response_template "POST" "/post" "hello world" content_type="text/plain; charset=UTF-8"
-            response.decode_as_json . should_equal expected_response
+            compare_responses response.decode_as_json expected_response
 
         Test.specify "Can send a custom header" <|
             response = Data.post url_post (Request_Body.Text "hello world") headers=[Header.new "Custom" "asdf", Header.new "Another" 'a:b: c - "ddd"']
@@ -344,7 +349,7 @@ spec =
                   "data": "hello world",
                   "args": {}
                 }
-            response . should_equal expected_response
+            compare_responses response expected_response
 
         Test.specify "can handle HTTP errors" <|
             # This should give us 405 method not allowed
@@ -424,7 +429,7 @@ spec =
                   "data": "{\\"a\\": \\"asdf\\", \\"b\\": 123}",
                   "args": {}
                 }
-            response . should_equal expected_response
+            compare_responses response expected_response
 
         Test.specify "Content type in the header list is respected" <|
             response = Data.post url_post (Request_Body.Text '{"a": "asdf", "b": 123}') headers=[Header.content_type "application/json"]
@@ -446,7 +451,7 @@ spec =
                   "data": "{\\"a\\": \\"asdf\\", \\"b\\": 123}",
                   "args": {}
                 }
-            response . should_equal expected_response
+            compare_responses response expected_response
 
         Test.specify "Multiple content types in the header list are respected" <|
             response = Data.post url_post (Request_Body.Text '{"a": "asdf", "b": 123}') headers=[Header.content_type "application/json", Header.content_type "text/plain"]
@@ -470,7 +475,7 @@ spec =
                   "data": "{\\"a\\": \\"asdf\\", \\"b\\": 123}",
                   "args": {}
                 }
-            response . should_equal expected_response
+            compare_responses response expected_response
 
         Test.specify "Unspecified content type defaults to text/plain" <|
             response = Data.post url_post (Request_Body.Text '{"a": "asdf", "b": 123}')
@@ -492,7 +497,7 @@ spec =
                   "data": "{\\"a\\": \\"asdf\\", \\"b\\": 123}",
                   "args": {}
                 }
-            response . should_equal expected_response
+            compare_responses response expected_response
 
         Test.specify "Cannot specify content type in both body and headers" <|
             Data.post url_post (Request_Body.Text "hello world" content_type="text/plain") headers=[Header.content_type "application/json"] . should_fail_with Illegal_Argument
