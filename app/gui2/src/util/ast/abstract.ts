@@ -1,4 +1,5 @@
 import * as RawAst from '@/generated/ast'
+import { assert } from '@/util/assert'
 import { parseEnso } from '@/util/ast'
 import { AstExtended as RawAstExtended } from '@/util/ast/extended'
 import type { Opt } from '@/util/data/opt'
@@ -109,23 +110,29 @@ export class MutableModule implements Module {
   }
 
   set(id: AstId, ast: Ast) {
-    const ast_ = id === ast.exprId ? ast : ast.cloneTo(this, id)
-    this.splice(id, ast_)
-    this.nodes.set(id, ast_)
+    this.splice(ast, id)
   }
 
-  /** Insert references to the given node and all its descendants into this module,
-   *  if they aren't already accessible. */
-  splice(id: AstId, ast: Ast) {
-    let moduleInChain: Module | null = this
-    while (moduleInChain) {
-      if (ast.module === moduleInChain) return
-      moduleInChain = moduleInChain.raw.base
+  /** Copy the given node and all its descendants into this module. */
+  splice(ast: Ast, id?: AstId): Ast
+  splice(ast: null, id?: AstId): null
+  splice(ast: undefined, id?: AstId): undefined
+  splice(ast: Ast | null, id?: AstId): Ast | null
+  splice(ast: Ast | undefined, id?: AstId): Ast | undefined
+  splice(ast: Ast | null | undefined, id?: AstId): Ast | null | undefined {
+    if (!ast) return ast
+    const id_ = id ?? newAstId()
+    const ast_ = ast.cloneWithId(this, id_)
+    for (const child of ast_.concreteChildren()) {
+      if (!(child.node instanceof Token)) {
+        const childInForeignModule = ast.module.get(child.node)
+        assert(childInForeignModule !== null)
+        const spliced = this.splice(childInForeignModule)
+        child.node = spliced.exprId
+      }
     }
-    if (!moduleInChain) this.nodes.set(id, ast)
-    for (const child of ast.concreteChildren()) {
-      if (!(child.node instanceof Token)) this.splice(child.node, ast.module.get(child.node)!)
-    }
+    this.nodes.set(id_, ast_)
+    return ast_
   }
 
   getExtended(id: AstId): RawAstExtended | undefined {
@@ -333,13 +340,48 @@ export abstract class Ast {
     return code
   }
 
-  /** Return a shallow copy of this node, with the specified `module` and `exprId` properties. */
-  cloneTo(module: Module, exprId: AstId): Ast {
-    const clone = Object.assign(Object.create(Object.getPrototypeOf(this)), this)
+  /** Return a copy of this node, with the specified `module` and `exprId` properties.
+   *
+   *  The node's owned data is deep-copied, although note that child subtrees are stored as IDs,
+   *  so a full deep copy requires recursively cloning child nodes.
+   */
+  cloneWithId(module: Module, exprId: AstId): this {
+    for (const child of this.concreteChildren()) {
+      assert(child !== undefined, 'concrete children are valid')
+    }
+    const clone = Object.assign(Object.create(Object.getPrototypeOf(this)), cloneObjectTree(this))
     clone.module = module
     clone.exprId = exprId
-    return clone
+    const ast: this = clone
+    for (const child of ast.concreteChildren()) {
+      assert(child !== undefined, 'cloned children are valid')
+    }
+    return ast
   }
+}
+
+function cloneObjectTree(object: Object): Object {
+  const mapEntry = ([name, value]: [string, unknown]) => [
+    name,
+    value && typeof value === 'object' ? cloneObjectTree(value) : value,
+  ]
+  return Object.fromEntries(Object.entries(object).map(mapEntry))
+}
+
+function spaced<T>(node: T): NodeChild<T> {
+  return { whitespace: ' ', node }
+}
+
+function unspaced<T>(node: T): NodeChild<T> {
+  return { whitespace: '', node }
+}
+
+function autospaced<T>(node: T): NodeChild<T> {
+  return { node }
+}
+
+function spacedIf<T>(node: T, isSpaced: boolean): NodeChild<T> {
+  return { whitespace: isSpaced ? ' ' : '', node }
 }
 
 export class App extends Ast {
@@ -349,6 +391,18 @@ export class App extends Ast {
   private readonly equals_: NodeChild<Token> | null
   private readonly arg_: NodeChild<AstId>
   private readonly rightParen_: NodeChild<Token> | null
+
+  static new(func: Ast, name: string | Token | null, arg: Ast, module?: MutableModule) {
+    const edit = module ?? MutableModule.Transient()
+    const func_ = unspaced(edit.splice(func).exprId)
+    const nameToken =
+      typeof name === 'string' ? new Token(name, newTokenId(), RawAst.Token.Type.Ident) : null
+    const name_ = nameToken ? spaced(nameToken) : null
+    const equals = name ? unspaced(new Token('=', newTokenId(), RawAst.Token.Type.Operator)) : null
+    const arg_ = spacedIf(edit.splice(arg).exprId, !name)
+    const treeType = name ? RawAst.Tree.Type.NamedApp : RawAst.Tree.Type.App
+    return new App(edit, undefined, func_, null, name_, equals, arg_, null, treeType)
+  }
 
   get function(): Ast {
     return this.module.get(this.func_.node)!
@@ -535,16 +589,15 @@ export class PropertyAccess extends OprApp {
     rhs: NodeChild<AstId> | null,
   ) {
     const oprs = [
-      opr ?? { whitespace: '', node: new Token('.', newTokenId(), RawAst.Token.Type.Operator) },
+      opr ?? unspaced(new Token('.', newTokenId(), RawAst.Token.Type.Operator)),
     ]
     super(module, id, lhs, oprs, rhs)
   }
 
   static new(module: MutableModule, lhs: Ast | null, rhs: Token | null): PropertyAccess {
-    if (lhs) module.splice(lhs.exprId, lhs)
-    const lhs_ = lhs ? { node: lhs.exprId } : null
+    const lhs_ = lhs ? unspaced(module.splice(lhs).exprId) : null
     const rhs_ = rhs
-      ? { whitespace: '', node: new Ident(module, undefined, { whitespace: '', node: rhs }).exprId }
+      ? unspaced(new Ident(module, undefined, unspaced(rhs)).exprId)
       : null
     return new PropertyAccess(module, undefined, lhs_, undefined, rhs_)
   }
@@ -586,8 +639,8 @@ export class Generic extends Ast {
 type MultiSegmentAppSegment = { header: NodeChild<Token>; body: NodeChild<AstId> | null }
 function multiSegmentAppSegment(header: string, body: Ast): MultiSegmentAppSegment {
   return {
-    header: { node: new Token(header, newTokenId(), RawAst.Token.Type.Ident) },
-    body: { node: body.exprId },
+    header: unspaced(new Token(header, newTokenId(), RawAst.Token.Type.Ident)),
+    body: spaced(body.exprId),
   }
 }
 
@@ -699,9 +752,9 @@ export class TextLiteral extends Ast {
 
   static new(rawText: string, moduleIn?: MutableModule): TextLiteral {
     const module = moduleIn ?? MutableModule.Transient()
-    const open = { node: Token.new("'") }
-    const elements = [{ whitespace: '', node: Token.new(escape(rawText)) }]
-    const close = { whitespace: '', node: Token.new("'") }
+    const open = unspaced(Token.new("'"))
+    const elements = [unspaced(Token.new(escape(rawText)))]
+    const close = unspaced(Token.new("'"))
     return new TextLiteral(module, undefined, open, null, elements, close)
   }
 
@@ -859,17 +912,13 @@ export class Assignment extends Ast {
   ) {
     super(module, id, RawAst.Tree.Type.Assignment)
     this.pattern_ = pattern
-    this.equals_ = equals ?? { node: new Token('=', newTokenId(), RawAst.Token.Type.Operator) }
+    this.equals_ = equals ?? spacedIf(new Token('=', newTokenId(), RawAst.Token.Type.Operator), !!expression.whitespace)
     this.expression_ = expression
   }
 
   static new(module: MutableModule, ident: string, expression: Ast): Assignment {
-    module.splice(expression.exprId, expression)
-    const pattern = { node: Ident.new(module, ident).exprId }
-    return new Assignment(module, undefined, pattern, undefined, {
-      whitespace: ' ',
-      node: expression.exprId,
-    })
+    const pattern = unspaced(Ident.new(module, ident).exprId)
+    return new Assignment(module, undefined, pattern, undefined, spaced(module.splice(expression).exprId))
   }
 
   *concreteChildren(): IterableIterator<NodeChild> {
@@ -889,10 +938,7 @@ export class BodyBlock extends Ast {
 
   static new(lines: BlockLine[], module?: MutableModule): BodyBlock {
     const module_ = module ?? MutableModule.Transient()
-    for (const line of lines) {
-      if (line.expression) module_.splice(line.expression.node.exprId, line.expression.node)
-    }
-    const rawLines = lines.map(lineToRaw)
+    const rawLines = lines.map((line) => lineToRaw(line, module_))
     return new BodyBlock(module_, undefined, rawLines)
   }
 
@@ -912,13 +958,13 @@ export class BodyBlock extends Ast {
   }
 
   push(module: MutableModule, node: Ast) {
-    new BodyBlock(module, this.exprId, [...this.lines_, { expression: { node: node.exprId } }])
+    new BodyBlock(module, this.exprId, [...this.lines_, { expression: unspaced(node.exprId) }])
   }
 
   /** Insert the given expression(s) starting at the specified line index. */
   insert(module: MutableModule, index: number, ...nodes: Ast[]) {
     const before = this.lines_.slice(0, index)
-    const insertions = Array.from(nodes, (node) => ({ expression: { node: node.exprId } }))
+    const insertions = Array.from(nodes, (node) => ({ expression: unspaced(node.exprId) }))
     const after = this.lines_.slice(index)
     new BodyBlock(module, this.exprId, [...before, ...insertions, ...after])
   }
@@ -990,13 +1036,14 @@ function lineFromRaw(raw: RawBlockLine, module: Module): BlockLine {
   }
 }
 
-function lineToRaw(line: BlockLine): RawBlockLine {
+function lineToRaw(line: BlockLine, module: MutableModule): RawBlockLine {
+  const expression = module.splice(line.expression?.node)
   return {
     newline: line.newline,
-    expression: line.expression
+    expression: expression
       ? {
-          whitespace: line.expression.whitespace,
-          node: line.expression.node.exprId,
+          whitespace: line.expression?.whitespace,
+          node: expression.exprId,
         }
       : null,
   }
@@ -1011,9 +1058,7 @@ export class Ident extends Ast {
   }
 
   static new(module: MutableModule, code: string): Ident {
-    return new Ident(module, undefined, {
-      node: new Token(code, newTokenId(), RawAst.Token.Type.Ident),
-    })
+    return new Ident(module, undefined, unspaced(new Token(code, newTokenId(), RawAst.Token.Type.Ident)))
   }
 
   *concreteChildren(): IterableIterator<NodeChild> {
@@ -1031,9 +1076,7 @@ export class Wildcard extends Ast {
 
   static new(module?: MutableModule): Wildcard {
     const module_ = module ?? MutableModule.Transient()
-    return new Wildcard(module_, undefined, {
-      node: new Token('_', newTokenId(), RawAst.Token.Type.Wildcard),
-    })
+    return new Wildcard(module_, undefined, unspaced(new Token('_', newTokenId(), RawAst.Token.Type.Wildcard)))
   }
 
   *concreteChildren(): IterableIterator<NodeChild> {
@@ -1052,7 +1095,7 @@ export class RawCode extends Ast {
   static new(code: string, moduleIn?: MutableModule, id?: AstId | undefined): RawCode {
     const token = new Token(code, newTokenId(), RawAst.Token.Type.Ident)
     const module = moduleIn ?? MutableModule.Transient()
-    return new RawCode(module, id, { node: token })
+    return new RawCode(module, id, unspaced(token))
   }
 
   *concreteChildren(): IterableIterator<NodeChild> {
