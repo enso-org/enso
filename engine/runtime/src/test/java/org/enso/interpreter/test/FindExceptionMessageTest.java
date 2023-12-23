@@ -93,7 +93,8 @@ public class FindExceptionMessageTest extends TestBase {
     } catch (PolyglotException ex) {
       assertNotNull("Has source location", ex.getSourceLocation());
       var throwCode = ex.getSourceLocation().getCharacters().toString();
-      assertNotEquals("Throw code found in the source code: " + throwCode, src.indexOf(throwCode));
+      assertNotEquals(
+          "Throw code found in the source code: " + throwCode, -1, src.indexOf(throwCode));
     }
   }
 
