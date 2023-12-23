@@ -884,49 +884,20 @@ export class Assignment extends Ast {
   }
 }
 
-interface RawBlockLine {
-  newline?: NodeChild<Token> | undefined
-  expression: NodeChild<AstId> | null
-}
-
-interface BlockLine {
-  newline?: NodeChild<Token> | undefined
-  expression: NodeChild<Ast> | null
-}
-
 export class BodyBlock extends Ast {
   private readonly lines_: RawBlockLine[]
 
   static new(lines: BlockLine[], module?: MutableModule): BodyBlock {
     const module_ = module ?? MutableModule.Transient()
-    const rawLines = lines.map((line) => {
+    for (const line of lines) {
       if (line.expression) module_.splice(line.expression.node.exprId, line.expression.node)
-      return {
-        newline: line.newline,
-        expression: line.expression
-          ? {
-              whitespace: line.expression.whitespace,
-              node: line.expression.node.exprId,
-            }
-          : null,
-      }
-    })
+    }
+    const rawLines = lines.map(lineToRaw)
     return new BodyBlock(module_, undefined, rawLines)
   }
 
   lines(): BlockLine[] {
-    return this.lines_.map((line) => {
-      const expression = line.expression ? this.module.get(line.expression.node) : null
-      return {
-        newline: line.newline,
-        expression: expression
-          ? {
-              whitespace: line.expression?.whitespace,
-              node: expression,
-            }
-          : null,
-      }
-    })
+    return this.lines_.map((line) => lineFromRaw(line, this.module))
   }
 
   *statements(): IterableIterator<Ast> {
@@ -973,7 +944,7 @@ export class BodyBlock extends Ast {
       code += line.newline?.whitespace ?? ''
       const newlineCode = line.newline?.node.code()
       // Only print a newline if this isn't the first line in the output, or it's a comment.
-      if (offset || code || newlineCode?.startsWith('#') || !line.expression) {
+      if (offset || code || newlineCode?.startsWith('#')) {
         // If this isn't the first line in the output, but there is a concrete newline token:
         // if it's a zero-length newline, ignore it and print a normal newline.
         code += newlineCode || '\n'
@@ -993,6 +964,41 @@ export class BodyBlock extends Ast {
       infos.unshift(this.exprId)
     }
     return code
+  }
+}
+
+interface RawBlockLine {
+  newline?: NodeChild<Token> | undefined
+  expression: NodeChild<AstId> | null
+}
+
+interface BlockLine {
+  newline?: NodeChild<Token> | undefined
+  expression: NodeChild<Ast> | null
+}
+
+function lineFromRaw(raw: RawBlockLine, module: Module): BlockLine {
+  const expression = raw.expression ? module.get(raw.expression.node) : null
+  return {
+    newline: raw.newline,
+    expression: expression
+      ? {
+          whitespace: raw.expression?.whitespace,
+          node: expression,
+        }
+      : null,
+  }
+}
+
+function lineToRaw(line: BlockLine): RawBlockLine {
+  return {
+    newline: line.newline,
+    expression: line.expression
+      ? {
+          whitespace: line.expression.whitespace,
+          node: line.expression.node.exprId,
+        }
+      : null,
   }
 }
 

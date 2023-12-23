@@ -314,11 +314,11 @@ export class GraphDb {
   }
 
   mockNode(binding: string, id: Ast.AstId, code?: string): Node {
-    const pattern = Ast.parseBlock(binding)
+    const pattern = Ast.parse(binding)
     const node: Node = {
       outerExprId: id,
       pattern,
-      rootSpan: Ast.parseBlock(code ?? '0'),
+      rootSpan: Ast.parse(code ?? '0'),
       position: Vec2.Zero,
       vis: undefined,
     }
@@ -343,7 +343,7 @@ export function mockNode(exprId?: Ast.AstId): Node {
   return {
     outerExprId: exprId ?? (random.uuidv4() as Ast.AstId),
     pattern: undefined,
-    rootSpan: Ast.parseBlock('0'),
+    rootSpan: Ast.parse('0'),
     position: Vec2.Zero,
     vis: undefined,
   }
