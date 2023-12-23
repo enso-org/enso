@@ -301,6 +301,13 @@ export async function buildPackage(passedArgs: Arguments) {
         config: createElectronBuilderConfig(passedArgs),
         targets: passedArgs.platform.createTarget(),
     }
+
+    // Write the configuration to a JSON file for debugging purposes.
+    const configPath = `${passedArgs.ideDist}/electron-builder-config.yaml`
+    console.log(`Writing configuration to ${configPath}`)
+    const configContents = JSON.stringify(cliOpts.config, null, 2)
+    await fs.writeFile(configPath, configContents)
+
     console.log('Building with configuration:', cliOpts)
     const result = await electronBuilder.build(cliOpts)
     console.log('Electron Builder is done. Result:', result)

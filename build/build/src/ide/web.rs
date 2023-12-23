@@ -9,7 +9,6 @@ use crate::project::IsArtifact;
 use crate::project::ProcessWrapper;
 
 use anyhow::Context;
-use futures_util::future::try_join;
 use futures_util::future::try_join3;
 use ide_ci::io::download_all;
 use ide_ci::ok_ready_boxed;
@@ -63,6 +62,10 @@ pub mod env {
         ENSO_BUILD_GUI_ASSETS, PathBuf;
         ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION, Version;
         ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH, PathBuf;
+        /// Path to the JSON dump of the electron-builder configuration.
+        ///
+        /// Written when running `electron-builder`. Used by the `enso-installer` on Windows. On other platforms it may serve debugging purposes.
+        ENSO_BUILD_ELECTRON_BUILDER_CONFIG, PathBuf;
     }
 
     // === Electron Builder ===
@@ -366,6 +369,7 @@ impl IdeDesktop {
     ) -> Result {
         let output_path = output_path.as_ref();
         let build_windows_enso_install = TARGET_OS == OS::Windows;
+        let electron_config = output_path.join("electron-builder.json");
         if TARGET_OS == OS::MacOS && env::CSC_KEY_PASSWORD.is_set() {
             // This means that we will be doing code signing on MacOS. This requires JDK environment
             // to be set up.
@@ -384,27 +388,13 @@ impl IdeDesktop {
             .try_applying(&pm_bundle)?
             .workspace(Workspaces::Enso)
             .run("build")
-            .run_ok();
+            .run_ok()
+            .await?;
 
         let icons_dist = TempDir::new()?;
         let icons_dist = icons_dist.into_path();
         let icons_build = self.build_icons(&icons_dist);
         let icons = icons_build.await?;
-
-        if build_windows_enso_install {
-            let uninstaller_build = Cargo
-                .cmd()?
-                .current_dir(&self.repo_root)
-                .apply(&cargo::Command::Build)
-                .try_applying(&icons)?
-                .arg("--release")
-                .arg("--package")
-                .arg("enso-uninstaller")
-                .run_ok();
-            try_join(uninstaller_build, client_build).await?;
-        } else {
-            client_build.await?;
-        }
 
         let python_path = if TARGET_OS == OS::MacOS && !env::PYTHON_PATH.is_set() {
             // On macOS electron-builder will fail during DMG creation if there is no python2
@@ -436,6 +426,7 @@ impl IdeDesktop {
             .set_env(env::ENSO_BUILD_IDE, output_path)?
             .set_env(env::ENSO_BUILD_PROJECT_MANAGER, project_manager.as_ref())?
             .set_env_opt(env::PYTHON_PATH, python_path.as_ref())?
+            .set_env(env::ENSO_BUILD_ELECTRON_BUILDER_CONFIG, &electron_config)?
             .workspace(Workspaces::Enso)
             // .args(["--loglevel", "verbose"])
             .run("dist")
@@ -446,13 +437,26 @@ impl IdeDesktop {
             .await?;
 
         if build_windows_enso_install {
+            Cargo
+                .cmd()?
+                .set_env(env::ENSO_BUILD_ELECTRON_BUILDER_CONFIG, &electron_config)?
+                .current_dir(&self.repo_root)
+                .apply(&cargo::Command::Build)
+                .try_applying(&icons)?
+                .arg("--release")
+                .arg("--package")
+                .arg("enso-uninstaller")
+                .arg("--out-dir")
+                .arg(output_path)
+                .run_ok()
+                .await?;
+
             let code_signing_certificate =
                 WindowsSigningCredentials::new_from_env().await.inspect_err(|e| {
                     warn!("Failed to create code signing certificate from the environment: {e:?}");
                 });
 
-            let release_artifacts = self.repo_root.target.join_iter(["rust", "release"]);
-            let uninstaller_source = release_artifacts.join("enso-uninstaller.exe");
+            let uninstaller_source = output_path.join("enso-uninstaller.exe");
             if let Ok(certificate) = code_signing_certificate.as_ref() {
                 certificate.sign(&uninstaller_source).await?;
             }
