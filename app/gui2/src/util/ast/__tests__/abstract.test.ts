@@ -389,7 +389,7 @@ test('replace expression content', () => {
   const root = Ast.parseBlock(code)
   const main = Ast.functionBlock(root.module, 'main')!
   expect(main).not.toBeNull()
-  const assignment: Ast.Assignment = main.expressions().next().value
+  const assignment: Ast.Assignment = main.statements().next().value
   expect(assignment).toBeInstanceOf(Ast.Assignment)
   expect(assignment.expression).not.toBeNull()
   const edit = root.module.edit()
@@ -404,7 +404,7 @@ test('delete expression', () => {
   const root = Ast.parseBlock(originalCode)
   const main = Ast.functionBlock(root.module, 'main')!
   expect(main).not.toBeNull()
-  const iter = main.expressions()
+  const iter = main.statements()
   const _assignment1 = iter.next()
   const assignment2: Ast.Assignment = iter.next().value
   const edit = root.module.edit()
@@ -438,4 +438,18 @@ test('full file IdMap round trip', () => {
   const idMap_ = deserializeIdMap(idMapJson_!)
   const ast3 = Ast.parseTransitional(code_, idMap_)
   expect(Ast.tokenTreeWithIds(ast3), 'Print/parse with serialized IdMap').toStrictEqual(astTT)
+})
+
+test('Block lines interface', () => {
+  const block = Ast.parseBlock('VLE  \nSISI\nGNIK \n')
+  // Sort alphabetically, but keep the blank line at the end.
+  const reordered = block.lines().sort((a, b) => {
+    if (a.expression?.node.code() === b.expression?.node.code()) return 0
+    if (!a.expression) return 1
+    if (!b.expression) return -1
+    return a.expression.node.code() < b.expression.node.code() ? -1 : 1
+  })
+  const newBlock = Ast.BodyBlock.new(reordered)
+  // Note that trailing whitespace belongs to the following line.
+  expect(newBlock.code()).toBe('GNIK  \nSISI\nVLE \n')
 })

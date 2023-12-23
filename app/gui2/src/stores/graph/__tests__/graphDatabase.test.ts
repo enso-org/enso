@@ -32,7 +32,7 @@ test('Reading graph from definition', () => {
   const db = GraphDb.Mock()
   const ast = Ast.parseTransitional(code, idMap)
   assert(ast instanceof Ast.BodyBlock)
-  const expressions = Array.from(ast.expressions())
+  const expressions = Array.from(ast.statements())
   const func = expressions[0]
   assert(func instanceof Ast.Function)
   db.readFunctionAst(func, (_) => ({ x: 0.0, y: 0.0, vis: null }))

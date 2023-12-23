@@ -162,10 +162,11 @@ export function addImports(
  */
 function newImportsLocation(module: Ast.Module, scope: Ast.BodyBlock): number {
   let lastImport
-  for (let i = 0; i < scope.lines.length; i++) {
-    const line = scope.lines[i]!
+  const lines = scope.lines()
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]!
     if (line.expression) {
-      if (module.get(line.expression.node)?.innerExpression() instanceof Ast.Import) {
+      if (line.expression.node?.innerExpression() instanceof Ast.Import) {
         lastImport = i
       } else {
         break

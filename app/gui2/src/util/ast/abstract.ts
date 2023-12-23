@@ -85,6 +85,7 @@ export class MutableModule implements Module {
     }
   }
 
+  /** Replace the contents of this module with the contents of the specified module. */
   replace(editIn: Module) {
     const edit = editIn.raw
     for (const id of this.nodes.keys()) {
@@ -108,13 +109,37 @@ export class MutableModule implements Module {
   }
 
   set(id: AstId, ast: Ast) {
-    this.nodes.set(id, ast)
+    const ast_ = id === ast.exprId ? ast : ast.cloneTo(this, id)
+    this.splice(id, ast_)
+    this.nodes.set(id, ast_)
+  }
+
+  /** Insert references to the given node and all its descendants into this module,
+   *  if they aren't already accessible. */
+  splice(id: AstId, ast: Ast) {
+    let moduleInChain: Module | null = this
+    while (moduleInChain) {
+      if (ast.module === moduleInChain) return
+      moduleInChain = moduleInChain.raw.base
+    }
+    if (!moduleInChain) this.nodes.set(id, ast)
+    for (const child of ast.concreteChildren()) {
+      if (!(child.node instanceof Token)) this.splice(child.node, ast.module.get(child.node)!)
+    }
   }
 
   getExtended(id: AstId): RawAstExtended | undefined {
     return this.astExtended?.get(id) ?? this.base?.getExtended(id)
   }
 
+  /** Remove the expression with the specified ID.
+   *
+   *  If the expression is optional in its parent, it will be removed entirely.
+   *  E.g. if it is a direct child of a `BodyBlock`, its line will be eliminated.
+   *
+   *  If the expression is a required part of the structure of its parent, it will be replaced with a placeholder.
+   *  In most contexts within an expression, this will be `_`.
+   */
   delete(id: AstId) {
     this.nodes.set(id, null)
   }
@@ -135,7 +160,7 @@ declare const brandTokenId: unique symbol
 export type AstId = ExprId & { [brandAstId]: never }
 export type TokenId = ExprId & { [brandTokenId]: never }
 
-function newNodeId(): AstId {
+function newAstId(): AstId {
   return random.uuidv4() as AstId
 }
 function newTokenId(): TokenId {
@@ -253,7 +278,7 @@ export abstract class Ast {
   /** Parse the input. If it contains a single expression at the top level, return it; otherwise, return a block. */
   static parse(source: PrintedSource | string, module?: MutableModule): Ast {
     const ast = Ast.parseBlock(source, module)
-    const [expr] = ast.expressions()
+    const [expr] = ast.statements()
     return expr instanceof Ast ? expr : ast
   }
 
@@ -270,7 +295,7 @@ export abstract class Ast {
 
   protected constructor(module: MutableModule, id?: AstId, treeType?: RawAst.Tree.Type) {
     this.module = module
-    this.exprId = id ?? newNodeId()
+    this.exprId = id ?? newAstId()
     this.treeType = treeType
     module.set(this.exprId, this)
   }
@@ -306,6 +331,14 @@ export abstract class Ast {
     const infos = map.setIfUndefined(info.nodes, span, (): AstId[] => [])
     infos.unshift(this.exprId)
     return code
+  }
+
+  /** Return a shallow copy of this node, with the specified `module` and `exprId` properties. */
+  cloneTo(module: Module, exprId: AstId): Ast {
+    const clone = Object.assign(Object.create(Object.getPrototypeOf(this)), this)
+    clone.module = module
+    clone.exprId = exprId
+    return clone
   }
 }
 
@@ -508,6 +541,7 @@ export class PropertyAccess extends OprApp {
   }
 
   static new(module: MutableModule, lhs: Ast | null, rhs: Token | null): PropertyAccess {
+    if (lhs) module.splice(lhs.exprId, lhs)
     const lhs_ = lhs ? { node: lhs.exprId } : null
     const rhs_ = rhs
       ? { whitespace: '', node: new Ident(module, undefined, { whitespace: '', node: rhs }).exprId }
@@ -777,7 +811,7 @@ export class Function extends Ast {
   *bodyExpressions(): IterableIterator<Ast> {
     const body = this.body_ ? this.module.get(this.body_.node) : null
     if (body instanceof BodyBlock) {
-      yield* body.expressions()
+      yield* body.statements()
     } else if (body !== null) {
       yield body
     }
@@ -830,6 +864,7 @@ export class Assignment extends Ast {
   }
 
   static new(module: MutableModule, ident: string, expression: Ast): Assignment {
+    module.splice(expression.exprId, expression)
     const pattern = { node: Ident.new(module, ident).exprId }
     return new Assignment(module, undefined, pattern, undefined, {
       whitespace: ' ',
@@ -849,56 +884,76 @@ export class Assignment extends Ast {
   }
 }
 
-interface BlockLine {
-  newline?: NodeChild<Token>
+interface RawBlockLine {
+  newline?: NodeChild<Token> | undefined
   expression: NodeChild<AstId> | null
 }
 
-export class BodyBlock extends Ast {
-  readonly lines: BlockLine[];
+interface BlockLine {
+  newline?: NodeChild<Token> | undefined
+  expression: NodeChild<Ast> | null
+}
 
-  *expressions(): IterableIterator<Ast> {
-    for (const line of this.lines) {
-      if (line.expression) {
-        const node = this.module.get(line.expression.node)
-        if (node) {
-          yield node
-        } else {
-          console.warn(`Missing node:`, line.expression.node)
-        }
+export class BodyBlock extends Ast {
+  private readonly lines_: RawBlockLine[]
+
+  static new(lines: BlockLine[], module?: MutableModule): BodyBlock {
+    const module_ = module ?? MutableModule.Transient()
+    const rawLines = lines.map((line) => {
+      if (line.expression) module_.splice(line.expression.node.exprId, line.expression.node)
+      return {
+        newline: line.newline,
+        expression: line.expression
+          ? {
+              whitespace: line.expression.whitespace,
+              node: line.expression.node.exprId,
+            }
+          : null,
       }
+    })
+    return new BodyBlock(module_, undefined, rawLines)
+  }
+
+  lines(): BlockLine[] {
+    return this.lines_.map((line) => {
+      const expression = line.expression ? this.module.get(line.expression.node) : null
+      return {
+        newline: line.newline,
+        expression: expression
+          ? {
+              whitespace: line.expression?.whitespace,
+              node: expression,
+            }
+          : null,
+      }
+    })
+  }
+
+  *statements(): IterableIterator<Ast> {
+    for (const line of this.lines()) {
+      if (line.expression) yield line.expression.node
     }
   }
 
-  constructor(module: MutableModule, id: AstId | undefined, lines: BlockLine[]) {
+  constructor(module: MutableModule, id: AstId | undefined, lines: RawBlockLine[]) {
     super(module, id, RawAst.Tree.Type.BodyBlock)
-    this.lines = lines
+    this.lines_ = lines
   }
-
-  // TODO: Edits (#8367)
-  /*
-  static new(id: AstId | undefined, expressions: Ast[]): Block {
-    return new Block(
-      id,
-      expressions.map((e) => ({ expression: { node: e._id } })),
-    )
-  }
-   */
 
   push(module: MutableModule, node: Ast) {
-    new BodyBlock(module, this.exprId, [...this.lines, { expression: { node: node.exprId } }])
+    new BodyBlock(module, this.exprId, [...this.lines_, { expression: { node: node.exprId } }])
   }
 
   /** Insert the given expression(s) starting at the specified line index. */
   insert(module: MutableModule, index: number, ...nodes: Ast[]) {
-    const before = this.lines.slice(0, index)
+    const before = this.lines_.slice(0, index)
     const insertions = Array.from(nodes, (node) => ({ expression: { node: node.exprId } }))
-    const after = this.lines.slice(index)
+    const after = this.lines_.slice(index)
     new BodyBlock(module, this.exprId, [...before, ...insertions, ...after])
   }
 
   *concreteChildren(): IterableIterator<NodeChild> {
-    for (const line of this.lines) {
+    for (const line of this.lines_) {
       yield line.newline ?? { node: new Token('\n', newTokenId(), RawAst.Token.Type.Newline) }
       if (line.expression !== null) yield line.expression
     }
@@ -912,13 +967,13 @@ export class BodyBlock extends Ast {
   ): string {
     const module_ = moduleOverride ?? this.module
     let code = ''
-    for (const line of this.lines) {
+    for (const line of this.lines_) {
       // Skip deleted lines (and associated whitespace).
       if (line.expression?.node != null && module_.get(line.expression.node) === null) continue
       code += line.newline?.whitespace ?? ''
       const newlineCode = line.newline?.node.code()
       // Only print a newline if this isn't the first line in the output, or it's a comment.
-      if (offset || code || newlineCode?.startsWith('#')) {
+      if (offset || code || newlineCode?.startsWith('#') || !line.expression) {
         // If this isn't the first line in the output, but there is a concrete newline token:
         // if it's a zero-length newline, ignore it and print a normal newline.
         code += newlineCode || '\n'
@@ -968,12 +1023,11 @@ export class Wildcard extends Ast {
     this.token = token
   }
 
-  static new(): Wildcard {
-    const module = MutableModule.Transient()
-    const ast = new Wildcard(module, undefined, {
+  static new(module?: MutableModule): Wildcard {
+    const module_ = module ?? MutableModule.Transient()
+    return new Wildcard(module_, undefined, {
       node: new Token('_', newTokenId(), RawAst.Token.Type.Wildcard),
     })
-    return ast
   }
 
   *concreteChildren(): IterableIterator<NodeChild> {
@@ -1353,7 +1407,7 @@ export function parseTransitional(code: string, idMap: IdMap): Ast {
         if (!preexisting.isTree(RawAst.Tree.Type.Invalid)) {
           console.warn(`Unexpected duplicate UUID in tree`, id)
         }
-        id = newNodeId()
+        id = newAstId()
       }
       astExtended.set(id, node)
       spans.set(id, node.span())

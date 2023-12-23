@@ -3,7 +3,6 @@ import { Token, Tree } from '@/generated/ast'
 import { assert } from '@/util/assert'
 import {
   childrenAstNodesOrTokens,
-  debugAst,
   parseEnso,
   parsedTreeOrTokenRange,
   readAstOrTokenSpan,
@@ -71,14 +70,6 @@ export class AstExtended<T extends Tree | Token = Tree | Token, HasIdMap extends
     })
   }
 
-  treeTypeName(): (typeof Tree.typeNames)[number] | null {
-    return Tree.isInstance(this.inner) ? Tree.typeNames[this.inner.type] : null
-  }
-
-  tokenTypeName(): (typeof Token.typeNames)[number] | null {
-    return Token.isInstance(this.inner) ? Token.typeNames[this.inner.type] : null
-  }
-
   isToken<T extends OneOrArray<Ast.Token.Type>>(
     type?: T,
   ): this is AstExtended<ExtractType<Ast.Token, T>, HasIdMap> {
@@ -111,10 +102,6 @@ export class AstExtended<T extends Tree | Token = Tree | Token, HasIdMap extends
     } else {
       return undefined as CondType<ExprId, HasIdMap>
     }
-  }
-
-  debug(): unknown {
-    return debugAst(this.inner)
   }
 
   tryMap<T2 extends Tree | Token>(
