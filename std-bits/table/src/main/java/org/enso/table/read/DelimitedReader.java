@@ -44,7 +44,7 @@ public class DelimitedReader {
    */
   public static final char COMMENT_CHARACTER = '\0';
 
-  public static final char UNUSED_CHARACTER = (char) 63726; // \u0F8EE
+  public static final char UNUSED_CHARACTER = '\uF8EE';
 
   private static final String COLUMN_NAME = "Column";
   private static final char noQuoteCharacter = '\0';
