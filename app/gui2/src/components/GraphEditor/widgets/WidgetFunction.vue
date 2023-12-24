@@ -154,7 +154,7 @@ function handleArgUpdate(value: unknown, origin: PortId): boolean {
         // The unmodified LHS subtree of the subtree that is being replaced.
         let innerBound: Ast.Ast | undefined
         // The top level of the subtree that is being replaced.
-        let outerBound: Ast.Ast | undefined
+        let outerBound = argApp.appTree
         // The levels of the application tree to apply to `innerBound` to yield the new `outerBound` expression.
         const newArgs: { name: Ast.Token | null; value: Ast.Ast }[] = []
         // Traverse the application chain, starting from the outermost application and going
@@ -169,10 +169,11 @@ function handleArgUpdate(value: unknown, origin: PortId): boolean {
             // Process an argument to the right of the removed argument.
             assert(innerApp.appTree instanceof Ast.App)
             const argNeedsRewrite =
-              innerApp.argument instanceof ArgumentAst &&
+              newArgs ||
+              (innerApp.argument instanceof ArgumentAst &&
               innerApp.appTree.argumentName == null &&
-              innerApp.argument.info != null
-            if (argNeedsRewrite || newArgs) {
+              innerApp.argument.info != null)
+            if (argNeedsRewrite) {
               // Positional arguments following the deleted argument must all be rewritten to named.
               newArgs.unshift({
                 name: innerApp.appTree.argumentName,
@@ -185,7 +186,6 @@ function handleArgUpdate(value: unknown, origin: PortId): boolean {
           }
         }
         assert(innerBound !== undefined)
-        assert(outerBound !== undefined)
         const edit = outerBound.module.edit()
         let newAst = innerBound
         for (const arg of newArgs) newAst = Ast.App.new(newAst, arg.name, arg.value, edit)
