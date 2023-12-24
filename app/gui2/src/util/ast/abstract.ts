@@ -110,13 +110,15 @@ export class MutableModule implements Module {
   }
 
   set(id: AstId, ast: Ast) {
-    this.splice(ast, id)
+    if (ast.exprId !== id || ast.module !== this) {
+      this.splice(ast, id)
+    } else {
+      this.nodes.set(id, ast)
+    }
   }
 
   /** Copy the given node and all its descendants into this module. */
   splice(ast: Ast, id?: AstId): Ast
-  splice(ast: null, id?: AstId): null
-  splice(ast: undefined, id?: AstId): undefined
   splice(ast: Ast | null, id?: AstId): Ast | null
   splice(ast: Ast | undefined, id?: AstId): Ast | undefined
   splice(ast: Ast | null | undefined, id?: AstId): Ast | null | undefined {
@@ -304,13 +306,13 @@ export abstract class Ast {
     this.module = module
     this.exprId = id ?? newAstId()
     this.treeType = treeType
-    module.set(this.exprId, this)
+    module.nodes.set(this.exprId, this)
   }
 
   printSubtree(
     info: InfoMap,
     offset: number,
-    indent: string,
+    parentIndent: string | null,
     moduleOverride?: Module | undefined,
   ): string {
     const module_ = moduleOverride ?? this.module
@@ -331,7 +333,7 @@ export abstract class Ast {
       } else {
         code += module_
           .get(child.node)!
-          .printSubtree(info, offset + code.length, indent, moduleOverride)
+          .printSubtree(info, offset + code.length, parentIndent, moduleOverride)
       }
     }
     const span = nodeKey(offset, code.length, this.treeType)
@@ -346,26 +348,26 @@ export abstract class Ast {
    *  so a full deep copy requires recursively cloning child nodes.
    */
   cloneWithId(module: Module, exprId: AstId): this {
-    for (const child of this.concreteChildren()) {
-      assert(child !== undefined, 'concrete children are valid')
-    }
-    const clone = Object.assign(Object.create(Object.getPrototypeOf(this)), cloneObjectTree(this))
-    clone.module = module
-    clone.exprId = exprId
-    const ast: this = clone
-    for (const child of ast.concreteChildren()) {
-      assert(child !== undefined, 'cloned children are valid')
-    }
-    return ast
+    const cloned = clone(this)
+    // No one else has a reference to this object, so we can ignore `readonly` and mutate it.
+    Object.assign(cloned, { module, exprId })
+    return cloned
   }
 }
 
-function cloneObjectTree(object: Object): Object {
-  const mapEntry = ([name, value]: [string, unknown]) => [
-    name,
-    value && typeof value === 'object' ? cloneObjectTree(value) : value,
-  ]
-  return Object.fromEntries(Object.entries(object).map(mapEntry))
+function clone<T>(value: T): T {
+  if (value instanceof Array) {
+    return Array.from(value, clone) as T
+  }
+  if (value && typeof value === 'object') {
+    return cloneObject(value)
+  }
+  return value
+}
+function cloneObject<T extends Object>(object: T): T {
+  const mapEntry = ([name, value]: [string, unknown]) => [name, clone(value)]
+  const properties = Object.fromEntries(Object.entries(object).map(mapEntry))
+  return Object.assign(Object.create(Object.getPrototypeOf(object)), properties)
 }
 
 function spaced<T>(node: T): NodeChild<T> {
@@ -637,9 +639,9 @@ export class Generic extends Ast {
 }
 
 type MultiSegmentAppSegment = { header: NodeChild<Token>; body: NodeChild<AstId> | null }
-function multiSegmentAppSegment(header: string, body: Ast): MultiSegmentAppSegment {
+function multiSegmentAppSegment(whitespace: string, header: string, body: Ast): MultiSegmentAppSegment {
   return {
-    header: unspaced(new Token(header, newTokenId(), RawAst.Token.Type.Ident)),
+    header: { whitespace, node: new Token(header, newTokenId(), RawAst.Token.Type.Ident) },
     body: spaced(body.exprId),
   }
 }
@@ -699,7 +701,7 @@ export class Import extends Ast {
     const module_ = module ?? MutableModule.Transient()
     const path_ = PropertyAccess.Sequence(path, module)
     if (!path_) return
-    const import_ = multiSegmentAppSegment('import', path_)
+    const import_ = multiSegmentAppSegment('', 'import', path_)
     return new Import(module_, undefined, null, null, import_, null, null, null)
   }
 
@@ -708,8 +710,8 @@ export class Import extends Ast {
     const path_ = PropertyAccess.Sequence(path, module)
     if (!path_) return
     const name_ = Ident.new(module_, name)
-    const from = multiSegmentAppSegment('from', path_)
-    const import_ = multiSegmentAppSegment('import', name_)
+    const from = multiSegmentAppSegment('', 'from', path_)
+    const import_ = multiSegmentAppSegment(' ', 'import', name_)
     return new Import(module_, undefined, null, from, import_, null, null, null)
   }
 
@@ -958,7 +960,7 @@ export class BodyBlock extends Ast {
   }
 
   push(module: MutableModule, node: Ast) {
-    new BodyBlock(module, this.exprId, [...this.lines_, { expression: unspaced(node.exprId) }])
+    new BodyBlock(module, this.exprId, [...this.lines_, { expression: autospaced(node.exprId) }])
   }
 
   /** Insert the given expression(s) starting at the specified line index. */
@@ -979,10 +981,11 @@ export class BodyBlock extends Ast {
   printSubtree(
     info: InfoMap,
     offset: number,
-    indent: string,
+    parentIndent: string | null,
     moduleOverride?: Module | undefined,
   ): string {
     const module_ = moduleOverride ?? this.module
+    let blockIndent: string | undefined
     let code = ''
     for (const line of this.lines_) {
       // Skip deleted lines (and associated whitespace).
@@ -996,10 +999,20 @@ export class BodyBlock extends Ast {
         code += newlineCode || '\n'
       }
       if (line.expression !== null) {
-        code += line.expression.whitespace ?? indent
+        if (blockIndent === undefined) {
+          if ((line.expression.whitespace?.length ?? 0) > (parentIndent?.length ?? 0)) {
+            blockIndent = line.expression.whitespace!
+          } else if (parentIndent !== null) {
+            blockIndent = parentIndent + '    '
+          } else {
+            blockIndent = ''
+          }
+        }
+        const validIndent = (line.expression.whitespace?.length ?? 0) > (parentIndent?.length ?? 0)
+        code += validIndent ? line.expression.whitespace : blockIndent
         code += module_
           .get(line.expression.node)!
-          .printSubtree(info, offset + code.length, indent + '    ', moduleOverride)
+          .printSubtree(info, offset + code.length, blockIndent, moduleOverride)
       }
     }
     const span = nodeKey(offset, code.length, this.treeType)
@@ -1381,7 +1394,7 @@ export function print(ast: AstId, module: Module): PrintedSource {
     tokens: new Map(),
     tokensOut: new Map(),
   }
-  const code = module.get(ast)!.printSubtree(info, 0, '', module)
+  const code = module.get(ast)!.printSubtree(info, 0, null, module)
   return { info, code }
 }
 

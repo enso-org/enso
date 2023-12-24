@@ -3,6 +3,7 @@ import * as fs from 'fs'
 import { expect, test } from 'vitest'
 import { preParseContent } from '../../../../ydoc-server/edits'
 import { deserializeIdMap, serializeIdMap } from '../../../../ydoc-server/serialization'
+import { MutableModule } from '../abstract'
 
 //const disabledCases = [
 //  ' a',
@@ -371,7 +372,7 @@ test.each(parseCases)('parse: %s', (testCase) => {
   expect(Ast.tokenTree(root)).toEqual(testCase.tree)
 })
 
-test('insert new node', () => {
+test('Insert new expression', () => {
   const code = 'main =\n    text1 = "foo"\n'
   const root = Ast.parseBlock(code)
   const main = Ast.functionBlock(root.module, 'main')!
@@ -384,7 +385,7 @@ test('insert new node', () => {
   expect(printed).toEqual('main =\n    text1 = "foo"\n    baz = 42\n')
 })
 
-test('replace expression content', () => {
+test('Replace expression content', () => {
   const code = 'main =\n    text1 = "foo"\n'
   const root = Ast.parseBlock(code)
   const main = Ast.functionBlock(root.module, 'main')!
@@ -394,12 +395,14 @@ test('replace expression content', () => {
   expect(assignment.expression).not.toBeNull()
   const edit = root.module.edit()
   const newValue = Ast.TextLiteral.new('bar', edit)
+  expect(newValue.code()).toBe("'bar'")
   edit.set(assignment.expression!.exprId, newValue)
+  expect(edit.get(assignment.expression!.exprId)?.code()).toBe("'bar'")
   const printed = root.code(edit)
   expect(printed).toEqual("main =\n    text1 = 'bar'\n")
 })
 
-test('delete expression', () => {
+test('Delete expression', () => {
   const originalCode = 'main =\n    text1 = "foo"\n    text2 = "bar"\n'
   const root = Ast.parseBlock(originalCode)
   const main = Ast.functionBlock(root.module, 'main')!
@@ -452,4 +455,14 @@ test('Block lines interface', () => {
   const newBlock = Ast.BodyBlock.new(reordered)
   // Note that trailing whitespace belongs to the following line.
   expect(newBlock.code()).toBe('GNIK  \nSISI\nVLE \n')
+})
+
+test('Splice', () => {
+  const module = MutableModule.Observable()
+  const edit = module.edit()
+  const ident = Ast.Ident.new(edit, 'foo')
+  expect(ident.code()).toBe('foo')
+  const spliced = module.splice(ident)
+  expect(spliced.module).toBe(module)
+  expect(spliced.code()).toBe('foo')
 })
