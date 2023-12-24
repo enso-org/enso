@@ -52,9 +52,8 @@ public final class DataflowError extends AbstractTruffleException {
   public static DataflowError withoutTrace(Object payload, Node location) {
     assert payload != null;
     if (assertsOn) {
-      var ex = new PanicException(payload, location);
-      TruffleStackTrace.fillIn(ex);
-      var result = new DataflowError(payload, ex);
+      var result = new DataflowError(payload, UNLIMITED_STACK_TRACE, location);
+      TruffleStackTrace.fillIn(result);
       return result;
     } else {
       var result = new DataflowError(payload, location);
@@ -79,16 +78,22 @@ public final class DataflowError extends AbstractTruffleException {
     return result;
   }
 
-  DataflowError(Object payload, Node location) {
+  private DataflowError(Object payload, Node location) {
     super(null, null, 1, location);
     this.payload = payload;
     this.ownTrace = location != null && location.getRootNode() != null;
   }
 
-  DataflowError(Object payload, AbstractTruffleException prototype) {
+  private DataflowError(Object payload, AbstractTruffleException prototype) {
     super(prototype);
     this.payload = payload;
     this.ownTrace = false;
+  }
+
+  private DataflowError(Object payload, int stackTraceElementLimit, Node location) {
+    super(null, null, stackTraceElementLimit, location);
+    this.ownTrace = false;
+    this.payload = payload;
   }
 
   /**
