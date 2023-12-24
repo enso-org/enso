@@ -137,6 +137,55 @@ public class FindExceptionMessageTest extends TestBase {
   }
 
   @Test
+  public void panicThrowDeepMixingJava() {
+    var src =
+        """
+    from Standard.Base import all
+    import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+    polyglot java import org.enso.example.TestClass
+
+    exec e ~r =
+        e.execute r...
+
+    deep_panic e n = if n <= 0 then Panic.throw (Illegal_Argument.Error "Problem") else
+        exec e
+            deep_panic e n-1
+
+    main =
+        e = TestClass.newDirectExecutor
+        d = Panic.recover Any
+            deep_panic e 10
+        d
+    """;
+
+    var res = evalModule(ctx, src);
+    assertTrue("Expecting recovered error: " + res, res.isException());
+    assertEquals(
+        "Panic was converted to error",
+        "Standard.Base.Error.Error",
+        res.getMetaObject().getMetaQualifiedName());
+
+    try {
+      throw res.throwException();
+    } catch (PolyglotException ex) {
+      assertNull("No source location...", ex.getSourceLocation());
+      assertNotNull("... but stacktrace is fine", ex.getPolyglotStackTrace());
+      var countDeepPanic = 0;
+      var countTestClass = 0;
+      for (var f : ex.getPolyglotStackTrace()) {
+        var rootName = f.getRootName();
+        if ("Unnamed.deep_panic".equals(rootName)) {
+          countDeepPanic++;
+        }
+        if (rootName.contains("TestClass") && rootName.equals("newDirectExecutor")) {
+          countTestClass++;
+        }
+      }
+      assertEquals("Contains proper amount of deep_panic invocations", 11, countDeepPanic);
+    }
+  }
+
+  @Test
   public void testPanic() {
     String src =
         """
