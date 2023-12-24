@@ -156,7 +156,7 @@ function handleArgUpdate(value: unknown, origin: PortId): boolean {
         // The top level of the subtree that is being replaced.
         let outerBound = argApp.appTree
         // The levels of the application tree to apply to `innerBound` to yield the new `outerBound` expression.
-        const newArgs: { name: Ast.Token | null; value: Ast.Ast }[] = []
+        const newArgs: { name: string | null; value: Ast.Ast }[] = []
         // Traverse the application chain, starting from the outermost application and going
         // towards the innermost target.
         for (let innerApp of app.iterApplications()) {
@@ -168,15 +168,14 @@ function handleArgUpdate(value: unknown, origin: PortId): boolean {
           } else {
             // Process an argument to the right of the removed argument.
             assert(innerApp.appTree instanceof Ast.App)
-            const argNeedsRewrite =
-              newArgs ||
-              (innerApp.argument instanceof ArgumentAst &&
-                innerApp.appTree.argumentName == null &&
-                innerApp.argument.info != null)
-            if (argNeedsRewrite) {
+            const infoName =
+              innerApp.argument instanceof ArgumentAst && innerApp.argument.info != null
+                ? innerApp.argument.info?.name ?? null
+                : null
+            if (newArgs.length || (!innerApp.appTree.argumentName && infoName)) {
               // Positional arguments following the deleted argument must all be rewritten to named.
               newArgs.unshift({
-                name: innerApp.appTree.argumentName,
+                name: infoName,
                 value: innerApp.appTree.argument,
               })
             } else {
