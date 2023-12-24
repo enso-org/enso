@@ -171,8 +171,8 @@ function handleArgUpdate(value: unknown, origin: PortId): boolean {
             const argNeedsRewrite =
               newArgs ||
               (innerApp.argument instanceof ArgumentAst &&
-              innerApp.appTree.argumentName == null &&
-              innerApp.argument.info != null)
+                innerApp.appTree.argumentName == null &&
+                innerApp.argument.info != null)
             if (argNeedsRewrite) {
               // Positional arguments following the deleted argument must all be rewritten to named.
               newArgs.unshift({

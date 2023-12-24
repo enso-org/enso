@@ -590,17 +590,13 @@ export class PropertyAccess extends OprApp {
     opr: NodeChild<Token> | undefined,
     rhs: NodeChild<AstId> | null,
   ) {
-    const oprs = [
-      opr ?? unspaced(new Token('.', newTokenId(), RawAst.Token.Type.Operator)),
-    ]
+    const oprs = [opr ?? unspaced(new Token('.', newTokenId(), RawAst.Token.Type.Operator))]
     super(module, id, lhs, oprs, rhs)
   }
 
   static new(module: MutableModule, lhs: Ast | null, rhs: Token | null): PropertyAccess {
     const lhs_ = lhs ? unspaced(module.splice(lhs).exprId) : null
-    const rhs_ = rhs
-      ? unspaced(new Ident(module, undefined, unspaced(rhs)).exprId)
-      : null
+    const rhs_ = rhs ? unspaced(new Ident(module, undefined, unspaced(rhs)).exprId) : null
     return new PropertyAccess(module, undefined, lhs_, undefined, rhs_)
   }
 
@@ -639,7 +635,11 @@ export class Generic extends Ast {
 }
 
 type MultiSegmentAppSegment = { header: NodeChild<Token>; body: NodeChild<AstId> | null }
-function multiSegmentAppSegment(whitespace: string, header: string, body: Ast): MultiSegmentAppSegment {
+function multiSegmentAppSegment(
+  whitespace: string,
+  header: string,
+  body: Ast,
+): MultiSegmentAppSegment {
   return {
     header: { whitespace, node: new Token(header, newTokenId(), RawAst.Token.Type.Ident) },
     body: spaced(body.exprId),
@@ -914,13 +914,21 @@ export class Assignment extends Ast {
   ) {
     super(module, id, RawAst.Tree.Type.Assignment)
     this.pattern_ = pattern
-    this.equals_ = equals ?? spacedIf(new Token('=', newTokenId(), RawAst.Token.Type.Operator), !!expression.whitespace)
+    this.equals_ =
+      equals ??
+      spacedIf(new Token('=', newTokenId(), RawAst.Token.Type.Operator), !!expression.whitespace)
     this.expression_ = expression
   }
 
   static new(module: MutableModule, ident: string, expression: Ast): Assignment {
     const pattern = unspaced(Ident.new(module, ident).exprId)
-    return new Assignment(module, undefined, pattern, undefined, spaced(module.splice(expression).exprId))
+    return new Assignment(
+      module,
+      undefined,
+      pattern,
+      undefined,
+      spaced(module.splice(expression).exprId),
+    )
   }
 
   *concreteChildren(): IterableIterator<NodeChild> {
@@ -1071,7 +1079,11 @@ export class Ident extends Ast {
   }
 
   static new(module: MutableModule, code: string): Ident {
-    return new Ident(module, undefined, unspaced(new Token(code, newTokenId(), RawAst.Token.Type.Ident)))
+    return new Ident(
+      module,
+      undefined,
+      unspaced(new Token(code, newTokenId(), RawAst.Token.Type.Ident)),
+    )
   }
 
   *concreteChildren(): IterableIterator<NodeChild> {
@@ -1089,7 +1101,11 @@ export class Wildcard extends Ast {
 
   static new(module?: MutableModule): Wildcard {
     const module_ = module ?? MutableModule.Transient()
-    return new Wildcard(module_, undefined, unspaced(new Token('_', newTokenId(), RawAst.Token.Type.Wildcard)))
+    return new Wildcard(
+      module_,
+      undefined,
+      unspaced(new Token('_', newTokenId(), RawAst.Token.Type.Wildcard)),
+    )
   }
 
   *concreteChildren(): IterableIterator<NodeChild> {
