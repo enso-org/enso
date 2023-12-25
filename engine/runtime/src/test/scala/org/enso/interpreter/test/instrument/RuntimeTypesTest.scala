@@ -2,6 +2,7 @@ package org.enso.interpreter.test.instrument
 
 import org.apache.commons.io.output.TeeOutputStream
 import org.enso.interpreter.runtime.EnsoContext
+import org.enso.interpreter.runtime.`type`.ConstantsGen
 import org.enso.interpreter.test.Metadata
 import org.enso.polyglot._
 import org.enso.polyglot.runtime.Runtime.Api
@@ -264,6 +265,215 @@ class RuntimeTypesTest
     context.receiveNIgnoreExpressionUpdates(
       1
     ) should contain theSameElementsAs Seq(context.executionComplete(contextId))
+  }
+
+  it should "fail to resolve symbol after editing the type" in {
+    pending
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val metadata = new Metadata
+    val id_x     = metadata.addItem(31, 5, "aa")
+    val id_y     = metadata.addItem(45, 3, "ab")
+
+    val code =
+      """type T
+        |    C a
+        |
+        |main =
+        |    x = T.C 1
+        |    y = x.a
+        |    y
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, moduleName, "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(
+        contextId,
+        id_x,
+        s"$moduleName.T",
+        Api.MethodCall(
+          Api.MethodPointer(moduleName, s"$moduleName.T", "C")
+        )
+      ),
+      TestMessages.update(contextId, id_y, ConstantsGen.INTEGER_BUILTIN),
+      context.executionComplete(contextId)
+    )
+
+    // rename type: `type T` -> `type S`
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(0, 5), model.Position(0, 6)),
+              "S"
+            )
+          ),
+          execute = true
+        )
+      )
+    )
+    context.receiveNIgnorePendingExpressionUpdates(
+      2
+    ) should contain theSameElementsAs Seq(
+      Api.Response(
+        Api.ExecutionUpdate(
+          contextId,
+          Seq(
+            Api.ExecutionResult.Diagnostic.error(
+              "The name `T` could not be found.",
+              Some(mainFile),
+              Some(model.Range(model.Position(4, 8), model.Position(4, 9)))
+            )
+          )
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+
+    // rename type: `type S` -> `type T`
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(0, 5), model.Position(0, 6)),
+              "T"
+            )
+          ),
+          execute = true
+        )
+      )
+    )
+    context.receiveNIgnoreExpressionUpdates(
+      1
+    ) should contain theSameElementsAs Seq(context.executionComplete(contextId))
+  }
+
+  it should "fail to resolve symbol with cached thunk after editing the type" in {
+    pending
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val metadata = new Metadata
+    val id_x     = metadata.addItem(31, 9, "aa")
+
+    val code =
+      """type T
+        |    C a
+        |
+        |main =
+        |    x = T.C 1 . a
+        |    x
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, moduleName, "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(
+        contextId,
+        id_x,
+        ConstantsGen.INTEGER_BUILTIN
+      ),
+      context.executionComplete(contextId)
+    )
+
+    // rename type: `type T` -> `type S`
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(0, 5), model.Position(0, 6)),
+              "S"
+            )
+          ),
+          execute = true
+        )
+      )
+    )
+    context.receiveNIgnoreExpressionUpdates(
+      2
+    ) should contain theSameElementsAs Seq(
+      Api.Response(
+        Api.ExecutionUpdate(
+          contextId,
+          Seq(
+            Api.ExecutionResult.Diagnostic.error(
+              "The name `T` could not be found.",
+              Some(mainFile),
+              Some(model.Range(model.Position(4, 8), model.Position(4, 9)))
+            )
+          )
+        )
+      ),
+      context.executionComplete(contextId)
+    )
   }
 
 }
