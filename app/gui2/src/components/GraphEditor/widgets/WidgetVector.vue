@@ -3,15 +3,12 @@ import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import ListWidget from '@/components/widgets/ListWidget.vue'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { ForcePort } from '@/providers/portInfo'
-import type { WidgetInput } from '@/providers/widgetRegistry'
 import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
-import { useGraphStore } from '@/stores/graph'
 import { Ast, RawAst } from '@/util/ast'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 
-const graph = useGraphStore()
 const value = computed({
   get() {
     return Array.from(props.input.children()).filter(
@@ -20,18 +17,18 @@ const value = computed({
   },
   set(value) {
     const newCode = `[${value.map((item) => item.code()).join(', ')}]`
-    graph.setExpressionContent(props.input.astId, newCode)
+    props.onUpdate(newCode, props.input.exprId)
   },
 })
 
 const navigator = injectGraphNavigator(true)
+
+function itemPort(item: Ast.Ast) {
+  return new ForcePort(item)
+}
 </script>
 
 <script lang="ts">
-function forcePort(item: WidgetInput) {
-  return item instanceof Ast.Ast ? new ForcePort(item) : item
-}
-
 export const widgetDefinition = defineWidget(Ast.Ast, {
   priority: 1000,
   score: (props) =>
@@ -43,7 +40,7 @@ export const widgetDefinition = defineWidget(Ast.Ast, {
   <ListWidget
     v-model="value"
     :default="Ast.Wildcard.new"
-    :getKey="(item: Ast.Ast) => item.astId"
+    :getKey="(item: Ast.Ast) => item.exprId"
     dragMimeType="application/x-enso-ast-node"
     :toPlainText="(item: Ast.Ast) => item.code()"
     :toDragPayload="(ast: Ast.Ast) => ast.serialize()"
@@ -53,15 +50,7 @@ export const widgetDefinition = defineWidget(Ast.Ast, {
     contenteditable="false"
   >
     <template #default="{ item }">
-      <NodeWidget :input="forcePort(item)" />
+      <NodeWidget :input="itemPort(item)" />
     </template>
   </ListWidget>
 </template>
-
-<style scoped>
-.drag-preview {
-  position: fixed;
-  background-color: var(--node-color-primary);
-  border-radius: var(--node-border-radius);
-}
-</style>

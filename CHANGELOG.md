@@ -593,6 +593,8 @@
 - [Added `Table.format` for the in-memory backend.][8150]
 - [Implemented truncate `Date_Time` for database backend (Postgres only).][8235]
 - [Initial Enso Cloud APIs.][8006]
+- [Renamed `replace` to `text_replace` and renamed `lookup_and_replace` to
+  `merge` on `Table`.][8564]
 - [Errors thrown inside `map` are wrapped in `Map_Error`.][8307]
 - [Support for loading big Excel files.][8403]
 - [Added new `Filter_Condition`s - `Equal_Ignore_Case`, `Is_Nan`, `Is_Infinite`
@@ -855,6 +857,7 @@
 [8307]: https://github.com/enso-org/enso/pull/8307
 [8403]: https://github.com/enso-org/enso/pull/8403
 [8539]: https://github.com/enso-org/enso/pull/8539
+[8564]: https://github.com/enso-org/enso/pull/8564
 
 #### Enso Compiler
 
@@ -1006,6 +1009,9 @@
 - [HTTPS and WSS support in Language Server][7937]
 - [Export of non-existing symbols results in error][7960]
 - [Upgrade GraalVM to 23.1.0 JDK21][7991]
+- [Added opt-in type checks of return type][8502]
+- [DataflowError.withoutTrace doesn't store stacktrace][8608]
+- [Added text_length to Column][8606]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -1156,6 +1162,9 @@
 [7937]: https://github.com/enso-org/enso/pull/7937
 [7960]: https://github.com/enso-org/enso/pull/7960
 [7991]: https://github.com/enso-org/enso/pull/7991
+[8502]: https://github.com/enso-org/enso/pull/8502
+[8608]: https://github.com/enso-org/enso/pull/8608
+[8606]: https://github.com/enso-org/enso/pull/8606
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

@@ -5,7 +5,7 @@ const _props = defineProps(widgetProps(widgetDefinition))
 </script>
 
 <script lang="ts">
-export const widgetDefinition = defineWidget((ast) => ast instanceof Ast.Wildcard, {
+export const widgetDefinition = defineWidget(Ast.Wildcard, {
   priority: 10,
   score: Score.Good,
 })

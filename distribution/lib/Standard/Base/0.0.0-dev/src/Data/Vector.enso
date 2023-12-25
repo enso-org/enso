@@ -1355,11 +1355,13 @@ type Builder
 
 ## PRIVATE
    Describes an error produced by a function mapped over a Vector. Includes the
-   funtion argument's position in the vector.
+   function argument's position in the vector.
 
    An error that is wrapped as a `Map_Error` can be caught as a `Map_Error`, or
    as itself. In the latter case, the `Map_Error` wrapper is stripped off.
 type Map_Error
+    ## PRIVATE
+       Creates a new `Map_Error` from the given index and underlying error.
     Error (index:Integer) inner_error
 
     ## PRIVATE
@@ -1369,8 +1371,10 @@ type Map_Error
 ## PRIVATE
    Indicates that a method should not wrap thrown errors in `Map_Error`.
 type No_Wrap
+    ## PRIVATE
     Value
 
+## PRIVATE
 Wrapped_Error.from (that : Map_Error) = Wrapped_Error.Value that that.inner_error
 
 ## PRIVATE

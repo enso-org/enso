@@ -10,7 +10,6 @@ import project.Network.HTTP.Header.Header
 import project.Network.HTTP.HTTP_Method.HTTP_Method
 import project.Network.HTTP.Request_Body.Request_Body
 import project.Network.URI.URI
-import project.Network.URI_With_Query.URI_With_Query
 import project.Nothing.Nothing
 import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
@@ -33,8 +32,8 @@ type Request
              import Standard.Base.Network.URI.URI
 
              example_new = Request.new Method.Post (URI.parse "http://example.com")
-    new : HTTP_Method -> (URI | URI_With_Query) -> Vector Header -> Request_Body -> Request
-    new (method:HTTP_Method) (url:(URI | URI_With_Query)) (headers:(Vector Header)=[]) (body:Request_Body=Request_Body.Empty) =
+    new : HTTP_Method -> URI -> Vector Header -> Request_Body -> Request
+    new (method:HTTP_Method) (url:URI) (headers:(Vector Header)=[]) (body:Request_Body=Request_Body.Empty) =
         Request.Value method url headers body
 
     ## Create an Options request.
@@ -48,7 +47,7 @@ type Request
              import Standard.Base.Network.URI.URI
 
              example_options = Request.options (URI.parse "http://example.com")
-    options : (Text | URI | URI_With_Query) -> Vector -> Request
+    options : (Text | URI) -> Vector -> Request
     options url (headers = []) = Request.new HTTP_Method.Options url headers
 
     ## Create a Get request.
@@ -64,7 +63,7 @@ type Request
              import Standard.Base.Network.URI.URI
 
              example_get = Request.get (URI.parse "http://example.com")
-    get : (Text | URI | URI_With_Query) -> Vector -> Request
+    get : (Text | URI) -> Vector -> Request
     get url (headers = []) = Request.new HTTP_Method.Get url headers
 
     ## Create a Head request.
@@ -80,7 +79,7 @@ type Request
              import Standard.Base.Network.URI.URI
 
              example_head = Request.head (URI.parse "http://example.com")
-    head : (Text | URI | URI_With_Query) -> Vector -> Request
+    head : (Text | URI) -> Vector -> Request
     head url (headers = []) = Request.new HTTP_Method.Head url headers
 
     ## Create a Post request.
@@ -98,7 +97,7 @@ type Request
              import Standard.Base.Network.URI.URI
 
              example_post = Request.post (URI.parse "http://example.com") Request_Body.Empty
-    post : (Text | URI | URI_With_Query) -> Request_Body -> Vector -> Request
+    post : (Text | URI) -> Request_Body -> Vector -> Request
     post url body (headers = []) = Request.new HTTP_Method.Post url headers body
 
     ## Create a Put request.
@@ -116,7 +115,7 @@ type Request
              import Standard.Base.Network.URI.URI
 
              example_put = Request.put (URI.parse "http://example.com") Request_Body.Empty
-    put : (Text | URI | URI_With_Query) -> Request_Body -> Vector -> Request
+    put : (Text | URI) -> Request_Body -> Vector -> Request
     put url body (headers = []) = Request.new HTTP_Method.Put url headers body
 
     ## Create a Delete request.
@@ -132,7 +131,7 @@ type Request
              import Standard.Base.Network.URI.URI
 
              example_delete = Request.delete (URI.parse "http://example.com")
-    delete : (Text | URI | URI_With_Query) -> Vector -> Request
+    delete : (Text | URI) -> Vector -> Request
     delete url (headers = []) = Request.new HTTP_Method.Delete url headers
 
     ## PRIVATE
@@ -144,7 +143,7 @@ type Request
        - uri: The URI for the request.
        - headers: A vector containing headers for the request.
        - body: The body of the request.
-    Value method uri headers body
+    Value (method : HTTP_Method) (uri : URI) (headers : Vector) (body : Request_Body)
 
     ## Sets the header for the request.
 

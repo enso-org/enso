@@ -57,7 +57,10 @@ public class ListBenchmarks {
 
     var benchmarkName = SrcUtil.findName(params);
     var code = """
+      from Standard.Base.Any import Any
       from Standard.Base.Data.List.List import Cons, Nil
+      from Standard.Base.Data.Text import Text
+      from Standard.Base.Data.Numbers import Float
       from Standard.Base import Integer
       import Standard.Base.IO
 

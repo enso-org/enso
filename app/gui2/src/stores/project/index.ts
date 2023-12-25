@@ -441,6 +441,7 @@ export const useProjectStore = defineStore('project', () => {
   const config = injectGuiConfig()
   const projectName = config.value.startup?.project
   if (projectName == null) throw new Error('Missing project name.')
+  const projectDisplayName = config.value.startup?.displayedProjectName ?? projectName
 
   const clientId = random.uuidv4() as Uuid
   const lsUrls = resolveLsUrl(config.value)
@@ -676,6 +677,7 @@ export const useProjectStore = defineStore('project', () => {
       observedFileName.value = name
     },
     name: projectName,
+    displayName: projectDisplayName,
     isOnLocalBackend,
     executionContext,
     firstExecution,

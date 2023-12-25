@@ -5,8 +5,6 @@ import { computed, ref } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 
-const rootNode = ref<HTMLElement>()
-
 const spanClass = computed(() => props.input.typeName())
 const repr = computed(() => props.input.code())
 </script>
@@ -19,14 +17,14 @@ export const widgetDefinition = defineWidget((expression) => expression instance
 </script>
 
 <template>
-  <span ref="rootNode" :class="['Token', spanClass]">{{ repr }}</span>
+  <span class="WidgetToken" :class="spanClass">{{ repr }}</span>
 </template>
 
 <style scoped>
-.Token {
-  color: white;
+.WidgetToken {
+  display: inline-block;
+  vertical-align: middle;
   white-space: pre;
-  align-items: center;
   color: rgb(255 255 255 / 0.33);
 
   &.Ident,

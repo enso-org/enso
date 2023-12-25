@@ -1,23 +1,17 @@
 <script setup lang="ts">
-import { logEvent } from 'histoire/client'
-import { computed, ref } from 'vue'
-
-import * as Y from 'yjs'
-
 import GraphNode from '@/components/GraphEditor/GraphNode.vue'
+import { useNavigator } from '@/composables/navigator'
 import { provideGraphSelection } from '@/providers/graphSelection'
 import type { Node } from '@/stores/graph'
-import { RawAstExtended } from '@/util/ast'
-import { useNavigator } from '@/util/navigator'
-import { Rect } from '@/util/rect'
-import { Vec2 } from '@/util/vec2'
-import { reactive, watchEffect } from 'vue'
+import { Ast } from '@/util/ast'
+import { Rect } from '@/util/data/rect'
+import { Vec2 } from '@/util/data/vec2'
+import { logEvent } from 'histoire/client'
+import { computed, reactive, ref, watchEffect } from 'vue'
 import { IdMap, type ContentRange } from '../shared/yjsModel'
 import { createSetupComponent } from './histoire/utils'
 
-const doc = new Y.Doc()
-const text = doc.getText('content')
-const yIdMap = doc.getMap<Uint8Array>('idMap')
+const idMap = new IdMap()
 
 const nodeBinding = ref('binding')
 const nodeContent = ref('content')
@@ -36,10 +30,9 @@ function updateContent(updates: [range: ContentRange, content: string][]) {
   }
   nodeContent.value = content
 }
-const idMap = new IdMap(yIdMap, text)
 
-const rootSpan = computed(() => RawAstExtended.parse(nodeContent.value, idMap))
-const pattern = computed(() => RawAstExtended.parse(nodeBinding.value, idMap))
+const rootSpan = computed(() => Ast.parseTransitional(nodeContent.value, idMap))
+const pattern = computed(() => Ast.parseTransitional(nodeBinding.value, idMap))
 
 const node = computed((): Node => {
   return {
@@ -54,7 +47,7 @@ const node = computed((): Node => {
 const mockRects = reactive(new Map())
 
 watchEffect((onCleanup) => {
-  const id = node.value.rootSpan.astId
+  const id = node.value.rootSpan.exprId
   mockRects.set(id, Rect.Zero)
   onCleanup(() => {
     mockRects.delete(id)
@@ -79,14 +72,15 @@ const SetupStory = createSetupComponent((app) => {
     <SetupStory />
     <div style="height: 72px; padding: 20px; padding-left: 50px">
       <GraphNode
+        :edited="false"
         :node="node"
         @movePosition="
           (nodeX += $event.x),
             (nodeY += $event.y),
             logEvent('movePosition', [JSON.stringify($event)])
         "
-        @updateContent="updateContent($event), logEvent('updateContent', [JSON.stringify($event)])"
-        @updateExprRect="(id, rect) => logEvent('updateExprRect', [id, JSON.stringify(rect)])"
+        @update:content="updateContent($event), logEvent('updateContent', [JSON.stringify($event)])"
+        @update:rect="(rect) => logEvent('update:rect', JSON.stringify(rect))"
         @replaceSelection="(selected = true), logEvent('replaceSelection', [])"
         @update:selected="(selected = $event), logEvent('update:selected', [$event])"
       />
