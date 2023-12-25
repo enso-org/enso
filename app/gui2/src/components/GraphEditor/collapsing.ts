@@ -64,7 +64,7 @@ export function prepareCollapsedInfo(selected: Set<ExprId>, graphDb: GraphDb): C
         throw new Error(`Connection source node for id ${sourceExprId} not found.`)
       const startsInside = selected.has(source)
       const endsInside = selected.has(target)
-      const stringIdentifier = graphDb.nodeIdToNode.get(source)?.pattern?.repr()
+      const stringIdentifier = graphDb.getOutputPortIdentifier(sourceExprId)
       if (stringIdentifier == null) throw new Error(`Source node (${source}) has no pattern.`)
       const identifier = unwrap(tryIdentifier(stringIdentifier))
       leaves.delete(source)
