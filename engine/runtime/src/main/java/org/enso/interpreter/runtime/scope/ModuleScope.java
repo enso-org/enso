@@ -72,7 +72,8 @@ public final class ModuleScope implements EnsoObject {
   }
 
   public Type registerType(Type type) {
-    return types.putIfAbsent(type.getName(), type);
+    Type current = types.putIfAbsent(type.getName(), type);
+    return current == null ? type : current;
   }
 
   /**
