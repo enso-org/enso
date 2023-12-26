@@ -267,7 +267,7 @@ class RuntimeTypesTest
     ) should contain theSameElementsAs Seq(context.executionComplete(contextId))
   }
 
-  it should "fail to resolve symbol after editing the type111" in {
+  it should "fail to resolve symbol after editing the type" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
@@ -346,7 +346,7 @@ class RuntimeTypesTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      2
+      4
     ) should contain theSameElementsAs Seq(
       Api.Response(
         Api.ExecutionUpdate(
@@ -359,6 +359,19 @@ class RuntimeTypesTest
             )
           )
         )
+      ),
+      TestMessages.panic(
+        contextId,
+        id_x,
+        Api.MethodCall(Api.MethodPointer(moduleName, s"$moduleName.T", "C")),
+        Api.ExpressionUpdate.Payload.Panic("Compile_Error", List(id_x)),
+        builtin = true
+      ),
+      TestMessages.panic(
+        contextId,
+        id_y,
+        Api.ExpressionUpdate.Payload.Panic("Compile_Error", List(id_x)),
+        builtin = true
       ),
       context.executionComplete(contextId)
     )
@@ -378,13 +391,23 @@ class RuntimeTypesTest
         )
       )
     )
-    context.receiveNIgnoreExpressionUpdates(
-      1
-    ) should contain theSameElementsAs Seq(context.executionComplete(contextId))
+    context.receiveNIgnorePendingExpressionUpdates(
+      3
+    ) should contain theSameElementsAs Seq(
+      TestMessages.update(
+        contextId,
+        id_x,
+        s"$moduleName.T",
+        Api.MethodCall(
+          Api.MethodPointer(moduleName, s"$moduleName.T", "C")
+        )
+      ),
+      TestMessages.update(contextId, id_y, ConstantsGen.INTEGER_BUILTIN),
+      context.executionComplete(contextId)
+    )
   }
 
   it should "fail to resolve symbol with cached thunk after editing the type" in {
-    pending
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
@@ -456,8 +479,8 @@ class RuntimeTypesTest
         )
       )
     )
-    context.receiveNIgnoreExpressionUpdates(
-      2
+    context.receiveNIgnorePendingExpressionUpdates(
+      3
     ) should contain theSameElementsAs Seq(
       Api.Response(
         Api.ExecutionUpdate(
@@ -470,6 +493,38 @@ class RuntimeTypesTest
             )
           )
         )
+      ),
+      TestMessages.panic(
+        contextId,
+        id_x,
+        Api.ExpressionUpdate.Payload.Panic("Compile_Error", List(id_x)),
+        builtin = true
+      ),
+      context.executionComplete(contextId)
+    )
+
+    // rename type in expression: `T.C 1 . a` -> `S.C 1 . a`
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(4, 8), model.Position(4, 9)),
+              "S"
+            )
+          ),
+          execute = true
+        )
+      )
+    )
+    context.receiveNIgnorePendingExpressionUpdates(
+      2
+    ) should contain theSameElementsAs Seq(
+      TestMessages.update(
+        contextId,
+        id_x,
+        ConstantsGen.INTEGER_BUILTIN
       ),
       context.executionComplete(contextId)
     )

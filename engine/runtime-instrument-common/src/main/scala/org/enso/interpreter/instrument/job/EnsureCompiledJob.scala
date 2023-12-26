@@ -316,14 +316,15 @@ final class EnsureCompiledJob(
       ctx.locking.releasePendingEditsLock()
       logger.log(
         Level.FINEST,
-        s"Kept pending edits lock [EnsureCompiledJob] for ${System.currentTimeMillis() - pendingEditsLockTimestamp} milliseconds"
+        "Kept pending edits lock [EnsureCompiledJob] for {} milliseconds",
+        System.currentTimeMillis() - pendingEditsLockTimestamp
       )
       ctx.locking.releaseFileLock(file)
       logger.log(
         Level.FINEST,
-        s"Kept file lock [EnsureCompiledJob] for ${System.currentTimeMillis() - fileLockTimestamp} milliseconds"
+        "Kept file lock [EnsureCompiledJob] for {} milliseconds",
+        System.currentTimeMillis() - fileLockTimestamp
       )
-
     }
   }
 
@@ -400,11 +401,7 @@ final class EnsureCompiledJob(
     changeset: Changeset[_]
   )(implicit ctx: RuntimeContext): Unit = {
     val invalidationCommands =
-      buildCacheInvalidationCommands( changeset, module.getIr)
-    ctx.executionService.getLogger.log(
-      Level.WARNING,
-      s"INVALIDATE: $invalidationCommands"
-    )
+      buildCacheInvalidationCommands(changeset, module.getIr)
     ctx.contextManager.getAllContexts.values
       .foreach { stack =>
         if (stack.nonEmpty && isStackInModule(module.getName, stack)) {
