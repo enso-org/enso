@@ -267,8 +267,7 @@ class RuntimeTypesTest
     ) should contain theSameElementsAs Seq(context.executionComplete(contextId))
   }
 
-  it should "fail to resolve symbol after editing the type" in {
-    pending
+  it should "fail to resolve symbol after editing the type111" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"

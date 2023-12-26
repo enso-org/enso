@@ -6,10 +6,17 @@ import org.enso.compiler.CompilerResult
 import org.enso.compiler.context._
 import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{Diagnostic, IdentifiedLocation, Warning}
+import org.enso.compiler.core.ir.{
+  expression,
+  Diagnostic,
+  IdentifiedLocation,
+  Warning
+}
 import org.enso.compiler.core.ir.expression.Error
+import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.pass.analyse.{
   CachePreferenceAnalysis,
+  DataflowAnalysis,
   GatherDiagnostics
 }
 import org.enso.interpreter.instrument.execution.{
@@ -30,7 +37,9 @@ import org.enso.polyglot.runtime.Runtime.Api.StackItem
 import org.enso.text.buffer.Rope
 
 import java.io.File
+import java.util.UUID
 import java.util.logging.Level
+
 import scala.jdk.OptionConverters._
 
 /** A job that ensures that specified files are compiled.
@@ -326,15 +335,16 @@ final class EnsureCompiledJob(
     */
   private def buildCacheInvalidationCommands(
     changeset: Changeset[_],
-    oldIRs: Seq[IR]
+    ir: IR
   ): Seq[CacheInvalidation] = {
+    val resolutionErrors = findResolutionErrors(ir)
     val invalidateExpressionsCommand =
       CacheInvalidation.Command.InvalidateKeys(
-        changeset.invalidated
+        changeset.invalidated ++ resolutionErrors
       )
-    val oldUUIDs = oldIRs.flatMap(_.location()).flatMap(_.id()).distinct
+    val moduleIds = ir.preorder().flatMap(_.location()).flatMap(_.id()).toSet
     val invalidateStaleCommand =
-      CacheInvalidation.Command.InvalidateStale(oldUUIDs)
+      CacheInvalidation.Command.InvalidateStale(moduleIds)
     Seq(
       CacheInvalidation(
         CacheInvalidation.StackSelector.All,
@@ -346,6 +356,35 @@ final class EnsureCompiledJob(
         invalidateStaleCommand,
         Set(CacheInvalidation.IndexSelector.All)
       )
+    )
+  }
+
+  private def findResolutionErrors(ir: IR): Set[UUID] = {
+    val metadata = ir
+      .unsafeGetMetadata(
+        DataflowAnalysis,
+        "Empty dataflow analysis metadata during the interactive compilation."
+      )
+
+    val resolutionNotFoundKeys =
+      ir.preorder()
+        .collect {
+          case err @ expression.errors.Resolution(
+                _,
+                expression.errors.Resolution
+                  .ResolverError(BindingsMap.ResolutionNotFound),
+                _,
+                _
+              ) =>
+            DataflowAnalysis.DependencyInfo.Type.Static(
+              err.getId,
+              err.getExternalId
+            )
+        }
+        .toSet
+
+    resolutionNotFoundKeys.flatMap(
+      metadata.dependents.getExternal(_).getOrElse(Set())
     )
   }
 
@@ -362,8 +401,12 @@ final class EnsureCompiledJob(
     val invalidationCommands =
       buildCacheInvalidationCommands(
         changeset,
-        module.getIr.preorder()
+        module.getIr
       )
+    ctx.executionService.getLogger.log(
+      Level.WARNING,
+      s"INVALIDATE: $invalidationCommands"
+    )
     ctx.contextManager.getAllContexts.values
       .foreach { stack =>
         if (stack.nonEmpty && isStackInModule(module.getName, stack)) {
