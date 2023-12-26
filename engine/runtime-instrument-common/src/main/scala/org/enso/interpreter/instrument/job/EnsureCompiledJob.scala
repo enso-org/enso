@@ -331,6 +331,7 @@ final class EnsureCompiledJob(
     *
     * @param changeset the [[Changeset]] object capturing the previous
     * version of IR
+    * @param ir the IR of compiled module
     * @return the list of cache invalidation commands
     */
   private def buildCacheInvalidationCommands(
@@ -399,10 +400,7 @@ final class EnsureCompiledJob(
     changeset: Changeset[_]
   )(implicit ctx: RuntimeContext): Unit = {
     val invalidationCommands =
-      buildCacheInvalidationCommands(
-        changeset,
-        module.getIr
-      )
+      buildCacheInvalidationCommands( changeset, module.getIr)
     ctx.executionService.getLogger.log(
       Level.WARNING,
       s"INVALIDATE: $invalidationCommands"
