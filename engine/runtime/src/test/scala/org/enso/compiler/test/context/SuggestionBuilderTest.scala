@@ -3322,13 +3322,6 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
     }
   }
 
-  "111" in {
-    val code =
-      """main = T.C 1"""
-    val module = code.preprocessModule
-    println(module)
-  }
-
   private def build(
     source: String,
     ir: Module,
