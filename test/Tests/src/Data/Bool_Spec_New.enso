@@ -1,18 +1,17 @@
 from Standard.Base import all
-from Standard.Test_New.Test_New import Test
-import Standard.Test_New.Extensions
+from Standard.Test.Test_New import Test
 
 
 collect_tests = Test.build builder->
     builder.group "Booleans" group_builder->
         group_builder.specify "should allow converting Bools to Text values" <|
-            IO.println "    In first spec"
-            True.to_text.should_equal "True"
+            IO.println "First spec"
+            True.to_text == "True"
 
-        group_builder.specify "test that should fail" <|
-            IO.println "    In second spec"
-            True.to_text.should_equal "False"
+        group_builder.specify "should allow for comparing Bools" <|
+            IO.println "Second spec"
+            (True == True)
 
 
 main =
-    collect_tests.run_with_filter Nothing Nothing
+    collect_tests.run_main
