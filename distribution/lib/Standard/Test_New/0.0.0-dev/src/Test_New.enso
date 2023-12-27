@@ -35,15 +35,18 @@ type Test
     ## Construct a Test object
     build : (Test_Builder -> Any) -> Test
     build fn =
+        IO.println "Running `Test.build` (collecting tests)..."
         b = Vector.new_builder
         fn (Test_Builder.Impl b)
         groups_vec = b.to_vector
+        IO.println "Done with `Test.build` (collecting tests)"
         Test.All groups_vec
 
     run_main self =
-        IO.println "Test.run_main"
+        IO.println "Running `Test.run_main` - running all tests"
         self.groups.each group->
             self.run_group group
+        IO.println "Done with `Test.run_main` - running all tests"
 
     ## PRIVATE
     run_group self group =
