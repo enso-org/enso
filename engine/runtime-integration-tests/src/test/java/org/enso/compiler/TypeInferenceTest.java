@@ -79,7 +79,64 @@ public class TypeInferenceTest extends TestBase {
     // TODO checking what is inferred
   }
 
+  @Test
+  public void argChecks() throws Exception {
+    final URI uri = new URI("memory://argChecks.enso");
+    final Source src =
+        Source.newBuilder("enso", """
+                type My_Type
+                    Value v
+                    
+                f1 (x1 : My_Type) = My_Type.Value (x1.v + x1.v)
+                
+                f2 : My_Type -> My_Type
+                f2 x2 = My_Type.Value (x2.v + x2.v)
+                """, uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+  }
+
+
+  @Test
+  public void ascribedExpressions() throws Exception {
+    final URI uri = new URI("memory://ascribedExpressions.enso");
+    final Source src =
+        Source.newBuilder("enso", """
+                type My_Type
+                    Value x
+                    
+                f x =
+                    y = (x : My_Type)
+                    My_Type.Value (y.x + y.x)
+                """, uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+  }
+
+
+  @Test
+  public void literals() throws Exception {
+    final URI uri = new URI("memory://literals.enso");
+    final Source src =
+        Source.newBuilder("enso", """
+                f =
+                    x = 42
+                    y = "foo"
+                    z = 1.5
+                    x.to_text + y + z.to_text
+                """, uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+  }
+
   private Value compile(Source src) {
+    System.out.println("\n\n\n=========================================\nSOURCE " + src.getURI().toString() + "\n");
     Value module = ctx.eval(src);
     // This ensures that the compiler actually is run.
     module.invokeMember("get_associated_type");
