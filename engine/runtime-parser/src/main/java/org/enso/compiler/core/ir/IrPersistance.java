@@ -265,13 +265,14 @@ public final class IrPersistance {
     protected scala.collection.mutable.Map readObject(Input in)
         throws IOException, ClassNotFoundException {
       var size = in.readInt();
-      var map = scala.collection.mutable.Map$.MODULE$.empty();
+      var mapBuilder = scala.collection.mutable.Map$.MODULE$.newBuilder();
+      mapBuilder.sizeHint(size);
       for (var i = 0; i < size; i++) {
         var key = in.readObject();
         var value = in.readObject();
-        map.put(key, value);
+        mapBuilder.addOne(Tuple2.apply(key, value));
       }
-      return map;
+      return mapBuilder.result();
     }
   }
 
