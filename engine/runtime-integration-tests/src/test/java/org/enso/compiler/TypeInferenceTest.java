@@ -4,6 +4,7 @@ import org.enso.interpreter.test.TestBase;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
+import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -51,10 +52,9 @@ public class TypeInferenceTest extends TestBase {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
-    // TODO can we get compiler to fire without eval??
-    module.invokeMember("eval_expression", "bar");
-    // TODO checking what is inferred
+    var module = compile(src);
+    System.out.println(module);
+    // TODO checking what is inferred - probably need instrumentation?
   }
 
   @Test
@@ -75,7 +75,14 @@ public class TypeInferenceTest extends TestBase {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = compile(src);
     // TODO checking what is inferred
+  }
+
+  private Value compile(Source src) {
+    Value module = ctx.eval(src);
+    // This ensures that the compiler actually is run.
+    module.invokeMember("get_associated_type");
+    return module;
   }
 }
