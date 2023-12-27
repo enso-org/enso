@@ -4,6 +4,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.function.Function;
@@ -13,6 +15,7 @@ final class PerGenerator {
   static final byte[] HEADER = new byte[] {0x0a, 0x0d, 0x02, 0x0f};
   private final OutputStream main;
   private final Map<Object, Integer> knownObjects = new IdentityHashMap<>();
+  private final Map<Class, int[]> knownTypes = new HashMap<>();
   final Function<Object, Object> writeReplace;
   private int position;
 
@@ -36,6 +39,23 @@ final class PerGenerator {
     arr[9] = (byte) ((at >> 16) & 0xff);
     arr[10] = (byte) ((at >> 8) & 0xff);
     arr[11] = (byte) (at & 0xff);
+
+    var counts = g.knownTypes;
+    var list = new ArrayList<>(counts.entrySet());
+    list.sort(
+        (a, b) -> {
+          return a.getValue()[0] - b.getValue()[0];
+        });
+
+    for (var i = 0; i < list.size(); i++) {
+      if (i == 30) {
+        break;
+      }
+      var elem = list.get(list.size() - 1 - i);
+      System.err.println(
+          "  " + elem.getValue()[0] + " " + elem.getValue()[1] + " " + elem.getKey().getName());
+    }
+
     return arr;
   }
 
@@ -78,6 +98,13 @@ final class PerGenerator {
       main.write(arr);
       position += arr.length;
       knownObjects.put(obj, found);
+      var c = knownTypes.get(obj.getClass());
+      if (c == null) {
+        c = new int[2];
+        knownTypes.put(obj.getClass(), c);
+      }
+      c[0] += arr.length;
+      c[1]++;
     }
     out.writeInt(found);
     out.writeInt(p.id);
