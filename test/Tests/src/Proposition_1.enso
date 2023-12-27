@@ -1,0 +1,120 @@
+from Standard.Base import all
+import Standard.Base.Runtime.State
+polyglot java import java.lang.StringBuilder
+
+
+type Group_Builder
+type Test_Suite_Builder
+
+
+type Spec
+    Impl name ~code
+
+    to_text self = self.name
+
+    run : Any
+    run self =
+        IO.println <| "  Running spec '" + self.name + "'"
+        self.code
+
+
+type Group
+    Impl (name : Text) (specs : Vector Spec)
+
+    to_text self =
+        sb = StringBuilder.new
+        sb.append ("Group '" + self.name + "': specs = [")
+        self.specs.each spec->
+            sb.append (spec.to_text + ", ")
+        sb.append "]"
+        sb.toString
+
+    run : Nothing
+    run self =
+        IO.println ("Running group '" + self.name + "'")
+        self.specs.each spec->
+            spec.run
+
+
+## Contains just static methods
+type Test
+    group : Text -> Vector Any -> Nothing
+    group group_name ~specs =
+        suite_bldr = State.get Test_Suite_Builder
+        grp_bldr = Vector.new_builder
+        State.run Group_Builder grp_bldr <|
+            specs
+        grp = Group.Impl group_name grp_bldr.to_vector
+        suite_bldr.append grp
+
+    specify : Text -> (Any -> Any) -> Spec
+    specify spec_name ~code =
+        grp_bldr = State.get Group_Builder
+        grp_bldr.append (Spec.Impl spec_name code)
+
+
+type Test_Suite
+    Impl (groups : Vector Group)
+
+    collect : (Any -> Any) -> Test_Suite
+    collect ~groups =
+        suite_bldr = Vector.new_builder
+        State.run Test_Suite_Builder suite_bldr <|
+            groups
+        Test_Suite.Impl suite_bldr.to_vector
+
+    run_all : Nothing
+    run_all self =
+        self.groups.each group->
+            group.run
+
+    ## Returns all test names, in form `<group_name>:<spec_name>`
+    test_names : Vector Text
+    test_names self =
+        self.groups.fold [] acc->group->
+            spec_names = group.specs.map spec->
+                group.name + ":" + spec.name
+            acc + spec_names
+
+
+## Encapsulates the data that are lazily initialized for the tests
+type Data
+    Impl ~vec
+
+    create_vec size =
+        IO.println "Creating test data"
+        bldr = Vector.new_builder
+        0.up_to size . each (idx-> bldr.append (idx + 1))
+        bldr.to_vector
+
+
+specs =
+    data = Data.Impl (Data.create_vec 10)
+
+    Test.group "my-group" <|
+        Test.specify "my-spec-1" <|
+            IO.println "    In my-spec-1"
+
+        Test.specify "my-spec-2" <|
+            IO.println "    In my-spec-2"
+            res = data.vec.distinct.length == data.vec.length
+            IO.println <| "    my-spec-2: res = " + res.to_text
+            res
+
+    Test.group "my-group-2" <|
+        Test.specify "my-spec-3" <|
+            IO.println "    In my-spec-3"
+            1 == 1
+
+
+test_suite = Test_Suite.collect specs
+
+
+main =
+    IO.println "All test names:"
+    test_suite.test_names.each test_name->
+        IO.println <| "  " + test_name
+    IO.println "Running tests..."
+    test_suite.run_all
+    IO.println "Done running tests."
+
