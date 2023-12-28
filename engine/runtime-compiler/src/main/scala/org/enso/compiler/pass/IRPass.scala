@@ -110,7 +110,7 @@ object IRPass {
     * passes such that it can be stored in each IR node.
     *
     * All metadata instances must be [[Serializable]], but are guaranteed to
-    * have `prepareForSpecialization` called before being serialised. Similarly,
+    * have `prepareForSerialization` called before being serialised. Similarly,
     * they are guaranteed to have `restoreFromSerialization` called after they
     * have been deserialized and before any other operations occur.
     */
