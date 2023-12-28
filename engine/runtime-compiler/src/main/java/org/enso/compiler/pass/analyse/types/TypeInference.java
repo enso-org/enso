@@ -161,25 +161,41 @@ public final class TypeInference implements IRPass {
     setInferredType(literal, new InferredType(type));
   }
 
+  /**
+   * Builds the type of a lambda, based on available type information of its parts.
+   * <p>
+   * The return type is inferred based on the body, and expected argument types are based on type ascriptions of these
+   * arguments (currently no upwards propagation of constraints yet). Even if the types are not known, we may fall back
+   * to a default unknown type, but we may at least infer the minimum arity of the function.
+   */
   private InferredType buildLambdaType(Function.Lambda f) {
-    if (f.arguments().isEmpty()) {
-      throw new IllegalStateException("Impossible - lambda with no arguments?");
-    }
-
-    scala.collection.immutable.List<TypeRepresentation> argTypesScala = f.arguments().map((arg) -> {
-          if (arg.ascribedType().isDefined()) {
-            Expression t = arg.ascribedType().get();
-            return resolveTypeExpression(t);
-          } else {
-            return TypeRepresentation.ANY;
-          }
-        }
-    );
+    scala.collection.immutable.List<TypeRepresentation> argTypesScala =
+        f.arguments()
+            .filter((arg) -> !(arg.name() instanceof Name.Self))
+            .map((arg) -> {
+                  if (arg.ascribedType().isDefined()) {
+                    Expression t = arg.ascribedType().get();
+                    return resolveTypeExpression(t);
+                  } else {
+                    return TypeRepresentation.UNKNOWN;
+                  }
+                }
+            );
 
     InferredType inferredReturnType = getInferredType(f.body());
-    TypeRepresentation returnType = inferredReturnType == null ? TypeRepresentation.ANY : inferredReturnType.type();
 
-    TypeRepresentation arrowType = TypeRepresentation.buildFunction(CollectionConverters.asJava(argTypesScala), returnType);
+    if (inferredReturnType == null && argTypesScala.isEmpty()) {
+      // If the return type is unknown and we have no arguments, we do not infer anything useful - so we withdraw.
+      return null;
+    }
+
+    TypeRepresentation returnType =
+        inferredReturnType == null ? TypeRepresentation.ANY : inferredReturnType.type();
+
+    TypeRepresentation arrowType = TypeRepresentation.buildFunction(
+        CollectionConverters.asJava(argTypesScala),
+        returnType
+    );
     return new InferredType(arrowType);
   }
 
@@ -208,7 +224,8 @@ public final class TypeInference implements IRPass {
   private void log(String prefix, Expression expression, String suffix) {
     String name = expression.getClass().getCanonicalName();
     name = name.substring(name.indexOf("ir.") + 3);
-    String suffixStr = suffix == null ? "" : " --> " + suffix;
+
+    String suffixStr = suffix == null ? "" : " ==> " + suffix;
     System.out.println(prefix + ": " + name + " - " + expression.showCode() + suffixStr);
   }
 }

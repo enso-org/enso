@@ -36,5 +36,8 @@ public sealed interface TypeRepresentation {
   TypeRepresentation FLOAT = new TypeRepresentation.AtomType("Standard.Base.Data.Numbers.Float");
   TypeRepresentation TEXT = new TypeRepresentation.AtomType("Standard.Base.Data.Text.Text");
   TypeRepresentation ANY = new TypeRepresentation.TopType();
+
+  // In the future we may want to split this unknown type to be a separate entity.
+  TypeRepresentation UNKNOWN = ANY;
   TypeRepresentation NOTHING = new TypeRepresentation.AtomType("Standard.Base.Nothing.Nothing");
 }

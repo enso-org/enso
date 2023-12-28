@@ -193,7 +193,22 @@ public class TypeInferenceTest extends TestBase {
                 """, uri.getAuthority())
             .uri(uri)
             .buildLiteral();
+    // Text | Integer
+    var module = compile(src);
+  }
 
+  @Ignore
+  @Test
+  public void sumTypeFromIfWithoutElse() throws Exception {
+    final URI uri = new URI("memory://sumTypeFromIf.enso");
+    final Source src =
+        Source.newBuilder("enso", """
+                f x = if x == 1 then "foo"
+                """, uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    // Text | Nothing
     var module = compile(src);
   }
 
