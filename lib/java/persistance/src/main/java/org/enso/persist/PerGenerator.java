@@ -16,10 +16,12 @@ final class PerGenerator {
   private final OutputStream main;
   private final Map<Object, Integer> knownObjects = new IdentityHashMap<>();
   private final Map<Class, int[]> knownTypes = new HashMap<>();
+  private final PerMap map;
   final Function<Object, Object> writeReplace;
   private int position;
 
   private PerGenerator(OutputStream out, int position, Function<Object, Object> writeReplace) {
+    this.map = PerMap.create();
     this.main = out;
     this.writeReplace = writeReplace == null ? Function.identity() : writeReplace;
     this.position = position;
@@ -28,11 +30,11 @@ final class PerGenerator {
   static byte[] writeObject(Object obj, Function<Object, Object> writeReplace) throws IOException {
     var out = new ByteArrayOutputStream();
     var data = new DataOutputStream(out);
+    var g = new PerGenerator(out, 12, writeReplace);
     data.write(PerGenerator.HEADER);
-    data.writeInt(PerMap.DEFAULT.versionStamp);
+    data.writeInt(g.versionStamp());
     data.write(new byte[4]); // space
     data.flush();
-    var g = new PerGenerator(out, 12, writeReplace);
     var at = g.writeObject(obj);
     var arr = out.toByteArray();
     arr[8] = (byte) ((at >> 24) & 0xff);
@@ -47,6 +49,7 @@ final class PerGenerator {
           return a.getValue()[0] - b.getValue()[0];
         });
 
+    System.err.println("==== Top Bytes & Counts of Classes =====");
     for (var i = 0; i < list.size(); i++) {
       if (i == 30) {
         break;
@@ -66,7 +69,7 @@ final class PerGenerator {
     java.lang.Object obj = writeReplace.apply(t);
     java.lang.Integer found = knownObjects.get(obj);
     if (found == null) {
-      org.enso.persist.Persistance<?> p = PerMap.DEFAULT.forType(obj.getClass());
+      org.enso.persist.Persistance<?> p = map.forType(obj.getClass());
       java.io.ByteArrayOutputStream os = new ByteArrayOutputStream();
       p.writeInline(obj, new ReferenceOutput(this, os));
       found = this.position;
@@ -84,7 +87,10 @@ final class PerGenerator {
       out.writeInt(-1);
       return;
     }
-    org.enso.persist.Persistance<?> p = PerMap.DEFAULT.forType(obj.getClass());
+    org.enso.persist.Persistance<?> p = map.forType(obj.getClass());
+    if (obj instanceof String s) {
+      obj = s.intern();
+    }
     java.lang.Integer found = knownObjects.get(obj);
     if (found == null) {
       var os = new ByteArrayOutputStream();
@@ -110,6 +116,10 @@ final class PerGenerator {
     out.writeInt(p.id);
   }
 
+  final int versionStamp() {
+    return map.versionStamp;
+  }
+
   private static final class ReferenceOutput extends DataOutputStream
       implements Persistance.Output {
     private final PerGenerator generator;
@@ -122,7 +132,7 @@ final class PerGenerator {
     @Override
     public <T> void writeInline(Class<T> clazz, T t) throws IOException {
       var obj = generator.writeReplace.apply(t);
-      var p = PerMap.DEFAULT.forType(clazz);
+      var p = generator.map.forType(clazz);
       p.writeInline(obj, this);
     }
 
