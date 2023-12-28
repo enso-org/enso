@@ -953,7 +953,7 @@ type Column
        this column contains a `Nothing`.
     is_nothing : Column
     is_nothing self =
-        new_name = self.naming_helper.concat [self.naming_helper.to_expression_text self, "is null"]
+        new_name = self.naming_helper.concat [self.naming_helper.to_expression_text self, "is Nothing"]
         self.make_unary_op "IS_NULL" new_name
 
     ## GROUP Standard.Base.Math
