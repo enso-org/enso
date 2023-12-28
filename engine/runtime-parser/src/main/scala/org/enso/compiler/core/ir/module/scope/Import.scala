@@ -112,6 +112,7 @@ object Import {
       keepIdentifiers: Boolean = false
     ): Module =
       copy(
+        name = name.duplicate(keepLocations, keepMetadata, keepDiagnostics, keepIdentifiers),
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
