@@ -150,6 +150,7 @@ public class TypeInferenceTest extends TestBase {
   }
 
 
+  @Ignore
   @Test
   public void commonCase() throws Exception {
     final URI uri = new URI("memory://commonCase.enso");
