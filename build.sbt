@@ -1545,6 +1545,16 @@ lazy val runtime = (project in file("engine/runtime"))
       val options = (Compile / javafmtOptions).value
       JavaFormatter(sD, iF, eF, streamz, cache, options)
     },
+    Benchmark / javafmtCheck := {
+      val streamz = streams.value
+      val baseDir = (ThisBuild / baseDirectory).value
+      val sD      = (Benchmark / javafmt / sourceDirectories).value.toList
+      val iF      = (Benchmark / javafmt / includeFilter).value
+      val eF      = (Benchmark / javafmt / excludeFilter).value
+      val cache   = (javafmt / streams).value.cacheStoreFactory
+      val options = (Compile / javafmtOptions).value
+      JavaFormatter.check(baseDir, sD, iF, eF, streamz, cache, options)
+    },
     Test / parallelExecution := false,
     Test / logBuffered := false,
     Test / testOptions += Tests.Argument(
