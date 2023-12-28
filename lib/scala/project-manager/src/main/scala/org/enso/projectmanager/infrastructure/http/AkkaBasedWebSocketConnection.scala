@@ -83,7 +83,7 @@ class AkkaBasedWebSocketConnection(
     receiver ! Detach(listener)
 
   /** @inheritdoc */
-  def connect(): Unit = {
+  override def connect(): Unit = {
     val server = Http()
     secureConfig
       .flatMap { config =>
@@ -121,11 +121,17 @@ class AkkaBasedWebSocketConnection(
   }
 
   /** @inheritdoc */
-  def send(message: String): Unit = outboundChannel ! message
+  override def send(message: String): Unit = {
+    outboundChannel ! message
+  }
 
   /** @inheritdoc */
-  def disconnect(): Unit = {
+  override def disconnect(): Unit = {
     outboundChannel ! CloseWebSocket
+  }
+
+  /** @inheritdoc */
+  override def close(): Unit = {
     receiver ! PoisonPill
   }
 
