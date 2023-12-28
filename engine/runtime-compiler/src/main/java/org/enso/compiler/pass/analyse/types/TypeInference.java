@@ -1,27 +1,22 @@
-package org.enso.compiler.pass.analyse;
+package org.enso.compiler.pass.analyse.types;
 
 import org.enso.compiler.context.InlineContext;
-import org.enso.compiler.context.InlineContext$;
 import org.enso.compiler.context.ModuleContext;
-import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Function;
 import org.enso.compiler.core.ir.Literal;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.Name;
 import org.enso.compiler.core.ir.ProcessingPass;
-import org.enso.compiler.core.ir.Type;
 import org.enso.compiler.core.ir.expression.Application;
-import org.enso.compiler.core.ir.expression.Application$;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.compiler.pass.IRPass;
+import org.enso.compiler.pass.analyse.BindingAnalysis$;
 import org.enso.compiler.pass.desugar.ComplexType$;
 import org.enso.compiler.pass.resolve.TypeNames$;
 import org.enso.compiler.pass.resolve.TypeSignatures;
 import org.enso.compiler.pass.resolve.TypeSignatures$;
-import scala.Function1;
 import scala.Option;
-import scala.PartialFunction;
 import scala.collection.immutable.Seq;
 import scala.collection.immutable.Seq$;
 import scala.jdk.javaapi.CollectionConverters;
@@ -100,8 +95,12 @@ public final class TypeInference implements IRPass {
     processTypeAscription(mappedIr);
     processTypePropagation(mappedIr);
 
-    // TODO check if type was inferred and log type or if none
-    log("inferred type", ir);
+    var inferredType = getInferredType(mappedIr);
+    if (inferredType != null) {
+      log("inferred type", mappedIr, inferredType.type().toString());
+    } else {
+      log("inferred type", mappedIr, "NONE");
+    }
     return mappedIr;
   }
 
@@ -118,24 +117,29 @@ public final class TypeInference implements IRPass {
     switch (ir) {
       case Name.Literal l -> processName(l);
       case Application.Force f -> {
-        // TODO propagate inner type if exists
+        var innerType = getInferredType(f.target());
+        if (innerType != null) {
+          setInferredType(f, innerType);
+        }
       }
       case Application.Prefix p -> {
         // TODO for later - check function return type somehow, first for local functions, later global ones
       }
       case Expression.Binding b -> {
-        // TODO ?
+        // TODO propagate the type into scope somehow?
       }
       case Expression.Block b -> {
-        // TODO propagate type from return
-        var returnValue = b.returnValue();
+        var innerType = getInferredType(b.returnValue());
+        if (innerType != null) {
+          setInferredType(b, innerType);
+        }
       }
       case Function.Lambda f -> {
-        // TODO construct a -> type
+        var type = buildLambdaType(f);
       }
       case Literal l -> processLiteral(l);
       default -> {
-        log("type propagation", ir, "UNKNOWN: "+ir.getClass().getCanonicalName());
+        log("type propagation", ir, "UNKNOWN: " + ir.getClass().getCanonicalName());
       }
     }
   }
@@ -146,30 +150,58 @@ public final class TypeInference implements IRPass {
   }
 
   private void processLiteral(Literal literal) {
-    switch (literal) {
-      case Literal.Number number -> {
-        if (number.isFractional()) {
-          // TODO add constant type
-        } else {
-          // TODO add constant type
-        }
-      }
-      case Literal.Text text -> {
-        // TODO add constant type
-      }
-
+    TypeRepresentation type = switch (literal) {
+      case Literal.Number number -> number.isFractional() ? TypeRepresentation.FLOAT : TypeRepresentation.INTEGER;
+      case Literal.Text text -> TypeRepresentation.TEXT;
       // This branch is needed only because Java is unable to infer that the match is exhaustive
-      default -> throw new IllegalStateException("Impossible - unknown literal type: " + literal.getClass().getCanonicalName());
-    }
+      default ->
+          throw new IllegalStateException("Impossible - unknown literal type: " + literal.getClass().getCanonicalName());
+    };
+    setInferredType(literal, new InferredType(type));
   }
 
-  @Override
-  public <T extends IR> T updateMetadataInDuplicate(T sourceIr, T copyOfIr) {
-    return IRPass.super.updateMetadataInDuplicate(sourceIr, copyOfIr);
+  private InferredType buildLambdaType(Function.Lambda f) {
+    if (f.arguments().isEmpty()) {
+      throw new IllegalStateException("Impossible - lambda with no arguments?");
+    }
+
+    scala.collection.immutable.List<TypeRepresentation> argTypesScala = f.arguments().map((arg) -> {
+          if (arg.ascribedType().isDefined()) {
+            Expression t = arg.ascribedType().get();
+            return resolveTypeExpression(t);
+          } else {
+            return TypeRepresentation.ANY;
+          }
+        }
+    );
+
+    InferredType inferredReturnType = getInferredType(f.body());
+    TypeRepresentation returnType = inferredReturnType == null ? TypeRepresentation.ANY : inferredReturnType.type();
+
+    TypeRepresentation arrowType = TypeRepresentation.buildFunction(CollectionConverters.asJava(argTypesScala), returnType);
+    return new InferredType(arrowType);
+  }
+
+  private void setInferredType(Expression expression, InferredType type) {
+    expression.passData().update(this, type);
+  }
+
+  private InferredType getInferredType(Expression expression) {
+    Option<ProcessingPass.Metadata> r = expression.passData().get(this);
+    if (r.isDefined()) {
+      return (InferredType) r.get();
+    } else {
+      return null;
+    }
   }
 
   private void log(String prefix, Expression expression) {
     log(prefix, expression, null);
+  }
+
+  private TypeRepresentation resolveTypeExpression(Expression type) {
+    // TODO
+    return TypeRepresentation.ANY;
   }
 
   private void log(String prefix, Expression expression, String suffix) {
