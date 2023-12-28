@@ -36,7 +36,9 @@ object Function {
     * better optimisation.
     *
     * @param arguments   the arguments to the lambda
-    * @param body        the body of the lambda
+    * @param bodySeq     the body of the lambda, stored as a sequence to ensure
+    *                     laziness of storage; it should always hold exactly 1
+    *                     element
     * @param location    the source location that the node corresponds to
     * @param canBeTCO    whether or not the function can be tail-call optimised
     * @param passData    the pass metadata associated with this node
@@ -52,6 +54,13 @@ object Function {
   ) extends Function
       with IRKind.Primitive
       with LazyId {
+
+    if (bodySeq.length != 1) {
+      throw new IllegalArgumentException(
+        "Lambda bodySeq must have exactly 1 element"
+      )
+    }
+
     def this(
       arguments: List[DefinitionArgument],
       body: Expression,
