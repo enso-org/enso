@@ -10,7 +10,6 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import java.io.OutputStream;
 import java.net.URI;
 
 public class TypeInferenceTest extends TestBase {
@@ -90,9 +89,11 @@ public class TypeInferenceTest extends TestBase {
                     Value v
                     
                 f1 (x1 : My_Type) = My_Type.Value (x1.v + x1.v)
-                
+                                
                 f2 : My_Type -> My_Type
                 f2 x2 = My_Type.Value (x2.v + x2.v)
+                                
+                f3 (x3 : My_Type) -> My_Type = My_Type.Value (x3.v + x3.v)
                 """, uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -119,6 +120,49 @@ public class TypeInferenceTest extends TestBase {
     var module = compile(src);
   }
 
+
+  @Test
+  public void advancedAscribedExpressions() throws Exception {
+    final URI uri = new URI("memory://advancedAscribedExpressions.enso");
+    final Source src =
+        Source.newBuilder("enso", """
+                type My_Type
+                    Value x
+                type Other_Type
+                    Value y
+                f z =
+                    y1 = (z : My_Type | Other_Type)
+                    y2 = (z : My_Type & Other_Type)
+                    My_Type.Value (y1.x + y2.x)
+                """, uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+  }
+
+  @Test
+  public void ascribedFunctionType() throws Exception {
+    final URI uri = new URI("memory://ascribedFunctionType.enso");
+    final Source src =
+        Source.newBuilder("enso", """
+                type My_Type
+                    Value x
+                type Other_Type
+                    Value y
+                f z w =
+                    f1 = (z : My_Type -> Other_Type)
+                    f2 = (w : My_Type -> My_Type -> Other_Type)
+                    f2 (f1 (My_Type.Value 42))
+                """, uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    // Here we will only know that both f1 and f2 are Any -> Any - because the ascribed check only really performs a
+    // `is_a Function` check, we do not know anything about the argument nor return type of this function,
+    // unfortunately.
+    var module = compile(src);
+  }
 
   @Test
   public void literals() throws Exception {

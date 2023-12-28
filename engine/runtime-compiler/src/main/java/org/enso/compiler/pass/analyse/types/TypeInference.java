@@ -10,9 +10,10 @@ import org.enso.compiler.core.ir.Name;
 import org.enso.compiler.core.ir.ProcessingPass;
 import org.enso.compiler.core.ir.expression.Application;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
+import org.enso.compiler.core.ir.type.Set;
+import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.pass.IRPass;
 import org.enso.compiler.pass.analyse.BindingAnalysis$;
-import org.enso.compiler.pass.desugar.ComplexType$;
 import org.enso.compiler.pass.resolve.TypeNames$;
 import org.enso.compiler.pass.resolve.TypeSignatures;
 import org.enso.compiler.pass.resolve.TypeSignatures$;
@@ -42,7 +43,6 @@ public final class TypeInference implements IRPass {
   public Seq<IRPass> precursorPasses() {
     List<IRPass> passes = List.of(
         BindingAnalysis$.MODULE$,
-        ComplexType$.MODULE$,
         TypeNames$.MODULE$,
         TypeSignatures$.MODULE$
     );
@@ -110,6 +110,10 @@ public final class TypeInference implements IRPass {
       // This type would be guaranteed in the Scala typesystem without the cast:
       TypeSignatures.Signature s = (TypeSignatures.Signature) r.get();
       log("type signature", ir, s.signature().showCode());
+      TypeRepresentation t = resolveTypeExpression(s.signature());
+      if (t != null) {
+        setInferredType(ir, new InferredType(t));
+      }
     }
   }
 
@@ -217,8 +221,36 @@ public final class TypeInference implements IRPass {
   }
 
   private TypeRepresentation resolveTypeExpression(Expression type) {
-    // TODO
-    return TypeRepresentation.ANY;
+    log("resolveTypeExpression", type);
+    return switch (type) {
+      case Name.Literal name -> {
+        Option<ProcessingPass.Metadata> metadata = name.passData().get(TypeNames$.MODULE$);
+        if (metadata.isDefined()) {
+          BindingsMap.Resolution resolution = (BindingsMap.Resolution) metadata.get();
+          BindingsMap.ResolvedName target = resolution.target();
+          yield new TypeRepresentation.AtomType(target.qualifiedName().toString());
+        } else {
+          log("resolveTypeExpression", type, "Missing TypeName resolution metadata");
+          yield TypeRepresentation.UNKNOWN;
+        }
+      }
+
+      case Set.Union union -> {
+        var operands = union.operands().map(this::resolveTypeExpression);
+        yield new TypeRepresentation.SumType(CollectionConverters.asJava(operands));
+      }
+
+      case Set.Intersection intersection -> {
+        var lhs = resolveTypeExpression(intersection.left());
+        var rhs = resolveTypeExpression(intersection.right());
+        yield new TypeRepresentation.IntersectionType(List.of(lhs, rhs));
+      }
+
+      default -> {
+        log("resolveTypeExpression", type, "UNKNOWN BRANCH");
+        yield TypeRepresentation.UNKNOWN;
+      }
+    };
   }
 
   private void log(String prefix, Expression expression, String suffix) {

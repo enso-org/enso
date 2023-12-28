@@ -26,6 +26,34 @@ public sealed interface TypeRepresentation {
     }
   }
 
+  record SumType(List<TypeRepresentation> types) implements TypeRepresentation {
+    public SumType {
+      if (types.size() < 2) {
+        throw new IllegalArgumentException("Sum type must have at least 2 types");
+      }
+    }
+
+    @Override
+    public String toString() {
+      String repr = types.stream().map(TypeRepresentation::toString).reduce((a, b) -> a + " | " + b).orElse("");
+      return "(" + repr + ")";
+    }
+  }
+
+  record IntersectionType(List<TypeRepresentation> types) implements TypeRepresentation {
+    public IntersectionType {
+      if (types.size() < 2) {
+        throw new IllegalArgumentException("Compound type must have at least 2 types");
+      }
+    }
+
+    @Override
+    public String toString() {
+      String repr = types.stream().map(TypeRepresentation::toString).reduce((a, b) -> a + " & " + b).orElse("");
+      return "(" + repr + ")";
+    }
+  }
+
   static TypeRepresentation buildFunction(List<TypeRepresentation> arguments, TypeRepresentation result) {
     var reversed = new ArrayList<>(arguments);
     Collections.reverse(reversed);
