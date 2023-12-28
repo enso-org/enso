@@ -7,6 +7,7 @@ import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.OutputStream;
@@ -128,6 +129,65 @@ public class TypeInferenceTest extends TestBase {
                     y = "foo"
                     z = 1.5
                     x.to_text + y + z.to_text
+                """, uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+  }
+
+  @Test
+  public void commonIfThenElse() throws Exception {
+    final URI uri = new URI("memory://commonIfThenElse.enso");
+    final Source src =
+        Source.newBuilder("enso", """
+                f x = if x == 10 then 1 else 2
+                """, uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+  }
+
+
+  @Test
+  public void commonCase() throws Exception {
+    final URI uri = new URI("memory://commonCase.enso");
+    final Source src =
+        Source.newBuilder("enso", """
+                f x = case x of
+                    i : Integer -> i
+                    _ -> 0
+                """, uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+  }
+
+  @Ignore
+  @Test
+  public void inferBoundsFromCase() throws Exception {
+    final URI uri = new URI("memory://inferBoundsFromCase.enso");
+    final Source src =
+        Source.newBuilder("enso", """
+                f x = case x of
+                    _ : Integer -> x
+                    _ -> 0
+                """, uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+  }
+
+  @Ignore
+  @Test
+  public void sumTypeFromIf() throws Exception {
+    final URI uri = new URI("memory://sumTypeFromIf.enso");
+    final Source src =
+        Source.newBuilder("enso", """
+                f x = if x == 1 then "foo" else 42
                 """, uri.getAuthority())
             .uri(uri)
             .buildLiteral();
