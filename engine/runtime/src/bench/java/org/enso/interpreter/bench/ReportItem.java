@@ -1,13 +1,13 @@
 package org.enso.interpreter.bench;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.OptionalDouble;
 import jakarta.xml.bind.annotation.XmlElement;
 import jakarta.xml.bind.annotation.XmlElementWrapper;
 import jakarta.xml.bind.annotation.XmlRootElement;
 import jakarta.xml.bind.annotation.XmlTransient;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.OptionalDouble;
 
 /** Contains historic results for a single benchmark identified by label. */
 @XmlRootElement
@@ -53,7 +53,9 @@ public class ReportItem {
     getScores().add(score);
   }
 
-  /** @return The best (lowest) historic result for this benchmark. */
+  /**
+   * @return The best (lowest) historic result for this benchmark.
+   */
   @XmlTransient
   public Optional<Double> getBestScore() {
     OptionalDouble min = getScores().stream().mapToDouble(s -> s).min();

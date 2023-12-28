@@ -1,11 +1,9 @@
 package org.enso.interpreter.bench.benchmarks.semantic;
 
-import java.io.ByteArrayOutputStream;
 import java.nio.file.Paths;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.logging.Level;
-
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
@@ -22,7 +20,6 @@ import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.BenchmarkParams;
 import org.openjdk.jmh.infra.Blackhole;
-
 
 @BenchmarkMode(Mode.AverageTime)
 @Fork(1)
@@ -41,22 +38,21 @@ public class ListBenchmarks {
 
   @Setup
   public void initializeBenchmark(BenchmarkParams params) throws Exception {
-    var ctx = Context.newBuilder()
-      .allowExperimentalOptions(true)
-      .allowIO(IOAccess.ALL)
-      .allowAllAccess(true)
-      .option(
-              RuntimeOptions.LOG_LEVEL,
-              Level.WARNING.getName()
-      )
-      .logHandler(System.err)
-      .option(
-        "enso.languageHomeOverride",
-        Paths.get("../../distribution/component").toFile().getAbsolutePath()
-      ).build();
+    var ctx =
+        Context.newBuilder()
+            .allowExperimentalOptions(true)
+            .allowIO(IOAccess.ALL)
+            .allowAllAccess(true)
+            .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
+            .logHandler(System.err)
+            .option(
+                "enso.languageHomeOverride",
+                Paths.get("../../distribution/component").toFile().getAbsolutePath())
+            .build();
 
     var benchmarkName = SrcUtil.findName(params);
-    var code = """
+    var code =
+        """
       from Standard.Base.Any import Any
       from Standard.Base.Data.List.List import Cons, Nil
       from Standard.Base.Data.Text import Text
@@ -135,12 +131,12 @@ public class ListBenchmarks {
     var module = ctx.eval(SrcUtil.source(benchmarkName, code));
 
     this.self = module.invokeMember("get_associated_type");
-    Function<String,Value> getMethod = (name) -> module.invokeMember("get_method", self, name);
+    Function<String, Value> getMethod = (name) -> module.invokeMember("get_method", self, name);
 
     this.plusOne = getMethod.apply("plus_one");
 
     switch (benchmarkName) {
-      case "mapOverList" ->  {
+      case "mapOverList" -> {
         this.list = getMethod.apply("generator").execute(self, LENGTH_OF_EXPERIMENT);
         this.zero = 0;
         this.sum = getMethod.apply("sum");
@@ -149,7 +145,7 @@ public class ListBenchmarks {
           throw new AssertionError("Expecting a number " + this.oldSum);
         }
       }
-      case "mapAnyOverList" ->  {
+      case "mapAnyOverList" -> {
         this.list = getMethod.apply("generator").execute(self, LENGTH_OF_EXPERIMENT);
         this.zero = 0;
         this.sum = getMethod.apply("sum_any");
@@ -158,7 +154,7 @@ public class ListBenchmarks {
           throw new AssertionError("Expecting a number " + this.oldSum);
         }
       }
-      case "mapMultiOverList" ->  {
+      case "mapMultiOverList" -> {
         this.list = getMethod.apply("generator").execute(self, LENGTH_OF_EXPERIMENT);
         this.zero = 0;
         this.sum = getMethod.apply("sum_multi");
@@ -167,7 +163,7 @@ public class ListBenchmarks {
           throw new AssertionError("Expecting a number " + this.oldSum);
         }
       }
-      case "mapIntegerOverList" ->  {
+      case "mapIntegerOverList" -> {
         this.list = getMethod.apply("generator").execute(self, LENGTH_OF_EXPERIMENT);
         this.zero = 0;
         this.sum = getMethod.apply("sum_int");
@@ -176,7 +172,7 @@ public class ListBenchmarks {
           throw new AssertionError("Expecting a number " + this.oldSum);
         }
       }
-      case "mapVOverList" ->  {
+      case "mapVOverList" -> {
         this.list = getMethod.apply("generator").execute(self, LENGTH_OF_EXPERIMENT);
         this.zero = getMethod.apply("v_zero").execute(self);
         this.sum = getMethod.apply("v_sum_int");
@@ -185,7 +181,7 @@ public class ListBenchmarks {
           throw new AssertionError("Expecting a number " + this.oldSum);
         }
       }
-      case "mapConvOverList" ->  {
+      case "mapConvOverList" -> {
         this.list = getMethod.apply("generator").execute(self, LENGTH_OF_EXPERIMENT);
         this.zero = getMethod.apply("v_zero").execute(self);
         this.sum = getMethod.apply("v_sum_conv");
@@ -194,7 +190,7 @@ public class ListBenchmarks {
           throw new AssertionError("Expecting a number " + this.oldSum);
         }
       }
-      case "mapOverLazyList" ->  {
+      case "mapOverLazyList" -> {
         this.list = getMethod.apply("lenivy_generator").execute(self, LENGTH_OF_EXPERIMENT);
         this.zero = 0;
         this.sum = getMethod.apply("leniva_suma");
@@ -253,4 +249,3 @@ public class ListBenchmarks {
     hole.consume(result);
   }
 }
-
