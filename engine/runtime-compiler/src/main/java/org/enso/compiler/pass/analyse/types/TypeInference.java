@@ -136,6 +136,7 @@ public final class TypeInference implements IRPass {
       }
       case Function.Lambda f -> {
         var type = buildLambdaType(f);
+        setInferredType(f, type);
       }
       case Literal l -> processLiteral(l);
       default -> {

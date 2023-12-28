@@ -44,6 +44,7 @@ public class TypeInferenceTest extends TestBase {
                 foo =
                     x = const
                     y = My_Type.Value 23
+                    _ = y
                     x
                     
                 bar =

@@ -5,9 +5,26 @@ import java.util.Collections;
 import java.util.List;
 
 public sealed interface TypeRepresentation {
-  record TopType() implements TypeRepresentation {}
-  record AtomType(String fqn) implements TypeRepresentation {}
-  record ArrowType(TypeRepresentation argType, TypeRepresentation resultType) implements TypeRepresentation {}
+  record TopType() implements TypeRepresentation {
+    @Override
+    public String toString() {
+      return "Any";
+    }
+  }
+  record AtomType(String fqn) implements TypeRepresentation {
+    @Override
+    public String toString() {
+      var last = fqn.lastIndexOf('.');
+      return fqn.substring(last + 1);
+    }
+  }
+
+  record ArrowType(TypeRepresentation argType, TypeRepresentation resultType) implements TypeRepresentation {
+    @Override
+    public String toString() {
+      return "(" + argType + " -> " + resultType + ")";
+    }
+  }
 
   static TypeRepresentation buildFunction(List<TypeRepresentation> arguments, TypeRepresentation result) {
     var reversed = new ArrayList<>(arguments);
