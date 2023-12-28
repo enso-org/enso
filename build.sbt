@@ -1533,6 +1533,18 @@ lazy val runtime = (project in file("engine/runtime"))
     version := ensoVersion,
     commands += WithDebugCommand.withDebug,
     inConfig(Compile)(truffleRunOptionsSettings),
+    // Explicitly provide javafmt task for the custom Benchmark configuration.
+    // Note that because of the custom Benchmark configuration, the `JavaFormatterPlugin`
+    // is not able to register this task on its own.
+    Benchmark / javafmt := {
+      val streamz = streams.value
+      val sD      = (Benchmark / javafmt / sourceDirectories).value.toList
+      val iF      = (Benchmark / javafmt / includeFilter).value
+      val eF      = (Benchmark / javafmt / excludeFilter).value
+      val cache   = streamz.cacheStoreFactory
+      val options = (Compile / javafmtOptions).value
+      JavaFormatter(sD, iF, eF, streamz, cache, options)
+    },
     Test / parallelExecution := false,
     Test / logBuffered := false,
     Test / testOptions += Tests.Argument(
