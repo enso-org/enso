@@ -9,28 +9,35 @@ import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 final class PerGenerator {
+  private static final Logger LOG = Logger.getLogger(Persistance.class.getPackageName());
 
-  static final byte[] HEADER = new byte[] {0x0a, 0x0d, 0x02, 0x0f};
+  static final byte[] HEADER = new byte[] {0x0a, 0x0d, 0x03, 0x0f};
   private final OutputStream main;
   private final Map<Object, Integer> knownObjects = new IdentityHashMap<>();
-  private final Map<Class, int[]> knownTypes = new HashMap<>();
+  private final Histogram histogram;
   private final PerMap map;
   final Function<Object, Object> writeReplace;
   private int position;
 
-  private PerGenerator(OutputStream out, int position, Function<Object, Object> writeReplace) {
+  private PerGenerator(
+      OutputStream out, Histogram histogram, int position, Function<Object, Object> writeReplace) {
     this.map = PerMap.create();
     this.main = out;
     this.writeReplace = writeReplace == null ? Function.identity() : writeReplace;
     this.position = position;
+    this.histogram = histogram;
   }
 
   static byte[] writeObject(Object obj, Function<Object, Object> writeReplace) throws IOException {
+    var histogram = LOG.isLoggable(Level.FINE) ? new Histogram() : null;
+
     var out = new ByteArrayOutputStream();
     var data = new DataOutputStream(out);
-    var g = new PerGenerator(out, 12, writeReplace);
+    var g = new PerGenerator(out, histogram, 12, writeReplace);
     data.write(PerGenerator.HEADER);
     data.writeInt(g.versionStamp());
     data.write(new byte[4]); // space
@@ -42,23 +49,9 @@ final class PerGenerator {
     arr[10] = (byte) ((at >> 8) & 0xff);
     arr[11] = (byte) (at & 0xff);
 
-    var counts = g.knownTypes;
-    var list = new ArrayList<>(counts.entrySet());
-    list.sort(
-        (a, b) -> {
-          return a.getValue()[0] - b.getValue()[0];
-        });
-
-    System.err.println("==== Top Bytes & Counts of Classes =====");
-    for (var i = 0; i < list.size(); i++) {
-      if (i == 30) {
-        break;
-      }
-      var elem = list.get(list.size() - 1 - i);
-      System.err.println(
-          "  " + elem.getValue()[0] + " " + elem.getValue()[1] + " " + elem.getKey().getName());
+    if (histogram != null) {
+      histogram.dump(LOG, arr.length);
     }
-
     return arr;
   }
 
@@ -104,13 +97,9 @@ final class PerGenerator {
       main.write(arr);
       position += arr.length;
       knownObjects.put(obj, found);
-      var c = knownTypes.get(obj.getClass());
-      if (c == null) {
-        c = new int[2];
-        knownTypes.put(obj.getClass(), c);
+      if (histogram != null) {
+        histogram.register(obj.getClass(), arr.length);
       }
-      c[0] += arr.length;
-      c[1]++;
     }
     out.writeInt(found);
     out.writeInt(p.id);
@@ -139,6 +128,41 @@ final class PerGenerator {
     @Override
     public void writeObject(Object obj) throws IOException {
       this.generator.writeIndirect(obj, this);
+    }
+  }
+
+  private static final class Histogram {
+    private final Map<Class, int[]> knownTypes = new HashMap<>();
+
+    private void dump(Logger log, int length) {
+      var counts = knownTypes;
+      var list = new ArrayList<>(counts.entrySet());
+      list.sort(
+          (a, b) -> {
+            return a.getValue()[0] - b.getValue()[0];
+          });
+
+      log.fine("==== Top Bytes & Counts of Classes =====");
+      for (var i = 0; i < list.size(); i++) {
+        if (i == 30) {
+          break;
+        }
+        var elem = list.get(list.size() - 1 - i);
+        log.log(
+            Level.FINE,
+            "  {0} {1} {2}",
+            new Object[] {elem.getValue()[0], elem.getValue()[1], elem.getKey().getName()});
+      }
+    }
+
+    private void register(Class<?> type, int length) {
+      var c = knownTypes.get(type);
+      if (c == null) {
+        c = new int[2];
+        knownTypes.put(type, c);
+      }
+      c[0] += length;
+      c[1]++;
     }
   }
 }
