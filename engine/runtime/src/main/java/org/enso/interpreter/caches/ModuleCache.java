@@ -9,7 +9,6 @@ import com.oracle.truffle.api.source.Source;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.apache.commons.lang3.StringUtils;
@@ -46,54 +45,23 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
   protected CachedModule deserialize(
       EnsoContext context, byte[] data, Metadata meta, TruffleLogger logger)
       throws ClassNotFoundException, IOException, ClassNotFoundException {
-    var counts = logger.isLoggable(Level.FINE) ? new HashMap<Class, int[]>() : null;
     var ref =
         Persistance.read(
             data,
-            (obj) -> {
-              if (counts != null) {
-                var c = counts.get(obj.getClass());
-                if (c == null) {
-                  c = new int[1];
-                  counts.put(obj.getClass(), c);
-                }
-                c[0]++;
-              }
-              return switch (obj) {
-                case ProcessingPass.Metadata metadata -> {
-                  var option = metadata.restoreFromSerialization(context.getCompiler().context());
-                  if (option.nonEmpty()) {
-                    yield option.get();
-                  } else {
-                    throw raise(
-                        RuntimeException.class, new IOException("Cannot convert " + metadata));
+            (obj) ->
+                switch (obj) {
+                  case ProcessingPass.Metadata metadata -> {
+                    var option = metadata.restoreFromSerialization(context.getCompiler().context());
+                    if (option.nonEmpty()) {
+                      yield option.get();
+                    } else {
+                      throw raise(
+                          RuntimeException.class, new IOException("Cannot convert " + metadata));
+                    }
                   }
-                }
-                default -> obj;
-              };
-            });
+                  default -> obj;
+                });
     var mod = ref.get(Module.class);
-
-    if (counts != null) {
-      var all = mod.preorder().size();
-
-      var arr = new ArrayList<>(counts.entrySet());
-      arr.sort(
-          (a, b) -> {
-            return a.getValue()[0] - b.getValue()[0];
-          });
-
-      logger.log(Level.FINE, "Loaded " + module.getName() + " with " + all + " IR elements");
-      for (var i = 0; i < arr.size(); i++) {
-        if (i == 30) {
-          break;
-        }
-        var elem = arr.get(arr.size() - 1 - i);
-        logger.log(
-            Level.FINE, "  {0} {1}", new Object[] {elem.getValue()[0], elem.getKey().getName()});
-      }
-    }
-
     return new CachedModule(
         mod, CompilationStage.valueOf(meta.compilationStage()), module.getSource());
   }
