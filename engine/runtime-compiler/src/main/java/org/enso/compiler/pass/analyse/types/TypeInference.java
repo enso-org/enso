@@ -2,6 +2,8 @@ package org.enso.compiler.pass.analyse.types;
 
 import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.context.ModuleContext;
+import org.enso.compiler.core.ConstantsNames;
+import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Function;
 import org.enso.compiler.core.ir.Literal;
@@ -14,7 +16,10 @@ import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.compiler.core.ir.type.Set;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.pass.IRPass;
+import org.enso.compiler.pass.analyse.AliasAnalysis;
+import org.enso.compiler.pass.analyse.AliasAnalysis$;
 import org.enso.compiler.pass.analyse.BindingAnalysis$;
+import org.enso.compiler.pass.resolve.GlobalNames$;
 import org.enso.compiler.pass.resolve.TypeNames$;
 import org.enso.compiler.pass.resolve.TypeSignatures;
 import org.enso.compiler.pass.resolve.TypeSignatures$;
@@ -24,6 +29,7 @@ import scala.collection.immutable.Seq$;
 import scala.jdk.javaapi.CollectionConverters;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public final class TypeInference implements IRPass {
@@ -106,10 +112,10 @@ public final class TypeInference implements IRPass {
   }
 
   private void processTypeAscription(Expression ir) {
-    Option<ProcessingPass.Metadata> r = ir.passData().get(TypeSignatures$.MODULE$);
-    if (r.isDefined()) {
-      // This type would be guaranteed in the Scala typesystem without the cast:
-      TypeSignatures.Signature s = (TypeSignatures.Signature) r.get();
+    Optional<TypeSignatures.Signature> ascribedSignature =
+        getOptionalMetadata(ir, TypeSignatures$.MODULE$, TypeSignatures.Signature.class);
+    if (ascribedSignature.isPresent()) {
+      TypeSignatures.Signature s = ascribedSignature.get();
       log("type signature", ir, s.signature().showCode());
       TypeRepresentation t = resolveTypeExpression(s.signature());
       if (t != null) {
@@ -153,6 +159,26 @@ public final class TypeInference implements IRPass {
   private void processName(Name.Literal literalName) {
     // TODO need to reproduce IrToTruffle::processName logic
     // TODO first iteration - just find the local bindings
+
+    AliasAnalysis.Info.Occurrence occurrence =
+        getMetadata(literalName, AliasAnalysis$.MODULE$, AliasAnalysis.Info.Occurrence.class);
+    Optional<BindingsMap.Resolution> global =
+        getOptionalMetadata(literalName, GlobalNames$.MODULE$, BindingsMap.Resolution.class);
+
+    // TODO somehow correlate the occurrence with an argument or a local binding
+    // TODO how to get here type ascriptions from arguments?? do I need some state when traversing?
+    Object inLocalScope = null;
+    if (inLocalScope != null) {
+      log("processName", literalName, "local scope TODO");
+    } else if (global.isPresent()) {
+      var resolution = global.get().target();
+      log("processName", literalName, "global scope reference to " + resolution + " - currently global inference is unsupported");
+    } else if (literalName.name().equals(ConstantsNames.FROM_MEMBER)) {
+      log("processName", literalName, "from conversion - currently unsupported");
+    } else {
+      // TODO these will be used for member method calls `x.foo`
+      log("processName", literalName, "unresolved symbol - TODO");
+    }
   }
 
   private void processLiteral(Literal literal) {
@@ -224,10 +250,10 @@ public final class TypeInference implements IRPass {
   private TypeRepresentation resolveTypeExpression(Expression type) {
     return switch (type) {
       case Name.Literal name -> {
-        Option<ProcessingPass.Metadata> metadata = name.passData().get(TypeNames$.MODULE$);
-        if (metadata.isDefined()) {
-          BindingsMap.Resolution resolution = (BindingsMap.Resolution) metadata.get();
-          BindingsMap.ResolvedName target = resolution.target();
+        Optional<BindingsMap.Resolution> resolutionOptional =
+            getOptionalMetadata(name, TypeNames$.MODULE$, BindingsMap.Resolution.class);
+        if (resolutionOptional.isPresent()) {
+          BindingsMap.ResolvedName target = resolutionOptional.get().target();
           yield new TypeRepresentation.AtomType(target.qualifiedName().toString());
         } else {
           log("resolveTypeExpression", type, "Missing TypeName resolution metadata");
@@ -266,6 +292,29 @@ public final class TypeInference implements IRPass {
         yield TypeRepresentation.UNKNOWN;
       }
     };
+  }
+
+  private <T> Optional<T> getOptionalMetadata(IR ir, IRPass pass, Class<T> expectedType) {
+    Option<ProcessingPass.Metadata> option = ir.passData().get(pass);
+    if (option.isDefined()) {
+      try {
+        return Optional.of(expectedType.cast(option.get()));
+      } catch (ClassCastException exception) {
+        throw new IllegalStateException("Unexpected metadata type " + option.get().getClass().getCanonicalName() + " " +
+            "for " + pass, exception);
+      }
+    } else {
+      return Optional.empty();
+    }
+  }
+
+  private <T> T getMetadata(IR ir, IRPass pass, Class<T> expectedType) {
+    Optional<T> optional = getOptionalMetadata(ir, pass, expectedType);
+    if (optional.isEmpty()) {
+      throw new IllegalStateException("Missing expected " + pass + " metadata for " + ir + ".");
+    }
+
+    return optional.get();
   }
 
   private void log(String prefix, Expression expression, String suffix) {
