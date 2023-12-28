@@ -8,6 +8,7 @@ import org.enso.compiler.core.ir.Literal;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.Name;
 import org.enso.compiler.core.ir.ProcessingPass;
+import org.enso.compiler.core.ir.Type;
 import org.enso.compiler.core.ir.expression.Application;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.compiler.core.ir.type.Set;
@@ -221,7 +222,6 @@ public final class TypeInference implements IRPass {
   }
 
   private TypeRepresentation resolveTypeExpression(Expression type) {
-    log("resolveTypeExpression", type);
     return switch (type) {
       case Name.Literal name -> {
         Option<ProcessingPass.Metadata> metadata = name.passData().get(TypeNames$.MODULE$);
@@ -245,6 +245,21 @@ public final class TypeInference implements IRPass {
         var rhs = resolveTypeExpression(intersection.right());
         yield new TypeRepresentation.IntersectionType(List.of(lhs, rhs));
       }
+
+      // We could extract more info form function, but we deliberately do not.
+      // This is because our ascriptions (x : A -> B) only check (x.is_a Function), so all we get is that it is a
+      // function with at least one argument (and we can't even tell its full arity).
+      // Later, we could extract this as some kind of secondary metadata, but currently we do not because it could be
+      // misleading - this property is _not_ guaranteed at runtime as other ascriptions are. Functions not matching
+      // this type will still be allowed. That's why we return the more generic type that covers everything that the
+      // check actually lets through.
+      case Type.Function function -> new TypeRepresentation.ArrowType(
+          TypeRepresentation.UNKNOWN,
+          TypeRepresentation.ANY
+      );
+
+      // We just ignore the error part for now as it's not really checked anywhere.
+      case Type.Error error -> resolveTypeExpression(error.typed());
 
       default -> {
         log("resolveTypeExpression", type, "UNKNOWN BRANCH");
