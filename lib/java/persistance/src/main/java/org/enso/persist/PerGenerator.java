@@ -79,11 +79,11 @@ final class PerGenerator {
   }
 
   final void writeIndirect(Object obj, Persistance.Output out) throws IOException {
+    obj = writeReplace.apply(obj);
     if (obj == null) {
       out.writeInt(-1);
       return;
     }
-    obj = writeReplace.apply(obj);
     org.enso.persist.Persistance<?> p = PerMap.DEFAULT.forType(obj.getClass());
     java.lang.Integer found = knownObjects.get(obj);
     if (found == null) {

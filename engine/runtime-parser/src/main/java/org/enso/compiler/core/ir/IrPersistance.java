@@ -92,20 +92,29 @@ public final class IrPersistance {
   @ServiceProvider(service = Persistance.class)
   public static final class PersistUUID extends Persistance<UUID> {
     public PersistUUID() {
-      super(UUID.class, false, 73);
+      super(UUID.class, false, 473);
     }
 
     @Override
     protected void writeObject(UUID obj, Output out) throws IOException {
-      out.writeLong(obj.getLeastSignificantBits());
-      out.writeLong(obj.getMostSignificantBits());
+      if (obj == null) {
+        out.writeBoolean(false);
+      } else {
+        out.writeBoolean(true);
+        out.writeLong(obj.getLeastSignificantBits());
+        out.writeLong(obj.getMostSignificantBits());
+      }
     }
 
     @Override
     protected UUID readObject(Input in) throws IOException, ClassNotFoundException {
-      var least = in.readLong();
-      var most = in.readLong();
-      return new UUID(most, least);
+      if (in.readBoolean()) {
+        var least = in.readLong();
+        var most = in.readLong();
+        return new UUID(most, least);
+      } else {
+        return null;
+      }
     }
   }
 
