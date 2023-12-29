@@ -254,7 +254,6 @@ public class TypeInferenceTest extends CompilerTest {
     assertNoInferredType(findAssignment(foo, "w3").expression());
   }
 
-  @Ignore("TODO ctors 0")
   @Test
   public void zeroArgConstructor() throws Exception {
     final URI uri = new URI("memory://zeroArgConstructor.enso");
