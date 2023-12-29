@@ -23,6 +23,7 @@ import scala.collection.immutable.Seq;
 import scala.collection.immutable.Seq$;
 
 import java.net.URI;
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -115,7 +116,12 @@ public class TypeInferenceTest extends CompilerTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = compile(src);
+    Module module = compile(src);
+    Method f = findStaticMethod(module, "f");
+
+    TypeRepresentation myType = new TypeRepresentation.AtomType("ascribedExpressions.My_Type");
+    TypeRepresentation yType = getInferredType(findAssignment(f.body(), "y").expression());
+    assertEquals(myType, yType);
   }
 
 
@@ -136,7 +142,16 @@ public class TypeInferenceTest extends CompilerTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = compile(src);
+    Module module = compile(src);
+    Method f = findStaticMethod(module, "f");
+
+    TypeRepresentation myType = new TypeRepresentation.AtomType("advancedAscribedExpressions.My_Type");
+    TypeRepresentation otherType = new TypeRepresentation.AtomType("advancedAscribedExpressions.Other_Type");
+    TypeRepresentation sum = new TypeRepresentation.SumType(List.of(myType, otherType));
+    assertEquals(sum, getInferredType(findAssignment(f.body(), "y1").expression()));
+
+    TypeRepresentation intersection = new TypeRepresentation.IntersectionType(List.of(myType, otherType));
+    assertEquals(intersection, getInferredType(findAssignment(f.body(), "y2").expression()));
   }
 
   @Test
@@ -155,7 +170,6 @@ public class TypeInferenceTest extends CompilerTest {
                 """, uri.getAuthority())
             .uri(uri)
             .buildLiteral();
-
 
     Module module = compile(src);
     Method f = findStaticMethod(module, "f");
