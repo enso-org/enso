@@ -57,6 +57,7 @@ public class TypeInferenceTest extends CompilerTest {
     assertTrue("The type of `x` should be `My_Type`.", asAtom.fqn().contains("My_Type"));
   }
 
+  @Ignore("TODO resolution of local function application")
   @Test
   public void functionReturnCheck() throws Exception {
     final URI uri = new URI("memory://functionReturnCheck.enso");
@@ -76,9 +77,15 @@ public class TypeInferenceTest extends CompilerTest {
             .buildLiteral();
 
     var module = compile(src);
-    // TODO checking what is inferred
+    var foo = findStaticMethod(module, "foo");
+    var b = findAssignment(foo.body(), "b");
+    TypeRepresentation myType = new TypeRepresentation.AtomType("functionReturnCheck.My_Type");
+
+    // The result of `add a z` should be `My_Type` as guaranteed by the return type check of `add`.
+    assertEquals(myType, getInferredType(b.expression()));
   }
 
+  @Ignore("TODO resolving local bindings/arguments")
   @Test
   public void argChecks() throws Exception {
     final URI uri = new URI("memory://argChecks.enso");
@@ -87,10 +94,14 @@ public class TypeInferenceTest extends CompilerTest {
                 type My_Type
                     Value v
                     
-                f1 (x1 : My_Type) = My_Type.Value (x1.v + x1.v)
+                f1 (x1 : My_Type) =
+                  y1 = x1
+                  My_Type.Value (y2.v + y2.v)
                                 
                 f2 : My_Type -> My_Type
-                f2 x2 = My_Type.Value (x2.v + x2.v)
+                f2 x2 =
+                  y2 = x2
+                  My_Type.Value (y2.v + y2.v)
                                 
                 f3 (x3 : My_Type) -> My_Type = My_Type.Value (x3.v + x3.v)
                 """, uri.getAuthority())
@@ -98,8 +109,13 @@ public class TypeInferenceTest extends CompilerTest {
             .buildLiteral();
 
     var module = compile(src);
-  }
 
+    var myType = new TypeRepresentation.AtomType("argChecks.My_Type");
+    assertEquals(myType, getInferredType(findAssignment(findStaticMethod(module, "f1"), "y1").expression()));
+    assertNoInferredType(findAssignment(findStaticMethod(module, "f2"), "y2").expression());
+
+    // TODO also checks for types of whole functions
+  }
 
   @Test
   public void ascribedExpressions() throws Exception {
@@ -204,19 +220,101 @@ public class TypeInferenceTest extends CompilerTest {
     assertEquals(TypeRepresentation.FLOAT, getInferredType(findAssignment(f.body(), "z").expression()));
   }
 
+  @Ignore("TODO resolving local bindings/arguments")
   @Test
-  public void commonIfThenElse() throws Exception {
-    final URI uri = new URI("memory://commonIfThenElse.enso");
+  public void bindingsFlow() throws Exception {
+    final URI uri = new URI("memory://bindingsFlow.enso");
     final Source src =
         Source.newBuilder("enso", """
-                f x = if x == 10 then 1 else 2
+                type My_Type
+                    Value v
+                foo (x1 : My_Type) x2 x3 =
+                    y2 = (x2 : My_Type)
+                    
+                    z1 = x1
+                    z2 = y2
+                    
+                    w1 = z1
+                    w2 = z2
+                    
+                    w3 = x3
+                    [w1, w2, w3]
                 """, uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
     var module = compile(src);
+    var foo = findStaticMethod(module, "foo");
+
+    var myType = new TypeRepresentation.AtomType("bindingsFlow.My_Type");
+
+    assertEquals(myType, getInferredType(findAssignment(foo, "w1").expression()));
+    assertEquals(myType, getInferredType(findAssignment(foo, "w2").expression()));
+
+    assertNoInferredType(findAssignment(foo, "w3").expression());
   }
 
+  @Ignore("TODO ctors 0")
+  @Test
+  public void zeroArgConstructor() throws Exception {
+    final URI uri = new URI("memory://zeroArgConstructor.enso");
+    final Source src =
+        Source.newBuilder("enso", """
+                type My_Type
+                    Singleton
+                foo =
+                    x = My_Type.Singleton
+                    x
+                """, uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+    var foo = findStaticMethod(module, "foo");
+
+    var myType = new TypeRepresentation.AtomType("zeroArgConstructor.My_Type");
+    assertEquals(myType, getInferredType(findAssignment(foo, "x").expression()));
+  }
+
+  @Ignore("TODO")
+  @Test
+  public void multiArgConstructor() throws Exception {
+    final URI uri = new URI("memory://multiArgConstructor.enso");
+    final Source src =
+        Source.newBuilder("enso", """
+                type My_Type
+                    Value x y z
+                foo =
+                    x = My_Type.Value 1 2 3
+                    x
+                """, uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+    var foo = findStaticMethod(module, "foo");
+
+    var myType = new TypeRepresentation.AtomType("multiArgConstructor.My_Type");
+    assertEquals(myType, getInferredType(findAssignment(foo, "x").expression()));
+  }
+
+  @Ignore("TODO: ifte")
+  @Test
+  public void commonIfThenElse() throws Exception {
+    final URI uri = new URI("memory://commonIfThenElse.enso");
+    final Source src =
+        Source.newBuilder("enso", """
+                f x =
+                  y = if x == 10 then 1 else 2
+                  y
+                """, uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+    var f = findStaticMethod(module, "f");
+    assertEquals(TypeRepresentation.INTEGER, getInferredType(findAssignment(f, "y").expression()));
+  }
 
   @Ignore
   @Test
@@ -224,14 +322,18 @@ public class TypeInferenceTest extends CompilerTest {
     final URI uri = new URI("memory://commonCase.enso");
     final Source src =
         Source.newBuilder("enso", """
-                f x = case x of
+                f x =
+                  y = case x of
                     i : Integer -> i
                     _ -> 0
+                  y
                 """, uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
     var module = compile(src);
+    var f = findStaticMethod(module, "f");
+    assertEquals(TypeRepresentation.INTEGER, getInferredType(findAssignment(f, "y").expression()));
   }
 
   @Ignore
@@ -240,14 +342,18 @@ public class TypeInferenceTest extends CompilerTest {
     final URI uri = new URI("memory://inferBoundsFromCase.enso");
     final Source src =
         Source.newBuilder("enso", """
-                f x = case x of
+                f x =
+                  y = case x of
                     _ : Integer -> x
                     _ -> 0
+                  y
                 """, uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
     var module = compile(src);
+    var f = findStaticMethod(module, "f");
+    assertEquals(TypeRepresentation.INTEGER, getInferredType(findAssignment(f, "y").expression()));
   }
 
   @Ignore
@@ -256,12 +362,17 @@ public class TypeInferenceTest extends CompilerTest {
     final URI uri = new URI("memory://sumTypeFromIf.enso");
     final Source src =
         Source.newBuilder("enso", """
-                f x = if x == 1 then "foo" else 42
+                f x =
+                  y = if x == 1 then "foo" else 42
+                  y
                 """, uri.getAuthority())
             .uri(uri)
             .buildLiteral();
-    // Text | Integer
+
     var module = compile(src);
+    var f = findStaticMethod(module, "f");
+    var expectedType = new TypeRepresentation.SumType(List.of(TypeRepresentation.TEXT, TypeRepresentation.INTEGER));
+    assertEquals(expectedType, getInferredType(findAssignment(f, "y").expression()));
   }
 
   @Ignore
@@ -270,13 +381,17 @@ public class TypeInferenceTest extends CompilerTest {
     final URI uri = new URI("memory://sumTypeFromIf.enso");
     final Source src =
         Source.newBuilder("enso", """
-                f x = if x == 1 then "foo"
+                f x =
+                  y = if x == 1 then "foo"
+                  y
                 """, uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
-    // Text | Nothing
     var module = compile(src);
+    var f = findStaticMethod(module, "f");
+    var expectedType = new TypeRepresentation.SumType(List.of(TypeRepresentation.TEXT, TypeRepresentation.NOTHING));
+    assertEquals(expectedType, getInferredType(findAssignment(f, "y").expression()));
   }
 
   private Method findStaticMethod(Module module, String name) {
@@ -306,6 +421,11 @@ public class TypeInferenceTest extends CompilerTest {
     assertTrue("Expecting " + ir.showCode() + " to contain an inferred type within metadata.", metadata.isDefined());
     InferredType inferred = (InferredType) metadata.get();
     return inferred.type();
+  }
+
+  private void assertNoInferredType(IR ir) {
+    Option<ProcessingPass.Metadata> metadata = ir.passData().get(TypeInference.INSTANCE);
+    assertTrue("Expecting " + ir.showCode() + " to contain no inferred type within metadata.", metadata.isEmpty());
   }
 
   private Module compile(Source src) {
