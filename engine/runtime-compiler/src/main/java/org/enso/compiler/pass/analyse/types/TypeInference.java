@@ -160,8 +160,8 @@ public final class TypeInference implements IRPass {
     // TODO need to reproduce IrToTruffle::processName logic
     // TODO first iteration - just find the local bindings
 
-    AliasAnalysis.Info.Occurrence occurrence =
-        getMetadata(literalName, AliasAnalysis$.MODULE$, AliasAnalysis.Info.Occurrence.class);
+//    AliasAnalysis.Info.Occurrence occurrence =
+//        getMetadata(literalName, AliasAnalysis$.MODULE$, AliasAnalysis.Info.Occurrence.class);
     Optional<BindingsMap.Resolution> global =
         getOptionalMetadata(literalName, GlobalNames$.MODULE$, BindingsMap.Resolution.class);
 
