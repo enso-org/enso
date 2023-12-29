@@ -4,13 +4,15 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public sealed interface TypeRepresentation {
+public sealed interface TypeRepresentation
+    permits TypeRepresentation.TopType, TypeRepresentation.AtomType, TypeRepresentation.ArrowType, TypeRepresentation.SumType, TypeRepresentation.IntersectionType {
   record TopType() implements TypeRepresentation {
     @Override
     public String toString() {
       return "Any";
     }
   }
+
   record AtomType(String fqn) implements TypeRepresentation {
     @Override
     public String toString() {

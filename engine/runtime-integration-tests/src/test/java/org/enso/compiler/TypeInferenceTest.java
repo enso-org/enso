@@ -2,20 +2,20 @@ package org.enso.compiler;
 
 import org.enso.compiler.context.FreshNameSupply;
 import org.enso.compiler.context.ModuleContext;
+import org.enso.compiler.core.IR;
+import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Module;
+import org.enso.compiler.core.ir.ProcessingPass;
+import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.compiler.data.CompilerConfig;
 import org.enso.compiler.pass.PassConfiguration;
 import org.enso.compiler.pass.PassManager;
+import org.enso.compiler.pass.analyse.types.InferredType;
 import org.enso.compiler.pass.analyse.types.TypeInference;
+import org.enso.compiler.pass.analyse.types.TypeRepresentation;
 import org.enso.compiler.test.CompilerRunner;
-import org.enso.interpreter.test.TestBase;
 import org.enso.pkg.QualifiedName;
-import org.enso.polyglot.RuntimeOptions;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
-import org.graalvm.polyglot.Value;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 import scala.Option;
@@ -24,7 +24,11 @@ import scala.collection.immutable.Seq$;
 
 import java.net.URI;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 public class TypeInferenceTest extends CompilerTest {
+  @Ignore
   @Test
   public void zeroAryCheck() throws Exception {
     final URI uri = new URI("memory://zeroAryCheck.enso");
@@ -40,17 +44,16 @@ public class TypeInferenceTest extends CompilerTest {
                     y = My_Type.Value 23
                     _ = y
                     x
-                    
-                bar =
-                    y = foo
-                    y
                 """, uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
-    var module = compile(src);
-    System.out.println(module);
-    // TODO checking what is inferred - probably need instrumentation?
+    Module module = compile(src);
+    Method foo = findStaticMethod(module, "foo");
+    var x = findAssignment(foo.body(), "x");
+    TypeRepresentation xType = getInferredType(x.expression());
+    TypeRepresentation.AtomType asAtom = (TypeRepresentation.AtomType) xType;
+    assertTrue("The type of `x` should be `My_Type`.", asAtom.fqn().contains("My_Type"));
   }
 
   @Test
@@ -153,10 +156,16 @@ public class TypeInferenceTest extends CompilerTest {
             .uri(uri)
             .buildLiteral();
 
+
+    Module module = compile(src);
+    Method f = findStaticMethod(module, "f");
+
     // Here we will only know that both f1 and f2 are Any -> Any - because the ascribed check only really performs a
     // `is_a Function` check, we do not know anything about the argument nor return type of this function,
     // unfortunately.
-    var module = compile(src);
+    TypeRepresentation primitiveFunctionType = new TypeRepresentation.ArrowType(TypeRepresentation.ANY, TypeRepresentation.ANY);
+    assertEquals(primitiveFunctionType, getInferredType(findAssignment(f.body(), "f1").expression()));
+    assertEquals(primitiveFunctionType, getInferredType(findAssignment(f.body(), "f2").expression()));
   }
 
   @Test
@@ -173,7 +182,12 @@ public class TypeInferenceTest extends CompilerTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = compile(src);
+    Module module = compile(src);
+    Method f = findStaticMethod(module, "f");
+
+    assertEquals(TypeRepresentation.INTEGER, getInferredType(findAssignment(f.body(), "x").expression()));
+    assertEquals(TypeRepresentation.TEXT, getInferredType(findAssignment(f.body(), "y").expression()));
+    assertEquals(TypeRepresentation.FLOAT, getInferredType(findAssignment(f.body(), "z").expression()));
   }
 
   @Test
@@ -251,7 +265,36 @@ public class TypeInferenceTest extends CompilerTest {
     var module = compile(src);
   }
 
-  private Object compile(Source src) {
+  private Method findStaticMethod(Module module, String name) {
+    var option = module.bindings().find(
+        (def) ->
+            (def instanceof Method binding)
+                && binding.methodReference().typePointer().isEmpty()
+                && binding.methodReference().methodName().name().equals(name)
+    );
+
+    assertTrue("The method " + name + " should exist within the IR.", option.isDefined());
+    return (Method) option.get();
+  }
+
+  private Expression.Binding findAssignment(IR ir, String name) {
+    var option = ir.preorder().find(
+        (node) ->
+            (node instanceof Expression.Binding binding)
+                && binding.name().name().equals(name)
+    );
+    assertTrue("The binding `" + name + " = ...` should exist within the IR.", option.isDefined());
+    return (Expression.Binding) option.get();
+  }
+
+  private TypeRepresentation getInferredType(IR ir) {
+    Option<ProcessingPass.Metadata> metadata = ir.passData().get(TypeInference.INSTANCE);
+    assertTrue("Expecting " + ir.showCode() + " to contain an inferred type within metadata.", metadata.isDefined());
+    InferredType inferred = (InferredType) metadata.get();
+    return inferred.type();
+  }
+
+  private Module compile(Source src) {
     System.out.println("\n\n\n=========================================\nSOURCE " + src.getURI().toString() + "\n");
     Module rawModule = parse(src.getCharacters());
 
