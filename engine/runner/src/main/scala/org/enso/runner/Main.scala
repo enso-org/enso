@@ -69,6 +69,7 @@ object Main {
   private val NO_IR_CACHES_OPTION            = "no-ir-caches"
   private val NO_READ_IR_CACHES_OPTION       = "no-read-ir-caches"
   private val DISABLE_PRIVATE_CHECK_OPTION   = "disable-private-check"
+  private val ENABLE_TYPE_CHECK_OPTION   = "enable-type-check"
   private val COMPILE_OPTION                 = "compile"
   private val NO_COMPILE_DEPENDENCIES_OPTION = "no-compile-dependencies"
   private val NO_GLOBAL_CACHE_OPTION         = "no-global-cache"
@@ -348,6 +349,14 @@ object Main {
         "Tells the compiler not to write compiled data to the global cache locations."
       )
       .build()
+    val disablePrivateCheck = CliOption.builder
+      .longOpt(DISABLE_PRIVATE_CHECK_OPTION)
+      .desc("Disable `private` access checks. Used for running white-box tests.")
+      .build()
+    val enableTypeCheckOption = CliOption.builder
+      .longOpt(ENABLE_TYPE_CHECK_OPTION)
+      .desc("Enable some type checking (Experimental).")
+      .build()
 
     val irCachesOption = CliOption.builder
       .longOpt(IR_CACHES_OPTION)
@@ -443,6 +452,8 @@ object Main {
       .addOption(authTokenOption)
       .addOption(noReadIrCachesOption)
       .addOption(compileOption)
+      .addOption(disablePrivateCheck)
+      .addOption(enableTypeCheckOption)
       .addOption(noCompileDependenciesOption)
       .addOption(noGlobalCacheOption)
       .addOptionGroup(cacheOptionsGroup)
@@ -536,6 +547,7 @@ object Main {
     *                                  should also be compiled
     * @param shouldUseGlobalCache whether or not the compilation result should
     *                             be written to the global cache
+    * @param enableTypeCheck whether or not type checking is enabled
     * @param logLevel the logging level
     * @param logMasking whether or not log masking is enabled
     */
@@ -543,6 +555,7 @@ object Main {
     packagePath: String,
     shouldCompileDependencies: Boolean,
     shouldUseGlobalCache: Boolean,
+    enableTypeCheck: Boolean,
     logLevel: Level,
     logMasking: Boolean
   ): Unit = {
@@ -561,6 +574,7 @@ object Main {
       .logLevel(logLevel)
       .logMasking(logMasking)
       .enableIrCaches(true)
+      .enableTypeCheck(enableTypeCheck)
       .strictErrors(true)
       .useGlobalIrCacheLocation(shouldUseGlobalCache)
       .build
@@ -590,6 +604,8 @@ object Main {
     * @param logMasking     is the log masking enabled
     * @param enableIrCaches are IR caches enabled
     * @param disablePrivateCheck Is private modules check disabled. If yes, `private` keyword is ignored.
+    * @param enableTypeCheck is type checking enabled.
+    * @param enableAutoParallelism is auto parallelism enabled.
     * @param inspect        shall inspect option be enabled
     * @param dump           shall graphs be sent to the IGV
     * @param executionEnvironment optional name of the execution environment to use during execution
@@ -602,6 +618,7 @@ object Main {
     logMasking: Boolean,
     enableIrCaches: Boolean,
     disablePrivateCheck: Boolean,
+    enableTypeCheck: Boolean,
     enableAutoParallelism: Boolean,
     inspect: Boolean,
     dump: Boolean,
@@ -633,6 +650,7 @@ object Main {
       .logLevel(logLevel)
       .logMasking(logMasking)
       .enableIrCaches(enableIrCaches)
+      .enableTypeCheck(enableTypeCheck)
       .disablePrivateCheck(disablePrivateCheck)
       .strictErrors(true)
       .enableAutoParallelism(enableAutoParallelism)
@@ -900,7 +918,8 @@ object Main {
     projectPath: Option[String],
     logLevel: Level,
     logMasking: Boolean,
-    enableIrCaches: Boolean
+    enableIrCaches: Boolean,
+    enableTypeCheck: Boolean
   ): Unit = {
     val mainMethodName = "internal_repl_entry_point___"
     val dummySourceToTriggerRepl =
@@ -921,6 +940,7 @@ object Main {
         .logLevel(logLevel)
         .logMasking(logMasking)
         .enableIrCaches(enableIrCaches)
+        .enableTypeCheck(enableTypeCheck)
         .build
     val mainModule =
       context.evalModule(dummySourceToTriggerRepl, replModuleName)
@@ -1195,6 +1215,7 @@ object Main {
         packagePaths,
         shouldCompileDependencies,
         shouldUseGlobalCache,
+        enableTypeCheck = line.hasOption(ENABLE_TYPE_CHECK_OPTION),
         logLevel,
         logMasking
       )
@@ -1207,14 +1228,15 @@ object Main {
         Option(line.getOptionValue(IN_PROJECT_OPTION)),
         logLevel,
         logMasking,
-        shouldEnableIrCaches(line),
-        line.hasOption(DISABLE_PRIVATE_CHECK_OPTION),
-        line.hasOption(AUTO_PARALLELISM_OPTION),
-        line.hasOption(INSPECT_OPTION),
-        line.hasOption(DUMP_GRAPHS_OPTION),
-        Option(line.getOptionValue(EXECUTION_ENVIRONMENT_OPTION))
+        enableIrCaches = shouldEnableIrCaches(line),
+        disablePrivateCheck = line.hasOption(DISABLE_PRIVATE_CHECK_OPTION),
+        enableTypeCheck = line.hasOption(ENABLE_TYPE_CHECK_OPTION),
+        enableAutoParallelism = line.hasOption(AUTO_PARALLELISM_OPTION),
+        inspect = line.hasOption(INSPECT_OPTION),
+        dump = line.hasOption(DUMP_GRAPHS_OPTION),
+        executionEnvironment = Option(line.getOptionValue(EXECUTION_ENVIRONMENT_OPTION))
           .orElse(Some("live")),
-        Option(line.getOptionValue(WARNINGS_LIMIT))
+        warningsLimit = Option(line.getOptionValue(WARNINGS_LIMIT))
           .map(Integer.parseInt)
           .getOrElse(100)
       )
@@ -1224,7 +1246,8 @@ object Main {
         Option(line.getOptionValue(IN_PROJECT_OPTION)),
         logLevel,
         logMasking,
-        shouldEnableIrCaches(line)
+        shouldEnableIrCaches(line),
+        enableTypeCheck = line.hasOption(ENABLE_TYPE_CHECK_OPTION)
       )
     }
     if (line.hasOption(DOCS_OPTION)) {
