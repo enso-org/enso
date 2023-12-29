@@ -29,11 +29,8 @@ public abstract class CompilerTest {
     ensoCompiler.close();
   }
 
-  protected static Module parse(String code) throws IOException {
-    var src =
-        Source.newBuilder("enso", code, "test-" + Integer.toHexString(code.hashCode()) + ".enso")
-            .build();
-    Module ir = ensoCompiler.compile(src.getCharacters());
+  protected static Module parse(CharSequence code) {
+    Module ir = ensoCompiler.compile(code);
     assertNotNull("IR was generated", ir);
     return ir;
   }

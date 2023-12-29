@@ -81,6 +81,7 @@ class Passes(
       AliasAnalysis,
       DataflowAnalysis,
       CachePreferenceAnalysis,
+      // TODO passes below this line could be separated into a separate group, but it's more complicated - see usages of `functionBodyPasses`
       UnusedBindings,
       NoSelfInStatic,
       GenericAnnotations

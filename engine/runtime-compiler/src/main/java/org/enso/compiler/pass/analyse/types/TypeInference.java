@@ -29,6 +29,7 @@ import scala.collection.immutable.Seq$;
 import scala.jdk.javaapi.CollectionConverters;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -147,7 +148,9 @@ public final class TypeInference implements IRPass {
       }
       case Function.Lambda f -> {
         var type = buildLambdaType(f);
-        setInferredType(f, type);
+        if (type != null) {
+          setInferredType(f, type);
+        }
       }
       case Literal l -> processLiteral(l);
       default -> {
@@ -172,6 +175,7 @@ public final class TypeInference implements IRPass {
       log("processName", literalName, "local scope TODO");
     } else if (global.isPresent()) {
       var resolution = global.get().target();
+      // TODO we could handle at least inference of constructors - they return a function of arity == number of params, returning the parent type (but arity may get complicated due to defaults...)
       log("processName", literalName, "global scope reference to " + resolution + " - currently global inference is unsupported");
     } else if (literalName.name().equals(ConstantsNames.FROM_MEMBER)) {
       log("processName", literalName, "from conversion - currently unsupported");
@@ -231,6 +235,7 @@ public final class TypeInference implements IRPass {
   }
 
   private void setInferredType(Expression expression, InferredType type) {
+    Objects.requireNonNull(type, "type must not be null");
     expression.passData().update(this, type);
   }
 

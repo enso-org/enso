@@ -1,6 +1,15 @@
 package org.enso.compiler;
 
+import org.enso.compiler.context.FreshNameSupply;
+import org.enso.compiler.context.ModuleContext;
+import org.enso.compiler.core.ir.Module;
+import org.enso.compiler.data.CompilerConfig;
+import org.enso.compiler.pass.PassConfiguration;
+import org.enso.compiler.pass.PassManager;
+import org.enso.compiler.pass.analyse.types.TypeInference;
+import org.enso.compiler.test.CompilerRunner;
 import org.enso.interpreter.test.TestBase;
+import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
@@ -9,27 +18,13 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
+import scala.Option;
+import scala.collection.immutable.Seq;
+import scala.collection.immutable.Seq$;
 
 import java.net.URI;
 
-public class TypeInferenceTest extends TestBase {
-  private static Context ctx;
-
-  @BeforeClass
-  public static void prepareCtx() {
-    ctx =
-        defaultContextBuilder()
-            .option(RuntimeOptions.ENABLE_TYPE_CHECK, "true")
-//            .out(OutputStream.nullOutputStream())
-//            .err(OutputStream.nullOutputStream())
-            .build();
-  }
-
-  @AfterClass
-  public static void disposeCtx() {
-    ctx.close();
-  }
-
+public class TypeInferenceTest extends CompilerTest {
   @Test
   public void zeroAryCheck() throws Exception {
     final URI uri = new URI("memory://zeroAryCheck.enso");
@@ -256,11 +251,27 @@ public class TypeInferenceTest extends TestBase {
     var module = compile(src);
   }
 
-  private Value compile(Source src) {
+  private Object compile(Source src) {
     System.out.println("\n\n\n=========================================\nSOURCE " + src.getURI().toString() + "\n");
-    Value module = ctx.eval(src);
-    // This ensures that the compiler actually is run.
-    module.invokeMember("get_associated_type");
-    return module;
+    Module rawModule = parse(src.getCharacters());
+
+    var compilerConfig = new CompilerConfig(false, true, true, true, true, Option.empty());
+    var passes = new Passes(compilerConfig, Option.empty());
+    @SuppressWarnings("unchecked") var passConfig = new PassConfiguration((Seq<PassConfiguration.ConfigPair<?>>) Seq$.MODULE$.empty());
+    PassManager passManager = new PassManager(passes.passOrdering(), passConfig);
+    var compilerRunner = new CompilerRunner() {
+      @Override
+      public CompilerConfig defaultConfig() {
+        return compilerConfig;
+      }
+
+      @Override
+      public void org$enso$compiler$test$CompilerRunner$_setter_$defaultConfig_$eq(CompilerConfig x$1) {
+      }
+    };
+    var moduleName = QualifiedName.simpleName(src.getName().replace(".enso", ""));
+    ModuleContext moduleContext = compilerRunner.buildModuleContext(moduleName, Option.apply(new FreshNameSupply()), Option.empty(), compilerConfig, false);
+    Module processedModule = passManager.runPassesOnModule(rawModule, moduleContext);
+    return processedModule;
   }
 }
