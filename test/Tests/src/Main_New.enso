@@ -1,0 +1,13 @@
+from Standard.Base import all
+from Standard.Test_New import all
+
+import project.Data.Bool_Spec_New
+
+
+main =
+    suites = Vector.new_builder
+        . append Bool_Spec_New.suite
+        . to_vector
+
+    uber_suite = Suite.merge suites
+    uber_suite.run_all

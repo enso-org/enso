@@ -28,6 +28,14 @@ type Suite
         IO.println "Done with `Suite.build` (collecting tests)"
         Suite.Impl groups_vec
 
+    ## Merges multiple suites into one suite
+    merge : (Vector Suite) -> Suite
+    merge suites =
+        all_groups = suites.map (_.groups) . flatten
+        all_group_names = all_groups.map (_.name)
+        if all_group_names.distinct.length != all_group_names.length then Panic.throw "Group names not unique" else
+            Suite.Impl all_groups
+
     run_all self =
         IO.println "Running `Suite.run_all` - running all tests"
         self.groups.each group->
