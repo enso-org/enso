@@ -1,5 +1,5 @@
 from Standard.Base import all
-from Standard.Test_New.Test_New import Test
+from Standard.Test_New import Test
 
 
 collect_tests = Test.build builder->

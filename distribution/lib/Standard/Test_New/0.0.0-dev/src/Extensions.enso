@@ -3,7 +3,7 @@ import Standard.Base.Errors.Common.No_Such_Method
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import project.Test_Result.Test_Result
-from project.Test_New import Test
+import project.Test.Test
 
 ## Expect a function to fail with the provided dataflow error.
 
