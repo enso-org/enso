@@ -275,7 +275,6 @@ public class TypeInferenceTest extends CompilerTest {
     assertEquals(myType, getInferredType(findAssignment(foo, "x").expression()));
   }
 
-  @Ignore("TODO")
   @Test
   public void multiArgConstructor() throws Exception {
     final URI uri = new URI("memory://multiArgConstructor.enso");

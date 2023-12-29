@@ -256,7 +256,8 @@ public final class TypeInference implements IRPass {
 
     switch (functionType) {
       case TypeRepresentation.ArrowType arrowType -> {
-        System.out.println("processSingleApplication: " + arrowType + " not yet supported");
+        // TODO we could check the argument type and emit warnings if it does not match the expected one
+        return arrowType.resultType();
       }
 
       case TypeRepresentation.UnresolvedSymbol unresolvedSymbol -> {
