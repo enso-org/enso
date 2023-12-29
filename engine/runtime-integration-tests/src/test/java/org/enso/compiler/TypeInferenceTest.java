@@ -3,9 +3,8 @@ package org.enso.compiler;
 import org.enso.compiler.context.FreshNameSupply;
 import org.enso.compiler.context.ModuleContext;
 import org.enso.compiler.core.IR;
-import org.enso.compiler.core.ir.Expression;
+import org.enso.compiler.core.ir.*;
 import org.enso.compiler.core.ir.Module;
-import org.enso.compiler.core.ir.ProcessingPass;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.compiler.data.CompilerConfig;
 import org.enso.compiler.pass.PassConfiguration;
@@ -21,6 +20,7 @@ import org.junit.Test;
 import scala.Option;
 import scala.collection.immutable.Seq;
 import scala.collection.immutable.Seq$;
+import scala.jdk.javaapi.CollectionConverters;
 
 import java.net.URI;
 import java.util.List;
@@ -390,6 +390,37 @@ public class TypeInferenceTest extends CompilerTest {
     var f = findStaticMethod(module, "f");
     var expectedType = new TypeRepresentation.SumType(List.of(TypeRepresentation.TEXT, TypeRepresentation.NOTHING));
     assertEquals(expectedType, getInferredType(findAssignment(f, "y").expression()));
+  }
+
+  @Test
+  public void notInvokable() throws Exception {
+    final URI uri = new URI("memory://notInvokable.enso");
+    final Source src =
+        Source.newBuilder("enso", """
+                foo unknown =
+                    x1 = 1 2
+                    x2 = "a" x1
+                    x3 = unknown x2
+                    [x1]
+                """, uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+    var foo = findStaticMethod(module, "foo");
+
+    var x1 = findAssignment(foo, "x1");
+    assertEquals(List.of(new Warning.NotInvokable(x1.expression().location(), "Integer")), getImmediateDiagnostics(x1.expression()));
+
+    var x2 = findAssignment(foo, "x2");
+    assertEquals(List.of(new Warning.NotInvokable(x2.expression().location(), "Text")), getImmediateDiagnostics(x2.expression()));
+
+    var x3 = findAssignment(foo, "x3");
+    assertEquals("x3 should not contain any warnings", List.of(), getImmediateDiagnostics(x3.expression()));
+  }
+
+  private List<Diagnostic> getImmediateDiagnostics(IR ir) {
+    return CollectionConverters.asJava(ir.diagnostics().toList());
   }
 
   private Method findStaticMethod(Module module, String name) {
