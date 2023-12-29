@@ -20,7 +20,9 @@ public class BenchmarkItem {
     return previousResults;
   }
 
-  /** @return Best historic score for the given benchmark (including current run). */
+  /**
+   * @return Best historic score for the given benchmark (including current run).
+   */
   public double getBestScore() {
     return previousResults.getBestScore().orElse(result.getScore());
   }

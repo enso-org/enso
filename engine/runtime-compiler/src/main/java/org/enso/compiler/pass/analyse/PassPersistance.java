@@ -29,16 +29,10 @@ import scala.Option;
 @Persistable(clazz = DataflowAnalysis.DependencyMapping.class, id = 1113)
 @Persistable(clazz = GatherDiagnostics.DiagnosticsMeta.class, id = 1114)
 @Persistable(clazz = DocumentationComments.Doc.class, id = 1115)
-@Persistable(clazz = AliasAnalysis$Info$Occurrence.class, id = 1116)
 @Persistable(clazz = TypeSignatures.Signature.class, id = 2117)
 @Persistable(clazz = ModuleAnnotations.Annotations.class, id = 1118)
-@Persistable(clazz = AliasAnalysis$Info$Scope$Root.class, id = 1120)
 @Persistable(clazz = DataflowAnalysis$DependencyInfo$Type$Static.class, id = 1121)
 @Persistable(clazz = DataflowAnalysis$DependencyInfo$Type$Dynamic.class, id = 1122)
-@Persistable(clazz = AliasAnalysis$Info$Scope$Child.class, id = 1123)
-@Persistable(clazz = AliasAnalysis$Graph$Occurrence$Use.class, id = 1125)
-@Persistable(clazz = AliasAnalysis$Graph$Occurrence$Def.class, id = 1126)
-@Persistable(clazz = AliasAnalysis$Graph$Link.class, id = 1127)
 @Persistable(clazz = FullyQualifiedNames.FQNResolution.class, id = 1128)
 @Persistable(clazz = FullyQualifiedNames.ResolvedLibrary.class, id = 1129)
 @Persistable(clazz = FullyQualifiedNames.ResolvedModule.class, id = 1130)
@@ -60,6 +54,12 @@ import scala.Option;
 @Persistable(clazz = GenericAnnotations$.class, id = 1216)
 @Persistable(clazz = ExpressionAnnotations$.class, id = 1217)
 @Persistable(clazz = FullyQualifiedNames$.class, id = 1218)
+@Persistable(clazz = AliasAnalysis$Info$Occurrence.class, id = 1261, allowInlining = false)
+@Persistable(clazz = AliasAnalysis$Info$Scope$Root.class, id = 1262, allowInlining = false)
+@Persistable(clazz = AliasAnalysis$Info$Scope$Child.class, id = 1263, allowInlining = false)
+@Persistable(clazz = AliasAnalysis$Graph$Occurrence$Use.class, id = 1264, allowInlining = false)
+@Persistable(clazz = AliasAnalysis$Graph$Occurrence$Def.class, id = 1265, allowInlining = false)
+@Persistable(clazz = AliasAnalysis$Graph$Link.class, id = 1266, allowInlining = false)
 public final class PassPersistance {
   private PassPersistance() {}
 
@@ -109,7 +109,7 @@ public final class PassPersistance {
   public static final class PersistAliasAnalysisGraphScope
       extends Persistance<org.enso.compiler.pass.analyse.AliasAnalysis$Graph$Scope> {
     public PersistAliasAnalysisGraphScope() {
-      super(org.enso.compiler.pass.analyse.AliasAnalysis$Graph$Scope.class, false, 1124);
+      super(org.enso.compiler.pass.analyse.AliasAnalysis$Graph$Scope.class, false, 1267);
     }
 
     @Override
@@ -146,7 +146,7 @@ public final class PassPersistance {
   @org.openide.util.lookup.ServiceProvider(service = Persistance.class)
   public static final class PersistAliasAnalysisGraph extends Persistance<Graph> {
     public PersistAliasAnalysisGraph() {
-      super(Graph.class, false, 1131);
+      super(Graph.class, false, 1268);
     }
 
     @SuppressWarnings("unchecked")
