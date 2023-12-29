@@ -38,6 +38,21 @@ object Warning {
     override def diagnosticKeys(): Array[Any] = Array()
   }
 
+  /** A warning about an invocation of a value that is not a function.
+   *
+   * This warning indicates a place that will result in a Not_Invokable error in runtime.
+   *
+   * @param location the location of the call
+   * @param typeRepresentation the type of the value that was called
+   */
+  case class NotInvokable(override val location: Option[IdentifiedLocation], typeRepresentation: String)
+    extends Warning {
+    override def message(source: (IdentifiedLocation => String)): String =
+      s"Invoking a value that has a non-function type $typeRepresentation will result in a Not_Invokable error in runtime."
+
+    override def diagnosticKeys(): Array[Any] = Array()
+  }
+
   /** A warning about a `@Builtin_Method` annotation placed in a method
     * with unexpected body.
     *

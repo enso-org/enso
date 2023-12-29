@@ -4,13 +4,8 @@ import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.context.ModuleContext;
 import org.enso.compiler.core.ConstantsNames;
 import org.enso.compiler.core.IR;
-import org.enso.compiler.core.ir.Expression;
-import org.enso.compiler.core.ir.Function;
-import org.enso.compiler.core.ir.Literal;
+import org.enso.compiler.core.ir.*;
 import org.enso.compiler.core.ir.Module;
-import org.enso.compiler.core.ir.Name;
-import org.enso.compiler.core.ir.ProcessingPass;
-import org.enso.compiler.core.ir.Type;
 import org.enso.compiler.core.ir.expression.Application;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.compiler.core.ir.type.Set;
@@ -101,8 +96,10 @@ public final class TypeInference implements IRPass {
         (expression) -> runExpression(expression, inlineContext)
     );
 
-    processTypeAscription(mappedIr);
     processTypePropagation(mappedIr);
+
+    // The ascriptions are processed later, because we want them to _overwrite_ any type that was inferred.
+    processTypeAscription(mappedIr);
 
     var inferredType = getInferredType(mappedIr);
     if (inferredType != null) {
@@ -119,9 +116,15 @@ public final class TypeInference implements IRPass {
     if (ascribedSignature.isPresent()) {
       TypeSignatures.Signature s = ascribedSignature.get();
       log("type signature", ir, s.signature().showCode());
-      TypeRepresentation t = resolveTypeExpression(s.signature());
-      if (t != null) {
-        setInferredType(ir, new InferredType(t));
+      TypeRepresentation ascribedType = resolveTypeExpression(s.signature());
+      if (ascribedType != null) {
+        var previouslyInferredType = getInferredType(ir);
+        if (previouslyInferredType != null) {
+          log("type signature", ir, "overwriting previously inferred type " + previouslyInferredType.type());
+          // TODO in the future we could be checking for conflicts here and reporting a type error if the ascription and the inferred type are not compatible
+        }
+
+        setInferredType(ir, new InferredType(ascribedType));
       }
     }
   }
@@ -136,7 +139,13 @@ public final class TypeInference implements IRPass {
         }
       }
       case Application.Prefix p -> {
-        // TODO for later - check function return type somehow, first for local functions, later global ones
+        var functionType = getInferredType(p.function());
+        if (functionType != null) {
+          var inferredType = processApplication(functionType.type(), p.arguments(), p);
+          if (inferredType != null) {
+            setInferredType(p, new InferredType(inferredType));
+          }
+        }
       }
       case Expression.Binding b -> {
         // TODO propagate the type into scope somehow?
@@ -180,8 +189,8 @@ public final class TypeInference implements IRPass {
     } else if (literalName.name().equals(ConstantsNames.FROM_MEMBER)) {
       log("processName", literalName, "from conversion - currently unsupported");
     } else {
-      // TODO these will be used for member method calls `x.foo`, but also `My_Type.Constructor`
-      log("processName", literalName, "unresolved symbol - TODO");
+      var type = new TypeRepresentation.UnresolvedSymbol(literalName.name());
+      setInferredType(literalName, new InferredType(type));
     }
   }
 
@@ -195,13 +204,13 @@ public final class TypeInference implements IRPass {
         // TODO we should be able to get the types of each field and add them here
         // Currently we just fall back to Any
         var arguments = IntStream.range(0, ctor.cons().arity()).mapToObj((i) -> TypeRepresentation.ANY).toList();
-        var resultType = new TypeRepresentation.AtomType(ctor.tpe().qualifiedName().toString());
+        var resultType = TypeRepresentation.fromQualifiedName(ctor.tpe().qualifiedName());
         var constructorFunctionType = TypeRepresentation.buildFunction(arguments, resultType);
         setInferredType(literalName, new InferredType(constructorFunctionType));
       }
 
       case BindingsMap.ResolvedType tpe -> {
-        var type = new TypeRepresentation.TypeObject(tpe.tp());
+        var type = new TypeRepresentation.TypeObject(tpe.qualifiedName(), tpe.tp());
         setInferredType(literalName, new InferredType(type));
       }
       default ->
@@ -218,6 +227,83 @@ public final class TypeInference implements IRPass {
           throw new IllegalStateException("Impossible - unknown literal type: " + literal.getClass().getCanonicalName());
     };
     setInferredType(literal, new InferredType(type));
+  }
+
+  private TypeRepresentation processApplication(TypeRepresentation functionType, scala.collection.immutable.List<CallArgument> arguments, Application.Prefix relatedIR) {
+    if (arguments.isEmpty()) {
+      log("WARNING processApplication", relatedIR, "unexpected - no arguments in a function application");
+      return functionType;
+    }
+
+    var firstArgument = arguments.head();
+    var firstResult = processSingleApplication(functionType, firstArgument, relatedIR);
+    if (firstResult == null) {
+      return null;
+    }
+
+    if (arguments.length() == 1) {
+      return firstResult;
+    } else {
+      return processApplication(firstResult, (scala.collection.immutable.List<CallArgument>) arguments.tail(), relatedIR);
+    }
+  }
+
+  private TypeRepresentation processSingleApplication(TypeRepresentation functionType, CallArgument argument, Application.Prefix relatedIR) {
+    if (argument.name().isDefined()) {
+      System.out.println("processSingleApplication: " + argument + " - named arguments are not yet supported");
+      return null;
+    }
+
+    switch (functionType) {
+      case TypeRepresentation.ArrowType arrowType -> {
+        System.out.println("processSingleApplication: " + arrowType + " not yet supported");
+      }
+
+      case TypeRepresentation.UnresolvedSymbol unresolvedSymbol -> {
+        return processUnresolvedSymbolApplication(unresolvedSymbol, argument.value());
+      }
+
+      case TypeRepresentation.TopType() -> {
+        // we ignore this branch - Any type can be whatever, it could be a function, so we cannot emit a 'guaranteed' error
+      }
+
+      default -> {
+        System.out.println("type propagation: Expected a function type but got: " + functionType);
+        relatedIR.diagnostics().add(new Warning.NotInvokable(relatedIR.location(), functionType.toString()));
+      }
+    }
+
+    return null;
+  }
+
+  private TypeRepresentation processUnresolvedSymbolApplication(TypeRepresentation.UnresolvedSymbol function, Expression argument) {
+    var argumentType = getInferredType(argument);
+    if (argumentType == null) {
+      return null;
+    }
+
+    switch (argumentType.type()) {
+      case TypeRepresentation.TypeObject typeObject -> {
+        Option<BindingsMap.Cons> ctorCandidate = typeObject.shape().members().find((ctor) -> ctor.name().equals(function.name()));
+        if (ctorCandidate.isDefined()) {
+          BindingsMap.Cons ctor = ctorCandidate.get();
+
+          // TODO we should be able to get the types of each field and add them here
+          // Currently we just fall back to Any
+          var arguments = IntStream.range(0, ctor.arity()).mapToObj((i) -> TypeRepresentation.ANY).toList();
+          var resultType = typeObject.instantiate();
+          return TypeRepresentation.buildFunction(arguments, resultType);
+        } else {
+          // TODO if no ctor found, we should search static methods, but that is not implemented currently; so we cannot report an error either - just do nothing
+          return null;
+        }
+      }
+
+      default -> {
+        System.out.println("processing " + function + " application on " + argumentType.type() + " - currently unsupported");
+        return null;
+      }
+    }
   }
 
   /**
@@ -283,7 +369,7 @@ public final class TypeInference implements IRPass {
             getOptionalMetadata(name, TypeNames$.MODULE$, BindingsMap.Resolution.class);
         if (resolutionOptional.isPresent()) {
           BindingsMap.ResolvedName target = resolutionOptional.get().target();
-          yield new TypeRepresentation.AtomType(target.qualifiedName().toString());
+          yield TypeRepresentation.fromQualifiedName(target.qualifiedName());
         } else {
           log("resolveTypeExpression", type, "Missing TypeName resolution metadata");
           yield TypeRepresentation.UNKNOWN;

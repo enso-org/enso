@@ -54,7 +54,7 @@ public class TypeInferenceTest extends CompilerTest {
     var x = findAssignment(foo.body(), "x");
     TypeRepresentation xType = getInferredType(x.expression());
     TypeRepresentation.AtomType asAtom = (TypeRepresentation.AtomType) xType;
-    assertTrue("The type of `x` should be `My_Type`.", asAtom.fqn().contains("My_Type"));
+    assertTrue("The type of `x` should be `My_Type`.", asAtom.fqn().item().equals("My_Type"));
   }
 
   @Ignore("TODO resolution of local function application")
@@ -79,7 +79,7 @@ public class TypeInferenceTest extends CompilerTest {
     var module = compile(src);
     var foo = findStaticMethod(module, "foo");
     var b = findAssignment(foo.body(), "b");
-    TypeRepresentation myType = new TypeRepresentation.AtomType("functionReturnCheck.My_Type");
+    TypeRepresentation myType = TypeRepresentation.fromQualifiedName("functionReturnCheck.My_Type");
 
     // The result of `add a z` should be `My_Type` as guaranteed by the return type check of `add`.
     assertEquals(myType, getInferredType(b.expression()));
@@ -110,7 +110,7 @@ public class TypeInferenceTest extends CompilerTest {
 
     var module = compile(src);
 
-    var myType = new TypeRepresentation.AtomType("argChecks.My_Type");
+    var myType = TypeRepresentation.fromQualifiedName("argChecks.My_Type");
     assertEquals(myType, getInferredType(findAssignment(findStaticMethod(module, "f1"), "y1").expression()));
     assertNoInferredType(findAssignment(findStaticMethod(module, "f2"), "y2").expression());
 
@@ -135,7 +135,7 @@ public class TypeInferenceTest extends CompilerTest {
     Module module = compile(src);
     Method f = findStaticMethod(module, "f");
 
-    TypeRepresentation myType = new TypeRepresentation.AtomType("ascribedExpressions.My_Type");
+    TypeRepresentation myType = TypeRepresentation.fromQualifiedName("ascribedExpressions.My_Type");
     TypeRepresentation yType = getInferredType(findAssignment(f.body(), "y").expression());
     assertEquals(myType, yType);
   }
@@ -161,8 +161,8 @@ public class TypeInferenceTest extends CompilerTest {
     Module module = compile(src);
     Method f = findStaticMethod(module, "f");
 
-    TypeRepresentation myType = new TypeRepresentation.AtomType("advancedAscribedExpressions.My_Type");
-    TypeRepresentation otherType = new TypeRepresentation.AtomType("advancedAscribedExpressions.Other_Type");
+    TypeRepresentation myType = TypeRepresentation.fromQualifiedName("advancedAscribedExpressions.My_Type");
+    TypeRepresentation otherType = TypeRepresentation.fromQualifiedName("advancedAscribedExpressions.Other_Type");
     TypeRepresentation sum = new TypeRepresentation.SumType(List.of(myType, otherType));
     assertEquals(sum, getInferredType(findAssignment(f.body(), "y1").expression()));
 
@@ -246,7 +246,7 @@ public class TypeInferenceTest extends CompilerTest {
     var module = compile(src);
     var foo = findStaticMethod(module, "foo");
 
-    var myType = new TypeRepresentation.AtomType("bindingsFlow.My_Type");
+    var myType = TypeRepresentation.fromQualifiedName("bindingsFlow.My_Type");
 
     assertEquals(myType, getInferredType(findAssignment(foo, "w1").expression()));
     assertEquals(myType, getInferredType(findAssignment(foo, "w2").expression()));
@@ -271,7 +271,7 @@ public class TypeInferenceTest extends CompilerTest {
     var module = compile(src);
     var foo = findStaticMethod(module, "foo");
 
-    var myType = new TypeRepresentation.AtomType("zeroArgConstructor.My_Type");
+    var myType = TypeRepresentation.fromQualifiedName("zeroArgConstructor.My_Type");
     assertEquals(myType, getInferredType(findAssignment(foo, "x").expression()));
   }
 
@@ -293,7 +293,7 @@ public class TypeInferenceTest extends CompilerTest {
     var module = compile(src);
     var foo = findStaticMethod(module, "foo");
 
-    var myType = new TypeRepresentation.AtomType("multiArgConstructor.My_Type");
+    var myType = TypeRepresentation.fromQualifiedName("multiArgConstructor.My_Type");
     assertEquals(myType, getInferredType(findAssignment(foo, "x").expression()));
   }
 
