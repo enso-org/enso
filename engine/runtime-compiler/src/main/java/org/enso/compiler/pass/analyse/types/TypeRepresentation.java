@@ -1,11 +1,13 @@
 package org.enso.compiler.pass.analyse.types;
 
+import org.enso.compiler.data.BindingsMap;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 public sealed interface TypeRepresentation
-    permits TypeRepresentation.TopType, TypeRepresentation.AtomType, TypeRepresentation.ArrowType, TypeRepresentation.SumType, TypeRepresentation.IntersectionType {
+    permits TypeRepresentation.ArrowType, TypeRepresentation.AtomType, TypeRepresentation.IntersectionType, TypeRepresentation.SumType, TypeRepresentation.TopType, TypeRepresentation.TypeObject {
   record TopType() implements TypeRepresentation {
     @Override
     public String toString() {
@@ -53,6 +55,22 @@ public sealed interface TypeRepresentation
     public String toString() {
       String repr = types.stream().map(TypeRepresentation::toString).reduce((a, b) -> a + " & " + b).orElse("");
       return "(" + repr + ")";
+    }
+  }
+
+  /**
+   * Represents a type object, i.e. an object that is an instance of a type's identity.
+   * <p>
+   * This object allows to call static methods on that type or create instances of this type using its constructors.
+   * <p>
+   * TODO I'm not sure if storing BindingsMap.Type here is the best idea, later we may want to reduce coupling; howver for now, I'm just trying to keep it simple to make the PoC work.
+   *
+   * @param type the type that this type object represents
+   */
+  record TypeObject(BindingsMap.Type type) implements TypeRepresentation {
+    @Override
+    public String toString() {
+      return "(type " + type.name() + ")";
     }
   }
 

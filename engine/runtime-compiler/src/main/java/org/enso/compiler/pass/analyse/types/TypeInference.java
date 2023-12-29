@@ -180,25 +180,32 @@ public final class TypeInference implements IRPass {
     } else if (literalName.name().equals(ConstantsNames.FROM_MEMBER)) {
       log("processName", literalName, "from conversion - currently unsupported");
     } else {
-      // TODO these will be used for member method calls `x.foo`
+      // TODO these will be used for member method calls `x.foo`, but also `My_Type.Constructor`
       log("processName", literalName, "unresolved symbol - TODO");
     }
   }
 
   private void processGlobalName(Name.Literal literalName, BindingsMap.ResolvedName resolution) {
     // TODO this does not work because My_Type.Singleton is actually an Application of UnresolvedSymbol<Singleton> on ResolvedType<My_Type>, it's not a ResolvedConstructor
-    if (resolution instanceof BindingsMap.ResolvedConstructor ctor) {
-      // TODO when do these appear??
-      log("processGlobalName", literalName, "RESOLVED CONTRUCTOR");
+    switch (resolution) {
+      case BindingsMap.ResolvedConstructor ctor -> {
+        // TODO when do these appear??
+        log("processGlobalName", literalName, "RESOLVED CONTRUCTOR");
 
-      // TODO we should be able to get the types of each field and add them here
-      // Currently we just fall back to Any
-      var arguments = IntStream.range(0, ctor.cons().arity()).mapToObj((i) -> TypeRepresentation.ANY).toList();
-      var resultType = new TypeRepresentation.AtomType(ctor.tpe().qualifiedName().toString());
-      var constructorFunctionType = TypeRepresentation.buildFunction(arguments, resultType);
-      setInferredType(literalName, new InferredType(constructorFunctionType));
-    } else {
-      log("processGlobalName", literalName, "global scope reference to " + resolution + " - currently global inference is unsupported");
+        // TODO we should be able to get the types of each field and add them here
+        // Currently we just fall back to Any
+        var arguments = IntStream.range(0, ctor.cons().arity()).mapToObj((i) -> TypeRepresentation.ANY).toList();
+        var resultType = new TypeRepresentation.AtomType(ctor.tpe().qualifiedName().toString());
+        var constructorFunctionType = TypeRepresentation.buildFunction(arguments, resultType);
+        setInferredType(literalName, new InferredType(constructorFunctionType));
+      }
+
+      case BindingsMap.ResolvedType tpe -> {
+        var type = new TypeRepresentation.TypeObject(tpe.tp());
+        setInferredType(literalName, new InferredType(type));
+      }
+      default ->
+          log("processGlobalName", literalName, "global scope reference to " + resolution + " - currently global inference is unsupported");
     }
   }
 
