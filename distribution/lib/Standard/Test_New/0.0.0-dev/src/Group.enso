@@ -1,0 +1,33 @@
+private
+
+from Standard.Base import all
+import project.Spec.Spec
+polyglot java import java.lang.StringBuilder
+
+type Group_Builder
+    ## PRIVATE
+    Impl builder
+
+    ## Specifies a single test.
+    specify : Text -> (Nothing -> Any) -> Nothing
+    specify self (name:Text) ~code =
+        self.builder.append <| Spec.Impl name (_ -> code)
+        Nothing
+
+
+type Group
+    Impl (name : Text) (specs : Vector Spec)
+
+    to_text self =
+        sb = StringBuilder.new
+        sb.append ("Group '" + self.name + "' specs=[")
+        self.specs.each spec->
+            sb.append (spec.to_text + ", ")
+        sb.append "]"
+        sb.toString
+
+    run self =
+        IO.println <| "Running group " + self.to_text + "..."
+        self.specs.each spec->
+            spec.run
+        IO.println <| "Done running group"

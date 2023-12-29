@@ -1,0 +1,12 @@
+from Standard.Base import all
+
+private
+
+type Spec
+    Impl (name : Text) (code : Any -> Any)
+
+    to_text self = "Spec '" + self.name + "'"
+
+    run self =
+        IO.println <| "Running spec " + self.to_text + "..."
+        self.code Nothing

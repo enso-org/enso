@@ -1,5 +1,7 @@
+import project.Suite.Suite
 import project.Test.Test
 from project.Extensions import all
 
+export project.Suite.Suite
 export project.Test.Test
 from project.Extensions export all

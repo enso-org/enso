@@ -1,0 +1,35 @@
+
+from Standard.Base import all
+import project.Group.Group
+import project.Group.Group_Builder
+
+type Suite_Builder
+    ## PRIVATE
+    Impl builder
+
+    ## Add a group to the builder.
+    group : Text -> (Group_Builder -> Any) -> Nothing
+    group self (name:Text) fn =
+        b = Vector.new_builder
+        fn (Group_Builder.Impl b)
+        self.builder.append <| Group.Impl name b.to_vector
+
+
+type Suite
+    Impl (groups : Vector Group)
+
+    ## Construct a Suite object
+    build : (Suite_Builder -> Any) -> Suite
+    build fn =
+        IO.println "Running `Suite.build` (collecting tests)..."
+        b = Vector.new_builder
+        fn (Suite_Builder.Impl b)
+        groups_vec = b.to_vector
+        IO.println "Done with `Suite.build` (collecting tests)"
+        Suite.Impl groups_vec
+
+    run_all self =
+        IO.println "Running `Suite.run_all` - running all tests"
+        self.groups.each group->
+            group.run
+        IO.println "Done with `Suite.run_all` - running all tests"
