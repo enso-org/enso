@@ -18,6 +18,9 @@ import org.enso.compiler.pass.resolve.GlobalNames$;
 import org.enso.compiler.pass.resolve.TypeNames$;
 import org.enso.compiler.pass.resolve.TypeSignatures;
 import org.enso.compiler.pass.resolve.TypeSignatures$;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.event.Level;
 import scala.Option;
 import scala.collection.immutable.Seq;
 import scala.collection.immutable.Seq$;
@@ -71,14 +74,14 @@ public final class TypeInference implements IRPass {
         Option.empty()
     );
 
-    System.out.println("TypeInference.runModule: " + moduleContext.getName());
+    log("TypeInference.runModule: " + moduleContext.getName());
     var mappedBindings = ir.bindings().map((def) -> {
       switch (def) {
         case Method.Explicit b -> {
-          System.out.println("\ninside method " + b.methodReference().name());
+          log("\ninside method " + b.methodReference().name());
         }
         default -> {
-          System.out.println("\ndefinition " + def.getClass().getCanonicalName() + " - " + def.showCode());
+          log("\ndefinition " + def.getClass().getCanonicalName() + " - " + def.showCode());
         }
       }
       return def.mapExpressions(
@@ -250,7 +253,7 @@ public final class TypeInference implements IRPass {
 
   private TypeRepresentation processSingleApplication(TypeRepresentation functionType, CallArgument argument, Application.Prefix relatedIR) {
     if (argument.name().isDefined()) {
-      System.out.println("processSingleApplication: " + argument + " - named arguments are not yet supported");
+      log("processSingleApplication: " + argument + " - named arguments are not yet supported");
       return null;
     }
 
@@ -269,7 +272,7 @@ public final class TypeInference implements IRPass {
       }
 
       default -> {
-        System.out.println("type propagation: Expected a function type but got: " + functionType);
+        log("type propagation: Expected a function type but got: " + functionType);
         relatedIR.diagnostics().add(new Warning.NotInvokable(relatedIR.location(), functionType.toString()));
       }
     }
@@ -301,7 +304,7 @@ public final class TypeInference implements IRPass {
       }
 
       default -> {
-        System.out.println("processing " + function + " application on " + argumentType.type() + " - currently unsupported");
+        log("processing " + function + " application on " + argumentType.type() + " - currently unsupported");
         return null;
       }
     }
@@ -357,10 +360,6 @@ public final class TypeInference implements IRPass {
     } else {
       return null;
     }
-  }
-
-  private void log(String prefix, Expression expression) {
-    log(prefix, expression, null);
   }
 
   private TypeRepresentation resolveTypeExpression(Expression type) {
@@ -438,6 +437,19 @@ public final class TypeInference implements IRPass {
     name = name.substring(name.indexOf("ir.") + 3);
 
     String suffixStr = suffix == null ? "" : " ==> " + suffix;
-    System.out.println(prefix + ": " + name + " - " + expression.showCode() + suffixStr);
+    log(prefix + ": " + name + " - " + expression.showCode() + suffixStr);
   }
+
+  private void log(String message) {
+    if (logToStdOut) {
+      System.out.println(message);
+    } else {
+      logger.trace(message);
+    }
+  }
+
+  private static final Logger logger = LoggerFactory.getLogger(TypeInference.class);
+
+  // FIXME this is a temporary simplification, because regular logs seem to not be displayed in tests
+  private static final boolean logToStdOut = false;
 }
