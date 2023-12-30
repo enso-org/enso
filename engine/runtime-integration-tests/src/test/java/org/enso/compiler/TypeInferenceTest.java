@@ -24,9 +24,9 @@ import scala.jdk.javaapi.CollectionConverters;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Optional;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class TypeInferenceTest extends CompilerTest {
   @Ignore
@@ -296,6 +296,51 @@ public class TypeInferenceTest extends CompilerTest {
     assertEquals(myType, getInferredType(findAssignment(foo, "x").expression()));
   }
 
+  @Test
+  public void constructorWithDefaults() throws Exception {
+    final URI uri = new URI("memory://constructorWithDefaults.enso");
+    final Source src =
+        Source.newBuilder("enso", """
+                type My_Type
+                    Value x y=100 z=200
+                    All_Defaults a=1000 b=2000
+                foo =
+                    x1 = My_Type.Value 1 2 3
+                    x2 = My_Type.Value 1 2
+                    x3 = My_Type.Value 1
+                    x4 = My_Type.Value
+                    x5 = My_Type.Value 1 ...
+                    x6 = My_Type.All_Defaults
+                    x7 = My_Type.All_Defaults ...
+                    [x1, x2, x3, x4, x5, x6, x7]
+                """, uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+    var foo = findStaticMethod(module, "foo");
+
+    var myType = TypeRepresentation.fromQualifiedName("constructorWithDefaults.My_Type");
+
+    assertEquals(myType, getInferredType(findAssignment(foo, "x1").expression()));
+
+    // The commented out expressions document the desired behaviour - we correctly infer which arguments were defaulted.
+    // Before that is working, we just ensure we did not infer any 'unexpected' type for the results.
+    // assertEquals(myType, getInferredType(findAssignment(foo, "x2").expression()));
+    assertNoInferredType(findAssignment(foo, "x2").expression());
+
+    // assertEquals(myType, getInferredType(findAssignment(foo, "x3").expression()));
+    assertNoInferredType(findAssignment(foo, "x3").expression());
+
+    assertNotEquals(Optional.of(myType), getInferredTypeOption(findAssignment(foo, "x4").expression()));
+    assertNotEquals(Optional.of(myType), getInferredTypeOption(findAssignment(foo, "x5").expression()));
+
+    // assertEquals(myType, getInferredType(findAssignment(foo, "x6").expression()));
+    assertNoInferredType(findAssignment(foo, "x6").expression());
+
+    assertNotEquals(Optional.of(myType), getInferredTypeOption(findAssignment(foo, "x7").expression()));
+  }
+
   @Ignore("TODO: ifte")
   @Test
   public void commonIfThenElse() throws Exception {
@@ -446,15 +491,24 @@ public class TypeInferenceTest extends CompilerTest {
   }
 
   private TypeRepresentation getInferredType(IR ir) {
+    var option = getInferredTypeOption(ir);
+    assertTrue("Expecting " + ir.showCode() + " to contain an inferred type within metadata.", option.isPresent());
+    return option.get();
+  }
+
+  private Optional<TypeRepresentation> getInferredTypeOption(IR ir) {
     Option<ProcessingPass.Metadata> metadata = ir.passData().get(TypeInference.INSTANCE);
-    assertTrue("Expecting " + ir.showCode() + " to contain an inferred type within metadata.", metadata.isDefined());
-    InferredType inferred = (InferredType) metadata.get();
-    return inferred.type();
+    if (metadata.isEmpty()) {
+      return Optional.empty();
+    } else {
+      InferredType inferred = (InferredType) metadata.get();
+      return Optional.of(inferred.type());
+    }
   }
 
   private void assertNoInferredType(IR ir) {
     Option<ProcessingPass.Metadata> metadata = ir.passData().get(TypeInference.INSTANCE);
-    assertTrue("Expecting " + ir.showCode() + " to contain no inferred type within metadata.", metadata.isEmpty());
+    assertTrue("Expecting " + ir.showCode() + " to contain no inferred type within metadata, but it has " + metadata, metadata.isEmpty());
   }
 
   private Module compile(Source src) {
