@@ -6,7 +6,7 @@ import * as toast from 'react-toastify'
 import * as events from '#/events'
 import * as hooks from '#/hooks'
 import type * as assetSettingsPanel from '#/layouts/dashboard/assetSettingsPanel'
-import * as categorySwitcher from '#/layouts/dashboard/categorySwitcher'
+import * as categorySwitcherConstants from '#/layouts/dashboard/categorySwitcher/categorySwitcherConstants'
 import GlobalContextMenu from '#/layouts/dashboard/globalContextMenu'
 import * as providers from '#/providers'
 import * as backendModule from '#/services/backend'
@@ -30,6 +30,7 @@ import ContextMenus from '#/components/contextMenus'
 import AssetNameColumn from '#/components/dashboard/assetNameColumn'
 import AssetRow from '#/components/dashboard/assetRow'
 import * as columnModule from '#/components/dashboard/column'
+import * as columnUtils from '#/components/dashboard/column/columnUtils'
 import ConfirmDeleteModal from '#/components/dashboard/confirmDeleteModal'
 import DragModal from '#/components/dragModal'
 import MenuEntry from '#/components/menuEntry'
@@ -122,12 +123,15 @@ function insertAssetTreeNodeChildren(
 // === Category to filter by ===
 // =============================
 
-const CATEGORY_TO_FILTER_BY: Record<categorySwitcher.Category, backendModule.FilterBy | null> = {
-    [categorySwitcher.Category.recent]: null,
-    [categorySwitcher.Category.drafts]: null,
-    [categorySwitcher.Category.home]: backendModule.FilterBy.active,
-    [categorySwitcher.Category.root]: null,
-    [categorySwitcher.Category.trash]: backendModule.FilterBy.trashed,
+const CATEGORY_TO_FILTER_BY: Record<
+    categorySwitcherConstants.Category,
+    backendModule.FilterBy | null
+> = {
+    [categorySwitcherConstants.Category.recent]: null,
+    [categorySwitcherConstants.Category.drafts]: null,
+    [categorySwitcherConstants.Category.home]: backendModule.FilterBy.active,
+    [categorySwitcherConstants.Category.root]: null,
+    [categorySwitcherConstants.Category.trash]: backendModule.FilterBy.trashed,
 }
 
 // ===================
@@ -137,12 +141,12 @@ const CATEGORY_TO_FILTER_BY: Record<categorySwitcher.Category, backendModule.Fil
 /** State passed through from a {@link AssetsTable} to every cell. */
 export interface AssetsTableState {
     numberOfSelectedItems: number
-    category: categorySwitcher.Category
+    category: categorySwitcherConstants.Category
     labels: Map<backendModule.LabelName, backendModule.Label>
     deletedLabelNames: Set<backendModule.LabelName>
     hasCopyData: boolean
-    sortColumn: columnModule.SortableColumn | null
-    setSortColumn: (column: columnModule.SortableColumn | null) => void
+    sortColumn: columnUtils.SortableColumn | null
+    setSortColumn: (column: columnUtils.SortableColumn | null) => void
     sortDirection: sorting.SortDirection | null
     setSortDirection: (sortDirection: sorting.SortDirection | null) => void
     query: assetQuery.AssetQuery
@@ -201,7 +205,7 @@ export const INITIAL_ROW_STATE = Object.freeze<AssetRowState>({
 export interface AssetsTableProps {
     query: assetQuery.AssetQuery
     setQuery: React.Dispatch<React.SetStateAction<assetQuery.AssetQuery>>
-    category: categorySwitcher.Category
+    category: categorySwitcherConstants.Category
     allLabels: Map<backendModule.LabelName, backendModule.Label>
     initialProjectName: string | null
     projectStartupInfo: backendModule.ProjectStartupInfo | null
@@ -262,10 +266,8 @@ export default function AssetsTable(props: AssetsTableProps) {
     const [initialized, setInitialized] = React.useState(false)
     const [assetTree, setAssetTree] = React.useState<assetTreeNode.AssetTreeNode[]>([])
     const [isLoading, setIsLoading] = React.useState(true)
-    const [extraColumns, setExtraColumns] = React.useState(
-        () => new Set<columnModule.ExtraColumn>()
-    )
-    const [sortColumn, setSortColumn] = React.useState<columnModule.SortableColumn | null>(null)
+    const [extraColumns, setExtraColumns] = React.useState(() => new Set<columnUtils.ExtraColumn>())
+    const [sortColumn, setSortColumn] = React.useState<columnUtils.SortableColumn | null>(null)
     const [sortDirection, setSortDirection] = React.useState<sorting.SortDirection | null>(null)
     const [selectedKeys, setSelectedKeys] = React.useState(() => new Set<backendModule.AssetId>())
     const [copyData, setCopyData] = React.useState<Set<backendModule.AssetId> | null>(null)
@@ -307,7 +309,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             }[sortDirection]
             let compare: (a: assetTreeNode.AssetTreeNode, b: assetTreeNode.AssetTreeNode) => number
             switch (sortColumn) {
-                case columnModule.Column.name: {
+                case columnUtils.Column.name: {
                     compare = (a, b) =>
                         multiplier *
                         (a.item.title > b.item.title
@@ -318,7 +320,7 @@ export default function AssetsTable(props: AssetsTableProps) {
 
                     break
                 }
-                case columnModule.Column.modified: {
+                case columnUtils.Column.modified: {
                     compare = (a, b) =>
                         multiplier *
                         (Number(new Date(a.item.modifiedAt)) - Number(new Date(b.item.modifiedAt)))
@@ -478,7 +480,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                             {
                                 parentId: null,
                                 filterBy: CATEGORY_TO_FILTER_BY[category],
-                                recentProjects: category === categorySwitcher.Category.recent,
+                                recentProjects:
+                                    category === categorySwitcherConstants.Category.recent,
                                 labels: null,
                             },
                             null
@@ -542,7 +545,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                                             parentId: id,
                                             filterBy: CATEGORY_TO_FILTER_BY[category],
                                             recentProjects:
-                                                category === categorySwitcher.Category.recent,
+                                                category ===
+                                                categorySwitcherConstants.Category.recent,
                                             labels: null,
                                         },
                                         entry.item.title
@@ -585,7 +589,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                             {
                                 parentId: null,
                                 filterBy: CATEGORY_TO_FILTER_BY[category],
-                                recentProjects: category === categorySwitcher.Category.recent,
+                                recentProjects:
+                                    category === categorySwitcherConstants.Category.recent,
                                 labels: null,
                             },
                             null
@@ -718,7 +723,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                         {
                             parentId: directoryId,
                             filterBy: CATEGORY_TO_FILTER_BY[category],
-                            recentProjects: category === categorySwitcher.Category.recent,
+                            recentProjects: category === categorySwitcherConstants.Category.recent,
                             labels: null,
                         },
                         title ?? null
@@ -1228,7 +1233,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     ids: innerSelectedKeys,
                 })
             }
-            if (category === categorySwitcher.Category.trash) {
+            if (category === categorySwitcherConstants.Category.trash) {
                 return innerSelectedKeys.size === 0 ? (
                     <></>
                 ) : (
@@ -1242,7 +1247,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                         </ContextMenu>
                     </ContextMenus>
                 )
-            } else if (category !== categorySwitcher.Category.home) {
+            } else if (category !== categorySwitcherConstants.Category.home) {
                 return null
             } else {
                 const deleteAction =
@@ -1362,11 +1367,11 @@ export default function AssetsTable(props: AssetsTableProps) {
                     <div className="sticky top-0 h-0">
                         <div className="block sticky right-0 ml-auto w-29 px-2 pt-2.25 pb-1.75 z-1">
                             <div className="inline-flex gap-3">
-                                {columnModule.EXTRA_COLUMNS.map(column => (
+                                {columnUtils.EXTRA_COLUMNS.map(column => (
                                     <Button
                                         key={column}
                                         active={extraColumns.has(column)}
-                                        image={columnModule.EXTRA_COLUMN_IMAGES[column]}
+                                        image={columnUtils.EXTRA_COLUMN_IMAGES[column]}
                                         onClick={event => {
                                             event.stopPropagation()
                                             const newExtraColumns = new Set(extraColumns)
@@ -1433,15 +1438,15 @@ export default function AssetsTable(props: AssetsTableProps) {
                     selectedKeys={selectedKeys}
                     setSelectedKeys={setSelectedKeys}
                     placeholder={
-                        category === categorySwitcher.Category.trash
+                        category === categorySwitcherConstants.Category.trash
                             ? TRASH_PLACEHOLDER
                             : query.query !== ''
                             ? QUERY_PLACEHOLDER
                             : PLACEHOLDER
                     }
-                    columns={columnModule.getColumnList(backend.type, extraColumns).map(column => ({
+                    columns={columnUtils.getColumnList(backend.type, extraColumns).map(column => ({
                         id: column,
-                        className: columnModule.COLUMN_CSS_CLASS[column],
+                        className: columnUtils.COLUMN_CSS_CLASS[column],
                         heading: columnModule.COLUMN_HEADING[column],
                         render: columnModule.COLUMN_RENDERER[column],
                     }))}

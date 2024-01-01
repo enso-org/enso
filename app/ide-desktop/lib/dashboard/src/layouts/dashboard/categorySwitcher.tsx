@@ -8,6 +8,7 @@ import TempIcon from 'enso-assets/temp.svg'
 import Trash2Icon from 'enso-assets/trash2.svg'
 
 import * as events from '#/events'
+import * as categorySwitcherConstants from '#/layouts/dashboard/categorySwitcher/categorySwitcherConstants'
 import * as providers from '#/providers'
 import * as drag from '#/util/drag'
 import * as localStorageModule from '#/util/localStorage'
@@ -73,51 +74,42 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
 // === CategorySwitcher ===
 // ========================
 
-/** The categories available in the category switcher. */
-export enum Category {
-    recent = 'Recent',
-    drafts = 'Drafts',
-    home = 'Home',
-    root = 'Root',
-    trash = 'Trash',
-}
-
-const CATEGORIES: Category[] = [
-    Category.recent,
-    Category.drafts,
-    Category.home,
-    Category.root,
-    Category.trash,
+const CATEGORIES: categorySwitcherConstants.Category[] = [
+    categorySwitcherConstants.Category.recent,
+    categorySwitcherConstants.Category.drafts,
+    categorySwitcherConstants.Category.home,
+    categorySwitcherConstants.Category.root,
+    categorySwitcherConstants.Category.trash,
 ]
 
-const IS_NOT_YET_IMPLEMENTED: Record<Category, boolean> = {
-    [Category.recent]: false,
-    [Category.drafts]: true,
-    [Category.home]: false,
-    [Category.root]: true,
-    [Category.trash]: false,
+const IS_NOT_YET_IMPLEMENTED: Record<categorySwitcherConstants.Category, boolean> = {
+    [categorySwitcherConstants.Category.recent]: false,
+    [categorySwitcherConstants.Category.drafts]: true,
+    [categorySwitcherConstants.Category.home]: false,
+    [categorySwitcherConstants.Category.root]: true,
+    [categorySwitcherConstants.Category.trash]: false,
 }
 
-const CATEGORY_ICONS: Record<Category, string> = {
-    [Category.recent]: RecentIcon,
-    [Category.drafts]: TempIcon,
-    [Category.home]: Home2Icon,
-    [Category.root]: RootIcon,
-    [Category.trash]: Trash2Icon,
+const CATEGORY_ICONS: Record<categorySwitcherConstants.Category, string> = {
+    [categorySwitcherConstants.Category.recent]: RecentIcon,
+    [categorySwitcherConstants.Category.drafts]: TempIcon,
+    [categorySwitcherConstants.Category.home]: Home2Icon,
+    [categorySwitcherConstants.Category.root]: RootIcon,
+    [categorySwitcherConstants.Category.trash]: Trash2Icon,
 }
 
-const CATEGORY_CLASS_NAMES: Record<Category, string> = {
-    [Category.recent]: '-ml-0.5',
-    [Category.drafts]: '-ml-0.5',
-    [Category.home]: '',
-    [Category.root]: '',
-    [Category.trash]: '',
+const CATEGORY_CLASS_NAMES: Record<categorySwitcherConstants.Category, string> = {
+    [categorySwitcherConstants.Category.recent]: '-ml-0.5',
+    [categorySwitcherConstants.Category.drafts]: '-ml-0.5',
+    [categorySwitcherConstants.Category.home]: '',
+    [categorySwitcherConstants.Category.root]: '',
+    [categorySwitcherConstants.Category.trash]: '',
 } as const
 
 /** Props for a {@link CategorySwitcher}. */
 export interface CategorySwitcherProps {
-    category: Category
-    setCategory: (category: Category) => void
+    category: categorySwitcherConstants.Category
+    setCategory: (category: categorySwitcherConstants.Category) => void
     dispatchAssetEvent: (directoryEvent: events.AssetEvent) => void
 }
 
@@ -152,16 +144,20 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                     }}
                     onDragOver={event => {
                         if (
-                            (category === Category.trash && currentCategory === Category.home) ||
-                            (category !== Category.trash && currentCategory === Category.trash)
+                            (category === categorySwitcherConstants.Category.trash &&
+                                currentCategory === categorySwitcherConstants.Category.home) ||
+                            (category !== categorySwitcherConstants.Category.trash &&
+                                currentCategory === categorySwitcherConstants.Category.trash)
                         ) {
                             event.preventDefault()
                         }
                     }}
                     onDrop={event => {
                         if (
-                            (category === Category.trash && currentCategory === Category.home) ||
-                            (category !== Category.trash && currentCategory === Category.trash)
+                            (category === categorySwitcherConstants.Category.trash &&
+                                currentCategory === categorySwitcherConstants.Category.home) ||
+                            (category !== categorySwitcherConstants.Category.trash &&
+                                currentCategory === categorySwitcherConstants.Category.trash)
                         ) {
                             event.preventDefault()
                             event.stopPropagation()
@@ -170,7 +166,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                             if (payload != null) {
                                 dispatchAssetEvent({
                                     type:
-                                        category === Category.trash
+                                        category === categorySwitcherConstants.Category.trash
                                             ? events.AssetEventType.restore
                                             : events.AssetEventType.delete,
                                     ids: new Set(payload.map(item => item.asset.id)),

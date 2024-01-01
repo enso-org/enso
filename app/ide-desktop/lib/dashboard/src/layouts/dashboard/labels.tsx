@@ -11,7 +11,8 @@ import type * as assetQuery from '#/util/assetQuery'
 import * as drag from '#/util/drag'
 
 import ConfirmDeleteModal from '#/components/dashboard/confirmDeleteModal'
-import Label, * as labelModule from '#/components/dashboard/label'
+import Label from '#/components/dashboard/label'
+import * as labelUtils from '#/components/dashboard/label/labelUtils'
 import DragModal from '#/components/dragModal'
 import SvgMask from '#/components/svgMask'
 
@@ -116,7 +117,7 @@ export default function Labels(props: LabelsProps) {
                 <li>
                     <Label
                         active
-                        color={labelModule.DEFAULT_LABEL_COLOR}
+                        color={labelUtils.DEFAULT_LABEL_COLOR}
                         className="bg-frame-selected text-not-selected"
                         onClick={event => {
                             event.stopPropagation()

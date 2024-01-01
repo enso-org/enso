@@ -64,8 +64,8 @@ module.exports = function init() {
                     for (const change of action.changes) {
                         for (const textChange of change.textChanges) {
                             textChange.newText = textChange.newText.replace(
-                                /^(import ){.*}( from '(?:.*[/])?(.*)')/,
-                                (_, prefix, suffix, moduleName) =>
+                                /^(import ){.*}( from (['"])(?:.*[/])?(.*)\3)/m,
+                                (_, prefix, suffix, _quote, moduleName) =>
                                     `${prefix}* as ${normalizeModuleName(
                                         String(moduleName)
                                     )}${suffix}`

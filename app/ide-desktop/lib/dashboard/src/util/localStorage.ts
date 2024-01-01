@@ -1,12 +1,12 @@
 /** @file A LocalStorage data manager. */
 import * as common from 'enso-common'
 
-import * as categorySwitcher from '#/layouts/dashboard/categorySwitcher'
+import * as categorySwitcherConstants from '#/layouts/dashboard/categorySwitcher/categorySwitcherConstants'
 import * as pageSwitcher from '#/layouts/dashboard/pageSwitcher'
 import * as backend from '#/services/backend'
 import * as array from '#/util/array'
 
-import * as column from '#/components/dashboard/column'
+import * as columnUtils from '#/components/dashboard/column/columnUtils'
 
 // ====================
 // === LocalStorage ===
@@ -27,10 +27,10 @@ export enum LocalStorageKey {
 interface LocalStorageData {
     [LocalStorageKey.page]: pageSwitcher.Page
     [LocalStorageKey.backendType]: backend.BackendType
-    [LocalStorageKey.extraColumns]: column.ExtraColumn[]
+    [LocalStorageKey.extraColumns]: columnUtils.ExtraColumn[]
     [LocalStorageKey.isAssetSettingsPanelVisible]: boolean
     [LocalStorageKey.projectStartupInfo]: backend.ProjectStartupInfo
-    [LocalStorageKey.driveCategory]: categorySwitcher.Category
+    [LocalStorageKey.driveCategory]: categorySwitcherConstants.Category
     [LocalStorageKey.loginRedirect]: string
 }
 
@@ -78,7 +78,7 @@ export class LocalStorage {
             ) {
                 this.values[LocalStorageKey.extraColumns] = savedValues[
                     LocalStorageKey.extraColumns
-                ].filter(array.includesPredicate(column.EXTRA_COLUMNS))
+                ].filter(array.includesPredicate(columnUtils.EXTRA_COLUMNS))
             }
             if (LocalStorageKey.isAssetSettingsPanelVisible in savedValues) {
                 this.values[LocalStorageKey.isAssetSettingsPanelVisible] = Boolean(
@@ -86,7 +86,7 @@ export class LocalStorage {
                 )
             }
             if (LocalStorageKey.driveCategory in savedValues) {
-                const categories = Object.values(categorySwitcher.Category)
+                const categories = Object.values(categorySwitcherConstants.Category)
                 if (
                     array.includesPredicate(categories)(savedValues[LocalStorageKey.driveCategory])
                 ) {
@@ -124,7 +124,7 @@ export class LocalStorage {
                 }
             }
             if (LocalStorageKey.driveCategory in savedValues) {
-                const categories = Object.values(categorySwitcher.Category)
+                const categories = Object.values(categorySwitcherConstants.Category)
                 if (
                     array.includesPredicate(categories)(savedValues[LocalStorageKey.driveCategory])
                 ) {
