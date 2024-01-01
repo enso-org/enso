@@ -1,10 +1,9 @@
 /** @file Constants related to labels. */
+import type * as backend from '#/services/backend'
 
 // =================
 // === Constants ===
 // =================
-
-import type * as backend from '#/services/backend'
 
 // The default color for labels (Light blue).
 export const DEFAULT_LABEL_COLOR: backend.LChColor = {

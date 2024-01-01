@@ -2,9 +2,12 @@
 import AccessedByProjectsIcon from 'enso-assets/accessed_by_projects.svg'
 import AccessedDataIcon from 'enso-assets/accessed_data.svg'
 import DocsIcon from 'enso-assets/docs.svg'
+import SortAscendingIcon from 'enso-assets/sort_ascending.svg'
+import SortDescendingIcon from 'enso-assets/sort_descending.svg'
 import TagIcon from 'enso-assets/tag.svg'
 
 import * as backend from '#/services/backend'
+import * as sorting from '#/util/sorting'
 
 // =============
 // === Types ===
@@ -107,4 +110,12 @@ export function getColumnList(backendType: backend.BackendType, extraColumns: Se
             ]
         }
     }
+} // =================
+// === Constants ===
+// =================
+/** The corresponding icon URL for each {@link sorting.SortDirection}. */
+
+export const SORT_ICON: Record<sorting.SortDirection, string> = {
+    [sorting.SortDirection.ascending]: SortAscendingIcon,
+    [sorting.SortDirection.descending]: SortDescendingIcon,
 }

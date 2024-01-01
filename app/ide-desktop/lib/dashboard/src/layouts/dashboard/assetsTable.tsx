@@ -31,6 +31,7 @@ import AssetNameColumn from '#/components/dashboard/assetNameColumn'
 import AssetRow from '#/components/dashboard/assetRow'
 import * as columnModule from '#/components/dashboard/column'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
+import * as columnHeading from '#/components/dashboard/columnHeading'
 import ConfirmDeleteModal from '#/components/dashboard/confirmDeleteModal'
 import DragModal from '#/components/dragModal'
 import MenuEntry from '#/components/menuEntry'
@@ -1447,7 +1448,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     columns={columnUtils.getColumnList(backend.type, extraColumns).map(column => ({
                         id: column,
                         className: columnUtils.COLUMN_CSS_CLASS[column],
-                        heading: columnModule.COLUMN_HEADING[column],
+                        heading: columnHeading.COLUMN_HEADING[column],
                         render: columnModule.COLUMN_RENDERER[column],
                     }))}
                     onContextMenu={(innerSelectedKeys, event, innerSetSelectedKeys) => {
