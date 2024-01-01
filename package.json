@@ -5,7 +5,8 @@
   },
   "dependencies": {
     "chromedriver": "^106.0.1",
-    "tslib": "^2.6.2"
+    "tslib": "^2.6.2",
+    "vue3-toastify": "^0.1.14"
   },
   "name": "root",
   "scripts": {

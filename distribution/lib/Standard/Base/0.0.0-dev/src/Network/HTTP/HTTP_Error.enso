@@ -2,7 +2,6 @@ import project.Any.Any
 import project.Data.Text.Text
 import project.Network.HTTP.HTTP_Status_Code.HTTP_Status_Code
 import project.Network.URI.URI
-import project.Network.URI_With_Query.URI_With_Query
 import project.Nothing.Nothing
 import project.Panic.Panic
 
@@ -15,7 +14,7 @@ type HTTP_Error
        Arguments:
        - uri: The uri that couldn't be read.
        - message: The message for the error.
-    IO_Error (uri:URI|URI_With_Query) (message:Text)
+    IO_Error (uri:URI) (message:Text)
 
     ## An error indicating that a non-200 status code was returned.
 
@@ -23,7 +22,7 @@ type HTTP_Error
        - status_code: The status code that was returned.
        - message: The message for the error, if it was able to be read.
        - uri: The uri that couldn't be read.
-    Status_Error (status_code:HTTP_Status_Code) (message:Text|Nothing) (uri:URI|URI_With_Query)
+    Status_Error (status_code:HTTP_Status_Code) (message:Text|Nothing) (uri:URI)
 
     ## PRIVATE
        Convert the HTTP_Error to a human-readable format.
@@ -39,6 +38,6 @@ type HTTP_Error
 
     ## PRIVATE
        Utility method for running an action with Java exceptions mapping.
-    handle_java_exceptions (uri:URI|URI_With_Query) ~action =
+    handle_java_exceptions (uri:URI) ~action =
         Panic.catch IOException action caught_panic->
             HTTP_Error.IO_Error uri ("An IO error has occurred: " + caught_panic.payload.to_text)

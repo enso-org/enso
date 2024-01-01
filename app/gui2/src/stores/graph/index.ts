@@ -1,4 +1,5 @@
 import { nonDictatedPlacement } from '@/components/ComponentBrowser/placement'
+import type { PortId } from '@/providers/portInfo'
 import { GraphDb } from '@/stores/graph/graphDatabase'
 import {
   filterOutRedundantImports,
@@ -16,6 +17,7 @@ import { useObserveYjs } from '@/util/crdt'
 import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
+import { map, set } from 'lib0'
 import { defineStore } from 'pinia'
 import type { StackItem } from 'shared/languageServerTypes'
 import {
@@ -27,7 +29,7 @@ import {
   type VisualizationIdentifier,
   type VisualizationMetadata,
 } from 'shared/yjsModel'
-import { computed, markRaw, reactive, ref, toRef, watch, type Ref } from 'vue'
+import { computed, markRaw, reactive, ref, toRef, watch, type Ref, type ShallowRef } from 'vue'
 
 export { type Node } from '@/stores/graph/graphDatabase'
 
@@ -35,6 +37,15 @@ export interface NodeEditInfo {
   id: ExprId
   initialCursorPos: number
 }
+
+export class PortViewInstance {
+  constructor(
+    public rect: ShallowRef<Rect | undefined>,
+    public nodeId: ExprId,
+    public onUpdate: (value: unknown, origin: PortId) => void,
+  ) {}
+}
+
 export const useGraphStore = defineStore('graph', () => {
   const proj = useProjectStore()
   const suggestionDb = useSuggestionDbStore()
@@ -68,7 +79,7 @@ export const useGraphStore = defineStore('graph', () => {
   )
   const nodeRects = reactive(new Map<ExprId, Rect>())
   const vizRects = reactive(new Map<ExprId, Rect>())
-  const exprRects = reactive(new Map<ExprId, Rect>())
+  const portInstances = reactive(new Map<PortId, Set<PortViewInstance>>())
   const editedNodeInfo = ref<NodeEditInfo>()
   const imports = ref<{ import: Import; span: ContentRange }[]>([])
   const methodAst = ref<Ast.Function>()
@@ -141,7 +152,7 @@ export const useGraphStore = defineStore('graph', () => {
     const disconnectedEdgeTarget = unconnectedEdge.value?.disconnectedEdgeTarget
     const edges = []
     for (const [target, sources] of db.connections.allReverse()) {
-      if (target === disconnectedEdgeTarget) continue
+      if ((target as string as PortId) === disconnectedEdgeTarget) continue
       for (const source of sources) {
         edges.push({ source, target })
       }
@@ -233,7 +244,6 @@ export const useGraphStore = defineStore('graph', () => {
     if (!node) return
     proj.module?.doc.metadata.delete(node.outerExprId)
     nodeRects.delete(id)
-    node.pattern?.visitRecursive((ast) => exprRects.delete(ast.astId))
     const root = moduleRoot.value
     if (!root) {
       console.error(`BUG: Cannot delete node: No module root.`)
@@ -247,7 +257,7 @@ export const useGraphStore = defineStore('graph', () => {
   function setNodeContent(id: ExprId, content: string) {
     const node = db.nodeIdToNode.get(id)
     if (!node) return
-    setExpressionContent(node.rootSpan.astId, content)
+    setExpressionContent(node.rootSpan.exprId, content)
   }
 
   function setExpressionContent(id: ExprId, content: string) {
@@ -319,13 +329,15 @@ export const useGraphStore = defineStore('graph', () => {
     else vizRects.delete(id)
   }
 
-  function updateExprRect(id: ExprId, rect: Rect | undefined) {
-    const current = exprRects.get(id)
-    if (rect) {
-      if (!current || !current.equals(rect)) exprRects.set(id, rect)
-    } else {
-      if (current) exprRects.delete(id)
-    }
+  function addPortInstance(id: PortId, instance: PortViewInstance) {
+    map.setIfUndefined(portInstances, id, set.create).add(instance)
+  }
+
+  function removePortInstance(id: PortId, instance: PortViewInstance) {
+    const instances = portInstances.get(id)
+    if (!instances) return
+    instances.delete(instance)
+    if (instances.size === 0) portInstances.delete(id)
   }
 
   function setEditedNode(id: ExprId | null, cursorPosition: number | null) {
@@ -338,6 +350,34 @@ export const useGraphStore = defineStore('graph', () => {
       return
     }
     editedNodeInfo.value = { id, initialCursorPos: cursorPosition }
+  }
+
+  function getPortPrimaryInstance(id: PortId): PortViewInstance | undefined {
+    const instances = portInstances.get(id)
+    return instances && set.first(instances)
+  }
+
+  /**
+   * Get the bounding rectangle of a port view, within the coordinate system of the node it belongs
+   * to. If the port is currently not connected or interacted with, `undefined` may be returned.
+   */
+  function getPortRelativeRect(id: PortId): Rect | undefined {
+    return getPortPrimaryInstance(id)?.rect.value
+  }
+
+  function getPortNodeId(id: PortId): ExprId | undefined {
+    return getPortPrimaryInstance(id)?.nodeId ?? db.getExpressionNodeId(id as string as ExprId)
+  }
+
+  /**
+   * Emit an value update to a port view under specific ID. Returns `true` if the port view is
+   * registered and the update was emitted, or `false` otherwise.
+   */
+  function updatePortValue(id: PortId, value: Ast.Ast | undefined): boolean {
+    const update = getPortPrimaryInstance(id)?.onUpdate
+    if (!update) return false
+    update(value, id)
+    return true
   }
 
   function commitEdit(
@@ -380,7 +420,6 @@ export const useGraphStore = defineStore('graph', () => {
     currentNodeIds,
     nodeRects,
     vizRects,
-    exprRects,
     methodAst,
     createEdgeFromOutput,
     disconnectSource,
@@ -396,7 +435,11 @@ export const useGraphStore = defineStore('graph', () => {
     stopCapturingUndo,
     updateNodeRect,
     updateVizRect,
-    updateExprRect,
+    addPortInstance,
+    removePortInstance,
+    getPortRelativeRect,
+    getPortNodeId,
+    updatePortValue,
     setEditedNode,
     updateState,
     commitEdit,
@@ -410,14 +453,14 @@ function randomIdent() {
 /** An edge, which may be connected or unconnected. */
 export type Edge = {
   source: ExprId | undefined
-  target: ExprId | undefined
+  target: PortId | undefined
 }
 
 export type UnconnectedEdge = {
   source?: ExprId
-  target?: ExprId
+  target?: PortId
   /** If this edge represents an in-progress edit of a connected edge, it is identified by its target expression. */
-  disconnectedEdgeTarget?: ExprId
+  disconnectedEdgeTarget?: PortId
 }
 
 function getExecutedMethodAst(

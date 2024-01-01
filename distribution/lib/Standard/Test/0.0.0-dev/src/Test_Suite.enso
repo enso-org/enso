@@ -15,7 +15,8 @@ type Test_Suite
        - config: Suite_Config controlloing the test run.
        - specs: The specs contained within the test suite.
        - builder: StringBuilder for JUnit output.
-    Value config specs builder
+       - skipped_groups: Count of skipped groups.
+    Value config specs builder skipped_groups
 
     ## Creates a new test group, describing properties of the object
        described by `self`.
@@ -41,6 +42,7 @@ type Test_Suite
         IO.println r.tests_succeeded.to_text+" tests succeeded."
         IO.println r.tests_failed.to_text+" tests failed."
         IO.println r.tests_pending.to_text+" tests skipped."
+        IO.println r.skipped_groups.to_text+" groups of tests skipped."
         code = if r.is_fail then 1 else 0
         System.exit code
 
@@ -65,7 +67,7 @@ type Test_Suite
     run ~specs config =
         builder = if config.should_output_junit then StringBuilder.new else Nothing
         Test_Reporter.wrap_junit_testsuites config builder <|
-            State.run Test_Suite (Test_Suite.Value config List.Nil builder) <|
+            State.run Test_Suite (Test_Suite.Value config List.Nil builder 0) <|
                 specs
                 State.get Test_Suite
 

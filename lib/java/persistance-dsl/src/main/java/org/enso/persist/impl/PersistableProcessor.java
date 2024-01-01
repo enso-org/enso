@@ -82,6 +82,7 @@ public class PersistableProcessor extends AbstractProcessor {
     var eu = processingEnv.getElementUtils();
     var tu = processingEnv.getTypeUtils();
     String typeElemName = readAnnoValue(anno, "clazz");
+    var canInline = !"false".equals(readAnnoValue(anno, "allowInlining"));
     if (typeElemName == null) {
       typeElemName = ((TypeElement) orig).getQualifiedName().toString();
     }
@@ -185,7 +186,7 @@ public class PersistableProcessor extends AbstractProcessor {
             var type = tu.erasure(v.asType());
             var elem = (TypeElement) tu.asElement(type);
             var name = findFqn(elem);
-            if (shouldInline(elem)) {
+            if (canInline && shouldInline(elem)) {
               w.append("    var ")
                   .append(v.getSimpleName())
                   .append(" = in.readInline(")
@@ -244,7 +245,7 @@ public class PersistableProcessor extends AbstractProcessor {
             var type = tu.erasure(v.asType());
             var elem = (TypeElement) tu.asElement(type);
             var name = findFqn(elem);
-            if (shouldInline(elem)) {
+            if (canInline && shouldInline(elem)) {
               w.append("    out.writeInline(")
                   .append(name)
                   .append(".class, obj.")
@@ -313,6 +314,11 @@ public class PersistableProcessor extends AbstractProcessor {
             .getValue()
             .accept(
                 new SimpleAnnotationValueVisitor9<String, Object>() {
+                  @Override
+                  public String visitBoolean(boolean b, Object p) {
+                    return Boolean.toString(b);
+                  }
+
                   @Override
                   public String visitInt(int i, Object p) {
                     return Integer.toString(i);

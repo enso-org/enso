@@ -19,7 +19,7 @@ import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { displayedIconOf } from '@/util/getIconName'
 import { setIfUndefined } from 'lib0/map'
-import { type ExprId, type VisualizationIdentifier } from 'shared/yjsModel'
+import type { ExprId, VisualizationIdentifier } from 'shared/yjsModel'
 import { computed, ref, watch, watchEffect } from 'vue'
 
 const MAXIMUM_CLICK_LENGTH_MS = 300
@@ -71,7 +71,7 @@ const outputPortsSet = computed(() => {
 })
 
 const widthOverridePx = ref<number>()
-const nodeId = computed(() => props.node.rootSpan.astId)
+const nodeId = computed(() => props.node.rootSpan.exprId)
 
 const rootNode = ref<HTMLElement>()
 const contentNode = ref<HTMLElement>()
@@ -194,7 +194,7 @@ const isOutputContextOverridden = computed({
             disableOutputContext: undefined,
           },
     )
-    graph.setNodeContent(props.node.rootSpan.astId, newAst.code())
+    graph.setNodeContent(props.node.rootSpan.exprId, newAst.code())
   },
 })
 
