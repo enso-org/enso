@@ -64,10 +64,6 @@ const PLACEHOLDER = (
 const QUERY_PLACEHOLDER = <span className="opacity-75">No files match the current filters.</span>
 /** The placeholder row for the Trash category. */
 const TRASH_PLACEHOLDER = <span className="opacity-75 px-1.5">Your trash is empty.</span>
-/** Placeholder row for directories that are empty. */
-export const EMPTY_DIRECTORY_PLACEHOLDER = (
-    <span className="px-2 opacity-75">This folder is empty.</span>
-)
 
 /** The {@link RegExp} matching a directory name following the default naming convention. */
 const DIRECTORY_NAME_REGEX = /^New_Folder_(?<directoryIndex>\d+)$/
@@ -191,7 +187,7 @@ export interface AssetRowState {
 }
 
 /** The default {@link AssetRowState} associated with a {@link AssetRow}. */
-export const INITIAL_ROW_STATE = Object.freeze<AssetRowState>({
+const INITIAL_ROW_STATE = Object.freeze<AssetRowState>({
     setVisibility: () => {
         // Ignored. This MUST be replaced by the row component. It should also update `visibility`.
     },

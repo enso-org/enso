@@ -6,7 +6,7 @@ import BlankIcon from 'enso-assets/blank.svg'
 import * as events from '#/events'
 import * as hooks from '#/hooks'
 import AssetContextMenu from '#/layouts/dashboard/AssetContextMenu'
-import * as assetsTable from '#/layouts/dashboard/AssetsTable'
+import type * as assetsTable from '#/layouts/dashboard/AssetsTable'
 import * as providers from '#/providers'
 import * as backendModule from '#/services/backend'
 import * as assetTreeNode from '#/utilities/assetTreeNode'
@@ -29,6 +29,9 @@ import TableRow from '#/components/TableRow'
 /** The amount of time (in milliseconds) the drag item must be held over this component
  * to make a directory row expand. */
 const DRAG_EXPAND_DELAY_MS = 500
+
+/** Placeholder row for directories that are empty. */
+const EMPTY_DIRECTORY_PLACEHOLDER = <span className="px-2 opacity-75">This folder is empty.</span>
 
 // ================
 // === AssetRow ===
@@ -578,7 +581,7 @@ export default function AssetRow(props: AssetRowProps) {
                             )}`}
                         >
                             <img src={BlankIcon} />
-                            {assetsTable.EMPTY_DIRECTORY_PLACEHOLDER}
+                            {EMPTY_DIRECTORY_PLACEHOLDER}
                         </div>
                     </td>
                 </tr>
