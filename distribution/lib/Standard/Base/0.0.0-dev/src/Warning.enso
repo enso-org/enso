@@ -10,7 +10,6 @@ import project.Data.Vector.No_Wrap
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Meta
-import project.IO
 import project.Nothing.Nothing
 import project.Polyglot.Polyglot
 import project.Runtime
