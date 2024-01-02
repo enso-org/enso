@@ -306,6 +306,7 @@ spec = Test.group "Dataflow Warnings" <|
         res = [1, 2, 3, 4].map nested_range_even
 
         res . should_equal [[0], [0, 1], [0, 1, 0], [0, 1, 0, 1]]
+        Warning.get_all res . map .value . should_equal [3, 2, 1, 0, 2, 1, 0, 1, 0, 0]
         Warning.get_all_wrapped res . map .value . should_equal [(Map_Error.Error 3 (Map_Error.Error 3 3)), (Map_Error.Error 3 (Map_Error.Error 2 2)), (Map_Error.Error 3 (Map_Error.Error 1 1)), (Map_Error.Error 3 (Map_Error.Error 0 0)), (Map_Error.Error 2 (Map_Error.Error 2 2)), (Map_Error.Error 2 (Map_Error.Error 1 1)), (Map_Error.Error 2 (Map_Error.Error 0 0)), (Map_Error.Error 1 (Map_Error.Error 1 1)), (Map_Error.Error 1 (Map_Error.Error 0 0)), (Map_Error.Error 0 (Map_Error.Error 0 0))]
         Warning.get_all (res.at 2) . map .value . should_equal [3, 2, 1, 0, 2, 1, 0, 1, 0, 0]
 
