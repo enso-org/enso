@@ -346,7 +346,9 @@ public final class BoolStorage extends Storage<Boolean> {
                     return new BoolStorage(new BitSet(), newMissing, storage.size, false);
                   }
                 } else if (arg instanceof Boolean v) {
-                  return v ? storage : new BoolStorage(new BitSet(), new BitSet(), storage.size, false);
+                  return v
+                      ? storage
+                      : new BoolStorage(new BitSet(), new BitSet(), storage.size, false);
                 } else {
                   throw new UnexpectedTypeException("a Boolean");
                 }
@@ -383,7 +385,9 @@ public final class BoolStorage extends Storage<Boolean> {
                 int current = missing.nextSetBit(0);
                 while (current != -1) {
                   var value = negated != out.get(current);
-                  if (!value && (storage.getItemBoxed(current) == Boolean.FALSE || v.getItemBoxed(current) == Boolean.FALSE)) {
+                  if (!value
+                      && (storage.getItemBoxed(current) == Boolean.FALSE
+                          || v.getItemBoxed(current) == Boolean.FALSE)) {
                     missing.clear(current);
                   }
                   current = missing.nextSetBit(current + 1);
@@ -411,7 +415,9 @@ public final class BoolStorage extends Storage<Boolean> {
                     return new BoolStorage(storage.values, newMissing, storage.size, false);
                   }
                 } else if (arg instanceof Boolean v) {
-                  return v ? new BoolStorage(new BitSet(), new BitSet(), storage.size, true) : storage;
+                  return v
+                      ? new BoolStorage(new BitSet(), new BitSet(), storage.size, true)
+                      : storage;
                 } else {
                   throw new UnexpectedTypeException("a Boolean");
                 }
@@ -449,7 +455,9 @@ public final class BoolStorage extends Storage<Boolean> {
                 int current = missing.nextSetBit(0);
                 while (current != -1) {
                   var value = negated != out.get(current);
-                  if (value && (storage.getItemBoxed(current) == Boolean.TRUE || v.getItemBoxed(current) == Boolean.TRUE)) {
+                  if (value
+                      && (storage.getItemBoxed(current) == Boolean.TRUE
+                          || v.getItemBoxed(current) == Boolean.TRUE)) {
                     missing.clear(current);
                   }
                   current = missing.nextSetBit(current + 1);
