@@ -20,7 +20,7 @@
     "story:preview": "histoire preview",
     "build-only": "vite build",
     "compile-server": "tsc -p tsconfig.server.json",
-    "typecheck": "vue-tsc --noEmit -p tsconfig.app.json --composite false",
+    "typecheck": "npm --workspace enso-dashboard run compile && vue-tsc --noEmit -p tsconfig.app.json --composite false",
     "lint": "eslint .",
     "format": "prettier --version && prettier --write src/ && eslint . --fix",
     "build-rust-ffi": "wasm-pack build ./rust-ffi --release --target web",
