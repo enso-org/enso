@@ -36,7 +36,7 @@ function handleWidgetUpdates(value: unknown, origin: PortId) {
   } else if (typeof value === 'string') {
     graph.setExpressionContent(origin, value)
   } else if (value instanceof Ast.Ast) {
-    graph.setExpressionContent(origin, value.repr())
+    graph.setExpression(origin, value)
   } else if (value == null) {
     graph.setExpressionContent(origin, '_')
   } else {
