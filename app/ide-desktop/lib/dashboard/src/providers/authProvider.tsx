@@ -11,11 +11,11 @@ import * as toast from 'react-toastify'
 
 import * as gtag from 'enso-common/src/gtag'
 
-import * as app from '#/app'
+import * as appUtils from '#/appUtils'
 import * as cognitoModule from '#/authentication/cognito'
 import type * as authServiceModule from '#/authentication/service'
 import * as hooks from '#/hooks'
-import LoadingScreen from '#/pages/authentication/loadingScreen'
+import LoadingScreen from '#/pages/authentication/LoadingScreen'
 import * as backendProvider from '#/providers/backendProvider'
 import * as localStorageProvider from '#/providers/localStorageProvider'
 import * as loggerProvider from '#/providers/loggerProvider'
@@ -23,9 +23,9 @@ import * as sessionProvider from '#/providers/sessionProvider'
 import * as backendModule from '#/services/backend'
 import * as localBackend from '#/services/localBackend'
 import * as remoteBackend from '#/services/remoteBackend'
-import * as errorModule from '#/util/error'
-import * as http from '#/util/http'
-import * as localStorageModule from '#/util/localStorage'
+import * as errorModule from '#/utilities/error'
+import * as http from '#/utilities/http'
+import * as localStorageModule from '#/utilities/localStorage'
 
 // =================
 // === Constants ===
@@ -231,7 +231,7 @@ export function AuthProvider(props: AuthProviderProps) {
                 toast.toast.error('You are offline, switching to offline mode.')
             }
             goOfflineInternal()
-            navigate(app.DASHBOARD_PATH)
+            navigate(appUtils.DASHBOARD_PATH)
             return Promise.resolve(true)
         },
         [/* should never change */ goOfflineInternal, /* should never change */ navigate]
@@ -413,7 +413,7 @@ export function AuthProvider(props: AuthProviderProps) {
         const result = await cognito.signUp(username, password, organizationId)
         if (result.ok) {
             toastSuccess(MESSAGES.signUpSuccess)
-            navigate(app.LOGIN_PATH)
+            navigate(appUtils.LOGIN_PATH)
         } else {
             toastError(result.val.message)
         }
@@ -429,14 +429,14 @@ export function AuthProvider(props: AuthProviderProps) {
                     break
                 case cognitoModule.ConfirmSignUpErrorKind.userNotFound:
                     toastError(MESSAGES.confirmSignUpFailure)
-                    navigate(app.LOGIN_PATH)
+                    navigate(appUtils.LOGIN_PATH)
                     return false
                 default:
                     throw new errorModule.UnreachableCaseError(result.val.kind)
             }
         }
         toastSuccess(MESSAGES.confirmSignUpSuccess)
-        navigate(app.LOGIN_PATH)
+        navigate(appUtils.LOGIN_PATH)
         return result.ok
     }
 
@@ -448,7 +448,9 @@ export function AuthProvider(props: AuthProviderProps) {
         } else {
             if (result.val.kind === cognitoModule.SignInWithPasswordErrorKind.userNotFound) {
                 // It may not be safe to pass the user's password in the URL.
-                navigate(app.REGISTRATION_PATH + '?' + new URLSearchParams({ email }).toString())
+                navigate(
+                    `${appUtils.REGISTRATION_PATH}?{new URLSearchParams({ email }).toString()}`
+                )
             }
             toastError(result.val.message)
         }
@@ -487,7 +489,7 @@ export function AuthProvider(props: AuthProviderProps) {
                     localStorage.delete(localStorageModule.LocalStorageKey.loginRedirect)
                     location.href = redirectTo
                 } else {
-                    navigate(app.DASHBOARD_PATH)
+                    navigate(appUtils.DASHBOARD_PATH)
                 }
                 return true
             } catch {
@@ -500,7 +502,7 @@ export function AuthProvider(props: AuthProviderProps) {
         const result = await cognito.forgotPassword(email)
         if (result.ok) {
             toastSuccess(MESSAGES.forgotPasswordSuccess)
-            navigate(app.LOGIN_PATH)
+            navigate(appUtils.LOGIN_PATH)
         } else {
             toastError(result.val.message)
         }
@@ -511,7 +513,7 @@ export function AuthProvider(props: AuthProviderProps) {
         const result = await cognito.forgotPasswordSubmit(email, code, password)
         if (result.ok) {
             toastSuccess(MESSAGES.resetPasswordSuccess)
-            navigate(app.LOGIN_PATH)
+            navigate(appUtils.LOGIN_PATH)
         } else {
             toastError(result.val.message)
         }
@@ -629,9 +631,9 @@ export function ProtectedLayout() {
     const shouldPreventNavigation = getShouldPreventNavigation()
 
     if (!shouldPreventNavigation && session == null) {
-        return <router.Navigate to={app.LOGIN_PATH} />
+        return <router.Navigate to={appUtils.LOGIN_PATH} />
     } else if (!shouldPreventNavigation && session?.type === UserSessionType.partial) {
-        return <router.Navigate to={app.SET_USERNAME_PATH} />
+        return <router.Navigate to={appUtils.SET_USERNAME_PATH} />
     } else {
         return <router.Outlet context={session} />
     }
@@ -655,7 +657,7 @@ export function SemiProtectedLayout() {
             location.href = redirectTo
             return
         } else {
-            return <router.Navigate to={app.DASHBOARD_PATH} />
+            return <router.Navigate to={appUtils.DASHBOARD_PATH} />
         }
     } else {
         return <router.Outlet context={session} />
@@ -674,7 +676,7 @@ export function GuestLayout() {
     const shouldPreventNavigation = getShouldPreventNavigation()
 
     if (!shouldPreventNavigation && session?.type === UserSessionType.partial) {
-        return <router.Navigate to={app.SET_USERNAME_PATH} />
+        return <router.Navigate to={appUtils.SET_USERNAME_PATH} />
     } else if (!shouldPreventNavigation && session?.type === UserSessionType.full) {
         const redirectTo = localStorage.get(localStorageModule.LocalStorageKey.loginRedirect)
         if (redirectTo != null) {
@@ -682,7 +684,7 @@ export function GuestLayout() {
             location.href = redirectTo
             return
         } else {
-            return <router.Navigate to={app.DASHBOARD_PATH} />
+            return <router.Navigate to={appUtils.DASHBOARD_PATH} />
         }
     } else {
         return <router.Outlet />

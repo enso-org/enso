@@ -9,9 +9,9 @@ import * as reactRouter from 'react-router-dom'
 
 import * as detect from 'enso-common/src/detect'
 
-import type * as app from '#/app'
-import App from '#/app'
-import * as config from '#/util/config'
+import type * as app from '#/App'
+import App from '#/App'
+import * as config from '#/utilities/config'
 
 // =================
 // === Constants ===

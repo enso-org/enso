@@ -4,7 +4,7 @@ import * as React from 'react'
 import * as toastify from 'react-toastify'
 
 import * as providers from '#/providers'
-import * as errorModule from '#/util/error'
+import * as errorModule from '#/utilities/error'
 
 // ======================
 // === useToastAndLog ===

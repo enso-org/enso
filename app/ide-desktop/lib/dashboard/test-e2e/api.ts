@@ -2,9 +2,9 @@
 import * as backend from '../src/services/backend'
 import type * as remoteBackend from '../src/services/remoteBackend'
 import * as remoteBackendPaths from '../src/services/remoteBackendPaths'
-import * as config from '../src/util/config'
-import * as dateTime from '../src/util/dateTime'
-import * as uniqueString from '../src/util/uniqueString'
+import * as config from '../src/utilities/config'
+import * as dateTime from '../src/utilities/dateTime'
+import * as uniqueString from '../src/utilities/uniqueString'
 import type * as test from '@playwright/test'
 
 // =================

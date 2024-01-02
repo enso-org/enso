@@ -6,9 +6,9 @@
 import * as detect from 'enso-common/src/detect'
 
 import * as backend from '#/services/backend'
-import * as dateTime from '#/util/dateTime'
-import * as errorModule from '#/util/error'
-import * as projectManager from '#/util/projectManager'
+import * as dateTime from '#/utilities/dateTime'
+import * as errorModule from '#/utilities/error'
+import * as projectManager from '#/utilities/projectManager'
 
 // =============================
 // === ipWithSocketToAddress ===

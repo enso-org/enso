@@ -1,5 +1,5 @@
 /** @file Basic tests for this */
-import * as validation from '../../../src/util/validation'
+import * as validation from '../../../src/utilities/validation'
 import * as test from '@playwright/test'
 
 // =============

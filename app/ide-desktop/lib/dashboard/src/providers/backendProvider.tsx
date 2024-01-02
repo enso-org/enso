@@ -4,7 +4,7 @@ import * as React from 'react'
 
 import * as localStorageProvider from '#/providers/localStorageProvider'
 import type * as backendModule from '#/services/backend'
-import * as localStorageModule from '#/util/localStorage'
+import * as localStorageModule from '#/utilities/localStorage'
 
 // ======================
 // === BackendContext ===

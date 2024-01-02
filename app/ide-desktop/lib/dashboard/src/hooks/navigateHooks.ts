@@ -2,7 +2,7 @@
  * offline. */
 import * as router from 'react-router'
 
-import * as app from '#/app'
+import * as appUtils from '#/appUtils'
 import * as authProvider from '#/providers/authProvider'
 
 // ===================
@@ -22,7 +22,7 @@ export function useNavigate() {
         const isOnline = navigator.onLine
         if (!isOnline) {
             void goOffline()
-            originalNavigate(app.DASHBOARD_PATH)
+            originalNavigate(appUtils.DASHBOARD_PATH)
         } else {
             // This is safe, because the arguments are being passed through transparently.
             // eslint-disable-next-line no-restricted-syntax

@@ -9,9 +9,9 @@ import WindowsKeyIcon from 'enso-assets/windows_key.svg'
 import * as detect from 'enso-common/src/detect'
 
 import * as providers from '#/providers'
-import * as shortcutsModule from '#/util/shortcuts'
+import * as shortcutsModule from '#/utilities/shortcuts'
 
-import SvgMask from '#/components/svgMask'
+import SvgMask from '#/components/SvgMask'
 
 // ========================
 // === KeyboardShortcut ===
