@@ -432,11 +432,13 @@ export default function AssetsTable(props: AssetsTableProps) {
                         .filter(backendModule.assetIsProject)
                         .find(isInitialProject)
                     if (projectToLoad != null) {
-                        dispatchAssetEvent({
-                            type: assetEvent.AssetEventType.openProject,
-                            id: projectToLoad.id,
-                            shouldAutomaticallySwitchPage: true,
-                            runInBackground: false,
+                        window.setTimeout(() => {
+                            dispatchAssetEvent({
+                                type: assetEvent.AssetEventType.openProject,
+                                id: projectToLoad.id,
+                                shouldAutomaticallySwitchPage: true,
+                                runInBackground: false,
+                            })
                         })
                     } else {
                         toastAndLog(`Could not find project '${oldNameOfProjectToImmediatelyOpen}'`)
