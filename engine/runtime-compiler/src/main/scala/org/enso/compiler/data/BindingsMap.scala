@@ -8,6 +8,7 @@ import org.enso.compiler.core.ir
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.data.BindingsMap.{DefinedEntity, ModuleReference}
 import org.enso.compiler.core.CompilerError
+import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.compiler.pass.resolve.MethodDefinitions
@@ -715,10 +716,22 @@ object BindingsMap {
   /** A representation of a constructor.
     *
     * @param name the name of the constructor.
-    * @param arity the number of fields in the constructor.
-    * @param allFieldsDefaulted whether all fields provide a default value.
+    * @param arguments description of constructor's arguments
     */
-  case class Cons(name: String, arity: Int, allFieldsDefaulted: Boolean)
+  case class Cons(name: String, arguments: List[Argument]) {
+
+    /** The number of fields in the constructor. */
+    def arity: Int = arguments.length
+
+
+    /** Whether all fields provide a default value. */
+    def allFieldsDefaulted: Boolean = arguments.forall(_.hasDefaultValue)
+
+    /** Whether any fields provide a default value. */
+    def anyFieldsDefaulted: Boolean = arguments.exists(_.hasDefaultValue)
+  }
+
+  case class Argument(name: String, hasDefaultValue: Boolean, typ: Option[Expression])
 
   /** A representation of a sum type
     *

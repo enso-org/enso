@@ -62,8 +62,9 @@ case object BindingAnalysis extends IRPass {
         sumType.members.map(m =>
           Cons(
             m.name.name,
-            m.arguments.length,
-            m.arguments.forall(_.defaultValue.isDefined)
+            m.arguments.map(arg =>
+              BindingsMap.Argument(arg.name.name, arg.defaultValue.isDefined, arg.ascribedType)
+            )
           )
         ),
         isBuiltinType

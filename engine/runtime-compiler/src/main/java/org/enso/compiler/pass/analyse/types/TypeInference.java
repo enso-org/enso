@@ -198,27 +198,28 @@ public final class TypeInference implements IRPass {
   }
 
   private void processGlobalName(Name.Literal literalName, BindingsMap.ResolvedName resolution) {
-    // TODO this does not work because My_Type.Singleton is actually an Application of UnresolvedSymbol<Singleton> on ResolvedType<My_Type>, it's not a ResolvedConstructor
     switch (resolution) {
       case BindingsMap.ResolvedConstructor ctor -> {
         // TODO when do these appear??
         log("processGlobalName", literalName, "RESOLVED CONTRUCTOR");
 
-        // TODO we should be able to get the types of each field and add them here
-        // Currently we just fall back to Any
-        var arguments = IntStream.range(0, ctor.cons().arity()).mapToObj((i) -> TypeRepresentation.ANY).toList();
-        var resultType = TypeRepresentation.fromQualifiedName(ctor.tpe().qualifiedName());
-        var constructorFunctionType = TypeRepresentation.buildFunction(arguments, resultType);
-        setInferredType(literalName, new InferredType(constructorFunctionType));
+        var constructorFunctionType = buildAtomConstructorType(resolvedTypeAsTypeObject(ctor.tpe()), ctor.cons());
+        if (constructorFunctionType != null) {
+          setInferredType(literalName, new InferredType(constructorFunctionType));
+        }
       }
 
       case BindingsMap.ResolvedType tpe -> {
-        var type = new TypeRepresentation.TypeObject(tpe.qualifiedName(), tpe.tp());
+        var type = resolvedTypeAsTypeObject(tpe);
         setInferredType(literalName, new InferredType(type));
       }
       default ->
           log("processGlobalName", literalName, "global scope reference to " + resolution + " - currently global inference is unsupported");
     }
+  }
+
+  private TypeRepresentation.TypeObject resolvedTypeAsTypeObject(BindingsMap.ResolvedType resolvedType) {
+    return new TypeRepresentation.TypeObject(resolvedType.qualifiedName(), resolvedType.tp());
   }
 
   private void processLiteral(Literal literal) {
@@ -290,13 +291,7 @@ public final class TypeInference implements IRPass {
       case TypeRepresentation.TypeObject typeObject -> {
         Option<BindingsMap.Cons> ctorCandidate = typeObject.shape().members().find((ctor) -> ctor.name().equals(function.name()));
         if (ctorCandidate.isDefined()) {
-          BindingsMap.Cons ctor = ctorCandidate.get();
-
-          // TODO we should be able to get the types of each field and add them here
-          // Currently we just fall back to Any
-          var arguments = IntStream.range(0, ctor.arity()).mapToObj((i) -> TypeRepresentation.ANY).toList();
-          var resultType = typeObject.instantiate();
-          return TypeRepresentation.buildFunction(arguments, resultType);
+          return buildAtomConstructorType(typeObject, ctorCandidate.get());
         } else {
           // TODO if no ctor found, we should search static methods, but that is not implemented currently; so we cannot report an error either - just do nothing
           return null;
@@ -308,6 +303,18 @@ public final class TypeInference implements IRPass {
         return null;
       }
     }
+  }
+
+  private TypeRepresentation buildAtomConstructorType(TypeRepresentation.TypeObject parentType, BindingsMap.Cons constructor) {
+    if (constructor.anyFieldsDefaulted()) {
+      // TODO implement handling of default arguments - not only ctors will need this!
+      log("buildAtomConstructorType(" + parentType.name() + ", " + constructor.name() + "): constructors with default arguments are not supported yet.");
+      return null;
+    }
+
+    var arguments = constructor.arguments().map((arg) -> arg.typ().map(this::resolveTypeExpression).getOrElse(() -> TypeRepresentation.UNKNOWN));
+    var resultType = parentType.instantiate();
+    return TypeRepresentation.buildFunction(CollectionConverters.asJava(arguments), resultType);
   }
 
   /**
