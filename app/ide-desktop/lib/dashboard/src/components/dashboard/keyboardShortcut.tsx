@@ -8,7 +8,7 @@ import ShiftKeyIcon from 'enso-assets/shift_key.svg'
 import WindowsKeyIcon from 'enso-assets/windows_key.svg'
 import * as detect from 'enso-common/src/detect'
 
-import * as providers from '#/providers'
+import * as shortcutsProvider from '#/providers/shortcutsProvider'
 import * as shortcutsModule from '#/utilities/shortcuts'
 
 import SvgMask from '#/components/SvgMask'
@@ -65,7 +65,7 @@ export interface KeyboardShortcutProps {
 /** A visual representation of a keyboard shortcut. */
 export default function KeyboardShortcut(props: KeyboardShortcutProps) {
     const { action } = props
-    const { shortcuts } = providers.useShortcuts()
+    const { shortcuts } = shortcutsProvider.useShortcuts()
     const shortcut = shortcuts.keyboardShortcuts[action][0]
     if (shortcut == null) {
         return null

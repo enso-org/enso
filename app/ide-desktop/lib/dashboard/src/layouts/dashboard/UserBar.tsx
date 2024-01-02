@@ -7,7 +7,9 @@ import DefaultUserIcon from 'enso-assets/default_user.svg'
 import ManagePermissionsModal from '#/layouts/dashboard/ManagePermissionsModal'
 import * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
 import UserMenu from '#/layouts/dashboard/UserMenu'
-import * as providers from '#/providers'
+import * as authProvider from '#/providers/authProvider'
+import * as backendProvider from '#/providers/backendProvider'
+import * as modalProvider from '#/providers/modalProvider'
 import * as backendModule from '#/services/backend'
 
 import Button from '#/components/Button'
@@ -40,10 +42,9 @@ export default function UserBar(props: UserBarProps) {
         doRemoveSelf,
         onSignOut,
     } = props
-    const { organization } = providers.useNonPartialUserSession()
-    const { updateModal } = providers.useSetModal()
-    const { backend } = providers.useBackend()
-    const { setModal } = providers.useSetModal()
+    const { organization } = authProvider.useNonPartialUserSession()
+    const { setModal, updateModal } = modalProvider.useSetModal()
+    const { backend } = backendProvider.useBackend()
     const self =
         organization != null
             ? projectAsset?.permissions?.find(

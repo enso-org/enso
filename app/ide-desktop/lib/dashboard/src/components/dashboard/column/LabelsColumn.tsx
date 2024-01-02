@@ -6,7 +6,9 @@ import Plus2Icon from 'enso-assets/plus2.svg'
 import * as hooks from '#/hooks'
 import * as categorySwitcherUtils from '#/layouts/dashboard/CategorySwitcher/categorySwitcherUtils'
 import ManageLabelsModal from '#/layouts/dashboard/ManageLabelsModal'
-import * as providers from '#/providers'
+import * as authProvider from '#/providers/authProvider'
+import * as backendProvider from '#/providers/backendProvider'
+import * as modalProvider from '#/providers/modalProvider'
 import type * as backendModule from '#/services/backend'
 import * as permissions from '#/utilities/permissions'
 import * as shortcuts from '#/utilities/shortcuts'
@@ -31,9 +33,9 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
         state: { category, labels, setQuery, deletedLabelNames, doCreateLabel },
         rowState: { temporarilyAddedLabels, temporarilyRemovedLabels },
     } = props
-    const session = providers.useNonPartialUserSession()
-    const { setModal, unsetModal } = providers.useSetModal()
-    const { backend } = providers.useBackend()
+    const session = authProvider.useNonPartialUserSession()
+    const { setModal, unsetModal } = modalProvider.useSetModal()
+    const { backend } = backendProvider.useBackend()
     const toastAndLog = hooks.useToastAndLog()
     const [isHovered, setIsHovered] = React.useState(false)
     const self = asset.permissions?.find(

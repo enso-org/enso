@@ -2,7 +2,8 @@
  * interactive components. */
 import * as React from 'react'
 
-import * as events from '#/events'
+import * as assetEvent from '#/events/assetEvent'
+import * as assetListEvent from '#/events/assetListEvent'
 import * as hooks from '#/hooks'
 import type * as assetSettingsPanel from '#/layouts/dashboard/AssetSettingsPanel'
 import AssetSettingsPanel from '#/layouts/dashboard/AssetSettingsPanel'
@@ -14,7 +15,12 @@ import Editor from '#/layouts/dashboard/Editor'
 import Home from '#/layouts/dashboard/Home'
 import * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
 import TopBar from '#/layouts/dashboard/TopBar'
-import * as providers from '#/providers'
+import * as authProvider from '#/providers/authProvider'
+import * as backendProvider from '#/providers/backendProvider'
+import * as localStorageProvider from '#/providers/localStorageProvider'
+import * as loggerProvider from '#/providers/loggerProvider'
+import * as modalProvider from '#/providers/modalProvider'
+import * as shortcutsProvider from '#/providers/shortcutsProvider'
 import * as backendModule from '#/services/backend'
 import * as localBackendModule from '#/services/localBackend'
 import * as remoteBackendModule from '#/services/remoteBackend'
@@ -48,14 +54,14 @@ export default function Dashboard(props: DashboardProps) {
         initialProjectName: rawInitialProjectName,
         projectManagerUrl,
     } = props
-    const logger = providers.useLogger()
-    const session = providers.useNonPartialUserSession()
-    const { backend } = providers.useBackend()
-    const { setBackend } = providers.useSetBackend()
-    const { modalRef } = providers.useModalRef()
-    const { unsetModal } = providers.useSetModal()
-    const { localStorage } = providers.useLocalStorage()
-    const { shortcuts } = providers.useShortcuts()
+    const logger = loggerProvider.useLogger()
+    const session = authProvider.useNonPartialUserSession()
+    const { backend } = backendProvider.useBackend()
+    const { setBackend } = backendProvider.useSetBackend()
+    const { modalRef } = modalProvider.useModalRef()
+    const { unsetModal } = modalProvider.useSetModal()
+    const { localStorage } = localStorageProvider.useLocalStorage()
+    const { shortcuts } = shortcutsProvider.useShortcuts()
     const [initialized, setInitialized] = React.useState(false)
     const [query, setQuery] = React.useState(() => assetQuery.AssetQuery.fromString(''))
     const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
@@ -64,13 +70,14 @@ export default function Dashboard(props: DashboardProps) {
     const [page, setPage] = React.useState(
         () => localStorage.get(localStorageModule.LocalStorageKey.page) ?? pageSwitcher.Page.drive
     )
-    const [queuedAssetEvents, setQueuedAssetEvents] = React.useState<events.AssetEvent[]>([])
+    const [queuedAssetEvents, setQueuedAssetEvents] = React.useState<assetEvent.AssetEvent[]>([])
     const [projectStartupInfo, setProjectStartupInfo] =
         React.useState<backendModule.ProjectStartupInfo | null>(null)
     const [openProjectAbortController, setOpenProjectAbortController] =
         React.useState<AbortController | null>(null)
-    const [assetListEvents, dispatchAssetListEvent] = hooks.useEvent<events.AssetListEvent>()
-    const [assetEvents, dispatchAssetEvent] = hooks.useEvent<events.AssetEvent>()
+    const [assetListEvents, dispatchAssetListEvent] =
+        hooks.useEvent<assetListEvent.AssetListEvent>()
+    const [assetEvents, dispatchAssetEvent] = hooks.useEvent<assetEvent.AssetEvent>()
     const [assetSettingsPanelProps, setAssetSettingsPanelProps] =
         React.useState<assetSettingsPanel.AssetSettingsPanelRequiredProps | null>(null)
     const [isAssetSettingsPanelVisible, setIsAssetSettingsPanelVisible] = React.useState(
@@ -86,7 +93,7 @@ export default function Dashboard(props: DashboardProps) {
         backend.type === backendModule.BackendType.remote &&
         session.organization?.isEnabled !== true
     const isListingRemoteDirectoryWhileOffline =
-        session.type === providers.UserSessionType.offline &&
+        session.type === authProvider.UserSessionType.offline &&
         backend.type === backendModule.BackendType.remote
 
     React.useEffect(() => {
@@ -135,7 +142,7 @@ export default function Dashboard(props: DashboardProps) {
                         setPage(pageSwitcher.Page.drive)
                         setQueuedAssetEvents([
                             {
-                                type: events.AssetEventType.openProject,
+                                type: assetEvent.AssetEventType.openProject,
                                 id: savedProjectStartupInfo.project.projectId,
                                 shouldAutomaticallySwitchPage: page === pageSwitcher.Page.editor,
                                 runInBackground: false,
@@ -213,7 +220,7 @@ export default function Dashboard(props: DashboardProps) {
 
     hooks.useEventHandler(assetEvents, event => {
         switch (event.type) {
-            case events.AssetEventType.openProject: {
+            case assetEvent.AssetEventType.openProject: {
                 openProjectAbortController?.abort()
                 setOpenProjectAbortController(null)
                 break
@@ -339,7 +346,7 @@ export default function Dashboard(props: DashboardProps) {
             onSpinnerStateChange?: (state: spinner.SpinnerState) => void
         ) => {
             dispatchAssetListEvent({
-                type: events.AssetListEventType.newProject,
+                type: assetListEvent.AssetListEventType.newProject,
                 parentKey: null,
                 parentId: null,
                 templateId: templateId ?? null,
@@ -380,7 +387,7 @@ export default function Dashboard(props: DashboardProps) {
     const doRemoveSelf = React.useCallback(() => {
         if (projectStartupInfo?.projectAsset != null) {
             dispatchAssetListEvent({
-                type: events.AssetListEventType.removeSelf,
+                type: assetListEvent.AssetListEventType.removeSelf,
                 id: projectStartupInfo.projectAsset.id,
             })
             setProjectStartupInfo(null)

@@ -3,7 +3,7 @@
  * being used directly. */
 import * as React from 'react'
 
-import * as providers from '#/providers'
+import * as shortcutsProvider from '#/providers/shortcutsProvider'
 import * as set from '#/utilities/set'
 import * as shortcutsModule from '#/utilities/shortcuts'
 
@@ -118,7 +118,7 @@ export default function Table<T, State = never, RowState = never, Key extends st
         onRowDrop,
         ...rowProps
     } = props
-    const { shortcuts } = providers.useShortcuts()
+    const { shortcuts } = shortcutsProvider.useShortcuts()
     const [spinnerState, setSpinnerState] = React.useState(spinner.SpinnerState.initial)
     // This should not be made mutable for the sake of optimization, otherwise its value may
     // be different after `await`ing an I/O operation. Also, a change in its value should trigger

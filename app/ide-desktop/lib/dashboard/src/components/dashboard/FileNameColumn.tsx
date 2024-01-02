@@ -1,9 +1,11 @@
 /** @file The icon and name of a {@link backendModule.FileAsset}. */
 import * as React from 'react'
 
-import * as events from '#/events'
+import * as assetEvent from '#/events/assetEvent'
+import * as assetListEvent from '#/events/assetListEvent'
 import * as hooks from '#/hooks'
-import * as providers from '#/providers'
+import * as backendProvider from '#/providers/backendProvider'
+import * as shortcutsProvider from '#/providers/shortcutsProvider'
 import * as backendModule from '#/services/backend'
 import * as assetTreeNode from '#/utilities/assetTreeNode'
 import * as eventModule from '#/utilities/event'
@@ -36,8 +38,8 @@ export default function FileNameColumn(props: FileNameColumnProps) {
         setRowState,
     } = props
     const toastAndLog = hooks.useToastAndLog()
-    const { backend } = providers.useBackend()
-    const { shortcuts } = providers.useShortcuts()
+    const { backend } = backendProvider.useBackend()
+    const { shortcuts } = shortcutsProvider.useShortcuts()
     const asset = item.item
     if (asset.type !== backendModule.AssetType.file) {
         // eslint-disable-next-line no-restricted-syntax
@@ -54,31 +56,31 @@ export default function FileNameColumn(props: FileNameColumnProps) {
 
     hooks.useEventHandler(assetEvents, async event => {
         switch (event.type) {
-            case events.AssetEventType.newProject:
-            case events.AssetEventType.newFolder:
-            case events.AssetEventType.newDataConnector:
-            case events.AssetEventType.openProject:
-            case events.AssetEventType.closeProject:
-            case events.AssetEventType.cancelOpeningAllProjects:
-            case events.AssetEventType.cut:
-            case events.AssetEventType.cancelCut:
-            case events.AssetEventType.move:
-            case events.AssetEventType.delete:
-            case events.AssetEventType.restore:
-            case events.AssetEventType.download:
-            case events.AssetEventType.downloadSelected:
-            case events.AssetEventType.removeSelf:
-            case events.AssetEventType.temporarilyAddLabels:
-            case events.AssetEventType.temporarilyRemoveLabels:
-            case events.AssetEventType.addLabels:
-            case events.AssetEventType.removeLabels:
-            case events.AssetEventType.deleteLabel: {
+            case assetEvent.AssetEventType.newProject:
+            case assetEvent.AssetEventType.newFolder:
+            case assetEvent.AssetEventType.newDataConnector:
+            case assetEvent.AssetEventType.openProject:
+            case assetEvent.AssetEventType.closeProject:
+            case assetEvent.AssetEventType.cancelOpeningAllProjects:
+            case assetEvent.AssetEventType.cut:
+            case assetEvent.AssetEventType.cancelCut:
+            case assetEvent.AssetEventType.move:
+            case assetEvent.AssetEventType.delete:
+            case assetEvent.AssetEventType.restore:
+            case assetEvent.AssetEventType.download:
+            case assetEvent.AssetEventType.downloadSelected:
+            case assetEvent.AssetEventType.removeSelf:
+            case assetEvent.AssetEventType.temporarilyAddLabels:
+            case assetEvent.AssetEventType.temporarilyRemoveLabels:
+            case assetEvent.AssetEventType.addLabels:
+            case assetEvent.AssetEventType.removeLabels:
+            case assetEvent.AssetEventType.deleteLabel: {
                 // Ignored. These events should all be unrelated to projects.
                 // `deleteMultiple`, `restoreMultiple`, `download`, and `downloadSelected`
                 // are handled by `AssetRow`.
                 break
             }
-            case events.AssetEventType.uploadFiles: {
+            case assetEvent.AssetEventType.uploadFiles: {
                 const file = event.files.get(item.key)
                 if (file != null) {
                     rowState.setVisibility(visibility.Visibility.faded)
@@ -98,7 +100,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
                         })
                     } catch (error) {
                         dispatchAssetListEvent({
-                            type: events.AssetListEventType.delete,
+                            type: assetListEvent.AssetListEventType.delete,
                             key: item.key,
                         })
                         toastAndLog('Could not upload file', error)

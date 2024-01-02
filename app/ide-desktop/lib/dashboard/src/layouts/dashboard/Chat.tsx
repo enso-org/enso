@@ -11,7 +11,8 @@ import * as chat from 'enso-chat/chat'
 import * as gtag from 'enso-common/src/gtag'
 
 import * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
-import * as providers from '#/providers'
+import * as authProvider from '#/providers/authProvider'
+import * as loggerProvider from '#/providers/loggerProvider'
 import * as animations from '#/utilities/animations'
 import * as config from '#/utilities/config'
 import * as dateTime from '#/utilities/dateTime'
@@ -385,8 +386,8 @@ export interface ChatProps {
 /** Chat sidebar. */
 export default function Chat(props: ChatProps) {
     const { page, isOpen, doClose } = props
-    const { accessToken: rawAccessToken } = providers.useNonPartialUserSession()
-    const logger = providers.useLogger()
+    const { accessToken: rawAccessToken } = authProvider.useNonPartialUserSession()
+    const logger = loggerProvider.useLogger()
 
     /** This is SAFE, because this component is only rendered when `accessToken` is present.
      * See `dashboard.tsx` for its sole usage. */

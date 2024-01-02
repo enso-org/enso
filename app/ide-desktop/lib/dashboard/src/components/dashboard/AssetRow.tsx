@@ -3,11 +3,14 @@ import * as React from 'react'
 
 import BlankIcon from 'enso-assets/blank.svg'
 
-import * as events from '#/events'
+import * as assetEvent from '#/events/assetEvent'
+import * as assetListEvent from '#/events/assetListEvent'
 import * as hooks from '#/hooks'
 import AssetContextMenu from '#/layouts/dashboard/AssetContextMenu'
 import type * as assetsTable from '#/layouts/dashboard/AssetsTable'
-import * as providers from '#/providers'
+import * as authProvider from '#/providers/authProvider'
+import * as backendProvider from '#/providers/backendProvider'
+import * as modalProvider from '#/providers/modalProvider'
 import * as backendModule from '#/services/backend'
 import * as assetTreeNode from '#/utilities/assetTreeNode'
 import * as download from '#/utilities/download'
@@ -70,9 +73,9 @@ export default function AssetRow(props: AssetRowProps) {
         doCut,
         doPaste,
     } = state
-    const { organization, user } = providers.useNonPartialUserSession()
-    const { backend } = providers.useBackend()
-    const { setModal, unsetModal } = providers.useSetModal()
+    const { organization, user } = authProvider.useNonPartialUserSession()
+    const { backend } = backendProvider.useBackend()
+    const { setModal, unsetModal } = modalProvider.useSetModal()
     const toastAndLog = hooks.useToastAndLog()
     const [isDraggedOver, setIsDraggedOver] = React.useState(false)
     const [item, setItem] = React.useState(rawItem)
@@ -109,7 +112,7 @@ export default function AssetRow(props: AssetRowProps) {
             // position, from the viewpoint of the asset list.
             try {
                 dispatchAssetListEvent({
-                    type: events.AssetListEventType.move,
+                    type: assetListEvent.AssetListEventType.move,
                     newParentKey,
                     newParentId,
                     key: item.key,
@@ -137,7 +140,7 @@ export default function AssetRow(props: AssetRowProps) {
                 }))
                 // Move the asset back to its original position.
                 dispatchAssetListEvent({
-                    type: events.AssetListEventType.move,
+                    type: assetListEvent.AssetListEventType.move,
                     newParentKey: item.directoryKey,
                     newParentId: item.directoryId,
                     key: item.key,
@@ -167,7 +170,7 @@ export default function AssetRow(props: AssetRowProps) {
         setVisibility(visibilityModule.Visibility.hidden)
         if (asset.type === backendModule.AssetType.directory) {
             dispatchAssetListEvent({
-                type: events.AssetListEventType.closeFolder,
+                type: assetListEvent.AssetListEventType.closeFolder,
                 id: asset.id,
                 // This is SAFE, as this asset is already known to be a directory.
                 // eslint-disable-next-line no-restricted-syntax
@@ -176,7 +179,7 @@ export default function AssetRow(props: AssetRowProps) {
         }
         try {
             dispatchAssetListEvent({
-                type: events.AssetListEventType.willDelete,
+                type: assetListEvent.AssetListEventType.willDelete,
                 key: item.key,
             })
             if (
@@ -197,7 +200,7 @@ export default function AssetRow(props: AssetRowProps) {
             }
             await backend.deleteAsset(asset.id, asset.title)
             dispatchAssetListEvent({
-                type: events.AssetListEventType.delete,
+                type: assetListEvent.AssetListEventType.delete,
                 key: item.key,
             })
         } catch (error) {
@@ -221,7 +224,7 @@ export default function AssetRow(props: AssetRowProps) {
         try {
             await backend.undoDeleteAsset(asset.id, asset.title)
             dispatchAssetListEvent({
-                type: events.AssetListEventType.delete,
+                type: assetListEvent.AssetListEventType.delete,
                 key: item.key,
             })
         } catch (error) {
@@ -239,47 +242,47 @@ export default function AssetRow(props: AssetRowProps) {
     hooks.useEventHandler(assetEvents, async event => {
         switch (event.type) {
             // These events are handled in the specific `NameColumn` files.
-            case events.AssetEventType.newProject:
-            case events.AssetEventType.newFolder:
-            case events.AssetEventType.uploadFiles:
-            case events.AssetEventType.newDataConnector:
-            case events.AssetEventType.openProject:
-            case events.AssetEventType.closeProject:
-            case events.AssetEventType.cancelOpeningAllProjects: {
+            case assetEvent.AssetEventType.newProject:
+            case assetEvent.AssetEventType.newFolder:
+            case assetEvent.AssetEventType.uploadFiles:
+            case assetEvent.AssetEventType.newDataConnector:
+            case assetEvent.AssetEventType.openProject:
+            case assetEvent.AssetEventType.closeProject:
+            case assetEvent.AssetEventType.cancelOpeningAllProjects: {
                 break
             }
-            case events.AssetEventType.cut: {
+            case assetEvent.AssetEventType.cut: {
                 if (event.ids.has(item.key)) {
                     setVisibility(visibilityModule.Visibility.faded)
                 }
                 break
             }
-            case events.AssetEventType.cancelCut: {
+            case assetEvent.AssetEventType.cancelCut: {
                 if (event.ids.has(item.key)) {
                     setVisibility(visibilityModule.Visibility.visible)
                 }
                 break
             }
-            case events.AssetEventType.move: {
+            case assetEvent.AssetEventType.move: {
                 if (event.ids.has(item.key)) {
                     setVisibility(visibilityModule.Visibility.visible)
                     await doMove(event.newParentKey, event.newParentId)
                 }
                 break
             }
-            case events.AssetEventType.delete: {
+            case assetEvent.AssetEventType.delete: {
                 if (event.ids.has(item.key)) {
                     await doDelete()
                 }
                 break
             }
-            case events.AssetEventType.restore: {
+            case assetEvent.AssetEventType.restore: {
                 if (event.ids.has(item.key)) {
                     await doRestore()
                 }
                 break
             }
-            case events.AssetEventType.download: {
+            case assetEvent.AssetEventType.download: {
                 if (event.ids.has(item.key)) {
                     download.download(
                         `./api/project-manager/projects/${asset.id}/enso-project`,
@@ -288,7 +291,7 @@ export default function AssetRow(props: AssetRowProps) {
                 }
                 break
             }
-            case events.AssetEventType.downloadSelected: {
+            case assetEvent.AssetEventType.downloadSelected: {
                 if (selected) {
                     download.download(
                         `./api/project-manager/projects/${asset.id}/enso-project`,
@@ -297,7 +300,7 @@ export default function AssetRow(props: AssetRowProps) {
                 }
                 break
             }
-            case events.AssetEventType.removeSelf: {
+            case assetEvent.AssetEventType.removeSelf: {
                 // This is not triggered from the asset list, so it uses `item.id` instead of `key`.
                 if (event.id === asset.id && user != null) {
                     setVisibility(visibilityModule.Visibility.hidden)
@@ -308,7 +311,7 @@ export default function AssetRow(props: AssetRowProps) {
                             userSubjects: [user.id],
                         })
                         dispatchAssetListEvent({
-                            type: events.AssetListEventType.delete,
+                            type: assetListEvent.AssetListEventType.delete,
                             key: item.key,
                         })
                     } catch (error) {
@@ -318,7 +321,7 @@ export default function AssetRow(props: AssetRowProps) {
                 }
                 break
             }
-            case events.AssetEventType.temporarilyAddLabels: {
+            case assetEvent.AssetEventType.temporarilyAddLabels: {
                 const labels = event.ids.has(item.key) ? event.labelNames : set.EMPTY
                 setRowState(oldRowState =>
                     oldRowState.temporarilyAddedLabels === labels &&
@@ -332,7 +335,7 @@ export default function AssetRow(props: AssetRowProps) {
                 )
                 break
             }
-            case events.AssetEventType.temporarilyRemoveLabels: {
+            case assetEvent.AssetEventType.temporarilyRemoveLabels: {
                 const labels = event.ids.has(item.key) ? event.labelNames : set.EMPTY
                 setRowState(oldRowState =>
                     oldRowState.temporarilyAddedLabels === set.EMPTY &&
@@ -346,7 +349,7 @@ export default function AssetRow(props: AssetRowProps) {
                 )
                 break
             }
-            case events.AssetEventType.addLabels: {
+            case assetEvent.AssetEventType.addLabels: {
                 setRowState(oldRowState =>
                     oldRowState.temporarilyAddedLabels === set.EMPTY
                         ? oldRowState
@@ -371,7 +374,7 @@ export default function AssetRow(props: AssetRowProps) {
                 }
                 break
             }
-            case events.AssetEventType.removeLabels: {
+            case assetEvent.AssetEventType.removeLabels: {
                 setRowState(oldRowState =>
                     oldRowState.temporarilyAddedLabels === set.EMPTY
                         ? oldRowState
@@ -394,7 +397,7 @@ export default function AssetRow(props: AssetRowProps) {
                 }
                 break
             }
-            case events.AssetEventType.deleteLabel: {
+            case assetEvent.AssetEventType.deleteLabel: {
                 setAsset(oldAsset => {
                     let found = identity.identity<boolean>(false)
                     const labels =
@@ -518,7 +521,7 @@ export default function AssetRow(props: AssetRowProps) {
                                     event.stopPropagation()
                                     unsetModal()
                                     dispatchAssetEvent({
-                                        type: events.AssetEventType.move,
+                                        type: assetEvent.AssetEventType.move,
                                         newParentKey: item.key,
                                         newParentId: item.item.id,
                                         ids: new Set(payload.map(dragItem => dragItem.key)),

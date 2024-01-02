@@ -4,7 +4,8 @@ import * as React from 'react'
 import * as common from 'enso-common'
 
 import * as appUtils from '#/appUtils'
-import * as events from '#/events'
+import * as assetEvent from '#/events/assetEvent'
+import * as assetListEvent from '#/events/assetListEvent'
 import * as hooks from '#/hooks'
 import type * as assetSettingsPanel from '#/layouts/dashboard/AssetSettingsPanel'
 import AssetsTable from '#/layouts/dashboard/AssetsTable'
@@ -13,7 +14,10 @@ import * as categorySwitcherUtils from '#/layouts/dashboard/CategorySwitcher/cat
 import DriveBar from '#/layouts/dashboard/DriveBar'
 import Labels from '#/layouts/dashboard/Labels'
 import * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
-import * as providers from '#/providers'
+import * as authProvider from '#/providers/authProvider'
+import * as backendProvider from '#/providers/backendProvider'
+import * as localStorageProvider from '#/providers/localStorageProvider'
+import * as modalProvider from '#/providers/modalProvider'
 import * as backendModule from '#/services/backend'
 import type * as assetQuery from '#/utilities/assetQuery'
 import * as github from '#/utilities/github'
@@ -34,11 +38,11 @@ export interface DriveProps {
     initialProjectName: string | null
     /** These events will be dispatched the next time the assets list is refreshed, rather than
      * immediately. */
-    queuedAssetEvents: events.AssetEvent[]
-    assetListEvents: events.AssetListEvent[]
-    dispatchAssetListEvent: (directoryEvent: events.AssetListEvent) => void
-    assetEvents: events.AssetEvent[]
-    dispatchAssetEvent: (directoryEvent: events.AssetEvent) => void
+    queuedAssetEvents: assetEvent.AssetEvent[]
+    assetListEvents: assetListEvent.AssetListEvent[]
+    dispatchAssetListEvent: (directoryEvent: assetListEvent.AssetListEvent) => void
+    assetEvents: assetEvent.AssetEvent[]
+    dispatchAssetEvent: (directoryEvent: assetEvent.AssetEvent) => void
     query: assetQuery.AssetQuery
     setQuery: React.Dispatch<React.SetStateAction<assetQuery.AssetQuery>>
     projectStartupInfo: backendModule.ProjectStartupInfo | null
@@ -82,11 +86,11 @@ export default function Drive(props: DriveProps) {
         isListingRemoteDirectoryAndWillFail,
     } = props
     const navigate = hooks.useNavigate()
-    const { organization } = providers.useNonPartialUserSession()
-    const { backend } = providers.useBackend()
-    const { localStorage } = providers.useLocalStorage()
-    const { modal } = providers.useModal()
-    const { modalRef } = providers.useModalRef()
+    const { organization } = authProvider.useNonPartialUserSession()
+    const { backend } = backendProvider.useBackend()
+    const { localStorage } = localStorageProvider.useLocalStorage()
+    const { modal } = modalProvider.useModal()
+    const { modalRef } = modalProvider.useModalRef()
     const toastAndLog = hooks.useToastAndLog()
     const [isFileBeingDragged, setIsFileBeingDragged] = React.useState(false)
     const [category, setCategory] = React.useState(
@@ -139,7 +143,7 @@ export default function Drive(props: DriveProps) {
                 toastAndLog('Files cannot be uploaded while offline')
             } else {
                 dispatchAssetListEvent({
-                    type: events.AssetListEventType.uploadFiles,
+                    type: assetListEvent.AssetListEventType.uploadFiles,
                     parentKey: null,
                     parentId: null,
                     files,
@@ -155,7 +159,7 @@ export default function Drive(props: DriveProps) {
             onSpinnerStateChange?: (state: spinner.SpinnerState) => void
         ) => {
             dispatchAssetListEvent({
-                type: events.AssetListEventType.newProject,
+                type: assetListEvent.AssetListEventType.newProject,
                 parentKey: null,
                 parentId: null,
                 templateId: templateId ?? null,
@@ -167,7 +171,7 @@ export default function Drive(props: DriveProps) {
 
     const doCreateDirectory = React.useCallback(() => {
         dispatchAssetListEvent({
-            type: events.AssetListEventType.newFolder,
+            type: assetListEvent.AssetListEventType.newFolder,
             parentKey: null,
             parentId: null,
         })
@@ -211,7 +215,7 @@ export default function Drive(props: DriveProps) {
             try {
                 await backend.deleteTag(id, value)
                 dispatchAssetEvent({
-                    type: events.AssetEventType.deleteLabel,
+                    type: assetEvent.AssetEventType.deleteLabel,
                     labelName: value,
                 })
                 setLabels(oldLabels => oldLabels.filter(oldLabel => oldLabel.id !== id))
@@ -233,7 +237,7 @@ export default function Drive(props: DriveProps) {
     const doCreateDataConnector = React.useCallback(
         (name: string, value: string) => {
             dispatchAssetListEvent({
-                type: events.AssetListEventType.newDataConnector,
+                type: assetListEvent.AssetListEventType.newDataConnector,
                 parentKey: null,
                 parentId: null,
                 name,
@@ -387,7 +391,7 @@ export default function Drive(props: DriveProps) {
                         event.preventDefault()
                         setIsFileBeingDragged(false)
                         dispatchAssetListEvent({
-                            type: events.AssetListEventType.uploadFiles,
+                            type: assetListEvent.AssetListEventType.uploadFiles,
                             parentKey: null,
                             parentId: null,
                             files: Array.from(event.dataTransfer.files),

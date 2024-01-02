@@ -3,7 +3,8 @@ import * as React from 'react'
 
 import * as assetListEventModule from '#/events/assetListEvent'
 import NewDataConnectorModal from '#/layouts/dashboard/NewDataConnectorModal'
-import * as providers from '#/providers'
+import * as backendProvider from '#/providers/backendProvider'
+import * as modalProvider from '#/providers/modalProvider'
 import * as backendModule from '#/services/backend'
 import * as shortcuts from '#/utilities/shortcuts'
 
@@ -33,8 +34,8 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
         dispatchAssetListEvent,
         doPaste,
     } = props
-    const { backend } = providers.useBackend()
-    const { setModal, unsetModal } = providers.useSetModal()
+    const { backend } = backendProvider.useBackend()
+    const { setModal, unsetModal } = modalProvider.useSetModal()
     const filesInputRef = React.useRef<HTMLInputElement>(null)
     const isCloud = backend.type === backendModule.BackendType.remote
     return (

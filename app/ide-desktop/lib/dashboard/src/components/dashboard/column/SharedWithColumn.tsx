@@ -3,10 +3,11 @@ import * as React from 'react'
 
 import Plus2Icon from 'enso-assets/plus2.svg'
 
-import * as events from '#/events'
+import * as assetEvent from '#/events/assetEvent'
 import * as categorySwitcherUtils from '#/layouts/dashboard/CategorySwitcher/categorySwitcherUtils'
 import ManagePermissionsModal from '#/layouts/dashboard/ManagePermissionsModal'
-import * as providers from '#/providers'
+import * as authProvider from '#/providers/authProvider'
+import * as modalProvider from '#/providers/modalProvider'
 import type * as backendModule from '#/services/backend'
 import * as permissions from '#/utilities/permissions'
 import * as uniqueString from '#/utilities/uniqueString'
@@ -36,8 +37,8 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
         setItem,
         state: { category, dispatchAssetEvent },
     } = props
-    const session = providers.useNonPartialUserSession()
-    const { setModal } = providers.useSetModal()
+    const session = authProvider.useNonPartialUserSession()
+    const { setModal } = modalProvider.useSetModal()
     const [isHovered, setIsHovered] = React.useState(false)
     const self = asset.permissions?.find(
         permission => permission.user.user_email === session.organization?.email
@@ -88,7 +89,7 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
                                 eventTarget={event.currentTarget}
                                 doRemoveSelf={() => {
                                     dispatchAssetEvent({
-                                        type: events.AssetEventType.removeSelf,
+                                        type: assetEvent.AssetEventType.removeSelf,
                                         id: asset.id,
                                     })
                                 }}

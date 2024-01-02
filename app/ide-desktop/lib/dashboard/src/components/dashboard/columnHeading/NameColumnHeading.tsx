@@ -14,7 +14,7 @@ export default function NameColumnHeading(
     props: tableColumn.TableColumnHeadingProps<assetsTable.AssetsTableState>
 ): JSX.Element {
     const {
-        state: { sortColumn, setSortColumn, sortDirection, setSortDirection }, 
+        state: { sortColumn, setSortColumn, sortDirection, setSortDirection },
     } = props
     const [isHovered, setIsHovered] = React.useState(false)
     const isSortActive = sortColumn === columnUtils.Column.name && sortDirection != null

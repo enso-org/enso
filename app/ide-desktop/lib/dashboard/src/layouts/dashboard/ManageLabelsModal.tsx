@@ -2,7 +2,9 @@
 import * as React from 'react'
 
 import * as hooks from '#/hooks'
-import * as providers from '#/providers'
+import * as authProvider from '#/providers/authProvider'
+import * as backendProvider from '#/providers/backendProvider'
+import * as modalProvider from '#/providers/modalProvider'
 import * as backendModule from '#/services/backend'
 import * as string from '#/utilities/string'
 
@@ -33,9 +35,9 @@ export default function ManageLabelsModal<
     Asset extends backendModule.AnyAsset = backendModule.AnyAsset,
 >(props: ManageLabelsModalProps<Asset>) {
     const { item, setItem, allLabels, doCreateLabel, eventTarget } = props
-    const { organization } = providers.useNonPartialUserSession()
-    const { backend } = providers.useBackend()
-    const { unsetModal } = providers.useSetModal()
+    const { organization } = authProvider.useNonPartialUserSession()
+    const { backend } = backendProvider.useBackend()
+    const { unsetModal } = modalProvider.useSetModal()
     const toastAndLog = hooks.useToastAndLog()
     const [labels, setLabelsRaw] = React.useState(item.labels ?? [])
     const [query, setQuery] = React.useState('')

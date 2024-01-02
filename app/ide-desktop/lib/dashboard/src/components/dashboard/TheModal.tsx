@@ -1,7 +1,7 @@
 /** @file A component that renders the modal instance from the modal React Context. */
 import * as React from 'react'
 
-import * as providers from '#/providers'
+import * as modalProvider from '#/providers/modalProvider'
 
 // ================
 // === TheModal ===
@@ -9,7 +9,7 @@ import * as providers from '#/providers'
 
 /** Renders the modal instance from the modal React Context (if any). */
 export default function TheModal() {
-    const { modal } = providers.useModal()
+    const { modal } = modalProvider.useModal()
 
     return <>{modal}</>
 }

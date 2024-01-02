@@ -3,12 +3,17 @@ import * as React from 'react'
 
 import * as toast from 'react-toastify'
 
-import * as events from '#/events'
+import * as assetEvent from '#/events/assetEvent'
+import * as assetListEvent from '#/events/assetListEvent'
 import * as hooks from '#/hooks'
 import type * as assetSettingsPanel from '#/layouts/dashboard/AssetSettingsPanel'
 import * as categorySwitcherUtils from '#/layouts/dashboard/CategorySwitcher/categorySwitcherUtils'
 import GlobalContextMenu from '#/layouts/dashboard/GlobalContextMenu'
-import * as providers from '#/providers'
+import * as authProvider from '#/providers/authProvider'
+import * as backendProvider from '#/providers/backendProvider'
+import * as localStorageProvider from '#/providers/localStorageProvider'
+import * as modalProvider from '#/providers/modalProvider'
+import * as shortcutsProvider from '#/providers/shortcutsProvider'
 import * as backendModule from '#/services/backend'
 import * as array from '#/utilities/array'
 import type * as assetQuery from '#/utilities/assetQuery'
@@ -146,9 +151,9 @@ export interface AssetsTableState {
     setSortDirection: (sortDirection: sorting.SortDirection | null) => void
     query: assetQuery.AssetQuery
     setQuery: React.Dispatch<React.SetStateAction<assetQuery.AssetQuery>>
-    dispatchAssetListEvent: (event: events.AssetListEvent) => void
-    assetEvents: events.AssetEvent[]
-    dispatchAssetEvent: (event: events.AssetEvent) => void
+    dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
+    assetEvents: assetEvent.AssetEvent[]
+    dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
     setAssetSettingsPanelProps: React.Dispatch<
         React.SetStateAction<assetSettingsPanel.AssetSettingsPanelRequiredProps | null>
     >
@@ -207,11 +212,11 @@ export interface AssetsTableProps {
     deletedLabelNames: Set<backendModule.LabelName>
     /** These events will be dispatched the next time the assets list is refreshed, rather than
      * immediately. */
-    queuedAssetEvents: events.AssetEvent[]
-    assetListEvents: events.AssetListEvent[]
-    dispatchAssetListEvent: (event: events.AssetListEvent) => void
-    assetEvents: events.AssetEvent[]
-    dispatchAssetEvent: (event: events.AssetEvent) => void
+    queuedAssetEvents: assetEvent.AssetEvent[]
+    assetListEvents: assetListEvent.AssetListEvent[]
+    dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
+    assetEvents: assetEvent.AssetEvent[]
+    dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
     setAssetSettingsPanelProps: React.Dispatch<
         React.SetStateAction<assetSettingsPanel.AssetSettingsPanelRequiredProps | null>
     >
@@ -252,11 +257,11 @@ export default function AssetsTable(props: AssetsTableProps) {
         isListingLocalDirectoryAndWillFail,
         isListingRemoteDirectoryAndWillFail,
     } = props
-    const { organization, user, accessToken } = providers.useNonPartialUserSession()
-    const { backend } = providers.useBackend()
-    const { setModal, unsetModal } = providers.useSetModal()
-    const { localStorage } = providers.useLocalStorage()
-    const { shortcuts } = providers.useShortcuts()
+    const { organization, user, accessToken } = authProvider.useNonPartialUserSession()
+    const { backend } = backendProvider.useBackend()
+    const { setModal, unsetModal } = modalProvider.useSetModal()
+    const { localStorage } = localStorageProvider.useLocalStorage()
+    const { shortcuts } = shortcutsProvider.useShortcuts()
     const toastAndLog = hooks.useToastAndLog()
     const [initialized, setInitialized] = React.useState(false)
     const [assetTree, setAssetTree] = React.useState<assetTreeNode.AssetTreeNode[]>([])
@@ -266,7 +271,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     const [sortDirection, setSortDirection] = React.useState<sorting.SortDirection | null>(null)
     const [selectedKeys, setSelectedKeys] = React.useState(() => new Set<backendModule.AssetId>())
     const [copyData, setCopyData] = React.useState<Set<backendModule.AssetId> | null>(null)
-    const [, setQueuedAssetEvents] = React.useState<events.AssetEvent[]>([])
+    const [, setQueuedAssetEvents] = React.useState<assetEvent.AssetEvent[]>([])
     const [, setNameOfProjectToImmediatelyOpen] = React.useState(initialProjectName)
     const scrollContainerRef = React.useRef<HTMLDivElement>(null)
     const headerRowRef = React.useRef<HTMLTableRowElement>(null)
@@ -362,7 +367,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     return false
                 } else {
                     dispatchAssetEvent({
-                        type: events.AssetEventType.cancelCut,
+                        type: assetEvent.AssetEventType.cancelCut,
                         ids: copyDataRef.current,
                     })
                     setCopyData(null)
@@ -387,7 +392,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             if (projectToLoad != null) {
                 window.setTimeout(() => {
                     dispatchAssetEvent({
-                        type: events.AssetEventType.openProject,
+                        type: assetEvent.AssetEventType.openProject,
                         id: projectToLoad.id,
                         shouldAutomaticallySwitchPage: true,
                         runInBackground: false,
@@ -428,7 +433,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                         .find(isInitialProject)
                     if (projectToLoad != null) {
                         dispatchAssetEvent({
-                            type: events.AssetEventType.openProject,
+                            type: assetEvent.AssetEventType.openProject,
                             id: projectToLoad.id,
                             shouldAutomaticallySwitchPage: true,
                             runInBackground: false,
@@ -803,7 +808,7 @@ export default function AssetsTable(props: AssetsTableProps) {
 
     hooks.useEventHandler(assetListEvents, event => {
         switch (event.type) {
-            case events.AssetListEventType.newFolder: {
+            case assetListEvent.AssetListEventType.newFolder: {
                 const siblings =
                     event.parentKey == null
                         ? assetTree
@@ -855,12 +860,12 @@ export default function AssetsTable(props: AssetsTableProps) {
                           )
                 )
                 dispatchAssetEvent({
-                    type: events.AssetEventType.newFolder,
+                    type: assetEvent.AssetEventType.newFolder,
                     placeholderId: placeholderItem.id,
                 })
                 break
             }
-            case events.AssetListEventType.newProject: {
+            case assetListEvent.AssetListEventType.newProject: {
                 const projectName = getNewProjectName(event.templateId, event.parentId)
                 const dummyId = backendModule.ProjectId(uniqueString.uniqueString())
                 const placeholderItem: backendModule.ProjectAsset = {
@@ -908,14 +913,14 @@ export default function AssetsTable(props: AssetsTableProps) {
                           )
                 )
                 dispatchAssetEvent({
-                    type: events.AssetEventType.newProject,
+                    type: assetEvent.AssetEventType.newProject,
                     placeholderId: dummyId,
                     templateId: event.templateId,
                     onSpinnerStateChange: event.onSpinnerStateChange,
                 })
                 break
             }
-            case events.AssetListEventType.uploadFiles: {
+            case assetListEvent.AssetListEventType.uploadFiles: {
                 const reversedFiles = Array.from(event.files).reverse()
                 const parentId = event.parentId ?? rootDirectoryId
                 const placeholderFiles = reversedFiles.filter(backendModule.fileIsNotProject).map(
@@ -989,7 +994,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                           )
                 )
                 dispatchAssetEvent({
-                    type: events.AssetEventType.uploadFiles,
+                    type: assetEvent.AssetEventType.uploadFiles,
                     files: new Map(
                         [...placeholderFiles, ...placeholderProjects].map((placeholderItem, i) => [
                             placeholderItem.id,
@@ -1002,7 +1007,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 })
                 break
             }
-            case events.AssetListEventType.newDataConnector: {
+            case assetListEvent.AssetListEventType.newDataConnector: {
                 const placeholderItem: backendModule.SecretAsset = {
                     type: backendModule.AssetType.secret,
                     id: backendModule.SecretId(uniqueString.uniqueString()),
@@ -1042,13 +1047,13 @@ export default function AssetsTable(props: AssetsTableProps) {
                           )
                 )
                 dispatchAssetEvent({
-                    type: events.AssetEventType.newDataConnector,
+                    type: assetEvent.AssetEventType.newDataConnector,
                     placeholderId: placeholderItem.id,
                     value: event.value,
                 })
                 break
             }
-            case events.AssetListEventType.willDelete: {
+            case assetListEvent.AssetListEventType.willDelete: {
                 if (selectedKeys.has(event.key)) {
                     setSelectedKeys(oldSelectedKeys => {
                         const newSelectedKeys = new Set(oldSelectedKeys)
@@ -1058,7 +1063,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 }
                 break
             }
-            case events.AssetListEventType.move: {
+            case assetListEvent.AssetListEventType.move: {
                 setAssetTree(oldAssetTree => {
                     const withNodeDeleted = assetTreeNode.assetTreeFilter(
                         oldAssetTree,
@@ -1085,20 +1090,20 @@ export default function AssetsTable(props: AssetsTableProps) {
                 })
                 break
             }
-            case events.AssetListEventType.delete: {
+            case assetListEvent.AssetListEventType.delete: {
                 setAssetTree(oldAssetTree =>
                     assetTreeNode.assetTreeFilter(oldAssetTree, item => item.key !== event.key)
                 )
                 break
             }
-            case events.AssetListEventType.removeSelf: {
+            case assetListEvent.AssetListEventType.removeSelf: {
                 dispatchAssetEvent({
-                    type: events.AssetEventType.removeSelf,
+                    type: assetEvent.AssetEventType.removeSelf,
                     id: event.id,
                 })
                 break
             }
-            case events.AssetListEventType.closeFolder: {
+            case assetListEvent.AssetListEventType.closeFolder: {
                 if (nodeMapRef.current.get(event.key)?.children != null) {
                     doToggleDirectoryExpansion(event.id, event.key)
                 }
@@ -1110,7 +1115,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     const doOpenManually = React.useCallback(
         (projectId: backendModule.ProjectId) => {
             dispatchAssetEvent({
-                type: events.AssetEventType.openProject,
+                type: assetEvent.AssetEventType.openProject,
                 id: projectId,
                 shouldAutomaticallySwitchPage: true,
                 runInBackground: false,
@@ -1123,7 +1128,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         (project: backendModule.ProjectAsset) => {
             if (project.id === projectStartupInfo?.projectAsset.id) {
                 dispatchAssetEvent({
-                    type: events.AssetEventType.cancelOpeningAllProjects,
+                    type: assetEvent.AssetEventType.cancelOpeningAllProjects,
                 })
                 rawDoCloseIde(project)
             }
@@ -1136,13 +1141,13 @@ export default function AssetsTable(props: AssetsTableProps) {
             queueMicrotask(() => {
                 if (copyData != null) {
                     dispatchAssetEvent({
-                        type: events.AssetEventType.cancelCut,
+                        type: assetEvent.AssetEventType.cancelCut,
                         ids: copyData,
                     })
                 }
                 setCopyData(oldSelectedKeys)
                 dispatchAssetEvent({
-                    type: events.AssetEventType.cut,
+                    type: assetEvent.AssetEventType.cut,
                     ids: oldSelectedKeys,
                 })
             })
@@ -1161,7 +1166,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 } else {
                     setCopyData(null)
                     dispatchAssetEvent({
-                        type: events.AssetEventType.move,
+                        type: assetEvent.AssetEventType.move,
                         ids: copyData,
                         newParentKey,
                         newParentId,
@@ -1198,7 +1203,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 if (backend.type === backendModule.BackendType.remote) {
                     unsetModal()
                     dispatchAssetEvent({
-                        type: events.AssetEventType.delete,
+                        type: assetEvent.AssetEventType.delete,
                         ids: innerSelectedKeys,
                     })
                 } else {
@@ -1208,7 +1213,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                             doDelete={() => {
                                 innerSetSelectedKeys(new Set())
                                 dispatchAssetEvent({
-                                    type: events.AssetEventType.delete,
+                                    type: assetEvent.AssetEventType.delete,
                                     ids: innerSelectedKeys,
                                 })
                             }}
@@ -1221,7 +1226,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             const doRestoreAll = () => {
                 unsetModal()
                 dispatchAssetEvent({
-                    type: events.AssetEventType.restore,
+                    type: assetEvent.AssetEventType.restore,
                     ids: innerSelectedKeys,
                 })
             }
@@ -1411,7 +1416,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                                     event.stopPropagation()
                                     unsetModal()
                                     dispatchAssetEvent({
-                                        type: events.AssetEventType.move,
+                                        type: assetEvent.AssetEventType.move,
                                         newParentKey: null,
                                         newParentId: null,
                                         ids: new Set(filtered.map(dragItem => dragItem.asset.id)),
@@ -1522,8 +1527,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                                 window.setTimeout(() => {
                                     dispatchAssetEvent({
                                         type: shouldAdd
-                                            ? events.AssetEventType.temporarilyAddLabels
-                                            : events.AssetEventType.temporarilyRemoveLabels,
+                                            ? assetEvent.AssetEventType.temporarilyAddLabels
+                                            : assetEvent.AssetEventType.temporarilyRemoveLabels,
                                         ids,
                                         labelNames: payload,
                                     })
@@ -1536,7 +1541,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                         setSelectedKeys(oldSelectedKeys => {
                             window.setTimeout(() => {
                                 dispatchAssetEvent({
-                                    type: events.AssetEventType.temporarilyAddLabels,
+                                    type: assetEvent.AssetEventType.temporarilyAddLabels,
                                     ids: oldSelectedKeys,
                                     labelNames: set.EMPTY,
                                 })
@@ -1566,8 +1571,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                                 window.setTimeout(() => {
                                     dispatchAssetEvent({
                                         type: shouldAdd
-                                            ? events.AssetEventType.addLabels
-                                            : events.AssetEventType.removeLabels,
+                                            ? assetEvent.AssetEventType.addLabels
+                                            : assetEvent.AssetEventType.removeLabels,
                                         ids,
                                         labelNames: payload,
                                     })
@@ -1575,7 +1580,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                             } else {
                                 window.setTimeout(() => {
                                     dispatchAssetEvent({
-                                        type: events.AssetEventType.temporarilyAddLabels,
+                                        type: assetEvent.AssetEventType.temporarilyAddLabels,
                                         ids,
                                         labelNames: set.EMPTY,
                                     })
@@ -1594,7 +1599,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                             setSelectedKeys(oldSelectedKeys => {
                                 window.setTimeout(() => {
                                     dispatchAssetEvent({
-                                        type: events.AssetEventType.temporarilyAddLabels,
+                                        type: assetEvent.AssetEventType.temporarilyAddLabels,
                                         ids: oldSelectedKeys,
                                         labelNames: set.EMPTY,
                                     })

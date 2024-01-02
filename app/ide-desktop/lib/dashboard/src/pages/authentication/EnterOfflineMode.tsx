@@ -3,7 +3,7 @@ import * as React from 'react'
 
 import * as appUtils from '#/appUtils'
 import * as hooks from '#/hooks'
-import * as providers from '#/providers'
+import * as authProvider from '#/providers/authProvider'
 
 // ========================
 // === EnterOfflineMode ===
@@ -11,7 +11,7 @@ import * as providers from '#/providers'
 
 /** An empty component redirecting users based on the backend response to user registration. */
 export default function EnterOfflineMode() {
-    const { goOffline } = providers.useAuth()
+    const { goOffline } = authProvider.useAuth()
     const navigate = hooks.useNavigate()
 
     React.useEffect(() => {

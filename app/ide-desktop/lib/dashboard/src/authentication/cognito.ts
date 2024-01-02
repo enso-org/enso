@@ -36,7 +36,7 @@ import * as results from 'ts-results'
 import * as detect from 'enso-common/src/detect'
 
 import * as config from '#/authentication/config'
-import type * as providers from '#/providers'
+import type * as loggerProvider from '#/providers/loggerProvider'
 
 // =================
 // === Constants ===
@@ -168,7 +168,7 @@ interface CognitoError {
 export class Cognito {
     /** Create a new Cognito wrapper. */
     constructor(
-        private readonly logger: providers.Logger,
+        private readonly logger: loggerProvider.Logger,
         private readonly supportsDeepLinks: boolean,
         private readonly amplifyConfig: config.AmplifyConfig
     ) {

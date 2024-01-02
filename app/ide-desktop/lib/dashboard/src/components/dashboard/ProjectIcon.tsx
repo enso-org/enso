@@ -7,9 +7,12 @@ import ArrowUpIcon from 'enso-assets/arrow_up.svg'
 import PlayIcon from 'enso-assets/play.svg'
 import StopIcon from 'enso-assets/stop.svg'
 
-import * as events from '#/events'
+import * as assetEvent from '#/events/assetEvent'
 import * as hooks from '#/hooks'
-import * as providers from '#/providers'
+import * as authProvider from '#/providers/authProvider'
+import * as backendProvider from '#/providers/backendProvider'
+import * as localStorageProvider from '#/providers/localStorageProvider'
+import * as modalProvider from '#/providers/modalProvider'
 import * as backendModule from '#/services/backend'
 import * as remoteBackend from '#/services/remoteBackend'
 import * as errorModule from '#/utilities/error'
@@ -62,7 +65,7 @@ export interface ProjectIconProps {
     keyProp: string
     item: backendModule.ProjectAsset
     setItem: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>
-    assetEvents: events.AssetEvent[]
+    assetEvents: assetEvent.AssetEvent[]
     /** Called when the project is opened via the {@link ProjectIcon}. */
     doOpenManually: (projectId: backendModule.ProjectId) => void
     onClose: () => void
@@ -72,10 +75,10 @@ export interface ProjectIconProps {
 /** An interactive icon indicating the status of a project. */
 export default function ProjectIcon(props: ProjectIconProps) {
     const { keyProp: key, item, setItem, assetEvents, doOpenManually, onClose, openIde } = props
-    const { backend } = providers.useBackend()
-    const { organization } = providers.useNonPartialUserSession()
-    const { unsetModal } = providers.useSetModal()
-    const { localStorage } = providers.useLocalStorage()
+    const { backend } = backendProvider.useBackend()
+    const { organization } = authProvider.useNonPartialUserSession()
+    const { unsetModal } = modalProvider.useSetModal()
+    const { localStorage } = localStorageProvider.useLocalStorage()
     const toastAndLog = hooks.useToastAndLog()
     const state = item.projectState.type
     const setState = React.useCallback(
@@ -243,28 +246,28 @@ export default function ProjectIcon(props: ProjectIconProps) {
 
     hooks.useEventHandler(assetEvents, event => {
         switch (event.type) {
-            case events.AssetEventType.newFolder:
-            case events.AssetEventType.uploadFiles:
-            case events.AssetEventType.newDataConnector:
-            case events.AssetEventType.cut:
-            case events.AssetEventType.cancelCut:
-            case events.AssetEventType.move:
-            case events.AssetEventType.delete:
-            case events.AssetEventType.restore:
-            case events.AssetEventType.download:
-            case events.AssetEventType.downloadSelected:
-            case events.AssetEventType.removeSelf:
-            case events.AssetEventType.temporarilyAddLabels:
-            case events.AssetEventType.temporarilyRemoveLabels:
-            case events.AssetEventType.addLabels:
-            case events.AssetEventType.removeLabels:
-            case events.AssetEventType.deleteLabel: {
+            case assetEvent.AssetEventType.newFolder:
+            case assetEvent.AssetEventType.uploadFiles:
+            case assetEvent.AssetEventType.newDataConnector:
+            case assetEvent.AssetEventType.cut:
+            case assetEvent.AssetEventType.cancelCut:
+            case assetEvent.AssetEventType.move:
+            case assetEvent.AssetEventType.delete:
+            case assetEvent.AssetEventType.restore:
+            case assetEvent.AssetEventType.download:
+            case assetEvent.AssetEventType.downloadSelected:
+            case assetEvent.AssetEventType.removeSelf:
+            case assetEvent.AssetEventType.temporarilyAddLabels:
+            case assetEvent.AssetEventType.temporarilyRemoveLabels:
+            case assetEvent.AssetEventType.addLabels:
+            case assetEvent.AssetEventType.removeLabels:
+            case assetEvent.AssetEventType.deleteLabel: {
                 // Ignored. Any missing project-related events should be handled by
                 // `ProjectNameColumn`. `deleteMultiple`, `restoreMultiple`, `download`,
                 // and`downloadSelected` are handled by `AssetRow`.
                 break
             }
-            case events.AssetEventType.openProject: {
+            case assetEvent.AssetEventType.openProject: {
                 if (event.id !== item.id) {
                     if (!event.runInBackground && !isRunningInBackground) {
                         setShouldOpenWhenReady(false)
@@ -280,14 +283,14 @@ export default function ProjectIcon(props: ProjectIconProps) {
                 }
                 break
             }
-            case events.AssetEventType.closeProject: {
+            case assetEvent.AssetEventType.closeProject: {
                 if (event.id === item.id) {
                     setShouldOpenWhenReady(false)
                     void closeProject(false)
                 }
                 break
             }
-            case events.AssetEventType.cancelOpeningAllProjects: {
+            case assetEvent.AssetEventType.cancelOpeningAllProjects: {
                 if (!isRunningInBackground) {
                     setShouldOpenWhenReady(false)
                     onSpinnerStateChange?.(null)
@@ -300,7 +303,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
                 }
                 break
             }
-            case events.AssetEventType.newProject: {
+            case assetEvent.AssetEventType.newProject: {
                 if (event.placeholderId === key) {
                     setOnSpinnerStateChange(() => event.onSpinnerStateChange)
                 } else if (event.onSpinnerStateChange === onSpinnerStateChange) {

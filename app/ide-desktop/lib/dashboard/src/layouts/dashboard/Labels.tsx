@@ -5,7 +5,7 @@ import PlusIcon from 'enso-assets/plus.svg'
 import Trash2Icon from 'enso-assets/trash2.svg'
 
 import NewLabelModal from '#/layouts/dashboard/NewLabelModal'
-import * as providers from '#/providers'
+import * as modalProvider from '#/providers/modalProvider'
 import type * as backend from '#/services/backend'
 import type * as assetQuery from '#/utilities/assetQuery'
 import * as drag from '#/utilities/drag'
@@ -43,7 +43,7 @@ export default function Labels(props: LabelsProps) {
         deletedLabelNames,
     } = props
     const currentLabels = query.labels
-    const { setModal } = providers.useSetModal()
+    const { setModal } = modalProvider.useSetModal()
 
     return (
         <div data-testid="labels" className="flex flex-col items-start w-30">

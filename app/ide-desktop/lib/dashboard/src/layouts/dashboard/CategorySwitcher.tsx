@@ -7,9 +7,10 @@ import RootIcon from 'enso-assets/root.svg'
 import TempIcon from 'enso-assets/temp.svg'
 import Trash2Icon from 'enso-assets/trash2.svg'
 
-import * as events from '#/events'
+import * as assetEvent from '#/events/assetEvent'
 import * as categorySwitcherUtils from '#/layouts/dashboard/CategorySwitcher/categorySwitcherUtils'
-import * as providers from '#/providers'
+import * as localStorageProvider from '#/providers/localStorageProvider'
+import * as modalProvider from '#/providers/modalProvider'
 import * as drag from '#/utilities/drag'
 import * as localStorageModule from '#/utilities/localStorage'
 
@@ -110,14 +111,14 @@ const CATEGORY_CLASS_NAMES: Record<categorySwitcherUtils.Category, string> = {
 export interface CategorySwitcherProps {
     category: categorySwitcherUtils.Category
     setCategory: (category: categorySwitcherUtils.Category) => void
-    dispatchAssetEvent: (directoryEvent: events.AssetEvent) => void
+    dispatchAssetEvent: (directoryEvent: assetEvent.AssetEvent) => void
 }
 
 /** A switcher to choose the currently visible assets table category. */
 export default function CategorySwitcher(props: CategorySwitcherProps) {
     const { category, setCategory, dispatchAssetEvent } = props
-    const { unsetModal } = providers.useSetModal()
-    const { localStorage } = providers.useLocalStorage()
+    const { unsetModal } = modalProvider.useSetModal()
+    const { localStorage } = localStorageProvider.useLocalStorage()
 
     React.useEffect(() => {
         localStorage.set(localStorageModule.LocalStorageKey.driveCategory, category)
@@ -167,8 +168,8 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                                 dispatchAssetEvent({
                                     type:
                                         category === categorySwitcherUtils.Category.trash
-                                            ? events.AssetEventType.restore
-                                            : events.AssetEventType.delete,
+                                            ? assetEvent.AssetEventType.restore
+                                            : assetEvent.AssetEventType.delete,
                                     ids: new Set(payload.map(item => item.asset.id)),
                                 })
                             }

@@ -5,7 +5,8 @@ import * as React from 'react'
 import ArrowRightIcon from 'enso-assets/arrow_right.svg'
 import AtIcon from 'enso-assets/at.svg'
 
-import * as providers from '#/providers'
+import * as authProvider from '#/providers/authProvider'
+import * as backendProvider from '#/providers/backendProvider'
 
 import Input from '#/components/Input'
 import SubmitButton from '#/components/SubmitButton'
@@ -16,9 +17,9 @@ import SubmitButton from '#/components/SubmitButton'
 
 /** A form for users to set their username upon registration. */
 export default function SetUsername() {
-    const { setUsername: authSetUsername } = providers.useAuth()
-    const { email } = providers.usePartialUserSession()
-    const { backend } = providers.useBackend()
+    const { setUsername: authSetUsername } = authProvider.useAuth()
+    const { email } = authProvider.usePartialUserSession()
+    const { backend } = backendProvider.useBackend()
 
     const [username, setUsername] = React.useState('')
 

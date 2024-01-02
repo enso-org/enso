@@ -6,7 +6,8 @@ import * as toastify from 'react-toastify'
 
 import * as appUtils from '#/appUtils'
 import * as hooks from '#/hooks'
-import * as providers from '#/providers'
+import * as authProvider from '#/providers/authProvider'
+import * as loggerProvider from '#/providers/loggerProvider'
 
 // =================
 // === Constants ===
@@ -23,8 +24,8 @@ const REGISTRATION_QUERY_PARAMS = {
 
 /** An empty component redirecting users based on the backend response to user registration. */
 export default function ConfirmRegistration() {
-    const logger = providers.useLogger()
-    const auth = providers.useAuth()
+    const logger = loggerProvider.useLogger()
+    const auth = authProvider.useAuth()
     const location = hooks.useLocation()
     const navigate = hooks.useNavigate()
 

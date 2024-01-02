@@ -4,7 +4,7 @@ import * as React from 'react'
 import CloudIcon from 'enso-assets/cloud.svg'
 import NotCloudIcon from 'enso-assets/not_cloud.svg'
 
-import * as providers from '#/providers'
+import * as backendProvider from '#/providers/backendProvider'
 import * as backendModule from '#/services/backend'
 
 import SvgMask from '#/components/SvgMask'
@@ -21,7 +21,7 @@ export interface BackendSwitcherProps {
 /** Switcher for choosing the project management backend. */
 export default function BackendSwitcher(props: BackendSwitcherProps) {
     const { setBackendType } = props
-    const { backend } = providers.useBackend()
+    const { backend } = backendProvider.useBackend()
     return (
         <div className="flex shrink-0 gap-px">
             <button

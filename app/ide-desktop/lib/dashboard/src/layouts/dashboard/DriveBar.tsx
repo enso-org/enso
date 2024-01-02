@@ -7,10 +7,12 @@ import AddFolderIcon from 'enso-assets/add_folder.svg'
 import DataDownloadIcon from 'enso-assets/data_download.svg'
 import DataUploadIcon from 'enso-assets/data_upload.svg'
 
-import * as events from '#/events'
+import * as assetEvent from '#/events/assetEvent'
 import * as categorySwitcherUtils from '#/layouts/dashboard/CategorySwitcher/categorySwitcherUtils'
 import NewDataConnectorModal from '#/layouts/dashboard/NewDataConnectorModal'
-import * as providers from '#/providers'
+import * as backendProvider from '#/providers/backendProvider'
+import * as modalProvider from '#/providers/modalProvider'
+import * as shortcutsProvider from '#/providers/shortcutsProvider'
 import * as backendModule from '#/services/backend'
 import * as shortcutsModule from '#/utilities/shortcuts'
 
@@ -27,7 +29,7 @@ export interface DriveBarProps {
     doCreateDirectory: () => void
     doCreateDataConnector: (name: string, value: string) => void
     doUploadFiles: (files: File[]) => void
-    dispatchAssetEvent: (event: events.AssetEvent) => void
+    dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
 }
 
 /** Displays the current directory path and permissions, upload and download buttons,
@@ -41,9 +43,9 @@ export default function DriveBar(props: DriveBarProps) {
         doUploadFiles,
         dispatchAssetEvent,
     } = props
-    const { backend } = providers.useBackend()
-    const { setModal, unsetModal } = providers.useSetModal()
-    const { shortcuts } = providers.useShortcuts()
+    const { backend } = backendProvider.useBackend()
+    const { setModal, unsetModal } = modalProvider.useSetModal()
+    const { shortcuts } = shortcutsProvider.useShortcuts()
     const uploadFilesRef = React.useRef<HTMLInputElement>(null)
     const isHomeCategory =
         category === categorySwitcherUtils.Category.home ||
@@ -168,7 +170,7 @@ export default function DriveBar(props: DriveBarProps) {
                             event.stopPropagation()
                             unsetModal()
                             dispatchAssetEvent({
-                                type: events.AssetEventType.downloadSelected,
+                                type: assetEvent.AssetEventType.downloadSelected,
                             })
                         }}
                     />

@@ -1,7 +1,7 @@
 /** @file Base modal component that provides the full-screen element that blocks mouse events. */
 import * as React from 'react'
 
-import * as providers from '#/providers'
+import * as modalProvider from '#/providers/modalProvider'
 
 // =================
 // === Component ===
@@ -23,7 +23,7 @@ export interface ModalProps extends React.PropsWithChildren {
  * `className="bg-opacity-50"`. */
 export default function Modal(props: ModalProps) {
     const { children, centered = false, style, className, onClick, onContextMenu } = props
-    const { unsetModal } = providers.useSetModal()
+    const { unsetModal } = modalProvider.useSetModal()
 
     return (
         <div

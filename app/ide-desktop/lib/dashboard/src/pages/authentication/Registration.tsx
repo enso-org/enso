@@ -9,7 +9,8 @@ import GoBackIcon from 'enso-assets/go_back.svg'
 import LockIcon from 'enso-assets/lock.svg'
 
 import * as appUtils from '#/appUtils'
-import * as providers from '#/providers'
+import * as authProvider from '#/providers/authProvider'
+import * as localStorageProvider from '#/providers/localStorageProvider'
 import * as localStorageModule from '#/utilities/localStorage'
 import * as string from '#/utilities/string'
 import * as validation from '#/utilities/validation'
@@ -34,9 +35,9 @@ const REGISTRATION_QUERY_PARAMS = {
 
 /** A form for users to register an account. */
 export default function Registration() {
-    const auth = providers.useAuth()
+    const auth = authProvider.useAuth()
     const location = router.useLocation()
-    const { localStorage } = providers.useLocalStorage()
+    const { localStorage } = localStorageProvider.useLocalStorage()
     const { email: urlEmail, organizationId, redirectTo } = parseUrlSearchParams(location.search)
     const [email, setEmail] = React.useState(urlEmail ?? '')
     const [password, setPassword] = React.useState('')

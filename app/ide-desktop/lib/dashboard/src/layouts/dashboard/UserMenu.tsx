@@ -6,7 +6,8 @@ import DefaultUserIcon from 'enso-assets/default_user.svg'
 import * as appUtils from '#/appUtils'
 import * as hooks from '#/hooks'
 import ChangePasswordModal from '#/layouts/dashboard/ChangePasswordModal'
-import * as providers from '#/providers'
+import * as authProvider from '#/providers/authProvider'
+import * as modalProvider from '#/providers/modalProvider'
 import * as github from '#/utilities/github'
 import * as shortcuts from '#/utilities/shortcuts'
 
@@ -27,9 +28,9 @@ export interface UserMenuProps {
 export default function UserMenu(props: UserMenuProps) {
     const { supportsLocalBackend, onSignOut } = props
     const navigate = hooks.useNavigate()
-    const { signOut } = providers.useAuth()
-    const { accessToken, organization } = providers.useNonPartialUserSession()
-    const { setModal, unsetModal } = providers.useSetModal()
+    const { signOut } = authProvider.useAuth()
+    const { accessToken, organization } = authProvider.useNonPartialUserSession()
+    const { setModal, unsetModal } = modalProvider.useSetModal()
     const toastAndLog = hooks.useToastAndLog()
 
     // The shape of the JWT payload is statically known.

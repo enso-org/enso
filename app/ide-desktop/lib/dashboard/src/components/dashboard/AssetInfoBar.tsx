@@ -4,7 +4,7 @@ import * as React from 'react'
 import DocsIcon from 'enso-assets/docs.svg'
 import SettingsIcon from 'enso-assets/settings.svg'
 
-import * as providers from '#/providers'
+import * as backendProvider from '#/providers/backendProvider'
 import * as backendModule from '#/services/backend'
 
 import Button from '#/components/Button'
@@ -21,7 +21,7 @@ export interface AssetInfoBarProps {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export default function AssetInfoBar(props: AssetInfoBarProps) {
     const { canToggleSettingsPanel, isSettingsPanelVisible, setIsSettingsPanelVisible } = props
-    const { backend } = providers.useBackend()
+    const { backend } = backendProvider.useBackend()
     return (
         <div
             className={`flex items-center shrink-0 bg-frame rounded-full gap-3 h-8 px-2 cursor-default pointer-events-auto ${

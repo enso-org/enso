@@ -3,13 +3,16 @@ import * as React from 'react'
 
 import * as toast from 'react-toastify'
 
-import * as events from '#/events'
+import * as assetEvent from '#/events/assetEvent'
 import * as hooks from '#/hooks'
 import type * as assetsTable from '#/layouts/dashboard/AssetsTable'
 import * as categorySwitcherUtils from '#/layouts/dashboard/CategorySwitcher/categorySwitcherUtils'
 import GlobalContextMenu from '#/layouts/dashboard/GlobalContextMenu'
 import ManagePermissionsModal from '#/layouts/dashboard/ManagePermissionsModal'
-import * as providers from '#/providers'
+import * as authProvider from '#/providers/authProvider'
+import * as backendProvider from '#/providers/backendProvider'
+import * as loggerProvider from '#/providers/loggerProvider'
+import * as modalProvider from '#/providers/modalProvider'
 import * as backendModule from '#/services/backend'
 import * as remoteBackendModule from '#/services/remoteBackend'
 import type * as assetTreeNode from '#/utilities/assetTreeNode'
@@ -62,10 +65,10 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         doPaste,
         doDelete,
     } = props
-    const logger = providers.useLogger()
-    const { organization, accessToken } = providers.useNonPartialUserSession()
-    const { setModal, unsetModal } = providers.useSetModal()
-    const { backend } = providers.useBackend()
+    const logger = loggerProvider.useLogger()
+    const { organization, accessToken } = authProvider.useNonPartialUserSession()
+    const { setModal, unsetModal } = modalProvider.useSetModal()
+    const { backend } = backendProvider.useBackend()
     const toastAndLog = hooks.useToastAndLog()
     const asset = item.item
     const self = asset.permissions?.find(
@@ -113,7 +116,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                         doAction={() => {
                             unsetModal()
                             dispatchAssetEvent({
-                                type: events.AssetEventType.restore,
+                                type: assetEvent.AssetEventType.restore,
                                 ids: new Set([asset.id]),
                             })
                         }}
@@ -134,7 +137,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                             doAction={() => {
                                 unsetModal()
                                 dispatchAssetEvent({
-                                    type: events.AssetEventType.openProject,
+                                    type: assetEvent.AssetEventType.openProject,
                                     id: asset.id,
                                     shouldAutomaticallySwitchPage: true,
                                     runInBackground: false,
@@ -149,7 +152,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                         doAction={() => {
                             unsetModal()
                             dispatchAssetEvent({
-                                type: events.AssetEventType.openProject,
+                                type: assetEvent.AssetEventType.openProject,
                                 id: asset.id,
                                 shouldAutomaticallySwitchPage: false,
                                 runInBackground: true,
@@ -167,7 +170,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                             doAction={() => {
                                 unsetModal()
                                 dispatchAssetEvent({
-                                    type: events.AssetEventType.closeProject,
+                                    type: assetEvent.AssetEventType.closeProject,
                                     id: asset.id,
                                 })
                             }}
@@ -280,7 +283,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                                     eventTarget={eventTarget}
                                     doRemoveSelf={() => {
                                         dispatchAssetEvent({
-                                            type: events.AssetEventType.removeSelf,
+                                            type: assetEvent.AssetEventType.removeSelf,
                                             id: asset.id,
                                         })
                                     }}
@@ -336,7 +339,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                     action={shortcuts.KeyboardAction.download}
                     doAction={() => {
                         dispatchAssetEvent({
-                            type: events.AssetEventType.download,
+                            type: assetEvent.AssetEventType.download,
                             ids: new Set([asset.id]),
                         })
                     }}

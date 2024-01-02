@@ -3,9 +3,12 @@ import * as React from 'react'
 
 import NetworkIcon from 'enso-assets/network.svg'
 
-import * as events from '#/events'
+import * as assetEvent from '#/events/assetEvent'
+import * as assetListEvent from '#/events/assetListEvent'
 import * as hooks from '#/hooks'
-import * as providers from '#/providers'
+import * as authProvider from '#/providers/authProvider'
+import * as backendProvider from '#/providers/backendProvider'
+import * as shortcutsProvider from '#/providers/shortcutsProvider'
 import * as backendModule from '#/services/backend'
 import * as assetTreeNode from '#/utilities/assetTreeNode'
 import * as errorModule from '#/utilities/error'
@@ -51,9 +54,9 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         },
     } = props
     const toastAndLog = hooks.useToastAndLog()
-    const { backend } = providers.useBackend()
-    const { organization } = providers.useNonPartialUserSession()
-    const { shortcuts } = providers.useShortcuts()
+    const { backend } = backendProvider.useBackend()
+    const { organization } = authProvider.useNonPartialUserSession()
+    const { shortcuts } = shortcutsProvider.useShortcuts()
     const asset = item.item
     if (asset.type !== backendModule.AssetType.project) {
         // eslint-disable-next-line no-restricted-syntax
@@ -99,30 +102,30 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
 
     hooks.useEventHandler(assetEvents, async event => {
         switch (event.type) {
-            case events.AssetEventType.newFolder:
-            case events.AssetEventType.newDataConnector:
-            case events.AssetEventType.openProject:
-            case events.AssetEventType.closeProject:
-            case events.AssetEventType.cancelOpeningAllProjects:
-            case events.AssetEventType.cut:
-            case events.AssetEventType.cancelCut:
-            case events.AssetEventType.move:
-            case events.AssetEventType.delete:
-            case events.AssetEventType.restore:
-            case events.AssetEventType.download:
-            case events.AssetEventType.downloadSelected:
-            case events.AssetEventType.removeSelf:
-            case events.AssetEventType.temporarilyAddLabels:
-            case events.AssetEventType.temporarilyRemoveLabels:
-            case events.AssetEventType.addLabels:
-            case events.AssetEventType.removeLabels:
-            case events.AssetEventType.deleteLabel: {
+            case assetEvent.AssetEventType.newFolder:
+            case assetEvent.AssetEventType.newDataConnector:
+            case assetEvent.AssetEventType.openProject:
+            case assetEvent.AssetEventType.closeProject:
+            case assetEvent.AssetEventType.cancelOpeningAllProjects:
+            case assetEvent.AssetEventType.cut:
+            case assetEvent.AssetEventType.cancelCut:
+            case assetEvent.AssetEventType.move:
+            case assetEvent.AssetEventType.delete:
+            case assetEvent.AssetEventType.restore:
+            case assetEvent.AssetEventType.download:
+            case assetEvent.AssetEventType.downloadSelected:
+            case assetEvent.AssetEventType.removeSelf:
+            case assetEvent.AssetEventType.temporarilyAddLabels:
+            case assetEvent.AssetEventType.temporarilyRemoveLabels:
+            case assetEvent.AssetEventType.addLabels:
+            case assetEvent.AssetEventType.removeLabels:
+            case assetEvent.AssetEventType.deleteLabel: {
                 // Ignored. Any missing project-related events should be handled by `ProjectIcon`.
                 // `deleteMultiple`, `restoreMultiple`, `download`, and `downloadSelected`
                 // are handled by `AssetRow`.
                 break
             }
-            case events.AssetEventType.newProject: {
+            case assetEvent.AssetEventType.newProject: {
                 // This should only run before this project gets replaced with the actual project
                 // by this event handler. In both cases `key` will match, so using `key` here
                 // is a mistake.
@@ -144,14 +147,14 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                             },
                         })
                         dispatchAssetEvent({
-                            type: events.AssetEventType.openProject,
+                            type: assetEvent.AssetEventType.openProject,
                             id: createdProject.projectId,
                             shouldAutomaticallySwitchPage: true,
                             runInBackground: false,
                         })
                     } catch (error) {
                         dispatchAssetListEvent({
-                            type: events.AssetListEventType.delete,
+                            type: assetListEvent.AssetListEventType.delete,
                             key: item.key,
                         })
                         toastAndLog('Error creating new project', error)
@@ -159,7 +162,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                 }
                 break
             }
-            case events.AssetEventType.uploadFiles: {
+            case assetEvent.AssetEventType.uploadFiles: {
                 const file = event.files.get(item.key)
                 if (file != null) {
                     rowState.setVisibility(visibility.Visibility.faded)
@@ -225,7 +228,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                         }
                     } catch (error) {
                         dispatchAssetListEvent({
-                            type: events.AssetListEventType.delete,
+                            type: assetListEvent.AssetListEventType.delete,
                             key: item.key,
                         })
                         toastAndLog('Could not upload project', error)
@@ -252,14 +255,14 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                 } else if (shortcuts.matchesMouseAction(shortcutsModule.MouseAction.open, event)) {
                     // It is a double click; open the project.
                     dispatchAssetEvent({
-                        type: events.AssetEventType.openProject,
+                        type: assetEvent.AssetEventType.openProject,
                         id: asset.id,
                         shouldAutomaticallySwitchPage: true,
                         runInBackground: false,
                     })
                 } else if (shortcuts.matchesMouseAction(shortcutsModule.MouseAction.run, event)) {
                     dispatchAssetEvent({
-                        type: events.AssetEventType.openProject,
+                        type: assetEvent.AssetEventType.openProject,
                         id: asset.id,
                         shouldAutomaticallySwitchPage: false,
                         runInBackground: true,

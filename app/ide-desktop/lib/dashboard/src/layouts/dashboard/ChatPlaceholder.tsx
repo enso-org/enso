@@ -9,7 +9,7 @@ import * as appUtils from '#/appUtils'
 import * as hooks from '#/hooks'
 import * as chat from '#/layouts/dashboard/Chat'
 import * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
-import * as providers from '#/providers'
+import * as loggerProvider from '#/providers/loggerProvider'
 import * as animations from '#/utilities/animations'
 
 /** Props for a {@link ChatPlaceholder}. */
@@ -23,7 +23,7 @@ export interface ChatPlaceholderProps {
 /** A placeholder component replacing `Chat` when a user is not logged in. */
 export default function ChatPlaceholder(props: ChatPlaceholderProps) {
     const { page, isOpen, doClose } = props
-    const logger = providers.useLogger()
+    const logger = loggerProvider.useLogger()
     const navigate = hooks.useNavigate()
     const [right, setTargetRight] = animations.useInterpolateOverTime(
         animations.interpolationFunctionEaseInOut,

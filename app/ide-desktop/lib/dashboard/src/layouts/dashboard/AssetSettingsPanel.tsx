@@ -3,12 +3,13 @@ import * as React from 'react'
 
 import PenIcon from 'enso-assets/pen.svg'
 
-import type * as events from '#/events'
+import type * as assetEvent from '#/events/assetEvent'
 import * as hooks from '#/hooks'
 import type * as categorySwitcherUtils from '#/layouts/dashboard/CategorySwitcher/categorySwitcherUtils'
 import type * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
 import UserBar from '#/layouts/dashboard/UserBar'
-import * as providers from '#/providers'
+import * as authProvider from '#/providers/authProvider'
+import * as backendProvider from '#/providers/backendProvider'
 import type * as backendModule from '#/services/backend'
 import type * as assetTreeNode from '#/utilities/assetTreeNode'
 import * as permissions from '#/utilities/permissions'
@@ -35,7 +36,7 @@ export interface AssetSettingsPanelProps extends AssetSettingsPanelRequiredProps
     isHelpChatOpen: boolean
     setIsHelpChatOpen: React.Dispatch<React.SetStateAction<boolean>>
     setIsSettingsPanelVisible: React.Dispatch<React.SetStateAction<boolean>>
-    dispatchAssetEvent: (event: events.AssetEvent) => void
+    dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
     projectAsset: backendModule.ProjectAsset | null
     setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>> | null
     doRemoveSelf: () => void
@@ -63,8 +64,8 @@ export default function AssetSettingsPanel(props: AssetSettingsPanelProps) {
     const [isEditingDescription, setIsEditingDescription] = React.useState(false)
     const [queuedDescription, setQueuedDescripion] = React.useState<string | null>(null)
     const [description, setDescription] = React.useState('')
-    const { organization } = providers.useNonPartialUserSession()
-    const { backend } = providers.useBackend()
+    const { organization } = authProvider.useNonPartialUserSession()
+    const { backend } = backendProvider.useBackend()
     const toastAndLog = hooks.useToastAndLog()
     const setItem = React.useCallback(
         (valueOrUpdater: React.SetStateAction<assetTreeNode.AssetTreeNode>) => {

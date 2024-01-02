@@ -3,7 +3,7 @@ import * as React from 'react'
 
 import * as toastify from 'react-toastify'
 
-import * as providers from '#/providers'
+import * as loggerProvider from '#/providers/loggerProvider'
 import * as errorModule from '#/utilities/error'
 
 // ======================
@@ -13,7 +13,7 @@ import * as errorModule from '#/utilities/error'
 /** Return a function to send a toast with rendered error message. The same message is also logged
  * as an error. */
 export function useToastAndLog() {
-    const logger = providers.useLogger()
+    const logger = loggerProvider.useLogger()
     return React.useCallback(
         <T>(
             messagePrefix: string | null,

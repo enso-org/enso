@@ -10,7 +10,7 @@ import CreateAccountIcon from 'enso-assets/create_account.svg'
 import LockIcon from 'enso-assets/lock.svg'
 
 import * as appUtils from '#/appUtils'
-import * as providers from '#/providers'
+import * as authProvider from '#/providers/authProvider'
 import * as validation from '#/utilities/validation'
 
 import FontAwesomeIcon from '#/components/FontAwesomeIcon'
@@ -39,7 +39,7 @@ export interface LoginProps {
 export default function Login(props: LoginProps) {
     const { supportsLocalBackend } = props
     const { search } = router.useLocation()
-    const { signInWithGoogle, signInWithGitHub, signInWithPassword } = providers.useAuth()
+    const { signInWithGoogle, signInWithGitHub, signInWithPassword } = authProvider.useAuth()
 
     const initialEmail = parseUrlSearchParams(search)
 
