@@ -3,7 +3,7 @@ package org.enso.shttp.cloud_mock;
 import com.sun.net.httpserver.HttpExchange;
 import java.io.IOException;
 import java.net.URI;
-import org.enso.shttp.HandlerWithTokenAuth;
+import org.enso.shttp.auth.HandlerWithTokenAuth;
 
 public class CloudRoot extends HandlerWithTokenAuth {
   public final String prefix = "/enso-cloud-mock/";
