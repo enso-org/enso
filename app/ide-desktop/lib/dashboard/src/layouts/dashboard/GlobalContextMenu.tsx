@@ -3,8 +3,8 @@ import * as React from 'react'
 
 import * as assetListEventModule from '#/events/assetListEvent'
 import NewDataConnectorModal from '#/layouts/dashboard/NewDataConnectorModal'
-import * as backendProvider from '#/providers/backendProvider'
-import * as modalProvider from '#/providers/modalProvider'
+import * as backendProvider from '#/providers/BackendProvider'
+import * as modalProvider from '#/providers/ModalProvider'
 import * as backendModule from '#/services/backend'
 import * as shortcuts from '#/utilities/shortcuts'
 

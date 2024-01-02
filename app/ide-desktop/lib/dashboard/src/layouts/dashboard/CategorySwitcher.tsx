@@ -9,8 +9,8 @@ import Trash2Icon from 'enso-assets/trash2.svg'
 
 import * as assetEvent from '#/events/assetEvent'
 import * as categorySwitcherUtils from '#/layouts/dashboard/CategorySwitcher/categorySwitcherUtils'
-import * as localStorageProvider from '#/providers/localStorageProvider'
-import * as modalProvider from '#/providers/modalProvider'
+import * as localStorageProvider from '#/providers/LocalStorageProvider'
+import * as modalProvider from '#/providers/ModalProvider'
 import * as drag from '#/utilities/drag'
 import * as localStorageModule from '#/utilities/localStorage'
 

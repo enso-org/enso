@@ -6,8 +6,8 @@ import * as toastify from 'react-toastify'
 
 import * as appUtils from '#/appUtils'
 import * as hooks from '#/hooks'
-import * as authProvider from '#/providers/authProvider'
-import * as loggerProvider from '#/providers/loggerProvider'
+import * as authProvider from '#/providers/AuthProvider'
+import * as loggerProvider from '#/providers/LoggerProvider'
 
 // =================
 // === Constants ===

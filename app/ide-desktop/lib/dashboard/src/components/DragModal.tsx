@@ -1,7 +1,7 @@
 /** @file Modal for confirming delete of any type of asset. */
 import * as React from 'react'
 
-import * as modalProvider from '#/providers/modalProvider'
+import * as modalProvider from '#/providers/ModalProvider'
 
 import Modal from '#/components/Modal'
 

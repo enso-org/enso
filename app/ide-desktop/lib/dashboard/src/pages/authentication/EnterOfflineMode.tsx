@@ -3,7 +3,7 @@ import * as React from 'react'
 
 import * as appUtils from '#/appUtils'
 import * as hooks from '#/hooks'
-import * as authProvider from '#/providers/authProvider'
+import * as authProvider from '#/providers/AuthProvider'
 
 // ========================
 // === EnterOfflineMode ===

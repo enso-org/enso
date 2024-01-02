@@ -5,8 +5,8 @@ import * as React from 'react'
 import ArrowRightIcon from 'enso-assets/arrow_right.svg'
 import AtIcon from 'enso-assets/at.svg'
 
-import * as authProvider from '#/providers/authProvider'
-import * as backendProvider from '#/providers/backendProvider'
+import * as authProvider from '#/providers/AuthProvider'
+import * as backendProvider from '#/providers/BackendProvider'
 
 import Input from '#/components/Input'
 import SubmitButton from '#/components/SubmitButton'

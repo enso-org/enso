@@ -1,7 +1,7 @@
 /** @file A row in a `Table`. */
 import * as React from 'react'
 
-import * as modalProvider from '#/providers/modalProvider'
+import * as modalProvider from '#/providers/ModalProvider'
 
 import type * as tableColumn from '#/components/TableColumn'
 

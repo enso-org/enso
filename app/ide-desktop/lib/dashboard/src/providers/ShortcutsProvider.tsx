@@ -27,7 +27,7 @@ export interface ShortcutsProviderProps extends React.PropsWithChildren<object> 
 // =========================
 
 /** A React Provider that lets components get the shortcut registry. */
-export function ShortcutsProvider(props: ShortcutsProviderProps) {
+export default function ShortcutsProvider(props: ShortcutsProviderProps) {
     const { shortcuts: rawShortcuts, children } = props
     const [shortcuts] = React.useState(
         () => rawShortcuts ?? shortcutsModule.ShortcutRegistry.createWithDefaults()

@@ -3,7 +3,7 @@
  * being used directly. */
 import * as React from 'react'
 
-import * as shortcutsProvider from '#/providers/shortcutsProvider'
+import * as shortcutsProvider from '#/providers/ShortcutsProvider'
 import * as set from '#/utilities/set'
 import * as shortcutsModule from '#/utilities/shortcuts'
 

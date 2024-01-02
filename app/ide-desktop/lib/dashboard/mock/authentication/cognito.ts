@@ -33,7 +33,7 @@
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
 import * as original from '../../src/authentication/cognito'
 import type * as config from '../../src/authentication/config'
-import type * as loggerProvider from '../../src/providers/loggerProvider'
+import type * as loggerProvider from '../../src/providers/LoggerProvider'
 /* eslint-enable no-restricted-syntax */
 
 import * as listen from './listen'

@@ -4,7 +4,7 @@ import * as React from 'react'
 import DocsIcon from 'enso-assets/docs.svg'
 import SettingsIcon from 'enso-assets/settings.svg'
 
-import * as backendProvider from '#/providers/backendProvider'
+import * as backendProvider from '#/providers/BackendProvider'
 import * as backendModule from '#/services/backend'
 
 import Button from '#/components/Button'

@@ -48,7 +48,7 @@ export interface SessionProviderProps {
 }
 
 /** A React provider for the session of the authenticated user. */
-export function SessionProvider(props: SessionProviderProps) {
+export default function SessionProvider(props: SessionProviderProps) {
     const { mainPageUrl, children, userSession, registerAuthEventListener } = props
 
     const [refresh, doRefresh] = hooks.useRefresh()

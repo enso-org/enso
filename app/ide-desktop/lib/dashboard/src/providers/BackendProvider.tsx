@@ -2,7 +2,7 @@
  * provider via the shared React context. */
 import * as React from 'react'
 
-import * as localStorageProvider from '#/providers/localStorageProvider'
+import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import type * as backendModule from '#/services/backend'
 import * as localStorageModule from '#/utilities/localStorage'
 
@@ -31,7 +31,7 @@ export interface BackendProviderProps extends React.PropsWithChildren<object> {
 // =======================
 
 /** A React Provider that lets components get and set the current backend. */
-export function BackendProvider(props: BackendProviderProps) {
+export default function BackendProvider(props: BackendProviderProps) {
     const { initialBackend, children } = props
     const { localStorage } = localStorageProvider.useLocalStorage()
     const [backend, setBackendWithoutSavingType] =

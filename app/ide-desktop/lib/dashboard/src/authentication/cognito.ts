@@ -36,7 +36,7 @@ import * as results from 'ts-results'
 import * as detect from 'enso-common/src/detect'
 
 import * as config from '#/authentication/config'
-import type * as loggerProvider from '#/providers/loggerProvider'
+import type * as loggerProvider from '#/providers/LoggerProvider'
 
 // =================
 // === Constants ===

@@ -1,7 +1,7 @@
 /** @file An entry in a menu. */
 import * as React from 'react'
 
-import * as shortcutsProvider from '#/providers/shortcutsProvider'
+import * as shortcutsProvider from '#/providers/ShortcutsProvider'
 import * as shortcutsModule from '#/utilities/shortcuts'
 
 import KeyboardShortcut from '#/components/dashboard/keyboardShortcut'

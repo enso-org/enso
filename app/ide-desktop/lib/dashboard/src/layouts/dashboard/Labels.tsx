@@ -5,7 +5,7 @@ import PlusIcon from 'enso-assets/plus.svg'
 import Trash2Icon from 'enso-assets/trash2.svg'
 
 import NewLabelModal from '#/layouts/dashboard/NewLabelModal'
-import * as modalProvider from '#/providers/modalProvider'
+import * as modalProvider from '#/providers/ModalProvider'
 import type * as backend from '#/services/backend'
 import type * as assetQuery from '#/utilities/assetQuery'
 import * as drag from '#/utilities/drag'

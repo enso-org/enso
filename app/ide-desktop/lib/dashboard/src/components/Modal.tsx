@@ -1,7 +1,7 @@
 /** @file Base modal component that provides the full-screen element that blocks mouse events. */
 import * as React from 'react'
 
-import * as modalProvider from '#/providers/modalProvider'
+import * as modalProvider from '#/providers/ModalProvider'
 
 // =================
 // === Component ===

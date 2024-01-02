@@ -36,7 +36,7 @@ const SetModalContext = React.createContext<SetModalContextType>({
 export interface ModalProviderProps extends React.PropsWithChildren {}
 
 /** A React provider containing the currently active modal. */
-export function ModalProvider(props: ModalProviderProps) {
+export default function ModalProvider(props: ModalProviderProps) {
     const { children } = props
     const [modal, setModal] = React.useState<Modal | null>(null)
     const modalRef = React.useRef(modal)

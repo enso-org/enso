@@ -3,8 +3,8 @@ import * as React from 'react'
 
 import * as toastify from 'react-toastify'
 
-import * as loggerProvider from '#/providers/loggerProvider'
-import * as modalProvider from '#/providers/modalProvider'
+import * as loggerProvider from '#/providers/LoggerProvider'
+import * as modalProvider from '#/providers/ModalProvider'
 import * as errorModule from '#/utilities/error'
 
 import Modal from '#/components/Modal'

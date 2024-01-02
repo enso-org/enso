@@ -36,7 +36,7 @@ export interface LoggerProviderProps {
 }
 
 /** A React provider containing the diagnostic logger. */
-export function LoggerProvider(props: LoggerProviderProps) {
+export default function LoggerProvider(props: LoggerProviderProps) {
     const { children, logger } = props
     return <LoggerContext.Provider value={logger}>{children}</LoggerContext.Provider>
 }

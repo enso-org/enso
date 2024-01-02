@@ -51,13 +51,14 @@ import Registration from '#/pages/authentication/Registration'
 import ResetPassword from '#/pages/authentication/ResetPassword'
 import SetUsername from '#/pages/authentication/SetUsername'
 import Dashboard from '#/pages/dashboard/Dashboard'
-import * as authProvider from '#/providers/authProvider'
-import * as backendProvider from '#/providers/backendProvider'
-import * as localStorageProvider from '#/providers/localStorageProvider'
-import * as loggerProvider from '#/providers/loggerProvider'
-import * as modalProvider from '#/providers/modalProvider'
-import * as sessionProvider from '#/providers/sessionProvider'
-import * as shortcutsProvider from '#/providers/shortcutsProvider'
+import AuthProvider, * as authProvider from '#/providers/AuthProvider'
+import BackendProvider from '#/providers/BackendProvider'
+import LocalStorageProvider from '#/providers/LocalStorageProvider'
+import LoggerProvider from '#/providers/LoggerProvider'
+import type * as loggerProvider from '#/providers/LoggerProvider'
+import ModalProvider from '#/providers/ModalProvider'
+import SessionProvider from '#/providers/SessionProvider'
+import ShortcutsProvider from '#/providers/ShortcutsProvider'
 import type * as backend from '#/services/backend'
 import * as localBackend from '#/services/localBackend'
 import * as shortcutsModule from '#/utilities/shortcuts'
@@ -216,33 +217,32 @@ function AppRouter(props: AppProps) {
             </React.Fragment>
         </router.Routes>
     )
-    /** {@link backendProvider.BackendProvider} depends on
-     * {@link localStorageProvider.LocalStorageProvider}. */
+    /** {@link BackendProvider} depends on {@link LocalStorageProvider}. */
     return (
-        <loggerProvider.LoggerProvider logger={logger}>
-            <sessionProvider.SessionProvider
+        <LoggerProvider logger={logger}>
+            <SessionProvider
                 mainPageUrl={mainPageUrl}
                 userSession={userSession}
                 registerAuthEventListener={registerAuthEventListener}
             >
-                <localStorageProvider.LocalStorageProvider>
-                    <backendProvider.BackendProvider initialBackend={initialBackend}>
-                        <authProvider.AuthProvider
+                <LocalStorageProvider>
+                    <BackendProvider initialBackend={initialBackend}>
+                        <AuthProvider
                             shouldStartInOfflineMode={isAuthenticationDisabled}
                             supportsLocalBackend={supportsLocalBackend}
                             authService={authService}
                             onAuthenticated={onAuthenticated}
                             projectManagerUrl={projectManagerUrl}
                         >
-                            <modalProvider.ModalProvider>
-                                <shortcutsProvider.ShortcutsProvider shortcuts={shortcuts}>
+                            <ModalProvider>
+                                <ShortcutsProvider shortcuts={shortcuts}>
                                     {routes}
-                                </shortcutsProvider.ShortcutsProvider>
-                            </modalProvider.ModalProvider>
-                        </authProvider.AuthProvider>
-                    </backendProvider.BackendProvider>
-                </localStorageProvider.LocalStorageProvider>
-            </sessionProvider.SessionProvider>
-        </loggerProvider.LoggerProvider>
+                                </ShortcutsProvider>
+                            </ModalProvider>
+                        </AuthProvider>
+                    </BackendProvider>
+                </LocalStorageProvider>
+            </SessionProvider>
+        </LoggerProvider>
     )
 }

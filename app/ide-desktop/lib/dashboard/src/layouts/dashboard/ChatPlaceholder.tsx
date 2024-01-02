@@ -9,7 +9,7 @@ import * as appUtils from '#/appUtils'
 import * as hooks from '#/hooks'
 import * as chat from '#/layouts/dashboard/Chat'
 import * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
-import * as loggerProvider from '#/providers/loggerProvider'
+import * as loggerProvider from '#/providers/LoggerProvider'
 import * as animations from '#/utilities/animations'
 
 /** Props for a {@link ChatPlaceholder}. */

@@ -4,8 +4,8 @@ import * as React from 'react'
 import ArrowRightIcon from 'enso-assets/arrow_right.svg'
 import LockIcon from 'enso-assets/lock.svg'
 
-import * as authProvider from '#/providers/authProvider'
-import * as modalProvider from '#/providers/modalProvider'
+import * as authProvider from '#/providers/AuthProvider'
+import * as modalProvider from '#/providers/ModalProvider'
 import * as string from '#/utilities/string'
 import * as validation from '#/utilities/validation'
 

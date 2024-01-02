@@ -9,7 +9,7 @@ import * as appUtils from '#/appUtils'
 import * as cognito from '#/authentication/cognito'
 import * as auth from '#/authentication/config'
 import * as listen from '#/authentication/listen'
-import type * as loggerProvider from '#/providers/loggerProvider'
+import type * as loggerProvider from '#/providers/LoggerProvider'
 import * as config from '#/utilities/config'
 
 // =============

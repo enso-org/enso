@@ -2,9 +2,9 @@
 import * as React from 'react'
 
 import * as hooks from '#/hooks'
-import * as authProvider from '#/providers/authProvider'
-import * as backendProvider from '#/providers/backendProvider'
-import * as modalProvider from '#/providers/modalProvider'
+import * as authProvider from '#/providers/AuthProvider'
+import * as backendProvider from '#/providers/BackendProvider'
+import * as modalProvider from '#/providers/ModalProvider'
 import * as backendModule from '#/services/backend'
 import * as string from '#/utilities/string'
 

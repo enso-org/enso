@@ -10,7 +10,7 @@ import CreateAccountIcon from 'enso-assets/create_account.svg'
 import LockIcon from 'enso-assets/lock.svg'
 
 import * as appUtils from '#/appUtils'
-import * as authProvider from '#/providers/authProvider'
+import * as authProvider from '#/providers/AuthProvider'
 import * as validation from '#/utilities/validation'
 
 import FontAwesomeIcon from '#/components/FontAwesomeIcon'

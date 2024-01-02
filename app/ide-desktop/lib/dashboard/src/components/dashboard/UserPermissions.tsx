@@ -2,7 +2,7 @@
 import * as React from 'react'
 
 import * as hooks from '#/hooks'
-import * as backendProvider from '#/providers/backendProvider'
+import * as backendProvider from '#/providers/BackendProvider'
 import * as backendModule from '#/services/backend'
 
 import PermissionSelector from '#/components/dashboard/PermissionSelector'

@@ -5,7 +5,7 @@
  * the response from the API. */
 import * as detect from 'enso-common/src/detect'
 
-import type * as loggerProvider from '#/providers/loggerProvider'
+import type * as loggerProvider from '#/providers/LoggerProvider'
 import * as backendModule from '#/services/backend'
 import * as remoteBackendPaths from '#/services/remoteBackendPaths'
 import * as config from '#/utilities/config'

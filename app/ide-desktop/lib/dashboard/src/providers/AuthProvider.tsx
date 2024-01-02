@@ -16,10 +16,10 @@ import * as cognitoModule from '#/authentication/cognito'
 import type * as authServiceModule from '#/authentication/service'
 import * as hooks from '#/hooks'
 import LoadingScreen from '#/pages/authentication/LoadingScreen'
-import * as backendProvider from '#/providers/backendProvider'
-import * as localStorageProvider from '#/providers/localStorageProvider'
-import * as loggerProvider from '#/providers/loggerProvider'
-import * as sessionProvider from '#/providers/sessionProvider'
+import * as backendProvider from '#/providers/BackendProvider'
+import * as localStorageProvider from '#/providers/LocalStorageProvider'
+import * as loggerProvider from '#/providers/LoggerProvider'
+import * as sessionProvider from '#/providers/SessionProvider'
 import * as backendModule from '#/services/backend'
 import * as localBackend from '#/services/localBackend'
 import * as remoteBackend from '#/services/remoteBackend'
@@ -183,7 +183,7 @@ export interface AuthProviderProps {
 }
 
 /** A React provider for the Cognito API. */
-export function AuthProvider(props: AuthProviderProps) {
+export default function AuthProvider(props: AuthProviderProps) {
     const {
         shouldStartInOfflineMode,
         supportsLocalBackend,
