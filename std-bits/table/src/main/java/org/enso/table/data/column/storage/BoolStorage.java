@@ -380,7 +380,7 @@ public final class BoolStorage extends Storage<Boolean> {
                   negated = false;
                 }
 
-                BitSet missing = storage.isMissing.get(0, storage.size);
+                BitSet missing = BitSets.makeDuplicate(storage.isMissing);
                 missing.or(v.isMissing);
                 int current = missing.nextSetBit(0);
                 while (current != -1) {
@@ -450,8 +450,8 @@ public final class BoolStorage extends Storage<Boolean> {
                   negated = false;
                 }
 
-                BitSet missing = v.isMissing.get(0, storage.size);
-                missing.or(storage.isMissing);
+                BitSet missing = BitSets.makeDuplicate(storage.isMissing);
+                missing.or(v.isMissing);
                 int current = missing.nextSetBit(0);
                 while (current != -1) {
                   var value = negated != out.get(current);

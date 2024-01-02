@@ -163,10 +163,10 @@ spec setup =
                 (x || y.not).to_vector . should_equal [True, True, True]
 
         Test.specify "should handle nulls correctly in not" <|
-            t = table_builder [["A", [True, True, True, False, False, False, Nothing, Nothing, Nothing]]]
+            t = table_builder [["A", [True, False, Nothing]]]
             a = t.at "A"
             a_not = a.not
-            a_not.to_vector . should_equal [False, False, False, True, True, True, Nothing, Nothing, Nothing]
+            a_not.to_vector . should_equal [False, True, Nothing]
 
         Test.specify "should handle nulls correctly in &&" <|
             t = table_builder [["A", [True, True, True, False, False, False, Nothing, Nothing, Nothing]], ["B", [True, False, Nothing, True, False, Nothing, True, False, Nothing]]]
