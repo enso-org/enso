@@ -154,15 +154,15 @@ public final class ModuleScope implements EnsoObject {
     }
   }
 
-  private static final class CachingSupplier<T> implements Supplier<T> {
+  public static final class CachingSupplier<T> implements Supplier<T> {
     private final Supplier<T> supply;
     private T memo;
 
-    CachingSupplier(Supplier<T> supply) {
+    public CachingSupplier(Supplier<T> supply) {
       this.supply = supply;
     }
 
-    CachingSupplier(T memo) {
+    public CachingSupplier(T memo) {
       this.supply = null;
       this.memo = memo;
     }
