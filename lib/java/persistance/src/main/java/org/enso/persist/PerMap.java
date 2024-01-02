@@ -6,8 +6,6 @@ import java.util.Map;
 import org.openide.util.lookup.Lookups;
 
 final class PerMap {
-
-  static final PerMap DEFAULT = new PerMap();
   private final Map<Integer, Persistance<?>> ids = new HashMap<>();
   private final Map<Class<?>, Persistance<?>> types = new HashMap<>();
   final int versionStamp;
@@ -15,7 +13,8 @@ final class PerMap {
   private PerMap() {
     int hash = 0;
     var loader = getClass().getClassLoader();
-    for (var p : Lookups.metaInfServices(loader).lookupAll(Persistance.class)) {
+    for (var orig : Lookups.metaInfServices(loader).lookupAll(Persistance.class)) {
+      var p = orig.newClone();
       org.enso.persist.Persistance<?> prevId = ids.put(p.id, p);
       if (prevId != null) {
         throw new IllegalStateException(
@@ -29,6 +28,10 @@ final class PerMap {
       }
     }
     versionStamp = hash;
+  }
+
+  static PerMap create() {
+    return new PerMap();
   }
 
   @SuppressWarnings(value = "unchecked")

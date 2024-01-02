@@ -47,10 +47,38 @@ public class IrPersistanceTest {
   }
 
   @Test
+  public void identifiedLocationWithUUID() throws Exception {
+    var il = new IdentifiedLocation(new Location(5, 19), UUID.randomUUID());
+    var in = serde(IdentifiedLocation.class, il, 33);
+    assertEquals("UUIDs are serialized at the moment", il, in);
+  }
+
+  @Test
   public void identifiedLocationNoUUID() throws Exception {
     var il = new IdentifiedLocation(new Location(5, 19), UUID.randomUUID());
-    var in = serde(IdentifiedLocation.class, il, 32);
-    assertEquals("UUIDs are serialized at the moment", il, in);
+    Function<Object, Object> fn =
+        (obj) ->
+            switch (obj) {
+              case UUID any -> null;
+              default -> obj;
+            };
+    var in = serde(IdentifiedLocation.class, il, 12, fn);
+    var withoutUUID = new IdentifiedLocation(il.location());
+    assertEquals("UUIDs are no longer serialized", withoutUUID, in);
+  }
+
+  @Test
+  public void idHolderNoUUID() throws Exception {
+    var il = new IdHolder(UUID.randomUUID());
+    Function<Object, Object> fn =
+        (obj) ->
+            switch (obj) {
+              case UUID any -> null;
+              default -> obj;
+            };
+    var in = serde(IdHolder.class, il, 1, fn);
+    var withoutUUID = new IdHolder(null);
+    assertEquals("UUIDs are no longer serialized", withoutUUID, in);
   }
 
   @Test
@@ -124,7 +152,7 @@ public class IrPersistanceTest {
     var idLoc2 = new IdentifiedLocation(new Location(2, 4), UUID.randomUUID());
     var in = join(idLoc2, join(idLoc1, nil()));
 
-    var out = serde(List.class, in, 64);
+    var out = serde(List.class, in, 65);
 
     assertEquals("Two elements", 2, out.size());
     assertEquals("UUIDs are serialized at the moment", idLoc2, out.head());
@@ -314,11 +342,16 @@ public class IrPersistanceTest {
   }
 
   private static <T> T serde(Class<T> clazz, T l, int expectedSize) throws IOException {
-    var arr = Persistance.write(l, (Function<Object, Object>) null);
+    return serde(clazz, l, expectedSize, null);
+  }
+
+  private static <T> T serde(Class<T> clazz, T l, int expectedSize, Function<Object, Object> fn)
+      throws IOException {
+    var arr = Persistance.write(l, fn);
     if (expectedSize >= 0) {
       assertEquals(expectedSize, arr.length - 12);
     }
-    var ref = Persistance.read(arr, (Function<Object, Object>) null);
+    var ref = Persistance.read(arr, null);
     return ref.get(clazz);
   }
 
@@ -434,4 +467,7 @@ public class IrPersistanceTest {
 
   @Persistable(clazz = ServiceSupply.class, id = 432436)
   public record ServiceSupply(Service supply) {}
+
+  @Persistable(clazz = IdHolder.class, id = 432876)
+  public record IdHolder(UUID id) {}
 }
