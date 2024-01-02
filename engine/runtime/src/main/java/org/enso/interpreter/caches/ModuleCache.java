@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.logging.Level;
 import org.apache.commons.lang3.StringUtils;
 import org.enso.compiler.core.ir.Module;
@@ -59,6 +60,7 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
                           RuntimeException.class, new IOException("Cannot convert " + metadata));
                     }
                   }
+                  case null -> null;
                   default -> obj;
                 });
     var mod = ref.get(Module.class);
@@ -160,6 +162,8 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
                 switch (obj) {
                   case ProcessingPass.Metadata metadata -> metadata.prepareForSerialization(
                       context.getCompiler().context());
+                  case UUID uuid -> null;
+                  case null -> null;
                   default -> obj;
                 });
     return arr;

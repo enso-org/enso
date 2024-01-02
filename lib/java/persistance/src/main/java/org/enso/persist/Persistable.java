@@ -38,6 +38,15 @@ public @interface Persistable {
    */
   int id();
 
+  /**
+   * Should the generated code use {@link Persistance.Output#writeInline(Class<T>, T)} or not. By
+   * default all {@code final} or <em>sealed</em> classes are inlined. Inlining is however not very
+   * helpful when a single object is shared between multiple other objects.
+   *
+   * @return
+   */
+  boolean allowInlining() default true;
+
   /** Multiple {@link Persistable} annotations. */
   @Target(ElementType.TYPE)
   public @interface Group {
