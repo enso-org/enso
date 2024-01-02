@@ -31,10 +31,10 @@ export enum ColumnDisplayMode {
 export enum Column {
     name = 'name',
     modified = 'modified',
-    sharedWith = 'shared-with',
-    labels = 'tags',
-    accessedByProjects = 'accessed-by-projects',
-    accessedData = 'accessed-data',
+    sharedWith = 'sharedWith',
+    labels = 'labels',
+    accessedByProjects = 'accessedByProjects',
+    accessedData = 'accessedData',
     docs = 'docs',
 }
 

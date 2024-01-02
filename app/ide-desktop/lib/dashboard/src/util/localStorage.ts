@@ -1,7 +1,7 @@
 /** @file A LocalStorage data manager. */
 import * as common from 'enso-common'
 
-import * as categorySwitcherConstants from '#/layouts/dashboard/categorySwitcher/categorySwitcherConstants'
+import * as categorySwitcherUtils from '#/layouts/dashboard/categorySwitcher/categorySwitcherUtils'
 import * as pageSwitcher from '#/layouts/dashboard/pageSwitcher'
 import * as backend from '#/services/backend'
 import * as array from '#/util/array'
@@ -30,7 +30,7 @@ interface LocalStorageData {
     [LocalStorageKey.extraColumns]: columnUtils.ExtraColumn[]
     [LocalStorageKey.isAssetSettingsPanelVisible]: boolean
     [LocalStorageKey.projectStartupInfo]: backend.ProjectStartupInfo
-    [LocalStorageKey.driveCategory]: categorySwitcherConstants.Category
+    [LocalStorageKey.driveCategory]: categorySwitcherUtils.Category
     [LocalStorageKey.loginRedirect]: string
 }
 
@@ -86,7 +86,7 @@ export class LocalStorage {
                 )
             }
             if (LocalStorageKey.driveCategory in savedValues) {
-                const categories = Object.values(categorySwitcherConstants.Category)
+                const categories = Object.values(categorySwitcherUtils.Category)
                 if (
                     array.includesPredicate(categories)(savedValues[LocalStorageKey.driveCategory])
                 ) {
@@ -124,7 +124,7 @@ export class LocalStorage {
                 }
             }
             if (LocalStorageKey.driveCategory in savedValues) {
-                const categories = Object.values(categorySwitcherConstants.Category)
+                const categories = Object.values(categorySwitcherUtils.Category)
                 if (
                     array.includesPredicate(categories)(savedValues[LocalStorageKey.driveCategory])
                 ) {

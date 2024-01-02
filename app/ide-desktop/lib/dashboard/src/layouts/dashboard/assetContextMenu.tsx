@@ -6,7 +6,7 @@ import * as toast from 'react-toastify'
 import * as events from '#/events'
 import * as hooks from '#/hooks'
 import type * as assetsTable from '#/layouts/dashboard/assetsTable'
-import * as categorySwitcher from '#/layouts/dashboard/categorySwitcher'
+import * as categorySwitcherUtils from '#/layouts/dashboard/categorySwitcher/categorySwitcherUtils'
 import GlobalContextMenu from '#/layouts/dashboard/globalContextMenu'
 import ManagePermissionsModal from '#/layouts/dashboard/managePermissionsModal'
 import * as providers from '#/providers'
@@ -103,7 +103,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         },
         [/* should never change */ setItem]
     )
-    return category === categorySwitcher.Category.trash ? (
+    return category === categorySwitcherUtils.Category.trash ? (
         !ownsThisAsset ? null : (
             <ContextMenus hidden={hidden} key={asset.id} event={event}>
                 <ContextMenu hidden={hidden}>
@@ -352,7 +352,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                     />
                 )}
             </ContextMenu>
-            {category === categorySwitcher.Category.home && (
+            {category === categorySwitcherUtils.Category.home && (
                 <GlobalContextMenu
                     hidden={hidden}
                     hasCopyData={hasCopyData}

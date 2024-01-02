@@ -8,7 +8,7 @@ import DataDownloadIcon from 'enso-assets/data_download.svg'
 import DataUploadIcon from 'enso-assets/data_upload.svg'
 
 import * as events from '#/events'
-import * as categorySwitcherConstants from '#/layouts/dashboard/categorySwitcher/categorySwitcherConstants'
+import * as categorySwitcherUtils from '#/layouts/dashboard/categorySwitcher/categorySwitcherUtils'
 import NewDataConnectorModal from '#/layouts/dashboard/newDataConnectorModal'
 import * as providers from '#/providers'
 import * as backendModule from '#/services/backend'
@@ -22,7 +22,7 @@ import Button from '#/components/button'
 
 /** Props for a {@link DriveBar}. */
 export interface DriveBarProps {
-    category: categorySwitcherConstants.Category
+    category: categorySwitcherUtils.Category
     doCreateProject: (templateId: string | null) => void
     doCreateDirectory: () => void
     doCreateDataConnector: (name: string, value: string) => void
@@ -46,7 +46,7 @@ export default function DriveBar(props: DriveBarProps) {
     const { shortcuts } = providers.useShortcuts()
     const uploadFilesRef = React.useRef<HTMLInputElement>(null)
     const isHomeCategory =
-        category === categorySwitcherConstants.Category.home ||
+        category === categorySwitcherUtils.Category.home ||
         backend.type === backendModule.BackendType.local
 
     React.useEffect(() => {
@@ -150,16 +150,16 @@ export default function DriveBar(props: DriveBarProps) {
                     />
                     <Button
                         active={
-                            category !== categorySwitcherConstants.Category.trash &&
+                            category !== categorySwitcherUtils.Category.trash &&
                             backend.type === backendModule.BackendType.local
                         }
                         disabled={
-                            category === categorySwitcherConstants.Category.trash ||
+                            category === categorySwitcherUtils.Category.trash ||
                             backend.type !== backendModule.BackendType.local
                         }
                         image={DataDownloadIcon}
                         error={
-                            category === categorySwitcherConstants.Category.trash
+                            category === categorySwitcherUtils.Category.trash
                                 ? 'You cannot download files from Trash.'
                                 : 'Not implemented yet.'
                         }

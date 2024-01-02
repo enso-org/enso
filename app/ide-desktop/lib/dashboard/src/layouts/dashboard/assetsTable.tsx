@@ -6,7 +6,7 @@ import * as toast from 'react-toastify'
 import * as events from '#/events'
 import * as hooks from '#/hooks'
 import type * as assetSettingsPanel from '#/layouts/dashboard/assetSettingsPanel'
-import * as categorySwitcherConstants from '#/layouts/dashboard/categorySwitcher/categorySwitcherConstants'
+import * as categorySwitcherUtils from '#/layouts/dashboard/categorySwitcher/categorySwitcherUtils'
 import GlobalContextMenu from '#/layouts/dashboard/globalContextMenu'
 import * as providers from '#/providers'
 import * as backendModule from '#/services/backend'
@@ -124,16 +124,14 @@ function insertAssetTreeNodeChildren(
 // === Category to filter by ===
 // =============================
 
-const CATEGORY_TO_FILTER_BY: Record<
-    categorySwitcherConstants.Category,
-    backendModule.FilterBy | null
-> = {
-    [categorySwitcherConstants.Category.recent]: null,
-    [categorySwitcherConstants.Category.drafts]: null,
-    [categorySwitcherConstants.Category.home]: backendModule.FilterBy.active,
-    [categorySwitcherConstants.Category.root]: null,
-    [categorySwitcherConstants.Category.trash]: backendModule.FilterBy.trashed,
-}
+const CATEGORY_TO_FILTER_BY: Record<categorySwitcherUtils.Category, backendModule.FilterBy | null> =
+    {
+        [categorySwitcherUtils.Category.recent]: null,
+        [categorySwitcherUtils.Category.drafts]: null,
+        [categorySwitcherUtils.Category.home]: backendModule.FilterBy.active,
+        [categorySwitcherUtils.Category.root]: null,
+        [categorySwitcherUtils.Category.trash]: backendModule.FilterBy.trashed,
+    }
 
 // ===================
 // === AssetsTable ===
@@ -142,7 +140,7 @@ const CATEGORY_TO_FILTER_BY: Record<
 /** State passed through from a {@link AssetsTable} to every cell. */
 export interface AssetsTableState {
     numberOfSelectedItems: number
-    category: categorySwitcherConstants.Category
+    category: categorySwitcherUtils.Category
     labels: Map<backendModule.LabelName, backendModule.Label>
     deletedLabelNames: Set<backendModule.LabelName>
     hasCopyData: boolean
@@ -206,7 +204,7 @@ export const INITIAL_ROW_STATE = Object.freeze<AssetRowState>({
 export interface AssetsTableProps {
     query: assetQuery.AssetQuery
     setQuery: React.Dispatch<React.SetStateAction<assetQuery.AssetQuery>>
-    category: categorySwitcherConstants.Category
+    category: categorySwitcherUtils.Category
     allLabels: Map<backendModule.LabelName, backendModule.Label>
     initialProjectName: string | null
     projectStartupInfo: backendModule.ProjectStartupInfo | null
@@ -399,7 +397,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                         runInBackground: false,
                     })
                 })
-            } else {
+            } else if (initialProjectName != null) {
                 toastAndLog(`Could not find project '${initialProjectName}'`)
             }
         }
@@ -481,8 +479,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                             {
                                 parentId: null,
                                 filterBy: CATEGORY_TO_FILTER_BY[category],
-                                recentProjects:
-                                    category === categorySwitcherConstants.Category.recent,
+                                recentProjects: category === categorySwitcherUtils.Category.recent,
                                 labels: null,
                             },
                             null
@@ -546,8 +543,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                                             parentId: id,
                                             filterBy: CATEGORY_TO_FILTER_BY[category],
                                             recentProjects:
-                                                category ===
-                                                categorySwitcherConstants.Category.recent,
+                                                category === categorySwitcherUtils.Category.recent,
                                             labels: null,
                                         },
                                         entry.item.title
@@ -590,8 +586,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                             {
                                 parentId: null,
                                 filterBy: CATEGORY_TO_FILTER_BY[category],
-                                recentProjects:
-                                    category === categorySwitcherConstants.Category.recent,
+                                recentProjects: category === categorySwitcherUtils.Category.recent,
                                 labels: null,
                             },
                             null
@@ -724,7 +719,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                         {
                             parentId: directoryId,
                             filterBy: CATEGORY_TO_FILTER_BY[category],
-                            recentProjects: category === categorySwitcherConstants.Category.recent,
+                            recentProjects: category === categorySwitcherUtils.Category.recent,
                             labels: null,
                         },
                         title ?? null
@@ -1234,7 +1229,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     ids: innerSelectedKeys,
                 })
             }
-            if (category === categorySwitcherConstants.Category.trash) {
+            if (category === categorySwitcherUtils.Category.trash) {
                 return innerSelectedKeys.size === 0 ? (
                     <></>
                 ) : (
@@ -1248,7 +1243,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                         </ContextMenu>
                     </ContextMenus>
                 )
-            } else if (category !== categorySwitcherConstants.Category.home) {
+            } else if (category !== categorySwitcherUtils.Category.home) {
                 return null
             } else {
                 const deleteAction =
@@ -1439,7 +1434,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     selectedKeys={selectedKeys}
                     setSelectedKeys={setSelectedKeys}
                     placeholder={
-                        category === categorySwitcherConstants.Category.trash
+                        category === categorySwitcherUtils.Category.trash
                             ? TRASH_PLACEHOLDER
                             : query.query !== ''
                             ? QUERY_PLACEHOLDER
