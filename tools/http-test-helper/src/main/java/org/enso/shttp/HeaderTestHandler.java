@@ -1,12 +1,11 @@
 package org.enso.shttp;
 
 import com.sun.net.httpserver.HttpExchange;
+import org.apache.http.client.utils.URIBuilder;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
-
-import org.apache.http.client.utils.URIBuilder;
 
 public class HeaderTestHandler extends SimpleHttpHandler {
   @Override
@@ -14,12 +13,13 @@ public class HeaderTestHandler extends SimpleHttpHandler {
     URI uri = exchange.getRequestURI();
     URIBuilder builder = new URIBuilder(uri);
 
-    String content = null;
+    final String responseDataArgumentName = "base64_response_data";
+    byte[] responseData = null;
 
     try {
       for (var queryPair : builder.getQueryParams()) {
-        if (queryPair.getName().equals("content")) {
-          content = queryPair.getValue();
+        if (queryPair.getName().equals(responseDataArgumentName)) {
+          responseData = java.util.Base64.getDecoder().decode(queryPair.getValue());
         } else {
           exchange.getResponseHeaders().add(queryPair.getName(), queryPair.getValue());
         }
@@ -29,11 +29,10 @@ public class HeaderTestHandler extends SimpleHttpHandler {
       exchange.sendResponseHeaders(500, -1);
     }
 
-    if (content != null) {
-      byte[] response = content.getBytes(StandardCharsets.UTF_8);
-      exchange.sendResponseHeaders(200, response.length);
+    if (responseData != null) {
+      exchange.sendResponseHeaders(200, responseData.length);
       try (OutputStream os = exchange.getResponseBody()) {
-        os.write(response);
+        os.write(responseData);
       }
       exchange.close();
     } else {
