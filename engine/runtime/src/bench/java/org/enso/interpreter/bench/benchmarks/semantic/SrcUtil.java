@@ -1,15 +1,15 @@
 package org.enso.interpreter.bench.benchmarks.semantic;
 
+import static org.junit.Assert.assertNotNull;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import org.graalvm.polyglot.Source;
-import static org.junit.Assert.assertNotNull;
 import org.openjdk.jmh.infra.BenchmarkParams;
 
 final class SrcUtil {
-  private SrcUtil() {
-  }
+  private SrcUtil() {}
 
   static String findName(BenchmarkParams params) {
     return params.getBenchmark().replaceFirst(".*\\.", "");
@@ -19,7 +19,7 @@ final class SrcUtil {
     var d = new File(new File(new File("."), "target"), "bench-data");
     d.mkdirs();
     var f = new File(d, benchmarkName + ".enso");
-    try ( var w = new FileWriter(f)) {
+    try (var w = new FileWriter(f)) {
       w.write(code);
     }
     return Source.newBuilder("enso", f).build();
