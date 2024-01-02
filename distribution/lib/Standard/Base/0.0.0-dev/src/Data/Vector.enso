@@ -1377,8 +1377,6 @@ type Map_Error
 ## PRIVATE
    Indicates that a method should not wrap thrown errors in `Map_Error`.
 type No_Wrap
-    ## PRIVATE
-    Value
 
 ## PRIVATE
 Wrapped_Error.from (that : Map_Error) = Wrapped_Error.Value that that.inner_error

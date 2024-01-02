@@ -320,7 +320,7 @@ set_array value warnings = @Builtin_Method "Warning.set_array"
 map_attached_warnings_helper : (Any -> Maybe Any) -> Any -> Integer -> Any
 map_attached_warnings_helper mapper value frames_to_drop =
     warnings = Warning.get_all value
-    mapped_warnings = warnings.map on_problems=No_Wrap.Value warning->
+    mapped_warnings = warnings.map on_problems=No_Wrap warning->
         case mapper warning.value of
             Maybe.Some new_payload ->
                 self_call_name = "Warning.map_attached_warnings_helper"
