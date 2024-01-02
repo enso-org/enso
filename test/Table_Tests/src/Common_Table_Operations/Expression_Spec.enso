@@ -443,7 +443,7 @@ spec detailed setup =
             Problems.expect_warning Illegal_State c4
 
             t3 = t2.set 'if [Y] == 42.0 then "A" else "B"' new_name="Z" on_problems=Problem_Behavior.Report_Error
-            t3.should_fail_with Floating_Point_Equality unwrap_errors=True
+            t3.should_fail_with Floating_Point_Equality
 
             t4 = t2.set 'if [Y] >= 3.5 then "A" else "B"' new_name="Z" on_problems=Problem_Behavior.Report_Error
             t4.at "Z" . to_vector . should_equal ["A", "A", "B"]

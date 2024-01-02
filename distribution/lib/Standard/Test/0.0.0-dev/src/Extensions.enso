@@ -23,7 +23,7 @@ from project.Test import Test
          example_should_fail_with =
             Examples.throw_error . should_fail_with Examples.My_Error
 Any.should_fail_with : Any -> Integer -> Boolean -> Test_Result
-Any.should_fail_with self matcher frames_to_skip=0 unwrap_errors=False =
+Any.should_fail_with self matcher frames_to_skip=0 unwrap_errors=True =
     _ = unwrap_errors
     loc = Meta.get_source_location 1+frames_to_skip
     matcher_text = matcher . to_text
@@ -47,7 +47,7 @@ Any.should_fail_with self matcher frames_to_skip=0 unwrap_errors=False =
          example_should_fail_with =
             Examples.throw_error . should_fail_with Examples.My_Error
 Error.should_fail_with : Any -> Integer -> Boolean -> Test_Result
-Error.should_fail_with self matcher frames_to_skip=0 unwrap_errors=False =
+Error.should_fail_with self matcher frames_to_skip=0 unwrap_errors=True =
     unwrap_maybe error = if unwrap_errors then Error.unwrap error else error
     caught = unwrap_maybe self.catch
     if caught == matcher || caught.is_a matcher then Nothing else

@@ -874,7 +874,7 @@ type_spec name alter = Test.group name <|
         Warning.limit_reached sorted . should_equal True
 
     Test.specify "an error thrown inside map should be caught as a Map_Error" <|
-        alter [10, 20, 30, 40] . map map_fun . should_fail_with (Map_Error.Error 2 (My_Error.Error 30))
+        alter [10, 20, 30, 40] . map map_fun . should_fail_with (Map_Error.Error 2 (My_Error.Error 30)) unwrap_errors=False
 
     Test.specify "an error thrown inside map on_problems=No_Wrap.Value should be caught as a My_Error" <|
         alter [10, 20, 30, 40] . map on_problems=No_Wrap.Value map_fun . should_fail_with My_Error
@@ -894,22 +894,22 @@ type_spec name alter = Test.group name <|
 
     Test.specify "an error thrown inside flat_map should be caught as a Map_Error" <|
         vec = alter ([[10], [20], [30], [40]].map alter)
-        vec.flat_map flat_map_fun . should_fail_with (Map_Error.Error 2 (My_Error.Error [30]))
+        vec.flat_map flat_map_fun . should_fail_with (Map_Error.Error 2 (My_Error.Error [30])) unwrap_errors=False
 
     Test.specify "an error thrown inside map_with_index should be caught as a Map_Error" <|
-        alter [10, 20, 30, 40] . map_with_index map_with_index_fun . should_fail_with (Map_Error.Error 2 (My_Error.Error 30))
+        alter [10, 20, 30, 40] . map_with_index map_with_index_fun . should_fail_with (Map_Error.Error 2 (My_Error.Error 30)) unwrap_errors=False
 
     Test.specify "an error thrown inside zip should be caught as a Map_Error" <|
         vec = alter [10, 20, 30, 40]
-        vec.zip [10, 20, 30, 40] zip_fun . should_fail_with (Map_Error.Error 2 (My_Error.Error 30))
+        vec.zip [10, 20, 30, 40] zip_fun . should_fail_with (Map_Error.Error 2 (My_Error.Error 30)) unwrap_errors=False
 
     Test.specify "an error thrown inside nested maps should be wrapped multiple times" <|
         nested_vector = Vector.fill 5 (alter [10, 20, 30, 40])
-        nested_vector.map (_.map map_fun) . should_fail_with (Map_Error.Error 0 (Map_Error.Error 2 (My_Error.Error 30)))
+        nested_vector.map (_.map map_fun) . should_fail_with (Map_Error.Error 0 (Map_Error.Error 2 (My_Error.Error 30))) unwrap_errors=False
 
     Test.specify "a Nothing thrown inside map should be caught as Nothing" <|
         map_fun a = if a == 30 then Error.throw Nothing else a+1
-        alter [10, 20, 30, 40] . map map_fun . should_fail_with (Map_Error.Error 2 Nothing)
+        alter [10, 20, 30, 40] . map map_fun . should_fail_with (Map_Error.Error 2 Nothing) unwrap_errors=False
 
     Test.specify "an error thrown inside map with on_problems=Problem_Behavior.Ignore should be ignored" <|
         results = alter [10, 20, 30, 40] . map map_fun on_problems=Problem_Behavior.Ignore

@@ -24,7 +24,7 @@ get_attached_warnings v =
    - unwrap_errors: If true, remove any wrapping errors from errors and warnings
      before checking them.
 test_problem_handling : (Problem_Behavior -> Any) -> Vector Any -> (Any -> Nothing) -> Boolean -> Nothing
-test_problem_handling action expected_problems result_checker unwrap_errors=False =
+test_problem_handling action expected_problems result_checker unwrap_errors=True =
     unwrap_maybe error = if unwrap_errors then Error.unwrap error else error
 
     error_checker error_result =
@@ -91,7 +91,7 @@ assume_no_problems result =
    - unwrap_errors: If true, remove any wrapping errors from the result before
      checking against the expected warning.
 expect_warning : Any -> Any -> Boolean -> Nothing
-expect_warning expected_warning result unwrap_errors=False =
+expect_warning expected_warning result unwrap_errors=True =
     unwrap_maybe error = if unwrap_errors then Error.unwrap error else error
     loc = Meta.get_source_location 1
     if result.is_error then
@@ -115,7 +115,7 @@ expect_warning expected_warning result unwrap_errors=False =
    - unwrap_errors: If true, remove any wrapping errors from the result before
      checking against the expected warning.
 expect_only_warning : Any -> Any -> Boolean -> Any
-expect_only_warning expected_warning result unwrap_errors=False =
+expect_only_warning expected_warning result unwrap_errors=True =
     unwrap_maybe error = if unwrap_errors then Error.unwrap error else error
     loc = Meta.get_source_location 1
     if result.is_error then

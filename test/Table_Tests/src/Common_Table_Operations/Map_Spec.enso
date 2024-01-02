@@ -162,7 +162,7 @@ spec setup =
                 f x y =
                     if x == 2 then Warning.attach (Illegal_State.Error "MY WARNING") (10*x + y) else 10*x + y
                 c1 = (t.at "X") . zip (t.at "Y") f
-                w1 = Problems.expect_only_warning Illegal_State c1 unwrap_errors=True
+                w1 = Problems.expect_only_warning Illegal_State c1
                 w1.message . should_equal "MY WARNING"
                 c1.to_vector . should_equal [14, 25, 36]
 
