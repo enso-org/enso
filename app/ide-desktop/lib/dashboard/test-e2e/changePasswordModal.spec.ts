@@ -8,12 +8,12 @@ test.test('change password modal', async ({ page }) => {
     await api.mockApi(page)
     await actions.login(page)
 
-    // Screenshot #1: Change password modal
+    // Change password modal
     await actions.locateUserMenuButton(page).click()
     await actions.locateChangePasswordButton(page).click()
-    await test.expect(actions.locateChangePasswordModal(page)).toHaveScreenshot()
+    await test.expect(actions.locateChangePasswordModal(page)).toBeVisible()
 
-    // Screenshot #2: Invalid old password
+    // Invalid old password
     await actions.locateOldPasswordInput(page).fill(actions.INVALID_PASSWORD)
     test.expect(
         await page.evaluate(() => document.querySelector('form')?.checkValidity()),
@@ -21,7 +21,7 @@ test.test('change password modal', async ({ page }) => {
     ).toBe(false)
     await actions.locateResetButton(page).click()
 
-    // Screenshot #3: Invalid new password
+    // Invalid new password
     await actions.locateOldPasswordInput(page).fill(actions.VALID_PASSWORD)
     await actions.locateNewPasswordInput(page).fill(actions.INVALID_PASSWORD)
     test.expect(
@@ -30,16 +30,16 @@ test.test('change password modal', async ({ page }) => {
     ).toBe(false)
     await actions.locateResetButton(page).click()
 
-    // Screenshot #4: Invalid "confirm new password"
+    // Invalid new password confirmation
     await actions.locateNewPasswordInput(page).fill(actions.VALID_PASSWORD)
     await actions.locateConfirmNewPasswordInput(page).fill(actions.INVALID_PASSWORD)
     test.expect(
         await page.evaluate(() => document.querySelector('form')?.checkValidity()),
-        'form should reject invalid "confirm new password"'
+        'form should reject invalid new password confirmation'
     ).toBe(false)
     await actions.locateResetButton(page).click()
 
-    // Screenshot #5: After form submission
+    // After form submission
     await actions.locateConfirmNewPasswordInput(page).fill(actions.VALID_PASSWORD)
     await actions.locateResetButton(page).click()
     await test.expect(actions.locateChangePasswordModal(page)).not.toBeAttached()

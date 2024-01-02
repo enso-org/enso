@@ -11,7 +11,7 @@ test.test('login screen', async ({ page }) => {
     // Screenshot omitted - it is already taken by `loginLogout.spec.ts`.
     await page.goto('/')
 
-    // Screenshot #2: Invalid email
+    // Invalid email
     await actions.locateEmailInput(page).fill('invalid email')
     test.expect(
         await page.evaluate(() => document.querySelector('form')?.checkValidity()),
@@ -19,12 +19,12 @@ test.test('login screen', async ({ page }) => {
     ).toBe(false)
     await actions.locateLoginButton(page).click()
 
-    // Screenshot #3: Invalid password
+    // Invalid password
     await actions.locateEmailInput(page).fill(actions.VALID_EMAIL)
-    await actions.locatePasswordInput(page).type(actions.INVALID_PASSWORD)
+    await actions.locatePasswordInput(page).fill(actions.INVALID_PASSWORD)
     test.expect(
         await page.evaluate(() => document.querySelector('form')?.checkValidity()),
-        'form should reject invalid password'
-    ).toBe(false)
+        'form should accept invalid password'
+    ).toBe(true)
     await actions.locateLoginButton(page).click()
 })

@@ -224,6 +224,11 @@ export function locateNewLabelButton(page: test.Locator | test.Page) {
     return page.getByRole('button', { name: 'new label' }).getByText('new label')
 }
 
+/** Find an "upgrade" button (if any) on the current page. */
+export function locateUpgradeButton(page: test.Locator | test.Page) {
+    return page.getByRole('button', { name: 'Upgrade' }).getByText('Upgrade')
+}
+
 // === Container locators ===
 
 /** Find a drive view (if any) on the current page. */
