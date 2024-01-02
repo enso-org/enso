@@ -1,9 +1,10 @@
 /** @file Tests for the `useRefresh` hook. */
 import * as React from 'react'
 
+import * as test from '@playwright/experimental-ct-react'
+
 import type * as refresh from './useRefresh/refresh'
 import Refresh from './useRefresh/refresh'
-import * as test from '@playwright/experimental-ct-react'
 
 test.test('useRefresh', async ({ mount }) => {
     const values = new Set<refresh.RefreshState>()

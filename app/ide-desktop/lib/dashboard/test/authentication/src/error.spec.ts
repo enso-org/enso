@@ -1,6 +1,7 @@
 /** @file Tests for `error.ts`. */
-import * as error from '../../../src/utilities/error'
 import * as test from '@playwright/test'
+
+import * as error from '../../../src/utilities/error'
 
 // =============
 // === Tests ===

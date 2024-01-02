@@ -3,9 +3,10 @@ import * as module from 'node:module'
 import * as path from 'node:path'
 import * as url from 'node:url'
 
-import * as bundler from './esbuild-config'
 import chalk from 'chalk'
 import * as esbuild from 'esbuild'
+
+import * as bundler from './esbuild-config'
 
 // =================
 // === Constants ===

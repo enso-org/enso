@@ -1,7 +1,8 @@
 /** @file Test the login flow. */
+import * as test from '@playwright/test'
+
 import * as actions from './actions'
 import * as api from './api'
-import * as test from '@playwright/test'
 
 // =============
 // === Tests ===

@@ -1,7 +1,8 @@
 /** @file Test the "change password" modal. */
+import * as test from '@playwright/test'
+
 import * as actions from './actions'
 import * as api from './api'
-import * as test from '@playwright/test'
 
 test.test('change password modal', async ({ page }) => {
     await api.mockApi(page)

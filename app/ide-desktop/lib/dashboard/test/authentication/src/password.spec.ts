@@ -1,6 +1,7 @@
 /** @file Basic tests for this */
-import * as validation from '../../../src/utilities/validation'
 import * as test from '@playwright/test'
+
+import * as validation from '../../../src/utilities/validation'
 
 // =============
 // === Tests ===

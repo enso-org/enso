@@ -1,7 +1,8 @@
 /** @file Test the user menu. */
+import * as test from '@playwright/test'
+
 import * as actions from './actions'
 import * as api from './api'
-import * as test from '@playwright/test'
 
 test.test('user menu', async ({ page }) => {
     await api.mockApi(page)
