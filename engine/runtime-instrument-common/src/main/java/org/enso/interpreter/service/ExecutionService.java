@@ -406,7 +406,7 @@ public final class ExecutionService {
               rope -> {
                 logger.log(
                     Level.FINE,
-                    "Applied edits. Source has {} lines, last line has {} characters",
+                    "Applied edits. Source has {0} lines, last line has {1} characters.",
                     new Object[] {
                       rope.lines().length(),
                       rope.lines().drop(rope.lines().length() - 1).characters().length()
