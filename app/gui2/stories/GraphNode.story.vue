@@ -8,7 +8,7 @@ import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { logEvent } from 'histoire/client'
 import { computed, reactive, ref, watchEffect } from 'vue'
-import { IdMap, type ContentRange } from '../shared/yjsModel'
+import { IdMap, type SourceRange } from '../shared/yjsModel'
 import { createSetupComponent } from './histoire/utils'
 
 const idMap = new IdMap()
@@ -23,7 +23,7 @@ const fullscreenVis = ref(false)
 
 const position = computed(() => new Vec2(nodeX.value, nodeY.value))
 
-function updateContent(updates: [range: ContentRange, content: string][]) {
+function updateContent(updates: [range: SourceRange, content: string][]) {
   let content = nodeContent.value
   for (const [[start, end], replacement] of updates) {
     content = content.slice(0, start) + replacement + content.slice(end)

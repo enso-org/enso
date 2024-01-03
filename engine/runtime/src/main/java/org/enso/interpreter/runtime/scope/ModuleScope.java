@@ -71,8 +71,9 @@ public final class ModuleScope implements EnsoObject {
     this.exports = exports;
   }
 
-  public void registerType(Type type) {
-    types.put(type.getName(), type);
+  public Type registerType(Type type) {
+    Type current = types.putIfAbsent(type.getName(), type);
+    return current == null ? type : current;
   }
 
   /**
@@ -109,7 +110,7 @@ public final class ModuleScope implements EnsoObject {
 
   private Map<String, Supplier<Function>> getMethodMapFor(Type type) {
     Type tpeKey = type == null ? noTypeKey : type;
-    Map<String, Supplier<Function>> result = methods.get(type);
+    Map<String, Supplier<Function>> result = methods.get(tpeKey);
     if (result == null) {
       return new HashMap<>();
     }
@@ -396,7 +397,6 @@ public final class ModuleScope implements EnsoObject {
     imports = new HashSet<>();
     exports = new HashSet<>();
     methods = new HashMap<>();
-    types = new HashMap<>();
     conversions = new HashMap<>();
     polyglotSymbols = new HashMap<>();
   }

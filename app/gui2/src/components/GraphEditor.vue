@@ -30,10 +30,11 @@ import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import * as set from 'lib0/set'
 import type { ExprId, NodeMetadata } from 'shared/yjsModel'
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
-import { toast } from 'vue3-toastify'
+import { computed, onMounted, onScopeDispose, ref, watch } from 'vue'
+import { toast, type Id as ToastId } from 'vue3-toastify'
 import { type Usage } from './ComponentBrowser/input'
 
+const STARTUP_TOAST_DELAY_MS = 100
 const EXECUTION_MODES = ['design', 'live']
 // Assumed size of a newly created node. This is used to place the component browser.
 const DEFAULT_NODE_SIZE = new Vec2(0, 24)
@@ -52,19 +53,13 @@ const suggestionDb = useSuggestionDbStore()
 const interaction = provideInteractionHandler()
 
 function initStartupToast() {
-  const startupToast = toast.info('Initializing the project. This can take up to one minute.', {
+  let startupToast = toast.info('Initializing the project. This can take up to one minute.', {
     autoClose: false,
   })
-  projectStore.firstExecution.then(() => {
-    if (startupToast != null) {
-      toast.remove(startupToast)
-    }
-  })
-  onUnmounted(() => {
-    if (startupToast != null) {
-      toast.remove(startupToast)
-    }
-  })
+
+  const removeToast = () => toast.remove(startupToast)
+  projectStore.firstExecution.then(removeToast)
+  onScopeDispose(removeToast)
 }
 
 onMounted(() => {
@@ -426,7 +421,7 @@ function copyNodeContent() {
   const id = nodeSelection.selected.values().next().value
   const node = graphStore.db.nodeIdToNode.get(id)
   if (!node) return
-  const content = node.rootSpan.repr()
+  const content = node.rootSpan.code()
   const metadata = projectStore.module?.getNodeMetadata(id) ?? undefined
   const copiedNode: CopiedNode = { expression: content, metadata }
   const clipboardData: ClipboardData = { nodes: [copiedNode] }
@@ -510,7 +505,12 @@ async function readNodeFromExcelClipboard(
 
 function handleNodeOutputPortDoubleClick(id: ExprId) {
   componentBrowserUsage.value = { type: 'newNode', sourcePort: id }
-  const placementEnvironment = environmentForNodes([id].values())
+  const srcNode = graphStore.db.getPatternExpressionNodeId(id)
+  if (srcNode == null) {
+    console.error('Impossible happened: Double click on port not belonging to any node: ', id)
+    return
+  }
+  const placementEnvironment = environmentForNodes([srcNode].values())
   componentBrowserNodePosition.value = previousNodeDictatedPlacement(
     DEFAULT_NODE_SIZE,
     placementEnvironment,
@@ -543,14 +543,6 @@ function handleEdgeDrop(source: ExprId, position: Vec2) {
     @dragover.prevent
     @drop.prevent="handleFileDrop($event)"
   >
-    <ToastContainer
-      position="top-center"
-      theme="light"
-      closeOnClick="false"
-      draggable="false"
-      toastClassName="text-sm leading-170 bg-frame-selected rounded-2xl backdrop-blur-3xl"
-      transition="Vue-Toastification__bounce"
-    />
     <div :style="{ transform: graphNavigator.transform }" class="htmlLayer">
       <GraphNodes
         @nodeOutputPortDoubleClick="handleNodeOutputPortDoubleClick"

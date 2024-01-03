@@ -1,6 +1,6 @@
 import { createContextStore } from '@/providers'
+import type { AnyWidget } from '@/providers/widgetRegistry'
 import { GetUsageKey } from '@/providers/widgetUsageInfo'
-import { Ast } from '@/util/ast'
 import { identity } from '@vueuse/core'
 import type { ExprId } from 'shared/yjsModel'
 
@@ -20,7 +20,7 @@ const { provideFn, injectFn } = createContextStore('Port info', identity<PortInf
  * even if it wouldn't normally be rendered as such.
  */
 export class ForcePort {
-  constructor(public inner: Ast.Ast) {
+  constructor(public inner: AnyWidget) {
     if (inner instanceof ForcePort) throw new Error('ForcePort cannot be nested')
   }
   [GetUsageKey]() {
