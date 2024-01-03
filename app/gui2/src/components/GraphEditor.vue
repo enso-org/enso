@@ -510,7 +510,12 @@ async function readNodeFromExcelClipboard(
 
 function handleNodeOutputPortDoubleClick(id: ExprId) {
   componentBrowserUsage.value = { type: 'newNode', sourcePort: id }
-  const placementEnvironment = environmentForNodes([id].values())
+  const srcNode = graphStore.db.getPatternExpressionNodeId(id)
+  if (srcNode == null) {
+    console.error('Impossible happened: Double click on port not belonging to any node: ', id)
+    return
+  }
+  const placementEnvironment = environmentForNodes([srcNode].values())
   componentBrowserNodePosition.value = previousNodeDictatedPlacement(
     DEFAULT_NODE_SIZE,
     placementEnvironment,
