@@ -34,7 +34,7 @@ export const widgetDefinition = defineWidget(AnyWidget, {
   priority: 10,
   score: (props) => {
     if (props.input.ast == null)
-      return props.input.argInfo?.type === 'Standard.Base.Bool' ? Score.Good : Score.Mismatch
+      return props.input.argInfo?.reprType === 'Standard.Base.Bool' ? Score.Good : Score.Mismatch
     if (getRawBoolNode(props.input.ast) != null) return Score.Perfect
     return Score.Mismatch
   },

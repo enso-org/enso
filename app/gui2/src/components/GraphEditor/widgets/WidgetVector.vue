@@ -44,7 +44,7 @@ export const widgetDefinition = defineWidget(AnyWidget, {
   priority: 1000,
   score: (props) => {
     if (props.input.dynamicConfig?.kind === 'Vector_Editor') return Score.Perfect
-    else if (props.input.argInfo?.type.startsWith('Standard.Base.Data.Vector.Vector'))
+    else if (props.input.argInfo?.reprType.startsWith('Standard.Base.Data.Vector.Vector'))
       return Score.Good
     else
       return props.input.ast?.treeType === RawAst.Tree.Type.Array ? Score.Perfect : Score.Mismatch

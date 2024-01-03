@@ -27,9 +27,9 @@ export const widgetDefinition = defineWidget(AnyWidget, {
     )
       return Score.Perfect
     if (
-      props.input.argInfo?.type === 'Standard.Base.Data.Number' ||
-      props.input.argInfo?.type === 'Standard.Base.Data.Numbers.Integer' ||
-      props.input.argInfo?.type === 'Standard.Data.Numbers.Float'
+      props.input.argInfo?.reprType === 'Standard.Base.Data.Number' ||
+      props.input.argInfo?.reprType === 'Standard.Base.Data.Numbers.Integer' ||
+      props.input.argInfo?.reprType === 'Standard.Data.Numbers.Float'
     )
       return Score.Perfect
     return Score.Mismatch

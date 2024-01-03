@@ -188,7 +188,7 @@ export function makeLocal(
 export function makeArgument(name: string, type: string = 'Any'): SuggestionEntryArgument {
   return {
     name,
-    type,
+    reprType: type,
     isSuspended: false,
     hasDefault: false,
   }

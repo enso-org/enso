@@ -305,7 +305,7 @@ export class ArgumentApplication {
 
 const unknownArgInfoNamed = (name: string) => ({
   name,
-  type: 'Any',
+  reprType: 'Any',
   isSuspended: false,
   hasDefault: false,
 })
