@@ -387,7 +387,11 @@ object ProgramExecutionSupport {
               )
             ) {
               val warnings =
-                WarningsLibrary.getUncached.getWarnings(value.getValue, null, false)
+                WarningsLibrary.getUncached.getWarnings(
+                  value.getValue,
+                  null,
+                  false
+                )
               val warningsCount = warnings.length
               val warning =
                 if (warningsCount == 1) {
