@@ -52,7 +52,9 @@ public final class StringStorage extends SpecializedStorage<String> {
   public Storage<?> fillMissing(
       Value arg, StorageType commonType, ProblemAggregator problemAggregator) {
     if (arg.isString()) {
-      TextType newType = TextType.maxType(type, TextType.preciseTypeForValue(arg.asString()));
+      String strArg = arg.asString();
+      TextType newType =
+          strArg.isEmpty() ? type : TextType.maxType(type, TextType.preciseTypeForValue(strArg));
       return fillMissingHelper(arg, new StringBuilder(size(), newType));
     } else {
       return super.fillMissing(arg, commonType, problemAggregator);
