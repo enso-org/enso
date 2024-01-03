@@ -93,12 +93,7 @@ test.each`
       )
       .filter(isSome)
 
-    const parsedBlock = Ast.parse(expression.trim())
-    assert(parsedBlock instanceof Ast.BodyBlock) // necessary for type inference
-    const expressions = Array.from(parsedBlock.statements())
-    const first = expressions[0]
-    assert(first !== undefined)
-    const ast = first
+    const ast = Ast.parse(expression.trim())
 
     const methodCall: MethodCall = {
       methodPointer,

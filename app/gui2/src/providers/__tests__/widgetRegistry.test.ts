@@ -1,4 +1,5 @@
 import {
+  AnyWidget,
   Score,
   WidgetRegistry,
   defineWidget,
@@ -8,7 +9,7 @@ import {
 } from '@/providers/widgetRegistry'
 import { GraphDb } from '@/stores/graph/graphDatabase'
 import { Ast } from '@/util/ast'
-import { AnyWidget, ApplicationKind } from '@/util/callTree'
+import { ApplicationKind, ArgumentPlaceholder } from '@/util/callTree'
 import { describe, expect, test } from 'vitest'
 import { defineComponent } from 'vue'
 import { DisplayMode, argsWidgetConfigurationSchema } from '../widgetRegistry/configuration'
@@ -26,14 +27,14 @@ describe('WidgetRegistry', () => {
 
   const widgetA = makeMockWidget(
     'A',
-    defineWidget(Ast.Ast, {
+    defineWidget(AnyWidget, {
       priority: 1,
     }),
   )
 
   const widgetB = makeMockWidget(
     'B',
-    defineWidget(AnyWidget, {
+    defineWidget(ArgumentPlaceholder, {
       priority: 2,
     }),
   )
@@ -48,24 +49,26 @@ describe('WidgetRegistry', () => {
 
   const widgetD = makeMockWidget(
     'D',
-    defineWidget(Ast.Ast, {
+    defineWidget(AnyWidget, {
       priority: 20,
-      score: (props) => (props.input.code() === '_' ? Score.Perfect : Score.Mismatch),
+      score: (props) => (props.input.ast?.code() === '_' ? Score.Perfect : Score.Mismatch),
     }),
   )
 
-  const someAst = Ast.parse('foo')
-  const blankAst = Ast.parse('_')
-  const somePlaceholder = new AnyWidget(undefined, undefined, {
-    index: 0,
-    info: {
+  const someAst = AnyWidget.Ast(Ast.parse('foo'))
+  const blankAst = AnyWidget.Ast(Ast.parse('_'))
+  const somePlaceholder = new ArgumentPlaceholder(
+    '57d429dc-df85-49f8-b150-567c7d1fb502',
+    0,
+    {
       name: 'foo',
-      type: 'Any',
+      reprType: 'Any',
       isSuspended: false,
       hasDefault: false,
     },
-    appKind: ApplicationKind.Prefix,
-  })
+    ApplicationKind.Prefix,
+    false,
+  )
 
   const mockGraphDb = GraphDb.Mock()
   const registry = new WidgetRegistry(mockGraphDb)
