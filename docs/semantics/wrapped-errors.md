@@ -99,7 +99,7 @@ wrapping is added by `Warning.get_all wrap_errors=True` to any error attached to
 value within a `Vector` (or any array-like container). If the value is extracted
 from the `Vector` (for example, using `.at`), its attached `Warning` is not wrapped.
 
-If a value is a nested within mutiple `Vector`s, its attached errors are wrapped
+If a value is a nested within multiple `Vector`s, its attached errors are wrapped
 with `Map_Error` multiple times. The outermost `Map_Error` index indicates
 the index into the outermost `Vector`, the second `Map_Error` index the index
 into the sub-`Vector` within the outermost `Vector`, and so on.
