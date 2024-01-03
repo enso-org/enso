@@ -184,7 +184,7 @@ type Response
 resolve_file_metadata_for_response : Response -> File_Format_Metadata
 resolve_file_metadata_for_response response =
     uri_as_text = response.uri.to_text
-    guessed_filename = filename_from_content_disposition response . if_nothing <|
+    guessed_filename = filename_from_content_disposition (response.get_header "Content-Disposition") . if_nothing <|
         last_path_segment = uri_as_text.take (Text_Sub_Range.After_Last "/")
         ## Heuristic: If the last path segment contains a dot, it is likely a filename,
            otherwise it is too unlikely + lack of extension will not help our guessing anyway,
@@ -193,9 +193,8 @@ resolve_file_metadata_for_response response =
     File_Format_Metadata.Value path=uri_as_text name=guessed_filename content_type=response.content_type
 
 ## PRIVATE
-filename_from_content_disposition : Response -> Text | Nothing
-filename_from_content_disposition response =
-    content_disposition = response.get_header "Content-Disposition"
+filename_from_content_disposition : Text | Nothing -> Text | Nothing
+filename_from_content_disposition content_disposition =
     content_disposition.if_not_nothing <|
         match = 'filename="(.*)"'.to_regex.match content_disposition
         match.if_not_nothing <| match.get 1
