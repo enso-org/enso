@@ -15,7 +15,7 @@
     "url": "https://github.com/enso-org/ide/issues"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --build",
     "build": "tsx bundle.ts",
     "watch": "tsx watch.ts",
     "start": "tsx start.ts"
