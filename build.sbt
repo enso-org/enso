@@ -551,9 +551,9 @@ lazy val `text-buffer` = project
   .settings(
     frgaalJavaCompilerSetting,
     libraryDependencies ++= Seq(
-      "org.typelevel"   %% "cats-core"      % catsVersion,
-      "org.scalatest"   %% "scalatest"      % scalatestVersion  % Test,
-      "org.scalacheck"  %% "scalacheck"     % scalacheckVersion % Test
+      "org.typelevel"  %% "cats-core"  % catsVersion,
+      "org.scalatest"  %% "scalatest"  % scalatestVersion  % Test,
+      "org.scalacheck" %% "scalacheck" % scalacheckVersion % Test
     )
   )
 
@@ -1297,7 +1297,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
       val updateReport = (Test / update).value
       val requiredModIds =
         GraalVM.modules ++ GraalVM.langsPkgs ++ logbackPkg ++ Seq(
-          "org.slf4j"        % "slf4j-api"      % slf4jVersion
+          "org.slf4j" % "slf4j-api" % slf4jVersion
         )
       val requiredMods = JPMSUtils.filterModulesFromUpdate(
         updateReport,
