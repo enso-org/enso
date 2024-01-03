@@ -117,5 +117,6 @@ spec =
             # Ensure the token is reset after the last test, so that any other tests will again use the correct one.
             reset_token
 
+        Secrets_Spec.spec enso_cloud_url pending_has_url
 
 main = Test_Suite.run_main spec
