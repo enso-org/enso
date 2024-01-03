@@ -44,6 +44,12 @@ const infixFixture = {
   },
 }
 
+interface TestData {
+  expression: string
+  expectedPattern: string
+  fixture: typeof prefixFixture | typeof infixFixture
+}
+
 test.each`
   expression              | expectedPattern     | fixture
   ${'func              '} | ${'?a ?b ?c ?d'}    | ${prefixFixture}
@@ -75,7 +81,11 @@ test.each`
   ${'x +'}                | ${'@lhs ?rhs'}      | ${infixFixture}
 `(
   "Creating argument application's info: $expression $expectedPattern",
-  ({ expression, expectedPattern, fixture: { mockSuggestion, argsParameters, methodPointer } }) => {
+  ({
+    expression,
+    expectedPattern,
+    fixture: { mockSuggestion, argsParameters, methodPointer },
+  }: TestData) => {
     const expectedArgs = expectedPattern.split(' ')
     const notAppliedArguments = expectedArgs
       .map((p: string) =>
@@ -85,7 +95,7 @@ test.each`
 
     const parsedBlock = Ast.parse(expression.trim())
     assert(parsedBlock instanceof Ast.BodyBlock) // necessary for type inference
-    const expressions = Array.from(parsedBlock.expressions())
+    const expressions = Array.from(parsedBlock.statements())
     const first = expressions[0]
     assert(first !== undefined)
     const ast = first

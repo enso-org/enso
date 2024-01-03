@@ -297,7 +297,9 @@ java_parse time_text pattern=Nothing =
             LocalTime.parse time_text (formatter.withLocale Locale.default.java_locale)
 
 python_time hour minute=0 second=0 nanoOfSecond=0 =
-    Panic.catch Any (python_time_impl hour minute second nanoOfSecond) (err -> Error.throw (Time_Error.Error <| err.payload))
+    Panic.catch Any (python_time_impl hour minute second nanoOfSecond) err->
+        time_error = Time_Error.Error err.payload
+        Error.throw time_error
 
 python_parse time_text pattern=Date_Time_Formatter.iso_time =
     t = Time_Of_Day.parse time_text pattern

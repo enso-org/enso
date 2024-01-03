@@ -254,7 +254,7 @@ type Invalid_Location
        Pretty print the invalid location error.
     to_display_text : Text
     to_display_text self =
-        "The location '"+self.location+"' is not valid."
+        "The location '"+self.location.to_text+"' is not valid."
 
 ## Indicates that some values did not match the expected datatype format.
 

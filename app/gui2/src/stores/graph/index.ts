@@ -2,9 +2,9 @@ import { nonDictatedPlacement } from '@/components/ComponentBrowser/placement'
 import type { PortId } from '@/providers/portInfo'
 import { GraphDb } from '@/stores/graph/graphDatabase'
 import {
+  addImports,
   filterOutRedundantImports,
   recognizeImport,
-  requiredImportToText,
   type Import,
   type RequiredImport,
 } from '@/stores/graph/imports'
@@ -23,9 +23,9 @@ import type { StackItem } from 'shared/languageServerTypes'
 import {
   IdMap,
   visMetadataEquals,
-  type ContentRange,
   type ExprId,
   type NodeMetadata,
+  type SourceRange,
   type VisualizationIdentifier,
   type VisualizationMetadata,
 } from 'shared/yjsModel'
@@ -53,22 +53,21 @@ export const useGraphStore = defineStore('graph', () => {
   proj.setObservedFileName('Main.enso')
 
   const data = computed(() => proj.module?.doc.data)
-  watch(data, console.log)
   const metadata = computed(() => proj.module?.doc.metadata)
 
-  const textContent = ref(proj.module?.doc.getCode())
+  const moduleCode = ref(proj.module?.doc.getCode())
   // We need casting here, as type changes in Ref when class has private fields.
   // see https://github.com/vuejs/core/issues/2557
   const idMap = ref(proj.module?.doc.getIdMap()) as Ref<IdMap | undefined>
-  const expressionGraph: Module = MutableModule.Observable()
+  const astModule: Module = MutableModule.Observable()
   const moduleRoot = ref<AstId>()
 
   // Initialize text and idmap once module is loaded (data != null)
   watch(data, () => {
-    if (!textContent.value) {
-      textContent.value = proj.module?.doc.getCode()
+    if (!moduleCode.value) {
+      moduleCode.value = proj.module?.doc.getCode()
       idMap.value = proj.module?.doc.getIdMap()
-      updateState()
+      if (moduleCode.value && idMap.value) updateState()
     }
   })
 
@@ -81,7 +80,7 @@ export const useGraphStore = defineStore('graph', () => {
   const vizRects = reactive(new Map<ExprId, Rect>())
   const portInstances = reactive(new Map<PortId, Set<PortViewInstance>>())
   const editedNodeInfo = ref<NodeEditInfo>()
-  const imports = ref<{ import: Import; span: ContentRange }[]>([])
+  const imports = ref<{ import: Import; span: SourceRange }[]>([])
   const methodAst = ref<Ast.Function>()
   const currentNodeIds = ref(new Set<ExprId>())
 
@@ -90,7 +89,7 @@ export const useGraphStore = defineStore('graph', () => {
   useObserveYjs(data, (event) => {
     if (!event.changes.keys.size) return
     const code = proj.module?.doc.getCode()
-    if (code) textContent.value = code
+    if (code) moduleCode.value = code
     const ids = proj.module?.doc.getIdMap()
     if (ids) idMap.value = ids
     if (code && ids) updateState()
@@ -103,11 +102,11 @@ export const useGraphStore = defineStore('graph', () => {
     if (!idMap_) return
     module.transact(() => {
       const meta = module.doc.metadata
-      const textContentLocal = textContent.value
+      const textContentLocal = moduleCode.value
       if (!textContentLocal) return
 
       const newRoot = Ast.parseTransitional(textContentLocal, idMap_)
-      expressionGraph.replace(newRoot.module)
+      astModule.replace(newRoot.module)
       moduleRoot.value = newRoot.exprId
       module.doc.setIdMap(idMap_)
 
@@ -116,7 +115,7 @@ export const useGraphStore = defineStore('graph', () => {
         if (node instanceof Ast.Import) {
           const recognized = recognizeImport(node)
           if (recognized) {
-            imports.value.push({ import: recognized, span: node.astExtended!.span() })
+            imports.value.push({ import: recognized, span: node.span! })
           }
           return false
         }
@@ -205,35 +204,18 @@ export const useGraphStore = defineStore('graph', () => {
       console.error(`BUG: Cannot add node: No module root.`)
       return
     }
-    const edit = expressionGraph.edit()
+    const edit = astModule.edit()
     const importsToAdd = withImports ? filterOutRedundantImports(imports.value, withImports) : []
-    if (importsToAdd.length > 0) {
-      const imports = importsToAdd.map((info) =>
-        Ast.parseExpression(requiredImportToText(info), edit),
-      )
-      let lastImport
-      // The top level of the module is always a block.
-      const topLevel = expressionGraph.get(root)! as Ast.BodyBlock
-      for (let i = 0; i < topLevel.lines.length; i++) {
-        const line = topLevel.lines[i]!
-        if (line.expression) {
-          if (expressionGraph.get(line.expression.node)?.innerExpression() instanceof Ast.Import) {
-            lastImport = i
-          } else {
-            break
-          }
-        }
-      }
-      const position = lastImport === undefined ? 0 : lastImport + 1
-      topLevel.insert(edit, position, ...imports)
-    }
+    // The top level of the module is always a block.
+    const topLevel = astModule.get(root)! as Ast.BodyBlock
+    if (importsToAdd) addImports(edit, topLevel, importsToAdd)
     const currentFunc = 'main'
-    const functionBlock = Ast.functionBlock(expressionGraph, currentFunc)
+    const functionBlock = Ast.functionBlock(astModule, currentFunc)
     if (!functionBlock) {
       console.error(`BUG: Cannot add node: No current function.`)
       return
     }
-    const rhs = Ast.parseExpression(expression, edit)
+    const rhs = Ast.parse(expression, edit)
     const assignment = Ast.Assignment.new(edit, ident, rhs)
     functionBlock.push(edit, assignment)
     commitEdit(edit, root, new Map([[rhs.exprId, meta]]))
@@ -249,7 +231,7 @@ export const useGraphStore = defineStore('graph', () => {
       console.error(`BUG: Cannot delete node: No module root.`)
       return
     }
-    const edit = expressionGraph.edit()
+    const edit = astModule.edit()
     edit.delete(node.outerExprId)
     commitEdit(edit, root)
   }
@@ -260,12 +242,19 @@ export const useGraphStore = defineStore('graph', () => {
     setExpressionContent(node.rootSpan.exprId, content)
   }
 
-  function setExpressionContent(id: ExprId, content: string) {
-    const edit = expressionGraph.edit()
-    edit.set(Ast.asNodeId(id), Ast.RawCode.new(content, edit))
+  function setExpression(id: ExprId, content: Ast.Ast) {
+    const edit = astModule.edit()
+    edit.set(Ast.asNodeId(id), content)
     const root = moduleRoot.value
-    if (!root) return
+    if (!root) {
+      console.error(`BUG: Cannot update node: No module root.`)
+      return
+    }
     commitEdit(edit, root)
+  }
+
+  function setExpressionContent(id: ExprId, content: string) {
+    setExpression(id, Ast.RawCode.new(content))
   }
 
   function transact(fn: () => void) {
@@ -387,7 +376,7 @@ export const useGraphStore = defineStore('graph', () => {
   ) {
     const ast = module.get(root)
     if (!ast) return
-    const printed = Ast.print(ast, module)
+    const printed = Ast.print(ast.exprId, module)
     const module_ = proj.module
     if (!module_) return
     const idMap = new IdMap()
@@ -418,6 +407,7 @@ export const useGraphStore = defineStore('graph', () => {
     unconnectedEdge,
     edges,
     currentNodeIds,
+    moduleCode,
     nodeRects,
     vizRects,
     methodAst,
@@ -428,6 +418,7 @@ export const useGraphStore = defineStore('graph', () => {
     createNode,
     deleteNode,
     setNodeContent,
+    setExpression,
     setExpressionContent,
     setNodePosition,
     setNodeVisualizationId,

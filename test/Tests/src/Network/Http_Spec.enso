@@ -559,7 +559,7 @@ spec =
 
         ## Checking this error partially as a warning - I spent a lot of time debugging why I'm getting such an error.
            Apparently it happens when the httpbin server was crashing without sending any response.
-        Test.specify "should be able to handle server crash resulting in no response" <|
+        Test.specify "should be able to handle server crash resulting in no response" pending=pending_has_url <|
             err = Data.fetch (base_url_with_slash+"crash")
             err.should_fail_with Request_Error
             err.catch.error_type . should_equal "java.io.IOException"
@@ -574,7 +574,7 @@ spec =
             err.should_fail_with HTTP_Error
 
     Test.group "Http Auth" <|
-        Test.specify "should support Basic user+password authentication" <|
+        Test.specify "should support Basic user+password authentication" pending=pending_has_url <|
             url = base_url_with_slash + "test_basic_auth"
 
             # Correct user and password
@@ -598,7 +598,7 @@ spec =
             r4.should_fail_with HTTP_Error
             r4.catch.status_code.code . should_equal 403
 
-        Test.specify "should support Bearer token authentication" <|
+        Test.specify "should support Bearer token authentication" pending=pending_has_url <|
             url = base_url_with_slash + "test_token_auth"
 
             # Correct token

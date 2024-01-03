@@ -1225,7 +1225,7 @@ spec setup =
 
         Test.specify "nulls" <|
             t.at "a" . coalesce [Nothing, 42] . name . should_equal "coalesce([a], Nothing, 42)"
-            t.at "a" . is_nothing . name . should_equal "[a] is null"
+            t.at "a" . is_nothing . name . should_equal "[a] is Nothing"
             t.at "a" . is_present . name . should_equal "is_present([a])"
             t.at "a" . is_blank . name . should_equal "is_blank([a])"
             t.at "a" . fill_nothing 100 . name . should_equal "a"
