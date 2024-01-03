@@ -159,8 +159,8 @@ type Plain_Text_Format
     resolve_encoding self (metadata : File_Format_Metadata) =
         if self.encoding != Infer then self.encoding else
             content_type = metadata.interpret_content_type
-            content_type.if_not_nothing <|
-                content_type.encoding.if_nothing Encoding.utf_8
+            resolved_encoding = content_type.if_not_nothing <| content_type.encoding
+            resolved_encoding.if_nothing Encoding.utf_8
 
 ## A file format for reading or writing files as a sequence of bytes.
 type Bytes
