@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Encoding_Error.Encoding_Error
 
 import Standard.Base.Network.HTTP.Response.Response
 
@@ -44,7 +45,7 @@ spec =
 
             r3 = url_utf8.fetch try_auto_parse_response=False
             # We may override the encoding detected from Content-Type:
-            r3.decode_as_text Encoding.ascii . should_equal "Hello! ???? ??"
+            r3.decode_as_text Encoding.ascii . should_fail_with Encoding_Error
 
         Test.specify "should detect the encoding from Content-Type in decode_as_json" <|
             r1 = url_utf8.fetch try_auto_parse_response=False

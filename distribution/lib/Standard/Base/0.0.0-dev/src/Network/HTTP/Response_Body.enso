@@ -7,7 +7,6 @@ import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
-import project.IO
 import project.Meta
 import project.Metadata.Display
 import project.Metadata.Widget
@@ -24,8 +23,9 @@ import project.System.File.Write_Extensions
 import project.System.File_Format.Auto_Detect
 import project.System.File_Format.Bytes
 import project.System.File_Format.File_Format
-import project.System.File_Format_Metadata.File_Format_Metadata
+import project.System.File_Format.Infer
 import project.System.File_Format.Plain_Text_Format
+import project.System.File_Format_Metadata.File_Format_Metadata
 import project.System.Input_Stream.Input_Stream
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
@@ -120,7 +120,6 @@ type Response_Body
         case format of
             Auto_Detect ->
                 detected_format = Auto_Detect.get_reading_format self.metadata
-                IO.println detected_format
                 if detected_format.is_nothing then if_unsupported else self.decode detected_format
             _ ->
                 type_obj = Meta.type_of format
@@ -137,13 +136,23 @@ type Response_Body
     ## ALIAS parse as text
        GROUP Conversions
        Decodes the body to a Text value.
+
+       Arguments:
+       - encoding: The encoding to use. If not specified, the encoding is
+         inferred from response headers. If that fails, UTF-8 is used as the
+         fallback.
     @encoding Encoding.default_widget
-    decode_as_text : Encoding -> Text
-    decode_as_text self encoding=Encoding.utf_8 = self.decode (Plain_Text_Format.Plain_Text encoding)
+    decode_as_text : Encoding|Infer -> Text
+    decode_as_text self (encoding : Encoding | Infer = Infer) = self.decode (Plain_Text_Format.Plain_Text encoding)
 
     ## ALIAS parse as json, parse json
        GROUP Conversions
        Decodes the body as JSON.
+
+       Arguments:
+       - encoding: The encoding to use. If not specified, the encoding is
+         inferred from response headers. If that fails, UTF-8 is used as the
+         fallback.
 
        > Example
          Convert a response from JSON.
@@ -152,8 +161,8 @@ type Response_Body
 
              example_to_text = Examples.get_geo_data.decode_as_json
     @encoding Encoding.default_widget
-    decode_as_json : Encoding -> JS_Object | Boolean | Number | Nothing | Text | Vector
-    decode_as_json self encoding=Encoding.utf_8 =
+    decode_as_json : Encoding|Infer -> JS_Object | Boolean | Number | Nothing | Text | Vector
+    decode_as_json self (encoding : Encoding | Infer = Infer) =
         self.decode_as_text encoding . parse_json
 
     ## GROUP Metadata

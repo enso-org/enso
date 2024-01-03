@@ -16,6 +16,7 @@ import project.Network.URI.URI
 import project.Nothing.Nothing
 import project.System.File_Format.Auto_Detect
 import project.System.File_Format.File_Format
+import project.System.File_Format.Infer
 import project.System.File_Format_Metadata.File_Format_Metadata
 from project.Data.Text.Extensions import all
 from project.Network.HTTP.Response_Body import decode_format_selector
@@ -127,14 +128,24 @@ type Response
     ## ALIAS parse as text
        GROUP Conversions
        Decodes the body to a Text value.
+
+       Arguments:
+       - encoding: The encoding to use. If not specified, the encoding is
+         inferred from response headers. If that fails, UTF-8 is used as the
+         fallback.
     @encoding Encoding.default_widget
-    decode_as_text : Encoding -> Text
-    decode_as_text self encoding=Encoding.utf_8 =
+    decode_as_text : Encoding|Infer -> Text
+    decode_as_text self (encoding : Encoding | Infer = Infer) =
         self.body.decode_as_text encoding
 
     ## ALIAS parse as json, parse json
        GROUP Conversions
        Decodes the body as JSON.
+
+       Arguments:
+       - encoding: The encoding to use. If not specified, the encoding is
+         inferred from response headers. If that fails, UTF-8 is used as the
+         fallback.
 
        > Example
          Convert a response from JSON.
@@ -143,8 +154,8 @@ type Response
 
              example_to_text = Examples.get_geo_data.decode_as_json
     @encoding Encoding.default_widget
-    decode_as_json : Encoding -> JS_Object | Boolean | Number | Nothing | Text | Vector
-    decode_as_json self encoding=Encoding.utf_8 =
+    decode_as_json : Encoding|Infer -> JS_Object | Boolean | Number | Nothing | Text | Vector
+    decode_as_json self (encoding : Encoding | Infer = Infer) =
         self.body.decode_as_json encoding
 
     ## PRIVATE

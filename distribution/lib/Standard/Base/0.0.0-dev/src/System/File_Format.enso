@@ -112,8 +112,14 @@ type File_Format
 ## A file format for plain text files.
 type Plain_Text_Format
     ## A file format for plain text files with the specified encoding.
+
+       Arguments:
+       - encoding: The encoding to use.
+         If the encoding is set to `Infer`, it will be inferred from metadata if
+         available, falling back to UTF-8. For writing, `Infer` will also imply
+         the UTF-8 encoding as the default.
     @encoding Encoding.default_widget
-    Plain_Text (encoding:Encoding=Encoding.utf_8)
+    Plain_Text (encoding:Encoding|Infer = Encoding.utf_8)
 
     ## PRIVATE
        If the File_Format supports reading from the file, return a configured instance.
@@ -140,14 +146,21 @@ type Plain_Text_Format
        Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
     read self file on_problems =
-        file.read_text self.encoding on_problems
+        file.read_text (self.resolve_encoding file) on_problems
 
     ## PRIVATE
        Implements decoding the format from a stream.
     read_stream : Input_Stream -> File_Format_Metadata -> Any
     read_stream self stream:Input_Stream (metadata : File_Format_Metadata = File_Format_Metadata.no_information) =
-        _ = metadata
-        Text.from_bytes (stream.read_all_bytes) self.encoding
+        Text.from_bytes (stream.read_all_bytes) (self.resolve_encoding metadata)
+
+    ## PRIVATE
+    resolve_encoding : File_Format_Metadata -> Encoding
+    resolve_encoding self (metadata : File_Format_Metadata) =
+        if self.encoding != Infer then self.encoding else
+            content_type = metadata.interpret_content_type
+            content_type.if_not_nothing <|
+                content_type.encoding.if_nothing Encoding.utf_8
 
 ## A file format for reading or writing files as a sequence of bytes.
 type Bytes
