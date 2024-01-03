@@ -52,6 +52,7 @@ import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.scope.ModuleScope;
+import org.enso.interpreter.runtime.util.CachingSupplier;
 import org.enso.pkg.QualifiedName;
 
 /** Container class for static predefined atoms, methods, and their containing scope. */
@@ -242,24 +243,20 @@ public final class Builtins {
               .ifPresentOrElse(
                   constr -> {
                     Map<String, Supplier<LoadedBuiltinMethod>> atomNodes =
-                        getOrUpdate(builtinMethodNodes, builtinMethodOwner, constr.getName());
-                    atomNodes.put(
-                        builtinMethodName,
-                        new ModuleScope.CachingSupplier<>(() -> meta.toMethod()));
+                        getOrUpdate(builtinMethodNodes, constr.getName());
+                    atomNodes.put(builtinMethodName, new CachingSupplier<>(() -> meta.toMethod()));
 
                     Map<String, LoadedBuiltinMetaMethod> atomNodesMeta =
-                        getOrUpdate(builtinMetaMethods, builtinMethodOwner, constr.getName());
+                        getOrUpdate(builtinMetaMethods, constr.getName());
                     atomNodesMeta.put(builtinMethodName, meta);
                   },
                   () -> {
                     Map<String, Supplier<LoadedBuiltinMethod>> atomNodes =
-                        getOrUpdate(builtinMethodNodes, builtinMethodOwner, builtinMethodOwner);
-                    atomNodes.put(
-                        builtinMethodName,
-                        new ModuleScope.CachingSupplier<>(() -> meta.toMethod()));
+                        getOrUpdate(builtinMethodNodes, builtinMethodOwner);
+                    atomNodes.put(builtinMethodName, new CachingSupplier<>(() -> meta.toMethod()));
 
                     Map<String, LoadedBuiltinMetaMethod> atomNodesMeta =
-                        getOrUpdate(builtinMetaMethods, builtinMethodOwner, builtinMethodOwner);
+                        getOrUpdate(builtinMetaMethods, builtinMethodOwner);
                     atomNodesMeta.put(builtinMethodName, meta);
                   });
         });
@@ -288,12 +285,11 @@ public final class Builtins {
     return builtinMethodNodes;
   }
 
-  private <T> Map<String, T> getOrUpdate(
-      Map<String, Map<String, T>> map, String key, String keyOnMissing) {
+  private <T> Map<String, T> getOrUpdate(Map<String, Map<String, T>> map, String key) {
     Map<String, T> entry = map.get(key);
     if (entry == null) {
       entry = new HashMap<>();
-      map.put(keyOnMissing, entry);
+      map.put(key, entry);
     }
     return entry;
   }
@@ -381,22 +377,17 @@ public final class Builtins {
       List<Constructor<? extends Builtin>> constrs, EnsoLanguage language, ModuleScope scope) {
     Map<Class<? extends Builtin>, Builtin> builtins = new HashMap<>();
 
-    constrs.forEach(
-        constr -> {
-          try {
-            Builtin builtin = constr.newInstance();
-            builtins.put(builtin.getClass(), builtin);
-          } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
-            e.printStackTrace();
-            throw new CompilerError("Invalid builtin type entry: " + constr);
-          }
-        });
-    builtins
-        .values()
-        .forEach(
-            b -> {
-              b.initialize(language, scope, builtins);
-            });
+    for (var constr : constrs) {
+      try {
+        Builtin builtin = constr.newInstance();
+        builtins.put(builtin.getClass(), builtin);
+      } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
+        throw new CompilerError("Invalid builtin type entry: " + constr, e);
+      }
+    }
+    for (var b : builtins.values()) {
+      b.initialize(language, scope, builtins);
+    }
     return builtins;
   }
 
@@ -423,13 +414,13 @@ public final class Builtins {
               .ifPresentOrElse(
                   constr -> {
                     Map<String, Supplier<LoadedBuiltinMethod>> atomNodes =
-                        getOrUpdate(methodNodes, builtinMethodOwner, constr.getName());
-                    atomNodes.put(builtinMethodName, new ModuleScope.CachingSupplier<>(builtin));
+                        getOrUpdate(methodNodes, constr.getName());
+                    atomNodes.put(builtinMethodName, new CachingSupplier<>(builtin));
                   },
                   () -> {
                     Map<String, Supplier<LoadedBuiltinMethod>> atomNodes =
-                        getOrUpdate(methodNodes, builtinMethodOwner, builtinMethodOwner);
-                    atomNodes.put(builtinMethodName, new ModuleScope.CachingSupplier<>(builtin));
+                        getOrUpdate(methodNodes, builtinMethodOwner);
+                    atomNodes.put(builtinMethodName, new CachingSupplier<>(builtin));
                   });
         });
     return methodNodes;
@@ -788,8 +779,7 @@ public final class Builtins {
           Method meth = clazz.getMethod("makeFunction", EnsoLanguage.class, boolean.class);
           method = new LoadedBuiltinMethod(meth, staticMethod, autoRegister);
         } catch (ClassNotFoundException | NoSuchMethodException e) {
-          e.printStackTrace();
-          throw new CompilerError("Invalid builtin method " + className);
+          throw new CompilerError("Invalid builtin method " + className, e);
         }
       }
       return method;
