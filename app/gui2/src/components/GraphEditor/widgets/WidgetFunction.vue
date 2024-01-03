@@ -15,11 +15,12 @@ import {
   ArgumentApplication,
   ArgumentAst,
   ArgumentPlaceholder,
+  getAccessOprSubject,
   interpretCall,
 } from '@/util/callTree'
 import type { Opt } from '@/util/data/opt'
 import type { ExprId } from 'shared/yjsModel'
-import { computed, proxyRefs, watch } from 'vue'
+import { computed, proxyRefs } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()

@@ -7,7 +7,8 @@ import { computed } from 'vue'
 const props = defineProps(widgetProps(widgetDefinition))
 const value = computed({
   get() {
-    return parseFloat(props.input.ast?.code() ?? '')
+    const valueStr = props.input.ast?.code() ?? props.input.argInfo?.defaultValue ?? ''
+    return valueStr ? parseFloat(valueStr) : 0
   },
   set(value) {
     props.onUpdate(value.toString(), props.input.portId)
