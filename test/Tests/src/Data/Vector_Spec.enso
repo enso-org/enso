@@ -914,24 +914,24 @@ type_spec name alter = Test.group name <|
     Test.specify "an error thrown inside map with on_problems=Problem_Behavior.Ignore should be ignored" <|
         results = alter [10, 20, 30, 40] . map map_fun on_problems=Problem_Behavior.Ignore
         results . should_equal [11, 21, Nothing, 41]
-        Warning.get_all_wrapped results . should_equal []
+        Warning.get_all results wrap_errors=True . should_equal []
 
     Test.specify "an error thrown inside map with on_problems=Problem_Behavior.Report_Warning should be attached as a warning" <|
         result = alter [10, 20, 30, 40] . map map_fun on_problems=Problem_Behavior.Report_Warning
         result . should_equal [11, 21, Nothing, 41]
-        Warning.get_all_wrapped result . map .value . should_equal [Map_Error.Error 2 (My_Error.Error 30)]
+        Warning.get_all result wrap_errors=True . map .value . should_equal [Map_Error.Error 2 (My_Error.Error 30)]
 
     Test.specify "multiple errors thrown inside map with on_problems=Problem_Behavior.Report_Warning should be attached as warnings" <|
         result = alter [10, 30, 20, 30, 40, 30] . map map_fun on_problems=Problem_Behavior.Report_Warning
         result . should_equal [11, Nothing, 21, Nothing, 41, Nothing]
-        Warning.get_all_wrapped result . map .value . should_equal ([5, 3, 1].map i-> Map_Error.Error i (My_Error.Error 30))
+        Warning.get_all result wrap_errors=True . map .value . should_equal ([5, 3, 1].map i-> Map_Error.Error i (My_Error.Error 30))
 
     Test.specify "many errors thrown inside map with on_problems=Problem_Behavior.Report_Warning should be attached as warnings and an Additional_Warnings" <|
         result = alter ([10, 20] + (Vector.fill 12 30) + [40]) . map map_fun on_problems=Problem_Behavior.Report_Warning
         result . should_equal ([11, 21] + (Vector.fill 12 Nothing) + [41])
         expected_warnings_regular = 11.down_to 1 . map i-> Map_Error.Error i (My_Error.Error 30)
         expected_warnings = expected_warnings_regular + [(Additional_Warnings.Error 2)]
-        Warning.get_all_wrapped result . map .value . should_equal expected_warnings
+        Warning.get_all result wrap_errors=True . map .value . should_equal expected_warnings
 
     Test.specify "map on_problems=No_Wrap does not do error wrapping" <|
         alter [10, 20, 30, 40] . map on_problems=No_Wrap map_fun . catch . should_equal (My_Error.Error 30)

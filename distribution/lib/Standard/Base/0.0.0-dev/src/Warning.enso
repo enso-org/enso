@@ -61,15 +61,13 @@ type Warning
        ADVANCED
        Gets all the warnings attached to the given value. Warnings are returned in the
        reverse-chronological order with respect to their attachment time.
-    get_all : Any -> Vector Warning
-    get_all value = Vector.from_polyglot_array (get_all_array value False)
 
-    ## PRIVATE
-       ADVANCED
-       Gets all the warnings attached to the given value.
-       Warnings attached to elements in array-likes are wrapped in Map_Error.
-    get_all_wrapped : Any -> Vector Warning
-    get_all_wrapped value = Vector.from_polyglot_array (get_all_array value True)
+       Arguments:
+       - value: The value to get the attached warnings of.
+       - wrap_errors: If true, warnings attached to elements in array-likes are
+         wrapped in Map_Error.
+    get_all : Any -> Boolean -> Vector Warning
+    get_all value wrap_errors:Boolean=False = Vector.from_polyglot_array (get_all_array value wrap_errors)
 
     ## PRIVATE
        ADVANCED

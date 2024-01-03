@@ -14,7 +14,7 @@ For example, a warning attached to a value within a `Vector` can be wrapped in a
 `Map_Error` wrapper which indicates the position of the value within the
 `Vector`. 
 
-(Such errors are only wrapped when they are obtained through `Warning.get_all_wrapped`;
+(Such errors are only wrapped when they are obtained through `Warning.get_all wrap_errors=True`;
 see [Obtaining Wrapped Errors](#obtaining-wrapped-errors).)
 
 For example:
@@ -23,7 +23,7 @@ For example:
 err = My_Error.Error "my error"
 vec = [10, Warning.attach err 20, 30]
 IO.println (Warning.get_all vec)
-IO.println (Warning.get_all_wrapped vec)
+IO.println (Warning.get_all wrap_errors=True vec)
 ```
 
 Output:
@@ -83,7 +83,7 @@ In the case of an error thrown during `Vector.map`, the error is caught, wrapped
 in `Map_Error`, and re-thrown.
 
 In the case of a warning attached to a value within a `Vector`, the wrapper is
-added by `Warning.get_all_wrapped` when it is called on the `Vector`. In this
+added by `Warning.get_all wrap_errors=True` when it is called on the `Vector`. In this
 case, the wrapping is not attached to the value itself, and is therefore not
 propagated to downstream values.
 
@@ -95,7 +95,7 @@ call over a large `Vector` will contain the index at which the error occurred,
 so it can be displayed to the user in the IDE.
 
 Note that the error does not have to occur during a call to `map`. A `Map_Error`
-wrapping is added by `Warning.get_all_wrapped` to any warning attached to a
+wrapping is added by `Warning.get_all wrap_errors=True` to any warning attached to a
 value within a `Vector` (or any array-like container). If the value is extracted
 from the `Vector` (for example, using `.at`), its attached `Warning` is not wrapped.
 
