@@ -76,12 +76,7 @@ const innerWidget = computed(() =>
   props.input instanceof ForcePort ? props.input.inner : props.input,
 )
 
-providePortInfo(
-  proxyRefs({
-    portId,
-    connected: hasConnection,
-  }),
-)
+providePortInfo(proxyRefs({ portId, connected: hasConnection }))
 
 watch(nodeSize, updateRect)
 onUpdated(() => nextTick(updateRect))
@@ -116,8 +111,8 @@ function updateRect() {
 
 <script lang="ts">
 function portIdOfInput(input: unknown): PortId | undefined {
-  return input instanceof AnyWidget && input.ast != null
-    ? (input.ast.exprId as string as PortId)
+  return input instanceof AnyWidget
+    ? input.portId
     : input instanceof ForcePort && input.inner.ast != null
     ? (input.inner.ast.exprId as string as PortId)
     : input instanceof ArgumentPlaceholder || input instanceof ArgumentAst

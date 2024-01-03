@@ -15,7 +15,6 @@ import {
   ArgumentApplication,
   ArgumentAst,
   ArgumentPlaceholder,
-  getAccessOprSubject,
   interpretCall,
 } from '@/util/callTree'
 import type { Opt } from '@/util/data/opt'

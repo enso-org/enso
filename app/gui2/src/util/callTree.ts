@@ -12,6 +12,10 @@ export const enum ApplicationKind {
   Infix,
 }
 
+/**
+ * Information about an argument that doesn't have an assigned value yet, therefore are not
+ * represented in the AST.
+ */
 export class ArgumentPlaceholder {
   constructor(
     public callId: string,
@@ -236,13 +240,12 @@ export class ArgumentApplication {
       if (realArg.argName == null) {
         const argIndex = argumentsLeftToMatch.shift()
         if (argIndex != null) insertPlaceholdersUpto(argIndex, realArg.appTree.function)
-        const info = tryGetIndex(knownArguments, argIndex)
         prefixArgsToDisplay.push({
           appTree: realArg.appTree,
           argument: ArgumentAst.WithRetrievedConfig(
             realArg.argument,
             argIndex,
-            info,
+            tryGetIndex(knownArguments, argIndex),
             kind,
             widgetCfg,
           ),
@@ -254,8 +257,6 @@ export class ArgumentApplication {
         const foundIdx = argumentsLeftToMatch.findIndex((i) => knownArguments?.[i]?.name === name)
         const argIndex = foundIdx === -1 ? undefined : argumentsLeftToMatch.splice(foundIdx, 1)[0]
 
-        if (argIndex != null && foundIdx === 0) insertPlaceholdersUpto(argIndex, realArg.appTree)
-        const info = tryGetIndex(knownArguments, argIndex) ?? unknownArgInfoNamed(name)
         if (argIndex != null && foundIdx === 0)
           insertPlaceholdersUpto(argIndex, realArg.appTree.function)
         prefixArgsToDisplay.push({
@@ -263,7 +264,7 @@ export class ArgumentApplication {
           argument: ArgumentAst.WithRetrievedConfig(
             realArg.argument,
             argIndex,
-            info,
+            tryGetIndex(knownArguments, argIndex) ?? unknownArgInfoNamed(name),
             kind,
             widgetCfg,
           ),
