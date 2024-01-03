@@ -1,10 +1,9 @@
 package org.enso.shttp.auth;
 
 import com.sun.net.httpserver.HttpExchange;
-import org.enso.shttp.SimpleHttpHandler;
-
 import java.io.IOException;
 import java.util.List;
+import org.enso.shttp.SimpleHttpHandler;
 
 public abstract class HandlerWithTokenAuth extends SimpleHttpHandler {
   protected abstract String getSecretToken();
