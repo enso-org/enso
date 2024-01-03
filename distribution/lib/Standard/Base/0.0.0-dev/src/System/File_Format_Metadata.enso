@@ -39,7 +39,7 @@ type File_Format_Metadata
        the content type.
     interpret_content_type : Content_Type_Metadata | Nothing
     interpret_content_type self = self.content_type.if_not_nothing <|
-        segments = self.content_type.split ";"
+        segments = self.content_type.split ";" . map .trim
         if segments.length == 0 then Nothing else
             Content_Type_Metadata.Value segments
 
@@ -68,7 +68,7 @@ type Content_Type_Metadata
        Finds for a segment that starts with the given prefix.
     find_segment : Text -> Text | Nothing
     find_segment self prefix:Text =
-        found = self.segments.find if_missing=Nothing (x->x.starts_with prefix)
+        found = self.segments.find if_missing=Nothing (x-> x.starts_with prefix)
         found.if_not_nothing <| found.drop prefix.length
 
     ## PRIVATE

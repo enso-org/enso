@@ -120,6 +120,7 @@ type Response_Body
         case format of
             Auto_Detect ->
                 detected_format = Auto_Detect.get_reading_format self.metadata
+                IO.println detected_format
                 if detected_format.is_nothing then if_unsupported else self.decode detected_format
             _ ->
                 type_obj = Meta.type_of format
