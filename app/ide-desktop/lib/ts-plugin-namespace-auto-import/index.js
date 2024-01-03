@@ -29,7 +29,11 @@ module.exports = function init() {
                 options
             )
             for (const completion of result?.entries ?? []) {
-                if (completion.hasAction && /\bexport\b/.test(completion.kindModifiers ?? '')) {
+                if (
+                    completion.hasAction &&
+                    /\bexport\b/.test(completion.kindModifiers ?? '') &&
+                    completion.data?.exportName !== 'default'
+                ) {
                     const moduleName = completion.data?.moduleSpecifier?.match(/[^/]+$/)?.[0] ?? ''
                     if (moduleName) {
                         completion.insertText = `${normalizeModuleName(moduleName)}.${
