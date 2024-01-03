@@ -119,7 +119,7 @@ type Plain_Text_Format
          available, falling back to UTF-8. For writing, `Infer` will also imply
          the UTF-8 encoding as the default.
     @encoding Encoding.default_widget
-    Plain_Text (encoding:Encoding|Infer = Encoding.utf_8)
+    Plain_Text (encoding:Encoding|Infer = Infer)
 
     ## PRIVATE
        If the File_Format supports reading from the file, return a configured instance.

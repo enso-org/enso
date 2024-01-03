@@ -17,7 +17,11 @@ type XML_Format
     for_read file:File_Format_Metadata =
         content_type = file.interpret_content_type
         from_content_type = content_type.if_not_nothing <|
-            if content_type.base_type.ends_with "/xml" then XML_Format else Nothing
+            base_type = content_type.base_type
+            case base_type of
+                "text/xml" -> XML_Format
+                "application/xml" -> XML_Format
+                _ -> if content_type.base_type.ends_with "+xml" then XML_Format else Nothing
         from_content_type.if_nothing <|
             case file.guess_extension of
                 ".xml" -> XML_Format

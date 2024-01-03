@@ -175,10 +175,10 @@ type Response
         JS_Object.from_pairs [type_pair, cons_pair, ["headers", self.headers], ["body", self.body], ["code", self.code]]
 
     ## PRIVATE
-    get_header : Text -> Text | Nothing
-    get_header self name:Text =
+    get_header : Text -> Any -> Text | Any
+    get_header self name:Text ~if_missing=Nothing =
         java_optional = self.internal_http_response.headers.firstValue name
-        if java_optional.isPresent then java_optional.get else Nothing
+        if java_optional.isPresent then java_optional.get else if_missing
 
 ## PRIVATE
 resolve_file_metadata_for_response : Response -> File_Format_Metadata
