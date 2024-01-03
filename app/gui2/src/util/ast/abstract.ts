@@ -1532,11 +1532,9 @@ export function deserialize(serialized: string): Ast {
   return Ast.deserialize(serialized)
 }
 
-declare const AstKey: unique symbol
 declare const TokenKey: unique symbol
 declare module '@/providers/widgetRegistry' {
   export interface WidgetInputTypes {
-    [AstKey]: Ast
     [TokenKey]: Token
   }
 }

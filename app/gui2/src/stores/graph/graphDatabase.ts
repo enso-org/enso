@@ -1,4 +1,3 @@
-import type { PortId } from '@/providers/portInfo'
 import { ComputedValueRegistry, type ExpressionInfo } from '@/stores/project/computedValueRegistry'
 import { SuggestionDb, groupColorStyle, type Group } from '@/stores/suggestionDatabase'
 import type { SuggestionEntry } from '@/stores/suggestionDatabase/entry'
@@ -138,7 +137,7 @@ export class GraphDb {
     // Display connection starting from existing node.
     //TODO[ao]: When implementing input nodes, they should be taken into account here.
     if (srcNode == null) return []
-    function* allTargets(db: GraphDb): Generator<[ExprId, PortId]> {
+    function* allTargets(db: GraphDb): Generator<[ExprId, ExprId]> {
       for (const usage of info.usages) {
         const targetNode = db.getExpressionNodeId(usage)
         // Display only connections to existing targets and different than source node

@@ -2,6 +2,7 @@
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { useTransitioning } from '@/composables/animation'
 import { ForcePort, type PortId } from '@/providers/portInfo'
+import { AnyWidget } from '@/providers/widgetRegistry'
 import { provideWidgetTree } from '@/providers/widgetTree'
 import { useGraphStore } from '@/stores/graph'
 import { Ast } from '@/util/ast'
@@ -11,9 +12,10 @@ import { computed, toRef } from 'vue'
 const props = defineProps<{ ast: Ast.Ast }>()
 const graph = useGraphStore()
 const rootPort = computed(() => {
+  const input = AnyWidget.Ast(props.ast)
   return props.ast instanceof Ast.Ident && !graph.db.isKnownFunctionCall(props.ast.exprId)
-    ? new ForcePort(props.ast)
-    : props.ast
+    ? new ForcePort(input)
+    : input
 })
 
 const observedLayoutTransitions = new Set([

@@ -1,76 +1,132 @@
-import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
+import * as widgetCfg from '@/providers/widgetRegistry/configuration'
+import { makeArgument, makeMethod, makeModuleMethod } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
-import { ArgumentApplication, ArgumentPlaceholder } from '@/util/callTree'
+import {
+  ArgumentApplication,
+  ArgumentAst,
+  ArgumentPlaceholder,
+  interpretCall,
+} from '@/util/callTree'
 import { isSome } from '@/util/data/opt'
-import { type Identifier, type QualifiedName } from '@/util/qualifiedName'
 import type { MethodCall } from 'shared/languageServerTypes'
 import { assert, expect, test } from 'vitest'
 
-const mockSuggestion: SuggestionEntry = {
-  kind: SuggestionKind.Method,
-  name: 'func' as Identifier,
-  definedIn: 'Foo.Bar' as QualifiedName,
-  selfType: 'Foo.Bar',
-  returnType: 'Any',
-  arguments: [
-    { name: 'self', type: 'Any', isSuspended: false, hasDefault: false },
-    { name: 'a', type: 'Any', isSuspended: false, hasDefault: false },
-    { name: 'b', type: 'Any', isSuspended: false, hasDefault: false },
-    { name: 'c', type: 'Any', isSuspended: false, hasDefault: false },
-    { name: 'd', type: 'Any', isSuspended: false, hasDefault: false },
-  ],
-  documentation: [],
-  isPrivate: false,
-  isUnstable: false,
-  aliases: [],
-  annotations: [],
+const prefixFixture = {
+  mockSuggestion: {
+    ...makeModuleMethod('local.Foo.Bar.func'),
+    arguments: ['self', 'a', 'b', 'c', 'd'].map((name) => makeArgument(name)),
+  },
+  argsParameters: new Map<string, widgetCfg.WidgetConfiguration & widgetCfg.WithDisplay>([
+    ['a', { kind: 'Multi_Choice', display: widgetCfg.DisplayMode.Always }],
+    ['b', { kind: 'Code_Input', display: widgetCfg.DisplayMode.Always }],
+    ['c', { kind: 'Boolean_Input', display: widgetCfg.DisplayMode.Always }],
+  ]),
+  methodPointer: {
+    name: 'func',
+    definedOnType: 'Foo.Bar',
+    module: 'local.Foo.Bar',
+  },
 }
 
-function testArgs(paddedExpression: string, pattern: string) {
-  const expression = paddedExpression.trim()
-  const notAppliedArguments = pattern
-    .split(' ')
-    .map((p) =>
-      p.startsWith('?') ? mockSuggestion.arguments.findIndex((k) => p.slice(1) === k.name) : null,
-    )
-    .filter(isSome)
+const infixFixture = {
+  mockSuggestion: {
+    ...makeMethod('local.Foo.Bar.Buz.+'),
+    arguments: ['lhs', 'rhs'].map((name) => makeArgument(name)),
+  },
+  argsParameters: new Map<string, widgetCfg.WidgetConfiguration & widgetCfg.WithDisplay>([
+    ['lhs', { kind: 'Multi_Choice', display: widgetCfg.DisplayMode.Always }],
+    ['rhs', { kind: 'Code_Input', display: widgetCfg.DisplayMode.Always }],
+  ]),
+  methodPointer: {
+    name: '+',
+    definedOnType: 'local.Foo.Bar.Buz',
+    module: 'local.Foo.Bar',
+  },
+}
 
-  test(`argument list: ${paddedExpression} ${pattern}`, () => {
-    const ast = Ast.parse(expression)
+interface TestData {
+  expression: string
+  expectedPattern: string
+  fixture: typeof prefixFixture | typeof infixFixture
+}
+
+test.each`
+  expression              | expectedPattern     | fixture
+  ${'func              '} | ${'?a ?b ?c ?d'}    | ${prefixFixture}
+  ${'func a=x c=x      '} | ${'=a ?b =c ?d'}    | ${prefixFixture}
+  ${'func a=x x c=x    '} | ${'=a @b =c ?d'}    | ${prefixFixture}
+  ${'func a=x d=x      '} | ${'=a ?b ?c =d'}    | ${prefixFixture}
+  ${'func a=x d=x b=x  '} | ${'=a =d =b ?c'}    | ${prefixFixture}
+  ${'func a=x d=x c=x  '} | ${'=a =d ?b =c'}    | ${prefixFixture}
+  ${'func a=x c=x d=x  '} | ${'=a ?b =c =d'}    | ${prefixFixture}
+  ${'func b=x          '} | ${'?a =b ?c ?d'}    | ${prefixFixture}
+  ${'func b=x c=x      '} | ${'?a =b =c ?d'}    | ${prefixFixture}
+  ${'func b=x x x      '} | ${'=b @a @c ?d'}    | ${prefixFixture}
+  ${'func c=x b=x x    '} | ${'=c =b @a ?d'}    | ${prefixFixture}
+  ${'func d=x          '} | ${'?a ?b ?c =d'}    | ${prefixFixture}
+  ${'func d=x a c=x    '} | ${'=d @a ?b =c'}    | ${prefixFixture}
+  ${'func d=x x        '} | ${'=d @a ?b ?c'}    | ${prefixFixture}
+  ${'func d=x x        '} | ${'=d @a ?b ?c'}    | ${prefixFixture}
+  ${'func d=x x x      '} | ${'=d @a @b ?c'}    | ${prefixFixture}
+  ${'func d=x x x x    '} | ${'=d @a @b @c'}    | ${prefixFixture}
+  ${'func x            '} | ${'@a ?b ?c ?d'}    | ${prefixFixture}
+  ${'func x b=x c=x    '} | ${'@a =b =c ?d'}    | ${prefixFixture}
+  ${'func x b=x x      '} | ${'@a =b @c ?d'}    | ${prefixFixture}
+  ${'func x d=x        '} | ${'@a ?b ?c =d'}    | ${prefixFixture}
+  ${'func x x          '} | ${'@a @b ?c ?d'}    | ${prefixFixture}
+  ${'func x x x        '} | ${'@a @b @c ?d'}    | ${prefixFixture}
+  ${'func x x x x      '} | ${'@a @b @c @d'}    | ${prefixFixture}
+  ${'func a=x x m=x    '} | ${'=a @b =m ?c ?d'} | ${prefixFixture}
+  ${'x + y'}              | ${'@lhs @rhs'}      | ${infixFixture}
+  ${'x +'}                | ${'@lhs ?rhs'}      | ${infixFixture}
+`(
+  "Creating argument application's info: $expression $expectedPattern",
+  ({
+    expression,
+    expectedPattern,
+    fixture: { mockSuggestion, argsParameters, methodPointer },
+  }: TestData) => {
+    const expectedArgs = expectedPattern.split(' ')
+    const notAppliedArguments = expectedArgs
+      .map((p: string) =>
+        p.startsWith('?') ? mockSuggestion.arguments.findIndex((k) => p.slice(1) === k.name) : null,
+      )
+      .filter(isSome)
+
+    const ast = Ast.parse(expression.trim())
 
     const methodCall: MethodCall = {
-      methodPointer: {
-        name: 'func',
-        definedOnType: 'Foo.Bar',
-        module: 'Foo.Bar',
-      },
+      methodPointer,
       notAppliedArguments,
     }
 
     const funcMethodCall: MethodCall = {
-      methodPointer: {
-        name: 'func',
-        definedOnType: 'Foo.Bar',
-        module: 'Foo.Bar',
-      },
-      notAppliedArguments: [1, 2, 3, 4],
+      methodPointer,
+      notAppliedArguments: Array.from(expectedArgs, (_, i) => i + 1),
     }
 
-    const interpreted = ArgumentApplication.Interpret(ast, false)
-    const call = ArgumentApplication.FromInterpretedWithInfo(
-      interpreted,
-      funcMethodCall,
-      methodCall,
-      mockSuggestion,
-    )
+    const configuration: widgetCfg.FunctionCall = {
+      kind: 'FunctionCall',
+      parameters: argsParameters,
+    }
+
+    const interpreted = interpretCall(ast, true)
+    const call = ArgumentApplication.FromInterpretedWithInfo(interpreted, {
+      appMethodCall: methodCall,
+      noArgsCall: funcMethodCall,
+      suggestion: mockSuggestion,
+      widgetCfg: configuration,
+    })
     assert(call instanceof ArgumentApplication)
-    expect(printArgPattern(call)).toEqual(pattern)
-  })
-}
+    expect(printArgPattern(call)).toEqual(expectedPattern)
+    checkArgsConfig(call, argsParameters)
+  },
+)
 
 function printArgPattern(application: ArgumentApplication | Ast.Ast) {
   const parts: string[] = []
   let current: ArgumentApplication['target'] = application
+
   while (current instanceof ArgumentApplication) {
     const sigil =
       current.argument instanceof ArgumentPlaceholder
@@ -78,35 +134,23 @@ function printArgPattern(application: ArgumentApplication | Ast.Ast) {
         : current.appTree instanceof Ast.App && current.appTree.argumentName
         ? '='
         : '@'
-    const argInfo = 'info' in current.argument ? current.argument.info : undefined
-    parts.push(sigil + (argInfo?.name ?? '_'))
+    parts.push(sigil + (current.argument.argInfo?.name ?? '_'))
     current = current.target
   }
+  if (current instanceof ArgumentPlaceholder) parts.push(`?${current.argInfo.name}`)
+  if (current instanceof ArgumentAst) parts.push(`@${current.argInfo?.name}`)
   return parts.reverse().join(' ')
 }
 
-testArgs('func              ', '?a ?b ?c ?d')
-testArgs('func a=x c=x      ', '=a ?b =c ?d')
-testArgs('func a=x x c=x    ', '=a @b =c ?d')
-testArgs('func a=x d=x      ', '=a ?b ?c =d')
-testArgs('func a=x d=x b=x  ', '=a =d =b ?c')
-testArgs('func a=x d=x c=x  ', '=a =d ?b =c')
-testArgs('func a=x c=x d=x  ', '=a ?b =c =d')
-testArgs('func b=x          ', '?a =b ?c ?d')
-testArgs('func b=x c=x      ', '?a =b =c ?d')
-testArgs('func b=x x x      ', '=b @a @c ?d')
-testArgs('func c=x b=x x    ', '=c =b @a ?d')
-testArgs('func d=x          ', '?a ?b ?c =d')
-testArgs('func d=x a c=x    ', '=d @a ?b =c')
-testArgs('func d=x x        ', '=d @a ?b ?c')
-testArgs('func d=x x        ', '=d @a ?b ?c')
-testArgs('func d=x x x      ', '=d @a @b ?c')
-testArgs('func d=x x x x    ', '=d @a @b @c')
-testArgs('func x            ', '@a ?b ?c ?d')
-testArgs('func x b=x c=x    ', '@a =b =c ?d')
-testArgs('func x b=x x      ', '@a =b @c ?d')
-testArgs('func x d=x        ', '@a ?b ?c =d')
-testArgs('func x x          ', '@a @b ?c ?d')
-testArgs('func x x x        ', '@a @b @c ?d')
-testArgs('func x x x x      ', '@a @b @c @d')
-testArgs('func a=x x m=x    ', '=a @b =m ?c ?d')
+function checkArgsConfig(
+  application: ArgumentApplication | Ast.Ast,
+  argConfig: Map<string, widgetCfg.WidgetConfiguration | widgetCfg.WithDisplay>,
+) {
+  let current: ArgumentApplication['target'] = application
+  while (current instanceof ArgumentApplication) {
+    const argName = current.argument.argInfo?.name
+    const expected = argName ? argConfig.get(argName) : undefined
+    expect(current.argument.dynamicConfig).toEqual(expected)
+    current = current.target
+  }
+}

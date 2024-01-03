@@ -9,7 +9,7 @@ import { computed, onMounted } from 'vue'
 
 const props = defineProps<{
   config: ApplicationConfig
-  accessToken: string
+  accessToken: string | null
   metadata: object
   unrecognizedOptions: string[]
 }>()
