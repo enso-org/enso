@@ -1,6 +1,7 @@
 package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
+
 import org.enso.base.Text_Utils;
 import org.enso.table.data.column.builder.StringBuilder;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
@@ -52,9 +53,7 @@ public final class StringStorage extends SpecializedStorage<String> {
   public Storage<?> fillMissing(
       Value arg, StorageType commonType, ProblemAggregator problemAggregator) {
     if (arg.isString()) {
-      String strArg = arg.asString();
-      TextType newType =
-          strArg.isEmpty() ? type : TextType.maxType(type, TextType.preciseTypeForValue(strArg));
+      TextType newType = TextType.maxType(type, TextType.preciseTypeForValue(arg.asString()));
       return fillMissingHelper(arg, new StringBuilder(size(), newType));
     } else {
       return super.fillMissing(arg, commonType, problemAggregator);
