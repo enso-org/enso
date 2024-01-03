@@ -1,27 +1,35 @@
 package org.enso.persist;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import org.openide.util.lookup.Lookups;
 
 final class PerMap {
+  private static final Collection<? extends Persistance> ALL;
+
+  static {
+    var loader = PerMap.class.getClassLoader();
+    var lookup = Lookups.metaInfServices(loader);
+    ALL = lookup.lookupAll(Persistance.class);
+  }
+
   private final Map<Integer, Persistance<?>> ids = new HashMap<>();
   private final Map<Class<?>, Persistance<?>> types = new HashMap<>();
   final int versionStamp;
 
   private PerMap() {
     int hash = 0;
-    var loader = getClass().getClassLoader();
-    for (var orig : Lookups.metaInfServices(loader).lookupAll(Persistance.class)) {
+    for (var orig : ALL) {
       var p = orig.newClone();
-      org.enso.persist.Persistance<?> prevId = ids.put(p.id, p);
+      var prevId = ids.put(p.id, p);
       if (prevId != null) {
         throw new IllegalStateException(
             "Multiple registrations for ID " + p.id + " " + prevId + " != " + p);
       }
       hash += p.id;
-      org.enso.persist.Persistance<?> prevType = types.put(p.clazz, p);
+      var prevType = types.put(p.clazz, p);
       if (prevType != null) {
         throw new IllegalStateException(
             "Multiple registrations for " + p.clazz.getName() + " " + prevId + " != " + p);

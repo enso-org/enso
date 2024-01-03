@@ -23,6 +23,7 @@ const mockSuggestion: SuggestionEntry = {
   isPrivate: false,
   isUnstable: false,
   aliases: [],
+  annotations: [],
 }
 
 function testArgs(paddedExpression: string, pattern: string) {
@@ -35,12 +36,7 @@ function testArgs(paddedExpression: string, pattern: string) {
     .filter(isSome)
 
   test(`argument list: ${paddedExpression} ${pattern}`, () => {
-    const parsedBlock = Ast.parse(expression)
-    assert(parsedBlock instanceof Ast.BodyBlock) // necessary for type inference
-    const expressions = Array.from(parsedBlock.expressions())
-    const first = expressions[0]
-    assert(first !== undefined)
-    const ast = first
+    const ast = Ast.parse(expression)
 
     const methodCall: MethodCall = {
       methodPointer: {
