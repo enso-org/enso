@@ -81,7 +81,6 @@ public final class Builtins {
   }
 
   private final Map<Class<? extends Builtin>, Builtin> builtins;
-  private final Map<String, Class<? extends Builtin>> reverseBuiltins;
   private final Map<String, Map<String, Supplier<LoadedBuiltinMethod>>> builtinMethodNodes;
   private final Map<String, Builtin> builtinsByName;
 
@@ -130,7 +129,6 @@ public final class Builtins {
     module = Module.empty(QualifiedName.fromString(MODULE_NAME), null);
     scope = module.compileScope(context);
 
-    reverseBuiltins = new HashMap<>();
     builtins = initializeBuiltinTypes(loadedBuiltinConstructors, language, scope);
     builtinsByName =
         builtins.values().stream()
@@ -398,7 +396,6 @@ public final class Builtins {
         .forEach(
             b -> {
               b.initialize(language, scope, builtins);
-              reverseBuiltins.put(b.getType().getName(), b.getClass());
             });
     return builtins;
   }
