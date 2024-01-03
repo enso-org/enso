@@ -34,6 +34,7 @@ Cargo.toml
 /project/ @4e6 @jaroslavtulach @hubertp
 /test/ @jdunkerley @radeusgd @GregoryTravis
 /tools/ @4e6 @jaroslavtulach @radeusgd
+/tools/http-test-helper/ @radeusgd @jdunkerley @GregoryTravis
 
 # Enso Libraries
 # This section should be amended once the engine moves to /app/engine
