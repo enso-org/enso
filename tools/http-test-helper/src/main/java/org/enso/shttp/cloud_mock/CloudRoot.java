@@ -13,7 +13,10 @@ public class CloudRoot extends HandlerWithTokenAuth {
     return "TEST-ENSO-TOKEN-caffee";
   }
 
-  private final CloudHandler[] handlers = new CloudHandler[] {new UsersHandler()};
+  private final CloudHandler[] handlers = new CloudHandler[] {
+      new UsersHandler(),
+      new SecretsHandler()
+  };
 
   @Override
   protected void handleAuthorized(HttpExchange exchange) throws IOException {
