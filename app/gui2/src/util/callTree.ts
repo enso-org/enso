@@ -1,5 +1,5 @@
 import type { PortId } from '@/providers/portInfo'
-import { AnyWidget } from '@/providers/widgetRegistry'
+import { AnyWidget, type WidgetInput } from '@/providers/widgetRegistry'
 import type { WidgetConfiguration } from '@/providers/widgetRegistry/configuration'
 import * as widgetCfg from '@/providers/widgetRegistry/configuration'
 import type { SuggestionEntry, SuggestionEntryArgument } from '@/stores/suggestionDatabase/entry'
@@ -71,6 +71,12 @@ export class ArgumentAst {
 
   get portId(): PortId {
     return this.ast.exprId
+  }
+
+  static matchWithArgInfo(
+    input: WidgetInput,
+  ): input is ArgumentAst & { argInfo: SuggestionEntryArgument } {
+    return input instanceof ArgumentAst && input.argInfo != null
   }
 }
 

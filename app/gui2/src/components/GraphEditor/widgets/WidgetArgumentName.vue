@@ -22,10 +22,10 @@ const primary = computed(() => props.nesting < 2)
 </script>
 
 <script lang="ts">
-export const widgetDefinition = defineWidget([ArgumentAst, ArgumentPlaceholder], {
+export const widgetDefinition = defineWidget([ArgumentAst.matchWithArgInfo, ArgumentPlaceholder], {
   priority: 1000,
   score: (props) => {
-    const isPlaceholder = props.input.argInfo != null && props.input instanceof ArgumentPlaceholder
+    const isPlaceholder = props.input instanceof ArgumentPlaceholder
     const isTopArg = props.nesting < 2 && props.input.kind === ApplicationKind.Prefix
     return isPlaceholder || isTopArg ? Score.Perfect : Score.Mismatch
   },
@@ -35,10 +35,10 @@ export const widgetDefinition = defineWidget([ArgumentAst, ArgumentPlaceholder],
 <template>
   <div class="WidgetArgumentName" :class="{ placeholder, primary }">
     <template v-if="showArgumentValue">
-      <span class="value">{{ props.input.argInfo?.name }}</span
+      <span class="value">{{ props.input.argInfo.name }}</span
       ><NodeWidget :input="props.input" />
     </template>
-    <template v-else>{{ props.input.argInfo!.name }}</template>
+    <template v-else>{{ props.input.argInfo.name }}</template>
   </div>
 </template>
 

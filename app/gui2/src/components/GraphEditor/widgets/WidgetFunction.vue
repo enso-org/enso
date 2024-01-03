@@ -2,7 +2,6 @@
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { injectFunctionInfo, provideFunctionInfo } from '@/providers/functionInfo'
 import type { PortId } from '@/providers/portInfo'
-import type { WidgetInput } from '@/providers/widgetRegistry'
 import { AnyWidget, Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import {
   argsWidgetConfigurationSchema,
@@ -105,7 +104,6 @@ const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => 
     positionalArgumentsExpressions: [`.${name}`, makeArgsList(args)],
   }
 })
-watch(visualizationConfig, console.log)
 
 const visualizationData = project.useVisualizationData(visualizationConfig)
 const widgetConfiguration = computed(() => {
@@ -225,19 +223,7 @@ function handleArgUpdate(value: unknown, origin: PortId): boolean {
 }
 </script>
 <script lang="ts">
-function isFunctionCall(
-  input: WidgetInput,
-): input is AnyWidget & { ast: Ast.App | Ast.Ident | Ast.OprApp } {
-  if (input instanceof AnyWidget)
-    return (
-      input.ast instanceof Ast.App ||
-      input.ast instanceof Ast.Ident ||
-      input.ast instanceof Ast.OprApp
-    )
-  return false
-}
-
-export const widgetDefinition = defineWidget(isFunctionCall, {
+export const widgetDefinition = defineWidget(AnyWidget.matchFunctionCall, {
   priority: -10,
   score: (props, db) => {
     const ast = props.input.ast

@@ -3,7 +3,7 @@ import type { PortId } from '@/providers/portInfo'
 import type { WidgetConfiguration } from '@/providers/widgetRegistry/configuration'
 import type { GraphDb } from '@/stores/graph/graphDatabase'
 import type { SuggestionEntryArgument } from '@/stores/suggestionDatabase/entry'
-import type { Ast } from '@/util/ast'
+import { Ast } from '@/util/ast'
 import { computed, shallowReactive, type Component, type PropType } from 'vue'
 
 export type WidgetComponent<T extends WidgetInput> = Component<WidgetProps<T>>
@@ -11,8 +11,8 @@ export type WidgetComponent<T extends WidgetInput> = Component<WidgetProps<T>>
 /**
  * A WidgetInput variant meant to match wide range of "general" widgets.
  *
- * Any widget which want's to work in different contexts (inside function calls, constructors,
- * list elements) should match with this, using provided information.
+ * Any widget which wants to work in different contexts (inside function calls, constructors, list
+ * elements) should match with this, using provided information.
  *
  * When your widget want to display some non-specific subwidget (like WidgetVector which displays
  * elements of any type), this should be provided as their input, passing as much information as
@@ -45,12 +45,23 @@ export class AnyWidget {
     return this.ast == null
   }
 
-  static MatchPlaceholder(input: WidgetInput): input is AnyWidget & { ast: undefined } {
+  static matchPlaceholder(input: WidgetInput): input is AnyWidget & { ast: undefined } {
     return input instanceof AnyWidget && input.isPlaceholder()
   }
 
-  static MatchAst(input: WidgetInput): input is AnyWidget & { ast: Ast.Ast } {
+  static matchAst(input: WidgetInput): input is AnyWidget & { ast: Ast.Ast } {
     return input instanceof AnyWidget && !input.isPlaceholder()
+  }
+
+  static matchFunctionCall(
+    input: WidgetInput,
+  ): input is AnyWidget & { ast: Ast.App | Ast.Ident | Ast.OprApp } {
+    return (
+      input instanceof AnyWidget &&
+      (input.ast instanceof Ast.App ||
+        input.ast instanceof Ast.Ident ||
+        input.ast instanceof Ast.OprApp)
+    )
   }
 }
 declare const AnyWidgetKey: unique symbol

@@ -29,7 +29,7 @@ function transformChild(child: Ast.Ast | Ast.Token) {
 </script>
 
 <script lang="ts">
-export const widgetDefinition = defineWidget(AnyWidget.MatchAst, {
+export const widgetDefinition = defineWidget(AnyWidget.matchAst, {
   priority: 1001,
 })
 </script>

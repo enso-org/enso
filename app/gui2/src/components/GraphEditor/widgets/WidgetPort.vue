@@ -13,6 +13,7 @@ import { ArgumentAst, ArgumentPlaceholder } from '@/util/callTree'
 import { Rect } from '@/util/data/rect'
 import { cachedGetter } from '@/util/reactivity'
 import { uuidv4 } from 'lib0/random'
+import type { ExprId } from 'shared/yjsModel'
 import {
   computed,
   markRaw,
@@ -36,7 +37,9 @@ const selection = injectGraphSelection(true)
 
 const isHovered = ref(false)
 
-const hasConnection = computed(() => graph.db.connections.reverseLookup(portId.value).size > 0)
+const hasConnection = computed(
+  () => graph.db.connections.reverseLookup(portId.value as ExprId).size > 0,
+)
 const isCurrentEdgeHoverTarget = computed(
   () => isHovered.value && graph.unconnectedEdge != null && selection?.hoveredPort === portId.value,
 )
@@ -123,7 +126,7 @@ function portIdOfInput(input: unknown): PortId | undefined {
 }
 
 export const widgetDefinition = defineWidget(
-  [ForcePort, AnyWidget.MatchAst, ArgumentAst, ArgumentPlaceholder],
+  [ForcePort, AnyWidget.matchAst, ArgumentAst, ArgumentPlaceholder],
   {
     priority: 0,
     score: (props, _db) => {
