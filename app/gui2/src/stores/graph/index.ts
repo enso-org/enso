@@ -1,3 +1,4 @@
+import { graphBindings } from '@/bindings'
 import { nonDictatedPlacement } from '@/components/ComponentBrowser/placement'
 import type { PortId } from '@/providers/portInfo'
 import { GraphDb } from '@/stores/graph/graphDatabase'
@@ -425,6 +426,8 @@ export const useGraphStore = defineStore('graph', () => {
     disconnectSource,
     disconnectTarget,
     clearUnconnected,
+    expressionGraph,
+    moduleRoot,
     createNode,
     deleteNode,
     setNodeContent,

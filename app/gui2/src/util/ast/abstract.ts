@@ -703,6 +703,16 @@ export class Function extends Ast {
     this._equals = equals
     this._body = body
   }
+
+  static new(module: MutableModule, name: string, args: Ast[], exprs: Ast[], id?: AstId | undefined): Function {
+    const body = BodyBlock.new(module, exprs)
+    body.addTrailingNewline(module)
+    const args_ = args.map((arg) => ([{ node: arg.exprId }]))
+    const ident = { node: Ident.new(module, name).exprId }
+    const equals = { node: Token.new('=') }
+    return new Function(module, id, ident, args_, equals, { node: body.exprId })
+  }
+
   *concreteChildren(): IterableIterator<NodeChild> {
     yield this._name
     for (const arg of this._args) yield* arg
@@ -782,15 +792,17 @@ export class BodyBlock extends Ast {
     this.lines = lines
   }
 
-  // TODO: Edits (#8367)
-  /*
-  static new(id: AstId | undefined, expressions: Ast[]): Block {
-    return new Block(
-      id,
-      expressions.map((e) => ({ expression: { node: e._id } })),
+  static new(module: MutableModule, lines: Ast[]): BodyBlock {
+    return new BodyBlock(
+      module,
+      undefined,
+      lines.map((e) => ({ expression: { node: e.exprId } })),
     )
   }
-   */
+
+  addTrailingNewline(module: MutableModule) {
+    new BodyBlock(module, this.exprId, [...this.lines, { newline: { node: Token.new('\n') }, expression: null }])
+  }
 
   push(module: MutableModule, node: Ast) {
     new BodyBlock(module, this.exprId, [...this.lines, { expression: { node: node.exprId } }])
@@ -1200,6 +1212,16 @@ export function tokenTreeWithIds(root: Ast): TokenTree {
       }
     }),
   ]
+}
+
+export function moduleMethodNames(module: Module): Set<string> {
+  const result = new Set<string>()
+  for (const node of module.raw.nodes.values()) {
+    if (node instanceof Function && node.name) {
+      result.add(node.name.code())
+    }
+  }
+  return result
 }
 
 // FIXME: We should use alias analysis to handle ambiguous names correctly.

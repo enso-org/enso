@@ -141,7 +141,22 @@ export class GraphDb {
     function* allTargets(db: GraphDb): Generator<[ExprId, ExprId]> {
       for (const usage of info.usages) {
         const targetNode = db.getExpressionNodeId(usage)
-        // Display only connections to existing targets and different than source node
+        // Display only connections to existing targets and different than source node.
+        if (targetNode == null || targetNode === srcNode) continue
+        yield [alias, usage]
+      }
+    }
+    return Array.from(allTargets(this))
+  })
+
+  /** Same as {@link GraphDb.connections}, but also includes connections without source node,
+    * e.g. input arguments of the collapsed function.
+    */
+  allConnections = new ReactiveIndex(this.bindings.bindings, (alias, info) => {
+    const srcNode = this.getPatternExpressionNodeId(alias)
+    function* allTargets(db: GraphDb): Generator<[ExprId, ExprId]> {
+      for (const usage of info.usages) {
+        const targetNode = db.getExpressionNodeId(usage)
         if (targetNode == null || targetNode === srcNode) continue
         yield [alias, usage]
       }
@@ -207,6 +222,10 @@ export class GraphDb {
     return this.bindings.bindings.get(source)?.identifier
   }
 
+  allIdentifiers(): string[] {
+    return [...this.bindings.identifierToBindingId.allForward()].map(([ident, _]) => ident)
+  }
+
   identifierUsed(ident: string): boolean {
     return this.bindings.identifierToBindingId.hasKey(ident)
   }
@@ -251,6 +270,7 @@ export class GraphDb {
   }
 
   readFunctionAst(functionAst_: Ast.Function, getMeta: (id: ExprId) => NodeMetadata | undefined) {
+    console.log('Read function ast', functionAst_.code())
     const currentNodeIds = new Set<ExprId>()
     for (const nodeAst of functionAst_.bodyExpressions()) {
       const newNode = nodeFromAst(nodeAst)

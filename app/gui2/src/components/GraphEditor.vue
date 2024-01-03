@@ -10,7 +10,7 @@ import {
 } from '@/components/ComponentBrowser/placement'
 import GraphEdges from '@/components/GraphEditor/GraphEdges.vue'
 import GraphNodes from '@/components/GraphEditor/GraphNodes.vue'
-import { performCollapse, prepareCollapsedInfo } from '@/components/GraphEditor/collapsing'
+import { stackItemToMethodName, performCollapse, prepareCollapsedInfo } from '@/components/GraphEditor/collapsing'
 import { Uploader, uploadedExpression } from '@/components/GraphEditor/upload'
 import GraphMouse from '@/components/GraphMouse.vue'
 import PlusButton from '@/components/PlusButton.vue'
@@ -34,6 +34,7 @@ import type { ExprId, NodeMetadata } from 'shared/yjsModel'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { toast } from 'vue3-toastify'
 import { type Usage } from './ComponentBrowser/input'
+import type { Ast } from '@/util/ast'
 
 const EXECUTION_MODES = ['design', 'live']
 // Assumed size of a newly created node. This is used to place the component browser.
@@ -226,11 +227,19 @@ const graphBindingsHandler = graphBindings.handler({
   },
   collapse() {
     if (keyboardBusy()) return false
-    const selected = nodeSelection.selected
+    const selected = new Set(nodeSelection.selected)
     if (selected.size == 0) return
     try {
-      const info = prepareCollapsedInfo(nodeSelection.selected, graphStore.db)
-      performCollapse(info)
+      const info = prepareCollapsedInfo(selected, graphStore.db)
+      if (graphStore.moduleRoot == null) return
+      const currentMethod = projectStore.executionContext.getStackTop()
+      const currentMethodName = stackItemToMethodName(graphStore.db, currentMethod)
+      if (currentMethodName == null) {
+        throw new Error(`Cannot get the method name for the current execution stack item. ${currentMethod}`)
+      }
+      const topLevel = graphStore.expressionGraph.get(graphStore.moduleRoot)! as Ast.BodyBlock
+      const updatedModule = performCollapse(info, graphStore.expressionGraph, topLevel, graphStore.db, currentMethodName)
+      graphStore.commitEdit(updatedModule, graphStore.moduleRoot)
     } catch (err) {
       console.log(`Error while collapsing, this is not normal. ${err}`)
     }
@@ -283,6 +292,8 @@ watch(
     projectStore.executionContext.setExecutionEnvironment(modeValue === 'live' ? 'Live' : 'Design')
   },
 )
+
+watch(nodeSelection.selected, (values) => console.log(`Selected: ${[...values]}`))
 
 const groupColors = computed(() => {
   const styles: { [key: string]: string } = {}
@@ -555,14 +566,6 @@ function handleEdgeDrop(source: ExprId, position: Vec2) {
     @dragover.prevent
     @drop.prevent="handleFileDrop($event)"
   >
-    <ToastContainer
-      position="top-center"
-      theme="light"
-      closeOnClick="false"
-      draggable="false"
-      toastClassName="text-sm leading-170 bg-frame-selected rounded-2xl backdrop-blur-3xl"
-      transition="Vue-Toastification__bounce"
-    />
     <div :style="{ transform: graphNavigator.transform }" class="htmlLayer">
       <GraphNodes
         @nodeOutputPortDoubleClick="handleNodeOutputPortDoubleClick"
