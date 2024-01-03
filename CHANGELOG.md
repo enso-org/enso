@@ -599,6 +599,7 @@
 - [Support for loading big Excel files.][8403]
 - [Added new `Filter_Condition`s - `Equal_Ignore_Case`, `Is_Nan`, `Is_Infinite`
   and `Is_Finite`.][8539]
+- Support `on_problems=Problem_Behavior.Report_Warning` in `Vector.map`.][8595]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -858,6 +859,7 @@
 [8403]: https://github.com/enso-org/enso/pull/8403
 [8539]: https://github.com/enso-org/enso/pull/8539
 [8564]: https://github.com/enso-org/enso/pull/8564
+[8595]: https://github.com/enso-org/enso/pull/8595
 
 #### Enso Compiler
 
