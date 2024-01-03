@@ -30,7 +30,8 @@ import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import * as set from 'lib0/set'
 import type { ExprId, NodeMetadata } from 'shared/yjsModel'
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { toast } from 'vue3-toastify'
 import { type Usage } from './ComponentBrowser/input'
 
 const EXECUTION_MODES = ['design', 'live']
@@ -49,6 +50,26 @@ const componentBrowserNodePosition = ref<Vec2>(Vec2.Zero)
 const componentBrowserUsage = ref<Usage>({ type: 'newNode' })
 const suggestionDb = useSuggestionDbStore()
 const interaction = provideInteractionHandler()
+
+function initStartupToast() {
+  const startupToast = toast.info('Initializing the project. This can take up to one minute.', {
+    autoClose: false,
+  })
+  projectStore.firstExecution.then(() => {
+    if (startupToast != null) {
+      toast.remove(startupToast)
+    }
+  })
+  onUnmounted(() => {
+    if (startupToast != null) {
+      toast.remove(startupToast)
+    }
+  })
+}
+
+onMounted(() => {
+  initStartupToast()
+})
 
 const nodeSelection = provideGraphSelection(graphNavigator, graphStore.nodeRects, {
   onSelected(id) {
@@ -405,7 +426,7 @@ function copyNodeContent() {
   const id = nodeSelection.selected.values().next().value
   const node = graphStore.db.nodeIdToNode.get(id)
   if (!node) return
-  const content = node.rootSpan.repr()
+  const content = node.rootSpan.code()
   const metadata = projectStore.module?.getNodeMetadata(id) ?? undefined
   const copiedNode: CopiedNode = { expression: content, metadata }
   const clipboardData: ClipboardData = { nodes: [copiedNode] }
@@ -527,15 +548,24 @@ function handleEdgeDrop(source: ExprId, position: Vec2) {
     @dragover.prevent
     @drop.prevent="handleFileDrop($event)"
   >
-    <svg :viewBox="graphNavigator.viewBox">
-      <GraphEdges @createNodeFromEdge="handleEdgeDrop" />
-    </svg>
+    <ToastContainer
+      position="top-center"
+      theme="light"
+      closeOnClick="false"
+      draggable="false"
+      toastClassName="text-sm leading-170 bg-frame-selected rounded-2xl backdrop-blur-3xl"
+      transition="Vue-Toastification__bounce"
+    />
     <div :style="{ transform: graphNavigator.transform }" class="htmlLayer">
       <GraphNodes
         @nodeOutputPortDoubleClick="handleNodeOutputPortDoubleClick"
         @nodeDoubleClick="(id) => stackNavigator.enterNode(id)"
       />
     </div>
+    <svg :viewBox="graphNavigator.viewBox" class="svgBackdropLayer">
+      <GraphEdges @createNodeFromEdge="handleEdgeDrop" />
+    </svg>
+
     <ComponentBrowser
       v-if="componentBrowserVisible"
       ref="componentBrowser"
@@ -548,7 +578,7 @@ function handleEdgeDrop(source: ExprId, position: Vec2) {
     />
     <TopBar
       v-model:mode="projectStore.executionMode"
-      :title="projectStore.name"
+      :title="projectStore.displayName"
       :modes="EXECUTION_MODES"
       :breadcrumbs="stackNavigator.breadcrumbLabels.value"
       :allowNavigationLeft="stackNavigator.allowNavigationLeft.value"
@@ -577,10 +607,11 @@ function handleEdgeDrop(source: ExprId, position: Vec2) {
   --node-color-no-type: #596b81;
 }
 
-svg {
+.svgBackdropLayer {
   position: absolute;
   top: 0;
   left: 0;
+  z-index: -1;
 }
 
 .htmlLayer {

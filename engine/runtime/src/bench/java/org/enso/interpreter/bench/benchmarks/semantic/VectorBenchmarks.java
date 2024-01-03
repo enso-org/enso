@@ -1,12 +1,10 @@
 package org.enso.interpreter.bench.benchmarks.semantic;
 
-import java.io.ByteArrayOutputStream;
 import java.nio.file.Paths;
 import java.util.AbstractList;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.logging.Level;
-
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
@@ -24,7 +22,6 @@ import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.BenchmarkParams;
 import org.openjdk.jmh.infra.Blackhole;
 
-
 @BenchmarkMode(Mode.AverageTime)
 @Fork(1)
 @Warmup(iterations = 3)
@@ -38,22 +35,21 @@ public class VectorBenchmarks {
 
   @Setup
   public void initializeBenchmark(BenchmarkParams params) throws Exception {
-    var ctx = Context.newBuilder()
-      .allowExperimentalOptions(true)
-      .allowIO(IOAccess.ALL)
-      .allowAllAccess(true)
-      .option(
-              RuntimeOptions.LOG_LEVEL,
-              Level.WARNING.getName()
-      )
+    var ctx =
+        Context.newBuilder()
+            .allowExperimentalOptions(true)
+            .allowIO(IOAccess.ALL)
+            .allowAllAccess(true)
+            .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
             .logHandler(System.err)
-      .option(
-        "enso.languageHomeOverride",
-        Paths.get("../../distribution/component").toFile().getAbsolutePath()
-      ).build();
+            .option(
+                "enso.languageHomeOverride",
+                Paths.get("../../distribution/component").toFile().getAbsolutePath())
+            .build();
 
     var benchmarkName = SrcUtil.findName(params);
-    var code = """
+    var code =
+        """
         import Standard.Base.Data.Vector.Vector
         import Standard.Base.Data.Array_Proxy.Array_Proxy
 
@@ -89,49 +85,57 @@ public class VectorBenchmarks {
     var module = ctx.eval(SrcUtil.source(benchmarkName, code));
 
     this.self = module.invokeMember("get_associated_type");
-    Function<String,Value> getMethod = (name) -> module.invokeMember("get_method", self, name);
+    Function<String, Value> getMethod = (name) -> module.invokeMember("get_method", self, name);
 
     var length = 1000;
     Value vec = getMethod.apply("fibarr").execute(self, length, Integer.MAX_VALUE);
 
     switch (benchmarkName) {
-      case "averageOverVector": {
-        this.arrayOfFibNumbers = vec;
-        break;
-      }
-      case "averageOverSlice": {
-        this.arrayOfFibNumbers = getMethod.apply("slice").execute(self, vec, 1, length);
-        break;
-      }
-      case "averageOverArray": {
-        this.arrayOfFibNumbers = getMethod.apply("to_array").execute(self, vec);
-        break;
-      }
-      case "averageOverPolyglotVector": {
-        long[] copy = copyToPolyglotArray(vec);
-        this.arrayOfFibNumbers = getMethod.apply("to_vector").execute(self, copy);
-        break;
-      }
-      case "averageOverPolyglotArray": {
-        long[] copy = copyToPolyglotArray(vec);
-        this.arrayOfFibNumbers = Value.asValue(copy);
-        break;
-      }
-      case "averageOverArrayProxy": {
-        this.arrayOfFibNumbers = getMethod.apply("create_array_proxy").execute(self, vec);
-        break;
-      }
-      case "averageOverArrayProxyNew": {
-        this.arrayOfFibNumbers = getMethod.apply("create_array_proxy_new").execute(self, vec);
-        break;
-      }
-      case "averageAbstractList": {
-        long[] copy = copyToPolyglotArray(vec);
-        final ProxyList<Long> proxyList = new ProxyList<Long>();
-        getMethod.apply("fill_proxy").execute(self, proxyList, copy);
-        this.arrayOfFibNumbers = Value.asValue(proxyList);
-        break;
-      }
+      case "averageOverVector":
+        {
+          this.arrayOfFibNumbers = vec;
+          break;
+        }
+      case "averageOverSlice":
+        {
+          this.arrayOfFibNumbers = getMethod.apply("slice").execute(self, vec, 1, length);
+          break;
+        }
+      case "averageOverArray":
+        {
+          this.arrayOfFibNumbers = getMethod.apply("to_array").execute(self, vec);
+          break;
+        }
+      case "averageOverPolyglotVector":
+        {
+          long[] copy = copyToPolyglotArray(vec);
+          this.arrayOfFibNumbers = getMethod.apply("to_vector").execute(self, copy);
+          break;
+        }
+      case "averageOverPolyglotArray":
+        {
+          long[] copy = copyToPolyglotArray(vec);
+          this.arrayOfFibNumbers = Value.asValue(copy);
+          break;
+        }
+      case "averageOverArrayProxy":
+        {
+          this.arrayOfFibNumbers = getMethod.apply("create_array_proxy").execute(self, vec);
+          break;
+        }
+      case "averageOverArrayProxyNew":
+        {
+          this.arrayOfFibNumbers = getMethod.apply("create_array_proxy_new").execute(self, vec);
+          break;
+        }
+      case "averageAbstractList":
+        {
+          long[] copy = copyToPolyglotArray(vec);
+          final ProxyList<Long> proxyList = new ProxyList<Long>();
+          getMethod.apply("fill_proxy").execute(self, proxyList, copy);
+          this.arrayOfFibNumbers = Value.asValue(proxyList);
+          break;
+        }
 
       default:
         throw new IllegalStateException("Unexpected benchmark: " + params.getBenchmark());
@@ -193,9 +197,12 @@ public class VectorBenchmarks {
       throw new AssertionError("Shall be a double: " + average);
     }
     var result = (long) average.asDouble();
-    boolean isResultCorrect = (result >= 1019950590 && result <= 1019950600) || (result >= 1020971561 && result <= 1020971571);
+    boolean isResultCorrect =
+        (result >= 1019950590 && result <= 1019950600)
+            || (result >= 1020971561 && result <= 1020971571);
     if (!isResultCorrect) {
-      throw new AssertionError("Expecting reasonable average but was " + result + "\n" + arrayOfFibNumbers);
+      throw new AssertionError(
+          "Expecting reasonable average but was " + result + "\n" + arrayOfFibNumbers);
     }
     hole.consume(result);
   }
@@ -220,4 +227,3 @@ public class VectorBenchmarks {
     }
   }
 }
-

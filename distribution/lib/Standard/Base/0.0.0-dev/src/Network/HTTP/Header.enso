@@ -1,4 +1,5 @@
 import project.Data.Enso_Cloud.Enso_Secret.Enso_Secret
+import project.Data.Enso_Cloud.Utils as Cloud_Utils
 import project.Data.Numbers.Integer
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
@@ -8,6 +9,7 @@ from project.Data.Ordering import all
 from project.Data.Text.Extensions import all
 
 polyglot java import java.util.Base64
+polyglot java import org.graalvm.collections.Pair as Java_Pair
 
 type Header
     ## PRIVATE
@@ -190,6 +192,11 @@ type Header
        Gets the name for content_type
     content_type_header_name : Text
     content_type_header_name = "Content-Type"
+
+    ## PRIVATE
+    to_java_pair : Java_Pair
+    to_java_pair self =
+        Java_Pair.create self.name (Cloud_Utils.as_hideable_value self.value)
 
 ## PRIVATE
 type Header_Comparator

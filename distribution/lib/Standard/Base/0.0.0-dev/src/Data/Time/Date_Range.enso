@@ -372,7 +372,7 @@ type Date_Range
        > Example
          Checking that at least one date in the range is after 2020-10-01.
 
-             (Date.new 2020 10 01).up_to (Date.new 2020 10 31) . any (> (Date.new 2020 10 01))
+             (Date.new 2020 10 01).up_to (Date.new 2020 10 31) . any (Filter_Condition.Greater (Date.new 2020 10 01))
     @condition date_range_default_filter_condition_widget
     any : (Filter_Condition | (Date -> Boolean)) -> Boolean
     any self condition = self.find condition . is_nothing . not

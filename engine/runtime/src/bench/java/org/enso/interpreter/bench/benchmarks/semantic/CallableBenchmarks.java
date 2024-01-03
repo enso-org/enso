@@ -1,7 +1,6 @@
 package org.enso.interpreter.bench.benchmarks.semantic;
 
 import java.util.concurrent.TimeUnit;
-
 import org.enso.interpreter.bench.fixtures.semantic.CallableFixtures;
 import org.enso.interpreter.test.DefaultInterpreterRunner;
 import org.openjdk.jmh.annotations.Benchmark;
@@ -18,8 +17,7 @@ import org.openjdk.jmh.annotations.Warmup;
 @Measurement(iterations = 5)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 public class CallableBenchmarks {
-  private static final CallableFixtures argumentFixtures =
-      new CallableFixtures();
+  private static final CallableFixtures argumentFixtures = new CallableFixtures();
 
   private void runOnHundredMillion(DefaultInterpreterRunner.MainMethod main) {
     main.mainFunction().value().execute(argumentFixtures.hundredMillion());

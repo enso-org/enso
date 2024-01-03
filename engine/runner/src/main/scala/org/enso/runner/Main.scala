@@ -867,7 +867,12 @@ object Main {
             )
           val res = main.execute(parsedArgs: _*)
           if (!res.isNull) {
-            out.println(res);
+            val textRes = if (res.isString) {
+              res.asString
+            } else {
+              res.toString
+            }
+            out.println(textRes);
           }
         case None =>
           err.println(

@@ -19,8 +19,6 @@ import { VisualizationModule } from '@/stores/visualization/runtimeTypes'
 import { assertNever } from '@/util/assert'
 import { toError } from '@/util/data/error'
 import type { Opt } from '@/util/data/opt'
-import { defineKeybinds } from '@/util/shortcuts'
-import { VisualizationContainer, useVisualizationConfig } from '@/util/visualizationBuiltins'
 import { Error as DataError } from 'shared/binaryProtocol'
 import type { DataServer } from 'shared/dataServer'
 import type { Uuid } from 'shared/languageServerTypes'
@@ -36,7 +34,9 @@ const moduleCache: Record<string, unknown> = {
   get d3() {
     return import('d3')
   },
-  builtins: { VisualizationContainer, useVisualizationConfig, defineKeybinds },
+  get builtins() {
+    return import('@/util/visualizationBuiltins')
+  },
 }
 // @ts-expect-error Intentionally not defined in `env.d.ts` as it is a mistake to access this
 // anywhere else.

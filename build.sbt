@@ -12,14 +12,12 @@ import src.main.scala.licenses.{
   DistributionDescription,
   SBTDistributionComponent
 }
-import sbt.librarymanagement.DependencyFilter
 
 // This import is unnecessary, but bit adds a proper code completion features
 // to IntelliJ.
 import JPMSPlugin.autoImport.*
 
 import java.io.File
-import scala.collection.mutable.ListBuffer
 
 // ============================================================================
 // === Global Configuration ===================================================
@@ -272,7 +270,6 @@ lazy val enso = (project in file("."))
     `syntax-definition`,
     `syntax-rust-definition`,
     `text-buffer`,
-    logger,
     pkg,
     cli,
     `task-progress-notifications`,
@@ -527,13 +524,6 @@ lazy val compileModuleInfo = taskKey[Unit]("Compiles `module-info.java`")
 // ============================================================================
 // === Internal Libraries =====================================================
 // ============================================================================
-
-lazy val logger = (project in file("lib/scala/logger"))
-  .settings(
-    frgaalJavaCompilerSetting,
-    version := "0.1",
-    libraryDependencies ++= scalaCompiler
-  )
 
 lazy val `syntax-definition` =
   project in file("lib/scala/syntax/definition")
@@ -907,7 +897,10 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
       "org.apache.commons"          % "commons-lang3"       % commonsLangVersion,
       "com.beachape"               %% "enumeratum-circe"    % enumeratumCirceVersion,
       "com.miguno.akka"            %% "akka-mock-scheduler" % akkaMockSchedulerVersion % Test,
-      "org.mockito"                %% "mockito-scala"       % mockitoScalaVersion      % Test
+      "org.mockito"                %% "mockito-scala"       % mockitoScalaVersion      % Test,
+      "junit"                       % "junit"               % junitVersion             % Test,
+      "com.github.sbt"              % "junit-interface"     % junitIfVersion           % Test,
+      "org.hamcrest"                % "hamcrest-all"        % hamcrestVersion          % Test
     ),
     addCompilerPlugin(
       "org.typelevel" %% "kind-projector" % kindProjectorVersion cross CrossVersion.full
@@ -1016,7 +1009,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
   .dependsOn(`json-rpc-server-test` % Test)
   .dependsOn(testkit % Test)
   .dependsOn(`runtime-version-manager-test` % Test)
-  .dependsOn(`logging-service-logback` % Test)
+  .dependsOn(`logging-service-logback` % "test->test")
 
 /* Note [Classpath Separation]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1207,8 +1200,13 @@ val truffleRunOptionsSettings = Seq(
   javaOptions ++= "-ea" +: benchOnlyOptions
 )
 
+/** Explicitly provide `application-test.conf` as the resource that should be used for
+  * parsing the logging configuration. Explicitly setting `config.resource` prevents
+  * the potential conflicts with other *.conf files.
+  */
 val testLogProviderOptions = Seq(
-  "-Dslf4j.provider=org.enso.logger.TestLogProvider"
+  "-Dslf4j.provider=org.enso.logger.TestLogProvider",
+  "-Dconfig.resource=application-test.conf"
 )
 
 lazy val `polyglot-api` = project
@@ -1535,6 +1533,28 @@ lazy val runtime = (project in file("engine/runtime"))
     version := ensoVersion,
     commands += WithDebugCommand.withDebug,
     inConfig(Compile)(truffleRunOptionsSettings),
+    // Explicitly provide javafmt task for the custom Benchmark configuration.
+    // Note that because of the custom Benchmark configuration, the `JavaFormatterPlugin`
+    // is not able to register this task on its own.
+    Benchmark / javafmt := {
+      val streamz = streams.value
+      val sD      = (Benchmark / javafmt / sourceDirectories).value.toList
+      val iF      = (Benchmark / javafmt / includeFilter).value
+      val eF      = (Benchmark / javafmt / excludeFilter).value
+      val cache   = streamz.cacheStoreFactory
+      val options = (Compile / javafmtOptions).value
+      JavaFormatter(sD, iF, eF, streamz, cache, options)
+    },
+    Benchmark / javafmtCheck := {
+      val streamz = streams.value
+      val baseDir = (ThisBuild / baseDirectory).value
+      val sD      = (Benchmark / javafmt / sourceDirectories).value.toList
+      val iF      = (Benchmark / javafmt / includeFilter).value
+      val eF      = (Benchmark / javafmt / excludeFilter).value
+      val cache   = (javafmt / streams).value.cacheStoreFactory
+      val options = (Compile / javafmtOptions).value
+      JavaFormatter.check(baseDir, sD, iF, eF, streamz, cache, options)
+    },
     Test / parallelExecution := false,
     Test / logBuffered := false,
     Test / testOptions += Tests.Argument(
@@ -1687,15 +1707,88 @@ lazy val runtime = (project in file("engine/runtime"))
       .dependsOn(`std-aws` / Compile / packageBin)
       .value
   )
+  /** Benchmark settings */
   .settings(
+    inConfig(Benchmark)(Defaults.testSettings),
+    Benchmark / fork := true,
+    Benchmark / parallelExecution := false,
+    (Benchmark / modulePath) := {
+      val requiredModIds = GraalVM.modules ++ GraalVM.langsPkgs ++ Seq(
+        "org.slf4j" % "slf4j-api" % slf4jVersion,
+        "org.slf4j" % "slf4j-nop" % slf4jVersion
+      )
+      val requiredMods = JPMSUtils.filterModulesFromUpdate(
+        (Benchmark / update).value,
+        requiredModIds,
+        streams.value.log,
+        shouldContainAll = true
+      )
+      val runtimeMod =
+        (`runtime-fat-jar` / Compile / exportedProducts).value.head.data
+      requiredMods ++ Seq(runtimeMod)
+    },
+    (Benchmark / addModules) := Seq(
+      (`runtime-fat-jar` / javaModuleName).value
+    ),
+    (Benchmark / addReads) := Map(
+      (`runtime-fat-jar` / javaModuleName).value -> Seq("ALL-UNNAMED")
+    ),
+    (Benchmark / patchModules) := {
+      val modulesToPatchIntoRuntime: Seq[File] =
+        (LocalProject(
+          "runtime-instrument-common"
+        ) / Compile / productDirectories).value ++
+        (LocalProject(
+          "runtime-instrument-id-execution"
+        ) / Compile / productDirectories).value ++
+        (LocalProject(
+          "runtime-instrument-repl-debugger"
+        ) / Compile / productDirectories).value ++
+        (LocalProject(
+          "runtime-instrument-runtime-server"
+        ) / Compile / productDirectories).value ++
+        (LocalProject(
+          "runtime-language-epb"
+        ) / Compile / productDirectories).value ++
+        (LocalProject(
+          "runtime-compiler"
+        ) / Compile / productDirectories).value
+      Map(
+        (`runtime-fat-jar` / javaModuleName).value -> modulesToPatchIntoRuntime
+      )
+    },
+    // Reset javacOptions and javaOptions - do not inherit them from the Test scope
+    (Benchmark / javacOptions) := (Compile / javacOptions).value,
+    (Benchmark / javaOptions) := (Compile / javaOptions).value,
+    (Benchmark / javacOptions) ++= {
+      JPMSPlugin.constructOptions(
+        streams.value.log,
+        modulePath = (Benchmark / modulePath).value,
+        addModules = (Benchmark / addModules).value
+      )
+    },
+    (Benchmark / javaOptions) ++= {
+      JPMSPlugin.constructOptions(
+        streams.value.log,
+        (Benchmark / modulePath).value,
+        (Benchmark / addModules).value,
+        (Benchmark / patchModules).value,
+        (Benchmark / addExports).value,
+        (Benchmark / addReads).value
+      )
+    },
+    (Benchmark / javaOptions) ++= benchOnlyOptions,
+    // Override test log provider and its resource
+    (Benchmark / javaOptions) ++= Seq(
+      "-Dslf4j.provider=org.enso.logger.TestLogProvider",
+      "-Dconfig.resource=application-bench.conf"
+    ),
+    (Benchmark / compile) := (Benchmark / compile)
+      .dependsOn(`runtime-fat-jar` / Compile / compileModuleInfo)
+      .value,
     bench := (Benchmark / test)
       .tag(Exclusive)
-      .dependsOn(
-        // runtime.jar fat jar needs to be assembled as it is used in the
-        // benchmarks. This dependency is here so that `runtime/bench` works
-        // after clean build.
-        LocalProject("runtime-fat-jar") / assembly
-      )
+      .dependsOn(Benchmark / compile)
       .value,
     benchOnly := Def.inputTaskDyn {
       import complete.Parsers.spaceDelimited
@@ -1707,20 +1800,6 @@ lazy val runtime = (project in file("engine/runtime"))
         (Benchmark / testOnly).toTask(" -- -z " + name).value
       }
     }.evaluated
-  )
-  /** Benchmark settings */
-  .settings(
-    inConfig(Benchmark)(Defaults.testSettings),
-    Benchmark / javacOptions --= Seq(
-      "-source",
-      frgaalSourceLevel,
-      "--enable-preview"
-    ),
-    (Benchmark / javaOptions) :=
-      (LocalProject("std-benchmarks") / Benchmark / run / javaOptions).value,
-    (Benchmark / javaOptions) ++= benchOnlyOptions,
-    Benchmark / fork := true,
-    Benchmark / parallelExecution := false
   )
   .dependsOn(`common-polyglot-core-utils`)
   .dependsOn(`edition-updater`)
@@ -2126,8 +2205,7 @@ lazy val launcher = project
       .dependsOn(buildNativeImage)
       .dependsOn(LauncherShimsForTest.prepare())
       .evaluated,
-    Test / fork := true,
-    Test / javaOptions += s"-Dconfig.file=${sourceDirectory.value}/test/resources/application.conf"
+    Test / fork := true
   )
   .dependsOn(cli)
   .dependsOn(`runtime-version-manager`)
