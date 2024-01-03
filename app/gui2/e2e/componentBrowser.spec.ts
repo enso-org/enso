@@ -64,7 +64,7 @@ test('Accepting suggestion', async ({ page }) => {
   await locate.componentBrowserEntry(page).nth(1).click()
   await expect(locate.componentBrowser(page)).not.toBeVisible()
   await expect(locate.graphNode(page)).toHaveCount(nodeCount + 1)
-  await expect(locate.graphNode(page).last().locator('.Token')).toHaveText([
+  await expect(locate.graphNode(page).last().locator('.WidgetToken')).toHaveText([
     'Data',
     '.',
     'read_text',
@@ -76,7 +76,11 @@ test('Accepting suggestion', async ({ page }) => {
   await locate.componentBrowserSelectedEntry(page).first().click()
   await expect(locate.componentBrowser(page)).not.toBeVisible()
   await expect(locate.graphNode(page)).toHaveCount(nodeCount + 1)
-  await expect(locate.graphNode(page).last().locator('.Token')).toHaveText(['Data', '.', 'read'])
+  await expect(locate.graphNode(page).last().locator('.WidgetToken')).toHaveText([
+    'Data',
+    '.',
+    'read',
+  ])
 
   // Accepting with Enter
   nodeCount = await locate.graphNode(page).count()
@@ -84,7 +88,11 @@ test('Accepting suggestion', async ({ page }) => {
   await page.keyboard.press('Enter')
   await expect(locate.componentBrowser(page)).not.toBeVisible()
   await expect(locate.graphNode(page)).toHaveCount(nodeCount + 1)
-  await expect(locate.graphNode(page).last().locator('.Token')).toHaveText(['Data', '.', 'read'])
+  await expect(locate.graphNode(page).last().locator('.WidgetToken')).toHaveText([
+    'Data',
+    '.',
+    'read',
+  ])
 })
 
 test('Accepting any written input', async ({ page }) => {
@@ -95,7 +103,7 @@ test('Accepting any written input', async ({ page }) => {
   await page.keyboard.press('Control+Enter')
   await expect(locate.componentBrowser(page)).not.toBeVisible()
   await expect(locate.graphNode(page)).toHaveCount(nodeCount + 1)
-  await expect(locate.graphNode(page).last().locator('.Token')).toHaveText('re')
+  await expect(locate.graphNode(page).last().locator('.WidgetToken')).toHaveText('re')
 })
 
 test('Filling input with suggestions', async ({ page }) => {
