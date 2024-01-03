@@ -345,6 +345,7 @@ public final class Type implements EnsoObject {
 
   public void registerConstructor(AtomConstructor constructor) {
     constructors.put(constructor.getName(), constructor);
+    gettersGenerated = false;
   }
 
   public Map<String, AtomConstructor> getConstructors() {

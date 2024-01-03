@@ -5,8 +5,7 @@ import { useResizeObserver } from '@/composables/events'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { ForcePort, injectPortInfo, providePortInfo, type PortId } from '@/providers/portInfo'
-import type { WidgetInput } from '@/providers/widgetRegistry'
-import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import { AnyWidget, Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { injectWidgetTree } from '@/providers/widgetTree'
 import { PortViewInstance, useGraphStore } from '@/stores/graph'
 import { Ast } from '@/util/ast'
@@ -14,6 +13,7 @@ import { ArgumentAst, ArgumentPlaceholder } from '@/util/callTree'
 import { Rect } from '@/util/data/rect'
 import { cachedGetter } from '@/util/reactivity'
 import { uuidv4 } from 'lib0/random'
+import type { ExprId } from 'shared/yjsModel'
 import {
   computed,
   markRaw,
@@ -27,7 +27,7 @@ import {
   watchEffect,
 } from 'vue'
 
-const props = defineProps(widgetProps<WidgetInput>(widgetDefinition))
+const props = defineProps(widgetProps(widgetDefinition))
 
 const graph = useGraphStore()
 
@@ -37,7 +37,9 @@ const selection = injectGraphSelection(true)
 
 const isHovered = ref(false)
 
-const hasConnection = computed(() => graph.db.connections.reverseLookup(portId.value).size > 0)
+const hasConnection = computed(
+  () => graph.db.connections.reverseLookup(portId.value as ExprId).size > 0,
+)
 const isCurrentEdgeHoverTarget = computed(
   () => isHovered.value && graph.unconnectedEdge != null && selection?.hoveredPort === portId.value,
 )
@@ -74,12 +76,6 @@ const innerWidget = computed(() =>
   props.input instanceof ForcePort ? props.input.inner : props.input,
 )
 
-providePortInfo(
-  proxyRefs({
-    portId,
-    connected: hasConnection,
-  }),
-)
 providePortInfo(proxyRefs({ portId, connected: hasConnection }))
 
 watch(nodeSize, updateRect)
@@ -115,39 +111,51 @@ function updateRect() {
 
 <script lang="ts">
 function portIdOfInput(input: unknown): PortId | undefined {
-  return input instanceof Ast.Ast
-    ? (input.exprId as string as PortId)
-    : input instanceof ForcePort
-    ? (input.inner.exprId as string as PortId)
+  return input instanceof AnyWidget
+    ? input.portId
+    : input instanceof ForcePort && input.inner.ast != null
+    ? (input.inner.ast.exprId as string as PortId)
     : input instanceof ArgumentPlaceholder || input instanceof ArgumentAst
     ? input.portId
     : undefined
 }
 
 export const widgetDefinition = defineWidget(
-  [
-    ForcePort,
-    ArgumentAst,
-    ArgumentPlaceholder,
-    (ast) =>
-      ast instanceof Ast.Invalid ||
-      ast instanceof Ast.BodyBlock ||
-      ast instanceof Ast.Group ||
-      ast instanceof Ast.NumericLiteral ||
-      ast instanceof Ast.OprApp ||
-      ast instanceof Ast.UnaryOprApp ||
-      ast instanceof Ast.Wildcard ||
-      ast instanceof Ast.TextLiteral,
-  ],
+  [ForcePort, AnyWidget.matchAst, ArgumentAst, ArgumentPlaceholder],
   {
     priority: 0,
     score: (props, _db) => {
       const portInfo = injectPortInfo(true)
-      if (portInfo != null && portInfo.portId === portIdOfInput(props.input)) {
+      const ast =
+        props.input instanceof ArgumentPlaceholder
+          ? undefined
+          : props.input instanceof ForcePort
+          ? props.input.inner.ast
+          : props.input.ast
+      if (portInfo != null && portInfo.portId === ast?.exprId) {
         return Score.Mismatch
-      } else {
-        return Score.Perfect
       }
+
+      if (
+        props.input instanceof ForcePort ||
+        props.input instanceof ArgumentAst ||
+        props.input instanceof ArgumentPlaceholder
+      )
+        return Score.Perfect
+
+      if (
+        props.input.ast instanceof Ast.Invalid ||
+        props.input.ast instanceof Ast.BodyBlock ||
+        props.input.ast instanceof Ast.Group ||
+        props.input.ast instanceof Ast.NumericLiteral ||
+        props.input.ast instanceof Ast.OprApp ||
+        props.input.ast instanceof Ast.UnaryOprApp ||
+        props.input.ast instanceof Ast.Wildcard ||
+        props.input.ast instanceof Ast.TextLiteral
+      )
+        return Score.Perfect
+
+      return Score.Mismatch
     },
   },
 )
@@ -168,7 +176,7 @@ export const widgetDefinition = defineWidget(
     @pointerenter="isHovered = true"
     @pointerleave="isHovered = false"
   >
-    <NodeWidget :input="innerWidget" :dynamicConfig="props.config" />
+    <NodeWidget :input="innerWidget" />
   </div>
 </template>
 

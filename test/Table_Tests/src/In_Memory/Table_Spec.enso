@@ -233,7 +233,7 @@ spec =
             gt_b = a > b
             gt_b.to_vector.should_equal [False, False, True, Nothing, False]
             both = gt_const && gt_b
-            both.to_vector.should_equal [False, False, True, Nothing, False]
+            both.to_vector.should_equal [False, False, True, False, False]
 
         Test.specify "should handle Text operations" <|
             a = Column.from_vector 'a' ["abab", "abc", Nothing, "bca", "acca"]

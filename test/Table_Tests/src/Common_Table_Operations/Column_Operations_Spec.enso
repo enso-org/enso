@@ -162,12 +162,43 @@ spec setup =
                 (x && y).to_vector . should_equal [True, False, False]
                 (x || y.not).to_vector . should_equal [True, True, True]
 
-        Test.specify "should return null if one of arguments is missing" pending="TODO null handling" <|
-            t = table_builder [["X", [True, False, True]]]
-            x = t.at "X"
-            nulls = [Nothing, Nothing, Nothing, Nothing]
-            (x && Nothing).to_vector . should_equal nulls
-            (x || Nothing).to_vector . should_equal nulls
+        Test.specify "should handle nulls correctly in not" <|
+            t = table_builder [["A", [True, False, Nothing]]]
+            a = t.at "A"
+            a_not = a.not
+            a_not.to_vector . should_equal [False, True, Nothing]
+
+        Test.specify "should handle nulls correctly in &&" <|
+            t = table_builder [["A", [True, True, True, False, False, False, Nothing, Nothing, Nothing]], ["B", [True, False, Nothing, True, False, Nothing, True, False, Nothing]]]
+            a = t.at "A"
+            (a && True).to_vector . should_equal [True, True, True, False, False, False, Nothing, Nothing, Nothing]
+            (a && False).to_vector . should_equal [False, False, False, False, False, False, False, False, False]
+            (a && Nothing).to_vector . should_equal [Nothing, Nothing, Nothing, False, False, False, Nothing, Nothing, Nothing]
+
+            a_not = a.not
+            (a_not && True).to_vector . should_equal [False, False, False, True, True, True, Nothing, Nothing, Nothing]
+            (a_not && False).to_vector . should_equal [False, False, False, False, False, False, False, False, False]
+            (a_not && Nothing).to_vector . should_equal [False, False, False, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
+
+            b = t.at "B"
+            (a && b).to_vector . should_equal [True, False, Nothing, False, False, False, Nothing, False, Nothing]
+            (a_not && b).to_vector . should_equal [False, False, False, True, False, Nothing, Nothing, False, Nothing]
+
+        Test.specify "should handle nulls correctly in ||" <|
+            t = table_builder [["A", [True, True, True, False, False, False, Nothing, Nothing, Nothing]], ["B", [True, False, Nothing, True, False, Nothing, True, False, Nothing]]]
+            a = t.at "A"
+            (a || True).to_vector . should_equal [True, True, True, True, True, True, True, True, True]
+            (a || False).to_vector . should_equal [True, True, True, False, False, False, Nothing, Nothing, Nothing]
+            (a || Nothing).to_vector . should_equal [True, True, True, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
+
+            a_not = a.not
+            (a_not || True).to_vector . should_equal [True, True, True, True, True, True, True, True, True]
+            (a_not || False).to_vector . should_equal [False, False, False, True, True, True, Nothing, Nothing, Nothing]
+            (a_not || Nothing).to_vector . should_equal [Nothing, Nothing, Nothing, True, True, True, Nothing, Nothing, Nothing]
+
+            b = t.at "B"
+            (a || b).to_vector . should_equal [True, True, True, True, False, Nothing, True, Nothing, Nothing]
+            (a_not || b).to_vector . should_equal [True, False, Nothing, True, True, True, True, Nothing, Nothing]
 
         Test.specify "should check types" <|
             t = table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']], ["Z", [True, False, Nothing]]]
