@@ -19,6 +19,7 @@ export enum AssetListEventType {
     uploadFiles = 'upload-files',
     newDataConnector = 'new-data-connector',
     closeFolder = 'close-folder',
+    copy = 'copy',
     move = 'move',
     willDelete = 'will-delete',
     delete = 'delete',
@@ -37,6 +38,7 @@ interface AssetListEvents {
     uploadFiles: AssetListUploadFilesEvent
     newDataConnector: AssetListNewDataConnectorEvent
     closeFolder: AssetListCloseFolderEvent
+    copy: AssetListCopyEvent
     move: AssetListMoveEvent
     willDelete: AssetListWillDeleteEvent
     delete: AssetListDeleteEvent
@@ -99,6 +101,16 @@ interface AssetListCloseFolderEvent extends AssetListBaseEvent<AssetListEventTyp
     key: backend.DirectoryId
 }
 
+/** A signal that files should be copied. */
+interface AssetListCopyEvent extends AssetListBaseEvent<AssetListEventType.copy> {
+    keys: Set<backend.AssetId>
+    /** `null` if and only if the new parent directory is the root directory. */
+    newParentKey: backend.AssetId | null
+    /** `null` if and only if the new parent directory is the root directory. */
+    newParentId: backend.DirectoryId | null
+    items: backend.AnyAsset[]
+}
+
 /** A signal that a file has been moved. */
 interface AssetListMoveEvent extends AssetListBaseEvent<AssetListEventType.move> {
     key: backend.AssetId
@@ -109,7 +121,7 @@ interface AssetListMoveEvent extends AssetListBaseEvent<AssetListEventType.move>
     item: backend.AnyAsset
 }
 
-/** A signal that a file will be deleted. */
+/** A signal that a file has been deleted. */
 interface AssetListWillDeleteEvent extends AssetListBaseEvent<AssetListEventType.willDelete> {
     key: backend.AssetId
 }

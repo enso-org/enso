@@ -16,6 +16,7 @@ import * as hooks from '../../hooks'
 import * as identity from '../identity'
 import * as indent from '../indent'
 import * as modalProvider from '../../providers/modal'
+import * as permissions from '../permissions'
 import * as set from '../set'
 import * as visibilityModule from '../visibility'
 
@@ -89,8 +90,8 @@ export default function AssetRow(props: AssetRowProps) {
         setItem(rawItem)
     }, [rawItem])
     React.useEffect(() => {
-        // Mutation is HIGHLY INADVISABLE in React, however it is useful here as we want to avoid re-rendering the
-        // parent.
+        // Mutation is HIGHLY INADVISABLE in React, however it is useful here as we want to avoid
+        // re - rendering the parent.
         rawItem.item = asset
     }, [asset, rawItem])
     const setAsset = assetTreeNode.useSetAsset(asset, setItem)
@@ -101,13 +102,60 @@ export default function AssetRow(props: AssetRowProps) {
         }
     }, [selected, visibility, /* should never change */ setSelected])
 
+    const doCopy = React.useCallback(
+        async (newParentId: backendModule.DirectoryId | null) => {
+            try {
+                setAsset(oldAsset => {
+                    const newAsset = { ...oldAsset }
+                    newAsset.title += ' (copy)'
+                    newAsset.labels = []
+                    newAsset.permissions = permissions.tryGetSingletonOwnerPermission(
+                        organization,
+                        user
+                    )
+                    return newAsset
+                })
+                const copiedAsset = await backend.copyAsset(
+                    asset.id,
+                    newParentId ?? backend.rootDirectoryId(organization),
+                    asset.title,
+                    null
+                )
+                setAsset(oldAsset => {
+                    const newAsset = { ...oldAsset }
+                    newAsset.id = copiedAsset.asset.id
+                    newAsset.parentId = copiedAsset.asset.parentId
+                    newAsset.title = copiedAsset.asset.title
+                    return newAsset
+                })
+            } catch (error) {
+                toastAndLog(`Could not copy '${asset.title}'`, error)
+                // Delete the new component representing the asset that failed to insert.
+                dispatchAssetListEvent({
+                    type: assetListEventModule.AssetListEventType.delete,
+                    key: item.key,
+                })
+            }
+        },
+        [
+            backend,
+            organization,
+            user,
+            asset,
+            item.key,
+            /* should never change */ setAsset,
+            /* should never change */ toastAndLog,
+            /* should never change */ dispatchAssetListEvent,
+        ]
+    )
+
     const doMove = React.useCallback(
         async (
             newParentKey: backendModule.AssetId | null,
             newParentId: backendModule.DirectoryId | null
         ) => {
-            // The asset is effectivly being deleted from the current position, and created at the new
-            // position, from the viewpoint of the asset list.
+            // From the viewpoint of the asset list, the asset is effectively being deleted from
+            // its current position, and created at its new position.
             try {
                 dispatchAssetListEvent({
                     type: assetListEventModule.AssetListEventType.move,
@@ -247,6 +295,12 @@ export default function AssetRow(props: AssetRowProps) {
             case assetEventModule.AssetEventType.openProject:
             case assetEventModule.AssetEventType.closeProject:
             case assetEventModule.AssetEventType.cancelOpeningAllProjects: {
+                break
+            }
+            case assetEventModule.AssetEventType.copy: {
+                if (event.ids.has(item.key)) {
+                    await doCopy(event.newParentId)
+                }
                 break
             }
             case assetEventModule.AssetEventType.cut: {

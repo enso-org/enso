@@ -82,7 +82,7 @@ const DIRECTORY_NAME_DEFAULT_PREFIX = 'New_Folder_'
 // ===================================
 
 /** Return a list of nodes, plus new nodes created from a list of assets.
- * The list of children MUST be all of one specific asset type. */
+ * All children MUST have the same asset type. */
 function insertChildrenIntoAssetTreeNodeArray(
     nodes: assetTreeNode.AssetTreeNode[],
     children: backendModule.AnyAsset[],
@@ -100,8 +100,52 @@ function insertChildrenIntoAssetTreeNodeArray(
     )
 }
 
+/** Return a list of nodes, plus new nodes created from a list of assets.
+ * The children MAY be of different asset types. */
+function insertArbitraryChildrenIntoAssetTreeNodeArray(
+    nodes: assetTreeNode.AssetTreeNode[],
+    children: backendModule.AnyAsset[],
+    directoryKey: backendModule.AssetId | null,
+    directoryId: backendModule.DirectoryId | null,
+    depth: number,
+    getKey: (asset: backendModule.AnyAsset) => backendModule.AssetId = asset => asset.id
+) {
+    const byType: Record<backendModule.AssetType, backendModule.AnyAsset[]> = {
+        [backendModule.AssetType.directory]: [],
+        [backendModule.AssetType.project]: [],
+        [backendModule.AssetType.file]: [],
+        [backendModule.AssetType.secret]: [],
+        [backendModule.AssetType.specialLoading]: [],
+        [backendModule.AssetType.specialEmpty]: [],
+    }
+    for (const child of children) {
+        byType[child.type].push(child)
+    }
+    let newNodes = nodes
+    for (const childrenOfSpecificType of Object.values(byType)) {
+        const firstChild = childrenOfSpecificType[0]
+        if (firstChild) {
+            const typeOrder = backendModule.ASSET_TYPE_ORDER[firstChild.type]
+            newNodes = array.splicedBefore(
+                nodes.filter(node => node.item.type !== backendModule.AssetType.specialEmpty),
+                childrenOfSpecificType.map(asset =>
+                    assetTreeNode.assetTreeNodeFromAsset(
+                        asset,
+                        directoryKey,
+                        directoryId,
+                        depth,
+                        getKey
+                    )
+                ),
+                innerItem => backendModule.ASSET_TYPE_ORDER[innerItem.item.type] >= typeOrder
+            )
+        }
+    }
+    return newNodes
+}
+
 /** Return a directory, with new children added into its list of children.
- * The list of children MUST be all of one specific asset type. */
+ * All children MUST have the same asset type. */
 function insertAssetTreeNodeChildren(
     item: assetTreeNode.AssetTreeNode,
     children: backendModule.AnyAsset[],
@@ -119,6 +163,31 @@ function insertAssetTreeNodeChildren(
             directoryKey,
             directoryId,
             newDepth
+        ),
+    }
+}
+
+/** Return a directory, with new children added into its list of children.
+ * The children MAY be of different asset types. */
+function insertArbitraryAssetTreeNodeChildren(
+    item: assetTreeNode.AssetTreeNode,
+    children: backendModule.AnyAsset[],
+    directoryKey: backendModule.AssetId | null,
+    directoryId: backendModule.DirectoryId | null,
+    getKey: (asset: backendModule.AnyAsset) => backendModule.AssetId = asset => asset.id
+): assetTreeNode.AssetTreeNode {
+    const newDepth = item.depth + 1
+    return {
+        ...item,
+        children: insertArbitraryChildrenIntoAssetTreeNodeArray(
+            (item.children ?? []).filter(
+                node => node.item.type !== backendModule.AssetType.specialEmpty
+            ),
+            children,
+            directoryKey,
+            directoryId,
+            newDepth,
+            getKey
         ),
     }
 }
@@ -146,6 +215,7 @@ export interface AssetsTableState {
     labels: Map<backendModule.LabelName, backendModule.Label>
     deletedLabelNames: Set<backendModule.LabelName>
     hasCopyData: boolean
+    setCopyData: (copyData: Set<backendModule.AssetId>) => void
     sortColumn: columnModule.SortableColumn | null
     setSortColumn: (column: columnModule.SortableColumn | null) => void
     sortDirection: sorting.SortDirection | null
@@ -276,6 +346,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     const [copyData, setCopyData] = React.useState<Set<backendModule.AssetId> | null>(null)
     const [, setQueuedAssetEvents] = React.useState<assetEventModule.AssetEvent[]>([])
     const [, setNameOfProjectToImmediatelyOpen] = React.useState(initialProjectName)
+    const isCloud = backend.type !== backendModule.BackendType.local
     const scrollContainerRef = React.useRef<HTMLDivElement>(null)
     const headerRowRef = React.useRef<HTMLTableRowElement>(null)
     const assetTreeRef = React.useRef<assetTreeNode.AssetTreeNode[]>([])
@@ -1064,6 +1135,43 @@ export default function AssetsTable(props: AssetsTableProps) {
                 }
                 break
             }
+            case assetListEventModule.AssetListEventType.copy: {
+                const ids = new Set<backendModule.AssetId>()
+                const getKey = (asset: backendModule.AnyAsset) => {
+                    const newId = backendModule.createPlaceholderAssetId(asset.type)
+                    ids.add(newId)
+                    return newId
+                }
+                setAssetTree(oldAssetTree =>
+                    event.newParentKey == null
+                        ? insertArbitraryChildrenIntoAssetTreeNodeArray(
+                              oldAssetTree,
+                              event.items,
+                              event.newParentKey,
+                              event.newParentId,
+                              0,
+                              getKey
+                          )
+                        : assetTreeNode.assetTreeMap(oldAssetTree, item =>
+                              item.key !== event.newParentKey || item.children == null
+                                  ? item
+                                  : insertArbitraryAssetTreeNodeChildren(
+                                        item,
+                                        event.items,
+                                        event.newParentKey,
+                                        event.newParentId,
+                                        getKey
+                                    )
+                          )
+                )
+                dispatchAssetEvent({
+                    type: assetEventModule.AssetEventType.copy,
+                    ids,
+                    newParentKey: event.newParentKey,
+                    newParentId: event.newParentId,
+                })
+                break
+            }
             case assetListEventModule.AssetListEventType.move: {
                 setAssetTree(oldAssetTree => {
                     const withNodeDeleted = assetTreeNode.assetTreeFilter(
@@ -1189,7 +1297,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             // This works because all items are mutated, ensuring their value stays
             // up to date.
             const ownsAllSelectedAssets =
-                backend.type === backendModule.BackendType.local ||
+                isCloud ||
                 (organization != null &&
                     Array.from(innerSelectedKeys, key => {
                         const userPermissions = nodeMapRef.current.get(key)?.item.permissions
@@ -1201,7 +1309,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             // This is not a React component even though it contains JSX.
             // eslint-disable-next-line no-restricted-syntax
             const doDeleteAll = () => {
-                if (backend.type === backendModule.BackendType.remote) {
+                if (isCloud) {
                     unsetModal()
                     dispatchAssetEvent({
                         type: assetEventModule.AssetEventType.delete,
@@ -1248,26 +1356,49 @@ export default function AssetsTable(props: AssetsTableProps) {
             } else if (category !== categorySwitcher.Category.home) {
                 return null
             } else {
-                const deleteAction =
-                    backend.type === backendModule.BackendType.local
-                        ? shortcutsModule.KeyboardAction.deleteAll
-                        : shortcutsModule.KeyboardAction.moveAllToTrash
+                const deleteAction = isCloud
+                    ? shortcutsModule.KeyboardAction.moveAllToTrash
+                    : shortcutsModule.KeyboardAction.deleteAll
                 return (
                     <ContextMenus key={uniqueString.uniqueString()} hidden={hidden} event={event}>
-                        {innerSelectedKeys.size !== 0 && ownsAllSelectedAssets && (
+                        {innerSelectedKeys.size !== 0 && (
                             <ContextMenu hidden={hidden}>
-                                <MenuEntry
-                                    hidden={hidden}
-                                    action={deleteAction}
-                                    doAction={doDeleteAll}
-                                />
-                                {backend.type !== backendModule.BackendType.local && (
+                                {ownsAllSelectedAssets && (
+                                    <MenuEntry
+                                        hidden={hidden}
+                                        action={deleteAction}
+                                        doAction={doDeleteAll}
+                                    />
+                                )}
+                                {isCloud && (
+                                    <MenuEntry
+                                        hidden={hidden}
+                                        action={shortcutsModule.KeyboardAction.copyAll}
+                                        doAction={() => {
+                                            unsetModal()
+                                            setCopyData(selectedKeys)
+                                        }}
+                                    />
+                                )}
+                                {isCloud && ownsAllSelectedAssets && (
                                     <MenuEntry
                                         hidden={hidden}
                                         action={shortcutsModule.KeyboardAction.cutAll}
                                         doAction={() => {
                                             unsetModal()
                                             doCut()
+                                        }}
+                                    />
+                                )}
+                                {copyData != null && copyData.size > 0 && (
+                                    <MenuEntry
+                                        hidden={hidden}
+                                        action={shortcutsModule.KeyboardAction.pasteAll}
+                                        doAction={() => {
+                                            unsetModal()
+                                            // FIXME: Add an enum flag to `copyData` that determines
+                                            // whether the data is moved or copied.
+                                            doPaste(null, null)
                                         }}
                                     />
                                 )}
@@ -1286,9 +1417,10 @@ export default function AssetsTable(props: AssetsTableProps) {
             }
         },
         [
-            backend.type,
+            isCloud,
             category,
             copyData,
+            selectedKeys,
             doCut,
             doPaste,
             organization,
@@ -1312,6 +1444,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             labels: allLabels,
             deletedLabelNames,
             hasCopyData: copyData != null,
+            setCopyData,
             sortColumn,
             setSortColumn,
             sortDirection,
@@ -1351,8 +1484,6 @@ export default function AssetsTable(props: AssetsTableProps) {
             doPaste,
             /* should never change */ setAssetSettingsPanelProps,
             /* should never change */ setQuery,
-            /* should never change */ setSortColumn,
-            /* should never change */ setSortDirection,
             /* should never change */ dispatchAssetEvent,
             /* should never change */ dispatchAssetListEvent,
         ]

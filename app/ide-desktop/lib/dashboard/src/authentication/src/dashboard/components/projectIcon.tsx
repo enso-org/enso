@@ -257,7 +257,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
             case assetEventModule.AssetEventType.deleteLabel: {
                 // Ignored. Any missing project-related events should be handled by
                 // `ProjectNameColumn`. `deleteMultiple`, `restoreMultiple`, `download`,
-                // and`downloadSelected` are handled by `AssetRow`.
+                // and `downloadSelected` are handled by `AssetRow`.
                 break
             }
             case assetEventModule.AssetEventType.openProject: {

@@ -120,10 +120,11 @@ export function assetTreeNodeFromAsset(
     asset: backendModule.AnyAsset,
     directoryKey: backendModule.AssetId | null,
     directoryId: backendModule.DirectoryId | null,
-    depth: number
+    depth: number,
+    getKey: (asset: backendModule.AnyAsset) => backendModule.AssetId = oldAsset => oldAsset.id
 ): AssetTreeNode {
     return {
-        key: asset.id,
+        key: getKey(asset),
         item: asset,
         directoryKey,
         directoryId,

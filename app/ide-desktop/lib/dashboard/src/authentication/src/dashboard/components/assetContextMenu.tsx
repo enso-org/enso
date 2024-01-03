@@ -3,6 +3,7 @@ import * as React from 'react'
 import * as toast from 'react-toastify'
 
 import * as assetEventModule from '../events/assetEvent'
+import * as assetListEvent from '../events/assetListEvent'
 import type * as assetTreeNode from '../assetTreeNode'
 import * as backendModule from '../backend'
 import * as hooks from '../../hooks'
@@ -56,7 +57,13 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         innerProps: {
             item,
             setItem,
-            state: { category, hasCopyData, dispatchAssetEvent, dispatchAssetListEvent },
+            state: {
+                category,
+                hasCopyData,
+                setCopyData,
+                dispatchAssetEvent,
+                dispatchAssetListEvent,
+            },
             setRowState,
         },
         event,
@@ -308,20 +315,25 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 )}
                 <MenuEntry
                     hidden={hidden}
-                    disabled
+                    disabled={!isCloud}
                     action={shortcuts.KeyboardAction.duplicate}
                     doAction={() => {
-                        // TODO: Add server endpoint for local backend.
-                        // No backend support yet.
+                        unsetModal()
+                        dispatchAssetListEvent({
+                            type: assetListEvent.AssetListEventType.copy,
+                            keys: new Set([asset.id]),
+                            newParentId: item.directoryId,
+                            newParentKey: item.directoryKey,
+                            items: [asset],
+                        })
                     }}
                 />
                 {isCloud && (
                     <MenuEntry
                         hidden={hidden}
-                        disabled
                         action={shortcuts.KeyboardAction.copy}
                         doAction={() => {
-                            // No backend support yet.
+                            setCopyData(new Set([asset.id]))
                         }}
                     />
                 )}

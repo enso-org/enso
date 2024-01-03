@@ -26,6 +26,7 @@ export enum AssetEventType {
     closeProject = 'close-project',
     cancelOpeningAllProjects = 'cancel-opening-all-projects',
     cut = 'cut',
+    copy = 'copy',
     cancelCut = 'cancel-cut',
     move = 'move',
     delete = 'delete',
@@ -54,6 +55,7 @@ interface AssetEvents {
     openProject: AssetOpenProjectEvent
     closeProject: AssetCloseProjectEvent
     cancelOpeningAllProjects: AssetCancelOpeningAllProjectsEvent
+    copy: AssetCopyEvent
     cut: AssetCutEvent
     cancelCut: AssetCancelCutEvent
     move: AssetMoveEvent
@@ -119,7 +121,15 @@ export interface AssetCloseProjectEvent extends AssetBaseEvent<AssetEventType.cl
 export interface AssetCancelOpeningAllProjectsEvent
     extends AssetBaseEvent<AssetEventType.cancelOpeningAllProjects> {}
 
-/** A signal that multiple assets have been cut. */
+/** A signal that multiple assets should be copied. `ids` are the `Id`s of the newly created
+ * placeholder items. */
+export interface AssetCopyEvent extends AssetBaseEvent<AssetEventType.copy> {
+    ids: Set<backendModule.AssetId>
+    newParentKey: backendModule.AssetId | null
+    newParentId: backendModule.DirectoryId | null
+}
+
+/** A signal to cut multiple assets. */
 export interface AssetCutEvent extends AssetBaseEvent<AssetEventType.cut> {
     ids: Set<backendModule.AssetId>
 }
@@ -131,9 +141,9 @@ export interface AssetCancelCutEvent extends AssetBaseEvent<AssetEventType.cance
 
 /** A signal to move multiple assets. */
 export interface AssetMoveEvent extends AssetBaseEvent<AssetEventType.move> {
+    ids: Set<backendModule.AssetId>
     newParentKey: backendModule.AssetId | null
     newParentId: backendModule.DirectoryId | null
-    ids: Set<backendModule.AssetId>
 }
 
 /** A signal to delete assets. */

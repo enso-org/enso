@@ -366,6 +366,31 @@ export class RemoteBackend extends backendModule.Backend {
         }
     }
 
+    /** Copy an arbitrary asset to another directory.
+     * @throws An error if a non-successful status code (not 200-299) was received. */
+    override async copyAsset(
+        assetId: backendModule.AssetId,
+        parentDirectoryId: backendModule.DirectoryId,
+        title: string | null,
+        parentDirectoryTitle: string | null
+    ): Promise<backendModule.CopyAssetResponse> {
+        const response = await this.post<backendModule.CopyAssetResponse>(
+            remoteBackendPaths.copyAssetPath(assetId),
+            { parentDirectoryId }
+        )
+        if (!responseIsSuccessful(response)) {
+            return this.throw(
+                `Unable to copy ${title != null ? `'${title}'` : `asset with ID '${assetId}'`} to ${
+                    parentDirectoryTitle != null
+                        ? `'${parentDirectoryTitle}'`
+                        : `directory with ID '${parentDirectoryId}'`
+                }.`
+            )
+        } else {
+            return await response.json()
+        }
+    }
+
     /** Return a list of projects belonging to the current user.
      * @throws An error if a non-successful status code (not 200-299) was received. */
     override async listProjects(): Promise<backendModule.ListedProject[]> {
