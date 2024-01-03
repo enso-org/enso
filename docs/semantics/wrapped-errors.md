@@ -10,7 +10,7 @@ order: 12
 
 A wrapped error is an error wrapped in an additional 'error wrapper' value providing additional information about the error.
 
-For example, a warning attached to a value within a `Vector` can be wrapped in a
+For example, an error attached to a value within a `Vector` can be wrapped in a
 `Map_Error` wrapper which indicates the position of the value within the
 `Vector`. 
 
@@ -77,12 +77,12 @@ wrapper, and possibly perform automatic unwrapping on it.
 
 Wrapped errors are obtained in two ways:
 * An error thrown during a call to `Vector.map`
-* A warning attached to a value within a `Vector`
+* An error attached to a value within a `Vector`
 
 In the case of an error thrown during `Vector.map`, the error is caught, wrapped
 in `Map_Error`, and re-thrown.
 
-In the case of a warning attached to a value within a `Vector`, the wrapper is
+In the case of an error attached to a value within a `Vector`, the wrapper is
 added by `Warning.get_all wrap_errors=True` when it is called on the `Vector`. In this
 case, the wrapping is not attached to the value itself, and is therefore not
 propagated to downstream values.
@@ -95,11 +95,11 @@ call over a large `Vector` will contain the index at which the error occurred,
 so it can be displayed to the user in the IDE.
 
 Note that the error does not have to occur during a call to `map`. A `Map_Error`
-wrapping is added by `Warning.get_all wrap_errors=True` to any warning attached to a
+wrapping is added by `Warning.get_all wrap_errors=True` to any error attached to a
 value within a `Vector` (or any array-like container). If the value is extracted
 from the `Vector` (for example, using `.at`), its attached `Warning` is not wrapped.
 
-If a value is a nested within mutiple `Vector`s, its warnings are wrapped
+If a value is a nested within mutiple `Vector`s, its attached errors are wrapped
 with `Map_Error` multiple times. The outermost `Map_Error` index indicates
 the index into the outermost `Vector`, the second `Map_Error` index the index
 into the sub-`Vector` within the outermost `Vector`, and so on.
@@ -113,5 +113,5 @@ The following test utilities take an `unwrap_errors` parameter:
 - `Problem.expect_warning`
 - `Problem.expect_only_warning`
 
-By default, these methods will automatically unwrap errors/warnings. Passing
+By default, these methods will automatically unwrap errors. Passing
 `unwrap_errors=False` will disable this behavior.

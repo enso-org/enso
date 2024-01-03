@@ -907,6 +907,11 @@ type_spec name alter = Test.group name <|
         nested_vector = Vector.fill 5 (alter [10, 20, 30, 40])
         nested_vector.map (_.map map_fun) . should_fail_with (Map_Error.Error 0 (Map_Error.Error 2 (My_Error.Error 30))) unwrap_errors=False
 
+    Test.specify "nested Map_Error indicies should be in the correct order" <|
+        nested_vector = [[10, 20, 30, 40], [30, 10, 20, 30]]
+        expected_warnings = [(Map_Error.Error 1 (Map_Error.Error 3 (My_Error.Error 30))), (Map_Error.Error 1 (Map_Error.Error 0 (My_Error.Error 30))), (Map_Error.Error 0 (Map_Error.Error 2 (My_Error.Error 30)))]
+        Warning.get_all wrap_errors=True (nested_vector.map (_.map map_fun on_problems=Problem_Behavior.Report_Warning) on_problems=Problem_Behavior.Report_Warning) . map .value . should_equal expected_warnings
+
     Test.specify "a Nothing thrown inside map should be caught as Nothing" <|
         map_fun a = if a == 30 then Error.throw Nothing else a+1
         alter [10, 20, 30, 40] . map map_fun . should_fail_with (Map_Error.Error 2 Nothing) unwrap_errors=False
