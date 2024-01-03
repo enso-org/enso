@@ -1357,7 +1357,7 @@ type Builder
    Describes an error attached to a value within a `Vector`. The `index` field
    contains the index into the `Vector` at which the error occurred.
 
-   If a value is a nested within mutiple `Vector`s, its warnings are wrapped
+   If a value is a nested within multiple `Vector`s, its warnings are wrapped
    with `Map_Error` multiple times. The outermost `Map_Error` index indicates
    the index into the outermost `Vector`, the second `Map_Error` index the index
    into the sub-`Vector` within the outermost `Vector`, and so on.

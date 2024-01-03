@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Data.Vector.Map_Error
 import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.Errors.Illegal_State.Illegal_State
 

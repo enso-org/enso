@@ -33,7 +33,7 @@ Output:
 [Map_Error.Error 1 (My_Error.Error my error)] # The error is at index 1
 ```
 
-# Catching Wrapped Errors
+## Catching Wrapped Errors
 
 Wrapped errors are "transparent" to `Error.catch`. That is, if you attempt to
 catch a certain error, but the error that is actually thrown is wrapped, the
@@ -59,7 +59,7 @@ Output:
 Note that if you catch the error as the inner error (`My_Error`), the
 `Map_Error` wrapper is stripped off.
 
-# Implementing Error Wrappers
+## Implementing Error Wrappers
 
 An error wrapper is a regular Enso value that has a conversion to `Wrapped_Error`. For example:
 
@@ -73,7 +73,7 @@ Wrapped_Error.from (that : Map_Error) = Wrapped_Error.Value that that.inner_erro
 The `from` implementation allows `Error.catch` to detect that it is an error
 wrapper, and possibly perform automatic unwrapping on it.
 
-# Obtaining Wrapped Errors
+## Obtaining Wrapped Errors
 
 Wrapped errors are obtained in two ways:
 * An error thrown during a call to `Vector.map`
@@ -87,7 +87,7 @@ added by `Warning.get_all wrap_errors=True` when it is called on the `Vector`. I
 case, the wrapping is not attached to the value itself, and is therefore not
 propagated to downstream values.
 
-# Map_Error
+## Map_Error
 
 `Map_Error` is the motivating example for wrapped errors, and is currently the
 only implemented error wrapper. It exists so that an error thrown during a `map`
@@ -104,7 +104,26 @@ with `Map_Error` multiple times. The outermost `Map_Error` index indicates
 the index into the outermost `Vector`, the second `Map_Error` index the index
 into the sub-`Vector` within the outermost `Vector`, and so on.
 
-# Testing Wrapped Errors
+For example:
+
+```ruby
+fun a = if a == 30 then Error.throw (My_Error.Error a) else a+1
+nested_vector = [[10, 20, 30, 40], [30, 10, 20, 30]]
+result = nested_vector.map (_.map fun on_problems=Problem_Behavior.Report_Warning) on_problems=Problem_Behavior.Report_Warning
+warnings = Warning.get_all wrap_errors=True result . map .value
+warnings.map w->
+    IO.println w
+```
+
+Output:
+
+```ruby
+(Map_Error.Error 1 (Map_Error.Error 3 (My_Error.Error 30))) # [1, 3]
+(Map_Error.Error 1 (Map_Error.Error 0 (My_Error.Error 30))) # [1, 0]
+(Map_Error.Error 0 (Map_Error.Error 2 (My_Error.Error 30))) # [0, 2]
+```
+
+## Testing Wrapped Errors
 
 The following test utilities take an `unwrap_errors` parameter:
 
