@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Network.HTTP.Response.Response
 import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
 import Standard.Base.System.Input_Stream.Input_Stream
-from Standard.Base.Widget_Helpers import make_delimiter_selector
+from Standard.Base.Widget_Helpers import make_file_read_delimiter_selector
 
 import project.Data.Data_Formatter.Data_Formatter
 import project.Data.Match_Columns.Match_Columns
@@ -52,7 +52,7 @@ type Delimited_Format
          character if it anywhere else than at the beginning of the line. This
          option is only applicable for read mode and does not affect writing. It
          defaults to `Nothing` which means that comments are disabled.
-    @delimiter make_delimiter_selector
+    @delimiter make_file_read_delimiter_selector
     @encoding Encoding.default_widget
     Delimited (delimiter:Text=',') (encoding:Encoding=Encoding.utf_8) (skip_rows:Integer=0) (row_limit:Integer|Nothing=Nothing) (quote_style:Quote_Style=Quote_Style.With_Quotes) (headers:Boolean|Infer=Infer) (value_formatter:Data_Formatter|Nothing=Data_Formatter.Value) (keep_invalid_rows:Boolean=True) (line_endings:Line_Ending_Style|Infer=Infer) (comment_character:Text|Nothing=Nothing)
 
