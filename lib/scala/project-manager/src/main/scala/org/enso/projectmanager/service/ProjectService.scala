@@ -10,7 +10,7 @@ import org.enso.pkg.validation.NameValidation
 import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.effect.syntax._
-import org.enso.projectmanager.control.effect.{ErrorChannel, Sync}
+import org.enso.projectmanager.control.effect.{ErrorChannel, Semaphore, Sync}
 import org.enso.projectmanager.data.{
   LanguageServerStatus,
   MissingComponentAction,
@@ -70,6 +70,8 @@ class ProjectService[
     extends ProjectServiceApi[F] {
 
   private lazy val logger = Logger[ProjectService[F]]
+
+  private val listProjectsLock: Semaphore[F] = Semaphore.unsafeMake(1)
 
   import E._
 
@@ -359,8 +361,8 @@ class ProjectService[
   override def listProjects(
     maybeSize: Option[Int]
   ): F[ProjectServiceFailure, List[ProjectMetadata]] =
-    repo
-      .getAll()
+    listProjectsLock
+      .withPermit(repo.getAll())
       .map(
         _.sorted(RecentlyUsedProjectsOrdering)
           .take(maybeSize.getOrElse(Int.MaxValue))

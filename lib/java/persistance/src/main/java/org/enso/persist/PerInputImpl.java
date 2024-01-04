@@ -31,22 +31,22 @@ final class PerInputImpl implements Input {
     }
     var buf = ByteBuffer.wrap(arr);
     var version = buf.getInt(4);
-    if (version != PerMap.DEFAULT.versionStamp) {
+    var cache = new InputCache(buf, readResolve);
+    if (version != cache.map().versionStamp) {
       throw new IOException(
           "Incompatible version "
               + Integer.toHexString(version)
               + " != "
-              + Integer.toHexString(PerMap.DEFAULT.versionStamp));
+              + Integer.toHexString(cache.map().versionStamp));
     }
     var at = buf.getInt(8);
-    var cache = new InputCache(buf, readResolve);
 
     return PerBufferReference.from(cache, at);
   }
 
   @Override
   public <T> T readInline(Class<T> clazz) {
-    Persistance<T> p = PerMap.DEFAULT.forType(clazz);
+    Persistance<T> p = cache.map().forType(clazz);
     T res = p.readWith(this);
     var resolve = cache.readResolve().apply(res);
     return clazz.cast(resolve);
@@ -54,13 +54,13 @@ final class PerInputImpl implements Input {
 
   @Override
   public Object readObject() throws IOException {
-    var obj = readIndirect(cache, PerMap.DEFAULT, this);
+    var obj = readIndirect(cache, cache.map(), this);
     return obj;
   }
 
   @Override
   public <T> Persistance.Reference<T> readReference(Class<T> clazz) throws IOException {
-    var obj = readIndirectAsReference(cache, PerMap.DEFAULT, this, clazz);
+    var obj = readIndirectAsReference(cache, cache.map(), this, clazz);
     return obj;
   }
 
@@ -232,9 +232,16 @@ final class PerInputImpl implements Input {
   }
 
   static final record InputCache(
-      ByteBuffer buf, Function<Object, Object> readResolve, Map<Integer, Object> cache) {
+      ByteBuffer buf,
+      Function<Object, Object> readResolve,
+      Map<Integer, Object> cache,
+      PerMap map) {
     InputCache(ByteBuffer buf, Function<Object, Object> readResolve) {
-      this(buf, readResolve == null ? Function.identity() : readResolve, new HashMap<>());
+      this(
+          buf,
+          readResolve == null ? Function.identity() : readResolve,
+          new HashMap<>(),
+          PerMap.create());
     }
   }
 }

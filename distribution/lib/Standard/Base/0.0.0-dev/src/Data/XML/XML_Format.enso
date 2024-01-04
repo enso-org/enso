@@ -1,5 +1,3 @@
-import Standard.Base.System.File_Format.File_Format_Metadata
-
 import project.Any.Any
 import project.Data.Text.Text
 import project.Data.XML.XML_Document
@@ -7,7 +5,7 @@ import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Network.URI.URI
 import project.Nothing.Nothing
 import project.System.File.File
-import project.System.File_Format.File_For_Read
+import project.System.File_Format_Metadata.File_Format_Metadata
 import project.System.Input_Stream.Input_Stream
 from project.Data.Text.Extensions import all
 
@@ -15,11 +13,19 @@ from project.Data.Text.Extensions import all
 type XML_Format
     ## PRIVATE
        If the File_Format supports reading from the file, return a configured instance.
-    for_file_read : File_For_Read -> XML_Format | Nothing
-    for_file_read file:File_For_Read =
-        case file.extension of
-            ".xml" -> XML_Format
-            _ -> Nothing
+    for_read : File_Format_Metadata -> XML_Format | Nothing
+    for_read file:File_Format_Metadata =
+        content_type = file.interpret_content_type
+        from_content_type = content_type.if_not_nothing <|
+            base_type = content_type.base_type
+            case base_type of
+                "text/xml" -> XML_Format
+                "application/xml" -> XML_Format
+                _ -> if content_type.base_type.ends_with "+xml" then XML_Format else Nothing
+        from_content_type.if_nothing <|
+            case file.guess_extension of
+                ".xml" -> XML_Format
+                _ -> Nothing
 
     ## PRIVATE
        If this File_Format should be used for writing to that file, return a configured instance.
@@ -27,17 +33,6 @@ type XML_Format
     for_file_write file:File =
         _ = [file]
         Nothing
-
-    ## PRIVATE
-       If the File_Format supports reading from the web response, return a configured instance.
-    for_web : Text -> URI|Text -> XML_Format | Nothing
-    for_web content_type:Text uri:(URI|Text) =
-        _ = [uri]
-        first = content_type.split ';' . first . trim
-        case first of
-            "application/xml" -> XML_Format
-            "text/xml" -> XML_Format
-            _ -> Nothing
 
     ## PRIVATE
        Implements the `File.read` for this `File_Format`

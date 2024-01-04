@@ -1,7 +1,9 @@
 from Standard.Base import all
 import Standard.Base.Errors.No_Such_Key.No_Such_Key
 import Standard.Base.Network.HTTP.Response_Body.Response_Body
+import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
 import Standard.Base.System.Input_Stream.Input_Stream
+from Standard.Base.Network.HTTP.Response import filename_from_content_disposition
 
 import project.AWS_Credential.AWS_Credential
 import project.Errors.AWS_SDK_Error
@@ -114,10 +116,14 @@ get_object bucket key credentials:(AWS_Credential | Nothing)=Nothing = handle_s3
     response = client.getObject request
 
     inner_response = response.response
-    mime_type = inner_response.contentType
     s3_uri = URI.parse ("s3://" + bucket + "/" + key)
+    content_type = inner_response.contentType
+    name = filename_from_content_disposition inner_response.contentDisposition . if_nothing <|
+        key.split "/" . last
+    metadata = File_Format_Metadata.Value path=key name=name content_type=content_type
+
     input_stream = Input_Stream.new response (handle_io_errors s3_uri)
-    Response_Body.Raw_Stream input_stream mime_type s3_uri
+    Response_Body.Raw_Stream input_stream metadata s3_uri
 
 ## PRIVATE
    Splits a S3 URI into bucket and key.

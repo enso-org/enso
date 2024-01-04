@@ -1,7 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Network.HTTP.Response.Response
-import Standard.Base.System.File_Format.File_For_Read
-import Standard.Base.System.File_Format.File_Format_Metadata
+import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
 import Standard.Base.System.Input_Stream.Input_Stream
 from Standard.Base.Widget_Helpers import make_delimiter_selector
 
@@ -60,36 +59,26 @@ type Delimited_Format
     ## PRIVATE
        ADVANCED
        If the File_Format supports reading from the file, return a configured instance.
-    for_file_read : File_For_Read -> Delimited_Format | Nothing
-    for_file_read file:File_For_Read =
-        case file.extension of
-            ".csv" -> Delimited_Format.Delimited ','
-            ".tab" -> Delimited_Format.Delimited '\t'
-            ".tsv" -> Delimited_Format.Delimited '\t'
-            _ -> Nothing
+    for_read : File_Format_Metadata -> Delimited_Format | Nothing
+    for_read file:File_Format_Metadata =
+        content_type = file.interpret_content_type
+        from_content_type = content_type.if_not_nothing <|
+            encoding = content_type.encoding.if_nothing Encoding.utf_8
+            case content_type.base_type of
+                "text/csv" -> Delimited_Format.Delimited ',' encoding
+                "text/tab-separated-values" -> Delimited_Format.Delimited '\t' encoding
+                _ -> Nothing
+        from_content_type.if_nothing <|
+            case file.guess_extension of
+                ".csv" -> Delimited_Format.Delimited ','
+                ".tab" -> Delimited_Format.Delimited '\t'
+                ".tsv" -> Delimited_Format.Delimited '\t'
+                _ -> Nothing
 
     ## PRIVATE
        If this File_Format should be used for writing to that file, return a configured instance.
     for_file_write : File -> Delimited_Format | Nothing
-    for_file_write file = Delimited_Format.for_file_read file
-
-    ## PRIVATE
-       ADVANCED
-       If the File_Format supports reading from the web response, return a configured instance.
-    for_web : Text -> URI -> Delimited_Format | Nothing
-    for_web content_type uri =
-        _ = [uri]
-        parts = content_type.split ";" . map .trim
-
-        charset_part = parts.find if_missing=Nothing (x-> x.starts_with "charset=")
-        encoding = if charset_part.is_nothing then Encoding.utf_8 else
-            parsed = Encoding.from_name (charset_part.drop 8)
-            if parsed.is_error then Encoding.utf_8 else parsed
-
-        case parts.first of
-            "text/csv" -> Delimited_Format.Delimited ',' encoding
-            "text/tab-separated-values" -> Delimited_Format.Delimited '\t' encoding
-            _ -> Nothing
+    for_file_write file = Delimited_Format.for_read file
 
     ## PRIVATE
        ADVANCED
@@ -151,8 +140,8 @@ type Delimited_Format
         self.clone value_formatter=Nothing
 
     ## Creates a clone of this with a changed line ending style.
-    with_line_endings : Line_Ending_Style -> Delimited_Format
-    with_line_endings self line_endings=Infer =
+    with_line_endings : Line_Ending_Style|Infer -> Delimited_Format
+    with_line_endings self (line_endings : Line_Ending_Style | Infer)=Infer =
         self.clone line_endings=line_endings
 
     ## Creates a clone of this with comment parsing enabled.

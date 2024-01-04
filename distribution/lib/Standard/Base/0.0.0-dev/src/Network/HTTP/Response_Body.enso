@@ -7,7 +7,6 @@ import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
-import project.IO
 import project.Meta
 import project.Metadata.Display
 import project.Metadata.Widget
@@ -24,8 +23,9 @@ import project.System.File.Write_Extensions
 import project.System.File_Format.Auto_Detect
 import project.System.File_Format.Bytes
 import project.System.File_Format.File_Format
-import project.System.File_Format.File_Format_Metadata
+import project.System.File_Format.Infer
 import project.System.File_Format.Plain_Text_Format
+import project.System.File_Format_Metadata.File_Format_Metadata
 import project.System.Input_Stream.Input_Stream
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
@@ -47,23 +47,23 @@ type Response_Body
 
        Arguments:
        - stream: The body of the response as an InputStream.
-       - content_type: The content type of the response.
+       - metadata: File format metadata associated with the response.
        - uri: The URI of the response.
     new : InputStream -> Text -> URI -> Response_Body
-    new stream content_type uri =
+    new stream (metadata : File_Format_Metadata) (uri : URI) =
         input_stream = Input_Stream.new stream (HTTP_Error.handle_java_exceptions uri)
-        Response_Body.Raw_Stream input_stream content_type uri
+        Response_Body.Raw_Stream input_stream metadata uri
 
     ## PRIVATE
        For internal use only. Should be materialised before returning to an end
        user.
-    Raw_Stream (raw_stream:Input_Stream) (content_type:Text|Nothing) uri:URI
+    Raw_Stream (raw_stream:Input_Stream) (metadata:File_Format_Metadata) uri:URI
 
     ## PRIVATE
-    Materialized_Byte_Array (bytes:Vector) (content_type:Text|Nothing) uri:URI
+    Materialized_Byte_Array (bytes:Vector) (metadata:File_Format_Metadata) uri:URI
 
     ## PRIVATE
-    Materialized_Temporary_File (temporary_file:Temporary_File) (content_type:Text|Nothing) uri:URI
+    Materialized_Temporary_File (temporary_file:Temporary_File) (metadata:File_Format_Metadata) uri:URI
 
     ## PRIVATE
     with_stream : (Input_Stream -> Any ! HTTP_Error) -> Any ! HTTP_Error
@@ -90,7 +90,7 @@ type Response_Body
                 body_stream.with_java_stream body_java_stream->
                     first_block = body_java_stream.readNBytes maximum_body_in_memory
                     case first_block.length < maximum_body_in_memory of
-                        True -> Response_Body.Materialized_Byte_Array (Vector.from_polyglot_array first_block) self.content_type self.uri
+                        True -> Response_Body.Materialized_Byte_Array (Vector.from_polyglot_array first_block) self.metadata self.uri
                         False -> Context.Output.with_enabled <|
                             ## Write contents to a temporary file
                             temp_file = Temporary_File.new self.uri.host
@@ -102,7 +102,7 @@ type Response_Body
                                         java_output_stream.flush
                                         Nothing
                             r.if_not_error <|
-                                Response_Body.Materialized_Temporary_File temp_file self.content_type self.uri
+                                Response_Body.Materialized_Temporary_File temp_file self.metadata self.uri
         _ -> self
 
     ## ALIAS parse
@@ -119,16 +119,13 @@ type Response_Body
     decode self format=Auto_Detect ~if_unsupported=(Error.throw (Unsupported_Content_Type.Error self.content_type)) =
         case format of
             Auto_Detect ->
-                content_type = self.content_type
-                content_type_format = if content_type.is_nothing then Nothing else
-                    Auto_Detect.get_web_parser content_type (self.uri.to_text)
-                if content_type_format.is_nothing then if_unsupported else self.decode content_type_format
+                detected_format = Auto_Detect.get_reading_format self.metadata
+                if detected_format.is_nothing then if_unsupported else self.decode detected_format
             _ ->
                 type_obj = Meta.type_of format
                 if can_decode type_obj . not then Error.throw (Illegal_Argument.Error type_obj.to_text+" cannot be used to decode from a stream. It must be saved to a file first.") else
-                    metadata = File_Format_Metadata.Value content_type=self.content_type
                     self.with_stream stream->
-                        format.read_stream stream metadata
+                        format.read_stream stream self.metadata
 
     ## ALIAS bytes
        GROUP Input
@@ -139,13 +136,23 @@ type Response_Body
     ## ALIAS parse as text
        GROUP Conversions
        Decodes the body to a Text value.
+
+       Arguments:
+       - encoding: The encoding to use. If not specified, the encoding is
+         inferred from response headers. If that fails, UTF-8 is used as the
+         fallback.
     @encoding Encoding.default_widget
-    decode_as_text : Encoding -> Text
-    decode_as_text self encoding=Encoding.utf_8 = self.decode (Plain_Text_Format.Plain_Text encoding)
+    decode_as_text : Encoding|Infer -> Text
+    decode_as_text self (encoding : Encoding | Infer = Infer) = self.decode (Plain_Text_Format.Plain_Text encoding)
 
     ## ALIAS parse as json, parse json
        GROUP Conversions
        Decodes the body as JSON.
+
+       Arguments:
+       - encoding: The encoding to use. If not specified, the encoding is
+         inferred from response headers. If that fails, UTF-8 is used as the
+         fallback.
 
        > Example
          Convert a response from JSON.
@@ -154,9 +161,14 @@ type Response_Body
 
              example_to_text = Examples.get_geo_data.decode_as_json
     @encoding Encoding.default_widget
-    decode_as_json : Encoding -> JS_Object | Boolean | Number | Nothing | Text | Vector
-    decode_as_json self encoding=Encoding.utf_8 =
+    decode_as_json : Encoding|Infer -> JS_Object | Boolean | Number | Nothing | Text | Vector
+    decode_as_json self (encoding : Encoding | Infer = Infer) =
         self.decode_as_text encoding . parse_json
+
+    ## GROUP Metadata
+       The content type of the response.
+    content_type : Text | Nothing
+    content_type self = self.metadata.content_type
 
     ## PRIVATE
        Convert response body to Text.

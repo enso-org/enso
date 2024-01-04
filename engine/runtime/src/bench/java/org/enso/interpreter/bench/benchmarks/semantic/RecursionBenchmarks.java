@@ -1,10 +1,9 @@
 package org.enso.interpreter.bench.benchmarks.semantic;
 
+import java.util.concurrent.TimeUnit;
 import org.enso.interpreter.bench.fixtures.semantic.RecursionFixtures;
 import org.enso.interpreter.test.DefaultInterpreterRunner;
 import org.openjdk.jmh.annotations.*;
-
-import java.util.concurrent.TimeUnit;
 
 @BenchmarkMode(Mode.AverageTime)
 @Fork(1)

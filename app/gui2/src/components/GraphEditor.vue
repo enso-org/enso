@@ -31,10 +31,11 @@ import { Vec2 } from '@/util/data/vec2'
 import * as set from 'lib0/set'
 import { toast } from 'react-toastify'
 import type { ExprId, NodeMetadata } from 'shared/yjsModel'
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, onScopeDispose, ref, watch } from 'vue'
 import { ProjectManagerEvents } from '../../../ide-desktop/lib/dashboard/src/authentication/src/dashboard/projectManager'
 import { type Usage } from './ComponentBrowser/input'
 
+const STARTUP_TOAST_DELAY_MS = 100
 const EXECUTION_MODES = ['design', 'live']
 // Assumed size of a newly created node. This is used to place the component browser.
 const DEFAULT_NODE_SIZE = new Vec2(0, 24)
@@ -54,15 +55,13 @@ const interaction = provideInteractionHandler()
 
 /// === UI Messages and Errors ===
 function initStartupToast() {
-  const startupToast = toast.info('Initializing the project. This can take up to one minute.', {
+  let startupToast = toast.info('Initializing the project. This can take up to one minute.', {
     autoClose: false,
   })
-  projectStore.firstExecution.then(() => {
-    toast.dismiss(startupToast)
-  })
-  onUnmounted(() => {
-    toast.dismiss(startupToast)
-  })
+
+  const removeToast = () => toast.dismiss(startupToast)
+  projectStore.firstExecution.then(removeToast)
+  onScopeDispose(removeToast)
 }
 
 function initConnectionLostToast() {
@@ -457,7 +456,7 @@ function copyNodeContent() {
   const id = nodeSelection.selected.values().next().value
   const node = graphStore.db.nodeIdToNode.get(id)
   if (!node) return
-  const content = node.rootSpan.repr()
+  const content = node.rootSpan.code()
   const metadata = projectStore.module?.getNodeMetadata(id) ?? undefined
   const copiedNode: CopiedNode = { expression: content, metadata }
   const clipboardData: ClipboardData = { nodes: [copiedNode] }
@@ -541,7 +540,12 @@ async function readNodeFromExcelClipboard(
 
 function handleNodeOutputPortDoubleClick(id: ExprId) {
   componentBrowserUsage.value = { type: 'newNode', sourcePort: id }
-  const placementEnvironment = environmentForNodes([id].values())
+  const srcNode = graphStore.db.getPatternExpressionNodeId(id)
+  if (srcNode == null) {
+    console.error('Impossible happened: Double click on port not belonging to any node: ', id)
+    return
+  }
+  const placementEnvironment = environmentForNodes([srcNode].values())
   componentBrowserNodePosition.value = previousNodeDictatedPlacement(
     DEFAULT_NODE_SIZE,
     placementEnvironment,
