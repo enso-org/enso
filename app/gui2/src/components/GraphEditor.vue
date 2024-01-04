@@ -31,11 +31,10 @@ import { Vec2 } from '@/util/data/vec2'
 import * as set from 'lib0/set'
 import { toast } from 'react-toastify'
 import type { ExprId, NodeMetadata } from 'shared/yjsModel'
-import { computed, onMounted, onUnmounted, onScopeDispose, ref, watch } from 'vue'
+import { computed, onMounted, onScopeDispose, onUnmounted, ref, watch } from 'vue'
 import { ProjectManagerEvents } from '../../../ide-desktop/lib/dashboard/src/authentication/src/dashboard/projectManager'
 import { type Usage } from './ComponentBrowser/input'
 
-const STARTUP_TOAST_DELAY_MS = 100
 const EXECUTION_MODES = ['design', 'live']
 // Assumed size of a newly created node. This is used to place the component browser.
 const DEFAULT_NODE_SIZE = new Vec2(0, 24)
