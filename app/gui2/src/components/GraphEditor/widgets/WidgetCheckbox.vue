@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import CheckboxWidget from '@/components/widgets/CheckboxWidget.vue'
-import { AnyWidget, Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { Ast } from '@/util/ast'
+import { ArgumentInfoKey } from '@/util/callTree'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
@@ -30,11 +31,13 @@ function getRawBoolNode(ast: Ast.Ast) {
   return null
 }
 
-export const widgetDefinition = defineWidget(AnyWidget, {
+export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
   priority: 10,
   score: (props) => {
     if (props.input.ast == null)
-      return props.input.argInfo?.reprType === 'Standard.Base.Bool' ? Score.Good : Score.Mismatch
+      return props.input[ArgumentInfoKey]?.info?.reprType === 'Standard.Base.Bool'
+        ? Score.Good
+        : Score.Mismatch
     if (getRawBoolNode(props.input.ast) != null) return Score.Perfect
     return Score.Mismatch
   },

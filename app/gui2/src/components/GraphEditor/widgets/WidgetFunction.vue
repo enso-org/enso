@@ -2,7 +2,7 @@
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { injectFunctionInfo, provideFunctionInfo } from '@/providers/functionInfo'
 import type { PortId } from '@/providers/portInfo'
-import { AnyWidget, Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import {
   argsWidgetConfigurationSchema,
   functionCallConfiguration,
@@ -13,6 +13,7 @@ import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import {
   ArgumentApplication,
+  ArgumentApplicationKey,
   ArgumentAst,
   ArgumentPlaceholder,
   getAccessOprSubject,
@@ -42,7 +43,7 @@ const interpreted = computed(() => {
 
 const application = computed(() => {
   const call = interpreted.value
-  if (!call) return props.input
+  if (!call) return null
   const noArgsCall = call.kind === 'prefix' ? graph.db.getMethodCall(call.func.exprId) : undefined
 
   const info = methodCallInfo.value
@@ -56,9 +57,15 @@ const application = computed(() => {
     },
     !info?.staticallyApplied,
   )
-  return application instanceof ArgumentApplication
-    ? application
-    : AnyWidget.Ast(application, props.input.dynamicConfig, props.input.argInfo)
+  return application
+})
+
+const innerInput = computed(() => {
+  if (application.value instanceof ArgumentApplication) {
+    return { ...props.input, [ArgumentApplicationKey]: application.value }
+  } else {
+    return props.input
+  }
 })
 
 const escapeString = (str: string): string => {
@@ -223,7 +230,7 @@ function handleArgUpdate(value: unknown, origin: PortId): boolean {
 }
 </script>
 <script lang="ts">
-export const widgetDefinition = defineWidget(AnyWidget.matchFunctionCall, {
+export const widgetDefinition = defineWidget(WidgetInput.isFunctionCall, {
   priority: -10,
   score: (props, db) => {
     const ast = props.input.ast
@@ -248,5 +255,5 @@ export const widgetDefinition = defineWidget(AnyWidget.matchFunctionCall, {
 </script>
 
 <template>
-  <NodeWidget :input="application" @update="handleArgUpdate" />
+  <NodeWidget :input="innerInput" @update="handleArgUpdate" />
 </template>

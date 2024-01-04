@@ -2,9 +2,9 @@
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import ListWidget from '@/components/widgets/ListWidget.vue'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
-import { ForcePort } from '@/providers/portInfo'
-import { AnyWidget, Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { Ast, RawAst } from '@/util/ast'
+import { ArgumentInfoKey } from '@/util/callTree'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
@@ -40,11 +40,13 @@ const navigator = injectGraphNavigator(true)
 </script>
 
 <script lang="ts">
-export const widgetDefinition = defineWidget(AnyWidget, {
+export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
   priority: 1000,
   score: (props) => {
     if (props.input.dynamicConfig?.kind === 'Vector_Editor') return Score.Perfect
-    else if (props.input.argInfo?.reprType.startsWith('Standard.Base.Data.Vector.Vector'))
+    else if (
+      props.input[ArgumentInfoKey]?.info?.reprType.startsWith('Standard.Base.Data.Vector.Vector')
+    )
       return Score.Good
     else
       return props.input.ast?.treeType === RawAst.Tree.Type.Array ? Score.Perfect : Score.Mismatch
@@ -66,7 +68,9 @@ export const widgetDefinition = defineWidget(AnyWidget, {
     contenteditable="false"
   >
     <template #default="{ item }">
-      <NodeWidget :input="new ForcePort(AnyWidget.Ast(item, itemConfig))" />
+      <NodeWidget
+        :input="{ ...WidgetInput.FromAst(item), dynamicConfig: itemConfig, forcePort: true }"
+      />
     </template>
   </ListWidget>
 </template>

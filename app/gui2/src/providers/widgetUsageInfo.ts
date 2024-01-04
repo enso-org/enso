@@ -26,18 +26,6 @@ interface WidgetUsageInfo {
   nesting: number
 }
 
-/**
- * A symbol key used for defining a widget input method's usage key. A method with this key can be
- * declared for widget input types that are not unique by themselves, but are just a thin wrapper
- * around another input value, and don't want to be considered as a completely separate entity for
- * the purposes of widget type selection.
- */
-export const GetUsageKey = Symbol('GetUsageKey')
-
 export function usageKeyForInput(widget: WidgetInput): unknown {
-  if (GetUsageKey in widget && typeof widget[GetUsageKey] === 'function') {
-    return widget[GetUsageKey]()
-  } else {
-    return widget
-  }
+  return widget.portId
 }
