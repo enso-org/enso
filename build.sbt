@@ -551,10 +551,9 @@ lazy val `text-buffer` = project
   .settings(
     frgaalJavaCompilerSetting,
     libraryDependencies ++= Seq(
-      "org.typelevel"   %% "cats-core"      % catsVersion,
-      "org.bouncycastle" % "bcpkix-jdk15on" % bcpkixJdk15Version,
-      "org.scalatest"   %% "scalatest"      % scalatestVersion  % Test,
-      "org.scalacheck"  %% "scalacheck"     % scalacheckVersion % Test
+      "org.typelevel"  %% "cats-core"  % catsVersion,
+      "org.scalatest"  %% "scalatest"  % scalatestVersion  % Test,
+      "org.scalacheck" %% "scalacheck" % scalacheckVersion % Test
     )
   )
 
@@ -1296,13 +1295,9 @@ lazy val `language-server` = (project in file("engine/language-server"))
     ),
     Test / modulePath := {
       val updateReport = (Test / update).value
-      // org.bouncycastle is a module required by `org.enso.runtime` module.
       val requiredModIds =
         GraalVM.modules ++ GraalVM.langsPkgs ++ logbackPkg ++ Seq(
-          "org.slf4j"        % "slf4j-api"      % slf4jVersion,
-          "org.bouncycastle" % "bcutil-jdk18on" % "1.76",
-          "org.bouncycastle" % "bcpkix-jdk18on" % "1.76",
-          "org.bouncycastle" % "bcprov-jdk18on" % "1.76"
+          "org.slf4j" % "slf4j-api" % slf4jVersion
         )
       val requiredMods = JPMSUtils.filterModulesFromUpdate(
         updateReport,
@@ -1976,14 +1971,7 @@ lazy val `runtime-fat-jar` =
       assembly / test := {},
       assembly / assemblyOutputPath := file("runtime.jar"),
       assembly / assemblyExcludedJars := {
-        // bouncycastle jdk5 needs to be excluded from the Uber jar, as otherwise its packages would
-        // clash with packages in org.bouncycastle.jdk18 modules
-        val bouncyCastleJdk5 = Seq(
-          "org.bouncycastle" % "bcutil-jdk15on" % bcpkixJdk15Version,
-          "org.bouncycastle" % "bcpkix-jdk15on" % bcpkixJdk15Version,
-          "org.bouncycastle" % "bcprov-jdk15on" % bcpkixJdk15Version
-        )
-        val pkgsToExclude = JPMSUtils.componentModules ++ bouncyCastleJdk5
+        val pkgsToExclude = JPMSUtils.componentModules
         val ourFullCp     = (Runtime / fullClasspath).value
         JPMSUtils.filterModulesFromClasspath(
           ourFullCp,

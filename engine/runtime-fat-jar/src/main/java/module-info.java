@@ -8,7 +8,6 @@ open module org.enso.runtime {
   requires org.graalvm.polyglot;
   requires org.graalvm.truffle;
   requires static org.slf4j;
-  requires org.bouncycastle.provider;
 
   uses org.slf4j.spi.SLF4JServiceProvider;
 
