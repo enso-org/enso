@@ -115,6 +115,18 @@ fn if_then_else_chained_block() {
                           ))))]);
 }
 
+#[test]
+fn if_then_else_chained_block_with_group() {
+    #[rustfmt::skip]
+    test("(if True then True else False)\n .to_text", block![
+        (ArgumentBlockApplication
+            (Group (MultiSegmentApp #(((Ident if) (Ident True))
+                ((Ident then) (Ident True))
+                ((Ident else) (Ident False)
+            ))))
+            #((OprSectionBoundary 1 (OprApp () (Ok ".") (Ident to_text))))
+        )]);
+}
 
 // === Comments ===
 
