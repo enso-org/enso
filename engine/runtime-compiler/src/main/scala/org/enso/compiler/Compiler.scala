@@ -259,9 +259,12 @@ class Compiler(
     )
 
     val requiredModules = modules.flatMap { module =>
-      val importedModules = runImportsAndExportsResolution(module, generateCode)
       val isLoadedFromSource =
         (m: Module) => !context.wasLoadedFromCache(m) && !context.isSynthetic(m)
+      val importedModules = runImportsAndExportsResolution(
+        module,
+        generateCode && context.wasLoadedFromCache(module)
+      )
       if (
         shouldCompileDependencies &&
         context.wasLoadedFromCache(module) &&
