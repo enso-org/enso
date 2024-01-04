@@ -1705,86 +1705,36 @@ lazy val runtime = (project in file("engine/runtime"))
   /** Benchmark settings */
   .settings(
     inConfig(Benchmark)(Defaults.testSettings),
+    Benchmark / javacOptions --= Seq(
+      "-source",
+      frgaalSourceLevel,
+      "--enable-preview"
+    ),
+    (Benchmark / javaOptions) :=
+      (LocalProject("std-benchmarks") / Benchmark / run / javaOptions).value,
+    (Benchmark / javaOptions) ++= benchOnlyOptions,
     Benchmark / fork := true,
     Benchmark / parallelExecution := false,
-    (Benchmark / modulePath) := {
-      val requiredModIds = GraalVM.modules ++ GraalVM.langsPkgs ++ Seq(
-        "org.slf4j" % "slf4j-api" % slf4jVersion,
-        "org.slf4j" % "slf4j-nop" % slf4jVersion
-      )
-      val requiredMods = JPMSUtils.filterModulesFromUpdate(
-        (Benchmark / update).value,
-        requiredModIds,
-        streams.value.log,
-        shouldContainAll = true
-      )
-      val runtimeMod =
-        (`runtime-fat-jar` / Compile / exportedProducts).value.head.data
-      requiredMods ++ Seq(runtimeMod)
-    },
-    (Benchmark / addModules) := Seq(
-      (`runtime-fat-jar` / javaModuleName).value
-    ),
-    (Benchmark / addReads) := Map(
-      (`runtime-fat-jar` / javaModuleName).value -> Seq("ALL-UNNAMED")
-    ),
-    (Benchmark / patchModules) := {
-      val modulesToPatchIntoRuntime: Seq[File] =
-        (LocalProject(
-          "runtime-instrument-common"
-        ) / Compile / productDirectories).value ++
-        (LocalProject(
-          "runtime-instrument-id-execution"
-        ) / Compile / productDirectories).value ++
-        (LocalProject(
-          "runtime-instrument-repl-debugger"
-        ) / Compile / productDirectories).value ++
-        (LocalProject(
-          "runtime-instrument-runtime-server"
-        ) / Compile / productDirectories).value ++
-        (LocalProject(
-          "runtime-language-epb"
-        ) / Compile / productDirectories).value ++
-        (LocalProject(
-          "runtime-compiler"
-        ) / Compile / productDirectories).value
-      Map(
-        (`runtime-fat-jar` / javaModuleName).value -> modulesToPatchIntoRuntime
-      )
-    },
-    // Reset javacOptions and javaOptions - do not inherit them from the Test scope
-    (Benchmark / javacOptions) := (Compile / javacOptions).value,
-    (Benchmark / javaOptions) := (Compile / javaOptions).value,
-    (Benchmark / javacOptions) ++= {
-      JPMSPlugin.constructOptions(
-        streams.value.log,
-        modulePath = (Benchmark / modulePath).value,
-        addModules = (Benchmark / addModules).value
-      )
-    },
-    (Benchmark / javaOptions) ++= {
-      JPMSPlugin.constructOptions(
-        streams.value.log,
-        (Benchmark / modulePath).value,
-        (Benchmark / addModules).value,
-        (Benchmark / patchModules).value,
-        (Benchmark / addExports).value,
-        (Benchmark / addReads).value
-      )
-    },
-    (Benchmark / javaOptions) ++= benchOnlyOptions,
-    // Override test log provider and its resource
-    (Benchmark / javaOptions) ++= Seq(
-      "-Dslf4j.provider=org.enso.logger.TestLogProvider",
-      "-Dconfig.resource=application-bench.conf"
-    ),
-    (Benchmark / compile) := (Benchmark / compile)
-      .dependsOn(`runtime-fat-jar` / Compile / compileModuleInfo)
-      .value,
+    // This ensures that the full class-path of runtime-fat-jar is put on
+    // class-path of the Java compiler (and thus the benchmark annotation processor).
+    (Benchmark / compile / unmanagedClasspath) ++=
+      (LocalProject(
+        "runtime-fat-jar"
+      ) / Compile / fullClasspath).value,
     bench := (Benchmark / test)
       .tag(Exclusive)
-      .dependsOn(Benchmark / compile)
+      .dependsOn(
+        // runtime.jar fat jar needs to be assembled as it is used in the
+        // benchmarks. This dependency is here so that `runtime/bench` works
+        // after clean build.
+        LocalProject("runtime-fat-jar") / assembly
+      )
       .value,
+    (Benchmark / testOnly) := (Benchmark / testOnly)
+      .dependsOn(
+        LocalProject("runtime-fat-jar") / assembly
+      )
+      .evaluated,
     benchOnly := Def.inputTaskDyn {
       import complete.Parsers.spaceDelimited
       val name = spaceDelimited("<name>").parsed match {
