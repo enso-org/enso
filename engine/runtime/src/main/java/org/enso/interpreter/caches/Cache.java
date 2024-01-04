@@ -10,15 +10,15 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
-import org.bouncycastle.jcajce.provider.digest.SHA1;
-import org.bouncycastle.util.encoders.Hex;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.logger.masking.MaskedPath;
 import org.enso.pkg.SourceFile;
+import org.enso.text.Hex;
 
 /**
  * Cache encapsulates a common functionality needed to serialize and de-serialize objects, while
@@ -393,7 +393,11 @@ public abstract class Cache<T, M extends Cache.Metadata> {
    * @return digest used for computing hashes
    */
   protected MessageDigest messageDigest() {
-    return new SHA1.Digest();
+    try {
+      return MessageDigest.getInstance("SHA-1");
+    } catch (NoSuchAlgorithmException ex) {
+      throw new IllegalStateException("Unreachable", ex);
+    }
   }
 
   /**
