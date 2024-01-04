@@ -21,7 +21,6 @@ const {
   minimalSetup,
   EditorState,
   EditorView,
-  yCollab,
   syntaxHighlighting,
   defaultHighlightStyle,
   tooltips,
@@ -39,11 +38,8 @@ const rootElement = ref<HTMLElement>()
 useAutoBlur(rootElement)
 
 const executionContextDiagnostics = computed(() =>
-  projectStore.module
-    ? lsDiagnosticsToCMDiagnostics(
-        projectStore.module.doc.contents.toString(),
-        projectStore.diagnostics,
-      )
+  projectStore.module && graphStore.moduleCode
+    ? lsDiagnosticsToCMDiagnostics(graphStore.moduleCode, projectStore.diagnostics)
     : [],
 )
 
@@ -58,8 +54,8 @@ const expressionUpdatesDiagnostics = computed(() => {
     if (!update) continue
     const node = nodeMap.get(id)
     if (!node) continue
-    if (!node.rootSpan.astExtended) continue
-    const [from, to] = node.rootSpan.astExtended.span()
+    if (!node.rootSpan.span) continue
+    const [from, to] = node.rootSpan.span
     switch (update.payload.type) {
       case 'Panic': {
         diagnostics.push({ from, to, message: update.payload.message, severity: 'error' })
@@ -83,15 +79,18 @@ const editorView = new EditorView()
 watchEffect(() => {
   const module = projectStore.module
   if (!module) return
+  /*
   const yText = module.doc.contents
   const undoManager = module.undoManager
   const awareness = projectStore.awareness.internal
+  extensions: [yCollab(yText, awareness, { undoManager }), ...]
+   */
+  if (!graphStore.moduleCode) return
   editorView.setState(
     EditorState.create({
-      doc: yText.toString(),
+      doc: graphStore.moduleCode,
       extensions: [
         minimalSetup,
-        yCollab(yText, awareness, { undoManager }),
         syntaxHighlighting(defaultHighlightStyle as Highlighter),
         bracketMatching(),
         foldGutter(),
@@ -103,10 +102,7 @@ watchEffect(() => {
           const astSpan = ast.span()
           let foundNode: ExprId | undefined
           for (const [id, node] of graphStore.db.nodeIdToNode.entries()) {
-            if (
-              node.rootSpan.astExtended &&
-              rangeEncloses(node.rootSpan.astExtended.span(), astSpan)
-            ) {
+            if (node.rootSpan.span && rangeEncloses(node.rootSpan.span, astSpan)) {
               foundNode = id
               break
             }

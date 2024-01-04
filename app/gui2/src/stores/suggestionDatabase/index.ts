@@ -13,15 +13,10 @@ import { markRaw, ref, type Ref } from 'vue'
 export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
   nameToId = new ReactiveIndex(this, (id, entry) => [[entryQn(entry), id]])
   childIdToParentId = new ReactiveIndex(this, (id, entry) => {
-    let qualifiedName: Opt<QualifiedName>
-    if (entry.memberOf) {
-      qualifiedName = entry.memberOf
-    } else {
-      qualifiedName = qnParent(entryQn(entry))
-    }
+    const qualifiedName = entry.memberOf ?? qnParent(entryQn(entry))
     if (qualifiedName) {
-      const parents = Array.from(this.nameToId.lookup(qualifiedName))
-      return parents.map((p) => [id, p])
+      const parents = this.nameToId.lookup(qualifiedName)
+      return Array.from(parents, (p) => [id, p])
     }
     return []
   })

@@ -29,8 +29,11 @@ if (detect.IS_DEV_MODE && (!(typeof IS_VITE !== 'undefined') || !IS_VITE)) {
     })
     void navigator.serviceWorker.register(SERVICE_WORKER_PATH)
 } else {
-    void navigator.serviceWorker
-        .getRegistration()
+    await navigator.serviceWorker
+        // `navigator.serviceWorker` may be disabled in certainsituations, for example in Private mode
+        // on Safari.
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        ?.getRegistration()
         .then(serviceWorker => serviceWorker?.unregister())
 }
 

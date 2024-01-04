@@ -30,7 +30,7 @@ type Enso_User
         response = HTTP.fetch user_api HTTP_Method.Get [auth_header]
         response.if_not_error <|
             js_object = response.decode_as_json
-            js_object.into Enso_User
+            Enso_User.from js_object
 
     ## Lists all known users.
     list : Vector Enso_User
@@ -41,7 +41,7 @@ type Enso_User
         response.if_not_error <|
             js_object = response.decode_as_json
             users = js_object.get 'users' []
-            users.map (user-> user.into Enso_User)
+            users.map (user-> Enso_User.from user)
 
 ## PRIVATE
 Enso_User.from (that:JS_Object) = if ["name", "email", "id"].any (k-> that.contains_key k . not) then Error.throw (Illegal_Argument.Error "Invalid JSON for an Enso_User.") else

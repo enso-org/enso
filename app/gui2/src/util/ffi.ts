@@ -1,7 +1,7 @@
-import { IS_NODE } from '@/util/detect'
+import { isNode } from '@/util/detect'
 import init, { parse, parse_doc_to_json } from 'rust-ffi/pkg/rust_ffi'
 
-if (IS_NODE) {
+if (isNode) {
   const fs = await import('node:fs/promises')
   const buffer = await fs.readFile('./rust-ffi/pkg/rust_ffi_bg.wasm')
   await init(buffer)

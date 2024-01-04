@@ -117,7 +117,7 @@ class TextTest extends InterpreterTest {
           |main =
           |    IO.println (List.Cons Nothing Nothing).to_display_text
           |    IO.println (Syntax_Error.Error "foo").to_display_text
-          |    IO.println (Type_Error.Error Nothing List.Nil "myvar").to_display_text
+          |    IO.println (Type_Error.Error Nothing List.Nil "`myvar`").to_display_text
           |    IO.println (Compile_Error.Error "error :(").to_display_text
           |    IO.println (Inexhaustive_Pattern_Match.Error 32).to_display_text
           |    IO.println (Arithmetic_Error.Error "cannot frobnicate quaternions").to_display_text

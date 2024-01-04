@@ -1,6 +1,7 @@
 package org.enso.example;
 
 import java.math.BigInteger;
+import java.util.concurrent.Executor;
 import java.util.function.Function;
 
 /** A class used for testing Java Interop from Enso code */
@@ -61,6 +62,12 @@ public class TestClass {
       case 0 -> throw new NullPointerException();
       case 1 -> throw new NullPointerException("NPE!");
       default -> 2;
+    };
+  }
+
+  public static Executor newDirectExecutor() {
+    return (command) -> {
+      command.run();
     };
   }
 

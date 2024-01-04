@@ -24,7 +24,7 @@ error_preprocessor x =
         message = err.to_display_text
         stack_trace = x.get_stack_trace_text.if_nothing "" . split '\n'
         truncated_message = Helpers.truncate message
-        full_message = truncated_message + if stack_trace.length > 1 then " (" + stack_trace.at 1 . trim +")" else ""
+        full_message = truncated_message + if stack_trace.length > 0 then " (" + stack_trace.at 0 . trim +")" else ""
         JS_Object.from_pairs [['kind', 'Dataflow'], ['message', full_message]] . to_json
 
     if result.is_error then result.catch else ok
