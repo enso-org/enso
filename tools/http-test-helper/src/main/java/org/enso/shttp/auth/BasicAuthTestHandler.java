@@ -1,9 +1,10 @@
-package org.enso.shttp;
+package org.enso.shttp.auth;
 
 import com.sun.net.httpserver.HttpExchange;
 import java.io.IOException;
 import java.util.Base64;
 import java.util.List;
+import org.enso.shttp.SimpleHttpHandler;
 
 public class BasicAuthTestHandler extends SimpleHttpHandler {
   private final String username = "enso-test-user";

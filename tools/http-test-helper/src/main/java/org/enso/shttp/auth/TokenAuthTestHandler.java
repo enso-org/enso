@@ -1,4 +1,4 @@
-package org.enso.shttp;
+package org.enso.shttp.auth;
 
 import com.sun.net.httpserver.HttpExchange;
 import java.io.IOException;
