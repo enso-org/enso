@@ -237,6 +237,7 @@ impl<'s> Resolver<'s> {
                 self.context = Context::Statement;
             }
             token::Variant::BlockStart(_) => {
+                self.finish_current_line();
                 let macros_start = self.macros.len();
                 let outputs_start = self.lines.len();
                 let items = self.items.len();

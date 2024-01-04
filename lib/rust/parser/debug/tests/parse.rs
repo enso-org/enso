@@ -108,11 +108,13 @@ fn else_block() {
 fn if_then_else_chained_block() {
     #[rustfmt::skip]
     test("if True then True else False\n .to_text", block![
-       (MultiSegmentApp #(((Ident if) (Ident True))
-                          ((Ident then) (Ident True))
-                          ((Ident else) (ArgumentBlockApplication (Ident False)
-                            #((OprSectionBoundary 1 (OprApp () (Ok ".") (Ident to_text))))
-                          ))))]);
+        (ArgumentBlockApplication
+            (MultiSegmentApp #(((Ident if) (Ident True))
+                ((Ident then) (Ident True))
+                ((Ident else) (Ident False)
+            )))
+            #((OprSectionBoundary 1 (OprApp () (Ok ".") (Ident to_text))))
+        )]);
 }
 
 #[test]
