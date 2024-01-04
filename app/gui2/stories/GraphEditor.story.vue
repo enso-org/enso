@@ -36,10 +36,12 @@ main =
     third_node = 2 + 2
 `)
 
-/// Note: These props should be synced with the props in
-// `app/ide-desktop/lib/dashboard/src/authentication/src/components/app.tsx`.
-// We need this here, as the rect component is not part of the dashboard and not usually available in the demo scenes.
-// Using this wrapper enables us to see toasts in the absence of the dashboard/React.
+/**
+ * Note: These props should be synced with the props in
+ * `app/ide-desktop/lib/dashboard/src/authentication/src/components/app.tsx`.
+ * We need this here, as the react component is not part of the dashboard and not usually available in the demo scenes.
+ * Using this wrapper enables us to see toasts in the absence of the dashboard/React.
+ */
 const toastProps = reactive({
   position: 'top-center',
   theme: 'light',
@@ -48,7 +50,7 @@ const toastProps = reactive({
   toastClassName: 'text-sm leading-170 bg-frame-selected rounded-2xl backdrop-blur-3xl',
   limit: 3,
 })
-const JSONView = createReactWrapper(ToastContainer, toastProps)
+const WrappedToastContainer = createReactWrapper(ToastContainer, toastProps)
 </script>
 
 <template>
@@ -64,7 +66,7 @@ const JSONView = createReactWrapper(ToastContainer, toastProps)
     responsiveDisabled
     autoPropsDisabled
   >
-    <JSONView />
+    <WrappedToastContainer />t
     <MockProjectStoreWrapper v-model="text">
       <Suspense><GraphEditor /></Suspense>
     </MockProjectStoreWrapper>

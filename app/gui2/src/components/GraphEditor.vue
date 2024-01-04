@@ -65,7 +65,7 @@ function initStartupToast() {
   })
 }
 
-function initiConnectionLostToast() {
+function initConnectionLostToast() {
   let connectionLostToast = 'connectionLostToast'
   document.addEventListener(
     ProjectManagerEvents.loadingFailed,
@@ -82,15 +82,16 @@ function initiConnectionLostToast() {
   })
 }
 
-projectStore.lsRpcConnection.catch((err) => {
-  toast.error(`Connection to language server failed: ${err}`)
-})
-
-projectStore.lsRpcConnection.then((ls) => {
-  ls.client.onError((err) => {
-    toast.error(`Language server error: ${err}`)
-  })
-})
+projectStore.lsRpcConnection.then(
+  (ls) => {
+    ls.client.onError((err) => {
+      toast.error(`Language server error: ${err}`)
+    })
+  },
+  (err) => {
+    toast.error(`Connection to language server failed: ${err}`)
+  },
+)
 
 projectStore.executionContext.on('executionFailed', (err) => {
   toast.error(`Execution Failed: ${err}`, {})
@@ -98,7 +99,7 @@ projectStore.executionContext.on('executionFailed', (err) => {
 
 onMounted(() => {
   initStartupToast()
-  initiConnectionLostToast()
+  initConnectionLostToast()
 })
 
 const nodeSelection = provideGraphSelection(graphNavigator, graphStore.nodeRects, {
