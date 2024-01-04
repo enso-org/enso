@@ -68,6 +68,7 @@ export default function AssetRow(props: AssetRowProps) {
         dispatchAssetListEvent,
         setAssetSettingsPanelProps,
         doToggleDirectoryExpansion,
+        doCopy,
         doCut,
         doPaste,
     } = state
@@ -102,7 +103,7 @@ export default function AssetRow(props: AssetRowProps) {
         }
     }, [selected, visibility, /* should never change */ setSelected])
 
-    const doCopy = React.useCallback(
+    const doCopyOnBackend = React.useCallback(
         async (newParentId: backendModule.DirectoryId | null) => {
             try {
                 setAsset(oldAsset => {
@@ -299,7 +300,7 @@ export default function AssetRow(props: AssetRowProps) {
             }
             case assetEventModule.AssetEventType.copy: {
                 if (event.ids.has(item.key)) {
-                    await doCopy(event.newParentId)
+                    await doCopyOnBackend(event.newParentId)
                 }
                 break
             }
@@ -504,6 +505,7 @@ export default function AssetRow(props: AssetRowProps) {
                                                 ? event.target
                                                 : event.currentTarget
                                         }
+                                        doCopy={doCopy}
                                         doCut={doCut}
                                         doPaste={doPaste}
                                         doDelete={doDelete}
@@ -600,6 +602,7 @@ export default function AssetRow(props: AssetRowProps) {
                                 }}
                                 event={{ pageX: 0, pageY: 0 }}
                                 eventTarget={null}
+                                doCopy={doCopy}
                                 doCut={doCut}
                                 doPaste={doPaste}
                                 doDelete={doDelete}

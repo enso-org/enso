@@ -14,6 +14,7 @@ import * as drag from '../drag'
 import * as hooks from '../../hooks'
 import * as localStorageModule from '../localStorage'
 import * as localStorageProvider from '../../providers/localStorage'
+import * as pasteDataModule from '../pasteData'
 import * as permissions from '../permissions'
 import * as set from '../set'
 import * as shortcutsModule from '../shortcuts'
@@ -214,8 +215,8 @@ export interface AssetsTableState {
     category: categorySwitcher.Category
     labels: Map<backendModule.LabelName, backendModule.Label>
     deletedLabelNames: Set<backendModule.LabelName>
-    hasCopyData: boolean
-    setCopyData: (copyData: Set<backendModule.AssetId>) => void
+    hasPasteData: boolean
+    setPasteData: (pasteData: pasteDataModule.PasteData<Set<backendModule.AssetId>>) => void
     sortColumn: columnModule.SortableColumn | null
     setSortColumn: (column: columnModule.SortableColumn | null) => void
     sortDirection: sorting.SortDirection | null
@@ -247,6 +248,7 @@ export interface AssetsTableState {
     ) => void
     doCloseIde: (project: backendModule.ProjectAsset) => void
     doCreateLabel: (value: string, color: backendModule.LChColor) => Promise<void>
+    doCopy: () => void
     doCut: () => void
     doPaste: (
         newParentKey: backendModule.AssetId | null,
@@ -343,14 +345,18 @@ export default function AssetsTable(props: AssetsTableProps) {
     const [sortColumn, setSortColumn] = React.useState<columnModule.SortableColumn | null>(null)
     const [sortDirection, setSortDirection] = React.useState<sorting.SortDirection | null>(null)
     const [selectedKeys, setSelectedKeys] = React.useState(() => new Set<backendModule.AssetId>())
-    const [copyData, setCopyData] = React.useState<Set<backendModule.AssetId> | null>(null)
+    const [pasteData, setPasteData] = React.useState<pasteDataModule.PasteData<
+        Set<backendModule.AssetId>
+    > | null>(null)
     const [, setQueuedAssetEvents] = React.useState<assetEventModule.AssetEvent[]>([])
     const [, setNameOfProjectToImmediatelyOpen] = React.useState(initialProjectName)
     const isCloud = backend.type !== backendModule.BackendType.local
     const scrollContainerRef = React.useRef<HTMLDivElement>(null)
     const headerRowRef = React.useRef<HTMLTableRowElement>(null)
     const assetTreeRef = React.useRef<assetTreeNode.AssetTreeNode[]>([])
-    const copyDataRef = React.useRef<Set<backendModule.AssetId> | null>(null)
+    const pasteDataRef = React.useRef<pasteDataModule.PasteData<Set<backendModule.AssetId>> | null>(
+        null
+    )
     const nodeMapRef = React.useRef<
         ReadonlyMap<backendModule.AssetId, assetTreeNode.AssetTreeNode>
     >(new Map<backendModule.AssetId, assetTreeNode.AssetTreeNode>())
@@ -431,20 +437,20 @@ export default function AssetsTable(props: AssetsTableProps) {
     }, [assetTree])
 
     React.useEffect(() => {
-        copyDataRef.current = copyData
-    }, [copyData])
+        pasteDataRef.current = pasteData
+    }, [pasteData])
 
     React.useEffect(() => {
         return shortcuts.registerKeyboardHandlers({
             [shortcutsModule.KeyboardAction.cancelCut]: () => {
-                if (copyDataRef.current == null) {
+                if (pasteDataRef.current == null) {
                     return false
                 } else {
                     dispatchAssetEvent({
                         type: assetEventModule.AssetEventType.cancelCut,
-                        ids: copyDataRef.current,
+                        ids: pasteDataRef.current.data,
                     })
-                    setCopyData(null)
+                    setPasteData(null)
                     return
                 }
             },
@@ -1245,16 +1251,22 @@ export default function AssetsTable(props: AssetsTableProps) {
         [projectStartupInfo, rawDoCloseIde, /* should never change */ dispatchAssetEvent]
     )
 
+    const doCopy = React.useCallback(() => {
+        unsetModal()
+        setPasteData({ type: pasteDataModule.PasteType.copy, data: selectedKeys })
+    }, [selectedKeys, /* should never change */ unsetModal])
+
     const doCut = React.useCallback(() => {
+        unsetModal()
         setSelectedKeys(oldSelectedKeys => {
             queueMicrotask(() => {
-                if (copyData != null) {
+                if (pasteData != null) {
                     dispatchAssetEvent({
                         type: assetEventModule.AssetEventType.cancelCut,
-                        ids: copyData,
+                        ids: pasteData.data,
                     })
                 }
-                setCopyData(oldSelectedKeys)
+                setPasteData({ type: pasteDataModule.PasteType.move, data: oldSelectedKeys })
                 dispatchAssetEvent({
                     type: assetEventModule.AssetEventType.cut,
                     ids: oldSelectedKeys,
@@ -1262,28 +1274,50 @@ export default function AssetsTable(props: AssetsTableProps) {
             })
             return new Set()
         })
-    }, [copyData, /* should never change */ dispatchAssetEvent])
+    }, [
+        pasteData,
+        /* should never change */ unsetModal,
+        /* should never change */ dispatchAssetEvent,
+    ])
 
     const doPaste = React.useCallback(
         (
             newParentKey: backendModule.AssetId | null,
             newParentId: backendModule.DirectoryId | null
         ) => {
-            if (copyData != null) {
-                if (newParentKey != null && copyData.has(newParentKey)) {
+            unsetModal()
+            if (pasteData != null) {
+                if (newParentKey != null && pasteData.data.has(newParentKey)) {
                     toast.toast.error('Cannot paste a folder into itself.')
                 } else {
-                    setCopyData(null)
-                    dispatchAssetEvent({
-                        type: assetEventModule.AssetEventType.move,
-                        ids: copyData,
-                        newParentKey,
-                        newParentId,
-                    })
+                    if (pasteData.type === pasteDataModule.PasteType.copy) {
+                        const assets = Array.from(pasteData.data, id =>
+                            nodeMapRef.current.get(id)
+                        ).flatMap(asset => (asset ? [asset.item] : []))
+                        dispatchAssetListEvent({
+                            type: assetListEventModule.AssetListEventType.copy,
+                            items: assets,
+                            newParentId,
+                            newParentKey,
+                        })
+                    } else {
+                        dispatchAssetEvent({
+                            type: assetEventModule.AssetEventType.move,
+                            ids: pasteData.data,
+                            newParentKey,
+                            newParentId,
+                        })
+                    }
+                    setPasteData(null)
                 }
             }
         },
-        [copyData, /* should never change */ dispatchAssetEvent]
+        [
+            pasteData,
+            /* should never change */ unsetModal,
+            /* should never change */ dispatchAssetEvent,
+            /* should never change */ dispatchAssetListEvent,
+        ]
     )
 
     const doRenderContextMenu = React.useCallback(
@@ -1374,30 +1408,21 @@ export default function AssetsTable(props: AssetsTableProps) {
                                     <MenuEntry
                                         hidden={hidden}
                                         action={shortcutsModule.KeyboardAction.copyAll}
-                                        doAction={() => {
-                                            unsetModal()
-                                            setCopyData(selectedKeys)
-                                        }}
+                                        doAction={doCopy}
                                     />
                                 )}
                                 {isCloud && ownsAllSelectedAssets && (
                                     <MenuEntry
                                         hidden={hidden}
                                         action={shortcutsModule.KeyboardAction.cutAll}
-                                        doAction={() => {
-                                            unsetModal()
-                                            doCut()
-                                        }}
+                                        doAction={doCut}
                                     />
                                 )}
-                                {copyData != null && copyData.size > 0 && (
+                                {pasteData != null && pasteData.data.size > 0 && (
                                     <MenuEntry
                                         hidden={hidden}
                                         action={shortcutsModule.KeyboardAction.pasteAll}
                                         doAction={() => {
-                                            unsetModal()
-                                            // FIXME: Add an enum flag to `copyData` that determines
-                                            // whether the data is moved or copied.
                                             doPaste(null, null)
                                         }}
                                     />
@@ -1406,7 +1431,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                         )}
                         <GlobalContextMenu
                             hidden={hidden}
-                            hasCopyData={copyData != null}
+                            hasCopyData={pasteData != null}
                             directoryKey={null}
                             directoryId={null}
                             dispatchAssetListEvent={dispatchAssetListEvent}
@@ -1419,8 +1444,8 @@ export default function AssetsTable(props: AssetsTableProps) {
         [
             isCloud,
             category,
-            copyData,
-            selectedKeys,
+            pasteData,
+            doCopy,
             doCut,
             doPaste,
             organization,
@@ -1443,8 +1468,8 @@ export default function AssetsTable(props: AssetsTableProps) {
             category,
             labels: allLabels,
             deletedLabelNames,
-            hasCopyData: copyData != null,
-            setCopyData,
+            hasPasteData: pasteData != null,
+            setPasteData,
             sortColumn,
             setSortColumn,
             sortDirection,
@@ -1462,6 +1487,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             doOpenIde,
             doCloseIde,
             doCreateLabel,
+            doCopy,
             doCut,
             doPaste,
         }),
@@ -1470,7 +1496,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             category,
             allLabels,
             deletedLabelNames,
-            copyData,
+            pasteData,
             sortColumn,
             sortDirection,
             assetEvents,
@@ -1480,6 +1506,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             doOpenIde,
             doCloseIde,
             doCreateLabel,
+            doCopy,
             doCut,
             doPaste,
             /* should never change */ setAssetSettingsPanelProps,

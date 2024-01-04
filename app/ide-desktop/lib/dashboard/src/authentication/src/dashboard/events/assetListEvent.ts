@@ -103,7 +103,6 @@ interface AssetListCloseFolderEvent extends AssetListBaseEvent<AssetListEventTyp
 
 /** A signal that files should be copied. */
 interface AssetListCopyEvent extends AssetListBaseEvent<AssetListEventType.copy> {
-    keys: Set<backend.AssetId>
     /** `null` if and only if the new parent directory is the root directory. */
     newParentKey: backend.AssetId | null
     /** `null` if and only if the new parent directory is the root directory. */

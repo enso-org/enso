@@ -441,7 +441,7 @@ const DEFAULT_KEYBOARD_SHORTCUTS: Record<KeyboardAction, KeyboardShortcut[]> = {
     [KeyboardAction.label]: [keybind(KeyboardAction.label, [CTRL], 'L')],
     [KeyboardAction.duplicate]: [keybind(KeyboardAction.duplicate, [CTRL], 'D')],
     [KeyboardAction.copy]: [keybind(KeyboardAction.copy, [CTRL], 'C')],
-    [KeyboardAction.copyAll]: [keybind(KeyboardAction.copy, [CTRL], 'C')],
+    [KeyboardAction.copyAll]: [keybind(KeyboardAction.copyAll, [CTRL], 'C')],
     [KeyboardAction.cut]: [keybind(KeyboardAction.cut, [CTRL], 'X')],
     [KeyboardAction.cutAll]: [keybind(KeyboardAction.cutAll, [CTRL], 'X')],
     [KeyboardAction.cancelCut]: [keybind(KeyboardAction.cancelCut, [], 'Escape')],
