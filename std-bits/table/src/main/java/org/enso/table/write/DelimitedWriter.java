@@ -207,7 +207,7 @@ public class DelimitedWriter {
        * TODO This should be checking if commenting is enabled, but currently
        * due to limitations of the reader library it is always enabled, just
        * sometimes the comment char is set to `\0`. See the documentation of
-       * {@link DelimitedReader#UNUSED_CHARACTER}.
+       * {@link DelimitedReader#COMMENT_CHARACTER}.
        *
        * See issue https://github.com/enso-org/enso/issues/5655
        */

@@ -61,6 +61,7 @@ export const useGraphStore = defineStore('graph', () => {
   const idMap = ref(proj.module?.doc.getIdMap()) as Ref<IdMap | undefined>
   const astModule: Module = MutableModule.Observable()
   const moduleRoot = ref<AstId>()
+  let moduleDirty = false
 
   // Initialize text and idmap once module is loaded (data != null)
   watch(data, () => {
@@ -87,6 +88,7 @@ export const useGraphStore = defineStore('graph', () => {
   const unconnectedEdge = ref<UnconnectedEdge>()
 
   useObserveYjs(data, (event) => {
+    moduleDirty = false
     if (!event.changes.keys.size) return
     const code = proj.module?.doc.getCode()
     if (code) moduleCode.value = code
@@ -218,7 +220,7 @@ export const useGraphStore = defineStore('graph', () => {
     const rhs = Ast.parse(expression, edit)
     const assignment = Ast.Assignment.new(edit, ident, rhs)
     functionBlock.push(edit, assignment)
-    commitEdit(edit, root, new Map([[rhs.exprId, meta]]))
+    commitEdit(edit, new Map([[rhs.exprId, meta]]))
   }
 
   function deleteNode(id: ExprId) {
@@ -233,7 +235,7 @@ export const useGraphStore = defineStore('graph', () => {
     }
     const edit = astModule.edit()
     edit.delete(node.outerExprId)
-    commitEdit(edit, root)
+    commitEdit(edit)
   }
 
   function setNodeContent(id: ExprId, content: string) {
@@ -250,7 +252,7 @@ export const useGraphStore = defineStore('graph', () => {
       console.error(`BUG: Cannot update node: No module root.`)
       return
     }
-    commitEdit(edit, root)
+    commitEdit(edit)
   }
 
   function setExpressionContent(id: ExprId, content: string) {
@@ -369,16 +371,23 @@ export const useGraphStore = defineStore('graph', () => {
     return true
   }
 
-  function commitEdit(
-    module: Module,
-    root: AstId,
-    metadataUpdates?: Map<AstId, Partial<NodeMetadata>>,
-  ) {
-    const ast = module.get(root)
+  function commitEdit(edit: Module, metadataUpdates?: Map<AstId, Partial<NodeMetadata>>) {
+    const root = moduleRoot.value
+    if (!root) {
+      console.error(`BUG: Cannot commit edit: No module root.`)
+      return
+    }
+    const ast = edit.get(root)
     if (!ast) return
-    const printed = Ast.print(ast.exprId, module)
+    const printed = Ast.print(ast.exprId, edit)
     const module_ = proj.module
     if (!module_) return
+    if (moduleDirty) {
+      console.warn(
+        `An edit has been committed before a previous edit has been observed. The new edit will supersede the previous edit.`,
+      )
+    }
+    moduleDirty = true
     const idMap = new IdMap()
     for (const [tokenKey, id] of printed.info.tokens) {
       const range = Ast.keyToRange(tokenKey)
