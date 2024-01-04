@@ -90,11 +90,11 @@ export function prepareCollapsedInfo(selected: Set<ExprId>, graphDb: GraphDb): C
     if (arbitaryLeaf == null) throw new Error('Cannot select the output node, no leaf nodes found.')
     const outputNode = graphDb.nodeIdToNode.get(arbitaryLeaf)
     if (outputNode == null) throw new Error(`The node with id ${arbitaryLeaf} not found.`)
-    const identifier = unwrap(tryIdentifier(outputNode.pattern?.repr() || ''))
+    const identifier = unwrap(tryIdentifier(outputNode.pattern?.code() || ''))
     output = { node: arbitaryLeaf, identifier }
   }
 
-  const pattern = graphDb.nodeIdToNode.get(output.node)?.pattern?.repr() ?? ''
+  const pattern = graphDb.nodeIdToNode.get(output.node)?.pattern?.code() ?? ''
 
   return {
     extracted: {
@@ -130,7 +130,7 @@ if (import.meta.vitest) {
   function setupGraphDb(code: string, graphDb: GraphDb) {
     const ast = Ast.parseTransitional(code, IdMap.Mock())
     assert(ast instanceof Ast.BodyBlock)
-    const expressions = Array.from(ast.expressions())
+    const expressions = Array.from(ast.statements())
     const func = expressions[0]
     assert(func instanceof Ast.Function)
     graphDb.readFunctionAst(func, () => undefined)
@@ -238,7 +238,7 @@ if (import.meta.vitest) {
     const nodePatternToId = new Map<string, ExprId>()
     for (const code of testCase.initialNodes) {
       const [pattern, expr] = code.split(/\s*=\s*/)
-      const [id, _] = nodes.find(([_id, node]) => node.rootSpan.repr() == expr)!
+      const [id, _] = nodes.find(([_id, node]) => node.rootSpan.code() == expr)!
       nodeCodeToId.set(code, id)
       if (pattern != null) nodePatternToId.set(pattern, id)
     }
