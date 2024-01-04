@@ -43,9 +43,9 @@ collect_benches = Bench.build builder->
                         data.vec.map id on_problems=problem_behavior . catch
                     group_builder.specify "Map_Id_One_Error" <|
                         data.vec.map id_one_error on_problems=problem_behavior . catch
-                    group_builder.specify "Map_Id_All_Errors_With_Ignore" <|
+                    group_builder.specify "Map_Id_All_Errors" <|
                         data.vec.map id_always_throw on_problems=problem_behavior . catch
-                    group_builder.specify "Map_Id_Ten_Percent_Errors_With_Ignore" <|
+                    group_builder.specify "Map_Id_Ten_Percent_Errors" <|
                         data.vec.map id_throw_ten_percent on_problems=problem_behavior . catch
 
     type_group "Vector" identity
