@@ -58,16 +58,15 @@ collect_benches = Bench.build builder->
             group_builder.specify "all_warnings" <|
                 Warning.get_all data.all_warnings
 
-        ##
-            builder.group "warnings_get_all_wrapped_"+vector_type options group_builder->
-                group_builder.specify "no_warnings" <|
-                    Warning.get_all_wrapped data.no_warnings
-                group_builder.specify "one_warning" <|
-                    Warning.get_all_wrapped data.one_warning
-                group_builder.specify "ten_percent_warning" <|
-                    Warning.get_all_wrapped data.ten_percent_warning
-                group_builder.specify "all_warnings" <|
-                    Warning.get_all_wrapped data.all_warnings
+        builder.group "warnings_get_all_wrapped_"+vector_type options group_builder->
+            group_builder.specify "no_warnings" <|
+                Warning.get_all wrap_errors=True data.no_warnings
+            group_builder.specify "one_warning" <|
+                Warning.get_all wrap_errors=True data.one_warning
+            group_builder.specify "ten_percent_warning" <|
+                Warning.get_all wrap_errors=True data.ten_percent_warnings
+            group_builder.specify "all_warnings" <|
+                Warning.get_all wrap_errors=True data.all_warnings
 
     type_group "Vector" identity
     type_group "Array" (v -> v.to_array)
