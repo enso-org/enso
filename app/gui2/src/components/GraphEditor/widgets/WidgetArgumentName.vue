@@ -10,10 +10,10 @@ const props = defineProps(widgetProps(widgetDefinition))
 const portInfo = injectPortInfo(true)
 const showArgumentValue = computed(() => {
   return (
-    props.input instanceof ArgumentAst &&
-    (portInfo == null ||
-      !portInfo.connected ||
-      (portInfo.portId as string) !== (props.input.ast.exprId as string))
+    props.input instanceof ArgumentPlaceholder ||
+    portInfo == null ||
+    !portInfo.connected ||
+    (portInfo.portId as string) !== (props.input.ast.exprId as string)
   )
 })
 
@@ -35,8 +35,8 @@ export const widgetDefinition = defineWidget([ArgumentAst.matchWithArgInfo, Argu
 <template>
   <div class="WidgetArgumentName" :class="{ placeholder, primary }">
     <template v-if="showArgumentValue">
-      <span class="value">{{ props.input.argInfo.name }}</span
-      ><NodeWidget :input="props.input" />
+      <span class="name">{{ props.input.argInfo.name }}</span
+      ><NodeWidget :input="props.input" allowEmpty />
     </template>
     <template v-else>{{ props.input.argInfo.name }}</template>
   </div>
@@ -50,11 +50,12 @@ export const widgetDefinition = defineWidget([ArgumentAst.matchWithArgInfo, Argu
 }
 
 .placeholder,
-.value {
+.name {
   color: rgb(255 255 255 / 0.5);
-}
-
-.value {
   margin-right: 8px;
+
+  &:last-child {
+    margin-right: 0px;
+  }
 }
 </style>

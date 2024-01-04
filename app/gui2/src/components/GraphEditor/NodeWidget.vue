@@ -13,6 +13,7 @@ import { computed, proxyRefs } from 'vue'
 const props = defineProps<{
   input: WidgetInput
   nest?: boolean
+  allowEmpty?: boolean
   /**
    * A function that intercepts and handles a value update emitted by this widget. When it returns
    * `false`, the update continues to be propagated to the parent widget. When it returns `true`,
@@ -97,7 +98,7 @@ const spanStart = computed(() => {
     @update="updateHandler"
   />
   <span
-    v-else
+    v-else-if="!props.allowEmpty"
     :title="`No matching widget for input: ${
       Object.getPrototypeOf(props.input)?.constructor?.name ?? JSON.stringify(props.input)
     }`"
