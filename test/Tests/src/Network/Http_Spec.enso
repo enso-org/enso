@@ -505,6 +505,11 @@ spec =
             r1.should_be_a Response
             # The result is JSON data:
             r1.headers.find (p-> p.name.equals_ignore_case "Content-Type") . value . should_equal "application/json"
+            r1.get_header "Content-Type" . should_equal "application/json"
+            r1.get_header "Some-NONEXISTENT-header" . should_equal Nothing
+            r1.get_header "Some-NONEXISTENT-header" if_missing=42 . should_equal 42
+            r1.get_header "Some-NONEXISTENT-header" if_missing=(Error.throw (Illegal_Argument.Error "foo")) . should_fail_with Illegal_Argument
+            r1.get_header "Content-Type" if_missing=(Error.throw (Illegal_Argument.Error "foo")) . should_equal "application/json"
 
             uri = URI.from (base_url_with_slash + "test_headers")
                 . add_query_argument "test-header" "test-value"

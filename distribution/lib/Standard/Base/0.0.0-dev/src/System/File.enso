@@ -7,6 +7,7 @@ import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Extensions
 import project.Data.Text.Matching_Mode.Matching_Mode
 import project.Data.Text.Text
+import project.Data.Text.Text_Sub_Range.Text_Sub_Range
 import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Data.Vector.Vector
 import project.Error.Error
@@ -818,7 +819,5 @@ get_child_widget file =
 ## PRIVATE
 find_extension_from_name : Text -> Text
 find_extension_from_name name =
-    last_dot = name.locate "." mode=Matching_Mode.Last
-    if last_dot.is_nothing then "" else
-        extension = name.drop (Index_Sub_Range.First last_dot.start)
-        if extension == "." then "" else extension
+    extension = name.drop (Text_Sub_Range.Before_Last ".")
+    if extension == "." then "" else extension

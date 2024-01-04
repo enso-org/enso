@@ -18,6 +18,7 @@ import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.error.RedefinedConversionException;
 import org.enso.interpreter.runtime.error.RedefinedMethodException;
+import org.enso.interpreter.runtime.util.CachingSupplier;
 
 /** A representation of Enso's per-file top-level scope. */
 public final class ModuleScope implements EnsoObject {
@@ -152,28 +153,6 @@ public final class ModuleScope implements EnsoObject {
       throw new RedefinedMethodException(type.getName(), method);
     } else {
       methodMap.put(method, new CachingSupplier<>(supply));
-    }
-  }
-
-  private static final class CachingSupplier<T> implements Supplier<T> {
-    private final Supplier<T> supply;
-    private T memo;
-
-    CachingSupplier(Supplier<T> supply) {
-      this.supply = supply;
-    }
-
-    CachingSupplier(T memo) {
-      this.supply = null;
-      this.memo = memo;
-    }
-
-    @Override
-    public T get() {
-      if (memo == null) {
-        memo = supply.get();
-      }
-      return memo;
     }
   }
 
