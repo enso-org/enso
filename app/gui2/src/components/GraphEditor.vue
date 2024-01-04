@@ -29,12 +29,12 @@ import { colorFromString } from '@/util/colors'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import * as set from 'lib0/set'
+import { toast } from 'react-toastify'
 import type { ExprId, NodeMetadata } from 'shared/yjsModel'
-import { computed, onMounted, onScopeDispose, ref, watch } from 'vue'
-import { toast, type Id as ToastId } from 'vue3-toastify'
+import { computed, onMounted, onScopeDispose, onUnmounted, ref, watch } from 'vue'
+import { ProjectManagerEvents } from '../../../ide-desktop/lib/dashboard/src/authentication/src/dashboard/projectManager'
 import { type Usage } from './ComponentBrowser/input'
 
-const STARTUP_TOAST_DELAY_MS = 100
 const EXECUTION_MODES = ['design', 'live']
 // Assumed size of a newly created node. This is used to place the component browser.
 const DEFAULT_NODE_SIZE = new Vec2(0, 24)
@@ -52,18 +52,52 @@ const componentBrowserUsage = ref<Usage>({ type: 'newNode' })
 const suggestionDb = useSuggestionDbStore()
 const interaction = provideInteractionHandler()
 
+/// === UI Messages and Errors ===
 function initStartupToast() {
   let startupToast = toast.info('Initializing the project. This can take up to one minute.', {
     autoClose: false,
   })
 
-  const removeToast = () => toast.remove(startupToast)
+  const removeToast = () => toast.dismiss(startupToast)
   projectStore.firstExecution.then(removeToast)
   onScopeDispose(removeToast)
 }
 
+function initConnectionLostToast() {
+  let connectionLostToast = 'connectionLostToast'
+  document.addEventListener(
+    ProjectManagerEvents.loadingFailed,
+    () => {
+      toast.error('Lost connection to Language Server.', {
+        autoClose: false,
+        toastId: connectionLostToast,
+      })
+    },
+    { once: true },
+  )
+  onUnmounted(() => {
+    toast.dismiss(connectionLostToast)
+  })
+}
+
+projectStore.lsRpcConnection.then(
+  (ls) => {
+    ls.client.onError((err) => {
+      toast.error(`Language server error: ${err}`)
+    })
+  },
+  (err) => {
+    toast.error(`Connection to language server failed: ${err}`)
+  },
+)
+
+projectStore.executionContext.on('executionFailed', (err) => {
+  toast.error(`Execution Failed: ${err}`, {})
+})
+
 onMounted(() => {
   initStartupToast()
+  initConnectionLostToast()
 })
 
 const nodeSelection = provideGraphSelection(graphNavigator, graphStore.nodeRects, {
