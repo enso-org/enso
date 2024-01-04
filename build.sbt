@@ -1507,7 +1507,11 @@ lazy val `runtime-test-instruments` =
         JPMSUtils.filterModulesFromUpdate(
           update.value,
           GraalVM.modules ++ Seq(
-            "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion
+            "org.graalvm.sdk"     % "polyglot-tck"            % graalMavenPackagesVersion,
+            "org.graalvm.truffle" % "truffle-tck"             % graalMavenPackagesVersion,
+            "org.graalvm.truffle" % "truffle-tck-common"      % graalMavenPackagesVersion,
+            "org.graalvm.truffle" % "truffle-tck-tests"       % graalMavenPackagesVersion,
+            "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion
           ),
           streams.value.log,
           shouldContainAll = true
@@ -1515,6 +1519,7 @@ lazy val `runtime-test-instruments` =
       },
       libraryDependencies ++= GraalVM.modules,
       libraryDependencies ++= Seq(
+        "org.graalvm.sdk"  % "polyglot-tck"            % graalMavenPackagesVersion,
         "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided"
       )
     )
@@ -1557,6 +1562,12 @@ lazy val runtime = (project in file("engine/runtime"))
     },
     Test / parallelExecution := false,
     Test / logBuffered := false,
+    Test / javaOptions ++= Seq(
+      "-Dtck.values=java-host,enso",
+      "-Dtck.language=enso",
+      "-Dtck.inlineVerifierInstrument=false",
+      "-Dpolyglot.engine.AllowExperimentalOptions=true"
+    ),
     Test / testOptions += Tests.Argument(
       "-oD"
     ), // show timings for individual tests
@@ -1569,8 +1580,9 @@ lazy val runtime = (project in file("engine/runtime"))
       "org.graalvm.sdk"      % "polyglot-tck"            % graalMavenPackagesVersion % "provided",
       "org.graalvm.truffle"  % "truffle-api"             % graalMavenPackagesVersion % "provided",
       "org.graalvm.truffle"  % "truffle-dsl-processor"   % graalMavenPackagesVersion % "provided",
-      "org.graalvm.truffle"  % "truffle-tck"             % graalMavenPackagesVersion % "provided",
-      "org.graalvm.truffle"  % "truffle-tck-common"      % graalMavenPackagesVersion % "provided",
+      "org.graalvm.truffle"  % "truffle-tck"             % graalMavenPackagesVersion % Test,
+      "org.graalvm.truffle"  % "truffle-tck-common"      % graalMavenPackagesVersion % Test,
+      "org.graalvm.truffle"  % "truffle-tck-tests"       % graalMavenPackagesVersion % Test,
       "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion        % "provided",
       "org.scalacheck"      %% "scalacheck"              % scalacheckVersion         % Test,
       "org.scalactic"       %% "scalactic"               % scalacticVersion          % Test,
@@ -1607,8 +1619,12 @@ lazy val runtime = (project in file("engine/runtime"))
       val updateReport = (Test / update).value
       val requiredModIds =
         GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.insightPkgs ++ logbackPkg ++ Seq(
-          "org.slf4j"        % "slf4j-api"               % slf4jVersion,
-          "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion
+          "org.slf4j"           % "slf4j-api"               % slf4jVersion,
+          "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion,
+          "org.graalvm.sdk"     % "polyglot-tck"            % graalMavenPackagesVersion,
+          "org.graalvm.truffle" % "truffle-tck"             % graalMavenPackagesVersion,
+          "org.graalvm.truffle" % "truffle-tck-common"      % graalMavenPackagesVersion,
+          "org.graalvm.truffle" % "truffle-tck-tests"       % graalMavenPackagesVersion
         )
       val requiredMods = JPMSUtils.filterModulesFromUpdate(
         updateReport,
@@ -1667,7 +1683,11 @@ lazy val runtime = (project in file("engine/runtime"))
       Map(
         // We patched the test-classes into the runtime module. These classes access some stuff from
         // unnamed module. Thus, let's add ALL-UNNAMED.
-        runtimeModName         -> Seq("ALL-UNNAMED", testInstrumentsModName),
+        runtimeModName -> Seq(
+          "ALL-UNNAMED",
+          testInstrumentsModName,
+          "truffle.tck.tests"
+        ),
         testInstrumentsModName -> Seq(runtimeModName)
       )
     },
