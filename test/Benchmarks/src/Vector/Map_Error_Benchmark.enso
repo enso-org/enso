@@ -22,11 +22,11 @@ id i = i
 id_one_error i = if i != 5 then i else
     Error.throw (Illegal_Argument.Error "error")
 
-always_throw i =
+id_always_throw i =
     _ = [i]
     Error.throw (Illegal_Argument.Error "error")
 
-throw_ten_percent i = if i > 0 then i else
+id_throw_ten_percent i = if i > 0 then i else
     Error.throw (Illegal_Argument.Error "error")
 
 collect_benches = Bench.build builder->
@@ -35,15 +35,18 @@ collect_benches = Bench.build builder->
     type_group vector_type alter =
         data = Data.Value (alter unaltered_data.vec)
 
-        builder.group "Map_Error_Benchmark_"+vector_type options group_builder->
-            group_builder.specify "Map_Id_No_Errors" <|
-                data.vec.map id
-            group_builder.specify "Map_Id_One_Error" <|
-                data.vec.map id_one_error . catch
-            group_builder.specify "Map_Id_All_Errors_With_Ignore" <|
-                data.vec.map always_throw on_problems=Problem_Behavior.Ignore
-            group_builder.specify "Map_Id_Ten_Percent_Errors_With_Ignore" <|
-                data.vec.map throw_ten_percent on_problems=Problem_Behavior.Ignore
+        [["ignore", Problem_Behavior.Ignore], ["report_warning", Problem_Behavior.Report_Warning], ["report_error", Problem_Behavior.Report_Error]].map x->
+            problem_behavior_name = x.at 0
+            problem_behavior = x.at 1
+            builder.group "Map_Error_Benchmark_"+vector_type+"_"+problem_behavior_name options group_builder->
+                    group_builder.specify "Map_Id_No_Errors" <|
+                        data.vec.map id on_problems=problem_behavior . catch
+                    group_builder.specify "Map_Id_One_Error" <|
+                        data.vec.map id_one_error on_problems=problem_behavior . catch
+                    group_builder.specify "Map_Id_All_Errors_With_Ignore" <|
+                        data.vec.map id_always_throw on_problems=problem_behavior . catch
+                    group_builder.specify "Map_Id_Ten_Percent_Errors_With_Ignore" <|
+                        data.vec.map id_throw_ten_percent on_problems=problem_behavior . catch
 
     type_group "Vector" identity
     type_group "Array" (v -> v.to_array)
