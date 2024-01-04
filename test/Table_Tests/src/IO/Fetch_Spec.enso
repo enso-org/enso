@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.File_Error.File_Error
+import Standard.Base.Network.HTTP.Response.Response
 import Standard.Base.Runtime.Context
 
 from Standard.Table import all
@@ -9,6 +10,8 @@ from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
 import project.Util
+
+polyglot java import java.util.Base64
 
 main = Test_Suite.run_main spec
 
@@ -69,3 +72,29 @@ spec =
             r3 = url.to_uri.fetch try_auto_parse_response=False . decode (Excel (Excel_Section.Worksheet "MyTestSheet"))
             r3.should_be_a Table
             r3.should_equal expected_table
+
+        Test.specify "format detection based on Content-Type and Content-Disposition" <|
+            content = 'A,B\n1,x\n3,y'
+            uri = URI.from (base_url_with_slash+"test_headers") . add_query_argument "base64_response_data" (Base64.getEncoder.encodeToString (content.bytes Encoding.utf_8))
+            expected_table = Table.from_rows ["A", "B"] [[1, "x"], [3, "y"]]
+
+            r0 = uri.fetch
+            # No automatic parsing, because no content type information is specified.
+            r0.should_be_a Response
+            r0.content_type . should_equal Nothing
+            r0.get_header "Content-Disposition" . should_equal Nothing
+
+            r1 = (uri.add_query_argument "Content-Type" "text/csv").fetch
+            r1.should_equal expected_table
+
+            r2 = (uri.add_query_argument "Content-Disposition" 'attachment; filename="my_table.csv"').fetch
+            r2.should_equal expected_table
+
+            # If the disposition suggest a text file, we will parse as text:
+            r3 = (uri.add_query_argument "Content-Disposition" 'attachment; filename="text.txt"').fetch
+            r3.should_be_a Text
+            r3.should_equal content
+
+            # Reinterpreting as TSV:
+            r4 = (uri.add_query_argument "Content-Type" "text/tab-separated-values").fetch
+            r4.should_equal (Table.from_rows ["Column 1"] [["A,B"], ["1,x"], ["3,y"]])

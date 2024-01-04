@@ -1,0 +1,91 @@
+import project.Data.Numbers.Integer
+import project.Data.Text.Encoding.Encoding
+import project.Data.Text.Text
+import project.Data.Vector.Vector
+import project.Nothing.Nothing
+import project.System.File.File
+from project.Data.Text.Extensions import all
+from project.System.File import find_extension_from_name
+
+## PRIVATE
+   A description of file metadata that may be used to detect or refine the file
+   format used to read a file.
+
+   All fields in the metadata are optional. What fields are set depends on what
+   data was available and may depend on the context, i.e. if the file is coming
+   from the local filesystem, remote filesystems (e.g. Enso_Cloud or S3),
+   the web etc.
+
+   Sometimes the filename field may contain information that is only a best
+   effort guess, i.e. in case of web queries, if the it cannot be inferred from
+   the headers, it may be based on the URL.
+type File_Format_Metadata
+    ## PRIVATE
+       Arguments:
+       - path: the path or the URI of the file.
+       - name: the name of the file.
+       - extension: the extension of the file.
+       - read_first_bytes: a function that reads the first bytes of the file.
+       - content_type: the content type of the file.
+    Value path:Text|Nothing name:Text|Nothing (extension:Text|Nothing = Nothing) (read_first_bytes:(Integer -> Nothing | Vector Integer)=(_->Nothing)) (content_type:Text|Nothing = Nothing)
+
+    ## PRIVATE
+       An instance that contains no information at all.
+    no_information : File_Format_Metadata
+    no_information = File_Format_Metadata.Value Nothing Nothing Nothing (_->Nothing) Nothing
+
+    ## PRIVATE
+       A helper method that encapsulates the common logic of trying to interpret
+       the content type.
+    interpret_content_type : Content_Type_Metadata | Nothing
+    interpret_content_type self = self.content_type.if_not_nothing <|
+        segments = self.content_type.split ";" . map .trim
+        if segments.length == 0 then Nothing else
+            Content_Type_Metadata.Value segments
+
+    ## PRIVATE
+       Uses the provided extension or if it is not present, tries to guess one
+       based on the filename.
+    guess_extension : Text | Nothing
+    guess_extension self = self.extension.if_nothing <|
+        self.name.if_not_nothing <|
+            guessed = find_extension_from_name self.name
+            if guessed == "" then Nothing else guessed
+
+## PRIVATE
+File_Format_Metadata.from (that:File) = File_Format_Metadata.Value that.path that.name that.extension that.read_first_bytes
+
+## PRIVATE
+type Content_Type_Metadata
+    ## PRIVATE
+    Value (segments : Vector Text)
+
+    ## PRIVATE
+    base_type : Text
+    base_type self = self.segments.first
+
+    ## PRIVATE
+       Finds for a segment that starts with the given prefix.
+    find_segment : Text -> Text | Nothing
+    find_segment self prefix:Text =
+        found = self.segments.find if_missing=Nothing (x-> x.starts_with prefix)
+        found.if_not_nothing <| found.drop prefix.length
+
+    ## PRIVATE
+       Returns the name of the charset as reported by the content type.
+    raw_charset : Text | Nothing
+    raw_charset self = self.find_segment "charset="
+
+    ## PRIVATE
+       Returns an `Encoding` instance that represents the charset as reported by
+       the content type.
+
+       It may so happen that `raw_charset` returns a non-Nothing value, but the
+       charset is not recognized. In that case this function will return
+       `Nothing`.
+    encoding : Encoding | Nothing
+    encoding self =
+        raw_charset = self.raw_charset
+        raw_charset.if_not_nothing <|
+            enc = Encoding.from_name raw_charset
+            if enc.is_error then Nothing else enc

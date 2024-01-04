@@ -1,0 +1,55 @@
+from Standard.Base import all
+import Standard.Base.Errors.Encoding_Error.Encoding_Error
+
+import Standard.Base.Network.HTTP.Response.Response
+
+import Standard.Test.Extensions
+from Standard.Test import Test, Test_Suite
+
+polyglot java import java.util.Base64
+
+main = Test_Suite.run_main spec
+
+spec =
+    ## To run this test locally:
+       $ sbt 'http-test-helper/run localhost 8080'
+       $ export ENSO_HTTP_TEST_HTTPBIN_URL=http://localhost:8080/
+    base_url = Environment.get "ENSO_HTTP_TEST_HTTPBIN_URL"
+    pending_has_url = if base_url != Nothing then Nothing else
+        "The HTTP tests only run when the `ENSO_HTTP_TEST_HTTPBIN_URL` environment variable is set to URL of the httpbin server"
+    base_url_with_slash = base_url.if_not_nothing <|
+        if base_url.ends_with "/" then base_url else base_url + "/"
+
+    Test.group "Format Detection in HTTP Fetch" pending=pending_has_url <|
+        content_utf = '["x", "Hello! 😊👍 ąę"]'
+        content_windows_1250 = '["y", "Hello! ąę"]'
+
+        url_utf8 = (URI.from base_url_with_slash / "test_headers")
+            . add_query_argument "Content-Type" "text/plain; charset=utf-8"
+            . add_query_argument "base64_response_data" (Base64.getEncoder.encodeToString (content_utf.bytes Encoding.utf_8))
+
+        url_windows_1250 = (URI.from base_url_with_slash / "test_headers")
+            . add_query_argument "Content-Type" "text/plain; charset=windows-1250"
+            . add_query_argument "base64_response_data" (Base64.getEncoder.encodeToString (content_windows_1250.bytes Encoding.windows_1250))
+
+        Test.specify "should detect the encoding from Content-Type in fetch" <|
+            url_utf8.fetch . should_equal content_utf
+            url_windows_1250.fetch . should_equal content_windows_1250
+
+        Test.specify "should detect the encoding from Content-Type in decode_as_text" <|
+            r1 = url_utf8.fetch try_auto_parse_response=False
+            r1.decode_as_text . should_equal content_utf
+
+            r2 = url_windows_1250.fetch try_auto_parse_response=False
+            r2.decode_as_text . should_equal content_windows_1250
+
+            r3 = url_utf8.fetch try_auto_parse_response=False
+            # We may override the encoding detected from Content-Type:
+            r3.decode_as_text Encoding.ascii . should_fail_with Encoding_Error
+
+        Test.specify "should detect the encoding from Content-Type in decode_as_json" <|
+            r1 = url_utf8.fetch try_auto_parse_response=False
+            r1.decode_as_json . should_equal ["x", "Hello! 😊👍 ąę"]
+
+            r2 = url_windows_1250.fetch try_auto_parse_response=False
+            r2.decode_as_json . should_equal ["y", "Hello! ąę"]
