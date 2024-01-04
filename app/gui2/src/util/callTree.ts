@@ -40,6 +40,7 @@ export class ArgumentPlaceholder {
   }
 
   toWidgetInput(forcePort: boolean = false): WidgetInput {
+    console.log('Passing dynamic cfg: ', this.dynamicConfig)
     return {
       portId: this.portId,
       [ArgumentInfoKey]: { info: this.argInfo, appKind: this.kind },
@@ -309,7 +310,10 @@ export class ArgumentApplication {
 
   toWidgetInput(): WidgetInput {
     return {
-      portId: this.appTree.exprId,
+      portId:
+        this.argument instanceof ArgumentAst
+          ? this.appTree.exprId
+          : (`app:${this.argument.portId}` as PortId),
       ast: this.appTree,
       [ArgumentApplicationKey]: this,
     }
@@ -331,8 +335,8 @@ function isAccessOperator(opr: Ast.Token | undefined): boolean {
   return opr != null && opr.code() === '.'
 }
 
-export declare const ArgumentApplicationKey: unique symbol
-export declare const ArgumentInfoKey: unique symbol
+export const ArgumentApplicationKey: unique symbol = Symbol('ArgumentApplicationKey')
+export const ArgumentInfoKey: unique symbol = Symbol('ArgumentInfoKey')
 declare module '@/providers/widgetRegistry' {
   export interface WidgetInput {
     [ArgumentApplicationKey]?: ArgumentApplication

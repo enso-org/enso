@@ -10,7 +10,7 @@ const repr = computed(() => props.input.ast.code())
 
 <script lang="ts">
 export const widgetDefinition = defineWidget(WidgetInput.isToken, {
-  priority: 1000,
+  priority: 0,
   score: Score.Good,
 })
 </script>

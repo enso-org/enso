@@ -32,7 +32,7 @@ function getRawBoolNode(ast: Ast.Ast) {
 }
 
 export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
-  priority: 10,
+  priority: 1001,
   score: (props) => {
     if (props.input.ast == null)
       return props.input[ArgumentInfoKey]?.info?.reprType === 'Standard.Base.Bool'

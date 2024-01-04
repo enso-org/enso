@@ -20,7 +20,7 @@ const value = computed({
 
 <script lang="ts">
 export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
-  priority: 10,
+  priority: 1001,
   score: (props) => {
     if (
       props.input.ast instanceof Ast.NumericLiteral ||
