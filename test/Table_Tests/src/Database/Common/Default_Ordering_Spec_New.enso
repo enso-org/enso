@@ -1,0 +1,66 @@
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+from Standard.Base.Runtime import assert
+
+from Standard.Table import Table, Sort_Column, Aggregate_Column
+from Standard.Table.Errors import all
+
+from Standard.Database import all
+from Standard.Database.Errors import all
+
+from Standard.Test_New import all
+
+import project.Util
+import project.Database.Helpers.Name_Generator
+
+type Data
+    Impl ~db_table_without_key ~db_table_with_key
+
+    create connection_func =
+        src_table = Table.new [["X", [1, 2, 3]], ["Y", [30, 20, 10]]]
+        Data.Impl (create_db_table_without_key src_table (connection_func Nothing)) (create_db_table_with_key src_table (connection_func Nothing))
+
+
+create_db_table_without_key src_table connection =
+    src_table.select_into_database_table connection (Name_Generator.random_name "default-ordering-1") temporary=True primary_key=Nothing
+
+create_db_table_with_key src_table connection =
+    src_table.select_into_database_table connection (Name_Generator.random_name "default-ordering-1") temporary=True primary_key=["X"]
+
+
+add_default_ordering_specs suite_builder prefix connection_func =
+    group_name = prefix + "Table.default_ordering"
+    data = Data.create connection_func
+
+    suite_builder.group group_name group_builder->
+        group_builder.specify "will return Nothing if no primary key is defined" <|
+            data.db_table_without_key.default_ordering . should_equal Nothing
+
+        group_builder.specify "will return the key for a table with a primary key" <|
+            v1 = data.db_table_with_key.default_ordering
+            v1.length . should_equal 1
+            v1.first.expression.name . should_equal "X"
+            v1.first.direction . should_equal Sort_Direction.Ascending
+
+            t2 = data.db_table_with_key.set "10 - [X]" "X"
+            v2 = t2.default_ordering
+            v2.length . should_equal 1
+            v2.first.expression.name . should_equal "X"
+
+        group_builder.specify "will return Nothing for composite tables (join, aggregate)"
+            data.db_table_with_key.join data.db_table_with_key . default_ordering . should_equal Nothing
+            data.db_table_with_key.aggregate [Aggregate_Column.Group_By "X"] . default_ordering . should_equal Nothing
+
+        group_builder.specify "will return the ordering determined by order_by" <|
+            v1 = data.db_table_with_key.order_by ["Y", Sort_Column.Name "X" Sort_Direction.Descending] . default_ordering
+            v1.length . should_equal 2
+            v1.first.expression.name . should_equal "Y"
+            v1.first.direction . should_equal Sort_Direction.Ascending
+            v1.second.expression.name . should_equal "X"
+            v1.second.direction . should_equal Sort_Direction.Descending
+
+            v2 = data.db_table_without_key.order_by ["Y"] . default_ordering
+            v2.length . should_equal 1
+            v2.first.expression.name . should_equal "Y"
+            v2.first.direction . should_equal Sort_Direction.Ascending
+

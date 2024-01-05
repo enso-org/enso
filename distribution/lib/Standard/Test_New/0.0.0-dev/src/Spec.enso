@@ -1,6 +1,7 @@
+private
+
 from Standard.Base import all
 
-private
 
 type Spec
     Impl (name : Text) (code : Any -> Any)

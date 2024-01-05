@@ -1,0 +1,119 @@
+from Standard.Base import all
+import Standard.Base.Runtime.Ref.Ref
+import Standard.Base.Errors.File_Error.File_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+import Standard.Table.Data.Type.Value_Type.Bits
+from Standard.Table import Table, Value_Type
+from Standard.Table.Errors import Invalid_Column_Names, Duplicate_Output_Column_Names
+
+import Standard.Database.Data.Column.Column
+import Standard.Database.Internal.Replace_Params.Replace_Params
+from Standard.Database import all
+from Standard.Database.Errors import SQL_Error, Unsupported_Database_Operation
+
+from Standard.Test_New import all
+
+import project.Database.Common.Default_Ordering_Spec_New
+import project.Database.Helpers.Name_Generator
+
+##
+    sqlite_specific_spec suite_builder prefix connection setup =
+        table_builder = setup.table_builder
+
+        suite_builder.group prefix+"Schemas and Databases" group_builder->
+            group_builder.specify "should be able to get current database and list databases" <|
+                connection.database . should_equal Nothing
+                connection.databases . should_equal [Nothing]
+                Meta.is_same_object connection (connection.set_database Nothing) . should_be_true
+
+            group_builder.specify "should be able to get current schema and list schemas" <|
+                connection.schema . should_equal Nothing
+                connection.schemas . should_equal [Nothing]
+                Meta.is_same_object connection (connection.set_schema Nothing) . should_be_true
+
+            group_builder.specify "does not allow changing schema or database" <|
+                connection.set_schema "foo" . should_fail_with SQL_Error
+                connection.set_database "foo" . should_fail_with SQL_Error
+
+        Test.group prefix+"Tables and Table Types" <|
+            tinfo = Name_Generator.random_name "TestTable"
+            connection.execute_update 'CREATE TABLE "'+tinfo+'" ("A" VARCHAR)'
+
+            vinfo = Name_Generator.random_name "TestView"
+            connection.execute_update 'CREATE VIEW "'+vinfo+'" AS SELECT "A" FROM "'+tinfo+'";'
+
+            temporary_table = Name_Generator.random_name "TemporaryTable"
+            (Table.new [["X", [1, 2, 3]]]).select_into_database_table connection temporary_table temporary=True
+
+            Test.specify "should be able to list table types" <|
+                table_types = connection.table_types
+                table_types.length . should_not_equal 0
+                table_types.contains "TABLE" . should_be_true
+                table_types.contains "VIEW" . should_be_true
+
+
+        Test.group prefix+"math functions" <|
+            do_op n op =
+                table = table_builder [["x", [n]]]
+                result = table.at "x" |> op
+                result.to_vector.at 0
+            do_round n dp=0 use_bankers=False = do_op n (_.round dp use_bankers)
+
+            Test.specify "Can round correctly near the precision limit" <|
+                # This value varies depending on the version of SQLite.
+                do_round 1.2222222222222225 15 . should_equal 1.222222222222223 0.000000000000002
+                do_round -1.2222222222222225 15 . should_equal -1.222222222222223 0.000000000000002
+                do_round 1.2222222222222235 15 . should_equal 1.222222222222223
+                do_round -1.2222222222222235 15 . should_equal -1.222222222222223
+
+
+sqlite_spec suite_builder connection_func prefix =
+    Default_Ordering_Spec_New.add_default_ordering_specs suite_builder prefix connection_func
+
+type Data
+    Impl ~file ~connection_file
+
+    create =
+        Data.Impl create_file create_file_connection
+
+# Must be run only in suite
+create_file =
+    enso_project.data.create_directory
+    file = enso_project.data / "transient" / "sqlite_test.db"
+    file.delete_if_exists
+    file
+
+create_file_connection =
+    file = create_file
+    connection = Database.connect (SQLite file)
+    connection.execute_update 'CREATE TABLE "Dummy" ("strs" VARCHAR, "ints" INTEGER, "bools" BOOLEAN, "reals" REAL)'
+    connection
+
+create_inmem_connection =
+    Database.connect (SQLite In_Memory)
+
+
+suite =
+    Test.build suite_builder->
+        in_file_prefix = "[SQLite File] "
+        sqlite_spec suite_builder (_-> create_file_connection) in_file_prefix
+
+        in_memory_prefix = "[SQLite In-Memory] "
+        sqlite_spec suite_builder (_-> create_inmem_connection) in_memory_prefix
+
+        suite_builder.group "SQLite_Format should allow connecting to SQLite files" group_builder->
+            data = Data.create
+
+            group_builder.specify "should recognise a SQLite database file" <|
+                Auto_Detect.get_reading_format data.file . should_be_a SQLite_Format
+
+            group_builder.specify 'should not duplicate warnings' <|
+                c = Database.connect (SQLite In_Memory)
+                t0 = Table.new [["X", ["a", "bc", "def"]]]
+                t1 = t0.select_into_database_table c "Tabela"
+                t2 = t1.cast "X" (Value_Type.Char size=1)
+                Warning.get_all t2 . length . should_equal 1
+
+main =
+    suite.group_names
