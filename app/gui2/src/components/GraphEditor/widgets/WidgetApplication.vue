@@ -17,7 +17,7 @@ const targetMaybePort = computed(() => {
 })
 
 const appClass = computed(() => {
-  return props.input[ArgumentApplicationKey].infixOperator != null ? 'infix' : 'prefix'
+  return application.value.infixOperator != null ? 'infix' : 'prefix'
 })
 
 const operatorStyle = computed(() => {

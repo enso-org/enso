@@ -4,7 +4,6 @@ import type { WidgetConfiguration } from '@/providers/widgetRegistry/configurati
 import type { GraphDb } from '@/stores/graph/graphDatabase'
 import type { Typename } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
-import { ArgumentInfoKey } from '@/util/callTree'
 import { computed, shallowReactive, type Component, type PropType } from 'vue'
 
 export type WidgetComponent<T extends WidgetInput> = Component<WidgetProps<T>>
@@ -22,12 +21,14 @@ export namespace WidgetInput {
     else return input.value?.code()
   }
 
+  /** Check if input is placeholder, i.e. it does not represent any Ast node. */
   export function isPlaceholder(
     input: WidgetInput,
   ): input is WidgetInput & { value: string | undefined } {
     return input.value == null || typeof input.value === 'string'
   }
 
+  /** Match input against a specific AST node type. */
   export function astMatcher<T extends Ast.Ast>(nodeType: new (...args: any[]) => T) {
     return (input: WidgetInput): input is WidgetInput & { value: T } =>
       input.value instanceof nodeType
@@ -37,6 +38,7 @@ export namespace WidgetInput {
     return input.value instanceof Ast.Ast
   }
 
+  /** Rule out token inputs. */
   export function isAstOrPlaceholder(
     input: WidgetInput,
   ): input is WidgetInput & { value: Ast.Ast | string | undefined } {
@@ -58,12 +60,46 @@ export namespace WidgetInput {
   }
 }
 
-//TODO[ao] update docs
+/**
+ * Widget instance input.
+ *
+ * This input is first used to decide which widget should be instantiated, then by the widget
+ * instance to show proper value.
+ *
+ * This interface can be extended by specific widgets to add their data to be propagated to
+ * subwidgets - to avoid breaking other widgets, additional property should be optional indexed
+ * by symbols, for example:
+ *
+ * ```ts
+ * export const ArgumentApplicationKey: unique symbol = Symbol('ArgumentApplicationKey')
+ * export const ArgumentInfoKey: unique symbol = Symbol('ArgumentInfoKey')
+ * declare module '@/providers/widgetRegistry' {
+ *   export interface WidgetInput {
+ *     [ArgumentApplicationKey]?: ArgumentApplication
+ *     [ArgumentInfoKey]?: {
+ *       appKind: ApplicationKind
+ *       info: SuggestionEntryArgument | undefined
+ *     }
+ *   }
+ * }
+ * ```
+ */
 export interface WidgetInput {
+  /**
+   * Port identification. It's used to update code with widgets' changes. Also, the same widget
+   * type won't be instantiated for given port more than once.
+   */
   portId: PortId
+  /**
+   * An expected widget value. If Ast.Ast or Ast.Token, the widget represents an existing part of
+   * code. If string, it may be e.g. a default value of an argument.
+   */
   value: Ast.Ast | Ast.Token | string | undefined
+  /** An expected type which widget should set. */
   expectedType?: Typename | undefined
+  /** Configuration provided by engine. */
   dynamicConfig?: WidgetConfiguration | undefined
+  /** Force the widget to be a connectible port. */
   forcePort?: boolean
 }
 
@@ -122,12 +158,6 @@ type InputTy<M> = M extends (infer T)[]
   : M extends symbol & keyof WidgetInput
   ? WidgetInput & { [S in M]: Required<WidgetInput>[S] }
   : never
-
-type Gitarex = typeof ArgumentInfoKey
-type Uga = typeof ArgumentInfoKey extends InputMatcherFn<infer T> ? 'wojtas' : 'gitarex'
-type Buga = { [S in typeof ArgumentInfoKey]: Required<WidgetInput>[S] }
-type Waga = Required<WidgetInput>
-type Wojtas = InputTy<typeof ArgumentInfoKey>
 
 export interface WidgetOptions<T extends WidgetInput> {
   /** The priority number determining the order in which the widgets are matched. Smaller numbers
@@ -198,12 +228,12 @@ function isWidgetDefinition(config: unknown): config is WidgetDefinition<any> {
 
 /**
  *
- * @param matchInputs Filter the widget input type to only accept specific types of input. The
+ * @param matchInputs Filter the widget input to only accept specific types of input. The
  * declared widget props will depend on the type of input accepted by this filter. Only widgets that
  * pass this filter will be scored and potentially used.
  *
- * The filter can be a type guard function `(input: WidgetInput) => input is MyType`, a class
- * constructor `MyType`, or an array combining any of the above. When an array is provided, the
+ * The filter can be a type guard function `(input: WidgetInput) => input is MyType`, a symbol representing
+ * required property `MySymbol`, or an array combining any of the above. When an array is provided, the
  * widget will match if any of the filters in the array match.
  */
 export function defineWidget<M extends InputMatcher<any> | InputMatcher<any>[]>(

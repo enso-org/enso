@@ -8,7 +8,7 @@ import {
 } from '@/providers/widgetRegistry'
 import { GraphDb } from '@/stores/graph/graphDatabase'
 import { Ast } from '@/util/ast'
-import { ApplicationKind, ArgumentInfoKey, ArgumentPlaceholder } from '@/util/callTree'
+import { ApplicationKind, ArgumentInfoKey } from '@/util/callTree'
 import { describe, expect, test } from 'vitest'
 import { defineComponent } from 'vue'
 import type { PortId } from '../portInfo'

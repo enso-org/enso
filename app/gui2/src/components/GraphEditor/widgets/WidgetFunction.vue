@@ -47,7 +47,7 @@ const application = computed(() => {
   const noArgsCall = call.kind === 'prefix' ? graph.db.getMethodCall(call.func.exprId) : undefined
 
   const info = methodCallInfo.value
-  const application = ArgumentApplication.FromInterpretedWithInfo(
+  return ArgumentApplication.FromInterpretedWithInfo(
     call,
     {
       noArgsCall,
@@ -57,8 +57,6 @@ const application = computed(() => {
     },
     !info?.staticallyApplied,
   )
-  console.log('New application:', application)
-  return application
 })
 
 const innerInput = computed(() => {
@@ -234,6 +232,7 @@ function handleArgUpdate(value: unknown, origin: PortId): boolean {
 export const widgetDefinition = defineWidget(WidgetInput.isFunctionCall, {
   priority: -10,
   score: (props, db) => {
+    // If ArgumentApplicationKey is stored, we already are handled by some WidgetFunction.
     if (props.input[ArgumentApplicationKey]) return Score.Mismatch
     const ast = props.input.value
     if (ast.exprId == null) return Score.Mismatch

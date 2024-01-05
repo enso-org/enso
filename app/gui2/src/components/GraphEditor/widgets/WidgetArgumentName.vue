@@ -24,23 +24,22 @@ const primary = computed(() => props.nesting < 2)
 </script>
 
 <script lang="ts">
-export const widgetDefinition = defineWidget(
-  (
-    input,
-  ): input is WidgetInput & {
-    value: Ast.Ast | string | undefined
-    [ArgumentInfoKey]: { info: SuggestionEntryArgument }
-  } => !WidgetInput.isToken(input) && input[ArgumentInfoKey]?.info != null,
-  {
-    priority: 1000,
-    score: (props) => {
-      const isPlaceholder = !(props.input.value instanceof Ast.Ast)
-      const isTopArg =
-        props.nesting < 2 && props.input[ArgumentInfoKey].appKind === ApplicationKind.Prefix
-      return isPlaceholder || isTopArg ? Score.Perfect : Score.Mismatch
-    },
+function hasKnownArgumentName(input: WidgetInput): input is WidgetInput & {
+  value: Ast.Ast | string | undefined
+  [ArgumentInfoKey]: { info: SuggestionEntryArgument }
+} {
+  return !WidgetInput.isToken(input) && input[ArgumentInfoKey]?.info != null
+}
+
+export const widgetDefinition = defineWidget(hasKnownArgumentName, {
+  priority: 1000,
+  score: (props) => {
+    const isPlaceholder = !(props.input.value instanceof Ast.Ast)
+    const isTopArg =
+      props.nesting < 2 && props.input[ArgumentInfoKey].appKind === ApplicationKind.Prefix
+    return isPlaceholder || isTopArg ? Score.Perfect : Score.Mismatch
   },
-)
+})
 </script>
 
 <template>
