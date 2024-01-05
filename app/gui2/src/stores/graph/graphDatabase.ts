@@ -13,7 +13,7 @@ import { Vec2 } from '@/util/data/vec2'
 import { ReactiveDb, ReactiveIndex, ReactiveMapping } from '@/util/database/reactiveDb'
 import * as random from 'lib0/random'
 import * as set from 'lib0/set'
-import { methodPointerEquals, type MethodCall } from 'shared/languageServerTypes'
+import { methodPointerEquals, type MethodCall, type StackItem } from 'shared/languageServerTypes'
 import {
   IdMap,
   visMetadataEquals,
@@ -152,8 +152,8 @@ export class GraphDb {
   })
 
   /** Same as {@link GraphDb.connections}, but also includes connections without source node,
-    * e.g. input arguments of the collapsed function.
-    */
+   * e.g. input arguments of the collapsed function.
+   */
   allConnections = new ReactiveIndex(this.bindings.bindings, (alias, info) => {
     const srcNode = this.getPatternExpressionNodeId(alias)
     function* allTargets(db: GraphDb): Generator<[ExprId, ExprId]> {
@@ -271,8 +271,21 @@ export class GraphDb {
     this.nodeIdToNode.moveToLast(id)
   }
 
+  /** Get the method name from the stack item. */
+  stackItemToMethodName(item: StackItem): string | undefined {
+    switch (item.type) {
+      case 'ExplicitCall': {
+        return item.methodPointer.name
+      }
+      case 'LocalCall': {
+        const exprId = item.expressionId
+        const info = this.getExpressionInfo(exprId)
+        return info?.methodCall?.methodPointer.name
+      }
+    }
+  }
+
   readFunctionAst(functionAst_: Ast.Function, getMeta: (id: ExprId) => NodeMetadata | undefined) {
-    console.log('Read function ast', functionAst_.code())
     const currentNodeIds = new Set<ExprId>()
     for (const nodeAst of functionAst_.bodyExpressions()) {
       const newNode = nodeFromAst(nodeAst)

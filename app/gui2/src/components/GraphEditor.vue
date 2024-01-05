@@ -10,7 +10,7 @@ import {
 } from '@/components/ComponentBrowser/placement'
 import GraphEdges from '@/components/GraphEditor/GraphEdges.vue'
 import GraphNodes from '@/components/GraphEditor/GraphNodes.vue'
-import { stackItemToMethodName, performCollapse, prepareCollapsedInfo } from '@/components/GraphEditor/collapsing'
+import { performCollapse, prepareCollapsedInfo } from '@/components/GraphEditor/collapsing'
 import { Uploader, uploadedExpression } from '@/components/GraphEditor/upload'
 import GraphMouse from '@/components/GraphMouse.vue'
 import PlusButton from '@/components/PlusButton.vue'
@@ -26,6 +26,8 @@ import { useGraphStore } from '@/stores/graph'
 import type { RequiredImport } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { groupColorVar, useSuggestionDbStore } from '@/stores/suggestionDatabase'
+import { bail } from '@/util/assert'
+import type { Ast } from '@/util/ast'
 import { colorFromString } from '@/util/colors'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
@@ -35,8 +37,6 @@ import type { ExprId, NodeMetadata } from 'shared/yjsModel'
 import { computed, onMounted, onScopeDispose, onUnmounted, ref, watch } from 'vue'
 import { ProjectManagerEvents } from '../../../ide-desktop/lib/dashboard/src/authentication/src/dashboard/projectManager'
 import { type Usage } from './ComponentBrowser/input'
-import type { Ast } from '@/util/ast'
-import { bail } from '@/util/assert'
 
 const EXECUTION_MODES = ['design', 'live']
 // Assumed size of a newly created node. This is used to place the component browser.
@@ -262,14 +262,14 @@ const graphBindingsHandler = graphBindings.handler({
     try {
       const info = prepareCollapsedInfo(selected, graphStore.db)
       const currentMethod = projectStore.executionContext.getStackTop()
-      const currentMethodName = stackItemToMethodName(graphStore.db, currentMethod)
+      const currentMethodName = graphStore.db.stackItemToMethodName(currentMethod)
       if (currentMethodName == null) {
         bail(`Cannot get the method name for the current execution stack item. ${currentMethod}`)
       }
-      graphStore.editAst((edit) => {
+      graphStore.editAst((module) => {
         if (graphStore.moduleRoot == null) bail(`Module root is missing.`)
-        const topLevel = edit.get(graphStore.moduleRoot)! as Ast.BodyBlock
-        return performCollapse(info, edit, topLevel, graphStore.db, currentMethodName)
+        const topLevel = module.get(graphStore.moduleRoot)! as Ast.BodyBlock
+        return performCollapse(info, module, topLevel, graphStore.db, currentMethodName)
       })
     } catch (err) {
       console.log(`Error while collapsing, this is not normal. ${err}`)
@@ -323,8 +323,6 @@ watch(
     projectStore.executionContext.setExecutionEnvironment(modeValue === 'live' ? 'Live' : 'Design')
   },
 )
-
-watch(nodeSelection.selected, (values) => console.log(`Selected: ${[...values]}`))
 
 const groupColors = computed(() => {
   const styles: { [key: string]: string } = {}

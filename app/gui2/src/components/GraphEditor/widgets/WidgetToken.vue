@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { Ast } from '@/util/ast'
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 

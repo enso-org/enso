@@ -152,8 +152,8 @@ export function averagePositionPlacement(
     totalPosition = totalPosition.add(rect.center())
     selectedNodeRectsCount++
   }
-  let initialPosition = totalPosition.scale(1.0 / selectedNodeRectsCount)
-  let top = initialPosition.y;
+  const initialPosition = totalPosition.scale(1.0 / selectedNodeRectsCount)
+  let top = initialPosition.y
   const initialRect = new Rect(initialPosition, nodeSize)
   const nodeRectsSorted = Array.from(nodeRects).sort((a, b) => a.top - b.top)
   for (const rect of nodeRectsSorted) {
@@ -166,8 +166,7 @@ export function averagePositionPlacement(
   const finalPosition = new Vec2(initialPosition.x, top)
   if (new Rect(finalPosition, nodeSize).within(screenBounds)) {
     return { position: finalPosition }
-  }
-  else {
+  } else {
     return { position: finalPosition, pan: finalPosition.sub(initialPosition) }
   }
 }

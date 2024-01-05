@@ -886,11 +886,17 @@ export class Function extends Ast {
     this.body_ = body
   }
 
-  static new(module: MutableModule, name: string, args: Ast[], exprs: Ast[], id?: AstId | undefined): Function {
+  static new(
+    module: MutableModule,
+    name: string,
+    args: Ast[],
+    exprs: Ast[],
+    id?: AstId | undefined,
+  ): Function {
     const exprs_ = exprs.map((expr) => ({ expression: { node: expr } }))
     const body = BodyBlock.new(exprs_, module)
     body.addTrailingNewline(module)
-    const args_ = args.map((arg) => ([{ node: arg.exprId }]))
+    const args_ = args.map((arg) => [{ node: arg.exprId }])
     const ident = { node: Ident.new(module, name).exprId }
     const equals = { node: Token.new('=') }
     return new Function(module, id, ident, args_, equals, { node: body.exprId })
@@ -979,7 +985,10 @@ export class BodyBlock extends Ast {
   }
 
   addTrailingNewline(module: MutableModule) {
-    new BodyBlock(module, this.exprId, [...this.lines_, { newline: { node: Token.new('\n') }, expression: null }])
+    new BodyBlock(module, this.exprId, [
+      ...this.lines_,
+      { newline: { node: Token.new('\n') }, expression: null },
+    ])
   }
 
   push(module: MutableModule, node: Ast) {

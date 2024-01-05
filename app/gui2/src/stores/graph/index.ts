@@ -221,9 +221,8 @@ export const useGraphStore = defineStore('graph', () => {
     commitEdit(edit, new Map([[rhs.exprId, meta]]))
   }
 
-  function editAst(cb: (edit: Ast.MutableModule) => void) {
-    const edit = astModule.edit()
-    cb(edit)
+  function editAst(cb: (module: Ast.Module) => Ast.MutableModule) {
+    const edit = cb(astModule)
     commitEdit(edit)
   }
 
