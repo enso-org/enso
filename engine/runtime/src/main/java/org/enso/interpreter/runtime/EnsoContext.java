@@ -551,8 +551,7 @@ public final class EnsoContext {
           logger.log(
               Level.SEVERE,
               "Environment variable ENSO_JAVA=" + envJava + ", but " + ex.getMessage());
-          logger.log(
-              Level.SEVERE, "Use " + System.getProperty("java.home") + "/bin/gu install espresso");
+          logger.log(Level.SEVERE, "Copy missing libraries to components directory");
           logger.log(Level.SEVERE, "Continuing in regular Java mode");
         } else {
           var ise = new IllegalStateException(ex.getMessage());
