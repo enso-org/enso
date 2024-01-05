@@ -33,7 +33,7 @@ import * as set from 'lib0/set'
 import { toast } from 'react-toastify'
 import type { ExprId, NodeMetadata } from 'shared/yjsModel'
 import { computed, onMounted, onScopeDispose, onUnmounted, ref, watch } from 'vue'
-import { ProjectManagerEvents } from '../../../ide-desktop/lib/dashboard/src/authentication/src/dashboard/projectManager'
+import { ProjectManagerEvents } from '../../../ide-desktop/lib/dashboard/src/utilities/projectManager'
 import { type Usage } from './ComponentBrowser/input'
 
 const EXECUTION_MODES = ['design', 'live']
