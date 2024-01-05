@@ -25,8 +25,8 @@ export enum AssetEventType {
     openProject = 'open-project',
     closeProject = 'close-project',
     cancelOpeningAllProjects = 'cancel-opening-all-projects',
-    cut = 'cut',
     copy = 'copy',
+    cut = 'cut',
     cancelCut = 'cancel-cut',
     move = 'move',
     delete = 'delete',
@@ -125,8 +125,8 @@ export interface AssetCancelOpeningAllProjectsEvent
  * placeholder items. */
 export interface AssetCopyEvent extends AssetBaseEvent<AssetEventType.copy> {
     ids: Set<backendModule.AssetId>
-    newParentKey: backendModule.AssetId | null
-    newParentId: backendModule.DirectoryId | null
+    newParentKey: backendModule.AssetId
+    newParentId: backendModule.DirectoryId
 }
 
 /** A signal to cut multiple assets. */
@@ -142,8 +142,8 @@ export interface AssetCancelCutEvent extends AssetBaseEvent<AssetEventType.cance
 /** A signal to move multiple assets. */
 export interface AssetMoveEvent extends AssetBaseEvent<AssetEventType.move> {
     ids: Set<backendModule.AssetId>
-    newParentKey: backendModule.AssetId | null
-    newParentId: backendModule.DirectoryId | null
+    newParentKey: backendModule.AssetId
+    newParentId: backendModule.DirectoryId
 }
 
 /** A signal to delete assets. */

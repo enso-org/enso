@@ -45,10 +45,7 @@ export interface AssetContextMenuProps {
     doDelete: () => void
     doCopy: () => void
     doCut: () => void
-    doPaste: (
-        newParentKey: backendModule.AssetId | null,
-        newParentId: backendModule.DirectoryId | null
-    ) => void
+    doPaste: (newParentKey: backendModule.AssetId, newParentId: backendModule.DirectoryId) => void
 }
 
 /** The context menu for an arbitrary {@link backendModule.Asset}. */

@@ -16,9 +16,9 @@ export interface AssetTreeNode {
     item: backendModule.AnyAsset
     /** The id of the asset's parent directory (or the placeholder id for new assets).
      * This must never change. */
-    directoryKey: backendModule.AssetId | null
+    directoryKey: backendModule.AssetId
     /** The actual id of the asset's parent directory (or the placeholder id for new assets). */
-    directoryId: backendModule.DirectoryId | null
+    directoryId: backendModule.DirectoryId
     /** This is `null` if the asset is not a directory asset, OR if it is a collapsed directory
      * asset. */
     children: AssetTreeNode[] | null
@@ -121,8 +121,8 @@ export function assetTreePreorderTraversal(
 /** Creates an {@link AssetTreeNode} from a {@link backendModule.AnyAsset}. */
 export function assetTreeNodeFromAsset(
     asset: backendModule.AnyAsset,
-    directoryKey: backendModule.AssetId | null,
-    directoryId: backendModule.DirectoryId | null,
+    directoryKey: backendModule.AssetId,
+    directoryId: backendModule.DirectoryId,
     depth: number,
     getKey: ((asset: backendModule.AnyAsset) => backendModule.AssetId) | null = null
 ): AssetTreeNode {

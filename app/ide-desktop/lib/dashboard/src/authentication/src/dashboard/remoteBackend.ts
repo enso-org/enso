@@ -158,12 +158,13 @@ export class RemoteBackend extends backendModule.Backend {
     override rootDirectoryId(
         user: backendModule.UserOrOrganization | null
     ): backendModule.DirectoryId {
+        if (user != null && !user.id.startsWith('organization-')) {
+            this.logger.error(`User ID '${user.id}' does not start with 'organization-'`)
+        }
         return backendModule.DirectoryId(
             // `user` is only null when the user is offline, in which case the remote backend cannot
             // be accessed anyway.
-            user != null
-                ? user.id.replace(/^organization-/, `${backendModule.AssetType.directory}-`)
-                : ''
+            user?.id.replace(/^organization-/, `${backendModule.AssetType.directory}-`) ?? ''
         )
     }
 

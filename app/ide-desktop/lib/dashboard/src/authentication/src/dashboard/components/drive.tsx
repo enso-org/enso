@@ -98,7 +98,6 @@ export default function Drive(props: DriveProps) {
             categorySwitcher.Category.home
     )
     const [labels, setLabels] = React.useState<backendModule.Label[]>([])
-    // const [currentLabels, setCurrentLabels] = React.useState<backendModule.LabelName[] | null>(null)
     const [newLabelNames, setNewLabelNames] = React.useState(new Set<backendModule.LabelName>())
     const [deletedLabelNames, setDeletedLabelNames] = React.useState(
         new Set<backendModule.LabelName>()
@@ -107,6 +106,11 @@ export default function Drive(props: DriveProps) {
         () => new Map(labels.map(label => [label.value, label])),
         [labels]
     )
+    const rootDirectoryId = React.useMemo(
+        () => backend.rootDirectoryId(organization),
+        [backend, organization]
+    )
+    const isCloud = backend.type === backendModule.BackendType.remote
 
     React.useEffect(() => {
         if (modal != null) {
@@ -143,13 +147,19 @@ export default function Drive(props: DriveProps) {
             } else {
                 dispatchAssetListEvent({
                     type: assetListEventModule.AssetListEventType.uploadFiles,
-                    parentKey: null,
-                    parentId: null,
+                    parentKey: rootDirectoryId,
+                    parentId: rootDirectoryId,
                     files,
                 })
             }
         },
-        [backend, organization, toastAndLog, /* should never change */ dispatchAssetListEvent]
+        [
+            backend,
+            organization,
+            rootDirectoryId,
+            toastAndLog,
+            /* should never change */ dispatchAssetListEvent,
+        ]
     )
 
     const doCreateProject = React.useCallback(
@@ -159,22 +169,22 @@ export default function Drive(props: DriveProps) {
         ) => {
             dispatchAssetListEvent({
                 type: assetListEventModule.AssetListEventType.newProject,
-                parentKey: null,
-                parentId: null,
+                parentKey: rootDirectoryId,
+                parentId: rootDirectoryId,
                 templateId: templateId ?? null,
                 onSpinnerStateChange: onSpinnerStateChange ?? null,
             })
         },
-        [/* should never change */ dispatchAssetListEvent]
+        [rootDirectoryId, /* should never change */ dispatchAssetListEvent]
     )
 
     const doCreateDirectory = React.useCallback(() => {
         dispatchAssetListEvent({
             type: assetListEventModule.AssetListEventType.newFolder,
-            parentKey: null,
-            parentId: null,
+            parentKey: rootDirectoryId,
+            parentId: rootDirectoryId,
         })
-    }, [/* should never change */ dispatchAssetListEvent])
+    }, [rootDirectoryId, /* should never change */ dispatchAssetListEvent])
 
     const doCreateLabel = React.useCallback(
         async (value: string, color: backendModule.LChColor) => {
@@ -237,13 +247,13 @@ export default function Drive(props: DriveProps) {
         (name: string, value: string) => {
             dispatchAssetListEvent({
                 type: assetListEventModule.AssetListEventType.newDataConnector,
-                parentKey: null,
-                parentId: null,
+                parentKey: rootDirectoryId,
+                parentId: rootDirectoryId,
                 name,
                 value,
             })
         },
-        [/* should never change */ dispatchAssetListEvent]
+        [rootDirectoryId, /* should never change */ dispatchAssetListEvent]
     )
 
     React.useEffect(() => {
@@ -375,9 +385,7 @@ export default function Drive(props: DriveProps) {
                     isListingRemoteDirectoryAndWillFail={isListingRemoteDirectoryAndWillFail}
                 />
             </div>
-            {isFileBeingDragged &&
-            organization != null &&
-            backend.type === backendModule.BackendType.remote ? (
+            {isFileBeingDragged && organization != null && isCloud ? (
                 <div
                     className="text-white text-lg fixed w-screen h-screen inset-0 bg-primary bg-opacity-75 backdrop-blur-xs grid place-items-center z-3"
                     onDragLeave={() => {
@@ -391,8 +399,8 @@ export default function Drive(props: DriveProps) {
                         setIsFileBeingDragged(false)
                         dispatchAssetListEvent({
                             type: assetListEventModule.AssetListEventType.uploadFiles,
-                            parentKey: null,
-                            parentId: null,
+                            parentKey: rootDirectoryId,
+                            parentId: rootDirectoryId,
                             files: Array.from(event.dataTransfer.files),
                         })
                     }}

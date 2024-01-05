@@ -157,21 +157,25 @@ export default function AssetRow(props: AssetRowProps) {
             newParentKey: backendModule.AssetId | null,
             newParentId: backendModule.DirectoryId | null
         ) => {
+            const rootDirectoryId = backend.rootDirectoryId(organization)
+            const nonNullNewParentKey = newParentKey ?? rootDirectoryId
+            const nonNullNewParentId = newParentId ?? rootDirectoryId
             // From the viewpoint of the asset list, the asset is effectively being deleted from
             // its current position, and created at its new position.
             try {
                 dispatchAssetListEvent({
                     type: assetListEventModule.AssetListEventType.move,
-                    newParentKey,
-                    newParentId,
+                    newParentKey: nonNullNewParentKey,
+                    newParentId: nonNullNewParentId,
                     key: item.key,
                     item: asset,
                 })
-                setItem(oldItem => ({
-                    ...oldItem,
-                    directoryKey: newParentKey,
-                    directoryId: newParentId,
-                }))
+                setItem(oldItem => {
+                    const newItem = { ...oldItem }
+                    newItem.directoryKey = nonNullNewParentKey
+                    newItem.directoryId = nonNullNewParentId
+                    return newItem
+                })
                 await backend.updateAsset(
                     asset.id,
                     {
@@ -182,11 +186,12 @@ export default function AssetRow(props: AssetRowProps) {
                 )
             } catch (error) {
                 toastAndLog(`Could not move '${asset.title}'`, error)
-                setItem(oldItem => ({
-                    ...oldItem,
-                    directoryKey: item.directoryKey,
-                    directoryId: item.directoryId,
-                }))
+                setItem(oldItem => {
+                    const newItem = { ...oldItem }
+                    newItem.directoryKey = item.directoryKey
+                    newItem.directoryId = item.directoryId
+                    return newItem
+                })
                 // Move the asset back to its original position.
                 dispatchAssetListEvent({
                     type: assetListEventModule.AssetListEventType.move,

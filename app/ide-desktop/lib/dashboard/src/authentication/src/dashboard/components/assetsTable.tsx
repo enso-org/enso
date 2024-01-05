@@ -198,7 +198,6 @@ export interface AssetsTableState {
     setAssetSettingsPanelProps: React.Dispatch<
         React.SetStateAction<assetSettingsPanel.AssetSettingsPanelRequiredProps | null>
     >
-    rootAsset: Readonly<React.MutableRefObject<assetTreeNode.AssetTreeNode>>
     nodeMap: Readonly<
         React.MutableRefObject<ReadonlyMap<backendModule.AssetId, assetTreeNode.AssetTreeNode>>
     >
@@ -219,10 +218,7 @@ export interface AssetsTableState {
     doCreateLabel: (value: string, color: backendModule.LChColor) => Promise<void>
     doCopy: () => void
     doCut: () => void
-    doPaste: (
-        newParentKey: backendModule.AssetId | null,
-        newParentId: backendModule.DirectoryId | null
-    ) => void
+    doPaste: (newParentKey: backendModule.AssetId, newParentId: backendModule.DirectoryId) => void
 }
 
 /** Data associated with a {@link AssetRow}, used for rendering. */
@@ -331,7 +327,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             -1
         )
     })
-    const isCloud = backend.type !== backendModule.BackendType.local
+    const isCloud = backend.type === backendModule.BackendType.remote
     const scrollContainerRef = React.useRef<HTMLDivElement>(null)
     const headerRowRef = React.useRef<HTMLTableRowElement>(null)
     const assetTreeRef = React.useRef<assetTreeNode.AssetTreeNode>(assetTree)
@@ -469,8 +465,9 @@ export default function AssetsTable(props: AssetsTableProps) {
             setNameOfProjectToImmediatelyOpen(oldNameOfProjectToImmediatelyOpen => {
                 setInitialized(true)
                 const rootParentDirectoryId = backendModule.DirectoryId('')
+                const rootDirectory = backendModule.createRootDirectoryAsset(rootDirectoryId)
                 const newRootNode = assetTreeNode.assetTreeNodeFromAsset(
-                    backendModule.createRootDirectoryAsset(rootDirectoryId),
+                    rootDirectory,
                     rootParentDirectoryId,
                     rootParentDirectoryId,
                     -1
@@ -478,8 +475,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                 newRootNode.children = newAssets.map(asset => ({
                     key: asset.id,
                     item: asset,
-                    directoryKey: null,
-                    directoryId: null,
+                    directoryKey: rootDirectory.id,
+                    directoryId: rootDirectory.id,
                     children: null,
                     depth: 0,
                 }))
@@ -933,10 +930,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     hooks.useEventHandler(assetListEvents, event => {
         switch (event.type) {
             case assetListEventModule.AssetListEventType.newFolder: {
-                const siblings =
-                    event.parentKey == null
-                        ? assetTree.children ?? []
-                        : nodeMapRef.current.get(event.parentKey)?.children ?? []
+                const siblings = nodeMapRef.current.get(event.parentKey)?.children ?? []
                 const directoryIndices = siblings
                     .map(node => node.item)
                     .filter(backendModule.assetIsDirectory)
@@ -951,17 +945,13 @@ export default function AssetsTable(props: AssetsTableProps) {
                     id: backendModule.DirectoryId(uniqueString.uniqueString()),
                     title,
                     modifiedAt: dateTime.toRfc3339(new Date()),
-                    parentId: event.parentId ?? rootDirectoryId,
+                    parentId: event.parentId,
                     permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
                     projectState: null,
                     labels: [],
                     description: null,
                 }
-                if (
-                    event.parentId != null &&
-                    event.parentKey != null &&
-                    nodeMapRef.current.get(event.parentKey)?.children == null
-                ) {
+                if (nodeMapRef.current.get(event.parentKey)?.children == null) {
                     doToggleDirectoryExpansion(event.parentId, event.parentKey)
                 }
                 insertAssets([placeholderItem], event.parentKey, event.parentId)
@@ -979,7 +969,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     id: dummyId,
                     title: projectName,
                     modifiedAt: dateTime.toRfc3339(new Date()),
-                    parentId: event.parentId ?? rootDirectoryId,
+                    parentId: event.parentId,
                     permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
                     projectState: {
                         type: backendModule.ProjectState.placeholder,
@@ -991,11 +981,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     labels: [],
                     description: null,
                 }
-                if (
-                    event.parentId != null &&
-                    event.parentKey != null &&
-                    nodeMapRef.current.get(event.parentKey)?.children == null
-                ) {
+                if (nodeMapRef.current.get(event.parentKey)?.children == null) {
                     doToggleDirectoryExpansion(event.parentId, event.parentKey)
                 }
                 insertAssets([placeholderItem], event.parentKey, event.parentId)
@@ -1009,13 +995,12 @@ export default function AssetsTable(props: AssetsTableProps) {
             }
             case assetListEventModule.AssetListEventType.uploadFiles: {
                 const reversedFiles = Array.from(event.files).reverse()
-                const parentId = event.parentId ?? rootDirectoryId
                 const placeholderFiles = reversedFiles.filter(backendModule.fileIsNotProject).map(
                     (file): backendModule.FileAsset => ({
                         type: backendModule.AssetType.file,
                         id: backendModule.FileId(uniqueString.uniqueString()),
                         title: file.name,
-                        parentId,
+                        parentId: event.parentId,
                         permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
                         modifiedAt: dateTime.toRfc3339(new Date()),
                         projectState: null,
@@ -1028,7 +1013,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                         type: backendModule.AssetType.project,
                         id: backendModule.ProjectId(uniqueString.uniqueString()),
                         title: file.name,
-                        parentId,
+                        parentId: event.parentId,
                         permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
                         modifiedAt: dateTime.toRfc3339(new Date()),
                         projectState: {
@@ -1042,11 +1027,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                         description: null,
                     })
                 )
-                if (
-                    event.parentId != null &&
-                    event.parentKey != null &&
-                    nodeMapRef.current.get(event.parentKey)?.children == null
-                ) {
+                if (nodeMapRef.current.get(event.parentKey)?.children == null) {
                     doToggleDirectoryExpansion(event.parentId, event.parentKey)
                 }
                 insertAssets(placeholderFiles, event.parentKey, event.parentId)
@@ -1071,17 +1052,13 @@ export default function AssetsTable(props: AssetsTableProps) {
                     id: backendModule.SecretId(uniqueString.uniqueString()),
                     title: event.name,
                     modifiedAt: dateTime.toRfc3339(new Date()),
-                    parentId: event.parentId ?? rootDirectoryId,
+                    parentId: event.parentId,
                     permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
                     projectState: null,
                     labels: [],
                     description: null,
                 }
-                if (
-                    event.parentId != null &&
-                    event.parentKey != null &&
-                    nodeMapRef.current.get(event.parentKey)?.children == null
-                ) {
+                if (nodeMapRef.current.get(event.parentKey)?.children == null) {
                     doToggleDirectoryExpansion(event.parentId, event.parentKey)
                 }
                 insertAssets([placeholderItem], event.parentKey, event.parentId)
@@ -1197,13 +1174,10 @@ export default function AssetsTable(props: AssetsTableProps) {
     ])
 
     const doPaste = React.useCallback(
-        (
-            newParentKey: backendModule.AssetId | null,
-            newParentId: backendModule.DirectoryId | null
-        ) => {
+        (newParentKey: backendModule.AssetId, newParentId: backendModule.DirectoryId) => {
             unsetModal()
             if (pasteData != null) {
-                if (newParentKey != null && pasteData.data.has(newParentKey)) {
+                if (pasteData.data.has(newParentKey)) {
                     toast.toast.error('Cannot paste a folder into itself.')
                 } else {
                     if (pasteData.type === pasteDataModule.PasteType.copy) {
@@ -1339,7 +1313,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                                         hidden={hidden}
                                         action={shortcutsModule.KeyboardAction.pasteAll}
                                         doAction={() => {
-                                            doPaste(null, null)
+                                            doPaste(rootDirectoryId, rootDirectoryId)
                                         }}
                                     />
                                 )}
@@ -1365,6 +1339,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             doCut,
             doPaste,
             organization,
+            rootDirectoryId,
             /* should never change */ dispatchAssetEvent,
             /* should never change */ dispatchAssetListEvent,
             /* should never change */ setModal,
@@ -1396,7 +1371,6 @@ export default function AssetsTable(props: AssetsTableProps) {
             dispatchAssetEvent,
             dispatchAssetListEvent,
             setAssetSettingsPanelProps,
-            rootAsset: assetTreeRef,
             nodeMap: nodeMapRef,
             doToggleDirectoryExpansion,
             doOpenManually,
@@ -1492,8 +1466,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                                     unsetModal()
                                     dispatchAssetEvent({
                                         type: assetEventModule.AssetEventType.move,
-                                        newParentKey: null,
-                                        newParentId: null,
+                                        newParentKey: rootDirectoryId,
+                                        newParentId: rootDirectoryId,
                                         ids: new Set(filtered.map(dragItem => dragItem.asset.id)),
                                     })
                                 }
