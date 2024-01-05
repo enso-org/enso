@@ -97,7 +97,7 @@ function insertAssetTreeNodeChildren(
         node => node.item.type !== backendModule.AssetType.specialEmpty
     )
     const nodesToInsert = children.map(asset =>
-        assetTreeNode.assetTreeNodeFromAsset(asset, directoryKey, directoryId, depth)
+        assetTreeNode.AssetTreeNode.fromAsset(asset, directoryKey, directoryId, depth)
     )
     const newNodes = array.splicedBefore(
         nodes,
@@ -137,7 +137,7 @@ function insertArbitraryAssetTreeNodeChildren(
         if (firstChild) {
             const typeOrder = backendModule.ASSET_TYPE_ORDER[firstChild.type]
             const nodesToInsert = childrenOfSpecificType.map(asset =>
-                assetTreeNode.assetTreeNodeFromAsset(
+                assetTreeNode.AssetTreeNode.fromAsset(
                     asset,
                     directoryKey,
                     directoryId,
@@ -313,7 +313,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     )
     const [assetTree, setAssetTree] = React.useState<assetTreeNode.AssetTreeNode>(() => {
         const rootParentDirectoryId = backendModule.DirectoryId('')
-        return assetTreeNode.assetTreeNodeFromAsset(
+        return assetTreeNode.AssetTreeNode.fromAsset(
             backendModule.createRootDirectoryAsset(rootDirectoryId),
             rootParentDirectoryId,
             rootParentDirectoryId,
@@ -346,7 +346,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     }, [query])
     const displayItems = React.useMemo(() => {
         if (sortColumn == null || sortDirection == null) {
-            return assetTreeNode.assetTreePreorderTraversal(assetTree)
+            return assetTree.preorderTraversal()
         } else {
             const sortDescendingMultiplier = -1
             const multiplier = {
@@ -373,9 +373,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     break
                 }
             }
-            return assetTreeNode.assetTreePreorderTraversal(assetTree, tree =>
-                Array.from(tree).sort(compare)
-            )
+            return assetTree.preorderTraversal(tree => Array.from(tree).sort(compare))
         }
     }, [assetTree, sortColumn, sortDirection])
 
@@ -397,9 +395,7 @@ export default function AssetsTable(props: AssetsTableProps) {
 
     React.useEffect(() => {
         assetTreeRef.current = assetTree
-        nodeMapRef.current = new Map(
-            assetTreeNode.assetTreePreorderTraversal(assetTree).map(asset => [asset.key, asset])
-        )
+        nodeMapRef.current = new Map(assetTree.preorderTraversal().map(asset => [asset.key, asset]))
     }, [assetTree])
 
     React.useEffect(() => {
@@ -431,8 +427,8 @@ export default function AssetsTable(props: AssetsTableProps) {
             // a project file from explorer on Windows.
             const isInitialProject = (asset: backendModule.AnyAsset) =>
                 asset.title === initialProjectName || asset.id === initialProjectName
-            const projectToLoad = assetTreeNode
-                .assetTreePreorderTraversal(assetTree)
+            const projectToLoad = assetTree
+                .preorderTraversal()
                 .map(node => node.item)
                 .filter(backendModule.assetIsProject)
                 .find(isInitialProject)
@@ -459,20 +455,21 @@ export default function AssetsTable(props: AssetsTableProps) {
                 setInitialized(true)
                 const rootParentDirectoryId = backendModule.DirectoryId('')
                 const rootDirectory = backendModule.createRootDirectoryAsset(rootDirectoryId)
-                const newRootNode = assetTreeNode.assetTreeNodeFromAsset(
+                const newRootNode = new assetTreeNode.AssetTreeNode(
+                    rootDirectoryId,
                     rootDirectory,
                     rootParentDirectoryId,
                     rootParentDirectoryId,
+                    newAssets.map(asset =>
+                        assetTreeNode.AssetTreeNode.fromAsset(
+                            asset,
+                            rootDirectory.id,
+                            rootDirectory.id,
+                            0
+                        )
+                    ),
                     -1
                 )
-                newRootNode.children = newAssets.map(asset => ({
-                    key: asset.id,
-                    item: asset,
-                    directoryKey: rootDirectory.id,
-                    directoryId: rootDirectory.id,
-                    children: null,
-                    depth: 0,
-                }))
                 setAssetTree(newRootNode)
                 // The project name here might also be a string with project id, e.g.
                 // when opening a project file from explorer on Windows.
@@ -554,12 +551,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                             backendModule.AssetId,
                             backendModule.AnyAsset[]
                         >()
-                        /** An {@link assetTreeNode.AssetTreeNode} with no children. */
-                        interface AssetTreeNodeWithNoChildren extends assetTreeNode.AssetTreeNode {
-                            children: null
-                        }
                         const withChildren = (
-                            node: AssetTreeNodeWithNoChildren
+                            node: assetTreeNode.AssetTreeNode
                         ): assetTreeNode.AssetTreeNode => {
                             const queuedListing = queuedDirectoryListings.get(node.item.id)
                             if (
@@ -570,19 +563,18 @@ export default function AssetsTable(props: AssetsTableProps) {
                             } else {
                                 const directoryAsset = node.item
                                 const depth = node.depth + 1
-                                return {
-                                    ...node,
+                                return node.with({
                                     children: queuedListing.map(asset =>
-                                        withChildren({
-                                            key: asset.id,
-                                            item: asset,
-                                            directoryKey: directoryAsset.id,
-                                            directoryId: directoryAsset.id,
-                                            children: null,
-                                            depth,
-                                        })
+                                        withChildren(
+                                            assetTreeNode.AssetTreeNode.fromAsset(
+                                                asset,
+                                                directoryAsset.id,
+                                                directoryAsset.id,
+                                                depth
+                                            )
+                                        )
                                     ),
-                                }
+                                })
                             }
                         }
                         for (const entry of nodeMapRef.current.values()) {
@@ -607,23 +599,10 @@ export default function AssetsTable(props: AssetsTableProps) {
                                             let found = signal.aborted
                                             const newTree = signal.aborted
                                                 ? oldTree
-                                                : assetTreeNode.assetTreeMap(oldTree, oldAsset => {
+                                                : oldTree.map(oldAsset => {
                                                       if (oldAsset.key === entry.key) {
                                                           found = true
-                                                          const depth = oldAsset.depth + 1
-                                                          return {
-                                                              ...oldAsset,
-                                                              children: assets.map(asset =>
-                                                                  withChildren({
-                                                                      key: asset.id,
-                                                                      item: asset,
-                                                                      directoryKey: entry.key,
-                                                                      directoryId: id,
-                                                                      children: null,
-                                                                      depth,
-                                                                  })
-                                                              ),
-                                                          }
+                                                          return withChildren(oldAsset)
                                                       } else {
                                                           return oldAsset
                                                       }
@@ -744,26 +723,25 @@ export default function AssetsTable(props: AssetsTableProps) {
                     directoryListAbortControllersRef.current.delete(directoryId)
                 }
                 setAssetTree(oldAssetTree =>
-                    assetTreeNode.assetTreeMap(oldAssetTree, item =>
-                        item.key !== key ? item : merge.merge(item, { children: null })
+                    oldAssetTree.map(item =>
+                        item.key !== key ? item : item.with({ children: null })
                     )
                 )
             } else {
                 setAssetTree(oldAssetTree =>
-                    assetTreeNode.assetTreeMap(oldAssetTree, item =>
+                    oldAssetTree.map(item =>
                         item.key !== key
                             ? item
-                            : {
-                                  ...item,
+                            : item.with({
                                   children: [
-                                      assetTreeNode.assetTreeNodeFromAsset(
+                                      assetTreeNode.AssetTreeNode.fromAsset(
                                           backendModule.createSpecialLoadingAsset(directoryId),
                                           key,
                                           directoryId,
                                           item.depth + 1
                                       ),
                                   ],
-                              }
+                              })
                     )
                 )
                 void (async () => {
@@ -780,7 +758,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     )
                     if (!abortController.signal.aborted) {
                         setAssetTree(oldAssetTree =>
-                            assetTreeNode.assetTreeMap(oldAssetTree, item => {
+                            oldAssetTree.map(item => {
                                 if (item.key !== key) {
                                     return item
                                 } else {
@@ -802,7 +780,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                                     const childAssetNodes = Array.from(
                                         childAssetsMap.values(),
                                         child =>
-                                            assetTreeNode.assetTreeNodeFromAsset(
+                                            assetTreeNode.AssetTreeNode.fromAsset(
                                                 child,
                                                 key,
                                                 directoryId,
@@ -817,7 +795,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                                     const children =
                                         specialEmptyAsset != null
                                             ? [
-                                                  assetTreeNode.assetTreeNodeFromAsset(
+                                                  assetTreeNode.AssetTreeNode.fromAsset(
                                                       specialEmptyAsset,
                                                       key,
                                                       directoryId,
@@ -828,12 +806,9 @@ export default function AssetsTable(props: AssetsTableProps) {
                                               initialChildren.length === 0
                                             ? childAssetNodes
                                             : [...initialChildren, ...childAssetNodes].sort(
-                                                  assetTreeNode.compareAssetTreeNodes
+                                                  assetTreeNode.AssetTreeNode.compare
                                               )
-                                    return {
-                                        ...item,
-                                        children,
-                                    }
+                                    return item.with({ children })
                                 }
                             })
                         )
@@ -863,9 +838,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     )
 
     const deleteAsset = React.useCallback((key: backendModule.AssetId) => {
-        setAssetTree(oldAssetTree =>
-            assetTreeNode.assetTreeFilter(oldAssetTree, item => item.key !== key)
-        )
+        setAssetTree(oldAssetTree => oldAssetTree.filter(item => item.key !== key))
     }, [])
 
     /** All items must have the same type. */
@@ -878,7 +851,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             const actualParentKey = parentKey ?? rootDirectoryId
             const actualParentId = parentId ?? rootDirectoryId
             setAssetTree(oldAssetTree => {
-                return assetTreeNode.assetTreeMap(oldAssetTree, item =>
+                return oldAssetTree.map(item =>
                     item.key !== actualParentKey
                         ? item
                         : insertAssetTreeNodeChildren(item, assets, actualParentKey, actualParentId)
@@ -898,7 +871,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             const actualParentKey = parentKey ?? rootDirectoryId
             const actualParentId = parentId ?? rootDirectoryId
             setAssetTree(oldAssetTree => {
-                return assetTreeNode.assetTreeMap(oldAssetTree, item =>
+                return oldAssetTree.map(item =>
                     item.key !== actualParentKey
                         ? item
                         : insertArbitraryAssetTreeNodeChildren(
@@ -1467,7 +1440,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     isLoading={isLoading}
                     state={state}
                     initialRowState={INITIAL_ROW_STATE}
-                    getKey={assetTreeNode.getAssetTreeNodeKey}
+                    getKey={assetTreeNode.AssetTreeNode.getKey}
                     selectedKeys={selectedKeys}
                     setSelectedKeys={setSelectedKeys}
                     placeholder={
@@ -1499,8 +1472,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                     draggableRows
                     onRowDragStart={event => {
                         setSelectedKeys(oldSelectedKeys => {
-                            const nodes = assetTreeNode
-                                .assetTreePreorderTraversal(assetTree)
+                            const nodes = assetTree
+                                .preorderTraversal()
                                 .filter(node => oldSelectedKeys.has(node.key))
                             const payload: drag.AssetRowsDragPayload = nodes.map(node => ({
                                 key: node.key,
@@ -1521,7 +1494,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                                             <AssetNameColumn
                                                 key={node.key}
                                                 keyProp={node.key}
-                                                item={{ ...node, depth: 0 }}
+                                                item={node.with({ depth: 0 })}
                                                 state={state}
                                                 // Default states.
                                                 isSoleSelectedItem={false}

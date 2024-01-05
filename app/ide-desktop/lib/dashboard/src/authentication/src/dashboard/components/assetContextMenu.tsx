@@ -96,12 +96,13 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     const setAsset = React.useCallback(
         (valueOrUpdater: React.SetStateAction<backendModule.AnyAsset>) => {
             if (typeof valueOrUpdater === 'function') {
-                setItem(oldItem => ({
-                    ...oldItem,
-                    item: valueOrUpdater(oldItem.item),
-                }))
+                setItem(oldItem =>
+                    oldItem.with({
+                        item: valueOrUpdater(oldItem.item),
+                    })
+                )
             } else {
-                setItem(oldItem => ({ ...oldItem, item: valueOrUpdater }))
+                setItem(oldItem => oldItem.with({ item: valueOrUpdater }))
             }
         },
         [/* should never change */ setItem]

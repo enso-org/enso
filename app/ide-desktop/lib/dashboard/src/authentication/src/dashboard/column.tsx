@@ -194,14 +194,14 @@ export function SharedWithColumn(props: SharedWithColumnProps) {
             self?.permission === permissions.PermissionAction.admin)
     const setAsset = React.useCallback(
         (valueOrUpdater: React.SetStateAction<backendModule.AnyAsset>) => {
-            if (typeof valueOrUpdater === 'function') {
-                setItem(oldItem => ({
-                    ...oldItem,
-                    item: valueOrUpdater(oldItem.item),
-                }))
-            } else {
-                setItem(oldItem => ({ ...oldItem, item: valueOrUpdater }))
-            }
+            setItem(oldItem =>
+                oldItem.with({
+                    item:
+                        typeof valueOrUpdater !== 'function'
+                            ? valueOrUpdater
+                            : valueOrUpdater(oldItem.item),
+                })
+            )
         },
         [/* should never change */ setItem]
     )
@@ -275,14 +275,14 @@ function LabelsColumn(props: AssetColumnProps) {
             self?.permission === permissions.PermissionAction.admin)
     const setAsset = React.useCallback(
         (valueOrUpdater: React.SetStateAction<backendModule.AnyAsset>) => {
-            if (typeof valueOrUpdater === 'function') {
-                setItem(oldItem => ({
-                    ...oldItem,
-                    item: valueOrUpdater(oldItem.item),
-                }))
-            } else {
-                setItem(oldItem => ({ ...oldItem, item: valueOrUpdater }))
-            }
+            setItem(oldItem =>
+                oldItem.with({
+                    item:
+                        typeof valueOrUpdater !== 'function'
+                            ? valueOrUpdater
+                            : valueOrUpdater(oldItem.item),
+                })
+            )
         },
         [/* should never change */ setItem]
     )
