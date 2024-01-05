@@ -78,8 +78,6 @@ export const useGraphStore = defineStore('graph', () => {
     toRef(suggestionDb, 'groups'),
     proj.computedValueRegistry,
   )
-  const nodeRects = reactive(new Map<ExprId, Rect>())
-  const vizRects = reactive(new Map<ExprId, Rect>())
   const portInstances = reactive(new Map<PortId, Set<PortViewInstance>>())
   const editedNodeInfo = ref<NodeEditInfo>()
   const imports = ref<{ import: Import; span: ContentRange }[]>([])
@@ -244,7 +242,6 @@ export const useGraphStore = defineStore('graph', () => {
     const node = db.nodeIdToNode.get(id)
     if (!node) return
     proj.module?.doc.metadata.delete(node.outerExprId)
-    nodeRects.delete(id)
     const root = moduleRoot.value
     if (!root) {
       console.error(`BUG: Cannot delete node: No module root.`)
@@ -309,9 +306,9 @@ export const useGraphStore = defineStore('graph', () => {
   function updateNodeRect(nodeId: ExprId, rect: Rect) {
     if (rect.pos.equals(Vec2.Zero) && !metadata.value?.has(nodeId)) {
       const { position } = nonDictatedPlacement(rect.size, {
-        nodeRects: [...nodeRects.entries()]
+        nodeRects: [...db.nodeRects.entries()]
           .filter(([id]) => db.nodeIdToNode.get(id))
-          .map(([id, rect]) => vizRects.get(id) ?? rect),
+          .map(([id, rect]) => db.vizRects.get(id) ?? rect),
         // The rest of the properties should not matter.
         selectedNodeRects: [],
         screenBounds: Rect.Zero,
@@ -319,15 +316,15 @@ export const useGraphStore = defineStore('graph', () => {
       })
       const node = db.nodeIdToNode.get(nodeId)
       metadata.value?.set(nodeId, { x: position.x, y: -position.y, vis: node?.vis ?? null })
-      nodeRects.set(nodeId, new Rect(position, rect.size))
+      db.nodeRects.set(nodeId, new Rect(position, rect.size))
     } else {
-      nodeRects.set(nodeId, rect)
+      db.nodeRects.set(nodeId, rect)
     }
   }
 
   function updateVizRect(id: ExprId, rect: Rect | undefined) {
-    if (rect) vizRects.set(id, rect)
-    else vizRects.delete(id)
+    if (rect) db.vizRects.set(id, rect)
+    else db.vizRects.delete(id)
   }
 
   function addPortInstance(id: PortId, instance: PortViewInstance) {
@@ -419,8 +416,6 @@ export const useGraphStore = defineStore('graph', () => {
     unconnectedEdge,
     edges,
     currentNodeIds,
-    nodeRects,
-    vizRects,
     methodAst,
     createEdgeFromOutput,
     disconnectSource,

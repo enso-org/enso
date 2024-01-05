@@ -47,7 +47,7 @@ const targetExpr = computed(() => {
 const targetNode = computed(
   () => targetExpr.value && (graph.getPortNodeId(targetExpr.value) ?? selection?.hoveredNode),
 )
-const targetNodeRect = computed(() => targetNode.value && graph.nodeRects.get(targetNode.value))
+const targetNodeRect = computed(() => targetNode.value && graph.db.nodeRects.get(targetNode.value))
 
 const targetRect = computed<Rect | undefined>(() => {
   const expr = targetExpr.value
@@ -63,7 +63,7 @@ const targetRect = computed<Rect | undefined>(() => {
 })
 const sourceRect = computed<Rect | undefined>(() => {
   if (sourceNode.value != null) {
-    return graph.nodeRects.get(sourceNode.value)
+    return graph.db.nodeRects.get(sourceNode.value)
   } else if (navigator?.sceneMousePos != null) {
     return new Rect(navigator.sceneMousePos, Vec2.Zero)
   } else {

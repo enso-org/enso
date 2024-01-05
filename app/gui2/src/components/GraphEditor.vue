@@ -73,7 +73,7 @@ onMounted(() => {
   initStartupToast()
 })
 
-const nodeSelection = provideGraphSelection(graphNavigator, graphStore.nodeRects, {
+const nodeSelection = provideGraphSelection(graphNavigator, graphStore.db.nodeRects, {
   onSelected(id) {
     graphStore.db.moveNodeToTop(id)
   },
@@ -88,9 +88,9 @@ const interactionBindingsHandler = interactionBindings.handler({
 // used as the source of the placement. This means, for example, the selected nodes when creating from a selection
 // or the node that is being edited when creating from a port double click.
 function environmentForNodes(nodeIds: IterableIterator<ExprId>): Environment {
-  const nodeRects = [...graphStore.nodeRects.values()]
+  const nodeRects = [...graphStore.db.nodeRects.values()]
   const selectedNodeRects = [...nodeIds]
-    .map((id) => graphStore.nodeRects.get(id))
+    .map((id) => graphStore.db.nodeRects.get(id))
     .filter((item): item is Rect => item !== undefined)
   const screenBounds = graphNavigator.viewport
   const mousePosition = graphNavigator.sceneMousePos
@@ -181,7 +181,7 @@ const graphBindingsHandler = graphBindings.handler({
     const nodesToCenter =
       nodeSelection.selected.size === 0 ? graphStore.currentNodeIds : nodeSelection.selected
     for (const id of nodesToCenter) {
-      const rect = graphStore.nodeRects.get(id)
+      const rect = graphStore.db.nodeRects.get(id)
       if (!rect) continue
       left = Math.min(left, rect.left)
       right = Math.max(right, rect.right)
