@@ -1,4 +1,3 @@
-import { graphBindings } from '@/bindings'
 import { nonDictatedPlacement } from '@/components/ComponentBrowser/placement'
 import type { PortId } from '@/providers/portInfo'
 import { GraphDb } from '@/stores/graph/graphDatabase'
@@ -222,6 +221,12 @@ export const useGraphStore = defineStore('graph', () => {
     commitEdit(edit, new Map([[rhs.exprId, meta]]))
   }
 
+  function editAst(cb: (edit: Ast.MutableModule) => void) {
+    const edit = astModule.edit()
+    cb(edit)
+    commitEdit(edit)
+  }
+
   function deleteNode(id: ExprId) {
     const node = db.nodeIdToNode.get(id)
     if (!node) return
@@ -416,6 +421,7 @@ export const useGraphStore = defineStore('graph', () => {
     currentNodeIds,
     moduleCode,
     methodAst,
+    editAst,
     createEdgeFromOutput,
     disconnectSource,
     disconnectTarget,
