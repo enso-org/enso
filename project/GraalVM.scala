@@ -23,7 +23,9 @@ object GraalVM {
     "org.graalvm.polyglot" % "polyglot"         % version,
     "org.graalvm.truffle"  % "truffle-api"      % version,
     "org.graalvm.truffle"  % "truffle-runtime"  % version,
-    "org.graalvm.truffle"  % "truffle-compiler" % version
+    "org.graalvm.truffle"  % "truffle-compiler" % version,
+    "org.graalvm.shadowed" % "json"             % version,
+    "org.graalvm.tools"    % "coverage-tool"    % version
   )
 
   val sdkPkgs = Seq(

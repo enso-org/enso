@@ -628,6 +628,12 @@ object Main {
     if (inspect) {
       options.put("inspect", "")
     }
+
+    options.put("coverage", "true")
+    options.put("coverage.Output", "lcov")
+    options.put("coverage.OutputFile", "lcov.info")
+    options.put("coverage.FilterFile", "*Standard*")
+
     val context = new ContextFactory().create(
       projectRoot,
       System.in,
