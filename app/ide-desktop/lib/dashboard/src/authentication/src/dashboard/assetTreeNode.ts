@@ -40,79 +40,85 @@ export function compareAssetTreeNodes(a: AssetTreeNode, b: AssetTreeNode) {
 /** Return a new {@link AssetTreeNode} array if any children would be changed by the transformation
  * function, otherwise return the original {@link AssetTreeNode} array. */
 export function assetTreeMap(
-    tree: AssetTreeNode[],
+    root: AssetTreeNode,
     transform: (node: AssetTreeNode) => AssetTreeNode
 ) {
-    let result: AssetTreeNode[] | null = null
-    for (let i = 0; i < tree.length; i += 1) {
-        const node = tree[i]
+    const children = root.children ?? []
+    let result: AssetTreeNode = transform(root)
+    for (let i = 0; i < children.length; i += 1) {
+        const node = children[i]
         if (node == null) {
             break
         }
         const intermediateNode = transform(node)
         let newNode: AssetTreeNode = intermediateNode
         if (intermediateNode.children != null) {
-            const newChildren = assetTreeMap(intermediateNode.children, transform)
-            if (newChildren !== intermediateNode.children) {
-                newNode = { ...intermediateNode, children: newChildren }
-            }
+            newNode = assetTreeMap(intermediateNode, transform)
         }
         if (newNode !== node) {
-            result ??= Array.from(tree)
-            result[i] = newNode
+            if (result === root) {
+                result = { ...root }
+                result.children = [...children]
+            }
+            result.children ??= []
+            result.children[i] = newNode
         }
     }
-    return result ?? tree
+    return result
 }
 
 /** Return a new {@link AssetTreeNode} array if any children would be changed by the transformation
  * function, otherwise return the original {@link AssetTreeNode} array. The predicate is applied to
- * a parent node before it is applied to its children. */
-export function assetTreeFilter(
-    tree: AssetTreeNode[],
-    predicate: (node: AssetTreeNode) => boolean
-) {
-    let result: AssetTreeNode[] | null = null
-    for (let i = 0; i < tree.length; i += 1) {
-        const node = tree[i]
+ * a parent node before it is applied to its children. The root node is never removed. */
+export function assetTreeFilter(root: AssetTreeNode, predicate: (node: AssetTreeNode) => boolean) {
+    const children = root.children ?? []
+    let result: AssetTreeNode | null = null
+    for (let i = 0; i < children.length; i += 1) {
+        const node = children[i]
         if (node == null) {
             break
         }
         if (!predicate(node)) {
-            result = tree.slice(0, i)
+            if (!result) {
+                result = { ...root }
+                result.children = i === 0 ? null : children.slice(0, i)
+            }
         } else {
             if (node.children != null) {
-                const newChildren = assetTreeFilter(node.children, predicate)
-                if (newChildren !== node.children) {
-                    result ??= tree.slice(0, i)
-                    const newNode = {
-                        ...node,
-                        children: newChildren.length === 0 ? null : newChildren,
+                const newNode = assetTreeFilter(node, predicate)
+                if (newNode !== node) {
+                    if (!result) {
+                        result = { ...root }
+                        result.children = children.slice(0, i)
                     }
-                    result.push(newNode)
+                    result.children ??= []
+                    result.children.push(newNode)
                 } else if (result != null) {
-                    result.push(node)
+                    result.children ??= []
+                    result.children.push(node)
                 }
             } else if (result != null) {
-                result.push(node)
+                result.children ??= []
+                result.children.push(node)
             }
         }
     }
-    return result ?? tree
+    if (result !== root && result?.children?.length === 0) {
+        result.children = null
+    }
+    return result ?? root
 }
 
 /** Returns all items in the tree, flattened into an array using pre-order traversal. */
 export function assetTreePreorderTraversal(
-    tree: AssetTreeNode[],
+    root: AssetTreeNode,
     preprocess?: ((tree: AssetTreeNode[]) => AssetTreeNode[]) | null
 ): AssetTreeNode[] {
-    return (preprocess?.(tree) ?? tree).flatMap(node => {
-        if (node.children != null) {
-            return [node, ...assetTreePreorderTraversal(node.children, preprocess ?? null)]
-        } else {
-            return [node]
-        }
-    })
+    return (preprocess?.(root.children ?? []) ?? root.children ?? []).flatMap(node =>
+        node.children == null
+            ? [node]
+            : [node, ...assetTreePreorderTraversal(node, preprocess ?? null)]
+    )
 }
 
 /** Creates an {@link AssetTreeNode} from a {@link backendModule.AnyAsset}. */
@@ -121,8 +127,9 @@ export function assetTreeNodeFromAsset(
     directoryKey: backendModule.AssetId | null,
     directoryId: backendModule.DirectoryId | null,
     depth: number,
-    getKey: (asset: backendModule.AnyAsset) => backendModule.AssetId = oldAsset => oldAsset.id
+    getKey: ((asset: backendModule.AnyAsset) => backendModule.AssetId) | null = null
 ): AssetTreeNode {
+    getKey ??= oldAsset => oldAsset.id
     return {
         key: getKey(asset),
         item: asset,

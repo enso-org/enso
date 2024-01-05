@@ -502,6 +502,25 @@ export interface SecretAsset extends Asset<AssetType.secret> {}
 /** A convenience alias for {@link Asset}<{@link AssetType.specialLoading}>. */
 export interface SpecialLoadingAsset extends Asset<AssetType.specialLoading> {}
 
+/** A convenience alias for {@link Asset}<{@link AssetType.specialEmpty}>. */
+export interface SpecialEmptyAsset extends Asset<AssetType.specialEmpty> {}
+
+/** Creates a {@link DirectoryAsset} representing the root directory for the organization,
+ * with all irrelevant fields initialized to default values. */
+export function createRootDirectoryAsset(directoryId: DirectoryId): DirectoryAsset {
+    return {
+        type: AssetType.directory,
+        title: '(root)',
+        id: directoryId,
+        modifiedAt: dateTime.toRfc3339(new Date()),
+        parentId: DirectoryId(''),
+        permissions: [],
+        projectState: null,
+        labels: [],
+        description: null,
+    }
+}
+
 /** Creates a {@link SpecialLoadingAsset}, with all irrelevant fields initialized to default
  * values. */
 export function createSpecialLoadingAsset(directoryId: DirectoryId): SpecialLoadingAsset {
@@ -517,9 +536,6 @@ export function createSpecialLoadingAsset(directoryId: DirectoryId): SpecialLoad
         description: null,
     }
 }
-
-/** A convenience alias for {@link Asset}<{@link AssetType.specialEmpty}>. */
-export interface SpecialEmptyAsset extends Asset<AssetType.specialEmpty> {}
 
 /** Creates a {@link SpecialEmptyAsset}, with all irrelevant fields initialized to default
  * values. */

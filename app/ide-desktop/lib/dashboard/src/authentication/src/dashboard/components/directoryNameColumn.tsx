@@ -40,7 +40,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
             numberOfSelectedItems,
             assetEvents,
             dispatchAssetListEvent,
-            topLevelAssets,
+            rootAsset,
             nodeMap,
             doToggleDirectoryExpansion,
         },
@@ -92,6 +92,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
             case assetEventModule.AssetEventType.closeProject:
             case assetEventModule.AssetEventType.cancelOpeningAllProjects:
             case assetEventModule.AssetEventType.cut:
+            case assetEventModule.AssetEventType.copy:
             case assetEventModule.AssetEventType.cancelCut:
             case assetEventModule.AssetEventType.move:
             case assetEventModule.AssetEventType.delete:
@@ -196,7 +197,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
                 checkSubmittable={newTitle =>
                     (item.directoryKey != null
                         ? nodeMap.current.get(item.directoryKey)?.children ?? []
-                        : topLevelAssets.current
+                        : rootAsset.current.children ?? []
                     ).every(
                         child =>
                             // All siblings,
