@@ -1,0 +1,112 @@
+import project.Any.Any
+import project.Data.Numbers.Integer
+import project.Data.Text.Encoding.Encoding
+import project.Data.Text.Text
+import project.Data.Vector.Vector
+import project.Error.Error
+import project.Errors.Common.Index_Out_Of_Bounds
+import project.Errors.File_Error.File_Error
+import project.Nothing.Nothing
+import project.System.File.File
+from project.Data.Boolean import Boolean, False, True
+from project.Data.Range.Extensions import all
+from project.Data.Text.Extensions import all
+
+polyglot java import java.io.RandomAccessFile
+polyglot java import org.enso.base.Array_Utils
+polyglot java import org.enso.base.arrays.IntArrayBuilder
+polyglot java import org.enso.base.arrays.LongArrayList
+
+type File_By_Line
+    ## PUBLIC
+       Creates a new File_By_Line object.
+    new : File->Encoding->File_By_Line
+    new file:File encoding:Encoding=Encoding.utf_8 =
+        row_map = LongArrayList.new
+        row_map.add 0
+        File_By_Line.Reader file encoding 0 row_map
+
+    ## PRIVATE
+    Reader file:File encoding:Encoding position:Integer row_map:LongArrayList
+
+    ## PUBLIC
+       Reads a specific line from the file.
+    get : Integer->Text
+    get self line:Integer =
+        read_line self line
+
+    ## PUBLIC
+       Reads the first line
+    first_line : Text
+    first_line self = self.get 0
+
+## PRIVATE
+   Reads a specific line from the file.
+read_line : File_By_Line->Integer->Any->Any
+read_line file:File_By_Line line:Integer=0 ~default=Nothing =
+    raf = RandomAccessFile.new file.file.path "r"
+    skip_to_line raf file.row_map line
+    result = if raf.getFilePointer >= raf.length then default else Text.from_bytes (file_read_line raf) file.encoding
+    raf.close
+    result
+
+## PRIVATE
+   Scans the file forward to the required line.
+skip_to_line raf:RandomAccessFile row_map:LongArrayList line:Integer =
+    scan_file raf row_map line line Encoding.utf_8 Nothing
+
+## PRIVATE
+   Scanner for reading a file line by line and performing an action
+scan_file raf:RandomAccessFile row_map:LongArrayList start_at:Integer end_at:Integer encoding:Encoding step_action =
+    ## First if we haven't read the found the start_at line we need to find that.
+    file_scan_lines raf row_map start_at
+
+    ## Now we can read the lines we need.
+    if raf.getFilePointer >= raf.length then Error.throw (Index_Out_Of_Bounds.Error start_at -1) else
+        file_scan_lines raf row_map start_at end_at step_action encoding
+
+## PRIVATE
+   Reads a line line by line.
+   Leaves the file pointer at the start of the end_at line.
+file_scan_lines : RandomAccessFile -> LongArrayList -> Integer -> Integer -> ((Text -> Any) | Nothing) -> Encoding -> Any
+file_scan_lines raf:RandomAccessFile row_map:LongArrayList start_at:Integer end_at:Integer=start_at action=Nothing encoding:Encoding=Encoding.utf_8 =
+    start_position = if start_at < row_map.getSize then row_map.get start_at else
+         file_scan_lines raf row_map row_map.getSize-1 start_at
+         row_map.get start_at
+
+    file_length = raf.length
+    raf.seek start_position
+    start_at.up_to end_at include_end=True . each i-> case raf.getFilePointer >= file_length of
+        True ->
+            if i >= row_map.getSize then row_map.add raf.getFilePointer
+            Nothing
+        False -> case i < row_map.getSize of
+            True -> if action.is_nothing then raf.seek (row_map.get i) else
+                end_position = row_map.get i
+                action (Text.from_bytes (file_read_line raf) encoding (end_position-raf.getFilePointer))
+                raf.seek end_position
+            False ->
+                bytes = file_read_line raf action.is_nothing.not
+                row_map.add raf.getFilePointer
+                action.if_not_nothing (action (Text.from_bytes bytes encoding))
+
+## PRIVATE
+   Reads a single line from a file as raw bytes
+   Same as readLine but allows for handling encoding afterwards.
+file_read_line : RandomAccessFile -> Boolean -> Integer -> Vector Integer | Nothing
+file_read_line raf:RandomAccessFile collect:Boolean=True capacity:Integer=32 =
+    find_next_line raf append =
+        char = raf.read
+        case char of
+            -1 -> Nothing
+            10 -> Nothing
+            13 ->
+                if raf.read != 10 then raf.seek raf.getFilePointer-1
+                Nothing
+            _ ->
+                append char
+                @Tail_Call find_next_line raf append
+    if collect.not then find_next_line raf _->Nothing else
+        builder = IntArrayBuilder.new capacity
+        find_next_line raf (i-> builder.add i)
+        builder.build
