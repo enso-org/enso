@@ -31,6 +31,7 @@ export const graphBindings = defineKeybinds('graph-editor', {
   deselectAll: ['Escape', 'PointerMain'],
   copyNode: ['Mod+C'],
   pasteNode: ['Mod+V'],
+  collapse: ['Mod+G'],
   startProfiling: ['Mod+Alt+,'],
   stopProfiling: ['Mod+Alt+.'],
   enterNode: ['Mod+E'],

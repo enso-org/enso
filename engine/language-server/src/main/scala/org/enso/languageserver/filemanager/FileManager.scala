@@ -4,12 +4,12 @@ import akka.actor.{Actor, Props}
 import akka.pattern.pipe
 import akka.routing.SmallestMailboxPool
 import com.typesafe.scalalogging.LazyLogging
-import org.bouncycastle.util.encoders.Hex
 import org.enso.languageserver.data.FileManagerConfig
 import org.enso.languageserver.effect._
 import org.enso.languageserver.filemanager.FileManagerProtocol.TextualFileContent
 import org.enso.languageserver.monitoring.MonitoringProtocol.{Ping, Pong}
 import org.enso.languageserver.util.UnhandledLogging
+import org.enso.text.Hex
 import zio._
 
 import java.io.File
