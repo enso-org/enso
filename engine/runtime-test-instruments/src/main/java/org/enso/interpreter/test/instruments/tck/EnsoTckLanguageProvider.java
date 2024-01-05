@@ -39,7 +39,12 @@ public class EnsoTckLanguageProvider implements LanguageProvider {
     """).invokeMember("eval_expression", "plus");
 
     return List.of(
-      Snippet.newBuilder("plus", plus, TypeDescriptor.executable(TypeDescriptor.NUMBER, TypeDescriptor.NUMBER, TypeDescriptor.NUMBER)).build()
+      Snippet.newBuilder("plus:Number", plus, TypeDescriptor.NUMBER)
+        .parameterTypes(TypeDescriptor.NUMBER, TypeDescriptor.NUMBER)
+        .build(),
+      Snippet.newBuilder("plus:Text", plus, TypeDescriptor.STRING)
+        .parameterTypes(TypeDescriptor.STRING, TypeDescriptor.STRING)
+        .build()
     );
   }
 
@@ -48,9 +53,19 @@ public class EnsoTckLanguageProvider implements LanguageProvider {
     var when = context.eval("enso", """
     when c = if c then 1 else -1
     """).invokeMember("eval_expression", "when");;
+    var which = context.eval("enso", """
+    which c = case c of
+        0 -> "zero"
+        1 -> "one"
+        2 -> "two"
+        _ -> "a lot"
+    """).invokeMember("eval_expression", "which");
     return List.of(
       Snippet.newBuilder("if", when, TypeDescriptor.NUMBER)
         .parameterTypes(TypeDescriptor.BOOLEAN)
+        .build(),
+      Snippet.newBuilder("if", which, TypeDescriptor.STRING)
+        .parameterTypes(TypeDescriptor.NUMBER)
         .build()
     );
   }
