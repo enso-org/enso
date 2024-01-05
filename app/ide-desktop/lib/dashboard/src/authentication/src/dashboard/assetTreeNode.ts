@@ -84,22 +84,19 @@ export function assetTreeFilter(root: AssetTreeNode, predicate: (node: AssetTree
                 result.children = i === 0 ? null : children.slice(0, i)
             }
         } else {
+            let newNode = node
             if (node.children != null) {
-                const newNode = assetTreeFilter(node, predicate)
+                newNode = assetTreeFilter(node, predicate)
                 if (newNode !== node) {
                     if (!result) {
                         result = { ...root }
                         result.children = children.slice(0, i)
                     }
-                    result.children ??= []
-                    result.children.push(newNode)
-                } else if (result != null) {
-                    result.children ??= []
-                    result.children.push(node)
                 }
-            } else if (result != null) {
+            }
+            if (result != null) {
                 result.children ??= []
-                result.children.push(node)
+                result.children.push(newNode)
             }
         }
     }

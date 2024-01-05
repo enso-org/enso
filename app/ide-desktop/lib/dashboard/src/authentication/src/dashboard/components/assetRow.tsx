@@ -9,6 +9,7 @@ import * as assetTreeNode from '../assetTreeNode'
 import * as authProvider from '../../authentication/providers/auth'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
+import * as dateTime from '../dateTime'
 import * as download from '../../download'
 import * as drag from '../drag'
 import * as errorModule from '../../error'
@@ -114,6 +115,7 @@ export default function AssetRow(props: AssetRowProps) {
                         organization,
                         user
                     )
+                    newAsset.modifiedAt = dateTime.toRfc3339(new Date())
                     return newAsset
                 })
                 const copiedAsset = await backend.copyAsset(
