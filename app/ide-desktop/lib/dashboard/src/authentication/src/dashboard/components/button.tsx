@@ -10,6 +10,7 @@ export interface ButtonProps {
     disabled?: boolean
     disabledOpacityClassName?: string
     image: string
+    alt?: string
     /** A title that is only shown when `disabled` is true. */
     error?: string | null
     className?: string
@@ -23,6 +24,7 @@ export default function Button(props: ButtonProps) {
         disabled = false,
         disabledOpacityClassName,
         image,
+        alt,
         error,
         className,
         onClick,
@@ -35,6 +37,7 @@ export default function Button(props: ButtonProps) {
             className={`${active ? '' : disabledOpacityClassName ?? 'opacity-50'} ${
                 disabled ? '' : 'cursor-pointer hover:opacity-100'
             } ${!active && disabled ? 'cursor-not-allowed' : ''} ${className ?? ''}`}
+            {...(alt != null ? { alt } : {})}
             {...(disabled ? {} : { onClick })}
         />
     )

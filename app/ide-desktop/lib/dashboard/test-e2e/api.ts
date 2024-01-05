@@ -1,5 +1,5 @@
 /** @file The mock API. */
-import type * as test from '@playwright/test'
+import * as test from '@playwright/test'
 
 import * as backend from '../src/authentication/src/dashboard/backend'
 import * as config from '../src/authentication/src/config'
@@ -14,6 +14,8 @@ import * as uniqueString from '../src/authentication/src/uniqueString'
 
 /** The HTTP status code representing a bad request. */
 const HTTP_STATUS_BAD_REQUEST = 400
+/** The HTTP status code representing a URL that does not exist. */
+const HTTP_STATUS_NOT_FOUND = 404
 /* eslint-disable no-restricted-syntax */
 /** An asset ID that is a path glob. */
 const GLOB_ASSET_ID = '*' as backend.AssetId
@@ -31,126 +33,11 @@ const BASE_URL = config.ACTIVE_CONFIG.apiUrl + '/'
 
 /** Add route handlers for the mock API to a page. */
 export async function mockApi(page: test.Page) {
-    await page.route(BASE_URL + '**', (_route, request) => {
-        throw new Error(`Missing route handler for '${request.url().replace(BASE_URL, '')}'.`)
-    })
-
-    // === Endpoints returning arrays ===
-
-    await page.route(BASE_URL + remoteBackendPaths.LIST_DIRECTORY_PATH + '*', async route => {
-        await route.fulfill({
-            json: { assets: [] } satisfies remoteBackend.ListDirectoryResponseBody,
-        })
-    })
-    await page.route(BASE_URL + remoteBackendPaths.LIST_FILES_PATH + '*', async route => {
-        await route.fulfill({
-            json: { files: [] } satisfies remoteBackend.ListFilesResponseBody,
-        })
-    })
-    await page.route(BASE_URL + remoteBackendPaths.LIST_PROJECTS_PATH + '*', async route => {
-        await route.fulfill({
-            json: { projects: [] } satisfies remoteBackend.ListProjectsResponseBody,
-        })
-    })
-    await page.route(BASE_URL + remoteBackendPaths.LIST_SECRETS_PATH + '*', async route => {
-        await route.fulfill({
-            json: { secrets: [] } satisfies remoteBackend.ListSecretsResponseBody,
-        })
-    })
-    await page.route(BASE_URL + remoteBackendPaths.LIST_TAGS_PATH + '*', async route => {
-        await route.fulfill({
-            json: { tags: [] } satisfies remoteBackend.ListTagsResponseBody,
-        })
-    })
-    await page.route(BASE_URL + remoteBackendPaths.LIST_USERS_PATH + '*', async route => {
-        await route.fulfill({
-            json: { users: [] } satisfies remoteBackend.ListUsersResponseBody,
-        })
-    })
-    await page.route(
-        BASE_URL + remoteBackendPaths.LIST_VERSIONS_PATH + '*',
-        async (route, request) => {
-            await route.fulfill({
-                json: {
-                    versions: [
-                        {
-                            ami: null,
-                            created: dateTime.toRfc3339(new Date()),
-                            number: {
-                                lifecycle:
-                                    // eslint-disable-next-line no-restricted-syntax
-                                    'Development' satisfies `${backend.VersionLifecycle.development}` as backend.VersionLifecycle.development,
-                                value: '2023.2.1-dev',
-                            },
-                            // eslint-disable-next-line @typescript-eslint/naming-convention, no-restricted-syntax
-                            version_type: (new URL(request.url()).searchParams.get(
-                                'version_type'
-                            ) ?? '') as backend.VersionType,
-                        } satisfies backend.Version,
-                    ],
-                },
-            })
-        }
-    )
-
-    // === Unimplemented endpoints ===
-
-    await page.route(
-        BASE_URL + remoteBackendPaths.getProjectDetailsPath(GLOB_PROJECT_ID),
-        async route => {
-            await route.fulfill({
-                json: {
-                    organizationId: 'example organization id',
-                    projectId: 'example project id',
-                    name: 'example project name',
-                    state: {
-                        type: 'OpenInProgress',
-                    },
-                    packageName: 'Project_root',
-                    ideVersion: null,
-                    engineVersion: {
-                        value: '2023.2.1-nightly.2023.9.29',
-                        lifecycle: 'Development',
-                    },
-                    openedBy: 'email@email.email',
-                },
-            })
-        }
-    )
-
-    // === Endpoints returning `void` ===
-
-    await page.route(BASE_URL + remoteBackendPaths.INVITE_USER_PATH + '*', async route => {
-        await route.fulfill()
-    })
-    await page.route(BASE_URL + remoteBackendPaths.CREATE_PERMISSION_PATH + '*', async route => {
-        await route.fulfill()
-    })
-    await page.route(BASE_URL + remoteBackendPaths.deleteAssetPath(GLOB_ASSET_ID), async route => {
-        await route.fulfill()
-    })
-    await page.route(
-        BASE_URL + remoteBackendPaths.closeProjectPath(GLOB_PROJECT_ID),
-        async route => {
-            await route.fulfill()
-        }
-    )
-    await page.route(
-        BASE_URL + remoteBackendPaths.openProjectPath(GLOB_PROJECT_ID),
-        async route => {
-            await route.fulfill()
-        }
-    )
-    await page.route(BASE_URL + remoteBackendPaths.deleteTagPath(GLOB_TAG_ID), async route => {
-        await route.fulfill()
-    })
-
-    // === Other endpoints ===
     // eslint-disable-next-line no-restricted-syntax
     const defaultEmail = 'email@example.com' as backend.EmailAddress
     const defaultUsername = 'user name'
     // eslint-disable-next-line no-restricted-syntax
-    const defaultOrganizationId = 'placeholder organization id' as backend.UserOrOrganizationId
+    const defaultOrganizationId = 'organization-placeholder id' as backend.UserOrOrganizationId
     const defaultUser: backend.UserOrOrganization = {
         email: defaultEmail,
         name: defaultUsername,
@@ -158,45 +45,265 @@ export async function mockApi(page: test.Page) {
         isEnabled: true,
     }
     let currentUser: backend.UserOrOrganization | null = defaultUser
-    await page.route(
-        BASE_URL + remoteBackendPaths.CREATE_USER_PATH + '*',
-        async (route, request) => {
-            if (request.method() === 'POST') {
-                // The type of the body sent by this app is statically known.
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-                const body: backend.CreateUserRequestBody = await request.postDataJSON()
-                currentUser = {
-                    email: body.userEmail,
-                    name: body.userName,
-                    id: body.organizationId ?? defaultUser.id,
-                    isEnabled: false,
-                }
-                await route.fulfill({ json: currentUser })
-            } else if (request.method() === 'GET') {
-                if (currentUser != null) {
-                    await route.fulfill({ json: [] })
-                } else {
-                    await route.fulfill({ status: HTTP_STATUS_BAD_REQUEST })
-                }
-            }
+    const assetMap = new Map<backend.AssetId, backend.AnyAsset>()
+    const assets: backend.AnyAsset[] = []
+
+    const addAsset = (asset: backend.AnyAsset) => {
+        assets.push(asset)
+        assetMap.set(asset.id, asset)
+    }
+
+    // This will be used in the future.
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const removeAsset = (assetId: backend.AssetId) => {
+        const asset = assetMap.get(assetId)
+        assetMap.delete(assetId)
+        if (asset) {
+            assets.splice(assets.indexOf(asset), 1)
         }
-    )
-    await page.route(BASE_URL + remoteBackendPaths.USERS_ME_PATH + '*', async route => {
-        await route.fulfill({
-            json: currentUser,
+    }
+
+    await test.test.step('Mock API', async () => {
+        await page.route('https://www.google-analytics.com/**', async route => {
+            await route.fulfill()
         })
-    })
-    await page.route(BASE_URL + remoteBackendPaths.CREATE_TAG_PATH + '*', async route => {
-        if (route.request().method() === 'POST') {
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-            const body: backend.CreateTagRequestBody = route.request().postDataJSON()
-            const json: backend.Label = {
-                id: backend.TagId(`tag-${uniqueString.uniqueString()}`),
-                value: backend.LabelName(body.value),
-                color: body.color,
+
+        await page.route('https://www.googletagmanager.com/gtag/js*', async route => {
+            await route.fulfill({
+                contentType: 'text/javascript',
+                body: 'export {};',
+            })
+        })
+
+        await page.route(BASE_URL + '**', (_route, request) => {
+            throw new Error(`Missing route handler for '${request.url().replace(BASE_URL, '')}'.`)
+        })
+
+        // === Endpoints returning arrays ===
+
+        await page.route(BASE_URL + remoteBackendPaths.LIST_DIRECTORY_PATH + '*', async route => {
+            await route.fulfill({
+                json: { assets } satisfies remoteBackend.ListDirectoryResponseBody,
+            })
+        })
+        await page.route(BASE_URL + remoteBackendPaths.LIST_FILES_PATH + '*', async route => {
+            await route.fulfill({
+                json: { files: [] } satisfies remoteBackend.ListFilesResponseBody,
+            })
+        })
+        await page.route(BASE_URL + remoteBackendPaths.LIST_PROJECTS_PATH + '*', async route => {
+            await route.fulfill({
+                json: { projects: [] } satisfies remoteBackend.ListProjectsResponseBody,
+            })
+        })
+        await page.route(BASE_URL + remoteBackendPaths.LIST_SECRETS_PATH + '*', async route => {
+            await route.fulfill({
+                json: { secrets: [] } satisfies remoteBackend.ListSecretsResponseBody,
+            })
+        })
+        await page.route(BASE_URL + remoteBackendPaths.LIST_TAGS_PATH + '*', async route => {
+            await route.fulfill({
+                json: { tags: [] } satisfies remoteBackend.ListTagsResponseBody,
+            })
+        })
+        await page.route(BASE_URL + remoteBackendPaths.LIST_USERS_PATH + '*', async route => {
+            await route.fulfill({
+                json: { users: [] } satisfies remoteBackend.ListUsersResponseBody,
+            })
+        })
+        await page.route(
+            BASE_URL + remoteBackendPaths.LIST_VERSIONS_PATH + '*',
+            async (route, request) => {
+                await route.fulfill({
+                    json: {
+                        versions: [
+                            {
+                                ami: null,
+                                created: dateTime.toRfc3339(new Date()),
+                                number: {
+                                    lifecycle:
+                                        // eslint-disable-next-line no-restricted-syntax
+                                        'Development' satisfies `${backend.VersionLifecycle.development}` as backend.VersionLifecycle.development,
+                                    value: '2023.2.1-dev',
+                                },
+                                // eslint-disable-next-line @typescript-eslint/naming-convention, no-restricted-syntax
+                                version_type: (new URL(request.url()).searchParams.get(
+                                    'version_type'
+                                ) ?? '') as backend.VersionType,
+                            } satisfies backend.Version,
+                        ],
+                    },
+                })
             }
-            await route.fulfill({ json })
-        }
+        )
+
+        // === Unimplemented endpoints ===
+
+        await page.route(
+            BASE_URL + remoteBackendPaths.getProjectDetailsPath(GLOB_PROJECT_ID),
+            async route => {
+                await route.fulfill({
+                    json: {
+                        organizationId: 'example organization id',
+                        projectId: 'example project id',
+                        name: 'example project name',
+                        state: {
+                            type: 'OpenInProgress',
+                        },
+                        packageName: 'Project_root',
+                        ideVersion: null,
+                        engineVersion: {
+                            value: '2023.2.1-nightly.2023.9.29',
+                            lifecycle: 'Development',
+                        },
+                        openedBy: 'email@email.email',
+                    },
+                })
+            }
+        )
+
+        // === Endpoints returning `void` ===
+
+        await page.route(
+            BASE_URL + remoteBackendPaths.copyAssetPath(GLOB_ASSET_ID),
+            async (route, request) => {
+                /** The type for the JSON request payload for this endpoint. */
+                interface Body {
+                    parentDirectoryId: backend.DirectoryId
+                }
+                const assetId = request.url().match(/assets[/](.+?)[/]copy/)?.[1]
+                // eslint-disable-next-line no-restricted-syntax
+                const asset = assetId != null ? assetMap.get(assetId as backend.AssetId) : null
+                if (asset == null) {
+                    if (assetId == null) {
+                        await route.fulfill({
+                            status: HTTP_STATUS_BAD_REQUEST,
+                            json: { error: 'Invalid Asset ID' },
+                        })
+                    } else {
+                        await route.fulfill({
+                            status: HTTP_STATUS_NOT_FOUND,
+                            json: { error: 'Asset does not exist' },
+                        })
+                    }
+                } else {
+                    // The type of the body sent by this app is statically known.
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                    const body: Body = await request.postDataJSON()
+                    // Can be any asset ID.
+                    const id = backend.DirectoryId(uniqueString.uniqueString())
+                    const json: backend.CopyAssetResponse = {
+                        asset: {
+                            id,
+                            parentId: body.parentDirectoryId,
+                            title: asset.title + ' (copy)',
+                        },
+                    }
+                    const newAsset = { ...asset }
+                    newAsset.id = id
+                    newAsset.title += ' (copy)'
+                    addAsset(newAsset)
+                    await route.fulfill({ json })
+                }
+            }
+        )
+        await page.route(BASE_URL + remoteBackendPaths.INVITE_USER_PATH + '*', async route => {
+            await route.fulfill()
+        })
+        await page.route(
+            BASE_URL + remoteBackendPaths.CREATE_PERMISSION_PATH + '*',
+            async route => {
+                await route.fulfill()
+            }
+        )
+        await page.route(
+            BASE_URL + remoteBackendPaths.deleteAssetPath(GLOB_ASSET_ID),
+            async route => {
+                await route.fulfill()
+            }
+        )
+        await page.route(
+            BASE_URL + remoteBackendPaths.closeProjectPath(GLOB_PROJECT_ID),
+            async route => {
+                await route.fulfill()
+            }
+        )
+        await page.route(
+            BASE_URL + remoteBackendPaths.openProjectPath(GLOB_PROJECT_ID),
+            async route => {
+                await route.fulfill()
+            }
+        )
+        await page.route(BASE_URL + remoteBackendPaths.deleteTagPath(GLOB_TAG_ID), async route => {
+            await route.fulfill()
+        })
+
+        // === Other endpoints ===
+        await page.route(
+            BASE_URL + remoteBackendPaths.CREATE_USER_PATH + '*',
+            async (route, request) => {
+                if (request.method() === 'POST') {
+                    // The type of the body sent by this app is statically known.
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                    const body: backend.CreateUserRequestBody = await request.postDataJSON()
+                    currentUser = {
+                        email: body.userEmail,
+                        name: body.userName,
+                        id: body.organizationId ?? defaultUser.id,
+                        isEnabled: false,
+                    }
+                    await route.fulfill({ json: currentUser })
+                } else if (request.method() === 'GET') {
+                    if (currentUser != null) {
+                        await route.fulfill({ json: [] })
+                    } else {
+                        await route.fulfill({ status: HTTP_STATUS_BAD_REQUEST })
+                    }
+                }
+            }
+        )
+        await page.route(BASE_URL + remoteBackendPaths.USERS_ME_PATH + '*', async route => {
+            await route.fulfill({
+                json: currentUser,
+            })
+        })
+        await page.route(BASE_URL + remoteBackendPaths.CREATE_TAG_PATH + '*', async route => {
+            if (route.request().method() === 'POST') {
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                const body: backend.CreateTagRequestBody = route.request().postDataJSON()
+                const json: backend.Label = {
+                    id: backend.TagId(`tag-${uniqueString.uniqueString()}`),
+                    value: backend.LabelName(body.value),
+                    color: body.color,
+                }
+                await route.fulfill({ json })
+            }
+        })
+        await page.route(BASE_URL + remoteBackendPaths.CREATE_DIRECTORY_PATH + '*', async route => {
+            if (route.request().method() === 'POST') {
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                const body: backend.CreateDirectoryRequestBody = route.request().postDataJSON()
+                const title = body.title
+                const id = backend.DirectoryId(`directory-${uniqueString.uniqueString()}`)
+                const parentId =
+                    body.parentId ?? backend.DirectoryId(`directory-${uniqueString.uniqueString()}`)
+                const json: backend.CreatedDirectory = { title, id, parentId }
+                addAsset({
+                    type: backend.AssetType.directory,
+                    description: null,
+                    id,
+                    labels: [],
+                    modifiedAt: dateTime.toRfc3339(new Date()),
+                    parentId,
+                    permissions: [],
+                    projectState: null,
+                    title,
+                })
+                await route.fulfill({ json })
+            } else {
+                await route.fallback()
+            }
+        })
     })
 
     return {

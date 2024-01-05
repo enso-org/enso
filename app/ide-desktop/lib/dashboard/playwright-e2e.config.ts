@@ -43,6 +43,6 @@ export default test.defineConfig({
     webServer: {
         command: 'npx tsx test-server.ts',
         port: 8080,
-        reuseExistingServer: !process.env.CI,
+        reuseExistingServer: false,
     },
 })

@@ -224,6 +224,26 @@ export function locateNewLabelButton(page: test.Locator | test.Page) {
     return page.getByRole('button', { name: 'new label' }).getByText('new label')
 }
 
+/** Find a "new folder" icon (if any) on the current page. */
+export function locateNewFolderIcon(page: test.Locator | test.Page) {
+    return page.getByAltText('New Folder')
+}
+
+/** Find a "new data connector" icon (if any) on the current page. */
+export function locateNewDataConnectorIcon(page: test.Locator | test.Page) {
+    return page.getByAltText('New Data Connector')
+}
+
+/** Find a "upload files" icon (if any) on the current page. */
+export function locateUploadFilesIcon(page: test.Locator | test.Page) {
+    return page.getByAltText('Upload Files')
+}
+
+/** Find a "download files" icon (if any) on the current page. */
+export function locateDownloadFilesIcon(page: test.Locator | test.Page) {
+    return page.getByAltText('Download Files')
+}
+
 // === Container locators ===
 
 /** Find a drive view (if any) on the current page. */
