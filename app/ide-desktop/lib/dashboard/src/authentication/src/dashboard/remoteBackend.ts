@@ -10,6 +10,7 @@ import * as config from '../config'
 import * as errorModule from '../error'
 import type * as http from '../http'
 import type * as loggerProvider from '../providers/logger'
+import * as object from '../object'
 import * as remoteBackendPaths from './remoteBackendPaths'
 
 // =================
@@ -262,22 +263,19 @@ export class RemoteBackend extends backendModule.Backend {
             }
         } else {
             return (await response.json()).assets
-                .map(
-                    asset =>
-                        // This type assertion is safe; it is only needed to convert `type` to a
-                        // newtype.
+                .map(asset =>
+                    object.merge(asset, {
                         // eslint-disable-next-line no-restricted-syntax
-                        ({
-                            ...asset,
-                            type: asset.id.match(/^(.+?)-/)?.[1],
-                        }) as backendModule.AnyAsset
+                        type: asset.id.match(/^(.+?)-/)?.[1] as backendModule.AssetType,
+                    })
                 )
-                .map(asset => ({
-                    ...asset,
-                    permissions: [...(asset.permissions ?? [])].sort(
-                        backendModule.compareUserPermissions
-                    ),
-                }))
+                .map(asset =>
+                    object.merge(asset, {
+                        permissions: [...(asset.permissions ?? [])].sort(
+                            backendModule.compareUserPermissions
+                        ),
+                    })
+                )
         }
     }
 

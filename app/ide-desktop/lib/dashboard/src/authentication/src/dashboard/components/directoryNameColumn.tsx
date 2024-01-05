@@ -13,6 +13,7 @@ import type * as column from '../column'
 import * as eventModule from '../event'
 import * as hooks from '../../hooks'
 import * as indent from '../indent'
+import * as object from '../../object'
 import * as shortcutsModule from '../shortcuts'
 import * as shortcutsProvider from '../../providers/shortcuts'
 import * as visibility from '../visibility'
@@ -121,10 +122,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
                                 title: asset.title,
                             })
                             rowState.setVisibility(visibility.Visibility.visible)
-                            setAsset({
-                                ...asset,
-                                ...createdDirectory,
-                            })
+                            setAsset(object.merge(asset, createdDirectory))
                         } catch (error) {
                             dispatchAssetListEvent({
                                 type: assetListEventModule.AssetListEventType.delete,
@@ -161,10 +159,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
                     ((selected && numberOfSelectedItems === 1) ||
                         shortcuts.matchesMouseAction(shortcutsModule.MouseAction.editName, event))
                 ) {
-                    setRowState(oldRowState => ({
-                        ...oldRowState,
-                        isEditingName: true,
-                    }))
+                    setRowState(oldRowState => object.merge(oldRowState, { isEditingName: true }))
                 } else if (eventModule.isDoubleClick(event)) {
                     if (!rowState.isEditingName) {
                         // This must be processed on the next tick, otherwise it will be overridden
@@ -205,25 +200,19 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
                     )
                 }
                 onSubmit={async newTitle => {
-                    setRowState(oldRowState => ({
-                        ...oldRowState,
-                        isEditingName: false,
-                    }))
+                    setRowState(oldRowState => object.merge(oldRowState, { isEditingName: false }))
                     if (newTitle !== asset.title) {
                         const oldTitle = asset.title
-                        setAsset(oldItem => ({ ...oldItem, title: newTitle }))
+                        setAsset(oldItem => object.merge(oldItem, { title: newTitle }))
                         try {
                             await doRename(newTitle)
                         } catch {
-                            setAsset(oldItem => ({ ...oldItem, title: oldTitle }))
+                            setAsset(oldItem => object.merge(oldItem, { title: oldTitle }))
                         }
                     }
                 }}
                 onCancel={() => {
-                    setRowState(oldRowState => ({
-                        ...oldRowState,
-                        isEditingName: false,
-                    }))
+                    setRowState(oldRowState => object.merge(oldRowState, { isEditingName: false }))
                 }}
                 className={`cursor-pointer bg-transparent grow leading-170 h-6 py-px ${
                     rowState.isEditingName ? 'cursor-text' : 'cursor-pointer'

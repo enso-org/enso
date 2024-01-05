@@ -16,8 +16,8 @@ import * as errorModule from '../../error'
 import * as hooks from '../../hooks'
 import * as identity from '../identity'
 import * as indent from '../indent'
-import * as merge from '../../merge'
 import * as modalProvider from '../../providers/modal'
+import * as object from '../../object'
 import * as permissions from '../permissions'
 import * as set from '../set'
 import * as visibilityModule from '../visibility'
@@ -84,10 +84,9 @@ export default function AssetRow(props: AssetRowProps) {
     const dragOverTimeoutHandle = React.useRef<number | null>(null)
     const asset = item.item
     const [visibility, setVisibility] = React.useState(visibilityModule.Visibility.visible)
-    const [rowState, setRowState] = React.useState<assetsTable.AssetRowState>(() => ({
-        ...initialRowState,
-        setVisibility,
-    }))
+    const [rowState, setRowState] = React.useState<assetsTable.AssetRowState>(() =>
+        object.merge(initialRowState, { setVisibility })
+    )
 
     React.useEffect(() => {
         setItem(rawItem)
@@ -109,7 +108,7 @@ export default function AssetRow(props: AssetRowProps) {
         async (newParentId: backendModule.DirectoryId | null) => {
             try {
                 setAsset(oldAsset =>
-                    merge.merge(oldAsset, {
+                    object.merge(oldAsset, {
                         title: oldAsset.title + ' (copy)',
                         labels: [],
                         permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
@@ -126,7 +125,7 @@ export default function AssetRow(props: AssetRowProps) {
                     // This is SAFE, as the type of the copied asset is guaranteed to be the same
                     // as the type of the original asset.
                     // eslint-disable-next-line no-restricted-syntax
-                    merge.merge(oldAsset, copiedAsset.asset as Partial<backendModule.AnyAsset>)
+                    object.merge(oldAsset, copiedAsset.asset as Partial<backendModule.AnyAsset>)
                 )
             } catch (error) {
                 toastAndLog(`Could not copy '${asset.title}'`, error)
@@ -168,7 +167,7 @@ export default function AssetRow(props: AssetRowProps) {
                     item: asset,
                 })
                 setItem(oldItem =>
-                    merge.merge(oldItem, {
+                    object.merge(oldItem, {
                         directoryKey: nonNullNewParentKey,
                         directoryId: nonNullNewParentId,
                     })
@@ -184,7 +183,7 @@ export default function AssetRow(props: AssetRowProps) {
             } catch (error) {
                 toastAndLog(`Could not move '${asset.title}'`, error)
                 setItem(oldItem =>
-                    merge.merge(oldItem, {
+                    object.merge(oldItem, {
                         directoryKey: item.directoryKey,
                         directoryId: item.directoryId,
                     })
@@ -384,11 +383,10 @@ export default function AssetRow(props: AssetRowProps) {
                     oldRowState.temporarilyAddedLabels === labels &&
                     oldRowState.temporarilyRemovedLabels === set.EMPTY
                         ? oldRowState
-                        : {
-                              ...oldRowState,
+                        : object.merge(oldRowState, {
                               temporarilyAddedLabels: labels,
                               temporarilyRemovedLabels: set.EMPTY,
-                          }
+                          })
                 )
                 break
             }
@@ -398,11 +396,10 @@ export default function AssetRow(props: AssetRowProps) {
                     oldRowState.temporarilyAddedLabels === set.EMPTY &&
                     oldRowState.temporarilyRemovedLabels === labels
                         ? oldRowState
-                        : {
-                              ...oldRowState,
+                        : object.merge(oldRowState, {
                               temporarilyAddedLabels: set.EMPTY,
                               temporarilyRemovedLabels: labels,
-                          }
+                          })
                 )
                 break
             }
@@ -410,7 +407,7 @@ export default function AssetRow(props: AssetRowProps) {
                 setRowState(oldRowState =>
                     oldRowState.temporarilyAddedLabels === set.EMPTY
                         ? oldRowState
-                        : { ...oldRowState, temporarilyAddedLabels: set.EMPTY }
+                        : object.merge(oldRowState, { temporarilyAddedLabels: set.EMPTY })
                 )
                 const labels = asset.labels
                 if (
@@ -421,11 +418,11 @@ export default function AssetRow(props: AssetRowProps) {
                         ...(labels ?? []),
                         ...[...event.labelNames].filter(label => labels?.includes(label) !== true),
                     ]
-                    setAsset(oldAsset => merge.merge(oldAsset, { labels: newLabels }))
+                    setAsset(oldAsset => object.merge(oldAsset, { labels: newLabels }))
                     try {
                         await backend.associateTag(asset.id, newLabels, asset.title)
                     } catch (error) {
-                        setAsset(oldAsset => merge.merge(oldAsset, { labels }))
+                        setAsset(oldAsset => object.merge(oldAsset, { labels }))
                         toastAndLog(null, error)
                     }
                 }
@@ -435,7 +432,7 @@ export default function AssetRow(props: AssetRowProps) {
                 setRowState(oldRowState =>
                     oldRowState.temporarilyAddedLabels === set.EMPTY
                         ? oldRowState
-                        : { ...oldRowState, temporarilyAddedLabels: set.EMPTY }
+                        : object.merge(oldRowState, { temporarilyAddedLabels: set.EMPTY })
                 )
                 const labels = asset.labels
                 if (
@@ -444,11 +441,11 @@ export default function AssetRow(props: AssetRowProps) {
                     [...event.labelNames].some(label => labels.includes(label))
                 ) {
                     const newLabels = labels.filter(label => !event.labelNames.has(label))
-                    setAsset(oldAsset => merge.merge(oldAsset, { labels: newLabels }))
+                    setAsset(oldAsset => object.merge(oldAsset, { labels: newLabels }))
                     try {
                         await backend.associateTag(asset.id, newLabels, asset.title)
                     } catch (error) {
-                        setAsset(oldAsset => merge.merge(oldAsset, { labels }))
+                        setAsset(oldAsset => object.merge(oldAsset, { labels }))
                         toastAndLog(null, error)
                     }
                 }
@@ -466,7 +463,7 @@ export default function AssetRow(props: AssetRowProps) {
                                 return true
                             }
                         }) ?? null
-                    return found ? merge.merge(oldAsset, { labels }) : oldAsset
+                    return found ? object.merge(oldAsset, { labels }) : oldAsset
                 })
                 break
             }
@@ -478,7 +475,7 @@ export default function AssetRow(props: AssetRowProps) {
         setRowState(oldRowState =>
             oldRowState.temporarilyAddedLabels === set.EMPTY
                 ? oldRowState
-                : { ...oldRowState, temporarilyAddedLabels: set.EMPTY }
+                : object.merge(oldRowState, { temporarilyAddedLabels: set.EMPTY })
         )
     }, [])
 

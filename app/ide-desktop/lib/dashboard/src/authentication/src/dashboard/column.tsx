@@ -19,6 +19,7 @@ import * as backendProvider from '../providers/backend'
 import * as dateTime from './dateTime'
 import * as hooks from '../hooks'
 import * as modalProvider from '../providers/modal'
+import * as object from '../object'
 import * as permissions from './permissions'
 import * as shortcuts from './shortcuts'
 import * as sorting from './sorting'
@@ -327,13 +328,12 @@ function LabelsColumn(props: AssetColumnProps) {
                                                     oldLabel => oldLabel === label
                                                 ) === true
                                                     ? oldAsset2
-                                                    : {
-                                                          ...oldAsset2,
+                                                    : object.merge(oldAsset2, {
                                                           labels: [
                                                               ...(oldAsset2.labels ?? []),
                                                               label,
                                                           ],
-                                                      }
+                                                      })
                                             )
                                         })
                                     return {

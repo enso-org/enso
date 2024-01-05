@@ -11,6 +11,7 @@ import * as hooks from '../../hooks'
 import * as http from '../../http'
 import * as localBackendModule from '../localBackend'
 import * as localStorageModule from '../localStorage'
+import * as object from '../../object'
 import * as projectManager from '../projectManager'
 import * as remoteBackendModule from '../remoteBackend'
 import * as shortcutsModule from '../shortcuts'
@@ -186,7 +187,9 @@ export default function Dashboard(props: DashboardProps) {
                                         savedProjectStartupInfo.projectAsset.id,
                                         savedProjectStartupInfo.projectAsset.title
                                     )
-                                    setProjectStartupInfo({ ...savedProjectStartupInfo, project })
+                                    setProjectStartupInfo(
+                                        object.merge(savedProjectStartupInfo, { project })
+                                    )
                                     if (page === pageSwitcher.Page.editor) {
                                         setPage(page)
                                     }
@@ -210,10 +213,11 @@ export default function Dashboard(props: DashboardProps) {
                             savedProjectStartupInfo.projectAsset.id,
                             savedProjectStartupInfo.projectAsset.title
                         )
-                        setProjectStartupInfo({
-                            ...savedProjectStartupInfo,
-                            project,
-                        })
+                        setProjectStartupInfo(
+                            object.merge(savedProjectStartupInfo, {
+                                project,
+                            })
+                        )
                     })()
                 }
             }

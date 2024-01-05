@@ -8,6 +8,7 @@ import type * as assetTreeNode from '../assetTreeNode'
 import * as backendModule from '../backend'
 import * as hooks from '../../hooks'
 import * as http from '../../http'
+import * as object from '../../object'
 import * as permissions from '../permissions'
 import * as remoteBackendModule from '../remoteBackend'
 import * as shortcuts from '../shortcuts'
@@ -230,10 +231,9 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                         }
                         action={shortcuts.KeyboardAction.rename}
                         doAction={() => {
-                            setRowState(oldRowState => ({
-                                ...oldRowState,
-                                isEditingName: true,
-                            }))
+                            setRowState(oldRowState =>
+                                object.merge(oldRowState, { isEditingName: true })
+                            )
                             unsetModal()
                         }}
                     />

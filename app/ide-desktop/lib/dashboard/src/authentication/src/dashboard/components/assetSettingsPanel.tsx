@@ -9,7 +9,7 @@ import * as authProvider from '../../authentication/providers/auth'
 import type * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as hooks from '../../hooks'
-import * as merge from '../../merge'
+import * as object from '../../object'
 import * as permissions from '../permissions'
 
 import type * as categorySwitcher from './categorySwitcher'
@@ -88,7 +88,7 @@ export default function AssetSettingsPanel(props: AssetSettingsPanelProps) {
         setIsEditingDescription(false)
         if (description !== item.item.description) {
             const oldDescription = item.item.description
-            setItem(oldItem => oldItem.with({ item: { ...oldItem.item, description } }))
+            setItem(oldItem => oldItem.with({ item: object.merge(oldItem.item, { description }) }))
             try {
                 await backend.updateAsset(
                     item.item.id,
@@ -99,7 +99,7 @@ export default function AssetSettingsPanel(props: AssetSettingsPanelProps) {
                 toastAndLog('Could not edit asset description')
                 setItem(oldItem =>
                     oldItem.with({
-                        item: merge.merge(oldItem.item, { description: oldDescription }),
+                        item: object.merge(oldItem.item, { description: oldDescription }),
                     })
                 )
             }

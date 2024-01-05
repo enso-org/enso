@@ -10,6 +10,7 @@ import * as eventModule from '../event'
 import * as fileIcon from '../../fileIcon'
 import * as hooks from '../../hooks'
 import * as indent from '../indent'
+import * as object from '../../object'
 import * as shortcutsModule from '../shortcuts'
 import * as shortcutsProvider from '../../providers/shortcuts'
 import * as visibility from '../visibility'
@@ -95,10 +96,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
                             file
                         )
                         rowState.setVisibility(visibility.Visibility.visible)
-                        setAsset({
-                            ...asset,
-                            id: createdFile.id,
-                        })
+                        setAsset(object.merge(asset, { id: createdFile.id }))
                     } catch (error) {
                         dispatchAssetListEvent({
                             type: assetListEventModule.AssetListEventType.delete,
@@ -128,10 +126,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
                     (selected ||
                         shortcuts.matchesMouseAction(shortcutsModule.MouseAction.editName, event))
                 ) {
-                    setRowState(oldRowState => ({
-                        ...oldRowState,
-                        isEditingName: true,
-                    }))
+                    setRowState(oldRowState => object.merge(oldRowState, { isEditingName: true }))
                 }
             }}
         >
@@ -139,25 +134,19 @@ export default function FileNameColumn(props: FileNameColumnProps) {
             <EditableSpan
                 editable={false}
                 onSubmit={async newTitle => {
-                    setRowState(oldRowState => ({
-                        ...oldRowState,
-                        isEditingName: false,
-                    }))
+                    setRowState(oldRowState => object.merge(oldRowState, { isEditingName: false }))
                     if (newTitle !== asset.title) {
                         const oldTitle = asset.title
-                        setAsset(oldItem => ({ ...oldItem, title: newTitle }))
+                        setAsset(oldItem => object.merge(oldItem, { title: newTitle }))
                         try {
-                            await doRename(/* newTitle */)
+                            await doRename()
                         } catch {
-                            setAsset(oldItem => ({ ...oldItem, title: oldTitle }))
+                            setAsset(oldItem => object.merge(oldItem, { title: oldTitle }))
                         }
                     }
                 }}
                 onCancel={() => {
-                    setRowState(oldRowState => ({
-                        ...oldRowState,
-                        isEditingName: false,
-                    }))
+                    setRowState(oldRowState => object.merge(oldRowState, { isEditingName: false }))
                 }}
                 className="bg-transparent grow leading-170 h-6 py-px"
             >
