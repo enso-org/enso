@@ -93,7 +93,7 @@ export default function ManagePermissionsModal<
     React.useEffect(() => {
         // This is SAFE, as the type of asset is not being changed.
         // eslint-disable-next-line no-restricted-syntax
-        setItem(oldItem => object.merge(oldItem, { permissions } as Partial<Asset>))
+        setItem(object.merger({ permissions } as Partial<Asset>))
     }, [permissions, /* should never change */ setItem])
 
     if (backend.type === backendModule.BackendType.local || organization == null) {

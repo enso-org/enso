@@ -213,11 +213,7 @@ export default function Dashboard(props: DashboardProps) {
                             savedProjectStartupInfo.projectAsset.id,
                             savedProjectStartupInfo.projectAsset.title
                         )
-                        setProjectStartupInfo(
-                            object.merge(savedProjectStartupInfo, {
-                                project,
-                            })
-                        )
+                        setProjectStartupInfo(object.merge(savedProjectStartupInfo, { project }))
                     })()
                 }
             }

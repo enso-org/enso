@@ -182,7 +182,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
                 }
             } catch (error) {
                 const project = await backend.getProjectDetails(item.id, item.title)
-                setItem(oldItem => object.merge(oldItem, { projectState: project.state }))
+                setItem(object.merger({ projectState: project.state }))
                 toastAndLog(
                     errorModule.tryGetMessage(error)?.slice(0, -1) ??
                         `Could not open project '${item.title}'`

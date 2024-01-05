@@ -271,7 +271,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                     ((selected && numberOfSelectedItems === 1) ||
                         shortcuts.matchesMouseAction(shortcutsModule.MouseAction.editName, event))
                 ) {
-                    setRowState(oldRowState => object.merge(oldRowState, { isEditingName: true }))
+                    setRowState(object.merger({ isEditingName: true }))
                 }
             }}
         >
@@ -308,19 +308,19 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                     )
                 }
                 onSubmit={async newTitle => {
-                    setRowState(oldRowState => object.merge(oldRowState, { isEditingName: false }))
+                    setRowState(object.merger({ isEditingName: false }))
                     if (newTitle !== asset.title) {
                         const oldTitle = asset.title
-                        setAsset(oldItem => object.merge(oldItem, { title: newTitle }))
+                        setAsset(object.merger({ title: newTitle }))
                         try {
                             await doRename(newTitle)
                         } catch {
-                            setAsset(oldItem => object.merge(oldItem, { title: oldTitle }))
+                            setAsset(object.merger({ title: oldTitle }))
                         }
                     }
                 }}
                 onCancel={() => {
-                    setRowState(oldRowState => object.merge(oldRowState, { isEditingName: false }))
+                    setRowState(object.merger({ isEditingName: false }))
                 }}
                 {...(backend.type === backendModule.BackendType.local
                     ? {

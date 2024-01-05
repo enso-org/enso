@@ -14,7 +14,6 @@ import * as drag from '../drag'
 import * as hooks from '../../hooks'
 import * as localStorageModule from '../localStorage'
 import * as localStorageProvider from '../../providers/localStorage'
-import * as object from '../../object'
 import * as pasteDataModule from '../pasteData'
 import * as permissions from '../permissions'
 import * as set from '../set'
@@ -104,7 +103,7 @@ function insertAssetTreeNodeChildren(
         nodesToInsert,
         innerItem => backendModule.ASSET_TYPE_ORDER[innerItem.item.type] >= typeOrder
     )
-    return object.merge(item, { children: newNodes })
+    return item.with({ children: newNodes })
 }
 
 /** Return a directory, with new children added into its list of children.
@@ -152,7 +151,7 @@ function insertArbitraryAssetTreeNodeChildren(
             )
         }
     }
-    return newNodes === nodes ? item : object.merge(item, { children: newNodes })
+    return newNodes === nodes ? item : item.with({ children: newNodes })
 }
 
 // =============================

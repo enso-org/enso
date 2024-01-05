@@ -159,7 +159,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
                     ((selected && numberOfSelectedItems === 1) ||
                         shortcuts.matchesMouseAction(shortcutsModule.MouseAction.editName, event))
                 ) {
-                    setRowState(oldRowState => object.merge(oldRowState, { isEditingName: true }))
+                    setRowState(object.merger({ isEditingName: true }))
                 } else if (eventModule.isDoubleClick(event)) {
                     if (!rowState.isEditingName) {
                         // This must be processed on the next tick, otherwise it will be overridden
@@ -200,19 +200,19 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
                     )
                 }
                 onSubmit={async newTitle => {
-                    setRowState(oldRowState => object.merge(oldRowState, { isEditingName: false }))
+                    setRowState(object.merger({ isEditingName: false }))
                     if (newTitle !== asset.title) {
                         const oldTitle = asset.title
-                        setAsset(oldItem => object.merge(oldItem, { title: newTitle }))
+                        setAsset(object.merger({ title: newTitle }))
                         try {
                             await doRename(newTitle)
                         } catch {
-                            setAsset(oldItem => object.merge(oldItem, { title: oldTitle }))
+                            setAsset(object.merger({ title: oldTitle }))
                         }
                     }
                 }}
                 onCancel={() => {
-                    setRowState(oldRowState => object.merge(oldRowState, { isEditingName: false }))
+                    setRowState(object.merger({ isEditingName: false }))
                 }}
                 className={`cursor-pointer bg-transparent grow leading-170 h-6 py-px ${
                     rowState.isEditingName ? 'cursor-text' : 'cursor-pointer'

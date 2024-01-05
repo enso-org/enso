@@ -231,9 +231,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                         }
                         action={shortcuts.KeyboardAction.rename}
                         doAction={() => {
-                            setRowState(oldRowState =>
-                                object.merge(oldRowState, { isEditingName: true })
-                            )
+                            setRowState(object.merger({ isEditingName: true }))
                             unsetModal()
                         }}
                     />

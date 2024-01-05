@@ -66,7 +66,9 @@ export class AssetTreeNode {
             update.item ?? this.item,
             update.directoryKey ?? this.directoryKey,
             update.directoryId ?? this.directoryId,
-            update.children ?? this.children,
+            // `null` MUST be special-cases in the following line.
+            // eslint-disable-next-line eqeqeq
+            update.children === null ? update.children : update.children ?? this.children,
             update.depth ?? this.depth
         )
     }
@@ -111,9 +113,7 @@ export class AssetTreeNode {
                 break
             }
             if (!predicate(node)) {
-                if (!result) {
-                    result = this.with({ children: i === 0 ? null : children.slice(0, i) })
-                }
+                result ??= this.with({ children: i === 0 ? null : children.slice(0, i) })
             } else {
                 let newNode = node
                 if (node.children != null) {
@@ -125,11 +125,7 @@ export class AssetTreeNode {
                 result?.children?.push(newNode)
             }
         }
-        if (result !== this && result?.children?.length === 0) {
-            return result.with({ children: null })
-        } else {
-            return result ?? this
-        }
+        return result?.children?.length === 0 ? result.with({ children: null }) : result ?? this
     }
 
     /** Returns all items in the tree, flattened into an array using pre-order traversal. */

@@ -121,11 +121,11 @@ export default function AssetRow(props: AssetRowProps) {
                     asset.title,
                     null
                 )
-                setAsset(oldAsset =>
+                setAsset(
                     // This is SAFE, as the type of the copied asset is guaranteed to be the same
                     // as the type of the original asset.
                     // eslint-disable-next-line no-restricted-syntax
-                    object.merge(oldAsset, copiedAsset.asset as Partial<backendModule.AnyAsset>)
+                    object.merger(copiedAsset.asset as Partial<backendModule.AnyAsset>)
                 )
             } catch (error) {
                 toastAndLog(`Could not copy '${asset.title}'`, error)
@@ -167,7 +167,7 @@ export default function AssetRow(props: AssetRowProps) {
                     item: asset,
                 })
                 setItem(oldItem =>
-                    object.merge(oldItem, {
+                    oldItem.with({
                         directoryKey: nonNullNewParentKey,
                         directoryId: nonNullNewParentId,
                     })
@@ -183,10 +183,7 @@ export default function AssetRow(props: AssetRowProps) {
             } catch (error) {
                 toastAndLog(`Could not move '${asset.title}'`, error)
                 setItem(oldItem =>
-                    object.merge(oldItem, {
-                        directoryKey: item.directoryKey,
-                        directoryId: item.directoryId,
-                    })
+                    oldItem.with({ directoryKey: item.directoryKey, directoryId: item.directoryId })
                 )
                 // Move the asset back to its original position.
                 dispatchAssetListEvent({
@@ -418,11 +415,11 @@ export default function AssetRow(props: AssetRowProps) {
                         ...(labels ?? []),
                         ...[...event.labelNames].filter(label => labels?.includes(label) !== true),
                     ]
-                    setAsset(oldAsset => object.merge(oldAsset, { labels: newLabels }))
+                    setAsset(object.merger({ labels: newLabels }))
                     try {
                         await backend.associateTag(asset.id, newLabels, asset.title)
                     } catch (error) {
-                        setAsset(oldAsset => object.merge(oldAsset, { labels }))
+                        setAsset(object.merger({ labels }))
                         toastAndLog(null, error)
                     }
                 }
@@ -441,11 +438,11 @@ export default function AssetRow(props: AssetRowProps) {
                     [...event.labelNames].some(label => labels.includes(label))
                 ) {
                     const newLabels = labels.filter(label => !event.labelNames.has(label))
-                    setAsset(oldAsset => object.merge(oldAsset, { labels: newLabels }))
+                    setAsset(object.merger({ labels: newLabels }))
                     try {
                         await backend.associateTag(asset.id, newLabels, asset.title)
                     } catch (error) {
-                        setAsset(oldAsset => object.merge(oldAsset, { labels }))
+                        setAsset(object.merger({ labels }))
                         toastAndLog(null, error)
                     }
                 }
