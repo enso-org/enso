@@ -83,11 +83,7 @@ export class AssetTreeNode {
             if (node == null) {
                 break
             }
-            const intermediateNode = transform(node)
-            let newNode: AssetTreeNode = intermediateNode
-            if (intermediateNode.children != null) {
-                newNode = intermediateNode.map(transform)
-            }
+            const newNode = node.map(transform)
             if (newNode !== node) {
                 if (result === this) {
                     result = this.with({ children: [...children] })
@@ -122,7 +118,13 @@ export class AssetTreeNode {
                         result ??= this.with({ children: children.slice(0, i) })
                     }
                 }
-                result?.children?.push(newNode)
+                if (result) {
+                    if (!result.children) {
+                        result = result.with({ children: [newNode] })
+                    } else {
+                        result.children.push(newNode)
+                    }
+                }
             }
         }
         return result?.children?.length === 0 ? result.with({ children: null }) : result ?? this
@@ -130,10 +132,10 @@ export class AssetTreeNode {
 
     /** Returns all items in the tree, flattened into an array using pre-order traversal. */
     preorderTraversal(
-        preprocess?: ((tree: AssetTreeNode[]) => AssetTreeNode[]) | null
+        preprocess: ((tree: AssetTreeNode[]) => AssetTreeNode[]) | null = null
     ): AssetTreeNode[] {
         return (preprocess?.(this.children ?? []) ?? this.children ?? []).flatMap(node =>
-            node.children == null ? [node] : [node, ...node.preorderTraversal(preprocess ?? null)]
+            node.children == null ? [node] : [node, ...node.preorderTraversal(preprocess)]
         )
     }
 }

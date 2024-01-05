@@ -156,8 +156,6 @@ export default function AssetRow(props: AssetRowProps) {
             const rootDirectoryId = backend.rootDirectoryId(organization)
             const nonNullNewParentKey = newParentKey ?? rootDirectoryId
             const nonNullNewParentId = newParentId ?? rootDirectoryId
-            // From the viewpoint of the asset list, the asset is effectively being deleted from
-            // its current position, and created at its new position.
             try {
                 dispatchAssetListEvent({
                     type: assetListEventModule.AssetListEventType.move,
@@ -563,7 +561,7 @@ export default function AssetRow(props: AssetRowProps) {
                         onDrop={event => {
                             props.onDrop?.(event)
                             clearDragState()
-                            if (item.item.type === backendModule.AssetType.directory) {
+                            if (asset.type === backendModule.AssetType.directory) {
                                 const payload = drag.ASSET_ROWS.lookup(event)
                                 if (
                                     payload != null &&
@@ -572,10 +570,16 @@ export default function AssetRow(props: AssetRowProps) {
                                     event.preventDefault()
                                     event.stopPropagation()
                                     unsetModal()
+                                    doToggleDirectoryExpansion(
+                                        asset.id,
+                                        item.key,
+                                        asset.title,
+                                        true
+                                    )
                                     dispatchAssetEvent({
                                         type: assetEventModule.AssetEventType.move,
                                         newParentKey: item.key,
-                                        newParentId: item.item.id,
+                                        newParentId: asset.id,
                                         ids: new Set(payload.map(dragItem => dragItem.key)),
                                     })
                                 }

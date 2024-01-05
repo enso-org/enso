@@ -394,7 +394,9 @@ export default function AssetsTable(props: AssetsTableProps) {
 
     React.useEffect(() => {
         assetTreeRef.current = assetTree
-        nodeMapRef.current = new Map(assetTree.preorderTraversal().map(asset => [asset.key, asset]))
+        const newNodeMap = new Map(assetTree.preorderTraversal().map(asset => [asset.key, asset]))
+        newNodeMap.set(assetTree.key, assetTree)
+        nodeMapRef.current = newNodeMap
     }, [assetTree])
 
     React.useEffect(() => {
@@ -593,39 +595,50 @@ export default function AssetsTable(props: AssetsTableProps) {
                                         },
                                         entry.item.title
                                     )
-                                    .then(assets => {
-                                        setAssetTree(oldTree => {
-                                            let found = signal.aborted
-                                            const newTree = signal.aborted
-                                                ? oldTree
-                                                : oldTree.map(oldAsset => {
-                                                      if (oldAsset.key === entry.key) {
-                                                          found = true
-                                                          return withChildren(oldAsset)
-                                                      } else {
-                                                          return oldAsset
-                                                      }
-                                                  })
-                                            if (!found) {
-                                                queuedDirectoryListings.set(entry.key, assets)
-                                            }
-                                            return newTree
-                                        })
-                                    })
+                                    .then(
+                                        assets => {
+                                            setAssetTree(oldTree => {
+                                                let found = signal.aborted
+                                                const newTree = signal.aborted
+                                                    ? oldTree
+                                                    : oldTree.map(oldAsset => {
+                                                          if (oldAsset.key === entry.key) {
+                                                              found = true
+                                                              return withChildren(oldAsset)
+                                                          } else {
+                                                              return oldAsset
+                                                          }
+                                                      })
+                                                if (!found) {
+                                                    queuedDirectoryListings.set(entry.key, assets)
+                                                }
+                                                return newTree
+                                            })
+                                        },
+                                        error => {
+                                            toastAndLog(null, error)
+                                        }
+                                    )
                             }
                         }
-                        const newAssets = await backend.listDirectory(
-                            {
-                                parentId: null,
-                                filterBy: CATEGORY_TO_FILTER_BY[category],
-                                recentProjects: category === categorySwitcher.Category.recent,
-                                labels: null,
-                            },
-                            null
-                        )
-                        if (!signal.aborted) {
-                            setIsLoading(false)
-                            overwriteNodes(newAssets)
+                        try {
+                            const newAssets = await backend.listDirectory(
+                                {
+                                    parentId: null,
+                                    filterBy: CATEGORY_TO_FILTER_BY[category],
+                                    recentProjects: category === categorySwitcher.Category.recent,
+                                    labels: null,
+                                },
+                                null
+                            )
+                            if (!signal.aborted) {
+                                setIsLoading(false)
+                                overwriteNodes(newAssets)
+                            }
+                        } catch (error) {
+                            if (!signal.aborted) {
+                                toastAndLog(null, error)
+                            }
                         }
                     } else {
                         setIsLoading(false)
@@ -910,9 +923,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     labels: [],
                     description: null,
                 }
-                if (nodeMapRef.current.get(event.parentKey)?.children == null) {
-                    doToggleDirectoryExpansion(event.parentId, event.parentKey)
-                }
+                doToggleDirectoryExpansion(event.parentId, event.parentKey, null, true)
                 insertAssets([placeholderItem], event.parentKey, event.parentId)
                 dispatchAssetEvent({
                     type: assetEventModule.AssetEventType.newFolder,
@@ -940,9 +951,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     labels: [],
                     description: null,
                 }
-                if (nodeMapRef.current.get(event.parentKey)?.children == null) {
-                    doToggleDirectoryExpansion(event.parentId, event.parentKey)
-                }
+                doToggleDirectoryExpansion(event.parentId, event.parentKey, null, true)
                 insertAssets([placeholderItem], event.parentKey, event.parentId)
                 dispatchAssetEvent({
                     type: assetEventModule.AssetEventType.newProject,
@@ -986,9 +995,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                         description: null,
                     })
                 )
-                if (nodeMapRef.current.get(event.parentKey)?.children == null) {
-                    doToggleDirectoryExpansion(event.parentId, event.parentKey)
-                }
+                doToggleDirectoryExpansion(event.parentId, event.parentKey, null, true)
                 insertAssets(placeholderFiles, event.parentKey, event.parentId)
                 insertAssets(placeholderProjects, event.parentKey, event.parentId)
                 dispatchAssetEvent({
@@ -1017,9 +1024,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     labels: [],
                     description: null,
                 }
-                if (nodeMapRef.current.get(event.parentKey)?.children == null) {
-                    doToggleDirectoryExpansion(event.parentId, event.parentKey)
-                }
+                doToggleDirectoryExpansion(event.parentId, event.parentKey, null, true)
                 insertAssets([placeholderItem], event.parentKey, event.parentId)
                 dispatchAssetEvent({
                     type: assetEventModule.AssetEventType.newDataConnector,
@@ -1071,9 +1076,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 break
             }
             case assetListEventModule.AssetListEventType.closeFolder: {
-                if (nodeMapRef.current.get(event.key)?.children != null) {
-                    doToggleDirectoryExpansion(event.id, event.key)
-                }
+                doToggleDirectoryExpansion(event.id, event.key, null, false)
                 break
             }
         }
