@@ -1,7 +1,9 @@
 
 from Standard.Base import all
+import Standard.Base.Runtime.State
 import project.Group.Group
 import project.Group.Group_Builder
+import project.Phases.Running_Tests
 
 type Suite_Builder
     ## PRIVATE
@@ -18,16 +20,6 @@ type Suite_Builder
 type Suite
     Impl (groups : Vector Group)
 
-    ## Construct a Suite object
-    build : (Suite_Builder -> Any) -> Suite
-    build fn =
-        IO.println "Running `Suite.build` (collecting tests)..."
-        b = Vector.new_builder
-        fn (Suite_Builder.Impl b)
-        groups_vec = b.to_vector
-        IO.println "Done with `Suite.build` (collecting tests)"
-        Suite.Impl groups_vec
-
     ## Merges multiple suites into one suite
     merge : (Vector Suite) -> Suite
     merge suites =
@@ -37,7 +29,9 @@ type Suite
             Suite.Impl all_groups
 
     run_all self =
-        IO.println "Running `Suite.run_all` - running all tests"
-        self.groups.each group->
-            group.run
-        IO.println "Done with `Suite.run_all` - running all tests"
+        State.run Running_Tests True <|
+            self.groups.each group->
+                group.run
+
+    group_names self =
+        self.groups.map (_.name)

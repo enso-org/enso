@@ -2,10 +2,20 @@ from Standard.Base import all
 from Standard.Base.Runtime import State
 import project.Test_Result.Test_Result
 import project.Clue.Clue
+import project.Suite.Suite
+import project.Suite.Suite_Builder
 
 
 ## Contains only static methods
 type Test
+    ## Construct a Test Suite object
+    build : (Suite_Builder -> Any) -> Suite
+    build fn =
+        b = Vector.new_builder
+        fn (Suite_Builder.Impl b)
+        groups_vec = b.to_vector
+        Suite.Impl groups_vec
+
     ## Expect a function to fail with the provided panic.
 
            Arguments:

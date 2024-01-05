@@ -9,7 +9,7 @@ type My_Error
 crash =
   Error.throw (My_Error.Value "foo")
 
-suite = Suite.build builder->
+suite = Test.build builder->
     builder.group "Booleans" group_builder->
         group_builder.specify "should allow converting Bools to Text values" <|
             True.to_text . should_equal "True"
