@@ -38,7 +38,9 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
   score: (props) => {
     if (props.input.value instanceof Ast.Ast && getRawBoolNode(props.input.value) != null)
       return Score.Perfect
-    return props.input.expectedType === 'Standard.Base.Bool' ? Score.Good : Score.Mismatch
+    return props.input.expectedType === 'Standard.Base.Data.Boolean.Boolean'
+      ? Score.Good
+      : Score.Mismatch
   },
 })
 </script>
