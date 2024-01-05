@@ -10,6 +10,7 @@ import {
 } from '@/components/ComponentBrowser/placement'
 import GraphEdges from '@/components/GraphEditor/GraphEdges.vue'
 import GraphNodes from '@/components/GraphEditor/GraphNodes.vue'
+import { performCollapse, prepareCollapsedInfo } from '@/components/GraphEditor/collapsing'
 import { Uploader, uploadedExpression } from '@/components/GraphEditor/upload'
 import GraphMouse from '@/components/GraphMouse.vue'
 import PlusButton from '@/components/PlusButton.vue'
@@ -251,6 +252,17 @@ const graphBindingsHandler = graphBindings.handler({
   pasteNode() {
     if (keyboardBusy()) return false
     readNodeFromClipboard()
+  },
+  collapse() {
+    if (keyboardBusy()) return false
+    const selected = nodeSelection.selected
+    if (selected.size == 0) return
+    try {
+      const info = prepareCollapsedInfo(nodeSelection.selected, graphStore.db)
+      performCollapse(info)
+    } catch (err) {
+      console.log(`Error while collapsing, this is not normal. ${err}`)
+    }
   },
   enterNode() {
     if (keyboardBusy()) return false

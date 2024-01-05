@@ -73,7 +73,9 @@ public class VectorBenchmarks {
         to_array vec = vec.to_array
         slice vec = vec.slice
         fill_proxy proxy vec =
-          size v = vec.length
+          size v =
+            _ = v
+            vec.length
           at i = vec.at i
           proxy.init size at
         create_array_proxy vec =

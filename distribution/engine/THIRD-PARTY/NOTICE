@@ -1,5 +1,5 @@
 Enso
-Copyright 2020 - 2023 New Byte Order sp. z o. o.
+Copyright 2020 - 2024 New Byte Order sp. z o. o.
 
 'enumeratum-circe_2.13', licensed under the MIT, is distributed with the engine.
 The license information can be found along with the copyright notices.
@@ -286,29 +286,14 @@ The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `org.apache.tika.tika-core-2.4.1`.
 
 
-'bcpkix-jdk15on', licensed under the Bouncy Castle Licence, is distributed with the engine.
-The license file can be found at `licenses/Bouncy_Castle_Licence.txt`.
-Copyright notices related to this dependency can be found in the directory `org.bouncycastle.bcpkix-jdk15on-1.70`.
-
-
 'bcpkix-jdk18on', licensed under the Bouncy Castle Licence, is distributed with the engine.
 The license file can be found at `licenses/Bouncy_Castle_Licence.txt`.
 Copyright notices related to this dependency can be found in the directory `org.bouncycastle.bcpkix-jdk18on-1.76`.
 
 
-'bcprov-jdk15on', licensed under the Bouncy Castle Licence, is distributed with the engine.
-The license file can be found at `licenses/Bouncy_Castle_Licence.txt`.
-Copyright notices related to this dependency can be found in the directory `org.bouncycastle.bcprov-jdk15on-1.70`.
-
-
 'bcprov-jdk18on', licensed under the Bouncy Castle Licence, is distributed with the engine.
 The license file can be found at `licenses/Bouncy_Castle_Licence.txt`.
 Copyright notices related to this dependency can be found in the directory `org.bouncycastle.bcprov-jdk18on-1.76`.
-
-
-'bcutil-jdk15on', licensed under the Bouncy Castle Licence, is distributed with the engine.
-The license file can be found at `licenses/Bouncy_Castle_Licence.txt`.
-Copyright notices related to this dependency can be found in the directory `org.bouncycastle.bcutil-jdk15on-1.70`.
 
 
 'bcutil-jdk18on', licensed under the Bouncy Castle Licence, is distributed with the engine.
