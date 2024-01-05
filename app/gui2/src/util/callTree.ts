@@ -39,12 +39,12 @@ export class ArgumentPlaceholder {
     return new ArgumentPlaceholder(callId, index, info, kind, insertAsNamed, cfg)
   }
 
-  toWidgetInput(forcePort: boolean = false): WidgetInput {
-    console.log('Passing dynamic cfg: ', this.dynamicConfig)
+  toWidgetInput(): WidgetInput {
     return {
       portId: this.portId,
+      value: this.argInfo.defaultValue,
+      expectedType: this.argInfo.reprType,
       [ArgumentInfoKey]: { info: this.argInfo, appKind: this.kind },
-      forcePort,
       dynamicConfig: this.dynamicConfig,
     }
   }
@@ -75,12 +75,12 @@ export class ArgumentAst {
     return new ArgumentAst(ast, index, info, kind, cfg)
   }
 
-  toWidgetInput(forcePort: boolean = false): WidgetInput {
+  toWidgetInput(): WidgetInput {
     return {
       portId: this.portId,
-      ast: this.ast,
+      value: this.ast,
+      expectedType: this.argInfo?.reprType,
       [ArgumentInfoKey]: { appKind: this.kind, info: this.argInfo },
-      forcePort,
       dynamicConfig: this.dynamicConfig,
     }
   }
@@ -314,7 +314,7 @@ export class ArgumentApplication {
         this.argument instanceof ArgumentAst
           ? this.appTree.exprId
           : (`app:${this.argument.portId}` as PortId),
-      ast: this.appTree,
+      value: this.appTree,
       [ArgumentApplicationKey]: this,
     }
   }

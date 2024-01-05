@@ -2,20 +2,22 @@
 import CheckboxWidget from '@/components/widgets/CheckboxWidget.vue'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { Ast } from '@/util/ast'
-import { ArgumentInfoKey } from '@/util/callTree'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 
 const value = computed({
   get() {
-    return props.input.ast?.code().endsWith('True') ?? false
+    return WidgetInput.valueRepr(props.input)?.endsWith('True') ?? false
   },
   set(value) {
-    if (props.input.ast == null) return // TODO[ao] set value on placeholder here.
-    const node = getRawBoolNode(props.input.ast)
-    if (node != null) {
-      props.onUpdate(value ? 'True' : 'False', node.exprId)
+    if (props.input.value instanceof Ast.Ast) {
+      const node = getRawBoolNode(props.input.value)
+      if (node != null) {
+        props.onUpdate(value ? 'True' : 'False', node.exprId)
+      }
+    } else {
+      props.onUpdate(value ? 'Boolean.True' : 'Boolean.False', props.input.portId)
     }
   },
 })
@@ -34,12 +36,9 @@ function getRawBoolNode(ast: Ast.Ast) {
 export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
   priority: 1001,
   score: (props) => {
-    if (props.input.ast == null)
-      return props.input[ArgumentInfoKey]?.info?.reprType === 'Standard.Base.Bool'
-        ? Score.Good
-        : Score.Mismatch
-    if (getRawBoolNode(props.input.ast) != null) return Score.Perfect
-    return Score.Mismatch
+    if (props.input.value instanceof Ast.Ast && getRawBoolNode(props.input.value) != null)
+      return Score.Perfect
+    return props.input.expectedType === 'Standard.Base.Bool' ? Score.Good : Score.Mismatch
   },
 })
 </script>

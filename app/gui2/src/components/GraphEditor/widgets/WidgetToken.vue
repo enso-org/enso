@@ -4,8 +4,8 @@ import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 
-const spanClass = computed(() => props.input.ast.typeName())
-const repr = computed(() => props.input.ast.code())
+const spanClass = computed(() => props.input.value.typeName())
+const repr = computed(() => props.input.value.code())
 </script>
 
 <script lang="ts">

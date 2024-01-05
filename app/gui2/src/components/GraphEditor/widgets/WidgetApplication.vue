@@ -10,7 +10,7 @@ const application = computed(() => props.input[ArgumentApplicationKey])
 const targetMaybePort = computed(() => {
   const target = application.value.target
   return target instanceof ArgumentPlaceholder || target instanceof ArgumentAst
-    ? target.toWidgetInput(true)
+    ? { ...target.toWidgetInput(), forcePort: true }
     : target instanceof Ast.Ast
     ? WidgetInput.FromAst(target)
     : target.toWidgetInput()
@@ -44,7 +44,7 @@ export const widgetDefinition = defineWidget(ArgumentApplicationKey, {
     <div v-if="application.infixOperator" class="infixOp" :style="operatorStyle">
       <NodeWidget :input="WidgetInput.FromAst(application.infixOperator)" />
     </div>
-    <NodeWidget :input="application.argument.toWidgetInput()" />
+    <NodeWidget :input="application.argument.toWidgetInput()" nest />
   </span>
 </template>
 

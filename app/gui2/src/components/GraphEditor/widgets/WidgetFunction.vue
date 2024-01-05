@@ -29,16 +29,16 @@ const project = useProjectStore()
 
 provideFunctionInfo(
   proxyRefs({
-    callId: computed(() => props.input.ast.exprId),
+    callId: computed(() => props.input.value.exprId),
   }),
 )
 
 const methodCallInfo = computed(() => {
-  return graph.db.getMethodCallInfo(props.input.ast.exprId)
+  return graph.db.getMethodCallInfo(props.input.value.exprId)
 })
 
 const interpreted = computed(() => {
-  return interpretCall(props.input.ast, methodCallInfo.value == null)
+  return interpretCall(props.input.value, methodCallInfo.value == null)
 })
 
 const application = computed(() => {
@@ -57,6 +57,7 @@ const application = computed(() => {
     },
     !info?.staticallyApplied,
   )
+  console.log('New application:', application)
   return application
 })
 
@@ -75,7 +76,7 @@ const escapeString = (str: string): string => {
 const makeArgsList = (args: string[]) => '[' + args.map(escapeString).join(', ') + ']'
 
 const selfArgumentAstId = computed<Opt<ExprId>>(() => {
-  const analyzed = interpretCall(props.input.ast, true)
+  const analyzed = interpretCall(props.input.value, true)
   if (analyzed.kind === 'infix') {
     return analyzed.lhs?.exprId
   } else {
@@ -93,7 +94,7 @@ const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => 
   if (props.input.dynamicConfig) return null
 
   const expressionId = selfArgumentAstId.value
-  const astId = props.input.ast.exprId
+  const astId = props.input.value.exprId
   if (astId == null || expressionId == null) return null
   const info = graph.db.getMethodCallInfo(astId)
   if (!info) return null
@@ -233,7 +234,8 @@ function handleArgUpdate(value: unknown, origin: PortId): boolean {
 export const widgetDefinition = defineWidget(WidgetInput.isFunctionCall, {
   priority: -10,
   score: (props, db) => {
-    const ast = props.input.ast
+    if (props.input[ArgumentApplicationKey]) return Score.Mismatch
+    const ast = props.input.value
     if (ast.exprId == null) return Score.Mismatch
     const prevFunctionState = injectFunctionInfo(true)
 

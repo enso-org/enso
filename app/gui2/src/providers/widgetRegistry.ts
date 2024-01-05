@@ -2,6 +2,7 @@ import { createContextStore } from '@/providers'
 import type { PortId } from '@/providers/portInfo'
 import type { WidgetConfiguration } from '@/providers/widgetRegistry/configuration'
 import type { GraphDb } from '@/stores/graph/graphDatabase'
+import type { Typename } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
 import { ArgumentInfoKey } from '@/util/callTree'
 import { computed, shallowReactive, type Component, type PropType } from 'vue'
@@ -10,38 +11,49 @@ export type WidgetComponent<T extends WidgetInput> = Component<WidgetProps<T>>
 
 export namespace WidgetInput {
   export function FromAst(ast: Ast.Ast | Ast.Token): WidgetInput {
-    return { portId: ast.exprId, ast }
+    return {
+      portId: ast.exprId,
+      value: ast,
+    }
   }
 
-  export function isPlaceholder(input: WidgetInput): input is WidgetInput & { ast: undefined } {
-    return input.ast == undefined
+  export function valueRepr(input: WidgetInput): string | undefined {
+    if (typeof input.value === 'string') return input.value
+    else return input.value?.code()
+  }
+
+  export function isPlaceholder(
+    input: WidgetInput,
+  ): input is WidgetInput & { value: string | undefined } {
+    return input.value == null || typeof input.value === 'string'
   }
 
   export function astMatcher<T extends Ast.Ast>(nodeType: new (...args: any[]) => T) {
-    return (input: WidgetInput): input is WidgetInput & { ast: T } => input.ast instanceof nodeType
+    return (input: WidgetInput): input is WidgetInput & { value: T } =>
+      input.value instanceof nodeType
   }
 
-  export function isAst(input: WidgetInput): input is WidgetInput & { ast: Ast.Ast } {
-    return input.ast instanceof Ast.Ast
+  export function isAst(input: WidgetInput): input is WidgetInput & { value: Ast.Ast } {
+    return input.value instanceof Ast.Ast
   }
 
   export function isAstOrPlaceholder(
     input: WidgetInput,
-  ): input is WidgetInput & { ast: Ast.Ast | undefined } {
+  ): input is WidgetInput & { value: Ast.Ast | string | undefined } {
     return isPlaceholder(input) || isAst(input)
   }
 
-  export function isToken(input: WidgetInput): input is WidgetInput & { ast: Ast.Token } {
-    return input.ast instanceof Ast.Token
+  export function isToken(input: WidgetInput): input is WidgetInput & { value: Ast.Token } {
+    return input.value instanceof Ast.Token
   }
 
   export function isFunctionCall(
     input: WidgetInput,
-  ): input is WidgetInput & { ast: Ast.App | Ast.Ident | Ast.OprApp } {
+  ): input is WidgetInput & { value: Ast.App | Ast.Ident | Ast.OprApp } {
     return (
-      input.ast instanceof Ast.App ||
-      input.ast instanceof Ast.Ident ||
-      input.ast instanceof Ast.OprApp
+      input.value instanceof Ast.App ||
+      input.value instanceof Ast.Ident ||
+      input.value instanceof Ast.OprApp
     )
   }
 }
@@ -49,7 +61,8 @@ export namespace WidgetInput {
 //TODO[ao] update docs
 export interface WidgetInput {
   portId: PortId
-  ast?: Ast.Ast | Ast.Token | undefined
+  value: Ast.Ast | Ast.Token | string | undefined
+  expectedType?: Typename | undefined
   dynamicConfig?: WidgetConfiguration | undefined
   forcePort?: boolean
 }

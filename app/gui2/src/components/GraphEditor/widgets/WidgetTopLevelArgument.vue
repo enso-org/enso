@@ -18,7 +18,7 @@ export const widgetDefinition = defineWidget(ArgumentInfoKey, {
 
 <template>
   <span class="WidgetTopLevelArgument">
-    <NodeWidget :input="props.input" nest />
+    <NodeWidget :input="props.input" />
   </span>
 </template>
 

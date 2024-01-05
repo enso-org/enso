@@ -2,6 +2,7 @@
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { injectPortInfo } from '@/providers/portInfo'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import { Ast } from '@/util/ast'
 import { ApplicationKind, ArgumentInfoKey, ArgumentPlaceholder } from '@/util/callTree'
 import type { SuggestionEntryArgument } from 'shared/languageServerTypes/suggestions'
 import { computed } from 'vue'
@@ -11,10 +12,10 @@ const props = defineProps(widgetProps(widgetDefinition))
 const portInfo = injectPortInfo(true)
 const showArgumentValue = computed(() => {
   return (
-    props.input.ast == null ||
+    !WidgetInput.isAst(props.input) ||
     portInfo == null ||
     !portInfo.connected ||
-    (portInfo.portId as string) !== (props.input.ast.exprId as string)
+    (portInfo.portId as string) !== (props.input.value.exprId as string)
   )
 })
 
@@ -24,12 +25,16 @@ const primary = computed(() => props.nesting < 2)
 
 <script lang="ts">
 export const widgetDefinition = defineWidget(
-  (input): input is WidgetInput & { [ArgumentInfoKey]: { info: SuggestionEntryArgument } } =>
-    input[ArgumentInfoKey]?.info != null,
+  (
+    input,
+  ): input is WidgetInput & {
+    value: Ast.Ast | string | undefined
+    [ArgumentInfoKey]: { info: SuggestionEntryArgument }
+  } => !WidgetInput.isToken(input) && input[ArgumentInfoKey]?.info != null,
   {
     priority: 1000,
     score: (props) => {
-      const isPlaceholder = props.input instanceof ArgumentPlaceholder
+      const isPlaceholder = !(props.input.value instanceof Ast.Ast)
       const isTopArg =
         props.nesting < 2 && props.input[ArgumentInfoKey].appKind === ApplicationKind.Prefix
       return isPlaceholder || isTopArg ? Score.Perfect : Score.Mismatch

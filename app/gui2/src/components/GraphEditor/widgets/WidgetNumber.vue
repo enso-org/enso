@@ -2,14 +2,12 @@
 import SliderWidget from '@/components/widgets/SliderWidget.vue'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { Ast } from '@/util/ast'
-import { ArgumentInfoKey } from '@/util/callTree'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const value = computed({
   get() {
-    const valueStr =
-      props.input.ast?.code() ?? props.input[ArgumentInfoKey]?.info?.defaultValue ?? ''
+    const valueStr = WidgetInput.valueRepr(props.input)
     return valueStr ? parseFloat(valueStr) : 0
   },
   set(value) {
@@ -23,12 +21,12 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
   priority: 1001,
   score: (props) => {
     if (
-      props.input.ast instanceof Ast.NumericLiteral ||
-      (props.input.ast instanceof Ast.NegationOprApp &&
-        props.input.ast.argument instanceof Ast.NumericLiteral)
+      props.input.value instanceof Ast.NumericLiteral ||
+      (props.input.value instanceof Ast.NegationOprApp &&
+        props.input.value.argument instanceof Ast.NumericLiteral)
     )
       return Score.Perfect
-    const type = props.input[ArgumentInfoKey]?.info?.reprType
+    const type = props.input.expectedType
     if (
       type === 'Standard.Base.Data.Number' ||
       type === 'Standard.Base.Data.Numbers.Integer' ||

@@ -4,7 +4,6 @@ import ListWidget from '@/components/widgets/ListWidget.vue'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { Ast, RawAst } from '@/util/ast'
-import { ArgumentInfoKey } from '@/util/callTree'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
@@ -25,12 +24,13 @@ const defaultItem = computed(() => {
 
 const value = computed({
   get() {
-    if (props.input.ast == null) return []
-    return Array.from(props.input.ast.children()).filter(
+    if (!(props.input.value instanceof Ast.Ast)) return []
+    return Array.from(props.input.value.children()).filter(
       (child): child is Ast.Ast => child instanceof Ast.Ast,
     )
   },
   set(value) {
+    // TODO[ao]: here we re-create AST. It would be better to reuse existing AST nodes.
     const newCode = `[${value.map((item) => item.code()).join(', ')}]`
     props.onUpdate(newCode, props.input.portId)
   },
@@ -44,12 +44,11 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
   priority: 1001,
   score: (props) => {
     if (props.input.dynamicConfig?.kind === 'Vector_Editor') return Score.Perfect
-    else if (
-      props.input[ArgumentInfoKey]?.info?.reprType.startsWith('Standard.Base.Data.Vector.Vector')
-    )
+    else if (props.input.expectedType?.startsWith('Standard.Base.Data.Vector.Vector'))
       return Score.Good
-    else
-      return props.input.ast?.treeType === RawAst.Tree.Type.Array ? Score.Perfect : Score.Mismatch
+    else if (props.input.value instanceof Ast.Ast)
+      return props.input.value.treeType === RawAst.Tree.Type.Array ? Score.Perfect : Score.Mismatch
+    else return Score.Mismatch
   },
 })
 </script>
@@ -70,6 +69,7 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
     <template #default="{ item }">
       <NodeWidget
         :input="{ ...WidgetInput.FromAst(item), dynamicConfig: itemConfig, forcePort: true }"
+        nest
       />
     </template>
   </ListWidget>

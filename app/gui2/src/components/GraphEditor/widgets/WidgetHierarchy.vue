@@ -6,19 +6,19 @@ import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 
-const spanClass = computed(() => props.input.ast.typeName())
-const children = computed(() => [...props.input.ast.children()])
+const spanClass = computed(() => props.input.value.typeName())
+const children = computed(() => [...props.input.value.children()])
 
 function transformChild(child: Ast.Ast | Ast.Token) {
   const childInput = WidgetInput.FromAst(child)
-  if (props.input.ast instanceof Ast.PropertyAccess && child === props.input.ast.lhs)
+  if (props.input.value instanceof Ast.PropertyAccess && child === props.input.value.lhs)
     childInput.forcePort = true
   if (
-    props.input.ast instanceof Ast.OprApp &&
-    (child === props.input.ast.rhs || child === props.input.ast.lhs)
+    props.input.value instanceof Ast.OprApp &&
+    (child === props.input.value.rhs || child === props.input.value.lhs)
   )
     childInput.forcePort = true
-  if (props.input.ast instanceof Ast.UnaryOprApp && child === props.input.ast.argument)
+  if (props.input.value instanceof Ast.UnaryOprApp && child === props.input.value.argument)
     childInput.forcePort = true
   return childInput
 }

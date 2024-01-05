@@ -114,8 +114,8 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
   priority: 0,
   score: (props, _db) => {
     const portInfo = injectPortInfo(true)
-    const ast = props.input.ast
-    if (portInfo != null && portInfo.portId === ast?.exprId) {
+    const value = props.input.value
+    if (portInfo != null && value instanceof Ast.Ast && portInfo.portId === value.exprId) {
       return Score.Mismatch
     }
 
@@ -127,14 +127,14 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
       return Score.Perfect
 
     if (
-      props.input.ast instanceof Ast.Invalid ||
-      props.input.ast instanceof Ast.BodyBlock ||
-      props.input.ast instanceof Ast.Group ||
-      props.input.ast instanceof Ast.NumericLiteral ||
-      props.input.ast instanceof Ast.OprApp ||
-      props.input.ast instanceof Ast.UnaryOprApp ||
-      props.input.ast instanceof Ast.Wildcard ||
-      props.input.ast instanceof Ast.TextLiteral
+      props.input.value instanceof Ast.Invalid ||
+      props.input.value instanceof Ast.BodyBlock ||
+      props.input.value instanceof Ast.Group ||
+      props.input.value instanceof Ast.NumericLiteral ||
+      props.input.value instanceof Ast.OprApp ||
+      props.input.value instanceof Ast.UnaryOprApp ||
+      props.input.value instanceof Ast.Wildcard ||
+      props.input.value instanceof Ast.TextLiteral
     )
       return Score.Perfect
 

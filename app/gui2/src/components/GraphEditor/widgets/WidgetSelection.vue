@@ -50,7 +50,7 @@ const selectedTag = computed(() =>
   selectedIndex.value != null ? tags.value[selectedIndex.value] : undefined,
 )
 const selectedValue = computed(() => {
-  if (selectedTag.value == null) return props.input[ArgumentInfoKey]?.info?.defaultValue ?? ''
+  if (selectedTag.value == null) return WidgetInput.valueRepr(props.input)
   return selectedTag.value.value ?? selectedTag.value.label
 })
 const innerWidgetInput = computed(() => {
