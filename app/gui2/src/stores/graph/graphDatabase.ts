@@ -1,4 +1,3 @@
-import type { PortId } from '@/providers/portInfo'
 import { ComputedValueRegistry, type ExpressionInfo } from '@/stores/project/computedValueRegistry'
 import { SuggestionDb, groupColorStyle, type Group } from '@/stores/suggestionDatabase'
 import type { SuggestionEntry } from '@/stores/suggestionDatabase/entry'
@@ -17,9 +16,9 @@ import { methodPointerEquals, type MethodCall } from 'shared/languageServerTypes
 import {
   IdMap,
   visMetadataEquals,
-  type ContentRange,
   type ExprId,
   type NodeMetadata,
+  type SourceRange,
   type VisualizationMetadata,
 } from 'shared/yjsModel'
 import { ref, type Ref } from 'vue'
@@ -90,9 +89,9 @@ export class BindingsDb {
   private static rangeMappings(
     ast: RawAstExtended,
     analyzer: AliasAnalyzer,
-  ): [MappedKeyMap<ContentRange, RawAstExtended>, Map<ExprId, ContentRange>] {
-    const bindingRangeToTree = new MappedKeyMap<ContentRange, RawAstExtended>(IdMap.keyForRange)
-    const bindingIdToRange = new Map<ExprId, ContentRange>()
+  ): [MappedKeyMap<SourceRange, RawAstExtended>, Map<ExprId, SourceRange>] {
+    const bindingRangeToTree = new MappedKeyMap<SourceRange, RawAstExtended>(IdMap.keyForRange)
+    const bindingIdToRange = new Map<ExprId, SourceRange>()
     const bindingRanges = new MappedSet(IdMap.keyForRange)
     for (const [binding, usages] of analyzer.aliases) {
       bindingRanges.add(binding)
@@ -138,7 +137,7 @@ export class GraphDb {
     // Display connection starting from existing node.
     //TODO[ao]: When implementing input nodes, they should be taken into account here.
     if (srcNode == null) return []
-    function* allTargets(db: GraphDb): Generator<[ExprId, PortId]> {
+    function* allTargets(db: GraphDb): Generator<[ExprId, ExprId]> {
       for (const usage of info.usages) {
         const targetNode = db.getExpressionNodeId(usage)
         // Display only connections to existing targets and different than source node

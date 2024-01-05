@@ -235,6 +235,20 @@ type JS_Object
                             Error.throw (Illegal_Argument.Error "Unable to build a "+target_type.to_text+" - the constructor "+constructor.name+"'s fields "+missing_fields.to_display_text+" not found in the source object.")
                     _ -> Error.throw (Illegal_Argument.Error "Unable to build a "+target_type.to_text+" cannot find unique constructor.")
 
+    ## Modify a field of a JSON object, returing the updated object.
+
+       Arguments:
+       - key: the name of the field to modify.
+       - value: the new value for the field.
+
+       > Example
+         Change the value for 'foo' to 'asdf'.
+
+             obj = JS_Object.from_pairs [["foo", "bar"], ["baz", "quux"]]
+             obj.set_value "foo" "asdf"
+             # => {"foo":"asdf","baz":"quux"}
+    set_value : Text -> Any -> JS_Object
+    set_value self:JS_Object key:Text value = JS_Object.Value (set_value self.js_object key value.to_js_object)
 
 ## PRIVATE
 type JS_Object_Comparator

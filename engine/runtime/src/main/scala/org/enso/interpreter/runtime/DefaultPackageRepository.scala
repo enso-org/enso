@@ -653,7 +653,7 @@ private object DefaultPackageRepository {
 
     val projectRoot = projectPackage.map { pkg =>
       val root = pkg.root
-      Path.of(root.getAbsoluteFile.toUri)
+      Path.of(root.getCanonicalFile().toUri)
     }
 
     val resolvingLibraryProvider =

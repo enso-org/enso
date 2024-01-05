@@ -74,6 +74,10 @@ class ProjectRenameAction(
     maybeActionTimeoutCancellable = Some(cancellable)
   }
 
+  override def postStop(): Unit = {
+    connection.close()
+  }
+
   override def receive: Receive = unconnected()
 
   private def unconnected(): Receive = {

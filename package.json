@@ -1,12 +1,12 @@
 {
   "devDependencies": {
     "npm-run-all": "^4.1.5",
-    "prettier": "^3.0.0"
+    "prettier": "^3.0.0",
+    "vue-react-wrapper": "^0.3.1"
   },
   "dependencies": {
     "chromedriver": "^106.0.1",
-    "tslib": "^2.6.2",
-    "vue3-toastify": "^0.1.14"
+    "tslib": "^2.6.2"
   },
   "name": "root",
   "scripts": {
