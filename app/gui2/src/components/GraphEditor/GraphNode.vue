@@ -348,7 +348,7 @@ function portGroupStyle(port: PortData) {
   >
     <div class="selection" v-on="dragPointer.events"></div>
     <div class="binding" @pointerdown.stop>
-      {{ node.pattern?.repr() ?? '' }}
+      {{ node.pattern?.code() ?? '' }}
     </div>
     <CircularMenu
       v-if="menuVisible"

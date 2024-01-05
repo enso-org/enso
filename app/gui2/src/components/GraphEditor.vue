@@ -30,11 +30,13 @@ import { colorFromString } from '@/util/colors'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import * as set from 'lib0/set'
+import { toast } from 'react-toastify'
 import type { ExprId, NodeMetadata } from 'shared/yjsModel'
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
-import { toast } from 'vue3-toastify'
+import { computed, onMounted, onScopeDispose, onUnmounted, ref, watch } from 'vue'
+import { ProjectManagerEvents } from '../../../ide-desktop/lib/dashboard/src/authentication/src/dashboard/projectManager'
 import { type Usage } from './ComponentBrowser/input'
 import type { Ast } from '@/util/ast'
+import { bail } from '@/util/assert'
 
 const EXECUTION_MODES = ['design', 'live']
 // Assumed size of a newly created node. This is used to place the component browser.
@@ -53,24 +55,52 @@ const componentBrowserUsage = ref<Usage>({ type: 'newNode' })
 const suggestionDb = useSuggestionDbStore()
 const interaction = provideInteractionHandler()
 
+/// === UI Messages and Errors ===
 function initStartupToast() {
-  const startupToast = toast.info('Initializing the project. This can take up to one minute.', {
+  let startupToast = toast.info('Initializing the project. This can take up to one minute.', {
     autoClose: false,
   })
-  projectStore.firstExecution.then(() => {
-    if (startupToast != null) {
-      toast.remove(startupToast)
-    }
-  })
+
+  const removeToast = () => toast.dismiss(startupToast)
+  projectStore.firstExecution.then(removeToast)
+  onScopeDispose(removeToast)
+}
+
+function initConnectionLostToast() {
+  let connectionLostToast = 'connectionLostToast'
+  document.addEventListener(
+    ProjectManagerEvents.loadingFailed,
+    () => {
+      toast.error('Lost connection to Language Server.', {
+        autoClose: false,
+        toastId: connectionLostToast,
+      })
+    },
+    { once: true },
+  )
   onUnmounted(() => {
-    if (startupToast != null) {
-      toast.remove(startupToast)
-    }
+    toast.dismiss(connectionLostToast)
   })
 }
 
+projectStore.lsRpcConnection.then(
+  (ls) => {
+    ls.client.onError((err) => {
+      toast.error(`Language server error: ${err}`)
+    })
+  },
+  (err) => {
+    toast.error(`Connection to language server failed: ${err}`)
+  },
+)
+
+projectStore.executionContext.on('executionFailed', (err) => {
+  toast.error(`Execution Failed: ${err}`, {})
+})
+
 onMounted(() => {
   initStartupToast()
+  initConnectionLostToast()
 })
 
 const nodeSelection = provideGraphSelection(graphNavigator, graphStore.db.nodeRects, {
@@ -231,15 +261,16 @@ const graphBindingsHandler = graphBindings.handler({
     if (selected.size == 0) return
     try {
       const info = prepareCollapsedInfo(selected, graphStore.db)
-      if (graphStore.moduleRoot == null) return
       const currentMethod = projectStore.executionContext.getStackTop()
       const currentMethodName = stackItemToMethodName(graphStore.db, currentMethod)
       if (currentMethodName == null) {
-        throw new Error(`Cannot get the method name for the current execution stack item. ${currentMethod}`)
+        bail(`Cannot get the method name for the current execution stack item. ${currentMethod}`)
       }
-      const topLevel = graphStore.expressionGraph.get(graphStore.moduleRoot)! as Ast.BodyBlock
-      const updatedModule = performCollapse(info, graphStore.expressionGraph, topLevel, graphStore.db, currentMethodName)
-      graphStore.commitEdit(updatedModule, graphStore.moduleRoot)
+      graphStore.editAst((edit) => {
+        if (graphStore.moduleRoot == null) bail(`Module root is missing.`)
+        const topLevel = edit.get(graphStore.moduleRoot)! as Ast.BodyBlock
+        return performCollapse(info, edit, topLevel, graphStore.db, currentMethodName)
+      })
     } catch (err) {
       console.log(`Error while collapsing, this is not normal. ${err}`)
     }
@@ -449,7 +480,7 @@ function copyNodeContent() {
   const id = nodeSelection.selected.values().next().value
   const node = graphStore.db.nodeIdToNode.get(id)
   if (!node) return
-  const content = node.rootSpan.repr()
+  const content = node.rootSpan.code()
   const metadata = projectStore.module?.getNodeMetadata(id) ?? undefined
   const copiedNode: CopiedNode = { expression: content, metadata }
   const clipboardData: ClipboardData = { nodes: [copiedNode] }
@@ -533,7 +564,12 @@ async function readNodeFromExcelClipboard(
 
 function handleNodeOutputPortDoubleClick(id: ExprId) {
   componentBrowserUsage.value = { type: 'newNode', sourcePort: id }
-  const placementEnvironment = environmentForNodes([id].values())
+  const srcNode = graphStore.db.getPatternExpressionNodeId(id)
+  if (srcNode == null) {
+    console.error('Impossible happened: Double click on port not belonging to any node: ', id)
+    return
+  }
+  const placementEnvironment = environmentForNodes([srcNode].values())
   componentBrowserNodePosition.value = previousNodeDictatedPlacement(
     DEFAULT_NODE_SIZE,
     placementEnvironment,

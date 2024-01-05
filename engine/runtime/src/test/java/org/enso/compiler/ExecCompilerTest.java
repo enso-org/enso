@@ -64,6 +64,46 @@ public class ExecCompilerTest {
   }
 
   @Test
+  public void testDesugarOperators() throws Exception {
+    var module = ctx.eval("enso", """
+    main =
+      ma ==ums==
+    """);
+    try {
+      var run = module.invokeMember("eval_expression", "main");
+      fail("Unexpected result: " + run);
+    } catch (PolyglotException ex) {
+      assertEquals("Compile error: The name `ma` could not be found.", ex.getMessage());
+    }
+  }
+
+  @Test
+  public void testDesugarOperatorsLeftRight() throws Exception {
+    var module = ctx.eval("enso", """
+    main = (+ (2 *))
+    """);
+    try {
+      var run = module.invokeMember("eval_expression", "main");
+      fail("Unexpected result: " + run);
+    } catch (PolyglotException ex) {
+      assertEquals("Method `+` of type Unnamed could not be found.", ex.getMessage());
+    }
+  }
+
+  @Test
+  public void testDesugarOperatorsRightLeft() throws Exception {
+    var module = ctx.eval("enso", """
+    main = ((* 2) +)
+    """);
+    try {
+      var run = module.invokeMember("eval_expression", "main");
+      fail("Unexpected result: " + run);
+    } catch (PolyglotException ex) {
+      assertEquals("Method `+` of type Function could not be found.", ex.getMessage());
+    }
+  }
+
+  @Test
   public void testHalfAssignment() throws Exception {
     var module =
         ctx.eval(

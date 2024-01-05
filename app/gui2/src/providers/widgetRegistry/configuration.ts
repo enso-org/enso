@@ -1,15 +1,5 @@
 import { z } from 'zod'
 
-/**
- * An external configuration for a widget retreived from the language server.
- *
- * The expected configuration type is defined as Enso type `Widget` in the following file:
- * distribution/lib/Standard/Base/0.0.0-dev/src/Metadata.enso
- *
- * To avoid ruining forward compatibility, only fields that are used by the IDE are defined here.
- */
-export type WidgetConfiguration = z.infer<typeof widgetConfigurationSchema>
-
 /** Intermediate step in the parsing process, when we rename `constructor` field to `kind`.
  *
  * It helps to avoid issues with TypeScript, which considers `constructor` as a reserved keyword in many contexts.
@@ -56,10 +46,17 @@ const choiceSchema = z.object({
 })
 export type Choice = z.infer<typeof choiceSchema>
 
-/** Defining widget definition type explicitly is necessary because of recursive structure
- * of some variants, like VectorEditor. Zod can’t handle type inference by itself.
+/**
+ * An external configuration for a widget retreived from the language server.
+ *
+ * The expected configuration type is defined as Enso type `Widget` in the following file:
+ * distribution/lib/Standard/Base/0.0.0-dev/src/Metadata.enso
+ *
+ * To avoid ruining forward compatibility, only fields that are used by the IDE are defined here.
  */
-type WidgetDefinition =
+// Defining widget definition type explicitly is necessary because of recursive structure
+// of some variants, like VectorEditor. Zod can’t handle type inference by itself.
+export type WidgetConfiguration =
   | SingleChoice
   | VectorEditor
   | MultiChoice
@@ -69,10 +66,11 @@ type WidgetDefinition =
   | TextInput
   | FolderBrowse
   | FileBrowse
+  | FunctionCall
 
 export interface VectorEditor {
   kind: 'Vector_Editor'
-  item_editor: WidgetDefinition
+  item_editor: WidgetConfiguration
   item_default: string
 }
 
@@ -110,37 +108,53 @@ export interface SingleChoice {
   values: Choice[]
 }
 
-const widgetDefinitionSchema: z.ZodType<WidgetDefinition & WithDisplay, z.ZodTypeDef, any> =
-  withKindSchema.pipe(
-    z.discriminatedUnion('kind', [
-      z
-        .object({
-          kind: z.literal('Single_Choice'),
-          label: z.string().nullable(),
-          values: z.array(choiceSchema),
-        })
-        .merge(withDisplay),
-      z
-        .object({
-          kind: z.literal('Vector_Editor'),
-          /* eslint-disable camelcase */
-          item_editor: z.lazy(() => widgetDefinitionSchema),
-          item_default: z.string(),
-          /* eslint-enable camelcase */
-        })
-        .merge(withDisplay),
-      z.object({ kind: z.literal('Multi_Choice') }).merge(withDisplay),
-      z.object({ kind: z.literal('Code_Input') }).merge(withDisplay),
-      z.object({ kind: z.literal('Boolean_Input') }).merge(withDisplay),
-      z.object({ kind: z.literal('Numeric_Input') }).merge(withDisplay),
-      z.object({ kind: z.literal('Text_Input') }).merge(withDisplay),
-      z.object({ kind: z.literal('Folder_Browse') }).merge(withDisplay),
-      z.object({ kind: z.literal('File_Browse') }).merge(withDisplay),
-    ]),
-  )
+export interface FunctionCall {
+  kind: 'FunctionCall'
+  parameters: Map<string, (WidgetConfiguration & WithDisplay) | null>
+}
+
+export const widgetConfigurationSchema: z.ZodType<
+  WidgetConfiguration & WithDisplay,
+  z.ZodTypeDef,
+  any
+> = withKindSchema.pipe(
+  z.discriminatedUnion('kind', [
+    z
+      .object({
+        kind: z.literal('Single_Choice'),
+        label: z.string().nullable(),
+        values: z.array(choiceSchema),
+      })
+      .merge(withDisplay),
+    z
+      .object({
+        kind: z.literal('Vector_Editor'),
+        /* eslint-disable camelcase */
+        item_editor: z.lazy(() => widgetConfigurationSchema),
+        item_default: z.string(),
+        /* eslint-enable camelcase */
+      })
+      .merge(withDisplay),
+    z.object({ kind: z.literal('Multi_Choice') }).merge(withDisplay),
+    z.object({ kind: z.literal('Code_Input') }).merge(withDisplay),
+    z.object({ kind: z.literal('Boolean_Input') }).merge(withDisplay),
+    z.object({ kind: z.literal('Numeric_Input') }).merge(withDisplay),
+    z.object({ kind: z.literal('Text_Input') }).merge(withDisplay),
+    z.object({ kind: z.literal('Folder_Browse') }).merge(withDisplay),
+    z.object({ kind: z.literal('File_Browse') }).merge(withDisplay),
+  ]),
+)
 
 const argNameSchema = z.string()
-const argumentSchema = z.tuple([argNameSchema, widgetDefinitionSchema.nullable()])
-export type Argument = z.infer<typeof argumentSchema>
+const argumentSchema = z.tuple([argNameSchema, widgetConfigurationSchema.nullable()])
+export type ArgumentWidgetConfiguration = z.infer<typeof argumentSchema>
 
-export const widgetConfigurationSchema = z.array(argumentSchema)
+export const argsWidgetConfigurationSchema = z.array(argumentSchema)
+export type ArgsWidgetConfiguration = z.infer<typeof argsWidgetConfigurationSchema>
+
+export function functionCallConfiguration(parameters: ArgumentWidgetConfiguration[]): FunctionCall {
+  return {
+    kind: 'FunctionCall',
+    parameters: new Map(parameters),
+  }
+}

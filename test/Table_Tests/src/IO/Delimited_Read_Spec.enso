@@ -398,6 +398,15 @@ spec =
             t2.at "c" . to_vector . should_equal [3, 6]
             t2.columns.map .name . should_equal ["a", "b", "c"]
 
+        Test.specify "should be able to read in a file without splitting it to columns" <|
+            t1 = (enso_project.data / "data_small.csv") . read (Delimited "" headers=False)
+            expected = ['Code,Index,Flag,Value,ValueWithNothing,TextWithNothing,"Hexadecimal",Leading0s,QuotedNumbers,"Mixed Types"']
+                + ['gxl,7,True,38.76109,63.13,   pq6igd2wyd  ,4DD4675B,001,"1","33"']
+                + ['wca,0,False,-66.77495,31,"  2pr4102wc4  ",,002,"2",']
+                + ['nfw,1,  True ,  88.65713\t\t\t,-68.71,"",01896EAB,123,,45']
+                + ['der,7,True,0.86658,,,F32E1EFE,,"34",True']
+            t1.at 0 . to_vector . should_equal expected
+
         Test.specify "should be able to parse raw text" <|
             text1 = """
                 a,b,c

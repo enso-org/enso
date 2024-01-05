@@ -1,8 +1,7 @@
 import { fc, test } from '@fast-check/vitest'
 import { Position, TextEdit } from 'shared/languageServerTypes'
 import { describe, expect } from 'vitest'
-import * as Y from 'yjs'
-import { applyDiffAsTextEdits, convertDeltaToTextEdits } from '../edits'
+import { applyDiffAsTextEdits } from '../edits'
 
 // ======================
 // === Test utilities ===

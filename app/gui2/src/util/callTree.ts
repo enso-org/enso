@@ -1,4 +1,7 @@
 import type { PortId } from '@/providers/portInfo'
+import { AnyWidget, type WidgetInput } from '@/providers/widgetRegistry'
+import type { WidgetConfiguration } from '@/providers/widgetRegistry/configuration'
+import * as widgetCfg from '@/providers/widgetRegistry/configuration'
 import type { SuggestionEntry, SuggestionEntryArgument } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
 import { tryGetIndex } from '@/util/data/array'
@@ -17,10 +20,28 @@ export class ArgumentPlaceholder {
   constructor(
     public callId: string,
     public index: number,
-    public info: SuggestionEntryArgument,
+    public argInfo: SuggestionEntryArgument,
     public kind: ApplicationKind,
     public insertAsNamed: boolean,
+    public dynamicConfig?: WidgetConfiguration | undefined,
   ) {}
+
+  static WithRetrievedConfig(
+    callId: string,
+    index: number,
+    info: SuggestionEntryArgument,
+    kind: ApplicationKind,
+    insertAsNamed: boolean,
+    functionCallConfig: widgetCfg.FunctionCall | undefined,
+  ) {
+    const cfg =
+      info != null ? functionCallConfig?.parameters.get(info.name) ?? undefined : undefined
+    return new ArgumentPlaceholder(callId, index, info, kind, insertAsNamed, cfg)
+  }
+
+  toAnyWidget(): AnyWidget {
+    return new AnyWidget(this.portId, undefined, this.dynamicConfig, this.argInfo)
+  }
 
   get portId(): PortId {
     return `${this.callId}[${this.index}]` as PortId
@@ -31,12 +52,35 @@ export class ArgumentAst {
   constructor(
     public ast: Ast.Ast,
     public index: number | undefined,
-    public info: SuggestionEntryArgument | undefined,
+    public argInfo: SuggestionEntryArgument | undefined,
     public kind: ApplicationKind,
+    public dynamicConfig?: WidgetConfiguration | undefined,
   ) {}
 
+  static WithRetrievedConfig(
+    ast: Ast.Ast,
+    index: number | undefined,
+    info: SuggestionEntryArgument | undefined,
+    kind: ApplicationKind,
+    functionCallConfig: widgetCfg.FunctionCall | undefined,
+  ) {
+    const cfg =
+      info != null ? functionCallConfig?.parameters.get(info.name) ?? undefined : undefined
+    return new ArgumentAst(ast, index, info, kind, cfg)
+  }
+
+  toAnyWidget(): AnyWidget {
+    return new AnyWidget(this.portId, this.ast, this.dynamicConfig, this.argInfo)
+  }
+
   get portId(): PortId {
-    return this.ast.exprId as string as PortId
+    return this.ast.exprId
+  }
+
+  static matchWithArgInfo(
+    input: WidgetInput,
+  ): input is ArgumentAst & { argInfo: SuggestionEntryArgument } {
+    return input instanceof ArgumentAst && input.argInfo != null
   }
 }
 
@@ -62,78 +106,87 @@ interface FoundApplication {
   argName: string | undefined
 }
 
+export function interpretCall(callRoot: Ast.Ast, allowInterpretAsInfix: boolean): InterpretedCall {
+  if (allowInterpretAsInfix && callRoot instanceof Ast.OprApp) {
+    // Infix chains are handled one level at a time. Each application may have at most 2 arguments.
+    return {
+      kind: 'infix',
+      appTree: callRoot,
+      operator: callRoot.operator.ok ? callRoot.operator.value : undefined,
+      lhs: callRoot.lhs ?? undefined,
+      rhs: callRoot.rhs ?? undefined,
+    }
+  } else {
+    // Prefix chains are handled all at once, as they may have arbitrary number of arguments.
+    const foundApplications: FoundApplication[] = []
+    let nextApplication = callRoot
+    // Traverse the AST and find all arguments applied in sequence to the same function.
+    while (nextApplication instanceof Ast.App) {
+      foundApplications.push({
+        appTree: nextApplication,
+        argument: nextApplication.argument,
+        argName: nextApplication.argumentName?.code() ?? undefined,
+      })
+      nextApplication = nextApplication.function
+    }
+    return {
+      kind: 'prefix',
+      func: nextApplication,
+      // The applications are peeled away from outer to inner, so arguments are in reverse order. We
+      // need to reverse them back to match them with the order in suggestion entry.
+      args: foundApplications.reverse(),
+    }
+  }
+}
+
+interface CallInfo {
+  noArgsCall?: MethodCall | undefined
+  appMethodCall?: MethodCall | undefined
+  suggestion?: SuggestionEntry | undefined
+  widgetCfg?: widgetCfg.FunctionCall | undefined
+}
+
 export class ArgumentApplication {
   private constructor(
     public appTree: Ast.Ast,
     public target: ArgumentApplication | Ast.Ast | ArgumentPlaceholder | ArgumentAst,
     public infixOperator: Ast.Token | undefined,
-    public argument: Ast.Ast | ArgumentAst | ArgumentPlaceholder,
+    public argument: ArgumentAst | ArgumentPlaceholder,
   ) {}
 
-  static Interpret(callRoot: Ast.Ast, allowInterpretAsInfix: boolean): InterpretedCall {
-    if (allowInterpretAsInfix && callRoot instanceof Ast.OprApp) {
-      // Infix chains are handled one level at a time. Each application may have at most 2 arguments.
-      return {
-        kind: 'infix',
-        appTree: callRoot,
-        operator: callRoot.operator.ok ? callRoot.operator.value : undefined,
-        lhs: callRoot.lhs ?? undefined,
-        rhs: callRoot.rhs ?? undefined,
-      }
-    } else {
-      // Prefix chains are handled all at once, as they may have arbitrary number of arguments.
-      const foundApplications: FoundApplication[] = []
-      let nextApplication = callRoot
-      // Traverse the AST and find all arguments applied in sequence to the same function.
-      while (nextApplication instanceof Ast.App) {
-        foundApplications.push({
-          appTree: nextApplication,
-          argument: nextApplication.argument,
-          argName: nextApplication.argumentName?.code() ?? undefined,
-        })
-        nextApplication = nextApplication.function
-      }
-      return {
-        kind: 'prefix',
-        func: nextApplication,
-        // The applications are peeled away from outer to inner, so arguments are in reverse order. We
-        // need to reverse them back to match them with the order in suggestion entry.
-        args: foundApplications.reverse(),
-      }
+  private static FromInterpretedInfix(interpreted: InterpretedInfix, callInfo: CallInfo) {
+    // Access infixes are not real infix calls.
+    if (isAccessOperator(interpreted.operator)) return interpreted.appTree
+    const { suggestion, widgetCfg } = callInfo
+
+    const kind = ApplicationKind.Infix
+    const callId = interpreted.appTree.exprId
+
+    const argFor = (key: 'lhs' | 'rhs', index: number) => {
+      const tree = interpreted[key]
+      const info = tryGetIndex(suggestion?.arguments, index) ?? unknownArgInfoNamed(key)
+      return tree != null
+        ? ArgumentAst.WithRetrievedConfig(tree, index, info, kind, widgetCfg)
+        : ArgumentPlaceholder.WithRetrievedConfig(callId, index, info, kind, false, widgetCfg)
     }
+    return new ArgumentApplication(
+      interpreted.appTree,
+      argFor('lhs', 0),
+      interpreted.operator,
+      argFor('rhs', 1),
+    )
   }
 
-  static FromInterpretedWithInfo(
-    interpreted: InterpretedCall,
-    noArgsCall: MethodCall | undefined,
-    appMethodCall: MethodCall | undefined,
-    suggestion: SuggestionEntry | undefined,
-    stripSelfArgument: boolean = false,
-  ): ArgumentApplication | Ast.Ast {
+  private static FromInterpretedPrefix(
+    interpreted: InterpretedPrefix,
+    callInfo: CallInfo,
+    stripSelfArgument: boolean,
+  ) {
+    const { noArgsCall, appMethodCall, suggestion, widgetCfg } = callInfo
+    const kind = ApplicationKind.Prefix
+    const callId = interpreted.func.exprId
+
     const knownArguments = suggestion?.arguments
-
-    const callId =
-      interpreted.kind === 'infix' ? interpreted.appTree.exprId : interpreted.func.exprId
-
-    if (interpreted.kind === 'infix') {
-      const isAccess = isAccessOperator(interpreted.operator)
-      const argFor = (key: 'lhs' | 'rhs', index: number) => {
-        const tree = interpreted[key]
-        const info = tryGetIndex(knownArguments, index) ?? unknownArgInfoNamed(key)
-        return tree != null
-          ? isAccess
-            ? tree
-            : new ArgumentAst(tree, index, info, ApplicationKind.Infix)
-          : new ArgumentPlaceholder(callId, index, info, ApplicationKind.Infix, false)
-      }
-      return new ArgumentApplication(
-        interpreted.appTree,
-        argFor('lhs', 0),
-        interpreted.operator,
-        argFor('rhs', 1),
-      )
-    }
-
     const notAppliedArguments = appMethodCall?.notAppliedArguments ?? []
     const placeholdersToInsert = notAppliedArguments.slice()
     const notAppliedSet = new Set(notAppliedArguments)
@@ -168,12 +221,13 @@ export class ArgumentApplication {
         if (argIndex != null && argInfo != null) {
           prefixArgsToDisplay.push({
             appTree,
-            argument: new ArgumentPlaceholder(
+            argument: ArgumentPlaceholder.WithRetrievedConfig(
               callId,
               argIndex,
               argInfo,
               ApplicationKind.Prefix,
               !canInsertPositional,
+              widgetCfg,
             ),
           })
 
@@ -188,13 +242,12 @@ export class ArgumentApplication {
         if (argIndex != null) insertPlaceholdersUpto(argIndex, realArg.appTree.function)
         prefixArgsToDisplay.push({
           appTree: realArg.appTree,
-          argument: new ArgumentAst(
+          argument: ArgumentAst.WithRetrievedConfig(
             realArg.argument,
             argIndex,
-            // If we have more arguments applied than we know about, display that argument anyway, but
-            // mark it as unknown.
             tryGetIndex(knownArguments, argIndex),
-            ApplicationKind.Prefix,
+            kind,
+            widgetCfg,
           ),
         })
       } else {
@@ -203,15 +256,17 @@ export class ArgumentApplication {
         const name = realArg.argName
         const foundIdx = argumentsLeftToMatch.findIndex((i) => knownArguments?.[i]?.name === name)
         const argIndex = foundIdx === -1 ? undefined : argumentsLeftToMatch.splice(foundIdx, 1)[0]
+
         if (argIndex != null && foundIdx === 0)
           insertPlaceholdersUpto(argIndex, realArg.appTree.function)
         prefixArgsToDisplay.push({
           appTree: realArg.appTree,
-          argument: new ArgumentAst(
+          argument: ArgumentAst.WithRetrievedConfig(
             realArg.argument,
             argIndex,
             tryGetIndex(knownArguments, argIndex) ?? unknownArgInfoNamed(name),
-            ApplicationKind.Prefix,
+            kind,
+            widgetCfg,
           ),
         })
       }
@@ -227,6 +282,18 @@ export class ArgumentApplication {
     )
   }
 
+  static FromInterpretedWithInfo(
+    interpreted: InterpretedCall,
+    callInfo: CallInfo = {},
+    stripSelfArgument: boolean = false,
+  ): ArgumentApplication | Ast.Ast {
+    if (interpreted.kind === 'infix') {
+      return ArgumentApplication.FromInterpretedInfix(interpreted, callInfo)
+    } else {
+      return ArgumentApplication.FromInterpretedPrefix(interpreted, callInfo, stripSelfArgument)
+    }
+  }
+
   *iterApplications(): IterableIterator<ArgumentApplication> {
     let current: typeof this.target = this
     while (current instanceof ArgumentApplication) {
@@ -238,12 +305,12 @@ export class ArgumentApplication {
 
 const unknownArgInfoNamed = (name: string) => ({
   name,
-  type: 'Any',
+  reprType: 'Any',
   isSuspended: false,
   hasDefault: false,
 })
 
-function getAccessOprSubject(app: Ast.Ast): Ast.Ast | undefined {
+export function getAccessOprSubject(app: Ast.Ast): Ast.Ast | undefined {
   if (app instanceof Ast.PropertyAccess) return app.lhs ?? undefined
 }
 
@@ -252,8 +319,8 @@ function isAccessOperator(opr: Ast.Token | undefined): boolean {
 }
 
 declare const ArgumentApplicationKey: unique symbol
-declare const ArgumentPlaceholderKey: unique symbol
 declare const ArgumentAstKey: unique symbol
+declare const ArgumentPlaceholderKey: unique symbol
 declare module '@/providers/widgetRegistry' {
   export interface WidgetInputTypes {
     [ArgumentApplicationKey]: ArgumentApplication

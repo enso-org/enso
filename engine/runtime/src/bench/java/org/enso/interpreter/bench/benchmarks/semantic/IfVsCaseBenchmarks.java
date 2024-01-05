@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
-
 import org.enso.interpreter.test.TestBase;
 import org.enso.polyglot.MethodNames.Module;
 import org.enso.polyglot.RuntimeOptions;
@@ -49,26 +48,24 @@ public class IfVsCaseBenchmarks extends TestBase {
   @Setup
   public void initializeBench(BenchmarkParams params) throws IOException {
     OutputStream out = new ByteArrayOutputStream();
-    ctx = Context.newBuilder("enso")
-        .allowAllAccess(true)
-        .option(
-                RuntimeOptions.LOG_LEVEL,
-                Level.WARNING.getName()
-        )
-        .logHandler(System.err)
-        .out(out)
-        .err(out)
-        .allowIO(IOAccess.ALL)
-        .allowExperimentalOptions(true)
-        .option(
-            "enso.languageHomeOverride",
-            Paths.get("../../distribution/component").toFile().getAbsolutePath()
-        )
-        .option("engine.MultiTier", "true")
-        .option("engine.BackgroundCompilation", "true")
-        .build();
+    ctx =
+        Context.newBuilder("enso")
+            .allowAllAccess(true)
+            .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
+            .logHandler(System.err)
+            .out(out)
+            .err(out)
+            .allowIO(IOAccess.ALL)
+            .allowExperimentalOptions(true)
+            .option(
+                "enso.languageHomeOverride",
+                Paths.get("../../distribution/component").toFile().getAbsolutePath())
+            .option("engine.MultiTier", "true")
+            .option("engine.BackgroundCompilation", "true")
+            .build();
 
-    var code = """
+    var code =
+        """
         from Standard.Base import all
 
         type My_Type
@@ -142,10 +139,13 @@ public class IfVsCaseBenchmarks extends TestBase {
     var src = SrcUtil.source(benchmarkName, code);
     Value module = ctx.eval(src);
     ifBench3 = Objects.requireNonNull(module.invokeMember(Module.EVAL_EXPRESSION, "if_bench_3"));
-    caseBench3 = Objects.requireNonNull(module.invokeMember(Module.EVAL_EXPRESSION, "case_bench_3"));
+    caseBench3 =
+        Objects.requireNonNull(module.invokeMember(Module.EVAL_EXPRESSION, "case_bench_3"));
     ifBench6 = Objects.requireNonNull(module.invokeMember(Module.EVAL_EXPRESSION, "if_bench_6"));
-    ifBench6In = Objects.requireNonNull(module.invokeMember(Module.EVAL_EXPRESSION, "if_bench_6_in"));
-    caseBench6 = Objects.requireNonNull(module.invokeMember(Module.EVAL_EXPRESSION, "case_bench_6"));
+    ifBench6In =
+        Objects.requireNonNull(module.invokeMember(Module.EVAL_EXPRESSION, "if_bench_6_in"));
+    caseBench6 =
+        Objects.requireNonNull(module.invokeMember(Module.EVAL_EXPRESSION, "case_bench_6"));
     createVec = Objects.requireNonNull(module.invokeMember(Module.EVAL_EXPRESSION, "create_vec"));
     // So far, input is a vector of My_Type.Value with all fields set to True
     inputVec = createMyTypeAllTrue(INPUT_VEC_SIZE);
@@ -156,9 +156,7 @@ public class IfVsCaseBenchmarks extends TestBase {
     ctx.close();
   }
 
-  /**
-   * Iterates over a vector of {@code My_Type} values with True only fields.
-   */
+  /** Iterates over a vector of {@code My_Type} values with True only fields. */
   @Benchmark
   public void ifBench3() {
     Value res = ifBench3.execute(inputVec);
@@ -195,9 +193,7 @@ public class IfVsCaseBenchmarks extends TestBase {
     }
   }
 
-  /**
-   * Creates a vector of {@code My_Type} with all True fields
-   */
+  /** Creates a vector of {@code My_Type} with all True fields */
   private Value createMyTypeAllTrue(int size) {
     List<List<Boolean>> inputPolyVec = new ArrayList<>();
     for (int i = 0; i < size; i++) {

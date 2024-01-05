@@ -191,7 +191,7 @@ test('Adding new argument', () => {
   const test = new Fixture()
   const newArg: lsTypes.SuggestionEntryArgument = {
     name: 'c',
-    type: 'Any',
+    reprType: 'Any',
     hasDefault: false,
     isSuspended: false,
   }
@@ -212,13 +212,13 @@ test('Adding new argument', () => {
 test('Modifying arguments', () => {
   const newArg1 = {
     name: 'c',
-    type: 'Standard.Base.Number',
+    reprType: 'Standard.Base.Number',
     isSuspended: true,
     hasDefault: false,
   }
   const newArg2 = {
     name: 'b',
-    type: 'Any',
+    reprType: 'Any',
     isSuspended: false,
     hasDefault: true,
     defaultValue: 'Nothing',
@@ -275,14 +275,14 @@ class Fixture {
   ]
   arg1 = {
     name: 'a',
-    type: 'Any',
+    reprType: 'Any',
     isSuspended: false,
     hasDefault: true,
     defaultValue: 'Nothing',
   }
   arg2 = {
     name: 'b',
-    type: 'Any',
+    reprType: 'Any',
     isSuspended: false,
     hasDefault: false,
   }

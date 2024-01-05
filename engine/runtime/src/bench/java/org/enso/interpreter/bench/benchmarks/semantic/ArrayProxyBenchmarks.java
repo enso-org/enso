@@ -1,11 +1,9 @@
 package org.enso.interpreter.bench.benchmarks.semantic;
 
-import java.io.ByteArrayOutputStream;
 import java.nio.file.Paths;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.logging.Level;
-
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Engine;
@@ -38,17 +36,15 @@ public class ArrayProxyBenchmarks {
     Engine eng =
         Engine.newBuilder()
             .allowExperimentalOptions(true)
-            .option(
-                    RuntimeOptions.LOG_LEVEL,
-                    Level.WARNING.getName()
-            )
+            .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
             .logHandler(System.err)
             .option(
                 "enso.languageHomeOverride",
                 Paths.get("../../distribution/component").toFile().getAbsolutePath())
             .build();
     var ctx = Context.newBuilder().engine(eng).allowIO(IOAccess.ALL).allowAllAccess(true).build();
-    var code = """
+    var code =
+        """
         import Standard.Base.Data.Vector.Vector
         import Standard.Base.Data.Array_Proxy.Array_Proxy
         sum arr =
@@ -92,8 +88,7 @@ public class ArrayProxyBenchmarks {
         test_builder = "make_delegating_vector";
         break;
       default:
-        throw new IllegalStateException(
-            "Unexpected benchmark: " + params.getBenchmark());
+        throw new IllegalStateException("Unexpected benchmark: " + params.getBenchmark());
     }
     this.arrayOfNumbers = getMethod.apply(test_builder).execute(self, length);
     this.sum = getMethod.apply("sum");
@@ -133,8 +128,7 @@ public class ArrayProxyBenchmarks {
     long expectedResult = length * 3L + (5L * (length * (length - 1L) / 2L));
     boolean isResultCorrect = result == expectedResult;
     if (!isResultCorrect) {
-      throw new AssertionError(
-          "Expecting " + expectedResult + " but was " + result);
+      throw new AssertionError("Expecting " + expectedResult + " but was " + result);
     }
     matter.consume(result);
   }

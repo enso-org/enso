@@ -1,5 +1,9 @@
 package org.enso.interpreter.bench.benchmarks.semantic;
 
+import java.nio.file.Paths;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+import java.util.logging.Level;
 import org.enso.polyglot.MethodNames.Module;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
@@ -8,13 +12,6 @@ import org.graalvm.polyglot.io.IOAccess;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.BenchmarkParams;
 import org.openjdk.jmh.infra.Blackhole;
-
-import java.io.ByteArrayOutputStream;
-import java.nio.file.Paths;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
-import java.util.logging.Level;
-
 
 @BenchmarkMode(Mode.AverageTime)
 @Fork(1)
@@ -29,20 +26,19 @@ public class TypePatternBenchmarks {
 
   @Setup
   public void initializeBenchmark(BenchmarkParams params) throws Exception {
-    var ctx = Context.newBuilder()
-      .allowExperimentalOptions(true)
-      .allowIO(IOAccess.ALL)
-      .allowAllAccess(true)
-      .option(
-              RuntimeOptions.LOG_LEVEL,
-              Level.WARNING.getName()
-      )
-      .logHandler(System.err)
-      .option(
-        "enso.languageHomeOverride",
-        Paths.get("../../distribution/component").toFile().getAbsolutePath()
-      ).build();
-    var code ="""
+    var ctx =
+        Context.newBuilder()
+            .allowExperimentalOptions(true)
+            .allowIO(IOAccess.ALL)
+            .allowAllAccess(true)
+            .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
+            .logHandler(System.err)
+            .option(
+                "enso.languageHomeOverride",
+                Paths.get("../../distribution/component").toFile().getAbsolutePath())
+            .build();
+    var code =
+        """
         from Standard.Base import Integer, Vector, Any, Float
 
         avg arr =
@@ -72,7 +68,7 @@ public class TypePatternBenchmarks {
     var src = SrcUtil.source(benchmarkName, code);
     var module = ctx.eval(src);
 
-    Function<String,Value> getMethod = (name) -> module.invokeMember(Module.EVAL_EXPRESSION, name);
+    Function<String, Value> getMethod = (name) -> module.invokeMember(Module.EVAL_EXPRESSION, name);
 
     var length = 100;
     this.vec = getMethod.apply("gen_vec").execute(length, 1.1);
@@ -85,8 +81,9 @@ public class TypePatternBenchmarks {
   }
 
   /**
-   * Adding @ExplodeLoop in {@link org.enso.interpreter.node.controlflow.caseexpr.CatchTypeBranchNode} specialization
-   * decreases the performance of this benchmark.
+   * Adding @ExplodeLoop in {@link
+   * org.enso.interpreter.node.controlflow.caseexpr.CatchTypeBranchNode} specialization decreases
+   * the performance of this benchmark.
    */
   @Benchmark
   public void matchOverAny(Blackhole matter) {
@@ -94,7 +91,8 @@ public class TypePatternBenchmarks {
   }
 
   /**
-   * Benchmark that matches over a Float. The old (decimal) name is kept to keep the history of results consistent.
+   * Benchmark that matches over a Float. The old (decimal) name is kept to keep the history of
+   * results consistent.
    */
   @Benchmark
   public void matchOverDecimal(Blackhole matter) {
@@ -113,4 +111,3 @@ public class TypePatternBenchmarks {
     matter.consume(result);
   }
 }
-

@@ -9,7 +9,7 @@ import {
 } from '@/util/ast'
 import { MappedKeyMap, MappedSet, NonEmptyStack } from '@/util/containers'
 import type { LazyObject } from '@/util/parserSupport'
-import { IdMap, rangeIsBefore, type ContentRange } from 'shared/yjsModel'
+import { IdMap, rangeIsBefore, type SourceRange } from 'shared/yjsModel'
 
 const ACCESSOR_OPERATOR = '.'
 
@@ -32,7 +32,7 @@ class Scope {
    * @param parent The parent scope.
    */
   constructor(
-    public range?: ContentRange,
+    public range?: SourceRange,
     public parent?: Scope,
   ) {}
 
@@ -43,7 +43,7 @@ class Scope {
    * scope, so the variables are not visible before they are defined. If not provided, the lookup will include all
    * symbols from the scope.
    */
-  resolve(identifier: string, location?: ContentRange): RawAst.Token | undefined {
+  resolve(identifier: string, location?: SourceRange): RawAst.Token | undefined {
     const localBinding = this.bindings.get(identifier)
     if (
       localBinding != null &&
@@ -71,21 +71,15 @@ export enum IdentifierType {
   Variable = 'Variable',
 }
 
-/** Check, what kind of identifier the given string is.
- *
- *  Note that the results should not be relied upon for ill-formed identifiers.
- */
-export function identifierKind(identifier: string): IdentifierType {
+/** Check what kind of identifier the given token is. */
+export function identifierKind(token: RawAst.Token.Ident): IdentifierType {
   // Identifier kinds, as per draft Enso spec:
   // https://github.com/enso-org/design/blob/wip/wd/enso-spec/epics/enso-spec-1.0/03.%20Code%20format%20and%20layout.md
-  // Regex that matches any character that is allowed as part of operator identifier.
-  const operatorCharacter = /[!$%&*+\-/<>^~|:\\=.]/
-  const firstCharacter = identifier.charAt(0)
-  if (firstCharacter.match(operatorCharacter)) {
+  if (token.isOperatorLexically) {
     return IdentifierType.Operator
-  } else if (firstCharacter === '_') {
+  } else if (token.liftLevel > 0) {
     return IdentifierType.TypeVariable
-  } else if (firstCharacter === firstCharacter.toUpperCase()) {
+  } else if (token.isTypeOrConstructor) {
     return IdentifierType.Type
   } else {
     return IdentifierType.Variable
@@ -94,7 +88,7 @@ export function identifierKind(identifier: string): IdentifierType {
 
 export class AliasAnalyzer {
   /** All symbols that are not yet resolved (i.e. that were not bound in the analyzed tree). */
-  readonly unresolvedSymbols = new MappedSet<ContentRange>(IdMap.keyForRange)
+  readonly unresolvedSymbols = new MappedSet<SourceRange>(IdMap.keyForRange)
 
   /** The AST representation of the code. */
   readonly ast: RawAst.Tree
@@ -108,9 +102,7 @@ export class AliasAnalyzer {
   /** The stack for keeping track whether we are in a pattern or expression context. */
   private readonly contexts: NonEmptyStack<Context> = new NonEmptyStack(Context.Expression)
 
-  public readonly aliases = new MappedKeyMap<ContentRange, MappedSet<ContentRange>>(
-    IdMap.keyForRange,
-  )
+  public readonly aliases = new MappedKeyMap<SourceRange, MappedSet<SourceRange>>(IdMap.keyForRange)
 
   /**
    * @param code text representation of the code.
@@ -126,7 +118,7 @@ export class AliasAnalyzer {
   }
 
   /** Invoke the given function in a new temporary scope. */
-  withNewScopeOver(nodeOrRange: ContentRange | RawAst.Tree | RawAst.Token, f: () => undefined) {
+  withNewScopeOver(nodeOrRange: SourceRange | RawAst.Tree | RawAst.Token, f: () => undefined) {
     const range = parsedTreeOrTokenRange(nodeOrRange)
     const scope = new Scope(range, this.scopes.top)
     this.scopes.withPushed(scope, f)
@@ -145,7 +137,7 @@ export class AliasAnalyzer {
     log(() => `Binding ${identifier}@[${range}]`)
     scope.bindings.set(identifier, token)
     assert(!this.aliases.has(range), `Token at ${range} is already bound.`)
-    this.aliases.set(range, new MappedSet<ContentRange>(IdMap.keyForRange))
+    this.aliases.set(range, new MappedSet<SourceRange>(IdMap.keyForRange))
   }
 
   addConnection(source: RawAst.Token, target: RawAst.Token) {
@@ -185,12 +177,8 @@ export class AliasAnalyzer {
   }
 
   processToken(token?: RawAst.Token): void {
-    if (token == null) {
-      return
-    }
-
-    const repr = readTokenSpan(token, this.code)
-    if (identifierKind(repr) === IdentifierType.Variable) {
+    if (token?.type !== RawAst.Token.Type.Ident) return
+    if (identifierKind(token) === IdentifierType.Variable) {
       if (this.contexts.top === Context.Pattern) {
         this.bind(token)
       } else {
@@ -320,7 +308,7 @@ export class AliasAnalyzer {
               ? parsedTreeOrTokenRange(arrow)[1]
               : parsedTreeOrTokenRange(pattern)[1]
 
-            const armRange: ContentRange = [armStart, armEnd]
+            const armRange: SourceRange = [armStart, armEnd]
             this.withNewScopeOver(armRange, () => {
               this.withContext(Context.Pattern, () => {
                 this.processTree(caseLine.case?.pattern)
