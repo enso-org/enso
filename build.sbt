@@ -1366,7 +1366,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
   )
   .settings(
     Test / compile := (Test / compile)
-      .dependsOn(LocalProject("enso") / updateLibraryManifests)
+      .dependsOn(`runtime-fat-jar` / Compile / compileModuleInfo)
       .value,
     Test / envVars ++= Map(
       "ENSO_EDITION_PATH" -> file("distribution/editions").getCanonicalPath
