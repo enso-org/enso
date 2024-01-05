@@ -16,6 +16,7 @@ import * as errorModule from '../../error'
 import * as hooks from '../../hooks'
 import * as identity from '../identity'
 import * as indent from '../indent'
+import * as merge from '../../merge'
 import * as modalProvider from '../../providers/modal'
 import * as permissions from '../permissions'
 import * as set from '../set'
@@ -107,30 +108,26 @@ export default function AssetRow(props: AssetRowProps) {
     const doCopyOnBackend = React.useCallback(
         async (newParentId: backendModule.DirectoryId | null) => {
             try {
-                setAsset(oldAsset => {
-                    const newAsset = { ...oldAsset }
-                    newAsset.title += ' (copy)'
-                    newAsset.labels = []
-                    newAsset.permissions = permissions.tryGetSingletonOwnerPermission(
-                        organization,
-                        user
-                    )
-                    newAsset.modifiedAt = dateTime.toRfc3339(new Date())
-                    return newAsset
-                })
+                setAsset(oldAsset =>
+                    merge.merge(oldAsset, {
+                        title: oldAsset.title + ' (copy)',
+                        labels: [],
+                        permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
+                        modifiedAt: dateTime.toRfc3339(new Date()),
+                    })
+                )
                 const copiedAsset = await backend.copyAsset(
                     asset.id,
                     newParentId ?? backend.rootDirectoryId(organization),
                     asset.title,
                     null
                 )
-                setAsset(oldAsset => {
-                    const newAsset = { ...oldAsset }
-                    newAsset.id = copiedAsset.asset.id
-                    newAsset.parentId = copiedAsset.asset.parentId
-                    newAsset.title = copiedAsset.asset.title
-                    return newAsset
-                })
+                setAsset(oldAsset =>
+                    // This is SAFE, as the type of the copied asset is guaranteed to be the same
+                    // as the type of the original asset.
+                    // eslint-disable-next-line no-restricted-syntax
+                    merge.merge(oldAsset, copiedAsset.asset as Partial<backendModule.AnyAsset>)
+                )
             } catch (error) {
                 toastAndLog(`Could not copy '${asset.title}'`, error)
                 // Delete the new component representing the asset that failed to insert.
@@ -170,12 +167,12 @@ export default function AssetRow(props: AssetRowProps) {
                     key: item.key,
                     item: asset,
                 })
-                setItem(oldItem => {
-                    const newItem = { ...oldItem }
-                    newItem.directoryKey = nonNullNewParentKey
-                    newItem.directoryId = nonNullNewParentId
-                    return newItem
-                })
+                setItem(oldItem =>
+                    merge.merge(oldItem, {
+                        directoryKey: nonNullNewParentKey,
+                        directoryId: nonNullNewParentId,
+                    })
+                )
                 await backend.updateAsset(
                     asset.id,
                     {
@@ -186,12 +183,12 @@ export default function AssetRow(props: AssetRowProps) {
                 )
             } catch (error) {
                 toastAndLog(`Could not move '${asset.title}'`, error)
-                setItem(oldItem => {
-                    const newItem = { ...oldItem }
-                    newItem.directoryKey = item.directoryKey
-                    newItem.directoryId = item.directoryId
-                    return newItem
-                })
+                setItem(oldItem =>
+                    merge.merge(oldItem, {
+                        directoryKey: item.directoryKey,
+                        directoryId: item.directoryId,
+                    })
+                )
                 // Move the asset back to its original position.
                 dispatchAssetListEvent({
                     type: assetListEventModule.AssetListEventType.move,
@@ -424,11 +421,11 @@ export default function AssetRow(props: AssetRowProps) {
                         ...(labels ?? []),
                         ...[...event.labelNames].filter(label => labels?.includes(label) !== true),
                     ]
-                    setAsset(oldAsset => ({ ...oldAsset, labels: newLabels }))
+                    setAsset(oldAsset => merge.merge(oldAsset, { labels: newLabels }))
                     try {
                         await backend.associateTag(asset.id, newLabels, asset.title)
                     } catch (error) {
-                        setAsset(oldAsset => ({ ...oldAsset, labels }))
+                        setAsset(oldAsset => merge.merge(oldAsset, { labels }))
                         toastAndLog(null, error)
                     }
                 }
@@ -447,11 +444,11 @@ export default function AssetRow(props: AssetRowProps) {
                     [...event.labelNames].some(label => labels.includes(label))
                 ) {
                     const newLabels = labels.filter(label => !event.labelNames.has(label))
-                    setAsset(oldAsset => ({ ...oldAsset, labels: newLabels }))
+                    setAsset(oldAsset => merge.merge(oldAsset, { labels: newLabels }))
                     try {
                         await backend.associateTag(asset.id, newLabels, asset.title)
                     } catch (error) {
-                        setAsset(oldAsset => ({ ...oldAsset, labels }))
+                        setAsset(oldAsset => merge.merge(oldAsset, { labels }))
                         toastAndLog(null, error)
                     }
                 }
@@ -469,7 +466,7 @@ export default function AssetRow(props: AssetRowProps) {
                                 return true
                             }
                         }) ?? null
-                    return found ? { ...oldAsset, labels } : oldAsset
+                    return found ? merge.merge(oldAsset, { labels }) : oldAsset
                 })
                 break
             }

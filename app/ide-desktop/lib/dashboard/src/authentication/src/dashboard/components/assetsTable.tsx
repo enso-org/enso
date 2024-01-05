@@ -14,6 +14,7 @@ import * as drag from '../drag'
 import * as hooks from '../../hooks'
 import * as localStorageModule from '../localStorage'
 import * as localStorageProvider from '../../providers/localStorage'
+import * as merge from '../../merge'
 import * as pasteDataModule from '../pasteData'
 import * as permissions from '../permissions'
 import * as set from '../set'
@@ -103,9 +104,7 @@ function insertAssetTreeNodeChildren(
         nodesToInsert,
         innerItem => backendModule.ASSET_TYPE_ORDER[innerItem.item.type] >= typeOrder
     )
-    const newItem = { ...item }
-    newItem.children = newNodes
-    return newItem
+    return merge.merge(item, { children: newNodes })
 }
 
 /** Return a directory, with new children added into its list of children.
@@ -117,7 +116,7 @@ function insertArbitraryAssetTreeNodeChildren(
     directoryId: backendModule.DirectoryId,
     getKey: ((asset: backendModule.AnyAsset) => backendModule.AssetId) | null = null
 ): assetTreeNode.AssetTreeNode {
-    const newDepth = item.depth + 1
+    const depth = item.depth + 1
     const nodes = (item.children ?? []).filter(
         node => node.item.type !== backendModule.AssetType.specialEmpty
     )
@@ -142,7 +141,7 @@ function insertArbitraryAssetTreeNodeChildren(
                     asset,
                     directoryKey,
                     directoryId,
-                    newDepth,
+                    depth,
                     getKey
                 )
             )
@@ -153,13 +152,7 @@ function insertArbitraryAssetTreeNodeChildren(
             )
         }
     }
-    if (newNodes === nodes) {
-        return item
-    } else {
-        const newItem = { ...item }
-        newItem.children = newNodes
-        return newItem
-    }
+    return newNodes === nodes ? item : merge.merge(item, { children: newNodes })
 }
 
 // =============================
@@ -751,15 +744,9 @@ export default function AssetsTable(props: AssetsTableProps) {
                     directoryListAbortControllersRef.current.delete(directoryId)
                 }
                 setAssetTree(oldAssetTree =>
-                    assetTreeNode.assetTreeMap(oldAssetTree, item => {
-                        if (item.key !== key) {
-                            return item
-                        } else {
-                            const newItem = { ...item }
-                            newItem.children = null
-                            return newItem
-                        }
-                    })
+                    assetTreeNode.assetTreeMap(oldAssetTree, item =>
+                        item.key !== key ? item : merge.merge(item, { children: null })
+                    )
                 )
             } else {
                 setAssetTree(oldAssetTree =>

@@ -2,6 +2,7 @@
 import * as React from 'react'
 
 import * as backendModule from './backend'
+import * as merge from '../merge'
 
 // =====================
 // === AssetTreeNode ===
@@ -57,8 +58,7 @@ export function assetTreeMap(
         }
         if (newNode !== node) {
             if (result === root) {
-                result = { ...root }
-                result.children = [...children]
+                result = merge.merge(root, { children: [...children] })
             }
             result.children ??= []
             result.children[i] = newNode
@@ -80,18 +80,14 @@ export function assetTreeFilter(root: AssetTreeNode, predicate: (node: AssetTree
         }
         if (!predicate(node)) {
             if (!result) {
-                result = { ...root }
-                result.children = i === 0 ? null : children.slice(0, i)
+                result = merge.merge(root, { children: i === 0 ? null : children.slice(0, i) })
             }
         } else {
             let newNode = node
             if (node.children != null) {
                 newNode = assetTreeFilter(node, predicate)
                 if (newNode !== node) {
-                    if (!result) {
-                        result = { ...root }
-                        result.children = children.slice(0, i)
-                    }
+                    result ??= merge.merge(root, { children: children.slice(0, i) })
                 }
             }
             if (result != null) {
