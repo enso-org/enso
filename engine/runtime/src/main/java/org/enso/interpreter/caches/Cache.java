@@ -4,8 +4,6 @@ import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLogger;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -513,8 +511,6 @@ public abstract class Cache<T, M extends Cache.Metadata> {
               });
     }
   }
-
-  protected static final Charset metadataCharset = StandardCharsets.UTF_8;
 
   /**
    * Roots encapsulates two possible locations where caches can be stored.

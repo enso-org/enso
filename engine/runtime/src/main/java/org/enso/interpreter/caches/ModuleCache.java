@@ -8,6 +8,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Optional;
@@ -77,7 +78,7 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
       if (source.hasBytes()) {
         sourceBytes = source.getBytes().toByteArray();
       } else {
-        sourceBytes = source.getCharacters().toString().getBytes(metadataCharset);
+        sourceBytes = source.getCharacters().toString().getBytes(StandardCharsets.UTF_8);
       }
       return Optional.of(computeDigestFromBytes(sourceBytes));
     } else {
