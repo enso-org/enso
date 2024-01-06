@@ -34,12 +34,9 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
   }
 
   @Override
-  protected byte[] metadata(String sourceDigest, String blobDigest, CachedModule entry) {
-    try {
-      return new Metadata(sourceDigest, blobDigest, entry.compilationStage().toString()).toBytes();
-    } catch (IOException e) {
-      throw raise(RuntimeException.class, e);
-    }
+  protected byte[] metadata(String sourceDigest, String blobDigest, CachedModule entry)
+      throws IOException {
+    return new Metadata(sourceDigest, blobDigest, entry.compilationStage().toString()).toBytes();
   }
 
   @Override
@@ -69,13 +66,9 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
   }
 
   @Override
-  protected Optional<Metadata> metadataFromBytes(byte[] bytes, TruffleLogger logger) {
-    try {
-      return Optional.of(Metadata.read(bytes));
-    } catch (IOException e) {
-      logger.log(logLevel, "Failed to deserialize module's metadata.", e);
-      return Optional.empty();
-    }
+  protected Optional<Metadata> metadataFromBytes(byte[] bytes, TruffleLogger logger)
+      throws IOException {
+    return Optional.of(Metadata.read(bytes));
   }
 
   private Optional<String> computeDigestOfModuleSources(Source source) {
