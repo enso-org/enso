@@ -1,9 +1,14 @@
 
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Runtime.State
+
 import project.Group.Group
 import project.Group.Group_Builder
+import project.Helpers
 import project.Phases.Running_Tests
+import project.Suite_Config.Suite_Config
+import project.Test_Reporter
 
 type Suite_Builder
     ## PRIVATE
@@ -29,9 +34,38 @@ type Suite
             Suite.Impl all_groups
 
     run_all self =
-        State.run Running_Tests True <|
-            self.groups.each group->
-                group.run
+        self.run_with_filter Nothing Nothing
+
+    ## Run only tests that match the provided filters. The filters are converted to
+       a regular expression. If a filter is Nothing, it matches all the names.
+
+       Arguments:
+       - group_filter: Filter for group names.
+       - spec_filter: Filter for spec names.
+    run_with_filter : (Regex | Text | Nothing) -> (Regex | Text | Nothing) -> Nothing
+    run_with_filter self group_filter=Nothing spec_filter=Nothing =
+        config = Suite_Config.from_environment
+        convert_filter filter =
+            case filter of
+                r : Regex -> r
+                t : Text -> Regex.compile t
+                Nothing -> Regex.compile ".*"
+                _ -> Error.throw (Illegal_Argument.Error "Wrong specification of a filter: "+filter.to_text)
+        group_filter_conv = convert_filter group_filter
+        spec_filter_conv = convert_filter spec_filter
+        filtered_groups = self.groups.filter group->
+            (group_filter_conv.match group.name) != Nothing
+        filtered_groups.each group->
+            State.run Running_Tests True <|
+                results = Helpers.run_group_with_filter group spec_filter_conv
+                Test_Reporter.print_report results config Nothing
 
     group_names self =
         self.groups.map (_.name)
+
+    print_all self =
+        IO.println "Test Suite:"
+        self.groups.each group->
+            IO.println <| "  Group '" + group.name + "':"
+            group.specs.each spec->
+                IO.println <| "    " + spec.name
