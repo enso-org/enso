@@ -1282,7 +1282,19 @@ export default function AssetsTable(props: AssetsTableProps) {
                                         hidden={hidden}
                                         action={shortcutsModule.KeyboardAction.pasteAll}
                                         doAction={() => {
-                                            doPaste(rootDirectoryId, rootDirectoryId)
+                                            const [firstKey] = innerSelectedKeys
+                                            const selectedNode =
+                                                innerSelectedKeys.size === 1 && firstKey != null
+                                                    ? nodeMapRef.current.get(firstKey)
+                                                    : null
+                                            if (
+                                                selectedNode?.item.type ===
+                                                backendModule.AssetType.directory
+                                            ) {
+                                                doPaste(selectedNode.key, selectedNode.item.id)
+                                            } else {
+                                                doPaste(rootDirectoryId, rootDirectoryId)
+                                            }
                                         }}
                                     />
                                 )}

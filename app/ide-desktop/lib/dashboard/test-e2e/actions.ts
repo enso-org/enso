@@ -1,5 +1,5 @@
 /** @file Various actions, locators, and constants used in end-to-end tests. */
-import type * as test from '@playwright/test'
+import * as test from '@playwright/test'
 
 // =================
 // === Constants ===
@@ -324,6 +324,26 @@ export function locateLabelsList(page: test.Locator | test.Page) {
  * to do anything with the returned values other than comparing them. */
 export function getAssetRowLeftPx(locator: test.Locator) {
     return locator.evaluate(el => el.children[0]?.children[0]?.getBoundingClientRect().left ?? 0)
+}
+
+// ==========================
+// === Keyboard utilities ===
+// ==========================
+
+/** Press a key, replace the text `Mod` with `Meta` (`Cmd`) on macOS, and `Control`
+ * on all other platforms. */
+export async function press(page: test.Page, keyOrShortcut: string) {
+    if (/\bMod\b/.test(keyOrShortcut)) {
+        let userAgent = ''
+        await test.test.step('Detect browser OS', async () => {
+            userAgent = await page.evaluate(() => navigator.userAgent)
+        })
+        // This should be `Meta` (`Cmd`) on macOS, and `Control` on all other systems
+        const ctrlKey = /macOS/.test(userAgent) ? 'Meta' : 'Control'
+        await page.keyboard.press(keyOrShortcut.replace(/\bMod\b/g, ctrlKey))
+    } else {
+        await page.keyboard.press(keyOrShortcut)
+    }
 }
 
 // =============
