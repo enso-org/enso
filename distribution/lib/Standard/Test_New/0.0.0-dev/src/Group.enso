@@ -26,8 +26,3 @@ type Group
         sb.append "]"
         sb.toString
 
-    run self =
-        IO.println <| "Running group " + self.to_text + "..."
-        self.specs.each spec->
-            spec.run
-        IO.println <| "Done running group"

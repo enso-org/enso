@@ -6,8 +6,7 @@ from Standard.Base import all
 type Spec
     Impl (name : Text) (code : Any -> Any)
 
-    to_text self = "Spec '" + self.name + "'"
-
-    run self =
-        IO.println <| "Running spec " + self.to_text + "..."
-        self.code Nothing
+    to_text self =
+        pend = if self.pending.is_nothing then "" else
+            "pending = " + self.pending
+        "Spec '" + self.name + "' " + pend
