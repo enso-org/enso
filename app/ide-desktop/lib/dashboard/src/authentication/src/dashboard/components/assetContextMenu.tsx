@@ -343,12 +343,16 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                         })
                     }}
                 />
-                {asset.type === backendModule.AssetType.directory && hasPasteData && (
+                {hasPasteData && (
                     <MenuEntry
                         hidden={hidden}
                         action={shortcuts.KeyboardAction.paste}
                         doAction={() => {
-                            doPaste(item.key, asset.id)
+                            const [directoryKey, directoryId] =
+                                item.item.type === backendModule.AssetType.directory
+                                    ? [item.key, item.item.id]
+                                    : [item.directoryKey, item.directoryId]
+                            doPaste(directoryKey, directoryId)
                         }}
                     />
                 )}
