@@ -29,7 +29,7 @@ type File_By_Line
        - limit: The number of lines to read (defaults to all lines).
     new : File->Encoding->File_By_Line
     new file:File encoding:Encoding=Encoding.utf_8 =
-        File_By_Line.Reader file encoding Nothing Nothing create_row_map
+        File_By_Line.Reader file encoding Nothing Nothing (create_row_map 0)
 
     ## PRIVATE
        Creates a new File_By_Line object.
@@ -75,16 +75,16 @@ type File_By_Line
        - lines: The number of lines to skip.
     skip : Integer -> File_By_Line
     skip self lines:Integer =
-        lazy_scanner =
-            self.get lines
-            position = self.row_map.get lines
+        lazy_scanner parent line =
+            parent.get line
+            position = parent.row_map.get line
             row_map = LongArrayList.new
             row_map.add position
             log "Created Skipped Parent"
             row_map
 
         new_limit = if self.limit_lines.is_nothing then Nothing else (self.limit_lines - lines).max 0
-        File_By_Line.Reader self.file self.encoding new_limit self.filter_func lazy_scanner
+        File_By_Line.Reader self.file self.encoding new_limit self.filter_func (lazy_scanner self lines)
 
     ## Limits a file to a specific number of lines.
 
@@ -114,10 +114,10 @@ type File_By_Line
 
 ## PRIVATE
    Creates a default row_map
-create_row_map : LongArrayList
-create_row_map =
+create_row_map : Integer -> LongArrayList
+create_row_map position:Integer =
     row_map = LongArrayList.new
-    row_map.add 0
+    row_map.add position
     log "Created row map"
     row_map
 
@@ -126,42 +126,36 @@ create_row_map =
 read_line : File_By_Line->Integer->Any->Any
 read_line file:File_By_Line line:Integer=0 ~default=Nothing = File_Error.handle_java_exceptions file.file <|
     raf = RandomAccessFile.new file.file.path "r"
-    skip_to_line raf file.row_map line
+    scan_file raf file.row_map line line file.encoding file.filter_func Nothing
     result = if raf.getFilePointer >= raf.length then default else Text.from_bytes (file_read_line raf) file.encoding
     raf.close
     result
-
 
 ## PRIVATE
    Performs an action on each line in the file.
 for_each_lines : File_By_Line->Integer->Any->Any
 for_each_lines file:File_By_Line start_at:Integer end_at:Integer action = File_Error.handle_java_exceptions file.file <|
     raf = RandomAccessFile.new file.file.path "r"
-    scan_file raf file.row_map start_at end_at action file.encoding
+    scan_file raf file.row_map start_at end_at file.encoding file.filter_func action
     raf.close
 
 ## PRIVATE
-   Scans the file forward to the required line.
-skip_to_line raf:RandomAccessFile row_map:LongArrayList line:Integer =
-    scan_file raf row_map line line Encoding.utf_8 Nothing
-
-## PRIVATE
    Scanner for reading a file line by line and performing an action
-scan_file raf:RandomAccessFile row_map:LongArrayList start_at:Integer end_at:Integer encoding:Encoding step_action =
+scan_file raf:RandomAccessFile row_map:LongArrayList start_at:Integer end_at:Integer encoding:Encoding filter step_action =
     ## First if we haven't read the found the start_at line we need to find that.
-    file_scan_lines raf row_map start_at
+    file_scan_lines raf row_map start_at start_at encoding filter
 
     ## Now we can read the lines we need.
     if raf.getFilePointer >= raf.length then Error.throw (Index_Out_Of_Bounds.Error start_at -1) else
-        file_scan_lines raf row_map start_at end_at Nothing step_action encoding
+        file_scan_lines raf row_map start_at end_at encoding filter step_action
 
 ## PRIVATE
    Reads a line line by line.
    Leaves the file pointer at the start of the end_at line.
-file_scan_lines : RandomAccessFile -> LongArrayList -> Integer -> Integer -> ((Text -> Boolean) | Nothing) -> ((Text -> Any) | Nothing) -> Encoding -> Any
-file_scan_lines raf:RandomAccessFile row_map:LongArrayList start_at:Integer end_at:(Integer|Nothing)=start_at filter=Nothing action=Nothing encoding:Encoding=Encoding.utf_8 =
+file_scan_lines : RandomAccessFile -> LongArrayList -> Integer -> Integer | Nothing -> Encoding -> ((Text -> Boolean) | Nothing) -> ((Text -> Any) | Nothing) -> Any
+file_scan_lines raf:RandomAccessFile row_map:LongArrayList start_at:Integer end_at:(Integer|Nothing) encoding:Encoding filter action=Nothing =
     start_position = if start_at < row_map.getSize then row_map.get start_at else
-         file_scan_lines raf row_map row_map.getSize-1 start_at
+         file_scan_lines raf row_map row_map.getSize-1 start_at encoding filter
          row_map.get start_at
 
     file_length = raf.length
@@ -178,8 +172,9 @@ file_scan_lines raf:RandomAccessFile row_map:LongArrayList start_at:Integer end_
                     action (Text.from_bytes (file_read_line raf) encoding (end_position-raf.getFilePointer))
                     raf.seek end_position
                 False ->
-                    bytes = file_read_line raf action.is_nothing.not
-                    text = if filter.is_nothing && action.is_nothing then Nothing else Text.from_bytes bytes encoding
+                    collect = filter.is_nothing.not || action.is_nothing.not
+                    bytes = file_read_line raf collect
+                    text = if collect then Nothing else Text.from_bytes bytes encoding
                     result = filter.is_nothing || (filter text)
                     if result.not then False else
                         row_map.add raf.getFilePointer
@@ -187,7 +182,7 @@ file_scan_lines raf:RandomAccessFile row_map:LongArrayList start_at:Integer end_
                         Nothing
             if end_at.is_nothing || i < end_at then @Tail_Call do_step (i+(if valid.is_nothing then 1 else 0)) else Nothing
 
-    do_step start_at
+    if start_at < end_at then do_step start_at
 
 ## PRIVATE
    Reads a single line from a file as raw bytes
