@@ -4,8 +4,6 @@ import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLogger;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -175,8 +173,10 @@ public abstract class Cache<T, M extends Cache.Metadata> {
    * @param blobDigest digest of serialized data
    * @param entry data to serialize
    * @return raw bytes representing serialized metadata
+   * @throws java.io.IOException in case of I/O error
    */
-  protected abstract byte[] metadata(String sourceDigest, String blobDigest, T entry);
+  protected abstract byte[] metadata(String sourceDigest, String blobDigest, T entry)
+      throws IOException;
 
   /**
    * Loads cache for this data, if possible.
@@ -333,9 +333,12 @@ public abstract class Cache<T, M extends Cache.Metadata> {
    * De-serializes raw bytes to data's metadata.
    *
    * @param bytes raw bytes representing metadata
+   * @param logger logger to use
    * @return non-empty metadata, if de-serialization was successful
+   * @throws IOException in case of I/O error
    */
-  protected abstract Optional<M> metadataFromBytes(byte[] bytes, TruffleLogger logger);
+  protected abstract Optional<M> metadataFromBytes(byte[] bytes, TruffleLogger logger)
+      throws IOException;
 
   /**
    * Compute digest of cache's data
@@ -508,8 +511,6 @@ public abstract class Cache<T, M extends Cache.Metadata> {
               });
     }
   }
-
-  protected static final Charset metadataCharset = StandardCharsets.UTF_8;
 
   /**
    * Roots encapsulates two possible locations where caches can be stored.
