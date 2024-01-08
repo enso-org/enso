@@ -9,7 +9,7 @@ import project.Vector.Utils
 
 polyglot java import java.util.ArrayList
 
-options = Bench.options . set_warmup (Bench.phase_conf 5 5) . set_measure (Bench.phase_conf 5 5)
+options = Bench.options . set_warmup (Bench.phase_conf 3 3) . set_measure (Bench.phase_conf 3 3)
 
 vector_size = 100000
 
