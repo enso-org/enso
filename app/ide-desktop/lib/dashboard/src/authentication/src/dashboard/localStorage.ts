@@ -1,7 +1,7 @@
 /** @file A LocalStorage data manager. */
 import * as common from 'enso-common'
 
-import * as array from './array'
+import * as array from '../array'
 import * as backend from './backend'
 import * as column from './column'
 
