@@ -9,6 +9,8 @@ import project.Vector.Utils
 
 polyglot java import java.util.ArrayList
 
+options = Bench.options . set_warmup (Bench.phase_conf 1 3) . set_measure (Bench.phase_conf 1 3)
+
 vector_size = 100000
 
 type Lazy
@@ -16,8 +18,6 @@ type Lazy
 
 type My_Error
     Error msg
-
-options = Bench.options . set_warmup (Bench.phase_conf 1 3) . set_measure (Bench.phase_conf 1 3)
 
 type Data
     Value ~no_warnings ~one_warning ~ten_percent_warnings ~all_warnings
