@@ -1,5 +1,10 @@
 package org.enso.table.data.column.operation.cast;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.function.Function;
 import org.enso.polyglot.common_utils.Core_Date_Utils;
 import org.enso.table.data.column.builder.StringBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
@@ -13,12 +18,6 @@ import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.graalvm.polyglot.Context;
-
-import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.function.Function;
 
 public class ToTextStorageConverter implements StorageConverter<String> {
   private final TextType targetType;
@@ -51,11 +50,13 @@ public class ToTextStorageConverter implements StorageConverter<String> {
     } else if (storage.getType() instanceof AnyObjectType) {
       return castFromMixed(storage, problemAggregator);
     } else {
-      throw new IllegalStateException("No known strategy for casting storage " + storage + " to Text.");
+      throw new IllegalStateException(
+          "No known strategy for casting storage " + storage + " to Text.");
     }
   }
 
-  public Storage<String> castFromMixed(Storage<?> mixedStorage, CastProblemAggregator problemAggregator) {
+  public Storage<String> castFromMixed(
+      Storage<?> mixedStorage, CastProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     StringBuilder builder = new StringBuilder(mixedStorage.size(), targetType);
     for (int i = 0; i < mixedStorage.size(); i++) {
@@ -79,7 +80,6 @@ public class ToTextStorageConverter implements StorageConverter<String> {
   private final DateTimeFormatter timeFormatter = Core_Date_Utils.defaultLocalTimeFormatter;
   private final DateTimeFormatter dateTimeFormatter = Core_Date_Utils.defaultZonedDateTimeFormatter;
 
-
   private String convertDate(LocalDate date) {
     return date.format(dateFormatter);
   }
@@ -96,7 +96,8 @@ public class ToTextStorageConverter implements StorageConverter<String> {
     return b ? "True" : "False";
   }
 
-  private Storage<String> castLongStorage(AbstractLongStorage longStorage, CastProblemAggregator problemAggregator) {
+  private Storage<String> castLongStorage(
+      AbstractLongStorage longStorage, CastProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     StringBuilder builder = new StringBuilder(longStorage.size(), targetType);
     for (int i = 0; i < longStorage.size(); i++) {
@@ -113,7 +114,8 @@ public class ToTextStorageConverter implements StorageConverter<String> {
     return builder.seal();
   }
 
-  private Storage<String> castBoolStorage(BoolStorage boolStorage, CastProblemAggregator problemAggregator) {
+  private Storage<String> castBoolStorage(
+      BoolStorage boolStorage, CastProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     StringBuilder builder = new StringBuilder(boolStorage.size(), targetType);
     for (int i = 0; i < boolStorage.size(); i++) {
@@ -130,7 +132,8 @@ public class ToTextStorageConverter implements StorageConverter<String> {
     return builder.seal();
   }
 
-  private Storage<String> castDoubleStorage(DoubleStorage doubleStorage, CastProblemAggregator problemAggregator) {
+  private Storage<String> castDoubleStorage(
+      DoubleStorage doubleStorage, CastProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     StringBuilder builder = new StringBuilder(doubleStorage.size(), targetType);
     for (int i = 0; i < doubleStorage.size(); i++) {
@@ -147,8 +150,8 @@ public class ToTextStorageConverter implements StorageConverter<String> {
     return builder.seal();
   }
 
-  private <T> Storage<String> castDateTimeStorage(Storage<T> storage, Function<T, String> converter,
-                                                  CastProblemAggregator problemAggregator) {
+  private <T> Storage<String> castDateTimeStorage(
+      Storage<T> storage, Function<T, String> converter, CastProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     StringBuilder builder = new StringBuilder(storage.size(), targetType);
     for (int i = 0; i < storage.size(); i++) {
@@ -170,7 +173,8 @@ public class ToTextStorageConverter implements StorageConverter<String> {
     String adapted = adaptWithoutWarning(value);
 
     // If the value was truncated, report the data loss.
-    // (We can use the codepoint lengths here because truncation on grapheme length will still change the codepoint
+    // (We can use the codepoint lengths here because truncation on grapheme length will still
+    // change the codepoint
     // length too, and this check is simply faster.)
     if (adapted.length() < value.length()) {
       problemAggregator.reportTextTooLong(value);
@@ -183,7 +187,8 @@ public class ToTextStorageConverter implements StorageConverter<String> {
     return targetType.adapt(value);
   }
 
-  private Storage<String> adaptStringStorage(StringStorage stringStorage, CastProblemAggregator problemAggregator) {
+  private Storage<String> adaptStringStorage(
+      StringStorage stringStorage, CastProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     StringBuilder builder = new StringBuilder(stringStorage.size(), targetType);
     for (int i = 0; i < stringStorage.size(); i++) {
@@ -233,8 +238,9 @@ public class ToTextStorageConverter implements StorageConverter<String> {
 
   /**
    * Creates a new storage re-using the existing array.
-   * <p>
-   * This can only be done if the values do not need any adaptations, checked by {@code canAvoidCopying}.
+   *
+   * <p>This can only be done if the values do not need any adaptations, checked by {@code
+   * canAvoidCopying}.
    */
   private Storage<String> retypeStringStorage(StringStorage stringStorage) {
     return new StringStorage(stringStorage.getData(), stringStorage.size(), targetType);

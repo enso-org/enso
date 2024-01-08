@@ -1,15 +1,5 @@
 package org.enso.table.excel;
 
-import org.apache.poi.UnsupportedFileFormatException;
-import org.apache.poi.hssf.usermodel.HSSFWorkbook;
-import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
-import org.apache.poi.openxml4j.exceptions.OpenXML4JRuntimeException;
-import org.apache.poi.openxml4j.opc.OPCPackage;
-import org.apache.poi.openxml4j.opc.PackageAccess;
-import org.apache.poi.poifs.filesystem.POIFSFileSystem;
-import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -21,18 +11,28 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.function.Function;
+import org.apache.poi.UnsupportedFileFormatException;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
+import org.apache.poi.openxml4j.exceptions.OpenXML4JRuntimeException;
+import org.apache.poi.openxml4j.opc.OPCPackage;
+import org.apache.poi.openxml4j.opc.PackageAccess;
+import org.apache.poi.poifs.filesystem.POIFSFileSystem;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 public class ExcelConnectionPool {
   public static final ExcelConnectionPool INSTANCE = new ExcelConnectionPool();
 
-  private ExcelConnectionPool() {
-  }
+  private ExcelConnectionPool() {}
 
-  public ReadOnlyExcelConnection openReadOnlyConnection(File file, ExcelFileFormat format) throws IOException {
+  public ReadOnlyExcelConnection openReadOnlyConnection(File file, ExcelFileFormat format)
+      throws IOException {
     synchronized (this) {
       if (isCurrentlyWriting) {
-        throw new IllegalStateException("Cannot open a read-only Excel connection while an Excel file is being " +
-            "written to. This is a bug in the Table library.");
+        throw new IllegalStateException(
+            "Cannot open a read-only Excel connection while an Excel file is being "
+                + "written to. This is a bug in the Table library.");
       }
 
       if (!file.exists()) {
@@ -44,8 +44,15 @@ public class ExcelConnectionPool {
       if (existingRecord != null) {
         // Adapt the existing record
         if (existingRecord.format != format) {
-          throw new ExcelFileFormatMismatchException("Requesting to open " + file + " as " + format + ", but it was " +
-              "already opened as " + existingRecord.format + ".");
+          throw new ExcelFileFormatMismatchException(
+              "Requesting to open "
+                  + file
+                  + " as "
+                  + format
+                  + ", but it was "
+                  + "already opened as "
+                  + existingRecord.format
+                  + ".");
         }
 
         existingRecord.refCount++;
@@ -74,8 +81,10 @@ public class ExcelConnectionPool {
     public <R> R writeWorkbook(File file, Function<Workbook, R> writeAction) throws IOException {
       boolean preExistingFile = file.exists() && Files.size(file.toPath()) > 0;
 
-      try (Workbook workbook = preExistingFile ? ExcelConnectionPool.openWorkbook(file, format, true) :
-          createEmptyWorkbook(format)) {
+      try (Workbook workbook =
+          preExistingFile
+              ? ExcelConnectionPool.openWorkbook(file, format, true)
+              : createEmptyWorkbook(format)) {
         R result = writeAction.apply(workbook);
 
         if (preExistingFile) {
@@ -91,7 +100,8 @@ public class ExcelConnectionPool {
                 // Ignore: Workaround for bug https://bz.apache.org/bugzilla/show_bug.cgi?id=59252
               }
             }
-            default -> throw new IllegalStateException("Unknown workbook type: " + workbook.getClass());
+            default -> throw new IllegalStateException(
+                "Unknown workbook type: " + workbook.getClass());
           }
         } else {
           try (OutputStream fileOut = Files.newOutputStream(file.toPath())) {
@@ -107,23 +117,25 @@ public class ExcelConnectionPool {
   }
 
   /**
-   * Executes a write action, ensuring that any other Excel connections are closed during the action, so that it can
-   * modify the file. Any existing connections are re-opened after the operation finishes (regardless of its success or
-   * error).
-   * <p>
-   * The action gets a {@link WriteHelper} object that can be used to open the workbook for reading or writing. The
-   * action must take care to close that workbook before returning.
-   * <p>
-   * Additional files that should be closed during the write action can be specified in the {@code accompanyingFiles}
-   * argument. These may be related temporary files that are written during the write operation and also need to get
-   * 'unlocked' for the time of write.
+   * Executes a write action, ensuring that any other Excel connections are closed during the
+   * action, so that it can modify the file. Any existing connections are re-opened after the
+   * operation finishes (regardless of its success or error).
+   *
+   * <p>The action gets a {@link WriteHelper} object that can be used to open the workbook for
+   * reading or writing. The action must take care to close that workbook before returning.
+   *
+   * <p>Additional files that should be closed during the write action can be specified in the
+   * {@code accompanyingFiles} argument. These may be related temporary files that are written
+   * during the write operation and also need to get 'unlocked' for the time of write.
    */
-  public <R> R lockForWriting(File file, ExcelFileFormat format, File[] accompanyingFiles,
-                              Function<WriteHelper, R> action) throws IOException {
+  public <R> R lockForWriting(
+      File file, ExcelFileFormat format, File[] accompanyingFiles, Function<WriteHelper, R> action)
+      throws IOException {
     synchronized (this) {
       if (isCurrentlyWriting) {
-        throw new IllegalStateException("Another Excel write is in progress on the same thread. This is a bug in the " +
-            "Table library.");
+        throw new IllegalStateException(
+            "Another Excel write is in progress on the same thread. This is a bug in the "
+                + "Table library.");
       }
 
       isCurrentlyWriting = true;
@@ -132,7 +144,8 @@ public class ExcelConnectionPool {
         ArrayList<ConnectionRecord> recordsToReopen = new ArrayList<>(1 + accompanyingFiles.length);
 
         try {
-          // Close the existing connection, if any - to avoid the write operation failing due to the file being locked.
+          // Close the existing connection, if any - to avoid the write operation failing due to the
+          // file being locked.
           ConnectionRecord existingRecord = records.get(key);
           if (existingRecord != null) {
             existingRecord.close();
@@ -250,13 +263,15 @@ public class ExcelConnectionPool {
     }
   }
 
-  private static Workbook openWorkbook(File file, ExcelFileFormat format, boolean writeAccess) throws IOException {
+  private static Workbook openWorkbook(File file, ExcelFileFormat format, boolean writeAccess)
+      throws IOException {
     return switch (format) {
       case XLS -> {
         boolean readOnly = !writeAccess;
         POIFSFileSystem fs = new POIFSFileSystem(file, readOnly);
         try {
-          // If the initialization succeeds, the POIFSFileSystem will be closed by the HSSFWorkbook::close.
+          // If the initialization succeeds, the POIFSFileSystem will be closed by the
+          // HSSFWorkbook::close.
           yield new HSSFWorkbook(fs);
         } catch (Exception e) {
           fs.close();
@@ -274,7 +289,9 @@ public class ExcelConnectionPool {
             throw e;
           }
         } catch (InvalidFormatException e) {
-          throw new IOException("Invalid format encountered when opening the file " + file + " as " + format + ".", e);
+          throw new IOException(
+              "Invalid format encountered when opening the file " + file + " as " + format + ".",
+              e);
         }
       }
     };

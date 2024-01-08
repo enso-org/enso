@@ -13,12 +13,16 @@ public class Annotation {
     this.expression = expression;
   }
 
-  /** @return the annotation name. */
+  /**
+   * @return the annotation name.
+   */
   public String getName() {
     return name;
   }
 
-  /** @return the annotation expression. */
+  /**
+   * @return the annotation expression.
+   */
   public RootNode getExpression() {
     return expression;
   }

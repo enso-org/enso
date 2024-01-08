@@ -10,9 +10,4 @@ import org.enso.text.editing.model.TextEdit;
  * @param edit the editor change
  * @param newIr the new literal
  */
-public record SimpleUpdate(
-  Literal ir,
-  TextEdit edit,
-  Literal newIr
-) {
-}
+public record SimpleUpdate(Literal ir, TextEdit edit, Literal newIr) {}

@@ -7,13 +7,9 @@ import diff from 'fast-diff'
 import * as json from 'lib0/json'
 import * as Y from 'yjs'
 import { TextEdit } from '../shared/languageServerTypes'
-import {
-  ModuleDoc,
-  decodeRange,
-  type NodeMetadata,
-  type VisualizationMetadata,
-} from '../shared/yjsModel'
+import { IdMap, ModuleDoc, type NodeMetadata, type VisualizationMetadata } from '../shared/yjsModel'
 import * as fileFormat from './fileFormat'
+import { serializeIdMap } from './serialization'
 
 interface AppliedUpdates {
   edits: TextEdit[]
@@ -27,18 +23,36 @@ export function applyDocumentUpdates(
   doc: ModuleDoc,
   syncedMeta: fileFormat.Metadata,
   syncedContent: string,
-  contentDelta: Y.YTextEvent['delta'] | null,
-  idMapKeys: Y.YMapEvent<Uint8Array>['keys'] | null,
+  dataKeys: Y.YMapEvent<Uint8Array>['keys'] | null,
   metadataKeys: Y.YMapEvent<NodeMetadata>['keys'] | null,
 ): AppliedUpdates {
   const synced = preParseContent(syncedContent)
+
+  let codeUpdated = false
+  let idMapUpdated = false
+  if (dataKeys != null) {
+    for (const [key, op] of dataKeys) {
+      switch (op.action) {
+        case 'add':
+        case 'update': {
+          if (key === 'code') {
+            codeUpdated = true
+          } else if (key === 'idmap') {
+            idMapUpdated = true
+          }
+          break
+        }
+      }
+    }
+  }
+
   let newContent = ''
 
   const allEdits: TextEdit[] = []
-  if (contentDelta && contentDelta.length > 0) {
-    const { code, edits } = convertDeltaToTextEdits(synced.code, contentDelta)
-    newContent += code
-    allEdits.push(...edits)
+  if (codeUpdated) {
+    const text = doc.getCode()
+    allEdits.push(...applyDiffAsTextEdits(0, synced.code, text))
+    newContent += text
   } else {
     newContent += synced.code
   }
@@ -46,8 +60,8 @@ export function applyDocumentUpdates(
   const metaStartLine = (newContent.match(/\n/g) ?? []).length
   let metaContent = META_TAG + '\n'
 
-  if (idMapKeys != null || synced.idMapJson == null || (contentDelta && contentDelta.length > 0)) {
-    const idMapJson = json.stringify(idMapToArray(doc.idMap))
+  if (idMapUpdated || synced.idMapJson == null) {
+    const idMapJson = serializeIdMap(doc.getIdMap())
     metaContent += idMapJson + '\n'
   } else {
     metaContent += (synced.idMapJson ?? '[]') + '\n'
@@ -147,74 +161,6 @@ export function translateVisualizationFromFile(
   }
 }
 
-export function convertDeltaToTextEdits(
-  prevText: string,
-  contentDelta: Y.YTextEvent['delta'],
-): { code: string; edits: TextEdit[] } {
-  const edits = []
-  let index = 0
-  let newIndex = 0
-  let lineNum = 0
-  let lineStartIdx = 0
-  let code = ''
-  for (const op of contentDelta) {
-    if (op.insert != null && typeof op.insert === 'string') {
-      const pos = {
-        character: newIndex - lineStartIdx,
-        line: lineNum,
-      }
-      // if the last edit was a delete on the same position, we can merge the insert into it
-      const lastEdit = edits[edits.length - 1]
-      if (
-        lastEdit &&
-        lastEdit.text.length === 0 &&
-        lastEdit.range.start.line === pos.line &&
-        lastEdit.range.start.character === pos.character
-      ) {
-        lastEdit.text = op.insert
-      } else {
-        edits.push({ range: { start: pos, end: pos }, text: op.insert })
-      }
-      const numLineBreaks = (op.insert.match(/\n/g) ?? []).length
-      if (numLineBreaks > 0) {
-        lineNum += numLineBreaks
-        lineStartIdx = newIndex + op.insert.lastIndexOf('\n') + 1
-      }
-      code += op.insert
-      newIndex += op.insert.length
-    } else if (op.delete != null) {
-      const start = {
-        character: newIndex - lineStartIdx,
-        line: lineNum,
-      }
-      const deleted = prevText.slice(index, index + op.delete)
-      const numLineBreaks = (deleted.match(/\n/g) ?? []).length
-      const character =
-        numLineBreaks > 0
-          ? deleted.length - (deleted.lastIndexOf('\n') + 1)
-          : newIndex - lineStartIdx + op.delete
-      const end = {
-        character,
-        line: lineNum + numLineBreaks,
-      }
-      edits.push({ range: { start, end }, text: '' })
-      index += op.delete
-    } else if (op.retain != null) {
-      const retained = prevText.slice(index, index + op.retain)
-      const numLineBreaks = (retained.match(/\n/g) ?? []).length
-      lineNum += numLineBreaks
-      if (numLineBreaks > 0) {
-        lineStartIdx = newIndex + retained.lastIndexOf('\n') + 1
-      }
-      code += retained
-      index += op.retain
-      newIndex += op.retain
-    }
-  }
-  code += prevText.slice(index)
-  return { code, edits }
-}
-
 interface PreParsedContent {
   code: string
   idMapJson: string | null
@@ -236,32 +182,6 @@ export function preParseContent(content: string): PreParsedContent {
   const idMapJson = metaLines[0] ?? null
   const metadataJson = metaLines[1] ?? null
   return { code, idMapJson, metadataJson }
-}
-
-function idMapToArray(map: Y.Map<Uint8Array>): fileFormat.IdMapEntry[] {
-  const entries: fileFormat.IdMapEntry[] = []
-  const doc = map.doc!
-  map.forEach((rangeBuffer, id) => {
-    const decoded = decodeRange(rangeBuffer)
-    const index = Y.createAbsolutePositionFromRelativePosition(decoded[0], doc)?.index
-    const endIndex = Y.createAbsolutePositionFromRelativePosition(decoded[1], doc)?.index
-    if (index == null || endIndex == null) return
-    const size = endIndex - index
-    entries.push([{ index: { value: index }, size: { value: size } }, id])
-  })
-  entries.sort(idMapCmp)
-  return entries
-}
-
-function idMapCmp(a: fileFormat.IdMapEntry, b: fileFormat.IdMapEntry) {
-  const val1 = a[0]?.index?.value ?? 0
-  const val2 = b[0]?.index?.value ?? 0
-  if (val1 === val2) {
-    const size1 = a[0]?.size.value ?? 0
-    const size2 = b[0]?.size.value ?? 0
-    return size1 - size2
-  }
-  return val1 - val2
 }
 
 export function applyDiffAsTextEdits(

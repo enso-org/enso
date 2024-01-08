@@ -255,6 +255,7 @@ type Column
        - other: The value to compare `self` against. If `other` is a column, the
          comparison is performed pairwise between corresponding elements of
          `self` and `other`.
+       - locale: The locale to use for the case-insensitive comparison.
 
        Returns a column with results of comparing this column's elements against
        `other`.
@@ -952,7 +953,7 @@ type Column
        this column contains a `Nothing`.
     is_nothing : Column
     is_nothing self =
-        new_name = self.naming_helper.concat [self.naming_helper.to_expression_text self, "is null"]
+        new_name = self.naming_helper.concat [self.naming_helper.to_expression_text self, "is Nothing"]
         self.make_unary_op "IS_NULL" new_name
 
     ## GROUP Standard.Base.Math
@@ -1173,6 +1174,26 @@ type Column
     ends_with self other case_sensitivity=Case_Sensitivity.Default =
         new_name = self.naming_helper.function_name "ends_with" [self, other]
         make_text_case_op self "ends_with" other case_sensitivity new_name
+
+    ## GROUP Standard.Base.Text
+       ICON preparation
+       Calculates the text length for each element of the column.
+
+       In the Database backends, the default text length method of the
+       particular database is used.
+
+       In the in-memory backend, this will give you the grapheme length of the string.
+
+       > Example
+             import Standard.Examples
+
+             example_text_length =
+                Examples.text_column_1.text_length
+    text_length : Column
+    text_length self =
+        Value_Type.expect_text self <|
+            new_name = self.naming_helper.function_name "text_length" [self]
+            self.make_unary_op "LENGTH" new_name
 
     ## GROUP Standard.Base.Logical
        Checks for each element of the column if it contains `other`.

@@ -166,7 +166,7 @@ case object ComplexType extends IRPass {
     ): List[Definition] = {
       var unusedSig: Option[Type.Ascription] = None
       val sig = lastSignature match {
-        case Some(Type.Ascription(typed, _, _, _, _)) =>
+        case Some(Type.Ascription(typed, _, _, _, _, _)) =>
           typed match {
             case literal: Name.Literal =>
               if (name.name == literal.name) {

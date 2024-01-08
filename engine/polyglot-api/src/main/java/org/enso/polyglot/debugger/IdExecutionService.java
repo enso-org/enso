@@ -11,13 +11,19 @@ public interface IdExecutionService {
 
   public abstract class Info {
 
-    /** @return UUID of the node, never {@code null}. */
+    /**
+     * @return UUID of the node, never {@code null}.
+     */
     public abstract UUID getId();
 
-    /** @return associated result or {@code null} if there is no associated result. */
+    /**
+     * @return associated result or {@code null} if there is no associated result.
+     */
     public abstract Object getResult();
 
-    /** @return {@code true} when the result is panic, {@code false} otherwise. */
+    /**
+     * @return {@code true} when the result is panic, {@code false} otherwise.
+     */
     public abstract boolean isPanic();
 
     /**

@@ -115,7 +115,7 @@ case object SuspendedArguments extends IRPass {
         method.body match {
           case lam @ Function.Lambda(args, body, _, _, _, _) =>
             method.getMetadata(TypeSignatures) match {
-              case Some(Signature(signature)) =>
+              case Some(Signature(signature, _)) =>
                 val newArgs = computeSuspensions(args.drop(1), signature)
                 if (newArgs.head.suspended) {
                   errors.Conversion(
@@ -163,7 +163,7 @@ case object SuspendedArguments extends IRPass {
         body match {
           case lam @ Function.Lambda(args, lamBody, _, _, _, _) =>
             explicit.getMetadata(TypeSignatures) match {
-              case Some(Signature(signature)) =>
+              case Some(Signature(signature, _)) =>
                 val newArgs = computeSuspensions(
                   args.drop(1),
                   signature
@@ -214,7 +214,7 @@ case object SuspendedArguments extends IRPass {
     expression.transformExpressions {
       case bind @ Expression.Binding(_, expr, _, _, _) =>
         val newExpr = bind.getMetadata(TypeSignatures) match {
-          case Some(Signature(signature)) =>
+          case Some(Signature(signature, _)) =>
             expr match {
               case lam @ Function.Lambda(args, body, _, _, _, _) =>
                 lam.copy(
@@ -229,7 +229,7 @@ case object SuspendedArguments extends IRPass {
         bind.copy(expression = newExpr)
       case lam @ Function.Lambda(args, body, _, _, _, _) =>
         lam.getMetadata(TypeSignatures) match {
-          case Some(Signature(signature)) =>
+          case Some(Signature(signature, _)) =>
             lam.copy(
               arguments = computeSuspensions(args, signature),
               body      = resolveExpression(body)

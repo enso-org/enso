@@ -17,6 +17,7 @@ import * as modalProvider from '../../providers/modal'
 import * as uniqueString from '../../uniqueString'
 
 import * as app from '../../components/app'
+import type * as assetSearchBar from './assetSearchBar'
 import type * as assetSettingsPanel from './assetSettingsPanel'
 import * as pageSwitcher from './pageSwitcher'
 import type * as spinner from './spinner'
@@ -44,6 +45,9 @@ export interface DriveProps {
     dispatchAssetEvent: (directoryEvent: assetEventModule.AssetEvent) => void
     query: assetQuery.AssetQuery
     setQuery: React.Dispatch<React.SetStateAction<assetQuery.AssetQuery>>
+    labels: backendModule.Label[]
+    setLabels: React.Dispatch<React.SetStateAction<backendModule.Label[]>>
+    setSuggestions: (suggestions: assetSearchBar.Suggestion[]) => void
     projectStartupInfo: backendModule.ProjectStartupInfo | null
     setAssetSettingsPanelProps: React.Dispatch<
         React.SetStateAction<assetSettingsPanel.AssetSettingsPanelRequiredProps | null>
@@ -71,6 +75,9 @@ export default function Drive(props: DriveProps) {
         queuedAssetEvents,
         query,
         setQuery,
+        labels,
+        setLabels,
+        setSuggestions,
         projectStartupInfo,
         assetListEvents,
         dispatchAssetListEvent,
@@ -97,7 +104,6 @@ export default function Drive(props: DriveProps) {
             localStorage.get(localStorageModule.LocalStorageKey.driveCategory) ??
             categorySwitcher.Category.home
     )
-    const [labels, setLabels] = React.useState<backendModule.Label[]>([])
     // const [currentLabels, setCurrentLabels] = React.useState<backendModule.LabelName[] | null>(null)
     const [newLabelNames, setNewLabelNames] = React.useState(new Set<backendModule.LabelName>())
     const [deletedLabelNames, setDeletedLabelNames] = React.useState(
@@ -133,7 +139,7 @@ export default function Drive(props: DriveProps) {
                 setLabels(await backend.listTags())
             }
         })()
-    }, [backend, organization?.isEnabled])
+    }, [backend, organization?.isEnabled, /* should never change */ setLabels])
 
     const doUploadFiles = React.useCallback(
         (files: File[]) => {
@@ -204,7 +210,7 @@ export default function Drive(props: DriveProps) {
                     new Set([...labelNames].filter(labelName => labelName !== newLabelName))
             )
         },
-        [backend, /* should never change */ toastAndLog]
+        [backend, /* should never change */ toastAndLog, /* should never change */ setLabels]
     )
 
     const doDeleteLabel = React.useCallback(
@@ -230,6 +236,7 @@ export default function Drive(props: DriveProps) {
             /* should never change */ setQuery,
             /* should never change */ dispatchAssetEvent,
             /* should never change */ toastAndLog,
+            /* should never change */ setLabels,
         ]
     )
 
@@ -266,7 +273,7 @@ export default function Drive(props: DriveProps) {
     return isListingRemoteDirectoryWhileOffline ? (
         <div className={`grow grid place-items-center mx-2 ${hidden ? 'hidden' : ''}`}>
             <div className="flex flex-col gap-4">
-                <div className="text-base text-center">You are not signed in.</div>
+                <div className="text-base text-center">You are not logged in.</div>
                 <button
                     className="text-base text-white bg-help rounded-full self-center leading-170 h-8 py-px w-16"
                     onClick={() => {
@@ -357,6 +364,7 @@ export default function Drive(props: DriveProps) {
                     setQuery={setQuery}
                     category={category}
                     allLabels={allLabels}
+                    setSuggestions={setSuggestions}
                     initialProjectName={initialProjectName}
                     projectStartupInfo={projectStartupInfo}
                     deletedLabelNames={deletedLabelNames}

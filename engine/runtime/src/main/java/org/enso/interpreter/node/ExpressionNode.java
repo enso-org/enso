@@ -5,12 +5,10 @@ import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.frame.Frame;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.GenerateWrapper;
-import com.oracle.truffle.api.instrumentation.GenerateWrapper.OutgoingConverter;
 import com.oracle.truffle.api.instrumentation.InstrumentableNode;
 import com.oracle.truffle.api.instrumentation.ProbeNode;
 import com.oracle.truffle.api.instrumentation.StandardTags;
 import com.oracle.truffle.api.instrumentation.Tag;
-import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.NodeLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
@@ -18,9 +16,7 @@ import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
 import com.oracle.truffle.api.source.SourceSection;
-
 import java.util.UUID;
-
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -52,9 +48,7 @@ public abstract class ExpressionNode extends BaseNode implements InstrumentableN
     return node instanceof ExpressionNodeWrapper;
   }
 
-  /**
-   * Creates a new instance of this node.
-   */
+  /** Creates a new instance of this node. */
   public ExpressionNode() {
     sourceLength = EnsoRootNode.NO_SOURCE;
     sourceStartIndex = EnsoRootNode.NO_SOURCE;
@@ -64,7 +58,7 @@ public abstract class ExpressionNode extends BaseNode implements InstrumentableN
    * Sets the source location of this node.
    *
    * @param sourceStartIndex the source index this node begins at
-   * @param sourceLength     the length of this node's source
+   * @param sourceLength the length of this node's source
    */
   public void setSourceLocation(int sourceStartIndex, int sourceLength) {
     CompilerDirectives.transferToInterpreterAndInvalidate();
@@ -80,7 +74,9 @@ public abstract class ExpressionNode extends BaseNode implements InstrumentableN
   @Override
   public SourceSection getSourceSection() {
     var bounds = getSourceSectionBounds();
-    return bounds == null ? null : EnsoRootNode.findSourceSection(getRootNode(), bounds[0], bounds[1]);
+    return bounds == null
+        ? null
+        : EnsoRootNode.findSourceSection(getRootNode(), bounds[0], bounds[1]);
   }
 
   public int[] getSourceSectionBounds() {
@@ -90,7 +86,7 @@ public abstract class ExpressionNode extends BaseNode implements InstrumentableN
       if (sourceStartIndex == EnsoRootNode.NO_SOURCE && sourceLength == EnsoRootNode.NO_SOURCE) {
         return null;
       } else {
-        return new int[] { sourceStartIndex, sourceLength };
+        return new int[] {sourceStartIndex, sourceLength};
       }
     }
   }
@@ -120,7 +116,7 @@ public abstract class ExpressionNode extends BaseNode implements InstrumentableN
    * @param frame the stack frame for execution
    * @return the {@code long} value obtained by executing the node
    * @throws UnexpectedResultException if the result cannot be represented as a value of the return
-   *                                   type
+   *     type
    */
   public long executeLong(VirtualFrame frame) throws UnexpectedResultException {
     return TypesGen.expectLong(executeGeneric(frame));
@@ -132,7 +128,7 @@ public abstract class ExpressionNode extends BaseNode implements InstrumentableN
    * @param frame the stack frame for execution
    * @return the Atom constructor obtained by executing the node
    * @throws UnexpectedResultException if the result cannot be represented as a value of the return
-   *                                   type
+   *     type
    */
   public AtomConstructor executeAtomConstructor(VirtualFrame frame)
       throws UnexpectedResultException {
@@ -145,7 +141,7 @@ public abstract class ExpressionNode extends BaseNode implements InstrumentableN
    * @param frame the stack frame for execution
    * @return the function obtained by executing the node
    * @throws UnexpectedResultException if the result cannot be represented as a value of the return
-   *                                   type
+   *     type
    */
   public Function executeFunction(VirtualFrame frame) throws UnexpectedResultException {
     return TypesGen.expectFunction(executeGeneric(frame));

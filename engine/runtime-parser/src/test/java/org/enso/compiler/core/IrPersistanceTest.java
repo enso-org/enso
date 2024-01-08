@@ -8,7 +8,6 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
-
 import org.enso.compiler.core.ir.DiagnosticStorage;
 import org.enso.compiler.core.ir.IdentifiedLocation;
 import org.enso.compiler.core.ir.Location;
@@ -19,7 +18,6 @@ import org.enso.persist.Persistance;
 import org.junit.Before;
 import org.junit.Test;
 import org.openide.util.lookup.ServiceProvider;
-
 import scala.Option;
 import scala.Tuple2;
 import scala.collection.immutable.List;
@@ -49,10 +47,38 @@ public class IrPersistanceTest {
   }
 
   @Test
+  public void identifiedLocationWithUUID() throws Exception {
+    var il = new IdentifiedLocation(new Location(5, 19), UUID.randomUUID());
+    var in = serde(IdentifiedLocation.class, il, 33);
+    assertEquals("UUIDs are serialized at the moment", il, in);
+  }
+
+  @Test
   public void identifiedLocationNoUUID() throws Exception {
     var il = new IdentifiedLocation(new Location(5, 19), UUID.randomUUID());
-    var in = serde(IdentifiedLocation.class, il, 32);
-    assertEquals("UUIDs are serialized at the moment", il, in);
+    Function<Object, Object> fn =
+        (obj) ->
+            switch (obj) {
+              case UUID any -> null;
+              default -> obj;
+            };
+    var in = serde(IdentifiedLocation.class, il, 12, fn);
+    var withoutUUID = new IdentifiedLocation(il.location());
+    assertEquals("UUIDs are no longer serialized", withoutUUID, in);
+  }
+
+  @Test
+  public void idHolderNoUUID() throws Exception {
+    var il = new IdHolder(UUID.randomUUID());
+    Function<Object, Object> fn =
+        (obj) ->
+            switch (obj) {
+              case UUID any -> null;
+              default -> obj;
+            };
+    var in = serde(IdHolder.class, il, 1, fn);
+    var withoutUUID = new IdHolder(null);
+    assertEquals("UUIDs are no longer serialized", withoutUUID, in);
   }
 
   @Test
@@ -72,13 +98,15 @@ public class IrPersistanceTest {
   public void scalaImmutableMapIsLazy() throws Exception {
     var s1 = new LazySeq("Hello");
     var s2 = new LazySeq("World");
-    var in = (scala.collection.immutable.Map) scala.collection.immutable.Map$.MODULE$.empty()
-      .$plus(new Tuple2("Hello", s1))
-      .$plus(new Tuple2("World", s2));
+    var in =
+        (scala.collection.immutable.Map)
+            scala.collection.immutable.Map$.MODULE$
+                .empty()
+                .$plus(new Tuple2("Hello", s1))
+                .$plus(new Tuple2("World", s2));
 
     LazySeq.forbidden = true;
-    var out = (scala.collection.immutable.Map)
-      serde(scala.collection.immutable.Map.class, in, 64);
+    var out = (scala.collection.immutable.Map) serde(scala.collection.immutable.Map.class, in, 64);
 
     assertEquals("Two pairs element", 2, out.size());
     assertEquals("Two keys", 2, out.keySet().size());
@@ -124,7 +152,7 @@ public class IrPersistanceTest {
     var idLoc2 = new IdentifiedLocation(new Location(2, 4), UUID.randomUUID());
     var in = join(idLoc2, join(idLoc1, nil()));
 
-    var out = serde(List.class, in, 64);
+    var out = serde(List.class, in, 65);
 
     assertEquals("Two elements", 2, out.size());
     assertEquals("UUIDs are serialized at the moment", idLoc2, out.head());
@@ -250,14 +278,16 @@ public class IrPersistanceTest {
     var plain = Persistance.read(arr, (Function<Object, Object>) null);
     assertEquals("Remains five", 5, plain.get(Service.class).value());
 
-    var multiOnRead = Persistance.read(arr, (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
+    var multiOnRead =
+        Persistance.read(arr, (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
     assertEquals("Multiplied on read", 15, multiOnRead.get(Service.class).value());
   }
 
   @Test
   public void writeReplace() throws Exception {
     var in = new Service(5);
-    var arr = Persistance.write(in, (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
+    var arr =
+        Persistance.write(in, (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
 
     var plain = Persistance.read(arr, (Function<Object, Object>) null);
     assertEquals("Multiplied on write", 15, plain.get(Service.class).value());
@@ -271,14 +301,16 @@ public class IrPersistanceTest {
     var plain = Persistance.read(arr, (Function<Object, Object>) null);
     assertEquals("Remains five", 5, plain.get(ServiceSupply.class).supply().value());
 
-    var multiOnRead = Persistance.read(arr, (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
+    var multiOnRead =
+        Persistance.read(arr, (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
     assertEquals("Multiplied on read", 15, multiOnRead.get(ServiceSupply.class).supply().value());
   }
 
   @Test
   public void writeReplaceInline() throws Exception {
     var in = new ServiceSupply(new Service(5));
-    var arr = Persistance.write(in, (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
+    var arr =
+        Persistance.write(in, (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
 
     var plain = Persistance.read(arr, (Function<Object, Object>) null);
     assertEquals("Multiplied on write", 15, plain.get(ServiceSupply.class).supply().value());
@@ -293,25 +325,33 @@ public class IrPersistanceTest {
     assertEquals("Remains five", 5, (int) plain.get(IntegerSupply.class).supply().get());
     assertEquals("Remains five 2", 5, (int) plain.get(IntegerSupply.class).supply().get());
 
-    var multiOnRead = Persistance.read(arr, (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
-    assertEquals("Multiplied on read", 15, (int) multiOnRead.get(IntegerSupply.class).supply().get());
+    var multiOnRead =
+        Persistance.read(arr, (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
+    assertEquals(
+        "Multiplied on read", 15, (int) multiOnRead.get(IntegerSupply.class).supply().get());
   }
 
   @Test
   public void writeReplaceReference() throws Exception {
     var in = new IntegerSupply(new Service(5));
-    var arr = Persistance.write(in, (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
+    var arr =
+        Persistance.write(in, (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
 
     var plain = Persistance.read(arr, (Function<Object, Object>) null);
     assertEquals("Multiplied on write", 15, (int) plain.get(IntegerSupply.class).supply().get());
   }
 
   private static <T> T serde(Class<T> clazz, T l, int expectedSize) throws IOException {
-    var arr = Persistance.write(l, (Function<Object, Object>) null);
+    return serde(clazz, l, expectedSize, null);
+  }
+
+  private static <T> T serde(Class<T> clazz, T l, int expectedSize, Function<Object, Object> fn)
+      throws IOException {
+    var arr = Persistance.write(l, fn);
     if (expectedSize >= 0) {
       assertEquals(expectedSize, arr.length - 12);
     }
-    var ref = Persistance.read(arr, (Function<Object, Object>) null);
+    var ref = Persistance.read(arr, null);
     return ref.get(clazz);
   }
 
@@ -414,7 +454,7 @@ public class IrPersistanceTest {
     }
   }
 
-  @Persistable(clazz=Service.class, id=432434)
+  @Persistable(clazz = Service.class, id = 432434)
   public record Service(int value) implements Supplier<Integer> {
     @Override
     public Integer get() {
@@ -422,9 +462,12 @@ public class IrPersistanceTest {
     }
   }
 
-  @Persistable(clazz=IntegerSupply.class, id=432435)
+  @Persistable(clazz = IntegerSupply.class, id = 432435)
   public record IntegerSupply(Supplier<Integer> supply) {}
 
-  @Persistable(clazz=ServiceSupply.class, id=432436)
+  @Persistable(clazz = ServiceSupply.class, id = 432436)
   public record ServiceSupply(Service supply) {}
+
+  @Persistable(clazz = IdHolder.class, id = 432876)
+  public record IdHolder(UUID id) {}
 }

@@ -1,7 +1,9 @@
 package org.enso.base.enso_cloud;
 
+import org.enso.base.Environment_Utils;
+
 public class AuthenticationProvider {
-  private static String token;
+  private static String token = null;
 
   public static String setToken(String token) {
     AuthenticationProvider.token = token;
@@ -13,7 +15,7 @@ public class AuthenticationProvider {
   }
 
   public static String getAPIRootURI() {
-    var envUri = System.getenv("ENSO_CLOUD_API_URI");
+    var envUri = Environment_Utils.get_environment_variable("ENSO_CLOUD_API_URI");
     return envUri == null ? "https://7aqkn3tnbc.execute-api.eu-west-1.amazonaws.com/" : envUri;
   }
 

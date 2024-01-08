@@ -1,11 +1,12 @@
 package org.enso.interpreter.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.junit.After;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -21,7 +22,8 @@ public class PolyglotErrorTest extends TestBase {
   public void prepareCtx() throws Exception {
     this.ctx = createDefaultContext();
 
-    var code = """
+    var code =
+        """
     import Standard.Base.Panic.Panic
     import Standard.Base.Data.Text.Text
     import Standard.Base.Error.Error
@@ -104,21 +106,25 @@ public class PolyglotErrorTest extends TestBase {
   public void panic2() {
     var v = panic.execute(2);
     assertTrue("Is string", v.isString());
-    assertEquals("[[Error in method `to_text` of [Cb y]: (Error: (Illegal_State.Error 'B' Nothing))]]", v.asString());
+    assertEquals(
+        "[[Error in method `to_text` of [Cb y]: (Error: (Illegal_State.Error 'B' Nothing))]]",
+        v.asString());
   }
 
   @Test
   public void panic3() {
     var v = panic.execute(3);
     assertTrue("Is string", v.isString());
-    assertEquals("[[Panic in method `to_text` of [Cc z]: (Illegal_State.Error 'C' Nothing)]]", v.asString());
+    assertEquals(
+        "[[Panic in method `to_text` of [Cc z]: (Illegal_State.Error 'C' Nothing)]]", v.asString());
   }
 
   @Test
   public void panic4() {
     var v = panic.execute(4);
     assertTrue("Is string", v.isString());
-    assertEquals("[[Error in method `to_text` of [Cd Nothing]: Expected Text but got 42]]", v.asString());
+    assertEquals(
+        "[[Error in method `to_text` of [Cd Nothing]: Expected Text but got 42]]", v.asString());
   }
 
   @Test
@@ -132,6 +138,7 @@ public class PolyglotErrorTest extends TestBase {
   public void panic6() {
     var v = panic.execute(6);
     assertTrue("Is string", v.isString());
-    assertEquals("[[Error in method `to_text` of [Ce 44]: Expected Text but got 44]]", v.asString());
+    assertEquals(
+        "[[Error in method `to_text` of [Ce 44]: Expected Text but got 44]]", v.asString());
   }
 }

@@ -18,6 +18,7 @@ import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.error.RedefinedConversionException;
 import org.enso.interpreter.runtime.error.RedefinedMethodException;
+import org.enso.interpreter.runtime.util.CachingSupplier;
 
 /** A representation of Enso's per-file top-level scope. */
 public final class ModuleScope implements EnsoObject {
@@ -71,21 +72,28 @@ public final class ModuleScope implements EnsoObject {
     this.exports = exports;
   }
 
-  public void registerType(Type type) {
-    types.put(type.getName(), type);
+  public Type registerType(Type type) {
+    Type current = types.putIfAbsent(type.getName(), type);
+    return current == null ? type : current;
   }
 
-  /** @return the associated type of this module. */
+  /**
+   * @return the associated type of this module.
+   */
   public Type getAssociatedType() {
     return associatedType;
   }
 
-  /** @return the module associated with this scope. */
+  /**
+   * @return the module associated with this scope.
+   */
   public Module getModule() {
     return module;
   }
 
-  /** @return the set of modules imported by this module. */
+  /**
+   * @return the set of modules imported by this module.
+   */
   public Set<ModuleScope> getImports() {
     return imports;
   }
@@ -103,7 +111,7 @@ public final class ModuleScope implements EnsoObject {
 
   private Map<String, Supplier<Function>> getMethodMapFor(Type type) {
     Type tpeKey = type == null ? noTypeKey : type;
-    Map<String, Supplier<Function>> result = methods.get(type);
+    Map<String, Supplier<Function>> result = methods.get(tpeKey);
     if (result == null) {
       return new HashMap<>();
     }
@@ -145,28 +153,6 @@ public final class ModuleScope implements EnsoObject {
       throw new RedefinedMethodException(type.getName(), method);
     } else {
       methodMap.put(method, new CachingSupplier<>(supply));
-    }
-  }
-
-  private static final class CachingSupplier<T> implements Supplier<T> {
-    private final Supplier<T> supply;
-    private T memo;
-
-    CachingSupplier(Supplier<T> supply) {
-      this.supply = supply;
-    }
-
-    CachingSupplier(T memo) {
-      this.supply = null;
-      this.memo = memo;
-    }
-
-    @Override
-    public T get() {
-      if (memo == null) {
-        memo = supply.get();
-      }
-      return memo;
     }
   }
 
@@ -321,7 +307,9 @@ public final class ModuleScope implements EnsoObject {
     return Optional.ofNullable(types.get(name));
   }
 
-  /** @return a method for the given type */
+  /**
+   * @return a method for the given type
+   */
   public Function getMethodForType(Type tpe, String name) {
     Type tpeKey = tpe == null ? noTypeKey : tpe;
     var allTpeMethods = methods.get(tpeKey);
@@ -358,7 +346,9 @@ public final class ModuleScope implements EnsoObject {
     }
   }
 
-  /** @return methods for all registered types */
+  /**
+   * @return methods for all registered types
+   */
   public List<Function> getAllMethods() {
     return methods.values().stream()
         .flatMap(e -> e.values().stream())
@@ -366,14 +356,18 @@ public final class ModuleScope implements EnsoObject {
         .collect(Collectors.toList());
   }
 
-  /** @return the raw conversions held by this module */
+  /**
+   * @return the raw conversions held by this module
+   */
   public List<Function> getConversions() {
     return conversions.values().stream()
         .flatMap(e -> e.values().stream())
         .collect(Collectors.toList());
   }
 
-  /** @return the polyglot symbol imported into this scope. */
+  /**
+   * @return the polyglot symbol imported into this scope.
+   */
   public Object getPolyglotSymbol(String symbolName) {
     return polyglotSymbols.get(symbolName);
   }
@@ -382,7 +376,6 @@ public final class ModuleScope implements EnsoObject {
     imports = new HashSet<>();
     exports = new HashSet<>();
     methods = new HashMap<>();
-    types = new HashMap<>();
     conversions = new HashMap<>();
     polyglotSymbols = new HashMap<>();
   }

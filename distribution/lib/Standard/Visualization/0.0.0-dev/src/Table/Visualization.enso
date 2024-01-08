@@ -65,12 +65,13 @@ make_json_for_vector : Vector -> Integer -> JS_Object
 make_json_for_vector vector max_rows =
     all_rows = ["all_rows_count", vector.length]
     truncated = vector.take max_rows
-
-    matrix = make_json_for_matrix (Vector.new_builder truncated.length) truncated
-    if matrix.is_nothing.not then JS_Object.from_pairs [["type", "Matrix"], all_rows, ["json", matrix], ["column_count", matrix.fold 0 c->v-> if v.is_nothing then c else c.max v.length]] else
-        object_matrix = make_json_for_object_matrix (Vector.new_builder truncated.length) truncated
-        if object_matrix.is_nothing.not then JS_Object.from_pairs [["type", "Object_Matrix"], all_rows, ["json", object_matrix]] else
-            JS_Object.from_pairs [["type", "Vector"], all_rows, ["json", truncated.map make_json_for_value]]
+    some_values = truncated.any (v->v.is_nothing.not)
+    if some_values.not then JS_Object.from_pairs [["type", "Vector"], all_rows, ["json", truncated.map make_json_for_value]] else
+        matrix = make_json_for_matrix (Vector.new_builder truncated.length) truncated
+        if matrix.is_nothing.not then JS_Object.from_pairs [["type", "Matrix"], all_rows, ["json", matrix], ["column_count", matrix.fold 0 c->v-> if v.is_nothing then c else c.max v.length]] else
+            object_matrix = make_json_for_object_matrix (Vector.new_builder truncated.length) truncated
+            if object_matrix.is_nothing.not then JS_Object.from_pairs [["type", "Object_Matrix"], all_rows, ["json", object_matrix]] else
+                JS_Object.from_pairs [["type", "Vector"], all_rows, ["json", truncated.map make_json_for_value]]
 
 ## PRIVATE
    Render Vector of Vector / Array to JSON

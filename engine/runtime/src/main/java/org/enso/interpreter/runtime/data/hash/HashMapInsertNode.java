@@ -1,11 +1,5 @@
 package org.enso.interpreter.runtime.data.hash;
 
-import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
-import org.enso.interpreter.node.expression.builtin.meta.HashCodeNode;
-import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.error.PanicException;
-
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
@@ -16,15 +10,20 @@ import com.oracle.truffle.api.interop.StopIterationException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
+import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
+import org.enso.interpreter.node.expression.builtin.meta.HashCodeNode;
+import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.error.PanicException;
 
 @BuiltinMethod(
     type = "Map",
     name = "insert",
-    description = """
+    description =
+        """
         Returns newly created hash map with the given key value mapping.
         """,
-    autoRegister = false
-)
+    autoRegister = false)
 public abstract class HashMapInsertNode extends Node {
 
   public static HashMapInsertNode build() {
@@ -35,10 +34,11 @@ public abstract class HashMapInsertNode extends Node {
 
   @Specialization
   EnsoHashMap doEnsoHashMap(
-    EnsoHashMap hashMap, Object key, Object value,
-    @Shared("hash") @Cached HashCodeNode hashCodeNode,
-    @Shared("equals") @Cached EqualsNode equalsNode
-  ) {
+      EnsoHashMap hashMap,
+      Object key,
+      Object value,
+      @Shared("hash") @Cached HashCodeNode hashCodeNode,
+      @Shared("equals") @Cached EqualsNode equalsNode) {
     var mapBuilder = hashMap.getMapBuilder(false, hashCodeNode, equalsNode);
     mapBuilder.put(key, value, hashCodeNode, equalsNode);
     var newMap = mapBuilder.build();
@@ -50,7 +50,10 @@ public abstract class HashMapInsertNode extends Node {
    * all the entries of the foreign map. The returned map is {@link EnsoHashMap}.
    */
   @Specialization(guards = "mapInterop.hasHashEntries(foreignMap)", limit = "3")
-  EnsoHashMap doForeign(Object foreignMap, Object keyToInsert, Object valueToInsert,
+  EnsoHashMap doForeign(
+      Object foreignMap,
+      Object keyToInsert,
+      Object valueToInsert,
       @CachedLibrary("foreignMap") InteropLibrary mapInterop,
       @CachedLibrary(limit = "3") InteropLibrary iteratorInterop,
       @Shared("hash") @Cached HashCodeNode hashCodeNode,
@@ -67,7 +70,10 @@ public abstract class HashMapInsertNode extends Node {
       }
     } catch (UnsupportedMessageException | StopIterationException | InvalidArrayIndexException e) {
       CompilerDirectives.transferToInterpreter();
-      var msg = "Polyglot hash map " + foreignMap + " has wrongly specified Interop API (hash entries iterator)";
+      var msg =
+          "Polyglot hash map "
+              + foreignMap
+              + " has wrongly specified Interop API (hash entries iterator)";
       throw new PanicException(Text.create(msg), this);
     }
     mapBuilder = mapBuilder.asModifiable(mapBuilder.generation(), hashCodeNode, equalsNode);

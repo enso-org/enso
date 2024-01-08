@@ -959,6 +959,9 @@ spec =
             read_table.at 0 . at 0 . should_equal "X"
             read_table.at 0 . at 1 . should_equal (v.at 0)
 
+            workbook.close
+            big_file.delete_if_exists . should_succeed
+
         Test.specify "should be able to write and read a big XLS file (>110MB)" pending=ci_pending <|
             IO.println "Generating big XLS file "+Time_Of_Day.now.to_text
             rng = RandomHelpers.new 123
@@ -985,6 +988,9 @@ spec =
             read_table = workbook.read (sheets.at 0)
             read_table.row_count . should_equal rows+1
             read_table.column_names.length . should_equal cols
+
+            workbook.close
+            big_file.delete_if_exists . should_succeed
 
     spec_fmt 'XLSX reading' Examples.xlsx .read
 

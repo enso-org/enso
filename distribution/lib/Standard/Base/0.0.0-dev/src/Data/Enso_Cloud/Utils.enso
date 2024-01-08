@@ -1,24 +1,34 @@
+import project.Data.Enso_Cloud.Enso_Secret.Enso_Secret
 import project.Data.Pair.Pair
 import project.Data.Text.Text
 import project.Error.Error
+import project.Network.HTTP.Header.Header
 import project.Nothing.Nothing
 import project.Runtime.Ref.Ref
+import project.System.Environment
 import project.System.File.File
 
 polyglot java import org.enso.base.enso_cloud.AuthenticationProvider
+polyglot java import org.enso.base.enso_cloud.HideableValue
 
 ## PRIVATE
 cloud_root_uri = "" + AuthenticationProvider.getAPIRootURI
 
 ## PRIVATE
-   Construct the authoization header for the request
-authorization_header : Pair Text Text
+   Construct the authorization header for the request
+authorization_header : Header
 authorization_header =
-    result = AuthenticationProvider.getToken.if_nothing <|
-        cred_file = File.home / ".enso" / "credentials"
-        if cred_file.exists.not then Error.throw Not_Logged_In else
-            AuthenticationProvider.setToken (cred_file.read_text)
-    Pair.new "Authorization" "Bearer "+result
+    token = AuthenticationProvider.getToken.if_nothing <|
+        f = credentials_file
+        if f.exists.not then Error.throw Not_Logged_In else
+            AuthenticationProvider.setToken (f.read_text)
+    Header.authorization_bearer token
+
+## PRIVATE
+credentials_file : File
+credentials_file = case Environment.get "ENSO_CLOUD_CREDENTIALS_FILE" of
+    Nothing -> File.home / ".enso" / "credentials"
+    path -> File.new path
 
 ## PRIVATE
    Root address for listing folders
@@ -42,3 +52,9 @@ type Not_Logged_In
     ## PRIVATE
     to_display_text : Text
     to_display_text self = "Not logged into Enso cloud. Please log in and restart."
+
+## PRIVATE
+as_hideable_value : Text | Enso_Secret | Nothing -> HideableValue
+as_hideable_value (value : Text | Enso_Secret) = case value of
+    text : Text -> HideableValue.PlainValue.new text
+    secret : Enso_Secret -> HideableValue.SecretValue.new secret.id

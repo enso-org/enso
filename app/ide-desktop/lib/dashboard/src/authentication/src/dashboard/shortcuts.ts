@@ -142,17 +142,25 @@ export const MODIFIERS =
  * keys. */
 const SPECIAL_CHARACTER_KEYCODE_REGEX = /^[A-Z][a-z]/
 
-/** Whether the modifiers match the event's modifier key states. */
-export function isTextInputEvent(event: KeyboardEvent | React.KeyboardEvent) {
+/** Whether `event` may trigger a shortcut. */
+export function isPotentiallyShortcut(event: KeyboardEvent | React.KeyboardEvent) {
+    return event.ctrlKey || event.metaKey || event.altKey
+}
+
+/** Whether `event.key` is a key used in text editing. */
+export function isTextInputKey(event: KeyboardEvent | React.KeyboardEvent) {
     // Allow `alt` key to be pressed in case it is being used to enter special characters.
     return (
-        !event.ctrlKey &&
-        !event.shiftKey &&
-        !event.metaKey &&
-        (!SPECIAL_CHARACTER_KEYCODE_REGEX.test(event.key) ||
-            event.key === 'Backspace' ||
-            event.key === 'Delete')
+        !SPECIAL_CHARACTER_KEYCODE_REGEX.test(event.key) ||
+        event.key === 'Backspace' ||
+        event.key === 'Delete'
     )
+}
+
+/** Whether `event` will produce text. This excludes shortcuts, as they do not produce text. */
+export function isTextInputEvent(event: KeyboardEvent | React.KeyboardEvent) {
+    // Allow `alt` key to be pressed in case it is being used to enter special characters.
+    return !event.ctrlKey && !event.shiftKey && !event.metaKey && isTextInputKey(event)
 }
 
 // =============================
@@ -498,8 +506,8 @@ const DEFAULT_KEYBOARD_SHORTCUT_INFO: Record<KeyboardAction, ShortcutInfo> = {
     [KeyboardAction.closeModal]: { name: 'Close', icon: BlankIcon },
     [KeyboardAction.cancelEditName]: { name: 'Cancel Editing', icon: BlankIcon },
     [KeyboardAction.changeYourPassword]: { name: 'Change Your Password', icon: ChangePasswordIcon },
-    [KeyboardAction.signIn]: { name: 'Sign In', icon: SignInIcon },
-    [KeyboardAction.signOut]: { name: 'Sign Out', icon: SignOutIcon, colorClass: 'text-delete' },
+    [KeyboardAction.signIn]: { name: 'Login', icon: SignInIcon },
+    [KeyboardAction.signOut]: { name: 'Logout', icon: SignOutIcon, colorClass: 'text-delete' },
     [KeyboardAction.downloadApp]: { name: 'Download App', icon: AppDownloadIcon },
     [KeyboardAction.cancelCut]: { name: 'Cancel Cut', icon: BlankIcon },
 }

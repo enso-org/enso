@@ -19,17 +19,15 @@ function interpolateRegex(regex: RegExp) {
 // === AssetQuery ===
 // ==================
 
-/** Removes the `readonly` modifier from all keys in the given type. */
-type Mutable<T> = { -readonly [K in keyof T]: T[K] }
+/** Keys of an {@Link AssetQuery} which correspond to tags. */
+export type AssetQueryKey = Exclude<keyof AssetQuery & `${string}s`, 'withUpdates'>
 
 /** An {@link AssetQuery}, without the query and methods. */
-interface AssetQueryData
-    extends Mutable<Omit<AssetQuery, 'add' | 'delete' | 'query' | 'toString'>> {}
+export interface AssetQueryData extends Record<AssetQueryKey, string[][]> {}
 
 /** An {@link AssetQuery}, without the query and methods, and with all the values being `string[]`s
  * instead of `string[][]`s, representing the last term rather than all terms. */
-interface AssetQueryLastTermData
-    extends Record<Exclude<keyof AssetQuery, 'add' | 'delete' | 'query' | 'toString'>, string[]> {}
+export interface AssetQueryLastTermData extends Record<AssetQueryKey, string[]> {}
 
 /** An individual segment of a query string input to {@link AssetQuery}. */
 interface AssetQueryTerm {
@@ -45,30 +43,26 @@ export class AssetQuery {
     static valuesRegex = interpolateRegex(/(?:<json>)|(?:[^,\s"][^,\s]*)/g)
     // `key` MUST be a string literal type.
     // eslint-disable-next-line no-restricted-syntax
-    static dataKeys = [
-        'keywords',
-        'negativeKeywords',
-        'labels',
-        'negativeLabels',
-        'owners',
-        'negativeOwners',
-        'nos',
-        'negativeNos',
-    ] as const
-    // `key` MUST be a string literal type.
-    // eslint-disable-next-line no-restricted-syntax
     static tagNames = [
         ['keywords', null],
         ['negativeKeywords', '-'],
         ['names', 'name'],
         ['negativeNames', '-name'],
+        ['types', 'type'],
+        ['negativeTypes', '-type'],
+        ['extensions', 'extension'],
+        ['negativeExtensions', '-extension'],
+        ['descriptions', 'description'],
+        ['negativeDescriptions', '-description'],
+        ['modifieds', 'modified'],
+        ['negativeModifieds', '-modified'],
         ['labels', 'label'],
         ['negativeLabels', '-label'],
         ['owners', 'owner'],
         ['negativeOwners', '-owner'],
         ['nos', 'no'],
         ['negativeNos', 'has'],
-    ] as const
+    ] as const satisfies readonly (readonly [keyof AssetQueryData, string | null])[]
 
     query
 
@@ -81,6 +75,14 @@ export class AssetQuery {
         readonly negativeNames: string[][],
         readonly labels: string[][],
         readonly negativeLabels: string[][],
+        readonly types: string[][],
+        readonly negativeTypes: string[][],
+        readonly extensions: string[][],
+        readonly negativeExtensions: string[][],
+        readonly descriptions: string[][],
+        readonly negativeDescriptions: string[][],
+        readonly modifieds: string[][],
+        readonly negativeModifieds: string[][],
         readonly owners: string[][],
         readonly negativeOwners: string[][],
         readonly nos: string[][],
@@ -95,21 +97,26 @@ export class AssetQuery {
     /** Return a list of {@link AssetQueryTerm}s found in the raw user input string. */
     static terms(query: string): AssetQueryTerm[] {
         const terms: AssetQueryTerm[] = []
-        for (const [, tag, valuesRaw] of query.trim().matchAll(this.termsRegex)) {
+        for (const [, tag, valuesRaw = ''] of query.trim().matchAll(this.termsRegex)) {
             // Ignore values with a tag but without a value.
-            if (valuesRaw != null && valuesRaw !== '') {
+            if (tag != null || valuesRaw !== '') {
                 const values = valuesRaw.match(AssetQuery.valuesRegex) ?? []
                 terms.push({
                     tag: tag ?? null,
-                    values: values.map(value =>
-                        AssetQuery.jsonValueRegex.test(value)
-                            ? String(
-                                  JSON.parse(
-                                      value.endsWith('"') && value.length > 1 ? value : value + '"'
-                                  )
-                              )
-                            : value
-                    ),
+                    values:
+                        valuesRaw === ''
+                            ? []
+                            : values.map(value =>
+                                  AssetQuery.jsonValueRegex.test(value)
+                                      ? String(
+                                            JSON.parse(
+                                                value.endsWith('"') && value.length > 1
+                                                    ? value
+                                                    : value + '"'
+                                            )
+                                        )
+                                      : value
+                              ),
                 })
             }
         }
@@ -134,6 +141,14 @@ export class AssetQuery {
         const negativeNames: string[][] = []
         const labels: string[][] = []
         const negativeLabels: string[][] = []
+        const types: string[][] = []
+        const negativeTypes: string[][] = []
+        const extensions: string[][] = []
+        const negativeExtensions: string[][] = []
+        const descriptions: string[][] = []
+        const negativeDescriptions: string[][] = []
+        const modifieds: string[][] = []
+        const negativeModifieds: string[][] = []
         const owners: string[][] = []
         const negativeOwners: string[][] = []
         const nos: string[][] = []
@@ -147,6 +162,18 @@ export class AssetQuery {
             '-name': negativeNames,
             label: labels,
             '-label': negativeLabels,
+            type: types,
+            '-type': negativeTypes,
+            extension: extensions,
+            '-extension': negativeExtensions,
+            ext: extensions,
+            '-ext': negativeExtensions,
+            description: descriptions,
+            '-description': negativeDescriptions,
+            desc: descriptions,
+            '-desc': negativeDescriptions,
+            modified: modifieds,
+            '-modified': negativeModifieds,
             owner: owners,
             '-owner': negativeOwners,
             no: nos,
@@ -167,6 +194,14 @@ export class AssetQuery {
             negativeNames,
             labels,
             negativeLabels,
+            types,
+            negativeTypes,
+            extensions,
+            negativeExtensions,
+            descriptions,
+            negativeDescriptions,
+            modifieds,
+            negativeModifieds,
             owners,
             negativeOwners,
             nos,
@@ -235,6 +270,9 @@ export class AssetQuery {
             return null
         } else {
             lastTerm ??= []
+            if (lastTerm[lastTerm.length - 1] === '') {
+                lastTerm.pop()
+            }
             let changed = false
             if (toAdd != null) {
                 const lastTermAfterAdditions = [
@@ -319,6 +357,14 @@ export class AssetQuery {
                 updates.negativeNames ?? this.negativeNames,
                 updates.labels ?? this.labels,
                 updates.negativeLabels ?? this.negativeLabels,
+                updates.types ?? this.types,
+                updates.negativeTypes ?? this.negativeTypes,
+                updates.extensions ?? this.extensions,
+                updates.negativeExtensions ?? this.negativeExtensions,
+                updates.descriptions ?? this.descriptions,
+                updates.negativeDescriptions ?? this.negativeDescriptions,
+                updates.modifieds ?? this.modifieds,
+                updates.negativeModifieds ?? this.negativeModifieds,
                 updates.owners ?? this.owners,
                 updates.negativeOwners ?? this.negativeOwners,
                 updates.nos ?? this.nos,
@@ -331,7 +377,7 @@ export class AssetQuery {
      * or itself if there are no terms to add. */
     add(values: Partial<AssetQueryData>): AssetQuery {
         const updates: Partial<AssetQueryData> = {}
-        for (const key of AssetQuery.dataKeys) {
+        for (const [key] of AssetQuery.tagNames) {
             const update = AssetQuery.updatedTerms(this[key], values[key] ?? null, null)
             if (update != null) {
                 updates[key] = update
@@ -344,7 +390,7 @@ export class AssetQuery {
      * or itself if there are no terms to delete. */
     delete(values: Partial<AssetQueryData>): AssetQuery {
         const updates: Partial<AssetQueryData> = {}
-        for (const key of AssetQuery.dataKeys) {
+        for (const [key] of AssetQuery.tagNames) {
             const update = AssetQuery.updatedTerms(this[key], null, values[key] ?? null)
             if (update != null) {
                 updates[key] = update
@@ -357,7 +403,7 @@ export class AssetQuery {
      * with the matching tag, or itself if there are no terms to add. */
     addToLastTerm(values: Partial<AssetQueryLastTermData>): AssetQuery {
         const updates: Partial<AssetQueryData> = {}
-        for (const key of AssetQuery.dataKeys) {
+        for (const [key] of AssetQuery.tagNames) {
             const update = AssetQuery.updatedLastTerm(this[key], values[key] ?? null, null)
             if (update != null) {
                 updates[key] = update
@@ -370,7 +416,7 @@ export class AssetQuery {
      * with the matching tag, or itself if there are no terms to delete. */
     deleteFromLastTerm(values: Partial<AssetQueryLastTermData>): AssetQuery {
         const updates: Partial<AssetQueryData> = {}
-        for (const key of AssetQuery.dataKeys) {
+        for (const [key] of AssetQuery.tagNames) {
             const update = AssetQuery.updatedLastTerm(this[key], null, values[key] ?? null)
             if (update != null) {
                 updates[key] = update
@@ -385,7 +431,7 @@ export class AssetQuery {
      * {@link AssetQuery.deleteFromEveryTerm}. */
     addToEveryTerm(values: Partial<AssetQueryLastTermData>): AssetQuery {
         const updates: Partial<AssetQueryData> = {}
-        for (const key of AssetQuery.dataKeys) {
+        for (const [key] of AssetQuery.tagNames) {
             const update = AssetQuery.updatedEveryTerm(this[key], values[key] ?? null, null)
             if (update != null) {
                 updates[key] = update
@@ -398,7 +444,7 @@ export class AssetQuery {
      * with the matching tag, or itself if there are no terms to delete. */
     deleteFromEveryTerm(values: Partial<AssetQueryLastTermData>): AssetQuery {
         const updates: Partial<AssetQueryData> = {}
-        for (const key of AssetQuery.dataKeys) {
+        for (const [key] of AssetQuery.tagNames) {
             const update = AssetQuery.updatedEveryTerm(this[key], null, values[key] ?? null)
             if (update != null) {
                 updates[key] = update

@@ -21,7 +21,7 @@ import {
   type QualifiedName,
 } from '@/util/qualifiedName'
 import { equalFlat } from 'lib0/array'
-import { IdMap, type ContentRange, type ExprId } from 'shared/yjsModel'
+import { IdMap, type ExprId, type SourceRange } from 'shared/yjsModel'
 import { computed, ref, type ComputedRef } from 'vue'
 
 /** Information how the component browser is used, needed for proper input initializing. */
@@ -60,7 +60,7 @@ export type EditingContext =
 interface Change {
   str: string
   /** Range in the original code to be replaced with `str`. */
-  range: ContentRange
+  range: SourceRange
 }
 
 /** Component Browser Input Data */
@@ -399,7 +399,7 @@ export function useComponentBrowserInput(
           result.push({ range: span, str: segment as string })
         } else {
           // The rest of qualified name needs to be added at the end.
-          const range: ContentRange = [lastEditedCharIndex, lastEditedCharIndex]
+          const range: SourceRange = [lastEditedCharIndex, lastEditedCharIndex]
           result.push({ range, str: ('.' + segment) as string })
         }
       }
@@ -423,7 +423,7 @@ export function useComponentBrowserInput(
         }
         break
       case 'editNode':
-        code.value = graphDb.nodeIdToNode.get(usage.node)?.rootSpan.repr() ?? ''
+        code.value = graphDb.nodeIdToNode.get(usage.node)?.rootSpan.code() ?? ''
         selection.value = { start: usage.cursorPos, end: usage.cursorPos }
         break
     }

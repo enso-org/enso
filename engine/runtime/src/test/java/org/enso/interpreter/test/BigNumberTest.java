@@ -1,18 +1,18 @@
 package org.enso.interpreter.test;
 
-import java.math.BigInteger;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.ArrayList;
-
-import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Source;
-import org.graalvm.polyglot.Value;
-import org.junit.AfterClass;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+
+import java.math.BigInteger;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.Source;
+import org.graalvm.polyglot.Value;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -29,10 +29,10 @@ public class BigNumberTest extends TestBase {
     ctx.close();
   }
 
-
   @Test
   public void evaluation() throws Exception {
-    final String code = """
+    final String code =
+        """
     from Standard.Base.Data.Vector import Vector
 
     powers n =
@@ -79,46 +79,16 @@ public class BigNumberTest extends TestBase {
   private Value evalCode(final String code, final String methodName) throws URISyntaxException {
     final var testName = "test.enso";
     final URI testUri = new URI("memory://" + testName);
-    final Source src = Source.newBuilder("enso", code, testName)
-            .uri(testUri)
-            .buildLiteral();
+    final Source src = Source.newBuilder("enso", code, testName).uri(testUri).buildLiteral();
     var module = ctx.eval(src);
     var powers = module.invokeMember("eval_expression", methodName);
     return powers;
   }
 
   @Test
-  public void averageOfMixedArrayOverDouble() throws Exception {
-    boolean assertsOn = false;
-    assert assertsOn = true;
-    if (assertsOn) {
-      // skip this test when asserts are on
-      return;
-    }
-    var code = """
-    from Standard.Base.Data.Vector import Vector
-    polyglot java import org.enso.example.TestClass
-
-    powers n =
-            go x v b = if x > n then b.to_vector else
-                b.append v
-                @Tail_Call go x+1 v*2 b
-            go 1 1 Vector.new_builder
-
-    avg n = TestClass.doubleArrayAverage (powers n)
-    """;
-    var fn = evalCode(code, "avg");
-    var avg = fn.execute(200);
-
-    assertTrue("Got a number back " + avg,avg.isNumber());
-    assertFalse("It's not a long", avg.fitsInLong());
-    assertTrue("It's a double", avg.fitsInDouble());
-    assertEquals("It is big enough", Math.pow(2, 200) / 200, avg.asDouble(), 300);
-  }
-
-  @Test
   public void averageOfMixedArrayOverNumber() throws Exception {
-    var code = """
+    var code =
+        """
     from Standard.Base.Data.Vector import Vector
     polyglot java import org.enso.example.TestClass
 
@@ -133,7 +103,7 @@ public class BigNumberTest extends TestBase {
     var fn = evalCode(code, "avg");
     var avg = fn.execute(200);
 
-    assertTrue("Got a number back " + avg,avg.isNumber());
+    assertTrue("Got a number back " + avg, avg.isNumber());
     assertFalse("It's not a long", avg.fitsInLong());
     assertTrue("It's a big number", avg.fitsInBigInteger());
     assertEquals("It is big enough", Math.pow(2, 200) / 200, avg.asBigInteger().doubleValue(), 300);
@@ -141,7 +111,8 @@ public class BigNumberTest extends TestBase {
 
   @Test
   public void averageOfMixedArrayOverBigInteger() throws Exception {
-    var code = """
+    var code =
+        """
     from Standard.Base.Data.Vector import Vector
     polyglot java import org.enso.example.TestClass
 
@@ -156,7 +127,7 @@ public class BigNumberTest extends TestBase {
     var fn = evalCode(code, "avg");
     var avg = fn.execute(200);
 
-    assertTrue("Got a number back " + avg,avg.isString());
+    assertTrue("Got a number back " + avg, avg.isString());
     var actual = new BigInteger(avg.asString());
     var expect = BigInteger.TWO.pow(200).divide(BigInteger.valueOf(200));
     assertEquals("It is big enough", expect, actual);

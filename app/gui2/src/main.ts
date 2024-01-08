@@ -1,43 +1,80 @@
+import { baseConfig, configValue, mergeConfig } from '@/util/config'
+import { isDevMode } from '@/util/detect'
+import { urlParams } from '@/util/urlParams'
+import { run as runDashboard } from 'enso-authentication'
+import { isOnLinux } from 'enso-common/src/detect'
 import 'enso-dashboard/src/tailwind.css'
 
 const INITIAL_URL_KEY = `Enso-initial-url`
-
-import * as dashboard from 'enso-authentication'
-import { isMac } from 'lib0/environment'
-import { decodeQueryParams } from 'lib0/url'
-
-const params = decodeQueryParams(location.href)
-
-// Temporary hardcode
-const config = {
-  supportsLocalBackend: true,
-  supportsDeepLinks: isMac,
-  shouldUseAuthentication: false,
-  projectManagerUrl: PROJECT_MANAGER_URL,
-  initialProjectName: params.project ?? null,
-}
+const SCAM_WARNING_TIMEOUT = 1000
 
 let unmount: null | (() => void) = null
-let runRequested = false
+let running = false
+
+function printScamWarning() {
+  if (isDevMode) return
+  const headerCss = `
+    color: white;
+    background: crimson;
+    display: block;
+    border-radius: 8px;
+    font-weight: bold;
+    padding: 10px 20px 10px 20px;
+  `
+    .trim()
+    .replace(/\n\s+/, ' ')
+  const headerCss1 = headerCss + ' font-size: 46px;'
+  const headerCss2 = headerCss + ' font-size: 20px;'
+  const msgCSS = 'font-size: 16px;'
+
+  const msg1 =
+    'This is a browser feature intended for developers. If someone told you to ' +
+    'copy-paste something here, it is a scam and will give them access to your ' +
+    'account and data.'
+  const msg2 = 'See https://enso.org/selfxss for more information.'
+  console.log('%cStop!', headerCss1)
+  console.log('%cYou may be the victim of a scam!', headerCss2)
+  console.log('%c' + msg1, msgCSS)
+  console.log('%c' + msg2, msgCSS)
+}
+
+printScamWarning()
+let scamWarningHandle = 0
+window.addEventListener('resize', () => {
+  window.clearTimeout(scamWarningHandle)
+  scamWarningHandle = window.setTimeout(printScamWarning, SCAM_WARNING_TIMEOUT)
+})
 
 export interface StringConfig {
   [key: string]: StringConfig | string
 }
 
-const vueAppEntry = import('./createApp')
-
 async function runApp(config: StringConfig | null, accessToken: string | null, metadata?: object) {
-  runRequested = true
-  const { mountProjectApp } = await vueAppEntry
-  if (runRequested) {
-    unmount?.()
-    const app = mountProjectApp({ config, accessToken, metadata })
-    unmount = () => app.unmount()
-  }
+  running = true
+  const { mountProjectApp } = await import('./createApp')
+  if (!running) return
+  unmount?.()
+  const unrecognizedOptions: string[] = []
+  // function onUnrecognizedOption(path: string[]) {
+  //   unrecognizedOptions.push(path.join('.'))
+  // }
+  // FIXME: https://github.com/enso-org/enso/issues/8610
+  // Currently, options are provided that are not relevant to GUI2. These options cannot be removed
+  // until GUI1 is removed, as GUI1 still needs them.
+  const intermediateConfig = mergeConfig(baseConfig, urlParams())
+  const appConfig = mergeConfig(intermediateConfig, config ?? {})
+  if (!running) return
+  const app = mountProjectApp({
+    config: appConfig,
+    accessToken,
+    metadata,
+    unrecognizedOptions,
+  })
+  unmount = () => app.unmount()
 }
 
 function stopApp() {
-  runRequested = false
+  running = false
   unmount?.()
   unmount = null
 }
@@ -58,21 +95,26 @@ function main() {
   if (isInAuthenticationFlow) {
     history.replaceState(null, '', localStorage.getItem(INITIAL_URL_KEY))
   }
-  // const configOptions = OPTIONS.clone()
   if (isInAuthenticationFlow) {
     history.replaceState(null, '', authenticationUrl)
   } else {
     localStorage.setItem(INITIAL_URL_KEY, location.href)
   }
-  dashboard.run({
+
+  const config = configValue(mergeConfig(baseConfig, urlParams()))
+  const shouldUseAuthentication = config.authentication.enabled
+  const projectManagerUrl = config.engine.projectManagerUrl || PROJECT_MANAGER_URL
+  const initialProjectName = config.startup.project || null
+
+  runDashboard({
     appRunner,
     logger: console,
-    supportsLocalBackend: true, // TODO
-    supportsDeepLinks: false, // TODO
-    projectManagerUrl: config.projectManagerUrl,
-    isAuthenticationDisabled: !config.shouldUseAuthentication,
+    supportsLocalBackend: !IS_CLOUD_BUILD,
+    supportsDeepLinks: !isDevMode && !isOnLinux(),
+    projectManagerUrl,
+    isAuthenticationDisabled: !shouldUseAuthentication,
     shouldShowDashboard: true,
-    initialProjectName: config.initialProjectName,
+    initialProjectName,
     onAuthenticated() {
       if (isInAuthenticationFlow) {
         const initialUrl = localStorage.getItem(INITIAL_URL_KEY)

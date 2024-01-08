@@ -224,6 +224,7 @@ type Column
        - other: The value to compare `self` against. If `other` is a column, the
          comparison is performed pairwise between corresponding elements of
          `self` and `other`.
+       - locale: The locale to use for the case-insensitive comparison.
 
        Returns a column with results of comparing this column's elements against
        `other`.
@@ -1017,7 +1018,7 @@ type Column
              example_is_nothing = Examples.decimal_column.is_nothing
     is_nothing : Column
     is_nothing self =
-        new_name = naming_helper.concat [naming_helper.to_expression_text self, "is null"]
+        new_name = naming_helper.concat [naming_helper.to_expression_text self, "is Nothing"]
         run_vectorized_unary_op self Java_Storage.Maps.IS_NOTHING new_name fallback_fn=(x-> x == Nothing) expected_result_type=Value_Type.Boolean skip_nulls=False
 
     ## GROUP Standard.Base.Math
@@ -1235,6 +1236,25 @@ type Column
     ends_with self other case_sensitivity=Case_Sensitivity.Default =
         new_name = naming_helper.function_name "ends_with" [self, other]
         run_vectorized_binary_case_text_op self Java_Storage.Maps.ENDS_WITH other case_sensitivity (a -> b -> a.ends_with b case_sensitivity) new_name
+
+    ## GROUP Standard.Base.Text
+       ICON preparation
+       Calculates the text length for each element of the column.
+
+       In the Database backends, the default text length method of the
+       particular database is used.
+
+       In the in-memory backend, this will give you the grapheme length of the string.
+
+       > Example
+             import Standard.Examples
+
+             example_text_length =
+                Examples.text_column_1.text_length
+    text_length : Column
+    text_length self =
+        Value_Type.expect_text self <|
+            simple_unary_op self Java_Storage.Maps.TEXT_LENGTH
 
     ## GROUP Standard.Base.Logical
        Checks for each element of the column if it contains `other`.

@@ -21,7 +21,7 @@ type Case_Sensitivity
 
        Arguments:
        - locale: The locale used for the comparison.
-    Insensitive locale=Locale.default
+    Insensitive (locale : Locale = Locale.default)
 
     ## PRIVATE
        Convert Case_Sensitivity to a friendly string.

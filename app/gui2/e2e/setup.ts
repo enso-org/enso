@@ -6,7 +6,7 @@ import {
   type ProjectId,
   type ProjectName,
   type UTCDateTime,
-} from './mockProjectManager'
+} from '../mock/projectManager'
 import pmSpec from './pm-openrpc.json' assert { type: 'json' }
 
 export default function setup() {

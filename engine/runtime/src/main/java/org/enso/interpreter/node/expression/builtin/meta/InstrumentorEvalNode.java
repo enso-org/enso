@@ -1,10 +1,12 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
-import com.oracle.truffle.api.RootCallTarget;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.nodes.RootNode;
+import java.lang.ref.Reference;
+import java.lang.ref.WeakReference;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.Annotation;
@@ -25,14 +27,22 @@ final class InstrumentorEvalNode extends RootNode {
           new boolean[] {true, true},
           new CallArgumentInfo[0],
           new Annotation[0]);
-  private static final RootCallTarget CALL = new InstrumentorEvalNode().getCallTarget();
+  private static Reference<InstrumentorEvalNode> last = new WeakReference<>(null);
 
-  private InstrumentorEvalNode() {
-    super(EnsoLanguage.get(null));
+  private InstrumentorEvalNode(EnsoLanguage language) {
+    super(language);
   }
 
-  static Function asSuspendedEval(Object expr, IdExecutionService.Info info) {
-    return new Function(CALL, null, SUSPENDED_EVAL, new Object[] {expr, info}, new Object[0]);
+  @TruffleBoundary
+  static Function asSuspendedEval(
+      EnsoLanguage language, Object expr, IdExecutionService.Info info) {
+    var node = last.get();
+    if (node == null || node.getLanguage(EnsoLanguage.class) != language) {
+      node = new InstrumentorEvalNode(language);
+      last = new WeakReference<>(node);
+    }
+    var call = node.getCallTarget();
+    return new Function(call, null, SUSPENDED_EVAL, new Object[] {expr, info}, new Object[0]);
   }
 
   @Override

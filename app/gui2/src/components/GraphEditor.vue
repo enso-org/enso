@@ -10,12 +10,14 @@ import {
 } from '@/components/ComponentBrowser/placement'
 import GraphEdges from '@/components/GraphEditor/GraphEdges.vue'
 import GraphNodes from '@/components/GraphEditor/GraphNodes.vue'
+import { performCollapse, prepareCollapsedInfo } from '@/components/GraphEditor/collapsing'
 import { Uploader, uploadedExpression } from '@/components/GraphEditor/upload'
 import GraphMouse from '@/components/GraphMouse.vue'
 import PlusButton from '@/components/PlusButton.vue'
 import TopBar from '@/components/TopBar.vue'
 import { useDoubleClick } from '@/composables/doubleClick'
 import { keyboardBusy, keyboardBusyExceptIn, useEvent } from '@/composables/events'
+import { useStackNavigator } from '@/composables/stackNavigator'
 import { provideGraphNavigator } from '@/providers/graphNavigator'
 import { provideGraphSelection } from '@/providers/graphSelection'
 import { provideInteractionHandler, type Interaction } from '@/providers/interactionHandler'
@@ -27,10 +29,11 @@ import { groupColorVar, useSuggestionDbStore } from '@/stores/suggestionDatabase
 import { colorFromString } from '@/util/colors'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
-import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
 import * as set from 'lib0/set'
+import { toast } from 'react-toastify'
 import type { ExprId, NodeMetadata } from 'shared/yjsModel'
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onScopeDispose, onUnmounted, ref, watch } from 'vue'
+import { ProjectManagerEvents } from '../../../ide-desktop/lib/dashboard/src/authentication/src/dashboard/projectManager'
 import { type Usage } from './ComponentBrowser/input'
 
 const EXECUTION_MODES = ['design', 'live']
@@ -49,6 +52,54 @@ const componentBrowserNodePosition = ref<Vec2>(Vec2.Zero)
 const componentBrowserUsage = ref<Usage>({ type: 'newNode' })
 const suggestionDb = useSuggestionDbStore()
 const interaction = provideInteractionHandler()
+
+/// === UI Messages and Errors ===
+function initStartupToast() {
+  let startupToast = toast.info('Initializing the project. This can take up to one minute.', {
+    autoClose: false,
+  })
+
+  const removeToast = () => toast.dismiss(startupToast)
+  projectStore.firstExecution.then(removeToast)
+  onScopeDispose(removeToast)
+}
+
+function initConnectionLostToast() {
+  let connectionLostToast = 'connectionLostToast'
+  document.addEventListener(
+    ProjectManagerEvents.loadingFailed,
+    () => {
+      toast.error('Lost connection to Language Server.', {
+        autoClose: false,
+        toastId: connectionLostToast,
+      })
+    },
+    { once: true },
+  )
+  onUnmounted(() => {
+    toast.dismiss(connectionLostToast)
+  })
+}
+
+projectStore.lsRpcConnection.then(
+  (ls) => {
+    ls.client.onError((err) => {
+      toast.error(`Language server error: ${err}`)
+    })
+  },
+  (err) => {
+    toast.error(`Connection to language server failed: ${err}`)
+  },
+)
+
+projectStore.executionContext.on('executionFailed', (err) => {
+  toast.error(`Execution Failed: ${err}`, {})
+})
+
+onMounted(() => {
+  initStartupToast()
+  initConnectionLostToast()
+})
 
 const nodeSelection = provideGraphSelection(graphNavigator, graphStore.nodeRects, {
   onSelected(id) {
@@ -202,16 +253,27 @@ const graphBindingsHandler = graphBindings.handler({
     if (keyboardBusy()) return false
     readNodeFromClipboard()
   },
+  collapse() {
+    if (keyboardBusy()) return false
+    const selected = nodeSelection.selected
+    if (selected.size == 0) return
+    try {
+      const info = prepareCollapsedInfo(nodeSelection.selected, graphStore.db)
+      performCollapse(info)
+    } catch (err) {
+      console.log(`Error while collapsing, this is not normal. ${err}`)
+    }
+  },
   enterNode() {
     if (keyboardBusy()) return false
     const selectedNode = set.first(nodeSelection.selected)
     if (selectedNode) {
-      enterNode(selectedNode)
+      stackNavigator.enterNode(selectedNode)
     }
   },
   exitNode() {
     if (keyboardBusy()) return false
-    exitNode()
+    stackNavigator.exitNode()
   },
 })
 
@@ -220,7 +282,7 @@ const handleClick = useDoubleClick(
     graphBindingsHandler(e)
   },
   () => {
-    exitNode()
+    stackNavigator.exitNode()
   },
 ).handleClick
 const codeEditorArea = ref<HTMLElement>()
@@ -231,31 +293,6 @@ const codeEditorHandler = codeEditorBindings.handler({
     showCodeEditor.value = !showCodeEditor.value
   },
 })
-
-function enterNode(id: ExprId) {
-  const expressionInfo = graphStore.db.getExpressionInfo(id)
-  if (expressionInfo == undefined || expressionInfo.methodCall == undefined) {
-    console.debug('Cannot enter node that has no method call.')
-    return
-  }
-  const definedOnType = tryQualifiedName(expressionInfo.methodCall.methodPointer.definedOnType)
-  if (!projectStore.modulePath?.ok) {
-    console.warn('Cannot enter node while no module is open.')
-    return
-  }
-  const openModuleName = qnLastSegment(projectStore.modulePath.value)
-  if (definedOnType.ok && qnLastSegment(definedOnType.value) != openModuleName) {
-    console.debug('Cannot enter node that is not defined on current module.')
-    return
-  }
-  projectStore.executionContext.push(id)
-  graphStore.updateState()
-}
-
-function exitNode() {
-  projectStore.executionContext.pop()
-  graphStore.updateState()
-}
 
 /** Track play button presses. */
 function onPlayButtonPress() {
@@ -279,7 +316,7 @@ watch(
 const groupColors = computed(() => {
   const styles: { [key: string]: string } = {}
   for (let group of suggestionDb.groups) {
-    styles[groupColorVar(group)] = group.color ?? colorFromString(group.name.replace(/\w/g, '-'))
+    styles[groupColorVar(group)] = group.color ?? colorFromString(group.name)
   }
   return styles
 })
@@ -410,17 +447,6 @@ async function handleFileDrop(event: DragEvent) {
   })
 }
 
-const breadcrumbs = computed(() =>
-  projectStore.executionContext.desiredStack.map((frame) => {
-    switch (frame.type) {
-      case 'ExplicitCall':
-        return frame.methodPointer.name
-      case 'LocalCall':
-        return frame.expressionId
-    }
-  }),
-)
-
 // === Clipboard ===
 
 const ENSO_MIME_TYPE = 'web application/enso'
@@ -441,7 +467,7 @@ function copyNodeContent() {
   const id = nodeSelection.selected.values().next().value
   const node = graphStore.db.nodeIdToNode.get(id)
   if (!node) return
-  const content = node.rootSpan.repr()
+  const content = node.rootSpan.code()
   const metadata = projectStore.module?.getNodeMetadata(id) ?? undefined
   const copiedNode: CopiedNode = { expression: content, metadata }
   const clipboardData: ClipboardData = { nodes: [copiedNode] }
@@ -460,6 +486,16 @@ async function retrieveDataFromClipboard(): Promise<ClipboardData | undefined> {
         const blob = await clipboardItem.getType(type)
         return JSON.parse(await blob.text())
       }
+
+      if (type === 'text/html') {
+        const blob = await clipboardItem.getType(type)
+        const htmlContent = await blob.text()
+        const excelPayload = await readNodeFromExcelClipboard(htmlContent, clipboardItem)
+        if (excelPayload) {
+          return excelPayload
+        }
+      }
+
       if (type === 'text/plain') {
         const blob = await clipboardItem.getType(type)
         const fallbackExpression = await blob.text()
@@ -493,9 +529,34 @@ async function readNodeFromClipboard() {
   )
 }
 
+async function readNodeFromExcelClipboard(
+  htmlContent: string,
+  clipboardItem: ClipboardItem,
+): Promise<ClipboardData | undefined> {
+  // Check we have a valid HTML table
+  // If it is Excel, we should have a plain-text version of the table with tab separators.
+  if (
+    clipboardItem.types.includes('text/plain') &&
+    htmlContent.startsWith('<table ') &&
+    htmlContent.endsWith('</table>')
+  ) {
+    const textData = await clipboardItem.getType('text/plain')
+    const text = await textData.text()
+    const payload = JSON.stringify(text).replaceAll(/^"|"$/g, '').replaceAll("'", "\\'")
+    const expression = `'${payload}'.to Table`
+    return { nodes: [{ expression: expression, metadata: undefined }] } as ClipboardData
+  }
+  return undefined
+}
+
 function handleNodeOutputPortDoubleClick(id: ExprId) {
   componentBrowserUsage.value = { type: 'newNode', sourcePort: id }
-  const placementEnvironment = environmentForNodes([id].values())
+  const srcNode = graphStore.db.getPatternExpressionNodeId(id)
+  if (srcNode == null) {
+    console.error('Impossible happened: Double click on port not belonging to any node: ', id)
+    return
+  }
+  const placementEnvironment = environmentForNodes([srcNode].values())
   componentBrowserNodePosition.value = previousNodeDictatedPlacement(
     DEFAULT_NODE_SIZE,
     placementEnvironment,
@@ -506,6 +567,8 @@ function handleNodeOutputPortDoubleClick(id: ExprId) {
   ).position
   interaction.setCurrent(creatingNodeFromPortDoubleClick)
 }
+
+const stackNavigator = useStackNavigator()
 
 function handleEdgeDrop(source: ExprId, position: Vec2) {
   componentBrowserUsage.value = { type: 'newNode', sourcePort: source }
@@ -526,15 +589,16 @@ function handleEdgeDrop(source: ExprId, position: Vec2) {
     @dragover.prevent
     @drop.prevent="handleFileDrop($event)"
   >
-    <svg :viewBox="graphNavigator.viewBox">
-      <GraphEdges @createNodeFromEdge="handleEdgeDrop" />
-    </svg>
     <div :style="{ transform: graphNavigator.transform }" class="htmlLayer">
       <GraphNodes
         @nodeOutputPortDoubleClick="handleNodeOutputPortDoubleClick"
-        @nodeDoubleClick="enterNode"
+        @nodeDoubleClick="(id) => stackNavigator.enterNode(id)"
       />
     </div>
+    <svg :viewBox="graphNavigator.viewBox" class="svgBackdropLayer">
+      <GraphEdges @createNodeFromEdge="handleEdgeDrop" />
+    </svg>
+
     <ComponentBrowser
       v-if="componentBrowserVisible"
       ref="componentBrowser"
@@ -547,12 +611,14 @@ function handleEdgeDrop(source: ExprId, position: Vec2) {
     />
     <TopBar
       v-model:mode="projectStore.executionMode"
-      :title="projectStore.name"
+      :title="projectStore.displayName"
       :modes="EXECUTION_MODES"
-      :breadcrumbs="breadcrumbs"
-      @breadcrumbClick="console.log(`breadcrumb #${$event + 1} clicked.`)"
-      @back="exitNode"
-      @forward="console.log('breadcrumbs \'forward\' button clicked.')"
+      :breadcrumbs="stackNavigator.breadcrumbLabels.value"
+      :allowNavigationLeft="stackNavigator.allowNavigationLeft.value"
+      :allowNavigationRight="stackNavigator.allowNavigationRight.value"
+      @breadcrumbClick="stackNavigator.handleBreadcrumbClick"
+      @back="stackNavigator.exitNode"
+      @forward="stackNavigator.enterNextNodeFromHistory"
       @execute="onPlayButtonPress()"
     />
     <PlusButton @pointerdown="interaction.setCurrent(creatingNodeFromButton)" />
@@ -574,10 +640,11 @@ function handleEdgeDrop(source: ExprId, position: Vec2) {
   --node-color-no-type: #596b81;
 }
 
-svg {
+.svgBackdropLayer {
   position: absolute;
   top: 0;
   left: 0;
+  z-index: -1;
 }
 
 .htmlLayer {

@@ -1,14 +1,13 @@
 /** @file The top-bar of dashboard. */
 import * as React from 'react'
 
-import FindIcon from 'enso-assets/find.svg'
-
-import * as assetQuery from '../../assetQuery'
+import type * as assetQuery from '../../assetQuery'
 import type * as backendModule from '../backend'
-import * as shortcuts from '../shortcuts'
 
+import type * as assetSearchBar from './assetSearchBar'
 import PageSwitcher, * as pageSwitcher from './pageSwitcher'
 import AssetInfoBar from './assetInfoBar'
+import AssetSearchBar from './assetSearchBar'
 import BackendSwitcher from './backendSwitcher'
 import UserBar from './userBar'
 
@@ -29,7 +28,9 @@ export interface TopBarProps {
     isHelpChatOpen: boolean
     setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
     query: assetQuery.AssetQuery
-    setQuery: (query: assetQuery.AssetQuery) => void
+    setQuery: React.Dispatch<React.SetStateAction<assetQuery.AssetQuery>>
+    labels: backendModule.Label[]
+    suggestions: assetSearchBar.Suggestion[]
     canToggleSettingsPanel: boolean
     isSettingsPanelVisible: boolean
     setIsSettingsPanelVisible: React.Dispatch<React.SetStateAction<boolean>>
@@ -52,30 +53,14 @@ export default function TopBar(props: TopBarProps) {
         setIsHelpChatOpen,
         query,
         setQuery,
+        labels,
+        suggestions,
         canToggleSettingsPanel,
         isSettingsPanelVisible,
         setIsSettingsPanelVisible,
         doRemoveSelf,
         onSignOut,
     } = props
-    const searchRef = React.useRef<HTMLInputElement>(null)
-
-    React.useEffect(() => {
-        const onKeyDown = (event: KeyboardEvent) => {
-            // Allow `alt` key to be pressed in case it is being used to enter special characters.
-            if (
-                !(event.target instanceof HTMLInputElement) &&
-                (!(event.target instanceof HTMLElement) || !event.target.isContentEditable) &&
-                shortcuts.isTextInputEvent(event)
-            ) {
-                searchRef.current?.focus()
-            }
-        }
-        document.addEventListener('keydown', onKeyDown)
-        return () => {
-            document.removeEventListener('keydown', onKeyDown)
-        }
-    }, [])
 
     return (
         <div
@@ -90,20 +75,12 @@ export default function TopBar(props: TopBarProps) {
             <div className="grow" />
             {page !== pageSwitcher.Page.editor && (
                 <>
-                    <label className="search-bar absolute flex items-center text-primary bg-frame rounded-full -translate-x-1/2 gap-2.5 left-1/2 h-8 w-98.25 min-w-31.5 px-2">
-                        <img src={FindIcon} className="opacity-80" />
-                        <input
-                            ref={searchRef}
-                            type="search"
-                            size={1}
-                            placeholder="Type to search for projects, data connectors, users, and more."
-                            value={query.query}
-                            onChange={event => {
-                                setQuery(assetQuery.AssetQuery.fromString(event.target.value))
-                            }}
-                            className="grow bg-transparent leading-5 h-6 py-px"
-                        />
-                    </label>
+                    <AssetSearchBar
+                        query={query}
+                        setQuery={setQuery}
+                        labels={labels}
+                        suggestions={suggestions}
+                    />
                     <div className="grow" />
                 </>
             )}

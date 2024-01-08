@@ -95,8 +95,8 @@ object Redefined {
       this
 
     /** @inheritdoc */
-    override def message(source: (IdentifiedLocation => String)): String =
-      "Methods must have only one definition of the `this` argument, and " +
+    override def message(source: IdentifiedLocation => String): String =
+      "Methods must have only one definition of the `self` argument, and " +
       "it must be the first."
 
     override def diagnosticKeys(): Array[Any] = Array()

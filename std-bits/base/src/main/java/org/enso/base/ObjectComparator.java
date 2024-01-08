@@ -1,15 +1,14 @@
 package org.enso.base;
 
-import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Value;
-
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
 import java.util.Comparator;
 import java.util.Locale;
-import java.util.function.Function;
 import java.util.function.BiFunction;
+import java.util.function.Function;
+import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.Value;
 
 public final class ObjectComparator implements Comparator<Object> {
   public static final ObjectComparator DEFAULT = new ObjectComparator();
@@ -19,32 +18,39 @@ public final class ObjectComparator implements Comparator<Object> {
 
   private static void initCallbacks() {
     if (ensoCompareCallback == null) {
-      var module = Context.getCurrent().getBindings("enso").invokeMember("get_module", "Standard.Base.Data.Ordering");
+      var module =
+          Context.getCurrent()
+              .getBindings("enso")
+              .invokeMember("get_module", "Standard.Base.Data.Ordering");
       var type = module.invokeMember("get_type", "Comparable");
 
       var hash_callback = module.invokeMember("get_method", type, "hash_callback");
-      ensoHashCodeCallback = v -> {
-        var result = hash_callback.execute(null, v);
-        if (result.isNull()) {
-          throw new IllegalStateException("Unable to object hash in EnsoObjectWrapper for " + v.toString());
-        } else {
-          return result.asInt();
-        }
-      };
+      ensoHashCodeCallback =
+          v -> {
+            var result = hash_callback.execute(null, v);
+            if (result.isNull()) {
+              throw new IllegalStateException(
+                  "Unable to object hash in EnsoObjectWrapper for " + v.toString());
+            } else {
+              return result.asInt();
+            }
+          };
 
       var compare_callback = module.invokeMember("get_method", type, "compare_callback");
-      ensoCompareCallback = (v, u) -> {
-        var result = compare_callback.execute(null, v, u);
-        if (result.isNull()) {
-          throw new CompareException(u, v);
-        } else {
-          return result.asInt();
-        }
-      };
-      ensoAreEqualCallback = (v, u) -> {
-        var result = compare_callback.execute(null, v, u);
-        return !result.isNull() && result.asInt() == 0;
-      };
+      ensoCompareCallback =
+          (v, u) -> {
+            var result = compare_callback.execute(null, v, u);
+            if (result.isNull()) {
+              throw new CompareException(u, v);
+            } else {
+              return result.asInt();
+            }
+          };
+      ensoAreEqualCallback =
+          (v, u) -> {
+            var result = compare_callback.execute(null, v, u);
+            return !result.isNull() && result.asInt() == 0;
+          };
     }
   }
 
@@ -71,20 +77,21 @@ public final class ObjectComparator implements Comparator<Object> {
 
   public ObjectComparator(boolean caseSensitive, Locale locale) {
     if (caseSensitive) {
-        textComparator = Text_Utils::compare_normalized;
+      textComparator = Text_Utils::compare_normalized;
     } else {
-        textComparator = (a, b) -> Text_Utils.compare_normalized_ignoring_case(a, b, locale);
+      textComparator = (a, b) -> Text_Utils.compare_normalized_ignoring_case(a, b, locale);
     }
   }
 
   public ObjectComparator(Function<Object, Function<Object, Value>> textComparator) {
-    this.textComparator = (a, b) -> {
-      var result = textComparator.apply(a).apply(b);
-      if (result.isNull()) {
-        throw new CompareException(a, b);
-      }
-      return result.asInt();
-    };
+    this.textComparator =
+        (a, b) -> {
+          var result = textComparator.apply(a).apply(b);
+          if (result.isNull()) {
+            throw new CompareException(a, b);
+          }
+          return result.asInt();
+        };
   }
 
   @Override

@@ -7,10 +7,8 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-
 import org.enso.persist.Persistance;
 import org.enso.persist.Persistance.Reference;
-
 
 final class IrLazyMap<K, V> extends AbstractMap<K, V> {
   private final Map<K, Entry<K, V>> delegate;

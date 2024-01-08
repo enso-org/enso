@@ -104,14 +104,16 @@ spec =
         Test.specify "should allow to inspect their stacktrace" <|
             error = throw_a_bar
             error.catch . should_equal "bar"
-            error.stack_trace.second.name . should_equal "Error_Spec.throw_a_bar"
-            error.stack_trace.second.source_location.file.name . should_equal "Error_Spec.enso"
-            error.stack_trace.second.source_location.start_line . should_equal 32
+            arr = error.stack_trace
+            arr.length>=1 . should_be_true
+            arr.first.name . should_equal "Error_Spec.throw_a_bar"
+            arr.first.source_location.file.name . should_equal "Error_Spec.enso"
+            arr.first.source_location.start_line . should_equal 32
 
         Test.specify "should allow to inspect the stack trace of a recovered panic" <|
             error = Panic.recover Any <| throw_a_bar_panicking
             error.catch . should_equal "bar"
-            error.stack_trace.second.name . should_equal "Error_Spec.throw_a_bar_panicking"
+            error.stack_trace.first.name . should_equal "Error_Spec.throw_a_bar_panicking"
 
         Test.specify "it should be possible to introduce arbitrary dataflow dependencies between values using `if_not_error`" <|
             42.if_not_error 23 . should_equal 23
@@ -144,7 +146,7 @@ spec =
         Test.specify "should provide access to stack traces" <|
             stack = Panic.catch Any throw_a_bar_panicking caught_panic->
                 caught_panic.stack_trace
-            stack.second.name . should_equal "Error_Spec.throw_a_bar_panicking"
+            stack.first.name . should_equal "Error_Spec.throw_a_bar_panicking"
 
         Test.specify "should provide access to Java stack traces" <|
             stack_1 = Panic.recover Any (do_a_parse "foo") . stack_trace
@@ -170,7 +172,7 @@ spec =
 
             error = Panic.recover Any (perform_operation throw_a_foo_panicking)
             error.catch . should_equal "foo"
-            error.stack_trace.second.name . should_equal "Error_Spec.throw_a_foo_panicking"
+            error.stack_trace.first.name . should_equal "Error_Spec.throw_a_foo_panicking"
 
         Test.specify "should work as in the examples" <|
             fun ~act =
@@ -194,10 +196,10 @@ spec =
         Test.specify "should allow to throw raw Java exceptions" <|
             exception = Panic.catch NumberFormatException (throw_raw_java "foo") (p -> p)
             exception.payload.getMessage . should_equal "foo"
-            Panic.get_attached_stack_trace exception . second . name . should_equal "Error_Spec.throw_raw_java"
+            Panic.get_attached_stack_trace exception . first . name . should_equal "Error_Spec.throw_raw_java"
 
             caught_panic = Panic.catch Any (throw_raw_java "foo") x->x
-            caught_panic.stack_trace.second.name . should_equal "Error_Spec.throw_raw_java"
+            caught_panic.stack_trace.first.name . should_equal "Error_Spec.throw_raw_java"
             caught_panic.payload . should_be_a JException
 
         Test.specify "should allow to re-throw raw Java exceptions" <|
@@ -217,7 +219,7 @@ spec =
                     Panic.throw caught_panic.payload
             message_2.get . should_equal "foo"
             caught_2.catch . should_be_a JException
-            caught_2.stack_trace.second.name . should_equal "Error_Spec.throw_raw_java"
+            caught_2.stack_trace.first.name . should_equal "Error_Spec.throw_raw_java"
 
         Test.specify "should allow to catch a specific panic type easily" <|
             message_1 = Panic.catch Illegal_Argument (Panic.throw (Illegal_Argument.Error "msg" Nothing)) caught_panic->
@@ -258,7 +260,7 @@ spec =
             Panic.recover [JException] (do_a_parse "foo") . catch . should_be_a JException
 
             Panic.recover Any throw_a_bar_panicking . catch . should_equal "bar"
-            Panic.recover Text throw_a_bar_panicking . stack_trace . second . name . should_equal "Error_Spec.throw_a_bar_panicking"
+            Panic.recover Text throw_a_bar_panicking . stack_trace . first . name . should_equal "Error_Spec.throw_a_bar_panicking"
 
         Test.specify "Unsupported_Argument_Types message should be readable" <|
             check err =

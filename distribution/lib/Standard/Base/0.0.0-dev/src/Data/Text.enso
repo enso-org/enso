@@ -55,6 +55,7 @@ type Text
 
        Arguments:
        - that: The text to compare `self` for case-insensitive equality with.
+       - locale: The locale to use for case-insensitive comparison.
 
        Two texts are considered equal ignoring case if they are of the same length
        and corresponding characters are equal ignoring case.
@@ -75,7 +76,7 @@ type Text
              (('É' . equals_ignore_case 'é') && ('é' . equals_ignore_case 'e\u0301')) == True
     @locale Locale.default_widget
     equals_ignore_case : Text -> Locale -> Boolean
-    equals_ignore_case self that locale=Locale.default =
+    equals_ignore_case self (that : Text) (locale : Locale = Locale.default) =
         Text_Utils.equals_ignore_case self that locale.java_locale
 
     ## PRIVATE
@@ -85,7 +86,7 @@ type Text
        used to perform case-insensitive comparisons.
     @locale Locale.default_widget
     to_case_insensitive_key : Locale -> Text
-    to_case_insensitive_key self locale=Locale.default =
+    to_case_insensitive_key self (locale : Locale = Locale.default) =
         Text_Utils.case_insensitive_key self locale.java_locale
 
     ## Compare two texts to discover their ordering.

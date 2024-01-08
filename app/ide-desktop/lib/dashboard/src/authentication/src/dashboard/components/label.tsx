@@ -34,6 +34,9 @@ interface InternalLabelProps
     /** When true, the button cannot be clicked. */
     disabled?: boolean
     color: backend.LChColor
+    /** When true, will turn opaque when the nearest ancestor `.group` is hovered.
+     * Otherwise, will turn opaque only when itself is hovered. */
+    group?: boolean
     className?: string
 }
 
@@ -46,6 +49,7 @@ export default function Label(props: InternalLabelProps) {
         negated = false,
         className = 'text-tag-text',
         children,
+        group = true,
         ...passthrough
     } = props
     const textColorClassName = /\btext-/.test(className)
@@ -58,12 +62,12 @@ export default function Label(props: InternalLabelProps) {
     return (
         <button
             disabled={disabled}
-            className={`flex items-center rounded-full gap-1.5 h-6 px-2.25 ${className} ${
+            className={`flex items-center rounded-full gap-1.5 h-6 px-2.25 transition-all ${className} ${
                 negated
                     ? 'relative before:absolute before:rounded-full before:border-2 before:border-delete before:inset-0 before:w-full before:h-full'
                     : ''
             } ${active ? '' : 'opacity-50'} ${
-                disabled ? '' : 'group-hover:opacity-100'
+                disabled ? '' : group ? 'group-hover:opacity-100' : 'hover:opacity-100'
             } ${textColorClassName}`}
             style={{ backgroundColor: backend.lChColorToCssColor(color) }}
             {...passthrough}

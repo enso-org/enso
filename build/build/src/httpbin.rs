@@ -29,7 +29,7 @@ pub async fn get_and_spawn_httpbin(
 ) -> Result<Spawned> {
     let process = sbt
         .command()?
-        .arg(format!("simple-httpbin/run localhost {port}"))
+        .arg(format!("http-test-helper/run localhost {port}"))
         .kill_on_drop(true)
         .spawn()?;
 

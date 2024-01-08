@@ -226,7 +226,7 @@ class ImportsTest extends PackageTest {
     ).toString shouldEqual "42"
   }
 
-  "Private modules" should "be able to import non-private stuff" in {
+  "Private modules" should "be able to import non-private stuff from different project" in {
     evalTestProject(
       "Test_Private_Modules_2"
     ).toString shouldEqual "(Pub_Mod_Type.Value 42)"
@@ -243,13 +243,10 @@ class ImportsTest extends PackageTest {
     )
   }
 
-  "Private modules" should "not be able to mix private and public submodules" in {
-    val e = the[InterpreterException] thrownBy evalTestProject(
+  "Private modules" should "be able to mix private and public submodules" in {
+    evalTestProject(
       "Test_Private_Modules_4"
-    )
-    e.getMessage() should include(
-      "Cannot export submodule 'local.Test_Private_Modules_4.Sub.Priv_SubMod' of module 'local.Test_Private_Modules_4.Sub'"
-    )
+    ) shouldEqual 42
   }
 
   "Private module" should "be able to have only private submodules" in {
@@ -258,17 +255,22 @@ class ImportsTest extends PackageTest {
     ) shouldEqual 42
   }
 
-  "Private modules" should "be able to mix private and public submodules when private checks are disabled" in {
-    evalTestProject(
-      "Test_Private_Modules_4",
-      Map(RuntimeOptions.DISABLE_PRIVATE_CHECK -> "true")
-    ) shouldEqual 42
-  }
-
   "Private modules" should "be able to import private modules from different project when private checks are disabled" in {
     evalTestProject(
       "Test_Private_Modules_3",
       Map(RuntimeOptions.DISABLE_PRIVATE_CHECK -> "true")
     ) shouldEqual "Success"
+  }
+
+  "Private modules" should "be able to have a private submodule under a public synthetic module" in {
+    evalTestProject(
+      "Test_Private_Modules_6"
+    ) shouldEqual 42
+  }
+
+  "Private modules" should "be able to have a public submodule under a private module" ignore {
+    evalTestProject(
+      "Test_Private_Modules_7"
+    ) shouldEqual 42
   }
 }

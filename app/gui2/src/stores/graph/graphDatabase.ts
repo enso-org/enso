@@ -3,20 +3,22 @@ import { SuggestionDb, groupColorStyle, type Group } from '@/stores/suggestionDa
 import type { SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import { Ast, RawAst, RawAstExtended } from '@/util/ast'
 import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
+import { nodeFromAst } from '@/util/ast/node'
 import { colorFromString } from '@/util/colors'
 import { MappedKeyMap, MappedSet } from '@/util/containers'
 import { arrayEquals, byteArraysEqual, tryGetIndex } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
 import { Vec2 } from '@/util/data/vec2'
 import { ReactiveDb, ReactiveIndex, ReactiveMapping } from '@/util/database/reactiveDb'
+import * as random from 'lib0/random'
 import * as set from 'lib0/set'
 import { methodPointerEquals, type MethodCall } from 'shared/languageServerTypes'
 import {
   IdMap,
   visMetadataEquals,
-  type ContentRange,
   type ExprId,
   type NodeMetadata,
+  type SourceRange,
   type VisualizationMetadata,
 } from 'shared/yjsModel'
 import { ref, type Ref } from 'vue'
@@ -87,9 +89,9 @@ export class BindingsDb {
   private static rangeMappings(
     ast: RawAstExtended,
     analyzer: AliasAnalyzer,
-  ): [MappedKeyMap<ContentRange, RawAstExtended>, Map<ExprId, ContentRange>] {
-    const bindingRangeToTree = new MappedKeyMap<ContentRange, RawAstExtended>(IdMap.keyForRange)
-    const bindingIdToRange = new Map<ExprId, ContentRange>()
+  ): [MappedKeyMap<SourceRange, RawAstExtended>, Map<ExprId, SourceRange>] {
+    const bindingRangeToTree = new MappedKeyMap<SourceRange, RawAstExtended>(IdMap.keyForRange)
+    const bindingIdToRange = new Map<ExprId, SourceRange>()
     const bindingRanges = new MappedSet(IdMap.keyForRange)
     for (const [binding, usages] of analyzer.aliases) {
       bindingRanges.add(binding)
@@ -151,8 +153,8 @@ export class GraphDb {
     if (entry.pattern == null) return []
     const ports = new Set<ExprId>()
     entry.pattern.visitRecursive((ast) => {
-      if (this.bindings.bindings.has(ast.astId)) {
-        ports.add(ast.astId)
+      if (this.bindings.bindings.has(ast.exprId)) {
+        ports.add(ast.exprId)
         return false
       }
       return true
@@ -251,7 +253,7 @@ export class GraphDb {
     const currentNodeIds = new Set<ExprId>()
     for (const nodeAst of functionAst_.bodyExpressions()) {
       const newNode = nodeFromAst(nodeAst)
-      const nodeId = newNode.rootSpan.astId
+      const nodeId = newNode.rootSpan.exprId
       const node = this.nodeIdToNode.get(nodeId)
       const nodeMeta = getMeta(nodeId)
       currentNodeIds.add(nodeId)
@@ -310,46 +312,39 @@ export class GraphDb {
     return new GraphDb(db, ref([]), registry)
   }
 
-  mockNode(binding: string, id: ExprId, code?: string) {
-    const node = {
+  mockNode(binding: string, id: Ast.AstId, code?: string): Node {
+    const pattern = Ast.parse(binding)
+    const node: Node = {
       outerExprId: id,
-      pattern: Ast.parse(binding),
+      pattern,
       rootSpan: Ast.parse(code ?? '0'),
       position: Vec2.Zero,
       vis: undefined,
     }
-    const bidingId = node.pattern.astId
+    const bindingId = pattern.exprId
     this.nodeIdToNode.set(id, node)
-    this.bindings.bindings.set(bidingId, { identifier: binding, usages: new Set() })
+    this.bindings.bindings.set(bindingId, { identifier: binding, usages: new Set() })
+    return node
   }
 }
 
 export interface Node {
-  outerExprId: ExprId
+  outerExprId: Ast.AstId
   pattern: Ast.Ast | undefined
   rootSpan: Ast.Ast
   position: Vec2
   vis: Opt<VisualizationMetadata>
 }
 
-function nodeFromAst(ast: Ast.Ast): Node {
-  const common = {
-    outerExprId: ast.exprId,
+/** This should only be used for supplying as initial props when testing.
+ * Please do {@link GraphDb.mockNode} with a `useGraphStore().db` after mount. */
+export function mockNode(exprId?: Ast.AstId): Node {
+  return {
+    outerExprId: exprId ?? (random.uuidv4() as Ast.AstId),
+    pattern: undefined,
+    rootSpan: Ast.parse('0'),
     position: Vec2.Zero,
     vis: undefined,
-  }
-  if (ast instanceof Ast.Assignment && ast.expression) {
-    return {
-      ...common,
-      pattern: ast.pattern ?? undefined,
-      rootSpan: ast.expression,
-    }
-  } else {
-    return {
-      ...common,
-      pattern: undefined,
-      rootSpan: ast,
-    }
   }
 }
 

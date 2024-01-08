@@ -50,12 +50,12 @@ const GITHUB_PROVIDER = 'Github'
 
 const MESSAGES = {
     signInWithPassword: {
-        userNotFound: 'Username not found. Please register first.',
+        userNotFound: 'User not found. Please sign up first.',
         userNotConfirmed: 'User is not confirmed. Please check your email for a confirmation link.',
         incorrectUsernameOrPassword: 'Incorrect username or password.',
     },
     forgotPassword: {
-        userNotFound: 'Username not found. Please register first.',
+        userNotFound: 'Cannot reset password as user not found.',
         userNotConfirmed: `Cannot reset password for user with an unverified email. \
 Please verify your email first.`,
     },

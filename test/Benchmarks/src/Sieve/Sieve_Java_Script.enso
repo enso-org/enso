@@ -33,7 +33,7 @@ foreign js filter_in_js = """
         while (filter != null) {
             if (filter.number) {
                 if (n % filter.number === 0) {
-                    return null;
+                    return [false, null];
                 }
                 if (filter.number > sqrt) {
                     break;
@@ -44,7 +44,7 @@ foreign js filter_in_js = """
         var newFilter = new Filter(n);
         this.last.next = newFilter;
         this.last = newFilter;
-        return this;
+        return [true, this];
     };
     return new Filter(null);
 
@@ -65,9 +65,10 @@ type Primes
 
 Primes.next self = case self of
     Primes.Alg g f ->
-        filter = f.acceptAndAdd g.n
-        new_primes = Primes.Alg g.next filter
-        if Meta.is_same_object filter f then @Tail_Call new_primes.next else new_primes
+        found_new = f.acceptAndAdd g.n
+        if found_new.first then Primes.Alg g.next found_new.last else
+            new_primes = Primes.Alg g.next f
+            @Tail_Call new_primes.next
 
 Primes.last_prime self = case self of
     Primes.Alg g _ -> g.n - 1

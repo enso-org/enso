@@ -1,17 +1,17 @@
 package org.enso.interpreter.test;
 
-import java.net.URI;
-import java.util.Set;
-import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.PolyglotException;
-import org.graalvm.polyglot.Source;
-import org.graalvm.polyglot.Value;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.net.URI;
+import java.util.Set;
+import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.PolyglotException;
+import org.graalvm.polyglot.Source;
+import org.graalvm.polyglot.Value;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -32,7 +32,10 @@ public class TypeMembersTest extends TestBase {
   @Test
   public void checkAtomMembers() throws Exception {
     final URI uri = new URI("memory://how_long.enso");
-    final Source src = Source.newBuilder("enso", """
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
     from Standard.Base.Data.Boolean import True, False
 
     type IntList
@@ -53,12 +56,12 @@ public class TypeMembersTest extends TestBase {
 
     list1 = IntList.Head 7 <| IntList.Head 3 <| IntList.End
 
-    """, "compare.enso")
+    """,
+                "compare.enso")
             .uri(uri)
             .buildLiteral();
 
     var module = ctx.eval(src);
-
 
     var headAtom = module.invokeMember("eval_expression", "list1");
     var seven = module.invokeMember("eval_expression", "list1.head");
@@ -82,15 +85,19 @@ public class TypeMembersTest extends TestBase {
   @Test
   public void ensureNonBuiltinMembersArePresent() throws Exception {
     final URI uri = new URI("memory://how_long.enso");
-    final Source src = Source.newBuilder("enso", """
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
     @Builtin_Type
     type Compile_Error
         Error message
-        
+
         to_display_text self = "Compile error: "+self.message
-        
+
     v = Compile_Error.Error "foo"
-    """, "to_display_text.enso")
+    """,
+                "to_display_text.enso")
             .uri(uri)
             .buildLiteral();
 

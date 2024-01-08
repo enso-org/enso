@@ -1,5 +1,6 @@
 package org.enso.table.data.column.storage;
 
+import java.util.BitSet;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
@@ -7,11 +8,7 @@ import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.graalvm.polyglot.Context;
 
-import java.util.BitSet;
-
-/**
- * A column storing arbitrary Java objects.
- */
+/** A column storing arbitrary Java objects. */
 public sealed class ObjectStorage extends SpecializedStorage<Object> permits MixedStorage {
   /**
    * @param data the underlying data
@@ -41,7 +38,8 @@ public sealed class ObjectStorage extends SpecializedStorage<Object> permits Mix
     ops.add(
         new UnaryMapOperation<>(Maps.IS_NOTHING) {
           @Override
-          protected BoolStorage runUnaryMap(S storage, MapOperationProblemAggregator problemAggregator) {
+          protected BoolStorage runUnaryMap(
+              S storage, MapOperationProblemAggregator problemAggregator) {
             Context context = Context.getCurrent();
             BitSet r = new BitSet();
             for (int i = 0; i < storage.size; i++) {
