@@ -2,8 +2,11 @@ from Standard.Base import all
 from Standard.Base.Runtime import State
 import project.Test_Result.Test_Result
 import project.Clue.Clue
+import project.Group.Group
 import project.Suite.Suite
 import project.Suite.Suite_Builder
+import project.Spec.Spec
+import project.Spec_Result.Spec_Result
 
 
 ## Contains only static methods
@@ -90,9 +93,9 @@ type Test
              from Standard.Test import Test
 
              example_fail = Test.fail "Something went wrong."
-    fail : Text -> Nothing|Text -> Test_Result
+    fail : Text -> Nothing|Text -> Spec_Result
     fail message details=Nothing =
-        failure = Test_Result.Failure (Test.enrich_message_with_clue message) details
+        failure = Spec_Result.Failure (Test.enrich_message_with_clue message) details
         Panic.throw failure
 
     ## PRIVATE
@@ -144,3 +147,4 @@ type Test
         result = behavior
         State.put Clue prev_clue
         result
+
