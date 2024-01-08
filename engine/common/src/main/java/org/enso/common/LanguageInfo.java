@@ -1,4 +1,4 @@
-package org.enso.polyglot;
+package org.enso.common;
 
 /** Constainer for language-level constants */
 public class LanguageInfo {

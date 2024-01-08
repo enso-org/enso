@@ -22,7 +22,7 @@ import org.enso.pkg.{
   SourceFile
 }
 import org.enso.text.buffer.Rope
-import org.enso.polyglot.CompilationStage
+import org.enso.common.CompilationStage
 
 import java.nio.file.Path
 import scala.collection.immutable.ListSet

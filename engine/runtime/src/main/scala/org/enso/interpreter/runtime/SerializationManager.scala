@@ -11,7 +11,7 @@ import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.editions.LibraryName
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.Suggestion
-import org.enso.polyglot.CompilationStage
+import org.enso.common.CompilationStage
 import org.enso.interpreter.caches.ImportExportCache
 import org.enso.interpreter.caches.ModuleCache
 import org.enso.interpreter.caches.SuggestionsCache

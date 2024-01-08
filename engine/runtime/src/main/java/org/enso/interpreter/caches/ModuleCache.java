@@ -20,7 +20,7 @@ import org.enso.compiler.core.ir.ProcessingPass;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.persist.Persistance;
-import org.enso.polyglot.CompilationStage;
+import org.enso.common.CompilationStage;
 
 public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCache.Metadata> {
 

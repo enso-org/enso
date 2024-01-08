@@ -804,8 +804,8 @@ lazy val `logging-truffle-connector` = project
       "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion        % "provided"
     )
   )
+  .dependsOn(`engine-common`)
   .dependsOn(`logging-utils`)
-  .dependsOn(`polyglot-api`)
 
 lazy val cli = project
   .in(file("lib/scala/cli"))
@@ -1208,6 +1208,21 @@ val testLogProviderOptions = Seq(
   "-Dconfig.resource=application-test.conf"
 )
 
+lazy val `engine-common` = project
+  .in(file("engine/common"))
+  .settings(
+    frgaalJavaCompilerSetting,
+    Test / fork := true,
+    commands += WithDebugCommand.withDebug,
+    Test / envVars ++= distributionEnvironmentOverrides,
+    Test / javaOptions ++= Seq(
+    ),
+    libraryDependencies ++= Seq(
+      "org.graalvm.polyglot" % "polyglot" % graalMavenPackagesVersion % "provided"
+    )
+  )
+  .dependsOn(testkit % Test)
+
 lazy val `polyglot-api` = project
   .in(file("engine/polyglot-api"))
   .settings(
@@ -1235,6 +1250,7 @@ lazy val `polyglot-api` = project
     GenerateFlatbuffers.flatcVersion := flatbuffersVersion,
     Compile / sourceGenerators += GenerateFlatbuffers.task
   )
+  .dependsOn(`engine-common`)
   .dependsOn(pkg)
   .dependsOn(`text-buffer`)
   .dependsOn(`logging-utils`)
@@ -1751,7 +1767,6 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(`persistance-dsl` % "provided")
   .dependsOn(`library-manager`)
   .dependsOn(`logging-truffle-connector`)
-  .dependsOn(`polyglot-api`)
   .dependsOn(`text-buffer`)
   .dependsOn(`runtime-compiler`)
   .dependsOn(`connected-lock-manager`)
@@ -1801,9 +1816,25 @@ lazy val `runtime-compiler` =
     )
     .dependsOn(`runtime-parser`)
     .dependsOn(pkg)
-    .dependsOn(`polyglot-api`)
+    .dependsOn(`engine-common`)
+    .dependsOn(`text-buffer`)
     .dependsOn(editions)
     .dependsOn(`persistance-dsl` % "provided")
+
+lazy val `runtime-suggestions` =
+  (project in file("engine/runtime-suggestions"))
+    .settings(
+      frgaalJavaCompilerSetting,
+      instrumentationSettings,
+      libraryDependencies ++= Seq(
+        "junit"            % "junit"                   % junitVersion       % Test,
+        "com.github.sbt"   % "junit-interface"         % junitIfVersion     % Test,
+        "org.scalatest"   %% "scalatest"               % scalatestVersion   % Test,
+        "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided"
+      )
+    )
+    .dependsOn(`runtime-compiler`)
+    .dependsOn(`polyglot-api`)
 
 lazy val `runtime-instrument-common` =
   (project in file("engine/runtime-instrument-common"))

@@ -1,5 +1,6 @@
 package org.enso.polyglot
 import java.io.File
+import org.enso.common.LanguageInfo
 
 import org.graalvm.polyglot.{Context, Source}
 

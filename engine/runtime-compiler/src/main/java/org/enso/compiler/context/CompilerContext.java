@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.logging.Level;
+import org.enso.common.CompilationStage;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.PackageRepository;
 import org.enso.compiler.Passes;
@@ -17,8 +18,6 @@ import org.enso.compiler.data.CompilerConfig;
 import org.enso.editions.LibraryName;
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
-import org.enso.polyglot.CompilationStage;
-import org.enso.polyglot.data.TypeGraph;
 
 /**
  * Interface that encapsulate all services {@link Compiler} needs from Truffle or other environment.
@@ -86,8 +85,6 @@ public interface CompilerContext extends CompilerStub {
   org.enso.compiler.core.ir.Module getIr(Module module);
 
   CompilationStage getCompilationStage(Module module);
-
-  TypeGraph getTypeHierarchy();
 
   Future<Boolean> serializeLibrary(
       Compiler compiler, LibraryName libraryName, boolean useGlobalCacheLocations);
