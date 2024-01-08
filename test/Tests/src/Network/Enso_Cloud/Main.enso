@@ -1,0 +1,13 @@
+from Standard.Base import all
+
+from Standard.Test import Test_Suite
+
+import project.Network.Enso_Cloud.Enso_Cloud_Spec
+import project.Network.Enso_Cloud.Secrets_Spec
+import project.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
+
+spec setup =
+    Enso_Cloud_Spec.spec setup
+    Secrets_Spec.spec setup
+
+main = Test_Suite.run_main (spec Cloud_Tests_Setup.prepare)
