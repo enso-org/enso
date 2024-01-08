@@ -6,6 +6,7 @@ import * as toast from 'react-toastify'
 import * as assetEvent from '#/events/assetEvent'
 import * as assetListEvent from '#/events/assetListEvent'
 import * as hooks from '#/hooks'
+import type * as assetSearchBar from '#/layouts/dashboard/assetSearchBar'
 import type * as assetSettingsPanel from '#/layouts/dashboard/AssetSettingsPanel'
 import * as categorySwitcherUtils from '#/layouts/dashboard/CategorySwitcher/categorySwitcherUtils'
 import GlobalContextMenu from '#/layouts/dashboard/GlobalContextMenu'
@@ -16,10 +17,11 @@ import * as modalProvider from '#/providers/ModalProvider'
 import * as shortcutsProvider from '#/providers/ShortcutsProvider'
 import * as backendModule from '#/services/backend'
 import * as array from '#/utilities/array'
-import type * as assetQuery from '#/utilities/assetQuery'
+import * as assetQuery from '#/utilities/assetQuery'
 import * as assetTreeNode from '#/utilities/assetTreeNode'
 import * as dateTime from '#/utilities/dateTime'
 import * as drag from '#/utilities/drag'
+import * as fileInfo from '#/utilities/fileInfo'
 import * as localStorageModule from '#/utilities/localStorage'
 import * as permissions from '#/utilities/permissions'
 import * as set from '#/utilities/set'
@@ -27,7 +29,7 @@ import * as shortcutsModule from '#/utilities/shortcuts'
 import * as sorting from '#/utilities/sorting'
 import * as string from '#/utilities/string'
 import * as uniqueString from '#/utilities/uniqueString'
-import type * as visibilityModule from '#/utilities/visibility'
+import * as visibilityModule from '#/utilities/visibility'
 
 import Button from '#/components/Button'
 import ContextMenu from '#/components/ContextMenu'
@@ -38,6 +40,7 @@ import * as columnModule from '#/components/dashboard/column'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
 import * as columnHeading from '#/components/dashboard/columnHeading'
 import ConfirmDeleteModal from '#/components/dashboard/ConfirmDeleteModal'
+import Label from '#/components/dashboard/Label'
 import DragModal from '#/components/DragModal'
 import MenuEntry from '#/components/MenuEntry'
 import Table from '#/components/Table'
@@ -74,6 +77,75 @@ const TRASH_PLACEHOLDER = <span className="opacity-75 px-1.5">Your trash is empt
 const DIRECTORY_NAME_REGEX = /^New_Folder_(?<directoryIndex>\d+)$/
 /** The default prefix of an automatically generated directory. */
 const DIRECTORY_NAME_DEFAULT_PREFIX = 'New_Folder_'
+
+const SUGGESTIONS_FOR_NO: assetSearchBar.Suggestion[] = [
+    {
+        render: () => 'no:label',
+        addToQuery: query => query.addToLastTerm({ nos: ['label'] }),
+        deleteFromQuery: query => query.deleteFromLastTerm({ nos: ['label'] }),
+    },
+    {
+        render: () => 'no:description',
+        addToQuery: query => query.addToLastTerm({ nos: ['description'] }),
+        deleteFromQuery: query => query.deleteFromLastTerm({ nos: ['description'] }),
+    },
+]
+const SUGGESTIONS_FOR_HAS: assetSearchBar.Suggestion[] = [
+    {
+        render: () => 'has:label',
+        addToQuery: query => query.addToLastTerm({ negativeNos: ['label'] }),
+        deleteFromQuery: query => query.deleteFromLastTerm({ negativeNos: ['label'] }),
+    },
+    {
+        render: () => 'has:description',
+        addToQuery: query => query.addToLastTerm({ negativeNos: ['description'] }),
+        deleteFromQuery: query => query.deleteFromLastTerm({ negativeNos: ['description'] }),
+    },
+]
+const SUGGESTIONS_FOR_TYPE: assetSearchBar.Suggestion[] = [
+    {
+        render: () => 'type:project',
+        addToQuery: query => query.addToLastTerm({ types: ['project'] }),
+        deleteFromQuery: query => query.deleteFromLastTerm({ types: ['project'] }),
+    },
+    {
+        render: () => 'type:folder',
+        addToQuery: query => query.addToLastTerm({ types: ['folder'] }),
+        deleteFromQuery: query => query.deleteFromLastTerm({ types: ['folder'] }),
+    },
+    {
+        render: () => 'type:file',
+        addToQuery: query => query.addToLastTerm({ types: ['file'] }),
+        deleteFromQuery: query => query.deleteFromLastTerm({ types: ['file'] }),
+    },
+    {
+        render: () => 'type:connector',
+        addToQuery: query => query.addToLastTerm({ types: ['connector'] }),
+        deleteFromQuery: query => query.deleteFromLastTerm({ types: ['connector'] }),
+    },
+]
+const SUGGESTIONS_FOR_NEGATIVE_TYPE: assetSearchBar.Suggestion[] = [
+    {
+        render: () => 'type:project',
+        addToQuery: query => query.addToLastTerm({ negativeTypes: ['project'] }),
+        deleteFromQuery: query => query.deleteFromLastTerm({ negativeTypes: ['project'] }),
+    },
+    {
+        render: () => 'type:folder',
+        addToQuery: query => query.addToLastTerm({ negativeTypes: ['folder'] }),
+        deleteFromQuery: query => query.deleteFromLastTerm({ negativeTypes: ['folder'] }),
+    },
+    {
+        render: () => 'type:file',
+        addToQuery: query => query.addToLastTerm({ negativeTypes: ['file'] }),
+        deleteFromQuery: query => query.deleteFromLastTerm({ negativeTypes: ['file'] }),
+    },
+    {
+        render: () => 'type:connector',
+        addToQuery: query => query.addToLastTerm({ negativeTypes: ['connector'] }),
+        deleteFromQuery: query => query.deleteFromLastTerm({ negativeTypes: ['connector'] }),
+    },
+]
 
 // ===================================
 // === insertAssetTreeNodeChildren ===
@@ -141,6 +213,7 @@ const CATEGORY_TO_FILTER_BY: Record<categorySwitcherUtils.Category, backendModul
 /** State passed through from a {@link AssetsTable} to every cell. */
 export interface AssetsTableState {
     numberOfSelectedItems: number
+    visibilities: ReadonlyMap<backendModule.AssetId, visibilityModule.Visibility>
     category: categorySwitcherUtils.Category
     labels: Map<backendModule.LabelName, backendModule.Label>
     deletedLabelNames: Set<backendModule.LabelName>
@@ -207,6 +280,7 @@ export interface AssetsTableProps {
     setQuery: React.Dispatch<React.SetStateAction<assetQuery.AssetQuery>>
     category: categorySwitcherUtils.Category
     allLabels: Map<backendModule.LabelName, backendModule.Label>
+    setSuggestions: (suggestions: assetSearchBar.Suggestion[]) => void
     initialProjectName: string | null
     projectStartupInfo: backendModule.ProjectStartupInfo | null
     deletedLabelNames: Set<backendModule.LabelName>
@@ -240,6 +314,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         setQuery,
         category,
         allLabels,
+        setSuggestions,
         deletedLabelNames,
         initialProjectName,
         projectStartupInfo,
@@ -285,15 +360,111 @@ export default function AssetsTable(props: AssetsTableProps) {
         [backend, organization]
     )
     const filter = React.useMemo(() => {
-        if (query.query === '') {
+        const globCache: Record<string, RegExp> = {}
+        if (/^\s*$/.test(query.query)) {
             return null
         } else {
             return (node: assetTreeNode.AssetTreeNode) => {
+                const assetType =
+                    node.item.type === backendModule.AssetType.directory
+                        ? 'folder'
+                        : node.item.type === backendModule.AssetType.secret
+                        ? 'connector'
+                        : String(node.item.type)
+                const assetExtension =
+                    node.item.type !== backendModule.AssetType.file
+                        ? null
+                        : fileInfo.fileExtension(node.item.title).toLowerCase()
+                const assetModifiedAt = new Date(node.item.modifiedAt)
                 const labels: string[] = node.item.labels ?? []
                 const lowercaseName = node.item.title.toLowerCase()
+                const lowercaseDescription = node.item.description?.toLowerCase() ?? ''
+                const owners =
+                    node.item.permissions
+                        ?.filter(
+                            permission => permission.permission === permissions.PermissionAction.own
+                        )
+                        .map(owner => owner.user.user_name) ?? []
+                const globMatch = (glob: string, match: string) => {
+                    const regex = (globCache[glob] =
+                        globCache[glob] ??
+                        new RegExp(
+                            '^' + string.regexEscape(glob).replace(/(?:\\\*)+/g, '.*') + '$',
+                            'i'
+                        ))
+                    return regex.test(match)
+                }
+                const isAbsent = (type: string) => {
+                    switch (type) {
+                        case 'label':
+                        case 'labels': {
+                            return labels.length === 0
+                        }
+                        case 'name': {
+                            // Should never be true, but handle it just in case.
+                            return lowercaseName === ''
+                        }
+                        case 'description': {
+                            return lowercaseDescription === ''
+                        }
+                        case 'extension': {
+                            // Should never be true, but handle it just in case.
+                            return assetExtension === ''
+                        }
+                    }
+                    // Things like `no:name` and `no:owner` are never true.
+                    return false
+                }
+                const parseDate = (date: string) => {
+                    const lowercase = date.toLowerCase()
+                    switch (lowercase) {
+                        case 'today': {
+                            return new Date()
+                        }
+                    }
+                    return new Date(date)
+                }
+                const matchesDate = (date: string) => {
+                    const parsed = parseDate(date)
+                    return (
+                        parsed.getFullYear() === assetModifiedAt.getFullYear() &&
+                        parsed.getMonth() === assetModifiedAt.getMonth() &&
+                        parsed.getDate() === assetModifiedAt.getDate()
+                    )
+                }
+                const isEmpty = (values: string[]) =>
+                    values.length === 0 || (values.length === 1 && values[0] === '')
+                const filterTag = (
+                    positive: string[][],
+                    negative: string[][],
+                    predicate: (value: string) => boolean
+                ) =>
+                    positive.every(values => isEmpty(values) || values.some(predicate)) &&
+                    negative.every(values => !values.some(predicate))
                 return (
-                    query.labels.every(label => labels.includes(label)) &&
-                    query.keywords.every(keyword => lowercaseName.includes(keyword.toLowerCase()))
+                    filterTag(query.nos, query.negativeNos, no => isAbsent(no.toLowerCase())) &&
+                    filterTag(query.keywords, query.negativeKeywords, keyword =>
+                        lowercaseName.includes(keyword.toLowerCase())
+                    ) &&
+                    filterTag(query.names, query.negativeNames, name =>
+                        globMatch(name, lowercaseName)
+                    ) &&
+                    filterTag(query.labels, query.negativeLabels, label =>
+                        labels.some(assetLabel => globMatch(label, assetLabel))
+                    ) &&
+                    filterTag(query.types, query.negativeTypes, type => type === assetType) &&
+                    filterTag(
+                        query.extensions,
+                        query.negativeExtensions,
+                        extension => extension.toLowerCase() === assetExtension
+                    ) &&
+                    filterTag(query.descriptions, query.negativeDescriptions, description =>
+                        lowercaseDescription.includes(description.toLowerCase())
+                    ) &&
+                    filterTag(query.modifieds, query.negativeModifieds, matchesDate) &&
+                    filterTag(query.owners, query.negativeOwners, owner =>
+                        owners.some(assetOwner => globMatch(owner, assetOwner))
+                    )
                 )
             }
         }
@@ -332,6 +503,231 @@ export default function AssetsTable(props: AssetsTableProps) {
             )
         }
     }, [assetTree, sortColumn, sortDirection])
+    const visibilities = React.useMemo(() => {
+        const map = new Map<backendModule.AssetId, visibilityModule.Visibility>()
+        const processNode = (node: assetTreeNode.AssetTreeNode) => {
+            let displayState = visibilityModule.Visibility.hidden
+            const visible = filter?.(node) ?? true
+            for (const child of node.children ?? []) {
+                if (visible && child.item.type === backendModule.AssetType.specialEmpty) {
+                    map.set(child.key, visibilityModule.Visibility.visible)
+                } else {
+                    processNode(child)
+                }
+                if (map.get(child.key) !== visibilityModule.Visibility.hidden) {
+                    displayState = visibilityModule.Visibility.faded
+                }
+            }
+            if (visible) {
+                displayState = visibilityModule.Visibility.visible
+            }
+            map.set(node.key, displayState)
+            return displayState
+        }
+        for (const topLevelNode of assetTree) {
+            processNode(topLevelNode)
+        }
+        return map
+    }, [assetTree, filter])
+
+    React.useEffect(() => {
+        const nodeToSuggestion = (
+            node: assetTreeNode.AssetTreeNode,
+            key: assetQuery.AssetQueryKey = 'names'
+        ): assetSearchBar.Suggestion => ({
+            render: () => `${key === 'names' ? '' : '-:'}${node.item.title}`,
+            addToQuery: oldQuery => oldQuery.addToLastTerm({ [key]: [node.item.title] }),
+            deleteFromQuery: oldQuery => oldQuery.deleteFromLastTerm({ [key]: [node.item.title] }),
+        })
+        const allVisibleNodes = () =>
+            assetTreeNode
+                .assetTreePreorderTraversal(assetTree, children =>
+                    children.filter(
+                        child => visibilities.get(child.key) !== visibilityModule.Visibility.hidden
+                    )
+                )
+                .filter(
+                    node =>
+                        visibilities.get(node.key) === visibilityModule.Visibility.visible &&
+                        node.item.type !== backendModule.AssetType.specialEmpty &&
+                        node.item.type !== backendModule.AssetType.specialLoading
+                )
+        const allVisible = (negative = false) =>
+            allVisibleNodes().map(node =>
+                nodeToSuggestion(node, negative ? 'negativeNames' : 'names')
+            )
+        const terms = assetQuery.AssetQuery.terms(query.query)
+        const lastTerm = terms[terms.length - 1]
+        const lastTermValues = lastTerm?.values ?? []
+        const shouldOmitNames = terms.some(term => term.tag === 'name')
+        if (lastTermValues.length !== 0) {
+            setSuggestions(shouldOmitNames ? [] : allVisible())
+        } else {
+            const negative = lastTerm?.tag?.startsWith('-') ?? false
+            switch (lastTerm?.tag ?? null) {
+                case null:
+                case '':
+                case '-':
+                case 'name':
+                case '-name': {
+                    setSuggestions(allVisible(negative))
+                    break
+                }
+                case 'no':
+                case '-has': {
+                    setSuggestions(SUGGESTIONS_FOR_NO)
+                    break
+                }
+                case 'has':
+                case '-no': {
+                    setSuggestions(SUGGESTIONS_FOR_HAS)
+                    break
+                }
+                case 'type': {
+                    setSuggestions(SUGGESTIONS_FOR_TYPE)
+                    break
+                }
+                case '-type': {
+                    setSuggestions(SUGGESTIONS_FOR_NEGATIVE_TYPE)
+                    break
+                }
+                case 'ext':
+                case '-ext':
+                case 'extension':
+                case '-extension': {
+                    const extensions = allVisibleNodes()
+                        .filter(node => node.item.type === backendModule.AssetType.file)
+                        .map(node => fileInfo.fileExtension(node.item.title))
+                    setSuggestions(
+                        Array.from(
+                            new Set(extensions),
+                            (extension): assetSearchBar.Suggestion => ({
+                                render: () =>
+                                    assetQuery.AssetQuery.termToString({
+                                        tag: `${negative ? '-' : ''}extension`,
+                                        values: [extension],
+                                    }),
+                                addToQuery: oldQuery =>
+                                    oldQuery.addToLastTerm(
+                                        negative
+                                            ? { negativeExtensions: [extension] }
+                                            : { extensions: [extension] }
+                                    ),
+                                deleteFromQuery: oldQuery =>
+                                    oldQuery.deleteFromLastTerm(
+                                        negative
+                                            ? { negativeExtensions: [extension] }
+                                            : { extensions: [extension] }
+                                    ),
+                            })
+                        )
+                    )
+                    break
+                }
+                case 'modified':
+                case '-modified': {
+                    const modifieds = assetTreeNode
+                        .assetTreePreorderTraversal(assetTree)
+                        .map(node => {
+                            const date = new Date(node.item.modifiedAt)
+                            return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
+                        })
+                    setSuggestions(
+                        Array.from(
+                            new Set(['today', ...modifieds]),
+                            (modified): assetSearchBar.Suggestion => ({
+                                render: () =>
+                                    assetQuery.AssetQuery.termToString({
+                                        tag: `${negative ? '-' : ''}modified`,
+                                        values: [modified],
+                                    }),
+                                addToQuery: oldQuery =>
+                                    oldQuery.addToLastTerm(
+                                        negative
+                                            ? { negativeModifieds: [modified] }
+                                            : { modifieds: [modified] }
+                                    ),
+                                deleteFromQuery: oldQuery =>
+                                    oldQuery.deleteFromLastTerm(
+                                        negative
+                                            ? { negativeModifieds: [modified] }
+                                            : { modifieds: [modified] }
+                                    ),
+                            })
+                        )
+                    )
+                    break
+                }
+                case 'owner':
+                case '-owner': {
+                    const owners = assetTreeNode
+                        .assetTreePreorderTraversal(assetTree)
+                        .flatMap(node =>
+                            (node.item.permissions ?? [])
+                                .filter(
+                                    permission =>
+                                        permission.permission === permissions.PermissionAction.own
+                                )
+                                .map(permission => permission.user.user_name)
+                        )
+                    setSuggestions(
+                        Array.from(
+                            new Set(owners),
+                            (owner): assetSearchBar.Suggestion => ({
+                                render: () =>
+                                    assetQuery.AssetQuery.termToString({
+                                        tag: `${negative ? '-' : ''}owner`,
+                                        values: [owner],
+                                    }),
+                                addToQuery: oldQuery =>
+                                    oldQuery.addToLastTerm(
+                                        negative ? { negativeOwners: [owner] } : { owners: [owner] }
+                                    ),
+                                deleteFromQuery: oldQuery =>
+                                    oldQuery.deleteFromLastTerm(
+                                        negative ? { negativeOwners: [owner] } : { owners: [owner] }
+                                    ),
+                            })
+                        )
+                    )
+                    break
+                }
+                case 'label':
+                case '-label': {
+                    setSuggestions(
+                        Array.from(
+                            allLabels.values(),
+                            (label): assetSearchBar.Suggestion => ({
+                                render: () => (
+                                    <Label active color={label.color} onClick={() => {}}>
+                                        {label.value}
+                                    </Label>
+                                ),
+                                addToQuery: oldQuery =>
+                                    oldQuery.addToLastTerm(
+                                        negative
+                                            ? { negativeLabels: [label.value] }
+                                            : { labels: [label.value] }
+                                    ),
+                                deleteFromQuery: oldQuery =>
+                                    oldQuery.deleteFromLastTerm(
+                                        negative
+                                            ? { negativeLabels: [label.value] }
+                                            : { labels: [label.value] }
+                                    ),
+                            })
+                        )
+                    )
+
+                    break
+                }
+                default: {
+                    setSuggestions(shouldOmitNames ? [] : allVisible())
+                    break
+                }
+            }
+        }
+    }, [assetTree, query, visibilities, allLabels, /* should never change */ setSuggestions])
 
     React.useEffect(() => {
         if (rawQueuedAssetEvents.length !== 0) {
@@ -1308,6 +1704,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     const state = React.useMemo(
         // The type MUST be here to trigger excess property errors at typecheck time.
         (): AssetsTableState => ({
+            visibilities,
             numberOfSelectedItems: selectedKeys.size,
             category,
             labels: allLabels,
@@ -1334,6 +1731,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             doPaste,
         }),
         [
+            visibilities,
             selectedKeys.size,
             category,
             allLabels,
@@ -1429,7 +1827,9 @@ export default function AssetsTable(props: AssetsTableProps) {
                     }
                     rowComponent={AssetRow}
                     items={displayItems}
-                    filter={filter}
+                    filter={node =>
+                        visibilities.get(node.key) !== visibilityModule.Visibility.hidden
+                    }
                     isLoading={isLoading}
                     state={state}
                     initialRowState={INITIAL_ROW_STATE}

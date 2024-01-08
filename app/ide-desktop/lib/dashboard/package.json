@@ -18,8 +18,8 @@
     "build": "tsx bundle.ts",
     "dev": "vite",
     "start": "tsx start.ts",
-    "test": "npm run test:unit",
-    "test:unit": "playwright test",
+    "test": "vitest run",
+    "test:unit": "vitest",
     "test:browsers": "npx --yes playwright install && npm run test:component && npm run test:e2e-and-log",
     "test:component": "playwright test -c playwright-component.config.ts",
     "test:e2e": "npx playwright test -c playwright-e2e.config.ts",
@@ -69,7 +69,8 @@
     "ts-plugin-namespace-auto-import": "^1.0.0",
     "tsx": "^3.12.6",
     "typescript": "~5.2.2",
-    "vite": "^4.4.9"
+    "vite": "^4.4.9",
+    "vitest": "^0.34.4"
   },
   "optionalDependencies": {
     "@esbuild/darwin-x64": "^0.17.15",

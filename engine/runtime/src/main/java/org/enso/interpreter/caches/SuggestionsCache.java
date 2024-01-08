@@ -1,13 +1,12 @@
 package org.enso.interpreter.caches;
 
 import buildinfo.Info;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLogger;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -27,8 +26,6 @@ public final class SuggestionsCache
   private static final String SUGGESTIONS_CACHE_DATA_EXTENSION = ".suggestions";
   private static final String SUGGESTIONS_CACHE_METADATA_EXTENSION = ".suggestions.meta";
 
-  private static final ObjectMapper objectMapper = new ObjectMapper();
-
   final LibraryName libraryName;
 
   public SuggestionsCache(LibraryName libraryName) {
@@ -40,14 +37,9 @@ public final class SuggestionsCache
   }
 
   @Override
-  protected byte[] metadata(String sourceDigest, String blobDigest, CachedSuggestions entry) {
-    try {
-      return objectMapper
-          .writeValueAsString(new Metadata(sourceDigest, blobDigest))
-          .getBytes(metadataCharset);
-    } catch (JsonProcessingException e) {
-      throw new RuntimeException(e);
-    }
+  protected byte[] metadata(String sourceDigest, String blobDigest, CachedSuggestions entry)
+      throws IOException {
+    return new Metadata(sourceDigest, blobDigest).toBytes();
   }
 
   @Override
@@ -65,14 +57,9 @@ public final class SuggestionsCache
   }
 
   @Override
-  protected Optional<Metadata> metadataFromBytes(byte[] bytes, TruffleLogger logger) {
-    var maybeJsonString = new String(bytes, Cache.metadataCharset);
-    try {
-      return Optional.of(objectMapper.readValue(maybeJsonString, SuggestionsCache.Metadata.class));
-    } catch (JsonProcessingException e) {
-      logger.log(logLevel, "Failed to deserialize suggestions' metadata.", e);
-      return Optional.empty();
-    }
+  protected Optional<Metadata> metadataFromBytes(byte[] bytes, TruffleLogger logger)
+      throws IOException {
+    return Optional.of(Metadata.read(bytes));
   }
 
   @Override
@@ -173,7 +160,21 @@ public final class SuggestionsCache
     }
   }
 
-  record Metadata(
-      @JsonProperty("source_hash") String sourceHash, @JsonProperty("blob_hash") String blobHash)
-      implements Cache.Metadata {}
+  record Metadata(String sourceHash, String blobHash) implements Cache.Metadata {
+    byte[] toBytes() throws IOException {
+      try (var os = new ByteArrayOutputStream();
+          var dos = new DataOutputStream(os)) {
+        dos.writeUTF(sourceHash());
+        dos.writeUTF(blobHash());
+        return os.toByteArray();
+      }
+    }
+
+    static Metadata read(byte[] arr) throws IOException {
+      try (var is = new ByteArrayInputStream(arr);
+          var dis = new DataInputStream(is)) {
+        return new Metadata(dis.readUTF(), dis.readUTF());
+      }
+    }
+  }
 }

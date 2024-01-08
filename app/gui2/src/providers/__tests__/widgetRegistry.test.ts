@@ -1,17 +1,17 @@
 import {
-  AnyWidget,
   Score,
+  WidgetInput,
   WidgetRegistry,
   defineWidget,
   type WidgetDefinition,
-  type WidgetInput,
   type WidgetModule,
 } from '@/providers/widgetRegistry'
 import { GraphDb } from '@/stores/graph/graphDatabase'
 import { Ast } from '@/util/ast'
-import { ApplicationKind, ArgumentPlaceholder } from '@/util/callTree'
+import { ApplicationKind, ArgumentInfoKey } from '@/util/callTree'
 import { describe, expect, test } from 'vitest'
 import { defineComponent } from 'vue'
+import type { PortId } from '../portInfo'
 import { DisplayMode, argsWidgetConfigurationSchema } from '../widgetRegistry/configuration'
 
 describe('WidgetRegistry', () => {
@@ -27,15 +27,15 @@ describe('WidgetRegistry', () => {
 
   const widgetA = makeMockWidget(
     'A',
-    defineWidget(AnyWidget, {
+    defineWidget(WidgetInput.isAstOrPlaceholder, {
       priority: 1,
     }),
   )
 
   const widgetB = makeMockWidget(
     'B',
-    defineWidget(ArgumentPlaceholder, {
-      priority: 2,
+    defineWidget(ArgumentInfoKey, {
+      priority: 0,
     }),
   )
 
@@ -49,26 +49,28 @@ describe('WidgetRegistry', () => {
 
   const widgetD = makeMockWidget(
     'D',
-    defineWidget(AnyWidget, {
+    defineWidget(WidgetInput.isAstOrPlaceholder, {
       priority: 20,
-      score: (props) => (props.input.ast?.code() === '_' ? Score.Perfect : Score.Mismatch),
+      score: (props) =>
+        WidgetInput.valueRepr(props.input) === '_' ? Score.Perfect : Score.Mismatch,
     }),
   )
 
-  const someAst = AnyWidget.Ast(Ast.parse('foo'))
-  const blankAst = AnyWidget.Ast(Ast.parse('_'))
-  const somePlaceholder = new ArgumentPlaceholder(
-    '57d429dc-df85-49f8-b150-567c7d1fb502',
-    0,
-    {
-      name: 'foo',
-      reprType: 'Any',
-      isSuspended: false,
-      hasDefault: false,
+  const someAst = WidgetInput.FromAst(Ast.parse('foo'))
+  const blankAst = WidgetInput.FromAst(Ast.parse('_'))
+  const someArgPlaceholder: WidgetInput = {
+    portId: '57d429dc-df85-49f8-b150-567c7d1fb502' as PortId,
+    value: 'bar',
+    [ArgumentInfoKey]: {
+      info: {
+        name: 'foo',
+        reprType: 'Any',
+        isSuspended: false,
+        hasDefault: false,
+      },
+      appKind: ApplicationKind.Prefix,
     },
-    ApplicationKind.Prefix,
-    false,
-  )
+  }
 
   const mockGraphDb = GraphDb.Mock()
   const registry = new WidgetRegistry(mockGraphDb)
@@ -79,7 +81,7 @@ describe('WidgetRegistry', () => {
 
   test('selects a widget based on the input type', () => {
     const forAst = registry.select({ input: someAst, nesting: 0 })
-    const forArg = registry.select({ input: somePlaceholder, nesting: 0 })
+    const forArg = registry.select({ input: someArgPlaceholder, nesting: 0 })
     expect(forAst).toStrictEqual(widgetA)
     expect(forArg).toStrictEqual(widgetB)
   })
@@ -87,8 +89,8 @@ describe('WidgetRegistry', () => {
   test('selects a widget outside of the excluded set', () => {
     const forAst = registry.select({ input: someAst, nesting: 0 }, new Set([widgetA.default]))
     const forArg = registry.select(
-      { input: somePlaceholder, nesting: 0 },
-      new Set([widgetB.default]),
+      { input: someArgPlaceholder, nesting: 0 },
+      new Set([widgetA.default, widgetB.default]),
     )
     expect(forAst).toStrictEqual(widgetC)
     expect(forArg).toStrictEqual(widgetC)

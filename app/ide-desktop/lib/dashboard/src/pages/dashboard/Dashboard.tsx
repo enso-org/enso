@@ -5,6 +5,7 @@ import * as React from 'react'
 import * as assetEvent from '#/events/assetEvent'
 import * as assetListEvent from '#/events/assetListEvent'
 import * as hooks from '#/hooks'
+import type * as assetSearchBar from '#/layouts/dashboard/assetSearchBar'
 import type * as assetSettingsPanel from '#/layouts/dashboard/AssetSettingsPanel'
 import AssetSettingsPanel from '#/layouts/dashboard/AssetSettingsPanel'
 import * as categorySwitcherUtils from '#/layouts/dashboard/CategorySwitcher/categorySwitcherUtils'
@@ -63,7 +64,6 @@ export default function Dashboard(props: DashboardProps) {
     const { localStorage } = localStorageProvider.useLocalStorage()
     const { shortcuts } = shortcutsProvider.useShortcuts()
     const [initialized, setInitialized] = React.useState(false)
-    const [query, setQuery] = React.useState(() => assetQuery.AssetQuery.fromString(''))
     const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
     const [isHelpChatVisible, setIsHelpChatVisible] = React.useState(false)
     const [loadingProjectManagerDidFail, setLoadingProjectManagerDidFail] = React.useState(false)
@@ -71,6 +71,9 @@ export default function Dashboard(props: DashboardProps) {
         () => localStorage.get(localStorageModule.LocalStorageKey.page) ?? pageSwitcher.Page.drive
     )
     const [queuedAssetEvents, setQueuedAssetEvents] = React.useState<assetEvent.AssetEvent[]>([])
+    const [query, setQuery] = React.useState(() => assetQuery.AssetQuery.fromString(''))
+    const [labels, setLabels] = React.useState<backendModule.Label[]>([])
+    const [suggestions, setSuggestions] = React.useState<assetSearchBar.Suggestion[]>([])
     const [projectStartupInfo, setProjectStartupInfo] =
         React.useState<backendModule.ProjectStartupInfo | null>(null)
     const [openProjectAbortController, setOpenProjectAbortController] =
@@ -427,6 +430,8 @@ export default function Dashboard(props: DashboardProps) {
                         setBackendType={setBackendType}
                         query={query}
                         setQuery={setQuery}
+                        labels={labels}
+                        suggestions={suggestions}
                         canToggleSettingsPanel={assetSettingsPanelProps != null}
                         isSettingsPanelVisible={
                             isAssetSettingsPanelVisible && assetSettingsPanelProps != null
@@ -451,6 +456,9 @@ export default function Dashboard(props: DashboardProps) {
                         initialProjectName={initialProjectName}
                         query={query}
                         setQuery={setQuery}
+                        labels={labels}
+                        setLabels={setLabels}
+                        setSuggestions={setSuggestions}
                         projectStartupInfo={projectStartupInfo}
                         queuedAssetEvents={queuedAssetEvents}
                         assetListEvents={assetListEvents}

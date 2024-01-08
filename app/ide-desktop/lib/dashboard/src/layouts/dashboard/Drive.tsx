@@ -13,6 +13,7 @@ import CategorySwitcher from '#/layouts/dashboard/CategorySwitcher'
 import * as categorySwitcherUtils from '#/layouts/dashboard/CategorySwitcher/categorySwitcherUtils'
 import DriveBar from '#/layouts/dashboard/DriveBar'
 import Labels from '#/layouts/dashboard/Labels'
+import type * as assetSearchBar from '#/layouts/dashboard/assetSearchBar'
 import * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
@@ -45,6 +46,9 @@ export interface DriveProps {
     dispatchAssetEvent: (directoryEvent: assetEvent.AssetEvent) => void
     query: assetQuery.AssetQuery
     setQuery: React.Dispatch<React.SetStateAction<assetQuery.AssetQuery>>
+    labels: backendModule.Label[]
+    setLabels: React.Dispatch<React.SetStateAction<backendModule.Label[]>>
+    setSuggestions: (suggestions: assetSearchBar.Suggestion[]) => void
     projectStartupInfo: backendModule.ProjectStartupInfo | null
     setAssetSettingsPanelProps: React.Dispatch<
         React.SetStateAction<assetSettingsPanel.AssetSettingsPanelRequiredProps | null>
@@ -72,6 +76,9 @@ export default function Drive(props: DriveProps) {
         queuedAssetEvents,
         query,
         setQuery,
+        labels,
+        setLabels,
+        setSuggestions,
         projectStartupInfo,
         assetListEvents,
         dispatchAssetListEvent,
@@ -98,7 +105,6 @@ export default function Drive(props: DriveProps) {
             localStorage.get(localStorageModule.LocalStorageKey.driveCategory) ??
             categorySwitcherUtils.Category.home
     )
-    const [labels, setLabels] = React.useState<backendModule.Label[]>([])
     // const [currentLabels, setCurrentLabels] = React.useState<backendModule.LabelName[] | null>(null)
     const [newLabelNames, setNewLabelNames] = React.useState(new Set<backendModule.LabelName>())
     const [deletedLabelNames, setDeletedLabelNames] = React.useState(
@@ -134,7 +140,7 @@ export default function Drive(props: DriveProps) {
                 setLabels(await backend.listTags())
             }
         })()
-    }, [backend, organization?.isEnabled])
+    }, [backend, organization?.isEnabled, /* should never change */ setLabels])
 
     const doUploadFiles = React.useCallback(
         (files: File[]) => {
@@ -205,13 +211,13 @@ export default function Drive(props: DriveProps) {
                     new Set([...labelNames].filter(labelName => labelName !== newLabelName))
             )
         },
-        [backend, /* should never change */ toastAndLog]
+        [backend, /* should never change */ toastAndLog, /* should never change */ setLabels]
     )
 
     const doDeleteLabel = React.useCallback(
         async (id: backendModule.TagId, value: backendModule.LabelName) => {
             setDeletedLabelNames(oldNames => new Set([...oldNames, value]))
-            setQuery(oldQuery => oldQuery.delete({ labels: [value] }))
+            setQuery(oldQuery => oldQuery.deleteFromEveryTerm({ labels: [value] }))
             try {
                 await backend.deleteTag(id, value)
                 dispatchAssetEvent({
@@ -231,6 +237,7 @@ export default function Drive(props: DriveProps) {
             /* should never change */ setQuery,
             /* should never change */ dispatchAssetEvent,
             /* should never change */ toastAndLog,
+            /* should never change */ setLabels,
         ]
     )
 
@@ -358,6 +365,7 @@ export default function Drive(props: DriveProps) {
                     setQuery={setQuery}
                     category={category}
                     allLabels={allLabels}
+                    setSuggestions={setSuggestions}
                     initialProjectName={initialProjectName}
                     projectStartupInfo={projectStartupInfo}
                     deletedLabelNames={deletedLabelNames}

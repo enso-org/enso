@@ -10,6 +10,7 @@ import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import type * as backendModule from '#/services/backend'
+import * as assetQuery from '#/utilities/assetQuery'
 import * as permissions from '#/utilities/permissions'
 import * as shortcuts from '#/utilities/shortcuts'
 import * as uniqueString from '#/utilities/uniqueString'
@@ -73,9 +74,11 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
                 .map(label => (
                     <Label
                         key={label}
+                        title="Right click to remove label."
                         color={labels.get(label)?.color ?? labelUtils.DEFAULT_LABEL_COLOR}
                         active={!temporarilyRemovedLabels.has(label)}
                         disabled={temporarilyRemovedLabels.has(label)}
+                        negated={temporarilyRemovedLabels.has(label)}
                         className={
                             temporarilyRemovedLabels.has(label)
                                 ? 'relative before:absolute before:rounded-full before:border-2 before:border-delete before:inset-0 before:w-full before:h-full'
@@ -128,10 +131,8 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
                         onClick={event => {
                             event.preventDefault()
                             event.stopPropagation()
-                            setQuery(oldQuery =>
-                                oldQuery.labels.includes(label)
-                                    ? oldQuery.delete({ labels: [label] })
-                                    : oldQuery.add({ labels: [label] })
+                            setQuery(oldQuery => 
+                                assetQuery.toggleLabel(oldQuery, label, event.shiftKey)
                             )
                         }}
                     >
