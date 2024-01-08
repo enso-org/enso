@@ -4,7 +4,8 @@ import * as React from 'react'
 import PlusIcon from 'enso-assets/plus.svg'
 import Trash2Icon from 'enso-assets/trash2.svg'
 
-import type * as assetQuery from '../../assetQuery'
+import * as array from '../../array'
+import * as assetQuery from '../../assetQuery'
 import type * as backend from '../backend'
 import * as drag from '../drag'
 import * as modalProvider from '../../providers/modal'
@@ -42,6 +43,7 @@ export default function Labels(props: LabelsProps) {
         deletedLabelNames,
     } = props
     const currentLabels = query.labels
+    const currentNegativeLabels = query.negativeLabels
     const { setModal } = modalProvider.useSetModal()
 
     return (
@@ -55,69 +57,88 @@ export default function Labels(props: LabelsProps) {
                 {labels
                     .filter(label => !deletedLabelNames.has(label.value))
                     .sort((a, b) => (a.value > b.value ? 1 : a.value < b.value ? -1 : 0))
-                    .map(label => (
-                        <li key={label.id} className="group flex items-center gap-1">
-                            <Label
-                                draggable
-                                color={label.color}
-                                active={currentLabels.includes(label.value)}
-                                disabled={newLabelNames.has(label.value)}
-                                onClick={() => {
-                                    setQuery(oldQuery =>
-                                        oldQuery.labels.includes(label.value)
-                                            ? oldQuery.delete({ labels: [label.value] })
-                                            : oldQuery.add({ labels: [label.value] })
-                                    )
-                                }}
-                                onDragStart={event => {
-                                    drag.setDragImageToBlank(event)
-                                    const payload: drag.LabelsDragPayload = new Set([label.value])
-                                    drag.LABELS.bind(event, payload)
-                                    setModal(
-                                        <DragModal
-                                            event={event}
-                                            doCleanup={() => {
-                                                drag.LABELS.unbind(payload)
-                                            }}
-                                        >
-                                            <Label active color={label.color} onClick={() => {}}>
-                                                {label.value}
-                                            </Label>
-                                        </DragModal>
-                                    )
-                                }}
-                            >
-                                {label.value}
-                            </Label>
-                            {!newLabelNames.has(label.value) && (
-                                <button
-                                    className="flex"
+                    .map(label => {
+                        const negated = currentNegativeLabels.some(term =>
+                            array.shallowEqual(term, [label.value])
+                        )
+                        return (
+                            <li key={label.id} className="group flex items-center gap-1">
+                                <Label
+                                    draggable
+                                    color={label.color}
+                                    active={
+                                        negated ||
+                                        currentLabels.some(term =>
+                                            array.shallowEqual(term, [label.value])
+                                        )
+                                    }
+                                    negated={negated}
+                                    disabled={newLabelNames.has(label.value)}
                                     onClick={event => {
-                                        event.stopPropagation()
+                                        setQuery(oldQuery =>
+                                            assetQuery.toggleLabel(
+                                                oldQuery,
+                                                label.value,
+                                                event.shiftKey
+                                            )
+                                        )
+                                    }}
+                                    onDragStart={event => {
+                                        drag.setDragImageToBlank(event)
+                                        const payload: drag.LabelsDragPayload = new Set([
+                                            label.value,
+                                        ])
+                                        drag.LABELS.bind(event, payload)
                                         setModal(
-                                            <ConfirmDeleteModal
-                                                description={`the label '${label.value}'`}
-                                                doDelete={() => {
-                                                    doDeleteLabel(label.id, label.value)
+                                            <DragModal
+                                                event={event}
+                                                doCleanup={() => {
+                                                    drag.LABELS.unbind(payload)
                                                 }}
-                                            />
+                                            >
+                                                <Label
+                                                    active
+                                                    color={label.color}
+                                                    onClick={() => {}}
+                                                >
+                                                    {label.value}
+                                                </Label>
+                                            </DragModal>
                                         )
                                     }}
                                 >
-                                    <SvgMask
-                                        src={Trash2Icon}
-                                        alt="Delete"
-                                        className="opacity-0 group-hover:opacity-100 text-delete w-4 h-4"
-                                    />
-                                </button>
-                            )}
-                        </li>
-                    ))}
+                                    {label.value}
+                                </Label>
+                                {!newLabelNames.has(label.value) && (
+                                    <button
+                                        className="flex"
+                                        onClick={event => {
+                                            event.stopPropagation()
+                                            setModal(
+                                                <ConfirmDeleteModal
+                                                    description={`the label '${label.value}'`}
+                                                    doDelete={() => {
+                                                        doDeleteLabel(label.id, label.value)
+                                                    }}
+                                                />
+                                            )
+                                        }}
+                                    >
+                                        <SvgMask
+                                            src={Trash2Icon}
+                                            alt="Delete"
+                                            className="opacity-0 group-hover:opacity-100 text-delete w-4 h-4"
+                                        />
+                                    </button>
+                                )}
+                            </li>
+                        )
+                    })}
                 <li>
                     <Label
                         active
                         color={labelModule.DEFAULT_LABEL_COLOR}
-                        className="bg-frame-selected text-not-selected"
+                        className="bg-frame text-not-selected"
                         onClick={event => {
                             event.stopPropagation()
                             setModal(

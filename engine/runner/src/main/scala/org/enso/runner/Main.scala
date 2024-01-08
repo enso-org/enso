@@ -546,17 +546,19 @@ object Main {
       exitFail()
     }
 
-    val context = new ContextFactory().create(
-      packagePath,
-      System.in,
-      System.out,
-      Repl(makeTerminalForRepl()),
-      logLevel,
-      logMasking,
-      enableIrCaches           = true,
-      strictErrors             = true,
-      useGlobalIrCacheLocation = shouldUseGlobalCache
-    )
+    val context = ContextFactory
+      .create()
+      .projectRoot(packagePath)
+      .in(System.in)
+      .out(System.out)
+      .repl(Repl(makeTerminalForRepl()))
+      .logLevel(logLevel)
+      .logMasking(logMasking)
+      .enableIrCaches(true)
+      .strictErrors(true)
+      .useGlobalIrCacheLocation(shouldUseGlobalCache)
+      .build
+
     val topScope = context.getTopScope
     try {
       topScope.compile(shouldCompileDependencies)
@@ -628,21 +630,25 @@ object Main {
     if (inspect) {
       options.put("inspect", "")
     }
-    val context = new ContextFactory().create(
-      projectRoot,
-      System.in,
-      System.out,
-      Repl(makeTerminalForRepl()),
-      logLevel,
-      logMasking,
-      enableIrCaches,
-      disablePrivateCheck,
-      strictErrors          = true,
-      enableAutoParallelism = enableAutoParallelism,
-      executionEnvironment  = executionEnvironment,
-      warningsLimit         = warningsLimit,
-      options               = options
-    )
+    val context = ContextFactory
+      .create()
+      .projectRoot(projectRoot)
+      .in(System.in)
+      .out(System.out)
+      .repl(Repl(makeTerminalForRepl()))
+      .logLevel(logLevel)
+      .logMasking(logMasking)
+      .enableIrCaches(enableIrCaches)
+      .disablePrivateCheck(disablePrivateCheck)
+      .strictErrors(true)
+      .enableAutoParallelism(enableAutoParallelism)
+      .executionEnvironment(
+        if (executionEnvironment.isDefined) executionEnvironment.get else null
+      )
+      .warningsLimit(warningsLimit)
+      .options(options)
+      .build
+
     if (projectMode) {
       PackageManager.Default.loadPackage(file) match {
         case Success(pkg) =>
@@ -703,15 +709,16 @@ object Main {
     logMasking: Boolean,
     enableIrCaches: Boolean
   ): Unit = {
-    val executionContext = new ContextFactory().create(
-      path,
-      System.in,
-      System.out,
-      Repl(makeTerminalForRepl()),
-      logLevel,
-      logMasking,
-      enableIrCaches
-    )
+    val executionContext = ContextFactory
+      .create()
+      .projectRoot(path)
+      .in(System.in)
+      .out(System.out)
+      .repl(Repl(makeTerminalForRepl()))
+      .logLevel(logLevel)
+      .logMasking(logMasking)
+      .enableIrCaches(enableIrCaches)
+      .build
 
     val file = new File(path)
     val pkg  = PackageManager.Default.fromDirectory(file)
@@ -911,15 +918,16 @@ object Main {
     val replModuleName = "Internal_Repl_Module___"
     val projectRoot    = projectPath.getOrElse("")
     val context =
-      new ContextFactory().create(
-        projectRoot,
-        System.in,
-        System.out,
-        Repl(makeTerminalForRepl()),
-        logLevel,
-        logMasking,
-        enableIrCaches
-      )
+      ContextFactory
+        .create()
+        .projectRoot(projectRoot)
+        .in(System.in)
+        .out(System.out)
+        .repl(Repl(makeTerminalForRepl()))
+        .logLevel(logLevel)
+        .logMasking(logMasking)
+        .enableIrCaches(enableIrCaches)
+        .build
     val mainModule =
       context.evalModule(dummySourceToTriggerRepl, replModuleName)
     runMain(
