@@ -1108,8 +1108,13 @@ export default function AssetsTable(props: AssetsTableProps) {
 
     const doCopy = React.useCallback(() => {
         unsetModal()
-        setPasteData({ type: pasteDataModule.PasteType.copy, data: selectedKeys })
-    }, [selectedKeys, /* should never change */ unsetModal])
+        setSelectedKeys(oldSelectedKeys => {
+            queueMicrotask(() => {
+                setPasteData({ type: pasteDataModule.PasteType.copy, data: oldSelectedKeys })
+            })
+            return oldSelectedKeys
+        })
+    }, [/* should never change */ unsetModal])
 
     const doCut = React.useCallback(() => {
         unsetModal()
@@ -1142,6 +1147,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 if (pasteData.data.has(newParentKey)) {
                     toast.toast.error('Cannot paste a folder into itself.')
                 } else {
+                    doToggleDirectoryExpansion(newParentId, newParentKey, null, true)
                     if (pasteData.type === pasteDataModule.PasteType.copy) {
                         const assets = Array.from(pasteData.data, id =>
                             nodeMapRef.current.get(id)
@@ -1166,6 +1172,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         },
         [
             pasteData,
+            doToggleDirectoryExpansion,
             /* should never change */ unsetModal,
             /* should never change */ dispatchAssetEvent,
             /* should never change */ dispatchAssetListEvent,
@@ -1314,6 +1321,14 @@ export default function AssetsTable(props: AssetsTableProps) {
         [doRenderContextMenu, selectedKeys]
     )
 
+    const onDragOver = (event: React.DragEvent<Element>) => {
+        const payload = drag.ASSET_ROWS.lookup(event)
+        const filtered = payload?.filter(item => item.asset.parentId !== rootDirectoryId)
+        if (filtered != null && filtered.length > 0) {
+            event.preventDefault()
+        }
+    }
+
     const state = React.useMemo(
         // The type MUST be here to trigger excess property errors at typecheck time.
         (): AssetsTableState => ({
@@ -1408,15 +1423,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                     footer={
                         <div
                             className="grow"
-                            onDragOver={event => {
-                                const payload = drag.ASSET_ROWS.lookup(event)
-                                const filtered = payload?.filter(
-                                    item => item.asset.parentId !== rootDirectoryId
-                                )
-                                if (filtered != null && filtered.length > 0) {
-                                    event.preventDefault()
-                                }
-                            }}
+                            onDragEnter={onDragOver}
+                            onDragOver={onDragOver}
                             onDrop={event => {
                                 const payload = drag.ASSET_ROWS.lookup(event)
                                 const filtered = payload?.filter(

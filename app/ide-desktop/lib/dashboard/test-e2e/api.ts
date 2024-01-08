@@ -36,8 +36,8 @@ export async function mockApi(page: test.Page) {
     // eslint-disable-next-line no-restricted-syntax
     const defaultEmail = 'email@example.com' as backend.EmailAddress
     const defaultUsername = 'user name'
-    // eslint-disable-next-line no-restricted-syntax
-    const defaultOrganizationId = 'organization-placeholder id' as backend.UserOrOrganizationId
+    const defaultOrganizationId = backend.UserOrOrganizationId('organization-placeholder id')
+    const defaultDirectoryId = backend.UserOrOrganizationId('directory-placeholder id')
     const defaultUser: backend.UserOrOrganization = {
         email: defaultEmail,
         name: defaultUsername,
@@ -46,6 +46,7 @@ export async function mockApi(page: test.Page) {
     }
     let currentUser: backend.UserOrOrganization | null = defaultUser
     const assetMap = new Map<backend.AssetId, backend.AnyAsset>()
+    const deletedAssets = new Set<backend.AssetId>()
     const assets: backend.AnyAsset[] = []
 
     const addAsset = (asset: backend.AnyAsset) => {
@@ -55,12 +56,8 @@ export async function mockApi(page: test.Page) {
 
     // This will be used in the future.
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const removeAsset = (assetId: backend.AssetId) => {
-        const asset = assetMap.get(assetId)
-        assetMap.delete(assetId)
-        if (asset) {
-            assets.splice(assets.indexOf(asset), 1)
-        }
+    const deleteAsset = (assetId: backend.AssetId) => {
+        deletedAssets.add(assetId)
     }
 
     await test.test.step('Mock API', async () => {
@@ -81,11 +78,63 @@ export async function mockApi(page: test.Page) {
 
         // === Endpoints returning arrays ===
 
-        await page.route(BASE_URL + remoteBackendPaths.LIST_DIRECTORY_PATH + '*', async route => {
-            await route.fulfill({
-                json: { assets } satisfies remoteBackend.ListDirectoryResponseBody,
-            })
-        })
+        await page.route(
+            BASE_URL + remoteBackendPaths.LIST_DIRECTORY_PATH + '*',
+            async (route, request) => {
+                /** The type for the search query for this endpoint. */
+                interface Query {
+                    /* eslint-disable @typescript-eslint/naming-convention */
+                    parent_id?: string
+                    filter_by?: backend.FilterBy
+                    labels?: backend.LabelName[]
+                    recent_projects?: boolean
+                    /* eslint-enable @typescript-eslint/naming-convention */
+                }
+                // The type of the body sent by this app is statically known.
+                // eslint-disable-next-line no-restricted-syntax
+                const body = Object.fromEntries(
+                    new URL(request.url()).searchParams.entries()
+                ) as unknown as Query
+                const parentId = body.parent_id ?? defaultDirectoryId
+                let filteredAssets = assets.filter(asset => asset.parentId === parentId)
+                // This lint rule is broken; there is clearly a case for `undefined` below.
+                // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
+                switch (body.filter_by) {
+                    case backend.FilterBy.active: {
+                        filteredAssets = filteredAssets.filter(
+                            asset => !deletedAssets.has(asset.id)
+                        )
+                        break
+                    }
+                    case backend.FilterBy.trashed: {
+                        filteredAssets = filteredAssets.filter(asset => deletedAssets.has(asset.id))
+                        break
+                    }
+                    case backend.FilterBy.recent: {
+                        filteredAssets = assets
+                            .filter(asset => !deletedAssets.has(asset.id))
+                            // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+                            .slice(0, 10)
+                        break
+                    }
+                    case backend.FilterBy.all:
+                    case null: {
+                        // do nothing
+                        break
+                    }
+                    // eslint-disable-next-line no-restricted-syntax
+                    case undefined: {
+                        // do nothing
+                        break
+                    }
+                }
+                await route.fulfill({
+                    json: {
+                        assets: filteredAssets,
+                    } satisfies remoteBackend.ListDirectoryResponseBody,
+                })
+            }
+        )
         await page.route(BASE_URL + remoteBackendPaths.LIST_FILES_PATH + '*', async route => {
             await route.fulfill({
                 json: { files: [] } satisfies remoteBackend.ListFilesResponseBody,
@@ -190,17 +239,19 @@ export async function mockApi(page: test.Page) {
                     // The type of the body sent by this app is statically known.
                     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                     const body: Body = await request.postDataJSON()
+                    const parentId = body.parentDirectoryId
                     // Can be any asset ID.
                     const id = backend.DirectoryId(uniqueString.uniqueString())
                     const json: backend.CopyAssetResponse = {
                         asset: {
                             id,
-                            parentId: body.parentDirectoryId,
+                            parentId,
                             title: asset.title + ' (copy)',
                         },
                     }
                     const newAsset = { ...asset }
                     newAsset.id = id
+                    newAsset.parentId = parentId
                     newAsset.title += ' (copy)'
                     addAsset(newAsset)
                     await route.fulfill({ json })

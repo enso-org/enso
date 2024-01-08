@@ -194,6 +194,11 @@ export function locateCutButton(page: test.Locator | test.Page) {
     return page.getByRole('button', { name: 'Cut' }).getByText('Cut')
 }
 
+/** Find a "paste" button (if any) on the current page. */
+export function locatePasteButton(page: test.Locator | test.Page) {
+    return page.getByRole('button', { name: 'Paste' }).getByText('Paste')
+}
+
 /** Find a "download" button (if any) on the current page. */
 export function locateDownloadButton(page: test.Locator | test.Page) {
     return page.getByRole('button', { name: 'Download' }).getByText('Download')
@@ -308,6 +313,17 @@ export function locateLabelsPanel(page: test.Locator | test.Page) {
 export function locateLabelsList(page: test.Locator | test.Page) {
     // This has no identifying features.
     return page.getByTestId('labels-list')
+}
+
+// ===============================
+// === Visual layout utilities ===
+// ===============================
+
+/** Get the left side of the bounding box of an asset row. The locator MUST be for an asset row.
+ * DO NOT assume the left side of the outer container will change. This means that it is NOT SAFE
+ * to do anything with the returned values other than comparing them. */
+export function getAssetRowLeftPx(locator: test.Locator) {
+    return locator.evaluate(el => el.children[0]?.children[0]?.getBoundingClientRect().left ?? 0)
 }
 
 // =============

@@ -474,6 +474,18 @@ export default function AssetRow(props: AssetRowProps) {
         )
     }, [])
 
+    const onDragOver = (event: React.DragEvent<Element>) => {
+        const directoryKey =
+            item.item.type === backendModule.AssetType.directory ? item.key : item.directoryKey
+        const payload = drag.ASSET_ROWS.lookup(event)
+        if (payload != null && payload.every(innerItem => innerItem.key !== directoryKey)) {
+            event.preventDefault()
+            if (item.item.type === backendModule.AssetType.directory) {
+                setIsDraggedOver(true)
+            }
+        }
+    }
+
     switch (asset.type) {
         case backendModule.AssetType.directory:
         case backendModule.AssetType.project:
@@ -515,7 +527,7 @@ export default function AssetRow(props: AssetRowProps) {
                         setItem={setItem}
                         initialRowState={rowState}
                         setRowState={setRowState}
-                        onDragEnter={() => {
+                        onDragEnter={event => {
                             if (dragOverTimeoutHandle.current != null) {
                                 window.clearTimeout(dragOverTimeoutHandle.current)
                             }
@@ -529,19 +541,12 @@ export default function AssetRow(props: AssetRowProps) {
                                     )
                                 }, DRAG_EXPAND_DELAY_MS)
                             }
+                            // Required because `dragover` does not fire on `mouseenter`.
+                            onDragOver(event)
                         }}
                         onDragOver={event => {
                             props.onDragOver?.(event)
-                            if (item.item.type === backendModule.AssetType.directory) {
-                                const payload = drag.ASSET_ROWS.lookup(event)
-                                if (
-                                    payload != null &&
-                                    payload.every(innerItem => innerItem.key !== item.key)
-                                ) {
-                                    event.preventDefault()
-                                    setIsDraggedOver(true)
-                                }
-                            }
+                            onDragOver(event)
                         }}
                         onDragEnd={event => {
                             clearDragState()
@@ -561,28 +566,30 @@ export default function AssetRow(props: AssetRowProps) {
                         onDrop={event => {
                             props.onDrop?.(event)
                             clearDragState()
-                            if (asset.type === backendModule.AssetType.directory) {
-                                const payload = drag.ASSET_ROWS.lookup(event)
-                                if (
-                                    payload != null &&
-                                    payload.every(innerItem => innerItem.key !== item.key)
-                                ) {
-                                    event.preventDefault()
-                                    event.stopPropagation()
-                                    unsetModal()
-                                    doToggleDirectoryExpansion(
-                                        asset.id,
-                                        item.key,
-                                        asset.title,
-                                        true
-                                    )
-                                    dispatchAssetEvent({
-                                        type: assetEventModule.AssetEventType.move,
-                                        newParentKey: item.key,
-                                        newParentId: asset.id,
-                                        ids: new Set(payload.map(dragItem => dragItem.key)),
-                                    })
-                                }
+                            const [directoryKey, directoryId, directoryTitle] =
+                                item.item.type === backendModule.AssetType.directory
+                                    ? [item.key, item.item.id, asset.title]
+                                    : [item.directoryKey, item.directoryId, null]
+                            const payload = drag.ASSET_ROWS.lookup(event)
+                            if (
+                                payload != null &&
+                                payload.every(innerItem => innerItem.key !== directoryKey)
+                            ) {
+                                event.preventDefault()
+                                event.stopPropagation()
+                                unsetModal()
+                                doToggleDirectoryExpansion(
+                                    directoryId,
+                                    directoryKey,
+                                    directoryTitle,
+                                    true
+                                )
+                                dispatchAssetEvent({
+                                    type: assetEventModule.AssetEventType.move,
+                                    newParentKey: directoryKey,
+                                    newParentId: directoryId,
+                                    ids: new Set(payload.map(dragItem => dragItem.key)),
+                                })
                             }
                         }}
                     />
