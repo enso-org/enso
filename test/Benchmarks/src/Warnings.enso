@@ -33,8 +33,8 @@ add_one_warning vec =
         if i == an_index then Warning.attach (My_Error.Error "warning") x else x
 
 add_ten_percent_warnings vec =
-    should_attach_warning = (Random.integer 0 10) == 0
     vec.map x->
+        should_attach_warning = (Random.integer 0 10) == 0
         if should_attach_warning then Warning.attach (My_Error.Error "warning") x else x
 
 add_all_warnings vec =
