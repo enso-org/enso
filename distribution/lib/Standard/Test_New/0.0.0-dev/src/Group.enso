@@ -9,9 +9,9 @@ type Group_Builder
     Impl builder
 
     ## Specifies a single test.
-    specify : Text -> (Nothing -> Any) -> Nothing
-    specify self (name:Text) ~code =
-        self.builder.append <| Spec.Impl name (_ -> code)
+    specify : Text -> (Nothing | Text) -> (Nothing -> Any) -> Nothing
+    specify self name ~code pending=Nothing =
+        self.builder.append <| Spec.Impl name (_ -> code) pending
         Nothing
 
 
