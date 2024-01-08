@@ -18,6 +18,7 @@ use crate::enso::IrCaches;
 use crate::paths::cache_directory;
 use crate::paths::Paths;
 use crate::paths::TargetTriple;
+use crate::paths::ENSO_DATA_DIRECTORY;
 use crate::paths::ENSO_TEST_JUNIT_DIR;
 use crate::project::ProcessWrapper;
 
@@ -523,24 +524,26 @@ impl RunContext {
         }
 
 
-        // if build_native_runner {
-        //     let factorial_input = "6";
-        //     let factorial_expected_output = "720";
-        //     let output = Command::new(&self.repo_root.runner)
-        //         .args([
-        //             "--run",
-        //
-        // self.repo_root.engine.runner_native.src.test.resources.factorial_enso.as_str(),
-        //             factorial_input,
-        //         ])
-        //         .env(ENSO_DATA_DIRECTORY.name(), &self.paths.engine.dir)
-        //         .run_stdout()
-        //         .await?;
-        //     ensure!(
-        //         output.contains(factorial_expected_output),
-        //         "Native runner output does not contain expected result."
-        //     );
-        // }
+        if build_native_runner {
+            let factorial_input = "6";
+            let factorial_expected_output = "720";
+            let output = Command::new(&self.repo_root.runner)
+                .args([
+                    "--run",
+                    self.repo_root.engine.runner_native.src.test.resources.factorial_enso.as_str(),
+                    factorial_input,
+                ])
+                .set_env(
+                    ENSO_DATA_DIRECTORY,
+                    self.repo_root.built_distribution.enso_engine_triple.engine_package.as_path(),
+                )?
+                .run_stdout()
+                .await?;
+            ensure!(
+                output.contains(factorial_expected_output),
+                "Native runner output does not contain expected result."
+            );
+        }
 
 
         // Verify License Packages in Distributions
