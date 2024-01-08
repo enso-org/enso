@@ -2,8 +2,7 @@
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import ListWidget from '@/components/widgets/ListWidget.vue'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
-import { ForcePort } from '@/providers/portInfo'
-import { AnyWidget, Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { Ast, RawAst } from '@/util/ast'
 import { computed } from 'vue'
 
@@ -25,12 +24,13 @@ const defaultItem = computed(() => {
 
 const value = computed({
   get() {
-    if (props.input.ast == null) return []
-    return Array.from(props.input.ast.children()).filter(
+    if (!(props.input.value instanceof Ast.Ast)) return []
+    return Array.from(props.input.value.children()).filter(
       (child): child is Ast.Ast => child instanceof Ast.Ast,
     )
   },
   set(value) {
+    // TODO[ao]: here we re-create AST. It would be better to reuse existing AST nodes.
     const newCode = `[${value.map((item) => item.code()).join(', ')}]`
     props.onUpdate(newCode, props.input.portId)
   },
@@ -40,14 +40,15 @@ const navigator = injectGraphNavigator(true)
 </script>
 
 <script lang="ts">
-export const widgetDefinition = defineWidget(AnyWidget, {
-  priority: 1000,
+export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
+  priority: 1001,
   score: (props) => {
     if (props.input.dynamicConfig?.kind === 'Vector_Editor') return Score.Perfect
-    else if (props.input.argInfo?.reprType.startsWith('Standard.Base.Data.Vector.Vector'))
+    else if (props.input.expectedType?.startsWith('Standard.Base.Data.Vector.Vector'))
       return Score.Good
-    else
-      return props.input.ast?.treeType === RawAst.Tree.Type.Array ? Score.Perfect : Score.Mismatch
+    else if (props.input.value instanceof Ast.Ast)
+      return props.input.value.treeType === RawAst.Tree.Type.Array ? Score.Perfect : Score.Mismatch
+    else return Score.Mismatch
   },
 })
 </script>
@@ -66,7 +67,10 @@ export const widgetDefinition = defineWidget(AnyWidget, {
     contenteditable="false"
   >
     <template #default="{ item }">
-      <NodeWidget :input="new ForcePort(AnyWidget.Ast(item, itemConfig))" />
+      <NodeWidget
+        :input="{ ...WidgetInput.FromAst(item), dynamicConfig: itemConfig, forcePort: true }"
+        nest
+      />
     </template>
   </ListWidget>
 </template>
