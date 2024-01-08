@@ -42,9 +42,9 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.type.Types;
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
-import org.enso.polyglot.CompilationStage;
-import org.enso.polyglot.LanguageInfo;
-import org.enso.polyglot.MethodNames;
+import org.enso.common.CompilationStage;
+import org.enso.common.LanguageInfo;
+import org.enso.common.MethodNames;
 import org.enso.text.buffer.Rope;
 
 /** Represents a source module with a known location. */

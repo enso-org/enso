@@ -25,7 +25,7 @@ import org.enso.interpreter.runtime.type.Types;
 import org.enso.interpreter.util.ScalaConversions;
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
-import org.enso.polyglot.MethodNames;
+import org.enso.common.MethodNames;
 
 /** Represents the top scope of Enso execution, containing all the importable modules. */
 @ExportLibrary(InteropLibrary.class)

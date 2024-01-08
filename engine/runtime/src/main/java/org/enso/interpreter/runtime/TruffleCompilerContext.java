@@ -1,8 +1,5 @@
 package org.enso.interpreter.runtime;
 
-import com.oracle.truffle.api.TruffleFile;
-import com.oracle.truffle.api.TruffleLogger;
-import com.oracle.truffle.api.source.Source;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.List;
@@ -11,6 +8,9 @@ import java.util.Optional;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.logging.Level;
+
+import org.enso.common.CompilationStage;
+import org.enso.common.LanguageInfo;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.PackageRepository;
 import org.enso.compiler.Passes;
@@ -22,12 +22,13 @@ import org.enso.compiler.pass.analyse.BindingAnalysis$;
 import org.enso.editions.LibraryName;
 import org.enso.interpreter.caches.Cache;
 import org.enso.interpreter.caches.ModuleCache;
-import org.enso.interpreter.runtime.type.Types;
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
-import org.enso.polyglot.CompilationStage;
-import org.enso.polyglot.LanguageInfo;
-import org.enso.polyglot.data.TypeGraph;
+
+import com.oracle.truffle.api.TruffleFile;
+import com.oracle.truffle.api.TruffleLogger;
+import com.oracle.truffle.api.source.Source;
+
 import scala.Option;
 
 final class TruffleCompilerContext implements CompilerContext {
@@ -36,13 +37,13 @@ final class TruffleCompilerContext implements CompilerContext {
   private final TruffleLogger loggerCompiler;
   private final TruffleLogger loggerSerializationManager;
   private final RuntimeStubsGenerator stubsGenerator;
-  private final SerializationManager serializationManager;
+  private final Mock serializationManager;
 
   TruffleCompilerContext(EnsoContext context) {
     this.context = context;
     this.loggerCompiler = context.getLogger(Compiler.class);
-    this.loggerSerializationManager = context.getLogger(SerializationManager.class);
-    this.serializationManager = new SerializationManager(this);
+    this.loggerSerializationManager = context.getLogger(Mock.class);
+    this.serializationManager = null;
     this.stubsGenerator = new RuntimeStubsGenerator(context.getBuiltins());
   }
 
@@ -69,10 +70,6 @@ final class TruffleCompilerContext implements CompilerContext {
   @Override
   public PackageRepository getPackageRepository() {
     return context.getPackageRepository();
-  }
-
-  final SerializationManager getSerializationManager() {
-    return serializationManager;
   }
 
   @Override
@@ -161,11 +158,6 @@ final class TruffleCompilerContext implements CompilerContext {
   @Override
   public CompilationStage getCompilationStage(CompilerContext.Module module) {
     return module.getCompilationStage();
-  }
-
-  @Override
-  public TypeGraph getTypeHierarchy() {
-    return Types.getTypeHierarchy();
   }
 
   @Override
@@ -450,4 +442,12 @@ final class TruffleCompilerContext implements CompilerContext {
   }
 
   private static void emitIOException() throws IOException {}
+
+  private static interface Mock {
+    public void shutdown(boolean waitForPendingJobCompletion);
+    public Object serializeModule(Compiler compiler, CompilerContext.Module module, boolean useGlobalCacheLocations, boolean b);
+    public Option<Boolean> deserialize(Compiler compiler, CompilerContext.Module module);
+
+        public Object serializeLibrary(Compiler compiler, LibraryName libraryName, boolean useGlobalCacheLocations);
+  }
 }

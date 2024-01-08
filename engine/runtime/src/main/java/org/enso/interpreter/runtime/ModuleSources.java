@@ -4,7 +4,7 @@ import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.source.Source;
 import java.io.IOException;
 import org.enso.pkg.QualifiedName;
-import org.enso.polyglot.LanguageInfo;
+import org.enso.common.LanguageInfo;
 import org.enso.text.buffer.Rope;
 
 /**

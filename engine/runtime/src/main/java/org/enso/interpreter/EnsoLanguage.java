@@ -42,7 +42,7 @@ import org.enso.interpreter.runtime.tag.Patchable;
 import org.enso.interpreter.util.FileDetector;
 import org.enso.lockmanager.client.ConnectedLockManager;
 import org.enso.logger.masking.MaskingFactory;
-import org.enso.polyglot.LanguageInfo;
+import org.enso.common.LanguageInfo;
 import org.enso.polyglot.RuntimeOptions;
 import org.enso.syntax2.Line;
 import org.enso.syntax2.Tree;

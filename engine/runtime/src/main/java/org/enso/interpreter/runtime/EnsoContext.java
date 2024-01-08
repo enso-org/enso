@@ -60,7 +60,7 @@ import org.enso.librarymanager.resolved.LibraryRoot;
 import org.enso.pkg.Package;
 import org.enso.pkg.PackageManager;
 import org.enso.pkg.QualifiedName;
-import org.enso.polyglot.LanguageInfo;
+import org.enso.common.LanguageInfo;
 import org.enso.polyglot.RuntimeOptions;
 import org.enso.polyglot.debugger.IdExecutionService;
 import org.graalvm.options.OptionKey;

@@ -1835,6 +1835,7 @@ lazy val `runtime-suggestions` =
     )
     .dependsOn(`runtime-compiler`)
     .dependsOn(`polyglot-api`)
+    .dependsOn(`runtime`)
 
 lazy val `runtime-instrument-common` =
   (project in file("engine/runtime-instrument-common"))

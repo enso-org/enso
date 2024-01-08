@@ -794,7 +794,7 @@ object SuggestionBuilder {
   ): SuggestionBuilder[A] =
     new SuggestionBuilder[A](
       source,
-      compiler.context.getTypeHierarchy(),
+      org.enso.interpreter.runtime.`type`.Types.getTypeHierarchy(),
       compiler
     )
 

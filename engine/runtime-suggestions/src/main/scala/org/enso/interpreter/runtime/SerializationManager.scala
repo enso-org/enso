@@ -689,6 +689,8 @@ object SerializationManager {
   }
 
   def apply(context: CompilerContext): SerializationManager = {
-    context.asInstanceOf[TruffleCompilerContext].getSerializationManager()
+    // TBD:
+    // context.asInstanceOf[TruffleCompilerContext].getSerializationManager()
+    null
   }
 }

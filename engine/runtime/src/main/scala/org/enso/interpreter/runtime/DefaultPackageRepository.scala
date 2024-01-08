@@ -578,10 +578,13 @@ private class DefaultPackageRepository(
     val cache = ensurePackageIsLoaded(libraryName).toOption.flatMap { _ =>
       if (!loadedLibraryBindings.contains(libraryName)) {
         loadedPackages.get(libraryName).flatten.foreach(loadDependencies(_))
-        val cachedBindingOption = context
+        val cachedBindingOption = None
+        /* TBD: this has to be called somehow
+        context
           .asInstanceOf[TruffleCompilerContext]
           .getSerializationManager()
           .deserializeLibraryBindings(libraryName)
+        */
         loadedLibraryBindings.addOne((libraryName, cachedBindingOption))
       }
       loadedLibraryBindings.get(libraryName)
