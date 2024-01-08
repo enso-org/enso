@@ -16,8 +16,7 @@ interface WidgetUsageInfo {
    * An object which is used to distinguish between distinct nodes in a widget tree. When selecting
    * a widget type for an input value with the same `usageKey` as in parent widget, the widget types
    * that were previously used for this input value are not considered for selection. The key is
-   * determined by the widget input's method defined on {@link GetUsageKey} symbol key. When no such
-   * method is defined, the input value itself is used as the key.
+   * determined by {@link usageKeyForInput} method - currently it's just the widget's port Id.
    */
   usageKey: unknown
   /** All widget types that were rendered so far using the same AST node. */
@@ -26,6 +25,9 @@ interface WidgetUsageInfo {
   nesting: number
 }
 
+/**
+ * Get usage key for given input. See {@link WidgetUsageInfo} for details.
+ */
 export function usageKeyForInput(widget: WidgetInput): unknown {
   return widget.portId
 }

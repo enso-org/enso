@@ -86,8 +86,9 @@ export namespace WidgetInput {
  */
 export interface WidgetInput {
   /**
-   * Port identification. It's used to update code with widgets' changes. Also, the same widget
-   * type won't be instantiated for given port more than once.
+   * Port identification. See {@link PortId}
+   *
+   * Also, used as usage key (see {@link usageKeyForInput})
    */
   portId: PortId
   /**
