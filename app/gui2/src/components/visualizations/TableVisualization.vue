@@ -60,6 +60,7 @@ interface UnknownTable {
 </script>
 
 <script setup lang="ts">
+import { useAutoBlur } from '@/util/autoBlur'
 import { VisualizationContainer } from '@/util/visualizationBuiltins'
 import type {
   ColDef,
@@ -70,19 +71,7 @@ import type {
 import '@ag-grid-community/styles/ag-grid.css'
 import '@ag-grid-community/styles/ag-theme-alpine.css'
 import { computed, onMounted, reactive, ref, watchEffect, type Ref } from 'vue'
-const [
-  { ClientSideRowModelModule },
-  { RangeSelectionModule },
-  { Grid, ModuleRegistry },
-  { LicenseManager },
-] = await Promise.all([
-  import('@ag-grid-community/client-side-row-model'),
-  import('@ag-grid-enterprise/range-selection'),
-  import('@ag-grid-community/core'),
-  import('@ag-grid-enterprise/core'),
-])
-
-ModuleRegistry.registerModules([ClientSideRowModelModule, RangeSelectionModule])
+const { Grid, LicenseManager } = await import('ag-grid-enterprise')
 
 const props = defineProps<{ data: Data }>()
 const emit = defineEmits<{
@@ -97,6 +86,7 @@ const pageLimit = ref(0)
 const rowCount = ref(0)
 const isTruncated = ref(false)
 const tableNode = ref<HTMLElement>()
+useAutoBlur(tableNode)
 const widths = reactive(new Map<string, number>())
 const defaultColDef = {
   editable: false,
