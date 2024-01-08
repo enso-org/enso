@@ -63,8 +63,8 @@ public abstract class HostValueToEnsoNode extends Node {
   }
 
   @Specialization
-  long doChar(char i) {
-    return i;
+  Text doChar(char i) {
+    return Text.create(Character.toString(i));
   }
 
   @Specialization(guards = {"n != null", "iop.fitsInBigInteger(n)", "!warnings.hasWarnings(n)"})
