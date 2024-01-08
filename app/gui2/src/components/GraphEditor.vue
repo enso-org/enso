@@ -10,6 +10,7 @@ import {
 } from '@/components/ComponentBrowser/placement'
 import GraphEdges from '@/components/GraphEditor/GraphEdges.vue'
 import GraphNodes from '@/components/GraphEditor/GraphNodes.vue'
+import { performCollapse, prepareCollapsedInfo } from '@/components/GraphEditor/collapsing'
 import { Uploader, uploadedExpression } from '@/components/GraphEditor/upload'
 import GraphMouse from '@/components/GraphMouse.vue'
 import PlusButton from '@/components/PlusButton.vue'
@@ -29,9 +30,10 @@ import { colorFromString } from '@/util/colors'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import * as set from 'lib0/set'
+import { toast } from 'react-toastify'
 import type { ExprId, NodeMetadata } from 'shared/yjsModel'
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
-import { toast } from 'vue3-toastify'
+import { computed, onMounted, onScopeDispose, onUnmounted, ref, watch } from 'vue'
+import { ProjectManagerEvents } from '../../../ide-desktop/lib/dashboard/src/authentication/src/dashboard/projectManager'
 import { type Usage } from './ComponentBrowser/input'
 
 const EXECUTION_MODES = ['design', 'live']
@@ -51,24 +53,52 @@ const componentBrowserUsage = ref<Usage>({ type: 'newNode' })
 const suggestionDb = useSuggestionDbStore()
 const interaction = provideInteractionHandler()
 
+/// === UI Messages and Errors ===
 function initStartupToast() {
-  const startupToast = toast.info('Initializing the project. This can take up to one minute.', {
+  let startupToast = toast.info('Initializing the project. This can take up to one minute.', {
     autoClose: false,
   })
-  projectStore.firstExecution.then(() => {
-    if (startupToast != null) {
-      toast.remove(startupToast)
-    }
-  })
+
+  const removeToast = () => toast.dismiss(startupToast)
+  projectStore.firstExecution.then(removeToast)
+  onScopeDispose(removeToast)
+}
+
+function initConnectionLostToast() {
+  let connectionLostToast = 'connectionLostToast'
+  document.addEventListener(
+    ProjectManagerEvents.loadingFailed,
+    () => {
+      toast.error('Lost connection to Language Server.', {
+        autoClose: false,
+        toastId: connectionLostToast,
+      })
+    },
+    { once: true },
+  )
   onUnmounted(() => {
-    if (startupToast != null) {
-      toast.remove(startupToast)
-    }
+    toast.dismiss(connectionLostToast)
   })
 }
 
+projectStore.lsRpcConnection.then(
+  (ls) => {
+    ls.client.onError((err) => {
+      toast.error(`Language server error: ${err}`)
+    })
+  },
+  (err) => {
+    toast.error(`Connection to language server failed: ${err}`)
+  },
+)
+
+projectStore.executionContext.on('executionFailed', (err) => {
+  toast.error(`Execution Failed: ${err}`, {})
+})
+
 onMounted(() => {
   initStartupToast()
+  initConnectionLostToast()
 })
 
 const nodeSelection = provideGraphSelection(graphNavigator, graphStore.nodeRects, {
@@ -222,6 +252,17 @@ const graphBindingsHandler = graphBindings.handler({
   pasteNode() {
     if (keyboardBusy()) return false
     readNodeFromClipboard()
+  },
+  collapse() {
+    if (keyboardBusy()) return false
+    const selected = nodeSelection.selected
+    if (selected.size == 0) return
+    try {
+      const info = prepareCollapsedInfo(nodeSelection.selected, graphStore.db)
+      performCollapse(info)
+    } catch (err) {
+      console.log(`Error while collapsing, this is not normal. ${err}`)
+    }
   },
   enterNode() {
     if (keyboardBusy()) return false
@@ -548,14 +589,6 @@ function handleEdgeDrop(source: ExprId, position: Vec2) {
     @dragover.prevent
     @drop.prevent="handleFileDrop($event)"
   >
-    <ToastContainer
-      position="top-center"
-      theme="light"
-      closeOnClick="false"
-      draggable="false"
-      toastClassName="text-sm leading-170 bg-frame-selected rounded-2xl backdrop-blur-3xl"
-      transition="Vue-Toastification__bounce"
-    />
     <div :style="{ transform: graphNavigator.transform }" class="htmlLayer">
       <GraphNodes
         @nodeOutputPortDoubleClick="handleNodeOutputPortDoubleClick"

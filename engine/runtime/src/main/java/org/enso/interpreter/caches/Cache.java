@@ -4,21 +4,19 @@ import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLogger;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
-import org.bouncycastle.jcajce.provider.digest.SHA1;
-import org.bouncycastle.util.encoders.Hex;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.logger.masking.MaskedPath;
 import org.enso.pkg.SourceFile;
+import org.enso.text.Hex;
 
 /**
  * Cache encapsulates a common functionality needed to serialize and de-serialize objects, while
@@ -175,8 +173,10 @@ public abstract class Cache<T, M extends Cache.Metadata> {
    * @param blobDigest digest of serialized data
    * @param entry data to serialize
    * @return raw bytes representing serialized metadata
+   * @throws java.io.IOException in case of I/O error
    */
-  protected abstract byte[] metadata(String sourceDigest, String blobDigest, T entry);
+  protected abstract byte[] metadata(String sourceDigest, String blobDigest, T entry)
+      throws IOException;
 
   /**
    * Loads cache for this data, if possible.
@@ -218,6 +218,9 @@ public abstract class Cache<T, M extends Cache.Metadata> {
                   }
 
                   logger.log(logLevel, "Unable to load a cache [" + logName + "]");
+                } catch (IOException e) {
+                  logger.log(
+                      Level.FINE, "Unable to load a cache [" + logName + "]: " + e.getMessage(), e);
                 } catch (Exception e) {
                   logger.log(
                       Level.WARNING,
@@ -330,9 +333,12 @@ public abstract class Cache<T, M extends Cache.Metadata> {
    * De-serializes raw bytes to data's metadata.
    *
    * @param bytes raw bytes representing metadata
+   * @param logger logger to use
    * @return non-empty metadata, if de-serialization was successful
+   * @throws IOException in case of I/O error
    */
-  protected abstract Optional<M> metadataFromBytes(byte[] bytes, TruffleLogger logger);
+  protected abstract Optional<M> metadataFromBytes(byte[] bytes, TruffleLogger logger)
+      throws IOException;
 
   /**
    * Compute digest of cache's data
@@ -393,7 +399,11 @@ public abstract class Cache<T, M extends Cache.Metadata> {
    * @return digest used for computing hashes
    */
   protected MessageDigest messageDigest() {
-    return new SHA1.Digest();
+    try {
+      return MessageDigest.getInstance("SHA-1");
+    } catch (NoSuchAlgorithmException ex) {
+      throw new IllegalStateException("Unreachable", ex);
+    }
   }
 
   /**
@@ -501,8 +511,6 @@ public abstract class Cache<T, M extends Cache.Metadata> {
               });
     }
   }
-
-  protected static final Charset metadataCharset = StandardCharsets.UTF_8;
 
   /**
    * Roots encapsulates two possible locations where caches can be stored.

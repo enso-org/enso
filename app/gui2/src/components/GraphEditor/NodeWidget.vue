@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import type { PortId } from '@/providers/portInfo'
 import { injectWidgetRegistry, type WidgetInput } from '@/providers/widgetRegistry'
-import type { WidgetConfiguration } from '@/providers/widgetRegistry/configuration'
 import { injectWidgetTree } from '@/providers/widgetTree'
 import {
   injectWidgetUsageInfo,
@@ -14,7 +13,7 @@ import { computed, proxyRefs } from 'vue'
 const props = defineProps<{
   input: WidgetInput
   nest?: boolean
-  dynamicConfig?: WidgetConfiguration | undefined
+  allowEmpty?: boolean
   /**
    * A function that intercepts and handles a value update emitted by this widget. When it returns
    * `false`, the update continues to be propagated to the parent widget. When it returns `true`,
@@ -43,7 +42,6 @@ const selectedWidget = computed(() => {
   return registry.select(
     {
       input: props.input,
-      config: props.dynamicConfig ?? undefined,
       nesting: nesting.value,
     },
     sameInputParentWidgets.value,
@@ -95,13 +93,12 @@ const spanStart = computed(() => {
     v-if="selectedWidget"
     ref="rootNode"
     :input="props.input"
-    :config="dynamicConfig"
     :nesting="nesting"
     :data-span-start="spanStart"
     @update="updateHandler"
   />
   <span
-    v-else
+    v-else-if="!props.allowEmpty"
     :title="`No matching widget for input: ${
       Object.getPrototypeOf(props.input)?.constructor?.name ?? JSON.stringify(props.input)
     }`"

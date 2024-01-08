@@ -2,13 +2,23 @@
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { injectFunctionInfo, provideFunctionInfo } from '@/providers/functionInfo'
 import type { PortId } from '@/providers/portInfo'
-import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
-import { widgetConfigurationSchema } from '@/providers/widgetRegistry/configuration'
+import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import {
+  argsWidgetConfigurationSchema,
+  functionCallConfiguration,
+} from '@/providers/widgetRegistry/configuration'
 import { useGraphStore } from '@/stores/graph'
 import { useProjectStore, type NodeVisualizationConfiguration } from '@/stores/project'
-import { assert, assertUnreachable } from '@/util/assert'
+import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
-import { ArgumentApplication, ArgumentAst, ArgumentPlaceholder } from '@/util/callTree'
+import {
+  ArgumentApplication,
+  ArgumentApplicationKey,
+  ArgumentAst,
+  ArgumentPlaceholder,
+  getAccessOprSubject,
+  interpretCall,
+} from '@/util/callTree'
 import type { Opt } from '@/util/data/opt'
 import type { ExprId } from 'shared/yjsModel'
 import { computed, proxyRefs } from 'vue'
@@ -19,32 +29,42 @@ const project = useProjectStore()
 
 provideFunctionInfo(
   proxyRefs({
-    callId: computed(() => props.input.exprId),
+    callId: computed(() => props.input.value.exprId),
   }),
 )
 
 const methodCallInfo = computed(() => {
-  const input: Ast.Ast = props.input
-  return graph.db.getMethodCallInfo(input.exprId)
+  return graph.db.getMethodCallInfo(props.input.value.exprId)
 })
 
 const interpreted = computed(() => {
-  return ArgumentApplication.Interpret(props.input, methodCallInfo.value == null)
+  return interpretCall(props.input.value, methodCallInfo.value == null)
 })
 
 const application = computed(() => {
   const call = interpreted.value
-  if (!call) return props.input
+  if (!call) return null
   const noArgsCall = call.kind === 'prefix' ? graph.db.getMethodCall(call.func.exprId) : undefined
 
   const info = methodCallInfo.value
   return ArgumentApplication.FromInterpretedWithInfo(
     call,
-    noArgsCall,
-    info?.methodCall,
-    info?.suggestion,
+    {
+      noArgsCall,
+      appMethodCall: info?.methodCall,
+      suggestion: info?.suggestion,
+      widgetCfg: widgetConfiguration.value,
+    },
     !info?.staticallyApplied,
   )
+})
+
+const innerInput = computed(() => {
+  if (application.value instanceof ArgumentApplication) {
+    return application.value.toWidgetInput()
+  } else {
+    return props.input
+  }
 })
 
 const escapeString = (str: string): string => {
@@ -53,19 +73,26 @@ const escapeString = (str: string): string => {
 }
 const makeArgsList = (args: string[]) => '[' + args.map(escapeString).join(', ') + ']'
 
-const selfArgumentExprId = computed<Opt<ExprId>>(() => {
-  const analyzed = ArgumentApplication.Interpret(props.input, true)
+const selfArgumentAstId = computed<Opt<ExprId>>(() => {
+  const analyzed = interpretCall(props.input.value, true)
   if (analyzed.kind === 'infix') {
     return analyzed.lhs?.exprId
   } else {
-    return analyzed.args[0]?.argument.exprId
+    const knownArguments = methodCallInfo.value?.suggestion?.arguments
+    const selfArgument =
+      knownArguments?.[0]?.name === 'self'
+        ? getAccessOprSubject(analyzed.func)
+        : analyzed.args[0]?.argument
+    return selfArgument?.exprId
   }
 })
 
 const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => {
-  const tree = props.input
-  const expressionId = selfArgumentExprId.value
-  const astId = tree.exprId
+  // If we inherit dynamic config, there is no point in attaching visualization.
+  if (props.input.dynamicConfig) return null
+
+  const expressionId = selfArgumentAstId.value
+  const astId = props.input.value.exprId
   if (astId == null || expressionId == null) return null
   const info = graph.db.getMethodCallInfo(astId)
   if (!info) return null
@@ -86,11 +113,12 @@ const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => 
 
 const visualizationData = project.useVisualizationData(visualizationConfig)
 const widgetConfiguration = computed(() => {
+  if (props.input.dynamicConfig?.kind === 'FunctionCall') return props.input.dynamicConfig
   const data = visualizationData.value
   if (data != null && data.ok) {
-    const parseResult = widgetConfigurationSchema.safeParse(data.value)
+    const parseResult = argsWidgetConfigurationSchema.safeParse(data.value)
     if (parseResult.success) {
-      return parseResult.data
+      return functionCallConfiguration(parseResult.data)
     } else {
       console.error('Unable to parse widget configuration.', data, parseResult.error)
     }
@@ -123,7 +151,7 @@ function handleArgUpdate(value: unknown, origin: PortId): boolean {
         console.error(`Don't know how to put this in a tree`, value)
         return true
       }
-      const name = argApp.argument.insertAsNamed ? argApp.argument.info.name : null
+      const name = argApp.argument.insertAsNamed ? argApp.argument.argInfo.name : null
       const ast = Ast.App.new(argApp.appTree, name, newArg, edit)
       props.onUpdate(ast, argApp.appTree.exprId)
       return true
@@ -168,10 +196,7 @@ function handleArgUpdate(value: unknown, origin: PortId): boolean {
           } else {
             // Process an argument to the right of the removed argument.
             assert(innerApp.appTree instanceof Ast.App)
-            const infoName =
-              innerApp.argument instanceof ArgumentAst && innerApp.argument.info != null
-                ? innerApp.argument.info?.name ?? null
-                : null
+            const infoName = innerApp.argument.argInfo?.name ?? null
             if (newArgs.length || (!innerApp.appTree.argumentName && infoName)) {
               // Positional arguments following the deleted argument must all be rewritten to named.
               newArgs.unshift({
@@ -204,10 +229,12 @@ function handleArgUpdate(value: unknown, origin: PortId): boolean {
 }
 </script>
 <script lang="ts">
-export const widgetDefinition = defineWidget([Ast.App, Ast.Ident, Ast.OprApp], {
+export const widgetDefinition = defineWidget(WidgetInput.isFunctionCall, {
   priority: -10,
   score: (props, db) => {
-    const ast = props.input
+    // If ArgumentApplicationKey is stored, we already are handled by some WidgetFunction.
+    if (props.input[ArgumentApplicationKey]) return Score.Mismatch
+    const ast = props.input.value
     if (ast.exprId == null) return Score.Mismatch
     const prevFunctionState = injectFunctionInfo(true)
 
@@ -229,5 +256,5 @@ export const widgetDefinition = defineWidget([Ast.App, Ast.Ident, Ast.OprApp], {
 </script>
 
 <template>
-  <NodeWidget :input="application" :dynamicConfig="widgetConfiguration" @update="handleArgUpdate" />
+  <NodeWidget :input="innerInput" @update="handleArgUpdate" />
 </template>

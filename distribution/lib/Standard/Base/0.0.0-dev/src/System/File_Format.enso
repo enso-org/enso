@@ -12,10 +12,10 @@ import project.Function.Function
 import project.Meta
 import project.Metadata.Display
 import project.Metadata.Widget
-import project.Network.HTTP.Response.Response
 import project.Network.URI.URI
 import project.Nothing.Nothing
 import project.System.File.File
+import project.System.File_Format_Metadata.File_Format_Metadata
 import project.System.Input_Stream.Input_Stream
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Json import Invalid_JSON
@@ -55,9 +55,9 @@ type Auto_Detect
        Finds a matching format for reading the file.
 
        It assumes that `file` already exists.
-    get_reading_format : File_For_Read -> Any | Nothing
-    get_reading_format file:File_For_Read =
-        get_format f-> f.for_file_read file
+    get_reading_format : File_Format_Metadata -> Any | Nothing
+    get_reading_format file:File_Format_Metadata =
+        get_format f-> f.for_read file
 
     ## PRIVATE
        Finds a matching format for reading the file.
@@ -67,11 +67,6 @@ type Auto_Detect
     get_writing_format : File -> Any | Nothing
     get_writing_format file =
         get_format f-> f.for_file_write file
-
-    ## PRIVATE
-    get_web_parser : Text -> URI -> Any | Nothing
-    get_web_parser content_type uri =
-        get_format f-> f.for_web content_type uri
 
 ## Interface for all file formats.
 type File_Format
@@ -117,14 +112,27 @@ type File_Format
 ## A file format for plain text files.
 type Plain_Text_Format
     ## A file format for plain text files with the specified encoding.
+
+       Arguments:
+       - encoding: The encoding to use.
+         If the encoding is set to `Infer`, it will be inferred from metadata if
+         available, falling back to UTF-8. For writing, `Infer` will also imply
+         the UTF-8 encoding as the default.
     @encoding Encoding.default_widget
-    Plain_Text (encoding:Encoding=Encoding.utf_8)
+    Plain_Text (encoding:Encoding|Infer = Infer)
 
     ## PRIVATE
        If the File_Format supports reading from the file, return a configured instance.
-    for_file_read : File_For_Read -> Plain_Text_Format | Nothing
-    for_file_read file:File_For_Read =
-        case file.extension of
+    for_read : File_Format_Metadata -> Plain_Text_Format | Nothing
+    for_read file:File_Format_Metadata =
+        content_type = file.interpret_content_type
+        from_content_type = content_type.if_not_nothing <|
+            case content_type.base_type of
+                "text/plain" ->
+                    effective_encoding = content_type.encoding.if_nothing Encoding.utf_8
+                    Plain_Text_Format.Plain_Text effective_encoding
+                _ -> Nothing
+        from_content_type.if_nothing <| case file.guess_extension of
             ".txt" -> Plain_Text_Format.Plain_Text
             ".log" -> Plain_Text_Format.Plain_Text
             _ -> Nothing
@@ -132,58 +140,42 @@ type Plain_Text_Format
     ## PRIVATE
        If this File_Format should be used for writing to that file, return a configured instance.
     for_file_write : File -> Plain_Text_Format | Nothing
-    for_file_write file = Plain_Text_Format.for_file_read file
-
-    ## PRIVATE
-       If the File_Format supports reading from the web response, return a configured instance.
-    for_web : Text -> URI -> Plain_Text_Format | Nothing
-    for_web content_type uri =
-        _ = [uri]
-        parts = content_type.split ";" . map .trim
-        case parts.first of
-            "text/plain" ->
-                charset_part = parts.find if_missing=Nothing (x->x.starts_with "charset=")
-                encoding = if charset_part.is_nothing then Encoding.utf_8 else
-                    parsed = Encoding.from_name (charset_part.drop 8)
-                    if parsed.is_error then Encoding.utf_8 else parsed
-                Plain_Text_Format.Plain_Text encoding
-            _ -> Nothing
+    for_file_write file = Plain_Text_Format.for_read file
 
     ## PRIVATE
        Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
     read self file on_problems =
-        file.read_text self.encoding on_problems
+        file.read_text (self.resolve_encoding file) on_problems
 
     ## PRIVATE
        Implements decoding the format from a stream.
     read_stream : Input_Stream -> File_Format_Metadata -> Any
     read_stream self stream:Input_Stream (metadata : File_Format_Metadata = File_Format_Metadata.no_information) =
-        _ = metadata
-        Text.from_bytes (stream.read_all_bytes) self.encoding
+        Text.from_bytes (stream.read_all_bytes) (self.resolve_encoding metadata)
+
+    ## PRIVATE
+    resolve_encoding : File_Format_Metadata -> Encoding
+    resolve_encoding self (metadata : File_Format_Metadata) =
+        if self.encoding != Infer then self.encoding else
+            content_type = metadata.interpret_content_type
+            resolved_encoding = content_type.if_not_nothing <| content_type.encoding
+            resolved_encoding.if_nothing Encoding.utf_8
 
 ## A file format for reading or writing files as a sequence of bytes.
 type Bytes
     ## PRIVATE
        If the File_Format supports reading from the file, return a configured instance.
-    for_file_read : File_For_Read -> Bytes | Nothing
-    for_file_read file:File_For_Read =
-        case file.extension of
+    for_read : File_Format_Metadata -> Bytes | Nothing
+    for_read file:File_Format_Metadata =
+        case file.guess_extension of
             ".dat" -> Bytes
             _ -> Nothing
 
     ## PRIVATE
        If this File_Format should be used for writing to that file, return a configured instance.
     for_file_write : File -> Bytes | Nothing
-    for_file_write file = Bytes.for_file_read file
-
-    ## PRIVATE
-       If the File_Format supports reading from the web response, return a configured instance.
-       As `Bytes`, does not support reading from the web returns `Nothing`.
-    for_web : Text -> URI -> Bytes | Nothing
-    for_web content_type uri =
-        _ = [content_type, uri]
-        Nothing
+    for_file_write file = Bytes.for_read file
 
     ## PRIVATE
        Implements the `File.read` for this `File_Format`
@@ -203,9 +195,14 @@ type Bytes
 type JSON_Format
     ## PRIVATE
        If the File_Format supports reading from the file, return a configured instance.
-    for_file_read : File_For_Read -> JSON_Format | Nothing
-    for_file_read file:File_For_Read =
-        case file.extension of
+    for_read : File_Format_Metadata -> JSON_Format | Nothing
+    for_read file:File_Format_Metadata =
+        content_type = file.interpret_content_type
+        from_content_type = content_type.if_not_nothing <|
+            case content_type.base_type of
+                "application/json" -> JSON_Format
+                _ -> Nothing
+        from_content_type.if_nothing <| case file.guess_extension of
             ".json" -> JSON_Format
             ".geojson" -> JSON_Format
             _ -> Nothing
@@ -213,17 +210,7 @@ type JSON_Format
     ## PRIVATE
        If this File_Format should be used for writing to that file, return a configured instance.
     for_file_write : File -> JSON_Format | Nothing
-    for_file_write file = JSON_Format.for_file_read file
-
-    ## PRIVATE
-       If the File_Format supports reading from the web response, return a configured instance.
-    for_web : Text -> URI -> JSON_Format | Nothing
-    for_web content_type uri =
-        _ = [uri]
-        first = content_type.split ';' . first . trim
-        case first of
-            "application/json" -> JSON_Format
-            _ -> Nothing
+    for_file_write file = JSON_Format.for_read file
 
     ## PRIVATE
        Implements the `File.read` for this `File_Format`
@@ -237,37 +224,9 @@ type JSON_Format
     ## PRIVATE
        Implements decoding the format from a stream.
     read_stream : Input_Stream -> File_Format_Metadata -> Any
-    read_stream self stream:Input_Stream (metadata : File_Format_Metadata = File_Format_Metadata.no_information) =
+    read_stream self stream:Input_Stream (metadata : File_Format_Metadata) =
         _ = metadata
         Text.from_bytes (stream.read_all_bytes) Encoding.utf_8 . parse_json
 
 ## A setting to infer the default behaviour of some option.
 type Infer
-
-## PRIVATE
-   A minimal interface allowing for_file_read
-type File_For_Read
-    ## PRIVATE
-       Arguments:
-       - path: the path or the URI of the file.
-       - name: the name of the file.
-       - extension: the extension of the file.
-       - read_first_bytes: a function that reads the first bytes of the file.
-       - content_type: the content type of the file.
-    Value path:Text|Nothing name:Text|Nothing extension:Text|Nothing (read_first_bytes:(Integer -> Nothing | Vector Integer)=(_->Nothing))
-
-## PRIVATE
-File_For_Read.from (that:File) = File_For_Read.Value that.path that.name that.extension that.read_first_bytes
-
-## PRIVATE
-   Metadata that may aid `read_stream`.
-type File_Format_Metadata
-    ## PRIVATE
-       Arguments:
-       - file_name: the name of the file.
-       - content_type: the content type of the file.
-    Value (file_name : Text | Nothing = Nothing) (content_type : Text | Nothing = Nothing)
-
-    ## PRIVATE
-    no_information : File_Format_Metadata
-    no_information = File_Format_Metadata.Value

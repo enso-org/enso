@@ -65,6 +65,7 @@ export default function AssetRow(props: AssetRowProps) {
         columns,
     } = props
     const {
+        visibilities,
         assetEvents,
         dispatchAssetEvent,
         dispatchAssetListEvent,
@@ -83,10 +84,13 @@ export default function AssetRow(props: AssetRowProps) {
     const [item, setItem] = React.useState(rawItem)
     const dragOverTimeoutHandle = React.useRef<number | null>(null)
     const asset = item.item
-    const [visibility, setVisibility] = React.useState(visibilityModule.Visibility.visible)
-    const [rowState, setRowState] = React.useState<assetsTable.AssetRowState>(() =>
-        object.merge(initialRowState, { setVisibility })
+    const [insertionVisibility, setInsertionVisibility] = React.useState(
+        visibilityModule.Visibility.visible
     )
+    const [rowState, setRowState] = React.useState<assetsTable.AssetRowState>(() =>
+        object.merge(initialRowState, { setVisibility: setInsertionVisibility })
+    )
+    const visibility = visibilities.get(key) ?? insertionVisibility
 
     React.useEffect(() => {
         setItem(rawItem)
@@ -99,10 +103,10 @@ export default function AssetRow(props: AssetRowProps) {
     const setAsset = assetTreeNode.useSetAsset(asset, setItem)
 
     React.useEffect(() => {
-        if (selected && visibility !== visibilityModule.Visibility.visible) {
+        if (selected && insertionVisibility !== visibilityModule.Visibility.visible) {
             setSelected(false)
         }
-    }, [selected, visibility, /* should never change */ setSelected])
+    }, [selected, insertionVisibility, /* should never change */ setSelected])
 
     const doCopyOnBackend = React.useCallback(
         async (newParentId: backendModule.DirectoryId | null) => {
@@ -212,7 +216,7 @@ export default function AssetRow(props: AssetRowProps) {
     }, [item, isSoleSelectedItem, /* should never change */ setAssetSettingsPanelProps])
 
     const doDelete = React.useCallback(async () => {
-        setVisibility(visibilityModule.Visibility.hidden)
+        setInsertionVisibility(visibilityModule.Visibility.hidden)
         if (asset.type === backendModule.AssetType.directory) {
             dispatchAssetListEvent({
                 type: assetListEventModule.AssetListEventType.closeFolder,
@@ -249,7 +253,7 @@ export default function AssetRow(props: AssetRowProps) {
                 key: item.key,
             })
         } catch (error) {
-            setVisibility(visibilityModule.Visibility.visible)
+            setInsertionVisibility(visibilityModule.Visibility.visible)
             toastAndLog(
                 errorModule.tryGetMessage(error)?.slice(0, -1) ??
                     `Could not delete ${backendModule.ASSET_TYPE_NAME[asset.type]}`
@@ -265,7 +269,7 @@ export default function AssetRow(props: AssetRowProps) {
 
     const doRestore = React.useCallback(async () => {
         // Visually, the asset is deleted from the Trash view.
-        setVisibility(visibilityModule.Visibility.hidden)
+        setInsertionVisibility(visibilityModule.Visibility.hidden)
         try {
             await backend.undoDeleteAsset(asset.id, asset.title)
             dispatchAssetListEvent({
@@ -273,7 +277,7 @@ export default function AssetRow(props: AssetRowProps) {
                 key: item.key,
             })
         } catch (error) {
-            setVisibility(visibilityModule.Visibility.visible)
+            setInsertionVisibility(visibilityModule.Visibility.visible)
             toastAndLog(`Unable to restore ${backendModule.ASSET_TYPE_NAME[asset.type]}`, error)
         }
     }, [
@@ -304,19 +308,19 @@ export default function AssetRow(props: AssetRowProps) {
             }
             case assetEventModule.AssetEventType.cut: {
                 if (event.ids.has(item.key)) {
-                    setVisibility(visibilityModule.Visibility.faded)
+                    setInsertionVisibility(visibilityModule.Visibility.faded)
                 }
                 break
             }
             case assetEventModule.AssetEventType.cancelCut: {
                 if (event.ids.has(item.key)) {
-                    setVisibility(visibilityModule.Visibility.visible)
+                    setInsertionVisibility(visibilityModule.Visibility.visible)
                 }
                 break
             }
             case assetEventModule.AssetEventType.move: {
                 if (event.ids.has(item.key)) {
-                    setVisibility(visibilityModule.Visibility.visible)
+                    setInsertionVisibility(visibilityModule.Visibility.visible)
                     await doMove(event.newParentKey, event.newParentId)
                 }
                 break
@@ -354,7 +358,7 @@ export default function AssetRow(props: AssetRowProps) {
             case assetEventModule.AssetEventType.removeSelf: {
                 // This is not triggered from the asset list, so it uses `item.id` instead of `key`.
                 if (event.id === asset.id && user != null) {
-                    setVisibility(visibilityModule.Visibility.hidden)
+                    setInsertionVisibility(visibilityModule.Visibility.hidden)
                     try {
                         await backend.createPermission({
                             action: null,
@@ -366,7 +370,7 @@ export default function AssetRow(props: AssetRowProps) {
                             key: item.key,
                         })
                     } catch (error) {
-                        setVisibility(visibilityModule.Visibility.visible)
+                        setInsertionVisibility(visibilityModule.Visibility.visible)
                         toastAndLog(null, error)
                     }
                 }
@@ -498,7 +502,9 @@ export default function AssetRow(props: AssetRowProps) {
                             isDraggedOver ? 'selected' : ''
                         }`}
                         {...props}
-                        hidden={hidden || visibility === visibilityModule.Visibility.hidden}
+                        hidden={
+                            hidden || insertionVisibility === visibilityModule.Visibility.hidden
+                        }
                         onContextMenu={(innerProps, event) => {
                             if (allowContextMenu) {
                                 event.preventDefault()
@@ -595,7 +601,7 @@ export default function AssetRow(props: AssetRowProps) {
                     />
                     {selected &&
                         allowContextMenu &&
-                        visibility !== visibilityModule.Visibility.hidden && (
+                        insertionVisibility !== visibilityModule.Visibility.hidden && (
                             // This is a copy of the context menu, since the context menu registers keyboard
                             // shortcut handlers. This is a bit of a hack, however it is preferable to duplicating
                             // the entire context menu (once for the keyboard actions, once for the JSX).

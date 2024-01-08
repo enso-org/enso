@@ -1,30 +1,41 @@
 <script setup lang="ts">
 import SliderWidget from '@/components/widgets/SliderWidget.vue'
-import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { Ast } from '@/util/ast'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const value = computed({
   get() {
-    return parseFloat(props.input.code())
+    const valueStr = WidgetInput.valueRepr(props.input)
+    return valueStr ? parseFloat(valueStr) : 0
   },
   set(value) {
-    props.onUpdate(value.toString(), props.input.exprId)
+    props.onUpdate(value.toString(), props.input.portId)
   },
 })
 </script>
 
 <script lang="ts">
-export const widgetDefinition = defineWidget(
-  (input): input is Ast.NumericLiteral | Ast.NegationOprApp =>
-    input instanceof Ast.NumericLiteral ||
-    (input instanceof Ast.NegationOprApp && input.argument instanceof Ast.NumericLiteral),
-  {
-    priority: 10,
-    score: Score.Perfect,
+export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
+  priority: 1001,
+  score: (props) => {
+    if (
+      props.input.value instanceof Ast.NumericLiteral ||
+      (props.input.value instanceof Ast.NegationOprApp &&
+        props.input.value.argument instanceof Ast.NumericLiteral)
+    )
+      return Score.Perfect
+    const type = props.input.expectedType
+    if (
+      type === 'Standard.Base.Data.Number' ||
+      type === 'Standard.Base.Data.Numbers.Integer' ||
+      type === 'Standard.Data.Numbers.Float'
+    )
+      return Score.Perfect
+    return Score.Mismatch
   },
-)
+})
 </script>
 
 <template>
