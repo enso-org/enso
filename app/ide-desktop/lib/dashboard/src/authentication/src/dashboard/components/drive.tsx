@@ -88,7 +88,6 @@ export default function Drive(props: DriveProps) {
     const { organization } = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
     const { localStorage } = localStorageProvider.useLocalStorage()
-    const { modal } = modalProvider.useModal()
     const { modalRef } = modalProvider.useModalRef()
     const toastAndLog = hooks.useToastAndLog()
     const [isFileBeingDragged, setIsFileBeingDragged] = React.useState(false)
@@ -113,10 +112,10 @@ export default function Drive(props: DriveProps) {
     const isCloud = backend.type === backendModule.BackendType.remote
 
     React.useEffect(() => {
-        if (modal != null) {
+        if (modalRef.current != null) {
             setIsFileBeingDragged(false)
         }
-    }, [modal])
+    }, [/* should never change */ modalRef])
 
     React.useEffect(() => {
         const onBlur = () => {

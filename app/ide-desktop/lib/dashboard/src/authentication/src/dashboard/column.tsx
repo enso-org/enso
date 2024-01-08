@@ -185,7 +185,6 @@ export function SharedWithColumn(props: SharedWithColumnProps) {
     } = props
     const session = authProvider.useNonPartialUserSession()
     const { setModal } = modalProvider.useSetModal()
-    const [isHovered, setIsHovered] = React.useState(false)
     const self = asset.permissions?.find(
         permission => permission.user.user_email === session.organization?.email
     )
@@ -207,15 +206,7 @@ export function SharedWithColumn(props: SharedWithColumnProps) {
         [/* should never change */ setItem]
     )
     return (
-        <div
-            className="flex items-center gap-1"
-            onMouseEnter={() => {
-                setIsHovered(true)
-            }}
-            onMouseLeave={() => {
-                setIsHovered(false)
-            }}
-        >
+        <div className="group flex items-center gap-1">
             {(asset.permissions ?? []).map(user => (
                 <PermissionDisplay key={user.user.pk} action={user.permission}>
                     {user.user.user_name}
@@ -223,7 +214,7 @@ export function SharedWithColumn(props: SharedWithColumnProps) {
             ))}
             {managesThisAsset && (
                 <button
-                    className={`h-4 w-4 ${isHovered ? '' : 'invisible pointer-events-none'}`}
+                    className="h-4 w-4 invisible pointer-events-none group-hover:visible group-hover:pointer-events-auto"
                     onClick={event => {
                         event.stopPropagation()
                         setModal(
