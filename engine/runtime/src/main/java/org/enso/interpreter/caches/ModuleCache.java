@@ -1,12 +1,14 @@
 package org.enso.interpreter.caches;
 
 import buildinfo.Info;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.source.Source;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Optional;
@@ -33,13 +35,9 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
   }
 
   @Override
-  protected byte[] metadata(String sourceDigest, String blobDigest, CachedModule entry) {
-    try {
-      return objectMapper.writeValueAsBytes(
-          new Metadata(sourceDigest, blobDigest, entry.compilationStage().toString()));
-    } catch (JsonProcessingException e) {
-      throw new RuntimeException(e);
-    }
+  protected byte[] metadata(String sourceDigest, String blobDigest, CachedModule entry)
+      throws IOException {
+    return new Metadata(sourceDigest, blobDigest, entry.compilationStage().toString()).toBytes();
   }
 
   @Override
@@ -69,14 +67,9 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
   }
 
   @Override
-  protected Optional<Metadata> metadataFromBytes(byte[] bytes, TruffleLogger logger) {
-    var maybeJsonString = new String(bytes, Cache.metadataCharset);
-    try {
-      return Optional.of(objectMapper.readValue(maybeJsonString, Metadata.class));
-    } catch (JsonProcessingException e) {
-      logger.log(logLevel, "Failed to deserialize module's metadata.", e);
-      return Optional.empty();
-    }
+  protected Optional<Metadata> metadataFromBytes(byte[] bytes, TruffleLogger logger)
+      throws IOException {
+    return Optional.of(Metadata.read(bytes));
   }
 
   private Optional<String> computeDigestOfModuleSources(Source source) {
@@ -85,7 +78,7 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
       if (source.hasBytes()) {
         sourceBytes = source.getBytes().toByteArray();
       } else {
-        sourceBytes = source.getCharacters().toString().getBytes(metadataCharset);
+        sourceBytes = source.getCharacters().toString().getBytes(StandardCharsets.UTF_8);
       }
       return Optional.of(computeDigestFromBytes(sourceBytes));
     } else {
@@ -171,17 +164,29 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
 
   public record CachedModule(Module moduleIR, CompilationStage compilationStage, Source source) {}
 
-  public record Metadata(
-      @JsonProperty("source_hash") String sourceHash,
-      @JsonProperty("blob_hash") String blobHash,
-      @JsonProperty("compilation_stage") String compilationStage)
-      implements Cache.Metadata {}
+  public record Metadata(String sourceHash, String blobHash, String compilationStage)
+      implements Cache.Metadata {
+    byte[] toBytes() throws IOException {
+      try (var os = new ByteArrayOutputStream();
+          var dos = new DataOutputStream(os)) {
+        dos.writeUTF(sourceHash());
+        dos.writeUTF(blobHash());
+        dos.writeUTF(compilationStage());
+        return os.toByteArray();
+      }
+    }
+
+    static Metadata read(byte[] arr) throws IOException {
+      try (var is = new ByteArrayInputStream(arr);
+          var dis = new DataInputStream(is)) {
+        return new Metadata(dis.readUTF(), dis.readUTF(), dis.readUTF());
+      }
+    }
+  }
 
   private static final String irCacheDataExtension = ".ir";
 
   private static final String irCacheMetadataExtension = ".meta";
-
-  private static final ObjectMapper objectMapper = new ObjectMapper();
 
   @SuppressWarnings("unchecked")
   private static <T extends Exception> T raise(Class<T> cls, Exception e) throws T {

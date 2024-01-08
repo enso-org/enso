@@ -1,5 +1,14 @@
 /** @file Utilities for manipulating arrays. */
 
+// ====================
+// === shallowEqual ===
+// ====================
+
+/** Whether both arrays contain the same items. Does not recurse into the items. */
+export function shallowEqual<T>(a: readonly T[], b: readonly T[]) {
+    return a.length === b.length && a.every((item, i) => item === b[i])
+}
+
 // =========================
 // === includesPredicate ===
 // =========================
