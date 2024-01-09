@@ -1,17 +1,20 @@
 /** @file Tests for `error.ts`. */
 import * as v from 'vitest'
 
-import * as error from '../error'
+import * as errorModule from '../error'
 
 // =============
 // === Tests ===
 // =============
 
-v.test('tryGetMessage', () => {
-    const message = 'A custom error message.'
-    v.expect(error.tryGetMessage<unknown>(new Error(message))).toBe(message)
-    v.expect(error.tryGetMessage<unknown>({ message: 'a' })).toBe('a')
-    v.expect(error.tryGetMessage<unknown>(message)).toBeNull()
-    v.expect(error.tryGetMessage<unknown>({})).toBeNull()
-    v.expect(error.tryGetMessage<unknown>(null)).toBeNull()
+const MESSAGE = 'A custom error message.'
+
+v.test.each([
+    { error: new Error(MESSAGE), message: MESSAGE },
+    { error: { message: 'a' }, message: 'a' },
+    { error: MESSAGE, message: null },
+    { error: {}, message: null },
+    { error: null, message: null },
+])('`error.tryGetMessage`', ({ error, message }) => {
+    v.expect(errorModule.tryGetMessage<unknown>(error)).toBe(message)
 })
