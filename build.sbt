@@ -231,7 +231,7 @@ ThisBuild / scalacOptions ++= Seq(
 )
 
 ThisBuild / Test / testOptions ++=
-  Seq(Tests.Argument("-oI")) ++
+  Seq(Tests.Argument(TestFrameworks.ScalaTest, "-oID")) ++
   sys.env
     .get("ENSO_TEST_JUNIT_DIR")
     .map { junitDir =>
@@ -758,6 +758,7 @@ lazy val `logging-service-logback` = project
       "org.slf4j"        % "slf4j-api"               % slf4jVersion,
       "io.sentry"        % "sentry-logback"          % "6.28.0",
       "io.sentry"        % "sentry"                  % "6.28.0",
+      "org.scalatest"   %% "scalatest"               % scalatestVersion   % Test,
       "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided"
     ) ++ logbackPkg
   )
@@ -1552,9 +1553,6 @@ lazy val runtime = (project in file("engine/runtime"))
     },
     Test / parallelExecution := false,
     Test / logBuffered := false,
-    Test / testOptions += Tests.Argument(
-      "-oD"
-    ), // show timings for individual tests
     scalacOptions += "-Ymacro-annotations",
     scalacOptions ++= Seq("-Ypatmat-exhaust-depth", "off"),
     libraryDependencies ++= jmh ++ jaxb ++ GraalVM.langsPkgs ++ Seq(

@@ -6,6 +6,7 @@ import org.enso.jsonrpc.Id.Number
 import org.enso.jsonrpc.{Request, ResponseResult, Unused}
 import org.enso.languageserver.monitoring.MonitoringApi
 import org.enso.languageserver.monitoring.MonitoringProtocol.{Ping, Pong}
+import org.enso.logger.ReportLogsOnFailure
 import org.enso.testkit.FlakySpec
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.must.Matchers
@@ -17,7 +18,8 @@ class PingHandlerSpec
     with ImplicitSender
     with AnyFlatSpecLike
     with Matchers
-    with FlakySpec {
+    with FlakySpec
+    with ReportLogsOnFailure {
 
   "A PingHandler" must "scatter pings to all subsystems" in {
     //given
